@@ -71,6 +71,8 @@ because it's genuinely a different kind of work.
 - Resumed [2026-07-28 Tue 12:09]
 - Paused [2026-07-28 Tue 12:09]
 - Resumed [2026-07-28 Tue 12:16]
+- Resumed [2026-07-28 Tue 12:30]
+- Paused [2026-07-28 Tue 12:30]
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-28 Tue 12:02]--[2026-07-28 Tue 12:03] =>  0:01
