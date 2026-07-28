@@ -53,8 +53,8 @@ end
 
 # 4. Line references cited in org-dev/SKILL.md still point at what they claim.
 set tool_block_line (grep -n "with-eval-after-load 'claude-code-ide" "$repo_root/modules/tools/claude-code-ide-org/config.el" | head -1 | cut -d: -f1)
-check "config.el tool-registration block start" "$tool_block_line" "462"
+check "config.el tool-registration block start" "$tool_block_line" "688"
 set config_el_lines (wc -l < "$repo_root/modules/tools/claude-code-ide-org/config.el" | string trim)
-check "config.el last line" "$config_el_lines" "528"
+check "config.el last line" "$config_el_lines" "754"
 
 exit $fail

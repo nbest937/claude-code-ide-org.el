@@ -32,8 +32,11 @@ Then ask Claude to finish the commit it already staged.
 - Paused [2026-07-28 Tue 13:59]
 - Resumed [2026-07-28 Tue 14:02]
 - Paused [2026-07-28 Tue 14:02]
+- Resumed [2026-07-28 Tue 14:14]
+- Paused [2026-07-28 Tue 14:15]
 :END:
 :LOGBOOK:
+CLOCK: [2026-07-28 Tue 14:14]--[2026-07-28 Tue 14:15] =>  0:01
 CLOCK: [2026-07-28 Tue 13:58]--[2026-07-28 Tue 13:59] =>  0:01
 CLOCK: [2026-07-28 Tue 13:57]--[2026-07-28 Tue 13:58] =>  0:01
 CLOCK: [2026-07-28 Tue 13:51]--[2026-07-28 Tue 13:57] =>  0:06
