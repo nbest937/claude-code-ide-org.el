@@ -22,6 +22,126 @@ each cluster is actually for, not by which layer (org vs Claude)
 would implement it — several items that live in different systems
 turned out to be the same underlying goal.
 
+** Developer tooling
+
+Doesn't fit any theme below — this is about maintaining *this
+repo's own code*, not about org-mode capability. Its own group
+because it's genuinely a different kind of work.
+
+*** DONE org-dev skill :code:
+:PROPERTIES:
+:ID:       e1e60e00-e7b7-4e62-88c3-55a936fdece7
+:CREATED:  [2026-07-28 Tue 10:18]
+:END:
+:SESSIONS:
+- Resumed [2026-07-28 Tue 10:53]
+- Paused [2026-07-28 Tue 10:54]
+- Resumed [2026-07-28 Tue 10:55]
+- Paused [2026-07-28 Tue 10:55]
+- Resumed [2026-07-28 Tue 10:57]
+- Paused [2026-07-28 Tue 10:59]
+- Resumed [2026-07-28 Tue 11:05]
+- Paused [2026-07-28 Tue 11:07]
+- Resumed [2026-07-28 Tue 11:10]
+- Paused [2026-07-28 Tue 11:12]
+- Resumed [2026-07-28 Tue 11:17]
+- Paused [2026-07-28 Tue 11:18]
+- Resumed [2026-07-28 Tue 11:18]
+- Paused [2026-07-28 Tue 11:18]
+- Resumed [2026-07-28 Tue 11:21]
+- Paused [2026-07-28 Tue 11:21]
+- Resumed [2026-07-28 Tue 11:22]
+- Paused [2026-07-28 Tue 11:22]
+- Resumed [2026-07-28 Tue 11:24]
+- Paused [2026-07-28 Tue 11:29]
+- Resumed [2026-07-28 Tue 11:30]
+:END:
+:LOGBOOK:
+CLOCK: [2026-07-28 Tue 11:30]
+CLOCK: [2026-07-28 Tue 11:24]--[2026-07-28 Tue 11:29] =>  0:05
+CLOCK: [2026-07-28 Tue 11:17]--[2026-07-28 Tue 11:18] =>  0:01
+CLOCK: [2026-07-28 Tue 11:10]--[2026-07-28 Tue 11:12] =>  0:02
+CLOCK: [2026-07-28 Tue 11:05]--[2026-07-28 Tue 11:07] =>  0:02
+CLOCK: [2026-07-28 Tue 10:57]--[2026-07-28 Tue 10:59] =>  0:02
+CLOCK: [2026-07-28 Tue 10:53]--[2026-07-28 Tue 10:54] =>  0:01
+:END:
+A development-tooling skill packaging the reload-and-verify
+procedure this session had to rediscover by hand, more than once:
+the =after!=/hook-ordering bug that only surfaced after a real
+Emacs restart, =bin/test= silently running against the wrong
+bundled org version for a while, and =org.skill='s zip needing
+unzip/edit/rezip rather than a direct text edit. Different from
+=org.skill= — that one is for editing =.org= file *content* for end
+users; this one is for reloading and verifying changes to *this
+project's own code* (config.el, hooks, bin/test).
+
+*Plan:* [8/8]
+- [X] Package as =org-dev.skill= (zip) at the repo root containing
+  =org-dev/SKILL.md=, matching =org.skill='s exact convention —
+  frontmatter with =name=/=description= including trigger conditions
+- [X] Document the Emacs-side reload procedure: =emacsclient -e
+  '(load-file "modules/tools/claude-code-ide-org/config.el")'= for a
+  live instance
+- [X] Document when a live reload isn't enough and a full Emacs
+  restart is required instead: anything touching =after!=/
+  =with-eval-after-load=/hook-registration-at-load-time logic — the
+  =org-clock-load= bug this session hit is the concrete example
+  (documented via CLAUDE.md's design notes prose; there is no
+  =config.el:249= line reference — confirmed absent from the repo)
+- [X] Document post-restart re-verification (not redoing — the
+  Warp-wiring block already auto-runs at Doom startup): confirm the
+  pinned MCP port, =warp= session, and IDE-companion lockfile came
+  back up, e.g. =emacsclient -e '(claude-code-ide-mcp-server-get-port)'=
+- [X] Document the sanity-check pattern after any reload:
+  =emacsclient -e '(fboundp (quote newly-added-function))'=, matching
+  the verify-don't-trust pattern used throughout this session
+- [X] Document the Claude-Code-hook-side limit explicitly: editing
+  =.claude/settings.json= never takes effect in the *current* session
+  (hook config is read once at session start) — the skill can only
+  detect this and tell the user a new session is needed, it cannot
+  force one
+- [X] Document the =bin/test= org-version-pinning gotcha as a
+  troubleshooting pointer: if a function seems unexpectedly void or
+  tests behave strangely, confirm =bin/test= is actually loading the
+  straight-managed org, not Emacs's bundled one
+- [X] Document the =org.skill= zip-packaging gotcha: editing skill
+  content means unzip → edit =SKILL.md= → rezip preserving the
+  internal =org-mode/SKILL.md= path, never editing the =.skill= file
+  directly (it's binary)
+- [X] Decide the trigger condition precisely: auto-invoke whenever
+  config.el/config-test.el/the Doom config has just been edited in
+  session, or only on explicit request ("reload", "verify this
+  works", "test in Emacs") — decided both: the skill description
+  triggers on either signal
+
+*Scope limit, decided already:* the Emacs-reload half can be fully
+automated (deterministic, safe to just do). The Claude-Code-hook half
+can only be *flagged*, never performed — nothing running inside a
+session can force that same session to restart. The honest shape is
+"auto-reload Emacs, then tell the user a new session is needed if
+=.claude/settings.json= changed," not a single button that does
+everything.
+
+*Follow-up:* [2/2] — per the new "test new features" rule in CLAUDE.md
+- [X] Content-accuracy check: =bin/check-org-dev-skill= (fish), a
+  doctest for the skill in the same spirit as =bin/test= catching
+  drift in the wrapper functions. Asserts, against live state rather
+  than parsing the fences generically: =emacsclient -e
+  '(claude-code-ide-mcp-server-get-port)'= returns =45571= and matches
+  =.mcp.json=; =org.skill=/=org-dev.skill= each contain exactly one
+  zip entry at the documented internal path; =bin/test='s =build-*=
+  glob resolves to a directory containing =org/=; and the
+  =config.el:410=/=config.el:457= line references cited in
+  =org-dev/SKILL.md= still point at the tool-registration block and
+  file end. All checks pass as of [2026-07-28 Tue].
+- [X] Explicitly out of scope for automation: whether the skill
+  actually *triggers* on its description's trigger phrases — that's
+  semantic matching decided fresh each session, not deterministic;
+  verify by spot-checking fresh sessions against representative
+  prompts instead, don't force it into a hard test. (Decision stands
+  as-is — no code follow-up needed, recorded here per CLAUDE.md's rule
+  to say so explicitly rather than skip silently.)
+
 ** New MCP tools
 
 On-demand capabilities Claude would call. Independent of each
@@ -337,6 +457,41 @@ clock state changes.
 
 *Risk:* the tool-name matcher is the sharp edge — get it wrong and
 the hook silently never fires.
+
+*** MAYBE Coarsen :SESSIONS: to session-level, not turn-level        :code:
+:PROPERTIES:
+:CREATED:  [2026-07-28 Tue 11:06]
+:END:
+:SESSIONS: currently inherits the same Stop/UserPromptSubmit hooks as
+:LOGBOOK:, so every turn boundary writes a Paused/Resumed pair — fine
+for CLOCK, whose "many short intervals instead of one long one"
+granularity is intentional (see the dual-timekeeping design note), but
+not what :SESSIONS: was meant to show: the *session-level* bracketing
+arc, not per-prompt noise. Wanted instead: a genuine close only at
+DOING → DONE with the work tested and committed, at the end of a
+working day, or on an explicit signal — sketched as a command like
+=/dfd <task>= ("done for the day").
+
+*Plan:* [/]
+- [ ] Detach :SESSIONS: writes from the Stop/UserPromptSubmit hooks
+  entirely — CLOCK keeps its current per-turn pause/resume behavior
+  unchanged; :SESSIONS: stops being written there
+- [ ] Design =/dfd <task>=: closes the day's :SESSIONS: entry (and
+  clocks out if a clock is running) without changing TODO state — the
+  task stays DOING, just paused for the day
+- [ ] Handle the DONE+tested+committed close as a standing instruction
+  (same shape as the DOING-transition rule in CLAUDE.md), not a hook —
+  "tested and committed" is a judgment call nothing mechanical can
+  verify
+- [ ] Decide what happens to the *first* Resumed entry under the new
+  scheme: opened on the first clock-in after a close, or only once
+  real multi-day bracketing is worth showing at all
+
+*Open question:* does "end of a working day" need its own detection
+(e.g. against =claude-code-ide-org-working-hours=), or is =/dfd=
+always a manual call — auto-detecting day boundaries crosses into
+guessing user intent, exactly the kind of call CLAUDE.md's existing
+rules say only the model/user should make, not a hook.
 
 ** Observability
 

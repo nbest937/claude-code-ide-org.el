@@ -1,0 +1,60 @@
+#!/usr/bin/env fish
+# Doctest-style content-accuracy check for org-dev.skill.
+#
+# bin/test verifies the MCP wrapper functions behave correctly.
+# This script verifies the *documentation* in org-dev/SKILL.md hasn't
+# drifted from the environment it describes — the concrete facts and
+# code fences it asserts (port numbers, line references, zip layout),
+# not whether the skill's prose triggers correctly (that's judged by
+# spot-checking fresh sessions, not scriptable — see TODO.org).
+
+set repo_root (cd (dirname (status --current-filename))/.. && pwd)
+set fail 0
+
+function check
+    set desc $argv[1]
+    set got $argv[2]
+    set want $argv[3]
+    if test "$got" = "$want"
+        echo "ok   - $desc"
+    else
+        echo "FAIL - $desc: expected '$want', got '$got'"
+        set -g fail 1
+    end
+end
+
+# 1. MCP server port pinned in the running Doom config, matching .mcp.json.
+set port (emacsclient -e '(claude-code-ide-mcp-server-get-port)' 2>/dev/null; or echo unreachable)
+check "emacsclient MCP port" "$port" "45571"
+
+set mcp_json_port (grep -o 'localhost:[0-9]*' "$repo_root/.mcp.json" | head -1 | cut -d: -f2)
+check ".mcp.json port matches" "$mcp_json_port" "45571"
+
+# 2. Each .skill zip contains exactly one entry, at the documented path.
+function check_skill_zip
+    set skill_file $argv[1]
+    set want_entry $argv[2]
+    set entries (unzip -Z1 "$repo_root/$skill_file" 2>/dev/null | wc -l | string trim)
+    check "$skill_file entry count" "$entries" "1"
+    set entry (unzip -Z1 "$repo_root/$skill_file" 2>/dev/null | head -1)
+    check "$skill_file internal path" "$entry" "$want_entry"
+end
+check_skill_zip "org.skill" "org-mode/SKILL.md"
+check_skill_zip "org-dev.skill" "org-dev/SKILL.md"
+
+# 3. bin/test's build-* glob resolves to a real straight org checkout.
+set org_build_dir (find "$HOME/.config/emacs/.local/straight" -maxdepth 1 -name 'build-*' -type d 2>/dev/null | head -1)
+if test -n "$org_build_dir" -a -d "$org_build_dir/org"
+    echo "ok   - bin/test build-* glob resolves ($org_build_dir/org)"
+else
+    echo "FAIL - bin/test build-* glob did not resolve to a directory containing org/"
+    set fail 1
+end
+
+# 4. Line references cited in org-dev/SKILL.md still point at what they claim.
+set tool_block_line (grep -n "with-eval-after-load 'claude-code-ide" "$repo_root/modules/tools/claude-code-ide-org/config.el" | head -1 | cut -d: -f1)
+check "config.el tool-registration block start" "$tool_block_line" "410"
+set config_el_lines (wc -l < "$repo_root/modules/tools/claude-code-ide-org/config.el" | string trim)
+check "config.el last line" "$config_el_lines" "457"
+
+exit $fail

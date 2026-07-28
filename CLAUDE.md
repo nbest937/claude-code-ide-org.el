@@ -17,6 +17,9 @@ modules/tools/claude-code-ide-org/
     packages.el     ← dependency notes (no additional packages)
 bin/test            ← runs the ERT suite (emacs --batch)
 org.skill           ← Claude Code skill for org-mode file editing
+org-dev.skill       ← Claude Code skill for reloading/verifying changes
+                       to this project's own code (config.el, hooks,
+                       bin/test) — see TODO.org's "org-dev skill" entry
 .mcp.json           ← HTTP endpoint for the MCP tools server, so a `claude`
                        CLI in a plain shell (no Emacs) can reach org_* and
                        friends; see "Emacs integration" below
@@ -31,6 +34,20 @@ The module is symlinked into `~/.config/doom/modules/tools/claude-code-ide-org/`
 and enabled in `~/.config/doom/init.el` under `:tools claude-code-ide-org`.
 
 The skill file is installed in the Claude Code project.
+
+---
+
+## Engineering practices
+
+**Rule**: any new feature should be tested to the extent possible and
+reasonably feasible before being considered done. Automated where the
+feature has a mechanical surface to test against (elisp via `bin/test`/
+`config-test.el`, shell scripts via direct invocation); a documented
+manual verification pass otherwise. "Reasonably feasible" is doing real
+work here — some things (e.g. a skill's *trigger-matching* against its
+own description, as opposed to the accuracy of its documented content)
+are inherently fuzzy and not worth forcing into a deterministic test;
+say so explicitly rather than skipping verification silently.
 
 ---
 
@@ -111,6 +128,10 @@ heading for it (with a `:ID:`) and set its initial TODO state, rather than
 only tracking it in conversation memory. Same reasoning as above — this is
 a judgment call about what counts as "a task," so it has to be a standing
 instruction, not something a hook could infer.
+**Rule**: any newly created org heading gets a `:CREATED:` property in its
+property drawer, stamped with an inactive timestamp (`[YYYY-MM-DD Dow
+HH:MM]`) at creation time, alongside its `:ID:`. Applies to every heading
+creation, not just the "new task described in conversation" case above.
 
 ---
 
