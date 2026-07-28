@@ -70,6 +70,7 @@ because it's genuinely a different kind of work.
 - Paused [2026-07-28 Tue 12:03]
 - Resumed [2026-07-28 Tue 12:09]
 - Paused [2026-07-28 Tue 12:09]
+- Resumed [2026-07-28 Tue 12:16]
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-28 Tue 12:02]--[2026-07-28 Tue 12:03] =>  0:01
@@ -168,9 +169,13 @@ On-demand capabilities Claude would call. Independent of each
 other — no shared implementation, just the same "make it a tool
 instead of raw text editing" shape.
 
-*** NEXT org_query :code:
+*** DONE org_query :code:
 :PROPERTIES:
 :ID:       4ae3cdef-98b5-4361-818e-aef3491f2fb8
+:END:
+:SESSIONS:
+- Resumed [2026-07-28 Tue 12:16]
+- Paused [2026-07-28 Tue 12:16]
 :END:
 Structured search over headings. Biggest ROI item here: most of
 what's actually slow today is Claude reading whole files to answer
