@@ -14,6 +14,30 @@ git config user.email "nbest937@gmail.com"
 #+end_src
 Then ask Claude to finish the commit it already staged.
 
+* DONE Consolidate historical SESSIONS/LOGBOOK entries :code:
+:PROPERTIES:
+:CREATED:  [2026-07-28 Tue 13:01]
+:ID:       ccdff985-b206-4a8d-a6d2-9bc01cfdda3a
+:END:
+:SESSIONS:
+- Resumed [2026-07-28 Tue 13:03]
+- Paused [2026-07-28 Tue 13:14]
+- Resumed [2026-07-28 Tue 13:46]
+:END:
+:LOGBOOK:
+CLOCK: [2026-07-28 Tue 13:46]
+CLOCK: [2026-07-28 Tue 13:03]--[2026-07-28 Tue 13:14] =>  0:11
+:END:
+One-time retrospective cleanup of the per-turn SESSIONS/LOGBOOK churn
+accumulated so far: collapse each heading's :SESSIONS: entries to one
+min-to-max span per calendar day; round each :LOGBOOK: CLOCK interval
+to the nearest 5-minute multiple; then, after sorting, merge any
+intervals that are adjacent or overlapping post-rounding into a single
+min-to-max span. Implemented as a reusable elisp function rather than a
+throwaway script, so the same logic can back the on-the-fly version
+scoped separately — see "Auto-consolidate SESSIONS/LOGBOOK on the fly"
+under Clock lifecycle & visibility.
+
 * Roadmap
 
 Brainstormed, not committed to — all MAYBE on purpose. Pick what's
@@ -35,65 +59,14 @@ because it's genuinely a different kind of work.
 :END:
 :SESSIONS:
 - Resumed [2026-07-28 Tue 10:53]
-- Paused [2026-07-28 Tue 10:54]
-- Resumed [2026-07-28 Tue 10:55]
-- Paused [2026-07-28 Tue 10:55]
-- Resumed [2026-07-28 Tue 10:57]
-- Paused [2026-07-28 Tue 10:59]
-- Resumed [2026-07-28 Tue 11:05]
-- Paused [2026-07-28 Tue 11:07]
-- Resumed [2026-07-28 Tue 11:10]
-- Paused [2026-07-28 Tue 11:12]
-- Resumed [2026-07-28 Tue 11:17]
-- Paused [2026-07-28 Tue 11:18]
-- Resumed [2026-07-28 Tue 11:18]
-- Paused [2026-07-28 Tue 11:18]
-- Resumed [2026-07-28 Tue 11:21]
-- Paused [2026-07-28 Tue 11:21]
-- Resumed [2026-07-28 Tue 11:22]
-- Paused [2026-07-28 Tue 11:22]
-- Resumed [2026-07-28 Tue 11:24]
-- Paused [2026-07-28 Tue 11:29]
-- Resumed [2026-07-28 Tue 11:30]
-- Paused [2026-07-28 Tue 11:30]
-- Resumed [2026-07-28 Tue 11:31]
-- Paused [2026-07-28 Tue 11:32]
-- Resumed [2026-07-28 Tue 11:35]
-- Paused [2026-07-28 Tue 11:36]
-- Resumed [2026-07-28 Tue 11:37]
-- Paused [2026-07-28 Tue 11:50]
-- Resumed [2026-07-28 Tue 11:50]
-- Paused [2026-07-28 Tue 11:51]
-- Resumed [2026-07-28 Tue 11:52]
-- Paused [2026-07-28 Tue 11:58]
-- Resumed [2026-07-28 Tue 12:02]
-- Paused [2026-07-28 Tue 12:03]
-- Resumed [2026-07-28 Tue 12:09]
-- Paused [2026-07-28 Tue 12:09]
-- Resumed [2026-07-28 Tue 12:16]
-- Resumed [2026-07-28 Tue 12:30]
-- Paused [2026-07-28 Tue 12:30]
-- Resumed [2026-07-28 Tue 12:33]
-- Paused [2026-07-28 Tue 12:33]
-- Resumed [2026-07-28 Tue 12:33]
-- Paused [2026-07-28 Tue 12:34]
-- Resumed [2026-07-28 Tue 12:34]
+- Paused [2026-07-28 Tue 13:01] (recovered)
 :END:
 :LOGBOOK:
-CLOCK: [2026-07-28 Tue 12:34]
-CLOCK: [2026-07-28 Tue 12:33]--[2026-07-28 Tue 12:34] =>  0:01
-CLOCK: [2026-07-28 Tue 12:02]--[2026-07-28 Tue 12:03] =>  0:01
-CLOCK: [2026-07-28 Tue 11:52]--[2026-07-28 Tue 11:58] =>  0:06
-CLOCK: [2026-07-28 Tue 11:50]--[2026-07-28 Tue 11:51] =>  0:01
-CLOCK: [2026-07-28 Tue 11:37]--[2026-07-28 Tue 11:50] =>  0:13
-CLOCK: [2026-07-28 Tue 11:35]--[2026-07-28 Tue 11:36] =>  0:01
-CLOCK: [2026-07-28 Tue 11:31]--[2026-07-28 Tue 11:32] =>  0:01
-CLOCK: [2026-07-28 Tue 11:24]--[2026-07-28 Tue 11:29] =>  0:05
-CLOCK: [2026-07-28 Tue 11:17]--[2026-07-28 Tue 11:18] =>  0:01
-CLOCK: [2026-07-28 Tue 11:10]--[2026-07-28 Tue 11:12] =>  0:02
-CLOCK: [2026-07-28 Tue 11:05]--[2026-07-28 Tue 11:07] =>  0:02
-CLOCK: [2026-07-28 Tue 10:57]--[2026-07-28 Tue 10:59] =>  0:02
-CLOCK: [2026-07-28 Tue 10:53]--[2026-07-28 Tue 10:54] =>  0:01
+CLOCK: [2026-07-28 Tue 12:35]--[2026-07-28 Tue 13:00] =>  0:25
+CLOCK: [2026-07-28 Tue 11:35]--[2026-07-28 Tue 12:05] =>  0:30
+CLOCK: [2026-07-28 Tue 11:25]--[2026-07-28 Tue 11:30] =>  0:05
+CLOCK: [2026-07-28 Tue 11:15]--[2026-07-28 Tue 11:20] =>  0:05
+CLOCK: [2026-07-28 Tue 10:55]--[2026-07-28 Tue 11:00] =>  0:05
 :END:
 A development-tooling skill packaging the reload-and-verify
 procedure this session had to rediscover by hand, more than once:
@@ -184,12 +157,6 @@ instead of raw text editing" shape.
 :END:
 :SESSIONS:
 - Resumed [2026-07-28 Tue 12:16]
-- Paused [2026-07-28 Tue 12:16]
-- Resumed [2026-07-28 Tue 12:19]
-- Paused [2026-07-28 Tue 12:19]
-- Resumed [2026-07-28 Tue 12:20]
-- Paused [2026-07-28 Tue 12:20]
-- Resumed [2026-07-28 Tue 12:27]
 - Paused [2026-07-28 Tue 12:27]
 :END:
 Structured search over headings. Biggest ROI item here: most of
@@ -560,6 +527,62 @@ working day, or on an explicit signal — sketched as a command like
 always a manual call — auto-detecting day boundaries crosses into
 guessing user intent, exactly the kind of call CLAUDE.md's existing
 rules say only the model/user should make, not a hook.
+
+*** MAYBE Auto-consolidate SESSIONS/LOGBOOK on the fly                :code:
+:PROPERTIES:
+:CREATED:  [2026-07-28 Tue 13:13]
+:ID:       a36d2436-7601-4bf5-a2e7-a4613755156d
+:END:
+Companion to the retrospective one-time cleanup ("Consolidate
+historical SESSIONS/LOGBOOK entries", done this session): wire the
+same rounding/merging logic into =org_clock_out= itself, so the
+drawers stay consolidated continuously instead of needing another
+manual pass later. Reuses
+=claude-code-ide-org-consolidate-history= directly — that function
+was deliberately written and tested as a reusable capability, not a
+throwaway script, for exactly this.
+
+*Plan:* [/]
+- [ ] Call =(claude-code-ide-org-consolidate-history id)= at the end
+  of =claude-code-ide-org-clock-out= (and the recovery path in
+  =claude-code-ide-org-close-open-interval=), scoped to the heading
+  that was just clocked out of — never to a heading that might still
+  be actively clocking
+- [ ] Confirm the ordering is safe: =consolidate-history= already
+  leaves an open CLOCK/trailing Resumed completely untouched, but the
+  call still must happen *after* =org-clock-out= has actually closed
+  the interval, not before
+- [ ] Establish (and rely on) an idempotency invariant to keep this
+  cheap: every prior day, and every CLOCK interval older than the one
+  just closed, is already fully consolidated the moment its own
+  clock-out ran — so each on-the-fly pass only ever needs to
+  re-examine today's :SESSIONS: entries and the newest CLOCK line(s),
+  never rescan the whole drawer
+- [ ] Add ERT tests: clock in/out several times in quick succession
+  and assert the :LOGBOOK:/:SESSIONS: drawers already show the
+  collapsed form immediately after the last clock-out, with no
+  separate consolidation step required
+- [ ] Keep the same rounding convention as the retrospective pass
+  (nearest 5-minute mark, ties rounding up) rather than introducing a
+  second one
+
+*Relationship to "Coarsen :SESSIONS: to session-level" above:*
+different mechanism, same underlying pain. That proposal changes
+*when* :SESSIONS: gets written (detach from per-turn
+Stop/UserPromptSubmit boundaries, write only at genuine session
+close) — nothing about :LOGBOOK:'s intentionally fine-grained CLOCK
+writes changes there. This proposal instead changes *what happens* to
+writes that continue to happen at the current frequency, compacting
+them immediately after each clock-out. If "Coarsen" ships first,
+there's less to consolidate per day in the first place, but
+:LOGBOOK: rounding/merging here would still apply regardless — the
+two are complementary, not competing, and could both land.
+
+*Risk:* rounding only ever touches already-closed history, so it can
+never corrupt a running clock — the retrospective run and its tests
+already exercise that exact boundary. The main remaining risk is
+purely mechanical: forgetting to scope the on-the-fly call to *only*
+the heading that was just clocked out of.
 
 ** Observability
 
