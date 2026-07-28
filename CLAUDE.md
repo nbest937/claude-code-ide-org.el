@@ -49,6 +49,11 @@ own description, as opposed to the accuracy of its documented content)
 are inherently fuzzy and not worth forcing into a deterministic test;
 say so explicitly rather than skipping verification silently.
 
+**Rule**: work on new features happens on a feature branch, named
+`feature/short-name-of-task`, not directly on `main`. Applies to new
+feature work specifically — bug fixes and small doc/TODO edits aren't
+implied to require one just because this rule exists.
+
 ---
 
 ## Org-mode conventions

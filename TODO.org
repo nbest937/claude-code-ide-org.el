@@ -55,9 +55,17 @@ because it's genuinely a different kind of work.
 - Resumed [2026-07-28 Tue 11:24]
 - Paused [2026-07-28 Tue 11:29]
 - Resumed [2026-07-28 Tue 11:30]
+- Paused [2026-07-28 Tue 11:30]
+- Resumed [2026-07-28 Tue 11:31]
+- Paused [2026-07-28 Tue 11:32]
+- Resumed [2026-07-28 Tue 11:35]
+- Paused [2026-07-28 Tue 11:36]
+- Resumed [2026-07-28 Tue 11:37]
 :END:
 :LOGBOOK:
-CLOCK: [2026-07-28 Tue 11:30]
+CLOCK: [2026-07-28 Tue 11:37]
+CLOCK: [2026-07-28 Tue 11:35]--[2026-07-28 Tue 11:36] =>  0:01
+CLOCK: [2026-07-28 Tue 11:31]--[2026-07-28 Tue 11:32] =>  0:01
 CLOCK: [2026-07-28 Tue 11:24]--[2026-07-28 Tue 11:29] =>  0:05
 CLOCK: [2026-07-28 Tue 11:17]--[2026-07-28 Tue 11:18] =>  0:01
 CLOCK: [2026-07-28 Tue 11:10]--[2026-07-28 Tue 11:12] =>  0:02
