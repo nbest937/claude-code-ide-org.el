@@ -120,6 +120,24 @@ source file's on-disk copy of the heading in place, since
       (should (string-match-p ":ID: +test-0001" archived))
       (should (string-match-p ":ARCHIVE_TODO: +DONE" archived)))))
 
+(ert-deftest claude-code-ide-org-test-set-todo-reports-blocked-transition ()
+  "Regression test: org_set_todo must not report success when
+org-blocker-hook actually refused the transition.  It previously
+always echoed the requested STATE back regardless of whether
+`org-todo' applied it, so a transition silently blocked by e.g.
+org-enforce-todo-dependencies or org-depend's :BLOCKER: property
+looked exactly like a success."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "** TODO Child heading\n")
+    (let ((org-blocker-hook (list 'org-block-todo-from-children-or-siblings-or-parent))
+          (org-enforce-todo-dependencies t))
+      (should (string-match-p "\\`Error:.*blocked"
+                              (claude-code-ide-org-set-todo id "DONE"))))
+    (should (equal "TODO"
+                   (org-with-point-at (org-id-find id 'marker)
+                     (org-get-todo-state))))))
+
 ;;; Unknown :ID: handling -------------------------------------------------
 
 (ert-deftest claude-code-ide-org-test-unknown-id-returns-error-string ()

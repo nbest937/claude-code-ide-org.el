@@ -58,15 +58,22 @@ clock is running."
 (defun claude-code-ide-org-set-todo (id state)
   "Set the TODO keyword of the heading with :ID: equal to ID to STATE.
 STATE must be one of: TODO NEXT DOING WAIT MAYBE DONE CANCELLED.
-Saves the buffer afterwards."
+Saves the buffer afterwards.  If org-blocker-hook (e.g. org-depend's
+:BLOCKER: property) refuses the change, `org-todo' silently leaves
+the heading in its prior state; this checks the actual resulting
+state and reports that instead of blindly echoing STATE back."
   (claude-code-ide-org--at-id
    id
    (lambda ()
      (org-todo state)
-     (save-buffer)
-     (format "TODO state set to %s: \"%s\""
-             state
-             (org-get-heading t t t t)))))
+     (let ((actual (org-get-todo-state))
+           (heading (org-get-heading t t t t)))
+       (if (equal actual state)
+           (progn
+             (save-buffer)
+             (format "TODO state set to %s: \"%s\"" state heading))
+         (format "Error: requested state %s but heading \"%s\" is still %s — likely blocked (check :BLOCKER: / org-blocker-hook)"
+                 state heading actual))))))
 
 (defun claude-code-ide-org-archive (id)
   "Archive the org heading whose :ID: property equals ID.
