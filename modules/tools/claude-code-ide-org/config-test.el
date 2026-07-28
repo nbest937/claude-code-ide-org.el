@@ -79,6 +79,22 @@ It previously reported success while leaving the closed CLOCK entry
 only in the buffer, never calling `save-buffer'."
   (claude-code-ide-org-test--with-heading
     (claude-code-ide-org-clock-in id)
+    ;; Back-date the already-written open CLOCK line's timestamp text
+    ;; — `org-clock-out' parses the start time directly from the
+    ;; buffer (see org-clock.el's own `org-clock-out'), not from any
+    ;; elisp variable — so the resulting interval survives on-the-fly
+    ;; consolidation's zero-duration rounding. A same-instant clock-
+    ;; in/out would otherwise round to 0:00 and be dropped by design
+    ;; (see claude-code-ide-org-test-consolidate-history-rounds-
+    ;; merges-and-drops-zero), which isn't what this particular test
+    ;; means to exercise.
+    (with-current-buffer (get-file-buffer file)
+      (save-excursion
+        (goto-char (point-min))
+        (re-search-forward "CLOCK: \\[[^]]+\\]")
+        (replace-match (format-time-string "CLOCK: [%Y-%m-%d %a %H:%M]"
+                                            (time-subtract (current-time) 600))))
+      (save-buffer))
     (let* ((org-clock-out-remove-zero-time-clocks nil)
            (result (claude-code-ide-org-clock-out)))
       (should (string-match-p "\\`Clocked out: \"Test heading\"\\'" result)))
@@ -90,6 +106,26 @@ only in the buffer, never calling `save-buffer'."
 (ert-deftest claude-code-ide-org-test-clock-out-safe-when-no-clock ()
   (claude-code-ide-org-test--with-heading
     (should (equal "No clock is currently running." (claude-code-ide-org-clock-out)))))
+
+(ert-deftest claude-code-ide-org-test-clock-out-consolidates-on-the-fly ()
+  "org_clock_out must consolidate the heading it just closed
+immediately, without a separate consolidate-history call. Proven by:
+a manual consolidate-history call right afterward is already a
+no-op, which can only be true if clock-out already ran it."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (with-current-buffer (get-file-buffer file)
+      (save-excursion
+        (goto-char (point-min))
+        (re-search-forward "CLOCK: \\[[^]]+\\]")
+        (replace-match (format-time-string "CLOCK: [%Y-%m-%d %a %H:%M]"
+                                            (time-subtract (current-time) 600))))
+      (save-buffer))
+    (claude-code-ide-org-clock-out)
+    (let ((before (claude-code-ide-org-test--disk-contents file)))
+      (should (equal "Nothing to consolidate on \"Test heading\""
+                     (claude-code-ide-org-consolidate-history id)))
+      (should (equal before (claude-code-ide-org-test--disk-contents file))))))
 
 ;;; :SESSIONS: bracketing log --------------------------------------------------
 
@@ -264,6 +300,23 @@ corrupting the file header."
                disk))
       ;; :SESSIONS: entry correctly closed too.
       (should (string-match-p "- Paused \\[2026-07-27 Mon 17:45\\] (recovered)" disk)))))
+
+(ert-deftest claude-code-ide-org-test-close-open-interval-consolidates-on-the-fly ()
+  "claude-code-ide-org-close-open-interval must also consolidate the
+heading's history immediately afterward, same as clock-out — proven
+the same way: a manual consolidate-history call right afterward is
+already a no-op."
+  (claude-code-ide-org-test--with-heading
+    (let ((yesterday "[2026-07-27 Mon 14:00]"))
+      (goto-char (point-max))
+      (insert (format ":SESSIONS:\n- Resumed %s\n:END:\n:LOGBOOK:\nCLOCK: %s\n:END:\n"
+                       yesterday yesterday))
+      (save-buffer))
+    (claude-code-ide-org-close-open-interval id "[2026-07-27 Mon 17:45]")
+    (let ((before (claude-code-ide-org-test--disk-contents file)))
+      (should (equal "Nothing to consolidate on \"Test heading\""
+                     (claude-code-ide-org-consolidate-history id)))
+      (should (equal before (claude-code-ide-org-test--disk-contents file))))))
 
 ;;; Historical consolidation ----------------------------------------------
 
