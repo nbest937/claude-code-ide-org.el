@@ -176,6 +176,12 @@ instead of raw text editing" shape.
 :SESSIONS:
 - Resumed [2026-07-28 Tue 12:16]
 - Paused [2026-07-28 Tue 12:16]
+- Resumed [2026-07-28 Tue 12:19]
+- Paused [2026-07-28 Tue 12:19]
+- Resumed [2026-07-28 Tue 12:20]
+- Paused [2026-07-28 Tue 12:20]
+- Resumed [2026-07-28 Tue 12:27]
+- Paused [2026-07-28 Tue 12:27]
 :END:
 Structured search over headings. Biggest ROI item here: most of
 what's actually slow today is Claude reading whole files to answer
