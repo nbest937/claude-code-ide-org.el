@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Run the ERT test suite for the claude-code-ide-org MCP tool wrappers.
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+module_dir="$repo_root/modules/tools/claude-code-ide-org"
+
+exec emacs --batch -Q \
+  -l "$module_dir/config.el" \
+  -l "$module_dir/config-test.el" \
+  -f ert-run-tests-batch-and-exit
