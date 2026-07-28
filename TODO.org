@@ -61,9 +61,21 @@ because it's genuinely a different kind of work.
 - Resumed [2026-07-28 Tue 11:35]
 - Paused [2026-07-28 Tue 11:36]
 - Resumed [2026-07-28 Tue 11:37]
+- Paused [2026-07-28 Tue 11:50]
+- Resumed [2026-07-28 Tue 11:50]
+- Paused [2026-07-28 Tue 11:51]
+- Resumed [2026-07-28 Tue 11:52]
+- Paused [2026-07-28 Tue 11:58]
+- Resumed [2026-07-28 Tue 12:02]
+- Paused [2026-07-28 Tue 12:03]
+- Resumed [2026-07-28 Tue 12:09]
+- Paused [2026-07-28 Tue 12:09]
 :END:
 :LOGBOOK:
-CLOCK: [2026-07-28 Tue 11:37]
+CLOCK: [2026-07-28 Tue 12:02]--[2026-07-28 Tue 12:03] =>  0:01
+CLOCK: [2026-07-28 Tue 11:52]--[2026-07-28 Tue 11:58] =>  0:06
+CLOCK: [2026-07-28 Tue 11:50]--[2026-07-28 Tue 11:51] =>  0:01
+CLOCK: [2026-07-28 Tue 11:37]--[2026-07-28 Tue 11:50] =>  0:13
 CLOCK: [2026-07-28 Tue 11:35]--[2026-07-28 Tue 11:36] =>  0:01
 CLOCK: [2026-07-28 Tue 11:31]--[2026-07-28 Tue 11:32] =>  0:01
 CLOCK: [2026-07-28 Tue 11:24]--[2026-07-28 Tue 11:29] =>  0:05
