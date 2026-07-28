@@ -23,9 +23,21 @@ Then ask Claude to finish the commit it already staged.
 - Resumed [2026-07-28 Tue 13:03]
 - Paused [2026-07-28 Tue 13:14]
 - Resumed [2026-07-28 Tue 13:46]
+- Paused [2026-07-28 Tue 13:49]
+- Resumed [2026-07-28 Tue 13:51]
+- Paused [2026-07-28 Tue 13:57]
+- Resumed [2026-07-28 Tue 13:57]
+- Paused [2026-07-28 Tue 13:58]
+- Resumed [2026-07-28 Tue 13:58]
+- Paused [2026-07-28 Tue 13:59]
+- Resumed [2026-07-28 Tue 14:02]
+- Paused [2026-07-28 Tue 14:02]
 :END:
 :LOGBOOK:
-CLOCK: [2026-07-28 Tue 13:46]
+CLOCK: [2026-07-28 Tue 13:58]--[2026-07-28 Tue 13:59] =>  0:01
+CLOCK: [2026-07-28 Tue 13:57]--[2026-07-28 Tue 13:58] =>  0:01
+CLOCK: [2026-07-28 Tue 13:51]--[2026-07-28 Tue 13:57] =>  0:06
+CLOCK: [2026-07-28 Tue 13:46]--[2026-07-28 Tue 13:49] =>  0:03
 CLOCK: [2026-07-28 Tue 13:03]--[2026-07-28 Tue 13:14] =>  0:11
 :END:
 One-time retrospective cleanup of the per-turn SESSIONS/LOGBOOK churn
@@ -144,6 +156,21 @@ everything.
   prompts instead, don't force it into a hard test. (Decision stands
   as-is — no code follow-up needed, recorded here per CLAUDE.md's rule
   to say so explicitly rather than skip silently.)
+
+*** MAYBE Make check-org-dev-skill line-number checks robust to config.el drift :code:
+:PROPERTIES:
+:ID:       9be21b6b-5219-4acd-950a-e04b60d8fe1e
+:CREATED:  [2026-07-28 Tue 13:56]
+:END:
+=bin/check-org-dev-skill='s tool-registration-block-start and
+last-line checks hardcode absolute =config.el= line numbers (410/457,
+then 462/528, now 688/754 after the =consolidate_sessions_logbook=
+merge). Every =config.el= edit that changes line count breaks these
+two checks again immediately — confirmed twice in one day. Redesign
+so the check doesn't hardcode absolute line numbers (e.g. anchor on a
+nearby stable string/regex, or compute an expected relationship rather
+than a magic number) instead of just re-editing the constants each
+time drift is noticed.
 
 ** New MCP tools
 
