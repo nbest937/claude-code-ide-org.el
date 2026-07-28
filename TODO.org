@@ -184,38 +184,66 @@ things a real query would answer in one call — "what's blocked",
 Worth scoping against =org-ql= rather than hand-rolling a query
 language.
 
-*Plan:* [/] — verified against org-ql's actual source
+*Plan:* [7/7] — verified against org-ql's actual source
 (github.com/alphapapa/org-ql), not guessed from memory.
-- [ ] Add =(package! org-ql :recipe (:host github :repo
-  "alphapapa/org-ql"))= to packages.el (update the "no additional
-  packages required" note) — confirmed available via MELPA/straight,
-  not currently installed in this straight checkout
-- [ ] Add =claude-code-ide-org-query-files= defcustom (default
-  =org-agenda-files=) for an explicit, project-scoped file list
-- [ ] Implement =claude-code-ide-org-query (query)=: convert the
-  incoming string via =(org-ql--query-string-to-sexp query)=, then
-  call =(org-ql-select claude-code-ide-org-query-files sexp :action
-  '(...))= — real signature is =(org-ql-select buffers-or-files query
-  &key action narrow sort)=
-- [ ] Document the real plain-string syntax in the tool description:
+- [X] Add =(package! org-ql :recipe (:host github :repo
+  "alphapapa/org-ql"))= to packages.el (updated the "no additional
+  packages required" note)
+- [X] Reuse the existing =claude-code-ide-org-query-files= defcustom
+  (already added for stale-interval recovery, doc comment already said
+  "org_query once built") via the existing
+  =claude-code-ide-org--tracked-files= helper — no new defcustom needed,
+  correcting this plan's earlier draft
+- [X] Implemented =claude-code-ide-org-query (query)=: parses via
+  =(org-ql--query-string-to-sexp query 'and)=, rejecting a nil parse
+  before ever calling =org-ql-select= (confirmed
+  =org-ql-signal-peg-failure= defaults to nil, so a malformed query
+  doesn't signal on its own), then
+  =(org-ql-select (claude-code-ide-org--tracked-files) sexp :action
+  #'claude-code-ide-org--format-query-match)=
+- [X] Documented the plain-string syntax in the tool description:
   =todo:WAIT=, =tags:research,code= (comma = OR), =priority:A=,
-  =heading:"text"=, and negation with =!= (e.g. =!todo:DONE=, not
-  =-todo:DONE= — corrected from an earlier draft of this plan, which
-  had the wrong negation syntax)
-- [ ] Format each match as one line — state, heading, :ID:, tags,
-  file — and return a single joined string, matching the existing
-  "always return a string" convention
-- [ ] Register with a single =query= string arg
-- [ ] Restrict the parser to the string syntax only — never =eval= a
-  model-supplied sexp
+  =heading:"text"=, negation with =!= (e.g. =!todo:DONE=)
+- [X] Formats each match as one line — state, heading, tags, :ID:,
+  file — joined into a single string; distinct string results for
+  empty query, unparseable query, and zero matches, matching the
+  existing "always return a string" convention
+- [X] Registered with a single =query= string arg
+- [X] Parser restricted to the string mini-language only — never
+  =eval= a model-supplied sexp; org-ql's separate full sexp predicate
+  language is never reachable from this tool's input
 
-*Risk:* =org-ql--query-string-to-sexp= is a double-dash "private"
-function, not documented public API — worth a quick guard/fallback
-if it's ever renamed across org-ql versions. Separately, org-ql also
-exposes a full sexp predicate language — effectively arbitrary elisp
-execution against the user's files if exposed. Same class of concern
-as "Remote MCP access" below, just reachable locally instead of
-remotely.
+*Risk, confirmed and accepted:* =org-ql--query-string-to-sexp= is
+confirmed still a double-dash "private" function with no public
+alternative (dynamically =fset= near the end of org-ql.el at load
+time, so it's reliably present after a plain =(require 'org-ql)=) —
+the version-drift risk stands as originally flagged, nothing to do
+about it now beyond noting it. Separately, org-ql also exposes a full
+sexp predicate language — effectively arbitrary elisp execution
+against the user's files if exposed. Same class of concern as "Remote
+MCP access" below, just reachable locally instead of remotely; this
+tool never exposes that path.
+
+*Implementation notes:*
+- =bin/test= generalized to prepend /every/ straight-built package's
+  directory to load-path (not just org's), since org-ql pulls in
+  =peg=/=ts= transitively — avoids hand-listing org-ql's own
+  dependency set, which could drift.
+- =doom sync= alone did not pick up the new =packages.el= entry during
+  implementation: =~/.config/doom/modules/tools/claude-code-ide-org=
+  is a symlink to this repo's =main= checkout (see CLAUDE.md's
+  "Repository layout"), not to whichever branch/worktree is currently
+  being edited, so a feature-branch worktree's =packages.el= change is
+  invisible to =doom sync= until it lands on =main=. Installed org-ql
+  directly for testing instead: =emacsclient -e "(straight-use-package
+  '(org-ql :type git :host github :repo \"alphapapa/org-ql\"))"= —
+  same practical effect, sidesteps the symlink. The =packages.el=
+  entry remains the source of truth for a plain =doom sync= to pick up
+  once this branch reaches =main=.
+- All 24 tests pass (18 pre-existing + 6 new). Implemented on branch
+  =feature/org_query=; this TODO.org bookkeeping was applied directly
+  to =main= instead, per CLAUDE.md's feature-branch rule explicitly
+  exempting "small doc/TODO edits."
 
 *** NEXT org_capture :code:
 :PROPERTIES:
