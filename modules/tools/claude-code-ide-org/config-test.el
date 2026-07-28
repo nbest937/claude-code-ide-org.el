@@ -265,6 +265,125 @@ corrupting the file header."
       ;; :SESSIONS: entry correctly closed too.
       (should (string-match-p "- Paused \\[2026-07-27 Mon 17:45\\] (recovered)" disk)))))
 
+;;; Historical consolidation ----------------------------------------------
+
+(defun claude-code-ide-org-test--ts (s)
+  "Parse the org timestamp string S into a time value, for building
+test fixtures."
+  (org-time-string-to-time s))
+
+(ert-deftest claude-code-ide-org-test-round-time-nearest-5-minutes ()
+  (dolist (case '(("[2026-07-28 Tue 11:00]" . "[2026-07-28 Tue 11:00]")
+                  ("[2026-07-28 Tue 11:02]" . "[2026-07-28 Tue 11:00]")
+                  ("[2026-07-28 Tue 11:03]" . "[2026-07-28 Tue 11:05]")
+                  ("[2026-07-28 Tue 11:58]" . "[2026-07-28 Tue 12:00]")
+                  ("[2026-07-28 Tue 23:58]" . "[2026-07-29 Wed 00:00]")))
+    (let ((got (format-time-string "[%Y-%m-%d %a %H:%M]"
+                                    (claude-code-ide-org--round-time-to-5-minutes
+                                     (claude-code-ide-org-test--ts (car case))))))
+      (should (equal (cdr case) got)))))
+
+(ert-deftest claude-code-ide-org-test-merge-time-intervals-adjacent-and-overlapping ()
+  (let* ((mk (lambda (a b) (cons (claude-code-ide-org-test--ts a)
+                                  (claude-code-ide-org-test--ts b))))
+         (intervals (list (funcall mk "[2026-07-28 Tue 10:00]" "[2026-07-28 Tue 10:05]")
+                           (funcall mk "[2026-07-28 Tue 10:05]" "[2026-07-28 Tue 10:10]") ; adjacent
+                           (funcall mk "[2026-07-28 Tue 10:08]" "[2026-07-28 Tue 10:20]") ; overlapping
+                           (funcall mk "[2026-07-28 Tue 11:00]" "[2026-07-28 Tue 11:05]"))) ; separate
+         (merged (claude-code-ide-org--merge-time-intervals intervals)))
+    (should (= 2 (length merged)))
+    (should (equal "[2026-07-28 Tue 10:00]" (format-time-string "[%Y-%m-%d %a %H:%M]" (car (nth 0 merged)))))
+    (should (equal "[2026-07-28 Tue 10:20]" (format-time-string "[%Y-%m-%d %a %H:%M]" (cdr (nth 0 merged)))))
+    (should (equal "[2026-07-28 Tue 11:00]" (format-time-string "[%Y-%m-%d %a %H:%M]" (car (nth 1 merged)))))
+    (should (equal "[2026-07-28 Tue 11:05]" (format-time-string "[%Y-%m-%d %a %H:%M]" (cdr (nth 1 merged)))))))
+
+(ert-deftest claude-code-ide-org-test-merge-time-intervals-contained ()
+  "A later-starting interval fully contained in an earlier one must
+not shrink the merged span."
+  (let* ((mk (lambda (a b) (cons (claude-code-ide-org-test--ts a)
+                                  (claude-code-ide-org-test--ts b))))
+         (intervals (list (funcall mk "[2026-07-28 Tue 10:00]" "[2026-07-28 Tue 10:30]")
+                           (funcall mk "[2026-07-28 Tue 10:10]" "[2026-07-28 Tue 10:15]")))
+         (merged (claude-code-ide-org--merge-time-intervals intervals)))
+    (should (= 1 (length merged)))
+    (should (equal "[2026-07-28 Tue 10:30]" (format-time-string "[%Y-%m-%d %a %H:%M]" (cdr (car merged)))))))
+
+(ert-deftest claude-code-ide-org-test-consolidate-history-rounds-merges-and-drops-zero ()
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat
+             ":SESSIONS:\n"
+             "- Resumed [2026-07-28 Tue 10:53]\n"
+             "- Paused [2026-07-28 Tue 10:54]\n"
+             "- Resumed [2026-07-28 Tue 10:57]\n"
+             "- Paused [2026-07-28 Tue 10:59]\n"
+             ":END:\n"
+             ":LOGBOOK:\n"
+             "CLOCK: [2026-07-28 Tue 10:57]--[2026-07-28 Tue 10:59] =>  0:02\n"
+             "CLOCK: [2026-07-28 Tue 10:53]--[2026-07-28 Tue 10:54] =>  0:01\n"
+             ":END:\n"))
+    (save-buffer)
+    (let ((result (claude-code-ide-org-consolidate-history id)))
+      (should (string-match-p "\\`Consolidated :LOGBOOK: and :SESSIONS: on \"Test heading\"\\'" result)))
+    (should (not (buffer-modified-p (get-file-buffer file))))
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      ;; 10:53--10:54 rounds to 10:55--10:55 (zero-duration, dropped);
+      ;; 10:57--10:59 rounds to 10:55--11:00 — the only surviving CLOCK line.
+      ;; Splitting on a separator that occurs once yields 2 parts, not 1.
+      (should (= 2 (length (split-string disk "CLOCK:"))))
+      (should (string-match-p
+               ":LOGBOOK:\nCLOCK: \\[2026-07-28 Tue 10:55\\]--\\[2026-07-28 Tue 11:00\\] =>  0:05\n:END:"
+               disk))
+      ;; :SESSIONS: collapses to one min-to-max pair for the single day.
+      (should (string-match-p "- Resumed \\[2026-07-28 Tue 10:53\\]" disk))
+      (should (string-match-p "- Paused \\[2026-07-28 Tue 10:59\\]" disk))
+      (should (not (string-match-p "10:54\\]\\|10:57\\]" disk))))))
+
+(ert-deftest claude-code-ide-org-test-consolidate-history-preserves-open-interval ()
+  "An open CLOCK line and a trailing unmatched Resumed — today's
+live interval — must never be touched, even when closed history
+before them gets rounded/merged."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat
+             ":SESSIONS:\n"
+             "- Resumed [2026-07-28 Tue 09:00]\n"
+             "- Paused [2026-07-28 Tue 09:01]\n"
+             "- Resumed [2026-07-28 Tue 12:00]\n"
+             ":END:\n"
+             ":LOGBOOK:\n"
+             "CLOCK: [2026-07-28 Tue 12:00]\n"
+             "CLOCK: [2026-07-28 Tue 09:00]--[2026-07-28 Tue 09:01] =>  0:01\n"
+             ":END:\n"))
+    (save-buffer)
+    (claude-code-ide-org-consolidate-history id)
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      (should (string-match-p "CLOCK: \\[2026-07-28 Tue 12:00\\]\\s-*$" disk))
+      (should (string-match-p "- Resumed \\[2026-07-28 Tue 12:00\\]\\s-*$" disk)))))
+
+(ert-deftest claude-code-ide-org-test-consolidate-history-separate-days-stay-separate ()
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat
+             ":SESSIONS:\n"
+             "- Resumed [2026-07-27 Mon 09:00]\n"
+             "- Paused [2026-07-27 Mon 10:00]\n"
+             "- Resumed [2026-07-28 Tue 09:00]\n"
+             "- Paused [2026-07-28 Tue 10:00]\n"
+             ":END:\n"))
+    (save-buffer)
+    (claude-code-ide-org-consolidate-history id)
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      (should (string-match-p "- Resumed \\[2026-07-27 Mon 09:00\\]" disk))
+      (should (string-match-p "- Paused \\[2026-07-27 Mon 10:00\\]" disk))
+      (should (string-match-p "- Resumed \\[2026-07-28 Tue 09:00\\]" disk))
+      (should (string-match-p "- Paused \\[2026-07-28 Tue 10:00\\]" disk)))))
+
+(ert-deftest claude-code-ide-org-test-consolidate-history-noop-when-nothing-to-do ()
+  (claude-code-ide-org-test--with-heading
+    (should (equal "Nothing to consolidate on \"Test heading\""
+                   (claude-code-ide-org-consolidate-history id)))))
+
 ;;; Unknown :ID: handling -------------------------------------------------
 
 (ert-deftest claude-code-ide-org-test-unknown-id-returns-error-string ()

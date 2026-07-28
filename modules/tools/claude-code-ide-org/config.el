@@ -373,6 +373,231 @@ whatever (if anything) is currently clocking."
                  (org-get-heading t t t t) timestamp-string))
         (t "Nothing open to close."))))))
 
+;;; Historical consolidation --------------------------------------------------
+;;
+;; A one-time (for now — see TODO.org's "Auto-consolidate SESSIONS/LOGBOOK
+;; on the fly") retrospective cleanup of the per-turn write churn described
+;; in the "Session tracking" commentary above: each pause/resume writes a
+;; matching :SESSIONS: pair and :LOGBOOK: CLOCK line, so an ordinary work
+;; session accumulates dozens of few-minute entries. This section collapses
+;; :SESSIONS: to one min-to-max span per calendar day, and rounds/merges
+;; :LOGBOOK: CLOCK intervals, without ever touching whatever (if anything)
+;; is still actually open — that reflects live clock state, not history.
+
+(defun claude-code-ide-org--round-time-to-5-minutes (time)
+  "Round TIME to the nearest 5-minute mark, ties rounding up.
+Seconds are discarded — org timestamps are minute-resolution, so any
+TIME reached via `claude-code-ide-org--parse-org-timestamp' already
+has none."
+  (let* ((decoded (decode-time time))
+         (minute (nth 1 decoded))
+         (remainder (mod minute 5))
+         (rounded-minute (if (>= remainder 3)
+                              (+ minute (- 5 remainder))
+                            (- minute remainder))))
+    (encode-time (append (list 0 rounded-minute) (nthcdr 2 decoded)))))
+
+(defun claude-code-ide-org--merge-time-intervals (intervals)
+  "Sort INTERVALS — a list of (START . END) time-value conses — by
+START, then merge any that are adjacent or overlapping (END of one
+>= START of the next) into a single min-to-max span. Return the
+merged list, ascending by START."
+  (let ((sorted (sort (copy-sequence intervals)
+                       (lambda (a b) (time-less-p (car a) (car b)))))
+        result)
+    (dolist (interval sorted)
+      (if (and result (not (time-less-p (cdr (car result)) (car interval))))
+          (when (time-less-p (cdr (car result)) (cdr interval))
+            (setcdr (car result) (cdr interval)))
+        (push (cons (car interval) (cdr interval)) result)))
+    (nreverse result)))
+
+(defun claude-code-ide-org--drawer-content-bounds (drawer-name)
+  "Return (CONTENT-BEG CONTENT-END) delimiting the body of the
+:DRAWER-NAME: drawer belonging to the heading at point — the text
+between the marker line and the :END: line, CONTENT-END being the
+start of the :END: line itself (so the region includes the last
+content line's trailing newline). Return nil if the heading has no
+such drawer. Only recognizes a marker line containing nothing but
+the drawer name, matching `org-clock-find-position's own convention
+via `org-element-at-point' — see `claude-code-ide-org--append-to-drawer'
+— so prose that merely mentions \":DRAWER-NAME:\" is never mistaken
+for an actual drawer."
+  (org-back-to-heading t)
+  (let ((subtree-end (save-excursion (outline-next-heading) (point)))
+        (marker-re (concat "^[ \t]*:" (regexp-quote drawer-name) ":[ \t]*$")))
+    (save-excursion
+      (when (re-search-forward marker-re subtree-end t)
+        (when (org-element-type-p (org-element-at-point) 'drawer)
+          (forward-line 1)
+          (let ((content-beg (point)))
+            (when (re-search-forward "^[ \t]*:END:[ \t]*$" subtree-end t)
+              (list content-beg (line-beginning-position)))))))))
+
+(defun claude-code-ide-org--parse-clock-lines (text)
+  "Parse TEXT (a :LOGBOOK: drawer's body) into a plist: :open, the
+raw text of a still-open CLOCK line if TEXT has one, else nil; and
+:closed, a list of (START . END) time-value conses for every closed
+CLOCK line."
+  (let (open closed)
+    (dolist (line (split-string text "\n" t "[ \t]+"))
+      (cond
+       ((string-match "\\`CLOCK: \\(\\[[^]]+\\]\\)--\\(\\[[^]]+\\]\\)" line)
+        ;; Capture both groups before parsing either — `claude-code-ide-org--
+        ;; parse-org-timestamp' calls `org-time-string-to-time', which does
+        ;; its own internal regexp matching and would otherwise clobber the
+        ;; match data the second `match-string' call relies on (the same
+        ;; footgun `claude-code-ide-org-close-open-interval' already works
+        ;; around).
+        (let ((start-str (match-string 1 line))
+              (end-str (match-string 2 line)))
+          (push (cons (claude-code-ide-org--parse-org-timestamp start-str)
+                      (claude-code-ide-org--parse-org-timestamp end-str))
+                closed)))
+       ((string-match "\\`CLOCK: \\[[^]]+\\]\\'" line)
+        (setq open line))))
+    (list :open open :closed closed)))
+
+(defun claude-code-ide-org--format-clock-line (start end)
+  "Format START and END (time values) as a closed CLOCK line,
+matching org's own \"CLOCK: [start]--[end] =>  H:MM\" convention."
+  (let ((minutes (round (/ (float-time (time-subtract end start)) 60))))
+    (format "CLOCK: %s--%s =>  %d:%02d"
+            (format-time-string "[%Y-%m-%d %a %H:%M]" start)
+            (format-time-string "[%Y-%m-%d %a %H:%M]" end)
+            (/ minutes 60) (% minutes 60))))
+
+(defun claude-code-ide-org--consolidate-logbook-text (text)
+  "Given the raw body TEXT of a :LOGBOOK: drawer, round every closed
+CLOCK interval to the nearest 5-minute mark, merge any that become
+adjacent or overlapping, drop any resulting zero-duration interval
+— matching org's own `org-clock-out-remove-zero-time-clocks'
+convention — and return the new body text, newest first like org's
+own CLOCK ordering. A still-open CLOCK line, if present, is left
+completely untouched and kept first, since it reflects live clock
+state, not history."
+  (let* ((parsed (claude-code-ide-org--parse-clock-lines text))
+         (open (plist-get parsed :open))
+         (rounded (mapcar (lambda (iv)
+                             (cons (claude-code-ide-org--round-time-to-5-minutes (car iv))
+                                   (claude-code-ide-org--round-time-to-5-minutes (cdr iv))))
+                           (plist-get parsed :closed)))
+         (merged (seq-remove (lambda (iv) (time-equal-p (car iv) (cdr iv)))
+                              (claude-code-ide-org--merge-time-intervals rounded)))
+         (lines (mapcar (lambda (iv) (claude-code-ide-org--format-clock-line (car iv) (cdr iv)))
+                         (reverse merged))))
+    (concat (if open (concat open "\n") "")
+            (mapconcat #'identity lines "\n")
+            (if lines "\n" ""))))
+
+(defun claude-code-ide-org--parse-session-lines (text)
+  "Parse TEXT (a :SESSIONS: drawer body) into an ordered list of
+plists, each with :label (\"Resumed\" or \"Paused\"), :time (a time
+value), and :suffix (any trailing annotation after the timestamp,
+e.g. \" (recovered)\", or \"\")."
+  (let (events)
+    (dolist (line (split-string text "\n" t "[ \t]+"))
+      (when (string-match "\\`- \\(Resumed\\|Paused\\) \\(\\[[^]]+\\]\\)\\(.*\\)\\'" line)
+        ;; Same match-data-clobbering hazard as `claude-code-ide-org--parse-
+        ;; clock-lines' above — capture every group before parsing any of them.
+        (let ((label (match-string 1 line))
+              (ts-str (match-string 2 line))
+              (suffix (match-string 3 line)))
+          (push (list :label label
+                      :time (claude-code-ide-org--parse-org-timestamp ts-str)
+                      :suffix suffix)
+                events))))
+    (nreverse events)))
+
+(defun claude-code-ide-org--format-session-line (label time suffix)
+  "Format LABEL (\"Resumed\"/\"Paused\"), TIME, and SUFFIX as a
+:SESSIONS: entry line."
+  (format "- %s %s%s" label (format-time-string "[%Y-%m-%d %a %H:%M]" time) suffix))
+
+(defun claude-code-ide-org--consolidate-sessions-text (text)
+  "Given the raw body TEXT of a :SESSIONS: drawer, collapse the
+Resumed/Paused entries for each calendar day into a single
+min-to-max pair (\"Resumed\" at the day's earliest timestamp,
+\"Paused\" at its latest — whatever the entries' original labels).
+A trailing, unmatched \"Resumed\" — today's still-open interval — is
+left completely untouched, kept as the final line after the
+consolidated days."
+  (let* ((events (claude-code-ide-org--parse-session-lines text))
+         (open-tail (when (and events (equal (plist-get (car (last events)) :label) "Resumed"))
+                      (car (last events))))
+         (closed (if open-tail (butlast events) events))
+         (days (make-hash-table :test 'equal))
+         day-order
+         lines)
+    (dolist (ev closed)
+      (let ((day (format-time-string "%Y-%m-%d" (plist-get ev :time))))
+        (unless (gethash day days) (push day day-order))
+        (push ev (gethash day days))))
+    (setq day-order (nreverse day-order))
+    (dolist (day day-order)
+      (let* ((day-events (sort (gethash day days)
+                                (lambda (a b) (time-less-p (plist-get a :time) (plist-get b :time)))))
+             (min-ev (car day-events))
+             (max-ev (car (last day-events))))
+        (push (claude-code-ide-org--format-session-line
+               "Resumed" (plist-get min-ev :time) (plist-get min-ev :suffix))
+              lines)
+        (unless (eq min-ev max-ev)
+          (push (claude-code-ide-org--format-session-line
+                 "Paused" (plist-get max-ev :time) (plist-get max-ev :suffix))
+                lines))))
+    (setq lines (nreverse lines))
+    (when open-tail
+      (setq lines (append lines
+                           (list (claude-code-ide-org--format-session-line
+                                  (plist-get open-tail :label)
+                                  (plist-get open-tail :time)
+                                  (plist-get open-tail :suffix))))))
+    (concat (mapconcat #'identity lines "\n") (if lines "\n" ""))))
+
+(defun claude-code-ide-org-consolidate-history (id)
+  "Consolidate the heading with :ID: equal to ID's historical
+:SESSIONS: and :LOGBOOK: entries in place: collapse :SESSIONS: to
+one min-to-max span per calendar day, round :LOGBOOK: CLOCK
+intervals to the nearest 5-minute mark, and merge any that become
+adjacent or overlapping after rounding. A still-open CLOCK line or
+trailing unmatched \"Resumed\" entry — today's live interval — is
+left completely untouched; this only rewrites already-closed
+history. Saves the buffer. Not registered as an MCP tool: intended
+as a one-off maintenance operation via `emacsclient', and as the
+shared implementation a future on-the-fly version would call right
+after every clock-out."
+  (claude-code-ide-org--at-id
+   id
+   (lambda ()
+     (let ((heading (org-get-heading t t t t))
+           logbook-changed sessions-changed)
+       (let ((bounds (claude-code-ide-org--drawer-content-bounds "LOGBOOK")))
+         (when bounds
+           (let* ((old (buffer-substring (nth 0 bounds) (nth 1 bounds)))
+                  (new (claude-code-ide-org--consolidate-logbook-text old)))
+             (unless (equal old new)
+               (delete-region (nth 0 bounds) (nth 1 bounds))
+               (goto-char (nth 0 bounds))
+               (insert new)
+               (setq logbook-changed t)))))
+       (let ((bounds (claude-code-ide-org--drawer-content-bounds "SESSIONS")))
+         (when bounds
+           (let* ((old (buffer-substring (nth 0 bounds) (nth 1 bounds)))
+                  (new (claude-code-ide-org--consolidate-sessions-text old)))
+             (unless (equal old new)
+               (delete-region (nth 0 bounds) (nth 1 bounds))
+               (goto-char (nth 0 bounds))
+               (insert new)
+               (setq sessions-changed t)))))
+       (save-buffer)
+       (cond
+        ((and logbook-changed sessions-changed)
+         (format "Consolidated :LOGBOOK: and :SESSIONS: on \"%s\"" heading))
+        (logbook-changed (format "Consolidated :LOGBOOK: on \"%s\"" heading))
+        (sessions-changed (format "Consolidated :SESSIONS: on \"%s\"" heading))
+        (t (format "Nothing to consolidate on \"%s\"" heading)))))))
+
 (defun claude-code-ide-org-set-todo (id state)
   "Set the TODO keyword of the heading with :ID: equal to ID to STATE.
 STATE must be one of: TODO NEXT DOING WAIT MAYBE DONE CANCELLED.
