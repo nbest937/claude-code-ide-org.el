@@ -405,6 +405,58 @@ resolve to DONE.org::* Done per your project file headers."
        (save-buffer)
        (format "Archived: \"%s\"" heading)))))
 
+;;; Query -------------------------------------------------------------------
+;;
+;; Structured search over `claude-code-ide-org--tracked-files' (the same
+;; file list stale-interval-recovery already uses), via org-ql's
+;; plain-string mini-language.  Deliberately restricted to that
+;; mini-language: `org-ql--query-string-to-sexp' only ever recognizes
+;; todo:/tags:/priority:/heading:/... predicates plus `!' negation and
+;; `,' OR — org-ql's separate full sexp predicate language (arbitrary
+;; Elisp evaluated against the user's files) is never reachable from a
+;; model-supplied string here.
+
+(defun claude-code-ide-org--parse-query-string (query)
+  "Parse QUERY, in org-ql's plain-string mini-language, into an
+org-ql sexp query, or nil if QUERY fails to parse.  Never evaluates
+QUERY as Elisp — see the commentary above this section."
+  (require 'org-ql)
+  (org-ql--query-string-to-sexp query 'and))
+
+(defun claude-code-ide-org--format-query-match ()
+  "Format the org-ql match at point as one line: TODO state,
+heading, tags, :ID:, and file.  Used as `org-ql-select's :action,
+called with point already at the heading."
+  (let ((state (or (org-get-todo-state) "-"))
+        (heading (org-get-heading t t t t))
+        (id (or (org-entry-get nil "ID") "none"))
+        (tags (org-get-tags nil t))
+        (file (buffer-file-name (buffer-base-buffer))))
+    (format "%-9s %s%s  (ID: %s, file: %s)"
+            state heading
+            (if tags (concat "  :" (mapconcat #'identity tags ":") ":") "")
+            id (file-name-nondirectory (or file "?")))))
+
+(defun claude-code-ide-org-query (query)
+  "Search `claude-code-ide-org--tracked-files' with QUERY, an org-ql
+plain-string query, e.g. \"todo:WAIT\", \"tags:research,code\"
+(comma = OR), \"priority:A\", \"heading:\\\"text\\\"\", or negated
+with `!' (e.g. \"!todo:DONE\").  Multiple space-separated terms are
+combined with AND.  Returns one line per match — TODO state,
+heading, tags, :ID:, file — or a message string when the query is
+empty, fails to parse, or matches nothing.  Never signals an error
+to the MCP layer."
+  (condition-case err
+      (if (string-match-p "\\`[ \t\n\r]*\\'" query)
+          "Error: empty query."
+        (let ((sexp (claude-code-ide-org--parse-query-string query)))
+          (if (null sexp)
+              (format "Error: could not parse query: %S" query)
+            (let ((matches (org-ql-select (claude-code-ide-org--tracked-files) sexp
+                             :action #'claude-code-ide-org--format-query-match)))
+              (if matches (mapconcat #'identity matches "\n") "No matches.")))))
+    (error (format "Error: %s" (error-message-string err)))))
+
 ;;; MCP tool registration -------------------------------------------------
 
 (with-eval-after-load 'claude-code-ide
@@ -454,4 +506,23 @@ resolve to DONE.org::* Done per your project file headers."
                  "Use for DONE tasks tagged :code:, which archive to DONE.org::* Done.")
    :args '((:name "id"
             :type string
-            :description "The :ID: property value of the heading to archive."))))
+            :description "The :ID: property value of the heading to archive.")))
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-query
+   :name "org_query"
+   :description (concat
+                 "Search org-mode headings across "
+                 "`claude-code-ide-org-query-files' (or org-agenda-files) using "
+                 "org-ql's plain-string query syntax. Predicates: todo:KEYWORD "
+                 "(e.g. todo:WAIT), tags:TAG1,TAG2 (comma = OR), priority:A, "
+                 "heading:\"text\". Prefix any predicate with ! to negate it "
+                 "(e.g. !todo:DONE). Separate predicates with spaces to combine "
+                 "with AND, e.g. \"todo:NEXT tags:code\". Returns one line per "
+                 "match: TODO state, heading, tags, :ID:, and file — or a "
+                 "message if nothing matches. Prefer this over reading whole "
+                 "files for cross-file questions like what's blocked or what "
+                 "changed this week.")
+   :args '((:name "query"
+            :type string
+            :description "org-ql plain-string query, e.g. \"todo:WAIT\", \"tags:research,code\", \"priority:A\", \"!todo:DONE\"."))))

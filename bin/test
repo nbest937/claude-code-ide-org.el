@@ -5,18 +5,22 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 module_dir="$repo_root/modules/tools/claude-code-ide-org"
 
-# Emacs ships its own bundled org-mode, which -Q would otherwise load
-# instead of the straight-managed checkout Doom actually uses — and
-# they can differ in version. This bit us once already:
+# Emacs ships its own bundled org-mode (and, of course, no org-ql/peg/ts
+# at all), which -Q would otherwise load or simply miss instead of the
+# straight-managed checkout Doom actually uses. This bit us once already:
 # org-element-type-p only exists in the newer straight checkout, not
 # the bundled org, so tests silently ran against the wrong org version
-# until this was added. Put the straight build dir first on load-path
-# so tests run against the same org the real environment uses.
-org_build_dir="$(find "$HOME/.config/emacs/.local/straight" -maxdepth 1 -name 'build-*' -type d 2>/dev/null | head -1)/org"
+# until a load-path fix was added. Put every straight-built package's
+# directory first on load-path — not just org's — so tests run against
+# the same packages (org, org-ql and its own deps, etc.) the real
+# environment uses.
+build_root="$(find "$HOME/.config/emacs/.local/straight" -maxdepth 1 -name 'build-*' -type d 2>/dev/null | head -1)"
 
 emacs_args=(--batch -Q)
-if [[ -d "$org_build_dir" ]]; then
-  emacs_args+=(--eval "(add-to-list 'load-path \"$org_build_dir\")")
+if [[ -n "$build_root" ]]; then
+  for pkg_dir in "$build_root"/*/; do
+    [[ -d "$pkg_dir" ]] && emacs_args+=(--eval "(add-to-list 'load-path \"${pkg_dir%/}\")")
+  done
 fi
 
 exec emacs "${emacs_args[@]}" \
