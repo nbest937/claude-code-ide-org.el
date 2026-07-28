@@ -187,6 +187,84 @@ looked exactly like a success."
                    (org-with-point-at (org-id-find id 'marker)
                      (org-get-todo-state))))))
 
+;;; Stale interval recovery ----------------------------------------------
+
+(ert-deftest claude-code-ide-org-test-guess-stop-time-uses-working-hours ()
+  (let* ((claude-code-ide-org-working-hours '(9 . 18))
+         (start (encode-time 0 0 14 15 6 2026)) ; 2026-06-15 14:00
+         (guess (claude-code-ide-org--guess-stop-time start))
+         (decoded (decode-time guess)))
+    (should (= 18 (nth 2 decoded)))
+    (should (= 0 (nth 1 decoded)))
+    (should (= 15 (nth 3 decoded)))))
+
+(ert-deftest claude-code-ide-org-test-guess-stop-time-clamped-after-hours ()
+  "If work started after working hours end, the guess must still be
+after the start time, not before it."
+  (let* ((claude-code-ide-org-working-hours '(9 . 18))
+         (start (encode-time 0 0 21 15 6 2026)) ; 2026-06-15 21:00
+         (guess (claude-code-ide-org--guess-stop-time start)))
+    (should (time-less-p start guess))))
+
+(ert-deftest claude-code-ide-org-test-find-stale-open-intervals-detects-yesterday ()
+  (claude-code-ide-org-test--with-heading
+    (let ((yesterday (format-time-string "[%Y-%m-%d %a %H:%M]"
+                                          (time-subtract (current-time) (* 2 86400)))))
+      (goto-char (point-max))
+      (insert (format ":SESSIONS:\n- Resumed %s\n:END:\n:LOGBOOK:\nCLOCK: %s\n:END:\n"
+                       yesterday yesterday))
+      (save-buffer))
+    (let* ((claude-code-ide-org-query-files (list file))
+           (findings (claude-code-ide-org-find-stale-open-intervals)))
+      (should (= 1 (length findings)))
+      (should (equal id (plist-get (car findings) :id))))))
+
+(ert-deftest claude-code-ide-org-test-find-stale-open-intervals-ignores-today ()
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (findings (claude-code-ide-org-find-stale-open-intervals)))
+      (should (null findings)))))
+
+(ert-deftest claude-code-ide-org-test-find-stale-open-intervals-respects-disabled-flag ()
+  (claude-code-ide-org-test--with-heading
+    (let ((yesterday (format-time-string "[%Y-%m-%d %a %H:%M]"
+                                          (time-subtract (current-time) (* 2 86400)))))
+      (goto-char (point-max))
+      (insert (format ":LOGBOOK:\nCLOCK: %s\n:END:\n" yesterday))
+      (save-buffer))
+    (let* ((claude-code-ide-org-query-files (list file))
+           (claude-code-ide-org-session-recovery-enabled nil)
+           (findings (claude-code-ide-org-find-stale-open-intervals)))
+      (should (null findings)))))
+
+(ert-deftest claude-code-ide-org-test-close-open-interval-preserves-surrounding-content ()
+  "Regression test: closing a stale interval must not corrupt
+unrelated file content. `org-time-string-to-time' (needed to compute
+the recovered CLOCK duration) does its own internal regexp matching,
+which previously clobbered the match data `replace-match' relied on
+from the original CLOCK-line search — replace-match then replaced
+text at a stale, wrong position instead of the actual CLOCK line,
+corrupting the file header."
+  (claude-code-ide-org-test--with-heading
+    (let ((yesterday "[2026-07-27 Mon 14:00]"))
+      (goto-char (point-max))
+      (insert (format ":SESSIONS:\n- Resumed %s\n:END:\n:LOGBOOK:\nCLOCK: %s\n:END:\n"
+                       yesterday yesterday))
+      (save-buffer))
+    (claude-code-ide-org-close-open-interval id "[2026-07-27 Mon 17:45]")
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      ;; The file header must be completely untouched.
+      (should (string-prefix-p
+               "#+TODO: TODO NEXT DOING WAIT MAYBE | DONE CANCELLED\n#+TAGS:"
+               disk))
+      ;; CLOCK line correctly closed with the right duration (3:45).
+      (should (string-match-p
+               "CLOCK: \\[2026-07-27 Mon 14:00\\]--\\[2026-07-27 Mon 17:45\\] =>  3:45"
+               disk))
+      ;; :SESSIONS: entry correctly closed too.
+      (should (string-match-p "- Paused \\[2026-07-27 Mon 17:45\\] (recovered)" disk)))))
+
 ;;; Unknown :ID: handling -------------------------------------------------
 
 (ert-deftest claude-code-ide-org-test-unknown-id-returns-error-string ()

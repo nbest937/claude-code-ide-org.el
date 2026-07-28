@@ -9,6 +9,35 @@
 ;; they are created automatically on link creation.
 
 (require 'org-element)
+(require 'json)
+
+;;; Configuration -----------------------------------------------------------
+
+(defgroup claude-code-ide-org nil
+  "MCP tool wrappers exposing org-mode operations to Claude Code."
+  :group 'org)
+
+(defcustom claude-code-ide-org-session-recovery-enabled t
+  "When non-nil, check for open CLOCK/:SESSIONS: intervals left
+over from a previous day (e.g. after a crash or system shutdown
+prevented the Stop hook from pausing them) and report them via the
+SessionStart hook so Claude can ask you for the actual stop time."
+  :type 'boolean
+  :group 'claude-code-ide-org)
+
+(defcustom claude-code-ide-org-working-hours '(9 . 18)
+  "Cons of (START-HOUR . END-HOUR), 24-hour clock, your normal
+working hours.  Used only to inform the educated guess offered when
+recovering a stale open interval: absent a better signal, the guess
+defaults to the end of working hours on the day the interval opened."
+  :type '(cons integer integer)
+  :group 'claude-code-ide-org)
+
+(defcustom claude-code-ide-org-query-files nil
+  "Files to scan for cross-file operations (session recovery now;
+org_query once built).  Defaults to `org-agenda-files' when nil."
+  :type '(repeat file)
+  :group 'claude-code-ide-org)
 
 ;;; Helper ----------------------------------------------------------------
 
@@ -149,6 +178,199 @@ heading rather than silently losing time or blocking anything."
               (with-current-buffer buffer (save-buffer))))
           (format "Resumed: \"%s\"" org-clock-heading))))
     (error (format "Error: %s" (error-message-string err)))))
+
+;;; Stale interval recovery --------------------------------------------------
+;;
+;; org-clock-persist is set to `history' (not `t'/`clock') in this
+;; project's Doom config, so a crash or restart does NOT auto-resume
+;; the in-memory clock state — meaning an open interval left by a
+;; crash can only be found by scanning the actual TEXT of tracked org
+;; files for an unclosed CLOCK line or an unclosed "Resumed" :SESSIONS:
+;; entry, never by checking org-clocking-p.  Checked at the start of
+;; every session; naturally self-limiting to "first thing each day"
+;; since it only reports intervals whose open timestamp predates today.
+
+(defun claude-code-ide-org--tracked-files ()
+  "Files to scan for stale open intervals (and, later, org_query)."
+  (or claude-code-ide-org-query-files org-agenda-files))
+
+(defun claude-code-ide-org--parse-org-timestamp (ts-string)
+  "Parse an org timestamp string like \"[2026-07-27 Mon 17:45]\"
+into an Emacs time value."
+  (org-time-string-to-time ts-string))
+
+(defun claude-code-ide-org--today-p (time)
+  "Non-nil if TIME falls on today's calendar date."
+  (let ((now (decode-time)) (then (decode-time time)))
+    (and (= (nth 3 now) (nth 3 then))
+         (= (nth 4 now) (nth 4 then))
+         (= (nth 5 now) (nth 5 then)))))
+
+(defun claude-code-ide-org--guess-stop-time (start-time)
+  "Educated guess for when work actually stopped, given the open
+interval's START-TIME, based on `claude-code-ide-org-working-hours'.
+Defaults to the end of working hours on the day work started;
+clamped to at least an hour after START-TIME if that would
+otherwise put the guess before the interval even opened."
+  (let* ((decoded (decode-time start-time))
+         (end-hour (cdr claude-code-ide-org-working-hours))
+         (guess (encode-time 0 0 end-hour
+                              (nth 3 decoded) (nth 4 decoded) (nth 5 decoded))))
+    (if (time-less-p guess start-time)
+        (time-add start-time 3600)
+      guess)))
+
+(defun claude-code-ide-org--entry-open-interval ()
+  "If the entry at point has an open CLOCK line and/or an unclosed
+:SESSIONS: \"Resumed\" entry, return a plist (:logbook-open
+TIME-OR-NIL :sessions-open TIME-OR-NIL).  Both nil means nothing is
+open here.  Does not rely on org-clocking-p — see commentary above."
+  (let ((end (save-excursion (outline-next-heading) (point)))
+        logbook-open sessions-open)
+    (save-excursion
+      (when (re-search-forward "^[ \t]*CLOCK: \\(\\[[^]]+\\]\\)[ \t]*$" end t)
+        (setq logbook-open (claude-code-ide-org--parse-org-timestamp (match-string 1)))))
+    (save-excursion
+      (let (last-event last-ts)
+        (while (re-search-forward "^[ \t]*- \\(Resumed\\|Paused\\) \\(\\[[^]]+\\]\\)" end t)
+          (setq last-event (match-string 1) last-ts (match-string 2)))
+        (when (equal last-event "Resumed")
+          (setq sessions-open (claude-code-ide-org--parse-org-timestamp last-ts)))))
+    (when (or logbook-open sessions-open)
+      (list :logbook-open logbook-open :sessions-open sessions-open))))
+
+(defun claude-code-ide-org-find-stale-open-intervals ()
+  "Scan `claude-code-ide-org--tracked-files' for open CLOCK/:SESSIONS:
+intervals whose open timestamp predates today.  Returns nil if
+`claude-code-ide-org-session-recovery-enabled' is nil.  Otherwise a
+list of plists: (:id ID :heading HEADING :file FILE :logbook-open
+TIME-OR-NIL :sessions-open TIME-OR-NIL :guess TIME)."
+  (when claude-code-ide-org-session-recovery-enabled
+    (let (results)
+      (dolist (file (claude-code-ide-org--tracked-files))
+        (when (file-exists-p file)
+          (with-current-buffer (find-file-noselect file)
+            (org-map-entries
+             (lambda ()
+               (let ((interval (claude-code-ide-org--entry-open-interval))
+                     (id (org-entry-get nil "ID")))
+                 (when (and interval id)
+                   (let* ((lb (plist-get interval :logbook-open))
+                          (se (plist-get interval :sessions-open))
+                          (earliest (cond ((and lb se) (if (time-less-p lb se) lb se))
+                                          (lb lb)
+                                          (t se))))
+                     (unless (claude-code-ide-org--today-p earliest)
+                       (push (list :id id
+                                   :heading (org-get-heading t t t t)
+                                   :file file
+                                   :logbook-open lb
+                                   :sessions-open se
+                                   :guess (claude-code-ide-org--guess-stop-time earliest))
+                             results))))))
+             "ID={.}" 'file))))
+      (nreverse results))))
+
+(defun claude-code-ide-org--format-stale-interval-report (findings)
+  "Format FINDINGS (as returned by
+`claude-code-ide-org-find-stale-open-intervals') into a plain-text
+report for Claude to relay to the user as a question."
+  (mapconcat
+   (lambda (f)
+     (format (concat "\"%s\" (:ID: %s, in %s) has an unclosed %s open since "
+                      "%s that was never paused — most likely a crash or "
+                      "system shutdown before Claude Code's Stop hook could "
+                      "close it. Ask the user what time they actually "
+                      "stopped work that day; offer this educated guess "
+                      "(based on working hours %d:00–%d:00): %s. Once "
+                      "confirmed or corrected, call claude-code-ide-org-close-open-interval "
+                      "via emacsclient with that timestamp.")
+             (plist-get f :heading) (plist-get f :id)
+             (file-name-nondirectory (plist-get f :file))
+             (cond ((and (plist-get f :logbook-open) (plist-get f :sessions-open))
+                    "CLOCK entry and :SESSIONS: interval")
+                   ((plist-get f :logbook-open) "CLOCK entry")
+                   (t ":SESSIONS: interval"))
+             (format-time-string "%Y-%m-%d"
+                                  (or (plist-get f :logbook-open) (plist-get f :sessions-open)))
+             (car claude-code-ide-org-working-hours) (cdr claude-code-ide-org-working-hours)
+             (format-time-string "[%Y-%m-%d %a %H:%M]" (plist-get f :guess))))
+   findings "\n\n"))
+
+(defun claude-code-ide-org--session-start-hook-json ()
+  "Return the SessionStart hook JSON payload: an empty object if
+there is nothing to report, otherwise one with additionalContext
+describing every stale open interval and its educated guess."
+  (let ((findings (claude-code-ide-org-find-stale-open-intervals)))
+    (if (not findings)
+        "{}"
+      (json-encode
+       `((hookSpecificOutput
+          . ((hookEventName . "SessionStart")
+             (additionalContext
+              . ,(claude-code-ide-org--format-stale-interval-report findings)))))))))
+
+(defun claude-code-ide-org-write-session-start-report (output-path)
+  "Write the SessionStart hook JSON payload to OUTPUT-PATH.
+Called directly via `emacsclient -e' by the SessionStart hook
+script, which then just cats the file — avoids any need to
+unescape emacsclient's printed-representation output in shell."
+  (with-temp-file output-path
+    (insert (claude-code-ide-org--session-start-hook-json))))
+
+(defun claude-code-ide-org-close-open-interval (id timestamp-string)
+  "Close whatever open CLOCK/:SESSIONS: interval exists on the
+heading whose :ID: equals ID, using TIMESTAMP-STRING (an org
+timestamp string, e.g. \"[2026-07-27 Mon 17:45]\") as the recovered
+stop time.  Closes an open CLOCK line (computing its duration) and/or
+appends a \"Paused ... (recovered)\" :SESSIONS: entry, whichever is
+actually open.  Saves the buffer.  Does not touch the live clock —
+this is purely a text-level fix for a stale interval, not related to
+whatever (if anything) is currently clocking."
+  (claude-code-ide-org--at-id
+   id
+   (lambda ()
+     (let ((end (save-excursion (outline-next-heading) (point)))
+           (stop-time (claude-code-ide-org--parse-org-timestamp timestamp-string))
+           closed-logbook closed-sessions)
+       (save-excursion
+         (when (re-search-forward "^\\([ \t]*CLOCK: \\)\\(\\[[^]]+\\]\\)[ \t]*$" end t)
+           ;; Capture match boundaries and strings immediately, then use
+           ;; delete-region/insert rather than replace-match — computing
+           ;; start-time below calls org-time-string-to-time, which does
+           ;; its own regexp matching internally and would otherwise
+           ;; silently clobber the match data replace-match relies on.
+           (let* ((match-beg (match-beginning 0))
+                  (match-end (match-end 0))
+                  (prefix (match-string 1))
+                  (start-str (match-string 2))
+                  (start-time (claude-code-ide-org--parse-org-timestamp start-str))
+                  (minutes (round (/ (float-time (time-subtract stop-time start-time)) 60))))
+             (goto-char match-beg)
+             (delete-region match-beg match-end)
+             (insert (format "%s%s--%s =>  %d:%02d"
+                              prefix start-str timestamp-string (/ minutes 60) (% minutes 60)))
+             (setq closed-logbook t))))
+       (save-excursion
+         (let (last-event)
+           (while (re-search-forward "^[ \t]*- \\(Resumed\\|Paused\\) \\[" end t)
+             (setq last-event (match-string 1)))
+           (when (equal last-event "Resumed")
+             (claude-code-ide-org--append-to-drawer
+              "SESSIONS" (format "- Paused %s (recovered)" timestamp-string))
+             (setq closed-sessions t))))
+       (save-buffer)
+       (cond
+        ((and closed-logbook closed-sessions)
+         (format "Closed open CLOCK and :SESSIONS: interval on \"%s\" at %s"
+                 (org-get-heading t t t t) timestamp-string))
+        (closed-logbook
+         (format "Closed open CLOCK on \"%s\" at %s"
+                 (org-get-heading t t t t) timestamp-string))
+        (closed-sessions
+         (format "Closed open :SESSIONS: interval on \"%s\" at %s"
+                 (org-get-heading t t t t) timestamp-string))
+        (t "Nothing open to close."))))))
 
 (defun claude-code-ide-org-set-todo (id state)
   "Set the TODO keyword of the heading with :ID: equal to ID to STATE.

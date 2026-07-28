@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# SessionStart hook: check for open CLOCK/:SESSIONS: intervals left
+# over from a previous day (crash, system shutdown, etc. before Stop
+# could pause them) and, if any are found, inject a note asking
+# Claude to prompt the user for the actual stop time — with an
+# educated guess included, based on claude-code-ide-org-working-hours.
+#
+# Self-limiting to "first thing each day": it only reports intervals
+# whose open timestamp predates today, so once closed it stays quiet
+# regardless of how many sessions start that day. No-ops entirely if
+# claude-code-ide-org-session-recovery-enabled is nil, or if Emacs
+# isn't reachable.
+cat >/dev/null
+
+out="$(mktemp)"
+emacsclient -e "(claude-code-ide-org-write-session-start-report \"$out\")" >/dev/null 2>&1
+
+if [[ -s "$out" ]]; then
+  cat "$out"
+fi
+rm -f "$out"
+
+exit 0

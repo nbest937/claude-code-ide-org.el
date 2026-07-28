@@ -173,6 +173,54 @@ right after the property drawer, ahead of anything pre-existing. Harmless
 (both remain fully valid, independently parseable drawers), just not
 visually tidy.
 
+### Stale interval recovery
+
+A crash or system shutdown can kill Emacs (or the whole machine) before
+the `Stop` hook gets a chance to pause a running interval, leaving a
+CLOCK line or `:SESSIONS:` entry open indefinitely. Because
+`org-clock-persist` is set to `history` (not `t`/`clock`) in the Doom
+config, a restart does *not* auto-resume that in-memory clock state — so
+detection works by scanning the actual *text* of tracked org files for an
+unclosed `CLOCK:` line or an unclosed `Resumed` entry, never by checking
+`org-clocking-p`.
+
+Checked via a third hook, `SessionStart` → `bin/hooks/session-start-recovery-check`
+→ `claude-code-ide-org-write-session-start-report`. Self-limiting to
+"first thing each day": it only reports intervals whose open timestamp
+predates today, so once closed (or if nothing was ever left open) it
+stays quiet regardless of how many sessions start that day. The report is
+injected as `additionalContext`, which Claude is expected to relay to the
+user as a question — the hook itself has no way to literally prompt.
+
+**Configuration** (both `defcustom`s, set in `~/.config/doom/config.el`):
+- `claude-code-ide-org-session-recovery-enabled` (default `t`) — set nil
+  to disable the whole check.
+- `claude-code-ide-org-working-hours` (default `(9 . 18)`) — a
+  `(START-HOUR . END-HOUR)` cons, 24-hour clock. Used only to inform the
+  educated guess offered alongside the prompt: absent a better signal, the
+  guess defaults to the end of working hours on the day the interval
+  opened (clamped to at least an hour after the open time, if working
+  hours would otherwise put the guess before the interval even started).
+- `claude-code-ide-org-query-files` (default nil, falls back to
+  `org-agenda-files`) — which files to scan. Shared with the still-MAYBE
+  `org_query` tool in TODO.org for when it's eventually built.
+
+**Recovery**: once the user confirms or corrects a stop time, call
+`claude-code-ide-org-close-open-interval` (via `emacsclient`, not an MCP
+tool — this is a text-level fix for a stale interval, unrelated to
+whatever may currently be clocking) with the heading's `:ID:` and an org
+timestamp string. It closes whichever of the CLOCK line / `:SESSIONS:`
+entry is actually open (possibly both), computing the CLOCK duration and
+appending a `Paused ... (recovered)` `:SESSIONS:` entry.
+
+**Not yet attempted:** using the system sleep/wake/shutdown log (`pmset
+-g log` on macOS) as a more precise guess signal than working hours alone
+— it's specific to exactly the crash/shutdown scenario this feature
+exists for, but the log is dominated by per-app power assertions rather
+than clean sleep/wake transitions, and needs a much tighter filter than a
+first attempt turned up. Worth revisiting if the working-hours-only guess
+proves too coarse in practice.
+
 ---
 
 ## Emacs integration (`~/.config/doom/config.el`)
