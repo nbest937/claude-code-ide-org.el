@@ -106,6 +106,11 @@ the mechanics of a transition once it's triggered (see `org-trigger-hook`/
 `org-blocker-hook` in TODO.org, which is the safety net if this rule is
 ever forgotten: it opens the clock the moment DOING is set, however it got
 set).
+**Rule**: any time a new task is described in conversation, create an org
+heading for it (with a `:ID:`) and set its initial TODO state, rather than
+only tracking it in conversation memory. Same reasoning as above — this is
+a judgment call about what counts as "a task," so it has to be a standing
+instruction, not something a hook could infer.
 
 ---
 
