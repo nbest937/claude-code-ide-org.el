@@ -142,8 +142,9 @@ creation, not just the "new task described in conversation" case above.
 
 ## MCP tools (`modules/tools/claude-code-ide-org/config.el`)
 
-All tools locate headings by their `:ID:` property.  Every heading Claude
-is expected to act on must have one (`M-x org-id-get-create`).
+Most tools locate a single heading by its `:ID:` property.  Every heading
+Claude is expected to act on must have one (`M-x org-id-get-create`).
+`org_query` is the exception — it searches across files by query, not by ID.
 
 | Tool            | Wraps                  | Notes                                 |
 |-----------------|------------------------|---------------------------------------|
@@ -151,9 +152,12 @@ is expected to act on must have one (`M-x org-id-get-create`).
 | `org_clock_out` | `org-clock-out`        | Always call when leaving DOING        |
 | `org_set_todo`  | `org-todo`             | Saves buffer after state change       |
 | `org_archive`   | `org-archive-subtree`  | Respects `#+ARCHIVE:` directive       |
+| `org_query`     | `org-ql-select`        | Cross-file search; not :ID:-scoped    |
 
-Text editing (via the org skill) is used for everything else: reading files,
-adding or changing tags, generating new headings, time reporting.
+Text editing (via the org skill) is used for adding or changing tags,
+generating new headings, and time reporting. `org_query` now covers
+structured cross-file reads (e.g. "what's blocked," "everything :research:
+and not DONE") that used to mean Claude reading whole files by hand.
 
 ---
 
@@ -305,10 +309,12 @@ by hooking into Claude Code session lifecycle events.
   editing risks malformed CLOCK entries or stale timer state.
 
 - **Why text editing for everything else?**
-  Tag changes, new headings, time report summaries, and file reads don't
-  require org-mode's internal state — they're straightforward text operations
-  the org skill handles well. Keeping the MCP tool surface small reduces
-  per-request token overhead.
+  Tag changes, new headings, and time report summaries don't require
+  org-mode's internal state — they're straightforward text operations the
+  org skill handles well. Keeping the MCP tool surface small reduces
+  per-request token overhead. Cross-file reads used to fall in this bucket
+  too, but were slow enough in practice (whole-file reads to answer
+  one-line questions) to justify `org_query` as a dedicated tool instead.
 
 - **Why IDs rather than heading titles?**
   Titles are not unique and can change. `:ID:` properties are stable

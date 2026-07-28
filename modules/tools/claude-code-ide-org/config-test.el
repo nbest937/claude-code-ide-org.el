@@ -276,6 +276,52 @@ corrupting the file header."
     (should (string-match-p "\\`Error: no org heading found with :ID: \"bogus\""
                             (claude-code-ide-org-archive "bogus")))))
 
+;;; claude-code-ide-org-query -----------------------------------------------
+
+(ert-deftest claude-code-ide-org-test-query-todo-basic ()
+  (claude-code-ide-org-test--with-heading
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-query "todo:TODO")))
+      (should (string-match-p "TODO" result))
+      (should (string-match-p "Test heading" result)))))
+
+(ert-deftest claude-code-ide-org-test-query-includes-id ()
+  (claude-code-ide-org-test--with-heading
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-query "todo:TODO")))
+      (should (string-match-p (regexp-quote id) result)))))
+
+(ert-deftest claude-code-ide-org-test-query-tags-or-matches-either ()
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* NEXT Research heading                                            :research:\n")
+    (save-buffer)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-query "tags:code,research")))
+      (should (string-match-p "Test heading" result))
+      (should (string-match-p "Research heading" result)))))
+
+(ert-deftest claude-code-ide-org-test-query-negation-excludes-done ()
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* DONE Finished heading                                             :code:\n")
+    (save-buffer)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-query "!todo:DONE")))
+      (should (string-match-p "Test heading" result))
+      (should (not (string-match-p "Finished heading" result))))))
+
+(ert-deftest claude-code-ide-org-test-query-no-matches-returns-message ()
+  (claude-code-ide-org-test--with-heading
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-query "todo:CANCELLED")))
+      (should (equal "No matches." result)))))
+
+(ert-deftest claude-code-ide-org-test-query-blank-returns-error ()
+  (claude-code-ide-org-test--with-heading
+    (let ((claude-code-ide-org-query-files (list file)))
+      (should (equal "Error: empty query." (claude-code-ide-org-query "   "))))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here
