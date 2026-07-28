@@ -1,0 +1,464 @@
+#+TODO: TODO NEXT DOING WAIT MAYBE | DONE CANCELLED
+#+TAGS: code comms research review
+#+ARCHIVE: DONE.org::* Done
+
+* DONE Set git identity :code:
+:PROPERTIES:
+:ID:       51591672-95b9-4092-a037-af7b3fe45fbc
+:END:
+Blocking the very first commit of this repo — everything is staged
+and ready, git just doesn't know who you are yet. Run, in the repo:
+#+begin_src sh
+git config user.name "Your Name"
+git config user.email "nbest937@gmail.com"
+#+end_src
+Then ask Claude to finish the commit it already staged.
+
+* Roadmap
+
+Brainstormed, not committed to — all MAYBE on purpose. Pick what's
+actually worth building and I'll bump it to NEXT. Grouped by what
+each cluster is actually for, not by which layer (org vs Claude)
+would implement it — several items that live in different systems
+turned out to be the same underlying goal.
+
+** New MCP tools
+
+On-demand capabilities Claude would call. Independent of each
+other — no shared implementation, just the same "make it a tool
+instead of raw text editing" shape.
+
+*** NEXT org_query :code:
+:PROPERTIES:
+:ID:       4ae3cdef-98b5-4361-818e-aef3491f2fb8
+:END:
+Structured search over headings. Biggest ROI item here: most of
+what's actually slow today is Claude reading whole files to answer
+things a real query would answer in one call — "what's blocked",
+"what did I touch this week", "everything :research: and not DONE".
+Worth scoping against =org-ql= rather than hand-rolling a query
+language.
+
+*Plan:* [/] — verified against org-ql's actual source
+(github.com/alphapapa/org-ql), not guessed from memory.
+- [ ] Add =(package! org-ql :recipe (:host github :repo
+  "alphapapa/org-ql"))= to packages.el (update the "no additional
+  packages required" note) — confirmed available via MELPA/straight,
+  not currently installed in this straight checkout
+- [ ] Add =claude-code-ide-org-query-files= defcustom (default
+  =org-agenda-files=) for an explicit, project-scoped file list
+- [ ] Implement =claude-code-ide-org-query (query)=: convert the
+  incoming string via =(org-ql--query-string-to-sexp query)=, then
+  call =(org-ql-select claude-code-ide-org-query-files sexp :action
+  '(...))= — real signature is =(org-ql-select buffers-or-files query
+  &key action narrow sort)=
+- [ ] Document the real plain-string syntax in the tool description:
+  =todo:WAIT=, =tags:research,code= (comma = OR), =priority:A=,
+  =heading:"text"=, and negation with =!= (e.g. =!todo:DONE=, not
+  =-todo:DONE= — corrected from an earlier draft of this plan, which
+  had the wrong negation syntax)
+- [ ] Format each match as one line — state, heading, :ID:, tags,
+  file — and return a single joined string, matching the existing
+  "always return a string" convention
+- [ ] Register with a single =query= string arg
+- [ ] Restrict the parser to the string syntax only — never =eval= a
+  model-supplied sexp
+
+*Risk:* =org-ql--query-string-to-sexp= is a double-dash "private"
+function, not documented public API — worth a quick guard/fallback
+if it's ever renamed across org-ql versions. Separately, org-ql also
+exposes a full sexp predicate language — effectively arbitrary elisp
+execution against the user's files if exposed. Same class of concern
+as "Remote MCP access" below, just reachable locally instead of
+remotely.
+
+*** NEXT org_capture :code:
+:PROPERTIES:
+:ID:       405e05b6-dc0c-42c1-99ce-7a94d266ca6d
+:END:
+Quick-add a task from a natural-language ask. Wrap =org-capture=
+with a fixed template so a new TODO can be created in one call
+instead of hand-writing a heading via the text skill and then
+calling =org-id-get-create=. Return the new :ID: so the caller can
+immediately clock in / set state on it.
+
+*Plan:* [/] — verified empirically under =emacs --batch -Q=, the
+exact environment =bin/test= runs in.
+- [ ] Add a dedicated capture template (own key, e.g. ="z"=, distinct
+  from any personal templates), targeting a configurable capture-file
+  defcustom, entry body =\"* TODO %i\n:PROPERTIES:\n:ID:
+  %(org-id-new)\n:END:\n\"=, with =:immediate-finish t=
+- [ ] Use =%i= for the captured title, *not* =%?= — confirmed by
+  direct test: =%?= is purely a cursor-placement marker and expands
+  to nothing under =:immediate-finish=, producing a heading with no
+  text at all (=\"* TODO \"=); =%i= is the escape that actually
+  substitutes the string passed to =org-capture-string=
+- [ ] Implement =claude-code-ide-org-capture (title)=: call
+  =(org-capture-string title "z")=, wrapped in =condition-case=,
+  returning ="Captured: \"TITLE\" (ID: ...)"= — capture the generated
+  ID from the template's =%(org-id-new)= call up front (bind it in a
+  =let= and reference the same value in both the template and the
+  return string, rather than searching for it after the fact)
+- [ ] Register with a =title= string arg
+
+*Confirmed, not a risk:* =org-capture-string= +
+=:immediate-finish t= works correctly headless — tested a full
+capture round trip under =emacs --batch -Q= and the file, heading,
+and generated :ID: all landed correctly on disk. The earlier
+"may misbehave under batch" concern didn't materialize; the =%i=
+gotcha above was the only real issue found.
+
+*** MAYBE org_clock_report :code:
+:PROPERTIES:
+:ID:       26215a14-6ec9-43a7-981b-5c8e888e65fd
+:BLOCKER:  4ae3cdef-98b5-4361-818e-aef3491f2fb8
+:END:
+Summarize time in a date range. Wrap =org-clock-report=/column view
+so "what did I work on this week" is one tool call instead of
+Claude eyeballing LOGBOOK entries across files by hand.
+
+*Plan:* [/]
+- [ ] Implement =claude-code-ide-org-clock-report (&optional id block
+  tstart tend)=: scope to a subtree if =id= given, else fall back to
+  the same file-list variable as org_query
+- [ ] Build a clocktable params plist (=:scope=, =:maxlevel=, and
+  either =:block= — today/thisweek/lastweek/thismonth — or explicit
+  =:tstart=/=:tend=)
+- [ ] Call =org-dblock-write:clocktable= in a throwaway temp buffer
+  and return the resulting table string — no file created or
+  modified
+- [ ] Register with optional args =id=, =block= (enum), =tstart=,
+  =tend=
+
+*Risk:* low — a known idiom, but unexercised in this codebase;
+spot-check before committing to it as the mechanism.
+
+*** MAYBE org_refile                                                  :code:
+Move a heading to a new parent/file. Already flagged as deferred in
+the design notes. Needs a target-resolution story (:ID: of new
+parent? file + heading path?) worked out before implementation, not
+just a thin wrap of the interactive prompt.
+
+*Plan:* [/]
+- [ ] Implement =claude-code-ide-org-refile (id target-id)=, resolving
+  both =id= (heading to move) and =target-id= (new parent) via
+  =org-id-find=
+- [ ] Build the =rfloc= argument =org-refile= expects directly,
+  bypassing the interactive completion prompt entirely
+- [ ] Call =(org-with-point-at marker (org-refile nil nil rfloc))= at
+  the source marker
+- [ ] Save *every* buffer touched — source and target, which may
+  differ — this is exactly the bug shape that already bit
+  archive/clock-out
+- [ ] Register with =id= and =target_id= string args
+
+*Open question:* can't express "move to the top level of a file
+with no parent heading" since there's no heading to attach an :ID:
+to — decide whether that's out of scope for v1, or a second
+file-path+append codepath is needed.
+
+*** MAYBE org_sort_children / org_move_sibling                        :code:
+Structural manipulation, lower priority than org_query — nice to
+have, nothing currently needs it.
+
+*Plan:* [/]
+- [ ] Implement =claude-code-ide-org-sort-children (id sort-type)=,
+  mapping a friendly =sort-type= string (alpha/todo-order/priority/
+  scheduled/deadline/clock-time) to =org-sort-entries='s character
+  codes, calling it non-interactively
+- [ ] Implement =claude-code-ide-org-move-sibling (id direction)=,
+  calling =org-move-subtree-up=/=-down= based on =direction=
+- [ ] Register both as separate tools, not merged — matches the
+  existing convention of distinct tools for distinct operations
+- [ ] Rely on the shared dispatcher's =condition-case= for sibling-
+  boundary errors (=user-error= at the top/bottom) rather than adding
+  extra handling
+
+No major open question — the most mechanical item here.
+
+** Enforce the transition rules
+
+CLAUDE.md's transition table (TODO→DOING opens a clock, etc.) is
+pure prose right now — nothing stops a hand-edit in Emacs, or some
+future tool call, from violating it. These three items are one
+project split across two enforcement layers plus the tests that
+should cover both: org's own dependency hooks catch violations
+regardless of how the state change happened, a Claude-side hook
+catches the specific path our own tools take one step earlier, and
+neither is done until it's tested.
+
+*** MAYBE org-trigger-hook / org-blocker-hook                         :code:
+:PROPERTIES:
+:ID:       e47ac400-dd17-4e6a-91aa-bcd837151610
+:END:
+Structural enforcement inside org itself. Block DONE while a clock
+is still running on that heading, or auto-open a clock the moment
+DOING is set through *any* path, not just our org_set_todo wrapper —
+this is the layer that also catches hand-edits made directly in
+Emacs.
+
+*Plan:* [/]
+- [ ] Implement =claude-code-ide-org--blocker-clock-running-p= for
+  =org-blocker-hook=, denying DONE when the target heading's :ID:
+  matches whatever =org-clock-marker= currently points at
+- [ ] Implement =claude-code-ide-org--trigger-auto-clock-in= for
+  =org-trigger-hook=, auto-clocking-in on DOING if not already
+  clocked on that heading, with a re-entrancy guard
+- [ ] Register both via plain =(with-eval-after-load 'org ...)=, not
+  Doom's =after!=, matching config-test.el's =emacs --batch -Q= load
+  path
+- [ ] Keep every org-clock.el call lazily inside the hook lambdas
+  only — never call one eagerly at registration time
+
+*Confirmed not a repeat of the org-clock-load trap:*
+=org-blocker-hook=/=org-trigger-hook= are plain defvars in org.el
+itself, present the instant =(provide 'org)= fires, and =add-hook=
+only stores a symbol, never invokes it.
+
+*** MAYBE PreToolUse transition guard                                 :code:
+A hook on org_set_todo that inspects the requested state against
+current clock state and rejects the call outright — e.g. DOING→DONE
+with no open clock — before it ever reaches Emacs. Belt-and-suspenders
+alongside the org-hook enforcement above; catches it one layer
+earlier, specifically on the MCP path.
+
+*Plan:* [/]
+- [ ] Empirically verify the literal MCP-qualified tool name
+  (expected =mcp__emacs-tools__org_set_todo=, from =.mcp.json='s
+  =emacs-tools= server key) before wiring anything against it
+- [ ] Add =.claude/settings.json= with a =hooks.PreToolUse= entry
+  matching that tool name
+- [ ] Write =bin/hooks/pretooluse-transition-guard=: read the
+  PreToolUse JSON from stdin, query live Emacs via =emacsclient -e=
+  for the currently-clocked heading's :ID:
+- [ ] Deny the call when the requested state is DONE/WAIT/CANCELLED
+  and the target heading is still the one clocked in
+- [ ] Decide and implement fail-open vs fail-closed behavior when
+  =emacsclient= can't reach a live Emacs
+
+*Risk:* fail-closed (deny with a clear "couldn't verify clock
+state" reason) fits a correctness-enforcement project better than
+silently letting the call through.
+
+*** MAYBE Extend config-test.el                                       :code:
+:PROPERTIES:
+:ID:       799b14be-6849-4e22-8a76-4e214d8a25fe
+:BLOCKER:  e47ac400-dd17-4e6a-91aa-bcd837151610
+:END:
+Once the two enforcement layers above exist, they need the same
+regression-test treatment the four wrappers already get — this
+exact class of bug (silent success, wrong on-disk state) is what
+bit us twice already, and enforcement code with no test is exactly
+where it'd bite a third time.
+
+*Plan:* [/]
+- [ ] Add blocker-hook tests: clock in, attempt set-todo DONE, assert
+  the call is blocked and the on-disk file still shows =DOING=
+- [ ] Add trigger-hook tests, including one that calls bare
+  =(org-todo "DOING")= directly, not through the wrapper — the only
+  way to test the "catches hand-edits too" requirement
+- [ ] Add a two-heading fixture variant to verify the blocker only
+  fires for a clock running on *that* heading, not any clock
+  elsewhere in the file
+
+*Note:* config-test.el is Emacs-only (ERT via =emacs --batch=) and
+structurally cannot test the PreToolUse guard script — that needs
+its own separate test vehicle, scoped as a sibling deliverable.
+
+** Clock lifecycle & visibility
+
+Everything here is specifically about the clock subsystem's
+correctness and observability, as opposed to the general TODO-state
+machine above — three different angles on "make sure the clock is
+never silently wrong."
+
+*** MAYBE Idle-based auto clock-out                                   :code:
+Via =org-clock-idle-time=, already built into org — just needs
+enabling. Guards against a clock left running because a session
+died mid-DOING without ever reaching org_clock_out.
+
+*Plan:* [/]
+- [ ] Set =org-clock-idle-time= (minutes) in
+  =~/.config/doom/config.el='s =after! org= block — a pure
+  Doom-config change, nothing in this repo touches it
+- [ ] Evaluate =org-clock-auto-clock-resolution= or a small
+  non-interactive wrapper around =org-clock-resolve-clock=, since
+  org's default resolution on resume is *interactive* and nobody
+  answers that prompt in an unattended session
+- [ ] Confirm empirically whether the resolve prompt does anything
+  useful when Emacs is running unattended, or whether auto-resolution
+  is required for this to help at all
+
+No config.el/config-test.el changes — there's no wall-clock idle to
+simulate in ERT's scratch-buffer fixtures.
+
+*** MAYBE Surface current clock state                                 :code:
+org-clock-in-hook / org-clock-out-hook writing the current task to
+a small status file. Could feed a Warp status line, a menu bar
+widget, or just answer "what's Claude doing right now" at a glance
+without opening Emacs.
+
+*Plan:* [/]
+- [ ] Implement =claude-code-ide-org--write-clock-status= in
+  config.el, writing a small JSON file (heading, :ID:, start time;
+  empty/idle object on clock-out)
+- [ ] Use =json-encode= plus an atomic write-region+rename-file so a
+  poller never reads a half-written file
+- [ ] Wire via =add-hook= on =org-clock-in-hook=/=org-clock-out-hook=
+  at module load, not inside our wrappers, so hand-edits in Emacs
+  update it too
+- [ ] Handle the Emacs-restart/persisted-clock case with a one-time
+  write once =org-clock-load= resolves
+- [ ] Wrap the hook body in =condition-case= — an error inside
+  =org-clock-in-hook= can corrupt org's own clock-in machinery, so it
+  must fail silently rather than propagate
+- [ ] Add ERT tests: file matches on clock-in, reflects idle on
+  clock-out, doesn't error if the status directory doesn't exist yet
+
+*** MAYBE Clock-change notifications                                  :code:
+PostToolUse on org_clock_in/org_clock_out → a native notification.
+Small, but directly closes the trust gap this whole session kept
+running into: two of the four tools silently "succeeded" while
+failing to persist to disk. A confirmation outside the model's own
+self-report is a cheap extra check, specifically at the moment
+clock state changes.
+
+*Plan:* [/]
+- [ ] Empirically verify the literal MCP-qualified tool names for
+  org_clock_in/org_clock_out before wiring
+- [ ] Add =.claude/settings.json= (this repo only has the untracked
+  =.local.json= today) with a =PostToolUse= entry matching them
+- [ ] Write =bin/clock-notify=: read the PostToolUse payload from
+  stdin
+- [ ] Cross-check via =emacsclient -e '(org-clocking-p)'= rather than
+  trusting the tool's own return string
+- [ ] Fire an =osascript= notification, flagging a mismatch if the
+  tool claimed success but Emacs disagrees
+
+*Risk:* the tool-name matcher is the sharp edge — get it wrong and
+the hook silently never fires.
+
+** Observability
+
+Broader than clocking — visibility into what every tool call
+actually did, both after the fact and at the start of a session.
+
+*** MAYBE Tool-call audit log                                         :code:
+Every org_* call so far has been trust-the-return-string. This
+session alone found two tools (org_archive, org_clock_out) that
+reported success while quietly failing to save to disk — caught
+only by manual, ad-hoc disk inspection, more than once. A log
+(timestamp, tool, args, file hash or diff before/after) would have
+caught both immediately and gives a real trail for anything an
+agent mutates unattended.
+
+*Plan:* [/]
+- [ ] Implement =claude-code-ide-org--log-event= in config.el,
+  appending one JSONL line (timestamp, tool/source, :ID:, file path,
+  before/after sha256, result) to a gitignored, project-relative log
+  file
+- [ ] Hash the file straight off disk, never the buffer — the whole
+  point is catching the buffer/disk divergence that bit us twice
+- [ ] Hook at the org-native layer (=org-clock-in-hook=,
+  =org-clock-out-hook=, =org-after-todo-state-change-hook=, plus
+  =advice-add= on =org-archive-subtree=) rather than only inside our
+  own wrappers, so hand-edits and =org_clock_out= (which doesn't
+  route through the shared dispatcher) are both covered
+- [ ] Attribute source (MCP vs. hand-edit) via a dynamic var
+  let-bound around each wrapper body
+- [ ] Add ERT tests confirming the hash comparison would have caught
+  the original save-buffer bugs
+
+*Recommendation:* elisp-level, not a Claude Code PostToolUse hook —
+PostToolUse only sees the tool's own self-reported string, the exact
+problem this exists to fix, and structurally can't see direct =M-x=
+usage at all.
+
+*** MAYBE SessionStart context hook                                   :code:
+Surface "what was I last doing." On any Claude Code session start
+in a project with org files, query the currently-clocked heading
+(if any) and any :WAIT: items and drop them into context
+automatically. Turns "what was I working on" from a question into
+something Claude already knows walking in — effectively a standing,
+automatic instance of whatever org_query above ends up answering on
+demand.
+
+*Plan:* [/]
+- [ ] Implement =claude-code-ide-org-session-context= in config.el:
+  find the clocked heading plus :WAIT: headings across the project's
+  org files via =org-map-entries=, return a plain string
+- [ ] Write =.claude/hooks/session-context.sh=: call =emacsclient
+  --eval= with a short timeout, wrap the result in SessionStart's
+  =additionalContext= JSON shape
+- [ ] Fail soft (exit 0, no output) if Emacs isn't reachable — never
+  surface an error banner
+- [ ] Add =.claude/settings.json= =hooks.SessionStart= entry, matchers
+  at least =startup=/=clear=, possibly =resume=
+- [ ] Decide whether to bury/kill buffers opened via
+  =find-file-noselect= during the query, so the user's window
+  config isn't disturbed
+
+** Bigger swings
+
+Both about the standalone/Warp-access subsystem from this session.
+Think hard before building either.
+
+*** MAYBE Remote MCP access                                           :code:
+Off-machine access to the tools server and IDE-companion. This
+session already got a =claude= CLI running directly in a Warp pane
+on the same machine to reach Emacs (HTTP tools server +
+IDE-companion lockfile, no vterm required). The obvious next step
+is the same thing from *off-machine* — phone, another computer, a
+CI job — but that means opening those servers beyond localhost,
+which is real attack surface: arbitrary elisp execution against
+your Emacs, today gated only by "it's on localhost." Don't build
+this without designing auth first — bearer token at minimum, ideally
+scoped per tool.
+
+*Plan:* [/]
+- [ ] Add a bearer-token check to
+  =claude-code-ide-mcp-http-server--handle-post= (new defcustom,
+  nil-by-default = off) that short-circuits to a 401 before the
+  request body is even parsed
+- [ ] Add a matching =authToken= field to the WebSocket IDE-companion's
+  lockfile and validate it in =claude-code-ide-mcp--on-open= — today
+  it blindly attaches any connecting socket by port match, no
+  identity check at all
+- [ ] Make the hardcoded ="127.0.0.1"= bind address in both servers a
+  defcustom
+- [ ] Thread the token through =.mcp.json='s headers map on the
+  client side rather than the URL, which tends to leak into logs
+- [ ] Keep both servers bound to =127.0.0.1= permanently regardless,
+  and require a tunnel (Tailscale/WireGuard/SSH) for actual remote
+  reachability, with the token as a second factor
+
+*Risk:* every registered tool call is unsandboxed elisp execution in
+your live Emacs — a bearer token alone adds no TLS, per-tool
+scoping, or rate limiting. Don't just flip the host to 0.0.0.0 and
+call it done.
+
+*** MAYBE Package the Warp wiring                                     :code:
+As a reusable snippet, not a private hack. Per the earlier scope
+conversation: the port-pinning + session-registration +
+IDE-companion-autostart block currently lives in personal
+config.el, hand-rolled against claude-code-ide's internals rather
+than a public API. Short of a real upstream PR, even just
+generalizing it (hardcoded project path → variable) and writing it
+up would make it something worth handing to someone else.
+
+*Plan:* [/]
+- [ ] Generalize the hardcoded project path into an alist of
+  (session-id . project-dir) pairs
+- [ ] Turn the wiring function into a loop over that alist — both
+  underlying calls are already idempotent, so re-running is safe
+- [ ] Extract the whole thing out of personal config.el into a
+  standalone file (e.g. =claude-code-ide-standalone.el=)
+- [ ] Add a helper that generates each project's =.mcp.json= entry
+  from the same alist instead of hand-writing the port/session-id
+- [ ] Decide packaging tier — documented snippet, standalone package,
+  or upstream PR — and stop there for now
+
+*Open question:* the wrapped functions (=register-session=,
+=mcp-start=) aren't really designed as public standalone-mode API
+today, so an upstream PR is a bigger lift than it looks. Start with
+the snippet, treat upstreaming as a separate future MAYBE.
