@@ -97,6 +97,15 @@ with a per-heading `:ARCHIVE:` property.
 **Rule**: any transition *from* `DOING` must close the clock first.
 **Rule**: always use the MCP tools for state changes and clocking — do not
 edit CLOCK entries or TODO keywords by hand when the tools are available.
+**Rule**: when asked to start work on a task tracked as an org heading with
+a `:ID:`, transition it to `DOING` via `org_set_todo` *before* beginning,
+unless it's already `DOING`. This has to be a standing instruction, not a
+hook — deciding "this conversation is now doing that task" is a judgment
+call about intent, which only the model can make. Hooks can only enforce
+the mechanics of a transition once it's triggered (see `org-trigger-hook`/
+`org-blocker-hook` in TODO.org, which is the safety net if this rule is
+ever forgotten: it opens the clock the moment DOING is set, however it got
+set).
 
 ---
 
