@@ -9,6 +9,7 @@
 ;; they are created automatically on link creation.
 
 (require 'org-element)
+(require 'org-clock)
 (require 'json)
 
 ;;; Configuration -----------------------------------------------------------
