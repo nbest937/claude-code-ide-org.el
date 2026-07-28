@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Stop hook: pause the running org clock the moment Claude finishes
+# responding and control returns to the user. Fire-and-forget — never
+# blocks or reports back to Claude Code, and fails soft if Emacs isn't
+# reachable (no server running yet, etc).
+cat >/dev/null
+
+emacsclient -e '(claude-code-ide-org-session-pause)' >/dev/null 2>&1
+
+exit 0

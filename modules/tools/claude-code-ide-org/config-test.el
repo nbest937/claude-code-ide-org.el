@@ -31,6 +31,7 @@ there too so tests never touch real user state."
           (org-id-locations (make-hash-table :test 'equal))
           (org-id-files nil)
           (org-clock-persist nil)
+          (org-clock-history nil)
           (id "test-0001"))
      (unwind-protect
          (progn
@@ -89,6 +90,54 @@ only in the buffer, never calling `save-buffer'."
 (ert-deftest claude-code-ide-org-test-clock-out-safe-when-no-clock ()
   (claude-code-ide-org-test--with-heading
     (should (equal "No clock is currently running." (claude-code-ide-org-clock-out)))))
+
+;;; :SESSIONS: bracketing log --------------------------------------------------
+
+(ert-deftest claude-code-ide-org-test-clock-in-out-log-sessions-drawer ()
+  "org_clock_in/org_clock_out must log to :SESSIONS:, separately from
+the :LOGBOOK: CLOCK entries, so the full pause/resume history survives
+even when CLOCK entries themselves get fragmented into short bursts."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-clock-out)
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      (should (string-match-p ":SESSIONS:" disk))
+      (should (string-match-p "- Resumed \\[" disk))
+      (should (string-match-p "- Paused \\[" disk)))))
+
+(ert-deftest claude-code-ide-org-test-session-pause-closes-clock ()
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-session-pause)
+    (should (not (org-clocking-p)))
+    (should (string-match-p "- Paused \\["
+                            (claude-code-ide-org-test--disk-contents file)))))
+
+(ert-deftest claude-code-ide-org-test-session-resume-resumes-same-heading ()
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-session-pause)
+    (let ((result (claude-code-ide-org-session-resume)))
+      (should (string-match-p "\\`Resumed: \"Test heading\"\\'" result)))
+    (should (org-clocking-p))
+    (should (equal id (org-with-point-at org-clock-marker (org-id-get))))
+    (let* ((disk (claude-code-ide-org-test--disk-contents file))
+           (pos-1 (string-match "- Resumed \\[" disk))
+           (pos-2 (and pos-1 (string-match "- Paused \\[" disk (match-end 0))))
+           (pos-3 (and pos-2 (string-match "- Resumed \\[" disk (match-end 0)))))
+      ;; Resumed, Paused, Resumed — in that order.
+      (should (and pos-1 pos-2 pos-3 (< pos-1 pos-2) (< pos-2 pos-3))))))
+
+(ert-deftest claude-code-ide-org-test-session-resume-noop-when-already-clocking ()
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (should (equal "Already clocking; nothing to resume."
+                   (claude-code-ide-org-session-resume)))))
+
+(ert-deftest claude-code-ide-org-test-session-resume-noop-when-no-history ()
+  (claude-code-ide-org-test--with-heading
+    (should (equal "No paused task to resume."
+                   (claude-code-ide-org-session-resume)))))
 
 ;;; claude-code-ide-org-set-todo -----------------------------------------------
 

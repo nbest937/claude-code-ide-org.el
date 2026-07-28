@@ -131,6 +131,50 @@ adding or changing tags, generating new headings, time reporting.
 
 ---
 
+## Session tracking (`.claude/settings.json`, `bin/hooks/`)
+
+Two separate timekeeping mechanisms, deliberately kept apart:
+
+- **`:LOGBOOK:` CLOCK entries** (org's own, native mechanism) track *active
+  Claude work time only*. A running clock is paused the moment Claude Code
+  stops and is waiting on the user, and resumed the moment the user sends
+  the next prompt. A DOING task can therefore accumulate many short CLOCK
+  intervals instead of one long one spanning idle waiting time.
+- **The `:SESSIONS:` drawer** (this module's own, separate from `:LOGBOOK:`)
+  is the bracketing history: a plain timestamped log of every pause and
+  resume, so the full wall-clock arc of the task — including the gaps —
+  stays visible even though the CLOCK entries no longer cover it.
+
+Driven by two Claude Code hooks, configured in `.claude/settings.json`:
+
+| Hook               | Script                        | Elisp entry point                    |
+|---------------------|-------------------------------|---------------------------------------|
+| `Stop`              | `bin/hooks/session-pause`     | `claude-code-ide-org-session-pause`   |
+| `UserPromptSubmit`  | `bin/hooks/session-resume`    | `claude-code-ide-org-session-resume`  |
+
+Both scripts are fire-and-forget: they call the elisp entry point via
+`emacsclient -e`, ignore the result, and always exit 0, so a stopped or
+unreachable Emacs server never blocks Claude Code itself. `session-pause`
+is a thin alias for `org_clock_out`. `session-resume` calls org's own
+`org-clock-in-last`, so it doesn't need to separately track *which* task
+was paused — org's clock history already does.
+
+**Known edge case:** if the user's next prompt is about a different task
+than the one that got paused, `session-resume` still resumes the wrong
+(last-paused) one. This self-corrects the moment Claude actually starts
+the new task and calls `org_clock_in` on it — `org-clock-in` always closes
+whatever clock is currently running first — so the cost is a short, stray
+CLOCK interval on the wrong heading, not lost time or a stuck state.
+
+**Known cosmetic quirk:** `:SESSIONS:` and `:LOGBOOK:` don't always end up
+in a stable relative order — whichever drawer already exists gets found
+and appended to in place, while a freshly-created one is always inserted
+right after the property drawer, ahead of anything pre-existing. Harmless
+(both remain fully valid, independently parseable drawers), just not
+visually tidy.
+
+---
+
 ## Emacs integration (`~/.config/doom/config.el`)
 
 Key settings in the user's Doom config:

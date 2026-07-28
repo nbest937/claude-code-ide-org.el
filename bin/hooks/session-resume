@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# UserPromptSubmit hook: resume the most recently paused org clock the
+# moment the user sends the next prompt. Fire-and-forget — never blocks
+# or adds context, and fails soft if Emacs isn't reachable. If the
+# resumed task turns out to be the wrong one, org_clock_in self-corrects
+# the next time Claude actually starts work (see
+# claude-code-ide-org-session-resume's docstring in config.el).
+cat >/dev/null
+
+emacsclient -e '(claude-code-ide-org-session-resume)' >/dev/null 2>&1
+
+exit 0
