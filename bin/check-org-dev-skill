@@ -51,26 +51,20 @@ else
     set fail 1
 end
 
-# 4. Line references cited in org-dev/SKILL.md still point at what they claim.
-# The expected numbers come from the citation text inside the skill doc
-# itself, not a copy hardcoded here — a config.el edit that shifts line
-# numbers then only requires updating the doc (already necessary for
-# humans reading it), not this script too.
-set skill_text (unzip -p "$repo_root/org-dev.skill" org-dev/SKILL.md 2>/dev/null)
-set cited (string match -r --groups-only 'config\.el:(\d+)-(\d+)' -- $skill_text)
-if test (count $cited) -eq 2
-    set cited_start $cited[1]
-    set cited_end $cited[2]
-else
-    echo "FAIL - could not find a 'config.el:NNN-MMM' citation in org-dev/SKILL.md"
-    set cited_start ""
-    set cited_end ""
+# 4. org-dev/SKILL.md describes the tool-registration block by anchor
+# ("the with-eval-after-load block, which is the last top-level form
+# in the file"), not by line number, specifically so a config.el edit
+# that shifts line counts can't put the doc out of date. Verify that
+# claim structurally instead: the block exists, and nothing else is
+# defined after it.
+set config_el "$repo_root/modules/tools/claude-code-ide-org/config.el"
+set tool_block_line (grep -n "with-eval-after-load 'claude-code-ide" "$config_el" | head -1 | cut -d: -f1)
+if test -z "$tool_block_line"
+    echo "FAIL - config.el: with-eval-after-load 'claude-code-ide anchor not found"
     set fail 1
+else
+    set last_toplevel_line (grep -n '^(' "$config_el" | tail -1 | cut -d: -f1)
+    check "config.el tool-registration block is the last top-level form" "$last_toplevel_line" "$tool_block_line"
 end
-
-set tool_block_line (grep -n "with-eval-after-load 'claude-code-ide" "$repo_root/modules/tools/claude-code-ide-org/config.el" | head -1 | cut -d: -f1)
-check "config.el tool-registration block start matches org-dev/SKILL.md citation" "$tool_block_line" "$cited_start"
-set config_el_lines (wc -l < "$repo_root/modules/tools/claude-code-ide-org/config.el" | string trim)
-check "config.el last line matches org-dev/SKILL.md citation" "$config_el_lines" "$cited_end"
 
 exit $fail
