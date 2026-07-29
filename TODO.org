@@ -77,8 +77,11 @@ explicit revert-buffer check rather than an assumption?
 :END:
 :SESSIONS:
 - Resumed [2026-07-29 Wed 12:29]
+- Paused [2026-07-29 Wed 16:57]
+- Resumed [2026-07-29 Wed 17:02]
 :END:
 :LOGBOOK:
+CLOCK: [2026-07-29 Wed 17:02]
 CLOCK: [2026-07-29 Wed 12:25]--[2026-07-29 Wed 12:30] =>  0:05
 :END:
 Doom's =org-agenda-files= is =("~/org")= — a bare directory string —
