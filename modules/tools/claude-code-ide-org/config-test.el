@@ -679,6 +679,136 @@ own `user-error') rather than crashing."
     (should (string-match-p "\\`Error: Unknown direction \"sideways\""
                             (claude-code-ide-org-move-sibling id "sideways")))))
 
+;;; claude-code-ide-org-clock-report -----------------------------------------
+
+(ert-deftest claude-code-ide-org-test-clock-report-id-scoped-shows-own-time-only ()
+  "id-scoped reports must cover only that heading's own subtree —
+proven by adding a second heading with its own CLOCK entry and
+confirming the id-scoped report shows the target's time but not the
+other heading's."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat
+             ":LOGBOOK:\n"
+             "CLOCK: [2026-07-27 Mon 09:00]--[2026-07-27 Mon 10:00] =>  1:00\n"
+             ":END:\n"
+             "* DONE Other heading                                                :code:\n"
+             ":PROPERTIES:\n"
+             ":ID:       test-0002\n"
+             ":END:\n"
+             ":LOGBOOK:\n"
+             "CLOCK: [2026-07-27 Mon 11:00]--[2026-07-27 Mon 13:00] =>  2:00\n"
+             ":END:\n"))
+    (save-buffer)
+    (let ((result (claude-code-ide-org-clock-report id)))
+      (should (string-match-p "Test heading" result))
+      (should (string-match-p "1:00" result))
+      (should (not (string-match-p "Other heading" result)))
+      (should (not (string-match-p "2:00" result))))
+    ;; The source buffer must never be narrowed, modified, or saved —
+    ;; the report is computed from an in-memory copy of the subtree.
+    (should (not (buffer-modified-p (get-file-buffer file))))
+    (with-current-buffer (get-file-buffer file)
+      (should (not (buffer-narrowed-p))))))
+
+(ert-deftest claude-code-ide-org-test-clock-report-file-list-scoped-covers-all-headings ()
+  "Without an id, the report must fall back to
+`claude-code-ide-org-query-files' and cover every heading across
+those files, same file-list mechanism org_query already uses."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat
+             ":LOGBOOK:\n"
+             "CLOCK: [2026-07-27 Mon 09:00]--[2026-07-27 Mon 10:00] =>  1:00\n"
+             ":END:\n"
+             "* DONE Other heading                                                :code:\n"
+             ":PROPERTIES:\n"
+             ":ID:       test-0002\n"
+             ":END:\n"
+             ":LOGBOOK:\n"
+             "CLOCK: [2026-07-27 Mon 11:00]--[2026-07-27 Mon 13:00] =>  2:00\n"
+             ":END:\n"))
+    (save-buffer)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-clock-report)))
+      (should (string-match-p "Test heading" result))
+      (should (string-match-p "Other heading" result))
+      (should (string-match-p "3:00" result)))))
+
+(ert-deftest claude-code-ide-org-test-clock-report-explicit-tstart-tend ()
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat
+             ":LOGBOOK:\n"
+             "CLOCK: [2026-07-27 Mon 09:00]--[2026-07-27 Mon 10:00] =>  1:00\n"
+             ":END:\n"))
+    (save-buffer)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-clock-report
+                    nil nil "[2026-07-27 Mon 00:00]" "[2026-07-28 Tue 00:00]")))
+      (should (string-match-p "1:00" result)))
+    ;; A range that excludes the entry entirely must report zero time.
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-clock-report
+                    nil nil "[2026-08-01 Sat 00:00]" "[2026-08-02 Sun 00:00]")))
+      (should (string-match-p "0:00" result))
+      (should (not (string-match-p "1:00" result))))))
+
+(ert-deftest claude-code-ide-org-test-clock-report-block-today ()
+  "The :block param must reach `org-clock-special-range' correctly —
+proven with a same-day CLOCK entry pinned to whole-minute boundaries
+(so duration arithmetic can't be thrown off by stray seconds) and
+:block \"today\", vs. a CLOCK entry from an earlier day, which
+:block \"today\" must exclude."
+  (claude-code-ide-org-test--with-heading
+    (let* ((decoded (decode-time (current-time)))
+           (today-start (encode-time 0 (nth 1 decoded) (nth 2 decoded)
+                                      (nth 3 decoded) (nth 4 decoded) (nth 5 decoded)))
+           (today-end (time-add today-start 3600))
+           (yesterday-start (time-subtract today-start 86400))
+           (yesterday-end (time-add yesterday-start 3600)))
+      (goto-char (point-max))
+      (insert (format ":LOGBOOK:\nCLOCK: %s--%s =>  1:00\n:END:\n"
+                       (format-time-string "[%Y-%m-%d %a %H:%M]" today-start)
+                       (format-time-string "[%Y-%m-%d %a %H:%M]" today-end)))
+      (save-buffer)
+      (let ((result (claude-code-ide-org-clock-report id "today")))
+        (should (string-match-p "1:00" result)))
+      (with-current-buffer (get-file-buffer file)
+        (goto-char (point-min))
+        (re-search-forward "CLOCK: \\[[^]]+\\]--\\[[^]]+\\] =>  1:00")
+        (replace-match (format "CLOCK: %s--%s =>  1:00"
+                                (format-time-string "[%Y-%m-%d %a %H:%M]" yesterday-start)
+                                (format-time-string "[%Y-%m-%d %a %H:%M]" yesterday-end)))
+        (save-buffer))
+      (let ((result (claude-code-ide-org-clock-report id "today")))
+        (should (string-match-p "0:00" result))
+        (should (not (string-match-p "1:00" result)))))))
+
+(ert-deftest claude-code-ide-org-test-clock-report-unrecognized-block-returns-error ()
+  (claude-code-ide-org-test--with-heading
+    (should (string-match-p "\\`Error:" (claude-code-ide-org-clock-report id "not-a-real-block")))))
+
+(ert-deftest claude-code-ide-org-test-clock-report-unknown-id-returns-error-string ()
+  (claude-code-ide-org-test--with-heading
+    (should (string-match-p "\\`Error: no org heading found with :ID: \"bogus\""
+                            (claude-code-ide-org-clock-report "bogus")))))
+
+(ert-deftest claude-code-ide-org-test-clock-report-no-args-is-unrestricted ()
+  "With neither id, block, nor tstart/tend, the report must cover
+all clocked time in scope rather than erroring or defaulting to an
+empty range."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat
+             ":LOGBOOK:\n"
+             "CLOCK: [2020-01-01 Wed 09:00]--[2020-01-01 Wed 10:00] =>  1:00\n"
+             ":END:\n"))
+    (save-buffer)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-clock-report)))
+      (should (string-match-p "1:00" result)))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here
