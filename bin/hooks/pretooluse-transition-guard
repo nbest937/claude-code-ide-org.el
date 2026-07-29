@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# PreToolUse hook: belt-and-suspenders guard on org_set_todo, matching
+# .claude/settings.json's hooks.PreToolUse entry for
+# "mcp__emacs-tools__org_set_todo" (the MCP-qualified tool name — see
+# .mcp.json's "emacs-tools" server key).
+#
+# Enforces, one layer earlier and on the MCP-call path, what
+# org-blocker-hook enforces on the Emacs side (see TODO.org's
+# "PreToolUse transition guard" entry, :ID:
+# 135033ff-9581-4df3-ba16-34442586ee15): a DOING -> {DONE,WAIT,CANCELLED}
+# request is denied outright if the target heading (matched by :ID:) is
+# still the one currently clocked in, i.e. org_clock_out was never
+# called first, per CLAUDE.md's state transition rules.
+#
+# Fails CLOSED: if emacsclient can't reach a live Emacs server, or its
+# reply can't be parsed, the call is denied with a "couldn't verify"
+# reason rather than silently let through. This is a
+# correctness-enforcement guard, not a convenience feature — letting an
+# unverifiable transition through defeats the point of having it (see
+# TODO.org's risk note on this entry).
+#
+# Output contract (Claude Code PreToolUse hooks): exit 0 with no stdout
+# means "no decision, fall through to normal permission handling" (used
+# here for every allow path). To deny, exit 0 and emit JSON on stdout:
+#   {"hookSpecificOutput": {"hookEventName": "PreToolUse",
+#                            "permissionDecision": "deny",
+#                            "permissionDecisionReason": "..."}}
+# Deliberately not using the older exit-code-2/stderr mechanism — the
+# two are not meant to be combined, and the JSON form is the
+# currently-recommended one.
+
+set -u
+
+input="$(cat)"
+
+deny() {
+  local reason="$1"
+  jq -n --arg reason "$reason" \
+    '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $reason}}'
+  exit 0
+}
+
+# Only ever act on org_set_todo; every other tool call passes through
+# untouched. Matches by suffix so this still works if the MCP server
+# key portion of the qualified name is ever renamed.
+tool_name="$(jq -r '.tool_name // empty' <<<"$input" 2>/dev/null)"
+case "$tool_name" in
+  *org_set_todo) ;;
+  *) exit 0 ;;
+esac
+
+requested_state="$(jq -r '.tool_input.state // empty' <<<"$input" 2>/dev/null)"
+requested_id="$(jq -r '.tool_input.id // empty' <<<"$input" 2>/dev/null)"
+
+# Only the transitions that CLAUDE.md requires a prior org_clock_out for
+# are in scope. Everything else (TODO->NEXT, TODO/NEXT/WAIT->DOING,
+# any->MAYBE) is unaffected by this guard.
+case "$requested_state" in
+  DONE|WAIT|CANCELLED) ;;
+  *) exit 0 ;;
+esac
+
+# No :ID: to check against — let org_set_todo itself surface that error;
+# this guard has nothing to compare.
+if [[ -z "$requested_id" ]]; then
+  exit 0
+fi
+
+# Ask live Emacs which heading (if any) is currently clocked in. Prints
+# the :ID: of the clocked heading, the sentinel "__NONE__" if no clock
+# is running, or "" if a clock is running on a heading with no :ID: at
+# all (e.g. clocked in by hand) — which can never equal a non-empty
+# requested_id, so it safely falls through to allow below.
+elisp='(if (org-clocking-p) (or (org-entry-get org-clock-marker "ID") "") "__NONE__")'
+
+clocked_id_raw="$(emacsclient -e "$elisp" 2>/dev/null)"
+status=$?
+
+if [[ $status -ne 0 ]]; then
+  deny "Couldn't verify clock state: emacsclient could not reach a live Emacs server. Denying the $requested_state transition on $requested_id to be safe — confirm the clock is closed (or call org_clock_out) and retry once Emacs is reachable."
+fi
+
+# emacsclient prints the Lisp-printed form of the returned value. For a
+# string that means it's wrapped in one pair of double quotes (e.g.
+# "\"abc123\"" or "\"\""); anything else means the reply didn't match
+# the shape this guard expects, so treat it as unverifiable too.
+if [[ "$clocked_id_raw" == \"*\" ]]; then
+  clocked_id="${clocked_id_raw#\"}"
+  clocked_id="${clocked_id%\"}"
+else
+  deny "Couldn't verify clock state: unexpected reply from emacsclient (\"$clocked_id_raw\"). Denying the $requested_state transition on $requested_id to be safe."
+fi
+
+if [[ "$clocked_id" == "__NONE__" ]]; then
+  exit 0
+fi
+
+if [[ "$clocked_id" == "$requested_id" ]]; then
+  deny "Heading $requested_id is still clocked in (DOING). Requested transition to $requested_state requires closing the clock first — call org_clock_out before org_set_todo."
+fi
+
+exit 0
