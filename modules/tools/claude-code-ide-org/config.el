@@ -650,6 +650,76 @@ resolve to DONE.org::* Done per your project file headers."
        (save-buffer)
        (format "Archived: \"%s\"" heading)))))
 
+;;; Refile ------------------------------------------------------------------
+;;
+;; Moves a heading to become the last child of a different heading,
+;; identified by :ID: rather than by org-refile's usual interactive
+;; completion prompt (which walks `org-refile-targets' and asks the
+;; user to pick).  Both endpoints are resolved directly via
+;; `org-id-find' and used to build org-refile's `rfloc' argument by
+;; hand, so the prompt is never entered.
+;;
+;; Target resolution is deliberately :ID:-only, matching every other
+;; tool in this file — there is no v1 way to refile to the top level
+;; of a file with no parent heading, since there is no heading to
+;; hang an :ID: on to resolve TARGET-ID against.  A file+path
+;; alternative codepath was considered (per the open question in
+;; TODO.org) and rejected for v1: every other tool in this module
+;; resolves its target purely by :ID:, and every real usage seen so
+;; far has an existing parent heading to refile under.  Out-of-scope
+;; case returns a clear error string instead; revisit if that
+;; assumption breaks in practice.
+
+(defun claude-code-ide-org-refile (id target-id)
+  "Refile (move) the org heading whose :ID: equals ID so it becomes
+the last child of the org heading whose :ID: equals TARGET-ID.
+Builds org-refile's `rfloc' argument directly from both headings'
+markers rather than going through the interactive completion prompt.
+Works across files: the source and target heading may live in
+different org files.  Saves every buffer touched — source and
+target, which may differ — afterward: the same bug shape that
+previously bit `claude-code-ide-org-archive' and
+`claude-code-ide-org-clock-out' (reporting success while a buffer
+went unsaved).  Passes the target's marker itself (not a plain
+integer position) as `rfloc's position element: when source and
+target are in the same file, org-refile deletes the source subtree
+before visiting the target position, and only a marker
+auto-relocates through that deletion the way `goto-char' needs.
+Never signals an error to the MCP layer; returns \"Error: ...\" for
+an unresolvable ID (either heading) or any failure `org-refile'
+itself signals (e.g. refiling a heading into its own subtree).
+Binds `org-log-refile' to nil for the duration of the call: it
+defaults to nil anyway, but if the user's config sets it to a
+note-prompting value, `org-refile' would otherwise try to read a
+note interactively, which would hang or error under the MCP layer's
+non-interactive call — the same never-block guarantee every other
+tool here gives."
+  (require 'org-id)
+  (let ((marker (org-id-find id 'marker))
+        (target-marker (org-id-find target-id 'marker)))
+    (cond
+     ((not marker)
+      (format "Error: no org heading found with :ID: \"%s\"" id))
+     ((not target-marker)
+      (format "Error: no org heading found with target :ID: \"%s\"" target-id))
+     (t
+      (condition-case err
+          (let* ((source-buffer (marker-buffer marker))
+                 (target-buffer (marker-buffer target-marker))
+                 (target-file (buffer-file-name
+                               (or (buffer-base-buffer target-buffer) target-buffer)))
+                 (heading (org-with-point-at marker (org-get-heading t t t t)))
+                 (target-heading (org-with-point-at target-marker (org-get-heading t t t t)))
+                 (rfloc (list target-heading target-file nil target-marker))
+                 (org-log-refile nil))
+            (org-with-point-at marker
+              (org-refile nil nil rfloc))
+            (dolist (buf (delete-dups (list source-buffer target-buffer)))
+              (when (buffer-live-p buf)
+                (with-current-buffer buf (save-buffer))))
+            (format "Refiled: \"%s\" under \"%s\"" heading target-heading))
+        (error (format "Error: %s" (error-message-string err))))))))
+
 ;;; Query -------------------------------------------------------------------
 ;;
 ;; Structured search over `claude-code-ide-org--tracked-files' (the same
@@ -812,6 +882,23 @@ rather than adding separate boundary handling here."
    :args '((:name "id"
             :type string
             :description "The :ID: property value of the heading to archive.")))
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-refile
+   :name "org_refile"
+   :description (concat
+                 "Move an org-mode heading (and its subtree) so it becomes "
+                 "the last child of a different heading, both identified by "
+                 "their :ID: property. Works across files. Bypasses the "
+                 "interactive refile-target prompt entirely. There is no "
+                 "way to refile to a file's top level with no parent "
+                 "heading — the target must itself have an :ID:.")
+   :args '((:name "id"
+            :type string
+            :description "The :ID: property value of the heading to move.")
+           (:name "target_id"
+            :type string
+            :description "The :ID: property value of the heading to move it under (the new parent).")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-query
