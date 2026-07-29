@@ -13,6 +13,7 @@
 (require 'org)
 (require 'org-id)
 (require 'org-clock)
+(require 'json)
 
 ;;; Fixture -----------------------------------------------------------------
 
@@ -37,6 +38,8 @@ stray clock-status.json into the real module directory."
           (org-clock-persist nil)
           (org-clock-history nil)
           (claude-code-ide-org-clock-status-file (expand-file-name "clock-status.json" dir))
+          (claude-code-ide-org--audit-pending nil)
+          (claude-code-ide-org--log-source nil)
           (id "test-0001"))
      (unwind-protect
          (progn
@@ -65,6 +68,37 @@ stray clock-status.json into the real module directory."
   (with-temp-buffer
     (insert-file-contents path)
     (buffer-string)))
+
+(defun claude-code-ide-org-test--sha256-disk (path)
+  "Independently compute the sha256 of PATH's on-disk bytes, the same
+way `claude-code-ide-org--sha256-file' does (a literal read straight
+from disk into a temp buffer, never through any buffer visiting
+PATH), so audit-log assertions can cross-check the logged hash
+against a value computed fresh at the moment the test calls this,
+rather than trusting the production code's own bookkeeping."
+  (with-temp-buffer
+    (insert-file-contents-literally path)
+    (secure-hash 'sha256 (current-buffer))))
+
+(defun claude-code-ide-org-test--audit-log-entries (file)
+  "Return the JSONL audit log entries covering FILE, oldest first,
+each as an alist (json-read's default object representation). Reads
+straight from disk via `claude-code-ide-org--audit-log-path', the
+same path resolution the production code itself uses. Empty list if
+the log file does not exist (nothing has been flushed yet)."
+  (let ((path (claude-code-ide-org--audit-log-path file)))
+    (if (not (file-exists-p path))
+        nil
+      (let (entries)
+        (with-temp-buffer
+          (insert-file-contents path)
+          (goto-char (point-min))
+          (while (not (eobp))
+            (let ((line (buffer-substring (line-beginning-position) (line-end-position))))
+              (unless (string-empty-p line)
+                (push (json-read-from-string line) entries)))
+            (forward-line 1)))
+        (nreverse entries)))))
 
 ;;; claude-code-ide-org-clock-in ---------------------------------------------
 
@@ -239,6 +273,135 @@ source file's on-disk copy of the heading in place, since
       (should (string-match-p "Test heading" archived))
       (should (string-match-p ":ID: +test-0001" archived))
       (should (string-match-p ":ARCHIVE_TODO: +DONE" archived)))))
+
+;;; Tool-call audit log ---------------------------------------------------
+
+(ert-deftest claude-code-ide-org-test-audit-log-real-timer-fires-without-manual-flush ()
+  "Integration check for the one link every other audit-log test
+deliberately bypasses by calling `claude-code-ide-org--audit-flush'
+by hand: that the zero-delay `run-at-time' timer queued by
+`claude-code-ide-org--audit-queue' actually fires on its own once
+Emacs goes idle, with no explicit flush call anywhere in this test.
+Without this, every other test could pass while the real MCP/
+interactive path never wrote a single log line, because nothing
+would ever call flush in production. `sleep-for' pumps Emacs's timer
+queue even in `--batch' mode, which is what lets this run
+deterministically under ERT."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (sleep-for 0.2)
+    (let ((entry (car (last (claude-code-ide-org-test--audit-log-entries file)))))
+      (should entry)
+      (should (equal "org_clock_in" (cdr (assq 'tool entry))))
+      (should (equal id (cdr (assq 'id entry))))
+      (should (equal "saved" (cdr (assq 'result entry)))))))
+
+(ert-deftest claude-code-ide-org-test-audit-log-clock-in-out-hashes-match-disk ()
+  "A normal, correctly-behaving clock-in/out (going through the MCP
+wrappers, which do call `save-buffer') must produce JSONL audit
+entries whose before/after sha256 fields equal independently
+computed hashes of the file's actual on-disk content at those two
+points in time -- proving the audit log's hashes are trustworthy,
+not merely present, and that they differ (a real mutation reached
+disk) rather than accidentally matching."
+  (claude-code-ide-org-test--with-heading
+    (let ((before-in (claude-code-ide-org-test--sha256-disk file)))
+      (claude-code-ide-org-clock-in id)
+      (claude-code-ide-org--audit-flush)
+      (let* ((after-in (claude-code-ide-org-test--sha256-disk file))
+             (entry (car (last (claude-code-ide-org-test--audit-log-entries file)))))
+        (should entry)
+        (should (equal "org_clock_in" (cdr (assq 'tool entry))))
+        (should (equal id (cdr (assq 'id entry))))
+        (should (equal file (cdr (assq 'file entry))))
+        (should (equal before-in (cdr (assq 'before_sha256 entry))))
+        (should (equal after-in (cdr (assq 'after_sha256 entry))))
+        (should (not (equal before-in after-in)))
+        (should (equal "saved" (cdr (assq 'result entry))))))
+    ;; Back-date the already-written open CLOCK line so clock-out's
+    ;; interval doesn't round to zero duration and get dropped by
+    ;; on-the-fly consolidation -- same concern as the existing
+    ;; claude-code-ide-org-test-clock-out-closes-and-saves regression
+    ;; test above.
+    (with-current-buffer (get-file-buffer file)
+      (save-excursion
+        (goto-char (point-min))
+        (re-search-forward "CLOCK: \\[[^]]+\\]")
+        (replace-match (format-time-string "CLOCK: [%Y-%m-%d %a %H:%M]"
+                                            (time-subtract (current-time) 600))))
+      (save-buffer))
+    (let ((before-out (claude-code-ide-org-test--sha256-disk file))
+          (org-clock-out-remove-zero-time-clocks nil))
+      (claude-code-ide-org-clock-out)
+      (claude-code-ide-org--audit-flush)
+      (let* ((after-out (claude-code-ide-org-test--sha256-disk file))
+             (entry (car (last (claude-code-ide-org-test--audit-log-entries file)))))
+        (should entry)
+        (should (equal "org_clock_out" (cdr (assq 'tool entry))))
+        (should (equal id (cdr (assq 'id entry))))
+        (should (equal before-out (cdr (assq 'before_sha256 entry))))
+        (should (equal after-out (cdr (assq 'after_sha256 entry))))
+        (should (not (equal before-out after-out)))
+        (should (equal "saved" (cdr (assq 'result entry))))))))
+
+(ert-deftest claude-code-ide-org-test-audit-log-detects-unsaved-mismatch ()
+  "The exact bug class this feature exists to catch: a mutation lands
+in the buffer but never reaches disk, while the caller nonetheless
+believes it succeeded. Simulated by calling `org-clock-in' directly
+--- bypassing the wrapper, which would otherwise always save --- and
+then flushing before any `save-buffer' happens. The audit log must
+show before_sha256 == after_sha256 and flag the mismatch: exactly the
+signal that would have caught the historical org_clock_out and
+org_archive save-buffer bugs immediately instead of via ad-hoc manual
+disk inspection."
+  (claude-code-ide-org-test--with-heading
+    (org-id-goto id)
+    (org-clock-in)                      ; buffer mutated, deliberately NOT saved
+    (claude-code-ide-org--audit-flush)  ; simulate Emacs going idle
+    (let ((entry (car (last (claude-code-ide-org-test--audit-log-entries file)))))
+      (should entry)
+      (should (equal id (cdr (assq 'id entry))))
+      (should (cdr (assq 'before_sha256 entry)))
+      (should (equal (cdr (assq 'before_sha256 entry)) (cdr (assq 'after_sha256 entry))))
+      (should (equal "UNSAVED-MISMATCH" (cdr (assq 'result entry)))))))
+
+(ert-deftest claude-code-ide-org-test-audit-log-logs-hand-edits ()
+  "Direct M-x-style manipulation -- never routed through any MCP
+wrapper, so no wrapper ever let-binds `claude-code-ide-org--log-source'
+-- must still be captured and attributed as \"hand-edit\". This is the
+whole reason the audit hooks live at the org-native layer
+(org-after-todo-state-change-hook here) instead of only inside the
+wrappers: a hook-based PostToolUse-style approach could never see
+this at all."
+  (claude-code-ide-org-test--with-heading
+    (org-id-goto id)
+    (org-todo "DOING")   ; hand-edit: no wrapper, no let-bound source
+    (save-buffer)        ; the human remembered to save this time
+    (claude-code-ide-org--audit-flush)
+    (let ((entry (car (last (claude-code-ide-org-test--audit-log-entries file)))))
+      (should entry)
+      (should (equal "hand-edit" (cdr (assq 'tool entry))))
+      (should (equal id (cdr (assq 'id entry))))
+      (should (equal "saved" (cdr (assq 'result entry))))
+      (should (not (equal (cdr (assq 'before_sha256 entry)) (cdr (assq 'after_sha256 entry))))))))
+
+(ert-deftest claude-code-ide-org-test-audit-log-attributes-archive ()
+  "org_archive must be attributed by name, and audited against the
+SOURCE file (the one the heading is cut from), not the archive
+target -- since that's the file the original org_archive bug failed
+to save."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-set-todo id "DONE")
+    (claude-code-ide-org--audit-flush) ; drain the set-todo record first
+    (claude-code-ide-org-archive id)
+    (claude-code-ide-org--audit-flush)
+    (let ((entry (car (last (claude-code-ide-org-test--audit-log-entries file)))))
+      (should entry)
+      (should (equal "org_archive" (cdr (assq 'tool entry))))
+      (should (equal id (cdr (assq 'id entry))))
+      (should (equal file (cdr (assq 'file entry))))
+      (should (equal "saved" (cdr (assq 'result entry))))
+      (should (not (equal (cdr (assq 'before_sha256 entry)) (cdr (assq 'after_sha256 entry))))))))
 
 (ert-deftest claude-code-ide-org-test-set-todo-reports-blocked-transition ()
   "Regression test: org_set_todo must not report success when

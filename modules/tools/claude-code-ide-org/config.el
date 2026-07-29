@@ -65,6 +65,186 @@ cannot be resolved or FN signals an error."
             (funcall fn))
         (error (format "Error: %s" (error-message-string err)))))))
 
+;;; Tool-call audit log ------------------------------------------------------
+;;
+;; Every org_* wrapper below has, until now, been trust-the-return-string:
+;; two bugs (org_archive, org_clock_out) reported success while quietly
+;; failing to save the source buffer to disk, caught only by ad-hoc manual
+;; disk inspection, more than once. This section hooks the org-native
+;; layer itself — org-clock-in-hook, org-clock-out-hook,
+;; org-after-todo-state-change-hook, and advice on org-archive-subtree —
+;; rather than only the wrappers further down, so hand-edits made
+;; directly in Emacs (never routed through any wrapper) AND
+;; `claude-code-ide-org-clock-out' (which, per its own docstring, doesn't
+;; route through `claude-code-ide-org--at-id') are both covered.
+;;
+;; Source attribution (which MCP tool, or "hand-edit") comes from
+;; `claude-code-ide-org--log-source', a dynamic variable each wrapper
+;; below let-binds around its body — see the convention noted on that
+;; variable for how nested calls (e.g. session-pause calling the
+;; clock-out wrapper) compose without one clobbering the other's
+;; attribution.
+;;
+;; Hashing is always done straight off disk (see
+;; `claude-code-ide-org--sha256-file'), never off any Emacs buffer —
+;; the whole point is catching exactly the buffer/disk divergence that
+;; bit this project twice already. Because each hook/advice fires
+;; *during* the org-native mutation, before the calling wrapper (or
+;; interactive command) has had a chance to call `save-buffer'
+;; afterward, the "after" hash cannot be taken synchronously in the same
+;; hook invocation. Instead, `claude-code-ide-org--audit-queue' snapshots
+;; the "before" hash immediately (correct, since nothing has been saved
+;; yet at that point) and schedules `claude-code-ide-org--audit-flush'
+;; via a zero-delay timer, which only runs once Emacs returns to its
+;; command loop and goes idle — i.e. strictly after whatever
+;; `save-buffer' call the wrapper/command was going to make, since that
+;; call happens synchronously and immediately after the hook/advice
+;; returns. `claude-code-ide-org--audit-flush' is also plain, directly
+;; callable, so tests can finish pending records deterministically
+;; without depending on Emacs's timer queue actually turning over.
+
+(defvar claude-code-ide-org--log-source nil
+  "Dynamically let-bound around each MCP wrapper's body to a string
+such as \"org_clock_in\" identifying which tool is making an
+org-native mutation, for audit-log attribution. Left nil for
+mutations the audit hooks observe with no such binding in effect —
+logged as \"hand-edit\" — which covers both a literal hand-edit made
+directly in Emacs and anything else that calls org's clock/todo/
+archive functions without going through this module's wrappers.
+
+Each wrapper below binds this with `(or claude-code-ide-org--log-source
+\"its-own-name\")' rather than unconditionally, so that a wrapper called
+from another wrapper (e.g. `claude-code-ide-org-session-pause' calling
+`claude-code-ide-org-clock-out') keeps the outer, more specific
+attribution instead of the inner call clobbering it.")
+
+(defcustom claude-code-ide-org-audit-log-file nil
+  "Path to the JSONL tool-call audit log. When nil (the default), the
+log for a given mutated file lives at
+\".claude-code-ide-org-audit.jsonl\" in that file's git project root
+(found via `locate-dominating-file' for a .git directory), or
+alongside the file itself when it isn't inside a git repository at
+all (e.g. under a test's scratch temp directory)."
+  :type '(choice (const nil) file)
+  :group 'claude-code-ide-org)
+
+(defvar claude-code-ide-org--audit-pending nil
+  "Alist of pending audit records queued by
+`claude-code-ide-org--audit-queue', awaiting the post-mutation disk
+hash that `claude-code-ide-org--audit-flush' fills in. Each entry is
+a plist (:source SOURCE :id ID-OR-NIL :file FILE :before HASH-OR-NIL).")
+
+(defun claude-code-ide-org--sha256-file (file)
+  "Return the sha256 hex digest of FILE's current on-disk contents, or
+nil if FILE does not exist. Always reads straight from disk via
+`insert-file-contents-literally' into a temp buffer — never hashes an
+Emacs buffer's in-memory text — since the entire point of this audit
+log is to catch buffer/disk divergence, not merely confirm the buffer
+looks right."
+  (when (and file (file-exists-p file))
+    (with-temp-buffer
+      (insert-file-contents-literally file)
+      (secure-hash 'sha256 (current-buffer)))))
+
+(defun claude-code-ide-org--audit-log-path (file)
+  "Return the path to the JSONL audit log covering FILE."
+  (or claude-code-ide-org-audit-log-file
+      (expand-file-name ".claude-code-ide-org-audit.jsonl"
+                         (or (locate-dominating-file file ".git")
+                             (file-name-directory file)))))
+
+(defun claude-code-ide-org--log-event (source id file before-hash after-hash)
+  "Append one JSONL audit record to the audit log covering FILE.
+SOURCE attributes the mutation (an MCP tool name such as
+\"org_clock_in\", or \"hand-edit\"). ID is the affected heading's
+:ID:, or nil if it has none. BEFORE-HASH/AFTER-HASH are sha256
+digests of FILE's on-disk contents immediately before and shortly
+after the mutation (see `claude-code-ide-org--sha256-file'). The
+result field is computed here, not passed in: \"saved\" when the
+hashes differ (the mutation reached disk), or \"UNSAVED-MISMATCH\"
+when they're equal despite a mutation having definitely occurred —
+every call site below only queues a record on an actual clock
+event, state change, or archive, never a no-op — which is exactly
+the failure mode that motivated this feature. Writes via
+`write-region' straight to the log file, appending, bypassing any
+Emacs buffer for the log file itself, so the audit log can never
+itself suffer the very buffer/disk divergence bug it exists to
+catch."
+  (let* ((result (if (equal before-hash after-hash) "UNSAVED-MISMATCH" "saved"))
+         (line (concat (json-encode
+                        `((timestamp . ,(format-time-string "%Y-%m-%dT%H:%M:%S%z"))
+                          (tool . ,source)
+                          (id . ,id)
+                          (file . ,file)
+                          (before_sha256 . ,before-hash)
+                          (after_sha256 . ,after-hash)
+                          (result . ,result)))
+                       "\n")))
+    (write-region line nil (claude-code-ide-org--audit-log-path file) t 'silent)))
+
+(defun claude-code-ide-org--audit-queue (id file)
+  "Snapshot FILE's current on-disk sha256 as the \"before\" hash and
+queue a pending audit record attributed to ID and the dynamically-
+bound `claude-code-ide-org--log-source' (or \"hand-edit\"), to be
+finished by `claude-code-ide-org--audit-flush'. A no-op when FILE is
+nil (e.g. a non-file-backed buffer)."
+  (when file
+    (push (list :source (or claude-code-ide-org--log-source "hand-edit")
+                :id id :file file
+                :before (claude-code-ide-org--sha256-file file))
+          claude-code-ide-org--audit-pending)
+    (run-at-time 0 nil #'claude-code-ide-org--audit-flush)))
+
+(defun claude-code-ide-org--audit-flush ()
+  "Finish every pending audit record queued by
+`claude-code-ide-org--audit-queue': hash each record's file again and
+log the before/after comparison, then clear the queue. See the
+commentary at the top of this section for why this runs on a
+zero-delay timer in normal use, and why it is also safe and useful to
+call directly (e.g. from tests)."
+  (let ((pending (nreverse claude-code-ide-org--audit-pending)))
+    (setq claude-code-ide-org--audit-pending nil)
+    (dolist (rec pending)
+      (claude-code-ide-org--log-event
+       (plist-get rec :source) (plist-get rec :id) (plist-get rec :file)
+       (plist-get rec :before)
+       (claude-code-ide-org--sha256-file (plist-get rec :file))))))
+
+(defun claude-code-ide-org--audit-clock-hook ()
+  "Queue an audit record for the heading org's clock machinery just
+clocked in or out of. Shared by `org-clock-in-hook' and
+`org-clock-out-hook': both fire with point still located at/within
+the affected entry in the clocking buffer (confirmed against
+org-clock.el — `org-clock-out' clears `org-clock-marker' to nil
+*before* running its hook, so that marker cannot be relied on here;
+`org-entry-get' at point works for both hooks regardless)."
+  (claude-code-ide-org--audit-queue
+   (org-entry-get nil "ID") (buffer-file-name (buffer-base-buffer))))
+
+(defun claude-code-ide-org--audit-todo-hook ()
+  "Queue an audit record for the heading whose TODO state just
+changed. Added to `org-after-todo-state-change-hook', which runs
+with point still at the affected heading."
+  (claude-code-ide-org--audit-queue
+   (org-entry-get nil "ID") (buffer-file-name (buffer-base-buffer))))
+
+(defun claude-code-ide-org--audit-around-archive (orig-fn &rest args)
+  "Advice around `org-archive-subtree' queuing an audit record for the
+SOURCE file the heading is cut from — not the archive target — since
+that's the file the original org_archive bug failed to save. Captures
+the heading's :ID: and file *before* calling ORIG-FN: archiving
+removes the heading from the source buffer entirely (via
+`org-cut-subtree'), making both unrecoverable at point afterward."
+  (let ((id (org-entry-get nil "ID"))
+        (file (buffer-file-name (buffer-base-buffer))))
+    (prog1 (apply orig-fn args)
+      (claude-code-ide-org--audit-queue id file))))
+
+(add-hook 'org-clock-in-hook #'claude-code-ide-org--audit-clock-hook)
+(add-hook 'org-clock-out-hook #'claude-code-ide-org--audit-clock-hook)
+(add-hook 'org-after-todo-state-change-hook #'claude-code-ide-org--audit-todo-hook)
+(advice-add 'org-archive-subtree :around #'claude-code-ide-org--audit-around-archive)
+
 ;;; Session tracking --------------------------------------------------------
 ;;
 ;; Two separate timekeeping mechanisms, deliberately kept apart:
@@ -123,14 +303,15 @@ heading at point.  EVENT is a short label such as \"Resumed\" or
 Opens a new CLOCK entry in the heading's LOGBOOK drawer and starts
 the Emacs clock timer.  Also logs a \"Resumed\" entry to the
 heading's :SESSIONS: drawer.  Saves the buffer afterwards."
-  (claude-code-ide-org--at-id
-   id
-   (lambda ()
-     (let ((heading (org-get-heading t t t t)))
-       (org-clock-in)
-       (claude-code-ide-org--log-session-event "Resumed")
-       (save-buffer)
-       (format "Clocked in: \"%s\"" heading)))))
+  (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "org_clock_in")))
+    (claude-code-ide-org--at-id
+     id
+     (lambda ()
+       (let ((heading (org-get-heading t t t t)))
+         (org-clock-in)
+         (claude-code-ide-org--log-session-event "Resumed")
+         (save-buffer)
+         (format "Clocked in: \"%s\"" heading))))))
 
 (defun claude-code-ide-org-clock-out ()
   "Clock out of the currently running org clock.
@@ -148,23 +329,24 @@ can never itself signal an error here, since it is built on
 `claude-code-ide-org--at-id', which always returns an \"Error: ...\"
 string rather than throwing.  Saves the buffer.  Safe to call when no
 clock is running."
-  (condition-case err
-      (if (not (org-clocking-p))
-          "No clock is currently running."
-        (let ((heading org-clock-heading)
-              (buffer (marker-buffer org-clock-marker))
-              id)
-          (org-with-point-at org-clock-marker
-            (claude-code-ide-org--log-session-event "Paused")
-            (setq id (org-entry-get nil "ID")))
-          (org-clock-out)
-          (when (buffer-live-p buffer)
-            (with-current-buffer buffer
-              (save-buffer)))
-          (when id
-            (claude-code-ide-org-consolidate-history id))
-          (format "Clocked out: \"%s\"" heading)))
-    (error (format "Error: %s" (error-message-string err)))))
+  (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "org_clock_out")))
+    (condition-case err
+        (if (not (org-clocking-p))
+            "No clock is currently running."
+          (let ((heading org-clock-heading)
+                (buffer (marker-buffer org-clock-marker))
+                id)
+            (org-with-point-at org-clock-marker
+              (claude-code-ide-org--log-session-event "Paused")
+              (setq id (org-entry-get nil "ID")))
+            (org-clock-out)
+            (when (buffer-live-p buffer)
+              (with-current-buffer buffer
+                (save-buffer)))
+            (when id
+              (claude-code-ide-org-consolidate-history id))
+            (format "Clocked out: \"%s\"" heading)))
+      (error (format "Error: %s" (error-message-string err))))))
 
 (defun claude-code-ide-org-session-pause ()
   "Pause the running clock, if any.  Alias for
@@ -172,7 +354,8 @@ clock is running."
 via `emacsclient -e' (not registered as an MCP tool) by a Stop
 hook, so a task automatically pauses the moment Claude finishes
 responding and control returns to the user."
-  (claude-code-ide-org-clock-out))
+  (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "session-pause")))
+    (claude-code-ide-org-clock-out)))
 
 (defun claude-code-ide-org-session-resume ()
   "Resume clocking on the most recently paused task, if any, via
@@ -187,21 +370,22 @@ tool self-corrects: org-clock-in always closes whatever clock is
 currently running before opening a new one, so the mistaken resume
 just leaves a short, low-cost stray CLOCK interval on the wrong
 heading rather than silently losing time or blocking anything."
-  (condition-case err
-      (cond
-       ((org-clocking-p) "Already clocking; nothing to resume.")
-       ((null org-clock-history) "No paused task to resume.")
-       (t
-        (org-clock-in-last)
-        (if (not (org-clocking-p))
-            "org-clock-in-last did not start a clock."
-          (org-with-point-at org-clock-marker
-            (claude-code-ide-org--log-session-event "Resumed"))
-          (let ((buffer (marker-buffer org-clock-marker)))
-            (when (buffer-live-p buffer)
-              (with-current-buffer buffer (save-buffer))))
-          (format "Resumed: \"%s\"" org-clock-heading))))
-    (error (format "Error: %s" (error-message-string err)))))
+  (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "session-resume")))
+    (condition-case err
+        (cond
+         ((org-clocking-p) "Already clocking; nothing to resume.")
+         ((null org-clock-history) "No paused task to resume.")
+         (t
+          (org-clock-in-last)
+          (if (not (org-clocking-p))
+              "org-clock-in-last did not start a clock."
+            (org-with-point-at org-clock-marker
+              (claude-code-ide-org--log-session-event "Resumed"))
+            (let ((buffer (marker-buffer org-clock-marker)))
+              (when (buffer-live-p buffer)
+                (with-current-buffer buffer (save-buffer))))
+            (format "Resumed: \"%s\"" org-clock-heading))))
+      (error (format "Error: %s" (error-message-string err))))))
 
 ;;; Stale interval recovery --------------------------------------------------
 ;;
@@ -730,31 +914,33 @@ Saves the buffer afterwards.  If org-blocker-hook (e.g. org-depend's
 :BLOCKER: property) refuses the change, `org-todo' silently leaves
 the heading in its prior state; this checks the actual resulting
 state and reports that instead of blindly echoing STATE back."
-  (claude-code-ide-org--at-id
-   id
-   (lambda ()
-     (org-todo state)
-     (let ((actual (org-get-todo-state))
-           (heading (org-get-heading t t t t)))
-       (if (equal actual state)
-           (progn
-             (save-buffer)
-             (format "TODO state set to %s: \"%s\"" state heading))
-         (format "Error: requested state %s but heading \"%s\" is still %s — likely blocked (check :BLOCKER: / org-blocker-hook)"
-                 state heading actual))))))
+  (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "org_set_todo")))
+    (claude-code-ide-org--at-id
+     id
+     (lambda ()
+       (org-todo state)
+       (let ((actual (org-get-todo-state))
+             (heading (org-get-heading t t t t)))
+         (if (equal actual state)
+             (progn
+               (save-buffer)
+               (format "TODO state set to %s: \"%s\"" state heading))
+           (format "Error: requested state %s but heading \"%s\" is still %s — likely blocked (check :BLOCKER: / org-blocker-hook)"
+                   state heading actual)))))))
 
 (defun claude-code-ide-org-archive (id)
   "Archive the org heading whose :ID: property equals ID.
 Uses the #+ARCHIVE: directive in effect at the heading (file-level
 or per-heading :ARCHIVE: property).  For :code: tasks this should
 resolve to DONE.org::* Done per your project file headers."
-  (claude-code-ide-org--at-id
-   id
-   (lambda ()
-     (let ((heading (org-get-heading t t t t)))
-       (org-archive-subtree)
-       (save-buffer)
-       (format "Archived: \"%s\"" heading)))))
+  (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "org_archive")))
+    (claude-code-ide-org--at-id
+     id
+     (lambda ()
+       (let ((heading (org-get-heading t t t t)))
+         (org-archive-subtree)
+         (save-buffer)
+         (format "Archived: \"%s\"" heading))))))
 
 ;;; Refile ------------------------------------------------------------------
 ;;
