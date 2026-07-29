@@ -66,6 +66,57 @@ turned out to be the same underlying goal.
 
 ** Developer tooling
 
+*** TODO Revisit: does org.skill's checkbox discipline apply to TODO.org itself? :research:code:
+:PROPERTIES:
+:ID:       6a448345-016c-495f-b26b-ee81b30cd95c
+:CREATED:  [2026-07-29 Wed 07:42]
+:END:
+Tonight's parallel-subagent batch (10 MCP tools) left every archived
+heading's Plan checkboxes at all-[ ], despite full implementation —
+org.skill's existing "check off as you go" discipline was never
+applied. Fixed retroactively (DONE.org reconciled by hand) plus a new
+CLAUDE.md rule making it a coordinator responsibility. But a later
+conversation pushed back on the reasoning behind that rule, and it got
+meta enough to warrant its own session rather than more tail-end
+discussion bolted onto an already-long one.
+
+*Why TODO.org is a special case, not a template for org.skill in
+general:* org.skill normally applies to a user's .org files living in
+arbitrary other projects/folders — files with no relationship to a
+git repo whose code is simultaneously being changed by parallel
+subagents. TODO.org here is unusual on two axes at once: (1) it's
+this repo's own tracked source file, in the same repo as the code
+the subagents are editing, and (2) it's edited through two different
+channels — live-Emacs/emacsclient (state, clock, archive) and
+git-tracked branch diffs (plan-checkbox text) — that don't normally
+have to coexist for an arbitrary end-user org file.
+
+*Where the discussion landed, tentatively, before deferring:* the
+real risk this session wasn't "two subagents' diffs collide" (rare —
+different headings, same shape as config.el's clean merges) — it was
+that the coordinator (this session) batched all TODO.org/DONE.org
+commits at the very end instead of committing incrementally per
+task, the same cadence used for config.el. That left git's tracked
+TODO.org frozen at its pre-session state for the whole session while
+the live-Emacs-edited on-disk file kept drifting — a mismatch that
+has nothing to do with how many subagents are running or what they
+touch. Tentative fix direction: commit TODO.org per-task (not
+batched); let a subagent check off its own heading's boxes/decisions
+directly in its own worktree; rely on the already-enabled
+global-auto-revert-mode to sync the live buffer after a merge before
+archiving that heading.
+
+*Open questions for the fresh session:* does this generalize past
+this repo's own meta-bookkeeping file, or is it inherently special
+enough that any resulting rule belongs only in this repo's own
+CLAUDE.md, not in org.skill/org-dev.skill? Should the CLAUDE.md rule
+added this session ("coordinator reconciles the plan post-hoc") be
+revised in favor of "subagent reconciles its own heading, coordinator
+just commits incrementally") ? What's the actual failure mode if
+auto-revert doesn't fire before an archive call — does it need an
+explicit revert-buffer check rather than an assumption?
+
+
 Doesn't fit any theme below — this is about maintaining *this
 repo's own code*, not about org-mode capability. Its own group
 because it's genuinely a different kind of work.
