@@ -342,6 +342,103 @@ unescape emacsclient's printed-representation output in shell."
   (with-temp-file output-path
     (insert (claude-code-ide-org--session-start-hook-json))))
 
+;;; Session context (SessionStart "what was I last doing") -------------------
+;;
+;; Surfaces "what was I last doing" automatically at session start: the
+;; currently clocked-in heading (if any) plus every WAIT-state heading
+;; across `claude-code-ide-org--tracked-files' (the same file list
+;; stale-interval-recovery and org_query already use), collapsed into a
+;; single plain-text string. Turns "what was I working on" from a
+;; question into something Claude already knows walking in — a standing,
+;; automatic instance of what `claude-code-ide-org-query' answers on
+;; demand via "todo:WAIT".
+
+(defun claude-code-ide-org--clocked-heading-context ()
+  "Return a one-line description of the currently clocked-in org
+heading, or nil if no clock is running."
+  (when (org-clocking-p)
+    (org-with-point-at org-clock-marker
+      (let ((heading (org-get-heading t t t t))
+            (id (org-entry-get nil "ID"))
+            (file (buffer-file-name (buffer-base-buffer))))
+        (format "Currently clocked in: \"%s\"%s%s"
+                heading
+                (if id (format " (:ID: %s)" id) "")
+                (if file (format " in %s" (file-name-nondirectory file)) ""))))))
+
+(defun claude-code-ide-org--wait-headings-context ()
+  "Return a list of one-line descriptions, one per WAIT-state
+heading found across `claude-code-ide-org--tracked-files', or nil if
+none. Scans each tracked file via `find-file-noselect'; any buffer
+that was not already open before the scan is killed again afterward,
+so this never leaves stray buffers in the user's real buffer list —
+only buffers the user already had open (e.g. one they're editing)
+are left alone. The modified flag on a freshly-opened buffer is
+cleared before killing it: this scan never edits the buffer, but
+`kill-buffer' on a buffer Emacs still considers modified — e.g. one
+some other hook touched, or a decoding/`find-file-hook' side effect
+in the user's real config — would otherwise prompt with
+`yes-or-no-p', which blocks indefinitely under `emacsclient -e' and
+would silently eat this hook's whole timeout."
+  (let (results)
+    (dolist (file (claude-code-ide-org--tracked-files))
+      (when (file-exists-p file)
+        (let* ((already-open (find-buffer-visiting file))
+               (buffer (or already-open (find-file-noselect file))))
+          (with-current-buffer buffer
+            (org-map-entries
+             (lambda ()
+               (when (equal (org-get-todo-state) "WAIT")
+                 (push (format "WAIT: \"%s\" (:ID: %s, in %s)"
+                               (org-get-heading t t t t)
+                               (or (org-entry-get nil "ID") "none")
+                               (file-name-nondirectory file))
+                       results)))
+             nil 'file))
+          (unless already-open
+            (with-current-buffer buffer (set-buffer-modified-p nil))
+            (kill-buffer buffer)))))
+    (nreverse results)))
+
+(defun claude-code-ide-org-session-context ()
+  "Return a plain-text summary of \"what was I last doing\": the
+currently clocked-in heading, if any, followed by one line per
+WAIT-state heading across `claude-code-ide-org--tracked-files'.
+Returns the empty string when there is nothing to report (no clock
+running and no WAIT headings), so callers can treat an empty result
+as \"nothing worth injecting\"."
+  (let* ((clocked (claude-code-ide-org--clocked-heading-context))
+         (waits (claude-code-ide-org--wait-headings-context))
+         (lines (append (when clocked (list clocked)) waits)))
+    (mapconcat #'identity lines "\n")))
+
+(defun claude-code-ide-org--session-context-hook-json ()
+  "Return the SessionStart hook JSON payload for
+`claude-code-ide-org-session-context': an empty object if there is
+nothing to report, otherwise one with additionalContext set to the
+session-context summary."
+  (let ((context (claude-code-ide-org-session-context)))
+    (if (equal context "")
+        "{}"
+      (json-encode
+       `((hookSpecificOutput
+          . ((hookEventName . "SessionStart")
+             (additionalContext . ,context))))))))
+
+(defun claude-code-ide-org-write-session-context-report (output-path)
+  "Write the SessionStart hook JSON payload for \"what was I last
+doing\" context to OUTPUT-PATH. Called directly via `emacsclient -e'
+by the session-context.sh hook script, which then just cats the
+file — avoids any need to unescape emacsclient's printed-
+representation output in shell. Deliberately not wrapped in its own
+condition-case: if scanning ever throws, OUTPUT-PATH is left empty
+(the temp file is created but never written to, or is never created
+at all), and the shell script's `[[ -s ... ]]' check treats that
+identically to \"Emacs unreachable\" — fail soft either way, same
+convention as `claude-code-ide-org-write-session-start-report'."
+  (with-temp-file output-path
+    (insert (claude-code-ide-org--session-context-hook-json))))
+
 (defun claude-code-ide-org-close-open-interval (id timestamp-string)
   "Close whatever open CLOCK/:SESSIONS: interval exists on the
 heading whose :ID: equals ID, using TIMESTAMP-STRING (an org
