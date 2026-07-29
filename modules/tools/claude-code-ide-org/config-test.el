@@ -641,6 +641,111 @@ before them gets rounded/merged."
     (should (string-match-p "\\`Error: no org heading found with :ID: \"bogus\""
                             (claude-code-ide-org-archive "bogus")))))
 
+;;; claude-code-ide-org-capture -----------------------------------------------
+
+(defmacro claude-code-ide-org-test--with-capture-file (&rest body)
+  "Point `claude-code-ide-org-capture-file' at a fresh scratch org
+file under a temp directory and run BODY there.  Binds `capture-file'
+to its path.  Redirects org-id's global location cache the same way
+`claude-code-ide-org-test--with-heading' does, so tests never touch
+real user state.  Cleans up any buffer visiting the capture file and
+the temp directory afterwards."
+  (declare (indent 0))
+  `(let* ((dir (file-name-as-directory (make-temp-file "claude-code-ide-org-capture-test" t)))
+          (capture-file (expand-file-name "capture.org" dir))
+          (org-id-locations-file (expand-file-name ".org-id-locations" dir))
+          (org-id-locations (make-hash-table :test 'equal))
+          (org-id-files nil)
+          (org-clock-persist nil)
+          (org-clock-history nil)
+          (claude-code-ide-org-capture-file capture-file))
+     (unwind-protect
+         (progn
+           (with-temp-file capture-file
+             (insert "#+TODO: TODO NEXT DOING WAIT MAYBE | DONE CANCELLED\n"
+                     "#+TAGS: code comms research review\n"
+                     "#+ARCHIVE: DONE.org::* Done\n"
+                     "\n"))
+           ,@body)
+       (when (org-clocking-p) (org-clock-out))
+       (let ((buf (get-file-buffer capture-file)))
+         (when buf
+           (with-current-buffer buf (set-buffer-modified-p nil))
+           (kill-buffer buf)))
+       (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-capture-creates-heading-with-id ()
+  (claude-code-ide-org-test--with-capture-file
+    (let ((result (claude-code-ide-org-capture "Buy stamps")))
+      (should (string-match-p "\\`Captured: \"Buy stamps\" (ID: .+)\\'" result))
+      (string-match "(ID: \\(.+\\))\\'" result)
+      (let ((returned-id (match-string 1 result))
+            (disk (claude-code-ide-org-test--disk-contents capture-file)))
+        ;; A real, non-empty ID landed both in the return string and on disk.
+        (should (> (length returned-id) 0))
+        (should (string-match-p "^\\* TODO Buy stamps[ \t]*$" disk))
+        (should (string-match-p (concat "^:ID: +" (regexp-quote returned-id) "[ \t]*$") disk))
+        (should (not (buffer-modified-p (get-file-buffer capture-file))))))))
+
+(ert-deftest claude-code-ide-org-test-capture-id-immediately-resolvable ()
+  "Regression test: unlike `org-id-get-create' (the manual workflow
+this tool replaces), plain `org-capture' writes :ID: as literal
+template text and never itself registers the location in
+`org-id-locations'.  Every other tool here (org_clock_in,
+org_set_todo, ...) locates headings via `org-id-find', so a returned
+:ID: that isn't yet registered would only resolve if the capture
+target happens to be rescanned via `org-agenda-files'/
+`org-id-extra-files' — not guaranteed, and not true of this test's
+empty agenda.  The tool's contract is that the caller can immediately
+clock in / set state on the new heading, so the ID must resolve
+right away with no rescan needed."
+  (claude-code-ide-org-test--with-capture-file
+    (let* ((org-agenda-files nil)
+           (result (claude-code-ide-org-capture "Round trip task")))
+      (string-match "(ID: \\(.+\\))\\'" result)
+      (let ((returned-id (match-string 1 result)))
+        (should (org-id-find returned-id 'marker))
+        (should (string-match-p
+                 "\\`Clocked in: \"Round trip task\"\\'"
+                 (claude-code-ide-org-clock-in returned-id)))))))
+
+(ert-deftest claude-code-ide-org-test-capture-title-with-special-characters ()
+  "A title containing characters that are meaningful elsewhere in org
+templates/regexps (colons, percent signs, brackets, backslashes) must
+survive into the heading verbatim via `%i', not get partially eaten
+as template escapes or regexp backreferences."
+  (claude-code-ide-org-test--with-capture-file
+    (let* ((title "Reply to Jane: 100% [urgent] re: \\1 in Q3 report")
+           (result (claude-code-ide-org-capture title)))
+      (should (string-match-p (regexp-quote (format "Captured: \"%s\"" title)) result))
+      (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+        (should (string-match-p (regexp-quote (concat "* TODO " title)) disk))))))
+
+(ert-deftest claude-code-ide-org-test-capture-uses-org-default-notes-file-when-unset ()
+  "When `claude-code-ide-org-capture-file' is nil, capture must fall
+back to `org-default-notes-file', not error out or silently target
+nothing."
+  (let* ((dir (file-name-as-directory (make-temp-file "claude-code-ide-org-capture-test" t)))
+         (notes-file (expand-file-name "notes.org" dir))
+         (org-id-locations-file (expand-file-name ".org-id-locations" dir))
+         (org-id-locations (make-hash-table :test 'equal))
+         (org-id-files nil)
+         (claude-code-ide-org-capture-file nil)
+         (org-default-notes-file notes-file))
+    (unwind-protect
+        (progn
+          (claude-code-ide-org-capture "Fallback target task")
+          (let ((buf (get-file-buffer notes-file)))
+            (when buf (with-current-buffer buf (save-buffer))))
+          (should (file-exists-p notes-file))
+          (should (string-match-p "Fallback target task"
+                                  (claude-code-ide-org-test--disk-contents notes-file))))
+      (let ((buf (get-file-buffer notes-file)))
+        (when buf
+          (with-current-buffer buf (set-buffer-modified-p nil))
+          (kill-buffer buf)))
+      (delete-directory dir t))))
+
 ;;; claude-code-ide-org-query -----------------------------------------------
 
 (ert-deftest claude-code-ide-org-test-query-todo-basic ()
