@@ -110,6 +110,42 @@ the log file does not exist (nothing has been flushed yet)."
     (should (not (buffer-modified-p (get-file-buffer file))))
     (should (string-match-p "CLOCK: \\[" (claude-code-ide-org-test--disk-contents file)))))
 
+(ert-deftest claude-code-ide-org-test-clock-in-saves-auto-closed-previous-buffer-in-other-file ()
+  "Regression test: `org-clock-in' auto-closes whatever clock was
+already running before opening the new one. When that previously-
+clocked heading lives in a DIFFERENT file than the one being clocked
+into, org_clock_in must save that other buffer too -- not just the
+buffer of the heading it was asked to clock into. Live-caught
+2026-07-29: clocking into a scratch heading in another file silently
+left TODO.org's buffer modified (the auto-closed CLOCK line never
+persisted to disk) until an explicit save-buffer."
+  (claude-code-ide-org-test--with-heading
+    (let ((other-file (expand-file-name "other.org" dir)))
+      (with-temp-file other-file
+        (insert (concat "#+TODO: TODO NEXT DOING WAIT MAYBE | DONE CANCELLED\n"
+                         "#+TAGS: code comms research review\n"
+                         "\n"
+                         "* TODO Other heading                                               :code:\n"
+                         ":PROPERTIES:\n"
+                         ":ID:       test-0002\n"
+                         ":END:\n")))
+      (find-file other-file)
+      (org-id-update-id-locations (list file other-file))
+      (unwind-protect
+          (progn
+            (claude-code-ide-org-clock-in id)
+            (should (equal "Clocked in: \"Other heading\""
+                            (claude-code-ide-org-clock-in "test-0002")))
+            (should (not (buffer-modified-p (get-file-buffer file))))
+            (should (not (buffer-modified-p (get-file-buffer other-file))))
+            (should (string-match-p "CLOCK: \\[.*\\]--\\[.*\\] =>"
+                                    (claude-code-ide-org-test--disk-contents file))))
+        (when (org-clocking-p) (org-clock-out))
+        (let ((buf (get-file-buffer other-file)))
+          (when buf
+            (with-current-buffer buf (set-buffer-modified-p nil))
+            (kill-buffer buf)))))))
+
 ;;; claude-code-ide-org-clock-out ---------------------------------------------
 
 (ert-deftest claude-code-ide-org-test-clock-out-closes-and-saves ()

@@ -302,15 +302,26 @@ heading at point.  EVENT is a short label such as \"Resumed\" or
   "Clock in to the org heading whose :ID: property equals ID.
 Opens a new CLOCK entry in the heading's LOGBOOK drawer and starts
 the Emacs clock timer.  Also logs a \"Resumed\" entry to the
-heading's :SESSIONS: drawer.  Saves the buffer afterwards."
+heading's :SESSIONS: drawer.  Saves every buffer touched: `org-clock-in'
+auto-closes whatever clock was already running first, which mutates
+*that* heading's buffer too when it lives in a different file than the
+one being clocked into — the same bug shape that already bit
+`claude-code-ide-org-archive' and `claude-code-ide-org-clock-out'
+(reporting success while a modified buffer went unsaved)."
   (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "org_clock_in")))
     (claude-code-ide-org--at-id
      id
      (lambda ()
-       (let ((heading (org-get-heading t t t t)))
+       (let ((heading (org-get-heading t t t t))
+             (previous-buffer (and (org-clocking-p) (marker-buffer org-clock-marker))))
          (org-clock-in)
          (claude-code-ide-org--log-session-event "Resumed")
          (save-buffer)
+         (when (and previous-buffer
+                    (buffer-live-p previous-buffer)
+                    (not (eq previous-buffer (current-buffer))))
+           (with-current-buffer previous-buffer
+             (save-buffer)))
          (format "Clocked in: \"%s\"" heading))))))
 
 (defun claude-code-ide-org-clock-out ()
