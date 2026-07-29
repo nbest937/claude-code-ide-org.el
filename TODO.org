@@ -13,63 +13,6 @@ turned out to be the same underlying goal.
 
 ** Developer tooling
 
-*** DOING Revisit: does org.skill's checkbox discipline apply to TODO.org itself? :research:code:
-:PROPERTIES:
-:ID:       6a448345-016c-495f-b26b-ee81b30cd95c
-:CREATED:  [2026-07-29 Wed 07:42]
-:END:
-:LOGBOOK:
-CLOCK: [2026-07-29 Wed 11:45]--[2026-07-29 Wed 12:05] =>  0:20
-:END:
-:SESSIONS:
-- Resumed [2026-07-29 Wed 11:37]
-- Paused [2026-07-29 Wed 12:21]
-:END:
-Tonight's parallel-subagent batch (10 MCP tools) left every archived
-heading's Plan checkboxes at all-[ ], despite full implementation —
-org.skill's existing "check off as you go" discipline was never
-applied. Fixed retroactively (DONE.org reconciled by hand) plus a new
-CLAUDE.md rule making it a coordinator responsibility. But a later
-conversation pushed back on the reasoning behind that rule, and it got
-meta enough to warrant its own session rather than more tail-end
-discussion bolted onto an already-long one.
-
-*Why TODO.org is a special case, not a template for org.skill in
-general:* org.skill normally applies to a user's .org files living in
-arbitrary other projects/folders — files with no relationship to a
-git repo whose code is simultaneously being changed by parallel
-subagents. TODO.org here is unusual on two axes at once: (1) it's
-this repo's own tracked source file, in the same repo as the code
-the subagents are editing, and (2) it's edited through two different
-channels — live-Emacs/emacsclient (state, clock, archive) and
-git-tracked branch diffs (plan-checkbox text) — that don't normally
-have to coexist for an arbitrary end-user org file.
-
-*Where the discussion landed, tentatively, before deferring:* the
-real risk this session wasn't "two subagents' diffs collide" (rare —
-different headings, same shape as config.el's clean merges) — it was
-that the coordinator (this session) batched all TODO.org/DONE.org
-commits at the very end instead of committing incrementally per
-task, the same cadence used for config.el. That left git's tracked
-TODO.org frozen at its pre-session state for the whole session while
-the live-Emacs-edited on-disk file kept drifting — a mismatch that
-has nothing to do with how many subagents are running or what they
-touch. Tentative fix direction: commit TODO.org per-task (not
-batched); let a subagent check off its own heading's boxes/decisions
-directly in its own worktree; rely on the already-enabled
-global-auto-revert-mode to sync the live buffer after a merge before
-archiving that heading.
-
-*Open questions for the fresh session:* does this generalize past
-this repo's own meta-bookkeeping file, or is it inherently special
-enough that any resulting rule belongs only in this repo's own
-CLAUDE.md, not in org.skill/org-dev.skill? Should the CLAUDE.md rule
-added this session ("coordinator reconciles the plan post-hoc") be
-revised in favor of "subagent reconciles its own heading, coordinator
-just commits incrementally") ? What's the actual failure mode if
-auto-revert doesn't fire before an archive call — does it need an
-explicit revert-buffer check rather than an assumption?
-
 *** DONE Fix org-agenda-files/tracked-files resolving to nothing (agenda + org_query/org_clock_report) :code:
 :PROPERTIES:
 :ID:       74f24402-978e-4c66-ac97-996f387c0ddb
@@ -77,11 +20,12 @@ explicit revert-buffer check rather than an assumption?
 :END:
 :SESSIONS:
 - Resumed [2026-07-29 Wed 12:29]
-- Paused [2026-07-29 Wed 16:57]
-- Resumed [2026-07-29 Wed 17:02]
+- Paused [2026-07-29 Wed 18:34]
+- Resumed [2026-07-29 Wed 18:40]
 :END:
 :LOGBOOK:
-CLOCK: [2026-07-29 Wed 17:02]
+CLOCK: [2026-07-29 Wed 18:20]--[2026-07-29 Wed 18:30] =>  0:10
+CLOCK: [2026-07-29 Wed 17:00]--[2026-07-29 Wed 17:05] =>  0:05
 CLOCK: [2026-07-29 Wed 12:25]--[2026-07-29 Wed 12:30] =>  0:05
 :END:
 Doom's =org-agenda-files= is =("~/org")= — a bare directory string —
@@ -100,22 +44,6 @@ the stale-interval recovery scan, =org_query=, and unscoped
 =org_clock_report=. No existing test exercises the directory-fallback
 path — every test binds =claude-code-ide-org-query-files= directly.
 
-**** Plan [4/4]
-- [X] Doom config (=~/.config/doom/config.el=, =after! org=): set
-  =org-agenda-files= to =(directory-files-recursively org-directory
-  "\\.org$")= — one-time scan at load, not dynamic
-- [X] config.el:412-414: change =claude-code-ide-org--tracked-files= to
-  call =(org-agenda-files)= (the function) instead of returning the
-  raw variable; update its docstring to name all three consumers
-- [X] config-test.el: add a test that leaves
-  =claude-code-ide-org-query-files= nil, sets =org-agenda-files= to a
-  scratch directory, and confirms a heading in it is actually found —
-  reproducing and then closing the "No matches." bug
-- [X] Do this on a feature branch
-  (=feature/fix-tracked-files-resolution=) per CLAUDE.md's branch
-  rule — the config.el/test changes are a real behavior fix, not a
-  trivial doc edit
-
 *Verified, not just implemented:* =bin/test= (78/78 including the new
 regression test), plus live checks against the running Emacs after
 reloading both the Doom config setq (=emacsclient -e '(setq
@@ -127,6 +55,30 @@ now resolves to TODO.org's real path; =org_query "todo:DOING"= finds
 both DOING headings instead of "No matches."; the interactive
 =org-todo-list= renders every heading in this file; =org_clock_report=
 returns real clocked time instead of an empty table.
+
+*** DOING Discard the Plan-checklist convention; migrate skills to plain-text format :code:
+:PROPERTIES:
+:ID:       5f4d407b-4db9-4139-aabc-79fb5ade7be9
+:CREATED:  [2026-07-29 Wed 18:32]
+:END:
+:SESSIONS:
+- Resumed [2026-07-29 Wed 18:40]
+:END:
+:LOGBOOK:
+CLOCK: [2026-07-29 Wed 18:40]
+:END:
+Plan: [[file:~/.claude/plans/let-s-rip-it-out-floofy-blossom.md][let-s-rip-it-out-floofy-blossom]]
+
+CLAUDE.md's Plan-checklist reconciliation rule (and org.skill's matching
+checklist-discipline guidance) is being discarded entirely as unnecessary
+overhead — a plan tracked twice (org checklist + Claude Code's own Plan
+Mode file) that then needs keeping in sync. Replacing with: a permanent
+link to the Plan Mode file, kept through DONE, plus a concise prose outcome
+summary at completion instead of checkbox reconciliation. Also migrating
+org.skill/org-dev.skill off their non-standard zip-archive packaging to
+Claude Code's actual native format (.claude/skills/<name>/SKILL.md, plain
+text) since both files are being edited anyway. See the linked plan for
+full scope.
 
 
 ** New MCP tools
@@ -169,30 +121,10 @@ just stripping the stray entry again; see the commit that fixed
 org-agenda-files for context on what was being worked on when this was
 first found.
 
-**** Plan [/]
-- [ ] Guard =org-clock-in-last='s call site (or wrap it) to skip
-  resuming when the target heading's TODO state is DONE/CANCELLED
-- [ ] Decide the right fallback when the most-recent history entry
-  is terminal: resume the next non-terminal entry in
-  =org-clock-history=, or just no-op
-- [ ] Add a config-test.el regression test
-
 *** MAYBE Idle-based auto clock-out :code:
 Via =org-clock-idle-time=, already built into org — just needs
 enabling. Guards against a clock left running because a session
 died mid-DOING without ever reaching org_clock_out.
-
-**** Plan [/]
-- [ ] Set =org-clock-idle-time= (minutes) in
-  =~/.config/doom/config.el='s =after! org= block — a pure
-  Doom-config change, nothing in this repo touches it
-- [ ] Evaluate =org-clock-auto-clock-resolution= or a small
-  non-interactive wrapper around =org-clock-resolve-clock=, since
-  org's default resolution on resume is *interactive* and nobody
-  answers that prompt in an unattended session
-- [ ] Confirm empirically whether the resolve prompt does anything
-  useful when Emacs is running unattended, or whether auto-resolution
-  is required for this to help at all
 
 No config.el/config-test.el changes — there's no wall-clock idle to
 simulate in ERT's scratch-buffer fixtures.
@@ -210,21 +142,6 @@ arc, not per-prompt noise. Wanted instead: a genuine close only at
 DOING → DONE with the work tested and committed, at the end of a
 working day, or on an explicit signal — sketched as a command like
 =/dfd <task>= ("done for the day").
-
-**** Plan [/]
-- [ ] Detach :SESSIONS: writes from the Stop/UserPromptSubmit hooks
-  entirely — CLOCK keeps its current per-turn pause/resume behavior
-  unchanged; :SESSIONS: stops being written there
-- [ ] Design =/dfd <task>=: closes the day's :SESSIONS: entry (and
-  clocks out if a clock is running) without changing TODO state — the
-  task stays DOING, just paused for the day
-- [ ] Handle the DONE+tested+committed close as a standing instruction
-  (same shape as the DOING-transition rule in CLAUDE.md), not a hook —
-  "tested and committed" is a judgment call nothing mechanical can
-  verify
-- [ ] Decide what happens to the *first* Resumed entry under the new
-  scheme: opened on the first clock-in after a close, or only once
-  real multi-day bracketing is worth showing at all
 
 *Open question:* does "end of a working day" need its own detection
 (e.g. against =claude-code-ide-org-working-hours=), or is =/dfd=
@@ -275,23 +192,6 @@ your Emacs, today gated only by "it's on localhost." Don't build
 this without designing auth first — bearer token at minimum, ideally
 scoped per tool.
 
-**** Plan [/]
-- [ ] Add a bearer-token check to
-  =claude-code-ide-mcp-http-server--handle-post= (new defcustom,
-  nil-by-default = off) that short-circuits to a 401 before the
-  request body is even parsed
-- [ ] Add a matching =authToken= field to the WebSocket IDE-companion's
-  lockfile and validate it in =claude-code-ide-mcp--on-open= — today
-  it blindly attaches any connecting socket by port match, no
-  identity check at all
-- [ ] Make the hardcoded ="127.0.0.1"= bind address in both servers a
-  defcustom
-- [ ] Thread the token through =.mcp.json='s headers map on the
-  client side rather than the URL, which tends to leak into logs
-- [ ] Keep both servers bound to =127.0.0.1= permanently regardless,
-  and require a tunnel (Tailscale/WireGuard/SSH) for actual remote
-  reachability, with the token as a second factor
-
 *Risk:* every registered tool call is unsandboxed elisp execution in
 your live Emacs — a bearer token alone adds no TLS, per-tool
 scoping, or rate limiting. Don't just flip the host to 0.0.0.0 and
@@ -305,18 +205,6 @@ config.el, hand-rolled against claude-code-ide's internals rather
 than a public API. Short of a real upstream PR, even just
 generalizing it (hardcoded project path → variable) and writing it
 up would make it something worth handing to someone else.
-
-**** Plan [/]
-- [ ] Generalize the hardcoded project path into an alist of
-  (session-id . project-dir) pairs
-- [ ] Turn the wiring function into a loop over that alist — both
-  underlying calls are already idempotent, so re-running is safe
-- [ ] Extract the whole thing out of personal config.el into a
-  standalone file (e.g. =claude-code-ide-standalone.el=)
-- [ ] Add a helper that generates each project's =.mcp.json= entry
-  from the same alist instead of hand-writing the port/session-id
-- [ ] Decide packaging tier — documented snippet, standalone package,
-  or upstream PR — and stop there for now
 
 *Open question:* the wrapped functions (=register-session=,
 =mcp-start=) aren't really designed as public standalone-mode API

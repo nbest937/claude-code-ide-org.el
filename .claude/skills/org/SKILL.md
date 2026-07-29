@@ -151,7 +151,7 @@ heading line or a plain-list item tracks how many of its checkboxes are
 checked:
 
 ```org
-*** Plan [2/5]
+*** Pack for the trip [2/5]
 - [X] Step one
 - [X] Step two
 - [ ] Step three
@@ -225,20 +225,6 @@ When helping the user move a task between states, follow these conventions:
 - **Close an open clock**: fill in the end timestamp and compute the duration.
 - **Always preserve**: indentation, drawer structure, existing entries — do not
   reformat content the user didn't ask to change.
-- **Check off completed subtasks as you go**: when a checkbox item under a
-  heading represents a planned implementation step and that step is actually
-  finished, change `[ ]` to `[X]` right then — don't batch it for later, and
-  don't leave a plan looking stale once the work it describes is done.
-- **Only check a box once the work is verified, not merely attempted.** A
-  step that "should have worked" or returned a success message is not the
-  same as a step that's confirmed done — inspect the actual result (run the
-  test, read the file back, check the output) before marking it. Treating a
-  tool's own success claim as sufficient is exactly the kind of gap that has
-  produced real, silent bugs in this project before.
-- **Recompute statistics cookies whenever you check a box.** Update the
-  enclosing `[N/M]`/`[P%]` cookie (heading-level or list-level, see above) to
-  match the new count. If a cookie's scope is ambiguous, hand-count the
-  checkboxes rather than guess — a wrong cookie is worse than no cookie.
 
 ### Generating .org content
 
@@ -255,22 +241,14 @@ When creating tasks or files from scratch, or when adding tasks to an existing f
 - **A single space before a heading's tag, never column-aligned.** Don't pad
   with spaces to push `:tag:` out to a fixed column, even though many Org
   setups do this by default (`org-tags-column`) — see "Tags" above for why.
-- **A "Plan" checklist is a sub-heading, not bold text.** When a heading needs an
-  implementation-steps checklist, make it a heading one level deeper — e.g.
-  `**** Plan [/]` under a `***` feature heading — rather than a bold paragraph
-  (`*Plan:* [/]`) followed by a plain list. A heading is independently foldable
-  with TAB; a bold paragraph sitting above a list is not — Org's plain-list
-  cycling only ever folds one list item's own children at a time (with point on
-  that item's own first line), never the whole list, so there is no point at
-  which TAB collapses a bold-text "title" together with the checklist under it.
 - **Two blank lines before a level-2 (`**`) heading that has no TODO
   keyword** — the top-level section dividers of a file (e.g. `** Roadmap`'s
   own children), as opposed to the individual TODO-tracked items nested
   under them. Everywhere else — before a TODO-item heading (`*** DONE ...`,
-  `*** MAYBE ...`), a `**** Plan [...]` sub-heading, or any other content —
-  a single blank line is the norm. The extra line at level 2 only, and only
-  when untagged-by-TODO-state, is a deliberate visual break between major
-  sections; doubling it everywhere would just be noise.
+  `*** MAYBE ...`) or any other content — a single blank line is the norm.
+  The extra line at level 2 only, and only when untagged-by-TODO-state, is a
+  deliberate visual break between major sections; doubling it everywhere
+  would just be noise.
 
 ---
 

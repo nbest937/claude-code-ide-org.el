@@ -56,33 +56,20 @@ say so explicitly rather than skipping verification silently.
 feature work specifically — bug fixes and small doc/TODO edits aren't
 implied to require one just because this rule exists.
 
-**Rule**: when a task's `Plan [/]` checklist is implemented — whether by
-the main session or a delegated subagent — the checkboxes and any `*Open
-question:*`/decision text on that heading must reflect the actual, final
-outcome *before the heading is archived*: `[X]` only for steps verified
-done (per org.skill's existing checkbox-discipline — don't check a step
-because it "should have worked"), an explicit note for any step done
-differently than originally planned, and a resolution (not a
-still-open question) for anything the plan left undecided. If the plan
-itself changed mid-implementation, the heading's body text has to say so
-— a `DONE` heading whose Plan still shows all-`[ ]` boxes is exactly the
-kind of stale record this rule exists to prevent, whether or not the
-underlying work is actually finished. See `DONE.org`'s `org_query` entry
-for the model to match (`[X]`-checked Plan, plus a `*Risk, confirmed and
-accepted:*`/`*Implementation notes:*` writeup of what actually happened).
+**Rule**: work planned via Claude Code's own Plan Mode gets a single
+permanent link in its heading body — `[[file:~/.claude/plans/<slug>.md][Plan]]`
+— added when the heading goes `DOING`. No transcription of the plan into
+org, ever; the link is the record, and it is **not removed at `DONE`**. A
+task with no separate Plan Mode session simply carries no link — that's
+expected, not a gap to fill in.
 
-This is a **coordinator responsibility when work is delegated to a
-subagent**, not something to expect the subagent to do unprompted: a
-subagent in an isolated worktree reports its per-item completion status
-and any deviations in its final report (ask for this explicitly when
-dispatching), and the coordinator applies that to the *live* heading —
-checkboxes, resolved questions, deviation notes, recomputed `[N/M]`
-cookie — as part of integrating that specific task, right alongside its
-`DONE`/archive step, not batched at the end of a larger multi-task
-effort. (State/clock transitions remain coordinator-only regardless, per
-the state-transition rules above — that's about the single shared clock;
-this is a separate, lower-risk category that just needs to not be
-skipped.)
+**Rule**: before a `DONE` heading is archived, add a concise prose outcome
+summary next to that link — what shipped, how it was verified, anything
+that differed from the plan. `DONE.org`'s existing `*Verified, not just
+implemented:*`/`*Implementation notes:*` style is the model to match.
+Applies to delegated-subagent work too: ask for a one-paragraph outcome
+summary in the subagent's final report, not per-checkbox status — there
+are no checkboxes to report on.
 
 ---
 
@@ -167,6 +154,12 @@ instruction, not something a hook could infer.
 property drawer, stamped with an inactive timestamp (`[YYYY-MM-DD Dow
 HH:MM]`) at creation time, alongside its `:ID:`. Applies to every heading
 creation, not just the "new task described in conversation" case above.
+**Rule**: when a new org heading is created as the direct result of an
+approved Plan Mode plan, write only that heading (title, tags, properties,
+any Plan-file link, intro body) and stop — show it and get explicit
+approval before transitioning it to `DOING` or touching anything else the
+plan describes. Approving a Plan is not approval of the heading's exact
+wording.
 
 ---
 
