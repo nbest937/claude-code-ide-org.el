@@ -22,20 +22,27 @@ Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 Structural manipulation, lower priority than org_query — nice to
 have, nothing currently needs it.
 
-*** Plan [/]
-- [ ] Implement =claude-code-ide-org-sort-children (id sort-type)=,
+*** Plan [4/4]
+- [X] Implement =claude-code-ide-org-sort-children (id sort-type)=,
   mapping a friendly =sort-type= string (alpha/todo-order/priority/
   scheduled/deadline/clock-time) to =org-sort-entries='s character
   codes, calling it non-interactively
-- [ ] Implement =claude-code-ide-org-move-sibling (id direction)=,
+- [X] Implement =claude-code-ide-org-move-sibling (id direction)=,
   calling =org-move-subtree-up=/=-down= based on =direction=
-- [ ] Register both as separate tools, not merged — matches the
+- [X] Register both as separate tools, not merged — matches the
   existing convention of distinct tools for distinct operations
-- [ ] Rely on the shared dispatcher's =condition-case= for sibling-
+- [X] Rely on the shared dispatcher's =condition-case= for sibling-
   boundary errors (=user-error= at the top/bottom) rather than adding
   extra handling
 
-No major open question — the most mechanical item here.
+No major open question — the most mechanical item here, and it was
+implemented exactly as planned. 6 ERT tests added (alpha/todo-order
+sort, unknown-sort-type error, move up/down round-trip, boundary
+errors, unknown-direction error). One test-design bug caught before
+merge: the first draft's sort-children-todo-order test happened to
+have alpha order and todo-keyword order agree, which would have let a
+mis-wired sort-type mapping pass silently — fixed by choosing names/
+keywords that disagree. =bin/test= 39/39 at merge.
 
 ** DONE org_refile :code:
 :PROPERTIES:
@@ -57,23 +64,37 @@ the design notes. Needs a target-resolution story (:ID: of new
 parent? file + heading path?) worked out before implementation, not
 just a thin wrap of the interactive prompt.
 
-*** Plan [/]
-- [ ] Implement =claude-code-ide-org-refile (id target-id)=, resolving
+*** Plan [5/5]
+- [X] Implement =claude-code-ide-org-refile (id target-id)=, resolving
   both =id= (heading to move) and =target-id= (new parent) via
   =org-id-find=
-- [ ] Build the =rfloc= argument =org-refile= expects directly,
+- [X] Build the =rfloc= argument =org-refile= expects directly,
   bypassing the interactive completion prompt entirely
-- [ ] Call =(org-with-point-at marker (org-refile nil nil rfloc))= at
+- [X] Call =(org-with-point-at marker (org-refile nil nil rfloc))= at
   the source marker
-- [ ] Save *every* buffer touched — source and target, which may
+- [X] Save *every* buffer touched — source and target, which may
   differ — this is exactly the bug shape that already bit
   archive/clock-out
-- [ ] Register with =id= and =target_id= string args
+- [X] Register with =id= and =target_id= string args
 
-*Open question:* can't express "move to the top level of a file
-with no parent heading" since there's no heading to attach an :ID:
-to — decide whether that's out of scope for v1, or a second
-file-path+append codepath is needed.
+*Open question, resolved:* out of scope for v1, per the plan's own
+recommended default. Every other tool in this module resolves its
+target purely by :ID:, so a file-path+append second codepath would be
+an inconsistent one-off with no observed real usage; an unresolvable
+=target_id= returns a clean =Error: no org heading found with target
+:ID: "..."= string instead. Revisit if that assumption breaks in
+practice.
+
+*Implementation note:* =rfloc='s 4th element is the target's live
+*marker*, not a plain integer position — =org-refile= deletes the
+source subtree before visiting the target, and only a marker
+auto-relocates through that deletion (a same-file test deliberately
+places the source before the target to exercise this). =org-log-refile=
+is bound to nil for the call so a user config that logs refile notes
+can't turn this into an interactive prompt. 5 ERT tests added
+(same-file, cross-file with disk assertions on *both* files,
+unresolvable target, unresolvable source, refile-into-own-subtree
+error). =bin/test= 44/44 at merge.
 
 ** DONE org-trigger-hook / org-blocker-hook :code:
 :PROPERTIES:
@@ -93,23 +114,43 @@ DOING is set through *any* path, not just our org_set_todo wrapper —
 this is the layer that also catches hand-edits made directly in
 Emacs.
 
-*** Plan [/]
-- [ ] Implement =claude-code-ide-org--blocker-clock-running-p= for
+*** Plan [4/4]
+- [X] Implement =claude-code-ide-org--blocker-clock-running-p= for
   =org-blocker-hook=, denying DONE when the target heading's :ID:
   matches whatever =org-clock-marker= currently points at
-- [ ] Implement =claude-code-ide-org--trigger-auto-clock-in= for
+- [X] Implement =claude-code-ide-org--trigger-auto-clock-in= for
   =org-trigger-hook=, auto-clocking-in on DOING if not already
   clocked on that heading, with a re-entrancy guard
-- [ ] Register both via plain =(with-eval-after-load 'org ...)=, not
+- [X] Register both via plain =(with-eval-after-load 'org ...)=, not
   Doom's =after!=, matching config-test.el's =emacs --batch -Q= load
   path
-- [ ] Keep every org-clock.el call lazily inside the hook lambdas
+- [X] Keep every org-clock.el call lazily inside the hook lambdas
   only — never call one eagerly at registration time
 
 *Confirmed not a repeat of the org-clock-load trap:*
 =org-blocker-hook=/=org-trigger-hook= are plain defvars in org.el
 itself, present the instant =(provide 'org)= fires, and =add-hook=
 only stores a symbol, never invokes it.
+
+*Known limitations, deliberately accepted rather than silently
+left out:*
+- The blocker only matches a literal transition to =DONE=, not
+  =CANCELLED= — CLAUDE.md's transition table also requires closing
+  the clock before DOING→CANCELLED, but the plan's own wording said
+  "denying DONE" specifically. Flagged, not expanded, since widening
+  scope wasn't asked for.
+- In the live Doom config (=org-clock-out-when-done t=), a direct
+  DOING→DONE on a clocked heading now *blocks* instead of
+  auto-closing the clock and succeeding, since the blocker hook runs
+  before =org-clock-out-if-current=. This matches the plan's literal
+  intent and CLAUDE.md's table, but is a real behavior change from
+  the previously-frictionless auto-close — accepted as correct rather
+  than reverted.
+
+6 ERT tests added (blocker blocks/permits/scoped-to-own-heading,
+trigger fires on bare =org-todo= bypassing the wrapper, trigger skips
+a redundant clock-in, trigger doesn't fire for non-DOING states).
+=bin/test= 39/39 at merge.
 
 ** DONE Extend config-test.el :code:
 :PROPERTIES:
@@ -131,15 +172,21 @@ exact class of bug (silent success, wrong on-disk state) is what
 bit us twice already, and enforcement code with no test is exactly
 where it'd bite a third time.
 
-*** Plan [/]
-- [ ] Add blocker-hook tests: clock in, attempt set-todo DONE, assert
+*** Plan [3/3]
+- [X] Add blocker-hook tests: clock in, attempt set-todo DONE, assert
   the call is blocked and the on-disk file still shows =DOING=
-- [ ] Add trigger-hook tests, including one that calls bare
+- [X] Add trigger-hook tests, including one that calls bare
   =(org-todo "DOING")= directly, not through the wrapper — the only
   way to test the "catches hand-edits too" requirement
-- [ ] Add a two-heading fixture variant to verify the blocker only
+- [X] Add a two-heading fixture variant to verify the blocker only
   fires for a clock running on *that* heading, not any clock
   elsewhere in the file
+
+Implemented together with the hooks themselves (same branch, same
+commit) rather than as a separate follow-up pass, since the two were
+always going to land atomically. All three items done exactly as
+planned; see the parent heading above for the resulting test list and
+pass count.
 
 *Note:* config-test.el is Emacs-only (ERT via =emacs --batch=) and
 structurally cannot test the PreToolUse guard script — that needs
@@ -166,25 +213,35 @@ instead of hand-writing a heading via the text skill and then
 calling =org-id-get-create=. Return the new :ID: so the caller can
 immediately clock in / set state on it.
 
-*** Plan [/]
+*** Plan [4/4]
 Verified empirically under =emacs --batch -Q=, the exact environment
 =bin/test= runs in.
-- [ ] Add a dedicated capture template (own key, e.g. ="z"=, distinct
+- [X] Add a dedicated capture template (own key, e.g. ="z"=, distinct
   from any personal templates), targeting a configurable capture-file
   defcustom, entry body =\"* TODO %i\n:PROPERTIES:\n:ID:
-  %(org-id-new)\n:END:\n\"=, with =:immediate-finish t=
-- [ ] Use =%i= for the captured title, *not* =%?= — confirmed by
+  %(org-id-new)\n:END:\n\"=, with =:immediate-finish t= — *done
+  differently*: the template's own =%(org-id-new)= sexp escape is
+  never used. See the next item.
+- [X] Use =%i= for the captured title, *not* =%?= — confirmed by
   direct test: =%?= is purely a cursor-placement marker and expands
   to nothing under =:immediate-finish=, producing a heading with no
   text at all (=\"* TODO \"=); =%i= is the escape that actually
   substitutes the string passed to =org-capture-string=
-- [ ] Implement =claude-code-ide-org-capture (title)=: call
+- [X] Implement =claude-code-ide-org-capture (title)=: call
   =(org-capture-string title "z")=, wrapped in =condition-case=,
   returning ="Captured: \"TITLE\" (ID: ...)"= — capture the generated
   ID from the template's =%(org-id-new)= call up front (bind it in a
   =let= and reference the same value in both the template and the
-  return string, rather than searching for it after the fact)
-- [ ] Register with a =title= string arg
+  return string, rather than searching for it after the fact) —
+  *done differently*: rather than let-binding a value also produced
+  by the template's own =%(org-id-new)=, the ID is generated in Elisp
+  first (=(org-id-new)=) and the literal value is spliced directly
+  into the template body text built fresh per call. Using the sexp
+  escape as literally planned would have generated a *second*,
+  different ID than the one returned to the caller — this was the
+  actual reason the plan's own "reference the same value in both"
+  clause existed, worked through to its correct conclusion.
+- [X] Register with a =title= string arg
 
 *Confirmed, not a risk:* =org-capture-string= +
 =:immediate-finish t= works correctly headless — tested a full
@@ -192,6 +249,17 @@ capture round trip under =emacs --batch -Q= and the file, heading,
 and generated :ID: all landed correctly on disk. The earlier
 "may misbehave under batch" concern didn't materialize; the =%i=
 gotcha above was the only real issue found.
+
+*Addition beyond the plan:* plain =org-capture= writes =:ID:= as
+literal text and never itself calls =org-id-add-location= (unlike
+=org-id-get-create=, the workflow this tool replaces). Without an
+explicit =org-id-add-location= call after capture, the returned :ID:
+would not be resolvable by =org-id-find= — and therefore not usable
+by =org_clock_in=/=org_set_todo= — until an incidental full
+agenda-files rescan, which isn't guaranteed. Added the call plus a
+regression test that isolates it (=org-agenda-files= bound to nil) to
+prove the explicit registration, not a rescan, is what makes the ID
+resolve. 4 ERT tests added in total; =bin/test= 37/37 at merge.
 
 ** DONE Surface current clock state :code:
 :PROPERTIES:
@@ -213,22 +281,34 @@ a small status file. Could feed a Warp status line, a menu bar
 widget, or just answer "what's Claude doing right now" at a glance
 without opening Emacs.
 
-*** Plan [/]
-- [ ] Implement =claude-code-ide-org--write-clock-status= in
+*** Plan [6/6]
+- [X] Implement =claude-code-ide-org--write-clock-status= in
   config.el, writing a small JSON file (heading, :ID:, start time;
   empty/idle object on clock-out)
-- [ ] Use =json-encode= plus an atomic write-region+rename-file so a
+- [X] Use =json-encode= plus an atomic write-region+rename-file so a
   poller never reads a half-written file
-- [ ] Wire via =add-hook= on =org-clock-in-hook=/=org-clock-out-hook=
+- [X] Wire via =add-hook= on =org-clock-in-hook=/=org-clock-out-hook=
   at module load, not inside our wrappers, so hand-edits in Emacs
-  update it too
-- [ ] Handle the Emacs-restart/persisted-clock case with a one-time
+  update it too — *implementation detail*: two separate named
+  handlers, not one shared function branching on
+  =org-clocking-p=, since =org-clock-out= already clears
+  =org-clock-marker=/=org-clock-hd-marker= *before* running
+  =org-clock-out-hook=; the out-handler writes the idle object
+  unconditionally rather than depending on that ordering
+- [X] Handle the Emacs-restart/persisted-clock case with a one-time
   write once =org-clock-load= resolves
-- [ ] Wrap the hook body in =condition-case= — an error inside
+- [X] Wrap the hook body in =condition-case= — an error inside
   =org-clock-in-hook= can corrupt org's own clock-in machinery, so it
   must fail silently rather than propagate
-- [ ] Add ERT tests: file matches on clock-in, reflects idle on
+- [X] Add ERT tests: file matches on clock-in, reflects idle on
   clock-out, doesn't error if the status directory doesn't exist yet
+
+3 ERT tests added, plus the shared test fixture was extended to
+redirect =claude-code-ide-org-clock-status-file= into each test's own
+temp dir, since the many pre-existing clock-in/out tests were
+otherwise incidentally writing a stray =clock-status.json= into the
+real module directory on every =bin/test= run. =bin/test= 71/71 at
+merge, no deviations from the plan.
 
 ** DONE PreToolUse transition guard :code:
 :PROPERTIES:
@@ -248,23 +328,42 @@ with no open clock — before it ever reaches Emacs. Belt-and-suspenders
 alongside the org-hook enforcement above; catches it one layer
 earlier, specifically on the MCP path.
 
-*** Plan [/]
-- [ ] Empirically verify the literal MCP-qualified tool name
+*** Plan [5/5]
+- [X] Empirically verify the literal MCP-qualified tool name
   (expected =mcp__emacs-tools__org_set_todo=, from =.mcp.json='s
-  =emacs-tools= server key) before wiring anything against it
-- [ ] Add =.claude/settings.json= with a =hooks.PreToolUse= entry
-  matching that tool name
-- [ ] Write =bin/hooks/pretooluse-transition-guard=: read the
+  =emacs-tools= server key) before wiring anything against it —
+  confirmed against this session's own live deferred-tools listing,
+  not just =.mcp.json='s naming convention
+- [X] Add =.claude/settings.json= with a =hooks.PreToolUse= entry
+  matching that tool name — done by the coordinator during
+  integration, batched together with the other two Wave-C hook
+  scripts (clock-notify, session-context) rather than by this task's
+  own branch, to avoid three worktrees independently guessing at the
+  same untracked-at-the-time file
+- [X] Write =bin/hooks/pretooluse-transition-guard=: read the
   PreToolUse JSON from stdin, query live Emacs via =emacsclient -e=
   for the currently-clocked heading's :ID:
-- [ ] Deny the call when the requested state is DONE/WAIT/CANCELLED
+- [X] Deny the call when the requested state is DONE/WAIT/CANCELLED
   and the target heading is still the one clocked in
-- [ ] Decide and implement fail-open vs fail-closed behavior when
+- [X] Decide and implement fail-open vs fail-closed behavior when
   =emacsclient= can't reach a live Emacs
 
-*Risk:* fail-closed (deny with a clear "couldn't verify clock
-state" reason) fits a correctness-enforcement project better than
-silently letting the call through.
+*Risk, resolved as planned:* fail-closed implemented exactly as
+this section anticipated.
+
+*Live-verified after merge* (2026-07-29, against the real Emacs/MCP
+connection, not just the mocked-emacsclient test harness): clocking
+into a heading and attempting =org_set_todo= to =WAIT= on it was
+correctly denied before ever reaching Emacs (heading's on-disk state
+and the clock were both unchanged), and the same call succeeded
+immediately after clocking out. Also incidentally established that
+=.claude/settings.json= hook changes (=PreToolUse=/=PostToolUse=
+specifically) take effect live within the *current* session in this
+environment — contrary to a general claim in =org-dev.skill= that
+hook config is only read at session start; that claim needs revisiting
+(=SessionStart= hooks themselves are the one category that genuinely
+can't be re-triggered mid-session, since starting a session is the
+event).
 
 ** DONE Clock-change notifications :code:
 :PROPERTIES:
@@ -288,20 +387,43 @@ failing to persist to disk. A confirmation outside the model's own
 self-report is a cheap extra check, specifically at the moment
 clock state changes.
 
-*** Plan [/]
-- [ ] Empirically verify the literal MCP-qualified tool names for
+*** Plan [5/5]
+- [X] Empirically verify the literal MCP-qualified tool names for
   org_clock_in/org_clock_out before wiring
-- [ ] Add =.claude/settings.json= (this repo only has the untracked
-  =.local.json= today) with a =PostToolUse= entry matching them
-- [ ] Write =bin/clock-notify=: read the PostToolUse payload from
+- [X] Add =.claude/settings.json= (*premise corrected*: this repo's
+  =.claude/settings.json= was already tracked in git by the time this
+  task ran, not just an untracked =.local.json= — the entry was added
+  by the coordinator during integration, batched with the other two
+  Wave-C hook scripts)
+- [X] Write =bin/clock-notify=: read the PostToolUse payload from
   stdin
-- [ ] Cross-check via =emacsclient -e '(org-clocking-p)'= rather than
+- [X] Cross-check via =emacsclient -e '(org-clocking-p)'= rather than
   trusting the tool's own return string
-- [ ] Fire an =osascript= notification, flagging a mismatch if the
+- [X] Fire an =osascript= notification, flagging a mismatch if the
   tool claimed success but Emacs disagrees
 
-*Risk:* the tool-name matcher is the sharp edge — get it wrong and
-the hook silently never fires.
+*Risk, materialized in a different form than expected:* the tool-name
+matcher itself was fine, but the =tool_response= field's real shape
+for an MCP tool call turned out to be a bare JSON array of
+=\{type,text\}= objects — none of the three shapes the branch's own
+tests guessed at (=.text=, =.content[0].text=, bare string) matched,
+so the notification body initially showed raw stringified JSON
+instead of the tool's clean return string. Caught via a live
+round-trip after merge (2026-07-29), fixed by adding the real shape as
+the first-checked case, and locked in with a new regression test —
+see the commit "Fix bin/clock-notify's tool_response extraction for
+the real payload shape". The mismatch-detection logic itself was
+correct throughout; only the display text was affected.
+
+*Scope note, worth stating explicitly:* =org-clocking-p= reads
+in-memory clock state only. It does *not* detect the specific
+"silently failed to persist" bug class that originally motivated this
+feature (a tool changing in-memory state but skipping =save-buffer=)
+— if a save is silently skipped, memory and the tool's claim still
+agree, and this hook reports no mismatch even though the file on disk
+is stale. (See the "Tool-call audit log" entry below, and CLAUDE.md's
+stale-interval-recovery section, for why disk-level checks
+deliberately scan file *text* instead.)
 
 ** DONE SessionStart context hook :code:
 :PROPERTIES:
@@ -326,20 +448,38 @@ something Claude already knows walking in — effectively a standing,
 automatic instance of whatever org_query above ends up answering on
 demand.
 
-*** Plan [/]
-- [ ] Implement =claude-code-ide-org-session-context= in config.el:
+*** Plan [5/5]
+- [X] Implement =claude-code-ide-org-session-context= in config.el:
   find the clocked heading plus :WAIT: headings across the project's
   org files via =org-map-entries=, return a plain string
-- [ ] Write =.claude/hooks/session-context.sh=: call =emacsclient
+- [X] Write =.claude/hooks/session-context.sh=: call =emacsclient
   --eval= with a short timeout, wrap the result in SessionStart's
-  =additionalContext= JSON shape
-- [ ] Fail soft (exit 0, no output) if Emacs isn't reachable — never
+  =additionalContext= JSON shape — placed at =.claude/hooks/=, a
+  deliberate divergence from the =bin/hooks/= convention the other
+  three hook scripts use, per this heading's own explicit (if unusual)
+  wording; flagged rather than silently "corrected"
+- [X] Fail soft (exit 0, no output) if Emacs isn't reachable — never
   surface an error banner
-- [ ] Add =.claude/settings.json= =hooks.SessionStart= entry, matchers
-  at least =startup=/=clear=, possibly =resume=
-- [ ] Decide whether to bury/kill buffers opened via
+- [X] Add =.claude/settings.json= =hooks.SessionStart= entry, matchers
+  at least =startup=/=clear=, possibly =resume= — done by the
+  coordinator during integration as a second array entry alongside
+  the existing =session-start-recovery-check= entry, batched with the
+  other two Wave-C hook scripts
+- [X] Decide whether to bury/kill buffers opened via
   =find-file-noselect= during the query, so the user's window
-  config isn't disturbed
+  config isn't disturbed — *decided*: yes, kill any buffer opened
+  that wasn't already open. A real bug was caught in review before
+  merge: a bare =(kill-buffer buffer)= on a buffer Emacs considers
+  modified triggers an interactive =yes-or-no-p= prompt, which blocks
+  forever under =emacsclient -e= (no stdin) — fixed by clearing
+  =set-buffer-modified-p nil= first, mirroring the shared test
+  fixture's own teardown pattern.
+
+8 ERT tests added for the elisp half (empty/clocked-only/WAIT-only/
+both/non-WAIT-ignored/buffer-kill-hygiene cases); the shell script's
+=emacsclient --eval= round trip against a live buffer-list is the one
+piece that could only be exercised by the coordinator post-merge, not
+from the isolated worktree. =bin/test= 68/68 at merge.
 
 ** DONE Tool-call audit log :code:
 :PROPERTIES:
@@ -368,24 +508,48 @@ only by manual, ad-hoc disk inspection, more than once. A log
 caught both immediately and gives a real trail for anything an
 agent mutates unattended.
 
-*** Plan [/]
-- [ ] Implement =claude-code-ide-org--log-event= in config.el,
+*** Plan [5/5]
+- [X] Implement =claude-code-ide-org--log-event= in config.el,
   appending one JSONL line (timestamp, tool/source, :ID:, file path,
   before/after sha256, result) to a gitignored, project-relative log
   file
-- [ ] Hash the file straight off disk, never the buffer — the whole
+- [X] Hash the file straight off disk, never the buffer — the whole
   point is catching the buffer/disk divergence that bit us twice
-- [ ] Hook at the org-native layer (=org-clock-in-hook=,
+- [X] Hook at the org-native layer (=org-clock-in-hook=,
   =org-clock-out-hook=, =org-after-todo-state-change-hook=, plus
   =advice-add= on =org-archive-subtree=) rather than only inside our
   own wrappers, so hand-edits and =org_clock_out= (which doesn't
   route through the shared dispatcher) are both covered
-- [ ] Attribute source (MCP vs. hand-edit) via a dynamic var
+- [X] Attribute source (MCP vs. hand-edit) via a dynamic var
   let-bound around each wrapper body
-- [ ] Add ERT tests confirming the hash comparison would have caught
+- [X] Add ERT tests confirming the hash comparison would have caught
   the original save-buffer bugs
 
-*Recommendation:* elisp-level, not a Claude Code PostToolUse hook —
-PostToolUse only sees the tool's own self-reported string, the exact
-problem this exists to fix, and structurally can't see direct =M-x=
-usage at all.
+*Recommendation, followed:* implemented at the elisp level as
+planned, not a Claude Code PostToolUse hook.
+
+*Real bug caught live, exactly as this feature was designed to catch
+one* (2026-07-29, immediately after this task's own merge, before its
+heading was even marked DONE): clocking into a scratch heading in a
+different file auto-closed this heading's own running clock, and the
+audit log recorded the mutation as =UNSAVED-MISMATCH= — identical
+before/after hashes despite a real edit, because
+=claude-code-ide-org-clock-in='s =(save-buffer)= only ever saved the
+buffer of the heading being clocked *into*, never a *different*
+file's buffer that =org-clock-in= implicitly auto-closed and mutated.
+This is the third instance of the exact bug class CLAUDE.md already
+documents for =org_archive=/=org_clock_out= — this time in
+=org_clock_in=. Fixed separately (see commit "Fix org_clock_in to
+save the auto-closed previous clock's buffer"), with its own
+regression test (confirmed to fail without the fix, pass with it) and
+a live round-trip re-verification. The audit log's design goal —
+"would have caught both immediately" — held up against a real,
+previously-unknown instance of the same bug, not just the two it was
+originally written to explain.
+
+5 ERT tests added, including one using =sleep-for= (confirmed to pump
+Emacs's timer queue in =--batch= mode) to prove the deferred
+after-hash =run-at-time= timer fires on its own, not just via the
+directly-callable =claude-code-ide-org--audit-flush= every other test
+uses. =bin/test= 76/76 at merge (77/77 after the =org_clock_in= fix's
+own additional test).

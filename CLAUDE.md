@@ -54,6 +54,34 @@ say so explicitly rather than skipping verification silently.
 feature work specifically — bug fixes and small doc/TODO edits aren't
 implied to require one just because this rule exists.
 
+**Rule**: when a task's `Plan [/]` checklist is implemented — whether by
+the main session or a delegated subagent — the checkboxes and any `*Open
+question:*`/decision text on that heading must reflect the actual, final
+outcome *before the heading is archived*: `[X]` only for steps verified
+done (per org.skill's existing checkbox-discipline — don't check a step
+because it "should have worked"), an explicit note for any step done
+differently than originally planned, and a resolution (not a
+still-open question) for anything the plan left undecided. If the plan
+itself changed mid-implementation, the heading's body text has to say so
+— a `DONE` heading whose Plan still shows all-`[ ]` boxes is exactly the
+kind of stale record this rule exists to prevent, whether or not the
+underlying work is actually finished. See `DONE.org`'s `org_query` entry
+for the model to match (`[X]`-checked Plan, plus a `*Risk, confirmed and
+accepted:*`/`*Implementation notes:*` writeup of what actually happened).
+
+This is a **coordinator responsibility when work is delegated to a
+subagent**, not something to expect the subagent to do unprompted: a
+subagent in an isolated worktree reports its per-item completion status
+and any deviations in its final report (ask for this explicitly when
+dispatching), and the coordinator applies that to the *live* heading —
+checkboxes, resolved questions, deviation notes, recomputed `[N/M]`
+cookie — as part of integrating that specific task, right alongside its
+`DONE`/archive step, not batched at the end of a larger multi-task
+effort. (State/clock transitions remain coordinator-only regardless, per
+the state-transition rules above — that's about the single shared clock;
+this is a separate, lower-risk category that just needs to not be
+skipped.)
+
 ---
 
 ## Org-mode conventions
