@@ -1117,6 +1117,22 @@ nothing."
     (let ((claude-code-ide-org-query-files (list file)))
       (should (equal "Error: empty query." (claude-code-ide-org-query "   "))))))
 
+(ert-deftest claude-code-ide-org-test-tracked-files-resolves-org-agenda-files-directory ()
+  "Regression test: `claude-code-ide-org--tracked-files' must call the
+`org-agenda-files' function, not return the raw variable, when it
+falls back to it.  A directory entry in `org-agenda-files' (the shape
+Doom's default config uses, e.g. a bare \"~/org\") only resolves to
+its contained files through the function's expansion — passed through
+raw, org-ql silently finds nothing.  Every other org_query test here
+sidesteps this by binding `claude-code-ide-org-query-files' directly
+to an explicit file list, so this is the only test that exercises the
+`org-agenda-files' fallback path at all."
+  (claude-code-ide-org-test--with-heading
+    (let* ((claude-code-ide-org-query-files nil)
+           (org-agenda-files (list dir))
+           (result (claude-code-ide-org-query "todo:TODO")))
+      (should (string-match-p "Test heading" result)))))
+
 ;;; claude-code-ide-org-sort-children -----------------------------------
 
 (ert-deftest claude-code-ide-org-test-sort-children-alpha ()
