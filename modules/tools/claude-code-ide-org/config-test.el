@@ -22,7 +22,11 @@ Binds `id' to the heading's :ID: property, `file' to the org
 file's path, and `archive-file' to the archive target's path.
 Everything lives under a fresh temp directory that is deleted
 afterwards, and org-id's global location cache is redirected
-there too so tests never touch real user state."
+there too so tests never touch real user state. Also redirects
+`claude-code-ide-org-clock-status-file' into the same temp
+directory, so the many tests here that clock in/out incidentally
+(not just the dedicated clock-status-file tests) never write a
+stray clock-status.json into the real module directory."
   (declare (indent 0))
   `(let* ((dir (file-name-as-directory (make-temp-file "claude-code-ide-org-test" t)))
           (file (expand-file-name "test.org" dir))
@@ -32,6 +36,7 @@ there too so tests never touch real user state."
           (org-id-files nil)
           (org-clock-persist nil)
           (org-clock-history nil)
+          (claude-code-ide-org-clock-status-file (expand-file-name "clock-status.json" dir))
           (id "test-0001"))
      (unwind-protect
          (progn
@@ -126,6 +131,36 @@ no-op, which can only be true if clock-out already ran it."
       (should (equal "Nothing to consolidate on \"Test heading\""
                      (claude-code-ide-org-consolidate-history id)))
       (should (equal before (claude-code-ide-org-test--disk-contents file))))))
+
+;;; Clock status file -------------------------------------------------------
+
+(ert-deftest claude-code-ide-org-test-clock-status-file-reflects-active-clock ()
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (should (file-exists-p claude-code-ide-org-clock-status-file))
+    (let ((status (json-read-file claude-code-ide-org-clock-status-file)))
+      (should (eq t (cdr (assq 'active status))))
+      (should (equal "Test heading" (cdr (assq 'heading status))))
+      (should (equal id (cdr (assq 'id status))))
+      (should (stringp (cdr (assq 'start status)))))))
+
+(ert-deftest claude-code-ide-org-test-clock-status-file-reflects-idle-on-clock-out ()
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-clock-out)
+    (let ((status (json-read-file claude-code-ide-org-clock-status-file)))
+      (should (eq :json-false (cdr (assq 'active status))))
+      (should (null (assq 'heading status))))))
+
+(ert-deftest claude-code-ide-org-test-clock-status-file-noop-when-directory-missing ()
+  "The status write must fail silently, without erroring back into
+org's own clock-in machinery, when its target directory does not
+(yet) exist."
+  (claude-code-ide-org-test--with-heading
+    (let ((claude-code-ide-org-clock-status-file
+           (expand-file-name "no-such-subdir/clock-status.json" dir)))
+      (should (equal "Clocked in: \"Test heading\"" (claude-code-ide-org-clock-in id)))
+      (should (not (file-exists-p claude-code-ide-org-clock-status-file))))))
 
 ;;; :SESSIONS: bracketing log --------------------------------------------------
 
