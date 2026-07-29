@@ -416,6 +416,97 @@ never on transitions to any other state."
     (org-with-point-at (org-id-find id 'marker) (org-todo "WAIT"))
     (should (not (org-clocking-p)))))
 
+
+;;; Session context ("what was I last doing") -----------------------------
+
+(ert-deftest claude-code-ide-org-test-session-context-empty-when-nothing ()
+  "No running clock and no WAIT headings: session-context reports
+nothing, and the JSON wrapper collapses that to an empty hook object."
+  (claude-code-ide-org-test--with-heading
+    (let ((claude-code-ide-org-query-files (list file)))
+      (should (equal "" (claude-code-ide-org-session-context)))
+      (should (equal "{}" (claude-code-ide-org--session-context-hook-json))))))
+
+(ert-deftest claude-code-ide-org-test-session-context-includes-clocked-heading ()
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-session-context)))
+      (should (string-match-p "\\`Currently clocked in: \"Test heading\"" result))
+      (should (string-match-p (regexp-quote id) result))
+      (should (string-match-p "test.org" result)))))
+
+(ert-deftest claude-code-ide-org-test-session-context-includes-wait-headings ()
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* WAIT Blocked heading                                              :code:\n"
+            ":PROPERTIES:\n:ID:       test-0002\n:END:\n")
+    (save-buffer)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-session-context)))
+      (should (string-match-p "WAIT: \"Blocked heading\" (:ID: test-0002, in test.org)" result)))))
+
+(ert-deftest claude-code-ide-org-test-session-context-clocked-then-waits-order ()
+  "When both a clocked heading and WAIT headings exist, the clocked
+heading is reported first."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* WAIT Blocked heading                                              :code:\n"
+            ":PROPERTIES:\n:ID:       test-0002\n:END:\n")
+    (save-buffer)
+    (claude-code-ide-org-clock-in id)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-session-context))
+           (pos-clocked (string-match "Currently clocked in" result))
+           (pos-wait (string-match "WAIT: " result)))
+      (should (and pos-clocked pos-wait (< pos-clocked pos-wait))))))
+
+(ert-deftest claude-code-ide-org-test-session-context-ignores-non-wait-states ()
+  "A DONE heading must not be mistaken for a WAIT heading."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* DONE Finished heading                                             :code:\n")
+    (save-buffer)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-session-context)))
+      (should (equal "" result)))))
+
+(ert-deftest claude-code-ide-org-test-session-context-kills-buffers-it-opened ()
+  "Scanning for WAIT headings must not leave stray buffers behind for
+files that were not already open — but must leave alone (and not
+kill) a file the user already had open."
+  (claude-code-ide-org-test--with-heading
+    (let* ((other-dir (file-name-as-directory (make-temp-file "claude-code-ide-org-test-other" t)))
+           (other-file (expand-file-name "other.org" other-dir)))
+      (unwind-protect
+          (progn
+            (with-temp-file other-file
+              (insert "* WAIT Other file heading                                           :code:\n"))
+            ;; `file' (the base fixture's own org file) is already open —
+            ;; via `find-file' in the fixture itself — so it must survive
+            ;; the scan; `other-file' is not yet open and must be killed
+            ;; again after the scan reads it.
+            (should (get-file-buffer file))
+            (should (not (get-file-buffer other-file)))
+            (let ((claude-code-ide-org-query-files (list file other-file)))
+              (claude-code-ide-org-session-context)
+              (should (get-file-buffer file))
+              (should (not (get-file-buffer other-file)))))
+        (delete-directory other-dir t)))))
+
+(ert-deftest claude-code-ide-org-test-write-session-context-report-writes-json ()
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (out (make-temp-file "claude-code-ide-org-test-report")))
+      (unwind-protect
+          (progn
+            (claude-code-ide-org-write-session-context-report out)
+            (let ((contents (claude-code-ide-org-test--disk-contents out)))
+              (should (string-match-p "\"hookEventName\":\"SessionStart\"" contents))
+              (should (string-match-p "Currently clocked in" contents))))
+        (delete-file out)))))
+
 ;;; Stale interval recovery ----------------------------------------------
 
 (ert-deftest claude-code-ide-org-test-guess-stop-time-uses-working-hours ()
