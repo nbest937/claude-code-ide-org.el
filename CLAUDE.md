@@ -187,6 +187,15 @@ generating new headings, and time reporting. `org_query` now covers
 structured cross-file reads (e.g. "what's blocked," "everything :research:
 and not DONE") that used to mean Claude reading whole files by hand.
 
+**Read-only buffers:** none of these five tools bind `inhibit-read-only`,
+so if the user has toggled a buffer read-only (`C-x C-q`) it fails
+outright with a `buffer-read-only` error. The user only does this to
+guard against their own stray keystrokes while viewing the file, not to
+block Claude — clear it (`(setq buffer-read-only nil)` via
+`emacsclient`) and proceed, no need to ask first. If they ever want a
+specific buffer left alone, they'll say so explicitly; that overrides
+this default for that instance only.
+
 ---
 
 ## Session tracking (`.claude/settings.json`, `bin/hooks/`)
