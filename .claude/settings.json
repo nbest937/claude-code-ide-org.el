@@ -3,6 +3,30 @@
     "bgIsolation": "none"
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__emacs-tools__org_set_todo",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/pretooluse-transition-guard",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "mcp__emacs-tools__org_clock_in|mcp__emacs-tools__org_clock_out",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/bin/clock-notify",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
@@ -32,6 +56,15 @@
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/session-start-recovery-check",
             "timeout": 15
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/session-context.sh",
+            "timeout": 10
           }
         ]
       }
