@@ -334,37 +334,6 @@ tool never exposes that path.
   to =main= instead, per CLAUDE.md's feature-branch rule explicitly
   exempting "small doc/TODO edits."
 
-*** DONE org_clock_report :code:
-:PROPERTIES:
-:ID:       26215a14-6ec9-43a7-981b-5c8e888e65fd
-:BLOCKER:  4ae3cdef-98b5-4361-818e-aef3491f2fb8
-:END:
-:SESSIONS:
-- Resumed [2026-07-29 Wed 02:00]
-- Paused [2026-07-29 Wed 02:04]
-:END:
-:LOGBOOK:
-:END:
-Summarize time in a date range. Wrap =org-clock-report=/column view
-so "what did I work on this week" is one tool call instead of
-Claude eyeballing LOGBOOK entries across files by hand.
-
-**** Plan [/]
-- [ ] Implement =claude-code-ide-org-clock-report (&optional id block
-  tstart tend)=: scope to a subtree if =id= given, else fall back to
-  the same file-list variable as org_query
-- [ ] Build a clocktable params plist (=:scope=, =:maxlevel=, and
-  either =:block= — today/thisweek/lastweek/thismonth — or explicit
-  =:tstart=/=:tend=)
-- [ ] Call =org-dblock-write:clocktable= in a throwaway temp buffer
-  and return the resulting table string — no file created or
-  modified
-- [ ] Register with optional args =id=, =block= (enum), =tstart=,
-  =tend=
-
-*Risk:* low — a known idiom, but unexercised in this codebase;
-spot-check before committing to it as the mechanism.
-
 ** Enforce the transition rules
 
 CLAUDE.md's transition table (TODO→DOING opens a clock, etc.) is

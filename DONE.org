@@ -553,3 +553,64 @@ after-hash =run-at-time= timer fires on its own, not just via the
 directly-callable =claude-code-ide-org--audit-flush= every other test
 uses. =bin/test= 76/76 at merge (77/77 after the =org_clock_in= fix's
 own additional test).
+
+** DONE org_clock_report :code:
+:PROPERTIES:
+:ID:       26215a14-6ec9-43a7-981b-5c8e888e65fd
+:BLOCKER:  4ae3cdef-98b5-4361-818e-aef3491f2fb8
+:ARCHIVE_TIME: 2026-07-29 Wed 07:49
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_OLPATH: Roadmap/New MCP tools
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:SESSIONS:
+- Resumed [2026-07-29 Wed 02:00]
+- Paused [2026-07-29 Wed 02:04]
+:END:
+:LOGBOOK:
+:END:
+Summarize time in a date range. Wrap =org-clock-report=/column view
+so "what did I work on this week" is one tool call instead of
+Claude eyeballing LOGBOOK entries across files by hand.
+
+*** Plan [4/4]
+- [X] Implement =claude-code-ide-org-clock-report (&optional id block
+  tstart tend)=: scope to a subtree if =id= given, else fall back to
+  the same file-list variable as org_query
+- [X] Build a clocktable params plist (=:scope=, =:maxlevel=, and
+  either =:block= — today/thisweek/lastweek/thismonth — or explicit
+  =:tstart=/=:tend=)
+- [X] Call =org-dblock-write:clocktable= in a throwaway temp buffer
+  and return the resulting table string — no file created or
+  modified
+- [X] Register with optional args =id=, =block= (enum), =tstart=,
+  =tend= — all marked =:optional t=, easy to miss since
+  =claude-code-ide-make-tool='s args are required by default; caught
+  before merge via the docstring in
+  =claude-code-ide-mcp-http-server.el=
+
+*Risk, spot-checked as planned — and the spot-check found a real
+bug*: =org-dblock-write:clocktable= inserts its output at *point*
+rather than replacing a region. For the =id=-scoped path (a copy of
+just that heading's subtree text inserted into the temp buffer
+first), that meant a naive =buffer-string= captured the copied source
+text *followed by* the report, leaking source text into the tool's
+return value. Caught by one of the branch's own tests failing on a
+real assertion, not by inspection — fixed by capturing the insertion
+point before calling the writer and returning only
+=(buffer-substring-no-properties origin (point-max))=. The
+whole-files path (no =id=) needed no such fix: =:scope= is a plain
+list of tracked file paths there, which
+=org-dblock-write:clocktable= itself resolves to buffers, same as
+=org_query='s =org-ql-select= already does.
+
+*Judgment call worth naming:* with neither =block= nor an explicit
+=tstart=/=tend= pair given, the report defaults to fully unrestricted
+(all clocked time ever, in scope) rather than some implicit range
+like "today" — matches =org-clocktable-defaults=, no silent range
+assumption. 7 ERT tests added (id-scoped isolation from a sibling
+heading's own time, whole-files scope, explicit tstart/tend both
+in- and out-of-range, =:block "today"= — the test that caught the
+leak bug above — unknown =block= error, unknown =:id= error, no-args
+unrestricted case). =bin/test= 40/40 at merge.
