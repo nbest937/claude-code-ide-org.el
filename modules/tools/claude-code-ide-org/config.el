@@ -10,6 +10,8 @@
 
 (require 'org-element)
 (require 'org-clock)
+(require 'org-id)
+(require 'org-capture)
 (require 'json)
 
 ;;; Configuration -----------------------------------------------------------
@@ -38,6 +40,13 @@ defaults to the end of working hours on the day the interval opened."
   "Files to scan for cross-file operations (session recovery now;
 org_query once built).  Defaults to `org-agenda-files' when nil."
   :type '(repeat file)
+  :group 'claude-code-ide-org)
+
+(defcustom claude-code-ide-org-capture-file nil
+  "File that `org_capture' quick-adds new TODO headings to.  Defaults
+to `org-default-notes-file' when nil, same convention as
+`claude-code-ide-org-query-files' falling back to `org-agenda-files'."
+  :type '(choice (const :tag "org-default-notes-file" nil) file)
   :group 'claude-code-ide-org)
 
 ;;; Helper ----------------------------------------------------------------
@@ -720,6 +729,69 @@ tool here gives."
             (format "Refiled: \"%s\" under \"%s\"" heading target-heading))
         (error (format "Error: %s" (error-message-string err))))))))
 
+;;; Capture -----------------------------------------------------------------
+;;
+;; Quick-add a new TODO heading from a natural-language ask in one call,
+;; instead of hand-writing a heading via the org skill and then calling
+;; org-id-get-create separately.  Uses a dedicated capture template (key
+;; "z", distinct from any personal templates the user may configure
+;; themselves) built fresh on every call rather than registered once at
+;; load time: the template's :ID: value has to be generated up front in
+;; Elisp — via `let'-bound NEW-ID below, not the usual `%(org-id-new)'
+;; sexp escape — so the exact same value can be reused verbatim in both
+;; the inserted heading and the returned confirmation string, rather than
+;; re-parsing the freshly-captured heading off disk to recover it
+;; afterward.
+;;
+;; The template body uses `%i', not `%?' — confirmed by direct test under
+;; `emacs --batch -Q': `%?' is purely a cursor-placement marker for
+;; interactive capture and expands to nothing under `:immediate-finish'
+;; (which this template always sets, since it never displays a buffer to
+;; a human), producing a heading with no text at all.  `%i' is the escape
+;; that actually substitutes the string passed to `org-capture-string'.
+;;
+;; Unlike `org-id-get-create' (the manual workflow this tool replaces),
+;; plain `org-capture' writes the :ID: property as literal template text
+;; and never itself calls `org-id-add-location' — so without an explicit
+;; registration step here, the freshly-captured ID would not be in
+;; `org-id-locations' yet, and every other tool in this file (org_clock_in,
+;; org_set_todo, ...) locates headings via `org-id-find', which only
+;; recovers from a cold cache by rescanning `org-agenda-files'/
+;; `org-id-extra-files' — files the capture target need not be a member
+;; of.  Registering the location directly below makes the returned :ID:
+;; immediately usable, as the tool's contract promises, regardless of
+;; agenda-file configuration.
+
+(defun claude-code-ide-org--capture-target-file ()
+  "File `org_capture' targets: `claude-code-ide-org-capture-file' if
+set, else `org-default-notes-file'.  Used as the (file ...) target
+spec's function in the dynamically-built capture template — resolved
+fresh on every capture, so changing the defcustom at runtime takes
+effect immediately."
+  (or claude-code-ide-org-capture-file org-default-notes-file))
+
+(defun claude-code-ide-org-capture (title)
+  "Quick-add TITLE as a new top-level TODO heading via `org-capture'.
+Targets `claude-code-ide-org--capture-target-file', with a real,
+freshly-generated :ID: property.  See the commentary above this
+section for why the template is built fresh per call and why `%i'
+rather than `%?' is used.  Returns \"Captured: \\=\"TITLE\\=\" (ID:
+...)\" on success so the caller can immediately clock in / set state
+on the new heading via org_clock_in / org_set_todo, or an
+\"Error: ...\" string.  Never signals an error to the MCP layer."
+  (condition-case err
+      (let* ((new-id (org-id-new))
+             (org-capture-templates
+              (list (list "z" "Claude quick-capture (org_capture MCP tool)"
+                          'entry
+                          (list 'file #'claude-code-ide-org--capture-target-file)
+                          (format "* TODO %%i\n:PROPERTIES:\n:ID:       %s\n:END:\n" new-id)
+                          :immediate-finish t))))
+        (org-capture-string title "z")
+        (org-id-add-location new-id (expand-file-name (claude-code-ide-org--capture-target-file)))
+        (format "Captured: \"%s\" (ID: %s)" title new-id))
+    (error (format "Error: %s" (error-message-string err)))))
+
 ;;; Query -------------------------------------------------------------------
 ;;
 ;; Structured search over `claude-code-ide-org--tracked-files' (the same
@@ -1070,6 +1142,22 @@ hook -- i.e. never at load or registration time."
            (:name "target_id"
             :type string
             :description "The :ID: property value of the heading to move it under (the new parent).")))
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-capture
+   :name "org_capture"
+   :description (concat
+                 "Quick-add a new TODO heading from TITLE via org-capture, in "
+                 "one call instead of hand-writing a heading via the text "
+                 "skill and then calling org-id-get-create separately. "
+                 "Targets `claude-code-ide-org-capture-file' (or "
+                 "`org-default-notes-file' when unset). Returns a "
+                 "confirmation string containing the new heading's real "
+                 ":ID:, so the caller can immediately clock in / set state "
+                 "on it with org_clock_in / org_set_todo.")
+   :args '((:name "title"
+            :type string
+            :description "The heading text for the new TODO.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-query
