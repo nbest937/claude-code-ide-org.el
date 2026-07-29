@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+# PostToolUse hook: after org_clock_in/org_clock_out, fire a native
+# macOS notification confirming Emacs's *in-memory* clock state
+# (org-clocking-p) actually matches what the MCP tool's own return
+# string claimed -- not just trusting that string. This is a
+# confirmation outside the model's own self-report, specifically at
+# the moment clock state changes (TODO.org's "Clock-change
+# notifications" item, :ID: 7e4c3c1d-8c0e-434c-bbdc-e728b13e4483).
+#
+# IMPORTANT SCOPE NOTE: org-clocking-p reads in-memory clock state
+# only -- it has no view of disk. It does NOT detect the specific
+# "silently failed to persist" bug that motivated this feature
+# (org_archive/org_clock_out changing in-memory state but skipping
+# save-buffer): if a save is skipped, memory and the tool's claim
+# still agree, and this hook reports no mismatch even though the file
+# on disk is stale. (See CLAUDE.md's own stale-interval-recovery
+# section, which makes exactly this point: it deliberately scans org
+# file *text* for unclosed CLOCK/:SESSIONS: entries rather than
+# checking org-clocking-p, for this same reason.) What this hook DOES
+# catch: the tool's return string disagreeing with Emacs's actual
+# in-memory clock state (e.g. a stale/wrong claim, a race with a
+# concurrent clock-in/out). A disk-level check would need something
+# like `(buffer-modified-p (marker-buffer org-clock-marker))` or
+# grepping the tracked file for the CLOCK line directly -- not
+# implemented here; this script follows the plan in TODO.org as
+# written, which specifies the org-clocking-p check.
+#
+# Reads the PostToolUse hook JSON payload from stdin. Intended to be
+# matched (via .claude/settings.json -- owned by the coordinator, not
+# this script/branch) against the MCP-qualified tool names, confirmed
+# as actually-registered tool names via this session's own deferred-
+# tools listing (mcp__emacs-tools__org_clock_in and
+# mcp__emacs-tools__org_clock_out both appear there) and consistent
+# with this repo's .mcp.json ("emacs-tools" server key):
+#   mcp__emacs-tools__org_clock_in
+#   mcp__emacs-tools__org_clock_out
+#
+# Fails soft everywhere: never blocks Claude Code, always exit 0.
+
+set -uo pipefail
+
+payload="$(cat)"
+
+tool_name="$(jq -r '.tool_name // empty' <<<"$payload" 2>/dev/null)"
+
+# Best-effort extraction of the tool's own returned string. This
+# worktree has no live MCP round-trip to observe the real shape of
+# `tool_response` for an MCP tool call, so try the shapes that are
+# documented/plausible for an MCP text result, in priority order, and
+# fall back to stringifying the whole field so the notification still
+# shows *something* usable if the real shape differs from all of
+# these guesses. See this script's commit message / the task report
+# for the caveat that this extraction is UNVERIFIED against a live
+# payload.
+extract_response_text() {
+  local text
+  text="$(jq -r '.tool_response.text // empty' <<<"$payload" 2>/dev/null)"
+  if [[ -n "$text" ]]; then printf '%s' "$text"; return; fi
+  text="$(jq -r '.tool_response.content[0].text // empty' <<<"$payload" 2>/dev/null)"
+  if [[ -n "$text" ]]; then printf '%s' "$text"; return; fi
+  text="$(jq -r 'if (.tool_response | type) == "string" then .tool_response else empty end' <<<"$payload" 2>/dev/null)"
+  if [[ -n "$text" ]]; then printf '%s' "$text"; return; fi
+  jq -c '.tool_response // empty' <<<"$payload" 2>/dev/null
+}
+
+response_text="$(extract_response_text)"
+
+case "$tool_name" in
+  *org_clock_in)
+    action="clock-in"
+    ;;
+  *org_clock_out)
+    action="clock-out"
+    ;;
+  *)
+    # Not one of ours -- shouldn't happen given the settings.json
+    # matcher, but fail soft rather than notify about something this
+    # script doesn't understand.
+    exit 0
+    ;;
+esac
+
+# What the tool's own return string (claude-code-ide-org-clock-in /
+# claude-code-ide-org-clock-out in config.el) claims happened.
+#   "Clocked in: \"...\""          -> success, now clocking
+#   "Clocked out: \"...\""         -> success, now not clocking
+#   "No clock is currently running." -> noop, not clocking (not an error)
+#   "Error: ..."                    -> the tool itself admits failure
+claim="unknown"
+claimed_clocking=""
+case "$response_text" in
+  "Clocked in:"*)
+    claim="success"; claimed_clocking="true" ;;
+  "Clocked out:"*)
+    claim="success"; claimed_clocking="false" ;;
+  "No clock is currently running."*)
+    claim="noop"; claimed_clocking="false" ;;
+  "Error:"*)
+    claim="error" ;;
+esac
+
+# Independent cross-check: ask Emacs directly rather than trusting the
+# tool's own return string -- that trust gap is the entire reason this
+# hook exists.
+actual="unreachable"
+actual_raw="$(emacsclient -e '(org-clocking-p)' 2>&1)"
+if [[ $? -eq 0 ]]; then
+  case "$actual_raw" in
+    t)   actual="true" ;;
+    nil) actual="false" ;;
+    *)   actual="unknown ($actual_raw)" ;;
+  esac
+fi
+
+mismatch=0
+if [[ -n "$claimed_clocking" && ( "$actual" == "true" || "$actual" == "false" ) ]]; then
+  if [[ "$claimed_clocking" != "$actual" ]]; then
+    mismatch=1
+  fi
+fi
+
+if [[ $mismatch -eq 1 ]]; then
+  title="org clock MISMATCH ($action)"
+  body="tool said: ${response_text} -- but emacsclient org-clocking-p reports: ${actual}"
+elif [[ "$actual" == "unreachable" ]]; then
+  title="org $action"
+  body="${response_text} (Emacs unreachable -- could not cross-check)"
+else
+  title="org $action"
+  body="${response_text} (verified: clocking=${actual})"
+fi
+
+osascript -e '
+on run argv
+  display notification (item 2 of argv) with title (item 1 of argv)
+end run' "$title" "$body" >/dev/null 2>&1
+
+exit 0
