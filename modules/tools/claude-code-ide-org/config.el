@@ -410,8 +410,12 @@ heading rather than silently losing time or blocking anything."
 ;; since it only reports intervals whose open timestamp predates today.
 
 (defun claude-code-ide-org--tracked-files ()
-  "Files to scan for stale open intervals (and, later, org_query)."
-  (or claude-code-ide-org-query-files org-agenda-files))
+  "Files to scan for stale open intervals, org_query, and
+org_clock_report.  Calls the `org-agenda-files' function, not the
+variable of the same name, so directory entries (e.g. a bare
+\"~/org\") are actually expanded to their contained files rather than
+passed through as an unusable directory string."
+  (or claude-code-ide-org-query-files (org-agenda-files)))
 
 (defun claude-code-ide-org--parse-org-timestamp (ts-string)
   "Parse an org timestamp string like \"[2026-07-27 Mon 17:45]\"

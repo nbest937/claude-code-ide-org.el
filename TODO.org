@@ -13,10 +13,17 @@ turned out to be the same underlying goal.
 
 ** Developer tooling
 
-*** TODO Revisit: does org.skill's checkbox discipline apply to TODO.org itself? :research:code:
+*** DOING Revisit: does org.skill's checkbox discipline apply to TODO.org itself? :research:code:
 :PROPERTIES:
 :ID:       6a448345-016c-495f-b26b-ee81b30cd95c
 :CREATED:  [2026-07-29 Wed 07:42]
+:END:
+:LOGBOOK:
+CLOCK: [2026-07-29 Wed 11:45]--[2026-07-29 Wed 12:05] =>  0:20
+:END:
+:SESSIONS:
+- Resumed [2026-07-29 Wed 11:37]
+- Paused [2026-07-29 Wed 12:21]
 :END:
 Tonight's parallel-subagent batch (10 MCP tools) left every archived
 heading's Plan checkboxes at all-[ ], despite full implementation —
@@ -63,10 +70,61 @@ just commits incrementally") ? What's the actual failure mode if
 auto-revert doesn't fire before an archive call — does it need an
 explicit revert-buffer check rather than an assumption?
 
+*** DONE Fix org-agenda-files/tracked-files resolving to nothing (agenda + org_query/org_clock_report) :code:
+:PROPERTIES:
+:ID:       74f24402-978e-4c66-ac97-996f387c0ddb
+:CREATED:  [2026-07-29 Wed 12:25]
+:END:
+:SESSIONS:
+- Resumed [2026-07-29 Wed 12:29]
+:END:
+:LOGBOOK:
+CLOCK: [2026-07-29 Wed 12:25]--[2026-07-29 Wed 12:30] =>  0:05
+:END:
+Doom's =org-agenda-files= is =("~/org")= — a bare directory string —
+and org's directory expansion for it is non-recursive, so
+=(org-agenda-files)= resolves to nil (TODO.org is symlinked one level
+below =~/org=, inside =claude-code-ide-org/=). The interactive agenda
+never sees it.
 
-Doesn't fit any theme below — this is about maintaining *this
-repo's own code*, not about org-mode capability. Its own group
-because it's genuinely a different kind of work.
+Worse: =claude-code-ide-org--tracked-files= (config.el:412) returns
+the *raw* =org-agenda-files= variable rather than calling the
+=(org-agenda-files)= function, so =org_query= and unscoped
+=org_clock_report= are also blind whenever they fall back to it —
+confirmed live: =(claude-code-ide-org-query "(todo)")= returned "No
+matches." despite an active DOING heading. Affects three consumers:
+the stale-interval recovery scan, =org_query=, and unscoped
+=org_clock_report=. No existing test exercises the directory-fallback
+path — every test binds =claude-code-ide-org-query-files= directly.
+
+**** Plan [4/4]
+- [X] Doom config (=~/.config/doom/config.el=, =after! org=): set
+  =org-agenda-files= to =(directory-files-recursively org-directory
+  "\\.org$")= — one-time scan at load, not dynamic
+- [X] config.el:412-414: change =claude-code-ide-org--tracked-files= to
+  call =(org-agenda-files)= (the function) instead of returning the
+  raw variable; update its docstring to name all three consumers
+- [X] config-test.el: add a test that leaves
+  =claude-code-ide-org-query-files= nil, sets =org-agenda-files= to a
+  scratch directory, and confirms a heading in it is actually found —
+  reproducing and then closing the "No matches." bug
+- [X] Do this on a feature branch
+  (=feature/fix-tracked-files-resolution=) per CLAUDE.md's branch
+  rule — the config.el/test changes are a real behavior fix, not a
+  trivial doc edit
+
+*Verified, not just implemented:* =bin/test= (78/78 including the new
+regression test), plus live checks against the running Emacs after
+reloading both the Doom config setq (=emacsclient -e '(setq
+org-agenda-files ...)'=, since it doesn't touch any =after!=/hook
+timing — no restart needed per org-dev.skill's rule of thumb) and
+config.el itself (=emacsclient -e '(load-file
+"modules/tools/claude-code-ide-org/config.el")'=): =(org-agenda-files)=
+now resolves to TODO.org's real path; =org_query "todo:DOING"= finds
+both DOING headings instead of "No matches."; the interactive
+=org-todo-list= renders every heading in this file; =org_clock_report=
+returns real clocked time instead of an empty table.
+
 
 ** New MCP tools
 
@@ -91,6 +149,30 @@ Everything here is specifically about the clock subsystem's
 correctness and observability, as opposed to the general TODO-state
 machine above — three different angles on "make sure the clock is
 never silently wrong."
+
+*** TODO session-resume can reopen a clock on an already-DONE heading :code:
+:PROPERTIES:
+:ID:       2e34162a-4720-4d23-bf29-10eb295cd087
+:CREATED:  [2026-07-29 Wed 14:17]
+:END:
+Caught live in this session: =org-clock-in-last= (called by
+=session-resume= on =UserPromptSubmit=) resumes onto
+=org-clock-history='s most recent entry with no check that it's still
+active — so finishing a task doesn't stop it from being re-clocked on
+the next turn boundary if nothing else clocks in after. Recurred three
+times in a row on the same just-finished heading — once per turn
+boundary, until a heading existed here to track it as work rather than
+just stripping the stray entry again; see the commit that fixed
+org-agenda-files for context on what was being worked on when this was
+first found.
+
+**** Plan [/]
+- [ ] Guard =org-clock-in-last='s call site (or wrap it) to skip
+  resuming when the target heading's TODO state is DONE/CANCELLED
+- [ ] Decide the right fallback when the most-recent history entry
+  is terminal: resume the next non-terminal entry in
+  =org-clock-history=, or just no-op
+- [ ] Add a config-test.el regression test
 
 *** MAYBE Idle-based auto clock-out :code:
 Via =org-clock-idle-time=, already built into org — just needs
@@ -146,6 +228,27 @@ working day, or on an explicit signal — sketched as a command like
 always a manual call — auto-detecting day boundaries crosses into
 guessing user intent, exactly the kind of call CLAUDE.md's existing
 rules say only the model/user should make, not a hook.
+
+*** MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
+:PROPERTIES:
+:CREATED:  [2026-07-29 Wed 12:25]
+:END:
+Deferred out of the tracked-files fix above: once =DONE.org= (or any
+archive file) is ever reachable from
+=claude-code-ide-org--tracked-files=, retrospective =org_clock_report=
+calls without an =:ID:= should account for archived work's clocked
+time too — completed tasks' =:LOGBOOK:= history moves into =DONE.org=
+on archive, so excluding it undercounts. Not urgent now: =DONE.org=
+isn't symlinked into =~/org= today, so it isn't in scope either way.
+
+Org's clocktable machinery already has a built-in mechanism for
+exactly this — the =:scope= parameter accepts ='agenda-with-archives=
+(or ='file-with-archives=), which follows each agenda file's
+=#+ARCHIVE:=/=org-archive-location= automatically. Prefer that over
+symlinking =DONE.org= alongside =TODO.org= in =~/org= if/when this
+becomes worth building — it keeps the interactive prospective agenda
+and the retrospective clock-report scope independently correct
+instead of coupled to the same file list.
 
 ** Observability
 
