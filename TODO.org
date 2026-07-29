@@ -150,6 +150,30 @@ correctness and observability, as opposed to the general TODO-state
 machine above — three different angles on "make sure the clock is
 never silently wrong."
 
+*** TODO session-resume can reopen a clock on an already-DONE heading :code:
+:PROPERTIES:
+:ID:       2e34162a-4720-4d23-bf29-10eb295cd087
+:CREATED:  [2026-07-29 Wed 14:17]
+:END:
+Caught live in this session: =org-clock-in-last= (called by
+=session-resume= on =UserPromptSubmit=) resumes onto
+=org-clock-history='s most recent entry with no check that it's still
+active — so finishing a task doesn't stop it from being re-clocked on
+the next turn boundary if nothing else clocks in after. Recurred three
+times in a row on the same just-finished heading — once per turn
+boundary, until a heading existed here to track it as work rather than
+just stripping the stray entry again; see the commit that fixed
+org-agenda-files for context on what was being worked on when this was
+first found.
+
+**** Plan [/]
+- [ ] Guard =org-clock-in-last='s call site (or wrap it) to skip
+  resuming when the target heading's TODO state is DONE/CANCELLED
+- [ ] Decide the right fallback when the most-recent history entry
+  is terminal: resume the next non-terminal entry in
+  =org-clock-history=, or just no-op
+- [ ] Add a config-test.el regression test
+
 *** MAYBE Idle-based auto clock-out :code:
 Via =org-clock-idle-time=, already built into org — just needs
 enabling. Guards against a clock left running because a session
