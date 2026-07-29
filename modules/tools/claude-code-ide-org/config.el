@@ -832,6 +832,96 @@ rather than adding separate boundary handling here."
        (save-buffer)
        (format "Moved \"%s\" %s" heading direction)))))
 
+;;; Clock report --------------------------------------------------------------
+;;
+;; Wraps org-clock-report/column view's own machinery
+;; (`org-dblock-write:clocktable') so "what did I work on this week" is
+;; one tool call instead of Claude eyeballing LOGBOOK entries across
+;; files by hand. Always computed in a throwaway temp buffer, never a
+;; real file's buffer:
+;;
+;; - :id case — an in-memory copy of just that heading's subtree text
+;;   is inserted into the temp buffer, and `org-dblock-write:clocktable'
+;;   is left at its own default :scope (`file', i.e. "the whole current
+;;   buffer" — which, here, is exactly that copied subtree). The real
+;;   file's buffer is never narrowed, visited-and-modified, or saved.
+;; - whole-files case — :scope is set to a plain list of
+;;   `claude-code-ide-org--tracked-files' file paths, which
+;;   `org-dblock-write:clocktable' itself resolves to buffers (opening
+;;   any not already visited, exactly as org_query's org-ql-select
+;;   already does) without ever touching the throwaway buffer's own
+;;   (irrelevant, empty) content.
+;;
+;; Spot-checked in a scratch `emacs --batch -Q' buffer before committing
+;; to this as the mechanism (per this feature's noted risk in TODO.org):
+;; confirmed both scoping strategies produce the expected headline/time
+;; breakdown and leave the source file buffer's modified-p nil throughout.
+
+(defun claude-code-ide-org--subtree-text-at-point ()
+  "Return the subtree at point (its heading through its last child,
+if any) as plain text.  Does not modify the buffer."
+  (org-back-to-heading t)
+  (buffer-substring-no-properties
+   (point) (save-excursion (org-end-of-subtree t t) (point))))
+
+(defun claude-code-ide-org--clocktable-string (params &optional subtree-text)
+  "Return the clocktable report text for PARAMS, computed in a
+throwaway temp buffer that is discarded immediately afterward —
+never touches any real file or buffer.  If SUBTREE-TEXT is given, it
+is inserted into the temp buffer first, and PARAMS is expected to
+leave :scope at its default (`file', meaning \"the current buffer,
+unrestricted\") so the report covers exactly that text; otherwise
+PARAMS is expected to set :scope itself (e.g. to a list of files).
+Either way, `org-dblock-write:clocktable' inserts its output at
+point — which, right after SUBTREE-TEXT was inserted, is just past
+it — so only the text from that point onward (the actual generated
+report) is returned, not the copied source text it was computed
+from."
+  (with-temp-buffer
+    (org-mode)
+    (when subtree-text (insert subtree-text))
+    (let ((origin (point)))
+      (org-dblock-write:clocktable params)
+      (buffer-substring-no-properties origin (point-max)))))
+
+(defun claude-code-ide-org-clock-report (&optional id block tstart tend)
+  "Summarize clocked time as an org clocktable report — the same
+machinery behind `org-clock-report'/column view — returned as a
+plain string.  Never creates or modifies any file.
+
+If ID is given, scope to that heading's subtree only.  Otherwise
+scope to every file in `claude-code-ide-org--tracked-files' (the
+same file list `claude-code-ide-org-query' searches).
+
+BLOCK, if given, selects a named range recognized by
+`org-clock-special-range': \"today\", \"yesterday\", \"thisweek\",
+\"lastweek\", \"thismonth\", \"lastmonth\", \"thisyear\", \"lastyear\",
+or \"untilnow\".  TSTART/TEND, given instead of BLOCK, are explicit
+org timestamp strings bounding the range, e.g. \"[2026-07-21 Tue]\".
+If neither BLOCK nor a TSTART/TEND pair is given, the report is
+unrestricted — all clocked time found in scope.  BLOCK takes
+precedence if both it and a TSTART/TEND pair are given.
+
+Returns the clocktable's text (a headline/time breakdown and total),
+or an error string (e.g. for an unknown :ID: or an unrecognized
+BLOCK).  Never signals an error to the MCP layer."
+  (condition-case err
+      (let ((params (list :maxlevel 10)))
+        (cond
+         (block (setq params (plist-put params :block (intern block))))
+         ((and tstart tend)
+          (setq params (plist-put params :tstart tstart))
+          (setq params (plist-put params :tend tend))))
+        (if id
+            (claude-code-ide-org--at-id
+             id
+             (lambda ()
+               (claude-code-ide-org--clocktable-string
+                params (claude-code-ide-org--subtree-text-at-point))))
+          (claude-code-ide-org--clocktable-string
+           (plist-put params :scope (claude-code-ide-org--tracked-files)))))
+    (error (format "Error: %s" (error-message-string err)))))
+
 ;;; MCP tool registration -------------------------------------------------
 
 (with-eval-after-load 'claude-code-ide
@@ -946,4 +1036,39 @@ rather than adding separate boundary handling here."
             :description "The :ID: property value of the heading to move.")
            (:name "direction"
             :type string
-            :description "\"up\" or \"down\"."))))
+            :description "\"up\" or \"down\".")))
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-clock-report
+   :name "org_clock_report"
+   :description (concat
+                 "Summarize clocked time as an org clocktable report — the same "
+                 "machinery behind org-clock-report/column view — so \"what did "
+                 "I work on this week\" is one tool call instead of eyeballing "
+                 "LOGBOOK entries by hand. Scope to a single heading's subtree "
+                 "via id, or omit id to cover every file in "
+                 "`claude-code-ide-org-query-files' (or org-agenda-files). "
+                 "Give either block (a named range: today, yesterday, thisweek, "
+                 "lastweek, thismonth, lastmonth, thisyear, lastyear, untilnow) "
+                 "or an explicit tstart/tend pair (org timestamp strings), not "
+                 "both — block takes precedence if both are given. With "
+                 "neither, the report is unrestricted: all clocked time in "
+                 "scope. Returns the clocktable's headline/time breakdown and "
+                 "total as plain text. Never creates or modifies any file.")
+   :args '((:name "id"
+            :type string
+            :optional t
+            :description "Optional :ID: property of a heading to scope the report to its subtree. Omit to cover all tracked files.")
+           (:name "block"
+            :type string
+            :optional t
+            :enum ["today" "yesterday" "thisweek" "lastweek" "thismonth" "lastmonth" "thisyear" "lastyear" "untilnow"]
+            :description "Optional named range: today, yesterday, thisweek, lastweek, thismonth, lastmonth, thisyear, lastyear, or untilnow.")
+           (:name "tstart"
+            :type string
+            :optional t
+            :description "Optional explicit range start, as an org timestamp string (e.g. \"[2026-07-21 Tue]\"). Ignored if block is given.")
+           (:name "tend"
+            :type string
+            :optional t
+            :description "Optional explicit range end, as an org timestamp string. Ignored if block is given."))))
