@@ -1,3 +1,4 @@
 .claude/settings.local.json
 .claude/worktrees/
 clock-status.json
+.claude-code-ide-org-audit.jsonl
