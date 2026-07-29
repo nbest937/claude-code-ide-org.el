@@ -1,17 +1,37 @@
 #!/usr/bin/env bash
 # PostToolUse hook: after org_clock_in/org_clock_out, fire a native
-# macOS notification confirming the clock state actually changed in
-# Emacs -- not just that the MCP tool's own return string claimed it
-# did. This session found two tools (org_archive, org_clock_out)
-# reporting success while quietly failing to persist to disk; this is
-# a cheap, independent check specifically at the moment clock state
-# changes, catching the same class of bug outside the model's own
-# self-report.
+# macOS notification confirming Emacs's *in-memory* clock state
+# (org-clocking-p) actually matches what the MCP tool's own return
+# string claimed -- not just trusting that string. This is a
+# confirmation outside the model's own self-report, specifically at
+# the moment clock state changes (TODO.org's "Clock-change
+# notifications" item, :ID: 7e4c3c1d-8c0e-434c-bbdc-e728b13e4483).
+#
+# IMPORTANT SCOPE NOTE: org-clocking-p reads in-memory clock state
+# only -- it has no view of disk. It does NOT detect the specific
+# "silently failed to persist" bug that motivated this feature
+# (org_archive/org_clock_out changing in-memory state but skipping
+# save-buffer): if a save is skipped, memory and the tool's claim
+# still agree, and this hook reports no mismatch even though the file
+# on disk is stale. (See CLAUDE.md's own stale-interval-recovery
+# section, which makes exactly this point: it deliberately scans org
+# file *text* for unclosed CLOCK/:SESSIONS: entries rather than
+# checking org-clocking-p, for this same reason.) What this hook DOES
+# catch: the tool's return string disagreeing with Emacs's actual
+# in-memory clock state (e.g. a stale/wrong claim, a race with a
+# concurrent clock-in/out). A disk-level check would need something
+# like `(buffer-modified-p (marker-buffer org-clock-marker))` or
+# grepping the tracked file for the CLOCK line directly -- not
+# implemented here; this script follows the plan in TODO.org as
+# written, which specifies the org-clocking-p check.
 #
 # Reads the PostToolUse hook JSON payload from stdin. Intended to be
 # matched (via .claude/settings.json -- owned by the coordinator, not
-# this script/branch) against the MCP-qualified tool names, verified
-# against this repo's .mcp.json ("emacs-tools" server key):
+# this script/branch) against the MCP-qualified tool names, confirmed
+# as actually-registered tool names via this session's own deferred-
+# tools listing (mcp__emacs-tools__org_clock_in and
+# mcp__emacs-tools__org_clock_out both appear there) and consistent
+# with this repo's .mcp.json ("emacs-tools" server key):
 #   mcp__emacs-tools__org_clock_in
 #   mcp__emacs-tools__org_clock_out
 #
