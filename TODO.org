@@ -63,6 +63,7 @@ each cluster is actually for, not by which layer (org vs Claude)
 would implement it — several items that live in different systems
 turned out to be the same underlying goal.
 
+
 ** Developer tooling
 
 Doesn't fit any theme below — this is about maintaining *this
@@ -176,6 +177,7 @@ so the check doesn't hardcode absolute line numbers (e.g. anchor on a
 nearby stable string/regex, or compute an expected relationship rather
 than a magic number) instead of just re-editing the constants each
 time drift is noticed.
+
 
 ** New MCP tools
 
@@ -365,6 +367,7 @@ have, nothing currently needs it.
 
 No major open question — the most mechanical item here.
 
+
 ** Enforce the transition rules
 
 CLAUDE.md's transition table (TODO→DOING opens a clock, etc.) is
@@ -453,6 +456,7 @@ where it'd bite a third time.
 *Note:* config-test.el is Emacs-only (ERT via =emacs --batch=) and
 structurally cannot test the PreToolUse guard script — that needs
 its own separate test vehicle, scoped as a sibling deliverable.
+
 
 ** Clock lifecycle & visibility
 
@@ -634,6 +638,7 @@ already exercise that exact boundary. The main remaining risk is
 purely mechanical: forgetting to scope the on-the-fly call to *only*
 the heading that was just clocked out of.
 
+
 ** Observability
 
 Broader than clocking — visibility into what every tool call
@@ -693,6 +698,7 @@ demand.
 - [ ] Decide whether to bury/kill buffers opened via
   =find-file-noselect= during the query, so the user's window
   config isn't disturbed
+
 
 ** Bigger swings
 
