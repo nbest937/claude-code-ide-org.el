@@ -127,19 +127,33 @@ heading's :SESSIONS: drawer.  Saves the buffer afterwards."
   "Clock out of the currently running org clock.
 Closes the open CLOCK entry with an end timestamp and computes the
 duration.  Also logs a \"Paused\" entry to the heading's :SESSIONS:
-drawer.  Saves the buffer afterwards.  Safe to call when no clock
-is running."
+drawer.  Immediately consolidates that heading's now-closed history
+afterward (see `claude-code-ide-org-consolidate-history', defined
+further below but callable here regardless of definition order —
+Elisp resolves function calls at call time, not load time), so
+:LOGBOOK:/:SESSIONS: stay collapsed on the fly instead of
+accumulating per-turn churn that needs a separate retrospective pass.
+Skipped gracefully if the heading has no :ID: (e.g. clocked in by
+hand rather than via `claude-code-ide-org-clock-in'); consolidation
+can never itself signal an error here, since it is built on
+`claude-code-ide-org--at-id', which always returns an \"Error: ...\"
+string rather than throwing.  Saves the buffer.  Safe to call when no
+clock is running."
   (condition-case err
       (if (not (org-clocking-p))
           "No clock is currently running."
         (let ((heading org-clock-heading)
-              (buffer (marker-buffer org-clock-marker)))
+              (buffer (marker-buffer org-clock-marker))
+              id)
           (org-with-point-at org-clock-marker
-            (claude-code-ide-org--log-session-event "Paused"))
+            (claude-code-ide-org--log-session-event "Paused")
+            (setq id (org-entry-get nil "ID")))
           (org-clock-out)
           (when (buffer-live-p buffer)
             (with-current-buffer buffer
               (save-buffer)))
+          (when id
+            (claude-code-ide-org-consolidate-history id))
           (format "Clocked out: \"%s\"" heading)))
     (error (format "Error: %s" (error-message-string err)))))
 
@@ -325,9 +339,12 @@ heading whose :ID: equals ID, using TIMESTAMP-STRING (an org
 timestamp string, e.g. \"[2026-07-27 Mon 17:45]\") as the recovered
 stop time.  Closes an open CLOCK line (computing its duration) and/or
 appends a \"Paused ... (recovered)\" :SESSIONS: entry, whichever is
-actually open.  Saves the buffer.  Does not touch the live clock —
-this is purely a text-level fix for a stale interval, not related to
-whatever (if anything) is currently clocking."
+actually open.  Consolidates the heading's now-closed history
+afterward, same as `claude-code-ide-org-clock-out' — see that
+function's docstring for why this can never itself error here.
+Saves the buffer.  Does not touch the live clock — this is purely a
+text-level fix for a stale interval, not related to whatever (if
+anything) is currently clocking."
   (claude-code-ide-org--at-id
    id
    (lambda ()
@@ -361,6 +378,8 @@ whatever (if anything) is currently clocking."
               "SESSIONS" (format "- Paused %s (recovered)" timestamp-string))
              (setq closed-sessions t))))
        (save-buffer)
+       (when (or closed-logbook closed-sessions)
+         (claude-code-ide-org-consolidate-history id))
        (cond
         ((and closed-logbook closed-sessions)
          (format "Closed open CLOCK and :SESSIONS: interval on \"%s\" at %s"

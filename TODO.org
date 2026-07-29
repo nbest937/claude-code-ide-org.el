@@ -21,27 +21,29 @@ Then ask Claude to finish the commit it already staged.
 :END:
 :SESSIONS:
 - Resumed [2026-07-28 Tue 13:03]
-- Paused [2026-07-28 Tue 13:14]
-- Resumed [2026-07-28 Tue 13:46]
-- Paused [2026-07-28 Tue 13:49]
-- Resumed [2026-07-28 Tue 13:51]
-- Paused [2026-07-28 Tue 13:57]
-- Resumed [2026-07-28 Tue 13:57]
-- Paused [2026-07-28 Tue 13:58]
-- Resumed [2026-07-28 Tue 13:58]
-- Paused [2026-07-28 Tue 13:59]
-- Resumed [2026-07-28 Tue 14:02]
-- Paused [2026-07-28 Tue 14:02]
-- Resumed [2026-07-28 Tue 14:14]
-- Paused [2026-07-28 Tue 14:15]
+- Paused [2026-07-28 Tue 15:58]
+- Resumed [2026-07-28 Tue 16:08]
+- Paused [2026-07-28 Tue 16:09]
+- Resumed [2026-07-28 Tue 16:16]
+- Paused [2026-07-28 Tue 16:17]
+- Resumed [2026-07-28 Tue 16:24]
+- Paused [2026-07-28 Tue 16:25]
+- Resumed [2026-07-28 Tue 16:25]
+- Paused [2026-07-28 Tue 16:25]
+- Resumed [2026-07-28 Tue 16:29]
+- Paused [2026-07-28 Tue 16:32]
+- Resumed [2026-07-28 Tue 16:33]
+- Paused [2026-07-28 Tue 16:33]
+- Resumed [2026-07-28 Tue 16:40]
+- Paused [2026-07-28 Tue 16:40]
 :END:
 :LOGBOOK:
-CLOCK: [2026-07-28 Tue 14:14]--[2026-07-28 Tue 14:15] =>  0:01
-CLOCK: [2026-07-28 Tue 13:58]--[2026-07-28 Tue 13:59] =>  0:01
-CLOCK: [2026-07-28 Tue 13:57]--[2026-07-28 Tue 13:58] =>  0:01
-CLOCK: [2026-07-28 Tue 13:51]--[2026-07-28 Tue 13:57] =>  0:06
-CLOCK: [2026-07-28 Tue 13:46]--[2026-07-28 Tue 13:49] =>  0:03
-CLOCK: [2026-07-28 Tue 13:03]--[2026-07-28 Tue 13:14] =>  0:11
+CLOCK: [2026-07-28 Tue 16:29]--[2026-07-28 Tue 16:32] =>  0:03
+CLOCK: [2026-07-28 Tue 16:24]--[2026-07-28 Tue 16:25] =>  0:01
+CLOCK: [2026-07-28 Tue 16:16]--[2026-07-28 Tue 16:17] =>  0:01
+CLOCK: [2026-07-28 Tue 16:08]--[2026-07-28 Tue 16:09] =>  0:01
+CLOCK: [2026-07-28 Tue 13:45]--[2026-07-28 Tue 14:00] =>  0:15
+CLOCK: [2026-07-28 Tue 13:05]--[2026-07-28 Tue 13:15] =>  0:10
 :END:
 One-time retrospective cleanup of the per-turn SESSIONS/LOGBOOK churn
 accumulated so far: collapse each heading's :SESSIONS: entries to one
@@ -60,6 +62,7 @@ actually worth building and I'll bump it to NEXT. Grouped by what
 each cluster is actually for, not by which layer (org vs Claude)
 would implement it — several items that live in different systems
 turned out to be the same underlying goal.
+
 
 ** Developer tooling
 
@@ -93,10 +96,10 @@ unzip/edit/rezip rather than a direct text edit. Different from
 users; this one is for reloading and verifying changes to *this
 project's own code* (config.el, hooks, bin/test).
 
-*Plan:* [8/8]
+**** Plan [8/8]
 - [X] Package as =org-dev.skill= (zip) at the repo root containing
-  =org-dev/SKILL.md=, matching =org.skill='s exact convention —
-  frontmatter with =name=/=description= including trigger conditions
+  =org-dev/SKILL.md=, matching =org.skill='s exact convention — frontmatter with
+  =name=/=description= including trigger conditions
 - [X] Document the Emacs-side reload procedure: =emacsclient -e
   '(load-file "modules/tools/claude-code-ide-org/config.el")'= for a
   live instance
@@ -175,6 +178,7 @@ nearby stable string/regex, or compute an expected relationship rather
 than a magic number) instead of just re-editing the constants each
 time drift is noticed.
 
+
 ** New MCP tools
 
 On-demand capabilities Claude would call. Independent of each
@@ -196,8 +200,9 @@ things a real query would answer in one call — "what's blocked",
 Worth scoping against =org-ql= rather than hand-rolling a query
 language.
 
-*Plan:* [7/7] — verified against org-ql's actual source
-(github.com/alphapapa/org-ql), not guessed from memory.
+**** Plan [7/7]
+Verified against org-ql's actual source (github.com/alphapapa/org-ql),
+not guessed from memory.
 - [X] Add =(package! org-ql :recipe (:host github :repo
   "alphapapa/org-ql"))= to packages.el (updated the "no additional
   packages required" note)
@@ -267,8 +272,9 @@ instead of hand-writing a heading via the text skill and then
 calling =org-id-get-create=. Return the new :ID: so the caller can
 immediately clock in / set state on it.
 
-*Plan:* [/] — verified empirically under =emacs --batch -Q=, the
-exact environment =bin/test= runs in.
+**** Plan [/]
+Verified empirically under =emacs --batch -Q=, the exact environment
+=bin/test= runs in.
 - [ ] Add a dedicated capture template (own key, e.g. ="z"=, distinct
   from any personal templates), targeting a configurable capture-file
   defcustom, entry body =\"* TODO %i\n:PROPERTIES:\n:ID:
@@ -302,7 +308,7 @@ Summarize time in a date range. Wrap =org-clock-report=/column view
 so "what did I work on this week" is one tool call instead of
 Claude eyeballing LOGBOOK entries across files by hand.
 
-*Plan:* [/]
+**** Plan [/]
 - [ ] Implement =claude-code-ide-org-clock-report (&optional id block
   tstart tend)=: scope to a subtree if =id= given, else fall back to
   the same file-list variable as org_query
@@ -318,13 +324,13 @@ Claude eyeballing LOGBOOK entries across files by hand.
 *Risk:* low — a known idiom, but unexercised in this codebase;
 spot-check before committing to it as the mechanism.
 
-*** MAYBE org_refile                                                  :code:
+*** MAYBE org_refile :code:
 Move a heading to a new parent/file. Already flagged as deferred in
 the design notes. Needs a target-resolution story (:ID: of new
 parent? file + heading path?) worked out before implementation, not
 just a thin wrap of the interactive prompt.
 
-*Plan:* [/]
+**** Plan [/]
 - [ ] Implement =claude-code-ide-org-refile (id target-id)=, resolving
   both =id= (heading to move) and =target-id= (new parent) via
   =org-id-find=
@@ -342,11 +348,11 @@ with no parent heading" since there's no heading to attach an :ID:
 to — decide whether that's out of scope for v1, or a second
 file-path+append codepath is needed.
 
-*** MAYBE org_sort_children / org_move_sibling                        :code:
+*** MAYBE org_sort_children / org_move_sibling :code:
 Structural manipulation, lower priority than org_query — nice to
 have, nothing currently needs it.
 
-*Plan:* [/]
+**** Plan [/]
 - [ ] Implement =claude-code-ide-org-sort-children (id sort-type)=,
   mapping a friendly =sort-type= string (alpha/todo-order/priority/
   scheduled/deadline/clock-time) to =org-sort-entries='s character
@@ -361,6 +367,7 @@ have, nothing currently needs it.
 
 No major open question — the most mechanical item here.
 
+
 ** Enforce the transition rules
 
 CLAUDE.md's transition table (TODO→DOING opens a clock, etc.) is
@@ -372,7 +379,7 @@ regardless of how the state change happened, a Claude-side hook
 catches the specific path our own tools take one step earlier, and
 neither is done until it's tested.
 
-*** MAYBE org-trigger-hook / org-blocker-hook                         :code:
+*** MAYBE org-trigger-hook / org-blocker-hook :code:
 :PROPERTIES:
 :ID:       e47ac400-dd17-4e6a-91aa-bcd837151610
 :END:
@@ -382,7 +389,7 @@ DOING is set through *any* path, not just our org_set_todo wrapper —
 this is the layer that also catches hand-edits made directly in
 Emacs.
 
-*Plan:* [/]
+**** Plan [/]
 - [ ] Implement =claude-code-ide-org--blocker-clock-running-p= for
   =org-blocker-hook=, denying DONE when the target heading's :ID:
   matches whatever =org-clock-marker= currently points at
@@ -400,14 +407,14 @@ Emacs.
 itself, present the instant =(provide 'org)= fires, and =add-hook=
 only stores a symbol, never invokes it.
 
-*** MAYBE PreToolUse transition guard                                 :code:
+*** MAYBE PreToolUse transition guard :code:
 A hook on org_set_todo that inspects the requested state against
 current clock state and rejects the call outright — e.g. DOING→DONE
 with no open clock — before it ever reaches Emacs. Belt-and-suspenders
 alongside the org-hook enforcement above; catches it one layer
 earlier, specifically on the MCP path.
 
-*Plan:* [/]
+**** Plan [/]
 - [ ] Empirically verify the literal MCP-qualified tool name
   (expected =mcp__emacs-tools__org_set_todo=, from =.mcp.json='s
   =emacs-tools= server key) before wiring anything against it
@@ -425,7 +432,7 @@ earlier, specifically on the MCP path.
 state" reason) fits a correctness-enforcement project better than
 silently letting the call through.
 
-*** MAYBE Extend config-test.el                                       :code:
+*** MAYBE Extend config-test.el :code:
 :PROPERTIES:
 :ID:       799b14be-6849-4e22-8a76-4e214d8a25fe
 :BLOCKER:  e47ac400-dd17-4e6a-91aa-bcd837151610
@@ -436,7 +443,7 @@ exact class of bug (silent success, wrong on-disk state) is what
 bit us twice already, and enforcement code with no test is exactly
 where it'd bite a third time.
 
-*Plan:* [/]
+**** Plan [/]
 - [ ] Add blocker-hook tests: clock in, attempt set-todo DONE, assert
   the call is blocked and the on-disk file still shows =DOING=
 - [ ] Add trigger-hook tests, including one that calls bare
@@ -450,6 +457,7 @@ where it'd bite a third time.
 structurally cannot test the PreToolUse guard script — that needs
 its own separate test vehicle, scoped as a sibling deliverable.
 
+
 ** Clock lifecycle & visibility
 
 Everything here is specifically about the clock subsystem's
@@ -457,12 +465,12 @@ correctness and observability, as opposed to the general TODO-state
 machine above — three different angles on "make sure the clock is
 never silently wrong."
 
-*** MAYBE Idle-based auto clock-out                                   :code:
+*** MAYBE Idle-based auto clock-out :code:
 Via =org-clock-idle-time=, already built into org — just needs
 enabling. Guards against a clock left running because a session
 died mid-DOING without ever reaching org_clock_out.
 
-*Plan:* [/]
+**** Plan [/]
 - [ ] Set =org-clock-idle-time= (minutes) in
   =~/.config/doom/config.el='s =after! org= block — a pure
   Doom-config change, nothing in this repo touches it
@@ -477,13 +485,13 @@ died mid-DOING without ever reaching org_clock_out.
 No config.el/config-test.el changes — there's no wall-clock idle to
 simulate in ERT's scratch-buffer fixtures.
 
-*** MAYBE Surface current clock state                                 :code:
+*** MAYBE Surface current clock state :code:
 org-clock-in-hook / org-clock-out-hook writing the current task to
 a small status file. Could feed a Warp status line, a menu bar
 widget, or just answer "what's Claude doing right now" at a glance
 without opening Emacs.
 
-*Plan:* [/]
+**** Plan [/]
 - [ ] Implement =claude-code-ide-org--write-clock-status= in
   config.el, writing a small JSON file (heading, :ID:, start time;
   empty/idle object on clock-out)
@@ -500,7 +508,7 @@ without opening Emacs.
 - [ ] Add ERT tests: file matches on clock-in, reflects idle on
   clock-out, doesn't error if the status directory doesn't exist yet
 
-*** MAYBE Clock-change notifications                                  :code:
+*** MAYBE Clock-change notifications :code:
 PostToolUse on org_clock_in/org_clock_out → a native notification.
 Small, but directly closes the trust gap this whole session kept
 running into: two of the four tools silently "succeeded" while
@@ -508,7 +516,7 @@ failing to persist to disk. A confirmation outside the model's own
 self-report is a cheap extra check, specifically at the moment
 clock state changes.
 
-*Plan:* [/]
+**** Plan [/]
 - [ ] Empirically verify the literal MCP-qualified tool names for
   org_clock_in/org_clock_out before wiring
 - [ ] Add =.claude/settings.json= (this repo only has the untracked
@@ -523,7 +531,7 @@ clock state changes.
 *Risk:* the tool-name matcher is the sharp edge — get it wrong and
 the hook silently never fires.
 
-*** MAYBE Coarsen :SESSIONS: to session-level, not turn-level        :code:
+*** MAYBE Coarsen :SESSIONS: to session-level, not turn-level :code:
 :PROPERTIES:
 :CREATED:  [2026-07-28 Tue 11:06]
 :END:
@@ -537,7 +545,7 @@ DOING → DONE with the work tested and committed, at the end of a
 working day, or on an explicit signal — sketched as a command like
 =/dfd <task>= ("done for the day").
 
-*Plan:* [/]
+**** Plan [/]
 - [ ] Detach :SESSIONS: writes from the Stop/UserPromptSubmit hooks
   entirely — CLOCK keeps its current per-turn pause/resume behavior
   unchanged; :SESSIONS: stops being written there
@@ -558,10 +566,17 @@ always a manual call — auto-detecting day boundaries crosses into
 guessing user intent, exactly the kind of call CLAUDE.md's existing
 rules say only the model/user should make, not a hook.
 
-*** MAYBE Auto-consolidate SESSIONS/LOGBOOK on the fly                :code:
+*** DONE Auto-consolidate SESSIONS/LOGBOOK on the fly :code:
 :PROPERTIES:
 :CREATED:  [2026-07-28 Tue 13:13]
 :ID:       a36d2436-7601-4bf5-a2e7-a4613755156d
+:END:
+:SESSIONS:
+- Resumed [2026-07-28 Tue 16:48]
+- Paused [2026-07-28 Tue 17:00] (recovered)
+:END:
+:LOGBOOK:
+CLOCK: [2026-07-28 Tue 16:50]--[2026-07-28 Tue 17:00] =>  0:10
 :END:
 Companion to the retrospective one-time cleanup ("Consolidate
 historical SESSIONS/LOGBOOK entries", done this session): wire the
@@ -572,29 +587,38 @@ manual pass later. Reuses
 was deliberately written and tested as a reusable capability, not a
 throwaway script, for exactly this.
 
-*Plan:* [/]
-- [ ] Call =(claude-code-ide-org-consolidate-history id)= at the end
+**** Plan [5/5]
+- [X] Call =(claude-code-ide-org-consolidate-history id)= at the end
   of =claude-code-ide-org-clock-out= (and the recovery path in
   =claude-code-ide-org-close-open-interval=), scoped to the heading
   that was just clocked out of — never to a heading that might still
   be actively clocking
-- [ ] Confirm the ordering is safe: =consolidate-history= already
+- [X] Confirm the ordering is safe: =consolidate-history= already
   leaves an open CLOCK/trailing Resumed completely untouched, but the
   call still must happen *after* =org-clock-out= has actually closed
-  the interval, not before
-- [ ] Establish (and rely on) an idempotency invariant to keep this
-  cheap: every prior day, and every CLOCK interval older than the one
-  just closed, is already fully consolidated the moment its own
-  clock-out ran — so each on-the-fly pass only ever needs to
-  re-examine today's :SESSIONS: entries and the newest CLOCK line(s),
-  never rescan the whole drawer
-- [ ] Add ERT tests: clock in/out several times in quick succession
-  and assert the :LOGBOOK:/:SESSIONS: drawers already show the
-  collapsed form immediately after the last clock-out, with no
-  separate consolidation step required
-- [ ] Keep the same rounding convention as the retrospective pass
-  (nearest 5-minute mark, ties rounding up) rather than introducing a
-  second one
+  the interval, not before — captured the heading's :ID: from
+  =org-clock-marker= before calling =(org-clock-out)=, since the
+  marker becomes invalid once the clock actually closes
+- [X] Idempotency confirmed empirically (a manual =consolidate-
+  history= call right after clock-out reports "Nothing to
+  consolidate" — the two new on-the-fly ERT tests assert exactly
+  this), but *not* via the incremental "only re-examine today's
+  entries and the newest CLOCK line" scheme this bullet originally
+  proposed. Implemented instead as a full rescan of the drawer on
+  every clock-out. Simpler, and "cheap" holds regardless — these
+  drawers are a handful of lines at most, so a full regex rescan
+  costs nothing measurable. The incremental version remains available
+  as a future optimization if a heading's history ever grows large
+  enough for that to matter, which hasn't happened in practice.
+- [X] Add ERT tests: =claude-code-ide-org-test-clock-out-consolidates-
+  on-the-fly= and =claude-code-ide-org-test-close-open-interval-
+  consolidates-on-the-fly=, both verifying the "manual recheck is a
+  no-op" idempotency property rather than asserting exact rounded
+  values, which would depend on unpredictable wall-clock timing
+- [X] Kept the same rounding convention as the retrospective pass —
+  literally reuses =claude-code-ide-org--round-time-to-5-minutes= and
+  =claude-code-ide-org--merge-time-intervals= via the same
+  =consolidate-history= entry point, not a second implementation
 
 *Relationship to "Coarsen :SESSIONS: to session-level" above:*
 different mechanism, same underlying pain. That proposal changes
@@ -614,12 +638,13 @@ already exercise that exact boundary. The main remaining risk is
 purely mechanical: forgetting to scope the on-the-fly call to *only*
 the heading that was just clocked out of.
 
+
 ** Observability
 
 Broader than clocking — visibility into what every tool call
 actually did, both after the fact and at the start of a session.
 
-*** MAYBE Tool-call audit log                                         :code:
+*** MAYBE Tool-call audit log :code:
 Every org_* call so far has been trust-the-return-string. This
 session alone found two tools (org_archive, org_clock_out) that
 reported success while quietly failing to save to disk — caught
@@ -628,7 +653,7 @@ only by manual, ad-hoc disk inspection, more than once. A log
 caught both immediately and gives a real trail for anything an
 agent mutates unattended.
 
-*Plan:* [/]
+**** Plan [/]
 - [ ] Implement =claude-code-ide-org--log-event= in config.el,
   appending one JSONL line (timestamp, tool/source, :ID:, file path,
   before/after sha256, result) to a gitignored, project-relative log
@@ -650,7 +675,7 @@ PostToolUse only sees the tool's own self-reported string, the exact
 problem this exists to fix, and structurally can't see direct =M-x=
 usage at all.
 
-*** MAYBE SessionStart context hook                                   :code:
+*** MAYBE SessionStart context hook :code:
 Surface "what was I last doing." On any Claude Code session start
 in a project with org files, query the currently-clocked heading
 (if any) and any :WAIT: items and drop them into context
@@ -659,7 +684,7 @@ something Claude already knows walking in — effectively a standing,
 automatic instance of whatever org_query above ends up answering on
 demand.
 
-*Plan:* [/]
+**** Plan [/]
 - [ ] Implement =claude-code-ide-org-session-context= in config.el:
   find the clocked heading plus :WAIT: headings across the project's
   org files via =org-map-entries=, return a plain string
@@ -674,12 +699,13 @@ demand.
   =find-file-noselect= during the query, so the user's window
   config isn't disturbed
 
+
 ** Bigger swings
 
 Both about the standalone/Warp-access subsystem from this session.
 Think hard before building either.
 
-*** MAYBE Remote MCP access                                           :code:
+*** MAYBE Remote MCP access :code:
 Off-machine access to the tools server and IDE-companion. This
 session already got a =claude= CLI running directly in a Warp pane
 on the same machine to reach Emacs (HTTP tools server +
@@ -691,7 +717,7 @@ your Emacs, today gated only by "it's on localhost." Don't build
 this without designing auth first — bearer token at minimum, ideally
 scoped per tool.
 
-*Plan:* [/]
+**** Plan [/]
 - [ ] Add a bearer-token check to
   =claude-code-ide-mcp-http-server--handle-post= (new defcustom,
   nil-by-default = off) that short-circuits to a 401 before the
@@ -713,7 +739,7 @@ your live Emacs — a bearer token alone adds no TLS, per-tool
 scoping, or rate limiting. Don't just flip the host to 0.0.0.0 and
 call it done.
 
-*** MAYBE Package the Warp wiring                                     :code:
+*** MAYBE Package the Warp wiring :code:
 As a reusable snippet, not a private hack. Per the earlier scope
 conversation: the port-pinning + session-registration +
 IDE-companion-autostart block currently lives in personal
@@ -722,7 +748,7 @@ than a public API. Short of a real upstream PR, even just
 generalizing it (hardcoded project path → variable) and writing it
 up would make it something worth handing to someone else.
 
-*Plan:* [/]
+**** Plan [/]
 - [ ] Generalize the hardcoded project path into an alist of
   (session-id . project-dir) pairs
 - [ ] Turn the wiring function into a loop over that alist — both
