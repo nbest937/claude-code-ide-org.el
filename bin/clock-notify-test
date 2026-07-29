@@ -149,6 +149,16 @@ run_case "bare-string response shape" "t" '{
 }'
 expect_contains "bare-string shape: extracted text used" "verified: clocking=true"
 
+# 11. the CONFIRMED real shape (bare array of {type,text} objects) --
+# verified live 2026-07-29 against an actual PostToolUse payload for a
+# real org_clock_out call; this is a regression test, not a guess.
+run_case "real bare-array response shape" "nil" '{
+  "tool_name": "mcp__emacs-tools__org_clock_out",
+  "tool_response": [{"type": "text", "text": "Clocked out: \"Write the report\""}]
+}'
+expect_contains "real bare-array shape: extracted text used, no MISMATCH" "verified: clocking=false"
+grep -q "MISMATCH" "$work/notifications.log" && { echo "FAIL - real bare-array shape: unexpected MISMATCH"; fail=1; } || echo "ok   - real bare-array shape: no MISMATCH"
+
 if [[ $fail -eq 0 ]]; then
   echo
   echo "All bin/clock-notify decision-logic cases passed (mocked emacsclient/osascript)."

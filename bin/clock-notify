@@ -43,17 +43,19 @@ payload="$(cat)"
 
 tool_name="$(jq -r '.tool_name // empty' <<<"$payload" 2>/dev/null)"
 
-# Best-effort extraction of the tool's own returned string. This
-# worktree has no live MCP round-trip to observe the real shape of
-# `tool_response` for an MCP tool call, so try the shapes that are
-# documented/plausible for an MCP text result, in priority order, and
-# fall back to stringifying the whole field so the notification still
-# shows *something* usable if the real shape differs from all of
-# these guesses. See this script's commit message / the task report
-# for the caveat that this extraction is UNVERIFIED against a live
-# payload.
+# Extraction of the tool's own returned string. The first case below
+# (a bare array of {type,text} objects) is the CONFIRMED real shape
+# for an MCP tool's PostToolUse payload -- verified 2026-07-29 via a
+# live round trip (org_clock_in/org_clock_out on a real heading,
+# observed via the actual macOS notification produced). The remaining
+# cases are defensive fallbacks for shapes that turned out not to
+# match live but are still plausible under a different MCP client/
+# server version, kept so the notification still shows *something*
+# usable rather than silently degrading.
 extract_response_text() {
   local text
+  text="$(jq -r '.tool_response[0].text // empty' <<<"$payload" 2>/dev/null)"
+  if [[ -n "$text" ]]; then printf '%s' "$text"; return; fi
   text="$(jq -r '.tool_response.text // empty' <<<"$payload" 2>/dev/null)"
   if [[ -n "$text" ]]; then printf '%s' "$text"; return; fi
   text="$(jq -r '.tool_response.content[0].text // empty' <<<"$payload" 2>/dev/null)"
