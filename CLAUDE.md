@@ -1,7 +1,7 @@
 # claude-code-ide-org
 
 Doom Emacs module exposing org-mode operations to Claude Code as MCP tools,
-plus an org-mode skill file for Claude Code sessions.
+plus org-mode skills for Claude Code sessions.
 
 The goal is natural-language manipulation of `.org` files from within Emacs,
 via `claude-code-ide`, without needing to internalise Emacs chord sequences.
@@ -16,10 +16,11 @@ modules/tools/claude-code-ide-org/
     config-test.el  ← ERT tests for config.el
     packages.el     ← dependency notes (no additional packages)
 bin/test            ← runs the ERT suite (emacs --batch)
-org.skill           ← Claude Code skill for org-mode file editing
-org-dev.skill       ← Claude Code skill for reloading/verifying changes
-                       to this project's own code (config.el, hooks,
-                       bin/test) — see TODO.org's "org-dev skill" entry
+.claude/skills/
+    org/SKILL.md        ← Claude Code skill for org-mode file editing
+    org-dev/SKILL.md    ← Claude Code skill for reloading/verifying changes
+                           to this project's own code (config.el, hooks,
+                           bin/test) — see DONE.org's "org-dev skill" entry
 .mcp.json           ← HTTP endpoint for the MCP tools server, so a `claude`
                        CLI in a plain shell (no Emacs) can reach org_* and
                        friends; see "Emacs integration" below
@@ -33,7 +34,8 @@ config, no touching real org-id/clock state.
 The module is symlinked into `~/.config/doom/modules/tools/claude-code-ide-org/`
 and enabled in `~/.config/doom/init.el` under `:tools claude-code-ide-org`.
 
-The skill file is installed in the Claude Code project.
+Both skills live under `.claude/skills/` and are auto-discovered by Claude
+Code from there — no separate install step.
 
 ---
 

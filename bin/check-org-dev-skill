@@ -1,12 +1,12 @@
 #!/usr/bin/env fish
-# Doctest-style content-accuracy check for org-dev.skill.
+# Doctest-style content-accuracy check for .claude/skills/org-dev/SKILL.md.
 #
 # bin/test verifies the MCP wrapper functions behave correctly.
 # This script verifies the *documentation* in org-dev/SKILL.md hasn't
 # drifted from the environment it describes — the concrete facts and
-# code fences it asserts (port numbers, line references, zip layout),
-# not whether the skill's prose triggers correctly (that's judged by
-# spot-checking fresh sessions, not scriptable — see TODO.org).
+# code fences it asserts (port numbers, line references, skill-file
+# paths), not whether the skill's prose triggers correctly (that's judged
+# by spot-checking fresh sessions, not scriptable — see TODO.org).
 
 set repo_root (cd (dirname (status --current-filename))/.. && pwd)
 set fail 0
@@ -30,17 +30,19 @@ check "emacsclient MCP port" "$port" "45571"
 set mcp_json_port (grep -o 'localhost:[0-9]*' "$repo_root/.mcp.json" | head -1 | cut -d: -f2)
 check ".mcp.json port matches" "$mcp_json_port" "45571"
 
-# 2. Each .skill zip contains exactly one entry, at the documented path.
-function check_skill_zip
-    set skill_file $argv[1]
-    set want_entry $argv[2]
-    set entries (unzip -Z1 "$repo_root/$skill_file" 2>/dev/null | wc -l | string trim)
-    check "$skill_file entry count" "$entries" "1"
-    set entry (unzip -Z1 "$repo_root/$skill_file" 2>/dev/null | head -1)
-    check "$skill_file internal path" "$entry" "$want_entry"
+# 2. Each skill is a plain-text SKILL.md at its native-format path.
+function check_skill_file
+    set skill_path $argv[1]
+    set full_path "$repo_root/$skill_path"
+    if test -f "$full_path"
+        set magic (head -c2 "$full_path" | od -An -tx1 | string trim | string replace -a ' ' '')
+        check "$skill_path is plain text (not zip)" (test "$magic" = "504b"; and echo zip; or echo text) "text"
+    else
+        check "$skill_path exists" "missing" "$full_path"
+    end
 end
-check_skill_zip "org.skill" "org-mode/SKILL.md"
-check_skill_zip "org-dev.skill" "org-dev/SKILL.md"
+check_skill_file ".claude/skills/org/SKILL.md"
+check_skill_file ".claude/skills/org-dev/SKILL.md"
 
 # 3. bin/test's build-* glob resolves to a real straight org checkout.
 set org_build_dir (find "$HOME/.config/emacs/.local/straight" -maxdepth 1 -name 'build-*' -type d 2>/dev/null | head -1)
