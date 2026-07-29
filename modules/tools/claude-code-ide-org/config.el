@@ -1172,6 +1172,118 @@ hook -- i.e. never at load or registration time."
   (add-hook 'org-blocker-hook #'claude-code-ide-org--blocker-clock-running-p)
   (add-hook 'org-trigger-hook #'claude-code-ide-org--trigger-auto-clock-in))
 
+;;; Clock status file -------------------------------------------------------
+;;
+;; org-clock-in-hook/org-clock-out-hook write the currently-clocked
+;; heading (or idle) to a small JSON file, so something outside Emacs —
+;; a Warp status line, a menu bar widget — can answer "what's Claude
+;; doing right now" at a glance without opening Emacs.
+;;
+;; Wired via add-hook at load time below, not inside the
+;; claude-code-ide-org-clock-in/-out wrappers above, so a clock-in/out
+;; done by hand directly in Emacs (not via the MCP tools) updates the
+;; status file too.
+;;
+;; Two separate named handlers, one per hook, rather than one shared
+;; function branching on org-clocking-p: org-clock-out already clears
+;; org-clock-marker/org-clock-hd-marker (via move-marker ... nil)
+;; *before* it runs org-clock-out-hook, so org-clocking-p is already
+;; nil by the time this runs — but that ordering is an internal detail
+;; of org-clock.el, not something to depend on. The out-handler always
+;; writes the idle object unconditionally; the in-handler always writes
+;; the active object unconditionally. Each is add-hook'd with a defun,
+;; not a lambda, so re-loading this file (as bin/test does) or another
+;; branch's own add-hook onto the same hook variables (e.g. a parallel
+;; tool-call audit log) composes cleanly instead of accumulating
+;; duplicate anonymous closures.
+
+(defcustom claude-code-ide-org-clock-status-file
+  (expand-file-name "clock-status.json"
+                     (file-name-directory
+                      (or load-file-name buffer-file-name default-directory)))
+  "Path to the JSON file that always reflects current clock state:
+the active heading/:ID:/start time, or an idle object when nothing
+is clocked in. Written by `claude-code-ide-org--clock-status-hook-in'
+and `claude-code-ide-org--clock-status-hook-out', hooked onto
+`org-clock-in-hook'/`org-clock-out-hook'. Defaults next to this file,
+inside the repo; gitignored, since it is pure runtime state, not
+something to track."
+  :type 'file
+  :group 'claude-code-ide-org)
+
+(defun claude-code-ide-org--write-clock-status (data)
+  "Atomically write DATA — an alist suitable for `json-encode' — to
+`claude-code-ide-org-clock-status-file'. Writes to a sibling temp
+file in the same directory first, then `rename-file's it into place,
+so a poller reading the status file never observes a half-written
+one (a cross-filesystem rename would not be atomic, hence \"sibling\").
+Does nothing, rather than signaling, if the target directory does
+not exist yet."
+  (let* ((target claude-code-ide-org-clock-status-file)
+         (dir (file-name-directory target)))
+    (when (file-directory-p dir)
+      (let ((tmp (make-temp-file (expand-file-name ".clock-status-" dir))))
+        (with-temp-file tmp
+          (insert (json-encode data)))
+        (rename-file tmp target t)))))
+
+(defun claude-code-ide-org--clock-status-active-data ()
+  "Return the alist describing the currently-active clock, built
+from org's own clock globals (`org-clock-heading',
+`org-clock-start-time', `org-clock-hd-marker') rather than point —
+`org-clock-in-hook' runs with those already set, but does not
+guarantee point is on the clocked-in heading."
+  `((active . t)
+    (heading . ,org-clock-heading)
+    (id . ,(org-with-point-at org-clock-hd-marker (org-id-get)))
+    (start . ,(format-time-string "%Y-%m-%dT%H:%M:%S%z" org-clock-start-time))))
+
+(defun claude-code-ide-org--clock-status-hook-in ()
+  "`org-clock-in-hook' handler: write the active clock object to
+`claude-code-ide-org-clock-status-file'. Wrapped in `condition-case'
+— an error here must never propagate back into org's own clock-in
+machinery, so any failure here is swallowed silently rather than
+risking a corrupted clock-in."
+  (condition-case nil
+      (claude-code-ide-org--write-clock-status
+       (claude-code-ide-org--clock-status-active-data))
+    (error nil)))
+
+(defun claude-code-ide-org--clock-status-hook-out ()
+  "`org-clock-out-hook' handler: write the idle object to
+`claude-code-ide-org-clock-status-file', unconditionally — the
+out-hook always means \"nothing is clocked in now\", regardless of
+whatever org-clock-marker/org-clock-heading/etc. still happen to
+hold at this point in org-clock.el's internal hook ordering. Wrapped
+in `condition-case', same reasoning as the in-handler."
+  (condition-case nil
+      (claude-code-ide-org--write-clock-status '((active . :json-false)))
+    (error nil)))
+
+(add-hook 'org-clock-in-hook #'claude-code-ide-org--clock-status-hook-in)
+(add-hook 'org-clock-out-hook #'claude-code-ide-org--clock-status-hook-out)
+
+;; Emacs-restart case: org-clock-persist is 'history (not 'clock/t — see
+;; the "Why no explicit clock-persistence-restore call" design note in
+;; CLAUDE.md), so a restart never auto-resumes an in-memory clock, and
+;; every actual resume path (org-clock-in / org-clock-in-last) already
+;; fires org-clock-in-hook above. The only gap is a status file left
+;; over from a *previous* Emacs session showing "active" when this one
+;; starts out idle; correct that once org-clock is actually loaded,
+;; without ever calling org-clock-load/org-clock-persist-load ourselves
+;; (that footgun is why this is deferred to with-eval-after-load rather
+;; than called eagerly at top level here). Skipped under `noninteractive'
+;; (i.e. `bin/test's `emacs --batch') — a fresh batch process has no
+;; previous session's stale status file to correct, and firing here
+;; unconditionally would otherwise write to the *default* (real, in-
+;; repo) status path on every test run, since this runs before any
+;; test's own let-binding of `claude-code-ide-org-clock-status-file'
+;; is in effect.
+(unless noninteractive
+  (with-eval-after-load 'org-clock
+    (unless (org-clocking-p)
+      (claude-code-ide-org--clock-status-hook-out))))
+
 ;;; MCP tool registration -------------------------------------------------
 
 (with-eval-after-load 'claude-code-ide
