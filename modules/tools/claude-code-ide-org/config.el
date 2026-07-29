@@ -702,6 +702,66 @@ to the MCP layer."
               (if matches (mapconcat #'identity matches "\n") "No matches.")))))
     (error (format "Error: %s" (error-message-string err)))))
 
+;;; Structural manipulation -------------------------------------------------
+
+(defconst claude-code-ide-org--sort-type-codes
+  '(("alpha" . ?a)
+    ("todo-order" . ?o)
+    ("priority" . ?p)
+    ("scheduled" . ?s)
+    ("deadline" . ?d)
+    ("clock-time" . ?k))
+  "Map from a friendly `sort-type' string to `org-sort-entries's
+character sorting-type codes.  Deliberately a small, named subset of
+what `org-sort-entries' itself accepts (e.g. it also supports
+numeric, by-creation-time, by-property, and custom-function sorts,
+plus capitalized variants for a reversed order) — these six cover
+the sorts a model is actually likely to ask for by name.")
+
+(defun claude-code-ide-org-sort-children (id sort-type)
+  "Sort the children of the org heading whose :ID: property equals ID.
+SORT-TYPE is a friendly string, one of: alpha, todo-order, priority,
+scheduled, deadline, clock-time — see
+`claude-code-ide-org--sort-type-codes' for the mapping onto
+`org-sort-entries's character codes.  Calls `org-sort-entries'
+non-interactively with point at ID's heading, so it is the heading's
+children (not the heading itself or its siblings) that get sorted.
+Saves the buffer afterwards."
+  (claude-code-ide-org--at-id
+   id
+   (lambda ()
+     (let ((code (cdr (assoc sort-type claude-code-ide-org--sort-type-codes)))
+           (heading (org-get-heading t t t t)))
+       (if (not code)
+           (format "Error: unknown sort-type \"%s\"; expected one of %s"
+                   sort-type
+                   (mapconcat #'car claude-code-ide-org--sort-type-codes ", "))
+         (org-sort-entries nil code)
+         (save-buffer)
+         (format "Sorted children of \"%s\" by %s" heading sort-type))))))
+
+(defun claude-code-ide-org-move-sibling (id direction)
+  "Move the org heading whose :ID: property equals ID up or down
+among its siblings (i.e. reorder it relative to other headings at
+the same level under the same parent).  DIRECTION must be \"up\" or
+\"down\", calling `org-move-subtree-up' / `org-move-subtree-down'
+respectively.  Saves the buffer afterwards.  Moving the first
+sibling up, or the last sibling down, signals a `user-error' from
+org itself (\"Cannot move past superior level or buffer limit\");
+this relies on the shared `claude-code-ide-org--at-id' dispatcher's
+`condition-case' to turn that into a clean \"Error: ...\" string
+rather than adding separate boundary handling here."
+  (claude-code-ide-org--at-id
+   id
+   (lambda ()
+     (let ((heading (org-get-heading t t t t)))
+       (cond
+        ((equal direction "up") (org-move-subtree-up))
+        ((equal direction "down") (org-move-subtree-down))
+        (t (error "Unknown direction \"%s\"; expected \"up\" or \"down\"" direction)))
+       (save-buffer)
+       (format "Moved \"%s\" %s" heading direction)))))
+
 ;;; MCP tool registration -------------------------------------------------
 
 (with-eval-after-load 'claude-code-ide
@@ -770,4 +830,33 @@ to the MCP layer."
                  "changed this week.")
    :args '((:name "query"
             :type string
-            :description "org-ql plain-string query, e.g. \"todo:WAIT\", \"tags:research,code\", \"priority:A\", \"!todo:DONE\"."))))
+            :description "org-ql plain-string query, e.g. \"todo:WAIT\", \"tags:research,code\", \"priority:A\", \"!todo:DONE\".")))
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-sort-children
+   :name "org_sort_children"
+   :description (concat
+                 "Sort the children of an org-mode heading, identified by its "
+                 ":ID: property, in place. Does not affect the heading itself "
+                 "or its siblings — only its direct children are reordered.")
+   :args '((:name "id"
+            :type string
+            :description "The :ID: property value of the parent heading whose children should be sorted.")
+           (:name "sort-type"
+            :type string
+            :description "One of: alpha, todo-order, priority, scheduled, deadline, clock-time.")))
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-move-sibling
+   :name "org_move_sibling"
+   :description (concat
+                 "Move an org-mode heading, identified by its :ID: property, "
+                 "up or down relative to its siblings (headings at the same "
+                 "level under the same parent). Returns an error string if "
+                 "there is no sibling in that direction to move past.")
+   :args '((:name "id"
+            :type string
+            :description "The :ID: property value of the heading to move.")
+           (:name "direction"
+            :type string
+            :description "\"up\" or \"down\"."))))
