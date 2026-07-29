@@ -223,6 +223,82 @@ looked exactly like a success."
                    (org-with-point-at (org-id-find id 'marker)
                      (org-get-todo-state))))))
 
+;;; claude-code-ide-org-refile --------------------------------------------
+
+(ert-deftest claude-code-ide-org-test-refile-within-same-file ()
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* TODO Target heading                                              :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0002\n"
+                     ":END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (let ((result (claude-code-ide-org-refile id "test-0002")))
+      (should (string-match-p "\\`Refiled: \"Test heading\" under \"Target heading\"\\'" result)))
+    (should (not (buffer-modified-p (get-file-buffer file))))
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      ;; Test heading is now a level-2 child, nested after Target heading.
+      (should (string-match-p "^\\* TODO Target heading" disk))
+      (should (string-match-p "^\\*\\* TODO Test heading" disk))
+      (should (< (string-match "^\\* TODO Target heading" disk)
+                 (string-match "^\\*\\* TODO Test heading" disk))))))
+
+(ert-deftest claude-code-ide-org-test-refile-across-files-and-saves-both ()
+  "Regression-shaped test for the exact bug class that already bit
+org_archive and org_clock_out: refiling across two files must save
+BOTH buffers, not just the one org-refile happens to leave point in."
+  (claude-code-ide-org-test--with-heading
+    (let ((target-file (expand-file-name "target.org" dir)))
+      (with-temp-file target-file
+        (insert (concat "#+TODO: TODO NEXT DOING WAIT MAYBE | DONE CANCELLED\n"
+                         "#+TAGS: code comms research review\n"
+                         "\n"
+                         "* TODO Target heading                                              :code:\n"
+                         ":PROPERTIES:\n"
+                         ":ID:       test-0002\n"
+                         ":END:\n")))
+      (find-file target-file)
+      (org-id-update-id-locations (list file target-file))
+      (unwind-protect
+          (progn
+            (let ((result (claude-code-ide-org-refile id "test-0002")))
+              (should (string-match-p "\\`Refiled: \"Test heading\" under \"Target heading\"\\'" result)))
+            (should (not (buffer-modified-p (get-file-buffer file))))
+            (should (not (buffer-modified-p (get-file-buffer target-file))))
+            (should (not (string-match-p "Test heading"
+                                         (claude-code-ide-org-test--disk-contents file))))
+            (let ((disk (claude-code-ide-org-test--disk-contents target-file)))
+              (should (string-match-p "^\\* TODO Target heading" disk))
+              (should (string-match-p "^\\*\\* TODO Test heading" disk))
+              (should (string-match-p ":ID: +test-0001" disk))))
+        (let ((buf (get-file-buffer target-file)))
+          (when buf
+            (with-current-buffer buf (set-buffer-modified-p nil))
+            (kill-buffer buf)))))))
+
+(ert-deftest claude-code-ide-org-test-refile-unresolvable-target-returns-error ()
+  (claude-code-ide-org-test--with-heading
+    (should (string-match-p
+             "\\`Error: no org heading found with target :ID: \"bogus\"\\'"
+             (claude-code-ide-org-refile id "bogus")))
+    ;; No-op: source heading must be left completely untouched.
+    (should (string-match-p "Test heading" (claude-code-ide-org-test--disk-contents file)))))
+
+(ert-deftest claude-code-ide-org-test-refile-unresolvable-source-returns-error ()
+  (claude-code-ide-org-test--with-heading
+    (should (string-match-p
+             "\\`Error: no org heading found with :ID: \"bogus\"\\'"
+             (claude-code-ide-org-refile "bogus" id)))))
+
+(ert-deftest claude-code-ide-org-test-refile-into-own-subtree-returns-error ()
+  "org-refile itself refuses to refile a heading into its own subtree
+\(or into itself\); confirm that failure surfaces as an Error string
+rather than escaping condition-case."
+  (claude-code-ide-org-test--with-heading
+    (should (string-match-p "\\`Error:" (claude-code-ide-org-refile id id)))
+    (should (string-match-p "Test heading" (claude-code-ide-org-test--disk-contents file)))))
+
 ;;; Stale interval recovery ----------------------------------------------
 
 (ert-deftest claude-code-ide-org-test-guess-stop-time-uses-working-hours ()
