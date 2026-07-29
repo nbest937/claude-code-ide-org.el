@@ -494,6 +494,115 @@ before them gets rounded/merged."
     (let ((claude-code-ide-org-query-files (list file)))
       (should (equal "Error: empty query." (claude-code-ide-org-query "   "))))))
 
+;;; claude-code-ide-org-sort-children -----------------------------------
+
+(ert-deftest claude-code-ide-org-test-sort-children-alpha ()
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat
+             "** TODO Charlie\n"
+             "** TODO Alpha\n"
+             "** TODO Bravo\n"))
+    (save-buffer)
+    (let ((result (claude-code-ide-org-sort-children id "alpha")))
+      (should (string-match-p
+               "\\`Sorted children of \"Test heading\" by alpha\\'" result)))
+    (should (not (buffer-modified-p (get-file-buffer file))))
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      (should (< (string-match-p "Alpha" disk) (string-match-p "Bravo" disk)))
+      (should (< (string-match-p "Bravo" disk) (string-match-p "Charlie" disk))))))
+
+(ert-deftest claude-code-ide-org-test-sort-children-todo-order ()
+  "Names deliberately disagree with alpha order (Alpha/Bravo/Charlie
+would sort Alpha<Bravo<Charlie alphabetically) so this test can only
+pass if `org-sort-entries' is actually invoked with the todo-order
+code (?o), not accidentally alpha (?a)."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat
+             "** DONE Alpha\n"
+             "** NEXT Bravo\n"
+             "** TODO Charlie\n"))
+    (save-buffer)
+    (claude-code-ide-org-sort-children id "todo-order")
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      ;; Sequence order is TODO NEXT DOING WAIT MAYBE | DONE CANCELLED,
+      ;; so Charlie (TODO) < Bravo (NEXT) < Alpha (DONE) — the reverse
+      ;; of alpha-on-name order.
+      (should (< (string-match-p "Charlie" disk) (string-match-p "Bravo" disk)))
+      (should (< (string-match-p "Bravo" disk) (string-match-p "Alpha" disk))))))
+
+(ert-deftest claude-code-ide-org-test-sort-children-unknown-sort-type ()
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "** TODO Only child\n")
+    (save-buffer)
+    (should (string-match-p "\\`Error: unknown sort-type \"bogus\""
+                            (claude-code-ide-org-sort-children id "bogus")))))
+
+;;; claude-code-ide-org-move-sibling --------------------------------------
+
+(ert-deftest claude-code-ide-org-test-move-sibling-down-then-up ()
+  (claude-code-ide-org-test--with-heading
+    ;; "Test heading" (id) is first; add two more top-level siblings.
+    (goto-char (point-max))
+    (insert (concat
+             "* TODO Second heading\n"
+             "* TODO Third heading\n"))
+    (save-buffer)
+    (let ((result (claude-code-ide-org-move-sibling id "down")))
+      (should (string-match-p "\\`Moved \"Test heading\" down\\'" result)))
+    (should (not (buffer-modified-p (get-file-buffer file))))
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      ;; Order is now: Second, Test heading, Third.
+      (should (< (string-match-p "Second heading" disk)
+                 (string-match-p "Test heading" disk)))
+      (should (< (string-match-p "Test heading" disk)
+                 (string-match-p "Third heading" disk))))
+    (claude-code-ide-org-move-sibling id "up")
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      ;; Back to: Test heading, Second, Third.
+      (should (< (string-match-p "Test heading" disk)
+                 (string-match-p "Second heading" disk)))
+      (should (< (string-match-p "Second heading" disk)
+                 (string-match-p "Third heading" disk))))))
+
+(ert-deftest claude-code-ide-org-test-move-sibling-boundary-errors ()
+  "Moving the first sibling up, or the last sibling down, must
+return a clean error string (relying on the shared
+`claude-code-ide-org--at-id' dispatcher's condition-case for org's
+own `user-error') rather than crashing."
+  (claude-code-ide-org-test--with-heading
+    ;; "Test heading" (id) is first; add a second sibling with its own
+    ;; :ID:, registered in the id cache same as the fixture's own
+    ;; heading, so it can be targeted directly.
+    (goto-char (point-max))
+    (insert (concat
+             "* TODO Second heading\n"
+             ":PROPERTIES:\n"
+             ":ID:       test-0002\n"
+             ":END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    ;; First sibling can't move up.
+    (should (string-match-p "\\`Error:.*[Cc]annot move"
+                            (claude-code-ide-org-move-sibling id "up")))
+    ;; Last sibling can't move down.
+    (should (string-match-p "\\`Error:.*[Cc]annot move"
+                            (claude-code-ide-org-move-sibling "test-0002" "down")))
+    ;; Neither attempt should have changed the on-disk order.
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      (should (< (string-match-p "Test heading" disk)
+                 (string-match-p "Second heading" disk))))))
+
+(ert-deftest claude-code-ide-org-test-move-sibling-unknown-direction ()
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* TODO Second heading\n")
+    (save-buffer)
+    (should (string-match-p "\\`Error: Unknown direction \"sideways\""
+                            (claude-code-ide-org-move-sibling id "sideways")))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here
