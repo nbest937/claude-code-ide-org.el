@@ -299,6 +299,123 @@ rather than escaping condition-case."
     (should (string-match-p "\\`Error:" (claude-code-ide-org-refile id id)))
     (should (string-match-p "Test heading" (claude-code-ide-org-test--disk-contents file)))))
 
+;;; Native transition enforcement (org-blocker-hook / org-trigger-hook) ----
+;;
+;; These cover claude-code-ide-org--blocker-clock-running-p and
+;; claude-code-ide-org--trigger-auto-clock-in, registered globally on
+;; org-blocker-hook/org-trigger-hook in config.el via with-eval-after-
+;; load 'org. Being global hooks, they are already active for every
+;; other test in this file too -- see the commentary at each call site
+;; above for why that's harmless (e.g. claude-code-ide-org-test-set-
+;; todo-reports-blocked-transition locally shadows org-blocker-hook via
+;; `let', and no other existing test clocks in and then requests DONE
+;; on the very same heading).
+
+(ert-deftest claude-code-ide-org-test-blocker-hook-blocks-done-while-clock-running ()
+  "org-blocker-hook must deny DONE while a clock is still running on
+that heading -- structural enforcement inside org itself, catching
+violations regardless of path. If claude-code-ide-org--trigger-auto-
+clock-in already opened the clock when this heading became DOING,
+the explicit clock-in below is a safe no-op (org-clock-in itself
+recognizes clocking into the already-current task as a continuation,
+not a new interval)."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-set-todo id "DOING")
+    (unless (org-clocking-p) (claude-code-ide-org-clock-in id))
+    (should (org-clocking-p))
+    (should (string-match-p "\\`Error:.*blocked"
+                            (claude-code-ide-org-set-todo id "DONE")))
+    (should (org-clocking-p))
+    (should (equal "DOING"
+                    (org-with-point-at (org-id-find id 'marker)
+                      (org-get-todo-state))))
+    (should (string-match-p "^\\* DOING Test heading"
+                            (claude-code-ide-org-test--disk-contents file)))))
+
+(ert-deftest claude-code-ide-org-test-blocker-hook-permits-done-when-not-clocking ()
+  "The DONE blocker must never fire when nothing is clocking at all --
+only the presence of a running clock on that heading is grounds to
+deny the transition."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-set-todo id "DOING")
+    (when (org-clocking-p) (claude-code-ide-org-clock-out))
+    (should (not (org-clocking-p)))
+    (should (string-match-p "\\`TODO state set to DONE"
+                            (claude-code-ide-org-set-todo id "DONE")))))
+
+(ert-deftest claude-code-ide-org-test-blocker-hook-only-blocks-own-heading ()
+  "The DONE blocker must only fire for a clock running on THAT exact
+heading -- a clock running on a different heading in the same file
+must never block this one from going DONE."
+  (claude-code-ide-org-test--with-heading
+    (let ((other-id "test-0002"))
+      (goto-char (point-max))
+      (insert (concat "* TODO Other heading                                               :code:\n"
+                       ":PROPERTIES:\n"
+                       ":ID:       " other-id "\n"
+                       ":END:\n"))
+      (save-buffer)
+      (org-id-update-id-locations (list file))
+      (claude-code-ide-org-set-todo id "DOING")
+      (unless (org-clocking-p) (claude-code-ide-org-clock-in id))
+      (should (org-clocking-p))
+      ;; The clock is running on `id', not `other-id' -- going DONE on
+      ;; `other-id' must be permitted.
+      (should (string-match-p "\\`TODO state set to DONE: \"Other heading\"\\'"
+                              (claude-code-ide-org-set-todo other-id "DONE")))
+      (should (equal "DONE"
+                     (org-with-point-at (org-id-find other-id 'marker)
+                       (org-get-todo-state))))
+      ;; The unrelated running clock on `id' must be left untouched.
+      (should (org-clocking-p))
+      (should (equal id (org-with-point-at org-clock-marker
+                          (org-entry-get nil "ID")))))))
+
+(ert-deftest claude-code-ide-org-test-trigger-hook-auto-clocks-in-on-direct-org-todo ()
+  "org-trigger-hook must auto-clock-in the moment DOING is set through
+ANY path, not just claude-code-ide-org-set-todo -- this is the layer
+that also catches hand-edits made directly in Emacs. Exercised via a
+bare `org-todo' call, deliberately bypassing the wrapper entirely, to
+prove the enforcement lives in org itself and not merely in
+claude-code-ide-org-set-todo's own logic."
+  (claude-code-ide-org-test--with-heading
+    (should (not (org-clocking-p)))
+    (org-with-point-at (org-id-find id 'marker)
+      (org-todo "DOING"))
+    (should (org-clocking-p))
+    (should (equal id (org-with-point-at org-clock-marker
+                        (org-entry-get nil "ID"))))
+    ;; A bare `org-todo' call never saves the buffer -- that's
+    ;; `claude-code-ide-org-set-todo's job, not org's own -- so check
+    ;; the in-memory buffer for the CLOCK line, not the on-disk file.
+    (should (string-match-p "CLOCK: \\["
+                            (with-current-buffer (get-file-buffer file)
+                              (buffer-string))))))
+
+(ert-deftest claude-code-ide-org-test-trigger-hook-skips-clock-in-when-already-clocked-there ()
+  "If a clock is already running on the heading being set to DOING
+(e.g. via org_clock_in called ahead of the state change), the trigger
+must not additionally invoke `org-clock-in' -- no second, duplicate
+open CLOCK line."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (org-with-point-at (org-id-find id 'marker) (org-todo "DOING"))
+    (should (org-clocking-p))
+    (let ((disk (claude-code-ide-org-test--disk-contents file))
+          (count 0) (start 0))
+      (while (string-match "CLOCK: \\[" disk start)
+        (setq count (1+ count) start (match-end 0)))
+      (should (= 1 count)))))
+
+(ert-deftest claude-code-ide-org-test-trigger-hook-does-not-fire-for-other-states ()
+  "The auto-clock-in trigger must only fire on a transition TO DOING,
+never on transitions to any other state."
+  (claude-code-ide-org-test--with-heading
+    (org-with-point-at (org-id-find id 'marker) (org-todo "NEXT"))
+    (should (not (org-clocking-p)))
+    (org-with-point-at (org-id-find id 'marker) (org-todo "WAIT"))
+    (should (not (org-clocking-p)))))
+
 ;;; Stale interval recovery ----------------------------------------------
 
 (ert-deftest claude-code-ide-org-test-guess-stop-time-uses-working-hours ()

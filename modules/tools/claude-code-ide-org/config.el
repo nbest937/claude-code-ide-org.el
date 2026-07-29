@@ -922,6 +922,87 @@ BLOCK).  Never signals an error to the MCP layer."
            (plist-put params :scope (claude-code-ide-org--tracked-files)))))
     (error (format "Error: %s" (error-message-string err)))))
 
+;;; Native transition enforcement --------------------------------------------
+;;
+;; CLAUDE.md's transition table (TODO->DOING opens a clock, DOING->DONE
+;; closes it, etc.) is otherwise pure prose: nothing stops a hand-edit
+;; made directly in Emacs, or some future tool call, from violating it.
+;; These two hooks enforce it structurally, inside org itself, so they
+;; catch violations regardless of how the state change happened -- not
+;; just through `claude-code-ide-org-set-todo'.
+;;
+;; Both org-blocker-hook and org-trigger-hook are plain defvars in
+;; org.el itself, present the instant (provide 'org) fires, and
+;; add-hook only ever stores a symbol -- it never invokes it. So
+;; registering here via `with-eval-after-load' 'org (not Doom's
+;; `after!', which never fires under the plain `emacs --batch -Q' load
+;; path config-test.el deliberately uses) is safe, and every actual
+;; org-clock.el call stays lazily inside the hook lambdas themselves,
+;; never at registration or load time.
+;;
+;; Always `add-hook', never `setq', on these two hook variables --
+;; other work may add its own functions to the same hooks, and
+;; `add-hook' composes regardless of load/merge order while `setq'
+;; would clobber whatever is already there.
+
+(defvar claude-code-ide-org--auto-clock-in-active nil
+  "Re-entrancy guard for `claude-code-ide-org--trigger-auto-clock-in'.
+Bound to t for the duration of that function's own `org-clock-in'
+call, so if `org-clock-in' itself somehow triggers another DOING
+state change on the same heading (e.g. a future
+`org-clock-in-switch-to-state' configuration), the nested invocation
+is a no-op instead of recursing.")
+
+(defun claude-code-ide-org--blocker-clock-running-p (change-plist)
+  "For `org-blocker-hook': deny a transition to DONE on the heading at
+point when that heading's :ID: matches whichever heading
+`org-clock-marker' currently points at -- i.e. its own clock is still
+running. Return non-nil (permit the change) for every requested state
+other than DONE, whenever nothing is currently clocking, or whenever
+either heading lacks an :ID:. CHANGE-PLIST is the plist `org-todo'
+passes to every `org-blocker-hook' function; see `org-trigger-hook's
+docstring for its shape. Never reads `org-clock-marker' or calls any
+other org-clock.el function except from inside this hook -- i.e.
+never at load or registration time."
+  (or (not (equal (plist-get change-plist :to) "DONE"))
+      (not (org-clocking-p))
+      (let ((target-id (org-entry-get nil "ID"))
+            (clocked-id (org-with-point-at org-clock-marker
+                          (org-entry-get nil "ID"))))
+        (if (and target-id clocked-id (equal target-id clocked-id))
+            (progn
+              (setq org-block-entry-blocking (org-get-heading t t t t))
+              nil)
+          t))))
+
+(defun claude-code-ide-org--trigger-auto-clock-in (change-plist)
+  "For `org-trigger-hook': the moment any heading's TODO state becomes
+DOING -- via `claude-code-ide-org-set-todo', a hand-edit made directly
+in Emacs, or any other path at all -- automatically open a clock on it
+via `org-clock-in', unless a clock is already running on that exact
+heading. Guarded against re-entrancy by
+`claude-code-ide-org--auto-clock-in-active'. CHANGE-PLIST is the
+plist `org-todo' passes to every `org-trigger-hook' function; see
+`org-trigger-hook's own docstring for its shape. Never calls
+`org-clock-in' or reads `org-clock-marker' except from inside this
+hook -- i.e. never at load or registration time."
+  (when (and (equal (plist-get change-plist :to) "DOING")
+             (not claude-code-ide-org--auto-clock-in-active))
+    (let* ((target-id (org-entry-get nil "ID"))
+           (already-clocked-here
+            (and (org-clocking-p)
+                 target-id
+                 (equal target-id
+                        (org-with-point-at org-clock-marker
+                          (org-entry-get nil "ID"))))))
+      (unless already-clocked-here
+        (let ((claude-code-ide-org--auto-clock-in-active t))
+          (org-clock-in))))))
+
+(with-eval-after-load 'org
+  (add-hook 'org-blocker-hook #'claude-code-ide-org--blocker-clock-running-p)
+  (add-hook 'org-trigger-hook #'claude-code-ide-org--trigger-auto-clock-in))
+
 ;;; MCP tool registration -------------------------------------------------
 
 (with-eval-after-load 'claude-code-ide
