@@ -56,31 +56,6 @@ both DOING headings instead of "No matches."; the interactive
 =org-todo-list= renders every heading in this file; =org_clock_report=
 returns real clocked time instead of an empty table.
 
-*** DOING Discard the Plan-checklist convention; migrate skills to plain-text format :code:
-:PROPERTIES:
-:ID:       5f4d407b-4db9-4139-aabc-79fb5ade7be9
-:CREATED:  [2026-07-29 Wed 18:32]
-:END:
-:SESSIONS:
-- Resumed [2026-07-29 Wed 18:40]
-:END:
-:LOGBOOK:
-CLOCK: [2026-07-29 Wed 18:40]
-:END:
-Plan: [[file:~/.claude/plans/let-s-rip-it-out-floofy-blossom.md][let-s-rip-it-out-floofy-blossom]]
-
-CLAUDE.md's Plan-checklist reconciliation rule (and org.skill's matching
-checklist-discipline guidance) is being discarded entirely as unnecessary
-overhead — a plan tracked twice (org checklist + Claude Code's own Plan
-Mode file) that then needs keeping in sync. Replacing with: a permanent
-link to the Plan Mode file, kept through DONE, plus a concise prose outcome
-summary at completion instead of checkbox reconciliation. Also migrating
-org.skill/org-dev.skill off their non-standard zip-archive packaging to
-Claude Code's actual native format (.claude/skills/<name>/SKILL.md, plain
-text) since both files are being edited anyway. See the linked plan for
-full scope.
-
-
 ** New MCP tools
 
 On-demand capabilities Claude would call. Independent of each

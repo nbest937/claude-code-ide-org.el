@@ -765,3 +765,54 @@ org, there's nothing left to keep in sync between git and the live
 buffer, so no revert-timing race this rule needs to guard against. See
 TODO.org's "Discard the Plan-checklist convention" heading and its
 linked plan for the full resolution.
+
+** DONE Discard the Plan-checklist convention; migrate skills to plain-text format :code:
+:PROPERTIES:
+:ID:       5f4d407b-4db9-4139-aabc-79fb5ade7be9
+:CREATED:  [2026-07-29 Wed 18:32]
+:ARCHIVE_TIME: 2026-07-29 Wed 18:54
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_OLPATH: Roadmap/Developer tooling
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:SESSIONS:
+- Resumed [2026-07-29 Wed 18:40]
+- Paused [2026-07-29 Wed 18:53]
+:END:
+:LOGBOOK:
+CLOCK: [2026-07-29 Wed 18:40]--[2026-07-29 Wed 18:55] =>  0:15
+:END:
+Plan: [[file:~/.claude/plans/let-s-rip-it-out-floofy-blossom.md][let-s-rip-it-out-floofy-blossom]]
+
+CLAUDE.md's Plan-checklist reconciliation rule (and org.skill's matching
+checklist-discipline guidance) is being discarded entirely as unnecessary
+overhead — a plan tracked twice (org checklist + Claude Code's own Plan
+Mode file) that then needs keeping in sync. Replacing with: a permanent
+link to the Plan Mode file, kept through DONE, plus a concise prose outcome
+summary at completion instead of checkbox reconciliation. Also migrating
+org.skill/org-dev.skill off their non-standard zip-archive packaging to
+Claude Code's actual native format (.claude/skills/<name>/SKILL.md, plain
+text) since both files are being edited anyway. See the linked plan for
+full scope.
+
+*Shipped as planned, two commits:* (1) org.skill/org-dev.skill migrated
+verbatim to =.claude/skills/org/SKILL.md=/=.claude/skills/org-dev/SKILL.md=
+— confirmed via Claude Code's own docs that zip archives were never a
+supported skill format, and that this repo had invented the convention
+itself. =bin/check-org-dev-skill='s zip-structure check replaced with a
+plain-text existence check; org-dev/SKILL.md's now-obsolete unzip/edit/
+rezip section removed. (2) the reconciliation rule removed from CLAUDE.md
+and replaced with the plan-link + concise-summary rules above; matching
+checklist-discipline guidance removed from the org skill; all 15
+=Plan [n/m]= checklists found across TODO.org/DONE.org stripped (one more
+than originally scoped — the still-unarchived "Fix org-agenda-files"
+DONE heading above also had one), folding any non-redundant verification
+claim or implementation deviation into surrounding prose rather than
+losing it. The one deviation from the approved plan: per the user's
+mid-task instruction, the new-heading-approval-gate step was itself
+promoted from a one-off sequencing note into a standing CLAUDE.md rule
+(see "State transition rules") rather than living only in the plan file.
+Verified: =bin/check-org-dev-skill= passes; =grep -n "Plan \["
+TODO.org DONE.org= returns zero matches; =org_query "todo:DOING"= shows
+only this heading while it was active.
