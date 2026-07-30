@@ -20,8 +20,7 @@ turned out to be the same underlying goal.
 :END:
 :SESSIONS:
 - Resumed [2026-07-29 Wed 12:29]
-- Paused [2026-07-29 Wed 18:34]
-- Resumed [2026-07-29 Wed 18:40]
+- Paused [2026-07-29 Wed 18:40]
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-29 Wed 18:20]--[2026-07-29 Wed 18:30] =>  0:10

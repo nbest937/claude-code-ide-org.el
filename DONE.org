@@ -778,9 +778,12 @@ linked plan for the full resolution.
 :END:
 :SESSIONS:
 - Resumed [2026-07-29 Wed 18:40]
-- Paused [2026-07-29 Wed 18:53]
+- Paused [2026-07-29 Wed 19:01]
+- Resumed [2026-07-30 Thu 07:12]
+- Paused [2026-07-30 Thu 07:20]
 :END:
 :LOGBOOK:
+CLOCK: [2026-07-30 Thu 07:10]--[2026-07-30 Thu 07:20] =>  0:10
 CLOCK: [2026-07-29 Wed 18:40]--[2026-07-29 Wed 18:55] =>  0:15
 :END:
 Plan: [[file:~/.claude/plans/let-s-rip-it-out-floofy-blossom.md][let-s-rip-it-out-floofy-blossom]]
@@ -805,7 +808,8 @@ plain-text existence check; org-dev/SKILL.md's now-obsolete unzip/edit/
 rezip section removed. (2) the reconciliation rule removed from CLAUDE.md
 and replaced with the plan-link + concise-summary rules above; matching
 checklist-discipline guidance removed from the org skill; all 15
-=Plan [n/m]= checklists found across TODO.org/DONE.org stripped (one more
+checklists (each a =**** Plan= sub-heading with an =[N/M]= cookie) found
+across TODO.org/DONE.org stripped (one more
 than originally scoped — the still-unarchived "Fix org-agenda-files"
 DONE heading above also had one), folding any non-redundant verification
 claim or implementation deviation into surrounding prose rather than
