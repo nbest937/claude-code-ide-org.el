@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "emacs-tools": {
+      "type": "http",
+      "url": "http://localhost:45571/mcp/warp"
+    }
+  }
+}

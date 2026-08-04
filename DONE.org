@@ -820,3 +820,47 @@ promoted from a one-off sequencing note into a standing CLAUDE.md rule
 Verified: =bin/check-org-dev-skill= passes; =grep -n "Plan \["
 TODO.org DONE.org= returns zero matches; =org_query "todo:DOING"= shows
 only this heading while it was active.
+
+** DONE Bridge Warp's own MCP client to the Emacs tools server :code:
+:PROPERTIES:
+:ID:       6a6d5b4e-0327-4578-a44a-356576870ceb
+:CREATED:  [2026-07-30 Thu 09:36]
+:ARCHIVE_TIME: 2026-07-30 Thu 15:47
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-07-30 Thu 12:20]--[2026-07-30 Thu 12:25] =>  0:05
+CLOCK: [2026-07-30 Thu 12:05]--[2026-07-30 Thu 12:15] =>  0:10
+:END:
+:SESSIONS:
+- Resumed [2026-07-30 Thu 09:53]
+- Paused [2026-07-30 Thu 12:23]
+:END:
+[[file:~/.claude/plans/use-pipx-instead-use-starry-metcalfe.md][Plan]]
+
+Warp's own agent (already used on this repo — see commits
+co-authored by =Oz <oz-agent@warp.dev>=) needed a bridge to reach the
+Emacs MCP tools server. The initial hypothesis — that Emacs' HTTP
+server closes each connection with no SSE fallback, and Warp's
+persistent-connection client would trip over that — turned out to be
+a red herring.
+
+*Verified, not just implemented:* the plan's falsify-first Step A (a
+direct-HTTP =.warp/.mcp.json=, no proxy) surfaced the real bug in
+Warp's logs instead: =notifications/initialized= failed with
+"Transport channel closed". Root cause:
+=claude-code-ide-mcp-http-server--send-empty-response= replied =200=
++ =text/plain= to that notification where the MCP spec expects =202
+Accepted=. Fixed via a Doom config override (pending an upstream
+report — see the sibling subtask above); confirmed both via a direct
+=mcp-proxy= round-trip and live in Warp itself. With the real bug
+fixed, the direct-HTTP entry alone was sufficient — no proxy needed.
+The =pipx=/=mcp-proxy= stdio bridge explored along the way (which hit
+its own unrelated dependency breakage) was never actually required
+and has been uninstalled; nothing repo-tracked depends on it. Both
+=.mcp.json= and =.warp/.mcp.json= are kept regardless, even though
+currently identical, as a deliberate seam for the two clients to
+diverge later.
+
