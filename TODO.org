@@ -693,6 +693,32 @@ Two parts:
 
 Revisit 2026-07-31.
 
+** TODO Audit CLAUDE.md for directives that belong in the org skill instead :code:
+:PROPERTIES:
+:ID:       d5345abb-b451-4468-8f27-4bb2da983215
+:CREATED:  [2026-08-04 Tue 17:52]
+:END:
+
+Captured 2026-08-04, following the same fix just applied for the
+=:BLOCKER:=/=:TRIGGER:= property convention: it was documented only in
+CLAUDE.md prose (project-scoped, won't travel) even though it's plain
+native Org syntax that belongs in =.claude/skills/org/SKILL.md=
+(portable, applies wherever the org skill is in play, including other
+projects). Moved there; see that skill's "Dependencies between tasks"
+section.
+
+CLAUDE.md and the org skill already duplicate several conventions on
+purpose (TODO keyword semantics, tags, archiving, the state-transition
+table) — this task is about finding any *other* directives in CLAUDE.md
+that are actually general Org-mode conventions (not specific to this
+project's MCP tools, hooks, or Doom config) and are currently missing
+from the skill, the same way =:BLOCKER:= was. Read through CLAUDE.md's
+"Org-mode conventions" and "State transition rules" sections
+specifically looking for anything portable-but-undocumented-in-skill;
+the "MCP tools", "Session tracking", and "Emacs integration" sections
+are inherently project-specific (they name this project's actual tool
+names and files) and are out of scope.
+
 * Tooling
 
 ** DONE Move the statusline script into the repo :code:
