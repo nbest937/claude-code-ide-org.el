@@ -139,52 +139,104 @@ buffer ever created.
 :END:
 :SESSIONS:
 - Resumed [2026-08-04 Tue 14:37] (session 8564fffc-fca9-4e7a-bfed-e26be74361cf)
-- Paused [2026-08-04 Tue 14:53] (session c628ac7a-4135-4412-834a-1bb553d582d8)
-- Resumed [2026-08-04 Tue 14:55] (session c628ac7a-4135-4412-834a-1bb553d582d8)
+- Paused [2026-08-04 Tue 17:30] (session 73e3c11e-d45e-4a4b-9820-586bdf9d3968)
+- Resumed [2026-08-04 Tue 17:32] (session c628ac7a-4135-4412-834a-1bb553d582d8)
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-04 Tue 14:55]
+CLOCK: [2026-08-04 Tue 17:32]
+CLOCK: [2026-08-04 Tue 17:15]--[2026-08-04 Tue 17:20] =>  0:05
+CLOCK: [2026-08-04 Tue 14:55]--[2026-08-04 Tue 15:10] =>  0:15
 CLOCK: [2026-08-04 Tue 14:45]--[2026-08-04 Tue 14:50] =>  0:05
 :END:
+[[file:~/.claude/plans/quirky-petting-lobster.md][Plan]]
+
 Raised in conversation 2026-08-04, following the finding that Claude
 Code has no dedicated Plan Mode enter/exit hook — only =PreToolUse=/
 =PostToolUse= matched on the =ExitPlanMode= tool call, and nothing
 fires on *entering* plan mode since that transition isn't a tool call
 at all.
 
-Idea: add =PLANNING= as a new =#+TODO:= keyword (active, between
-=NEXT= and =DOING= in spirit — work has started, but on the plan
-rather than the implementation) and drive it opportunistically off
-that one real signal: a =PostToolUse= hook matched on =ExitPlanMode=
-closes out =PLANNING= (→ =DOING=, opening the clock per the existing
-transition rules) the moment a plan is approved and execution begins.
-There's no symmetric entry signal, so *entering* =PLANNING= has to
-stay a model judgment call at the same standing-instruction layer as
-"any newly described task gets a heading" and "transition to DOING
-before starting work" (see CLAUDE.md's State transition rules) —
-the working assumption is that a prompt asking to plan something is
-itself sufficient signal to set the heading to =PLANNING= before
-entering Plan Mode, exactly mirroring how those other transitions are
-model-decided rather than hook-inferred.
+=PLANNING= slots between =NEXT= and =DOING=. Entry is a model
+judgment call made *before* calling =EnterPlanMode= (Plan Mode itself
+forbids non-readonly tool calls, so =org_set_todo= cannot run once
+inside it — confirmed empirically during planning). Exit is
+automatic: a =PostToolUse= hook matched on =ExitPlanMode= promotes
+=PLANNING= → =DOING= in place, reusing the same continuous clock
+interval rather than closing and reopening it. A "plan and implement"
+prompt still produces both transitions at their correct, separate
+times, never a premature jump to =DOING=.
 
-Edge case to design for explicitly: a single prompt asking to both
-"plan and implement" should still produce two distinct transitions at
-the appropriate points in time (→ =PLANNING= before Plan Mode opens,
-→ =DOING= only once =ExitPlanMode= actually fires and execution
-starts) rather than jumping straight to =DOING= up front — the two
-states need to stay genuinely sequential even when requested in one
-breath.
+Plan approved 2026-08-04, resolving the three original open
+questions: =PLANNING= opens a clock exactly like =DOING= (no
+=:LOGBOOK:= distinction between planning and implementation time);
+the existing =claude-code-ide-org--trigger-auto-clock-in= trigger
+hook gets a one-line =member= check extended to =PLANNING=, no new
+hook needed; and no session→heading mapping is required at all —
+because only one clock can run globally and =PLANNING= is only ever
+set by the model on its own heading, "promote whichever heading
+currently owns the clock marker, iff its state is exactly PLANNING"
+is sufficient, mirroring
+=claude-code-ide-org--blocker-clock-running-p='s existing
+clock-marker-identity pattern.
 
-*Open questions, not yet resolved:* whether =PLANNING= needs its own
-clock semantics (does research/planning time count toward the
-heading's tracked time the same as implementation time, or should
-=:LOGBOOK:= distinguish the two?); how this interacts with the
-existing single-NEXT-per-level and auto-clock-in trigger hooks once a
-third active pre-DOING state exists; and whether the
-=PostToolUse=/=ExitPlanMode= matcher can reliably identify *which*
-heading was being planned (there's no existing session→heading
-mapping to key off outside the clock-owner work in the sibling
-"Concurrent Claude Code sessions" entry above).
+One new gap surfaced *during* planning itself, not anticipated up
+front: there's no reliable plan-approval/rejection signal available
+to gate the promotion on. Confirmed empirically, not just assumed —
+attempting to instrument a temporary capture hook to inspect a live
+=ExitPlanMode= payload is itself a non-readonly action, which
+re-triggers Plan Mode before the capture can run, which then blocks
+the very instrumentation needed to capture it: circular by
+construction. Accepted as a documented gap (same register as the
+concurrent-session clock entry's "self-corrects" tolerance above) —
+a stray promotion after a rejected plan is low-cost and self-corrects
+the next time the heading's real state is set explicitly. See the
+plan link for the full design and file-by-file implementation
+breakdown.
+
+** TODO Org skill: auto-capture and dedupe modification requests against existing TODOs :code:
+:PROPERTIES:
+:ID:       7eb7dd8d-2d9b-4a63-afbd-5878298e42a4
+:CREATED:  [2026-08-04 Tue 17:30]
+:END:
+
+Depends on the sibling heading above (=Add a PLANNING TODO state,
+driven by the ExitPlanMode matcher=, ID
+b95b9fba-f78e-48fe-8546-988709cce309, currently =DOING= in another
+concurrent session) — this task's flow relies on transitioning a
+heading into =PLANNING= and needs that state to exist first. Not
+starting implementation until that lands; don't get confused by
+in-flight changes to that heading from the other session.
+
+Captured 2026-08-04 from conversation, deliberately at "capture the
+idea" depth, not fully designed yet:
+
+Whenever the user says to modify some feature (in the org skill's
+scope), first check whether the request matches any existing TODO
+heading, including =DONE= ones:
+- If it matches an existing heading, ask the user for clarification
+  (e.g. "this looks like it overlaps with <heading> — same task, or
+  something new?") rather than silently creating a duplicate or
+  silently assuming it's the same thing.
+- If it doesn't match anything, create a new heading, capture it (via
+  =org_capture=), set it to =PLANNING=, ask the user any necessary
+  clarifying questions, and then offer to plan it properly (i.e. enter
+  Plan Mode). If the user declines planning, revert the heading back
+  to =TODO= for later planning rather than leaving it stuck in
+  =PLANNING=.
+
+Separately, also check whether the proposed change interacts with any
+*open* (non-DONE, non-CANCELLED) task via a depends-on relationship in
+either direction — i.e. either the new change depends on unfinished
+work, or some existing open task depends on the thing being changed —
+and surface that to the user.
+
+Open questions deferred to actual planning, not resolved here: how
+"matches an existing TODO" is actually determined (semantic search via
+=org_query=? something else?), how depends-on relationships are
+represented/discovered (no existing convention in this project — see
+prose-only cross-references like this heading's own "Depends on"
+paragraph above), and exactly when in the org skill's flow this check
+should fire.
 
 * Clock lifecycle & visibility
 
