@@ -276,6 +276,41 @@ property (documented in the org skill alongside =:BLOCKER:=) is an
 open question for planning — =org-depend= itself implements both, but
 this project may only need one direction enforced.
 
+** TODO Org skill: commit a newly-captured TODO immediately, when safe :code:
+:PROPERTIES:
+:ID:       3cb3f955-f10a-47cd-84ab-e629d73ea59d
+:CREATED:  [2026-08-04 Tue 17:54]
+:END:
+
+Captured 2026-08-04 from conversation: right now, capturing a new org
+heading (per CLAUDE.md's "any time a new task is described in
+conversation, create an org heading" rule) only edits the working tree
+— nothing commits it, so it sits as an uncommitted change alongside
+whatever else is in progress until a human notices and commits by
+hand. Tell the org skill to commit the capture itself, immediately,
+*given that it's safe to do so*.
+
+"Safe" needs pinning down during planning, but at minimum: only the
+=.org= file(s) touched by the capture are staged (never a broad
+=git add -A=/=git add .=, per this project's own general git-safety
+practice), the repo isn't mid-rebase/mid-merge/otherwise in a weird
+state, and — the tricky part — the capture commit doesn't get tangled
+up with *other* unrelated uncommitted changes already sitting in the
+same file from earlier in the session (a commit should be scoped to
+the capture, not sweep up unrelated in-progress edits just because
+they're in the same file). Whether that means a targeted
+=git commit -- TODO.org= (commits the whole file's current diff,
+including any unrelated hunks) is actually "safe" in the sense meant
+here, or whether something narrower is needed, is exactly the kind of
+question actual planning should resolve rather than deciding here.
+
+Should this be prose guidance in the skill (the model decides "is this
+one safe" case by case, same register as the existing read-only-buffer
+guidance) or something more mechanical? Lean prose, given the "safe"
+judgment call looks inherently contextual rather than a fixed
+checklist — same reasoning CLAUDE.md already uses elsewhere for calls
+that "only the model can make."
+
 * Clock lifecycle & visibility
 
 Everything here is specifically about the clock subsystem's
