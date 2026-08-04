@@ -139,11 +139,12 @@ buffer ever created.
 :END:
 :SESSIONS:
 - Resumed [2026-08-04 Tue 14:37] (session 8564fffc-fca9-4e7a-bfed-e26be74361cf)
-- Paused [2026-08-04 Tue 14:44] (session 8564fffc-fca9-4e7a-bfed-e26be74361cf)
-- Resumed [2026-08-04 Tue 14:45] (session 8564fffc-fca9-4e7a-bfed-e26be74361cf)
+- Paused [2026-08-04 Tue 14:53] (session c628ac7a-4135-4412-834a-1bb553d582d8)
+- Resumed [2026-08-04 Tue 14:55] (session c628ac7a-4135-4412-834a-1bb553d582d8)
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-04 Tue 14:45]
+CLOCK: [2026-08-04 Tue 14:55]
+CLOCK: [2026-08-04 Tue 14:45]--[2026-08-04 Tue 14:50] =>  0:05
 :END:
 Raised in conversation 2026-08-04, following the finding that Claude
 Code has no dedicated Plan Mode enter/exit hook — only =PreToolUse=/
