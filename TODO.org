@@ -240,11 +240,41 @@ and surface that to the user.
 
 Open questions deferred to actual planning, not resolved here: how
 "matches an existing TODO" is actually determined (semantic search via
-=org_query=? something else?), how depends-on relationships are
-represented/discovered (no existing convention in this project — see
-prose-only cross-references like this heading's own "Depends on"
-paragraph above), and exactly when in the org skill's flow this check
-should fire.
+=org_query=? something else?), whether discovering an existing
+=:BLOCKER:= depends-on link (this heading's own, above) is sufficient
+or whether the check also needs to search prose for informal
+cross-references that predate this convention, and exactly when in the
+org skill's flow this check should fire.
+
+** TODO Make org-blocker-hook actually consult :BLOCKER: :code:
+:PROPERTIES:
+:ID:       087e73e9-bb24-43b6-a972-b7f103d04017
+:CREATED:  [2026-08-04 Tue 17:46]
+:END:
+
+Captured 2026-08-04, surfaced while adding a =:BLOCKER:= property to
+the sibling heading above: this project's own
+=claude-code-ide-org--blocker-clock-running-p= (the one function
+currently on =org-blocker-hook=) only denies a =DONE= transition while
+a clock is running on that same heading — it never reads =:BLOCKER:=
+at all, and org-depend itself isn't loaded anywhere in this project
+(=packages.el= notes no additional packages). So every existing
+=:BLOCKER:= property in =TODO.org=/=DONE.org= (e.g. ID
+799b14be-6849-4e22-8a76-4e214d8a25fe's) is purely advisory today —
+=org_set_todo= will happily transition a blocked heading to =DONE=
+with nothing stopping it, contrary to what the property visually
+implies.
+
+Extend =claude-code-ide-org--blocker-clock-running-p= (or add a second
+=org-blocker-hook= function alongside it) to also deny a transition to
+=DONE= while any ID listed in the heading's own =:BLOCKER:= property
+resolves to a heading that isn't itself in a done state (=DONE= or
+=CANCELLED=). Should reuse =org-id-find= the same way the existing
+clock-marker check and =org_set_todo='s post-transition heading
+lookup already do. Whether to also honor the inverse =:TRIGGER:=
+property (documented in the org skill alongside =:BLOCKER:=) is an
+open question for planning — =org-depend= itself implements both, but
+this project may only need one direction enforced.
 
 * Clock lifecycle & visibility
 
