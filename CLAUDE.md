@@ -117,6 +117,20 @@ Tags are free-form beyond these four; declare additional ones in `#+TAGS:`.
 `#+ARCHIVE:` directive. Other tags use the same default unless overridden
 with a per-heading `:ARCHIVE:` property.
 
+### Top-level headings
+
+Top-level (`*`) headings in `TODO.org` are categories/epics — pure
+structure, grouping related tasks — not tasks in their own right. They
+carry no `TODO` keyword, no tags, and no `:PROPERTIES:` drawer (so no
+`:ID:` and no `:CREATED:`, overriding the general "every heading
+creation" rule below for this one case specifically). Actual tracked
+work lives as their level-2+ children, each with its own `:ID:` per the
+usual rule. Don't put a `TODO`/`NEXT`/etc. keyword on a top-level
+heading — if a top-level heading needs to represent actionable work
+itself rather than just group children, demote it: give it an `:ID:`
+and treat it like any other task, or nest it one level deeper under a
+category heading instead.
+
 ---
 
 ## State transition rules

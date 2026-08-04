@@ -1,6 +1,190 @@
-#+TODO: TODO NEXT DOING WAIT MAYBE | DONE CANCELLED
+#+TODO: TODO NEXT(n!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
+
+* Skill logic
+
+** DONE Enforce a single NEXT action per level of the task tree :code:
+:PROPERTIES:
+:ID:       05da96ad-37de-41d4-b918-692644749394
+:CREATED:  [2026-08-03 Mon 19:17]
+:END:
+:SESSIONS:
+- Resumed [2026-08-04 Tue 12:19] (session c628ac7a-4135-4412-834a-1bb553d582d8)
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-04 Tue 12:15]--[2026-08-04 Tue 12:20] =>  0:05
+:END:
+[[file:~/.claude/plans/twinkling-meandering-graham.md][Plan]]
+
+At any given level of the task tree — top-level headings, and
+independently among each heading's own direct children — at most one
+heading should ever be =NEXT= at a time, mirroring GTD's single "next
+action" idea: two new =org-trigger-hook= functions (alongside the
+existing pair from "Enforce the transition rules", ID
+39b08ecd-6350-48a2-b169-98535b626ac7) demote a superseded =NEXT=
+sibling back to =TODO=, and auto-promote a sole surviving =TODO= in a
+sibling group of two or more. See the plan for the full design,
+including the resolved double-NEXT race and the two decisions made
+during planning: a lone heading with no siblings is never
+auto-promoted, and automatic transitions log identically to a manual
+one plus an explanatory note.
+
+*Verified, not just implemented:* =claude-code-ide-org--map-siblings=
+(new shared helper) walks a heading's same-level siblings via org's own
+=org-get-next-sibling=/=org-get-previous-sibling=, which stop at the
+enclosing parent's boundary on their own — no special-casing needed
+for top-level headings. Two new =org-trigger-hook= functions,
+=claude-code-ide-org--trigger-demote-conflicting-next= and
+=claude-code-ide-org--trigger-auto-promote-sole-todo=, registered
+alongside the existing pair. Both deliberately carry no re-entrancy
+boolean guard (unlike =claude-code-ide-org--auto-clock-in-active=) —
+correctness is structural instead: each only re-derives sibling state
+fresh from the live buffer, never from the hook's =change-plist=, which
+is exactly what prevents the double-=NEXT= race (naively re-promoting a
+heading the demote function just demoted). 11 new regression tests
+cover top-level and direct-children demotion, cross-subtree isolation,
+promotion on a non-NEXT transition (e.g. a sibling going =DONE=),
+leaving a non-=TODO= or a two-=TODO= survivor group alone, the
+race case itself, a pre-existing-invalid-state collapse, enforcement
+via a bare =org-todo= call (not just the wrapper), and the
+group-of-one exclusion (confirmed against the user's explicit call:
+auto-promotion requires >= 2 siblings). One pre-existing test
+(=...blocker-hook-only-blocks-own-heading=) was swept and fixed — it
+incidentally created a 2-heading TODO-survivor group the new promote
+hook would otherwise have mutated, unrelated to what that test
+actually checks; isolated via a local =let=-shadow of
+=org-trigger-hook=, matching the existing isolation pattern already
+used by =...set-todo-reports-blocked-transition=. =bin/test= passes
+106/106. Also verified live against the running Doom Emacs (reload,
+then two separate scratch-file checks): demoting a superseded =NEXT=
+sibling correctly writes an "Auto-demoted" =:LOGBOOK:= note and leaves
+the new =NEXT= alone; reducing a 2-=TODO= group to one survivor via a
+=DONE= transition (not a =NEXT= transition) correctly auto-promotes
+the survivor with an "Auto-promoted" note; neither case triggered an
+interactive note prompt.
+
+** DONE Adopt org's native !/@ state-change logging, guarded by org-inhibit-logging :code:
+:PROPERTIES:
+:ID:       04d0e7d5-ab6b-4972-925d-d517484c7595
+:CREATED:  [2026-08-04 Tue 13:10]
+:END:
+:SESSIONS:
+- Resumed [2026-08-04 Tue 13:21] (session c628ac7a-4135-4412-834a-1bb553d582d8)
+- Paused [2026-08-04 Tue 13:29] (session c628ac7a-4135-4412-834a-1bb553d582d8)
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-04 Tue 13:10]--[2026-08-04 Tue 13:20] =>  0:10
+:END:
+Follow-up to the sibling heading above: add =!=/=@= markers to the
+=#+TODO:= line (=WAIT(w@/!)=, =CANCELLED(c@)=, =!= elsewhere) so org's
+own native state-change logging captures transition history for free.
+Since =WAIT=/=CANCELLED= are almost always set by Claude through
+=org_set_todo= (a non-interactive path) rather than a live hand-edit,
+=@='s interactive note-prompt would risk hanging/dropping state on that
+path. Planned fix: let-bind =org-inhibit-logging= around the wrapper's
+own =org-todo= call specifically for those two states, so =@= only ever
+fires for a genuine hand-edit made directly in the Emacs buffer — the
+one case where a human is actually present to answer it. The two
+single-NEXT-per-level trigger hooks get the same guard around their
+own nested =org-todo= calls (defensive — neither =TODO= nor =NEXT= is
+=@=-flagged today, but this keeps them immune regardless of future
+marker changes), and their existing hand-written notes get reformatted
+to match org's own native =state= log-line template
+(=State %-12s from %-12s %t=) instead of a separate generic "Note
+taken on" line with a redundant second timestamp.
+
+*Verified, not just implemented — and the plan changed twice under
+live testing:*
+1. First surprise: confirmed live that even a plain =!= marker (not
+   just =@=) defers its log-line insertion through the same
+   =org-add-log-note=/=post-command-hook= machinery, and that deferred
+   call *blocks indefinitely* when triggered non-interactively via
+   =emacsclient -e= — reproduced directly (had to =kill -9= the stuck
+   process), confirmed =org-inhibit-logging= resolves it. This
+   invalidated the planned "selective, =@=-states-only" guard:
+   =claude-code-ide-org-set-todo= now binds =org-inhibit-logging=
+   unconditionally, for every =STATE=, not just =WAIT=/=CANCELLED=.
+2. Second surprise, found chasing an unrelated live failure: with the
+   logging fix in place, driving a demote cascade through the wrapper
+   itself (not bare =org-todo=, which is all the regression tests used)
+   made =org_set_todo= report a false =Error= for a transition that had
+   actually succeeded. Instrumented trace showed a marker captured
+   before the nested =org-todo= call held the same raw position
+   afterward while the *text* at that position had changed — most
+   likely =ws-butler-mode= (a whitespace-cleanup minor mode in the
+   user's personal Doom config, absent from the =emacs --batch -Q= ERT
+   environment) replacing a wider region than a plain insert. Fix: the
+   wrapper's post-transition check now re-resolves the heading fresh by
+   =:ID:= (=org-id-find=) after =org-todo= returns, exactly like every
+   regression test already does, rather than trusting a saved marker or
+   "current point" — immune to the drift regardless of its root cause.
+2 new regression tests added directly from these findings
+(=...suppresses-native-logging-for-every-state=,
+=...reports-success-when-hook-cascade-moves-point=), plus one
+confirming no =*Org Note*= buffer ever appears for =WAIT=/=CANCELLED=
+through the wrapper. =bin/test= passes 109/109. Live-verified end to
+end against the running Doom Emacs (reload, then real scratch-file
+calls through =claude-code-ide-org-set-todo= itself, not bare
+=org-todo=): a two-sibling demote cascade (=NEXT= then =NEXT= again)
+now reports success correctly for both calls, with the combined
+=State ... \\ Auto-demoted: ...= note format present; =WAIT= then
+=CANCELLED= on the same heading both succeed with no =*Org Note*=
+buffer ever created.
+
+** DOING Add a PLANNING TODO state, driven by the ExitPlanMode matcher :code:
+:PROPERTIES:
+:ID:       b95b9fba-f78e-48fe-8546-988709cce309
+:CREATED:  [2026-08-04 Tue 14:19]
+:END:
+:SESSIONS:
+- Resumed [2026-08-04 Tue 14:37] (session 8564fffc-fca9-4e7a-bfed-e26be74361cf)
+- Paused [2026-08-04 Tue 14:53] (session c628ac7a-4135-4412-834a-1bb553d582d8)
+- Resumed [2026-08-04 Tue 14:55] (session c628ac7a-4135-4412-834a-1bb553d582d8)
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-04 Tue 14:55]
+CLOCK: [2026-08-04 Tue 14:45]--[2026-08-04 Tue 14:50] =>  0:05
+:END:
+Raised in conversation 2026-08-04, following the finding that Claude
+Code has no dedicated Plan Mode enter/exit hook — only =PreToolUse=/
+=PostToolUse= matched on the =ExitPlanMode= tool call, and nothing
+fires on *entering* plan mode since that transition isn't a tool call
+at all.
+
+Idea: add =PLANNING= as a new =#+TODO:= keyword (active, between
+=NEXT= and =DOING= in spirit — work has started, but on the plan
+rather than the implementation) and drive it opportunistically off
+that one real signal: a =PostToolUse= hook matched on =ExitPlanMode=
+closes out =PLANNING= (→ =DOING=, opening the clock per the existing
+transition rules) the moment a plan is approved and execution begins.
+There's no symmetric entry signal, so *entering* =PLANNING= has to
+stay a model judgment call at the same standing-instruction layer as
+"any newly described task gets a heading" and "transition to DOING
+before starting work" (see CLAUDE.md's State transition rules) —
+the working assumption is that a prompt asking to plan something is
+itself sufficient signal to set the heading to =PLANNING= before
+entering Plan Mode, exactly mirroring how those other transitions are
+model-decided rather than hook-inferred.
+
+Edge case to design for explicitly: a single prompt asking to both
+"plan and implement" should still produce two distinct transitions at
+the appropriate points in time (→ =PLANNING= before Plan Mode opens,
+→ =DOING= only once =ExitPlanMode= actually fires and execution
+starts) rather than jumping straight to =DOING= up front — the two
+states need to stay genuinely sequential even when requested in one
+breath.
+
+*Open questions, not yet resolved:* whether =PLANNING= needs its own
+clock semantics (does research/planning time count toward the
+heading's tracked time the same as implementation time, or should
+=:LOGBOOK:= distinguish the two?); how this interacts with the
+existing single-NEXT-per-level and auto-clock-in trigger hooks once a
+third active pre-DOING state exists; and whether the
+=PostToolUse=/=ExitPlanMode= matcher can reliably identify *which*
+heading was being planned (there's no existing session→heading
+mapping to key off outside the clock-owner work in the sibling
+"Concurrent Claude Code sessions" entry above).
 
 * Clock lifecycle & visibility
 
@@ -198,56 +382,49 @@ becomes worth building — it keeps the interactive prospective agenda
 and the retrospective clock-report scope independently correct
 instead of coupled to the same file list.
 
-* TODO Enforce a single NEXT action per level of the task tree :code:
+** NEXT Worktree-based session partitioning, with a canonical-file caveat :code:
 :PROPERTIES:
-:ID:       05da96ad-37de-41d4-b918-692644749394
-:CREATED:  [2026-08-03 Mon 19:17]
+:ID:       2e09adb7-6e29-499c-a40e-98cd2b327cff
+:CREATED:  [2026-08-04 Tue 13:29]
 :END:
-At any given level of the task tree — top-level headings, and
-independently among each heading's own direct children — at most one
-heading should ever be =NEXT= at a time, mirroring GTD's single "next
-action" idea. Toggling any heading to =NEXT= should auto-revert any
-other heading already at =NEXT= within that same sibling group back to
-=TODO=, rather than leaving multiple simultaneous =NEXT= headings to
-accumulate silently.
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-08-04 Tue 13:30] \\
+  Auto-promoted: sole remaining TODO in its sibling group.
+:END:
+Raised in conversation 2026-08-04: can separate Claude Code sessions
+work on distinct TODOs simultaneously by each operating in its own
+=git worktree= of a project repo? For the *code* side, yes — that's
+exactly what worktrees are for, one checkout + branch per session,
+no shared-file collisions. Emacs' own uniquify already disambiguates
+same-basename buffers at different paths, so that part isn't even in
+question.
 
-Likely mechanism: extend the existing =org-trigger-hook= registration
-from "Enforce the transition rules" (ID
-39b08ecd-6350-48a2-b169-98535b626ac7) — that one already proved
-=org-trigger-hook= fires globally regardless of entry point (Claude's
-=org_set_todo= tool or a hand-edit both go through =org-todo=). A new
-trigger function would, on transition to =NEXT=, walk the changed
-heading's siblings (via =org-get-next-sibling=/=org-get-last-sibling=
-or =org-map-entries= scoped to the parent) and demote any other
-=NEXT= sibling to =TODO=. Needs care around scope: "level" here means
-*siblings under the same parent* (or top-level headings sharing no
-parent), not "every NEXT in the file" — a =NEXT= two levels down in an
-unrelated subtree must not be touched.
+Where it doesn't extend: =TODO.org=/=DONE.org= themselves must stay a
+single canonical copy in the main checkout, not one copy per
+worktree. Two failure modes rule out a per-worktree copy: (1) =:ID:=
+lookups go through =org-id-locations=, a single global hash table
+keyed by ID — a heading =:ID:= duplicated across two on-disk copies
+(which a worktree checkout produces automatically) means whichever
+copy was scanned last silently wins, with every =org_*= tool
+targeting an unpredictable copy; (2) CLOCK/=:SESSIONS:= data written
+into a worktree-local copy is invisible to =org_clock_report=/
+=org_query=/the agenda until that branch merges, and is lost outright
+if the worktree is torn down first — fragmenting exactly the
+attention-tracking data the clock exists to keep whole. The single
+clock living in one Emacs process reading one canonical file is the
+mechanism that enforces "one attention at a time," not a limitation
+to route around.
 
-Additionally: whenever a sibling group ends up with exactly one
-heading remaining in the =TODO= state — whether because a sibling
-transition just reduced the group to that one (e.g. another sibling
-moved to =DONE=/=CANCELLED=/=WAIT=/=MAYBE=/=DOING=, or was
-added/refiled away), or it was already the case — that lone heading
-should auto-promote to =NEXT=, but *only* if it is actually sitting in
-=TODO= right now. A sole survivor already in some other state
-(=WAIT=, =MAYBE=, =DOING=) must not be force-promoted; this is strictly
-about not leaving an unambiguous single next action stranded in
-=TODO= when nothing else in its group is competing for that slot.
-Likely needs its own trigger scan (broader than "on transition to
-=NEXT=" above) firing on any sibling's state change, not just
-transitions into or out of =NEXT= specifically.
+Related: [[id:337f7fb2-b9e9-4c02-82dd-d88e60df364b][Concurrent Claude Code sessions share one global org-clock with no session identity]]
+already solved the narrower "which session owns the running clock"
+problem this would otherwise collide with. This entry is scoped to
+whether/how to formalize worktrees-for-code as a documented pattern
+(e.g. in CLAUDE.md's Emacs integration section) alongside that
+existing single-canonical-file constraint — not yet decided as worth
+building anything for; may just be a documentation note rather than
+code.
 
-Needs =config-test.el= regression coverage per CLAUDE.md's testing
-rule: at minimum, setting a sibling to =NEXT= while another sibling is
-already =NEXT= demotes the old one; a sibling group left with exactly
-one =TODO= auto-promotes it to =NEXT=; a sibling group left with
-exactly one non-=TODO= (e.g. =WAIT=) survivor is left alone; unrelated
-=NEXT=/=TODO= headings at other parents/levels are left untouched; a
-single =NEXT= with no sibling
-conflict is a no-op.
-
-* TODO Observability
+* Observability
 
 Broader than clocking — visibility into what every tool call
 actually did, both after the fact and at the start of a session.
