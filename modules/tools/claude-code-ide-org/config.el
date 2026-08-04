@@ -739,6 +739,80 @@ convention as `claude-code-ide-org-write-session-start-report'."
   (with-temp-file output-path
     (insert (claude-code-ide-org--session-context-hook-json))))
 
+;;; Statusline (bin/statusline) ------------------------------------------
+;;
+;; Shows the "current default org task" alongside the model name in
+;; Claude Code's statusLine: the currently-running clock if one is
+;; active, else the most recently clocked task from `org-clock-history'
+;; (survives both a clock-out and an Emacs restart, since this user's
+;; Doom config sets `org-clock-persist' to 'history — see CLAUDE.md's
+;; design notes). All formatting logic lives here, not in
+;; bin/statusline, for the same reason every other piece of this
+;; project's Elisp does: it's the only place `bin/test' can exercise
+;; it.
+
+(defun claude-code-ide-org--statusline-task-string ()
+  "Return a short, pre-formatted description of the \"current default
+org task\" for the statusLine, or the empty string if there is
+neither a running clock nor any clock history to fall back to. Uses
+the currently-running clock's marker if `org-clocking-p', else `(car
+org-clock-history)'. The :ID: is truncated to 8 characters and the
+heading name to 30 (with an ellipsis), matching a git-commit-style
+short hash. Total clocked time is summed over the heading's whole
+subtree via `org-clock-sum', matching `org_clock_report''s own
+:ID:-scoped behavior."
+  (let ((marker (if (org-clocking-p) org-clock-marker (car org-clock-history))))
+    (if (not (and marker (markerp marker) (marker-buffer marker)))
+        ""
+      (org-with-point-at marker
+        (let* ((id (or (org-entry-get nil "ID") ""))
+               (short-id (if (> (length id) 8) (substring id 0 8) id))
+               (name (org-get-heading t t t t))
+               (short-name (if (> (length name) 30)
+                               (concat (substring name 0 29) "…")
+                             name))
+               (status-label (if (org-clocking-p) "clocked in" "clocked out"))
+               (total-minutes (progn
+                                (save-restriction
+                                  (org-narrow-to-subtree)
+                                  (org-clock-sum))
+                                (or org-clock-file-total-minutes 0)))
+               (total (org-duration-from-minutes total-minutes)))
+          (format " | %s [%s] (%s, %s total)"
+                  short-name short-id status-label total))))))
+
+(defun claude-code-ide-org--statusline-model-name (input-path)
+  "Read the Claude Code statusLine hook JSON payload from INPUT-PATH
+and return its model.display_name field, or the empty string if the
+field is absent or INPUT-PATH is missing/unparseable. Case study for
+\"maximum Emacs, minimal shell\" (TODO.org's shell-standardization
+item): this used to be a `jq -r' call in bin/statusline itself; moving
+it here means the shell wrapper no longer needs jq, or any JSON
+handling, at all. Fails soft (empty string, not an error) on any
+problem reading or parsing INPUT-PATH — a status line must never error
+or hang the prompt, same reasoning as every other function in this
+section."
+  (condition-case nil
+      (let* ((json-object-type 'alist)
+             (payload (json-read-file input-path))
+             (model (alist-get 'model payload)))
+        (or (alist-get 'display_name model) ""))
+    (error "")))
+
+(defun claude-code-ide-org-write-statusline-report (input-path output-path)
+  "Read the statusLine hook JSON payload from INPUT-PATH and write the
+model display name (`claude-code-ide-org--statusline-model-name')
+followed by the current default org task
+(`claude-code-ide-org--statusline-task-string') to OUTPUT-PATH. Called
+directly via `emacsclient -e' by bin/statusline.sh, which then just
+cats the file — same double-escaping-avoidance convention as
+`claude-code-ide-org-write-session-start-report'/
+`-write-session-context-report'. bin/statusline.sh itself never
+touches INPUT-PATH's contents; all parsing happens here."
+  (with-temp-file output-path
+    (insert (claude-code-ide-org--statusline-model-name input-path))
+    (insert (claude-code-ide-org--statusline-task-string))))
+
 (defun claude-code-ide-org-close-open-interval (id timestamp-string)
   "Close whatever open CLOCK/:SESSIONS: interval exists on the
 heading whose :ID: equals ID, using TIMESTAMP-STRING (an org

@@ -184,3 +184,173 @@ up would make it something worth handing to someone else.
 =mcp-start=) aren't really designed as public standalone-mode API
 today, so an upstream PR is a bigger lift than it looks. Start with
 the snippet, treat upstreaming as a separate future MAYBE.
+
+* Tooling
+
+** DONE Move the statusline script into the repo :code:
+:PROPERTIES:
+:ID:       caf598a1-2770-4836-a069-3890597b1665
+:CREATED:  [2026-07-31 Fri 17:27]
+:END:
+:SESSIONS:
+- Resumed [2026-07-31 Fri 17:27]
+- Paused [2026-07-31 Fri 17:30]
+:END:
+:LOGBOOK:
+CLOCK: [2026-07-31 Fri 17:25]--[2026-07-31 Fri 17:30] =>  0:05
+:END:
+Was living entirely outside the repo (=~/.claude/statusline-command.fish=
++ a =statusLine= entry in the user's personal =~/.claude/settings.json=),
+so nothing about it was version-controlled or shared with anyone who
+clones this project. Confirmed project-scoped =statusLine= is supported
+(same settings-load hierarchy as =hooks=, which this repo's own
+=.claude/settings.json= already proves works at project scope), so
+there's no reason it has to stay a personal, undiscoverable setup step.
+
+*Verified, not just implemented:*
+1. Relocated the script into the repo as =bin/statusline.fish= (renamed
+   from extension-less =bin/statusline= after noticing it's the only
+   fish-dependent script in the whole project — worth being visible
+   from the filename, not just the shebang; see the sibling "Evaluate
+   choice of shell" entry below, spun off from noticing this).
+2. Pulled the inline Elisp (previously a large string embedded in the
+   shell script's =emacsclient -e= call) out into real, named,
+   testable functions in =config.el=
+   (=claude-code-ide-org--statusline-task-string=,
+   =claude-code-ide-org-write-statusline-report=), matching the
+   existing =claude-code-ide-org-write-session-start-report=/
+   =-write-session-context-report= pattern exactly. =bin/statusline.fish=
+   is now a thin wrapper, same shape as =.claude/hooks/session-context.sh=.
+3. Added five regression tests in =config-test.el= covering: nothing
+   clocked and no history (empty string), a running clock, a
+   clocked-out task from =org-clock-history=, long-name truncation, and
+   that a running clock always wins over history even if history's head
+   points elsewhere. =bin/test= passes 90/90.
+4. Wired a =statusLine= entry into this repo's own =.claude/settings.json=
+   pointing at =bin/statusline.fish= via =${CLAUDE_PROJECT_DIR}=, same
+   pattern every hook command in that file already uses. Validated with
+   =jq -e= and ran the exact configured command
+   (=fish ${CLAUDE_PROJECT_DIR}/bin/statusline.fish=) directly — correct
+   output.
+5. Removed the now-redundant =~/.claude/statusline-command.fish= and the
+   =statusLine= key from the user's personal =~/.claude/settings.json=
+   (validated the edited file with =jq -e .= afterward) — exactly one
+   copy in play now, and it ships with the repo for anyone who clones
+   it, no personal setup step required.
+
+** DONE Case study: apply "maximum Emacs" to the statusline script :code:
+:PROPERTIES:
+:ID:       e202e93d-cfa7-4d0a-8721-8f06428bc1e4
+:CREATED:  [2026-07-31 Fri 17:51]
+:END:
+:SESSIONS:
+- Resumed [2026-07-31 Fri 17:54]
+- Paused [2026-07-31 Fri 17:56]
+:END:
+:LOGBOOK:
+:END:
+[[file:~/.claude/plans/sharded-tickling-snowflake.md][Plan]]
+
+Sibling entry below ("Evaluate choice of shell...") lists five options
+for standardizing this project's =bin/= scripts, reordered to lead with
+"pure Emacs" (push all JSON parsing/logic into Elisp, shell wrapper
+shrinks to a stub). This applies that option concretely to the
+statusline feature — the =jq='based model-name extraction still living
+in =bin/statusline.fish= moves into Elisp, paired with a POSIX =sh=
+wrapper — as a real case study the rest of that decision can be judged
+against instead of staying hypothetical.
+
+*Verified, not just implemented:* new
+=claude-code-ide-org--statusline-model-name= reads and parses the
+statusLine hook JSON payload directly (=json-read-file=, no =jq=);
+=claude-code-ide-org-write-statusline-report= gained an =input-path=
+parameter and now writes the model name followed by the task info to
+=output-path= — Elisp produces the *entire* final statusline text.
+=bin/statusline.fish= replaced by =bin/statusline.sh=: plain POSIX
+=sh=, six lines, no =jq=, no field/string handling of any kind — just
+write stdin to a temp file, call =emacsclient=, cat the result. Six new
+regression tests (well-formed payload, missing field, malformed JSON,
+missing input file, and an end-to-end combined-output test); all 5
+pre-existing =--statusline-task-string= tests pass unchanged. =bin/test=
+passes 95/95. =.claude/settings.json='s =statusLine.command= updated to
+=sh ${CLAUDE_PROJECT_DIR}/bin/statusline.sh=, validated with =jq -e=.
+Live: reloaded =config.el=, ran the exact configured command end-to-end
+against real clock state — correct output, model name and task info
+both present, no fish, no =jq= anywhere in the pipeline.
+
+** TODO Evaluate choice of shell and standardize all project scripts :code:
+:PROPERTIES:
+:ID:       84b7d8b3-5161-4146-9167-0e7e2100e365
+:CREATED:  [2026-07-31 Fri 15:23]
+:END:
+Surfaced 2026-07-31 while relocating the statusline script
+(=bin/statusline.fish=) into the repo: every other script in
+=bin/=/=bin/hooks/=/=.claude/hooks/= is bash (mostly no extension,
+one =.sh=), but the statusline script is fish — the only fish
+dependency anywhere in this project, and one =future users= (per the
+README/=CLAUDE.md= discussion) can't assume is installed the way bash
+can be. Named =.fish= explicitly specifically so this deviation is
+visible from the file listing rather than buried in the shebang, but
+that's a stopgap, not a resolution.
+
+*Update 2026-07-31:* option 1 (pure Emacs) below now has a real case
+study, not just a hypothetical — see the sibling heading above ("Case
+study: apply \"maximum Emacs\" to the statusline script", ID
+e202e93d-cfa7-4d0a-8721-8f06428bc1e4). The statusline's =jq=-based
+model-name extraction moved into Elisp
+(=claude-code-ide-org--statusline-model-name=), and the shell wrapper
+became =bin/statusline.sh= — plain POSIX =sh=, no =jq=, no fish — since
+once the logic moves out, there's nothing left in the wrapper that
+needs a fancier shell. The fish-vs-bash framing above is now
+historical for this one script specifically (it's =sh= now, not fish),
+but the broader project-wide decision (which of the five options to
+standardize on) is still open.
+
+Needs an actual decision, not just noticing the inconsistency:
+1. Pure Emacs, given Emacs is already a hard dependency for every
+   script in this project (they all end in an =emacsclient -e= call
+   regardless of which shell wraps it). Rather than the shell side
+   parsing stdin JSON (via =jq= or Python) and interpolating specific
+   fields into an elisp expression string, write stdin to a temp file
+   and pass *that path* to =emacsclient -e=, letting Elisp read and
+   parse the raw JSON itself (native =json-parse-string=, no external
+   dependency) and do all the field-extraction, decision logic, *and*
+   output formatting — mirroring the temp-file convention this project
+   already uses in the opposite direction for output
+   (=claude-code-ide-org-write-*-report=). The shell wrapper would
+   shrink to an near-unconditional stub: write stdin to a temp file,
+   call emacsclient with its path, cat/format whatever comes back.
+   Beyond just cutting the jq/Python dependency, this would eliminate
+   an entire class of bug this project has already had to work around
+   once (see =bin/hooks/session-pause=/=session-resume='s =jq -R -s .=
+   JSON-string-encoding, specifically to avoid unsafe shell-to-elisp
+   string interpolation) — if the shell layer never interpolates a
+   parsed field into an elisp expression at all, that whole hazard
+   disappears by construction rather than being carefully avoided each
+   time.
+2. Python instead of shell for some or all of these. Every hook
+   script that parses the Claude Code JSON payload currently shells
+   out to =jq=; Python's stdlib =json= module does that natively, no
+   external dependency, arguably clearer than =jq='s own query
+   language for anyone unfamiliar with it. Tradeoff: gives up the
+   one-liner brevity these scripts have today for more verbose (if
+   more structured) code, and Python, while extremely common on
+   macOS/Linux dev machines, is still one more runtime assumption on
+   top of whatever shell gets picked for the scripts that stay
+   shell — this wouldn't replace the bash/fish/sh decision below so
+   much as sit alongside it (e.g. "simple wrapper: shell; anything
+   parsing/branching on JSON: Python").
+3. Broader: is bash itself the right universal baseline for "future
+   users," or should everything target POSIX =sh= for maximum
+   portability instead?
+4. Decide fish is fine for this one script specifically (e.g. if it's
+   meaningfully clearer/shorter in fish) and document *why* it's the
+   one exception, so a future contributor doesn't "fix" it back to
+   bash without understanding the tradeoff, or
+5. Standardize on bash (matching every other script) and rewrite
+   =bin/statusline.fish= to drop the fish dependency entirely.
+
+Whatever's decided should also cover: should this be written down as
+a project convention (e.g. in CLAUDE.md's "Repository layout" or a new
+"Scripting conventions" note) so it doesn't have to be
+re-litigated per script.

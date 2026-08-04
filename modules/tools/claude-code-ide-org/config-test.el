@@ -849,6 +849,104 @@ kill) a file the user already had open."
               (should (string-match-p "Currently clocked in" contents))))
         (delete-file out)))))
 
+;;; Statusline -------------------------------------------------------------
+
+(ert-deftest claude-code-ide-org-test-statusline-empty-when-nothing-and-no-history ()
+  (claude-code-ide-org-test--with-heading
+    (should (equal "" (claude-code-ide-org--statusline-task-string)))))
+
+(ert-deftest claude-code-ide-org-test-statusline-shows-clocked-in-task ()
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (let ((result (claude-code-ide-org--statusline-task-string)))
+      ;; Default fixture :ID: is "test-0001" (9 chars) -- truncated to 8.
+      (should (string-match-p "\\` | Test heading \\[test-000\\] (clocked in, " result)))))
+
+(ert-deftest claude-code-ide-org-test-statusline-shows-clocked-out-task-from-history ()
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-clock-out)
+    (should (not (org-clocking-p)))
+    (let ((result (claude-code-ide-org--statusline-task-string)))
+      (should (string-match-p "\\` | Test heading \\[test-000\\] (clocked out, " result)))))
+
+(ert-deftest claude-code-ide-org-test-statusline-truncates-long-heading-name ()
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-min))
+    (re-search-forward "Test heading")
+    (replace-match "This heading name is deliberately much longer than thirty characters")
+    (save-buffer)
+    (claude-code-ide-org-clock-in id)
+    (let ((result (claude-code-ide-org--statusline-task-string)))
+      (should (string-match-p "This heading name is delibera…" result))
+      (should (not (string-match-p "thirty" result))))))
+
+(ert-deftest claude-code-ide-org-test-statusline-prefers-running-clock-over-history ()
+  "If a clock is actively running, it must win over org-clock-history
+even if history's head points somewhere else -- org-clocking-p is
+checked first."
+  (claude-code-ide-org-test--with-heading
+    (let ((other-id "test-0002"))
+      (goto-char (point-max))
+      (insert (concat "* TODO Other heading                                               :code:\n"
+                       ":PROPERTIES:\n"
+                       ":ID:       " other-id "\n"
+                       ":END:\n"))
+      (save-buffer)
+      (org-id-update-id-locations (list file))
+      (claude-code-ide-org-clock-in other-id)
+      (claude-code-ide-org-clock-out)
+      (claude-code-ide-org-clock-in id)
+      (let ((result (claude-code-ide-org--statusline-task-string)))
+        (should (string-match-p "\\` | Test heading \\[test-000\\]" result))))))
+
+(ert-deftest claude-code-ide-org-test-statusline-model-name-from-payload ()
+  (let ((in (make-temp-file "claude-code-ide-org-test-statusline-in")))
+    (unwind-protect
+        (progn
+          (with-temp-file in
+            (insert "{\"model\":{\"display_name\":\"Claude Sonnet 5\"}}"))
+          (should (equal "Claude Sonnet 5"
+                         (claude-code-ide-org--statusline-model-name in))))
+      (delete-file in))))
+
+(ert-deftest claude-code-ide-org-test-statusline-model-name-missing-field ()
+  (let ((in (make-temp-file "claude-code-ide-org-test-statusline-in")))
+    (unwind-protect
+        (progn
+          (with-temp-file in (insert "{}"))
+          (should (equal "" (claude-code-ide-org--statusline-model-name in))))
+      (delete-file in))))
+
+(ert-deftest claude-code-ide-org-test-statusline-model-name-malformed-json ()
+  (let ((in (make-temp-file "claude-code-ide-org-test-statusline-in")))
+    (unwind-protect
+        (progn
+          (with-temp-file in (insert "not json at all {{{"))
+          (should (equal "" (claude-code-ide-org--statusline-model-name in))))
+      (delete-file in))))
+
+(ert-deftest claude-code-ide-org-test-statusline-model-name-missing-file ()
+  (should (equal "" (claude-code-ide-org--statusline-model-name
+                      "/nonexistent/path/does-not-exist.json"))))
+
+(ert-deftest claude-code-ide-org-test-write-statusline-report-combines-model-and-task ()
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (let ((in (make-temp-file "claude-code-ide-org-test-statusline-in"))
+          (out (make-temp-file "claude-code-ide-org-test-statusline-out")))
+      (unwind-protect
+          (progn
+            (with-temp-file in
+              (insert "{\"model\":{\"display_name\":\"Claude Sonnet 5\"}}"))
+            (claude-code-ide-org-write-statusline-report in out)
+            (let ((result (claude-code-ide-org-test--disk-contents out)))
+              (should (string-match-p
+                       "\\`Claude Sonnet 5 | Test heading \\[test-000\\] (clocked in, "
+                       result))))
+        (delete-file in)
+        (delete-file out)))))
+
 ;;; Stale interval recovery ----------------------------------------------
 
 (ert-deftest claude-code-ide-org-test-guess-stop-time-uses-working-hours ()
