@@ -289,6 +289,71 @@ even when CLOCK entries themselves get fragmented into short bursts."
                    (claude-code-ide-org-session-resume)))
     (should (not (org-clocking-p)))))
 
+;;; Session identity (concurrent Claude Code sessions) ----------------------
+;;
+;; Covers claude-code-ide-org--clock-owner-session-id and the guards it
+;; drives in session-pause/session-resume — TODO.org :ID:
+;; 337f7fb2-b9e9-4c02-82dd-d88e60df364b. All five tests above call both
+;; functions with zero arguments and must keep passing unchanged; these
+;; new tests exercise the optional session-id argument specifically.
+
+(ert-deftest claude-code-ide-org-test-session-pause-noop-for-different-session-owner ()
+  "A session must not be able to pause a clock owned by a different
+session — the whole point of the concurrency fix."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-session-pause "session-A")
+    (claude-code-ide-org-session-resume "session-A")
+    (should (org-clocking-p))
+    (should (equal "Clock is owned by a different session; not pausing."
+                   (claude-code-ide-org-session-pause "session-B")))
+    (should (org-clocking-p))
+    (should (equal id (org-with-point-at org-clock-marker (org-id-get))))))
+
+(ert-deftest claude-code-ide-org-test-session-pause-succeeds-for-matching-session-owner ()
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-session-pause "session-A")
+    (claude-code-ide-org-session-resume "session-A")
+    (should (equal "Clocked out: \"Test heading\""
+                   (claude-code-ide-org-session-pause "session-A")))
+    (should (not (org-clocking-p)))))
+
+(ert-deftest claude-code-ide-org-test-session-pause-with-no-session-id-ignores-owner ()
+  "A manual/legacy call with no session-id (the default, e.g. a Claude
+Code version whose hook payload omits it) must still pause
+unconditionally, exactly as before this feature existed, regardless of
+any recorded owner."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-session-pause "session-A")
+    (claude-code-ide-org-session-resume "session-A")
+    (should (org-clocking-p))
+    (should (equal "Clocked out: \"Test heading\""
+                   (claude-code-ide-org-session-pause)))
+    (should (not (org-clocking-p)))))
+
+(ert-deftest claude-code-ide-org-test-session-resume-noop-for-different-session-owner ()
+  "A session must not be able to steal an actively-running clock owned
+by a different session — the other half of the concurrency fix."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-session-pause "session-A")
+    (claude-code-ide-org-session-resume "session-A")
+    (should (org-clocking-p))
+    (should (equal "Clock is owned by a different session; not resuming."
+                   (claude-code-ide-org-session-resume "session-B")))
+    (should (org-clocking-p))
+    (should (equal id (org-with-point-at org-clock-marker (org-id-get))))))
+
+(ert-deftest claude-code-ide-org-test-session-resume-logs-session-id-in-drawer ()
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-session-pause "session-A")
+    (claude-code-ide-org-session-resume "session-A")
+    (should (string-match-p "- Resumed \\[[^]]+\\] (session session-A)"
+                            (claude-code-ide-org-test--disk-contents file)))))
+
 ;;; claude-code-ide-org-set-todo -----------------------------------------------
 
 (ert-deftest claude-code-ide-org-test-set-todo-transitions-and-saves ()

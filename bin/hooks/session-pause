@@ -3,8 +3,28 @@
 # responding and control returns to the user. Fire-and-forget — never
 # blocks or reports back to Claude Code, and fails soft if Emacs isn't
 # reachable (no server running yet, etc).
-cat >/dev/null
+#
+# Passes this session's session_id through to
+# claude-code-ide-org-session-pause so it can no-op instead of pausing
+# a different concurrent session's actively-running clock (see TODO.org
+# :ID: 337f7fb2-b9e9-4c02-82dd-d88e60df364b). Built via jq's own
+# JSON-string encoding rather than naive shell interpolation into the
+# emacsclient -e expression — JSON string-escaping is a safe superset
+# of elisp string-literal escaping for the plain-ASCII UUIDs Claude
+# Code uses, and this avoids any injection risk from untrusted data.
+# An empty/missing session_id is passed through as elisp nil, not an
+# empty string, matching the function's own "nil means no session
+# context" default.
+input="$(cat)"
 
-emacsclient -e '(claude-code-ide-org-session-pause)' >/dev/null 2>&1
+session_id="$(jq -r '.session_id // empty' <<<"$input" 2>/dev/null)"
+
+if [[ -n "$session_id" ]]; then
+  session_id_elisp="$(printf '%s' "$session_id" | jq -R -s .)"
+else
+  session_id_elisp="nil"
+fi
+
+emacsclient -e "(claude-code-ide-org-session-pause $session_id_elisp)" >/dev/null 2>&1
 
 exit 0

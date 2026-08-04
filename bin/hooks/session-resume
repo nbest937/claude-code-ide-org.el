@@ -5,8 +5,23 @@
 # resumed task turns out to be the wrong one, org_clock_in self-corrects
 # the next time Claude actually starts work (see
 # claude-code-ide-org-session-resume's docstring in config.el).
-cat >/dev/null
+#
+# Passes this session's session_id through to
+# claude-code-ide-org-session-resume so it can no-op instead of
+# stealing a different concurrent session's actively-running clock (see
+# TODO.org :ID: 337f7fb2-b9e9-4c02-82dd-d88e60df364b). Same jq-based
+# elisp-string construction as bin/hooks/session-pause — see its
+# comment for why.
+input="$(cat)"
 
-emacsclient -e '(claude-code-ide-org-session-resume)' >/dev/null 2>&1
+session_id="$(jq -r '.session_id // empty' <<<"$input" 2>/dev/null)"
+
+if [[ -n "$session_id" ]]; then
+  session_id_elisp="$(printf '%s' "$session_id" | jq -R -s .)"
+else
+  session_id_elisp="nil"
+fi
+
+emacsclient -e "(claude-code-ide-org-session-resume $session_id_elisp)" >/dev/null 2>&1
 
 exit 0

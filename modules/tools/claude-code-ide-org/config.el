@@ -288,13 +288,44 @@ find-or-create-drawer problem for :LOGBOOK:."
       (unless (bolp) (insert "\n"))
       (insert ":" drawer-name ":\n" line "\n:END:\n"))))
 
+(defvar claude-code-ide-org--log-session-id nil
+  "Dynamically let-bound around `claude-code-ide-org-session-pause'/
+`-resume's body to the calling Claude Code session's session-id
+string, when known, so `claude-code-ide-org--log-session-event' can
+record which session paused/resumed a clock. Left nil for a manual/
+test call or any invocation with no session context — the :SESSIONS:
+line is then written exactly as it always was, with no session
+suffix. Same dynamic-binding convention as `claude-code-ide-org--log-
+source' above, for the same reason: composes correctly if one of
+these wrappers is ever called from inside another.")
+
+(defvar claude-code-ide-org--clock-owner-session-id nil
+  "Session ID of the Claude Code session whose turn boundary most
+recently opened the currently-running clock via
+`claude-code-ide-org-session-resume', or nil if unknown/not session-
+aware. Consulted by `claude-code-ide-org-session-pause'/`-resume' to
+avoid pausing or stealing another session's actively-running clock —
+see the commentary on those two functions for the concurrency bug this
+guards against (TODO.org :ID: 337f7fb2-b9e9-4c02-82dd-d88e60df364b).
+Cleared whenever `claude-code-ide-org-session-pause' actually closes a
+clock, so a later pause/resume with no matching session context falls
+back to the original unconditional behavior — the correct default for
+the ordinary single-session case, not merely a stopgap. Purely
+in-memory: resets naturally on Emacs restart, which is fine since a
+fresh Emacs never has a clock already running.")
+
 (defun claude-code-ide-org--log-session-event (event)
   "Append a timestamped EVENT line to the :SESSIONS: drawer of the
 heading at point.  EVENT is a short label such as \"Resumed\" or
-\"Paused\"."
+\"Paused\".  Appends the session-id from the dynamically-bound
+`claude-code-ide-org--log-session-id', in parentheses, when it is
+non-nil."
   (claude-code-ide-org--append-to-drawer
    "SESSIONS"
-   (format "- %s %s" event (format-time-string "[%Y-%m-%d %a %H:%M]"))))
+   (format "- %s %s%s" event (format-time-string "[%Y-%m-%d %a %H:%M]")
+           (if claude-code-ide-org--log-session-id
+               (format " (session %s)" claude-code-ide-org--log-session-id)
+             ""))))
 
 ;;; Wrappers --------------------------------------------------------------
 
@@ -358,14 +389,35 @@ clock is running."
               (claude-code-ide-org-consolidate-history id))
             (format "Clocked out: \"%s\"" heading)))
       (error (format "Error: %s" (error-message-string err))))))
-(defun claude-code-ide-org-session-pause ()
-  "Pause the running clock, if any.  Alias for
+(defun claude-code-ide-org-session-pause (&optional session-id)
+  "Pause the running clock, if any, unless it's owned by a different
+Claude Code session than SESSION-ID.  Alias for
 `claude-code-ide-org-clock-out', intended to be called directly
 via `emacsclient -e' (not registered as an MCP tool) by a Stop
 hook, so a task automatically pauses the moment Claude finishes
-responding and control returns to the user."
-  (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "session-pause")))
-    (claude-code-ide-org-clock-out)))
+responding and control returns to the user.
+
+SESSION-ID nil (the default — a manual/test call, or a Claude Code
+version whose hook payload omits it) reproduces the exact original
+unconditional behavior: always pauses whatever clock is running,
+regardless of which session, if any, opened it.  That is the correct
+fallback for the ordinary single-session case, not merely a stopgap.
+
+When SESSION-ID is given and does not match
+`claude-code-ide-org--clock-owner-session-id' (and an owner IS
+recorded), this is a no-op that leaves the other session's running
+clock untouched, rather than pausing work that isn't this session's to
+pause.  On an actual pause, clears the owner variable, so a later
+pause with no session context — or once the clock has moved on to
+something else entirely — falls back to the permissive default above."
+  (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "session-pause"))
+        (claude-code-ide-org--log-session-id (or claude-code-ide-org--log-session-id session-id)))
+    (if (and session-id
+             claude-code-ide-org--clock-owner-session-id
+             (not (equal session-id claude-code-ide-org--clock-owner-session-id)))
+        "Clock is owned by a different session; not pausing."
+      (prog1 (claude-code-ide-org-clock-out)
+        (setq claude-code-ide-org--clock-owner-session-id nil)))))
 
 (defun claude-code-ide-org--clock-history-head-done-p ()
   "Non-nil if the most recently clocked-out task in
@@ -379,7 +431,7 @@ a clock on a task that has already finished."
          (org-with-point-at marker
            (org-entry-is-done-p)))))
 
-(defun claude-code-ide-org-session-resume ()
+(defun claude-code-ide-org-session-resume (&optional session-id)
   "Resume clocking on the most recently paused task, if any, via
 `org-clock-in-last'.  Intended to be called directly via
 `emacsclient -e' (not registered as an MCP tool) by a
@@ -397,10 +449,26 @@ about something else entirely), the existing org_clock_in tool
 self-corrects: org-clock-in always closes whatever clock is
 currently running before opening a new one, so the mistaken resume
 just leaves a short, low-cost stray CLOCK interval on the wrong
-heading rather than silently losing time or blocking anything."
-  (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "session-resume")))
+heading rather than silently losing time or blocking anything.
+
+SESSION-ID nil (the default) reproduces the exact original
+unconditional behavior.  When SESSION-ID is given and a clock is
+already running that's owned by a *different* session
+(`claude-code-ide-org--clock-owner-session-id'), this is an
+additional no-op — don't steal another session's actively-running
+clock just because this session's turn boundary happened to arrive.
+On an actual resume, records SESSION-ID as the new owner (nil if this
+call itself has no session context, which is exactly correct: a later
+pause/resume with no session context should still behave as before)."
+  (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "session-resume"))
+        (claude-code-ide-org--log-session-id (or claude-code-ide-org--log-session-id session-id)))
     (condition-case err
         (cond
+         ((and (org-clocking-p)
+               session-id
+               claude-code-ide-org--clock-owner-session-id
+               (not (equal session-id claude-code-ide-org--clock-owner-session-id)))
+          "Clock is owned by a different session; not resuming.")
          ((org-clocking-p) "Already clocking; nothing to resume.")
          ((null org-clock-history) "No paused task to resume.")
          ((claude-code-ide-org--clock-history-head-done-p)
@@ -411,6 +479,7 @@ heading rather than silently losing time or blocking anything."
               "org-clock-in-last did not start a clock."
             (org-with-point-at org-clock-marker
               (claude-code-ide-org--log-session-event "Resumed"))
+            (setq claude-code-ide-org--clock-owner-session-id session-id)
             (let ((buffer (marker-buffer org-clock-marker)))
               (when (buffer-live-p buffer)
                 (with-current-buffer buffer (save-buffer))))
