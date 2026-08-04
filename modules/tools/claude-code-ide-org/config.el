@@ -358,7 +358,6 @@ clock is running."
               (claude-code-ide-org-consolidate-history id))
             (format "Clocked out: \"%s\"" heading)))
       (error (format "Error: %s" (error-message-string err))))))
-
 (defun claude-code-ide-org-session-pause ()
   "Pause the running clock, if any.  Alias for
 `claude-code-ide-org-clock-out', intended to be called directly
@@ -368,16 +367,34 @@ responding and control returns to the user."
   (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "session-pause")))
     (claude-code-ide-org-clock-out)))
 
+(defun claude-code-ide-org--clock-history-head-done-p ()
+  "Non-nil if the most recently clocked-out task in
+`org-clock-history' is now in a DONE-type (terminal) TODO state —
+e.g. it was marked DONE or CANCELLED after being paused, before the
+next `org-clock-in-last' call had a chance to resume it.  This is
+what `claude-code-ide-org-session-resume' checks to avoid reopening
+a clock on a task that has already finished."
+  (let ((marker (car org-clock-history)))
+    (and marker (marker-buffer marker)
+         (org-with-point-at marker
+           (org-entry-is-done-p)))))
+
 (defun claude-code-ide-org-session-resume ()
   "Resume clocking on the most recently paused task, if any, via
 `org-clock-in-last'.  Intended to be called directly via
 `emacsclient -e' (not registered as an MCP tool) by a
 UserPromptSubmit hook, so a paused task resumes the moment the
-user sends the next prompt.  Safe to call when already clocking or
-when there is no clock history to resume — both cases are no-ops.
-If the resumed task turns out to be the wrong one (the user's next
-prompt is about something else entirely), the existing org_clock_in
-tool self-corrects: org-clock-in always closes whatever clock is
+user sends the next prompt.  Safe to call when already clocking,
+when there is no clock history to resume, or when the most
+recently paused task has since reached a DONE-type state — all
+three are no-ops.  The DONE-type check matters because marking a
+task DONE closes its clock and pushes it onto `org-clock-history'
+just like an ordinary pause does; without the check, any later
+turn boundary with nothing else to resume would silently reopen a
+clock on that already-finished heading.  If the resumed task turns
+out to be the wrong *active* one instead (the user's next prompt is
+about something else entirely), the existing org_clock_in tool
+self-corrects: org-clock-in always closes whatever clock is
 currently running before opening a new one, so the mistaken resume
 just leaves a short, low-cost stray CLOCK interval on the wrong
 heading rather than silently losing time or blocking anything."
@@ -386,6 +403,8 @@ heading rather than silently losing time or blocking anything."
         (cond
          ((org-clocking-p) "Already clocking; nothing to resume.")
          ((null org-clock-history) "No paused task to resume.")
+         ((claude-code-ide-org--clock-history-head-done-p)
+          "Most recently paused task is already DONE; nothing to resume.")
          (t
           (org-clock-in-last)
           (if (not (org-clocking-p))

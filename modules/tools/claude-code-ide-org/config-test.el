@@ -280,6 +280,15 @@ even when CLOCK entries themselves get fragmented into short bursts."
     (should (equal "No paused task to resume."
                    (claude-code-ide-org-session-resume)))))
 
+(ert-deftest claude-code-ide-org-test-session-resume-noop-when-history-head-done ()
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-session-pause)
+    (claude-code-ide-org-set-todo id "DONE")
+    (should (equal "Most recently paused task is already DONE; nothing to resume."
+                   (claude-code-ide-org-session-resume)))
+    (should (not (org-clocking-p)))))
+
 ;;; claude-code-ide-org-set-todo -----------------------------------------------
 
 (ert-deftest claude-code-ide-org-test-set-todo-transitions-and-saves ()
