@@ -129,6 +129,39 @@ DEADLINE:  <2025-03-20 Thu>
   :END:
 ```
 
+### Dependencies between tasks
+
+```org
+* DONE Build the foundation
+  :PROPERTIES:
+  :ID:       e47ac400-dd17-4e6a-91aa-bcd837151610
+  :END:
+
+* TODO Build the walls
+  :PROPERTIES:
+  :ID:       799b14be-6849-4e22-8a76-4e214d8a25fe
+  :BLOCKER:  e47ac400-dd17-4e6a-91aa-bcd837151610
+  :END:
+```
+
+- `:BLOCKER:` on a heading names the `:ID:` of another heading that must
+  reach a done state first — a native Org (org-depend) mechanism, not a
+  project-specific one. Prefer it over a prose "depends on ..." sentence
+  in the body whenever the blocking heading has a stable `:ID:`, since a
+  property is machine-checkable and a sentence isn't.
+- `:BLOCKER:` can hold multiple IDs space-separated; the blocked heading
+  can't be marked done until every listed ID is.
+- The inverse relationship — this heading, once done, unblocks another —
+  is `:TRIGGER:`, placed on the *blocking* heading and naming the ID(s)
+  it unblocks. Use whichever direction reads more naturally at the
+  heading being edited; the two are equivalent in intent, not both
+  required.
+- Whether anything actually *enforces* the block (e.g. an
+  `org-blocker-hook` function that consults `:BLOCKER:` and refuses a
+  DONE transition while it's unsatisfied) depends on what hooks are
+  registered in the user's Emacs config — the property is always valid
+  Org syntax and worth recording either way, even absent enforcement.
+
 ### LOGBOOK drawer & state changes
 
 ```org

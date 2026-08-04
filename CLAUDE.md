@@ -131,6 +131,21 @@ itself rather than just group children, demote it: give it an `:ID:`
 and treat it like any other task, or nest it one level deeper under a
 category heading instead.
 
+### Dependencies between tasks
+
+A heading that can't be marked `DONE` until another heading is done gets a
+`:BLOCKER:` property naming the blocking heading's `:ID:` (org-depend's
+native mechanism, not project-specific — see the org skill for the full
+syntax, including the inverse `:TRIGGER:` property). Prefer this over a
+prose "depends on ..." sentence whenever the blocking heading has a
+stable `:ID:` — it's machine-checkable, a sentence isn't. Whether
+anything currently *enforces* it (an `org-blocker-hook` function
+consulting `:BLOCKER:`) is separate from whether it's worth recording;
+this project's own `org-blocker-hook` function
+(`claude-code-ide-org--blocker-clock-running-p`) only blocks on a
+running clock today, not on `:BLOCKER:` — see "Enforce the transition
+rules" in TODO.org.
+
 ---
 
 ## State transition rules

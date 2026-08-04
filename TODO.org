@@ -199,15 +199,21 @@ breakdown.
 :PROPERTIES:
 :ID:       7eb7dd8d-2d9b-4a63-afbd-5878298e42a4
 :CREATED:  [2026-08-04 Tue 17:30]
+:BLOCKER:  b95b9fba-f78e-48fe-8546-988709cce309
 :END:
 
-Depends on the sibling heading above (=Add a PLANNING TODO state,
+Blocked on the sibling heading above (=Add a PLANNING TODO state,
 driven by the ExitPlanMode matcher=, ID
 b95b9fba-f78e-48fe-8546-988709cce309, currently =DOING= in another
-concurrent session) — this task's flow relies on transitioning a
-heading into =PLANNING= and needs that state to exist first. Not
-starting implementation until that lands; don't get confused by
-in-flight changes to that heading from the other session.
+concurrent session), recorded via the project's =:BLOCKER:= convention
+(native org-depend syntax; see the org skill for the full
+documentation) — not currently enforced by this project's own
+=org-blocker-hook= function, which only blocks on a running clock, not
+on =:BLOCKER:= (see the new sibling heading below for closing that
+gap) — this task's flow relies on transitioning a heading into
+=PLANNING= and needs that state to exist first. Not starting
+implementation until that lands; don't get confused by in-flight
+changes to that heading from the other session.
 
 Captured 2026-08-04 from conversation, deliberately at "capture the
 idea" depth, not fully designed yet:
