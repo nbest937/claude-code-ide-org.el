@@ -318,6 +318,36 @@ correctness and observability, as opposed to the general TODO-state
 machine above — three different angles on "make sure the clock is
 never silently wrong."
 
+** TODO Reorder :SESSIONS: entries to match :LOGBOOK: ordering :code:
+:PROPERTIES:
+:ID:       2b0988ed-eb92-4fa7-904a-cb2d10941bfd
+:CREATED:  [2026-08-04 Tue 17:58]
+:END:
+
+Captured 2026-08-04 from conversation. Org's own =:LOGBOOK:= (both
+=CLOCK:= lines and state-change log notes) inserts each new entry at
+the *top* of the drawer, newest-first — visible throughout this file,
+e.g. the =PLANNING TODO state= heading in "Skill logic" above, whose
+=CLOCK:= lines run 17:29, 17:15, 14:55, 14:45, descending. This
+project's own =:SESSIONS:= drawer
+(=claude-code-ide-org-session-pause=/=-resume=) instead appends each
+new =Resumed=/=Paused= entry at the *bottom*, oldest-first — the
+reverse order, visible in the same headings' =:SESSIONS:= drawers.
+
+Adjust =:SESSIONS:= to match — assuming, as this task's title takes
+for granted, that matching =:LOGBOOK:='s (and the native TODO
+state-change log's) ordering convention is actually the right call
+rather than an arbitrary pick between two equally-valid options; that
+assumption itself is worth a sanity check during planning, not just
+asserted here. If confirmed, likely means prepending new
+=:SESSIONS:= entries instead of appending, in
+=claude-code-ide-org-session-pause=/=-resume=.
+
+Distinct from the existing "Known cosmetic quirk" in CLAUDE.md about
+=:SESSIONS:= vs =:LOGBOOK:='s *relative drawer position* (which drawer
+appears first in the property area) — this is about the entry order
+*within* =:SESSIONS:= itself.
+
 ** DONE Concurrent Claude Code sessions share one global org-clock with no session identity :code:
 :PROPERTIES:
 :ID:       337f7fb2-b9e9-4c02-82dd-d88e60df364b
