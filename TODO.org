@@ -239,6 +239,78 @@ up would make it something worth handing to someone else.
 today, so an upstream PR is a bigger lift than it looks. Start with
 the snippet, treat upstreaming as a separate future MAYBE.
 
+* Upstream (claude-code-ide.el)
+
+Issues found against the third-party =claude-code-ide.el=
+(manzaltu/claude-code-ide.el) package itself, not this repo's own
+code — worth reporting upstream but not this repo's work to fix.
+
+** MAYBE Accumulate issues to report upstream to claude-code-ide.el :code:
+:PROPERTIES:
+:ID:       9d6449c7-529f-49a0-b28f-015cce869715
+:CREATED:  [2026-07-30 Thu 12:21]
+:END:
+A running collector, not a single deliverable — whenever this
+project's use of =claude-code-ide.el= turns up a genuine bug or
+spec-compliance gap in the package itself, it gets a subtask here
+rather than being silently patched and forgotten in personal Doom
+config. Filing upstream is optional/whenever; the point is not
+losing track of what's been found.
+
+*** TODO MCP HTTP server responds 200 instead of 202 Accepted to notifications :code:
+:PROPERTIES:
+:ID:       8f986c6f-7cab-42c5-9a21-01275f271c80
+:CREATED:  [2026-07-30 Thu 12:21]
+:END:
+=claude-code-ide-mcp-http-server--send-empty-response= (the
+id-less/notification response path, e.g. for
+=notifications/initialized=) replies with HTTP =200= +
+=Content-Type: text/plain=, but the MCP Streamable HTTP spec expects
+=202 Accepted= for that case. Confirmed live, found while bridging
+Warp to this server: Warp's own MCP client fails with "Transport
+channel closed" sending =notifications/initialized= against the
+unpatched server; the Python =mcp= SDK's client (used by
+=mcp-proxy=) instead rejects the same response with "Unexpected
+content type: text/plain". Verified fix: changing just the status
+code to =202= (confirmed transiently via =emacsclient= before being
+persisted as a Doom config override) resolves both — a full
+=tools/list= round-trip succeeded afterward. Worked around locally in
+this project's Doom config pending an upstream report/PR.
+
+* Documentation
+
+** NEXT Add README.md and enforce its consistency with CLAUDE.md :code:comms:
+:PROPERTIES:
+:ID:       d7849119-8224-4993-a8ab-83e1434df53c
+:CREATED:  [2026-07-30 Thu 22:45]
+:END:
+No README.md exists in this repo today — CLAUDE.md is currently the
+*only* documentation file, doing double duty as both agent
+instructions and de facto human-facing intro (confirmed: this repo has
+no other .md file at all). Decided against Claude Code's =@README.md=
+import syntax inside CLAUDE.md (which would auto-load the full file
+into every session's context, same as CLAUDE.md itself) in favor of a
+small, deliberate amount of redundancy: a human-facing README.md
+(intro/tutorial framing, quickstart, maybe a trimmed install summary)
+kept separate from CLAUDE.md, accepting that the small overlap zone
+(mainly the intro/description, per CLAUDE.md's own opening lines and
+maybe an abbreviated version of its "Emacs integration" section) needs
+manual syncing rather than paying the token cost of importing the
+whole file every session.
+
+Two parts:
+1. Write README.md itself.
+2. Add a =PostToolUse= hook (matching =Edit|Write=, filtered to fire
+   only when =tool_input.file_path= is =CLAUDE.md= or =README.md=,
+   read via =jq= from the hook's stdin JSON — same idiom as
+   =bin/hooks/pretooluse-transition-guard=) that injects an
+   =additionalContext= reminder to check the sibling file for anything
+   that also needs updating. Mirrors the existing =SessionStart=
+   stale-interval-recovery hook's pattern (inject context, let Claude
+   relay/act on it) rather than hard-blocking the edit, which would be
+   heavier-handed than this warrants.
+
+Revisit 2026-07-31.
 
 * Tooling
 
