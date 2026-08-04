@@ -141,10 +141,10 @@ a `:ID:`, transition it to `DOING` via `org_set_todo` *before* beginning,
 unless it's already `DOING`. This has to be a standing instruction, not a
 hook — deciding "this conversation is now doing that task" is a judgment
 call about intent, which only the model can make. Hooks can only enforce
-the mechanics of a transition once it's triggered (see `org-trigger-hook`/
-`org-blocker-hook` in TODO.org, which is the safety net if this rule is
-ever forgotten: it opens the clock the moment DOING is set, however it got
-set).
+the mechanics of a transition once it's triggered — `org-trigger-hook`/
+`org-blocker-hook` are the intended safety net for that (opening the clock
+the moment DOING is set, however it got set), but they are not built yet;
+see "Enforce the transition rules" in TODO.org.
 **Rule**: any time a new task is described in conversation, create an org
 heading for it (with a `:ID:`) and set its initial TODO state, rather than
 only tracking it in conversation memory. Same reasoning as above — this is
@@ -169,13 +169,18 @@ Most tools locate a single heading by its `:ID:` property.  Every heading
 Claude is expected to act on must have one (`M-x org-id-get-create`).
 `org_query` is the exception — it searches across files by query, not by ID.
 
-| Tool            | Wraps                  | Notes                                 |
-|-----------------|------------------------|---------------------------------------|
-| `org_clock_in`  | `org-clock-in`         | Always call when entering DOING       |
-| `org_clock_out` | `org-clock-out`        | Always call when leaving DOING        |
-| `org_set_todo`  | `org-todo`             | Saves buffer after state change       |
-| `org_archive`   | `org-archive-subtree`  | Respects `#+ARCHIVE:` directive       |
-| `org_query`     | `org-ql-select`        | Cross-file search; not :ID:-scoped    |
+| Tool                | Wraps                    | Notes                                  |
+|---------------------|--------------------------|-----------------------------------------|
+| `org_clock_in`      | `org-clock-in`           | Always call when entering DOING        |
+| `org_clock_out`     | `org-clock-out`          | Always call when leaving DOING         |
+| `org_clock_report`  | `org-clock-report`       | Clocktable summary; :ID:-scoped or all |
+| `org_set_todo`      | `org-todo`               | Saves buffer after state change        |
+| `org_archive`       | `org-archive-subtree`    | Respects `#+ARCHIVE:` directive        |
+| `org_query`         | `org-ql-select`          | Cross-file search; not :ID:-scoped     |
+| `org_capture`       | `org-capture`            | Quick-add a new TODO heading           |
+| `org_refile`        | `org-refile`             | Move a subtree under a different parent |
+| `org_move_sibling`  | `org-move-subtree-up/down` | Move a heading up/down among siblings |
+| `org_sort_children` | `org-sort-entries`       | Sort a heading's direct children       |
 
 Text editing (via the org skill) is used for adding or changing tags,
 generating new headings, and time reporting. `org_query` now covers
@@ -290,6 +295,13 @@ proves too coarse in practice.
 Key settings in the user's Doom config:
 
 ```elisp
+;; Auto-start the Emacs server — every MCP tool in this project goes
+;; through emacsclient, so a reachable server is a hard prerequisite,
+;; not just a convenience. Guarded so reloading config.el mid-session
+;; doesn't hit server-start's "already running" prompt.
+(unless (server-running-p)
+  (server-start))
+
 ;; org-mode
 (after! org
   (setq org-todo-keywords
@@ -307,6 +319,11 @@ Key settings in the user's Doom config:
   (setq claude-code-ide-terminal-backend 'vterm)
   (global-auto-revert-mode 1))
 ```
+
+(Only relevant if you ever run two separate Emacs.app processes at once:
+the second one's `server-start` will hit the "already running" prompt,
+since both claim the same default socket name — a non-issue for the
+usual single-instance workflow.)
 
 No explicit clock-persistence-restore call is needed above — see the design
 note below. The user's live config additionally pins
@@ -374,6 +391,3 @@ by hooking into Claude Code session lifecycle events.
   that aborts org-mode initialization for the first file you open in a
   session. Don't add it back.
 
-- **Folding / structural manipulation (not yet implemented)**
-  Deferred pending MVP usage. Candidates for future iteration: `org_refile`,
-  `org_move_sibling`, `org_query`, `org_sort_children`.

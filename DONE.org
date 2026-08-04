@@ -864,3 +864,92 @@ and has been uninstalled; nothing repo-tracked depends on it. Both
 currently identical, as a deliberate seam for the two clients to
 diverge later.
 
+** DONE Fix org-agenda-files/tracked-files resolving to nothing (agenda + org_query/org_clock_report) :code:
+:PROPERTIES:
+:ID:       74f24402-978e-4c66-ac97-996f387c0ddb
+:CREATED:  [2026-07-29 Wed 12:25]
+:ARCHIVE_TIME: 2026-07-30 Thu 15:48
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:SESSIONS:
+- Resumed [2026-07-29 Wed 12:29]
+- Paused [2026-07-29 Wed 18:40]
+:END:
+:LOGBOOK:
+CLOCK: [2026-07-29 Wed 18:20]--[2026-07-29 Wed 18:30] =>  0:10
+CLOCK: [2026-07-29 Wed 17:00]--[2026-07-29 Wed 17:05] =>  0:05
+CLOCK: [2026-07-29 Wed 12:25]--[2026-07-29 Wed 12:30] =>  0:05
+:END:
+Doom's =org-agenda-files= is =("~/org")= — a bare directory string —
+and org's directory expansion for it is non-recursive, so
+=(org-agenda-files)= resolves to nil (TODO.org is symlinked one level
+below =~/org=, inside =claude-code-ide-org/=). The interactive agenda
+never sees it.
+
+Worse: =claude-code-ide-org--tracked-files= (config.el:412) returns
+the *raw* =org-agenda-files= variable rather than calling the
+=(org-agenda-files)= function, so =org_query= and unscoped
+=org_clock_report= are also blind whenever they fall back to it —
+confirmed live: =(claude-code-ide-org-query "(todo)")= returned "No
+matches." despite an active DOING heading. Affects three consumers:
+the stale-interval recovery scan, =org_query=, and unscoped
+=org_clock_report=. No existing test exercises the directory-fallback
+path — every test binds =claude-code-ide-org-query-files= directly.
+
+*Verified, not just implemented:* =bin/test= (78/78 including the new
+regression test), plus live checks against the running Emacs after
+reloading both the Doom config setq (=emacsclient -e '(setq
+org-agenda-files ...)'=, since it doesn't touch any =after!=/hook
+timing — no restart needed per org-dev.skill's rule of thumb) and
+config.el itself (=emacsclient -e '(load-file
+"modules/tools/claude-code-ide-org/config.el")'=): =(org-agenda-files)=
+now resolves to TODO.org's real path; =org_query "todo:DOING"= finds
+both DOING headings instead of "No matches."; the interactive
+=org-todo-list= renders every heading in this file; =org_clock_report=
+returns real clocked time instead of an empty table.
+
+** DONE session-resume can reopen a clock on an already-DONE heading :code:
+:PROPERTIES:
+:ID:       2e34162a-4720-4d23-bf29-10eb295cd087
+:CREATED:  [2026-07-29 Wed 14:17]
+:ARCHIVE_TIME: 2026-07-30 Thu 15:48
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_OLPATH: Clock lifecycle & visibility
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:SESSIONS:
+- Resumed [2026-07-30 Thu 14:47]
+- Paused [2026-07-30 Thu 14:47]
+:END:
+Caught live in this session: =org-clock-in-last= (called by
+=session-resume= on =UserPromptSubmit=) resumes onto
+=org-clock-history='s most recent entry with no check that it's still
+active — so finishing a task doesn't stop it from being re-clocked on
+the next turn boundary if nothing else clocks in after. Recurred three
+times in a row on the same just-finished heading — once per turn
+boundary, until a heading existed here to track it as work rather than
+just stripping the stray entry again; see the commit that fixed
+org-agenda-files for context on what was being worked on when this was
+first found.
+
+*Verified, not just implemented:* added
+=claude-code-ide-org--clock-history-head-done-p=, which checks whether
+=(car org-clock-history)= now points to a DONE-type heading, and a
+guard clause in =claude-code-ide-org-session-resume= that short-circuits
+with a "already DONE; nothing to resume" message instead of calling
+=org-clock-in-last= when that's true. The separate, deliberately-kept
+behavior — resuming onto the wrong but still-*active* task, which
+self-corrects via the next =org_clock_in= — is untouched. =bin/test=
+passes 79/79 including a new regression test
+(=session-resume-noop-when-history-head-done=) that pauses a clocked
+task, marks it DONE, and asserts resume refuses to reopen it. Also
+verified live against the running Doom Emacs (reload + a scratch-file
+functional check mirroring the unit test, not the real tracked
+headings) after reconnecting a mid-task Emacs/MCP-server outage that
+interrupted this session. While starting this task, surfaced a
+separate, previously-untracked gap — two concurrent Claude Code
+sessions share one global org-clock with no session identity — spun
+off as its own heading below rather than folded into this fix.

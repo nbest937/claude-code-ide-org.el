@@ -2,100 +2,154 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 
-* Roadmap
-
-Brainstormed, not committed to — all MAYBE on purpose. Pick what's
-actually worth building and I'll bump it to NEXT. Grouped by what
-each cluster is actually for, not by which layer (org vs Claude)
-would implement it — several items that live in different systems
-turned out to be the same underlying goal.
-
-
-** Developer tooling
-
-*** DONE Fix org-agenda-files/tracked-files resolving to nothing (agenda + org_query/org_clock_report) :code:
-:PROPERTIES:
-:ID:       74f24402-978e-4c66-ac97-996f387c0ddb
-:CREATED:  [2026-07-29 Wed 12:25]
-:END:
-:SESSIONS:
-- Resumed [2026-07-29 Wed 12:29]
-- Paused [2026-07-29 Wed 18:40]
-:END:
-:LOGBOOK:
-CLOCK: [2026-07-29 Wed 18:20]--[2026-07-29 Wed 18:30] =>  0:10
-CLOCK: [2026-07-29 Wed 17:00]--[2026-07-29 Wed 17:05] =>  0:05
-CLOCK: [2026-07-29 Wed 12:25]--[2026-07-29 Wed 12:30] =>  0:05
-:END:
-Doom's =org-agenda-files= is =("~/org")= — a bare directory string —
-and org's directory expansion for it is non-recursive, so
-=(org-agenda-files)= resolves to nil (TODO.org is symlinked one level
-below =~/org=, inside =claude-code-ide-org/=). The interactive agenda
-never sees it.
-
-Worse: =claude-code-ide-org--tracked-files= (config.el:412) returns
-the *raw* =org-agenda-files= variable rather than calling the
-=(org-agenda-files)= function, so =org_query= and unscoped
-=org_clock_report= are also blind whenever they fall back to it —
-confirmed live: =(claude-code-ide-org-query "(todo)")= returned "No
-matches." despite an active DOING heading. Affects three consumers:
-the stale-interval recovery scan, =org_query=, and unscoped
-=org_clock_report=. No existing test exercises the directory-fallback
-path — every test binds =claude-code-ide-org-query-files= directly.
-
-*Verified, not just implemented:* =bin/test= (78/78 including the new
-regression test), plus live checks against the running Emacs after
-reloading both the Doom config setq (=emacsclient -e '(setq
-org-agenda-files ...)'=, since it doesn't touch any =after!=/hook
-timing — no restart needed per org-dev.skill's rule of thumb) and
-config.el itself (=emacsclient -e '(load-file
-"modules/tools/claude-code-ide-org/config.el")'=): =(org-agenda-files)=
-now resolves to TODO.org's real path; =org_query "todo:DOING"= finds
-both DOING headings instead of "No matches."; the interactive
-=org-todo-list= renders every heading in this file; =org_clock_report=
-returns real clocked time instead of an empty table.
-
-** New MCP tools
-
-On-demand capabilities Claude would call. Independent of each
-other — no shared implementation, just the same "make it a tool
-instead of raw text editing" shape.
-
-** Enforce the transition rules
-
-CLAUDE.md's transition table (TODO→DOING opens a clock, etc.) is
-pure prose right now — nothing stops a hand-edit in Emacs, or some
-future tool call, from violating it. These three items are one
-project split across two enforcement layers plus the tests that
-should cover both: org's own dependency hooks catch violations
-regardless of how the state change happened, a Claude-side hook
-catches the specific path our own tools take one step earlier, and
-neither is done until it's tested.
-
-** Clock lifecycle & visibility
+* Clock lifecycle & visibility
 
 Everything here is specifically about the clock subsystem's
 correctness and observability, as opposed to the general TODO-state
 machine above — three different angles on "make sure the clock is
 never silently wrong."
 
-*** TODO session-resume can reopen a clock on an already-DONE heading :code:
+** DONE Concurrent Claude Code sessions share one global org-clock with no session identity :code:
 :PROPERTIES:
-:ID:       2e34162a-4720-4d23-bf29-10eb295cd087
-:CREATED:  [2026-07-29 Wed 14:17]
+:ID:       337f7fb2-b9e9-4c02-82dd-d88e60df364b
+:CREATED:  [2026-07-30 Thu 12:39]
 :END:
-Caught live in this session: =org-clock-in-last= (called by
-=session-resume= on =UserPromptSubmit=) resumes onto
-=org-clock-history='s most recent entry with no check that it's still
-active — so finishing a task doesn't stop it from being re-clocked on
-the next turn boundary if nothing else clocks in after. Recurred three
-times in a row on the same just-finished heading — once per turn
-boundary, until a heading existed here to track it as work rather than
-just stripping the stray entry again; see the commit that fixed
-org-agenda-files for context on what was being worked on when this was
-first found.
+:SESSIONS:
+- Resumed [2026-07-30 Thu 17:32]
+- Paused [2026-07-30 Thu 17:38]
+:END:
+:LOGBOOK:
+CLOCK: [2026-07-30 Thu 17:30]--[2026-07-30 Thu 17:40] =>  0:10
+:END:
+[[file:~/.claude/plans/concurrent-session-clock-identity.md][Plan]]
 
-*** MAYBE Idle-based auto clock-out :code:
+Surfaced 2026-07-30 while starting work on the sibling entry above
+(=session-resume= reopening a DONE heading's clock, ID
+2e34162a-4720-4d23-bf29-10eb295cd087), with a second concurrent
+session active on the Warp MCP proxy bridge task (ID
+6a6d5b4e-0327-4578-a44a-356576870ceb). The =Stop=/=UserPromptSubmit=
+hooks (=session-pause=/=session-resume=) operated on the single global
+Emacs clock and =org-clock-history= with no notion of which session
+they belong to — any concurrent session's turn boundary could pause,
+resume, or steal another session's running clock.
+
+*Verified, not just implemented:* threaded Claude Code's own
+=session_id= (already present on every Stop/UserPromptSubmit hook
+payload, previously discarded via =cat >/dev/null=) through
+=bin/hooks/session-pause=/=session-resume= — via =jq='s own
+JSON-string encoding into the =emacsclient -e= call, not naive shell
+interpolation, avoiding any injection risk — down to new optional
+=session-id= arguments on
+=claude-code-ide-org-session-pause=/=-resume=. A new
+=claude-code-ide-org--clock-owner-session-id= records which session's
+=session-resume= call most recently opened the running clock;
+=session-pause=/=session-resume= now no-op instead of
+pausing/stealing a clock owned by a different session. =nil=
+session-id (a manual/test call, or omitted from the hook payload)
+reproduces the exact original unconditional behavior — not a special
+case, the correct fallback for the ordinary single-session case.
+=:SESSIONS:= entries also record the session-id when known, directly
+visible evidence for verification. Explicitly out of scope:
+=clock-status.json= has the same latent single-global-file gap under
+concurrent writes — not fixed here.
+
+Deliberately does not attempt true concurrent clocking (org itself
+only ever supports one running clock); narrows the failure mode to the
+same low-cost "stray interval, self-corrects" category already
+accepted for the unrelated "wrong but still active task" case.
+
+=bin/test= passes 85/85 (5 new regression tests: cross-session pause
+and resume both correctly blocked and leave the other session's clock
+untouched; same-session pause still succeeds; omitting session-id
+still bypasses the ownership check entirely; the :SESSIONS: session-id
+annotation is present). All 5 pre-existing session-pause/-resume tests
+pass unchanged. Also verified live end-to-end through the actual bash
+hook scripts (not just the elisp functions directly) against a scratch
+heading: simulated two concurrent sessions via fabricated
+Stop/UserPromptSubmit JSON payloads piped into
+=bin/hooks/session-pause=/=session-resume= — session B's pause and
+resume attempts on session A's running clock both correctly no-op'd
+with the clock left untouched and still owned by A; session A then
+paused its own clock normally, with the owner correctly clearing
+afterward.
+
+** DONE org-clock-out-remove-zero-time-clocks silently erases short CLOCK intervals :code:
+:PROPERTIES:
+:ID:       293ac49e-3324-421c-8495-de1a46fc04ac
+:CREATED:  [2026-07-30 Thu 14:50]
+:END:
+:SESSIONS:
+- Resumed [2026-07-30 Thu 17:25]
+- Paused [2026-07-30 Thu 17:31] (recovered)
+:END:
+:LOGBOOK:
+CLOCK: [2026-07-30 Thu 17:25]--[2026-07-30 Thu 17:30] =>  0:05
+:END:
+[[file:~/.claude/plans/zero-time-clock-erasure.md][Plan]]
+
+Found live: the sibling heading above (=session-resume= reopening a
+DONE heading's clock, ID 2e34162a-4720-4d23-bf29-10eb295cd087) did
+real, substantial work — a new function, a regression test — but its
+=:LOGBOOK:= was completely empty. Root cause: Doom's =lang/org= module
+sets =org-clock-out-remove-zero-time-clocks t= (not anything this
+project configured); org-native =org-clock-out= deletes a just-closed
+=CLOCK:= line outright based on its *raw* duration, before
+=claude-code-ide-org-consolidate-history= (this project's own
+rounding+merge+drop logic, which already replicates the same intent
+correctly) ever gets a chance to run.
+
+*Verified, not just implemented:* fixed precisely at the conflict
+point, not globally — =claude-code-ide-org-clock-out= now let-binds
+=org-clock-out-remove-zero-time-clocks= to nil around its own
+=(org-clock-out)= call, so org-native's premature deletion never fires
+on the Claude-tool/hook-driven path, while a human's own manual
+=org-clock-out= keeps org's normal behavior untouched. New regression
+test (=claude-code-ide-org-test-clock-out-suppresses-zero-time-removal=)
+captures the dynamic value =org-clock-out-remove-zero-time-clocks=
+actually has at the moment org-clock.el's own =org-clock-out= runs,
+proving it's nil there even with the test's outer binding (simulating
+Doom's real override) set to t — direct mechanism verification, since
+interval-arithmetic analysis showed a same-minute (the only case org's
+raw check fires on) interval rounds to zero either way at minute
+resolution, so asserting on final disk content alone can't distinguish
+buggy from fixed. =bin/test= passes 80/80. Also confirmed live against
+the running Doom Emacs (reload, then the same dynamic-binding capture
+against a scratch heading): a same-minute clock-in/out under
+=org-clock-out-remove-zero-time-clocks= t completes cleanly with the
+interval correctly dropped by this project's own logic, no crash, no
+premature deletion.
+
+** DONE Enforce the transition rules :code:
+:PROPERTIES:
+:ID:       39b08ecd-6350-48a2-b169-98535b626ac7
+:CREATED:  [2026-07-30 Thu 15:56]
+:END:
+CLAUDE.md's transition table (TODO→DOING opens a clock, etc.) was pure
+prose at one point, with nothing stopping a hand-edit in Emacs, or a
+future tool call, from violating it. Recreated 2026-07-30 as a =NEXT=
+after being found stripped out of TODO.org's own cleanup with no
+subheadings ever added under it — but turned out to already be
+implemented and tested in =config.el=/=config-test.el=, just never
+reflected back into the roadmap.
+
+*Verified, not just implemented:* =claude-code-ide-org--blocker-clock-running-p=
+(on =org-blocker-hook=) denies a DONE transition while that exact
+heading's own clock is running, and
+=claude-code-ide-org--trigger-auto-clock-in= (on =org-trigger-hook=)
+auto-opens a clock the instant any heading becomes DOING — both
+registered globally via =with-eval-after-load 'org=, so they catch
+every path, not just =claude-code-ide-org-set-todo=. Confirmed the
+"Claude-side hook, one step earlier" half of the original design was
+never a separate mechanism to build:
+=claude-code-ide-org-set-todo= calls plain =org-todo=, which *is* the
+function these hooks intercept, so Claude's own tool path already goes
+through the same enforcement as a hand-edit — no narrower catch point
+exists to add. =config-test.el= has four dedicated regression tests,
+including one that bypasses the wrapper entirely (a bare =org-todo=
+call) to prove the enforcement lives in org itself. =bin/test= passes
+79/79.
+
+** MAYBE Idle-based auto clock-out :code:
 Via =org-clock-idle-time=, already built into org — just needs
 enabling. Guards against a clock left running because a session
 died mid-DOING without ever reaching org_clock_out.
@@ -103,7 +157,7 @@ died mid-DOING without ever reaching org_clock_out.
 No config.el/config-test.el changes — there's no wall-clock idle to
 simulate in ERT's scratch-buffer fixtures.
 
-*** MAYBE Coarsen :SESSIONS: to session-level, not turn-level :code:
+** MAYBE Coarsen :SESSIONS: to session-level, not turn-level :code:
 :PROPERTIES:
 :CREATED:  [2026-07-28 Tue 11:06]
 :END:
@@ -123,7 +177,7 @@ always a manual call — auto-detecting day boundaries crosses into
 guessing user intent, exactly the kind of call CLAUDE.md's existing
 rules say only the model/user should make, not a hook.
 
-*** MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
+** MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
 :PROPERTIES:
 :CREATED:  [2026-07-29 Wed 12:25]
 :END:
@@ -144,17 +198,17 @@ becomes worth building — it keeps the interactive prospective agenda
 and the retrospective clock-report scope independently correct
 instead of coupled to the same file list.
 
-** Observability
+* TODO Observability
 
 Broader than clocking — visibility into what every tool call
 actually did, both after the fact and at the start of a session.
 
-** Bigger swings
+* Bigger swings
 
 Both about the standalone/Warp-access subsystem from this session.
 Think hard before building either.
 
-*** MAYBE Remote MCP access :code:
+** MAYBE Remote MCP access :code:
 Off-machine access to the tools server and IDE-companion. This
 session already got a =claude= CLI running directly in a Warp pane
 on the same machine to reach Emacs (HTTP tools server +
@@ -171,7 +225,7 @@ your live Emacs — a bearer token alone adds no TLS, per-tool
 scoping, or rate limiting. Don't just flip the host to 0.0.0.0 and
 call it done.
 
-*** MAYBE Package the Warp wiring :code:
+** MAYBE Package the Warp wiring :code:
 As a reusable snippet, not a private hack. Per the earlier scope
 conversation: the port-pinning + session-registration +
 IDE-companion-autostart block currently lives in personal
@@ -184,6 +238,7 @@ up would make it something worth handing to someone else.
 =mcp-start=) aren't really designed as public standalone-mode API
 today, so an upstream PR is a bigger lift than it looks. Start with
 the snippet, treat upstreaming as a separate future MAYBE.
+
 
 * Tooling
 
