@@ -198,6 +198,55 @@ becomes worth building — it keeps the interactive prospective agenda
 and the retrospective clock-report scope independently correct
 instead of coupled to the same file list.
 
+* TODO Enforce a single NEXT action per level of the task tree :code:
+:PROPERTIES:
+:ID:       05da96ad-37de-41d4-b918-692644749394
+:CREATED:  [2026-08-03 Mon 19:17]
+:END:
+At any given level of the task tree — top-level headings, and
+independently among each heading's own direct children — at most one
+heading should ever be =NEXT= at a time, mirroring GTD's single "next
+action" idea. Toggling any heading to =NEXT= should auto-revert any
+other heading already at =NEXT= within that same sibling group back to
+=TODO=, rather than leaving multiple simultaneous =NEXT= headings to
+accumulate silently.
+
+Likely mechanism: extend the existing =org-trigger-hook= registration
+from "Enforce the transition rules" (ID
+39b08ecd-6350-48a2-b169-98535b626ac7) — that one already proved
+=org-trigger-hook= fires globally regardless of entry point (Claude's
+=org_set_todo= tool or a hand-edit both go through =org-todo=). A new
+trigger function would, on transition to =NEXT=, walk the changed
+heading's siblings (via =org-get-next-sibling=/=org-get-last-sibling=
+or =org-map-entries= scoped to the parent) and demote any other
+=NEXT= sibling to =TODO=. Needs care around scope: "level" here means
+*siblings under the same parent* (or top-level headings sharing no
+parent), not "every NEXT in the file" — a =NEXT= two levels down in an
+unrelated subtree must not be touched.
+
+Additionally: whenever a sibling group ends up with exactly one
+heading remaining in the =TODO= state — whether because a sibling
+transition just reduced the group to that one (e.g. another sibling
+moved to =DONE=/=CANCELLED=/=WAIT=/=MAYBE=/=DOING=, or was
+added/refiled away), or it was already the case — that lone heading
+should auto-promote to =NEXT=, but *only* if it is actually sitting in
+=TODO= right now. A sole survivor already in some other state
+(=WAIT=, =MAYBE=, =DOING=) must not be force-promoted; this is strictly
+about not leaving an unambiguous single next action stranded in
+=TODO= when nothing else in its group is competing for that slot.
+Likely needs its own trigger scan (broader than "on transition to
+=NEXT=" above) firing on any sibling's state change, not just
+transitions into or out of =NEXT= specifically.
+
+Needs =config-test.el= regression coverage per CLAUDE.md's testing
+rule: at minimum, setting a sibling to =NEXT= while another sibling is
+already =NEXT= demotes the old one; a sibling group left with exactly
+one =TODO= auto-promotes it to =NEXT=; a sibling group left with
+exactly one non-=TODO= (e.g. =WAIT=) survivor is left alone; unrelated
+=NEXT=/=TODO= headings at other parents/levels are left untouched; a
+single =NEXT= with no sibling
+conflict is a no-op.
+
 * TODO Observability
 
 Broader than clocking — visibility into what every tool call
