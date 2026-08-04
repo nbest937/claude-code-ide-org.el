@@ -381,7 +381,19 @@ clock is running."
             (org-with-point-at org-clock-marker
               (claude-code-ide-org--log-session-event "Paused")
               (setq id (org-entry-get nil "ID")))
-            (org-clock-out)
+            ;; org-clock-out-remove-zero-time-clocks (t in this user's
+            ;; Doom config, not this project's own setting) deletes the
+            ;; CLOCK line outright based on its RAW, unrounded duration --
+            ;; before claude-code-ide-org-consolidate-history below ever
+            ;; gets a chance to round/merge it. Suppress it for this call
+            ;; only, so consolidate-history (which replicates the same
+            ;; zero-time-dropping intent correctly, after rounding to the
+            ;; nearest 5 minutes and merging adjacent intervals) is the
+            ;; sole authority here -- not a global override, since a
+            ;; human's own interactive org-clock-out should keep org's
+            ;; normal behavior.
+            (let ((org-clock-out-remove-zero-time-clocks nil))
+              (org-clock-out))
             (when (buffer-live-p buffer)
               (with-current-buffer buffer
                 (save-buffer)))
@@ -389,6 +401,7 @@ clock is running."
               (claude-code-ide-org-consolidate-history id))
             (format "Clocked out: \"%s\"" heading)))
       (error (format "Error: %s" (error-message-string err))))))
+
 (defun claude-code-ide-org-session-pause (&optional session-id)
   "Pause the running clock, if any, unless it's owned by a different
 Claude Code session than SESSION-ID.  Alias for

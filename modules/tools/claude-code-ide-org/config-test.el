@@ -178,6 +178,40 @@ only in the buffer, never calling `save-buffer'."
     (should (string-match-p "CLOCK: \\[.*\\]--\\[.*\\] =>"
                             (claude-code-ide-org-test--disk-contents file)))))
 
+(ert-deftest claude-code-ide-org-test-clock-out-suppresses-zero-time-removal ()
+  "org_clock_out must not let a global org-clock-out-remove-zero-time-
+clocks setting (t in this user's real Doom config -- not anything this
+project itself sets, and not loaded at all under `bin/test's `-Q' batch
+environment, hence the explicit `t' binding here) delete a CLOCK line
+via org's own raw-duration check before
+`claude-code-ide-org-consolidate-history' gets a chance to apply this
+project's own rounding-aware version of the same intent (see
+`claude-code-ide-org--consolidate-logbook-text's docstring).  Verified
+directly by capturing the dynamic value `org-clock-out-remove-zero-
+time-clocks' actually has at the moment org-clock.el's own
+`org-clock-out' runs -- must be nil there even though the test's own
+outer binding, simulating Doom's override, is t.  A same-minute clock-
+in/out is exactly the case org's raw check targets (its duration
+computation is minute-resolution, so any raw duration under a full
+minute floors to 0h0m); at that same resolution, this project's own
+rounding would independently reach the same drop decision for an
+isolated interval, so asserting on final disk content alone cannot
+distinguish buggy from fixed here -- only capturing the dynamic
+binding proves the actual mechanism is in place."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (let ((org-clock-out-remove-zero-time-clocks t)
+          (seen-value 'unset))
+      (advice-add 'org-clock-out :before
+                  (lambda (&rest _)
+                    (setq seen-value org-clock-out-remove-zero-time-clocks))
+                  '((name . claude-code-ide-org-test--capture-zero-time-clocks-value)))
+      (unwind-protect
+          (claude-code-ide-org-clock-out)
+        (advice-remove 'org-clock-out
+                        'claude-code-ide-org-test--capture-zero-time-clocks-value))
+      (should (eq seen-value nil)))))
+
 (ert-deftest claude-code-ide-org-test-clock-out-safe-when-no-clock ()
   (claude-code-ide-org-test--with-heading
     (should (equal "No clock is currently running." (claude-code-ide-org-clock-out)))))
