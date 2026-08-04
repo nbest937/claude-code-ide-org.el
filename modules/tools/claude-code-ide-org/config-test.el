@@ -44,7 +44,7 @@ stray clock-status.json into the real module directory."
      (unwind-protect
          (progn
            (with-temp-file file
-             (insert "#+TODO: TODO NEXT DOING WAIT MAYBE | DONE CANCELLED\n"
+             (insert "#+TODO: TODO NEXT(n!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
                      "#+TAGS: code comms research review\n"
                      "#+ARCHIVE: DONE.org::* Done\n"
                      "\n"
@@ -122,7 +122,7 @@ persisted to disk) until an explicit save-buffer."
   (claude-code-ide-org-test--with-heading
     (let ((other-file (expand-file-name "other.org" dir)))
       (with-temp-file other-file
-        (insert (concat "#+TODO: TODO NEXT DOING WAIT MAYBE | DONE CANCELLED\n"
+        (insert (concat "#+TODO: TODO NEXT(n!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
                          "#+TAGS: code comms research review\n"
                          "\n"
                          "* TODO Other heading                                               :code:\n"
@@ -398,6 +398,52 @@ by a different session — the other half of the concurrency fix."
     (should (string-match-p "^\\* DOING Test heading"
                             (claude-code-ide-org-test--disk-contents file)))))
 
+(ert-deftest claude-code-ide-org-test-set-todo-suppresses-native-logging-for-every-state ()
+  "org_set_todo must suppress org's own native state-change logging
+for every STATE, not just `@'-flagged ones -- confirmed live that even
+a plain `!' marker's deferred log-line insertion blocks when triggered
+non-interactively (see TODO.org :ID:
+04d0e7d5-ab6b-4972-925d-d517484c7595), so `org-inhibit-logging' is
+unconditional in the wrapper. No native \"State ...\" line should
+appear for a plain NEXT transition through org_set_todo."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-set-todo id "NEXT")
+    (should (not (string-match-p "State \"NEXT\""
+                                 (claude-code-ide-org-test--disk-contents file))))))
+
+(ert-deftest claude-code-ide-org-test-set-todo-reports-success-when-hook-cascade-moves-point ()
+  "Regression test, found live: setting a heading to NEXT through
+org_set_todo while a sibling is already NEXT triggers the demote hook,
+which visits and edits that OTHER sibling via its own org-with-point-
+at/org-todo calls. org_set_todo's own post-transition check must not
+be fooled by point having moved off the original heading -- it must
+still report success for the heading actually requested, not silently
+describe whatever heading point happens to be sitting on afterward."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* NEXT Sibling B                                                   :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0002\n"
+                     ":END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (let ((result (claude-code-ide-org-set-todo id "NEXT")))
+      (should (string-match-p "\\`TODO state set to NEXT: \"Test heading\"\\'" result)))
+    (should (equal "NEXT" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))
+    (should (equal "TODO" (org-with-point-at (org-id-find "test-0002" 'marker) (org-get-todo-state))))))
+
+(ert-deftest claude-code-ide-org-test-set-todo-suppresses-interactive-note-for-wait-and-cancelled ()
+  "WAIT and CANCELLED are `@'-flagged (note required) in this project's
+`#+TODO:' line -- the case org_set_todo's blanket org-inhibit-logging
+protection most obviously needs to cover. Going through the
+non-interactive `org_set_todo' path must never pop org's interactive
+`*Org Note*' buffer for either."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-set-todo id "WAIT")
+    (should (not (get-buffer "*Org Note*")))
+    (claude-code-ide-org-set-todo id "CANCELLED")
+    (should (not (get-buffer "*Org Note*")))))
+
 ;;; claude-code-ide-org-archive ------------------------------------------------
 
 (ert-deftest claude-code-ide-org-test-archive-moves-heading-and-saves ()
@@ -593,7 +639,7 @@ BOTH buffers, not just the one org-refile happens to leave point in."
   (claude-code-ide-org-test--with-heading
     (let ((target-file (expand-file-name "target.org" dir)))
       (with-temp-file target-file
-        (insert (concat "#+TODO: TODO NEXT DOING WAIT MAYBE | DONE CANCELLED\n"
+        (insert (concat "#+TODO: TODO NEXT(n!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
                          "#+TAGS: code comms research review\n"
                          "\n"
                          "* TODO Target heading                                              :code:\n"
@@ -690,7 +736,14 @@ deny the transition."
 heading -- a clock running on a different heading in the same file
 must never block this one from going DONE."
   (claude-code-ide-org-test--with-heading
-    (let ((other-id "test-0002"))
+    ;; Locally exclude the single-NEXT-per-level triggers: once `id'
+    ;; goes DOING, `other-id' becomes the sole TODO survivor of a
+    ;; 2-heading group with no NEXT, which the promote trigger would
+    ;; otherwise (correctly, but incidentally to what this test is
+    ;; about) flip to NEXT -- unrelated to the DONE-blocker behavior
+    ;; under test here.
+    (let ((org-trigger-hook (list #'claude-code-ide-org--trigger-auto-clock-in))
+          (other-id "test-0002"))
       (goto-char (point-max))
       (insert (concat "* TODO Other heading                                               :code:\n"
                        ":PROPERTIES:\n"
@@ -757,6 +810,232 @@ never on transitions to any other state."
     (should (not (org-clocking-p)))
     (org-with-point-at (org-id-find id 'marker) (org-todo "WAIT"))
     (should (not (org-clocking-p)))))
+
+;;; Single NEXT action per level (org-trigger-hook) -------------------------
+;;
+;; Cover claude-code-ide-org--trigger-demote-conflicting-next and
+;; claude-code-ide-org--trigger-auto-promote-sole-todo, registered
+;; alongside the pair above.
+
+(ert-deftest claude-code-ide-org-test-single-next-demotes-old-next-among-top-level-headings ()
+  "Setting a top-level sibling to NEXT while another top-level sibling
+is already NEXT must demote the old one back to TODO, with an
+explanatory LOGBOOK note, and leave the new one at NEXT."
+  (claude-code-ide-org-test--with-heading
+    (org-with-point-at (org-id-find id 'marker) (org-todo "NEXT"))
+    (goto-char (point-max))
+    (insert (concat "* TODO Sibling B                                                   :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0002\n"
+                     ":END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (org-with-point-at (org-id-find "test-0002" 'marker) (org-todo "NEXT"))
+    (should (equal "TODO" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))
+    (should (equal "NEXT" (org-with-point-at (org-id-find "test-0002" 'marker) (org-get-todo-state))))
+    (save-buffer)
+    (should (string-match-p "Auto-demoted: superseded by sibling \"Sibling B\" becoming NEXT"
+                            (claude-code-ide-org-test--disk-contents file)))))
+
+(ert-deftest claude-code-ide-org-test-single-next-demotes-old-next-among-direct-children ()
+  "The same demotion must apply one level down, among a heading's own
+direct children, not just at the top level."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "** TODO Child A                                                     :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0002\n"
+                     ":END:\n"
+                     "** TODO Child B                                                     :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0003\n"
+                     ":END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (org-with-point-at (org-id-find "test-0002" 'marker) (org-todo "NEXT"))
+    (org-with-point-at (org-id-find "test-0003" 'marker) (org-todo "NEXT"))
+    (should (equal "TODO" (org-with-point-at (org-id-find "test-0002" 'marker) (org-get-todo-state))))
+    (should (equal "NEXT" (org-with-point-at (org-id-find "test-0003" 'marker) (org-get-todo-state))))
+    ;; The parent (a different level) must be untouched.
+    (should (equal "TODO" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))))
+
+(ert-deftest claude-code-ide-org-test-single-next-does-not-touch-unrelated-subtree ()
+  "A NEXT transition under one parent must never reach into a sibling
+parent's own children."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "** NEXT Child under Test heading                                    :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0002\n"
+                     ":END:\n"
+                     "* TODO Other parent                                                :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0003\n"
+                     ":END:\n"
+                     "** TODO Child under Other parent                                    :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0004\n"
+                     ":END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (org-with-point-at (org-id-find "test-0004" 'marker) (org-todo "NEXT"))
+    ;; The unrelated NEXT under a different parent must survive untouched.
+    (should (equal "NEXT" (org-with-point-at (org-id-find "test-0002" 'marker) (org-get-todo-state))))
+    (should (equal "NEXT" (org-with-point-at (org-id-find "test-0004" 'marker) (org-get-todo-state))))))
+
+(ert-deftest claude-code-ide-org-test-single-next-promotes-sole-remaining-todo-when-sibling-goes-done ()
+  "Reducing a sibling group to exactly one TODO survivor via a
+transition to DONE (not NEXT) must auto-promote that survivor to
+NEXT, with an explanatory LOGBOOK note."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* NEXT Sibling B                                                   :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0002\n"
+                     ":END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    ;; Group is now {id=TODO, B=NEXT}; drop B to DONE so `id' becomes
+    ;; the sole TODO survivor with no NEXT in the group.
+    (org-with-point-at (org-id-find "test-0002" 'marker) (org-todo "DONE"))
+    (should (equal "NEXT" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))
+    (save-buffer)
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      (should (string-match-p "Auto-promoted: sole remaining TODO in its sibling group" disk))
+      ;; NEXT is `!'-marked in the test fixture's own #+TODO: line, so
+      ;; without org-inhibit-logging around the hook's nested org-todo
+      ;; call this would double-log: one native line plus this custom
+      ;; one. Exactly one "State \"NEXT\"" line must exist.
+      (let ((count 0) (start 0))
+        (while (string-match "State \"NEXT\"" disk start)
+          (setq count (1+ count) start (match-end 0)))
+        (should (= 1 count))))))
+
+(ert-deftest claude-code-ide-org-test-single-next-leaves-non-todo-sole-survivor-alone ()
+  "A sole survivor sitting in WAIT (not TODO) must never be
+force-promoted to NEXT."
+  (claude-code-ide-org-test--with-heading
+    (org-with-point-at (org-id-find id 'marker) (org-todo "WAIT"))
+    (goto-char (point-max))
+    (insert (concat "* NEXT Sibling B                                                   :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0002\n"
+                     ":END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (org-with-point-at (org-id-find "test-0002" 'marker) (org-todo "DONE"))
+    (should (equal "WAIT" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))))
+
+(ert-deftest claude-code-ide-org-test-single-next-leaves-two-todos-alone ()
+  "A sibling group with two TODOs and no NEXT must not have either
+one promoted -- promotion requires an unambiguous sole survivor."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* TODO Sibling B                                                   :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0002\n"
+                     ":END:\n"
+                     "* NEXT Sibling C                                                   :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0003\n"
+                     ":END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    ;; Drop C so the group becomes {id=TODO, B=TODO} -- two TODOs, none NEXT.
+    (org-with-point-at (org-id-find "test-0003" 'marker) (org-todo "DONE"))
+    (should (equal "TODO" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))
+    (should (equal "TODO" (org-with-point-at (org-id-find "test-0002" 'marker) (org-get-todo-state))))))
+
+(ert-deftest claude-code-ide-org-test-single-next-no-sibling-conflict-is-noop ()
+  "A single NEXT among otherwise-non-TODO siblings must be left alone."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* WAIT Sibling B                                                   :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0002\n"
+                     ":END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (org-with-point-at (org-id-find id 'marker) (org-todo "NEXT"))
+    (should (equal "NEXT" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))
+    (should (equal "WAIT" (org-with-point-at (org-id-find "test-0002" 'marker) (org-get-todo-state))))))
+
+(ert-deftest claude-code-ide-org-test-single-next-does-not-recreate-double-next-on-race ()
+  "The core correctness case: a 2-sibling group with A already NEXT,
+setting B to NEXT must not result in BOTH ending up NEXT -- the
+promote trigger's re-derivation from the live buffer must see A's
+just-applied demotion, not stale change-plist state."
+  (claude-code-ide-org-test--with-heading
+    (org-with-point-at (org-id-find id 'marker) (org-todo "NEXT"))
+    (goto-char (point-max))
+    (insert (concat "* TODO Sibling B                                                   :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0002\n"
+                     ":END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (org-with-point-at (org-id-find "test-0002" 'marker) (org-todo "NEXT"))
+    (let ((next-count 0))
+      (dolist (heading-id (list id "test-0002"))
+        (when (equal "NEXT" (org-with-point-at (org-id-find heading-id 'marker) (org-get-todo-state)))
+          (setq next-count (1+ next-count))))
+      (should (= 1 next-count)))))
+
+(ert-deftest claude-code-ide-org-test-single-next-pre-existing-invalid-state-collapses-to-one-next ()
+  "Two siblings hand-constructed as already (invalidly) NEXT:
+transitioning a third sibling to NEXT must still leave exactly one
+NEXT survivor across the whole group afterward."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* NEXT Sibling B                                                   :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0002\n"
+                     ":END:\n"
+                     "* NEXT Sibling C                                                   :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0003\n"
+                     ":END:\n"
+                     "* TODO Sibling D                                                   :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0004\n"
+                     ":END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (org-with-point-at (org-id-find "test-0004" 'marker) (org-todo "NEXT"))
+    (let ((next-count 0))
+      (dolist (heading-id (list id "test-0002" "test-0003" "test-0004"))
+        (when (equal "NEXT" (org-with-point-at (org-id-find heading-id 'marker) (org-get-todo-state)))
+          (setq next-count (1+ next-count))))
+      (should (= 1 next-count))
+      (should (equal "NEXT" (org-with-point-at (org-id-find "test-0004" 'marker) (org-get-todo-state)))))))
+
+(ert-deftest claude-code-ide-org-test-single-next-fires-through-bare-org-todo ()
+  "Mirrors the auto-clock-in trigger's own bare-org-todo test: the
+demote/promote enforcement must live in org itself, not just in
+claude-code-ide-org-set-todo's wrapper."
+  (claude-code-ide-org-test--with-heading
+    (org-with-point-at (org-id-find id 'marker) (org-todo "NEXT"))
+    (goto-char (point-max))
+    (insert (concat "* TODO Sibling B                                                   :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0002\n"
+                     ":END:\n"))
+    (org-with-point-at (org-id-find "test-0002" 'marker) (org-todo "NEXT"))
+    (let ((disk (with-current-buffer (get-file-buffer file) (buffer-string))))
+      (should (string-match-p "^\\* TODO Test heading" disk))
+      (should (string-match-p "^\\* NEXT Sibling B" disk)))))
+
+(ert-deftest claude-code-ide-org-test-single-next-lone-heading-with-no-siblings-is-not-auto-promoted ()
+  "A heading with no siblings at all is never auto-promoted, and
+manually demoting a solitary NEXT back to TODO sticks -- promotion
+only resolves conflicts among >= 2 competing candidates."
+  (claude-code-ide-org-test--with-heading
+    (org-with-point-at (org-id-find id 'marker) (org-todo "WAIT"))
+    (org-with-point-at (org-id-find id 'marker) (org-todo "TODO"))
+    (should (equal "TODO" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))
+    (org-with-point-at (org-id-find id 'marker) (org-todo "NEXT"))
+    (org-with-point-at (org-id-find id 'marker) (org-todo "TODO"))
+    (should (equal "TODO" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))))
 
 
 ;;; Session context ("what was I last doing") -----------------------------
@@ -1016,7 +1295,7 @@ corrupting the file header."
     (let ((disk (claude-code-ide-org-test--disk-contents file)))
       ;; The file header must be completely untouched.
       (should (string-prefix-p
-               "#+TODO: TODO NEXT DOING WAIT MAYBE | DONE CANCELLED\n#+TAGS:"
+               "#+TODO: TODO NEXT(n!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n#+TAGS:"
                disk))
       ;; CLOCK line correctly closed with the right duration (3:45).
       (should (string-match-p
@@ -1193,7 +1472,7 @@ the temp directory afterwards."
      (unwind-protect
          (progn
            (with-temp-file capture-file
-             (insert "#+TODO: TODO NEXT DOING WAIT MAYBE | DONE CANCELLED\n"
+             (insert "#+TODO: TODO NEXT(n!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
                      "#+TAGS: code comms research review\n"
                      "#+ARCHIVE: DONE.org::* Done\n"
                      "\n"))

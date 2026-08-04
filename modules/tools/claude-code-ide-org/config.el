@@ -1103,14 +1103,46 @@ STATE must be one of: TODO NEXT DOING WAIT MAYBE DONE CANCELLED.
 Saves the buffer afterwards.  If org-blocker-hook (e.g. org-depend's
 :BLOCKER: property) refuses the change, `org-todo' silently leaves
 the heading in its prior state; this checks the actual resulting
-state and reports that instead of blindly echoing STATE back."
+state and reports that instead of blindly echoing STATE back.
+
+STATE is almost always supplied by Claude through this non-interactive
+tool, not typed by a human at the keyboard.  `org-todo' runs with
+`org-inhibit-logging' bound to t unconditionally here, for every
+STATE, not just ones whose `#+TODO:' marker is `@' -- confirmed live
+(see TODO.org :ID: 04d0e7d5-ab6b-4972-925d-d517484c7595) that even a
+plain `!' timestamp-only marker defers its native log-line insertion
+through the same `org-add-log-note'/`post-command-hook' machinery `@'
+does, and that deferred call blocks indefinitely when triggered
+non-interactively (via `emacsclient -e', exactly this tool's own call
+path) with nobody present to satisfy whatever it is waiting on --
+`!' is not actually safe on its own for a programmatic caller, contrary
+to the original assumption behind this wrapper. A genuine hand-edit
+made directly in the Emacs buffer (`M-x org-todo' or a keyboard
+TODO-cycle) never goes through this wrapper at all, so both `!' and
+`@' still log normally there, for the one case where a human is
+actually present."
   (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "org_set_todo")))
     (claude-code-ide-org--at-id
      id
      (lambda ()
-       (org-todo state)
-       (let ((actual (org-get-todo-state))
-             (heading (org-get-heading t t t t)))
+       (let ((org-inhibit-logging t)) (org-todo state))
+       ;; Re-resolved fresh by :ID: (a property-search, exactly like
+       ;; `claude-code-ide-org--at-id' itself), never by trusting
+       ;; "current point" or a marker captured before org-todo ran.
+       ;; Confirmed live (not reproducible in the ERT/batch
+       ;; environment, which never loads the user's personal Doom
+       ;; config) that a saved marker does not reliably track this
+       ;; heading's position across the single-NEXT-per-level trigger
+       ;; hooks editing a SIBLING heading earlier in the buffer --
+       ;; instrumented trace showed the marker's raw position number
+       ;; never changed while the text at that position did, most
+       ;; likely `ws-butler-mode' (whitespace cleanup) replacing a
+       ;; wider region than a plain insert. Re-resolving by :ID: is
+       ;; immune to that regardless of root cause, and is exactly how
+       ;; every regression test already verifies state here.
+       (let* ((marker (org-id-find id 'marker))
+              (actual (and marker (org-with-point-at marker (org-get-todo-state))))
+              (heading (and marker (org-with-point-at marker (org-get-heading t t t t)))))
          (if (equal actual state)
              (progn
                (save-buffer)
@@ -1544,9 +1576,121 @@ hook -- i.e. never at load or registration time."
         (let ((claude-code-ide-org--auto-clock-in-active t))
           (org-clock-in))))))
 
+;;; Single NEXT action per level ----------------------------------------------
+;;
+;; GTD's "single next action" idea: at any given level of the task
+;; tree -- top-level headings, and independently among each heading's
+;; own direct children -- at most one heading should ever be NEXT at a
+;; time. Two more org-trigger-hook functions, same mechanism as the
+;; pair above, applied to a new invariant.
+;;
+;; Deliberately no re-entrancy boolean guard (unlike
+;; claude-code-ide-org--auto-clock-in-active above): a blanket
+;; "skip while re-entrant" guard would disable exactly the nested
+;; re-derivation that prevents a double-NEXT race (see the promote
+;; function's docstring). Correctness is structural instead:
+;; org-trigger-hook runs at the very end of org-todo, so a nested
+;; org-todo call cannot corrupt outer work still pending; demote only
+;; moves NEXT->TODO and only fires on :to "NEXT" (a heading it just
+;; demoted can't re-satisfy that precondition on itself); promote only
+;; moves TODO->NEXT (a heading it just promoted no longer counts as a
+;; TODO candidate) -- so recursion depth is bounded by sibling count,
+;; not unbounded. Refile/capture never triggers either function since
+;; neither goes through org-todo; an invariant violation introduced
+;; that way is only corrected lazily, on that group's next actual
+;; state change.
+
+(defun claude-code-ide-org--map-siblings (function &optional include-self)
+  "Call FUNCTION with point at each same-level sibling of the heading
+at point -- headings sharing the same parent, or, for top-level
+headings, sharing no parent. Self (the heading originally at point) is
+included only when INCLUDE-SELF is non-nil. `org-get-next-sibling'/
+`org-get-previous-sibling' naturally stop at the enclosing parent's
+boundary, or the file's boundary for top-level headings, so top-level
+headings need no special-casing. Point is restored afterward."
+  (save-excursion
+    (org-back-to-heading t)
+    (when include-self (funcall function))
+    (save-excursion (while (org-get-next-sibling) (funcall function)))
+    (save-excursion (while (org-get-previous-sibling) (funcall function)))))
+
+(defun claude-code-ide-org--format-log-state-line (new-state old-state cause)
+  "Format a single :LOGBOOK: line matching org's own native
+`org-log-note-headings' \"state\" template (\"State %-12s from %-12s
+%t\"), but with CAUSE as the note text instead of one typed
+interactively. Used by automatic transitions that already know exactly
+why they fired, so they can produce output indistinguishable from a
+real interactively-logged state change without ever going through
+org's own note-prompt machinery."
+  (format "- State %-12s from %-12s %s \\\\\n  %s"
+          (format "\"%s\"" new-state)
+          (format "\"%s\"" old-state)
+          (format-time-string "[%Y-%m-%d %a %H:%M]")
+          cause))
+
+(defun claude-code-ide-org--trigger-demote-conflicting-next (change-plist)
+  "For `org-trigger-hook': GTD's \"single next action\" per level. The
+moment any heading's TODO state becomes NEXT, demote every OTHER
+heading in the same sibling group that is currently NEXT back to TODO,
+with an explanatory :LOGBOOK: note. No-op unless CHANGE-PLIST's :to is
+\"NEXT\". Demoting a sibling re-enters `org-todo' (hence this hook)
+for that sibling -- safe by construction, see
+`claude-code-ide-org--trigger-auto-promote-sole-todo's docstring. The
+nested `org-todo' call is wrapped in `org-inhibit-logging' so org's own
+native logging (an interactive note-prompt, if TODO or NEXT is ever
+marked `@' in the future) never fires for this programmatic
+transition; `claude-code-ide-org--format-log-state-line' supplies an
+equivalent line by hand instead."
+  (when (equal (plist-get change-plist :to) "NEXT")
+    (let ((new-next-heading (org-get-heading t t t t)))
+      (claude-code-ide-org--map-siblings
+       (lambda ()
+         (when (equal (org-get-todo-state) "NEXT")
+           (let ((org-inhibit-logging t)) (org-todo "TODO"))
+           (claude-code-ide-org--append-to-drawer
+            "LOGBOOK"
+            (claude-code-ide-org--format-log-state-line
+             "TODO" "NEXT"
+             (format "Auto-demoted: superseded by sibling \"%s\" becoming NEXT."
+                     new-next-heading)))))))))
+
+(defun claude-code-ide-org--trigger-auto-promote-sole-todo (_change-plist)
+  "For `org-trigger-hook': whenever this heading's sibling group (self
+included, group size >= 2) has exactly one member in TODO and none in
+NEXT, promote that lone TODO to NEXT, with an explanatory :LOGBOOK:
+note. Deliberately unconditional on CHANGE-PLIST's :to -- a transition
+to DONE/CANCELLED/WAIT/MAYBE/DOING on ANY sibling can be what drops
+the group to one TODO survivor, not just a transition into/out of
+NEXT. Always re-derives group state fresh from the live buffer, never
+from CHANGE-PLIST -- this is what keeps this safe against re-promoting
+a heading that `claude-code-ide-org--trigger-demote-conflicting-next'
+just demoted: by the time this function evaluates, any sibling still
+NEXT already shows as NEXT in the buffer, so the next-p guard below
+correctly refuses to create a second simultaneous NEXT. A group of
+size 1 (no siblings) is never eligible -- auto-promotion only resolves
+conflicts among competing candidates, it is not a rule that a solitary
+heading must always be NEXT."
+  (let (todo-markers next-p (group-size 0))
+    (claude-code-ide-org--map-siblings
+     (lambda ()
+       (setq group-size (1+ group-size))
+       (let ((state (org-get-todo-state)))
+         (cond ((equal state "NEXT") (setq next-p t))
+               ((equal state "TODO") (push (point-marker) todo-markers)))))
+     'include-self)
+    (when (and (> group-size 1) (not next-p) (= (length todo-markers) 1))
+      (org-with-point-at (car todo-markers)
+        (let ((org-inhibit-logging t)) (org-todo "NEXT"))
+        (claude-code-ide-org--append-to-drawer
+         "LOGBOOK"
+         (claude-code-ide-org--format-log-state-line
+          "NEXT" "TODO" "Auto-promoted: sole remaining TODO in its sibling group."))))))
+
 (with-eval-after-load 'org
   (add-hook 'org-blocker-hook #'claude-code-ide-org--blocker-clock-running-p)
-  (add-hook 'org-trigger-hook #'claude-code-ide-org--trigger-auto-clock-in))
+  (add-hook 'org-trigger-hook #'claude-code-ide-org--trigger-auto-clock-in)
+  (add-hook 'org-trigger-hook #'claude-code-ide-org--trigger-demote-conflicting-next)
+  (add-hook 'org-trigger-hook #'claude-code-ide-org--trigger-auto-promote-sole-todo))
 
 ;;; Clock status file -------------------------------------------------------
 ;;
