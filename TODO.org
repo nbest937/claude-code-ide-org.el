@@ -277,6 +277,83 @@ or whether the check also needs to search prose for informal
 cross-references that predate this convention, and exactly when in the
 org skill's flow this check should fire.
 
+** TODO Org skill: parallelize background planning across the NEXT/TODO backlog, without touching the shared clock :code:
+:PROPERTIES:
+:ID:       d8444673-b047-4755-b62c-d03df738f16a
+:CREATED:  [2026-08-05 Wed 16:12]
+:END:
+
+Captured 2026-08-05 from conversation: how to kick off planning for
+every open NEXT/TODO heading in parallel, while getting the resulting
+=:SESSIONS:= bookkeeping right, given the constraint (confirmed live,
+repeatedly, this same day) that org's clock is a single global
+resource shared across every session touching this file.
+
+*Core rule, structural not just cautious*: background planning agents
+never transition any heading's TODO keyword and never call
+=org_clock_in=/=org_set_todo=-to-=PLANNING=. Both
+=claude-code-ide-org--planning-owner-session-id= and
+=claude-code-ide-org--clock-owner-session-id= are single global
+variables, and =claude-code-ide-org--promote-planning-to-doing=
+promotes "whichever heading currently owns the running clock" — so N
+simultaneous =PLANNING= owners is structurally impossible, not merely
+awkward. There is exactly one clock. Background agents do read-only
+research and write only their own plan file
+(=~/.claude/plans/<slug>.md=); nothing about that touches the shared
+clock, so it is the only part of this safe to genuinely parallelize.
+
+*Write-back* (applying results to =TODO.org= — the Plan link plus a
+session-bracketing =:SESSIONS:= note per heading):
+- Serialize it: one heading at a time, only after each agent reports
+  done.
+- Route every write through =emacsclient=/elisp, not a raw external
+  file write, even for headings with no clock currently running on
+  them — unconditional consistency, not a per-call "is it safe right
+  now" check. Directly motivated by
+  [[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][Direct file writes to a live org buffer can desync org-clock-marker]].
+- Use =claude-code-ide-org--log-session-event= for the synthetic
+  =:SESSIONS:= entries rather than hand-writing text — keeps the
+  format forward-compatible with
+  [[id:2b0988ed-eb92-4fa7-904a-cb2d10941bfd][Reorder :SESSIONS: entries to match :LOGBOOK: ordering]]'s pending
+  flip, and guarantees correct drawer-append semantics.
+- Re-resolve each heading fresh by =:ID:= at write time
+  (=claude-code-ide-org--at-id=, the pattern every existing tool
+  already uses) rather than trusting any position cached from when
+  the agent was launched — other sessions touch this file constantly,
+  demonstrated repeatedly today, including while this very design was
+  being written up.
+- Tag the synthetic =:SESSIONS:= entry with a distinct synthetic
+  identifier, never this orchestrating session's own real
+  =session_id= — misattributing unattended background research time
+  as this session's own interactive work would be exactly the kind of
+  noise
+  [[id:782cda6c-111c-454e-93eb-b2b27012078b][Audit for clock/session bookkeeping noise before committing during a clocking-suppressed session]]
+  is worried about.
+- No =:LOGBOOK:=/CLOCK entries at all, by design — the single-clock
+  model cannot represent true parallelism honestly, so don't try.
+- Don't auto-commit the resulting batch. Leave it for explicit
+  review — finalizing an auto-commit policy here would mean guessing
+  at exactly the still-open question in
+  [[id:3cb3f955-f10a-47cd-84ab-e629d73ea59d][Org skill: commit a newly-captured TODO immediately, when safe]]
+  and [[id:782cda6c-111c-454e-93eb-b2b27012078b][the sibling heading above]].
+
+Motivated concretely, not hypothetically: while this design was being
+reviewed in the same conversation, this session's own ordinary
+=UserPromptSubmit= resume hook reopened an unrelated heading's clock
+*twice* and briefly produced a malformed, timestamp-less =CLOCK:=
+line — see
+[[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][Direct file writes to a live org buffer can desync org-clock-marker]]'s
+"Second, distinct incident" note. That happened from ordinary
+incidental multi-session activity, not deliberate parallel load —
+strong first-party evidence for why deliberately launching several
+background agents at once needs the constraints above, not weaker
+ones.
+
+Open questions left for actual planning: exact format/label for the
+synthetic =:SESSIONS:= identifier; how many agents to launch per
+batch and whether that needs a cap; whether "no clock entries at all"
+should extend to *every* unattended/background invocation of this
+skill or just this specific batch-planning use case.
 
 ** TODO Make org-blocker-hook actually consult :BLOCKER: :code:
 :PROPERTIES:
