@@ -139,14 +139,9 @@ buffer ever created.
 :END:
 :SESSIONS:
 - Resumed [2026-08-04 Tue 14:37] (session 8564fffc-fca9-4e7a-bfed-e26be74361cf)
-- Paused [2026-08-04 Tue 17:58] (session 73e3c11e-d45e-4a4b-9820-586bdf9d3968)
-- Resumed [2026-08-04 Tue 18:00] (session 73e3c11e-d45e-4a4b-9820-586bdf9d3968)
+- Paused [2026-08-04 Tue 16:00] (session 8564fffc-fca9-4e7a-bfed-e26be74361cf)
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-04 Tue 18:00]
-CLOCK: [2026-08-04 Tue 17:50]--[2026-08-04 Tue 18:00] =>  0:10
-CLOCK: [2026-08-04 Tue 17:35]--[2026-08-04 Tue 17:40] =>  0:05
-CLOCK: [2026-08-04 Tue 17:15]--[2026-08-04 Tue 17:20] =>  0:05
 CLOCK: [2026-08-04 Tue 14:55]--[2026-08-04 Tue 15:10] =>  0:15
 CLOCK: [2026-08-04 Tue 14:45]--[2026-08-04 Tue 14:50] =>  0:05
 :END:
