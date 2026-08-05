@@ -379,6 +379,57 @@ process/discipline fix, not code) or something more automatic (e.g.
 detecting the marker/text mismatch and self-healing) is a question for
 planning.
 
+** TODO session-resume blindly inherits any session's last-clocked heading :code:
+:PROPERTIES:
+:ID:       582cc7f4-41a2-4666-ad3f-1b76b459147e
+:CREATED:  [2026-08-04 Tue 18:27]
+:END:
+
+Captured 2026-08-04, observed live and confirmed with real evidence,
+not just a one-off guess: immediately after deliberately clocking out
+(via the sibling heading above's manual recovery, with no task
+actually being worked on — this conversation was pure "care and
+feeding" of the project plan, not implementation work), the very next
+prompt silently clocked back in on the unrelated =PLANNING TODO state=
+heading (ID b95b9fba-f78e-48fe-8546-988709cce309). Root cause:
+=session-resume= (the =UserPromptSubmit= hook) unconditionally calls
+=org-clock-in-last=, which resumes whichever heading is most recent in
+the *global, shared* =org-clock-history= — with no check on whether
+*this session* is the one that put it there.
+
+This is broader than "no task in view this turn," and confirmed to
+also bite genuinely concurrent sessions, not just idle/maintenance
+ones: a =ps= check during this same conversation found two real
+=claude= CLI processes running concurrently (separate terminals), and
+the =PLANNING TODO state= heading's own =:SESSIONS:= history showed a
+*different* session ID pausing/resuming its clock at one point — not
+because that session was doing =PLANNING=-state work (confirmed:
+=b95b9fba= appears nowhere in =config.el=, so no implementation code
+for that feature has landed from *any* session), but almost certainly
+that session's own ordinary turn-boundary hook grabbing the same
+shared global clock via the same blind =org-clock-in-last= call.
+Because the clock is one global resource, *any* session's resume can
+silently inherit and misattribute time to whatever heading happens to
+sit at the head of =org-clock-history=, regardless of who set it
+=DOING= or whether anyone is actually touching it. The existing
+session-id-ownership fix (see "Concurrent Claude Code sessions share
+one global org-clock", ID 337f7fb2-b9e9-4c02-82dd-d88e60df364b) only
+guards a clock that's *actively running* from being paused/stolen by a
+different session mid-flight — it does nothing to stop an *idle*
+clock from being resumed onto the wrong heading by whichever session's
+=UserPromptSubmit= happens to fire next.
+
+Concrete fix direction (sharper than originally captured): make
+=session-resume= conditional on session continuity — only call
+=org-clock-in-last= if the clock's most recent close (the last
+=:SESSIONS:= =Paused= entry, or the session-id already recorded by the
+337f7fb2 work) belongs to *this same session's* ID; otherwise leave it
+clocked out and require an explicit =org_clock_in= once real work
+actually starts on some heading. Still worth checking during planning
+whether this and the sibling heading above (marker/text desync) share
+enough surface to fix together, but they're not obviously the same
+root cause and shouldn't be assumed linked without checking.
+
 ** DONE Concurrent Claude Code sessions share one global org-clock with no session identity :code:
 :PROPERTIES:
 :ID:       337f7fb2-b9e9-4c02-82dd-d88e60df364b
