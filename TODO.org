@@ -502,6 +502,36 @@ via hook payloads, not tool-call context), so where a session-id would
 even come from on this path is an open question for planning, not
 just a mechanical change.
 
+** TODO Audit for clock/session bookkeeping noise before committing during a clocking-suppressed session :code:
+:PROPERTIES:
+:ID:       782cda6c-111c-454e-93eb-b2b27012078b
+:CREATED:  [2026-08-05 Wed 14:28]
+:END:
+
+Captured 2026-08-05, raised in conversation: when a session has been
+explicitly told to suppress its own clocking for a while (as this one
+was), other concurrent sessions' ordinary activity can still write
+real =:LOGBOOK:=/=:SESSIONS:= deltas into headings this session
+touches or observes — visible throughout this same session (the
+=PLANNING TODO state= heading and the notes.org review-task heading
+both picked up cross-session clock churn while under the
+suppression). The open question: at commit time, should a
+clocking-suppressed session specifically double-check that whatever
+clock/session bookkeeping deltas are about to be committed are
+*genuine* (real, attributable work — its own or another session's)
+rather than side-effect noise the suppressed session itself
+incidentally observed or triggered, before folding them into a commit
+under this session's authorship?
+
+Not yet clear whether this needs new tooling (e.g. a pre-commit diff
+review step specific to =:LOGBOOK:=/=:SESSIONS:= hunks) or is purely a
+standing-instruction-level judgment call for whoever is about to
+commit — same register as other "only the model/user can decide"
+rules already in CLAUDE.md. Related to, but broader than, the sibling
+heading above (that one is about a specific missing ownership
+mechanism; this one is about what to do with the resulting mess at
+commit time, regardless of whether that mechanism ever gets fixed).
+
 ** DONE Concurrent Claude Code sessions share one global org-clock with no session identity :code:
 :PROPERTIES:
 :ID:       337f7fb2-b9e9-4c02-82dd-d88e60df364b
