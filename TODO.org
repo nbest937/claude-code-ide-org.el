@@ -1,4 +1,4 @@
-#+TODO: TODO NEXT(n!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
+#+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 
@@ -11,6 +11,7 @@
 :END:
 :SESSIONS:
 - Resumed [2026-08-04 Tue 12:19] (session c628ac7a-4135-4412-834a-1bb553d582d8)
+- Paused [2026-08-04 Tue 12:20] (recovered)
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-04 Tue 12:15]--[2026-08-04 Tue 12:20] =>  0:05
@@ -132,7 +133,7 @@ now reports success correctly for both calls, with the combined
 =CANCELLED= on the same heading both succeed with no =*Org Note*=
 buffer ever created.
 
-** DOING Add a PLANNING TODO state, driven by the ExitPlanMode matcher :code:
+** DONE Add a PLANNING TODO state, driven by the ExitPlanMode matcher :code:
 :PROPERTIES:
 :ID:       b95b9fba-f78e-48fe-8546-988709cce309
 :CREATED:  [2026-08-04 Tue 14:19]
@@ -140,8 +141,13 @@ buffer ever created.
 :SESSIONS:
 - Resumed [2026-08-04 Tue 14:37] (session 8564fffc-fca9-4e7a-bfed-e26be74361cf)
 - Paused [2026-08-04 Tue 16:00] (session 8564fffc-fca9-4e7a-bfed-e26be74361cf)
+- Resumed [2026-08-05 Wed 10:35]
+- Paused [2026-08-05 Wed 14:00] (session 2fd8dcf1-aa7e-4061-8495-1933766ae5b4)
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-05 Wed 13:25]--[2026-08-05 Wed 13:30] =>  0:05
+CLOCK: [2026-08-05 Wed 11:40]--[2026-08-05 Wed 13:15] =>  1:35
+CLOCK: [2026-08-05 Wed 10:35]--[2026-08-05 Wed 10:40] =>  0:05
 CLOCK: [2026-08-04 Tue 14:55]--[2026-08-04 Tue 15:10] =>  0:15
 CLOCK: [2026-08-04 Tue 14:45]--[2026-08-04 Tue 14:50] =>  0:05
 :END:
@@ -189,6 +195,35 @@ a stray promotion after a rejected plan is low-cost and self-corrects
 the next time the heading's real state is set explicitly. See the
 plan link for the full design and file-by-file implementation
 breakdown.
+
+*Verified, not just implemented:* the implementing session (2026-08-04)
+covered =bin/test= regression coverage and manual reload/scratch-file
+checks of the mechanics, but explicitly could not exercise the real
+=ExitPlanMode= tool-call path end to end — =.claude/settings.json='s
+hook config only loads at session start, and the new =PostToolUse=
+entries (matcher =mcp__emacs-tools__org_set_todo=, matcher
+=ExitPlanMode=) postdated that session's own hook config load. A
+follow-up session (2026-08-05) closed that gap live, against a
+disposable scratch heading in TODO.org, no code changes: =TODO= →
+=NEXT= → =PLANNING= via =org_set_todo=, confirmed
+=claude-code-ide-org--planning-owner-session-id= was set to the
+calling session's =session_id= (=bin/hooks/posttooluse-record-planning-owner=
+firing on the =org_set_todo= =PostToolUse= event); then a real
+=EnterPlanMode=/=ExitPlanMode= round trip (trivial one-line plan,
+approved) drove the heading to =DOING= with exactly one =CLOCK:= line
+(no duplicate interval), the expected "Auto-promoted: ExitPlanMode
+fired on the owning session." =:LOGBOOK:= note, and
+=claude-code-ide-org--planning-owner-session-id= back to =nil= —
+all with zero manual =emacsclient= intervention beyond read-only
+inspection to confirm each step. Scratch heading clocked out,
+=CANCELLED=, and deleted afterward. Not exercised here (still exactly
+the accepted gaps from planning, not new findings): the rejected-plan
+promotion gap described above ("One new gap surfaced during planning
+itself...") , and the cross-session owner guard documented separately
+in CLAUDE.md's "State transition rules" section (the "Cross-session
+guard" paragraph, CLAUDE.md:193-196) rather than in this heading's own
+body. Both would require a second concurrent session or a plan
+rejection to trigger, neither of which this pass attempted.
 
 ** TODO Org skill: auto-capture and dedupe modification requests against existing TODOs :code:
 :PROPERTIES:
@@ -774,6 +809,15 @@ Two parts:
    heavier-handed than this warrants.
 
 Revisit 2026-07-31.
+
+*Note added 2026-08-05:* consider a "Known limitations" section in the
+README, surfacing accepted-but-easy-to-miss gaps that today live only
+as prose buried in CLAUDE.md — e.g. the =ExitPlanMode= rejection-gating
+gap (CLAUDE.md:188-192) and the =PLANNING= cross-session owner guard
+(CLAUDE.md:193-196), both deliberately left as low-cost/self-correcting
+rather than fixed. A human skimming the repo has no reason to find
+either today unless they read CLAUDE.md's full "State transition
+rules" section end to end.
 
 ** TODO Audit CLAUDE.md for directives that belong in the org skill instead :code:
 :PROPERTIES:
