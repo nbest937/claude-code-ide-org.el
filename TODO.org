@@ -465,6 +465,43 @@ whether this and the sibling heading above (marker/text desync) share
 enough surface to fix together, but they're not obviously the same
 root cause and shouldn't be assumed linked without checking.
 
+** TODO org_clock_in doesn't record clock ownership, unlike session-resume :code:
+:PROPERTIES:
+:ID:       d150c02e-06fe-4514-bf69-e2cc5d8df4c7
+:CREATED:  [2026-08-05 Wed 14:28]
+:END:
+
+Captured 2026-08-05, hit live: manually clocking a heading in via the
+=org_clock_in= MCP tool (=claude-code-ide-org-clock-in=) logs a plain
+"Resumed" =:SESSIONS:= entry with no session-id, and — unlike
+=claude-code-ide-org-session-resume= (the =UserPromptSubmit=-hook
+path) — never sets =claude-code-ide-org--clock-owner-session-id=. The
+337f7fb2 cross-session guard (=session-pause=/=session-resume= no-op
+on a clock they don't own) only protects a clock that has an owner
+recorded; a heading clocked in via the raw tool call is *ownerless* by
+this mechanism's own definition, so any other session's ordinary
+=Stop=/=UserPromptSubmit= turn boundary can pause/resume it exactly as
+if nobody owned it — because, per the tracking variable, nobody
+technically does.
+
+Reproduced directly: clocked into a heading via =org_clock_in=; a
+short time later its =:SESSIONS:= showed a =Paused= from one unrelated
+session and a =Resumed= from a second unrelated session, neither of
+which had any real involvement with that heading — both were just
+ordinary turn-boundary hook fires that happened to land while the
+clock was (from the ownership guard's perspective) unowned. Cleaned up
+by hand afterward (spurious entries removed, not recorded as legitimate
+history).
+
+Fix direction: have =claude-code-ide-org-clock-in= accept an optional
+session-id the same way =-session-resume= does, and set
+=claude-code-ide-org--clock-owner-session-id= when known — but
+=org_clock_in= is an MCP tool called directly by the model, with no
+natural access to Claude Code's own =session_id= (that only arrives
+via hook payloads, not tool-call context), so where a session-id would
+even come from on this path is an open question for planning, not
+just a mechanical change.
+
 ** DONE Concurrent Claude Code sessions share one global org-clock with no session identity :code:
 :PROPERTIES:
 :ID:       337f7fb2-b9e9-4c02-82dd-d88e60df364b
