@@ -80,7 +80,7 @@ are no checkboxes to report on.
 Every `.org` file in a Claude Code project should start with:
 
 ```org
-#+TODO: TODO NEXT DOING WAIT MAYBE | DONE CANCELLED
+#+TODO: TODO NEXT PLANNING DOING WAIT MAYBE | DONE CANCELLED
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 ```
@@ -91,6 +91,7 @@ Every `.org` file in a Claude Code project should start with:
 |-------------|----------------------------------|---------|
 | `TODO`      | Not yet started                  | yes     |
 | `NEXT`      | Decided, up next                 | yes     |
+| `PLANNING`  | In Plan Mode, plan not yet approved | yes  |
 | `DOING`     | Actively being worked on         | yes     |
 | `WAIT`      | Blocked or waiting on someone    | yes     |
 | `MAYBE`     | Someday / maybe                  | yes     |
@@ -150,21 +151,50 @@ rules" in TODO.org.
 
 ## State transition rules
 
-| Transition            | Side effect                         |
-|-----------------------|-------------------------------------|
-| `TODO`  → `NEXT`      | None                                |
-| `TODO`  → `DOING`     | Open a CLOCK (call `org_clock_in`)  |
-| `NEXT`  → `DOING`     | Open a CLOCK (call `org_clock_in`)  |
-| `DOING` → `DONE`      | Close the CLOCK (call `org_clock_out`) |
-| `DOING` → `WAIT`      | Close the CLOCK (call `org_clock_out`) |
-| `DOING` → `CANCELLED` | Close the CLOCK (call `org_clock_out`) |
-| `WAIT`  → `DOING`     | Open a CLOCK (call `org_clock_in`)  |
-| Any     → `MAYBE`     | None                                |
+| Transition                | Side effect                         |
+|---------------------------|-------------------------------------|
+| `TODO`     → `NEXT`       | None                                |
+| `TODO`     → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
+| `NEXT`     → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
+| `NEXT`     → `PLANNING`   | Open a CLOCK (call `org_clock_in`)  |
+| `PLANNING` → `DOING`      | None — same clock interval continues, no close/reopen |
+| `PLANNING` → `DONE`       | Close the CLOCK (call `org_clock_out`) |
+| `PLANNING` → `WAIT`       | Close the CLOCK (call `org_clock_out`) |
+| `PLANNING` → `CANCELLED`  | Close the CLOCK (call `org_clock_out`) |
+| `DOING`    → `DONE`       | Close the CLOCK (call `org_clock_out`) |
+| `DOING`    → `WAIT`       | Close the CLOCK (call `org_clock_out`) |
+| `DOING`    → `CANCELLED`  | Close the CLOCK (call `org_clock_out`) |
+| `WAIT`     → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
+| Any        → `MAYBE`      | None                                |
 
-**Rule**: any transition *to* `DOING` must open a clock.
-**Rule**: any transition *from* `DOING` must close the clock first.
+**Rule**: any transition *to* `DOING` or `PLANNING` must open a clock, with
+one documented exception: `PLANNING` → `DOING` reuses the already-running
+clock interval rather than closing and reopening it.
+**Rule**: any transition *from* `DOING` or `PLANNING` must close the clock
+first, except the `PLANNING` → `DOING` handoff above.
 **Rule**: always use the MCP tools for state changes and clocking — do not
 edit CLOCK entries or TODO keywords by hand when the tools are available.
+**Rule**: entering `PLANNING` is a model judgment call made *before* calling
+`EnterPlanMode`, never during — Plan Mode itself forbids non-readonly tool
+calls, so `org_set_todo` cannot run once inside it. Leaving `PLANNING` is
+*not* a model decision: a `PostToolUse` hook matched on `ExitPlanMode`
+(`bin/hooks/exitplanmode-promote-planning`) promotes `PLANNING` → `DOING`
+automatically the instant a plan is approved and execution begins. A "plan
+and implement" prompt must still produce both transitions at their correct,
+separate times, never a premature jump to `DOING`. When the user enters
+Plan Mode directly (shift-tab, not a model-initiated `EnterPlanMode` call),
+there is no window to set `PLANNING` first — the hook's "clocked heading
+isn't PLANNING → no-op" branch is the **common** case then, not a bug.
+**Known gap, accepted**: the `ExitPlanMode` hook fires whether the plan was
+approved or rejected, with no reliable signal to distinguish the two (see
+TODO.org :ID: b95b9fba-f78e-48fe-8546-988709cce309). A stray promotion after
+a rejected plan is low-cost and self-corrects the next time the heading's
+real state is set explicitly — not fixed.
+**Cross-session guard**: the `ExitPlanMode` promotion only fires for the
+session that set `PLANNING` on the currently-clocked heading, tracked via
+`claude-code-ide-org--planning-owner-session-id` — same pattern as
+`claude-code-ide-org--clock-owner-session-id` (see "Session tracking"
+below), applied to this new hook.
 **Rule**: when asked to start work on a task tracked as an org heading with
 a `:ID:`, transition it to `DOING` via `org_set_todo` *before* beginning,
 unless it's already `DOING`. This has to be a standing instruction, not a
@@ -188,7 +218,9 @@ approved Plan Mode plan, write only that heading (title, tags, properties,
 any Plan-file link, intro body) and stop — show it and get explicit
 approval before transitioning it to `DOING` or touching anything else the
 plan describes. Approving a Plan is not approval of the heading's exact
-wording.
+wording. The `ExitPlanMode` auto-promotion hook does not affect this rule:
+it only ever promotes an *already-clocked, already-`PLANNING`* heading, and
+never touches a newly created heading the plan describes creating.
 
 ---
 
@@ -334,7 +366,7 @@ Key settings in the user's Doom config:
 ;; org-mode
 (after! org
   (setq org-todo-keywords
-        '((sequence "TODO" "NEXT" "DOING" "WAIT" "MAYBE" "|" "DONE" "CANCELLED")))
+        '((sequence "TODO" "NEXT" "PLANNING" "DOING" "WAIT" "MAYBE" "|" "DONE" "CANCELLED")))
   (setq org-clock-out-when-done t)
   (setq org-clock-persist 'history)
   (setq org-archive-location "DONE.org::* Done"))

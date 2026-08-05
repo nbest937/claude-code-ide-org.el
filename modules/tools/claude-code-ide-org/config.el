@@ -314,6 +314,20 @@ the ordinary single-session case, not merely a stopgap. Purely
 in-memory: resets naturally on Emacs restart, which is fine since a
 fresh Emacs never has a clock already running.")
 
+(defvar claude-code-ide-org--planning-owner-session-id nil
+  "Session ID of the Claude Code session that most recently set a
+heading to PLANNING via `claude-code-ide-org-set-todo', or nil if
+unknown/not session-aware. Consulted by
+`claude-code-ide-org--promote-planning-to-doing' so that one session's
+`ExitPlanMode' never promotes a different, concurrent session's
+still-in-progress PLANNING heading purely because it happens to own
+the single global clock (TODO.org :ID:
+b95b9fba-f78e-48fe-8546-988709cce309). Same single-global-value shape
+as `claude-code-ide-org--clock-owner-session-id' — org only ever has
+one running clock, so \"last session to set PLANNING\" is all that's
+meaningful. Cleared after a successful promotion. Purely in-memory:
+resets naturally on Emacs restart.")
+
 (defun claude-code-ide-org--log-session-event (event)
   "Append a timestamped EVENT line to the :SESSIONS: drawer of the
 heading at point.  EVENT is a short label such as \"Resumed\" or
@@ -1099,7 +1113,9 @@ after every clock-out."
 
 (defun claude-code-ide-org-set-todo (id state)
   "Set the TODO keyword of the heading with :ID: equal to ID to STATE.
-STATE must be one of: TODO NEXT DOING WAIT MAYBE DONE CANCELLED.
+STATE must be one of: TODO NEXT PLANNING DOING WAIT MAYBE DONE CANCELLED.
+PLANNING auto-promotes to DOING when `ExitPlanMode' fires, via
+`claude-code-ide-org--promote-planning-to-doing'.
 Saves the buffer afterwards.  If org-blocker-hook (e.g. org-depend's
 :BLOCKER: property) refuses the change, `org-todo' silently leaves
 the heading in its prior state; this checks the actual resulting
@@ -1534,7 +1550,10 @@ is a no-op instead of recursing.")
   "For `org-blocker-hook': deny a transition to DONE on the heading at
 point when that heading's :ID: matches whichever heading
 `org-clock-marker' currently points at -- i.e. its own clock is still
-running. Return non-nil (permit the change) for every requested state
+running. Identity-based, not source-state-based, so this already
+covers a clocked PLANNING heading exactly as it does a clocked DOING
+one, with no separate PLANNING-specific logic needed. Return non-nil
+(permit the change) for every requested state
 other than DONE, whenever nothing is currently clocking, or whenever
 either heading lacks an :ID:. CHANGE-PLIST is the plist `org-todo'
 passes to every `org-blocker-hook' function; see `org-trigger-hook's
@@ -1554,16 +1573,16 @@ never at load or registration time."
 
 (defun claude-code-ide-org--trigger-auto-clock-in (change-plist)
   "For `org-trigger-hook': the moment any heading's TODO state becomes
-DOING -- via `claude-code-ide-org-set-todo', a hand-edit made directly
-in Emacs, or any other path at all -- automatically open a clock on it
-via `org-clock-in', unless a clock is already running on that exact
-heading. Guarded against re-entrancy by
+DOING or PLANNING -- via `claude-code-ide-org-set-todo', a hand-edit
+made directly in Emacs, or any other path at all -- automatically open
+a clock on it via `org-clock-in', unless a clock is already running on
+that exact heading. Guarded against re-entrancy by
 `claude-code-ide-org--auto-clock-in-active'. CHANGE-PLIST is the
 plist `org-todo' passes to every `org-trigger-hook' function; see
 `org-trigger-hook's own docstring for its shape. Never calls
 `org-clock-in' or reads `org-clock-marker' except from inside this
 hook -- i.e. never at load or registration time."
-  (when (and (equal (plist-get change-plist :to) "DOING")
+  (when (and (member (plist-get change-plist :to) '("DOING" "PLANNING"))
              (not claude-code-ide-org--auto-clock-in-active))
     (let* ((target-id (org-entry-get nil "ID"))
            (already-clocked-here
@@ -1575,6 +1594,70 @@ hook -- i.e. never at load or registration time."
       (unless already-clocked-here
         (let ((claude-code-ide-org--auto-clock-in-active t))
           (org-clock-in))))))
+
+(defun claude-code-ide-org--maybe-record-planning-owner (payload-path)
+  "Read the `org_set_todo' `PostToolUse' hook payload JSON from
+PAYLOAD-PATH (a temp-file path written by
+bin/hooks/posttooluse-record-planning-owner) and, when its
+tool_input.state field is \"PLANNING\", record the payload's
+session_id in `claude-code-ide-org--planning-owner-session-id'. Any
+other requested state, or any problem reading/parsing PAYLOAD-PATH, is
+a no-op -- this must never error or block the hook it runs under. No
+check on whether the underlying `org_set_todo' transition actually
+succeeded: a phantom owner recorded for a blocked/failed transition is
+harmless, since `claude-code-ide-org--promote-planning-to-doing' only
+ever matches a heading whose live state is exactly PLANNING."
+  (condition-case nil
+      (let* ((json-object-type 'alist)
+             (payload (json-read-file payload-path))
+             (tool-input (alist-get 'tool_input payload))
+             (state (alist-get 'state tool-input))
+             (session-id (alist-get 'session_id payload)))
+        (when (equal state "PLANNING")
+          (setq claude-code-ide-org--planning-owner-session-id session-id)))
+    (error nil)))
+
+(defun claude-code-ide-org--promote-planning-to-doing (session-id)
+  "For the `ExitPlanMode' `PostToolUse' hook
+(bin/hooks/exitplanmode-promote-planning): if a clock is currently
+running on a heading whose TODO state is exactly PLANNING, and that
+heading's PLANNING was either set by SESSION-ID itself or has no known
+owner (`claude-code-ide-org--planning-owner-session-id' is nil),
+promote it to DOING in place -- same clock interval, no close/reopen --
+append a LOGBOOK \"Auto-promoted\" note, clear the owner var, save the
+buffer, and return a success string. No-ops (returning a descriptive
+string, never erroring) when: nothing is clocking; the clocked
+heading's state isn't PLANNING; or the clocked heading's PLANNING is
+owned by a different, known session -- the cross-session guard this
+function exists for (TODO.org :ID:
+b95b9fba-f78e-48fe-8546-988709cce309, design decision 4). Deliberately
+does not gate on plan approval vs. rejection -- there is no reliable
+signal to gate on (see the same TODO.org entry's decision 6); a stray
+promotion after a rejected plan is low-cost and self-corrects the next
+time the heading's real state is set explicitly."
+  (if (not (org-clocking-p))
+      "No clock running; nothing to promote."
+    (let ((clocked-state (org-with-point-at org-clock-marker
+                            (org-get-todo-state))))
+      (cond
+       ((not (equal clocked-state "PLANNING"))
+        (format "Clocked heading is in state %s, not PLANNING; nothing to promote."
+                (or clocked-state "(none)")))
+       ((and claude-code-ide-org--planning-owner-session-id
+             (not (equal session-id claude-code-ide-org--planning-owner-session-id)))
+        "Clocked PLANNING heading belongs to a different session; not promoting.")
+       (t
+        (let ((heading (org-with-point-at org-clock-marker
+                          (let ((org-inhibit-logging t)) (org-todo "DOING"))
+                          (claude-code-ide-org--append-to-drawer
+                           "LOGBOOK"
+                           (claude-code-ide-org--format-log-state-line
+                            "DOING" "PLANNING"
+                            "Auto-promoted: ExitPlanMode fired on the owning session."))
+                          (save-buffer)
+                          (org-get-heading t t t t))))
+          (setq claude-code-ide-org--planning-owner-session-id nil)
+          (format "Promoted \"%s\" from PLANNING to DOING." heading)))))))
 
 ;;; Single NEXT action per level ----------------------------------------------
 ;;
@@ -1834,15 +1917,17 @@ in `condition-case', same reasoning as the in-handler."
    :name "org_set_todo"
    :description (concat
                  "Set the TODO keyword on an org-mode heading by its :ID: property. "
-                 "Valid states: TODO NEXT DOING WAIT MAYBE DONE CANCELLED. "
+                 "Valid states: TODO NEXT PLANNING DOING WAIT MAYBE DONE CANCELLED. "
                  "When setting DOING, also call org_clock_in. "
-                 "When leaving DOING, call org_clock_out first.")
+                 "When leaving DOING, call org_clock_out first. "
+                 "PLANNING auto-promotes to DOING when ExitPlanMode fires, "
+                 "reusing the same clock interval -- no separate org_clock_in needed.")
    :args '((:name "id"
             :type string
             :description "The :ID: property value of the target org heading.")
            (:name "state"
             :type string
-            :description "TODO keyword to set: TODO NEXT DOING WAIT MAYBE DONE CANCELLED.")))
+            :description "TODO keyword to set: TODO NEXT PLANNING DOING WAIT MAYBE DONE CANCELLED.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-archive

@@ -40,11 +40,12 @@ stray clock-status.json into the real module directory."
           (claude-code-ide-org-clock-status-file (expand-file-name "clock-status.json" dir))
           (claude-code-ide-org--audit-pending nil)
           (claude-code-ide-org--log-source nil)
+          (claude-code-ide-org--planning-owner-session-id nil)
           (id "test-0001"))
      (unwind-protect
          (progn
            (with-temp-file file
-             (insert "#+TODO: TODO NEXT(n!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
+             (insert "#+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
                      "#+TAGS: code comms research review\n"
                      "#+ARCHIVE: DONE.org::* Done\n"
                      "\n"
@@ -122,7 +123,7 @@ persisted to disk) until an explicit save-buffer."
   (claude-code-ide-org-test--with-heading
     (let ((other-file (expand-file-name "other.org" dir)))
       (with-temp-file other-file
-        (insert (concat "#+TODO: TODO NEXT(n!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
+        (insert (concat "#+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
                          "#+TAGS: code comms research review\n"
                          "\n"
                          "* TODO Other heading                                               :code:\n"
@@ -639,7 +640,7 @@ BOTH buffers, not just the one org-refile happens to leave point in."
   (claude-code-ide-org-test--with-heading
     (let ((target-file (expand-file-name "target.org" dir)))
       (with-temp-file target-file
-        (insert (concat "#+TODO: TODO NEXT(n!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
+        (insert (concat "#+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
                          "#+TAGS: code comms research review\n"
                          "\n"
                          "* TODO Target heading                                              :code:\n"
@@ -810,6 +811,126 @@ never on transitions to any other state."
     (should (not (org-clocking-p)))
     (org-with-point-at (org-id-find id 'marker) (org-todo "WAIT"))
     (should (not (org-clocking-p)))))
+
+(ert-deftest claude-code-ide-org-test-trigger-hook-auto-clocks-in-on-planning ()
+  "org-trigger-hook must also auto-clock-in the moment PLANNING is set
+-- TODO.org :ID: b95b9fba-f78e-48fe-8546-988709cce309 -- mirroring the
+existing DOING coverage above."
+  (claude-code-ide-org-test--with-heading
+    (should (not (org-clocking-p)))
+    (org-with-point-at (org-id-find id 'marker)
+      (org-todo "PLANNING"))
+    (should (org-clocking-p))
+    (should (equal id (org-with-point-at org-clock-marker
+                        (org-entry-get nil "ID"))))))
+
+(ert-deftest claude-code-ide-org-test-trigger-hook-skips-clock-in-when-already-clocked-on-planning ()
+  "No duplicate CLOCK line when a clock is already running on the
+heading being set to PLANNING."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (org-with-point-at (org-id-find id 'marker) (org-todo "PLANNING"))
+    (should (org-clocking-p))
+    (let ((disk (claude-code-ide-org-test--disk-contents file))
+          (count 0) (start 0))
+      (while (string-match "CLOCK: \\[" disk start)
+        (setq count (1+ count) start (match-end 0)))
+      (should (= 1 count)))))
+
+;;; PLANNING -> DOING promotion (ExitPlanMode) -------------------------------
+;;
+;; Covers claude-code-ide-org--maybe-record-planning-owner and
+;; claude-code-ide-org--promote-planning-to-doing -- TODO.org :ID:
+;; b95b9fba-f78e-48fe-8546-988709cce309, including the cross-session
+;; guard added under design decision 4.
+
+(defun claude-code-ide-org-test--write-json (payload)
+  "Write PAYLOAD (an alist) as JSON to a fresh temp file and return its path."
+  (let ((path (make-temp-file "claude-code-ide-org-test-payload")))
+    (with-temp-file path (insert (json-encode payload)))
+    path))
+
+(ert-deftest claude-code-ide-org-test-promote-planning-to-doing-promotes-when-owner-matches ()
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (org-with-point-at (org-id-find id 'marker) (org-todo "PLANNING"))
+    (setq claude-code-ide-org--planning-owner-session-id "session-A")
+    (let ((result (claude-code-ide-org--promote-planning-to-doing "session-A")))
+      (should (string-match-p "\\`Promoted \"Test heading\"" result)))
+    (should (equal "DOING" (org-with-point-at (org-id-find id 'marker)
+                             (org-get-todo-state))))
+    (should (org-clocking-p))
+    (should (null claude-code-ide-org--planning-owner-session-id))
+    (let ((disk (claude-code-ide-org-test--disk-contents file))
+          (count 0) (start 0))
+      (while (string-match "CLOCK: \\[" disk start)
+        (setq count (1+ count) start (match-end 0)))
+      (should (= 1 count))
+      (should (string-match-p "Auto-promoted" disk)))))
+
+(ert-deftest claude-code-ide-org-test-promote-planning-to-doing-promotes-when-owner-nil ()
+  "A hand-edited PLANNING state (no org_set_todo-recorded owner) must
+still promote normally -- the permissive fallback for the ordinary
+single-session/manual case."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (org-with-point-at (org-id-find id 'marker) (org-todo "PLANNING"))
+    (should (null claude-code-ide-org--planning-owner-session-id))
+    (let ((result (claude-code-ide-org--promote-planning-to-doing "session-A")))
+      (should (string-match-p "\\`Promoted \"Test heading\"" result)))
+    (should (equal "DOING" (org-with-point-at (org-id-find id 'marker)
+                             (org-get-todo-state))))))
+
+(ert-deftest claude-code-ide-org-test-promote-planning-to-doing-noop-for-different-owner ()
+  "The cross-session guard this whole revision exists for: a different
+session's ExitPlanMode must not promote a PLANNING heading it doesn't own."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (org-with-point-at (org-id-find id 'marker) (org-todo "PLANNING"))
+    (setq claude-code-ide-org--planning-owner-session-id "session-A")
+    (let ((result (claude-code-ide-org--promote-planning-to-doing "session-B")))
+      (should (string-match-p "belongs to a different session" result)))
+    (should (equal "PLANNING" (org-with-point-at (org-id-find id 'marker)
+                               (org-get-todo-state))))
+    (should (org-clocking-p))
+    (should (equal "session-A" claude-code-ide-org--planning-owner-session-id))))
+
+(ert-deftest claude-code-ide-org-test-promote-planning-to-doing-noop-when-clocked-state-not-planning ()
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (org-with-point-at (org-id-find id 'marker) (org-todo "DOING"))
+    (let ((result (claude-code-ide-org--promote-planning-to-doing "session-A")))
+      (should (string-match-p "not PLANNING" result)))
+    (should (equal "DOING" (org-with-point-at (org-id-find id 'marker)
+                            (org-get-todo-state))))))
+
+(ert-deftest claude-code-ide-org-test-promote-planning-to-doing-noop-when-nothing-clocked ()
+  (claude-code-ide-org-test--with-heading
+    (should (not (org-clocking-p)))
+    (let ((result (claude-code-ide-org--promote-planning-to-doing "session-A")))
+      (should (string-match-p "\\`No clock running" result)))))
+
+(ert-deftest claude-code-ide-org-test-maybe-record-planning-owner-sets-owner-for-planning ()
+  (claude-code-ide-org-test--with-heading
+    (let ((payload (claude-code-ide-org-test--write-json
+                    `((session_id . "session-A")
+                      (tool_input . ((state . "PLANNING") (id . ,id)))))))
+      (unwind-protect
+          (progn
+            (claude-code-ide-org--maybe-record-planning-owner payload)
+            (should (equal "session-A" claude-code-ide-org--planning-owner-session-id)))
+        (delete-file payload)))))
+
+(ert-deftest claude-code-ide-org-test-maybe-record-planning-owner-ignores-other-states ()
+  (claude-code-ide-org-test--with-heading
+    (let ((payload (claude-code-ide-org-test--write-json
+                    `((session_id . "session-A")
+                      (tool_input . ((state . "DOING") (id . ,id)))))))
+      (unwind-protect
+          (progn
+            (claude-code-ide-org--maybe-record-planning-owner payload)
+            (should (null claude-code-ide-org--planning-owner-session-id)))
+        (delete-file payload)))))
 
 ;;; Single NEXT action per level (org-trigger-hook) -------------------------
 ;;
@@ -1295,7 +1416,7 @@ corrupting the file header."
     (let ((disk (claude-code-ide-org-test--disk-contents file)))
       ;; The file header must be completely untouched.
       (should (string-prefix-p
-               "#+TODO: TODO NEXT(n!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n#+TAGS:"
+               "#+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n#+TAGS:"
                disk))
       ;; CLOCK line correctly closed with the right duration (3:45).
       (should (string-match-p
@@ -1472,7 +1593,7 @@ the temp directory afterwards."
      (unwind-protect
          (progn
            (with-temp-file capture-file
-             (insert "#+TODO: TODO NEXT(n!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
+             (insert "#+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
                      "#+TAGS: code comms research review\n"
                      "#+ARCHIVE: DONE.org::* Done\n"
                      "\n"))

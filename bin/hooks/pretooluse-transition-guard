@@ -7,10 +7,12 @@
 # Enforces, one layer earlier and on the MCP-call path, what
 # org-blocker-hook enforces on the Emacs side (see TODO.org's
 # "PreToolUse transition guard" entry, :ID:
-# 135033ff-9581-4df3-ba16-34442586ee15): a DOING -> {DONE,WAIT,CANCELLED}
-# request is denied outright if the target heading (matched by :ID:) is
-# still the one currently clocked in, i.e. org_clock_out was never
-# called first, per CLAUDE.md's state transition rules.
+# 135033ff-9581-4df3-ba16-34442586ee15): a DOING or PLANNING ->
+# {DONE,WAIT,CANCELLED} request is denied outright if the target heading
+# (matched by :ID:) is still the one currently clocked in, i.e.
+# org_clock_out was never called first, per CLAUDE.md's state transition
+# rules. Identity-based (clock-marker :ID: match), not state-name-based,
+# so this already covers PLANNING correctly with no logic change needed.
 #
 # Fails CLOSED: if emacsclient can't reach a live Emacs server, or its
 # reply can't be parsed, the call is denied with a "couldn't verify"

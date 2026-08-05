@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# PostToolUse hook, matcher ExitPlanMode: the instant a plan is approved and
+# execution begins, promote whichever heading currently owns the running
+# clock from PLANNING to DOING in place -- same clock interval, no
+# close/reopen (TODO.org :ID: b95b9fba-f78e-48fe-8546-988709cce309).
+#
+# Same no-jq, temp-file shape as
+# bin/hooks/posttooluse-record-planning-owner -- see that script's header
+# for why jq's injection-safe encoding isn't needed here either.
+#
+# Accepted gap: PostToolUse fires whether the plan was approved or
+# rejected, with no reliable signal to distinguish the two (see TODO.org's
+# design decision 6 for why -- attempting to instrument this from inside a
+# session is circular by construction, since inspecting the payload is
+# itself a non-readonly action that re-triggers Plan Mode). A stray
+# promotion after a rejected plan is low-cost and self-corrects the next
+# time the heading's real state is set explicitly. Not fixed here.
+#
+# Fails soft, always exit 0 -- PostToolUse firing means ExitPlanMode already
+# completed, so this must never block Claude Code.
+tmpfile="$(mktemp)"
+trap 'rm -f "$tmpfile"' EXIT
+cat > "$tmpfile"
+emacsclient -e "
+(let* ((json-object-type 'alist)
+       (payload (json-read-file \"$tmpfile\"))
+       (session-id (alist-get 'session_id payload)))
+  (claude-code-ide-org--promote-planning-to-doing session-id))
+" >/dev/null 2>&1
+exit 0
