@@ -234,16 +234,17 @@ rejection to trigger, neither of which this pass attempted.
 
 Blocked on the sibling heading above (=Add a PLANNING TODO state,
 driven by the ExitPlanMode matcher=, ID
-b95b9fba-f78e-48fe-8546-988709cce309, currently =DOING= in another
-concurrent session), recorded via the project's =:BLOCKER:= convention
-(native org-depend syntax; see the org skill for the full
-documentation) — not currently enforced by this project's own
-=org-blocker-hook= function, which only blocks on a running clock, not
-on =:BLOCKER:= (see the new sibling heading below for closing that
-gap) — this task's flow relies on transitioning a heading into
-=PLANNING= and needs that state to exist first. Not starting
-implementation until that lands; don't get confused by in-flight
-changes to that heading from the other session.
+b95b9fba-f78e-48fe-8546-988709cce309), recorded via the project's
+=:BLOCKER:= convention (native org-depend syntax; see the org skill
+for the full documentation) — not currently enforced by this
+project's own =org-blocker-hook= function, which only blocks on a
+running clock, not on =:BLOCKER:= (see the sibling heading below for
+closing that gap). *Update 2026-08-05: the blocker is now satisfied*
+— =b95b9fba= is =DONE=, =PLANNING= is fully implemented, so this
+task's prerequisite has landed and implementation could start.
+Property left in place regardless (a satisfied =:BLOCKER:= is
+harmless under org-depend semantics and preserves why this was
+sequenced after that work).
 
 Captured 2026-08-04 from conversation, deliberately at "capture the
 idea" depth, not fully designed yet:
@@ -275,6 +276,7 @@ Open questions deferred to actual planning, not resolved here: how
 or whether the check also needs to search prose for informal
 cross-references that predate this convention, and exactly when in the
 org skill's flow this check should fire.
+
 
 ** TODO Make org-blocker-hook actually consult :BLOCKER: :code:
 :PROPERTIES:
@@ -341,6 +343,14 @@ judgment call looks inherently contextual rather than a fixed
 checklist — same reasoning CLAUDE.md already uses elsewhere for calls
 that "only the model can make."
 
+*Update 2026-08-05:* substantial overlap with
+[[id:782cda6c-111c-454e-93eb-b2b27012078b][Audit for clock/session bookkeeping noise before committing during a clocking-suppressed session]]
+— that heading is a concrete, evidence-backed version of the exact
+open question above ("doesn't get tangled up with other unrelated
+uncommitted changes"). Not merging them here; worth deciding during
+planning whether they should be one task, sequenced, or just
+cross-referenced as they are now.
+
 * Clock lifecycle & visibility
 
 Everything here is specifically about the clock subsystem's
@@ -378,6 +388,12 @@ Distinct from the existing "Known cosmetic quirk" in CLAUDE.md about
 appears first in the property area) — this is about the entry order
 *within* =:SESSIONS:= itself.
 
+Shares code surface with
+[[id:d150c02e-06fe-4514-bf69-e2cc5d8df4c7][org_clock_in doesn't record clock ownership, unlike session-resume]]
+— both would touch =claude-code-ide-org--log-session-event= and/or
+the =session-pause=/=-resume= internals. Not a blocking order, just
+worth checking the other's status before starting either.
+
 ** TODO Direct file writes to a live org buffer can desync org-clock-marker :code:
 :PROPERTIES:
 :ID:       53b0047d-c55c-486c-8eed-ba4994d97a1a
@@ -413,6 +429,27 @@ is "never write live org files outside Emacs, full stop" (a
 process/discipline fix, not code) or something more automatic (e.g.
 detecting the marker/text mismatch and self-healing) is a question for
 planning.
+
+*Second, distinct incident, 2026-08-05*: on
+[[id:4cda6bf7-441b-47b2-b3d5-b8c7e7a207a5][Show the TODO keyword, not just clocked in/out, in the statusline]],
+after a cross-session clock resume (see the =d150c02e= sibling below)
+followed by a proper =org_clock_out=, the =:LOGBOOK:= briefly
+contained a genuinely malformed line — bare =CLOCK:= with *no*
+timestamp at all — sitting between two valid entries, before
+=claude-code-ide-org-consolidate-history= rebuilt the drawer and it
+disappeared (the arithmetic of what remained checks out, so nothing
+was silently lost, but *why* a timestamp-less =CLOCK:= line got
+written in the first place is unconfirmed — a race between two
+near-simultaneous writers to the same drawer is the working
+hypothesis, not proven). A second, structurally different way the
+same "shared mutable file" pressure can corrupt =:LOGBOOK:=, worth
+folding into whatever planning addresses this cluster.
+
+Also worth noting for whoever plans =4cda6bf7='s own fix: swapping
+=status-label= for =org-get-todo-state= *at the clock marker* is
+still marker-dependent — it inherits this exact desync mode (a stale
+TODO keyword shown instead of a stale in/out label), it doesn't
+route around it.
 
 ** TODO session-resume blindly inherits any session's last-clocked heading :code:
 :PROPERTIES:
@@ -460,10 +497,16 @@ Concrete fix direction (sharper than originally captured): make
 =:SESSIONS:= =Paused= entry, or the session-id already recorded by the
 337f7fb2 work) belongs to *this same session's* ID; otherwise leave it
 clocked out and require an explicit =org_clock_in= once real work
-actually starts on some heading. Still worth checking during planning
-whether this and the sibling heading above (marker/text desync) share
-enough surface to fix together, but they're not obviously the same
-root cause and shouldn't be assumed linked without checking.
+actually starts on some heading.
+
+Related, same "single shared global clock" theme, distinct root
+causes — worth planning together but not assuming they're one fix:
+[[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][Direct file writes to a live org buffer can desync org-clock-marker]]
+(external writes corrupting Emacs's in-memory marker) and
+[[id:d150c02e-06fe-4514-bf69-e2cc5d8df4c7][org_clock_in doesn't record clock ownership, unlike session-resume]]
+(most clock-start paths never record an owner in the first place, so
+this bug's own "idle clock" precondition is the common case, not the
+exception).
 
 ** TODO org_clock_in doesn't record clock ownership, unlike session-resume :code:
 :PROPERTIES:
@@ -471,36 +514,62 @@ root cause and shouldn't be assumed linked without checking.
 :CREATED:  [2026-08-05 Wed 14:28]
 :END:
 
-Captured 2026-08-05, hit live: manually clocking a heading in via the
-=org_clock_in= MCP tool (=claude-code-ide-org-clock-in=) logs a plain
-"Resumed" =:SESSIONS:= entry with no session-id, and — unlike
-=claude-code-ide-org-session-resume= (the =UserPromptSubmit=-hook
-path) — never sets =claude-code-ide-org--clock-owner-session-id=. The
-337f7fb2 cross-session guard (=session-pause=/=session-resume= no-op
-on a clock they don't own) only protects a clock that has an owner
-recorded; a heading clocked in via the raw tool call is *ownerless* by
-this mechanism's own definition, so any other session's ordinary
-=Stop=/=UserPromptSubmit= turn boundary can pause/resume it exactly as
-if nobody owned it — because, per the tracking variable, nobody
-technically does.
+Captured 2026-08-05, hit live, then re-confirmed and sharpened
+2026-08-05 with a direct empirical check. Original finding: manually
+clocking a heading in via the =org_clock_in= MCP tool
+(=claude-code-ide-org-clock-in=) logs a plain "Resumed" =:SESSIONS:=
+entry with no session-id, and never sets
+=claude-code-ide-org--clock-owner-session-id=, unlike
+=claude-code-ide-org-session-resume=.
 
-Reproduced directly: clocked into a heading via =org_clock_in=; a
-short time later its =:SESSIONS:= showed a =Paused= from one unrelated
-session and a =Resumed= from a second unrelated session, neither of
-which had any real involvement with that heading — both were just
-ordinary turn-boundary hook fires that happened to land while the
-clock was (from the ownership guard's perspective) unowned. Cleaned up
-by hand afterward (spurious entries removed, not recorded as legitimate
-history).
+*Actual scope, confirmed by exhaustively grepping every call site*:
+=(org-clock-in)= is only ever invoked from two places —
+=claude-code-ide-org-clock-in= (line ~362) and
+=claude-code-ide-org--trigger-auto-clock-in= (line ~1596, fired on
+*any* =DOING=/=PLANNING= transition via =org-trigger-hook=, so also
+on every =org_set_todo= call and every hand-edit). Meanwhile
+=claude-code-ide-org--clock-owner-session-id= is only ever *set* from
+one place: =claude-code-ide-org-session-resume=. So owner-recording
+covers exactly one of the three ways a clock can start — the
+*resume-after-pause* case — while the more common case (transitioning
+a heading straight to =DOING=/=PLANNING=) is unowned by construction.
+Checked the =337f7fb2= DONE writeup: it only ever describes threading
+=session_id= through =session-pause=/=-resume=, never claims trigger-
+hook coverage — so this is an honest original scope gap, not a
+regression.
 
-Fix direction: have =claude-code-ide-org-clock-in= accept an optional
-session-id the same way =-session-resume= does, and set
-=claude-code-ide-org--clock-owner-session-id= when known — but
-=org_clock_in= is an MCP tool called directly by the model, with no
-natural access to Claude Code's own =session_id= (that only arrives
-via hook payloads, not tool-call context), so where a session-id would
-even come from on this path is an open question for planning, not
-just a mechanical change.
+*Live-verified, not just theorized*: while another session had a
+genuine =PLANNING= heading actively clocked (ID
+4cda6bf7-441b-47b2-b3d5-b8c7e7a207a5, set via =org_set_todo=, the
+"proper" path), a direct =emacsclient= query showed
+=claude-code-ide-org--clock-owner-session-id= =nil= while
+=claude-code-ide-org--planning-owner-session-id= correctly held that
+session's ID — same heading, same instant, one guard fully engaged,
+the other completely absent. =337f7fb2='s own guard is deliberately
+permissive when no owner is recorded ("the correct fallback for the
+ordinary single-session case, not merely a stopgap," per its own
+docstring) — so this isn't broken protection, it's protection that
+was never wired to the common code path.
+
+Sharper fix direction than originally captured: the precedent already
+exists in this exact codebase.
+=claude-code-ide-org--maybe-record-planning-owner= (a =PostToolUse=
+hook matched on =org_set_todo=, reading =session_id= straight from its
+own hook payload) already solves the identical problem for
+=planning-owner-session-id=. The same hook — or a sibling of it — can
+set =clock-owner-session-id= too, whenever the requested state is
+=DOING=/=PLANNING=, without needing to instrument the trigger hook or
+=org_clock_in= itself. =org_clock_in='s own missing session-id is a
+narrower, separate case (no =PostToolUse= payload carries a =state=
+field for a bare clock-in call) worth a smaller, second fix alongside
+it.
+
+Related, same "single shared global clock" theme:
+[[id:582cc7f4-41a2-4666-ad3f-1b76b459147e][session-resume blindly inherits any session's last-clocked heading]]
+and
+[[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][Direct file writes to a live org buffer can desync org-clock-marker]]
+— three distinct root causes in the same subsystem, worth planning
+together, not assumed to be one fix.
 
 ** TODO Audit for clock/session bookkeeping noise before committing during a clocking-suppressed session :code:
 :PROPERTIES:
@@ -531,6 +600,12 @@ rules already in CLAUDE.md. Related to, but broader than, the sibling
 heading above (that one is about a specific missing ownership
 mechanism; this one is about what to do with the resulting mess at
 commit time, regardless of whether that mechanism ever gets fixed).
+
+Also substantial overlap with
+[[id:3cb3f955-f10a-47cd-84ab-e629d73ea59d][Org skill: commit a newly-captured TODO immediately, when safe]] —
+that heading already raised the same underlying question in the
+abstract before this one found a concrete incident. See its own
+2026-08-05 update.
 
 ** DONE Concurrent Claude Code sessions share one global org-clock with no session identity :code:
 :PROPERTIES:
@@ -763,6 +838,18 @@ existing single-canonical-file constraint — not yet decided as worth
 building anything for; may just be a documentation note rather than
 code.
 
+*Update 2026-08-05:* the core premise here — "the single clock is the
+mechanism that enforces one attention at a time, not a limitation to
+route around" — is exactly what's being stress-tested by real
+concurrent-session activity found this same day:
+[[id:582cc7f4-41a2-4666-ad3f-1b76b459147e][session-resume blindly inherits any session's last-clocked heading]],
+[[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][Direct file writes to a live org buffer can desync org-clock-marker]],
+and
+[[id:d150c02e-06fe-4514-bf69-e2cc5d8df4c7][org_clock_in doesn't record clock ownership, unlike session-resume]].
+Not reopening the conclusion here — just flagging that if/when this
+gets planned, it should be read against that fresh evidence, not just
+the original 2026-07-30 reasoning.
+
 * Observability
 
 Broader than clocking — visibility into what every tool call
@@ -879,12 +966,21 @@ Revisit 2026-07-31.
 
 *Note added 2026-08-05:* consider a "Known limitations" section in the
 README, surfacing accepted-but-easy-to-miss gaps that today live only
-as prose buried in CLAUDE.md — e.g. the =ExitPlanMode= rejection-gating
-gap (CLAUDE.md:188-192) and the =PLANNING= cross-session owner guard
-(CLAUDE.md:193-196), both deliberately left as low-cost/self-correcting
-rather than fixed. A human skimming the repo has no reason to find
-either today unless they read CLAUDE.md's full "State transition
-rules" section end to end.
+as prose buried in CLAUDE.md — cited here by content, not line number,
+since line numbers drift (confirmed: this note's original citations
+were already off by ~10 lines within the same day). Two examples, both
+deliberately left as low-cost/self-correcting rather than fixed, from
+CLAUDE.md's "State transition rules" section:
+- *"Known gap, accepted"*: the =ExitPlanMode= hook fires whether a plan
+  was approved or rejected, with no reliable signal to tell the two
+  apart, so a rejected plan can still trigger a stray =PLANNING= →
+  =DOING= promotion.
+- *"Cross-session guard"*: the same promotion only fires for the
+  session that set =PLANNING= in the first place, tracked via
+  =claude-code-ide-org--planning-owner-session-id=.
+
+A human skimming the repo has no reason to find either today unless
+they read that CLAUDE.md section end to end.
 
 ** TODO Audit CLAUDE.md for directives that belong in the org skill instead :code:
 :PROPERTIES:
@@ -1093,11 +1189,9 @@ re-litigated per script.
 :END:
 :SESSIONS:
 - Resumed [2026-08-05 Wed 14:07] (session 2fd8dcf1-aa7e-4061-8495-1933766ae5b4)
-- Paused [2026-08-05 Wed 14:08] (session 2fd8dcf1-aa7e-4061-8495-1933766ae5b4)
-- Resumed [2026-08-05 Wed 14:10] (session 2fd8dcf1-aa7e-4061-8495-1933766ae5b4)
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-05 Wed 14:10]
+CLOCK: [2026-08-05 Wed 14:10]--[2026-08-05 Wed 14:35] =>  0:25
 :END:
 [[file:~/.claude/plans/nifty-beaming-lynx.md][Plan]]
 
@@ -1118,3 +1212,12 @@ instead of the binary =org-clocking-p= check. Needs a =bin/test= update
 for each of the five existing =--statusline-task-string= regression
 tests, which likely assert on the literal "clocked in"/"clocked out"
 string.
+
+*Note added 2026-08-05:* worth reading against
+[[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][Direct file writes to a live org buffer can desync org-clock-marker]]
+before implementing — =org-get-todo-state= at the clock marker is
+still marker-dependent, so this fix inherits that same desync mode
+(would show a stale TODO keyword instead of a stale in/out label,
+rather than routing around the underlying fragility). Doesn't block
+this task; just don't be surprised if the new failure mode looks
+similar to the old one.
