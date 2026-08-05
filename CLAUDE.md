@@ -58,10 +58,20 @@ implied to require one just because this rule exists.
 
 **Rule**: work planned via Claude Code's own Plan Mode gets a single
 permanent link in its heading body — `[[file:~/.claude/plans/<slug>.md][Plan]]`
-— added when the heading goes `DOING`. No transcription of the plan into
-org, ever; the link is the record, and it is **not removed at `DONE`**. A
-task with no separate Plan Mode session simply carries no link — that's
-expected, not a gap to fill in.
+— added as soon as the first round of planning finishes (right after
+`ExitPlanMode` is called and the plan file is finalized), not gated on the
+heading later transitioning to `DOING`. This matters because approval and
+the `DOING` transition don't always happen in the same beat as planning —
+e.g. the user may deliberately stop right after a plan is written, before
+deciding whether to implement it — and the link should exist the moment a
+real plan file does, independent of what happens next. Revisions (re-
+entering Plan Mode on the same task) edit that same plan file in place —
+Claude Code reuses the existing plan file path for a continuation of the
+same task — so the link is written once and never needs updating to point
+at a new file. No transcription of the plan into org, ever; the link is the
+record, and it is **not removed at `DONE`**. A task with no separate Plan
+Mode session simply carries no link — that's expected, not a gap to fill
+in.
 
 **Rule**: before a `DONE` heading is archived, add a concise prose outcome
 summary next to that link — what shipped, how it was verified, anything

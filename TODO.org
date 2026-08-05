@@ -938,10 +938,14 @@ Live: reloaded =config.el=, ran the exact configured command end-to-end
 against real clock state — correct output, model name and task info
 both present, no fish, no =jq= anywhere in the pipeline.
 
-** TODO Evaluate choice of shell and standardize all project scripts :code:
+** NEXT Evaluate choice of shell and standardize all project scripts :code:
 :PROPERTIES:
 :ID:       84b7d8b3-5161-4146-9167-0e7e2100e365
 :CREATED:  [2026-07-31 Fri 15:23]
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-08-05 Wed 14:06] \\
+  Auto-promoted: sole remaining TODO in its sibling group.
 :END:
 Surfaced 2026-07-31 while relocating the statusline script
 (=bin/statusline.fish=) into the repo: every other script in
@@ -1014,3 +1018,36 @@ Whatever's decided should also cover: should this be written down as
 a project convention (e.g. in CLAUDE.md's "Repository layout" or a new
 "Scripting conventions" note) so it doesn't have to be
 re-litigated per script.
+
+** PLANNING Show the TODO keyword, not just clocked in/out, in the statusline :code:
+:PROPERTIES:
+:ID:       4cda6bf7-441b-47b2-b3d5-b8c7e7a207a5
+:CREATED:  [2026-08-05 Wed 14:04]
+:END:
+:SESSIONS:
+- Resumed [2026-08-05 Wed 14:07] (session 2fd8dcf1-aa7e-4061-8495-1933766ae5b4)
+- Paused [2026-08-05 Wed 14:08] (session 2fd8dcf1-aa7e-4061-8495-1933766ae5b4)
+- Resumed [2026-08-05 Wed 14:10] (session 2fd8dcf1-aa7e-4061-8495-1933766ae5b4)
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-05 Wed 14:10]
+:END:
+[[file:~/.claude/plans/nifty-beaming-lynx.md][Plan]]
+
+Captured 2026-08-05 from conversation, surfaced while reviewing the
+PLANNING-state feature: =claude-code-ide-org--statusline-task-string='s
+=status-label= only ever shows "clocked in" or "clocked out"
+(=org-clocking-p= test), which conflates states this project now
+distinguishes — a =PLANNING= task and a =DOING= task both read "clocked
+in" even though they mean different things (still designing vs.
+actively implementing), and a =WAIT= task and a =DONE= task pulled from
+=org-clock-history= both read "clocked out" even though one is blocked
+and the other finished.
+
+Fix: swap =status-label= for the heading's actual TODO keyword
+(=org-get-todo-state= at the clock marker's position, already inside
+the =org-with-point-at marker= block =status-label= is computed in)
+instead of the binary =org-clocking-p= check. Needs a =bin/test= update
+for each of the five existing =--statusline-task-string= regression
+tests, which likely assert on the literal "clocked in"/"clocked out"
+string.
