@@ -343,6 +343,42 @@ Distinct from the existing "Known cosmetic quirk" in CLAUDE.md about
 appears first in the property area) — this is about the entry order
 *within* =:SESSIONS:= itself.
 
+** TODO Direct file writes to a live org buffer can desync org-clock-marker :code:
+:PROPERTIES:
+:ID:       53b0047d-c55c-486c-8eed-ba4994d97a1a
+:CREATED:  [2026-08-04 Tue 18:27]
+:END:
+
+Captured 2026-08-04, hit live during this session's TODO.org commit-
+splitting work: writing TODO.org's content directly via =git
+hash-object=/=update-index= (bypassing Emacs) and relying on
+=global-auto-revert-mode= to pick up the change desynced Emacs's
+*in-memory* clock state from the file text. =org-clock-marker= kept
+pointing at its old raw character offset, which after the rewrite
+landed on an unrelated =:SESSIONS:= line instead of the =CLOCK:= line
+— =org_clock_out= then failed outright with "Clock start time is
+gone", and the statusline (which reads live =org-clocking-p=/
+=org-clock-marker= state, not the file text — see
+=claude-code-ide-org--statusline-task-string=) kept showing "clocked
+in" even after a text-level recovery via
+=claude-code-ide-org-close-open-interval= had already closed the
+=CLOCK:= line on disk.
+
+Worked around manually this time: reset
+=org-clock-marker=/=org-clock-hd-marker=/=org-clock-start-time=
+directly via =emacsclient=, then called
+=claude-code-ide-org--clock-status-hook-out= by hand since normal
+=org-clock-out= never got far enough to fire it. The existing "Stale
+interval recovery" design (CLAUDE.md) only repairs the *text* side of
+a stale interval (crash/shutdown case, where Emacs's own in-memory
+state is simply gone after a restart) — it has no equivalent for *this*
+case, where Emacs is still running but its live clock state has gone
+stale relative to a file it didn't itself edit. Whether the real fix
+is "never write live org files outside Emacs, full stop" (a
+process/discipline fix, not code) or something more automatic (e.g.
+detecting the marker/text mismatch and self-healing) is a question for
+planning.
+
 ** DONE Concurrent Claude Code sessions share one global org-clock with no session identity :code:
 :PROPERTIES:
 :ID:       337f7fb2-b9e9-4c02-82dd-d88e60df364b
