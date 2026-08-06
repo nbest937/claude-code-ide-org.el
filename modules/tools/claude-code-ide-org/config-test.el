@@ -1978,6 +1978,68 @@ empty range."
            (result (claude-code-ide-org-clock-report)))
       (should (string-match-p "1:00" result)))))
 
+;;; claude-code-ide-org-log-background-plan --------------------------------
+
+(ert-deftest claude-code-ide-org-test-log-background-plan-inserts-link-and-sessions-entry ()
+  (claude-code-ide-org-test--with-heading
+    (let ((result (claude-code-ide-org-log-background-plan
+                   id "~/.claude/plans/warm-marinating-puddle.md" "session-A-bg1")))
+      (should (string-match-p "\\`Logged background plan for \"Test heading\"\\.\\'" result)))
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      (should (string-match-p
+               "\\[\\[file:~/.claude/plans/warm-marinating-puddle.md\\]\\[Plan\\]\\]"
+               disk))
+      (should (string-match-p
+               "- Background-planned \\[[^]]+\\] (session session-A-bg1)"
+               disk)))))
+
+(ert-deftest claude-code-ide-org-test-log-background-plan-is-idempotent ()
+  "A heading only ever carries one Plan link -- a second call (e.g. a
+later batch re-planning the same still-open heading) must not insert
+a duplicate, even with a different plan-file path."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-log-background-plan id "~/.claude/plans/first.md" "session-A-bg1")
+    (claude-code-ide-org-log-background-plan id "~/.claude/plans/second.md" "session-A-bg2")
+    (let ((disk (claude-code-ide-org-test--disk-contents file))
+          (count 0))
+      (with-temp-buffer
+        (insert disk)
+        (goto-char (point-min))
+        (while (re-search-forward "\\[\\[file:[^]]*\\]\\[Plan\\]\\]" nil t)
+          (setq count (1+ count))))
+      (should (= 1 count))
+      (should (string-match-p "first\\.md" disk))
+      (should (not (string-match-p "second\\.md" disk))))))
+
+(ert-deftest claude-code-ide-org-test-log-background-plan-does-not-touch-todo-or-clock ()
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-log-background-plan id "~/.claude/plans/x.md" "session-A-bg1")
+    (should (equal "TODO" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))
+    (should (not (org-clocking-p)))
+    (should (not (string-match-p ":LOGBOOK:" (claude-code-ide-org-test--disk-contents file))))
+    (should (not claude-code-ide-org--planning-owner-session-id))
+    (should (not claude-code-ide-org--clock-owner-session-id))))
+
+(ert-deftest claude-code-ide-org-test-log-background-plan-resolves-fresh-by-id ()
+  "Mirrors set-todo-reports-success-when-hook-cascade-moves-point:
+mutate the buffer (add a sibling, move point there) between two calls
+and confirm each write still lands on the heading actually named by
+id, not wherever point happened to be left."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* TODO Sibling B                                                    :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0002\n"
+                     ":END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (goto-char (point-max))
+    (claude-code-ide-org-log-background-plan id "~/.claude/plans/a.md" "session-A-bg1")
+    (claude-code-ide-org-log-background-plan "test-0002" "~/.claude/plans/b.md" "session-A-bg2")
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      (should (string-match-p "a\\.md" disk))
+      (should (string-match-p "b\\.md" disk)))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here

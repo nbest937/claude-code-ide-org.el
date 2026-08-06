@@ -6,6 +6,64 @@ plus org-mode skills for Claude Code sessions.
 The goal is natural-language manipulation of `.org` files from within Emacs,
 via `claude-code-ide`, without needing to internalise Emacs chord sequences.
 
+A second, co-equal goal — never spelled out until now, though a large share
+of this project's actual work has gone toward it — is trustworthy tracking
+of where attention/time actually went on tracked tasks. What "trustworthy"
+requires in practice (interval granularity, how much manual confirmation is
+acceptable, what reports actually need to come out the other end) is
+deliberately left open here, not pinned to whatever CLOCK-drawer mechanics
+happen to exist at a given point: it should be driven by concrete reporting
+needs, most of which haven't been fully articulated yet. See "Direction"
+below for the current best guess at how these two goals combine.
+
+---
+
+## Direction (not yet implemented)
+
+**This section describes a proposed target, not current behavior.**
+Everything else in this file documents what is actually built and verified;
+this section is the opposite — a UX vision this project is moving toward,
+captured in TODO.org (`:ID: b5f7c5c7-7ad6-4c68-9cce-3479db1f1644`) but not
+yet designed in Elisp, not implemented, and not approved as final. Treat it
+as a hypothesis to evaluate — including whether it's the right one — not a
+spec to execute against; a sub-task of that same heading
+(`:ID: c084553c-0621-4a96-9fa1-f32850aeec6a`) exists specifically to check
+whether org itself already offers a better mechanism before anything here
+gets built.
+
+**The problem it responds to**: driving live org state (TODO keyword,
+clock, `:LOGBOOK:`/`:SESSIONS:` logging) directly and synchronously from
+Claude Code sessions — including concurrent and background ones — has
+produced a sustained run of desync, ownership, and logging bugs (see
+TODO.org's "Clock lifecycle & visibility" section). The pattern traces to
+one mismatch: org's clock/logging model assumes one human at one buffer;
+this project's actual workload is the opposite.
+
+**The proposed shape**: Claude Code sessions stop touching the live buffer
+for state/clock changes. Instead they append events to a plain, per-session
+file — durable, cheap, no Emacs required to write. A human, at a moment of
+their own choosing, reviews the accumulated events in a purpose-built Emacs
+command and applies the approved ones for real, through org's own native
+`org-todo`/`org-clock-in`/`org-clock-out`, run inside a genuinely
+interactive command — so org's native state-change logging finally works
+instead of needing to be suppressed.
+
+**Confirmed, load-bearing constraint on this shape**: apply is *always*
+human-triggered, never invoked by Claude programmatically. Not a style
+preference — org's native logging only completes correctly inside a real
+interactive session; a non-interactive `emacsclient -e` call hits the exact
+hang this design exists to route around. Practical consequence: clock/
+TODO-state accuracy is only ever as fresh as the last time a human ran the
+review pass, not live. That is an accepted, deliberate trade of "Claude
+does it all in real time" for "the record, once confirmed, is actually
+correct" — not an oversight to fix later.
+
+**What doesn't change**: read-only queries, tagging, capture, refile,
+archive, and sort stay exactly as immediate and Emacs-chord-free as the
+opening goal promises. This trade is scoped narrowly to state transitions
+and clock start/stop — the two categories that have actually caused every
+incident to date.
+
 ---
 
 ## Repository layout
@@ -230,7 +288,13 @@ approval before transitioning it to `DOING` or touching anything else the
 plan describes. Approving a Plan is not approval of the heading's exact
 wording. The `ExitPlanMode` auto-promotion hook does not affect this rule:
 it only ever promotes an *already-clocked, already-`PLANNING`* heading, and
-never touches a newly created heading the plan describes creating.
+never touches a newly created heading the plan describes creating. The
+more general form of this rule — `ExitPlanMode` approval and "start
+implementing" are always two separate checkpoints, not just for newly
+created headings — lives in the org skill (`.claude/skills/org/SKILL.md`,
+"Plan Mode checkpoint") rather than here, since it's a way-of-working for
+Claude Code's Plan Mode generally, not an org-file convention specific to
+this repo.
 
 ---
 
@@ -252,6 +316,7 @@ Claude is expected to act on must have one (`M-x org-id-get-create`).
 | `org_refile`        | `org-refile`             | Move a subtree under a different parent |
 | `org_move_sibling`  | `org-move-subtree-up/down` | Move a heading up/down among siblings |
 | `org_sort_children` | `org-sort-entries`       | Sort a heading's direct children       |
+| `org_log_background_plan` | custom (insert-link + `--log-session-event`) | Write-back for background-planned headings: Plan link + synthetic `:SESSIONS:` entry; never touches TODO state or the clock |
 
 Text editing (via the org skill) is used for adding or changing tags,
 generating new headings, and time reporting. `org_query` now covers

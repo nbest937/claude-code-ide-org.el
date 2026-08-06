@@ -1887,6 +1887,45 @@ in `condition-case', same reasoning as the in-handler."
     (unless (org-clocking-p)
       (claude-code-ide-org--clock-status-hook-out))))
 
+;;; Background planning write-back ----------------------------------------
+
+(defun claude-code-ide-org--insert-plan-link (plan-file)
+  "Insert a `[[file:PLAN-FILE][Plan]]' link into the body of the
+heading at point, unless a Plan link is already present there.
+Inserted after the property drawer and any :SESSIONS:/:LOGBOOK:
+drawers, per this project's Plan-link convention (see CLAUDE.md).
+Idempotent regardless of PLAN-FILE's value -- a heading only ever
+carries one Plan link, matching CLAUDE.md's \"the link is written
+once and never needs updating\" rule for plan revisions."
+  (org-back-to-heading t)
+  (let ((end (save-excursion (outline-next-heading) (point))))
+    (unless (save-excursion
+              (re-search-forward "\\[\\[file:[^]]*\\]\\[Plan\\]\\]" end t))
+      (org-end-of-meta-data t)
+      (unless (bolp) (insert "\n"))
+      (insert (format "[[file:%s][Plan]]\n\n" plan-file)))))
+
+(defun claude-code-ide-org-log-background-plan (id plan-file session-id)
+  "Record a completed background-planning pass on the heading whose
+:ID: property equals ID: insert a Plan-file link (idempotent, see
+`claude-code-ide-org--insert-plan-link') and append a \"Background-
+planned\" entry to the heading's :SESSIONS: drawer tagged with
+SESSION-ID -- a synthetic id, never the orchestrating session's own
+real session id (e.g. \"<real-session-id>-bg1\"), so unattended
+background research time is never misattributed as that session's own
+interactive work.  Never transitions TODO state and never touches the
+clock or either PLANNING/clock owner variable -- the single shared
+clock cannot represent true parallelism honestly, so this tool
+structurally cannot produce a CLOCK/:LOGBOOK: entry."
+  (claude-code-ide-org--at-id
+   id
+   (lambda ()
+     (claude-code-ide-org--insert-plan-link plan-file)
+     (let ((claude-code-ide-org--log-session-id session-id))
+       (claude-code-ide-org--log-session-event "Background-planned"))
+     (save-buffer)
+     (format "Logged background plan for \"%s\"." (org-get-heading t t t t)))))
+
 ;;; MCP tool registration -------------------------------------------------
 
 (with-eval-after-load 'claude-code-ide
@@ -2054,4 +2093,22 @@ in `condition-case', same reasoning as the in-handler."
            (:name "tend"
             :type string
             :optional t
-            :description "Optional explicit range end, as an org timestamp string. Ignored if block is given."))))
+            :description "Optional explicit range end, as an org timestamp string. Ignored if block is given.")))
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-log-background-plan
+   :name "org_log_background_plan"
+   :description (concat
+                 "Record a completed background-planning pass on an org-mode "
+                 "heading, identified by its :ID: property: insert a Plan-file "
+                 "link (idempotent) and append a synthetic :SESSIONS: entry. "
+                 "Never transitions TODO state and never touches the clock.")
+   :args '((:name "id"
+            :type string
+            :description "The :ID: property value of the target org heading.")
+           (:name "plan_file"
+            :type string
+            :description "Absolute path to the plan markdown file, e.g. ~/.claude/plans/<slug>.md.")
+           (:name "session_id"
+            :type string
+            :description "Synthetic id for this write, never the orchestrating session's own real session id, e.g. <orchestrating-session-id>-bg1."))))

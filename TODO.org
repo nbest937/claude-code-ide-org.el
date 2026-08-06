@@ -225,12 +225,22 @@ guard" paragraph, CLAUDE.md:193-196) rather than in this heading's own
 body. Both would require a second concurrent session or a plan
 rejection to trigger, neither of which this pass attempted.
 
-** TODO Org skill: auto-capture and dedupe modification requests against existing TODOs :code:
+** MAYBE Org skill: auto-capture and dedupe modification requests against existing TODOs :code:
 :PROPERTIES:
 :ID:       7eb7dd8d-2d9b-4a63-afbd-5878298e42a4
 :CREATED:  [2026-08-04 Tue 17:30]
 :BLOCKER:  b95b9fba-f78e-48fe-8546-988709cce309
 :END:
+:LOGBOOK:
+CLOCK: [2026-08-06 Thu 10:00]--[2026-08-06 Thu 10:05] =>  0:05
+CLOCK: [2026-08-06 Thu 09:35]--[2026-08-06 Thu 09:40] =>  0:05
+:END:
+:SESSIONS:
+- Resumed [2026-08-06 Thu 09:36] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd)
+- Paused [2026-08-06 Thu 12:15] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd)
+:END:
+
+[[file:~/.claude/plans/todo-autocapture-dedupe.md][Plan]]
 
 Blocked on the sibling heading above (=Add a PLANNING TODO state,
 driven by the ExitPlanMode matcher=, ID
@@ -277,11 +287,18 @@ or whether the check also needs to search prose for informal
 cross-references that predate this convention, and exactly when in the
 org skill's flow this check should fire.
 
-** TODO Org skill: parallelize background planning across the NEXT/TODO backlog, without touching the shared clock :code:
+** DONE Org skill: parallelize background planning across the NEXT/TODO backlog, without touching the shared clock :code:
 :PROPERTIES:
 :ID:       d8444673-b047-4755-b62c-d03df738f16a
 :CREATED:  [2026-08-05 Wed 16:12]
 :END:
+:SESSIONS:
+- Resumed [2026-08-06 Thu 09:06] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd)
+:END:
+:LOGBOOK:
+:END:
+
+[[file:~/.claude/plans/warm-marinating-puddle.md][Plan]]
 
 Captured 2026-08-05 from conversation: how to kick off planning for
 every open NEXT/TODO heading in parallel, while getting the resulting
@@ -355,11 +372,48 @@ batch and whether that needs a cap; whether "no clock entries at all"
 should extend to *every* unattended/background invocation of this
 skill or just this specific batch-planning use case.
 
-** TODO Make org-blocker-hook actually consult :BLOCKER: :code:
+*Resolved during planning (2026-08-05):* synthetic identifier is
+=<orchestrating-session-id>-bg<N>= (derived from, never equal to, the
+real session id); batch size capped at 3; "no clock entries" scoped
+to this specific background-planning write-back path only, not
+generalized to every background invocation.
+
+*Implementation notes:* added
+=claude-code-ide-org-log-background-plan= (id, plan-file, session-id)
+plus its =claude-code-ide-org--insert-plan-link= helper, exposed as
+the new MCP tool =org_log_background_plan=. Reuses
+=claude-code-ide-org--at-id= and =claude-code-ide-org--log-session-event=
+exactly as specified above; inserts the Plan link idempotently
+(=org-end-of-meta-data t= to land after the property drawer and any
+=:SESSIONS:=/=:LOGBOOK:= drawers) and never calls =org-todo=,
+=org-clock-in=, or =org-clock-out=. Documented the orchestration
+workflow (query → batch of ≤3 background agents → serialized
+write-back) as a new section in the org skill
+(=.claude/skills/org/SKILL.md=), and added the new tool to CLAUDE.md's
+MCP tools table.
+
+*Verified, not just implemented:* four new ERT tests
+(=config-test.el=) cover link+:SESSIONS: insertion, idempotency
+across repeated calls with different plan-file paths, that TODO
+state/clock/owner-vars are untouched, and fresh :ID: re-resolution
+under buffer mutation between calls — =bin/test= passes 122/122
+(118 pre-existing + 4 new). Also live-reloaded =config.el= into the
+running Doom Emacs and ran a manual smoke test against a scratch
+heading via =emacsclient=: confirmed the Plan link and a
+"Background-planned" =:SESSIONS:= entry appear, no =:LOGBOOK:= entry
+or TODO-state change occurs, and a second call with a different
+plan-file path does not duplicate the Plan link.
+
+** MAYBE Make org-blocker-hook actually consult :BLOCKER: :code:
 :PROPERTIES:
 :ID:       087e73e9-bb24-43b6-a972-b7f103d04017
 :CREATED:  [2026-08-04 Tue 17:46]
 :END:
+:SESSIONS:
+- Background-planned [2026-08-05 Wed 18:40] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd-bg2)
+:END:
+
+[[file:~/.claude/plans/blocker-hook-enforcement.md][Plan]]
 
 Captured 2026-08-04, surfaced while adding a =:BLOCKER:= property to
 the sibling heading above: this project's own
@@ -385,11 +439,20 @@ property (documented in the org skill alongside =:BLOCKER:=) is an
 open question for planning — =org-depend= itself implements both, but
 this project may only need one direction enforced.
 
-** TODO Org skill: commit a newly-captured TODO immediately, when safe :code:
+** MAYBE Org skill: commit a newly-captured TODO immediately, when safe :code:
 :PROPERTIES:
 :ID:       3cb3f955-f10a-47cd-84ab-e629d73ea59d
 :CREATED:  [2026-08-04 Tue 17:54]
 :END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-08-06 Thu 12:07] \\
+  Auto-promoted: sole remaining TODO in its sibling group.
+:END:
+:SESSIONS:
+- Background-planned [2026-08-05 Wed 18:39] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd-bg3)
+:END:
+
+[[file:~/.claude/plans/capture-commit-safety.md][Plan]]
 
 Captured 2026-08-04 from conversation: right now, capturing a new org
 heading (per CLAUDE.md's "any time a new task is described in
@@ -428,6 +491,35 @@ uncommitted changes"). Not merging them here; worth deciding during
 planning whether they should be one task, sequenced, or just
 cross-referenced as they are now.
 
+** MAYBE Revisit the PLANNING TODO-state's design and whether it's worth keeping :code:
+:PROPERTIES:
+:ID:       c954f650-b92f-4920-9967-ab6c44577b30
+:CREATED:  [2026-08-06 Thu 10:02]
+:END:
+
+Raised in conversation 2026-08-06, after a day of live use: =PLANNING=
+sat unused or got hand-reverted more than once today —
+=4cda6bf7-441b-47b2-b3d5-b8c7e7a207a5= (promoted 2026-08-05, hand-
+demoted back to =TODO= today with no implementation ever attempted)
+and =7eb7dd8d-2d9b-4a63-afbd-5878298e42a4= (promoted mid-session
+today, whose own transition immediately produced a stray orphan
+=:SESSIONS:= entry that needed a manual fix). Open question,
+deliberately not resolved here: does =PLANNING= (its own clock-owning
+semantics, the =ExitPlanMode=-driven auto-promotion hook, the single
+global =claude-code-ide-org--planning-owner-session-id= constraint —
+see =b95b9fba-f78e-48fe-8546-988709cce309=, "Add a PLANNING TODO
+state, driven by the ExitPlanMode matcher") earn its complexity in
+practice, or is it an extra rung in the sequence that isn't pulling
+its weight?
+
+Deliberately deferred, not decided now: revisit after the currently
+bulk-planned =NEXT=/=TODO= items land — this batch (=087e73e9=,
+=3cb3f955=, =2b0988ed=, =53b0047d=, =582cc7f4=, =d150c02e=,
+=782cda6c=, =2e09adb7=, =84b7d8b3=) plus =7eb7dd8d= (already
+=PLANNING=) — so the assessment is grounded in real experience using
+the mechanism across implemented work, not just today's spot
+impressions.
+
 * Clock lifecycle & visibility
 
 Everything here is specifically about the clock subsystem's
@@ -435,11 +527,16 @@ correctness and observability, as opposed to the general TODO-state
 machine above — three different angles on "make sure the clock is
 never silently wrong."
 
-** TODO Reorder :SESSIONS: entries to match :LOGBOOK: ordering :code:
+** MAYBE Reorder :SESSIONS: entries to match :LOGBOOK: ordering :code:
 :PROPERTIES:
 :ID:       2b0988ed-eb92-4fa7-904a-cb2d10941bfd
 :CREATED:  [2026-08-04 Tue 17:58]
 :END:
+:SESSIONS:
+- Background-planned [2026-08-05 Wed 18:45] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd-bg1)
+:END:
+
+[[file:~/.claude/plans/sessions-logbook-ordering.md][Plan]]
 
 Captured 2026-08-04 from conversation. Org's own =:LOGBOOK:= (both
 =CLOCK:= lines and state-change log notes) inserts each new entry at
@@ -471,11 +568,16 @@ Shares code surface with
 the =session-pause=/=-resume= internals. Not a blocking order, just
 worth checking the other's status before starting either.
 
-** TODO Direct file writes to a live org buffer can desync org-clock-marker :code:
+** MAYBE Direct file writes to a live org buffer can desync org-clock-marker :code:
 :PROPERTIES:
 :ID:       53b0047d-c55c-486c-8eed-ba4994d97a1a
 :CREATED:  [2026-08-04 Tue 18:27]
 :END:
+:SESSIONS:
+- Background-planned [2026-08-05 Wed 18:49] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd-bg2)
+:END:
+
+[[file:~/.claude/plans/clock-marker-desync-guard.md][Plan]]
 
 Captured 2026-08-04, hit live during this session's TODO.org commit-
 splitting work: writing TODO.org's content directly via =git
@@ -528,11 +630,16 @@ still marker-dependent — it inherits this exact desync mode (a stale
 TODO keyword shown instead of a stale in/out label), it doesn't
 route around it.
 
-** TODO session-resume blindly inherits any session's last-clocked heading :code:
+** MAYBE session-resume blindly inherits any session's last-clocked heading :code:
 :PROPERTIES:
 :ID:       582cc7f4-41a2-4666-ad3f-1b76b459147e
 :CREATED:  [2026-08-04 Tue 18:27]
 :END:
+:SESSIONS:
+- Background-planned [2026-08-05 Wed 18:49] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd-bg3)
+:END:
+
+[[file:~/.claude/plans/session-resume-continuity-guard.md][Plan]]
 
 Captured 2026-08-04, observed live and confirmed with real evidence,
 not just a one-off guess: immediately after deliberately clocking out
@@ -585,11 +692,16 @@ causes — worth planning together but not assuming they're one fix:
 this bug's own "idle clock" precondition is the common case, not the
 exception).
 
-** TODO org_clock_in doesn't record clock ownership, unlike session-resume :code:
+** MAYBE org_clock_in doesn't record clock ownership, unlike session-resume :code:
 :PROPERTIES:
 :ID:       d150c02e-06fe-4514-bf69-e2cc5d8df4c7
 :CREATED:  [2026-08-05 Wed 14:28]
 :END:
+:SESSIONS:
+- Background-planned [2026-08-05 Wed 19:03] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd-bg1)
+:END:
+
+[[file:~/.claude/plans/clock-in-ownership-recording.md][Plan]]
 
 Captured 2026-08-05, hit live, then re-confirmed and sharpened
 2026-08-05 with a direct empirical check. Original finding: manually
@@ -648,11 +760,16 @@ and
 — three distinct root causes in the same subsystem, worth planning
 together, not assumed to be one fix.
 
-** TODO Audit for clock/session bookkeeping noise before committing during a clocking-suppressed session :code:
+** MAYBE Audit for clock/session bookkeeping noise before committing during a clocking-suppressed session :code:
 :PROPERTIES:
 :ID:       782cda6c-111c-454e-93eb-b2b27012078b
 :CREATED:  [2026-08-05 Wed 14:28]
 :END:
+:SESSIONS:
+- Background-planned [2026-08-05 Wed 18:59] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd-bg2)
+:END:
+
+[[file:~/.claude/plans/bookkeeping-noise-audit.md][Plan]]
 
 Captured 2026-08-05, raised in conversation: when a session has been
 explicitly told to suppress its own clocking for a while (as this one
@@ -873,15 +990,20 @@ becomes worth building — it keeps the interactive prospective agenda
 and the retrospective clock-report scope independently correct
 instead of coupled to the same file list.
 
-** NEXT Worktree-based session partitioning, with a canonical-file caveat :code:
+** MAYBE Worktree-based session partitioning, with a canonical-file caveat :code:
 :PROPERTIES:
 :ID:       2e09adb7-6e29-499c-a40e-98cd2b327cff
 :CREATED:  [2026-08-04 Tue 13:29]
+:END:
+:SESSIONS:
+- Background-planned [2026-08-05 Wed 19:02] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd-bg3)
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-08-04 Tue 13:30] \\
   Auto-promoted: sole remaining TODO in its sibling group.
 :END:
+[[file:~/.claude/plans/worktree-session-partitioning.md][Plan]]
+
 Raised in conversation 2026-08-04: can separate Claude Code sessions
 work on distinct TODOs simultaneously by each operating in its own
 =git worktree= of a project repo? For the *code* side, yes — that's
@@ -926,6 +1048,495 @@ and
 Not reopening the conclusion here — just flagging that if/when this
 gets planned, it should be read against that fresh evidence, not just
 the original 2026-07-30 reasoning.
+
+** NEXT Refactor clock/TODO-state driving to an append-only event queue + interactive batch-apply review :code:
+:PROPERTIES:
+:ID:       b5f7c5c7-7ad6-4c68-9cce-3479db1f1644
+:CREATED:  [2026-08-06 Thu 10:47]
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-08-06 Thu 12:07] \\
+  Auto-promoted: sole remaining TODO in its sibling group.
+:END:
+
+Captured 2026-08-06 from conversation, after a frank assessment of
+this whole clock/session-identity subsystem concluded the *original*
+idea — Claude Code sessions driving live org state (TODO keyword,
+clock, =:LOGBOOK:=/=:SESSIONS:= logging) directly and synchronously,
+in real time, across concurrent/background sessions — is not bearing
+fruit. Evidence, not just a vibe: in roughly a day and a half of real
+use this produced two distinct clock-marker desync incidents
+([[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][Direct file writes to a
+live org buffer can desync org-clock-marker]]), a malformed bare
+=CLOCK:= line from concurrent writers, an idle-clock-hijack bug
+([[id:582cc7f4-41a2-4666-ad3f-1b76b459147e][session-resume blindly
+inherits any session's last-clocked heading]]), a clock-ownership
+gap covering 2 of 3 clock-open paths
+([[id:d150c02e-06fe-4514-bf69-e2cc5d8df4c7][org_clock_in doesn't
+record clock ownership, unlike session-resume]]), a zero-time-clock
+erasure bug (=293ac49e=, DONE), a genuine-looking-but-actually-noise
+bookkeeping delta needing human cleanup after the fact (commits
+=4cc769f=/=bc45342=), and — the proximate trigger for this whole
+heading — discovering that
+[[id:04d0e7d5-ab6b-4972-925d-d517484c7595][native org state-change
+logging]] was implemented, then found live to hang Emacs
+indefinitely when triggered non-interactively via =emacsclient -e=,
+and so was quietly suppressed for every tool-driven transition ever
+since. Root cause, not a string of unrelated bugs: org's clock/
+logging model assumes one human, one buffer, one synchronous
+keypress at a time. This project's actual workload — concurrent
+sessions, background agents, non-interactive =emacsclient= calls, a
+global clock paused/resumed across turn boundaries — is the opposite
+of that, and every incident above traces back to the same mismatch.
+See [[id:c954f650-b92f-4920-9967-ab6c44577b30][Revisit the PLANNING
+TODO-state's design and whether it's worth keeping]] (=MAYBE=,
+captured the same day) — this heading substantially supersedes that
+one's question rather than answering it in place, since a working
+version of this redesign would make most of =PLANNING='s current
+fragility moot.
+
+*Proposed redesign:* Claude Code sessions stop touching the live
+Emacs buffer for anything clock- or state-sensitive. Instead they
+append plain, dumb, append-only JSON events to a per-session file
+(e.g. =~/.claude/org-updates/<session_id>.jsonl=) — no buffer edits,
+no clock mutation, no non-interactive logging trigger, most of it not
+even requiring Emacs to be reachable to write. A new interactive
+Emacs command reads the accumulated events across all pending session
+files, presents them to the human as a reviewable batch (think
+=org-agenda='s bulk-mark UI or =magit-status='s staging area, not a
+raw diff), and applies the approved subset through org's *real*,
+synchronous, single-actor machinery — =org-todo=, =org-clock-in=,
+=org-clock-out= — called for real, inside a genuinely interactive
+command, so native =!=/=@= logging finally just works instead of
+needing to be suppressed.
+
+*Not everything moves* — only the two categories that have actually
+caused every incident: TODO-state transitions and clock start/stop.
+
+| Stays direct, as today                                    | Moves to queue + review              |
+|------------------------------------------------------------+---------------------------------------|
+| =org_query= (read-only)                                    | =org_set_todo= (all states — needed for logging to fire, not just clock states) |
+| =org_clock_report= (read-only)                              | =org_clock_in= / =org_clock_out=       |
+| =org_refile=, =org_archive=, =org_move_sibling=, =org_sort_children= (never implicated in any incident) | Stop/UserPromptSubmit session-pause/resume signals (become bare timestamp appends — no Emacs call, no owner variable, no cross-session race, since there's no shared live clock left to race on) |
+| =org_capture= (heading creation — separate, orthogonal bugs already noted elsewhere) | |
+| =org_log_background_plan= (already deliberately clock/state-free — already exactly this pattern) | |
+
+*What this eliminates* (mapped against the evidence above): marker
+desync (no writer but the human-driven apply command ever touches
+=TODO.org=/=DONE.org=), the idle-clock-hijack and missing-ownership
+bugs (moot — ownership is just the queue filename, no shared clock to
+inherit), the malformed-concurrent-write =CLOCK:= corruption (exactly
+one writer, one operation at a time), the noise-vs-genuine bookkeeping
+judgment call (reviewed *before* anything lands, with session/timing
+visible, instead of reconstructed from a git diff after the fact —
+[[id:782cda6c-111c-454e-93eb-b2b27012078b][Audit for clock/session
+bookkeeping noise before committing during a clocking-suppressed
+session]]'s mechanism-approach likely folds into the new review UI
+rather than standing alone), and the non-interactive logging hang that
+started this whole thread.
+
+*What it costs, honestly:* real-time org state lags until a review
+pass runs (mitigate by pointing the statusline at the *queue* files
+instead of live clock state — see sub-task below); adds a manual
+review step to the human's workflow (keep it cheap — one keybinding);
+and this **likely obsoletes, in their currently-planned form**,
+[[file:~/.claude/plans/clock-marker-desync-guard.md][=53b0047d='s
+plan]], [[file:~/.claude/plans/session-resume-continuity-guard.md][=582cc7f4='s
+plan]], and
+[[file:~/.claude/plans/clock-in-ownership-recording.md][=d150c02e='s
+plan]] — each patches a problem this architecture makes structurally
+impossible rather than mitigated. Not wasted work: each documents its
+failure mode precisely, which is exactly the input this redesign is
+answering. [[file:~/.claude/plans/sessions-logbook-ordering.md][=2b0988ed='s
+plan]] (entry ordering) most likely still applies independent of this
+refactor, worth the evaluator's own judgment either way.
+
+*Load-bearing assumption, explicitly flagged for early verification,
+not assumed true:* this design only works if the org functions the
+apply command calls (=org-clock-in=, =org-clock-out=, whatever drives
+=org-add-log-note=/=org-store-log-note=) actually accept — or can be
+made to accept — an explicit *retrospective* timestamp, so a batch
+applied at 5pm can still backfill a =CLOCK:= interval and a state-
+change log note at the times the underlying events actually happened
+at 9am, 11am, etc., not "now." If that turns out to be false or only
+partially true for some of these functions, significant parts of the
+design below need rethinking before implementation, not after.
+
+Nested below as separate sub-tasks, deliberately broken out for
+readability rather than left as one undifferentiated blob — each gets
+its own =:ID:= and starts as =TODO=; sequencing among them (which
+should happen first) is left to whoever evaluates this, not fixed
+here, except where a sub-task's own text says otherwise.
+
+*** TODO Design the append-only event-queue format and per-session file lifecycle :code:
+:PROPERTIES:
+:ID:       32272061-1d78-4726-b13b-90338edb2ba5
+:CREATED:  [2026-08-06 Thu 10:47]
+:END:
+
+JSONL schema per event kind (=todo=, =clock_in=, =clock_out=,
+=pause=, =resume=, at minimum), file naming/location
+(=~/.claude/org-updates/<session_id>.jsonl= proposed, not settled),
+and lifecycle after a successful apply (delete vs. truncate vs.
+append an =applied= marker so a session can keep writing after a
+partial drain without needing to know if it was fully consumed).
+Crash-safety: a session dying mid-stream should leave its queue file
+harmless and inert, never corrupt, never lost.
+
+Note added 2026-08-06: =pause=/=resume= events are not just historical
+bookkeeping — per
+[[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]'s design, they
+become the *guideposts* a human uses to reconstruct their own real
+=CLOCK:= intervals at review time. Their timestamp density directly
+determines how useful that reconstruction is, so keep emitting one
+per real turn boundary (matching today's =Stop=/=UserPromptSubmit=
+granularity) rather than coarsening them for this design's sake —
+coarser guideposts make the human's own reconstruction job harder,
+not easier.
+
+*** TODO Rework the MCP tool / hook write paths to append-only :code:
+:PROPERTIES:
+:ID:       feba67eb-35b3-48bd-a892-8ecd47ca52e0
+:CREATED:  [2026-08-06 Thu 10:47]
+:END:
+
+=org_set_todo=, =org_clock_in=, =org_clock_out= become queue-appends
+instead of live buffer mutations (per the routing table above).
+=bin/hooks/session-pause=/=session-resume= become bare timestamp
+appends with no =emacsclient= call at all — this alone is what
+retires the =337f7fb2=/=582cc7f4=/=d150c02e= ownership-variable
+infrastructure, so double-check nothing else still depends on
+=claude-code-ide-org--clock-owner-session-id=/
+=--planning-owner-session-id= before deleting them.
+
+Three existing =PostToolUse=/=PreToolUse= hooks don't just port over
+unchanged and are easy to overlook since they aren't in the routing
+table above (that table is about MCP tools, not the hook layer
+sitting alongside them):
+- =bin/hooks/pretooluse-transition-guard= validates a transition
+  against the heading's *current* state before allowing it — but
+  "current" on disk goes stale the moment anything for that heading
+  is queued-but-unapplied. Needs to become queue-aware (validate
+  against the latest *queued* state for that heading, not disk
+  state) or it will wrongly allow/reject transitions once a queue
+  exists.
+- =bin/clock-notify= exists to cross-check a tool's claimed clock
+  result against live =(org-clocking-p)=. Once =org_clock_in=/
+  =org_clock_out= never touch live clock state at all, that
+  comparison is meaningless — retire it or repurpose it into
+  something like "you have N unreviewed updates" instead of "clock
+  state mismatch."
+- =bin/hooks/exitplanmode-promote-planning= auto-promotes =PLANNING=
+  → =DOING= by reusing the same live clock interval. Under this
+  design that becomes just another queued =todo= event stacked on
+  the still-unapplied =PLANNING= one — fine, but it means the
+  apply-time reconciliation (see the review-and-apply command below)
+  has to correctly collapse a =TODO→PLANNING→DOING= event sequence
+  into one coherent interval, not replay each event as if
+  independent. Concrete supporting case for why the backdated-
+  timestamp sub-task below matters as much as it does.
+
+*** TODO Build the interactive review-and-apply Emacs command :code:
+:PROPERTIES:
+:ID:       720b2dcf-6af1-45f3-96a7-aa841e5651e1
+:CREATED:  [2026-08-06 Thu 10:47]
+:END:
+
+The core deliverable: scan pending queue files, reconstruct proposed
+per-heading transitions and clock intervals, render a review buffer
+(mark/unmark, jump-to-heading, edit-an-interval, apply-marked), and
+on apply call the real =org-todo=/=org-clock-in=/=org-clock-out= one
+item at a time, synchronously, inside this one command — genuinely
+interactive, so native logging fires without the =org-inhibit-
+logging= workaround.
+
+**Core design principle, added 2026-08-06 from conversation: two
+genuinely different modes, not one uniform "propose an interval"
+behavior** — the system cannot tell when a human was actually
+reading/thinking/composing versus idle, attending to something else
+entirely (another task, email, lunch), between logged interaction
+points, so it must not pretend otherwise:
+- **Unattended/subagent-derived events**
+  ([[id:16160d23-273b-4510-858e-db18508d04a0][16160d23]]) — the
+  interval genuinely *is* knowable (a subagent was either running or
+  not; =duration_ms= is authoritative), so the apply command can
+  propose, and the human can accept in bulk, a real =CLOCK:= entry
+  directly. Still reviewed, per the core queue+review model — but
+  mechanically derived, not reconstructed.
+- **Human-session-derived events** — the apply command must *not*
+  auto-write a =CLOCK:= interval on the human's behalf; doing so
+  would be exactly the kind of "confidently wrong" record this whole
+  redesign exists to avoid. Instead: render each logged =pause=/
+  =resume= interaction timestamp
+  ([[id:32272061-1d78-4726-b13b-90338edb2ba5][32272061]]) as an
+  *active*-timestamp annotation line alongside the heading's =:LOGBOOK:=
+  — a "guidepost," not a claim of attention — and leave the actual
+  =CLOCK:= interval for the human to draw/type/adjust themselves. A
+  suggested default (e.g. span from first to last guidepost in a
+  tightly-clustered run) is fine to offer, but must be clearly
+  editable/rejectable, never silently committed as fact.
+
+This is also the concrete mechanism for the active-vs-inactive
+timestamp convention captured the same day: an *active* annotation
+(=<start>--<end> label=) means "a human was logged interacting with
+this span, worth a glance in the agenda"; the =CLOCK:= line itself
+stays *inactive* as org already does it, unchanged, still the sole
+arithmetic source of truth. This lets org's own agenda double as a
+free, retrospective "what did I actually attend to" view, no bespoke
+code needed for that part — see
+[[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]] for the
+verification step this leans on before being trusted.
+
+*** TODO Add a read-only MCP tool to inspect and summarize the pending queue :code:
+:PROPERTIES:
+:ID:       63a642c7-b04d-42dc-b6ec-3fb13df3ae04
+:CREATED:  [2026-08-06 Thu 11:59]
+:END:
+
+Captured 2026-08-06 from conversation: nothing in the current tool
+suite lets Claude (or the user, via conversation) ask "what's queued
+but not yet applied?" without opening Emacs — a real, near-necessary
+gap once =org_set_todo=/=org_clock_in=/=org_clock_out= stop mutating
+the buffer immediately. A new read-only tool (name TBD, e.g.
+=org_pending_updates=), listing queued events grouped by heading and
+by session, with clear utility on its own merits independent of the
+overlay concept below — this is the tool a human would consult before
+deciding whether to run the review-and-apply command at all. Likely
+shares its "read every =~/.claude/org-updates/*.jsonl=, join by
+=:ID:=" logic with both the review-and-apply command above and the
+overlay sub-task below; worth designing the parsing/grouping code
+once and reusing it in all three rather than three separate
+implementations.
+
+*** TODO Design a read-time overlay for org_query/org_clock_report against the pending queue :code:
+:PROPERTIES:
+:ID:       c9292ce8-8fb5-41c0-8de1-bbf74ffa7fce
+:CREATED:  [2026-08-06 Thu 11:59]
+:END:
+
+Captured 2026-08-06 from conversation. Motivating problem: once
+=org_set_todo= only queues a transition, a heading Claude just "set
+to DOING" still reads its old state to =org_query= (and everything
+else) until a human runs the review pass — confusing mid-conversation
+contradiction ("I set it to DOING" / query says otherwise) if left
+unaddressed. Proposed shape, a pure read-time reconciliation with
+*no* write side effect: at query time, read the =.org= file as it
+stands today (unchanged), separately read the relevant queue file(s),
+join by =:ID:=, and annotate/override the displayed state before
+formatting the response. Three sub-decisions this needs, not just "go
+merge them":
+- **Whose queue?** Default to the *calling session's own* pending
+  events — that's what actually prevents the within-one-conversation
+  contradiction above. A lightweight "+N pending from other sessions"
+  count on top is a smaller, separate call; avoid a full cross-session
+  merge at query time, which would reintroduce exactly the kind of
+  concurrent-state-guessing this whole redesign exists to get away
+  from.
+- **Multiple queued events for one heading.** Show the *latest* by
+  timestamp, not the first — same "final proposed value wins" logic
+  the apply command itself needs anyway.
+- **=org_clock_report= is a different shape of problem than
+  =org_query=** — a single overlaid *state* is easy; accumulated
+  *duration* is not. Silently blending unconfirmed queued intervals
+  into an authoritative-looking total risks the same "confidently
+  wrong" failure flagged for the marker-desync case
+  ([[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]]) — a queued
+  interval might still get edited or rejected at review time. Keep
+  applied and pending totals visibly separate ("applied: 2:15, +0:40
+  pending review") rather than merged into one number.
+- **Overlapping intervals on the same heading, once concurrent actors
+  are possible** ([[id:16160d23-273b-4510-858e-db18508d04a0][16160d23]]
+  makes this a real case, not hypothetical): *decided* 2026-08-06 —
+  union, not sum, since two overlapping intervals mean the system was
+  busy doing *something* during that span, not that twice the work
+  happened. Explicit note: revisit the actual union algorithm's
+  particulars (exact boundary handling, how it interacts with the
+  applied-vs-pending separation above, whether a unioned span still
+  cites which actor(s) contributed) once real queued messages exist
+  to test it against, rather than finalizing the mechanics on
+  hypothetical data now.
+
+*** TODO Support per-subagent activity intervals via a compound (session_id, agent_id) key :code:
+:PROPERTIES:
+:ID:       16160d23-273b-4510-858e-db18508d04a0
+:CREATED:  [2026-08-06 Thu 13:06]
+:END:
+
+Captured 2026-08-06 from conversation. A flat one-file/one-key-per-
+Claude-Code-=session_id= scheme has no room for subagents — they
+share their parent's =session_id= (confirmed from this project's own
+background-planning batch transcripts: sidechain events carry the
+orchestrating session's =sessionId=, distinguished only by a separate
+=agentId= field visible to the orchestrator's own task-completion
+metadata). =org_log_background_plan= already worked around this with
+a hand-invented =<session-id>-bgN= label — but that throws away the
+*real* =agentId= the system already assigns (confirmed present in
+this session's own tool results, e.g. =a4bb098d74a939dc9=) in favor
+of an arbitrary per-batch number. Fix: use the real =(session_id,
+agent_id)= pair as a genuine compound key on each queued event,
+rather than reinventing a synthetic label.
+
+**File layout**: one file per real =session_id= (matching one writer
+stream, no contention), with =agent_id= as a field on individual
+events, not a separate file per subagent — a subagent's contribution
+is typically 1-2 events, not enough to justify file proliferation.
+The review-and-apply command's existing "group by heading and
+session" logic extends naturally to sub-group by =agent_id= when
+present.
+
+**Confirmed baseline, no open uncertainty**: the orchestrating
+session writes these events *on the subagent's behalf* after each
+one completes — same shape as today's =org_log_background_plan= call,
+just with the real =agent_id= and a genuine start/end interval
+instead of one timestamp, computed from the completion notification's
+own =duration_ms= field (already present in every background-agent
+completion this project has seen). Requires no change to what
+subagents are permitted to do.
+
+**Why this data gets auto-derived treatment while human-session data
+doesn't** (see
+[[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]'s core design
+principle): a subagent interval carries none of the "was the human
+actually attending, or idle/elsewhere" ambiguity that makes human-
+session reconstruction a guidepost-only, human-driven exercise — a
+subagent was mechanically either running or not. That's precisely
+what makes =duration_ms= trustworthy enough to write directly, no
+manual reconstruction needed.
+
+**Separate, genuinely uncertain stretch goal, do not assume either
+way**: whether a subagent could instead self-report its own event
+mid-flight (more accurate than reconstructing from =duration_ms=
+after the fact) depends on whether a spawned subagent process has
+access to its own =agent_id= from inside its own execution context —
+unknown, not verified. If confirmed, this would also mean the
+"subagents never call mutating tools" rule could relax specifically
+for queue-appends (now safe, since appending touches no shared live
+state, unlike the old live-clock-mutation risk that originally
+justified the rule) — but the compound-key fidelity gain does not
+depend on resolving this; the orchestrator-writes-on-behalf-of
+baseline gets it in full on its own.
+
+Directly informs
+[[id:3d576d29-747f-40b9-a5b3-ecc76679daad][3d576d29]] (backdated-
+timestamp support): a subagent's interval is *inherently*
+retrospective by the time the orchestrator learns of it, giving that
+sub-task a second, concrete, non-hypothetical reason it matters,
+beyond the general human-review-lag case.
+
+*** TODO Verify org's clock/logging APIs actually support backdated timestamps for batch apply-time backfill :code:
+:PROPERTIES:
+:ID:       3d576d29-747f-40b9-a5b3-ecc76679daad
+:CREATED:  [2026-08-06 Thu 10:47]
+:END:
+
+The explicitly-flagged load-bearing assumption from the parent
+heading, worth its own sub-task precisely so it isn't skipped or
+assumed true by default. Evaluate early, before the rest of the
+design is trusted — this could reshape or invalidate parts of the
+review-and-apply command's design above.
+
+*** TODO Decouple live "what is Claude attending to" visibility from the authoritative org clock :code:
+:PROPERTIES:
+:ID:       290b6fc5-3ebb-4827-9a97-5a3542e354b6
+:CREATED:  [2026-08-06 Thu 10:47]
+:END:
+
+Point the statusline (=claude-code-ide-org--statusline-task-string=)
+at the *queue* files' latest event across all sessions, rather than
+=org-clocking-p=/=org-clock-marker=, once those stop being live in
+real time. Arguably more honest than today's version regardless of
+this refactor's fate — reflects "what Claude is doing" rather than
+"what's been recorded," and can't desync the way marker-based state
+can, since it's just reading append-only files.
+
+Explicit instruction, added 2026-08-06: don't stop at a bare
+event-name swap. Now that a pending-queue-inspection tool
+([[id:63a642c7-b04d-42dc-b6ec-3fb13df3ae04][63a642c7]]) and an
+=org_query=/=org_clock_report= overlay
+([[id:c9292ce8-8fb5-41c0-8de1-bbf74ffa7fce][c9292ce8]]) both exist in
+this same plan, consider whether the statusline should surface that
+same information glanceably from the terminal — e.g. a pending-review
+count ("3 updates awaiting review"), or a visible distinction between
+"applied" and "queued, not yet reviewed" for whatever heading it
+names — rather than just relocating today's single clocked-in/out
+label to a different data source with the same one-line shape.
+
+*** TODO Survey org's own API for built-in mechanisms we may have overlooked or dismissed too quickly :code:
+:PROPERTIES:
+:ID:       c084553c-0621-4a96-9fa1-f32850aeec6a
+:CREATED:  [2026-08-06 Thu 10:47]
+:END:
+
+Explicit instruction for whoever evaluates this: do this *before*
+committing to bespoke replacements for anything above. This project
+has, on more than one occasion, built custom machinery
+(=claude-code-ide-org--append-to-drawer=, the hand-rolled
+=:SESSIONS:= parser/consolidator, the ownership-variable tracking
+this refactor now proposes deleting) without first exhausting what
+org itself already offers. Assiduously check, at minimum: whether
+=org-clock-in=/=org-clock-out= have documented or de facto support
+for an explicit non-"now" timestamp; the actual signature and
+batch-friendliness of =org-add-log-note=/=org-store-log-note= outside
+the interactive =post-command-hook= path; whether org's own
+=org-element=/structural-editing API (as opposed to this project's
+current regex/position-based drawer editing) would make the apply
+command's drawer writes more robust for free; and whether
+=org-agenda-bulk-*= (the existing precedent this design's review UI
+is modeled on informally) has machinery worth calling directly rather
+than reimplementing. Do not treat this project's own prior choices in
+this area as proof no better native mechanism exists — several of
+them were made under time pressure chasing a live bug, not after a
+deliberate API survey.
+
+**One concrete lead already found, added 2026-08-06 — verify, don't
+rediscover from scratch**: active (=<...>=) timestamps are picked up
+by =org-agenda=/=org-agenda-list=, inactive (=[...]=) ones are not,
+including (per informal web research, not yet confirmed live in this
+project's own Emacs) freeform list-item notes inside a =:LOGBOOK:=
+drawer, not just top-level buffer text. This is indirectly consistent
+with existing evidence already in this codebase: =CLOCK:= lines
+deliberately use inactive timestamps specifically to stay out of the
+agenda, which only makes sense if the reverse also holds. If
+confirmed, this becomes the mechanism behind
+[[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]'s active-marker
+"guidepost" annotations — org's own agenda would double as a free,
+retrospective "what did I actually attend to" view, no bespoke
+tooling needed for that specific piece. **Verify before relying on
+it**: on a scratch heading, put one active-timestamp and one
+inactive-timestamp list item inside =:LOGBOOK:=, run
+=org-agenda-list=, confirm exactly the active one appears — cheap,
+direct, matches this project's own "confirmed live, not just
+theorized" discipline.
+
+*** TODO Reconcile or retire the now-likely-superseded clock/session-ownership plans and infrastructure :code:
+:PROPERTIES:
+:ID:       e51d6ba1-cc1d-4745-8aa7-e4b1183a230b
+:CREATED:  [2026-08-06 Thu 10:47]
+:END:
+
+Once this design is either committed to or rejected, revisit
+[[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]],
+[[id:582cc7f4-41a2-4666-ad3f-1b76b459147e][582cc7f4]],
+[[id:d150c02e-06fe-4514-bf69-e2cc5d8df4c7][d150c02e]],
+[[id:2b0988ed-eb92-4fa7-904a-cb2d10941bfd][2b0988ed]], and
+[[id:782cda6c-111c-454e-93eb-b2b27012078b][782cda6c]] explicitly —
+each either gets =CANCELLED= with a note pointing here, or confirmed
+as still independently worth doing regardless of this refactor's
+fate (=2b0988ed= looks likeliest to survive either way). Also decide
+[[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]'s own fate at
+the same time, rather than leaving it to drift.
+
+*** TODO Update CLAUDE.md and the org skill for the new architecture :code:
+:PROPERTIES:
+:ID:       02aaae22-0958-4c0f-b5bb-2cbea32416ae
+:CREATED:  [2026-08-06 Thu 10:47]
+:END:
+
+Once implemented: rewrite CLAUDE.md's "State transition rules",
+"Session tracking", and "MCP tools" sections, and the org skill's
+state-transition table, to describe the queue+review model rather
+than the live-driving model they currently document. Large enough
+that it should not be a drive-by edit tacked onto another task.
 
 * Observability
 
@@ -1178,15 +1789,20 @@ Live: reloaded =config.el=, ran the exact configured command end-to-end
 against real clock state — correct output, model name and task info
 both present, no fish, no =jq= anywhere in the pipeline.
 
-** NEXT Evaluate choice of shell and standardize all project scripts :code:
+** MAYBE Evaluate choice of shell and standardize all project scripts :code:
 :PROPERTIES:
 :ID:       84b7d8b3-5161-4146-9167-0e7e2100e365
 :CREATED:  [2026-07-31 Fri 15:23]
+:END:
+:SESSIONS:
+- Background-planned [2026-08-05 Wed 19:08] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd-bg1)
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-08-05 Wed 14:06] \\
   Auto-promoted: sole remaining TODO in its sibling group.
 :END:
+[[file:~/.claude/plans/script-shell-standardization.md][Plan]]
+
 Surfaced 2026-07-31 while relocating the statusline script
 (=bin/statusline.fish=) into the repo: every other script in
 =bin/=/=bin/hooks/=/=.claude/hooks/= is bash (mostly no extension,
@@ -1259,16 +1875,17 @@ a project convention (e.g. in CLAUDE.md's "Repository layout" or a new
 "Scripting conventions" note) so it doesn't have to be
 re-litigated per script.
 
-** PLANNING Show the TODO keyword, not just clocked in/out, in the statusline :code:
+** MAYBE Show the TODO keyword, not just clocked in/out, in the statusline :code:
 :PROPERTIES:
 :ID:       4cda6bf7-441b-47b2-b3d5-b8c7e7a207a5
 :CREATED:  [2026-08-05 Wed 14:04]
 :END:
 :SESSIONS:
-- Resumed [2026-08-05 Wed 14:07] (session 2fd8dcf1-aa7e-4061-8495-1933766ae5b4)
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-05 Wed 14:10]--[2026-08-05 Wed 14:35] =>  0:25
+- State "NEXT"       from "TODO"       [2026-08-06 Thu 12:07] \\
+  Auto-promoted: sole remaining TODO in its sibling group.
 :END:
 [[file:~/.claude/plans/nifty-beaming-lynx.md][Plan]]
 
