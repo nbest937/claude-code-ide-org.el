@@ -6,6 +6,64 @@ plus org-mode skills for Claude Code sessions.
 The goal is natural-language manipulation of `.org` files from within Emacs,
 via `claude-code-ide`, without needing to internalise Emacs chord sequences.
 
+A second, co-equal goal — never spelled out until now, though a large share
+of this project's actual work has gone toward it — is trustworthy tracking
+of where attention/time actually went on tracked tasks. What "trustworthy"
+requires in practice (interval granularity, how much manual confirmation is
+acceptable, what reports actually need to come out the other end) is
+deliberately left open here, not pinned to whatever CLOCK-drawer mechanics
+happen to exist at a given point: it should be driven by concrete reporting
+needs, most of which haven't been fully articulated yet. See "Direction"
+below for the current best guess at how these two goals combine.
+
+---
+
+## Direction (not yet implemented)
+
+**This section describes a proposed target, not current behavior.**
+Everything else in this file documents what is actually built and verified;
+this section is the opposite — a UX vision this project is moving toward,
+captured in TODO.org (`:ID: b5f7c5c7-7ad6-4c68-9cce-3479db1f1644`) but not
+yet designed in Elisp, not implemented, and not approved as final. Treat it
+as a hypothesis to evaluate — including whether it's the right one — not a
+spec to execute against; a sub-task of that same heading
+(`:ID: c084553c-0621-4a96-9fa1-f32850aeec6a`) exists specifically to check
+whether org itself already offers a better mechanism before anything here
+gets built.
+
+**The problem it responds to**: driving live org state (TODO keyword,
+clock, `:LOGBOOK:`/`:SESSIONS:` logging) directly and synchronously from
+Claude Code sessions — including concurrent and background ones — has
+produced a sustained run of desync, ownership, and logging bugs (see
+TODO.org's "Clock lifecycle & visibility" section). The pattern traces to
+one mismatch: org's clock/logging model assumes one human at one buffer;
+this project's actual workload is the opposite.
+
+**The proposed shape**: Claude Code sessions stop touching the live buffer
+for state/clock changes. Instead they append events to a plain, per-session
+file — durable, cheap, no Emacs required to write. A human, at a moment of
+their own choosing, reviews the accumulated events in a purpose-built Emacs
+command and applies the approved ones for real, through org's own native
+`org-todo`/`org-clock-in`/`org-clock-out`, run inside a genuinely
+interactive command — so org's native state-change logging finally works
+instead of needing to be suppressed.
+
+**Confirmed, load-bearing constraint on this shape**: apply is *always*
+human-triggered, never invoked by Claude programmatically. Not a style
+preference — org's native logging only completes correctly inside a real
+interactive session; a non-interactive `emacsclient -e` call hits the exact
+hang this design exists to route around. Practical consequence: clock/
+TODO-state accuracy is only ever as fresh as the last time a human ran the
+review pass, not live. That is an accepted, deliberate trade of "Claude
+does it all in real time" for "the record, once confirmed, is actually
+correct" — not an oversight to fix later.
+
+**What doesn't change**: read-only queries, tagging, capture, refile,
+archive, and sort stay exactly as immediate and Emacs-chord-free as the
+opening goal promises. This trade is scoped narrowly to state transitions
+and clock start/stop — the two categories that have actually caused every
+incident to date.
+
 ---
 
 ## Repository layout
@@ -58,10 +116,20 @@ implied to require one just because this rule exists.
 
 **Rule**: work planned via Claude Code's own Plan Mode gets a single
 permanent link in its heading body — `[[file:~/.claude/plans/<slug>.md][Plan]]`
-— added when the heading goes `DOING`. No transcription of the plan into
-org, ever; the link is the record, and it is **not removed at `DONE`**. A
-task with no separate Plan Mode session simply carries no link — that's
-expected, not a gap to fill in.
+— added as soon as the first round of planning finishes (right after
+`ExitPlanMode` is called and the plan file is finalized), not gated on the
+heading later transitioning to `DOING`. This matters because approval and
+the `DOING` transition don't always happen in the same beat as planning —
+e.g. the user may deliberately stop right after a plan is written, before
+deciding whether to implement it — and the link should exist the moment a
+real plan file does, independent of what happens next. Revisions (re-
+entering Plan Mode on the same task) edit that same plan file in place —
+Claude Code reuses the existing plan file path for a continuation of the
+same task — so the link is written once and never needs updating to point
+at a new file. No transcription of the plan into org, ever; the link is the
+record, and it is **not removed at `DONE`**. A task with no separate Plan
+Mode session simply carries no link — that's expected, not a gap to fill
+in.
 
 **Rule**: before a `DONE` heading is archived, add a concise prose outcome
 summary next to that link — what shipped, how it was verified, anything
@@ -80,7 +148,7 @@ are no checkboxes to report on.
 Every `.org` file in a Claude Code project should start with:
 
 ```org
-#+TODO: TODO NEXT DOING WAIT MAYBE | DONE CANCELLED
+#+TODO: TODO NEXT PLANNING DOING WAIT MAYBE | DONE CANCELLED
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 ```
@@ -91,6 +159,7 @@ Every `.org` file in a Claude Code project should start with:
 |-------------|----------------------------------|---------|
 | `TODO`      | Not yet started                  | yes     |
 | `NEXT`      | Decided, up next                 | yes     |
+| `PLANNING`  | In Plan Mode, plan not yet approved | yes  |
 | `DOING`     | Actively being worked on         | yes     |
 | `WAIT`      | Blocked or waiting on someone    | yes     |
 | `MAYBE`     | Someday / maybe                  | yes     |
@@ -150,21 +219,50 @@ rules" in TODO.org.
 
 ## State transition rules
 
-| Transition            | Side effect                         |
-|-----------------------|-------------------------------------|
-| `TODO`  → `NEXT`      | None                                |
-| `TODO`  → `DOING`     | Open a CLOCK (call `org_clock_in`)  |
-| `NEXT`  → `DOING`     | Open a CLOCK (call `org_clock_in`)  |
-| `DOING` → `DONE`      | Close the CLOCK (call `org_clock_out`) |
-| `DOING` → `WAIT`      | Close the CLOCK (call `org_clock_out`) |
-| `DOING` → `CANCELLED` | Close the CLOCK (call `org_clock_out`) |
-| `WAIT`  → `DOING`     | Open a CLOCK (call `org_clock_in`)  |
-| Any     → `MAYBE`     | None                                |
+| Transition                | Side effect                         |
+|---------------------------|-------------------------------------|
+| `TODO`     → `NEXT`       | None                                |
+| `TODO`     → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
+| `NEXT`     → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
+| `NEXT`     → `PLANNING`   | Open a CLOCK (call `org_clock_in`)  |
+| `PLANNING` → `DOING`      | None — same clock interval continues, no close/reopen |
+| `PLANNING` → `DONE`       | Close the CLOCK (call `org_clock_out`) |
+| `PLANNING` → `WAIT`       | Close the CLOCK (call `org_clock_out`) |
+| `PLANNING` → `CANCELLED`  | Close the CLOCK (call `org_clock_out`) |
+| `DOING`    → `DONE`       | Close the CLOCK (call `org_clock_out`) |
+| `DOING`    → `WAIT`       | Close the CLOCK (call `org_clock_out`) |
+| `DOING`    → `CANCELLED`  | Close the CLOCK (call `org_clock_out`) |
+| `WAIT`     → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
+| Any        → `MAYBE`      | None                                |
 
-**Rule**: any transition *to* `DOING` must open a clock.
-**Rule**: any transition *from* `DOING` must close the clock first.
+**Rule**: any transition *to* `DOING` or `PLANNING` must open a clock, with
+one documented exception: `PLANNING` → `DOING` reuses the already-running
+clock interval rather than closing and reopening it.
+**Rule**: any transition *from* `DOING` or `PLANNING` must close the clock
+first, except the `PLANNING` → `DOING` handoff above.
 **Rule**: always use the MCP tools for state changes and clocking — do not
 edit CLOCK entries or TODO keywords by hand when the tools are available.
+**Rule**: entering `PLANNING` is a model judgment call made *before* calling
+`EnterPlanMode`, never during — Plan Mode itself forbids non-readonly tool
+calls, so `org_set_todo` cannot run once inside it. Leaving `PLANNING` is
+*not* a model decision: a `PostToolUse` hook matched on `ExitPlanMode`
+(`bin/hooks/exitplanmode-promote-planning`) promotes `PLANNING` → `DOING`
+automatically the instant a plan is approved and execution begins. A "plan
+and implement" prompt must still produce both transitions at their correct,
+separate times, never a premature jump to `DOING`. When the user enters
+Plan Mode directly (shift-tab, not a model-initiated `EnterPlanMode` call),
+there is no window to set `PLANNING` first — the hook's "clocked heading
+isn't PLANNING → no-op" branch is the **common** case then, not a bug.
+**Known gap, accepted**: the `ExitPlanMode` hook fires whether the plan was
+approved or rejected, with no reliable signal to distinguish the two (see
+TODO.org :ID: b95b9fba-f78e-48fe-8546-988709cce309). A stray promotion after
+a rejected plan is low-cost and self-corrects the next time the heading's
+real state is set explicitly — not fixed.
+**Cross-session guard**: the `ExitPlanMode` promotion only fires for the
+session that set `PLANNING` on the currently-clocked heading, tracked via
+`claude-code-ide-org--planning-owner-session-id` — same pattern as
+`claude-code-ide-org--clock-owner-session-id` (see "Session tracking"
+below), applied to this new hook.
 **Rule**: when asked to start work on a task tracked as an org heading with
 a `:ID:`, transition it to `DOING` via `org_set_todo` *before* beginning,
 unless it's already `DOING`. This has to be a standing instruction, not a
@@ -188,7 +286,15 @@ approved Plan Mode plan, write only that heading (title, tags, properties,
 any Plan-file link, intro body) and stop — show it and get explicit
 approval before transitioning it to `DOING` or touching anything else the
 plan describes. Approving a Plan is not approval of the heading's exact
-wording.
+wording. The `ExitPlanMode` auto-promotion hook does not affect this rule:
+it only ever promotes an *already-clocked, already-`PLANNING`* heading, and
+never touches a newly created heading the plan describes creating. The
+more general form of this rule — `ExitPlanMode` approval and "start
+implementing" are always two separate checkpoints, not just for newly
+created headings — lives in the org skill (`.claude/skills/org/SKILL.md`,
+"Plan Mode checkpoint") rather than here, since it's a way-of-working for
+Claude Code's Plan Mode generally, not an org-file convention specific to
+this repo.
 
 ---
 
@@ -210,6 +316,7 @@ Claude is expected to act on must have one (`M-x org-id-get-create`).
 | `org_refile`        | `org-refile`             | Move a subtree under a different parent |
 | `org_move_sibling`  | `org-move-subtree-up/down` | Move a heading up/down among siblings |
 | `org_sort_children` | `org-sort-entries`       | Sort a heading's direct children       |
+| `org_log_background_plan` | custom (insert-link + `--log-session-event`) | Write-back for background-planned headings: Plan link + synthetic `:SESSIONS:` entry; never touches TODO state or the clock |
 
 Text editing (via the org skill) is used for adding or changing tags,
 generating new headings, and time reporting. `org_query` now covers
@@ -334,7 +441,7 @@ Key settings in the user's Doom config:
 ;; org-mode
 (after! org
   (setq org-todo-keywords
-        '((sequence "TODO" "NEXT" "DOING" "WAIT" "MAYBE" "|" "DONE" "CANCELLED")))
+        '((sequence "TODO" "NEXT" "PLANNING" "DOING" "WAIT" "MAYBE" "|" "DONE" "CANCELLED")))
   (setq org-clock-out-when-done t)
   (setq org-clock-persist 'history)
   (setq org-archive-location "DONE.org::* Done"))

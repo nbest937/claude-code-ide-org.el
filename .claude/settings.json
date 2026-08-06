@@ -29,6 +29,26 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "mcp__emacs-tools__org_set_todo",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/posttooluse-record-planning-owner",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/exitplanmode-promote-planning",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "Stop": [

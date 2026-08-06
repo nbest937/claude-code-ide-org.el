@@ -248,6 +248,18 @@ When helping the user move a task between states, follow these conventions:
 - Always append a LOGBOOK state-change note when changing TODO state:
   `- State "NEW"  from "OLD"  [timestamp]`
 
+### Plan Mode checkpoint
+
+`ExitPlanMode` approval and "start implementing" are always two separate
+checkpoints — never treat plan approval alone as license to proceed
+straight into implementation, even under an auto-accept mode that
+otherwise biases toward not stopping. After a plan is approved, stop and
+get the user's explicit confirmation before doing any of: adding a Plan
+link to the task heading, transitioning that heading to `DOING` (or
+`PLANNING` → `DOING`), or making any code/file edits the plan describes.
+This holds regardless of whether the heading the plan is for already
+existed or is newly created as part of the plan.
+
 ### Editing & transforming
 
 - **Change TODO state**: update the keyword on the heading line; if the file uses
@@ -320,6 +332,48 @@ Task: Fix the bug
 If multiple tasks are present, list each task with its subtotal, then a grand total.
 Align columns for readability. If the user wants a specific date range, filter entries
 accordingly.
+
+---
+
+## Background-planning a batch of NEXT/TODO headings
+
+When asked to kick off planning for several open `NEXT`/`TODO` headings at
+once (rather than one heading at a time, interactively), parallelize the
+*research* but keep the *write-back* serialized. This project's org clock
+and PLANNING ownership are single global in-memory variables — there is
+exactly one clock, shared across every session touching the file — so N
+simultaneous `PLANNING` owners is structurally impossible, not merely
+risky. Only read-only research that writes solely to its own plan file
+(`~/.claude/plans/<slug>.md`) is safe to genuinely run in parallel.
+
+1. Use `org_query` to list open `NEXT`/`TODO` candidates.
+2. Pick up to **3** headings per batch (matches this project's own
+   Plan-Mode-workflow convention of launching up to 3 Explore agents in
+   parallel).
+3. Launch one background agent per heading (the `Agent` tool), each doing
+   read-only research and `Write`-ing its own plan file. Each agent's
+   brief must state explicitly: never call `org_set_todo`, `org_clock_in`,
+   or any other state/clock-mutating tool — research and plan-file writing
+   only.
+4. As each agent reports its plan file is finalized, call
+   `org_log_background_plan` for that heading — **one call at a time**,
+   only after that specific agent is done, never in parallel with another
+   heading's write-back. Pass `session_id` as
+   `<this session's own real session id>-bg<N>` (the Nth agent in the
+   batch) — a synthetic id derived from, but never equal to, the
+   orchestrating session's real id, so unattended background research time
+   is never misattributed as that session's own interactive work.
+5. Leave TODO state as-is (still `NEXT`/`TODO`). Promoting a heading to
+   `PLANNING`/`DOING` on the strength of a background plan is a separate,
+   later, interactive decision — not part of this batch.
+6. Don't auto-commit the resulting diff. Leave it for explicit review.
+
+`org_log_background_plan` inserts the `[[file:...][Plan]]` link
+(idempotent — a heading only ever carries one) and appends a
+"Background-planned" `:SESSIONS:` entry tagged with the synthetic
+`session_id`. It never touches `:LOGBOOK:`, the TODO keyword, or the
+clock — the single-clock model can't represent true parallelism honestly,
+so this path doesn't try.
 
 ---
 
