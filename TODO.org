@@ -801,6 +801,43 @@ that heading already raised the same underlying question in the
 abstract before this one found a concrete incident. See its own
 2026-08-05 update.
 
+*Second concrete incident, 2026-08-06 — a lost interval, not observed
+noise, and a root cause none of the recorded incidents cover.* Found by
+running exactly the pre-commit audit this heading proposes, during the
+Phase 0 verification for
+[[id:3d576d29-747f-40b9-a5b3-ecc76679daad][3d576d29]]. Sequence: clocked
+in on =3d576d29= at 22:35; a live =emacsclient= probe set =DOING= on a
+scratch heading, which fired
+=claude-code-ide-org--trigger-auto-clock-in= and moved the clock into
+the scratch buffer; recovered with =org-clock-cancel=, then re-clocked
+=3d576d29= at ~22:43 and clocked out at 22:45. Both =org_clock_in= and
+=org_clock_out= reported success. The heading ends up with:
+
+: CLOCK: [2026-08-06 Thu 22:35]--[2026-08-06 Thu 22:40] =>  0:05
+
+— and *no* second interval for 22:43-22:45. =:SESSIONS:= brackets the
+full arc correctly (=Resumed 22:37= / =Paused 22:45=); only the CLOCK
+interval vanished. Roughly two minutes, so materially irrelevant; the
+point is the failure mode, not the magnitude.
+
+What makes it worth recording separately: every incident catalogued so
+far is about *cross-session* interference or a desynced marker. This
+one is single-session and sequential, and it happens *downstream of
+=org-clock-cancel=* — a path nothing else here covers. Not
+investigated far enough to say whether it is a genuine bug or an
+expected consequence of cancelling (=org-clock-cancel= discards the
+in-progress interval and may leave =org-clock-marker= in a state a
+subsequent =org-clock-in= mishandles). Deliberately not "fixed" by
+hand-writing the missing line: CLAUDE.md forbids editing CLOCK entries
+directly, and fabricating an interval to make the record look tidy is
+the exact "confidently wrong" record
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] exists to
+prevent.
+
+Note the incident is also mild evidence *for* this heading's premise:
+the audit caught it, and it would otherwise have been committed
+unnoticed inside a 268-line documentation diff.
+
 ** DONE consolidate-history's :LOGBOOK: rewrite silently deletes non-CLOCK lines :code:
 :PROPERTIES:
 :ID:       ba8249c1-28cd-4ff1-918b-4b8439345d9a
