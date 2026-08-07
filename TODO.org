@@ -1483,7 +1483,26 @@ confirmed in the running Emacs.
 :PROPERTIES:
 :ID:       feba67eb-35b3-48bd-a892-8ecd47ca52e0
 :CREATED:  [2026-08-06 Thu 10:47]
+:BLOCKER:  ids(720b2dcf-6af1-45f3-96a7-aa841e5651e1)
 :END:
+
+[[file:~/.claude/plans/review-and-cutover.md][Plan]]
+
+Planned 2026-08-07 jointly with
+[[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]] as one two-phase
+plan (this heading is Phase B); see that heading for why they share one
+plan file. The =:BLOCKER:= is not bookkeeping: the moment these tools
+stop mutating live state, something has to apply the queued events, and
+that something is =720b2dcf=. Landing this first would leave every
+transition and interval queued with no way to reach an org file.
+
+*Settled during planning:* the tool-side guards are *retired* rather
+than made queue-aware — =bin/hooks/pretooluse-transition-guard= and
+=bin/clock-notify= (with =bin/clock-notify-test=) both exist to police
+live state against concurrent writers, and after the cutover there are
+none. Human review becomes the validation step, which is the point of
+the refactor. The org-side hooks (=org-blocker-hook=/=org-trigger-hook=)
+stay: they still guard genuine hand-edits made directly in Emacs.
 
 =org_set_todo=, =org_clock_in=, =org_clock_out= become queue-appends
 instead of live buffer mutations (per the routing table above).
@@ -1536,11 +1555,29 @@ sitting alongside them):
   independent. Concrete supporting case for why the backdated-
   timestamp sub-task below matters as much as it does.
 
-*** TODO Build the interactive review-and-apply Emacs command :code:
+*** DOING Build the interactive review-and-apply Emacs command :code:
 :PROPERTIES:
 :ID:       720b2dcf-6af1-45f3-96a7-aa841e5651e1
 :CREATED:  [2026-08-06 Thu 10:47]
 :END:
+:SESSIONS:
+- Resumed [2026-08-07 Fri 11:51]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-07 Fri 11:51]
+- State "DOING"      from "PLANNING"   [2026-08-07 Fri 12:26] \\
+  Auto-promoted: ExitPlanMode fired on the owning session.
+:END:
+
+[[file:~/.claude/plans/review-and-cutover.md][Plan]]
+
+Planned 2026-08-07 jointly with
+[[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]] as one two-phase
+plan (this heading is Phase A), because the cutover cannot land until
+this command works and most of its requirements fall out of this
+design. Both headings link the same plan file — a deliberate,
+one-off departure from one-plan-per-heading, taken because two
+documents that must agree with each other is the worse failure mode.
 
 The core deliverable: scan pending queue files, reconstruct proposed
 per-heading transitions and clock intervals, render a review buffer
