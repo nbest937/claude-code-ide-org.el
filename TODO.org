@@ -1229,6 +1229,15 @@ its own =:ID:= and starts as =TODO=; sequencing among them (which
 should happen first) is left to whoever evaluates this, not fixed
 here, except where a sub-task's own text says otherwise.
 
+Triaged 2026-08-06, later the same day: they no longer all sit at
+=TODO=. =c9292ce8= (read-time overlay) is =CANCELLED= as working
+against this refactor's own premise; =16160d23= (per-subagent
+intervals) is =MAYBE=, blocked on =3d576d29=; =7771fc63= was added for
+the stale-interval-recovery feature, whose premise this design removes.
+=3d576d29='s clock half is now confirmed answered and its scope
+narrowed to the logging half. Each carries its own note; this is just
+the index.
+
 *** TODO Design the append-only event-queue format and per-session file lifecycle :code:
 :PROPERTIES:
 :ID:       32272061-1d78-4726-b13b-90338edb2ba5
@@ -1254,6 +1263,43 @@ per real turn boundary (matching today's =Stop=/=UserPromptSubmit=
 granularity) rather than coarsening them for this design's sake —
 coarser guideposts make the human's own reconstruction job harder,
 not easier.
+
+*Open question to settle here, raised 2026-08-06: do =clock_in=/
+=clock_out= events survive at all for human-attended sessions?* Follow
+the design through and they are demoted from timing records to bare
+*intent markers*. For a human session the interval can't be applied
+from them anyway — [[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]
+requires the human to draw it from =pause=/=resume= guideposts, which
+are strictly denser and better-founded than a =clock_in= event. The one
+place a =clock_in=/=clock_out= *pair* still carries authoritative
+timing is the subagent path, and that path is now deferred
+([[id:16160d23-273b-4510-858e-db18508d04a0][16160d23]], =MAYBE=), so
+nothing in v1 consumes them as timing data at all. Two live options:
+1. *Keep them as intent markers.* Their remaining job is heading
+   attribution — telling the review UI which heading Claude believed it
+   was on, so guideposts can be grouped when several tasks interleave
+   inside one session. The guidepost stream alone does not solve that,
+   which is the real argument for keeping them.
+2. *Drop them for v1.* =org_set_todo= → =DOING= already carries the same
+   intent, and pause/resume already carry the timing. Smaller event
+   schema, and it lets CLAUDE.md's state-transition table lose the
+   "always call =org_clock_in=" rule entirely, since there'd be no
+   clock to open.
+
+Leaning (1) on the interleaving argument, but genuinely undecided and
+worth settling before the schema is written rather than after.
+
+*Related, decide alongside it:* even as queue-appends, the MCP tools
+still execute inside Emacs — they're served by the Emacs tools server
+(=.mcp.json=, =claude-code-ide-emacs-tools-setup=), so =org_clock_in=
+reaches Emacs and appends a line there. Harmless (no buffer mutation,
+no clock state), but it is *not* the "no Emacs required to write"
+property the parent heading claims — only the hooks get that, per
+[[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]]'s "no
+=emacsclient= call at all." Whether the clock/state tools should also
+write the queue file directly, bypassing the tools server so they work
+with Emacs down, is unrecorded elsewhere and belongs to this sub-task's
+file-lifecycle design.
 
 *** TODO Rework the MCP tool / hook write paths to append-only :code:
 :PROPERTIES:
@@ -1287,6 +1333,21 @@ sitting alongside them):
   comparison is meaningless — retire it or repurpose it into
   something like "you have N unreviewed updates" instead of "clock
   state mismatch."
+- Three clock settings in the user's *personal Doom config*
+  (=~/.config/doom/config.el=), added 2026-08-06 — outside this repo,
+  which is exactly why they're easy to miss when sweeping the repo for
+  clock callers. All three become dead code, because after this
+  refactor a clock is only ever live for the microseconds between the
+  paired =org-clock-in=/=org-clock-out= calls inside the apply command:
+  =claude-code-ide-org--clock-out-if-clocking= on =kill-emacs-hook= and
+  on =suspend-hook= (config.el:88-91) exist to catch a clock left
+  running across a quit or suspend — =(org-clocking-p)= will
+  essentially never be true at those moments any more; and
+  =org-clock-out-when-done t= (config.el:67), which fires on =org-todo=
+  → =DONE=, now only ever runs inside apply where the clock is already
+  closed. Removing them is optional (they're harmless no-ops), but
+  leaving them in place misleads the next reader into thinking a
+  background clock still exists.
 - =bin/hooks/exitplanmode-promote-planning= auto-promotes =PLANNING=
   → =DOING= by reusing the same live clock interval. Under this
   design that becomes just another queued =todo= event stacked on
@@ -1369,7 +1430,7 @@ overlay sub-task below; worth designing the parsing/grouping code
 once and reusing it in all three rather than three separate
 implementations.
 
-*** TODO Design a read-time overlay for org_query/org_clock_report against the pending queue :code:
+*** CANCELLED Design a read-time overlay for org_query/org_clock_report against the pending queue :code:
 :PROPERTIES:
 :ID:       c9292ce8-8fb5-41c0-8de1-bbf74ffa7fce
 :CREATED:  [2026-08-06 Thu 11:59]
@@ -1417,11 +1478,46 @@ merge them":
   to test it against, rather than finalizing the mechanics on
   hypothetical data now.
 
-*** TODO Support per-subagent activity intervals via a compound (session_id, agent_id) key :code:
+*Cancelled 2026-08-06*, same day it was captured, on review of the
+sub-task set as a whole. It works against the premise of the refactor
+that contains it: the whole point is that nothing presents unconfirmed
+state as authoritative, and a read-time overlay reintroduces exactly
+that — a synthesized disk+queue view no human has approved. The third
+bullet above already concedes the hard half (durations must stay
+*visibly separate*, not merged), which means this was never really an
+overlay, just an annotation. Once the risky merge is stripped out, what
+remains is "join queue data into =org_query= output" — a consumer of
+[[id:63a642c7-b04d-42dc-b6ec-3fb13df3ae04][63a642c7]]'s parsing layer,
+not a design task in its own right.
+
+The motivating problem is real but has a cheaper fix that needs no new
+machinery: =org_set_todo= returns /queued, not applied/, and Claude
+believes its own tool result rather than re-reading the file to
+confirm. Fold the surviving pieces into =63a642c7=: the "latest queued
+event wins" rule (bullet 2) and the applied-vs-pending separation
+(bullet 3) are both things that tool needs anyway. The union-not-sum
+decision (bullet 4) belongs to
+[[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]'s apply-time
+reconciliation, which is where overlapping intervals actually have to
+be resolved — it survives this cancellation, it just doesn't live here.
+
+*** MAYBE Support per-subagent activity intervals via a compound (session_id, agent_id) key :code:
 :PROPERTIES:
 :ID:       16160d23-273b-4510-858e-db18508d04a0
 :CREATED:  [2026-08-06 Thu 13:06]
+:BLOCKER:  ids(3d576d29-747f-40b9-a5b3-ecc76679daad)
 :END:
+
+Re-scoped =TODO= → =MAYBE= 2026-08-06, same day it was captured. Not a
+retreat from the observation — the =agentId=-vs-hand-invented-=-bgN=
+fidelity point below is correct and worth keeping on the record. It is
+v2 scope on a design not yet validated, and it depends on
+[[id:3d576d29-747f-40b9-a5b3-ecc76679daad][3d576d29]] resolving
+favorably, hence the =:BLOCKER:=: a subagent's interval is *inherently*
+retrospective by the time the orchestrator learns of it, so if org's
+clock APIs turn out not to accept a backdated timestamp, there is no
+mechanism for this sub-task to write through at all. Revisit once the
+core queue + review loop actually exists and =3d576d29= has an answer.
 
 Captured 2026-08-06 from conversation. A flat one-file/one-key-per-
 Claude-Code-=session_id= scheme has no room for subagents — they
@@ -1484,10 +1580,17 @@ retrospective by the time the orchestrator learns of it, giving that
 sub-task a second, concrete, non-hypothetical reason it matters,
 beyond the general human-review-lag case.
 
-*** TODO Verify org's clock/logging APIs actually support backdated timestamps for batch apply-time backfill :code:
+*** DONE Verify org's clock/logging APIs actually support backdated timestamps for batch apply-time backfill :code:
 :PROPERTIES:
 :ID:       3d576d29-747f-40b9-a5b3-ecc76679daad
 :CREATED:  [2026-08-06 Thu 10:47]
+:END:
+:SESSIONS:
+- Resumed [2026-08-06 Thu 22:37]
+- Paused [2026-08-06 Thu 22:45]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-06 Thu 22:35]--[2026-08-06 Thu 22:40] =>  0:05
 :END:
 
 The explicitly-flagged load-bearing assumption from the parent
@@ -1495,6 +1598,88 @@ heading, worth its own sub-task precisely so it isn't skipped or
 assumed true by default. Evaluate early, before the rest of the
 design is trusted — this could reshape or invalidate parts of the
 review-and-apply command's design above.
+
+*Clock half: confirmed 2026-08-06*, read directly out of the live
+straight build (=~/.config/emacs/.local/straight/build-29.4/org/
+org-clock.el=), not from memory or docs:
+
+: (defun org-clock-in  (&optional select start-time))      ; line 1380
+: (defun org-clock-out (&optional switch-to-state fail-quietly at-time)) ; line 1808
+
+=START-TIME= flows straight into =org-clock-start-time=, which is what
+=org-insert-timestamp= writes as the CLOCK timestamp (line ~1543) — so
+this is genuine backdating, not a rounding or display argument. Backfilling
+a completed historical interval is therefore a matched =org-clock-in= /
+=org-clock-out= pair with both endpoints supplied up front. Note what
+this implies about *mode*: native clocking gets used as a writer of
+already-closed intervals, never as a live stopwatch, which is what
+removes the open-ended shared window every desync incident traces to.
+
+*Executed 2026-08-06 22:26-22:45. Gate result: BOTH HALVES PASS.*
+Verified by running org 9.8.7 (the straight build Doom actually uses)
+against scratch files, not by reading docs. Scripts:
+=$CLAUDE_JOB_DIR/tmp/wave0-verify{,-b}.el=.
+
+*A. Clock backdating — CONFIRMED, end to end.* =(org-clock-in nil
+START)= then =(org-clock-out nil nil END)=, both non-interactive,
+produced exactly:
+
+: CLOCK: [2026-08-06 Thu 19:39]--[2026-08-06 Thu 20:39] =>  1:00
+
+Correct interval, correct duration arithmetic, correct =:LOGBOOK:=
+placement, no clock left running afterwards. A completed historical
+interval is therefore a matched pair with both endpoints supplied up
+front — native clocking used as a writer of already-closed intervals,
+never as a live stopwatch.
+
+*B. Logging backdating — CONFIRMED, but NOT by the mechanism the plan
+assumed.* The plan's Phase 0 hypothesis — let-bind
+=org-log-note-effective-time= around =org-todo= — *does not work*.
+=org-add-log-setup= (=org.el:11031=) =setq=s that variable from
+=(org-current-effective-time)=, clobbering any caller's =let=. What
+does work is shadowing the *function*:
+
+: (cl-letf (((symbol-function 'org-current-effective-time)
+:            (lambda () past)))
+:   (org-todo "DOING"))
+
+Result, against a control run with no shadowing (=now= was 22:41):
+
+: - State "DOING"      from "TODO"       [2026-08-06 Thu 17:41]   ; shadowed
+: - State "DOING"      from "TODO"       [2026-08-06 Thu 22:41]   ; control
+
+Three mechanics the apply command will need, learned the hard way:
+- Even a =!= (timestamp-only) keyword *defers* through
+  =post-command-hook= → =org-add-log-note=. Confirms config.el's field
+  note at =org_set_todo=. =org-log-note-how= is =time= for =!=, which
+  takes =org-store-log-note='s no-prompt branch — but =org-add-log-note=
+  unconditionally =pop-to-buffer=s =*Org Note*= *before* testing that,
+  which is the non-interactive breakage.
+- The deferred path can be driven directly, bypassing
+  =post-command-hook= entirely: call =org-store-log-note= with an empty
+  =*Org Note*= buffer current. It does =(buffer-string)= + =(kill-buffer)=
+  on the current buffer, so the current buffer must be the note buffer,
+  not the org file.
+- =org-store-log-note= ends with =set-window-configuration=, which
+  errors if =org-log-note-window-configuration= is nil. The note is
+  already written by then, but bind it anyway.
+
+*Live-environment caveat, and a real interaction found:* re-running B
+through =emacsclient -e= against the live Doom Emacs produced the clock
+line but *no state-change log line at all*. The difference is
+=claude-code-ide-org--trigger-auto-clock-in=, which is live on
+=org-trigger-hook= and fires during =org-todo=; its =org-clock-in= runs
+while the state-change note is still pending and the note never lands.
+Not fully root-caused, but the observation is solid and it matters for
+[[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]: the apply
+command cannot have a trigger hook clocking in underneath it while a
+log note is outstanding. Sequencing state and clock, or suppressing the
+trigger during apply, is now a design requirement, not a nicety.
+
+(Incidental: CLAUDE.md says =org-trigger-hook=/=org-blocker-hook=
+enforcement is "not built yet." It is — four functions are live on
+=org-trigger-hook=. Fold that correction into
+[[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]].)
 
 *** TODO Decouple live "what is Claude attending to" visibility from the authoritative org clock :code:
 :PROPERTIES:
@@ -1512,10 +1697,11 @@ can, since it's just reading append-only files.
 
 Explicit instruction, added 2026-08-06: don't stop at a bare
 event-name swap. Now that a pending-queue-inspection tool
-([[id:63a642c7-b04d-42dc-b6ec-3fb13df3ae04][63a642c7]]) and an
-=org_query=/=org_clock_report= overlay
-([[id:c9292ce8-8fb5-41c0-8de1-bbf74ffa7fce][c9292ce8]]) both exist in
-this same plan, consider whether the statusline should surface that
+([[id:63a642c7-b04d-42dc-b6ec-3fb13df3ae04][63a642c7]]) exists in this
+same plan — and, since
+[[id:c9292ce8-8fb5-41c0-8de1-bbf74ffa7fce][c9292ce8]] was cancelled,
+is the *only* place queue state gets surfaced outside the review
+command — consider whether the statusline should surface that
 same information glanceably from the terminal — e.g. a pending-review
 count ("3 updates awaiting review"), or a visible distinction between
 "applied" and "queued, not yet reviewed" for whatever heading it
@@ -1549,6 +1735,34 @@ this area as proof no better native mechanism exists — several of
 them were made under time pressure chasing a live bug, not after a
 deliberate API survey.
 
+*Scope narrowed 2026-08-06*: the first item on that checklist — whether
+=org-clock-in=/=org-clock-out= take an explicit non-"now" timestamp —
+is answered, and duplicated
+[[id:3d576d29-747f-40b9-a5b3-ecc76679daad][3d576d29]] outright. Both
+take one (=START-TIME= / =AT-TIME=); see that heading for the confirmed
+signatures. Drop it from this survey and treat =3d576d29= as the owner
+of the timestamp question, so the load-bearing bit isn't buried inside
+a broad sweep — burying it is precisely how it gets skipped, which is
+why it was broken out separately in the first place. The remaining
+three checklist items (=org-add-log-note= batch-friendliness,
+=org-element= vs. this project's regex/position drawer editing,
+=org-agenda-bulk-*=) are untouched and still the substance here.
+
+*Agenda lead — CONFIRMED 2026-08-06, exactly as hypothesized.* Ran the
+cheap check this heading specifies: a scratch heading with one active
+and one inactive list item inside =:LOGBOOK:=, plus a =CLOCK:= line,
+then =org-agenda-list=. Only the active one appeared:
+
+: agenda:     10:00...... Guidepost host      ; <2026-08-06 Thu 10:00>
+
+The inactive item (=[... 11:00]=) and the =CLOCK:= line were both
+absent. So an active timestamp inside a =:LOGBOOK:= drawer *does* reach
+the agenda — this is the working mechanism for
+[[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]'s "guidepost"
+annotations, and org's own agenda does become a free retrospective
+"what did I actually attend to" view with no bespoke tooling. Verified
+in org 9.8.7, the straight build Doom uses.
+
 **One concrete lead already found, added 2026-08-06 — verify, don't
 rediscover from scratch**: active (=<...>=) timestamps are picked up
 by =org-agenda=/=org-agenda-list=, inactive (=[...]=) ones are not,
@@ -1568,6 +1782,53 @@ inactive-timestamp list item inside =:LOGBOOK:=, run
 =org-agenda-list=, confirm exactly the active one appears — cheap,
 direct, matches this project's own "confirmed live, not just
 theorized" discipline.
+
+*** TODO Decide the fate of the stale-interval recovery feature, whose premise this refactor removes :code:
+:PROPERTIES:
+:ID:       7771fc63-9374-4c8a-9e80-24ceec21977c
+:CREATED:  [2026-08-06 Thu 22:26]
+:END:
+
+Captured 2026-08-06 from conversation. The whole stale-interval
+recovery subsystem — =SessionStart= hook →
+=bin/hooks/session-start-recovery-check= →
+=claude-code-ide-org-write-session-start-report=,
+=claude-code-ide-org-close-open-interval=, the
+=claude-code-ide-org-session-recovery-enabled= and
+=claude-code-ide-org-working-hours= defcustoms, and the
+working-hours-based guess heuristic — exists for exactly one scenario:
+a crash or shutdown killing Emacs while a =CLOCK:= line or =:SESSIONS:=
+=Resumed= entry is still *open*, leaving it open indefinitely.
+
+Under the queue+review model that scenario stops being reachable for
+=CLOCK:= lines. The apply command knows both endpoints before it writes
+anything (=org-clock-in= with =START-TIME=, =org-clock-out= with
+=AT-TIME=, back to back, single actor) — intervals are written already
+closed, so there is no window in which a crash can strand one. A crash
+mid-apply is a different and much narrower failure than the one this
+feature was built for.
+
+Genuinely undecided, do not assume the answer is "delete it":
+- =:SESSIONS:= =Resumed= entries may still strand, depending on what
+  [[id:32272061-1d78-4726-b13b-90338edb2ba5][32272061]] decides about
+  whether pause/resume stay paired drawer entries or become bare
+  append-only queue events. If they become queue events, the =pause=
+  simply never arrives and the queue is inert — nothing to recover.
+- The =SessionStart= report slot itself may be worth *repurposing*
+  rather than removing: "you have N unreviewed updates pending" at the
+  start of a day is arguably more useful than today's stale-interval
+  question, and is the same surface
+  [[id:290b6fc5-3ebb-4827-9a97-5a3542e354b6][290b6fc5]] and
+  [[id:63a642c7-b04d-42dc-b6ec-3fb13df3ae04][63a642c7]] are circling
+  from the statusline and tool sides. Three things wanting the same
+  data is a signal to design the read path once.
+- The =pmset -g log= lead recorded in CLAUDE.md ("Not yet attempted")
+  should be closed out as *won't-do* rather than left dangling if the
+  guess heuristic goes away.
+
+Sequence after [[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]
+exists and works — retiring a safety net before its replacement is
+proven is how you lose data you didn't know you were relying on.
 
 *** TODO Reconcile or retire the now-likely-superseded clock/session-ownership plans and infrastructure :code:
 :PROPERTIES:
