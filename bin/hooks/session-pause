@@ -27,4 +27,14 @@ fi
 
 emacsclient -e "(claude-code-ide-org-session-pause $session_id_elisp)" >/dev/null 2>&1
 
+# Also append a `pause` guidepost to this session's event queue (TODO.org
+# :ID: 32272061-1d78-4726-b13b-90338edb2ba5). Deliberately ADDITIVE for
+# now: the emacsclient call above still does the real clocking, so this
+# changes no behavior and only starts accumulating queue data. Removing
+# the emacsclient half is feba67eb's cutover commit -- doing it here
+# would stop pausing the live clock at turn boundaries while the MCP
+# tools still open real clocks, inflating every interval with idle time,
+# and nothing yet exists to apply the queued events instead.
+printf '%s' "$input" | "$(dirname "${BASH_SOURCE[0]}")/queue-append" pause
+
 exit 0

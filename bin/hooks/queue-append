@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# Append one event to this session's append-only org update queue.
+#
+# The shared writer for the event-queue refactor (TODO.org :ID:
+# 32272061-1d78-4726-b13b-90338edb2ba5, under :ID:
+# b5f7c5c7-7ad6-4c68-9cce-3479db1f1644). Sessions never mutate live org
+# state for clock/TODO changes; they append events here, and a human
+# later applies the approved subset through org's own machinery inside a
+# genuinely interactive command.
+#
+# Called by several hooks, each passing the event kind as $1 and reading
+# the hook payload on stdin:
+#
+#   PostToolUse org_set_todo   -> todo
+#   PostToolUse org_clock_in   -> clock_in
+#   PostToolUse org_clock_out  -> clock_out
+#   Stop                       -> pause
+#   UserPromptSubmit           -> resume
+#
+# Why the hook writes rather than the MCP tool: session_id is only ever
+# present on hook stdin. MCP tools are served by Emacs and never receive
+# it, so a tool-side writer could not key files by session. Same division
+# of labour as bin/hooks/posttooluse-record-planning-owner.
+#
+# Built with jq -n throughout rather than shell interpolation, matching
+# bin/hooks/session-pause's reasoning: every field here originates in
+# untrusted payload JSON, and jq's own encoder is the only thing that
+# should be producing JSON string literals from it.
+#
+# Fire-and-forget: always exit 0, never block the hook that called it.
+# A missing jq, an unwritable queue directory, or a malformed payload
+# costs one event, never the caller.
+
+set -uo pipefail
+
+kind="${1:-}"
+case "$kind" in
+  todo|clock_in|clock_out|pause|resume) ;;
+  *) exit 0 ;;
+esac
+
+command -v jq >/dev/null 2>&1 || exit 0
+
+input="$(cat)"
+
+session_id="$(jq -r '.session_id // empty' <<<"$input" 2>/dev/null)"
+# Without a session_id there is no file to write to -- the queue is keyed
+# by it. Drop the event rather than inventing a filename, so a stray
+# unkeyed event can never be mistaken for a real session's work.
+[[ -n "$session_id" ]] || exit 0
+
+# Refuse anything that isn't a plain filename component. session_id is
+# interpolated into a path below, and this is the only place untrusted
+# payload data reaches the filesystem.
+case "$session_id" in
+  *[!A-Za-z0-9._-]*|''|.|..) exit 0 ;;
+esac
+
+# The tool wrappers return an "Error: ..." string rather than throwing
+# when :ID: resolution fails (see claude-code-ide-org--at-id). Treat that
+# as "nothing happened" -- a bad :ID: must not enter the queue and
+# resurface as a mystery at review time. tool_response may be a string or
+# an object depending on the tool, so normalise before testing it.
+if [[ "$kind" == todo || "$kind" == clock_in || "$kind" == clock_out ]]; then
+  response="$(jq -r '
+    (.tool_response // "")
+    | if type == "object" then (.content // .result // "" | tostring)
+      elif type == "array" then (map(tostring) | join(" "))
+      else tostring end' <<<"$input" 2>/dev/null)"
+  case "$response" in
+    Error:*) exit 0 ;;
+  esac
+fi
+
+queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
+mkdir -p "$queue_dir" 2>/dev/null || exit 0
+
+# One line, built and encoded entirely by jq. Field names and the
+# timestamp format deliberately match the existing audit log written by
+# claude-code-ide-org--log-event, so both logs read the same way.
+#
+# id/state are null for the kinds that don't carry them: pause/resume are
+# session-global (nothing in them names a heading -- that attribution is
+# what the clock_in/clock_out events exist to provide), and state is
+# meaningful only for todo.
+line="$(jq -n -c \
+  --arg ts "$(date '+%Y-%m-%dT%H:%M:%S%z')" \
+  --arg kind "$kind" \
+  --arg session_id "$session_id" \
+  --argjson payload "$(jq -c '.' <<<"$input" 2>/dev/null || echo '{}')" \
+  '{
+     ts: $ts,
+     kind: $kind,
+     id: (if $kind == "pause" or $kind == "resume" then null
+          else ($payload.tool_input.id // null) end),
+     state: (if $kind == "todo" then ($payload.tool_input.state // null) else null end),
+     session_id: $session_id,
+     agent_id: ($payload.agent_id // null),
+     source: ($payload.tool_name // $payload.hook_event_name // $kind)
+   }' 2>/dev/null)"
+
+[[ -n "$line" ]] || exit 0
+
+# A single write of one short line to an O_APPEND fd: atomic on POSIX for
+# anything under PIPE_BUF, so concurrent writers can never interleave a
+# partial line. No locking needed, and none wanted -- a lock is another
+# thing that can wedge and block a hook.
+printf '%s\n' "$line" >> "$queue_dir/$session_id.jsonl" 2>/dev/null
+
+exit 0

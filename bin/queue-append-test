@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+# Shell test harness for bin/hooks/queue-append's decision logic.
+#
+# Same register as bin/clock-notify-test, and the same honesty about its
+# limits. Fully covered here: kind validation, session_id extraction and
+# sanitisation, the "Error:" tool_response suppression, field mapping per
+# kind, and append accumulation. NOT covered, and not claimed to be: the
+# real shape of a live PostToolUse/Stop/UserPromptSubmit payload, and the
+# behavior of concurrent writers appending at once (the atomicity claim
+# rests on POSIX O_APPEND semantics for sub-PIPE_BUF writes, not on a
+# test).
+#
+# The reader half is covered by ERT instead -- see the "Event queue"
+# section of config-test.el.
+
+set -uo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+script="$repo_root/bin/hooks/queue-append"
+
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+
+fail=0
+
+# Every invocation writes into a throwaway queue dir, never ~/.claude.
+export CLAUDE_ORG_QUEUE_DIR="$work/queue"
+
+reset_queue() { rm -rf "$CLAUDE_ORG_QUEUE_DIR"; }
+
+# run KIND PAYLOAD -- feed PAYLOAD to the script as one hook payload.
+run() {
+  printf '%s' "$2" | "$script" "$1"
+}
+
+# queue_lines SESSION -- emit that session's queue file, or nothing.
+queue_lines() {
+  cat "$CLAUDE_ORG_QUEUE_DIR/$1.jsonl" 2>/dev/null
+}
+
+check() {
+  local label="$1" expected="$2" actual="$3"
+  if [[ "$expected" == "$actual" ]]; then
+    echo "ok   - $label"
+  else
+    echo "FAIL - $label"
+    echo "         expected: $expected"
+    echo "         actual:   $actual"
+    fail=1
+  fi
+}
+
+# --- a clock_in call records the heading and the tool as source --------
+reset_queue
+run clock_in '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_clock_in","tool_input":{"id":"id-a"},"tool_response":"Clocked in: \"Some heading\""}'
+line="$(queue_lines sess-a)"
+check "clock_in records kind" "clock_in" "$(jq -r '.kind' <<<"$line")"
+check "clock_in records id" "id-a" "$(jq -r '.id' <<<"$line")"
+check "clock_in records session" "sess-a" "$(jq -r '.session_id' <<<"$line")"
+check "clock_in has null state" "null" "$(jq -r '.state' <<<"$line")"
+check "clock_in records source" "mcp__emacs-tools__org_clock_in" "$(jq -r '.source' <<<"$line")"
+check "timestamp is ISO 8601 with offset" "yes" \
+  "$(jq -r 'if (.ts|test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[-+][0-9]{4}$")) then "yes" else "no" end' <<<"$line")"
+
+# --- a todo call carries the requested state ---------------------------
+reset_queue
+run todo '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_set_todo","tool_input":{"id":"id-a","state":"DOING"},"tool_response":"TODO state set to DOING: \"x\""}'
+check "todo records state" "DOING" "$(jq -r '.state' <<<"$(queue_lines sess-a)")"
+
+# --- pause/resume are session-global: no heading, no state -------------
+reset_queue
+run pause '{"session_id":"sess-a","hook_event_name":"Stop"}'
+line="$(queue_lines sess-a)"
+check "pause has null id" "null" "$(jq -r '.id' <<<"$line")"
+check "pause has null state" "null" "$(jq -r '.state' <<<"$line")"
+check "pause falls back to hook name as source" "Stop" "$(jq -r '.source' <<<"$line")"
+
+# --- a failed tool call must not enter the queue -----------------------
+# claude-code-ide-org--at-id returns an "Error: ..." string rather than
+# throwing, so this is the only signal that the :ID: never resolved.
+reset_queue
+run clock_in '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_clock_in","tool_input":{"id":"nope"},"tool_response":"Error: No heading with :ID: nope"}'
+check "error response writes nothing" "" "$(queue_lines sess-a)"
+
+# --- but a pause is never suppressed by tool_response ------------------
+reset_queue
+run pause '{"session_id":"sess-a","tool_response":"Error: unrelated"}'
+check "pause ignores tool_response" "pause" "$(jq -r '.kind' <<<"$(queue_lines sess-a)")"
+
+# --- unusable invocations write nothing --------------------------------
+reset_queue
+run bogus_kind '{"session_id":"sess-a"}'
+check "unknown kind writes nothing" "" "$(ls "$CLAUDE_ORG_QUEUE_DIR" 2>/dev/null)"
+
+reset_queue
+run pause '{"tool_input":{"id":"id-a"}}'
+check "missing session_id writes nothing" "" "$(ls "$CLAUDE_ORG_QUEUE_DIR" 2>/dev/null)"
+
+reset_queue
+run pause '{"session_id":"../../etc/passwd"}'
+check "path-traversal session_id writes nothing" "" "$(find "$CLAUDE_ORG_QUEUE_DIR" -type f 2>/dev/null)"
+
+reset_queue
+run pause 'not json at all'
+check "unparseable payload writes nothing" "" "$(ls "$CLAUDE_ORG_QUEUE_DIR" 2>/dev/null)"
+
+# --- appends accumulate rather than overwrite --------------------------
+reset_queue
+run pause '{"session_id":"sess-a","hook_event_name":"Stop"}'
+run resume '{"session_id":"sess-a","hook_event_name":"UserPromptSubmit"}'
+check "appends accumulate" "2" "$(queue_lines sess-a | wc -l | tr -d ' ')"
+check "append order preserved" "pause resume" \
+  "$(queue_lines sess-a | jq -rs 'map(.kind)|join(" ")')"
+
+# --- sessions never share a file ---------------------------------------
+reset_queue
+run pause '{"session_id":"sess-a"}'
+run pause '{"session_id":"sess-b"}'
+check "one file per session" "1 1" \
+  "$(queue_lines sess-a | wc -l | tr -d ' ') $(queue_lines sess-b | wc -l | tr -d ' ')"
+
+# --- the script never fails its caller ---------------------------------
+printf '%s' 'garbage' | "$script" pause >/dev/null 2>&1
+check "always exits 0" "0" "$?"
+
+echo
+if [[ $fail -eq 0 ]]; then
+  echo "All queue-append tests passed."
+else
+  echo "Some queue-append tests FAILED."
+fi
+exit $fail

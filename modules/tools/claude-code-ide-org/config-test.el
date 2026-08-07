@@ -2102,6 +2102,224 @@ id, not wherever point happened to be left."
       (should (string-match-p "a\\.md" disk))
       (should (string-match-p "b\\.md" disk)))))
 
+;;; Event queue -------------------------------------------------------------
+;;
+;; Reader-side tests for the append-only event queue (TODO.org :ID:
+;; 32272061-1d78-4726-b13b-90338edb2ba5). Pure data in, pure data out --
+;; no org buffers, no clock, no :ID: resolution -- so these need none of
+;; the --with-heading fixture's machinery, only a redirected queue
+;; directory.
+
+(defmacro claude-code-ide-org-test--with-queue (&rest body)
+  "Run BODY with `claude-code-ide-org-queue-directory' pointed at a
+fresh temp directory, deleted afterwards, so tests never read or write
+the real ~/.claude/org-updates."
+  (declare (indent 0))
+  `(let* ((dir (file-name-as-directory (make-temp-file "claude-code-ide-org-queue" t)))
+          (claude-code-ide-org-queue-directory dir))
+     (unwind-protect (progn ,@body)
+       (delete-directory dir t))))
+
+(defun claude-code-ide-org-test--queue-write (session-id &rest lines)
+  "Append LINES verbatim to SESSION-ID's queue file.
+Deliberately writes raw text rather than going through any encoder, so
+a test can plant a torn or malformed line exactly as a crashed writer
+would leave one."
+  (let ((file (claude-code-ide-org--queue-file session-id)))
+    (make-directory (file-name-directory file) t)
+    (write-region (mapconcat #'identity lines "\n") nil file t 'silent)
+    (write-region "\n" nil file t 'silent)))
+
+(defun claude-code-ide-org-test--queue-event (ts kind &optional id state session-id)
+  "Return one encoded queue line, matching bin/hooks/queue-append's shape."
+  (json-encode `((ts . ,ts)
+                 (kind . ,kind)
+                 (id . ,id)
+                 (state . ,state)
+                 (session_id . ,(or session-id "sess-a"))
+                 (agent_id . nil)
+                 (source . ,kind))))
+
+(ert-deftest claude-code-ide-org-test-queue-round-trips-every-kind ()
+  "Every event kind parses back with its fields and ordering intact."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:00:00-0500" "todo" "id-a" "DOING")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:00:01-0500" "clock_in" "id-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:12:00-0500" "pause")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:31:00-0500" "resume")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T10:20:00-0500" "clock_out" "id-a")))
+    (let ((events (claude-code-ide-org--queue-events)))
+      (should (equal (mapcar (lambda (e) (plist-get e :kind)) events)
+                     '("todo" "clock_in" "pause" "resume" "clock_out")))
+      (should (equal (plist-get (car events) :id) "id-a"))
+      (should (equal (plist-get (car events) :state) "DOING"))
+      (should (equal (plist-get (car events) :session-id) "sess-a"))
+      ;; pause/resume are session-global: they carry no heading of their own.
+      (should-not (plist-get (nth 2 events) :id)))))
+
+(ert-deftest claude-code-ide-org-test-queue-skips-unusable-lines ()
+  "A torn, malformed, or unknown-kind line costs one event, not the file."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:00:00-0500" "clock_in" "id-a")
+                 "{\"ts\":\"2026-08-07T09:05:00-0500\",\"kind\":\"clo"  ; torn
+                 "not json at all"
+                 (json-encode '((ts . "2026-08-07T09:06:00-0500")
+                                (kind . "future_kind") (id . "id-a")))
+                 (json-encode '((ts . "nonsense") (kind . "pause")))
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:10:00-0500" "pause")))
+    (let ((events (claude-code-ide-org--queue-events)))
+      (should (equal (mapcar (lambda (e) (plist-get e :kind)) events)
+                     '("clock_in" "pause"))))))
+
+(ert-deftest claude-code-ide-org-test-queue-watermark-filters-applied-events ()
+  "Events at or before the watermark are consumed; later ones survive,
+including ones appended after a partial drain."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:00:00-0500" "clock_in" "id-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:05:00-0500" "pause")))
+    (should (= 2 (length (claude-code-ide-org--queue-events))))
+    (claude-code-ide-org--queue-set-watermark "sess-a" "2026-08-07T09:05:00-0500")
+    (should (= 0 (length (claude-code-ide-org--queue-events))))
+    ;; The session keeps writing after the drain -- the queue file is never
+    ;; truncated, so this must simply appear as newly pending.
+    (claude-code-ide-org-test--queue-write
+     "sess-a" (claude-code-ide-org-test--queue-event
+               "2026-08-07T09:20:00-0500" "resume"))
+    (let ((events (claude-code-ide-org--queue-events)))
+      (should (equal (mapcar (lambda (e) (plist-get e :kind)) events) '("resume"))))))
+
+(ert-deftest claude-code-ide-org-test-queue-watermark-write-is-atomic ()
+  "No partial watermark file is ever observable, and no temp file is left."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org--queue-set-watermark "sess-a" "2026-08-07T09:05:00-0500")
+    (let ((file (claude-code-ide-org--queue-watermark-file "sess-a")))
+      (should (file-readable-p file))
+      (should (equal (claude-code-ide-org--queue-watermark "sess-a")
+                     (date-to-time "2026-08-07T09:05:00-0500")))
+      (should-not (directory-files claude-code-ide-org-queue-directory
+                                   nil "\\`\\.queue-tmp-")))))
+
+(ert-deftest claude-code-ide-org-test-queue-attributes-guideposts-across-a-return ()
+  "The A -> B -> A case: returning to a heading that never left DOING
+emits no todo event, so attribution must come from clock_in/clock_out.
+This is the whole reason those two kinds are retained."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:00:00-0500" "todo" "id-a" "DOING")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:00:01-0500" "clock_in" "id-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:12:00-0500" "pause")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T10:20:00-0500" "clock_out" "id-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T10:20:01-0500" "clock_in" "id-b")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T10:35:00-0500" "pause")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T11:00:00-0500" "clock_out" "id-b")
+                 ;; Back to A. A never left DOING, so no todo event fires.
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T11:00:01-0500" "clock_in" "id-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T11:15:00-0500" "pause")))
+    (let* ((groups (claude-code-ide-org--queue-events-by-id))
+           (a (alist-get "id-a" groups nil nil #'equal))
+           (b (alist-get "id-b" groups nil nil #'equal))
+           (pause-times (lambda (events)
+                          (mapcar (lambda (e)
+                                    (format-time-string "%H:%M" (plist-get e :ts)))
+                                  (seq-filter
+                                   (lambda (e) (equal (plist-get e :kind) "pause"))
+                                   events)))))
+      (should (equal (funcall pause-times a) '("09:12" "11:15")))
+      (should (equal (funcall pause-times b) '("10:35"))))))
+
+(ert-deftest claude-code-ide-org-test-queue-attribution-does-not-cross-sessions ()
+  "One session's clock_in never captures another session's guideposts."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--queue-write
+     "sess-a" (claude-code-ide-org-test--queue-event
+               "2026-08-07T09:00:00-0500" "clock_in" "id-a" nil "sess-a"))
+    (claude-code-ide-org-test--queue-write
+     "sess-b" (claude-code-ide-org-test--queue-event
+               "2026-08-07T09:10:00-0500" "pause" nil nil "sess-b"))
+    (let ((groups (claude-code-ide-org--queue-events-by-id)))
+      ;; sess-b's pause has no clock_in of its own, so it stays unattributed
+      ;; rather than being swept under sess-a's heading.
+      (should (equal (mapcar (lambda (e) (plist-get e :kind))
+                             (alist-get "id-a" groups nil nil #'equal))
+                     '("clock_in")))
+      (should (equal (mapcar (lambda (e) (plist-get e :kind))
+                             (alist-get nil groups))
+                     '("pause"))))))
+
+(ert-deftest claude-code-ide-org-test-aggregate-guideposts-clusters-by-gap ()
+  "A dense run collapses to one span; a wide gap starts a new one."
+  (let* ((times '("2026-08-07T09:00:00-0500"   ; cluster one
+                  "2026-08-07T09:05:00-0500"
+                  "2026-08-07T09:12:00-0500"
+                  "2026-08-07T11:00:00-0500"   ; cluster two, ~1h48m later
+                  "2026-08-07T11:04:00-0500"))
+         (events (mapcar (lambda (ts)
+                           (list :ts (date-to-time ts) :kind "pause"))
+                         times))
+         (spans (claude-code-ide-org--aggregate-guideposts events 900)))
+    (should (= 2 (length spans)))
+    (should (equal (format-time-string "%H:%M" (car (nth 0 spans))) "09:00"))
+    (should (equal (format-time-string "%H:%M" (cdr (nth 0 spans))) "09:12"))
+    (should (equal (format-time-string "%H:%M" (car (nth 1 spans))) "11:00"))
+    (should (equal (format-time-string "%H:%M" (cdr (nth 1 spans))) "11:04"))
+    ;; A tighter threshold splits the first cluster at its 7-minute gap.
+    (should (= 3 (length (claude-code-ide-org--aggregate-guideposts events 360))))))
+
+(ert-deftest claude-code-ide-org-test-aggregate-guideposts-does-not-round ()
+  "Spans keep their exact endpoints. A 2-minute span is preserved, where
+consolidate-history's 5-minute rounding would drop it entirely."
+  (let* ((events (mapcar (lambda (ts) (list :ts (date-to-time ts) :kind "pause"))
+                         '("2026-08-06T22:43:00-0500" "2026-08-06T22:45:00-0500")))
+         (spans (claude-code-ide-org--aggregate-guideposts events)))
+    (should (= 1 (length spans)))
+    (should (equal (format-time-string "%H:%M" (car (car spans))) "22:43"))
+    (should (equal (format-time-string "%H:%M" (cdr (car spans))) "22:45"))
+    ;; The behavior this deliberately departs from, asserted so the contrast
+    ;; is a test rather than a comment: rounding collapses it to nothing.
+    (should (string-empty-p
+             (string-trim
+              (claude-code-ide-org--consolidate-logbook-text
+               "CLOCK: [2026-08-06 Thu 22:43]--[2026-08-06 Thu 22:45] =>  0:02\n"))))))
+
+(ert-deftest claude-code-ide-org-test-aggregate-guideposts-edge-cases ()
+  "No events yields no spans; one event yields one zero-width span."
+  (should-not (claude-code-ide-org--aggregate-guideposts nil))
+  (let ((spans (claude-code-ide-org--aggregate-guideposts
+                (list (list :ts (date-to-time "2026-08-07T09:00:00-0500"))))))
+    (should (= 1 (length spans)))
+    (should (time-equal-p (car (car spans)) (cdr (car spans))))))
+
+(ert-deftest claude-code-ide-org-test-queue-empty-and-missing-directory ()
+  "A missing or empty queue directory reads as no events, never an error."
+  (claude-code-ide-org-test--with-queue
+    (should-not (claude-code-ide-org--queue-events))
+    (should-not (claude-code-ide-org--queue-files))
+    (should-not (claude-code-ide-org--queue-events-by-id)))
+  (let ((claude-code-ide-org-queue-directory "/nonexistent/queue/dir"))
+    (should-not (claude-code-ide-org--queue-events))
+    (should-not (claude-code-ide-org--queue-session-ids))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here

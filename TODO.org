@@ -1294,7 +1294,7 @@ the stale-interval-recovery feature, whose premise this design removes.
 narrowed to the logging half. Each carries its own note; this is just
 the index.
 
-*** DOING Design the append-only event-queue format and per-session file lifecycle :code:
+*** DONE Design the append-only event-queue format and per-session file lifecycle :code:
 :PROPERTIES:
 :ID:       32272061-1d78-4726-b13b-90338edb2ba5
 :CREATED:  [2026-08-06 Thu 10:47]
@@ -1302,12 +1302,10 @@ the index.
 :SESSIONS:
 - Resumed [2026-08-06 Thu 22:53]
 - Resumed [2026-08-07 Fri 07:11] (session d847eab1-9e6d-4d67-baf2-457715870457)
-- Paused [2026-08-07 Fri 08:08] (session d847eab1-9e6d-4d67-baf2-457715870457)
-- Resumed [2026-08-07 Fri 08:10] (session d847eab1-9e6d-4d67-baf2-457715870457)
+- Paused [2026-08-07 Fri 08:19]
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-07 Fri 08:10]
-CLOCK: [2026-08-06 Thu 22:55]--[2026-08-07 Fri 08:10] =>  9:15
+CLOCK: [2026-08-06 Thu 22:55]--[2026-08-07 Fri 08:20] =>  9:25
 - State "DOING"      from "PLANNING"   [2026-08-07 Fri 07:59] \\
   Auto-promoted: ExitPlanMode fired on the owning session.
 :END:
@@ -1368,6 +1366,71 @@ property the parent heading claims — only the hooks get that, per
 write the queue file directly, bypassing the tools server so they work
 with Emacs down, is unrecorded elsewhere and belongs to this sub-task's
 file-lifecycle design.
+
+*Both resolved during planning, 2026-08-07.* =clock_in=/=clock_out=
+events are kept, on the basis the user set out: they exist to inform the
+human's composition of =CLOCK:= entries at review time, contributing
+only *active* timestamps to =:LOGBOOK:=, subject to aggregation at
+ingestion so review stays manageable. The decisive technical argument is
+attribution — =pause=/=resume= are heading-less, and a return to a
+heading that never left =DOING= emits no =todo= event, so without them
+every subsequent guidepost silently attributes to the wrong heading.
+On the write path: the *hook* writes and the *tool* validates, since
+=session_id= only ever appears on hook stdin and never reaches an MCP
+tool.
+
+*Implementation notes (2026-08-07):* shipped the schema, the writer and
+the reader. =bin/hooks/queue-append= is the single shared writer, called
+with the event kind as =$1= and the hook payload on stdin; it builds the
+line entirely with =jq -n= (same reasoning as =session-pause='s existing
+comment), refuses a =session_id= that is not a plain filename component,
+and drops any =todo=/=clock_in=/=clock_out= whose =tool_response= begins
+with ="Error:"= — =--at-id= returns error strings rather than throwing,
+so that is the only signal a bad =:ID:= never resolved. On the Emacs
+side, a new "Event queue" section adds
+=claude-code-ide-org-queue-directory= and
+=claude-code-ide-org-guidepost-gap-threshold= (default 15 minutes,
+explicitly a starting guess) plus =--queue-events=,
+=--queue-events-by-id=, =--aggregate-guideposts= and the watermark
+functions. Draining never touches the =.jsonl=: a sibling
+=<session-id>.applied= watermark records progress, so a session that is
+still appending is never raced.
+
+*Verified, not just implemented:* =bin/test= passes 134/134 (124
+pre-existing + 10 new ERT tests) covering round-trip of all five kinds,
+skipping torn/malformed/unknown-kind lines without failing the file,
+watermark filtering including a session that keeps appending after a
+partial drain, atomicity of the watermark write, the =A → B → A=
+attribution case, cross-session isolation, gap clustering at two
+thresholds, and that a 2-minute span survives where
+=--consolidate-logbook-text= drops it (asserted as a test, not a
+comment). =bin/queue-append-test= adds 20 shell assertions on the writer
+— field mapping per kind, ="Error:"= suppression, missing/traversing
+=session_id=, unparseable payload, append accumulation, per-session
+files, always-exit-0. Also ran a cross-boundary pass neither suite
+covers: the real hook script wrote a nine-event =A → B → A= stream which
+the real Emacs reader then attributed correctly, drained 9 → 0 via the
+watermark, and left the queue file intact at nine lines.
+
+*Deviations from the plan, all deliberate:*
+- =session-pause=/=session-resume= *keep* their =emacsclient= call and
+  append to the queue alongside it, rather than dropping it as the plan
+  said. Dropping it now would stop pausing the live clock at turn
+  boundaries while the MCP tools still open real clocks — every interval
+  would silently absorb idle time, with nothing yet able to apply the
+  queued events instead. Additive now, removed in =feba67eb='s cutover.
+- =--aggregate-guideposts= does *not* reuse
+  =--merge-time-intervals= as the plan proposed: that merges only
+  touching or overlapping intervals and has no gap tolerance, which is a
+  different question from clustering nearby points.
+- =--parse-iso8601= shape-checks its input before calling
+  =date-to-time=. A test caught that =date-to-time= accepts ="nonsense"=
+  and returns a near-epoch time, which would sort a garbage line *ahead*
+  of every real event — corrupting ordering rather than being skipped.
+- Added a generic =--atomic-write= rather than reusing
+  =--write-clock-status=, which is hardwired to its own defcustom path.
+  Folding the older function onto the new helper is a tidy-up left for
+  whoever next touches the statusline.
 
 *** TODO Rework the MCP tool / hook write paths to append-only :code:
 :PROPERTIES:

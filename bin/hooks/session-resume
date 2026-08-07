@@ -24,4 +24,8 @@ fi
 
 emacsclient -e "(claude-code-ide-org-session-resume $session_id_elisp)" >/dev/null 2>&1
 
+# Also append a `resume` guidepost to this session's event queue. Additive
+# for now, for the reasons spelled out in bin/hooks/session-pause.
+printf '%s' "$input" | "$(dirname "${BASH_SOURCE[0]}")/queue-append" resume
+
 exit 0

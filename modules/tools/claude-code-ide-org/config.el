@@ -1955,6 +1955,255 @@ structurally cannot produce a CLOCK/:LOGBOOK: entry."
      (save-buffer)
      (format "Logged background plan for \"%s\"." (org-get-heading t t t t)))))
 
+;;; Event queue ------------------------------------------------------------
+;;
+;; The read side of the append-only event queue (TODO.org :ID:
+;; 32272061-1d78-4726-b13b-90338edb2ba5, under the refactor at :ID:
+;; b5f7c5c7-7ad6-4c68-9cce-3479db1f1644). Sessions append events via
+;; bin/hooks/queue-append; this layer reads them back.
+;;
+;; Three layers, and only the middle one is lossy -- in presentation only:
+;;
+;;   queue file (append-only, raw) -> ingestion (aggregated) -> apply (exact)
+;;
+;; Deliberately pure data: no writing to org buffers, no org state, no
+;; point. Everything here is a function from files to lists, which is what
+;; makes it cheap to test and safe to call from anywhere. The consumers --
+;; the review-and-apply command (720b2dcf), the pending-queue tool
+;; (63a642c7) and the statusline (290b6fc5) -- all share it rather than
+;; parsing the queue three separate times, per 63a642c7's own instruction.
+
+(defcustom claude-code-ide-org-queue-directory
+  (expand-file-name "org-updates" "~/.claude")
+  "Directory holding per-session append-only event queue files.
+Each Claude Code session writes to \"<session-id>.jsonl\" here -- one
+writer per file, so appends never contend -- alongside a sibling
+\"<session-id>.applied\" watermark recording how far a review pass has
+consumed. Kept outside the repository: these are runtime state, not
+tracked content, and they span every project a session touches."
+  :type 'directory
+  :group 'claude-code-ide-org)
+
+(defcustom claude-code-ide-org-guidepost-gap-threshold 900
+  "Seconds between consecutive guideposts below which they collapse
+into one span for review, in `claude-code-ide-org--aggregate-guideposts'.
+
+Purely a presentation control: the queue files themselves always keep
+every raw event, so raising or lowering this never destroys anything and
+never needs a migration. The default of 15 minutes is a starting guess,
+explicitly expected to be retuned once real queue data exists -- the
+right value is an empirical question about how this project's sessions
+actually cluster, not something to settle in advance."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defconst claude-code-ide-org--queue-kinds
+  '("todo" "clock_in" "clock_out" "pause" "resume")
+  "Event kinds bin/hooks/queue-append is allowed to emit.
+A line carrying anything else is treated as unparseable and skipped, so
+a future writer emitting a kind this Emacs does not know about degrades
+to \"ignored\" rather than \"crashes the review command\".")
+
+(defun claude-code-ide-org--queue-file (session-id)
+  "Return the queue file path for SESSION-ID."
+  (expand-file-name (concat session-id ".jsonl")
+                    claude-code-ide-org-queue-directory))
+
+(defun claude-code-ide-org--queue-watermark-file (session-id)
+  "Return the watermark file path for SESSION-ID."
+  (expand-file-name (concat session-id ".applied")
+                    claude-code-ide-org-queue-directory))
+
+(defun claude-code-ide-org--queue-session-ids ()
+  "Return the session ids that currently have a queue file, sorted."
+  (when (file-directory-p claude-code-ide-org-queue-directory)
+    (sort (mapcar #'file-name-base
+                  (directory-files claude-code-ide-org-queue-directory
+                                   nil "\\.jsonl\\'" t))
+          #'string<)))
+
+(defun claude-code-ide-org--queue-files ()
+  "Return the absolute path of every pending queue file, sorted by
+session id."
+  (mapcar #'claude-code-ide-org--queue-file
+          (claude-code-ide-org--queue-session-ids)))
+
+(defun claude-code-ide-org--parse-iso8601 (string)
+  "Parse STRING, an ISO 8601 timestamp with offset, to a time value.
+Returns nil rather than signaling if STRING is not parseable -- callers
+here treat an unparseable timestamp as an unparseable event.
+
+Shape-checks STRING before parsing rather than relying on
+`date-to-time' to reject junk: `date-to-time' is deliberately lenient
+and happily returns a time for input with no recognizable date in it at
+all, defaulting the fields it could not read. A garbage timestamp would
+then parse to some point near the epoch and sort *ahead* of every real
+event -- silently corrupting ordering instead of being skipped, which is
+far worse than the malformed line it came from."
+  (when (and (stringp string)
+             (string-match-p "\\`[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}[T ]"
+                             string))
+    (ignore-errors (date-to-time string))))
+
+(defun claude-code-ide-org--queue-parse-line (line)
+  "Parse one JSONL queue LINE into a plist, or nil if unusable.
+Nil covers a torn final line from a hard crash, a line from a writer
+emitting an unknown `kind', and anything whose timestamp will not parse
+-- all of which must cost exactly one event rather than failing the
+whole file. This is the single place that judgement is made."
+  (let ((obj (ignore-errors
+               (json-parse-string line :object-type 'alist
+                                  :null-object nil :false-object nil))))
+    (when obj
+      (let ((kind (alist-get 'kind obj))
+            (ts (claude-code-ide-org--parse-iso8601 (alist-get 'ts obj))))
+        (when (and ts (member kind claude-code-ide-org--queue-kinds))
+          (list :ts ts
+                :ts-string (alist-get 'ts obj)
+                :kind kind
+                :id (alist-get 'id obj)
+                :state (alist-get 'state obj)
+                :session-id (alist-get 'session_id obj)
+                :agent-id (alist-get 'agent_id obj)
+                :source (alist-get 'source obj)))))))
+
+(defun claude-code-ide-org--queue-watermark (session-id)
+  "Return SESSION-ID's applied watermark as a time value, or nil if it
+has never been drained."
+  (let ((file (claude-code-ide-org--queue-watermark-file session-id)))
+    (when (file-readable-p file)
+      (claude-code-ide-org--parse-iso8601
+       (alist-get 'watermark
+                  (ignore-errors
+                    (json-parse-string
+                     (with-temp-buffer
+                       (insert-file-contents file)
+                       (buffer-string))
+                     :object-type 'alist :null-object nil :false-object nil)))))))
+
+(defun claude-code-ide-org--atomic-write (path string)
+  "Write STRING to PATH atomically, via a sibling temp file and rename.
+Generalizes the temp-then-`rename-file' pattern
+`claude-code-ide-org--write-clock-status' already uses for the status
+file, so a concurrent reader never observes a half-written file. The
+sibling (rather than a $TMPDIR) temp file is what makes the rename
+atomic -- a cross-filesystem rename is not."
+  (let ((dir (file-name-directory path)))
+    (make-directory dir t)
+    (let ((tmp (make-temp-file (expand-file-name ".queue-tmp-" dir))))
+      (with-temp-file tmp (insert string))
+      (rename-file tmp path t))))
+
+(defun claude-code-ide-org--queue-set-watermark (session-id ts-string)
+  "Record TS-STRING as SESSION-ID's applied watermark.
+Never truncates or rewrites the queue file itself: the session that owns
+it may still be appending, and racing an appending writer is exactly the
+class of bug this refactor exists to remove. Draining is therefore
+recorded beside the log, never in it."
+  (claude-code-ide-org--atomic-write
+   (claude-code-ide-org--queue-watermark-file session-id)
+   (json-encode `((watermark . ,ts-string)))))
+
+(defun claude-code-ide-org--queue-events (&optional session-id)
+  "Return pending (unapplied) queue events, oldest first.
+With SESSION-ID, read only that session's queue; otherwise read every
+session's, merged and re-sorted by timestamp. Events at or before a
+session's watermark are omitted. Unparseable lines are skipped silently
+-- see `claude-code-ide-org--queue-parse-line'."
+  (let (events)
+    (dolist (sid (if session-id (list session-id)
+                   (claude-code-ide-org--queue-session-ids)))
+      (let ((file (claude-code-ide-org--queue-file sid))
+            (watermark (claude-code-ide-org--queue-watermark sid)))
+        (when (file-readable-p file)
+          (dolist (line (split-string
+                         (with-temp-buffer
+                           (insert-file-contents file)
+                           (buffer-string))
+                         "\n" t))
+            (let ((event (claude-code-ide-org--queue-parse-line line)))
+              (when (and event
+                         (or (null watermark)
+                             (time-less-p watermark (plist-get event :ts))))
+                (push event events)))))))
+    (sort (nreverse events)
+          (lambda (a b) (time-less-p (plist-get a :ts) (plist-get b :ts))))))
+
+(defun claude-code-ide-org--queue-events-by-id (&optional session-id)
+  "Group pending events by the heading :ID: they belong to.
+Returns an alist of (ID . EVENTS), plus an entry keyed nil for events
+that could not be attributed to any heading.
+
+`pause'/`resume' events are session-global -- nothing in them names a
+heading -- so attribution is resolved by walking each session's stream
+in order and tracking which heading its `clock_in'/`clock_out' events
+last named. That is the entire reason those two kinds are retained: a
+`todo' event alone cannot do this job, because returning to a heading
+that never left DOING emits no `todo' event, and every subsequent
+guidepost would silently attribute to the wrong heading."
+  (let ((by-session (make-hash-table :test 'equal))
+        (groups (make-hash-table :test 'equal))
+        order)
+    ;; Partition first: attribution is only meaningful within one session's
+    ;; own ordered stream, never across the interleaving of several.
+    (dolist (event (claude-code-ide-org--queue-events session-id))
+      (push event (gethash (plist-get event :session-id) by-session)))
+    (maphash
+     (lambda (_sid events)
+       (let ((current nil))
+         (dolist (event (nreverse events))
+           (let* ((kind (plist-get event :kind))
+                  (own-id (plist-get event :id))
+                  (id (cond
+                       ((equal kind "clock_in") (setq current own-id))
+                       ((equal kind "clock_out")
+                        (prog1 (or own-id current) (setq current nil)))
+                       (own-id own-id)
+                       (t current))))
+             (unless (member id order) (push id order))
+             (push event (gethash id groups))))))
+     by-session)
+    (mapcar (lambda (id)
+              (cons id
+                    (sort (nreverse (gethash id groups))
+                          (lambda (a b)
+                            (time-less-p (plist-get a :ts) (plist-get b :ts))))))
+            (nreverse order))))
+
+(defun claude-code-ide-org--aggregate-guideposts (events &optional threshold)
+  "Collapse EVENTS' timestamps into (START . END) spans for review.
+Consecutive timestamps separated by less than THRESHOLD seconds (default
+`claude-code-ide-org-guidepost-gap-threshold') join one span; a larger
+gap starts a new one. A lone timestamp yields a zero-width span, which
+is honest -- one interaction point is not evidence of a duration.
+
+These spans are review scaffolding only. They are rendered as *active*
+timestamps so org's own agenda picks them up (confirmed live, TODO.org
+:ID: c084553c-0621-4a96-9fa1-f32850aeec6a), and they inform the human's
+composition of CLOCK: entries -- they never become one. Nothing here
+rounds: `claude-code-ide-org--consolidate-logbook-text's 5-minute
+rounding silently drops any interval under ~2.5 minutes that misses a
+boundary, which is precisely the confidently-wrong record this design
+exists to prevent.
+
+Not built on `claude-code-ide-org--merge-time-intervals': that merges
+only touching or overlapping intervals, with no gap tolerance, which is
+a different question from clustering points that are merely near each
+other."
+  (let ((gap (or threshold claude-code-ide-org-guidepost-gap-threshold))
+        (times (sort (mapcar (lambda (e) (plist-get e :ts)) events)
+                     #'time-less-p))
+        spans start previous)
+    (dolist (time times)
+      (cond
+       ((null start) (setq start time previous time))
+       ((<= (float-time (time-subtract time previous)) gap)
+        (setq previous time))
+       (t (push (cons start previous) spans)
+          (setq start time previous time))))
+    (when start (push (cons start previous) spans))
+    (nreverse spans)))
+
 ;;; MCP tool registration -------------------------------------------------
 
 (with-eval-after-load 'claude-code-ide
