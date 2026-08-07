@@ -82,8 +82,22 @@ bin/test            ← runs the ERT suite (emacs --batch)
 .mcp.json           ← HTTP endpoint for the MCP tools server, so a `claude`
                        CLI in a plain shell (no Emacs) can reach org_* and
                        friends; see "Emacs integration" below
+.warp/.mcp.json     ← the same endpoint again, for Warp's own agent
 CLAUDE.md           ← this file
 ```
+
+**`.warp/.mcp.json` is deliberate, not duplication — do not "clean it
+up."** It is currently byte-for-byte identical to the root `.mcp.json`,
+and Warp can read the root file directly, so a cleanup pass will reliably
+propose deleting it. Both are kept on purpose: the separate file is
+evidence this project has actually been verified working under Warp's own
+agent, and it is a seam for the two clients to diverge later if the
+`claude` CLI and Warp ever need different settings against the same tools
+server. The investigation behind it is archived in DONE.org
+(`:ID: 6a6d5b4e-0327-4578-a44a-356576870ceb`) — worth reading before
+touching either file, because the proxy the files were originally meant to
+support turned out to be unnecessary: the real bug was this project's HTTP
+server answering `200` where the MCP spec requires `202 Accepted`.
 
 Run the tests with `bin/test`. They exercise the four wrapper functions
 against scratch org files in a temp directory — no Doom, no real Emacs
