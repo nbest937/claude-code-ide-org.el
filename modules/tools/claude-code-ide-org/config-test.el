@@ -1556,6 +1556,68 @@ before them gets rounded/merged."
       (should (string-match-p "- Resumed \\[2026-07-28 Tue 09:00\\]" disk))
       (should (string-match-p "- Paused \\[2026-07-28 Tue 10:00\\]" disk)))))
 
+(ert-deftest claude-code-ide-org-test-consolidate-history-preserves-non-clock-logbook-lines ()
+  "Consolidation must never delete non-CLOCK :LOGBOOK: content —
+native state-change notes (including their backslash-continuation
+lines) survive verbatim while CLOCK lines still get rounded/merged.
+Regression test for the live incident where the epic heading's
+'State \"NEXT\" from \"TODO\"' note was silently destroyed by the
+Stop-hook clock-out's consolidation pass (TODO.org :ID:
+ba8249c1-28cd-4ff1-918b-4b8439345d9a); this input reproduces that
+heading's exact drawer shape."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat
+             ":LOGBOOK:\n"
+             "CLOCK: [2026-08-06 Thu 21:43]\n"
+             "CLOCK: [2026-08-06 Thu 15:44]--[2026-08-06 Thu 16:51] =>  1:07\n"
+             "- State \"NEXT\"       from \"TODO\"       [2026-08-06 Thu 12:07] \\\\\n"
+             "  Auto-promoted: sole remaining TODO in its sibling group.\n"
+             ":END:\n"))
+    (save-buffer)
+    (claude-code-ide-org-consolidate-history id)
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      ;; Open clock untouched, closed clock rounded to 5-minute marks.
+      (should (string-match-p "CLOCK: \\[2026-08-06 Thu 21:43\\]\\s-*$" disk))
+      (should (string-match-p
+               "CLOCK: \\[2026-08-06 Thu 15:45\\]--\\[2026-08-06 Thu 16:50\\] =>  1:05"
+               disk))
+      ;; The state-change note and its continuation line both survive.
+      (should (string-match-p
+               "- State \"NEXT\"       from \"TODO\"       \\[2026-08-06 Thu 12:07\\] \\\\\\\\"
+               disk))
+      (should (string-match-p
+               "  Auto-promoted: sole remaining TODO in its sibling group\\."
+               disk)))))
+
+(ert-deftest claude-code-ide-org-test-consolidate-history-preserves-non-session-lines ()
+  "Consolidation must never delete :SESSIONS: lines that aren't
+Resumed/Paused entries — e.g. org_log_background_plan's
+\"Background-planned\" write-backs — while Resumed/Paused pairs
+still collapse per day (same losslessness rule as the :LOGBOOK:
+test above, TODO.org :ID: ba8249c1-28cd-4ff1-918b-4b8439345d9a)."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat
+             ":SESSIONS:\n"
+             "- Resumed [2026-07-28 Tue 10:53]\n"
+             "- Paused [2026-07-28 Tue 10:54]\n"
+             "- Background-planned [2026-07-28 Tue 11:15] (session abc123-bg1)\n"
+             "- Resumed [2026-07-28 Tue 10:57]\n"
+             "- Paused [2026-07-28 Tue 10:59]\n"
+             ":END:\n"))
+    (save-buffer)
+    (claude-code-ide-org-consolidate-history id)
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      ;; Day still collapses to its min-to-max pair...
+      (should (string-match-p "- Resumed \\[2026-07-28 Tue 10:53\\]" disk))
+      (should (string-match-p "- Paused \\[2026-07-28 Tue 10:59\\]" disk))
+      (should (not (string-match-p "10:54\\]\\|10:57\\]" disk)))
+      ;; ...and the Background-planned line survives verbatim.
+      (should (string-match-p
+               "- Background-planned \\[2026-07-28 Tue 11:15\\] (session abc123-bg1)"
+               disk)))))
+
 (ert-deftest claude-code-ide-org-test-consolidate-history-noop-when-nothing-to-do ()
   (claude-code-ide-org-test--with-heading
     (should (equal "Nothing to consolidate on \"Test heading\""

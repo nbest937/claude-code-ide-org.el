@@ -801,6 +801,60 @@ that heading already raised the same underlying question in the
 abstract before this one found a concrete incident. See its own
 2026-08-05 update.
 
+** DONE consolidate-history's :LOGBOOK: rewrite silently deletes non-CLOCK lines :code:
+:PROPERTIES:
+:ID:       ba8249c1-28cd-4ff1-918b-4b8439345d9a
+:CREATED:  [2026-08-06 Thu 21:47]
+:END:
+:SESSIONS:
+- Resumed [2026-08-06 Thu 21:55]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-06 Thu 21:50]--[2026-08-06 Thu 21:55] =>  0:05
+:END:
+
+Discovered 2026-08-06 while committing the
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] Plan link
+(commit =727d94a=): =claude-code-ide-org--consolidate-logbook-text=
+rebuilds a =:LOGBOOK:= body from parsed =CLOCK:= lines *only* — its
+=--parse-clock-lines= keeps an open line and closed intervals and
+nothing else — so every other line in the drawer is silently
+discarded on each clock-out's consolidation pass. Live casualty,
+caught in that commit's own diff: the epic heading's *native*
+state-change note
+
+: - State "NEXT"       from "TODO"       [2026-08-06 Thu 12:07] \\
+:   Auto-promoted: sole remaining TODO in its sibling group.
+
+was destroyed by the Stop-hook clock-out at 16:50. Restore that exact
+line as part of the fix — restoring it any earlier is futile, since
+the very next clock-out wipes it again.
+
+Fix shape: preserve non-CLOCK lines verbatim through consolidation
+(position among the rebuilt CLOCK lines is cosmetic; survival is
+not). Directly load-bearing for
+[[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]: the
+review-and-apply command's whole point is writing native state-change
+notes and guidepost annotations into =:LOGBOOK:= — worthless if the
+next consolidation eats them. Also fresh, concrete evidence for
+[[id:782cda6c-111c-454e-93eb-b2b27012078b][782cda6c]] (bookkeeping
+noise audit before committing): the noise this time contained silent
+data *loss*, not just clutter.
+
+*Verified, not just implemented:* both consolidators now carry
+every unrecognized line through verbatim —
+=--parse-clock-lines=/=--parse-session-lines= gained an =:other=
+channel, emitted after the rebuilt CLOCK block (=:LOGBOOK:=) and
+between the collapsed days and the open tail (=:SESSIONS:=). Two
+new ERT regressions reproduce the incident's exact drawer shape
+(124/124 green via =bin/test=), and after a live reload the
+destroyed State "NEXT" note was restored on
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] and survived
+a real in-situ =consolidate-history= pass. Scope grew one sibling
+during the fix: =:SESSIONS:= consolidation had the same bug class
+and was silently eating =Background-planned= write-backs; fixed
+and regression-tested in the same pass.
+
 ** DONE Concurrent Claude Code sessions share one global org-clock with no session identity :code:
 :PROPERTIES:
 :ID:       337f7fb2-b9e9-4c02-82dd-d88e60df364b
@@ -1056,11 +1110,12 @@ the original 2026-07-30 reasoning.
 :END:
 :SESSIONS:
 - Resumed [2026-08-06 Thu 16:48] (session 52e09dcc-b831-4832-8f77-859e9a4ac8a3)
-- Resumed [2026-08-06 Thu 21:43] (session 52e09dcc-b831-4832-8f77-859e9a4ac8a3)
+- Paused [2026-08-06 Thu 21:51] (recovered)
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-06 Thu 21:43]
 CLOCK: [2026-08-06 Thu 15:45]--[2026-08-06 Thu 16:50] =>  1:05
+- State "NEXT"       from "TODO"       [2026-08-06 Thu 12:07] \\
+  Auto-promoted: sole remaining TODO in its sibling group.
 :END:
 
 [[file:~/.claude/plans/plan-this-task-clever-cupcake.md][Plan]]

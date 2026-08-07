@@ -949,27 +949,35 @@ for an actual drawer."
 
 (defun claude-code-ide-org--parse-clock-lines (text)
   "Parse TEXT (a :LOGBOOK: drawer's body) into a plist: :open, the
-raw text of a still-open CLOCK line if TEXT has one, else nil; and
+raw text of a still-open CLOCK line if TEXT has one, else nil;
 :closed, a list of (START . END) time-value conses for every closed
-CLOCK line."
-  (let (open closed)
-    (dolist (line (split-string text "\n" t "[ \t]+"))
-      (cond
-       ((string-match "\\`CLOCK: \\(\\[[^]]+\\]\\)--\\(\\[[^]]+\\]\\)" line)
-        ;; Capture both groups before parsing either — `claude-code-ide-org--
-        ;; parse-org-timestamp' calls `org-time-string-to-time', which does
-        ;; its own internal regexp matching and would otherwise clobber the
-        ;; match data the second `match-string' call relies on (the same
-        ;; footgun `claude-code-ide-org-close-open-interval' already works
-        ;; around).
-        (let ((start-str (match-string 1 line))
-              (end-str (match-string 2 line)))
-          (push (cons (claude-code-ide-org--parse-org-timestamp start-str)
-                      (claude-code-ide-org--parse-org-timestamp end-str))
-                closed)))
-       ((string-match "\\`CLOCK: \\[[^]]+\\]\\'" line)
-        (setq open line))))
-    (list :open open :closed closed)))
+CLOCK line; and :other, every remaining non-blank line — native
+state-change notes with their continuation lines, timestamp-range
+annotations, anything this parser doesn't model — kept verbatim
+(original indentation included) in original order.  :other is what
+makes consolidation lossless for non-CLOCK drawer content (TODO.org
+:ID: ba8249c1-28cd-4ff1-918b-4b8439345d9a)."
+  (let (open closed other)
+    (dolist (raw (split-string text "\n"))
+      (let ((line (string-trim raw)))
+        (cond
+         ((string-empty-p line))
+         ((string-match "\\`CLOCK: \\(\\[[^]]+\\]\\)--\\(\\[[^]]+\\]\\)" line)
+          ;; Capture both groups before parsing either — `claude-code-ide-org--
+          ;; parse-org-timestamp' calls `org-time-string-to-time', which does
+          ;; its own internal regexp matching and would otherwise clobber the
+          ;; match data the second `match-string' call relies on (the same
+          ;; footgun `claude-code-ide-org-close-open-interval' already works
+          ;; around).
+          (let ((start-str (match-string 1 line))
+                (end-str (match-string 2 line)))
+            (push (cons (claude-code-ide-org--parse-org-timestamp start-str)
+                        (claude-code-ide-org--parse-org-timestamp end-str))
+                  closed)))
+         ((string-match "\\`CLOCK: \\[[^]]+\\]\\'" line)
+          (setq open line))
+         (t (push raw other)))))
+    (list :open open :closed closed :other (nreverse other))))
 
 (defun claude-code-ide-org--format-clock-line (start end)
   "Format START and END (time values) as a closed CLOCK line,
@@ -988,9 +996,13 @@ adjacent or overlapping, drop any resulting zero-duration interval
 convention — and return the new body text, newest first like org's
 own CLOCK ordering. A still-open CLOCK line, if present, is left
 completely untouched and kept first, since it reflects live clock
-state, not history."
+state, not history. Every non-CLOCK line (native state-change notes
+and their continuations, annotations) is preserved verbatim after
+the CLOCK block — position among the rebuilt lines is cosmetic,
+survival is not (TODO.org :ID: ba8249c1-28cd-4ff1-918b-4b8439345d9a)."
   (let* ((parsed (claude-code-ide-org--parse-clock-lines text))
          (open (plist-get parsed :open))
+         (other (plist-get parsed :other))
          (rounded (mapcar (lambda (iv)
                              (cons (claude-code-ide-org--round-time-to-5-minutes (car iv))
                                    (claude-code-ide-org--round-time-to-5-minutes (cdr iv))))
@@ -1001,26 +1013,37 @@ state, not history."
                          (reverse merged))))
     (concat (if open (concat open "\n") "")
             (mapconcat #'identity lines "\n")
-            (if lines "\n" ""))))
+            (if lines "\n" "")
+            (mapconcat #'identity other "\n")
+            (if other "\n" ""))))
 
 (defun claude-code-ide-org--parse-session-lines (text)
-  "Parse TEXT (a :SESSIONS: drawer body) into an ordered list of
-plists, each with :label (\"Resumed\" or \"Paused\"), :time (a time
-value), and :suffix (any trailing annotation after the timestamp,
-e.g. \" (recovered)\", or \"\")."
-  (let (events)
-    (dolist (line (split-string text "\n" t "[ \t]+"))
-      (when (string-match "\\`- \\(Resumed\\|Paused\\) \\(\\[[^]]+\\]\\)\\(.*\\)\\'" line)
-        ;; Same match-data-clobbering hazard as `claude-code-ide-org--parse-
-        ;; clock-lines' above — capture every group before parsing any of them.
-        (let ((label (match-string 1 line))
-              (ts-str (match-string 2 line))
-              (suffix (match-string 3 line)))
-          (push (list :label label
-                      :time (claude-code-ide-org--parse-org-timestamp ts-str)
-                      :suffix suffix)
-                events))))
-    (nreverse events)))
+  "Parse TEXT (a :SESSIONS: drawer body) into a plist: :events, an
+ordered list of plists each with :label (\"Resumed\" or \"Paused\"),
+:time (a time value), and :suffix (any trailing annotation after the
+timestamp, e.g. \" (recovered)\", or \"\"); and :other, every
+non-blank line that is not a Resumed/Paused entry (e.g. the
+\"Background-planned\" write-backs from `org_log_background_plan'),
+kept verbatim in original order — same losslessness rule as
+`claude-code-ide-org--parse-clock-lines' (TODO.org :ID:
+ba8249c1-28cd-4ff1-918b-4b8439345d9a)."
+  (let (events other)
+    (dolist (raw (split-string text "\n"))
+      (let ((line (string-trim raw)))
+        (cond
+         ((string-empty-p line))
+         ((string-match "\\`- \\(Resumed\\|Paused\\) \\(\\[[^]]+\\]\\)\\(.*\\)\\'" line)
+          ;; Same match-data-clobbering hazard as `claude-code-ide-org--parse-
+          ;; clock-lines' above — capture every group before parsing any of them.
+          (let ((label (match-string 1 line))
+                (ts-str (match-string 2 line))
+                (suffix (match-string 3 line)))
+            (push (list :label label
+                        :time (claude-code-ide-org--parse-org-timestamp ts-str)
+                        :suffix suffix)
+                  events)))
+         (t (push raw other)))))
+    (list :events (nreverse events) :other (nreverse other))))
 
 (defun claude-code-ide-org--format-session-line (label time suffix)
   "Format LABEL (\"Resumed\"/\"Paused\"), TIME, and SUFFIX as a
@@ -1034,8 +1057,13 @@ min-to-max pair (\"Resumed\" at the day's earliest timestamp,
 \"Paused\" at its latest — whatever the entries' original labels).
 A trailing, unmatched \"Resumed\" — today's still-open interval — is
 left completely untouched, kept as the final line after the
-consolidated days."
-  (let* ((events (claude-code-ide-org--parse-session-lines text))
+consolidated days. Lines that are not Resumed/Paused entries at all
+(e.g. \"Background-planned\" write-backs) are preserved verbatim,
+between the consolidated days and the open tail (TODO.org :ID:
+ba8249c1-28cd-4ff1-918b-4b8439345d9a)."
+  (let* ((parsed (claude-code-ide-org--parse-session-lines text))
+         (events (plist-get parsed :events))
+         (other (plist-get parsed :other))
          (open-tail (when (and events (equal (plist-get (car (last events)) :label) "Resumed"))
                       (car (last events))))
          (closed (if open-tail (butlast events) events))
@@ -1060,6 +1088,7 @@ consolidated days."
                  "Paused" (plist-get max-ev :time) (plist-get max-ev :suffix))
                 lines))))
     (setq lines (nreverse lines))
+    (setq lines (append lines other))
     (when open-tail
       (setq lines (append lines
                            (list (claude-code-ide-org--format-session-line
