@@ -1310,6 +1310,8 @@ CLOCK: [2026-08-06 Thu 22:55]--[2026-08-07 Fri 08:20] =>  9:25
   Auto-promoted: ExitPlanMode fired on the owning session.
 :END:
 
+[[file:~/.claude/plans/event-queue-format.md][Plan]]
+
 JSONL schema per event kind (=todo=, =clock_in=, =clock_out=,
 =pause=, =resume=, at minimum), file naming/location
 (=~/.claude/org-updates/<session_id>.jsonl= proposed, not settled),
