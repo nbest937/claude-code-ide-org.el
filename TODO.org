@@ -2002,6 +2002,64 @@ state-transition table, to describe the queue+review model rather
 than the live-driving model they currently document. Large enough
 that it should not be a drive-by edit tacked onto another task.
 
+** MAYBE Add a third retention tier for completed work as a chronological changelog :code:
+:PROPERTIES:
+:ID:       4c0044bf-1b6c-44ea-807a-8f9e3523e3fd
+:CREATED:  [2026-08-07 Fri 09:41]
+:END:
+
+Captured 2026-08-07 from conversation. Proposal: TODO.org (live) →
+DONE.org (archive) → a terse, permanent, conventional-timeline changelog,
+so DONE.org can be pruned or semantically compressed as work recedes
+without losing the record entirely.
+
+*Measured first, because the diagnosis moves:* DONE.org holds 22 entries
+and 955 lines, every one archived on =2026-07-29= or =-07-30= — archiving
+has not run since. Meanwhile TODO.org is 2444 lines and still carries
+*13* =DONE=/=CANCELLED= headings, the oldest at line 7. The pressure is
+not tier 2 overflowing; it is tier 1→2 having stalled, so completed work
+accumulates in the live file. A third tier added now would relieve none
+of that. Restore the archiving cadence first and re-measure — tier 3 may
+not be needed for a long time.
+
+*If built anyway, three constraints:*
+- *Referential integrity is the real risk.* 21 distinct =[[id:...]]=
+  links point into archived headings today, from other org files,
+  CLAUDE.md, and the auto-memory folder — two of them added
+  2026-08-07 citing =6a6d5b4e=. A conventional Markdown changelog has no
+  stable per-entry identifier, so pruning breaks every inbound link
+  silently. Any tier-3 format must carry the original =:ID:=, or leave an
+  ID-bearing stub behind in DONE.org.
+- *Git is already a chronological changelog*, so the question is what
+  this adds. The honest answer: git records what *changed*; DONE.org
+  records what was *learned* and why the obvious approach failed. That is
+  the part with no other home — and it means tier 3's content should be
+  biased toward decisions and dead ends, not shipped features, which git
+  already covers.
+- *Compression is where this project's signature failure mode lives.*
+  The most valuable sentence in =6a6d5b4e= is that the initial hypothesis
+  was a red herring — precisely what terse summarization drops first,
+  because it does not look like an outcome. Editorial rule: keep what
+  would change a future decision, drop what is re-derivable from the
+  code. Model-driven compression without human review is the same
+  confidently-wrong pattern [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]
+  exists to eliminate; make it diffable and reviewed.
+
+*Format: stay in org, don't leave for Markdown.* =org-archive.el= already
+supports =datetree/= in =org-archive-location= (org-archive.el:284), so
+=#+ARCHIVE: DONE.org::datetree/* Done= buys chronological structure with
+no new code, while preserving =[[id:]]= resolution, =org-ql=
+queryability, and tags. A =CHANGELOG.md= discards all of that for the
+keepachangelog convention, which is release-oriented — and this project
+has no releases. Checked per
+[[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]]'s standing
+instruction to exhaust org's own machinery first.
+
+Open: what triggers a prune (size, age, or deliberate act — probably
+deliberate); whether tier 3 is its own =CHANGELOG.org= or a datetree
+inside DONE.org; and whether anything should enumerate inbound =[[id:]]=
+references before a prune, since nothing does today.
+
 * Observability
 
 Broader than clocking — visibility into what every tool call

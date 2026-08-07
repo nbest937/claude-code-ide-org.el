@@ -25,6 +25,29 @@ gotchas by hand.
 
 ---
 
+## 0. Standing rule: say what needs reloading, before you check
+
+Before running any command whose purpose is "see whether that change took
+effect," state in one line what has to be reloaded or restarted first —
+or that nothing does. For example: "no reload needed, hook scripts are
+read fresh from disk on every invocation"; "this needs
+`emacsclient -e '(load-file ...)'` first"; "this needs a brand-new Claude
+Code session, since hook config is only read at session start."
+
+This project is the reason the rule exists. Verification here spans four
+layers with genuinely different reload semantics — Elisp in a live Emacs,
+MCP tool registration, Claude Code hook configuration, and shell scripts —
+and a check run against a stale layer is indistinguishable from a passing
+one. Sections 1 and 2 below are the mechanics; this is the habit that
+makes them count.
+
+The general form of this rule (it is not specific to Emacs, or to this
+repo) lives in `~/.claude/CLAUDE.md`. It is restated here because this
+project's own contributors are the ones most likely to need it, and a
+skill should not depend on a personal config file existing.
+
+---
+
 ## 1. Live reload procedure
 
 For a change confined to function bodies inside
