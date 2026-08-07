@@ -1,19 +1,78 @@
 #+title: Clock Template
+#+TODO: TODO NEXT PLANNING DOING WAIT MAYBE | DONE CANCELLED
+#+TAGS: code comms research review
+#+ARCHIVE: DONE.org::* Done
 
-* DONE Implement user authentication feature
+* DONE Implement user authentication feature :code:
+  :PROPERTIES:
+  :ID:       f3b2c9d4-1a2e-4b5c-8d6f-7e8a9b0c1d2e
+  :CREATED:  [2026-08-06 Thu 08:55]
+  :END:
   :LOGBOOK:
-  - State "DOING"        from "TODO"       [2026-08-06 Thu 09:00] \\
+  - State "DOING"      from "TODO"       [2026-08-06 Thu 09:00] \\
     Starting work on the backend database schemas and user model validation.
-  CLOCK: [2026-08-06 Thu 09:00]--[2026-08-06 Thu 09:15] =>  2:30
+  CLOCK: [2026-08-06 Thu 09:00]--[2026-08-06 Thu 09:15] =>  0:15
   - <2026-08-06 Thu 09:00>--<2026-08-06 Thu 09:15> clarify backend schema design
-  - State "PLANNING"        from "DOING"       [2026-08-06 Thu 09:15]
+  - State "PLANNING"   from "DOING"      [2026-08-06 Thu 09:15]
   - [2026-08-06 Thu 09:15]--[2026-08-06 Thu 09:30] unattended planning
-
-    intent\\
-    Starting work on the backend database schemas and user model validation.Note taken on [2026-08-06 Thu 11:30] \\
-    Finished writing unit tests for the registration endpoint. All tests passed.
-  CLOCK: [2026-08-06 Thu 13:00]--[2026-08-06 Thu 15:45] =>  2:45
-  - State "DONE"       from "WIP"        [2026-08-06 Thu 16:00] \\
+  CLOCK: [2026-08-06 Thu 09:15]--[2026-08-06 Thu 09:30] =>  0:15
+  - State "DOING"      from "PLANNING"   [2026-08-06 Thu 11:30] \\
+    Plan approved; picking the implementation back up.
+  - [2026-08-06 Thu 11:30]--[2026-08-06 Thu 11:48] initial implementation
+  CLOCK: [2026-08-06 Thu 11:30]--[2026-08-06 Thu 11:48] =>  0:18
+  CLOCK: [2026-08-06 Thu 13:30]--[2026-08-06 Thu 14:10] =>  0:40
+  - <2026-08-06 Thu 13:30>--<2026-08-06 Thu 14:10> consider design alternative tradeoffs and decide:
+    session-scoped token store over stateless JWT rotation
+  - State "WAIT"       from "DOING"      [2026-08-06 Thu 14:10] \\
+    request credentials from DBA
+  - [2026-08-06 Thu 14:20]--[2026-08-06 Thu 14:50] write unit tests for the registration endpoint
+  - State "DOING"      from "WAIT"       [2026-08-06 Thu 14:55] \\
+    Staging credentials arrived from the DBA.
+  CLOCK: [2026-08-06 Thu 15:00]--[2026-08-06 Thu 15:45] =>  0:45
+  - <2026-08-06 Thu 15:00>--<2026-08-06 Thu 15:45> user authentication code review
+  - State "DONE"       from "DOING"      [2026-08-06 Thu 16:00] \\
     Merged the branch into main after successful code review.
   :END:
+
   The feature is now live on the staging server.
+
+* Legend
+
+  A worked example of every :LOGBOOK: convention this project uses, laid
+  out as one complete cycle: define (09:00 clarify), plan (09:15
+  PLANNING), implement (11:30), decide/refine (13:30), test (14:20),
+  review (15:00), DONE (16:00). Entries read chronologically top to
+  bottom for teaching purposes; org itself inserts newest-first, and
+  consolidation may reorder — the meaning of each line, not its
+  position, is the convention.
+
+  - =CLOCK:= lines :: org's native intervals, always *inactive*
+    timestamps, the sole arithmetic source of truth (=org-clock-sum=,
+    clocktables, =org_clock_report=). Under the queue+review design
+    (TODO.org =b5f7c5c7=) a CLOCK line exists only because a human
+    confirmed it at review time — either drawn by hand from the
+    guideposts below, or bulk-accepted from a mechanically-known agent
+    interval (the 09:15 and 11:30 pairs here). Verify the ~=>  H:MM~
+    arithmetic whenever editing one.
+  - Active ranges (=<start>--<end> label=) :: guideposts — spans where a
+    human was logged actually attending: clarifying (09:00), deciding
+    (13:30), reviewing (15:00). Active timestamps surface in
+    =org-agenda=, so the agenda doubles as a free retrospective "what
+    did I actually attend to" view. Each typically sits beside the
+    CLOCK line the human confirmed for the same span.
+  - Inactive ranges (=[start]--[end] label=) :: unattended machine work
+    (background planning agents, Claude implementation turns).
+    Deliberately invisible to the agenda. The interval is mechanically
+    knowable — an agent was either running or not — so review may
+    accept a matching CLOCK line (09:15 planning, 11:30 implementation)
+    or decline one (14:20 unit tests, which ran while the heading sat
+    in WAIT); the annotation stays either way.
+  - =- State "X" from "Y" [ts]= lines :: org's *native* state-change
+    log, produced by =org-todo= running inside the interactive
+    review-and-apply command with a backdated effective time — never
+    hand-formatted, never suppressed with =org-inhibit-logging=. The
+    =\\= continuation carries an optional note. The DOING → PLANNING →
+    DOING arc (09:15/11:30) is the Plan Mode round-trip; WAIT → DOING
+    (14:55) closes and reopens clocks around the blocked span.
+  - Gaps :: honest absence of a record (09:30–11:30, 14:50–15:00).
+    Nobody attended and nothing ran, so no line claims that time.
