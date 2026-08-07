@@ -1562,9 +1562,12 @@ sitting alongside them):
 :END:
 :SESSIONS:
 - Resumed [2026-08-07 Fri 11:51]
+- Paused [2026-08-07 Fri 13:17] (session d847eab1-9e6d-4d67-baf2-457715870457)
+- Resumed [2026-08-07 Fri 15:09] (session d847eab1-9e6d-4d67-baf2-457715870457)
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-07 Fri 11:51]
+CLOCK: [2026-08-07 Fri 15:09]
+CLOCK: [2026-08-07 Fri 11:50]--[2026-08-07 Fri 12:25] =>  0:35
 - State "DOING"      from "PLANNING"   [2026-08-07 Fri 12:26] \\
   Auto-promoted: ExitPlanMode fired on the owning session.
 :END:
@@ -2118,6 +2121,75 @@ Genuinely undecided, do not assume the answer is "delete it":
 Sequence after [[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]
 exists and works — retiring a safety net before its replacement is
 proven is how you lose data you didn't know you were relying on.
+
+*** MAYBE Decide whether the :SESSIONS: drawer and its machinery survive the refactor :code:
+:PROPERTIES:
+:ID:       9d2fcdad-9bf7-47b6-8018-223b13ec4577
+:CREATED:  [2026-08-07 Fri 15:09]
+:BLOCKER:  ids(feba67eb-35b3-48bd-a892-8ecd47ca52e0)
+:END:
+
+Captured 2026-08-07 from conversation, prompted by asking a narrow
+question — is =claude-code-ide-org-clock-out= still useful once this is
+over? — that turned out to have a much wider answer. Deliberately
+*deferred*: this is codebase simplification, best done once the dust has
+settled and it is clear what can actually be jettisoned, not decided
+speculatively now. Hence =MAYBE= and the =:BLOCKER:= on
+[[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]].
+
+*What is potentially dead, with call counts as of 2026-08-07:*
+- =claude-code-ide-org-clock-out= — exactly *one* caller
+  (=claude-code-ide-org-session-pause=, config.el:471), which
+  =feba67eb= removes. Nothing else in the module, the hooks, or the
+  user's Doom config calls it; the Doom hooks use raw =org-clock-out=.
+- =claude-code-ide-org-consolidate-history= — two callers, both likely
+  to go: inside the wrapper above (config.el:438), and inside
+  =close-open-interval= (config.el:901), which belongs to the recovery
+  feature [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]
+  questions the premise of. Not an MCP tool, so no external caller.
+- With it, the =:SESSIONS:= text machinery it exists to drive:
+  =--parse-session-lines=, =--format-session-line=,
+  =--consolidate-sessions-text= (config.el:1045-1078).
+- And plausibly the =:SESSIONS:= *drawer itself*.
+
+*The case that the drawer is now redundant:* CLAUDE.md describes it as
+"the bracketing history: a plain timestamped log of every pause and
+resume, so the full wall-clock arc of the task — including the gaps —
+stays visible." Under the new model that is exactly what the guidepost
+annotations in =:LOGBOOK:= do, derived from the same =pause=/=resume=
+events. Supporting, though neither is decisive: =clock-template.org=,
+the worked example defining the target output, contains *zero* mentions
+of =:SESSIONS:= — but its own legend scopes it to ":LOGBOOK: conventions",
+so that silence may be scope rather than deletion. And after the cutover
+the only remaining writer would be =org_log_background_plan=, appending
+a single ="Background-planned"= entry — thin justification for a whole
+drawer plus parser plus consolidator.
+
+*The case against, which deserves real weight:* CLAUDE.md presents the
+two mechanisms as deliberately and co-equally separate, not as an
+accident to be tidied away, and that separation was a considered
+decision rather than drift. Retiring it is a reversal, so it should be
+argued on its merits rather than justified by "nothing calls it any
+more."
+
+*Do not lose these three things* — they live inside the wrapper today
+and are still needed by
+[[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]'s apply step:
+=org-clock-out-remove-zero-time-clocks= bound nil (or a short confirmed
+interval is dropped at the org level before it can be written); the
+buffer save; and =--log-source= attribution. That last one is the
+easiest to lose silently — =--log-event= defaults to ="hand-edit"= when
+nothing binds it, so every audit record written by apply would be
+misattributed. That attribution matters *more* after the cutover, not
+less, since apply becomes the only writer of live state.
+
+*Also to decide, not just "delete or keep":* what happens to the
+=:SESSIONS:= data already sitting in TODO.org and DONE.org headings.
+Retiring the mechanism does not retroactively delete history — the
+options are leaving it in place as inert historical record, converting
+it to =:LOGBOOK:= guidepost annotations, or dropping it. Probably the
+first, but it is a separate question from whether anything new gets
+written.
 
 *** TODO Reconcile or retire the now-likely-superseded clock/session-ownership plans and infrastructure :code:
 :PROPERTIES:
