@@ -61,15 +61,28 @@ esac
 # as "nothing happened" -- a bad :ID: must not enter the queue and
 # resurface as a mystery at review time. tool_response may be a string or
 # an object depending on the tool, so normalise before testing it.
+response=""
 if [[ "$kind" == todo || "$kind" == clock_in || "$kind" == clock_out ]]; then
   response="$(jq -r '
     (.tool_response // "")
-    | if type == "object" then (.content // .result // "" | tostring)
+    | if type == "object" then (.text // .content // .result // "" | tostring)
       elif type == "array" then (map(tostring) | join(" "))
       else tostring end' <<<"$input" 2>/dev/null)"
   case "$response" in
     Error:*) exit 0 ;;
   esac
+fi
+
+# org_clock_out takes no id argument -- the running clock is the only
+# thing that knows which heading is being closed -- so recover it from
+# the tool's own reply, which reports the id it actually closed as
+# "Clocked out: \"HEADING\" (id: ID)". Authoritative in a way a
+# caller-supplied argument would not be: it cannot disagree with what
+# happened. Without this the event carries a null id and a clock_out read
+# on its own cannot name its heading.
+recovered_id=""
+if [[ "$kind" == clock_out ]]; then
+  recovered_id="$(sed -n 's/.*(id: \([^)]*\)).*/\1/p' <<<"$response")"
 fi
 
 queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
@@ -87,13 +100,18 @@ line="$(jq -n -c \
   --arg ts "$(date '+%Y-%m-%dT%H:%M:%S%z')" \
   --arg kind "$kind" \
   --arg session_id "$session_id" \
+  --arg recovered_id "$recovered_id" \
   --argjson payload "$(jq -c '.' <<<"$input" 2>/dev/null || echo '{}')" \
   '{
      ts: $ts,
      kind: $kind,
      id: (if $kind == "pause" or $kind == "resume" then null
-          else ($payload.tool_input.id // null) end),
+          else ($payload.tool_input.id
+                // (if $recovered_id == "" then null else $recovered_id end))
+          end),
      state: (if $kind == "todo" then ($payload.tool_input.state // null) else null end),
+     note: (if $kind == "pause" or $kind == "resume" then null
+            else ($payload.tool_input.note // null) end),
      session_id: $session_id,
      agent_id: ($payload.agent_id // null),
      source: ($payload.tool_name // $payload.hook_event_name // $kind)

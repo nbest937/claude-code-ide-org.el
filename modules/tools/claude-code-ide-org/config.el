@@ -343,8 +343,18 @@ non-nil."
 
 ;;; Wrappers --------------------------------------------------------------
 
-(defun claude-code-ide-org-clock-in (id)
+(defun claude-code-ide-org-clock-in (id &optional note)
   "Clock in to the org heading whose :ID: property equals ID.
+
+NOTE is a short (3-10 word) description of what is being started. It is
+deliberately *unused here*: its only job is to ride the tool call into
+the event queue, where `bin/hooks/queue-append' reads it off
+`tool_input' and the review-and-apply command later spends it (TODO.org
+:ID: 32272061-1d78-4726-b13b-90338edb2ba5). Accepting and ignoring it is
+the point -- writing it into the live buffer now would produce exactly
+the unreviewed record the queue design exists to avoid, and there is no
+correct place for it in a :LOGBOOK: until a human confirms the interval
+it belongs to. See clock-template.org for the conventions it feeds.
 Opens a new CLOCK entry in the heading's LOGBOOK drawer and starts
 the Emacs clock timer.  Also logs a \"Resumed\" entry to the
 heading's :SESSIONS: drawer.  Saves every buffer touched: `org-clock-in'
@@ -369,8 +379,21 @@ one being clocked into — the same bug shape that already bit
              (save-buffer)))
          (format "Clocked in: \"%s\"" heading))))))
 
-(defun claude-code-ide-org-clock-out ()
+(defun claude-code-ide-org-clock-out (&optional note)
   "Clock out of the currently running org clock.
+
+NOTE is carried for the event queue and otherwise unused here -- see
+`claude-code-ide-org-clock-in' for why that is deliberate.
+
+On success the returned string names the closed heading's :ID: as
+\"Clocked out: \\\"HEADING\\\" (id: ID)\".  This tool takes no id
+argument -- the running clock is the only thing that can say which
+heading is being closed -- so without it the queue event written by
+`bin/hooks/queue-append' has a null id and a clock_out read in isolation
+cannot name its heading.  Reporting the id the clock *actually* closed
+is authoritative in a way a caller-supplied argument would not be: it
+cannot disagree with what happened.  The \"Clocked out:\" prefix is
+unchanged, which is all `bin/clock-notify' matches on.
 Closes the open CLOCK entry with an end timestamp and computes the
 duration.  Also logs a \"Paused\" entry to the heading's :SESSIONS:
 drawer.  Immediately consolidates that heading's now-closed history
@@ -413,7 +436,9 @@ clock is running."
                 (save-buffer)))
             (when id
               (claude-code-ide-org-consolidate-history id))
-            (format "Clocked out: \"%s\"" heading)))
+            (if id
+                (format "Clocked out: \"%s\" (id: %s)" heading id)
+              (format "Clocked out: \"%s\"" heading))))
       (error (format "Error: %s" (error-message-string err))))))
 
 (defun claude-code-ide-org-session-pause (&optional session-id)
@@ -1140,7 +1165,7 @@ after every clock-out."
         (sessions-changed (format "Consolidated :SESSIONS: on \"%s\"" heading))
         (t (format "Nothing to consolidate on \"%s\"" heading)))))))
 
-(defun claude-code-ide-org-set-todo (id state)
+(defun claude-code-ide-org-set-todo (id state &optional note)
   "Set the TODO keyword of the heading with :ID: equal to ID to STATE.
 STATE must be one of: TODO NEXT PLANNING DOING WAIT MAYBE DONE CANCELLED.
 PLANNING auto-promotes to DOING when `ExitPlanMode' fires, via
@@ -1165,7 +1190,15 @@ to the original assumption behind this wrapper. A genuine hand-edit
 made directly in the Emacs buffer (`M-x org-todo' or a keyboard
 TODO-cycle) never goes through this wrapper at all, so both `!' and
 `@' still log normally there, for the one case where a human is
-actually present."
+actually present.
+
+NOTE is a short (3-10 word) reason for the transition, carried for the
+event queue and unused here -- see `claude-code-ide-org-clock-in' for
+why that is deliberate.  At apply time it becomes the `\\\\' continuation
+on org's native `- State \"X\" from \"Y\" [ts]' line, which is a path
+already confirmed to work: `org-store-log-note' takes the note text from
+the current buffer's contents, so a non-empty note buffer yields the
+continuation and an empty one yields a bare State line."
   (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "org_set_todo")))
     (claude-code-ide-org--at-id
      id
@@ -2063,6 +2096,7 @@ whole file. This is the single place that judgement is made."
                 :kind kind
                 :id (alist-get 'id obj)
                 :state (alist-get 'state obj)
+                :note (alist-get 'note obj)
                 :session-id (alist-get 'session_id obj)
                 :agent-id (alist-get 'agent_id obj)
                 :source (alist-get 'source obj)))))))
@@ -2217,7 +2251,11 @@ other."
                  "Opens a CLOCK entry and starts the Emacs clock timer.")
    :args '((:name "id"
             :type string
-            :description "The :ID: property value of the target org heading.")))
+            :description "The :ID: property value of the target org heading.")
+           (:name "note"
+            :type string
+            :optional t
+            :description "Short 3-10 word description of what is being started, e.g. \"clarify backend schema design\". Recorded for later review; becomes the label on this span's :LOGBOOK: annotation.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-clock-out
@@ -2227,7 +2265,10 @@ other."
                  "Always call this when transitioning away from DOING "
                  "(to DONE, WAIT, or CANCELLED). "
                  "Closes the open CLOCK entry and computes the duration.")
-   :args '())
+   :args '((:name "note"
+            :type string
+            :optional t
+            :description "Short 3-10 word description of what was accomplished in this span, e.g. \"user authentication code review\". Recorded for later review.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-set-todo
@@ -2244,7 +2285,11 @@ other."
             :description "The :ID: property value of the target org heading.")
            (:name "state"
             :type string
-            :description "TODO keyword to set: TODO NEXT PLANNING DOING WAIT MAYBE DONE CANCELLED.")))
+            :description "TODO keyword to set: TODO NEXT PLANNING DOING WAIT MAYBE DONE CANCELLED.")
+           (:name "note"
+            :type string
+            :optional t
+            :description "Short 3-10 word reason for the transition, e.g. \"request credentials from DBA\" or \"plan approved, resuming implementation\". Becomes the note on org's native state-change log line.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-archive

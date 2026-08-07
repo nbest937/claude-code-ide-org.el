@@ -173,7 +173,7 @@ only in the buffer, never calling `save-buffer'."
       (save-buffer))
     (let* ((org-clock-out-remove-zero-time-clocks nil)
            (result (claude-code-ide-org-clock-out)))
-      (should (string-match-p "\\`Clocked out: \"Test heading\"\\'" result)))
+      (should (string-match-p "\\`Clocked out: \"Test heading\" (id: test-0001)\\'" result)))
     (should (not (org-clocking-p)))
     (should (not (buffer-modified-p (get-file-buffer file))))
     (should (string-match-p "CLOCK: \\[.*\\]--\\[.*\\] =>"
@@ -350,7 +350,7 @@ session — the whole point of the concurrency fix."
     (claude-code-ide-org-clock-in id)
     (claude-code-ide-org-session-pause "session-A")
     (claude-code-ide-org-session-resume "session-A")
-    (should (equal "Clocked out: \"Test heading\""
+    (should (equal "Clocked out: \"Test heading\" (id: test-0001)"
                    (claude-code-ide-org-session-pause "session-A")))
     (should (not (org-clocking-p)))))
 
@@ -364,7 +364,7 @@ any recorded owner."
     (claude-code-ide-org-session-pause "session-A")
     (claude-code-ide-org-session-resume "session-A")
     (should (org-clocking-p))
-    (should (equal "Clocked out: \"Test heading\""
+    (should (equal "Clocked out: \"Test heading\" (id: test-0001)"
                    (claude-code-ide-org-session-pause)))
     (should (not (org-clocking-p)))))
 
@@ -2130,12 +2130,13 @@ would leave one."
     (write-region (mapconcat #'identity lines "\n") nil file t 'silent)
     (write-region "\n" nil file t 'silent)))
 
-(defun claude-code-ide-org-test--queue-event (ts kind &optional id state session-id)
+(defun claude-code-ide-org-test--queue-event (ts kind &optional id state session-id note)
   "Return one encoded queue line, matching bin/hooks/queue-append's shape."
   (json-encode `((ts . ,ts)
                  (kind . ,kind)
                  (id . ,id)
                  (state . ,state)
+                 (note . ,note)
                  (session_id . ,(or session-id "sess-a"))
                  (agent_id . nil)
                  (source . ,kind))))
@@ -2162,6 +2163,65 @@ would leave one."
       (should (equal (plist-get (car events) :session-id) "sess-a"))
       ;; pause/resume are session-global: they carry no heading of their own.
       (should-not (plist-get (nth 2 events) :id)))))
+
+(ert-deftest claude-code-ide-org-test-queue-carries-notes ()
+  "The note rides through to the reader, and is absent where it should be."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:00:00-0500" "todo" "id-a" "DOING" nil
+                  "plan approved, resuming implementation")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:00:01-0500" "clock_in" "id-a" nil nil
+                  "clarify backend schema design")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:12:00-0500" "pause")))
+    (let ((events (claude-code-ide-org--queue-events)))
+      (should (equal (plist-get (nth 0 events) :note)
+                     "plan approved, resuming implementation"))
+      (should (equal (plist-get (nth 1 events) :note)
+                     "clarify backend schema design"))
+      ;; pause/resume are emitted by hooks Claude never calls, so there is
+      ;; no call site that could supply a note -- null, not empty string.
+      (should-not (plist-get (nth 2 events) :note)))))
+
+(ert-deftest claude-code-ide-org-test-queue-note-is-optional ()
+  "A line written before the note field existed still parses."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--queue-write
+     "sess-a"
+     (json-encode '((ts . "2026-08-07T09:00:00-0500") (kind . "clock_in")
+                    (id . "id-a") (state . nil)
+                    (session_id . "sess-a") (agent_id . nil) (source . "x"))))
+    (let ((events (claude-code-ide-org--queue-events)))
+      (should (= 1 (length events)))
+      (should-not (plist-get (car events) :note)))))
+
+(ert-deftest claude-code-ide-org-test-clock-out-reports-closed-id ()
+  "org_clock_out names the :ID: it actually closed, since it takes no id
+argument and the queue event would otherwise have nothing to record."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (let ((result (let ((org-clock-out-remove-zero-time-clocks nil))
+                    (claude-code-ide-org-clock-out))))
+      (should (string-prefix-p "Clocked out: " result))
+      (should (string-match-p "(id: test-0001)\\'" result)))))
+
+(ert-deftest claude-code-ide-org-test-clock-out-omits-id-when-heading-has-none ()
+  "A clock started by hand on a heading with no :ID: still clocks out
+cleanly, without an empty \"(id: )\" suffix."
+  (claude-code-ide-org-test--with-heading
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-max))
+      (insert "\n* Bare heading with no ID\n")
+      (save-buffer)
+      (goto-char (point-max))
+      (org-back-to-heading t)
+      (org-clock-in))
+    (let ((result (let ((org-clock-out-remove-zero-time-clocks nil))
+                    (claude-code-ide-org-clock-out))))
+      (should (string-match-p "\\`Clocked out: " result))
+      (should-not (string-match-p "(id:" result)))))
 
 (ert-deftest claude-code-ide-org-test-queue-skips-unusable-lines ()
   "A torn, malformed, or unknown-kind line costs one event, not the file."

@@ -75,6 +75,41 @@ check "pause has null id" "null" "$(jq -r '.id' <<<"$line")"
 check "pause has null state" "null" "$(jq -r '.state' <<<"$line")"
 check "pause falls back to hook name as source" "Stop" "$(jq -r '.source' <<<"$line")"
 
+# --- the note rides through from tool_input ----------------------------
+reset_queue
+run clock_in '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_clock_in","tool_input":{"id":"id-a","note":"clarify backend schema design"},"tool_response":"Clocked in: \"x\""}'
+check "clock_in carries note" "clarify backend schema design" "$(jq -r '.note' <<<"$(queue_lines sess-a)")"
+
+reset_queue
+run todo '{"session_id":"sess-a","tool_input":{"id":"id-a","state":"WAIT","note":"request credentials from DBA"},"tool_response":"ok"}'
+check "todo carries note" "request credentials from DBA" "$(jq -r '.note' <<<"$(queue_lines sess-a)")"
+
+reset_queue
+run clock_in '{"session_id":"sess-a","tool_input":{"id":"id-a"},"tool_response":"Clocked in: \"x\""}'
+check "omitted note is null" "null" "$(jq -r '.note' <<<"$(queue_lines sess-a)")"
+
+# pause/resume come from hooks Claude never invokes, so no note can exist.
+reset_queue
+run pause '{"session_id":"sess-a","hook_event_name":"Stop"}'
+check "pause has null note" "null" "$(jq -r '.note' <<<"$(queue_lines sess-a)")"
+
+# --- clock_out recovers its id from the tool's own reply ---------------
+# org_clock_out takes no id argument; the running clock is the only thing
+# that knows which heading closed, so the reply is the authoritative source.
+reset_queue
+run clock_out '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_clock_out","tool_input":{},"tool_response":"Clocked out: \"Some heading\" (id: 3d576d29-747f-40b9-a5b3-ecc76679daad)"}'
+check "clock_out recovers id from response" "3d576d29-747f-40b9-a5b3-ecc76679daad" \
+  "$(jq -r '.id' <<<"$(queue_lines sess-a)")"
+
+reset_queue
+run clock_out '{"session_id":"sess-a","tool_input":{},"tool_response":"Clocked out: \"Heading with no ID\""}'
+check "clock_out without an id stays null" "null" "$(jq -r '.id' <<<"$(queue_lines sess-a)")"
+
+reset_queue
+run clock_out '{"session_id":"sess-a","tool_response":{"text":"Clocked out: \"H\" (id: abc-123)"}}'
+check "clock_out id recovered from object-shaped response" "abc-123" \
+  "$(jq -r '.id' <<<"$(queue_lines sess-a)")"
+
 # --- a failed tool call must not enter the queue -----------------------
 # claude-code-ide-org--at-id returns an "Error: ..." string rather than
 # throwing, so this is the only signal that the :ID: never resolved.

@@ -1432,6 +1432,51 @@ watermark, and left the queue file intact at nine lines.
   Folding the older function onto the new helper is a tidy-up left for
   whoever next touches the statusline.
 
+*Amended 2026-08-07, after the schema was checked against
+=clock-template.org=.* The original design had no =note= field, so a
+drained queue would have produced bare =CLOCK:= lines and unlabelled
+=State "X" from "Y"= lines — a strictly poorer =:LOGBOOK:= than the
+template's conventions call for, where every non-=CLOCK:= line carries a
+short label. A real gap, missed because the schema was designed against
+this heading's own text rather than against the template that defines
+the target output.
+
+Added: a nullable =note= field, populated from =tool_input.note=, with
+an optional =note= argument on =org_clock_in=, =org_clock_out= and
+=org_set_todo= (3-10 words). The Elisp wrappers accept and *ignore* it
+deliberately — writing it into the live buffer now would produce exactly
+the unreviewed record this design exists to avoid, and there is no
+correct place for it in a =:LOGBOOK:= until a human confirms the
+interval it belongs to. At apply time it becomes the =\\= continuation
+on org's native state-change line, via the =org-store-log-note= path
+already confirmed in [[id:3d576d29-747f-40b9-a5b3-ecc76679daad][3d576d29]]
+(the note text is the note buffer's contents; empty yields a bare State
+line).
+
+Also fixed =clock_out='s null =id=. The tool takes no =id= argument —
+the running clock is the only thing that knows which heading is closing
+— so its reply now reports the id it *actually* closed
+(="Clocked out: \"H\" (id: ID)"=) and =queue-append= recovers it from
+there. Authoritative in a way a caller-supplied argument would not be:
+it cannot disagree with what happened. The ="Clocked out:"= prefix is
+unchanged, which is all =bin/clock-notify= matches on.
+
+Still open, deliberately: *guidepost span labels*. In the template a
+label like =- <09:00>--<09:15> clarify backend schema design= belongs to
+a *span*, aggregated from many =pause=/=resume= events — and those come
+from hooks Claude never invokes, so no call site can supply one. Default
+plan is to inherit the enclosing =clock_in='s note, leaving spans
+unlabelled where there is none, with transcript-derived labels
+([[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]]) as the eventual
+upgrade. Worth noting that deferral is a scope call, *not* a capability
+gap: reading a transcript is plain file I/O, locatable from =session_id=
+alone, and needs none of the MCP sampling machinery
+=claude-code-ide= lacks.
+
+Verified: =bin/test= 138/138 (4 new), =bin/queue-append-test= 30/30 (10
+new), and =config.el= live-reloaded with the new arities and tool schema
+confirmed in the running Emacs.
+
 *** TODO Rework the MCP tool / hook write paths to append-only :code:
 :PROPERTIES:
 :ID:       feba67eb-35b3-48bd-a892-8ecd47ca52e0
