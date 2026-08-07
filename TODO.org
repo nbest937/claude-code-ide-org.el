@@ -820,14 +820,33 @@ full arc correctly (=Resumed 22:37= / =Paused 22:45=); only the CLOCK
 interval vanished. Roughly two minutes, so materially irrelevant; the
 point is the failure mode, not the magnitude.
 
-What makes it worth recording separately: every incident catalogued so
-far is about *cross-session* interference or a desynced marker. This
-one is single-session and sequential, and it happens *downstream of
-=org-clock-cancel=* — a path nothing else here covers. Not
-investigated far enough to say whether it is a genuine bug or an
-expected consequence of cancelling (=org-clock-cancel= discards the
-in-progress interval and may leave =org-clock-marker= in a state a
-subsequent =org-clock-in= mishandles). Deliberately not "fixed" by
+*Root cause found 2026-08-07, correcting the paragraph above:* nothing
+to do with =org-clock-cancel=, and not a bug — it is documented,
+deliberate behavior. =claude-code-ide-org-clock-out= calls
+=claude-code-ide-org-consolidate-history= on every clock-out, which
+rounds each closed interval to the nearest 5 minutes
+(=claude-code-ide-org--round-time-to-5-minutes=, config.el:900; ties
+round *up*) and then drops anything that becomes zero-length
+(=--consolidate-logbook-text=, config.el:991, mirroring org's own
+=org-clock-out-remove-zero-time-clocks= intent after rounding). 22:43
+rounds to 22:45; 22:45 rounds to 22:45; zero; dropped. The earlier
+interval survived only because 22:35→22:41 rounded to 22:35→22:40.
+
+Generalized, the rule is: *any interval shorter than about 2.5 minutes
+that does not straddle a 5-minute boundary disappears silently on
+clock-out.* That is a much broader exposure than one incident — it
+applies to every short clock the tools have ever closed. Whether the
+5-minute granularity is still the right trade is now a live question
+rather than a settled one, and it is decided for the new architecture
+in [[id:32272061-1d78-4726-b13b-90338edb2ba5][32272061]]'s plan: apply
+writes exactly the endpoints the human confirms, with no rounding and
+no zero-drop.
+
+What still makes it worth recording separately: every other incident
+catalogued here is about *cross-session* interference or a desynced
+marker. This one is single-session, sequential, and purely a
+consequence of this project's own consolidation policy — no
+concurrency involved at all. Deliberately not "fixed" by
 hand-writing the missing line: CLAUDE.md forbids editing CLOCK entries
 directly, and fabricating an interval to make the record look tidy is
 the exact "confidently wrong" record
@@ -1275,10 +1294,22 @@ the stale-interval-recovery feature, whose premise this design removes.
 narrowed to the logging half. Each carries its own note; this is just
 the index.
 
-*** TODO Design the append-only event-queue format and per-session file lifecycle :code:
+*** DOING Design the append-only event-queue format and per-session file lifecycle :code:
 :PROPERTIES:
 :ID:       32272061-1d78-4726-b13b-90338edb2ba5
 :CREATED:  [2026-08-06 Thu 10:47]
+:END:
+:SESSIONS:
+- Resumed [2026-08-06 Thu 22:53]
+- Resumed [2026-08-07 Fri 07:11] (session d847eab1-9e6d-4d67-baf2-457715870457)
+- Paused [2026-08-07 Fri 08:08] (session d847eab1-9e6d-4d67-baf2-457715870457)
+- Resumed [2026-08-07 Fri 08:10] (session d847eab1-9e6d-4d67-baf2-457715870457)
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-07 Fri 08:10]
+CLOCK: [2026-08-06 Thu 22:55]--[2026-08-07 Fri 08:10] =>  9:15
+- State "DOING"      from "PLANNING"   [2026-08-07 Fri 07:59] \\
+  Auto-promoted: ExitPlanMode fired on the owning session.
 :END:
 
 JSONL schema per event kind (=todo=, =clock_in=, =clock_out=,
@@ -1445,6 +1476,80 @@ free, retrospective "what did I actually attend to" view, no bespoke
 code needed for that part — see
 [[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]] for the
 verification step this leans on before being trusted.
+
+*** MAYBE Let the review command ask Claude to explain the gaps between guideposts :code:
+:PROPERTIES:
+:ID:       0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e
+:CREATED:  [2026-08-07 Fri 08:05]
+:END:
+
+Captured 2026-08-07 from conversation. The idea as posed: while
+reviewing a heading in
+[[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]'s command, Emacs
+offers "Would you like some help with this one?" and, on approval,
+calls back to Claude for a recommended aggregation of that heading's
+guideposts.
+
+*Transport, researched 2026-08-07 — the protocol answer is "yes, but
+not here."* MCP's =sampling/createMessage= is exactly this primitive:
+a *server* asks the *client* to run an LLM completion on its behalf,
+so no server-side API key is needed, and the spec's own message-flow
+diagram puts a human approval step on both the request and the
+response. It has existed since protocol version =2024-11-05=, which is
+what =claude-code-ide= declares. (Distinct from =elicitation/create=,
+added in =2025-06-18=, which asks the *user* for structured form input
+rather than the model — not relevant here, since Emacs already has its
+own UI and needs no protocol to prompt its own user.)
+
+Three independent blockers, in increasing order of severity:
+- =claude-code-ide.el= implements none of it — zero matches for
+  =sampling=/=createMessage=/=elicit= across all ten of its =.el=
+  files, and nothing in its open issues or PRs upstream proposes it.
+- More fundamentally, it has no *outgoing request* machinery at all.
+  It can send fire-and-forget notifications
+  (=claude-code-ide-mcp--send-notification=) but has no pending-request
+  table and no id→callback correlation, so it cannot issue a JSON-RPC
+  request and await a reply. (=--send-ping= is a websocket-level frame,
+  not a JSON-RPC request — easy to mistake for evidence otherwise.)
+  Adding sampling is therefore "build bidirectional request/response
+  correlation," upstream, not "add a handler."
+- Sampling only works if the *client* declares the =sampling=
+  capability, which Claude Code may well not. Unverified.
+
+*The architectural blocker that outranks all three:* sampling is
+server→client over a *live session*. This refactor exists precisely so
+the human can review whenever they choose — very often with no Claude
+Code session connected at all. There would frequently be no client to
+sample from. The practical transport, if this is ever built, is simply
+shelling out to =claude -p= asynchronously (the CLI is already on PATH
+and supports =--print=/=--output-format=); it needs no protocol work,
+no upstream change, and works with nothing connected.
+
+*Design objection, and a reframe that answers it.* Recommending an
+aggregation is a more confident version of exactly what =720b2dcf=
+forbids. The danger is not that the model writes anything — it is
+*anchoring*: a fluent, plausible-sounding proposed decomposition is far
+harder to reject than a transparently mechanical 15-minute threshold,
+which degrades the very safety property the review step exists to
+provide. Worse, on the queue file alone the model would have *strictly
+less* information than the threshold algorithm — the same timestamps
+and heading IDs, minus any domain knowledge — so it cannot outperform
+the heuristic; it can only add variance and unearned authority.
+
+The version worth building instead: don't ask Claude to *recommend
+intervals*, ask it to *explain the gaps*. Given the session transcript
+(=~/.claude/projects/<project>/*.jsonl=) as input, "what was happening
+between 10:02 and 10:35?" is a retrieval-and-summarization task that
+models are genuinely good at and no heuristic can do at all — and it
+leaves the interval decision entirely with the human, preserving
+=720b2dcf='s core principle rather than eroding it. That reframing also
+changes the dependency: the load-bearing question becomes whether the
+transcript is in scope as an input, not whether Emacs can reach a
+model.
+
+Sequence well after =720b2dcf= ships and real queue data exists —
+there is no way to judge whether the plain threshold is already good
+enough until it has been used in anger.
 
 *** TODO Add a read-only MCP tool to inspect and summarize the pending queue :code:
 :PROPERTIES:
