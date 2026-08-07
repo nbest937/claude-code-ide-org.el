@@ -2102,19 +2102,30 @@ whole file. This is the single place that judgement is made."
                 :agent-type (alist-get 'agent_type obj)
                 :source (alist-get 'source obj)))))))
 
-(defun claude-code-ide-org--queue-watermark (session-id)
-  "Return SESSION-ID's applied watermark as a time value, or nil if it
-has never been drained."
-  (let ((file (claude-code-ide-org--queue-watermark-file session-id)))
+(defun claude-code-ide-org--queue-applied (session-id)
+  "Return the set of SESSION-ID's already-applied event timestamps.
+A hash table keyed by `ts' string; empty when nothing has been applied.
+
+A *set* rather than a high-water mark, deliberately. A watermark can
+only describe a contiguous prefix, and review is not contiguous: a human
+applies the two items they care about and leaves the rest, whose events
+sit earlier in the same file. A watermark then cannot advance at all --
+observed 2026-08-07, where a real apply wrote no watermark whatsoever and
+every applied item would have been re-proposed, and re-applied, on the
+next pass. Per-event is the honest model for per-item review."
+  (let ((table (make-hash-table :test 'equal))
+        (file (claude-code-ide-org--queue-watermark-file session-id)))
     (when (file-readable-p file)
-      (claude-code-ide-org--parse-iso8601
-       (alist-get 'watermark
-                  (ignore-errors
+      (let ((data (ignore-errors
                     (json-parse-string
                      (with-temp-buffer
                        (insert-file-contents file)
                        (buffer-string))
-                     :object-type 'alist :null-object nil :false-object nil)))))))
+                     :object-type 'alist :array-type 'list
+                     :null-object nil :false-object nil))))
+        (dolist (ts (alist-get 'applied data))
+          (puthash ts t table))))
+    table))
 
 (defun claude-code-ide-org--atomic-write (path string)
   "Write STRING to PATH atomically, via a sibling temp file and rename.
@@ -2129,27 +2140,34 @@ atomic -- a cross-filesystem rename is not."
       (with-temp-file tmp (insert string))
       (rename-file tmp path t))))
 
-(defun claude-code-ide-org--queue-set-watermark (session-id ts-string)
-  "Record TS-STRING as SESSION-ID's applied watermark.
+(defun claude-code-ide-org--queue-mark-applied (session-id ts-strings)
+  "Add TS-STRINGS to SESSION-ID's set of applied events.
+Unions with whatever is already recorded, so a partial apply followed by
+another partial apply accumulates rather than replacing.
+
 Never truncates or rewrites the queue file itself: the session that owns
 it may still be appending, and racing an appending writer is exactly the
-class of bug this refactor exists to remove. Draining is therefore
+class of bug this refactor exists to remove. Applied state is therefore
 recorded beside the log, never in it."
-  (claude-code-ide-org--atomic-write
-   (claude-code-ide-org--queue-watermark-file session-id)
-   (json-encode `((watermark . ,ts-string)))))
+  (let ((applied (claude-code-ide-org--queue-applied session-id)))
+    (dolist (ts ts-strings) (puthash ts t applied))
+    (claude-code-ide-org--atomic-write
+     (claude-code-ide-org--queue-watermark-file session-id)
+     (json-encode `((applied . ,(let (all)
+                                  (maphash (lambda (k _) (push k all)) applied)
+                                  (sort all #'string<))))))))
 
 (defun claude-code-ide-org--queue-events (&optional session-id)
   "Return pending (unapplied) queue events, oldest first.
 With SESSION-ID, read only that session's queue; otherwise read every
-session's, merged and re-sorted by timestamp. Events at or before a
-session's watermark are omitted. Unparseable lines are skipped silently
--- see `claude-code-ide-org--queue-parse-line'."
+session's, merged and re-sorted by timestamp. Events already applied are
+omitted. Unparseable lines are skipped silently -- see
+`claude-code-ide-org--queue-parse-line'."
   (let (events)
     (dolist (sid (if session-id (list session-id)
                    (claude-code-ide-org--queue-session-ids)))
       (let ((file (claude-code-ide-org--queue-file sid))
-            (watermark (claude-code-ide-org--queue-watermark sid)))
+            (applied (claude-code-ide-org--queue-applied sid)))
         (when (file-readable-p file)
           (dolist (line (split-string
                          (with-temp-buffer
@@ -2158,8 +2176,7 @@ session's watermark are omitted. Unparseable lines are skipped silently
                          "\n" t))
             (let ((event (claude-code-ide-org--queue-parse-line line)))
               (when (and event
-                         (or (null watermark)
-                             (time-less-p watermark (plist-get event :ts))))
+                         (not (gethash (plist-get event :ts-string) applied)))
                 (push event events)))))))
     (sort (nreverse events)
           (lambda (a b) (time-less-p (plist-get a :ts) (plist-get b :ts))))))
@@ -2385,6 +2402,17 @@ left open across a state change -- `claude-code-ide-org--blocker-clock-
 running-p' would refuse a -> DONE transition if one were."
   (let ((start (plist-get item :start))
         (end (plist-get item :end)))
+    ;; Close any running clock FIRST. `org-clock-in' throws `abort' and
+    ;; opens nothing when a clock is already running on this same heading
+    ;; at this same point (org-clock.el:1440) -- it just messages "Clock
+    ;; continues in ...". The subsequent `org-clock-out' then closes the
+    ;; *pre-existing* clock at our END, producing a negative-duration
+    ;; CLOCK line. Observed live on 2026-08-07: [15:53]--[13:17] => -3:24.
+    ;; Pre-cutover this is the common case, not an edge case, since the
+    ;; UserPromptSubmit hook keeps a live clock on whatever heading is
+    ;; being worked on -- typically the very one under review.
+    (when (org-clocking-p)
+      (org-clock-out nil t))
     ;; A zero-width span is a single interaction point, not a duration --
     ;; a lone guidepost with nothing to bracket it. Annotate it (it is
     ;; real evidence that something happened at that moment) but write no
@@ -2395,6 +2423,13 @@ running-p' would refuse a -> DONE transition if one were."
     (unless (time-equal-p start end)
       (let ((org-clock-out-remove-zero-time-clocks nil))
         (org-clock-in nil start)
+        ;; Never close a clock we did not open. If `org-clock-in' aborted
+        ;; for any reason, calling `org-clock-out' here would close
+        ;; whatever else happens to be running, at our end time. Failing
+        ;; loudly is the only safe response -- the alternative is a
+        ;; plausible-looking interval on the wrong heading.
+        (unless (org-clocking-p)
+          (error "org-clock-in did not open a clock; refusing to clock out"))
         (org-clock-out nil nil end))))
   (claude-code-ide-org--append-to-drawer
    "LOGBOOK" (claude-code-ide-org--review-format-annotation item)))
@@ -2414,9 +2449,27 @@ bypasses that entirely. It takes the note text from that buffer's
 contents, so empty yields a bare State line and non-empty yields the
 `\\\\' continuation."
   (let ((ts (plist-get item :ts))
-        (note (plist-get item :note)))
+        (note (plist-get item :note))
+        ;; Land the note inside :LOGBOOK:, matching clock-template.org.
+        ;; With `org-log-into-drawer' nil (this user's setting) org writes
+        ;; state notes bare, just after the property drawer; they only
+        ;; ended up in :LOGBOOK: before because `consolidate-history'
+        ;; swept them there via its :other bucket, and apply deliberately
+        ;; does not consolidate. Bound locally, so the user's own
+        ;; interactive org-todo keeps their configured behavior.
+        (org-log-into-drawer t))
     (cl-letf (((symbol-function 'org-current-effective-time) (lambda () ts)))
       (org-todo (plist-get item :to)))
+    ;; `org-add-log-setup' registers `org-add-log-note' on
+    ;; `post-command-hook' and sets `org-log-setup'. Driving
+    ;; `org-store-log-note' directly bypasses `org-add-log-note', so
+    ;; nothing ever performs that cleanup -- the hook then fires after
+    ;; this command against a marker `org-store-log-note' has already
+    ;; cleared, giving "Marker does not point anywhere" (observed live,
+    ;; 2026-08-07). Batch never caught it: there is no command loop, so
+    ;; `post-command-hook' never runs at all.
+    (remove-hook 'post-command-hook 'org-add-log-note)
+    (setq org-log-setup nil)
     (when (and (boundp 'org-log-note-marker) (marker-buffer org-log-note-marker))
       (let ((buffer (get-buffer-create "*Org Note*")))
         (with-current-buffer buffer
@@ -2453,26 +2506,22 @@ lands at all."
       ;; --at-id returns an "Error: ..." string rather than throwing.
       (and (stringp result) result))))
 
-(defun claude-code-ide-org--review-advance-watermarks (applied-items)
-  "Advance each session's watermark past its applied events.
+(defun claude-code-ide-org--review-record-applied (applied-items)
+  "Record every event behind APPLIED-ITEMS as applied, per session.
 
-Only past the longest *contiguous* run of applied events: a session's
-queue is ordered, and stopping at the first unapplied event is what
-keeps a skipped item pending instead of being silently consumed by the
-items around it."
-  (let ((applied (make-hash-table :test 'equal)))
+Marks exactly the events that were consumed -- no more. A skipped item's
+events stay pending regardless of where they sit relative to applied
+ones, which is what makes applying a subset safe and makes re-applying
+an already-applied item impossible."
+  (let ((by-session (make-hash-table :test 'equal)))
     (dolist (item applied-items)
       (dolist (event (plist-get item :events))
-        (puthash (plist-get event :ts-string) t applied)))
-    (dolist (session-id (claude-code-ide-org--queue-session-ids))
-      (let ((watermark nil))
-        (catch 'done
-          (dolist (event (claude-code-ide-org--queue-events session-id))
-            (if (gethash (plist-get event :ts-string) applied)
-                (setq watermark (plist-get event :ts-string))
-              (throw 'done nil))))
-        (when watermark
-          (claude-code-ide-org--queue-set-watermark session-id watermark))))))
+        (push (plist-get event :ts-string)
+              (gethash (plist-get event :session-id) by-session))))
+    (maphash (lambda (session-id ts-strings)
+               (when session-id
+                 (claude-code-ide-org--queue-mark-applied session-id ts-strings)))
+             by-session)))
 
 (defun claude-code-ide-org--review-apply (items)
   "Apply ITEMS in order. Returns a plist (:applied N :errors ERRORS)."
@@ -2480,7 +2529,7 @@ items around it."
     (dolist (item items)
       (let ((error (claude-code-ide-org--review-apply-item item)))
         (if error (push error errors) (push item applied))))
-    (claude-code-ide-org--review-advance-watermarks applied)
+    (claude-code-ide-org--review-record-applied applied)
     (list :applied (length applied) :errors (nreverse errors))))
 
 ;;; Review buffer

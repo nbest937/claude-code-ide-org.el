@@ -1560,28 +1560,24 @@ sitting alongside them):
   independent. Concrete supporting case for why the backdated-
   timestamp sub-task below matters as much as it does.
 
-*** PLANNING Build the interactive review-and-apply Emacs command :code:
+*** DOING Build the interactive review-and-apply Emacs command :code:
 :PROPERTIES:
 :ID:       720b2dcf-6af1-45f3-96a7-aa841e5651e1
 :CREATED:  [2026-08-06 Thu 10:47]
 :END:
-- State "PLANNING"   from "DOING"      [2026-08-07 Fri 11:51]
 :SESSIONS:
 - Resumed [2026-08-07 Fri 11:51]
 - Paused [2026-08-07 Fri 15:51] (session d847eab1-9e6d-4d67-baf2-457715870457)
 - Resumed [2026-08-07 Fri 15:53] (session d847eab1-9e6d-4d67-baf2-457715870457)
+- Resumed [2026-08-07 Fri 15:59] (session d847eab1-9e6d-4d67-baf2-457715870457)
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-07 Fri 15:09]--[2026-08-07 Fri 15:53] =>  0:44
-CLOCK: [2026-08-07 Fri 15:53]--[2026-08-07 Fri 13:17] => -3:24
+CLOCK: [2026-08-07 Fri 15:59]
 CLOCK: [2026-08-07 Fri 15:35]--[2026-08-07 Fri 15:40] =>  0:05
 CLOCK: [2026-08-07 Fri 15:25]--[2026-08-07 Fri 15:30] =>  0:05
 CLOCK: [2026-08-07 Fri 11:50]--[2026-08-07 Fri 12:25] =>  0:35
 - State "DOING"      from "PLANNING"   [2026-08-07 Fri 12:26] \\
   Auto-promoted: ExitPlanMode fired on the owning session.
-- <2026-08-07 Fri 12:27>--<2026-08-07 Fri 12:27>
-- <2026-08-07 Fri 13:16>--<2026-08-07 Fri 13:17>
-- <2026-08-07 Fri 15:09>--<2026-08-07 Fri 15:53>
 :END:
 
 [[file:~/.claude/plans/review-and-cutover.md][Plan]]
@@ -1693,6 +1689,101 @@ the buffer against a real heading. =3d576d29= established that the
 logging path behaves differently under =emacsclient -e= than in batch,
 so nothing above proves the interactive apply works end to end. That is
 the gate before [[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]].
+
+*** NEXT Apply must not replay a state event that reality has moved past :code:
+:PROPERTIES:
+:ID:       f9f61c04-150b-4ee7-96c9-582cf2bda95a
+:CREATED:  [2026-08-07 Fri 16:06]
+:BLOCKER:  ids(720b2dcf-6af1-45f3-96a7-aa841e5651e1)
+:END:
+
+Found 2026-08-07 during the first interactive apply, and the most
+consequential of the four bugs that run exposed — the other three were
+mechanical, this one is a design gap.
+
+*What happened:* the queue held a =todo → PLANNING= event stamped 11:51.
+By the time it was applied, the heading had long since moved on to
+=DOING= (promoted by =bin/hooks/exitplanmode-promote-planning=, which
+drives elisp directly and so never enters the queue at all). Apply
+replayed the stale event faithfully and *regressed the heading from
+DOING back to PLANNING*, writing a =State "PLANNING" from "DOING"= line
+to prove it. Nothing errored; the record simply became wrong in a
+plausible-looking way.
+
+*Why it is not just an =exitplanmode= problem:*
+[[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]] already plans to
+make that hook emit a queued =todo= event, which would have avoided this
+particular instance. But the general hazard survives that fix — a queue
+is reviewed at a moment of the human's choosing, possibly long after the
+events were recorded, and *any* out-of-band change in between (a
+hand-edit in Emacs, a different session, an org-agenda bulk action)
+leaves the queued transition stale. The longer review is deferred, the
+likelier this gets, and deferring review is the entire premise of the
+design.
+
+*Options, none settled:*
+- *Verify before applying*: compare the event's implied "from" state
+  against the heading's actual current state, and refuse — or flag in
+  the review buffer — when they disagree. The queue does not currently
+  record a "from" state, only a "to", so this needs a schema addition.
+- *Show current state in the review buffer* next to the proposed one, so
+  a human sees =DOING → PLANNING= and declines it themselves. Cheaper,
+  and consistent with the design's "the human is the validation step"
+  premise, but relies on them noticing.
+- *Collapse per heading*: apply only the final queued state per heading
+  rather than replaying each transition. Loses the intermediate log
+  lines that [[file:~/.claude/plans/review-and-cutover.md][the plan]]
+  deliberately wanted, and still regresses when reality moved past even
+  the final one.
+
+Leaning toward recording the "from" state at queue-append time and
+surfacing a mismatch in the review buffer — cheap, no new failure mode,
+and it makes the human's decision an informed one rather than a
+guess. Not started.
+
+*** TODO Sort :LOGBOOK: chronologically, keeping notes with their continuations :code:
+:PROPERTIES:
+:ID:       af7d3687-6d1e-4480-a9e2-df772785713f
+:CREATED:  [2026-08-07 Fri 16:06]
+:END:
+
+Requested 2026-08-07: a =:LOGBOOK:= sorted by start time is markedly
+easier to read than the current arrangement, where
+=--consolidate-logbook-text= emits every =CLOCK:= line newest-first and
+then dumps every non-CLOCK line (state notes, guidepost annotations) in
+a block at the end — so an annotation sits nowhere near the interval it
+describes. =clock-template.org= already shows the intended shape:
+entries reading chronologically top to bottom, each annotation beside
+the =CLOCK:= line for the same span.
+
+*Scope, as stated 2026-08-07:* one chronological ordering across *every*
+entry style — =CLOCK:= lines, active and inactive range annotations, and
+=State "X" from "Y"= transitions alike — keyed on start time. Not
+per-style grouping that happens to be sorted within each group; a single
+timeline. A state transition at 14:10 belongs between the interval that
+ended at 14:00 and the one starting at 14:20, which is precisely what
+makes the drawer legible as a narrative of the task.
+
+*Why this is not a quick sort:* the drawer holds three different line
+shapes, and one of them is multi-line. A =State "X" from "Y" [ts] \\=
+line owns the indented continuation beneath it, and any reordering that
+separates the two corrupts the note. This is exactly the failure
+[[id:ba8249c1-28cd-4ff1-918b-4b8439345d9a][ba8249c1]] already fixed
+once, where consolidation silently deleted non-CLOCK drawer lines — so
+the risk here is demonstrated, not hypothetical.
+
+Approach: extend =--parse-clock-lines= so each parsed entry carries its
+sort key *and* its full text including continuations, rather than the
+current split into =:closed= conses plus a flat =:other= list of
+verbatim lines. Then sort by start time and re-emit. Note this changes
+the newest-first convention org itself uses for =CLOCK:= lines; that is
+the point of the request, but worth stating explicitly since org will
+still *insert* new clocks at the top and the order will drift again
+between consolidations.
+
+Test against a drawer containing all three shapes at once, including a
+note with a continuation between two clock lines, and assert nothing is
+lost — the =ba8249c1= regression case is the one to extend.
 
 *** MAYBE Give the review buffer a transient menu, once it has filters worth composing :code:
 :PROPERTIES:

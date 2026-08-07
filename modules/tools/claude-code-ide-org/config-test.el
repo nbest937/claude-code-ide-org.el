@@ -2265,9 +2265,9 @@ cleanly, without an empty \"(id: )\" suffix."
       (should (equal (mapcar (lambda (e) (plist-get e :kind)) events)
                      '("clock_in" "pause"))))))
 
-(ert-deftest claude-code-ide-org-test-queue-watermark-filters-applied-events ()
-  "Events at or before the watermark are consumed; later ones survive,
-including ones appended after a partial drain."
+(ert-deftest claude-code-ide-org-test-queue-applied-events-are-filtered ()
+  "Applied events drop out; unapplied ones survive regardless of position,
+including ones appended after a partial apply."
   (claude-code-ide-org-test--with-queue
     (apply #'claude-code-ide-org-test--queue-write "sess-a"
            (list (claude-code-ide-org-test--queue-event
@@ -2275,24 +2275,52 @@ including ones appended after a partial drain."
                  (claude-code-ide-org-test--queue-event
                   "2026-08-07T09:05:00-0500" "pause")))
     (should (= 2 (length (claude-code-ide-org--queue-events))))
-    (claude-code-ide-org--queue-set-watermark "sess-a" "2026-08-07T09:05:00-0500")
+    (claude-code-ide-org--queue-mark-applied
+     "sess-a" '("2026-08-07T09:00:00-0500" "2026-08-07T09:05:00-0500"))
     (should (= 0 (length (claude-code-ide-org--queue-events))))
-    ;; The session keeps writing after the drain -- the queue file is never
-    ;; truncated, so this must simply appear as newly pending.
+    ;; The session keeps writing -- the queue file is never truncated, so
+    ;; this must simply appear as newly pending.
     (claude-code-ide-org-test--queue-write
      "sess-a" (claude-code-ide-org-test--queue-event
                "2026-08-07T09:20:00-0500" "resume"))
     (let ((events (claude-code-ide-org--queue-events)))
       (should (equal (mapcar (lambda (e) (plist-get e :kind)) events) '("resume"))))))
 
-(ert-deftest claude-code-ide-org-test-queue-watermark-write-is-atomic ()
-  "No partial watermark file is ever observable, and no temp file is left."
+(ert-deftest claude-code-ide-org-test-queue-applied-is-a-set-not-a-watermark ()
+  "Applying a LATER event must not consume an earlier unapplied one.
+
+A high-water mark cannot express this, which is why the applied state is
+a set: review is per-item and non-contiguous by nature. Observed live on
+2026-08-07 -- a real apply advanced no watermark at all, and every
+applied item would have been re-proposed on the next pass."
   (claude-code-ide-org-test--with-queue
-    (claude-code-ide-org--queue-set-watermark "sess-a" "2026-08-07T09:05:00-0500")
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:00:00-0500" "pause")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:05:00-0500" "pause")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:10:00-0500" "pause")))
+    ;; Apply only the middle event.
+    (claude-code-ide-org--queue-mark-applied "sess-a" '("2026-08-07T09:05:00-0500"))
+    (let ((remaining (claude-code-ide-org--queue-events)))
+      (should (= 2 (length remaining)))
+      (should (equal (mapcar (lambda (e) (plist-get e :ts-string)) remaining)
+                     '("2026-08-07T09:00:00-0500" "2026-08-07T09:10:00-0500"))))
+    ;; A second partial apply accumulates rather than replacing.
+    (claude-code-ide-org--queue-mark-applied "sess-a" '("2026-08-07T09:10:00-0500"))
+    (should (equal (mapcar (lambda (e) (plist-get e :ts-string))
+                           (claude-code-ide-org--queue-events))
+                   '("2026-08-07T09:00:00-0500")))))
+
+(ert-deftest claude-code-ide-org-test-queue-applied-write-is-atomic ()
+  "No partial applied-set file is observable, and no temp file is left."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org--queue-mark-applied "sess-a" '("2026-08-07T09:05:00-0500"))
     (let ((file (claude-code-ide-org--queue-watermark-file "sess-a")))
       (should (file-readable-p file))
-      (should (equal (claude-code-ide-org--queue-watermark "sess-a")
-                     (date-to-time "2026-08-07T09:05:00-0500")))
+      (should (gethash "2026-08-07T09:05:00-0500"
+                       (claude-code-ide-org--queue-applied "sess-a")))
       (should-not (directory-files claude-code-ide-org-queue-directory
                                    nil "\\`\\.queue-tmp-")))))
 
@@ -2596,30 +2624,76 @@ clock pairs are authoritative, human guideposts become suggested spans."
       (should (equal (format-time-string "%H:%M" (plist-get human :end)) "09:10"))
       (should (equal (plist-get human :note) "backend schema")))))
 
-(ert-deftest claude-code-ide-org-test-review-watermark-only-advances-contiguously ()
-  "Applying a later item must not consume an earlier skipped one."
+(ert-deftest claude-code-ide-org-test-review-records-only-applied-events ()
+  "Applying one item marks exactly its own events, leaving the rest."
   (claude-code-ide-org-test--with-queue
-    (let ((first (list :ts-string "2026-08-06T09:00:00-0500"))
-          (second (list :ts-string "2026-08-06T09:05:00-0500")))
-      (apply #'claude-code-ide-org-test--queue-write "sess-a"
-             (list (claude-code-ide-org-test--queue-event
-                    "2026-08-06T09:00:00-0500" "pause")
-                   (claude-code-ide-org-test--queue-event
-                    "2026-08-06T09:05:00-0500" "pause")
-                   (claude-code-ide-org-test--queue-event
-                    "2026-08-06T09:10:00-0500" "pause")))
-      ;; Apply only the SECOND event: the first is unapplied, so nothing
-      ;; may advance past it.
-      (claude-code-ide-org--review-advance-watermarks
-       (list (list :events (list second))))
-      (should-not (claude-code-ide-org--queue-watermark "sess-a"))
-      ;; Now the first as well: the run 1..2 is contiguous, so the
-      ;; watermark reaches the second and the third stays pending.
-      (claude-code-ide-org--review-advance-watermarks
-       (list (list :events (list first second))))
-      (should (equal (claude-code-ide-org--queue-watermark "sess-a")
-                     (date-to-time "2026-08-06T09:05:00-0500")))
-      (should (= 1 (length (claude-code-ide-org--queue-events)))))))
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-06T09:00:00-0500" "pause")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-06T09:05:00-0500" "pause")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-06T09:10:00-0500" "pause")))
+    (claude-code-ide-org--review-record-applied
+     (list (list :events (list (list :ts-string "2026-08-06T09:05:00-0500"
+                                     :session-id "sess-a")))))
+    (should (equal (mapcar (lambda (e) (plist-get e :ts-string))
+                           (claude-code-ide-org--queue-events))
+                   '("2026-08-06T09:00:00-0500" "2026-08-06T09:10:00-0500")))))
+
+(ert-deftest claude-code-ide-org-test-review-closes-a-running-clock-first ()
+  "Regression for the live corruption of 2026-08-07.
+
+`org-clock-in' throws `abort' and opens nothing when a clock is already
+running on the same heading at the same point (org-clock.el:1440), so a
+following `org-clock-out' closes the PRE-EXISTING clock at our end time.
+Live, that produced CLOCK: [15:53]--[13:17] =>  -3:24. Apply must close
+any running clock before opening its own, and must never produce a
+negative duration."
+  (claude-code-ide-org-test--with-heading
+    ;; Put a live clock on the very heading under review, exactly as the
+    ;; UserPromptSubmit hook does pre-cutover.
+    (claude-code-ide-org-clock-in id)
+    (should (org-clocking-p))
+    (should-not (claude-code-ide-org--review-apply-item
+                 (list :type 'clock :id id
+                       :start (date-to-time "2026-08-06T13:16:00-0500")
+                       :end (date-to-time "2026-08-06T13:17:00-0500")
+                       :agent nil :suggested nil :events nil)))
+    (let ((logbook (claude-code-ide-org-test--logbook file)))
+      ;; The requested interval landed, exactly.
+      (should (string-match-p "13:16\\]--\\[2026-08-06 [A-Za-z]+ 13:17\\] =>  0:01" logbook))
+      ;; And nothing negative was written.
+      (should-not (string-match-p "=> *-" logbook)))))
+
+(ert-deftest claude-code-ide-org-test-review-cleans-up-the-log-note-hook ()
+  "Regression for the live \"Marker does not point anywhere\" error.
+
+`org-add-log-setup' registers `org-add-log-note' on `post-command-hook';
+driving `org-store-log-note' directly bypasses the function that would
+remove it, so it fires later against a cleared marker. Invisible to
+batch, which has no command loop -- hence asserting the hook itself."
+  (claude-code-ide-org-test--with-heading
+    (should-not (claude-code-ide-org--review-apply-item
+                 (list :type 'state :id id
+                       :ts (date-to-time "2026-08-06T09:00:00-0500")
+                       :to "DOING" :note "note" :events nil)))
+    (should-not (memq 'org-add-log-note post-command-hook))
+    (should-not org-log-setup)))
+
+(ert-deftest claude-code-ide-org-test-review-state-note-lands-in-logbook ()
+  "The state-change line belongs in :LOGBOOK:, per clock-template.org.
+With `org-log-into-drawer' nil -- this user's setting -- org writes it
+bare after the property drawer; apply binds the drawer locally so the
+result matches the template without changing the user's own config."
+  (claude-code-ide-org-test--with-heading
+    (let ((org-log-into-drawer nil))
+      (should-not (claude-code-ide-org--review-apply-item
+                   (list :type 'state :id id
+                         :ts (date-to-time "2026-08-06T09:00:00-0500")
+                         :to "DOING" :note "in the drawer please" :events nil))))
+    (should (string-match-p "in the drawer please"
+                            (claude-code-ide-org-test--logbook file)))))
 
 (ert-deftest claude-code-ide-org-test-review-clock-then-state-leaves-no-open-clock ()
   "Applying a clock item then a DONE transition must not be blocked --
