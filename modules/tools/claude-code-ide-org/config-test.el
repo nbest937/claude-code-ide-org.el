@@ -2442,6 +2442,37 @@ no rounding, unlike consolidate-history."
       (should (string-match-p "22:43\\]--\\[2026-08-06 [A-Za-z]+ 22:45\\] =>  0:02"
                               (claude-code-ide-org-test--logbook file))))))
 
+(ert-deftest claude-code-ide-org-test-review-help-falls-back-without-which-key ()
+  "`?' must work in a config with no which-key -- including the batch
+suite itself, which is why the dependency is resolved at call time."
+  (should (commandp #'claude-code-ide-org-review-help))
+  (should (eq (lookup-key claude-code-ide-org-review-mode-map (kbd "?"))
+              #'claude-code-ide-org-review-help))
+  ;; Bindings must survive a re-load of config.el. They live outside the
+  ;; defvar initializer precisely because defvar would not reassign an
+  ;; already-bound map, silently freezing them at first-load values.
+  (should (eq (lookup-key claude-code-ide-org-review-mode-map (kbd "x"))
+              #'claude-code-ide-org-review-apply))
+  (cl-letf (((symbol-function 'describe-mode) (lambda (&rest _) 'fell-back)))
+    (if (fboundp 'which-key-show-major-mode)
+        (should t)   ; which-key present: the fallback is not the path taken
+      (with-temp-buffer
+        (claude-code-ide-org-review-mode)
+        (should (eq (claude-code-ide-org-review-help) 'fell-back))))))
+
+(ert-deftest claude-code-ide-org-test-review-mode-documents-itself ()
+  "The mode docstring is user-facing help, not implementation notes --
+`describe-mode' is the first thing anyone presses. Guards against it
+regressing to a maintainer comment."
+  (let ((doc (documentation 'claude-code-ide-org-review-mode)))
+    (should doc)
+    ;; Explains the two modes, which is the part a reader cannot guess.
+    (should (string-match-p "suggested" doc))
+    (should (string-match-p "agent" doc))
+    ;; Warns about the two behaviours that surprise people.
+    (should (string-match-p "discards your marks" doc))
+    (should (string-match-p "consequential" doc))))
+
 (ert-deftest claude-code-ide-org-test-review-zero-width-span-annotates-only ()
   "A lone guidepost is an interaction point, not a duration: it gets its
 annotation but no CLOCK: line, since `=>  0:00' would claim an interval

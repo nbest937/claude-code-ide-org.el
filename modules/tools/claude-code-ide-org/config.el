@@ -2485,25 +2485,89 @@ items around it."
 
 ;;; Review buffer
 
-(defvar claude-code-ide-org-review-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "m") #'claude-code-ide-org-review-mark)
-    (define-key map (kbd "u") #'claude-code-ide-org-review-unmark)
-    (define-key map (kbd "t") #'claude-code-ide-org-review-toggle)
-    (define-key map (kbd "e") #'claude-code-ide-org-review-edit-interval)
-    (define-key map (kbd "RET") #'claude-code-ide-org-review-goto)
-    (define-key map (kbd "x") #'claude-code-ide-org-review-apply)
-    (define-key map (kbd "g") #'claude-code-ide-org-review-refresh)
-    map)
+(defvar claude-code-ide-org-review-mode-map (make-sparse-keymap)
   "Keymap for `claude-code-ide-org-review-mode'.")
 
+;; Bindings live outside the `defvar' initializer on purpose. `defvar'
+;; does not reassign an already-bound variable, so a keymap built inside
+;; its initializer is frozen at whatever the first load produced -- a
+;; `load-file' reload silently keeps the old bindings while every other
+;; change in the file takes effect, which is a genuinely confusing way to
+;; lose half an edit. This project live-reloads constantly (see the
+;; org-dev skill), so the bindings are applied to the existing map on
+;; every load instead.
+(dolist (binding '(("m" . claude-code-ide-org-review-mark)
+                   ("u" . claude-code-ide-org-review-unmark)
+                   ("t" . claude-code-ide-org-review-toggle)
+                   ("e" . claude-code-ide-org-review-edit-interval)
+                   ("RET" . claude-code-ide-org-review-goto)
+                   ("x" . claude-code-ide-org-review-apply)
+                   ("g" . claude-code-ide-org-review-refresh)
+                   ("?" . claude-code-ide-org-review-help)))
+  (define-key claude-code-ide-org-review-mode-map
+              (kbd (car binding)) (cdr binding)))
+
+(defun claude-code-ide-org-review-help ()
+  "Show this mode's key bindings, preferring `which-key' when available.
+
+Resolved at call time rather than at load: `which-key' is present in
+this user's Doom config but not under `emacs --batch -Q', which is what
+config-test.el runs, and a hard dependency would break the suite for a
+convenience. Falls back to `describe-mode', which shows the same
+bindings alongside the mode's own documentation."
+  (interactive)
+  (if (fboundp 'which-key-show-major-mode)
+      (call-interactively 'which-key-show-major-mode)
+    (describe-mode)))
+
 (define-derived-mode claude-code-ide-org-review-mode special-mode "Org-Review"
-  "Major mode for reviewing pending org updates before applying them.
-Derived from `special-mode', so `q' buries and the buffer is read-only.
-Marking uses a text property per line plus an overlay for the mark
-character -- the same shape `org-agenda-bulk-mark' uses, which is not
-itself reusable here since it keys off agenda-specific properties and a
-global marked-entries list.")
+  "Review pending org updates and apply the ones you approve.
+
+Claude Code sessions never write clock or TODO-state changes directly.
+They append events to a queue, and nothing reaches an org file until you
+apply it here.  Items are grouped under the heading they belong to.
+
+Two kinds of line:
+
+  state   a TODO transition.  Applying writes org's native
+          `State \"X\" from \"Y\"' log line stamped at the time the event
+          actually happened, not now.
+
+  clock   a time interval, shown as the :LOGBOOK: annotation it will
+          produce.  The trailing tag is the part to read carefully:
+
+          (suggested)  Reconstructed from your own pause/resume
+                       guideposts.  The system cannot tell reading and
+                       thinking from lunch, so this is a proposal, not a
+                       measurement.  Check it, and press \\[claude-code-ide-org-review-edit-interval] if it is wrong.
+          (agent)      A subagent's own paired clock in/out.  The
+                       interval is mechanically knowable, so it is
+                       authoritative.
+
+Angle brackets <...> mark an active timestamp, which `org-agenda' picks
+up -- that is how the agenda doubles as a retrospective \"what did I
+attend to\" view.  Agent intervals use [...] and stay out of the agenda,
+since unattended machine work is not attention.
+
+Three behaviours worth knowing:
+
+  \\[claude-code-ide-org-review-apply] is the only consequential key.  It writes real org state and saves
+  the buffers.  Items apply oldest first and independently: if one fails
+  it is reported and the rest still go.
+
+  \\[claude-code-ide-org-review-refresh] discards your marks.  It rebuilds from the queue, so mark, then
+  refresh, loses the marking.
+
+  \\[claude-code-ide-org-review-edit-interval] only works on a clock line, and clears the (suggested) tag --
+  an interval you have corrected is one you have confirmed.
+
+Nothing here can lose queue data.  Applying never modifies the queue
+files themselves; it only advances a watermark, and only past a
+contiguous run of items that actually succeeded.  Apply the third item
+but not the first two and nothing is consumed -- press \\[claude-code-ide-org-review-refresh] and it is
+all still pending.
+
+\\{claude-code-ide-org-review-mode-map}")
 
 (defun claude-code-ide-org--review-item-at-point ()
   "Return the review item on the current line, or nil."

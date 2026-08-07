@@ -1479,11 +1479,16 @@ Verified: =bin/test= 138/138 (4 new), =bin/queue-append-test= 30/30 (10
 new), and =config.el= live-reloaded with the new arities and tool schema
 confirmed in the running Emacs.
 
-*** TODO Rework the MCP tool / hook write paths to append-only :code:
+*** DONE Rework the MCP tool / hook write paths to append-only :code:
 :PROPERTIES:
 :ID:       feba67eb-35b3-48bd-a892-8ecd47ca52e0
 :CREATED:  [2026-08-06 Thu 10:47]
 :BLOCKER:  ids(720b2dcf-6af1-45f3-96a7-aa841e5651e1)
+:END:
+- State "DONE"       from "NEXT"       [2026-08-07 Fri 08:19]
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-08-07 Fri 15:55] \\
+  Auto-promoted: sole remaining TODO in its sibling group.
 :END:
 
 [[file:~/.claude/plans/review-and-cutover.md][Plan]]
@@ -1555,22 +1560,28 @@ sitting alongside them):
   independent. Concrete supporting case for why the backdated-
   timestamp sub-task below matters as much as it does.
 
-*** DOING Build the interactive review-and-apply Emacs command :code:
+*** PLANNING Build the interactive review-and-apply Emacs command :code:
 :PROPERTIES:
 :ID:       720b2dcf-6af1-45f3-96a7-aa841e5651e1
 :CREATED:  [2026-08-06 Thu 10:47]
 :END:
+- State "PLANNING"   from "DOING"      [2026-08-07 Fri 11:51]
 :SESSIONS:
 - Resumed [2026-08-07 Fri 11:51]
-- Paused [2026-08-07 Fri 15:29] (session d847eab1-9e6d-4d67-baf2-457715870457)
-- Resumed [2026-08-07 Fri 15:36] (session d847eab1-9e6d-4d67-baf2-457715870457)
+- Paused [2026-08-07 Fri 15:51] (session d847eab1-9e6d-4d67-baf2-457715870457)
+- Resumed [2026-08-07 Fri 15:53] (session d847eab1-9e6d-4d67-baf2-457715870457)
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-07 Fri 15:36]
+CLOCK: [2026-08-07 Fri 15:09]--[2026-08-07 Fri 15:53] =>  0:44
+CLOCK: [2026-08-07 Fri 15:53]--[2026-08-07 Fri 13:17] => -3:24
+CLOCK: [2026-08-07 Fri 15:35]--[2026-08-07 Fri 15:40] =>  0:05
 CLOCK: [2026-08-07 Fri 15:25]--[2026-08-07 Fri 15:30] =>  0:05
 CLOCK: [2026-08-07 Fri 11:50]--[2026-08-07 Fri 12:25] =>  0:35
 - State "DOING"      from "PLANNING"   [2026-08-07 Fri 12:26] \\
   Auto-promoted: ExitPlanMode fired on the owning session.
+- <2026-08-07 Fri 12:27>--<2026-08-07 Fri 12:27>
+- <2026-08-07 Fri 13:16>--<2026-08-07 Fri 13:17>
+- <2026-08-07 Fri 15:09>--<2026-08-07 Fri 15:53>
 :END:
 
 [[file:~/.claude/plans/review-and-cutover.md][Plan]]
@@ -1682,6 +1693,46 @@ the buffer against a real heading. =3d576d29= established that the
 logging path behaves differently under =emacsclient -e= than in batch,
 so nothing above proves the interactive apply works end to end. That is
 the gate before [[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]].
+
+*** MAYBE Give the review buffer a transient menu, once it has filters worth composing :code:
+:PROPERTIES:
+:ID:       118373e5-b89b-4001-ad52-1f68374745fb
+:CREATED:  [2026-08-07 Fri 15:54]
+:BLOCKER:  ids(720b2dcf-6af1-45f3-96a7-aa841e5651e1)
+:END:
+
+Captured 2026-08-07 from conversation, after pressing =h= in a live
+=*org-review*= buffer and finding the help thin. Two cheap fixes landed
+immediately — the mode docstring was rewritten as user-facing help
+rather than maintainer notes, and =?= now calls
+=which-key-show-major-mode= (with a =describe-mode= fallback, since
+which-key is absent under =emacs --batch -Q=). This heading is the
+*deferred* remainder.
+
+*Availability, checked rather than assumed:* =transient= is loaded, and
+=claude-code-ide= itself ships =claude-code-ide-transient.el= with 16
+transient prefixes — so it is already the idiom in this exact
+ecosystem, not a new dependency. =which-key= is loaded too. =hydra= and
+=casual= are not installed.
+
+*Why deferred rather than done:* transient earns its machinery when
+there are *options and switches to compose* — that is what makes
+magit's popups worth it. The review buffer currently has seven flat
+commands and no state to toggle, so a transient menu today would be a
+prettier =which-key= at roughly ten times the cost. =which-key= gets
+most of the benefit for one line.
+
+*What would change that*, and the real trigger to revisit: the filters
+the buffer plausibly wants once it meets real volume — filter by
+session, filter to only =(suggested)= items, mark-all-within-a-heading,
+apply-with-confirmation. Those are switches, and transient handles
+switches far better than a flat keymap does. The
+[[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]] plan already
+named magit-status's staging area as the model, so this is a genuine
+direction — it should just follow the filters rather than lead them.
+Blocked on =720b2dcf= being used enough to know which filters are
+actually wanted; guessing at them now is how the machinery gets built
+for a UI nobody needs.
 
 *** MAYBE Let the review command ask Claude to explain the gaps between guideposts :code:
 :PROPERTIES:
