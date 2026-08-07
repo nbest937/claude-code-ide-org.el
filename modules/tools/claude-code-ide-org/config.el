@@ -2099,6 +2099,7 @@ whole file. This is the single place that judgement is made."
                 :note (alist-get 'note obj)
                 :session-id (alist-get 'session_id obj)
                 :agent-id (alist-get 'agent_id obj)
+                :agent-type (alist-get 'agent_type obj)
                 :source (alist-get 'source obj)))))))
 
 (defun claude-code-ide-org--queue-watermark (session-id)

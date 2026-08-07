@@ -93,6 +93,21 @@ reset_queue
 run pause '{"session_id":"sess-a","hook_event_name":"Stop"}'
 check "pause has null note" "null" "$(jq -r '.note' <<<"$(queue_lines sess-a)")"
 
+# --- subagent attribution rides through --------------------------------
+# Tool events fire these same hooks inside a subagent, and the payload
+# then carries agent_id/agent_type. Both absent on the main thread.
+reset_queue
+run clock_in '{"session_id":"sess-a","agent_id":"a4bb098d74a939dc9","agent_type":"Explore","tool_input":{"id":"id-a"},"tool_response":"Clocked in: \"x\""}'
+line="$(queue_lines sess-a)"
+check "subagent agent_id captured" "a4bb098d74a939dc9" "$(jq -r '.agent_id' <<<"$line")"
+check "subagent agent_type captured" "Explore" "$(jq -r '.agent_type' <<<"$line")"
+
+reset_queue
+run clock_in '{"session_id":"sess-a","tool_input":{"id":"id-a"},"tool_response":"Clocked in: \"x\""}'
+line="$(queue_lines sess-a)"
+check "main-thread agent_id is null" "null" "$(jq -r '.agent_id' <<<"$line")"
+check "main-thread agent_type is null" "null" "$(jq -r '.agent_type' <<<"$line")"
+
 # --- clock_out recovers its id from the tool's own reply ---------------
 # org_clock_out takes no id argument; the running clock is the only thing
 # that knows which heading closed, so the reply is the authoritative source.

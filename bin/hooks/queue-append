@@ -22,6 +22,15 @@
 # it, so a tool-side writer could not key files by session. Same division
 # of labour as bin/hooks/posttooluse-record-planning-owner.
 #
+# This also gets subagent attribution for free, which is why the schema
+# has agent_id/agent_type. Tool events fire these same hooks inside a
+# subagent, and the payload then carries agent_id (unique per subagent
+# call) and agent_type (e.g. "Explore"); both are absent on the main
+# thread, hence null. No orchestrator-side reconstruction is needed --
+# see TODO.org :ID: 16160d23-273b-4510-858e-db18508d04a0, whose original
+# "orchestrator writes on the subagent's behalf" baseline this
+# supersedes.
+#
 # Built with jq -n throughout rather than shell interpolation, matching
 # bin/hooks/session-pause's reasoning: every field here originates in
 # untrusted payload JSON, and jq's own encoder is the only thing that
@@ -114,6 +123,7 @@ line="$(jq -n -c \
             else ($payload.tool_input.note // null) end),
      session_id: $session_id,
      agent_id: ($payload.agent_id // null),
+     agent_type: ($payload.agent_type // null),
      source: ($payload.tool_name // $payload.hook_event_name // $kind)
    }' 2>/dev/null)"
 

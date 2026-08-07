@@ -2130,7 +2130,8 @@ would leave one."
     (write-region (mapconcat #'identity lines "\n") nil file t 'silent)
     (write-region "\n" nil file t 'silent)))
 
-(defun claude-code-ide-org-test--queue-event (ts kind &optional id state session-id note)
+(defun claude-code-ide-org-test--queue-event
+    (ts kind &optional id state session-id note agent-id agent-type)
   "Return one encoded queue line, matching bin/hooks/queue-append's shape."
   (json-encode `((ts . ,ts)
                  (kind . ,kind)
@@ -2138,7 +2139,8 @@ would leave one."
                  (state . ,state)
                  (note . ,note)
                  (session_id . ,(or session-id "sess-a"))
-                 (agent_id . nil)
+                 (agent_id . ,agent-id)
+                 (agent_type . ,agent-type)
                  (source . ,kind))))
 
 (ert-deftest claude-code-ide-org-test-queue-round-trips-every-kind ()
@@ -2184,6 +2186,29 @@ would leave one."
       ;; pause/resume are emitted by hooks Claude never calls, so there is
       ;; no call site that could supply a note -- null, not empty string.
       (should-not (plist-get (nth 2 events) :note)))))
+
+(ert-deftest claude-code-ide-org-test-queue-carries-subagent-attribution ()
+  "agent_id/agent_type ride through, and are null on the main thread.
+Tool events fire the same hooks inside a subagent, and the payload then
+carries both fields -- so a subagent's queue events are attributable with
+no orchestrator-side reconstruction."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:00:00-0500" "clock_in" "id-a" nil nil
+                  "main thread work")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:05:00-0500" "clock_in" "id-a" nil nil
+                  "exploring the reader layer" "a4bb098d74a939dc9" "Explore")))
+    (let ((events (claude-code-ide-org--queue-events)))
+      (should-not (plist-get (nth 0 events) :agent-id))
+      (should-not (plist-get (nth 0 events) :agent-type))
+      (should (equal (plist-get (nth 1 events) :agent-id) "a4bb098d74a939dc9"))
+      (should (equal (plist-get (nth 1 events) :agent-type) "Explore"))
+      ;; Same session file either way: a subagent shares its parent's
+      ;; session_id, and is distinguished only by these fields.
+      (should (equal (plist-get (nth 0 events) :session-id)
+                     (plist-get (nth 1 events) :session-id))))))
 
 (ert-deftest claude-code-ide-org-test-queue-note-is-optional ()
   "A line written before the note field existed still parses."

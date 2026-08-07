@@ -1562,11 +1562,11 @@ sitting alongside them):
 :END:
 :SESSIONS:
 - Resumed [2026-08-07 Fri 11:51]
-- Paused [2026-08-07 Fri 13:17] (session d847eab1-9e6d-4d67-baf2-457715870457)
-- Resumed [2026-08-07 Fri 15:09] (session d847eab1-9e6d-4d67-baf2-457715870457)
+- Paused [2026-08-07 Fri 15:20] (session d847eab1-9e6d-4d67-baf2-457715870457)
+- Resumed [2026-08-07 Fri 15:27] (session d847eab1-9e6d-4d67-baf2-457715870457)
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-07 Fri 15:09]
+CLOCK: [2026-08-07 Fri 15:27]
 CLOCK: [2026-08-07 Fri 11:50]--[2026-08-07 Fri 12:25] =>  0:35
 - State "DOING"      from "PLANNING"   [2026-08-07 Fri 12:26] \\
   Auto-promoted: ExitPlanMode fired on the owning session.
@@ -1797,7 +1797,7 @@ be resolved — it survives this cancellation, it just doesn't live here.
 :PROPERTIES:
 :ID:       16160d23-273b-4510-858e-db18508d04a0
 :CREATED:  [2026-08-06 Thu 13:06]
-:BLOCKER:  ids(3d576d29-747f-40b9-a5b3-ecc76679daad)
+:BLOCKER:  ids(feba67eb-35b3-48bd-a892-8ecd47ca52e0)
 :END:
 
 Re-scoped =TODO= → =MAYBE= 2026-08-06, same day it was captured. Not a
@@ -1871,6 +1871,47 @@ timestamp support): a subagent's interval is *inherently*
 retrospective by the time the orchestrator learns of it, giving that
 sub-task a second, concrete, non-hypothetical reason it matters,
 beyond the general human-review-lag case.
+
+*CORRECTION 2026-08-07 — the "confirmed baseline" above is wrong, and
+the "genuinely uncertain stretch goal" is resolved in the affirmative.*
+Both were reasoned from this project's own transcripts rather than from
+the hook documentation, which says plainly: tool events such as
+=PreToolUse= and =PostToolUse= fire the same configured hooks inside a
+subagent as in the main conversation, and the payload carries
+=agent_id= (unique per subagent call, absent on the main thread) and
+=agent_type= (e.g. ="Explore"=). There is also a distinct
+=SubagentStop= event.
+
+Consequences, in descending order of how much they change this
+sub-task:
+- *No orchestrator-side reconstruction is needed at all.* The subagent's
+  own tool calls are already attributed, in real time. The whole
+  "orchestrator writes on the subagent's behalf, computing the interval
+  from =duration_ms=" design is unnecessary — and it was the *only*
+  thing making a subagent's interval inherently retrospective, so the
+  paragraph above overstates this sub-task's dependency on backdating.
+- *The =-bgN= synthetic label problem is already solved*, not merely
+  solvable. =bin/hooks/queue-append= reads =$payload.agent_id= and has
+  since it was written; =agent_type= was added 2026-08-07 alongside this
+  correction. Verified end-to-end: a synthetic subagent payload produces
+  a queue line carrying both fields, and a main-thread payload produces
+  nulls. So the compound key exists *today*, with no code left to write
+  for the attribution half.
+- *What actually remains* is therefore much smaller than this heading
+  describes: deciding whether the "subagents never call mutating tools"
+  rule relaxes for queue-appends. Pre-cutover it must *not* — the tools
+  still mutate the live global clock, so concurrent subagents calling
+  =org_clock_in= would fight over it, which is the exact failure
+  [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] exists to
+  remove. Post-[[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]] a
+  tool call is a pure append and the hazard is gone by construction.
+  That, not attribution, is the real gate.
+
+Left =MAYBE= rather than promoted: the remaining decision is genuinely
+blocked on the cutover, and nothing is gained by settling it earlier.
+The =:BLOCKER:= on =3d576d29= is now stale — that heading is =DONE= —
+but the practical dependency has moved to =feba67eb=, so it is
+retargeted accordingly.
 
 *** DONE Verify org's clock/logging APIs actually support backdated timestamps for batch apply-time backfill :code:
 :PROPERTIES:
