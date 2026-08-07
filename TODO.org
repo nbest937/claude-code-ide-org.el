@@ -1562,11 +1562,12 @@ sitting alongside them):
 :END:
 :SESSIONS:
 - Resumed [2026-08-07 Fri 11:51]
-- Paused [2026-08-07 Fri 15:20] (session d847eab1-9e6d-4d67-baf2-457715870457)
-- Resumed [2026-08-07 Fri 15:27] (session d847eab1-9e6d-4d67-baf2-457715870457)
+- Paused [2026-08-07 Fri 15:29] (session d847eab1-9e6d-4d67-baf2-457715870457)
+- Resumed [2026-08-07 Fri 15:36] (session d847eab1-9e6d-4d67-baf2-457715870457)
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-07 Fri 15:27]
+CLOCK: [2026-08-07 Fri 15:36]
+CLOCK: [2026-08-07 Fri 15:25]--[2026-08-07 Fri 15:30] =>  0:05
 CLOCK: [2026-08-07 Fri 11:50]--[2026-08-07 Fri 12:25] =>  0:35
 - State "DOING"      from "PLANNING"   [2026-08-07 Fri 12:26] \\
   Auto-promoted: ExitPlanMode fired on the owning session.
@@ -1626,6 +1627,61 @@ free, retrospective "what did I actually attend to" view, no bespoke
 code needed for that part — see
 [[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]] for the
 verification step this leans on before being trusted.
+
+*Implementation notes (2026-08-07):* =claude-code-ide-org-review= opens
+a =*org-review*= buffer in a =special-mode=-derived major mode, grouped
+by heading, with =m=/=u=/=t= marking, =e= to edit an interval, =RET= to
+jump, =x= to apply marked, =g= to refresh. Items are built by
+=--review-items-from-queue=, which classifies the two modes: a
+subagent's own paired =clock_in=/=clock_out= becomes an authoritative
+interval, while human =pause=/=resume= guideposts cluster into a
+=:suggested= span labelled from the enclosing =clock_in='s note.
+Applying is =--review-apply-item=, one item at a time.
+
+Three things the apply path gets right on purpose, each traceable to a
+specific earlier finding:
+- It binds =claude-code-ide-org--auto-clock-in-active=, this module's
+  own existing re-entrancy guard, to suppress
+  =--trigger-auto-clock-in=. Without it the trigger opens a clock at
+  *now* on any → DOING/PLANNING transition, corrupting a backdated
+  apply.
+- It calls *raw* =org-clock-out=, never
+  =claude-code-ide-org-clock-out=, so =consolidate-history='s 5-minute
+  rounding never touches a confirmed interval.
+- It binds =--log-source= to ="org_review_apply"=, so audit records are
+  attributed rather than defaulting to ="hand-edit"= — which matters
+  more once apply is the only writer of live state (see
+  [[id:9d2fcdad-9bf7-47b6-8018-223b13ec4577][9d2fcdad]]).
+
+*Two findings from verification, both of which changed the code:*
+- The note-clobber symptom observed live during
+  [[id:3d576d29-747f-40b9-a5b3-ecc76679daad][3d576d29]] does *not*
+  reproduce under =emacs --batch= — the note lands fine there. What
+  does reproduce, and is environment-independent, is the stray
+  =CLOCK:= at *now*. The regression test asserts that instead, and says
+  in its own docstring why it deliberately covers less than the live
+  symptom.
+- Run against the real 30-event queue, a lone unbracketed guidepost
+  produced a zero-width span, which would have written
+  =CLOCK: ... =>  0:00=. Now a zero-width span is annotated but writes
+  no CLOCK line: one interaction point is not a duration. Distinct from
+  the rounding this design rejects — nothing is discarded, because
+  there was no interval to discard.
+
+*Verified:* =bin/test= 149/149 (11 new) covering exact backdated
+endpoints, a surviving 2-minute interval, active-vs-inactive annotation
+per mode, the backdated state line with its note continuation, trigger
+suppression both ways, item classification, contiguous-only watermark
+advance, clock-then-DONE not tripping the blocker hook, and an
+unresolvable =:ID:= being reported rather than thrown. Live-reloaded and
+rendered against the real queue: items classify correctly and heading
+titles resolve.
+
+*Still owed:* an interactive by-hand pass — marking and applying from
+the buffer against a real heading. =3d576d29= established that the
+logging path behaves differently under =emacsclient -e= than in batch,
+so nothing above proves the interactive apply works end to end. That is
+the gate before [[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]].
 
 *** MAYBE Let the review command ask Claude to explain the gaps between guideposts :code:
 :PROPERTIES:

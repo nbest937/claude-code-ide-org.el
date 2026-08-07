@@ -2405,6 +2405,219 @@ consolidate-history's 5-minute rounding would drop it entirely."
     (should-not (claude-code-ide-org--queue-events))
     (should-not (claude-code-ide-org--queue-session-ids))))
 
+;;; Review and apply ----------------------------------------------------------
+
+(defun claude-code-ide-org-test--logbook (file)
+  "Return FILE's on-disk :LOGBOOK: body for the single test heading."
+  (let ((text (claude-code-ide-org-test--disk-contents file)))
+    (if (string-match ":LOGBOOK:\n\\(\\(?:.\\|\n\\)*?\\):END:" text)
+        (match-string 1 text)
+      "")))
+
+(ert-deftest claude-code-ide-org-test-review-applies-exact-backdated-interval ()
+  "A confirmed interval lands with its exact endpoints and duration --
+no rounding, unlike consolidate-history."
+  (claude-code-ide-org-test--with-heading
+    (let ((item (list :type 'clock :id id
+                      :start (date-to-time "2026-08-06T09:00:00-0500")
+                      :end (date-to-time "2026-08-06T09:15:00-0500")
+                      :note "clarify backend schema design"
+                      :agent nil :suggested nil :events nil)))
+      (should-not (claude-code-ide-org--review-apply-item item))
+      (let ((logbook (claude-code-ide-org-test--logbook file)))
+        (should (string-match-p "CLOCK: \\[2026-08-06 [A-Za-z]+ 09:00\\]--\\[2026-08-06 [A-Za-z]+ 09:15\\] =>  0:15"
+                                logbook))
+        ;; Human span -> ACTIVE timestamps, so org-agenda picks it up.
+        (should (string-match-p "- <2026-08-06 [A-Za-z]+ 09:00>--<2026-08-06 [A-Za-z]+ 09:15> clarify backend schema design"
+                                logbook))))))
+
+(ert-deftest claude-code-ide-org-test-review-keeps-short-interval ()
+  "A 2-minute interval survives, where consolidate-history drops it."
+  (claude-code-ide-org-test--with-heading
+    (let ((item (list :type 'clock :id id
+                      :start (date-to-time "2026-08-06T22:43:00-0500")
+                      :end (date-to-time "2026-08-06T22:45:00-0500")
+                      :agent nil :suggested nil :events nil)))
+      (should-not (claude-code-ide-org--review-apply-item item))
+      (should (string-match-p "22:43\\]--\\[2026-08-06 [A-Za-z]+ 22:45\\] =>  0:02"
+                              (claude-code-ide-org-test--logbook file))))))
+
+(ert-deftest claude-code-ide-org-test-review-zero-width-span-annotates-only ()
+  "A lone guidepost is an interaction point, not a duration: it gets its
+annotation but no CLOCK: line, since `=>  0:00' would claim an interval
+that was never observed. Found against real queue data, where a single
+unbracketed pause produced exactly this case."
+  (claude-code-ide-org-test--with-heading
+    (let* ((ts (date-to-time "2026-08-07T12:27:00-0500"))
+           (item (list :type 'clock :id id :start ts :end ts
+                       :agent nil :suggested t :events nil)))
+      (should-not (claude-code-ide-org--review-apply-item item))
+      (let ((text (claude-code-ide-org-test--disk-contents file)))
+        (should (string-match-p "- <2026-08-07 [A-Za-z]+ 12:27>--<2026-08-07 [A-Za-z]+ 12:27>" text))
+        (should-not (string-match-p "CLOCK:" text))))))
+
+(ert-deftest claude-code-ide-org-test-review-agent-interval-is-inactive ()
+  "A subagent interval annotates with INACTIVE timestamps, staying out
+of the agenda -- unattended machine work is not attention."
+  (claude-code-ide-org-test--with-heading
+    (let ((item (list :type 'clock :id id
+                      :start (date-to-time "2026-08-06T09:15:00-0500")
+                      :end (date-to-time "2026-08-06T09:30:00-0500")
+                      :note "unattended planning"
+                      :agent "a4bb098d7" :suggested nil :events nil)))
+      (should-not (claude-code-ide-org--review-apply-item item))
+      (let ((logbook (claude-code-ide-org-test--logbook file)))
+        (should (string-match-p "- \\[2026-08-06 [A-Za-z]+ 09:15\\]--\\[2026-08-06 [A-Za-z]+ 09:30\\] unattended planning"
+                                logbook))
+        (should-not (string-match-p "- <2026-08-06" logbook))))))
+
+(ert-deftest claude-code-ide-org-test-review-applies-backdated-state-with-note ()
+  "The native state-change line is written at the EVENT's time, not now,
+with the note as its continuation."
+  (claude-code-ide-org-test--with-heading
+    (let ((item (list :type 'state :id id
+                      :ts (date-to-time "2026-08-06T09:00:00-0500")
+                      :to "DOING" :note "plan approved, resuming implementation"
+                      :events nil)))
+      (should-not (claude-code-ide-org--review-apply-item item))
+      (let ((text (claude-code-ide-org-test--disk-contents file)))
+        (should (string-match-p "^\\* DOING " text))
+        (should (string-match-p "State \"DOING\"\\s-+from \"TODO\"\\s-+\\[2026-08-06 [A-Za-z]+ 09:00\\]"
+                                text))
+        (should (string-match-p "plan approved, resuming implementation" text))))))
+
+(ert-deftest claude-code-ide-org-test-review-suppresses-the-auto-clock-in-trigger ()
+  "Apply must not let `org-trigger-hook' open a clock at *now*.
+
+Without `claude-code-ide-org--auto-clock-in-active' bound,
+`claude-code-ide-org--trigger-auto-clock-in' fires on the -> DOING
+transition and opens an unclosed clock stamped with the current time,
+corrupting a backdated apply with a live interval nobody asked for.
+This asserts both halves: the stray clock appears without the guard, and
+does not with it.
+
+Scope note, deliberately narrow: the *worse* symptom seen during
+TODO.org :ID: 3d576d29's live verification -- the pending state-change
+note being destroyed outright -- does **not** reproduce under `emacs
+--batch`, where the note lands fine. That divergence is itself a
+documented finding of 3d576d29, so this test asserts the part that is
+environment-independent rather than pretending to cover the part that
+is not."
+  ;; Without the guard: a stray clock at now.
+  (claude-code-ide-org-test--with-heading
+    (let ((ts (date-to-time "2026-08-06T09:00:00-0500")))
+      (claude-code-ide-org--at-id
+       id
+       (lambda ()
+         (cl-letf (((symbol-function 'org-current-effective-time) (lambda () ts)))
+           (org-todo "DOING"))
+         (save-buffer)))
+      (should (org-clocking-p))
+      (should (string-match-p (format-time-string "CLOCK: \\[%Y-%m-%d")
+                              (claude-code-ide-org-test--disk-contents file)))))
+  ;; With the guard, via the real apply path: no clock at all, and the
+  ;; note lands on the backdated state line.
+  (claude-code-ide-org-test--with-heading
+    (should-not (claude-code-ide-org--review-apply-item
+                 (list :type 'state :id id
+                       :ts (date-to-time "2026-08-06T09:00:00-0500")
+                       :to "DOING" :note "this note must survive" :events nil)))
+    (should-not (org-clocking-p))
+    (let ((text (claude-code-ide-org-test--disk-contents file)))
+      (should (string-match-p "this note must survive" text))
+      (should-not (string-match-p "CLOCK:" text)))))
+
+(ert-deftest claude-code-ide-org-test-review-items-attribute-and-classify ()
+  "Items are built per heading: todo events replay one-for-one, subagent
+clock pairs are authoritative, human guideposts become suggested spans."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-06T09:00:00-0500" "todo" "id-a" "DOING" nil "starting")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-06T09:00:01-0500" "clock_in" "id-a" nil nil "backend schema")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-06T09:05:00-0500" "pause")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-06T09:10:00-0500" "resume")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-06T09:20:00-0500" "clock_in" "id-a" nil nil
+                  "agent run" "agent-1" "Explore")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-06T09:35:00-0500" "clock_out" "id-a" nil nil
+                  nil "agent-1" "Explore")))
+    (let* ((items (claude-code-ide-org--review-items-from-queue))
+           (states (seq-filter (lambda (i) (eq (plist-get i :type) 'state)) items))
+           (agent (seq-find (lambda (i) (plist-get i :agent)) items))
+           (human (seq-find (lambda (i) (plist-get i :suggested)) items)))
+      (should (= 1 (length states)))
+      (should (equal (plist-get (car states) :to) "DOING"))
+      (should (equal (plist-get (car states) :note) "starting"))
+      ;; Subagent pair is authoritative, not a suggestion.
+      (should agent)
+      (should-not (plist-get agent :suggested))
+      (should (equal (format-time-string "%H:%M" (plist-get agent :start)) "09:20"))
+      (should (equal (format-time-string "%H:%M" (plist-get agent :end)) "09:35"))
+      ;; Human guideposts cluster into a suggested span labelled from the
+      ;; enclosing clock_in's note.
+      (should human)
+      (should (equal (format-time-string "%H:%M" (plist-get human :start)) "09:05"))
+      (should (equal (format-time-string "%H:%M" (plist-get human :end)) "09:10"))
+      (should (equal (plist-get human :note) "backend schema")))))
+
+(ert-deftest claude-code-ide-org-test-review-watermark-only-advances-contiguously ()
+  "Applying a later item must not consume an earlier skipped one."
+  (claude-code-ide-org-test--with-queue
+    (let ((first (list :ts-string "2026-08-06T09:00:00-0500"))
+          (second (list :ts-string "2026-08-06T09:05:00-0500")))
+      (apply #'claude-code-ide-org-test--queue-write "sess-a"
+             (list (claude-code-ide-org-test--queue-event
+                    "2026-08-06T09:00:00-0500" "pause")
+                   (claude-code-ide-org-test--queue-event
+                    "2026-08-06T09:05:00-0500" "pause")
+                   (claude-code-ide-org-test--queue-event
+                    "2026-08-06T09:10:00-0500" "pause")))
+      ;; Apply only the SECOND event: the first is unapplied, so nothing
+      ;; may advance past it.
+      (claude-code-ide-org--review-advance-watermarks
+       (list (list :events (list second))))
+      (should-not (claude-code-ide-org--queue-watermark "sess-a"))
+      ;; Now the first as well: the run 1..2 is contiguous, so the
+      ;; watermark reaches the second and the third stays pending.
+      (claude-code-ide-org--review-advance-watermarks
+       (list (list :events (list first second))))
+      (should (equal (claude-code-ide-org--queue-watermark "sess-a")
+                     (date-to-time "2026-08-06T09:05:00-0500")))
+      (should (= 1 (length (claude-code-ide-org--queue-events)))))))
+
+(ert-deftest claude-code-ide-org-test-review-clock-then-state-leaves-no-open-clock ()
+  "Applying a clock item then a DONE transition must not be blocked --
+the blocker hook refuses -> DONE while that heading's clock runs, so the
+pair must close before any state change."
+  (claude-code-ide-org-test--with-heading
+    (should-not (claude-code-ide-org--review-apply-item
+                 (list :type 'clock :id id
+                       :start (date-to-time "2026-08-06T09:00:00-0500")
+                       :end (date-to-time "2026-08-06T09:15:00-0500")
+                       :agent nil :suggested nil :events nil)))
+    (should-not (org-clocking-p))
+    (should-not (claude-code-ide-org--review-apply-item
+                 (list :type 'state :id id
+                       :ts (date-to-time "2026-08-06T09:16:00-0500")
+                       :to "DONE" :note "merged" :events nil)))
+    (should (string-match-p "^\\* DONE "
+                            (claude-code-ide-org-test--disk-contents file)))))
+
+(ert-deftest claude-code-ide-org-test-review-apply-reports-unresolvable-id ()
+  "A bad :ID: is reported, not thrown, and does not count as applied."
+  (claude-code-ide-org-test--with-heading
+    (let ((result (claude-code-ide-org--review-apply
+                   (list (list :type 'state :id "no-such-id"
+                               :ts (current-time) :to "DOING" :events nil)))))
+      (should (= 0 (plist-get result :applied)))
+      (should (= 1 (length (plist-get result :errors))))
+      (should (string-match-p "\\`Error:" (car (plist-get result :errors)))))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here

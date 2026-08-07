@@ -2239,6 +2239,411 @@ other."
     (when start (push (cons start previous) spans))
     (nreverse spans)))
 
+;;; Review and apply ---------------------------------------------------------
+;;
+;; The human-triggered half of the event-queue refactor (TODO.org :ID:
+;; 720b2dcf-6af1-45f3-96a7-aa841e5651e1). Everything above only *records*
+;; what happened; this is where a human turns those records into real org
+;; state, through org's own machinery, inside a genuinely interactive
+;; command so native !/@ logging fires with no `org-inhibit-logging'
+;; anywhere in the call path.
+;;
+;; Two modes, deliberately not one (see 720b2dcf's core design principle):
+;;
+;; - Subagent-derived intervals are mechanically knowable -- an agent was
+;;   either running or not -- so a CLOCK: line is proposed directly, and
+;;   the :LOGBOOK: annotation uses *inactive* timestamps, staying out of
+;;   the agenda.
+;; - Human-derived intervals are NOT knowable: the system cannot tell
+;;   reading and thinking from lunch. So the pause/resume guideposts are
+;;   clustered into a *suggested* span the human edits or rejects, and the
+;;   annotation uses *active* timestamps so org-agenda doubles as a
+;;   retrospective "what did I actually attend to" view (confirmed live,
+;;   TODO.org :ID: c084553c).
+;;
+;; Nothing here rounds. `claude-code-ide-org--consolidate-logbook-text'
+;; rounds to 5 minutes and drops what becomes zero-length, which silently
+;; ate a real 2-minute interval; apply writes exactly the endpoints the
+;; human confirmed. That is also why apply calls raw `org-clock-out'
+;; rather than `claude-code-ide-org-clock-out', which consolidates.
+
+(defvar-local claude-code-ide-org--review-items nil
+  "Review items rendered in the current `*org-review*' buffer.
+Each is a plist; see `claude-code-ide-org--review-items-from-queue'.")
+
+(defun claude-code-ide-org--review-guidepost-p (event)
+  "Non-nil when EVENT is a pause/resume guidepost."
+  (member (plist-get event :kind) '("pause" "resume")))
+
+(defun claude-code-ide-org--review-items-from-queue (&optional session-id)
+  "Build review items from the pending queue, oldest first.
+
+Returns a list of plists, each one proposed action:
+
+  (:type state :id ID :ts TIME :to STATE :note NOTE :events EVENTS)
+  (:type clock :id ID :start TIME :end TIME :note NOTE :agent AGENT
+         :suggested BOOL :events EVENTS)
+
+`:suggested' distinguishes the two modes above: non-nil means the span
+was reconstructed from human guideposts and is a proposal the human must
+confirm or edit; nil means it came from a subagent's own paired
+clock_in/clock_out, where the interval is authoritative.
+
+Items carry the `:events' they were derived from, which is what lets
+`claude-code-ide-org--review-advance-watermarks' tell an applied event
+from a skipped one."
+  (let (items)
+    (dolist (group (claude-code-ide-org--queue-events-by-id session-id))
+      (let* ((id (car group))
+             (events (cdr group)))
+        (when id
+          ;; State transitions replay one per todo event, in order --
+          ;; never collapsed. A TODO->PLANNING->DOING run is three real
+          ;; transitions and org's own log wants a line for each; it is
+          ;; the *clock interval* that must not be broken up by them.
+          (dolist (event events)
+            (when (equal (plist-get event :kind) "todo")
+              (push (list :type 'state :id id
+                          :ts (plist-get event :ts)
+                          :to (plist-get event :state)
+                          :note (plist-get event :note)
+                          :events (list event))
+                    items)))
+          ;; Subagent intervals: pair each agent's own clock_in/clock_out.
+          (let ((by-agent (make-hash-table :test 'equal)))
+            (dolist (event events)
+              (when (and (plist-get event :agent-id)
+                         (member (plist-get event :kind) '("clock_in" "clock_out")))
+                (push event (gethash (plist-get event :agent-id) by-agent))))
+            (maphash
+             (lambda (agent agent-events)
+               (let ((ordered (nreverse agent-events))
+                     open)
+                 (dolist (event ordered)
+                   (if (equal (plist-get event :kind) "clock_in")
+                       (setq open event)
+                     (when open
+                       (push (list :type 'clock :id id
+                                   :start (plist-get open :ts)
+                                   :end (plist-get event :ts)
+                                   :note (or (plist-get open :note)
+                                             (plist-get event :note))
+                                   :agent agent :suggested nil
+                                   :events (list open event))
+                             items)
+                       (setq open nil))))))
+             by-agent))
+          ;; Human spans: cluster this heading's guideposts. The label
+          ;; inherits the enclosing clock_in's note, which is the only
+          ;; source of one -- pause/resume come from hooks Claude never
+          ;; invokes, so they can carry no note of their own.
+          (let* ((guideposts (seq-filter
+                              (lambda (e)
+                                (and (claude-code-ide-org--review-guidepost-p e)
+                                     (not (plist-get e :agent-id))))
+                              events))
+                 (label (car (delq nil
+                                   (mapcar (lambda (e)
+                                             (and (equal (plist-get e :kind) "clock_in")
+                                                  (plist-get e :note)))
+                                           events)))))
+            (dolist (span (claude-code-ide-org--aggregate-guideposts guideposts))
+              (push (list :type 'clock :id id
+                          :start (car span) :end (cdr span)
+                          :note label :agent nil :suggested t
+                          :events (seq-filter
+                                   (lambda (e)
+                                     (let ((ts (plist-get e :ts)))
+                                       (and (not (time-less-p ts (car span)))
+                                            (not (time-less-p (cdr span) ts)))))
+                                   guideposts))
+                    items))))))
+    (sort (nreverse items)
+          (lambda (a b)
+            (time-less-p (or (plist-get a :ts) (plist-get a :start))
+                         (or (plist-get b :ts) (plist-get b :start)))))))
+
+(defun claude-code-ide-org--review-format-annotation (item)
+  "Return the :LOGBOOK: annotation line for ITEM.
+Active timestamps for a human span -- those reach `org-agenda', which is
+the entire point -- and inactive for a subagent's, which should not."
+  (let* ((agent (plist-get item :agent))
+         (fmt (if agent "[%Y-%m-%d %a %H:%M]" "<%Y-%m-%d %a %H:%M>"))
+         (note (plist-get item :note)))
+    (format "- %s--%s%s"
+            (format-time-string fmt (plist-get item :start))
+            (format-time-string fmt (plist-get item :end))
+            (if (and note (not (string-empty-p note))) (concat " " note) ""))))
+
+(defun claude-code-ide-org--review-apply-clock (item)
+  "Write ITEM's CLOCK: interval and its :LOGBOOK: annotation at point.
+Uses raw `org-clock-in'/`org-clock-out' with both endpoints supplied up
+front, never the consolidating wrapper, and binds
+`org-clock-out-remove-zero-time-clocks' nil so a short confirmed
+interval survives. The pair is written back to back so no clock is ever
+left open across a state change -- `claude-code-ide-org--blocker-clock-
+running-p' would refuse a -> DONE transition if one were."
+  (let ((start (plist-get item :start))
+        (end (plist-get item :end)))
+    ;; A zero-width span is a single interaction point, not a duration --
+    ;; a lone guidepost with nothing to bracket it. Annotate it (it is
+    ;; real evidence that something happened at that moment) but write no
+    ;; CLOCK: line, since `=>  0:00' would claim an interval that was
+    ;; never observed. Note this is NOT the rounding behavior being
+    ;; avoided elsewhere: nothing is being discarded, because there was
+    ;; no duration to discard.
+    (unless (time-equal-p start end)
+      (let ((org-clock-out-remove-zero-time-clocks nil))
+        (org-clock-in nil start)
+        (org-clock-out nil nil end))))
+  (claude-code-ide-org--append-to-drawer
+   "LOGBOOK" (claude-code-ide-org--review-format-annotation item)))
+
+(defun claude-code-ide-org--review-apply-state (item)
+  "Apply ITEM's TODO transition at point, backdated, with native logging.
+
+Backdates by shadowing `org-current-effective-time' rather than
+let-binding `org-log-note-effective-time': `org-add-log-setup' setqs the
+latter from the former, so binding the variable is futile (org.el:11031).
+
+Then drives the deferred note directly. `org-add-log-note' normally runs
+from `post-command-hook' and pop-to-buffers *Org Note* before it checks
+whether a note is even wanted, which is what hangs non-interactively;
+calling `org-store-log-note' with the note buffer already current
+bypasses that entirely. It takes the note text from that buffer's
+contents, so empty yields a bare State line and non-empty yields the
+`\\\\' continuation."
+  (let ((ts (plist-get item :ts))
+        (note (plist-get item :note)))
+    (cl-letf (((symbol-function 'org-current-effective-time) (lambda () ts)))
+      (org-todo (plist-get item :to)))
+    (when (and (boundp 'org-log-note-marker) (marker-buffer org-log-note-marker))
+      (let ((buffer (get-buffer-create "*Org Note*")))
+        (with-current-buffer buffer
+          (erase-buffer)
+          (when (and note (not (string-empty-p note))) (insert note))
+          (setq org-log-note-window-configuration (current-window-configuration))
+          ;; org-store-log-note ends with set-window-configuration, which
+          ;; errors under batch; the note is already written by then.
+          (ignore-errors (org-store-log-note)))))))
+
+(defun claude-code-ide-org--review-apply-item (item)
+  "Apply one review ITEM. Returns nil on success, an error string on failure.
+
+Binds `claude-code-ide-org--auto-clock-in-active' for the duration.
+That is this module's own re-entrancy guard for
+`claude-code-ide-org--trigger-auto-clock-in', reused here rather than
+inventing a second suppression flag: without it the trigger fires on any
+-> DOING/PLANNING transition, opens a clock at *now* rather than the
+backdated time, and -- confirmed live during TODO.org :ID: 3d576d29's
+verification -- destroys the pending state-change note so it never
+lands at all."
+  (let ((claude-code-ide-org--auto-clock-in-active t)
+        (claude-code-ide-org--log-source
+         (or claude-code-ide-org--log-source "org_review_apply")))
+    (let ((result
+           (claude-code-ide-org--at-id
+            (plist-get item :id)
+            (lambda ()
+              (pcase (plist-get item :type)
+                ('clock (claude-code-ide-org--review-apply-clock item))
+                ('state (claude-code-ide-org--review-apply-state item)))
+              (save-buffer)
+              nil))))
+      ;; --at-id returns an "Error: ..." string rather than throwing.
+      (and (stringp result) result))))
+
+(defun claude-code-ide-org--review-advance-watermarks (applied-items)
+  "Advance each session's watermark past its applied events.
+
+Only past the longest *contiguous* run of applied events: a session's
+queue is ordered, and stopping at the first unapplied event is what
+keeps a skipped item pending instead of being silently consumed by the
+items around it."
+  (let ((applied (make-hash-table :test 'equal)))
+    (dolist (item applied-items)
+      (dolist (event (plist-get item :events))
+        (puthash (plist-get event :ts-string) t applied)))
+    (dolist (session-id (claude-code-ide-org--queue-session-ids))
+      (let ((watermark nil))
+        (catch 'done
+          (dolist (event (claude-code-ide-org--queue-events session-id))
+            (if (gethash (plist-get event :ts-string) applied)
+                (setq watermark (plist-get event :ts-string))
+              (throw 'done nil))))
+        (when watermark
+          (claude-code-ide-org--queue-set-watermark session-id watermark))))))
+
+(defun claude-code-ide-org--review-apply (items)
+  "Apply ITEMS in order. Returns a plist (:applied N :errors ERRORS)."
+  (let (applied errors)
+    (dolist (item items)
+      (let ((error (claude-code-ide-org--review-apply-item item)))
+        (if error (push error errors) (push item applied))))
+    (claude-code-ide-org--review-advance-watermarks applied)
+    (list :applied (length applied) :errors (nreverse errors))))
+
+;;; Review buffer
+
+(defvar claude-code-ide-org-review-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "m") #'claude-code-ide-org-review-mark)
+    (define-key map (kbd "u") #'claude-code-ide-org-review-unmark)
+    (define-key map (kbd "t") #'claude-code-ide-org-review-toggle)
+    (define-key map (kbd "e") #'claude-code-ide-org-review-edit-interval)
+    (define-key map (kbd "RET") #'claude-code-ide-org-review-goto)
+    (define-key map (kbd "x") #'claude-code-ide-org-review-apply)
+    (define-key map (kbd "g") #'claude-code-ide-org-review-refresh)
+    map)
+  "Keymap for `claude-code-ide-org-review-mode'.")
+
+(define-derived-mode claude-code-ide-org-review-mode special-mode "Org-Review"
+  "Major mode for reviewing pending org updates before applying them.
+Derived from `special-mode', so `q' buries and the buffer is read-only.
+Marking uses a text property per line plus an overlay for the mark
+character -- the same shape `org-agenda-bulk-mark' uses, which is not
+itself reusable here since it keys off agenda-specific properties and a
+global marked-entries list.")
+
+(defun claude-code-ide-org--review-item-at-point ()
+  "Return the review item on the current line, or nil."
+  (get-text-property (line-beginning-position) 'claude-code-ide-org-item))
+
+(defun claude-code-ide-org--review-describe (item)
+  "Return the one-line description of ITEM shown in the review buffer."
+  (let ((note (or (plist-get item :note) "")))
+    (pcase (plist-get item :type)
+      ('state (format "state   %-9s %s   %s"
+                      (plist-get item :to)
+                      (format-time-string "%m-%d %H:%M" (plist-get item :ts))
+                      note))
+      ('clock (format "clock   %s%s   %s"
+                      (claude-code-ide-org--review-format-annotation item)
+                      (if (plist-get item :suggested) "  (suggested)" "  (agent)")
+                      note)))))
+
+(defun claude-code-ide-org--review-render ()
+  "Render `claude-code-ide-org--review-items' into the current buffer."
+  (let ((inhibit-read-only t)
+        (items claude-code-ide-org--review-items)
+        (last-id nil))
+    (erase-buffer)
+    (insert "Pending org updates.  m/u mark, t toggle, e edit, RET goto, "
+            "x apply marked, g refresh, q quit\n\n")
+    (if (null items)
+        (insert "  Nothing pending.\n")
+      (dolist (item items)
+        (unless (equal (plist-get item :id) last-id)
+          (setq last-id (plist-get item :id))
+          (insert (format "\n%s\n"
+                          (or (claude-code-ide-org--at-id
+                               last-id (lambda () (org-get-heading t t t t)))
+                              last-id))))
+        (insert (propertize
+                 (format "  [%s] %s\n"
+                         (if (plist-get item :marked) "x" " ")
+                         (claude-code-ide-org--review-describe item))
+                 'claude-code-ide-org-item item))))
+    (goto-char (point-min))))
+
+(defun claude-code-ide-org--review-set-mark (marked)
+  "Set the current line's item :marked to MARKED and re-render."
+  (let ((item (claude-code-ide-org--review-item-at-point))
+        (line (line-number-at-pos)))
+    (unless item (user-error "No review item on this line"))
+    (plist-put item :marked marked)
+    (claude-code-ide-org--review-render)
+    (goto-char (point-min))
+    (forward-line (1- line))))
+
+(defun claude-code-ide-org-review-mark ()
+  "Mark the item at point for applying."
+  (interactive)
+  (claude-code-ide-org--review-set-mark t))
+
+(defun claude-code-ide-org-review-unmark ()
+  "Unmark the item at point."
+  (interactive)
+  (claude-code-ide-org--review-set-mark nil))
+
+(defun claude-code-ide-org-review-toggle ()
+  "Toggle the mark on the item at point."
+  (interactive)
+  (let ((item (claude-code-ide-org--review-item-at-point)))
+    (unless item (user-error "No review item on this line"))
+    (claude-code-ide-org--review-set-mark (not (plist-get item :marked)))))
+
+(defun claude-code-ide-org-review-goto ()
+  "Jump to the org heading the item at point belongs to."
+  (interactive)
+  (let ((item (claude-code-ide-org--review-item-at-point)))
+    (unless item (user-error "No review item on this line"))
+    (let ((id (plist-get item :id)))
+      (org-id-goto id))))
+
+(defun claude-code-ide-org-review-edit-interval ()
+  "Edit the endpoints of the clock item at point.
+Reads both back as org timestamp strings, so a suggested span can be
+corrected to what actually happened before anything is written."
+  (interactive)
+  (let ((item (claude-code-ide-org--review-item-at-point)))
+    (unless item (user-error "No review item on this line"))
+    (unless (eq (plist-get item :type) 'clock)
+      (user-error "Only clock items have an interval to edit"))
+    (let* ((fmt "[%Y-%m-%d %a %H:%M]")
+           (start (read-string "Start: " (format-time-string fmt (plist-get item :start))))
+           (end (read-string "End: " (format-time-string fmt (plist-get item :end))))
+           (start-time (claude-code-ide-org--parse-org-timestamp start))
+           (end-time (claude-code-ide-org--parse-org-timestamp end)))
+      (unless (and start-time end-time)
+        (user-error "Could not parse those timestamps"))
+      (when (time-less-p end-time start-time)
+        (user-error "End is before start"))
+      (plist-put item :start start-time)
+      (plist-put item :end end-time)
+      ;; An edited interval is a confirmed one, not a suggestion.
+      (plist-put item :suggested nil)
+      (claude-code-ide-org--review-render))))
+
+(defun claude-code-ide-org-review-refresh ()
+  "Rebuild the review buffer from the queue, discarding marks."
+  (interactive)
+  (setq claude-code-ide-org--review-items
+        (claude-code-ide-org--review-items-from-queue))
+  (claude-code-ide-org--review-render))
+
+(defun claude-code-ide-org-review-apply ()
+  "Apply every marked item, then refresh."
+  (interactive)
+  (let ((marked (seq-filter (lambda (i) (plist-get i :marked))
+                            claude-code-ide-org--review-items)))
+    (unless marked (user-error "Nothing marked"))
+    (let ((result (claude-code-ide-org--review-apply marked)))
+      (claude-code-ide-org-review-refresh)
+      (message "Applied %d item(s)%s"
+               (plist-get result :applied)
+               (if (plist-get result :errors)
+                   (format "; %d failed: %s"
+                           (length (plist-get result :errors))
+                           (string-join (plist-get result :errors) "; "))
+                 "")))))
+
+;;;###autoload
+(defun claude-code-ide-org-review ()
+  "Review pending org updates and apply the approved ones.
+
+The human-triggered entry point for the whole queue design: sessions
+append events, and nothing reaches an org file until this command is run
+by a person at a moment of their choosing. Deliberately never invoked
+programmatically -- org's native state-change logging only completes
+correctly inside a real interactive command."
+  (interactive)
+  (let ((buffer (get-buffer-create "*org-review*")))
+    (with-current-buffer buffer
+      (claude-code-ide-org-review-mode)
+      (claude-code-ide-org-review-refresh))
+    (pop-to-buffer buffer)))
+
 ;;; MCP tool registration -------------------------------------------------
 
 (with-eval-after-load 'claude-code-ide
