@@ -1479,16 +1479,11 @@ Verified: =bin/test= 138/138 (4 new), =bin/queue-append-test= 30/30 (10
 new), and =config.el= live-reloaded with the new arities and tool schema
 confirmed in the running Emacs.
 
-*** DONE Rework the MCP tool / hook write paths to append-only :code:
+*** TODO Rework the MCP tool / hook write paths to append-only :code:
 :PROPERTIES:
 :ID:       feba67eb-35b3-48bd-a892-8ecd47ca52e0
 :CREATED:  [2026-08-06 Thu 10:47]
 :BLOCKER:  ids(720b2dcf-6af1-45f3-96a7-aa841e5651e1)
-:END:
-- State "DONE"       from "NEXT"       [2026-08-07 Fri 08:19]
-:LOGBOOK:
-- State "NEXT"       from "TODO"       [2026-08-07 Fri 15:55] \\
-  Auto-promoted: sole remaining TODO in its sibling group.
 :END:
 
 [[file:~/.claude/plans/review-and-cutover.md][Plan]]
@@ -1567,12 +1562,12 @@ sitting alongside them):
 :END:
 :SESSIONS:
 - Resumed [2026-08-07 Fri 11:51]
-- Paused [2026-08-07 Fri 15:51] (session d847eab1-9e6d-4d67-baf2-457715870457)
-- Resumed [2026-08-07 Fri 15:53] (session d847eab1-9e6d-4d67-baf2-457715870457)
-- Resumed [2026-08-07 Fri 15:59] (session d847eab1-9e6d-4d67-baf2-457715870457)
+- Paused [2026-08-07 Fri 16:07] (session d847eab1-9e6d-4d67-baf2-457715870457)
+- Resumed [2026-08-07 Fri 19:37] (session d847eab1-9e6d-4d67-baf2-457715870457)
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-07 Fri 15:59]
+CLOCK: [2026-08-07 Fri 19:37]
+CLOCK: [2026-08-07 Fri 16:00]--[2026-08-07 Fri 16:05] =>  0:05
 CLOCK: [2026-08-07 Fri 15:35]--[2026-08-07 Fri 15:40] =>  0:05
 CLOCK: [2026-08-07 Fri 15:25]--[2026-08-07 Fri 15:30] =>  0:05
 CLOCK: [2026-08-07 Fri 11:50]--[2026-08-07 Fri 12:25] =>  0:35
@@ -1689,6 +1684,64 @@ the buffer against a real heading. =3d576d29= established that the
 logging path behaves differently under =emacsclient -e= than in batch,
 so nothing above proves the interactive apply works end to end. That is
 the gate before [[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]].
+
+*** NEXT Root-cause how apply wrote a DONE nobody queued, onto the wrong heading :code:
+:PROPERTIES:
+:ID:       3d93021d-1d8a-4657-bc5c-77734f91fb9d
+:CREATED:  [2026-08-07 Fri 19:40]
+:BLOCKER:  ids(720b2dcf-6af1-45f3-96a7-aa841e5651e1)
+:END:
+
+*The most serious thing the 2026-08-07 interactive apply did, and the
+mechanism is NOT yet understood.* Recorded with that uncertainty intact
+rather than a plausible story, because a wrong explanation here is worse
+than none.
+
+*What is established, by inspection:*
+- The queue contains exactly three =todo= events: =32272061 → DONE=
+  (08:19), =720b2dcf → PLANNING= (11:51), =720b2dcf → DOING= (16:06).
+  *None* names =feba67eb=.
+- After the apply, =feba67eb= was =DONE=, carrying
+  =- State "DONE" from "NEXT" [2026-08-07 Fri 08:19]= — stamped with
+  *32272061's* event timestamp, and placed *outside* =:LOGBOOK:=, which
+  is apply's signature under the =org-log-into-drawer= bug fixed the
+  same day.
+- =32272061=, the event's actual target, has *no* =DONE= state line at
+  all — consistent with =org-todo "DONE"= being a no-op there, since it
+  was already =DONE=.
+- No trigger hook can produce this: the only =org-todo= calls in the
+  trigger layer set ="DOING"=, ="TODO"= and ="NEXT"=. No heading carries
+  a =:TRIGGER:= property, so =org-depend-trigger-todo= is not involved
+  either.
+
+*Two candidate mechanisms, neither confirmed:*
+- =org-log-note-marker= surviving between items within a single apply.
+  =org-store-log-note= is driven directly for each item; if a previous
+  item's marker or =org-log-note-state=/=-previous-state= is still set
+  when the next item runs, a note can be written at the wrong place with
+  the wrong content. The leaked =post-command-hook= (fixed same day)
+  makes this family of state-leak plausible.
+- Mis-resolution in =claude-code-ide-org--at-id=, which uses
+  =(org-id-find id 'marker)=. Less likely — =org-id-find-id-in-file=
+  does a real property search rather than trusting a cached position —
+  but not ruled out.
+
+*Why this outranks everything else in the epic:* the failure is silent
+and the output is plausible. A heading was marked complete, with a
+correctly-formatted log line citing a real timestamp, and nothing
+errored. That is precisely the "confidently wrong record"
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] exists to
+eliminate — produced by the machinery built to eliminate it.
+
+*Do not run another apply against real files until this is understood.*
+The four fixes committed the same day may well have removed it as a side
+effect; "may well have" is not a basis for writing to =TODO.org=.
+Reproduce first, against a scratch file with two headings and a
+deliberately already-=DONE= target, applying several items in one batch
+— that is the shape that produced it.
+
+Repaired by hand: =feba67eb= restored to =TODO= (its state at commit
+=c81cba6=, before the apply) and both spurious state lines removed.
 
 *** NEXT Apply must not replay a state event that reality has moved past :code:
 :PROPERTIES:
