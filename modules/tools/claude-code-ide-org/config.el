@@ -2458,6 +2458,21 @@ contents, so empty yields a bare State line and non-empty yields the
         ;; does not consolidate. Bound locally, so the user's own
         ;; interactive org-todo keeps their configured behavior.
         (org-log-into-drawer t))
+    ;; Clear the global note state BEFORE org-todo, so that afterwards
+    ;; `org-log-note-marker' answers "did *this* call set up a note?"
+    ;; rather than "has anything, ever?". `org-todo' calls
+    ;; `org-add-log-setup' only when the state actually changes; applying
+    ;; an item whose heading already holds the requested state is a no-op
+    ;; that sets up nothing, while the marker and
+    ;; `org-log-note-state'/`-previous-state' persist globally from
+    ;; whatever last touched them -- possibly a different heading in a
+    ;; different file. Driving `org-store-log-note' on that stale state
+    ;; writes a correctly-formatted `State "X" from "Y"' line, at the
+    ;; stale marker, citing a real timestamp, with no error: exactly the
+    ;; confidently-wrong record this whole design exists to prevent.
+    ;; Observed live 2026-08-07, marking feba67eb DONE while applying an
+    ;; event that named 32272061 (TODO.org :ID: 3d93021d).
+    (set-marker org-log-note-marker nil)
     (cl-letf (((symbol-function 'org-current-effective-time) (lambda () ts)))
       (org-todo (plist-get item :to)))
     ;; `org-add-log-setup' registers `org-add-log-note' on

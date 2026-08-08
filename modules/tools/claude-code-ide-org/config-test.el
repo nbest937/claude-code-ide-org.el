@@ -2666,6 +2666,88 @@ negative duration."
       ;; And nothing negative was written.
       (should-not (string-match-p "=> *-" logbook)))))
 
+(ert-deftest claude-code-ide-org-test-review-no-op-transition-writes-nothing-elsewhere ()
+  "Reproduction for 3d93021d: apply wrote a DONE nobody queued, onto the
+wrong heading.
+
+`org-todo' only calls `org-add-log-setup' when the state actually
+changes. Applying a state item whose heading is *already* in the
+requested state is therefore a no-op that sets up no note -- but
+`org-log-note-marker' and friends are global and survive from whatever
+touched them last, possibly a different heading entirely. Driving
+`org-store-log-note' unconditionally then writes that stale note at the
+stale marker: a correctly-formatted `State \"X\" from \"Y\"' line, on the
+wrong heading, citing a real timestamp, with no error anywhere.
+
+Live on 2026-08-07 this marked feba67eb DONE while applying an event
+that named 32272061."
+  (claude-code-ide-org-test--with-heading
+    (let ((other (expand-file-name "other.org" dir)))
+      (with-temp-file other
+        (insert "* NEXT Innocent bystander\n:PROPERTIES:\n:ID: bystander-1\n:END:\n"))
+      (let ((buffer (find-file-noselect other)))
+        (unwind-protect
+            (progn
+              ;; Prime the global note state to point at the bystander, as
+              ;; any earlier org-todo on it would have.
+              (with-current-buffer buffer
+                (goto-char (point-min))
+                (org-mode)
+                (move-marker org-log-note-marker (point-max) buffer)
+                (setq org-log-note-purpose 'state
+                      org-log-note-state "DONE"
+                      org-log-note-previous-state "NEXT"
+                      org-log-note-effective-time (current-time)))
+              ;; Now apply a NO-OP transition on a different heading: set
+              ;; the test heading to TODO, which it already is.
+              (should-not (claude-code-ide-org--review-apply-item
+                           (list :type 'state :id id
+                                 :ts (date-to-time "2026-08-06T09:00:00-0500")
+                                 :to "TODO" :note nil :events nil)))
+              ;; The bystander must be untouched.
+              (with-current-buffer buffer (save-buffer))
+              (should-not (string-match-p
+                           "State \"DONE\""
+                           (claude-code-ide-org-test--disk-contents other))))
+          (with-current-buffer buffer (set-buffer-modified-p nil))
+          (kill-buffer buffer))))))
+
+(ert-deftest claude-code-ide-org-test-review-batch-does-not-leak-between-items ()
+  "The literal shape of the 2026-08-07 failure: a batch whose first item
+is a no-op, followed by a real one. Note state must not carry from item
+to item, and only the intended headings may be written."
+  (claude-code-ide-org-test--with-heading
+    (let ((other (expand-file-name "other.org" dir)))
+      (with-temp-file other
+        (insert "* NEXT Innocent bystander\n:PROPERTIES:\n:ID: bystander-2\n:END:\n"))
+      (let ((buffer (find-file-noselect other)))
+        (unwind-protect
+            (progn
+              (org-id-update-id-locations (list file other))
+              (let ((result (claude-code-ide-org--review-apply
+                             (list
+                              ;; No-op: the heading is already TODO.
+                              (list :type 'state :id id
+                                    :ts (date-to-time "2026-08-06T08:19:00-0500")
+                                    :to "TODO" :note nil :events nil)
+                              ;; Real transition, on the same heading.
+                              (list :type 'state :id id
+                                    :ts (date-to-time "2026-08-06T09:00:00-0500")
+                                    :to "DOING" :note "real work" :events nil)))))
+                (should (= 2 (plist-get result :applied)))
+                (should-not (plist-get result :errors)))
+              (with-current-buffer buffer (save-buffer))
+              ;; The bystander is untouched...
+              (let ((bystander (claude-code-ide-org-test--disk-contents other)))
+                (should (string-match-p "^\\* NEXT Innocent bystander" bystander))
+                (should-not (string-match-p "State \"" bystander)))
+              ;; ...and the real transition landed where it belongs.
+              (let ((text (claude-code-ide-org-test--disk-contents file)))
+                (should (string-match-p "^\\* DOING " text))
+                (should (string-match-p "real work" text))))
+          (with-current-buffer buffer (set-buffer-modified-p nil))
+          (kill-buffer buffer))))))
+
 (ert-deftest claude-code-ide-org-test-review-cleans-up-the-log-note-hook ()
   "Regression for the live \"Marker does not point anywhere\" error.
 
