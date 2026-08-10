@@ -1621,12 +1621,10 @@ sitting alongside them):
 - Resumed [2026-08-07 Fri 11:51]
 - Paused [2026-08-07 Fri 21:03] (session d847eab1-9e6d-4d67-baf2-457715870457)
 - Resumed [2026-08-10 Mon 12:45]
-- Paused [2026-08-10 Mon 12:48]
-- Resumed [2026-08-10 Mon 12:56] (session 2d057349-f536-42c7-b9b5-3fd838aab075)
+- Paused [2026-08-10 Mon 12:59] (session 2d057349-f536-42c7-b9b5-3fd838aab075)
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-10 Mon 12:56]
-CLOCK: [2026-08-10 Mon 12:46]--[2026-08-10 Mon 12:47] =>  0:01
+CLOCK: [2026-08-10 Mon 12:55]--[2026-08-10 Mon 13:00] =>  0:05
 CLOCK: [2026-08-10 Mon 12:45]--[2026-08-10 Mon 12:50] =>  0:05
 CLOCK: [2026-08-07 Fri 19:35]--[2026-08-07 Fri 19:40] =>  0:05
 CLOCK: [2026-08-07 Fri 16:00]--[2026-08-07 Fri 16:05] =>  0:05
@@ -2750,6 +2748,67 @@ Worth checking at the same time whether a *failed* call should be queued
 deliberately, as an audit record flagged as failed, rather than dropped.
 Dropping is right for the review buffer, but the queue is also the only
 durable trace of what a session attempted.
+
+*** TODO consolidate-history destroys reviewed intervals minutes after apply writes them :code:
+:PROPERTIES:
+:ID:       b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04
+:CREATED:  [2026-08-10 Mon 15:33]
+:END:
+
+Found 2026-08-10, in the first successful interactive apply -- and it
+undercuts that pass's headline result.
+
+Apply wrote the reviewed span as
+=CLOCK: [2026-08-10 Mon 12:46]--[2026-08-10 Mon 12:47] =>  0:01=,
+exactly as intended: =--review-apply-clock= deliberately calls *raw*
+=org-clock-out= rather than =claude-code-ide-org-clock-out=, so the
+5-minute rounding could not touch a human-confirmed interval. Committed
+in that state (=14c42d2=). *Roughly five minutes later the line was
+gone.* The next =Stop= hook ran =session-pause= ->
+=claude-code-ide-org-clock-out= -> =consolidate-history=, which rewrites
+the entire drawer -- including intervals written by something else
+entirely.
+
+*Confirmed by feeding =--consolidate-logbook-text= the exact committed
+drawer text:*
+
+: input:  CLOCK: [12:46]--[12:47] =>  0:01
+:         CLOCK: [12:45]--[12:50] =>  0:05
+: output: CLOCK: [12:45]--[12:50] =>  0:05      <- the 0:01 absorbed
+
+and, more starkly, the same 0:01 interval *alone* with nothing to merge
+into consolidates to the **empty string**. Any interval shorter than the
+rounding granularity is not shortened or flagged; it is deleted.
+
+*Why this is more than another short-interval bug.* The annotation
+=- <12:46>--<12:47> interactive verification of review-and-apply=
+survived, because it rides the =:other= bucket added in
+[[id:ba8249c1-28cd-4ff1-918b-4b8439345d9a][ba8249c1]]. So the drawer now
+holds an active-timestamp annotation describing an interval that no
+longer exists anywhere in the record -- the annotation and the arithmetic
+disagree, and only the annotation is right. A reader would trust the
+CLOCK line.
+
+Sibling of
+[[id:293ac49e-3324-421c-8495-de1a46fc04ac][293ac49e]]
+in spirit but not in mechanism: that one was org's own setting dropping
+a zero-length clock at write time, and is fixed. This is *this module's*
+rounding, destroying an already-written interval at an unrelated later
+moment. Guarding the write was necessary and is not sufficient, because
+nothing guards the record afterwards.
+
+*Deliberately not repaired by hand yet.* Re-adding the 0:01 line now
+would only feed it to the next clock-out -- the same reasoning
+=ba8249c1= reached, where restoring a destroyed line before fixing the
+destroyer was futile. Restore it as part of the fix, from =14c42d2=.
+
+*Bearing on the cutover:* after
+[[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]] =session-pause= no
+longer calls the consolidating wrapper, so the automatic trigger
+disappears -- which is a reason the cutover is now more urgent, not a
+reason to leave this alone. =consolidate-history= still has callers, and
+an apply whose output survives only until something else touches the
+drawer cannot be called correct.
 
 ** TODO Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
