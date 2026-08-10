@@ -379,6 +379,43 @@ one being clocked into — the same bug shape that already bit
              (save-buffer)))
          (format "Clocked in: \"%s\"" heading))))))
 
+(defconst claude-code-ide-org--minimum-clock-seconds 60
+  "Shortest interval a CLOCK line is allowed to record, in seconds.
+
+One minute, because that is the finest distinction a CLOCK timestamp can
+express: `[2026-08-10 Mon 12:46]--[2026-08-10 Mon 12:46]' is what a
+forty-second span looks like written down, and it reads as `=>  0:00' --
+which a clocktable sums as nothing at all, reporting no activity for
+activity that did happen.
+
+This is a deliberate policy, not arithmetic: enforcing the floor invents
+up to fifty-nine seconds that did not elapse.  The trade is accepted
+because the alternative misreports short work as zero, and because a
+minute is already the resolution of the record -- there is no honest way
+to write down less.  Confined to the write path so it is applied once,
+where the interval is created, and never re-applied to history.")
+
+(defun claude-code-ide-org--clock-out-floor-time ()
+  "Return the end time to clock out at, honouring the one-minute floor.
+
+Nil -- meaning \"now\", org's own default -- unless clocking out this
+instant would record an interval shorter than
+`claude-code-ide-org--minimum-clock-seconds', in which case return the
+start time plus that minimum.
+
+Passed to `org-clock-out's own AT-TIME argument rather than fixing up
+the CLOCK line afterwards.  Every previous attempt in this module to
+adjust an interval by editing drawer text after the fact has eventually
+destroyed something (TODO.org :ID:s ba8249c1, b74e0f19); handing org the
+end time up front means org writes a correct line the first time and
+there is nothing to repair."
+  (let ((start (and (org-clocking-p) org-clock-start-time)))
+    (when start
+      (let ((elapsed (float-time (time-subtract (current-time) start))))
+        (when (< elapsed claude-code-ide-org--minimum-clock-seconds)
+          (time-add start (seconds-to-time
+                           claude-code-ide-org--minimum-clock-seconds)))))))
+
 (defun claude-code-ide-org-clock-out (&optional note)
   "Clock out of the currently running org clock.
 
@@ -395,19 +432,23 @@ is authoritative in a way a caller-supplied argument would not be: it
 cannot disagree with what happened.  The \"Clocked out:\" prefix is
 unchanged, which is all `bin/clock-notify' matches on.
 Closes the open CLOCK entry with an end timestamp and computes the
-duration.  Also logs a \"Paused\" entry to the heading's :SESSIONS:
-drawer.  Immediately consolidates that heading's now-closed history
-afterward (see `claude-code-ide-org-consolidate-history', defined
-further below but callable here regardless of definition order —
-Elisp resolves function calls at call time, not load time), so
-:LOGBOOK:/:SESSIONS: stay collapsed on the fly instead of
-accumulating per-turn churn that needs a separate retrospective pass.
-Skipped gracefully if the heading has no :ID: (e.g. clocked in by
-hand rather than via `claude-code-ide-org-clock-in'); consolidation
-can never itself signal an error here, since it is built on
-`claude-code-ide-org--at-id', which always returns an \"Error: ...\"
-string rather than throwing.  Saves the buffer.  Safe to call when no
-clock is running."
+duration, never recording less than
+`claude-code-ide-org--minimum-clock-seconds' — see
+`claude-code-ide-org--clock-out-floor-time'.  Also logs a \"Paused\"
+entry to the heading's :SESSIONS: drawer.  Saves the buffer.  Safe to
+call when no clock is running.
+
+Deliberately does NOT consolidate afterwards any more.  It used to,
+so drawers stayed collapsed on the fly rather than accumulating
+per-turn churn.  That rewrote the whole drawer on every clock-out,
+which destroyed a reviewed, human-confirmed interval roughly five
+minutes after apply wrote it (TODO.org :ID:
+b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04), and had silently deleted
+non-CLOCK lines before that (:ID: ba8249c1).  Rewriting an entire
+drawer as a side effect of closing one interval is a large blast
+radius for a cosmetic benefit, and the churn it existed to suppress
+goes away with the queue refactor.  `claude-code-ide-org-consolidate-history'
+remains available to call deliberately."
   (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "org_clock_out")))
     (condition-case err
         (if (not (org-clocking-p))
@@ -420,22 +461,18 @@ clock is running."
               (setq id (org-entry-get nil "ID")))
             ;; org-clock-out-remove-zero-time-clocks (t in this user's
             ;; Doom config, not this project's own setting) deletes the
-            ;; CLOCK line outright based on its RAW, unrounded duration --
-            ;; before claude-code-ide-org-consolidate-history below ever
-            ;; gets a chance to round/merge it. Suppress it for this call
-            ;; only, so consolidate-history (which replicates the same
-            ;; zero-time-dropping intent correctly, after rounding to the
-            ;; nearest 5 minutes and merging adjacent intervals) is the
-            ;; sole authority here -- not a global override, since a
+            ;; CLOCK line outright when the interval reads as zero.
+            ;; Suppressed for this call only -- never globally, since a
             ;; human's own interactive org-clock-out should keep org's
-            ;; normal behavior.
+            ;; normal behavior. Belt and braces alongside the floor
+            ;; below: with a minimum of one minute nothing should reach
+            ;; org as zero-length anyway, but a deletion is unrecoverable
+            ;; and the binding costs nothing.
             (let ((org-clock-out-remove-zero-time-clocks nil))
-              (org-clock-out))
+              (org-clock-out nil nil (claude-code-ide-org--clock-out-floor-time)))
             (when (buffer-live-p buffer)
               (with-current-buffer buffer
                 (save-buffer)))
-            (when id
-              (claude-code-ide-org-consolidate-history id))
             (if id
                 (format "Clocked out: \"%s\" (id: %s)" heading id)
               (format "Clocked out: \"%s\"" heading))))
@@ -926,7 +963,19 @@ anything) is currently clocking."
   "Round TIME to the nearest 5-minute mark, ties rounding up.
 Seconds are discarded — org timestamps are minute-resolution, so any
 TIME reached via `claude-code-ide-org--parse-org-timestamp' already
-has none."
+has none.
+
+UNWIRED as of 2026-08-10, and deliberately kept rather than deleted.
+Nothing calls this: `claude-code-ide-org--consolidate-logbook-text' used
+to, and no longer alters intervals at all after rounding destroyed a
+reviewed one (TODO.org :ID: b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04).
+Retained because per-turn clocking churn is now expected to reappear in
+:LOGBOOK: until the queue refactor lands, and the open question is
+whether that is actually painful in practice.  If it is, this and
+`claude-code-ide-org--merge-time-intervals' are the raw material for a
+compaction pass a human invokes *deliberately* on history they have
+already reviewed.  What must not come back is a rewrite that fires
+automatically on every clock-out."
   (let* ((decoded (decode-time time))
          (minute (nth 1 decoded))
          (remainder (mod minute 5))
@@ -939,7 +988,10 @@ has none."
   "Sort INTERVALS — a list of (START . END) time-value conses — by
 START, then merge any that are adjacent or overlapping (END of one
 >= START of the next) into a single min-to-max span. Return the
-merged list, ascending by START."
+merged list, ascending by START.
+
+UNWIRED as of 2026-08-10, for the same reason and on the same terms as
+`claude-code-ide-org--round-time-to-5-minutes' — see its docstring."
   (let ((sorted (sort (copy-sequence intervals)
                        (lambda (a b) (time-less-p (car a) (car b)))))
         result)
@@ -1014,28 +1066,38 @@ matching org's own \"CLOCK: [start]--[end] =>  H:MM\" convention."
             (/ minutes 60) (% minutes 60))))
 
 (defun claude-code-ide-org--consolidate-logbook-text (text)
-  "Given the raw body TEXT of a :LOGBOOK: drawer, round every closed
-CLOCK interval to the nearest 5-minute mark, merge any that become
-adjacent or overlapping, drop any resulting zero-duration interval
-— matching org's own `org-clock-out-remove-zero-time-clocks'
-convention — and return the new body text, newest first like org's
-own CLOCK ordering. A still-open CLOCK line, if present, is left
-completely untouched and kept first, since it reflects live clock
-state, not history. Every non-CLOCK line (native state-change notes
-and their continuations, annotations) is preserved verbatim after
-the CLOCK block — position among the rebuilt lines is cosmetic,
-survival is not (TODO.org :ID: ba8249c1-28cd-4ff1-918b-4b8439345d9a)."
+  "Given the raw body TEXT of a :LOGBOOK: drawer, return it normalised:
+closed CLOCK intervals re-emitted newest first, like org's own CLOCK
+ordering, with their endpoints exactly as recorded. A still-open CLOCK
+line, if present, is left completely untouched and kept first, since it
+reflects live clock state, not history. Every non-CLOCK line (native
+state-change notes and their continuations, annotations) is preserved
+verbatim after the CLOCK block — position among the rebuilt lines is
+cosmetic, survival is not (TODO.org :ID: ba8249c1).
+
+*This function no longer alters any interval.* It used to round each one
+to the nearest 5-minute mark, merge those that became adjacent or
+overlapping, and drop whatever rounded to zero. That was built to clean
+up per-turn clocking churn, under a risk assessment — recorded in
+DONE.org — that it \"only ever touches already-closed history, so it can
+never corrupt a running clock.\" True when written, and later false in a
+way it could not have anticipated: closed history came to include
+*reviewed, human-confirmed* intervals written by the apply command, and
+rounding erased one within minutes (TODO.org :ID: b74e0f19). A one-minute
+interval rounds to zero and is deleted; alone in a drawer, it
+consolidates to the empty string.
+
+Rounding is not reinstatable behind a flag here. An interval this
+project has confirmed is the most authoritative record it holds, and
+nothing downstream of the confirmation may quietly rewrite it. Shortness
+is now prevented at the source instead — see
+`claude-code-ide-org--clock-out-floor-time', which stops a sub-minute
+interval ever being written, rather than deleting it afterwards."
   (let* ((parsed (claude-code-ide-org--parse-clock-lines text))
          (open (plist-get parsed :open))
          (other (plist-get parsed :other))
-         (rounded (mapcar (lambda (iv)
-                             (cons (claude-code-ide-org--round-time-to-5-minutes (car iv))
-                                   (claude-code-ide-org--round-time-to-5-minutes (cdr iv))))
-                           (plist-get parsed :closed)))
-         (merged (seq-remove (lambda (iv) (time-equal-p (car iv) (cdr iv)))
-                              (claude-code-ide-org--merge-time-intervals rounded)))
          (lines (mapcar (lambda (iv) (claude-code-ide-org--format-clock-line (car iv) (cdr iv)))
-                         (reverse merged))))
+                         (reverse (plist-get parsed :closed)))))
     (concat (if open (concat open "\n") "")
             (mapconcat #'identity lines "\n")
             (if lines "\n" "")

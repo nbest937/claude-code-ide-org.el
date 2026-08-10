@@ -1625,6 +1625,7 @@ sitting alongside them):
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-10 Mon 12:55]--[2026-08-10 Mon 13:00] =>  0:05
+CLOCK: [2026-08-10 Mon 12:46]--[2026-08-10 Mon 12:47] =>  0:01
 CLOCK: [2026-08-10 Mon 12:45]--[2026-08-10 Mon 12:50] =>  0:05
 CLOCK: [2026-08-07 Fri 19:35]--[2026-08-07 Fri 19:40] =>  0:05
 CLOCK: [2026-08-07 Fri 16:00]--[2026-08-07 Fri 16:05] =>  0:05
@@ -2749,10 +2750,16 @@ deliberately, as an audit record flagged as failed, rather than dropped.
 Dropping is right for the review buffer, but the queue is also the only
 durable trace of what a session attempted.
 
-*** TODO consolidate-history destroys reviewed intervals minutes after apply writes them :code:
+*** DONE consolidate-history destroys reviewed intervals minutes after apply writes them :code:
 :PROPERTIES:
 :ID:       b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04
 :CREATED:  [2026-08-10 Mon 15:33]
+:END:
+:SESSIONS:
+- Paused [2026-08-10 Mon 18:31]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-10 Mon 18:25]--[2026-08-10 Mon 18:31] =>  0:06
 :END:
 
 Found 2026-08-10, in the first successful interactive apply -- and it
@@ -2809,6 +2816,60 @@ disappears -- which is a reason the cutover is now more urgent, not a
 reason to leave this alone. =consolidate-history= still has callers, and
 an apply whose output survives only until something else touches the
 drawer cannot be called correct.
+
+
+*Fixed 2026-08-10.* Scope chosen by the user: retire rounding outright
+rather than make it non-destructive, on the reasoning that it is worth
+seeing how much of a problem runs of short intervals really are in
+practice before building machinery to hide them.
+
+Three changes:
+- =--consolidate-logbook-text= no longer alters any interval. Rounding,
+  merging and zero-dropping are gone; closed CLOCK lines are re-emitted
+  with their endpoints exactly as recorded. It still orders newest-first
+  and still preserves non-CLOCK lines, and =:SESSIONS:= day-collapsing is
+  untouched -- this was about not rewriting *durations*, not about
+  abandoning consolidation.
+- =org_clock_out= no longer consolidates the heading it just closed.
+  Rewriting a whole drawer as a side effect of closing one interval is a
+  large blast radius for a cosmetic benefit, and it is the mechanism
+  behind both this bug and =ba8249c1=.
+- A *one-minute floor* on newly written intervals, since without rounding
+  a same-minute clock in/out records =[12:46]--[12:46] =>  0:00=, which a
+  clocktable sums as nothing at all. Implemented through =org-clock-out='s
+  own =AT-TIME= argument, so org writes a correct line the first time --
+  every previous attempt in this module to adjust an interval by editing
+  drawer text afterwards has eventually destroyed something.
+
+*The floor is a policy, not arithmetic,* and worth re-examining if it ever
+grates: it invents up to fifty-nine seconds that did not elapse. Accepted
+because a minute is already the resolution of a CLOCK timestamp -- there
+is no honest way to write down less -- and because the alternative
+misreports real short work as zero.
+
+*=--round-time-to-5-minutes= and =--merge-time-intervals= are kept but
+unwired,* with docstrings saying so. If the returning churn does prove
+painful they are the raw material for a compaction pass a human invokes
+deliberately, on history already reviewed. What must not come back is the
+automatic rewrite on every clock-out.
+
+*Verified:* =bin/test= 166/166. Three new tests (a bystander short
+interval surviving an unrelated clock-out; the floor producing 0:01 and
+never 0:00; the floor declining to touch an interval that already
+exceeds it) and three existing ones inverted to assert preservation
+where they used to assert rounding -- all six confirmed to fail against
+the pre-change =config.el= by stashing it and re-running, not assumed.
+Then live: =consolidate-history= re-run by hand on =720b2dcf='s real
+drawer -- the exact function, on the exact data it ate -- reports
+"Nothing to consolidate" and leaves the 0:01 interval intact.
+
+*The destroyed interval is restored* from =14c42d2=, at its correct
+newest-first position, so the annotation and the arithmetic agree again.
+
+*Expected consequence, deliberately accepted:* per-turn clocking churn
+returns to =:LOGBOOK:= until
+[[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]] stops per-turn
+clocking altogether. That is the thing to watch.
 
 ** TODO Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:

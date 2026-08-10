@@ -217,25 +217,63 @@ binding proves the actual mechanism is in place."
   (claude-code-ide-org-test--with-heading
     (should (equal "No clock is currently running." (claude-code-ide-org-clock-out)))))
 
-(ert-deftest claude-code-ide-org-test-clock-out-consolidates-on-the-fly ()
-  "org_clock_out must consolidate the heading it just closed
-immediately, without a separate consolidate-history call. Proven by:
-a manual consolidate-history call right afterward is already a
-no-op, which can only be true if clock-out already ran it."
+(ert-deftest claude-code-ide-org-test-clock-out-does-not-rewrite-the-drawer ()
+  "org_clock_out must NOT consolidate the heading it just closed.
+
+The inverse of what this test asserted until 2026-08-10, when clock-out
+consolidated on the fly so drawers stayed collapsed. Rewriting an entire
+drawer as a side effect of closing one interval destroyed a reviewed,
+human-confirmed interval about five minutes after apply wrote it
+(TODO.org :ID: b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04), having already
+silently deleted non-CLOCK lines once before (:ID: ba8249c1).
+
+Asserted at the sharpest point available: a pre-existing short interval
+belonging to someone else sits in the drawer, and closing an unrelated
+clock must leave it exactly as it was."
   (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
     (with-current-buffer (get-file-buffer file)
       (save-excursion
-        (goto-char (point-min))
-        (re-search-forward "CLOCK: \\[[^]]+\\]")
-        (replace-match (format-time-string "CLOCK: [%Y-%m-%d %a %H:%M]"
-                                            (time-subtract (current-time) 600))))
+        (goto-char (point-max))
+        (insert (concat
+                 ":LOGBOOK:\n"
+                 "CLOCK: [2026-08-10 Mon 12:46]--[2026-08-10 Mon 12:47] =>  0:01\n"
+                 ":END:\n")))
       (save-buffer))
+    (claude-code-ide-org-clock-in id)
     (claude-code-ide-org-clock-out)
-    (let ((before (claude-code-ide-org-test--disk-contents file)))
-      (should (equal "Nothing to consolidate on \"Test heading\""
-                     (claude-code-ide-org-consolidate-history id)))
-      (should (equal before (claude-code-ide-org-test--disk-contents file))))))
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      ;; The bystander interval is untouched -- not rounded, not merged
+      ;; into the interval clock-out just wrote, not dropped.
+      (should (string-match-p
+               "CLOCK: \\[2026-08-10 Mon 12:46\\]--\\[2026-08-10 Mon 12:47\\] =>  0:01"
+               disk)))))
+
+(ert-deftest claude-code-ide-org-test-clock-out-enforces-a-one-minute-floor ()
+  "A clock opened and closed within the same minute must still record a
+whole minute, not `=>  0:00'.
+
+CLOCK timestamps carry minute resolution, so a forty-second span writes
+as [12:46]--[12:46], which a clocktable sums as nothing -- reporting no
+activity for activity that happened. The floor is applied through
+`org-clock-out's own AT-TIME argument, so org writes a correct line
+first time rather than the line being edited afterwards."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-clock-out)
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      (should (string-match-p "CLOCK: \\[[^]]+\\]--\\[[^]]+\\] =>  0:01" disk))
+      (should-not (string-match-p "=>  0:00" disk)))))
+
+(ert-deftest claude-code-ide-org-test-clock-out-floor-leaves-real-intervals-alone ()
+  "The floor must only ever lengthen a sub-minute interval, never touch
+one that already exceeds the minimum -- it is a floor, not a rounding
+rule, and this project has just retired one rounding rule for
+overreaching."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-clock-in id)
+    ;; Backdate the running clock so a real interval has elapsed.
+    (setq org-clock-start-time (time-subtract (current-time) 600))
+    (should-not (claude-code-ide-org--clock-out-floor-time))))
 
 ;;; Clock status file -------------------------------------------------------
 
@@ -1506,7 +1544,18 @@ not shrink the merged span."
     (should (= 1 (length merged)))
     (should (equal "[2026-07-28 Tue 10:30]" (format-time-string "[%Y-%m-%d %a %H:%M]" (cdr (car merged)))))))
 
-(ert-deftest claude-code-ide-org-test-consolidate-history-rounds-merges-and-drops-zero ()
+(ert-deftest claude-code-ide-org-test-consolidate-history-preserves-intervals-exactly ()
+  "Consolidation must leave every closed CLOCK interval exactly as
+recorded, including ones too short to survive the 5-minute rounding this
+function used to apply. That rounding destroyed a reviewed,
+human-confirmed interval minutes after apply wrote it (TODO.org :ID:
+b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04); the 0:01 and 0:02 intervals below
+are the shape that used to vanish — the first rounded to zero and was
+dropped, the second absorbed into a 5-minute block.
+
+:SESSIONS: day-collapsing is unaffected and still asserted here: this
+change is about not rewriting *durations*, not about abandoning
+consolidation."
   (claude-code-ide-org-test--with-heading
     (goto-char (point-max))
     (insert (concat
@@ -1522,20 +1571,29 @@ not shrink the merged span."
              ":END:\n"))
     (save-buffer)
     (let ((result (claude-code-ide-org-consolidate-history id)))
-      (should (string-match-p "\\`Consolidated :LOGBOOK: and :SESSIONS: on \"Test heading\"\\'" result)))
+      ;; :SESSIONS: alone -- the :LOGBOOK: is now left byte-identical, so
+      ;; there is nothing to report about it. This assertion is the
+      ;; clearest statement of the change: consolidation used to always
+      ;; have something to say about :LOGBOOK:, and now only speaks up
+      ;; when something other than durations differs.
+      (should (string-match-p "\\`Consolidated :SESSIONS: on \"Test heading\"\\'" result)))
     (should (not (buffer-modified-p (get-file-buffer file))))
     (let ((disk (claude-code-ide-org-test--disk-contents file)))
-      ;; 10:53--10:54 rounds to 10:55--10:55 (zero-duration, dropped);
-      ;; 10:57--10:59 rounds to 10:55--11:00 — the only surviving CLOCK line.
-      ;; Splitting on a separator that occurs once yields 2 parts, not 1.
-      (should (= 2 (length (split-string disk "CLOCK:"))))
+      ;; Both intervals survive, unrounded and unmerged. Splitting on a
+      ;; separator that occurs twice yields 3 parts.
+      (should (= 3 (length (split-string disk "CLOCK:"))))
       (should (string-match-p
-               ":LOGBOOK:\nCLOCK: \\[2026-07-28 Tue 10:55\\]--\\[2026-07-28 Tue 11:00\\] =>  0:05\n:END:"
+               ":LOGBOOK:\nCLOCK: \\[2026-07-28 Tue 10:57\\]--\\[2026-07-28 Tue 10:59\\] =>  0:02\nCLOCK: \\[2026-07-28 Tue 10:53\\]--\\[2026-07-28 Tue 10:54\\] =>  0:01\n:END:"
                disk))
       ;; :SESSIONS: collapses to one min-to-max pair for the single day.
       (should (string-match-p "- Resumed \\[2026-07-28 Tue 10:53\\]" disk))
       (should (string-match-p "- Paused \\[2026-07-28 Tue 10:59\\]" disk))
-      (should (not (string-match-p "10:54\\]\\|10:57\\]" disk))))))
+      ;; Matched as :SESSIONS: entries specifically. A bare "10:54]" would
+      ;; now also hit the CLOCK line that legitimately retains that time --
+      ;; the whole point of this change -- and quietly stop testing the
+      ;; day-collapse it was written for.
+      (should (not (string-match-p "- Paused \\[2026-07-28 Tue 10:54\\]" disk)))
+      (should (not (string-match-p "- Resumed \\[2026-07-28 Tue 10:57\\]" disk))))))
 
 (ert-deftest claude-code-ide-org-test-consolidate-history-preserves-open-interval ()
   "An open CLOCK line and a trailing unmatched Resumed — today's
@@ -1580,7 +1638,7 @@ before them gets rounded/merged."
 (ert-deftest claude-code-ide-org-test-consolidate-history-preserves-non-clock-logbook-lines ()
   "Consolidation must never delete non-CLOCK :LOGBOOK: content —
 native state-change notes (including their backslash-continuation
-lines) survive verbatim while CLOCK lines still get rounded/merged.
+lines) survive verbatim, alongside CLOCK lines kept exactly as recorded.
 Regression test for the live incident where the epic heading's
 'State \"NEXT\" from \"TODO\"' note was silently destroyed by the
 Stop-hook clock-out's consolidation pass (TODO.org :ID:
@@ -1598,10 +1656,10 @@ heading's exact drawer shape."
     (save-buffer)
     (claude-code-ide-org-consolidate-history id)
     (let ((disk (claude-code-ide-org-test--disk-contents file)))
-      ;; Open clock untouched, closed clock rounded to 5-minute marks.
+      ;; Open clock untouched; closed clock keeps its exact endpoints.
       (should (string-match-p "CLOCK: \\[2026-08-06 Thu 21:43\\]\\s-*$" disk))
       (should (string-match-p
-               "CLOCK: \\[2026-08-06 Thu 15:45\\]--\\[2026-08-06 Thu 16:50\\] =>  1:05"
+               "CLOCK: \\[2026-08-06 Thu 15:44\\]--\\[2026-08-06 Thu 16:51\\] =>  1:07"
                disk))
       ;; The state-change note and its continuation line both survive.
       (should (string-match-p
@@ -2421,17 +2479,23 @@ This is the whole reason those two kinds are retained."
     (should (= 3 (length (claude-code-ide-org--aggregate-guideposts events 360))))))
 
 (ert-deftest claude-code-ide-org-test-aggregate-guideposts-does-not-round ()
-  "Spans keep their exact endpoints. A 2-minute span is preserved, where
-consolidate-history's 5-minute rounding would drop it entirely."
+  "Spans keep their exact endpoints, and consolidation now keeps them too.
+
+This test once asserted the opposite of its second half: that the same
+2-minute interval, handed to `consolidate-history', collapsed to nothing
+— the contrast being the point. That contrast is gone, because the
+rounding was retired after it destroyed a reviewed interval in the field
+(TODO.org :ID: b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04). Kept, inverted,
+because a short interval surviving *both* paths is now the invariant."
   (let* ((events (mapcar (lambda (ts) (list :ts (date-to-time ts) :kind "pause"))
                          '("2026-08-06T22:43:00-0500" "2026-08-06T22:45:00-0500")))
          (spans (claude-code-ide-org--aggregate-guideposts events)))
     (should (= 1 (length spans)))
     (should (equal (format-time-string "%H:%M" (car (car spans))) "22:43"))
     (should (equal (format-time-string "%H:%M" (cdr (car spans))) "22:45"))
-    ;; The behavior this deliberately departs from, asserted so the contrast
-    ;; is a test rather than a comment: rounding collapses it to nothing.
-    (should (string-empty-p
+    ;; The same interval through consolidation: unchanged, not erased.
+    (should (equal
+             "CLOCK: [2026-08-06 Thu 22:43]--[2026-08-06 Thu 22:45] =>  0:02"
              (string-trim
               (claude-code-ide-org--consolidate-logbook-text
                "CLOCK: [2026-08-06 Thu 22:43]--[2026-08-06 Thu 22:45] =>  0:02\n"))))))
