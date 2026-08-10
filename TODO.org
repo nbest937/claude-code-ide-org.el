@@ -1159,6 +1159,63 @@ Not reopening the conclusion here — just flagging that if/when this
 gets planned, it should be read against that fresh evidence, not just
 the original 2026-07-30 reasoning.
 
+** TODO Stale entries in org-clock's persisted history hang the first clock-in after a restart :code:
+:PROPERTIES:
+:ID:       001fb310-69f7-4417-81be-a224a3bf83e0
+:CREATED:  [2026-08-10 Mon 11:51]
+:END:
+
+Hit live 2026-08-10 while setting =f9f61c04= to =DOING=. The
+=org_set_todo= MCP call timed out, while Emacs itself stayed responsive
+to =emacsclient -e= -- a recursive edit still runs a command loop, so
+the server keeps answering. That combination makes a blocked Emacs look
+like a tool fault.
+
+*Mechanism, fully root-caused:* Doom advises =org-clock-in= with
+=+org--clock-load-a=, a =:before= advice that lazily calls
+=org-clock-load= on the *first* clock-in of an Emacs session.
+=org-clock-load= visits every file named in the persisted history
+(=org-clock-persist-file=, here
+=~/.config/emacs/.local/etc/org-clock-save.el=). That history still
+named =/private/tmp/planning-verify/scratch.org=, a scratch file from an
+earlier verification session whose directory /tmp reaping had since
+removed. Visiting it produced a buffer whose save asked
+=Directory .../planning-verify/ does not exist! Create it? (y or n)= --
+and a =y-or-n-p= is *not* an error, so no =condition-case= in this
+module could have caught it. It simply waited.
+
+*Why it first looked like leaked state:* a separate =emacsclient= query
+reported =claude-code-ide-org--auto-clock-in-active= as =t=, which reads
+exactly like a re-entrancy guard that failed to unwind. It was not --
+the =let=-binding was still live on the blocked call's stack. Reading it
+that way is what located the hang inside =--trigger-auto-clock-in=, and
+it generalizes: a dynamic binding observed as set from outside means the
+frame that bound it has not returned.
+
+*Cleared 2026-08-10*: =abort-recursive-edit=, killed the stale buffer,
+filtered =org-clock-history= of markers into nonexistent files, and
+called =org-clock-save= to rewrite the persist file from the cleaned
+live history. Verified -- the file no longer mentions the path, and the
+next =org_clock_in= returned immediately.
+
+*What is NOT fixed, and is the actual task here:* nothing prevents a
+recurrence. Any verification pass that clocks into a scratch org file
+under /tmp writes that path into the persisted history, and the first
+clock-in after the next restart hangs once /tmp is reaped. =bin/test=
+runs =emacs --batch -Q= and cannot pollute the real history, but hand
+verification in a live Emacs does exactly this -- and
+[[id:3d576d29-747f-40b9-a5b3-ecc76679daad][3d576d29]] established that
+live verification is *necessary* here, because batch behaves
+differently. Options, unevaluated: prune nonexistent files via an
+=org-clock-load= advice; keep live-verification scratch files somewhere
+/tmp reaping does not reach; or set =org-clock-persist= to nil and
+accept losing clock history across restarts.
+
+Relevant to [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]: a
+hang in the clock path is the exact failure class that refactor exists
+to eliminate, and this one survives the cutover untouched, since the
+apply command clocks in through the same advised =org-clock-in=.
+
 ** NEXT Refactor clock/TODO-state driving to an append-only event queue + interactive batch-apply review :code:
 :PROPERTIES:
 :ID:       b5f7c5c7-7ad6-4c68-9cce-3479db1f1644
@@ -1780,12 +1837,20 @@ files. This was one bug of five found by a single interactive pass, and
 events reality has moved past — is still open and still writes
 plausible-looking wrong history.
 
-*** NEXT Apply must not replay a state event that reality has moved past :code:
+*** DOING Apply must not replay a state event that reality has moved past :code:
 :PROPERTIES:
 :ID:       f9f61c04-150b-4ee7-96c9-582cf2bda95a
 :CREATED:  [2026-08-07 Fri 16:06]
 :BLOCKER:  ids(720b2dcf-6af1-45f3-96a7-aa841e5651e1)
 :END:
+:SESSIONS:
+- Resumed [2026-08-10 Mon 11:49]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-10 Mon 11:49]
+:END:
+
+[[file:~/.claude/plans/temporal-wondering-sparrow.md][Plan]]
 
 Found 2026-08-07 during the first interactive apply, and the most
 consequential of the four bugs that run exposed — the other three were
@@ -1830,6 +1895,84 @@ Leaning toward recording the "from" state at queue-append time and
 surfacing a mismatch in the review buffer — cheap, no new failure mode,
 and it makes the human's decision an informed one rather than a
 guess. Not started.
+
+*First-pass queue debt cleared 2026-08-10.* Before this heading's guard
+could be built or tested, the pending queue had to reflect only genuinely
+unapplied work. It did not: 62 events were pending and *none* were marked
+applied -- no =.applied= watermark file existed at all, because the
+2026-08-07 apply predates the fix that made the watermark an applied-*set*
+rather than a high-water mark.
+
+60 of those events belonged to session =d847eab1=, spanning
+[2026-08-07 Fri 08:19] to [2026-08-08 Sat 09:11]. They were not pending
+work, for two independent reasons:
+- Their five =todo= events are the ones the 2026-08-07 apply already
+  applied for real -- including the =32272061 -> DONE= no-op that caused
+  [[id:3d93021d-1d8a-4657-bc5c-77734f91fb9d][3d93021d]], and the
+  =720b2dcf -> PLANNING= that caused this heading.
+- Their 51 =pause=/=resume= guideposts were recorded while live clocking
+  was still running (the cutover has not happened; =session-pause= still
+  calls =emacsclient= *and* appends), so the intervals they describe are
+  already written in =:LOGBOOK:=. Applying them would have duplicated
+  every one.
+
+Moved to =~/.claude/org-updates/archive/=, not deleted -- it is the only
+surviving record of what the first interactive pass was actually offered.
+Verified the reader ignores it: =--queue-session-ids= calls
+=directory-files= non-recursively, filtered to =\.jsonl\'=, so a
+subdirectory cannot match.
+
+Left pending on purpose: this session's own queue file, which is real
+unapplied work and is what the second interactive pass will run against.
+
+*Implemented 2026-08-10, both halves.* The leaning recorded above --
+record the `from' state and surface the mismatch -- was taken, and both
+were built rather than either alone: display without a recorded `from'
+relies on the reader noticing, and a schema check without display
+refuses silently.
+
+*How `from' gets recorded, given the writer has no Emacs.*
+=bin/hooks/queue-append= is bash and must stay runnable with no Emacs at
+all -- that is the premise the queue rests on -- so it cannot ask what
+state a heading held. Instead =org_set_todo= now reports it, as
+=TODO state set to DOING (was NEXT): "HEADING"=, and the hook recovers
+it with the same =sed= it already uses for =org_clock_out='s heading
+:ID:. Authoritative in the same way: it cannot disagree with what
+happened.
+
+Three values, deliberately kept distinct, because collapsing any two
+turns the check off silently:
+- a state name -- comparable against reality;
+- ="none"= -- the heading carried no keyword (org's nil);
+- =null= -- an event queued before this field existed, meaning
+  *unknown*, never *none*. These are not flagged: flagging every legacy
+  event would only teach the reader to ignore the flag.
+
+*What the review buffer does now.* A state line renders the whole
+transition (=NEXT -> DOING=), not just its destination. When the
+heading no longer holds the queued =from=, the line is prefixed =!= and
+names what it actually holds. Marking such an item asks for confirmation
+(=y-or-n-p=, safe here -- this is a real interactive command with a human
+present, not the =emacsclient -e= path that hangs), and only a confirmed
+item applies. =--review-apply-item= re-checks independently and refuses
+otherwise, since an item can reach apply without passing the mark
+gesture, and a heading can change after the buffer was drawn.
+
+*Verified:* =bin/test= 164/164, =bin/queue-append-test= green. Six new
+ERT tests plus four shell checks, all confirmed to *fail* against the
+pre-change =config.el= (stashed and re-run, not assumed). The central
+one reproduces the literal 2026-08-07 shape: a =NEXT -> PLANNING= event
+applied against a heading now =DOING= is refused, the file is unchanged
+byte for byte, no =State "PLANNING"= line appears -- and the same item
+applies once explicitly confirmed.
+
+*Not claimed:* the interactive pass. Everything above is batch, and
+[[id:3d576d29-747f-40b9-a5b3-ecc76679daad][3d576d29]] established this
+path behaves differently under a live Emacs. The by-hand run is
+[[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]'s remaining gate,
+and this heading stays =DOING= until it has happened.
+
+
 
 *** TODO Sort :LOGBOOK: chronologically, keeping notes with their continuations :code:
 :PROPERTIES:
@@ -2334,6 +2477,8 @@ label to a different data source with the same one-line shape.
 :ID:       c084553c-0621-4a96-9fa1-f32850aeec6a
 :CREATED:  [2026-08-06 Thu 10:47]
 :END:
+
+[[file:~/.claude/plans/temporal-wondering-sparrow.md][Plan]]
 
 Explicit instruction for whoever evaluates this: do this *before*
 committing to bespoke replacements for anything above. This project

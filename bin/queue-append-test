@@ -64,8 +64,35 @@ check "timestamp is ISO 8601 with offset" "yes" \
 
 # --- a todo call carries the requested state ---------------------------
 reset_queue
-run todo '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_set_todo","tool_input":{"id":"id-a","state":"DOING"},"tool_response":"TODO state set to DOING: \"x\""}'
+run todo '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_set_todo","tool_input":{"id":"id-a","state":"DOING"},"tool_response":"TODO state set to DOING (was NEXT): \"x\""}'
 check "todo records state" "DOING" "$(jq -r '.state' <<<"$(queue_lines sess-a)")"
+
+# --- the prior state, recovered from the reply -------------------------
+# Same trick as clock_out's id below, for the same reason: this script
+# must work with no Emacs, so anything only Emacs knows has to arrive in
+# the tool's own reply. The review command needs `from' to notice that
+# reality moved past a queued transition before it replays it (TODO.org
+# :ID: f9f61c04-150b-4ee7-96c9-582cf2bda95a).
+check "todo recovers prior state from response" "NEXT" \
+  "$(jq -r '.from' <<<"$(queue_lines sess-a)")"
+
+reset_queue
+run todo '{"session_id":"sess-a","tool_input":{"id":"id-a","state":"NEXT"},"tool_response":"TODO state set to NEXT (was none): \"x\""}'
+check "todo keeps 'none' distinct from a missing prior state" "none" \
+  "$(jq -r '.from' <<<"$(queue_lines sess-a)")"
+
+# A reply in the old format (no parenthesised clause) must yield null
+# rather than a garbage capture -- the queue outlives any one version of
+# the tool that wrote it.
+reset_queue
+run todo '{"session_id":"sess-a","tool_input":{"id":"id-a","state":"DOING"},"tool_response":"TODO state set to DOING: \"x\""}'
+check "todo without a (was ...) clause has null from" "null" \
+  "$(jq -r '.from' <<<"$(queue_lines sess-a)")"
+
+reset_queue
+run clock_in '{"session_id":"sess-a","tool_input":{"id":"id-a"},"tool_response":"Clocked in: \"x\""}'
+check "non-todo kinds have null from" "null" \
+  "$(jq -r '.from' <<<"$(queue_lines sess-a)")"
 
 # --- pause/resume are session-global: no heading, no state -------------
 reset_queue

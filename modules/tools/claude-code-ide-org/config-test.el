@@ -394,10 +394,31 @@ by a different session — the other half of the concurrency fix."
 (ert-deftest claude-code-ide-org-test-set-todo-transitions-and-saves ()
   (claude-code-ide-org-test--with-heading
     (let ((result (claude-code-ide-org-set-todo id "DOING")))
-      (should (string-match-p "\\`TODO state set to DOING: \"Test heading\"\\'" result)))
+      ;; The `(was TODO)' clause is load-bearing, not cosmetic:
+      ;; bin/hooks/queue-append parses it back out to record the `from'
+      ;; state on the queued event (TODO.org :ID: f9f61c04-...).
+      (should (string-match-p "\\`TODO state set to DOING (was TODO): \"Test heading\"\\'" result)))
     (should (not (buffer-modified-p (get-file-buffer file))))
     (should (string-match-p "^\\* DOING Test heading"
                             (claude-code-ide-org-test--disk-contents file)))))
+
+(ert-deftest claude-code-ide-org-test-set-todo-reports-none-for-keywordless-heading ()
+  "A heading carrying no TODO keyword at all must report `(was none)',
+not an empty string. bin/hooks/queue-append recovers the prior state
+from this reply by regexp; `(was )' would parse to an empty `from'
+that is indistinguishable from a missing one, and the review command's
+stale-transition check would then silently not fire (TODO.org :ID:
+f9f61c04-150b-4ee7-96c9-582cf2bda95a)."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* Bare heading                                                     :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0003\n"
+                     ":END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (should (string-match-p "\\`TODO state set to NEXT (was none): \"Bare heading\"\\'"
+                            (claude-code-ide-org-set-todo "test-0003" "NEXT")))))
 
 (ert-deftest claude-code-ide-org-test-set-todo-suppresses-native-logging-for-every-state ()
   "org_set_todo must suppress org's own native state-change logging
@@ -429,7 +450,7 @@ describe whatever heading point happens to be sitting on afterward."
     (save-buffer)
     (org-id-update-id-locations (list file))
     (let ((result (claude-code-ide-org-set-todo id "NEXT")))
-      (should (string-match-p "\\`TODO state set to NEXT: \"Test heading\"\\'" result)))
+      (should (string-match-p "\\`TODO state set to NEXT (was TODO): \"Test heading\"\\'" result)))
     (should (equal "NEXT" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))
     (should (equal "TODO" (org-with-point-at (org-id-find "test-0002" 'marker) (org-get-todo-state))))))
 
@@ -757,7 +778,7 @@ must never block this one from going DONE."
       (should (org-clocking-p))
       ;; The clock is running on `id', not `other-id' -- going DONE on
       ;; `other-id' must be permitted.
-      (should (string-match-p "\\`TODO state set to DONE: \"Other heading\"\\'"
+      (should (string-match-p "\\`TODO state set to DONE (was TODO): \"Other heading\"\\'"
                               (claude-code-ide-org-set-todo other-id "DONE")))
       (should (equal "DONE"
                      (org-with-point-at (org-id-find other-id 'marker)
@@ -2544,6 +2565,109 @@ with the note as its continuation."
         (should (string-match-p "State \"DOING\"\\s-+from \"TODO\"\\s-+\\[2026-08-06 [A-Za-z]+ 09:00\\]"
                                 text))
         (should (string-match-p "plan approved, resuming implementation" text))))))
+
+(ert-deftest claude-code-ide-org-test-review-refuses-stale-state-transition ()
+  "The literal 2026-08-07 shape: a `todo' event queued while the heading
+was NEXT, applied after it had moved on to DOING. Apply must refuse and
+change nothing, rather than faithfully regressing the heading and
+writing a `State \"PLANNING\" from \"DOING\"' line that looks correct
+(TODO.org :ID: f9f61c04-150b-4ee7-96c9-582cf2bda95a)."
+  (claude-code-ide-org-test--with-heading
+    ;; Reality has moved on to DOING; the queued event still says NEXT.
+    (claude-code-ide-org-set-todo id "DOING")
+    (let* ((before (claude-code-ide-org-test--disk-contents file))
+           (item (list :type 'state :id id
+                       :ts (date-to-time "2026-08-07T11:51:00-0500")
+                       :from "NEXT" :to "PLANNING" :events nil))
+           (result (claude-code-ide-org--review-apply-item item)))
+      (should (stringp result))
+      (should (string-match-p "refused stale NEXT -> PLANNING" result))
+      (should (string-match-p "heading is now DOING" result))
+      ;; Nothing reached the file: same keyword, no new log line.
+      (should (equal "DOING" (org-with-point-at (org-id-find id 'marker)
+                               (org-get-todo-state))))
+      (should (equal before (claude-code-ide-org-test--disk-contents file)))
+      (should-not (string-match-p "State \"PLANNING\""
+                                  (claude-code-ide-org-test--disk-contents file)))
+      ;; And it is visibly flagged, so a human sees it before deciding.
+      (should (string-prefix-p "! " (claude-code-ide-org--review-describe item)))
+      (should (string-match-p "NEXT -> PLANNING"
+                              (claude-code-ide-org--review-describe item)))
+      ;; Explicitly confirmed, the same item applies -- the human is the
+      ;; validation step, so an override must exist and must be deliberate.
+      (plist-put item :stale-confirmed t)
+      (should-not (claude-code-ide-org--review-apply-item item))
+      (should (equal "PLANNING" (org-with-point-at (org-id-find id 'marker)
+                                  (org-get-todo-state)))))))
+
+(ert-deftest claude-code-ide-org-test-review-applies-when-from-state-matches ()
+  "A queued transition whose `from' still matches reality is not stale
+and applies untouched -- the guard must not cost the normal case."
+  (claude-code-ide-org-test--with-heading
+    (let ((item (list :type 'state :id id
+                      :ts (date-to-time "2026-08-06T09:00:00-0500")
+                      :from "TODO" :to "DOING" :note "start" :events nil)))
+      (should-not (claude-code-ide-org--review-state-stale-p item))
+      ;; Checked before applying: afterwards the heading really has moved
+      ;; to DOING, and the same item is then correctly stale.
+      (should (string-prefix-p "  " (claude-code-ide-org--review-describe item)))
+      (should-not (claude-code-ide-org--review-apply-item item))
+      (let ((text (claude-code-ide-org-test--disk-contents file)))
+        (should (string-match-p "^\\* DOING " text))
+        (should (string-match-p "State \"DOING\"\\s-+from \"TODO\"\\s-+\\[2026-08-06 [A-Za-z]+ 09:00\\]"
+                                text))))))
+
+(ert-deftest claude-code-ide-org-test-review-applies-event-predating-the-from-field ()
+  "An event queued before `from' existed carries nil, which means
+\"unknown\", not \"none\". There is nothing to compare against, so it
+must apply exactly as it did before the guard was added -- flagging
+every legacy event would only teach the reader to ignore the flag."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-set-todo id "DOING")
+    (let ((item (list :type 'state :id id
+                      :ts (date-to-time "2026-08-06T09:00:00-0500")
+                      :from nil :to "WAIT" :events nil)))
+      (should-not (claude-code-ide-org--review-state-stale-p item))
+      (should-not (claude-code-ide-org--review-apply-item item))
+      (should (equal "WAIT" (org-with-point-at (org-id-find id 'marker)
+                              (org-get-todo-state)))))))
+
+(ert-deftest claude-code-ide-org-test-review-none-matches-a-keywordless-heading ()
+  "`none' is the queue's spelling of \"the heading had no keyword\",
+which org spells nil. The two must compare equal, or every transition
+out of a bare heading would be reported stale."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* Bare heading                                                     :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0004\n"
+                     ":END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (should-not (claude-code-ide-org--review-state-stale-p
+                 (list :type 'state :id "test-0004" :from "none" :to "NEXT")))
+    ;; ...and a heading that DOES carry a keyword is stale against `none'.
+    (should (claude-code-ide-org--review-state-stale-p
+             (list :type 'state :id id :from "none" :to "NEXT")))))
+
+(ert-deftest claude-code-ide-org-test-review-unresolvable-id-is-not-reported-stale ()
+  "An :ID: that no longer resolves is apply's own error to report, with
+its own message. The staleness check must stay silent rather than
+mislabel a missing heading as a state disagreement."
+  (claude-code-ide-org-test--with-heading
+    (should-not (claude-code-ide-org--review-state-stale-p
+                 (list :type 'state :id "no-such-id-at-all"
+                       :from "NEXT" :to "DOING")))))
+
+(ert-deftest claude-code-ide-org-test-queue-parses-the-from-field ()
+  "The reader carries `from' through from the JSONL, and tolerates its
+absence on older events."
+  (let ((with-from (claude-code-ide-org--queue-parse-line
+                    "{\"ts\":\"2026-08-07T11:51:00-0500\",\"kind\":\"todo\",\"id\":\"x\",\"state\":\"PLANNING\",\"from\":\"NEXT\"}"))
+        (without (claude-code-ide-org--queue-parse-line
+                  "{\"ts\":\"2026-08-07T11:51:00-0500\",\"kind\":\"todo\",\"id\":\"x\",\"state\":\"PLANNING\"}")))
+    (should (equal "NEXT" (plist-get with-from :from)))
+    (should-not (plist-get without :from))))
 
 (ert-deftest claude-code-ide-org-test-review-suppresses-the-auto-clock-in-trigger ()
   "Apply must not let `org-trigger-hook' open a clock at *now*.

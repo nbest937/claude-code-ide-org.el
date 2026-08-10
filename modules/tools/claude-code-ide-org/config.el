@@ -1198,35 +1198,51 @@ why that is deliberate.  At apply time it becomes the `\\\\' continuation
 on org's native `- State \"X\" from \"Y\" [ts]' line, which is a path
 already confirmed to work: `org-store-log-note' takes the note text from
 the current buffer's contents, so a non-empty note buffer yields the
-continuation and an empty one yields a bare State line."
+continuation and an empty one yields a bare State line.
+
+The success reply names the state the heading held *before* the change,
+as `TODO state set to DOING (was NEXT): \"...\"'.  That clause is not
+cosmetic: `bin/hooks/queue-append' parses it back out to record a `from'
+field on the queued `todo' event, which is what lets the review command
+detect at apply time that reality has moved past a queued transition
+(TODO.org :ID: f9f61c04-150b-4ee7-96c9-582cf2bda95a).  The hook is a
+bash script with no Emacs access by design -- writing the queue without
+a running Emacs is the whole premise of the refactor -- so the prior
+state has to travel back in the reply, exactly as `org_clock_out's
+heading :ID: already does.  A heading with no keyword at all reports
+`(was none)' rather than an empty string, so the parse stays
+unambiguous."
   (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "org_set_todo")))
     (claude-code-ide-org--at-id
      id
      (lambda ()
-       (let ((org-inhibit-logging t)) (org-todo state))
-       ;; Re-resolved fresh by :ID: (a property-search, exactly like
-       ;; `claude-code-ide-org--at-id' itself), never by trusting
-       ;; "current point" or a marker captured before org-todo ran.
-       ;; Confirmed live (not reproducible in the ERT/batch
-       ;; environment, which never loads the user's personal Doom
-       ;; config) that a saved marker does not reliably track this
-       ;; heading's position across the single-NEXT-per-level trigger
-       ;; hooks editing a SIBLING heading earlier in the buffer --
-       ;; instrumented trace showed the marker's raw position number
-       ;; never changed while the text at that position did, most
-       ;; likely `ws-butler-mode' (whitespace cleanup) replacing a
-       ;; wider region than a plain insert. Re-resolving by :ID: is
-       ;; immune to that regardless of root cause, and is exactly how
-       ;; every regression test already verifies state here.
-       (let* ((marker (org-id-find id 'marker))
-              (actual (and marker (org-with-point-at marker (org-get-todo-state))))
-              (heading (and marker (org-with-point-at marker (org-get-heading t t t t)))))
-         (if (equal actual state)
-             (progn
-               (save-buffer)
-               (format "TODO state set to %s: \"%s\"" state heading))
-           (format "Error: requested state %s but heading \"%s\" is still %s — likely blocked (check :BLOCKER: / org-blocker-hook)"
-                   state heading actual)))))))
+       ;; Read before `org-todo', while the heading still holds it.
+       (let ((previous (org-get-todo-state)))
+         (let ((org-inhibit-logging t)) (org-todo state))
+         ;; Re-resolved fresh by :ID: (a property-search, exactly like
+         ;; `claude-code-ide-org--at-id' itself), never by trusting
+         ;; "current point" or a marker captured before org-todo ran.
+         ;; Confirmed live (not reproducible in the ERT/batch
+         ;; environment, which never loads the user's personal Doom
+         ;; config) that a saved marker does not reliably track this
+         ;; heading's position across the single-NEXT-per-level trigger
+         ;; hooks editing a SIBLING heading earlier in the buffer --
+         ;; instrumented trace showed the marker's raw position number
+         ;; never changed while the text at that position did, most
+         ;; likely `ws-butler-mode' (whitespace cleanup) replacing a
+         ;; wider region than a plain insert. Re-resolving by :ID: is
+         ;; immune to that regardless of root cause, and is exactly how
+         ;; every regression test already verifies state here.
+         (let* ((marker (org-id-find id 'marker))
+                (actual (and marker (org-with-point-at marker (org-get-todo-state))))
+                (heading (and marker (org-with-point-at marker (org-get-heading t t t t)))))
+           (if (equal actual state)
+               (progn
+                 (save-buffer)
+                 (format "TODO state set to %s (was %s): \"%s\""
+                         state (or previous "none") heading))
+             (format "Error: requested state %s but heading \"%s\" is still %s — likely blocked (check :BLOCKER: / org-blocker-hook)"
+                     state heading actual))))))))
 
 (defun claude-code-ide-org-archive (id)
   "Archive the org heading whose :ID: property equals ID.
@@ -2096,6 +2112,12 @@ whole file. This is the single place that judgement is made."
                 :kind kind
                 :id (alist-get 'id obj)
                 :state (alist-get 'state obj)
+                ;; The state the heading held when the event was queued,
+                ;; or nil on events written before the field existed.
+                ;; "none" is a real value meaning "no keyword", kept
+                ;; distinct from nil meaning "unknown" -- see
+                ;; `claude-code-ide-org--review-state-stale-p'.
+                :from (alist-get 'from obj)
                 :note (alist-get 'note obj)
                 :session-id (alist-get 'session_id obj)
                 :agent-id (alist-get 'agent_id obj)
@@ -2297,7 +2319,8 @@ Each is a plist; see `claude-code-ide-org--review-items-from-queue'.")
 
 Returns a list of plists, each one proposed action:
 
-  (:type state :id ID :ts TIME :to STATE :note NOTE :events EVENTS)
+  (:type state :id ID :ts TIME :from STATE :to STATE :note NOTE
+         :events EVENTS)
   (:type clock :id ID :start TIME :end TIME :note NOTE :agent AGENT
          :suggested BOOL :events EVENTS)
 
@@ -2322,6 +2345,7 @@ from a skipped one."
             (when (equal (plist-get event :kind) "todo")
               (push (list :type 'state :id id
                           :ts (plist-get event :ts)
+                          :from (plist-get event :from)
                           :to (plist-get event :state)
                           :note (plist-get event :note)
                           :events (list event))
@@ -2379,6 +2403,46 @@ from a skipped one."
           (lambda (a b)
             (time-less-p (or (plist-get a :ts) (plist-get a :start))
                          (or (plist-get b :ts) (plist-get b :start)))))))
+
+(defun claude-code-ide-org--review-current-state (id)
+  "Return the TODO keyword heading ID holds right now, or nil.
+Resolves by :ID: through `org-id-find', the same property search every
+other read here uses.  Returns the symbol `unresolved' -- distinct from
+nil, which is a real answer meaning \"no keyword\" -- when the :ID:
+names nothing, so a caller can tell \"heading has no keyword\" from
+\"heading is gone\"."
+  (let ((marker (ignore-errors (org-id-find id 'marker))))
+    (if (not marker)
+        'unresolved
+      (org-with-point-at marker (org-get-todo-state)))))
+
+(defun claude-code-ide-org--review-state-stale-p (item)
+  "Non-nil when ITEM's queued transition disagrees with reality.
+
+The hazard this exists for, observed live 2026-08-07: a queued
+`todo -> PLANNING' was applied long after the heading had moved on to
+DOING, and apply faithfully regressed it, writing a
+`State \"PLANNING\" from \"DOING\"' line to prove it.  Nothing errored;
+the record simply became wrong in a plausible-looking way.  A queue is
+reviewed at a moment of the human's choosing, so *any* out-of-band
+change in between -- a hand-edit, another session, an agenda bulk
+action -- leaves a queued transition stale, and deferring review is the
+entire premise of the design (TODO.org :ID:
+f9f61c04-150b-4ee7-96c9-582cf2bda95a).
+
+Answers nil, deliberately, in the two cases where there is nothing to
+compare: an event predating the `from' field (nil `:from', meaning
+\"unknown\", not \"none\"), and an :ID: that no longer resolves --
+apply reports that one on its own terms rather than pre-empting it
+here.  Silence on an unknown is the right default; flagging every
+legacy event would train the reader to ignore the flag."
+  (let ((from (plist-get item :from)))
+    (when from
+      (let ((current (claude-code-ide-org--review-current-state (plist-get item :id))))
+        (and (not (eq current 'unresolved))
+             ;; "none" is how the queue spells "the heading carried no
+             ;; keyword", which `org-get-todo-state' spells as nil.
+             (not (equal (if (equal from "none") nil from) current)))))))
 
 (defun claude-code-ide-org--review-format-annotation (item)
   "Return the :LOGBOOK: annotation line for ITEM.
@@ -2498,6 +2562,12 @@ contents, so empty yields a bare State line and non-empty yields the
 (defun claude-code-ide-org--review-apply-item (item)
   "Apply one review ITEM. Returns nil on success, an error string on failure.
 
+Refuses outright -- returning an error string, changing nothing -- when
+ITEM's queued transition is stale and has not been explicitly confirmed
+(see `claude-code-ide-org--review-state-stale-p').  A refusal is not a
+failure to be retried: it means the queue and the file disagree, and the
+human has not said which one wins.
+
 Binds `claude-code-ide-org--auto-clock-in-active' for the duration.
 That is this module's own re-entrancy guard for
 `claude-code-ide-org--trigger-auto-clock-in', reused here rather than
@@ -2506,20 +2576,35 @@ inventing a second suppression flag: without it the trigger fires on any
 backdated time, and -- confirmed live during TODO.org :ID: 3d576d29's
 verification -- destroys the pending state-change note so it never
 lands at all."
-  (let ((claude-code-ide-org--auto-clock-in-active t)
-        (claude-code-ide-org--log-source
-         (or claude-code-ide-org--log-source "org_review_apply")))
-    (let ((result
-           (claude-code-ide-org--at-id
-            (plist-get item :id)
-            (lambda ()
-              (pcase (plist-get item :type)
-                ('clock (claude-code-ide-org--review-apply-clock item))
-                ('state (claude-code-ide-org--review-apply-state item)))
-              (save-buffer)
-              nil))))
-      ;; --at-id returns an "Error: ..." string rather than throwing.
-      (and (stringp result) result))))
+  (if (and (claude-code-ide-org--review-state-stale-p item)
+           (not (plist-get item :stale-confirmed)))
+      ;; Refused, not applied. Checked here as well as at mark time
+      ;; because the mark is a UI gesture and this is the gate: an item
+      ;; can reach apply through a refreshed buffer, a future bulk
+      ;; command, or a caller in a test, and none of those went past the
+      ;; `y-or-n-p'. Re-evaluated now rather than trusted from render
+      ;; time, so a heading that changed *since* the buffer was drawn is
+      ;; caught too.
+      (format "Error: refused stale %s -> %s on %s (heading is now %s); mark it again to confirm"
+              (plist-get item :from)
+              (plist-get item :to)
+              (plist-get item :id)
+              (or (claude-code-ide-org--review-current-state (plist-get item :id))
+                  "unset"))
+    (let ((claude-code-ide-org--auto-clock-in-active t)
+          (claude-code-ide-org--log-source
+           (or claude-code-ide-org--log-source "org_review_apply")))
+      (let ((result
+             (claude-code-ide-org--at-id
+              (plist-get item :id)
+              (lambda ()
+                (pcase (plist-get item :type)
+                  ('clock (claude-code-ide-org--review-apply-clock item))
+                  ('state (claude-code-ide-org--review-apply-state item)))
+                (save-buffer)
+                nil))))
+        ;; --at-id returns an "Error: ..." string rather than throwing.
+        (and (stringp result) result)))))
 
 (defun claude-code-ide-org--review-record-applied (applied-items)
   "Record every event behind APPLIED-ITEMS as applied, per session.
@@ -2593,7 +2678,8 @@ apply it here.  Items are grouped under the heading they belong to.
 
 Two kinds of line:
 
-  state   a TODO transition.  Applying writes org's native
+  state   a TODO transition, shown whole (`NEXT -> DOING') so you can see
+          what the event assumed.  Applying writes org's native
           `State \"X\" from \"Y\"' log line stamped at the time the event
           actually happened, not now.
 
@@ -2607,6 +2693,15 @@ Two kinds of line:
           (agent)      A subagent's own paired clock in/out.  The
                        interval is mechanically knowable, so it is
                        authoritative.
+
+A line prefixed `!' is STALE: the heading no longer holds the state the
+event was queued from, so something changed out of band -- a hand-edit,
+another session, an agenda bulk action -- and applying it would drag the
+heading backwards while writing a log line that looks perfectly correct.
+That exact thing happened on 2026-08-07, which is why the flag exists.
+Stale items are refused by default; marking one asks you to confirm, and
+only then will it apply.  Nothing else about them is special -- the queue
+is not wrong, it is just older than the file.
 
 Angle brackets <...> mark an active timestamp, which `org-agenda' picks
 up -- that is how the agenda doubles as a retrospective \"what did I
@@ -2638,14 +2733,36 @@ all still pending.
   (get-text-property (line-beginning-position) 'claude-code-ide-org-item))
 
 (defun claude-code-ide-org--review-describe (item)
-  "Return the one-line description of ITEM shown in the review buffer."
+  "Return the one-line description of ITEM shown in the review buffer.
+
+A state item renders as the whole transition (`NEXT -> DOING'), not just
+its destination, so the reader can see what the event assumed.  When
+that assumption no longer holds, the line is prefixed `!' and names the
+state the heading actually holds now -- making the stale-replay hazard
+visible at the moment of decision rather than discoverable afterwards in
+a wrong log line."
   (let ((note (or (plist-get item :note) "")))
     (pcase (plist-get item :type)
-      ('state (format "state   %-9s %s   %s"
-                      (plist-get item :to)
-                      (format-time-string "%m-%d %H:%M" (plist-get item :ts))
-                      note))
-      ('clock (format "clock   %s%s   %s"
+      ('state
+       (let* ((stale (claude-code-ide-org--review-state-stale-p item))
+              (from (plist-get item :from))
+              (transition (if from
+                              (format "%s -> %s" from (plist-get item :to))
+                            (plist-get item :to))))
+         (format "%sstate   %-20s %s   %s%s"
+                 (if stale "! " "  ")
+                 transition
+                 (format-time-string "%m-%d %H:%M" (plist-get item :ts))
+                 (if stale
+                     (format "STALE, heading is now %s -- "
+                             (or (claude-code-ide-org--review-current-state
+                                  (plist-get item :id))
+                                 "unset"))
+                   "")
+                 note)))
+      ;; Two leading spaces so clock lines stay aligned with the `! '
+      ;; column state lines reserve.
+      ('clock (format "  clock   %s%s   %s"
                       (claude-code-ide-org--review-format-annotation item)
                       (if (plist-get item :suggested) "  (suggested)" "  (agent)")
                       note)))))
@@ -2675,10 +2792,29 @@ all still pending.
     (goto-char (point-min))))
 
 (defun claude-code-ide-org--review-set-mark (marked)
-  "Set the current line's item :marked to MARKED and re-render."
+  "Set the current line's item :marked to MARKED and re-render.
+
+Marking a stale state item asks for confirmation first, and records the
+answer on the item as :stale-confirmed.  This is the deliberate override
+`claude-code-ide-org--review-apply-item' requires: the design's premise
+is that the human is the validation step, so a stale transition must be
+refusable by default and still applicable on purpose -- but never by
+default, and never without having been told.  A `y-or-n-p' is safe here
+in a way it is not elsewhere in this module: this is a genuinely
+interactive command with a human at the keyboard, not an
+`emacsclient -e' call with nobody present to answer."
   (let ((item (claude-code-ide-org--review-item-at-point))
         (line (line-number-at-pos)))
     (unless item (user-error "No review item on this line"))
+    (when (and marked (claude-code-ide-org--review-state-stale-p item))
+      (if (y-or-n-p
+           (format "Stale: queued %s -> %s, but heading is now %s.  Apply anyway? "
+                   (plist-get item :from)
+                   (plist-get item :to)
+                   (or (claude-code-ide-org--review-current-state (plist-get item :id))
+                       "unset")))
+          (plist-put item :stale-confirmed t)
+        (setq marked nil)))
     (plist-put item :marked marked)
     (claude-code-ide-org--review-render)
     (goto-char (point-min))

@@ -94,6 +94,24 @@ if [[ "$kind" == clock_out ]]; then
   recovered_id="$(sed -n 's/.*(id: \([^)]*\)).*/\1/p' <<<"$response")"
 fi
 
+# org_set_todo reports the state the heading held *before* the change, as
+# "TODO state set to DOING (was NEXT): \"HEADING\"". Recovered from the
+# reply for the same reason as the id above, and emphatically not by
+# asking Emacs: this script must stay runnable with no Emacs at all,
+# which is the premise the whole queue rests on. The review command uses
+# it to notice at apply time that reality has moved past a queued
+# transition (TODO.org :ID: f9f61c04-150b-4ee7-96c9-582cf2bda95a).
+#
+# A heading with no keyword reports "(was none)", carried through
+# verbatim rather than normalised to null, so it stays distinguishable
+# from the null that events predating this field carry -- "the heading
+# had no keyword" and "we do not know what it had" must not collapse
+# into the same value, or the staleness check silently stops firing.
+recovered_from=""
+if [[ "$kind" == todo ]]; then
+  recovered_from="$(sed -n 's/.*(was \([^)]*\)).*/\1/p' <<<"$response")"
+fi
+
 queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
 mkdir -p "$queue_dir" 2>/dev/null || exit 0
 
@@ -101,15 +119,16 @@ mkdir -p "$queue_dir" 2>/dev/null || exit 0
 # timestamp format deliberately match the existing audit log written by
 # claude-code-ide-org--log-event, so both logs read the same way.
 #
-# id/state are null for the kinds that don't carry them: pause/resume are
-# session-global (nothing in them names a heading -- that attribution is
-# what the clock_in/clock_out events exist to provide), and state is
-# meaningful only for todo.
+# id/state/from are null for the kinds that don't carry them: pause/resume
+# are session-global (nothing in them names a heading -- that attribution
+# is what the clock_in/clock_out events exist to provide), and state/from
+# are meaningful only for todo.
 line="$(jq -n -c \
   --arg ts "$(date '+%Y-%m-%dT%H:%M:%S%z')" \
   --arg kind "$kind" \
   --arg session_id "$session_id" \
   --arg recovered_id "$recovered_id" \
+  --arg recovered_from "$recovered_from" \
   --argjson payload "$(jq -c '.' <<<"$input" 2>/dev/null || echo '{}')" \
   '{
      ts: $ts,
@@ -119,6 +138,7 @@ line="$(jq -n -c \
                 // (if $recovered_id == "" then null else $recovered_id end))
           end),
      state: (if $kind == "todo" then ($payload.tool_input.state // null) else null end),
+     from: (if $kind == "todo" and $recovered_from != "" then $recovered_from else null end),
      note: (if $kind == "pause" or $kind == "resume" then null
             else ($payload.tool_input.note // null) end),
      session_id: $session_id,
