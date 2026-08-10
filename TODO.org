@@ -1845,9 +1845,12 @@ plausible-looking wrong history.
 :END:
 :SESSIONS:
 - Resumed [2026-08-10 Mon 11:49]
+- Paused [2026-08-10 Mon 12:01]
+- Resumed [2026-08-10 Mon 12:36] (session 2d057349-f536-42c7-b9b5-3fd838aab075)
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-10 Mon 11:49]
+CLOCK: [2026-08-10 Mon 12:36]
+CLOCK: [2026-08-10 Mon 11:50]--[2026-08-10 Mon 12:00] =>  0:10
 :END:
 
 [[file:~/.claude/plans/temporal-wondering-sparrow.md][Plan]]
@@ -3130,3 +3133,51 @@ still marker-dependent, so this fix inherits that same desync mode
 rather than routing around the underlying fragility). Doesn't block
 this task; just don't be surprised if the new failure mode looks
 similar to the old one.
+
+** TODO Clearing a buffer's read-only flag for an MCP tool leaves it cleared :code:
+:PROPERTIES:
+:ID:       c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b
+:CREATED:  [2026-08-10 Mon 12:37]
+:END:
+
+Raised by the user 2026-08-10. None of the MCP tools bind
+=inhibit-read-only=, so any of them fails outright with a
+=buffer-read-only= error against a buffer the user has toggled
+read-only (=C-x C-q=). The standing workaround -- documented in
+CLAUDE.md's "Read-only buffers" note -- is to clear the flag and
+proceed without asking, since the user sets it to guard against their
+own stray keystrokes, not to block Claude.
+
+*The gap:* nothing ever restores it. Every clear silently disables that
+guard from then on, and the user only finds out by noticing. The
+workaround was written as a way past an error, and the other half was
+never specified.
+
+*Leading fix, not settled:* have the tool wrappers bind
+=inhibit-read-only= t around their own writes, so the user's flag is
+never touched at all. Strictly better than clear-then-restore, which
+has a failure window (a tool erroring mid-call leaves the buffer
+cleared) and races badly with concurrent sessions -- two of them
+interleaving clear/restore can restore a flag the other still needs
+cleared, or leave it cleared anyway. Binding has no window and no
+shared state.
+
+*The one thing it rested on is now verified.* Read-only guards
+modification, not saving, so =save-buffer= ought to succeed under
+=inhibit-read-only= -- but every tool here saves, and an unverified
+"ought to" in the save path is how this project has acquired bugs
+before. Confirmed in passing 2026-08-10: this very heading was inserted
+into =TODO.org= while its buffer was read-only, using exactly the
+proposed binding. The text reached disk, the buffer came back unmodified,
+and =buffer-read-only= was still =t= afterwards. So the fix is a small
+edit to each wrapper, not a research question.
+
+Cheap and self-contained; no dependency on
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]. Note the
+refactor does *not* make it moot: after the cutover the review-and-apply
+command becomes the only writer of live state, and it writes to exactly
+the buffers the user is most likely to be viewing read-only at the time.
+
+Two documents encode the current half-answer and must be updated
+together with the fix: CLAUDE.md's "Read-only buffers" paragraph under
+the MCP tools table, and the =feedback-todo-org-read-only= memory.
