@@ -1619,10 +1619,12 @@ sitting alongside them):
 :END:
 :SESSIONS:
 - Resumed [2026-08-07 Fri 11:51]
-- Paused [2026-08-07 Fri 19:41] (session d847eab1-9e6d-4d67-baf2-457715870457)
-- Resumed [2026-08-07 Fri 21:03] (session d847eab1-9e6d-4d67-baf2-457715870457)
+- Paused [2026-08-07 Fri 21:03] (session d847eab1-9e6d-4d67-baf2-457715870457)
+- Resumed [2026-08-10 Mon 12:45]
+- Paused [2026-08-10 Mon 12:48]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-10 Mon 12:45]--[2026-08-10 Mon 12:50] =>  0:05
 CLOCK: [2026-08-07 Fri 19:35]--[2026-08-07 Fri 19:40] =>  0:05
 CLOCK: [2026-08-07 Fri 16:00]--[2026-08-07 Fri 16:05] =>  0:05
 CLOCK: [2026-08-07 Fri 15:35]--[2026-08-07 Fri 15:40] =>  0:05
@@ -1849,7 +1851,7 @@ plausible-looking wrong history.
 - Resumed [2026-08-10 Mon 12:36] (session 2d057349-f536-42c7-b9b5-3fd838aab075)
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-10 Mon 12:36]
+CLOCK: [2026-08-10 Mon 12:36]--[2026-08-10 Mon 12:45] =>  0:09
 CLOCK: [2026-08-10 Mon 11:50]--[2026-08-10 Mon 12:00] =>  0:10
 :END:
 
@@ -2697,6 +2699,103 @@ Once implemented: rewrite CLAUDE.md's "State transition rules",
 state-transition table, to describe the queue+review model rather
 than the live-driving model they currently document. Large enough
 that it should not be a drive-by edit tacked onto another task.
+
+*** TODO Failed tool calls still enter the queue when the error is content-wrapped :code:
+:PROPERTIES:
+:ID:       5e2a1c04-7b3f-4d21-9c88-2f6e0a91b7d3
+:CREATED:  [2026-08-10 Mon 12:50]
+:END:
+
+Found 2026-08-10 while staging guideposts for the interactive pass. An
+=org_clock_in= that failed outright with =Error: Buffer is read-only=
+still produced a =clock_in= event in the queue; the retried, successful
+call produced a second one 11 seconds later.
+
+=bin/hooks/queue-append= already tries to prevent exactly this -- it
+drops =todo=/=clock_in=/=clock_out= events whose =tool_response= starts
+with =Error:=, so "nothing happened" cannot resurface as a mystery at
+review time. The guard works for a plain-string response and *fails*
+for the shape a real failing MCP call produces. Confirmed by feeding
+both shapes to the script directly:
+
+: tool_response: "Error: ..."                      -> 0 events (correct)
+: tool_response: {content:[{type,text:"Error: ..."}]} -> 1 event  (bug)
+
+*Mechanism:* the normaliser reads =.text // .content // .result= off an
+object. For the content-array shape =.text= is null, so it falls to
+=.content=, which is an *array*; =tostring= then yields the JSON text
+=[{"type":"text",...}]=, beginning with =[= rather than =Error:=, and
+the prefix test never matches. The =elif type == "array"= branch below
+it would have handled a bare array, but never sees one nested inside an
+object.
+
+*Why this outranks a cosmetic duplicate:* a phantom =clock_in= is not
+inert. Attribution in =--queue-events-by-id= walks the stream and sets
+its cursor from =clock_in=/=clock_out=, so a =clock_in= for a clock that
+never opened captures every following =pause=/=resume= guidepost and
+attributes them to that heading. The queue then proposes a human
+interval on a task no one was working on -- plausible-looking, wrong,
+and sourced from an event that records a failure.
+
+*Likely fix:* flatten every string anywhere in the response rather than
+guessing at its nesting -- =[.. | strings]= -- and test those for the
+=Error:= prefix. Robust to whatever shape the response arrives in, which
+is the point: this script cannot see the tool, only its reply.
+
+Worth checking at the same time whether a *failed* call should be queued
+deliberately, as an audit record flagged as failed, rather than dropped.
+Dropping is right for the review buffer, but the queue is also the only
+durable trace of what a session attempted.
+
+** TODO Institute a catch-all heading for cross-cutting meta-work :code:
+:PROPERTIES:
+:ID:       a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5
+:CREATED:  [2026-08-10 Mon 12:50]
+:END:
+
+Proposed by the user 2026-08-10: a standing pseudo-task to clock
+against for grooming, capturing, "what's next" review, and similar
+activity that is real work but belongs to no single tracked task.
+Captured as TODO on a recommendation, not as a settled decision.
+
+*The concrete argument for it, from this session's own data.* Of the
+first ten events in this session's queue, *eight* were =pause=/=resume=
+guideposts that reduced to nothing at review time. Guideposts carry no
+heading; they inherit whichever one the surrounding
+=clock_in=/=clock_out= last named, so guideposts recorded while no clock
+is open are unattributable and silently dropped. Meta-work is precisely
+when no clock is open. So today that time is not merely misattributed --
+it is invisible, which is in direct tension with this project's second
+stated goal of trustworthy tracking of where attention actually went.
+
+A standing task, clocked during that work, gives those guideposts a
+bracket to attach to. Nothing else has to change for it to work.
+
+*Check org's own mechanism first, per
+[[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]].* Org already has
+a name for this concept: =org-clock-default-task=, set with
+=org-clock-mark-default-task=, a designated fallback task you can clock
+into directly. This should almost certainly use that rather than invent
+a parallel convention -- exactly the reflex c084553c exists to enforce.
+
+*Two real risks, neither disqualifying:*
+- *The dumping-ground failure.* If ambiguous time drifts here by
+  default, the record gets *less* informative, not more -- a large
+  bucket labelled "misc" answers no question worth asking. Scope it to
+  genuinely cross-cutting work, and treat the review pass as the place
+  to re-attribute a span that turned out to be about one task.
+- *It never reaches DONE.* A permanent open task sits in a sibling group
+  alongside the single-NEXT-per-level triggers
+  (=--trigger-auto-promote-sole-todo=,
+  =--trigger-demote-conflicting-next=). Check how those behave with a
+  sibling that is deliberately never finished before relying on it. It
+  also never archives, so its =:LOGBOOK:= grows without bound -- probably
+  fine for a pure time record, but it is a decision, not an oversight.
+
+Independent of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] and
+useful either way: attribution is resolved from queued
+=clock_in=/=clock_out= events both before and after the cutover, so the
+bracket does the same job in both worlds.
 
 ** MAYBE Add a third retention tier for completed work as a chronological changelog :code:
 :PROPERTIES:
