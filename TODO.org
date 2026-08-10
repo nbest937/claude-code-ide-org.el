@@ -1622,8 +1622,11 @@ sitting alongside them):
 - Paused [2026-08-07 Fri 21:03] (session d847eab1-9e6d-4d67-baf2-457715870457)
 - Resumed [2026-08-10 Mon 12:45]
 - Paused [2026-08-10 Mon 12:48]
+- Resumed [2026-08-10 Mon 12:56] (session 2d057349-f536-42c7-b9b5-3fd838aab075)
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-10 Mon 12:56]
+CLOCK: [2026-08-10 Mon 12:46]--[2026-08-10 Mon 12:47] =>  0:01
 CLOCK: [2026-08-10 Mon 12:45]--[2026-08-10 Mon 12:50] =>  0:05
 CLOCK: [2026-08-07 Fri 19:35]--[2026-08-07 Fri 19:40] =>  0:05
 CLOCK: [2026-08-07 Fri 16:00]--[2026-08-07 Fri 16:05] =>  0:05
@@ -1632,6 +1635,7 @@ CLOCK: [2026-08-07 Fri 15:25]--[2026-08-07 Fri 15:30] =>  0:05
 CLOCK: [2026-08-07 Fri 11:50]--[2026-08-07 Fri 12:25] =>  0:35
 - State "DOING"      from "PLANNING"   [2026-08-07 Fri 12:26] \\
   Auto-promoted: ExitPlanMode fired on the owning session.
+- <2026-08-10 Mon 12:46>--<2026-08-10 Mon 12:47> interactive verification of review-and-apply
 :END:
 
 [[file:~/.claude/plans/review-and-cutover.md][Plan]]
@@ -3280,3 +3284,30 @@ the buffers the user is most likely to be viewing read-only at the time.
 Two documents encode the current half-answer and must be updated
 together with the fix: CLAUDE.md's "Read-only buffers" paragraph under
 the MCP tools table, and the =feedback-todo-org-read-only= memory.
+
+*Raised in priority 2026-08-10 by the interactive apply hitting it.* The
+first real =claude-code-ide-org-review= apply against a read-only
+=TODO.org= failed outright; toggling =C-x C-q= and re-applying
+succeeded. Two things make this a sharper case than the MCP-tool one
+above, rather than another instance of it:
+
+- *The gesture is the opposite of a stray keystroke.* Read-only exists to
+  stop the buffer being edited by accident. =M-x
+  claude-code-ide-org-review=, then =m=, then =x= is about as deliberate
+  as an action gets, and it is the human's own hands doing it. The guard
+  fires on precisely the case it was never meant to catch.
+- *After the cutover this blocks the only writer there is.*
+  [[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]] makes apply the
+  sole path by which anything reaches an org file. A user who habitually
+  keeps =TODO.org= read-only while reading it would then find the entire
+  system silently unable to record anything, with a raw
+  =buffer-read-only= error as the only clue.
+
+So the wrapper fix above should cover
+=claude-code-ide-org--review-apply-item= too, not just the MCP tools.
+
+*One property confirmed by the failure, worth keeping:*
+=--review-apply= records only items that returned no error, so the
+failed attempt marked nothing applied and the retry was clean -- no
+double-application, no half-applied batch. Whatever the fix, do not
+regress that.
