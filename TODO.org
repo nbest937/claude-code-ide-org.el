@@ -3727,6 +3727,39 @@ handles it — and to check whether the 15:18:55 =clock_out= pairs to
 =feba67eb= or is captured by it, which is the attribution failure this
 heading already predicted.
 
+*Prediction confirmed at the 2026-08-11 review pass, and it is worse
+than the paragraph above supposed.* The three real events were
+=clock_in= =feba67eb= 15:10:36, =clock_in= =dead-beef= 15:11:09,
+=clock_out= (no =:ID:=) 15:18:55. What review actually built:
+
+: clock  00000000-dead-beef  15:12:37 -> 15:16:02  (205 sec)
+
+Three separate failures in one item, only the first of which was
+anticipated:
+
+1. *The phantom captured the interval*, as predicted — attribution walks
+   the stream setting its cursor from =clock_in=, and the bogus event
+   moved it 33 seconds after the real one.
+2. *The real heading got nothing at all.* =feba67eb= produced no item.
+   No guidepost fell inside its 33-second window, so the task actually
+   being worked on records zero time — a silent omission, not a visible
+   misattribution.
+3. *The 205 seconds are idle time.* =15:12:37= and =15:16:02= are a
+   =pause= and the following =resume= — the gap between turns. So the
+   interval proposed against a nonexistent heading measures precisely
+   the time nobody was working.
+
+Left unmarked at apply, so nothing was written. It remains pending and
+will reappear at every future review; see
+[[id:f290161c-f9e7-4bfb-9adf-4c5630d4c5ae][f290161c]].
+
+*And it settles the "should a failed call be queued deliberately"
+question left open above: no.* The event that caused all three failures
+was itself the record of a tool call that did nothing. An audit trail
+that participates in attribution is not an audit trail. If a failed-call
+record is ever wanted, it needs a shape the reader ignores — a distinct
+=kind=, not a normal event with a bad =:ID:=.
+
 *** DONE consolidate-history destroys reviewed intervals minutes after apply writes them :code:
 :PROPERTIES:
 :ID:       b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04
@@ -4222,6 +4255,77 @@ Revises the disposition recorded in
 [[id:9d2fcdad-9bf7-47b6-8018-223b13ec4577][9d2fcdad]]'s neighbourhood,
 which proposed closing the =pmset= lead as won't-do — correct for the
 stale-interval guess heuristic, wrong for attribution.
+
+*** TODO The review buffer has no way to dismiss an item you will never apply :code:
+:PROPERTIES:
+:ID:       f290161c-f9e7-4bfb-9adf-4c5630d4c5ae
+:CREATED:  [2026-08-11 Tue 16:32]
+:END:
+
+The watermark advances only for *applied* items — deliberately, and
+rightly: an item skipped this pass is usually one deferred, not one
+refused. But the keymap offers =m=/=u=/=t=/=e=/=RET=/=x=/=g=/=?= and no
+dismissal, so an item you will never apply has no exit. It reappears at
+every review, forever.
+
+*Not hypothetical as of 2026-08-11:* three permanent residents after the
+first post-cutover pass —
+
+- the =dead-beef= phantom clock
+  ([[id:5e2a1c04-7b3f-4d21-9c88-2f6e0a91b7d3][5e2a1c04]]), which cannot
+  ever apply because its =:ID:= does not resolve;
+- two pre-cutover =STALE= state events
+  (=8f2c1a90= =TODO -> DOING= 13:09, =feba67eb= =NEXT -> DOING= 13:29)
+  whose transitions the tools already performed live. Confirming them
+  would write =DOING -> DOING= no-ops, the shape behind
+  [[id:3d93021d-1d8a-4657-bc5c-77734f91fb9d][3d93021d]].
+
+Today the only ways out are hand-editing a file the design calls
+append-only, or forging watermark entries. Both are worse than the
+problem.
+
+*Design question, not just a missing key.* Dismissal and deferral are
+different intents and the watermark cannot currently tell them apart —
+it records "applied," which is a third thing again. Options worth
+weighing: a separate =.dismissed= set beside =.applied=; a =kind= the
+reader skips; or a reason-carrying dismissal, since "already applied
+live pre-cutover" and "this event should never have existed" want
+different treatment at any later audit. The pre-cutover stales are also
+self-limiting — they stop being generated at the cutover — which argues
+against over-engineering for them specifically.
+
+*** TODO Two display defects in the review buffer's rendering of a failed item :code:
+:PROPERTIES:
+:ID:       e3f70e61-6616-4c57-81e8-e350ffd5824c
+:CREATED:  [2026-08-11 Tue 16:32]
+:END:
+
+Both seen 2026-08-11, on the one =dead-beef= item that will ever exist
+once [[id:5e2a1c04-7b3f-4d21-9c88-2f6e0a91b7d3][5e2a1c04]]'s fix ships.
+Recording them because the reproducer is about to become
+unconstructible by ordinary means.
+
+The good news first: an unresolvable =:ID:= does not crash the render.
+The error string is substituted where the heading title goes, which is
+the right instinct. But:
+
+1. *Elisp escaping leaks into the display.* The title line reads
+
+   : Error: no org heading found with :ID: \"00000000-dead-beef-...\
+
+   with literal backslash-quotes and a dangling trailing =\=. The error
+   string is being inserted with its printed representation intact
+   rather than as display text.
+
+2. *The note renders twice* on the clock line — once inside the
+   suggested-interval clause and again after it:
+
+   : - <...15:12>--<...15:16> negative test, bogus id must not enqueue  (suggested)   negative test, bogus id must not enqueue
+
+Neither is dangerous, and neither is worth much on its own. Worth fixing
+together with whatever touches the renderer next, since a title slot
+that can hold an arbitrary error string is a general case, not one tied
+to this event: any =--at-id= failure at render time takes the same path.
 
 ** TODO Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
