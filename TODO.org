@@ -2037,7 +2037,7 @@ files. This was one bug of five found by a single interactive pass, and
 events reality has moved past — is still open and still writes
 plausible-looking wrong history.
 
-*** DOING Apply must not replay a state event that reality has moved past :code:
+*** DONE Apply must not replay a state event that reality has moved past :code:
 :PROPERTIES:
 :ID:       f9f61c04-150b-4ee7-96c9-582cf2bda95a
 :CREATED:  [2026-08-07 Fri 16:06]
@@ -2188,6 +2188,45 @@ better, by hand-writing a queue file whose =from= matches the heading's
 actual state and applying that. That verifies the guard live today with
 no cutover, and it is worth doing *before* the cutover rather than after,
 since this guard is a large part of what makes the cutover safe to run.
+
+*Verified live 2026-08-11, with a hand-written queue file.* The knot
+recorded above — that this cannot be verified before the cutover,
+because =org_set_todo= writes live *and* queues, so every queued event
+is stale by construction — was routed around exactly as suggested:
+a scratch org file, a scratch queue directory, two hand-written events,
+and the real Emacs with the user's Doom config loaded. Nothing real was
+touched and nothing was clocked.
+
+Both branches, in the live image rather than under =emacs --batch=:
+- =from= matching reality (=NEXT=, heading is =NEXT=): not flagged, no
+  =!= prefix, applied, and it wrote
+  =- State "DOING" from "NEXT" [2026-08-11 Tue 09:00]= — *backdated to
+  the event's timestamp, not to now*. That is the specific claim
+  [[id:3d576d29-747f-40b9-a5b3-ecc76679daad][3d576d29]] said batch could
+  not settle, since native logging behaves differently outside a real
+  interactive session.
+- =from= disagreeing (=DOING=, heading is =DONE= — the literal shape of
+  the 2026-08-11 batch): flagged stale, rendered with =!=, refused, and
+  the file came back *byte-identical*.
+
+*A false defect the first run produced, worth recording.* The matching
+item applied but wrote no =State= line at all, which looked like a real
+bug. It was the fixture: the scratch file's =#+TODO:= line omitted the
+=!=/=@= logging markers the real files carry, and org correctly logs
+nothing without them. Rerun with the real header, the line appeared. A
+test fixture that differs from production in the one dimension under
+test will manufacture exactly this kind of scare.
+
+*And it settles what happened in the field the same day.* The user
+applied a batch containing four already-realized transitions on
+=b74e0f19= and =9d2fcdad=; the log now shows a =DONE -> DOING -> DONE=
+round trip that never happened. Since the guard demonstrably fires, those
+items were flagged and *confirmed* at the prompt — the override working
+as designed. Two things follow, neither a bug: pre-cutover the review
+buffer is full of items that are stale purely because the tool already
+applied them live, and confirming a stale item writes plausible history
+that is wrong. Both disappear at the cutover; until then, refusing is
+almost always the right answer.
 *** TODO Sort :LOGBOOK: chronologically, keeping notes with their continuations :code:
 :PROPERTIES:
 :ID:       af7d3687-6d1e-4480-a9e2-df772785713f
@@ -3075,7 +3114,7 @@ the same time, rather than leaving it to drift.
 :CREATED:  [2026-08-06 Thu 10:47]
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-11 Tue 12:00]
+CLOCK: [2026-08-11 Tue 12:00]--[2026-08-11 Tue 12:06] =>  0:06
 CLOCK: [2026-08-10 Mon 20:09]--[2026-08-10 Mon 20:11] =>  0:02
 CLOCK: [2026-08-10 Mon 19:07]--[2026-08-10 Mon 20:48] =>  1:41
 - <2026-08-10 Mon 19:10>--<2026-08-10 Mon 19:10> record post-cutover vocabulary
@@ -3454,6 +3493,43 @@ directory is review-buffer legibility, not disk.
 once archived files are permanent by default and restorable, the raw
 pause/resume history has a durable home, and the =:SESSIONS:= drawer has
 no remaining job.
+
+*** TODO Review-buffer interaction fixes, for after the cutover :code:
+:PROPERTIES:
+:ID:       d409390b-6624-4820-82bb-730d763962fd
+:CREATED:  [2026-08-11 Tue 12:06]
+:BLOCKER:  ids(feba67eb-35b3-48bd-a892-8ecd47ca52e0)
+:END:
+
+Requested by the user 2026-08-11, after applying a real batch by hand —
+so these come from use, not from imagining use. Deliberately sequenced
+after [[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]]: polishing
+the interaction before the queue's contents are trustworthy would be
+tuning the wrong thing, since pre-cutover every =todo= item is stale by
+construction.
+
+1. *Mark and toggle advance to the next line.* The single biggest
+   difference between marking ten items and marking ten items pleasantly.
+   Standard everywhere in Emacs — =dired-mark=, =package-menu-mark-*=,
+   =magit= — and its absence is why marking currently feels like typing
+   =m= then =n= forever. Note =u= conventionally advances too, while a
+   plain toggle arguably should not; follow dired, which advances on both.
+2. *Allow editing the note.* =e= already edits an interval's endpoints;
+   the note is the other half of what lands in the file, and it is the
+   part a human is best placed to improve — Claude's 3-to-10-word note
+   was written before the work was done, and by review time the human
+   knows what it actually was. It becomes the =\\\\= continuation on the
+   State line, so this is the last chance to fix it before it is history.
+3. *An idiomatic mark-all / unmark-all / toggle-all.* Again dired's
+   vocabulary: =m=/=u= per line, =U= to unmark everything, =t= to invert.
+   Note =t= is currently bound to per-line toggle, so this is a rebinding
+   and not just an addition — worth doing at the same time as (1) rather
+   than teaching two different sets of muscle memory.
+
+Related but distinct: [[id:118373e5-b89b-4001-ad52-1f68374745fb][118373e5]]
+proposes a transient menu once there are filters worth composing. These
+three are the keystroke-level fixes underneath that, and are worth
+having whether or not a menu ever appears.
 
 ** TODO Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
