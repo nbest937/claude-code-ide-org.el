@@ -1770,7 +1770,19 @@ marked `@' in the future) never fires for this programmatic
 transition; `claude-code-ide-org--format-log-state-line' supplies an
 equivalent line by hand instead."
   (when (equal (plist-get change-plist :to) "NEXT")
-    (let ((new-next-heading (org-get-heading t t t t)))
+    ;; Name the superseding sibling by an [[id:...]] link rather than a
+    ;; bare title. Titles are not stable here -- headings get retitled as
+    ;; their scope becomes clearer, which is exactly why every tool in
+    ;; this module addresses by :ID: -- so a quoted title silently becomes
+    ;; wrong, and the note is the one place a reader would go to find out
+    ;; *why* something was demoted. The link is also navigable, which a
+    ;; quoted title is not. Falls back to the quoted title when the
+    ;; sibling has no :ID:, since a slightly stale note beats no note.
+    (let* ((new-next-heading (org-get-heading t t t t))
+           (new-next-id (org-entry-get nil "ID"))
+           (reference (if new-next-id
+                          (format "[[id:%s][%s]]" new-next-id new-next-heading)
+                        (format "\"%s\"" new-next-heading))))
       (claude-code-ide-org--map-siblings
        (lambda ()
          (when (equal (org-get-todo-state) "NEXT")
@@ -1779,8 +1791,8 @@ equivalent line by hand instead."
             "LOGBOOK"
             (claude-code-ide-org--format-log-state-line
              "TODO" "NEXT"
-             (format "Auto-demoted: superseded by sibling \"%s\" becoming NEXT."
-                     new-next-heading)))))))))
+             (format "Auto-demoted: superseded by sibling %s becoming NEXT."
+                     reference)))))))))
 
 (defun claude-code-ide-org--trigger-auto-promote-sole-todo (_change-plist)
   "For `org-trigger-hook': whenever this heading's sibling group (self

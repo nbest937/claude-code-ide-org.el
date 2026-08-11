@@ -10,6 +10,7 @@
 :CREATED:  [2026-08-03 Mon 19:17]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-11 Tue 12:33]--[2026-08-11 Tue 12:35] =>  0:02
 CLOCK: [2026-08-04 Tue 12:15]--[2026-08-04 Tue 12:20] =>  0:05
 :END:
 [[file:~/.claude/plans/twinkling-meandering-graham.md][Plan]]
@@ -61,6 +62,35 @@ the new =NEXT= alone; reducing a 2-=TODO= group to one survivor via a
 the survivor with an "Auto-promoted" note; neither case triggered an
 interactive note prompt.
 
+
+*Refined 2026-08-11: the auto-demote note names its sibling by
+=[[id:...]]= link, not by quoted title.* Requested after asking whether a
+demotion reason was captured at all — it already was, and had been since
+this heading shipped, but it named the superseding sibling by title.
+
+Titles here are not stable. They get revised as scope clarifies —
+=c954f650= was retitled the same day — and instability is precisely why
+every tool in this module addresses headings by =:ID:=. A quoted title
+inside a note that exists to explain *why* something was demoted is the
+last place a name should be allowed to go quietly wrong. The link is also
+navigable, which a quoted title is not.
+
+Falls back to the quoted title when the superseding sibling has no
+=:ID:=: a slightly stale name beats a dangling =[[id:nil]]=, and beats
+suppressing the note entirely.
+
+*Verified:* =bin/test= 164/164. The top-level demotion test now asserts
+the id form specifically and asserts the bare-title form is *absent*,
+since a title-only match would have passed against the old format too;
+confirmed to fail against the pre-change =config.el= by stashing it. A
+second test pins the no-=:ID:= fallback — and its docstring records that
+it passes against the old implementation as well, so nobody mistakes it
+for evidence of this change.
+
+*Not yet observed in the wild.* No real demotion has occurred: every
+=NEXT= promotion in these files so far has happened with no sibling
+holding =NEXT=. The two "Auto-demoted" strings in TODO.org are prose in
+outcome notes, not logged transitions.
 ** DONE Adopt org's native !/@ state-change logging, guarded by org-inhibit-logging :code:
 :PROPERTIES:
 :ID:       04d0e7d5-ab6b-4972-925d-d517484c7595

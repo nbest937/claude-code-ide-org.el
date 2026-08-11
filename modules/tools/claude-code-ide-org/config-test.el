@@ -994,8 +994,41 @@ explanatory LOGBOOK note, and leave the new one at NEXT."
     (should (equal "TODO" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))
     (should (equal "NEXT" (org-with-point-at (org-id-find "test-0002" 'marker) (org-get-todo-state))))
     (save-buffer)
-    (should (string-match-p "Auto-demoted: superseded by sibling \"Sibling B\" becoming NEXT"
-                            (claude-code-ide-org-test--disk-contents file)))))
+    ;; The superseding sibling is named by an [[id:...]] link, not a bare
+    ;; title: titles get revised as scope clarifies, and a note explaining
+    ;; *why* something was demoted is the last place a stale name should
+    ;; appear. Asserting the id specifically, since a title-only match
+    ;; would still pass against the old format.
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      (should (string-match-p
+               "Auto-demoted: superseded by sibling \\[\\[id:test-0002\\]\\[Sibling B\\]\\] becoming NEXT"
+               disk))
+      (should-not (string-match-p "sibling \"Sibling B\"" disk)))))
+
+(ert-deftest claude-code-ide-org-test-single-next-demote-note-falls-back-to-title ()
+  "When the superseding sibling has no :ID:, the note names it by quoted
+title rather than producing a broken link. A slightly stale name beats a
+dangling [[id:nil]], and beats no note at all -- the note exists to
+explain a demotion the reader did not ask for.
+
+Note this test passes against the *pre-id-link* implementation too, which
+always quoted the title: it pins the fallback rather than demonstrating
+the change. The discriminating assertion lives in
+`claude-code-ide-org-test-single-next-demotes-old-next-among-top-level-headings\'."
+  (claude-code-ide-org-test--with-heading
+    (org-with-point-at (org-id-find id 'marker) (org-todo "NEXT"))
+    (goto-char (point-max))
+    (insert "* TODO Sibling with no id                                           :code:\n")
+    (save-buffer)
+    (goto-char (point-min))
+    (re-search-forward "^\\* TODO Sibling with no id")
+    (org-todo "NEXT")
+    (save-buffer)
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      (should (string-match-p
+               "Auto-demoted: superseded by sibling \"Sibling with no id\" becoming NEXT"
+               disk))
+      (should-not (string-match-p "\\[\\[id:" disk)))))
 
 (ert-deftest claude-code-ide-org-test-single-next-demotes-old-next-among-direct-children ()
   "The same demotion must apply one level down, among a heading's own
