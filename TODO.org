@@ -1715,11 +1715,14 @@ from what shipped in four places:
   [[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]]; the conclusion
   still holds but the reason cited for it, and the =config.el:900/991=
   line references, do not.
-*** TODO Rework the MCP tool / hook write paths to append-only :code:
+*** DOING Rework the MCP tool / hook write paths to append-only :code:
 :PROPERTIES:
 :ID:       feba67eb-35b3-48bd-a892-8ecd47ca52e0
 :CREATED:  [2026-08-06 Thu 10:47]
 :BLOCKER:  ids(720b2dcf-6af1-45f3-96a7-aa841e5651e1)
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-11 Tue 12:14]
 :END:
 
 [[file:~/.claude/plans/review-and-cutover.md][Plan]]
@@ -1805,7 +1808,60 @@ Specifically unaddressed by the bullets: what order the edits land in so
 the suite stays green between them, and what the first session after the
 cutover is expected to look like, which is the only real check that the
 write paths are all actually severed.
-*** DOING Build the interactive review-and-apply Emacs command :code:
+
+*Working order, derived 2026-08-11 before the first edit.* Not a
+re-plan: =review-and-cutover.md='s Phase B decisions are settled and
+still hold. What it lacked was an order, which is what follows. One of
+its bullets is sequenced wrong, and that is the interesting part.
+
+*The guards must be retired WITH the wrappers, not after.* The plan lists
+them as separate bullets, which reads as "whenever." Both become
+actively harmful the moment the tools stop mutating:
+- =pretooluse-transition-guard= validates a requested transition against
+  the heading's *current disk state*. Once a transition only queues, disk
+  stops moving — so after queueing =TODO -> DOING=, the guard still sees
+  =TODO= and would *reject* the following =DOING -> DONE= as illegal. It
+  does not merely go stale; it starts blocking correct work.
+- =clock-notify= cross-checks a tool's claimed clock result against live
+  =(org-clocking-p)=. Once =org_clock_in= never opens a clock, that
+  comparison reports a mismatch on *every* call.
+
+*And session-pause/resume must come after the wrappers, not before.* If
+they drop their =emacsclient= call while the tools still open real
+clocks, nothing pauses at a turn boundary and every interval inflates
+with idle time — the exact reason the additive step was taken during
+[[id:32272061-1d78-4726-b13b-90338edb2ba5][32272061]] instead of the
+plan's original one-shot.
+
+So:
+
+1. *Wrappers + guards, together.* =org_set_todo=/=org_clock_in=/
+   =org_clock_out= validate the =:ID:= and return "queued, pending
+   review" without touching a buffer; delete
+   =bin/hooks/pretooluse-transition-guard=, =bin/clock-notify= and
+   =bin/clock-notify-test= with their =.claude/settings.json= entries.
+   Leaves clocking inert, which is correct — apply is the writer now.
+2. *=session-pause=/=session-resume=* drop =emacsclient= and become bare
+   =queue-append= wrappers.
+3. *=exitplanmode-promote-planning=* queues a =todo= event instead of
+   driving elisp. Sequenced here because it is the case that most needs
+   apply to collapse a =TODO -> PLANNING -> DOING= run into one interval
+   rather than replaying three.
+4. *Ownership variables* and their machinery
+   (=--clock-owner-session-id=, =--planning-owner-session-id=,
+   =--maybe-record-planning-owner=, =--promote-planning-to-doing=). Last
+   because steps 2 and 3 are what remove their readers; deleting earlier
+   would break code still calling them.
+
+Tests move with each step rather than after: their assertions invert from
+"the buffer and clock changed" to "an event was appended and the buffer
+is untouched," and a suite left asserting the old contract in between
+would be noise rather than a signal.
+
+Still one commit, per the plan — the order above is how the edits are
+made and the suite is run, not a sequence of commits. =git revert= as
+rollback only works if the cutover is atomic.
+*** DONE Build the interactive review-and-apply Emacs command :code:
 :PROPERTIES:
 :ID:       720b2dcf-6af1-45f3-96a7-aa841e5651e1
 :CREATED:  [2026-08-06 Thu 10:47]
@@ -1949,6 +2005,41 @@ nil-keyed group is skipped whole. Surfacing them is now tracked as
 [[id:3d0487f4-b8f8-451c-88bf-ab537663cbd0][3d0487f4]], which should be
 read as a *regression against this plan* rather than as a new idea —
 it was designed in from the start.
+
+*Gate met, 2026-08-11.* The "still owed" above was an interactive
+by-hand pass, on the grounds that
+[[id:3d576d29-747f-40b9-a5b3-ecc76679daad][3d576d29]] showed the logging
+path behaves differently under =emacsclient -e= than in batch. It has now
+happened three times, and the command survived all three:
+
+- *2026-08-07*, the first pass, which exposed five bugs. Four were fixed
+  that day; the fifth was
+  [[id:3d93021d-1d8a-4657-bc5c-77734f91fb9d][3d93021d]], root-caused to
+  stale global =org-log-note-marker= state and fixed with a one-line
+  clear whose reasoning is now a comment.
+- *2026-08-10*, a clock item applied cleanly: the reviewed span landed in
+  =:LOGBOOK:= with active timestamps and an exact =0:01= CLOCK line. That
+  interval was destroyed minutes later, which found
+  [[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]] — a bug in
+  consolidation, not in apply.
+- *2026-08-11*, a real batch of state items, which exercised the
+  stale-transition guard in the field. It fired on all four, as it should
+  have; they were confirmed at the prompt, which is the override behaving
+  as designed.
+
+*What this heading does not close, deliberately.* Two known gaps have
+their own headings rather than holding this one open:
+- [[id:3d0487f4-b8f8-451c-88bf-ab537663cbd0][3d0487f4]] — unattributed
+  guideposts are dropped rather than surfaced. Read that as a *regression
+  against this heading's own plan*, whose rendering mockup includes an
+  =unattributed: 2 guideposts= line, rather than as a new idea.
+- [[id:d409390b-6624-4820-82bb-730d763962fd][d409390b]] — three
+  interaction fixes requested after using it for real: mark advances,
+  the note is editable, and a dired-style mark-all.
+
+Neither blocks [[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]]:
+the cutover needs a command that applies queued events correctly, which
+this is, not a comfortable one.
 *** DONE Root-cause how apply wrote a DONE nobody queued, onto the wrong heading :code:
 :PROPERTIES:
 :ID:       3d93021d-1d8a-4657-bc5c-77734f91fb9d
