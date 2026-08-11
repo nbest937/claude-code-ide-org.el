@@ -74,6 +74,15 @@ modules/tools/claude-code-ide-org/
     config-test.el  ← ERT tests for config.el
     packages.el     ← dependency notes (no additional packages)
 bin/test            ← runs the ERT suite (emacs --batch)
+bin/sync-plans      ← copies this project's Plan Mode documents from
+                       ~/.claude/plans into plans/, so they have history;
+                       `--check` reports drift without copying
+plans/              ← the archived copy. NOT the working copy: Claude Code
+                       owns ~/.claude/plans and Plan Mode writes there, so
+                       that stays the file org headings link and a revision
+                       edits. A plan is archived here iff some heading in
+                       TODO.org or DONE.org links it
+.githooks/pre-push  ← refuses a push while plans/ is stale
 .claude/skills/
     org/SKILL.md        ← Claude Code skill for org-mode file editing
     org-dev/SKILL.md    ← Claude Code skill for reloading/verifying changes
@@ -98,6 +107,20 @@ server. The investigation behind it is archived in DONE.org
 touching either file, because the proxy the files were originally meant to
 support turned out to be unnecessary: the real bug was this project's HTTP
 server answering `200` where the MCP spec requires `202 Accepted`.
+
+**One-time setup, required for `.githooks/` to do anything:**
+
+```sh
+git config core.hooksPath .githooks
+```
+
+That setting lives in `.git/config`, which is not version controlled, so a
+fresh clone silently has no hooks until it is run. The hooks themselves are
+tracked precisely so they are reviewable and shared — putting them in
+`.git/hooks/` instead would make them invisible local state, which is the
+same problem the `plans/` archive exists to fix. Note that `core.hooksPath`
+redirects *every* hook: check `.git/hooks/` holds nothing but `.sample`
+files before setting it (it did here, 2026-08-11).
 
 Run the tests with `bin/test`. They exercise the four wrapper functions
 against scratch org files in a temp directory — no Doom, no real Emacs

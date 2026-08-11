@@ -86,18 +86,25 @@ fi
 # Plans present at the source that no heading links. Not copied: org
 # membership is the rule. Worth surfacing, since it usually means a
 # missing Plan link rather than another project's work.
+#
+# Skipped under --check: an unlinked plan is advisory, never a drift
+# condition, and --check's output is read when something is blocking a
+# push. Mixing "here is why you are blocked" with "here is something to
+# tidy up someday" is how the second one teaches people to skim the first.
 unlinked=0
-for path in "$src"/*.md; do
-  [[ -e "$path" ]] || continue
-  name="$(basename "$path")"
-  found=0
-  for w in "${wanted[@]}"; do [[ "$w" == "$name" ]] && { found=1; break; }; done
-  if [[ $found -eq 0 ]]; then
-    [[ $unlinked -eq 0 ]] && echo "  --- unlinked at source, not archived: ---"
-    echo "  unlinked $name"
-    unlinked=$((unlinked + 1))
-  fi
-done
+if [[ $check_only -eq 0 ]]; then
+  for path in "$src"/*.md; do
+    [[ -e "$path" ]] || continue
+    name="$(basename "$path")"
+    found=0
+    for w in "${wanted[@]}"; do [[ "$w" == "$name" ]] && { found=1; break; }; done
+    if [[ $found -eq 0 ]]; then
+      [[ $unlinked -eq 0 ]] && echo "  --- unlinked at source, not archived: ---"
+      echo "  unlinked $name"
+      unlinked=$((unlinked + 1))
+    fi
+  done
+fi
 
 total=${#wanted[@]}
 if [[ $check_only -eq 1 ]]; then
