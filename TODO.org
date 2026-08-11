@@ -765,10 +765,14 @@ Subsumes the hardcoded-keyword problem;
 [[id:cdcc065c-628d-4350-b1ba-fcf686e9c4c1][cdcc065c]] (the missing
 =:CREATED:=) still stands, and a bare heading needs it more, not less.
 
-** TODO Add the (t!) logging marker to TODO in the #+TODO: line :code:
+** DONE Add the (t!) logging marker to TODO in the #+TODO: line :code:
 :PROPERTIES:
 :ID:       90a5a0cf-a81d-45dc-a453-0bfe61e3ef93
 :CREATED:  [2026-08-11 Tue 15:52]
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-08-11 Tue 16:18] \\
+  TODO(t!) marker added to line 1
 :END:
 
 TODO.org line 1 carried logging markers on every keyword *except* the
@@ -3637,10 +3641,14 @@ instances: CLAUDE.md is loaded into every session by default while the
 artifacts it describes are not, so a stale claim in it outranks the
 truth until someone deliberately checks. Sections describing mechanisms
 that have been cut over are the highest-risk kind.
-*** TODO Failed tool calls still enter the queue when the error is content-wrapped :code:
+*** DONE Failed tool calls still enter the queue when the error is content-wrapped :code:
 :PROPERTIES:
 :ID:       5e2a1c04-7b3f-4d21-9c88-2f6e0a91b7d3
 :CREATED:  [2026-08-10 Mon 12:50]
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-08-11 Tue 15:59] \\
+  recursive totext extractor, verified live
 :END:
 
 Found 2026-08-10 while staging guideposts for the interactive pass. An
