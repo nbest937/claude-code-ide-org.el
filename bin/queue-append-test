@@ -4,11 +4,21 @@
 # Same register as bin/clock-notify-test, and the same honesty about its
 # limits. Fully covered here: kind validation, session_id extraction and
 # sanitisation, the "Error:" tool_response suppression, field mapping per
-# kind, and append accumulation. NOT covered, and not claimed to be: the
-# real shape of a live PostToolUse/Stop/UserPromptSubmit payload, and the
-# behavior of concurrent writers appending at once (the atomicity claim
-# rests on POSIX O_APPEND semantics for sub-PIPE_BUF writes, not on a
-# test).
+# kind, append accumulation, and -- since 2026-08-11 -- the content-block
+# tool_response shape a live MCP PostToolUse payload actually carries.
+# NOT covered, and not claimed to be: the payload shape of the Stop and
+# UserPromptSubmit hooks, and the behavior of concurrent writers
+# appending at once (the atomicity claim rests on POSIX O_APPEND
+# semantics for sub-PIPE_BUF writes, not on a test).
+#
+# That one exclusion used to read "the real shape of a live payload" and
+# cover tool_response too, and the gap was not theoretical: every
+# tool_response fixture below was a hand-written string, the live shape
+# is an array of content blocks, and the "Error:" guard silently failed
+# against it for the whole window between the cutover and the first live
+# call. A fixture that never takes the shape of production data is a test
+# of the fixture. The LIVE PAYLOAD SHAPES section exists to keep that
+# specific lie from being told twice.
 #
 # The reader half is covered by ERT instead -- see the "Event queue"
 # section of config-test.el.
@@ -243,6 +253,59 @@ check "clock_out now has no id to recover" "null" \
 reset_queue
 run todo '{"session_id":"sess-a","tool_input":{"id":"nope","state":"DOING"},"tool_response":"Error: no org heading found with :ID: \"nope\""}'
 check "validation failure writes nothing" "" "$(ls "$CLAUDE_ORG_QUEUE_DIR" 2>/dev/null)"
+
+# --- LIVE PAYLOAD SHAPES ------------------------------------------------
+# Everything above feeds tool_response as a bare string. A real MCP
+# PostToolUse payload never does: it carries an array of content blocks.
+# The strings below are copied verbatim from the 2026-08-11 session that
+# exposed the bug, not invented, so they stay honest about the shape.
+
+# The regression itself. Before the recursive extractor this wrote a
+# clock_in for a heading that does not exist.
+reset_queue
+run clock_in '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_clock_in","tool_input":{"id":"00000000-dead-beef-0000-000000000000"},"tool_response":[{"type":"text","text":"Error: no org heading found with :ID: \"00000000-dead-beef-0000-000000000000\""}]}'
+check "content-block error response writes nothing" "" "$(queue_lines sess-a)"
+
+# The other shape the old code broke on identically: an object wrapping
+# the same array. The old object branch took .content and stringified the
+# array, yielding a leading '['.
+reset_queue
+run clock_in '{"session_id":"sess-a","tool_input":{"id":"nope"},"tool_response":{"content":[{"type":"text","text":"Error: no org heading found with :ID: \"nope\""}]}}'
+check "content-wrapper error response writes nothing" "" "$(queue_lines sess-a)"
+
+# The guard must not become so eager it eats real events. A successful
+# call in the very same shape has to survive.
+reset_queue
+run clock_in '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_clock_in","tool_input":{"id":"id-a"},"tool_response":[{"type":"text","text":"Queued clock_in on \"Rework the MCP tool / hook write paths to append-only\"; pending review."}]}'
+check "successful content-block response still enqueues" "clock_in" \
+  "$(jq -r '.kind' <<<"$(queue_lines sess-a)")"
+check "successful content-block response keeps its id" "id-a" \
+  "$(jq -r '.id' <<<"$(queue_lines sess-a)")"
+
+# The two sed recoveries read the same extracted string. They happened to
+# survive the bug by accident -- the wanted text sat inside the JSON the
+# old branch produced -- so fixing the extractor is exactly when they
+# could have broken. These pin them to the live shape.
+reset_queue
+run clock_out '{"session_id":"sess-a","tool_input":{},"tool_response":[{"type":"text","text":"Clocked out: \"Some heading\" (id: 3d576d29-747f-40b9-a5b3-ecc76679daad)"}]}'
+check "clock_out recovers id from content-block response" "3d576d29-747f-40b9-a5b3-ecc76679daad" \
+  "$(jq -r '.id' <<<"$(queue_lines sess-a)")"
+
+reset_queue
+run todo '{"session_id":"sess-a","tool_input":{"id":"id-a","state":"DOING"},"tool_response":[{"type":"text","text":"Queued todo -> DOING (was NEXT): \"H\"; pending review."}]}'
+check "todo recovers from from content-block response" "NEXT" \
+  "$(jq -r '.from' <<<"$(queue_lines sess-a)")"
+
+# Several blocks join in order rather than only the first surviving.
+reset_queue
+run clock_out '{"session_id":"sess-a","tool_input":{},"tool_response":[{"type":"text","text":"Clocked out: \"H\""},{"type":"text","text":"(id: multi-block-id)"}]}'
+check "multiple content blocks are joined" "multi-block-id" \
+  "$(jq -r '.id' <<<"$(queue_lines sess-a)")"
+
+# Deeper nesting must not defeat the guard -- the point of recursing.
+reset_queue
+run clock_in '{"session_id":"sess-a","tool_input":{"id":"nope"},"tool_response":[{"type":"text","content":[{"text":"Error: nested but still an error"}]}]}'
+check "nested error response writes nothing" "" "$(queue_lines sess-a)"
 
 # --- the script never fails its caller ---------------------------------
 printf '%s' 'garbage' | "$script" pause >/dev/null 2>&1

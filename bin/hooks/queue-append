@@ -68,15 +68,30 @@ esac
 # The tool wrappers return an "Error: ..." string rather than throwing
 # when :ID: resolution fails (see claude-code-ide-org--at-id). Treat that
 # as "nothing happened" -- a bad :ID: must not enter the queue and
-# resurface as a mystery at review time. tool_response may be a string or
-# an object depending on the tool, so normalise before testing it.
+# resurface as a mystery at review time.
+#
+# tool_response arrives in several shapes and the extraction has to
+# recurse, not just branch once. A live MCP tool_response is an array of
+# content blocks -- [{"type":"text","text":"Error: ..."}] -- so a
+# single-level `map(tostring)' stringifies each *block* to its JSON and
+# yields a string starting with `{', which no amount of matching on
+# `Error:' will ever catch. That was a real escape: a clock_in for a
+# nonexistent :ID: reached the queue on 2026-08-11 and was only caught by
+# testing against a live payload rather than the hand-written string
+# shapes the suite had been using. Recursing also covers the
+# {"content":[...]} wrapper, which the old object branch broke on
+# identically.
+#
+# Plain strings still pass through unchanged, so pre-existing callers and
+# the older reply shapes are unaffected.
 response=""
 if [[ "$kind" == todo || "$kind" == clock_in || "$kind" == clock_out ]]; then
   response="$(jq -r '
-    (.tool_response // "")
-    | if type == "object" then (.text // .content // .result // "" | tostring)
-      elif type == "array" then (map(tostring) | join(" "))
-      else tostring end' <<<"$input" 2>/dev/null)"
+    def totext:
+      if type == "object" then (.text // .content // .result // "" | totext)
+      elif type == "array" then (map(totext) | join(" "))
+      else tostring end;
+    (.tool_response // "") | totext' <<<"$input" 2>/dev/null)"
   case "$response" in
     Error:*) exit 0 ;;
   esac

@@ -1,4 +1,4 @@
-#+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
+#+TODO: TODO(t!) NEXT(n!) PLANNING(p!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 
@@ -721,6 +721,153 @@ nothing real. Revisit if the tool becomes the normal creation path.
 ([[id:d9132c57-9dcf-47e9-ba74-7f5a1ced3ae5][d9132c57]]) can ride this same event rather
 than needing a mechanism of its own — apply would write the creation
 entry exactly as it writes a state transition.
+
+** TODO Capture bare headings; apply the TODO keyword at ingestion :code:
+:PROPERTIES:
+:ID:       47c027d2-7b5a-4de0-baf4-f992f3b814bd
+:CREATED:  [2026-08-11 Tue 15:52]
+:BLOCKER:  ids(90a5a0cf-a81d-45dc-a453-0bfe61e3ef93)
+:END:
+
+=org_capture= currently writes =* TODO %i= — the keyword is hardcoded in
+the template, not a parameter. That asserts a state live while every
+other state assertion is queued, which is the cutover's own principle
+applied inconsistently.
+
+*Proposed shape (user's, 2026-08-11):* capture writes a bare heading —
+=:ID:=, =:CREATED:=, no keyword. Ingestion applies the keyword through
+=org-todo= inside the interactive apply, which makes it a genuine
+transition and lets org write the creation entry natively.
+
+This is the more conservative split than the "creation *is* a =capture=
+event" sketch in
+[[id:d9132c57-9dcf-47e9-ba74-7f5a1ced3ae5][d9132c57]]: the heading still
+lands immediately, so its =:ID:= is usable and it can be linked and
+refiled at once; only the *keyword* defers.
+
+*Verified the mechanism, 2026-08-11*, against the real =#+TODO:= header:
+a bare heading taken to =NEXT= or =DOING= produces a native
+=- State "NEXT" from [ts]= entry. Taken to =TODO= it produced nothing,
+because =TODO= was the one keyword carrying no =!= marker — hence the
+=:BLOCKER:=, since resolved by
+[[id:90a5a0cf-a81d-45dc-a453-0bfe61e3ef93][90a5a0cf]].
+
+It also makes =d9132c57='s duplicate-=:CREATED:=-into-=:LOGBOOK:= vs.
+synthesise-at-read-time question moot for anything captured after the
+change: org writes the entry, so neither is needed. Backfill is still
+owed for the 56 existing headings.
+
+*Accepted cost, confirmed with the user:* between capture and ingestion
+the heading matches no =todo:= query and appears in no agenda. Judged
+acceptable and "even a good cue to ingest and apply."
+
+Subsumes the hardcoded-keyword problem;
+[[id:cdcc065c-628d-4350-b1ba-fcf686e9c4c1][cdcc065c]] (the missing
+=:CREATED:=) still stands, and a bare heading needs it more, not less.
+
+** TODO Add the (t!) logging marker to TODO in the #+TODO: line :code:
+:PROPERTIES:
+:ID:       90a5a0cf-a81d-45dc-a453-0bfe61e3ef93
+:CREATED:  [2026-08-11 Tue 15:52]
+:END:
+
+TODO.org line 1 carried logging markers on every keyword *except* the
+first:
+
+: #+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
+
+So entering =TODO= was the one transition org logged nothing for. Almost
+certainly deliberate and correct when the markers were adopted: every
+task starts at =TODO=, so logging it was pure noise.
+
+[[id:47c027d2-7b5a-4de0-baf4-f992f3b814bd][47c027d2]] inverts that.
+Under bare-heading capture, entering =TODO= *is* the creation event —
+the single entry the timeline most needs — and it was the only one that
+would silently not be written. Confirmed by direct test against the real
+header: bare → =NEXT= and bare → =DOING= log; bare → =TODO= did not, and
+no error was raised.
+
+*Done 2026-08-11:* =TODO= → =TODO(t!)= on line 1. One character. The
+blast radius is every future =TODO= transition gaining a =:LOGBOOK:=
+line, which is the point.
+
+** TODO claude-code-ide-org-capture-file is unset, so captures land outside the project :code:
+:PROPERTIES:
+:ID:       53a1376e-7718-4d5f-9bf5-2d75db61b863
+:CREATED:  [2026-08-11 Tue 15:52]
+:END:
+
+The defcustom exists precisely to target this project's files and is
+=nil=; nothing in =~/.config/doom/config.el= sets it. =org_capture=
+therefore falls through to =org-default-notes-file=, which is org's own
+default =~/org/notes.org= — outside the repo, not in
+=org-agenda-files=, and not scanned by any of this project's machinery.
+
+Latent rather than damaging so far: =notes.org= contains zero captured
+headings, so the tool has effectively never been used in anger. That is
+also why none of the other =org_capture= defects have surfaced.
+
+Makes [[id:cdcc065c-628d-4350-b1ba-fcf686e9c4c1][cdcc065c]] worse than
+it currently states — those headings would not merely lack =:CREATED:=,
+they would sit in a file the proposed backfill never reads.
+
+Decide the target deliberately rather than just setting it: TODO.org
+top-level is reserved for categories, so a capture landing there as a
+bare =**= child needs a home chosen on purpose.
+
+** TODO Check for a modified Emacs buffer before text-editing a tracked org file :code:
+:PROPERTIES:
+:ID:       0308e7d7-06ea-48fb-8579-6a5a43277674
+:CREATED:  [2026-08-11 Tue 16:22]
+:END:
+
+Heading creation, tagging and prose edits are text operations by design
+— Claude writes the =.org= file on disk directly, and only clock/state
+changes go through Emacs. That division is deliberate and still right.
+What it lacks is a precondition: nothing checks whether Emacs is holding
+a *modified* buffer for the file about to be edited.
+
+*Instance three, 2026-08-11, and the first one Claude caused.* Six new
+headings and three body edits were written to TODO.org on disk while
+Emacs held a buffer that had been modified — and therefore stale — for
+hours. =global-auto-revert-mode= is on but deliberately refuses to
+revert a modified buffer, so it had silently stopped tracking the file.
+Discovered only because an unrelated =org-id-find= on a
+just-written =:ID:= came back nil. Had that not happened, the divergence
+would have persisted until something saved or reverted.
+
+Only four characters of the buffer were genuinely unsaved — =maye=,
+stray keystrokes appended to a =CLOCK:= duration, exactly the accident
+=buffer-read-only= is normally set to prevent. So the resolution was
+cheap. It was cheap by luck: any real unsaved work in that buffer would
+have forced a genuine three-way merge between disk, buffer, and intent.
+
+*What already guards this, and why it is not enough.* =config.el='s
+audit hashing reads straight off disk precisely to catch buffer/disk
+divergence ("bit this project twice already", =config.el= ~line 90), but
+it detects *after* a mutation rather than preventing one.
+=basic-save-buffer= does check =verify-visited-file-modtime= and prompt
+=yes-or-no-p= before overwriting a changed file (verified), so
+=--review-apply-item='s per-item =save-buffer= cannot silently clobber —
+but a prompt is the one thing that must never appear in a
+non-interactive path, and it is only reachable at all because apply has
+a human present.
+
+*Proposed shape:* the file-level analogue of the reload-precondition
+rule in the user's global CLAUDE.md — before text-editing a tracked
+=.org= file, establish that Emacs is not holding unsaved changes to it,
+and stop and say so if it is. Cheap to check
+(=(buffer-modified-p (get-file-buffer f))=), and the answer is the
+finding when it comes back non-nil. Belongs in the org skill next to the
+existing read-only guidance, which covers the adjacent case (buffer
+read-only) but not this one.
+
+*Worth deciding alongside:* whether =global-auto-revert-mode='s refusal
+to revert modified buffers should be surfaced somewhere. It is correct
+behaviour that produces a silent failure mode — a file the user believes
+is auto-reverting quietly stops the moment a stray keystroke marks the
+buffer modified.
+
 * Clock lifecycle & visibility
 
 Everything here is specifically about the clock subsystem's
@@ -3456,6 +3603,40 @@ single-NEXT-per-level enforcement.
 missing =PLANNING=, which CLAUDE.md has carried since the state was
 added. Adding a rule to a table that is already wrong would bake the
 error in.
+
+*Four concrete drifts found 2026-08-11, post-cutover.* Recorded here
+rather than fixed piecemeal, since this heading owns the rewrite. Each
+was found the same way — a claim in CLAUDE.md taken as current and acted
+on, then contradicted by the artifact:
+
+1. *The session hooks.* Documented as calling =emacsclient -e=, with
+   =session-pause= "a thin alias for =org_clock_out=" and
+   =session-resume= calling =org-clock-in-last=. Both are now one-line
+   =exec=s to =bin/hooks/queue-append= with no =emacsclient= at all.
+   This drift actively misled: three symbol names taken from these
+   sections (=claude-code-ide-org-session-pause=, =--review-queue=,
+   =--clock-owner-session-id=) all came back unbound, which read as
+   "the module is not loaded" when in fact 102 of its functions were
+   and the names were simply retired.
+2. *Power assertions framed as noise.* See
+   [[id:1a5a5254-f62d-46e7-9a6c-3d84f2f52873][1a5a5254]] — the framing
+   is backwards for attribution.
+3. *=DOING= with no running clock.* Still implied to be an
+   inconsistency. Post-cutover it is the expected steady state: live
+   =CLOCK:= lines are only ever written by the review pass, so every
+   =DOING= heading sits clockless between passes.
+4. *The =#+TODO:= header* (CLAUDE.md line 188) matches neither file.
+   TODO.org carries =!=/=@= logging markers on every keyword; DONE.org
+   has no =#+TODO:= line at all, despite the same section saying every
+   =.org= file in the project should start with one. The documented
+   version — bare keywords, no markers — was used as a test fixture on
+   2026-08-11 and manufactured a false "org logs nothing" finding.
+
+The pattern is worth naming in the rewrite, not just the four
+instances: CLAUDE.md is loaded into every session by default while the
+artifacts it describes are not, so a stale claim in it outranks the
+truth until someone deliberately checks. Sections describing mechanisms
+that have been cut over are the highest-risk kind.
 *** TODO Failed tool calls still enter the queue when the error is content-wrapped :code:
 :PROPERTIES:
 :ID:       5e2a1c04-7b3f-4d21-9c88-2f6e0a91b7d3
@@ -3502,6 +3683,41 @@ Worth checking at the same time whether a *failed* call should be queued
 deliberately, as an audit record flagged as failed, rather than dropped.
 Dropping is right for the review buffer, but the queue is also the only
 durable trace of what a session attempted.
+
+*Fixed 2026-08-11.* The normaliser now recurses instead of branching
+once — a jq =def totext= that unwraps objects via
+=.text/.content/.result= and arrays via =map(totext)=, so the
+content-block shape flattens to the bare string before the =Error:= test.
+Plain strings pass through unchanged.
+
+Chosen over the =[.. | strings]= flatten proposed above, because the same
+extracted string feeds =clock_out='s id recovery and =todo='s =from=
+recovery by =sed=; a recursive-descent flatten collects key values too
+(="text"=, ="type"=) and scrambles that input. =totext= preserves reading
+order.
+
+*Verified:* =bin/queue-append-test= 28/28, =bin/test= 145/145. Eight new
+assertions in a LIVE PAYLOAD SHAPES section using payloads copied
+verbatim from the session that caught it; the three suppression tests
+were confirmed to *fail* against the pre-fix writer (run in a scratch
+tree, not assumed). Also confirmed end-to-end in-session: the identical
+=org_clock_in= call that escaped at 15:11 was suppressed at 15:19 with no
+new event.
+
+*Caught by a live call, not by the suite.* Every existing fixture fed
+=tool_response= as a hand-written string — the one shape the real MCP
+path never produces. The suite's header had disclaimed exactly this and
+has been narrowed accordingly. Second instance in two days of a fixture
+differing from production in the one dimension under test; the first is
+recorded in [[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]'s
+=#+TODO:=-marker scare.
+
+*Left in the queue on purpose:* the escaped =dead-beef= event from 15:11.
+It is the only unresolvable-=:ID:= event that will ever exist once this
+fix ships, so the next ingestion is the one chance to see how review
+handles it — and to check whether the 15:18:55 =clock_out= pairs to
+=feba67eb= or is captured by it, which is the attribution failure this
+heading already predicted.
 
 *** DONE consolidate-history destroys reviewed intervals minutes after apply writes them :code:
 :PROPERTIES:
@@ -3934,6 +4150,71 @@ Decide it during
 path is already open, rather than discovering it in the first
 post-cutover review pass.
 
+*** TODO pause/resume cannot see a turn blocked on a permission prompt :code:
+:PROPERTIES:
+:ID:       f4e628ce-e653-429a-8f3c-0f5d4241b139
+:CREATED:  [2026-08-11 Tue 15:52]
+:END:
+
+The =Stop= hook fires when a turn ends. A turn that stalls mid-flight —
+waiting on a tool-permission prompt — has not ended, so no =pause= is
+written and the queue records one unbroken span.
+
+Measured in this session, 2026-08-11: the turn for prompt =523077c9= ran
+=resume= 13:55:19 → =pause= 14:53:10, 57m51s. Of that, 54m11s was a
+single tool call awaiting approval while the user was on a Zoom call;
+roughly 3m40s was work. Nothing in the queue distinguishes the two.
+
+Not a hook bug — the hook behaved correctly, the turn genuinely never
+stopped. The guidepost model simply has no event for "still running, but
+blocked on a human." Note the asymmetry with an *interrupted* turn,
+which also emits no =pause= but is harmlessly bounded by the next
+=resume=; this case is bounded by nothing.
+
+Bears directly on the project's second stated goal. If a clock had been
+running, ~58 minutes would have been credited to a heading for ~4
+minutes of attention. Related:
+[[id:1a5a5254-f62d-46e7-9a6c-3d84f2f52873][1a5a5254]], which is one
+possible external signal for exactly this gap.
+
+*** TODO Read power assertions as a review-time attribution signal :code:research:
+:PROPERTIES:
+:ID:       1a5a5254-f62d-46e7-9a6c-3d84f2f52873
+:CREATED:  [2026-08-11 Tue 15:52]
+:END:
+
+CLAUDE.md records =pmset -g log= as "not yet attempted" and frames the
+per-app power assertions as noise obscuring clean sleep/wake
+transitions. For *this* question the framing is backwards: a laptop that
+never sleeps emits zero transitions and a rich assertion record, and the
+assertion holder is the answer.
+
+Tried 2026-08-11 against a known-answer window. The log named the
+competing activity exactly:
+
+: 14:01:56  Created   NoDisplaySleepAssertion  (zoom.us, PID 58601)
+: 14:42:14  Released  NoDisplaySleepAssertion  00:40:17
+
+The user's own estimate was "roughly 14:00 to roughly 14:45" — the log
+was right to the second, and the 40m17s sits entirely inside the 54m11s
+permission-block of
+[[id:f4e628ce-e653-429a-8f3c-0f5d4241b139][f4e628ce]].
+
+*Not a validated method, on one observation.* Zoom happened to hold a
+cleanly-named assertion; =coreaudiod= held 158 of the 361 entries in the
+same window and is a far noisier proxy. An assertion also is not
+inattention — people work through calls. The most it can honestly do is
+prompt the human reviewer, never decide.
+
+*Retention bounds it:* the log went back ~7 days (earliest 2026-08-04).
+That puts a deadline on "the human applies at a moment of their own
+choosing."
+
+Revises the disposition recorded in
+[[id:9d2fcdad-9bf7-47b6-8018-223b13ec4577][9d2fcdad]]'s neighbourhood,
+which proposed closing the =pmset= lead as won't-do — correct for the
+stale-interval guess heuristic, wrong for attribution.
+
 ** TODO Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
 :ID:       a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5
@@ -4152,8 +4433,28 @@ chronological drawer somewhere to begin.
 *org already has the shape, so nothing needs inventing.* With no
 previous state org renders the field as an empty string — =org.el= line
 11092, =(or org-log-note-previous-state "")= — producing a native
-=- State "TODO" from "" [ts]=. Existing parsers, and org-ql, handle it
-unmodified.
+creation entry with no previous state.
+
+*Corrected 2026-08-11, twice, both by direct test rather than reading.*
+
+1. *The literal above was wrong.* The empty string is padded, not
+   quoted, so the real rendering carries no ="= pair at all:
+
+   : - State "NEXT"       from              [2026-08-11 Tue 15:46]
+
+   A parser keyed on =from ""= matches nothing. The claim that "existing
+   parsers, and org-ql, handle it unmodified" was never verified and
+   should be re-checked against that actual string before anything is
+   built on it.
+
+2. *=TODO= alone carried no =!= marker*, so the one transition this
+   feature most needs — into =TODO=, the default keyword a capture
+   receives — logged nothing, silently and without error. Interactivity
+   is necessary for native logging but not sufficient; logging also has
+   to be *requested*. Fixed by
+   [[id:90a5a0cf-a81d-45dc-a453-0bfe61e3ef93][90a5a0cf]]. Had this
+   shipped as written, it would have produced no creation entries for
+   precisely the common case and looked like a bug in apply.
 
 *The alternative, which may well be better and is not yet weighed:*
 synthesise the creation entry *at read time*, in whatever reporting
@@ -4340,6 +4641,32 @@ are inherently project-specific (they name this project's actual tool
 names and files) and are out of scope.
 
 * Tooling
+
+** TODO emacs is a shell function that silently breaks inline batch verification :code:
+:PROPERTIES:
+:ID:       4f9e552a-e1a9-48dd-8801-3f23a31b9e32
+:CREATED:  [2026-08-11 Tue 15:52]
+:END:
+
+The user's shell profile defines:
+
+: emacs () { if [[ "$*" == *-nw* ]]; then command emacs "$@"; else open -a Emacs --args "$@"; fi }
+
+Any =emacs --batch ...= run from an interactive-profile shell therefore
+launches the GUI app and returns immediately: exit 0, no stdout, no
+stderr. Indistinguishable from a clean run that found nothing. Hit three
+times in a row on 2026-08-11 before being noticed, and nearly recorded
+as a genuine "org logs nothing" finding.
+
+=bin/test= is unaffected — a =#!/usr/bin/env bash= script gets a
+non-interactive shell where the function is not defined, so =exec emacs=
+resolves to =/opt/homebrew/bin/emacs=. The trap is specific to inline
+one-off verification, which is exactly where the CLAUDE.md rule about
+stating the reload precondition is meant to apply.
+
+Fix is a convention, not code: use =command emacs= or the absolute path
+for any batch invocation. Worth a line in the org-dev skill, which
+exists for exactly this class of "did the change take effect" check.
 
 ** DONE Move the statusline script into the repo :code:
 :PROPERTIES:
