@@ -1,31 +1,17 @@
 #!/usr/bin/env bash
-# UserPromptSubmit hook: resume the most recently paused org clock the
-# moment the user sends the next prompt. Fire-and-forget — never blocks
-# or adds context, and fails soft if Emacs isn't reachable. If the
-# resumed task turns out to be the wrong one, org_clock_in self-corrects
-# the next time Claude actually starts work (see
-# claude-code-ide-org-session-resume's docstring in config.el).
+# UserPromptSubmit hook: record a `resume` guidepost the moment the user
+# sends the next prompt.
 #
-# Passes this session's session_id through to
-# claude-code-ide-org-session-resume so it can no-op instead of
-# stealing a different concurrent session's actively-running clock (see
-# TODO.org :ID: 337f7fb2-b9e9-4c02-82dd-d88e60df364b). Same jq-based
-# elisp-string construction as bin/hooks/session-pause — see its
-# comment for why.
-input="$(cat)"
-
-session_id="$(jq -r '.session_id // empty' <<<"$input" 2>/dev/null)"
-
-if [[ -n "$session_id" ]]; then
-  session_id_elisp="$(printf '%s' "$session_id" | jq -R -s .)"
-else
-  session_id_elisp="nil"
-fi
-
-emacsclient -e "(claude-code-ide-org-session-resume $session_id_elisp)" >/dev/null 2>&1
-
-# Also append a `resume` guidepost to this session's event queue. Additive
-# for now, for the reasons spelled out in bin/hooks/session-pause.
-printf '%s' "$input" | "$(dirname "${BASH_SOURCE[0]}")/queue-append" resume
-
-exit 0
+# The other half of bin/hooks/session-pause -- see its header for why
+# both stopped calling `emacsclient` at the 2026-08-11 cutover.
+#
+# One thing genuinely goes away with the emacsclient call, and it is
+# worth naming: this used to run `org-clock-in-last`, which would resume
+# the wrong heading whenever the user's next prompt was about something
+# else (TODO.org :ID: 582cc7f4-41a2-4666-ad3f-1b76b459147e). A guidepost
+# carries no heading at all -- attribution comes from the surrounding
+# clock_in/clock_out events at review time -- so there is no longer a
+# wrong heading to guess.
+#
+# Fire-and-forget: always exit 0, never block Claude Code.
+exec "$(dirname "${BASH_SOURCE[0]}")/queue-append" resume

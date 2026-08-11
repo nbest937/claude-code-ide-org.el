@@ -40,7 +40,6 @@ stray clock-status.json into the real module directory."
           (claude-code-ide-org-clock-status-file (expand-file-name "clock-status.json" dir))
           (claude-code-ide-org--audit-pending nil)
           (claude-code-ide-org--log-source nil)
-          (claude-code-ide-org--planning-owner-session-id nil)
           (id "test-0001"))
      (unwind-protect
          (progn
@@ -101,185 +100,120 @@ the log file does not exist (nothing has been flushed yet)."
             (forward-line 1)))
         (nreverse entries)))))
 
-;;; claude-code-ide-org-clock-in ---------------------------------------------
+;;; Append-only wrappers -----------------------------------------------------
+;;
+;; Every assertion in this section is the inverse of what it asserted
+;; before the 2026-08-11 cutover (TODO.org :ID:
+;; feba67eb-35b3-48bd-a892-8ecd47ca52e0): the wrappers used to be tested
+;; for "the buffer and the clock changed", and are now tested for
+;; "nothing changed and an event can be recorded". Apply is the only
+;; writer -- its own coverage lives under "Review and apply" below.
 
-(ert-deftest claude-code-ide-org-test-clock-in-opens-logbook-and-saves ()
+(defun claude-code-ide-org-test--clock-in-for-real (id)
+  "Open a real clock on ID, the way apply or a hand-edit would.
+The wrappers no longer clock, so tests that need a *live* clock (the
+status file, the blocker hook, apply closing a running clock) have to
+say so explicitly rather than getting one as a side effect of
+`claude-code-ide-org-clock-in'."
+  (org-with-point-at (org-id-find id 'marker)
+    (org-clock-in)))
+
+(defun claude-code-ide-org-test--set-todo-for-real (id state)
+  "Set ID's TODO keyword to STATE the way apply or a hand-edit would.
+Same reason as `claude-code-ide-org-test--clock-in-for-real': the
+wrapper only queues now, so any test that needs the *file* to hold a
+state has to say so.  `org-inhibit-logging' is bound because these are
+setup steps, not the thing under test -- WAIT and CANCELLED are
+`@'-flagged and would otherwise block on a note prompt under batch."
+  (org-with-point-at (org-id-find id 'marker)
+    (let ((org-inhibit-logging t)) (org-todo state))
+    (save-buffer)))
+
+(ert-deftest claude-code-ide-org-test-clock-in-queues-without-clocking ()
+  "org_clock_in validates and reports; it opens no clock and writes
+nothing.  The reply is what `bin/hooks/queue-append' sees, so it must
+not start with `Error:' -- that prefix is the hook's signal to drop the
+event."
   (claude-code-ide-org-test--with-heading
-    (let ((result (claude-code-ide-org-clock-in id)))
-      (should (string-match-p "\\`Clocked in: \"Test heading\"\\'" result)))
+    (let ((before (claude-code-ide-org-test--disk-contents file))
+          (result (claude-code-ide-org-clock-in id "clarify backend schema design")))
+      (should (equal "Queued clock_in on \"Test heading\"; pending review." result))
+      (should-not (string-prefix-p "Error:" result))
+      (should-not (org-clocking-p))
+      (should-not (buffer-modified-p (get-file-buffer file)))
+      (should (equal before (claude-code-ide-org-test--disk-contents file)))
+      (should-not (string-match-p "CLOCK:" (claude-code-ide-org-test--disk-contents file))))))
+
+(ert-deftest claude-code-ide-org-test-clock-in-still-rejects-a-bad-id ()
+  "The one job left: a typo'd :ID: must come back as `Error:' so the
+queue never accepts an event that cannot be applied."
+  (claude-code-ide-org-test--with-heading
+    (should (string-prefix-p "Error:" (claude-code-ide-org-clock-in "no-such-id")))))
+
+(ert-deftest claude-code-ide-org-test-clock-out-queues-without-closing ()
+  "org_clock_out reports and does nothing else -- including when a clock
+IS running.  That case is not hypothetical: the only clock that can be
+running now belongs to the human's own `org-clock-in', and closing it
+would both destroy their interval and attribute this session's work to
+whatever they happened to be clocking."
+  (claude-code-ide-org-test--with-heading
+    (should (equal "Queued clock_out; pending review." (claude-code-ide-org-clock-out)))
+    (claude-code-ide-org-test--clock-in-for-real id)
+    (should (equal "Queued clock_out; pending review."
+                   (claude-code-ide-org-clock-out "wrapping up")))
     (should (org-clocking-p))
-    (should (not (buffer-modified-p (get-file-buffer file))))
-    (should (string-match-p "CLOCK: \\[" (claude-code-ide-org-test--disk-contents file)))))
+    (should-not (string-match-p "=>" (claude-code-ide-org-test--disk-contents file)))))
 
-(ert-deftest claude-code-ide-org-test-clock-in-saves-auto-closed-previous-buffer-in-other-file ()
-  "Regression test: `org-clock-in' auto-closes whatever clock was
-already running before opening the new one. When that previously-
-clocked heading lives in a DIFFERENT file than the one being clocked
-into, org_clock_in must save that other buffer too -- not just the
-buffer of the heading it was asked to clock into. Live-caught
-2026-07-29: clocking into a scratch heading in another file silently
-left TODO.org's buffer modified (the auto-closed CLOCK line never
-persisted to disk) until an explicit save-buffer."
+(ert-deftest claude-code-ide-org-test-set-todo-queues-without-transitioning ()
+  "org_set_todo reports the transition as queued and changes no keyword.
+The `(was X)' clause is a contract with `bin/hooks/queue-append', which
+recovers `from' from it with a sed -- so this asserts the shape that sed
+matches, not merely that the words appear."
   (claude-code-ide-org-test--with-heading
-    (let ((other-file (expand-file-name "other.org" dir)))
-      (with-temp-file other-file
-        (insert (concat "#+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
-                         "#+TAGS: code comms research review\n"
-                         "\n"
-                         "* TODO Other heading                                               :code:\n"
-                         ":PROPERTIES:\n"
-                         ":ID:       test-0002\n"
-                         ":END:\n")))
-      (find-file other-file)
-      (org-id-update-id-locations (list file other-file))
-      (unwind-protect
-          (progn
-            (claude-code-ide-org-clock-in id)
-            (should (equal "Clocked in: \"Other heading\""
-                            (claude-code-ide-org-clock-in "test-0002")))
-            (should (not (buffer-modified-p (get-file-buffer file))))
-            (should (not (buffer-modified-p (get-file-buffer other-file))))
-            (should (string-match-p "CLOCK: \\[.*\\]--\\[.*\\] =>"
-                                    (claude-code-ide-org-test--disk-contents file))))
-        (when (org-clocking-p) (org-clock-out))
-        (let ((buf (get-file-buffer other-file)))
-          (when buf
-            (with-current-buffer buf (set-buffer-modified-p nil))
-            (kill-buffer buf)))))))
-
-;;; claude-code-ide-org-clock-out ---------------------------------------------
-
-(ert-deftest claude-code-ide-org-test-clock-out-closes-and-saves ()
-  "Regression test: org_clock_out must persist the closed clock to disk.
-It previously reported success while leaving the closed CLOCK entry
-only in the buffer, never calling `save-buffer'."
-  (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
-    ;; Back-date the already-written open CLOCK line's timestamp text
-    ;; — `org-clock-out' parses the start time directly from the
-    ;; buffer (see org-clock.el's own `org-clock-out'), not from any
-    ;; elisp variable — so the resulting interval survives on-the-fly
-    ;; consolidation's zero-duration rounding. A same-instant clock-
-    ;; in/out would otherwise round to 0:00 and be dropped by design
-    ;; (see claude-code-ide-org-test-consolidate-history-rounds-
-    ;; merges-and-drops-zero), which isn't what this particular test
-    ;; means to exercise.
-    (with-current-buffer (get-file-buffer file)
-      (save-excursion
-        (goto-char (point-min))
-        (re-search-forward "CLOCK: \\[[^]]+\\]")
-        (replace-match (format-time-string "CLOCK: [%Y-%m-%d %a %H:%M]"
-                                            (time-subtract (current-time) 600))))
-      (save-buffer))
-    (let* ((org-clock-out-remove-zero-time-clocks nil)
-           (result (claude-code-ide-org-clock-out)))
-      (should (string-match-p "\\`Clocked out: \"Test heading\" (id: test-0001)\\'" result)))
-    (should (not (org-clocking-p)))
-    (should (not (buffer-modified-p (get-file-buffer file))))
-    (should (string-match-p "CLOCK: \\[.*\\]--\\[.*\\] =>"
+    (let ((result (claude-code-ide-org-set-todo id "DOING" "starting the cutover")))
+      (should (equal "Queued todo -> DOING (was TODO): \"Test heading\"; pending review."
+                     result))
+      ;; The literal recovery `bin/hooks/queue-append' performs:
+      ;;   sed -n 's/.*(was \([^)]*\)).*/\1/p'
+      (should (string-match ".*(was \\([^)]*\\)).*" result))
+      (should (equal "TODO" (match-string 1 result))))
+    (should (equal "TODO" (org-with-point-at (org-id-find id 'marker)
+                            (org-get-todo-state))))
+    (should-not (buffer-modified-p (get-file-buffer file)))
+    (should (string-match-p "^\\* TODO Test heading"
                             (claude-code-ide-org-test--disk-contents file)))))
 
-(ert-deftest claude-code-ide-org-test-clock-out-suppresses-zero-time-removal ()
-  "org_clock_out must not let a global org-clock-out-remove-zero-time-
-clocks setting (t in this user's real Doom config -- not anything this
-project itself sets, and not loaded at all under `bin/test's `-Q' batch
-environment, hence the explicit `t' binding here) delete a CLOCK line
-via org's own raw-duration check before
-`claude-code-ide-org-consolidate-history' gets a chance to apply this
-project's own rounding-aware version of the same intent (see
-`claude-code-ide-org--consolidate-logbook-text's docstring).  Verified
-directly by capturing the dynamic value `org-clock-out-remove-zero-
-time-clocks' actually has at the moment org-clock.el's own
-`org-clock-out' runs -- must be nil there even though the test's own
-outer binding, simulating Doom's override, is t.  A same-minute clock-
-in/out is exactly the case org's raw check targets (its duration
-computation is minute-resolution, so any raw duration under a full
-minute floors to 0h0m); at that same resolution, this project's own
-rounding would independently reach the same drop decision for an
-isolated interval, so asserting on final disk content alone cannot
-distinguish buggy from fixed here -- only capturing the dynamic
-binding proves the actual mechanism is in place."
+(ert-deftest claude-code-ide-org-test-set-todo-reports-none-for-keywordless-heading ()
+  "A heading with no keyword must report `(was none)', never an empty
+string: the queue has to keep \"had no keyword\" distinguishable from
+\"we do not know\", or the staleness check silently stops firing."
   (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
-    (let ((org-clock-out-remove-zero-time-clocks t)
-          (seen-value 'unset))
-      (advice-add 'org-clock-out :before
-                  (lambda (&rest _)
-                    (setq seen-value org-clock-out-remove-zero-time-clocks))
-                  '((name . claude-code-ide-org-test--capture-zero-time-clocks-value)))
-      (unwind-protect
-          (claude-code-ide-org-clock-out)
-        (advice-remove 'org-clock-out
-                        'claude-code-ide-org-test--capture-zero-time-clocks-value))
-      (should (eq seen-value nil)))))
-
-(ert-deftest claude-code-ide-org-test-clock-out-safe-when-no-clock ()
-  (claude-code-ide-org-test--with-heading
-    (should (equal "No clock is currently running." (claude-code-ide-org-clock-out)))))
-
-(ert-deftest claude-code-ide-org-test-clock-out-does-not-rewrite-the-drawer ()
-  "org_clock_out must NOT consolidate the heading it just closed.
-
-The inverse of what this test asserted until 2026-08-10, when clock-out
-consolidated on the fly so drawers stayed collapsed. Rewriting an entire
-drawer as a side effect of closing one interval destroyed a reviewed,
-human-confirmed interval about five minutes after apply wrote it
-(TODO.org :ID: b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04), having already
-silently deleted non-CLOCK lines once before (:ID: ba8249c1).
-
-Asserted at the sharpest point available: a pre-existing short interval
-belonging to someone else sits in the drawer, and closing an unrelated
-clock must leave it exactly as it was."
-  (claude-code-ide-org-test--with-heading
-    (with-current-buffer (get-file-buffer file)
-      (save-excursion
-        (goto-char (point-max))
-        (insert (concat
-                 ":LOGBOOK:\n"
-                 "CLOCK: [2026-08-10 Mon 12:46]--[2026-08-10 Mon 12:47] =>  0:01\n"
-                 ":END:\n")))
+    (org-with-point-at (org-id-find id 'marker)
+      (let ((org-inhibit-logging t)) (org-todo ""))
       (save-buffer))
-    (claude-code-ide-org-clock-in id)
-    (claude-code-ide-org-clock-out)
-    (let ((disk (claude-code-ide-org-test--disk-contents file)))
-      ;; The bystander interval is untouched -- not rounded, not merged
-      ;; into the interval clock-out just wrote, not dropped.
-      (should (string-match-p
-               "CLOCK: \\[2026-08-10 Mon 12:46\\]--\\[2026-08-10 Mon 12:47\\] =>  0:01"
-               disk)))))
+    (let ((result (claude-code-ide-org-set-todo id "NEXT")))
+      (should (string-match-p "(was none)" result))
+      (should-not (string-prefix-p "Error:" result)))))
 
-(ert-deftest claude-code-ide-org-test-clock-out-enforces-a-one-minute-floor ()
-  "A clock opened and closed within the same minute must still record a
-whole minute, not `=>  0:00'.
-
-CLOCK timestamps carry minute resolution, so a forty-second span writes
-as [12:46]--[12:46], which a clocktable sums as nothing -- reporting no
-activity for activity that happened. The floor is applied through
-`org-clock-out's own AT-TIME argument, so org writes a correct line
-first time rather than the line being edited afterwards."
+(ert-deftest claude-code-ide-org-test-set-todo-rejects-an-undeclared-keyword ()
+  "A keyword this file's own `#+TODO:' line does not declare is refused
+here, where the model can see why, rather than at apply time in front of
+a human with no way to tell whose typo it was.  Validated against
+`org-todo-keywords-1' (buffer-local, derived from the file) rather than
+a list hard-coded in the wrapper."
   (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
-    (claude-code-ide-org-clock-out)
-    (let ((disk (claude-code-ide-org-test--disk-contents file)))
-      (should (string-match-p "CLOCK: \\[[^]]+\\]--\\[[^]]+\\] =>  0:01" disk))
-      (should-not (string-match-p "=>  0:00" disk)))))
-
-(ert-deftest claude-code-ide-org-test-clock-out-floor-leaves-real-intervals-alone ()
-  "The floor must only ever lengthen a sub-minute interval, never touch
-one that already exceeds the minimum -- it is a floor, not a rounding
-rule, and this project has just retired one rounding rule for
-overreaching."
-  (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
-    ;; Backdate the running clock so a real interval has elapsed.
-    (setq org-clock-start-time (time-subtract (current-time) 600))
-    (should-not (claude-code-ide-org--clock-out-floor-time))))
+    (let ((result (claude-code-ide-org-set-todo id "DOIGN")))
+      (should (string-prefix-p "Error:" result))
+      (should (string-match-p "not a TODO keyword" result))
+      (should (string-match-p "DOING" result)))
+    (should (equal "TODO" (org-with-point-at (org-id-find id 'marker)
+                            (org-get-todo-state))))))
 
 ;;; Clock status file -------------------------------------------------------
 
 (ert-deftest claude-code-ide-org-test-clock-status-file-reflects-active-clock ()
   (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-test--clock-in-for-real id)
     (should (file-exists-p claude-code-ide-org-clock-status-file))
     (let ((status (json-read-file claude-code-ide-org-clock-status-file)))
       (should (eq t (cdr (assq 'active status))))
@@ -289,8 +223,8 @@ overreaching."
 
 (ert-deftest claude-code-ide-org-test-clock-status-file-reflects-idle-on-clock-out ()
   (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
-    (claude-code-ide-org-clock-out)
+    (claude-code-ide-org-test--clock-in-for-real id)
+    (org-clock-out)
     (let ((status (json-read-file claude-code-ide-org-clock-status-file)))
       (should (eq :json-false (cdr (assq 'active status))))
       (should (null (assq 'heading status))))))
@@ -302,187 +236,35 @@ org's own clock-in machinery, when its target directory does not
   (claude-code-ide-org-test--with-heading
     (let ((claude-code-ide-org-clock-status-file
            (expand-file-name "no-such-subdir/clock-status.json" dir)))
-      (should (equal "Clocked in: \"Test heading\"" (claude-code-ide-org-clock-in id)))
+      (claude-code-ide-org-test--clock-in-for-real id)
+      (should (org-clocking-p))
       (should (not (file-exists-p claude-code-ide-org-clock-status-file))))))
 
-;;; :SESSIONS: bracketing log --------------------------------------------------
+;; The session-pause/resume tests that stood here were deleted with the
+;; functions at the 2026-08-11 cutover (TODO.org :ID:
+;; feba67eb-35b3-48bd-a892-8ecd47ca52e0). They asserted that a turn
+;; boundary closed and reopened a live clock, and that a session could
+;; not pause a clock another session owned -- a concurrency guard whose
+;; entire premise was several sessions writing to one live clock. No
+;; session writes live state now, so there is nothing left to contend
+;; over; what a turn boundary produces is a queue line, covered by
+;; bin/queue-append-test.
 
-(ert-deftest claude-code-ide-org-test-session-pause-closes-clock ()
-  (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
-    (claude-code-ide-org-session-pause)
-    (should (not (org-clocking-p)))
-    ;; The :SESSIONS: "Paused" line this used to assert went with the
-    ;; drawer (TODO.org :ID: 9d2fcdad). Closing the clock is the whole
-    ;; contract now, and the CLOCK line is asserted below.
-    (should (string-match-p "CLOCK: \\[[^]]+\\]--\\[[^]]+\\]"
-                            (claude-code-ide-org-test--disk-contents file)))))
-
-(ert-deftest claude-code-ide-org-test-session-resume-resumes-same-heading ()
-  (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
-    (claude-code-ide-org-session-pause)
-    (let ((result (claude-code-ide-org-session-resume)))
-      (should (string-match-p "\\`Resumed: \"Test heading\"\\'" result)))
-    (should (org-clocking-p))
-    (should (equal id (org-with-point-at org-clock-marker (org-id-get))))
-    ;; This used to assert a Resumed/Paused/Resumed ordering in the
-    ;; :SESSIONS: drawer. That drawer is gone (TODO.org :ID: 9d2fcdad);
-    ;; the clock landing back on the right heading is what the wrapper
-    ;; actually promises, and it is asserted above.
-    (should-not (string-match-p ":SESSIONS:"
-                                (claude-code-ide-org-test--disk-contents file)))))
-(ert-deftest claude-code-ide-org-test-session-resume-noop-when-already-clocking ()
-  (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
-    (should (equal "Already clocking; nothing to resume."
-                   (claude-code-ide-org-session-resume)))))
-
-(ert-deftest claude-code-ide-org-test-session-resume-noop-when-no-history ()
-  (claude-code-ide-org-test--with-heading
-    (should (equal "No paused task to resume."
-                   (claude-code-ide-org-session-resume)))))
-
-(ert-deftest claude-code-ide-org-test-session-resume-noop-when-history-head-done ()
-  (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
-    (claude-code-ide-org-session-pause)
-    (claude-code-ide-org-set-todo id "DONE")
-    (should (equal "Most recently paused task is already DONE; nothing to resume."
-                   (claude-code-ide-org-session-resume)))
-    (should (not (org-clocking-p)))))
-
-;;; Session identity (concurrent Claude Code sessions) ----------------------
-;;
-;; Covers claude-code-ide-org--clock-owner-session-id and the guards it
-;; drives in session-pause/session-resume — TODO.org :ID:
-;; 337f7fb2-b9e9-4c02-82dd-d88e60df364b. All five tests above call both
-;; functions with zero arguments and must keep passing unchanged; these
-;; new tests exercise the optional session-id argument specifically.
-
-(ert-deftest claude-code-ide-org-test-session-pause-noop-for-different-session-owner ()
-  "A session must not be able to pause a clock owned by a different
-session — the whole point of the concurrency fix."
-  (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
-    (claude-code-ide-org-session-pause "session-A")
-    (claude-code-ide-org-session-resume "session-A")
-    (should (org-clocking-p))
-    (should (equal "Clock is owned by a different session; not pausing."
-                   (claude-code-ide-org-session-pause "session-B")))
-    (should (org-clocking-p))
-    (should (equal id (org-with-point-at org-clock-marker (org-id-get))))))
-
-(ert-deftest claude-code-ide-org-test-session-pause-succeeds-for-matching-session-owner ()
-  (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
-    (claude-code-ide-org-session-pause "session-A")
-    (claude-code-ide-org-session-resume "session-A")
-    (should (equal "Clocked out: \"Test heading\" (id: test-0001)"
-                   (claude-code-ide-org-session-pause "session-A")))
-    (should (not (org-clocking-p)))))
-
-(ert-deftest claude-code-ide-org-test-session-pause-with-no-session-id-ignores-owner ()
-  "A manual/legacy call with no session-id (the default, e.g. a Claude
-Code version whose hook payload omits it) must still pause
-unconditionally, exactly as before this feature existed, regardless of
-any recorded owner."
-  (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
-    (claude-code-ide-org-session-pause "session-A")
-    (claude-code-ide-org-session-resume "session-A")
-    (should (org-clocking-p))
-    (should (equal "Clocked out: \"Test heading\" (id: test-0001)"
-                   (claude-code-ide-org-session-pause)))
-    (should (not (org-clocking-p)))))
-
-(ert-deftest claude-code-ide-org-test-session-resume-noop-for-different-session-owner ()
-  "A session must not be able to steal an actively-running clock owned
-by a different session — the other half of the concurrency fix."
-  (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
-    (claude-code-ide-org-session-pause "session-A")
-    (claude-code-ide-org-session-resume "session-A")
-    (should (org-clocking-p))
-    (should (equal "Clock is owned by a different session; not resuming."
-                   (claude-code-ide-org-session-resume "session-B")))
-    (should (org-clocking-p))
-    (should (equal id (org-with-point-at org-clock-marker (org-id-get))))))
-
-(ert-deftest claude-code-ide-org-test-set-todo-transitions-and-saves ()
-  (claude-code-ide-org-test--with-heading
-    (let ((result (claude-code-ide-org-set-todo id "DOING")))
-      ;; The `(was TODO)' clause is load-bearing, not cosmetic:
-      ;; bin/hooks/queue-append parses it back out to record the `from'
-      ;; state on the queued event (TODO.org :ID: f9f61c04-...).
-      (should (string-match-p "\\`TODO state set to DOING (was TODO): \"Test heading\"\\'" result)))
-    (should (not (buffer-modified-p (get-file-buffer file))))
-    (should (string-match-p "^\\* DOING Test heading"
-                            (claude-code-ide-org-test--disk-contents file)))))
-
-(ert-deftest claude-code-ide-org-test-set-todo-reports-none-for-keywordless-heading ()
-  "A heading carrying no TODO keyword at all must report `(was none)',
-not an empty string. bin/hooks/queue-append recovers the prior state
-from this reply by regexp; `(was )' would parse to an empty `from'
-that is indistinguishable from a missing one, and the review command's
-stale-transition check would then silently not fire (TODO.org :ID:
-f9f61c04-150b-4ee7-96c9-582cf2bda95a)."
-  (claude-code-ide-org-test--with-heading
-    (goto-char (point-max))
-    (insert (concat "* Bare heading                                                     :code:\n"
-                     ":PROPERTIES:\n"
-                     ":ID:       test-0003\n"
-                     ":END:\n"))
-    (save-buffer)
-    (org-id-update-id-locations (list file))
-    (should (string-match-p "\\`TODO state set to NEXT (was none): \"Bare heading\"\\'"
-                            (claude-code-ide-org-set-todo "test-0003" "NEXT")))))
-
-(ert-deftest claude-code-ide-org-test-set-todo-suppresses-native-logging-for-every-state ()
-  "org_set_todo must suppress org's own native state-change logging
-for every STATE, not just `@'-flagged ones -- confirmed live that even
-a plain `!' marker's deferred log-line insertion blocks when triggered
-non-interactively (see TODO.org :ID:
-04d0e7d5-ab6b-4972-925d-d517484c7595), so `org-inhibit-logging' is
-unconditional in the wrapper. No native \"State ...\" line should
-appear for a plain NEXT transition through org_set_todo."
-  (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-set-todo id "NEXT")
-    (should (not (string-match-p "State \"NEXT\""
-                                 (claude-code-ide-org-test--disk-contents file))))))
-
-(ert-deftest claude-code-ide-org-test-set-todo-reports-success-when-hook-cascade-moves-point ()
-  "Regression test, found live: setting a heading to NEXT through
-org_set_todo while a sibling is already NEXT triggers the demote hook,
-which visits and edits that OTHER sibling via its own org-with-point-
-at/org-todo calls. org_set_todo's own post-transition check must not
-be fooled by point having moved off the original heading -- it must
-still report success for the heading actually requested, not silently
-describe whatever heading point happens to be sitting on afterward."
-  (claude-code-ide-org-test--with-heading
-    (goto-char (point-max))
-    (insert (concat "* NEXT Sibling B                                                   :code:\n"
-                     ":PROPERTIES:\n"
-                     ":ID:       test-0002\n"
-                     ":END:\n"))
-    (save-buffer)
-    (org-id-update-id-locations (list file))
-    (let ((result (claude-code-ide-org-set-todo id "NEXT")))
-      (should (string-match-p "\\`TODO state set to NEXT (was TODO): \"Test heading\"\\'" result)))
-    (should (equal "NEXT" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))
-    (should (equal "TODO" (org-with-point-at (org-id-find "test-0002" 'marker) (org-get-todo-state))))))
-
-(ert-deftest claude-code-ide-org-test-set-todo-suppresses-interactive-note-for-wait-and-cancelled ()
+(ert-deftest claude-code-ide-org-test-set-todo-never-pops-the-note-buffer ()
   "WAIT and CANCELLED are `@'-flagged (note required) in this project's
-`#+TODO:' line -- the case org_set_todo's blanket org-inhibit-logging
-protection most obviously needs to cover. Going through the
-non-interactive `org_set_todo' path must never pop org's interactive
-`*Org Note*' buffer for either."
+`#+TODO:' line.  Driving those through `org-todo' non-interactively is
+what hangs (TODO.org :ID: 04d0e7d5-ab6b-4972-925d-d517484c7595), and the
+wrapper used to need `org-inhibit-logging' bound to t to survive them.
+It no longer calls `org-todo' at all, so this is now a cheap structural
+guard: if anyone ever restores a live write here, the `@' keywords are
+where it will show up first."
   (claude-code-ide-org-test--with-heading
     (claude-code-ide-org-set-todo id "WAIT")
     (should (not (get-buffer "*Org Note*")))
     (claude-code-ide-org-set-todo id "CANCELLED")
-    (should (not (get-buffer "*Org Note*")))))
+    (should (not (get-buffer "*Org Note*")))
+    (should (equal "TODO" (org-with-point-at (org-id-find id 'marker)
+                            (org-get-todo-state))))))
 
 ;;; claude-code-ide-org-archive ------------------------------------------------
 
@@ -492,7 +274,7 @@ source file, not just the archive target. It previously left the
 source file's on-disk copy of the heading in place, since
 `org-archive-subtree' was never followed by `save-buffer'."
   (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-set-todo id "DONE")
+    (claude-code-ide-org-test--set-todo-for-real id "DONE")
     (let ((result (claude-code-ide-org-archive id)))
       (should (string-match-p "\\`Archived: \"Test heading\"\\'" result)))
     (should (not (buffer-modified-p (get-file-buffer file))))
@@ -518,60 +300,45 @@ would ever call flush in production. `sleep-for' pumps Emacs's timer
 queue even in `--batch' mode, which is what lets this run
 deterministically under ERT."
   (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-test--clock-in-for-real id)
+    (with-current-buffer (get-file-buffer file) (save-buffer))
     (sleep-for 0.2)
     (let ((entry (car (last (claude-code-ide-org-test--audit-log-entries file)))))
       (should entry)
-      (should (equal "org_clock_in" (cdr (assq 'tool entry))))
+      ;; "hand-edit", not "org_clock_in": the wrapper no longer mutates,
+      ;; so a real clock-in reaching org is by definition either apply or
+      ;; a human at the keyboard. The audit log hooks org-native events
+      ;; rather than the wrappers precisely so it still sees this.
+      (should (equal "hand-edit" (cdr (assq 'tool entry))))
       (should (equal id (cdr (assq 'id entry))))
       (should (equal "saved" (cdr (assq 'result entry)))))))
 
-(ert-deftest claude-code-ide-org-test-audit-log-clock-in-out-hashes-match-disk ()
-  "A normal, correctly-behaving clock-in/out (going through the MCP
-wrappers, which do call `save-buffer') must produce JSONL audit
-entries whose before/after sha256 fields equal independently
-computed hashes of the file's actual on-disk content at those two
-points in time -- proving the audit log's hashes are trustworthy,
-not merely present, and that they differ (a real mutation reached
-disk) rather than accidentally matching."
+(ert-deftest claude-code-ide-org-test-audit-log-apply-hashes-match-disk ()
+  "The audit log's before/after hashes must equal independently computed
+hashes of the file's real on-disk content -- proving they are
+trustworthy, not merely present, and that they differ (a mutation
+actually reached disk) rather than accidentally matching.
+
+Exercised through apply, which is the only writer left after the
+2026-08-11 cutover; this test used to drive the clock-in/clock-out
+wrappers, which no longer touch a buffer at all."
   (claude-code-ide-org-test--with-heading
-    (let ((before-in (claude-code-ide-org-test--sha256-disk file)))
-      (claude-code-ide-org-clock-in id)
+    (let ((before (claude-code-ide-org-test--sha256-disk file)))
+      (should-not (claude-code-ide-org--review-apply-item
+                   (list :type 'clock :id id
+                         :start (date-to-time "2026-08-06T09:00:00-0500")
+                         :end (date-to-time "2026-08-06T09:15:00-0500")
+                         :agent nil :suggested nil :events nil)))
       (claude-code-ide-org--audit-flush)
-      (let* ((after-in (claude-code-ide-org-test--sha256-disk file))
-             (entry (car (last (claude-code-ide-org-test--audit-log-entries file)))))
+      (let* ((after (claude-code-ide-org-test--sha256-disk file))
+             (entries (claude-code-ide-org-test--audit-log-entries file))
+             (entry (car (last entries))))
         (should entry)
-        (should (equal "org_clock_in" (cdr (assq 'tool entry))))
+        (should (equal "org_review_apply" (cdr (assq 'tool entry))))
         (should (equal id (cdr (assq 'id entry))))
         (should (equal file (cdr (assq 'file entry))))
-        (should (equal before-in (cdr (assq 'before_sha256 entry))))
-        (should (equal after-in (cdr (assq 'after_sha256 entry))))
-        (should (not (equal before-in after-in)))
-        (should (equal "saved" (cdr (assq 'result entry))))))
-    ;; Back-date the already-written open CLOCK line so clock-out's
-    ;; interval doesn't round to zero duration and get dropped by
-    ;; on-the-fly consolidation -- same concern as the existing
-    ;; claude-code-ide-org-test-clock-out-closes-and-saves regression
-    ;; test above.
-    (with-current-buffer (get-file-buffer file)
-      (save-excursion
-        (goto-char (point-min))
-        (re-search-forward "CLOCK: \\[[^]]+\\]")
-        (replace-match (format-time-string "CLOCK: [%Y-%m-%d %a %H:%M]"
-                                            (time-subtract (current-time) 600))))
-      (save-buffer))
-    (let ((before-out (claude-code-ide-org-test--sha256-disk file))
-          (org-clock-out-remove-zero-time-clocks nil))
-      (claude-code-ide-org-clock-out)
-      (claude-code-ide-org--audit-flush)
-      (let* ((after-out (claude-code-ide-org-test--sha256-disk file))
-             (entry (car (last (claude-code-ide-org-test--audit-log-entries file)))))
-        (should entry)
-        (should (equal "org_clock_out" (cdr (assq 'tool entry))))
-        (should (equal id (cdr (assq 'id entry))))
-        (should (equal before-out (cdr (assq 'before_sha256 entry))))
-        (should (equal after-out (cdr (assq 'after_sha256 entry))))
-        (should (not (equal before-out after-out)))
+        (should (equal after (cdr (assq 'after_sha256 entry))))
+        (should (not (equal before after)))
         (should (equal "saved" (cdr (assq 'result entry))))))))
 
 (ert-deftest claude-code-ide-org-test-audit-log-detects-unsaved-mismatch ()
@@ -621,8 +388,8 @@ SOURCE file (the one the heading is cut from), not the archive
 target -- since that's the file the original org_archive bug failed
 to save."
   (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-set-todo id "DONE")
-    (claude-code-ide-org--audit-flush) ; drain the set-todo record first
+    (claude-code-ide-org-test--set-todo-for-real id "DONE")
+    (claude-code-ide-org--audit-flush) ; drain the state-change record first
     (claude-code-ide-org-archive id)
     (claude-code-ide-org--audit-flush)
     (let ((entry (car (last (claude-code-ide-org-test--audit-log-entries file)))))
@@ -633,20 +400,25 @@ to save."
       (should (equal "saved" (cdr (assq 'result entry))))
       (should (not (equal (cdr (assq 'before_sha256 entry)) (cdr (assq 'after_sha256 entry))))))))
 
-(ert-deftest claude-code-ide-org-test-set-todo-reports-blocked-transition ()
-  "Regression test: org_set_todo must not report success when
-org-blocker-hook actually refused the transition.  It previously
-always echoed the requested STATE back regardless of whether
-`org-todo' applied it, so a transition silently blocked by e.g.
-org-enforce-todo-dependencies or org-depend's :BLOCKER: property
-looked exactly like a success."
+(ert-deftest claude-code-ide-org-test-set-todo-queues-a-transition-a-blocker-would-refuse ()
+  "A transition `org-blocker-hook' would refuse still queues, and the
+heading does not move.
+
+The inverse of what this asserted before the cutover, and deliberately
+so: the wrapper used to run `org-todo' and report the refusal, but it
+was answering \"is this allowed?\" against a file that had already
+moved.  Now nothing moves until apply, `org-todo' runs there, and the
+blocker gets its say in front of a human who can respond to it.
+Queueing an event that may be refused later is the design, not a gap --
+the queue records intent, and apply is where intent meets the file."
   (claude-code-ide-org-test--with-heading
     (goto-char (point-max))
     (insert "** TODO Child heading\n")
+    (save-buffer)
     (let ((org-blocker-hook (list 'org-block-todo-from-children-or-siblings-or-parent))
           (org-enforce-todo-dependencies t))
-      (should (string-match-p "\\`Error:.*blocked"
-                              (claude-code-ide-org-set-todo id "DONE"))))
+      (should (string-prefix-p "Queued todo -> DONE"
+                               (claude-code-ide-org-set-todo id "DONE"))))
     (should (equal "TODO"
                    (org-with-point-at (org-id-find id 'marker)
                      (org-get-todo-state))))))
@@ -748,11 +520,14 @@ the explicit clock-in below is a safe no-op (org-clock-in itself
 recognizes clocking into the already-current task as a continuation,
 not a new interval)."
   (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-set-todo id "DOING")
-    (unless (org-clocking-p) (claude-code-ide-org-clock-in id))
+    (claude-code-ide-org-test--set-todo-for-real id "DOING")
+    (unless (org-clocking-p) (claude-code-ide-org-test--clock-in-for-real id))
     (should (org-clocking-p))
-    (should (string-match-p "\\`Error:.*blocked"
-                            (claude-code-ide-org-set-todo id "DONE")))
+    ;; Driven through org-todo directly, which is where the hook lives
+    ;; and -- since the cutover -- the only path that reaches it: apply
+    ;; and hand-edits. A blocked org-todo aborts silently when not
+    ;; called interactively, so the resulting state is the assertion.
+    (claude-code-ide-org-test--set-todo-for-real id "DONE")
     (should (org-clocking-p))
     (should (equal "DOING"
                     (org-with-point-at (org-id-find id 'marker)
@@ -765,11 +540,12 @@ not a new interval)."
 only the presence of a running clock on that heading is grounds to
 deny the transition."
   (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-set-todo id "DOING")
-    (when (org-clocking-p) (claude-code-ide-org-clock-out))
+    (claude-code-ide-org-test--set-todo-for-real id "DOING")
+    (when (org-clocking-p) (org-clock-out))
     (should (not (org-clocking-p)))
-    (should (string-match-p "\\`TODO state set to DONE"
-                            (claude-code-ide-org-set-todo id "DONE")))))
+    (claude-code-ide-org-test--set-todo-for-real id "DONE")
+    (should (equal "DONE" (org-with-point-at (org-id-find id 'marker)
+                            (org-get-todo-state))))))
 
 (ert-deftest claude-code-ide-org-test-blocker-hook-only-blocks-own-heading ()
   "The DONE blocker must only fire for a clock running on THAT exact
@@ -791,13 +567,12 @@ must never block this one from going DONE."
                        ":END:\n"))
       (save-buffer)
       (org-id-update-id-locations (list file))
-      (claude-code-ide-org-set-todo id "DOING")
-      (unless (org-clocking-p) (claude-code-ide-org-clock-in id))
+      (claude-code-ide-org-test--set-todo-for-real id "DOING")
+      (unless (org-clocking-p) (claude-code-ide-org-test--clock-in-for-real id))
       (should (org-clocking-p))
       ;; The clock is running on `id', not `other-id' -- going DONE on
       ;; `other-id' must be permitted.
-      (should (string-match-p "\\`TODO state set to DONE (was TODO): \"Other heading\"\\'"
-                              (claude-code-ide-org-set-todo other-id "DONE")))
+      (claude-code-ide-org-test--set-todo-for-real other-id "DONE")
       (should (equal "DONE"
                      (org-with-point-at (org-id-find other-id 'marker)
                        (org-get-todo-state))))
@@ -833,10 +608,10 @@ claude-code-ide-org-set-todo's own logic."
 must not additionally invoke `org-clock-in' -- no second, duplicate
 open CLOCK line."
   (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-test--clock-in-for-real id)
     (org-with-point-at (org-id-find id 'marker) (org-todo "DOING"))
     (should (org-clocking-p))
-    (let ((disk (claude-code-ide-org-test--disk-contents file))
+    (let ((disk (with-current-buffer (get-file-buffer file) (buffer-string)))
           (count 0) (start 0))
       (while (string-match "CLOCK: \\[" disk start)
         (setq count (1+ count) start (match-end 0)))
@@ -867,109 +642,21 @@ existing DOING coverage above."
   "No duplicate CLOCK line when a clock is already running on the
 heading being set to PLANNING."
   (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-test--clock-in-for-real id)
     (org-with-point-at (org-id-find id 'marker) (org-todo "PLANNING"))
     (should (org-clocking-p))
-    (let ((disk (claude-code-ide-org-test--disk-contents file))
+    (let ((disk (with-current-buffer (get-file-buffer file) (buffer-string)))
           (count 0) (start 0))
       (while (string-match "CLOCK: \\[" disk start)
         (setq count (1+ count) start (match-end 0)))
       (should (= 1 count)))))
 
-;;; PLANNING -> DOING promotion (ExitPlanMode) -------------------------------
-;;
-;; Covers claude-code-ide-org--maybe-record-planning-owner and
-;; claude-code-ide-org--promote-planning-to-doing -- TODO.org :ID:
-;; b95b9fba-f78e-48fe-8546-988709cce309, including the cross-session
-;; guard added under design decision 4.
-
-(defun claude-code-ide-org-test--write-json (payload)
-  "Write PAYLOAD (an alist) as JSON to a fresh temp file and return its path."
-  (let ((path (make-temp-file "claude-code-ide-org-test-payload")))
-    (with-temp-file path (insert (json-encode payload)))
-    path))
-
-(ert-deftest claude-code-ide-org-test-promote-planning-to-doing-promotes-when-owner-matches ()
-  (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
-    (org-with-point-at (org-id-find id 'marker) (org-todo "PLANNING"))
-    (setq claude-code-ide-org--planning-owner-session-id "session-A")
-    (let ((result (claude-code-ide-org--promote-planning-to-doing "session-A")))
-      (should (string-match-p "\\`Promoted \"Test heading\"" result)))
-    (should (equal "DOING" (org-with-point-at (org-id-find id 'marker)
-                             (org-get-todo-state))))
-    (should (org-clocking-p))
-    (should (null claude-code-ide-org--planning-owner-session-id))
-    (let ((disk (claude-code-ide-org-test--disk-contents file))
-          (count 0) (start 0))
-      (while (string-match "CLOCK: \\[" disk start)
-        (setq count (1+ count) start (match-end 0)))
-      (should (= 1 count))
-      (should (string-match-p "Auto-promoted" disk)))))
-
-(ert-deftest claude-code-ide-org-test-promote-planning-to-doing-promotes-when-owner-nil ()
-  "A hand-edited PLANNING state (no org_set_todo-recorded owner) must
-still promote normally -- the permissive fallback for the ordinary
-single-session/manual case."
-  (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
-    (org-with-point-at (org-id-find id 'marker) (org-todo "PLANNING"))
-    (should (null claude-code-ide-org--planning-owner-session-id))
-    (let ((result (claude-code-ide-org--promote-planning-to-doing "session-A")))
-      (should (string-match-p "\\`Promoted \"Test heading\"" result)))
-    (should (equal "DOING" (org-with-point-at (org-id-find id 'marker)
-                             (org-get-todo-state))))))
-
-(ert-deftest claude-code-ide-org-test-promote-planning-to-doing-noop-for-different-owner ()
-  "The cross-session guard this whole revision exists for: a different
-session's ExitPlanMode must not promote a PLANNING heading it doesn't own."
-  (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
-    (org-with-point-at (org-id-find id 'marker) (org-todo "PLANNING"))
-    (setq claude-code-ide-org--planning-owner-session-id "session-A")
-    (let ((result (claude-code-ide-org--promote-planning-to-doing "session-B")))
-      (should (string-match-p "belongs to a different session" result)))
-    (should (equal "PLANNING" (org-with-point-at (org-id-find id 'marker)
-                               (org-get-todo-state))))
-    (should (org-clocking-p))
-    (should (equal "session-A" claude-code-ide-org--planning-owner-session-id))))
-
-(ert-deftest claude-code-ide-org-test-promote-planning-to-doing-noop-when-clocked-state-not-planning ()
-  (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
-    (org-with-point-at (org-id-find id 'marker) (org-todo "DOING"))
-    (let ((result (claude-code-ide-org--promote-planning-to-doing "session-A")))
-      (should (string-match-p "not PLANNING" result)))
-    (should (equal "DOING" (org-with-point-at (org-id-find id 'marker)
-                            (org-get-todo-state))))))
-
-(ert-deftest claude-code-ide-org-test-promote-planning-to-doing-noop-when-nothing-clocked ()
-  (claude-code-ide-org-test--with-heading
-    (should (not (org-clocking-p)))
-    (let ((result (claude-code-ide-org--promote-planning-to-doing "session-A")))
-      (should (string-match-p "\\`No clock running" result)))))
-
-(ert-deftest claude-code-ide-org-test-maybe-record-planning-owner-sets-owner-for-planning ()
-  (claude-code-ide-org-test--with-heading
-    (let ((payload (claude-code-ide-org-test--write-json
-                    `((session_id . "session-A")
-                      (tool_input . ((state . "PLANNING") (id . ,id)))))))
-      (unwind-protect
-          (progn
-            (claude-code-ide-org--maybe-record-planning-owner payload)
-            (should (equal "session-A" claude-code-ide-org--planning-owner-session-id)))
-        (delete-file payload)))))
-
-(ert-deftest claude-code-ide-org-test-maybe-record-planning-owner-ignores-other-states ()
-  (claude-code-ide-org-test--with-heading
-    (let ((payload (claude-code-ide-org-test--write-json
-                    `((session_id . "session-A")
-                      (tool_input . ((state . "DOING") (id . ,id)))))))
-      (unwind-protect
-          (progn
-            (claude-code-ide-org--maybe-record-planning-owner payload)
-            (should (null claude-code-ide-org--planning-owner-session-id)))
-        (delete-file payload)))))
+;; The PLANNING -> DOING promotion tests stood here until the 2026-08-11
+;; cutover (TODO.org :ID: feba67eb-35b3-48bd-a892-8ecd47ca52e0). They
+;; covered two elisp functions that no longer exist: the promotion is
+;; now a queue append made by bin/hooks/exitplanmode-promote-planning,
+;; from the session's own queue file, with no Emacs in the path at all.
+;; Its coverage is in bin/queue-append-test accordingly.
 
 ;;; Single NEXT action per level (org-trigger-hook) -------------------------
 ;;
@@ -1243,7 +930,7 @@ nothing, and the JSON wrapper collapses that to an empty hook object."
 
 (ert-deftest claude-code-ide-org-test-session-context-includes-clocked-heading ()
   (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-test--clock-in-for-real id)
     (let* ((claude-code-ide-org-query-files (list file))
            (result (claude-code-ide-org-session-context)))
       (should (string-match-p "\\`Currently clocked in: \"Test heading\"" result))
@@ -1268,7 +955,7 @@ heading is reported first."
     (insert "* WAIT Blocked heading                                              :code:\n"
             ":PROPERTIES:\n:ID:       test-0002\n:END:\n")
     (save-buffer)
-    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-test--clock-in-for-real id)
     (let* ((claude-code-ide-org-query-files (list file))
            (result (claude-code-ide-org-session-context))
            (pos-clocked (string-match "Currently clocked in" result))
@@ -1310,7 +997,7 @@ kill) a file the user already had open."
 
 (ert-deftest claude-code-ide-org-test-write-session-context-report-writes-json ()
   (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-test--clock-in-for-real id)
     (let* ((claude-code-ide-org-query-files (list file))
            (out (make-temp-file "claude-code-ide-org-test-report")))
       (unwind-protect
@@ -1329,15 +1016,15 @@ kill) a file the user already had open."
 
 (ert-deftest claude-code-ide-org-test-statusline-shows-clocked-in-task ()
   (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-test--clock-in-for-real id)
     (let ((result (claude-code-ide-org--statusline-task-string)))
       ;; Default fixture :ID: is "test-0001" (9 chars) -- truncated to 8.
       (should (string-match-p "\\` | Test heading \\[test-000\\] (clocked in, " result)))))
 
 (ert-deftest claude-code-ide-org-test-statusline-shows-clocked-out-task-from-history ()
   (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
-    (claude-code-ide-org-clock-out)
+    (claude-code-ide-org-test--clock-in-for-real id)
+    (org-clock-out)
     (should (not (org-clocking-p)))
     (let ((result (claude-code-ide-org--statusline-task-string)))
       (should (string-match-p "\\` | Test heading \\[test-000\\] (clocked out, " result)))))
@@ -1348,7 +1035,7 @@ kill) a file the user already had open."
     (re-search-forward "Test heading")
     (replace-match "This heading name is deliberately much longer than thirty characters")
     (save-buffer)
-    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-test--clock-in-for-real id)
     (let ((result (claude-code-ide-org--statusline-task-string)))
       (should (string-match-p "This heading name is delibera…" result))
       (should (not (string-match-p "thirty" result))))))
@@ -1366,9 +1053,9 @@ checked first."
                        ":END:\n"))
       (save-buffer)
       (org-id-update-id-locations (list file))
-      (claude-code-ide-org-clock-in other-id)
+      (claude-code-ide-org-test--clock-in-for-real other-id)
       (claude-code-ide-org-clock-out)
-      (claude-code-ide-org-clock-in id)
+      (claude-code-ide-org-test--clock-in-for-real id)
       (let ((result (claude-code-ide-org--statusline-task-string)))
         (should (string-match-p "\\` | Test heading \\[test-000\\]" result))))))
 
@@ -1404,7 +1091,7 @@ checked first."
 
 (ert-deftest claude-code-ide-org-test-write-statusline-report-combines-model-and-task ()
   (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-test--clock-in-for-real id)
     (let ((in (make-temp-file "claude-code-ide-org-test-statusline-in"))
           (out (make-temp-file "claude-code-ide-org-test-statusline-out")))
       (unwind-protect
@@ -1453,7 +1140,7 @@ after the start time, not before it."
 
 (ert-deftest claude-code-ide-org-test-find-stale-open-intervals-ignores-today ()
   (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-test--clock-in-for-real id)
     (let* ((claude-code-ide-org-query-files (list file))
            (findings (claude-code-ide-org-find-stale-open-intervals)))
       (should (null findings)))))
@@ -1753,7 +1440,7 @@ right away with no rescan needed."
       (let ((returned-id (match-string 1 result)))
         (should (org-id-find returned-id 'marker))
         (should (string-match-p
-                 "\\`Clocked in: \"Round trip task\"\\'"
+                 "\\`Queued clock_in on \"Round trip task\""
                  (claude-code-ide-org-clock-in returned-id)))))))
 
 (ert-deftest claude-code-ide-org-test-capture-title-with-special-characters ()
@@ -2134,9 +1821,7 @@ a duplicate, even with a different plan-file path."
     (claude-code-ide-org-log-background-plan id "~/.claude/plans/x.md" "session-A-bg1")
     (should (equal "TODO" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))
     (should (not (org-clocking-p)))
-    (should (not (string-match-p ":LOGBOOK:" (claude-code-ide-org-test--disk-contents file))))
-    (should (not claude-code-ide-org--planning-owner-session-id))
-    (should (not claude-code-ide-org--clock-owner-session-id))))
+    (should (not (string-match-p ":LOGBOOK:" (claude-code-ide-org-test--disk-contents file))))))
 
 (ert-deftest claude-code-ide-org-test-log-background-plan-resolves-fresh-by-id ()
   "Mirrors set-todo-reports-success-when-hook-cascade-moves-point:
@@ -2278,31 +1963,26 @@ no orchestrator-side reconstruction."
       (should (= 1 (length events)))
       (should-not (plist-get (car events) :note)))))
 
-(ert-deftest claude-code-ide-org-test-clock-out-reports-closed-id ()
-  "org_clock_out names the :ID: it actually closed, since it takes no id
-argument and the queue event would otherwise have nothing to record."
-  (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
-    (let ((result (let ((org-clock-out-remove-zero-time-clocks nil))
-                    (claude-code-ide-org-clock-out))))
-      (should (string-prefix-p "Clocked out: " result))
-      (should (string-match-p "(id: test-0001)\\'" result)))))
-
-(ert-deftest claude-code-ide-org-test-clock-out-omits-id-when-heading-has-none ()
-  "A clock started by hand on a heading with no :ID: still clocks out
-cleanly, without an empty \"(id: )\" suffix."
-  (claude-code-ide-org-test--with-heading
-    (with-current-buffer (find-file-noselect file)
-      (goto-char (point-max))
-      (insert "\n* Bare heading with no ID\n")
-      (save-buffer)
-      (goto-char (point-max))
-      (org-back-to-heading t)
-      (org-clock-in))
-    (let ((result (let ((org-clock-out-remove-zero-time-clocks nil))
-                    (claude-code-ide-org-clock-out))))
-      (should (string-match-p "\\`Clocked out: " result))
-      (should-not (string-match-p "(id:" result)))))
+(ert-deftest claude-code-ide-org-test-clock-out-id-is-inherited-not-reported ()
+  "org_clock_out reports no :ID: at all now, and does not need to: the
+two tests this replaces pinned the \"(id: ...)\" suffix
+`bin/hooks/queue-append' used to sed out of the reply, which was the
+only way a heading-less `clock_out' could name its heading.  Ingestion
+answers it instead, from the session's own stream -- which is strictly
+better, because it cannot be fooled by whatever a human happens to be
+clocking at the time."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--queue-write
+     "sess-a"
+     (claude-code-ide-org-test--queue-event
+      "2026-08-07T09:00:00-0500" "clock_in" "id-a")
+     ;; A null-id clock_out, exactly as the cut-over wrapper produces.
+     (json-encode '((ts . "2026-08-07T09:20:00-0500") (kind . "clock_out")
+                    (id . nil) (session_id . "sess-a") (source . "org_clock_out"))))
+    (let ((groups (claude-code-ide-org--queue-events-by-id)))
+      (should (= 1 (length groups)))
+      (should (equal "id-a" (car (car groups))))
+      (should (= 2 (length (cdr (car groups))))))))
 
 (ert-deftest claude-code-ide-org-test-queue-skips-unusable-lines ()
   "A torn, malformed, or unknown-kind line costs one event, not the file."
@@ -2615,7 +2295,7 @@ writing a `State \"PLANNING\" from \"DOING\"' line that looks correct
 (TODO.org :ID: f9f61c04-150b-4ee7-96c9-582cf2bda95a)."
   (claude-code-ide-org-test--with-heading
     ;; Reality has moved on to DOING; the queued event still says NEXT.
-    (claude-code-ide-org-set-todo id "DOING")
+    (claude-code-ide-org-test--set-todo-for-real id "DOING")
     (let* ((before (claude-code-ide-org-test--disk-contents file))
            (item (list :type 'state :id id
                        :ts (date-to-time "2026-08-07T11:51:00-0500")
@@ -2818,7 +2498,7 @@ negative duration."
   (claude-code-ide-org-test--with-heading
     ;; Put a live clock on the very heading under review, exactly as the
     ;; UserPromptSubmit hook does pre-cutover.
-    (claude-code-ide-org-clock-in id)
+    (claude-code-ide-org-test--clock-in-for-real id)
     (should (org-clocking-p))
     (should-not (claude-code-ide-org--review-apply-item
                  (list :type 'clock :id id
@@ -2969,6 +2649,97 @@ pair must close before any state change."
       (should (= 0 (plist-get result :applied)))
       (should (= 1 (length (plist-get result :errors))))
       (should (string-match-p "\\`Error:" (car (plist-get result :errors)))))))
+
+(ert-deftest claude-code-ide-org-test-review-read-only-buffers-are-detected ()
+  "The read-only pre-flight names the buffer apply would write to --
+resolved by :ID: like apply itself, so an open-but-irrelevant buffer and
+an :ID: that resolves to nothing both contribute nothing."
+  (claude-code-ide-org-test--with-heading
+    (let ((item (list :type 'state :id id :ts (current-time) :to "DOING")))
+      (should-not (claude-code-ide-org--review-read-only-buffers (list item)))
+      (with-current-buffer (get-file-buffer file) (read-only-mode 1))
+      (should (equal (list (get-file-buffer file))
+                     (claude-code-ide-org--review-read-only-buffers (list item))))
+      ;; Two items on the same heading are one buffer, not two prompts.
+      (should (= 1 (length (claude-code-ide-org--review-read-only-buffers
+                            (list item item)))))
+      (should-not (claude-code-ide-org--review-read-only-buffers
+                   (list (list :type 'state :id "no-such-id"))))
+      (with-current-buffer (get-file-buffer file) (read-only-mode -1)))))
+
+(ert-deftest claude-code-ide-org-test-review-ensure-writable-honors-the-answer ()
+  "Yes clears read-only; no signals before anything is applied and leaves
+the buffer read-only, so the marks it protects are still there to keep."
+  (claude-code-ide-org-test--with-heading
+    (let ((items (list (list :type 'state :id id :ts (current-time) :to "DOING"))))
+      (with-current-buffer (get-file-buffer file) (read-only-mode 1))
+      (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) nil)))
+        (should-error (claude-code-ide-org--review-ensure-writable items)
+                      :type 'user-error))
+      (should (buffer-local-value 'buffer-read-only (get-file-buffer file)))
+      (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) t)))
+        (claude-code-ide-org--review-ensure-writable items))
+      (should-not (buffer-local-value 'buffer-read-only (get-file-buffer file)))
+      ;; Nothing to ask about is not a prompt with no answer.
+      (cl-letf (((symbol-function 'y-or-n-p)
+                 (lambda (&rest _) (error "Should not have been asked"))))
+        (claude-code-ide-org--review-ensure-writable items)))))
+
+(ert-deftest claude-code-ide-org-test-review-apply-keeps-marks-when-read-only-declined ()
+  "Declining the read-only offer applies nothing and keeps every
+decision: the mark, and the stale confirmation that took a prompt to
+get.  Before this check each item failed separately with
+`buffer-read-only' and the follow-up refresh discarded the lot."
+  (claude-code-ide-org-test--with-heading
+    (let ((item (list :type 'state :id id :ts (current-time) :to "DOING"
+                      :from "NEXT" :marked t :stale-confirmed t :events nil)))
+      (with-current-buffer (get-file-buffer file) (read-only-mode 1))
+      (unwind-protect
+          (with-current-buffer (get-buffer-create "*org-review-test*")
+            (claude-code-ide-org-review-mode)
+            (setq claude-code-ide-org--review-items (list item))
+            (claude-code-ide-org--review-render)
+            (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) nil)))
+              (should-error (claude-code-ide-org-review-apply) :type 'user-error))
+            (should (equal (list item) claude-code-ide-org--review-items))
+            (should (plist-get (car claude-code-ide-org--review-items) :marked))
+            (should (plist-get (car claude-code-ide-org--review-items)
+                               :stale-confirmed))
+            ;; And the file is untouched: the heading still reads TODO
+            ;; (the #+TODO: line mentions DOING, so match the heading).
+            (should (string-match-p
+                     "^\\* TODO Test heading"
+                     (claude-code-ide-org-test--disk-contents file))))
+        (kill-buffer "*org-review-test*")
+        (with-current-buffer (get-file-buffer file) (read-only-mode -1))))))
+
+(ert-deftest claude-code-ide-org-test-review-apply-keeps-marks-when-nothing-applied ()
+  "A run where every item failed does not refresh, so the marks survive a
+failure the human had no chance to react to.  A run that applied
+something still refreshes, which is what consumes the applied items."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--with-queue
+      (unwind-protect
+          (with-current-buffer (get-buffer-create "*org-review-test*")
+            (claude-code-ide-org-review-mode)
+            (setq claude-code-ide-org--review-items
+                  (list (list :type 'state :id "no-such-id" :ts (current-time)
+                              :to "DOING" :marked t :events nil)))
+            (claude-code-ide-org--review-render)
+            (claude-code-ide-org-review-apply)
+            (should (= 1 (length claude-code-ide-org--review-items)))
+            (should (plist-get (car claude-code-ide-org--review-items) :marked))
+            ;; Now one that succeeds: the refresh runs and rebuilds from the
+            ;; (empty) queue, so the applied item is gone rather than marked.
+            (setq claude-code-ide-org--review-items
+                  (list (list :type 'state :id id :ts (current-time)
+                              :to "DOING" :marked t :events nil)))
+            (claude-code-ide-org--review-render)
+            (claude-code-ide-org-review-apply)
+            (should-not claude-code-ide-org--review-items)
+            (should (string-match-p
+                     "DOING" (claude-code-ide-org-test--disk-contents file))))
+        (kill-buffer "*org-review-test*")))))
 
 (provide 'claude-code-ide-org-config-test)
 

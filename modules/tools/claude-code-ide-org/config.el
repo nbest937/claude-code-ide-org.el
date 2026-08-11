@@ -81,9 +81,10 @@ cannot be resolved or FN signals an error."
 ;; Source attribution (which MCP tool, or "hand-edit") comes from
 ;; `claude-code-ide-org--log-source', a dynamic variable each wrapper
 ;; below let-binds around its body — see the convention noted on that
-;; variable for how nested calls (e.g. session-pause calling the
-;; clock-out wrapper) compose without one clobbering the other's
-;; attribution.
+;; variable for how nested calls compose without one clobbering the
+;; other's attribution. Since the 2026-08-11 cutover the only source
+;; that actually appears here is "org_review_apply" or "hand-edit" --
+;; the clock/state wrappers no longer mutate anything to attribute.
 ;;
 ;; Hashing is always done straight off disk (see
 ;; `claude-code-ide-org--sha256-file'), never off any Emacs buffer —
@@ -114,9 +115,11 @@ archive functions without going through this module's wrappers.
 
 Each wrapper below binds this with `(or claude-code-ide-org--log-source
 \"its-own-name\")' rather than unconditionally, so that a wrapper called
-from another wrapper (e.g. `claude-code-ide-org-session-pause' calling
-`claude-code-ide-org-clock-out') keeps the outer, more specific
-attribution instead of the inner call clobbering it.")
+from another keeps the outer, more specific attribution instead of the
+inner call clobbering it.  The nesting this was written for
+(session-pause calling the clock-out wrapper) is gone as of the
+2026-08-11 cutover, but `claude-code-ide-org-review' still binds it
+around apply, which does nest.")
 
 (defcustom claude-code-ide-org-audit-log-file nil
   "Path to the JSONL tool-call audit log. When nil (the default), the
@@ -290,48 +293,24 @@ find-or-create-drawer problem for :LOGBOOK:."
       (unless (bolp) (insert "\n"))
       (insert ":" drawer-name ":\n" line "\n:END:\n"))))
 
-(defvar claude-code-ide-org--log-session-id nil
-  "Dynamically let-bound around `claude-code-ide-org-session-pause'/
-`-resume's body to the calling Claude Code session's session-id
-string, when known.
-
-Nothing reads it any more.  It existed so the :SESSIONS: drawer could
-record which session paused or resumed a clock; that drawer was retired
-2026-08-11 (TODO.org :ID: 9d2fcdad-9bf7-47b6-8018-223b13ec4577).  Kept
-because the binding sites are harmless and session attribution is being
-rebuilt properly in the event queue, where `session_id' arrives on hook
-stdin rather than having to be threaded through a dynamic variable.
-Delete it with the ownership variables at the cutover if nothing has
-claimed it by then.")
-
-(defvar claude-code-ide-org--clock-owner-session-id nil
-  "Session ID of the Claude Code session whose turn boundary most
-recently opened the currently-running clock via
-`claude-code-ide-org-session-resume', or nil if unknown/not session-
-aware. Consulted by `claude-code-ide-org-session-pause'/`-resume' to
-avoid pausing or stealing another session's actively-running clock —
-see the commentary on those two functions for the concurrency bug this
-guards against (TODO.org :ID: 337f7fb2-b9e9-4c02-82dd-d88e60df364b).
-Cleared whenever `claude-code-ide-org-session-pause' actually closes a
-clock, so a later pause/resume with no matching session context falls
-back to the original unconditional behavior — the correct default for
-the ordinary single-session case, not merely a stopgap. Purely
-in-memory: resets naturally on Emacs restart, which is fine since a
-fresh Emacs never has a clock already running.")
-
-(defvar claude-code-ide-org--planning-owner-session-id nil
-  "Session ID of the Claude Code session that most recently set a
-heading to PLANNING via `claude-code-ide-org-set-todo', or nil if
-unknown/not session-aware. Consulted by
-`claude-code-ide-org--promote-planning-to-doing' so that one session's
-`ExitPlanMode' never promotes a different, concurrent session's
-still-in-progress PLANNING heading purely because it happens to own
-the single global clock (TODO.org :ID:
-b95b9fba-f78e-48fe-8546-988709cce309). Same single-global-value shape
-as `claude-code-ide-org--clock-owner-session-id' — org only ever has
-one running clock, so \"last session to set PLANNING\" is all that's
-meaningful. Cleared after a successful promotion. Purely in-memory:
-resets naturally on Emacs restart.")
+;; Three session-identity variables stood here until the 2026-08-11
+;; cutover (TODO.org :ID: feba67eb-35b3-48bd-a892-8ecd47ca52e0):
+;; `--log-session-id', `--clock-owner-session-id' and
+;; `--planning-owner-session-id'.
+;;
+;; All three existed to answer "which concurrent session does this live
+;; state belong to?" -- who may pause the one global clock
+;; (:ID: 337f7fb2-b9e9-4c02-82dd-d88e60df364b), whose PLANNING heading
+;; an ExitPlanMode may promote (:ID: b95b9fba-f78e-48fe-8546-988709cce309).
+;; Sessions no longer touch live state, so the question has no referent:
+;; there is one writer now, apply, and it runs when a human says so.
+;;
+;; Their replacement is not another variable but the queue's own shape.
+;; Each session appends to its own file, keyed by the session_id that
+;; arrives on hook stdin -- so "which session did this" is recorded on
+;; every event rather than inferred from a single global value that only
+;; ever held the most recent answer, and it survives an Emacs restart,
+;; which none of these did.
 
 ;; The :SESSIONS: drawer was retired 2026-08-11 (TODO.org :ID:
 ;; 9d2fcdad-9bf7-47b6-8018-223b13ec4577). It held a Paused/Resumed line
@@ -348,232 +327,78 @@ resets naturally on Emacs restart.")
 ;;; Wrappers --------------------------------------------------------------
 
 (defun claude-code-ide-org-clock-in (id &optional note)
-  "Clock in to the org heading whose :ID: property equals ID.
+  "Validate ID and report the clock_in as queued.  Opens no clock.
 
-NOTE is a short (3-10 word) description of what is being started. It is
-deliberately *unused here*: its only job is to ride the tool call into
-the event queue, where `bin/hooks/queue-append' reads it off
-`tool_input' and the review-and-apply command later spends it (TODO.org
-:ID: 32272061-1d78-4726-b13b-90338edb2ba5). Accepting and ignoring it is
-the point -- writing it into the live buffer now would produce exactly
-the unreviewed record the queue design exists to avoid, and there is no
-correct place for it in a :LOGBOOK: until a human confirms the interval
-it belongs to. See clock-template.org for the conventions it feeds.
-Opens a new CLOCK entry in the heading's LOGBOOK drawer and starts
-the Emacs clock timer.  Also logs a \"Resumed\" entry to the
-Saves every buffer touched: `org-clock-in'
-auto-closes whatever clock was already running first, which mutates
-*that* heading's buffer too when it lives in a different file than the
-one being clocked into — the same bug shape that already bit
-`claude-code-ide-org-archive' and `claude-code-ide-org-clock-out'
-(reporting success while a modified buffer went unsaved)."
-  (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "org_clock_in")))
-    (claude-code-ide-org--at-id
-     id
-     (lambda ()
-       (let ((heading (org-get-heading t t t t))
-             (previous-buffer (and (org-clocking-p) (marker-buffer org-clock-marker))))
-         (org-clock-in)
-         (save-buffer)
-         (when (and previous-buffer
-                    (buffer-live-p previous-buffer)
-                    (not (eq previous-buffer (current-buffer))))
-           (with-current-buffer previous-buffer
-             (save-buffer)))
-         (format "Clocked in: \"%s\"" heading))))))
+Cut over to append-only 2026-08-11 (TODO.org :ID:
+feba67eb-35b3-48bd-a892-8ecd47ca52e0).  This used to call `org-clock-in'
+and save the buffer.  It now touches nothing: `bin/hooks/queue-append'
+records the event from the `PostToolUse' payload, and
+`claude-code-ide-org-review' is the only thing that ever writes a CLOCK
+line, inside a genuinely interactive command with a human confirming the
+interval.  A session's own view of the clock is therefore *intent*, not
+state -- see the queue commentary further down this file.
 
-(defconst claude-code-ide-org--minimum-clock-seconds 60
-  "Shortest interval a CLOCK line is allowed to record, in seconds.
+Still resolves ID, and still reports an unresolvable one as an
+\"Error: ...\" string.  That is the whole remaining job, and it is not a
+formality: `bin/hooks/queue-append' drops any event whose tool reply
+starts with `Error:', so this validation is the only thing standing
+between a typo'd :ID: and a queue entry that cannot be applied and
+cannot be explained at review time.
 
-One minute, because that is the finest distinction a CLOCK timestamp can
-express: `[2026-08-10 Mon 12:46]--[2026-08-10 Mon 12:46]' is what a
-forty-second span looks like written down, and it reads as `=>  0:00' --
-which a clocktable sums as nothing at all, reporting no activity for
-activity that did happen.
-
-This is a deliberate policy, not arithmetic: enforcing the floor invents
-up to fifty-nine seconds that did not elapse.  The trade is accepted
-because the alternative misreports short work as zero, and because a
-minute is already the resolution of the record -- there is no honest way
-to write down less.  Confined to the write path so it is applied once,
-where the interval is created, and never re-applied to history.")
-
-(defun claude-code-ide-org--clock-out-floor-time ()
-  "Return the end time to clock out at, honouring the one-minute floor.
-
-Nil -- meaning \"now\", org's own default -- unless clocking out this
-instant would record an interval shorter than
-`claude-code-ide-org--minimum-clock-seconds', in which case return the
-start time plus that minimum.
-
-Passed to `org-clock-out's own AT-TIME argument rather than fixing up
-the CLOCK line afterwards.  Every previous attempt in this module to
-adjust an interval by editing drawer text after the fact has eventually
-destroyed something (TODO.org :ID:s ba8249c1, b74e0f19); handing org the
-end time up front means org writes a correct line the first time and
-there is nothing to repair."
-  (let ((start (and (org-clocking-p) org-clock-start-time)))
-    (when start
-      (let ((elapsed (float-time (time-subtract (current-time) start))))
-        (when (< elapsed claude-code-ide-org--minimum-clock-seconds)
-          (time-add start (seconds-to-time
-                           claude-code-ide-org--minimum-clock-seconds)))))))
+NOTE rides the tool call into the queue, where the hook reads it off
+`tool_input'; it was already unused here before the cutover, for
+exactly the reason the cutover generalises (TODO.org :ID:
+32272061-1d78-4726-b13b-90338edb2ba5).  See clock-template.org for the
+conventions it feeds."
+  (claude-code-ide-org--at-id
+   id
+   (lambda ()
+     (format "Queued clock_in on \"%s\"; pending review."
+             (org-get-heading t t t t)))))
 
 (defun claude-code-ide-org-clock-out (&optional note)
-  "Clock out of the currently running org clock.
+  "Report the clock_out as queued.  Closes no clock.
 
-NOTE is carried for the event queue and otherwise unused here -- see
-`claude-code-ide-org-clock-in' for why that is deliberate.
+Cut over to append-only 2026-08-11 alongside
+`claude-code-ide-org-clock-in' (TODO.org :ID:
+feba67eb-35b3-48bd-a892-8ecd47ca52e0).
 
-On success the returned string names the closed heading's :ID: as
-\"Clocked out: \\\"HEADING\\\" (id: ID)\".  This tool takes no id
-argument -- the running clock is the only thing that can say which
-heading is being closed -- so without it the queue event written by
-`bin/hooks/queue-append' has a null id and a clock_out read in isolation
-cannot name its heading.  Reporting the id the clock *actually* closed
-is authoritative in a way a caller-supplied argument would not be: it
-cannot disagree with what happened.  The \"Clocked out:\" prefix is
-unchanged, which is all `bin/clock-notify' matches on.
-Closes the open CLOCK entry with an end timestamp and computes the
-duration, never recording less than
-`claude-code-ide-org--minimum-clock-seconds' — see
-`claude-code-ide-org--clock-out-floor-time'.  Also logs a \"Paused\"
-Saves the buffer.  Safe to
-call when no clock is running.
+Takes no id and reports none, which is a deliberate simplification of
+what it did before.  It used to recover the running clock's heading and
+report it as \"(id: ID)\" for `bin/hooks/queue-append' to parse, because
+the running clock was the only thing that knew which heading was being
+closed.  There is no running clock now, and the ingestion layer already
+answers the question better:
+`claude-code-ide-org--queue-events-by-id' walks each session's own
+stream in order and attributes a null-id `clock_out' to whichever
+heading that session's last `clock_in' named.  Reading a live clock here
+would be actively worse -- the only clock that can be running now
+belongs to a *human's* own `org-clock-in', so it would attribute this
+session's interval to whatever the user happens to be clocking.
 
-Deliberately does NOT consolidate afterwards any more.  It used to,
-so drawers stayed collapsed on the fly rather than accumulating
-per-turn churn.  That rewrote the whole drawer on every clock-out,
-which destroyed a reviewed, human-confirmed interval roughly five
-minutes after apply wrote it (TODO.org :ID:
-b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04), and had silently deleted
-non-CLOCK lines before that (:ID: ba8249c1).  Rewriting an entire
-drawer as a side effect of closing one interval is a large blast
-radius for a cosmetic benefit, and the churn it existed to suppress
-goes away with the queue refactor.  `claude-code-ide-org-consolidate-history'
-remains available to call deliberately."
-  (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "org_clock_out")))
-    (condition-case err
-        (if (not (org-clocking-p))
-            "No clock is currently running."
-          (let ((heading org-clock-heading)
-                (buffer (marker-buffer org-clock-marker))
-                id)
-            (org-with-point-at org-clock-marker
-              (setq id (org-entry-get nil "ID")))
-            ;; org-clock-out-remove-zero-time-clocks (t in this user's
-            ;; Doom config, not this project's own setting) deletes the
-            ;; CLOCK line outright when the interval reads as zero.
-            ;; Suppressed for this call only -- never globally, since a
-            ;; human's own interactive org-clock-out should keep org's
-            ;; normal behavior. Belt and braces alongside the floor
-            ;; below: with a minimum of one minute nothing should reach
-            ;; org as zero-length anyway, but a deletion is unrecoverable
-            ;; and the binding costs nothing.
-            (let ((org-clock-out-remove-zero-time-clocks nil))
-              (org-clock-out nil nil (claude-code-ide-org--clock-out-floor-time)))
-            (when (buffer-live-p buffer)
-              (with-current-buffer buffer
-                (save-buffer)))
-            (if id
-                (format "Clocked out: \"%s\" (id: %s)" heading id)
-              (format "Clocked out: \"%s\"" heading))))
-      (error (format "Error: %s" (error-message-string err))))))
+Consequently this cannot fail and does not validate: there is no :ID: to
+resolve.  NOTE rides into the queue off `tool_input' as before.
 
-(defun claude-code-ide-org-session-pause (&optional session-id)
-  "Pause the running clock, if any, unless it's owned by a different
-Claude Code session than SESSION-ID.  Alias for
-`claude-code-ide-org-clock-out', intended to be called directly
-via `emacsclient -e' (not registered as an MCP tool) by a Stop
-hook, so a task automatically pauses the moment Claude finishes
-responding and control returns to the user.
+The one-minute floor (`--minimum-clock-seconds'/`--clock-out-floor-time')
+went with this function's body.  It was a write-path policy protecting
+sub-minute intervals from reading as `=>  0:00', and apply is the write
+path now -- it writes the exact confirmed endpoints, and handles a
+zero-width span by annotating it without a CLOCK line rather than by
+inventing seconds that did not elapse."
+  "Queued clock_out; pending review.")
 
-SESSION-ID nil (the default — a manual/test call, or a Claude Code
-version whose hook payload omits it) reproduces the exact original
-unconditional behavior: always pauses whatever clock is running,
-regardless of which session, if any, opened it.  That is the correct
-fallback for the ordinary single-session case, not merely a stopgap.
-
-When SESSION-ID is given and does not match
-`claude-code-ide-org--clock-owner-session-id' (and an owner IS
-recorded), this is a no-op that leaves the other session's running
-clock untouched, rather than pausing work that isn't this session's to
-pause.  On an actual pause, clears the owner variable, so a later
-pause with no session context — or once the clock has moved on to
-something else entirely — falls back to the permissive default above."
-  (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "session-pause"))
-        (claude-code-ide-org--log-session-id (or claude-code-ide-org--log-session-id session-id)))
-    (if (and session-id
-             claude-code-ide-org--clock-owner-session-id
-             (not (equal session-id claude-code-ide-org--clock-owner-session-id)))
-        "Clock is owned by a different session; not pausing."
-      (prog1 (claude-code-ide-org-clock-out)
-        (setq claude-code-ide-org--clock-owner-session-id nil)))))
-
-(defun claude-code-ide-org--clock-history-head-done-p ()
-  "Non-nil if the most recently clocked-out task in
-`org-clock-history' is now in a DONE-type (terminal) TODO state —
-e.g. it was marked DONE or CANCELLED after being paused, before the
-next `org-clock-in-last' call had a chance to resume it.  This is
-what `claude-code-ide-org-session-resume' checks to avoid reopening
-a clock on a task that has already finished."
-  (let ((marker (car org-clock-history)))
-    (and marker (marker-buffer marker)
-         (org-with-point-at marker
-           (org-entry-is-done-p)))))
-
-(defun claude-code-ide-org-session-resume (&optional session-id)
-  "Resume clocking on the most recently paused task, if any, via
-`org-clock-in-last'.  Intended to be called directly via
-`emacsclient -e' (not registered as an MCP tool) by a
-UserPromptSubmit hook, so a paused task resumes the moment the
-user sends the next prompt.  Safe to call when already clocking,
-when there is no clock history to resume, or when the most
-recently paused task has since reached a DONE-type state — all
-three are no-ops.  The DONE-type check matters because marking a
-task DONE closes its clock and pushes it onto `org-clock-history'
-just like an ordinary pause does; without the check, any later
-turn boundary with nothing else to resume would silently reopen a
-clock on that already-finished heading.  If the resumed task turns
-out to be the wrong *active* one instead (the user's next prompt is
-about something else entirely), the existing org_clock_in tool
-self-corrects: org-clock-in always closes whatever clock is
-currently running before opening a new one, so the mistaken resume
-just leaves a short, low-cost stray CLOCK interval on the wrong
-heading rather than silently losing time or blocking anything.
-
-SESSION-ID nil (the default) reproduces the exact original
-unconditional behavior.  When SESSION-ID is given and a clock is
-already running that's owned by a *different* session
-(`claude-code-ide-org--clock-owner-session-id'), this is an
-additional no-op — don't steal another session's actively-running
-clock just because this session's turn boundary happened to arrive.
-On an actual resume, records SESSION-ID as the new owner (nil if this
-call itself has no session context, which is exactly correct: a later
-pause/resume with no session context should still behave as before)."
-  (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "session-resume"))
-        (claude-code-ide-org--log-session-id (or claude-code-ide-org--log-session-id session-id)))
-    (condition-case err
-        (cond
-         ((and (org-clocking-p)
-               session-id
-               claude-code-ide-org--clock-owner-session-id
-               (not (equal session-id claude-code-ide-org--clock-owner-session-id)))
-          "Clock is owned by a different session; not resuming.")
-         ((org-clocking-p) "Already clocking; nothing to resume.")
-         ((null org-clock-history) "No paused task to resume.")
-         ((claude-code-ide-org--clock-history-head-done-p)
-          "Most recently paused task is already DONE; nothing to resume.")
-         (t
-          (org-clock-in-last)
-          (if (not (org-clocking-p))
-              "org-clock-in-last did not start a clock."
-            (setq claude-code-ide-org--clock-owner-session-id session-id)
-            (let ((buffer (marker-buffer org-clock-marker)))
-              (when (buffer-live-p buffer)
-                (with-current-buffer buffer (save-buffer))))
-            (format "Resumed: \"%s\"" org-clock-heading))))
-      (error (format "Error: %s" (error-message-string err))))))
+;; `claude-code-ide-org-session-pause'/`-resume' and their helper
+;; `--clock-history-head-done-p' were retired at the 2026-08-11 cutover
+;; (TODO.org :ID: feba67eb-35b3-48bd-a892-8ecd47ca52e0). The Stop and
+;; UserPromptSubmit hooks that called them through `emacsclient -e' now
+;; append a bare `pause'/`resume' guidepost to the queue and never reach
+;; Emacs at all -- which is the point: a turn boundary is recorded even
+;; when no Emacs is running, and review decides what the guideposts
+;; bracket.
+;;
+;; They were the last readers of `--clock-owner-session-id', so the
+;; ownership variables go with them; see the commentary where those
+;; used to be defined.
 
 ;;; Stale interval recovery --------------------------------------------------
 ;;
@@ -1079,9 +904,11 @@ consolidates to the empty string.
 Rounding is not reinstatable behind a flag here. An interval this
 project has confirmed is the most authoritative record it holds, and
 nothing downstream of the confirmation may quietly rewrite it. Shortness
-is now prevented at the source instead — see
-`claude-code-ide-org--clock-out-floor-time', which stops a sub-minute
-interval ever being written, rather than deleting it afterwards."
+is not a problem this has to solve any more: intervals are written by
+apply, from endpoints a human confirmed, and a zero-width span is
+annotated without a CLOCK line rather than rounded into one.  (The
+one-minute floor that used to guard this on the write path went with
+the clock-out wrapper's body at the 2026-08-11 cutover.)"
   (let* ((parsed (claude-code-ide-org--parse-clock-lines text))
          (open (plist-get parsed :open))
          (other (plist-get parsed :other))
@@ -1133,83 +960,76 @@ MCP tool — a deliberate maintenance operation via `emacsclient'."
          (format "Nothing to consolidate on \"%s\"" heading))))))
 
 (defun claude-code-ide-org-set-todo (id state &optional note)
-  "Set the TODO keyword of the heading with :ID: equal to ID to STATE.
-STATE must be one of: TODO NEXT PLANNING DOING WAIT MAYBE DONE CANCELLED.
-PLANNING auto-promotes to DOING when `ExitPlanMode' fires, via
-`claude-code-ide-org--promote-planning-to-doing'.
-Saves the buffer afterwards.  If org-blocker-hook (e.g. org-depend's
-:BLOCKER: property) refuses the change, `org-todo' silently leaves
-the heading in its prior state; this checks the actual resulting
-state and reports that instead of blindly echoing STATE back.
+  "Validate ID and STATE and report the transition as queued.
+Changes no TODO keyword.
 
-STATE is almost always supplied by Claude through this non-interactive
-tool, not typed by a human at the keyboard.  `org-todo' runs with
-`org-inhibit-logging' bound to t unconditionally here, for every
-STATE, not just ones whose `#+TODO:' marker is `@' -- confirmed live
-(see TODO.org :ID: 04d0e7d5-ab6b-4972-925d-d517484c7595) that even a
-plain `!' timestamp-only marker defers its native log-line insertion
-through the same `org-add-log-note'/`post-command-hook' machinery `@'
-does, and that deferred call blocks indefinitely when triggered
-non-interactively (via `emacsclient -e', exactly this tool's own call
-path) with nobody present to satisfy whatever it is waiting on --
-`!' is not actually safe on its own for a programmatic caller, contrary
-to the original assumption behind this wrapper. A genuine hand-edit
-made directly in the Emacs buffer (`M-x org-todo' or a keyboard
-TODO-cycle) never goes through this wrapper at all, so both `!' and
-`@' still log normally there, for the one case where a human is
-actually present.
+Cut over to append-only 2026-08-11 (TODO.org :ID:
+feba67eb-35b3-48bd-a892-8ecd47ca52e0).  This used to call `org-todo'
+with `org-inhibit-logging' bound to t, precisely because org's native
+state-change logging hangs when driven non-interactively through
+`emacsclient -e' (TODO.org :ID: 04d0e7d5-ab6b-4972-925d-d517484c7595).
+Suppressing that logging to keep the tool from hanging, and then
+reconstructing the log line by hand, is the compromise this whole
+refactor exists to undo: apply runs `org-todo' inside a genuinely
+interactive command, where org's own logging works and nothing needs
+suppressing.
+
+Two things are still validated, and both matter because
+`bin/hooks/queue-append' drops any event whose reply starts with
+`Error:' -- making this the only gate between a bad tool call and a
+queue entry that cannot be applied and cannot be explained at review
+time:
+- ID resolves to a real heading (via `claude-code-ide-org--at-id');
+- STATE is a keyword this file's own `#+TODO:' line declares.
+
+Deliberately *not* checked: whether the transition is legal. :BLOCKER:
+and `org-blocker-hook' are consulted by `org-todo' itself, which now
+runs at apply time in front of a human who can respond to a refusal.
+Answering \"is this allowed?\" here would mean answering it against a
+file that has not moved yet -- the same disk-goes-stale problem that
+retires `bin/hooks/pretooluse-transition-guard' in this commit.
 
 NOTE is a short (3-10 word) reason for the transition, carried for the
-event queue and unused here -- see `claude-code-ide-org-clock-in' for
-why that is deliberate.  At apply time it becomes the `\\\\' continuation
-on org's native `- State \"X\" from \"Y\" [ts]' line, which is a path
-already confirmed to work: `org-store-log-note' takes the note text from
-the current buffer's contents, so a non-empty note buffer yields the
-continuation and an empty one yields a bare State line.
+event queue and unused here.  At apply time it becomes the `\\\\'
+continuation on org's native `- State \"X\" from \"Y\" [ts]' line.
 
-The success reply names the state the heading held *before* the change,
-as `TODO state set to DOING (was NEXT): \"...\"'.  That clause is not
-cosmetic: `bin/hooks/queue-append' parses it back out to record a `from'
-field on the queued `todo' event, which is what lets the review command
-detect at apply time that reality has moved past a queued transition
-(TODO.org :ID: f9f61c04-150b-4ee7-96c9-582cf2bda95a).  The hook is a
-bash script with no Emacs access by design -- writing the queue without
-a running Emacs is the whole premise of the refactor -- so the prior
-state has to travel back in the reply, exactly as `org_clock_out's
-heading :ID: already does.  A heading with no keyword at all reports
+The reply names the state the heading holds, as `(was NEXT)'.  That
+clause is not cosmetic: `bin/hooks/queue-append' parses it back out to
+record a `from' field on the queued `todo' event, which is what lets
+review notice that reality has moved past a queued transition (TODO.org
+:ID: f9f61c04-150b-4ee7-96c9-582cf2bda95a).  The hook is bash with no
+Emacs access by design -- writing the queue without a running Emacs is
+the premise the whole refactor rests on -- so the prior state has to
+travel back in the reply.  A heading with no keyword reports
 `(was none)' rather than an empty string, so the parse stays
-unambiguous."
-  (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "org_set_todo")))
-    (claude-code-ide-org--at-id
-     id
-     (lambda ()
-       ;; Read before `org-todo', while the heading still holds it.
-       (let ((previous (org-get-todo-state)))
-         (let ((org-inhibit-logging t)) (org-todo state))
-         ;; Re-resolved fresh by :ID: (a property-search, exactly like
-         ;; `claude-code-ide-org--at-id' itself), never by trusting
-         ;; "current point" or a marker captured before org-todo ran.
-         ;; Confirmed live (not reproducible in the ERT/batch
-         ;; environment, which never loads the user's personal Doom
-         ;; config) that a saved marker does not reliably track this
-         ;; heading's position across the single-NEXT-per-level trigger
-         ;; hooks editing a SIBLING heading earlier in the buffer --
-         ;; instrumented trace showed the marker's raw position number
-         ;; never changed while the text at that position did, most
-         ;; likely `ws-butler-mode' (whitespace cleanup) replacing a
-         ;; wider region than a plain insert. Re-resolving by :ID: is
-         ;; immune to that regardless of root cause, and is exactly how
-         ;; every regression test already verifies state here.
-         (let* ((marker (org-id-find id 'marker))
-                (actual (and marker (org-with-point-at marker (org-get-todo-state))))
-                (heading (and marker (org-with-point-at marker (org-get-heading t t t t)))))
-           (if (equal actual state)
-               (progn
-                 (save-buffer)
-                 (format "TODO state set to %s (was %s): \"%s\""
-                         state (or previous "none") heading))
-             (format "Error: requested state %s but heading \"%s\" is still %s — likely blocked (check :BLOCKER: / org-blocker-hook)"
-                     state heading actual))))))))
+unambiguous.
+
+What `from' *means* changed with this commit, and not merely in wording:
+it was \"the state held before this tool changed it\", and since nothing
+here changes anything it is now \"the state on disk when the event was
+queued\".  That is what makes the staleness check informative instead of
+always-true -- and it is also why every transition in a queued *chain*
+on one heading carries the same `from'.  See TODO.org :ID:
+6b1e73c4-25da-4f0e-8a51-9c0d3f7ab214, which is that consequence, still
+unresolved."
+  (claude-code-ide-org--at-id
+   id
+   (lambda ()
+     ;; org-todo-keywords-1 is buffer-local and derived from the file's
+     ;; own `#+TODO:' line, so this validates against the keywords that
+     ;; file actually defines rather than against a list hard-coded here
+     ;; -- which would drift the first time a file declares a different
+     ;; sequence. Checked before anything is reported as queued: a
+     ;; misspelled keyword that reaches the queue is a refusal at apply
+     ;; time, in front of a human who has no way to tell whether the
+     ;; typo was theirs or the model's.
+     (if (not (member state org-todo-keywords-1))
+         (format "Error: %s is not a TODO keyword in this file (have: %s)"
+                 state (string-join org-todo-keywords-1 " "))
+       (format "Queued todo -> %s (was %s): \"%s\"; pending review."
+               state
+               (or (org-get-todo-state) "none")
+               (org-get-heading t t t t))))))
 
 (defun claude-code-ide-org-archive (id)
   "Archive the org heading whose :ID: property equals ID.
@@ -1640,69 +1460,20 @@ hook -- i.e. never at load or registration time."
         (let ((claude-code-ide-org--auto-clock-in-active t))
           (org-clock-in))))))
 
-(defun claude-code-ide-org--maybe-record-planning-owner (payload-path)
-  "Read the `org_set_todo' `PostToolUse' hook payload JSON from
-PAYLOAD-PATH (a temp-file path written by
-bin/hooks/posttooluse-record-planning-owner) and, when its
-tool_input.state field is \"PLANNING\", record the payload's
-session_id in `claude-code-ide-org--planning-owner-session-id'. Any
-other requested state, or any problem reading/parsing PAYLOAD-PATH, is
-a no-op -- this must never error or block the hook it runs under. No
-check on whether the underlying `org_set_todo' transition actually
-succeeded: a phantom owner recorded for a blocked/failed transition is
-harmless, since `claude-code-ide-org--promote-planning-to-doing' only
-ever matches a heading whose live state is exactly PLANNING."
-  (condition-case nil
-      (let* ((json-object-type 'alist)
-             (payload (json-read-file payload-path))
-             (tool-input (alist-get 'tool_input payload))
-             (state (alist-get 'state tool-input))
-             (session-id (alist-get 'session_id payload)))
-        (when (equal state "PLANNING")
-          (setq claude-code-ide-org--planning-owner-session-id session-id)))
-    (error nil)))
-
-(defun claude-code-ide-org--promote-planning-to-doing (session-id)
-  "For the `ExitPlanMode' `PostToolUse' hook
-(bin/hooks/exitplanmode-promote-planning): if a clock is currently
-running on a heading whose TODO state is exactly PLANNING, and that
-heading's PLANNING was either set by SESSION-ID itself or has no known
-owner (`claude-code-ide-org--planning-owner-session-id' is nil),
-promote it to DOING in place -- same clock interval, no close/reopen --
-append a LOGBOOK \"Auto-promoted\" note, clear the owner var, save the
-buffer, and return a success string. No-ops (returning a descriptive
-string, never erroring) when: nothing is clocking; the clocked
-heading's state isn't PLANNING; or the clocked heading's PLANNING is
-owned by a different, known session -- the cross-session guard this
-function exists for (TODO.org :ID:
-b95b9fba-f78e-48fe-8546-988709cce309, design decision 4). Deliberately
-does not gate on plan approval vs. rejection -- there is no reliable
-signal to gate on (see the same TODO.org entry's decision 6); a stray
-promotion after a rejected plan is low-cost and self-corrects the next
-time the heading's real state is set explicitly."
-  (if (not (org-clocking-p))
-      "No clock running; nothing to promote."
-    (let ((clocked-state (org-with-point-at org-clock-marker
-                            (org-get-todo-state))))
-      (cond
-       ((not (equal clocked-state "PLANNING"))
-        (format "Clocked heading is in state %s, not PLANNING; nothing to promote."
-                (or clocked-state "(none)")))
-       ((and claude-code-ide-org--planning-owner-session-id
-             (not (equal session-id claude-code-ide-org--planning-owner-session-id)))
-        "Clocked PLANNING heading belongs to a different session; not promoting.")
-       (t
-        (let ((heading (org-with-point-at org-clock-marker
-                          (let ((org-inhibit-logging t)) (org-todo "DOING"))
-                          (claude-code-ide-org--append-to-drawer
-                           "LOGBOOK"
-                           (claude-code-ide-org--format-log-state-line
-                            "DOING" "PLANNING"
-                            "Auto-promoted: ExitPlanMode fired on the owning session."))
-                          (save-buffer)
-                          (org-get-heading t t t t))))
-          (setq claude-code-ide-org--planning-owner-session-id nil)
-          (format "Promoted \"%s\" from PLANNING to DOING." heading)))))))
+;; `--maybe-record-planning-owner' and `--promote-planning-to-doing'
+;; stood here until the 2026-08-11 cutover (TODO.org :ID:
+;; feba67eb-35b3-48bd-a892-8ecd47ca52e0). Between them they implemented
+;; the PLANNING -> DOING auto-promotion on ExitPlanMode: one recorded
+;; which session had set PLANNING, the other promoted the heading that
+;; owned the running clock if that session matched.
+;;
+;; Both inputs are gone -- no clock runs, and no MCP tool sets a state --
+;; so the promotion moved into bin/hooks/exitplanmode-promote-planning,
+;; which reads the session's own queue file for the heading it most
+;; recently queued PLANNING on and appends a DOING event beside it. The
+;; cross-session guard the owner variable provided comes free there: the
+;; file is per-session, so another session's PLANNING is not in it to be
+;; found.
 
 ;;; Single NEXT action per level ----------------------------------------------
 ;;
@@ -2698,7 +2469,10 @@ Three behaviours worth knowing:
 
   \\[claude-code-ide-org-review-apply] is the only consequential key.  It writes real org state and saves
   the buffers.  Items apply oldest first and independently: if one fails
-  it is reported and the rest still go.
+  it is reported and the rest still go.  If a target buffer is read-only
+  it asks first, and answering no applies nothing and keeps your marks.
+  When nothing at all applied it does not refresh, so your marks survive
+  a failed run.
 
   \\[claude-code-ide-org-review-refresh] discards your marks.  It rebuilds from the queue, so mark, then
   refresh, loses the marking.
@@ -2862,14 +2636,75 @@ corrected to what actually happened before anything is written."
         (claude-code-ide-org--review-items-from-queue))
   (claude-code-ide-org--review-render))
 
+(defun claude-code-ide-org--review-read-only-buffers (items)
+  "Return the distinct read-only buffers ITEMS would have to write to.
+
+Resolves each :ID: the same way apply does, so the answer is about the
+buffers apply will actually reach, not about whatever files are open.
+An :ID: that does not resolve contributes nothing here -- apply reports
+that on its own terms."
+  (require 'org-id)
+  (let (buffers)
+    (dolist (item items)
+      (let* ((marker (ignore-errors (org-id-find (plist-get item :id) 'marker)))
+             (buffer (and marker (marker-buffer marker))))
+        (when (and buffer
+                   (buffer-local-value 'buffer-read-only buffer)
+                   (not (memq buffer buffers)))
+          (push buffer buffers))))
+    (nreverse buffers)))
+
+(defun claude-code-ide-org--review-ensure-writable (items)
+  "Offer to clear read-only on every buffer ITEMS need to write.
+
+Asked *before* anything is applied, and declining signals a
+`user-error' that leaves the review buffer exactly as it was -- marks,
+stale confirmations and edited intervals all intact.  Without this
+check a read-only target does not merely fail: every item fails
+individually with a `buffer-read-only' error, and the human's whole
+round of decisions is gone, since they only exist in the review
+buffer.  The user sets read-only (\\[read-only-mode]) to guard against
+their own stray keystrokes, not to block this command, so being asked
+is the whole fix -- but it is still their call, which is why this
+prompts rather than binding `inhibit-read-only'.
+
+A `y-or-n-p' is safe here for the same reason it is in
+`claude-code-ide-org--review-set-mark': apply is only ever reached from
+a genuinely interactive command, never from `emacsclient -e'."
+  (let ((buffers (claude-code-ide-org--review-read-only-buffers items)))
+    (when buffers
+      (unless (y-or-n-p (format "%s read-only.  Make %s writable and apply? "
+                                (mapconcat #'buffer-name buffers ", ")
+                                (if (cdr buffers) "them" "it")))
+        (user-error "Left read-only; nothing applied, marks kept"))
+      (dolist (buffer buffers)
+        (with-current-buffer buffer (read-only-mode -1))))))
+
 (defun claude-code-ide-org-review-apply ()
-  "Apply every marked item, then refresh."
+  "Apply every marked item, then refresh.
+
+Offers to make any read-only target buffer writable first; see
+`claude-code-ide-org--review-ensure-writable'.
+
+Refreshes only when something was actually applied.  Refreshing
+rebuilds from the queue and so discards marks, which is right after a
+successful apply -- the applied items are consumed and the rest are a
+fresh reading -- and exactly wrong after a run where nothing landed,
+where it would throw away the human's decisions in response to a
+failure they had no chance to react to.  A re-render instead, since
+that re-evaluates staleness against the file as it now stands."
   (interactive)
   (let ((marked (seq-filter (lambda (i) (plist-get i :marked))
                             claude-code-ide-org--review-items)))
     (unless marked (user-error "Nothing marked"))
-    (let ((result (claude-code-ide-org--review-apply marked)))
-      (claude-code-ide-org-review-refresh)
+    (claude-code-ide-org--review-ensure-writable marked)
+    (let ((result (claude-code-ide-org--review-apply marked))
+          (line (line-number-at-pos)))
+      (if (> (plist-get result :applied) 0)
+          (claude-code-ide-org-review-refresh)
+        (claude-code-ide-org--review-render)
+        (goto-char (point-min))
+        (forward-line (1- line)))
       (message "Applied %d item(s)%s"
                (plist-get result :applied)
                (if (plist-get result :errors)
@@ -2902,9 +2737,12 @@ correctly inside a real interactive command."
    :function #'claude-code-ide-org-clock-in
    :name "org_clock_in"
    :description (concat
-                 "Clock in to an org-mode task, identified by its :ID: property. "
-                 "Always call this when transitioning a task to DOING state. "
-                 "Opens a CLOCK entry and starts the Emacs clock timer.")
+                 "Record the start of work on an org-mode task, identified by "
+                 "its :ID: property. Always call this when transitioning a task "
+                 "to DOING state. Queues the event for human review; it does NOT "
+                 "open a clock or change the file. Nothing reaches an org file "
+                 "until a person runs the review-and-apply command, so do not "
+                 "expect a later read to reflect it.")
    :args '((:name "id"
             :type string
             :description "The :ID: property value of the target org heading.")
@@ -2917,10 +2755,12 @@ correctly inside a real interactive command."
    :function #'claude-code-ide-org-clock-out
    :name "org_clock_out"
    :description (concat
-                 "Clock out of the currently running org-mode clock. "
-                 "Always call this when transitioning away from DOING "
-                 "(to DONE, WAIT, or CANCELLED). "
-                 "Closes the open CLOCK entry and computes the duration.")
+                 "Record the end of work on the task most recently started "
+                 "with org_clock_in. Always call this when transitioning away "
+                 "from DOING (to DONE, WAIT, or CANCELLED). Takes no id -- it "
+                 "closes whatever this session last started. Queues the event "
+                 "for human review; it does NOT close a clock or change the "
+                 "file.")
    :args '((:name "note"
             :type string
             :optional t
@@ -2930,12 +2770,16 @@ correctly inside a real interactive command."
    :function #'claude-code-ide-org-set-todo
    :name "org_set_todo"
    :description (concat
-                 "Set the TODO keyword on an org-mode heading by its :ID: property. "
-                 "Valid states: TODO NEXT PLANNING DOING WAIT MAYBE DONE CANCELLED. "
+                 "Record a TODO keyword change on an org-mode heading by its "
+                 ":ID: property. Valid states: TODO NEXT PLANNING DOING WAIT "
+                 "MAYBE DONE CANCELLED. Queues the event for human review; it "
+                 "does NOT change the heading. The file keeps its current "
+                 "keyword until a person applies the queued event, so a later "
+                 "read showing the old state is expected, not a failure. "
                  "When setting DOING, also call org_clock_in. "
                  "When leaving DOING, call org_clock_out first. "
-                 "PLANNING auto-promotes to DOING when ExitPlanMode fires, "
-                 "reusing the same clock interval -- no separate org_clock_in needed.")
+                 "PLANNING auto-promotes to DOING when ExitPlanMode fires -- "
+                 "no separate org_set_todo call needed.")
    :args '((:name "id"
             :type string
             :description "The :ID: property value of the target org heading.")

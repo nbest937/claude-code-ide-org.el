@@ -1,30 +1,84 @@
 #!/usr/bin/env bash
-# PostToolUse hook, matcher ExitPlanMode: the instant a plan is approved and
-# execution begins, promote whichever heading currently owns the running
-# clock from PLANNING to DOING in place -- same clock interval, no
-# close/reopen (TODO.org :ID: b95b9fba-f78e-48fe-8546-988709cce309).
+# PostToolUse hook, matcher ExitPlanMode: the instant a plan is approved
+# and execution begins, queue a PLANNING -> DOING transition for the
+# heading this session most recently set to PLANNING (TODO.org :ID:
+# b95b9fba-f78e-48fe-8546-988709cce309).
 #
-# Same no-jq, temp-file shape as
-# bin/hooks/posttooluse-record-planning-owner -- see that script's header
-# for why jq's injection-safe encoding isn't needed here either.
+# Before the 2026-08-11 cutover (TODO.org :ID:
+# feba67eb-35b3-48bd-a892-8ecd47ca52e0) this called
+# claude-code-ide-org--promote-planning-to-doing through `emacsclient
+# -e`, which found the heading by asking which one owned the *running
+# clock* and checked an in-memory ownership variable
+# (--planning-owner-session-id) to be sure the PLANNING belonged to this
+# session rather than a concurrent one. Neither input exists any more:
+# no clock runs, and no elisp is reached.
 #
-# Accepted gap: PostToolUse fires whether the plan was approved or
-# rejected, with no reliable signal to distinguish the two (see TODO.org's
-# design decision 6 for why -- attempting to instrument this from inside a
-# session is circular by construction, since inspecting the payload is
-# itself a non-readonly action that re-triggers Plan Mode). A stray
-# promotion after a rejected plan is low-cost and self-corrects the next
-# time the heading's real state is set explicitly. Not fixed here.
+# The session's own queue file answers both questions better than the
+# pair of them did. It is per-session by construction, so another
+# session's PLANNING is not merely guarded against -- it is not in the
+# file to be found. And "the heading this session most recently set to
+# PLANNING" is a fact the file records directly, rather than one
+# inferred from which heading happens to hold a global clock.
 #
-# Fails soft, always exit 0 -- PostToolUse firing means ExitPlanMode already
-# completed, so this must never block Claude Code.
-tmpfile="$(mktemp)"
-trap 'rm -f "$tmpfile"' EXIT
-cat > "$tmpfile"
-emacsclient -e "
-(let* ((json-object-type 'alist)
-       (payload (json-read-file \"$tmpfile\"))
-       (session-id (alist-get 'session_id payload)))
-  (claude-code-ide-org--promote-planning-to-doing session-id))
-" >/dev/null 2>&1
+# No-ops, silently, when: there is no session_id, no queue file, the
+# session has queued no `todo` events, or its most recent one is not
+# PLANNING. That last case is the COMMON one, not an error -- the user
+# entering Plan Mode by hand (shift-tab) gives the model no window to
+# set PLANNING first, so there is usually nothing to promote.
+#
+# Accepted gap, unchanged by the cutover: PostToolUse fires whether the
+# plan was approved or rejected, with no reliable signal to distinguish
+# them (see TODO.org's design decision 6 -- instrumenting it from inside
+# a session is circular, since inspecting the payload is itself a
+# non-readonly action). A stray queued promotion after a rejected plan
+# is now even cheaper than it was: it is one more line for a human to
+# decline at review, not a state change already written to a file.
+#
+# Fails soft, always exit 0 -- PostToolUse firing means ExitPlanMode has
+# already completed, so this must never block Claude Code.
+
+set -uo pipefail
+
+command -v jq >/dev/null 2>&1 || exit 0
+
+input="$(cat)"
+
+session_id="$(jq -r '.session_id // empty' <<<"$input" 2>/dev/null)"
+[[ -n "$session_id" ]] || exit 0
+
+# Same filename-component check queue-append applies, for the same
+# reason: this interpolates session_id into a path.
+case "$session_id" in
+  *[!A-Za-z0-9._-]*|''|.|..) exit 0 ;;
+esac
+
+queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
+queue_file="$queue_dir/$session_id.jsonl"
+[[ -f "$queue_file" ]] || exit 0
+
+# The most recent `todo` event that named a heading. Read with `-R` and
+# `fromjson?` so a single torn line costs that line rather than the
+# whole read -- the queue is append-only from concurrent writers, and
+# the elisp reader tolerates the same damage the same way.
+last_todo="$(jq -R -r 'fromjson? | select(.kind == "todo" and .id != null)
+                       | "\(.state)\t\(.id)"' "$queue_file" 2>/dev/null | tail -1)"
+[[ -n "$last_todo" ]] || exit 0
+
+state="${last_todo%%$'\t'*}"
+id="${last_todo##*$'\t'}"
+
+[[ "$state" == "PLANNING" ]] || exit 0
+[[ -n "$id" ]] || exit 0
+
+# `from` is PLANNING because that is what this session queued, not
+# because the file on disk says so -- it very likely does not yet, since
+# nothing is applied until a human applies it. Apply re-checks against
+# the file and will flag this as stale unless the PLANNING event is
+# applied first, which is correct: the two belong to one chain, and
+# TODO.org :ID: 6b1e73c4-25da-4f0e-8a51-9c0d3f7ab214 is where how a
+# chain should read gets decided.
+printf '%s' "$input" \
+  | QUEUE_APPEND_ID="$id" QUEUE_APPEND_STATE="DOING" QUEUE_APPEND_FROM="PLANNING" \
+    "$(dirname "${BASH_SOURCE[0]}")/queue-append" todo
+
 exit 0

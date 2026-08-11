@@ -1745,13 +1745,18 @@ from what shipped in four places:
   [[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]]; the conclusion
   still holds but the reason cited for it, and the =config.el:900/991=
   line references, do not.
-*** NEXT Rework the MCP tool / hook write paths to append-only :code:
+*** DOING Rework the MCP tool / hook write paths to append-only :code:
 :PROPERTIES:
 :ID:       feba67eb-35b3-48bd-a892-8ecd47ca52e0
 :CREATED:  [2026-08-06 Thu 10:47]
 :BLOCKER:  ids(720b2dcf-6af1-45f3-96a7-aa841e5651e1)
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-11 Tue 13:29]--[2026-08-11 Tue 13:46] =>  0:17
+- State "NEXT"       from "DOING"      [2026-08-11 Tue 12:26] \\
+  deferred to a fresh session, order recorded
+- State "DOING"      from "NEXT"       [2026-08-11 Tue 12:14] \\
+  blocker cleared, starting the cutover
 CLOCK: [2026-08-11 Tue 12:14]--[2026-08-11 Tue 12:26] =>  0:12
 :END:
 
@@ -1891,12 +1896,109 @@ would be noise rather than a signal.
 Still one commit, per the plan — the order above is how the edits are
 made and the suite is run, not a sequence of commits. =git revert= as
 rollback only works if the cutover is atomic.
+
+*Executed 2026-08-11, in the recorded order, one working tree.*
+
+1. *Wrappers + guards.* =org_clock_in= validates the =:ID:= and returns
+   ="Queued clock_in on \"H\"; pending review."=; =org_clock_out= returns
+   a constant and takes no =:ID:= at all; =org_set_todo= validates the
+   =:ID:= *and* the keyword against =org-todo-keywords-1= (buffer-local,
+   so it checks what the file declares rather than a list hard-coded in
+   the wrapper) and returns ="Queued todo -> DOING (was NEXT): ...="=.
+   Deleted =bin/hooks/pretooluse-transition-guard=, =bin/clock-notify=,
+   =bin/clock-notify-test= and their =settings.json= entries.
+2. *=session-pause=/=session-resume=* are now one =exec= into
+   =queue-append= each, with no =emacsclient= call.
+3. *=exitplanmode-promote-planning=* reads the session's own queue file
+   for the heading it most recently queued =PLANNING= on and appends a
+   =DOING= event beside it.
+4. *Ownership variables* (=--log-session-id=, =--clock-owner-session-id=,
+   =--planning-owner-session-id=) and their machinery
+   (=--maybe-record-planning-owner=, =--promote-planning-to-doing=,
+   =bin/hooks/posttooluse-record-planning-owner=) deleted.
+
+*Three things went beyond the recorded order, each because leaving them
+would have left something that lies:*
+- *The one-minute clock floor* (=--minimum-clock-seconds=,
+  =--clock-out-floor-time=) went with =clock_out='s body. It was a
+  write-path policy and apply is the write path now — and apply
+  deliberately writes exact confirmed endpoints, so a floor would be the
+  rounding this epic already retired once.
+- *The three MCP tool descriptions* — model-facing text still promising
+  "Opens a CLOCK entry and starts the Emacs clock timer." Every one now
+  says the event is queued and the file does not change, because the
+  description is the only thing telling a session not to expect a later
+  read to reflect its own call.
+- *=queue-append= grew explicit =QUEUE_APPEND_ID/STATE/FROM= overrides*,
+  for events with no tool call behind them. The alternative — having
+  =exitplanmode= synthesise a fake =tool_response= for the existing sed
+  to recover — was rejected as unreadable.
+
+*=clock_out= no longer reports an =:ID:=, and does not need to.* It used
+to recover the running clock's heading so =queue-append= could sed it
+out of the reply. =--queue-events-by-id= already attributes a null-id
+=clock_out= to whichever heading that session's last =clock_in= named,
+which is strictly better: the only clock that can be running now belongs
+to the *human*, so reading one would attribute a session's interval to
+whatever the user happens to be clocking.
+
+*Verified:* =bin/test= 145/145, =bin/queue-append-test= green (12 new
+checks, including that an override beats =tool_input= and that both
+post-cutover reply shapes still parse), =bin/exitplanmode-promote-test=
+green — a *new* harness, 15 checks. That last one is worth naming: the
+ExitPlanMode hook had no automated coverage before and could not
+reasonably have had any, being a here-doc of elisp handed to
+=emacsclient=; it is now a bash read of one queue file, and the
+cross-session guard that used to need an in-memory ownership variable is
+tested as what it now is — structural, since the file is per-session.
+
+*The test suite inverted rather than shrank.* 28 tests failed on the
+first run after the wrappers changed, every one of them a test that used
+a wrapper as *setup* ("clock in", "make it DOING") rather than testing
+its contract. Two helpers —
+=claude-code-ide-org-test--clock-in-for-real= and =--set-todo-for-real=
+— now say so explicitly, which makes the remaining wrapper tests
+unambiguous: they assert nothing happened. Net 168 → 145 ERT tests: 16
+deleted with the code they covered (session pause/resume ownership,
+PLANNING promotion, the clock floor, the clock_out id), the rest
+rewritten in place.
+
+*Live-verified against the real =TODO.org=, not just batch.* Reloaded
+=config.el= and unbound the ten deleted symbols by hand (=load-file=
+evaluates what is in a file; it does not unbind what was removed from
+it). Then called all three wrappers on this very heading: each returned
+its "pending review" string, =set_todo "WAIT"= reported =(was DOING)=
+while the heading *stayed* =DOING=, an undeclared keyword and a bad
+=:ID:= both came back =Error:=-prefixed — the prefix =queue-append= drops
+on — and the file's sha256 was byte-identical before and after with the
+buffer unmodified.
+
+*One piece of pre-cutover state was cleaned up deliberately:* the clock
+this session opened on this heading at 13:29, before the wrappers
+stopped clocking. Nothing would ever have closed it — the =Stop= hook is
+queue-only as of this commit — so it was closed through =org-clock-out=,
+which is exactly what the old hook would have done at that moment.
+Left open it would have tripped the stale-interval recovery check
+tomorrow and blocked this heading from reaching =DONE=.
+
+*Not claimed, and the reason this heading is not DONE:* the first
+post-cutover session. Everything above is batch, shell, and
+=emacsclient=; the plan's own gate for this work is "what the first
+session after the cutover looks like," and that cannot happen inside the
+session that made the change — =.claude/settings.json= is read once at
+session start, so *this* session is still running the old hook wiring,
+pointing at three scripts that no longer exist. The first real check is
+a fresh session: its =SessionStart=/=UserPromptSubmit= hooks fire the new
+scripts, its tool calls queue instead of mutating, and a review pass
+applies them.
 *** DONE Build the interactive review-and-apply Emacs command :code:
 :PROPERTIES:
 :ID:       720b2dcf-6af1-45f3-96a7-aa841e5651e1
 :CREATED:  [2026-08-06 Thu 10:47]
 :END:
 :LOGBOOK:
+- State "DONE"       from "DONE"       [2026-08-11 Tue 12:14] \\
+  interactive gate met across three passes
 CLOCK: [2026-08-10 Mon 12:55]--[2026-08-10 Mon 13:00] =>  0:05
 CLOCK: [2026-08-10 Mon 12:46]--[2026-08-10 Mon 12:47] =>  0:01
 CLOCK: [2026-08-10 Mon 12:45]--[2026-08-10 Mon 12:50] =>  0:05
@@ -2165,6 +2267,8 @@ plausible-looking wrong history.
 :BLOCKER:  ids(720b2dcf-6af1-45f3-96a7-aa841e5651e1)
 :END:
 :LOGBOOK:
+- State "DONE"       from "DONE"       [2026-08-11 Tue 12:06] \\
+  guard verified live, both branches
 CLOCK: [2026-08-10 Mon 12:36]--[2026-08-10 Mon 12:45] =>  0:09
 CLOCK: [2026-08-10 Mon 11:50]--[2026-08-10 Mon 12:00] =>  0:10
 :END:
@@ -3709,6 +3813,126 @@ Related but distinct: [[id:118373e5-b89b-4001-ad52-1f68374745fb][118373e5]]
 proposes a transient menu once there are filters worth composing. These
 three are the keystroke-level fixes underneath that, and are worth
 having whether or not a menu ever appears.
+
+*** DOING A read-only target buffer costs the human their whole review pass :code:
+:PROPERTIES:
+:ID:       8f2c1a90-4b7e-4d1a-9c3e-1f5a6b8d2e47
+:CREATED:  [2026-08-11 Tue 13:10]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-11 Tue 13:14]--[2026-08-11 Tue 13:29] =>  0:15
+CLOCK: [2026-08-11 Tue 13:11]--[2026-08-11 Tue 13:13] =>  0:02
+CLOCK: [2026-08-11 Tue 13:09]--[2026-08-11 Tue 13:10] =>  0:01
+:END:
+
+Reported by the user 2026-08-11. Pressing =x= while =TODO.org= is
+read-only did not fail in the cheap way: none of the =org-clock-in= /
+=org-todo= writes could touch the buffer, so *every* item failed
+individually with =buffer-read-only= — and =claude-code-ide-org-review-
+apply= then refreshed unconditionally, rebuilding from the queue and
+discarding every mark, every stale confirmation, and every corrected
+interval. The decisions only ever existed in the review buffer, so a
+failure that changed nothing on disk still destroyed all of the human's
+work. That is exactly backwards for a design whose whole premise is
+that the human's judgement is the expensive, irreplaceable step.
+
+The user toggles read-only (=C-x C-q=) to guard =TODO.org= against
+their own stray keystrokes while reading it, not to block this command
+— so being *asked* is the whole fix.
+
+*Fixed 2026-08-11, in two parts.*
+
+1. *Pre-flight, not per-item failure.*
+   =claude-code-ide-org--review-read-only-buffers= resolves each marked
+   item's =:ID:= exactly the way apply does and returns the distinct
+   read-only buffers apply would have to write to;
+   =--review-ensure-writable= offers to clear them
+   (="TODO.org read-only.  Make it writable and apply? "=) and, on a
+   no, signals a =user-error= *before* the first item is applied, so
+   the review buffer is untouched. Deliberately a prompt rather than a
+   binding of =inhibit-read-only=: none of this module's tools override
+   read-only silently, and the point is to tell the human what is in
+   the way, not to route around them.
+
+2. *No refresh when nothing applied.* Refreshing discards marks, which
+   is right after a successful apply — the applied items are consumed —
+   and wrong after a run where nothing landed. It now re-renders
+   instead (which re-evaluates staleness against the file as it now
+   stands) and restores point. This is the general guard: the
+   pre-flight covers read-only specifically, but any total failure now
+   keeps the marks.
+
+*Verified:* =bin/test= 168/168, four new tests — detection (including
+that two items on one heading are one prompt, and that an unresolvable
+=:ID:= contributes nothing), both answers to the prompt, marks +
+=:stale-confirmed= surviving a decline with the file unchanged, and
+marks surviving an all-failed run while a run that applied something
+still refreshes. Live-reloaded into the running Emacs and exercised
+against the real =TODO.org= buffer with =y-or-n-p= stubbed both ways:
+it named =TODO.org=, refused with the buffer still read-only on no, and
+cleared it on yes.
+
+*Not claimed:* the by-hand pass — a human actually pressing =x= on a
+read-only buffer and answering the live prompt. Everything above is
+batch plus a stubbed =emacsclient= call.
+
+*Known remaining gap, deliberately not fixed here.* A *partial* failure
+still refreshes, so marks and edited intervals on the items that failed
+are lost. Preserving those means re-attaching decisions to rebuilt
+items across a refresh (matching on =:ID:= + type + timestamps), and an
+edited interval has no counterpart in the queue to match against at
+all. Worth doing with
+[[id:d409390b-6624-4820-82bb-730d763962fd][d409390b]]'s interaction
+work rather than bolted onto this fix.
+
+*** TODO Decide how the stale check reads a chain of transitions in one batch :code:
+:PROPERTIES:
+:ID:       6b1e73c4-25da-4f0e-8a51-9c0d3f7ab214
+:CREATED:  [2026-08-11 Tue 13:24]
+:BLOCKER:  ids(feba67eb-35b3-48bd-a892-8ecd47ca52e0)
+:END:
+
+Raised by the user 2026-08-11, from the right observation: *every* state
+item in two consecutive real batches rendered =STALE=. That much is a
+pre-cutover artifact and needs no fix — =org_set_todo= still applies the
+change live *and* queues an event whose =from= is the state held before
+that change, so
+[[id:f9f61c04-150b-4ee7-96c9-582cf2bda95a][f9f61c04]]'s check compares
+=from= against a heading that has already moved to =to=. It cannot
+match. [[id:d409390b-6624-4820-82bb-730d763962fd][d409390b]] already
+records this as "pre-cutover every =todo= item is stale by
+construction."
+
+*The part that does not end at the cutover.* Post-cutover nothing moves
+the file until apply moves it. So a batch holding a chain on one heading
+(=TODO -> NEXT=, then =NEXT -> DOING=) records the same =from= on both
+events — whatever the unmoved file said. Apply the first and the file
+moves; the second then re-checks its =from= against a file that has
+moved *because of this very batch*, and is refused. Today's "everything
+is stale" returns as "every chain past the first step is stale."
+
+*Why that matters more than the noise itself.* A flag that fires on
+nearly everything trains the reader to confirm without reading — which
+is the exact reasoning f9f61c04 already used when it decided *not* to
+flag legacy =null=-=from= events. A guard that is always on is
+indistinguishable from no guard, except that it costs a keystroke each
+time.
+
+*Two candidate answers, neither chosen:*
+- Check a chained item against the batch's own *projected* state — what
+  the earlier marked items in this batch will have left behind — rather
+  than against the file. Keeps =from= meaning "reality at queue time",
+  which is what makes it authoritative.
+- Have the writer record =from= as the previous queued =to= for the same
+  =:ID:=, so the chain is self-consistent. Cheaper, but =from= then
+  means two different things depending on whether an earlier event
+  exists, and it can no longer disagree with reality — which is the
+  property that makes the check work at all.
+
+Decide it during
+[[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]], while the write
+path is already open, rather than discovering it in the first
+post-cutover review pass.
 
 ** TODO Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
