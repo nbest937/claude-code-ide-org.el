@@ -491,10 +491,17 @@ uncommitted changes"). Not merging them here; worth deciding during
 planning whether they should be one task, sequenced, or just
 cross-referenced as they are now.
 
-** MAYBE Revisit the PLANNING TODO-state's design and whether it's worth keeping :code:
+** MAYBE Revisit the TODO keyword progression, starting with whether PLANNING earns its keep :code:
 :PROPERTIES:
 :ID:       c954f650-b92f-4920-9967-ab6c44577b30
 :CREATED:  [2026-08-06 Thu 10:02]
+:END:
+:SESSIONS:
+- Resumed [2026-08-10 Mon 20:48]
+- Paused [2026-08-10 Mon 20:49]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-10 Mon 20:48]--[2026-08-10 Mon 20:49] =>  0:01
 :END:
 
 Raised in conversation 2026-08-06, after a day of live use: =PLANNING=
@@ -519,6 +526,99 @@ bulk-planned =NEXT=/=TODO= items land — this batch (=087e73e9=,
 =PLANNING=) — so the assessment is grounded in real experience using
 the mechanism across implemented work, not just today's spot
 impressions.
+
+
+-----
+
+*Scope widened 2026-08-10, and the heading retitled to match.* What
+started as "is =PLANNING= pulling its weight" became a review of the
+whole progression, after checking the sequence against org+GTD practice
+on the web. The original question is a sub-case and is answered in part
+below.
+
+*Census of TODO.org the same day, which is the most useful input here:*
+
+: 23 MAYBE   14 TODO   14 DONE   2 NEXT   2 DOING   1 CANCELLED
+:  0 PLANNING   0 WAIT
+
+*What the tradition says — both findings cut against having =DOING=:*
+- The canonical org+GTD reference (Bernt Hansen, https://doc.norang.ca/org-mode.html)
+  runs =TODO(t) NEXT(n) | DONE(d!)= plus =WAITING(w@/!) HOLD(h@/!) |
+  CANCELLED(c@)=. No in-progress keyword at all: *clocking* signals what
+  is active, and he goes as far as switching tasks *to* =NEXT= on
+  clock-in. =NEXT= means "available to work on now."
+- GTD proper treats an in-progress state as a smell. A next action is
+  "the next physical, visible activity"; anything needing an
+  in-progress marker is usually a project wearing an action's clothes,
+  and the prescribed fix is decomposition, not another keyword.
+
+*=DOING= survives that critique here, for the reason it usually fails
+it.* The standard substitute — let the clock say what is active — is
+exactly the affordance
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] removes. CLAUDE.md
+already commits to clock accuracy being "only ever as fresh as the last
+time a human ran the review pass, not live." A reviewed historical
+record cannot answer "what is being worked on right now," so the
+keyword has to. Worth recording explicitly, because a future reader
+citing Bernt or GTD would have a well-supported argument for deleting
+=DOING= and would be wrong *for this system specifically*.
+
+The user's own narrowing helps too: =DOING= means actively working on
+implementation and testing — a named phase, not an open-ended
+in-progress limbo, which is what GTD actually objects to.
+
+*Proposal 1, the substantive one: add =VERIFY= between =DOING= and
+=DONE=.* Headings here repeatedly sit in =DOING= carrying "*Still
+owed:* an interactive by-hand pass" — implementation and tests
+complete, verification outstanding. Under the definition above that is
+not =DOING=, and under this project's "verified, not just implemented"
+bar it is certainly not =DONE=. The state is *structural*, not
+incidental: verification is human-triggered by hard constraint (Claude
+cannot run the interactive apply), so every such task passes through a
+mandatory handoff that currently has no name and lives only as prose.
+org's own manual uses exactly this slot in its example sequence,
+=#+TODO: TODO FEEDBACK VERIFY | DONE CANCELED= (org-manual.org:4210).
+
+The payoff is a real queue: =VERIFY= becomes "what is waiting on *me*
+to confirm," which is a next-action list in the GTD sense and does not
+exist today in any queryable form.
+
+: #+TODO: TODO NEXT PLANNING DOING VERIFY WAIT MAYBE | DONE CANCELLED
+
+Clock rule if adopted: =DOING= → =VERIFY= closes the clock, since Claude
+has stopped; the human's verification time clocks against the same
+heading, which the convention recorded at
+[[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]] already permits.
+
+*Proposal 2: get =MAYBE= out of the default agenda without changing the
+keyword.* At 23 of 56 headings it is the largest category in the file --
+a perfectly healthy Someday/Maybe list, except that sitting before the
+=|= renders it actionable. GTD is emphatic that Someday/Maybe lives
+outside the active system and is reviewed periodically. Bernt's answer
+is to keep such states active but filter them from default agenda views;
+moving =MAYBE= after the =|= would be semantically wrong, since these
+are not finished.
+
+*Proposal 3: narrow =WAIT= to "waiting on a person."* It has never
+been used once. GTD separates *Waiting For* (delegated, needs follow-up)
+from *blocked* (dependency), and dependencies here are already expressed
+structurally via =:BLOCKER:=. The current gloss, "blocked or waiting on
+someone," overlaps that -- and a keyword nobody reaches for is usually
+one whose meaning is unclear rather than one whose situation never
+arises.
+
+*Bearing on this heading's original question.* The tradition supports a
+planning state on its merits: planning is first-class GTD activity (the
+Natural Planning Model), and =PLANNING= is on that basis *better*
+grounded than =DOING=. But that answers only half the complaint recorded
+above. Whether the *machinery* earns its complexity -- the
+=ExitPlanMode=-driven auto-promotion, the single global
+=--planning-owner-session-id=, the hand-reversions logged above -- is a
+separate question the tradition says nothing about, and it stays open.
+Do not read "GTD likes planning states" as "keep the hook."
+
+Still =MAYBE=, still deferred on the original terms. Nothing above is
+adopted; the sequence is unchanged pending a decision.
 
 * Clock lifecycle & visibility
 
@@ -2700,7 +2800,7 @@ the same time, rather than leaving it to drift.
 - Resumed [2026-08-10 Mon 19:07]
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-10 Mon 19:07]
+CLOCK: [2026-08-10 Mon 19:07]--[2026-08-10 Mon 20:48] =>  1:41
 :END:
 
 Once implemented: rewrite CLAUDE.md's "State transition rules",
