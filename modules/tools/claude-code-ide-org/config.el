@@ -1230,6 +1230,151 @@ to the MCP layer."
               (if matches (mapconcat #'identity matches "\n") "No matches.")))))
     (error (format "Error: %s" (error-message-string err)))))
 
+;;; Outline index ------------------------------------------------------------
+;;
+;; A compact structural view: one line per heading, carrying level, TODO
+;; keyword, title, :ID:, tags, and whether a :BLOCKER: is set.  Measured
+;; on TODO.org 2026-08-11, this turns 280,079 bytes into 7,384 — enough
+;; of a reduction that "check what this project already knows" becomes
+;; affordable mid-task, which is the whole point (see TODO.org
+;; :ID: 9f3c35c7-0229-4cd6-908b-779267ec9b97 for the three occasions in
+;; one session where it was skipped because reading the file was not).
+;;
+;; Complementary to org_query rather than overlapping: org_query answers
+;; "which headings match this predicate" and flattens; this answers "what
+;; is in here and how is it arranged" and preserves hierarchy.
+;;
+;; :ID:s are emitted in full, not truncated.  Every other tool here takes
+;; a full :ID: argument, so a shortened index would force a second lookup
+;; on every use.
+
+(defconst claude-code-ide-org--outline-finished-keywords
+  '("DONE" "CANCELLED")
+  "Keywords `claude-code-ide-org-outline' drops for ACTIVE-ONLY.
+Spelled out rather than read from `org-done-keywords', which is
+buffer-local and therefore nil outside a visited org buffer — the
+filter would silently pass everything.")
+
+(defun claude-code-ide-org--outline-line (active-only max-depth)
+  "Format the heading at point as one index line, or nil to omit it.
+Omits finished headings when ACTIVE-ONLY, and anything deeper than
+MAX-DEPTH when that is non-nil.  Levels are absolute, so a MAX-DEPTH
+of 2 means the same thing whether the scope is a whole file or one
+subtree."
+  (let ((level (org-current-level))
+        (keyword (org-get-todo-state)))
+    (unless (or (and max-depth (> level max-depth))
+                (and active-only
+                     (member keyword
+                             claude-code-ide-org--outline-finished-keywords)))
+      (let ((id (org-entry-get nil "ID"))
+            (tags (org-get-tags nil t)))
+        ;; Stripped once, over the assembled line, rather than per
+        ;; component.  Every one of these reads from the buffer and so
+        ;; carries its text properties -- `org-get-heading' most visibly,
+        ;; but `org-get-todo-state', `org-get-tags' and `org-entry-get'
+        ;; all do it too, and concat propagates from any of them.
+        ;; Stripping only the heading looked correct and left the result
+        ;; propertized anyway; the test caught that, but only after being
+        ;; rewritten to propertize the fixture by hand, since batch Emacs
+        ;; runs no font-lock and a scratch org file is clean either way.
+        (substring-no-properties
+         (concat (make-string (* 2 (1- level)) ?\s)
+                (and keyword (concat keyword " "))
+                ;; All four flags on: no TODO keyword (added above, so it
+                ;; is not doubled), no priority cookie, no tags, no
+                ;; comment marker.  Notably this also leaves the title
+                ;; unescaped -- org-refile-get-targets renders "!/@" as
+                ;; "!\\/@" in its paths, which is fine for a completion
+                ;; table and wrong for something meant to be read.
+                ;;
+                ;; Stripped of text properties: `org-get-heading' returns
+                ;; propertized text (fontification, org-category and
+                ;; friends), and concat propagates that to the whole
+                ;; result.  Caught by eyeballing a live call, whose output
+                ;; came back as a `#("..." 0 11 (...))' literal rather
+                ;; than a plain string -- nothing an MCP client should be
+                ;; handed, and invisible to a `string-match-p' test.
+                (org-get-heading t t t t)
+                (and id (format "  {%s}" id))
+                (and tags (format "  :%s:" (string-join tags ":")))
+                (and (org-entry-get nil "BLOCKER") "  [blocked]")))))))
+
+(defun claude-code-ide-org--outline-map (active-only max-depth scope)
+  "Collect index lines over SCOPE, an `org-map-entries' scope value."
+  (let (lines)
+    (org-map-entries
+     (lambda ()
+       (let ((line (claude-code-ide-org--outline-line active-only max-depth)))
+         (when line (push line lines))))
+     nil scope)
+    (nreverse lines)))
+
+(defun claude-code-ide-org-outline (&optional scope max-depth active-only)
+  "Return a compact one-line-per-heading index.
+
+SCOPE is an :ID: to index just that subtree, a file name to index one
+file, or empty for every file in `claude-code-ide-org--tracked-files'.
+MAX-DEPTH caps the outline level reported.  ACTIVE-ONLY drops DONE and
+CANCELLED headings.  All three arrive as strings from the MCP layer and
+are parsed leniently; anything unusable falls back to the permissive
+default rather than erroring, since a too-large index is recoverable and
+a failed call is not.
+
+Read-only: verified that `org-map-entries' over an explicit file list
+neither moves point nor marks the buffer modified, so this is safe to
+run against files the user has open.  Never signals an error to the MCP
+layer."
+  (condition-case err
+      (let* ((scope (and (stringp scope)
+                         (not (string-empty-p (string-trim scope)))
+                         (string-trim scope)))
+             (depth (let ((n (and (stringp max-depth)
+                                  (string-to-number max-depth))))
+                      ;; string-to-number yields 0 for junk, which reads
+                      ;; the same as "no limit" -- correct either way.
+                      (and n (> n 0) n)))
+             (active (and active-only
+                          (member (downcase (format "%s" active-only))
+                                  '("t" "true" "yes" "1"))
+                          t)))
+        (cond
+         ;; An :ID: that resolves wins over a file interpretation --
+         ;; an :ID: can never also be a readable file name.
+         ((and scope (org-id-find scope))
+          (let ((lines (claude-code-ide-org--at-id
+                        scope
+                        (lambda ()
+                          (claude-code-ide-org--outline-map
+                           active depth 'tree)))))
+            (if (stringp lines) lines      ; --at-id's "Error: ..." string
+              (if lines (mapconcat #'identity lines "\n")
+                "No headings in scope."))))
+         (t
+          (let* ((files (if scope
+                            (list (expand-file-name scope))
+                          (claude-code-ide-org--tracked-files)))
+                 (multiple (cdr files))
+                 chunks)
+            (dolist (file files)
+              (unless (file-readable-p file)
+                (error "no readable file at %s" file))
+              (let ((lines (claude-code-ide-org--outline-map
+                            active depth (list file))))
+                (when lines
+                  (push (if multiple
+                            ;; Only label files when there is more than
+                            ;; one, so the common single-file call stays
+                            ;; free of a header that says nothing.
+                            (concat (file-name-nondirectory file) "\n"
+                                    (mapconcat #'identity lines "\n"))
+                          (mapconcat #'identity lines "\n"))
+                        chunks))))
+            (if chunks
+                (mapconcat #'identity (nreverse chunks) "\n")
+              "No headings found.")))))
+    (error (format "Error: %s" (error-message-string err)))))
+
 ;;; Structural manipulation -------------------------------------------------
 
 (defconst claude-code-ide-org--sort-type-codes
@@ -2853,6 +2998,32 @@ correctly inside a real interactive command."
    :args '((:name "query"
             :type string
             :description "org-ql plain-string query, e.g. \"todo:WAIT\", \"tags:research,code\", \"priority:A\", \"!todo:DONE\".")))
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-outline
+   :name "org_outline"
+   :description (concat
+                 "Compact structural index of tracked org files: one line per "
+                 "heading with its level (by indent), TODO keyword, title, "
+                 ":ID:, tags, and [blocked] when a :BLOCKER: is set. Read-only. "
+                 "Use this before creating a heading, to see what already "
+                 "exists and where it belongs, and instead of reading a whole "
+                 "org file to find something — the index is roughly 40x "
+                 "smaller. Complements org_query: that one filters by "
+                 "predicate and returns a flat list, this one shows structure. "
+                 "IDs are full and can be passed straight to the other tools.")
+   :args '((:name "scope"
+            :type string
+            :optional t
+            :description "An :ID: to index only that subtree, or a file name for one file. Omit for every tracked file.")
+           (:name "max_depth"
+            :type string
+            :optional t
+            :description "Cap the outline level reported, e.g. \"2\". Omit for no limit.")
+           (:name "active_only"
+            :type string
+            :optional t
+            :description "\"true\" to omit DONE and CANCELLED headings. Omit to include everything.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-sort-children

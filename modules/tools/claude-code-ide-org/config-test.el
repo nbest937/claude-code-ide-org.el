@@ -1542,6 +1542,138 @@ to an explicit file list, so this is the only test that exercises the
            (result (claude-code-ide-org-query "todo:TODO")))
       (should (string-match-p "Test heading" result)))))
 
+;;; claude-code-ide-org-outline ----------------------------------------------
+
+(ert-deftest claude-code-ide-org-test-outline-reports-keyword-and-title ()
+  (claude-code-ide-org-test--with-heading
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-outline)))
+      (should (string-match-p "TODO Test heading" result)))))
+
+(ert-deftest claude-code-ide-org-test-outline-emits-full-id ()
+  "IDs must not be truncated: every other tool takes a full :ID:, so a
+shortened index would force a second lookup on every use."
+  (claude-code-ide-org-test--with-heading
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-outline)))
+      (should (string-match-p (regexp-quote (format "{%s}" id)) result)))))
+
+(ert-deftest claude-code-ide-org-test-outline-indents-by-level ()
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "** TODO Child heading\n")
+    (save-buffer)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-outline)))
+      (should (string-match-p "^TODO Test heading" result))
+      (should (string-match-p "^  TODO Child heading" result)))))
+
+(ert-deftest claude-code-ide-org-test-outline-active-only-drops-finished ()
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* DONE Finished heading\n* CANCELLED Abandoned heading\n")
+    (save-buffer)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (all (claude-code-ide-org-outline nil nil nil))
+           (active (claude-code-ide-org-outline nil nil "true")))
+      (should (string-match-p "Finished heading" all))
+      (should (string-match-p "Abandoned heading" all))
+      (should-not (string-match-p "Finished heading" active))
+      (should-not (string-match-p "Abandoned heading" active))
+      (should (string-match-p "Test heading" active)))))
+
+(ert-deftest claude-code-ide-org-test-outline-max-depth-caps-level ()
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "** TODO Child heading\n*** TODO Grandchild heading\n")
+    (save-buffer)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-outline nil "2" nil)))
+      (should (string-match-p "Test heading" result))
+      (should (string-match-p "Child heading" result))
+      (should-not (string-match-p "Grandchild heading" result)))))
+
+(ert-deftest claude-code-ide-org-test-outline-scope-by-id-limits-to-subtree ()
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "** TODO Child heading\n* TODO Unrelated sibling\n")
+    (save-buffer)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-outline id)))
+      (should (string-match-p "Test heading" result))
+      (should (string-match-p "Child heading" result))
+      (should-not (string-match-p "Unrelated sibling" result)))))
+
+(ert-deftest claude-code-ide-org-test-outline-marks-blocked-headings ()
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* TODO Blocked heading\n:PROPERTIES:\n:BLOCKER:  ids(abc-123)\n:END:\n")
+    (save-buffer)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-outline)))
+      (should (string-match-p "Blocked heading.*\\[blocked\\]" result))
+      (should-not (string-match-p "Test heading.*\\[blocked\\]" result)))))
+
+(ert-deftest claude-code-ide-org-test-outline-includes-tags ()
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* TODO Tagged heading                                          :code:review:\n")
+    (save-buffer)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-outline)))
+      (should (string-match-p "Tagged heading  :code:review:" result)))))
+
+(ert-deftest claude-code-ide-org-test-outline-unreadable-file-returns-error-string ()
+  "Never signal to the MCP layer: a bad scope comes back as a string."
+  (claude-code-ide-org-test--with-heading
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-outline "/nonexistent/nope.org")))
+      (should (string-prefix-p "Error:" result)))))
+
+(ert-deftest claude-code-ide-org-test-outline-does-not-modify-buffer ()
+  "The whole tool is read-only; org-map-entries must leave the buffer
+untouched, since it runs against files the user may have open."
+  (claude-code-ide-org-test--with-heading
+    (let* ((claude-code-ide-org-query-files (list file)))
+      (save-buffer)
+      (set-buffer-modified-p nil)
+      (claude-code-ide-org-outline)
+      (should-not (buffer-modified-p (get-file-buffer file))))))
+
+(ert-deftest claude-code-ide-org-test-outline-returns-plain-string ()
+  "`org-get-heading' returns text carrying the buffer's properties, and
+concat propagates them to the whole result, so the index would reach the
+MCP layer as a propertized string.
+
+The buffer text is deliberately propertized first.  Under `emacs --batch
+-Q' no font-lock runs, so a scratch org file yields clean strings and the
+assertion below passes whether or not the code strips properties -- an
+inert test that looks like a passing one.  That is the same
+fixture-versus-production gap that produced the `#+TODO:'-marker scare
+(TODO.org :ID: 720b2dcf-6af1-45f3-96a7-aa841e5651e1) and the
+content-block escape (:ID: 5e2a1c04-7b3f-4d21-9c88-2f6e0a91b7d3);
+propertizing by hand is what makes this one measure anything.  Confirmed
+to fail against the unstripped version."
+  (claude-code-ide-org-test--with-heading
+    (let ((claude-code-ide-org-query-files (list file)))
+      (with-current-buffer (get-file-buffer file)
+        (put-text-property (point-min) (point-max) 'font-lock-face 'bold))
+      (let ((result (claude-code-ide-org-outline)))
+        (should (equal result (substring-no-properties result)))
+        (should-not (text-properties-at 0 result))))))
+
+(ert-deftest claude-code-ide-org-test-outline-junk-max-depth-is-no-limit ()
+  "string-to-number yields 0 for junk, which must read as \"no limit\"
+rather than filtering everything away."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "** TODO Child heading\n")
+    (save-buffer)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-outline nil "not-a-number" nil)))
+      (should (string-match-p "Test heading" result))
+      (should (string-match-p "Child heading" result)))))
+
 ;;; claude-code-ide-org-sort-children -----------------------------------
 
 (ert-deftest claude-code-ide-org-test-sort-children-alpha ()

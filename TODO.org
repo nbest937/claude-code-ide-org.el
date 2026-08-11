@@ -661,6 +661,17 @@ Worth reading with [[id:7fa68d5c-b6c0-43df-85c6-764b1d56511f][7fa68d5c]], which
 records the larger reason this matters less than it looks: almost
 nothing in this project is captured through this tool.
 
+*Folded into
+[[id:47c027d2-7b5a-4de0-baf4-f992f3b814bd][47c027d2]], 2026-08-11.*
+=CANCELLED= as a *separate* task, not abandoned: the missing =:CREATED:=
+is real and still gets fixed, but it turned out to be one of three
+defects in the same four-line template string, alongside the hardcoded
+=TODO= keyword and the file-only capture target. Treating them
+separately meant editing that string three times. This heading stays in
+place rather than being deleted because five other headings link to it;
+the analysis above is still the reference for *why* =:CREATED:= is owed
+and how to verify it, and =47c027d2= carries the work.
+
 ** TODO Fall back to the queue when org_capture cannot reach Emacs :code:
 :PROPERTIES:
 :ID:       7fa68d5c-b6c0-43df-85c6-764b1d56511f
@@ -722,12 +733,155 @@ nothing real. Revisit if the tool becomes the normal creation path.
 than needing a mechanism of its own — apply would write the creation
 entry exactly as it writes a state transition.
 
-** TODO Capture bare headings; apply the TODO keyword at ingestion :code:
+** TODO Add org_outline, a compact structural index of an org file :code:
+:PROPERTIES:
+:ID:       9f3c35c7-0229-4cd6-908b-779267ec9b97
+:CREATED:  [2026-08-11 Tue 16:58]
+:END:
+
+A read-only MCP tool returning one line per heading — level, TODO
+keyword, title, =:ID:=, tags, and whether a =:BLOCKER:= is set — as an
+index for answering "what already exists here" and "where does this
+belong" without reading the file.
+
+*Measured on TODO.org, 2026-08-11:* 280,079 bytes and 82 headings (7 at
+level 1, 45 at level 2, 30 at level 3; 70 carry an =:ID:=) reduce to
+7,384 bytes of index, or 5,394 with =DONE=/=CANCELLED= filtered out. A
+38x reduction, and the prototype that produced it is most of the
+implementation.
+
+: Skill logic
+:   DONE Enforce a single NEXT action per level of the task tree  {05da96ad}  :code:
+:   MAYBE Make org-blocker-hook actually consult :BLOCKER:  {087e73e9}  :code:
+:   TODO Fall back to the queue when org_capture cannot reach Emacs  {7fa68d5c}  :code:
+
+*The motivating case is not placement.* It is that three separate times
+on 2026-08-11 a session re-derived something this file already knew —
+[[id:cdcc065c-628d-4350-b1ba-fcf686e9c4c1][cdcc065c]],
+[[id:5e2a1c04-7b3f-4d21-9c88-2f6e0a91b7d3][5e2a1c04]] and
+[[id:d9132c57-9dcf-47e9-ba74-7f5a1ced3ae5][d9132c57]]'s content were each
+worked out from scratch and presented as new findings. The cause was not
+carelessness in any single instance: checking meant reading 280 KB to
+answer a one-line question, which is not viable mid-task, so it kept not
+happening. A 7 KB index makes "check what is already known" affordable
+enough to become routine, which is the only way that discipline actually
+holds.
+
+*Design.* Parameters: =scope= (a file, or a subtree =:ID:= to index just
+that branch), =max_depth=, and =active_only= to drop finished states.
+Implementation is =org-map-entries= over
+=claude-code-ide-org--tracked-files=, the same file list =org_query= and
+the recovery check already use. No new dependencies.
+
+*Complementary to =org_query=, not overlapping.* =org_query= answers
+"which headings match this predicate" and returns a flat list;
+=org_outline= answers "what is the shape of this file and what is in it"
+and preserves hierarchy. Neither subsumes the other — the flat list
+cannot tell you where a heading sits, and the tree cannot filter by
+arbitrary predicate.
+
+*Emit full =:ID:=s, not the 8-character prefixes the prototype shows.*
+The prototype truncates for readability, but every other tool in this
+project takes a full =:ID:= argument, so a truncated index would force a
+second lookup on every use and quietly defeat the point. The cost is
+about 2 KB more on this file, which is nothing against 280 KB.
+
+*Landmines to clear before implementing:*
+- =org-map-entries= with an explicit file list visits those files; make
+  sure it does not leave buffers modified or move point in a buffer the
+  user has open. This is a read-only tool and must behave like one.
+- Output size is unbounded in principle. This file is small, but the
+  tool should not be able to return something enormous — =max_depth= and
+  =active_only= are the controls, and a documented cap is worth
+  considering.
+- Heading titles can contain characters that make the output ambiguous
+  to skim. The prototype already showed org escaping =!/@= as =!\\/@= in
+  refile paths; check what =org-get-heading= returns versus what the
+  refile-target machinery returns, and pick one.
+
+*Related: [[id:47c027d2-7b5a-4de0-baf4-f992f3b814bd][47c027d2]] is
+blocked on this*, because correct placement at capture time is only
+cheap once the index exists.
+
+*Also worth knowing, from the same investigation:*
+=org-refile-get-targets= already returns 168 addressable destinations for
+this file as =FILE/Outline/Path= strings, *including the level-1
+categories* — which carry no =:ID:= by convention and so cannot be
+addressed any other way. =org-refile-targets= is already
+=((nil :maxlevel . 3) (org-agenda-files :maxlevel . 3))=, and level 3 is
+this file's full depth. That is an existing placement vocabulary, used by
+=org_refile= today, and it is what =47c027d2='s target parameter should
+accept rather than inventing a category concept.
+
+*Implemented 2026-08-11.* =claude-code-ide-org-outline=, registered as
+=org_outline=, with =scope= (an =:ID:= for one subtree, a file name for
+one file, or omitted for every tracked file), =max_depth=, and
+=active_only=. All three arrive as strings and are parsed leniently:
+unusable input falls back to the permissive default rather than erroring,
+since an over-large index is recoverable and a failed call is not.
+
+*Shipped sizes, which differ from the estimate above.* Full =:ID:=s cost
+about 2 KB more than the truncated prototype: 9,451 bytes for the whole
+file, 6,900 with =active_only=. Still a 30x reduction against 280 KB, and
+worth it — a truncated index would force a second lookup on every use.
+
+*All three landmines cleared before writing code.* =org-map-entries= over
+an explicit file list neither moves point nor marks the buffer modified
+(measured against a live open TODO.org: point 124975 before and after).
+Output size is bounded by the two parameters. And =org-get-heading t t t
+t= returns titles unescaped, unlike =org-refile-get-targets=, which
+renders =!/@= as =!\\/@= — fine for a completion table, wrong for
+something meant to be read.
+
+*A fourth landmine surfaced only in live use, and is the useful part of
+this entry.* The first live call came back as a =#("..." 0 11 (...))=
+literal: every accessor here reads from the buffer and carries its text
+properties, and =concat= propagates them, so the index would have reached
+the MCP layer propertized. Three things went wrong in sequence and each
+is worth keeping:
+
+1. *The unit tests could not see it.* Under =emacs --batch -Q= no
+   font-lock runs, so a scratch org file yields clean strings and the
+   assertion passed whether or not the code stripped anything. An inert
+   test that looks like a passing one — the third instance in one day of
+   a fixture differing from production in exactly the dimension under
+   test, after
+   [[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]'s =#+TODO:=
+   markers and
+   [[id:5e2a1c04-7b3f-4d21-9c88-2f6e0a91b7d3][5e2a1c04]]'s content-block
+   payloads. The fix was to propertize the fixture by hand.
+2. *The obvious fix was wrong.* Stripping =org-get-heading= alone left
+   the result propertized anyway, because =org-get-todo-state=,
+   =org-get-tags= and =org-entry-get= all do it too. Caught only because
+   the corrected test then failed against the supposedly-fixed code.
+3. *The strip belongs at assembly*, over the whole line, not per
+   component — one call that cannot be defeated by adding a fourth
+   accessor later.
+
+*Verified:* =bin/test= 157/157 (145 pre-existing plus 12 new), the
+plain-string test confirmed to fail with the strip removed and pass with
+it, and a live call against the real TODO.org returning a plain string.
+
+** TODO Rework org_capture: bare heading, :CREATED:, and a placement target :code:
 :PROPERTIES:
 :ID:       47c027d2-7b5a-4de0-baf4-f992f3b814bd
 :CREATED:  [2026-08-11 Tue 15:52]
-:BLOCKER:  ids(90a5a0cf-a81d-45dc-a453-0bfe61e3ef93)
+:BLOCKER:  ids(9f3c35c7-0229-4cd6-908b-779267ec9b97)
 :END:
+
+*Consolidated 2026-08-11, and the heading retitled to match.* This was
+"capture bare headings; apply the keyword at ingestion." Two other
+headings turned out to describe edits to the same four lines of the same
+function, so they are folded in here:
+[[id:cdcc065c-628d-4350-b1ba-fcf686e9c4c1][cdcc065c]] (=org_capture= omits
+=:CREATED:=), now =CANCELLED= as a separate task, and the unset
+=claude-code-ide-org-capture-file=, whose heading is deleted since
+nothing linked to it. The whole of =org_capture= is one template string:
+
+: (format "* TODO %%i\n:PROPERTIES:\n:ID:       %s\n:END:\n" new-id)
+
+Three defects, one edit — treating them as three tasks meant touching
+that string three times.
 
 =org_capture= currently writes =* TODO %i= — the keyword is hardcoded in
 the template, not a parameter. That asserts a state live while every
@@ -748,9 +902,10 @@ refiled at once; only the *keyword* defers.
 *Verified the mechanism, 2026-08-11*, against the real =#+TODO:= header:
 a bare heading taken to =NEXT= or =DOING= produces a native
 =- State "NEXT" from [ts]= entry. Taken to =TODO= it produced nothing,
-because =TODO= was the one keyword carrying no =!= marker — hence the
-=:BLOCKER:=, since resolved by
-[[id:90a5a0cf-a81d-45dc-a453-0bfe61e3ef93][90a5a0cf]].
+because =TODO= was the one keyword carrying no =!= marker. That was a
+hard prerequisite and is now resolved by
+[[id:90a5a0cf-a81d-45dc-a453-0bfe61e3ef93][90a5a0cf]]; the remaining
+=:BLOCKER:= is the index tool, for placement rather than logging.
 
 It also makes =d9132c57='s duplicate-=:CREATED:=-into-=:LOGBOOK:= vs.
 synthesise-at-read-time question moot for anything captured after the
@@ -759,11 +914,50 @@ owed for the 56 existing headings.
 
 *Accepted cost, confirmed with the user:* between capture and ingestion
 the heading matches no =todo:= query and appears in no agenda. Judged
-acceptable and "even a good cue to ingest and apply."
+acceptable and "even a good cue to ingest and apply." Agenda visibility
+was explicitly ruled out as a concern.
 
-Subsumes the hardcoded-keyword problem;
-[[id:cdcc065c-628d-4350-b1ba-fcf686e9c4c1][cdcc065c]] (the missing
-=:CREATED:=) still stands, and a bare heading needs it more, not less.
+*Second folded defect: no =:CREATED:=.* The template writes only =:ID:=,
+against the project's own rule that every heading creation stamps
+=:CREATED:=. A bare heading needs it *more*, not less — with no keyword
+and no creation entry until ingestion, the property is the only record
+that the heading exists and when.
+
+*Third folded defect: capture can only target a file, not a position.*
+=(file <file-spec>)= is the least specific target org offers, so
+everything lands at top level in whatever file
+=claude-code-ide-org-capture-file= names — and that defcustom is =nil=,
+so it currently falls through to =org-default-notes-file=,
+=~/org/notes.org=, outside the repo entirely. Setting the defcustom alone
+would just aim the imprecision at a better file.
+
+All three defects are latent rather than damaging, for one reason:
+=~/org/notes.org= contains *zero* captured headings. The tool has never
+been used in anger, which is why nothing has surfaced — and why fixing
+it is worth doing before something starts depending on it.
+
+*Placement design, settled with the user 2026-08-11.* An optional target
+accepting either an =:ID:= or a refile-style outline path
+(=TODO.org/Skill logic=), resolved through the vocabulary
+=org-refile-get-targets= already produces — not a new category concept,
+and not an ad-hoc exception to "IDs, never titles." The level-1
+categories carry no =:ID:= by deliberate convention, so an outline path
+is the *only* way to address them; that they are few, stable,
+human-curated and never refiled is what makes titles safe here
+specifically. Omitting the target keeps today's append-at-top-level
+behaviour, which is the honest fallback for "placement unknown" and
+removes any need for an inbox heading.
+
+*Scope note: capture is a minority path in this project.* Nine headings
+were created on 2026-08-11 and every one was placed correctly by text
+editing; =org_capture= was not used once. Its pitch — quick-add without
+reading the file — does not survive a house style where headings carry
+bodies, cross-links and =:BLOCKER:=s. It still earns its keep for
+[[id:7fa68d5c-b6c0-43df-85c6-764b1d56511f][7fa68d5c]]'s no-Emacs
+fallback, for a passing mention in a session about something else, and
+for immediate =:ID:= registration. Build the smallest thing that makes
+it correct, not a parameter surface sized as though it were the primary
+way headings get made.
 
 ** DONE Add the (t!) logging marker to TODO in the #+TODO: line :code:
 :PROPERTIES:
@@ -794,30 +988,6 @@ no error was raised.
 *Done 2026-08-11:* =TODO= → =TODO(t!)= on line 1. One character. The
 blast radius is every future =TODO= transition gaining a =:LOGBOOK:=
 line, which is the point.
-
-** TODO claude-code-ide-org-capture-file is unset, so captures land outside the project :code:
-:PROPERTIES:
-:ID:       53a1376e-7718-4d5f-9bf5-2d75db61b863
-:CREATED:  [2026-08-11 Tue 15:52]
-:END:
-
-The defcustom exists precisely to target this project's files and is
-=nil=; nothing in =~/.config/doom/config.el= sets it. =org_capture=
-therefore falls through to =org-default-notes-file=, which is org's own
-default =~/org/notes.org= — outside the repo, not in
-=org-agenda-files=, and not scanned by any of this project's machinery.
-
-Latent rather than damaging so far: =notes.org= contains zero captured
-headings, so the tool has effectively never been used in anger. That is
-also why none of the other =org_capture= defects have surfaced.
-
-Makes [[id:cdcc065c-628d-4350-b1ba-fcf686e9c4c1][cdcc065c]] worse than
-it currently states — those headings would not merely lack =:CREATED:=,
-they would sit in a file the proposed backfill never reads.
-
-Decide the target deliberately rather than just setting it: TODO.org
-top-level is reserved for categories, so a capture landing there as a
-bare =**= child needs a home chosen on purpose.
 
 ** TODO Check for a modified Emacs buffer before text-editing a tracked org file :code:
 :PROPERTIES:
