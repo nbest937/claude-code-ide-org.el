@@ -4142,3 +4142,37 @@ So the wrapper fix above should cover
 failed attempt marked nothing applied and the retry was clean -- no
 double-application, no half-applied batch. Whatever the fix, do not
 regress that.
+** TODO Link or retire the four plans no heading references :code:
+:PROPERTIES:
+:ID:       cce72644-7d5e-4def-a165-0a3b815f482b
+:CREATED:  [2026-08-11 Tue 11:21]
+:END:
+
+Surfaced 2026-08-11 by =bin/sync-plans=, which archives a plan only when
+some heading in TODO.org or DONE.org links it — so org membership is the
+rule, and a plan nothing links stays outside version control and gets
+reported rather than silently swept in. Four are in that state, and all
+four are this project's work:
+
+- =parsed-gliding-corbato.md= — *byte-identical to* =review-and-cutover.md=,
+  written twenty-one minutes earlier on 2026-08-07. An orphan left behind
+  when the auto-generated slug was replaced by a meaningful name. Almost
+  certainly just delete it; confirm nothing links it first.
+- =cheerful-whistling-sketch.md= — "Fix org-agenda-files resolving to
+  nothing (agenda + org_query/org_clock_report)".
+- =send-each-mcp-feature-zesty-bunny.md= — "Parallelize the 10 pending
+  MCP-tool tasks across worktrees".
+- =warp-mcp-proxy-emacs.md= — the Warp proxy investigation, whose outcome
+  CLAUDE.md already describes; its heading is archived in DONE.org
+  (=6a6d5b4e=) but carries no Plan link.
+
+For the three real ones the fix is a Plan link on the owning heading,
+per CLAUDE.md's rule that a plan file's existence and its link are
+supposed to arrive together. Their absence is evidence the rule was
+added after some of this work, not that it was ignored.
+
+*Worth doing before the next plan revision,* because the archive only
+covers what is linked: an unlinked plan is the one case where a revision
+still overwrites history with no way back — the exact gap the archive
+was built to close.
+
