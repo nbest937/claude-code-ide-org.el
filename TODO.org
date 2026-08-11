@@ -1715,14 +1715,14 @@ from what shipped in four places:
   [[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]]; the conclusion
   still holds but the reason cited for it, and the =config.el:900/991=
   line references, do not.
-*** DOING Rework the MCP tool / hook write paths to append-only :code:
+*** NEXT Rework the MCP tool / hook write paths to append-only :code:
 :PROPERTIES:
 :ID:       feba67eb-35b3-48bd-a892-8ecd47ca52e0
 :CREATED:  [2026-08-06 Thu 10:47]
 :BLOCKER:  ids(720b2dcf-6af1-45f3-96a7-aa841e5651e1)
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-11 Tue 12:14]
+CLOCK: [2026-08-11 Tue 12:14]--[2026-08-11 Tue 12:26] =>  0:12
 :END:
 
 [[file:~/.claude/plans/review-and-cutover.md][Plan]]
