@@ -720,6 +720,11 @@ session created this heading?" structurally rather than from prose in
 the body. Rejected for now on the caveat above: it would record almost
 nothing real. Revisit if the tool becomes the normal creation path.
 
+
+*Also the timeline origin:* recording creation as a =:LOGBOOK:= entry
+([[id:d9132c57-9dcf-47e9-ba74-7f5a1ced3ae5][d9132c57]]) can ride this same event rather
+than needing a mechanism of its own — apply would write the creation
+entry exactly as it writes a state transition.
 * Clock lifecycle & visibility
 
 Everything here is specifically about the clock subsystem's
@@ -3364,6 +3369,94 @@ references before a prune, since nothing does today.
 
 Broader than clocking — visibility into what every tool call
 actually did, both after the fact and at the start of a session.
+
+** TODO Make task lifecycle answerable from one timeline, starting at creation :code:
+:PROPERTIES:
+:ID:       d9132c57-9dcf-47e9-ba74-7f5a1ced3ae5
+:CREATED:  [2026-08-11 Tue 10:32]
+:END:
+
+Prompted 2026-08-11 by a concrete reporting question — "how long did it
+take from capture time to the PLANNING phase, for each of these tasks?"
+— which is the first properly articulated demand on this project's
+second stated goal, trustworthy tracking of where attention actually
+went. It cannot be answered today, and the reason is not the one it
+looks like.
+
+*Measured 2026-08-11:*
+
+: TODO.org  headings carrying :CREATED:   56
+: TODO.org  "- State ..." lines            7
+: DONE.org  "- State ..." lines            0
+
+All seven come from the two hooks that write their note explicitly
+(=--trigger-auto-promote-sole-todo=, =--promote-planning-to-doing=). Not
+one came from =org_set_todo=, which binds =org-inhibit-logging= to =t=
+unconditionally for every state. So the transition history barely
+exists, and in DONE.org — where post-hoc analysis would actually look —
+it does not exist at all. That zero is *not* the archiver stripping
+drawers: =org-archive-subtree= moves the whole subtree intact. Nothing
+was ever written.
+
+The example question is the worst case of this. =PLANNING= is transient
+— auto-promoted to =DOING= the instant a plan is approved — and the
+same census found *zero* headings sitting in it. Current state can
+therefore never answer "when did this reach PLANNING"; only a
+transition log can.
+
+*So the blocker is the missing log, not =:CREATED:='s location,* and
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] already fixes it:
+apply runs inside a genuinely interactive command, which is what lets
+org's native logging fire instead of being suppressed. This heading is
+the remaining half — making the timeline start at the right place — and
+is close to worthless before the cutover, since there would be a
+creation line and then silence.
+
+*Proposal: duplicate =:CREATED:= into =:LOGBOOK:= as a creation entry.
+Do not move it.* As a property it is cheaply queryable — org-ql filters
+and sorts on properties directly — and drawer text is not. Moving it
+trades an easy query for a parse. Duplicating buys one timeline and one
+parser: analysis becomes "read the entries in order" rather than "read
+a property, read a drawer, reconcile two timestamp conventions." It also
+gives [[id:af7d3687-6d1e-4480-a9e2-df772785713f][af7d3687]]'s single
+chronological drawer somewhere to begin.
+
+*org already has the shape, so nothing needs inventing.* With no
+previous state org renders the field as an empty string — =org.el= line
+11092, =(or org-log-note-previous-state "")= — producing a native
+=- State "TODO" from "" [ts]=. Existing parsers, and org-ql, handle it
+unmodified.
+
+*The alternative, which may well be better and is not yet weighed:*
+synthesise the creation entry *at read time*, in whatever reporting
+function consumes this, from the =:CREATED:= property that already
+exists. Nothing in any file changes, there is no duplication to diverge,
+and no migration. The cost is that every consumer must know to do it,
+where writing it once puts it in the record for anything that reads the
+drawer — including a human. Decide this before writing anything.
+
+*If the write-it-down option wins, two consequences:*
+- *Backfill.* 56 headings have =:CREATED:= and no creation entry. A
+  one-time pass can synthesise them from the property — mechanical and
+  safe, with precedent in the retrospective consolidation pass recorded
+  in DONE.org. Without it the analysis has a cutoff date.
+- *It depends on [[id:cdcc065c-628d-4350-b1ba-fcf686e9c4c1][cdcc065c]].*
+  =org_capture= does not write =:CREATED:= at all, so headings born from
+  the tool have no creation time for a backfill to read. Fix that first
+  or those headings have no origin in either place.
+
+*Mechanism, if written at creation time:* it need not be special. Under
+the queue model creation can simply *be* the =capture= event proposed in
+[[id:7fa68d5c-b6c0-43df-85c6-764b1d56511f][7fa68d5c]], with apply
+writing its =:LOGBOOK:= entry exactly as it writes a state transition.
+The two headings are one feature approached from different sides —
+capture durability there, timeline origin here.
+
+*One semantic caveat for whoever writes the parser:* "created" and
+"acquired its first TODO keyword" are not the same event in general.
+They coincide throughout this project because every task heading is born
+with a keyword, but the equivalence is a local accident, not a rule, and
+a heading that gains a keyword later would make them diverge.
 
 * Bigger swings
 
