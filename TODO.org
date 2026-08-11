@@ -1429,8 +1429,11 @@ apply command clocks in through the same advised =org-clock-in=.
 :SESSIONS:
 - Resumed [2026-08-06 Thu 16:48] (session 52e09dcc-b831-4832-8f77-859e9a4ac8a3)
 - Paused [2026-08-06 Thu 21:51] (recovered)
+- Resumed [2026-08-11 Tue 11:10]
+- Paused [2026-08-11 Tue 11:13]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-11 Tue 11:10]--[2026-08-11 Tue 11:13] =>  0:03
 CLOCK: [2026-08-06 Thu 15:45]--[2026-08-06 Thu 16:50] =>  1:05
 - State "NEXT"       from "TODO"       [2026-08-06 Thu 12:07] \\
   Auto-promoted: sole remaining TODO in its sibling group.
@@ -2040,8 +2043,6 @@ it was designed in from the start.
 :SESSIONS:
 - Resumed [2026-08-07 Fri 21:03]
 - Paused [2026-08-07 Fri 21:05]
-:END:
-:LOGBOOK:
 :END:
 
 *The most serious thing the 2026-08-07 interactive apply did, and the
