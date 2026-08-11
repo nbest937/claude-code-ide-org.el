@@ -3205,6 +3205,7 @@ the same time, rather than leaving it to drift.
 :CREATED:  [2026-08-06 Thu 10:47]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-11 Tue 12:29]--[2026-08-11 Tue 12:30] =>  0:01
 CLOCK: [2026-08-11 Tue 12:00]--[2026-08-11 Tue 12:06] =>  0:06
 CLOCK: [2026-08-10 Mon 20:09]--[2026-08-10 Mon 20:11] =>  0:02
 CLOCK: [2026-08-10 Mon 19:07]--[2026-08-10 Mon 20:48] =>  1:41
@@ -3264,6 +3265,63 @@ Claude work time only," paused the moment Claude stops and resumed on
 the next prompt. After the cutover no hook writes a CLOCK entry at all —
 that section describes the mechanism this refactor removes.
 
+
+*Additional scope, requested 2026-08-11: a NEXT-nomination rule for the
+org skill.* Two halves, proposed by the user:
+
+1. Every transition *to* =DONE= should nominate a =NEXT=, when clear
+   candidates exist.
+2. When there is an obvious =NEXT= whose blockers live in a *different
+   subtree*, call those blockers out.
+
+*Why it is coherent rather than just tidy.* This repo already enforces
+*at most* one =NEXT= per level, mechanically:
+=--trigger-auto-promote-sole-todo= promotes the last remaining =TODO= in
+a sibling group. Part 1 supplies *at least* one, for the case a trigger
+cannot decide — several candidates, requiring judgement. Together they
+give exactly one, which is the GTD invariant proper: a live project
+always has a next action, and a project without one is the canonical
+defect a weekly review exists to catch.
+
+*The evidence is the session that produced this note.* It opened with the
+user asking "what's next?", and the answer had to be reconstructed by
+walking states and =:BLOCKER:= properties, because the epic had stretches
+with *zero* =NEXT= while carrying two =DOING=. The rule would have
+pre-answered the question that took the first twenty minutes to rebuild.
+
+*Part 2 is the more valuable half.* =:BLOCKER:= is machine-checkable but
+only visible to someone already looking at the blocked heading.
+Same-subtree blockers are cheap to notice — =feba67eb= being blocked by
+=720b2dcf= was obvious all along. Cross-subtree ones are not:
+[[id:d9132c57-9dcf-47e9-ba74-7f5a1ced3ae5][d9132c57]] under Observability
+depends on [[id:cdcc065c-628d-4350-b1ba-fcf686e9c4c1][cdcc065c]] under
+Skill logic, and that is discoverable today only because it happens to be
+written in prose. Those are exactly the dependencies that rot unnoticed.
+
+*Two failure modes to write into the rule, not discover later:*
+- *NEXT-churn.* "When clear candidates exist" is load-bearing. Without
+  it the rule degrades =NEXT= from "decided, up next" into "whatever
+  was adjacent." The rule must explicitly bless *declining* to nominate,
+  and saying so, over promoting a placeholder.
+- *It can silently demote.* Nominating a =NEXT= may trigger
+  =--trigger-demote-conflicting-next= against an existing one. Acceptable,
+  but the nomination should read as a deliberate choice between
+  candidates rather than a surprise reshuffle.
+
+*Placement: the org skill, not CLAUDE.md.* The skill already carries the
+transition table and =TODO -> NEXT= semantics, and the precedent is
+established — the Plan Mode checkpoint rule lives there "since it's a
+way-of-working for Claude Code's Plan Mode generally, not an org-file
+convention specific to this repo." This is the same shape: behaviour at a
+transition, generalising to any org+GTD project. CLAUDE.md keeps the
+repo-specific parts it already has, the keyword set and the
+single-NEXT-per-level enforcement.
+
+*Fix the drift in the same edit.* The skill currently documents
+=TODO NEXT DOING WAIT MAYBE | DONE CANCELLED= (SKILL.md:43) and is
+missing =PLANNING=, which CLAUDE.md has carried since the state was
+added. Adding a rule to a table that is already wrong would bake the
+error in.
 *** TODO Failed tool calls still enter the queue when the error is content-wrapped :code:
 :PROPERTIES:
 :ID:       5e2a1c04-7b3f-4d21-9c88-2f6e0a91b7d3
