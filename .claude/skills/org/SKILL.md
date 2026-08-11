@@ -260,6 +260,48 @@ link to the task heading, transitioning that heading to `DOING` (or
 This holds regardless of whether the heading the plan is for already
 existed or is newly created as part of the plan.
 
+### Before editing: check for an unsaved buffer
+
+**Before text-editing any `.org` file that may be open in a live Emacs,
+establish that Emacs is not holding unsaved changes to it.** One call:
+
+```elisp
+(let ((b (get-file-buffer "/abs/path/to/file.org")))
+  (list :open (and b t)
+        :modified (and b (buffer-modified-p b))
+        :in-sync (and b (verify-visited-file-modtime b))))
+```
+
+Read `:open` first — when it is nil the file has no buffer, nothing can
+diverge, and the other two fields are meaningless rather than alarming
+(`:in-sync nil` there means "not applicable," not "out of sync").
+
+`:modified` non-nil is the finding. **Stop and tell the user.** Do not
+revert (that discards their work) and do not save (that discards yours);
+which to do is theirs to decide, and they may need to merge.
+
+`:open t` with `:modified nil` is fine — an unmodified buffer auto-reverts
+and will pick up your edit on its own.
+
+**Why this is a precondition and not a nicety.** `global-auto-revert-mode`
+deliberately refuses to revert a *modified* buffer. So the moment a buffer
+picks up any change — including a stray keystroke — it silently stops
+tracking the file, with no warning and no visible difference. Every later
+disk edit then widens a divergence nobody can see. The two ways out are
+both destructive: saving overwrites the disk edits, reverting discards the
+buffer's.
+
+Real incident, 2026-08-11: six headings and three body edits were written
+to a `TODO.org` whose buffer had been stale for hours. It surfaced only
+because an unrelated `org-id-find` on a just-written `:ID:` returned nil.
+The buffer's sole unsaved content turned out to be four stray characters,
+so the resolution was cheap — by luck. Any real unsaved work there would
+have forced a three-way merge between disk, buffer, and intent.
+
+Note the check is about the *buffer*, not the file: a file can be
+perfectly readable on disk and still have a divergent buffer waiting to
+overwrite it.
+
 ### Editing & transforming
 
 - **Change TODO state**: update the keyword on the heading line; if the file uses

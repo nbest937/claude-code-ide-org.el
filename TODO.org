@@ -872,6 +872,32 @@ behaviour that produces a silent failure mode — a file the user believes
 is auto-reverting quietly stops the moment a stray keystroke marks the
 buffer modified.
 
+*Done 2026-08-11.* Added "Before editing: check for an unsaved buffer" to
+the org skill, placed ahead of "Editing & transforming" because it is a
+precondition to all editing rather than a technique. It gives the
+three-field =get-file-buffer=/=buffer-modified-p=/
+=verify-visited-file-modtime= check, states that =:modified= non-nil means
+*stop and tell the user* — never revert (discards their work) and never
+save (discards yours) — and records the incident above as the motivating
+case. The auto-revert question folded in there rather than going
+elsewhere: the section explains why a modified buffer silently stops
+tracking, which is the whole reason the check is needed.
+
+*Verified by running the documented snippet*, not by reading it: against
+an open unmodified buffer =(:open t :modified nil :in-sync t)=, and
+against a path with no buffer =(:open nil ...)= with no error. That second
+case exposed a genuine documentation bug — with no buffer the check
+returns =:in-sync nil=, which reads as "out of sync" when it means "not
+applicable" — so the text now says to read =:open= first and treat the
+other fields as meaningless when it is nil. A snippet that alarms on the
+common case would have been worse than no check at all.
+
+*Not tested, and not worth forcing:* whether the skill's own description
+causes this section to be consulted at the right moment. That is
+trigger-matching, which this project's engineering practices explicitly
+exempt from deterministic testing. What is verified is that the content
+is correct when read.
+
 * Clock lifecycle & visibility
 
 Everything here is specifically about the clock subsystem's
@@ -2142,6 +2168,42 @@ pointing at three scripts that no longer exist. The first real check is
 a fresh session: its =SessionStart=/=UserPromptSubmit= hooks fire the new
 scripts, its tool calls queue instead of mutating, and a review pass
 applies them.
+
+*Gate met 2026-08-11. Closing.* The next session began 95 seconds after
+the cutover commit (=220ba78= 13:50:24, =SessionStart= 13:51:59) and
+exercised all three clauses:
+
+- *Hooks fired the new scripts.* Every =UserPromptSubmit= and =Stop= in
+  that session produced exactly one =resume=/=pause= in the queue, with
+  no spurious or missing entries, matched one-for-one against the
+  transcript's own prompt and =stop_hook_summary= records.
+- *Tool calls queued instead of mutating.* =org_clock_in=,
+  =org_clock_out= and =org_set_todo= were each called against live
+  headings; TODO.org's sha256 was unchanged across all of them.
+- *A review pass applied them.* Two state transitions were confirmed and
+  written with native =State= lines, the watermark advanced by exactly
+  those two timestamps, and the =.jsonl= was left intact.
+
+*What the gate caught, which is the point of having had one.* The
+session found a live escape of
+[[id:5e2a1c04-7b3f-4d21-9c88-2f6e0a91b7d3][5e2a1c04]] — a =clock_in= for
+a nonexistent =:ID:= entering the queue, because the =Error:= guard
+could not see a content-block =tool_response=. Fixed and closed. Its
+downstream damage was then observed for real at the review pass: the
+phantom captured a guidepost interval, the heading actually being worked
+on recorded nothing, and the 205 seconds proposed were idle time. None
+of that was reachable from batch.
+
+*No =clock_out= was queued when closing this heading, deliberately.* The
+transition rule that =DOING -> DONE= closes the clock was written for the
+live-clocking model. There is no live clock to close; the =clock_in=
+queued against this heading at 15:10:36 is orphaned — it produced no
+review item at all — and a =clock_out= appended now would be captured by
+the same =dead-beef= cursor, manufacturing a fourth permanently
+un-appliable queue item. Recorded rather than worked around, since
+"what closing a heading means when the clock is a queued concept" is a
+real gap in the transition rules that
+[[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] should settle.
 *** DONE Build the interactive review-and-apply Emacs command :code:
 :PROPERTIES:
 :ID:       720b2dcf-6af1-45f3-96a7-aa841e5651e1
