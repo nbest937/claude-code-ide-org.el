@@ -2696,12 +2696,63 @@ the same time, rather than leaving it to drift.
 :ID:       02aaae22-0958-4c0f-b5bb-2cbea32416ae
 :CREATED:  [2026-08-06 Thu 10:47]
 :END:
+:SESSIONS:
+- Resumed [2026-08-10 Mon 19:07]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-10 Mon 19:07]
+:END:
 
 Once implemented: rewrite CLAUDE.md's "State transition rules",
 "Session tracking", and "MCP tools" sections, and the org skill's
 state-transition table, to describe the queue+review model rather
 than the live-driving model they currently document. Large enough
 that it should not be a drive-by edit tacked onto another task.
+
+
+*Vocabulary settled 2026-08-10, ahead of the rewrite.* Prompted by
+noticing that "per-turn clocking" describes something that stops
+existing at the cutover, so the docs cannot simply be updated around it.
+
+The current phrase conflates two things that separate cleanly, and the
+right words for both are already in this codebase — they just are not yet
+accurate, because the =Stop=/=UserPromptSubmit= hooks presently do two
+jobs at once: drive a live clock *and* append an event.
+[[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]] deletes the first.
+
+| today                    | after the cutover                        |
+|--------------------------+------------------------------------------|
+| per-turn *clocking* —    | per-turn *guideposts* — hooks append     |
+| hooks open/close real    | bare timestamps; nothing clocks          |
+| CLOCK intervals every    |                                          |
+| turn boundary            |                                          |
+|--------------------------+------------------------------------------|
+| CLOCK lines land         | *confirmed intervals* land per review    |
+| continuously, one per    | pass, one per cluster of guideposts      |
+| turn                     |                                          |
+
+So the *emission* stays per-turn; the *record* stops being per-turn.
+Replacement wording should name the emission ("turn-boundary
+guideposts") and say nothing about intervals, since intervals become
+per-decision.
+
+*Retire the word "clocking" rather than qualify it.* By feba67eb's own
+reckoning a clock is only ever live for the microseconds between the
+paired =org-clock-in=/=org-clock-out= calls inside apply. There is no
+background clock state left to name, so "clocking" as an ongoing
+condition is not a thing that happens any more.
+
+*Churn relocates; it does not disappear.* Guideposts still accumulate
+every turn, into the queue file — cheap, disposable, no Emacs required.
+What ends is churn in the *org record*. Worth stating explicitly in
+CLAUDE.md, since the obvious reading of "the cutover stops per-turn
+churn" is wrong in a way that would mislead the next reader.
+
+*Concretely wrong at the cutover, in CLAUDE.md's "Session tracking"
+section:* it describes =:LOGBOOK:= CLOCK entries as tracking "active
+Claude work time only," paused the moment Claude stops and resumed on
+the next prompt. After the cutover no hook writes a CLOCK entry at all —
+that section describes the mechanism this refactor removes.
 
 *** TODO Failed tool calls still enter the queue when the error is content-wrapped :code:
 :PROPERTIES:
@@ -2920,6 +2971,49 @@ Independent of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] and
 useful either way: attribution is resolved from queued
 =clock_in=/=clock_out= events both before and after the cutover, so the
 bracket does the same job in both worlds.
+
+
+*Refined 2026-08-10, and it narrows what this heading is for.* The user
+proposed the general principle: grooming, defining, amending and
+adjusting a future task is *activity on that task*, and should be clocked
+against it — leaving its TODO state untouched. Recorded here because it
+answers most of what a catch-all was being considered for.
+
+*This was never stated anywhere, though nothing forbade it.* CLAUDE.md's
+transition rules say a transition *to* =DOING= opens a clock and one
+*from* =DOING= closes it. They never say the converse — that a running
+clock implies =DOING= — so clocking a =TODO= heading has always been
+legal by the letter and simply undescribed. Confirmed safe in practice
+the same day: =org-clock-in-switch-to-state= is nil here, so clocking in
+does not touch the keyword, and this heading's own editorial session was
+clocked against =02aaae22= while it stayed literally =TODO=.
+
+*Why it is better than a bucket, where it applies.* Attribution is exact:
+time spent working out what a task should be lands on that task, next to
+the reasoning it produced, and shows up in any report scoped to it.
+A catch-all would answer "how much meta-work happened" but never "which
+task was I circling."
+
+*So the two are complementary, and this heading shrinks to the residue:*
+work that genuinely belongs to no single task — "what's next?" surveys
+across the whole backlog, cross-cutting review, triage before a task
+exists to attach to. That residue is real but much smaller than the
+original framing assumed, which also blunts the dumping-ground risk noted
+above: with per-task grooming as the default, anything reaching the
+catch-all is there because it truly has no home.
+
+*Consequence worth accepting deliberately:* a =TODO= heading can now
+accrue real clock time without ever having been =DOING=. That is correct
+— deciding what a task is *is* work — but it means "time spent" and
+"was worked on" stop being the same question, and any future reporting
+needs to keep them apart.
+
+*Needs a rule in CLAUDE.md* under "State transition rules", stating that
+a clock may run on a heading in any state, and that grooming attaches to
+the task being groomed. Distinct from
+[[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]], which is scoped to
+documenting the post-cutover architecture; this is a general convention
+that holds regardless of the refactor's fate.
 
 ** MAYBE Add a third retention tier for completed work as a chronological changelog :code:
 :PROPERTIES:
