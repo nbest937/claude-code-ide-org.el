@@ -3026,6 +3026,85 @@ returns to =:LOGBOOK:= until
 [[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]] stops per-turn
 clocking altogether. That is the thing to watch.
 
+*** TODO Let the review buffer assign unattributed guideposts to a heading :code:
+:PROPERTIES:
+:ID:       3d0487f4-b8f8-451c-88bf-ab537663cbd0
+:CREATED:  [2026-08-11 Tue 07:24]
+:END:
+
+Guideposts carry no heading of their own; they inherit whichever one the
+surrounding =clock_in=/=clock_out= bracket last named. Work done while no
+clock is open therefore produces guideposts that belong to nothing, and
+=--review-items-from-queue= drops them: it iterates the groups from
+=--queue-events-by-id= under a =(when id ...)= guard, so the nil-keyed
+group is skipped whole.
+
+*Measured on this project, 2026-08-10.* A "what's next?" pass — reading
+TODO.org, checking git state, running the suite, inspecting the queue,
+forming a plan — ran from session start at 11:22 to the first =clock_in=
+at 11:49. Twenty-eight minutes. The earliest CLOCK line written that day
+is =11:50--12:00=, so none of it was recorded. Its two =resume=
+guideposts (11:22:50, 11:31:02) are still in the queue and are not
+merely unapplied but *unappliable*: with no bracket around them they can
+never become a review item, so they will sit there indefinitely. That is
+not a rare shape — planning, triage and backlog review are *by
+definition* the moments when no task is clocked.
+
+*The cutover does not fix this, and that is the point.*
+[[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]] leaves attribution
+exactly where it is — the stream is still walked, the heading still taken
+from queued =clock_in=/=clock_out= events, which is the stated reason
+those two kinds are retained at all. What changes is *where the loss
+happens*:
+
+|             | today                        | after the cutover              |
+|-------------+------------------------------+--------------------------------|
+| loss is in  | the recorder — no CLOCK line | the reader — timestamps are    |
+|             | is ever written              | on disk, nothing consumes them |
+| recoverable | no                           | *yes, in principle*            |
+
+So this becomes fixable without changing anything about what gets
+written. The evidence is already durable; only the consumer throws it
+away. =--queue-events-by-id='s own docstring already promises "an entry
+keyed nil for events that could not be attributed to any heading" — the
+data structure anticipates this case and the review layer simply
+declines to use it.
+
+*The proposal:* cluster the unattributed guideposts the same way
+attributed ones are clustered, render the resulting spans in the review
+buffer as unassigned, and let the human assign each to a heading at
+review time — then apply it exactly like any other confirmed interval.
+
+*Why this beats clocking into a standing bucket up front* (the
+alternative recorded at
+[[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]]):
+- It demands no discipline in the moment. Remembering to clock a bucket
+  requires predicting that you are about to do meta-work, which is
+  precisely when nobody is thinking about bookkeeping.
+- It answers *about what*, not just *how much*. A bucket can total the
+  meta-work but can never say which task you were circling.
+- "Which task was that, actually?" is retrospective judgement a human
+  can make and a machine cannot — the same premise the entire
+  queue-and-review model rests on. Assigning at review time is that
+  premise applied to attribution instead of to approval.
+
+*Not a replacement for =a1d63f52=, and it does not close it.* A standing
+heading stays useful as an assignment *target* for spans that genuinely
+belong to no task — backlog-wide triage, review before any task exists.
+It just stops being something you must clock into in advance, which is
+the part that would not have survived contact with practice.
+
+*Open, deliberately not decided here:*
+- What a human does with a span they *cannot* place. Dropping it loses
+  the honest answer "this happened and belonged to nothing"; leaving it
+  pending re-proposes it at every future review, which trains people to
+  ignore the buffer. Neither is obviously right.
+- One session's nil-keyed group can hold several unrelated activities.
+  The existing gap-threshold clustering splits them by time, which is a
+  proxy for topic and will sometimes be wrong.
+- Whether assignment should offer the same completion as =org-refile=,
+  rather than a bespoke picker.
+
 ** TODO Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
 :ID:       a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5
@@ -3119,6 +3198,14 @@ the task being groomed. Distinct from
 documenting the post-cutover architecture; this is a general convention
 that holds regardless of the refactor's fate.
 
+
+*Alternative captured 2026-08-11, and it narrows this heading further:*
+[[id:3d0487f4-b8f8-451c-88bf-ab537663cbd0][3d0487f4]] proposes that the review buffer
+surface unattributed guideposts and let the human assign them to a
+heading retrospectively, rather than requiring anyone to clock into a
+standing task in advance. If that lands, this heading is no longer a
+mechanism to remember — it is just a convenient assignment target for
+spans that genuinely belong to no task.
 ** MAYBE Add a third retention tier for completed work as a chronological changelog :code:
 :PROPERTIES:
 :ID:       4c0044bf-1b6c-44ea-807a-8f9e3523e3fd
