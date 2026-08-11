@@ -21,7 +21,7 @@
   :group 'org)
 
 (defcustom claude-code-ide-org-session-recovery-enabled t
-  "When non-nil, check for open CLOCK/:SESSIONS: intervals left
+  "When non-nil, check for open CLOCK intervals left
 over from a previous day (e.g. after a crash or system shutdown
 prevented the Stop hook from pausing them) and report them via the
 SessionStart hook so Claude can ask you for the actual stop time."
@@ -257,11 +257,13 @@ removes the heading from the source buffer entirely (via
 ;;   therefore accumulate many short CLOCK intervals instead of one long
 ;;   one spanning idle waiting time.
 ;;
-;; - The :SESSIONS: drawer (this module's own, separate from :LOGBOOK:)
-;;   is the bracketing history: a plain timestamped log of every pause
-;;   and resume, so the full wall-clock arc of the task — including the
-;;   gaps — stays visible even though the CLOCK entries themselves no
-;;   longer cover it.
+;; - The :SESSIONS: drawer was RETIRED 2026-08-11 (TODO.org :ID:
+;;   9d2fcdad).  It held the bracketing history: a timestamped log of
+;;   every pause and resume, so the full wall-clock arc — including the
+;;   gaps the CLOCK entries do not cover — stayed visible.  Every drawer
+;;   was deleted and nothing writes one.  The per-session event queue
+;;   holds the same stream undecimated, survives without a running Emacs,
+;;   and carries session/agent attribution the drawer never had.
 
 (defun claude-code-ide-org--append-to-drawer (drawer-name line)
   "Append LINE to the :DRAWER-NAME: drawer of the heading at point.
@@ -359,7 +361,7 @@ correct place for it in a :LOGBOOK: until a human confirms the interval
 it belongs to. See clock-template.org for the conventions it feeds.
 Opens a new CLOCK entry in the heading's LOGBOOK drawer and starts
 the Emacs clock timer.  Also logs a \"Resumed\" entry to the
-heading's :SESSIONS: drawer.  Saves every buffer touched: `org-clock-in'
+Saves every buffer touched: `org-clock-in'
 auto-closes whatever clock was already running first, which mutates
 *that* heading's buffer too when it lives in a different file than the
 one being clocked into — the same bug shape that already bit
@@ -436,7 +438,7 @@ Closes the open CLOCK entry with an end timestamp and computes the
 duration, never recording less than
 `claude-code-ide-org--minimum-clock-seconds' — see
 `claude-code-ide-org--clock-out-floor-time'.  Also logs a \"Paused\"
-entry to the heading's :SESSIONS: drawer.  Saves the buffer.  Safe to
+Saves the buffer.  Safe to
 call when no clock is running.
 
 Deliberately does NOT consolidate afterwards any more.  It used to,
@@ -579,8 +581,10 @@ pause/resume with no session context should still behave as before)."
 ;; project's Doom config, so a crash or restart does NOT auto-resume
 ;; the in-memory clock state — meaning an open interval left by a
 ;; crash can only be found by scanning the actual TEXT of tracked org
-;; files for an unclosed CLOCK line or an unclosed "Resumed" :SESSIONS:
-;; entry, never by checking org-clocking-p.  Checked at the start of
+;; files for an unclosed CLOCK line, never by checking org-clocking-p.
+;; (It also used to look for an unclosed "Resumed" :SESSIONS: entry;
+;; that drawer was retired 2026-08-11, TODO.org :ID: 9d2fcdad.)
+;; Checked at the start of
 ;; every session; naturally self-limiting to "first thing each day"
 ;; since it only reports intervals whose open timestamp predates today.
 
@@ -619,30 +623,31 @@ otherwise put the guess before the interval even opened."
       guess)))
 
 (defun claude-code-ide-org--entry-open-interval ()
-  "If the entry at point has an open CLOCK line and/or an unclosed
-:SESSIONS: \"Resumed\" entry, return a plist (:logbook-open
-TIME-OR-NIL :sessions-open TIME-OR-NIL).  Both nil means nothing is
-open here.  Does not rely on org-clocking-p — see commentary above."
+  "If the entry at point has an open CLOCK line, return a plist
+\(:logbook-open TIME).  Nil means nothing is open here.  Does not rely
+on org-clocking-p — see commentary above.
+
+Used to also report an unclosed :SESSIONS: \"Resumed\" entry as
+`:sessions-open\'; that drawer was retired 2026-08-11 (TODO.org :ID:
+9d2fcdad) and every one deleted, so the scan can never match again.  The
+plist shape is kept rather than flattened to a bare time: callers destructure
+it, and a second kind of open interval is plausible enough — a queued
+`clock_in\' with no `clock_out\' — that the shape is likely to earn its
+keep again."
   (let ((end (save-excursion (outline-next-heading) (point)))
-        logbook-open sessions-open)
+        logbook-open)
     (save-excursion
       (when (re-search-forward "^[ \t]*CLOCK: \\(\\[[^]]+\\]\\)[ \t]*$" end t)
         (setq logbook-open (claude-code-ide-org--parse-org-timestamp (match-string 1)))))
-    (save-excursion
-      (let (last-event last-ts)
-        (while (re-search-forward "^[ \t]*- \\(Resumed\\|Paused\\) \\(\\[[^]]+\\]\\)" end t)
-          (setq last-event (match-string 1) last-ts (match-string 2)))
-        (when (equal last-event "Resumed")
-          (setq sessions-open (claude-code-ide-org--parse-org-timestamp last-ts)))))
-    (when (or logbook-open sessions-open)
-      (list :logbook-open logbook-open :sessions-open sessions-open))))
+    (when logbook-open
+      (list :logbook-open logbook-open))))
 
 (defun claude-code-ide-org-find-stale-open-intervals ()
-  "Scan `claude-code-ide-org--tracked-files' for open CLOCK/:SESSIONS:
-intervals whose open timestamp predates today.  Returns nil if
+  "Scan `claude-code-ide-org--tracked-files' for open CLOCK intervals
+whose open timestamp predates today.  Returns nil if
 `claude-code-ide-org-session-recovery-enabled' is nil.  Otherwise a
-list of plists: (:id ID :heading HEADING :file FILE :logbook-open
-TIME-OR-NIL :sessions-open TIME-OR-NIL :guess TIME)."
+list of plists: (:id ID :heading HEADING :file FILE :logbook-open TIME
+:guess TIME)."
   (when claude-code-ide-org-session-recovery-enabled
     (let (results)
       (dolist (file (claude-code-ide-org--tracked-files))
@@ -653,18 +658,13 @@ TIME-OR-NIL :sessions-open TIME-OR-NIL :guess TIME)."
                (let ((interval (claude-code-ide-org--entry-open-interval))
                      (id (org-entry-get nil "ID")))
                  (when (and interval id)
-                   (let* ((lb (plist-get interval :logbook-open))
-                          (se (plist-get interval :sessions-open))
-                          (earliest (cond ((and lb se) (if (time-less-p lb se) lb se))
-                                          (lb lb)
-                                          (t se))))
-                     (unless (claude-code-ide-org--today-p earliest)
+                   (let ((lb (plist-get interval :logbook-open)))
+                     (unless (claude-code-ide-org--today-p lb)
                        (push (list :id id
                                    :heading (org-get-heading t t t t)
                                    :file file
                                    :logbook-open lb
-                                   :sessions-open se
-                                   :guess (claude-code-ide-org--guess-stop-time earliest))
+                                   :guess (claude-code-ide-org--guess-stop-time lb))
                              results))))))
              "ID={.}" 'file))))
       (nreverse results))))
@@ -685,12 +685,8 @@ report for Claude to relay to the user as a question."
                       "via emacsclient with that timestamp.")
              (plist-get f :heading) (plist-get f :id)
              (file-name-nondirectory (plist-get f :file))
-             (cond ((and (plist-get f :logbook-open) (plist-get f :sessions-open))
-                    "CLOCK entry and :SESSIONS: interval")
-                   ((plist-get f :logbook-open) "CLOCK entry")
-                   (t ":SESSIONS: interval"))
-             (format-time-string "%Y-%m-%d"
-                                  (or (plist-get f :logbook-open) (plist-get f :sessions-open)))
+             "CLOCK entry"
+             (format-time-string "%Y-%m-%d" (plist-get f :logbook-open))
              (car claude-code-ide-org-working-hours) (cdr claude-code-ide-org-working-hours)
              (format-time-string "[%Y-%m-%d %a %H:%M]" (plist-get f :guess))))
    findings "\n\n"))
@@ -888,23 +884,26 @@ touches INPUT-PATH's contents; all parsing happens here."
     (insert (claude-code-ide-org--statusline-task-string))))
 
 (defun claude-code-ide-org-close-open-interval (id timestamp-string)
-  "Close whatever open CLOCK/:SESSIONS: interval exists on the
-heading whose :ID: equals ID, using TIMESTAMP-STRING (an org
-timestamp string, e.g. \"[2026-07-27 Mon 17:45]\") as the recovered
-stop time.  Closes an open CLOCK line (computing its duration) and/or
-appends a \"Paused ... (recovered)\" :SESSIONS: entry, whichever is
-actually open.  Consolidates the heading's now-closed history
-afterward, same as `claude-code-ide-org-clock-out' — see that
-function's docstring for why this can never itself error here.
-Saves the buffer.  Does not touch the live clock — this is purely a
-text-level fix for a stale interval, not related to whatever (if
-anything) is currently clocking."
+  "Close the open CLOCK interval, if any, on the heading whose :ID:
+equals ID, using TIMESTAMP-STRING (an org timestamp string, e.g.
+\"[2026-07-27 Mon 17:45]\") as the recovered stop time.  Computes the
+duration and saves the buffer.  Does not touch the live clock — this is
+purely a text-level fix for a stale interval, unrelated to whatever (if
+anything) is currently clocking.
+
+Two things it used to do and no longer does: append a
+\"Paused ... (recovered)\" entry to the :SESSIONS: drawer, retired
+2026-08-11 (TODO.org :ID: 9d2fcdad); and call
+`claude-code-ide-org-consolidate-history' afterwards, dropped because
+rewriting a whole drawer as a side effect of repairing one line is the
+shape behind :ID: ba8249c1 and :ID: b74e0f19, and consolidation has
+nothing left to contribute here anyway."
   (claude-code-ide-org--at-id
    id
    (lambda ()
      (let ((end (save-excursion (outline-next-heading) (point)))
            (stop-time (claude-code-ide-org--parse-org-timestamp timestamp-string))
-           closed-logbook closed-sessions)
+           closed-logbook)
        (save-excursion
          (when (re-search-forward "^\\([ \t]*CLOCK: \\)\\(\\[[^]]+\\]\\)[ \t]*$" end t)
            ;; Capture match boundaries and strings immediately, then use
@@ -923,39 +922,31 @@ anything) is currently clocking."
              (insert (format "%s%s--%s =>  %d:%02d"
                               prefix start-str timestamp-string (/ minutes 60) (% minutes 60)))
              (setq closed-logbook t))))
-       (save-excursion
-         (let (last-event)
-           (while (re-search-forward "^[ \t]*- \\(Resumed\\|Paused\\) \\[" end t)
-             (setq last-event (match-string 1)))
-           (when (equal last-event "Resumed")
-             (claude-code-ide-org--append-to-drawer
-              "SESSIONS" (format "- Paused %s (recovered)" timestamp-string))
-             (setq closed-sessions t))))
        (save-buffer)
-       (when (or closed-logbook closed-sessions)
-         (claude-code-ide-org-consolidate-history id))
-       (cond
-        ((and closed-logbook closed-sessions)
-         (format "Closed open CLOCK and :SESSIONS: interval on \"%s\" at %s"
-                 (org-get-heading t t t t) timestamp-string))
-        (closed-logbook
-         (format "Closed open CLOCK on \"%s\" at %s"
-                 (org-get-heading t t t t) timestamp-string))
-        (closed-sessions
-         (format "Closed open :SESSIONS: interval on \"%s\" at %s"
-                 (org-get-heading t t t t) timestamp-string))
-        (t "Nothing open to close."))))))
+       ;; No consolidate-history call: it has nothing left to do that is
+       ;; worth doing as a side effect of a repair, and running a
+       ;; whole-drawer rewrite after touching one line is the shape that
+       ;; caused :ID: ba8249c1 and :ID: b74e0f19.
+       (if closed-logbook
+           (format "Closed open CLOCK on \"%s\" at %s"
+                   (org-get-heading t t t t) timestamp-string)
+         "Nothing open to close.")))))
 
 ;;; Historical consolidation --------------------------------------------------
 ;;
-;; A one-time (for now — see TODO.org's "Auto-consolidate SESSIONS/LOGBOOK
-;; on the fly") retrospective cleanup of the per-turn write churn described
-;; in the "Session tracking" commentary above: each pause/resume writes a
-;; matching :SESSIONS: pair and :LOGBOOK: CLOCK line, so an ordinary work
-;; session accumulates dozens of few-minute entries. This section collapses
-;; :SESSIONS: to one min-to-max span per calendar day, and rounds/merges
-;; :LOGBOOK: CLOCK intervals, without ever touching whatever (if anything)
-;; is still actually open — that reflects live clock state, not history.
+;; What is left of a retrospective cleanup that once collapsed the
+;; per-turn write churn: each pause/resume used to write a matching
+;; :SESSIONS: pair and :LOGBOOK: CLOCK line, so a work session
+;; accumulated dozens of few-minute entries, and this section rounded and
+;; merged them.
+;;
+;; Both halves are gone.  The rounding was retired after it destroyed a
+;; reviewed interval (:ID: b74e0f19) and :SESSIONS: was retired outright
+;; (:ID: 9d2fcdad), leaving only the ordering of :LOGBOOK: entries and the
+;; invariant that an open interval is never touched, since that reflects
+;; live clock state rather than history.  The two rounding helpers below
+;; have no callers; they are kept, and say so, against the possibility of
+;; a deliberate human-invoked compaction pass.
 
 (defun claude-code-ide-org--round-time-to-5-minutes (time)
   "Round TIME to the nearest 5-minute mark, ties rounding up.
@@ -1102,103 +1093,31 @@ interval ever being written, rather than deleting it afterwards."
             (mapconcat #'identity other "\n")
             (if other "\n" ""))))
 
-(defun claude-code-ide-org--parse-session-lines (text)
-  "Parse TEXT (a :SESSIONS: drawer body) into a plist: :events, an
-ordered list of plists each with :label (\"Resumed\" or \"Paused\"),
-:time (a time value), and :suffix (any trailing annotation after the
-timestamp, e.g. \" (recovered)\", or \"\"); and :other, every
-non-blank line that is not a Resumed/Paused entry (e.g. the
-\"Background-planned\" write-backs from `org_log_background_plan'),
-kept verbatim in original order — same losslessness rule as
-`claude-code-ide-org--parse-clock-lines' (TODO.org :ID:
-ba8249c1-28cd-4ff1-918b-4b8439345d9a)."
-  (let (events other)
-    (dolist (raw (split-string text "\n"))
-      (let ((line (string-trim raw)))
-        (cond
-         ((string-empty-p line))
-         ((string-match "\\`- \\(Resumed\\|Paused\\) \\(\\[[^]]+\\]\\)\\(.*\\)\\'" line)
-          ;; Same match-data-clobbering hazard as `claude-code-ide-org--parse-
-          ;; clock-lines' above — capture every group before parsing any of them.
-          (let ((label (match-string 1 line))
-                (ts-str (match-string 2 line))
-                (suffix (match-string 3 line)))
-            (push (list :label label
-                        :time (claude-code-ide-org--parse-org-timestamp ts-str)
-                        :suffix suffix)
-                  events)))
-         (t (push raw other)))))
-    (list :events (nreverse events) :other (nreverse other))))
-
-(defun claude-code-ide-org--format-session-line (label time suffix)
-  "Format LABEL (\"Resumed\"/\"Paused\"), TIME, and SUFFIX as a
-:SESSIONS: entry line."
-  (format "- %s %s%s" label (format-time-string "[%Y-%m-%d %a %H:%M]" time) suffix))
-
-(defun claude-code-ide-org--consolidate-sessions-text (text)
-  "Given the raw body TEXT of a :SESSIONS: drawer, collapse the
-Resumed/Paused entries for each calendar day into a single
-min-to-max pair (\"Resumed\" at the day's earliest timestamp,
-\"Paused\" at its latest — whatever the entries' original labels).
-A trailing, unmatched \"Resumed\" — today's still-open interval — is
-left completely untouched, kept as the final line after the
-consolidated days. Lines that are not Resumed/Paused entries at all
-(e.g. \"Background-planned\" write-backs) are preserved verbatim,
-between the consolidated days and the open tail (TODO.org :ID:
-ba8249c1-28cd-4ff1-918b-4b8439345d9a)."
-  (let* ((parsed (claude-code-ide-org--parse-session-lines text))
-         (events (plist-get parsed :events))
-         (other (plist-get parsed :other))
-         (open-tail (when (and events (equal (plist-get (car (last events)) :label) "Resumed"))
-                      (car (last events))))
-         (closed (if open-tail (butlast events) events))
-         (days (make-hash-table :test 'equal))
-         day-order
-         lines)
-    (dolist (ev closed)
-      (let ((day (format-time-string "%Y-%m-%d" (plist-get ev :time))))
-        (unless (gethash day days) (push day day-order))
-        (push ev (gethash day days))))
-    (setq day-order (nreverse day-order))
-    (dolist (day day-order)
-      (let* ((day-events (sort (gethash day days)
-                                (lambda (a b) (time-less-p (plist-get a :time) (plist-get b :time)))))
-             (min-ev (car day-events))
-             (max-ev (car (last day-events))))
-        (push (claude-code-ide-org--format-session-line
-               "Resumed" (plist-get min-ev :time) (plist-get min-ev :suffix))
-              lines)
-        (unless (eq min-ev max-ev)
-          (push (claude-code-ide-org--format-session-line
-                 "Paused" (plist-get max-ev :time) (plist-get max-ev :suffix))
-                lines))))
-    (setq lines (nreverse lines))
-    (setq lines (append lines other))
-    (when open-tail
-      (setq lines (append lines
-                           (list (claude-code-ide-org--format-session-line
-                                  (plist-get open-tail :label)
-                                  (plist-get open-tail :time)
-                                  (plist-get open-tail :suffix))))))
-    (concat (mapconcat #'identity lines "\n") (if lines "\n" ""))))
-
 (defun claude-code-ide-org-consolidate-history (id)
-  "Consolidate the heading with :ID: equal to ID's historical
-:SESSIONS: and :LOGBOOK: entries in place: collapse :SESSIONS: to
-one min-to-max span per calendar day, round :LOGBOOK: CLOCK
-intervals to the nearest 5-minute mark, and merge any that become
-adjacent or overlapping after rounding. A still-open CLOCK line or
-trailing unmatched \"Resumed\" entry — today's live interval — is
-left completely untouched; this only rewrites already-closed
-history. Saves the buffer. Not registered as an MCP tool: intended
-as a one-off maintenance operation via `emacsclient', and as the
-shared implementation a future on-the-fly version would call right
-after every clock-out."
+  "Normalise the :LOGBOOK: drawer of the heading with :ID: equal to ID:
+re-emit closed CLOCK intervals newest-first with their endpoints exactly
+as recorded, keeping a still-open CLOCK line first and every non-CLOCK
+line after it. Saves the buffer.
+
+*Close to a no-op today, and deliberately kept anyway.* It used to round
+intervals to 5-minute marks and merge the results, and to collapse a
+:SESSIONS: drawer to one span per calendar day. The rounding was retired
+after it destroyed a reviewed interval (TODO.org :ID: b74e0f19) and
+:SESSIONS: was retired outright (:ID: 9d2fcdad), so ordering is all that
+is left. Kept because :ID: af7d3687 — sort :LOGBOOK: chronologically,
+keeping notes with their continuations — is precisely a change to this
+function; deleting it now would mean recreating it.
+
+It has no automatic caller. Nothing runs it after a clock-out any more,
+and `claude-code-ide-org-close-open-interval' stopped calling it too:
+rewriting a whole drawer as a side effect of repairing one line is the
+shape behind both :ID: ba8249c1 and :ID: b74e0f19. Not registered as an
+MCP tool — a deliberate maintenance operation via `emacsclient'."
   (claude-code-ide-org--at-id
    id
    (lambda ()
      (let ((heading (org-get-heading t t t t))
-           logbook-changed sessions-changed)
+           logbook-changed)
        (let ((bounds (claude-code-ide-org--drawer-content-bounds "LOGBOOK")))
          (when bounds
            (let* ((old (buffer-substring (nth 0 bounds) (nth 1 bounds)))
@@ -1208,22 +1127,10 @@ after every clock-out."
                (goto-char (nth 0 bounds))
                (insert new)
                (setq logbook-changed t)))))
-       (let ((bounds (claude-code-ide-org--drawer-content-bounds "SESSIONS")))
-         (when bounds
-           (let* ((old (buffer-substring (nth 0 bounds) (nth 1 bounds)))
-                  (new (claude-code-ide-org--consolidate-sessions-text old)))
-             (unless (equal old new)
-               (delete-region (nth 0 bounds) (nth 1 bounds))
-               (goto-char (nth 0 bounds))
-               (insert new)
-               (setq sessions-changed t)))))
        (save-buffer)
-       (cond
-        ((and logbook-changed sessions-changed)
-         (format "Consolidated :LOGBOOK: and :SESSIONS: on \"%s\"" heading))
-        (logbook-changed (format "Consolidated :LOGBOOK: on \"%s\"" heading))
-        (sessions-changed (format "Consolidated :SESSIONS: on \"%s\"" heading))
-        (t (format "Nothing to consolidate on \"%s\"" heading)))))))
+       (if logbook-changed
+           (format "Consolidated :LOGBOOK: on \"%s\"" heading)
+         (format "Nothing to consolidate on \"%s\"" heading))))))
 
 (defun claude-code-ide-org-set-todo (id state &optional note)
   "Set the TODO keyword of the heading with :ID: equal to ID to STATE.
@@ -2030,7 +1937,7 @@ in `condition-case', same reasoning as the in-handler."
 (defun claude-code-ide-org--insert-plan-link (plan-file)
   "Insert a `[[file:PLAN-FILE][Plan]]' link into the body of the
 heading at point, unless a Plan link is already present there.
-Inserted after the property drawer and any :SESSIONS:/:LOGBOOK:
+Inserted after the property drawer and any :LOGBOOK:
 drawers, per this project's Plan-link convention (see CLAUDE.md).
 Idempotent regardless of PLAN-FILE's value -- a heading only ever
 carries one Plan link, matching CLAUDE.md's \"the link is written
@@ -3161,8 +3068,8 @@ correctly inside a real interactive command."
    :description (concat
                  "Record a completed background-planning pass on an org-mode "
                  "heading, identified by its :ID: property: insert a Plan-file "
-                 "link (idempotent) and append a synthetic :SESSIONS: entry. "
-                 "Never transitions TODO state and never touches the clock.")
+                 "link (idempotent). Never transitions TODO state and never "
+                 "touches the clock.")
    :args '((:name "id"
             :type string
             :description "The :ID: property value of the target org heading.")

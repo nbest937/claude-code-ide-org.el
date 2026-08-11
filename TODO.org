@@ -2826,7 +2826,7 @@ Sequence after [[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]
 exists and works — retiring a safety net before its replacement is
 proven is how you lose data you didn't know you were relying on.
 
-*** DOING Decide whether the :SESSIONS: drawer and its machinery survive the refactor :code:
+*** DONE Decide whether the :SESSIONS: drawer and its machinery survive the refactor :code:
 :PROPERTIES:
 :ID:       9d2fcdad-9bf7-47b6-8018-223b13ec4577
 :CREATED:  [2026-08-07 Fri 15:09]
@@ -3006,6 +3006,47 @@ deletion outright rather than trimming — which is what this heading
 predicted, and which reaches into
 [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s territory, since
 =close-open-interval= is one of its two callers.
+
+*Machinery removed 2026-08-11; this heading is now fully executed.*
+=--parse-session-lines=, =--format-session-line= and
+=--consolidate-sessions-text= are deleted. =consolidate-history= lost its
+=:SESSIONS:= half, =close-open-interval= lost both its
+"Paused ... (recovered)" write *and* its =consolidate-history= call, and
+the stale-interval scan no longer looks for an unclosed =Resumed= —
+=--entry-open-interval= and =find-stale-open-intervals= dropped
+=:sessions-open= throughout. Audited afterwards: not one ="SESSIONS"=
+string literal remains anywhere in =config.el=; every surviving mention is
+prose explaining the retirement.
+
+*Two consequential decisions taken inside this cleanup, both arguable:*
+- *=consolidate-history= was kept, not deleted,* though it is now close
+  to a no-op — [[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]] took
+  its rounding and merging, and this took its second drawer, leaving only
+  ordering. Kept because
+  [[id:af7d3687-6d1e-4480-a9e2-df772785713f][af7d3687]] is precisely a
+  change to this function; deleting it now would mean recreating it. It
+  has no automatic caller, which is the point.
+- *=close-open-interval= no longer consolidates.* Rewriting a whole
+  drawer as a side effect of repairing one line is the shape behind both
+  [[id:ba8249c1-28cd-4ff1-918b-4b8439345d9a][ba8249c1]] and =b74e0f19=,
+  and consolidation had nothing left to contribute there. This reaches
+  into [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s territory,
+  since =close-open-interval= was =consolidate-history='s only remaining
+  caller — that subsystem's fate is now a cleaner question than it was.
+
+*Verified:* =bin/test= 163/163 (three tests deleted as their whole
+subject was the drawer, four rewritten to assert the drawer's *absence*
+so its return fails rather than passing silently). Live-reloaded, with
+the three deleted functions explicitly =fmakunbound= — a =load-file=
+re-evaluates what is in a file but does not unbind what was removed from
+it, so the running image would otherwise have kept them.
+
+*One incident worth recording, because it proves the point.* Immediately
+after deleting all 49 drawers I clocked out, and a drawer came back — on
+*this heading*. The live Emacs was still running the pre-edit writer,
+because =config.el= had been changed on disk but never reloaded. Caught
+by the post-deletion count, not by foresight; the reload precondition
+should have been stated before the check rather than after it.
 *** TODO Reconcile or retire the now-likely-superseded clock/session-ownership plans and infrastructure :code:
 :PROPERTIES:
 :ID:       e51d6ba1-cc1d-4745-8aa7-e4b1183a230b

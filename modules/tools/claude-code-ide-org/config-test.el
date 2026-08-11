@@ -1462,7 +1462,10 @@ corrupting the file header."
                "CLOCK: \\[2026-07-27 Mon 14:00\\]--\\[2026-07-27 Mon 17:45\\] =>  3:45"
                disk))
       ;; :SESSIONS: entry correctly closed too.
-      (should (string-match-p "- Paused \\[2026-07-27 Mon 17:45\\] (recovered)" disk)))))
+      ;; The "(recovered)" marker went with the :SESSIONS: drawer
+      ;; (:ID: 9d2fcdad). The repaired CLOCK line asserted above already
+      ;; carries the fact that the interval was closed after the event.
+      (should-not (string-match-p "(recovered)" disk)))))
 
 (ert-deftest claude-code-ide-org-test-close-open-interval-consolidates-on-the-fly ()
   "claude-code-ide-org-close-open-interval must also consolidate the
@@ -1533,30 +1536,23 @@ b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04); the 0:01 and 0:02 intervals below
 are the shape that used to vanish — the first rounded to zero and was
 dropped, the second absorbed into a 5-minute block.
 
-:SESSIONS: day-collapsing is unaffected and still asserted here: this
-change is about not rewriting *durations*, not about abandoning
-consolidation."
+Consolidation now has nothing else to do: the :SESSIONS: half went with
+the drawer (:ID: 9d2fcdad), so a drawer already in newest-first order is
+a no-op end to end."
   (claude-code-ide-org-test--with-heading
     (goto-char (point-max))
     (insert (concat
-             ":SESSIONS:\n"
-             "- Resumed [2026-07-28 Tue 10:53]\n"
-             "- Paused [2026-07-28 Tue 10:54]\n"
-             "- Resumed [2026-07-28 Tue 10:57]\n"
-             "- Paused [2026-07-28 Tue 10:59]\n"
-             ":END:\n"
              ":LOGBOOK:\n"
              "CLOCK: [2026-07-28 Tue 10:57]--[2026-07-28 Tue 10:59] =>  0:02\n"
              "CLOCK: [2026-07-28 Tue 10:53]--[2026-07-28 Tue 10:54] =>  0:01\n"
              ":END:\n"))
     (save-buffer)
     (let ((result (claude-code-ide-org-consolidate-history id)))
-      ;; :SESSIONS: alone -- the :LOGBOOK: is now left byte-identical, so
-      ;; there is nothing to report about it. This assertion is the
-      ;; clearest statement of the change: consolidation used to always
-      ;; have something to say about :LOGBOOK:, and now only speaks up
-      ;; when something other than durations differs.
-      (should (string-match-p "\\`Consolidated :SESSIONS: on \"Test heading\"\\'" result)))
+      ;; Nothing to report at all. Durations are left exactly as recorded
+      ;; (:ID: b74e0f19) and there is no second drawer to collapse
+      ;; (:ID: 9d2fcdad), so this is the clearest statement of what the
+      ;; function has become: ordering, and nothing else.
+      (should (string-match-p "\\`Nothing to consolidate on \"Test heading\"\\'" result)))
     (should (not (buffer-modified-p (get-file-buffer file))))
     (let ((disk (claude-code-ide-org-test--disk-contents file)))
       ;; Both intervals survive, unrounded and unmerged. Splitting on a
@@ -1565,15 +1561,9 @@ consolidation."
       (should (string-match-p
                ":LOGBOOK:\nCLOCK: \\[2026-07-28 Tue 10:57\\]--\\[2026-07-28 Tue 10:59\\] =>  0:02\nCLOCK: \\[2026-07-28 Tue 10:53\\]--\\[2026-07-28 Tue 10:54\\] =>  0:01\n:END:"
                disk))
-      ;; :SESSIONS: collapses to one min-to-max pair for the single day.
-      (should (string-match-p "- Resumed \\[2026-07-28 Tue 10:53\\]" disk))
-      (should (string-match-p "- Paused \\[2026-07-28 Tue 10:59\\]" disk))
-      ;; Matched as :SESSIONS: entries specifically. A bare "10:54]" would
-      ;; now also hit the CLOCK line that legitimately retains that time --
-      ;; the whole point of this change -- and quietly stop testing the
-      ;; day-collapse it was written for.
-      (should (not (string-match-p "- Paused \\[2026-07-28 Tue 10:54\\]" disk)))
-      (should (not (string-match-p "- Resumed \\[2026-07-28 Tue 10:57\\]" disk))))))
+      ;; No drawer is created, and none is expected: consolidation writes
+      ;; :LOGBOOK: and nothing else now.
+      (should-not (string-match-p ":SESSIONS:" disk)))))
 
 (ert-deftest claude-code-ide-org-test-consolidate-history-preserves-open-interval ()
   "An open CLOCK line and a trailing unmatched Resumed — today's
@@ -1647,34 +1637,6 @@ heading's exact drawer shape."
                disk))
       (should (string-match-p
                "  Auto-promoted: sole remaining TODO in its sibling group\\."
-               disk)))))
-
-(ert-deftest claude-code-ide-org-test-consolidate-history-preserves-non-session-lines ()
-  "Consolidation must never delete :SESSIONS: lines that aren't
-Resumed/Paused entries — e.g. org_log_background_plan's
-\"Background-planned\" write-backs — while Resumed/Paused pairs
-still collapse per day (same losslessness rule as the :LOGBOOK:
-test above, TODO.org :ID: ba8249c1-28cd-4ff1-918b-4b8439345d9a)."
-  (claude-code-ide-org-test--with-heading
-    (goto-char (point-max))
-    (insert (concat
-             ":SESSIONS:\n"
-             "- Resumed [2026-07-28 Tue 10:53]\n"
-             "- Paused [2026-07-28 Tue 10:54]\n"
-             "- Background-planned [2026-07-28 Tue 11:15] (session abc123-bg1)\n"
-             "- Resumed [2026-07-28 Tue 10:57]\n"
-             "- Paused [2026-07-28 Tue 10:59]\n"
-             ":END:\n"))
-    (save-buffer)
-    (claude-code-ide-org-consolidate-history id)
-    (let ((disk (claude-code-ide-org-test--disk-contents file)))
-      ;; Day still collapses to its min-to-max pair...
-      (should (string-match-p "- Resumed \\[2026-07-28 Tue 10:53\\]" disk))
-      (should (string-match-p "- Paused \\[2026-07-28 Tue 10:59\\]" disk))
-      (should (not (string-match-p "10:54\\]\\|10:57\\]" disk)))
-      ;; ...and the Background-planned line survives verbatim.
-      (should (string-match-p
-               "- Background-planned \\[2026-07-28 Tue 11:15\\] (session abc123-bg1)"
                disk)))))
 
 (ert-deftest claude-code-ide-org-test-consolidate-history-noop-when-nothing-to-do ()
