@@ -624,6 +624,102 @@ Do not read "GTD likes planning states" as "keep the hook."
 Still =MAYBE=, still deferred on the original terms. Nothing above is
 adopted; the sequence is unchanged pending a decision.
 
+** TODO org_capture omits the :CREATED: property its own convention requires :code:
+:PROPERTIES:
+:ID:       cdcc065c-628d-4350-b1ba-fcf686e9c4c1
+:CREATED:  [2026-08-11 Tue 07:31]
+:END:
+
+CLAUDE.md is unambiguous: "any newly created org heading gets a
+=:CREATED:= property in its property drawer, stamped with an inactive
+timestamp at creation time, alongside its =:ID:=. Applies to every
+heading creation." The one tool whose entire job is creating headings
+does not do it.
+
+Its template, built fresh per call in =claude-code-ide-org-capture=, is
+exactly:
+
+: "* TODO %i\n:PROPERTIES:\n:ID:       %s\n:END:\n"
+
+Title, =:ID:=, nothing else. Confirmed 2026-08-11 by grep: the string
+=CREATED= appears nowhere in config.el, so nothing adds it afterwards
+either. Every =:CREATED:= currently in TODO.org is there because a human
+or Claude hand-wrote it while composing the heading in Elisp — which is
+also why the gap has gone unnoticed: the path that honours the rule is
+the path that bypasses the tool.
+
+*Fix:* add =:CREATED:  %%U= to the template. org-capture's =%U= expands
+to an inactive timestamp with date and time, which is precisely the
+convention's format. Note the doubled =%%=: the template is assembled
+with =format=, which is why the existing title escape is written =%%i=.
+Match the drawer's existing alignment (=:CREATED:= followed by two
+spaces) so captured headings are indistinguishable from hand-written
+ones.
+
+*Test:* the existing capture coverage should additionally assert a
+=:CREATED:= that parses as an inactive timestamp — not merely that the
+string is present, since a template escape that silently fails to expand
+would leave a literal =%U= and still match a naive check.
+
+Worth reading with [[id:7fa68d5c-b6c0-43df-85c6-764b1d56511f][7fa68d5c]], which
+records the larger reason this matters less than it looks: almost
+nothing in this project is captured through this tool.
+
+** TODO Fall back to the queue when org_capture cannot reach Emacs :code:
+:PROPERTIES:
+:ID:       7fa68d5c-b6c0-43df-85c6-764b1d56511f
+:CREATED:  [2026-08-11 Tue 07:31]
+:END:
+
+=org_capture= requires a live Emacs. When the server is unreachable the
+call fails outright and the task exists only in the conversation, which
+ends. Not hypothetical: on 2026-08-10 the Emacs server was down for the
+first ten minutes or so of a session (=emacsclient= reporting "can't
+find socket"), and any capture attempted then would simply have been
+lost.
+
+This is the one creation path that cannot use the property the event
+queue exists for — durable, cheap, no Emacs required. Everything else a
+session records survives an Emacs outage; the act of writing down a new
+task does not.
+
+*Proposal:* attempt the live capture; on failure, append a =capture=
+event to the queue, and let apply create the heading.
+
+*Three things this raises, none of them settled:*
+- *It is the queue's first outbox use.* Every existing kind is a
+  proposal about a heading that already exists; a =capture= event would
+  bring one into being. That is a genuinely different contract, and the
+  review buffer would need to render it as such.
+- *The :ID: must be minted by the session, not at apply time.* An ID
+  assigned on application is useless to the session that queued it — it
+  could not link to the heading, block on it, or clock against it, which
+  is exactly what =claude-code-ide-org-capture= returns its ID for
+  today. Minting without Emacs is fine (=org-id-new= is a UUID), but it
+  means an ID can be referenced before the heading it names exists.
+- *Reconciliation.* If the live capture succeeded and only its reply was
+  lost, applying the queued event would duplicate the heading. A
+  session-minted ID gives apply a cheap idempotency key: if that :ID:
+  already resolves, the event is already realised.
+
+*The larger caveat, which bears on this and on
+[[id:cdcc065c-628d-4350-b1ba-fcf686e9c4c1][cdcc065c]] both.* This tool creates a bare
+=* TODO <title>= at top level in a single target file. It cannot place a
+heading under a named parent, nor carry tags, a body, or any property
+beyond the =:ID:= it generates. Consequently almost every heading in
+this project is written by direct Elisp instead — four were created that
+way on 2026-08-10 alone, none through the tool. So instrumenting or
+repairing =org_capture= improves a path that is rarely taken, and the
+prior question is whether the tool should become capable enough to be
+worth using. Decide that first; it may reorder or absorb both headings.
+
+*Considered and set aside:* queueing a =capture= event on *every*
+capture, as an audit record carrying =session_id=/=agent_id= — which is
+the only place session attribution exists, and would answer "which
+session created this heading?" structurally rather than from prose in
+the body. Rejected for now on the caveat above: it would record almost
+nothing real. Revisit if the tool becomes the normal creation path.
+
 * Clock lifecycle & visibility
 
 Everything here is specifically about the clock subsystem's
