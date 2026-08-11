@@ -1556,6 +1556,34 @@ the stale-interval-recovery feature, whose premise this design removes.
 narrowed to the logging half. Each carries its own note; this is just
 the index.
 
+*Plan staleness audited 2026-08-11.* This epic's own plan file has been
+superseded on most of its concrete decisions by the two later plans, and
+nothing in it says so. A reader reaching for it first — which is what an
+epic-level plan invites — would be misled on the queue path, the schema,
+attribution and apply bookkeeping alike:
+
+| the plan says                                                                   | what was built                                                                |
+|---------------------------------------------------------------------------------+-------------------------------------------------------------------------------|
+| queue at =<repo>/.claude/org-updates/=                                          | =~/.claude/org-updates/=, global                                              |
+| =session_id= as explicit tool arguments                                         | the hook writes it; the tool never sees it                                    |
+| missing =session_id= lands in =unattributed.jsonl=, "never dropped"             | the event is dropped outright                                                 |
+| every event carries a UUID =event_id=; =applied= events append to the same file | no =event_id= exists; applied state is a sibling =.applied= set               |
+| schema =(event_id, heading_id, payload)=                                        | =(ts, kind, id, state, from, note, session_id, agent_id, agent_type, source)= |
+| an elisp writer plus =bin/org-queue-append=                                     | shell only, at =bin/hooks/queue-append=                                       |
+| retire =--trigger-auto-clock-in=                                                | kept, and suppressed during apply via the re-entrancy guard                   |
+| branch =feature/event-queue-review=                                             | =feature/event-queue-format=                                                  |
+
+*And one live contradiction, not merely staleness.* The plan's decision 5
+records the =:SESSIONS:= drawer's retirement as *confirmed with the
+user*. [[id:9d2fcdad-9bf7-47b6-8018-223b13ec4577][9d2fcdad]], written a
+day later, treats the same question as deliberately deferred and
+=MAYBE=. Both cannot be current, and the disagreement is load-bearing:
+it decides whether a whole subsystem gets deleted.
+
+Until the plan is revised, =event-queue-format.md= and
+=review-and-cutover.md= are authoritative where they disagree with it —
+they are later and were written against real code.
+
 *** DONE Design the append-only event-queue format and per-session file lifecycle :code:
 :PROPERTIES:
 :ID:       32272061-1d78-4726-b13b-90338edb2ba5
@@ -1741,6 +1769,28 @@ Verified: =bin/test= 138/138 (4 new), =bin/queue-append-test= 30/30 (10
 new), and =config.el= live-reloaded with the new arities and tool schema
 confirmed in the running Emacs.
 
+
+*Plan staleness audited 2026-08-11.* =event-queue-format.md= has drifted
+from what shipped in four places:
+- *The watermark design was abandoned.* The plan describes
+  =<session_id>.applied= as holding "the =ts= of the last applied
+  event," with everything at or before it treated as consumed. The
+  implementation stores an applied *set*, because a high-water mark
+  cannot advance past a skipped item — observed live 2026-08-07, when a
+  real apply wrote no watermark at all and would have re-proposed
+  everything.
+- *It states the ="Error:"= suppression as working.* It does not, for
+  the response shape a real failing MCP call produces; see
+  [[id:5e2a1c04-7b3f-4d21-9c88-2f6e0a91b7d3][5e2a1c04]]. The plan
+  documents an intent the code does not achieve, which is worse than
+  documenting nothing.
+- *The schema table is missing three fields* added since: =note= (the
+  amendment covers it), =agent_type=, and =from=.
+- *The "no auto-rounding" rationale points at machinery that no longer
+  exists.* Rounding was retired outright in
+  [[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]]; the conclusion
+  still holds but the reason cited for it, and the =config.el:900/991=
+  line references, do not.
 *** TODO Rework the MCP tool / hook write paths to append-only :code:
 :PROPERTIES:
 :ID:       feba67eb-35b3-48bd-a892-8ecd47ca52e0
@@ -1817,6 +1867,20 @@ sitting alongside them):
   independent. Concrete supporting case for why the backdated-
   timestamp sub-task below matters as much as it does.
 
+
+*Plan staleness audited 2026-08-11.* Phase B of =review-and-cutover.md=
+inherits the stale watermark and rounding passages noted on
+[[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]], and has a
+structural weakness of its own: it is a *list of edits*, not a sequenced
+plan. Phase A gets ordering, hook interactions and failure modes; Phase B
+gets bullet points. For the epic's single behavior-changing commit — the
+one whose rollback story is "git revert" — that asymmetry is worth
+correcting before execution rather than during it.
+
+Specifically unaddressed by the bullets: what order the edits land in so
+the suite stays green between them, and what the first session after the
+cutover is expected to look like, which is the only real check that the
+write paths are all actually severed.
 *** DOING Build the interactive review-and-apply Emacs command :code:
 :PROPERTIES:
 :ID:       720b2dcf-6af1-45f3-96a7-aa841e5651e1
@@ -1952,6 +2016,21 @@ logging path behaves differently under =emacsclient -e= than in batch,
 so nothing above proves the interactive apply works end to end. That is
 the gate before [[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]].
 
+
+*Plan staleness audited 2026-08-11.* Phase A of =review-and-cutover.md=
+carries the same two drifts as the schema plan — it describes the
+watermark as advancing "only to the last *contiguous* applied event"
+when the implementation stores an applied set, and it justifies "no
+rounding" by pointing at =consolidate-history= machinery that
+[[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]] has since removed.
+
+*More consequentially, one item in the plan was silently dropped in
+implementation.* The plan's own rendering mockup includes a line reading
+=unattributed: 2 guideposts=. Nothing in the command displays those; the
+nil-keyed group is skipped whole. Surfacing them is now tracked as
+[[id:3d0487f4-b8f8-451c-88bf-ab537663cbd0][3d0487f4]], which should be
+read as a *regression against this plan* rather than as a new idea —
+it was designed in from the start.
 *** DONE Root-cause how apply wrote a DONE nobody queued, onto the wrong heading :code:
 :PROPERTIES:
 :ID:       3d93021d-1d8a-4657-bc5c-77734f91fb9d
@@ -2149,9 +2228,9 @@ refuses silently.
 all -- that is the premise the queue rests on -- so it cannot ask what
 state a heading held. Instead =org_set_todo= now reports it, as
 =TODO state set to DOING (was NEXT): "HEADING"=, and the hook recovers
-it with the same =sed= it already uses for =org_clock_out='s heading
-:ID:. Authoritative in the same way: it cannot disagree with what
-happened.
+it with the same =sed= it already uses to recover =org_clock_out='s
+heading =:ID:=. Authoritative in the same way: it cannot disagree with
+what happened.
 
 Three values, deliberately kept distinct, because collapsing any two
 turns the check off silently:
@@ -2187,6 +2266,22 @@ and this heading stays =DOING= until it has happened.
 
 
 
+
+*Sequencing knot, identified 2026-08-11.* This heading is
+=:BLOCKER:=-ed by [[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]],
+and its own outcome note above says it stays =DOING= until an interactive
+pass verifies it. Those two cannot both be satisfied in the obvious
+order: state items cannot be interactively verified before the cutover,
+because =org_set_todo= currently writes live *and* queues, so every
+queued =todo= event is stale against reality by construction and the
+guard correctly refuses all of them.
+
+It resolves only by accepting that this heading stays =DOING= across
+[[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]] — or, cheaper and
+better, by hand-writing a queue file whose =from= matches the heading's
+actual state and applying that. That verifies the guard live today with
+no cutover, and it is worth doing *before* the cutover rather than after,
+since this guard is a large part of what makes the cutover safe to run.
 *** TODO Sort :LOGBOOK: chronologically, keeping notes with their continuations :code:
 :PROPERTIES:
 :ID:       af7d3687-6d1e-4480-a9e2-df772785713f
@@ -2762,6 +2857,26 @@ inactive-timestamp list item inside =:LOGBOOK:=, run
 direct, matches this project's own "confirmed live, not just
 theorized" discipline.
 
+
+*Further discharged than its state suggests, audited 2026-08-11.* Two of
+this heading's four checklist items are already answered, in writing,
+elsewhere:
+- *Backdated timestamps* — settled by
+  [[id:3d576d29-747f-40b9-a5b3-ecc76679daad][3d576d29]], which also
+  answered the =org-add-log-note=/=org-store-log-note= batch-driving
+  question in the course of proving apply could work at all.
+- *=org-agenda-bulk-*= as a callable base* — answered in
+  =review-and-cutover.md=, with a real finding rather than a shrug:
+  =org-agenda-bulk-mark= keys off =org-hd-marker= text properties on
+  agenda-formatted lines and navigates by property change, so it only
+  works in a buffer org-agenda itself built. Its *design* was copied; its
+  code could not be.
+
+What genuinely remains is the =org-element= question — whether org's
+structural editing API would make apply's drawer writes more robust than
+the current regex and position arithmetic. That one has *gained* weight:
+every drawer-level data-loss incident this project has had
+(=ba8249c1=, =b74e0f19=) lived in exactly that code.
 *** TODO Decide the fate of the stale-interval recovery feature, whose premise this refactor removes :code:
 :PROPERTIES:
 :ID:       7771fc63-9374-4c8a-9e80-24ceec21977c
@@ -2878,6 +2993,19 @@ it to =:LOGBOOK:= guidepost annotations, or dropping it. Probably the
 first, but it is a separate question from whether anything new gets
 written.
 
+
+*Contradiction with the epic's plan, found 2026-08-11.* This heading
+records the =:SESSIONS:= question as deliberately deferred and =MAYBE=.
+=plan-this-task-clever-cupcake.md='s decision 5 records the opposite —
+retirement *confirmed with the user* on 2026-08-06, with the further
+consequence that =2b0988ed= becomes moot and should be CANCELLED.
+
+One of the two is wrong, and it is not a bookkeeping detail: it decides
+whether a drawer, its parser, its consolidator and their tests get
+deleted. This heading is the later document and was written after a day
+of implementation, which argues for it — but the plan claims explicit
+user confirmation, which is stronger evidence than recency. Resolve it
+before either is acted on.
 *** TODO Reconcile or retire the now-likely-superseded clock/session-ownership plans and infrastructure :code:
 :PROPERTIES:
 :ID:       e51d6ba1-cc1d-4745-8aa7-e4b1183a230b
@@ -3206,6 +3334,15 @@ the part that would not have survived contact with practice.
 - Whether assignment should offer the same completion as =org-refile=,
   rather than a bespoke picker.
 
+
+*Reframed 2026-08-11, after auditing the plans:* this is not a new idea.
+=review-and-cutover.md='s Phase A rendering mockup already contains a
+line reading =unattributed: 2 guideposts=, so displaying them was part of
+the review command's design from the outset and was dropped somewhere
+between plan and implementation without a note. Read this heading as a
+*regression against an approved plan*, which raises its priority above
+what a fresh proposal would carry — the design question was already
+settled once.
 ** TODO Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
 :ID:       a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5
