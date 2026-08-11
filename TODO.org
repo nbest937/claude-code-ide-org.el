@@ -2833,6 +2833,10 @@ proven is how you lose data you didn't know you were relying on.
 :BLOCKER:  ids(feba67eb-35b3-48bd-a892-8ecd47ca52e0)
 :END:
 :LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-11 Tue 11:48] \\
+  drawer and machinery fully retired
+- State "DOING"      from "DONE"       [2026-08-11 Tue 11:33] \\
+  user decided: delete SESSIONS entirely
 CLOCK: [2026-08-11 Tue 11:33]--[2026-08-11 Tue 11:38] =>  0:05
 :END:
 
@@ -3071,7 +3075,12 @@ the same time, rather than leaving it to drift.
 :CREATED:  [2026-08-06 Thu 10:47]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-11 Tue 12:00]
+CLOCK: [2026-08-10 Mon 20:09]--[2026-08-10 Mon 20:11] =>  0:02
 CLOCK: [2026-08-10 Mon 19:07]--[2026-08-10 Mon 20:48] =>  1:41
+- <2026-08-10 Mon 19:10>--<2026-08-10 Mon 19:10> record post-cutover vocabulary
+- <2026-08-10 Mon 20:09>--<2026-08-10 Mon 20:11> record post-cutover vocabulary
+- <2026-08-10 Mon 20:47>--<2026-08-10 Mon 20:47> record post-cutover vocabulary
 :END:
 
 Once implemented: rewrite CLAUDE.md's "State transition rules",
@@ -3178,6 +3187,10 @@ durable trace of what a session attempted.
 :CREATED:  [2026-08-10 Mon 15:33]
 :END:
 :LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-10 Mon 18:31] \\
+  rounding retired, floor added, verified live
+- State "DOING"      from "DONE"       [2026-08-10 Mon 18:25] \\
+  retire rounding, add one-minute floor
 CLOCK: [2026-08-10 Mon 18:25]--[2026-08-10 Mon 18:31] =>  0:06
 :END:
 
@@ -4162,3 +4175,55 @@ covers what is linked: an unlinked plan is the one case where a revision
 still overwrites history with no way back — the exact gap the archive
 was built to close.
 
+** TODO Jump to a heading by title, not by pasting a UUID :code:
+:PROPERTIES:
+:ID:       915378ac-3bd4-461d-b0f0-83f67fbb3dac
+:CREATED:  [2026-08-11 Tue 12:02]
+:END:
+
+=org-id-goto= wants the *entire* ID, exactly, and offers no help getting
+it. Verified against the installed org 2026-08-11: it is
+=(interactive "sID: ")=, a plain string prompt with no =completing-read=;
+=org-id-find= resolves through the =org-id-locations= hash, which is
+exact by construction; and the file-level fallback calls
+=org-find-entry-with-id=, also exact. A miss is worse than a fast
+failure — =org-id-find= re-runs =org-id-update-id-locations= and tries
+again, so a partial ID costs a full rescan before returning nothing.
+
+*Why this bites here specifically.* This project is unusually
+ID-centric: every heading carries an =:ID:=, headings cross-reference
+each other as =[[id:...]]=, and both conversation and commit messages
+routinely name headings by their first eight characters — =720b2dcf=,
+=f9f61c04=. Those abbreviations are readable and completely
+unactionable. The gap is not org's fault; it is the cost of a convention
+this project adopted deliberately.
+
+*Proposal:* an interactive command that =completing-read=s over the
+known headings, displaying *titles* rather than UUIDs, and jumps via
+=org-id-goto= with the full ID behind the candidate.
+
+*One design detail worth getting right:* annotate each candidate with
+the ID's first eight characters. Doom's completion styles match against
+the whole candidate string, so typing =720b2dcf= would then narrow
+directly — which makes every abbreviation in these headings, in commit
+messages and in conversation immediately typeable, rather than
+something to look up first. That is most of the value; titles alone
+would be a lesser tool.
+
+*Building the candidates:* =org-id-locations= maps id to file and knows
+nothing about titles, so they have to come from a scan. Either =org-ql=
+over =claude-code-ide-org--tracked-files= — already a dependency, and
+the same path =org_query= uses — or a plain =org-map-entries=. Do not
+cache without measuring first: the tracked set is two files and well
+under a hundred headings, so a rescan per invocation is very likely
+cheaper than any invalidation bug it would buy.
+
+*Not a gap, a convenience.* =C-c C-o= on any =[[id:...]]= link already
+works and needs no new code, because the links in the file carry full
+IDs. Scope this accordingly — it is a small command, not a subsystem.
+
+*Testing:* the candidate-building function is ordinary and testable
+(given a file set, assert the expected id/title pairs). The completion
+UI itself is the fuzzy part and should be a documented manual check,
+per this project's own "reasonably feasible" rule rather than forced
+into a deterministic test.
