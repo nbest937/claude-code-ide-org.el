@@ -168,6 +168,41 @@ for `bin/test` — `bin/test` verifies wrapper-function *behavior* (see
 not just in-memory results); `fboundp` only tells you the symbol exists
 in the running session.
 
+### Deleting a function needs more than a reload
+
+`load-file` evaluates what is *in* a file. It does not unbind what you
+removed *from* it. A deleted `defun` stays live in the running image
+indefinitely, and — worse — anything still holding a reference keeps
+working, so the reload looks clean and the suite passes because batch
+loads a fresh Emacs each time.
+
+Retiring a function therefore takes two steps:
+
+```
+emacsclient -e '(load-file "modules/tools/claude-code-ide-org/config.el")'
+emacsclient -e '(fmakunbound (quote claude-code-ide-org--the-deleted-one))'
+```
+
+Then confirm the *callers* changed too, not just that the symbol is gone
+— a caller's old definition is still resident until the reload replaces
+it:
+
+```
+emacsclient -e '(string-match-p "the-deleted-one" (prin1-to-string (symbol-function (quote claude-code-ide-org-some-caller))))'
+```
+
+Expect `nil`. Note this matches docstrings as well as code, so a
+docstring that *mentions* the retired function will return a position and
+look like a failure — check what matched before believing it.
+
+This is not hypothetical. On 2026-08-11 the `:SESSIONS:` drawer was
+retired: every writer deleted, all 49 drawers removed from the org files,
+suite green. Minutes later a clock-out recreated one, because `config.el`
+had been edited on disk but never reloaded, so the live Emacs was still
+running the old writer. The count caught it; nothing else would have.
+Section 0's rule is the general form — this is the specific trap it
+catches most often here.
+
 ## 5. The Claude-Code-hook-side limit
 
 Editing `.claude/settings.json` (the `Stop`/`UserPromptSubmit`/

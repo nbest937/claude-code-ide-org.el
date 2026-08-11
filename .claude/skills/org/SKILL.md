@@ -271,6 +271,42 @@ existed or is newly created as part of the plan.
 - **Always preserve**: indentation, drawer structure, existing entries — do not
   reformat content the user didn't ask to change.
 
+### Inserting content programmatically
+
+Writing org text from Elisp (via `emacsclient`, which is how larger edits
+are made when the file is open in a live Emacs) fails *silently* in two
+specific ways. Neither errors, and neither is visible in the return value.
+
+- **Any line starting with `* ` becomes a heading.** A horizontal rule
+  written as `* * *`, or prose that happens to wrap so a line begins with
+  an asterisk and a space, silently creates a top-level heading and
+  re-parents everything after it. Use `-----` for a rule. Note `*bold*`
+  at line start is safe — it takes `*` followed by a *space*.
+- **`org-end-of-subtree` on a parent lands past all its children.** Text
+  inserted there belongs to the parent's **last child**, not the parent,
+  because org body text attaches to the nearest preceding heading. This
+  is correct for inserting a new *child heading* and wrong for inserting
+  *body text* on the parent. For body text on a heading that has
+  children, insert before its first child (`outline-next-heading`)
+  instead.
+
+So verify after every programmatic insert, before moving on:
+
+```elisp
+(list :headings (length (org-map-entries (lambda () t)))
+      :parses (condition-case e (progn (org-element-parse-buffer) t)
+                (error (format "%S" e))))
+```
+
+A heading count that moved by anything other than the number of headings
+you meant to add is the `* ` trap. To check *ownership* — which heading a
+block of text actually landed under — find the text's line number and
+walk back to the nearest preceding heading; do not assume.
+
+Prefer `org-element-map` over line regexps when deleting or rewriting
+whole drawers, so a `:DRAWERNAME:` mentioned in *prose* is never matched
+as a real drawer.
+
 ### Generating .org content
 
 When creating tasks or files from scratch, or when adding tasks to an existing file:
