@@ -369,11 +369,15 @@ risky. Only read-only research that writes solely to its own plan file
 6. Don't auto-commit the resulting diff. Leave it for explicit review.
 
 `org_log_background_plan` inserts the `[[file:...][Plan]]` link
-(idempotent — a heading only ever carries one) and appends a
-"Background-planned" `:SESSIONS:` entry tagged with the synthetic
-`session_id`. It never touches `:LOGBOOK:`, the TODO keyword, or the
-clock — the single-clock model can't represent true parallelism honestly,
-so this path doesn't try.
+(idempotent — a heading only ever carries one). It never touches
+`:LOGBOOK:`, the TODO keyword, or the clock — the single-clock model
+can't represent true parallelism honestly, so this path doesn't try.
+
+It still takes a synthetic `session_id`, but no longer records it
+anywhere: that was a `:SESSIONS:` drawer entry, and the drawer was
+retired 2026-08-11 (TODO.org `:ID: 9d2fcdad-…`). Pass it anyway — the
+argument is still validated, and it is the natural hook if per-session
+attribution comes back as a queued event.
 
 ---
 

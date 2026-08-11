@@ -307,24 +307,15 @@ org's own clock-in machinery, when its target directory does not
 
 ;;; :SESSIONS: bracketing log --------------------------------------------------
 
-(ert-deftest claude-code-ide-org-test-clock-in-out-log-sessions-drawer ()
-  "org_clock_in/org_clock_out must log to :SESSIONS:, separately from
-the :LOGBOOK: CLOCK entries, so the full pause/resume history survives
-even when CLOCK entries themselves get fragmented into short bursts."
-  (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
-    (claude-code-ide-org-clock-out)
-    (let ((disk (claude-code-ide-org-test--disk-contents file)))
-      (should (string-match-p ":SESSIONS:" disk))
-      (should (string-match-p "- Resumed \\[" disk))
-      (should (string-match-p "- Paused \\[" disk)))))
-
 (ert-deftest claude-code-ide-org-test-session-pause-closes-clock ()
   (claude-code-ide-org-test--with-heading
     (claude-code-ide-org-clock-in id)
     (claude-code-ide-org-session-pause)
     (should (not (org-clocking-p)))
-    (should (string-match-p "- Paused \\["
+    ;; The :SESSIONS: "Paused" line this used to assert went with the
+    ;; drawer (TODO.org :ID: 9d2fcdad). Closing the clock is the whole
+    ;; contract now, and the CLOCK line is asserted below.
+    (should (string-match-p "CLOCK: \\[[^]]+\\]--\\[[^]]+\\]"
                             (claude-code-ide-org-test--disk-contents file)))))
 
 (ert-deftest claude-code-ide-org-test-session-resume-resumes-same-heading ()
@@ -335,13 +326,12 @@ even when CLOCK entries themselves get fragmented into short bursts."
       (should (string-match-p "\\`Resumed: \"Test heading\"\\'" result)))
     (should (org-clocking-p))
     (should (equal id (org-with-point-at org-clock-marker (org-id-get))))
-    (let* ((disk (claude-code-ide-org-test--disk-contents file))
-           (pos-1 (string-match "- Resumed \\[" disk))
-           (pos-2 (and pos-1 (string-match "- Paused \\[" disk (match-end 0))))
-           (pos-3 (and pos-2 (string-match "- Resumed \\[" disk (match-end 0)))))
-      ;; Resumed, Paused, Resumed — in that order.
-      (should (and pos-1 pos-2 pos-3 (< pos-1 pos-2) (< pos-2 pos-3))))))
-
+    ;; This used to assert a Resumed/Paused/Resumed ordering in the
+    ;; :SESSIONS: drawer. That drawer is gone (TODO.org :ID: 9d2fcdad);
+    ;; the clock landing back on the right heading is what the wrapper
+    ;; actually promises, and it is asserted above.
+    (should-not (string-match-p ":SESSIONS:"
+                                (claude-code-ide-org-test--disk-contents file)))))
 (ert-deftest claude-code-ide-org-test-session-resume-noop-when-already-clocking ()
   (claude-code-ide-org-test--with-heading
     (claude-code-ide-org-clock-in id)
@@ -418,16 +408,6 @@ by a different session — the other half of the concurrency fix."
                    (claude-code-ide-org-session-resume "session-B")))
     (should (org-clocking-p))
     (should (equal id (org-with-point-at org-clock-marker (org-id-get))))))
-
-(ert-deftest claude-code-ide-org-test-session-resume-logs-session-id-in-drawer ()
-  (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-clock-in id)
-    (claude-code-ide-org-session-pause "session-A")
-    (claude-code-ide-org-session-resume "session-A")
-    (should (string-match-p "- Resumed \\[[^]]+\\] (session session-A)"
-                            (claude-code-ide-org-test--disk-contents file)))))
-
-;;; claude-code-ide-org-set-todo -----------------------------------------------
 
 (ert-deftest claude-code-ide-org-test-set-todo-transitions-and-saves ()
   (claude-code-ide-org-test--with-heading
@@ -2121,7 +2101,7 @@ empty range."
 
 ;;; claude-code-ide-org-log-background-plan --------------------------------
 
-(ert-deftest claude-code-ide-org-test-log-background-plan-inserts-link-and-sessions-entry ()
+(ert-deftest claude-code-ide-org-test-log-background-plan-inserts-link ()
   (claude-code-ide-org-test--with-heading
     (let ((result (claude-code-ide-org-log-background-plan
                    id "~/.claude/plans/warm-marinating-puddle.md" "session-A-bg1")))
@@ -2130,9 +2110,11 @@ empty range."
       (should (string-match-p
                "\\[\\[file:~/.claude/plans/warm-marinating-puddle.md\\]\\[Plan\\]\\]"
                disk))
-      (should (string-match-p
-               "- Background-planned \\[[^]]+\\] (session session-A-bg1)"
-               disk)))))
+      ;; The "Background-planned (session ...)" entry went with the
+      ;; :SESSIONS: drawer (TODO.org :ID: 9d2fcdad). SESSION-ID is still
+      ;; accepted and deliberately unrecorded; asserting the drawer's
+      ;; absence keeps that a decision rather than a regression.
+      (should-not (string-match-p ":SESSIONS:" disk)))))
 
 (ert-deftest claude-code-ide-org-test-log-background-plan-is-idempotent ()
   "A heading only ever carries one Plan link -- a second call (e.g. a

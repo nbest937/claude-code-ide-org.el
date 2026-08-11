@@ -353,7 +353,7 @@ Claude is expected to act on must have one (`M-x org-id-get-create`).
 | `org_refile`        | `org-refile`             | Move a subtree under a different parent |
 | `org_move_sibling`  | `org-move-subtree-up/down` | Move a heading up/down among siblings |
 | `org_sort_children` | `org-sort-entries`       | Sort a heading's direct children       |
-| `org_log_background_plan` | custom (insert-link + `--log-session-event`) | Write-back for background-planned headings: Plan link + synthetic `:SESSIONS:` entry; never touches TODO state or the clock |
+| `org_log_background_plan` | custom (insert-plan-link) | Write-back for background-planned headings: inserts the Plan link. Still accepts `session_id`, but no longer records it — that went with `:SESSIONS:`; never touches TODO state or the clock |
 
 Text editing (via the org skill) is used for adding or changing tags,
 generating new headings, and time reporting. `org_query` now covers
@@ -380,10 +380,16 @@ Two separate timekeeping mechanisms, deliberately kept apart:
   stops and is waiting on the user, and resumed the moment the user sends
   the next prompt. A DOING task can therefore accumulate many short CLOCK
   intervals instead of one long one spanning idle waiting time.
-- **The `:SESSIONS:` drawer** (this module's own, separate from `:LOGBOOK:`)
-  is the bracketing history: a plain timestamped log of every pause and
-  resume, so the full wall-clock arc of the task — including the gaps —
-  stays visible even though the CLOCK entries no longer cover it.
+- **The `:SESSIONS:` drawer is retired** (2026-08-11, TODO.org
+  `:ID: 9d2fcdad-9bf7-47b6-8018-223b13ec4577`). It used to hold the
+  bracketing history — a timestamped log of every pause and resume, so
+  the full wall-clock arc including the gaps stayed visible. All 49
+  existing drawers were deleted and nothing writes one now. The
+  per-session event queue holds the same pause/resume stream
+  undecimated, survives without a running Emacs, and carries
+  `session_id`/`agent_id`/`agent_type`/`source`, none of which the
+  drawer recorded. Historical drawers are recoverable from git if that
+  judgement turns out to be wrong.
 
 Driven by two Claude Code hooks, configured in `.claude/settings.json`:
 
@@ -406,18 +412,16 @@ the new task and calls `org_clock_in` on it — `org-clock-in` always closes
 whatever clock is currently running first — so the cost is a short, stray
 CLOCK interval on the wrong heading, not lost time or a stuck state.
 
-**Known cosmetic quirk:** `:SESSIONS:` and `:LOGBOOK:` don't always end up
-in a stable relative order — whichever drawer already exists gets found
-and appended to in place, while a freshly-created one is always inserted
-right after the property drawer, ahead of anything pre-existing. Harmless
-(both remain fully valid, independently parseable drawers), just not
-visually tidy.
+**Resolved by the retirement above:** `:SESSIONS:` and `:LOGBOOK:` used
+to end up in an unstable relative order, since whichever drawer already
+existed was appended to in place while a fresh one landed right after the
+property drawer. With only `:LOGBOOK:` left there is nothing to order.
 
 ### Stale interval recovery
 
 A crash or system shutdown can kill Emacs (or the whole machine) before
 the `Stop` hook gets a chance to pause a running interval, leaving a
-CLOCK line or `:SESSIONS:` entry open indefinitely. Because
+CLOCK line open indefinitely. Because
 `org-clock-persist` is set to `history` (not `t`/`clock`) in the Doom
 config, a restart does *not* auto-resume that in-memory clock state — so
 detection works by scanning the actual *text* of tracked org files for an
@@ -449,9 +453,9 @@ user as a question — the hook itself has no way to literally prompt.
 `claude-code-ide-org-close-open-interval` (via `emacsclient`, not an MCP
 tool — this is a text-level fix for a stale interval, unrelated to
 whatever may currently be clocking) with the heading's `:ID:` and an org
-timestamp string. It closes whichever of the CLOCK line / `:SESSIONS:`
+timestamp string. It closes the open CLOCK line (its `:SESSIONS:`
 entry is actually open (possibly both), computing the CLOCK duration and
-appending a `Paused ... (recovered)` `:SESSIONS:` entry.
+half is inert now that no drawer exists).
 
 **Not yet attempted:** using the system sleep/wake/shutdown log (`pmset
 -g log` on macOS) as a more precise guess signal than working hours alone

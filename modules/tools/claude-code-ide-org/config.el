@@ -291,13 +291,16 @@ find-or-create-drawer problem for :LOGBOOK:."
 (defvar claude-code-ide-org--log-session-id nil
   "Dynamically let-bound around `claude-code-ide-org-session-pause'/
 `-resume's body to the calling Claude Code session's session-id
-string, when known, so `claude-code-ide-org--log-session-event' can
-record which session paused/resumed a clock. Left nil for a manual/
-test call or any invocation with no session context — the :SESSIONS:
-line is then written exactly as it always was, with no session
-suffix. Same dynamic-binding convention as `claude-code-ide-org--log-
-source' above, for the same reason: composes correctly if one of
-these wrappers is ever called from inside another.")
+string, when known.
+
+Nothing reads it any more.  It existed so the :SESSIONS: drawer could
+record which session paused or resumed a clock; that drawer was retired
+2026-08-11 (TODO.org :ID: 9d2fcdad-9bf7-47b6-8018-223b13ec4577).  Kept
+because the binding sites are harmless and session attribution is being
+rebuilt properly in the event queue, where `session_id' arrives on hook
+stdin rather than having to be threaded through a dynamic variable.
+Delete it with the ownership variables at the cutover if nothing has
+claimed it by then.")
 
 (defvar claude-code-ide-org--clock-owner-session-id nil
   "Session ID of the Claude Code session whose turn boundary most
@@ -328,18 +331,17 @@ one running clock, so \"last session to set PLANNING\" is all that's
 meaningful. Cleared after a successful promotion. Purely in-memory:
 resets naturally on Emacs restart.")
 
-(defun claude-code-ide-org--log-session-event (event)
-  "Append a timestamped EVENT line to the :SESSIONS: drawer of the
-heading at point.  EVENT is a short label such as \"Resumed\" or
-\"Paused\".  Appends the session-id from the dynamically-bound
-`claude-code-ide-org--log-session-id', in parentheses, when it is
-non-nil."
-  (claude-code-ide-org--append-to-drawer
-   "SESSIONS"
-   (format "- %s %s%s" event (format-time-string "[%Y-%m-%d %a %H:%M]")
-           (if claude-code-ide-org--log-session-id
-               (format " (session %s)" claude-code-ide-org--log-session-id)
-             ""))))
+;; The :SESSIONS: drawer was retired 2026-08-11 (TODO.org :ID:
+;; 9d2fcdad-9bf7-47b6-8018-223b13ec4577). It held a Paused/Resumed line
+;; per turn boundary, collapsed to one min-to-max span per day, as "the
+;; bracketing history" beside :LOGBOOK:'s CLOCK entries. Every existing
+;; drawer was deleted and nothing writes one now.
+;;
+;; What replaced it is the per-session event queue: the same pause/resume
+;; timestamps, undecimated, durable without Emacs, and carrying
+;; session_id/agent_id/agent_type/source, none of which the drawer ever
+;; recorded. Reviewed spans reach :LOGBOOK: as annotation lines; the raw
+;; stream stays in the queue file, archived rather than deleted.
 
 ;;; Wrappers --------------------------------------------------------------
 
@@ -370,7 +372,6 @@ one being clocked into — the same bug shape that already bit
        (let ((heading (org-get-heading t t t t))
              (previous-buffer (and (org-clocking-p) (marker-buffer org-clock-marker))))
          (org-clock-in)
-         (claude-code-ide-org--log-session-event "Resumed")
          (save-buffer)
          (when (and previous-buffer
                     (buffer-live-p previous-buffer)
@@ -457,7 +458,6 @@ remains available to call deliberately."
                 (buffer (marker-buffer org-clock-marker))
                 id)
             (org-with-point-at org-clock-marker
-              (claude-code-ide-org--log-session-event "Paused")
               (setq id (org-entry-get nil "ID")))
             ;; org-clock-out-remove-zero-time-clocks (t in this user's
             ;; Doom config, not this project's own setting) deletes the
@@ -566,8 +566,6 @@ pause/resume with no session context should still behave as before)."
           (org-clock-in-last)
           (if (not (org-clocking-p))
               "org-clock-in-last did not start a clock."
-            (org-with-point-at org-clock-marker
-              (claude-code-ide-org--log-session-event "Resumed"))
             (setq claude-code-ide-org--clock-owner-session-id session-id)
             (let ((buffer (marker-buffer org-clock-marker)))
               (when (buffer-live-p buffer)
@@ -2047,22 +2045,29 @@ once and never needs updating\" rule for plan revisions."
 
 (defun claude-code-ide-org-log-background-plan (id plan-file session-id)
   "Record a completed background-planning pass on the heading whose
-:ID: property equals ID: insert a Plan-file link (idempotent, see
-`claude-code-ide-org--insert-plan-link') and append a \"Background-
-planned\" entry to the heading's :SESSIONS: drawer tagged with
-SESSION-ID -- a synthetic id, never the orchestrating session's own
-real session id (e.g. \"<real-session-id>-bg1\"), so unattended
-background research time is never misattributed as that session's own
-interactive work.  Never transitions TODO state and never touches the
-clock or either PLANNING/clock owner variable -- the single shared
-clock cannot represent true parallelism honestly, so this tool
-structurally cannot produce a CLOCK/:LOGBOOK: entry."
+:ID: property equals ID by inserting a Plan-file link (idempotent, see
+`claude-code-ide-org--insert-plan-link').  Never transitions TODO state
+and never touches the clock -- the single shared clock cannot represent
+true parallelism honestly, so this tool structurally cannot produce a
+CLOCK/:LOGBOOK: entry.
+
+SESSION-ID is accepted and no longer recorded.  It used to tag a
+\"Background-planned\" entry in the heading's :SESSIONS: drawer with a
+*synthetic* id (e.g. \"<real-session-id>-bg1\"), so unattended research
+time was never misattributed as the orchestrating session's own
+interactive work.  That drawer was retired 2026-08-11 (TODO.org :ID:
+9d2fcdad-9bf7-47b6-8018-223b13ec4577) and its entries deleted, including
+these -- a deliberate choice, made knowing this was the only record of
+which session background-planned a heading and when.  The argument
+against keeping them: a drawer surviving for one rare entry is worse
+than either clean outcome, and the queue is where per-session
+attribution belongs now.  The parameter stays in the signature so the
+MCP tool schema and its callers are unaffected; wire it to a queued
+event if that attribution is ever wanted back."
   (claude-code-ide-org--at-id
    id
    (lambda ()
      (claude-code-ide-org--insert-plan-link plan-file)
-     (let ((claude-code-ide-org--log-session-id session-id))
-       (claude-code-ide-org--log-session-event "Background-planned"))
      (save-buffer)
      (format "Logged background plan for \"%s\"." (org-get-heading t t t t)))))
 

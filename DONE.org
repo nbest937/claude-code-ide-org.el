@@ -13,10 +13,6 @@ Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
 :END:
-:SESSIONS:
-- Resumed [2026-07-29 Wed 01:56]
-- Paused [2026-07-29 Wed 01:57]
-:END:
 :LOGBOOK:
 :END:
 Structural manipulation, lower priority than org_query — nice to
@@ -39,10 +35,6 @@ keywords that disagree. =bin/test= 39/39 at merge.
 :ARCHIVE_OLPATH: Roadmap/New MCP tools
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
-:END:
-:SESSIONS:
-- Resumed [2026-07-29 Wed 01:59]
-- Paused [2026-07-29 Wed 02:00]
 :END:
 :LOGBOOK:
 :END:
@@ -78,9 +70,6 @@ error). =bin/test= 44/44 at merge.
 :ARCHIVE_OLPATH: Roadmap/Enforce the transition rules
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
-:END:
-:SESSIONS:
-- Resumed [2026-07-28 Tue 21:28]
 :END:
 Structural enforcement inside org itself. Block DONE while a clock
 is still running on that heading, or auto-open a clock the moment
@@ -123,10 +112,6 @@ a redundant clock-in, trigger doesn't fire for non-DOING states).
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
 :END:
-:SESSIONS:
-- Resumed [2026-07-29 Wed 02:03]
-- Paused [2026-07-29 Wed 02:03]
-:END:
 Once the two enforcement layers above exist, they need the same
 regression-test treatment the four wrappers already get — this
 exact class of bug (silent success, wrong on-disk state) is what
@@ -151,10 +136,6 @@ its own separate test vehicle, scoped as a sibling deliverable.
 :ARCHIVE_OLPATH: Roadmap/New MCP tools
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
-:END:
-:SESSIONS:
-- Resumed [2026-07-29 Wed 02:06]
-- Paused [2026-07-29 Wed 02:07]
 :END:
 :LOGBOOK:
 :END:
@@ -191,9 +172,6 @@ resolve. 4 ERT tests added in total; =bin/test= 37/37 at merge.
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
 :END:
-:SESSIONS:
-- Resumed [2026-07-29 Wed 01:57]
-:END:
 :LOGBOOK:
 CLOCK: [2026-07-29 Wed 01:57]--[2026-07-29 Wed 01:59] =>  0:02
 :END:
@@ -217,9 +195,6 @@ merge, no deviations from the plan.
 :ARCHIVE_OLPATH: Roadmap/Enforce the transition rules
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
-:END:
-:SESSIONS:
-- Resumed [2026-07-29 Wed 02:08]
 :END:
 A hook on org_set_todo that inspects the requested state against
 current clock state and rejects the call outright — e.g. DOING→DONE
@@ -253,9 +228,6 @@ event).
 :ARCHIVE_OLPATH: Roadmap/Clock lifecycle & visibility
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
-:END:
-:SESSIONS:
-- Resumed [2026-07-29 Wed 02:08]
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-29 Wed 02:08]--[2026-07-29 Wed 02:09] =>  0:01
@@ -299,10 +271,6 @@ deliberately scan file *text* instead.)
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
 :END:
-:SESSIONS:
-- Resumed [2026-07-29 Wed 02:09]
-- Paused [2026-07-29 Wed 02:11]
-:END:
 :LOGBOOK:
 :END:
 Surface "what was I last doing." On any Claude Code session start
@@ -335,12 +303,6 @@ from the isolated worktree. =bin/test= 68/68 at merge.
 :ARCHIVE_OLPATH: Roadmap/Observability
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
-:END:
-:SESSIONS:
-- Resumed [2026-07-28 Tue 21:28]
-- Paused [2026-07-28 Tue 21:29]
-- Resumed [2026-07-28 Tue 21:31]
-- Resumed [2026-07-29 Wed 05:53]
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-29 Wed 05:53]--[2026-07-29 Wed 05:55] =>  0:02
@@ -392,10 +354,6 @@ own additional test).
 :ARCHIVE_OLPATH: Roadmap/New MCP tools
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
-:END:
-:SESSIONS:
-- Resumed [2026-07-29 Wed 02:00]
-- Paused [2026-07-29 Wed 02:04]
 :END:
 :LOGBOOK:
 :END:
@@ -453,24 +411,6 @@ Then ask Claude to finish the commit it already staged.
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
 :END:
-:SESSIONS:
-- Resumed [2026-07-28 Tue 13:03]
-- Paused [2026-07-28 Tue 15:58]
-- Resumed [2026-07-28 Tue 16:08]
-- Paused [2026-07-28 Tue 16:09]
-- Resumed [2026-07-28 Tue 16:16]
-- Paused [2026-07-28 Tue 16:17]
-- Resumed [2026-07-28 Tue 16:24]
-- Paused [2026-07-28 Tue 16:25]
-- Resumed [2026-07-28 Tue 16:25]
-- Paused [2026-07-28 Tue 16:25]
-- Resumed [2026-07-28 Tue 16:29]
-- Paused [2026-07-28 Tue 16:32]
-- Resumed [2026-07-28 Tue 16:33]
-- Paused [2026-07-28 Tue 16:33]
-- Resumed [2026-07-28 Tue 16:40]
-- Paused [2026-07-28 Tue 16:40]
-:END:
 :LOGBOOK:
 CLOCK: [2026-07-28 Tue 16:29]--[2026-07-28 Tue 16:32] =>  0:03
 CLOCK: [2026-07-28 Tue 16:24]--[2026-07-28 Tue 16:25] =>  0:01
@@ -498,10 +438,6 @@ under Clock lifecycle & visibility.
 :ARCHIVE_OLPATH: Roadmap/Developer tooling
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
-:END:
-:SESSIONS:
-- Resumed [2026-07-28 Tue 10:53]
-- Paused [2026-07-28 Tue 13:01] (recovered)
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-28 Tue 12:35]--[2026-07-28 Tue 13:00] =>  0:25
@@ -598,10 +534,6 @@ decision rather than made unilaterally here.
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
 :END:
-:SESSIONS:
-- Resumed [2026-07-28 Tue 12:16]
-- Paused [2026-07-28 Tue 12:27]
-:END:
 Structured search over headings. Biggest ROI item here: most of
 what's actually slow today is Claude reading whole files to answer
 things a real query would answer in one call — "what's blocked",
@@ -651,10 +583,6 @@ tool never exposes that path.
 :ARCHIVE_OLPATH: Roadmap/Clock lifecycle & visibility
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
-:END:
-:SESSIONS:
-- Resumed [2026-07-28 Tue 16:48]
-- Paused [2026-07-28 Tue 17:00] (recovered)
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-28 Tue 16:50]--[2026-07-28 Tue 17:00] =>  0:10
@@ -708,10 +636,6 @@ the heading that was just clocked out of.
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-29 Wed 11:45]--[2026-07-29 Wed 12:05] =>  0:20
-:END:
-:SESSIONS:
-- Resumed [2026-07-29 Wed 11:37]
-- Paused [2026-07-29 Wed 12:21]
 :END:
 Tonight's parallel-subagent batch (10 MCP tools) left every archived
 heading's Plan checkboxes at all-[ ], despite full implementation —
@@ -776,12 +700,6 @@ linked plan for the full resolution.
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
 :END:
-:SESSIONS:
-- Resumed [2026-07-29 Wed 18:40]
-- Paused [2026-07-29 Wed 19:01]
-- Resumed [2026-07-30 Thu 07:12]
-- Paused [2026-07-30 Thu 07:20]
-:END:
 :LOGBOOK:
 CLOCK: [2026-07-30 Thu 07:10]--[2026-07-30 Thu 07:20] =>  0:10
 CLOCK: [2026-07-29 Wed 18:40]--[2026-07-29 Wed 18:55] =>  0:15
@@ -834,10 +752,6 @@ only this heading while it was active.
 CLOCK: [2026-07-30 Thu 12:20]--[2026-07-30 Thu 12:25] =>  0:05
 CLOCK: [2026-07-30 Thu 12:05]--[2026-07-30 Thu 12:15] =>  0:10
 :END:
-:SESSIONS:
-- Resumed [2026-07-30 Thu 09:53]
-- Paused [2026-07-30 Thu 12:23]
-:END:
 [[file:~/.claude/plans/use-pipx-instead-use-starry-metcalfe.md][Plan]]
 
 Warp's own agent (already used on this repo — see commits
@@ -872,10 +786,6 @@ diverge later.
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
-:END:
-:SESSIONS:
-- Resumed [2026-07-29 Wed 12:29]
-- Paused [2026-07-29 Wed 18:40]
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-29 Wed 18:20]--[2026-07-29 Wed 18:30] =>  0:10
@@ -919,10 +829,6 @@ returns real clocked time instead of an empty table.
 :ARCHIVE_OLPATH: Clock lifecycle & visibility
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
-:END:
-:SESSIONS:
-- Resumed [2026-07-30 Thu 14:47]
-- Paused [2026-07-30 Thu 14:47]
 :END:
 Caught live in this session: =org-clock-in-last= (called by
 =session-resume= on =UserPromptSubmit=) resumes onto

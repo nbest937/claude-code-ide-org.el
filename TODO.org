@@ -9,10 +9,6 @@
 :ID:       05da96ad-37de-41d4-b918-692644749394
 :CREATED:  [2026-08-03 Mon 19:17]
 :END:
-:SESSIONS:
-- Resumed [2026-08-04 Tue 12:19] (session c628ac7a-4135-4412-834a-1bb553d582d8)
-- Paused [2026-08-04 Tue 12:20] (recovered)
-:END:
 :LOGBOOK:
 CLOCK: [2026-08-04 Tue 12:15]--[2026-08-04 Tue 12:20] =>  0:05
 :END:
@@ -69,10 +65,6 @@ interactive note prompt.
 :PROPERTIES:
 :ID:       04d0e7d5-ab6b-4972-925d-d517484c7595
 :CREATED:  [2026-08-04 Tue 13:10]
-:END:
-:SESSIONS:
-- Resumed [2026-08-04 Tue 13:21] (session c628ac7a-4135-4412-834a-1bb553d582d8)
-- Paused [2026-08-04 Tue 13:29] (session c628ac7a-4135-4412-834a-1bb553d582d8)
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-04 Tue 13:10]--[2026-08-04 Tue 13:20] =>  0:10
@@ -137,12 +129,6 @@ buffer ever created.
 :PROPERTIES:
 :ID:       b95b9fba-f78e-48fe-8546-988709cce309
 :CREATED:  [2026-08-04 Tue 14:19]
-:END:
-:SESSIONS:
-- Resumed [2026-08-04 Tue 14:37] (session 8564fffc-fca9-4e7a-bfed-e26be74361cf)
-- Paused [2026-08-04 Tue 16:00] (session 8564fffc-fca9-4e7a-bfed-e26be74361cf)
-- Resumed [2026-08-05 Wed 10:35]
-- Paused [2026-08-05 Wed 14:00] (session 2fd8dcf1-aa7e-4061-8495-1933766ae5b4)
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-05 Wed 13:25]--[2026-08-05 Wed 13:30] =>  0:05
@@ -235,11 +221,6 @@ rejection to trigger, neither of which this pass attempted.
 CLOCK: [2026-08-06 Thu 10:00]--[2026-08-06 Thu 10:05] =>  0:05
 CLOCK: [2026-08-06 Thu 09:35]--[2026-08-06 Thu 09:40] =>  0:05
 :END:
-:SESSIONS:
-- Resumed [2026-08-06 Thu 09:36] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd)
-- Paused [2026-08-06 Thu 12:15] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd)
-:END:
-
 [[file:~/.claude/plans/todo-autocapture-dedupe.md][Plan]]
 
 Blocked on the sibling heading above (=Add a PLANNING TODO state,
@@ -291,9 +272,6 @@ org skill's flow this check should fire.
 :PROPERTIES:
 :ID:       d8444673-b047-4755-b62c-d03df738f16a
 :CREATED:  [2026-08-05 Wed 16:12]
-:END:
-:SESSIONS:
-- Resumed [2026-08-06 Thu 09:06] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd)
 :END:
 :LOGBOOK:
 :END:
@@ -409,10 +387,6 @@ plan-file path does not duplicate the Plan link.
 :ID:       087e73e9-bb24-43b6-a972-b7f103d04017
 :CREATED:  [2026-08-04 Tue 17:46]
 :END:
-:SESSIONS:
-- Background-planned [2026-08-05 Wed 18:40] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd-bg2)
-:END:
-
 [[file:~/.claude/plans/blocker-hook-enforcement.md][Plan]]
 
 Captured 2026-08-04, surfaced while adding a =:BLOCKER:= property to
@@ -448,10 +422,6 @@ this project may only need one direction enforced.
 - State "NEXT"       from "TODO"       [2026-08-06 Thu 12:07] \\
   Auto-promoted: sole remaining TODO in its sibling group.
 :END:
-:SESSIONS:
-- Background-planned [2026-08-05 Wed 18:39] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd-bg3)
-:END:
-
 [[file:~/.claude/plans/capture-commit-safety.md][Plan]]
 
 Captured 2026-08-04 from conversation: right now, capturing a new org
@@ -495,10 +465,6 @@ cross-referenced as they are now.
 :PROPERTIES:
 :ID:       c954f650-b92f-4920-9967-ab6c44577b30
 :CREATED:  [2026-08-06 Thu 10:02]
-:END:
-:SESSIONS:
-- Resumed [2026-08-10 Mon 20:48]
-- Paused [2026-08-10 Mon 20:49]
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-10 Mon 20:48]--[2026-08-10 Mon 20:49] =>  0:01
@@ -737,10 +703,6 @@ never silently wrong."
 :ID:       2b0988ed-eb92-4fa7-904a-cb2d10941bfd
 :CREATED:  [2026-08-04 Tue 17:58]
 :END:
-:SESSIONS:
-- Background-planned [2026-08-05 Wed 18:45] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd-bg1)
-:END:
-
 [[file:~/.claude/plans/sessions-logbook-ordering.md][Plan]]
 
 Captured 2026-08-04 from conversation. Org's own =:LOGBOOK:= (both
@@ -778,10 +740,6 @@ worth checking the other's status before starting either.
 :ID:       53b0047d-c55c-486c-8eed-ba4994d97a1a
 :CREATED:  [2026-08-04 Tue 18:27]
 :END:
-:SESSIONS:
-- Background-planned [2026-08-05 Wed 18:49] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd-bg2)
-:END:
-
 [[file:~/.claude/plans/clock-marker-desync-guard.md][Plan]]
 
 Captured 2026-08-04, hit live during this session's TODO.org commit-
@@ -840,10 +798,6 @@ route around it.
 :ID:       582cc7f4-41a2-4666-ad3f-1b76b459147e
 :CREATED:  [2026-08-04 Tue 18:27]
 :END:
-:SESSIONS:
-- Background-planned [2026-08-05 Wed 18:49] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd-bg3)
-:END:
-
 [[file:~/.claude/plans/session-resume-continuity-guard.md][Plan]]
 
 Captured 2026-08-04, observed live and confirmed with real evidence,
@@ -902,10 +856,6 @@ exception).
 :ID:       d150c02e-06fe-4514-bf69-e2cc5d8df4c7
 :CREATED:  [2026-08-05 Wed 14:28]
 :END:
-:SESSIONS:
-- Background-planned [2026-08-05 Wed 19:03] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd-bg1)
-:END:
-
 [[file:~/.claude/plans/clock-in-ownership-recording.md][Plan]]
 
 Captured 2026-08-05, hit live, then re-confirmed and sharpened
@@ -970,10 +920,6 @@ together, not assumed to be one fix.
 :ID:       782cda6c-111c-454e-93eb-b2b27012078b
 :CREATED:  [2026-08-05 Wed 14:28]
 :END:
-:SESSIONS:
-- Background-planned [2026-08-05 Wed 18:59] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd-bg2)
-:END:
-
 [[file:~/.claude/plans/bookkeeping-noise-audit.md][Plan]]
 
 Captured 2026-08-05, raised in conversation: when a session has been
@@ -1067,9 +1013,6 @@ unnoticed inside a 268-line documentation diff.
 :ID:       ba8249c1-28cd-4ff1-918b-4b8439345d9a
 :CREATED:  [2026-08-06 Thu 21:47]
 :END:
-:SESSIONS:
-- Resumed [2026-08-06 Thu 21:55]
-:END:
 :LOGBOOK:
 CLOCK: [2026-08-06 Thu 21:50]--[2026-08-06 Thu 21:55] =>  0:05
 :END:
@@ -1120,10 +1063,6 @@ and regression-tested in the same pass.
 :PROPERTIES:
 :ID:       337f7fb2-b9e9-4c02-82dd-d88e60df364b
 :CREATED:  [2026-07-30 Thu 12:39]
-:END:
-:SESSIONS:
-- Resumed [2026-07-30 Thu 17:32]
-- Paused [2026-07-30 Thu 17:38]
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-30 Thu 17:30]--[2026-07-30 Thu 17:40] =>  0:10
@@ -1184,10 +1123,6 @@ afterward.
 :PROPERTIES:
 :ID:       293ac49e-3324-421c-8495-de1a46fc04ac
 :CREATED:  [2026-07-30 Thu 14:50]
-:END:
-:SESSIONS:
-- Resumed [2026-07-30 Thu 17:25]
-- Paused [2026-07-30 Thu 17:31] (recovered)
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-30 Thu 17:25]--[2026-07-30 Thu 17:30] =>  0:05
@@ -1310,9 +1245,6 @@ instead of coupled to the same file list.
 :ID:       2e09adb7-6e29-499c-a40e-98cd2b327cff
 :CREATED:  [2026-08-04 Tue 13:29]
 :END:
-:SESSIONS:
-- Background-planned [2026-08-05 Wed 19:02] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd-bg3)
-:END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-08-04 Tue 13:30] \\
   Auto-promoted: sole remaining TODO in its sibling group.
@@ -1425,12 +1357,6 @@ apply command clocks in through the same advised =org-clock-in=.
 :PROPERTIES:
 :ID:       b5f7c5c7-7ad6-4c68-9cce-3479db1f1644
 :CREATED:  [2026-08-06 Thu 10:47]
-:END:
-:SESSIONS:
-- Resumed [2026-08-06 Thu 16:48] (session 52e09dcc-b831-4832-8f77-859e9a4ac8a3)
-- Paused [2026-08-06 Thu 21:51] (recovered)
-- Resumed [2026-08-11 Tue 11:10]
-- Paused [2026-08-11 Tue 11:13]
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-11 Tue 11:10]--[2026-08-11 Tue 11:13] =>  0:03
@@ -1591,11 +1517,6 @@ they are later and were written against real code.
 :PROPERTIES:
 :ID:       32272061-1d78-4726-b13b-90338edb2ba5
 :CREATED:  [2026-08-06 Thu 10:47]
-:END:
-:SESSIONS:
-- Resumed [2026-08-06 Thu 22:53]
-- Resumed [2026-08-07 Fri 07:11] (session d847eab1-9e6d-4d67-baf2-457715870457)
-- Paused [2026-08-07 Fri 08:19]
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-06 Thu 22:55]--[2026-08-07 Fri 08:20] =>  9:25
@@ -1889,12 +1810,6 @@ write paths are all actually severed.
 :ID:       720b2dcf-6af1-45f3-96a7-aa841e5651e1
 :CREATED:  [2026-08-06 Thu 10:47]
 :END:
-:SESSIONS:
-- Resumed [2026-08-07 Fri 11:51]
-- Paused [2026-08-07 Fri 21:03] (session d847eab1-9e6d-4d67-baf2-457715870457)
-- Resumed [2026-08-10 Mon 12:45]
-- Paused [2026-08-10 Mon 12:59] (session 2d057349-f536-42c7-b9b5-3fd838aab075)
-:END:
 :LOGBOOK:
 CLOCK: [2026-08-10 Mon 12:55]--[2026-08-10 Mon 13:00] =>  0:05
 CLOCK: [2026-08-10 Mon 12:46]--[2026-08-10 Mon 12:47] =>  0:01
@@ -2040,11 +1955,6 @@ it was designed in from the start.
 :CREATED:  [2026-08-07 Fri 19:40]
 :BLOCKER:  ids(720b2dcf-6af1-45f3-96a7-aa841e5651e1)
 :END:
-:SESSIONS:
-- Resumed [2026-08-07 Fri 21:03]
-- Paused [2026-08-07 Fri 21:05]
-:END:
-
 *The most serious thing the 2026-08-07 interactive apply did, and the
 mechanism is NOT yet understood.* Recorded with that uncertainty intact
 rather than a plausible story, because a wrong explanation here is worse
@@ -2132,11 +2042,6 @@ plausible-looking wrong history.
 :ID:       f9f61c04-150b-4ee7-96c9-582cf2bda95a
 :CREATED:  [2026-08-07 Fri 16:06]
 :BLOCKER:  ids(720b2dcf-6af1-45f3-96a7-aa841e5651e1)
-:END:
-:SESSIONS:
-- Resumed [2026-08-10 Mon 11:49]
-- Paused [2026-08-10 Mon 12:01]
-- Resumed [2026-08-10 Mon 12:36] (session 2d057349-f536-42c7-b9b5-3fd838aab075)
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-10 Mon 12:36]--[2026-08-10 Mon 12:45] =>  0:09
@@ -2658,10 +2563,6 @@ retargeted accordingly.
 :ID:       3d576d29-747f-40b9-a5b3-ecc76679daad
 :CREATED:  [2026-08-06 Thu 10:47]
 :END:
-:SESSIONS:
-- Resumed [2026-08-06 Thu 22:37]
-- Paused [2026-08-06 Thu 22:45]
-:END:
 :LOGBOOK:
 CLOCK: [2026-08-06 Thu 22:35]--[2026-08-06 Thu 22:40] =>  0:05
 :END:
@@ -2925,11 +2826,14 @@ Sequence after [[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]
 exists and works — retiring a safety net before its replacement is
 proven is how you lose data you didn't know you were relying on.
 
-*** MAYBE Decide whether the :SESSIONS: drawer and its machinery survive the refactor :code:
+*** DOING Decide whether the :SESSIONS: drawer and its machinery survive the refactor :code:
 :PROPERTIES:
 :ID:       9d2fcdad-9bf7-47b6-8018-223b13ec4577
 :CREATED:  [2026-08-07 Fri 15:09]
 :BLOCKER:  ids(feba67eb-35b3-48bd-a892-8ecd47ca52e0)
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-11 Tue 11:33]--[2026-08-11 Tue 11:38] =>  0:05
 :END:
 
 Captured 2026-08-07 from conversation, prompted by asking a narrow
@@ -3042,6 +2946,66 @@ not do better. What remains is the narrower question this heading
 already poses correctly — what happens to the =:SESSIONS:= data already
 sitting in TODO.org and DONE.org — where leaving it in place as inert
 legacy history is still the obvious answer.
+
+*Decided and half executed 2026-08-11.* The user's call, and it went
+further than either option this heading had contemplated: delete the
+existing drawers *entirely* rather than leaving them as inert legacy
+history, on the grounds that they are distracting, that their retrospective
+information content is low, and that post-cutover history will be much more
+informative. The =:BLOCKER:= on
+[[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]] is therefore
+discharged by decision rather than by the cutover landing.
+
+*The data was worth measuring before deleting it.* 49 drawers, 105 entry
+lines across TODO.org and DONE.org. 91 were exactly the day-collapsed
+=Paused=/=Resumed= noise described — already lossy, since consolidation
+had long since reduced each day to one min-to-max pair. The other 14 were
+a different kind of record and were surfaced explicitly before anything
+was removed: 9 =Background-planned [ts] (session ID)= entries, the only
+trace of which session background-planned a heading and when, and 5
+=Paused ... (recovered)= markers from crash repair. The user chose to
+delete those too — "entirely means entirely" — knowing what they were.
+Everything is recoverable from git: both files were committed and pushed
+before the deletion.
+
+*Done:*
+- All three =--log-session-event= call sites removed (clock-in, clock-out,
+  session-resume), and the function itself deleted. Nothing writes a
+  =:SESSIONS:= line by any path.
+- =org_log_background_plan= no longer records its =session-id=. The
+  parameter stays in the signature, so the MCP schema and callers are
+  unaffected and there is an obvious place to reattach attribution as a
+  queued event.
+- All 49 drawers deleted, via =org-element-map= over real =drawer=
+  elements rather than a text regex, so a =":SESSIONS:"= mentioned in
+  prose was never at risk. Verified: zero drawers, zero orphaned entry
+  lines, both files still parse, heading counts unchanged (69 and 23).
+- Tests: two whose entire subject was the drawer deleted; three rewritten
+  to assert what the wrapper actually promises (the clock closes, the
+  clock lands back on the right heading) plus the drawer's *absence*, so
+  its return would be a failure rather than a silent regression.
+- CLAUDE.md and the org skill updated. The "cosmetic quirk" about
+  =:SESSIONS:=/=:LOGBOOK:= ordering is resolved outright: with one drawer
+  there is nothing to order.
+
+*Remaining, and the reason this heading is still DOING:* the machinery is
+now dead code that parses a format nothing writes —
+=--parse-session-lines=, =--format-session-line=,
+=--consolidate-sessions-text=, =consolidate-history='s =:SESSIONS:= half,
+the recovery scan for an unclosed =Resumed=, and =close-open-interval='s
+=:SESSIONS:= branch, plus their tests. It is inert rather than harmful,
+which is why stopping here is a coherent state, but leaving it misleads
+the next reader exactly as CLAUDE.md warns.
+
+*Worth knowing before that cleanup starts:* =consolidate-history= may have
+nothing left to do at all. [[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]]
+removed its rounding and merging, leaving the =:LOGBOOK:= half a
+normaliser that returns its input; removing the =:SESSIONS:= half removes
+the only transformation it still performs. That makes it a candidate for
+deletion outright rather than trimming — which is what this heading
+predicted, and which reaches into
+[[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s territory, since
+=close-open-interval= is one of its two callers.
 *** TODO Reconcile or retire the now-likely-superseded clock/session-ownership plans and infrastructure :code:
 :PROPERTIES:
 :ID:       e51d6ba1-cc1d-4745-8aa7-e4b1183a230b
@@ -3064,9 +3028,6 @@ the same time, rather than leaving it to drift.
 :PROPERTIES:
 :ID:       02aaae22-0958-4c0f-b5bb-2cbea32416ae
 :CREATED:  [2026-08-06 Thu 10:47]
-:END:
-:SESSIONS:
-- Resumed [2026-08-10 Mon 19:07]
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-10 Mon 19:07]--[2026-08-10 Mon 20:48] =>  1:41
@@ -3174,9 +3135,6 @@ durable trace of what a session attempted.
 :PROPERTIES:
 :ID:       b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04
 :CREATED:  [2026-08-10 Mon 15:33]
-:END:
-:SESSIONS:
-- Paused [2026-08-10 Mon 18:31]
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-10 Mon 18:25]--[2026-08-10 Mon 18:31] =>  0:06
@@ -3855,10 +3813,6 @@ names and files) and are out of scope.
 :ID:       caf598a1-2770-4836-a069-3890597b1665
 :CREATED:  [2026-07-31 Fri 17:27]
 :END:
-:SESSIONS:
-- Resumed [2026-07-31 Fri 17:27]
-- Paused [2026-07-31 Fri 17:30]
-:END:
 :LOGBOOK:
 CLOCK: [2026-07-31 Fri 17:25]--[2026-07-31 Fri 17:30] =>  0:05
 :END:
@@ -3906,10 +3860,6 @@ there's no reason it has to stay a personal, undiscoverable setup step.
 :ID:       e202e93d-cfa7-4d0a-8721-8f06428bc1e4
 :CREATED:  [2026-07-31 Fri 17:51]
 :END:
-:SESSIONS:
-- Resumed [2026-07-31 Fri 17:54]
-- Paused [2026-07-31 Fri 17:56]
-:END:
 :LOGBOOK:
 :END:
 [[file:~/.claude/plans/sharded-tickling-snowflake.md][Plan]]
@@ -3945,9 +3895,6 @@ both present, no fish, no =jq= anywhere in the pipeline.
 :PROPERTIES:
 :ID:       84b7d8b3-5161-4146-9167-0e7e2100e365
 :CREATED:  [2026-07-31 Fri 15:23]
-:END:
-:SESSIONS:
-- Background-planned [2026-08-05 Wed 19:08] (session dbf6d5e9-a030-4862-a034-09b0b0dff2cd-bg1)
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-08-05 Wed 14:06] \\
@@ -4031,8 +3978,6 @@ re-litigated per script.
 :PROPERTIES:
 :ID:       4cda6bf7-441b-47b2-b3d5-b8c7e7a207a5
 :CREATED:  [2026-08-05 Wed 14:04]
-:END:
-:SESSIONS:
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-05 Wed 14:10]--[2026-08-05 Wed 14:35] =>  0:25
