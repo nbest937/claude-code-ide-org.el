@@ -541,6 +541,10 @@ below.
 : 23 MAYBE   14 TODO   14 DONE   2 NEXT   2 DOING   1 CANCELLED
 :  0 PLANNING   0 WAIT
 
+Those 56 are the *keyworded* headings; the file holds 63, the
+difference being the seven top-level category headings, which carry no
+TODO keyword by convention.
+
 *What the tradition says — both findings cut against having =DOING=:*
 - The canonical org+GTD reference (Bernt Hansen, https://doc.norang.ca/org-mode.html)
   runs =TODO(t) NEXT(n) | DONE(d!)= plus =WAITING(w@/!) HOLD(h@/!) |
@@ -591,7 +595,7 @@ heading, which the convention recorded at
 [[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]] already permits.
 
 *Proposal 2: get =MAYBE= out of the default agenda without changing the
-keyword.* At 23 of 56 headings it is the largest category in the file --
+keyword.* At 23 of the file's 56 keyworded headings it is the largest —
 a perfectly healthy Someday/Maybe list, except that sitting before the
 =|= renders it actionable. GTD is emphatic that Someday/Maybe lives
 outside the active system and is reviewed periodically. Bernt's answer
@@ -603,7 +607,7 @@ are not finished.
 been used once. GTD separates *Waiting For* (delegated, needs follow-up)
 from *blocked* (dependency), and dependencies here are already expressed
 structurally via =:BLOCKER:=. The current gloss, "blocked or waiting on
-someone," overlaps that -- and a keyword nobody reaches for is usually
+someone," overlaps that — and a keyword nobody reaches for is usually
 one whose meaning is unclear rather than one whose situation never
 arises.
 
@@ -611,9 +615,9 @@ arises.
 planning state on its merits: planning is first-class GTD activity (the
 Natural Planning Model), and =PLANNING= is on that basis *better*
 grounded than =DOING=. But that answers only half the complaint recorded
-above. Whether the *machinery* earns its complexity -- the
+above. Whether the *machinery* earns its complexity — the
 =ExitPlanMode=-driven auto-promotion, the single global
-=--planning-owner-session-id=, the hand-reversions logged above -- is a
+=--planning-owner-session-id=, the hand-reversions logged above — is a
 separate question the tradition says nothing about, and it stays open.
 Do not read "GTD likes planning states" as "keep the hook."
 
