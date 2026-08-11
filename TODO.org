@@ -3007,6 +3007,41 @@ deleted. This heading is the later document and was written after a day
 of implementation, which argues for it — but the plan claims explicit
 user confirmation, which is stronger evidence than recency. Resolve it
 before either is acted on.
+
+*Reframed 2026-08-11, and then answered.* The arguments recorded above —
+=org_log_background_plan='s lone remaining write, and CLAUDE.md's
+presentation of the two drawers as co-equal — are the weak ones. The
+question that actually decides this heading is: *what is a drained queue
+file?*
+
+After the cutover, =:LOGBOOK:= holds only the human-confirmed residue —
+the intervals someone approved at review. Every pause and resume the
+human declined to turn into an interval exists *only* in the raw queue
+files. But CLAUDE.md's stated job for =:SESSIONS:= is the full wall-clock
+arc *including the gaps*. So:
+- if queue files are disposable, the arc-including-gaps has no durable
+  home, and something has to keep it;
+- if queue files are permanent, the =.jsonl= does that job strictly
+  better than the drawer ever did, carrying =session_id=, =agent_id=,
+  =agent_type= and =source= — none of which =:SESSIONS:= records.
+
+The two plans disagreed on exactly this: the epic plan contemplated
+deleting fully-applied files, while =event-queue-format.md= argued
+deletion "loses history the review UI may still want."
+
+*The user's answer, 2026-08-11:* neither — archive drained files rather
+than deleting them, and make ingestion idempotent so an archived file
+can be restored and reprocessed after a logic change or a corruption.
+That makes queue files permanent by default without committing to never
+tidying the live directory, and it is tracked as
+[[id:78f485a8-e808-43ce-af5f-277a5c97c471][78f485a8]].
+
+*Consequence for this heading: retire the drawer.* With the raw history
+durable and restorable, =:SESSIONS:= has no job left that the queue does
+not do better. What remains is the narrower question this heading
+already poses correctly — what happens to the =:SESSIONS:= data already
+sitting in TODO.org and DONE.org — where leaving it in place as inert
+legacy history is still the obvious answer.
 *** TODO Reconcile or retire the now-likely-superseded clock/session-ownership plans and infrastructure :code:
 :PROPERTIES:
 :ID:       e51d6ba1-cc1d-4745-8aa7-e4b1183a230b
@@ -3344,6 +3379,70 @@ between plan and implementation without a note. Read this heading as a
 *regression against an approved plan*, which raises its priority above
 what a fresh proposal would carry — the design question was already
 settled once.
+*** TODO Make ingestion idempotent and archive drained queue files rather than deleting them :code:
+:PROPERTIES:
+:ID:       78f485a8-e808-43ce-af5f-277a5c97c471
+:CREATED:  [2026-08-11 Tue 11:16]
+:END:
+
+Proposed by the user 2026-08-11 as the middle ground between treating a
+drained queue file as a permanent record and treating it as a spool:
+mark batches consumed, but *guarantee ingestion is idempotent*, so an
+old file can be un-marked and reprocessed — after a logic change, a
+corruption, or a bug found later. An archive folder rather than a flag
+was suggested as the more attractive mechanism.
+
+*The archive half already exists, by accident.* It was created
+2026-08-10 to hold the stranded =d847eab1= file, and it needs no code at
+all: =--queue-session-ids= calls =directory-files= non-recursively,
+filtered to =\.jsonl\'=, so a subdirectory is already invisible to the
+reader. That is exactly why an archive folder beats a consumed-flag —
+the flag would need reader changes, and this is proven working. What is
+missing is a command to move drained files there (today a manual =mv=)
+and one to bring them back.
+
+*The idempotent half is one third done, and was not framed as such.*
+Apply has three write paths:
+- *State transitions — already effectively idempotent,* via
+  [[id:f9f61c04-150b-4ee7-96c9-582cf2bda95a][f9f61c04]]'s staleness
+  guard. Replaying an applied transition means its =from= no longer
+  matches the heading's current state, so it is flagged and refused.
+  That guard was built to prevent regressing a heading; it turns out to
+  be the first piece of idempotent ingestion.
+- *=CLOCK:= intervals — not idempotent.* =--review-apply-clock= drives
+  =org-clock-in=/=org-clock-out= with no check on what is already there,
+  so a replay writes a duplicate interval and silently doubles the
+  recorded time.
+- *Annotations — not idempotent.* =--append-to-drawer= checks only that
+  the *drawer* exists, never that the line does.
+
+*Proposal: content-based idempotency, not bookkeeping.* Both remaining
+cases are cheap because the output is deterministic from the event. An
+interval with identical endpoints on the same heading is a duplicate,
+not two real intervals a human happened to confirm twice; an annotation
+line is a pure function of its span and label, so a string match
+suffices. Checking the destination is strictly better than tracking
+applied identities in a sidecar, because it survives losing the sidecar
+— which is precisely the situation reprocessing an archived file puts
+you in.
+
+*Archive the =.applied= sidecar alongside its =.jsonl=.* Otherwise a
+restored file loses the record of what was already applied, and
+selective reprocessing becomes impossible. Note the two reprocessing
+modes want different things: fixing a corruption wants the sidecar
+honoured, while re-deriving under new logic wants it ignored so
+everything is re-examined, with content-idempotency absorbing the
+overlap. Support both, or pick one deliberately.
+
+*Growth is not a real objection.* These are short JSONL lines; a year of
+heavy use is a few megabytes. The reason to bound the live queue
+directory is review-buffer legibility, not disk.
+
+*This resolves* [[id:9d2fcdad-9bf7-47b6-8018-223b13ec4577][9d2fcdad]]:
+once archived files are permanent by default and restorable, the raw
+pause/resume history has a durable home, and the =:SESSIONS:= drawer has
+no remaining job.
+
 ** TODO Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
 :ID:       a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5
