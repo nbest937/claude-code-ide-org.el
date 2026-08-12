@@ -4710,6 +4710,27 @@ once archived files are permanent by default and restorable, the raw
 pause/resume history has a durable home, and the =:SESSIONS:= drawer has
 no remaining job.
 
+*Define "drained" as "yields no items," not "all events applied" —
+otherwise the move command has no trigger condition.* Added 2026-08-12
+after measuring it, because the obvious reading is unreachable. Only
+events that become *items* are ever marked applied, and two whole kinds
+never do: =clock_in=/=clock_out= exist to attribute guideposts to a
+heading and are consumed by nothing, and =pause=/=resume= that never
+cluster into an attributable span produce no item either. Measured with
+the review buffer reporting "Nothing pending": =todo= 31 of 31
+consumed — every state transition ever queued — alongside 14 =clock_in=,
+17 =clock_out=, 109 =pause= and 113 =resume= residual. 253 events, no
+proposals. A file in that state is finished in every sense that matters
+and would never be moved under an all-applied test.
+
+Two consequences for this task's design. *The predicate is a property of
+the reader, not of the sidecar* — "would =--review-items-from-queue=
+build anything from this file" — so it belongs beside the item builder
+rather than in the watermark. And *the =.applied= sidecar is not a
+progress bar*: it will always look radically incomplete against the line
+count, so any UI or check that reports "N of M applied" would read as
+alarming when it is in fact the steady state.
+
 *** TODO Review-buffer interaction fixes, for after the cutover :code:
 :PROPERTIES:
 :ID:       d409390b-6624-4820-82bb-730d763962fd
@@ -6076,8 +6097,22 @@ those events applied straight into DONE.org. That is arguably correct —
 the record follows the heading — but it is untested, and post-cutover
 the queue routinely holds unapplied events for exactly the headings most
 likely to be archived, since a heading reaches DONE by way of a queued
-transition. *Drain the queue first, then archive*, and confirm the
-behavior deliberately instead of discovering it.
+transition. *Empty the review buffer first, then archive*, and confirm
+the behavior deliberately instead of discovering it.
+
+*That precondition originally read "drain the queue first," which is
+unsatisfiable as literally stated* — corrected 2026-08-12 on measuring
+it. A queue file never reaches all-events-applied: only events that
+become *items* are ever marked, and =clock_in=/=clock_out= plus
+unclustered =pause=/=resume= guideposts never do. Measured that day,
+with the review buffer reporting "Nothing pending": =todo= 31 of 31
+consumed — every state transition ever queued — against 14 =clock_in=,
+17 =clock_out=, 109 =pause= and 113 =resume= residual, 253 events in
+all. The achievable, and sufficient, precondition is *the review buffer
+proposes nothing*, since an event that yields no item cannot be applied
+into DONE.org either. See
+[[id:78f485a8-e808-43ce-af5f-277a5c97c471][78f485a8]], which owns the
+file-lifecycle half of this.
 
 *Then make the judgment.* With a real pass to look at: does the
 remaining hierarchy in TODO.org still earn its keep, or should the
