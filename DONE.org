@@ -1,3 +1,4 @@
+#+STARTUP: logdrawer
 
 Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 

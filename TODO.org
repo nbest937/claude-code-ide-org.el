@@ -1,6 +1,7 @@
 #+TODO: TODO(t!) NEXT(n!) PLANNING(p!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
+#+STARTUP: logdrawer
 
 * Skill logic
 
@@ -1341,6 +1342,17 @@ attention and neither fixed here:*
    transitions do land inside, so the two paths disagree. Relevant
    because native logging working correctly is the entire premise of the
    apply design.
+
+   *Resolved 2026-08-12, elsewhere.* Fixed by adding =#+STARTUP:
+   logdrawer= to =TODO.org= and =DONE.org=, which sets the variable
+   buffer-locally and leaves a user's other org files alone. The
+   documentation half belongs to
+   [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]], with drift #4,
+   since it is the same header block; the "what may a module change on
+   someone else's machine" question it opened is
+   [[id:1caed585-3209-4108-8501-eba16baf6a01][1caed585]]. Left recorded
+   here because this is where it was found, not because this heading
+   owns it.
 
 ** MAYBE Reorder :SESSIONS: entries to match :LOGBOOK: ordering :code:
 :PROPERTIES:
@@ -4138,6 +4150,38 @@ on, then contradicted by the artifact:
    version — bare keywords, no markers — was used as a test fixture on
    2026-08-11 and manufactured a false "org logs nothing" finding.
 
+*The same header block gained a fourth line, 2026-08-12:*
+=#+STARTUP: logdrawer=, added to both =TODO.org= and =DONE.org= at the
+time of writing. CLAUDE.md's "File header" section must document it
+alongside the three it already lists — same block, same files, so it
+belongs with drift #4 above rather than as a separate edit.
+
+*Why a file header and not a =setq=.* =org-log-into-drawer= defaults to
+nil, so org's *native* state-change logging writes notes bare, just
+after the property drawer, while this module's apply path lands them in
+=:LOGBOOK:= — it =let=-binds the variable at =config.el:2708=,
+deliberately and locally, so the user's own interactive =org-todo= keeps
+their configured behavior. The result was two paths disagreeing, visible
+on [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]], whose =DOING=
+note sits above the drawer while older entries sit inside it.
+
+Verified 2026-08-12 that =#+STARTUP: logdrawer= sets the variable
+*buffer-locally* — effective value ="LOGBOOK"= inside the file, global
+still nil — which is why it is the right instrument: it claims exactly
+the scope this project owns, and changes nothing for a user's other org
+files. The alternatives were weighed and rejected: a global =setq=
+reconfigures org for everyone who installs the module (see
+[[id:1caed585-3209-4108-8501-eba16baf6a01][1caed585]]), and a
+=:LOG_INTO_DRAWER:= property — which does work, and does inherit —
+would have to sit on the top-level category headings, which this same
+CLAUDE.md section forbids from carrying a =:PROPERTIES:= drawer at all.
+
+*Note the verification precondition for anyone re-checking this:*
+=#+STARTUP:= is read when org initializes a buffer, so a file already
+open in Emacs keeps the old value until it is reverted. Saving is not
+enough, and neither is =global-auto-revert-mode= noticing the change if
+the buffer is unmodified — the mode has to re-run.
+
 The pattern is worth naming in the rewrite, not just the four
 instances: CLAUDE.md is loaded into every session by default while the
 artifacts it describes are not, so a stale claim in it outranks the
@@ -5419,8 +5463,72 @@ a heading that gains a keyword later would make them diverge.
 
 * Bigger swings
 
-Both about the standalone/Warp-access subsystem from this session.
-Think hard before building either.
+Significant directions this project has not committed to. Think hard
+before building any of them. The first two are both about the
+standalone/Warp-access subsystem from this session.
+
+** MAYBE Decide what this module may change on a user's machine when installed :code:
+:PROPERTIES:
+:ID:       1caed585-3209-4108-8501-eba16baf6a01
+:CREATED:  [2026-08-12 Wed 11:54]
+:END:
+
+Raised by the user 2026-08-12, from a narrow question — how to set
+=org-log-into-drawer= permanently — that turned out to have a general
+answer: *a distributable package configures its own behavior, and does
+not silently reconfigure the user's.* Worth deciding once, because the
+module already crosses that line in more than one place and each
+crossing is cheap to fix now and expensive to fix after other people
+depend on it.
+
+*The specific inventory, as of 2026-08-12:*
+
+1. *Four global hooks, installed unconditionally at load*
+   (=config.el:1869-1873=): one =org-blocker-hook= and three
+   =org-trigger-hook= functions. Anyone who enables =:tools
+   claude-code-ide-org= gets auto-clock-in on every transition to
+   =DOING=/=PLANNING=, =NEXT= demotion, and sole-=TODO= promotion
+   applied to *every org file they open* — not only this project's.
+   These are opinionated GTD policies, and they are the bigger problem
+   here, not the smaller one.
+2. *A hardcoded assumption about one user's config*
+   (=config.el:2702-2708=): the comment reads "With =org-log-into-drawer=
+   nil (this user's setting)". The =let=-binding it justifies is
+   correct and should stay — binding locally rather than globally is
+   exactly the right instinct, and it is already documented as
+   deliberate — but the *default* wants to be a =defcustom= rather than
+   an assumption about whoever wrote it.
+
+*The precedent already set, same day.* The =org-log-into-drawer=
+question was resolved by adding =#+STARTUP: logdrawer= to this repo's
+own =TODO.org=/=DONE.org= headers rather than by =setq=-ing the
+variable. Verified: =#+STARTUP:= sets it *buffer-locally*, leaving the
+global untouched, so the scope claimed matches the scope owned. That is
+the shape the rest of this should follow.
+
+*The module is not starting from zero here.* Eight =defcustom=s already
+exist (=-queue-directory=, =-capture-file=, =-working-hours=,
+=-query-files=, =-session-recovery-enabled=, =-audit-log-file=,
+=-clock-status-file=, =-guidepost-gap-threshold=). Configuring its own
+behavior is established practice; the gap is the global hooks and the
+one hardcoded assumption, not the general habit.
+
+*Genuinely open, and the reason this is =MAYBE= rather than =TODO=:*
+whether a *Doom module* earns more latitude than a *MELPA package*. A
+Doom module is opted into explicitly, per user, by editing =init.el= —
+which is arguably consent to exactly these policies, and the hooks are
+much of why someone would enable it at all. A MELPA package is a
+library, and the same behavior on load would be indefensible. The two
+targets may want different answers, or one guarded entry point
+(=claude-code-ide-org-setup=) that installs nothing until called. Decide
+that before doing the work, since it determines whether the hooks move
+behind a toggle or stay as they are.
+
+*Related:* [[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]] changes
+one of these very hooks, so whichever lands second should not re-litigate
+the other's decision.
+[[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] owns the file-header
+convention the =#+STARTUP:= line was added to.
 
 ** MAYBE Remote MCP access :code:
 Off-machine access to the tools server and IDE-companion. This
