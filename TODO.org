@@ -951,35 +951,48 @@ slipped past it. The structural index showed it immediately — which is
 the case [[id:9f3c35c7-0229-4cd6-908b-779267ec9b97][9f3c35c7]] was built
 for, arriving about an hour after that heading was written.
 
-*The tool has been used, and the damage is real, not hypothetical.* One
-capture exists, from on or before 2026-08-05:
+*Retracted the same day, one revision later.* The correction above then
+over-claimed in the other direction, asserting "the tool has been used
+and the damage is real." One heading was observed in =~/org/notes.org=
+carrying =:ID:= =780d807e-d441-452f-a407-520225efb3c6= and nothing else
+— no =:CREATED:=, top-level, exactly the template's shape — and that
+shape was read as proof of provenance. It is not: a hand-made heading, a
+heading predating the =:CREATED:= convention, or =org-id-get-create= on
+something existing all produce the same thing. The user, asked, described
+the file's contents as "pure noise" and cleared it; =notes.org= is now
+empty and, being outside the repo, has no git history to re-examine. So
+whether =org_capture= has *ever* produced a heading is unresolved and now
+unresolvable from evidence.
 
-: * DOING Review parallelized-planning-with-session-logs design
-: :PROPERTIES:
-: :ID:       780d807e-d441-452f-a407-520225efb3c6
-: :END:
+Worth stating plainly because the paragraph above and this one are the
+second and third revisions of the same claim within an hour, all three
+correcting in the same direction — asserting more than the evidence
+carried. The underlying move each time was filling an unknown with a
+plausible value instead of marking it unknown.
 
-=:ID:= and nothing else — no =:CREATED:=, exactly as the template emits.
-It sits in =~/org/notes.org=: outside the repo, outside version control,
-and therefore outside every sweep this project has run over its own
-files. It *is* in =org-agenda-files= and in
-=claude-code-ide-org--tracked-files=, so =org_query= and =org_outline=
-read it; the earlier claim that it was invisible to the project's
-machinery was also wrong.
+*What holds independent of that file's contents:* =notes.org= is in
+=org-agenda-files= and =claude-code-ide-org--tracked-files= — still true
+now that it is empty — so it is a live capture target that this
+project's own tools read, and the earlier claim that it was invisible to
+them was wrong on structural grounds, not evidential ones.
 
-*One consequence found immediately: the =:SESSIONS:= retirement missed
-it.* [[id:9d2fcdad-9bf7-47b6-8018-223b13ec4577][9d2fcdad]] deleted all 49
-drawers and reports none remaining, which is true of TODO.org and
-DONE.org (0 each, counting anchored =^:SESSIONS:$= rather than the prose
-mentions a naive grep inflates to 56). =notes.org= still has one. The
-sweep was scoped to the repo's files rather than to the *tracked* files,
-and the difference between those two sets is exactly this one file.
+*A scope gap that survives the retraction, because it is deductive
+rather than evidential.*
+[[id:9d2fcdad-9bf7-47b6-8018-223b13ec4577][9d2fcdad]] deleted all 49
+=:SESSIONS:= drawers and reports none remaining — true of TODO.org and
+DONE.org, 0 each. But that sweep ran over the *repo's* files, and
+=notes.org= is tracked without being in the repo, so it was never in
+scope. A drawer was in fact observed there before the file was cleared;
+even without that observation the gap stands, since the two file sets
+differ and nothing reconciles them. Any future sweep over "our org
+files" inherits the same blind spot, and =org-agenda-files= is the set
+that matters, not the working tree.
 
-*So the cleanup belongs with this work:* whatever fixes the capture
-target should also decide what happens to =780d807e= — refile it into
-the repo, or leave it and accept a tracked file that no sweep will ever
-reach again. Leaving it as-is is a choice, not a default, and it is
-currently stuck at =DOING= with an empty =:LOGBOOK:=.
+Counting them needs an anchored =^:SESSIONS:$=: a bare
+=grep -c ':SESSIONS:'= reports *56* in TODO.org by matching prose
+mentions of the drawer, which reads as a failed retirement. Exactly the
+trap the org skill already warns about — prefer =org-element-map= over
+line regexps so a drawer name in prose is never matched as a drawer.
 
 *Placement design, settled with the user 2026-08-11.* An optional target
 accepting either an =:ID:= or a refile-style outline path
