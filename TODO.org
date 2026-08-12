@@ -5600,3 +5600,36 @@ IDs. Scope this accordingly — it is a small command, not a subsystem.
 UI itself is the fuzzy part and should be a documented manual check,
 per this project's own "reasonably feasible" rule rather than forced
 into a deterministic test.
+
+** Persist claude-code-ide-org-capture-file in the Doom config
+:PROPERTIES:
+:ID:       bd482c92-a71a-4d7d-88df-47678ee94c79
+:CREATED:  [2026-08-11 Tue 21:20]
+:END:
+
+Set live on 2026-08-11 via =M-:= to
+=~/git/claude-code-ide-org/TODO.org=, which is what makes
+[[id:47c027d2-7b5a-4de0-baf4-f992f3b814bd][47c027d2]]'s reworked
+=org_capture= actually aim at this project. It is *not* in
+=~/.config/doom/config.el=, so it lasts exactly as long as this Emacs
+process and then silently reverts to =org-default-notes-file=.
+
+One line, in the =after! org= block alongside the other org settings:
+
+: (setq claude-code-ide-org-capture-file "~/git/claude-code-ide-org/TODO.org")
+
+*Captured because nothing else would have surfaced it.* The only prior
+mention was on =47c027d2=, which is now =DONE= — a note in a completed
+heading that no future session reads. And the failure mode is quiet:
+capture keeps working, it just writes somewhere else, exactly as it did
+before anyone noticed. This is the inverse of the usual reload
+precondition — the volatile layer is the one that looks permanent.
+
+*Watch when it is made permanent:* this file is reachable by two paths —
+=~/git/claude-code-ide-org/TODO.org= and the symlink
+=~/org/claude-code-ide-org/TODO.org= that puts it in =org-agenda-files=.
+Capture registers new ids against the capture path while agenda scanning
+finds them under the symlink path. Both resolve to the same file so
+lookups should work, but it is worth confirming that =org-id-locations=
+does not end up with two entries per id, and worth deciding which path
+is canonical rather than letting it depend on who wrote last.
