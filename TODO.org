@@ -1312,6 +1312,75 @@ with no blank line separating it from the preceding body text or the
 following heading, unlike every hand-written heading in this file. Fixed
 by hand here. Probably wants =:empty-lines-before 1= on the template.
 
+** TODO org_outline's active_only orphans children of finished headings :code:
+:PROPERTIES:
+:ID:       98908aff-63cc-4b71-b90b-817da361a23b
+:CREATED:  [2026-08-12 Wed 16:06]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-12 Wed 16:07] \\
+  found while documenting the tool's own response format
+:END:
+
+Indentation is the *only* thing =org_outline='s output says about
+parentage: =claude-code-ide-org--outline-line= emits two spaces per
+absolute =org-current-level=, and =org-map-entries= emits in document
+order. A reader reconstructs the tree as "parent = nearest preceding
+line with a smaller indent," which holds only while every intermediate
+ancestor is present.
+
+=active_only= breaks that. The filter lives in =--outline-line=, which
+returns nil for a DONE/CANCELLED heading — it does *not* skip the
+subtree in =--outline-map=, so that heading's still-active descendants
+are emitted anyway, at their unchanged absolute indent. Verified
+2026-08-12 against a scratch file:
+
+: * Category
+: ** DONE Finished parent
+: *** TODO Active child
+
+returns
+
+: Category
+:     TODO Active child
+
+The indent jumps two levels, and a reader re-parents the child onto its
+*grandparent* with nothing in the output marking that it did. Silent
+wrong structure, not a visible gap.
+
+*Not currently observable in this project's own files*, which is why it
+took this long to notice: TODO.org's level-1 headings are categories
+carrying no TODO keyword, so nothing on the path from a category to a
+level-2 task can ever be filtered out. All 60 lines of a full-depth
+=active_only= run were checked and no indent jump occurs. That is a
+property of the top-level-heading convention, not a guarantee from the
+format — the bug is one three-level task tree away from biting.
+
+=max_depth= is safe by contrast: it only ever drops the deepest lines,
+truncating leaves rather than severing an ancestor.
+
+*Options, none chosen:*
+- *Emit the elided ancestors anyway*, unfiltered, so the path stays
+  intact. Keeps reconstruction sound and costs a few lines the caller
+  asked not to see.
+- *Re-indent survivors to their visible depth*, so indent means "depth
+  in the returned tree" rather than absolute level. Cheapest output,
+  but contradicts the deliberate absolute-level decision in
+  [[id:9f3c35c7-0229-4cd6-908b-779267ec9b97][9f3c35c7]] that makes
+  =max_depth= mean the same thing for a file and for a subtree.
+- *Skip the whole subtree* when a heading is filtered out. Simplest
+  rule, and the most likely to surprise — an active child of a DONE
+  parent is exactly the thing =active_only= should be showing.
+
+*Related, same output, separate defect:* in a multi-file call the
+per-file label is a bare =file-name-nondirectory= at column 0,
+structurally identical to a level-1 heading, which by this project's
+convention also carries no keyword, no =:ID:= and no tags. Nothing but
+"it looks like a filename" distinguishes them, so a reader that treats
+the label as a heading turns each file into one spurious root. Worth
+fixing in the same pass, since both are the same class of bug: the
+format asserting less structure than the reader needs.
+
 * Clock lifecycle & visibility
 
 Everything here is specifically about the clock subsystem's
@@ -4768,6 +4837,38 @@ proposes a transient menu once there are filters worth composing. These
 three are the keystroke-level fixes underneath that, and are worth
 having whether or not a menu ever appears.
 
+*Outcome, 2026-08-12.* All three shipped, with
+[[id:e3f70e61-6616-4c57-81e8-e350ffd5824c][e3f70e61]] in the same batch
+since both touch the renderer.
+
+1. *=m= and =u= advance*, via a new optional ADVANCE argument to
+   =--review-set-mark=. Advancing lands on the next *item* line
+   specifically — never a blank or group heading — and stays put at the
+   end of the list rather than running off it, since either would leave
+   point somewhere the next keystroke reports "No review item on this
+   line."
+2. *=N= edits the note*, seeded with the current one. =e= keeps the
+   interval, so the two halves of what reaches the file have a key each.
+3. *=t= inverts every mark; =M= marks all, =U= unmarks all.* The
+   per-line toggle binding was *removed* rather than moved: dired has no
+   per-line toggle either, and does not need one once =m=/=u= advance.
+
+*One design decision not in the original three.* Bulk marking *skips*
+stale, unconfirmed items and reports the count, rather than prompting
+per item. A =y-or-n-p= storm would be worse than offering no bulk
+command — the same prompt-fatigue argument
+[[id:6b1e73c4-25da-4f0e-8a51-9c0d3f7ab214][6b1e73c4]] used. Unmarking is
+never refused, since it asks nothing of anyone.
+
+*Verified:* =bin/test= 178 -> 183, five new tests — advance lands on an
+item and does not overrun the end, unmark advances too, bulk marking
+skips stale until confirmed then includes it, =N= changes what actually
+reaches the *file* rather than only the buffer, plus e3f70e61's two.
+Live-reloaded and the real queue rendered: two-line header, new bindings
+resolving. Note =claude-code-ide-org-review-toggle= remains =fboundp= in
+the running image — =load-file= does not unbind a deleted function — but
+it is gone from source and nothing binds it.
+
 *** DOING A read-only target buffer costs the human their whole review pass :code:
 :PROPERTIES:
 :ID:       8f2c1a90-4b7e-4d1a-9c3e-1f5a6b8d2e47
@@ -5258,6 +5359,34 @@ Neither is dangerous, and neither is worth much on its own. Worth fixing
 together with whatever touches the renderer next, since a title slot
 that can hold an arbitrary error string is a general case, not one tied
 to this event: any =--at-id= failure at render time takes the same path.
+
+*Outcome, 2026-08-12, batched with
+[[id:d409390b-6624-4820-82bb-730d763962fd][d409390b]]. One of the two was
+real; the other never happened.*
+
+*(2) The double note was real and is fixed.*
+=--review-format-annotation= already ends with the note, because the
+note is part of the =:LOGBOOK:= line it produces, and
+=--review-describe= appended it a second time. Dropped from the clock
+branch.
+
+*(1) The escaping leak is not reproducible, and there was never a path
+for it.* =--at-id= builds its message with =format= and =%s=, and
+=--review-render= substitutes it with =%s= — neither prints an escaped
+representation. Reconstructed the exact case (an item on an
+unresolvable =:ID:=, rendered into a review buffer) and read the raw
+buffer text: =Error: no org heading found with :ID:
+"00000000-dead-beef-0000-000000000000"=, real quotes, no backslash
+anywhere. *The =\"= and dangling =\= in the report above came from how
+it was transcribed into this heading*, not from the renderer.
+
+Worth stating plainly rather than quietly dropping: this heading asked
+for a fix to something that was working. The reproducer was described as
+about to become unconstructible, which is exactly why it was recorded —
+and also why it was never checked before being written down. Both
+behaviors are now pinned by tests, including one asserting the rendered
+title contains no backslash, so a future =%S= cannot introduce the
+defect this heading believed it had found.
 
 ** TODO Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:

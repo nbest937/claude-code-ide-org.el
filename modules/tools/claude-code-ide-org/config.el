@@ -2842,10 +2842,17 @@ it."
 ;; lose half an edit. This project live-reloads constantly (see the
 ;; org-dev skill), so the bindings are applied to the existing map on
 ;; every load instead.
+;; The mark keys follow dired's vocabulary on purpose -- `m'/`u' per
+;; line and advancing, `t' to invert every mark, `U' to clear them --
+;; because that is the muscle memory a person arrives with. `M' for
+;; mark-all is the one addition dired has no single key for.
 (dolist (binding '(("m" . claude-code-ide-org-review-mark)
                    ("u" . claude-code-ide-org-review-unmark)
-                   ("t" . claude-code-ide-org-review-toggle)
+                   ("t" . claude-code-ide-org-review-toggle-all)
+                   ("M" . claude-code-ide-org-review-mark-all)
+                   ("U" . claude-code-ide-org-review-unmark-all)
                    ("e" . claude-code-ide-org-review-edit-interval)
+                   ("N" . claude-code-ide-org-review-edit-note)
                    ("d" . claude-code-ide-org-review-dismiss)
                    ("RET" . claude-code-ide-org-review-goto)
                    ("x" . claude-code-ide-org-review-apply)
@@ -2962,11 +2969,14 @@ a wrong log line."
                    "")
                  note)))
       ;; Two leading spaces so clock lines stay aligned with the `! '
-      ;; column state lines reserve.
-      ('clock (format "  clock   %s%s   %s"
+      ;; column state lines reserve.  The note is deliberately *not*
+      ;; appended here: `--review-format-annotation' already ends with
+      ;; it, because the note is part of the :LOGBOOK: line it produces.
+      ;; Adding it again printed every clock note twice (TODO.org :ID:
+      ;; e3f70e61-6616-4c57-81e8-e350ffd5824c).
+      ('clock (format "  clock   %s%s"
                       (claude-code-ide-org--review-format-annotation item)
-                      (if (plist-get item :suggested) "  (suggested)" "  (agent)")
-                      note)))))
+                      (if (plist-get item :suggested) "  (suggested)" "  (agent)"))))))
 
 (defun claude-code-ide-org--review-render ()
   "Render `claude-code-ide-org--review-items' into the current buffer.
@@ -2983,7 +2993,8 @@ rest from lighting up."
     (claude-code-ide-org--review-projected-staleness
      items (lambda (item) (plist-get item :marked)))
     (erase-buffer)
-    (insert "Pending org updates.  m/u mark, t toggle, e edit, d dismiss, "
+    (insert "Pending org updates.  m/u mark, M/U all, t invert, "
+            "e interval, N note, d dismiss,\n"
             "RET goto, x apply marked, g refresh, q quit\n\n")
     (if (null items)
         (insert "  Nothing pending.\n")
@@ -3001,8 +3012,13 @@ rest from lighting up."
                  'claude-code-ide-org-item item))))
     (goto-char (point-min))))
 
-(defun claude-code-ide-org--review-set-mark (marked)
+(defun claude-code-ide-org--review-set-mark (marked &optional advance)
   "Set the current line's item :marked to MARKED and re-render.
+
+With ADVANCE non-nil, leave point on the next item afterwards.  That is
+what makes marking a run of items `m m m' rather than `m n m n m', and
+it is what dired, `package-menu' and magit all do; its absence was the
+single biggest complaint after the first real by-hand apply.
 
 Marking a stale state item asks for confirmation first, and records the
 answer on the item as :stale-confirmed.  This is the deliberate override
@@ -3027,25 +3043,109 @@ interactive command with a human at the keyboard, not an
         (setq marked nil)))
     (plist-put item :marked marked)
     (claude-code-ide-org--review-render)
-    (goto-char (point-min))
-    (forward-line (1- line))))
+    (claude-code-ide-org--review-goto-line line)
+    (when advance (claude-code-ide-org--review-forward-item))))
+
+(defun claude-code-ide-org--review-goto-line (line)
+  "Move point to LINE, 1-based, in the current buffer.
+Re-rendering erases the buffer, so every command that re-renders has to
+put point back by line number; this is that one line of arithmetic,
+named once."
+  (goto-char (point-min))
+  (forward-line (1- line)))
+
+(defun claude-code-ide-org--review-forward-item ()
+  "Move point to the next line carrying a review item.
+
+Stays put when there is no next item, rather than landing on a blank or
+group-heading line.  That matters because the mark commands advance:
+running off the end would leave point somewhere that is not an item, and
+the next keystroke would then report \"No review item on this line\"
+instead of acting on the obvious target."
+  (let ((start (point)))
+    (forward-line 1)
+    (while (and (not (eobp))
+                (not (claude-code-ide-org--review-item-at-point)))
+      (forward-line 1))
+    (unless (claude-code-ide-org--review-item-at-point)
+      (goto-char start))))
+
+(defun claude-code-ide-org--review-markable-p (item)
+  "Non-nil when ITEM can be marked without asking the human anything."
+  (or (not (claude-code-ide-org--review-state-stale-p item))
+      (plist-get item :stale-confirmed)))
+
+(defun claude-code-ide-org--review-set-all (fn)
+  "Set every item's :marked to (funcall FN ITEM), then re-render.
+
+Refuses to *mark* a stale, unconfirmed item.  Those exist precisely to
+be decided one at a time, and a bulk command that popped a `y-or-n-p'
+for each would be worse than offering no bulk command at all -- it is
+the prompt-fatigue failure `6b1e73c4' already argued against.  Unmarking
+is never refused, since it asks nothing of anyone.  Reports the count it
+skipped rather than leaving the human to notice."
+  (let ((line (line-number-at-pos))
+        (skipped 0))
+    (dolist (item claude-code-ide-org--review-items)
+      (let ((want (funcall fn item)))
+        (if (and want (not (claude-code-ide-org--review-markable-p item)))
+            (setq skipped (1+ skipped))
+          (plist-put item :marked want))))
+    (claude-code-ide-org--review-render)
+    (claude-code-ide-org--review-goto-line line)
+    (when (> skipped 0)
+      (message "%d stale item(s) left unmarked -- mark individually to confirm"
+               skipped))))
 
 (defun claude-code-ide-org-review-mark ()
-  "Mark the item at point for applying."
+  "Mark the item at point and move to the next one."
   (interactive)
-  (claude-code-ide-org--review-set-mark t))
+  (claude-code-ide-org--review-set-mark t 'advance))
 
 (defun claude-code-ide-org-review-unmark ()
-  "Unmark the item at point."
+  "Unmark the item at point and move to the next one."
   (interactive)
-  (claude-code-ide-org--review-set-mark nil))
+  (claude-code-ide-org--review-set-mark nil 'advance))
 
-(defun claude-code-ide-org-review-toggle ()
-  "Toggle the mark on the item at point."
+(defun claude-code-ide-org-review-mark-all ()
+  "Mark every item, skipping any that needs a stale confirmation."
   (interactive)
-  (let ((item (claude-code-ide-org--review-item-at-point)))
+  (claude-code-ide-org--review-set-all (lambda (_item) t)))
+
+(defun claude-code-ide-org-review-unmark-all ()
+  "Unmark every item."
+  (interactive)
+  (claude-code-ide-org--review-set-all (lambda (_item) nil)))
+
+(defun claude-code-ide-org-review-toggle-all ()
+  "Invert every mark, skipping any item that needs a stale confirmation.
+
+Bound to `t', which previously toggled the single item at point.  That
+binding went rather than moving, because dired -- whose vocabulary this
+mode borrows for `m'/`u'/`t'/`U' -- has no per-line toggle either, and
+does not need one once `m' and `u' advance on their own."
+  (interactive)
+  (claude-code-ide-org--review-set-all
+   (lambda (item) (not (plist-get item :marked)))))
+
+(defun claude-code-ide-org-review-edit-note ()
+  "Edit the note on the item at point.
+
+The note is the other half of what reaches the file: it becomes the
+`\\\\' continuation on a State line, or the label on a clock interval's
+:LOGBOOK: annotation.  It is also the half a human is best placed to
+improve -- Claude wrote it *before* doing the work, in three to ten
+words, and by review time the human knows what the work actually turned
+out to be.  This is the last moment it can be corrected before it
+becomes history."
+  (interactive)
+  (let ((item (claude-code-ide-org--review-item-at-point))
+        (line (line-number-at-pos)))
     (unless item (user-error "No review item on this line"))
-    (claude-code-ide-org--review-set-mark (not (plist-get item :marked)))))
+    (plist-put item :note
+               (read-string "Note: " (or (plist-get item :note) "")))
+    (claude-code-ide-org--review-render)
+    (claude-code-ide-org--review-goto-line line)))
 
 (defun claude-code-ide-org-review-goto ()
   "Jump to the org heading the item at point belongs to."

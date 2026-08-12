@@ -3210,6 +3210,132 @@ get.  Before this check each item failed separately with
         (kill-buffer "*org-review-test*")
         (with-current-buffer (get-file-buffer file) (read-only-mode -1))))))
 
+(defmacro claude-code-ide-org-test--with-review-buffer (items &rest body)
+  "Render ITEMS in a scratch review buffer and run BODY there."
+  (declare (indent 1))
+  `(unwind-protect
+       (with-current-buffer (get-buffer-create "*org-review-test*")
+         (claude-code-ide-org-review-mode)
+         (setq claude-code-ide-org--review-items ,items)
+         (claude-code-ide-org--review-render)
+         ,@body)
+     (kill-buffer "*org-review-test*")))
+
+(defun claude-code-ide-org-test--goto-nth-item (n)
+  "Put point on the Nth (0-based) item line of a review buffer."
+  (goto-char (point-min))
+  (let ((seen -1))
+    (while (and (not (eobp))
+                (progn (when (claude-code-ide-org--review-item-at-point)
+                         (setq seen (1+ seen)))
+                       (< seen n)))
+      (forward-line 1))))
+
+(ert-deftest claude-code-ide-org-test-review-mark-advances-to-next-item ()
+  "Marking advances, dired-style. Without it, marking a run of items is
+`m n m n m' -- the single biggest complaint after the first real by-hand
+apply. Advancing must land on an *item*, never a blank or group-heading
+line, or the next keystroke reports \"No review item on this line\"."
+  (claude-code-ide-org-test--with-heading
+    (let ((a (list :type 'state :id id :ts (current-time) :from "TODO" :to "DOING" :events nil))
+          (b (list :type 'state :id id :ts (current-time) :from "TODO" :to "WAIT" :events nil)))
+      (claude-code-ide-org-test--with-review-buffer (list a b)
+        (claude-code-ide-org-test--goto-nth-item 0)
+        (claude-code-ide-org-review-mark)
+        (should (plist-get a :marked))
+        ;; Landed on the second item, not a blank line.
+        (should (eq b (claude-code-ide-org--review-item-at-point)))
+        ;; Marking the last one must not run off the end.
+        (claude-code-ide-org-review-mark)
+        (should (plist-get b :marked))
+        (should (eq b (claude-code-ide-org--review-item-at-point)))
+        ;; Unmark advances too, per dired.
+        (claude-code-ide-org-test--goto-nth-item 0)
+        (claude-code-ide-org-review-unmark)
+        (should-not (plist-get a :marked))
+        (should (eq b (claude-code-ide-org--review-item-at-point)))))))
+
+(ert-deftest claude-code-ide-org-test-review-bulk-marks-skip-stale ()
+  "Bulk marking must not pop a confirmation per stale item -- that is the
+prompt fatigue 6b1e73c4 argued against. Stale items are skipped and
+counted; unmarking is never refused, since it asks nothing."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--set-todo-for-real id "DOING")
+    (let ((ok (list :type 'clock :id id
+                    :start (current-time) :end (current-time)
+                    :note "fine" :agent nil :suggested t :events nil))
+          (stale (list :type 'state :id id :ts (current-time)
+                       :from "TODO" :to "WAIT" :events nil)))
+      (should (claude-code-ide-org--review-state-stale-p stale))
+      (claude-code-ide-org-test--with-review-buffer (list ok stale)
+        (claude-code-ide-org-review-mark-all)
+        (should (plist-get ok :marked))
+        (should-not (plist-get stale :marked))
+        ;; Confirmed explicitly, it becomes markable in bulk.
+        (plist-put stale :stale-confirmed t)
+        (claude-code-ide-org-review-mark-all)
+        (should (plist-get stale :marked))
+        ;; Unmark-all clears everything regardless.
+        (claude-code-ide-org-review-unmark-all)
+        (should-not (plist-get ok :marked))
+        (should-not (plist-get stale :marked))
+        ;; Invert brings both back, since both are now markable.
+        (claude-code-ide-org-review-toggle-all)
+        (should (plist-get ok :marked))
+        (should (plist-get stale :marked))))))
+
+(ert-deftest claude-code-ide-org-test-review-edit-note-reaches-the-file ()
+  "The note is the half a human is best placed to fix: Claude wrote it
+before doing the work. Editing it must change what actually lands, not
+just what the buffer shows."
+  (claude-code-ide-org-test--with-heading
+    (let ((item (list :type 'state :id id :ts (current-time)
+                      :from "TODO" :to "DOING" :note "guessed beforehand"
+                      :marked t :events nil)))
+      (claude-code-ide-org-test--with-review-buffer (list item)
+        (claude-code-ide-org-test--goto-nth-item 0)
+        (cl-letf (((symbol-function 'read-string)
+                   (lambda (&rest _) "what it actually was")))
+          (claude-code-ide-org-review-edit-note))
+        (should (equal "what it actually was" (plist-get item :note)))
+        (should (string-match-p "what it actually was" (buffer-string))))
+      (should-not (claude-code-ide-org--review-apply-item item))
+      (should (string-match-p "what it actually was"
+                              (claude-code-ide-org-test--disk-contents file))))))
+
+(ert-deftest claude-code-ide-org-test-review-clock-line-shows-the-note-once ()
+  "Regression for TODO.org :ID: e3f70e61: the clock line printed its note
+twice, because `--review-format-annotation' already ends with it and
+`--review-describe' appended it again."
+  (claude-code-ide-org-test--with-heading
+    (let* ((note "negative test, bogus id must not enqueue")
+           (item (list :type 'clock :id id
+                       :start (date-to-time "2026-08-11T15:12:00-0500")
+                       :end (date-to-time "2026-08-11T15:16:00-0500")
+                       :note note :agent nil :suggested t :events nil))
+           (line (claude-code-ide-org--review-describe item))
+           (count 0)
+           (start 0))
+      (while (string-match (regexp-quote note) line start)
+        (setq count (1+ count) start (match-end 0)))
+      (should (= 1 count)))))
+
+(ert-deftest claude-code-ide-org-test-review-unresolvable-id-renders-unescaped ()
+  "The other half of e3f70e61, which turned out not to be a defect: an
+unresolvable :ID: substitutes `--at-id's error string into the title
+slot, and it must appear as display text. Reported as leaking elisp
+escaping (\\\" and a dangling backslash); reproducing it 2026-08-12
+showed clean output, so the escaping came from how the report was
+transcribed. Pinned so a future `%S' cannot reintroduce it."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--with-review-buffer
+        (list (list :type 'clock :id "00000000-dead-beef-0000-000000000000"
+                    :start (current-time) :end (current-time)
+                    :note "bogus" :agent nil :suggested t :events nil))
+      (let ((text (buffer-substring-no-properties (point-min) (point-max))))
+        (should (string-match-p "no org heading found" text))
+        (should-not (string-match-p "\\\\" text))))))
+
 (ert-deftest claude-code-ide-org-test-review-apply-restores-read-only ()
   "The flag the user set is theirs, and apply borrows it rather than
 taking it.  Clearing it and walking away silently disables the guard
