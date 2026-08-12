@@ -4607,6 +4607,14 @@ all. Worth doing with
 [[id:d409390b-6624-4820-82bb-730d763962fd][d409390b]]'s interaction
 work rather than bolted onto this fix.
 
+*Not-claimed gap now closed.* The by-hand pass this heading declined to
+claim — a human pressing =x= on a read-only buffer and answering the
+live prompt — happened for real on 2026-08-12, during
+[[id:f290161c-f9e7-4bfb-9adf-4c5630d4c5ae][f290161c]]'s dismissal round
+and the apply that followed it. The pre-flight named =TODO.org=, cleared
+it on a yes, and the apply landed. Everything this heading built is now
+exercised by a person, not a stub.
+
 *** DONE Decide how the stale check reads a chain of transitions in one batch :code:
 :PROPERTIES:
 :ID:       6b1e73c4-25da-4f0e-8a51-9c0d3f7ab214
@@ -4710,6 +4718,65 @@ Decide it during
 [[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]], while the write
 path is already open, rather than discovering it in the first
 post-cutover review pass.
+
+*Outcome (2026-08-12, commit =2ce42fc=).* Took the first candidate — the
+projected-state check — and rejected the writer-records-previous-=to=
+alternative for the reason recorded above, plus one this heading had not
+named: it would force =queue-append= to read its own output file,
+breaking the blind-=O_APPEND= property the queue rests on.
+
+=--review-projected-staleness= walks a batch tracking each =:ID:='s
+pre-batch state and the state earlier items will leave behind; an item
+is stale only when =from= matches *neither*.
+=--review-state-stale-p= prefers that annotation and falls back to the
+old file-only comparison when there is none, which is what keeps direct
+callers and the pre-existing tests meaning what they meant.
+=--review-apply= computes it fresh immediately before the loop rather
+than inheriting it from render — that is what preserves the guarantee
+that a heading changed *since the buffer was drawn* is still caught.
+Render projects over *marked* items only, since an unmarked item will
+not move anything.
+
+*Evidence was stronger than this heading recorded.* Checked against the
+live queue rather than taken from the note: =0308e7d7= and =9f3c35c7=
+are two-link chains as described, but =47c027d2= was a *three*-link
+chain (=TODO -> NEXT=, =TODO -> DOING=, =TODO -> DONE=) with all three
+events carrying =from: TODO=. Its already-applied =:LOGBOOK:= also
+confirms the payoff claim directly — it reads =NEXT from TODO= /
+=DOING from NEXT= / =DONE from DOING=, because org derives each written
+=from= from reality. So the chain always produced *correct history*; the
+fix removes confirmation prompts and apply refusals, not a data defect.
+
+*One asymmetry worth keeping in mind:* =org_set_todo= reads =from= off a
+file that never moves, while the =ExitPlanMode= hook passes
+=QUEUE_APPEND_FROM= explicitly and so records the chain's own previous
+=to=. Both shapes are legitimate and both occur; accepting either is
+required, not lenient.
+
+*Verified:* =bin/test= 167 -> 170 at this commit, three new tests — a
+three-link chain applying in one pass with the right derived =from= on
+each line; a genuinely out-of-band heading still refused *inside* a
+batch that a chain applies in; and a chain rendering clean both unmarked
+and with its predecessor marked. Live-reloaded and exercised against the
+real queue: with nothing marked =f290161c='s =PLANNING -> DOING= showed
+=!=, and marking its predecessor cleared it.
+
+*Worth knowing:* that flag with nothing marked is *pre-existing*
+behavior, not introduced here — confirmed by running the old file-only
+comparison against the same item, which also reports stale. Marking the
+predecessor is the gesture that resolves it.
+
+*Accepted consequence, deliberately not fixed.* Applying only the first
+link and leaving the rest means the leftovers face a moved file with no
+batch to account for it, and they are correctly stale then. That is a
+real divergence at that point, not this bug returning.
+
+*One test failure worth recording, because the cause was not the code.*
+The refusal test first reported =:applied 0=. Moving the second heading
+to WAIT left the subject the sole TODO of its sibling group, so
+=claude-code-ide-org--trigger-auto-promote-sole-todo= correctly promoted
+it to NEXT behind the test's back. The test now carries a third sibling
+and says why.
 
 *** TODO pause/resume cannot see a turn blocked on a permission prompt :code:
 :PROPERTIES:
@@ -4824,6 +4891,53 @@ different treatment at any later audit. The pre-cutover stales are also
 self-limiting — they stop being generated at the cutover — which argues
 against over-engineering for them specifically.
 
+*Outcome (2026-08-12, commits =2ce42fc= and =0942282=).* Chose the
+reason-carrying dismissal, stored as a =dismissed= map (timestamp ->
+reason) *inside* the existing =.applied= file. Rejected a separate
+=.dismissed= file — it doubles the read and write paths and the
+atomicity surface for no gain, since both facts concern one session's
+queue and are always read together — and rejected a =kind= the reader
+skips, which would mean writing into the queue the design keeps
+append-only. Deferral needs no new spelling: it is still simply not
+marking.
+
+The load-bearing piece is not the map but the *writer*.
+=--queue-mark-applied= previously serialized only its own key, so once
+=dismissed= existed in the file any apply would have erased every
+dismissal — and that symptom reads as "dismissal is broken" rather than
+"apply clobbered it." Both writers now go through one
+=--queue-watermark-write= that takes both facts, making the clobber
+impossible by construction rather than by remembering. Bound to =d=;
+=--queue-events= skips dismissed alongside applied.
+
+*Verified:* =bin/test= 170 -> 175, five new tests, the load-bearing one
+being the clobber regression asserted in *both* orders. Then the real
+end-to-end pass, by hand: all three permanent residents retired — the
+=dead-beef= phantom span and the two pre-cutover =STALE= transitions —
+across *two* different sessions' watermark files, which exercised the
+per-session write path. Pending items went 4 -> 1, and =5063f096= kept
+all 13 of its applied entries alongside its new dismissals, which was
+the case most at risk.
+
+*A defect in this feature, found and fixed in the same session
+(=0942282=).* Routing through the shared writer with a possibly-empty
+applied set produced ="applied":null= — a shape that could not arise
+before, since the only previous writer was always called with at least
+one entry. Harmless in process, because Elisp spells the empty list, the
+empty object and JSON null all as nil and this reader collapses them; a
+round-trip test therefore *cannot* catch it. It is not harmless outside:
+=d.get("applied", [])= does not fall back when the key is present
+holding null, which crashed a real inspection script against a real
+watermark file during this session. Empty sets now serialize as =[]= and
+={}=, asserted on the bytes rather than the round-trip, and the four
+existing files were normalized in place with content verified identical
+across the rewrite.
+
+*Left behind, inert:* normalizing iterated every session with a queue
+file and so created an empty =386e84cc-….applied= that had not existed.
+It reads ={"applied":[],"dismissed":{}}=, which the reader treats
+exactly as a missing file. Not cleaned up — the delete was declined.
+
 *** DONE Restore the read-only flag after review-apply clears it :code:
 :PROPERTIES:
 :ID:       45ec3ff6-cde1-42a6-a899-6b11982112cb
@@ -4856,6 +4970,29 @@ reversal.
 
 Restores only what this command actually cleared, so a buffer the user
 had already made writable is left alone.
+
+*Outcome (2026-08-12, commit =de1e7e6=).*
+=--review-ensure-writable= now *returns* the buffers it cleared, and
+=claude-code-ide-org-review-apply= restores them in an
+=unwind-protect=. Returning them rather than re-deriving the list
+afterwards is what keeps a buffer the user had already made writable
+from being switched to read-only by this command — restoring means
+putting back what was borrowed, not imposing a flag that was never
+there. The clear happens *outside* the =unwind-protect=, since declining
+signals and there is then nothing to put back.
+
+*Verified:* =bin/test= 175 -> 177, two new tests — restored after a
+successful apply, and restored after an error thrown mid-apply, which is
+precisely the failure window
+[[id:c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b][c8a97d9d]] named as its
+objection. The second test also covers the never-read-only case, where
+the buffer must be left writable and no prompt asked.
+
+*Confirmed live on real data, not just in batch.* The user applied three
+queued =DONE= transitions into =TODO.org= at 10:02 with the fix loaded.
+That apply had to make the buffer writable to land, and =TODO.org= was
+read-only again afterwards — with the user confirming they did not
+re-set it by hand. That is the whole loop: borrowed, written, returned.
 
 *** TODO Two display defects in the review buffer's rendering of a failed item :code:
 :PROPERTIES:
