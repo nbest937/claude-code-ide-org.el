@@ -2014,9 +2014,9 @@ apply command clocks in through the same advised =org-clock-in=.
 :ID:       b5f7c5c7-7ad6-4c68-9cce-3479db1f1644
 :CREATED:  [2026-08-06 Thu 10:47]
 :END:
-- State "DOING"      from "NEXT"       [2026-08-06 Thu 22:35]
 :LOGBOOK:
 CLOCK: [2026-08-11 Tue 11:10]--[2026-08-11 Tue 11:13] =>  0:03
+- State "DOING"      from "NEXT"       [2026-08-06 Thu 22:35]
 CLOCK: [2026-08-06 Thu 15:45]--[2026-08-06 Thu 16:50] =>  1:05
 - State "NEXT"       from "TODO"       [2026-08-06 Thu 12:07] \\
   Auto-promoted: sole remaining TODO in its sibling group.
