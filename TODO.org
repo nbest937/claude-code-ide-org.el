@@ -941,10 +941,45 @@ so it currently falls through to =org-default-notes-file=,
 =~/org/notes.org=, outside the repo entirely. Setting the defcustom alone
 would just aim the imprecision at a better file.
 
-All three defects are latent rather than damaging, for one reason:
-=~/org/notes.org= contains *zero* captured headings. The tool has never
-been used in anger, which is why nothing has surfaced — and why fixing
-it is worth doing before something starts depending on it.
+*Corrected 2026-08-11, by =org_outline= on its first real call.* This
+paragraph previously claimed all three defects were latent because
+=~/org/notes.org= contained *zero* captured headings and the tool had
+"never been used in anger." Both statements were false, and the error
+was methodological: the check was =grep -c '^\* TODO '=, which matches
+only the =TODO= keyword, so a captured heading later moved to =DOING=
+slipped past it. The structural index showed it immediately — which is
+the case [[id:9f3c35c7-0229-4cd6-908b-779267ec9b97][9f3c35c7]] was built
+for, arriving about an hour after that heading was written.
+
+*The tool has been used, and the damage is real, not hypothetical.* One
+capture exists, from on or before 2026-08-05:
+
+: * DOING Review parallelized-planning-with-session-logs design
+: :PROPERTIES:
+: :ID:       780d807e-d441-452f-a407-520225efb3c6
+: :END:
+
+=:ID:= and nothing else — no =:CREATED:=, exactly as the template emits.
+It sits in =~/org/notes.org=: outside the repo, outside version control,
+and therefore outside every sweep this project has run over its own
+files. It *is* in =org-agenda-files= and in
+=claude-code-ide-org--tracked-files=, so =org_query= and =org_outline=
+read it; the earlier claim that it was invisible to the project's
+machinery was also wrong.
+
+*One consequence found immediately: the =:SESSIONS:= retirement missed
+it.* [[id:9d2fcdad-9bf7-47b6-8018-223b13ec4577][9d2fcdad]] deleted all 49
+drawers and reports none remaining, which is true of TODO.org and
+DONE.org (0 each, counting anchored =^:SESSIONS:$= rather than the prose
+mentions a naive grep inflates to 56). =notes.org= still has one. The
+sweep was scoped to the repo's files rather than to the *tracked* files,
+and the difference between those two sets is exactly this one file.
+
+*So the cleanup belongs with this work:* whatever fixes the capture
+target should also decide what happens to =780d807e= — refile it into
+the repo, or leave it and accept a tracked file that no sweep will ever
+reach again. Leaving it as-is is a choice, not a default, and it is
+currently stuck at =DOING= with an empty =:LOGBOOK:=.
 
 *Placement design, settled with the user 2026-08-11.* An optional target
 accepting either an =:ID:= or a refile-style outline path
