@@ -4800,11 +4800,17 @@ progress bar*: it will always look radically incomplete against the line
 count, so any UI or check that reports "N of M applied" would read as
 alarming when it is in fact the steady state.
 
-*** TODO Review-buffer interaction fixes, for after the cutover :code:
+*** DONE Review-buffer interaction fixes, for after the cutover :code:
 :PROPERTIES:
 :ID:       d409390b-6624-4820-82bb-730d763962fd
 :CREATED:  [2026-08-11 Tue 12:06]
 :BLOCKER:  ids(feba67eb-35b3-48bd-a892-8ecd47ca52e0)
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-12 Wed 16:13] \\
+  mark advance, note editing, bulk marks shipped
+- State "DOING"      from "TODO"       [2026-08-12 Wed 16:09] \\
+  review-buffer interaction fixes
 :END:
 
 Requested by the user 2026-08-11, after applying a real batch by hand —
@@ -4869,12 +4875,14 @@ resolving. Note =claude-code-ide-org-review-toggle= remains =fboundp= in
 the running image — =load-file= does not unbind a deleted function — but
 it is gone from source and nothing binds it.
 
-*** DOING A read-only target buffer costs the human their whole review pass :code:
+*** DONE A read-only target buffer costs the human their whole review pass :code:
 :PROPERTIES:
 :ID:       8f2c1a90-4b7e-4d1a-9c3e-1f5a6b8d2e47
 :CREATED:  [2026-08-11 Tue 13:10]
 :END:
 :LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-12 Wed 16:09] \\
+  shipped; by-hand pass closed its last gap
 CLOCK: [2026-08-11 Tue 13:14]--[2026-08-11 Tue 13:29] =>  0:15
 CLOCK: [2026-08-11 Tue 13:11]--[2026-08-11 Tue 13:13] =>  0:02
 CLOCK: [2026-08-11 Tue 13:09]--[2026-08-11 Tue 13:10] =>  0:01
@@ -5327,10 +5335,16 @@ That apply had to make the buffer writable to land, and =TODO.org= was
 read-only again afterwards — with the user confirming they did not
 re-set it by hand. That is the whole loop: borrowed, written, returned.
 
-*** TODO Two display defects in the review buffer's rendering of a failed item :code:
+*** DONE Two display defects in the review buffer's rendering of a failed item :code:
 :PROPERTIES:
 :ID:       e3f70e61-6616-4c57-81e8-e350ffd5824c
 :CREATED:  [2026-08-11 Tue 16:32]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-12 Wed 16:13] \\
+  one defect fixed, one was never real
+- State "DOING"      from "TODO"       [2026-08-12 Wed 16:13] \\
+  batched with the interaction fixes
 :END:
 
 Both seen 2026-08-11, on the one =dead-beef= item that will ever exist
