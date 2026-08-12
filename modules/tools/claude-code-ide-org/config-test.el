@@ -15,6 +15,16 @@
 (require 'org-clock)
 (require 'json)
 
+(defconst claude-code-ide-org-test--repo-root
+  (and load-file-name
+       (expand-file-name "../../../" (file-name-directory load-file-name)))
+  "This repo's root, captured at load time.
+`load-file-name' is only bound while the file is being loaded, which is
+why this is a defconst rather than something computed inside a test.
+Lets a test read a checked-in fixture such as `clock-template.org';
+tests that use it skip themselves when it is nil, so loading this file
+some other way degrades to a skipped test rather than an error.")
+
 ;;; Fixture -----------------------------------------------------------------
 
 (defmacro claude-code-ide-org-test--with-heading (&rest body)
@@ -1256,9 +1266,10 @@ b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04); the 0:01 and 0:02 intervals below
 are the shape that used to vanish — the first rounded to zero and was
 dropped, the second absorbed into a 5-minute block.
 
-Consolidation now has nothing else to do: the :SESSIONS: half went with
-the drawer (:ID: 9d2fcdad), so a drawer already in newest-first order is
-a no-op end to end."
+Consolidation's remaining job is ordering, and since :ID: af7d3687 that
+order is ascending: org *inserts* CLOCK lines newest-first, so the input
+below arrives reversed and is expected to come back oldest-first with
+both intervals byte-identical apart from position."
   (claude-code-ide-org-test--with-heading
     (goto-char (point-max))
     (insert (concat
@@ -1268,22 +1279,107 @@ a no-op end to end."
              ":END:\n"))
     (save-buffer)
     (let ((result (claude-code-ide-org-consolidate-history id)))
-      ;; Nothing to report at all. Durations are left exactly as recorded
-      ;; (:ID: b74e0f19) and there is no second drawer to collapse
-      ;; (:ID: 9d2fcdad), so this is the clearest statement of what the
-      ;; function has become: ordering, and nothing else.
-      (should (string-match-p "\\`Nothing to consolidate on \"Test heading\"\\'" result)))
+      ;; It reorders, so it reports doing so. Durations are left exactly
+      ;; as recorded (:ID: b74e0f19) and there is no second drawer to
+      ;; collapse (:ID: 9d2fcdad).
+      (should (string-match-p "\\`Consolidated :LOGBOOK: on \"Test heading\"\\'" result)))
     (should (not (buffer-modified-p (get-file-buffer file))))
     (let ((disk (claude-code-ide-org-test--disk-contents file)))
       ;; Both intervals survive, unrounded and unmerged. Splitting on a
       ;; separator that occurs twice yields 3 parts.
       (should (= 3 (length (split-string disk "CLOCK:"))))
+      ;; Oldest first now: the 10:53 interval leads.
       (should (string-match-p
-               ":LOGBOOK:\nCLOCK: \\[2026-07-28 Tue 10:57\\]--\\[2026-07-28 Tue 10:59\\] =>  0:02\nCLOCK: \\[2026-07-28 Tue 10:53\\]--\\[2026-07-28 Tue 10:54\\] =>  0:01\n:END:"
+               ":LOGBOOK:\nCLOCK: \\[2026-07-28 Tue 10:53\\]--\\[2026-07-28 Tue 10:54\\] =>  0:01\nCLOCK: \\[2026-07-28 Tue 10:57\\]--\\[2026-07-28 Tue 10:59\\] =>  0:02\n:END:"
                disk))
+      ;; Running it again is a no-op, which is what makes the new order
+      ;; a fixed point rather than something that flips on every pass.
+      (should (string-match-p "\\`Nothing to consolidate"
+                              (claude-code-ide-org-consolidate-history id)))
       ;; No drawer is created, and none is expected: consolidation writes
       ;; :LOGBOOK: and nothing else now.
       (should-not (string-match-p ":SESSIONS:" disk)))))
+
+(ert-deftest claude-code-ide-org-test-logbook-sorts-every-shape-on-one-timeline ()
+  "The shape af7d3687 asked for: one ascending timeline across all four
+entry styles, not per-style groups that happen to be sorted within
+themselves. A state transition at 14:10 belongs between the interval
+that ended at 14:00 and the one starting at 14:20.
+
+The continuation is the dangerous part -- a `State ... \\\\' note owns the
+indented line beneath it, and any reordering that separates the two
+corrupts the note. That is the loss ba8249c1 already fixed once, so this
+deliberately places a note *with* a continuation between two clock lines
+that must move past it."
+  (let* ((text (concat
+                "CLOCK: [2026-08-06 Thu 15:00]--[2026-08-06 Thu 15:45] =>  0:45\n"
+                "- State \"WAIT\"       from \"DOING\"      [2026-08-06 Thu 14:10] \\\\\n"
+                "  request credentials from DBA\n"
+                "CLOCK: [2026-08-06 Thu 09:00]--[2026-08-06 Thu 09:15] =>  0:15\n"
+                "- <2026-08-06 Thu 13:30>--<2026-08-06 Thu 14:10> design tradeoffs\n"
+                "- [2026-08-06 Thu 14:20]--[2026-08-06 Thu 14:50] write unit tests\n"))
+         (out (claude-code-ide-org--consolidate-logbook-text text))
+         (lines (split-string out "\n" t)))
+    ;; One ascending timeline: 09:00, 13:30, 14:10 (+ its continuation),
+    ;; 14:20, 15:00.
+    (should (string-prefix-p "CLOCK: [2026-08-06 Thu 09:00]" (nth 0 lines)))
+    (should (string-prefix-p "- <2026-08-06 Thu 13:30>" (nth 1 lines)))
+    (should (string-match-p "State \"WAIT\"" (nth 2 lines)))
+    ;; The continuation moved with its note and stayed directly beneath it.
+    (should (equal "  request credentials from DBA" (nth 3 lines)))
+    (should (string-prefix-p "- [2026-08-06 Thu 14:20]" (nth 4 lines)))
+    (should (string-prefix-p "CLOCK: [2026-08-06 Thu 15:00]" (nth 5 lines)))
+    (should (= 6 (length lines)))
+    ;; Nothing was lost: every input line is still present.
+    (dolist (needle '("0:45" "0:15" "request credentials from DBA"
+                      "design tradeoffs" "write unit tests" "State \"WAIT\""))
+      (should (string-match-p (regexp-quote needle) out)))
+    ;; And it is a fixed point -- sorting an already-sorted drawer is
+    ;; identity, so consolidation cannot oscillate.
+    (should (equal out (claude-code-ide-org--consolidate-logbook-text out)))))
+
+(ert-deftest claude-code-ide-org-test-logbook-sort-reproduces-clock-template ()
+  "`clock-template.org' is the shape af7d3687 named as the target, so the
+strongest available check is that consolidating its drawer returns it
+*byte-identical*: the documented shape is a fixed point, not merely
+something close to one. It exercises all four entry styles, two notes
+with continuations, and several timestamp ties in one input -- richer
+than anything worth hand-writing, and it cannot drift from the doc,
+because it is the doc."
+  (skip-unless claude-code-ide-org-test--repo-root)
+  (let ((template (expand-file-name "clock-template.org"
+                                    claude-code-ide-org-test--repo-root)))
+    (skip-unless (file-readable-p template))
+    (with-temp-buffer
+      (insert-file-contents template)
+      (goto-char (point-min))
+      (re-search-forward "^ *:LOGBOOK:\n")
+      (let* ((beg (point))
+             (end (progn (re-search-forward "^ *:END:") (match-beginning 0)))
+             (body (buffer-substring-no-properties beg end)))
+        (should (equal body
+                       (claude-code-ide-org--consolidate-logbook-text body)))))))
+
+(ert-deftest claude-code-ide-org-test-logbook-sort-is-stable-and-keeps-undated-lines ()
+  "Entries sharing a timestamp keep the order they arrived in, so a CLOCK
+line and the annotation describing the same span stay adjacent rather
+than being reshuffled on every pass. Entries carrying no parseable
+timestamp cannot be placed, so they are kept at the end in their original
+order rather than dropped -- survival is the ba8249c1 lesson."
+  (let* ((text (concat
+                "- <2026-08-06 Thu 09:00>--<2026-08-06 Thu 09:15> annotation first\n"
+                "CLOCK: [2026-08-06 Thu 09:00]--[2026-08-06 Thu 09:15] =>  0:15\n"
+                "- a line with no timestamp at all\n"
+                "- another undated line\n"))
+         (out (claude-code-ide-org--consolidate-logbook-text text))
+         (lines (split-string out "\n" t)))
+    ;; Tie preserved: the annotation was first in, so it stays first.
+    (should (string-match-p "annotation first" (nth 0 lines)))
+    (should (string-prefix-p "CLOCK:" (nth 1 lines)))
+    ;; Undated lines survive, at the end, in their original order.
+    (should (equal "- a line with no timestamp at all" (nth 2 lines)))
+    (should (equal "- another undated line" (nth 3 lines)))
+    (should (= 4 (length lines)))))
 
 (ert-deftest claude-code-ide-org-test-consolidate-history-preserves-open-interval ()
   "An open CLOCK line and a trailing unmatched Resumed — today's

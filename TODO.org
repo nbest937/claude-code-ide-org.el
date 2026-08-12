@@ -3279,6 +3279,56 @@ Test against a drawer containing all three shapes at once, including a
 note with a continuation between two clock lines, and assert nothing is
 lost — the =ba8249c1= regression case is the one to extend.
 
+*Outcome, 2026-08-12.* Done as specified, ascending, one timeline across
+every entry style.
+
+=--parse-clock-lines= now returns =:entries=, a list of
+=(:time T :text TEXT)= in original order, replacing the old split into
+=:closed= conses plus a flat =:other= list. A line opens a new entry when
+it begins =CLOCK:= or =- =; every other non-blank line continues the
+entry above it, which is what carries a =State ... \\= note's indented
+continuation along with it. The sort key comes from one rule that covers
+all four shapes, since in each the *first* timestamp is the right one —
+=CLOCK:= interval start, state-note stamp, and range-annotation start,
+active =<...>= and inactive =[...]= alike.
+
+*The sort is stable, deliberately.* =clock-template.org= is not
+internally consistent about ties: at 09:15 the annotation precedes its
+=CLOCK:= line, at 13:30 it follows. So there is no tie rule to discover,
+and inventing one would reshuffle drawers on every pass. A stable sort
+keeps whatever adjacency already exists.
+
+*Entries with no parseable timestamp keep their original order at the
+end* — unplaceable, so not placed, but never dropped. That is the
+=ba8249c1= lesson: position is cosmetic, survival is not.
+
+*One thing fixed that only became visible here.*
+=--format-clock-line= emitted =CLOCK:= lines unindented, which was
+harmless while they were a single block, and visibly misaligning once
+they interleave with notes that keep their indentation. Each entry now
+keeps its own.
+
+*Verified, and the strongest check is the cheapest one:* consolidating
+=clock-template.org='s own drawer returns it *byte-identical*. The
+documented target shape is a fixed point, not merely close to one — and
+that fixture exercises four entry styles, two continuations and several
+ties at once, richer than anything worth hand-writing, and it cannot
+drift from the doc because it *is* the doc. =bin/test= 186 -> 189: that
+fixed-point test, one asserting a note's continuation travels with it
+past two clock lines that must move around it, and one covering tie
+stability plus undated-line survival. The pre-existing
+interval-preservation test was updated rather than deleted — it encoded
+the old newest-first order, which is exactly what this task changes; its
+real assertion (intervals unrounded and unmerged) is intact, and it now
+also asserts a second pass is a no-op, so the new order cannot
+oscillate.
+
+*Accepted cost, restated because it is permanent:* org still *inserts*
+new CLOCK lines newest-first, so a live drawer drifts back out of order
+between consolidations. Nothing runs consolidation automatically now
+that it is off the clock-out path, so in practice a drawer is sorted
+when someone asks.
+
 *** MAYBE Give the review buffer a transient menu, once it has filters worth composing :code:
 :PROPERTIES:
 :ID:       118373e5-b89b-4001-ad52-1f68374745fb

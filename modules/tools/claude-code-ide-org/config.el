@@ -838,37 +838,84 @@ for an actual drawer."
             (when (re-search-forward "^[ \t]*:END:[ \t]*$" subtree-end t)
               (list content-beg (line-beginning-position)))))))))
 
+(defun claude-code-ide-org--logbook-entry-time (line)
+  "Return the time LINE sorts on, or nil when it carries none.
+
+One rule covers every shape the drawer holds, because in all of them the
+*first* timestamp is the one to sort by: a `CLOCK:' interval sorts on its
+start, a `State \"X\" from \"Y\" [ts]' note on its stamp, and a range
+annotation on the start of its range — active `<...>' and inactive
+`[...]' alike.  Anything unrecognised returns nil and is left in place
+rather than guessed at."
+  (when (string-match "\\(\\[[^]]+\\]\\|<[^>]+>\\)" line)
+    (ignore-errors
+      (claude-code-ide-org--parse-org-timestamp (match-string 1 line)))))
+
 (defun claude-code-ide-org--parse-clock-lines (text)
-  "Parse TEXT (a :LOGBOOK: drawer's body) into a plist: :open, the
-raw text of a still-open CLOCK line if TEXT has one, else nil;
-:closed, a list of (START . END) time-value conses for every closed
-CLOCK line; and :other, every remaining non-blank line — native
-state-change notes with their continuation lines, timestamp-range
-annotations, anything this parser doesn't model — kept verbatim
-(original indentation included) in original order.  :other is what
-makes consolidation lossless for non-CLOCK drawer content (TODO.org
-:ID: ba8249c1-28cd-4ff1-918b-4b8439345d9a)."
-  (let (open closed other)
+  "Parse TEXT (a :LOGBOOK: drawer's body) into a plist.
+
+:open is the raw text of a still-open CLOCK line if TEXT has one, else
+nil.  :entries is a list of (:time TIME :text TEXT), one per *logical*
+entry, in original order — native state-change notes with their
+continuations, timestamp-range annotations, and closed CLOCK intervals
+alike.
+
+Entries rather than lines is the whole point.  A
+`State \"X\" from \"Y\" [ts] \\\\' note owns the indented continuation
+beneath it, and any reordering that separates the two corrupts the note
+— exactly the loss `ba8249c1' already had to fix once, when
+consolidation silently dropped non-CLOCK drawer lines.  A line starts a
+new entry when it begins `CLOCK:' or `- '; every other non-blank line
+continues the entry above it.
+
+A closed CLOCK line's :text is *normalised* through
+`claude-code-ide-org--format-clock-line', which recomputes the
+`=> H:MM' total from the endpoints.  Everything else is kept verbatim,
+original indentation included."
+  (let (open entries current)
     (dolist (raw (split-string text "\n"))
       (let ((line (string-trim raw)))
         (cond
          ((string-empty-p line))
-         ((string-match "\\`CLOCK: \\(\\[[^]]+\\]\\)--\\(\\[[^]]+\\]\\)" line)
-          ;; Capture both groups before parsing either — `claude-code-ide-org--
-          ;; parse-org-timestamp' calls `org-time-string-to-time', which does
-          ;; its own internal regexp matching and would otherwise clobber the
-          ;; match data the second `match-string' call relies on (the same
-          ;; footgun `claude-code-ide-org-close-open-interval' already works
-          ;; around).
-          (let ((start-str (match-string 1 line))
-                (end-str (match-string 2 line)))
-            (push (cons (claude-code-ide-org--parse-org-timestamp start-str)
-                        (claude-code-ide-org--parse-org-timestamp end-str))
-                  closed)))
+         ;; A still-open CLOCK reflects live state, not history, and is
+         ;; never sorted or rewritten -- checked before the general
+         ;; CLOCK: case, which would otherwise swallow it.
          ((string-match "\\`CLOCK: \\[[^]]+\\]\\'" line)
           (setq open line))
-         (t (push raw other)))))
-    (list :open open :closed closed :other (nreverse other))))
+         ((string-match "\\`CLOCK: \\(\\[[^]]+\\]\\)--\\(\\[[^]]+\\]\\)" line)
+          ;; Capture both groups before parsing either --
+          ;; `claude-code-ide-org--parse-org-timestamp' calls
+          ;; `org-time-string-to-time', which does its own internal
+          ;; regexp matching and would otherwise clobber the match data
+          ;; the second `match-string' relies on (the same footgun
+          ;; `claude-code-ide-org-close-open-interval' works around).
+          (let* ((start-str (match-string 1 line))
+                 (end-str (match-string 2 line))
+                 ;; Keep the line's own indentation. It used to be
+                 ;; dropped harmlessly, because CLOCK lines were emitted
+                 ;; as one block; now that they interleave with notes
+                 ;; that *do* keep theirs, losing it would visibly
+                 ;; misalign an indented drawer.
+                 (indent (if (string-match "\\`\\([ \t]*\\)" raw)
+                             (match-string 1 raw)
+                           ""))
+                 (start (claude-code-ide-org--parse-org-timestamp start-str))
+                 (end (claude-code-ide-org--parse-org-timestamp end-str)))
+            (when current (push current entries))
+            (setq current
+                  (list :time start
+                        :text (concat indent
+                                      (claude-code-ide-org--format-clock-line
+                                       start end))))))
+         ((string-prefix-p "- " line)
+          (when current (push current entries))
+          (setq current (list :time (claude-code-ide-org--logbook-entry-time line)
+                              :text raw)))
+         (current
+          (plist-put current :text (concat (plist-get current :text) "\n" raw)))
+         (t (push (list :time nil :text raw) entries)))))
+    (when current (push current entries))
+    (list :open open :entries (nreverse entries))))
 
 (defun claude-code-ide-org--format-clock-line (start end)
   "Format START and END (time values) as a closed CLOCK line,
@@ -881,13 +928,28 @@ matching org's own \"CLOCK: [start]--[end] =>  H:MM\" convention."
 
 (defun claude-code-ide-org--consolidate-logbook-text (text)
   "Given the raw body TEXT of a :LOGBOOK: drawer, return it normalised:
-closed CLOCK intervals re-emitted newest first, like org's own CLOCK
-ordering, with their endpoints exactly as recorded. A still-open CLOCK
-line, if present, is left completely untouched and kept first, since it
-reflects live clock state, not history. Every non-CLOCK line (native
-state-change notes and their continuations, annotations) is preserved
-verbatim after the CLOCK block — position among the rebuilt lines is
-cosmetic, survival is not (TODO.org :ID: ba8249c1).
+every entry on *one ascending timeline*, oldest first, keyed on the
+first timestamp each carries. Closed CLOCK intervals keep their
+endpoints exactly as recorded, with only the `=> H:MM' total recomputed.
+A still-open CLOCK line, if present, is left completely untouched and
+kept first, since it reflects live clock state, not history. Entries
+carrying no parseable timestamp keep their original relative order at
+the end — unplaceable, so not placed.
+
+*One timeline across every entry style*, not per-style groups that
+happen to be sorted within themselves: a state transition at 14:10
+belongs between the interval that ended at 14:00 and the one starting at
+14:20, which is what makes the drawer legible as a narrative rather than
+three interleaved logs. `clock-template.org' is the shape being matched.
+
+This deliberately abandons the newest-first order org itself uses when
+*inserting* CLOCK lines, so the two disagree and the drawer drifts back
+out of order between consolidations. That is the accepted cost of the
+request (TODO.org :ID: af7d3687), not an oversight.
+
+Reordering is only safe because the parser groups a note with its
+indented continuation and moves them together; splitting those is the
+corruption `ba8249c1' already fixed once (TODO.org :ID: ba8249c1).
 
 *This function no longer alters any interval.* It used to round each one
 to the nearest 5-minute mark, merge those that became adjacent or
@@ -911,14 +973,22 @@ one-minute floor that used to guard this on the write path went with
 the clock-out wrapper's body at the 2026-08-11 cutover.)"
   (let* ((parsed (claude-code-ide-org--parse-clock-lines text))
          (open (plist-get parsed :open))
-         (other (plist-get parsed :other))
-         (lines (mapcar (lambda (iv) (claude-code-ide-org--format-clock-line (car iv) (cdr iv)))
-                         (reverse (plist-get parsed :closed)))))
+         (entries (plist-get parsed :entries))
+         (dated (seq-filter (lambda (e) (plist-get e :time)) entries))
+         (undated (seq-remove (lambda (e) (plist-get e :time)) entries))
+         ;; `sort' on lists is a stable merge sort, which is what keeps
+         ;; entries sharing a timestamp in the order they already had --
+         ;; a CLOCK line and the annotation describing the same span stay
+         ;; adjacent, and clock-template.org's own tie order (which is not
+         ;; internally consistent) is preserved rather than second-guessed.
+         (sorted (sort (copy-sequence dated)
+                       (lambda (a b)
+                         (time-less-p (plist-get a :time) (plist-get b :time)))))
+         (lines (mapcar (lambda (e) (plist-get e :text))
+                        (append sorted undated))))
     (concat (if open (concat open "\n") "")
             (mapconcat #'identity lines "\n")
-            (if lines "\n" "")
-            (mapconcat #'identity other "\n")
-            (if other "\n" ""))))
+            (if lines "\n" ""))))
 
 (defun claude-code-ide-org-consolidate-history (id)
   "Normalise the :LOGBOOK: drawer of the heading with :ID: equal to ID:
