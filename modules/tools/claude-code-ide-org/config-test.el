@@ -1411,15 +1411,37 @@ the temp directory afterwards."
 (ert-deftest claude-code-ide-org-test-capture-creates-heading-with-id ()
   (claude-code-ide-org-test--with-capture-file
     (let ((result (claude-code-ide-org-capture "Buy stamps")))
-      (should (string-match-p "\\`Captured: \"Buy stamps\" (ID: .+)\\'" result))
-      (string-match "(ID: \\(.+\\))\\'" result)
+      (should (string-match-p "\\`Captured: \"Buy stamps\" (ID: [^)]+)" result))
+      (string-match "(ID: \\([^)]+\\))" result)
       (let ((returned-id (match-string 1 result))
             (disk (claude-code-ide-org-test--disk-contents capture-file)))
         ;; A real, non-empty ID landed both in the return string and on disk.
         (should (> (length returned-id) 0))
-        (should (string-match-p "^\\* TODO Buy stamps[ \t]*$" disk))
+        (should (string-match-p "^\\* Buy stamps[ \t]*$" disk))
         (should (string-match-p (concat "^:ID: +" (regexp-quote returned-id) "[ \t]*$") disk))
         (should (not (buffer-modified-p (get-file-buffer capture-file))))))))
+
+(ert-deftest claude-code-ide-org-test-capture-writes-no-todo-keyword ()
+  "The heading is deliberately keyword-less: state is supplied at
+ingestion so org logs the transition natively, rather than asserted live
+by a tool whose every other state write is queued."
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-capture "Keywordless task")
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p "^\\* Keywordless task[ \t]*$" disk))
+      (should-not (string-match-p "^\\* \\(TODO\\|NEXT\\|DOING\\) " disk)))))
+
+(ert-deftest claude-code-ide-org-test-capture-writes-created-property ()
+  "Formatted in elisp, not via the template's %U escape: an escape that
+fails to expand leaves a literal \"%U\" and still passes a naive
+is-the-property-there check."
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-capture "Stamped task")
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p
+               "^:CREATED: +\\[[0-9]\\{4\\}-[0-9][0-9]-[0-9][0-9] [A-Z][a-z][a-z] [0-9][0-9]:[0-9][0-9]\\][ \t]*$"
+               disk))
+      (should-not (string-match-p "%U" disk)))))
 
 (ert-deftest claude-code-ide-org-test-capture-id-immediately-resolvable ()
   "Regression test: unlike `org-id-get-create' (the manual workflow
@@ -1436,7 +1458,7 @@ right away with no rescan needed."
   (claude-code-ide-org-test--with-capture-file
     (let* ((org-agenda-files nil)
            (result (claude-code-ide-org-capture "Round trip task")))
-      (string-match "(ID: \\(.+\\))\\'" result)
+      (string-match "(ID: \\([^)]+\\))" result)
       (let ((returned-id (match-string 1 result)))
         (should (org-id-find returned-id 'marker))
         (should (string-match-p
@@ -1453,7 +1475,55 @@ as template escapes or regexp backreferences."
            (result (claude-code-ide-org-capture title)))
       (should (string-match-p (regexp-quote (format "Captured: \"%s\"" title)) result))
       (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
-        (should (string-match-p (regexp-quote (concat "* TODO " title)) disk))))))
+        (should (string-match-p (regexp-quote (concat "* " title)) disk))))))
+
+(ert-deftest claude-code-ide-org-test-capture-target-by-category-title ()
+  "Top-level categories carry no :ID: by convention, so a title is the
+only handle.  Safe for these specifically: few, human-curated, never
+refiled."
+  (claude-code-ide-org-test--with-capture-file
+    (with-current-buffer (find-file-noselect capture-file)
+      (goto-char (point-max))
+      (insert "* Tooling\n* Skill logic\n")
+      (save-buffer))
+    (let ((result (claude-code-ide-org-capture "Filed under a category" "Tooling")))
+      (should (string-match-p "under \"Tooling\"" result))
+      (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+        ;; Landed as a child of Tooling, not of Skill logic, and not at
+        ;; the end of the file.
+        (should (string-match-p
+                 "^\\* Tooling\n\\*\\* Filed under a category" disk))))))
+
+(ert-deftest claude-code-ide-org-test-capture-target-by-id ()
+  (claude-code-ide-org-test--with-capture-file
+    (with-current-buffer (find-file-noselect capture-file)
+      (goto-char (point-max))
+      (insert "* Parent heading\n:PROPERTIES:\n"
+              ":ID:       66666666-6666-4666-8666-666666666666\n:END:\n")
+      (save-buffer))
+    (org-id-update-id-locations (list capture-file))
+    (let ((result (claude-code-ide-org-capture
+                   "Filed under an id" "66666666-6666-4666-8666-666666666666")))
+      (should (string-match-p "under :ID: 66666666" result))
+      (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+        (should (string-match-p "^\\*\\* Filed under an id" disk))))))
+
+(ert-deftest claude-code-ide-org-test-capture-unknown-target-refuses ()
+  "Better to error than to file it somewhere the caller did not ask for:
+a caller that named a destination and silently got a different one is
+worse off than one that got an error."
+  (claude-code-ide-org-test--with-capture-file
+    (let ((result (claude-code-ide-org-capture "Nowhere task" "No Such Category")))
+      (should (string-prefix-p "Error:" result))
+      (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+        (should-not (string-match-p "Nowhere task" disk))))))
+
+(ert-deftest claude-code-ide-org-test-capture-omitted-target-appends ()
+  (claude-code-ide-org-test--with-capture-file
+    (let ((result (claude-code-ide-org-capture "Unplaced task")))
+      (should (string-match-p "end of file" result))
+      (should (string-match-p "^\\* Unplaced task"
+                              (claude-code-ide-org-test--disk-contents capture-file))))))
 
 (ert-deftest claude-code-ide-org-test-capture-uses-org-default-notes-file-when-unset ()
   "When `claude-code-ide-org-capture-file' is nil, capture must fall

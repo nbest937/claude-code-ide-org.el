@@ -1156,26 +1156,93 @@ fresh on every capture, so changing the defcustom at runtime takes
 effect immediately."
   (or claude-code-ide-org-capture-file org-default-notes-file))
 
-(defun claude-code-ide-org-capture (title)
-  "Quick-add TITLE as a new top-level TODO heading via `org-capture'.
-Targets `claude-code-ide-org--capture-target-file', with a real,
-freshly-generated :ID: property.  See the commentary above this
-section for why the template is built fresh per call and why `%i'
-rather than `%?' is used.  Returns \"Captured: \\=\"TITLE\\=\" (ID:
-...)\" on success so the caller can immediately clock in / set state
-on the new heading via org_clock_in / org_set_todo, or an
-\"Error: ...\" string.  Never signals an error to the MCP layer."
+(defun claude-code-ide-org--capture-level-1-headings (file)
+  "Titles of FILE's level-1 headings — this project's categories.
+They carry no :ID: by convention, so a title is the only handle there
+is; see `claude-code-ide-org--capture-target-spec' for why that is
+acceptable here and nowhere else."
+  (with-current-buffer (find-file-noselect file)
+    (org-map-entries (lambda () (substring-no-properties
+                                 (org-get-heading t t t t)))
+                     "LEVEL=1" 'file)))
+
+(defun claude-code-ide-org--capture-target-spec (target)
+  "Resolve TARGET to a plist (:spec SPEC :file FILE :where DESC).
+
+TARGET is an :ID: to capture under that heading, the title of a
+top-level category to capture under that, or nil to append at the end of
+the capture file.
+
+*Why a title is allowed at all,* against this project's standing rule
+that headings are addressed by :ID: and never by title: top-level
+headings here are categories and carry no property drawer by
+convention, so no other handle exists.  The properties that make titles
+unsafe elsewhere — non-unique, mutable, moved by refiling — do not hold
+for these: there are seven, they are human-curated, and they never move.
+That is a different risk profile, not an exception grudgingly made.
+
+Signals when TARGET matches neither, rather than silently falling back
+to the end of the file.  A caller that named a destination and got a
+different one is worse off than a caller that got an error."
+  (let ((default (claude-code-ide-org--capture-target-file))
+        (target (and (stringp target)
+                     (not (string-empty-p (string-trim target)))
+                     (string-trim target))))
+    (cond
+     ((null target)
+      (list :spec (list 'file default) :file default :where "end of file"))
+     ((org-id-find target)
+      (list :spec (list 'id target)
+            :file (car (org-id-find target))
+            :where (format "under :ID: %s" target)))
+     ((member target (claude-code-ide-org--capture-level-1-headings default))
+      (list :spec (list 'file+olp default target)
+            :file default
+            :where (format "under \"%s\"" target)))
+     (t (error "target %S is neither a known :ID: nor a top-level heading in %s"
+               target (file-name-nondirectory default))))))
+
+(defun claude-code-ide-org-capture (title &optional target)
+  "Quick-add TITLE as a new heading via `org-capture'.
+
+Writes a *keyword-less* heading carrying a freshly-generated :ID: and a
+:CREATED: stamp.  No TODO keyword: the state is supplied later, at
+ingestion, through `org-todo' inside the interactive apply — which makes
+it a genuine transition and lets org write the creation entry itself.
+Capturing with a keyword would assert a state live while every other
+state assertion in this module is queued.  See TODO.org
+:ID: 47c027d2-7b5a-4de0-baf4-f992f3b814bd.
+
+:CREATED: is formatted here rather than via the template's `%U' escape.
+A template escape that silently fails to expand leaves a literal \"%U\"
+behind and still satisfies a naive \"is the property present\" check;
+formatting it in elisp cannot fail that way.
+
+TARGET places the heading — an :ID:, a top-level category title, or
+omitted for the end of the capture file.  See
+`claude-code-ide-org--capture-target-spec'.
+
+Returns \"Captured: \\=\"TITLE\\=\" (ID: ...) <where>\" on success, so
+the caller can immediately act on the new heading, or an \"Error: ...\"
+string.  Never signals an error to the MCP layer."
   (condition-case err
-      (let* ((new-id (org-id-new))
+      (let* ((resolved (claude-code-ide-org--capture-target-spec target))
+             (new-id (org-id-new))
+             (created (format-time-string "[%Y-%m-%d %a %H:%M]"))
              (org-capture-templates
               (list (list "z" "Claude quick-capture (org_capture MCP tool)"
                           'entry
-                          (list 'file #'claude-code-ide-org--capture-target-file)
-                          (format "* TODO %%i\n:PROPERTIES:\n:ID:       %s\n:END:\n" new-id)
+                          (plist-get resolved :spec)
+                          (format "* %%i\n:PROPERTIES:\n:ID:       %s\n:CREATED:  %s\n:END:\n"
+                                  new-id created)
                           :immediate-finish t))))
         (org-capture-string title "z")
-        (org-id-add-location new-id (expand-file-name (claude-code-ide-org--capture-target-file)))
-        (format "Captured: \"%s\" (ID: %s)" title new-id))
+        ;; Registered against the file the target actually resolved to,
+        ;; which is not necessarily the capture file: an :ID: target can
+        ;; live anywhere org-id knows about.
+        (org-id-add-location new-id (expand-file-name (plist-get resolved :file)))
+        (format "Captured: \"%s\" (ID: %s) %s"
+                title new-id (plist-get resolved :where)))
     (error (format "Error: %s" (error-message-string err)))))
 
 ;;; Query -------------------------------------------------------------------
@@ -3025,17 +3092,22 @@ correctly inside a real interactive command."
    :function #'claude-code-ide-org-capture
    :name "org_capture"
    :description (concat
-                 "Quick-add a new TODO heading from TITLE via org-capture, in "
-                 "one call instead of hand-writing a heading via the text "
-                 "skill and then calling org-id-get-create separately. "
-                 "Targets `claude-code-ide-org-capture-file' (or "
-                 "`org-default-notes-file' when unset). Returns a "
-                 "confirmation string containing the new heading's real "
-                 ":ID:, so the caller can immediately clock in / set state "
-                 "on it with org_clock_in / org_set_todo.")
+                 "Quick-add a new heading from TITLE via org-capture, in one "
+                 "call instead of hand-writing a heading and then calling "
+                 "org-id-get-create separately. The heading is written with "
+                 "an :ID: and a :CREATED: stamp but NO TODO keyword — set "
+                 "its state afterwards with org_set_todo, which queues the "
+                 "transition for review so org logs it natively. Use TARGET "
+                 "to place it; run org_outline first if you need to see what "
+                 "categories exist. Returns a confirmation containing the "
+                 "new heading's real :ID: and where it landed.")
    :args '((:name "title"
             :type string
-            :description "The heading text for the new TODO.")))
+            :description "The heading text for the new heading.")
+           (:name "target"
+            :type string
+            :optional t
+            :description "Where to put it: an :ID: to file it under that heading, or the exact title of a top-level category. Omit to append at the end of the capture file.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-query

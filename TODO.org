@@ -1039,6 +1039,47 @@ specifically. Omitting the target keeps today's append-at-top-level
 behaviour, which is the honest fallback for "placement unknown" and
 removes any need for an inbox heading.
 
+*Implemented 2026-08-11.* The template now writes =* %i= with =:ID:= and
+=:CREATED:= and no keyword, and =org_capture= takes an optional
+=target=. =:CREATED:= is formatted in elisp rather than via the
+template's =%U= escape, for the reason
+[[id:cdcc065c-628d-4350-b1ba-fcf686e9c4c1][cdcc065c]] gave: an escape
+that fails to expand leaves a literal =%U= behind and still satisfies a
+naive is-the-property-present check.
+
+*Deviation from the placement design above, deliberate.* The plan said
+the target would accept "a refile-style outline path
+(=TODO.org/Skill logic=), resolved through the vocabulary
+=org-refile-get-targets= already produces." What shipped accepts an
+=:ID:= or the *exact title of a top-level category*. The reason is that
+refile-target strings escape =/= inside headings as =\\/= — this file
+has a heading containing =NEXT/TODO= that renders as =NEXT\\/TODO= —
+so splitting a path on =/= is wrong in a way that would only surface on
+particular headings. Matching a level-1 title exactly sidesteps the
+parsing entirely and covers both real cases: categories, which have no
+=:ID:=, and any ID-bearing parent. Full path support can come later if a
+level-2 target is ever wanted; nothing needs it today.
+
+An unknown target *errors* rather than falling back to the end of the
+file. A caller that named a destination and silently got a different one
+is worse off than one that got an error.
+
+*Still outstanding, and not Claude's to do:*
+=claude-code-ide-org-capture-file= is a defcustom set in
+=~/.config/doom/config.el=, outside this repo, and it is still =nil= —
+so captures continue to land in =org-default-notes-file=. The tool is
+correct; the target is not yet pointed at this project. That one line is
+the user's to write.
+
+*Verified:* =bin/test= 167/167 — three existing capture tests updated to
+the new contract (they asserted =^\* TODO= and a return string ending at
+the =:ID:=), six new ones covering the absent keyword, the =:CREATED:=
+stamp and its =%U= trap, both target forms, the refusal, and the
+omitted-target append. Live against a scratch capture file, all three
+paths behaved: =Tooling= demoted the entry to =**= beneath that
+category, an omitted target appended at =*=, and a bad target returned
+an error with nothing written.
+
 *Scope note: capture is a minority path in this project.* Nine headings
 were created on 2026-08-11 and every one was placed correctly by text
 editing; =org_capture= was not used once. Its pitch — quick-add without
