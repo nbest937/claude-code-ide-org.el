@@ -6579,6 +6579,15 @@ genuinely safe for the *other* session's work. The catch is that it
 constrains the wrong party — safety depends on the *committing* session
 complying, and the session at risk has no way to enforce it.
 
+*Caveat found while defining the hook below:* =git commit -- <paths>=
+*fails on an untracked file* — =error: pathspec 'NEW.txt' did not match
+any file(s) known to git=. A new file must be =git add=-ed first, and
+only then can be committed by pathspec. So for brand-new content (a new
+plan, a new script) the staging window this mitigation exists to avoid
+is unavoidable, and exposure persists between the add and the commit.
+The mitigation is complete only for already-tracked files — which is
+where this incident happened, TODO.org being tracked.
+
 *Options for something robust, none chosen:*
 - *Convention only:* ban =git add= outright in favour of
   =git commit -- <paths>=, in CLAUDE.md and the org skill. Cheapest,
@@ -6586,14 +6595,9 @@ complying, and the session at risk has no way to enforce it.
   sessions here are Claude Code reading the same CLAUDE.md, this is
   less hollow than it sounds — but it is guidance, not a mechanism, and
   the user asked for a mechanism.
-- *A =pre-commit= hook* in =.githooks/= that refuses a pathspec-less or
-  =-a= commit when the index holds paths the invoking session did not
-  stage. Needs per-session ownership of staged paths, which does not
-  exist today; the closest precedent is
-  =claude-code-ide-org--clock-owner-session-id= and its =PLANNING=
-  twin. Note =.githooks/= currently holds only =pre-push=, and
-  =core.hooksPath= is opt-in per clone, so this inherits that setup
-  caveat.
+- *A =pre-commit= hook* in =.githooks/=. Defined below — the only
+  option here that is a mechanism rather than guidance, and cheaper
+  than first assumed.
 - *Route git writes through the event queue* of
   [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]. That queue
   already carries =session_id=/=agent_id= and already exists to stop
@@ -6601,6 +6605,60 @@ complying, and the session at risk has no way to enforce it.
   applying batches later. Commits are the same shape of problem. The
   heaviest option and the most consistent with where the project is
   already going.
+
+*The =pre-commit= option, defined.* Measured 2026-08-12 in a scratch
+repo with a hook that printed its own environment. =GIT_INDEX_FILE=
+identifies which command form invoked the commit:
+
+| Command                  | =GIT_INDEX_FILE=            | Sweeps a staged file? |
+|--------------------------+-----------------------------+-----------------------|
+| =git commit=             | =.git/index=                | yes                   |
+| =git commit --amend=     | =.git/index=                | yes                   |
+| =git commit -a=          | =.git/index.lock=           | yes                   |
+| =git commit -- <paths>=  | =.git/next-index-<pid>.lock= | no                   |
+
+The hook can read *both* views at once: what the commit will contain
+(=git diff --cached=) and what the real index holds
+(=GIT_INDEX_FILE=$(git rev-parse --git-dir)/index git diff --cached=).
+In the pathspec case those differ exactly as they should — commit
+=B.txt=, real index still =A.txt=. =CLAUDE_CODE_SESSION_ID= also
+propagates into the hook, confirmed by printing it.
+
+*Proposed rule:* refuse when the form is a whole-index one (basename of
+=GIT_INDEX_FILE= is =index= or =index.lock=) *and* the real index is
+non-empty; fire only when =CLAUDE_CODE_SESSION_ID= is set. That is the
+sweep case and nothing else. =git commit -- <paths>= always passes;
+=git commit -a= against an empty index passes, since no one's work is at
+risk; a human committing from a plain terminal is never affected. The
+message should name the staged paths and print the pathspec form to use
+instead.
+
+*This retires the "needs ownership tracking" objection*, which the
+first version of this heading asserted and which is wrong: the command
+*form* is a sufficient discriminator and the safe form is
+self-identifying. Per-session ownership of staged paths would only be
+needed for a more permissive rule ("allow the sweep if everything
+staged is mine"), not worth building first. If it ever is, the
+precedent for where such state lives is
+=claude-code-ide-org-queue-directory= — per-session runtime files,
+deliberately outside the repo.
+
+*Known limitations, all of them accepted rather than solved:*
+- =--amend= is *indistinguishable* from a plain pathspec-less commit —
+  both report =.git/index= — so it gets refused too, absent an escape
+  hatch such as an =ALLOW_SWEEP= environment variable.
+- =--no-verify= bypasses the hook entirely. This makes the mistake loud
+  rather than silent; it does not make it impossible, and it still
+  constrains the committing party rather than protecting the session at
+  risk.
+- Merge/rebase/cherry-pick paths are *untested* — the scratch-repo run
+  errored before reaching them, and they need checking before shipping.
+- Opt-in per clone via =core.hooksPath=, inheriting the same setup
+  caveat =pre-push= already has.
+
+*Testing* would follow the existing =bin/*-test= pattern
+(=sync-plans-test=, =queue-append-test=): a scratch repo, each of the
+four command forms, asserting exit status and message.
 
 *Blocked on this in practice:* the user has stated they will not run a
 second concurrent session until a mechanism is in place, so this gates
