@@ -6515,3 +6515,93 @@ finds them under the symlink path. Both resolve to the same file so
 lookups should work, but it is worth confirming that =org-id-locations=
 does not end up with two entries per id, and worth deciding which path
 is canonical rather than letting it depend on who wrote last.
+
+** NEXT Concurrent sessions share one git index, and explicit staging protects nothing :code:
+:PROPERTIES:
+:ID:       2aeb65d6-350e-4c75-811e-4a748044fe2c
+:CREATED:  [2026-08-12 Wed 16:20]
+:END:
+:LOGBOOK:
+- State "NEXT"       from              [2026-08-12 Wed 16:22] \\
+  user is blocked on this: no second session until a mechanism exists
+:END:
+
+*This one actually happened, deliberately, as a resilience test.* On
+2026-08-12 two sessions ran against this same checkout. This session
+wrote a heading to TODO.org, staged it with an explicit pathspec
+(=git add -- TODO.org=), and went to commit. The commit failed with
+=nothing to commit, working tree clean=: the other session had already
+committed, and its pathspec-less =git commit= took the whole index,
+sweeping this session's 69 staged lines into
+=a8dc693 "Review-buffer interaction fixes ..."= — a commit whose
+message describes unrelated work and names two unrelated heading
+=:ID:=s. Content survived; attribution did not. =36410e2= is an empty
+commit recording that, since =a8dc693= was already pushed and
+rewriting a pushed commit under a live concurrent session is worse
+than the mislabelling.
+
+*The mechanism is the index, not the files.* Every convention this
+project already has is about file contents — check for a modified
+buffer, stage explicitly, never =git add -A=. None of them touch the
+actual shared mutable state, which is =.git/index=: one per checkout,
+not one per session. Worse, following the convention *increased* the
+damage. Staging early loaded this session's work into the index
+*before* the other session committed; a pathspec-less =git commit= then
+picked it up automatically. Had this session not staged at all, its
+work would have been left alone.
+
+*Not covered by the existing worktree heading, and this is the load-
+bearing part.*
+[[id:2e09adb7-6e29-499c-a40e-98cd2b327cff][2e09adb7]] concludes that
+worktrees handle the *code* side — "one checkout + branch per session,
+no shared-file collisions" — and that only the org files need to stay a
+single canonical copy in the main checkout. Read against this incident
+those two halves collide: the file that got swept up *was* TODO.org,
+which by that heading's own =:ID:=-uniqueness and clock-fragmentation
+argument is exactly the file that *cannot* be partitioned into a
+worktree. So a worktree session must still write and commit TODO.org
+in the main checkout, through the main checkout's index, and hits this
+identically. **Worktrees do not fix this scenario; they fix everything
+around it.** That is new information for 2e09adb7, which assumed the
+code side was the whole problem.
+
+*Related but distinct:*
+[[id:3cb3f955-f10a-47cd-84ab-e629d73ea59d][3cb3f955]] already asks
+whether =git commit -- TODO.org= is "safe," but scoped to a *single*
+session not sweeping up its own unrelated hunks in the same file. This
+heading is the cross-session case: another session's *staged* work, in
+any file. Same command, different failure. Worth answering together.
+
+*One mitigation is already verified.* Tested 2026-08-12 in a scratch
+repo: with =A.txt= staged, =git commit -- B.txt= commits B only, leaves
+A staged, and does not commit A. So a pathspec-scoped commit is
+genuinely safe for the *other* session's work. The catch is that it
+constrains the wrong party — safety depends on the *committing* session
+complying, and the session at risk has no way to enforce it.
+
+*Options for something robust, none chosen:*
+- *Convention only:* ban =git add= outright in favour of
+  =git commit -- <paths>=, in CLAUDE.md and the org skill. Cheapest,
+  verified to work, and binds only sessions that follow it. Given both
+  sessions here are Claude Code reading the same CLAUDE.md, this is
+  less hollow than it sounds — but it is guidance, not a mechanism, and
+  the user asked for a mechanism.
+- *A =pre-commit= hook* in =.githooks/= that refuses a pathspec-less or
+  =-a= commit when the index holds paths the invoking session did not
+  stage. Needs per-session ownership of staged paths, which does not
+  exist today; the closest precedent is
+  =claude-code-ide-org--clock-owner-session-id= and its =PLANNING=
+  twin. Note =.githooks/= currently holds only =pre-push=, and
+  =core.hooksPath= is opt-in per clone, so this inherits that setup
+  caveat.
+- *Route git writes through the event queue* of
+  [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]. That queue
+  already carries =session_id=/=agent_id= and already exists to stop
+  concurrent sessions from mutating shared state directly, with a human
+  applying batches later. Commits are the same shape of problem. The
+  heaviest option and the most consistent with where the project is
+  already going.
+
+*Blocked on this in practice:* the user has stated they will not run a
+second concurrent session until a mechanism is in place, so this gates
+concurrent work generally rather than being one more backlog item.
