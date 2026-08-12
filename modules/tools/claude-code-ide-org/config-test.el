@@ -3210,6 +3210,64 @@ get.  Before this check each item failed separately with
         (kill-buffer "*org-review-test*")
         (with-current-buffer (get-file-buffer file) (read-only-mode -1))))))
 
+(ert-deftest claude-code-ide-org-test-pending-updates-summarizes-proposals ()
+  "The read-only counterpart to the review command: it must report the
+same items, grouped by heading, without applying anything."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--with-queue
+      (let ((before (claude-code-ide-org-test--disk-contents file)))
+        (apply #'claude-code-ide-org-test--queue-write "sess-a"
+               (list (claude-code-ide-org-test--queue-event
+                      "2026-08-07T09:00:00-0500" "todo" id "DOING" nil "start it")))
+        (let ((out (claude-code-ide-org-pending-updates)))
+          (should (string-match-p "1 pending item" out))
+          (should (string-match-p "1 heading" out))
+          (should (string-match-p "Test heading" out))
+          (should (string-match-p "DOING" out))
+          (should (string-match-p "start it" out))
+          ;; Read-only: the file is untouched and the item is still pending.
+          (should (equal before (claude-code-ide-org-test--disk-contents file)))
+          (should (= 1 (length (claude-code-ide-org--review-items-from-queue)))))))))
+
+(ert-deftest claude-code-ide-org-test-pending-updates-distinguishes-items-from-events ()
+  "Queue lines and proposals are different quantities, and conflating
+them would report a permanent backlog that does not exist: clock and
+guidepost events are attribution scaffolding that nothing ever consumes."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--with-queue
+      ;; A clock_in with no pairing and no guideposts yields no item.
+      (claude-code-ide-org-test--queue-write
+       "sess-a" (claude-code-ide-org-test--queue-event
+                 "2026-08-07T09:00:00-0500" "clock_in" id))
+      (should (= 0 (length (claude-code-ide-org--review-items-from-queue))))
+      (let ((out (claude-code-ide-org-pending-updates)))
+        (should (string-match-p "Nothing pending" out))
+        ;; ...but it says so without pretending the queue is empty.
+        (should (string-match-p "1 queue event" out))
+        (should (string-match-p "not a backlog" out))))))
+
+(ert-deftest claude-code-ide-org-test-pending-updates-scopes-and-never-signals ()
+  "SESSION-ID narrows the report, and the tool returns an error string
+rather than signalling -- every other tool here holds that contract, and
+an MCP call that throws is worse than one that explains."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--with-queue
+      (claude-code-ide-org-test--queue-write
+       "sess-a" (claude-code-ide-org-test--queue-event
+                 "2026-08-07T09:00:00-0500" "todo" id "DOING" "sess-a" "in a"))
+      (claude-code-ide-org-test--queue-write
+       "sess-b" (claude-code-ide-org-test--queue-event
+                 "2026-08-07T09:05:00-0500" "todo" id "WAIT" "sess-b" "in b"))
+      (should (string-match-p "in a" (claude-code-ide-org-pending-updates "sess-a")))
+      (should-not (string-match-p "in b" (claude-code-ide-org-pending-updates "sess-a")))
+      ;; An empty string means "no scope", not a session literally named "".
+      (should (string-match-p "2 pending item" (claude-code-ide-org-pending-updates "")))
+      ;; A failure inside is reported, not thrown.
+      (cl-letf (((symbol-function 'claude-code-ide-org--review-items-from-queue)
+                 (lambda (&rest _) (error "Boom"))))
+        (let ((out (claude-code-ide-org-pending-updates)))
+          (should (string-prefix-p "Error: " out)))))))
+
 (defmacro claude-code-ide-org-test--with-review-buffer (items &rest body)
   "Render ITEMS in a scratch review buffer and run BODY there."
   (declare (indent 1))

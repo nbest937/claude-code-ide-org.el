@@ -354,6 +354,7 @@ Claude is expected to act on must have one (`M-x org-id-get-create`).
 | `org_move_sibling`  | `org-move-subtree-up/down` | Move a heading up/down among siblings |
 | `org_sort_children` | `org-sort-entries`       | Sort a heading's direct children       |
 | `org_log_background_plan` | custom (insert-plan-link) | Write-back for background-planned headings: inserts the Plan link. Still accepts `session_id`, but no longer records it — that went with `:SESSIONS:`; never touches TODO state or the clock |
+| `org_pending_updates` | custom (queue reader)    | Read-only summary of queued-but-unapplied updates, grouped by heading. Counts *proposals*, not queue lines |
 
 Text editing (via the org skill) is used for adding or changing tags,
 generating new headings, and time reporting. `org_query` now covers

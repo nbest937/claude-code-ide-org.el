@@ -3414,6 +3414,42 @@ overlay sub-task below; worth designing the parsing/grouping code
 once and reusing it in all three rather than three separate
 implementations.
 
+*Outcome, 2026-08-12.* Shipped as =org_pending_updates=, read-only.
+Takes an optional =session_id= to scope to one queue; returns items
+grouped by heading, each rendered by the *same* =--review-describe= the
+review buffer uses, over the *same* =--review-items-from-queue=, with
+staleness judged exactly as the buffer judges it on open. The sharing
+the heading asked for is literal rather than parallel: the summary and
+the buffer cannot disagree about what is pending, because there is only
+one implementation.
+
+*The one design decision worth recording: it counts proposals, not queue
+lines.* Measured the same day, =clock_in=/=clock_out= and unclustered
+=pause=/=resume= guideposts are consumed by nothing — they exist to
+attribute spans — so the files permanently hold far more lines than
+there are items. Live against the real queue: *1 of 283* events backed
+the single pending item. A tool that reported 283 would announce a
+standing backlog that does not exist, which is the trap recorded on
+[[id:78f485a8-e808-43ce-af5f-277a5c97c471][78f485a8]]. The output states
+the ratio and names the remainder as scaffolding.
+
+*A wrong number caught by running it, not by reading it.* The first
+version reported "from 6 session(s)" — counting every session holding a
+*residual* event rather than the sessions that contributed items. Only
+one had. Corrected to derive the session set from the items' own backing
+events, which is also what makes the ratio line honest.
+
+*Verified:* =bin/test= 183 -> 186, three new tests — a queued transition
+is summarized without touching the file and stays pending afterwards; a
+lone =clock_in= yields "Nothing pending" while still reporting the event
+count, so the two quantities cannot be conflated; and =session_id=
+narrows the report while an empty string means "no scope" rather than a
+session named "". The third also pins the never-signals contract every
+other tool here holds. Live-reloaded and run against the real queue.
+CLAUDE.md's MCP tool table gained a row — a factual addition, not part
+of [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]]'s rewrite,
+which still owns the prose around it.
+
 *** CANCELLED Design a read-time overlay for org_query/org_clock_report against the pending queue :code:
 :PROPERTIES:
 :ID:       c9292ce8-8fb5-41c0-8de1-bbf74ffa7fce

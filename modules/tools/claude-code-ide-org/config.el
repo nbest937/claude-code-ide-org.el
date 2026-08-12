@@ -2829,6 +2829,82 @@ it."
     (claude-code-ide-org--review-record-applied applied)
     (list :applied (length applied) :errors (nreverse errors))))
 
+;;;###autoload
+(defun claude-code-ide-org-pending-updates (&optional session-id)
+  "Summarize queued-but-unapplied updates as plain text.
+
+The read-only counterpart to `claude-code-ide-org-review': answers
+\"what is waiting?\" without opening Emacs, which stopped being a
+curiosity the moment `org_set_todo'/`org_clock_in'/`org_clock_out'
+became queue writers rather than buffer writers.  A later read showing
+the old state is expected, and this is how you tell that apart from a
+tool having failed.
+
+Deliberately reuses `claude-code-ide-org--review-items-from-queue' and
+`--review-describe' rather than re-deriving anything, so the summary and
+the review buffer can never disagree about what is pending -- the
+heading that asked for this (TODO.org :ID:
+63a642c7-b04d-42dc-b6ec-3fb13df3ae04) called for exactly that sharing.
+Staleness is judged with nothing marked, which is precisely the view the
+review buffer opens on.
+
+Reports *proposals*, and says how many raw events carry none.  That
+distinction is not pedantry: `clock_in'/`clock_out' and unclustered
+`pause'/`resume' guideposts exist to attribute spans and are consumed by
+nothing, so the queue files always hold far more lines than there are
+items -- a summary that counted lines would report a permanent backlog
+that does not exist.
+
+SESSION-ID limits the report to one session's queue.  Never signals to
+the MCP layer."
+  (condition-case err
+      (let* ((session-id (and (stringp session-id)
+                              (not (string-empty-p session-id))
+                              session-id))
+             (items (claude-code-ide-org--review-items-from-queue session-id))
+             (events (claude-code-ide-org--queue-events session-id))
+             ;; Sessions that contributed an *item*, not every session
+             ;; holding a residual event -- the latter is nearly all of
+             ;; them, forever, and reporting it as "from N sessions"
+             ;; would imply N sessions have something waiting.
+             (backing (delete-dups
+                       (apply #'append
+                              (mapcar (lambda (i) (plist-get i :events)) items))))
+             (sessions (delete-dups
+                        (delq nil (mapcar (lambda (e) (plist-get e :session-id))
+                                          backing))))
+             (headings (delete-dups (mapcar (lambda (i) (plist-get i :id)) items)))
+             (lines nil)
+             (last-id 'none))
+        (claude-code-ide-org--review-projected-staleness
+         items (lambda (item) (plist-get item :marked)))
+        (dolist (item items)
+          (unless (equal (plist-get item :id) last-id)
+            (setq last-id (plist-get item :id))
+            (push (format "\n%s  {%s}"
+                          (or (claude-code-ide-org--at-id
+                               last-id (lambda () (org-get-heading t t t t)))
+                              "(unresolvable :ID:)")
+                          last-id)
+                  lines))
+          (push (claude-code-ide-org--review-describe item) lines))
+        (if (null items)
+            (format (concat "Nothing pending: no queued update is proposing a "
+                            "change.\n%d queue event(s) carry no proposal -- "
+                            "clock and guidepost scaffolding, which is "
+                            "consumed by nothing and is not a backlog.")
+                    (length events))
+          (concat
+           (format "%d pending item(s) across %d heading(s), from %d session(s).\n"
+                   (length items) (length headings) (length sessions))
+           (string-join (nreverse lines) "\n")
+           (format (concat "\n\nApply with M-x claude-code-ide-org-review; "
+                           "nothing reaches a file until a human does.\n"
+                           "%d of %d queue event(s) back these items; the rest "
+                           "is attribution scaffolding, not a backlog.")
+                   (length backing) (length events)))))
+    (error (format "Error: %s" (error-message-string err)))))
+
 ;;; Review buffer
 
 (defvar claude-code-ide-org-review-mode-map (make-sparse-keymap)
@@ -3583,4 +3659,25 @@ correctly inside a real interactive command."
             :description "Absolute path to the plan markdown file, e.g. ~/.claude/plans/<slug>.md.")
            (:name "session_id"
             :type string
-            :description "Synthetic id for this write, never the orchestrating session's own real session id, e.g. <orchestrating-session-id>-bg1."))))
+            :description "Synthetic id for this write, never the orchestrating session's own real session id, e.g. <orchestrating-session-id>-bg1.")))
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-pending-updates
+   :name "org_pending_updates"
+   :description (concat
+                 "Summarize queued-but-unapplied org updates, grouped by "
+                 "heading. Read-only: changes nothing and applies nothing. "
+                 "Use this to answer \"what is waiting?\" after calling "
+                 "org_set_todo/org_clock_in/org_clock_out, since those queue "
+                 "an event rather than editing the file — a later read showing "
+                 "the old state is expected, and this is how you tell that "
+                 "apart from a failure. Shows the same items, in the same "
+                 "order and with the same staleness marks, that "
+                 "M-x claude-code-ide-org-review would open on. Counts "
+                 "*proposals*, not queue lines: clock and guidepost events "
+                 "are attribution scaffolding that nothing consumes, so the "
+                 "files always hold many more lines than there are items.")
+   :args '((:name "session_id"
+            :type string
+            :optional t
+            :description "Limit the report to one session's queue. Omit for every session."))))
