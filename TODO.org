@@ -905,11 +905,19 @@ because the old code marked *everything* blocked and so matched the
 positive cases by accident — kept as pins, not counted as evidence.
 Live, the real TODO.org went from 10 =[blocked]= markers to 0.
 
-** TODO Rework org_capture: bare heading, :CREATED:, and a placement target :code:
+** DONE Rework org_capture: bare heading, :CREATED:, and a placement target :code:
 :PROPERTIES:
 :ID:       47c027d2-7b5a-4de0-baf4-f992f3b814bd
 :CREATED:  [2026-08-11 Tue 15:52]
 :BLOCKER:  ids(9f3c35c7-0229-4cd6-908b-779267ec9b97)
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-11 Tue 21:03] \\
+  template and target shipped; defcustom left to the user
+- State "DOING"      from "NEXT"       [2026-08-11 Tue 20:59] \\
+  rework org_capture template and target
+- State "NEXT"       from "TODO"       [2026-08-11 Tue 20:55] \\
+  blocker satisfied, nominated as next under Skill logic
 :END:
 
 *Consolidated 2026-08-11, and the heading retitled to match.* This was
@@ -1206,10 +1214,14 @@ trigger-matching, which this project's engineering practices explicitly
 exempt from deterministic testing. What is verified is that the content
 is correct when read.
 
-** org_capture's no-target fallback writes a level-1 heading, violating the category convention
+** TODO org_capture's no-target fallback writes a level-1 heading, violating the category convention
 :PROPERTIES:
 :ID:       97696fc2-f07b-4586-b280-de6a7d26fb87
 :CREATED:  [2026-08-11 Tue 21:25]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-11 Tue 21:26] \\
+  fallback placement defect found by using the tool
 :END:
 
 [[id:47c027d2-7b5a-4de0-baf4-f992f3b814bd][47c027d2]] gave =org_capture=
@@ -4595,12 +4607,18 @@ all. Worth doing with
 [[id:d409390b-6624-4820-82bb-730d763962fd][d409390b]]'s interaction
 work rather than bolted onto this fix.
 
-*** TODO Decide how the stale check reads a chain of transitions in one batch :code:
+*** DOING Decide how the stale check reads a chain of transitions in one batch :code:
 :PROPERTIES:
 :ID:       6b1e73c4-25da-4f0e-8a51-9c0d3f7ab214
 :CREATED:  [2026-08-11 Tue 13:24]
 :BLOCKER:  ids(feba67eb-35b3-48bd-a892-8ecd47ca52e0)
 :END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-08-11 Tue 22:29] \\
+  implementing chain-aware staleness
+- <2026-08-11 Tue 22:37>--<2026-08-11 Tue 22:37> implement projected-state stale check
+:END:
+[[file:~/.claude/plans/hazy-moseying-sky.md][Plan]]
 
 Raised by the user 2026-08-11, from the right observation: *every* state
 item in two consecutive real batches rendered =STALE=. That much is a
@@ -4755,11 +4773,19 @@ Revises the disposition recorded in
 which proposed closing the =pmset= lead as won't-do — correct for the
 stale-interval guess heuristic, wrong for attribution.
 
-*** TODO The review buffer has no way to dismiss an item you will never apply :code:
+*** DOING The review buffer has no way to dismiss an item you will never apply :code:
 :PROPERTIES:
 :ID:       f290161c-f9e7-4bfb-9adf-4c5630d4c5ae
 :CREATED:  [2026-08-11 Tue 16:32]
 :END:
+:LOGBOOK:
+CLOCK: [2026-08-11 Tue 22:27]--[2026-08-11 Tue 22:28] =>  0:01
+- State "DOING"      from "PLANNING"   [2026-08-11 Tue 22:26]
+- State "PLANNING"   from "TODO"       [2026-08-11 Tue 22:12] \\
+  planning the dismissal path
+- <2026-08-11 Tue 22:27>--<2026-08-11 Tue 22:28> plan review-buffer item dismissal
+:END:
+[[file:~/.claude/plans/hazy-moseying-sky.md][Plan]]
 
 The watermark advances only for *applied* items — deliberately, and
 rightly: an item skipped this pass is usually one deferred, not one
@@ -5645,10 +5671,14 @@ UI itself is the fuzzy part and should be a documented manual check,
 per this project's own "reasonably feasible" rule rather than forced
 into a deterministic test.
 
-** Persist claude-code-ide-org-capture-file in the Doom config
+** TODO Persist claude-code-ide-org-capture-file in the Doom config
 :PROPERTIES:
 :ID:       bd482c92-a71a-4d7d-88df-47678ee94c79
 :CREATED:  [2026-08-11 Tue 21:20]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-11 Tue 21:21] \\
+  persist the capture-file defcustom
 :END:
 
 Set live on 2026-08-11 via =M-:= to

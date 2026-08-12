@@ -2161,19 +2161,84 @@ sit earlier in the same file. A watermark then cannot advance at all --
 observed 2026-08-07, where a real apply wrote no watermark whatsoever and
 every applied item would have been re-proposed, and re-applied, on the
 next pass. Per-event is the honest model for per-item review."
-  (let ((table (make-hash-table :test 'equal))
-        (file (claude-code-ide-org--queue-watermark-file session-id)))
-    (when (file-readable-p file)
-      (let ((data (ignore-errors
-                    (json-parse-string
-                     (with-temp-buffer
-                       (insert-file-contents file)
-                       (buffer-string))
-                     :object-type 'alist :array-type 'list
-                     :null-object nil :false-object nil))))
-        (dolist (ts (alist-get 'applied data))
-          (puthash ts t table))))
+  (let ((table (make-hash-table :test 'equal)))
+    (dolist (ts (alist-get 'applied
+                           (claude-code-ide-org--queue-watermark-data session-id)))
+      (puthash ts t table))
     table))
+
+(defun claude-code-ide-org--queue-watermark-data (session-id)
+  "Return SESSION-ID's parsed watermark file as an alist, or nil.
+
+One reader for the whole file, because it carries two independent facts
+-- `applied' and `dismissed' -- and every writer therefore has to
+round-trip the one it is not changing. A writer that serialized only its
+own key would silently erase the other, and that failure is a nasty one
+to diagnose from the symptom: dismissed items quietly reappearing reads
+as \"dismissal does not work\" rather than \"apply clobbered it\"."
+  (let ((file (claude-code-ide-org--queue-watermark-file session-id)))
+    (when (file-readable-p file)
+      (ignore-errors
+        (json-parse-string
+         (with-temp-buffer
+           (insert-file-contents file)
+           (buffer-string))
+         :object-type 'alist :array-type 'list
+         :null-object nil :false-object nil)))))
+
+(defun claude-code-ide-org--queue-dismissed (session-id)
+  "Return SESSION-ID's dismissed events, a hash of `ts' string -> reason.
+
+Dismissal is for an item that will *never* apply, which the applied set
+cannot express: skipping is how a human defers, and the watermark
+rightly refuses to consume a merely-deferred item. Without a third
+answer an item like the `dead-beef' phantom clock -- whose :ID: cannot
+resolve, ever -- reappears at every review for the rest of time, and the
+only exits are hand-editing an append-only queue or forging watermark
+entries.
+
+Carries a reason rather than being a bare set because \"already applied
+live pre-cutover\" and \"this event should never have existed\" want
+different treatment at any later audit, and the reason costs one
+`read-string'."
+  (let ((table (make-hash-table :test 'equal)))
+    (dolist (cell (alist-get 'dismissed
+                             (claude-code-ide-org--queue-watermark-data session-id)))
+      (puthash (format "%s" (car cell)) (cdr cell) table))
+    table))
+
+(defun claude-code-ide-org--queue-watermark-write (session-id applied dismissed)
+  "Write both APPLIED and DISMISSED for SESSION-ID, atomically.
+
+The single writer for the watermark file. Both callers pass both facts,
+which is what makes clobbering one by writing the other impossible by
+construction rather than by remembering."
+  (claude-code-ide-org--atomic-write
+   (claude-code-ide-org--queue-watermark-file session-id)
+   (json-encode
+    `((applied . ,(let (all)
+                    (maphash (lambda (k _) (push k all)) applied)
+                    (sort all #'string<)))
+      (dismissed . ,(let (all)
+                      (maphash (lambda (k v) (push (cons (intern k) v) all)) dismissed)
+                      (sort all (lambda (a b)
+                                  (string< (symbol-name (car a))
+                                           (symbol-name (car b)))))))))))
+
+(defun claude-code-ide-org--queue-mark-dismissed (session-id ts-strings reason)
+  "Record TS-STRINGS as permanently dismissed for SESSION-ID, with REASON.
+
+Records a fact *beside* the queue and destroys nothing: the queue file
+itself is never touched, so undoing a dismissal means deleting one key
+from a small JSON file. That is deliberate -- an append-only log stays
+append-only, and the decision to retire an event is bookkeeping about
+the log, not an edit to it."
+  (let ((dismissed (claude-code-ide-org--queue-dismissed session-id)))
+    (dolist (ts ts-strings) (puthash ts (or reason "") dismissed))
+    (claude-code-ide-org--queue-watermark-write
+     session-id
+     (claude-code-ide-org--queue-applied session-id)
+     dismissed)))
 
 (defun claude-code-ide-org--atomic-write (path string)
   "Write STRING to PATH atomically, via a sibling temp file and rename.
@@ -2196,26 +2261,30 @@ another partial apply accumulates rather than replacing.
 Never truncates or rewrites the queue file itself: the session that owns
 it may still be appending, and racing an appending writer is exactly the
 class of bug this refactor exists to remove. Applied state is therefore
-recorded beside the log, never in it."
+recorded beside the log, never in it.
+
+Round-trips the `dismissed' map untouched. It shares this file, and
+writing only `applied' would erase every dismissal the moment anything
+was applied -- see `claude-code-ide-org--queue-watermark-data'."
   (let ((applied (claude-code-ide-org--queue-applied session-id)))
     (dolist (ts ts-strings) (puthash ts t applied))
-    (claude-code-ide-org--atomic-write
-     (claude-code-ide-org--queue-watermark-file session-id)
-     (json-encode `((applied . ,(let (all)
-                                  (maphash (lambda (k _) (push k all)) applied)
-                                  (sort all #'string<))))))))
+    (claude-code-ide-org--queue-watermark-write
+     session-id applied
+     (claude-code-ide-org--queue-dismissed session-id))))
 
 (defun claude-code-ide-org--queue-events (&optional session-id)
-  "Return pending (unapplied) queue events, oldest first.
+  "Return pending queue events, oldest first.
 With SESSION-ID, read only that session's queue; otherwise read every
-session's, merged and re-sorted by timestamp. Events already applied are
-omitted. Unparseable lines are skipped silently -- see
+session's, merged and re-sorted by timestamp. Events already applied --
+or explicitly dismissed, which is the answer for one that will never
+apply -- are omitted. Unparseable lines are skipped silently, see
 `claude-code-ide-org--queue-parse-line'."
   (let (events)
     (dolist (sid (if session-id (list session-id)
                    (claude-code-ide-org--queue-session-ids)))
       (let ((file (claude-code-ide-org--queue-file sid))
-            (applied (claude-code-ide-org--queue-applied sid)))
+            (applied (claude-code-ide-org--queue-applied sid))
+            (dismissed (claude-code-ide-org--queue-dismissed sid)))
         (when (file-readable-p file)
           (dolist (line (split-string
                          (with-temp-buffer
@@ -2224,7 +2293,8 @@ omitted. Unparseable lines are skipped silently -- see
                          "\n" t))
             (let ((event (claude-code-ide-org--queue-parse-line line)))
               (when (and event
-                         (not (gethash (plist-get event :ts-string) applied)))
+                         (not (gethash (plist-get event :ts-string) applied))
+                         (not (gethash (plist-get event :ts-string) dismissed)))
                 (push event events)))))))
     (sort (nreverse events)
           (lambda (a b) (time-less-p (plist-get a :ts) (plist-get b :ts))))))
@@ -2461,14 +2531,90 @@ compare: an event predating the `from' field (nil `:from', meaning
 \"unknown\", not \"none\"), and an :ID: that no longer resolves --
 apply reports that one on its own terms rather than pre-empting it
 here.  Silence on an unknown is the right default; flagging every
-legacy event would train the reader to ignore the flag."
-  (let ((from (plist-get item :from)))
-    (when from
-      (let ((current (claude-code-ide-org--review-current-state (plist-get item :id))))
-        (and (not (eq current 'unresolved))
-             ;; "none" is how the queue spells "the heading carried no
-             ;; keyword", which `org-get-todo-state' spells as nil.
-             (not (equal (if (equal from "none") nil from) current)))))))
+legacy event would train the reader to ignore the flag.
+
+Prefers the `:stale' annotation left by
+`claude-code-ide-org--review-projected-staleness' when one is present,
+which is what makes a chain of transitions within one batch read
+correctly.  Falls back to comparing against the file alone when there is
+no annotation -- the case for a direct caller or a test, which has no
+batch to be a link in."
+  (if (plist-member item :stale)
+      (plist-get item :stale)
+    (let ((from (plist-get item :from)))
+      (when from
+        (let ((current (claude-code-ide-org--review-current-state (plist-get item :id))))
+          (and (not (eq current 'unresolved))
+               ;; "none" is how the queue spells "the heading carried no
+               ;; keyword", which `org-get-todo-state' spells as nil.
+               (not (equal (if (equal from "none") nil from) current))))))))
+
+(defun claude-code-ide-org--review-normalize-from (from)
+  "Return FROM as `org-get-todo-state' would spell it.
+\"none\" is how the queue spells \"the heading carried no keyword\",
+which org spells nil.  Kept as one function so the render path and the
+projection path cannot drift apart on it."
+  (if (equal from "none") nil from))
+
+(defun claude-code-ide-org--review-projected-staleness (items &optional advances-p)
+  "Annotate each of ITEMS with `:stale', judged against the batch.
+
+Exists because post-cutover *nothing* moves an org file until apply
+moves it.  A batch holding a chain on one heading (`TODO -> DOING', then
+`TODO -> DONE') therefore records the same `from' on every event --
+whatever the unmoved file said.  Checking each against the file alone
+refuses every link past the first, on the grounds that the file moved,
+when the thing that moved it was this very batch.  Verified on the live
+queue 2026-08-11: 47c027d2 queued a three-link chain, all three events
+carrying `from: TODO'.
+
+So a state item is stale only when its `from' matches neither
+
+  - the *pre-batch* state read from the file, nor
+  - the state earlier items in this batch will have left behind.
+
+Both shapes occur for real and both are legitimate: `org_set_todo' reads
+`from' off a file that never moves, while the `ExitPlanMode' hook passes
+`from' explicitly and so records the chain's own previous `to'.
+
+ADVANCES-P, when given, is called on each item and decides whether that
+item contributes to the projection.  The review buffer passes a
+marked-item test, since an unmarked item will not move anything; apply
+passes nothing, because every item it is handed is about to run.
+
+Reads each heading's state once per batch, through
+`claude-code-ide-org--review-current-state', preserving its `unresolved'
+answer -- an :ID: that no longer resolves is never reported stale, so
+apply can report it on its own terms.
+
+Note what this deliberately does *not* excuse: applying only the first
+link of a chain and leaving the rest.  The leftovers then face a moved
+file with no batch to account for it, and are correctly stale.  That is
+a real divergence at that point, not this bug returning."
+  (let ((baseline (make-hash-table :test 'equal))
+        (projected (make-hash-table :test 'equal)))
+    (dolist (item items)
+      (when (eq (plist-get item :type) 'state)
+        (let ((id (plist-get item :id)))
+          (unless (gethash id baseline)
+            (let ((current (claude-code-ide-org--review-current-state id)))
+              ;; nil is a real answer ("no keyword"), so box it -- a bare
+              ;; nil in the table is indistinguishable from "not seeded".
+              (puthash id (list current) baseline)
+              (puthash id (list current) projected)))
+          (let* ((from (plist-get item :from))
+                 (base (car (gethash id baseline)))
+                 (proj (car (gethash id projected))))
+            (plist-put item :stale
+                       (and from
+                            (not (eq base 'unresolved))
+                            (let ((nf (claude-code-ide-org--review-normalize-from from)))
+                              (and (not (equal nf base))
+                                   (not (equal nf proj))))))
+            ;; Only an item that will actually run moves the projection.
+            (when (or (null advances-p) (funcall advances-p item))
+              (puthash id (list (plist-get item :to)) projected)))))))
+  items)
 
 (defun claude-code-ide-org--review-format-annotation (item)
   "Return the :LOGBOOK: annotation line for ITEM.
@@ -2650,7 +2796,20 @@ an already-applied item impossible."
              by-session)))
 
 (defun claude-code-ide-org--review-apply (items)
-  "Apply ITEMS in order. Returns a plist (:applied N :errors ERRORS)."
+  "Apply ITEMS in order. Returns a plist (:applied N :errors ERRORS).
+
+Judges staleness across the whole batch first, via
+`claude-code-ide-org--review-projected-staleness', so a chain of
+transitions on one heading applies in one pass instead of refusing every
+link after the first.
+
+Deliberately computed *here*, immediately before the loop, rather than
+inherited from render time.  That is what keeps
+`claude-code-ide-org--review-apply-item's guarantee intact: the file is
+re-read now, so a heading changed out of band since the buffer was drawn
+is still caught, and only this batch's own effects are projected over
+it."
+  (claude-code-ide-org--review-projected-staleness items)
   (let (applied errors)
     (dolist (item items)
       (let ((error (claude-code-ide-org--review-apply-item item)))
@@ -2675,6 +2834,7 @@ an already-applied item impossible."
                    ("u" . claude-code-ide-org-review-unmark)
                    ("t" . claude-code-ide-org-review-toggle)
                    ("e" . claude-code-ide-org-review-edit-interval)
+                   ("d" . claude-code-ide-org-review-dismiss)
                    ("RET" . claude-code-ide-org-review-goto)
                    ("x" . claude-code-ide-org-review-apply)
                    ("g" . claude-code-ide-org-review-refresh)
@@ -2797,13 +2957,22 @@ a wrong log line."
                       note)))))
 
 (defun claude-code-ide-org--review-render ()
-  "Render `claude-code-ide-org--review-items' into the current buffer."
+  "Render `claude-code-ide-org--review-items' into the current buffer.
+
+Re-judges staleness before drawing, projecting over *marked* items only:
+an unmarked item will not move any file, so it must not be allowed to
+excuse a later one.  With nothing marked the projection collapses to the
+file's own state and every line reads exactly as it did before chains
+were understood -- marking the first link of a chain is what stops the
+rest from lighting up."
   (let ((inhibit-read-only t)
         (items claude-code-ide-org--review-items)
         (last-id nil))
+    (claude-code-ide-org--review-projected-staleness
+     items (lambda (item) (plist-get item :marked)))
     (erase-buffer)
-    (insert "Pending org updates.  m/u mark, t toggle, e edit, RET goto, "
-            "x apply marked, g refresh, q quit\n\n")
+    (insert "Pending org updates.  m/u mark, t toggle, e edit, d dismiss, "
+            "RET goto, x apply marked, g refresh, q quit\n\n")
     (if (null items)
         (insert "  Nothing pending.\n")
       (dolist (item items)
@@ -2897,6 +3066,47 @@ corrected to what actually happened before anything is written."
       ;; An edited interval is a confirmed one, not a suggestion.
       (plist-put item :suggested nil)
       (claude-code-ide-org--review-render))))
+
+(defun claude-code-ide-org-review-dismiss ()
+  "Retire the item at point permanently, so it stops being proposed.
+
+For the item that will *never* apply, which skipping cannot express:
+skipping is how a human defers, and the watermark deliberately keeps a
+deferred item pending. Without this, the `dead-beef' phantom clock and
+the pre-cutover transitions the tools already performed live come back
+at every single review.
+
+Asks for a reason and records it, because \"already applied live
+pre-cutover\" and \"this event should never have existed\" read very
+differently at a later audit. The `y-or-n-p' is safe here for the reason
+given on `claude-code-ide-org--review-set-mark': the review buffer is
+only ever reached from a genuinely interactive command, never from an
+`emacsclient -e' call with nobody present to answer.
+
+Dismisses the events the item was built from, per owning session, and
+touches no org file at all."
+  (interactive)
+  (let ((item (claude-code-ide-org--review-item-at-point)))
+    (unless item (user-error "No review item on this line"))
+    (let ((events (plist-get item :events)))
+      ;; Nothing to record against means the next refresh would rebuild
+      ;; this line unchanged -- better to say so than to appear to work.
+      (unless events
+        (user-error "Nothing to dismiss: this item carries no queue events"))
+      (let ((reason (read-string "Dismiss -- reason: ")))
+        (when (y-or-n-p (format "Dismiss permanently: %s? "
+                                (string-trim
+                                 (claude-code-ide-org--review-describe item))))
+          (let ((by-session (make-hash-table :test 'equal)))
+            (dolist (event events)
+              (push (plist-get event :ts-string)
+                    (gethash (plist-get event :session-id) by-session)))
+            (maphash (lambda (session-id ts-strings)
+                       (when session-id
+                         (claude-code-ide-org--queue-mark-dismissed
+                          session-id ts-strings reason)))
+                     by-session))
+          (claude-code-ide-org-review-refresh))))))
 
 (defun claude-code-ide-org-review-refresh ()
   "Rebuild the review buffer from the queue, discarding marks."

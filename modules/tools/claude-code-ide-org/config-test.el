@@ -2329,6 +2329,106 @@ applied item would have been re-proposed on the next pass."
       (should-not (directory-files claude-code-ide-org-queue-directory
                                    nil "\\`\\.queue-tmp-")))))
 
+(ert-deftest claude-code-ide-org-test-queue-dismissed-events-are-filtered ()
+  "A dismissed event drops out of the pending set exactly as an applied
+one does. This is the exit an item that will never apply has otherwise
+never had -- the `dead-beef' phantom clock reappeared at every review
+because skipping is how a human *defers*, not how they refuse."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:00:00-0500" "clock_in" "id-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:05:00-0500" "pause")))
+    (should (= 2 (length (claude-code-ide-org--queue-events))))
+    (claude-code-ide-org--queue-mark-dismissed
+     "sess-a" '("2026-08-07T09:00:00-0500") "unresolvable :ID:, will never apply")
+    (let ((remaining (claude-code-ide-org--queue-events)))
+      (should (equal (mapcar (lambda (e) (plist-get e :ts-string)) remaining)
+                     '("2026-08-07T09:05:00-0500"))))))
+
+(ert-deftest claude-code-ide-org-test-queue-applied-and-dismissed-do-not-clobber ()
+  "The regression that matters. Both facts share one file, so a writer
+that serialized only its own key would erase the other -- and the
+symptom, dismissed items quietly reappearing, reads as \"dismissal does
+not work\" rather than \"apply clobbered it\". Asserted in both orders,
+since either writer could be the one that forgets."
+  (claude-code-ide-org-test--with-queue
+    ;; Dismiss first, then apply something else.
+    (claude-code-ide-org--queue-mark-dismissed
+     "sess-a" '("2026-08-07T09:00:00-0500") "pre-cutover, already applied live")
+    (claude-code-ide-org--queue-mark-applied "sess-a" '("2026-08-07T09:05:00-0500"))
+    (should (gethash "2026-08-07T09:00:00-0500"
+                     (claude-code-ide-org--queue-dismissed "sess-a")))
+    (should (gethash "2026-08-07T09:05:00-0500"
+                     (claude-code-ide-org--queue-applied "sess-a")))
+    ;; And the reverse order, on a fresh session.
+    (claude-code-ide-org--queue-mark-applied "sess-b" '("2026-08-07T10:00:00-0500"))
+    (claude-code-ide-org--queue-mark-dismissed
+     "sess-b" '("2026-08-07T10:05:00-0500") "never applying this one")
+    (should (gethash "2026-08-07T10:00:00-0500"
+                     (claude-code-ide-org--queue-applied "sess-b")))
+    (should (gethash "2026-08-07T10:05:00-0500"
+                     (claude-code-ide-org--queue-dismissed "sess-b")))))
+
+(ert-deftest claude-code-ide-org-test-queue-dismissal-reason-round-trips ()
+  "The reason is the point of a map rather than a set: \"already applied
+live pre-cutover\" and \"this event should never have existed\" want
+different treatment at any later audit."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org--queue-mark-dismissed
+     "sess-a" '("2026-08-07T09:00:00-0500") "phantom clock, :ID: never resolved")
+    (should (equal "phantom clock, :ID: never resolved"
+                   (gethash "2026-08-07T09:00:00-0500"
+                            (claude-code-ide-org--queue-dismissed "sess-a"))))
+    ;; A second dismissal accumulates rather than replacing the first.
+    (claude-code-ide-org--queue-mark-dismissed
+     "sess-a" '("2026-08-07T09:05:00-0500") "pre-cutover no-op")
+    (should (equal "phantom clock, :ID: never resolved"
+                   (gethash "2026-08-07T09:00:00-0500"
+                            (claude-code-ide-org--queue-dismissed "sess-a"))))
+    (should (equal "pre-cutover no-op"
+                   (gethash "2026-08-07T09:05:00-0500"
+                            (claude-code-ide-org--queue-dismissed "sess-a"))))))
+
+(ert-deftest claude-code-ide-org-test-queue-dismissal-is-per-event-not-a-prefix ()
+  "Dismissal is a set, for the same reason the applied state is: review
+is per-item and non-contiguous, so retiring a middle event must leave
+both its neighbours pending."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:00:00-0500" "pause")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:05:00-0500" "pause")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-07T09:10:00-0500" "pause")))
+    (claude-code-ide-org--queue-mark-dismissed
+     "sess-a" '("2026-08-07T09:05:00-0500") "middle one only")
+    (should (equal (mapcar (lambda (e) (plist-get e :ts-string))
+                           (claude-code-ide-org--queue-events))
+                   '("2026-08-07T09:00:00-0500" "2026-08-07T09:10:00-0500")))))
+
+(ert-deftest claude-code-ide-org-test-queue-watermark-without-dismissed-key-reads ()
+  "Every watermark file on disk today carries only `applied'. Those must
+keep reading correctly, with an empty dismissed set, rather than needing
+a migration step."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org--atomic-write
+     (claude-code-ide-org--queue-watermark-file "sess-a")
+     (json-encode '((applied . ("2026-08-07T09:00:00-0500")))))
+    (should (gethash "2026-08-07T09:00:00-0500"
+                     (claude-code-ide-org--queue-applied "sess-a")))
+    (should (= 0 (hash-table-count
+                  (claude-code-ide-org--queue-dismissed "sess-a"))))
+    ;; And a dismissal added on top preserves the pre-existing applied set.
+    (claude-code-ide-org--queue-mark-dismissed
+     "sess-a" '("2026-08-07T09:05:00-0500") "added after the fact")
+    (should (gethash "2026-08-07T09:00:00-0500"
+                     (claude-code-ide-org--queue-applied "sess-a")))
+    (should (gethash "2026-08-07T09:05:00-0500"
+                     (claude-code-ide-org--queue-dismissed "sess-a")))))
+
 (ert-deftest claude-code-ide-org-test-queue-attributes-guideposts-across-a-return ()
   "The A -> B -> A case: returning to a heading that never left DOING
 emits no todo event, so attribution must come from clock_in/clock_out.
@@ -2648,6 +2748,110 @@ mislabel a missing heading as a state disagreement."
     (should-not (claude-code-ide-org--review-state-stale-p
                  (list :type 'state :id "no-such-id-at-all"
                        :from "NEXT" :to "DOING")))))
+
+(ert-deftest claude-code-ide-org-test-review-chain-applies-in-one-batch ()
+  "The shape verified on the live queue 2026-08-11: 47c027d2 queued a
+three-link chain whose events all carried `from: TODO', because
+`org_set_todo' reads `from' off a file that nothing moves until apply
+moves it. Every link must apply in one pass, and org must derive each
+written `from' from reality, so the resulting history is a real chain
+rather than three transitions all claiming to start at TODO."
+  (claude-code-ide-org-test--with-heading
+    (let* ((mk (lambda (from to at)
+                 (list :type 'state :id id :from from :to to
+                       :ts (date-to-time (format "2026-08-11T%s-0500" at))
+                       :events nil)))
+           (items (list (funcall mk "TODO" "NEXT" "20:55:00")
+                        (funcall mk "TODO" "DOING" "20:59:00")
+                        (funcall mk "TODO" "DONE" "21:03:00")))
+           (result (claude-code-ide-org--review-apply items)))
+      (should (= 3 (plist-get result :applied)))
+      (should-not (plist-get result :errors))
+      (should (equal "DONE" (org-with-point-at (org-id-find id 'marker)
+                              (org-get-todo-state))))
+      (let ((text (claude-code-ide-org-test--disk-contents file)))
+        (should (string-match-p "State \"NEXT\"\\s-+from \"TODO\"" text))
+        (should (string-match-p "State \"DOING\"\\s-+from \"NEXT\"" text))
+        (should (string-match-p "State \"DONE\"\\s-+from \"DOING\"" text))
+        ;; The whole point: no link claims to have started where the
+        ;; queue said, only where reality said.
+        (should-not (string-match-p "State \"DONE\"\\s-+from \"TODO\"" text))))))
+
+(ert-deftest claude-code-ide-org-test-review-batch-still-refuses-genuine-staleness ()
+  "Understanding chains must not blunt the guard. An item whose heading
+moved out of band -- a hand-edit, another session -- is still refused
+while a chain in the same batch applies, so the flag keeps meaning
+\"something happened that this batch cannot account for\".
+
+A third sibling exists only to keep
+`claude-code-ide-org--trigger-auto-promote-sole-todo' out of the way:
+with just two, moving one to WAIT leaves the other the sole TODO of its
+group and org promotes it to NEXT behind the test's back, which is that
+rule working correctly and would make this test assert the wrong thing."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* TODO Other heading                                               :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0002\n"
+                     ":END:\n"
+                     "* TODO Third heading                                               :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0003\n"
+                     ":END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    ;; Out of band, and nothing in the batch explains it.
+    (claude-code-ide-org-test--set-todo-for-real "test-0002" "WAIT")
+    (should (equal "TODO" (org-with-point-at (org-id-find id 'marker)
+                            (org-get-todo-state))))
+    (let* ((items (list (list :type 'state :id id :from "TODO" :to "DOING"
+                              :ts (date-to-time "2026-08-11T20:59:00-0500")
+                              :events nil)
+                        (list :type 'state :id "test-0002" :from "TODO" :to "DONE"
+                              :ts (date-to-time "2026-08-11T21:00:00-0500")
+                              :events nil)
+                        (list :type 'state :id id :from "TODO" :to "DONE"
+                              :ts (date-to-time "2026-08-11T21:03:00-0500")
+                              :events nil)))
+           (result (claude-code-ide-org--review-apply items)))
+      ;; The two chain links land; the out-of-band one is refused.
+      (should (= 2 (plist-get result :applied)))
+      (should (= 1 (length (plist-get result :errors))))
+      (should (string-match-p "refused stale TODO -> DONE"
+                              (car (plist-get result :errors))))
+      (should (equal "DONE" (org-with-point-at (org-id-find id 'marker)
+                              (org-get-todo-state))))
+      (should (equal "WAIT" (org-with-point-at (org-id-find "test-0002" 'marker)
+                              (org-get-todo-state)))))))
+
+(ert-deftest claude-code-ide-org-test-review-chain-does-not-render-stale ()
+  "A chain must not be flagged in the buffer either. Unmarked, the
+projection collapses to the file and both links read clean; marking the
+first is what accounts for the second, and it must stay clean rather
+than lighting up the moment its predecessor is marked. A flag that fires
+on nearly every chain trains the reader to confirm without reading."
+  (claude-code-ide-org-test--with-heading
+    (let* ((first (list :type 'state :id id :from "TODO" :to "DOING"
+                        :ts (date-to-time "2026-08-11T20:59:00-0500") :events nil))
+           (second (list :type 'state :id id :from "TODO" :to "DONE"
+                         :ts (date-to-time "2026-08-11T21:03:00-0500") :events nil))
+           (items (list first second)))
+      ;; Nothing marked.
+      (claude-code-ide-org--review-projected-staleness
+       items (lambda (item) (plist-get item :marked)))
+      (should (string-prefix-p "  " (claude-code-ide-org--review-describe first)))
+      (should (string-prefix-p "  " (claude-code-ide-org--review-describe second)))
+      ;; First marked: the second is now explained by the batch, not stale.
+      (plist-put first :marked t)
+      (claude-code-ide-org--review-projected-staleness
+       items (lambda (item) (plist-get item :marked)))
+      (should (string-prefix-p "  " (claude-code-ide-org--review-describe second)))
+      ;; But a transition this batch cannot account for still is.
+      (let ((alien (list :type 'state :id id :from "WAIT" :to "DONE"
+                         :ts (date-to-time "2026-08-11T21:05:00-0500") :events nil)))
+        (claude-code-ide-org--review-projected-staleness
+         (list first alien) (lambda (item) (plist-get item :marked)))
+        (should (string-prefix-p "! " (claude-code-ide-org--review-describe alien)))))))
 
 (ert-deftest claude-code-ide-org-test-queue-parses-the-from-field ()
   "The reader carries `from' through from the JSONL, and tolerates its
