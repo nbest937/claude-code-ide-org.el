@@ -1255,6 +1255,63 @@ Spelled out rather than read from `org-done-keywords', which is
 buffer-local and therefore nil outside a visited org buffer — the
 filter would silently pass everything.")
 
+(defun claude-code-ide-org--outline-blocker-ids (raw)
+  "Extract the :ID:s named by RAW, an org-depend `:BLOCKER:' value.
+Handles the documented `ids(a b c)' form, and also a bare id written
+without the wrapper -- which org-depend itself would *not* honour, but
+which exists in this project's own files, so the reader should see it
+rather than silently treat the heading as dependency-free.  Returns nil
+for forms that name no ids at all (`previous-sibling',
+`chain-siblings(...)'), which is a different answer from \"no blockers\"
+and is handled by the caller."
+  (let (ids (start 0))
+    (while (string-match "[0-9a-fA-F]\\{8\\}-[0-9a-fA-F-]\\{27,\\}" raw start)
+      (push (match-string 0 raw) ids)
+      (setq start (match-end 0)))
+    (nreverse ids)))
+
+(defun claude-code-ide-org--outline-id-finished-p (id)
+  "Return `done', `open', or nil (unresolvable) for heading ID.
+Finishedness is tested against
+`claude-code-ide-org--outline-finished-keywords' rather than
+`org-done-keywords', for the reason given there: the latter is
+buffer-local and would be nil in the wrong buffer, quietly reporting
+every blocker as still open."
+  (let ((loc (org-id-find id)))
+    (when loc
+      (with-current-buffer (find-file-noselect (car loc))
+        (save-excursion
+          (goto-char (cdr loc))
+          (if (member (org-get-todo-state)
+                      claude-code-ide-org--outline-finished-keywords)
+              'done
+            'open))))))
+
+(defun claude-code-ide-org--outline-blocked-marker ()
+  "Return the dependency marker for the heading at point, or nil.
+
+Distinguishes *having* a `:BLOCKER:' from *being blocked by* it.  The
+first version of this tool conflated them -- it printed \"[blocked]\"
+whenever the property was present -- and since org-depend treats
+`:BLOCKER:' as a durable declaration rather than a flag to clear, every
+heading that ever had one read as blocked forever.  Measured on
+TODO.org the day it shipped: all 10 markers were false, because all four
+referenced headings were DONE.
+
+  [blocked]   at least one named blocker is not in a finished state
+  [blocked?]  a dependency exists that cannot be resolved -- an id that
+              no longer points anywhere, or a form naming no ids at all.
+              Deliberately not silent: unresolvable is not the same as
+              satisfied, and collapsing them is how the first version
+              went wrong in the other direction."
+  (let ((raw (org-entry-get nil "BLOCKER")))
+    (when raw
+      (let* ((ids (claude-code-ide-org--outline-blocker-ids raw))
+             (states (mapcar #'claude-code-ide-org--outline-id-finished-p ids)))
+        (cond ((memq 'open states) "  [blocked]")
+              ((or (null ids) (memq nil states)) "  [blocked?]")
+              (t nil))))))
+
 (defun claude-code-ide-org--outline-line (active-only max-depth)
   "Format the heading at point as one index line, or nil to omit it.
 Omits finished headings when ACTIVE-ONLY, and anything deeper than
@@ -1298,7 +1355,7 @@ subtree."
                 (org-get-heading t t t t)
                 (and id (format "  {%s}" id))
                 (and tags (format "  :%s:" (string-join tags ":")))
-                (and (org-entry-get nil "BLOCKER") "  [blocked]")))))))
+                (claude-code-ide-org--outline-blocked-marker)))))))
 
 (defun claude-code-ide-org--outline-map (active-only max-depth scope)
   "Collect index lines over SCOPE, an `org-map-entries' scope value."
@@ -3005,7 +3062,9 @@ correctly inside a real interactive command."
    :description (concat
                  "Compact structural index of tracked org files: one line per "
                  "heading with its level (by indent), TODO keyword, title, "
-                 ":ID:, tags, and [blocked] when a :BLOCKER: is set. Read-only. "
+                 ":ID:, and tags. Marks [blocked] when a :BLOCKER: names a "
+                 "heading that is not finished, and [blocked?] when a "
+                 "dependency exists but cannot be resolved. Read-only. "
                  "Use this before creating a heading, to see what already "
                  "exists and where it belongs, and instead of reading a whole "
                  "org file to find something — the index is roughly 40x "

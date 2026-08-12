@@ -872,6 +872,39 @@ is worth keeping:
 plain-string test confirmed to fail with the strip removed and pass with
 it, and a live call against the real TODO.org returning a plain string.
 
+*Follow-up fix the same evening, found by using the tool.* The first
+=[blocked]= marker keyed on the *presence* of a =:BLOCKER:= property.
+org-depend treats that property as a durable declaration of dependency,
+not a flag it clears when the blocker finishes — so every heading that
+ever had one read as blocked permanently. Measured on TODO.org at the
+moment it was noticed: *all 10 markers were false*, because all four
+referenced headings were =DONE=. Recorded here rather than as a new
+heading, since it was found and fixed within the hour and belongs to
+this tool's story.
+
+Now resolved rather than asserted: the =:BLOCKER:= value is scanned for
+ids, each is looked up, and the marker distinguishes three cases —
+=[blocked]= when a named blocker is unfinished, =[blocked?]= when a
+dependency exists but cannot be resolved (a dangling id, or a form like
+=previous-sibling= that names none), and nothing when all are finished.
+Unresolvable is deliberately not collapsed into satisfied; collapsing
+the two is how the first version went wrong in the other direction.
+
+Two incidental findings from the survey. TODO.org carries *one*
+=:BLOCKER:= written as a bare id with no =ids(...)= wrapper, which
+org-depend itself would not honour — the reader handles it anyway,
+because reporting that heading as dependency-free would be worse than
+reading a malformed value generously. And finishedness is tested against
+this file's own =--outline-finished-keywords= rather than
+=org-done-keywords=, which is buffer-local and would be nil in the wrong
+buffer, quietly reporting every blocker as still open.
+
+*Verified:* =bin/test= 161/161. Three of the five new tests confirmed to
+fail against the presence-only marker; the other two pass either way,
+because the old code marked *everything* blocked and so matched the
+positive cases by accident — kept as pins, not counted as evidence.
+Live, the real TODO.org went from 10 =[blocked]= markers to 0.
+
 ** TODO Rework org_capture: bare heading, :CREATED:, and a placement target :code:
 :PROPERTIES:
 :ID:       47c027d2-7b5a-4de0-baf4-f992f3b814bd

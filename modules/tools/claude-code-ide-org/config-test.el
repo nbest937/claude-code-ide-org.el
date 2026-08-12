@@ -1604,15 +1604,82 @@ shortened index would force a second lookup on every use."
       (should (string-match-p "Child heading" result))
       (should-not (string-match-p "Unrelated sibling" result)))))
 
-(ert-deftest claude-code-ide-org-test-outline-marks-blocked-headings ()
+(ert-deftest claude-code-ide-org-test-outline-marks-blocked-when-blocker-open ()
+  "A :BLOCKER: naming an unfinished heading is a real block."
   (claude-code-ide-org-test--with-heading
     (goto-char (point-max))
-    (insert "* TODO Blocked heading\n:PROPERTIES:\n:BLOCKER:  ids(abc-123)\n:END:\n")
+    (insert "* TODO Blocker heading\n:PROPERTIES:\n"
+            ":ID:       11111111-1111-4111-8111-111111111111\n:END:\n"
+            "* TODO Blocked heading\n:PROPERTIES:\n"
+            ":BLOCKER:  ids(11111111-1111-4111-8111-111111111111)\n:END:\n")
     (save-buffer)
+    (org-id-update-id-locations (list file))
     (let* ((claude-code-ide-org-query-files (list file))
            (result (claude-code-ide-org-outline)))
       (should (string-match-p "Blocked heading.*\\[blocked\\]" result))
       (should-not (string-match-p "Test heading.*\\[blocked\\]" result)))))
+
+(ert-deftest claude-code-ide-org-test-outline-unmarks-satisfied-blocker ()
+  "The regression this replaced: :BLOCKER: is a durable declaration, not a
+flag org clears, so keying the marker on the property's mere presence
+marks a heading blocked forever.  Measured on the real TODO.org the day
+it shipped, all 10 markers were false."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* DONE Finished blocker\n:PROPERTIES:\n"
+            ":ID:       22222222-2222-4222-8222-222222222222\n:END:\n"
+            "* TODO Formerly blocked\n:PROPERTIES:\n"
+            ":BLOCKER:  ids(22222222-2222-4222-8222-222222222222)\n:END:\n")
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-outline)))
+      (should (string-match-p "Formerly blocked" result))
+      (should-not (string-match-p "Formerly blocked.*\\[blocked" result)))))
+
+(ert-deftest claude-code-ide-org-test-outline-cancelled-blocker-counts-as-finished ()
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* CANCELLED Abandoned blocker\n:PROPERTIES:\n"
+            ":ID:       33333333-3333-4333-8333-333333333333\n:END:\n"
+            "* TODO Depends on abandoned\n:PROPERTIES:\n"
+            ":BLOCKER:  ids(33333333-3333-4333-8333-333333333333)\n:END:\n")
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-outline)))
+      (should-not (string-match-p "Depends on abandoned.*\\[blocked" result)))))
+
+(ert-deftest claude-code-ide-org-test-outline-unresolvable-blocker-is-flagged-distinctly ()
+  "Unresolvable is not satisfied.  A dangling id, and a form naming no
+ids at all, both get [blocked?] rather than being silently dropped."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* TODO Dangling blocker\n:PROPERTIES:\n"
+            ":BLOCKER:  ids(44444444-4444-4444-8444-444444444444)\n:END:\n"
+            "* TODO Sibling-form blocker\n:PROPERTIES:\n"
+            ":BLOCKER:  previous-sibling\n:END:\n")
+    (save-buffer)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-outline)))
+      (should (string-match-p "Dangling blocker.*\\[blocked\\?\\]" result))
+      (should (string-match-p "Sibling-form blocker.*\\[blocked\\?\\]" result)))))
+
+(ert-deftest claude-code-ide-org-test-outline-reads-bare-id-blocker ()
+  "TODO.org contains one :BLOCKER: written as a bare id with no ids()
+wrapper.  org-depend would not honour it, but the index should see it
+rather than report the heading as dependency-free."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* TODO Bare blocker target\n:PROPERTIES:\n"
+            ":ID:       55555555-5555-4555-8555-555555555555\n:END:\n"
+            "* TODO Bare-form dependent\n:PROPERTIES:\n"
+            ":BLOCKER:  55555555-5555-4555-8555-555555555555\n:END:\n")
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-outline)))
+      (should (string-match-p "Bare-form dependent.*\\[blocked\\]" result)))))
 
 (ert-deftest claude-code-ide-org-test-outline-includes-tags ()
   (claude-code-ide-org-test--with-heading
