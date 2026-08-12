@@ -1509,6 +1509,23 @@ Shares code surface with
 the =session-pause=/=-resume= internals. Not a blocking order, just
 worth checking the other's status before starting either.
 
+*Cancelled 2026-08-12 by
+[[id:e51d6ba1-cc1d-4745-8aa7-e4b1183a230b][e51d6ba1]] — and this
+reverses that heading's own stated prior.* Both =e51d6ba1= ("=2b0988ed=
+looks likeliest to survive either way") and the epic's plan-staleness
+table ("most likely still applies independent of this refactor")
+predate the decision at
+[[id:9d2fcdad-9bf7-47b6-8018-223b13ec4577][9d2fcdad]] to delete the
+=:SESSIONS:= drawers outright rather than leave them inert (commits
+=039f547=, =c38a497=). Both were reasonable when written; shipped code
+falsified them. There is no drawer left to reorder and no
+=session-pause=/=-resume= left to prepend in — =config.el='s tombstone
+comment stands where they did. The transferable question, what ordering
+the *surviving* drawer should use, was answered separately and shipped
+by [[id:af7d3687-6d1e-4480-a9e2-df772785713f][af7d3687]] (commit
+=4d2dcab=): one *ascending* timeline across every entry style — the
+opposite of the newest-first convention this heading proposed matching.
+
 ** MAYBE Direct file writes to a live org buffer can desync org-clock-marker :code:
 :PROPERTIES:
 :ID:       53b0047d-c55c-486c-8eed-ba4994d97a1a
@@ -1625,6 +1642,19 @@ causes — worth planning together but not assuming they're one fix:
 this bug's own "idle clock" precondition is the common case, not the
 exception).
 
+*Cancelled 2026-08-12 by
+[[id:e51d6ba1-cc1d-4745-8aa7-e4b1183a230b][e51d6ba1]].* Superseded by
+shipped work, not deferred. =bin/hooks/session-resume= no longer calls
+=org-clock-in-last=, or reaches Emacs at all: it appends a bare =resume=
+guidepost to the session's own queue file and exits. A guidepost names
+no heading, so there is no wrong heading left to inherit — attribution
+comes from the surrounding =clock_in=/=clock_out= events at review time.
+=claude-code-ide-org-session-pause=/=-resume= were deleted at the
+2026-08-11 cutover ([[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]],
+commit =220ba78=); the hook script's own header names this heading as
+the bug it removed. The failure mode documented here remains the
+clearest statement of why that cutover was worth doing.
+
 ** MAYBE org_clock_in doesn't record clock ownership, unlike session-resume :code:
 :PROPERTIES:
 :ID:       d150c02e-06fe-4514-bf69-e2cc5d8df4c7
@@ -1688,6 +1718,24 @@ and
 [[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][Direct file writes to a live org buffer can desync org-clock-marker]]
 — three distinct root causes in the same subsystem, worth planning
 together, not assumed to be one fix.
+
+*Cancelled 2026-08-12 by
+[[id:e51d6ba1-cc1d-4745-8aa7-e4b1183a230b][e51d6ba1]].* Both halves are
+structurally gone rather than fixed. =--clock-owner-session-id= and
+=--planning-owner-session-id= were deleted at the 2026-08-11 cutover
+([[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]], commit
+=220ba78=) — they survive only inside =config.el='s tombstone comment —
+along with =--maybe-record-planning-owner=, the =PostToolUse= hook this
+heading proposed reusing. =org_clock_in= now validates an =:ID:= and
+opens no clock, so there is no ownership left to record.
+
+The want behind the heading is better served than the fix it proposed:
+=bin/hooks/queue-append= stamps =session_id=, =agent_id=, =agent_type=
+and =source= on *every* event, and the queue is keyed per session by
+filename — so attribution is recorded per event and survives an Emacs
+restart, which no global variable did. Caveat worth carrying forward:
+as of 2026-08-12 the =agent_id=/=agent_type= fields have never been
+populated in 347 events, so that half is designed but unexercised.
 
 ** MAYBE Audit for clock/session bookkeeping noise before committing during a clocking-suppressed session :code:
 :PROPERTIES:
@@ -1781,6 +1829,31 @@ prevent.
 Note the incident is also mild evidence *for* this heading's premise:
 the audit caught it, and it would otherwise have been committed
 unnoticed inside a 268-line documentation diff.
+
+*Cancelled 2026-08-12 by
+[[id:e51d6ba1-cc1d-4745-8aa7-e4b1183a230b][e51d6ba1]], along the line
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] predicted:* its
+mechanism-approach "likely folds into the new review UI rather than
+standing alone." All three parts of the premise dissolved. "A
+clocking-suppressed session" has no referent — no session clocks at all
+since the 2026-08-11 cutover. =:SESSIONS:= no longer exists, and the
+only automatic =:LOGBOOK:= writers left fire from =org-todo=, which now
+runs only inside the human-driven apply or a human's own hand-edit. And
+the genuine-vs-noise judgment is now made *before* anything lands, in
+the review buffer with session and timing visible, which is what this
+proposed pre-commit audit was reconstructing after the fact.
+
+The second incident recorded above (the vanished 2-minute interval) was
+root-caused separately: =consolidate-history='s 5-minute rounding,
+retired in =f0fc4a2=. Apply writes exact confirmed endpoints with
+=org-clock-out-remove-zero-time-clocks= bound nil.
+
+The surviving commit-hygiene question is not lost —
+[[id:3cb3f955-f10a-47cd-84ab-e629d73ea59d][3cb3f955]] holds the
+single-session half and
+[[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]] the cross-session
+one, which found the real hazard to be the shared =.git/index=, not
+drawer deltas: a different mechanism from the one hypothesised here.
 
 ** DONE consolidate-history's :LOGBOOK: rewrite silently deletes non-CLOCK lines :code:
 :PROPERTIES:
@@ -2218,21 +2291,16 @@ session]]'s mechanism-approach likely folds into the new review UI
 rather than standing alone), and the non-interactive logging hang that
 started this whole thread.
 
-*What it costs, honestly:* real-time org state lags until a review
-pass runs (mitigate by pointing the statusline at the *queue* files
-instead of live clock state — see sub-task below); adds a manual
-review step to the human's workflow (keep it cheap — one keybinding);
-and this **likely obsoletes, in their currently-planned form**,
-[[file:~/.claude/plans/clock-marker-desync-guard.md][=53b0047d='s
-plan]], [[file:~/.claude/plans/session-resume-continuity-guard.md][=582cc7f4='s
-plan]], and
-[[file:~/.claude/plans/clock-in-ownership-recording.md][=d150c02e='s
-plan]] — each patches a problem this architecture makes structurally
-impossible rather than mitigated. Not wasted work: each documents its
-failure mode precisely, which is exactly the input this redesign is
-answering. [[file:~/.claude/plans/sessions-logbook-ordering.md][=2b0988ed='s
-plan]] (entry ordering) most likely still applies independent of this
-refactor, worth the evaluator's own judgment either way.
+*What it costs, honestly:* real-time org state lags until a review pass runs
+(mitigate by pointing the statusline at the *queue* files instead of live clock
+state — see sub-task below); adds a manual review step to the human's workflow
+(keep it cheap — one keybinding); and this **likely obsoletes, in their
+currently-planned form**, [[file:~/.claude/plans/clock-marker-desync-guard.md][=53b0047d='s plan]], [[file:~/.claude/plans/session-resume-continuity-guard.md][=582cc7f4='s plan]], and [[file:~/.claude/plans/clock-in-ownership-recording.md][=d150c02e='s
+plan]] — each patches a problem this architecture makes structurally impossible
+rather than mitigated. Not wasted work: each documents its failure mode
+precisely, which is exactly the input this redesign is answering. [[file:~/.claude/plans/sessions-logbook-ordering.md][=2b0988ed='s
+plan]] (entry ordering) most likely still applies independent of this refactor,
+worth the evaluator's own judgment either way.
 
 *Load-bearing assumption, explicitly flagged for early verification,
 not assumed true:* this design only works if the org functions the
@@ -4184,23 +4252,20 @@ after deleting all 49 drawers I clocked out, and a drawer came back — on
 because =config.el= had been changed on disk but never reloaded. Caught
 by the post-deletion count, not by foresight; the reload precondition
 should have been stated before the check rather than after it.
+
+
 *** TODO Reconcile or retire the now-likely-superseded clock/session-ownership plans and infrastructure :code:
 :PROPERTIES:
 :ID:       e51d6ba1-cc1d-4745-8aa7-e4b1183a230b
 :CREATED:  [2026-08-06 Thu 10:47]
 :END:
 
-Once this design is either committed to or rejected, revisit
-[[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]],
-[[id:582cc7f4-41a2-4666-ad3f-1b76b459147e][582cc7f4]],
-[[id:d150c02e-06fe-4514-bf69-e2cc5d8df4c7][d150c02e]],
-[[id:2b0988ed-eb92-4fa7-904a-cb2d10941bfd][2b0988ed]], and
-[[id:782cda6c-111c-454e-93eb-b2b27012078b][782cda6c]] explicitly —
-each either gets =CANCELLED= with a note pointing here, or confirmed
-as still independently worth doing regardless of this refactor's
-fate (=2b0988ed= looks likeliest to survive either way). Also decide
-[[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]'s own fate at
-the same time, rather than leaving it to drift.
+Once this design is either committed to or rejected, revisit [[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]], [[id:582cc7f4-41a2-4666-ad3f-1b76b459147e][582cc7f4]],
+[[id:d150c02e-06fe-4514-bf69-e2cc5d8df4c7][d150c02e]], [[id:2b0988ed-eb92-4fa7-904a-cb2d10941bfd][2b0988ed]], and [[id:782cda6c-111c-454e-93eb-b2b27012078b][782cda6c]] explicitly — each either gets =CANCELLED= with
+a note pointing here, or confirmed as still independently worth doing regardless
+of this refactor's fate (=2b0988ed= looks likeliest to survive either way). Also
+decide [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]'s own fate at the same time, rather than leaving it to drift.
+
 
 *** TODO Update CLAUDE.md and the org skill for the new architecture :code:
 :PROPERTIES:
