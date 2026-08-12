@@ -2002,7 +2002,7 @@ apply command clocks in through the same advised =org-clock-in=.
 :ID:       b5f7c5c7-7ad6-4c68-9cce-3479db1f1644
 :CREATED:  [2026-08-06 Thu 10:47]
 :END:
-- State "DOING"      from "NEXT"       [2026-08-12 Wed 10:23]
+- State "DOING"      from "NEXT"       [2026-08-06 Thu 22:35]
 :LOGBOOK:
 CLOCK: [2026-08-11 Tue 11:10]--[2026-08-11 Tue 11:13] =>  0:03
 CLOCK: [2026-08-06 Thu 15:45]--[2026-08-06 Thu 16:50] =>  1:05
@@ -4175,6 +4175,50 @@ reading a silently-failing command's empty output as a result. The
 rewrite should say plainly that the file is a starting point and the
 artifact is the authority, rather than implying that accuracy here makes
 checking unnecessary.
+
+*Added to scope 2026-08-12: reading a timestamp out of these files must
+be drawer-scoped.* This repo's =.org= files quote =CLOCK:= and
+=- State "..."= lines constantly in *prose* — as worked examples, as
+recorded experiment output, as evidence in an outcome summary. A pattern
+match over the raw file therefore returns real-looking timestamps that
+were never real, and the wrong answers are indistinguishable from the
+right one by inspection.
+
+*Cost, measured 2026-08-12* while estimating when work on
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]'s children began.
+Three attempts, two wrong:
+
+1. =[2026-08-06 Thu 17:41]= — matched a =- State "DOING"= line inside
+   [[id:3d576d29-747f-40b9-a5b3-ecc76679daad][3d576d29]]'s *body*, part
+   of the write-up of the backdating experiment itself.
+2. =[2026-08-06 Thu 22:35]=, verified by grepping the file for that
+   =CLOCK:= line — which returned line 1538, *also* example prose, and
+   in a different heading outside the subtree entirely. The extraction
+   was right by then; the *verification* repeated the original mistake.
+3. Correct only when both scoped to the subtree *and* restricted to
+   lines between =:LOGBOOK:= and =:END:=.
+
+*The rule to write:* timestamps and clock data come from inside a
+=:LOGBOOK:= drawer, or from =org_clock_report=/=org_outline=, never from
+a bare pattern match. This is the same failure as the anchored-drawer
+caution — =grep -c ':SESSIONS:'= counting prose mentions — generalised
+from "does this drawer exist" to "what does it contain."
+
+*Placement: the org skill.* Same reasoning the NEXT-nomination rule
+above uses — it is a way of reading any org file whose prose discusses
+org, not a convention specific to this repo. Note that *neither* the
+skill nor CLAUDE.md currently says anything about this; verified
+2026-08-12, both contain no guidance on pattern-matching org files at
+all. A session handoff asserted the skill already covered it, which was
+itself an unchecked claim of exactly the kind the section above warns
+about.
+
+*Also for the rewrite:*
+[[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]] adds an exception
+to CLAUDE.md's "any transition *to* =DOING= or =PLANNING= must open a
+clock" — container headings change state without clocking. Recorded
+there in full; noted here so the rewrite does not have to be reminded by
+the other heading.
 
 Overlaps the enforcement half of
 [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]], which wants
