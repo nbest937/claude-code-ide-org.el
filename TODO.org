@@ -1269,6 +1269,79 @@ correctness and observability, as opposed to the general TODO-state
 machine above — three different angles on "make sure the clock is
 never silently wrong."
 
+** TODO Container headings should change state without opening a clock :code:
+:PROPERTIES:
+:ID:       ab75d6d2-0e59-405d-92c6-2c67488db133
+:CREATED:  [2026-08-12 Wed 11:25]
+:END:
+
+Raised by the user 2026-08-12, on moving
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] to =DOING= because
+some of its children had become active — which is the right thing to
+express, and should happen whenever a child goes active. The problem is
+what came with it: =claude-code-ide-org--trigger-auto-clock-in= fires on
+*any* transition to =DOING=/=PLANNING=, hand-edits explicitly included,
+so the toggle also opened a clock on the epic. That interval was
+unwanted and was deleted by hand.
+
+*Org already does the roll-up, natively.* Measured on this very epic
+before the deletion — the clocktable read =14:52= for the parent row,
+the ten children summed to =13:44=, and the =1:08= difference is exactly
+the epic's own two CLOCK lines. So "activity rolls up to the parent in
+reporting" needs no configuration; it is what =:maxlevel= does. The
+consequence is the actual argument: a parent's own time is *additive,
+inside the same total*, so it cannot be told apart from the children's
+sum once rolled up. Clocking a container does not produce a roll-up — it
+adds a second, differently-meaning quantity to one that already existed.
+
+*The counter-precedent, and why it does not transfer.* norang's org-GTD
+setup ([[https://doc.norang.ca/org-mode.html]]) deliberately puts time on
+projects: clocking out of a subtask *cascades up* to the parent so
+unattributable time lands somewhere. Two differences. It is a *move* of
+one running clock, never a second one minted alongside the children's.
+And it exists to catch time no subtask claims — a problem this design
+already answers elsewhere, since every interval is attributed to the
+heading a session named and unattributed guideposts have
+[[id:3d0487f4-b8f8-451c-88bf-ab537663cbd0][3d0487f4]].
+
+*Proposed rule, narrower than "never clock a parent."* Parent clocking
+should be *deliberate, never automatic*. The epic's existing =1:08= is
+real epic-level work — planning on 08-06, revising the plan against what
+shipped on 08-11 — and a blanket "only clock leaves" would discard that
+category. So: exempt container headings from the auto-clock-in trigger,
+and leave manual =org_clock_in= on a parent available for genuine
+coordination work.
+
+*Detecting a container, org-natively:* norang's lazy definition — a
+heading with at least one child carrying a TODO keyword. No new
+property, no list to maintain.
+
+*Consequence for CLAUDE.md:* "any transition *to* =DOING= or =PLANNING=
+must open a clock" acquires a stated exception, which belongs with
+[[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]]'s rewrite rather
+than as a separate edit.
+
+*Two things observed while diagnosing this, both worth their own
+attention and neither fixed here:*
+
+1. *Deleting the open CLOCK line desynced the live clock* —
+   =org-clock-marker= slid onto the *next*, already-closed line
+   (=[2026-08-11 Tue 11:10]--[11:13] =>  0:03=), while =org-clocking-p=
+   stayed =t=. Any subsequent =org-clock-out= — Emacs quit and suspend
+   both run one — would have closed a clock at that marker and corrupted
+   a good interval. Note =org-clock-cancel= is *not* the recovery: it
+   deletes a region relative to that same wrong marker. Cleared by
+   resetting =org-clock-marker=/=org-clock-hd-marker= in place, touching
+   no file. This is
+   [[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]] observed live,
+   and evidence it is not merely theoretical.
+2. *=org-log-into-drawer= is nil*, so org's native state-change logging
+   lands *outside* =:LOGBOOK:= — visible on b5f7c5c7, whose =DOING= note
+   sits above the drawer while older entries sit inside it. Applied
+   transitions do land inside, so the two paths disagree. Relevant
+   because native logging working correctly is the entire premise of the
+   apply design.
+
 ** MAYBE Reorder :SESSIONS: entries to match :LOGBOOK: ordering :code:
 :PROPERTIES:
 :ID:       2b0988ed-eb92-4fa7-904a-cb2d10941bfd
@@ -1924,11 +1997,12 @@ hang in the clock path is the exact failure class that refactor exists
 to eliminate, and this one survives the cutover untouched, since the
 apply command clocks in through the same advised =org-clock-in=.
 
-** NEXT Refactor clock/TODO-state driving to an append-only event queue + interactive batch-apply review :code:
+** DOING Refactor clock/TODO-state driving to an append-only event queue + interactive batch-apply review :code:
 :PROPERTIES:
 :ID:       b5f7c5c7-7ad6-4c68-9cce-3479db1f1644
 :CREATED:  [2026-08-06 Thu 10:47]
 :END:
+- State "DOING"      from "NEXT"       [2026-08-12 Wed 10:23]
 :LOGBOOK:
 CLOCK: [2026-08-11 Tue 11:10]--[2026-08-11 Tue 11:13] =>  0:03
 CLOCK: [2026-08-06 Thu 15:45]--[2026-08-06 Thu 16:50] =>  1:05
