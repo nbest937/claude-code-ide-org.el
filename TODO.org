@@ -5552,7 +5552,128 @@ and also why it was never checked before being written down. Both
 behaviors are now pinned by tests, including one asserting the rendered
 title contains no backslash, so a future =%S= cannot introduce the
 defect this heading believed it had found.
+*** Queue attribution is session-scoped, so concurrent subagents lose intervals :code:
+:PROPERTIES:
+:ID:       0d789b68-faca-4911-868a-fdd70acbfd40
+:CREATED:  [2026-08-12 Wed 17:45]
+:END:
 
+Found 2026-08-12 by deliberately running two subagents concurrently to
+exercise =agent_id=, which until that moment had never been populated
+in 347 events. Both halves of the result matter: the field works, and
+the code that consumes it is defeated upstream.
+
+=--queue-events-by-id= resolves which heading an id-less event belongs
+to by walking each *session's* stream with a single =current= variable
+(config.el:2503-2510). Subagents share their parent's =session_id=, so
+two concurrent agents interleave into one walk and clobber each other's
+=current=. =org_clock_out= sends no =id= at all (config.el:359), so it
+depends entirely on that variable.
+
+Measured, not reasoned:
+
+: 17:40:01  clock_in  e51d6ba1  agent=a8a8  -> current = e51d6ba1
+: 17:40:20  clock_in  7771fc63  agent=ae39  -> current = 7771fc63  (clobbers)
+: 17:42:20  clock_out  id=nil   agent=ae39  -> resolves 7771fc63, current = nil
+: 17:46:  clock_out  id=nil   agent=a8a8  -> current already nil -> NIL BUCKET
+
+=--review-items-from-queue= skips the nil bucket outright (=(when id
+...)=, config.el:2515), so =a8a8='s =clock_out= is dropped and its
+=clock_in= is left orphaned in =e51d6ba1='s group with nothing to close
+it. Confirmed against the live queue after reloading config.el:
+=e51d6ba1= yields *0* clock items, =7771fc63= yields 2. The only
+difference between them was which agent finished first.
+
+*The near miss is worse than the loss.* =ae39= paired correctly purely
+because the agents completed LIFO. Reverse the finish order and
+=ae39='s interval attributes to =e51d6ba1= — a real duration on the
+wrong heading, which is the confidently-wrong record
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] exists to
+prevent. Silent loss is the benign branch of this bug.
+
+The irony: the *pairing* logic immediately below is fully agent-aware
+(=by-agent=, config.el:2531-2554, "pair each agent's own
+clock_in/clock_out"), and human spans correctly exclude agent events
+(config.el:2562). Only the attribution walk that runs first is blind to
+=agent_id=.
+
+Likely fix: key =current= by =(session_id . agent_id)= rather than
+=session_id= alone, with nil =agent_id= as the main session's own lane.
+Cheap, and the failing case is now reproducible on demand — spawn two
+concurrent subagents that each bracket their work with
+=org_clock_in=/=org_clock_out=.
+
+Note the nil bucket already held two other unattributed =clock_out=
+events predating this experiment, and =b74e0f19= and =9d2fcdad= each
+show a =clock_out= with no =clock_in=. Whether those share this root
+cause or a different one is unexamined.
+*** Background-task notifications write phantom resume guideposts :code:
+:PROPERTIES:
+:ID:       09c134c4-31eb-4f6c-aa10-f836d1d28f16
+:CREATED:  [2026-08-12 Wed 17:46]
+:END:
+
+Observed 2026-08-12 during the subagent experiment behind
+[[id:0d789b68-faca-4911-868a-fdd70acbfd40][0d789b68]]. A background
+task completing re-invokes the model, which fires =UserPromptSubmit=,
+which appends a =resume= guidepost — with no user having sent anything:
+
+: 17:22:41  resume  UserPromptSubmit   (agent 1 finished ~17:21:47)
+: 17:23:50  resume  UserPromptSubmit   (agent 2 finished ~17:23:15)
+
+The events are byte-identical to a genuine prompt's; no field
+distinguishes them. This matters because CLAUDE.md defines the
+pause/resume stream as tracking *active work time only* — "paused the
+moment Claude Code stops and is waiting on the user, resumed the moment
+the user sends the next prompt." A robot wake-up now reads as the human
+returning to the keyboard, and since
+=--aggregate-guideposts= reconstructs human spans from exactly these
+timestamps, the effect is to inflate apparent human-present time in
+every =:suggested:= interval that spans a background completion.
+
+Affects any background task, not just subagents. Note the guidepost
+carries =agent_id: nil= even when the notification came from an agent —
+the hook fires in the parent's turn, not the agent's — so filtering on
+=agent_id= is *not* the fix.
+
+Not yet investigated: whether the hook payload distinguishes a real
+submission from a task-completion re-invocation at all. If it does not,
+the honest options are to accept the inflation and document it, or to
+stop treating =resume= as evidence of human presence.
+
+*** Apply's clock pair has no unwind-protect, so a failed clock_out can strand an open line :code:
+:PROPERTIES:
+:ID:       803314aa-eda9-4d48-9e43-b3eb4802a4e8
+:CREATED:  [2026-08-12 Wed 17:46]
+:END:
+
+Found 2026-08-12 while checking whether
+[[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s "apply writes
+already-closed intervals" premise holds. It holds for a *crash* — no
+=save-buffer= runs between the two calls — but not for an *error*.
+
+=--review-apply-clock= (config.el:2741-2751) calls =org-clock-in= then
+=org-clock-out= with no =unwind-protect= between them; the
+=unwind-protect= at config.el:3457 guards the read-only flag only. If
+=org-clock-out= signals after =org-clock-in= succeeded, =--at-id='s
+=condition-case= (config.el:63) swallows it into an error string and
+that item's own =save-buffer= is skipped — but the clock stays running
+and the buffer stays modified. =--review-apply= then *continues the
+loop* (config.el:2896), and the next item on the same file calls
+=save-buffer= (config.el:2858), committing the open =CLOCK:= line to
+disk. A stray =C-x C-s= by the user does the same.
+
+It then self-heals *wrongly*: config.el:2732's defensive =(when
+(org-clocking-p) (org-clock-out nil t))= closes it at *now*, producing
+a plausible interval with a false end time — the
+[[id:ba8249c1-28cd-4ff1-918b-4b8439345d9a][ba8249c1]] shape, a wrong
+record rather than a visibly broken one.
+
+Independently reached by two separate reviews of the apply path, and
+reasoned from code both times: not observed in the wild, and no
+estimate exists of how often =org-clock-out= actually signals here.
+That frequency is the whole cost/benefit, so it belongs in the fix's
+own evaluation rather than being assumed negligible.
 ** TODO Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
 :ID:       a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5
