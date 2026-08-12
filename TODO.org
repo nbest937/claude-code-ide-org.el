@@ -299,6 +299,55 @@ or whether the check also needs to search prose for informal
 cross-references that predate this convention, and exactly when in the
 org skill's flow this check should fire.
 
+** DONE Implement the ten pending MCP-tool tasks in parallel worktrees :code:
+:PROPERTIES:
+:ID:       3d862c6c-6d03-4fe9-9923-067966ef943a
+:CREATED:  [2026-08-12 Wed 12:33]
+:END:
+
+[[file:~/.claude/plans/send-each-mcp-feature-zesty-bunny.md][Plan]]
+
+*This heading is retrospective, and deliberately not backdated.* The
+work ran on 2026-07-28/29; the heading was written 2026-08-12 while
+resolving [[id:cce72644-7d5e-4def-a165-0a3b815f482b][cce72644]], because
+the plan file had no owner and CLAUDE.md's archive rule is that a plan is
+kept iff some heading links it. =:CREATED:= is the moment this heading
+was created, per the convention, not the moment the work started — the
+real dates are in the ten task headings and in the plan file itself.
+
+*What it was.* Orchestration, not design: ten tasks in TODO.org's then
+"New MCP tools" section and its MCP-adjacent siblings already carried
+fully worked-out checklists, and the plan covered getting all ten built
+in isolated worktrees and integrated back one at a time without losing
+work or breaking =bin/test=. Written 2026-07-28 21:23; the first task
+was archived 2026-07-29 01:57.
+
+*Outcome: all ten shipped, and all ten are archived in DONE.org* —
+=org_capture=, =org_clock_report=, =org_refile=,
+=org_sort_children=/=org_move_sibling=, the
+=org-trigger-hook=/=org-blocker-hook= pair and its config-test.el
+extension, the tool-call audit log, surface-current-clock-state, the
+PreToolUse transition guard, clock-change notifications, and the
+SessionStart context hook. Only five carried an =:ID:= at plan time; the
+other five were =(none yet)= in the plan's own table and were created as
+the work reached them.
+
+*No clock or =:LOGBOOK:= here, on purpose.* Every one of those ten
+headings carries its own intervals, and org's clocktable sums a subtree
+by plain addition — so time recorded on an umbrella is *additive* with
+the children's rather than a roll-up of it. Same reasoning as
+[[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]]. These ten are not
+even children of this heading, so any interval here would be pure
+double-count.
+
+*Superseded in one respect, worth knowing before reusing it.* The plan's
+load-bearing constraint — clock and state changes are coordinator-only,
+one task at a time, because org's clock is a single global resource that
+subagents in isolated worktrees cannot safely touch — is exactly the
+problem [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]'s event
+queue replaced. The worktree orchestration still stands; the clocking
+discipline around it does not.
+
 ** DONE Org skill: parallelize background planning across the NEXT/TODO backlog, without touching the shared clock :code:
 :PROPERTIES:
 :ID:       d8444673-b047-4755-b62c-d03df738f16a
@@ -6018,6 +6067,50 @@ added after some of this work, not that it was ignored.
 covers what is linked: an unlinked plan is the one case where a revision
 still overwrites history with no way back — the exact gap the archive
 was built to close.
+
+*Outcome, 2026-08-12.* =bin/sync-plans= now reports *0 unlinked at
+source*, 26 in sync. Two linked, two retired:
+
+- =parsed-gliding-corbato.md= — *deleted.* Confirmed byte-identical to
+  =review-and-cutover.md=, which is already archived in =plans/=, so no
+  content was lost, and confirmed nothing linked it first. Exactly as
+  this heading predicted.
+- =cheerful-whistling-sketch.md= — *linked* from
+  [[id:74f24402-978e-4c66-ac97-996f387c0ddb][74f24402]] in DONE.org, the
+  org-agenda-files fix. The one case that went as written.
+- =warp-mcp-proxy-emacs.md= — *deleted*, on the user's call.
+- =send-each-mcp-feature-zesty-bunny.md= — *linked* from a new
+  retrospective heading,
+  [[id:3d862c6c-6d03-4fe9-9923-067966ef943a][3d862c6c]], also on the
+  user's call.
+
+*This heading was wrong about two of the four, and the errors are the
+interesting part.*
+
+1. It said 6a6d5b4e "carries no Plan link." It does — to
+   =use-pipx-instead-use-starry-metcalfe.md=, which is archived.
+   =warp-mcp-proxy-emacs.md= is a *second, earlier* plan for the same
+   heading: the proxy approach abandoned once the real bug turned out to
+   be the =200=-vs-=202= response. So the choice was never "add the
+   missing link"; it was "what do you do when one heading has two
+   plans," which CLAUDE.md's *single* permanent link rule does not
+   cover, since it assumes revisions reuse one file. Retired rather than
+   double-linked — the heading already links the plan that reflects what
+   shipped, and both its own body and CLAUDE.md narrate why the proxy
+   was unnecessary.
+2. It assumed all three "real ones" had owning headings. The
+   parallelization plan had none: its ten tasks are archived flat in
+   DONE.org and the "New MCP tools" section that grouped them no longer
+   exists, so archiving dissolved the only structure that could have
+   owned it. Hence a new heading rather than a link.
+
+*The general lesson, worth carrying into
+[[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]]:* archiving
+flattens. A plan whose scope is a *section* rather than a heading loses
+its owner the moment that section's members are archived out, and
+nothing warns you. Multi-heading plans need an umbrella heading created
+*with* the plan, not reconstructed a fortnight later from the plan's own
+table.
 
 ** TODO Jump to a heading by title, not by pasting a UUID :code:
 :PROPERTIES:

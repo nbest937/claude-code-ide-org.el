@@ -793,6 +793,8 @@ CLOCK: [2026-07-29 Wed 18:20]--[2026-07-29 Wed 18:30] =>  0:10
 CLOCK: [2026-07-29 Wed 17:00]--[2026-07-29 Wed 17:05] =>  0:05
 CLOCK: [2026-07-29 Wed 12:25]--[2026-07-29 Wed 12:30] =>  0:05
 :END:
+[[file:~/.claude/plans/cheerful-whistling-sketch.md][Plan]]
+
 Doom's =org-agenda-files= is =("~/org")= — a bare directory string —
 and org's directory expansion for it is non-recursive, so
 =(org-agenda-files)= resolves to nil (TODO.org is symlinked one level
