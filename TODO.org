@@ -6034,10 +6034,69 @@ So the wrapper fix above should cover
 failed attempt marked nothing applied and the retry was clean -- no
 double-application, no half-applied batch. Whatever the fix, do not
 regress that.
-** TODO Link or retire the four plans no heading references :code:
+** TODO Archive the DONE backlog once the queue epic lands, then judge the structure question :code:
+:PROPERTIES:
+:ID:       38b92521-bba4-4bb5-9cd9-465862471a72
+:CREATED:  [2026-08-12 Wed 14:06]
+:BLOCKER:  ids(b5f7c5c7-7ad6-4c68-9cce-3479db1f1644)
+:END:
+
+Raised by the user 2026-08-12: nothing has been archived in quite some
+time, and *certainly not since the queue cutover*. So the open question
+about whether this file's hierarchy earns its keep — the user floated
+flattening the source instead — should be judged on what a real archive
+pass actually does, not on inference. Blocked on
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] deliberately: that
+epic's children are most of the current DONE backlog, and archiving it
+mid-flight would scatter an epic still being worked.
+
+*What is already known going in, verified 2026-08-12 rather than
+assumed:*
+
+- =org-archive-save-context-info= includes =olpath= and *is* writing it —
+  18 of DONE.org's 22 archived headings carry =:ARCHIVE_OLPATH:=. The
+  outline path survives archiving. An earlier claim in
+  [[id:cce72644-7d5e-4def-a165-0a3b815f482b][cce72644]] that archiving
+  loses structure was wrong and has been corrected there; the section
+  that vanished was removed by hand in =b716d37=, not by archiving.
+- DONE.org is *not* in =claude-code-ide-org--tracked-files=, which
+  returns only TODO.org and =~/org/notes.org=. So =org_query= and an
+  unscoped =org_clock_report= do not see archived work at all — which is
+  its own question once a large archive pass moves a lot of history out
+  of view. Related: the still-MAYBE "Consider archives in
+  org_clock_report's scope (agenda-with-archives)".
+- But =org-id-find= *does* resolve into DONE.org — an archived
+  heading's =:ID:= still resolves. Confirmed on =405e05b6=.
+
+*The risk that asymmetry creates, and the reason this is worth a
+deliberate pass rather than a bulk action.* The review buffer resolves
+headings with =org-id-find= (=--review-current-state=). So a heading
+archived while it still has *unapplied queued events* would later have
+those events applied straight into DONE.org. That is arguably correct —
+the record follows the heading — but it is untested, and post-cutover
+the queue routinely holds unapplied events for exactly the headings most
+likely to be archived, since a heading reaches DONE by way of a queued
+transition. *Drain the queue first, then archive*, and confirm the
+behavior deliberately instead of discovering it.
+
+*Then make the judgment.* With a real pass to look at: does the
+remaining hierarchy in TODO.org still earn its keep, or should the
+source be flattened further? Note =b716d37= already flattened one level
+by hand on 2026-08-04, collapsing =* Roadmap / ** Section / *** Task=
+into =* Section / ** Task=, so this would be the second such pass rather
+than the first — and the top level is load-bearing for CLAUDE.md's
+"top-level headings are categories" convention.
+
+** DONE Link or retire the four plans no heading references :code:
 :PROPERTIES:
 :ID:       cce72644-7d5e-4def-a165-0a3b815f482b
 :CREATED:  [2026-08-11 Tue 11:21]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-12 Wed 12:38] \\
+  sync-plans reports zero unlinked
+- State "DOING"      from "TODO"       [2026-08-12 Wed 12:19] \\
+  linking or retiring the four unlinked plans
 :END:
 
 Surfaced 2026-08-11 by =bin/sync-plans=, which archives a plan only when
@@ -6104,13 +6163,38 @@ interesting part.*
    exists, so archiving dissolved the only structure that could have
    owned it. Hence a new heading rather than a link.
 
-*The general lesson, worth carrying into
-[[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]]:* archiving
-flattens. A plan whose scope is a *section* rather than a heading loses
-its owner the moment that section's members are archived out, and
-nothing warns you. Multi-heading plans need an umbrella heading created
-*with* the plan, not reconstructed a fortnight later from the plan's own
-table.
+*Correction, same day, before this claim spread any further.* The
+paragraph here originally read "archiving flattens — a plan scoped to a
+section loses its owner the moment that section's members are archived
+out." *That is false*, and it was asserted without checking:
+
+- =org-archive-save-context-info= includes =olpath= by default and is
+  writing it. 18 of DONE.org's 22 archived headings carry
+  =:ARCHIVE_OLPATH:=, and all ten MCP-tool tasks record
+  =Roadmap/New MCP tools=. The outline path is preserved, not lost. The
+  four without one were archived from level 1, where there was no path.
+- What actually removed the section was =b716d37= (2026-08-04),
+  "Reflect completed clock-subsystem work back into the roadmap" — a
+  deliberate manual restructuring that deleted the =* Roadmap= wrapper
+  and promoted every section a level. Archiving behaved correctly
+  throughout; a hand edit a week later did the removing.
+
+*What is actually true, and it is narrower:* a plan spanning several
+headings has no linkable owner, because =sync-plans= requires a link and
+a grouping heading is structural — it carries no =:ID:= by convention
+and gets deleted when it empties. So the fix is a convention, not a
+mechanism: *create an umbrella heading with an =:ID:= when a plan spans
+several tasks*, rather than reconstructing one later from the plan's own
+table. That much still belongs in
+[[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]].
+
+*Worth noting how the wrong version nearly survived.* The first check
+run against DONE.org reported =org_capture= as having no
+=:ARCHIVE_OLPATH:= while a =sed= of the same heading printed the
+property two lines above — the script tested list membership of a whole
+line where it needed a substring. Same shape as the drawer-scoped grep
+failures already recorded above: a wrong answer that looks like a
+finding.
 
 ** TODO Jump to a heading by title, not by pasting a UUID :code:
 :PROPERTIES:
