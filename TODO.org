@@ -6087,6 +6087,72 @@ into =* Section / ** Task=, so this would be the second such pass rather
 than the first — and the top level is load-bearing for CLAUDE.md's
 "top-level headings are categories" convention.
 
+*DONE.org's flat =* Done= is a choice, not a constraint — and the
+alternative works.* The user, 2026-08-12: the
+=#+ARCHIVE: DONE.org::* Done= line is what
+produced that single top-level heading; they did not care for it when
+they set it up but let it ride. *Hot-take preference: mirror TODO.org's
+top-level heading instead*, so archived work lands under
+=* Skill logic=, =* Tooling=, and so on.
+
+*It can be expressed, and was verified end-to-end 2026-08-12* against a
+scratch file, not inferred from the docstring alone.
+
+*The wrong lever is =%s=.* In the headline half of an archive location
+it substitutes the *file name*, not the outline path — =::* From %s=
+yields "From TODO.org". No amount of =#+ARCHIVE:= alone can mirror a
+source heading.
+
+*The right lever is an inherited =:ARCHIVE:= property.* Per
+=org-archive-location='s own docstring it is honoured "if found in the
+file or in an entry, *and anywhere up the hierarchy*." With
+=:ARCHIVE: DONE.org::* Skill logic= on the category heading:
+
+| source                                     | landed under                |
+|--------------------------------------------+-----------------------------|
+| =* Skill logic= → task A, *and* a level-3 A2 | =* Skill logic=, created  |
+| =* Tooling= → task B                       | =* Tooling=, created        |
+| =* No property here= → task C              | =* Done=, via =#+ARCHIVE:=  |
+
+Four observed properties, each of which matters to the decision:
+
+1. *Inheritance reaches arbitrarily deep.* A level-3 heading routed
+   correctly from a property on its level-1 grandparent — so one
+   property per category covers every task beneath it, including
+   [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]'s twenty-odd
+   children.
+2. *Target headings are created on demand*, so DONE.org needs no
+   pre-building.
+3. *=#+ARCHIVE:= still serves as the fallback* for anything not under a
+   property-bearing category — adoption can be incremental rather than
+   all-at-once.
+4. *Depth is flattened within a category.* The level-3 entry landed at
+   level 2, a sibling of its former parent. =:ARCHIVE_OLPATH:= records
+   the real parentage (=Skill logic/task A=), so it is recoverable but
+   not structural. Top-level mirroring survives; sub-nesting does not.
+
+*The cost, and it is the second instance today of the same conflict.*
+This requires a =:PROPERTIES:= drawer on top-level headings, which
+CLAUDE.md forbids. The same rule blocked =:LOG_INTO_DRAWER:= earlier the
+same day, which is why that fix went to =#+STARTUP:= instead.
+
+*Argument for treating =:ARCHIVE:= as an exception rather than a
+violation:* the rule's stated purpose is that categories are "pure
+structure — grouping related tasks," and its concrete targets are
+=:ID:= and =:CREATED:=, both *task* metadata whose presence would make a
+category look like work. =:ARCHIVE:= is the opposite — structural
+metadata about the grouping itself, saying where its contents go.
+Narrowing the rule to "no *task* metadata" rather than "no properties"
+would permit this without weakening what it was written to prevent.
+That wording change belongs to
+[[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] if adopted.
+
+*One thing to decide in the same breath:* the existing 22 archived
+headings all sit under =* Done=. Adopting mirroring leaves a split
+archive unless DONE.org is reorganised retroactively — which is
+mechanical rather than a judgement call, since every entry already
+carries an =:ARCHIVE_OLPATH:= naming its source category.
+
 ** DONE Link or retire the four plans no heading references :code:
 :PROPERTIES:
 :ID:       cce72644-7d5e-4def-a165-0a3b815f482b
