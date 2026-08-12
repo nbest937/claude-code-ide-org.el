@@ -2216,14 +2216,26 @@ construction rather than by remembering."
   (claude-code-ide-org--atomic-write
    (claude-code-ide-org--queue-watermark-file session-id)
    (json-encode
+    ;; An empty set serializes as `[]'/`{}', never `null'.  Elisp spells
+    ;; the empty list, the empty object and JSON null all as nil, so
+    ;; `json-encode' would happily emit `null' and this reader would
+    ;; happily accept it -- the round-trip works only because both ends
+    ;; are lossy in the same direction.  No other JSON stack is: the
+    ;; common `d.get("applied", [])' idiom does not fall back when the
+    ;; key is present holding null, so the field would be an array
+    ;; sometimes and null others, which is not a shape worth handing to
+    ;; whatever eventually reports on these files.  A vector and a hash
+    ;; table are how you say "empty, and still an array/object" here.
     `((applied . ,(let (all)
                     (maphash (lambda (k _) (push k all)) applied)
-                    (sort all #'string<)))
+                    (if all (sort all #'string<) [])))
       (dismissed . ,(let (all)
                       (maphash (lambda (k v) (push (cons (intern k) v) all)) dismissed)
-                      (sort all (lambda (a b)
-                                  (string< (symbol-name (car a))
-                                           (symbol-name (car b)))))))))))
+                      (if all
+                          (sort all (lambda (a b)
+                                      (string< (symbol-name (car a))
+                                               (symbol-name (car b)))))
+                        (make-hash-table))))))))
 
 (defun claude-code-ide-org--queue-mark-dismissed (session-id ts-strings reason)
   "Record TS-STRINGS as permanently dismissed for SESSION-ID, with REASON.

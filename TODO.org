@@ -4607,16 +4607,19 @@ all. Worth doing with
 [[id:d409390b-6624-4820-82bb-730d763962fd][d409390b]]'s interaction
 work rather than bolted onto this fix.
 
-*** DOING Decide how the stale check reads a chain of transitions in one batch :code:
+*** DONE Decide how the stale check reads a chain of transitions in one batch :code:
 :PROPERTIES:
 :ID:       6b1e73c4-25da-4f0e-8a51-9c0d3f7ab214
 :CREATED:  [2026-08-11 Tue 13:24]
 :BLOCKER:  ids(feba67eb-35b3-48bd-a892-8ecd47ca52e0)
 :END:
 :LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-12 Wed 10:02] \\
+  projected-state stale check shipped and verified
 - State "DOING"      from "TODO"       [2026-08-11 Tue 22:29] \\
   implementing chain-aware staleness
 - <2026-08-11 Tue 22:37>--<2026-08-11 Tue 22:37> implement projected-state stale check
+- <2026-08-12 Wed 09:58>--<2026-08-12 Wed 09:58> implement projected-state stale check
 :END:
 [[file:~/.claude/plans/hazy-moseying-sky.md][Plan]]
 
@@ -4773,12 +4776,14 @@ Revises the disposition recorded in
 which proposed closing the =pmset= lead as won't-do — correct for the
 stale-interval guess heuristic, wrong for attribution.
 
-*** DOING The review buffer has no way to dismiss an item you will never apply :code:
+*** DONE The review buffer has no way to dismiss an item you will never apply :code:
 :PROPERTIES:
 :ID:       f290161c-f9e7-4bfb-9adf-4c5630d4c5ae
 :CREATED:  [2026-08-11 Tue 16:32]
 :END:
 :LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-12 Wed 10:02] \\
+  dismissal shipped, three residents retired
 CLOCK: [2026-08-11 Tue 22:27]--[2026-08-11 Tue 22:28] =>  0:01
 - State "DOING"      from "PLANNING"   [2026-08-11 Tue 22:26]
 - State "PLANNING"   from "TODO"       [2026-08-11 Tue 22:12] \\
@@ -4819,10 +4824,14 @@ different treatment at any later audit. The pre-cutover stales are also
 self-limiting — they stop being generated at the cutover — which argues
 against over-engineering for them specifically.
 
-*** DOING Restore the read-only flag after review-apply clears it :code:
+*** DONE Restore the read-only flag after review-apply clears it :code:
 :PROPERTIES:
 :ID:       45ec3ff6-cde1-42a6-a899-6b11982112cb
 :CREATED:  [2026-08-12 Wed 10:00]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-12 Wed 10:02] \\
+  read-only restored via unwind-protect
 :END:
 
 Raised by the user 2026-08-12, right after the first real dismissal

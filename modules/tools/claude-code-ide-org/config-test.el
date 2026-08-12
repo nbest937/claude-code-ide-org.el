@@ -2429,6 +2429,30 @@ a migration step."
     (should (gethash "2026-08-07T09:05:00-0500"
                      (claude-code-ide-org--queue-dismissed "sess-a")))))
 
+(ert-deftest claude-code-ide-org-test-queue-watermark-empty-sets-are-not-null ()
+  "An empty set is written as `[]'/`{}', never `null'.
+
+Asserted on the bytes, because the round-trip cannot catch this: Elisp
+spells the empty list, the empty object and JSON null all as nil, so
+this reader accepts `null' happily and every in-process test still
+passes.  No other JSON stack is that forgiving -- `d.get(\"applied\",
+[])' does not fall back when the key is present holding null, which
+crashed a real inspection script on a real watermark file.  Dismissing
+before anything is applied is the case that produces it."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org--queue-mark-dismissed
+     "sess-a" '("2026-08-07T09:00:00-0500") "never applying this")
+    (let ((text (claude-code-ide-org-test--disk-contents
+                 (claude-code-ide-org--queue-watermark-file "sess-a"))))
+      (should (string-match-p "\"applied\":\\[\\]" text))
+      (should-not (string-match-p "null" text)))
+    ;; ...and the mirror case: applied with nothing dismissed.
+    (claude-code-ide-org--queue-mark-applied "sess-b" '("2026-08-07T10:00:00-0500"))
+    (let ((text (claude-code-ide-org-test--disk-contents
+                 (claude-code-ide-org--queue-watermark-file "sess-b"))))
+      (should (string-match-p "\"dismissed\":{}" text))
+      (should-not (string-match-p "null" text)))))
+
 (ert-deftest claude-code-ide-org-test-queue-attributes-guideposts-across-a-return ()
   "The A -> B -> A case: returning to a heading that never left DOING
 emits no todo event, so attribution must come from clock_in/clock_out.
