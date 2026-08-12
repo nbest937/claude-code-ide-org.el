@@ -3186,6 +3186,74 @@ get.  Before this check each item failed separately with
         (kill-buffer "*org-review-test*")
         (with-current-buffer (get-file-buffer file) (read-only-mode -1))))))
 
+(ert-deftest claude-code-ide-org-test-review-apply-restores-read-only ()
+  "The flag the user set is theirs, and apply borrows it rather than
+taking it.  Clearing it and walking away silently disables the guard
+against their own stray keystrokes, and they only find out by noticing
+(TODO.org :ID: c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b)."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--with-queue
+      (let ((item (list :type 'state :id id :ts (current-time) :to "DOING"
+                        :from "TODO" :marked t :events nil)))
+        (with-current-buffer (get-file-buffer file) (read-only-mode 1))
+        (unwind-protect
+            (with-current-buffer (get-buffer-create "*org-review-test*")
+              (claude-code-ide-org-review-mode)
+              (setq claude-code-ide-org--review-items (list item))
+              (claude-code-ide-org--review-render)
+              (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) t)))
+                (claude-code-ide-org-review-apply))
+              ;; The write really happened...
+              (should (string-match-p
+                       "^\\* DOING Test heading"
+                       (claude-code-ide-org-test--disk-contents file)))
+              ;; ...and the guard is back on.
+              (should (buffer-local-value 'buffer-read-only
+                                          (get-file-buffer file))))
+          (kill-buffer "*org-review-test*")
+          (with-current-buffer (get-file-buffer file) (read-only-mode -1)))))))
+
+(ert-deftest claude-code-ide-org-test-review-apply-restores-read-only-on-error ()
+  "The failure window is the whole objection c8a97d9d raised against
+clear-then-restore, so it must actually be closed: an error thrown
+mid-apply still puts the flag back.  And a buffer the user had already
+made writable is left writable -- restoring means putting back what this
+command changed, not imposing read-only on a buffer that never had it."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--with-queue
+      (let ((item (list :type 'state :id id :ts (current-time) :to "DOING"
+                        :from "TODO" :marked t :events nil)))
+        (with-current-buffer (get-file-buffer file) (read-only-mode 1))
+        (unwind-protect
+            (with-current-buffer (get-buffer-create "*org-review-test*")
+              (claude-code-ide-org-review-mode)
+              (setq claude-code-ide-org--review-items (list item))
+              (claude-code-ide-org--review-render)
+              (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) t))
+                        ((symbol-function 'claude-code-ide-org--review-apply)
+                         (lambda (&rest _) (error "Boom, mid-apply"))))
+                (should-error (claude-code-ide-org-review-apply)))
+              (should (buffer-local-value 'buffer-read-only
+                                          (get-file-buffer file))))
+          (kill-buffer "*org-review-test*")
+          (with-current-buffer (get-file-buffer file) (read-only-mode -1))))
+      ;; Never read-only to begin with: nothing was borrowed, so nothing
+      ;; is put back and the buffer stays as the user left it.
+      (let ((item (list :type 'state :id id :ts (current-time) :to "WAIT"
+                        :from "DOING" :marked t :events nil)))
+        (should-not (buffer-local-value 'buffer-read-only (get-file-buffer file)))
+        (unwind-protect
+            (with-current-buffer (get-buffer-create "*org-review-test*")
+              (claude-code-ide-org-review-mode)
+              (setq claude-code-ide-org--review-items (list item))
+              (claude-code-ide-org--review-render)
+              (cl-letf (((symbol-function 'y-or-n-p)
+                         (lambda (&rest _) (error "Should not have been asked"))))
+                (claude-code-ide-org-review-apply))
+              (should-not (buffer-local-value 'buffer-read-only
+                                              (get-file-buffer file))))
+          (kill-buffer "*org-review-test*"))))))
+
 (ert-deftest claude-code-ide-org-test-review-apply-keeps-marks-when-nothing-applied ()
   "A run where every item failed does not refresh, so the marks survive a
 failure the human had no chance to react to.  A run that applied

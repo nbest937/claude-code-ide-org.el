@@ -4819,6 +4819,35 @@ different treatment at any later audit. The pre-cutover stales are also
 self-limiting — they stop being generated at the cutover — which argues
 against over-engineering for them specifically.
 
+*** DOING Restore the read-only flag after review-apply clears it :code:
+:PROPERTIES:
+:ID:       45ec3ff6-cde1-42a6-a899-6b11982112cb
+:CREATED:  [2026-08-12 Wed 10:00]
+:END:
+
+Raised by the user 2026-08-12, right after the first real dismissal
+round. =claude-code-ide-org--review-ensure-writable= offers to clear
+=buffer-read-only= on every buffer an apply needs to write, and nothing
+puts it back. The user sets that flag to guard against their own stray
+keystrokes, so a silently-disabled guard is exactly the cost described
+in [[id:c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b][c8a97d9d]].
+
+*Why clear-then-restore here, when c8a97d9d rejected it.* That heading
+weighed clear-then-restore against binding =inhibit-read-only= for the
+*MCP tool wrappers* and rejected it on two grounds: a failure window if
+a tool errors mid-call, and races between concurrent sessions
+interleaving clear/restore. Neither transfers to this path. Apply is
+only ever reached from a genuinely interactive command and is never
+invoked programmatically — the load-bearing constraint of the whole
+queue design — so there is no second session to race. And the failure
+window closes with =unwind-protect=, which is the mechanism that
+objection did not consider. c8a97d9d's verdict still stands for the
+wrappers; this is a different path with different properties, not a
+reversal.
+
+Restores only what this command actually cleared, so a buffer the user
+had already made writable is left alone.
+
 *** TODO Two display defects in the review buffer's rendering of a failed item :code:
 :PROPERTIES:
 :ID:       e3f70e61-6616-4c57-81e8-e350ffd5824c

@@ -3149,7 +3149,13 @@ prompts rather than binding `inhibit-read-only'.
 
 A `y-or-n-p' is safe here for the same reason it is in
 `claude-code-ide-org--review-set-mark': apply is only ever reached from
-a genuinely interactive command, never from `emacsclient -e'."
+a genuinely interactive command, never from `emacsclient -e'.
+
+Returns the buffers it actually cleared, so the caller can put the flag
+back.  Returning them -- rather than having the caller re-derive the
+list afterwards -- is what keeps a buffer the user had already made
+writable from being switched to read-only by this command, which would
+be a change they never asked for."
   (let ((buffers (claude-code-ide-org--review-read-only-buffers items)))
     (when buffers
       (unless (y-or-n-p (format "%s read-only.  Make %s writable and apply? "
@@ -3157,7 +3163,18 @@ a genuinely interactive command, never from `emacsclient -e'."
                                 (if (cdr buffers) "them" "it")))
         (user-error "Left read-only; nothing applied, marks kept"))
       (dolist (buffer buffers)
-        (with-current-buffer buffer (read-only-mode -1))))))
+        (with-current-buffer buffer (read-only-mode -1)))
+      buffers)))
+
+(defun claude-code-ide-org--review-restore-read-only (buffers)
+  "Put `buffer-read-only' back on BUFFERS.
+Skips any that has since been killed.  The flag is the user's guard
+against their own stray keystrokes, so leaving it cleared after an apply
+silently disables it and they only find out by noticing (TODO.org :ID:
+c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b)."
+  (dolist (buffer buffers)
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer (read-only-mode 1)))))
 
 (defun claude-code-ide-org-review-apply ()
   "Apply every marked item, then refresh.
@@ -3176,21 +3193,29 @@ that re-evaluates staleness against the file as it now stands."
   (let ((marked (seq-filter (lambda (i) (plist-get i :marked))
                             claude-code-ide-org--review-items)))
     (unless marked (user-error "Nothing marked"))
-    (claude-code-ide-org--review-ensure-writable marked)
-    (let ((result (claude-code-ide-org--review-apply marked))
-          (line (line-number-at-pos)))
-      (if (> (plist-get result :applied) 0)
-          (claude-code-ide-org-review-refresh)
-        (claude-code-ide-org--review-render)
-        (goto-char (point-min))
-        (forward-line (1- line)))
-      (message "Applied %d item(s)%s"
-               (plist-get result :applied)
-               (if (plist-get result :errors)
-                   (format "; %d failed: %s"
-                           (length (plist-get result :errors))
-                           (string-join (plist-get result :errors) "; "))
-                 "")))))
+    ;; Cleared *outside* the `unwind-protect', because declining signals
+    ;; and nothing was cleared to put back.
+    (let ((cleared (claude-code-ide-org--review-ensure-writable marked)))
+      (unwind-protect
+          (let ((result (claude-code-ide-org--review-apply marked))
+                (line (line-number-at-pos)))
+            (if (> (plist-get result :applied) 0)
+                (claude-code-ide-org-review-refresh)
+              (claude-code-ide-org--review-render)
+              (goto-char (point-min))
+              (forward-line (1- line)))
+            (message "Applied %d item(s)%s"
+                     (plist-get result :applied)
+                     (if (plist-get result :errors)
+                         (format "; %d failed: %s"
+                                 (length (plist-get result :errors))
+                                 (string-join (plist-get result :errors) "; "))
+                       "")))
+        ;; An error mid-apply must not leave the user's guard disabled --
+        ;; that failure window is the whole objection c8a97d9d raised
+        ;; against clear-then-restore, and `unwind-protect' is what closes
+        ;; it.
+        (claude-code-ide-org--review-restore-read-only cleared)))))
 
 ;;;###autoload
 (defun claude-code-ide-org-review ()
