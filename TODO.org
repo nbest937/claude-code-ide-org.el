@@ -4013,6 +4013,43 @@ instances: CLAUDE.md is loaded into every session by default while the
 artifacts it describes are not, so a stale claim in it outranks the
 truth until someone deliberately checks. Sections describing mechanisms
 that have been cut over are the highest-risk kind.
+
+*Added to scope 2026-08-11: mechanically check the checkable claims.*
+Rewriting the prose fixes those four and leaves nothing preventing the
+next four — CLAUDE.md is a hand-maintained description of a system that
+keeps moving, so drift is the steady state, not an incident. But all
+four were *decidable by a script*: does =claude-code-ide-org-session-pause=
+exist as a function; does the documented =#+TODO:= line match TODO.org's
+line 1; does every =.org= file carry the header the doc says every
+=.org= file carries. None needed judgement.
+
+The precedent is already in this repo. =bin/sync-plans --check= plus the
+=.githooks/pre-push= guard exist for exactly this shape of problem — a
+document that silently stops matching what it describes — and refuse a
+push while the two disagree. A =bin/check-claude-md= in the same shape
+would catch the class rather than the instance. Start with the cheapest
+assertions: symbols named in prose are =fboundp=, the =#+TODO:= block
+matches the files, documented file paths exist.
+
+Worth doing *with* the rewrite rather than after it, since writing the
+checks is what forces the prose into checkable claims — and a claim too
+vague to check is usually the kind that goes stale unnoticed.
+
+*And a caution to write into the rewrite itself.* An accurate CLAUDE.md
+makes answering from it more often correct, which makes the habit of
+answering from it instead of from the artifact harder to notice — the
+same behaviour with better odds. On 2026-08-11 only four of roughly a
+dozen wrong claims traced to this file; the rest came from unchecked
+inference, from a session's own earlier summaries, and three times from
+reading a silently-failing command's empty output as a result. The
+rewrite should say plainly that the file is a starting point and the
+artifact is the authority, rather than implying that accuracy here makes
+checking unnecessary.
+
+Overlaps the enforcement half of
+[[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]], which wants
+README/CLAUDE.md consistency guarded by the same machinery. Whichever
+lands first should build the harness so the other only adds assertions.
 *** DONE Failed tool calls still enter the queue when the error is content-wrapped :code:
 :PROPERTIES:
 :ID:       5e2a1c04-7b3f-4d21-9c88-2f6e0a91b7d3
