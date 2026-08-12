@@ -620,10 +620,14 @@ Do not read "GTD likes planning states" as "keep the hook."
 Still =MAYBE=, still deferred on the original terms. Nothing above is
 adopted; the sequence is unchanged pending a decision.
 
-** TODO org_capture omits the :CREATED: property its own convention requires :code:
+** CANCELLED org_capture omits the :CREATED: property its own convention requires :code:
 :PROPERTIES:
 :ID:       cdcc065c-628d-4350-b1ba-fcf686e9c4c1
 :CREATED:  [2026-08-11 Tue 07:31]
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "TODO"       [2026-08-11 Tue 18:19] \\
+  folded into 47c027d2 as one template edit
 :END:
 
 CLAUDE.md is unambiguous: "any newly created org heading gets a
@@ -733,10 +737,16 @@ nothing real. Revisit if the tool becomes the normal creation path.
 than needing a mechanism of its own — apply would write the creation
 entry exactly as it writes a state transition.
 
-** TODO Add org_outline, a compact structural index of an org file :code:
+** DONE Add org_outline, a compact structural index of an org file :code:
 :PROPERTIES:
 :ID:       9f3c35c7-0229-4cd6-908b-779267ec9b97
 :CREATED:  [2026-08-11 Tue 16:58]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-11 Tue 18:26] \\
+  org_outline shipped, 157/157 green
+- State "DOING"      from "TODO"       [2026-08-11 Tue 18:20] \\
+  implement org_outline index tool
 :END:
 
 A read-only MCP tool returning one line per heading — level, TODO
@@ -989,10 +999,16 @@ no error was raised.
 blast radius is every future =TODO= transition gaining a =:LOGBOOK:=
 line, which is the point.
 
-** TODO Check for a modified Emacs buffer before text-editing a tracked org file :code:
+** DONE Check for a modified Emacs buffer before text-editing a tracked org file :code:
 :PROPERTIES:
 :ID:       0308e7d7-06ea-48fb-8579-6a5a43277674
 :CREATED:  [2026-08-11 Tue 16:22]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-11 Tue 16:47] \\
+  precondition documented and snippet verified
+- State "DOING"      from "TODO"       [2026-08-11 Tue 16:45] \\
+  add modified-buffer precondition to org skill
 :END:
 
 Heading creation, tagging and prose edits are text operations by design
@@ -2092,13 +2108,15 @@ from what shipped in four places:
   [[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]]; the conclusion
   still holds but the reason cited for it, and the =config.el:900/991=
   line references, do not.
-*** DOING Rework the MCP tool / hook write paths to append-only :code:
+*** DONE Rework the MCP tool / hook write paths to append-only :code:
 :PROPERTIES:
 :ID:       feba67eb-35b3-48bd-a892-8ecd47ca52e0
 :CREATED:  [2026-08-06 Thu 10:47]
 :BLOCKER:  ids(720b2dcf-6af1-45f3-96a7-aa841e5651e1)
 :END:
 :LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-11 Tue 16:41] \\
+  cutover verified by the first post-cutover session
 CLOCK: [2026-08-11 Tue 13:29]--[2026-08-11 Tue 13:46] =>  0:17
 - State "NEXT"       from "DOING"      [2026-08-11 Tue 12:26] \\
   deferred to a fresh session, order recorded
@@ -4417,6 +4435,52 @@ time.
   means two different things depending on whether an earlier event
   exists, and it can no longer disagree with reality — which is the
   property that makes the check work at all.
+
+*Observed for real 2026-08-11, in the second post-cutover review pass.*
+Two chains were queued in one session —
+[[id:0308e7d7-06ea-48fb-8579-6a5a43277674][0308e7d7]] and
+[[id:9f3c35c7-0229-4cd6-908b-779267ec9b97][9f3c35c7]], each
+=TODO -> DOING= then =TODO -> DONE=, both events recording =from: TODO=
+because nothing moved the file between them. What actually happens is
+more precise than "the second is flagged":
+
+- *Nothing renders as =STALE=.* At draw time the file still said =TODO=,
+  so both events matched reality and the buffer was clean. The
+  divergence does not exist yet.
+- *=--review-apply-item= re-checks at apply time and refuses*, returning
+  =Error: refused stale TODO -> DONE ... (heading is now DOING); mark it
+  again to confirm= and changing nothing. Four of six items applied, two
+  refused.
+- *The post-apply refresh then shows them as =STALE=*, because now they
+  are. Marking again, confirming, and applying a second time lands them
+  correctly.
+
+So the cost is *one apply pass per step of the chain*, not a spurious
+warning — a =TODO -> NEXT -> DOING -> DONE= chain would need three. And
+the history that results is correct either way: apply passes only
+=(plist-get item :to)= to =org-todo=, so the =from= written into
+=:LOGBOOK:= is computed from the buffer, never from the queue's stale
+value. The run produced =State "DOING" from "TODO"= then
+=State "DONE" from "DOING"= on both headings.
+
+*The real usability defect, which outranks the extra pass.* The review
+buffer renders both kinds of stale with the same string, while the
+correct action is opposite. In this same batch,
+[[id:8f2c1a90-4b7e-4d1a-9c3e-1f5a6b8d2e47][8f2c1a90]] showed "STALE,
+heading is now DOING" and had to be *skipped* — the transition already
+happened live pre-cutover, and confirming would write a =DOING -> DOING=
+no-op. =0308e7d7= showed "STALE, heading is now DOING" and had to be
+*confirmed* — the file moved one item earlier in this very batch.
+Identical presentation, opposite correct answers, and nothing in the UI
+distinguishes them; the distinction survived only because it was worked
+out in conversation. A reviewer without that context has no way to
+choose correctly, which is worse than the flag firing too often.
+
+*This is an argument for the projected-state option above*, beyond
+tidiness: it makes chained items not stale at all, so a =STALE= flag
+goes back to meaning exactly one thing — the file moved for reasons this
+batch does not account for — which is always "look closer." The
+ambiguity disappears rather than needing to be explained.
 
 Decide it during
 [[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]], while the write
