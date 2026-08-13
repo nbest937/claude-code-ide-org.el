@@ -6308,6 +6308,21 @@ intense stretch of work on this very project. The band may be an artifact
 of that. Re-derive the histogram and the sweep; if the band has moved or
 closed, retune again and say so here rather than defending 1200.
 
+*This is a moving target, not a one-off calibration* — the user's own
+framing, 2026-08-13, and it changes what the re-measure is for.
+Proficiency, setup and work objectives all evolve, and the habits
+generating these gaps evolve with them. A faster operator, a different
+mix of long-running subagent work, or a stretch of shallow triage rather
+than deep implementation would each shift the modes and could close the
+band entirely. So the finding above describes *August 2026*, not this
+project. The scheduled task is not "confirm 1200 was right"; it is
+"re-derive, and expect a different answer."
+
+Worth considering when it comes round: whether a =+1m= repeater is more
+honest than a single scheduled date, given the above. Left as a one-shot
+deliberately — the user asked for one month, and a repeater is a
+different commitment they have not made.
+
 Charts from the original survey are an artifact, not committed here —
 regenerate rather than trusting a stale rendering.** TODO Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
