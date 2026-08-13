@@ -2727,6 +2727,61 @@ and a human pause/resume lands between them."
           (if (eq first-out 'a) out-a out-b)
           (if (eq second-out 'b) out-b out-a))))
 
+(ert-deftest claude-code-ide-org-test-narrowing-keeps-the-remainder ()
+  "Narrowing a span re-scopes its events and offers the rest immediately.
+
+Regression for TODO.org :ID: ffe65444. --review-apply marks every event
+in :events consumed, so before this an item edited down to part of its
+span still swallowed the whole original: a 54-minute span truncated to
+23 minutes lost 32 minutes that never came back."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:00:00-0500" "todo" "id-a" "DOING" "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:05:00-0500" "resume" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:10:00-0500" "pause" nil nil "sess-a")
+                 ;; Inside the gap threshold, so all four cluster into
+                 ;; ONE span -- otherwise they arrive already split and
+                 ;; narrowing has nothing to exclude.
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:20:00-0500" "resume" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:25:00-0500" "pause" nil nil "sess-a")))
+    (claude-code-ide-org-test--with-review-buffer
+        (claude-code-ide-org--review-items-from-queue)
+      (let* ((items claude-code-ide-org--review-items)
+             (span (seq-find (lambda (i) (plist-get i :unassigned)) items)))
+        (should span)
+        ;; Point must be on the span for edit-interval to act on it.
+        (claude-code-ide-org-test--goto-nth-item (seq-position items span))
+        (let ((before (length (plist-get span :events))))
+          (should (> before 2))
+          ;; Narrow to just the first cluster.
+          (cl-letf (((symbol-function 'read-string)
+                     (lambda (prompt &optional initial &rest _)
+                       (if (string-prefix-p "Start" prompt)
+                           "[2026-08-13 Thu 09:05]"
+                         "[2026-08-13 Thu 09:10]"))))
+            (claude-code-ide-org-review-edit-interval))
+          ;; The edited item keeps only the events it still spans...
+          (should (< (length (plist-get span :events)) before))
+          ;; ...and the excluded ones come back as their own item, now,
+          ;; without waiting for a refresh.
+          (let ((remainder (seq-find
+                            (lambda (i)
+                              (and (not (eq i span))
+                                   (equal "09:20" (format-time-string
+                                                   "%H:%M" (plist-get i :start)))))
+                            claude-code-ide-org--review-items)))
+            (should remainder)
+            (should-not (plist-get remainder :marked))
+            ;; Every original event is still accounted for somewhere.
+            (should (equal before
+                           (+ (length (plist-get span :events))
+                              (length (plist-get remainder :events)))))))))))
+
 (ert-deftest claude-code-ide-org-test-unbracketed-span-annotation-carries-a-label ()
   "A reconstructed span writes a labelled annotation, never a bare one.
 

@@ -3246,8 +3246,7 @@ reprocessing, only all-or-nothing."
              ;; Real session ids are UUIDs so it never bit in use, but a
              ;; command that crashes on an unexpected filename is a poor
              ;; guard for the one operation that moves files around.
-             (if moved (mapconcat (lambda (s) (substring s 0 (min 8 (length s))))
-                                  moved ", ")
+             (if moved (mapconcat #'claude-code-ide-org--short-id moved ", ")
                "none")
              (length skipped))
     (list :moved moved :skipped skipped)))
@@ -3284,7 +3283,7 @@ content-idempotent; see `claude-code-ide-org--append-to-drawer'."
     (rename-file jsonl (claude-code-ide-org--queue-file session-id) t)
     (when (and (file-exists-p applied) (not ignore-watermark))
       (rename-file applied (claude-code-ide-org--queue-watermark-file session-id) t))
-    (message "Restored %s%s" (substring session-id 0 8)
+    (message "Restored %s%s" (claude-code-ide-org--short-id session-id)
              (if ignore-watermark " (watermark left archived; every event re-offered)"
                ""))
     session-id))
@@ -3523,7 +3522,7 @@ a wrong log line."
                    (claude-code-ide-org--review-format-annotation item)
                    (if (plist-get item :id)
                        (format "-> %s  %s"
-                               (substring (plist-get item :id) 0 8)
+                               (claude-code-ide-org--short-id (plist-get item :id))
                                (or (claude-code-ide-org--review-heading-title
                                     (plist-get item :id))
                                    "(unknown heading)"))
@@ -3628,6 +3627,16 @@ the same afternoon, and neither its title nor its TODO state says so."
                         (format "clocked %s-%s" a b)))))
    (created (format "%-13s" (format "made %s" (format-time-string "%m-%d" created))))
    (t (make-string 13 ?\s))))
+
+(defun claude-code-ide-org--short-id (id)
+  "Return the first 8 characters of ID, or all of it when shorter.
+
+A bare `(substring id 0 8)' signals on anything shorter, which real
+UUIDs never are -- so the assumption held until a test used a short id
+and crashed the *render*. Display code should degrade, not signal: a
+truncated label is a cosmetic problem, an error in the middle of drawing
+a review buffer is not."
+  (and id (substring id 0 (min 8 (length id)))))
 
 (defun claude-code-ide-org--review-heading-title (id)
   "Return ID's heading title, or nil when ID resolves to nothing."
@@ -3846,11 +3855,69 @@ corrected to what actually happened before anything is written."
         (user-error "Could not parse those timestamps"))
       (when (time-less-p end-time start-time)
         (user-error "End is before start"))
-      (plist-put item :start start-time)
-      (plist-put item :end end-time)
-      ;; An edited interval is a confirmed one, not a suggestion.
-      (plist-put item :suggested nil)
+      ;; Re-scope the backing events to the new endpoints, and offer
+      ;; whatever falls outside as fresh items *immediately*.
+      ;;
+      ;; Without this, narrowing was silently destructive: `--review-apply'
+      ;; marks every event in `:events' consumed, so an item edited down
+      ;; to a fraction of its span still swallowed the whole original.
+      ;; Measured 2026-08-13 -- a 54-minute span truncated to 23 minutes
+      ;; consumed 32 minutes that never came back (TODO.org :ID:
+      ;; ffe65444). Skipping an item was always conservative; narrowing
+      ;; one was not, and nothing said so.
+      ;;
+      ;; Splitting on the spot rather than at the next refresh matters
+      ;; because the remainder is the whole reason to narrow: the human
+      ;; is mid-thought about which task the tail belongs to, and making
+      ;; them re-find it after a refresh is where it gets abandoned.
+      (let* ((events (plist-get item :events))
+             (inside (seq-filter
+                      (lambda (e)
+                        (let ((ts (plist-get e :ts)))
+                          (and (not (time-less-p ts start-time))
+                               (not (time-less-p end-time ts)))))
+                      events))
+             (outside (seq-remove (lambda (e) (memq e inside)) events)))
+        (plist-put item :start start-time)
+        (plist-put item :end end-time)
+        (plist-put item :events inside)
+        ;; An edited interval is a confirmed one, not a suggestion.
+        (plist-put item :suggested nil)
+        (when outside
+          (claude-code-ide-org--review-insert-remainders item outside)))
       (claude-code-ide-org--review-render))))
+
+(defun claude-code-ide-org--review-insert-remainders (item events)
+  "Add items covering EVENTS, the events ITEM no longer spans.
+
+Clustered with the same gap threshold the original spans used, so a
+remainder separated by a long pause becomes two items rather than one
+implausible interval.
+
+A remainder inherits ITEM's heading as a *suggestion* but is marked
+unassigned again when the original was reconstructed: narrowing usually
+means the tail belongs somewhere else, which is the whole reason the
+human reached for `e'.  Never inherits `:marked' -- a remainder is a new
+decision, not part of the batch already confirmed."
+  (let ((threshold claude-code-ide-org-guidepost-gap-threshold))
+    (dolist (span (claude-code-ide-org--aggregate-guideposts events threshold))
+      (let ((new (copy-sequence item)))
+        (setq new (plist-put new :start (car span)))
+        (setq new (plist-put new :end (cdr span)))
+        (setq new (plist-put new :marked nil))
+        (setq new (plist-put new :suggested t))
+        (setq new (plist-put new :events
+                             (seq-filter
+                              (lambda (e)
+                                (let ((ts (plist-get e :ts)))
+                                  (and (not (time-less-p ts (car span)))
+                                       (not (time-less-p (cdr span) ts)))))
+                              events)))
+        (when (eq (plist-get item :origin) 'unbracketed)
+          (setq new (plist-put new :unassigned t))
+          (setq new (plist-put new :assigned nil)))
+        (setq claude-code-ide-org--review-items
+              (append claude-code-ide-org--review-items (list new)))))))
 
 (defun claude-code-ide-org-review-assign ()
   "Assign the span at point to a heading, replacing any suggestion.
@@ -3903,7 +3970,7 @@ guideposts and still deserve `e' before they are trusted.  Only the
                                             range created)
                                            (if (member state '("DONE" "CANCELLED"))
                                                (format "[%s] " state) "")
-                                           title (substring id 0 8))
+                                           title (claude-code-ide-org--short-id id))
                                    id
                                    ;; Sort key: open work first, then most
                                    ;; recently created. A heading closed
