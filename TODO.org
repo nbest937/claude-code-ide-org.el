@@ -5915,7 +5915,98 @@ boundaries, a scratch file built from documentation instead of the real
 header — over the artifact itself. The file said the opposite each
 time, and reading it directly took one command. Prefer the primary
 artifact; treat any filter as a hypothesis about what it hides.
+*** Let a session interject without waiting: advisory locks, or extend the queue to capture/amend :code:
+:PROPERTIES:
+:ID:       b5f94b88-76e3-4a3c-ac73-729f34d33691
+:CREATED:  [2026-08-13 Thu 10:13]
+:END:
 
+*NOT YET REVIEWED BY THE USER.* Captured 2026-08-13 at the user's
+request with the explicit note that they had no time to study it then
+and wanted to read it carefully before signing off. Everything below is
+a proposal Claude drafted, not an agreed design — treat the
+recommendation as an argument to test, not a decision already taken.
+
+*The ask, in the user's words:* so many times they want to ask a
+question or make a proposal while something else is in flight, which
+often leads to something new to capture or amend. The literal proposal
+was a file or Emacs buffer lock/semaphore on =TODO.org= and friends,
+causing concurrent sessions to wait their turn while another holds it.
+
+*What actually collides today.*
+
+The queue already removed most of the contention: =todo= and clock
+events are append-only, per-session, written blind with =O_APPEND=, so
+two sessions cannot corrupt each other there by construction. What
+remains is *direct writes to the file*:
+
+- =org_capture=, =org_refile=, =org_archive=, =org_move_sibling= and
+  =org_sort_children=, which all still =save-buffer= immediately
+- the org skill's prose edits via Claude Code's =Edit= tool, which
+  bypass Emacs entirely and write to disk
+- the user's own hand-edits in the live buffer
+- =.git/index=, a separate incident already owned by
+  [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]]
+
+Not hypothetical: on 2026-08-13 two edits in one session hit "the file
+had been modified on disk since you last read it". The ad-hoc
+mitigation in use — checking =buffer-modified-p= before touching the
+file — is a hand-rolled version of what this heading proposes.
+
+*Why a blocking lock looks like the wrong primitive.*
+
+Recorded as the argument against, because "why not just take a lock" is
+the obvious question a future reader will ask.
+
+1. *Waiting reintroduces the failure this architecture exists to avoid.*
+   A session blocked on a lock burns wall-clock with no way to report
+   why, and waits forever if the holder crashed. Same shape as the
+   non-interactive =emacsclient= hang that pushed this project to
+   append-only.
+2. *The contention is asymmetric.* The human is the authoritative
+   writer; Claude sessions should yield to them and never the reverse. A
+   symmetric semaphore models the wrong relationship.
+3. *It cannot be enforced where it matters most.* The =Edit= tool
+   consults neither Emacs nor any lockfile, so any lock is advisory for
+   exactly the writer most likely to be mid-flight. A mechanism that
+   looks like mutual exclusion but is not is worse than an honest
+   advisory one.
+4. *Stale locks are stale clocks again.* An owner, a TTL and a recovery
+   path — the subsystem
+   [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is currently
+   deciding whether to retire, rebuilt for a new resource.
+
+*The reframe this rests on — the part most worth challenging.*
+
+The ask may not be mutual exclusion at all. Note where the user's own
+sentence ends: the interruption *leads to something new to capture or
+amend*. That is a missing queue, not a missing lock — state changes
+already work that way; capture and amend do not.
+
+If that reframe is wrong — if the real need is genuinely "stop the
+other writer" rather than "do not lose my thought" — then the
+recommendation below is wrong too, and a fail-fast lock alone is the
+answer.
+
+*Proposed, cheapest first.*
+
+1. *Turn on =create-lockfiles=.* Measured 2026-08-13: it is =nil=, Doom's
+   default, so Emacs's own mechanism is currently off entirely. One
+   line. It will not stop the =Edit= tool, but it makes Emacs-mediated
+   collisions visible rather than silent. Checked before proposing
+   anything bespoke, per
+   [[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]]'s standing
+   instruction.
+2. *A fail-fast advisory lock in the MCP write tools* — a refusal, not a
+   wait: "another session is writing TODO.org; queued instead." Fast
+   failure is debuggable and cannot deadlock.
+3. *Extend the queue to capture/amend proposals.* The interjection
+   becomes an event, nothing waits, and the existing human review pass
+   applies it — which also makes it reviewable rather than immediate,
+   the property already chosen deliberately for state changes.
+
+Steps 2 and 3 overlap: if 3 lands, 2 may be unnecessary, since there
+would be nothing left that needs to write immediately.
 ** TODO Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
 :ID:       a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5
