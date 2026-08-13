@@ -5590,7 +5590,7 @@ and also why it was never checked before being written down. Both
 behaviors are now pinned by tests, including one asserting the rendered
 title contains no backslash, so a future =%S= cannot introduce the
 defect this heading believed it had found.
-*** NEXT Queue attribution is session-scoped, so concurrent subagents lose intervals :code:
+*** TODO Queue attribution is session-scoped, so concurrent subagents lose intervals :code:
 :PROPERTIES:
 :ID:       0d789b68-faca-4911-868a-fdd70acbfd40
 :CREATED:  [2026-08-12 Wed 17:45]
@@ -5598,6 +5598,8 @@ defect this heading believed it had found.
 :LOGBOOK:
 - State "NEXT"       from              [2026-08-12 Wed 17:46] \\
   reproducible attribution bug, fix is small
+- State "TODO"       from "NEXT"       [2026-08-12 Wed 22:39] \\
+  Auto-demoted: superseded by sibling [[id:7387f97c-6c3e-4667-8851-203af024fdd9][Apply writes headless state notes -- RETRACTED, a grep artifact]] becoming NEXT.
 :END:
 
 Found 2026-08-12 by deliberately running two subagents concurrently to
@@ -5705,14 +5707,18 @@ submission from a task-completion re-invocation at all. If it does not,
 the honest options are to accept the inflation and document it, or to
 stop treating =resume= as evidence of human presence.
 
-*** NEXT Apply's clock pair has no unwind-protect: a failed clock_out fabricates a huge interval :code:
+*** DONE Apply's clock pair has no unwind-protect: a failed clock_out fabricates a huge interval :code:
 :PROPERTIES:
 :ID:       803314aa-eda9-4d48-9e43-b3eb4802a4e8
 :CREATED:  [2026-08-12 Wed 17:46]
 :END:
 :LOGBOOK:
+- State "DONE"       from "TODO"       [2026-08-12 Wed 22:38] \\
+  unwind-protect + cancel; 193 green
 - State "TODO"       from              [2026-08-12 Wed 17:47] \\
   error path can strand an open clock line
+- State "TODO"       from "NEXT"       [2026-08-12 Wed 22:39] \\
+  Auto-demoted: superseded by sibling [[id:7387f97c-6c3e-4667-8851-203af024fdd9][Apply writes headless state notes -- RETRACTED, a grep artifact]] becoming NEXT.
 :END:
 
 Found 2026-08-12 while checking whether
@@ -5809,10 +5815,20 @@ reasoning from the same code. That is no longer offered as
 corroboration: two readers making the same inference from one text is
 not independent confirmation, as [[id:7387f97c-6c3e-4667-8851-203af024fdd9][7387f97c]]
 demonstrated the same day.
-*** Apply writes headless state notes -- RETRACTED, a grep artifact :code:
+*** CANCELLED Apply writes headless state notes -- RETRACTED, a grep artifact :code:
 :PROPERTIES:
 :ID:       7387f97c-6c3e-4667-8851-203af024fdd9
 :CREATED:  [2026-08-12 Wed 19:14]
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "DOING"      [2026-08-12 Wed 19:45] \\
+  no defect; grep artifact, see body
+CLOCK: [2026-08-12 Wed 19:33]--[2026-08-12 Wed 19:42] =>  0:09
+- State "DOING"      from "NEXT"       [2026-08-12 Wed 19:25] \\
+  diagnosing the missing State header
+- State "NEXT"       from              [2026-08-12 Wed 19:15] \\
+  native state logging silently malformed
+- <2026-08-12 Wed 19:33>--<2026-08-12 Wed 19:42> fixing headless state notes
 :END:
 
 *Retracted 2026-08-12 the same day it was filed. There was no defect.*
