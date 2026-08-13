@@ -5770,7 +5770,31 @@ back *from disk* rather than from the buffer — reading the buffer would
 not have shown what was committed. Cheap to rebuild; a proper
 regression test belongs in =config-test.el= as part of the fix.
 
-*Still unestablished, and it gates severity:* whether =org-clock-out=
+*Fixed 2026-08-12.* An =unwind-protect= around the clock pair
+(config.el:2741-2751); on a non-local exit it calls =org-clock-cancel=
+rather than retrying the close. Cancelling is the honest cleanup: the
+item is reported as an error, so its events are never marked applied
+and the interval stays pending for a later pass. No record beats a
+confident wrong one, and retrying a call that just signalled is not a
+recovery strategy. The cancel is wrapped in =ignore-errors= so a
+failure there cannot mask the original error, which is the one the
+human needs to see.
+
+*Verified, not just implemented:* a new regression test
+(=review-failed-clock-out-writes-no-interval=) stubs =org-clock-out= to
+signal on its first call, applies two clock items in one batch, and
+asserts *exactly one* =CLOCK:= line reaches disk — the surviving item's,
+at its exact endpoints. It *fails* against pre-fix code and passes
+after, which is the property the three tests written for
+[[id:7387f97c-6c3e-4667-8851-203af024fdd9][7387f97c]] conspicuously
+lacked. 192 -> 193 green. Re-running the original live-Emacs probe after
+=load-file= confirms the same end to end: the failed heading now carries
+no drawer at all, and =org-clock-out= is called twice rather than three
+times, because the next item's defensive close no longer finds a clock
+running.
+
+*Still unestablished, and it gates how urgent this was rather than
+whether the fix is right:* whether =org-clock-out=
 can actually signal here with both endpoints supplied and
 =org-clock-out-remove-zero-time-clocks= bound nil. The probe simulates
 the failure rather than provoking a real one, so this demonstrates the

@@ -2701,6 +2701,59 @@ no rounding, unlike consolidate-history."
       (should (string-match-p "22:43\\]--\\[2026-08-06 [A-Za-z]+ 22:45\\] =>  0:02"
                               (claude-code-ide-org-test--logbook file))))))
 
+(ert-deftest claude-code-ide-org-test-review-failed-clock-out-writes-no-interval ()
+  "A failing `org-clock-out' must leave NO interval behind, not a
+fabricated one.
+
+Regression for TODO.org :ID: 803314aa. Before the `unwind-protect', a
+signal from `org-clock-out' left the clock running; the next clock
+item's defensive close then shut it at *now*, writing a duration nobody
+observed -- measured at 9:56 for an intended 0:30, and carrying no
+annotation, because this item's `--append-to-drawer' never ran. The
+failed item's events are not marked applied, so writing nothing leaves
+the interval pending for a later pass, which is the correct outcome."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* TODO Second heading                                              :code:\n"
+                    ":PROPERTIES:\n"
+                    ":ID:       test-0002\n"
+                    ":END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (let* ((items (list (list :type 'clock :id id
+                              :start (date-to-time "2026-08-06T09:00:00-0500")
+                              :end (date-to-time "2026-08-06T09:30:00-0500")
+                              :note "its clock-out will signal"
+                              :agent nil :suggested nil :events nil)
+                        (list :type 'clock :id "test-0002"
+                              :start (date-to-time "2026-08-06T11:00:00-0500")
+                              :end (date-to-time "2026-08-06T11:15:00-0500")
+                              :note "proceeds and saves"
+                              :agent nil :suggested nil :events nil)))
+           (real-clock-out (symbol-function 'org-clock-out))
+           (calls 0)
+           result)
+      (cl-letf (((symbol-function 'org-clock-out)
+                 (lambda (&rest args)
+                   (setq calls (1+ calls))
+                   (if (= calls 1)
+                       (error "simulated org-clock-out failure")
+                     (apply real-clock-out args)))))
+        (setq result (claude-code-ide-org--review-apply items)))
+      ;; The second item still applies; the first is reported failed.
+      (should (equal 1 (plist-get result :applied)))
+      (should (plist-get result :errors))
+      (let ((disk (claude-code-ide-org-test--disk-contents file)))
+        ;; Exactly one CLOCK line on disk -- the second item's. The
+        ;; failed item contributes nothing at all.
+        (should (equal 1 (cl-count-if (lambda (l) (string-match-p "CLOCK:" l))
+                                      (split-string disk "\n"))))
+        (should (string-match-p
+                 "CLOCK: \\[2026-08-06 [A-Za-z]+ 11:00\\]--\\[2026-08-06 [A-Za-z]+ 11:15\\] =>  0:15"
+                 disk))
+        ;; And specifically no interval starting at the failed item's start.
+        (should-not (string-match-p "CLOCK: \\[2026-08-06 [A-Za-z]+ 09:00\\]" disk))))))
+
 (ert-deftest claude-code-ide-org-test-review-state-header-survives-trigger-hooks ()
   "Applying a transition that also fires `org-trigger-hook' must still
 write the applied heading's own `State' header.

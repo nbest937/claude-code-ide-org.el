@@ -2739,7 +2739,8 @@ running-p' would refuse a -> DONE transition if one were."
     ;; avoided elsewhere: nothing is being discarded, because there was
     ;; no duration to discard.
     (unless (time-equal-p start end)
-      (let ((org-clock-out-remove-zero-time-clocks nil))
+      (let ((org-clock-out-remove-zero-time-clocks nil)
+            (closed nil))
         (org-clock-in nil start)
         ;; Never close a clock we did not open. If `org-clock-in' aborted
         ;; for any reason, calling `org-clock-out' here would close
@@ -2748,7 +2749,27 @@ running-p' would refuse a -> DONE transition if one were."
         ;; plausible-looking interval on the wrong heading.
         (unless (org-clocking-p)
           (error "org-clock-in did not open a clock; refusing to clock out"))
-        (org-clock-out nil nil end))))
+        ;; If `org-clock-out' signals, the clock we just opened stays
+        ;; running. `--review-apply' then carries on to the next item,
+        ;; whose own defensive close above shuts our clock at *now* --
+        ;; writing a duration nobody observed, scaling with the distance
+        ;; from the backdated start to wall-clock time. Measured at 9:56
+        ;; for an intended 0:30 (TODO.org :ID: 803314aa). Worse, this
+        ;; item's `--append-to-drawer' below never runs, so the fabricated
+        ;; CLOCK line carries no annotation and reads as legitimate.
+        ;;
+        ;; Cancelling is the honest cleanup, not retrying the close: the
+        ;; item is reported as an error, so its events are never marked
+        ;; applied and the interval stays pending for a later pass. No
+        ;; record beats a confident wrong one.
+        (unwind-protect
+            (progn (org-clock-out nil nil end)
+                   (setq closed t))
+          (unless closed
+            ;; `ignore-errors' so a failure here cannot mask the original
+            ;; error, which is the one the human needs to see.
+            (ignore-errors
+              (when (org-clocking-p) (org-clock-cancel))))))))
   (claude-code-ide-org--append-to-drawer
    "LOGBOOK" (claude-code-ide-org--review-format-annotation item)))
 
