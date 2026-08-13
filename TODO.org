@@ -5590,12 +5590,18 @@ and also why it was never checked before being written down. Both
 behaviors are now pinned by tests, including one asserting the rendered
 title contains no backslash, so a future =%S= cannot introduce the
 defect this heading believed it had found.
-*** TODO Queue attribution is session-scoped, so concurrent subagents lose intervals :code:
+*** DONE Queue attribution is session-scoped, so concurrent subagents lose intervals :code:
 :PROPERTIES:
 :ID:       0d789b68-faca-4911-868a-fdd70acbfd40
 :CREATED:  [2026-08-12 Wed 17:45]
 :END:
 :LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-13 Thu 09:46] \\
+  per-lane attribution; both agents pair correctly
+- State "DOING"      from "NEXT"       [2026-08-13 Thu 09:44] \\
+  implementing per-agent attribution lanes
+- State "NEXT"       from "TODO"       [2026-08-13 Thu 09:43] \\
+  re-promoted after auto-demotion side effect
 - State "NEXT"       from              [2026-08-12 Wed 17:46] \\
   reproducible attribution bug, fix is small
 - State "TODO"       from "NEXT"       [2026-08-12 Wed 22:39] \\
