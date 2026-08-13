@@ -3787,6 +3787,51 @@ The =:BLOCKER:= on =3d576d29= is now stale — that heading is =DONE= —
 but the practical dependency has moved to =feba67eb=, so it is
 retargeted accordingly.
 
+*Resolved 2026-08-13, and every remaining piece turned out to be
+already done — two of them without anyone noticing they belonged here.*
+Reconciled against
+[[id:0d789b68-faca-4911-868a-fdd70acbfd40][0d789b68]] at the user's
+request. Taking this heading's three parts in turn:
+
+1. *The compound key itself* — settled 2026-08-07, as the correction
+   above records: =bin/hooks/queue-append= reads =$payload.agent_id= and
+   =agent_type= straight from the hook payload.
+2. *Sub-grouping by =agent_id= in the review command* — this heading's
+   "File layout" paragraph predicted the review logic "extends naturally
+   to sub-group by =agent_id= when present." It did not, until
+   =0d789b68=: attribution walked each *session's* stream with a single
+   =current=, so concurrent subagents clobbered each other. Fixed
+   2026-08-13 by keying that walk per lane. So the piece this heading
+   assumed would be free was the one that actually needed writing.
+3. *The gate — whether "subagents never call mutating tools" relaxes for
+   queue-appends.* The correction above pinned this on
+   [[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]], which is
+   =DONE=, and reasoned the hazard is "gone by construction" once a tool
+   call is a pure append. Exercised deliberately on 2026-08-12: two
+   concurrent subagents were permitted =org_clock_in=/=org_clock_out=
+   and nothing contended, because those tools are validators that write
+   no buffer. Verified first, per this project's habit — all three are
+   pure appends with zero =save-buffer= calls in their bodies.
+
+*The end-to-end evidence this heading was actually asking for:* on
+2026-08-12 two subagents' intervals reached =:LOGBOOK:= on their own
+headings, each attributed to its own =agent_id=, rendered with
+*inactive* timestamps so they stay out of =org-agenda= — which is
+exactly "per-subagent activity intervals via a compound =(session_id,
+agent_id)= key," working.
+
+The stretch goal is resolved affirmative too, and demonstrated rather
+than reasoned: a subagent self-reports mid-flight, since the hook fires
+inside its own execution context with its own =agent_id=. No
+orchestrator-side reconstruction from =duration_ms= exists or is needed.
+
+*One thing this does not close:* the relaxed rule is now demonstrated
+but *undocumented*. CLAUDE.md and the org skill still carry no guidance
+on what a subagent may call, and the old blanket prohibition survives
+only as prose in this heading. That belongs to
+[[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]]'s rewrite —
+recorded here so it is not lost when this heading is archived.
+
 *** DONE Verify org's clock/logging APIs actually support backdated timestamps for batch apply-time backfill :code:
 :PROPERTIES:
 :ID:       3d576d29-747f-40b9-a5b3-ecc76679daad
