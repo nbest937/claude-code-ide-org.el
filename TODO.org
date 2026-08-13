@@ -5238,6 +5238,86 @@ as 23 lookups where 23 confirmations will do.
 headings. A 90-minute span covering two tasks must currently be assigned
 whole or dismissed. Worth revisiting only if it bites — the existing
 =e= (edit interval) adjusts endpoints but does not split.
+
+*Shipped 2026-08-13* (commits =3c6b3f2=, =9398e6a=).
+=--review-items-from-queue= gained a second pass over the nil-keyed
+group: its guideposts cluster into spans exactly like attributed ones
+and carry a *suggested* heading, so accepting one is an ordinary =m= and
+apply needed no new code path at all — =:id= is already the heading the
+interval lands on. New: =--review-suggest-heading=,
+=--review-heading-title=, =--assignable-files=,
+=--heading-activity-range=, =claude-code-ide-org-review-assign= on =a=,
+an =:unassigned= flag rendered =?= (or =!= when there is nothing to
+suggest), and a =--review-markable-p= guard refusing a span with no
+heading rather than letting apply fail later with a confusing error.
+
+*Grew beyond the decision, at the user's prompting mid-implementation.*
+The agreed scope was "propose, human confirms". Asked whether assign was
+smart enough to exclude headings created after a span ended, it was not:
+it offered all 110 IDs =org-id= knows about, including
+=clock-template.org= fixtures and a =probe-state.org= scratch file left
+in =/tmp= by that hour's debugging. Now 55, restricted to the tracked
+files plus each one's archive target, with headings created after the
+span excluded outright. The user then asked for each candidate's
+recorded activity window, which answers "was this live then?" far better
+than a title does — so the prompt shows =clocked 08-10-08-11= or =made
+08-06=.
+
+Worth recording that the *symmetric* case is not symmetric in strength:
+a heading created after the span is impossible, but one closed before it
+is merely implausible — documenting a task after marking it =DONE= is
+routine — so that one demotes in the ordering rather than vanishing.
+
+*Verified, not just implemented:* eight new tests, 195 -> 203, and every
+one confirmed to fail against the unfixed code by stashing =config.el=
+and re-running rather than by assumption. Two initially passed
+*vacuously* — =seq-find= returns nil when no spans exist, so their
+assertions never ran — and were strengthened to assert the span exists
+first. That is the same worthless-test shape flagged earlier the same
+day on
+[[id:7387f97c-6c3e-4667-8851-203af024fdd9][7387f97c]]; catching it twice
+in one day is the argument for the stash-and-rerun check being routine
+rather than occasional.
+
+*Five defects found, none of them by the test suite.* Two by running it
+against the live queue, three by reading real output:
+1. Only 2 of 23 spans got a suggestion. Suggestions read the *pending*
+   stream, but 85% of =todo= events are already applied — the watermark
+   had eaten precisely the confirmed signal. =--queue-events= gained an
+   =include-consumed= argument, used only for this question about
+   history and never for building items. 2 -> 18 of 23.
+2. The guess *latched*: three spans across eight hours all suggested a
+   heading that had gone =CANCELLED= before the earliest of them began.
+   The walk now releases the active heading when it leaves
+   =DOING=/=PLANNING=.
+3. =(?:...)= is PCRE; Emacs needs =\\(?:...\\)=. The end timestamp never
+   matched, so every heading read as never-clocked.
+4. =[^]]+= captured CLOCK lines quoted as *prose examples* in heading
+   bodies, and =--parse-org-timestamp= rejects those by *signalling*, so
+   one documentation line aborted the scan for a whole heading.
+5. =--parse-org-timestamp= runs =string-match= internally, clobbering
+   the match data — so reading group 2 after parsing group 1 returned
+   the parser's match. Every interval collapsed to its start time, which
+   looks like a plausible zero-length clock rather than a bug.
+
+*First real apply, 2026-08-13.* Five items — two spans and three states
+across two headings. Everything landed, and it doubled as the first live
+confirmation of
+[[id:6b1e73c4-25da-4f0e-8a51-9c0d3f7ab214][6b1e73c4]]: a chain recorded
+=from: TODO= twice against an unmoved file produced
+=State "NEXT" from "TODO"= then =State "DOING" from "NEXT"=, org deriving
+the second from reality exactly as that heading argued it would.
+
+Two findings spun out of that apply rather than being fixed here:
+[[id:c97b3564-5b14-4fc5-8964-a64775c5dc5d][c97b3564]] (an assigned span
+writes a label-less annotation) and
+[[id:12e0adac-5aa4-4e95-a5d5-574ce32c1db0][12e0adac]] (the rationale
+forbidding consolidation at apply is stale).
+
+*What it was worth.* 14.6 hours of previously unreachable time became
+reviewable against 3.6 hours then recorded. 23 spans, not 316
+guideposts — the workload objection that nearly sank this heading
+dissolved once measured.
 *** TODO Make ingestion idempotent and archive drained queue files rather than deleting them :code:
 :PROPERTIES:
 :ID:       78f485a8-e808-43ce-af5f-277a5c97c471
