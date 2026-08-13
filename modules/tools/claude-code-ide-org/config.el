@@ -2392,7 +2392,13 @@ in order and tracking which heading its `clock_in'/`clock_out' events
 last named. That is the entire reason those two kinds are retained: a
 `todo' event alone cannot do this job, because returning to a heading
 that never left DOING emits no `todo' event, and every subsequent
-guidepost would silently attribute to the wrong heading."
+guidepost would silently attribute to the wrong heading.
+
+That tracking is per *lane*, not per session: `agent_id' if the event
+came from a subagent, the main session otherwise. Subagents share their
+parent's `session_id', so concurrent ones interleave into a single
+stream and a session-wide `current' would let them clobber each other
+-- which they did, observably (TODO.org :ID: 0d789b68)."
   (let ((by-session (make-hash-table :test 'equal))
         (groups (make-hash-table :test 'equal))
         order)
@@ -2402,16 +2408,35 @@ guidepost would silently attribute to the wrong heading."
       (push event (gethash (plist-get event :session-id) by-session)))
     (maphash
      (lambda (_sid events)
-       (let ((current nil))
+       ;; One `current' per *lane*, not per session. A subagent shares
+       ;; its parent's session_id, so two concurrent agents interleave
+       ;; into one stream; with a single `current' they clobber each
+       ;; other, and since `org_clock_out' names no heading it resolves
+       ;; against whichever clock_in happened to run last. Measured
+       ;; 2026-08-12 (TODO.org :ID: 0d789b68): one agent's interval
+       ;; landed in the nil bucket and produced no review item at all,
+       ;; while the other paired correctly purely because the agents
+       ;; finished LIFO. Reverse the finish order and the interval
+       ;; attributes to the wrong heading with a plausible duration.
+       ;;
+       ;; Keying by agent_id also stops a subagent's clock_in from
+       ;; capturing the human's pause/resume guideposts, which carry no
+       ;; agent_id: those belong to the main lane's own current heading,
+       ;; not to whatever a background agent happened to start.
+       (let ((lanes (make-hash-table :test 'equal)))
          (dolist (event (nreverse events))
            (let* ((kind (plist-get event :kind))
                   (own-id (plist-get event :id))
+                  (lane (or (plist-get event :agent-id) :main))
                   (id (cond
-                       ((equal kind "clock_in") (setq current own-id))
+                       ((equal kind "clock_in")
+                        (puthash lane own-id lanes)
+                        own-id)
                        ((equal kind "clock_out")
-                        (prog1 (or own-id current) (setq current nil)))
+                        (prog1 (or own-id (gethash lane lanes))
+                          (remhash lane lanes)))
                        (own-id own-id)
-                       (t current))))
+                       (t (gethash lane lanes)))))
              (unless (member id order) (push id order))
              (push event (gethash id groups))))))
      by-session)

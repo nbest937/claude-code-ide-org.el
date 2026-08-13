@@ -5669,6 +5669,42 @@ Note the nil bucket already held two other unattributed =clock_out=
 events predating this experiment, and =b74e0f19= and =9d2fcdad= each
 show a =clock_out= with no =clock_in=. Whether those share this root
 cause or a different one is unexamined.
+
+*Fixed 2026-08-13.* =--queue-events-by-id= now tracks the current
+heading per *lane* rather than per session: =agent_id= when the event
+came from a subagent, the main session otherwise. A =clock_out= with no
+=id= resolves against its own lane, so interleaving cannot mis-pair it
+regardless of completion order.
+
+A second defect fell out of the same change, unplanned. Guideposts
+carry no =agent_id= — the =Stop=/=UserPromptSubmit= hooks fire in the
+parent's turn — so under the old code a subagent's =clock_in= captured
+every following human =pause=/=resume=. Real evidence: =7771fc63='s
+group contained a stray =[pause]= and produced a spurious zero-width
+=:suggested:= span. Guideposts now stay in the main lane, where they
+belong.
+
+*Verified, not just implemented:*
+
+- Two regression tests, both of which *fail* against pre-fix code
+  (checked by reverting =config.el= and re-running, not assumed).
+  =queue-attributes-concurrent-agents-separately= runs the measured
+  interleaving in *both* completion orders — LIFO was what accidentally
+  saved one agent, so testing only that order would have proved
+  nothing. =queue-guideposts-ignore-subagent-lanes= pins the guidepost
+  half. 193 -> 195 green.
+- Replayed against the *real* captured queue at its pre-round
+  watermark, in the live Emacs after =load-file=. That exact input
+  previously yielded one interval; it now yields both, correctly
+  attributed, *in a single pass* — so the two-round recovery this
+  heading documented is no longer needed to get the right answer:
+
+: e51d6ba1 start=17:40:01 end=17:43:58 agent=a8a8 suggested=nil
+: 7771fc63 start=17:40:20 end=17:42:20 agent=ae39 suggested=nil
+
+Not addressed here: the pre-existing unattributed =clock_out= events
+noted above. They predate subagent activity, so they have a different
+cause and are still unexamined.
 *** TODO Background-task notifications write phantom resume guideposts :code:
 :PROPERTIES:
 :ID:       09c134c4-31eb-4f6c-aa10-f836d1d28f16

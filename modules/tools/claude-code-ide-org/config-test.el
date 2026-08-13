@@ -2701,6 +2701,92 @@ no rounding, unlike consolidate-history."
       (should (string-match-p "22:43\\]--\\[2026-08-06 [A-Za-z]+ 22:45\\] =>  0:02"
                               (claude-code-ide-org-test--logbook file))))))
 
+(defun claude-code-ide-org-test--interleaved-agent-lines (first-out second-out)
+  "Two concurrent subagents' events, sharing one session_id.
+FIRST-OUT and SECOND-OUT name which agent clocks out first, so a caller
+can run both completion orders. Mirrors the real 2026-08-12 capture:
+each agent clocks in on its own heading, `org_clock_out' carries no id,
+and a human pause/resume lands between them."
+  (let ((in-a (claude-code-ide-org-test--queue-event
+               "2026-08-12T17:40:01-0500" "clock_in" "id-a" nil "sess-a"
+               "agent a work" "agent-aaaa" "general-purpose"))
+        (in-b (claude-code-ide-org-test--queue-event
+               "2026-08-12T17:40:20-0500" "clock_in" "id-b" nil "sess-a"
+               "agent b work" "agent-bbbb" "general-purpose"))
+        (pause (claude-code-ide-org-test--queue-event
+                "2026-08-12T17:40:26-0500" "pause" nil nil "sess-a"))
+        (out-a (claude-code-ide-org-test--queue-event
+                "2026-08-12T17:42:20-0500" "clock_out" nil nil "sess-a"
+                "agent a done" "agent-aaaa" "general-purpose"))
+        (out-b (claude-code-ide-org-test--queue-event
+                "2026-08-12T17:43:58-0500" "clock_out" nil nil "sess-a"
+                "agent b done" "agent-bbbb" "general-purpose")))
+    ;; Swap the timestamps' owners rather than the order, so both
+    ;; variants keep the same chronology and differ only in who finishes.
+    (list in-a in-b pause
+          (if (eq first-out 'a) out-a out-b)
+          (if (eq second-out 'b) out-b out-a))))
+
+(ert-deftest claude-code-ide-org-test-queue-attributes-concurrent-agents-separately ()
+  "Two concurrent subagents each get their own interval, in either
+completion order.
+
+Regression for TODO.org :ID: 0d789b68. Subagents share their parent's
+session_id, and `org_clock_out' names no heading, so a session-wide
+`current' let them clobber each other: one agent's clock_out fell into
+the nil bucket and produced NO review item, while the other paired
+correctly only because the agents happened to finish LIFO."
+  (dolist (order '((a b) (b a)))
+    (claude-code-ide-org-test--with-queue
+      (apply #'claude-code-ide-org-test--queue-write "sess-a"
+             (claude-code-ide-org-test--interleaved-agent-lines
+              (car order) (cadr order)))
+      (let* ((items (claude-code-ide-org--review-items-from-queue))
+             (clocks (seq-filter (lambda (i) (eq (plist-get i :type) 'clock)) items))
+             (agent-clocks (seq-filter (lambda (i) (plist-get i :agent)) clocks)))
+        ;; Both agents get an interval -- neither is lost.
+        (should (equal 2 (length agent-clocks)))
+        ;; And each is on its OWN heading, not the other's.
+        (should (equal "id-a"
+                       (plist-get (seq-find (lambda (i) (equal (plist-get i :agent) "agent-aaaa"))
+                                            agent-clocks)
+                                  :id)))
+        (should (equal "id-b"
+                       (plist-get (seq-find (lambda (i) (equal (plist-get i :agent) "agent-bbbb"))
+                                            agent-clocks)
+                                  :id)))))))
+
+(ert-deftest claude-code-ide-org-test-queue-guideposts-ignore-subagent-lanes ()
+  "A human pause/resume attributes to the main session's heading, not to
+whatever a background subagent happened to clock in on.
+
+Guideposts carry no agent_id -- the hook fires in the parent's turn --
+so they belong to the main lane. Before per-lane tracking, a subagent's
+clock_in captured every following guidepost."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-12T17:00:00-0500" "clock_in" "id-human" nil "sess-a" "human work")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-12T17:40:20-0500" "clock_in" "id-agent" nil "sess-a"
+                  "agent work" "agent-bbbb" "general-purpose")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-12T17:41:00-0500" "pause" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-12T17:42:00-0500" "resume" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-12T17:43:58-0500" "clock_out" nil nil "sess-a"
+                  "agent done" "agent-bbbb" "general-purpose")))
+    (let* ((groups (claude-code-ide-org--queue-events-by-id))
+           (agent-group (cdr (assoc "id-agent" groups)))
+           (human-group (cdr (assoc "id-human" groups))))
+      ;; The agent's group holds only its own two clock events.
+      (should (equal '("clock_in" "clock_out")
+                     (mapcar (lambda (e) (plist-get e :kind)) agent-group)))
+      ;; The guideposts stayed with the human's heading.
+      (should (member "pause" (mapcar (lambda (e) (plist-get e :kind)) human-group)))
+      (should (member "resume" (mapcar (lambda (e) (plist-get e :kind)) human-group))))))
+
 (ert-deftest claude-code-ide-org-test-review-failed-clock-out-writes-no-interval ()
   "A failing `org-clock-out' must leave NO interval behind, not a
 fabricated one.
