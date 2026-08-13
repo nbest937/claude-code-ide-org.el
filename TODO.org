@@ -2382,6 +2382,37 @@ session]]'s mechanism-approach likely folds into the new review UI
 rather than standing alone), and the non-interactive logging hang that
 started this whole thread.
 
+*Three children were promoted out of this epic on 2026-08-13, and the
+test that moved them is worth keeping.* Ask not "is this related?" —
+everything here is related — but *"would this epic be incomplete without
+it?"*
+
+- [[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]] carries a =+1m=
+  repeater, so it never reaches =DONE=. An epic containing it can never
+  be =DONE= either — and
+  [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]] is
+  =:BLOCKER:=-ed on this epic, so one misplaced child had silently
+  frozen an unrelated task. That is the concrete cost of getting this
+  wrong, not a matter of taste.
+- [[id:b5f94b88-76e3-4a3c-ac73-729f34d33691][b5f94b88]] has its own plan
+  file, its own scope decisions and its own deferred phases. A child
+  with a plan file of its own is usually an epic wearing a child's
+  clothes.
+- [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] is a capability
+  this epic *enables* rather than one it requires.
+
+Everything else added late — eight defects found in this epic's own
+shipped code — stayed, and rightly: discovering that your review command
+fabricates intervals is not scope creep, it is the work.
+
+They were promoted to level 2 in this category rather than gathered
+under a new epic. Grouping them would have grouped by *timing* ("both
+are next"), which is the same error as filing them here — proximity
+mistaken for membership. An epic should earn its parenthood by having
+children that must complete for it to complete; neither of those two has
+children yet, and =b5f94b88= will become one naturally if its capture
+and amend halves ever split.
+
 *Correction 2026-08-13 to the marker-desync claim above, which is
 load-bearing and false.* "No writer but the human-driven apply command
 ever touches =TODO.org=/=DONE.org=" was never true and still is not.
@@ -6625,354 +6656,6 @@ boundaries, a scratch file built from documentation instead of the real
 header — over the artifact itself. The file said the opposite each
 time, and reading it directly took one command. Prefer the primary
 artifact; treat any filter as a hypothesis about what it hides.
-*** WAIT Let a session interject without waiting: advisory locks, or extend the queue to capture/amend :code:
-:PROPERTIES:
-:ID:       b5f94b88-76e3-4a3c-ac73-729f34d33691
-:CREATED:  [2026-08-13 Thu 10:13]
-:END:
-:LOGBOOK:
-- State "WAIT"       from "DOING"      [2026-08-13 Thu 12:19] \\
-  awaiting go-ahead to start implementing
-CLOCK: [2026-08-13 Thu 11:25]--[2026-08-13 Thu 11:30] =>  0:05
-- State "DOING"      from "PLANNING"   [2026-08-13 Thu 11:23]
-- State "PLANNING"   from "TODO"       [2026-08-13 Thu 11:15] \\
-  planning the capture/amend queue extension
-CLOCK: [2026-08-13 Thu 11:04]--[2026-08-13 Thu 11:14] =>  0:10
-- State "TODO"       from              [2026-08-13 Thu 10:14] \\
-  drafted, awaiting the user's careful read
-- <2026-08-13 Thu 11:04>--<2026-08-13 Thu 11:14>
-- <2026-08-13 Thu 11:25>--<2026-08-13 Thu 11:30> planning capture/amend queue extension
-- <2026-08-13 Thu 12:18>--<2026-08-13 Thu 12:18> planning capture/amend queue extension
-:END:
-
-[[file:~/.claude/plans/capture-amend-queue.md][Plan]]
-
-*Plan approved 2026-08-13, scoped by two decisions the user made during
-planning:* v1 covers *capture and amend* only — the structural writers
-(=org_refile=, =org_archive=, =org_move_sibling=, =org_sort_children=)
-stay immediate — and capture *writes through when the file is free*,
-queueing only when it is busy, so today's immediacy survives and only
-contended writes defer. That is the user's original lock idea made
-non-blocking, and it supersedes the "always queue" reading of step 3
-below.
-
-Note the plan lives in its own file rather than this conversation's
-=hazy-moseying-sky.md=: that path is already the permanent link for
-[[id:6b1e73c4-25da-4f0e-8a51-9c0d3f7ab214][6b1e73c4]] and
-[[id:f290161c-f9e7-4bfb-9adf-4c5630d4c5ae][f290161c]], and Claude Code
-reuses one plan file per conversation, so planning here overwrote it.
-Restored from =plans/= and the new plan given its own name, so both
-older links still resolve to the plan they were written for.
-
-*Read by the user 2026-08-13* — both the original draft below and the
-=create-lockfiles= research appended to step 1. The "study this before
-signing off" reminder it was captured under is discharged.
-
-*No verdict was recorded, and none should be inferred.* The user said
-only that they had reviewed it and that the heading could be amended
-accordingly; they did not approve the recommendation, reject it, or
-choose between its three steps. So this remains a proposal Claude
-drafted, not an agreed design, and the three load-bearing claims are
-still open to challenge: that a *blocking* lock is the wrong primitive,
-that the underlying need is a missing queue rather than a missing lock,
-and that the ordering below is the right one. Anyone acting on this
-should get an explicit decision first.
-
-*The ask, in the user's words:* so many times they want to ask a
-question or make a proposal while something else is in flight, which
-often leads to something new to capture or amend. The literal proposal
-was a file or Emacs buffer lock/semaphore on =TODO.org= and friends,
-causing concurrent sessions to wait their turn while another holds it.
-
-*What actually collides today.*
-
-The queue already removed most of the contention: =todo= and clock
-events are append-only, per-session, written blind with =O_APPEND=, so
-two sessions cannot corrupt each other there by construction. What
-remains is *direct writes to the file*:
-
-- =org_capture=, =org_refile=, =org_archive=, =org_move_sibling= and
-  =org_sort_children=, which all still =save-buffer= immediately
-- the org skill's prose edits via Claude Code's =Edit= tool, which
-  bypass Emacs entirely and write to disk
-- the user's own hand-edits in the live buffer
-- =.git/index=, a separate incident already owned by
-  [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]]
-
-Not hypothetical: on 2026-08-13 two edits in one session hit "the file
-had been modified on disk since you last read it". The ad-hoc
-mitigation in use — checking =buffer-modified-p= before touching the
-file — is a hand-rolled version of what this heading proposes.
-
-*Why a blocking lock looks like the wrong primitive.*
-
-Recorded as the argument against, because "why not just take a lock" is
-the obvious question a future reader will ask.
-
-1. *Waiting reintroduces the failure this architecture exists to avoid.*
-   A session blocked on a lock burns wall-clock with no way to report
-   why, and waits forever if the holder crashed. Same shape as the
-   non-interactive =emacsclient= hang that pushed this project to
-   append-only.
-2. *The contention is asymmetric.* The human is the authoritative
-   writer; Claude sessions should yield to them and never the reverse. A
-   symmetric semaphore models the wrong relationship.
-3. *It cannot be enforced where it matters most.* The =Edit= tool
-   consults neither Emacs nor any lockfile, so any lock is advisory for
-   exactly the writer most likely to be mid-flight. A mechanism that
-   looks like mutual exclusion but is not is worse than an honest
-   advisory one.
-4. *Stale locks are stale clocks again.* An owner, a TTL and a recovery
-   path — the subsystem
-   [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is currently
-   deciding whether to retire, rebuilt for a new resource.
-
-*The reframe this rests on — the part most worth challenging.*
-
-The ask may not be mutual exclusion at all. Note where the user's own
-sentence ends: the interruption *leads to something new to capture or
-amend*. That is a missing queue, not a missing lock — state changes
-already work that way; capture and amend do not.
-
-If that reframe is wrong — if the real need is genuinely "stop the
-other writer" rather than "do not lose my thought" — then the
-recommendation below is wrong too, and a fail-fast lock alone is the
-answer.
-
-*Proposed, cheapest first.*
-
-1. *Turn on =create-lockfiles=.* Measured 2026-08-13: it is =nil=, Doom's
-   default, so Emacs's own mechanism is currently off entirely. One
-   line. It will not stop the =Edit= tool, but it makes Emacs-mediated
-   collisions visible rather than silent. Checked before proposing
-   anything bespoke, per
-   [[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]]'s standing
-   instruction.
-
-   *Why Doom disables it, checked 2026-08-13 at the user's request.*
-   =lisp/doom-emacs.el:462= sets it under a =Backup & autosave files=
-   heading, sharing one comment with =make-backup-files=: "Don't
-   generate backups or lockfiles. ... This is better suited to version
-   control, and I don't want world-readable copies of potentially
-   sensitive material floating around our filesystem." Older Doom
-   (=core/core-editor.el=) worded it the same way.
-
-   That rationale is about *backups*, and does not actually describe a
-   lock file. Per the Emacs Lisp manual, a lock file is a symlink named
-   =.#FILE= whose *target* is the string =user@host.pid:boot=; it holds
-   no contents of the edited file at all. So the "copies of sensitive
-   material" argument does not apply to the thing it is being used to
-   justify — lockfiles were bundled in with backups under one heading
-   and inherited a comment written for backups. A residual privacy point
-   survives (the target leaks username, host and PID), but that is a
-   much smaller claim than the one made.
-
-   The real-world objection in the wider community is *tooling*, not
-   privacy: =.#FILE= is a dangling symlink, and file watchers and build
-   tools choke on it (e.g. =ember-cli= issue #6527, "=(setq
-   create-lockfiles nil)= shouldn't be necessary for Emacs usage"). That
-   risk is low for this repo — nothing here watches the tree — but it is
-   the reason to check before flipping it globally rather than
-   per-directory.
-
-   *And one point actively in favor, which is why this step is listed at
-   all:* on detecting a lock, Emacs calls =ask-user-about-lock=, which
-   offers grab / ignore / abort. It *asks*; it does not wait. That is
-   precisely the fail-fast shape argued for in step 2, already
-   implemented upstream.
-2. *A fail-fast advisory lock in the MCP write tools* — a refusal, not a
-   wait: "another session is writing TODO.org; queued instead." Fast
-   failure is debuggable and cannot deadlock.
-3. *Extend the queue to capture/amend proposals.* The interjection
-   becomes an event, nothing waits, and the existing human review pass
-   applies it — which also makes it reviewable rather than immediate,
-   the property already chosen deliberately for state changes.
-
-Steps 2 and 3 overlap: if 3 lands, 2 may be unnecessary, since there
-would be nothing left that needs to write immediately.
-*** TODO Re-measure the guidepost gap threshold against a month of queue data :code:research:
-SCHEDULED: <2026-09-13 Sun +1m>
-:PROPERTIES:
-:ID:       96a51c2f-ce11-4b40-bdff-11223d3d4eb7
-:CREATED:  [2026-08-13 Thu 12:20]
-:END:
-:LOGBOOK:
-- State "TODO"       from              [2026-08-13 Thu 12:21] \\
-  scheduled re-measure, one month out
-:END:
-
-Scheduled rather than left to memory: the finding below is real but
-thin, and the failure mode is adopting a four-day number as permanent
-because nobody re-ran it.
-
-*The survey, 2026-08-13.* 422 queue events, 2026-08-10 to 08-13, across
-six sessions. Measured the *queue* rather than =:LOGBOOK:= deliberately:
-=:LOGBOOK:= intervals are reconstructions produced by the very threshold
-under test, so measuring them would partly measure the parameter.
-
-Decomposed each session's stream into the two gaps that mean different
-things:
-
-- =resume= -> =pause= — how long the agent worked. n=111, median *81s*,
-  p90 *211s*, one outlier over an hour (the concurrent subagent run).
-- =pause= -> =resume= — how long the human took to reply. n=150, median
-  *181s*.
-
-*The result, and it is sharper than expected: the second is bimodal with
-an empty band between the modes.* Sorted gaps run =… 949, 971, 1061=
-and then jump straight to =2070, 2103, 2135 …=. **No gap anywhere in the
-corpus falls between 1061s and 2070s.** A threshold sweep sees the same
-hole from the other side: span count falls steeply, then sits flat at 29
-across 1200-1800s, then resumes falling. Every value inside the band
-produces an identical reconstruction.
-
-Acted on immediately: =claude-code-ide-org-guidepost-gap-threshold= 900
--> *1200s*, the round number inside the band, at the start of the
-plateau with margin either side. 900 sat just below the band and split
-five spans nothing justifies splitting.
-
-*A stated assumption the data contradicted, which is the more useful
-half.* The survey was proposed on the premise that silence from ~18:00
-to ~08:00 is almost certainly AFK. True, but not where the long gaps
-are: of 19 gaps over 2000s, *11 start inside working hours* — 07:00,
-10:00, 12:00, 14:00, 15:00, 16:00, 17:00 — including the two longest
-(151 and 158 minutes, starting 12:59 and 15:34). Daytime absence is
-indistinguishable from nighttime absence. Gap *length* separates the
-modes cleanly; clock hour does not. Recorded against
-[[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]], whose
-working-hours guess rests on exactly the premise this refutes.
-
-*What to re-run on the scheduled date*, and the reason the number is not
-yet settled: n=150 gaps, four days, one person, during an unusually
-intense stretch of work on this very project. The band may be an artifact
-of that. Re-derive the histogram and the sweep; if the band has moved or
-closed, retune again and say so here rather than defending 1200.
-
-*This is a moving target, not a one-off calibration* — the user's own
-framing, 2026-08-13, and it changes what the re-measure is for.
-Proficiency, setup and work objectives all evolve, and the habits
-generating these gaps evolve with them. A faster operator, a different
-mix of long-running subagent work, or a stretch of shallow triage rather
-than deep implementation would each shift the modes and could close the
-band entirely. So the finding above describes *August 2026*, not this
-project. The scheduled task is not "confirm 1200 was right"; it is
-"re-derive, and expect a different answer."
-
-*Made a =+1m= repeater at the user's instruction, 2026-08-13*, which is
-the honest encoding of "moving target": a one-shot date would have
-implied the number gets settled once. It does not. Each occurrence
-re-derives the histogram and the sweep against whatever the preceding
-month's habits actually were, and either confirms the current value or
-moves it.
-
-Practical note for whoever handles an occurrence: marking it =DONE=
-rolls the =SCHEDULED= stamp forward a month and returns the heading to
-=TODO= — org's own repeater behavior — so the record of *that* month's
-finding has to be written into this body before closing it, or it is
-gone. Append; do not overwrite the previous month's numbers.
-
-Charts from the original survey are an artifact, not committed here —
-regenerate rather than trusting a stale rendering.** TODO Institute a catch-all heading for cross-cutting meta-work :code:
-:PROPERTIES:
-:ID:       a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5
-:CREATED:  [2026-08-10 Mon 12:50]
-:END:
-
-Proposed by the user 2026-08-10: a standing pseudo-task to clock
-against for grooming, capturing, "what's next" review, and similar
-activity that is real work but belongs to no single tracked task.
-Captured as TODO on a recommendation, not as a settled decision.
-
-*The concrete argument for it, from this session's own data.* Of the
-first ten events in this session's queue, *eight* were =pause=/=resume=
-guideposts that reduced to nothing at review time. Guideposts carry no
-heading; they inherit whichever one the surrounding
-=clock_in=/=clock_out= last named, so guideposts recorded while no clock
-is open are unattributable and silently dropped. Meta-work is precisely
-when no clock is open. So today that time is not merely misattributed --
-it is invisible, which is in direct tension with this project's second
-stated goal of trustworthy tracking of where attention actually went.
-
-A standing task, clocked during that work, gives those guideposts a
-bracket to attach to. Nothing else has to change for it to work.
-
-*Check org's own mechanism first, per
-[[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]].* Org already has
-a name for this concept: =org-clock-default-task=, set with
-=org-clock-mark-default-task=, a designated fallback task you can clock
-into directly. This should almost certainly use that rather than invent
-a parallel convention -- exactly the reflex c084553c exists to enforce.
-
-*Two real risks, neither disqualifying:*
-- *The dumping-ground failure.* If ambiguous time drifts here by
-  default, the record gets *less* informative, not more -- a large
-  bucket labelled "misc" answers no question worth asking. Scope it to
-  genuinely cross-cutting work, and treat the review pass as the place
-  to re-attribute a span that turned out to be about one task.
-- *It never reaches DONE.* A permanent open task sits in a sibling group
-  alongside the single-NEXT-per-level triggers
-  (=--trigger-auto-promote-sole-todo=,
-  =--trigger-demote-conflicting-next=). Check how those behave with a
-  sibling that is deliberately never finished before relying on it. It
-  also never archives, so its =:LOGBOOK:= grows without bound -- probably
-  fine for a pure time record, but it is a decision, not an oversight.
-
-Independent of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] and
-useful either way: attribution is resolved from queued
-=clock_in=/=clock_out= events both before and after the cutover, so the
-bracket does the same job in both worlds.
-
-
-*Refined 2026-08-10, and it narrows what this heading is for.* The user
-proposed the general principle: grooming, defining, amending and
-adjusting a future task is *activity on that task*, and should be clocked
-against it — leaving its TODO state untouched. Recorded here because it
-answers most of what a catch-all was being considered for.
-
-*This was never stated anywhere, though nothing forbade it.* CLAUDE.md's
-transition rules say a transition *to* =DOING= opens a clock and one
-*from* =DOING= closes it. They never say the converse — that a running
-clock implies =DOING= — so clocking a =TODO= heading has always been
-legal by the letter and simply undescribed. Confirmed safe in practice
-the same day: =org-clock-in-switch-to-state= is nil here, so clocking in
-does not touch the keyword, and this heading's own editorial session was
-clocked against =02aaae22= while it stayed literally =TODO=.
-
-*Why it is better than a bucket, where it applies.* Attribution is exact:
-time spent working out what a task should be lands on that task, next to
-the reasoning it produced, and shows up in any report scoped to it.
-A catch-all would answer "how much meta-work happened" but never "which
-task was I circling."
-
-*So the two are complementary, and this heading shrinks to the residue:*
-work that genuinely belongs to no single task — "what's next?" surveys
-across the whole backlog, cross-cutting review, triage before a task
-exists to attach to. That residue is real but much smaller than the
-original framing assumed, which also blunts the dumping-ground risk noted
-above: with per-task grooming as the default, anything reaching the
-catch-all is there because it truly has no home.
-
-*Consequence worth accepting deliberately:* a =TODO= heading can now
-accrue real clock time without ever having been =DOING=. That is correct
-— deciding what a task is *is* work — but it means "time spent" and
-"was worked on" stop being the same question, and any future reporting
-needs to keep them apart.
-
-*Needs a rule in CLAUDE.md* under "State transition rules", stating that
-a clock may run on a heading in any state, and that grooming attaches to
-the task being groomed. Distinct from
-[[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]], which is scoped to
-documenting the post-cutover architecture; this is a general convention
-that holds regardless of the refactor's fate.
-
-
-*Alternative captured 2026-08-11, and it narrows this heading further:*
-[[id:3d0487f4-b8f8-451c-88bf-ab537663cbd0][3d0487f4]] proposes that the review buffer
-surface unattributed guideposts and let the human assign them to a
-heading retrospectively, rather than requiring anyone to clock into a
-standing task in advance. If that lands, this heading is no longer a
-mechanism to remember — it is just a convenient assignment target for
-spans that genuinely belong to no task.
 *** DONE An assigned span writes a label-less annotation line :code:
 :PROPERTIES:
 :ID:       c97b3564-5b14-4fc5-8964-a64775c5dc5d
@@ -7240,65 +6923,6 @@ remainder.
 truncate, assign, repeat — which
 [[id:3d0487f4-b8f8-451c-88bf-ab537663cbd0][3d0487f4]] had listed as
 explicitly out of scope for v1.
-*** Show commits and heading creations inside an unassigned span's window :code:
-:PROPERTIES:
-:ID:       5ff5a4b8-2fee-472a-b5e1-c9de8cf96704
-:CREATED:  [2026-08-13 Thu 16:28]
-:END:
-
-*Prototyped by hand before being proposed, 2026-08-13*, which is why it
-is filed with a recommendation rather than a question. Asked how to
-identify what an unattributed span was circling, the answer that worked
-was neither a transcript nor a model: *git commits and =:CREATED:=
-stamps falling inside the span's own window.* Three shell commands
-resolved three of four spans unambiguously.
-
-The two strongest signals, and they differ:
-- A =:CREATED:= stamp *inside* the span is the best evidence there is —
-  a heading written during that time names what was being thought about.
-  The 15:30--15:34 span brackets a heading created 15:33.
-- A commit *just after* the span is next best, since work precedes its
-  commit. That same span is followed by a commit at 15:34.
-
-Note the asymmetry: a commit timestamp marks when work was *finished*,
-not when it happened, so it anchors a span rather than bounding one. A
-4-minute span preceded its commit by seconds; a 23-minute span contained
-three.
-
-*The proposal:* render each unassigned span in the review buffer
-alongside the commits and headings created in its window. Nothing more —
-the human still decides. Assignment stops requiring a separate =git log=
-by hand, which is what it required 23 times in one sitting.
-
-*Why this rather than
-[[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]], and why it is that
-heading's sibling rather than its child.* =0c8644ff= is specifically
-"ask Claude", and carries three transport blockers plus an anchoring
-objection: a fluent recommendation is harder to reject than a
-transparently mechanical one, which erodes the safety property review
-exists to provide. This proposal inherits none of it. No sampling, so
-the transport question is moot; no transcript, so that scope question
-does not arise; and it presents *evidence* rather than a recommendation,
-so there is nothing to anchor on.
-
-It is therefore not a part of =0c8644ff= but the thing to build instead,
-and first — building it is what narrows =0c8644ff= to its actual
-residue: spans straddling two tasks, where commits exist on both sides
-and only a narrative says where the boundary fell.
-
-*A structural reason for sibling too, worth stating because it is a
-convention rather than an accident:* =TODO.org= has exactly three
-heading levels — category, task, epic-child — and *zero* level-4
-headings across 99 of them. A child here would introduce a fourth level
-for one heading.
-
-*Scope notes for whoever builds it.* The git query wants the repository
-containing the tracked files, not =default-directory=, which at review
-time is wherever the human happens to be. Heading creations are cheap to
-find without scanning — =:CREATED:= is a property, so =org-map-entries=
-with a property match does it. And the window should probably extend a
-few minutes past the span's end to catch the commit that concluded it,
-which is the asymmetry noted above.
 ** MAYBE Add a third retention tier for completed work as a chronological changelog :code:
 :PROPERTIES:
 :ID:       4c0044bf-1b6c-44ea-807a-8f9e3523e3fd
@@ -7357,6 +6981,436 @@ deliberate); whether tier 3 is its own =CHANGELOG.org= or a datetree
 inside DONE.org; and whether anything should enumerate inbound =[[id:]]=
 references before a prune, since nothing does today.
 
+** TODO Re-measure the guidepost gap threshold against a month of queue data :code:research:
+SCHEDULED: <2026-09-13 Sun +1m>
+:PROPERTIES:
+:ID:       96a51c2f-ce11-4b40-bdff-11223d3d4eb7
+:CREATED:  [2026-08-13 Thu 12:20]
+:END:
+
+*Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]
+on 2026-08-13.* It was filed there because the threshold it re-measures
+belongs to that epic's queue — but it carries a =+1m= repeater and so
+never reaches =DONE=, which meant the epic could not either, and
+[[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]] is blocked on that
+epic. A recurring measurement has no terminal state and therefore no
+completable parent.
+:LOGBOOK:
+- State "TODO"       from              [2026-08-13 Thu 12:21] \\
+  scheduled re-measure, one month out
+:END:
+
+Scheduled rather than left to memory: the finding below is real but
+thin, and the failure mode is adopting a four-day number as permanent
+because nobody re-ran it.
+
+*The survey, 2026-08-13.* 422 queue events, 2026-08-10 to 08-13, across
+six sessions. Measured the *queue* rather than =:LOGBOOK:= deliberately:
+=:LOGBOOK:= intervals are reconstructions produced by the very threshold
+under test, so measuring them would partly measure the parameter.
+
+Decomposed each session's stream into the two gaps that mean different
+things:
+
+- =resume= -> =pause= — how long the agent worked. n=111, median *81s*,
+  p90 *211s*, one outlier over an hour (the concurrent subagent run).
+- =pause= -> =resume= — how long the human took to reply. n=150, median
+  *181s*.
+
+*The result, and it is sharper than expected: the second is bimodal with
+an empty band between the modes.* Sorted gaps run =… 949, 971, 1061=
+and then jump straight to =2070, 2103, 2135 …=. **No gap anywhere in the
+corpus falls between 1061s and 2070s.** A threshold sweep sees the same
+hole from the other side: span count falls steeply, then sits flat at 29
+across 1200-1800s, then resumes falling. Every value inside the band
+produces an identical reconstruction.
+
+Acted on immediately: =claude-code-ide-org-guidepost-gap-threshold= 900
+-> *1200s*, the round number inside the band, at the start of the
+plateau with margin either side. 900 sat just below the band and split
+five spans nothing justifies splitting.
+
+*A stated assumption the data contradicted, which is the more useful
+half.* The survey was proposed on the premise that silence from ~18:00
+to ~08:00 is almost certainly AFK. True, but not where the long gaps
+are: of 19 gaps over 2000s, *11 start inside working hours* — 07:00,
+10:00, 12:00, 14:00, 15:00, 16:00, 17:00 — including the two longest
+(151 and 158 minutes, starting 12:59 and 15:34). Daytime absence is
+indistinguishable from nighttime absence. Gap *length* separates the
+modes cleanly; clock hour does not. Recorded against
+[[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]], whose
+working-hours guess rests on exactly the premise this refutes.
+
+*What to re-run on the scheduled date*, and the reason the number is not
+yet settled: n=150 gaps, four days, one person, during an unusually
+intense stretch of work on this very project. The band may be an artifact
+of that. Re-derive the histogram and the sweep; if the band has moved or
+closed, retune again and say so here rather than defending 1200.
+
+*This is a moving target, not a one-off calibration* — the user's own
+framing, 2026-08-13, and it changes what the re-measure is for.
+Proficiency, setup and work objectives all evolve, and the habits
+generating these gaps evolve with them. A faster operator, a different
+mix of long-running subagent work, or a stretch of shallow triage rather
+than deep implementation would each shift the modes and could close the
+band entirely. So the finding above describes *August 2026*, not this
+project. The scheduled task is not "confirm 1200 was right"; it is
+"re-derive, and expect a different answer."
+
+*Made a =+1m= repeater at the user's instruction, 2026-08-13*, which is
+the honest encoding of "moving target": a one-shot date would have
+implied the number gets settled once. It does not. Each occurrence
+re-derives the histogram and the sweep against whatever the preceding
+month's habits actually were, and either confirms the current value or
+moves it.
+
+Practical note for whoever handles an occurrence: marking it =DONE=
+rolls the =SCHEDULED= stamp forward a month and returns the heading to
+=TODO= — org's own repeater behavior — so the record of *that* month's
+finding has to be written into this body before closing it, or it is
+gone. Append; do not overwrite the previous month's numbers.
+
+Charts from the original survey are an artifact, not committed here —
+regenerate rather than trusting a stale rendering.** TODO Institute a catch-all heading for cross-cutting meta-work :code:
+:PROPERTIES:
+:ID:       a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5
+:CREATED:  [2026-08-10 Mon 12:50]
+:END:
+
+Proposed by the user 2026-08-10: a standing pseudo-task to clock
+against for grooming, capturing, "what's next" review, and similar
+activity that is real work but belongs to no single tracked task.
+Captured as TODO on a recommendation, not as a settled decision.
+
+*The concrete argument for it, from this session's own data.* Of the
+first ten events in this session's queue, *eight* were =pause=/=resume=
+guideposts that reduced to nothing at review time. Guideposts carry no
+heading; they inherit whichever one the surrounding
+=clock_in=/=clock_out= last named, so guideposts recorded while no clock
+is open are unattributable and silently dropped. Meta-work is precisely
+when no clock is open. So today that time is not merely misattributed --
+it is invisible, which is in direct tension with this project's second
+stated goal of trustworthy tracking of where attention actually went.
+
+A standing task, clocked during that work, gives those guideposts a
+bracket to attach to. Nothing else has to change for it to work.
+
+*Check org's own mechanism first, per
+[[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]].* Org already has
+a name for this concept: =org-clock-default-task=, set with
+=org-clock-mark-default-task=, a designated fallback task you can clock
+into directly. This should almost certainly use that rather than invent
+a parallel convention -- exactly the reflex c084553c exists to enforce.
+
+*Two real risks, neither disqualifying:*
+- *The dumping-ground failure.* If ambiguous time drifts here by
+  default, the record gets *less* informative, not more -- a large
+  bucket labelled "misc" answers no question worth asking. Scope it to
+  genuinely cross-cutting work, and treat the review pass as the place
+  to re-attribute a span that turned out to be about one task.
+- *It never reaches DONE.* A permanent open task sits in a sibling group
+  alongside the single-NEXT-per-level triggers
+  (=--trigger-auto-promote-sole-todo=,
+  =--trigger-demote-conflicting-next=). Check how those behave with a
+  sibling that is deliberately never finished before relying on it. It
+  also never archives, so its =:LOGBOOK:= grows without bound -- probably
+  fine for a pure time record, but it is a decision, not an oversight.
+
+Independent of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] and
+useful either way: attribution is resolved from queued
+=clock_in=/=clock_out= events both before and after the cutover, so the
+bracket does the same job in both worlds.
+
+
+*Refined 2026-08-10, and it narrows what this heading is for.* The user
+proposed the general principle: grooming, defining, amending and
+adjusting a future task is *activity on that task*, and should be clocked
+against it — leaving its TODO state untouched. Recorded here because it
+answers most of what a catch-all was being considered for.
+
+*This was never stated anywhere, though nothing forbade it.* CLAUDE.md's
+transition rules say a transition *to* =DOING= opens a clock and one
+*from* =DOING= closes it. They never say the converse — that a running
+clock implies =DOING= — so clocking a =TODO= heading has always been
+legal by the letter and simply undescribed. Confirmed safe in practice
+the same day: =org-clock-in-switch-to-state= is nil here, so clocking in
+does not touch the keyword, and this heading's own editorial session was
+clocked against =02aaae22= while it stayed literally =TODO=.
+
+*Why it is better than a bucket, where it applies.* Attribution is exact:
+time spent working out what a task should be lands on that task, next to
+the reasoning it produced, and shows up in any report scoped to it.
+A catch-all would answer "how much meta-work happened" but never "which
+task was I circling."
+
+*So the two are complementary, and this heading shrinks to the residue:*
+work that genuinely belongs to no single task — "what's next?" surveys
+across the whole backlog, cross-cutting review, triage before a task
+exists to attach to. That residue is real but much smaller than the
+original framing assumed, which also blunts the dumping-ground risk noted
+above: with per-task grooming as the default, anything reaching the
+catch-all is there because it truly has no home.
+
+*Consequence worth accepting deliberately:* a =TODO= heading can now
+accrue real clock time without ever having been =DOING=. That is correct
+— deciding what a task is *is* work — but it means "time spent" and
+"was worked on" stop being the same question, and any future reporting
+needs to keep them apart.
+
+*Needs a rule in CLAUDE.md* under "State transition rules", stating that
+a clock may run on a heading in any state, and that grooming attaches to
+the task being groomed. Distinct from
+[[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]], which is scoped to
+documenting the post-cutover architecture; this is a general convention
+that holds regardless of the refactor's fate.
+
+
+*Alternative captured 2026-08-11, and it narrows this heading further:*
+[[id:3d0487f4-b8f8-451c-88bf-ab537663cbd0][3d0487f4]] proposes that the review buffer
+surface unattributed guideposts and let the human assign them to a
+heading retrospectively, rather than requiring anyone to clock into a
+standing task in advance. If that lands, this heading is no longer a
+mechanism to remember — it is just a convenient assignment target for
+spans that genuinely belong to no task.
+** WAIT Let a session interject without waiting: advisory locks, or extend the queue to capture/amend :code:
+:PROPERTIES:
+:ID:       b5f94b88-76e3-4a3c-ac73-729f34d33691
+:CREATED:  [2026-08-13 Thu 10:13]
+:END:
+
+*Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]
+on 2026-08-13.* It arose from that epic's work but is not required for
+it to complete: the queue can be finished and correct without ever
+gaining capture/amend events. It also has its own plan file, its own
+scope decisions and its own deferred phases — a child with a plan file
+of its own is usually an epic wearing a child's clothes. Left as a
+level-2 task rather than declared an epic, since it has no children yet;
+it will become one naturally if capture and amend split.
+:LOGBOOK:
+- State "WAIT"       from "DOING"      [2026-08-13 Thu 12:19] \\
+  awaiting go-ahead to start implementing
+CLOCK: [2026-08-13 Thu 11:25]--[2026-08-13 Thu 11:30] =>  0:05
+- State "DOING"      from "PLANNING"   [2026-08-13 Thu 11:23]
+- State "PLANNING"   from "TODO"       [2026-08-13 Thu 11:15] \\
+  planning the capture/amend queue extension
+CLOCK: [2026-08-13 Thu 11:04]--[2026-08-13 Thu 11:14] =>  0:10
+- State "TODO"       from              [2026-08-13 Thu 10:14] \\
+  drafted, awaiting the user's careful read
+- <2026-08-13 Thu 11:04>--<2026-08-13 Thu 11:14>
+- <2026-08-13 Thu 11:25>--<2026-08-13 Thu 11:30> planning capture/amend queue extension
+- <2026-08-13 Thu 12:18>--<2026-08-13 Thu 12:18> planning capture/amend queue extension
+:END:
+
+[[file:~/.claude/plans/capture-amend-queue.md][Plan]]
+
+*Plan approved 2026-08-13, scoped by two decisions the user made during
+planning:* v1 covers *capture and amend* only — the structural writers
+(=org_refile=, =org_archive=, =org_move_sibling=, =org_sort_children=)
+stay immediate — and capture *writes through when the file is free*,
+queueing only when it is busy, so today's immediacy survives and only
+contended writes defer. That is the user's original lock idea made
+non-blocking, and it supersedes the "always queue" reading of step 3
+below.
+
+Note the plan lives in its own file rather than this conversation's
+=hazy-moseying-sky.md=: that path is already the permanent link for
+[[id:6b1e73c4-25da-4f0e-8a51-9c0d3f7ab214][6b1e73c4]] and
+[[id:f290161c-f9e7-4bfb-9adf-4c5630d4c5ae][f290161c]], and Claude Code
+reuses one plan file per conversation, so planning here overwrote it.
+Restored from =plans/= and the new plan given its own name, so both
+older links still resolve to the plan they were written for.
+
+*Read by the user 2026-08-13* — both the original draft below and the
+=create-lockfiles= research appended to step 1. The "study this before
+signing off" reminder it was captured under is discharged.
+
+*No verdict was recorded, and none should be inferred.* The user said
+only that they had reviewed it and that the heading could be amended
+accordingly; they did not approve the recommendation, reject it, or
+choose between its three steps. So this remains a proposal Claude
+drafted, not an agreed design, and the three load-bearing claims are
+still open to challenge: that a *blocking* lock is the wrong primitive,
+that the underlying need is a missing queue rather than a missing lock,
+and that the ordering below is the right one. Anyone acting on this
+should get an explicit decision first.
+
+*The ask, in the user's words:* so many times they want to ask a
+question or make a proposal while something else is in flight, which
+often leads to something new to capture or amend. The literal proposal
+was a file or Emacs buffer lock/semaphore on =TODO.org= and friends,
+causing concurrent sessions to wait their turn while another holds it.
+
+*What actually collides today.*
+
+The queue already removed most of the contention: =todo= and clock
+events are append-only, per-session, written blind with =O_APPEND=, so
+two sessions cannot corrupt each other there by construction. What
+remains is *direct writes to the file*:
+
+- =org_capture=, =org_refile=, =org_archive=, =org_move_sibling= and
+  =org_sort_children=, which all still =save-buffer= immediately
+- the org skill's prose edits via Claude Code's =Edit= tool, which
+  bypass Emacs entirely and write to disk
+- the user's own hand-edits in the live buffer
+- =.git/index=, a separate incident already owned by
+  [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]]
+
+Not hypothetical: on 2026-08-13 two edits in one session hit "the file
+had been modified on disk since you last read it". The ad-hoc
+mitigation in use — checking =buffer-modified-p= before touching the
+file — is a hand-rolled version of what this heading proposes.
+
+*Why a blocking lock looks like the wrong primitive.*
+
+Recorded as the argument against, because "why not just take a lock" is
+the obvious question a future reader will ask.
+
+1. *Waiting reintroduces the failure this architecture exists to avoid.*
+   A session blocked on a lock burns wall-clock with no way to report
+   why, and waits forever if the holder crashed. Same shape as the
+   non-interactive =emacsclient= hang that pushed this project to
+   append-only.
+2. *The contention is asymmetric.* The human is the authoritative
+   writer; Claude sessions should yield to them and never the reverse. A
+   symmetric semaphore models the wrong relationship.
+3. *It cannot be enforced where it matters most.* The =Edit= tool
+   consults neither Emacs nor any lockfile, so any lock is advisory for
+   exactly the writer most likely to be mid-flight. A mechanism that
+   looks like mutual exclusion but is not is worse than an honest
+   advisory one.
+4. *Stale locks are stale clocks again.* An owner, a TTL and a recovery
+   path — the subsystem
+   [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is currently
+   deciding whether to retire, rebuilt for a new resource.
+
+*The reframe this rests on — the part most worth challenging.*
+
+The ask may not be mutual exclusion at all. Note where the user's own
+sentence ends: the interruption *leads to something new to capture or
+amend*. That is a missing queue, not a missing lock — state changes
+already work that way; capture and amend do not.
+
+If that reframe is wrong — if the real need is genuinely "stop the
+other writer" rather than "do not lose my thought" — then the
+recommendation below is wrong too, and a fail-fast lock alone is the
+answer.
+
+*Proposed, cheapest first.*
+
+1. *Turn on =create-lockfiles=.* Measured 2026-08-13: it is =nil=, Doom's
+   default, so Emacs's own mechanism is currently off entirely. One
+   line. It will not stop the =Edit= tool, but it makes Emacs-mediated
+   collisions visible rather than silent. Checked before proposing
+   anything bespoke, per
+   [[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]]'s standing
+   instruction.
+
+   *Why Doom disables it, checked 2026-08-13 at the user's request.*
+   =lisp/doom-emacs.el:462= sets it under a =Backup & autosave files=
+   heading, sharing one comment with =make-backup-files=: "Don't
+   generate backups or lockfiles. ... This is better suited to version
+   control, and I don't want world-readable copies of potentially
+   sensitive material floating around our filesystem." Older Doom
+   (=core/core-editor.el=) worded it the same way.
+
+   That rationale is about *backups*, and does not actually describe a
+   lock file. Per the Emacs Lisp manual, a lock file is a symlink named
+   =.#FILE= whose *target* is the string =user@host.pid:boot=; it holds
+   no contents of the edited file at all. So the "copies of sensitive
+   material" argument does not apply to the thing it is being used to
+   justify — lockfiles were bundled in with backups under one heading
+   and inherited a comment written for backups. A residual privacy point
+   survives (the target leaks username, host and PID), but that is a
+   much smaller claim than the one made.
+
+   The real-world objection in the wider community is *tooling*, not
+   privacy: =.#FILE= is a dangling symlink, and file watchers and build
+   tools choke on it (e.g. =ember-cli= issue #6527, "=(setq
+   create-lockfiles nil)= shouldn't be necessary for Emacs usage"). That
+   risk is low for this repo — nothing here watches the tree — but it is
+   the reason to check before flipping it globally rather than
+   per-directory.
+
+   *And one point actively in favor, which is why this step is listed at
+   all:* on detecting a lock, Emacs calls =ask-user-about-lock=, which
+   offers grab / ignore / abort. It *asks*; it does not wait. That is
+   precisely the fail-fast shape argued for in step 2, already
+   implemented upstream.
+2. *A fail-fast advisory lock in the MCP write tools* — a refusal, not a
+   wait: "another session is writing TODO.org; queued instead." Fast
+   failure is debuggable and cannot deadlock.
+3. *Extend the queue to capture/amend proposals.* The interjection
+   becomes an event, nothing waits, and the existing human review pass
+   applies it — which also makes it reviewable rather than immediate,
+   the property already chosen deliberately for state changes.
+
+Steps 2 and 3 overlap: if 3 lands, 2 may be unnecessary, since there
+would be nothing left that needs to write immediately.
+** Show commits and heading creations inside an unassigned span's window :code:
+:PROPERTIES:
+:ID:       5ff5a4b8-2fee-472a-b5e1-c9de8cf96704
+:CREATED:  [2026-08-13 Thu 16:28]
+:END:
+
+*Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]
+on 2026-08-13.* A capability that epic *enables* rather than one it
+requires — the queue and review loop are complete without it. Filed
+there only because that is where the idea surfaced, which is proximity
+rather than membership.
+
+*Prototyped by hand before being proposed, 2026-08-13*, which is why it
+is filed with a recommendation rather than a question. Asked how to
+identify what an unattributed span was circling, the answer that worked
+was neither a transcript nor a model: *git commits and =:CREATED:=
+stamps falling inside the span's own window.* Three shell commands
+resolved three of four spans unambiguously.
+
+The two strongest signals, and they differ:
+- A =:CREATED:= stamp *inside* the span is the best evidence there is —
+  a heading written during that time names what was being thought about.
+  The 15:30--15:34 span brackets a heading created 15:33.
+- A commit *just after* the span is next best, since work precedes its
+  commit. That same span is followed by a commit at 15:34.
+
+Note the asymmetry: a commit timestamp marks when work was *finished*,
+not when it happened, so it anchors a span rather than bounding one. A
+4-minute span preceded its commit by seconds; a 23-minute span contained
+three.
+
+*The proposal:* render each unassigned span in the review buffer
+alongside the commits and headings created in its window. Nothing more —
+the human still decides. Assignment stops requiring a separate =git log=
+by hand, which is what it required 23 times in one sitting.
+
+*Why this rather than
+[[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]], and why it is that
+heading's sibling rather than its child.* =0c8644ff= is specifically
+"ask Claude", and carries three transport blockers plus an anchoring
+objection: a fluent recommendation is harder to reject than a
+transparently mechanical one, which erodes the safety property review
+exists to provide. This proposal inherits none of it. No sampling, so
+the transport question is moot; no transcript, so that scope question
+does not arise; and it presents *evidence* rather than a recommendation,
+so there is nothing to anchor on.
+
+It is therefore not a part of =0c8644ff= but the thing to build instead,
+and first — building it is what narrows =0c8644ff= to its actual
+residue: spans straddling two tasks, where commits exist on both sides
+and only a narrative says where the boundary fell.
+
+*A structural reason for sibling too, worth stating because it is a
+convention rather than an accident:* =TODO.org= has exactly three
+heading levels — category, task, epic-child — and *zero* level-4
+headings across 99 of them. A child here would introduce a fourth level
+for one heading.
+
+*Scope notes for whoever builds it.* The git query wants the repository
+containing the tracked files, not =default-directory=, which at review
+time is wherever the human happens to be. Heading creations are cheap to
+find without scanning — =:CREATED:= is a property, so =org-map-entries=
+with a property match does it. And the window should probably extend a
+few minutes past the span's end to catch the commit that concluded it,
+which is the asymmetry noted above.
 * Observability
 
 Broader than clocking — visibility into what every tool call
