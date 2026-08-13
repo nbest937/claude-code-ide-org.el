@@ -2782,6 +2782,58 @@ span still swallowed the whole original: a 54-minute span truncated to
                            (+ (length (plist-get span :events))
                               (length (plist-get remainder :events)))))))))))
 
+(ert-deftest claude-code-ide-org-test-no-zero-width-remainder ()
+  "A single leftover guidepost is not offered as a zero-width remainder.
+
+Reported from use 2026-08-13 after widening a span's start: the stray
+event clustered into a 0-minute span whose only possible answer was `d'.
+On the main path a lone guidepost is real evidence and worth offering;
+as a remainder it is an artifact of where the human drew the line.
+
+Critically, the event must still be CONSERVED -- belonging to no item
+means it is never marked applied, so it returns on the next build."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:00:00-0500" "todo" "id-a" "DOING" "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:05:00-0500" "resume" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:10:00-0500" "pause" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:15:00-0500" "resume" nil nil "sess-a")))
+    (claude-code-ide-org-test--with-review-buffer
+        (claude-code-ide-org--review-items-from-queue)
+      (let* ((items claude-code-ide-org--review-items)
+             (span (seq-find (lambda (i) (plist-get i :unassigned)) items)))
+        (should span)
+        (claude-code-ide-org-test--goto-nth-item (seq-position items span))
+        ;; Narrow so exactly ONE event (09:15) falls outside.
+        (cl-letf (((symbol-function 'read-string)
+                   (lambda (prompt &optional _initial &rest _)
+                     (if (string-prefix-p "Start" prompt)
+                         "[2026-08-13 Thu 09:05]"
+                       "[2026-08-13 Thu 09:10]"))))
+          (claude-code-ide-org-review-edit-interval))
+        ;; No zero-width item was added.
+        ;; Scoped to clock items: a state item has no :start/:end, and
+        ;; `time-equal-p' reads nil as "now" for both, so an unscoped
+        ;; check reports every state item as zero-width.
+        (should-not (seq-find (lambda (i)
+                                (and (not (eq i span))
+                                     (eq (plist-get i :type) 'clock)
+                                     (time-equal-p (plist-get i :start)
+                                                   (plist-get i :end))))
+                              claude-code-ide-org--review-items))
+        ;; And the stray event is in no item at all, so it stays pending.
+        (should-not (seq-find
+                     (lambda (i)
+                       (seq-find (lambda (e)
+                                   (equal "09:15" (format-time-string
+                                                   "%H:%M" (plist-get e :ts))))
+                                 (plist-get i :events)))
+                     claude-code-ide-org--review-items))))))
+
 (ert-deftest claude-code-ide-org-test-unbracketed-span-annotation-carries-a-label ()
   "A reconstructed span writes a labelled annotation, never a bare one.
 

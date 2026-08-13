@@ -2538,11 +2538,24 @@ is honest -- one interaction point is not evidence of a duration.
 These spans are review scaffolding only. They are rendered as *active*
 timestamps so org's own agenda picks them up (confirmed live, TODO.org
 :ID: c084553c-0621-4a96-9fa1-f32850aeec6a), and they inform the human's
-composition of CLOCK: entries -- they never become one. Nothing here
-rounds: `claude-code-ide-org--consolidate-logbook-text's 5-minute
-rounding silently drops any interval under ~2.5 minutes that misses a
-boundary, which is precisely the confidently-wrong record this design
-exists to prevent.
+composition of CLOCK: entries.  Nothing here rounds.
+
+That last sentence used to carry a justification that has since expired,
+and it is corrected rather than deleted because the stale version read
+as a settled decision and would have survived review indefinitely.  It
+said consolidation must be kept away from this path because
+`claude-code-ide-org--consolidate-logbook-text' rounds to 5 minutes and
+drops anything under ~2.5.  It no longer does: that rounding was retired
+outright in the incident where it erased a real two-minute interval
+(TODO.org :ID: b74e0f19), and that function's own docstring now opens
+\"This function no longer alters any interval\".
+
+Not rounding here still matters, on its own terms rather than by
+contrast: a span is the human's evidence for an interval they have not
+yet confirmed, and quantising evidence before anyone has looked at it is
+how a two-minute span becomes a zero-minute one.  Whether apply should
+*consolidate* afterwards is a live question, now that its stated
+obstacle is gone -- see TODO.org :ID: 12e0adac.
 
 Not built on `claude-code-ide-org--merge-time-intervals': that merges
 only touching or overlapping intervals, with no gap tolerance, which is
@@ -3901,23 +3914,37 @@ human reached for `e'.  Never inherits `:marked' -- a remainder is a new
 decision, not part of the batch already confirmed."
   (let ((threshold claude-code-ide-org-guidepost-gap-threshold))
     (dolist (span (claude-code-ide-org--aggregate-guideposts events threshold))
-      (let ((new (copy-sequence item)))
-        (setq new (plist-put new :start (car span)))
-        (setq new (plist-put new :end (cdr span)))
-        (setq new (plist-put new :marked nil))
-        (setq new (plist-put new :suggested t))
-        (setq new (plist-put new :events
-                             (seq-filter
+      ;; Skip a zero-width remainder. On the main path a lone guidepost
+      ;; is real evidence that something happened at that moment, so a
+      ;; zero-width span is honest and worth offering. As a *remainder*
+      ;; it is an artifact of where the human drew the line -- one event
+      ;; landing outside the new endpoints -- and offering it produces a
+      ;; spurious item whose only possible answer is `d' (reported from
+      ;; use, 2026-08-13, after widening a span's start).
+      ;;
+      ;; Dropping the item does NOT drop the event: an event belonging to
+      ;; no item is never marked applied, so it stays pending and
+      ;; re-clusters with its neighbours on the next build. That is the
+      ;; same conservation property this whole function exists to
+      ;; restore, applied to its own output.
+      (unless (time-equal-p (car span) (cdr span))
+        (let ((new (copy-sequence item)))
+          (setq new (plist-put new :start (car span)))
+          (setq new (plist-put new :end (cdr span)))
+          (setq new (plist-put new :marked nil))
+          (setq new (plist-put new :suggested t))
+          (setq new (plist-put new :events
+                               (seq-filter
                               (lambda (e)
                                 (let ((ts (plist-get e :ts)))
                                   (and (not (time-less-p ts (car span)))
                                        (not (time-less-p (cdr span) ts)))))
                               events)))
-        (when (eq (plist-get item :origin) 'unbracketed)
-          (setq new (plist-put new :unassigned t))
-          (setq new (plist-put new :assigned nil)))
-        (setq claude-code-ide-org--review-items
-              (append claude-code-ide-org--review-items (list new)))))))
+          (when (eq (plist-get item :origin) 'unbracketed)
+            (setq new (plist-put new :unassigned t))
+            (setq new (plist-put new :assigned nil)))
+          (setq claude-code-ide-org--review-items
+                (append claude-code-ide-org--review-items (list new))))))))
 
 (defun claude-code-ide-org-review-assign ()
   "Assign the span at point to a heading, replacing any suggestion.
