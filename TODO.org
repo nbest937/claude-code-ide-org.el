@@ -5061,6 +5061,55 @@ between plan and implementation without a note. Read this heading as a
 *regression against an approved plan*, which raises its priority above
 what a fresh proposal would carry — the design question was already
 settled once.
+
+*Measured 2026-08-13, and it makes this the highest-value item left
+under the epic rather than a nicety.* Classified every queue event
+against the real reader — =--queue-events-by-id= and
+=--review-items-from-queue=, after reloading =config.el= — rather than
+against a reimplementation:
+
+| kind      | written | ever applied | coverage |
+|-----------+---------+--------------+----------|
+| =todo=      |      61 |           52 |   *85%* |
+| =clock_in=  |      24 |            5 |      21% |
+| =clock_out= |      25 |            2 |       8% |
+| =pause=     |     159 |            9 |    5.7% |
+| =resume=    |     163 |            9 |    5.5% |
+
+*322 guideposts written; 18 ever consumed by an applied interval — 5.6%.*
+The state-change half of the architecture works as designed. The
+time-tracking half very nearly does not.
+
+Of 351 currently-pending events, 340 are residue, in exactly two
+buckets:
+- *301 in the nil bucket* — 147 =pause=, 151 =resume=, 3 orphan
+  =clock_out=. Unattributed, and this heading's subject.
+- *39 attributed but unconsumed* — 19 =clock_in= + 20 =clock_out=, main-
+  lane pairs on a heading that produced no interval because no turn
+  boundary fell inside the window. Not this heading's problem; see
+  [[id:78f485a8-e808-43ce-af5f-277a5c97c471][78f485a8]].
+
+*Root cause, and it is structural rather than a bug.* A guidepost is
+attributed only if a =clock_in= preceded it in the same lane
+(=--queue-events-by-id= sets the lane's current heading on =clock_in=
+and clears it on =clock_out=). Only 24 =clock_in= events exist across
+four days, because Claude clocks in when it explicitly starts a tracked
+task and not otherwise. So the overwhelming majority of turn boundaries
+have no heading context and never can acquire one.
+
+That is worth stating plainly against
+[[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]'s core premise —
+that the human reconstructs real =CLOCK:= intervals from guideposts. At
+5.6% coverage there is very little to reconstruct *from*. This heading
+is the mechanism that would make the other 94% reachable at all.
+
+Note =--queue-events-by-id='s docstring already rejected using =todo=
+events for attribution, on the sound argument that returning to a
+heading which never left =DOING= emits no =todo= event, so later
+guideposts would attribute to the wrong heading. That rejection assumed
+=clock_in= would carry the load. Measured, it does not — which is an
+argument for revisiting the rejected option alongside this one, not for
+overturning it.
 *** TODO Make ingestion idempotent and archive drained queue files rather than deleting them :code:
 :PROPERTIES:
 :ID:       78f485a8-e808-43ce-af5f-277a5c97c471
@@ -5145,6 +5194,33 @@ rather than in the watermark. And *the =.applied= sidecar is not a
 progress bar*: it will always look radically incomplete against the line
 count, so any UI or check that reports "N of M applied" would read as
 alarming when it is in fact the steady state.
+
+*The residue is now classified, 2026-08-13, which is what this heading
+needed before "drained" could be specified.* Of 351 pending events, 340
+are residue and fall in exactly two buckets — see the table on
+[[id:3d0487f4-b8f8-451c-88bf-ab537663cbd0][3d0487f4]] for the full
+coverage figures:
+
+1. *301 unattributed guideposts* (plus 3 orphan =clock_out=), owned by
+   =3d0487f4=. This is 88% of the residue. Whether these are *ever*
+   consumable is that heading's decision, and it therefore determines
+   what fraction of the queue "drained" can possibly cover.
+2. *39 attributed-but-unconsumed clock events* — 19 =clock_in= + 20
+   =clock_out= — main-lane pairs on a real heading that produced no
+   interval, because no =pause=/=resume= fell inside the window. Found
+   2026-08-13 when a two-minute span recorded nothing. *This bucket has
+   no owner.* It is not =3d0487f4='s (they are attributed) and not a
+   defect (intervals come from guideposts by design), but it grows
+   during ordinary use, so a definition of drained has to name it
+   explicitly rather than treat it as noise.
+
+Consequence for sequencing: this heading is *not* actionable until
+=3d0487f4= is decided, because 88% of what it must classify as drained
+or not is exactly that heading's subject. The asymmetry noted above (19
+=clock_in= vs 20 =clock_out=, 3 orphans in the nil bucket) is also
+unexplained and predates subagent activity — worth a look before
+specifying, since a definition of drained that assumes pairs balance
+would be wrong today.
 
 *** DONE Review-buffer interaction fixes, for after the cutover :code:
 :PROPERTIES:
@@ -6255,7 +6331,7 @@ answer.
 Steps 2 and 3 overlap: if 3 lands, 2 may be unnecessary, since there
 would be nothing left that needs to write immediately.
 *** Re-measure the guidepost gap threshold against a month of queue data :code:research:
-SCHEDULED: <2026-09-13 Sun>
+SCHEDULED: <2026-09-13 Sun +1m>
 :PROPERTIES:
 :ID:       96a51c2f-ce11-4b40-bdff-11223d3d4eb7
 :CREATED:  [2026-08-13 Thu 12:20]
@@ -6318,10 +6394,18 @@ band entirely. So the finding above describes *August 2026*, not this
 project. The scheduled task is not "confirm 1200 was right"; it is
 "re-derive, and expect a different answer."
 
-Worth considering when it comes round: whether a =+1m= repeater is more
-honest than a single scheduled date, given the above. Left as a one-shot
-deliberately — the user asked for one month, and a repeater is a
-different commitment they have not made.
+*Made a =+1m= repeater at the user's instruction, 2026-08-13*, which is
+the honest encoding of "moving target": a one-shot date would have
+implied the number gets settled once. It does not. Each occurrence
+re-derives the histogram and the sweep against whatever the preceding
+month's habits actually were, and either confirms the current value or
+moves it.
+
+Practical note for whoever handles an occurrence: marking it =DONE=
+rolls the =SCHEDULED= stamp forward a month and returns the heading to
+=TODO= — org's own repeater behavior — so the record of *that* month's
+finding has to be written into this body before closing it, or it is
+gone. Append; do not overwrite the previous month's numbers.
 
 Charts from the original survey are an artifact, not committed here —
 regenerate rather than trusting a stale rendering.** TODO Institute a catch-all heading for cross-cutting meta-work :code:
