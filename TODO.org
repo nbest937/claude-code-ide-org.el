@@ -3561,7 +3561,7 @@ Blocked on =720b2dcf= being used enough to know which filters are
 actually wanted; guessing at them now is how the machinery gets built
 for a UI nobody needs.
 
-*** MAYBE Let the review command ask Claude to explain the gaps between guideposts :code:
+*** MAYBE Let the review command ask Claude to explain the ambiguous gaps between guideposts :code:
 :PROPERTIES:
 :ID:       0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e
 :CREATED:  [2026-08-07 Fri 08:05]
@@ -3678,6 +3678,12 @@ sides and only the narrative says where the boundary fell. The
 =MAYBE=, but its scope narrows from "explain the gaps" to "explain the
 *ambiguous* gaps" — a much smaller and better-targeted feature, and one
 whose value can be judged only after the mechanical version exists.
+
+The heading title was narrowed to match on 2026-08-13. Until then the
+narrowing lived only in this body, so =org_outline= and the agenda both
+still advertised the original scope — which is how a heading gets picked
+up later and built to the wrong size by someone reading the index rather
+than the prose.
 
 *** DONE Add a read-only MCP tool to inspect and summarize the pending queue :code:
 :PROPERTIES:
