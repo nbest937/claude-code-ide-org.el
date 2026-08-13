@@ -4295,6 +4295,237 @@ something still refreshes, which is what consumes the applied items."
                      "DOING" (claude-code-ide-org-test--disk-contents file))))
         (kill-buffer "*org-review-test*")))))
 
+;;; Span evidence ------------------------------------------------------------
+
+(defun claude-code-ide-org-test--git (dir &rest args)
+  "Run git in DIR with ARGS, signalling with its output when it fails."
+  (with-temp-buffer
+    (let ((status (apply #'call-process "git" nil t nil "-C" dir args)))
+      (unless (eql status 0)
+        (error "git %S failed: %s" args (buffer-string))))))
+
+(defun claude-code-ide-org-test--git-commit (dir message iso)
+  "Commit everything in DIR as MESSAGE, dated ISO.
+
+Both date variables are set: `--since'/`--until' filter on the committer
+date, and leaving the author date to drift would make the fixture
+describe a different repository than the one the query sees.  Identity
+and signing are forced per-command so the test does not depend on the
+machine's git configuration."
+  (claude-code-ide-org-test--git dir "add" "-A")
+  (let ((process-environment (append (list (concat "GIT_AUTHOR_DATE=" iso)
+                                           (concat "GIT_COMMITTER_DATE=" iso))
+                                     process-environment)))
+    (claude-code-ide-org-test--git dir
+                                   "-c" "user.email=test@example.com"
+                                   "-c" "user.name=Test"
+                                   "-c" "commit.gpgsign=false"
+                                   "commit" "-q" "-m" message)))
+
+(defmacro claude-code-ide-org-test--with-git-repo (&rest body)
+  "Run BODY in a fresh git repo holding one tracked org file.
+
+Binds `dir' to the repository and `org' to the org file inside it, and
+points `claude-code-ide-org-query-files' at that file -- which is how
+`claude-code-ide-org--git-roots' is meant to find the repository at all."
+  (declare (indent 0))
+  `(let* ((dir (file-name-as-directory (make-temp-file "cciorg-git" t)))
+          (org (expand-file-name "TODO.org" dir))
+          (claude-code-ide-org-query-files (list org)))
+     (unwind-protect
+         (progn
+           (with-temp-file org (insert "* Notes\n"))
+           (claude-code-ide-org-test--git dir "init" "-q")
+           ,@body)
+       (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-span-evidence-finds-commits-in-the-window ()
+  "The core of 5ff5a4b8: a commit inside the span's window is evidence,
+one hours later is not.  Both halves matter -- a query that returned the
+whole log would look like it worked on the fixture with one commit."
+  (skip-unless (executable-find "git"))
+  (claude-code-ide-org-test--with-git-repo
+    (with-temp-file org (insert "* Notes\n\ninside\n"))
+    (claude-code-ide-org-test--git-commit dir "the commit that concluded it"
+                                          "2026-08-13T15:34:00-0500")
+    (with-temp-file org (insert "* Notes\n\nlater\n"))
+    (claude-code-ide-org-test--git-commit dir "unrelated later work"
+                                          "2026-08-13T16:30:00-0500")
+    (let ((rows (claude-code-ide-org--commits-in-window
+                 (date-to-time "2026-08-13T15:30:00-0500")
+                 (date-to-time "2026-08-13T15:35:00-0500"))))
+      (should (= 1 (length rows)))
+      (should (string-match-p "the commit that concluded it" (cdr (car rows))))
+      (should (string-match-p "^commit " (cdr (car rows)))))))
+
+(ert-deftest claude-code-ide-org-test-span-evidence-extends-past-the-span-end ()
+  "The asymmetry is the whole finding: a commit marks when work was
+*finished*, so the commit that concludes a span lands just after it.  A
+window that stopped at the span's end would miss exactly the commit the
+feature exists to show."
+  (skip-unless (executable-find "git"))
+  (claude-code-ide-org-test--with-git-repo
+    (with-temp-file org (insert "* Notes\n\nwork\n"))
+    (claude-code-ide-org-test--git-commit dir "landed just after the span"
+                                          "2026-08-13T15:36:00-0500")
+    (let* ((start (date-to-time "2026-08-13T15:30:00-0500"))
+           (end (date-to-time "2026-08-13T15:34:00-0500"))
+           (claude-code-ide-org-span-evidence-slack 300)
+           (lines (claude-code-ide-org--span-evidence start end)))
+      (should (= 1 (length lines)))
+      (should (string-match-p "15:36  commit .*landed just after the span"
+                              (car lines)))
+      ;; ...and the slack is a window, not an open end.
+      (let ((claude-code-ide-org-span-evidence-slack 0))
+        (should-not (claude-code-ide-org--span-evidence start end))))))
+
+(ert-deftest claude-code-ide-org-test-span-evidence-finds-heading-creations ()
+  "A `:CREATED:' stamp inside the window is the strongest evidence there
+is -- a heading written during that time names what was being thought
+about.  Read as a property, so a heading whose *body* quotes a timestamp
+contributes nothing."
+  (let* ((dir (file-name-as-directory (make-temp-file "cciorg-created" t)))
+         (file (expand-file-name "TODO.org" dir))
+         (claude-code-ide-org-query-files (list file))
+         (org-id-locations-file (expand-file-name ".org-id-locations" dir))
+         (org-id-locations (make-hash-table :test 'equal))
+         (org-agenda-files nil))
+    (unwind-protect
+        (progn
+          (with-temp-file file
+            (insert "#+TODO: TODO | DONE\n\n"
+                    "* TODO Written during the span\n"
+                    ":PROPERTIES:\n:ID: aaaa\n"
+                    ":CREATED:  [2026-08-13 Thu 15:33]\n:END:\n\n"
+                    "Body quoting [2026-08-13 Thu 15:32] as prose.\n\n"
+                    "* TODO Written the day before\n"
+                    ":PROPERTIES:\n:ID: bbbb\n"
+                    ":CREATED:  [2026-08-12 Wed 15:33]\n:END:\n"))
+          (let ((rows (claude-code-ide-org--creations-in-window
+                       (date-to-time "2026-08-13T15:30:00-0500")
+                       (date-to-time "2026-08-13T15:35:00-0500"))))
+            (should (= 1 (length rows)))
+            (should (equal (cdr (car rows)) "created Written during the span"))))
+      (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-review-shows-evidence-only-for-unassigned-spans ()
+  "An unassigned span is the item that poses a question, so it is the
+only one that gets an answer drawn under it.  An assigned span has
+already been answered and a state item has no window to look in."
+  (let ((start (current-time)))
+    (cl-letf (((symbol-function 'claude-code-ide-org--span-evidence)
+               (lambda (&rest _) (list "15:33  created Some heading"))))
+      (claude-code-ide-org-test--with-review-buffer
+          (list (list :type 'clock :id nil :start start :end start
+                      :unassigned t :note "unassigned" :events nil)
+                (list :type 'clock :id "cccc" :start start :end start
+                      :note "assigned" :suggested t :events nil)
+                (list :type 'state :id "cccc" :ts start :to "DOING"
+                      :from "TODO" :events nil))
+        (let ((text (buffer-substring-no-properties (point-min) (point-max)))
+              (n 0)
+              (pos 0))
+          (while (string-match "created Some heading" text pos)
+            (setq n (1+ n)
+                  pos (match-end 0)))
+          (should (= n 1)))))))
+
+(ert-deftest claude-code-ide-org-test-review-evidence-lines-are-not-items ()
+  "Evidence must not become something `m' can mark or `n' can land on.
+Left unpropertized it behaves exactly as the group headings do; carrying
+the item property it would silently double the item count and let a
+human mark the same span twice."
+  (let ((start (current-time)))
+    (cl-letf (((symbol-function 'claude-code-ide-org--span-evidence)
+               (lambda (&rest _) (list "15:33  created Some heading"))))
+      (claude-code-ide-org-test--with-review-buffer
+          (list (list :type 'clock :id nil :start start :end start
+                      :unassigned t :note "unassigned" :events nil)
+                (list :type 'state :id "cccc" :ts start :to "DOING"
+                      :from "TODO" :events nil))
+        (goto-char (point-min))
+        (should (re-search-forward "created Some heading" nil t))
+        (beginning-of-line)
+        (should-not (claude-code-ide-org--review-item-at-point))
+        ;; And stepping forward from the span steps over the evidence onto
+        ;; the next real item.
+        (claude-code-ide-org-test--goto-nth-item 0)
+        (claude-code-ide-org--review-forward-item)
+        (should (eq 'state (plist-get (claude-code-ide-org--review-item-at-point)
+                                      :type)))))))
+
+(ert-deftest claude-code-ide-org-test-review-evidence-is-computed-once-per-window ()
+  "`claude-code-ide-org--review-render' runs on every mark keystroke, and
+the evidence costs a `git log' plus a walk of every tracked heading.
+Recomputing per keystroke is what would make marking a run of items feel
+broken.  Keyed on the window, so narrowing a span really does re-read."
+  (let* ((start (current-time))
+         (calls 0))
+    (cl-letf (((symbol-function 'claude-code-ide-org--span-evidence)
+               (lambda (&rest _) (setq calls (1+ calls)) (list "15:33  x"))))
+      (claude-code-ide-org-test--with-review-buffer
+          (list (list :type 'clock :id nil :start start :end start
+                      :unassigned t :note "unassigned" :events nil))
+        (claude-code-ide-org--review-render)
+        (claude-code-ide-org--review-render)
+        (should (= 1 calls))
+        ;; A different window is a different question.
+        (plist-put (car claude-code-ide-org--review-items)
+                   :end (time-add start 60))
+        (claude-code-ide-org--review-render)
+        (should (= 2 calls))))))
+
+(ert-deftest claude-code-ide-org-test-span-evidence-caps-its-output ()
+  "A span that swept up thirty commits has stopped answering the question
+the evidence exists to answer, so the overflow is reported as a count
+rather than drawn.  Silently trimming would be the one outcome that
+misleads."
+  (let ((claude-code-ide-org-span-evidence-limit 3)
+        (start (current-time)))
+    (cl-letf (((symbol-function 'claude-code-ide-org--commits-in-window)
+               (lambda (&rest _)
+                 (let (rows)
+                   (dotimes (i 5)
+                     (push (cons (time-add start i) (format "commit  %d" i)) rows))
+                   rows)))
+              ((symbol-function 'claude-code-ide-org--creations-in-window)
+               (lambda (&rest _) nil)))
+      (let ((lines (claude-code-ide-org--span-evidence start start)))
+        (should (= 4 (length lines)))
+        (should (string-match-p "\\.\\.\\. 2 more in this window"
+                                (car (last lines))))))))
+
+(ert-deftest claude-code-ide-org-test-span-evidence-degrades-rather-than-signals ()
+  "Display code degrades, it does not signal -- half a review buffer is
+worse than no evidence.  Everything here reaches out to the world (git,
+org-id, other people's files), so the failure has to be contained at the
+render boundary rather than at each call site."
+  (let ((start (current-time)))
+    (cl-letf (((symbol-function 'claude-code-ide-org--span-evidence)
+               (lambda (&rest _) (error "git exploded"))))
+      (claude-code-ide-org-test--with-review-buffer
+          (list (list :type 'clock :id nil :start start :end start
+                      :unassigned t :note "unassigned" :events nil))
+        (should (string-match-p
+                 "span"
+                 (buffer-substring-no-properties (point-min) (point-max))))))))
+
+(ert-deftest claude-code-ide-org-test-git-roots-follows-the-symlink ()
+  "`~/org/claude-code-ide-org/TODO.org' is a symlink into the repo, so
+walking up from the symlink's own directory finds no .git at all.  The
+truename is what makes the query land in the right repository."
+  (skip-unless (executable-find "git"))
+  (claude-code-ide-org-test--with-git-repo
+    (let* ((link-dir (file-name-as-directory (make-temp-file "cciorg-link" t)))
+           (link (expand-file-name "TODO.org" link-dir))
+           (claude-code-ide-org-query-files (list link)))
+      (unwind-protect
+          (progn
+            (make-symbolic-link org link)
+            (should (equal (claude-code-ide-org--git-roots)
+                           (list (file-truename dir)))))
+        (delete-directory link-dir t)))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here

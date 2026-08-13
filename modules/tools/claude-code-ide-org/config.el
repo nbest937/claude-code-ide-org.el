@@ -2250,6 +2250,38 @@ settled, and the heading above schedules a re-measure."
   :type 'integer
   :group 'claude-code-ide-org)
 
+(defcustom claude-code-ide-org-span-evidence-slack 300
+  "Seconds past an unassigned span's end still counted as its window.
+
+Extends the *end* only, and the asymmetry is the finding rather than an
+implementation convenience (TODO.org :ID: 5ff5a4b8).  A `:CREATED:'
+stamp lands while the work is happening, so it falls inside the span on
+its own; a commit timestamp marks when work was *finished*, so the
+commit that concludes a span reliably lands just after it.  Widening the
+start instead would only pull in the previous span's commits.
+
+Five minutes because the observed lag was seconds, not minutes -- a
+4-minute span preceded its commit by seconds.  The margin is for the
+case where the human kept typing a commit message after the last
+guidepost, not for a genuinely later commit, which belongs to whatever
+came next."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defcustom claude-code-ide-org-span-evidence-limit 8
+  "Most evidence lines rendered under one unassigned span.
+
+A bound on the *display*, not on the query: the point of the evidence is
+to make one span assignable at a glance, and a span that swept up thirty
+commits has stopped answering that question.  Anything beyond the limit
+is reported as a count, so a flooded window reads as flooded rather than
+as silently trimmed.
+
+Eight covers the observed worst case with room to spare -- the widest
+span measured, 23 minutes, contained three commits."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
 (defconst claude-code-ide-org--queue-kinds
   '("todo" "clock_in" "clock_out" "pause" "resume")
   "Event kinds bin/hooks/queue-append is allowed to emit.
@@ -3523,6 +3555,15 @@ up -- that is how the agenda doubles as a retrospective \"what did I
 attend to\" view.  Agent intervals use [...] and stay out of the agenda,
 since unattended machine work is not attention.
 
+A span prefixed `?' is UNASSIGNED: it belongs to no heading yet, and
+press \\[claude-code-ide-org-review-assign] to say which.  The indented lines under it are the
+*evidence* -- git commits and headings created inside that span's window,
+in the order they happened.  They are not a recommendation and nothing
+consults them: a `:CREATED:' stamp inside the window names what was being
+thought about, a commit just after it marks what was finished, and the
+answer is yours to draw.  Absent lines mean an empty window, not an
+error.
+
 Three behaviours worth knowing:
 
   \\[claude-code-ide-org-review-apply] is the only consequential key.  It writes real org state and saves
@@ -3721,6 +3762,165 @@ a review buffer is not."
                  (org-no-properties (org-get-heading t t t t)))
           (set-marker marker nil))))))
 
+;;; Span evidence ------------------------------------------------------------
+;;
+;; What was going on between two timestamps, answered from artefacts the
+;; work left behind rather than from a transcript or a model (TODO.org
+;; :ID: 5ff5a4b8).  Two sources, and they differ in strength:
+;;
+;;   - a `:CREATED:' stamp *inside* the window is the best evidence there
+;;     is, because a heading written during that time names what was being
+;;     thought about;
+;;   - a commit is next best, and anchors the window rather than bounding
+;;     it, since its timestamp marks when work was finished.
+;;
+;; Deliberately evidence and not a recommendation.  The suggestion machinery
+;; already guesses a heading; this shows the human what the guess is made of,
+;; and a mechanical list is easier to reject than a fluent argument would be.
+
+(defun claude-code-ide-org--git-roots ()
+  "Distinct git roots containing the tracked org files.
+
+Derived from `claude-code-ide-org--tracked-files' rather than from
+`default-directory', which at review time is wherever the human happened
+to be when they ran the command -- quite possibly another project, or
+$HOME.
+
+Truenames first, then `locate-dominating-file': the tracked path is
+normally `~/org/claude-code-ide-org/TODO.org', a symlink into the repo,
+and walking up from the symlink's own directory finds no .git at all."
+  (let (roots)
+    (dolist (file (claude-code-ide-org--tracked-files))
+      (let ((true (ignore-errors (file-truename file))))
+        (when (and true (file-exists-p true))
+          (let ((root (locate-dominating-file true ".git")))
+            (when root (push (file-truename root) roots))))))
+    (delete-dups roots)))
+
+(defun claude-code-ide-org--commits-in-window (start end)
+  "Commits between START and END, as a list of (TIME . DESCRIPTION).
+
+Committer date throughout -- `--since'/`--until' filter on it, so `%ct'
+is what makes the timestamp shown agree with the timestamp filtered on.
+
+`--all' rather than the current branch: a concurrent session on its own
+branch was still work happening in this window, and which ref it landed
+on says nothing about when.  Git dedupes by commit object, so a commit
+reachable from both a local branch and its remote appears once.
+
+Never signals.  A missing git, a directory that stopped being a
+repository, an unparseable line -- each degrades to \"no commits\", which
+is the same thing the human sees today."
+  (let (rows)
+    (dolist (root (claude-code-ide-org--git-roots))
+      (with-temp-buffer
+        (let ((status (ignore-errors
+                        (call-process
+                         "git" nil t nil "-C" root "log" "--all"
+                         (concat "--since="
+                                 (format-time-string "%Y-%m-%dT%H:%M:%S%z" start))
+                         (concat "--until="
+                                 (format-time-string "%Y-%m-%dT%H:%M:%S%z" end))
+                         "--format=%ct%x09%h%x09%s"))))
+          (when (eql status 0)
+            (goto-char (point-min))
+            (while (re-search-forward "^\\([0-9]+\\)\t\\([^\t]+\\)\t\\(.*\\)$" nil t)
+              (push (cons (seconds-to-time (string-to-number (match-string 1)))
+                          (format "commit  %s %s"
+                                  (match-string 2) (match-string 3)))
+                    rows))))))
+    rows))
+
+(defun claude-code-ide-org--creations-in-window (start end)
+  "Headings created between START and END, as a list of (TIME . DESCRIPTION).
+
+Scoped to `claude-code-ide-org--assignable-files' -- the tracked files
+plus their archive targets -- for the same reason assignment is: a
+heading created during the span may have been archived since, and it is
+still the best answer to what the span was about.
+
+`:CREATED:' is a property, so this is a property read per entry rather
+than a text scan.  A malformed stamp is skipped rather than allowed to
+signal: this runs inside `claude-code-ide-org--review-render'."
+  (let (rows)
+    (ignore-errors
+      (org-map-entries
+       (lambda ()
+         (let* ((created (org-entry-get nil "CREATED"))
+                (time (and created
+                           (ignore-errors
+                             (claude-code-ide-org--parse-org-timestamp created)))))
+           (when (and time
+                      (not (time-less-p time start))
+                      (not (time-less-p end time)))
+             (push (cons time
+                         (format "created %s"
+                                 (org-no-properties (org-get-heading t t t t))))
+                   rows))))
+       t
+       (claude-code-ide-org--assignable-files)))
+    rows))
+
+(defun claude-code-ide-org--span-evidence (start end)
+  "Return display lines naming what happened in the span START--END.
+
+The window runs from START to END plus
+`claude-code-ide-org-span-evidence-slack'.  Commits and heading creations
+are interleaved in one chronological list, because the order between them
+is itself the signal: a heading created at 15:33 followed by a commit at
+15:34 tells a story neither line tells alone.
+
+Capped at `claude-code-ide-org-span-evidence-limit', with the overflow
+reported as a count."
+  (let* ((window-end (time-add end claude-code-ide-org-span-evidence-slack))
+         (rows (sort (append (claude-code-ide-org--commits-in-window start window-end)
+                             (claude-code-ide-org--creations-in-window start window-end))
+                     (lambda (a b) (time-less-p (car a) (car b)))))
+         (extra (- (length rows) claude-code-ide-org-span-evidence-limit))
+         lines)
+    (dolist (row (if (> extra 0)
+                     (butlast rows extra)
+                   rows))
+      (push (format "%s  %s"
+                    (format-time-string "%H:%M" (car row))
+                    (cdr row))
+            lines))
+    (when (> extra 0)
+      (push (format "%7s... %d more in this window" "" extra) lines))
+    (nreverse lines)))
+
+(defvar-local claude-code-ide-org--span-evidence-cache nil
+  "Hash table memoizing `claude-code-ide-org--span-evidence' per window.
+
+`claude-code-ide-org--review-render' runs on every keystroke that marks
+or unmarks an item, and the evidence costs a `git log' plus a walk of
+every tracked heading.  Recomputing that per keystroke is what would make
+marking a run of items feel broken.
+
+Keyed on the window rather than on the item, so narrowing a span with `e'
+misses the cache and re-reads -- the answer really is different for a
+different window.  Cleared by `g', which is the command that exists to go
+back to the queue and the files for fresh answers.")
+
+(defun claude-code-ide-org--span-evidence-cached (item)
+  "Evidence lines for ITEM's span, computed once per window per buffer."
+  (let ((start (plist-get item :start))
+        (end (plist-get item :end)))
+    (when (and start end)
+      (unless claude-code-ide-org--span-evidence-cache
+        (setq claude-code-ide-org--span-evidence-cache
+              (make-hash-table :test 'equal)))
+      (let* ((key (list (float-time start) (float-time end)))
+             (hit (gethash key claude-code-ide-org--span-evidence-cache 'miss)))
+        (if (eq hit 'miss)
+            (puthash key
+                     ;; Display code degrades, it does not signal: half a
+                     ;; review buffer is worse than no evidence.
+                     (ignore-errors
+                       (claude-code-ide-org--span-evidence start end))
+                     claude-code-ide-org--span-evidence-cache)
+          hit)))))
+
 (defun claude-code-ide-org--review-render ()
   "Render `claude-code-ide-org--review-items' into the current buffer.
 
@@ -3757,7 +3957,18 @@ rest from lighting up."
                  (format "  [%s] %s\n"
                          (if (plist-get item :marked) "x" " ")
                          (claude-code-ide-org--review-describe item))
-                 'claude-code-ide-org-item item))))
+                 'claude-code-ide-org-item item))
+        ;; Evidence goes under the unassigned spans only -- the items that
+        ;; pose a question.  An assigned span has already been answered, and
+        ;; a state item has no window to look in.
+        ;;
+        ;; Left unpropertized on purpose: without the item property these
+        ;; lines behave exactly as the group headings do, so `m', `n' and
+        ;; `--review-forward-item' step over them rather than onto them.
+        (when (and (eq (plist-get item :type) 'clock)
+                   (plist-get item :unassigned))
+          (dolist (line (claude-code-ide-org--span-evidence-cached item))
+            (insert (format "          %s\n" line))))))
     (goto-char (point-min))))
 
 (defun claude-code-ide-org--review-set-mark (marked &optional advance)
@@ -4132,8 +4343,13 @@ touches no org file at all."
           (claude-code-ide-org-review-refresh))))))
 
 (defun claude-code-ide-org-review-refresh ()
-  "Rebuild the review buffer from the queue, discarding marks."
+  "Rebuild the review buffer from the queue, discarding marks.
+
+Also drops the span-evidence cache.  `g' is the command that means \"go
+and look again\", and a commit made since the buffer was drawn is exactly
+the kind of thing a human presses it for."
   (interactive)
+  (setq claude-code-ide-org--span-evidence-cache nil)
   (setq claude-code-ide-org--review-items
         (claude-code-ide-org--review-items-from-queue))
   (claude-code-ide-org--review-render))
