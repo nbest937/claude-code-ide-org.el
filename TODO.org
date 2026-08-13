@@ -482,6 +482,36 @@ at all, and org-depend itself isn't loaded anywhere in this project
 with nothing stopping it, contrary to what the property visually
 implies.
 
+*Premise falsified 2026-08-13: org-depend IS loaded and IS on the hook.*
+Measured in the live Emacs, =org-blocker-hook= holds
+=(org-block-todo-from-children-or-siblings-or-parent
+org-depend-block-todo claude-code-ide-org--blocker-clock-running-p)=,
+and =org-enforce-todo-dependencies= is =t=. The inference above went
+from "=packages.el= adds no packages" to "org-depend isn't loaded",
+which is wrong: Doom loads it as part of org, so nothing had to be
+added.
+
+Corroborating measurement rather than inference:
+[[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]], =TODO= with three
+unfinished blockers, reports =(org-entry-blocked-p)= = *YES*. Something
+is evaluating =:BLOCKER:=, and this project's own function does not.
+
+*What is NOT established, deliberately left open rather than assumed.*
+A scratch reproduction — two headings in a temp file, one blocking the
+other — did *not* reproduce it: neither reported blocked and both
+accepted =DONE=. That is far more likely a fault in the test's id
+resolution than a contradiction, but it means the end-to-end claim
+"=org-todo= to =DONE= is actually denied" is *unproven*. So this heading
+is not cancelled: its premise is dead, its goal may or may not already
+be met, and settling that needs a reproduction that works.
+
+*A second finding, which the heading would want either way:* blocking is
+evaluated against the *blocked heading's own state*.
+[[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]] is =MAYBE= with an
+unfinished blocker and reports blocked=no, while =02aaae22= at =TODO=
+reports YES. So a =:BLOCKER:= on a =MAYBE= heading is dormant — it looks
+enforcing and is not, until the heading leaves =MAYBE=.
+
 Extend =claude-code-ide-org--blocker-clock-running-p= (or add a second
 =org-blocker-hook= function alongside it) to also deny a transition to
 =DONE= while any ID listed in the heading's own =:BLOCKER:= property
@@ -4755,6 +4785,23 @@ artifacts it describes are not, so a stale claim in it outranks the
 truth until someone deliberately checks. Sections describing mechanisms
 that have been cut over are the highest-risk kind.
 
+*Added to scope 2026-08-13: CLAUDE.md's "Dependencies between tasks"
+misleads about enforcement.* It says this project's =org-blocker-hook=
+function "only blocks on a running clock today, not on =:BLOCKER:=".
+True of *that function* and false as a statement about the file: measured
+2026-08-13, =org-blocker-hook= also carries =org-depend-block-todo= and
+=org-enforce-todo-dependencies= is =t=. Claude read that sentence and
+told the user "nothing enforces =:BLOCKER:= in this repo" — the
+sentence is accurate and its natural reading is not, which is the
+hardest kind of doc bug to catch. It also underpins
+[[id:087e73e9-bb24-43b6-a972-b7f103d04017][087e73e9]], whose premise is
+now falsified. The rewrite should say what is on the hook and what each
+part blocks on.
+
+Also worth documenting there: a =:BLOCKER:= on a =MAYBE= heading is
+dormant, because blocking is evaluated against the blocked heading's own
+state.
+
 *Added to scope 2026-08-11: mechanically check the checkable claims.*
 Rewriting the prose fixes those four and leaves nothing preventing the
 next four — CLAUDE.md is a hand-maintained description of a system that
@@ -6729,12 +6776,16 @@ the first real one read
 Fixed going forward only, at the user's instruction; the 17 already
 written stand as they are.
 
-*** TODO Reconsider consolidating at apply: the rounding hazard that forbade it is retired :code:
+*** DONE Reconsider consolidating at apply: the rounding hazard that forbade it is retired :code:
 :PROPERTIES:
 :ID:       12e0adac-5aa4-4e95-a5d5-574ce32c1db0
 :CREATED:  [2026-08-13 Thu 13:50]
 :END:
 :LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-13 Thu 16:41] \\
+  apply consolidates its own heading's drawer
+- State "DOING"      from "TODO"       [2026-08-13 Thu 16:38] \\
+  deciding whether apply should consolidate
 - State "TODO"       from              [2026-08-13 Thu 13:51] \\
   stale rationale; consolidation may be safe now
 :END:
@@ -6834,12 +6885,14 @@ first defect immediately.
 :CREATED:  [2026-08-13 Thu 15:42]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-13 Thu 16:25]--[2026-08-13 Thu 17:16] =>  0:51
 CLOCK: [2026-08-13 Thu 16:17]--[2026-08-13 Thu 16:20] =>  0:03
 - State "DONE"       from "NEXT"       [2026-08-13 Thu 16:08] \\
   narrowing conserves events; e now splits spans
 - State "NEXT"       from              [2026-08-13 Thu 15:42] \\
   silent loss on truncate; recovery is available
 - <2026-08-13 Thu 16:17>--<2026-08-13 Thu 16:20> suggested span, accepted at review
+- <2026-08-13 Thu 16:25>--<2026-08-13 Thu 17:16> suggested span, accepted at review
 :END:
 
 *Found 2026-08-13 by losing 32 minutes of record to it*, acting on
@@ -7348,10 +7401,14 @@ answer.
 
 Steps 2 and 3 overlap: if 3 lands, 2 may be unnecessary, since there
 would be nothing left that needs to write immediately.
-** Show commits and heading creations inside an unassigned span's window :code:
+** NEXT Show commits and heading creations inside an unassigned span's window :code:
 :PROPERTIES:
 :ID:       5ff5a4b8-2fee-472a-b5e1-c9de8cf96704
 :CREATED:  [2026-08-13 Thu 16:28]
+:END:
+:LOGBOOK:
+- State "NEXT"       from              [2026-08-13 Thu 16:29] \\
+  prototyped by hand; build before 0c8644ff
 :END:
 
 *Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]
@@ -8538,10 +8595,14 @@ four command forms, asserting exit status and message.
 second concurrent session until a mechanism is in place, so this gates
 concurrent work generally rather than being one more backlog item.
 
-** Lint TODO.org's structural conventions with a script :code:
+** TODO Lint TODO.org's structural conventions with a script :code:
 :PROPERTIES:
 :ID:       3bd3402b-3ab6-4ace-b20b-3ff84caa3fb2
 :CREATED:  [2026-08-13 Thu 17:02]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-13 Thu 17:03] \\
+  ran these by hand twenty times today
 :END:
 
 Proposed 2026-08-13 after a day of running the checks by hand. The
@@ -8574,6 +8635,14 @@ that it wants to be a script.
   keyword-less until a human applies its state, so any blocker naming a
   fresh capture is inert for exactly as long as the review pass is
   deferred. Checking only that the id resolves would have passed.
+
+  *And a third clause, found the same hour:* blocking is evaluated
+  against the *blocked heading's own state*. A =:BLOCKER:= on a =MAYBE=
+  heading reports not-blocked even when its target is unfinished, so it
+  looks enforcing and is not. Both the second and third clauses were
+  discovered by adding a blocker and checking whether it fired — which
+  is the shape this lint should encode: not "is the property
+  well-formed" but "would it actually block".
 - Every =[[file:~/.claude/plans/...]]= link points at a file that
   exists. =bin/sync-plans --check= covers the archive side of this but
   not dangling links.
