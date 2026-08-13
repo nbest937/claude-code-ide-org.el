@@ -5815,13 +5815,37 @@ not, and =org-log-note-*= state left over from an earlier apply round
 in the same long-lived session (the failing pass was rounds of 13 and 2
 items, not one).
 
-*Reproduction requires the live Emacs, and the obvious method is
-barred*: driving =--review-apply-state= through =emacsclient -e= hangs,
-which is the exact hang this whole architecture exists to route around
-— confirmed again here by hanging on a probe. A reproduction has to run
-inside a genuinely interactive command, so it likely means instrumenting
-apply to record =org-log-note-marker= and =org-log-note-purpose= at
-entry and exit, then having a human run one real review pass.
+*Correction, same session.* An earlier version of this note claimed
+reproduction was barred because driving =--review-apply-state= through
+=emacsclient -e= hangs — "the exact hang this architecture exists to
+route around." That was wrong, and the evidence was in the probe's own
+output the whole time. The probe ran apply-state non-interactively *to
+completion*, printing the resulting buffer and the =org-log-note-*=
+values; it then hung on =(kill-buffer buf)= against a modified buffer,
+which opened =Buffer probe-state.org modified; kill anyway?= with
+nobody to answer it. A human =C-g= cleared it. Self-inflicted, not
+architectural.
+
+So =emacsclient -e= *is* a usable reproduction vehicle here, provided
+the probe cleans up after itself (=set-buffer-modified-p nil= before
+killing, or =with-temp-buffer=). That matters because it makes the
+remaining leads cheap to test rather than requiring a human to run a
+real review pass: bind the live session's actual =org-log-*= settings
+into a scratch file and bisect against =emacs --batch -Q=, and
+separately test the read-only lead by making the scratch buffer
+read-only and letting =--review-ensure-writable= clear it mid-flight,
+which is the one condition present in the failing pass and absent from
+every passing test.
+
+One asymmetry the probe already establishes, and it narrows the fault:
+with a markerless =#+TODO:= the probe wrote *no drawer at all* —
+=dolog= nil means no setup, unset marker, guard skips everything
+including the note text. Production wrote note text *without* a header.
+Those are different failure modes, so production is not the markerless
+case: setup ran and the marker was set. The fault lies between
+=org-add-log-setup= succeeding and =org-store-log-note= emitting its
+header — and =--review-ensure-writable= clearing =buffer-read-only=
+sits inside exactly that window.
 
 Repair of the seven already-written entries is a separate question from
 the fix: the =from= states are recoverable from the queue events, which
