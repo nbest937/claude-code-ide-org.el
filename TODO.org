@@ -5444,6 +5444,47 @@ unexplained and predates subagent activity — worth a look before
 specifying, since a definition of drained that assumes pairs balance
 would be wrong today.
 
+*Asymmetry explained 2026-08-13, and it has two unrelated causes.*
+Walked every session's stream pairing per lane, the way
+=--queue-events-by-id= does:
+
+1. *Five =clock_out= events with no open =clock_in=*, all in session
+   =2d057349=, all pre-cutover. Their notes say what they were — "stray
+   resume, not work on this heading", "closing out the review command".
+   Pre-cutover the clock was a single live global thing, so a session
+   could legitimately close a clock a *different* session had opened.
+   The event records that correctly; there is simply no matching
+   =clock_in= in the same file. Historical, and cannot recur now that
+   =org_clock_out= opens and closes nothing.
+2. *Four =clock_in= events never closed* — =720b2dcf=, =02aaae22=,
+   =f290161c=, =feba67eb= — plus one legitimately open right now for
+   this heading's own work. *This is not an anomaly, it is the normal
+   end-of-session state.* Post-cutover the =Stop= hook appends a =pause=
+   guidepost, not a =clock_out=; nothing ever closes a queued
+   =clock_in=. A session that clocks in and ends leaves one dangling
+   permanently.
+
+So a definition of drained that assumes pairs balance would indeed be
+wrong, and would stay wrong: unmatched events on both sides are a
+*permanent* feature of a finished file, not a transient state it grows
+out of. Both belong in bucket 2.
+
+*A constraint this turned up that the design above does not mention, and
+it is the sharpest one.* =bin/hooks/queue-append= appends with =>>=,
+which recreates a missing file. So archiving the file of a session that
+is *still writing* does not stop it writing — it splits that session's
+stream across an archived file the reader no longer scans and a fresh
+one it does. Nothing errors; the older half simply stops being
+consulted mid-session.
+
+Which means the drained predicate needs a second clause beyond "yields
+no items": *the session must not still be live.* A currently-open
+=clock_in= is one signal, but a weak one — most sessions never clock in
+at all. The reliable one is the running session's own id, which the
+review command knows; file mtime is a serviceable fallback for the rest.
+Getting this wrong is worse than never archiving, because the loss is
+silent and lands mid-session.
+
 *** DONE Review-buffer interaction fixes, for after the cutover :code:
 :PROPERTIES:
 :ID:       d409390b-6624-4820-82bb-730d763962fd
