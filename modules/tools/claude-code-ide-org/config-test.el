@@ -2727,6 +2727,105 @@ and a human pause/resume lands between them."
           (if (eq first-out 'a) out-a out-b)
           (if (eq second-out 'b) out-b out-a))))
 
+(ert-deftest claude-code-ide-org-test-apply-clock-is-idempotent ()
+  "Applying the same interval twice writes one CLOCK line, not two.
+
+Regression for TODO.org :ID: 78f485a8. Without this, reprocessing an
+archived queue file silently doubles recorded time -- silently being the
+problem, since a duplicated CLOCK line is indistinguishable from a
+legitimate one."
+  (claude-code-ide-org-test--with-heading
+    (let ((item (list :type 'clock :id id
+                      :start (date-to-time "2026-08-06T09:00:00-0500")
+                      :end (date-to-time "2026-08-06T09:15:00-0500")
+                      :note "clarify backend schema design"
+                      :agent nil :suggested nil :events nil)))
+      (should-not (claude-code-ide-org--review-apply-item item))
+      (should-not (claude-code-ide-org--review-apply-item item))
+      (let ((disk (claude-code-ide-org-test--disk-contents file)))
+        (should (equal 1 (cl-count-if (lambda (l) (string-match-p "CLOCK:" l))
+                                      (split-string disk "\n"))))
+        ;; The annotation must not double either -- it is the other
+        ;; non-idempotent write path.
+        (should (equal 1 (cl-count-if
+                          (lambda (l) (string-match-p "clarify backend schema design" l))
+                          (split-string disk "\n"))))))))
+
+(ert-deftest claude-code-ide-org-test-apply-clock-still-writes-distinct-intervals ()
+  "Idempotency must not swallow a genuinely different interval.
+Two intervals on one heading that merely share a start are two real
+intervals, and both must land."
+  (claude-code-ide-org-test--with-heading
+    (dolist (spec '(("09:00" "09:15") ("09:00" "09:45") ("10:00" "10:05")))
+      (should-not (claude-code-ide-org--review-apply-item
+                   (list :type 'clock :id id
+                         :start (date-to-time (concat "2026-08-06T" (car spec) ":00-0500"))
+                         :end (date-to-time (concat "2026-08-06T" (cadr spec) ":00-0500"))
+                         :agent nil :suggested nil :events nil))))
+    (should (equal 3 (cl-count-if (lambda (l) (string-match-p "CLOCK:" l))
+                                  (split-string (claude-code-ide-org-test--disk-contents file)
+                                                "\n"))))))
+
+(ert-deftest claude-code-ide-org-test-drained-requires-idle-and-no-items ()
+  "Both clauses of the drained predicate are load-bearing."
+  (claude-code-ide-org-test--with-queue
+    ;; A file with a pending todo yields an item: not drained, however old.
+    (apply #'claude-code-ide-org-test--queue-write "sess-live"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:00:00-0500" "todo" "id-a" "DOING" "sess-live")))
+    ;; A lone clock_out yields no item: it is not a guidepost, so no span
+    ;; clusters from it, and there is no clock_in to pair it with. Note a
+    ;; lone PAUSE would not do -- since 3d0487f4 that clusters into a
+    ;; zero-width unassigned span, which IS an item.
+    (apply #'claude-code-ide-org-test--queue-write "sess-quiet"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:00:00-0500" "clock_out" nil nil "sess-quiet")))
+    (let ((claude-code-ide-org-queue-idle-seconds 0))
+      (should-not (claude-code-ide-org--queue-file-drained-p "sess-live"))
+      (should (claude-code-ide-org--queue-file-drained-p "sess-quiet")))
+    ;; Same files, but nothing counts as idle: the quiet one is no longer
+    ;; drained, because archiving it could split a live session's stream.
+    (let ((claude-code-ide-org-queue-idle-seconds 86400))
+      (should-not (claude-code-ide-org--queue-file-drained-p "sess-quiet")))))
+
+(ert-deftest claude-code-ide-org-test-archive-and-restore-round-trip ()
+  "Archiving moves both files and hides them from the reader; restoring
+brings them back. With IGNORE-WATERMARK the sidecar stays archived."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-old"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:00:00-0500" "pause" nil nil "sess-old")))
+    (claude-code-ide-org--queue-mark-applied "sess-old" '("2026-08-13T09:00:00-0500"))
+    (let ((claude-code-ide-org-queue-idle-seconds 0))
+      (should (equal '("sess-old")
+                     (plist-get (claude-code-ide-org-archive-drained-queues) :moved))))
+    ;; Invisible to the reader, and both files moved.
+    (should-not (member "sess-old" (claude-code-ide-org--queue-session-ids)))
+    (should-not (file-exists-p (claude-code-ide-org--queue-file "sess-old")))
+    (should-not (file-exists-p (claude-code-ide-org--queue-watermark-file "sess-old")))
+    ;; Restore, honouring the watermark.
+    (claude-code-ide-org-restore-queue "sess-old")
+    (should (member "sess-old" (claude-code-ide-org--queue-session-ids)))
+    (should (file-exists-p (claude-code-ide-org--queue-watermark-file "sess-old")))
+    ;; Archive again, then restore ignoring the watermark.
+    (let ((claude-code-ide-org-queue-idle-seconds 0))
+      (claude-code-ide-org-archive-drained-queues))
+    (claude-code-ide-org-restore-queue "sess-old" t)
+    (should (file-exists-p (claude-code-ide-org--queue-file "sess-old")))
+    (should-not (file-exists-p (claude-code-ide-org--queue-watermark-file "sess-old")))))
+
+(ert-deftest claude-code-ide-org-test-archive-dry-run-moves-nothing ()
+  "A dry run reports what it would move and moves nothing."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-old"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:00:00-0500" "clock_out" nil nil "sess-old")))
+    (let ((claude-code-ide-org-queue-idle-seconds 0))
+      (should (equal '("sess-old")
+                     (plist-get (claude-code-ide-org-archive-drained-queues t) :moved))))
+    (should (file-exists-p (claude-code-ide-org--queue-file "sess-old")))
+    (should (member "sess-old" (claude-code-ide-org--queue-session-ids)))))
+
 (ert-deftest claude-code-ide-org-test-activity-range-ignores-prose-examples ()
   "A CLOCK line quoted as prose in a body must not break the scan.
 

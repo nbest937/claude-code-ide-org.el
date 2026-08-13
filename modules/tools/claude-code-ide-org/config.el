@@ -268,12 +268,53 @@ removes the heading from the source buffer entirely (via
 ;;   holds the same stream undecimated, survives without a running Emacs,
 ;;   and carries session/agent attribution the drawer never had.
 
+(defun claude-code-ide-org--drawer-contains-line-p (drawer-name line)
+  "Non-nil when LINE already appears in the heading's DRAWER-NAME drawer.
+
+Compared on trimmed text, so indentation differences do not produce a
+false negative and a duplicate.  Half of the content-based idempotency
+`claude-code-ide-org--queue-file-drained-p' and reprocessing rely on
+(TODO.org :ID: 78f485a8): an annotation line is a pure function of its
+span and label, so an identical one is a replay rather than a second
+thing that happened."
+  (save-excursion
+    (org-back-to-heading t)
+    (let* ((end (save-excursion (outline-next-heading) (point)))
+           (target (string-trim line))
+           (drawer-re (concat "^[ \t]*:" (regexp-quote drawer-name) ":[ \t]*$"))
+           found)
+      (while (and (not found) (re-search-forward drawer-re end t))
+        (let ((element (org-element-at-point)))
+          (when (org-element-type-p element 'drawer)
+            (let ((cend (or (org-element-contents-end element) (point))))
+              (save-excursion
+                (forward-line 1)
+                (while (and (not found) (< (point) cend))
+                  (when (equal target (string-trim
+                                       (buffer-substring-no-properties
+                                        (line-beginning-position)
+                                        (line-end-position))))
+                    (setq found t))
+                  (forward-line 1)))))))
+      found)))
+
 (defun claude-code-ide-org--append-to-drawer (drawer-name line)
   "Append LINE to the :DRAWER-NAME: drawer of the heading at point.
 Creates the drawer immediately after the heading's planning line
 and property drawer if it does not already exist.  Adapted from
 org-clock.el's own `org-clock-find-position', which solves the same
-find-or-create-drawer problem for :LOGBOOK:."
+find-or-create-drawer problem for :LOGBOOK:.
+
+Does nothing when LINE is already present, which is what makes replaying
+an archived queue file safe.  Checking the destination beats tracking
+applied identities in a sidecar precisely because it survives losing the
+sidecar -- which is the situation reprocessing puts you in."
+  (if (claude-code-ide-org--drawer-contains-line-p drawer-name line)
+      nil
+    (claude-code-ide-org--append-to-drawer-1 drawer-name line)))
+
+(defun claude-code-ide-org--append-to-drawer-1 (drawer-name line)
+  "Unconditionally append LINE to DRAWER-NAME at point."
   (org-back-to-heading t)
   (let* ((beg (line-beginning-position))
          (end (save-excursion (outline-next-heading) (point)))
@@ -2129,6 +2170,24 @@ tracked content, and they span every project a session touches."
   :type 'directory
   :group 'claude-code-ide-org)
 
+(defcustom claude-code-ide-org-queue-idle-seconds 3600
+  "Seconds a queue file must go untouched before it counts as finished.
+
+Guards the one way archiving can lose data silently.
+`bin/hooks/queue-append' appends with `>>', which *recreates* a missing
+file -- so moving the queue of a session that is still writing does not
+stop it writing.  It splits that session's stream across an archived
+file the reader no longer scans and a fresh one it does.  Nothing
+errors; the older half simply stops being consulted, mid-session.
+
+Emacs cannot ask which session is live: `session_id' only ever appears
+on hook stdin and never reaches an MCP tool (TODO.org :ID: 32272061), so
+mtime is the available signal rather than the ideal one.  An hour is
+deliberately generous -- archiving late costs nothing, archiving early
+costs a split stream."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
 (defcustom claude-code-ide-org-guidepost-gap-threshold 1200
   "Seconds between consecutive guideposts below which they collapse
 into one span for review, in `claude-code-ide-org--aggregate-guideposts'.
@@ -2835,6 +2894,25 @@ the entire point -- and inactive for a subagent's, which should not."
             (format-time-string fmt (plist-get item :end))
             (if (and note (not (string-empty-p note))) (concat " " note) ""))))
 
+(defun claude-code-ide-org--logbook-has-interval-p (start end)
+  "Non-nil when the heading at point already records a CLOCK interval
+with exactly START and END.
+
+Compares the *rendered* timestamps rather than parsed times, because
+that is what a replay would write: org formats both ends the same way
+every time, so string equality on the org form is exact here and avoids
+re-parsing every line in the drawer.
+
+The other half of the content idempotency described on
+`claude-code-ide-org--append-to-drawer'."
+  (let ((needle (format "CLOCK: %s--%s"
+                        (format-time-string "[%Y-%m-%d %a %H:%M]" start)
+                        (format-time-string "[%Y-%m-%d %a %H:%M]" end))))
+    (save-excursion
+      (org-back-to-heading t)
+      (let ((limit (save-excursion (outline-next-heading) (point))))
+        (and (search-forward needle limit t) t)))))
+
 (defun claude-code-ide-org--review-apply-clock (item)
   "Write ITEM's CLOCK: interval and its :LOGBOOK: annotation at point.
 Uses raw `org-clock-in'/`org-clock-out' with both endpoints supplied up
@@ -2863,7 +2941,15 @@ running-p' would refuse a -> DONE transition if one were."
     ;; never observed. Note this is NOT the rounding behavior being
     ;; avoided elsewhere: nothing is being discarded, because there was
     ;; no duration to discard.
-    (unless (time-equal-p start end)
+    (unless (or (time-equal-p start end)
+                ;; Content-based idempotency: an interval with identical
+                ;; endpoints on this heading is a replay, not two real
+                ;; intervals a human happened to confirm twice. Without
+                ;; this, reprocessing an archived queue file silently
+                ;; doubles recorded time -- and silently is the problem,
+                ;; since a duplicated CLOCK line looks exactly like a
+                ;; legitimate one (TODO.org :ID: 78f485a8).
+                (claude-code-ide-org--logbook-has-interval-p start end))
       (let ((org-clock-out-remove-zero-time-clocks nil)
             (closed nil))
         (org-clock-in nil start)
@@ -3044,6 +3130,117 @@ it."
         (if error (push error errors) (push item applied))))
     (claude-code-ide-org--review-record-applied applied)
     (list :applied (length applied) :errors (nreverse errors))))
+
+;;; Queue archiving ---------------------------------------------------------
+;;
+;; "Drained" cannot mean "every event applied": only events that become
+;; *items* are ever marked applied, and whole kinds never do.  Measured
+;; 2026-08-12 with the review buffer reporting "Nothing pending": todo
+;; 31 of 31 consumed, alongside 253 residual clock and guidepost events.
+;; A file in that state is finished in every sense that matters and would
+;; never move under an all-applied test.  So the predicate is a property
+;; of the *reader* -- "would the item builder produce anything from this"
+;; -- which is why it lives here rather than in the watermark.
+;;
+;; The archive is a subdirectory, not a flag.  `--queue-session-ids'
+;; calls `directory-files' non-recursively filtered to `\.jsonl\'', so a
+;; subdirectory is already invisible to every reader: archiving needs no
+;; reader change at all, which a consumed-flag would have.
+
+(defun claude-code-ide-org--queue-archive-directory ()
+  "Path of the archive subdirectory, created on demand."
+  (let ((dir (expand-file-name "archive" claude-code-ide-org-queue-directory)))
+    (unless (file-directory-p dir) (make-directory dir t))
+    dir))
+
+(defun claude-code-ide-org--queue-file-idle-p (session-id)
+  "Non-nil when SESSION-ID's queue file has gone quiet long enough.
+See `claude-code-ide-org-queue-idle-seconds' for why this is mtime and
+not the live session's own id."
+  (let ((file (claude-code-ide-org--queue-file session-id)))
+    (or (not (file-exists-p file))
+        (> (float-time (time-subtract (current-time)
+                                      (file-attribute-modification-time
+                                       (file-attributes file))))
+           claude-code-ide-org-queue-idle-seconds))))
+
+(defun claude-code-ide-org--queue-file-drained-p (session-id)
+  "Non-nil when SESSION-ID's queue yields no review items and is idle.
+
+Both clauses are load-bearing.  Yielding nothing is what makes a file
+finished; being idle is what stops a *live* session's stream being split
+in two.  A file can satisfy the first and fail the second all day --
+that is a session sitting at a prompt, not a finished one."
+  (and (null (claude-code-ide-org--review-items-from-queue session-id))
+       (claude-code-ide-org--queue-file-idle-p session-id)))
+
+(defun claude-code-ide-org-archive-drained-queues (&optional dry-run)
+  "Move every drained queue file, with its watermark, into the archive.
+
+Interactive, and reports what it moved.  With a prefix argument only
+reports, changing nothing -- worth using first, since the whole risk of
+this command is archiving something still in use.
+
+The `.applied' sidecar moves alongside its `.jsonl' deliberately: a
+restored file that lost its watermark cannot support selective
+reprocessing, only all-or-nothing."
+  (interactive "P")
+  (let ((archive (claude-code-ide-org--queue-archive-directory))
+        moved skipped)
+    (dolist (sid (claude-code-ide-org--queue-session-ids))
+      (if (claude-code-ide-org--queue-file-drained-p sid)
+          (let ((jsonl (claude-code-ide-org--queue-file sid))
+                (applied (claude-code-ide-org--queue-watermark-file sid)))
+            (unless dry-run
+              (dolist (f (list jsonl applied))
+                (when (file-exists-p f)
+                  (rename-file f (expand-file-name (file-name-nondirectory f) archive) t))))
+            (push sid moved))
+        (push sid skipped)))
+    (message "%s%d drained (%s); %d left in place"
+             (if dry-run "Dry run: " "Archived ")
+             (length moved)
+             (if moved (mapconcat (lambda (s) (substring s 0 8)) (nreverse moved) ", ")
+               "none")
+             (length skipped))
+    (list :moved (nreverse moved) :skipped (nreverse skipped))))
+
+(defun claude-code-ide-org-restore-queue (session-id &optional ignore-watermark)
+  "Move SESSION-ID's queue file back out of the archive for reprocessing.
+
+With IGNORE-WATERMARK non-nil (a prefix argument interactively), the
+`.applied' sidecar is left behind, so every event is re-examined.
+
+The two modes exist because reprocessing has two motives that want
+opposite things.  Repairing a corrupted apply wants the watermark
+*honoured*, so only the unapplied remainder is offered.  Re-deriving
+under changed reader logic wants it *ignored* -- which is the case that
+actually arises: on 2026-08-13 five of seven session files yielded zero
+items before `3d0487f4' shipped and would have archived as drained,
+then yielded 17 spans and 8.9 hours afterwards.
+
+Safe in either mode because both remaining write paths are
+content-idempotent; see `claude-code-ide-org--append-to-drawer'."
+  (interactive
+   (list (completing-read
+          "Restore session: "
+          (mapcar #'file-name-base
+                  (directory-files (claude-code-ide-org--queue-archive-directory)
+                                   nil "\\.jsonl\\'"))
+          nil t)
+         current-prefix-arg))
+  (let* ((archive (claude-code-ide-org--queue-archive-directory))
+         (jsonl (expand-file-name (concat session-id ".jsonl") archive))
+         (applied (expand-file-name (concat session-id ".applied") archive)))
+    (unless (file-exists-p jsonl)
+      (user-error "No archived queue for %s" session-id))
+    (rename-file jsonl (claude-code-ide-org--queue-file session-id) t)
+    (when (and (file-exists-p applied) (not ignore-watermark))
+      (rename-file applied (claude-code-ide-org--queue-watermark-file session-id) t))
+    (message "Restored %s%s" (substring session-id 0 8)
+             (if ignore-watermark " (watermark left archived; every event re-offered)"
+               ""))
+    session-id))
 
 ;;;###autoload
 (defun claude-code-ide-org-pending-updates (&optional session-id)
