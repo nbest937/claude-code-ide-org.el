@@ -541,13 +541,17 @@ uncommitted changes"). Not merging them here; worth deciding during
 planning whether they should be one task, sequenced, or just
 cross-referenced as they are now.
 
-** MAYBE Revisit the TODO keyword progression, starting with whether PLANNING earns its keep :code:
+** TODO Revisit the TODO keyword progression, starting with whether PLANNING earns its keep :code:
 :PROPERTIES:
 :ID:       c954f650-b92f-4920-9967-ab6c44577b30
 :CREATED:  [2026-08-06 Thu 10:02]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-13 Thu 12:24]--[2026-08-13 Thu 13:09] =>  0:45
+- State "TODO"       from "MAYBE"      [2026-08-13 Thu 12:21] \\
+  ungated; gate was unsatisfiable and a proxy
 CLOCK: [2026-08-10 Mon 20:48]--[2026-08-10 Mon 20:49] =>  0:01
+- <2026-08-13 Thu 12:24>--<2026-08-13 Thu 13:09>
 :END:
 
 Raised in conversation 2026-08-06, after a day of live use: =PLANNING=
@@ -5046,10 +5050,18 @@ returns to =:LOGBOOK:= until
 [[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]] stops per-turn
 clocking altogether. That is the thing to watch.
 
-*** TODO Let the review buffer assign unattributed guideposts to a heading :code:
+*** DOING Let the review buffer assign unattributed guideposts to a heading :code:
 :PROPERTIES:
 :ID:       3d0487f4-b8f8-451c-88bf-ab537663cbd0
 :CREATED:  [2026-08-11 Tue 07:24]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-13 Thu 13:16]--[2026-08-13 Thu 13:22] =>  0:06
+- State "DOING"      from "NEXT"       [2026-08-13 Thu 13:10] \\
+  implementing suggested guidepost assignment
+- State "NEXT"       from "TODO"       [2026-08-13 Thu 13:00] \\
+  decided: build with suggested assignment
+- <2026-08-13 Thu 13:16>--<2026-08-13 Thu 13:22> building unassigned span assignment
 :END:
 
 Guideposts carry no heading of their own; they inherit whichever one the
@@ -6639,6 +6651,101 @@ heading retrospectively, rather than requiring anyone to clock into a
 standing task in advance. If that lands, this heading is no longer a
 mechanism to remember — it is just a convenient assignment target for
 spans that genuinely belong to no task.
+*** An assigned span writes a label-less annotation line :code:
+:PROPERTIES:
+:ID:       c97b3564-5b14-4fc5-8964-a64775c5dc5d
+:CREATED:  [2026-08-13 Thu 13:50]
+:END:
+
+Found 2026-08-13 in the first real apply of
+[[id:3d0487f4-b8f8-451c-88bf-ab537663cbd0][3d0487f4]]'s spans. Compare
+what the two span paths wrote into the same drawer:
+
+: - <2026-08-13 Thu 12:24>--<2026-08-13 Thu 13:09>
+: - <2026-08-13 Thu 13:16>--<2026-08-13 Thu 13:22> building unassigned span assignment
+
+The first is an *assigned* span, the second an ordinary bracketed one.
+Unassigned spans are built with =:note nil= because there is no
+enclosing =clock_in= to inherit a label from — correct as far as it
+goes, but the resulting annotation restates the =CLOCK:= line directly
+above it and adds nothing. =clock-template.org='s convention is that
+every non-=CLOCK:= line carries a short label; a bare one is noise
+against that standard.
+
+Two candidate fixes, and the choice is a real one:
+1. *Suppress the annotation entirely* when there is no note. Cheapest,
+   and the =CLOCK:= line already carries the interval. Cost: the
+   *active* timestamps disappear with it, and those are deliberate —
+   they are what puts a human span into =org-agenda= (recorded on
+   =--review-format-annotation=). Suppressing would silently remove a
+   span from the agenda, which is a behaviour change disguised as
+   tidying.
+2. *Synthesise a label* — "assigned at review", or the heading the human
+   picked, or the fact that it was a suggestion accepted rather than
+   chosen. Keeps the agenda timestamps and says something true about
+   provenance, which the bracketed path cannot say.
+
+Leaning (2) on the agenda point, but it is worth checking whether a
+label-less annotation actually reaches =org-agenda= before deciding —
+if it does not, the argument for (1) is much stronger.
+
+*** Reconsider consolidating at apply: the rounding hazard that forbade it is retired :code:
+:PROPERTIES:
+:ID:       12e0adac-5aa4-4e95-a5d5-574ce32c1db0
+:CREATED:  [2026-08-13 Thu 13:50]
+:END:
+
+*A documented rationale has outlived its cause.* Apply deliberately does
+not consolidate the drawer it writes into, and
+=--aggregate-guideposts='s docstring gives the reason:
+
+: Nothing here rounds: `claude-code-ide-org--consolidate-logbook-text's
+: 5-minute rounding silently drops any interval under ~2.5 minutes that
+: misses a boundary, which is precisely the confidently-wrong record
+: this design exists to prevent.
+
+That was true when written and is false now.
+=--consolidate-logbook-text='s own docstring opens *"This function no
+longer alters any interval"* — the rounding was retired outright in
+[[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]], the incident
+where it erased a real two-minute interval. So the hazard that kept
+consolidation off the apply path no longer exists, and the comment
+asserting it is stale in a way that would survive review indefinitely,
+because it reads as a settled decision rather than a live claim.
+
+*What this makes possible.* After the 2026-08-13 apply,
+[[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]'s drawer reads:
+
+: CLOCK: [2026-08-13 Thu 12:24]--[2026-08-13 Thu 13:09] =>  0:45
+: - State "TODO"       from "MAYBE"      [2026-08-13 Thu 12:21] \\
+:   ungated; gate was unsatisfiable and a proxy
+: CLOCK: [2026-08-10 Mon 20:48]--[2026-08-10 Mon 20:49] =>  0:01
+: - <2026-08-13 Thu 12:24>--<2026-08-13 Thu 13:09>
+
+Four entries, four different positions on the timeline, in none of them.
+[[id:af7d3687-6d1e-4480-a9e2-df772785713f][af7d3687]] built exactly the
+function that fixes this and proved it a byte-identical fixed point
+against =clock-template.org=, but nothing calls it: it came off the
+clock-out path and never gained another caller. Its own accepted cost
+was that "a live drawer drifts back out of order between
+consolidations" — and this is that drift, now visible in real data
+rather than predicted.
+
+*Why this is a decision and not a fix.* Consolidating at apply changes
+what apply writes, and apply's whole claim is that it writes exactly
+what the human confirmed and nothing else. Reordering lines the human
+did not ask to reorder is a small violation of that, even if the result
+is more legible. Points to weigh:
+- It is *idempotent* and provably lossless — =af7d3687= pins both, and a
+  second pass is asserted to be a no-op.
+- It touches lines the current apply never wrote, including history from
+  other sessions, so a bug in it damages more than the batch.
+- The alternative is a separate human-invoked command, which keeps apply
+  minimal at the cost of another thing to remember.
+
+Whatever is decided, the stale comment on =--aggregate-guideposts= must
+be corrected either way — it currently misinforms anyone reasoning about
+this.
 ** MAYBE Add a third retention tier for completed work as a chronological changelog :code:
 :PROPERTIES:
 :ID:       4c0044bf-1b6c-44ea-807a-8f9e3523e3fd
