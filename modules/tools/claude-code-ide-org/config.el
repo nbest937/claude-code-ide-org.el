@@ -3288,6 +3288,103 @@ a wrong log line."
                  (claude-code-ide-org--review-format-annotation item)
                  (if (plist-get item :suggested) "  (suggested)" "  (agent)")))))))
 
+(defun claude-code-ide-org--assignable-files ()
+  "Truenames of the files whose headings may receive an assigned span.
+
+The tracked files plus each one's own archive target, because a span may
+legitimately belong to work that has since been archived -- writing an
+outcome summary after a heading goes DONE is exactly that case, and
+`claude-code-ide-org--tracked-files' does not list DONE.org.
+
+Truenames throughout: `~/org/claude-code-ide-org/TODO.org' is a symlink
+to the file in the repo, so a string comparison against the tracked list
+would match nothing at all.
+
+The point of the filter is exclusion, not completeness.  `org-id' knows
+about every file it has ever scanned, which here includes
+`clock-template.org' (a fixture) and scratch files left in /tmp by
+debugging sessions -- 110 candidate headings, of which only some are
+real work.  Offering a fixture heading as somewhere to file two hours of
+time is the kind of plausible-looking wrong answer this project keeps
+finding."
+  (require 'org-archive)
+  (let (files)
+    (dolist (f (claude-code-ide-org--tracked-files))
+      (when (file-readable-p f)
+        (push (file-truename f) files)
+        (let ((archive (ignore-errors
+                         (with-current-buffer (find-file-noselect f)
+                           (car (org-archive--compute-location
+                                 org-archive-location))))))
+          (when (and archive (file-readable-p archive))
+            (push (file-truename archive) files)))))
+    (delete-dups files)))
+
+(defun claude-code-ide-org--heading-activity-range ()
+  "Return (EARLIEST . LATEST) across CLOCK lines in the subtree at point.
+
+Nil when the heading has never been clocked.  Read from the drawer text
+rather than from any index: the whole point is to show what was actually
+*recorded*, and a heading's clock history is the only honest answer to
+\"was this live then?\".
+
+Shown in the assignment prompt so the human can judge a candidate
+against the span in front of them.  A heading whose recorded work ended
+three days before the span is a far weaker answer than one clocked on
+the same afternoon, and neither its title nor its TODO state says so."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((end (save-excursion (org-end-of-subtree t t) (point)))
+          earliest latest)
+      ;; Two lessons are baked into this regexp, both found by running it.
+      ;;
+      ;; Emacs regexp syntax: a shy group is `\\(?:...\\)'.  A bare
+      ;; `(?:...)' is PCRE and matches those three characters literally,
+      ;; so the end timestamp never matched.
+      ;;
+      ;; And the date shape is required rather than `[^]]+', because
+      ;; heading *bodies* in this repo quote CLOCK lines as prose
+      ;; examples -- `: input:  CLOCK: [12:46]--[12:47] =>  0:01' among
+      ;; them.  A loose pattern captures `12:46', which
+      ;; `--parse-org-timestamp' rejects by *signalling*, so a single
+      ;; documentation example aborted the scan for the whole heading and
+      ;; the failure read as "never clocked".
+      (while (re-search-forward
+              "^[ \t]*CLOCK: \\[\\([0-9]\\{4\\}-[^]]+\\)\\]\\(?:--\\[\\([0-9]\\{4\\}-[^]]+\\)\\]\\)?"
+              end t)
+        ;; Read BOTH captures before parsing either.
+        ;; `--parse-org-timestamp' runs `string-match' internally, which
+        ;; clobbers the match data -- so parsing group 1 first and then
+        ;; asking for group 2 returns the parser's match, not this
+        ;; search's. The symptom was every interval collapsing to its
+        ;; start time, which looks like a plausible zero-length clock
+        ;; rather than like a bug.
+        (let* ((m1 (match-string 1))
+               (m2 (match-string 2))
+               (a (ignore-errors
+                    (claude-code-ide-org--parse-org-timestamp (concat "[" m1 "]"))))
+               (b (and m2
+                       (ignore-errors
+                         (claude-code-ide-org--parse-org-timestamp
+                          (concat "[" m2 "]"))))))
+          (when a
+            (when (or (null earliest) (time-less-p a earliest)) (setq earliest a))
+            (when (or (null latest) (time-less-p latest a)) (setq latest a)))
+          (when b
+            (when (or (null latest) (time-less-p latest b)) (setq latest b)))))
+      (when earliest (cons earliest latest)))))
+
+(defun claude-code-ide-org--format-activity-range (range created)
+  "Render RANGE, or fall back to CREATED, as a compact fixed-width field."
+  (cond
+   ((and range (cdr range))
+    (let ((a (format-time-string "%m-%d" (car range)))
+          (b (format-time-string "%m-%d" (cdr range))))
+      (format "%-13s" (if (equal a b) (format "clocked %s" a)
+                        (format "clocked %s-%s" a b)))))
+   (created (format "%-13s" (format "made %s" (format-time-string "%m-%d" created))))
+   (t (make-string 13 ?\s))))
+
 (defun claude-code-ide-org--review-heading-title (id)
   "Return ID's heading title, or nil when ID resolves to nothing."
   (when id
@@ -3530,15 +3627,55 @@ guideposts and still deserve `e' before they are trusted.  Only the
     (unless item (user-error "No review item on this line"))
     (unless (eq (plist-get item :type) 'clock)
       (user-error "Only a span can be assigned to a heading"))
-    (let* ((candidates
+    (let* ((deadline (plist-get item :end))
+           (allowed (claude-code-ide-org--assignable-files))
+           (candidates
             (let (rows)
-              (maphash (lambda (id _file)
-                         (let ((title (claude-code-ide-org--review-heading-title id)))
-                           (when title (push (cons (format "%s  {%s}" title (substring id 0 8))
-                                                   id)
-                                             rows))))
-                       (or org-id-locations (make-hash-table :test 'equal)))
-              (nreverse rows)))
+              (maphash
+               (lambda (id file)
+                 (when (member (file-truename file) allowed)
+                   (let* ((info (ignore-errors
+                                  (org-with-point-at (org-id-find id 'marker)
+                                    (list :title (org-no-properties
+                                                  (org-get-heading t t t t))
+                                          :state (org-get-todo-state)
+                                          :created (claude-code-ide-org--parse-org-timestamp
+                                                    (or (org-entry-get nil "CREATED") ""))
+                                          :range (claude-code-ide-org--heading-activity-range)))))
+                          (title (plist-get info :title))
+                          (created (plist-get info :created))
+                          (range (plist-get info :range))
+                          (state (plist-get info :state)))
+                     ;; A heading created after the span ended cannot be
+                     ;; what that time was spent on. This is a hard
+                     ;; impossibility, so it is excluded outright rather
+                     ;; than ranked down. Headings with no :CREATED: are
+                     ;; kept -- absence of evidence rules nothing out.
+                     (when (and title
+                                (or (null created)
+                                    (not (time-less-p deadline created))))
+                       (push (list (format "%s %s%s  {%s}"
+                                           (claude-code-ide-org--format-activity-range
+                                            range created)
+                                           (if (member state '("DONE" "CANCELLED"))
+                                               (format "[%s] " state) "")
+                                           title (substring id 0 8))
+                                   id
+                                   ;; Sort key: open work first, then most
+                                   ;; recently created. A heading closed
+                                   ;; before the span is implausible but
+                                   ;; NOT impossible -- documenting a task
+                                   ;; after marking it DONE is routine --
+                                   ;; so it demotes rather than vanishes.
+                                   (if (member state '("DONE" "CANCELLED")) 1 0)
+                                   (if created (float-time created) 0))
+                             rows)))))
+               (or org-id-locations (make-hash-table :test 'equal)))
+              (mapcar (lambda (r) (cons (nth 0 r) (nth 1 r)))
+                      (sort rows (lambda (a b)
+                                   (if (/= (nth 2 a) (nth 2 b))
+                                       (< (nth 2 a) (nth 2 b))
+                                     (> (nth 3 a) (nth 3 b))))))))
            (default (and (plist-get item :id)
                          (car (rassoc (plist-get item :id) candidates))))
            (choice (completing-read

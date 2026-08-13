@@ -2727,6 +2727,29 @@ and a human pause/resume lands between them."
           (if (eq first-out 'a) out-a out-b)
           (if (eq second-out 'b) out-b out-a))))
 
+(ert-deftest claude-code-ide-org-test-activity-range-ignores-prose-examples ()
+  "A CLOCK line quoted as prose in a body must not break the scan.
+
+Found live 2026-08-13. Heading bodies in this repo quote CLOCK lines as
+documentation, e.g. `: input:  CLOCK: [12:46]--[12:47] =>  0:01'. A
+loose pattern captured `12:46', which `--parse-org-timestamp' rejects by
+SIGNALLING -- so one documentation example aborted the scan for the
+whole heading and the result read as \"never clocked\"."
+  (with-temp-buffer
+    (insert "* TODO Subject\n"
+            ":PROPERTIES:\n:ID:       range-0001\n:END:\n"
+            ":LOGBOOK:\n"
+            "CLOCK: [2026-08-06 Thu 09:00]--[2026-08-06 Thu 09:30] =>  0:30\n"
+            ":END:\n"
+            "Prose that quotes a clock line as an example:\n"
+            ": input:  CLOCK: [12:46]--[12:47] =>  0:01\n")
+    (org-mode)
+    (goto-char (point-min))
+    (let ((range (claude-code-ide-org--heading-activity-range)))
+      (should range)
+      (should (equal "2026-08-06" (format-time-string "%Y-%m-%d" (car range))))
+      (should (equal "09:30" (format-time-string "%H:%M" (cdr range)))))))
+
 (ert-deftest claude-code-ide-org-test-unbracketed-guideposts-become-spans ()
   "Guideposts outside any clock_in/clock_out bracket produce review items.
 
