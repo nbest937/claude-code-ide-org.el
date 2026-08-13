@@ -2366,19 +2366,29 @@ was applied -- see `claude-code-ide-org--queue-watermark-data'."
      session-id applied
      (claude-code-ide-org--queue-dismissed session-id))))
 
-(defun claude-code-ide-org--queue-events (&optional session-id)
+(defun claude-code-ide-org--queue-events (&optional session-id include-consumed)
   "Return pending queue events, oldest first.
 With SESSION-ID, read only that session's queue; otherwise read every
 session's, merged and re-sorted by timestamp. Events already applied --
 or explicitly dismissed, which is the answer for one that will never
 apply -- are omitted. Unparseable lines are skipped silently, see
-`claude-code-ide-org--queue-parse-line'."
+`claude-code-ide-org--queue-parse-line'.
+
+With INCLUDE-CONSUMED non-nil, applied and dismissed events are returned
+too.  Only for questions about *history* rather than about what is
+pending -- `claude-code-ide-org--review-suggest-heading' is the caller
+that needs it, because an applied `todo' event is the strongest possible
+evidence of what was being worked on and the watermark would otherwise
+hide exactly the confirmed ones.  Never use this to build review items:
+it would re-propose work already applied."
   (let (events)
     (dolist (sid (if session-id (list session-id)
                    (claude-code-ide-org--queue-session-ids)))
       (let ((file (claude-code-ide-org--queue-file sid))
-            (applied (claude-code-ide-org--queue-applied sid))
-            (dismissed (claude-code-ide-org--queue-dismissed sid)))
+            (applied (if include-consumed (make-hash-table :test 'equal)
+                       (claude-code-ide-org--queue-applied sid)))
+            (dismissed (if include-consumed (make-hash-table :test 'equal)
+                         (claude-code-ide-org--queue-dismissed sid))))
         (when (file-readable-p file)
           (dolist (line (split-string
                          (with-temp-buffer
@@ -2614,10 +2624,88 @@ from a skipped one."
                                             (not (time-less-p (cdr span) ts)))))
                                    guideposts))
                     items))))))
+    ;; Unassigned spans: guideposts that never fell inside a
+    ;; clock_in/clock_out bracket, so `--queue-events-by-id' could attach
+    ;; no heading to them and filed them under the nil key.  Before
+    ;; 2026-08-13 the loop above skipped that group wholesale under its
+    ;; `(when id ...)' guard, which meant the timestamps sat on disk
+    ;; undroppable and unusable: 316 of them, 14.6 hours, against 3.6
+    ;; hours actually recorded (TODO.org :ID: 3d0487f4).
+    ;;
+    ;; They are clustered exactly like attributed guideposts and carry a
+    ;; *suggested* heading, so accepting one is an ordinary mark and
+    ;; apply needs no new path -- `:id' is already the heading the
+    ;; interval will land on.  `:unassigned' records that the id was
+    ;; guessed rather than bracketed, which is what the review line
+    ;; shows and what `claude-code-ide-org-review-assign' rewrites.
+    (let* ((groups (claude-code-ide-org--queue-events-by-id session-id))
+           (orphans (cdr (assoc nil groups)))
+           ;; Suggestions read the *full* history, applied events
+           ;; included. Measured live 2026-08-13: with only pending
+           ;; events visible, 21 of 23 spans got no suggestion at all,
+           ;; because 85% of `todo' events had already been applied --
+           ;; the watermark had eaten precisely the confirmed signal the
+           ;; suggestion wants. Nothing is proposed from these; they are
+           ;; read only to answer "what was being worked on then".
+           (all (claude-code-ide-org--queue-events session-id t))
+           (guideposts (seq-filter
+                        (lambda (e)
+                          (and (claude-code-ide-org--review-guidepost-p e)
+                               (not (plist-get e :agent-id))))
+                        orphans)))
+      (dolist (span (claude-code-ide-org--aggregate-guideposts guideposts))
+        (push (list :type 'clock
+                    :id (claude-code-ide-org--review-suggest-heading (car span) all)
+                    :start (car span) :end (cdr span)
+                    :note nil :agent nil :suggested t :unassigned t
+                    :events (seq-filter
+                             (lambda (e)
+                               (let ((ts (plist-get e :ts)))
+                                 (and (not (time-less-p ts (car span)))
+                                      (not (time-less-p (cdr span) ts)))))
+                             guideposts))
+              items)))
     (sort (nreverse items)
           (lambda (a b)
             (time-less-p (or (plist-get a :ts) (plist-get a :start))
                          (or (plist-get b :ts) (plist-get b :start)))))))
+
+(defun claude-code-ide-org--review-suggest-heading (time events)
+  "Return the :ID: most plausibly being worked on at TIME, from EVENTS.
+
+The most recent `todo' event at or before TIME that names a heading,
+preferring one that entered DOING or PLANNING -- those assert \"work is
+happening here\" in a way TODO or DONE does not.  Falls back to the most
+recent `todo' of any state, and to nil when nothing precedes TIME.
+
+This is *only* ever a suggestion the human confirms, and that distinction
+is the whole justification for deriving it from `todo' events at all.
+`claude-code-ide-org--queue-events-by-id' deliberately refuses to do so
+for real attribution, because a return to a heading that never left
+DOING emits no `todo' event and every later guidepost would then attach
+to the wrong heading -- silently.  That objection stands and nothing
+here weakens it: attribution is unchanged, and a wrong guess made *here*
+is visible on the review line at the moment of decision and one keystroke
+from correction.  See TODO.org :ID: 3d0487f4."
+  (let (active last-any)
+    (dolist (e events)
+      (when (and (equal (plist-get e :kind) "todo")
+                 (plist-get e :id)
+                 (not (time-less-p time (plist-get e :ts))))
+        (let ((id (plist-get e :id))
+              (state (plist-get e :state)))
+          (setq last-any id)
+          (cond
+           ((member state '("DOING" "PLANNING")) (setq active id))
+           ;; A heading that has left DOING is no longer what anyone is
+           ;; working on, so it must stop being suggested. Without this
+           ;; the guess latches: measured live 2026-08-13, three spans
+           ;; spanning eight hours all suggested a heading that had gone
+           ;; CANCELLED before the first of them even began.
+           ((and (equal id active)
+                 (member state '("DONE" "CANCELLED" "WAIT" "TODO" "NEXT" "MAYBE")))
+            (setq active nil))))))
+    (or active last-any)))
 
 (defun claude-code-ide-org--review-current-state (id)
   "Return the TODO keyword heading ID holds right now, or nil.
@@ -3055,6 +3143,7 @@ the MCP layer."
                    ("t" . claude-code-ide-org-review-toggle-all)
                    ("M" . claude-code-ide-org-review-mark-all)
                    ("U" . claude-code-ide-org-review-unmark-all)
+                   ("a" . claude-code-ide-org-review-assign)
                    ("e" . claude-code-ide-org-review-edit-interval)
                    ("N" . claude-code-ide-org-review-edit-note)
                    ("d" . claude-code-ide-org-review-dismiss)
@@ -3178,9 +3267,35 @@ a wrong log line."
       ;; it, because the note is part of the :LOGBOOK: line it produces.
       ;; Adding it again printed every clock note twice (TODO.org :ID:
       ;; e3f70e61-6616-4c57-81e8-e350ffd5824c).
-      ('clock (format "  clock   %s%s"
-                      (claude-code-ide-org--review-format-annotation item)
-                      (if (plist-get item :suggested) "  (suggested)" "  (agent)"))))))
+      ('clock
+       (if (plist-get item :unassigned)
+           ;; An unassigned span leads with `?' in the column state items
+           ;; reserve for `!', so it reads as "needs a decision" rather
+           ;; than "something is wrong".  The heading it would land on is
+           ;; named outright: a suggestion nobody can see is not a
+           ;; suggestion, it is a silent guess.
+           (format "%sspan    %s  %s"
+                   (if (plist-get item :id) "? " "! ")
+                   (claude-code-ide-org--review-format-annotation item)
+                   (if (plist-get item :id)
+                       (format "-> %s  %s"
+                               (substring (plist-get item :id) 0 8)
+                               (or (claude-code-ide-org--review-heading-title
+                                    (plist-get item :id))
+                                   "(unknown heading)"))
+                     "UNASSIGNED -- press `a' to choose a heading"))
+         (format "  clock   %s%s"
+                 (claude-code-ide-org--review-format-annotation item)
+                 (if (plist-get item :suggested) "  (suggested)" "  (agent)")))))))
+
+(defun claude-code-ide-org--review-heading-title (id)
+  "Return ID's heading title, or nil when ID resolves to nothing."
+  (when id
+    (let ((marker (ignore-errors (org-id-find id 'marker))))
+      (when marker
+        (prog1 (org-with-point-at marker
+                 (org-no-properties (org-get-heading t t t t)))
+          (set-marker marker nil))))))
 
 (defun claude-code-ide-org--review-render ()
   "Render `claude-code-ide-org--review-items' into the current buffer.
@@ -3198,17 +3313,22 @@ rest from lighting up."
      items (lambda (item) (plist-get item :marked)))
     (erase-buffer)
     (insert "Pending org updates.  m/u mark, M/U all, t invert, "
-            "e interval, N note, d dismiss,\n"
-            "RET goto, x apply marked, g refresh, q quit\n\n")
+            "a assign, e interval, N note,\n"
+            "d dismiss, RET goto, x apply marked, g refresh, q quit\n\n")
     (if (null items)
         (insert "  Nothing pending.\n")
       (dolist (item items)
         (unless (equal (plist-get item :id) last-id)
           (setq last-id (plist-get item :id))
           (insert (format "\n%s\n"
-                          (or (claude-code-ide-org--at-id
-                               last-id (lambda () (org-get-heading t t t t)))
-                              last-id))))
+                          (cond
+                           ;; A span nobody has assigned yet belongs to no
+                           ;; heading, so it gets its own group rather than
+                           ;; rendering the literal string "nil" as a title.
+                           ((null last-id) "(unassigned -- press `a' to choose a heading)")
+                           ((claude-code-ide-org--at-id
+                             last-id (lambda () (org-get-heading t t t t))))
+                           (t last-id)))))
         (insert (propertize
                  (format "  [%s] %s\n"
                          (if (plist-get item :marked) "x" " ")
@@ -3275,9 +3395,17 @@ instead of acting on the obvious target."
       (goto-char start))))
 
 (defun claude-code-ide-org--review-markable-p (item)
-  "Non-nil when ITEM can be marked without asking the human anything."
-  (or (not (claude-code-ide-org--review-state-stale-p item))
-      (plist-get item :stale-confirmed)))
+  "Non-nil when ITEM can be marked without asking the human anything.
+
+An unassigned span with no suggestion is refused: it names no heading,
+so applying it could only write the interval nowhere.  `a'
+\(`claude-code-ide-org-review-assign') is the way forward for those, and
+refusing the mark is what makes that visible rather than letting apply
+fail later with a confusing error."
+  (and (not (and (plist-get item :unassigned)
+                 (null (plist-get item :id))))
+       (or (not (claude-code-ide-org--review-state-stale-p item))
+           (plist-get item :stale-confirmed))))
 
 (defun claude-code-ide-org--review-set-all (fn)
   "Set every item's :marked to (funcall FN ITEM), then re-render.
@@ -3382,6 +3510,48 @@ corrected to what actually happened before anything is written."
       ;; An edited interval is a confirmed one, not a suggestion.
       (plist-put item :suggested nil)
       (claude-code-ide-org--review-render))))
+
+(defun claude-code-ide-org-review-assign ()
+  "Assign the span at point to a heading, replacing any suggestion.
+
+Completes over the headings `org-id' knows about, titles shown rather
+than raw IDs.  The current suggestion is the default, so accepting it is
+`RET' and overriding it costs a few characters -- which is the whole
+point of suggesting: 23 confirmations rather than 23 lookups (TODO.org
+:ID: 3d0487f4).
+
+Assigning clears `:unassigned', so the line stops reading as a question
+and the item becomes markable like any other.  It does *not* clear
+`:suggested': the interval endpoints are still reconstructed from
+guideposts and still deserve `e' before they are trusted.  Only the
+*heading* was decided here, not the times."
+  (interactive)
+  (let ((item (claude-code-ide-org--review-item-at-point)))
+    (unless item (user-error "No review item on this line"))
+    (unless (eq (plist-get item :type) 'clock)
+      (user-error "Only a span can be assigned to a heading"))
+    (let* ((candidates
+            (let (rows)
+              (maphash (lambda (id _file)
+                         (let ((title (claude-code-ide-org--review-heading-title id)))
+                           (when title (push (cons (format "%s  {%s}" title (substring id 0 8))
+                                                   id)
+                                             rows))))
+                       (or org-id-locations (make-hash-table :test 'equal)))
+              (nreverse rows)))
+           (default (and (plist-get item :id)
+                         (car (rassoc (plist-get item :id) candidates))))
+           (choice (completing-read
+                    (if default (format "Assign span to heading (default %s): " default)
+                      "Assign span to heading: ")
+                    candidates nil t nil nil default)))
+      (unless (and choice (not (string-empty-p choice)))
+        (user-error "No heading chosen; span left unassigned"))
+      (let ((id (cdr (assoc choice candidates))))
+        (unless id (user-error "That heading has no :ID:"))
+        (plist-put item :id id)
+        (plist-put item :unassigned nil)
+        (claude-code-ide-org--review-render)))))
 
 (defun claude-code-ide-org-review-dismiss ()
   "Retire the item at point permanently, so it stops being proposed.

@@ -2727,6 +2727,163 @@ and a human pause/resume lands between them."
           (if (eq first-out 'a) out-a out-b)
           (if (eq second-out 'b) out-b out-a))))
 
+(ert-deftest claude-code-ide-org-test-unbracketed-guideposts-become-spans ()
+  "Guideposts outside any clock_in/clock_out bracket produce review items.
+
+Regression for TODO.org :ID: 3d0487f4. `--review-items-from-queue' used
+to skip the nil-keyed group wholesale, so these timestamps sat on disk
+unusable: 316 of them, 14.6 hours, against 3.6 hours actually recorded."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:00:00-0500" "resume")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:20:00-0500" "pause")))
+    (let* ((items (claude-code-ide-org--review-items-from-queue))
+           (spans (seq-filter (lambda (i) (plist-get i :unassigned)) items)))
+      (should (equal 1 (length spans)))
+      (should (equal 1200 (round (float-time
+                                  (time-subtract (plist-get (car spans) :end)
+                                                 (plist-get (car spans) :start))))))
+      ;; Both guideposts are carried, so applying consumes them.
+      (should (equal 2 (length (plist-get (car spans) :events)))))))
+
+(ert-deftest claude-code-ide-org-test-unassigned-span-suggests-active-heading ()
+  "An unassigned span suggests the heading most recently set DOING.
+
+The suggestion prefers an active state over any other: a DOING or
+PLANNING transition asserts work is happening there in a way TODO or
+DONE does not."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-13T08:00:00-0500" "todo" "id-old" "DONE")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T08:30:00-0500" "todo" "id-active" "DOING")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:00:00-0500" "resume")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:10:00-0500" "pause")))
+    (let ((span (seq-find (lambda (i) (plist-get i :unassigned))
+                          (claude-code-ide-org--review-items-from-queue))))
+      (should span)
+      (should (equal "id-active" (plist-get span :id))))))
+
+(ert-deftest claude-code-ide-org-test-suggestion-releases-a-finished-heading ()
+  "A heading that has left DOING stops being suggested.
+
+Without this the guess latches on the last DOING forever. Measured live
+2026-08-13: three spans across eight hours all suggested a heading that
+had gone CANCELLED before the earliest of them began."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-13T08:00:00-0500" "todo" "id-done" "DOING")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T08:30:00-0500" "todo" "id-done" "CANCELLED")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:00:00-0500" "resume")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:10:00-0500" "pause")))
+    (let ((span (seq-find (lambda (i) (plist-get i :unassigned))
+                          (claude-code-ide-org--review-items-from-queue))))
+      (should span)
+      ;; It may still fall back to naming that heading, but it must not
+      ;; be offered as the *active* one -- the fallback is the last
+      ;; heading mentioned, which here is the same id. The discriminating
+      ;; case is that a *different* later DOING wins outright.
+      (should (equal "id-done" (plist-get span :id))))))
+
+(ert-deftest claude-code-ide-org-test-suggestion-prefers-the-later-active-heading ()
+  "When one heading finishes and another starts, the running one wins."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-13T08:00:00-0500" "todo" "id-first" "DOING")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T08:30:00-0500" "todo" "id-first" "DONE")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T08:40:00-0500" "todo" "id-second" "DOING")
+                 ;; A bookkeeping transition on a third heading after the
+                 ;; running one started must not displace it.
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T08:50:00-0500" "todo" "id-noise" "NEXT")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:00:00-0500" "resume")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:10:00-0500" "pause")))
+    (let ((span (seq-find (lambda (i) (plist-get i :unassigned))
+                          (claude-code-ide-org--review-items-from-queue))))
+      (should span)
+      (should (equal "id-second" (plist-get span :id))))))
+
+(ert-deftest claude-code-ide-org-test-unassigned-span-suggests-nothing-when-nothing-precedes ()
+  "With no todo event before it, a span carries no suggestion and cannot
+be marked -- applying it could only write the interval nowhere."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:00:00-0500" "resume")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:10:00-0500" "pause")
+                 ;; A later todo must NOT be suggested backwards in time.
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T11:00:00-0500" "todo" "id-later" "DOING")))
+    (let ((span (seq-find (lambda (i) (plist-get i :unassigned))
+                          (claude-code-ide-org--review-items-from-queue))))
+      (should span)
+      (should-not (plist-get span :id))
+      (should-not (claude-code-ide-org--review-markable-p span)))))
+
+(ert-deftest claude-code-ide-org-test-assigned-span-is-markable ()
+  "Once a span carries a heading it marks like any other item."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-13T08:30:00-0500" "todo" "id-active" "DOING")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:00:00-0500" "resume")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:10:00-0500" "pause")))
+    (let ((span (seq-find (lambda (i) (plist-get i :unassigned))
+                          (claude-code-ide-org--review-items-from-queue))))
+      ;; Assert the span exists before asserting anything about it: with
+      ;; no span, `seq-find' yields nil and `--review-markable-p' answers
+      ;; truthily about nothing, so the test would pass against code that
+      ;; produces no spans at all.
+      (should span)
+      (should (plist-get span :id))
+      (should (claude-code-ide-org--review-markable-p span)))))
+
+(ert-deftest claude-code-ide-org-test-bracketed-guideposts-are-not-unassigned ()
+  "Guideposts inside a clock_in/clock_out bracket keep their heading and
+are not re-offered as unassigned -- otherwise the same time would be
+proposed twice."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:00:00-0500" "clock_in" "id-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:05:00-0500" "resume")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:15:00-0500" "pause")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:20:00-0500" "clock_out")
+                 ;; An unbracketed pair well after the bracket closes, so
+                 ;; the test distinguishes "bracketed ones are excluded"
+                 ;; from "no spans are produced at all" -- without this it
+                 ;; passes against code that never makes spans.
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T11:00:00-0500" "resume")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T11:10:00-0500" "pause")))
+    (let* ((items (claude-code-ide-org--review-items-from-queue))
+           (spans (seq-filter (lambda (i) (plist-get i :unassigned)) items)))
+      ;; Exactly one, and it is the unbracketed one.
+      (should (equal 1 (length spans)))
+      (should (equal "11:00" (format-time-string "%H:%M" (plist-get (car spans) :start))))
+      (should (seq-find (lambda (i) (equal (plist-get i :id) "id-a")) items)))))
+
 (ert-deftest claude-code-ide-org-test-queue-attributes-concurrent-agents-separately ()
   "Two concurrent subagents each get their own interval, in either
 completion order.
