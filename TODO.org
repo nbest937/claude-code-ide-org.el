@@ -5997,6 +5997,38 @@ answer.
    anything bespoke, per
    [[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]]'s standing
    instruction.
+
+   *Why Doom disables it, checked 2026-08-13 at the user's request.*
+   =lisp/doom-emacs.el:462= sets it under a =Backup & autosave files=
+   heading, sharing one comment with =make-backup-files=: "Don't
+   generate backups or lockfiles. ... This is better suited to version
+   control, and I don't want world-readable copies of potentially
+   sensitive material floating around our filesystem." Older Doom
+   (=core/core-editor.el=) worded it the same way.
+
+   That rationale is about *backups*, and does not actually describe a
+   lock file. Per the Emacs Lisp manual, a lock file is a symlink named
+   =.#FILE= whose *target* is the string =user@host.pid:boot=; it holds
+   no contents of the edited file at all. So the "copies of sensitive
+   material" argument does not apply to the thing it is being used to
+   justify — lockfiles were bundled in with backups under one heading
+   and inherited a comment written for backups. A residual privacy point
+   survives (the target leaks username, host and PID), but that is a
+   much smaller claim than the one made.
+
+   The real-world objection in the wider community is *tooling*, not
+   privacy: =.#FILE= is a dangling symlink, and file watchers and build
+   tools choke on it (e.g. =ember-cli= issue #6527, "=(setq
+   create-lockfiles nil)= shouldn't be necessary for Emacs usage"). That
+   risk is low for this repo — nothing here watches the tree — but it is
+   the reason to check before flipping it globally rather than
+   per-directory.
+
+   *And one point actively in favor, which is why this step is listed at
+   all:* on detecting a lock, Emacs calls =ask-user-about-lock=, which
+   offers grab / ignore / abort. It *asks*; it does not wait. That is
+   precisely the fail-fast shape argued for in step 2, already
+   implemented upstream.
 2. *A fail-fast advisory lock in the MCP write tools* — a refusal, not a
    wait: "another session is writing TODO.org; queued instead." Fast
    failure is debuggable and cannot deadlock.
