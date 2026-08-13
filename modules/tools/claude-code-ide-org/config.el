@@ -2716,7 +2716,13 @@ from a skipped one."
         (push (list :type 'clock
                     :id (claude-code-ide-org--review-suggest-heading (car span) all)
                     :start (car span) :end (cdr span)
-                    :note nil :agent nil :suggested t :unassigned t
+                    ;; :unassigned is transient -- `a' clears it once a
+                    ;; heading is chosen. :origin is permanent, so the
+                    ;; annotation can still say the interval was
+                    ;; reconstructed rather than clocked live, long after
+                    ;; the assignment decision is made.
+                    :note nil :agent nil :suggested t
+                    :unassigned t :origin 'unbracketed
                     :events (seq-filter
                              (lambda (e)
                                (let ((ts (plist-get e :ts)))
@@ -2882,13 +2888,39 @@ a real divergence at that point, not this bug returning."
               (puthash id (list (plist-get item :to)) projected)))))))
   items)
 
+(defun claude-code-ide-org--review-annotation-label (item)
+  "Return ITEM's label, synthesising one for a span that has no note.
+
+A span reconstructed from unbracketed guideposts has no note to inherit:
+there is no enclosing `clock_in' to take one from, which is exactly what
+made it unattributed.  Left bare it rendered as
+`- <12:24>--<13:09>' with nothing after it -- 17 such lines in one apply
+pass on 2026-08-13 (TODO.org :ID: c97b3564).
+
+Suppressing the line instead was considered and rejected: the *active*
+timestamps are what put a human span into `org-agenda', so dropping the
+line would quietly drop the span from the agenda -- a behaviour change
+wearing the clothes of a tidy-up.
+
+The synthesised label carries provenance, which is the one thing a
+reader cannot recover from the timestamps: this interval was
+reconstructed and confirmed, not clocked as it happened.  That
+distinction is the whole point of a record whose trustworthiness is a
+stated goal."
+  (let ((note (plist-get item :note)))
+    (cond
+     ((and note (not (string-empty-p note))) note)
+     ((not (eq (plist-get item :origin) 'unbracketed)) "")
+     ((plist-get item :assigned) "assigned at review")
+     (t "suggested span, accepted at review"))))
+
 (defun claude-code-ide-org--review-format-annotation (item)
   "Return the :LOGBOOK: annotation line for ITEM.
 Active timestamps for a human span -- those reach `org-agenda', which is
 the entire point -- and inactive for a subagent's, which should not."
   (let* ((agent (plist-get item :agent))
          (fmt (if agent "[%Y-%m-%d %a %H:%M]" "<%Y-%m-%d %a %H:%M>"))
-         (note (plist-get item :note)))
+         (note (claude-code-ide-org--review-annotation-label item)))
     (format "- %s--%s%s"
             (format-time-string fmt (plist-get item :start))
             (format-time-string fmt (plist-get item :end))
@@ -3197,13 +3229,28 @@ reprocessing, only all-or-nothing."
                   (rename-file f (expand-file-name (file-name-nondirectory f) archive) t))))
             (push sid moved))
         (push sid skipped)))
+    ;; Reverse ONCE, into fresh bindings. `nreverse' is destructive:
+    ;; calling it in the `message' and again in the return value left the
+    ;; variable pointing at what had become the tail, so the message read
+    ;; correctly while the returned :moved list was silently truncated --
+    ;; four sessions reported as one. Caught only because the returned
+    ;; :moved and :skipped stopped summing to the number of files on
+    ;; disk, which is the kind of check worth doing on any function whose
+    ;; output nobody eyeballs.
+    (setq moved (nreverse moved)
+          skipped (nreverse skipped))
     (message "%s%d drained (%s); %d left in place"
              (if dry-run "Dry run: " "Archived ")
              (length moved)
-             (if moved (mapconcat (lambda (s) (substring s 0 8)) (nreverse moved) ", ")
+             ;; `substring' to a fixed 8 signals on anything shorter.
+             ;; Real session ids are UUIDs so it never bit in use, but a
+             ;; command that crashes on an unexpected filename is a poor
+             ;; guard for the one operation that moves files around.
+             (if moved (mapconcat (lambda (s) (substring s 0 (min 8 (length s))))
+                                  moved ", ")
                "none")
              (length skipped))
-    (list :moved (nreverse moved) :skipped (nreverse skipped))))
+    (list :moved moved :skipped skipped)))
 
 (defun claude-code-ide-org-restore-queue (session-id &optional ignore-watermark)
   "Move SESSION-ID's queue file back out of the archive for reprocessing.
@@ -3885,6 +3932,7 @@ guideposts and still deserve `e' before they are trusted.  Only the
         (unless id (user-error "That heading has no :ID:"))
         (plist-put item :id id)
         (plist-put item :unassigned nil)
+        (plist-put item :assigned t)
         (claude-code-ide-org--review-render)))))
 
 (defun claude-code-ide-org-review-dismiss ()

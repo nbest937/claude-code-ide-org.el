@@ -2727,6 +2727,44 @@ and a human pause/resume lands between them."
           (if (eq first-out 'a) out-a out-b)
           (if (eq second-out 'b) out-b out-a))))
 
+(ert-deftest claude-code-ide-org-test-unbracketed-span-annotation-carries-a-label ()
+  "A reconstructed span writes a labelled annotation, never a bare one.
+
+Regression for TODO.org :ID: c97b3564: one apply pass on 2026-08-13 wrote
+17 bare `- <ts>--<ts>' lines. Suppressing the line was rejected because
+the ACTIVE timestamps are what reach org-agenda, so the label is
+synthesised instead and carries provenance -- reconstructed and
+confirmed, not clocked live."
+  (let ((accepted (list :type 'clock :id "id-a"
+                        :start (date-to-time "2026-08-13T09:00:00-0500")
+                        :end (date-to-time "2026-08-13T09:30:00-0500")
+                        :note nil :agent nil :suggested t
+                        :unassigned t :origin 'unbracketed))
+        (chosen (list :type 'clock :id "id-a"
+                      :start (date-to-time "2026-08-13T09:00:00-0500")
+                      :end (date-to-time "2026-08-13T09:30:00-0500")
+                      :note nil :agent nil :suggested t
+                      :unassigned nil :assigned t :origin 'unbracketed))
+        (bracketed (list :type 'clock :id "id-a"
+                         :start (date-to-time "2026-08-13T09:00:00-0500")
+                         :end (date-to-time "2026-08-13T09:30:00-0500")
+                         :note nil :agent nil :suggested t)))
+    ;; Both reconstructed shapes get a label, and the labels differ --
+    ;; accepting a suggestion is not the same act as choosing a heading.
+    (should (string-match-p "accepted at review"
+                            (claude-code-ide-org--review-format-annotation accepted)))
+    (should (string-match-p "assigned at review"
+                            (claude-code-ide-org--review-format-annotation chosen)))
+    ;; An ordinary bracketed span with no note is left exactly as before:
+    ;; this fix must not invent provenance for intervals that had a
+    ;; clock_in and simply carried no note.
+    (should-not (string-match-p "review"
+                                (claude-code-ide-org--review-format-annotation bracketed)))
+    ;; A real note always wins over the synthesised one.
+    (should (string-match-p "real label"
+                            (claude-code-ide-org--review-format-annotation
+                             (plist-put (copy-sequence accepted) :note "real label"))))))
+
 (ert-deftest claude-code-ide-org-test-apply-clock-is-idempotent ()
   "Applying the same interval twice writes one CLOCK line, not two.
 
@@ -2813,6 +2851,35 @@ brings them back. With IGNORE-WATERMARK the sidecar stays archived."
     (claude-code-ide-org-restore-queue "sess-old" t)
     (should (file-exists-p (claude-code-ide-org--queue-file "sess-old")))
     (should-not (file-exists-p (claude-code-ide-org--queue-watermark-file "sess-old")))))
+
+(ert-deftest claude-code-ide-org-test-archive-reports-every-session-once ()
+  "Every session appears in exactly one of :moved or :skipped.
+
+Regression for a destructive-`nreverse' bug: the function reversed the
+same list twice, once for the message and once for the return value, so
+the message read correctly while :moved was silently truncated -- four
+sessions reported as one. Found live only because :moved and :skipped
+stopped summing to the number of files on disk."
+  (claude-code-ide-org-test--with-queue
+    ;; Three drainable, two held by a pending todo.
+    (dolist (sid '("drain-1" "drain-2" "drain-3"))
+      (apply #'claude-code-ide-org-test--queue-write sid
+             (list (claude-code-ide-org-test--queue-event
+                    "2026-08-13T09:00:00-0500" "clock_out" nil nil sid))))
+    (dolist (sid '("busy-1" "busy-2"))
+      (apply #'claude-code-ide-org-test--queue-write sid
+             (list (claude-code-ide-org-test--queue-event
+                    "2026-08-13T09:00:00-0500" "todo" "id-a" "DOING" sid))))
+    (let* ((claude-code-ide-org-queue-idle-seconds 0)
+           (all (claude-code-ide-org--queue-session-ids))
+           (r (claude-code-ide-org-archive-drained-queues t)))
+      (should (equal 5 (length all)))
+      (should (equal 3 (length (plist-get r :moved))))
+      (should (equal 2 (length (plist-get r :skipped))))
+      ;; The partition is exact: no session lost, none double-counted.
+      (should (equal (sort (copy-sequence all) #'string<)
+                     (sort (append (plist-get r :moved) (plist-get r :skipped))
+                           #'string<))))))
 
 (ert-deftest claude-code-ide-org-test-archive-dry-run-moves-nothing ()
   "A dry run reports what it would move and moves nothing."
