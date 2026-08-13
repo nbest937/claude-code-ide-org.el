@@ -5705,7 +5705,7 @@ submission from a task-completion re-invocation at all. If it does not,
 the honest options are to accept the inflation and document it, or to
 stop treating =resume= as evidence of human presence.
 
-*** TODO Apply's clock pair has no unwind-protect, so a failed clock_out can strand an open line :code:
+*** NEXT Apply's clock pair has no unwind-protect: a failed clock_out fabricates a huge interval :code:
 :PROPERTIES:
 :ID:       803314aa-eda9-4d48-9e43-b3eb4802a4e8
 :CREATED:  [2026-08-12 Wed 17:46]
@@ -5731,17 +5731,60 @@ loop* (config.el:2896), and the next item on the same file calls
 =save-buffer= (config.el:2858), committing the open =CLOCK:= line to
 disk. A stray =C-x C-s= by the user does the same.
 
-It then self-heals *wrongly*: config.el:2732's defensive =(when
-(org-clocking-p) (org-clock-out nil t))= closes it at *now*, producing
-a plausible interval with a false end time — the
-[[id:ba8249c1-28cd-4ff1-918b-4b8439345d9a][ba8249c1]] shape, a wrong
-record rather than a visibly broken one.
+*Corrected 2026-08-12 by forcing the failure and reading the result
+off disk.* The mechanism above is right; the symptom stated was wrong,
+and the real one is worse.
 
-Independently reached by two separate reviews of the apply path, and
-reasoned from code both times: not observed in the wild, and no
-estimate exists of how often =org-clock-out= actually signals here.
-That frequency is the whole cost/benefit, so it belongs in the fix's
-own evaluation rather than being assumed negligible.
+*No open =CLOCK:= line ever reaches disk.* What happens instead: item
+A's =org-clock-out= fails, leaving the clock running; the *next* clock
+item's =--review-apply-clock= hits its defensive =(when (org-clocking-p)
+(org-clock-out nil t))= (config.el:2732), which closes A's clock at
+*now*. Measured, with an intended 0:30 interval:
+
+: CLOCK: [2026-08-12 Wed 10:00]--[2026-08-12 Wed 19:56] =>  9:56
+
+The fabricated duration scales with the distance between the backdated
+start and wall-clock time — and writing backdated intervals is the
+entire purpose of apply, so in practice this inflates by hours, not
+minutes.
+
+Two aggravating details, both measured rather than predicted:
+
+- Apply returns =(:applied 1 :errors ("Error: ..."))=. The human sees
+  one clean failure and *no* signal that the failed heading gained an
+  interval it never earned.
+- The heading gets no annotation line at all, because
+  =--append-to-drawer= (config.el:2752) sits after the clock block and
+  is skipped by the same error. So the fabricated =CLOCK:= line looks
+  exactly like a legitimate one, with nothing marking it suspect — the
+  confidently-wrong record
+  [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] exists to
+  prevent.
+
+Reproduction, described rather than linked because it lived in an
+ephemeral session scratchpad: build a temp org file with two headings,
+stub =org-clock-out= via =cl-letf= to signal on its *first* call only,
+pass two clock items on the two headings to
+=claude-code-ide-org--review-apply= in one batch, then read the file
+back *from disk* rather than from the buffer — reading the buffer would
+not have shown what was committed. Cheap to rebuild; a proper
+regression test belongs in =config-test.el= as part of the fix.
+
+*Still unestablished, and it gates severity:* whether =org-clock-out=
+can actually signal here with both endpoints supplied and
+=org-clock-out-remove-zero-time-clocks= bound nil. The probe simulates
+the failure rather than provoking a real one, so this demonstrates the
+*consequence* of a premise that has not itself been shown reachable.
+Reading =org-clock.el= for reachable signal paths is the remaining
+step. If none exists, this is a latent trap rather than a live bug —
+worth fixing cheaply either way, since an =unwind-protect= around the
+pair costs one line.
+
+Originally reached by two separate reviews of the apply path, both
+reasoning from the same code. That is no longer offered as
+corroboration: two readers making the same inference from one text is
+not independent confirmation, as [[id:7387f97c-6c3e-4667-8851-203af024fdd9][7387f97c]]
+demonstrated the same day.
 *** Apply writes headless state notes -- RETRACTED, a grep artifact :code:
 :PROPERTIES:
 :ID:       7387f97c-6c3e-4667-8851-203af024fdd9
