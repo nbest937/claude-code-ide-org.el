@@ -2701,6 +2701,79 @@ no rounding, unlike consolidate-history."
       (should (string-match-p "22:43\\]--\\[2026-08-06 [A-Za-z]+ 22:45\\] =>  0:02"
                               (claude-code-ide-org-test--logbook file))))))
 
+(ert-deftest claude-code-ide-org-test-review-state-header-survives-trigger-hooks ()
+  "Applying a transition that also fires `org-trigger-hook' must still
+write the applied heading's own `State' header.
+
+Reproduction attempt for TODO.org :ID: 7387f97c. The trigger hooks run a
+*nested* `org-todo' (config.el:1899, :1933) at the end of the outer one.
+A single-heading fixture never fires them, which is why every other
+apply test passes; the real TODO.org has siblings, so they fire on
+nearly every transition."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* NEXT Sibling B                                                   :code:\n"
+                    ":PROPERTIES:\n"
+                    ":ID:       test-0002\n"
+                    ":END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (let ((item (list :type 'state :id id
+                      :ts (date-to-time "2026-08-12T19:00:00-0500")
+                      :from "TODO" :to "NEXT"
+                      :note "applied while a sibling was NEXT"
+                      :events nil)))
+      (should-not (claude-code-ide-org--review-apply-item item))
+      (let ((disk (claude-code-ide-org-test--disk-contents file)))
+        ;; The demote trigger must have fired -- otherwise this test is
+        ;; not exercising the condition it exists to exercise.
+        (should (string-match-p "Auto-demoted" disk))
+        ;; And the applied heading still gets its own native header.
+        (should (string-match-p
+                 "- State \"NEXT\" +from \"TODO\" +\\[2026-08-12 [A-Za-z]+ 19:00\\]"
+                 disk))))))
+
+(ert-deftest claude-code-ide-org-test-review-applies-state-with-native-header ()
+  "An applied transition writes org's full native `State' header, not a
+headless note.
+
+Regression for TODO.org :ID: 7387f97c. `org-todo' only logs when its
+internal `dolog' is set, which comes from `org-todo-log-states'; this
+project's `#+TODO:' line carries no `(t!)' markers and `org-log-done' is
+nil, so no setup ran and the header was silently omitted while the note
+text still reached the drawer. Seven live transitions were written that
+way on 2026-08-12 before anyone noticed, because the defect is invisible
+in a rendered outline and only shows in a diff."
+  (claude-code-ide-org-test--with-heading
+    (let ((item (list :type 'state :id id
+                      :ts (date-to-time "2026-08-12T19:00:00-0500")
+                      :from "TODO" :to "DONE"
+                      :note "shipped and verified"
+                      :events nil)))
+      (should-not (claude-code-ide-org--review-apply-item item))
+      (let ((logbook (claude-code-ide-org-test--logbook file)))
+        ;; The header itself: keyword, from-state and timestamp all present.
+        (should (string-match-p
+                 "- State \"DONE\" +from \"TODO\" +\\[2026-08-12 [A-Za-z]+ 19:00\\]"
+                 logbook))
+        ;; The note survives as a continuation of that header, not alone.
+        (should (string-match-p "\\\\\\\\\n +shipped and verified" logbook))
+        ;; And it is genuinely inside the drawer.
+        (should-not (string-empty-p logbook))))))
+
+(ert-deftest claude-code-ide-org-test-review-state-header-without-note ()
+  "A transition carrying no note still gets a bare `State' header.
+The note is optional; the header is not."
+  (claude-code-ide-org-test--with-heading
+    (let ((item (list :type 'state :id id
+                      :ts (date-to-time "2026-08-12T19:05:00-0500")
+                      :from "TODO" :to "NEXT"
+                      :note nil :events nil)))
+      (should-not (claude-code-ide-org--review-apply-item item))
+      (should (string-match-p
+               "- State \"NEXT\" +from \"TODO\" +\\[2026-08-12 [A-Za-z]+ 19:05\\]"
+               (claude-code-ide-org-test--logbook file))))))
+
 (ert-deftest claude-code-ide-org-test-review-help-falls-back-without-which-key ()
   "`?' must work in a config with no which-key -- including the batch
 suite itself, which is why the dependency is resolved at call time."

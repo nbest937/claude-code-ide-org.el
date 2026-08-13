@@ -5777,14 +5777,51 @@ be suppressed." The keyword transition itself is applied correctly; it
 is only the *log* that is malformed. Nothing errors, and the review
 buffer reports success.
 
-Not yet diagnosed. Likely candidates, in rough order: =org-log-note-*=
-state being consumed outside the window org expects, apply calling
-=org-add-log-note= / =org-store-log-note= directly rather than letting
-=org-todo= drive it, or =org-log-into-drawer= interacting with the note
-insertion so the header lands somewhere the drawer write then discards.
-Note [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] added
-=#+STARTUP: logdrawer= to both files on 2026-08-11, which is recent
-enough relative to this symptom to be worth ruling in or out first.
+*Attempted 2026-08-12, not fixed. Two hypotheses eliminated, and the
+elimination is the useful part — it moves the fault out of the module
+and into the live environment.*
+
+1. *Missing =(t!)= log markers in =#+TODO:=.* org only logs a state
+   change when its internal =dolog= is non-nil, and =dolog= comes from
+   =org-todo-log-states= (org.el:9854-9856), populated from those
+   markers. Plausible, and *false*: both =TODO.org= and the test
+   fixture carry the full marker set, and =git log -L1,1= shows they
+   have since =a943f61=, long predating this symptom. Note CLAUDE.md
+   documents the header *without* markers — the doc is wrong, not the
+   file. A fix written on this premise was reverted.
+2. *The trigger hooks' nested =org-todo=* (config.el:1899, :1933)
+   clobbering the outer call's pending note state. This fit the
+   evidence well: a single-heading fixture never fires them, so every
+   existing apply test would pass while the real file, full of
+   siblings, fails. Also *false* — a test that puts a sibling in =NEXT=
+   confirms the demote trigger fires *and* the applied heading still
+   gets its correct header.
+
+Three tests now pin the correct behavior under =emacs --batch=
+(=review-applies-state-with-native-header=,
+=review-state-header-without-note=,
+=review-state-header-survives-trigger-hooks=). All three pass against
+*unfixed* code, which is exactly what makes them evidence: apply's
+logic is correct in isolation, so the fault lies in the live Doom
+session's state, not in =--review-apply-state=.
+
+Unexamined leads, in order of promise. The =*Messages*= buffer records
+=TODO.org read-only.  Make it writable and apply? (y or n) y= during
+the failing pass — so the buffer was read-only when =org-todo= ran and
+=--review-ensure-writable= cleared it mid-flight; whether that
+interacts with =org-add-log-setup= is untested. Beyond that: whatever
+Doom or =~/.config/doom/config.el= binds that =emacs --batch -Q= does
+not, and =org-log-note-*= state left over from an earlier apply round
+in the same long-lived session (the failing pass was rounds of 13 and 2
+items, not one).
+
+*Reproduction requires the live Emacs, and the obvious method is
+barred*: driving =--review-apply-state= through =emacsclient -e= hangs,
+which is the exact hang this whole architecture exists to route around
+— confirmed again here by hanging on a probe. A reproduction has to run
+inside a genuinely interactive command, so it likely means instrumenting
+apply to record =org-log-note-marker= and =org-log-note-purpose= at
+entry and exit, then having a human run one real review pass.
 
 Repair of the seven already-written entries is a separate question from
 the fix: the =from= states are recoverable from the queue events, which
