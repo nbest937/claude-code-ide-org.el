@@ -39,6 +39,26 @@
         ]
       },
       {
+        "matcher": "mcp__emacs-tools__org_capture",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/queue-append capture",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__emacs-tools__org_amend",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/queue-append amend",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "ExitPlanMode",
         "hooks": [
           {

@@ -391,11 +391,15 @@ NOTE rides the tool call into the queue, where the hook reads it off
 exactly the reason the cutover generalises (TODO.org :ID:
 32272061-1d78-4726-b13b-90338edb2ba5).  See clock-template.org for the
 conventions it feeds."
-  (claude-code-ide-org--at-id
-   id
-   (lambda ()
-     (format "Queued clock_in on \"%s\"; pending review."
-             (org-get-heading t t t t)))))
+  (claude-code-ide-org--tolerating-pending-capture id
+    (lambda (title)
+      (format "Queued clock_in on \"%s\"; pending review." title))
+    (lambda ()
+      (claude-code-ide-org--at-id
+       id
+       (lambda ()
+         (format "Queued clock_in on \"%s\"; pending review."
+                 (org-get-heading t t t t)))))))
 
 (defun claude-code-ide-org-clock-out (&optional note)
   "Report the clock_out as queued.  Closes no clock.
@@ -1136,9 +1140,23 @@ always-true -- and it is also why every transition in a queued *chain*
 on one heading carries the same `from'.  See TODO.org :ID:
 6b1e73c4-25da-4f0e-8a51-9c0d3f7ab214, which is that consequence, still
 unresolved."
-  (claude-code-ide-org--at-id
-   id
-   (lambda ()
+  (claude-code-ide-org--tolerating-pending-capture id
+    ;; A capture that deferred has not written its heading yet, so this
+    ;; would otherwise return `Error: unknown id' -- and `queue-append'
+    ;; drops any event whose reply starts with `Error:', silently losing
+    ;; the state. Reported as queued instead, `was none' because a
+    ;; captured heading is keyword-less by design.
+    (lambda (title)
+      (let ((keywords (claude-code-ide-org--pending-capture-keywords id)))
+        (if (and keywords (not (member state keywords)))
+            (format "Error: %s is not a TODO keyword in this file (have: %s)"
+                    state (string-join keywords " "))
+          (format "Queued todo -> %s (was none): \"%s\"; pending review."
+                  state title))))
+    (lambda ()
+      (claude-code-ide-org--at-id
+       id
+       (lambda ()
      ;; org-todo-keywords-1 is buffer-local and derived from the file's
      ;; own `#+TODO:' line, so this validates against the keywords that
      ;; file actually defines rather than against a list hard-coded here
@@ -1153,7 +1171,7 @@ unresolved."
        (format "Queued todo -> %s (was %s): \"%s\"; pending review."
                state
                (or (org-get-todo-state) "none")
-               (org-get-heading t t t t))))))
+               (org-get-heading t t t t))))))))
 
 (defun claude-code-ide-org-archive (id)
   "Archive the org heading whose :ID: property equals ID.
@@ -1326,7 +1344,81 @@ different one is worse off than a caller that got an error."
      (t (error "target %S is neither a known :ID: nor a top-level heading in %s"
                target (file-name-nondirectory default))))))
 
-(defun claude-code-ide-org-capture (title &optional target)
+;;; Write-through gate for capture and amend ---------------------------------
+;;
+;; Capture and amend write the file immediately when it is free and queue
+;; the proposal when it is not (TODO.org :ID: b5f94b88).  The reply says
+;; which happened, and `bin/hooks/queue-append' appends an event only for
+;; the deferred one -- so these four prefixes are a contract between two
+;; files that change independently.
+;;
+;; Named constants rather than literals on both sides because this project
+;; has already been bitten by a reply parse going stale when a message was
+;; reworded, and the failure mode here is silent in both directions:
+;; getting it wrong either double-applies the write or drops it.
+;; `bin/queue-append-test' asserts the hook's own cases still match these.
+
+(defconst claude-code-ide-org--reply-captured "Captured: "
+  "Reply prefix meaning a capture wrote through; queue nothing.")
+
+(defconst claude-code-ide-org--reply-queued-capture "Queued capture: "
+  "Reply prefix meaning a capture deferred; queue the event.")
+
+(defconst claude-code-ide-org--reply-amended "Amended: "
+  "Reply prefix meaning an amendment wrote through; queue nothing.")
+
+(defconst claude-code-ide-org--reply-queued-amend "Queued amend: "
+  "Reply prefix meaning an amendment deferred; queue the event.")
+
+(defun claude-code-ide-org--file-busy-p (file)
+  "Non-nil when FILE has unsaved changes in a live Emacs buffer.
+
+*Advisory, and the docstring has to say so.*  Nothing is held between
+this check and the write that follows it, so a keystroke or an `Edit'
+call landing in that window still collides.  This reduces the collision
+window; it does not close it.  Do not add a lock to close the gap --
+b5f94b88 rejects that design, because waiting reintroduces the hang class
+the queue exists to avoid and a lock cannot bind the `Edit' tool anyway.
+
+Why modification and not, say, a lock file: every MCP write runs inside
+one single-threaded Emacs, so two sessions calling `org_capture' are
+already serialised and MCP-vs-MCP corruption is not reachable.  The real
+collision is the `Edit' tool writing the file on disk while Emacs holds
+the buffer, plus `:immediate-finish' committing a human's half-finished
+edits along with the new heading.  `buffer-modified-p' is what sees both.
+
+`buffer-read-only' is deliberately *not* busy: the user sets it to guard
+against their own keystrokes, and clearing it is established practice
+here (TODO.org :ID: c8a97d9d)."
+  (let ((buffer (and file (find-buffer-visiting file))))
+    (and buffer (buffer-modified-p buffer))))
+
+(defun claude-code-ide-org--format-tags (tags)
+  "Render TAGS as an org tag suffix, or \"\" when there are none.
+TAGS is a comma- or space-separated string, which is how an MCP argument
+can carry a list at all."
+  (let ((names (and (stringp tags)
+                    (seq-remove #'string-empty-p
+                                (split-string tags "[ ,:]+" t)))))
+    (if names (format " :%s:" (string-join names ":")) "")))
+
+(defun claude-code-ide-org--capture-write (title new-id created spec tags)
+  "Insert TITLE as a heading at SPEC, carrying NEW-ID, CREATED and TAGS.
+Factored out of `claude-code-ide-org-capture' so the immediate path and
+the apply path insert headings through exactly one code path -- a
+deferred capture must produce the same heading it would have produced
+had it written through, and two similar templates would drift."
+  (let ((org-capture-templates
+         (list (list "z" "Claude quick-capture (org_capture MCP tool)"
+                     'entry
+                     spec
+                     (format "* %%i%s\n:PROPERTIES:\n:ID:       %s\n:CREATED:  %s\n:END:\n"
+                             (claude-code-ide-org--format-tags tags)
+                             new-id created)
+                     :immediate-finish t))))
+    (org-capture-string title "z")))
+
+(defun claude-code-ide-org-capture (title &optional target tags note)
   "Quick-add TITLE as a new heading via `org-capture'.
 
 Writes a *keyword-less* heading carrying a freshly-generated :ID: and a
@@ -1344,30 +1436,122 @@ formatting it in elisp cannot fail that way.
 
 TARGET places the heading — an :ID:, a top-level category title, or
 omitted for the end of the capture file.  See
-`claude-code-ide-org--capture-target-spec'.
+`claude-code-ide-org--capture-target-spec'.  TAGS is a comma-separated
+tag string.  NOTE is a short reason, carried for the queue and unused on
+the immediate path.
 
-Returns \"Captured: \\=\"TITLE\\=\" (ID: ...) <where>\" on success, so
-the caller can immediately act on the new heading, or an \"Error: ...\"
-string.  Never signals an error to the MCP layer."
+*Writes through when the target file is free, and queues when it is
+not* (TODO.org :ID: b5f94b88).  In the common case the heading appears at
+once, exactly as before; when the human has unsaved edits in that buffer
+the proposal becomes a queue event instead, applied later by the same
+human review pass that already owns state changes.  So an interjection
+never collides and is never lost.
+
+Either way the :ID: is minted *here* and reported, so `org_capture'
+followed by `org_set_todo' keeps working with no new ceremony.  On the
+deferred path `org-id-add-location' is deliberately not called — the
+heading does not exist yet, and poisoning the id cache would make every
+later lookup lie.
+
+Returns \"Captured: \\=\"TITLE\\=\" (ID: ...) <where>\" when it wrote,
+\"Queued capture: ...\" when it deferred, or an \"Error: ...\" string.
+Those prefixes are a contract with `bin/hooks/queue-append' — see
+`claude-code-ide-org--reply-captured'.  Never signals to the MCP layer."
   (condition-case err
       (let* ((resolved (claude-code-ide-org--capture-target-spec target))
+             (file (plist-get resolved :file))
              (new-id (org-id-new))
-             (created (format-time-string "[%Y-%m-%d %a %H:%M]"))
-             (org-capture-templates
-              (list (list "z" "Claude quick-capture (org_capture MCP tool)"
-                          'entry
-                          (plist-get resolved :spec)
-                          (format "* %%i\n:PROPERTIES:\n:ID:       %s\n:CREATED:  %s\n:END:\n"
-                                  new-id created)
-                          :immediate-finish t))))
-        (org-capture-string title "z")
-        ;; Registered against the file the target actually resolved to,
-        ;; which is not necessarily the capture file: an :ID: target can
-        ;; live anywhere org-id knows about.
-        (org-id-add-location new-id (expand-file-name (plist-get resolved :file)))
-        (format "Captured: \"%s\" (ID: %s) %s"
-                title new-id (plist-get resolved :where)))
+             (created (format-time-string "[%Y-%m-%d %a %H:%M]")))
+        (if (claude-code-ide-org--file-busy-p file)
+            (format "%s\"%s\" (ID: %s) %s; pending review."
+                    claude-code-ide-org--reply-queued-capture
+                    title new-id (plist-get resolved :where))
+          (claude-code-ide-org--capture-write
+           title new-id created (plist-get resolved :spec) tags)
+          ;; Registered against the file the target actually resolved to,
+          ;; which is not necessarily the capture file: an :ID: target can
+          ;; live anywhere org-id knows about.
+          (org-id-add-location new-id (expand-file-name file))
+          (format "%s\"%s\" (ID: %s) %s"
+                  claude-code-ide-org--reply-captured
+                  title new-id (plist-get resolved :where))))
     (error (format "Error: %s" (error-message-string err)))))
+
+(defun claude-code-ide-org--end-of-body ()
+  "Move point to the end of the current heading's own body.
+
+Point lands just after the body's last non-whitespace character — past
+any property drawer, :LOGBOOK: or planning line, and *before* the first
+child heading, so an amendment lands in the heading it names rather than
+inside a drawer or in a subheading's text.
+
+Trailing blank lines are skipped back over rather than appended to, so
+repeated amendments do not accumulate a growing gap.  A heading with no
+body at all leaves point at the end of its drawer, which is the right
+answer for the same reason: the amendment becomes the body.
+
+The subtree end bounds the child search, so the *next* heading at this
+level or above — which is not a child — can never be mistaken for one."
+  (org-back-to-heading t)
+  (let* ((end (save-excursion (org-end-of-subtree t t) (point)))
+         (child (save-excursion
+                  (forward-line 1)
+                  (and (re-search-forward org-heading-regexp end t)
+                       (line-beginning-position)))))
+    (goto-char (or child end))
+    (skip-chars-backward " \t\n")))
+
+(defun claude-code-ide-org-amend (id text &optional note)
+  "Append TEXT to the body of the heading with :ID: ID.
+
+The queue-aware counterpart to editing a heading's prose with the `Edit'
+tool.  Writes through when the file is free and queues the proposal when
+the human has unsaved changes in that buffer — the same gate
+`claude-code-ide-org-capture' uses, and for the same reason.
+
+NOTE is a short reason, carried for the queue.
+
+*Positional, not contextual, and v1 accepts that.*  The text lands at the
+end of the heading's own body regardless of whether that body changed
+since the amendment was written — which may be exactly wrong for an
+amendment written in response to what the body said.  There is no
+conflict detection; a diff-style guard is a much larger design.  The
+review line names the target heading's title so a human can spot a body
+that has moved on.
+
+*Honest limit:* this helps only when Claude calls `org_amend' instead of
+the `Edit' tool.  `Edit' consults neither Emacs nor any lock and cannot
+be intercepted, so the mechanism is a practice plus a safety net, not
+enforcement.
+
+Returns \"Amended: ...\", \"Queued amend: ...\", or \"Error: ...\"."
+  (require 'org-id)
+  (let ((marker (ignore-errors (org-id-find id 'marker))))
+    (if (not marker)
+        (format "Error: no org heading found with :ID: \"%s\"" id)
+      (let* ((file (buffer-file-name (marker-buffer marker)))
+             (title (org-with-point-at marker
+                      (org-no-properties (org-get-heading t t t t)))))
+        (set-marker marker nil)
+        (if (claude-code-ide-org--file-busy-p file)
+            (format "%s\"%s\" (%d line%s); pending review."
+                    claude-code-ide-org--reply-queued-amend
+                    title
+                    (length (split-string (or text "") "\n"))
+                    (if (= 1 (length (split-string (or text "") "\n"))) "" "s"))
+          (let ((result
+                 (claude-code-ide-org--at-id
+                  id
+                  (lambda ()
+                    (claude-code-ide-org--end-of-body)
+                    ;; Blank line before, so the amendment reads as its own
+                    ;; paragraph rather than running into whatever the body
+                    ;; already ended with.
+                    (insert "\n\n" (string-trim (or text "")) "\n")
+                    (save-buffer)
+                    nil))))
+            (or (and (stringp result) result)
+                (format "%s\"%s\"" claude-code-ide-org--reply-amended title))))))))
 
 ;;; Query -------------------------------------------------------------------
 ;;
@@ -2251,7 +2435,7 @@ settled, and the heading above schedules a re-measure."
   :group 'claude-code-ide-org)
 
 (defconst claude-code-ide-org--queue-kinds
-  '("todo" "clock_in" "clock_out" "pause" "resume")
+  '("todo" "clock_in" "clock_out" "pause" "resume" "capture" "amend")
   "Event kinds bin/hooks/queue-append is allowed to emit.
 A line carrying anything else is treated as unparseable and skipped, so
 a future writer emitting a kind this Emacs does not know about degrades
@@ -2323,6 +2507,13 @@ whole file. This is the single place that judgement is made."
                 ;; `claude-code-ide-org--review-state-stale-p'.
                 :from (alist-get 'from obj)
                 :note (alist-get 'note obj)
+                ;; capture: what heading to write and where. amend: the
+                ;; prose to append. Null on every other kind, and on
+                ;; events written before these kinds existed.
+                :title (alist-get 'title obj)
+                :target (alist-get 'target obj)
+                :tags (alist-get 'tags obj)
+                :text (alist-get 'text obj)
                 :session-id (alist-get 'session_id obj)
                 :agent-id (alist-get 'agent_id obj)
                 :agent-type (alist-get 'agent_type obj)
@@ -2499,6 +2690,63 @@ it would re-propose work already applied."
     (sort (nreverse events)
           (lambda (a b) (time-less-p (plist-get a :ts) (plist-get b :ts))))))
 
+(defun claude-code-ide-org--pending-capture (id)
+  "Return the pending queued `capture' event that will create ID, or nil.
+
+The bridge across the sharpest edge in the write-through design
+(TODO.org :ID: b5f94b88): a capture that deferred has minted its :ID:
+and reported it, but the heading does not exist yet, so every later tool
+call naming that id resolves to nothing.  Consulting the queue is what
+tells \"not written yet\" apart from \"never existed\".
+
+Reading the queue from a tool has precedent in
+`claude-code-ide-org-pending-updates'."
+  (seq-find (lambda (event)
+              (and (equal (plist-get event :kind) "capture")
+                   (equal (plist-get event :id) id)))
+            (claude-code-ide-org--queue-events)))
+
+(defun claude-code-ide-org--pending-capture-keywords (id)
+  "TODO keywords legal for ID's pending capture, or nil if undeterminable.
+
+Read from the file that capture's own target resolves to, rather than
+from a list hard-coded here, for the same reason the resolved path reads
+`org-todo-keywords-1' off the buffer: the answer belongs to the file.
+Nil when the target cannot be resolved at all, which means \"cannot
+check\" and must not be mistaken for \"nothing is legal\"."
+  (let* ((event (claude-code-ide-org--pending-capture id))
+         (file (and event
+                    (or (ignore-errors
+                          (plist-get (claude-code-ide-org--capture-target-spec
+                                      (plist-get event :target))
+                                     :file))
+                        (claude-code-ide-org--capture-target-file)))))
+    (when (and file (file-readable-p file))
+      (with-current-buffer (find-file-noselect file)
+        org-todo-keywords-1))))
+
+(defun claude-code-ide-org--tolerating-pending-capture (id pending-fn resolve-fn)
+  "Call RESOLVE-FN, falling back to PENDING-FN when ID is only pending.
+
+RESOLVE-FN is the normal path and runs first, so the common case costs no
+queue read at all.  When it fails *specifically* because the :ID: names
+nothing -- not for any other error -- and a queued `capture' is going to
+create exactly that heading, PENDING-FN is called with the pending
+heading's title and its answer returned instead.
+
+Narrow on purpose.  A genuinely unknown :ID: must still report an error,
+because `bin/hooks/queue-append' drops any reply starting with `Error:'
+and that drop is the only thing standing between a typo and an
+unexplainable queue entry."
+  (let ((result (funcall resolve-fn)))
+    (if (and (stringp result)
+             (string-prefix-p "Error: no org heading found" result))
+        (let ((event (claude-code-ide-org--pending-capture id)))
+          (if event
+              (funcall pending-fn (or (plist-get event :title) "(untitled)"))
+            result))
+      result)))
+
 (defun claude-code-ide-org--queue-events-by-id (&optional session-id)
   "Group pending events by the heading :ID: they belong to.
 Returns an alist of (ID . EVENTS), plus an entry keyed nil for events
@@ -2657,6 +2905,14 @@ Returns a list of plists, each one proposed action:
          :events EVENTS)
   (:type clock :id ID :start TIME :end TIME :note NOTE :agent AGENT
          :suggested BOOL :events EVENTS)
+  (:type capture :id ID :ts TIME :title TITLE :target TARGET :tags TAGS
+         :note NOTE :events EVENTS)
+  (:type amend :id ID :ts TIME :text TEXT :note NOTE :events EVENTS)
+
+A `capture' item's :ID: names a heading that does *not exist yet* -- it
+was minted when the capture deferred, and apply is what writes it.  Every
+other item type names a heading that already exists, so anything walking
+these items has to keep that distinction (TODO.org :ID: b5f94b88).
 
 `:suggested' distinguishes the two modes above: non-nil means the span
 was reconstructed from human guideposts and is a proposal the human must
@@ -2676,14 +2932,34 @@ from a skipped one."
           ;; transitions and org's own log wants a line for each; it is
           ;; the *clock interval* that must not be broken up by them.
           (dolist (event events)
-            (when (equal (plist-get event :kind) "todo")
-              (push (list :type 'state :id id
-                          :ts (plist-get event :ts)
-                          :from (plist-get event :from)
-                          :to (plist-get event :state)
-                          :note (plist-get event :note)
-                          :events (list event))
-                    items)))
+            (pcase (plist-get event :kind)
+              ("todo"
+               (push (list :type 'state :id id
+                           :ts (plist-get event :ts)
+                           :from (plist-get event :from)
+                           :to (plist-get event :state)
+                           :note (plist-get event :note)
+                           :events (list event))
+                     items))
+              ;; One item per event for these two as well, and for the
+              ;; same reason: two amendments to one heading are two
+              ;; separate proposals a human may accept independently.
+              ("capture"
+               (push (list :type 'capture :id id
+                           :ts (plist-get event :ts)
+                           :title (plist-get event :title)
+                           :target (plist-get event :target)
+                           :tags (plist-get event :tags)
+                           :note (plist-get event :note)
+                           :events (list event))
+                     items))
+              ("amend"
+               (push (list :type 'amend :id id
+                           :ts (plist-get event :ts)
+                           :text (plist-get event :text)
+                           :note (plist-get event :note)
+                           :events (list event))
+                     items))))
           ;; Subagent intervals: pair each agent's own clock_in/clock_out.
           (let ((by-agent (make-hash-table :test 'equal)))
             (dolist (event events)
@@ -3162,13 +3438,19 @@ lands at all."
     (let ((claude-code-ide-org--auto-clock-in-active t)
           (claude-code-ide-org--log-source
            (or claude-code-ide-org--log-source "org_review_apply")))
+      ;; A capture is the one item whose :ID: names a heading that does
+      ;; not exist yet -- it is what *creates* it -- so it cannot run
+      ;; inside `--at-id' the way every other kind does.
+      (if (eq (plist-get item :type) 'capture)
+          (claude-code-ide-org--review-apply-capture item)
       (let ((result
              (claude-code-ide-org--at-id
               (plist-get item :id)
               (lambda ()
                 (pcase (plist-get item :type)
                   ('clock (claude-code-ide-org--review-apply-clock item))
-                  ('state (claude-code-ide-org--review-apply-state item)))
+                  ('state (claude-code-ide-org--review-apply-state item))
+                  ('amend (claude-code-ide-org--review-apply-amend item)))
                 ;; Fold the tidy-up into the write already being made,
                 ;; before `save-buffer' rather than after, so one apply
                 ;; is one write. org inserts CLOCK lines newest-first
@@ -3182,7 +3464,50 @@ lands at all."
                 (save-buffer)
                 nil))))
         ;; --at-id returns an "Error: ..." string rather than throwing.
-        (and (stringp result) result)))))
+        (and (stringp result) result))))))
+
+(defun claude-code-ide-org--review-apply-amend (item)
+  "Append ITEM's text to the end of the target heading's own body.
+Called with point on the heading, inside
+`claude-code-ide-org--review-apply-item's `--at-id' wrapper, which saves.
+
+Positional rather than contextual: the text lands at the body end
+regardless of whether the body changed since the amendment was queued.
+See `claude-code-ide-org-amend' for why v1 accepts that."
+  (claude-code-ide-org--end-of-body)
+  (insert "\n\n" (string-trim (or (plist-get item :text) "")) "\n"))
+
+(defun claude-code-ide-org--review-apply-capture (item)
+  "Write ITEM's captured heading.  Nil on success, an error string otherwise.
+
+Two things are taken from the *event* rather than from now, and both
+matter for the record to be honest: the pre-minted :ID:, so a caller that
+was already told the id keeps being right, and the :CREATED: stamp, so
+the heading records when it was thought of rather than when a human got
+round to reviewing it.
+
+*The target is resolved now, not at queue time,* because a heading can
+move between the two.  When it resolves to nothing this returns an error
+and applies nothing, leaving the item pending exactly as a stale state
+transition does -- the human then retargets or dismisses it.  It never
+falls back to the end of the capture file: a heading filed somewhere
+nobody chose is precisely the confidently-wrong record this architecture
+exists to prevent (TODO.org :ID: b5f94b88)."
+  (condition-case err
+      (let* ((resolved (claude-code-ide-org--capture-target-spec
+                        (plist-get item :target)))
+             (file (plist-get resolved :file))
+             (id (plist-get item :id)))
+        (claude-code-ide-org--capture-write
+         (or (plist-get item :title) "(untitled)")
+         id
+         (format-time-string "[%Y-%m-%d %a %H:%M]" (plist-get item :ts))
+         (plist-get resolved :spec)
+         (plist-get item :tags))
+        (org-id-add-location id (expand-file-name file))
+        (with-current-buffer (find-file-noselect file) (save-buffer))
+        nil)
+    (error (format "Error: %s" (error-message-string err)))))
 
 (defun claude-code-ide-org--review-record-applied (applied-items)
   "Record every event behind APPLIED-ITEMS as applied, per session.
@@ -3603,7 +3928,37 @@ a wrong log line."
                      "UNASSIGNED -- press `a' to choose a heading"))
          (format "  clock   %s%s"
                  (claude-code-ide-org--review-format-annotation item)
-                 (if (plist-get item :suggested) "  (suggested)" "  (agent)")))))))
+                 (if (plist-get item :suggested) "  (suggested)" "  (agent)"))))
+      ;; The target is resolved here, at render time, purely to say
+      ;; whether it still resolves -- a capture can easily outlive the
+      ;; heading it was filed under, and finding that out at apply time
+      ;; means finding it out one keystroke too late.  `!' is the column's
+      ;; established "something is wrong" mark.
+      ('capture
+       (let ((where (ignore-errors
+                      (plist-get (claude-code-ide-org--capture-target-spec
+                                  (plist-get item :target))
+                                 :where))))
+         (format "%scapture %-30s -> %-22s %s   %s"
+                 (if where "  " "! ")
+                 (format "\"%s\"" (or (plist-get item :title) "(untitled)"))
+                 (or where (format "%s (UNRESOLVED)" (plist-get item :target)))
+                 (format-time-string "%m-%d %H:%M" (plist-get item :ts))
+                 note)))
+      ;; The target heading's *title*, not just its id, because an
+      ;; amendment is positional -- it lands at the body end whatever the
+      ;; body now says -- and the title is the only chance to notice the
+      ;; heading has moved on since the text was written.
+      ('amend
+       (let ((lines (length (split-string (or (plist-get item :text) "") "\n"))))
+         (format "  amend   %-30s    (%d line%s)%s %s   %s"
+                 (format "\"%s\"" (or (claude-code-ide-org--review-heading-title
+                                       (plist-get item :id))
+                                      "(unknown heading)"))
+                 lines (if (= lines 1) "" "s")
+                 (make-string (max 1 (- 8 (length (number-to-string lines)))) ?\s)
+                 (format-time-string "%m-%d %H:%M" (plist-get item :ts))
+                 note))))))
 
 (defun claude-code-ide-org--assignable-files ()
   "Truenames of the files whose headings may receive an assigned span.
@@ -4358,14 +4713,54 @@ correctly inside a real interactive command."
                  "transition for review so org logs it natively. Use TARGET "
                  "to place it; run org_outline first if you need to see what "
                  "categories exist. Returns a confirmation containing the "
-                 "new heading's real :ID: and where it landed.")
+                 "new heading's real :ID: and where it landed. Writes "
+                 "immediately when the target file is free; when the human "
+                 "has unsaved changes in it, the heading is queued for "
+                 "review instead and the reply says \"Queued capture\". The "
+                 "returned :ID: is usable either way — org_set_todo and "
+                 "org_clock_in accept an :ID: whose capture is still "
+                 "pending.")
    :args '((:name "title"
             :type string
             :description "The heading text for the new heading.")
            (:name "target"
             :type string
             :optional t
-            :description "Where to put it: an :ID: to file it under that heading, or the exact title of a top-level category. Omit to append at the end of the capture file.")))
+            :description "Where to put it: an :ID: to file it under that heading, or the exact title of a top-level category. Omit to append at the end of the capture file.")
+           (:name "tags"
+            :type string
+            :optional t
+            :description "Comma-separated org tags for the new heading, e.g. \"code,research\".")
+           (:name "note"
+            :type string
+            :optional t
+            :description "Short 3-10 word reason for capturing this, recorded on the queued event when the write defers.")))
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-amend
+   :name "org_amend"
+   :description (concat
+                 "Append a block of prose to the body of an existing heading, "
+                 "identified by its :ID:. Prefer this over the Edit tool for "
+                 "adding body text to a tracked org heading: Edit writes the "
+                 "file behind Emacs's back, while this writes through Emacs "
+                 "when the file is free and queues the text for human review "
+                 "when the human has unsaved changes in that buffer, so an "
+                 "interjection never collides and is never lost. The text "
+                 "lands at the end of the heading's own body, after any "
+                 "drawers and before its first child. Positional, not "
+                 "contextual: it appends wherever the body now ends, with no "
+                 "conflict detection.")
+   :args '((:name "id"
+            :type string
+            :description "The :ID: property value of the heading to amend.")
+           (:name "text"
+            :type string
+            :description "The prose block to append. May be multiple lines.")
+           (:name "note"
+            :type string
+            :optional t
+            :description "Short 3-10 word reason for the amendment, recorded on the queued event when the write defers.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-query

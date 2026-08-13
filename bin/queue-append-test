@@ -307,6 +307,64 @@ reset_queue
 run clock_in '{"session_id":"sess-a","tool_input":{"id":"nope"},"tool_response":[{"type":"text","content":[{"text":"Error: nested but still an error"}]}]}'
 check "nested error response writes nothing" "" "$(queue_lines sess-a)"
 
+# --- capture/amend: the write-through gate, both directions ------------
+#
+# The double-apply regression. org_capture writes the file itself when it
+# is free, so appending an event for that reply would file the heading
+# twice: once now and once when a human applies the queue. Both
+# directions are asserted because only testing the queued one would let a
+# gate that appends unconditionally pass.
+reset_queue
+run capture '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_capture","tool_input":{"title":"Wrote through"},"tool_response":[{"type":"text","text":"Captured: \"Wrote through\" (ID: cap-1) end of file"}]}'
+check "a capture that wrote through appends nothing" "" "$(queue_lines sess-a)"
+
+reset_queue
+run amend '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_amend","tool_input":{"id":"id-a","text":"prose"},"tool_response":[{"type":"text","text":"Amended: \"Some heading\""}]}'
+check "an amend that wrote through appends nothing" "" "$(queue_lines sess-a)"
+
+reset_queue
+run capture '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_capture","tool_input":{"title":"Deferred","target":"Tooling","tags":"code,research","note":"why"},"tool_response":[{"type":"text","text":"Queued capture: \"Deferred\" (ID: cap-2) under \"Tooling\"; pending review."}]}'
+line="$(queue_lines sess-a)"
+check "a deferred capture appends one line" "1" "$(wc -l <<<"$line" | tr -d ' ')"
+check "capture records kind" "capture" "$(jq -r '.kind' <<<"$line")"
+check "capture recovers the pre-minted id from the reply" "cap-2" "$(jq -r '.id' <<<"$line")"
+check "capture records title" "Deferred" "$(jq -r '.title' <<<"$line")"
+check "capture records target" "Tooling" "$(jq -r '.target' <<<"$line")"
+check "capture records tags" "code,research" "$(jq -r '.tags' <<<"$line")"
+check "capture records note" "why" "$(jq -r '.note' <<<"$line")"
+check "capture has null text" "null" "$(jq -r '.text' <<<"$line")"
+
+reset_queue
+run amend '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_amend","tool_input":{"id":"id-a","text":"two\nlines","note":"why"},"tool_response":[{"type":"text","text":"Queued amend: \"Some heading\" (2 lines); pending review."}]}'
+line="$(queue_lines sess-a)"
+check "amend records kind" "amend" "$(jq -r '.kind' <<<"$line")"
+check "amend takes its id from tool_input" "id-a" "$(jq -r '.id' <<<"$line")"
+check "amend records text verbatim" "two
+lines" "$(jq -r '.text' <<<"$line")"
+check "amend has null title" "null" "$(jq -r '.title' <<<"$line")"
+
+# An unrecognised reply drops the event rather than guessing. A drop
+# loses one proposal a human can restate; a wrong append writes the
+# heading twice and neither copy announces itself.
+reset_queue
+run capture '{"session_id":"sess-a","tool_input":{"title":"x"},"tool_response":[{"type":"text","text":"Something nobody planned for"}]}'
+check "an unrecognised capture reply appends nothing" "" "$(queue_lines sess-a)"
+
+# --- the reply-prefix contract with config.el --------------------------
+#
+# The prefixes above are a contract between two files that change
+# independently, and rewording one side alone either double-applies or
+# silently drops. This asserts the literals this script matches on are
+# still the ones config.el builds its replies from -- a test of the
+# agreement, not of today's spelling.
+config="$repo_root/modules/tools/claude-code-ide-org/config.el"
+for name in reply-queued-capture reply-queued-amend; do
+  literal="$(sed -n "s/^(defconst claude-code-ide-org--$name \"\\([^\"]*\\)\".*/\\1/p" "$config")"
+  check "config.el defines --$name" "yes" "$([[ -n "$literal" ]] && echo yes || echo no)"
+  check "queue-append matches on --$name's literal" "yes" \
+    "$(grep -qF "\"$literal\"" "$script" && echo yes || echo no)"
+done
+
 # --- the script never fails its caller ---------------------------------
 printf '%s' 'garbage' | "$script" pause >/dev/null 2>&1
 check "always exits 0" "0" "$?"

@@ -4295,6 +4295,226 @@ something still refreshes, which is what consumes the applied items."
                      "DOING" (claude-code-ide-org-test--disk-contents file))))
         (kill-buffer "*org-review-test*")))))
 
+;;; Capture/amend write-through and queueing ---------------------------------
+
+(defun claude-code-ide-org-test--capture-line (ts id title &optional target tags note)
+  "Return one encoded `capture' queue line, as bin/hooks/queue-append writes it."
+  (json-encode `((ts . ,ts) (kind . "capture") (id . ,id) (state . nil)
+                 (from . nil) (note . ,note) (title . ,title)
+                 (target . ,target) (tags . ,tags) (text . nil)
+                 (session_id . "sess-a") (agent_id . nil) (agent_type . nil)
+                 (source . "mcp__emacs-tools__org_capture"))))
+
+(defun claude-code-ide-org-test--amend-line (ts id text &optional note)
+  "Return one encoded `amend' queue line, as bin/hooks/queue-append writes it."
+  (json-encode `((ts . ,ts) (kind . "amend") (id . ,id) (state . nil)
+                 (from . nil) (note . ,note) (title . nil) (target . nil)
+                 (tags . nil) (text . ,text)
+                 (session_id . "sess-a") (agent_id . nil) (agent_type . nil)
+                 (source . "mcp__emacs-tools__org_amend"))))
+
+(defun claude-code-ide-org-test--make-busy (file)
+  "Leave FILE's buffer modified, the way a half-finished human edit does."
+  (with-current-buffer (find-file-noselect file)
+    (goto-char (point-max))
+    (insert "\n")
+    (should (buffer-modified-p))))
+
+(ert-deftest claude-code-ide-org-test-capture-writes-through-when-free ()
+  "The common case has to stay immediate: an open, unmodified buffer is
+not busy.  A gate that treated any live buffer as contention would defer
+every capture in normal use, which is the behaviour change nobody asked
+for (TODO.org :ID: b5f94b88)."
+  (claude-code-ide-org-test--with-capture-file
+    ;; Buffer exists and is clean -- the distinction under test.
+    (find-file-noselect capture-file)
+    (let ((result (claude-code-ide-org-capture "Immediate task")))
+      (should (string-prefix-p claude-code-ide-org--reply-captured result))
+      (should (string-match-p "^\\* Immediate task[ \t]*$"
+                              (claude-code-ide-org-test--disk-contents capture-file))))))
+
+(ert-deftest claude-code-ide-org-test-capture-defers-when-busy ()
+  "With unsaved human edits in the buffer, capture queues instead of
+writing -- and writes *nothing*, which is the half that matters.  A
+reply that says queued while the heading also landed is the
+double-apply this gate exists to prevent."
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-test--make-busy capture-file)
+    (let ((result (claude-code-ide-org-capture "Deferred task")))
+      (should (string-prefix-p claude-code-ide-org--reply-queued-capture result))
+      ;; The id is still minted and reported, so the caller can act on it.
+      (should (string-match "(ID: \\([^)]+\\))" result))
+      (should (> (length (match-string 1 result)) 0))
+      (should-not (string-match-p "Deferred task"
+                                  (claude-code-ide-org-test--disk-contents capture-file))))))
+
+(ert-deftest claude-code-ide-org-test-deferred-capture-applies-with-its-own-id-and-time ()
+  "Both halves come from the *event*: the pre-minted :ID:, so a caller
+already told that id keeps being right, and the :CREATED: stamp, so the
+heading records when it was thought of rather than when a human got
+round to reviewing it."
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-test--with-queue
+      (let* ((ts "2026-01-15T09:14:00-0500")
+             (expected-created
+              (format-time-string "[%Y-%m-%d %a %H:%M]"
+                                  (claude-code-ide-org--parse-iso8601 ts))))
+        (claude-code-ide-org-test--queue-write
+         "sess-a" (claude-code-ide-org-test--capture-line
+                   ts "cap-id-1" "Queued heading" nil "code,research"))
+        (let ((items (claude-code-ide-org--review-items-from-queue)))
+          (should (= 1 (length items)))
+          (should (eq 'capture (plist-get (car items) :type)))
+          (should-not (claude-code-ide-org--review-apply-item (car items))))
+        (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+          (should (string-match-p "^\\* Queued heading +:code:research:$" disk))
+          (should (string-match-p "^:ID: +cap-id-1[ \t]*$" disk))
+          (should (string-match-p (concat "^:CREATED: +" (regexp-quote expected-created))
+                                  disk))
+          ;; ...and emphatically not stamped at apply time.
+          (should-not (string-match-p
+                       (regexp-quote (format-time-string "[%Y-%m-%d %a"))
+                       disk)))))))
+
+(ert-deftest claude-code-ide-org-test-set-todo-tolerates-a-pending-capture ()
+  "The silent-drop regression.  A deferred capture's heading does not
+exist, so `org_set_todo' would answer `Error: unknown id' -- and
+bin/hooks/queue-append drops any event whose reply starts with `Error:',
+losing the state with nothing to show for it."
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-test--with-queue
+      (claude-code-ide-org-test--queue-write
+       "sess-a" (claude-code-ide-org-test--capture-line
+                 "2026-01-15T09:14:00-0500" "cap-id-2" "Not written yet"))
+      (let ((reply (claude-code-ide-org-set-todo "cap-id-2" "DOING")))
+        (should (string-prefix-p "Queued todo -> DOING (was none)" reply))
+        (should (string-match-p "Not written yet" reply)))
+      ;; clock_in takes the same path.
+      (should (string-prefix-p
+               "Queued clock_in" (claude-code-ide-org-clock-in "cap-id-2")))
+      ;; A genuinely unknown id still errors -- the tolerance is narrow.
+      (should (string-prefix-p "Error:" (claude-code-ide-org-set-todo "no-such-id" "DOING")))
+      ;; ...and so does a keyword the target file does not declare.
+      (should (string-prefix-p "Error:" (claude-code-ide-org-set-todo "cap-id-2" "BOGUS"))))))
+
+(ert-deftest claude-code-ide-org-test-capture-then-todo-apply-in-one-batch ()
+  "A capture at T0 and a todo at T1 on the same id are one dependency
+chain.  The todo must not render STALE -- the heading it names is
+unresolved rather than moved -- and applying the pair in order must
+leave a heading that exists and holds the state."
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-test--with-queue
+      (claude-code-ide-org-test--queue-write
+       "sess-a"
+       (claude-code-ide-org-test--capture-line
+        "2026-01-15T09:14:00-0500" "cap-id-3" "Chained heading")
+       (json-encode '((ts . "2026-01-15T09:15:00-0500") (kind . "todo")
+                      (id . "cap-id-3") (state . "DOING") (from . "none")
+                      (note . "starting") (session_id . "sess-a")
+                      (agent_id . nil) (agent_type . nil) (source . "todo"))))
+      (let ((items (claude-code-ide-org--review-items-from-queue)))
+        (should (= 2 (length items)))
+        (should (eq 'capture (plist-get (nth 0 items) :type)))
+        (should (eq 'state (plist-get (nth 1 items) :type)))
+        (claude-code-ide-org--review-projected-staleness items)
+        (should-not (claude-code-ide-org--review-state-stale-p (nth 1 items)))
+        (let ((result (claude-code-ide-org--review-apply items)))
+          (should (= 2 (plist-get result :applied)))
+          (should-not (plist-get result :errors))))
+      (should (string-match-p "^\\* DOING Chained heading"
+                              (claude-code-ide-org-test--disk-contents capture-file))))))
+
+(ert-deftest claude-code-ide-org-test-capture-refuses-a-vanished-target ()
+  "Resolution failure leaves the item pending rather than filing the
+heading somewhere nobody chose.  A capture can easily outlive the
+heading it was filed under, and a confidently-wrong destination is the
+exact failure this architecture exists to prevent."
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-test--with-queue
+      (claude-code-ide-org-test--queue-write
+       "sess-a" (claude-code-ide-org-test--capture-line
+                 "2026-01-15T09:14:00-0500" "cap-id-4" "Orphan"
+                 "No Such Category"))
+      (let* ((items (claude-code-ide-org--review-items-from-queue))
+             (result (claude-code-ide-org--review-apply items)))
+        (should (= 0 (plist-get result :applied)))
+        (should (= 1 (length (plist-get result :errors))))
+        (should (string-prefix-p "Error:" (car (plist-get result :errors)))))
+      (should-not (string-match-p "Orphan"
+                                  (claude-code-ide-org-test--disk-contents capture-file)))
+      ;; Still pending, so the human can retarget or dismiss it.
+      (should (= 1 (length (claude-code-ide-org--review-items-from-queue)))))))
+
+(ert-deftest claude-code-ide-org-test-amend-appends-at-the-body-end ()
+  "The text belongs to the heading it names: after its drawers, before
+its first child.  Landing inside :PROPERTIES: or :LOGBOOK: would corrupt
+them, and landing under the child would attribute the prose to the wrong
+heading while looking perfectly fine."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n"
+              "* Parent\n:PROPERTIES:\n:ID: parent-1\n:END:\n"
+              ":LOGBOOK:\n- note\n:END:\n\n"
+              "Existing body.\n\n"
+              "** Child\n:PROPERTIES:\n:ID: child-1\n:END:\n\nChild body.\n"))
+    (org-id-update-id-locations (list capture-file))
+    (should (string-prefix-p claude-code-ide-org--reply-amended
+                             (claude-code-ide-org-amend "parent-1" "Appended prose.")))
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      ;; Between the existing body and the child, in that order.
+      (should (string-match-p
+               "Existing body\\.\n+Appended prose\\.\n+\\*\\* Child" disk))
+      ;; And nowhere near the drawers.
+      (should-not (string-match-p ":LOGBOOK:\n- note\nAppended" disk)))))
+
+(ert-deftest claude-code-ide-org-test-amend-defers-when-busy ()
+  "Same gate as capture, and the same load-bearing half: nothing is
+written when it defers."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n* Parent\n:PROPERTIES:\n:ID: parent-2\n:END:\n\nBody.\n"))
+    (org-id-update-id-locations (list capture-file))
+    (claude-code-ide-org-test--make-busy capture-file)
+    (let ((reply (claude-code-ide-org-amend "parent-2" "line one\nline two")))
+      (should (string-prefix-p claude-code-ide-org--reply-queued-amend reply))
+      (should (string-match-p "2 lines" reply)))
+    (should-not (string-match-p "line one"
+                                (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-amend-applies-from-the-queue ()
+  "The deferred amendment reaches the same place the immediate one would."
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-test--with-queue
+      (with-temp-file capture-file
+        (insert "#+TODO: TODO | DONE\n\n* Parent\n:PROPERTIES:\n:ID: parent-3\n:END:\n\nBody.\n"))
+      (org-id-update-id-locations (list capture-file))
+      (claude-code-ide-org-test--queue-write
+       "sess-a" (claude-code-ide-org-test--amend-line
+                 "2026-01-15T09:14:00-0500" "parent-3" "Queued prose."))
+      (let ((items (claude-code-ide-org--review-items-from-queue)))
+        (should (= 1 (length items)))
+        (should (eq 'amend (plist-get (car items) :type)))
+        (should-not (claude-code-ide-org--review-apply-item (car items))))
+      (should (string-match-p "Body\\.\n+Queued prose\\."
+                              (claude-code-ide-org-test--disk-contents capture-file))))))
+
+(ert-deftest claude-code-ide-org-test-review-renders-capture-and-amend ()
+  "Both need a line a human can decide from: a capture names where it
+will land and flags a target that no longer resolves, an amend names the
+*title* of what it will change so a body that has moved on is visible."
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-test--with-review-buffer
+        (list (list :type 'capture :id "cap-a" :ts (current-time)
+                    :title "New thing" :target nil :note "why" :events nil)
+              (list :type 'capture :id "cap-b" :ts (current-time)
+                    :title "Orphan" :target "No Such Category" :events nil)
+              (list :type 'amend :id "nope" :ts (current-time)
+                    :text "a\nb\nc" :note "why" :events nil))
+      (let ((text (buffer-substring-no-properties (point-min) (point-max))))
+        (should (string-match-p "capture \"New thing\" +-> end of file" text))
+        (should (string-match-p "! capture \"Orphan\" +-> No Such Category (UNRESOLVED)" text))
+        (should (string-match-p "amend +\"(unknown heading)\" +(3 lines)" text))))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here
