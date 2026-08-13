@@ -5921,11 +5921,19 @@ artifact; treat any filter as a hypothesis about what it hides.
 :CREATED:  [2026-08-13 Thu 10:13]
 :END:
 
-*NOT YET REVIEWED BY THE USER.* Captured 2026-08-13 at the user's
-request with the explicit note that they had no time to study it then
-and wanted to read it carefully before signing off. Everything below is
-a proposal Claude drafted, not an agreed design — treat the
-recommendation as an argument to test, not a decision already taken.
+*Read by the user 2026-08-13* — both the original draft below and the
+=create-lockfiles= research appended to step 1. The "study this before
+signing off" reminder it was captured under is discharged.
+
+*No verdict was recorded, and none should be inferred.* The user said
+only that they had reviewed it and that the heading could be amended
+accordingly; they did not approve the recommendation, reject it, or
+choose between its three steps. So this remains a proposal Claude
+drafted, not an agreed design, and the three load-bearing claims are
+still open to challenge: that a *blocking* lock is the wrong primitive,
+that the underlying need is a missing queue rather than a missing lock,
+and that the ordering below is the right one. Anyone acting on this
+should get an explicit decision first.
 
 *The ask, in the user's words:* so many times they want to ask a
 question or make a proposal while something else is in flight, which
