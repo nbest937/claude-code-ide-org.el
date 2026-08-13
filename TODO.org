@@ -7105,6 +7105,44 @@ is more legible. Points to weigh:
 Whatever is decided, the stale comment on =--aggregate-guideposts= must
 be corrected either way — it currently misinforms anyone reasoning about
 this.
+
+*Decided and shipped 2026-08-13: yes, but scoped to the heading apply is
+already writing.* Apply now normalises that heading's drawer between the
+write and the =save-buffer=, so one apply remains one write.
+
+The scoping is the whole decision. Apply's claim is that it writes what
+the human confirmed and nothing else; tidying a drawer it is opening
+anyway stretches that, while reordering drawers it never touched would
+break it. A bug in consolidation now damages one heading's history —
+which is also the one place a human is about to look, rather than
+somewhere they will not notice for weeks.
+
+Safe to do at all only because
+[[id:af7d3687-6d1e-4480-a9e2-df772785713f][af7d3687]] had already pinned
+=--consolidate-logbook-text= as idempotent and provably lossless: a
+byte-identical fixed point against =clock-template.org=, with a second
+pass asserted to be a no-op. The engineering was done; only the call
+site was ever in question.
+
+=claude-code-ide-org-consolidate-on-apply= (default =t=) turns it off.
+
+*Two stale statements corrected in the same pass*, both of which read as
+settled fact:
+- =--aggregate-guideposts='s claim that consolidation rounds. It has not
+  since =b74e0f19=.
+- =consolidate-history='s own docstring, which described re-emitting
+  intervals "newest-first ... every non-CLOCK line after it" — the
+  behaviour =af7d3687= replaced, still being described in the very
+  function that replaced it.
+
+*A note on how the tests got here*, because it is the more useful part.
+Both new tests initially passed *without* the fix. org inserts each
+=CLOCK:= line at the top of the drawer, so applying newer-then-older
+comes out ascending by accident; only older-then-newer leaves it
+inverted. The fixtures had it backwards and asserted a property that was
+already true. Caught by stashing =config.el= and re-running — the check
+that had been written into a memory minutes earlier, and which found its
+first defect immediately.
 *** DONE Editing a span's interval does not re-scope its events, so truncating loses the remainder :code:
 :PROPERTIES:
 :ID:       ffe65444-50ed-49f8-a4c3-27c1c4c843c3

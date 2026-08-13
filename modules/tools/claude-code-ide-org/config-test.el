@@ -2872,6 +2872,50 @@ confirmed, not clocked live."
                             (claude-code-ide-org--review-format-annotation
                              (plist-put (copy-sequence accepted) :note "real label"))))))
 
+(ert-deftest claude-code-ide-org-test-apply-consolidates-the-drawer ()
+  "Apply leaves the heading's drawer on one ascending timeline.
+
+TODO.org :ID: 12e0adac. org inserts CLOCK lines newest-first while notes
+land in insertion order, so a drawer drifts out of order as soon as
+anything is added. Applying an older interval after a newer one used to
+leave them inverted."
+  (claude-code-ide-org-test--with-heading
+    ;; OLDER first, then newer. org inserts each CLOCK line at the TOP
+    ;; of the drawer, so this is the order that leaves it inverted --
+    ;; the reverse ordering happens to come out ascending by accident,
+    ;; which made the first version of this test pass without the fix.
+    (dolist (spec '(("09:00" "09:15") ("11:00" "11:30")))
+      (should-not (claude-code-ide-org--review-apply-item
+                   (list :type 'clock :id id
+                         :start (date-to-time (concat "2026-08-06T" (car spec) ":00-0500"))
+                         :end (date-to-time (concat "2026-08-06T" (cadr spec) ":00-0500"))
+                         :agent nil :suggested nil :events nil))))
+    (let* ((logbook (claude-code-ide-org-test--logbook file))
+           (clocks (seq-filter (lambda (l) (string-match-p "CLOCK:" l))
+                               (split-string logbook "\n" t))))
+      (should (equal 2 (length clocks)))
+      ;; Oldest first.
+      (should (string-match-p "09:00" (nth 0 clocks)))
+      (should (string-match-p "11:00" (nth 1 clocks))))))
+
+(ert-deftest claude-code-ide-org-test-apply-consolidation-is-optional ()
+  "With the defcustom nil, apply leaves the drawer exactly as org built it."
+  (claude-code-ide-org-test--with-heading
+    (let ((claude-code-ide-org-consolidate-on-apply nil))
+      (dolist (spec '(("09:00" "09:15") ("11:00" "11:30")))
+        (should-not (claude-code-ide-org--review-apply-item
+                     (list :type 'clock :id id
+                           :start (date-to-time (concat "2026-08-06T" (car spec) ":00-0500"))
+                           :end (date-to-time (concat "2026-08-06T" (cadr spec) ":00-0500"))
+                           :agent nil :suggested nil :events nil)))))
+    (let ((clocks (seq-filter (lambda (l) (string-match-p "CLOCK:" l))
+                              (split-string (claude-code-ide-org-test--logbook file) "\n" t))))
+      (should (equal 2 (length clocks)))
+      ;; org's own order, untouched: the last-inserted line is on top,
+      ;; so the drawer reads newest-first.
+      (should (string-match-p "11:00" (nth 0 clocks)))
+      (should (string-match-p "09:00" (nth 1 clocks))))))
+
 (ert-deftest claude-code-ide-org-test-apply-clock-is-idempotent ()
   "Applying the same interval twice writes one CLOCK line, not two.
 

@@ -1031,11 +1031,31 @@ the clock-out wrapper's body at the 2026-08-11 cutover.)"
             (mapconcat #'identity lines "\n")
             (if lines "\n" ""))))
 
+(defun claude-code-ide-org--consolidate-drawer-at-point ()
+  "Normalise the :LOGBOOK: drawer of the heading at point, in place.
+Returns non-nil when the text changed.  Does not save; the caller owns
+that, which is what lets apply fold this into the write it was already
+making rather than issuing a second one."
+  (let ((bounds (claude-code-ide-org--drawer-content-bounds "LOGBOOK"))
+        changed)
+    (when bounds
+      (let* ((old (buffer-substring (nth 0 bounds) (nth 1 bounds)))
+             (new (claude-code-ide-org--consolidate-logbook-text old)))
+        (unless (equal old new)
+          (delete-region (nth 0 bounds) (nth 1 bounds))
+          (goto-char (nth 0 bounds))
+          (insert new)
+          (setq changed t))))
+    changed))
+
 (defun claude-code-ide-org-consolidate-history (id)
   "Normalise the :LOGBOOK: drawer of the heading with :ID: equal to ID:
-re-emit closed CLOCK intervals newest-first with their endpoints exactly
-as recorded, keeping a still-open CLOCK line first and every non-CLOCK
-line after it. Saves the buffer.
+re-emit every entry on one *ascending* timeline with endpoints exactly as
+recorded, keeping a still-open CLOCK line first. Saves the buffer.
+
+(This docstring said \"newest-first ... every non-CLOCK line after it\"
+until 2026-08-13. That described the behaviour :ID: af7d3687 replaced,
+in the very function it replaced it in.)
 
 *Close to a no-op today, and deliberately kept anyway.* It used to round
 intervals to 5-minute marks and merge the results, and to collapse a
@@ -1056,15 +1076,8 @@ MCP tool — a deliberate maintenance operation via `emacsclient'."
    (lambda ()
      (let ((heading (org-get-heading t t t t))
            logbook-changed)
-       (let ((bounds (claude-code-ide-org--drawer-content-bounds "LOGBOOK")))
-         (when bounds
-           (let* ((old (buffer-substring (nth 0 bounds) (nth 1 bounds)))
-                  (new (claude-code-ide-org--consolidate-logbook-text old)))
-             (unless (equal old new)
-               (delete-region (nth 0 bounds) (nth 1 bounds))
-               (goto-char (nth 0 bounds))
-               (insert new)
-               (setq logbook-changed t)))))
+       (setq logbook-changed
+             (claude-code-ide-org--consolidate-drawer-at-point))
        (save-buffer)
        (if logbook-changed
            (format "Consolidated :LOGBOOK: on \"%s\"" heading)
@@ -2170,6 +2183,30 @@ tracked content, and they span every project a session touches."
   :type 'directory
   :group 'claude-code-ide-org)
 
+(defcustom claude-code-ide-org-consolidate-on-apply t
+  "Whether apply normalises the drawer of each heading it writes to.
+
+Set nil to leave drawers exactly as org built them, newest-CLOCK-first
+and interleaved with notes in insertion order.
+
+Decided 2026-08-13 (TODO.org :ID: 12e0adac).  Consolidation was kept off
+the apply path because it used to round intervals to 5 minutes and drop
+what became zero -- but that was retired in :ID: b74e0f19, and the
+justification outlived it in a comment that read as settled.  With
+rounding gone, `claude-code-ide-org--consolidate-logbook-text' is
+idempotent and provably lossless: :ID: af7d3687 pinned it as a
+byte-identical fixed point against `clock-template.org' and asserted a
+second pass is a no-op.
+
+Scoped deliberately to the heading apply is *already writing*, not the
+file.  Apply's claim is that it writes what the human confirmed and
+nothing else; reordering a drawer it is opening anyway stretches that,
+reordering drawers it never touched would break it.  A bug here damages
+one heading's history, which is also the one place a human is about to
+look."
+  :type 'boolean
+  :group 'claude-code-ide-org)
+
 (defcustom claude-code-ide-org-queue-idle-seconds 3600
   "Seconds a queue file must go untouched before it counts as finished.
 
@@ -3132,6 +3169,16 @@ lands at all."
                 (pcase (plist-get item :type)
                   ('clock (claude-code-ide-org--review-apply-clock item))
                   ('state (claude-code-ide-org--review-apply-state item)))
+                ;; Fold the tidy-up into the write already being made,
+                ;; before `save-buffer' rather than after, so one apply
+                ;; is one write. org inserts CLOCK lines newest-first
+                ;; while notes land in insertion order, so a drawer
+                ;; drifts out of order the moment anything is added --
+                ;; visible after 2026-08-13's passes, where one drawer
+                ;; held four entries at four points on the timeline in
+                ;; none of them.
+                (when claude-code-ide-org-consolidate-on-apply
+                  (claude-code-ide-org--consolidate-drawer-at-point))
                 (save-buffer)
                 nil))))
         ;; --at-id returns an "Error: ..." string rather than throwing.
