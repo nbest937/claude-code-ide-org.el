@@ -2129,16 +2129,28 @@ tracked content, and they span every project a session touches."
   :type 'directory
   :group 'claude-code-ide-org)
 
-(defcustom claude-code-ide-org-guidepost-gap-threshold 900
+(defcustom claude-code-ide-org-guidepost-gap-threshold 1200
   "Seconds between consecutive guideposts below which they collapse
 into one span for review, in `claude-code-ide-org--aggregate-guideposts'.
 
 Purely a presentation control: the queue files themselves always keep
 every raw event, so raising or lowering this never destroys anything and
-never needs a migration. The default of 15 minutes is a starting guess,
-explicitly expected to be retuned once real queue data exists -- the
-right value is an empirical question about how this project's sessions
-actually cluster, not something to settle in advance."
+never needs a migration.
+
+Was 900 until 2026-08-13, when the retune its own docstring called for
+finally had data to stand on: 422 queue events over four days (TODO.org
+:ID: 96a51c2f).  `pause' -> `resume' latency is sharply bimodal, and the
+two modes are separated by a band containing *no observations at all* --
+the longest short gap is 1061s and the shortest long gap 2070s.  A
+threshold sweep sees the same hole from the other side: span count is
+flat at 29 across 1200-1800s, so every value inside the band yields an
+identical reconstruction.  900s sat just below it and split five spans
+nothing in the data justifies splitting.
+
+1200s is the round number inside the band, at the start of that plateau
+with margin on both sides.  Still a default, not a law: n=150 gaps from
+one person over four days, so it is *better founded* rather than
+settled, and the heading above schedules a re-measure."
   :type 'integer
   :group 'claude-code-ide-org)
 

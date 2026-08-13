@@ -573,6 +573,31 @@ bulk-planned =NEXT=/=TODO= items land — this batch (=087e73e9=,
 the mechanism across implemented work, not just today's spot
 impressions.
 
+*Ungated 2026-08-13; the condition above is void and should not be
+reinstated.* Four of the ten items it names (=2b0988ed=, =582cc7f4=,
+=d150c02e=, =782cda6c=) were =CANCELLED= rather than landed by
+[[id:e51d6ba1-cc1d-4745-8aa7-e4b1183a230b][e51d6ba1]], so the gate
+became literally unsatisfiable — this heading would have drifted
+forever, which is the exact outcome =e51d6ba1= exists to prevent.
+
+The list was never the point, though, and that is why replacing it with
+a different list would be the wrong fix. Read the clause again: the aim
+was an assessment "grounded in real experience using the mechanism
+across implemented work." The list was a *proxy* for accumulated
+experience. That experience has since arrived by another route — the
+queue and review loop have been run daily through the whole cutover and
+several apply passes — so the gate's own success condition is met.
+
+Sharper still: proposal 1 below (add a =VERIFY= keyword) was not merely
+survived by the refactor, it was *generated* by it. Human-triggered
+apply is a hard structural constraint, so every task now passes through
+a mandatory handoff that has no name in the keyword set. That is exactly
+the kind of finding the deferral was waiting for.
+
+Promoted =MAYBE= -> =TODO= with no replacement condition. If it stalls
+again, the reason should be recorded as a real blocker rather than a
+proxy for one.
+
 
 -----
 
@@ -1588,6 +1613,45 @@ still marker-dependent — it inherits this exact desync mode (a stale
 TODO keyword shown instead of a stale in/out label), it doesn't
 route around it.
 
+*Kept and narrowed 2026-08-13, by the user's decision.* Reviewed against
+its two partial owners rather than as keep-or-cancel, because that is
+what it actually is: a gap between them.
+
+*What is retired.* The original =org_clock_out= failure is unreachable —
+that function opens and closes nothing since
+[[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]]'s cutover. So is
+the concurrent-writer =CLOCK:= corruption:
+=claude-code-ide-org-consolidate-history= has no production caller left,
+only tests.
+
+*What survives, and is the whole of this heading now.* Two surfaces,
+each only partly owned elsewhere:
+1. =--trigger-auto-clock-in= (config.el:1778, registered :1941) still
+   opens a real clock on *any* transition to =DOING=/=PLANNING=,
+   including a human's own =C-c C-t=. Apply suppresses it via the
+   re-entrancy guard; a hand-edit does not.
+   [[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]] covers
+   *container* headings only, so leaf hand-edits remain.
+2. =--statusline-task-string= (config.el:659) still reads
+   =org-clocking-p=/=org-clock-marker=/=org-clock-history= directly.
+   [[id:290b6fc5-3ebb-4827-9a97-5a3542e354b6][290b6fc5]] is scoped to
+   the statusline's *data source*, not to marker desync generally.
+
+Cancel this and the uncovered middle belongs to nobody. The deciding
+fact against cancelling is that the desync was observed *live on
+2026-08-12*, after the cutover, and recorded on =ab75d6d2= — not a
+theoretical residue.
+
+*Newly established 2026-08-13, and it raises this heading's stakes.*
+Reading =org-clock.el= for
+[[id:803314aa-eda9-4d48-9e43-b3eb4802a4e8][803314aa]] found that
+=org-clock-out= signals =(error "Clock start time is gone")=
+(org-clock.el:1841) exactly when =org-clock-marker='s line is no longer
+a =CLOCK:= line — i.e. precisely this heading's desync. That is the same
+error incident 1 above recorded. So this desync is not merely a display
+problem: it is the reachable trigger for apply's fabricated-interval
+bug. The two headings are one causal chain, and this one is upstream.
+
 ** CANCELLED session-resume blindly inherits any session's last-clocked heading :code:
 :PROPERTIES:
 :ID:       582cc7f4-41a2-4666-ad3f-1b76b459147e
@@ -2295,7 +2359,8 @@ caused every incident: TODO-state transitions and clock start/stop.
 
 *What this eliminates* (mapped against the evidence above): marker
 desync (no writer but the human-driven apply command ever touches
-=TODO.org=/=DONE.org=), the idle-clock-hijack and missing-ownership
+=TODO.org=/=DONE.org= — *false as written, see the correction below*),
+the idle-clock-hijack and missing-ownership
 bugs (moot — ownership is just the queue filename, no shared clock to
 inherit), the malformed-concurrent-write =CLOCK:= corruption (exactly
 one writer, one operation at a time), the noise-vs-genuine bookkeeping
@@ -2306,6 +2371,27 @@ bookkeeping noise before committing during a clocking-suppressed
 session]]'s mechanism-approach likely folds into the new review UI
 rather than standing alone), and the non-interactive logging hang that
 started this whole thread.
+
+*Correction 2026-08-13 to the marker-desync claim above, which is
+load-bearing and false.* "No writer but the human-driven apply command
+ever touches =TODO.org=/=DONE.org=" was never true and still is not.
+=org_capture=, =org_refile=, =org_archive=, =org_move_sibling= and
+=org_sort_children= all still write those files directly and
+immediately; the org skill text-edits them routinely with Claude Code's
+=Edit= tool, which does not go through Emacs at all; git rewrites them
+under a live buffer with =global-auto-revert-mode= on; and
+=--trigger-auto-clock-in= was deliberately *kept*, so a human's own
+=C-c C-t= still opens a clock.
+
+The cutover removed the *clock and state* writers, not the *text*
+writers. Marker desync is therefore not eliminated — it was observed
+live 2026-08-12, and reading =org-clock.el= on 2026-08-13 showed it is
+the reachable trigger for
+[[id:803314aa-eda9-4d48-9e43-b3eb4802a4e8][803314aa]]'s fabricated
+interval, via =(error "Clock start time is gone")=. Anyone cancelling
+[[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]] by citing the
+sentence above would be retiring a live bug on the strength of a claim
+this heading never established.
 
 *What it costs, honestly:* real-time org state lags until a review pass runs
 (mitigate by pointing the statusline at the *queue* files instead of live clock
@@ -4105,6 +4191,32 @@ Sequence after [[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]
 exists and works — retiring a safety net before its replacement is
 proven is how you lose data you didn't know you were relying on.
 
+*Evidence against the working-hours half specifically, 2026-08-13.* The
+gap survey at
+[[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]] measured 422 queue
+events and found the premise =claude-code-ide-org-working-hours= rests
+on — that absence is predictable from the clock — does not hold on this
+project's own data. Of 19 human gaps over 2000s, *11 begin inside
+working hours* (07:00, 10:00, 12:00, 14:00, 15:00, 16:00, 17:00),
+including the two longest at 151 and 158 minutes, starting 12:59 and
+15:34. Daytime absence is indistinguishable from nighttime absence.
+
+So =--guess-stop-time='s "end of working hours on the day the interval
+opened" is not a weak signal, it is close to no signal: it would have
+guessed wrong for the majority of the long gaps actually observed. What
+*does* separate attending from absent is gap *length*, cleanly and with
+an empty band between the modes — which is a property of the queue
+stream, not of the clock.
+
+This strengthens the case for retiring =--guess-stop-time= and
+=claude-code-ide-org-working-hours= outright, which is what the second
+independent review of this heading recommended, rather than keeping them
+as a fallback. It does *not* touch
+=claude-code-ide-org-close-open-interval=, the repair function, whose
+case rests on
+[[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]] and a human's own
+=C-c C-x C-i= remaining reachable.
+
 *** DONE Decide whether the :SESSIONS: drawer and its machinery survive the refactor :code:
 :PROPERTIES:
 :ID:       9d2fcdad-9bf7-47b6-8018-223b13ec4577
@@ -5902,6 +6014,37 @@ reasoning from the same code. That is no longer offered as
 corroboration: two readers making the same inference from one text is
 not independent confirmation, as [[id:7387f97c-6c3e-4667-8851-203af024fdd9][7387f97c]]
 demonstrated the same day.
+
+*Premise confirmed reachable, 2026-08-13 — this was a live bug, not
+insurance.* The open question was whether =org-clock-out= can actually
+signal on apply's path, with both endpoints supplied and
+=org-clock-out-remove-zero-time-clocks= bound nil. Read =org-clock.el=:
+it has exactly two signal sites, both bypassed when =fail-quietly= is
+non-nil and apply passes nil:
+
+- =(user-error "No active clock")= — guarded, since apply checks
+  =org-clocking-p= immediately after its =org-clock-in=.
+- =(error "Clock start time is gone")= (org-clock.el:1841) — raised when
+  the line at =org-clock-marker= no longer looks like a =CLOCK:= line.
+
+The second is *reachable, and observed*. It is the identical error
+recorded as incident 1 of
+[[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]], whose subject is
+precisely a desynced =org-clock-marker=. So the chain is: a direct file
+write desyncs the marker -> apply's =org-clock-out= signals -> without
+the =unwind-protect= the clock stays open -> the next clock item's
+defensive close writes a fabricated interval at *now*.
+
+Consequence for sequencing: =53b0047d= is upstream of this heading and
+should not be cancelled while this failure mode matters. Recorded there
+too.
+
+One further path worth noting, not fixed here:
+=claude-code-ide-org--audit-clock-hook= runs on =org-clock-out-hook=
+*unguarded*, and org runs that hook only after the =CLOCK:= line is
+written (org-clock.el:~1898). A signal from it would leave a correct
+interval plus a failed item — a different and milder shape than the one
+fixed, but it would still mark the item failed while its write stood.
 *** CANCELLED Apply writes headless state notes -- RETRACTED, a grep artifact :code:
 :PROPERTIES:
 :ID:       7387f97c-6c3e-4667-8851-203af024fdd9
@@ -6111,7 +6254,62 @@ answer.
 
 Steps 2 and 3 overlap: if 3 lands, 2 may be unnecessary, since there
 would be nothing left that needs to write immediately.
-** TODO Institute a catch-all heading for cross-cutting meta-work :code:
+*** Re-measure the guidepost gap threshold against a month of queue data :code:research:
+SCHEDULED: <2026-09-13 Sun>
+:PROPERTIES:
+:ID:       96a51c2f-ce11-4b40-bdff-11223d3d4eb7
+:CREATED:  [2026-08-13 Thu 12:20]
+:END:
+
+Scheduled rather than left to memory: the finding below is real but
+thin, and the failure mode is adopting a four-day number as permanent
+because nobody re-ran it.
+
+*The survey, 2026-08-13.* 422 queue events, 2026-08-10 to 08-13, across
+six sessions. Measured the *queue* rather than =:LOGBOOK:= deliberately:
+=:LOGBOOK:= intervals are reconstructions produced by the very threshold
+under test, so measuring them would partly measure the parameter.
+
+Decomposed each session's stream into the two gaps that mean different
+things:
+
+- =resume= -> =pause= — how long the agent worked. n=111, median *81s*,
+  p90 *211s*, one outlier over an hour (the concurrent subagent run).
+- =pause= -> =resume= — how long the human took to reply. n=150, median
+  *181s*.
+
+*The result, and it is sharper than expected: the second is bimodal with
+an empty band between the modes.* Sorted gaps run =… 949, 971, 1061=
+and then jump straight to =2070, 2103, 2135 …=. **No gap anywhere in the
+corpus falls between 1061s and 2070s.** A threshold sweep sees the same
+hole from the other side: span count falls steeply, then sits flat at 29
+across 1200-1800s, then resumes falling. Every value inside the band
+produces an identical reconstruction.
+
+Acted on immediately: =claude-code-ide-org-guidepost-gap-threshold= 900
+-> *1200s*, the round number inside the band, at the start of the
+plateau with margin either side. 900 sat just below the band and split
+five spans nothing justifies splitting.
+
+*A stated assumption the data contradicted, which is the more useful
+half.* The survey was proposed on the premise that silence from ~18:00
+to ~08:00 is almost certainly AFK. True, but not where the long gaps
+are: of 19 gaps over 2000s, *11 start inside working hours* — 07:00,
+10:00, 12:00, 14:00, 15:00, 16:00, 17:00 — including the two longest
+(151 and 158 minutes, starting 12:59 and 15:34). Daytime absence is
+indistinguishable from nighttime absence. Gap *length* separates the
+modes cleanly; clock hour does not. Recorded against
+[[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]], whose
+working-hours guess rests on exactly the premise this refutes.
+
+*What to re-run on the scheduled date*, and the reason the number is not
+yet settled: n=150 gaps, four days, one person, during an unusually
+intense stretch of work on this very project. The band may be an artifact
+of that. Re-derive the histogram and the sweep; if the band has moved or
+closed, retune again and say so here rather than defending 1200.
+
+Charts from the original survey are an artifact, not committed here —
+regenerate rather than trusting a stale rendering.** TODO Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
 :ID:       a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5
 :CREATED:  [2026-08-10 Mon 12:50]
