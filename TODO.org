@@ -4785,6 +4785,17 @@ artifacts it describes are not, so a stale claim in it outranks the
 truth until someone deliberately checks. Sections describing mechanisms
 that have been cut over are the highest-risk kind.
 
+*Added to scope 2026-08-13, for the org-dev skill specifically:
+=load-file= does not pick up a changed =defcustom= default.* Measured
+that day — the guidepost threshold was committed as 1200, =load-file=
+returned =t=, and the live value stayed 900, because =defcustom= only
+sets a default when the symbol is unbound. It needed an explicit
+=setq=. Anyone changing a default and then "verifying" it against the
+running Emacs measures the old value while every signal says success,
+which is exactly the failure the user's own reload-precondition rule
+exists to prevent. The org-dev skill is where this belongs, since it
+owns reload-and-verify for this project's code.
+
 *Added to scope 2026-08-13: CLAUDE.md's "Dependencies between tasks"
 misleads about enforcement.* It says this project's =org-blocker-hook=
 function "only blocks on a running clock today, not on =:BLOCKER:=".
