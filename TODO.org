@@ -3595,6 +3595,7 @@ for a UI nobody needs.
 *** MAYBE Let the review command ask Claude to explain the ambiguous gaps between guideposts :code:
 :PROPERTIES:
 :ID:       0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e
+:BLOCKER:  ids(5ff5a4b8-2fee-472a-b5e1-c9de8cf96704)
 :CREATED:  [2026-08-07 Fri 08:05]
 :END:
 
@@ -4566,6 +4567,7 @@ decide [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]'s own fate at the s
 *** TODO Update CLAUDE.md and the org skill for the new architecture :code:
 :PROPERTIES:
 :ID:       02aaae22-0958-4c0f-b5bb-2cbea32416ae
+:BLOCKER:  ids(7771fc63-9374-4c8a-9e80-24ceec21977c e51d6ba1-cc1d-4745-8aa7-e4b1183a230b c084553c-0621-4a96-9fa1-f32850aeec6a)
 :CREATED:  [2026-08-06 Thu 10:47]
 :END:
 :LOGBOOK:
@@ -8562,7 +8564,16 @@ that it wants to be a script.
   silently frozen [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]]
   via its =:BLOCKER:=. This is the check that would have caught a real
   problem nobody was looking for.
-- Every =:BLOCKER:= names an =:ID:= that exists.
+- Every =:BLOCKER:= names an =:ID:= that exists *and carries a TODO
+  keyword*. The second half is not pedantry: =org-depend= blocks only on
+  an *unfinished TODO*, so a blocker naming a keyword-less heading is a
+  silent no-op. Found 2026-08-13 within minutes of adding one — the
+  target was a heading =org_capture= had created, whose =NEXT= was still
+  queued and unapplied, so it was keyword-less on disk. That window is a
+  *consequence of the queue architecture*: every captured heading is
+  keyword-less until a human applies its state, so any blocker naming a
+  fresh capture is inert for exactly as long as the review pass is
+  deferred. Checking only that the id resolves would have passed.
 - Every =[[file:~/.claude/plans/...]]= link points at a file that
   exists. =bin/sync-plans --check= covers the archive side of this but
   not dangling links.
