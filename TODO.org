@@ -4950,6 +4950,7 @@ record is ever wanted, it needs a shape the reader ignores — a distinct
 :CREATED:  [2026-08-10 Mon 15:33]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-10 Mon 18:50]--[2026-08-10 Mon 19:07] =>  0:17
 CLOCK: [2026-08-10 Mon 18:12]--[2026-08-10 Mon 18:35] =>  0:23
 CLOCK: [2026-08-10 Mon 15:30]--[2026-08-10 Mon 15:34] =>  0:04
 CLOCK: [2026-08-11 Tue 10:31]--[2026-08-11 Tue 13:16] =>  2:45
@@ -4964,6 +4965,7 @@ CLOCK: [2026-08-10 Mon 18:25]--[2026-08-10 Mon 18:31] =>  0:06
 - <2026-08-11 Tue 10:31>--<2026-08-11 Tue 13:16>
 - <2026-08-10 Mon 15:30>--<2026-08-10 Mon 15:34> assigned at review
 - <2026-08-10 Mon 18:12>--<2026-08-10 Mon 18:35> assigned at review
+- <2026-08-10 Mon 18:50>--<2026-08-10 Mon 19:07> suggested span, accepted at review
 :END:
 
 Found 2026-08-10, in the first successful interactive apply -- and it
@@ -5355,6 +5357,7 @@ dissolved once measured.
 :CREATED:  [2026-08-11 Tue 11:16]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-13 Thu 15:40]--[2026-08-13 Thu 15:53] =>  0:13
 CLOCK: [2026-08-13 Thu 15:18]--[2026-08-13 Thu 15:29] =>  0:11
 CLOCK: [2026-08-13 Thu 14:25]--[2026-08-13 Thu 15:04] =>  0:39
 - State "DOING"      from "TODO"       [2026-08-13 Thu 14:23] \\
@@ -5363,6 +5366,7 @@ CLOCK: [2026-08-13 Thu 14:11]--[2026-08-13 Thu 14:51] =>  0:40
 - <2026-08-13 Thu 14:11>--<2026-08-13 Thu 14:51> assigned at review
 - <2026-08-13 Thu 14:25>--<2026-08-13 Thu 15:04> drained definition and archive command
 - <2026-08-13 Thu 15:18>--<2026-08-13 Thu 15:29> drained definition and archive command
+- <2026-08-13 Thu 15:40>--<2026-08-13 Thu 15:53> drained definition and archive command
 :END:
 
 Proposed by the user 2026-08-11 as the middle ground between treating a
@@ -5525,6 +5529,79 @@ at all. The reliable one is the running session's own id, which the
 review command knows; file mtime is a serviceable fallback for the rest.
 Getting this wrong is worse than never archiving, because the loss is
 silent and lands mid-session.
+
+*Shipped 2026-08-13* (commits =31ad02d=, =8e9a678=, =be5834d=), all
+three halves, idempotency first — it is the only one whose absence
+damages silently, and the risk begins at the *first* archive run rather
+than at some later reprocessing.
+
+*Idempotency is content-based, as proposed.*
+=--logbook-has-interval-p= refuses a =CLOCK:= line whose endpoints
+already appear on the heading; =--drawer-contains-line-p= refuses a
+duplicate annotation. Checking the destination beats a sidecar of
+applied identities precisely because it survives *losing* the sidecar,
+which is exactly what reprocessing does.
+
+*The drained predicate has two clauses,* and the second was not in the
+original design. =--queue-file-drained-p= requires that the file yield
+no review items *and* be idle. The idle clause exists because
+=bin/hooks/queue-append= appends with =>>=, which recreates a missing
+file: archiving a still-writing session does not stop it writing, it
+splits the stream across an archived file the reader no longer scans and
+a fresh one it does. Nothing errors. =claude-code-ide-org-queue-idle-seconds=
+defaults to an hour, deliberately generous — archiving late costs
+nothing, archiving early costs a split stream.
+
+*Archiving needed no reader change at all*, as this heading predicted:
+=--queue-session-ids= reads non-recursively, so the subdirectory was
+already invisible. =archive-drained-queues= takes a prefix argument for
+a dry run; =restore-queue= takes one to leave the watermark behind so
+every event is re-offered.
+
+*Verified, not just implemented:* 203 -> 211 tests, each new one
+confirmed to fail against unfixed code by stashing =config.el=. One is a
+deliberate guard against the idempotency check *over*-matching and
+passes both ways by design, stated so it does not resemble the vacuous
+shape found twice this week.
+
+Exercised for real rather than in a dry run only: seven session files
+archived across three passes with their watermarks, and a restore round
+trip checked end to end — the reader went 3 -> 4 sessions with the
+watermark back in place, then 4 -> 3 on re-archiving.
+
+*Two defects found by cross-checking output rather than by tests.*
+1. =archive-drained-queues= called =nreverse= *twice* on the same list,
+   once for the message and once for the return value. =nreverse= is
+   destructive, so the second call operated on what had become the tail:
+   the message printed four sessions correctly while the returned
+   =:moved= held one. Human-facing output right, programmatic answer
+   wrong. Caught only because =:moved= and =:skipped= stopped summing to
+   the number of files on disk; the regression test now asserts that
+   partition exactly.
+2. =(substring id 0 8)= signals on anything shorter, at what turned out
+   to be *five* sites including the render path. Real ids are UUIDs so it
+   never bit in use. Replaced with =--short-id=: display code should
+   degrade, not signal.
+
+*The interaction this heading predicted, confirmed.* It warned that
+[[id:3d0487f4-b8f8-451c-88bf-ab537663cbd0][3d0487f4]] would determine
+what fraction of the queue "drained" could cover. It made it far
+stricter: since a lone guidepost now clusters into a zero-width
+unassigned span, and that *is* an item, a file drains only once a human
+has assigned or dismissed everything in it. Two test fixtures written
+against the old behaviour failed and were corrected, not the assertion.
+
+*Spun out rather than fixed here:*
+[[id:ffe65444-50ed-49f8-a4c3-27c1c4c843c3][ffe65444]] — narrowing a span
+consumed the events it excluded — found by losing 32 minutes to it and
+since fixed, and the recovery used exactly the property this heading
+rests on: the =.jsonl= is append-only, so un-marking three timestamps
+brought the interval back.
+
+*What it was worth, measured.* Clock time recorded for 2026-08-10..13
+went from *3.6 hours* before spans existed to *20.9 hours* across 53
+intervals. The live queue holds one file — the session still running —
+and seven are archived, restorable, and no longer in anyone's way.
 
 *** DONE Review-buffer interaction fixes, for after the cutover :code:
 :PROPERTIES:
@@ -6946,10 +7023,14 @@ is more legible. Points to weigh:
 Whatever is decided, the stale comment on =--aggregate-guideposts= must
 be corrected either way — it currently misinforms anyone reasoning about
 this.
-*** Editing a span's interval does not re-scope its events, so truncating loses the remainder :code:
+*** NEXT Editing a span's interval does not re-scope its events, so truncating loses the remainder :code:
 :PROPERTIES:
 :ID:       ffe65444-50ed-49f8-a4c3-27c1c4c843c3
 :CREATED:  [2026-08-13 Thu 15:42]
+:END:
+:LOGBOOK:
+- State "NEXT"       from              [2026-08-13 Thu 15:42] \\
+  silent loss on truncate; recovery is available
 :END:
 
 *Found 2026-08-13 by losing 32 minutes of record to it*, acting on
