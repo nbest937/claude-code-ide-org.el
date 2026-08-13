@@ -8535,3 +8535,58 @@ four command forms, asserting exit status and message.
 *Blocked on this in practice:* the user has stated they will not run a
 second concurrent session until a mechanism is in place, so this gates
 concurrent work generally rather than being one more backlog item.
+
+** Lint TODO.org's structural conventions with a script :code:
+:PROPERTIES:
+:ID:       3bd3402b-3ab6-4ace-b20b-3ff84caa3fb2
+:CREATED:  [2026-08-13 Thu 17:02]
+:END:
+
+Proposed 2026-08-13 after a day of running the checks by hand. The
+=id:=-link resolver below was run manually before nearly every commit
+that day — roughly twenty times — which is the plainest possible signal
+that it wants to be a script.
+
+*Assertions, all decidable without judgement:*
+- Every =[[id:...]]= link resolves to a heading that exists in
+  =TODO.org= or =DONE.org=. Caught four *fabricated* UUIDs in one
+  session; each had the right 8-character prefix and 28 invented hex
+  digits, which reads as correct and fails only when followed.
+- No level-4 headings. The file has exactly three levels — category,
+  task, epic-child — across 624 headings, and nothing enforces it.
+- Every heading below level 1 carries =:ID:= and =:CREATED:=; every
+  level-1 heading carries neither, plus no TODO keyword and no tags.
+  That is CLAUDE.md's stated convention and it is entirely checkable.
+- *A heading with a repeater has no completable ancestor.* A =+1m= task
+  never reaches =DONE=, so an epic containing one never can — which had
+  silently frozen [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]]
+  via its =:BLOCKER:=. This is the check that would have caught a real
+  problem nobody was looking for.
+- Every =:BLOCKER:= names an =:ID:= that exists.
+- Every =[[file:~/.claude/plans/...]]= link points at a file that
+  exists. =bin/sync-plans --check= covers the archive side of this but
+  not dangling links.
+
+*Reuse the harness rather than building a third one.*
+[[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] wants
+=bin/check-claude-md= for CLAUDE.md's checkable claims, and
+[[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]] wants README
+consistency guarded the same way; =02aaae22= already records that
+whichever lands first should build the harness so the others only add
+assertions. This is the third assertion set, not a third program. The
+shape is settled: =bin/sync-plans --check= plus the =.githooks/pre-push=
+guard, which refuses a push while a document and what it describes
+disagree.
+
+*Why this is its own task rather than scope on either of those.* Those
+two check claims *about* the system — does a named function exist, does
+a documented line match the file. This checks the org files' *own*
+structural conventions. Neither would be incomplete without it, which is
+the test that separated three headings out of
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] the same day.
+
+*One caution for whoever builds it.* Two of these assertions describe
+conventions that are currently *unbroken*, so the lint will pass on day
+one and prove nothing. Seed it against a deliberately broken copy first
+— the same discipline as confirming a regression test fails without its
+fix, which caught two vacuous tests that day.
