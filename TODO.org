@@ -1472,10 +1472,14 @@ attention and neither fixed here:*
    here because this is where it was found, not because this heading
    owns it.
 
-** MAYBE Reorder :SESSIONS: entries to match :LOGBOOK: ordering :code:
+** CANCELLED Reorder :SESSIONS: entries to match :LOGBOOK: ordering :code:
 :PROPERTIES:
 :ID:       2b0988ed-eb92-4fa7-904a-cb2d10941bfd
 :CREATED:  [2026-08-04 Tue 17:58]
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "MAYBE"      [2026-08-12 Wed 17:37] \\
+  :SESSIONS: deleted; ordering settled by af7d3687
 :END:
 [[file:~/.claude/plans/sessions-logbook-ordering.md][Plan]]
 
@@ -1584,10 +1588,14 @@ still marker-dependent — it inherits this exact desync mode (a stale
 TODO keyword shown instead of a stale in/out label), it doesn't
 route around it.
 
-** MAYBE session-resume blindly inherits any session's last-clocked heading :code:
+** CANCELLED session-resume blindly inherits any session's last-clocked heading :code:
 :PROPERTIES:
 :ID:       582cc7f4-41a2-4666-ad3f-1b76b459147e
 :CREATED:  [2026-08-04 Tue 18:27]
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "MAYBE"      [2026-08-12 Wed 17:37] \\
+  superseded by feba67eb's cutover; see e51d6ba1
 :END:
 [[file:~/.claude/plans/session-resume-continuity-guard.md][Plan]]
 
@@ -1655,10 +1663,14 @@ commit =220ba78=); the hook script's own header names this heading as
 the bug it removed. The failure mode documented here remains the
 clearest statement of why that cutover was worth doing.
 
-** MAYBE org_clock_in doesn't record clock ownership, unlike session-resume :code:
+** CANCELLED org_clock_in doesn't record clock ownership, unlike session-resume :code:
 :PROPERTIES:
 :ID:       d150c02e-06fe-4514-bf69-e2cc5d8df4c7
 :CREATED:  [2026-08-05 Wed 14:28]
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "MAYBE"      [2026-08-12 Wed 17:37] \\
+  ownership variables deleted at cutover; see e51d6ba1
 :END:
 [[file:~/.claude/plans/clock-in-ownership-recording.md][Plan]]
 
@@ -1737,10 +1749,14 @@ restart, which no global variable did. Caveat worth carrying forward:
 as of 2026-08-12 the =agent_id=/=agent_type= fields have never been
 populated in 347 events, so that half is designed but unexercised.
 
-** MAYBE Audit for clock/session bookkeeping noise before committing during a clocking-suppressed session :code:
+** CANCELLED Audit for clock/session bookkeeping noise before committing during a clocking-suppressed session :code:
 :PROPERTIES:
 :ID:       782cda6c-111c-454e-93eb-b2b27012078b
 :CREATED:  [2026-08-05 Wed 14:28]
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "MAYBE"      [2026-08-12 Wed 17:37] \\
+  folded into the review UI; see e51d6ba1
 :END:
 [[file:~/.claude/plans/bookkeeping-noise-audit.md][Plan]]
 
@@ -3303,10 +3319,16 @@ buffer is full of items that are stale purely because the tool already
 applied them live, and confirming a stale item writes plausible history
 that is wrong. Both disappear at the cutover; until then, refusing is
 almost always the right answer.
-*** TODO Sort :LOGBOOK: chronologically, keeping notes with their continuations :code:
+*** DONE Sort :LOGBOOK: chronologically, keeping notes with their continuations :code:
 :PROPERTIES:
 :ID:       af7d3687-6d1e-4480-a9e2-df772785713f
 :CREATED:  [2026-08-07 Fri 16:06]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-12 Wed 17:01] \\
+  template drawer is now a byte-identical fixed point
+- State "DOING"      from "TODO"       [2026-08-12 Wed 16:56] \\
+  chronological LOGBOOK ordering
 :END:
 
 Requested 2026-08-07: a =:LOGBOOK:= sorted by start time is markedly
@@ -3511,10 +3533,16 @@ Sequence well after =720b2dcf= ships and real queue data exists —
 there is no way to judge whether the plain threshold is already good
 enough until it has been used in anger.
 
-*** TODO Add a read-only MCP tool to inspect and summarize the pending queue :code:
+*** DONE Add a read-only MCP tool to inspect and summarize the pending queue :code:
 :PROPERTIES:
 :ID:       63a642c7-b04d-42dc-b6ec-3fb13df3ae04
 :CREATED:  [2026-08-06 Thu 11:59]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-12 Wed 16:55] \\
+  org_pending_updates shipped, 186/186
+- State "DOING"      from "TODO"       [2026-08-12 Wed 16:52] \\
+  read-only pending-queue summary tool
 :END:
 
 Captured 2026-08-06 from conversation: nothing in the current tool
@@ -3985,6 +4013,11 @@ every drawer-level data-loss incident this project has had
 :ID:       7771fc63-9374-4c8a-9e80-24ceec21977c
 :CREATED:  [2026-08-06 Thu 22:26]
 :END:
+:LOGBOOK:
+CLOCK: [2026-08-12 Wed 17:40]--[2026-08-12 Wed 17:42] =>  0:02
+- [2026-08-12 Wed 17:40]--[2026-08-12 Wed 17:42] subagent investigating recovery fate
+- <2026-08-12 Wed 17:40>--<2026-08-12 Wed 17:40> subagent investigating recovery fate
+:END:
 
 Captured 2026-08-06 from conversation. The whole stale-interval
 recovery subsystem — =SessionStart= hook →
@@ -4258,6 +4291,11 @@ should have been stated before the check rather than after it.
 :PROPERTIES:
 :ID:       e51d6ba1-cc1d-4745-8aa7-e4b1183a230b
 :CREATED:  [2026-08-06 Thu 10:47]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-12 Wed 17:40]--[2026-08-12 Wed 17:43] =>  0:03
+- [2026-08-12 Wed 17:40]--[2026-08-12 Wed 17:43] subagent investigating heading fates
+- <2026-08-12 Wed 17:43>--<2026-08-12 Wed 17:43> subagent investigating heading fates
 :END:
 
 Once this design is either committed to or rejected, revisit [[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]], [[id:582cc7f4-41a2-4666-ad3f-1b76b459147e][582cc7f4]],
@@ -5552,10 +5590,14 @@ and also why it was never checked before being written down. Both
 behaviors are now pinned by tests, including one asserting the rendered
 title contains no backslash, so a future =%S= cannot introduce the
 defect this heading believed it had found.
-*** Queue attribution is session-scoped, so concurrent subagents lose intervals :code:
+*** NEXT Queue attribution is session-scoped, so concurrent subagents lose intervals :code:
 :PROPERTIES:
 :ID:       0d789b68-faca-4911-868a-fdd70acbfd40
 :CREATED:  [2026-08-12 Wed 17:45]
+:END:
+:LOGBOOK:
+- State "NEXT"       from              [2026-08-12 Wed 17:46] \\
+  reproducible attribution bug, fix is small
 :END:
 
 Found 2026-08-12 by deliberately running two subagents concurrently to
@@ -5578,11 +5620,29 @@ Measured, not reasoned:
 : 17:46:  clock_out  id=nil   agent=a8a8  -> current already nil -> NIL BUCKET
 
 =--review-items-from-queue= skips the nil bucket outright (=(when id
-...)=, config.el:2515), so =a8a8='s =clock_out= is dropped and its
-=clock_in= is left orphaned in =e51d6ba1='s group with nothing to close
-it. Confirmed against the live queue after reloading config.el:
-=e51d6ba1= yields *0* clock items, =7771fc63= yields 2. The only
-difference between them was which agent finished first.
+...)=, config.el:2515), so in a *single* review round =a8a8='s
+=clock_out= is dropped and its =clock_in= is left orphaned in
+=e51d6ba1='s group with nothing to close it: =e51d6ba1= yields *0*
+clock items, =7771fc63= yields 2.
+
+*Correction, 2026-08-12, from the apply pass that followed.* An
+earlier draft of this heading stated the interval was lost outright.
+It was not. Both intervals landed correctly, because the human applied
+in *two rounds*: round one consumed =ae39='s pair, and in round two
+=ae39='s =clock_in= was no longer in the pending stream to clobber
+=current=, so =a8a8='s id-less =clock_out= re-attributed to
+=e51d6ba1= and produced =17:40--17:43=. Reproduced deterministically by
+replaying the real =--review-items-from-queue= against a copy of the
+queue with =ae39='s events marked applied.
+
+That makes the defect *worse*, not milder, and reframes it: **heading
+attribution of id-less events depends on watermark state.** The same
+queue file yields different attribution depending on what was applied
+before it — so the record a heading ends up with is a function of when
+the human happened to run apply and how they batched it, not of what
+the sessions actually did. A one-round apply loses the interval; a
+two-round apply recovers it by luck. Neither is a property anyone
+chose.
 
 *The near miss is worse than the loss.* =ae39= paired correctly purely
 because the agents completed LIFO. Reverse the finish order and
@@ -5607,10 +5667,14 @@ Note the nil bucket already held two other unattributed =clock_out=
 events predating this experiment, and =b74e0f19= and =9d2fcdad= each
 show a =clock_out= with no =clock_in=. Whether those share this root
 cause or a different one is unexamined.
-*** Background-task notifications write phantom resume guideposts :code:
+*** TODO Background-task notifications write phantom resume guideposts :code:
 :PROPERTIES:
 :ID:       09c134c4-31eb-4f6c-aa10-f836d1d28f16
 :CREATED:  [2026-08-12 Wed 17:46]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-12 Wed 17:47] \\
+  phantom resume inflates human-present time
 :END:
 
 Observed 2026-08-12 during the subagent experiment behind
@@ -5641,10 +5705,14 @@ submission from a task-completion re-invocation at all. If it does not,
 the honest options are to accept the inflation and document it, or to
 stop treating =resume= as evidence of human presence.
 
-*** Apply's clock pair has no unwind-protect, so a failed clock_out can strand an open line :code:
+*** TODO Apply's clock pair has no unwind-protect, so a failed clock_out can strand an open line :code:
 :PROPERTIES:
 :ID:       803314aa-eda9-4d48-9e43-b3eb4802a4e8
 :CREATED:  [2026-08-12 Wed 17:46]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-12 Wed 17:47] \\
+  error path can strand an open clock line
 :END:
 
 Found 2026-08-12 while checking whether
@@ -5674,6 +5742,54 @@ reasoned from code both times: not observed in the wild, and no
 estimate exists of how often =org-clock-out= actually signals here.
 That frequency is the whole cost/benefit, so it belongs in the fix's
 own evaluation rather than being assumed negligible.
+*** Apply writes headless state notes: the State line is missing entirely :code:
+:PROPERTIES:
+:ID:       7387f97c-6c3e-4667-8851-203af024fdd9
+:CREATED:  [2026-08-12 Wed 19:14]
+:END:
+
+Found 2026-08-12 by reading the uncommitted diff of an apply pass
+rather than the resulting file — the defect is invisible in a rendered
+outline and shows up plainly in the diff.
+
+Every one of the seven transitions applied in that pass wrote only the
+note's *continuation* line into =:LOGBOOK:=, with no header above it:
+
+: :LOGBOOK:
+:   :SESSIONS: deleted; ordering settled by af7d3687
+: :END:
+
+The 55 pre-existing entries in this file all have the shape org
+actually documents:
+
+: - State "CANCELLED"  from "TODO"       [2026-08-11 Tue 18:19] \\
+:   folded into 47c027d2 as one template edit
+
+So the =State=, the =from= state, and the timestamp are all lost. What
+survives is an unattributed indented string that org will not parse as
+a state-change entry and =org-agenda= will not report on.
+
+*This is the architecture's central promise failing silently.*
+CLAUDE.md justifies the whole queue+review design partly on the grounds
+that apply runs =org-todo= "inside a genuinely interactive command — so
+org's native state-change logging finally works instead of needing to
+be suppressed." The keyword transition itself is applied correctly; it
+is only the *log* that is malformed. Nothing errors, and the review
+buffer reports success.
+
+Not yet diagnosed. Likely candidates, in rough order: =org-log-note-*=
+state being consumed outside the window org expects, apply calling
+=org-add-log-note= / =org-store-log-note= directly rather than letting
+=org-todo= drive it, or =org-log-into-drawer= interacting with the note
+insertion so the header lands somewhere the drawer write then discards.
+Note [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] added
+=#+STARTUP: logdrawer= to both files on 2026-08-11, which is recent
+enough relative to this symptom to be worth ruling in or out first.
+
+Repair of the seven already-written entries is a separate question from
+the fix: the =from= states are recoverable from the queue events, which
+record =from= explicitly, so a backfill is possible and should be
+decided once the cause is known.
 ** TODO Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
 :ID:       a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5
