@@ -4732,6 +4732,44 @@ Overlaps the enforcement half of
 [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]], which wants
 README/CLAUDE.md consistency guarded by the same machinery. Whichever
 lands first should build the harness so the other only adds assertions.
+
+*Added to scope 2026-08-13: document the sibling-survey idiom, in the
+org skill.* Pairs directly with the "it can silently demote" warning
+above — that warning says a =NEXT= nomination may demote a sibling, but
+never says how to find out *which* sibling before committing to it.
+
+The idiom: **to survey a heading's siblings, call =org_outline= scoped
+to the _parent's_ =:ID:=**, with =active_only= and a =max_depth=. One
+call, one screen:
+
+: org_outline scope=<parent id> active_only=true max_depth=3
+
+*Why it needs writing down rather than being obvious.* Twice on
+2026-08-13 this check was done with a hand-rolled Python scan of
+=TODO.org= instead, by someone who had used =org_outline= correctly an
+hour earlier. The tool's =scope= parameter already documents "an =:ID:=
+to index only that subtree" — the capability was never missing, only the
+reflex. That is exactly the pattern
+[[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]] exists to catch,
+and it recurred *inside* a session that had already invoked the tool.
+
+*The one real limitation to document alongside it, so the idiom is not
+mistaken for a full answer:* =org_outline= navigates *down* only.
+Scoped to a leaf it returns that leaf and its descendants, never its
+ancestors — so the caller must already know the parent's =:ID:=. There
+is no upward navigation from a child. Adding a =relation: siblings=
+parameter was considered on 2026-08-13 and *rejected in favour of this
+documentation*: a new parameter would only shorten an idiom that already
+works, on a tool whose value is being cheap to call.
+
+*A second reason the survey matters, beyond demotion.* Scanning the file
+with =grep= reads what is *on disk*, which post-cutover is not the same
+as what has been *decided* — queued transitions have not landed yet.
+=org_outline= reports the applied state, so the difference between "I set
+this to NEXT" and "this is NEXT" stays visible. The Python scan on
+2026-08-13 silently reported =TODO= for a heading whose promotion was
+sitting in the queue; the answer was right, but only by luck of what was
+being asked.
 *** DONE Failed tool calls still enter the queue when the error is content-wrapped :code:
 :PROPERTIES:
 :ID:       5e2a1c04-7b3f-4d21-9c88-2f6e0a91b7d3
