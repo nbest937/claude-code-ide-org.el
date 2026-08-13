@@ -3366,15 +3366,29 @@ the MCP layer."
                             "clock and guidepost scaffolding, which is "
                             "consumed by nothing and is not a backlog.")
                     (length events))
-          (concat
-           (format "%d pending item(s) across %d heading(s), from %d session(s).\n"
-                   (length items) (length headings) (length sessions))
-           (string-join (nreverse lines) "\n")
-           (format (concat "\n\nApply with M-x claude-code-ide-org-review; "
-                           "nothing reaches a file until a human does.\n"
-                           "%d of %d queue event(s) back these items; the rest "
-                           "is attribution scaffolding, not a backlog.")
-                   (length backing) (length events)))))
+          ;; Stripped once, over the assembled reply, exactly as
+          ;; `claude-code-ide-org--outline-line' does and for the same
+          ;; reason: every heading title here is read from a live buffer
+          ;; and carries its text properties, which the MCP layer then
+          ;; serializes as pages of `(face (org-headline-done ...))'
+          ;; noise around the answer.
+          ;;
+          ;; Seen for the first time 2026-08-13, only once a heading had
+          ;; been fontified *and* clock-displayed. The suite cannot catch
+          ;; it: batch Emacs runs no font-lock and a scratch org file is
+          ;; clean either way -- the same trap already documented on
+          ;; `--outline-line', which is why this now matches its idiom
+          ;; rather than stripping the title alone.
+          (substring-no-properties
+           (concat
+            (format "%d pending item(s) across %d heading(s), from %d session(s).\n"
+                    (length items) (length headings) (length sessions))
+            (string-join (nreverse lines) "\n")
+            (format (concat "\n\nApply with M-x claude-code-ide-org-review; "
+                            "nothing reaches a file until a human does.\n"
+                            "%d of %d queue event(s) back these items; the rest "
+                            "is attribution scaffolding, not a backlog.")
+                    (length backing) (length events))))))
     (error (format "Error: %s" (error-message-string err)))))
 
 ;;; Review buffer
