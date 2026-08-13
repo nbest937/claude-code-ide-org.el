@@ -4770,6 +4770,41 @@ this to NEXT" and "this is NEXT" stays visible. The Python scan on
 2026-08-13 silently reported =TODO= for a heading whose promotion was
 sitting in the queue; the answer was right, but only by luck of what was
 being asked.
+
+*The buffer-side half of the same idiom, added 2026-08-13.* =org_outline=
+is a thin wrapper: the work is done by org's own =org-map-entries=, with
+=org-id-find= to resolve a scope and about ten lines of ours to format
+each line. Everything it does is therefore available directly from an
+org buffer, and *more* is — which resolves the upward-navigation
+limitation recorded above rather than leaving it open.
+
+Two things =org-map-entries= offers that the MCP tool does not expose:
+
+1. *Positional scopes.* =tree= (the subtree at point), =region=,
+   =file=, =agenda=, or an explicit file list. So the sibling survey has
+   a buffer-side form that needs no parent =:ID:= at all:
+
+   : (save-excursion (org-up-heading-safe)
+   :   (org-map-entries #'org-get-heading "/NEXT" 'tree))
+
+   That is exactly the "navigate up from a child" case the tool cannot
+   do, available for free from point. It is the reason a
+   =relation: siblings= parameter stays rejected: the capability is not
+   missing, only ID-addressed access to it.
+
+2. *org's full MATCH query syntax* — the =/NEXT= above, and tags/property
+   queries generally. =org_outline= has no MATCH argument and filters
+   after the fact with =active_only=, so anything more selective than
+   "drop DONE and CANCELLED" is easier from a buffer than through the
+   tool.
+
+*Two caveats to write down with it, both quiet failures.*
+=org-map-entries= respects narrowing, so a narrowed buffer silently maps
+only the visible portion and reports a confidently short answer. And
+with a *file list* scope it visits those files; =org_outline='s docstring
+records that this was verified not to move point or mark buffers
+modified, which is what makes it safe against files the user has open —
+worth preserving in the rewrite rather than rediscovering.
 *** DONE Failed tool calls still enter the queue when the error is content-wrapped :code:
 :PROPERTIES:
 :ID:       5e2a1c04-7b3f-4d21-9c88-2f6e0a91b7d3
