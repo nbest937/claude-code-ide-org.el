@@ -3635,6 +3635,46 @@ Sequence well after =720b2dcf= ships and real queue data exists —
 there is no way to judge whether the plain threshold is already good
 enough until it has been used in anger.
 
+*That condition is now met, 2026-08-13, and the answer is no — but the
+remedy is smaller than this heading assumes.*
+
+The threshold has been used in anger: 23 unattributed spans were
+assigned by hand in one sitting. The mechanical suggestion built for
+[[id:3d0487f4-b8f8-451c-88bf-ab537663cbd0][3d0487f4]] (nearest preceding
+=DOING=) managed 18 of 23 and was wrong in instructive ways — it latched
+onto a =CANCELLED= heading for eight hours until taught to release, and
+offered one heading for a 45-minute span that actually covered five.
+
+*A third source of evidence, discovered by using it before proposing
+it.* Asked "how should I identify what a span was circling?", the answer
+that worked was neither the transcript nor a model: *git commits and
+=:CREATED:= stamps falling inside the span's window.* Three shell
+commands resolved three of four spans unambiguously — the 15:30--15:34
+span brackets a heading created 15:33 and a commit at 15:34; the
+12:36--12:59 span contains three commits and three heading creations.
+
+*Why that beats both options this heading records.* It needs no
+sampling, so every blocker above is moot — no upstream request/response
+machinery, no client capability, no live session. It needs no transcript
+either, so the "is the transcript in scope as an input" question does
+not arise. And it answers the design objection outright: commits and
+=:CREATED:= stamps are *mechanical evidence*, not a fluent
+recommendation, so there is nothing to anchor on. The human still
+decides; they simply stop having to run =git log= by hand.
+
+*The version worth building first,* therefore, is not this heading:
+render each unassigned span alongside the commits and headings created
+in its window, in the review buffer. Small, proven by hand, no new
+infrastructure.
+
+*What remains for this heading* is the residue that mechanical evidence
+cannot resolve: a span straddling two tasks, where commits exist on both
+sides and only the narrative says where the boundary fell. The
+54-minute 18:12--19:07 span was exactly that shape. So this stays
+=MAYBE=, but its scope narrows from "explain the gaps" to "explain the
+*ambiguous* gaps" — a much smaller and better-targeted feature, and one
+whose value can be judged only after the mechanical version exists.
+
 *** DONE Add a read-only MCP tool to inspect and summarize the pending queue :code:
 :PROPERTIES:
 :ID:       63a642c7-b04d-42dc-b6ec-3fb13df3ae04
@@ -6962,6 +7002,31 @@ Leaning (2) on the agenda point, but it is worth checking whether a
 label-less annotation actually reaches =org-agenda= before deciding —
 if it does not, the argument for (1) is much stronger.
 
+*Shipped 2026-08-13* (commit =8e9a678=), taking option 2 — synthesise a
+label. The check that decided it: a label-less annotation still reaches
+=org-agenda=, because the agenda matches the *timestamp*, not the text
+around it. So suppressing the line would have quietly dropped the span
+from the agenda — a behaviour change wearing the clothes of a tidy-up,
+and the cheaper-looking option was the wrong one.
+
+The synthesised label carries *provenance*, the one thing the timestamps
+cannot say: this interval was reconstructed and confirmed, not clocked
+as it happened. Two variants, because accepting a suggestion and
+choosing a heading are different acts — =suggested span, accepted at
+review= and =assigned at review=. A real note always wins over both.
+
+Implementation note worth keeping: this needed a *permanent* =:origin=
+tag alongside the transient =:unassigned=, which =a= clears. Without it
+the annotation could not tell, after assignment, that the interval had
+been reconstructed at all.
+
+*Verified live, not just tested.* Before: 17 bare =- <ts>--<ts>= lines
+in a single apply pass. After: every span written carries its label, and
+the first real one read
+=- <2026-08-10 Mon 12:36>--<2026-08-10 Mon 12:59> assigned at review=.
+Fixed going forward only, at the user's instruction; the 17 already
+written stand as they are.
+
 *** TODO Reconsider consolidating at apply: the rounding hazard that forbade it is retired :code:
 :PROPERTIES:
 :ID:       12e0adac-5aa4-4e95-a5d5-574ce32c1db0
@@ -7081,6 +7146,41 @@ already on disk cannot be written twice.
 explicitly out of scope — splitting one span across two headings —
 since truncate-assign-repeat becomes a working split once the remainder
 survives.
+
+*Shipped 2026-08-13* (commit =be5834d=), taking option 1 and adding the
+user's refinement: the remainder appears *on the spot*, in the same
+buffer, rather than at the next refresh.
+
+=review-edit-interval= now partitions =:events= at the new endpoints,
+keeps the ones the interval still spans, and hands the rest to
+=--review-insert-remainders=, which clusters them at the usual gap
+threshold and appends them as fresh items. A remainder inherits the
+heading as a *suggestion* but reverts to unassigned when the original
+was reconstructed — narrowing usually means the tail belongs elsewhere,
+which is the whole reason the human reached for =e=. It never inherits
+=:marked=: a remainder is a new decision, not part of the batch already
+confirmed.
+
+*Why on the spot matters*, and it was the user's point: the remainder is
+the entire reason to narrow, so the human is mid-thought about which
+task the tail belongs to. Deferring it to the next refresh is where it
+gets abandoned.
+
+*The lost 32 minutes were recovered first,* and the recovery is the best
+evidence for the design this heading sits inside: the =.jsonl= is
+append-only, so un-marking three timestamps in the =.applied= sidecar
+brought the interval back as its own span (18:50--19:07), which was then
+assigned and applied normally. Nothing had to be reconstructed by hand.
+
+*Verified:* 211 tests, the new one confirmed to fail against the unfixed
+code. It asserts the conservation property directly — every event of the
+original span is still accounted for, in either the narrowed item or the
+remainder.
+
+*Consequence beyond the fix:* =e= is now a working span splitter —
+truncate, assign, repeat — which
+[[id:3d0487f4-b8f8-451c-88bf-ab537663cbd0][3d0487f4]] had listed as
+explicitly out of scope for v1.
 ** MAYBE Add a third retention tier for completed work as a chronological changelog :code:
 :PROPERTIES:
 :ID:       4c0044bf-1b6c-44ea-807a-8f9e3523e3fd
