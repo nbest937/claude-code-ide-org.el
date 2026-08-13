@@ -8590,3 +8590,25 @@ conventions that are currently *unbroken*, so the lint will pass on day
 one and prove nothing. Seed it against a deliberately broken copy first
 — the same discipline as confirming a regression test fails without its
 fix, which caught two vacuous tests that day.
+
+*And an honest limit on the practice, measured rather than assumed.*
+Automating consistency enforcement is the right instinct — this repo
+already runs the pattern four times over (=bin/sync-plans --check= plus
+the pre-push guard, =bin/check-claude-md= proposed on
+[[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]],
+[[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]]'s README check,
+and this). But the mechanically checkable subset is *narrower than the
+drift actually observed*. Four stale statements surfaced on 2026-08-13:
+
+| stale statement | checkable? |
+|-----------------+------------|
+| CLAUDE.md's =#+TODO:= line omits the =(t!)= markers the files carry | *yes* — string compare against line 1 |
+| =--aggregate-guideposts= says consolidation rounds; it stopped in =b74e0f19= | *no* — prose about behaviour |
+| =consolidate-history='s docstring says "newest-first"; =af7d3687= made it ascending | *barely* — would need to compare a docstring's claim to a sort order |
+| the epic's "no writer but apply touches these files" | *no* — a claim about five tools, a skill and git |
+
+So a lint catches the *shape* of drift — a missing =:ID:=, a dangling
+link, a repeater under a completable parent — and misses the *reasoning*
+kind, which is where today's genuinely dangerous staleness lived. Both
+kinds read as settled fact; only one is a string. Worth stating so the
+harness is not mistaken for coverage it does not have.
