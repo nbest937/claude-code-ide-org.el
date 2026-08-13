@@ -5110,6 +5110,49 @@ guideposts would attribute to the wrong heading. That rejection assumed
 =clock_in= would carry the load. Measured, it does not — which is an
 argument for revisiting the rejected option alongside this one, not for
 overturning it.
+
+*Decided 2026-08-13: build it.* The deciding figures, measured against
+the live queue after retuning the threshold to 1200s:
+
+| what                                        | amount           |
+|---------------------------------------------+------------------|
+| CLOCK time recorded in org, 08-10..08-13    | *3.6 h* (23 intervals) |
+| unattributed span time sitting in the queue | *14.6 h* (23 spans)    |
+
+So the org record currently captures roughly *one fifth* of actual work
+time, and the missing four fifths is already durable on disk with no
+consumer. That is this heading's own prediction — "the loss moves from
+the recorder to the reader ... recoverable, in principle" — now measured
+rather than argued.
+
+*The workload objection dissolved on contact with the numbers.* The fear
+was that assignment means triaging hundreds of guideposts. It does not:
+316 unattributed guideposts aggregate to *23 spans*, the same order as
+the 23 intervals already reviewed. Review volume roughly doubles; it does
+not explode. Two of the 23 are zero-width and write no =CLOCK:= line.
+
+*Chosen UX: propose, human confirms.* Each unassigned span renders with a
+*suggested* heading, derived from the nearest preceding =todo= event —
+in practice whatever last went =DOING=. =RET= accepts, =a= assigns a
+different heading, =d= dismisses it as not work time.
+
+*This partly overturns a documented rejection, and the distinction is the
+whole justification, so it must not be lost.*
+=--queue-events-by-id='s docstring rejects deriving attribution from
+=todo= events, because a return to a heading that never left =DOING=
+emits no =todo= event and every later guidepost would then attribute to
+the wrong heading. That objection is about *silent* attribution, and it
+still stands: nothing here changes what =--queue-events-by-id= does. A
+*suggestion the human confirms* has a different failure mode entirely —
+a wrong suggestion is visible at the moment of decision and one keystroke
+from correction, which is precisely the propose-then-confirm shape the
+whole architecture rests on. Blank-by-default was considered and rejected
+as 23 lookups where 23 confirmations will do.
+
+*Deliberately out of scope for v1:* splitting one span across two
+headings. A 90-minute span covering two tasks must currently be assigned
+whole or dismissed. Worth revisiting only if it bites — the existing
+=e= (edit interval) adjusts endpoints but does not split.
 *** TODO Make ingestion idempotent and archive drained queue files rather than deleting them :code:
 :PROPERTIES:
 :ID:       78f485a8-e808-43ce-af5f-277a5c97c471
@@ -5214,9 +5257,23 @@ coverage figures:
    during ordinary use, so a definition of drained has to name it
    explicitly rather than treat it as noise.
 
-Consequence for sequencing: this heading is *not* actionable until
-=3d0487f4= is decided, because 88% of what it must classify as drained
-or not is exactly that heading's subject. The asymmetry noted above (19
+Consequence for sequencing: this heading was *not* actionable until
+=3d0487f4= was decided, because 88% of what it must classify as drained
+or not is exactly that heading's subject.
+
+*Unblocked 2026-08-13:* =3d0487f4= was decided — build it, with spans
+rendered as suggestions the human confirms. That settles what happens to
+bucket 1: those 301 events become *consumable*, so "drained" can mean
+what it sounds like for them rather than having to carve out a permanent
+exception. Bucket 2 (the 39 attributed-but-unconsumed clock events)
+still has no owner and still needs naming explicitly in any definition of
+drained — it is unaffected by that decision.
+
+Note the ordering constraint that remains: specifying drained before
+=3d0487f4= *ships* would still be premature, since its dismissal path
+("=d= — not work time") determines whether an unassigned span leaves the
+queue by being applied or by being dismissed, and those are different
+terminal states for the same event. The asymmetry noted above (19
 =clock_in= vs 20 =clock_out=, 3 orphans in the nil bucket) is also
 unexplained and predates subagent activity — worth a look before
 specifying, since a definition of drained that assumes pairs balance
