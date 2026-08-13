@@ -5966,6 +5966,25 @@ artifact; treat any filter as a hypothesis about what it hides.
 :CREATED:  [2026-08-13 Thu 10:13]
 :END:
 
+[[file:~/.claude/plans/capture-amend-queue.md][Plan]]
+
+*Plan approved 2026-08-13, scoped by two decisions the user made during
+planning:* v1 covers *capture and amend* only — the structural writers
+(=org_refile=, =org_archive=, =org_move_sibling=, =org_sort_children=)
+stay immediate — and capture *writes through when the file is free*,
+queueing only when it is busy, so today's immediacy survives and only
+contended writes defer. That is the user's original lock idea made
+non-blocking, and it supersedes the "always queue" reading of step 3
+below.
+
+Note the plan lives in its own file rather than this conversation's
+=hazy-moseying-sky.md=: that path is already the permanent link for
+[[id:6b1e73c4-25da-4f0e-8a51-9c0d3f7ab214][6b1e73c4]] and
+[[id:f290161c-f9e7-4bfb-9adf-4c5630d4c5ae][f290161c]], and Claude Code
+reuses one plan file per conversation, so planning here overwrote it.
+Restored from =plans/= and the new plan given its own name, so both
+older links still resolve to the plan they were written for.
+
 *Read by the user 2026-08-13* — both the original draft below and the
 =create-lockfiles= research appended to step 1. The "study this before
 signing off" reminder it was captured under is discharged.
