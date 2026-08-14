@@ -1643,6 +1643,61 @@ attention and neither fixed here:*
    here because this is where it was found, not because this heading
    owns it.
 
+*A third consequence, found 2026-08-14 while designing something else.*
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] has been =DOING=
+since =[2026-08-06 Thu 22:35]= — eight days — with no clock running. In
+that whole time *no session-start report has ever mentioned it*, because
+=claude-code-ide-org--wait-headings-context= reports only the currently
+clocked heading plus =WAIT= headings.
+
+This surfaced while considering adding =DOING= to that report's keyword
+set, so a new session would be told about headings left mid-flight.
+Simulated against the real files, the proposal produced four lines where
+today there is one — and three of the four are currently invisible: two
+leaves abandoned that morning
+([[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] and
+[[id:4f9e552a-e1a9-48dd-8801-3f23a31b9e32][4f9e552a]]), and this epic,
+which would then appear in *every* session-start report, unchanged,
+indefinitely.
+
+*The finding is that the two are the same keyword and opposite news.* A
+container in =DOING= is a true and unremarkable statement about the
+project. A leaf in =DOING= with no clock is an increment somebody walked
+away from. Only the second is worth telling a new session, and a report
+that always carries the same line stops being read at all — the same
+failure that
+[[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]]'s outcome note
+records for evidence lines, which were applied without evaluation
+precisely because they were always plausible.
+
+*So the report change is downstream of this heading, not independent of
+it.* If containers stopped carrying a work-in-progress keyword — or if
+the container test proposed above existed anywhere reusable — the report
+would need no filter at all: adding =DOING= to its keyword set would
+simply do the right thing. Building the filter first would work around
+the problem this heading exists to remove, and would leave two
+definitions of "container" to keep in step, which is the shape of bug
+this project keeps finding (see the six-keyword denylist retired from
+=--review-suggest-heading= on 2026-08-14 for the same reason).
+
+*Not the earlier symptom recurring.* The epic's clock is *closed*; this
+is not the auto-clock-in trigger minting an unwanted interval again. It
+is the same root — a container carrying a keyword that asserts work is
+in progress — showing a second, quieter symptom eight days later. The
+first cost an interval that had to be deleted by hand; this one costs
+nothing visible, which is why it went unnoticed for eight days.
+
+*And it does not affect span attribution,* which is worth stating so a
+future reader does not assume it does:
+=claude-code-ide-org--review-suggest-heading= derives its guess from
+queued =todo= events, never from the state on disk, so an epic sitting
+in =DOING= in the file is not a latch target.
+
+*Scale, measured 2026-08-14:* 37 direct children, 10 of them still open.
+The "ten children" in the clocktable measurement above was that day's
+count; ten is now the number that are unfinished.
+
+
 ** CANCELLED Reorder :SESSIONS: entries to match :LOGBOOK: ordering :code:
 :PROPERTIES:
 :ID:       2b0988ed-eb92-4fa7-904a-cb2d10941bfd
