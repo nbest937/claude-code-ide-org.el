@@ -5014,8 +5014,13 @@ correctly inside a real interactive command."
    :name "org_set_todo"
    :description (concat
                  "Record a TODO keyword change on an org-mode heading by its "
-                 ":ID: property. Valid states: TODO NEXT PLANNING DOING WAIT "
-                 "MAYBE DONE CANCELLED. Queues the event for human review; it "
+                 ":ID: property. Valid states: TODO NEXT PLANNING DOING "
+                 "REVIEW WAIT MAYBE DONE CANCELLED. REVIEW is EXPERIMENTAL "
+                 "(TODO.org :ID: c954f650): it means work is finished and "
+                 "handed back to the human for judgement, as distinct from "
+                 "WAIT, which means blocked on someone else. Use it where you "
+                 "would otherwise leave a heading DOING at the end of a work "
+                 "increment. Queues the event for human review; it "
                  "does NOT change the heading. The file keeps its current "
                  "keyword until a person applies the queued event, so a later "
                  "read showing the old state is expected, not a failure. "
@@ -5028,7 +5033,7 @@ correctly inside a real interactive command."
             :description "The :ID: property value of the target org heading.")
            (:name "state"
             :type string
-            :description "TODO keyword to set: TODO NEXT PLANNING DOING WAIT MAYBE DONE CANCELLED.")
+            :description "TODO keyword to set: TODO NEXT PLANNING DOING REVIEW WAIT MAYBE DONE CANCELLED.")
            (:name "note"
             :type string
             :optional t
