@@ -4440,7 +4440,6 @@ every drawer-level data-loss incident this project has had
 :LOGBOOK:
 CLOCK: [2026-08-12 Wed 17:40]--[2026-08-12 Wed 17:42] =>  0:02
 - [2026-08-12 Wed 17:40]--[2026-08-12 Wed 17:42] subagent investigating recovery fate
-- <2026-08-12 Wed 17:40>--<2026-08-12 Wed 17:40> subagent investigating recovery fate
 :END:
 
 Captured 2026-08-06 from conversation. The whole stale-interval
@@ -4745,7 +4744,6 @@ should have been stated before the check rather than after it.
 :LOGBOOK:
 CLOCK: [2026-08-12 Wed 17:40]--[2026-08-12 Wed 17:43] =>  0:03
 - [2026-08-12 Wed 17:40]--[2026-08-12 Wed 17:43] subagent investigating heading fates
-- <2026-08-12 Wed 17:43>--<2026-08-12 Wed 17:43> subagent investigating heading fates
 :END:
 
 Once this design is either committed to or rejected, revisit [[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]], [[id:582cc7f4-41a2-4666-ad3f-1b76b459147e][582cc7f4]],
@@ -6634,6 +6632,39 @@ belong.
 Not addressed here: the pre-existing unattributed =clock_out= events
 noted above. They predate subagent activity, so they have a different
 cause and are still unexamined.
+
+*Residue found and cleaned 2026-08-14.* The fix stopped new occurrences
+but left behind the two it had already produced. Each of the two
+subagent runs this project has ever queued carried, beside its correct
+inactive annotation, a *zero-width active* one repeating the subagent's
+own label:
+
+: CLOCK: [2026-08-12 Wed 17:40]--[2026-08-12 Wed 17:42] =>  0:02
+: - [2026-08-12 Wed 17:40]--[2026-08-12 Wed 17:42] subagent investigating recovery fate
+: - <2026-08-12 Wed 17:40>--<2026-08-12 Wed 17:40> subagent investigating recovery fate
+
+Read off the queue: the main lane's own =pause= (17:40:26) and =resume=
+(17:43:14) fell *inside* the two subagent intervals, were attributed to
+the subagents' headings by the session-scoped logic this heading fixed,
+clustered as lone guideposts into zero-width spans, and inherited the
+enclosing =clock_in='s note as their label. Human spans always render
+*active*, so unattended machine work reached =org-agenda= — which the
+design explicitly forbids. The third lines were deleted from
+[[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] and
+[[id:e51d6ba1-cc1d-4745-8aa7-e4b1183a230b][e51d6ba1]]; the CLOCK lines
+and inactive annotations are correct and were kept.
+
+*Zero width is not the diagnostic, and this matters for anyone tempted
+to sweep for it.* Seven other zero-width active annotations remain in
+TODO.org and are all correct: a lone guidepost is one interaction point,
+and recording it without a CLOCK line is deliberate. What marked these
+two was a *subagent's* label on a *subagent's* heading.
+
+*Found by eye, not by any check,* while planning a manual pass over the
+agenda. Nothing detects this class of thing: a fix that stops new bad
+data does not clean up old, and no test asserts over the contents of
+:LOGBOOK: drawers in the real file — only over fixtures.
+
 *** TODO Background-task notifications write phantom resume guideposts :code:
 :PROPERTIES:
 :ID:       09c134c4-31eb-4f6c-aa10-f836d1d28f16
