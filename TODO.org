@@ -7944,6 +7944,70 @@ capture durability there, timeline origin here.
 They coincide throughout this project because every task heading is born
 with a keyword, but the equivalence is a local accident, not a rule, and
 a heading that gains a keyword later would make them diverge.
+** Hook-injected context is only as reliable as the model choosing to relay it :code:
+:PROPERTIES:
+:ID:       c5b02503-1700-47fd-bf89-bd3296b24af2
+:CREATED:  [2026-08-14 Fri 10:32]
+:END:
+
+*Raised 2026-08-14, tracing where the session-start report is defined.*
+Both =SessionStart= hooks work by injecting =additionalContext=, and
+*nothing makes the model relay or act on it.* If a session reads the
+context and says nothing, the outcome is indistinguishable from the hook
+never having run — silent on both sides. CLAUDE.md already states the
+expectation without noticing it is an assumption: the report "is injected
+as =additionalContext=, which Claude is expected to relay to the user as
+a question — the hook itself has no way to literally prompt."
+
+*Evidence from the session that found it, cutting both ways.* The relay
+worked: this session opened by surfacing
+[[id:b5f94b88-76e3-4a3c-ac73-729f34d33691][b5f94b88]] from the injected
+context. But it worked partly because the user's first prompt was "what's
+next?", which made the line directly relevant. Had the session opened
+with a narrow request, the same line would have sat in context with no
+reason to mention it, and the user would have had no way to know it
+existed. n=1, and the one trial was the favourable case.
+
+*Two hooks already depend on it,* and both are load-bearing:
+=.claude/hooks/session-context.sh= (what was I last doing) and
+=bin/hooks/session-start-recovery-check= (a CLOCK interval left open
+before today, which needs the user to be *asked* when work actually
+stopped — the whole point is a question).
+
+*A third is about to be added on the strength of the first two.*
+[[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]] part 2 specifies a
+=PostToolUse= hook injecting a reminder to check the sibling file, and
+justifies the choice as mirroring "the existing =SessionStart=
+stale-interval-recovery hook's pattern (inject context, let Claude
+relay/act on it) rather than hard-blocking the edit, which would be
+heavier-handed than this warrants." That reasoning is sound about
+*blocking* and silent about *reliability*: it adopts inject-and-hope as a
+house pattern citing a precedent whose relay rate nobody has ever
+checked. Deciding this heading first is what stops the assumption being
+copied a third time.
+
+*Options, none chosen.*
+
+- *A channel the human reads directly,* which removes the model from the
+  loop entirely. The statusline is the only one that exists —
+  [[id:4cda6bf7-441b-47b2-b3d5-b8c7e7a207a5][4cda6bf7]] and
+  [[id:290b6fc5-3ebb-4827-9a97-5a3542e354b6][290b6fc5]] both live there,
+  and *neither names this as a reason to want them.* The fix exists in
+  the codebase as a capability and nowhere as an argument.
+- *Make the hook's own output user-visible,* if Claude Code surfaces hook
+  stdout to the user for any hook event. *Unverified* — worth checking
+  against the current hook documentation before it is either relied on or
+  dismissed.
+- *Accept it and measure.* Nothing today records whether injected context
+  was relayed, so "usually works" is not a claim anyone can currently
+  make. The audit log and the event queue both record tool calls; neither
+  records what a session chose to say.
+
+*The sharpest version of the problem:* the recovery hook exists to ask a
+question only the human can answer, and its delivery depends on the party
+that cannot be held to it. That is the same shape as the reason apply is
+human-triggered — a mechanism whose correctness rests on the model doing
+something it was merely asked to do.
 
 * Bigger swings
 
@@ -8135,6 +8199,19 @@ CLAUDE.md's "State transition rules" section:
 
 A human skimming the repo has no reason to find either today unless
 they read that CLAUDE.md section end to end.
+
+*Part 2 is contingent as of 2026-08-14, and part 1 is not.* The
+=PostToolUse= consistency hook above justifies itself by mirroring the
+=SessionStart= hooks' inject-and-let-Claude-relay pattern. That
+precedent's reliability has never been checked — see
+[[id:c5b02503-1700-47fd-bf89-bd3296b24af2][c5b02503]], raised the same
+day — so building part 2 as specified would copy an unexamined
+assumption into a third place. The argument recorded above is sound
+about *hard-blocking being too heavy*; it says nothing about whether the
+lighter mechanism works.
+
+Writing =README.md= itself is untouched by any of that.
+
 
 ** TODO Audit CLAUDE.md for directives that belong in the org skill instead :code:
 :PROPERTIES:
