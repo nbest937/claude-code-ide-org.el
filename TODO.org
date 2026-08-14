@@ -4585,6 +4585,37 @@ share one find-the-drawer helper rather than each carrying its own
 search. Worth a test built from the probe's own decoy fixture, which is
 already written.
 
+*Outcome, 2026-08-14. There were three copies of the search, not two.*
+=claude-code-ide-org--drawer-contains-line-p= carried a third, and it
+looped correctly — so the split was two right to one wrong, which is
+exactly the argument for a shared helper rather than a one-line patch to
+the odd one out. All three now call
+=claude-code-ide-org--find-drawer=, which returns the *element* rather
+than positions, because the three callers want different things from it:
+an insertion point, a content region, and a line scan.
+
+*The empty-drawer fallback is now enforced rather than merely
+documented.* [[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]]
+found that =org-element-contents-begin=/=-end= are =nil= for an empty
+drawer and concluded the naive migration would be a regression;
+=--drawer-content-bounds= keeps returning an empty-but-valid region, and
+a test now fails if anyone makes that migration anyway. The survey's
+finding has a guard instead of a paragraph.
+
+*Verified.* Five tests, 255 green, and both mutations behaved exactly as
+predicted rather than merely "a test failed": reverting the shared search
+to its old single-shot form failed all four decoy tests and left the
+empty-drawer test passing, while performing the naive =org-element=
+migration failed *only* the empty-drawer test. Complementary, so the two
+properties are independently pinned. Then reloaded live and run against
+the real =b5f7c5c7= heading, whose =:LOGBOOK:= it reads as a 312-
+character region.
+
+*Reachability is unchanged and still low* — the decoy must precede the
+real drawer — but the cost of the fix was one helper and the removal of
+two duplicated searches, so the argument for waiting for a live incident
+was weak.
+
 *** DONE Decide the fate of the stale-interval recovery feature, whose premise this refactor removes :code:
 :PROPERTIES:
 :ID:       7771fc63-9374-4c8a-9e80-24ceec21977c

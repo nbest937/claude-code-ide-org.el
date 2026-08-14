@@ -1367,6 +1367,92 @@ already a no-op."
                      (claude-code-ide-org-consolidate-history id)))
       (should (equal before (claude-code-ide-org-test--disk-contents file))))))
 
+;;; Finding a drawer (TODO.org :ID: f42641ab) -------------------------------
+;;
+;; The fixture is the one the API probe used: a marker-shaped line inside
+;; `#+begin_example' standing *before* the real drawer.  Three functions
+;; used to carry their own copy of this search and only two looped past
+;; the decoy; they now share `claude-code-ide-org--find-drawer'.
+
+(defconst claude-code-ide-org-test--decoy-heading
+  (concat "* TODO H\n"
+          "#+begin_example\n"
+          ":LOGBOOK:\n"
+          "not a real drawer\n"
+          ":END:\n"
+          "#+end_example\n"
+          ":LOGBOOK:\n"
+          "CLOCK: [2026-08-14 Fri 10:00]--[2026-08-14 Fri 10:30] =>  0:30\n"
+          ":END:\n")
+  "A heading whose body holds a decoy drawer before its real one.")
+
+(defmacro claude-code-ide-org-test--in-org (text &rest body)
+  "Run BODY in a temp org buffer containing TEXT, point on the heading."
+  (declare (indent 1))
+  `(with-temp-buffer
+     (let ((org-inhibit-startup t))
+       (insert ,text)
+       (org-mode)
+       (goto-char (point-min))
+       ,@body)))
+
+(ert-deftest claude-code-ide-org-test-find-drawer-skips-a-decoy ()
+  "A drawer-shaped line inside #+begin_example is not a drawer, and must
+not stop the search: the real drawer stands after it."
+  (claude-code-ide-org-test--in-org claude-code-ide-org-test--decoy-heading
+    (let ((element (claude-code-ide-org--find-drawer "LOGBOOK")))
+      (should element)
+      (should (org-element-type-p element 'drawer))
+      ;; The one found must be the real drawer, identified by its content.
+      (should (string-match-p
+               "CLOCK:"
+               (buffer-substring (org-element-contents-begin element)
+                                 (org-element-contents-end element)))))))
+
+(ert-deftest claude-code-ide-org-test-drawer-content-bounds-skips-a-decoy ()
+  "The reader is the copy that used to give up at the first
+marker-shaped line and report \"no drawer here\" for a heading that had
+one — the whole of :ID: f42641ab."
+  (claude-code-ide-org-test--in-org claude-code-ide-org-test--decoy-heading
+    (let ((bounds (claude-code-ide-org--drawer-content-bounds "LOGBOOK")))
+      (should bounds)
+      (should (string-match-p "CLOCK:" (buffer-substring (nth 0 bounds)
+                                                         (nth 1 bounds)))))))
+
+(ert-deftest claude-code-ide-org-test-drawer-content-bounds-empty-drawer ()
+  "An empty drawer must yield an empty-but-valid region, not (nil nil).
+This is why the reader does not simply return
+`org-element-contents-begin'/`-end': those are nil here, and callers do
+arithmetic on the result."
+  (claude-code-ide-org-test--in-org "* TODO H\n:LOGBOOK:\n:END:\n"
+    (let ((bounds (claude-code-ide-org--drawer-content-bounds "LOGBOOK")))
+      (should bounds)
+      (should (integerp (nth 0 bounds)))
+      (should (integerp (nth 1 bounds)))
+      (should (= (nth 0 bounds) (nth 1 bounds)))
+      (should (equal "" (buffer-substring (nth 0 bounds) (nth 1 bounds)))))))
+
+(ert-deftest claude-code-ide-org-test-append-to-drawer-skips-a-decoy ()
+  "The writer already looped past a decoy before the three searches were
+unified; this pins that behaviour so the shared helper cannot regress
+it."
+  (claude-code-ide-org-test--in-org claude-code-ide-org-test--decoy-heading
+    (claude-code-ide-org--append-to-drawer-1 "LOGBOOK" "- appended line")
+    (let ((text (buffer-string)))
+      ;; Landed in the real drawer, after the CLOCK line.
+      (should (string-match-p "CLOCK:.*\n- appended line" text))
+      ;; And not inside the example block.
+      (should (string-match-p "not a real drawer\n:END:" text)))))
+
+(ert-deftest claude-code-ide-org-test-drawer-contains-line-p-skips-a-decoy ()
+  "The membership check must read the real drawer's contents, not the
+decoy's — otherwise idempotency would compare against the wrong text."
+  (claude-code-ide-org-test--in-org claude-code-ide-org-test--decoy-heading
+    (should (claude-code-ide-org--drawer-contains-line-p
+             "LOGBOOK" "CLOCK: [2026-08-14 Fri 10:00]--[2026-08-14 Fri 10:30] =>  0:30"))
+    (should (not (claude-code-ide-org--drawer-contains-line-p
+                  "LOGBOOK" "not a real drawer")))))
+
 ;;; Historical consolidation ----------------------------------------------
 
 (defun claude-code-ide-org-test--ts (s)

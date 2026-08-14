@@ -275,6 +275,45 @@ removes the heading from the source buffer entirely (via
 ;;   holds the same stream undecimated, survives without a running Emacs,
 ;;   and carries session/agent attribution the drawer never had.
 
+(defun claude-code-ide-org--find-drawer (drawer-name)
+  "Return the `org-element' for the DRAWER-NAME drawer belonging to the
+heading at point, or nil when it has none.  Never moves point.
+
+Searches only within the heading's own body, and *keeps searching* past
+any line shaped like a drawer marker that is not really one -- inside
+`#+begin_example', say -- because `org-element-at-point' is what decides,
+not the regexp.  Stopping at the first marker-shaped line was a real bug
+\(TODO.org :ID: f42641ab): the reader gave up and reported \"no drawer
+here\" for a heading that had one, while the two writers looped past the
+decoy correctly.  Three copies of this search existed, two of them
+right; this is the one copy they now share.
+
+Returns the element rather than positions because its three callers want
+different things from it -- an insertion point, a content region, and a
+line scan -- and only the caller knows which.  Note an *empty* drawer has
+nil `org-element-contents-begin'/`-end', so callers deriving a region
+must supply their own fallback; see
+`claude-code-ide-org--drawer-content-bounds'."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((end (save-excursion (outline-next-heading) (point)))
+          (marker-re (concat "^[ \t]*:" (regexp-quote drawer-name) ":[ \t]*$"))
+          found)
+      (while (and (not found) (re-search-forward marker-re end t))
+        (let ((element (org-element-at-point)))
+          (when (org-element-type-p element 'drawer)
+            (setq found element))))
+      found)))
+
+(defun claude-code-ide-org--drawer-body-start (element)
+  "Return the position of the first line inside drawer ELEMENT --
+the line after its marker.  For an empty drawer this is the `:END:'
+line itself, which is also where a first entry would be inserted."
+  (save-excursion
+    (goto-char (org-element-begin element))
+    (forward-line 1)
+    (point)))
+
 (defun claude-code-ide-org--drawer-contains-line-p (drawer-name line)
   "Non-nil when LINE already appears in the heading's DRAWER-NAME drawer.
 
@@ -284,26 +323,22 @@ false negative and a duplicate.  Half of the content-based idempotency
 (TODO.org :ID: 78f485a8): an annotation line is a pure function of its
 span and label, so an identical one is a replay rather than a second
 thing that happened."
-  (save-excursion
-    (org-back-to-heading t)
-    (let* ((end (save-excursion (outline-next-heading) (point)))
-           (target (string-trim line))
-           (drawer-re (concat "^[ \t]*:" (regexp-quote drawer-name) ":[ \t]*$"))
-           found)
-      (while (and (not found) (re-search-forward drawer-re end t))
-        (let ((element (org-element-at-point)))
-          (when (org-element-type-p element 'drawer)
-            (let ((cend (or (org-element-contents-end element) (point))))
-              (save-excursion
-                (forward-line 1)
-                (while (and (not found) (< (point) cend))
-                  (when (equal target (string-trim
-                                       (buffer-substring-no-properties
-                                        (line-beginning-position)
-                                        (line-end-position))))
-                    (setq found t))
-                  (forward-line 1)))))))
-      found)))
+  (let ((element (claude-code-ide-org--find-drawer drawer-name))
+        (target (string-trim line))
+        found)
+    (when element
+      (let ((cend (or (org-element-contents-end element)
+                      (claude-code-ide-org--drawer-body-start element))))
+        (save-excursion
+          (goto-char (claude-code-ide-org--drawer-body-start element))
+          (while (and (not found) (< (point) cend))
+            (when (equal target (string-trim
+                                 (buffer-substring-no-properties
+                                  (line-beginning-position)
+                                  (line-end-position))))
+              (setq found t))
+            (forward-line 1)))))
+    found))
 
 (defun claude-code-ide-org--append-to-drawer (drawer-name line)
   "Append LINE to the :DRAWER-NAME: drawer of the heading at point.
@@ -323,20 +358,16 @@ sidecar -- which is the situation reprocessing puts you in."
 (defun claude-code-ide-org--append-to-drawer-1 (drawer-name line)
   "Unconditionally append LINE to DRAWER-NAME at point."
   (org-back-to-heading t)
-  (let* ((beg (line-beginning-position))
-         (end (save-excursion (outline-next-heading) (point)))
-         (drawer-re (concat "^[ \t]*:" (regexp-quote drawer-name) ":[ \t]*$"))
-         found)
-    (goto-char beg)
-    (while (and (not found) (re-search-forward drawer-re end t))
-      (let ((element (org-element-at-point)))
-        (when (org-element-type-p element 'drawer)
-          (goto-char (or (org-element-contents-end element) (line-end-position)))
+  (let ((element (claude-code-ide-org--find-drawer drawer-name)))
+    (if element
+        (progn
+          ;; For a populated drawer this is the start of the `:END:'
+          ;; line; for an empty one `contents-end' is nil and the body
+          ;; start is that same line.  Both mean "just before :END:".
+          (goto-char (or (org-element-contents-end element)
+                         (claude-code-ide-org--drawer-body-start element)))
           (unless (bolp) (insert "\n"))
-          (insert line "\n")
-          (setq found t))))
-    (unless found
-      (goto-char beg)
+          (insert line "\n"))
       (org-end-of-meta-data)
       (unless (bolp) (insert "\n"))
       (insert ":" drawer-name ":\n" line "\n:END:\n"))))
@@ -899,20 +930,22 @@ between the marker line and the :END: line, CONTENT-END being the
 start of the :END: line itself (so the region includes the last
 content line's trailing newline). Return nil if the heading has no
 such drawer. Only recognizes a marker line containing nothing but
-the drawer name, matching `org-clock-find-position's own convention
-via `org-element-at-point' — see `claude-code-ide-org--append-to-drawer'
-— so prose that merely mentions \":DRAWER-NAME:\" is never mistaken
-for an actual drawer."
-  (org-back-to-heading t)
-  (let ((subtree-end (save-excursion (outline-next-heading) (point)))
-        (marker-re (concat "^[ \t]*:" (regexp-quote drawer-name) ":[ \t]*$")))
-    (save-excursion
-      (when (re-search-forward marker-re subtree-end t)
-        (when (org-element-type-p (org-element-at-point) 'drawer)
-          (forward-line 1)
-          (let ((content-beg (point)))
-            (when (re-search-forward "^[ \t]*:END:[ \t]*$" subtree-end t)
-              (list content-beg (line-beginning-position)))))))))
+the drawer name, via `claude-code-ide-org--find-drawer', so prose that
+merely mentions \":DRAWER-NAME:\" is never mistaken for an actual
+drawer — and, since 2026-08-14, a decoy no longer makes this report
+\"no drawer\" for a heading that has one (TODO.org :ID: f42641ab).
+
+An empty drawer yields an empty-but-valid region (BEG equal to END)
+rather than (nil nil).  That is deliberate and is why this does not
+simply return `org-element-contents-begin'/`-end': those are nil for an
+empty drawer, and every caller here does arithmetic on the result.
+Measured against org 9.8.7 on 2026-08-14, the two agree exactly on every
+non-empty shape and differ only in that one case."
+  (let ((element (claude-code-ide-org--find-drawer drawer-name)))
+    (when element
+      (let ((content-beg (claude-code-ide-org--drawer-body-start element)))
+        (list content-beg
+              (or (org-element-contents-end element) content-beg))))))
 
 (defun claude-code-ide-org--logbook-entry-time (line)
   "Return the time LINE sorts on, or nil when it carries none.
