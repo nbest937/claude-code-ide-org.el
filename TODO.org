@@ -7667,6 +7667,38 @@ first (shift-tab cycles the permission modes), then run =echo
 afk-probe:1=, wait five to ten minutes, approve. Nothing else about the
 recipe changes.
 
+*Second probe, manual mode, 2026-08-14 17:58:23--18:04:22. The prompt
+appeared and was held for six minutes; the queue recorded none of it.*
+That is failure mode #2 above, and it is worth two separate conclusions.
+
+*The defect is now demonstrated live, on demand, rather than recalled.*
+The queue for that window holds =resume= 17:57:07 and then nothing at all
+until the turn ends — no =pause=, because the turn never ended, and no
+=block_start=. Six minutes of waiting sit inside one unbroken run of
+guideposts. The 2026-08-11 measurement was a 54m11s instance of the same
+thing; this one is reproducible in a single command, which makes it a
+regression fixture rather than an anecdote.
+
+*And the fix did not fire, though it is correctly wired.*
+=PermissionRequest= is present in =.claude/settings.json= — checked, not
+assumed — and =bin/hooks/block-start= is executable and passes its own
+harness. So the remaining question is narrowed to exactly one thing:
+whether a session picks up a hook for an event type that was not
+registered when it started. =135033ff= established that hook-config
+changes take effect live, but only for =PreToolUse=/=PostToolUse=, both
+of which were already wired at that session's start. Adding a new *event*
+is a different claim and this is the first test of it.
+
+*Next step, and it is the last unknown:* start a brand-new Claude Code
+session in this repo, in manual mode, and run the probe again. If
+=block_start= and =block_end= appear with a matching =tool_use_id=, the
+feature works and the constraint is simply that new hook events need a
+restart — worth adding to the org-dev skill, whose section 5 currently
+says the opposite is true for hooks generally. If they still do not
+appear, the fault is in the hook wiring rather than in session lifetime,
+and =bin/block-hooks-test= passing means the fault is upstream of the
+scripts.
+
 *Worth noticing either way:* a permission block cannot occur in a session
 that never prompts, so in background jobs this whole defect is
 unreachable and the spans there were never wrong for this reason. That
