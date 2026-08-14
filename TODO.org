@@ -1559,10 +1559,14 @@ correctness and observability, as opposed to the general TODO-state
 machine above — three different angles on "make sure the clock is
 never silently wrong."
 
-** TODO Container headings should change state without opening a clock :code:
+** NEXT Container headings should change state without opening a clock :code:
 :PROPERTIES:
 :ID:       ab75d6d2-0e59-405d-92c6-2c67488db133
 :CREATED:  [2026-08-12 Wed 11:25]
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-08-14 Fri 10:26] \\
+  report change is blocked behind it
 :END:
 
 Raised by the user 2026-08-12, on moving
@@ -7647,6 +7651,8 @@ CLOCK: [2026-08-13 Thu 17:55]--[2026-08-13 Thu 18:36] =>  0:41
 - <2026-08-13 Thu 17:55>--<2026-08-13 Thu 18:36> suggested span, accepted at review
 - State "DOING"      from "WAIT"       [2026-08-14 Fri 09:38] \\
   adding gap lines after use feedback
+CLOCK: [2026-08-14 Fri 09:49]--[2026-08-14 Fri 10:49] =>  1:00
+- <2026-08-14 Fri 09:49>--<2026-08-14 Fri 10:49> suggested span, accepted at review
 :END:
 
 *Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]
@@ -7996,10 +8002,14 @@ capture durability there, timeline origin here.
 They coincide throughout this project because every task heading is born
 with a keyword, but the equivalence is a local accident, not a rule, and
 a heading that gains a keyword later would make them diverge.
-** Hook-injected context is only as reliable as the model choosing to relay it :code:
+** TODO Hook-injected context is only as reliable as the model choosing to relay it :code:
 :PROPERTIES:
 :ID:       c5b02503-1700-47fd-bf89-bd3296b24af2
 :CREATED:  [2026-08-14 Fri 10:32]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-14 Fri 10:32] \\
+  captured from conversation, unexamined assumption
 :END:
 
 *Raised 2026-08-14, tracing where the session-start report is defined.*
@@ -8060,10 +8070,14 @@ question only the human can answer, and its delivery depends on the party
 that cannot be held to it. That is the same shape as the reason apply is
 human-triggered — a mechanism whose correctness rests on the model doing
 something it was merely asked to do.
-** Reconstruct coarse day-level attention intervals for the agenda :code:
+** TODO Reconstruct coarse day-level attention intervals for the agenda :code:
 :PROPERTIES:
 :ID:       4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba
 :CREATED:  [2026-08-14 Fri 11:35]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-14 Fri 11:36] \\
+  manual pass, no blockers found
 :END:
 
 *Named 2026-08-14, after establishing what the system does and does not
@@ -8271,10 +8285,16 @@ this project's Doom config pending an upstream report/PR.
 
 * Documentation
 
-** NEXT Add README.md and enforce its consistency with CLAUDE.md :code:comms:
+** TODO Add README.md and enforce its consistency with CLAUDE.md :code:comms:
 :PROPERTIES:
 :ID:       d7849119-8224-4993-a8ab-83e1434df53c
 :CREATED:  [2026-07-30 Thu 22:45]
+:END:
+:LOGBOOK:
+- State "TODO"       from "NEXT"       [2026-08-14 Fri 10:32] \\
+  NEXT unmoved 15 days; part 2 contingent
+CLOCK: [2026-08-14 Fri 11:18]--[2026-08-14 Fri 11:37] =>  0:19
+- <2026-08-14 Fri 11:18>--<2026-08-14 Fri 11:37> suggested span, accepted at review
 :END:
 No README.md exists in this repo today — CLAUDE.md is currently the
 *only* documentation file, doing double duty as both agent
