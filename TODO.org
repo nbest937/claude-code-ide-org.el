@@ -729,6 +729,112 @@ Do not read "GTD likes planning states" as "keep the hook."
 Still =MAYBE=, still deferred on the original terms. Nothing above is
 adopted; the sequence is unchanged pending a decision.
 
+*A second question arrived 2026-08-14, and it belongs here rather than in
+a heading of its own: should the set gain a =REVIEW= keyword?*
+
+It came out of a live problem. =WAIT= had quietly acquired a second
+meaning — the resting state at the end of a Claude work increment,
+meaning "the ball is in the human's court" — used twice on 2026-08-13
+before anyone noticed it was a pattern (see
+[[id:d1cf852a-696a-4195-a4a7-039439c1f4b7][d1cf852a]]). Asked whether
+=TODO= would serve the same end and be more idiomatic, the answer turned
+out to be neither: *the keyword field is one slot serving two actors with
+different views of who owes what.* =WAIT= is coherent from the session's
+side (I handed this to someone else and am blocked on them — which is
+=WAITING='s canonical GTD meaning) and odd from the human's, who does not
+wait on themselves. =TODO= is coherent from the human's side and discards
+both "work has happened here" and "this is owed back to you".
+
+=REVIEW= is the only candidate that reads correctly from *both* sides,
+and it does three things a rename would not:
+
+- *It de-overloads =WAIT=,* which goes back to meaning blocked on an
+  external party — someone you may have to chase. Those two states call
+  for opposite actions and are currently indistinguishable.
+- *It is a stage, not a parking state.* =WAIT= and =MAYBE= are places
+  work sits; =REVIEW= is a step work passes through, between =DOING= and
+  =DONE=. That gives it a principled position in the sequence.
+- *It makes the session-start report actionable.* That report already
+  surfaces every =WAIT= heading; "3 awaiting your review" is a list to
+  act on, "3 WAIT" is not, and the two could then be reported apart.
+
+*The objection to weigh against it is vocabulary collision.* The project
+would then carry three meanings of "review": the =:review:= tag (a kind
+of work), =claude-code-ide-org-review= (the command that applies the
+queue), and a state. "The review buffer shows a REVIEW item tagged
+:review:" is a sentence someone would have to write. Either choose a
+different word for the state or adopt the collision deliberately and say
+so in CLAUDE.md.
+
+*Why it lands here rather than in its own heading:* adding a keyword
+while this heading asks whether an existing one earns its keep should be
+one decision about the *set*, not two taken months apart. The same
+argument recorded above — that the assessment wants accumulated real use
+rather than spot impressions — applies to =REVIEW= unchanged.
+
+*Every place the keyword set is written down,* inventoried 2026-08-14 by
+grep rather than from memory, because the cost is spread wider than it
+looks and a half-applied keyword fails in confusing ways. Line numbers
+are as of that date; the names are the durable part.
+
+*Must change to add a keyword:*
+
+- =TODO.org= line 1 — =#+TODO:= with per-keyword logging cookies
+  (=TODO(t!) NEXT(n!) PLANNING(p!) DOING(d!) WAIT(w@/!) MAYBE(m!) |
+  DONE(D!) CANCELLED(c@)=). A new keyword needs its cookie chosen too,
+  and =REVIEW= collides with =CANCELLED= on =c= and with nothing on =R=.
+- =clock-template.org= line 2 — the same directive *without* cookies, so
+  the two files already disagree about logging.
+- =~/.config/doom/config.el= =org-todo-keywords= (line 65) — the global
+  default, which is what files carrying no =#+TODO:= line inherit.
+- =CLAUDE.md= — *two* tables: "TODO keyword semantics" and "State
+  transition rules". The second needs two new rows, since =DOING ->
+  REVIEW= must close the clock and =REVIEW -> DOING= must reopen it.
+- =config.el= =org_set_todo='s MCP registration — the valid states are
+  enumerated verbatim *twice*, in the tool description and again in the
+  =state= argument description (lines 4694, 4708).
+- =config.el= =claude-code-ide-org--review-suggest-heading= (line 3097) —
+  the list of keywords whose arrival means a heading stops being the
+  active one. See [[id:d1cf852a-696a-4195-a4a7-039439c1f4b7][d1cf852a]]:
+  this is the span-attribution bracket, and it is a denylist of
+  everything except =DOING=/=PLANNING=. Inverting it to test for those
+  two would make it immune to this whole question.
+- =config.el= =claude-code-ide-org--wait-headings-context= (line 631) —
+  the session-start report tests =(equal (org-get-todo-state) "WAIT")=
+  literally. A =REVIEW= state that this does not know about is invisible
+  at session start, which is most of the reason to want it.
+- =.claude/skills/org/SKILL.md= — the keyword list at line 43, the
+  per-keyword sections (=WAIT= at 36) and the transition table (238-240).
+  *Note this list is already stale:* it reads
+  =TODO NEXT DOING WAIT MAYBE | DONE CANCELLED=, with =PLANNING= missing
+  — which is itself evidence for what this heading is asking.
+- [[id:3bd3402b-3ab6-4ace-b20b-3ff84caa3fb2][3bd3402b]]'s lint, once it
+  exists, since it will assert against the convention.
+
+*Checked and deliberately unchanged:*
+
+- =config.el= =claude-code-ide-org--outline-finished-keywords= (line
+  1627) and the two =("DONE" "CANCELLED")= tests in the assignment
+  candidate list (4452, 4462). =REVIEW= is an *active* state, so it
+  belongs in none of them — but a future reader will find them while
+  grepping and should know they were considered.
+
+*The trap worth naming.* =org_set_todo= validates against
+=org-todo-keywords-1=, which is *buffer-local* and derived from the
+file's own =#+TODO:= line when it has one. So a keyword added to the Doom
+config but not to =TODO.org='s header is accepted in =DONE.org= (no
+=#+TODO:= line, inherits the global) and rejected in =TODO.org= with
+"not a TODO keyword in this file". Same for
+=claude-code-ide-org--pending-capture-keywords=, which reads the target
+file's keywords for a capture that has not been written yet. Update the
+file headers and the Doom config in the same commit.
+
+*Sequencing.* The change touches =config.el= in four places, and as of
+2026-08-14 three unmerged feature branches all carry divergent
+=config.el=. Doing this before those are reconciled guarantees conflicts
+in a file where a conflict is expensive to resolve correctly.
+
+
 ** CANCELLED org_capture omits the :CREATED: property its own convention requires :code:
 :PROPERTIES:
 :ID:       cdcc065c-628d-4350-b1ba-fcf686e9c4c1
@@ -7549,6 +7655,48 @@ May also bound the damage from
 about guideposts that are missing or phantom: a bracket constrains what
 a stray guidepost can be attributed to, even when the guidepost itself
 is wrong.
+
+*Correction, 2026-08-14: the claim above that "nothing ever unsets it" is
+wrong, and was already wrong when this heading was written.*
+
+=claude-code-ide-org--review-suggest-heading= (=config.el= line 3097 as
+of today) already clears the active heading on any =todo= event carrying
+=DONE=, =CANCELLED=, =WAIT=, =TODO=, =NEXT= or =MAYBE= — that is, on
+every keyword except =DOING= and =PLANNING=. It arrived in =3c6b3f2=
+("Implement 3d0487f4: unassigned spans, with a suggested heading") on
+2026-08-13, hours *before* this heading was captured, and the
+latching-guess comment sits directly above it. Found by grep on
+2026-08-14 while inventorying keyword touch points for
+[[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]; it was not
+verified when this heading was written, which is the actual lesson.
+
+So the mechanism this heading proposes building *exists*, and it is
+already keyed the way the design conclusion below recommends — on any
+transition out of =DOING=/=PLANNING=, not on =WAIT= specifically. Two
+things survive the correction, and they are what is left of the idea:
+
+1. *The gap is data, not logic.* The bracket only fires when a =todo=
+   event exists to fire it. A session that ends leaving a heading =DOING=
+   emits nothing, so the guess keeps latching — which is exactly the
+   "only as reliable as its consistency" caveat recorded above, now
+   promoted from a caveat to the whole remaining problem. Whether that is
+   answered by a lint
+   ([[id:3bd3402b-3ab6-4ace-b20b-3ff84caa3fb2][3bd3402b]]), a =Stop=-hook
+   transition, or an inferred bracket at review time is undecided.
+2. *The denylist should be an allowlist.* Testing for "not =DOING= and
+   not =PLANNING=" instead of naming six keywords would make it immune to
+   any future change to the keyword set — including the =REVIEW=
+   proposal now recorded on
+   [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]], which would
+   otherwise need remembering to add a seventh string here. A keyword
+   forgotten in that list fails silently, by latching.
+
+*What this heading is now about,* therefore: not "build a bracket" but
+"make sure a bracket event always gets emitted, and make the test
+robust to the keyword set changing." The =WAIT= framing in the title is
+vestigial — the keyword was never the load-bearing part, and the title
+should be retitled if this heading is picked up.
+
 
 * Observability
 
