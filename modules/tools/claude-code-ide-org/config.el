@@ -8,6 +8,8 @@
 ;; M-x org-id-get-create, or configure org-id-link-to-org-use-id so
 ;; they are created automatically on link creation.
 
+(require 'cl-lib)
+(require 'seq)
 (require 'org-element)
 (require 'org-clock)
 (require 'org-id)
@@ -5103,6 +5105,233 @@ correctly inside a real interactive command."
       (claude-code-ide-org-review-mode)
       (claude-code-ide-org-review-refresh))
     (pop-to-buffer buffer)))
+
+;;; Structural lint (TODO.org :ID: 3bd3402b) -------------------------------
+;;
+;; Assertions about the org files' *own* structural conventions -- the
+;; checks that were run by hand roughly twenty times on 2026-08-13, which
+;; is the plainest possible signal that they wanted to be a script.
+;;
+;; The logic lives here rather than in `bin/lint-org' for the reason
+;; caf598a1 gives about the statusline: inline shell-embedded elisp is
+;; untestable, so it becomes real named functions here and the script
+;; becomes a thin wrapper.  That is also what lets the "seed it against a
+;; deliberately broken copy first" caution be discharged mechanically --
+;; `config-test.el' feeds each check a fixture that violates it, so no
+;; check can pass vacuously.
+;;
+;; Deliberate limit, measured rather than assumed (see the heading): this
+;; catches the *shape* of drift -- a missing :ID:, a dangling link, a
+;; repeater under a completable parent -- and misses the *reasoning*
+;; kind, where prose asserts behaviour the code no longer has.  Both read
+;; as settled fact; only one is a string.
+
+(defun claude-code-ide-org--lint-heading-ids (files)
+  "Return a hash of every :ID: defined across FILES, mapped to its
+heading's TODO keyword (or nil when it carries none).  The keyword is
+what makes a `:BLOCKER:' check meaningful: org-depend blocks only on an
+unfinished TODO, so a blocker naming a keyword-less heading is a silent
+no-op."
+  (let ((table (make-hash-table :test 'equal)))
+    (dolist (file files table)
+      (when (file-exists-p file)
+        (with-temp-buffer
+          (let ((org-inhibit-startup t))
+            (insert-file-contents file)
+            (org-mode)
+            (org-map-entries
+             (lambda ()
+               (let ((id (org-entry-get nil "ID")))
+                 ;; `:no-keyword' rather than nil, so "absent" and
+                 ;; "present but carrying no TODO keyword" stay
+                 ;; distinguishable -- the :BLOCKER: check turns on
+                 ;; exactly that difference.
+                 (when id (puthash id (or (org-get-todo-state) :no-keyword)
+                                   table))))
+             ;; Scope nil, not `file': `org-map-entries' resolves `file'
+             ;; through `buffer-file-name', which a temp buffer has not
+             ;; got, and silently maps over nothing.
+             nil nil)))))))
+
+(defun claude-code-ide-org--lint-file (file known-ids)
+  "Return a list of finding strings for FILE.  KNOWN-IDS is the hash
+from `claude-code-ide-org--lint-heading-ids'."
+  (let ((name (file-name-nondirectory file))
+        findings)
+    (cl-flet ((report (severity line fmt &rest args)
+                ;; Severity is what makes this usable as a gate. An
+                ;; `error' is a violation that breaks tooling now -- an
+                ;; unreachable heading, a link to nothing. A `warn' is a
+                ;; convention a *new* heading must satisfy but which
+                ;; cannot be retrofitted honestly: back-dating :CREATED:
+                ;; on a heading archived before the rule existed would be
+                ;; fabricating a fact, not fixing one. Without the split
+                ;; the report carries the same dozen lines forever and
+                ;; stops being read, which is the failure 5ff5a4b8
+                ;; measured.
+                (push (cons severity
+                            (format "%s:%d: %s" name line
+                                    (apply #'format fmt args)))
+                      findings)))
+      (with-temp-buffer
+        (let ((org-inhibit-startup t))
+          (insert-file-contents file)
+          (org-mode)
+          ;; Per-heading structural conventions.
+          (org-map-entries
+           (lambda ()
+             (let* ((line (line-number-at-pos))
+                    (level (org-current-level))
+                    (id (org-entry-get nil "ID"))
+                    (created (org-entry-get nil "CREATED"))
+                    (todo (org-get-todo-state))
+                    (title (org-get-heading t t t t)))
+               (cond
+                ((> level 3)
+                 (report 'error line "level-%d heading; the file has three levels \
+(category, task, epic-child): %s" level title))
+                ((= level 1)
+                 (when id (report 'error line "level-1 category carries :ID: -- \
+categories are structure, not tasks: %s" title))
+                 (when created
+                   (report 'error line "level-1 category carries :CREATED:: %s" title))
+                 (when todo
+                   (report 'error line "level-1 category carries TODO keyword %s: %s"
+                           todo title))
+                 (when (org-get-tags nil t)
+                   (report 'error line "level-1 category carries tags: %s" title)))
+                (t
+                 (unless id (report 'error line "heading has no :ID:: %s" title))
+                 (unless created
+                   (report 'warn line "heading has no :CREATED:: %s" title))))
+               ;; A repeating task never reaches DONE, so a completable
+               ;; ancestor never can either -- this is the check that
+               ;; caught 38b92521 frozen via its :BLOCKER:.
+               (when (org-get-repeat)
+                 (save-excursion
+                   (while (org-up-heading-safe)
+                     (when (org-get-todo-state)
+                       (report 'error line "repeater under completable ancestor \
+%S -- that ancestor can never reach DONE: %s"
+                               (org-get-heading t t t t) title)))))
+               ;; A :BLOCKER: is only enforcement if it would actually
+               ;; block: the target must exist AND carry a keyword, and
+               ;; the blocked heading's own state must be one org-depend
+               ;; evaluates.
+               (let ((blocker (org-entry-get nil "BLOCKER")))
+                 (when blocker
+                   (when (equal todo "MAYBE")
+                     (report 'warn line ":BLOCKER: on a MAYBE heading is dormant \
+-- blocking is evaluated against the blocked heading's own state: %s" title))
+                   (dolist (target (claude-code-ide-org--lint-blocker-ids blocker))
+                     (cond
+                      ((not (gethash target known-ids nil))
+                       (report 'error line ":BLOCKER: names unknown :ID: %s: %s"
+                               target title))
+                      ((eq :no-keyword (gethash target known-ids))
+                       (report 'error line ":BLOCKER: names keyword-less heading %s \
+-- org-depend blocks only on an unfinished TODO, so this is a silent no-op: %s"
+                               target title))))))))
+           nil nil)
+          ;; Link targets, scanned over the text rather than per heading:
+          ;; a link can sit anywhere in a body.
+          (goto-char (point-min))
+          (while (re-search-forward "\\[\\[id:\\([^]]+\\)\\]" nil t)
+            (let ((target (match-string 1)))
+              ;; Prose in these files shows the link syntax itself
+              ;; (`[[id:...]]'), which is documentation, not a target.
+              (unless (or (not (string-match-p "\\`[0-9a-f]\\{8\\}-" target))
+                          (gethash target known-ids nil))
+                (report 'error (line-number-at-pos)
+                        "id: link resolves to nothing: %s" target))))
+          (goto-char (point-min))
+          (while (re-search-forward "\\[\\[file:\\([^]]*plans/[^]]+\\)\\]" nil t)
+            (let ((path (expand-file-name (match-string 1))))
+              (unless (or (not (string-suffix-p ".md" path))
+                          (file-exists-p path))
+                (report 'error (line-number-at-pos)
+                        "plan link points at a missing file: %s"
+                        (match-string 1))))))
+          (setq findings
+                (append (reverse (claude-code-ide-org--lint-org-native name))
+                        findings))))
+    (nreverse findings)))
+
+(defun claude-code-ide-org--lint-org-native (name)
+  "Return org's own `org-lint' findings for the current buffer, as
+\(SEVERITY . MESSAGE) pairs tagged with NAME.
+
+Running org-lint is the point: it ships 61 checkers for org *syntax*,
+and reimplementing any of them here would be exactly the mistake
+TODO.org :ID: c084553c exists to prevent -- building bespoke machinery
+without first exhausting what org already offers.  The division of
+labour is clean, because the two ask different questions: org-lint asks
+whether this is valid org, and the checks around it ask whether it obeys
+*this project's* conventions, which no built-in could know.
+
+Reported as warnings rather than errors because several checkers are
+declared low-trust upstream and hedge their wording; a gate that blocks
+on a maybe is a gate people learn to bypass.
+
+The one exclusion is org-lint's Unknown-ID check, and it is an
+artifact rather than a disagreement: that checker resolves id: links
+through `org-id-locations', which is populated in a live session and
+empty under `emacs --batch -Q'.  Unfiltered it reports every id: link in
+the file -- 373 of them on 2026-08-14.  The id check that runs instead
+resolves ids from the linted files themselves, so it works in batch,
+which is where a gate has to work."
+  (require 'org-lint)
+  (let (findings)
+    (dolist (report (org-lint--generate-reports (current-buffer)
+                                                org-lint--checkers))
+      (let ((line (aref (cadr report) 0))
+            (message (aref (cadr report) 2)))
+        (unless (string-prefix-p "Unknown ID" message)
+          (push (cons 'warn (format "%s:%s: org-lint: %s" name line message))
+                findings))))
+    (nreverse findings)))
+
+(defun claude-code-ide-org--lint-blocker-ids (value)
+  "Return the ids named by a :BLOCKER: property VALUE.
+Accepts org-depend's `ids(A B C)' form and the bare-id form this repo
+has also used; anything else yields nil rather than a guess."
+  (let ((inner (if (string-match "\\`[ \t]*ids(\\([^)]*\\))" value)
+                   (match-string 1 value)
+                 value)))
+    (seq-filter (lambda (s) (string-match-p "[0-9a-f]\\{8\\}-" s))
+                (split-string inner "[ \t\n]+" t))))
+
+(defun claude-code-ide-org-lint (&optional files reference-files)
+  "Return every structural finding across FILES, defaulting to the
+tracked org files.  A nil return means the conventions hold.
+
+REFERENCE-FILES are scanned for `:ID:'s but are not themselves linted,
+so a link *out* of the linted set still resolves.  Without it every
+cross-file link reads as dangling, and a report that always carries the
+same lines stops being read -- the failure 5ff5a4b8 recorded for
+evidence lines, arriving here by a different route."
+  (let* ((files (or files (claude-code-ide-org--tracked-files)))
+         (files (seq-filter #'file-exists-p files))
+         (known (claude-code-ide-org--lint-heading-ids
+                 (append files (seq-filter #'file-exists-p
+                                           (or reference-files nil))))))
+    (apply #'append
+           (mapcar (lambda (f) (claude-code-ide-org--lint-file f known)) files))))
+
+(defun claude-code-ide-org-lint-report (&optional files reference-files)
+  "Print `claude-code-ide-org-lint' findings and exit non-zero if any.
+Entry point for `bin/lint-org'; prints a positive line when clean, so a
+silent run can never be mistaken for a passing one."
+  (let* ((findings (claude-code-ide-org-lint files reference-files))
+         (errors (seq-filter (lambda (f) (eq 'error (car f))) findings))
+         (warnings (seq-filter (lambda (f) (eq 'warn (car f))) findings)))
+    (dolist (f (append errors warnings))
+      (princ (format "%s: %s\n"
+                     (if (eq 'error (car f)) "error" "warn ")
+                     (cdr f))))
+    (princ (format "lint-org: %d error(s), %d warning(s)\n"
+                   (length errors) (length warnings)))
+    (when errors (kill-emacs 1))))
 
 ;;; MCP tool registration -------------------------------------------------
 

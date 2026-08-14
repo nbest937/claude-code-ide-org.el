@@ -1699,6 +1699,182 @@ heading's exact drawer shape."
     (should (equal "Nothing to consolidate on \"Test heading\""
                    (claude-code-ide-org-consolidate-history id)))))
 
+;;; Structural lint (TODO.org :ID: 3bd3402b) -------------------------------
+;;
+;; The heading's own caution: "Two of these assertions describe
+;; conventions that are currently *unbroken*, so the lint will pass on
+;; day one and prove nothing. Seed it against a deliberately broken copy
+;; first." Every check below is fed a fixture that violates it, which is
+;; that caution discharged mechanically rather than remembered.
+
+(defun claude-code-ide-org-test--lint (text &optional ref-text)
+  "Lint TEXT as a temp org file, returning findings as (SEVERITY . MSG).
+REF-TEXT, when given, becomes a reference file: scanned for :ID:s but
+not itself linted."
+  (let* ((dir (file-name-as-directory (make-temp-file "lint-test" t)))
+         (file (expand-file-name "TODO.org" dir))
+         (ref (expand-file-name "notes.org" dir)))
+    (unwind-protect
+        (progn
+          ;; The real files' keyword set, without which org does not
+          ;; recognise MAYBE/DOING at all and a fixture using them reads
+          ;; as a plain heading whose title happens to start with a word.
+          (with-temp-file file
+            (insert "#+TODO: TODO NEXT PLANNING DOING WAIT MAYBE | DONE CANCELLED\n")
+            (insert text))
+          (when ref-text (with-temp-file ref (insert ref-text)))
+          (claude-code-ide-org-lint (list file) (and ref-text (list ref))))
+      (delete-directory dir t))))
+
+(defun claude-code-ide-org-test--lint-matches (findings severity pattern)
+  "Non-nil when FINDINGS holds a SEVERITY entry matching PATTERN."
+  (seq-find (lambda (f)
+              (and (eq severity (car f)) (string-match-p pattern (cdr f))))
+            findings))
+
+(ert-deftest claude-code-ide-org-test-lint-clean-file-has-no-findings ()
+  "Positive control: a file obeying every convention reports nothing.
+Without this the other tests could pass by the lint flagging everything."
+  (should (null (claude-code-ide-org-test--lint
+                 (concat "* Category\n"
+                         "** TODO A task                                     :code:\n"
+                         ":PROPERTIES:\n"
+                         ":ID:       11111111-1111-1111-1111-111111111111\n"
+                         ":CREATED:  [2026-08-14 Fri 10:00]\n"
+                         ":END:\n"
+                         "Body referring to [[id:11111111-1111-1111-1111-111111111111][itself]].\n")))))
+
+(ert-deftest claude-code-ide-org-test-lint-catches-dangling-id-link ()
+  "A fabricated UUID reads as correct and fails only when followed —
+this check caught four of them in one session."
+  (should (claude-code-ide-org-test--lint-matches
+           (claude-code-ide-org-test--lint
+            (concat "* Category\n** TODO A task\n:PROPERTIES:\n"
+                    ":ID:       11111111-1111-1111-1111-111111111111\n"
+                    ":CREATED:  [2026-08-14 Fri 10:00]\n:END:\n"
+                    "See [[id:deadbeef-0000-0000-0000-000000000000][nowhere]].\n"))
+           'error "resolves to nothing")))
+
+(ert-deftest claude-code-ide-org-test-lint-ignores-literal-link-syntax ()
+  "Prose in these files shows the link syntax itself; documentation is
+not a dangling target."
+  (should (null (claude-code-ide-org-test--lint
+                 "* Category\nWrite links as [[id:...]] in prose.\n"))))
+
+(ert-deftest claude-code-ide-org-test-lint-resolves-across-reference-files ()
+  "A link out of the linted set resolves when the target file is given
+as a reference — otherwise every cross-file link reads as dangling."
+  (let ((text (concat "* Category\nSee [[id:22222222-2222-2222-2222-222222222222][elsewhere]].\n"))
+        (ref (concat "* Notes\n** TODO Over here\n:PROPERTIES:\n"
+                     ":ID:       22222222-2222-2222-2222-222222222222\n"
+                     ":CREATED:  [2026-08-14 Fri 10:00]\n:END:\n")))
+    (should (claude-code-ide-org-test--lint-matches
+             (claude-code-ide-org-test--lint text) 'error "resolves to nothing"))
+    (should (null (claude-code-ide-org-test--lint text ref)))))
+
+(ert-deftest claude-code-ide-org-test-lint-catches-level-4-heading ()
+  "The file has exactly three levels; nothing else enforced that."
+  (should (claude-code-ide-org-test--lint-matches
+           (claude-code-ide-org-test--lint
+            (concat "* Category\n** TODO T\n:PROPERTIES:\n"
+                    ":ID:       11111111-1111-1111-1111-111111111111\n"
+                    ":CREATED:  [2026-08-14 Fri 10:00]\n:END:\n"
+                    "*** TODO C\n:PROPERTIES:\n"
+                    ":ID:       33333333-3333-3333-3333-333333333333\n"
+                    ":CREATED:  [2026-08-14 Fri 10:00]\n:END:\n"
+                    "**** TODO Too deep\n:PROPERTIES:\n"
+                    ":ID:       44444444-4444-4444-4444-444444444444\n"
+                    ":CREATED:  [2026-08-14 Fri 10:00]\n:END:\n"))
+           'error "level-4 heading")))
+
+(ert-deftest claude-code-ide-org-test-lint-catches-category-conventions ()
+  "Level-1 headings are structure: no keyword, no :ID:, no tags."
+  (let ((findings (claude-code-ide-org-test--lint
+                   (concat "* TODO Category                                  :code:\n"
+                           ":PROPERTIES:\n"
+                           ":ID:       55555555-5555-5555-5555-555555555555\n"
+                           ":CREATED:  [2026-08-14 Fri 10:00]\n:END:\n"))))
+    (should (claude-code-ide-org-test--lint-matches findings 'error "carries TODO keyword"))
+    (should (claude-code-ide-org-test--lint-matches findings 'error "carries :ID:"))
+    (should (claude-code-ide-org-test--lint-matches findings 'error "carries tags"))
+    (should (claude-code-ide-org-test--lint-matches findings 'error "carries :CREATED:"))))
+
+(ert-deftest claude-code-ide-org-test-lint-separates-missing-id-from-missing-created ()
+  "A missing :ID: is an error — the heading is unreachable by every tool
+here. A missing :CREATED: is a warning, because back-dating one on a
+heading archived before the rule existed would fabricate a fact."
+  (let ((findings (claude-code-ide-org-test--lint "* Category\n** TODO Bare task\n")))
+    (should (claude-code-ide-org-test--lint-matches findings 'error "no :ID:"))
+    (should (claude-code-ide-org-test--lint-matches findings 'warn "no :CREATED:"))))
+
+(ert-deftest claude-code-ide-org-test-lint-catches-repeater-under-completable-ancestor ()
+  "A +1m task never reaches DONE, so an epic containing one never can —
+the check that caught 38b92521 silently frozen via its :BLOCKER:."
+  (should (claude-code-ide-org-test--lint-matches
+           (claude-code-ide-org-test--lint
+            (concat "* Category\n** TODO Epic\n:PROPERTIES:\n"
+                    ":ID:       11111111-1111-1111-1111-111111111111\n"
+                    ":CREATED:  [2026-08-14 Fri 10:00]\n:END:\n"
+                    "*** TODO Monthly thing\n"
+                    "SCHEDULED: <2026-08-14 Fri +1m>\n:PROPERTIES:\n"
+                    ":ID:       33333333-3333-3333-3333-333333333333\n"
+                    ":CREATED:  [2026-08-14 Fri 10:00]\n:END:\n"))
+           'error "repeater under completable ancestor")))
+
+(ert-deftest claude-code-ide-org-test-lint-blocker-must-actually-block ()
+  "Three separate ways a :BLOCKER: can look enforcing and not be: naming
+an id that does not exist, naming a heading with no TODO keyword (org-
+depend blocks only on an unfinished TODO), and sitting on a MAYBE
+heading, where blocking is evaluated against the blocked heading's own
+state."
+  (let ((findings (claude-code-ide-org-test--lint
+                   (concat "* Category\n"
+                           "** TODO Keywordless target is a no-op\n:PROPERTIES:\n"
+                           ":ID:       11111111-1111-1111-1111-111111111111\n"
+                           ":CREATED:  [2026-08-14 Fri 10:00]\n"
+                           ":BLOCKER:  ids(99999999-9999-9999-9999-999999999999)\n:END:\n"
+                           "** No keyword here\n:PROPERTIES:\n"
+                           ":ID:       99999999-9999-9999-9999-999999999999\n"
+                           ":CREATED:  [2026-08-14 Fri 10:00]\n:END:\n"
+                           "** MAYBE Dormant\n:PROPERTIES:\n"
+                           ":ID:       33333333-3333-3333-3333-333333333333\n"
+                           ":CREATED:  [2026-08-14 Fri 10:00]\n"
+                           ":BLOCKER:  ids(11111111-1111-1111-1111-111111111111)\n:END:\n"
+                           "** TODO Names a ghost\n:PROPERTIES:\n"
+                           ":ID:       44444444-4444-4444-4444-444444444444\n"
+                           ":CREATED:  [2026-08-14 Fri 10:00]\n"
+                           ":BLOCKER:  ids(deadbeef-0000-0000-0000-000000000000)\n:END:\n"))))
+    (should (claude-code-ide-org-test--lint-matches findings 'error "keyword-less heading"))
+    (should (claude-code-ide-org-test--lint-matches findings 'error "names unknown :ID:"))
+    (should (claude-code-ide-org-test--lint-matches findings 'warn "MAYBE heading is dormant"))))
+
+(ert-deftest claude-code-ide-org-test-lint-catches-dangling-plan-link ()
+  "bin/sync-plans --check covers the archive side; nothing covered a
+heading linking a plan file that is not there."
+  (should (claude-code-ide-org-test--lint-matches
+           (claude-code-ide-org-test--lint
+            (concat "* Category\n** TODO T\n:PROPERTIES:\n"
+                    ":ID:       11111111-1111-1111-1111-111111111111\n"
+                    ":CREATED:  [2026-08-14 Fri 10:00]\n:END:\n"
+                    "[[file:~/.claude/plans/no-such-plan-98f3a.md][Plan]]\n"))
+           'error "plan link points at a missing file")))
+
+(ert-deftest claude-code-ide-org-test-lint-catches-a-heading-glued-to-prose ()
+  "The malformation the lint found on its first real run, introduced
+2026-08-13 in f39944f: a heading with no newline before it is not a
+heading at all, so org never sees it, its :ID: is unreachable, and every
+link to it dangles — while the text still *looks* like a heading."
+  (let ((findings (claude-code-ide-org-test--lint
+                   (concat "* Category\n"
+                           "** TODO Real one\n:PROPERTIES:\n"
+                           ":ID:       11111111-1111-1111-1111-111111111111\n"
+                           ":CREATED:  [2026-08-14 Fri 10:00]\n:END:\n"
+                           "Some prose.** TODO Glued heading\n:PROPERTIES:\n"
+                           ":ID:       77777777-7777-7777-7777-777777777777\n"
+                           ":CREATED:  [2026-08-14 Fri 10:00]\n:END:\n"
+                           "Link to [[id:77777777-7777-7777-7777-777777777777][it]].\n"))))
+    (should (claude-code-ide-org-test--lint-matches findings 'error "resolves to nothing"))))
+
 ;;; Unknown :ID: handling -------------------------------------------------
 
 (ert-deftest claude-code-ide-org-test-unknown-id-returns-error-string ()

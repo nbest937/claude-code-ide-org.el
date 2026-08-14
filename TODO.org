@@ -2390,6 +2390,10 @@ call) to prove the enforcement lives in org itself. =bin/test= passes
 79/79.
 
 ** MAYBE Idle-based auto clock-out :code:
+:PROPERTIES:
+:ID:       b2ac0353-1e9a-47f7-8add-e0b37994a7af
+:CREATED:  [2026-07-28 Tue 08:02]
+:END:
 Via =org-clock-idle-time=, already built into org — just needs
 enabling. Guards against a clock left running because a session
 died mid-DOING without ever reaching org_clock_out.
@@ -2399,6 +2403,7 @@ simulate in ERT's scratch-buffer fixtures.
 
 ** MAYBE Coarsen :SESSIONS: to session-level, not turn-level :code:
 :PROPERTIES:
+:ID:       c6b598ed-9e92-4a3a-99fb-9c5194d290e4
 :CREATED:  [2026-07-28 Tue 11:06]
 :END:
 :SESSIONS: currently inherits the same Stop/UserPromptSubmit hooks as
@@ -2419,6 +2424,7 @@ rules say only the model/user should make, not a hook.
 
 ** MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
 :PROPERTIES:
+:ID:       0465c1d5-a064-4c8f-8082-9b853377ddf6
 :CREATED:  [2026-07-29 Wed 12:25]
 :END:
 Deferred out of the tracked-files fix above: once =DONE.org= (or any
@@ -7747,7 +7753,9 @@ finding has to be written into this body before closing it, or it is
 gone. Append; do not overwrite the previous month's numbers.
 
 Charts from the original survey are an artifact, not committed here —
-regenerate rather than trusting a stale rendering.** TODO Institute a catch-all heading for cross-cutting meta-work :code:
+regenerate rather than trusting a stale rendering.
+
+** TODO Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
 :ID:       a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5
 :CREATED:  [2026-08-10 Mon 12:50]
@@ -8763,6 +8771,10 @@ the other's decision.
 convention the =#+STARTUP:= line was added to.
 
 ** MAYBE Remote MCP access :code:
+:PROPERTIES:
+:ID:       5adeb6c2-afc0-4472-9529-fff48f8ba825
+:CREATED:  [2026-07-28 Tue 08:02]
+:END:
 Off-machine access to the tools server and IDE-companion. This
 session already got a =claude= CLI running directly in a Warp pane
 on the same machine to reach Emacs (HTTP tools server +
@@ -8780,6 +8792,10 @@ scoping, or rate limiting. Don't just flip the host to 0.0.0.0 and
 call it done.
 
 ** MAYBE Package the Warp wiring :code:
+:PROPERTIES:
+:ID:       e396f94a-59db-4c6b-80b4-dc144146877b
+:CREATED:  [2026-07-28 Tue 08:02]
+:END:
 As a reusable snippet, not a private hack. Per the earlier scope
 conversation: the port-pinning + session-registration +
 IDE-companion-autostart block currently lives in personal
@@ -9965,3 +9981,97 @@ link, a repeater under a completable parent — and misses the *reasoning*
 kind, which is where today's genuinely dangerous staleness lived. Both
 kinds read as settled fact; only one is a string. Worth stating so the
 harness is not mistaken for coverage it does not have.
+
+*Outcome, 2026-08-14, and it opens with a correction that matters more
+than the script does.* Asked whether org's built-in =org-lint= had been
+considered: it had not. That is precisely the failure
+[[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]] exists to prevent
+— "do not treat this project's own prior choices as proof no better
+native mechanism exists" — committed *hours after closing that very
+heading*. The instruction was followed for the queue architecture and
+skipped for the next thing built.
+
+*What running it showed, measured rather than argued.* =org-lint= ships
+61 checkers, and on these files it reports *11 "Possibly misplaced
+heading line"* findings across =TODO.org= and =DONE.org= that the
+hand-written checks miss entirely. That is the same class as the defect
+found here by accident — a heading glued to the end of a prose line,
+introduced in =f39944f= on 2026-08-13, which org therefore never saw as
+a heading at all, leaving its =:ID:= unreachable and two links to it
+dangling. So org already had a checker for the thing this task
+discovered by hand.
+
+*The division of labour, now that both are running.* =bin/lint-org=
+invokes =org-lint= and folds its findings in as warnings. The two ask
+different questions and neither subsumes the other: =org-lint= asks
+whether this is valid *org*, and the checks written here ask whether it
+obeys *this project's* conventions — three heading levels, =:ID:= and
+=:CREATED:= on every task, bare categories, a =:BLOCKER:= that would
+actually block, no repeater under a completable ancestor. No built-in
+could know those. But the id-link and file-link checks *did* overlap,
+and would not have been written at all had org-lint been run first.
+
+*One exclusion, an artifact rather than a disagreement.* org-lint's
+Unknown-ID checker resolves =id:= links through =org-id-locations=,
+which a live session populates and =emacs --batch -Q= does not —
+unfiltered it reported all 373 =id:= links in =TODO.org= as unknown. The
+check that runs instead resolves ids from the linted files themselves,
+so it works in batch, which is where a gate has to work.
+
+*Severity, added because a gate has to be usable.* Errors fail the run;
+warnings report. Not cosmetic: 13 headings archived in =DONE.org=
+predate the =:CREATED:= rule, and back-dating them would fabricate a
+fact rather than fix one. A report carrying the same 13 lines forever
+stops being read, which is
+[[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]]'s finding arriving
+by another route.
+
+*What it found on first run, against the caution above that it would
+"pass on day one and prove nothing":* 5 headings with no =:ID:= at all
+(now fixed, with =:CREATED:= recovered from git history rather than
+stamped with today's date), the glued heading described above, 3 dormant
+=:BLOCKER:=s on =MAYBE= headings, and the 11 org-lint reports. The
+caution was wrong, and pleasantly so.
+
+*Verified.* 11 tests, 266 green, each check fed a fixture that violates
+it — the heading's "seed it against a deliberately broken copy first"
+discharged mechanically rather than remembered. Includes a positive
+control asserting a clean file reports nothing, without which the others
+could pass by the lint flagging everything. One fixture bug worth
+recording: the first version omitted the =#+TODO:= header, so org did
+not recognise =MAYBE= as a keyword and the dormant-blocker assertion
+silently could not fire.
+
+*Left open:* the 11 misplaced-heading reports are surfaced, not
+diagnosed — filed as
+[[id:8d682a5b-1b03-4744-995c-a871a8b40ddc][8d682a5b]].
+
+** TODO Diagnose the 11 misplaced-heading reports org-lint found :code:
+:PROPERTIES:
+:ID:       8d682a5b-1b03-4744-995c-a871a8b40ddc
+:CREATED:  [2026-08-14 Fri 14:40]
+:END:
+
+*Surfaced 2026-08-14 the moment =org-lint= was wired into
+[[id:3bd3402b-3ab6-4ace-b20b-3ff84caa3fb2][3bd3402b]]'s script,* which
+is the whole argument for having run it sooner.
+
+=org-lint= reports "Possibly misplaced heading line" at =TODO.org= lines
+3304, 3323, 4067, 4074, 4077, 4097, 4183, 6875, 7709 and 9785, and
+=DONE.org= 743. None is diagnosed yet. (A twelfth report, a bullet-
+counter complaint at =TODO.org= 822, is unrelated and also unexamined.)
+
+*Why it is worth diagnosing rather than silencing.* One instance of this
+exact shape was found by hand the same day: a heading glued to the end
+of a prose line (=f39944f=, 2026-08-13), which org does not parse as a
+heading at all — so it is invisible to =org-agenda=, =org_outline= and
+every =org_*= tool, its =:ID:= is unreachable, and links to it dangle,
+while the raw text still *looks* correct to a reader. If even one of
+these eleven is that, a tracked heading is missing from the system
+without anyone knowing.
+
+*Expect false positives too.* The checker hedges in its own wording, and
+these files quote org syntax in prose constantly — example blocks,
+inline bold at line start, the transition tables. Sorting real from
+quoted is the actual work, and the answer decides whether these become
+errors or stay warnings.
