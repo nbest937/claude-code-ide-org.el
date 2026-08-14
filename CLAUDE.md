@@ -187,6 +187,40 @@ record, and it is **not removed at `DONE`**. A task with no separate Plan
 Mode session simply carries no link — that's expected, not a gap to fill
 in.
 
+The link is also what makes the plan durable, which is why it is not
+gated on anything: `bin/sync-plans` copies only those plans some heading
+links, so an *unlinked* plan is never archived and has no history at all.
+Verified 2026-08-14 — the sync refused a freshly written plan until its
+heading linked it.
+
+**Rule**: where a plan is linked, the heading body is a **journal, not a
+design doc** — the plan is the design doc. The body carries what
+happened: what shipped, how it was verified, what was measured, what was
+falsified, and why a decision went the way it did. It does not restate
+design the linked plan already holds.
+
+*Prospective only.* Bodies written before 2026-08-14 are not to be
+trimmed to fit this; do not relitigate them. Deletion is the one
+irreversible half of the practice, and `plans/`' history is bounded
+rather than complete — `.githooks/pre-push` only bounds how stale the
+archive can be, so a plan revised twice between syncs loses its
+intermediate state.
+
+*The evidence for the split, from a single day's drift:* three headings
+carried confident design claims that were later found wrong —
+`:ID:` d1cf852a asserted "nothing ever unsets it" of a mechanism that
+already existed, `:ID:` 4cda6bf7 specified reading a keyword at the clock
+marker after the cutover had superseded that path, and `:ID:` 7771fc63
+declared a crash scenario unreachable while a hand-edit still reached it.
+Not one journal claim needed correcting in the same period. Design is the
+perishable half and belongs where it can be revised; the record of what
+happened accumulates and belongs here.
+
+*Note this does not empty the body of a planned heading.* `:ID:` b5f94b88
+has both a plan and a substantial body, and the body is where the "epic
+wearing a child's clothes" reasoning and the plan-file-overwrite incident
+live. Neither is design, and neither belongs in a design doc.
+
 **Rule**: before a `DONE` heading is archived, add a concise prose outcome
 summary next to that link — what shipped, how it was verified, anything
 that differed from the plan. `DONE.org`'s existing `*Verified, not just

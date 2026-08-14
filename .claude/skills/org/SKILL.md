@@ -254,11 +254,19 @@ When helping the user move a task between states, follow these conventions:
 checkpoints — never treat plan approval alone as license to proceed
 straight into implementation, even under an auto-accept mode that
 otherwise biases toward not stopping. After a plan is approved, stop and
-get the user's explicit confirmation before doing any of: adding a Plan
-link to the task heading, transitioning that heading to `DOING` (or
-`PLANNING` → `DOING`), or making any code/file edits the plan describes.
-This holds regardless of whether the heading the plan is for already
-existed or is newly created as part of the plan.
+get the user's explicit confirmation before either of: transitioning the
+heading to `DOING` (or `PLANNING` → `DOING`), or making any code/file
+edits the plan describes. This holds regardless of whether the heading
+the plan is for already existed or is newly created as part of the plan.
+
+**The Plan link is not gated by this checkpoint** — add it as soon as the
+plan file is finalized, per CLAUDE.md's rule. This wording used to gate
+it alongside the two above, contradicting that rule; the contradiction
+was resolved in CLAUDE.md's favour on 2026-08-14 for a mechanical reason,
+not a stylistic one. `bin/sync-plans` archives only those plans some
+heading links, so an unlinked plan is never copied into `plans/` and has
+no history at all — waiting for confirmation costs the plan its archive
+while protecting nothing, since a link commits you to no work.
 
 ### Before editing: check for an unsaved buffer
 
