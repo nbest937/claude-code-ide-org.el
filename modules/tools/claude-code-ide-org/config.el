@@ -2013,19 +2013,58 @@ never at load or registration time."
               nil)
           t))))
 
+(defun claude-code-ide-org--container-heading-p ()
+  "Non-nil when the heading at point has at least one descendant
+carrying a TODO keyword -- norang's lazy definition of a project
+\(https://doc.norang.ca/org-mode.html), adopted here so that being a
+container is derived from structure rather than declared in a property
+someone has to remember to maintain.
+
+Used to exempt such headings from
+`claude-code-ide-org--trigger-auto-clock-in'. The argument is that org
+already rolls a subtree's time up to its parent natively -- a
+clocktable's `:maxlevel' does it -- so clocking a container does not
+*produce* a roll-up, it adds a second, differently-meaning quantity
+*inside* the one that already existed, where it can no longer be told
+apart from the children's sum. Measured on TODO.org :ID: b5f7c5c7 on
+2026-08-12: parent row 14:52, ten children summing to 13:44, the 1:08
+difference being exactly the epic's own two CLOCK lines.
+
+Scans descendants rather than only direct children, matching norang's
+own implementation. Note the exemption is deliberately narrow: it
+suppresses only the *automatic* clock, never a deliberate
+`org-clock-in' on a parent, since a parent's own coordination and
+planning time is real and a blanket \"only clock leaves\" rule would
+discard it."
+  (save-excursion
+    (save-restriction
+      (widen)
+      (org-back-to-heading t)
+      (let ((subtree-end (save-excursion (org-end-of-subtree t t)))
+            (found nil))
+        (forward-line 1)
+        (while (and (not found)
+                    (< (point) subtree-end)
+                    (re-search-forward org-heading-regexp subtree-end t))
+          (when (org-get-todo-state) (setq found t)))
+        found))))
+
 (defun claude-code-ide-org--trigger-auto-clock-in (change-plist)
   "For `org-trigger-hook': the moment any heading's TODO state becomes
 DOING or PLANNING -- via `claude-code-ide-org-set-todo', a hand-edit
 made directly in Emacs, or any other path at all -- automatically open
 a clock on it via `org-clock-in', unless a clock is already running on
-that exact heading. Guarded against re-entrancy by
-`claude-code-ide-org--auto-clock-in-active'. CHANGE-PLIST is the
-plist `org-todo' passes to every `org-trigger-hook' function; see
-`org-trigger-hook's own docstring for its shape. Never calls
-`org-clock-in' or reads `org-clock-marker' except from inside this
-hook -- i.e. never at load or registration time."
+that exact heading, or the heading is a container
+\(`claude-code-ide-org--container-heading-p'). Guarded against
+re-entrancy by `claude-code-ide-org--auto-clock-in-active'.
+CHANGE-PLIST is the plist `org-todo' passes to every
+`org-trigger-hook' function; see `org-trigger-hook's own docstring for
+its shape. Never calls `org-clock-in' or reads `org-clock-marker'
+except from inside this hook -- i.e. never at load or registration
+time."
   (when (and (member (plist-get change-plist :to) '("DOING" "PLANNING"))
-             (not claude-code-ide-org--auto-clock-in-active))
+             (not claude-code-ide-org--auto-clock-in-active)
+             (not (claude-code-ide-org--container-heading-p)))
     (let* ((target-id (org-entry-get nil "ID"))
            (already-clocked-here
             (and (org-clocking-p)

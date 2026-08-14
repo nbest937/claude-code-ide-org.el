@@ -1698,6 +1698,46 @@ in =DOING= in the file is not a latch target.
 The "ten children" in the clocktable measurement above was that day's
 count; ten is now the number that are unfinished.
 
+*Outcome, 2026-08-14.* Shipped as proposed, with no design changes.
+=claude-code-ide-org--container-heading-p= implements norang's lazy
+definition directly — scan the subtree, non-nil on the first descendant
+carrying a TODO keyword — and
+=claude-code-ide-org--trigger-auto-clock-in= gains it as a third guard
+beside the existing re-entrancy and already-clocked-here checks. No new
+property, no list to maintain, and the exemption covers =PLANNING= as
+well as =DOING= since both run through that one trigger.
+
+*Verified.* Five new tests (248 total, all green), each confirmed to
+discriminate by mutating the source in two directions rather than by
+passing once: forcing the guard to =t= failed exactly the two skip tests
+and left the "still clocks a heading with a plain child" test passing;
+deleting the keyword check from the predicate inverted that precisely —
+the two skip tests passed while the predicate test and the plain-child
+test failed. Then reloaded into the live Emacs and run against the real
+files, where the predicate answers =t= for
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] and =nil= for both
+[[id:4f9e552a-e1a9-48dd-8801-3f23a31b9e32][4f9e552a]] and this heading.
+
+*One thing the heading assumed that is no longer true, and it narrows
+the fix.* =--review-apply-item= binds
+=claude-code-ide-org--auto-clock-in-active= for its whole duration, so
+apply never reaches this trigger at all. A hand-edit in Emacs is now the
+*only* path that does. That does not weaken the fix — the 2026-08-12
+incident that prompted this heading was a hand-toggle, which is exactly
+the surviving case — but "fires on *any* transition" above should be
+read as "any transition outside apply."
+
+=CLAUDE.md= deliberately untouched: this heading routes that edit
+through [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]]'s rewrite,
+which already records the exception in its own scope notes.
+
+*What this unblocks, and it is the obvious next move rather than part of
+this heading:* the container test now exists somewhere reusable, which
+is the precondition the "report change is downstream" section above set.
+Adding =DOING= to =--wait-headings-context='s keyword set and filtering
+containers through this predicate would now do the right thing, with one
+definition of "container" rather than two.
+
 
 ** CANCELLED Reorder :SESSIONS: entries to match :LOGBOOK: ordering :code:
 :PROPERTIES:
@@ -7889,6 +7929,63 @@ things survive the correction, and they are what is left of the idea:
 robust to the keyword set changing." The =WAIT= framing in the title is
 vestigial — the keyword was never the load-bearing part, and the title
 should be retitled if this heading is picked up.
+
+** TODO Type a span's annotation at review time, not by hand-editing it after :code:
+:PROPERTIES:
+:ID:       8028e875-3032-4ade-949e-414d9861b928
+:CREATED:  [2026-08-14 Fri 12:27]
+:END:
+
+*Observed 2026-08-14, in the file rather than in the abstract.* The user
+hand-edited an applied annotation on
+[[id:4f9e552a-e1a9-48dd-8801-3f23a31b9e32][4f9e552a]] after the fact,
+rewriting =suggested span, accepted at review= to =task definition=. The
+commit record confirms the correction was right — =d34c809= landed at
+08:58, before the 09:09--09:42 span opened, so that interval really was
+task definition and not the implementation it sat next to.
+
+*The mechanism, read rather than assumed*
+(=claude-code-ide-org--review-annotation-label=, =config.el= line 3298 as
+of today). It returns one of three things:
+
+- the enclosing =clock_in='s note, when the span inherited one — which is
+  where a genuinely informative line like =show commits and :CREATED: in
+  span windows= comes from;
+- the empty string, for a bracketed span whose =clock_in= carried no note;
+- =assigned at review= / =suggested span, accepted at review= for an
+  *unbracketed* span, reconstructed from loose guideposts.
+
+*The gap is the third case, and it is the case that matters.* An
+unbracketed span is unbracketed precisely because no session ever said
+what it was working on — so it is the one span with no note to inherit,
+and the label it gets instead says only *that* it was reconstructed. Yet
+at review the human has just decided what it was; that is what accepting
+it means. The information exists, in someone's head, at exactly the
+moment the line is written, and is discarded.
+
+*A second finding, and it argues against the naive fix.* The hand-edit
+*destroyed the provenance*. That boilerplate is not filler — the function's
+docstring makes a deliberate case for it: provenance is "the one thing a
+reader cannot recover from the timestamps," namely that the interval was
+reconstructed and confirmed rather than clocked as it happened, which
+matters for a record whose trustworthiness is a stated project goal.
+Overwriting it in place trades one irrecoverable fact for another. They
+are not competing, and a typed annotation should *append* to the
+provenance rather than replace it — =task definition, accepted at review=
+keeps both.
+
+*Open, and worth settling before building:* whether the prompt belongs at
+mark time (while the span's evidence lines are still on screen, which is
+the argument for it) or at apply; whether it fires for every span or only
+unbracketed ones; and whether an empty answer is allowed to fall through
+to today's behaviour, which it probably must, since a review pass that
+cannot be completed silently is worse than a vague label.
+
+*Not blocking anything, and deliberately small.* It changes what one
+function returns and adds one prompt. Related to
+[[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] by adjacency — that
+heading put the evidence on screen, and this one would capture the
+conclusion the human draws from it — but neither requires the other.
 
 
 * Observability

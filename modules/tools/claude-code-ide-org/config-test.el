@@ -648,6 +648,100 @@ existing DOING coverage above."
     (should (equal id (org-with-point-at org-clock-marker
                         (org-entry-get nil "ID"))))))
 
+;; Container exemption -- TODO.org :ID: ab75d6d2-0e59-405d-92c6-2c67488db133.
+;; Each of these binds `org-trigger-hook' down to the auto-clock-in
+;; function alone, the same way the DONE-blocker test above does: adding
+;; a child heading creates a second sibling group, which the single-NEXT
+;; triggers would act on for reasons unrelated to what is under test.
+
+(defun claude-code-ide-org-test--add-child (file text)
+  "Append TEXT as a child heading of the fixture heading in FILE, save,
+and refresh org-id's locations so `org-id-find' sees any new :ID:."
+  (with-current-buffer (get-file-buffer file)
+    (goto-char (point-max))
+    (insert text)
+    (save-buffer))
+  (org-id-update-id-locations (list file)))
+
+(ert-deftest claude-code-ide-org-test-container-heading-p-needs-a-keyword-child ()
+  "The container predicate is norang's lazy definition: a descendant
+carrying a TODO keyword. A childless heading is not a container, and
+neither is one whose only child carries no keyword -- otherwise every
+heading with a prose sub-section would be exempted from clocking."
+  (claude-code-ide-org-test--with-heading
+    (should (not (org-with-point-at (org-id-find id 'marker)
+                   (claude-code-ide-org--container-heading-p))))
+    (claude-code-ide-org-test--add-child file "** Just a sub-section\n")
+    (should (not (org-with-point-at (org-id-find id 'marker)
+                   (claude-code-ide-org--container-heading-p))))
+    (claude-code-ide-org-test--add-child file "** TODO A real child\n")
+    (should (org-with-point-at (org-id-find id 'marker)
+              (claude-code-ide-org--container-heading-p)))
+    ;; The child itself is a leaf, and must not be exempted.
+    (should (not (org-with-point-at (org-id-find id 'marker)
+                   (org-goto-first-child)
+                   (claude-code-ide-org--container-heading-p))))))
+
+(ert-deftest claude-code-ide-org-test-trigger-hook-skips-container-headings ()
+  "Setting a container to DOING must NOT open a clock on it. Org already
+rolls a subtree's time up to its parent natively, so a parent's own
+CLOCK line adds a second quantity inside the same total rather than
+producing the roll-up -- measured on TODO.org :ID: b5f7c5c7, where the
+epic's own 1:08 was indistinguishable from its children's 13:44 once
+summed. Driven through a bare `org-todo', because since the cutover a
+hand-edit in Emacs is the only path that still reaches this trigger:
+apply binds `claude-code-ide-org--auto-clock-in-active' throughout."
+  (claude-code-ide-org-test--with-heading
+    (let ((org-trigger-hook (list #'claude-code-ide-org--trigger-auto-clock-in)))
+      (claude-code-ide-org-test--add-child file "** TODO A real child\n")
+      (should (not (org-clocking-p)))
+      (org-with-point-at (org-id-find id 'marker) (org-todo "DOING"))
+      (should (not (org-clocking-p)))
+      (should (not (string-match-p "CLOCK: \\["
+                                   (with-current-buffer (get-file-buffer file)
+                                     (buffer-string)))))
+      ;; The state change itself must still happen -- this exempts the
+      ;; clock, not the transition.
+      (should (equal "DOING" (org-with-point-at (org-id-find id 'marker)
+                               (org-get-todo-state)))))))
+
+(ert-deftest claude-code-ide-org-test-trigger-hook-still-clocks-a-heading-with-a-plain-child ()
+  "The discriminator for the test above: a heading whose only child
+carries no TODO keyword is not a container, so DOING must still open a
+clock exactly as it does for a childless leaf. Without this, a
+predicate that merely tested `has any child' would pass the container
+test and silently stop clocking ordinary headings."
+  (claude-code-ide-org-test--with-heading
+    (let ((org-trigger-hook (list #'claude-code-ide-org--trigger-auto-clock-in)))
+      (claude-code-ide-org-test--add-child file "** Just a sub-section\n")
+      (org-with-point-at (org-id-find id 'marker) (org-todo "DOING"))
+      (should (org-clocking-p))
+      (should (equal id (org-with-point-at org-clock-marker
+                          (org-entry-get nil "ID")))))))
+
+(ert-deftest claude-code-ide-org-test-container-still-accepts-a-deliberate-clock-in ()
+  "The exemption is narrow by design: it suppresses the *automatic*
+clock only. A parent's own coordination and planning time is real, so
+an explicit `org-clock-in' on a container must still work -- a blanket
+`only clock leaves' rule would discard that category."
+  (claude-code-ide-org-test--with-heading
+    (let ((org-trigger-hook (list #'claude-code-ide-org--trigger-auto-clock-in)))
+      (claude-code-ide-org-test--add-child file "** TODO A real child\n")
+      (claude-code-ide-org-test--clock-in-for-real id)
+      (should (org-clocking-p))
+      (should (equal id (org-with-point-at org-clock-marker
+                          (org-entry-get nil "ID")))))))
+
+(ert-deftest claude-code-ide-org-test-trigger-hook-skips-container-on-planning ()
+  "The exemption must cover PLANNING as well as DOING -- both states
+open a clock via the same trigger, so both must skip it for a
+container."
+  (claude-code-ide-org-test--with-heading
+    (let ((org-trigger-hook (list #'claude-code-ide-org--trigger-auto-clock-in)))
+      (claude-code-ide-org-test--add-child file "** TODO A real child\n")
+      (org-with-point-at (org-id-find id 'marker) (org-todo "PLANNING"))
+      (should (not (org-clocking-p))))))
+
 (ert-deftest claude-code-ide-org-test-trigger-hook-skips-clock-in-when-already-clocked-on-planning ()
   "No duplicate CLOCK line when a clock is already running on the
 heading being set to PLANNING."
