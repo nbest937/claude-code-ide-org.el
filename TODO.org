@@ -7654,25 +7654,18 @@ was loaded and correct; =echo afk-probe:1= ran in 13 seconds with no
 prompt, no =block_start=, and no sentinel. So the first failure mode
 above is the one that happened, and the feature is currently invisible.
 
-*Most likely cause is the risk the plan named: the session was a
-background job.* A background job has nobody to present a prompt to, so
-it can have no behaviour other than auto-approval, and everything that
-day is consistent with it — arbitrary =python3= heredocs and =git push=
-ran unchallenged against 57 =allow= rules covering none of them.
+*Cause established immediately afterwards, and it is neither of the two
+guesses above: the session was in auto mode.* Auto-accept approves
+without prompting, so an =ask= rule never gets its chance. Recorded
+because the two hypotheses reached from inside the session — background
+job, or permission rules being read only at session start — were both
+plausible, both wrong, and both would have cost a fresh session to
+disprove. The user knew in one word what the evidence could not settle.
 
-*The competing explanation, not distinguishable from inside that
-session:* permission rules may be read at session start, so a rule added
-mid-session would not be in effect. Hook config is known to take effect
-live for =PreToolUse=/=PostToolUse= (=135033ff=), but that is hooks, and
-this is permissions.
-
-*The decisive test needs an interactive session, which is why this stays
-=WAIT=:* run =echo afk-probe:1= from a foreground Claude Code session in
-this repo. A prompt means the background job was the obstacle and the
-feature works wherever a human is actually present — which is every
-session that can block on a prompt in the first place, so the feature
-would be fine. No prompt means the rule needs a restart; try once more in
-a second fresh session before concluding anything about =ask= itself.
+*So the probe is unchanged but its precondition is not:* leave auto mode
+first (shift-tab cycles the permission modes), then run =echo
+afk-probe:1=, wait five to ten minutes, approve. Nothing else about the
+recipe changes.
 
 *Worth noticing either way:* a permission block cannot occur in a session
 that never prompts, so in background jobs this whole defect is
