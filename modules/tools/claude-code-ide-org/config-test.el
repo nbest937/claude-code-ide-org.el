@@ -3484,6 +3484,115 @@ whole heading and the result read as \"never clocked\"."
       (should (equal "2026-08-06" (format-time-string "%Y-%m-%d" (car range))))
       (should (equal "09:30" (format-time-string "%H:%M" (cdr range)))))))
 
+;;; Permission blocks (TODO.org :ID: f4e628ce) -----------------------------
+
+(defun claude-code-ide-org-test--ev (offset kind &optional tool-use-id)
+  "A queue event OFFSET seconds after a fixed base, for block tests."
+  (list :kind kind
+        :tool-use-id tool-use-id
+        :ts (time-add (date-to-time "2026-08-11T13:55:00-0500") offset)))
+
+(ert-deftest claude-code-ide-org-test-block-intervals-pair-by-tool-use-id ()
+  "Blocks pair by `tool_use_id', not by position: tool calls interleave,
+so a block opened by one call can close after another opened and closed
+inside it."
+  (let* ((events (list (claude-code-ide-org-test--ev 0 "block_start" "toolu_A")
+                       (claude-code-ide-org-test--ev 10 "block_start" "toolu_B")
+                       (claude-code-ide-org-test--ev 20 "block_end" "toolu_B")
+                       (claude-code-ide-org-test--ev 30 "block_end" "toolu_A")))
+         (ivs (claude-code-ide-org--block-intervals events)))
+    (should (= 2 (length ivs)))
+    ;; B closed first and is the shorter of the two; A spans the whole.
+    (should (= 30 (float-time (time-subtract (cdr (nth 1 ivs)) (car (nth 1 ivs))))))
+    (should (= 10 (float-time (time-subtract (cdr (nth 0 ivs)) (car (nth 0 ivs))))))))
+
+(ert-deftest claude-code-ide-org-test-block-intervals-drop-unmatched-start ()
+  "An unmatched `block_start' is dropped, never extended to the last
+event. It means the session died between the prompt and the tool
+finishing, and choosing an end would invent the one number nobody knows
+— the class of guess :ID: 7771fc63 retired."
+  (should (null (claude-code-ide-org--block-intervals
+                 (list (claude-code-ide-org-test--ev 0 "block_start" "toolu_A")
+                       (claude-code-ide-org-test--ev 60 "pause")))))
+  ;; And an end with no start is ignored rather than pairing with
+  ;; whatever came before it.
+  (should (null (claude-code-ide-org--block-intervals
+                 (list (claude-code-ide-org-test--ev 0 "resume")
+                       (claude-code-ide-org-test--ev 60 "block_end" "toolu_A"))))))
+
+(ert-deftest claude-code-ide-org-test-block-splits-below-the-gap-threshold ()
+  "Where the block machinery actually earns its keep: a wait *shorter*
+than the gap threshold.
+
+The first version of this test used the measured 2026-08-11 case -- a
+54m11s block -- and passed with the block logic disabled entirely,
+because a 54-minute hole already exceeds the 1200s threshold and the
+ordinary gap rule splits it unaided. A test that passes without the
+feature tests nothing, and that fixture would have shipped a
+non-discriminating suite for the one behaviour this task exists to add.
+
+A 10-minute permission wait is the discriminating case: under the
+threshold, so nothing else can see it, and long enough to matter. No
+guidepost falls inside a block by construction -- neither Stop nor
+UserPromptSubmit fires while a turn is stalled -- so the block markers
+are the only evidence the wait happened at all."
+  (let* ((events (list (claude-code-ide-org-test--ev 0 "resume")
+                       (claude-code-ide-org-test--ev 120 "block_start" "toolu_A")
+                       (claude-code-ide-org-test--ev 720 "block_end" "toolu_A")
+                       (claude-code-ide-org-test--ev 900 "pause")))
+         (spans (claude-code-ide-org--aggregate-guideposts events 1200)))
+    (should (= 2 (length spans)))
+    ;; Work up to the moment the prompt appeared.
+    (should (= 120 (float-time (time-subtract (cdr (nth 0 spans))
+                                              (car (nth 0 spans))))))
+    ;; And from the moment it was answered.
+    (should (= 180 (float-time (time-subtract (cdr (nth 1 spans))
+                                              (car (nth 1 spans))))))))
+
+(ert-deftest claude-code-ide-org-test-block-threshold-alone-would-not-split ()
+  "The other half of the discrimination: the very same guideposts, with
+the block events removed, cluster into ONE span. This is what pins the
+feature -- if the gap rule could reach this case, the block logic would
+be dead weight."
+  (let ((spans (claude-code-ide-org--aggregate-guideposts
+                (list (claude-code-ide-org-test--ev 0 "resume")
+                      (claude-code-ide-org-test--ev 900 "pause"))
+                1200)))
+    (should (= 1 (length spans)))
+    (should (= 900 (float-time (time-subtract (cdr (car spans))
+                                              (car (car spans))))))))
+
+(ert-deftest claude-code-ide-org-test-block-does-not-split-an-unblocked-run ()
+  "Discriminator: with no block events, the same guideposts cluster into
+one span exactly as before. Without this the split test would pass for a
+function that split everything."
+  (let ((spans (claude-code-ide-org--aggregate-guideposts
+                (list (claude-code-ide-org-test--ev 0 "resume")
+                      (claude-code-ide-org-test--ev 60 "pause")
+                      (claude-code-ide-org-test--ev 3471 "pause"))
+                1200)))
+    ;; 3471s from the second to the third exceeds 1200s, so the ordinary
+    ;; threshold still splits — one span of 60s and one zero-width.
+    (should (= 2 (length spans)))
+    (should (= 60 (float-time (time-subtract (cdr (nth 0 spans))
+                                             (car (nth 0 spans))))))))
+
+(ert-deftest claude-code-ide-org-test-block-events-survive-the-parser ()
+  "The kinds must be registered: `--parse-queue-line' drops any line
+whose `kind' it does not know, so an unregistered block kind would make
+the whole feature silently inert."
+  (let ((parsed (claude-code-ide-org--queue-parse-line
+                 (json-encode '((ts . "2026-08-11T13:56:00-0500")
+                                (kind . "block_start")
+                                (tool_use_id . "toolu_A")
+                                (id . nil)
+                                (session_id . "sess-a"))))))
+    (should parsed)
+    (should (equal "block_start" (plist-get parsed :kind)))
+    (should (equal "toolu_A" (plist-get parsed :tool-use-id)))
+    ;; A block names no heading, whatever the blocked tool's input said.
+    (should (null (plist-get parsed :id)))))
+
 (ert-deftest claude-code-ide-org-test-unbracketed-guideposts-become-spans ()
   "Guideposts outside any clock_in/clock_out bracket produce review items.
 

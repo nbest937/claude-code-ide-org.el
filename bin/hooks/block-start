@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Open a permission block: the agent has stopped and is waiting on a
+# human, and nothing else in the queue can say so.
+#
+# The other half of TODO.org :ID: f4e628ce, wired to `PermissionRequest'.
+# `Stop' fires when a *turn* ends; a turn stalled mid-flight on a
+# permission prompt has not ended, so no `pause' is written and the run
+# of guideposts stays unbroken across the wait. Measured 2026-08-11: a
+# 57m51s turn of which 54m11s was one tool call awaiting approval.
+#
+# Appends the event, then drops a sentinel named for the tool call.
+# bin/hooks/block-end consults that sentinel -- and nothing else -- so it
+# can decline in one stat on the overwhelming majority of tool calls,
+# which are never blocked.
+#
+# Ordering matters: append first, sentinel second. A sentinel with no
+# block_start behind it would let block-end append an end for a block
+# that never opened, and an unmatched *end* is worse than an unmatched
+# start -- the reader drops orphaned starts by design, but an end with no
+# start has no interval to belong to and would have to be guessed at.
+
+set -uo pipefail
+
+input="$(cat)"
+
+command -v jq >/dev/null 2>&1 || exit 0
+
+session_id="$(jq -r '.session_id // empty' <<<"$input" 2>/dev/null)"
+tool_use_id="$(jq -r '.tool_use_id // empty' <<<"$input" 2>/dev/null)"
+[[ -n "$session_id" && -n "$tool_use_id" ]] || exit 0
+
+case "$session_id" in
+  *[!A-Za-z0-9._-]*|''|.|..) exit 0 ;;
+esac
+case "$tool_use_id" in
+  *[!A-Za-z0-9._-]*|''|.|..) exit 0 ;;
+esac
+
+printf '%s' "$input" | "$(dirname "${BASH_SOURCE[0]}")/queue-append" block_start
+
+queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
+mkdir -p "$queue_dir/$session_id.blocked" 2>/dev/null || exit 0
+: > "$queue_dir/$session_id.blocked/$tool_use_id" 2>/dev/null
+
+exit 0

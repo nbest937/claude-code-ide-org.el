@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# Shell test harness for bin/hooks/block-start and bin/hooks/block-end,
+# the permission-block pair (TODO.org :ID: f4e628ce).
+#
+# Same register as bin/queue-append-test, and the same honesty about its
+# limits. Fully covered here: the sentinel round trip, the cheap decline
+# on an unblocked tool call, idempotency on replay, and the ordering
+# guarantee that no block_end is written without a block_start behind it.
+#
+# NOT covered, and not claimed to be: that Claude Code actually fires
+# `PermissionRequest' with a `tool_use_id' in the payload, and that it
+# does so in a background job. Both are assumptions about the harness,
+# not about this code, and neither can be exercised from a test -- they
+# need a real permission prompt in a real session. Until that has
+# happened once, this suite passing means the plumbing is right, not that
+# it is connected.
+
+set -uo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export CLAUDE_ORG_QUEUE_DIR="$(mktemp -d)"
+trap 'rm -rf "$CLAUDE_ORG_QUEUE_DIR"' EXIT
+
+failures=0
+
+check() {
+  local what="$1" want="$2" got="$3"
+  if [[ "$want" == "$got" ]]; then
+    echo "ok   - $what"
+  else
+    echo "FAIL - $what: wanted [$want], got [$got]"
+    failures=$((failures + 1))
+  fi
+}
+
+reset() { rm -rf "$CLAUDE_ORG_QUEUE_DIR"; mkdir -p "$CLAUDE_ORG_QUEUE_DIR"; }
+# Existence checked before the redirect, not after: `wc -l < missing'
+# fails in the *shell*, so `2>/dev/null' on wc never sees it and the
+# harness prints an error while reporting a pass. Noise in a passing run
+# is how a real failure goes unread.
+events() {
+  local f="$CLAUDE_ORG_QUEUE_DIR/sess-x.jsonl"
+  if [[ -e "$f" ]]; then wc -l < "$f" | tr -d ' '; else echo 0; fi
+}
+sentinel() { [[ -e "$CLAUDE_ORG_QUEUE_DIR/sess-x.blocked/$1" ]] && echo yes || echo no; }
+
+start='{"session_id":"sess-x","hook_event_name":"PermissionRequest","tool_name":"Bash","tool_use_id":"toolu_ZZ"}'
+end='{"session_id":"sess-x","tool_use_id":"toolu_ZZ"}'
+
+# The path every unblocked tool call takes, and the reason this script
+# exists separately from queue-append: it runs on the unscoped
+# PostToolUse matcher, so it fires on every call in the session.
+reset
+echo '{"session_id":"sess-x","tool_use_id":"toolu_NEVER"}' | "$repo_root/bin/hooks/block-end"
+check "unblocked call writes nothing" "0" "$(events)"
+
+reset
+printf '%s' "$start" | "$repo_root/bin/hooks/block-start"
+check "block-start appends one event" "1" "$(events)"
+check "block-start drops a sentinel" "yes" "$(sentinel toolu_ZZ)"
+check "the event is a block_start" "block_start" \
+  "$(jq -r '.kind' < "$CLAUDE_ORG_QUEUE_DIR/sess-x.jsonl")"
+
+printf '%s' "$end" | "$repo_root/bin/hooks/block-end"
+check "block-end appends its own event" "2" "$(events)"
+check "block-end clears the sentinel" "no" "$(sentinel toolu_ZZ)"
+check "the second event is a block_end" "block_end" \
+  "$(jq -r '.kind' < "$CLAUDE_ORG_QUEUE_DIR/sess-x.jsonl" | tail -1)"
+
+# Idempotent by construction: the sentinel is gone, so a replayed
+# PostToolUse for the same call declines like any unblocked one. Without
+# this a retried hook would write a second end for one start, and the
+# reader would pair the start with whichever it saw first.
+printf '%s' "$end" | "$repo_root/bin/hooks/block-end"
+check "replayed block-end does not double-append" "2" "$(events)"
+
+# A payload with no tool_use_id cannot be paired, so it must be refused
+# rather than written with a null key -- a null-keyed start would pair
+# with the next null-keyed end from an unrelated call.
+reset
+echo '{"session_id":"sess-x","hook_event_name":"PermissionRequest"}' \
+  | "$repo_root/bin/hooks/block-start"
+check "block-start refuses a payload with no tool_use_id" "0" "$(events)"
+
+# Path traversal: both ids become path components of the sentinel.
+reset
+echo '{"session_id":"../escape","tool_use_id":"toolu_ZZ"}' \
+  | "$repo_root/bin/hooks/block-start"
+check "block-start refuses a traversing session_id" "no" \
+  "$([[ -e "$CLAUDE_ORG_QUEUE_DIR/../escape.blocked/toolu_ZZ" ]] && echo yes || echo no)"
+reset
+echo '{"session_id":"sess-x","tool_use_id":".."}' \
+  | "$repo_root/bin/hooks/block-start"
+check "block-start refuses a traversing tool_use_id" "0" "$(events)"
+
+echo
+if [[ $failures -eq 0 ]]; then
+  echo "All block-hooks tests passed."
+else
+  echo "$failures test(s) failed."
+  exit 1
+fi

@@ -2597,7 +2597,8 @@ span concluded it rather than filled it."
   :group 'claude-code-ide-org)
 
 (defconst claude-code-ide-org--queue-kinds
-  '("todo" "clock_in" "clock_out" "pause" "resume" "capture" "amend")
+  '("todo" "clock_in" "clock_out" "pause" "resume" "capture" "amend"
+    "block_start" "block_end")
   "Event kinds bin/hooks/queue-append is allowed to emit.
 A line carrying anything else is treated as unparseable and skipped, so
 a future writer emitting a kind this Emacs does not know about degrades
@@ -2676,6 +2677,11 @@ whole file. This is the single place that judgement is made."
                 :target (alist-get 'target obj)
                 :tags (alist-get 'tags obj)
                 :text (alist-get 'text obj)
+                ;; Which tool call a permission block belongs to, so
+                ;; block_start/block_end pair by identity rather than by
+                ;; position -- tool calls interleave. Null on every other
+                ;; kind (TODO.org :ID: f4e628ce).
+                :tool-use-id (alist-get 'tool_use_id obj)
                 :session-id (alist-get 'session_id obj)
                 :agent-id (alist-get 'agent_id obj)
                 :agent-type (alist-get 'agent_type obj)
@@ -2975,6 +2981,63 @@ stream and a session-wide `current' would let them clobber each other
                             (time-less-p (plist-get a :ts) (plist-get b :ts))))))
             (nreverse order))))
 
+(defun claude-code-ide-org--block-intervals (events)
+  "Return (START . END) pairs for the permission blocks in EVENTS.
+
+A block is the stretch between a `block_start' and the `block_end'
+carrying the same `tool_use_id' -- the agent stalled waiting on a human
+to answer a permission prompt.  `Stop' cannot see this: it fires when a
+*turn* ends, and a turn blocked mid-flight has not ended, so the run of
+guideposts continues straight across the wait (TODO.org :ID: f4e628ce).
+
+Paired by `tool_use_id' rather than by position, because tool calls
+interleave: a block opened by one call can close after another opened
+and closed inside it.
+
+An unmatched `block_start' is *dropped*, not extended to the end of the
+events.  It means the session died between the prompt and the tool
+finishing, and choosing an end for it would be inventing the one number
+nobody knows -- the class of guess :ID: 7771fc63 retired for being wrong
+more often than right.  The cost of dropping is that such a block still
+reads as work, which is a strictly smaller error than a fabricated one.
+
+The interval covers the human's decision latency *plus* the tool's own
+execution, since nothing signals the moment of approval separately.  For
+the case this was built for -- 54m11s of waiting and seconds of running
+-- that distinction is noise.  It would matter for a long-running
+approved tool, and the overstatement is bounded by that tool's runtime."
+  (let ((open (make-hash-table :test 'equal))
+        intervals)
+    (dolist (e events)
+      (let ((kind (plist-get e :kind))
+            (key (plist-get e :tool-use-id))
+            (ts (plist-get e :ts)))
+        (when key
+          (cond
+           ((equal kind "block_start") (puthash key ts open))
+           ((equal kind "block_end")
+            (let ((start (gethash key open)))
+              (when start
+                (push (cons start ts) intervals)
+                (remhash key open))))))))
+    (nreverse intervals)))
+
+(defun claude-code-ide-org--time-within-any-p (time intervals)
+  "Non-nil when TIME falls *strictly* inside one of INTERVALS.
+
+Endpoints are excluded on purpose, and the reason is not fussiness: a
+`block_start' fires the instant the permission prompt appears, so the
+agent worked right up to it, and a `block_end' fires when the tool
+finally runs.  Those two timestamps are the last moment of work before
+the wait and the first moment after it -- the closing and opening edges
+of the spans either side.  Treating them as inside the block deletes both
+edges and collapses each neighbouring span to zero width, which is what
+the first version of this did."
+  (seq-find (lambda (iv)
+              (and (time-less-p (car iv) time)
+                   (time-less-p time (cdr iv))))
+            intervals))
+
 (defun claude-code-ide-org--aggregate-guideposts (events &optional threshold)
   "Collapse EVENTS' timestamps into (START . END) spans for review.
 Consecutive timestamps separated by less than THRESHOLD seconds (default
@@ -3008,14 +3071,41 @@ Not built on `claude-code-ide-org--merge-time-intervals': that merges
 only touching or overlapping intervals, with no gap tolerance, which is
 a different question from clustering points that are merely near each
 other."
-  (let ((gap (or threshold claude-code-ide-org-guidepost-gap-threshold))
-        (times (sort (mapcar (lambda (e) (plist-get e :ts)) events)
-                     #'time-less-p))
-        spans start previous)
+  (let* ((gap (or threshold claude-code-ide-org-guidepost-gap-threshold))
+         (blocks (claude-code-ide-org--block-intervals events))
+         ;; A guidepost inside a permission block is not evidence of
+         ;; work: the agent was stalled waiting on a human for the whole
+         ;; of it. Dropping those timestamps is what splits the span,
+         ;; and it is decided here rather than offered at review because
+         ;; a block is not ambiguous the way a commit-less gap is -- it
+         ;; is a mechanically certain fact that nothing was running.
+         (times (sort (mapcar (lambda (e) (plist-get e :ts))
+                              (seq-remove
+                               (lambda (e)
+                                 (and blocks
+                                      (claude-code-ide-org--time-within-any-p
+                                       (plist-get e :ts) blocks)))
+                               events))
+                      #'time-less-p))
+         spans start previous)
     (dolist (time times)
       (cond
        ((null start) (setq start time previous time))
-       ((<= (float-time (time-subtract time previous)) gap)
+       ;; A block between two timestamps breaks the span even when the
+       ;; two are closer together than the gap threshold -- otherwise a
+       ;; 54-minute wait bracketed by guideposts a minute apart on each
+       ;; side would be clustered straight through.
+       ((and (<= (float-time (time-subtract time previous)) gap)
+             ;; Non-strict on both sides: the two timestamps either side
+             ;; of a block are normally the block's own endpoints -- a
+             ;; `block_start' is the last event before the wait and a
+             ;; `block_end' the first after it, since no guidepost fires
+             ;; while a turn is stalled. A strict test therefore never
+             ;; fires in the case this exists for.
+             (not (seq-find (lambda (iv)
+                              (and (not (time-less-p (car iv) previous))
+                                   (not (time-less-p time (cdr iv)))))
+                            blocks)))
         (setq previous time))
        (t (push (cons start previous) spans)
           (setq start time previous time))))

@@ -55,6 +55,12 @@ set -uo pipefail
 kind="${1:-}"
 case "$kind" in
   todo|clock_in|clock_out|pause|resume|capture|amend) ;;
+  # A permission block: the agent is stalled waiting on a human, which
+  # no other event can express. `Stop' fires when a *turn* ends, and a
+  # turn blocked mid-flight has not ended -- see TODO.org :ID: f4e628ce.
+  # Paired by tool_use_id at review time, not here: this script stays a
+  # dumb appender and never reads back what it has written.
+  block_start|block_end) ;;
   *) exit 0 ;;
 esac
 
@@ -191,6 +197,16 @@ mkdir -p "$queue_dir" 2>/dev/null || exit 0
 # are session-global (nothing in them names a heading -- that attribution
 # is what the clock_in/clock_out events exist to provide), and state/from
 # are meaningful only for todo.
+#
+# block_start/block_end must be nulled *explicitly* rather than left to
+# fall through, and the reason is a trap rather than tidiness: their
+# payload is the blocked tool's own, so `tool_input.id' is that tool's
+# argument. A permission prompt on org_set_todo would otherwise attribute
+# the block to whatever heading that call named -- a heading the block
+# has nothing to do with. Same for `note'. A block names no heading by
+# construction; it is a fact about the session.
+#
+# tool_name needs no field of its own: `source' already resolves to it.
 line="$(jq -n -c \
   --arg ts "$(date '+%Y-%m-%dT%H:%M:%S%z')" \
   --arg kind "$kind" \
@@ -205,7 +221,8 @@ line="$(jq -n -c \
      ts: $ts,
      kind: $kind,
      id: (if $override_id != "" then $override_id
-          elif $kind == "pause" or $kind == "resume" then null
+          elif $kind == "pause" or $kind == "resume"
+               or $kind == "block_start" or $kind == "block_end" then null
           else ($payload.tool_input.id
                 // (if $recovered_id == "" then null else $recovered_id end))
           end),
@@ -215,12 +232,15 @@ line="$(jq -n -c \
      from: (if $override_from != "" then $override_from
             elif $kind == "todo" and $recovered_from != "" then $recovered_from
             else null end),
-     note: (if $kind == "pause" or $kind == "resume" then null
+     note: (if $kind == "pause" or $kind == "resume"
+               or $kind == "block_start" or $kind == "block_end" then null
             else ($payload.tool_input.note // null) end),
      title:  (if $kind == "capture" then ($payload.tool_input.title // null) else null end),
      target: (if $kind == "capture" then ($payload.tool_input.target // null) else null end),
      tags:   (if $kind == "capture" then ($payload.tool_input.tags // null) else null end),
      text:   (if $kind == "amend" then ($payload.tool_input.text // null) else null end),
+     tool_use_id: (if $kind == "block_start" or $kind == "block_end"
+                   then ($payload.tool_use_id // null) else null end),
      session_id: $session_id,
      agent_id: ($payload.agent_id // null),
      agent_type: ($payload.agent_type // null),

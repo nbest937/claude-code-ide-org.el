@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Close a permission block, if one is open for this tool call.
+#
+# Half of TODO.org :ID: f4e628ce. `PermissionRequest' opens the block by
+# appending a block_start and dropping a sentinel; this closes it. Wired
+# to both `PostToolUse' (the tool ran, so permission was granted) and
+# `PermissionDenied' (it never will).
+#
+# Why a separate script rather than another queue-append matcher: this
+# runs on the *unscoped* PostToolUse matcher, so it fires on every single
+# tool call in the session -- hundreds in a working day, the overwhelming
+# majority of which were never blocked on anything. The common path must
+# therefore be one stat and an exit, before jq is invoked or the payload
+# is even read. queue-append parses JSON unconditionally, which is right
+# for a hook that only fires on five specific tools and wrong for one
+# that fires on all of them.
+#
+# The sentinel is deliberately not in the queue. It is ephemeral
+# coordination -- "is a block open for this tool_use_id" -- and the queue
+# is a record, append-only and never read back by a writer. Consulting
+# the queue here would make this script a reader of its own log and cost
+# a file scan per tool call.
+#
+# An orphaned sentinel is harmless: the session died between the prompt
+# and the tool's completion, so the block_start has no partner, and the
+# review-time reader drops unmatched starts rather than inventing an end
+# for them. That is deliberate -- inventing one is the class of guess
+# TODO.org :ID: 7771fc63 retired.
+
+set -uo pipefail
+
+input="$(cat)"
+
+command -v jq >/dev/null 2>&1 || exit 0
+
+session_id="$(jq -r '.session_id // empty' <<<"$input" 2>/dev/null)"
+tool_use_id="$(jq -r '.tool_use_id // empty' <<<"$input" 2>/dev/null)"
+[[ -n "$session_id" && -n "$tool_use_id" ]] || exit 0
+
+# Same sanitisation queue-append applies, and for the same reason: these
+# values become path components, and a session_id of `..' would otherwise
+# escape the queue directory.
+case "$session_id" in
+  *[!A-Za-z0-9._-]*|''|.|..) exit 0 ;;
+esac
+case "$tool_use_id" in
+  *[!A-Za-z0-9._-]*|''|.|..) exit 0 ;;
+esac
+
+queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
+sentinel="$queue_dir/$session_id.blocked/$tool_use_id"
+
+# The whole point of this script: no sentinel, nothing was blocked, and
+# this is the path every unblocked tool call takes.
+[[ -e "$sentinel" ]] || exit 0
+
+rm -f "$sentinel" 2>/dev/null
+
+# Remove the sentinel *before* appending, so a failure to append cannot
+# leave a sentinel that closes some later, unrelated call bearing a
+# recycled id. Losing a block_end costs one unmatched start, which the
+# reader already drops; a stale sentinel would corrupt a different block.
+printf '%s' "$input" | "$(dirname "${BASH_SOURCE[0]}")/queue-append" block_end
+
+exit 0

@@ -7557,6 +7557,69 @@ minutes of attention. Related:
 [[id:1a5a5254-f62d-46e7-9a6c-3d84f2f52873][1a5a5254]], which is one
 possible external signal for exactly this gap.
 
+*Implemented 2026-08-14.* =PermissionRequest= opens a block and
+=PostToolUse=/=PermissionDenied= close it, paired by =tool_use_id= at
+review time; a block's timestamps are then removed from the guidepost
+stream so the span splits around the wait. Design is in the linked plan;
+what follows is what happened.
+
+*The first fixture did not discriminate, and finding that out changed
+what the feature is for.* The test reproduced the measured 2026-08-11
+case — a 54m11s block — and it passed with the block logic disabled
+entirely. A 54-minute hole already exceeds the 1200s gap threshold, so
+=--aggregate-guideposts= splits it unaided. The honest consequence:
+*for the case this heading was written about, the existing threshold was
+already sufficient.* The machinery earns its keep only for blocks
+*shorter* than the threshold — a 10-minute permission wait, which nothing
+else can see. The fixture now uses exactly that, and a companion test
+asserts the same guideposts without block events cluster into one span,
+so neither half can pass without the other.
+
+Worth stating because the heading's own framing — "the queue records one
+unbroken span" — was right about the mechanism and wrong about that
+measurement: at 1200s the queue would have split it. The threshold was
+retuned to 1200s on 2026-08-13 (=f39944f=), *after* the 08-11
+measurement, so the framing was true when written and quietly stopped
+being true.
+
+*One semantic bug, caught by the fixture rather than by review.* Blocks
+were first excluded with endpoints *included*, which deletes the
+=block_start= and =block_end= timestamps themselves — and those are the
+last moment of work before the wait and the first moment after it. Every
+neighbouring span collapsed to zero width. Exclusion is now strictly
+interior, and the span-break test is non-strict on both sides, because
+the timestamps either side of a block normally *are* its endpoints: no
+guidepost fires while a turn is stalled, so a strict test never fires in
+the case the feature exists for.
+
+*Differs from the plan:* the plan had =PermissionRequest= call
+=queue-append= directly and drop the sentinel inline. It got its own
+script, =bin/hooks/block-start=, because =queue-append= knows nothing
+about sentinels and teaching it would put ephemeral coordination state
+inside the append-only writer. The pair is symmetric and each is
+readable alone.
+
+*Verified, in three layers, none of which is the one that matters most.*
+=bin/block-hooks-test= (11 assertions, new) covers the sentinel round
+trip, the cheap decline on an unblocked call, idempotency on replay,
+refusal of a payload with no =tool_use_id=, and path traversal in both
+ids. =bin/queue-append-test= gains 9 assertions, including that a block
+does *not* inherit the blocked tool's =id= or =note= — the payload is
+that tool's own, so a prompt on =org_set_todo= would otherwise attribute
+the block to whatever heading that call named — and that an =Error:=
+response does not suppress a =block_end=, since a denied call still ends
+a real block. =bin/test= gains 6 ERT tests, each confirmed to fail
+against the unfixed code.
+
+*Not verified, and this is the load-bearing gap:* no =PermissionRequest=
+has fired since the hooks were wired, so nothing confirms Claude Code
+emits that event with a =tool_use_id= in this environment, or that it
+does so inside a background job. Both are assumptions about the harness
+rather than about this code, and neither can be exercised from a test —
+they need one real permission prompt in a real session. Until that
+happens the suites passing mean the plumbing is right, not that it is
+connected. Hence =WAIT= rather than =DONE=.
+
 *Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] on
 2026-08-14,* with three siblings, on the reasoning that heading already
 established twice: a defect in what the queue *records* does not have to

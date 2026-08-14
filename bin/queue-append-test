@@ -130,6 +130,35 @@ reset_queue
 run pause '{"session_id":"sess-a","hook_event_name":"Stop"}'
 check "pause has null note" "null" "$(jq -r '.note' <<<"$(queue_lines sess-a)")"
 
+# --- permission blocks (TODO.org :ID: f4e628ce) ------------------------
+# The payload is the *blocked tool's* own, which is the whole trap: a
+# prompt on org_set_todo carries that call's tool_input, complete with a
+# heading id and note. A block names no heading -- it is a fact about the
+# session -- so both must be nulled rather than left to fall through.
+reset_queue
+run block_start '{"session_id":"sess-a","hook_event_name":"PermissionRequest","tool_name":"mcp__emacs-tools__org_set_todo","tool_use_id":"toolu_01ABC","tool_input":{"id":"id-a","state":"DOING","note":"should not survive"}}'
+line="$(queue_lines sess-a)"
+check "block_start is accepted" "block_start" "$(jq -r '.kind' <<<"$line")"
+check "block_start records tool_use_id" "toolu_01ABC" "$(jq -r '.tool_use_id' <<<"$line")"
+check "block_start does NOT inherit the blocked tool's id" "null" "$(jq -r '.id' <<<"$line")"
+check "block_start does NOT inherit the blocked tool's note" "null" "$(jq -r '.note' <<<"$line")"
+check "block_start has null state" "null" "$(jq -r '.state' <<<"$line")"
+check "block_start records the blocked tool as source" "mcp__emacs-tools__org_set_todo" "$(jq -r '.source' <<<"$line")"
+
+# A denied or failed call still ends a real block, so the "Error:"
+# suppression that guards clock_in/todo must not apply here. Without this
+# a denied permission would leave an unmatched block_start, and the
+# reader drops those -- the wait would silently read as work.
+reset_queue
+run block_end '{"session_id":"sess-a","hook_event_name":"PermissionDenied","tool_use_id":"toolu_01ABC","tool_response":[{"type":"text","text":"Error: permission denied"}]}'
+check "block_end survives an Error: response" "block_end" "$(jq -r '.kind' <<<"$(queue_lines sess-a)")"
+check "block_end records tool_use_id" "toolu_01ABC" "$(jq -r '.tool_use_id' <<<"$(queue_lines sess-a)")"
+
+# Other kinds must not carry the field, so a reader can key on it.
+reset_queue
+run pause '{"session_id":"sess-a","hook_event_name":"Stop","tool_use_id":"toolu_01ABC"}'
+check "pause has null tool_use_id" "null" "$(jq -r '.tool_use_id' <<<"$(queue_lines sess-a)")"
+
 # --- subagent attribution rides through --------------------------------
 # Tool events fire these same hooks inside a subagent, and the payload
 # then carries agent_id/agent_type. Both absent on the main thread.
