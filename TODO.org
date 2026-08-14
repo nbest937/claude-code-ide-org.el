@@ -4478,6 +4478,110 @@ structural editing API would make apply's drawer writes more robust than
 the current regex and position arithmetic. That one has *gained* weight:
 every drawer-level data-loss incident this project has had
 (=ba8249c1=, =b74e0f19=) lived in exactly that code.
+
+*Answered 2026-08-14, and the answer inverts the expectation above:
+migrate nothing.* Probed live against org 9.8.7 rather than reasoned
+about, on the five drawer shapes the real files actually contain.
+
+*First, the premise was already half wrong.* The *writer*,
+=claude-code-ide-org--append-to-drawer-1=, does not do position
+arithmetic at all — it validates each candidate with
+=org-element-type-p ... 'drawer= and inserts at
+=org-element-contents-end=. The org-element migration this heading
+imagines was already made for the write path, some time ago and without
+being recorded here. What uses a regex is the *reader*,
+=claude-code-ide-org--drawer-content-bounds=, and only for its tail: it
+finds the =:END:= line with =^[ \t]*:END:[ \t]*$= instead of asking the
+element for =contents-end=.
+
+*Second, that regex tail is not the liability it looks like.* Measured,
+=(:regex ...)= against =(:element ...)=, on four shapes — a normal
+drawer, one following a =:PROPERTIES:= drawer, an indented drawer, and a
+=:LOGBOOK:= whose note continuation is the literal text =:END:= — the
+two agree *exactly*, character position for character position. The
+fourth is the one worth naming: a continuation line of =:END:= ends the
+drawer early, and it does so in =org-element= too, because that is
+org's own grammar rather than this code's approximation of it.
+
+*Third, and decisive: org-element is strictly worse for the empty
+drawer.* An empty =:LOGBOOK:=/=:END:= pair yields
+=(nil nil)= from =org-element-contents-begin=/=-end=, where the regex
+version yields =(20 20)= — a valid, empty region that callers can do
+arithmetic on. A naive migration would hand =nil= to every caller of
+this function for a case that occurs whenever a drawer has just been
+emptied. So the current hybrid — org-element to *validate*, regex to
+*delimit* — is a correct design rather than an unmigrated legacy, and
+should be left alone. That is the survey's answer to its last open
+checklist item.
+
+*What the probe turned up on the way, which is the real yield:* the
+reader and the writer disagree about a decoy. Given a heading whose body
+contains a =:LOGBOOK:=-shaped line inside =#+begin_example= *before* the
+real drawer, the writer loops past it and appends correctly, while the
+reader checks only its first match, finds it is not a drawer, and
+returns =nil= — reporting "this heading has no =:LOGBOOK:=" when it has
+one. Filed as
+[[id:f42641ab-fdd6-4754-add9-490dd6b24ef8][f42641ab]]; not fixed here,
+because this heading's job is to survey rather than to build.
+
+*Every checklist item is now discharged*, three of them elsewhere
+(=3d576d29= for backdated timestamps and =org-add-log-note=,
+=review-and-cutover.md= for =org-agenda-bulk-*=) and the last one here.
+The standing instruction that opens this heading — check org first,
+because this project has repeatedly built bespoke machinery without
+doing so — held up: it did not overturn the architecture, but it did
+find one real defect and it did stop a migration that would have
+introduced =nil= bounds into working code.
+*** TODO The drawer reader gives up on a decoy where the writer loops past it :code:
+:PROPERTIES:
+:ID:       f42641ab-fdd6-4754-add9-490dd6b24ef8
+:CREATED:  [2026-08-14 Fri 13:34]
+:END:
+
+*Found 2026-08-14 by [[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]]'s
+API probe, as a side effect rather than as its object.* The two halves
+of the drawer code disagree about what to do when a =:LOGBOOK:=-shaped
+line is not really a drawer.
+
+=claude-code-ide-org--append-to-drawer-1= searches in a =while= loop:
+each candidate is checked with =org-element-type-p ... 'drawer=, and a
+line that fails the check is stepped past in favour of the next.
+=claude-code-ide-org--drawer-content-bounds= runs the same
+=re-search-forward= *once*, applies the same check, and on failure
+returns =nil= — which its callers read as "this heading has no
+=:LOGBOOK:= drawer."
+
+*Demonstrated, not inferred.* A heading whose body holds a
+=:LOGBOOK:=/=:END:= pair inside =#+begin_example= *before* its real
+drawer:
+
+- the writer appended correctly, to the real drawer, ignoring the decoy;
+- the reader returned =nil=.
+
+*Why it matters, and why it is filed under this epic:* the reader is
+what the whole-drawer rewrite path uses — sorting and consolidation,
+=af7d3687='s and =12e0adac='s code. A false "no drawer here" means such
+a pass silently skips a heading that has one. Silent skipping is the
+same failure family as =ba8249c1= and =b74e0f19=, the two drawer
+data-loss incidents, which is exactly why =c084553c= was pointed at this
+code in the first place.
+
+*Reachability is low, and worth stating honestly so this is not
+over-prioritised.* The decoy must sit between the heading line and the
+real drawer, and the standard layout puts =:LOGBOOK:= immediately after
+=:PROPERTIES:=, leaving no room. It becomes reachable when body prose
+lands *above* the drawer — which is not hypothetical: that is precisely
+the malformation corrected on
+[[id:b5f94b88-76e3-4a3c-ac73-729f34d33691][b5f94b88]] on 2026-08-14, a
+heading whose "Promoted out of" paragraph had been sitting between the
+two drawers.
+
+*The fix is to make the reader loop like the writer* — same predicate,
+same stepping — and the more durable answer is that these two should
+share one find-the-drawer helper rather than each carrying its own
+search. Worth a test built from the probe's own decoy fixture, which is
+already written.
+
 *** TODO Decide the fate of the stale-interval recovery feature, whose premise this refactor removes :code:
 :PROPERTIES:
 :ID:       7771fc63-9374-4c8a-9e80-24ceec21977c
@@ -9296,6 +9400,66 @@ finds them under the symlink path. Both resolve to the same file so
 lookups should work, but it is worth confirming that =org-id-locations=
 does not end up with two entries per id, and worth deciding which path
 is canonical rather than letting it depend on who wrote last.
+
+** TODO The org 9.7+ dependency is real, undeclared, and unenforced :code:
+:PROPERTIES:
+:ID:       1ed7b2b4-a809-4547-b04f-099a3111fc1e
+:CREATED:  [2026-08-14 Fri 13:35]
+:END:
+
+*Raised by the user 2026-08-14,* on reading
+[[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]]'s probe results
+and asking whether the org version it pins is a dependency, and whether
+anything says so. Measured immediately, and the answer is that it is
+real and nothing says so anywhere.
+
+*The dependency, confirmed live rather than recalled.* Against the
+bundled org that =emacs --batch -Q= loads on this machine:
+
+: org-version: 9.6.15
+:   org-element-type-p           fboundp=nil
+:   org-element-contents-end     fboundp=nil
+:   org-element-at-point         fboundp=t
+
+Against the straight-managed org Doom and =bin/test= use: =9.8.7=, with
+both bound. =config.el= calls =org-element-type-p= three times and
+=org-element-contents-end= twice — all five in the drawer code — so on
+9.6.15 the module does not degrade, it hits =void-function=. Both
+accessors arrived in org 9.7, which is the actual floor.
+
+*Where it is expressed today: nowhere that binds.* =packages.el= names
+only =org-ql= and =claude-code-ide=, and never mentions org. There is no
+=version<= check, no =org-assert-version=, no minimum in any header.
+The only two places that know are indirect — =bin/test='s glob for the
+straight =build-*= directory, and a troubleshooting paragraph in the
+org-dev skill explaining why a test might behave as though a newer org
+feature does not exist.
+
+*Why that is worse than it sounds.* Both indirect mechanisms fail
+*silently*. The org-dev skill already records that =bin/test='s glob
+"silently falls back to the bundled org again with no error", and the
+symptom is tests behaving as if a newer org feature is missing — which
+is indistinguishable from the feature being broken. The glob does
+resolve today (=build-29.4=), so nothing is wrong right now; the point
+is that nothing would say so if it stopped.
+
+*Not yet decided, and the options differ in kind:* an =org-assert-version=
+or explicit =version<= guard at load time (fails loudly, on the right
+machine, at the right moment); a declared minimum in =packages.el=
+(documents intent, enforces nothing under straight); or making
+=bin/test= refuse to run rather than fall back when its glob misses
+(catches it in CI-shaped usage but never at a user's install). They are
+not exclusive, and the first is the only one that protects someone
+installing this module on an Emacs whose org nobody here controls —
+which is the same argument
+[[id:4f9e552a-e1a9-48dd-8801-3f23a31b9e32][4f9e552a]] made for keeping
+the =command emacs= convention after the environment fix moved out.
+
+*Related:* [[id:1caed585-3209-4108-8501-eba16baf6a01][1caed585]] asks
+what this module may change on a user's machine when installed; this is
+the narrower question of what it may *assume*. And
+[[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]]'s README would be
+the natural place a stated minimum lands for a human reader.
 
 ** NEXT Concurrent sessions share one git index, and explicit staging protects nothing :code:
 :PROPERTIES:
