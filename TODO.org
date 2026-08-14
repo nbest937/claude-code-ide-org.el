@@ -7518,10 +7518,21 @@ requires — the same test that promoted
 Decoupling live visibility is worth doing whether or not the epic ever
 closes, and the epic closes whether or not this is done.
 
-** TODO pause/resume cannot see a turn blocked on a permission prompt :code:
+** DOING pause/resume cannot see a turn blocked on a permission prompt :code:
 :PROPERTIES:
 :ID:       f4e628ce-e653-429a-8f3c-0f5d4241b139
 :CREATED:  [2026-08-11 Tue 15:52]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-14 Fri 16:44]--[2026-08-14 Fri 16:51] =>  0:07
+- [2026-08-14 Fri 16:44]--[2026-08-14 Fri 16:51] assigned at review
+- State "PLANNING"   from "TODO"       [2026-08-14 Fri 16:51] \\
+  planning the blocked-turn detection
+- State "DOING"      from "PLANNING"   [2026-08-14 Fri 16:57]
+CLOCK: [2026-08-14 Fri 16:58]--[2026-08-14 Fri 17:08] =>  0:10
+- [2026-08-14 Fri 16:58]--[2026-08-14 Fri 17:08] plan permission-block visibility
+CLOCK: [2026-08-14 Fri 17:09]--[2026-08-14 Fri 17:14] =>  0:05
+- [2026-08-14 Fri 17:09]--[2026-08-14 Fri 17:14] plan permission-block visibility
 :END:
 [[file:~/.claude/plans/cheerful-riding-robin.md][Plan]]
 
@@ -9346,6 +9357,10 @@ CLOCK: [2026-08-05 Wed 14:10]--[2026-08-05 Wed 14:35] =>  0:25
   Auto-promoted: sole remaining TODO in its sibling group.
 - State "CANCELLED"  from "MAYBE"      [2026-08-14 Fri 14:51] \\
   folded into 290b6fc5; mechanism superseded
+CLOCK: [2026-08-14 Fri 14:59]--[2026-08-14 Fri 15:06] =>  0:07
+- [2026-08-14 Fri 14:59]--[2026-08-14 Fri 15:06] suggested span, accepted at review
+CLOCK: [2026-08-14 Fri 15:31]--[2026-08-14 Fri 15:42] =>  0:11
+- [2026-08-14 Fri 15:31]--[2026-08-14 Fri 15:42] suggested span, accepted at review
 :END:
 [[file:~/.claude/plans/nifty-beaming-lynx.md][Plan]]
 
@@ -9740,6 +9755,76 @@ property two lines above — the script tested list membership of a whole
 line where it needed a substring. Same shape as the drawer-scoped grep
 failures already recorded above: a wrong answer that looks like a
 finding.
+
+** TODO Read a heading's front matter, and take a partial :ID:, without a whole-body read :code:
+:PROPERTIES:
+:ID:       2d9eeebd-4375-4790-8485-92b244236a21
+:CREATED:  [2026-08-14 Fri 17:27]
+:END:
+
+*Raised by the user 2026-08-14, from a concrete request the tools cannot
+serve:* "show me the front matter of =f4e628ce= — sans body — and the
+tree of anything below it." Both halves fail, for different reasons.
+
+*What the surface actually offers.* =org_outline= returns *structure*
+only: one line per heading with level, keyword, title, =:ID:=, tags and
+a =[blocked]= marker. =org_query= returns *matches*: one line with
+state, heading, tags, =:ID:= and file. Neither returns a properties
+drawer, a =:BLOCKER:= value, a plan link, or any body.
+
+*The partial-:ID: failure is worse than absence, because it misreports.*
+=org_outline= with =scope= =f4e628ce= answered
+=Error: no readable file at .../f4e628ce=: an unrecognised scope falls
+through to being treated as a *filename*, so a truncated id reads as a
+missing file rather than an unresolvable heading. Partial *titles* do
+work — =org_query heading:"permission prompt"= resolved to the full id —
+so title-to-id lookup exists and id-prefix lookup does not, which is the
+opposite of how this project's prose, commits and conversation refer to
+headings.
+
+*Measured, because the cost is the argument:* =TODO.org= holds 111
+headings across 10,251 lines — median heading 75 lines, mean 92, largest
+405 ([[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]]). Front
+matter is 5 or 6. So answering "what state is this in, what blocks it,
+what is under it" by reading the heading costs roughly *fifteen times*
+what the answer needs, and that read happened about twenty times in the
+2026-08-14 session alone, twice as a 60-line window to see one =:ID:=
+line.
+
+*An honest deduction from that number, before it is used to justify
+anything:* part of the waste was habit rather than absence. =org_query=
+already answers "what state is X in" in one line and already resolves a
+partial title; it was passed over for =awk= repeatedly that day. The
+genuine gap is narrower than the measurement suggests — properties are
+unreachable, and 8-character ids are unusable — and a tool built to the
+full measurement would be built to the wrong size.
+
+*Proposed shape: extend =org_outline=, do not add a third tool.*
+CLAUDE.md's own design note argues the surface should stay small because
+each tool's schema costs tokens on every request, so two options on an
+existing tool beat a new one:
+1. accept an =:ID:= *prefix*, resolving it when unambiguous and saying so
+   plainly when not — and, either way, never reporting an unresolved
+   scope as a missing file;
+2. an option to include the scope root's property drawer, so front
+   matter comes back without the body.
+
+*Deliberately out of scope: semantic matching.* The user asked whether
+title matching is semantic; it is not, and it should not become so here.
+A fuzzy resolver that returns the wrong heading confidently is the same
+failure this project has now measured twice — see
+[[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] on a guess that was
+wrong more often than right, and the suggestion fallback removed the same
+day. Prefix matching is decidable; semantic similarity is not.
+
+*Sibling, not duplicate:*
+[[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]] is this problem for
+the *human* at Emacs — an interactive jump-by-title command, which
+already establishes that =org-id-goto= is exact-match by construction and
+that this project's 8-character abbreviations are "readable and
+completely unactionable". Same root convention, different consumer:
+that one wants =completing-read= over titles, this one wants the MCP
+tools to accept what the prose already writes.
 
 ** TODO Jump to a heading by title, not by pasting a UUID :code:
 :PROPERTIES:
