@@ -7523,6 +7523,7 @@ closes, and the epic closes whether or not this is done.
 :ID:       f4e628ce-e653-429a-8f3c-0f5d4241b139
 :CREATED:  [2026-08-11 Tue 15:52]
 :END:
+[[file:~/.claude/plans/cheerful-riding-robin.md][Plan]]
 
 The =Stop= hook fires when a turn ends. A turn that stalls mid-flight —
 waiting on a tool-permission prompt — has not ended, so no =pause= is
