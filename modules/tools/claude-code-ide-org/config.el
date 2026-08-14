@@ -3118,6 +3118,21 @@ from a skipped one."
             (time-less-p (or (plist-get a :ts) (plist-get a :start))
                          (or (plist-get b :ts) (plist-get b :start)))))))
 
+(defconst claude-code-ide-org--work-in-progress-keywords '("DOING" "PLANNING")
+  "Keywords asserting that work is happening on a heading right now.
+
+The positive half of the keyword set, and the only half worth naming:
+every other keyword -- including any added later -- means work is not
+happening, which is what `claude-code-ide-org--review-suggest-heading'
+needs to know.  Defining the small, stable side and treating the rest as
+its complement is what keeps a new keyword from having to be remembered
+in a second place.
+
+Not read from `org-todo-keywords' because that answers a different
+question.  Org divides keywords into not-done and done at the `|'; this
+divides them into \"being worked\" and everything else, and WAIT, TODO
+and NEXT all sit on org's not-done side while meaning nobody is working.")
+
 (defun claude-code-ide-org--review-suggest-heading (time events)
   "Return the :ID: most plausibly being worked on at TIME, from EVENTS.
 
@@ -3144,15 +3159,24 @@ from correction.  See TODO.org :ID: 3d0487f4."
               (state (plist-get e :state)))
           (setq last-any id)
           (cond
-           ((member state '("DOING" "PLANNING")) (setq active id))
+           ((member state claude-code-ide-org--work-in-progress-keywords)
+            (setq active id))
            ;; A heading that has left DOING is no longer what anyone is
            ;; working on, so it must stop being suggested. Without this
            ;; the guess latches: measured live 2026-08-13, three spans
            ;; spanning eight hours all suggested a heading that had gone
            ;; CANCELLED before the first of them even began.
-           ((and (equal id active)
-                 (member state '("DONE" "CANCELLED" "WAIT" "TODO" "NEXT" "MAYBE")))
-            (setq active nil))))))
+           ;;
+           ;; Stated as "anything that is not work in progress" rather
+           ;; than by naming the six keywords that are not. The two forms
+           ;; were exact complements, so the list was a second copy of the
+           ;; keyword set that had to be kept in step with `#+TODO:' by
+           ;; hand -- and a keyword forgotten there fails *silently*, by
+           ;; latching, which is the failure mode hardest to notice. This
+           ;; form brackets correctly for a keyword nobody has invented
+           ;; yet (TODO.org :ID: c954f650, where adding REVIEW is under
+           ;; discussion).
+           ((equal id active) (setq active nil))))))
     (or active last-any)))
 
 (defun claude-code-ide-org--review-current-state (id)

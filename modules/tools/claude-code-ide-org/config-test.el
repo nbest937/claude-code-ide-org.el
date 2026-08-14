@@ -4506,6 +4506,31 @@ touched, so gap arithmetic is tested on its own terms."
               (lambda (&rest _) nil)))
      ,@body))
 
+(ert-deftest claude-code-ide-org-test-suggestion-brackets-on-an-unknown-keyword ()
+  "The bracket must fire for a keyword nobody has invented yet.  While it
+named the six non-working keywords explicitly, adding a seventh to
+`#+TODO:' -- REVIEW is under discussion on c954f650 -- would have left
+the guess latching on that heading forever, and failing by latching is
+the failure mode hardest to notice.
+
+Observed through the function's own answer, which needs two headings:
+with `active' cleared the suggestion falls through to the most recent
+`todo' of any state, so it names id-b.  Left latching, it would still
+name id-a."
+  (let* ((base (date-to-time "2026-08-14T09:00:00-0500"))
+         (events (list (list :kind "todo" :id "id-a" :state "DOING" :ts base)
+                       (list :kind "todo" :id "id-a" :state "REVIEW"
+                             :ts (time-add base 60))
+                       (list :kind "todo" :id "id-b" :state "TODO"
+                             :ts (time-add base 120)))))
+    ;; While id-a is DOING it is the answer, whatever else has happened.
+    (should (equal "id-a" (claude-code-ide-org--review-suggest-heading
+                           (time-add base 30) events)))
+    ;; Once it reaches REVIEW -- a keyword this code has never heard of --
+    ;; it stops being the answer.
+    (should (equal "id-b" (claude-code-ide-org--review-suggest-heading
+                           (time-add base 180) events)))))
+
 (ert-deftest claude-code-ide-org-test-span-gaps-report-unattested-stretches ()
   "The real 17:18-17:32 case: commits at +4m and +8m leave a 6m tail with
 nothing in it.  The two 4m stretches are below the threshold and stay
