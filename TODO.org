@@ -1654,15 +1654,12 @@ that whole time *no session-start report has ever mentioned it*, because
 =claude-code-ide-org--wait-headings-context= reports only the currently
 clocked heading plus =WAIT= headings.
 
-This surfaced while considering adding =DOING= to that report's keyword
-set, so a new session would be told about headings left mid-flight.
-Simulated against the real files, the proposal produced four lines where
-today there is one — and three of the four are currently invisible: two
-leaves abandoned that morning
-([[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] and
-[[id:4f9e552a-e1a9-48dd-8801-3f23a31b9e32][4f9e552a]]), and this epic,
-which would then appear in *every* session-start report, unchanged,
-indefinitely.
+This surfaced while considering adding =DOING= to that report's keyword set, so
+a new session would be told about headings left mid-flight. Simulated against
+the real files, the proposal produced four lines where today there is one — and
+three of the four are currently invisible: two leaves abandoned that morning
+([[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] and [[id:4f9e552a-e1a9-48dd-8801-3f23a31b9e32][4f9e552a]]), and this epic, which would then appear in *every*
+session-start report, unchanged, indefinitely.
 
 *The finding is that the two are the same keyword and opposite news.* A
 container in =DOING= is a true and unremarkable statement about the
@@ -7455,21 +7452,15 @@ heading retrospectively, rather than requiring anyone to clock into a
 standing task in advance. If that lands, this heading is no longer a
 mechanism to remember — it is just a convenient assignment target for
 spans that genuinely belong to no task.
-** WAIT Let a session interject without waiting: advisory locks, or extend the queue to capture/amend :code:
+
+
+** TODO Let a session interject without waiting: advisory locks, or extend the queue to capture/amend :code:
 :PROPERTIES:
 :ID:       b5f94b88-76e3-4a3c-ac73-729f34d33691
 :CREATED:  [2026-08-13 Thu 10:13]
 :END:
-
-*Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]
-on 2026-08-13.* It arose from that epic's work but is not required for
-it to complete: the queue can be finished and correct without ever
-gaining capture/amend events. It also has its own plan file, its own
-scope decisions and its own deferred phases — a child with a plan file
-of its own is usually an epic wearing a child's clothes. Left as a
-level-2 task rather than declared an epic, since it has no children yet;
-it will become one naturally if capture and amend split.
 :LOGBOOK:
+- State "TODO"       from "WAIT"       [2026-08-14 Fri 11:56]
 - State "TODO"       from              [2026-08-13 Thu 10:14] \\
   drafted, awaiting the user's careful read
 CLOCK: [2026-08-13 Thu 11:04]--[2026-08-13 Thu 11:14] =>  0:10
@@ -7488,6 +7479,15 @@ CLOCK: [2026-08-13 Thu 11:25]--[2026-08-13 Thu 11:30] =>  0:05
   v1 built, awaiting your review
 :END:
 
+*Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] on 2026-08-13.*
+
+It arose from that epic's work but is not required for it to complete: the queue
+can be finished and correct without ever gaining capture/amend events. It also
+has its own plan file, its own scope decisions and its own deferred phases — a
+child with a plan file of its own is usually an epic wearing a child's clothes.
+Left as a level-2 task rather than declared an epic, since it has no children
+yet; it will become one naturally if capture and amend split.
+
 [[file:~/.claude/plans/capture-amend-queue.md][Plan]]
 
 *Plan approved 2026-08-13, scoped by two decisions the user made during
@@ -7500,12 +7500,10 @@ non-blocking, and it supersedes the "always queue" reading of step 3
 below.
 
 Note the plan lives in its own file rather than this conversation's
-=hazy-moseying-sky.md=: that path is already the permanent link for
-[[id:6b1e73c4-25da-4f0e-8a51-9c0d3f7ab214][6b1e73c4]] and
-[[id:f290161c-f9e7-4bfb-9adf-4c5630d4c5ae][f290161c]], and Claude Code
-reuses one plan file per conversation, so planning here overwrote it.
-Restored from =plans/= and the new plan given its own name, so both
-older links still resolve to the plan they were written for.
+=hazy-moseying-sky.md=: that path is already the permanent link for [[id:6b1e73c4-25da-4f0e-8a51-9c0d3f7ab214][6b1e73c4]] and
+[[id:f290161c-f9e7-4bfb-9adf-4c5630d4c5ae][f290161c]], and Claude Code reuses one plan file per conversation, so planning
+here overwrote it. Restored from =plans/= and the new plan given its own name,
+so both older links still resolve to the plan they were written for.
 
 *Read by the user 2026-08-13* — both the original draft below and the
 =create-lockfiles= research appended to step 1. The "study this before
@@ -7633,12 +7631,15 @@ answer.
 
 Steps 2 and 3 overlap: if 3 lands, 2 may be unnecessary, since there
 would be nothing left that needs to write immediately.
-** DOING Show commits and heading creations inside an unassigned span's window :code:
+
+
+** DONE Show commits and heading creations inside an unassigned span's window :code:
 :PROPERTIES:
 :ID:       5ff5a4b8-2fee-472a-b5e1-c9de8cf96704
 :CREATED:  [2026-08-13 Thu 16:28]
 :END:
 :LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-14 Fri 11:56]
 - State "NEXT"       from              [2026-08-13 Thu 16:29] \\
   prototyped by hand; build before 0c8644ff
 - State "DOING"      from "NEXT"       [2026-08-13 Thu 17:32] \\
@@ -8070,6 +8071,8 @@ question only the human can answer, and its delivery depends on the party
 that cannot be held to it. That is the same shape as the reason apply is
 human-triggered — a mechanism whose correctness rests on the model doing
 something it was merely asked to do.
+
+
 ** TODO Reconstruct coarse day-level attention intervals for the agenda :code:
 :PROPERTIES:
 :ID:       4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba
@@ -8078,6 +8081,8 @@ something it was merely asked to do.
 :LOGBOOK:
 - State "TODO"       from              [2026-08-14 Fri 11:36] \\
   manual pass, no blockers found
+CLOCK: [2026-08-14 Fri 11:46]--[2026-08-14 Fri 11:52] =>  0:06
+- <2026-08-14 Fri 11:46>--<2026-08-14 Fri 11:52> suggested span, accepted at review
 :END:
 
 *Named 2026-08-14, after establishing what the system does and does not
@@ -8383,16 +8388,17 @@ names and files) and are out of scope.
 
 * Tooling
 
-** DOING emacs is a shell function that silently breaks inline batch verification :code:
+** TODO emacs is a shell function that silently breaks inline batch verification :code:
 :PROPERTIES:
 :ID:       4f9e552a-e1a9-48dd-8801-3f23a31b9e32
 :CREATED:  [2026-08-11 Tue 15:52]
 :END:
 :LOGBOOK:
+- State "TODO"       from "DOING"      [2026-08-14 Fri 12:04]
 - State "DOING"      from "TODO"       [2026-08-14 Fri 08:57] \\
   adding the skill line it proposes
 CLOCK: [2026-08-14 Fri 09:09]--[2026-08-14 Fri 09:42] =>  0:33
-- <2026-08-14 Fri 09:09>--<2026-08-14 Fri 09:42> suggested span, accepted at review
+- <2026-08-14 Fri 09:09>--<2026-08-14 Fri 09:42> task definition
 :END:
 
 The user's shell profile defines:
@@ -8455,9 +8461,37 @@ project's verification is the =~/.zshrc= one, and someone reasoning from
 "my shell is fish" would look in the wrong file.
 
 The split also prompted naming a goal that had never been written down —
-applying these org conventions at the user level, across projects rather
-than inside one repo — recorded as
-[[id:ae2d9b4a-219c-4b32-9a0f-09162e9e5964][ae2d9b4a]].
+applying these org conventions at the user level, across projects rather than
+inside one repo — recorded as [[id:ae2d9b4a-219c-4b32-9a0f-09162e9e5964][ae2d9b4a]].
+
+*Outcome, 2026-08-14.* Three artifacts, each confirmed present on disk
+rather than recalled: the org-dev skill carries the warning as its own
+section heading, "Never invoke bare =emacs= for a batch check — use
+=command emacs=" (=d34c809=); =bin/test= says =exec command emacs=, with
+a comment explaining that it was already safe and says so anyway
+(=ca5d96c=); and the environment half is filed as
+[[id:52ede10e-5e6f-4392-b31d-b9ce9b450c3c][52ede10e]] in =~/org/notes.org=,
+still open there and deliberately not tracked from here.
+
+*How it was verified, stated plainly because it is weaker than a test.*
+The deliverable is a convention plus a line of documentation, so there is
+no mechanical surface to assert against — the check was reading the three
+artifacts, not running anything. Whether the skill line actually fires at
+the moment of the mistake is trigger-matching against a skill
+description, which this project's engineering-practices rule names as
+inherently fuzzy and not worth forcing into a deterministic test. The
+honest evidence is negative and thin: no bare =emacs --batch= has
+recurred since the skill line landed at 08:58, against two recurrences in
+the hours before it.
+
+*Why this heading's =:LOGBOOK:= reads oddly, recorded so it is not
+re-diagnosed later.* It was demoted =DOING= -> =TODO= by hand at 12:04
+and closed to =DONE= shortly after, which looks like work that started
+and stopped. It did not. The 09:09--09:42 span was re-annotated *task
+definition* at review, and the commit record agrees: =d34c809= landed at
+08:58, twelve minutes after the =DOING= transition and *before* that span
+opened. The implementation was the twelve minutes; the span that looks
+like it was the narrowing.
 
 
 ** DONE Move the statusline script into the repo :code:
