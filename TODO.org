@@ -7522,7 +7522,7 @@ answer.
 
 Steps 2 and 3 overlap: if 3 lands, 2 may be unnecessary, since there
 would be nothing left that needs to write immediately.
-** WAIT Show commits and heading creations inside an unassigned span's window :code:
+** DOING Show commits and heading creations inside an unassigned span's window :code:
 :PROPERTIES:
 :ID:       5ff5a4b8-2fee-472a-b5e1-c9de8cf96704
 :CREATED:  [2026-08-13 Thu 16:28]
@@ -7538,6 +7538,8 @@ CLOCK: [2026-08-13 Thu 17:55]--[2026-08-13 Thu 18:36] =>  0:41
 - State "WAIT"       from "DOING"      [2026-08-13 Thu 17:55] \\
   awaiting hands-on review of the buffer
 - <2026-08-13 Thu 17:55>--<2026-08-13 Thu 18:36> suggested span, accepted at review
+- State "DOING"      from "WAIT"       [2026-08-14 Fri 09:38] \\
+  adding gap lines after use feedback
 :END:
 
 *Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]
@@ -8115,6 +8117,8 @@ names and files) and are out of scope.
 :LOGBOOK:
 - State "DOING"      from "TODO"       [2026-08-14 Fri 08:57] \\
   adding the skill line it proposes
+CLOCK: [2026-08-14 Fri 09:09]--[2026-08-14 Fri 09:42] =>  0:33
+- <2026-08-14 Fri 09:09>--<2026-08-14 Fri 09:42> suggested span, accepted at review
 :END:
 
 The user's shell profile defines:
