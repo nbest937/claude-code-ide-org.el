@@ -146,10 +146,29 @@ own description, as opposed to the accuracy of its documented content)
 are inherently fuzzy and not worth forcing into a deterministic test;
 say so explicitly rather than skipping verification silently.
 
-**Rule**: work on new features happens on a feature branch, named
-`feature/short-name-of-task`, not directly on `main`. Applies to new
-feature work specifically — bug fixes and small doc/TODO edits aren't
-implied to require one just because this rule exists.
+**Rule**: work does not land directly on `main` — it lands on a
+`feature/short-name` branch and merges. What earns a branch is wanting a
+separate **integration point**, not a taxonomy: several commits that
+should arrive together, work you might abandon, or something you want to
+review as a unit. A one-helper fix committed straight onto the branch
+you are already on does not need its own.
+
+This is deliberately not "one branch per task." The repo's own history
+is the evidence: `feature/capture-amend-queue` earned one because it had
+phases and its own plan, and was branched off `feature/event-queue-format`
+and merged back into it; `feature/fix-tracked-files-resolution` earned
+one despite being a bug fix, which a feature-vs-bugfix reading would have
+exempted. The old wording said `feature/short-name-of-task` and so read
+as demanding a decision per heading — a decision that has never actually
+predicted the practice, and that costs momentum on every heading to
+answer.
+
+**Related, since it is the same instinct**: don't reach for a
+feature-vs-epic classification either. An epic is simply a heading that
+has acquired children carrying TODO keywords — emergent, reversible, and
+machine-detectable via `claude-code-ide-org--container-heading-p`. No
+heading needs to be classified as one when it is written; see TODO.org
+`:ID:` b5f94b88, which says so about itself.
 
 **Rule**: work planned via Claude Code's own Plan Mode gets a single
 permanent link in its heading body — `[[file:~/.claude/plans/<slug>.md][Plan]]`
