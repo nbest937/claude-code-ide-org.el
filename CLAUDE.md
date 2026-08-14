@@ -296,10 +296,17 @@ TODO.org :ID: b95b9fba-f78e-48fe-8546-988709cce309). A stray promotion after
 a rejected plan is low-cost and self-corrects the next time the heading's
 real state is set explicitly — not fixed.
 **Cross-session guard**: the `ExitPlanMode` promotion only fires for the
-session that set `PLANNING` on the currently-clocked heading, tracked via
-`claude-code-ide-org--planning-owner-session-id` — same pattern as
-`claude-code-ide-org--clock-owner-session-id` (see "Session tracking"
-below), applied to this new hook.
+session that set `PLANNING`. It no longer needs a variable to do that.
+`claude-code-ide-org--planning-owner-session-id` and
+`claude-code-ide-org--clock-owner-session-id` were deleted at the
+2026-08-11 cutover (TODO.org `:ID:` feba67eb, reconciled by `:ID:`
+e51d6ba1): the promotion moved into
+`bin/hooks/exitplanmode-promote-planning`, which reads *the session's own
+queue file* for the heading it most recently queued `PLANNING` on. The
+guard comes free from the file being per-session — another session's
+`PLANNING` is simply not in it to be found — which is why there is
+nothing left to track. Note this also means the guard no longer depends
+on a clock running, since none does.
 **Rule**: when asked to start work on a task tracked as an org heading with
 a `:ID:`, transition it to `DOING` via `org_set_todo` *before* beginning,
 unless it's already `DOING`. This has to be a standing instruction, not a

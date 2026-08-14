@@ -1899,6 +1899,20 @@ error incident 1 above recorded. So this desync is not merely a display
 problem: it is the reachable trigger for apply's fabricated-interval
 bug. The two headings are one causal chain, and this one is upstream.
 
+*Confirmed surviving, and promoted out of =MAYBE=, 2026-08-14 by
+[[id:e51d6ba1-cc1d-4745-8aa7-e4b1183a230b][e51d6ba1]]* — the heading
+whose job was to decide whether this one is superseded. It is not, and
+three separate things now depend on it, which is more than "someday"
+can carry:
+
+1. Observed *live on 2026-08-12*, after the cutover, so it is residue of
+   nothing.
+2. It is the upstream half of the causal chain to =803314aa=, per the
+   paragraph directly above.
+3. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s decision to
+   *keep* =claude-code-ide-org-close-open-interval= rests explicitly on
+   this heading — a shipped decision now cites it as a reason.
+
 ** CANCELLED session-resume blindly inherits any session's last-clocked heading :code:
 :PROPERTIES:
 :ID:       582cc7f4-41a2-4666-ad3f-1b76b459147e
@@ -4981,6 +4995,62 @@ Once this design is either committed to or rejected, revisit [[id:53b0047d-c55c-
 a note pointing here, or confirmed as still independently worth doing regardless
 of this refactor's fate (=2b0988ed= looks likeliest to survive either way). Also
 decide [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]'s own fate at the same time, rather than leaving it to drift.
+
+*Reconciled 2026-08-14. All six are settled; four had already settled
+themselves, and the audit's job was to confirm that rather than to
+decide it.*
+
+*Four =CANCELLED= on 2026-08-12, each with a note giving its reason:*
+=582cc7f4= ("superseded by feba67eb's cutover; see e51d6ba1"),
+=d150c02e= ("ownership variables deleted at cutover; see e51d6ba1"),
+=782cda6c= ("folded into the review UI; see e51d6ba1"), and =2b0988ed=
+(":SESSIONS: deleted; ordering settled by af7d3687"). Three point here
+as this heading asked. The fourth points at =af7d3687= instead, which is
+the better citation for it — its cause was the drawer's deletion, not
+this refactor.
+
+*Which makes the parenthetical prediction above exactly wrong, and it is
+worth keeping rather than quietly correcting.* =2b0988ed= was named as
+"likeliest to survive either way"; it is the one that died of a cause
+unrelated to the refactor, while =53b0047d= — unmentioned in that aside
+— is the one that survived and gained weight. Predicting which headings
+outlive a refactor from their subject matter did not work here.
+
+*Two survive, both confirmed rather than assumed:*
+- =53b0047d= — promoted =MAYBE= -> =TODO=. Not superseded: observed live
+  *after* the cutover, established as the upstream half of =803314aa='s
+  causal chain, and now cited by
+  [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s shipped
+  decision to keep the repair function. Three dependents is more than
+  =MAYBE= can carry.
+- =c954f650= — needed no decision here, because it made its own on
+  2026-08-13: it was ungated precisely *because* four of the ten items
+  its gate named were cancelled by this heading, making the gate
+  unsatisfiable. It cites =e51d6ba1= by name for that. Alive,
+  independent, and actively worked as recently as today.
+
+*The infrastructure half, which the title names and the body above never
+enumerates:* the three session-identity variables (=--log-session-id=,
+=--clock-owner-session-id=, =--planning-owner-session-id=) were deleted
+at the cutover, and =config.el= carries retirement commentary where each
+stood. What was *not* reconciled was the documentation: CLAUDE.md still
+described the =ExitPlanMode= cross-session guard as "tracked via
+=claude-code-ide-org--planning-owner-session-id=", a variable that has
+not existed since 2026-08-11. Corrected here rather than deferred to
+[[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]], since a deleted
+variable named as live machinery is this heading's own subject. The
+guard itself is intact and now needs no variable at all — the queue file
+is per-session, so another session's =PLANNING= is not in it to be
+found.
+
+*The plans half, audited and clean.* Every one of the 27 archived plans
+is still linked from some heading, so there are no orphans to retire,
+and =bin/sync-plans --check= reports all 27 in sync. The four cancelled
+headings each keep their plan link — =session-resume-continuity-guard=,
+=clock-in-ownership-recording=, =sessions-logbook-ordering=,
+=bookkeeping-noise-audit= — which is correct under this project's own
+rule that a plan link is permanent and is not removed when a heading
+closes. Nothing to do.
 
 
 *** TODO Update CLAUDE.md and the org skill for the new architecture :code:
