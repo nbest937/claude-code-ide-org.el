@@ -7649,6 +7649,36 @@ session; hook-config changes are known to take effect live for
 =PreToolUse=/=PostToolUse= (DONE.org =:ID:= 135033ff) and that has never
 been tested for this event.
 
+*Probe fired 2026-08-14 17:55, and it produced nothing.* The =ask= rule
+was loaded and correct; =echo afk-probe:1= ran in 13 seconds with no
+prompt, no =block_start=, and no sentinel. So the first failure mode
+above is the one that happened, and the feature is currently invisible.
+
+*Most likely cause is the risk the plan named: the session was a
+background job.* A background job has nobody to present a prompt to, so
+it can have no behaviour other than auto-approval, and everything that
+day is consistent with it — arbitrary =python3= heredocs and =git push=
+ran unchallenged against 57 =allow= rules covering none of them.
+
+*The competing explanation, not distinguishable from inside that
+session:* permission rules may be read at session start, so a rule added
+mid-session would not be in effect. Hook config is known to take effect
+live for =PreToolUse=/=PostToolUse= (=135033ff=), but that is hooks, and
+this is permissions.
+
+*The decisive test needs an interactive session, which is why this stays
+=WAIT=:* run =echo afk-probe:1= from a foreground Claude Code session in
+this repo. A prompt means the background job was the obstacle and the
+feature works wherever a human is actually present — which is every
+session that can block on a prompt in the first place, so the feature
+would be fine. No prompt means the rule needs a restart; try once more in
+a second fresh session before concluding anything about =ask= itself.
+
+*Worth noticing either way:* a permission block cannot occur in a session
+that never prompts, so in background jobs this whole defect is
+unreachable and the spans there were never wrong for this reason. That
+narrows where the fix matters rather than diminishing it.
+
 *Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] on
 2026-08-14,* with three siblings, on the reasoning that heading already
 established twice: a defect in what the queue *records* does not have to
