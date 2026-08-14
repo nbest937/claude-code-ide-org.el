@@ -5125,6 +5125,27 @@ with a *file list* scope it visits those files; =org_outline='s docstring
 records that this was verified not to move point or mark buffers
 modified, which is what makes it safe against files the user has open —
 worth preserving in the rewrite rather than rediscovering.
+
+*Added to scope 2026-08-14: document =.claude/hooks/=.* Tracing where the
+session-start report is defined turned up a directory CLAUDE.md does not
+mention at all. There are *two* hook directories —
+
+- =bin/hooks/= (documented in the repository layout): =queue-append=,
+  =session-pause=, =session-resume=, =session-start-recovery-check=,
+  =exitplanmode-promote-planning=
+- =.claude/hooks/= (undocumented): =session-context.sh=
+
+— and no stated rule for which a new hook belongs in. Both are wired
+from =.claude/settings.json=; both are shell scripts calling
+=emacsclient=; nothing distinguishes them but history.
+
+The omission is not incidental. =session-context.sh= produces the
+"what was I last doing" context injected at every session start, and the
+user had never seen its output — the file that generates the least
+visible artifact in the project is also the one the docs do not mention.
+Worth either consolidating the two directories or writing down why they
+differ.
+
 *** DONE Failed tool calls still enter the queue when the error is content-wrapped :code:
 :PROPERTIES:
 :ID:       5e2a1c04-7b3f-4d21-9c88-2f6e0a91b7d3
@@ -8039,6 +8060,76 @@ question only the human can answer, and its delivery depends on the party
 that cannot be held to it. That is the same shape as the reason apply is
 human-triggered — a mechanism whose correctness rests on the model doing
 something it was merely asked to do.
+** Reconstruct coarse day-level attention intervals for the agenda :code:
+:PROPERTIES:
+:ID:       4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba
+:CREATED:  [2026-08-14 Fri 11:35]
+:END:
+
+*Named 2026-08-14, after establishing what the system does and does not
+record.* The queue records *Claude sessions*; it has never recorded the
+user's own attention. Clocking manually in Emacs writes a =CLOCK:= line
+and nothing else, because the active annotation is this module's
+apply-time addition rather than org's. So solo work lands in the same
+agenda-invisible bucket as unattended subagent work, for an entirely
+different reason:
+
+| producer                    | CLOCK | annotation   | clocktable | agenda |
+|-----------------------------+-------+--------------+------------+--------|
+| Claude session, via apply   | yes   | active =<>=  | yes        | yes    |
+| subagent, via apply         | yes   | inactive =[]=| yes        | no     |
+| the user, clocking in Emacs | yes   | none         | yes        | *no*   |
+
+Measured the same day: TODO.org holds 84 =CLOCK:= lines and 52 active
+annotations, and the ~33 without one all predate the 2026-08-11 cutover.
+
+*The intended granularity is coarse, and this is the load-bearing
+constraint.* Stated by the user: "I expect my attention intervals to be
+coarser and just a bulk representation of what did I do that day." *Not*
+one annotation per CLOCK line, and not an attempt to align with the
+recorded intervals at all. That rules out the obvious helper — a command
+that annotates the CLOCK line at point — which was offered and declined
+for exactly this reason. A day-level summary is a different artifact
+from a reconstruction of the clock.
+
+*Doing it through the review buffer does not work, and the reason is
+structural.* Spans are reconstructed from =pause=/=resume= guideposts,
+which come only from Claude Code's =Stop=/=UserPromptSubmit= hooks. No
+session running means no guideposts, means no span to review. The buffer
+can *correct* a span that exists (=e= for endpoints, =a= to assign) but
+cannot *create* one for a period the queue never saw. Time spent alone in
+Emacs is therefore outside it in every era, not merely before the
+cutover.
+
+*So this is manual work in Emacs, by design and by preference,* and what
+would help is small: =RET= from the review buffer now unfolds the target
+=:LOGBOOK:= (2026-08-14), and
+=claude-code-ide-org--consolidate-drawer-at-point= will re-sort a drawer
+after hand-editing — though it is not =(interactive)= yet, so it needs
+=M-:= or a two-line wrapper. Org inserts CLOCK lines newest-first while
+notes land in insertion order, so a hand-edited drawer drifts out of
+chronological order quickly.
+
+*Sequencing, worked out 2026-08-14.* Nothing pending changes how
+intervals are *derived*, so nothing blocks this: =ab75d6d2=,
+=d1cf852a=, =c954f650= and =2aeb65d6= are all irrelevant to it. The one
+apparent dependency, [[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]]
+(re-measure the guidepost gap threshold), is weaker than it looks: its
+own data found span count flat across 1200-1800s with no observations
+between 1061s and 2070s, so a re-measure is unlikely to change any
+reconstruction.
+
+The asymmetry that governs the order: the queue keeps every raw event
+and can be re-clustered at will, while annotations written into
+=:LOGBOOK:= *cannot be re-derived* — redoing them means hand-editing org
+files. So do this after anything that changes derivation, and before
+anything that puts raw material out of reach.
+
+*One thing to avoid meanwhile:* =M-x claude-code-ide-org-archive-finished-queues=.
+It is manual, so it will not fire on its own, but it has already moved
+seven sessions (back to 2026-08-08) out of the review buffer's sight,
+and its own docstring notes that a restored file which lost its
+watermark supports "only all-or-nothing" reprocessing.
 
 * Bigger swings
 
