@@ -1564,7 +1564,7 @@ correctness and observability, as opposed to the general TODO-state
 machine above — three different angles on "make sure the clock is
 never silently wrong."
 
-** NEXT Container headings should change state without opening a clock :code:
+** DONE Container headings should change state without opening a clock :code:
 :PROPERTIES:
 :ID:       ab75d6d2-0e59-405d-92c6-2c67488db133
 :CREATED:  [2026-08-12 Wed 11:25]
@@ -1572,6 +1572,12 @@ never silently wrong."
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-08-14 Fri 10:26] \\
   report change is blocked behind it
+- State "DOING"      from "NEXT"       [2026-08-14 Fri 12:32] \\
+  exempting containers from auto-clock-in
+- State "DONE"       from "DOING"      [2026-08-14 Fri 12:35] \\
+  shipped, mutation-tested, verified live
+CLOCK: [2026-08-14 Fri 13:25]--[2026-08-14 Fri 13:52] =>  0:27
+- <2026-08-14 Fri 13:25>--<2026-08-14 Fri 13:52> suggested span, accepted at review
 :END:
 
 Raised by the user 2026-08-12, on moving
@@ -1802,10 +1808,14 @@ by [[id:af7d3687-6d1e-4480-a9e2-df772785713f][af7d3687]] (commit
 =4d2dcab=): one *ascending* timeline across every entry style — the
 opposite of the newest-first convention this heading proposed matching.
 
-** MAYBE Direct file writes to a live org buffer can desync org-clock-marker :code:
+** TODO Direct file writes to a live org buffer can desync org-clock-marker :code:
 :PROPERTIES:
 :ID:       53b0047d-c55c-486c-8eed-ba4994d97a1a
 :CREATED:  [2026-08-04 Tue 18:27]
+:END:
+:LOGBOOK:
+- State "TODO"       from "MAYBE"      [2026-08-14 Fri 13:51] \\
+  confirmed surviving; three dependents
 :END:
 [[file:~/.claude/plans/clock-marker-desync-guard.md][Plan]]
 
@@ -4395,10 +4405,16 @@ count ("3 updates awaiting review"), or a visible distinction between
 names — rather than just relocating today's single clocked-in/out
 label to a different data source with the same one-line shape.
 
-*** TODO Survey org's own API for built-in mechanisms we may have overlooked or dismissed too quickly :code:
+*** DONE Survey org's own API for built-in mechanisms we may have overlooked or dismissed too quickly :code:
 :PROPERTIES:
 :ID:       c084553c-0621-4a96-9fa1-f32850aeec6a
 :CREATED:  [2026-08-06 Thu 10:47]
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-08-14 Fri 13:32] \\
+  surveying org-element for drawer writes
+- State "DONE"       from "DOING"      [2026-08-14 Fri 13:36] \\
+  all four checklist items discharged
 :END:
 
 [[file:~/.claude/plans/temporal-wondering-sparrow.md][Plan]]
@@ -4596,7 +4612,7 @@ share one find-the-drawer helper rather than each carrying its own
 search. Worth a test built from the probe's own decoy fixture, which is
 already written.
 
-*** TODO Decide the fate of the stale-interval recovery feature, whose premise this refactor removes :code:
+*** DONE Decide the fate of the stale-interval recovery feature, whose premise this refactor removes :code:
 :PROPERTIES:
 :ID:       7771fc63-9374-4c8a-9e80-24ceec21977c
 :CREATED:  [2026-08-06 Thu 22:26]
@@ -4604,6 +4620,10 @@ already written.
 :LOGBOOK:
 CLOCK: [2026-08-12 Wed 17:40]--[2026-08-12 Wed 17:42] =>  0:02
 - [2026-08-12 Wed 17:40]--[2026-08-12 Wed 17:42] subagent investigating recovery fate
+- State "DOING"      from "TODO"       [2026-08-14 Fri 13:40] \\
+  deciding the recovery feature's fate
+- State "DONE"       from "DOING"      [2026-08-14 Fri 13:45] \\
+  decided and executed: guess retired
 :END:
 
 Captured 2026-08-06 from conversation. The whole stale-interval
@@ -4980,7 +5000,7 @@ by the post-deletion count, not by foresight; the reload precondition
 should have been stated before the check rather than after it.
 
 
-*** TODO Reconcile or retire the now-likely-superseded clock/session-ownership plans and infrastructure :code:
+*** DONE Reconcile or retire the now-likely-superseded clock/session-ownership plans and infrastructure :code:
 :PROPERTIES:
 :ID:       e51d6ba1-cc1d-4745-8aa7-e4b1183a230b
 :CREATED:  [2026-08-06 Thu 10:47]
@@ -4988,6 +5008,10 @@ should have been stated before the check rather than after it.
 :LOGBOOK:
 CLOCK: [2026-08-12 Wed 17:40]--[2026-08-12 Wed 17:43] =>  0:03
 - [2026-08-12 Wed 17:40]--[2026-08-12 Wed 17:43] subagent investigating heading fates
+- State "DOING"      from "TODO"       [2026-08-14 Fri 13:49] \\
+  reconciling superseded ownership infrastructure
+- State "DONE"       from "DOING"      [2026-08-14 Fri 13:51] \\
+  all six reconciled; plans audit clean
 :END:
 
 Once this design is either committed to or rejected, revisit [[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]], [[id:582cc7f4-41a2-4666-ad3f-1b76b459147e][582cc7f4]],
@@ -8449,6 +8473,8 @@ something it was merely asked to do.
   manual pass, no blockers found
 CLOCK: [2026-08-14 Fri 11:46]--[2026-08-14 Fri 11:52] =>  0:06
 - <2026-08-14 Fri 11:46>--<2026-08-14 Fri 11:52> suggested span, accepted at review
+CLOCK: [2026-08-14 Fri 12:07]--[2026-08-14 Fri 12:36] =>  0:29
+- <2026-08-14 Fri 12:07>--<2026-08-14 Fri 12:36> suggested span, accepted at review
 :END:
 
 *Named 2026-08-14, after establishing what the system does and does not
@@ -8516,10 +8542,16 @@ seven sessions (back to 2026-08-08) out of the review buffer's sight,
 and its own docstring notes that a restored file which lost its
 watermark supports "only all-or-nothing" reprocessing.
 
-** TODO Report abandoned DOING leaves at session start, not only WAIT :code:
+** DONE Report abandoned DOING leaves at session start, not only WAIT :code:
 :PROPERTIES:
 :ID:       9d7531f5-11c5-4203-89e3-56c3fe399df5
 :CREATED:  [2026-08-14 Fri 13:28]
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-08-14 Fri 13:29] \\
+  implementing the report keyword change
+- State "DONE"       from "DOING"      [2026-08-14 Fri 13:31] \\
+  shipped, mutation-tested, verified live
 :END:
 
 *Split out of [[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]] on
@@ -8836,17 +8868,19 @@ names and files) and are out of scope.
 
 * Tooling
 
-** TODO emacs is a shell function that silently breaks inline batch verification :code:
+** DONE emacs is a shell function that silently breaks inline batch verification :code:
 :PROPERTIES:
 :ID:       4f9e552a-e1a9-48dd-8801-3f23a31b9e32
 :CREATED:  [2026-08-11 Tue 15:52]
 :END:
 :LOGBOOK:
-- State "TODO"       from "DOING"      [2026-08-14 Fri 12:04]
 - State "DOING"      from "TODO"       [2026-08-14 Fri 08:57] \\
   adding the skill line it proposes
 CLOCK: [2026-08-14 Fri 09:09]--[2026-08-14 Fri 09:42] =>  0:33
 - <2026-08-14 Fri 09:09>--<2026-08-14 Fri 09:42> task definition
+- State "TODO"       from "DOING"      [2026-08-14 Fri 12:04]
+- State "DONE"       from "TODO"       [2026-08-14 Fri 12:17] \\
+  retcon: shipped 08-14, outcome note added
 :END:
 
 The user's shell profile defines:
