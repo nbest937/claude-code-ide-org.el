@@ -7704,6 +7704,60 @@ that never prompts, so in background jobs this whole defect is
 unreachable and the spans there were never wrong for this reason. That
 narrows where the fix matters rather than diminishing it.
 
+*Third probe, fresh session, 2026-08-14 18:24--18:41: the root cause is
+now known, and it is neither session lifetime nor the hook wiring.*
+=PermissionRequest= fires, =bin/hooks/block-start= runs, and it exits at
+its own guard because *the payload carries no =tool_use_id=*. Captured
+live at 18:40:51 by temporarily teeing the script's stdin — the keys are
+=session_id=, =prompt_id=, =permission_mode=, =hook_event_name=,
+=tool_name=, =tool_input=, =transcript_path=, =cwd=, =effort= and
+=permission_suggestions=, and that list is complete. =PostToolUse=, by
+contrast, *does* carry =tool_use_id=. The join key exists on the closing
+event and not on the opening one, so the pair can never form.
+
+*This falsifies the plan's central design assumption* — "=tool_use_id= is
+the join key, and it makes the bracket exact." It is not available where
+it is needed. The only keys present on *both* events are =session_id= and
+=prompt_id=, and =prompt_id= is per *user prompt*, not per tool call, so
+it cannot disambiguate two blocked calls within one turn. Re-keying the
+pairing is real design work, not a patch, and it is what remains.
+
+*The guard that hides it is tested as an edge case and is in fact the
+production path.* =bin/block-hooks-test= asserts "block-start refuses a
+payload with no =tool_use_id=" — written as path-traversal-adjacent
+hardening, and passing throughout. Every layer of verification stayed
+green while the feature was inert, which is exactly the failure the
+heading's own "the plumbing is right, not that it is connected" warned
+about; the warning was right and still did not catch it, because no
+fixture ever took production's shape. =bin/queue-append-test='s header
+says a fixture that never takes production's shape is a test of the
+fixture. That is what happened here.
+
+*The restart question is now unanswerable in retrospect, and no longer
+matters.* This session started with =PermissionRequest= registered and
+the hook demonstrably ran — but a hook that exits at the guard leaves
+*exactly* the evidence a hook that never fired leaves: no queue line, no
+sentinel. So the 17:58 session's silence has two explanations and the
+observation cannot separate them. Consequently *nothing here justifies
+correcting the org-dev skill's section 5* — the "new event types need a
+restart" claim was never established, only conjectured, and the conjecture
+is now moot.
+
+*The defect itself reproduced a third time, sub-threshold.* A prompt held
+18:32:53--18:38:38 (5m45s, against the 1200s gap rule) sits inside
+=resume= 18:29:02 and nothing further — one unbroken run, no =pause=,
+no =block_start=. The =touch= marker's own mtime of 18:38:38 is what
+proves the call was held rather than merely slow.
+
+*The recorded probe recipe does not work and should not be reused.* =echo
+afk-probe:1= under the =ask= rule produced *no prompt* on three attempts,
+sandboxed and unsandboxed; no competing =allow= rule matches it in any
+layer and the global allow list is empty, so =echo= appears to bypass
+permission evaluation entirely. =touch= on an unpermitted path prompts
+reliably and is the better probe. Also worth recording because it was
+believed otherwise at the time: the payload reports
+=permission_mode= as =acceptEdits=, not a fully manual mode.
+
 *Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] on
 2026-08-14,* with three siblings, on the reasoning that heading already
 established twice: a defect in what the queue *records* does not have to
