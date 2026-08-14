@@ -3428,10 +3428,32 @@ stated goal."
 
 (defun claude-code-ide-org--review-format-annotation (item)
   "Return the :LOGBOOK: annotation line for ITEM.
-Active timestamps for a human span -- those reach `org-agenda', which is
-the entire point -- and inactive for a subagent's, which should not."
-  (let* ((agent (plist-get item :agent))
-         (fmt (if agent "[%Y-%m-%d %a %H:%M]" "<%Y-%m-%d %a %H:%M>"))
+
+Always *inactive* timestamps, so nothing written from the queue reaches
+`org-agenda'.
+
+This used to branch on ITEM's `:agent', active for anything without one
+and inactive for a subagent's -- i.e. it tested \"is this a subagent\"
+while its own docstring claimed to test \"is this a human\".  Those come
+apart on the outer session, which carries no agent_id and was therefore
+rendered active: measured 2026-08-14, all 68 events of one session had
+`agent_id' nil, so every span it produced was published to the agenda as
+though the user had been at the keyboard for it.
+
+The correction is not a better test but the removal of one.  The queue
+records *agent* activity and nothing else -- hooks and MCP tools write
+it, and a human clocking in Emacs writes a bare CLOCK: line with no
+annotation at all (TODO.org :ID: 4f8500e6).  So there is no case in
+which a queue-derived span is the user's own attention, and no branch to
+make.
+
+Note this narrows what TODO.org :ID: c084553c established: an active
+timestamp inside :LOGBOOK: does reach the agenda, and that remains the
+mechanism -- but it is now reserved for intervals a human logs
+themselves.  The agenda answers \"where did *my* attention go\"; the
+queue answers \"what was the agent doing\", and conflating them makes
+the first unreadable.  See :ID: b8e6007a."
+  (let* ((fmt "[%Y-%m-%d %a %H:%M]")
          (note (claude-code-ide-org--review-annotation-label item)))
     (format "- %s--%s%s"
             (format-time-string fmt (plist-get item :start))

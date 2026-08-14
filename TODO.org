@@ -2568,6 +2568,8 @@ CLOCK: [2026-08-11 Tue 11:10]--[2026-08-11 Tue 11:13] =>  0:03
 CLOCK: [2026-08-06 Thu 15:45]--[2026-08-06 Thu 16:50] =>  1:05
 - State "NEXT"       from "TODO"       [2026-08-06 Thu 12:07] \\
   Auto-promoted: sole remaining TODO in its sibling group.
+CLOCK: [2026-08-14 Fri 13:58]--[2026-08-14 Fri 14:06] =>  0:08
+- [2026-08-14 Fri 13:58]--[2026-08-14 Fri 14:06] reallocated from e51d6ba1's mis-suggested span
 :END:
 
 [[file:~/.claude/plans/plan-this-task-clever-cupcake.md][Plan]]
@@ -4541,10 +4543,18 @@ because this project has repeatedly built bespoke machinery without
 doing so — held up: it did not overturn the architecture, but it did
 find one real defect and it did stop a migration that would have
 introduced =nil= bounds into working code.
-*** TODO The drawer reader gives up on a decoy where the writer loops past it :code:
+*** DONE The drawer reader gives up on a decoy where the writer loops past it :code:
 :PROPERTIES:
 :ID:       f42641ab-fdd6-4754-add9-490dd6b24ef8
 :CREATED:  [2026-08-14 Fri 13:34]
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-08-14 Fri 14:06] \\
+  unifying the drawer search
+- State "DONE"       from "DOING"      [2026-08-14 Fri 14:09] \\
+  shared helper shipped, mutations checked
+CLOCK: [2026-08-14 Fri 14:06]--[2026-08-14 Fri 14:09] =>  0:03
+- [2026-08-14 Fri 14:06]--[2026-08-14 Fri 14:09] reallocated from e51d6ba1's mis-suggested span
 :END:
 
 *Found 2026-08-14 by [[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]]'s
@@ -5087,7 +5097,7 @@ rule that a plan link is permanent and is not removed when a heading
 closes. Nothing to do.
 
 
-*** TODO Update CLAUDE.md and the org skill for the new architecture :code:
+*** NEXT Update CLAUDE.md and the org skill for the new architecture :code:
 :PROPERTIES:
 :ID:       02aaae22-0958-4c0f-b5bb-2cbea32416ae
 :BLOCKER:  ids(7771fc63-9374-4c8a-9e80-24ceec21977c e51d6ba1-cc1d-4745-8aa7-e4b1183a230b c084553c-0621-4a96-9fa1-f32850aeec6a)
@@ -5101,6 +5111,8 @@ CLOCK: [2026-08-10 Mon 19:07]--[2026-08-10 Mon 20:48] =>  1:41
 - <2026-08-10 Mon 19:10>--<2026-08-10 Mon 19:10> record post-cutover vocabulary
 - <2026-08-10 Mon 20:09>--<2026-08-10 Mon 20:11> record post-cutover vocabulary
 - <2026-08-10 Mon 20:47>--<2026-08-10 Mon 20:47> record post-cutover vocabulary
+- State "NEXT"       from "TODO"       [2026-08-14 Fri 14:57] \\
+  Auto-promoted: sole remaining TODO in its sibling group.
 :END:
 
 Once implemented: rewrite CLAUDE.md's "State transition rules",
@@ -7448,6 +7460,10 @@ explicitly out of scope for v1.
 :ID:       290b6fc5-3ebb-4827-9a97-5a3542e354b6
 :CREATED:  [2026-08-06 Thu 10:47]
 :END:
+:LOGBOOK:
+CLOCK: [2026-08-14 Fri 14:44]--[2026-08-14 Fri 14:51] =>  0:07
+- [2026-08-14 Fri 14:44]--[2026-08-14 Fri 14:51] reallocated from e51d6ba1's mis-suggested span
+:END:
 
 Point the statusline (=claude-code-ide-org--statusline-task-string=)
 at the *queue* files' latest event across all sessions, rather than
@@ -7783,6 +7799,10 @@ regenerate rather than trusting a stale rendering.
 :PROPERTIES:
 :ID:       a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5
 :CREATED:  [2026-08-10 Mon 12:50]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-14 Fri 14:10]--[2026-08-14 Fri 14:28] =>  0:18
+- [2026-08-14 Fri 14:10]--[2026-08-14 Fri 14:28] reallocated from e51d6ba1's mis-suggested span
 :END:
 
 Proposed by the user 2026-08-10: a standing pseudo-task to clock
@@ -8558,6 +8578,75 @@ human-triggered — a mechanism whose correctness rests on the model doing
 something it was merely asked to do.
 
 
+** DONE The agenda is for human attention; the queue records agent activity :code:
+:PROPERTIES:
+:ID:       b8e6007a-ae13-4b13-bb2e-a5df39435af0
+:CREATED:  [2026-08-14 Fri 16:46]
+:END:
+
+*Decided 2026-08-14, from the user's correction, and it is a design
+change rather than a bug fix.* Inactive, non-=CLOCK:= timestamps are for
+*any* non-human agent — including the outer REPL, not only subagents.
+
+*The defect that surfaced it.*
+=claude-code-ide-org--review-format-annotation= branched on the item's
+=:agent=: inactive when present, active otherwise. Its docstring claimed
+this distinguished a *human* span from a subagent's, but the test it
+actually performed was "is this a subagent," and the two come apart on
+the outer session. Measured: all 68 events of one session carried
+=agent_id= nil, so every span it produced was published to =org-agenda=
+as though the user had been at the keyboard for it. Line 5032 of this
+file was one — an *active* 53-minute annotation for work Claude did.
+
+*The fix removes the branch rather than improving it.* The queue records
+agent activity and nothing else: hooks and MCP tools write it, and a
+human clocking by hand in Emacs writes a bare =CLOCK:= line with no
+annotation at all ([[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]]
+established that). So no queue-derived span is ever the user's own
+attention, and there is no case left to branch on. All review-applied
+annotations are now inactive.
+
+*What this narrows, deliberately.*
+[[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]] confirmed live that
+an active timestamp inside =:LOGBOOK:= reaches the agenda, and
+[[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]'s guideposts were
+built to exploit it — "org's own agenda doubles as a free retrospective
+what-did-I-attend-to view." That mechanism still works and is still the
+right one; what changes is *who may use it*. It is now reserved for
+intervals a human logs themselves. The agenda answers "where did *my*
+attention go"; the queue answers "what was the agent doing." Conflating
+them makes the first unreadable, which is the whole complaint.
+
+*The two-layer model this settles, in the user's own framing:* the agent
+record is mechanically capturable and should therefore be *precise* —
+minute-by-minute, correctly allocated, because that is the cheap half.
+The human's own attention is coarse, subjective, and logged by hand,
+possibly as multi-hour blocks at container level, possibly mixed with
+finer entries. The precise record is *input* to that judgement, not a
+substitute for it. An earlier reading of this — "go coarse everywhere,
+the misattribution stops mattering" — was rejected: it would discard the
+cheap accurate thing in order to approximate the expensive inexact one.
+
+*Worked example, same day: a declared absence needs no queue event.* The
+user declared AFK ~15:45–16:15 and asked what followed from it. Checked
+rather than designed for: the last event before it was a =pause= at
+15:42:13 and the next a =resume= at 16:44:23 — a 62-minute gap against a
+threshold of 1200s, so
+=claude-code-ide-org--aggregate-guideposts= already splits there and no
+span straddles the absence. Nor is the queue's inability to tell "away"
+from "present but not prompting" a defect under this model: the
+agent-layer record correctly says *no agent activity* across that
+window, which is true wherever the human was. Absence is a fact about
+the human layer, and the human layer is logged by hand. Nothing to
+build, which is the answer only the two-layer split makes available —
+before it, this looked like it wanted a new event kind.
+
+*Related but genuinely unfixed:*
+[[id:f4e628ce-e653-429a-8f3c-0f5d4241b139][f4e628ce]] is the case a gap
+threshold cannot reach — a turn stalled on a permission prompt emits no
+=pause=, so the *agent* layer claims activity that did not happen. That
+is a defect in the precise layer and this decision does not touch it.
+
 ** TODO Reconstruct coarse day-level attention intervals for the agenda :code:
 :PROPERTIES:
 :ID:       4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba
@@ -9245,7 +9334,7 @@ a project convention (e.g. in CLAUDE.md's "Repository layout" or a new
 "Scripting conventions" note) so it doesn't have to be
 re-litigated per script.
 
-** MAYBE Show the TODO keyword, not just clocked in/out, in the statusline :code:
+** CANCELLED Show the TODO keyword, not just clocked in/out, in the statusline :code:
 :PROPERTIES:
 :ID:       4cda6bf7-441b-47b2-b3d5-b8c7e7a207a5
 :CREATED:  [2026-08-05 Wed 14:04]
@@ -9254,6 +9343,8 @@ re-litigated per script.
 CLOCK: [2026-08-05 Wed 14:10]--[2026-08-05 Wed 14:35] =>  0:25
 - State "NEXT"       from "TODO"       [2026-08-06 Thu 12:07] \\
   Auto-promoted: sole remaining TODO in its sibling group.
+- State "CANCELLED"  from "MAYBE"      [2026-08-14 Fri 14:51] \\
+  folded into 290b6fc5; mechanism superseded
 :END:
 [[file:~/.claude/plans/nifty-beaming-lynx.md][Plan]]
 
@@ -9947,7 +10038,7 @@ four command forms, asserting exit status and message.
 second concurrent session until a mechanism is in place, so this gates
 concurrent work generally rather than being one more backlog item.
 
-** TODO Lint TODO.org's structural conventions with a script :code:
+** DONE Lint TODO.org's structural conventions with a script :code:
 :PROPERTIES:
 :ID:       3bd3402b-3ab6-4ace-b20b-3ff84caa3fb2
 :CREATED:  [2026-08-13 Thu 17:02]
@@ -9957,6 +10048,12 @@ concurrent work generally rather than being one more backlog item.
   ran these by hand twenty times today
 CLOCK: [2026-08-13 Thu 17:18]--[2026-08-13 Thu 17:32] =>  0:14
 - <2026-08-13 Thu 17:18>--<2026-08-13 Thu 17:32> suggested span, accepted at review
+- State "DOING"      from "TODO"       [2026-08-14 Fri 14:28] \\
+  building the structural lint
+- State "DONE"       from "DOING"      [2026-08-14 Fri 14:41] \\
+  lint shipped; org-lint folded in
+CLOCK: [2026-08-14 Fri 14:28]--[2026-08-14 Fri 14:41] =>  0:13
+- [2026-08-14 Fri 14:28]--[2026-08-14 Fri 14:41] reallocated from e51d6ba1's mis-suggested span
 :END:
 
 Proposed 2026-08-13 after a day of running the checks by hand. The

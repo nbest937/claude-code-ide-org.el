@@ -3102,7 +3102,9 @@ no rounding, unlike consolidate-history."
         (should (string-match-p "CLOCK: \\[2026-08-06 [A-Za-z]+ 09:00\\]--\\[2026-08-06 [A-Za-z]+ 09:15\\] =>  0:15"
                                 logbook))
         ;; Human span -> ACTIVE timestamps, so org-agenda picks it up.
-        (should (string-match-p "- <2026-08-06 [A-Za-z]+ 09:00>--<2026-08-06 [A-Za-z]+ 09:15> clarify backend schema design"
+        ;; Inactive: every queue-derived span is agent activity and
+        ;; must stay out of org-agenda (TODO.org :ID: b8e6007a).
+        (should (string-match-p "- \\[2026-08-06 [A-Za-z]+ 09:00\\]--\\[2026-08-06 [A-Za-z]+ 09:15\\] clarify backend schema design"
                                 logbook))))))
 
 (ert-deftest claude-code-ide-org-test-review-keeps-short-interval ()
@@ -3867,7 +3869,10 @@ unbracketed pause produced exactly this case."
                        :agent nil :suggested t :events nil)))
       (should-not (claude-code-ide-org--review-apply-item item))
       (let ((text (claude-code-ide-org-test--disk-contents file)))
-        (should (string-match-p "- <2026-08-07 [A-Za-z]+ 12:27>--<2026-08-07 [A-Za-z]+ 12:27>" text))
+        (should (string-match-p "- \\[2026-08-07 [A-Za-z]+ 12:27\\]--\\[2026-08-07 [A-Za-z]+ 12:27\\]" text))
+        ;; And never active, which would publish agent activity to the
+        ;; agenda -- TODO.org :ID: b8e6007a.
+        (should-not (string-match-p "<2026-08-07" text))
         (should-not (string-match-p "CLOCK:" text))))))
 
 (ert-deftest claude-code-ide-org-test-review-agent-interval-is-inactive ()
