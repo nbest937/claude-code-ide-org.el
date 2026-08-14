@@ -14,8 +14,18 @@
 #   PostToolUse org_set_todo   -> todo
 #   PostToolUse org_clock_in   -> clock_in
 #   PostToolUse org_clock_out  -> clock_out
+#   PostToolUse org_capture    -> capture   (only when it deferred)
+#   PostToolUse org_amend      -> amend     (only when it deferred)
 #   Stop                       -> pause
 #   UserPromptSubmit           -> resume
+#
+# capture and amend differ from the rest: those tools write the file
+# immediately when it is free and only queue when the human has unsaved
+# changes in it (TODO.org :ID: b5f94b88). The tool decides; this script
+# obeys, by reading which of four fixed prefixes the reply carries. Those
+# prefixes are defined as constants in config.el and asserted against the
+# cases below by bin/queue-append-test, because a reply reworded on one
+# side alone either double-applies the write or silently drops it.
 #
 # Why the hook writes rather than the MCP tool: session_id is only ever
 # present on hook stdin. MCP tools are served by Emacs and never receive
@@ -44,7 +54,7 @@ set -uo pipefail
 
 kind="${1:-}"
 case "$kind" in
-  todo|clock_in|clock_out|pause|resume) ;;
+  todo|clock_in|clock_out|pause|resume|capture|amend) ;;
   *) exit 0 ;;
 esac
 
@@ -85,7 +95,8 @@ esac
 # Plain strings still pass through unchanged, so pre-existing callers and
 # the older reply shapes are unaffected.
 response=""
-if [[ "$kind" == todo || "$kind" == clock_in || "$kind" == clock_out ]]; then
+if [[ "$kind" == todo || "$kind" == clock_in || "$kind" == clock_out \
+   || "$kind" == capture || "$kind" == amend ]]; then
   response="$(jq -r '
     def totext:
       if type == "object" then (.text // .content // .result // "" | totext)
@@ -107,6 +118,35 @@ fi
 recovered_id=""
 if [[ "$kind" == clock_out ]]; then
   recovered_id="$(sed -n 's/.*(id: \([^)]*\)).*/\1/p' <<<"$response")"
+fi
+
+# The write-through gate. org_capture and org_amend write the file
+# themselves when it is free, and queue only when it is busy, so this
+# script must append for exactly one of those two outcomes -- appending
+# for both would apply the same edit twice, once now and once at review.
+#
+# The four literals here are the other half of a contract with config.el's
+# claude-code-ide-org--reply-{captured,queued-capture,amended,queued-amend}.
+# bin/queue-append-test asserts they still agree, so rewording one side
+# alone fails the suite rather than silently changing behaviour.
+#
+# An unrecognised reply drops the event. That is the safe direction: a
+# drop loses one proposal the human can restate, while a wrong append
+# writes a heading twice and neither copy announces itself.
+if [[ "$kind" == capture || "$kind" == amend ]]; then
+  case "$response" in
+    "Queued capture: "*|"Queued amend: "*) ;;
+    *) exit 0 ;;
+  esac
+fi
+
+# org_capture mints the new heading's :ID: itself and reports it as
+# "(ID: ...)", so -- exactly like clock_out's "(id: ...)" above -- the id
+# has to be recovered from the reply rather than read off tool_input,
+# which never carried one. Keeping the pre-minted id is what lets a
+# caller act on the heading before it exists.
+if [[ "$kind" == capture ]]; then
+  recovered_id="$(sed -n 's/.*(ID: \([^)]*\)).*/\1/p' <<<"$response")"
 fi
 
 # org_set_todo reports the state the heading held *before* the change, as
@@ -177,6 +217,10 @@ line="$(jq -n -c \
             else null end),
      note: (if $kind == "pause" or $kind == "resume" then null
             else ($payload.tool_input.note // null) end),
+     title:  (if $kind == "capture" then ($payload.tool_input.title // null) else null end),
+     target: (if $kind == "capture" then ($payload.tool_input.target // null) else null end),
+     tags:   (if $kind == "capture" then ($payload.tool_input.tags // null) else null end),
+     text:   (if $kind == "amend" then ($payload.tool_input.text // null) else null end),
      session_id: $session_id,
      agent_id: ($payload.agent_id // null),
      agent_type: ($payload.agent_type // null),
