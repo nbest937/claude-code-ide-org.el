@@ -4495,6 +4495,76 @@ misleads."
         (should (string-match-p "\\.\\.\\. 2 more in this window"
                                 (car (last lines))))))))
 
+(defmacro claude-code-ide-org-test--with-stub-evidence (times &rest body)
+  "Run BODY with the evidence sources stubbed to fire at TIMES.
+TIMES is a list of (TIME . DESCRIPTION); no git and no org files are
+touched, so gap arithmetic is tested on its own terms."
+  (declare (indent 1))
+  `(cl-letf (((symbol-function 'claude-code-ide-org--commits-in-window)
+              (lambda (&rest _) ,times))
+             ((symbol-function 'claude-code-ide-org--creations-in-window)
+              (lambda (&rest _) nil)))
+     ,@body))
+
+(ert-deftest claude-code-ide-org-test-span-gaps-report-unattested-stretches ()
+  "The real 17:18-17:32 case: commits at +4m and +8m leave a 6m tail with
+nothing in it.  The two 4m stretches are below the threshold and stay
+quiet -- a gap has to outlast the ordinary pause between a thought and
+its commit before it means anything."
+  (let* ((start (date-to-time "2026-08-13T17:18:00-0500"))
+         (end (time-add start (* 14 60)))
+         (claude-code-ide-org-span-evidence-gap 300))
+    (claude-code-ide-org-test--with-stub-evidence
+        (list (cons (time-add start (* 4 60)) "commit  aaa first")
+              (cons (time-add start (* 8 60)) "commit  bbb second"))
+      (let ((lines (claude-code-ide-org--span-evidence start end)))
+        (should (= 3 (length lines)))
+        (should (string-match-p "first" (nth 0 lines)))
+        (should (string-match-p "second" (nth 1 lines)))
+        ;; The gap renders last, after the evidence line it starts from.
+        (should (string-match-p "(nothing for 6m, 17:26-17:32)" (nth 2 lines)))))))
+
+(ert-deftest claude-code-ide-org-test-span-with-no-evidence-says-so ()
+  "The case that matters most.  An evidence-free span used to render no
+lines at all, which made \"nothing was found here\" look exactly like
+\"nobody looked\" -- and the first real use of this feature was a batch
+applied without critical evaluation."
+  (let* ((start (date-to-time "2026-08-13T17:18:00-0500"))
+         (end (time-add start (* 14 60)))
+         (claude-code-ide-org-span-evidence-gap 300))
+    (claude-code-ide-org-test--with-stub-evidence nil
+      (let ((lines (claude-code-ide-org--span-evidence start end)))
+        (should (= 1 (length lines)))
+        (should (string-match-p "(nothing for 14m, 17:18-17:32)" (car lines)))))))
+
+(ert-deftest claude-code-ide-org-test-span-gaps-ignore-the-slack-window ()
+  "A commit after the span concluded it rather than filled it, so it
+closes no gap.  Measuring gaps against the window instead of the span
+would silently absolve exactly the spans with nothing in them."
+  (let* ((start (date-to-time "2026-08-13T17:18:00-0500"))
+         (end (time-add start (* 10 60)))
+         (claude-code-ide-org-span-evidence-gap 300)
+         (claude-code-ide-org-span-evidence-slack 300))
+    (claude-code-ide-org-test--with-stub-evidence
+        (list (cons (time-add end 120) "commit  ccc just after"))
+      (let ((lines (claude-code-ide-org--span-evidence start end)))
+        (should (= 2 (length lines)))
+        ;; The gap covers the whole span and comes first...
+        (should (string-match-p "(nothing for 10m, 17:18-17:28)" (nth 0 lines)))
+        ;; ...and the slack commit is still shown, just not credited.
+        (should (string-match-p "just after" (nth 1 lines)))))))
+
+(ert-deftest claude-code-ide-org-test-span-gaps-respect-the-threshold ()
+  "Below the threshold nothing is reported, or every span would carry
+gap lines and the signal would be back to noise."
+  (let* ((start (date-to-time "2026-08-13T17:18:00-0500"))
+         (end (time-add start (* 4 60))))
+    (claude-code-ide-org-test--with-stub-evidence nil
+      (let ((claude-code-ide-org-span-evidence-gap 300))
+        (should-not (claude-code-ide-org--span-evidence start end)))
+      (let ((claude-code-ide-org-span-evidence-gap 120))
+        (should (= 1 (length (claude-code-ide-org--span-evidence start end))))))))
+
 (ert-deftest claude-code-ide-org-test-span-evidence-degrades-rather-than-signals ()
   "Display code degrades, it does not signal -- half a review buffer is
 worse than no evidence.  Everything here reaches out to the world (git,

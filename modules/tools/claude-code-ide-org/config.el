@@ -2466,6 +2466,31 @@ span measured, 23 minutes, contained three commits."
   :type 'integer
   :group 'claude-code-ide-org)
 
+(defcustom claude-code-ide-org-span-evidence-gap 300
+  "Seconds of unattested time inside a span worth reporting as a gap.
+
+Added 2026-08-14 after the first real use of the evidence lines, which
+found the opposite defect from the one expected.  The evidence was
+*persuasive*: the reviewer read it, found it reasonable, and applied the
+batch without evaluating it critically.  That is the anchoring objection
+recorded against TODO.org :ID: 0c8644ff arriving by another route --
+showing more support for a suggestion makes it easier to accept, not
+easier to reject.
+
+Gaps invert that, which is the whole point of reporting them.  A commit
+list answers \"here is support for the suggestion\"; the stretches with
+nothing in them answer \"here is what you still have to decide\", which
+is the posture review is supposed to have.  The evidence-free span is
+the case that matters most: it used to render no lines at all, making
+\"nothing was found here\" visually identical to \"nobody looked\".
+
+Five minutes because a gap has to be longer than the ordinary pause
+between a thought and its commit before it means anything.  Measured
+against the span itself, never the slack window -- a commit *after* the
+span concluded it rather than filled it."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
 (defconst claude-code-ide-org--queue-kinds
   '("todo" "clock_in" "clock_out" "pause" "resume" "capture" "amend")
   "Event kinds bin/hooks/queue-append is allowed to emit.
@@ -4225,24 +4250,82 @@ are interleaved in one chronological list, because the order between them
 is itself the signal: a heading created at 15:33 followed by a commit at
 15:34 tells a story neither line tells alone.
 
+Stretches of the span with no evidence in them are reported too, as
+gaps, whenever they exceed `claude-code-ide-org-span-evidence-gap' --
+see that variable for why an absence is the more useful half.
+
 Capped at `claude-code-ide-org-span-evidence-limit', with the overflow
-reported as a count."
+reported as a count.  The cap applies to evidence only: gaps are
+computed from every row, so truncating the display cannot invent a gap
+that is not there."
   (let* ((window-end (time-add end claude-code-ide-org-span-evidence-slack))
          (rows (sort (append (claude-code-ide-org--commits-in-window start window-end)
                              (claude-code-ide-org--creations-in-window start window-end))
                      (lambda (a b) (time-less-p (car a) (car b)))))
+         (gaps (claude-code-ide-org--span-gaps start end (mapcar #'car rows)))
          (extra (- (length rows) claude-code-ide-org-span-evidence-limit))
-         lines)
-    (dolist (row (if (> extra 0)
-                     (butlast rows extra)
-                   rows))
-      (push (format "%s  %s"
-                    (format-time-string "%H:%M" (car row))
-                    (cdr row))
-            lines))
-    (when (> extra 0)
-      (push (format "%7s... %d more in this window" "" extra) lines))
-    (nreverse lines)))
+         (shown (if (> extra 0) (butlast rows extra) rows))
+         entries)
+    ;; Evidence first in the input list, so the stable sort below keeps a
+    ;; gap *after* the evidence line it starts from -- an interior gap is
+    ;; keyed on the timestamp of the row it follows, and the two would
+    ;; otherwise render in an order that reads backwards.
+    (dolist (row shown)
+      (push (cons (car row)
+                  (format "%s  %s"
+                          (format-time-string "%H:%M" (car row))
+                          (cdr row)))
+            entries))
+    (dolist (gap gaps)
+      (push (cons (car gap)
+                  (format "%7s(nothing for %s, %s-%s)" ""
+                          (claude-code-ide-org--format-duration (cdr gap))
+                          (format-time-string "%H:%M" (car gap))
+                          (format-time-string
+                           "%H:%M" (time-add (car gap) (cdr gap)))))
+            entries))
+    (let ((lines (mapcar #'cdr
+                         (sort (nreverse entries)
+                               (lambda (a b) (time-less-p (car a) (car b)))))))
+      (when (> extra 0)
+        (setq lines (append lines
+                            (list (format "%7s... %d more in this window"
+                                          "" extra)))))
+      lines)))
+
+(defun claude-code-ide-org--format-duration (seconds)
+  "Render SECONDS as a compact duration, e.g. \"6m\" or \"1h04m\"."
+  (let ((mins (round (/ seconds 60.0))))
+    (if (>= mins 60)
+        (format "%dh%02dm" (/ mins 60) (% mins 60))
+      (format "%dm" mins))))
+
+(defun claude-code-ide-org--span-gaps (start end times)
+  "Return (GAP-START . SECONDS) for stretches of START--END holding no TIMES.
+
+Measured against the span itself, never the slack window: a commit after
+the span's end concluded it rather than filled it, so it closes no gap.
+An empty span therefore yields one gap covering the whole of it, which is
+the case worth surfacing most -- before this, a span with no evidence
+rendered nothing at all, and \"nothing was found here\" looked exactly
+like \"nobody looked\".
+
+Only stretches of at least `claude-code-ide-org-span-evidence-gap' are
+returned; below that a gap is the ordinary pause between a thought and
+its commit and reporting it would be noise."
+  (let* ((inside (sort (seq-filter (lambda (ts)
+                                     (and (not (time-less-p ts start))
+                                          (not (time-less-p end ts))))
+                                   times)
+                       #'time-less-p))
+         (points (append (list start) inside (list end)))
+         gaps)
+    (while (cdr points)
+      (let ((seconds (float-time (time-subtract (cadr points) (car points)))))
+        (when (>= seconds claude-code-ide-org-span-evidence-gap)
+          (push (cons (car points) seconds) gaps)))
+      (setq points (cdr points)))
+    (nreverse gaps)))
 
 (defvar-local claude-code-ide-org--span-evidence-cache nil
   "Hash table memoizing `claude-code-ide-org--span-evidence' per window.

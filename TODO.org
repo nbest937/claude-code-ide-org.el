@@ -7599,6 +7599,63 @@ find without scanning — =:CREATED:= is a property, so =org-map-entries=
 with a property match does it. And the window should probably extend a
 few minutes past the span's end to catch the commit that concluded it,
 which is the asymmetry noted above.
+
+*Outcome, 2026-08-13/14.* Shipped: an unassigned span in the review
+buffer renders the git commits and =:CREATED:= stamps falling inside its
+own window, interleaved chronologically. The window extends past the
+span's end but never before its start, and the git query runs against the
+repository containing the tracked files, found by truename so the
+=~/org= symlink resolves. Memoized per window, since the render runs on
+every mark keystroke. 9 ERT tests, discrimination checked by reverting
+the render hook and the error guard separately.
+
+*First real use, 2026-08-14, and it falsified the premise the feature was
+built on.* Asked whether the evidence helped, the user answered: "frankly
+I did not evaluate critically, everything looked reasonable." The batch
+was applied without the lines being weighed.
+
+That is exactly the anchoring objection recorded against
+[[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]] — a fluent
+recommendation is harder to reject than a transparently mechanical one —
+arriving by a route this heading explicitly claimed to escape. The
+argument above for building this *instead* of =0c8644ff= was that it
+"presents *evidence* rather than a recommendation, so there is nothing to
+anchor on." Tried once, that claim did not hold. Supporting detail makes
+a suggestion easier to accept whether or not it is phrased as a
+recommendation.
+
+*A second finding, about how the report itself arrived.* The first
+version of the feedback was that the commit lines needed timestamps —
+which they already had, in the first column. Rendering the actual output
+and putting it in front of the user resolved it: "I see them now; I may
+have misremembered." Worth recording because acting on the literal
+request would have added timestamps that already existed and left the
+real problem untouched. Reconstructing the artifact rather than trusting
+either party's recollection is what made the difference, which is the
+same lesson as the standing rule about preferring the primary artifact.
+
+*The response: report absences, not only support.* Stretches of a span
+with no evidence in them are now rendered as gaps, above
+=claude-code-ide-org-span-evidence-gap= (default 5 minutes, measured
+against the span and never the slack window). The intent is rhetorical
+rather than informational — a commit list says "here is support for the
+suggestion", while a gap says "here is what you still have to decide",
+which is the posture review is supposed to have.
+
+The case that matters most is the empty one. A span with no evidence used
+to render *no lines at all*, making "nothing was found here" visually
+identical to "nobody looked". It now reads
+=(nothing for 40m, 02:00-02:40)=. Verified live on 2026-08-14 against a
+real span and a fabricated overnight one; 4 further tests, each confirmed
+to fail by mutation (gaps suppressed, gaps measured against the slack
+window instead of the span, threshold ignored).
+
+*Deliberately not claimed: that this fixes it.* The previous claim of
+exactly this shape — that a particular presentation would keep review
+critical — was falsified on first contact. Whether gap lines actually
+induce evaluation is unknown until the next batch is reviewed, and the
+honest test is to ask again afterwards rather than to assume.
+
 ** TODO Bracket queued spans with WAIT transitions, so the heading guess stops latching :code:
 :PROPERTIES:
 :ID:       d1cf852a-696a-4195-a4a7-039439c1f4b7
