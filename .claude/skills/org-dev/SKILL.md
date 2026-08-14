@@ -46,6 +46,45 @@ repo) lives in `~/.claude/CLAUDE.md`. It is restated here because this
 project's own contributors are the ones most likely to need it, and a
 skill should not depend on a personal config file existing.
 
+### Never invoke bare `emacs` for a batch check — use `command emacs`
+
+This is the one command that lies about section 0 by construction. The
+user's shell profile defines:
+
+```sh
+emacs () {
+  if [[ "$*" == *-nw* ]]; then command emacs "$@"
+  else open -a Emacs --args "$@"; fi
+}
+```
+
+and Claude Code's own shell snapshots carry it into every Bash tool call.
+So `emacs --batch -Q --eval '...'` **does not run a batch Emacs at all**:
+it hands the arguments to the running GUI app, which steals focus from
+whatever the user is doing, and returns exit 0 with no stdout and no
+stderr. That is indistinguishable from a batch run that completed and
+found nothing wrong — so `check-parens`, a byte-compile, or an `--eval`
+probe all report success without ever having executed.
+
+Always:
+
+```sh
+command emacs --batch -Q -l ... -f ...      # or /opt/homebrew/bin/emacs
+```
+
+**`bin/test` is unaffected.** A `#!/usr/bin/env bash` script gets a
+non-interactive shell where the function is not defined, so its `exec
+emacs` resolves to the real binary. The trap is specific to inline
+one-off verification — which is exactly the kind of check this skill
+exists for.
+
+Two tells that you have just been bitten: an Emacs window taking focus,
+and a command that printed *nothing at all* when your own `--eval` ended
+in a `message`. Treat a silent success from `emacs --batch` as a failed
+check, not a passed one. Recorded as TODO.org `:ID: 4f9e552a`, where it
+is logged as having been hit three times in a row before anyone noticed,
+and twice more on 2026-08-14.
+
 ---
 
 ## 1. Live reload procedure
