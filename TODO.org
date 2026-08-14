@@ -7470,6 +7470,30 @@ count ("3 updates awaiting review"), or a visible distinction between
 names — rather than just relocating today's single clocked-in/out
 label to a different data source with the same one-line shape.
 
+*Third requirement, folded in from
+[[id:4cda6bf7-441b-47b2-b3d5-b8c7e7a207a5][4cda6bf7]] on 2026-08-14,
+which was cancelled in favour of this heading:* the label must
+distinguish the *states*, not just the clock. Today's binary collapses
+four distinct situations into two words — =PLANNING= and =DOING= both
+read "clocked in" though one is still designing and the other
+implementing; =WAIT= and =DONE= both read "clocked out" though one is
+blocked and the other finished.
+
+That heading proposed getting the keyword from =org-get-todo-state= at
+the clock marker. *Do not do that here* — it is the reason it was
+cancelled rather than merged as-is. The on-disk keyword lags the queue
+by an entire review pass, so it would report a heading as =TODO= while
+this session has already queued =DOING= on it. The keyword this
+statusline should show is *the one the queue last recorded*, which is
+the same source everything else in this heading reads from, and which is
+also the only version that answers "what is Claude attending to" rather
+than "what did the last review pass write down."
+
+Practical consequence for whoever builds this: the five existing
+=--statusline-task-string= regression tests assert on the literal
+"clocked in"/"clocked out" strings and will need rewriting. Doing both
+changes here means rewriting them once rather than twice.
+
 *Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] on
 2026-08-14.* A capability the epic *enables* rather than one it
 requires — the same test that promoted
@@ -9259,6 +9283,47 @@ still marker-dependent, so this fix inherits that same desync mode
 rather than routing around the underlying fragility). Doesn't block
 this task; just don't be surprised if the new failure mode looks
 similar to the old one.
+
+*Cancelled 2026-08-14, folded into
+[[id:290b6fc5-3ebb-4827-9a97-5a3542e354b6][290b6fc5]].* Not declined on
+merit — the complaint is real and still stands, and it now lives there
+as a requirement. Cancelled because the *mechanism* proposed above was
+superseded by the cutover, which happened after this was written.
+
+*Why reading the keyword at the clock marker no longer works.* Two
+compounding reasons, both consequences of the queue architecture:
+
+1. =org-clocking-p= is essentially never true. A clock is live only for
+   the microseconds between the paired =org-clock-in=/=org-clock-out=
+   inside apply — [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]]
+   records exactly this in its vocabulary notes. So
+   =--statusline-task-string= almost always falls through to
+   =(car org-clock-history)=, which is why the statusline sits on the
+   last *applied* heading rather than the one being worked.
+2. The keyword at that marker is the *on-disk* one, which lags the queue
+   by a whole review pass. Measured 2026-08-14: while this note was
+   being written, [[id:3bd3402b-3ab6-4ace-b20b-3ff84caa3fb2][3bd3402b]]
+   read =DOING= on disk with =DONE= queued and unapplied.
+
+So the fix as specified would replace a stale binary label with a stale
+keyword — the same failure mode in richer vocabulary. The note above
+already saw the shape of this ("inherits that same desync mode... rather
+than routing around the underlying fragility"); it simply could not name
+=290b6fc5= as the routing-around, because that heading did not exist
+yet.
+
+*Also worth recording, since it is three signals in one direction:* this
+heading was auto-promoted to =NEXT= on 2026-08-06, hand-demoted to
+=TODO= the same day with no implementation attempted (noted on
+[[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]] as evidence
+against =PLANNING='s weight), and later dropped to =MAYBE=. It has been
+declined every time it came up.
+
+*Kept, not lost:* the substance — a statusline label should distinguish
+=PLANNING= from =DOING= and =WAIT= from =DONE=, rather than collapsing
+all four into clocked in/out — is now the third bullet of =290b6fc5='s
+instruction list. The five =--statusline-task-string= regression tests
+this would have rewritten get rewritten once, there, instead of twice.
 
 ** TODO Clearing a buffer's read-only flag for an MCP tool leaves it cleared :code:
 :PROPERTIES:
