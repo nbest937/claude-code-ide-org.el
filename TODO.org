@@ -799,10 +799,15 @@ are as of that date; the names are the durable part.
   this is the span-attribution bracket, and it is a denylist of
   everything except =DOING=/=PLANNING=. Inverting it to test for those
   two would make it immune to this whole question.
-- =config.el= =claude-code-ide-org--wait-headings-context= (line 631) —
-  the session-start report tests =(equal (org-get-todo-state) "WAIT")=
-  literally. A =REVIEW= state that this does not know about is invisible
-  at session start, which is most of the reason to want it.
+- =config.el= =claude-code-ide-org--attention-headings-context= (line
+  609; renamed from =--wait-headings-context= by
+  [[id:9d7531f5-11c5-4203-89e3-56c3fe399df5][9d7531f5]] on 2026-08-14,
+  when it stopped reporting only =WAIT=) — the session-start report now
+  matches =WAIT= and =DOING= as two literal string comparisons in a
+  =cond=. A =REVIEW= state that neither branch knows about is invisible
+  at session start, which is most of the reason to want it. Note the
+  =DOING= branch is the one a =REVIEW= keyword would most likely
+  *replace*, not join.
 - =.claude/skills/org/SKILL.md= — the keyword list at line 43, the
   per-keyword sections (=WAIT= at 36) and the transition table (238-240).
   *Note this list is already stale:* it reads
@@ -8246,6 +8251,88 @@ It is manual, so it will not fire on its own, but it has already moved
 seven sessions (back to 2026-08-08) out of the review buffer's sight,
 and its own docstring notes that a restored file which lost its
 watermark supports "only all-or-nothing" reprocessing.
+
+** TODO Report abandoned DOING leaves at session start, not only WAIT :code:
+:PROPERTIES:
+:ID:       9d7531f5-11c5-4203-89e3-56c3fe399df5
+:CREATED:  [2026-08-14 Fri 13:28]
+:END:
+
+*Split out of [[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]] on
+2026-08-14,* where it had been recorded as prose rather than as a task
+and would have been archived along with that heading. The precondition
+it was waiting on — a container test living somewhere reusable —
+shipped with =ab75d6d2= as
+=claude-code-ide-org--container-heading-p=.
+
+*The change:* =claude-code-ide-org--wait-headings-context= tests
+=(equal (org-get-todo-state) "WAIT")= literally. Add =DOING= to that
+test, skipping any heading the container predicate claims, and skipping
+whichever heading is currently clocked, since
+=--clocked-heading-context= already reports that one on its own line.
+
+*Why the container filter is the whole point, not a refinement.*
+=ab75d6d2='s finding was that the two are the same keyword and opposite
+news: a container in =DOING= is a true and unremarkable statement about
+the project, while a leaf in =DOING= with no clock is an increment
+somebody walked away from. Without the filter this report gains one
+permanent line for [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]
+that never changes — and a report that always says the same thing stops
+being read, which is the failure
+[[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] already recorded
+for evidence lines.
+
+*Measured before building, 2026-08-14 13:28.* Today the change emits
+*nothing*: no =WAIT= headings remain, nothing is clocked, and the only
+=DOING= heading in any tracked file is =b5f7c5c7=, a container. It earns
+its keep the next time a leaf is abandoned — which happened twice on
+2026-08-13, when =5ff5a4b8= and
+[[id:4f9e552a-e1a9-48dd-8801-3f23a31b9e32][4f9e552a]] both sat =DOING=
+overnight and neither was ever mentioned at session start.
+
+*Known ceiling, not a reason to skip it:*
+[[id:c5b02503-1700-47fd-bf89-bd3296b24af2][c5b02503]] records that this
+report is only as reliable as the model choosing to relay it. This makes
+the report *say* the right thing; it cannot make a session pass it on.
+
+*Outcome, 2026-08-14.* Shipped as described. =WAIT= and =DOING= are now
+two branches of a =cond= rather than one literal =equal=, with the
+=DOING= branch guarded twice: containers are skipped via
+=claude-code-ide-org--container-heading-p=, and so is whichever heading
+is currently clocked, since =--clocked-heading-context= already reports
+that one. Abandoned leaves render as
+=DOING, not clocked: "title" (:ID: …, in file)=.
+
+*Renamed, deliberately:* =--wait-headings-context= ->
+=--attention-headings-context=. A function called "wait headings" that
+reports =DOING= is precisely the silent drift this project keeps
+re-finding, and the rename cost one caller. Retiring the old name took
+=fmakunbound= as well as a reload — a =load-file= alone leaves the old
+definition live and would have hidden a missed caller — per the org-dev
+skill's own procedure.
+
+*Verified.* Three new tests (251 total, all green), each confirmed by
+mutation rather than by passing once: disabling the =DOING= branch
+failed only the abandoned-leaf test, dropping the container guard failed
+only the container test, and dropping the clocked-heading guard failed
+only the no-duplicate test. Each mutation failed *exactly* the test
+aimed at it and nothing else, which is what makes them independent
+rather than three views of one assertion.
+
+*Then verified live, and this is the part worth recording.* The report
+returns the empty string against the real files — but an empty result is
+also what a broken scan returns, so it was not taken as evidence on its
+own. Probed alongside it: the scan sees exactly *one* =DOING= heading
+across all tracked files, and that heading is
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]], for which the
+container predicate answers =t=. So the silence is the filter working,
+not the scan finding nothing.
+
+*Still unproven, by construction:* whether this actually helps. Its
+value shows up only the next time a leaf is abandoned overnight, and
+=c5b02503='s ceiling still applies — a session has to relay it. The
+honest check is to look at the first session-start report that carries a
+=DOING, not clocked= line and ask whether it changed anything.
 
 * Bigger swings
 

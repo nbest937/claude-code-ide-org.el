@@ -1051,6 +1051,51 @@ nothing, and the JSON wrapper collapses that to an empty hook object."
            (result (claude-code-ide-org-session-context)))
       (should (string-match-p "WAIT: \"Blocked heading\" (:ID: test-0002, in test.org)" result)))))
 
+;; Abandoned DOING leaves -- TODO.org :ID: 9d7531f5-11c5-4203-89e3-56c3fe399df5.
+
+(ert-deftest claude-code-ide-org-test-session-context-includes-abandoned-doing-leaf ()
+  "A leaf left in DOING with no clock is an increment somebody walked
+away from, and is exactly what a starting session needs told."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* DOING Abandoned leaf                                              :code:\n"
+            ":PROPERTIES:\n:ID:       test-0002\n:END:\n")
+    (save-buffer)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-session-context)))
+      (should (string-match-p
+               "DOING, not clocked: \"Abandoned leaf\" (:ID: test-0002, in test.org)"
+               result)))))
+
+(ert-deftest claude-code-ide-org-test-session-context-omits-doing-containers ()
+  "A container in DOING is a true and unremarkable statement about the
+project. Reporting it would add one permanent, never-changing line --
+the failure mode this filter exists to prevent -- so it must be
+excluded while an otherwise identical leaf is not."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* DOING Epic heading                                                :code:\n"
+            ":PROPERTIES:\n:ID:       test-0002\n:END:\n"
+            "** TODO A real child                                                :code:\n"
+            ":PROPERTIES:\n:ID:       test-0003\n:END:\n")
+    (save-buffer)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-session-context)))
+      (should (not (string-match-p "Epic heading" result)))
+      (should (equal "" result)))))
+
+(ert-deftest claude-code-ide-org-test-session-context-does-not-repeat-the-clocked-heading ()
+  "The clocked heading is already reported on its own line, so a DOING
+heading that is currently clocked must not also appear as abandoned --
+one heading, one line."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--set-todo-for-real id "DOING")
+    (should (org-clocking-p))
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-session-context)))
+      (should (string-match-p "Currently clocked in" result))
+      (should (not (string-match-p "not clocked" result))))))
+
 (ert-deftest claude-code-ide-org-test-session-context-clocked-then-waits-order ()
   "When both a clocked heading and WAIT headings exist, the clocked
 heading is reported first."

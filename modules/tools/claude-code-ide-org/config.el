@@ -606,10 +606,26 @@ heading, or nil if no clock is running."
                 (if id (format " (:ID: %s)" id) "")
                 (if file (format " in %s" (file-name-nondirectory file)) ""))))))
 
-(defun claude-code-ide-org--wait-headings-context ()
-  "Return a list of one-line descriptions, one per WAIT-state
-heading found across `claude-code-ide-org--tracked-files', or nil if
-none. Scans each tracked file via `find-file-noselect'; any buffer
+(defun claude-code-ide-org--attention-headings-context ()
+  "Return a list of one-line descriptions, one per heading across
+`claude-code-ide-org--tracked-files' that a *starting* session should be
+told about, or nil if none. Two kinds, which are the same keyword's
+opposite news (TODO.org :ID: ab75d6d2, :ID: 9d7531f5):
+
+- WAIT -- blocked, or waiting on someone.
+- DOING on a leaf that is not the currently clocked heading -- an
+  increment somebody walked away from.
+
+A DOING *container* (`claude-code-ide-org--container-heading-p') is
+deliberately excluded. A container in DOING is a true and unremarkable
+statement about the project, so reporting it would add one permanent,
+never-changing line -- and a report that always says the same thing
+stops being read, which defeats the only purpose this one has. The
+currently clocked heading is excluded for a duller reason:
+`claude-code-ide-org--clocked-heading-context' already reports it on its
+own line, ahead of these.
+
+Scans each tracked file via `find-file-noselect'; any buffer
 that was not already open before the scan is killed again afterward,
 so this never leaves stray buffers in the user's real buffer list —
 only buffers the user already had open (e.g. one they're editing)
@@ -620,7 +636,10 @@ some other hook touched, or a decoding/`find-file-hook' side effect
 in the user's real config — would otherwise prompt with
 `yes-or-no-p', which blocks indefinitely under `emacsclient -e' and
 would silently eat this hook's whole timeout."
-  (let (results)
+  (let ((clocked-id (and (org-clocking-p)
+                         (org-with-point-at org-clock-marker
+                           (org-entry-get nil "ID"))))
+        results)
     (dolist (file (claude-code-ide-org--tracked-files))
       (when (file-exists-p file)
         (let* ((already-open (find-buffer-visiting file))
@@ -628,12 +647,23 @@ would silently eat this hook's whole timeout."
           (with-current-buffer buffer
             (org-map-entries
              (lambda ()
-               (when (equal (org-get-todo-state) "WAIT")
-                 (push (format "WAIT: \"%s\" (:ID: %s, in %s)"
-                               (org-get-heading t t t t)
-                               (or (org-entry-get nil "ID") "none")
-                               (file-name-nondirectory file))
-                       results)))
+               (let* ((state (org-get-todo-state))
+                      (heading-id (org-entry-get nil "ID"))
+                      (label
+                       (cond
+                        ((equal state "WAIT") "WAIT")
+                        ((and (equal state "DOING")
+                              (not (and clocked-id heading-id
+                                        (equal clocked-id heading-id)))
+                              (not (claude-code-ide-org--container-heading-p)))
+                         "DOING, not clocked"))))
+                 (when label
+                   (push (format "%s: \"%s\" (:ID: %s, in %s)"
+                                 label
+                                 (org-get-heading t t t t)
+                                 (or heading-id "none")
+                                 (file-name-nondirectory file))
+                         results))))
              nil 'file))
           (unless already-open
             (with-current-buffer buffer (set-buffer-modified-p nil))
@@ -642,13 +672,14 @@ would silently eat this hook's whole timeout."
 
 (defun claude-code-ide-org-session-context ()
   "Return a plain-text summary of \"what was I last doing\": the
-currently clocked-in heading, if any, followed by one line per
-WAIT-state heading across `claude-code-ide-org--tracked-files'.
-Returns the empty string when there is nothing to report (no clock
-running and no WAIT headings), so callers can treat an empty result
-as \"nothing worth injecting\"."
+currently clocked-in heading, if any, followed by one line per heading
+worth flagging at session start across
+`claude-code-ide-org--tracked-files' -- WAIT headings and abandoned
+DOING leaves, per `claude-code-ide-org--attention-headings-context'.
+Returns the empty string when there is nothing to report, so callers
+can treat an empty result as \"nothing worth injecting\"."
   (let* ((clocked (claude-code-ide-org--clocked-heading-context))
-         (waits (claude-code-ide-org--wait-headings-context))
+         (waits (claude-code-ide-org--attention-headings-context))
          (lines (append (when clocked (list clocked)) waits)))
     (mapconcat #'identity lines "\n")))
 
