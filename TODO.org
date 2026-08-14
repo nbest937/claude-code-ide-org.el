@@ -4378,33 +4378,6 @@ enforcement is "not built yet." It is — four functions are live on
 =org-trigger-hook=. Fold that correction into
 [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]].)
 
-*** TODO Decouple live "what is Claude attending to" visibility from the authoritative org clock :code:
-:PROPERTIES:
-:ID:       290b6fc5-3ebb-4827-9a97-5a3542e354b6
-:CREATED:  [2026-08-06 Thu 10:47]
-:END:
-
-Point the statusline (=claude-code-ide-org--statusline-task-string=)
-at the *queue* files' latest event across all sessions, rather than
-=org-clocking-p=/=org-clock-marker=, once those stop being live in
-real time. Arguably more honest than today's version regardless of
-this refactor's fate — reflects "what Claude is doing" rather than
-"what's been recorded," and can't desync the way marker-based state
-can, since it's just reading append-only files.
-
-Explicit instruction, added 2026-08-06: don't stop at a bare
-event-name swap. Now that a pending-queue-inspection tool
-([[id:63a642c7-b04d-42dc-b6ec-3fb13df3ae04][63a642c7]]) exists in this
-same plan — and, since
-[[id:c9292ce8-8fb5-41c0-8de1-bbf74ffa7fce][c9292ce8]] was cancelled,
-is the *only* place queue state gets surfaced outside the review
-command — consider whether the statusline should surface that
-same information glanceably from the terminal — e.g. a pending-review
-count ("3 updates awaiting review"), or a visible distinction between
-"applied" and "queued, not yet reviewed" for whatever heading it
-names — rather than just relocating today's single clocked-in/out
-label to a different data source with the same one-line shape.
-
 *** DONE Survey org's own API for built-in mechanisms we may have overlooked or dismissed too quickly :code:
 :PROPERTIES:
 :ID:       c084553c-0621-4a96-9fa1-f32850aeec6a
@@ -6580,71 +6553,6 @@ to WAIT left the subject the sole TODO of its sibling group, so
 it to NEXT behind the test's back. The test now carries a third sibling
 and says why.
 
-*** TODO pause/resume cannot see a turn blocked on a permission prompt :code:
-:PROPERTIES:
-:ID:       f4e628ce-e653-429a-8f3c-0f5d4241b139
-:CREATED:  [2026-08-11 Tue 15:52]
-:END:
-
-The =Stop= hook fires when a turn ends. A turn that stalls mid-flight —
-waiting on a tool-permission prompt — has not ended, so no =pause= is
-written and the queue records one unbroken span.
-
-Measured in this session, 2026-08-11: the turn for prompt =523077c9= ran
-=resume= 13:55:19 → =pause= 14:53:10, 57m51s. Of that, 54m11s was a
-single tool call awaiting approval while the user was on a Zoom call;
-roughly 3m40s was work. Nothing in the queue distinguishes the two.
-
-Not a hook bug — the hook behaved correctly, the turn genuinely never
-stopped. The guidepost model simply has no event for "still running, but
-blocked on a human." Note the asymmetry with an *interrupted* turn,
-which also emits no =pause= but is harmlessly bounded by the next
-=resume=; this case is bounded by nothing.
-
-Bears directly on the project's second stated goal. If a clock had been
-running, ~58 minutes would have been credited to a heading for ~4
-minutes of attention. Related:
-[[id:1a5a5254-f62d-46e7-9a6c-3d84f2f52873][1a5a5254]], which is one
-possible external signal for exactly this gap.
-
-*** TODO Read power assertions as a review-time attribution signal :code:research:
-:PROPERTIES:
-:ID:       1a5a5254-f62d-46e7-9a6c-3d84f2f52873
-:CREATED:  [2026-08-11 Tue 15:52]
-:END:
-
-CLAUDE.md records =pmset -g log= as "not yet attempted" and frames the
-per-app power assertions as noise obscuring clean sleep/wake
-transitions. For *this* question the framing is backwards: a laptop that
-never sleeps emits zero transitions and a rich assertion record, and the
-assertion holder is the answer.
-
-Tried 2026-08-11 against a known-answer window. The log named the
-competing activity exactly:
-
-: 14:01:56  Created   NoDisplaySleepAssertion  (zoom.us, PID 58601)
-: 14:42:14  Released  NoDisplaySleepAssertion  00:40:17
-
-The user's own estimate was "roughly 14:00 to roughly 14:45" — the log
-was right to the second, and the 40m17s sits entirely inside the 54m11s
-permission-block of
-[[id:f4e628ce-e653-429a-8f3c-0f5d4241b139][f4e628ce]].
-
-*Not a validated method, on one observation.* Zoom happened to hold a
-cleanly-named assertion; =coreaudiod= held 158 of the 361 entries in the
-same window and is a far noisier proxy. An assertion also is not
-inattention — people work through calls. The most it can honestly do is
-prompt the human reviewer, never decide.
-
-*Retention bounds it:* the log went back ~7 days (earliest 2026-08-04).
-That puts a deadline on "the human applies at a moment of their own
-choosing."
-
-Revises the disposition recorded in
-[[id:9d2fcdad-9bf7-47b6-8018-223b13ec4577][9d2fcdad]]'s neighbourhood,
-which proposed closing the =pmset= lead as won't-do — correct for the
-stale-interval guess heuristic, wrong for attribution.
-
 *** DONE The review buffer has no way to dismiss an item you will never apply :code:
 :PROPERTIES:
 :ID:       f290161c-f9e7-4bfb-9adf-4c5630d4c5ae
@@ -7019,44 +6927,6 @@ two was a *subagent's* label on a *subagent's* heading.
 agenda. Nothing detects this class of thing: a fix that stops new bad
 data does not clean up old, and no test asserts over the contents of
 :LOGBOOK: drawers in the real file — only over fixtures.
-
-*** TODO Background-task notifications write phantom resume guideposts :code:
-:PROPERTIES:
-:ID:       09c134c4-31eb-4f6c-aa10-f836d1d28f16
-:CREATED:  [2026-08-12 Wed 17:46]
-:END:
-:LOGBOOK:
-- State "TODO"       from              [2026-08-12 Wed 17:47] \\
-  phantom resume inflates human-present time
-:END:
-
-Observed 2026-08-12 during the subagent experiment behind
-[[id:0d789b68-faca-4911-868a-fdd70acbfd40][0d789b68]]. A background
-task completing re-invokes the model, which fires =UserPromptSubmit=,
-which appends a =resume= guidepost — with no user having sent anything:
-
-: 17:22:41  resume  UserPromptSubmit   (agent 1 finished ~17:21:47)
-: 17:23:50  resume  UserPromptSubmit   (agent 2 finished ~17:23:15)
-
-The events are byte-identical to a genuine prompt's; no field
-distinguishes them. This matters because CLAUDE.md defines the
-pause/resume stream as tracking *active work time only* — "paused the
-moment Claude Code stops and is waiting on the user, resumed the moment
-the user sends the next prompt." A robot wake-up now reads as the human
-returning to the keyboard, and since
-=--aggregate-guideposts= reconstructs human spans from exactly these
-timestamps, the effect is to inflate apparent human-present time in
-every =:suggested:= interval that spans a background completion.
-
-Affects any background task, not just subagents. Note the guidepost
-carries =agent_id: nil= even when the notification came from an agent —
-the hook fires in the parent's turn, not the agent's — so filtering on
-=agent_id= is *not* the fix.
-
-Not yet investigated: whether the hook payload distinguishes a real
-submission from a task-completion re-invocation at all. If it does not,
-the honest options are to accept the inflation and document it, or to
-stop treating =resume= as evidence of human presence.
 
 *** DONE Apply's clock pair has no unwind-protect: a failed clock_out fabricates a huge interval :code:
 :PROPERTIES:
@@ -7536,6 +7406,168 @@ remainder.
 truncate, assign, repeat — which
 [[id:3d0487f4-b8f8-451c-88bf-ab537663cbd0][3d0487f4]] had listed as
 explicitly out of scope for v1.
+** TODO Decouple live "what is Claude attending to" visibility from the authoritative org clock :code:
+:PROPERTIES:
+:ID:       290b6fc5-3ebb-4827-9a97-5a3542e354b6
+:CREATED:  [2026-08-06 Thu 10:47]
+:END:
+
+Point the statusline (=claude-code-ide-org--statusline-task-string=)
+at the *queue* files' latest event across all sessions, rather than
+=org-clocking-p=/=org-clock-marker=, once those stop being live in
+real time. Arguably more honest than today's version regardless of
+this refactor's fate — reflects "what Claude is doing" rather than
+"what's been recorded," and can't desync the way marker-based state
+can, since it's just reading append-only files.
+
+Explicit instruction, added 2026-08-06: don't stop at a bare
+event-name swap. Now that a pending-queue-inspection tool
+([[id:63a642c7-b04d-42dc-b6ec-3fb13df3ae04][63a642c7]]) exists in this
+same plan — and, since
+[[id:c9292ce8-8fb5-41c0-8de1-bbf74ffa7fce][c9292ce8]] was cancelled,
+is the *only* place queue state gets surfaced outside the review
+command — consider whether the statusline should surface that
+same information glanceably from the terminal — e.g. a pending-review
+count ("3 updates awaiting review"), or a visible distinction between
+"applied" and "queued, not yet reviewed" for whatever heading it
+names — rather than just relocating today's single clocked-in/out
+label to a different data source with the same one-line shape.
+
+*Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] on
+2026-08-14.* A capability the epic *enables* rather than one it
+requires — the same test that promoted
+[[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] and
+[[id:d1cf852a-696a-4195-a4a7-039439c1f4b7][d1cf852a]] out on 2026-08-13.
+Decoupling live visibility is worth doing whether or not the epic ever
+closes, and the epic closes whether or not this is done.
+
+** TODO pause/resume cannot see a turn blocked on a permission prompt :code:
+:PROPERTIES:
+:ID:       f4e628ce-e653-429a-8f3c-0f5d4241b139
+:CREATED:  [2026-08-11 Tue 15:52]
+:END:
+
+The =Stop= hook fires when a turn ends. A turn that stalls mid-flight —
+waiting on a tool-permission prompt — has not ended, so no =pause= is
+written and the queue records one unbroken span.
+
+Measured in this session, 2026-08-11: the turn for prompt =523077c9= ran
+=resume= 13:55:19 → =pause= 14:53:10, 57m51s. Of that, 54m11s was a
+single tool call awaiting approval while the user was on a Zoom call;
+roughly 3m40s was work. Nothing in the queue distinguishes the two.
+
+Not a hook bug — the hook behaved correctly, the turn genuinely never
+stopped. The guidepost model simply has no event for "still running, but
+blocked on a human." Note the asymmetry with an *interrupted* turn,
+which also emits no =pause= but is harmlessly bounded by the next
+=resume=; this case is bounded by nothing.
+
+Bears directly on the project's second stated goal. If a clock had been
+running, ~58 minutes would have been credited to a heading for ~4
+minutes of attention. Related:
+[[id:1a5a5254-f62d-46e7-9a6c-3d84f2f52873][1a5a5254]], which is one
+possible external signal for exactly this gap.
+
+*Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] on
+2026-08-14,* with three siblings, on the reasoning that heading already
+established twice: a defect in what the queue *records* does not have to
+be fixed for the queue and its review loop to be complete and correct.
+An epic that absorbs every defect found in the code it produced can
+never close, and [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]]
+is waiting on this one closing.
+
+** TODO Read power assertions as a review-time attribution signal :code:research:
+:PROPERTIES:
+:ID:       1a5a5254-f62d-46e7-9a6c-3d84f2f52873
+:CREATED:  [2026-08-11 Tue 15:52]
+:END:
+
+CLAUDE.md records =pmset -g log= as "not yet attempted" and frames the
+per-app power assertions as noise obscuring clean sleep/wake
+transitions. For *this* question the framing is backwards: a laptop that
+never sleeps emits zero transitions and a rich assertion record, and the
+assertion holder is the answer.
+
+Tried 2026-08-11 against a known-answer window. The log named the
+competing activity exactly:
+
+: 14:01:56  Created   NoDisplaySleepAssertion  (zoom.us, PID 58601)
+: 14:42:14  Released  NoDisplaySleepAssertion  00:40:17
+
+The user's own estimate was "roughly 14:00 to roughly 14:45" — the log
+was right to the second, and the 40m17s sits entirely inside the 54m11s
+permission-block of
+[[id:f4e628ce-e653-429a-8f3c-0f5d4241b139][f4e628ce]].
+
+*Not a validated method, on one observation.* Zoom happened to hold a
+cleanly-named assertion; =coreaudiod= held 158 of the 361 entries in the
+same window and is a far noisier proxy. An assertion also is not
+inattention — people work through calls. The most it can honestly do is
+prompt the human reviewer, never decide.
+
+*Retention bounds it:* the log went back ~7 days (earliest 2026-08-04).
+That puts a deadline on "the human applies at a moment of their own
+choosing."
+
+Revises the disposition recorded in
+[[id:9d2fcdad-9bf7-47b6-8018-223b13ec4577][9d2fcdad]]'s neighbourhood,
+which proposed closing the =pmset= lead as won't-do — correct for the
+stale-interval guess heuristic, wrong for attribution.
+
+*Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] on
+2026-08-14,* as a capability rather than a requirement. Note it is
+explicitly *not* the =pmset= lead that
+[[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] closed as
+won't-do: that one guessed when a stale clock stopped, this one assigns
+an existing span to a heading at review time. Same data source,
+different question, and only the first was refuted.
+
+** TODO Background-task notifications write phantom resume guideposts :code:
+:PROPERTIES:
+:ID:       09c134c4-31eb-4f6c-aa10-f836d1d28f16
+:CREATED:  [2026-08-12 Wed 17:46]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-12 Wed 17:47] \\
+  phantom resume inflates human-present time
+:END:
+
+Observed 2026-08-12 during the subagent experiment behind
+[[id:0d789b68-faca-4911-868a-fdd70acbfd40][0d789b68]]. A background
+task completing re-invokes the model, which fires =UserPromptSubmit=,
+which appends a =resume= guidepost — with no user having sent anything:
+
+: 17:22:41  resume  UserPromptSubmit   (agent 1 finished ~17:21:47)
+: 17:23:50  resume  UserPromptSubmit   (agent 2 finished ~17:23:15)
+
+The events are byte-identical to a genuine prompt's; no field
+distinguishes them. This matters because CLAUDE.md defines the
+pause/resume stream as tracking *active work time only* — "paused the
+moment Claude Code stops and is waiting on the user, resumed the moment
+the user sends the next prompt." A robot wake-up now reads as the human
+returning to the keyboard, and since
+=--aggregate-guideposts= reconstructs human spans from exactly these
+timestamps, the effect is to inflate apparent human-present time in
+every =:suggested:= interval that spans a background completion.
+
+Affects any background task, not just subagents. Note the guidepost
+carries =agent_id: nil= even when the notification came from an agent —
+the hook fires in the parent's turn, not the agent's — so filtering on
+=agent_id= is *not* the fix.
+
+Not yet investigated: whether the hook payload distinguishes a real
+submission from a task-completion re-invocation at all. If it does not,
+the honest options are to accept the inflation and document it, or to
+stop treating =resume= as evidence of human presence.
+
+*Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] on
+2026-08-14,* alongside
+[[id:f4e628ce-e653-429a-8f3c-0f5d4241b139][f4e628ce]], which it pairs
+with directly — both are about guideposts that are missing or phantom,
+and [[id:d1cf852a-696a-4195-a4a7-039439c1f4b7][d1cf852a]] already notes
+that a bracket bounds the damage from either. Filed under the epic by
+proximity rather than membership: the queue is complete without it.
+
 ** MAYBE Add a third retention tier for completed work as a chronological changelog :code:
 :PROPERTIES:
 :ID:       4c0044bf-1b6c-44ea-807a-8f9e3523e3fd
