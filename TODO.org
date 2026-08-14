@@ -9801,13 +9801,35 @@ full measurement would be built to the wrong size.
 
 *Proposed shape: extend =org_outline=, do not add a third tool.*
 CLAUDE.md's own design note argues the surface should stay small because
-each tool's schema costs tokens on every request, so two options on an
-existing tool beat a new one:
-1. accept an =:ID:= *prefix*, resolving it when unambiguous and saying so
-   plainly when not — and, either way, never reporting an unresolved
-   scope as a missing file;
-2. an option to include the scope root's property drawer, so front
-   matter comes back without the body.
+each tool's schema costs tokens on every request, so extending an
+existing tool beats adding one:
+1. =scope= accepts an =:ID:= *prefix*, resolving it when unambiguous and
+   saying so plainly when not — and, either way, never reporting an
+   unresolved scope as a missing file. No change to the output at all.
+2. When =scope= resolves to a heading, that heading's front matter
+   precedes the tree: =:CREATED:=, the =:BLOCKER:= *value*, the plan
+   link. Today none of those three is reachable — the tree line carries
+   keyword, title, id and tags, and a =[blocked]= marker that says a
+   blocker exists without saying which ids.
+
+*Root only, never per line, and not behind a flag.* Two corrections made
+2026-08-14 while the proposal was being read back, both worth keeping
+because the first reading was wrong in a way that would have damaged the
+tool.
+
+*Per-heading front matter would destroy what the tool is for.*
+=org_outline='s stated value is being "roughly 40x smaller" than reading
+the file; multiplying every line by a property drawer scales with heading
+count — 37 lines scoped to
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]], 111 unscoped.
+Scope-root only grows the reply by a *fixed* four lines however large the
+subtree is.
+
+*And it should not be optional.* A boolean is itself schema, paid on
+every request whether or not anyone sets it — which is the same argument
+that ruled out a third tool, applied one level down. Four lines is below
+the size at which a knob earns its keep, and a caller who names a single
+heading by id is nearly always asking *about that heading*.
 
 *Deliberately out of scope: semantic matching.* The user asked whether
 title matching is semantic; it is not, and it should not become so here.
