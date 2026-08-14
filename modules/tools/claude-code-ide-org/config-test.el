@@ -3545,11 +3545,41 @@ had gone CANCELLED before the earliest of them began."
     (let ((span (seq-find (lambda (i) (plist-get i :unassigned))
                           (claude-code-ide-org--review-items-from-queue))))
       (should span)
-      ;; It may still fall back to naming that heading, but it must not
-      ;; be offered as the *active* one -- the fallback is the last
-      ;; heading mentioned, which here is the same id. The discriminating
-      ;; case is that a *different* later DOING wins outright.
-      (should (equal "id-done" (plist-get span :id))))))
+      ;; Nil, not `id-done'. This assertion used to read
+      ;; `(should (equal "id-done" ...))' with a comment conceding "it
+      ;; may still fall back to naming that heading" -- so the test named
+      ;; "releases a finished heading" in fact pinned the heading *not*
+      ;; being released, and passed for months while the bug it was named
+      ;; for was live. The fallback it tolerated is gone (:ID: f4e628ce's
+      ;; sibling defect, fixed 2026-08-14); nobody said what was being
+      ;; worked on after 08:30, so the honest answer is that nobody knows.
+      (should (null (plist-get span :id))))))
+
+(ert-deftest claude-code-ide-org-test-suggestion-not-resurrected-by-closing-another ()
+  "The 2026-08-14 shape, which no test covered: after the last working
+heading is closed, *closing a different heading* must not make that one
+the answer either.
+
+The fallback returned the most recent `todo' of any state, so a
+`CANCELLED' on id-b -- an event that asserts work has stopped -- promoted
+id-b to the suggestion and held it there. Three spans across two hours
+were offered for a heading cancelled before the first of them, and the
+window it covered was documentation and planning that entered no heading
+at all, which is exactly when nobody has said what is being worked on."
+  (let* ((base (date-to-time "2026-08-14T14:00:00-0500"))
+         (events (list (list :kind "todo" :id "id-a" :state "DOING" :ts base)
+                       (list :kind "todo" :id "id-a" :state "DONE"
+                             :ts (time-add base 600))
+                       (list :kind "todo" :id "id-b" :state "CANCELLED"
+                             :ts (time-add base 1200)))))
+    (should (equal "id-a" (claude-code-ide-org--review-suggest-heading
+                           (time-add base 300) events)))
+    (should (null (claude-code-ide-org--review-suggest-heading
+                   (time-add base 900) events)))
+    ;; And still nil after id-b's CANCELLED, which is the event that used
+    ;; to do the resurrecting.
+    (should (null (claude-code-ide-org--review-suggest-heading
+                   (time-add base 1800) events)))))
 
 (ert-deftest claude-code-ide-org-test-suggestion-prefers-the-later-active-heading ()
   "When one heading finishes and another starts, the running one wins."
@@ -4933,10 +4963,14 @@ named the six non-working keywords explicitly, adding a seventh to
 the guess latching on that heading forever, and failing by latching is
 the failure mode hardest to notice.
 
-Observed through the function's own answer, which needs two headings:
-with `active' cleared the suggestion falls through to the most recent
-`todo' of any state, so it names id-b.  Left latching, it would still
-name id-a."
+Observed through the function's own answer.  This used to need a second
+heading, because the cleared answer fell through to the most recent
+`todo' of any state and the only way to see the clear fire was to watch
+it name id-b instead.  That fallback is gone (2026-08-14), so the clear
+is now observable directly: id-a stops being named and nothing replaces
+it.  id-b is kept in the fixture anyway -- a later `TODO' event must not
+resurrect a heading as the answer either, which the fallback would have
+done."
   (let* ((base (date-to-time "2026-08-14T09:00:00-0500"))
          (events (list (list :kind "todo" :id "id-a" :state "DOING" :ts base)
                        (list :kind "todo" :id "id-a" :state "REVIEW"
@@ -4947,9 +4981,10 @@ name id-a."
     (should (equal "id-a" (claude-code-ide-org--review-suggest-heading
                            (time-add base 30) events)))
     ;; Once it reaches REVIEW -- a keyword this code has never heard of --
-    ;; it stops being the answer.
-    (should (equal "id-b" (claude-code-ide-org--review-suggest-heading
-                           (time-add base 180) events)))))
+    ;; it stops being the answer, and id-b's plain TODO does not become
+    ;; one: only DOING/PLANNING assert that work is happening.
+    (should (null (claude-code-ide-org--review-suggest-heading
+                   (time-add base 180) events)))))
 
 (ert-deftest claude-code-ide-org-test-span-gaps-report-unattested-stretches ()
   "The real 17:18-17:32 case: commits at +4m and +8m leave a 6m tail with

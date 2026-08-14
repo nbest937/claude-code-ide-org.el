@@ -3241,10 +3241,32 @@ and NEXT all sit on org's not-done side while meaning nobody is working.")
 (defun claude-code-ide-org--review-suggest-heading (time events)
   "Return the :ID: most plausibly being worked on at TIME, from EVENTS.
 
-The most recent `todo' event at or before TIME that names a heading,
-preferring one that entered DOING or PLANNING -- those assert \"work is
-happening here\" in a way TODO or DONE does not.  Falls back to the most
-recent `todo' of any state, and to nil when nothing precedes TIME.
+A heading is the answer only while it is *in* a work-in-progress state
+at TIME: something entered it into DOING or PLANNING before TIME and
+nothing has taken it out since.  Otherwise nil, and the span is offered
+unattributed for a human to assign (TODO.org :ID: 3d0487f4 built that
+path precisely so nil is workable).
+
+There used to be a fallback here -- \"the most recent `todo' of any
+state\" -- and it silently defeated the clear below.  Closing a heading
+emits a `todo' event naming it, so the clear would set `active' to nil
+and the fallback would immediately hand the very same id back.  The
+guess therefore latched from the moment a heading was closed until the
+next one opened, which is exactly the window filled by documentation,
+planning and review -- work that often enters no heading at all.
+
+Measured 2026-08-14: a 53-minute span was suggested, and accepted, for
+`e51d6ba1', a heading that had gone DONE seven minutes before the span
+began.  It swallowed two properly bracketed intervals on other headings
+in the process.  Three further spans later that day all named
+`4cda6bf7', CANCELLED an hour earlier.  Removing the fallback is the
+whole fix; the clear was already correct.
+
+Nil is the honest answer in that window and a better one than a
+plausible wrong id, which this project has now measured twice: :ID:
+7771fc63 retired a stop-time guess for being wrong more often than not,
+and :ID: 5ff5a4b8 found that supporting detail makes a suggestion harder
+to reject rather than easier to evaluate.
 
 This is *only* ever a suggestion the human confirms, and that distinction
 is the whole justification for deriving it from `todo' events at all.
@@ -3255,14 +3277,13 @@ to the wrong heading -- silently.  That objection stands and nothing
 here weakens it: attribution is unchanged, and a wrong guess made *here*
 is visible on the review line at the moment of decision and one keystroke
 from correction.  See TODO.org :ID: 3d0487f4."
-  (let (active last-any)
+  (let (active)
     (dolist (e events)
       (when (and (equal (plist-get e :kind) "todo")
                  (plist-get e :id)
                  (not (time-less-p time (plist-get e :ts))))
         (let ((id (plist-get e :id))
               (state (plist-get e :state)))
-          (setq last-any id)
           (cond
            ((member state claude-code-ide-org--work-in-progress-keywords)
             (setq active id))
@@ -3282,7 +3303,7 @@ from correction.  See TODO.org :ID: 3d0487f4."
            ;; yet (TODO.org :ID: c954f650, where adding REVIEW is under
            ;; discussion).
            ((equal id active) (setq active nil))))))
-    (or active last-any)))
+    active))
 
 (defun claude-code-ide-org--review-current-state (id)
   "Return the TODO keyword heading ID holds right now, or nil.
