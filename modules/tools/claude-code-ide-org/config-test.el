@@ -4515,6 +4515,107 @@ will land and flags a target that no longer resolves, an amend names the
         (should (string-match-p "! capture \"Orphan\" +-> No Such Category (UNRESOLVED)" text))
         (should (string-match-p "amend +\"(unknown heading)\" +(3 lines)" text))))))
 
+;;; RET from the review buffer -----------------------------------------------
+
+(ert-deftest claude-code-ide-org-test-review-goto-keeps-the-review-buffer-visible ()
+  "RET must not displace the list it is helping you read.  The org file
+is normally already open in another window -- that is how the review
+command gets invoked -- so the jump reuses that window, leaves the review
+buffer showing, and selects the org buffer at the heading."
+  (claude-code-ide-org-test--with-heading
+    (let ((org-buffer (find-file-noselect file))
+          (review (get-buffer-create "*org-review-test*")))
+      (unwind-protect
+          (progn
+            (with-current-buffer review
+              (claude-code-ide-org-review-mode)
+              (setq claude-code-ide-org--review-items
+                    (list (list :type 'state :id id :ts (current-time)
+                                :from "TODO" :to "DOING" :events nil)))
+              (claude-code-ide-org--review-render))
+            ;; The layout the complaint describes: review here, org there.
+            (delete-other-windows)
+            (let ((other (split-window)))
+              (set-window-buffer other org-buffer)
+              (set-window-buffer (selected-window) review)
+              (with-current-buffer review
+                (claude-code-ide-org-test--goto-nth-item 0)
+                (claude-code-ide-org-review-goto))
+              ;; The review buffer is still on screen...
+              (should (get-buffer-window review))
+              ;; ...the org buffer's existing window was reused rather than
+              ;; a third one made...
+              (should (eq (selected-window) other))
+              ;; ...and that window is showing the heading.  Asserted
+              ;; against the *window*, not `current-buffer': the enclosing
+              ;; `with-current-buffer' restores what was current on exit, so
+              ;; a `current-buffer' assertion here can pass on whatever the
+              ;; fixture happened to leave behind rather than on the jump.
+              (should (eq (window-buffer other) org-buffer))
+              (with-selected-window other
+                (should (equal id (org-entry-get nil "ID"))))))
+        (kill-buffer review)
+        (delete-other-windows)))))
+
+(ert-deftest claude-code-ide-org-test-review-goto-pushes-the-mark-ring ()
+  "Reusing the org window would otherwise silently discard wherever the
+human was reading when they ran the review, so the old position goes on
+org's own mark ring and `org-mark-ring-goto' brings it back."
+  (claude-code-ide-org-test--with-heading
+    (let ((org-buffer (find-file-noselect file))
+          (review (get-buffer-create "*org-review-test*")))
+      (unwind-protect
+          (progn
+            (with-current-buffer review
+              (claude-code-ide-org-review-mode)
+              (setq claude-code-ide-org--review-items
+                    (list (list :type 'state :id id :ts (current-time)
+                                :from "TODO" :to "DOING" :events nil)))
+              (claude-code-ide-org--review-render))
+            (delete-other-windows)
+            (let ((other (split-window)))
+              (set-window-buffer other org-buffer)
+              (set-window-buffer (selected-window) review)
+              ;; Park point somewhere identifiable in the org window.
+              (with-selected-window other (goto-char (point-min)))
+              (with-current-buffer review
+                (claude-code-ide-org-test--goto-nth-item 0)
+                (claude-code-ide-org-review-goto))
+              (with-selected-window other
+                (should (> (point) (point-min)))
+                ;; `last-command' must differ from `this-command' or org
+                ;; takes its "called several times in succession, walk the
+                ;; ring" branch and lands on an unset marker.  In batch both
+                ;; are nil, so they collide and every call looks like a
+                ;; repeat -- an artifact of running headless, not of the
+                ;; jump under test.
+                (let ((last-command 'not-a-repeat))
+                  (org-mark-ring-goto 1))
+                (should (= (point) (point-min))))))
+        (kill-buffer review)
+        (delete-other-windows)))))
+
+(ert-deftest claude-code-ide-org-test-review-goto-explains-what-it-cannot-reach ()
+  "An unassigned span names no heading and a capture names one that apply
+has not written yet.  Both are ordinary states of the queue, so each gets
+an answer that says what to do rather than a bare \"cannot find entry\"."
+  (claude-code-ide-org-test--with-review-buffer
+      (list (list :type 'clock :id nil :start (current-time) :end (current-time)
+                  :unassigned t :events nil)
+            (list :type 'capture :id "not-written-yet" :ts (current-time)
+                  :title "Pending" :events nil))
+    ;; Matched without the quote characters: `user-error' formats through
+    ;; `format-message', which turns `a' into curly ‘a’, so an assertion
+    ;; written the way the source spells it fails on the rendering.
+    (claude-code-ide-org-test--goto-nth-item 0)
+    (should (string-match-p
+             "not assigned to a heading yet"
+             (cadr (should-error (claude-code-ide-org-review-goto) :type 'user-error))))
+    (claude-code-ide-org-test--goto-nth-item 1)
+    (should (string-match-p
+             "capture is still pending"
+             (cadr (should-error (claude-code-ide-org-review-goto) :type 'user-error))))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here

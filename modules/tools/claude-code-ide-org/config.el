@@ -4259,12 +4259,50 @@ becomes history."
     (claude-code-ide-org--review-goto-line line)))
 
 (defun claude-code-ide-org-review-goto ()
-  "Jump to the org heading the item at point belongs to."
+  "Show the org heading the item at point belongs to, in another window.
+
+Deliberately *not* `org-id-goto', which is what this used to call.  That
+function ends in `pop-to-buffer-same-window', so it displaced the review
+buffer with the very file the review buffer exists to talk about --
+hiding the list of items at the exact moment you wanted to compare one
+against its heading.  The org file is normally already visible in another
+window anyway (that is how the review command is usually invoked), so
+the same-window jump also produced a second window onto a buffer that was
+right there.
+
+`inhibit-same-window' is passed explicitly rather than left to
+`display-buffer's defaults.  The defaults would usually do the right
+thing, but `display-buffer-alist' is user configuration -- a rule that
+routes org buffers somewhere specific would otherwise be free to put this
+one back over the review buffer, which is the one placement that must
+never happen.
+
+Pushes the org mark ring first, so `\\[org-mark-ring-goto]' returns to
+wherever point was in that buffer before the jump.  Reusing the existing
+window means that position would otherwise just be lost, and it is
+usually the place the human was reading when they ran the review."
   (interactive)
   (let ((item (claude-code-ide-org--review-item-at-point)))
     (unless item (user-error "No review item on this line"))
     (let ((id (plist-get item :id)))
-      (org-id-goto id))))
+      ;; An unassigned span names no heading at all, and a capture names
+      ;; one that apply has not written yet.  Both are ordinary states
+      ;; here, not failures, so they get an answer that says what to do
+      ;; rather than `org-id-goto's bare "Cannot find entry".
+      (unless id
+        (user-error "This span is not assigned to a heading yet; press `a' to choose one"))
+      (let ((marker (ignore-errors (org-id-find id 'marker))))
+        (unless marker
+          (if (eq (plist-get item :type) 'capture)
+              (user-error "Not written yet -- this heading's capture is still pending; apply it first")
+            (user-error "No heading found with :ID: %s" id)))
+        (pop-to-buffer (marker-buffer marker) '(nil (inhibit-same-window . t)))
+        (org-mark-ring-push)
+        (goto-char marker)
+        (set-marker marker nil)
+        (if (fboundp 'org-fold-show-context)
+            (org-fold-show-context 'org-goto)
+          (org-show-context 'org-goto))))))
 
 (defun claude-code-ide-org-review-edit-interval ()
   "Edit the endpoints of the clock item at point.
