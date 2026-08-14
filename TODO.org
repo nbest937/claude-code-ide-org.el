@@ -4659,6 +4659,86 @@ case rests on
 [[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]] and a human's own
 =C-c C-x C-i= remaining reachable.
 
+*Decided and executed 2026-08-14. Split verdict: keep the detector and
+the repair, retire the guess.*
+
+*First, this heading's own premise is wrong, and that is what saved the
+feature.* It states that under queue+review the crash-strands-an-open-
+CLOCK scenario "stops being reachable for =CLOCK:= lines," because apply
+writes intervals already closed. Apply does — but apply is not the only
+writer. =claude-code-ide-org--trigger-auto-clock-in= still fires on any
+hand-edit to =DOING=/=PLANNING= and opens a *live, unclosed* clock, which
+is asserted directly by the suite (=config-test.el:611= checks the buffer
+holds =CLOCK: [= after a bare =org-todo=) and which happened in practice
+on 2026-08-12, when the toggle described in
+[[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]] minted an interval
+that had to be deleted by hand. The Doom config's =kill-emacs-hook= and
+=suspend-hook= close such a clock on a *clean* exit; a crash does not.
+So the scenario is reached through a narrower door than before — a human
+at a buffer rather than a session — but it is the same room, and
+retiring the detector would have removed a net that still catches
+something. Verified quiet, not merely assumed: the detector reports 0
+findings against the real files today, and neither tracked file contains
+an open =CLOCK:= line.
+
+*Second, the guess is gone,* and this part was already argued twice
+independently. =--guess-stop-time= and
+=claude-code-ide-org-working-hours= are deleted outright rather than kept
+as a weak fallback. [[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]]
+measured the premise and it does not hold: 11 of 19 long gaps begin
+inside working hours, including the two longest. The deciding argument
+against a *weaker* fallback rather than none is
+[[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]]'s finding, measured
+on this project's own review buffer — a plausible suggestion is harder to
+reject than none, so a guess that is wrong for most observed gaps is
+worse than an honest question. The report now states the open timestamp,
+asks what time work actually stopped, and explicitly instructs the
+relaying session not to invent one.
+
+*Third, the two branches this heading left open are both closed by
+events rather than by argument.* The =:SESSIONS:= branch is moot:
+[[id:9d2fcdad-9bf7-47b6-8018-223b13ec4577][9d2fcdad]] retired the drawer
+and deleted every instance, so a =Resumed= entry can no longer strand.
+And the =pmset -g log= lead is closed as *won't-do* in CLAUDE.md, since
+it existed to make a better guess and there is no longer a guess to
+improve — distinguished there from
+[[id:1a5a5254-f62d-46e7-9a6c-3d84f2f52873][1a5a5254]], which wants power
+assertions for *review-time attribution* and is untouched by this.
+
+*Deliberately not done: repurposing the =SessionStart= slot.* The
+"you have N unreviewed updates pending" idea stays where it was filed.
+There are already two =SessionStart= hooks wired in =.claude/settings.json=
+(=session-start-recovery-check= and =.claude/hooks/session-context.sh=),
+so nothing about keeping this one blocks that one; and the want is shared
+with [[id:290b6fc5-3ebb-4827-9a97-5a3542e354b6][290b6fc5]] and
+[[id:63a642c7-b04d-42dc-b6ec-3fb13df3ae04][63a642c7]], which is an
+argument for designing that read path once, not for smuggling it in here.
+
+*Verified.* 250 tests green. The two =--guess-stop-time= tests were
+deleted with the function — they asserted the guess was *computed*
+correctly, which it always was; what failed was the premise. They are
+replaced by one test asserting the property that now matters: the report
+states exactly one timestamp and tells the reader not to propose
+another. Confirmed to discriminate by re-introducing a second, later
+timestamp into the report, which failed it. Then reloaded live, with
+=fmakunbound=/=makunbound= for the deleted symbols per the org-dev
+skill. The caller-reference check returned *non-nil* for both callers —
+inspected rather than believed, and both matches are inside docstrings
+written about the retirement itself, which is precisely the false
+positive that skill warns about. The batch suite is the independent
+proof: it loads =config.el= into a fresh Emacs where those symbols never
+existed at all.
+
+*One documentation drift fixed here, one recorded for
+[[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]].* CLAUDE.md claimed
+both recovery =defcustom=s were "set in =~/.config/doom/config.el=";
+neither is, and both have always run at their defaults — corrected while
+removing the retired one. Separately, CLAUDE.md still shows
+=(add-hook 'kill-emacs-hook #'org-clock-out)= where the live config
+actually installs =claude-code-ide-org--clock-out-if-clocking=. That one
+is left for the rewrite, since it is not this heading's to fix, but it is
+load-bearing for the argument above about clean exits.
+
 *** DONE Decide whether the :SESSIONS: drawer and its machinery survive the refactor :code:
 :PROPERTIES:
 :ID:       9d2fcdad-9bf7-47b6-8018-223b13ec4577
@@ -5190,6 +5270,16 @@ skill nor CLAUDE.md currently says anything about this; verified
 all. A session handoff asserted the skill already covered it, which was
 itself an unchecked claim of exactly the kind the section above warns
 about.
+
+*Drift found 2026-08-14 by
+[[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]], not fixed there:*
+CLAUDE.md's "Emacs integration" block shows
+=(add-hook 'kill-emacs-hook #'org-clock-out)= and the same for
+=suspend-hook=, but the live Doom config installs
+=claude-code-ide-org--clock-out-if-clocking= on both. Load-bearing rather
+than cosmetic — whether a clean exit closes a hand-opened clock is
+exactly what decides how much the stale-interval detector still has to
+catch.
 
 *Also for the rewrite:*
 [[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]] adds an exception

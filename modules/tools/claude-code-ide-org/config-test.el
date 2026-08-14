@@ -1257,22 +1257,36 @@ checked first."
 
 ;;; Stale interval recovery ----------------------------------------------
 
-(ert-deftest claude-code-ide-org-test-guess-stop-time-uses-working-hours ()
-  (let* ((claude-code-ide-org-working-hours '(9 . 18))
-         (start (encode-time 0 0 14 15 6 2026)) ; 2026-06-15 14:00
-         (guess (claude-code-ide-org--guess-stop-time start))
-         (decoded (decode-time guess)))
-    (should (= 18 (nth 2 decoded)))
-    (should (= 0 (nth 1 decoded)))
-    (should (= 15 (nth 3 decoded)))))
+;; The two --guess-stop-time tests that stood here were retired with the
+;; function on 2026-08-14 (TODO.org :ID: 7771fc63).  They asserted the
+;; guess was computed correctly, which it was; what failed was the
+;; premise that the clock predicts absence at all (:ID: 96a51c2f).
+;; Replaced by the assertion below, which is about what the report must
+;; NOT do -- the property that actually matters now.
 
-(ert-deftest claude-code-ide-org-test-guess-stop-time-clamped-after-hours ()
-  "If work started after working hours end, the guess must still be
-after the start time, not before it."
-  (let* ((claude-code-ide-org-working-hours '(9 . 18))
-         (start (encode-time 0 0 21 15 6 2026)) ; 2026-06-15 21:00
-         (guess (claude-code-ide-org--guess-stop-time start)))
-    (should (time-less-p start guess))))
+(ert-deftest claude-code-ide-org-test-stale-report-asks-without-guessing ()
+  "The stale-interval report must state the open timestamp and ask for
+the stop time, never propose one. A plausible suggestion is harder to
+reject than none (TODO.org :ID: 5ff5a4b8), so a guess that is wrong for
+most observed gaps is worse than an honest question."
+  (let* ((open (encode-time 0 0 14 15 6 2026)) ; 2026-06-15 14:00
+         (findings (list (list :id "test-0001" :heading "Test heading"
+                               :file "/tmp/test.org" :logbook-open open)))
+         (report (claude-code-ide-org--format-stale-interval-report findings)))
+    ;; States the fact it has.
+    (should (string-match-p (regexp-quote "[2026-06-15 Mon 14:00]") report))
+    (should (string-match-p "Test heading" report))
+    ;; Asks for the one it does not have, and tells the relayer not to
+    ;; invent it.
+    (should (string-match-p "what time they actually stopped" report))
+    (should (string-match-p "do not propose a time" report))
+    ;; Carries no second, later timestamp that could read as a proposal.
+    (should (= 1 (length (let ((all nil) (start 0))
+                           (while (string-match "\\[20[0-9-]+ [A-Za-z]\\{3\\} [0-9:]+\\]"
+                                                report start)
+                             (push (match-string 0 report) all)
+                             (setq start (match-end 0)))
+                           all))))))
 
 (ert-deftest claude-code-ide-org-test-find-stale-open-intervals-detects-yesterday ()
   (claude-code-ide-org-test--with-heading

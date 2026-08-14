@@ -28,13 +28,20 @@ SessionStart hook so Claude can ask you for the actual stop time."
   :type 'boolean
   :group 'claude-code-ide-org)
 
-(defcustom claude-code-ide-org-working-hours '(9 . 18)
-  "Cons of (START-HOUR . END-HOUR), 24-hour clock, your normal
-working hours.  Used only to inform the educated guess offered when
-recovering a stale open interval: absent a better signal, the guess
-defaults to the end of working hours on the day the interval opened."
-  :type '(cons integer integer)
-  :group 'claude-code-ide-org)
+;; `claude-code-ide-org-working-hours' and
+;; `claude-code-ide-org--guess-stop-time' stood here until 2026-08-14
+;; (TODO.org :ID: 7771fc63).  They offered an educated guess for when a
+;; stale interval actually ended: the end of working hours on the day it
+;; opened.  Retired because the premise was measured and did not hold --
+;; of 19 human gaps over 2000s in 422 queue events, 11 begin *inside*
+;; working hours, including the two longest (TODO.org :ID: 96a51c2f).
+;; Daytime absence is indistinguishable from nighttime absence, so the
+;; guess would have been wrong for most long gaps actually observed.
+;;
+;; Deliberately not replaced with a weaker fallback.  A plausible
+;; suggestion is harder to reject than no suggestion (TODO.org :ID:
+;; 5ff5a4b8, measured on this project's own review buffer), so a wrong
+;; guess is worse than an honest question.
 
 (defcustom claude-code-ide-org-query-files nil
   "Files to scan for cross-file operations (session recovery now;
@@ -478,20 +485,6 @@ into an Emacs time value."
          (= (nth 4 now) (nth 4 then))
          (= (nth 5 now) (nth 5 then)))))
 
-(defun claude-code-ide-org--guess-stop-time (start-time)
-  "Educated guess for when work actually stopped, given the open
-interval's START-TIME, based on `claude-code-ide-org-working-hours'.
-Defaults to the end of working hours on the day work started;
-clamped to at least an hour after START-TIME if that would
-otherwise put the guess before the interval even opened."
-  (let* ((decoded (decode-time start-time))
-         (end-hour (cdr claude-code-ide-org-working-hours))
-         (guess (encode-time 0 0 end-hour
-                              (nth 3 decoded) (nth 4 decoded) (nth 5 decoded))))
-    (if (time-less-p guess start-time)
-        (time-add start-time 3600)
-      guess)))
-
 (defun claude-code-ide-org--entry-open-interval ()
   "If the entry at point has an open CLOCK line, return a plist
 \(:logbook-open TIME).  Nil means nothing is open here.  Does not rely
@@ -516,8 +509,11 @@ keep again."
   "Scan `claude-code-ide-org--tracked-files' for open CLOCK intervals
 whose open timestamp predates today.  Returns nil if
 `claude-code-ide-org-session-recovery-enabled' is nil.  Otherwise a
-list of plists: (:id ID :heading HEADING :file FILE :logbook-open TIME
-:guess TIME)."
+list of plists: (:id ID :heading HEADING :file FILE :logbook-open TIME).
+
+Carried a :guess until 2026-08-14; see the commentary where
+`claude-code-ide-org--guess-stop-time' used to live for why guessing
+was retired rather than weakened."
   (when claude-code-ide-org-session-recovery-enabled
     (let (results)
       (dolist (file (claude-code-ide-org--tracked-files))
@@ -533,8 +529,7 @@ list of plists: (:id ID :heading HEADING :file FILE :logbook-open TIME
                        (push (list :id id
                                    :heading (org-get-heading t t t t)
                                    :file file
-                                   :logbook-open lb
-                                   :guess (claude-code-ide-org--guess-stop-time lb))
+                                   :logbook-open lb)
                              results))))))
              "ID={.}" 'file))))
       (nreverse results))))
@@ -542,23 +537,28 @@ list of plists: (:id ID :heading HEADING :file FILE :logbook-open TIME
 (defun claude-code-ide-org--format-stale-interval-report (findings)
   "Format FINDINGS (as returned by
 `claude-code-ide-org-find-stale-open-intervals') into a plain-text
-report for Claude to relay to the user as a question."
+report for Claude to relay to the user as a question.
+
+Asks without proposing an answer.  It used to offer a working-hours
+guess; that was retired 2026-08-14 (TODO.org :ID: 7771fc63) because the
+guess was measurably wrong for most long gaps observed, and because a
+plausible suggestion is harder to reject than none.  The open timestamp
+is stated because it is a fact; the stop time is asked for because it is
+not."
   (mapconcat
    (lambda (f)
-     (format (concat "\"%s\" (:ID: %s, in %s) has an unclosed %s open since "
-                      "%s that was never paused — most likely a crash or "
-                      "system shutdown before Claude Code's Stop hook could "
-                      "close it. Ask the user what time they actually "
-                      "stopped work that day; offer this educated guess "
-                      "(based on working hours %d:00–%d:00): %s. Once "
-                      "confirmed or corrected, call claude-code-ide-org-close-open-interval "
-                      "via emacsclient with that timestamp.")
+     (format (concat "\"%s\" (:ID: %s, in %s) has an unclosed CLOCK entry "
+                      "open since %s that was never closed — most likely a "
+                      "crash or system shutdown before the clock could be "
+                      "stopped. Ask the user what time they actually stopped "
+                      "work; do not propose a time, and do not infer one from "
+                      "the timestamps below. Once they give you one, call "
+                      "claude-code-ide-org-close-open-interval via emacsclient "
+                      "with that timestamp.")
              (plist-get f :heading) (plist-get f :id)
              (file-name-nondirectory (plist-get f :file))
-             "CLOCK entry"
-             (format-time-string "%Y-%m-%d" (plist-get f :logbook-open))
-             (car claude-code-ide-org-working-hours) (cdr claude-code-ide-org-working-hours)
-             (format-time-string "[%Y-%m-%d %a %H:%M]" (plist-get f :guess))))
+             (format-time-string "[%Y-%m-%d %a %H:%M]"
+                                 (plist-get f :logbook-open))))
    findings "\n\n"))
 
 (defun claude-code-ide-org--session-start-hook-json ()

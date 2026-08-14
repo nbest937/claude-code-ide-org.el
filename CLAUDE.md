@@ -437,15 +437,20 @@ stays quiet regardless of how many sessions start that day. The report is
 injected as `additionalContext`, which Claude is expected to relay to the
 user as a question — the hook itself has no way to literally prompt.
 
-**Configuration** (both `defcustom`s, set in `~/.config/doom/config.el`):
+**The report asks; it never proposes.** It states the timestamp the
+interval opened at — a fact it has — and asks what time work actually
+stopped, explicitly instructing the relaying session not to invent one.
+`claude-code-ide-org-working-hours` and the educated guess it fed were
+retired 2026-08-14 (TODO.org `:ID:` 7771fc63): the premise that absence
+is predictable from the clock was measured and failed, with 11 of 19
+long gaps beginning *inside* working hours. A wrong guess is worse than
+none, because a plausible suggestion is harder to reject than no
+suggestion at all.
+
+**Configuration** (`defcustom`s; neither is set in
+`~/.config/doom/config.el` today, so both run at their defaults):
 - `claude-code-ide-org-session-recovery-enabled` (default `t`) — set nil
   to disable the whole check.
-- `claude-code-ide-org-working-hours` (default `(9 . 18)`) — a
-  `(START-HOUR . END-HOUR)` cons, 24-hour clock. Used only to inform the
-  educated guess offered alongside the prompt: absent a better signal, the
-  guess defaults to the end of working hours on the day the interval
-  opened (clamped to at least an hour after the open time, if working
-  hours would otherwise put the guess before the interval even started).
 - `claude-code-ide-org-query-files` (default nil, falls back to
   `org-agenda-files`) — which files to scan. Shared with the still-MAYBE
   `org_query` tool in TODO.org for when it's eventually built.
@@ -458,13 +463,17 @@ timestamp string. It closes the open CLOCK line (its `:SESSIONS:`
 entry is actually open (possibly both), computing the CLOCK duration and
 half is inert now that no drawer exists).
 
-**Not yet attempted:** using the system sleep/wake/shutdown log (`pmset
--g log` on macOS) as a more precise guess signal than working hours alone
-— it's specific to exactly the crash/shutdown scenario this feature
-exists for, but the log is dominated by per-app power assertions rather
-than clean sleep/wake transitions, and needs a much tighter filter than a
-first attempt turned up. Worth revisiting if the working-hours-only guess
-proves too coarse in practice.
+**Won't do** (closed out 2026-08-14 with the guess heuristic itself,
+TODO.org `:ID:` 7771fc63): using the system sleep/wake/shutdown log
+(`pmset -g log` on macOS) as a more precise guess signal than working
+hours. It was recorded as "not yet attempted" while a better guess still
+seemed worth having; the decision that the report should not guess at
+all removes the thing it was meant to improve. The original objection
+stands anyway — the log is dominated by per-app power assertions rather
+than clean sleep/wake transitions. Note this is *not* the same as
+`:ID:` 1a5a5254, which proposes power assertions as a **review-time
+attribution** signal; that one is about assigning a span to a heading,
+not about guessing when a stale clock stopped, and is unaffected.
 
 ---
 
