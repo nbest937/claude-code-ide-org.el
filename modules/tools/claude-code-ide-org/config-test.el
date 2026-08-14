@@ -4882,6 +4882,79 @@ buffer showing, and selects the org buffer at the heading."
         (kill-buffer review)
         (delete-other-windows)))))
 
+(ert-deftest claude-code-ide-org-test-show-logbook-opens-only-its-own ()
+  "RET jumps to a heading so its intervals can be compared against the
+review item, and those live in the :LOGBOOK: drawer -- which
+`org-fold-show-context' leaves closed.  Bounded to the heading's own
+body: a parent with no drawer must not open its first child's, which
+would look like it worked while showing the wrong intervals."
+  ;; A file of its own, not the shared fixture's: rewriting a file the
+  ;; fixture already has open makes `find-file-noselect' prompt about the
+  ;; on-disk change, and a prompt in batch dies with "Error reading from
+  ;; stdin" rather than anything that names the cause.
+  (let* ((dir (file-name-as-directory (make-temp-file "cciorg-fold" t)))
+         (path (expand-file-name "fold.org" dir)))
+    (unwind-protect
+        (progn
+          (with-temp-file path
+            (insert "#+TODO: TODO | DONE\n\n"
+                    "* Parent without a drawer\n:PROPERTIES:\n:ID: p-1\n:END:\n\n"
+                    "** Child with one\n:PROPERTIES:\n:ID: c-1\n:END:\n"
+                    ":LOGBOOK:\nCLOCK: [2026-08-12 Wed 17:40]--[2026-08-12 Wed 17:42] =>  0:02\n:END:\n"))
+          (with-current-buffer (find-file-noselect path)
+            (org-fold-hide-drawer-all)
+      ;; On the parent: nothing to open, and the child's stays shut.
+      (goto-char (point-min))
+      (re-search-forward "^\\* Parent")
+      (claude-code-ide-org--show-logbook)
+      (goto-char (point-min))
+      (should (re-search-forward "^:LOGBOOK:" nil t))
+      (should (org-fold-folded-p (line-beginning-position 2)))
+      ;; On the child that owns it, it opens.
+      (goto-char (point-min))
+      (re-search-forward "^\\*\\* Child")
+      (claude-code-ide-org--show-logbook)
+            (goto-char (point-min))
+            (should (re-search-forward "^:LOGBOOK:" nil t))
+            (should-not (org-fold-folded-p (line-beginning-position 2)))
+            (set-buffer-modified-p nil)
+            (kill-buffer)))
+      (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-review-goto-unfolds-the-logbook ()
+  "The wiring, not just the helper.  Asserting `--show-logbook' works in
+isolation leaves the call site untested -- removing it from
+`claude-code-ide-org-review-goto' broke no test at all until this
+existed.  RET is only useful if it lands on the intervals."
+  (let* ((dir (file-name-as-directory (make-temp-file "cciorg-goto-fold" t)))
+         (path (expand-file-name "g.org" dir))
+         (org-id-locations (make-hash-table :test 'equal))
+         (org-id-locations-file (expand-file-name ".org-id-locations" dir))
+         (review (get-buffer-create "*org-review-fold-test*")))
+    (unwind-protect
+        (progn
+          (with-temp-file path
+            (insert "#+TODO: TODO | DONE\n\n* Target\n:PROPERTIES:\n:ID: g-1\n:END:\n"
+                    ":LOGBOOK:\nCLOCK: [2026-08-12 Wed 17:40]--[2026-08-12 Wed 17:42] =>  0:02\n:END:\n"))
+          (puthash "g-1" path org-id-locations)
+          (with-current-buffer (find-file-noselect path) (org-fold-hide-drawer-all))
+          (with-current-buffer review
+            (claude-code-ide-org-review-mode)
+            (setq claude-code-ide-org--review-items
+                  (list (list :type 'state :id "g-1" :ts (current-time)
+                              :from "TODO" :to "DOING" :events nil)))
+            (claude-code-ide-org--review-render)
+            (claude-code-ide-org-test--goto-nth-item 0)
+            (claude-code-ide-org-review-goto))
+          (with-current-buffer (find-file-noselect path)
+            (goto-char (point-min))
+            (should (re-search-forward "^:LOGBOOK:" nil t))
+            (should-not (org-fold-folded-p (line-beginning-position 2)))))
+      (let ((b (find-buffer-visiting path)))
+        (when b (with-current-buffer b (set-buffer-modified-p nil)) (kill-buffer b)))
+      (kill-buffer review)
+      (delete-directory dir t))))
+
 (ert-deftest claude-code-ide-org-test-review-goto-pushes-the-mark-ring ()
   "Reusing the org window would otherwise silently discard wherever the
 human was reading when they ran the review, so the old position goes on

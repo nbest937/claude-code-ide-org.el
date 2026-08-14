@@ -4620,7 +4620,36 @@ usually the place the human was reading when they ran the review."
         (set-marker marker nil)
         (if (fboundp 'org-fold-show-context)
             (org-fold-show-context 'org-goto)
-          (org-show-context 'org-goto))))))
+          (org-show-context 'org-goto))
+        (claude-code-ide-org--show-logbook)))))
+
+(defun claude-code-ide-org--show-logbook ()
+  "Unfold the :LOGBOOK: drawer of the heading at point, if it has one.
+
+`org-fold-show-context' reveals the entry but leaves drawers closed, so
+RET from the review buffer used to land on a folded `:LOGBOOK:...' line
+-- and the drawer is the entire reason to jump: the CLOCK lines and
+annotations you are comparing the review item against are inside it.
+
+Silent when the heading has no drawer, and bounded to the heading's own
+body so a child's drawer is never opened instead of the parent's.  Never
+signals: this runs at the end of a navigation command, where an error
+would leave point moved and the command reported as failed."
+  (ignore-errors
+    (save-excursion
+      (org-back-to-heading t)
+      (let* ((end (save-excursion (org-end-of-subtree t t) (point)))
+             ;; Stop at the first child: a heading with no drawer of its
+             ;; own would otherwise open its first child's, which looks
+             ;; like it worked and shows the wrong intervals.
+             (child (save-excursion
+                      (forward-line 1)
+                      (and (re-search-forward org-heading-regexp end t)
+                           (line-beginning-position))))
+             (limit (or child end)))
+        (when (re-search-forward "^[ \t]*:LOGBOOK:" limit t)
+          (beginning-of-line)
+          (org-fold-hide-drawer-toggle 'off t))))))
 
 (defun claude-code-ide-org-review-edit-interval ()
   "Edit the endpoints of the clock item at point.
