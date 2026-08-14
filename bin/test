@@ -23,7 +23,13 @@ if [[ -n "$build_root" ]]; then
   done
 fi
 
-exec emacs "${emacs_args[@]}" \
+# `command emacs', not bare `emacs'. This script is already safe -- a
+# #!/usr/bin/env bash script gets a non-interactive shell, where the
+# user's `emacs()' wrapper (which runs `open -a Emacs' and returns 0 with
+# no output for anything lacking -nw) is not defined. Spelled out anyway,
+# because a script in the repo that documents this hazard should not read
+# as if unaware of it. See TODO.org :ID: 4f9e552a.
+exec command emacs "${emacs_args[@]}" \
   -l "$module_dir/config.el" \
   -l "$module_dir/config-test.el" \
   -f ert-run-tests-batch-and-exit
