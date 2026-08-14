@@ -7620,6 +7620,35 @@ they need one real permission prompt in a real session. Until that
 happens the suites passing mean the plumbing is right, not that it is
 connected. Hence =WAIT= rather than =DONE=.
 
+*How to resume this, set up 2026-08-14 so the next person does not have
+to work it out.* An =ask= rule forces a prompt even where the tool would
+otherwise be allowed, so =.claude/settings.local.json= (gitignored,
+untracked) carries =Bash(echo afk-probe:*)=. Run =echo afk-probe:= , leave
+the prompt unanswered, approve on return, then:
+
+: grep -h '"kind":"block' ~/.claude/org-updates/*.jsonl | jq -r '.ts,.kind,.tool_use_id'
+
+Two lines sharing a =tool_use_id=, and =org_pending_updates= showing the
+span split around the wait rather than through it.
+
+*Pause for five to ten minutes, not longer, and the upper bound is the
+whole point.* The gap threshold is 1200s; a wait longer than that is
+split by the ordinary gap rule and the probe passes whether or not any of
+this code exists — the exact trap the first fixture fell into. Only a
+sub-threshold wait can distinguish the block events from the threshold
+doing the work.
+
+*Either failure is informative and belongs here rather than being
+retried silently.* If no prompt appears, something in this session's
+permission posture outranks =ask= — the 57 =allow= rules do not account
+for the novel commands run on 2026-08-14, so the session is already
+permissive somehow — and the finding is that the feature is invisible in
+the configuration normally used. If the prompt appears but no
+=block_start= is written, the =PermissionRequest= hook needs a fresh
+session; hook-config changes are known to take effect live for
+=PreToolUse=/=PostToolUse= (DONE.org =:ID:= 135033ff) and that has never
+been tested for this event.
+
 *Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] on
 2026-08-14,* with three siblings, on the reasoning that heading already
 established twice: a defect in what the queue *records* does not have to
