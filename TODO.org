@@ -581,7 +581,7 @@ CLOCK: [2026-08-13 Thu 12:24]--[2026-08-13 Thu 13:09] =>  0:45
 - State "TODO"       from "MAYBE"      [2026-08-13 Thu 12:21] \\
   ungated; gate was unsatisfiable and a proxy
 CLOCK: [2026-08-10 Mon 20:48]--[2026-08-10 Mon 20:49] =>  0:01
-- <2026-08-13 Thu 12:24>--<2026-08-13 Thu 13:09>
+- [2026-08-13 Thu 12:24]--[2026-08-13 Thu 13:09]
 :END:
 
 Raised in conversation 2026-08-06, after a day of live use: =PLANNING=
@@ -968,7 +968,7 @@ CLOCK: [2026-08-11 Tue 20:11]--[2026-08-11 Tue 21:30] =>  1:19
   org_outline shipped, 157/157 green
 - State "DOING"      from "TODO"       [2026-08-11 Tue 18:20] \\
   implement org_outline index tool
-- <2026-08-11 Tue 20:11>--<2026-08-11 Tue 21:30>
+- [2026-08-11 Tue 20:11]--[2026-08-11 Tue 21:30]
 :END:
 
 A read-only MCP tool returning one line per heading — level, TODO
@@ -1363,8 +1363,8 @@ CLOCK: [2026-08-11 Tue 17:34]--[2026-08-11 Tue 17:36] =>  0:02
   precondition documented and snippet verified
 - State "DOING"      from "TODO"       [2026-08-11 Tue 16:45] \\
   add modified-buffer precondition to org skill
-- <2026-08-11 Tue 17:34>--<2026-08-11 Tue 17:36>
-- <2026-08-11 Tue 18:16>--<2026-08-11 Tue 18:28>
+- [2026-08-11 Tue 17:34]--[2026-08-11 Tue 17:36]
+- [2026-08-11 Tue 18:16]--[2026-08-11 Tue 18:28]
 :END:
 
 Heading creation, tagging and prose edits are text operations by design
@@ -1664,7 +1664,7 @@ never silently wrong."
 - State "DONE"       from "DOING"      [2026-08-14 Fri 12:35] \\
   shipped, mutation-tested, verified live
 CLOCK: [2026-08-14 Fri 13:25]--[2026-08-14 Fri 13:52] =>  0:27
-- <2026-08-14 Fri 13:25>--<2026-08-14 Fri 13:52> suggested span, accepted at review
+- [2026-08-14 Fri 13:25]--[2026-08-14 Fri 13:52] suggested span, accepted at review
 :END:
 
 Raised by the user 2026-08-12, on moving
@@ -3074,8 +3074,8 @@ CLOCK: [2026-08-11 Tue 13:29]--[2026-08-11 Tue 13:46] =>  0:17
 - State "DOING"      from "NEXT"       [2026-08-11 Tue 12:14] \\
   blocker cleared, starting the cutover
 CLOCK: [2026-08-11 Tue 12:14]--[2026-08-11 Tue 12:26] =>  0:12
-- <2026-08-11 Tue 13:47>--<2026-08-11 Tue 13:55>
-- <2026-08-11 Tue 14:53>--<2026-08-11 Tue 16:59>
+- [2026-08-11 Tue 13:47]--[2026-08-11 Tue 13:55]
+- [2026-08-11 Tue 14:53]--[2026-08-11 Tue 16:59]
 :END:
 
 [[file:~/.claude/plans/review-and-cutover.md][Plan]]
@@ -3363,7 +3363,7 @@ CLOCK: [2026-08-07 Fri 15:25]--[2026-08-07 Fri 15:30] =>  0:05
 CLOCK: [2026-08-07 Fri 11:50]--[2026-08-07 Fri 12:25] =>  0:35
 - State "DOING"      from "PLANNING"   [2026-08-07 Fri 12:26] \\
   Auto-promoted: ExitPlanMode fired on the owning session.
-- <2026-08-10 Mon 12:46>--<2026-08-10 Mon 12:47> interactive verification of review-and-apply
+- [2026-08-10 Mon 12:46]--[2026-08-10 Mon 12:47] interactive verification of review-and-apply
 :END:
 
 [[file:~/.claude/plans/review-and-cutover.md][Plan]]
@@ -3626,7 +3626,7 @@ CLOCK: [2026-08-10 Mon 11:22]--[2026-08-10 Mon 11:31] =>  0:09
   guard verified live, both branches
 CLOCK: [2026-08-10 Mon 12:36]--[2026-08-10 Mon 12:45] =>  0:09
 CLOCK: [2026-08-10 Mon 11:50]--[2026-08-10 Mon 12:00] =>  0:10
-- <2026-08-10 Mon 11:22>--<2026-08-10 Mon 11:31> assigned at review
+- [2026-08-10 Mon 11:22]--[2026-08-10 Mon 11:31] assigned at review
 :END:
 
 [[file:~/.claude/plans/temporal-wondering-sparrow.md][Plan]]
@@ -5319,12 +5319,12 @@ CLOCK: [2026-08-11 Tue 07:08]--[2026-08-11 Tue 07:36] =>  0:28
 - State "DOING"      from "TODO"       [2026-08-10 Mon 18:25] \\
   retire rounding, add one-minute floor
 CLOCK: [2026-08-10 Mon 18:25]--[2026-08-10 Mon 18:31] =>  0:06
-- <2026-08-10 Mon 20:49>--<2026-08-10 Mon 20:49>
-- <2026-08-11 Tue 07:08>--<2026-08-11 Tue 07:36>
-- <2026-08-11 Tue 10:31>--<2026-08-11 Tue 13:16>
-- <2026-08-10 Mon 15:30>--<2026-08-10 Mon 15:34> assigned at review
-- <2026-08-10 Mon 18:12>--<2026-08-10 Mon 18:35> assigned at review
-- <2026-08-10 Mon 18:50>--<2026-08-10 Mon 19:07> suggested span, accepted at review
+- [2026-08-10 Mon 20:49]--[2026-08-10 Mon 20:49]
+- [2026-08-11 Tue 07:08]--[2026-08-11 Tue 07:36]
+- [2026-08-11 Tue 10:31]--[2026-08-11 Tue 13:16]
+- [2026-08-10 Mon 15:30]--[2026-08-10 Mon 15:34] assigned at review
+- [2026-08-10 Mon 18:12]--[2026-08-10 Mon 18:35] assigned at review
+- [2026-08-10 Mon 18:50]--[2026-08-10 Mon 19:07] suggested span, accepted at review
 :END:
 
 Found 2026-08-10, in the first successful interactive apply -- and it
@@ -5451,9 +5451,9 @@ CLOCK: [2026-08-13 Thu 13:16]--[2026-08-13 Thu 13:22] =>  0:06
   implementing suggested guidepost assignment
 - State "NEXT"       from "TODO"       [2026-08-13 Thu 13:00] \\
   decided: build with suggested assignment
-- <2026-08-13 Thu 13:16>--<2026-08-13 Thu 13:22> building unassigned span assignment
-- <2026-08-13 Thu 13:24>--<2026-08-13 Thu 13:44> building unassigned span assignment
-- <2026-08-13 Thu 13:47>--<2026-08-13 Thu 14:09> building unassigned span assignment
+- [2026-08-13 Thu 13:16]--[2026-08-13 Thu 13:22] building unassigned span assignment
+- [2026-08-13 Thu 13:24]--[2026-08-13 Thu 13:44] building unassigned span assignment
+- [2026-08-13 Thu 13:47]--[2026-08-13 Thu 14:09] building unassigned span assignment
 :END:
 
 Guideposts carry no heading of their own; they inherit whichever one the
@@ -5724,11 +5724,11 @@ CLOCK: [2026-08-13 Thu 14:25]--[2026-08-13 Thu 15:04] =>  0:39
 - State "DOING"      from "TODO"       [2026-08-13 Thu 14:23] \\
   investigating the clock pair asymmetry first
 CLOCK: [2026-08-13 Thu 14:11]--[2026-08-13 Thu 14:51] =>  0:40
-- <2026-08-13 Thu 14:11>--<2026-08-13 Thu 14:51> assigned at review
-- <2026-08-13 Thu 14:25>--<2026-08-13 Thu 15:04> drained definition and archive command
-- <2026-08-13 Thu 15:18>--<2026-08-13 Thu 15:29> drained definition and archive command
-- <2026-08-13 Thu 15:40>--<2026-08-13 Thu 15:53> drained definition and archive command
-- <2026-08-13 Thu 15:56>--<2026-08-13 Thu 15:56> drained definition and archive command
+- [2026-08-13 Thu 14:11]--[2026-08-13 Thu 14:51] assigned at review
+- [2026-08-13 Thu 14:25]--[2026-08-13 Thu 15:04] drained definition and archive command
+- [2026-08-13 Thu 15:18]--[2026-08-13 Thu 15:29] drained definition and archive command
+- [2026-08-13 Thu 15:40]--[2026-08-13 Thu 15:53] drained definition and archive command
+- [2026-08-13 Thu 15:56]--[2026-08-13 Thu 15:56] drained definition and archive command
 :END:
 
 Proposed by the user 2026-08-11 as the middle ground between treating a
@@ -6132,8 +6132,8 @@ exercised by a person, not a stub.
   projected-state stale check shipped and verified
 - State "DOING"      from "TODO"       [2026-08-11 Tue 22:29] \\
   implementing chain-aware staleness
-- <2026-08-11 Tue 22:37>--<2026-08-11 Tue 22:37> implement projected-state stale check
-- <2026-08-12 Wed 09:58>--<2026-08-12 Wed 09:58> implement projected-state stale check
+- [2026-08-11 Tue 22:37]--[2026-08-11 Tue 22:37] implement projected-state stale check
+- [2026-08-12 Wed 09:58]--[2026-08-12 Wed 09:58] implement projected-state stale check
 :END:
 [[file:~/.claude/plans/hazy-moseying-sky.md][Plan]]
 
@@ -6296,7 +6296,7 @@ CLOCK: [2026-08-11 Tue 22:27]--[2026-08-11 Tue 22:28] =>  0:01
 - State "DOING"      from "PLANNING"   [2026-08-11 Tue 22:26]
 - State "PLANNING"   from "TODO"       [2026-08-11 Tue 22:12] \\
   planning the dismissal path
-- <2026-08-11 Tue 22:27>--<2026-08-11 Tue 22:28> plan review-buffer item dismissal
+- [2026-08-11 Tue 22:27]--[2026-08-11 Tue 22:28] plan review-buffer item dismissal
 :END:
 [[file:~/.claude/plans/hazy-moseying-sky.md][Plan]]
 
@@ -6389,8 +6389,8 @@ CLOCK: [2026-08-12 Wed 11:24]--[2026-08-12 Wed 12:39] =>  1:15
 CLOCK: [2026-08-12 Wed 10:02]--[2026-08-12 Wed 10:33] =>  0:31
 - State "DONE"       from "DOING"      [2026-08-12 Wed 10:02] \\
   read-only restored via unwind-protect
-- <2026-08-12 Wed 10:02>--<2026-08-12 Wed 10:33>
-- <2026-08-12 Wed 11:24>--<2026-08-12 Wed 12:39>
+- [2026-08-12 Wed 10:02]--[2026-08-12 Wed 10:33]
+- [2026-08-12 Wed 11:24]--[2026-08-12 Wed 12:39]
 :END:
 
 Raised by the user 2026-08-12, right after the first real dismissal
@@ -6673,8 +6673,8 @@ CLOCK: [2026-08-12 Wed 19:00]--[2026-08-12 Wed 19:24] =>  0:24
   error path can strand an open clock line
 - State "TODO"       from "NEXT"       [2026-08-12 Wed 22:39] \\
   Auto-demoted: superseded by sibling [[id:7387f97c-6c3e-4667-8851-203af024fdd9][Apply writes headless state notes -- RETRACTED, a grep artifact]] becoming NEXT.
-- <2026-08-12 Wed 19:00>--<2026-08-12 Wed 19:24>
-- <2026-08-13 Thu 09:43>--<2026-08-13 Thu 10:15>
+- [2026-08-12 Wed 19:00]--[2026-08-12 Wed 19:24]
+- [2026-08-13 Thu 09:43]--[2026-08-13 Thu 10:15]
 :END:
 
 Found 2026-08-12 while checking whether
@@ -6817,9 +6817,9 @@ CLOCK: [2026-08-12 Wed 19:33]--[2026-08-12 Wed 19:42] =>  0:09
   diagnosing the missing State header
 - State "NEXT"       from              [2026-08-12 Wed 19:15] \\
   native state logging silently malformed
-- <2026-08-12 Wed 19:33>--<2026-08-12 Wed 19:42> fixing headless state notes
-- <2026-08-12 Wed 19:46>--<2026-08-12 Wed 19:58>
-- <2026-08-12 Wed 22:36>--<2026-08-12 Wed 22:41>
+- [2026-08-12 Wed 19:33]--[2026-08-12 Wed 19:42] fixing headless state notes
+- [2026-08-12 Wed 19:46]--[2026-08-12 Wed 19:58]
+- [2026-08-12 Wed 22:36]--[2026-08-12 Wed 22:41]
 :END:
 
 *Retracted 2026-08-12 the same day it was filed. There was no defect.*
@@ -6875,7 +6875,7 @@ artifact; treat any filter as a hypothesis about what it hides.
 CLOCK: [2026-08-13 Thu 15:57]--[2026-08-13 Thu 16:12] =>  0:15
 - State "TODO"       from              [2026-08-13 Thu 13:51] \\
   label-less annotation from assigned spans
-- <2026-08-13 Thu 15:57>--<2026-08-13 Thu 16:12> assigned at review
+- [2026-08-13 Thu 15:57]--[2026-08-13 Thu 16:12] assigned at review
 :END:
 
 Found 2026-08-13 in the first real apply of
@@ -7050,8 +7050,8 @@ CLOCK: [2026-08-13 Thu 16:17]--[2026-08-13 Thu 16:20] =>  0:03
   narrowing conserves events; e now splits spans
 - State "NEXT"       from              [2026-08-13 Thu 15:42] \\
   silent loss on truncate; recovery is available
-- <2026-08-13 Thu 16:17>--<2026-08-13 Thu 16:20> suggested span, accepted at review
-- <2026-08-13 Thu 16:25>--<2026-08-13 Thu 17:16> suggested span, accepted at review
+- [2026-08-13 Thu 16:17]--[2026-08-13 Thu 16:20] suggested span, accepted at review
+- [2026-08-13 Thu 16:25]--[2026-08-13 Thu 17:16] suggested span, accepted at review
 :END:
 
 *Found 2026-08-13 by losing 32 minutes of record to it*, acting on
@@ -7145,10 +7145,10 @@ explicitly out of scope for v1.
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-10 Mon 19:07]--[2026-08-10 Mon 20:48] =>  1:41
-- <2026-08-10 Mon 19:10>--<2026-08-10 Mon 19:10> record post-cutover vocabulary
+- [2026-08-10 Mon 19:10]--[2026-08-10 Mon 19:10] record post-cutover vocabulary
 CLOCK: [2026-08-10 Mon 20:09]--[2026-08-10 Mon 20:11] =>  0:02
-- <2026-08-10 Mon 20:09>--<2026-08-10 Mon 20:11> record post-cutover vocabulary
-- <2026-08-10 Mon 20:47>--<2026-08-10 Mon 20:47> record post-cutover vocabulary
+- [2026-08-10 Mon 20:09]--[2026-08-10 Mon 20:11] record post-cutover vocabulary
+- [2026-08-10 Mon 20:47]--[2026-08-10 Mon 20:47] record post-cutover vocabulary
 CLOCK: [2026-08-11 Tue 12:00]--[2026-08-11 Tue 12:06] =>  0:06
 CLOCK: [2026-08-11 Tue 12:29]--[2026-08-11 Tue 12:30] =>  0:01
 - State "NEXT"       from "TODO"       [2026-08-14 Fri 14:57] \\
@@ -8435,13 +8435,13 @@ spans that genuinely belong to no task.
 - State "TODO"       from              [2026-08-13 Thu 10:14] \\
   drafted, awaiting the user's careful read
 CLOCK: [2026-08-13 Thu 11:04]--[2026-08-13 Thu 11:14] =>  0:10
-- <2026-08-13 Thu 11:04>--<2026-08-13 Thu 11:14>
+- [2026-08-13 Thu 11:04]--[2026-08-13 Thu 11:14]
 - State "PLANNING"   from "TODO"       [2026-08-13 Thu 11:15] \\
   planning the capture/amend queue extension
 - State "DOING"      from "PLANNING"   [2026-08-13 Thu 11:23]
 CLOCK: [2026-08-13 Thu 11:25]--[2026-08-13 Thu 11:30] =>  0:05
-- <2026-08-13 Thu 11:25>--<2026-08-13 Thu 11:30> planning capture/amend queue extension
-- <2026-08-13 Thu 12:18>--<2026-08-13 Thu 12:18> planning capture/amend queue extension
+- [2026-08-13 Thu 11:25]--[2026-08-13 Thu 11:30] planning capture/amend queue extension
+- [2026-08-13 Thu 12:18]--[2026-08-13 Thu 12:18] planning capture/amend queue extension
 - State "WAIT"       from "DOING"      [2026-08-13 Thu 12:19] \\
   awaiting go-ahead to start implementing
 - State "DOING"      from "WAIT"       [2026-08-13 Thu 17:57] \\
@@ -8616,15 +8616,15 @@ would be nothing left that needs to write immediately.
 - State "DOING"      from "NEXT"       [2026-08-13 Thu 17:32] \\
   starting span evidence rendering
 CLOCK: [2026-08-13 Thu 17:40]--[2026-08-13 Thu 17:55] =>  0:15
-- <2026-08-13 Thu 17:40>--<2026-08-13 Thu 17:55> show commits and :CREATED: in span windows
+- [2026-08-13 Thu 17:40]--[2026-08-13 Thu 17:55] show commits and :CREATED: in span windows
 CLOCK: [2026-08-13 Thu 17:55]--[2026-08-13 Thu 18:36] =>  0:41
 - State "WAIT"       from "DOING"      [2026-08-13 Thu 17:55] \\
   awaiting hands-on review of the buffer
-- <2026-08-13 Thu 17:55>--<2026-08-13 Thu 18:36> suggested span, accepted at review
+- [2026-08-13 Thu 17:55]--[2026-08-13 Thu 18:36] suggested span, accepted at review
 - State "DOING"      from "WAIT"       [2026-08-14 Fri 09:38] \\
   adding gap lines after use feedback
 CLOCK: [2026-08-14 Fri 09:49]--[2026-08-14 Fri 10:49] =>  1:00
-- <2026-08-14 Fri 09:49>--<2026-08-14 Fri 10:49> suggested span, accepted at review
+- [2026-08-14 Fri 09:49]--[2026-08-14 Fri 10:49] suggested span, accepted at review
 :END:
 
 *Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]
@@ -8752,9 +8752,9 @@ honest test is to ask again afterwards rather than to assume.
 - State "TODO"       from              [2026-08-13 Thu 18:34] \\
   captured from conversation, awaiting your read
 CLOCK: [2026-08-13 Thu 19:24]--[2026-08-13 Thu 19:25] =>  0:01
-- <2026-08-13 Thu 19:24>--<2026-08-13 Thu 19:25> suggested span, accepted at review
+- [2026-08-13 Thu 19:24]--[2026-08-13 Thu 19:25] suggested span, accepted at review
 CLOCK: [2026-08-14 Fri 08:21]--[2026-08-14 Fri 09:04] =>  0:43
-- <2026-08-14 Fri 08:21>--<2026-08-14 Fri 09:04> suggested span, accepted at review
+- [2026-08-14 Fri 08:21]--[2026-08-14 Fri 09:04] suggested span, accepted at review
 :END:
 
 *Noticed 2026-08-13, in conversation, after the pattern had already been
@@ -9180,9 +9180,9 @@ is a defect in the precise layer and this decision does not touch it.
 - State "TODO"       from              [2026-08-14 Fri 11:36] \\
   manual pass, no blockers found
 CLOCK: [2026-08-14 Fri 11:46]--[2026-08-14 Fri 11:52] =>  0:06
-- <2026-08-14 Fri 11:46>--<2026-08-14 Fri 11:52> suggested span, accepted at review
+- [2026-08-14 Fri 11:46]--[2026-08-14 Fri 11:52] suggested span, accepted at review
 CLOCK: [2026-08-14 Fri 12:07]--[2026-08-14 Fri 12:36] =>  0:29
-- <2026-08-14 Fri 12:07>--<2026-08-14 Fri 12:36> suggested span, accepted at review
+- [2026-08-14 Fri 12:07]--[2026-08-14 Fri 12:36] suggested span, accepted at review
 :END:
 
 *Named 2026-08-14, after establishing what the system does and does not
@@ -9715,6 +9715,37 @@ the expensive part. That also strengthens the "convert to inactive rather
 than delete" option, since converting is lossless and there is no subset
 that deserves to stay visible.
 
+*Done 2026-08-15. Converted, not deleted — all 55, in one pass.*
+Performed through Emacs rather than on disk, with the buffer reverted
+first and refusing outright if it had unsaved changes, since a 55-line
+rewrite under a stale buffer is the =org-clock-marker= desync this
+heading warned about. No clock was running.
+
+*The pattern was anchored at =^- <= deliberately, and the check for what
+that would miss is what made it safe.* TODO.org held 124 active
+timestamps but only 110 on annotation lines. The other 14 all had to
+survive: a =SCHEDULED: <2026-09-13 Sun +1m>= repeater; an agenda example
+in a literal block; and *quoted annotation examples inside heading
+bodies*, written as =: - <...>--<...>= or inline in =…= markup, which
+document what apply produced. Converting those would have falsified the
+quotations rather than fixed anything. Each starts with =:= or sits
+mid-line, so the anchor skips them.
+
+*Verified by differential rather than by counting.* 110 lines changed —
+55 pairs — and *every* changed line matches an annotation shape, so
+nothing else moved. Line count identical at 11417. Survivors confirmed
+present afterwards: the repeater, all 7 quoted examples, and all 102
+=CLOCK:= lines. Active annotations now 0; inactive 69, being the 14
+written since the fix plus these 55.
+
+*Consequence: the agenda is now empty of agent activity,* and the active
+=<>= namespace inside =:LOGBOOK:= is clear for
+[[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] to fill with
+hand-logged attention intervals. The first attention pass will be reading
+an empty agenda rather than one full of mislabelled agent spans, which
+was the point.
+
+
 
 * Bigger swings
 
@@ -10025,7 +10056,7 @@ this project's Doom config pending an upstream report/PR.
 - State "TODO"       from "NEXT"       [2026-08-14 Fri 10:32] \\
   NEXT unmoved 15 days; part 2 contingent
 CLOCK: [2026-08-14 Fri 11:18]--[2026-08-14 Fri 11:37] =>  0:19
-- <2026-08-14 Fri 11:18>--<2026-08-14 Fri 11:37> suggested span, accepted at review
+- [2026-08-14 Fri 11:18]--[2026-08-14 Fri 11:37] suggested span, accepted at review
 :END:
 No README.md exists in this repo today — CLAUDE.md is currently the
 *only* documentation file, doing double duty as both agent
@@ -10123,7 +10154,7 @@ names and files) and are out of scope.
 - State "DOING"      from "TODO"       [2026-08-14 Fri 08:57] \\
   adding the skill line it proposes
 CLOCK: [2026-08-14 Fri 09:09]--[2026-08-14 Fri 09:42] =>  0:33
-- <2026-08-14 Fri 09:09>--<2026-08-14 Fri 09:42> task definition
+- [2026-08-14 Fri 09:09]--[2026-08-14 Fri 09:42] task definition
 - State "TODO"       from "DOING"      [2026-08-14 Fri 12:04]
 - State "DONE"       from "TODO"       [2026-08-14 Fri 12:17] \\
   retcon: shipped 08-14, outcome note added
@@ -10481,7 +10512,7 @@ this would have rewritten get rewritten once, there, instead of twice.
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-10 Mon 12:36]--[2026-08-10 Mon 12:59] =>  0:23
-- <2026-08-10 Mon 12:36>--<2026-08-10 Mon 12:59> assigned at review
+- [2026-08-10 Mon 12:36]--[2026-08-10 Mon 12:59] assigned at review
 :END:
 
 Raised by the user 2026-08-10. None of the MCP tools bind
@@ -10697,8 +10728,8 @@ CLOCK: [2026-08-12 Wed 14:01]--[2026-08-12 Wed 14:27] =>  0:26
   sync-plans reports zero unlinked
 - State "DOING"      from "TODO"       [2026-08-12 Wed 12:19] \\
   linking or retiring the four unlinked plans
-- <2026-08-12 Wed 14:01>--<2026-08-12 Wed 14:27>
-- <2026-08-12 Wed 15:47>--<2026-08-12 Wed 17:47>
+- [2026-08-12 Wed 14:01]--[2026-08-12 Wed 14:27]
+- [2026-08-12 Wed 15:47]--[2026-08-12 Wed 17:47]
 :END:
 
 Surfaced 2026-08-11 by =bin/sync-plans=, which archives a plan only when
@@ -11225,7 +11256,7 @@ concurrent work generally rather than being one more backlog item.
 - State "TODO"       from              [2026-08-13 Thu 17:03] \\
   ran these by hand twenty times today
 CLOCK: [2026-08-13 Thu 17:18]--[2026-08-13 Thu 17:32] =>  0:14
-- <2026-08-13 Thu 17:18>--<2026-08-13 Thu 17:32> suggested span, accepted at review
+- [2026-08-13 Thu 17:18]--[2026-08-13 Thu 17:32] suggested span, accepted at review
 - State "DOING"      from "TODO"       [2026-08-14 Fri 14:28] \\
   building the structural lint
 - State "DONE"       from "DOING"      [2026-08-14 Fri 14:41] \\
