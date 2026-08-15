@@ -67,51 +67,27 @@ start/stop — the two categories that caused every incident.
 
 ## Repository layout
 
-```
-modules/tools/claude-code-ide-org/
-    config.el       ← MCP tool definitions and Elisp wrappers
-    config-test.el  ← ERT tests for config.el
-    packages.el     ← dependency notes (no additional packages)
-bin/test            ← runs the ERT suite (emacs --batch)
-bin/queue-append-test  ← shell suite for the queue writer
-bin/block-hooks-test   ← shell suite for the permission-block hook pair
-bin/sync-plans-test    ← shell suite for bin/sync-plans
-bin/exitplanmode-promote-test ← shell suite for the ExitPlanMode hook
-bin/check-org-dev-skill ← checks the org-dev skill's claims still hold
-bin/lint-org        ← org-lint plus this project's own heading conventions
-bin/statusline.sh   ← Claude Code statusline: model + current task
-bin/hooks/          ← every hook wired in .claude/settings.json
-    queue-append    ← the only writer to the event queue; all others call it
-    session-pause   ← Stop → appends a `pause` guidepost
-    session-resume  ← UserPromptSubmit → appends a `resume` guidepost
-    block-start     ← PermissionRequest → opens a permission block
-    block-end       ← PostToolUse/PermissionDenied → closes one
-    exitplanmode-promote-planning ← ExitPlanMode → queues PLANNING→DOING
-    session-start-recovery-check  ← SessionStart → stale-interval report
-bin/sync-plans      ← copies this project's Plan Mode documents from
-                       ~/.claude/plans into plans/, so they have history;
-                       `--check` reports drift without copying
-plans/              ← the archived copy. NOT the working copy: Claude Code
-                       owns ~/.claude/plans and Plan Mode writes there, so
-                       that stays the file org headings link and a revision
-                       edits. A plan is archived here iff some heading in
-                       TODO.org or DONE.org links it
-.githooks/pre-push  ← refuses a push while plans/ is stale
-.claude/skills/
-    org/SKILL.md        ← Claude Code skill for org-mode file editing
-    org-dev/SKILL.md    ← Claude Code skill for reloading/verifying changes
-                           to this project's own code (config.el, hooks,
-                           bin/test) — see DONE.org's "org-dev skill" entry
-.claude/hooks/session-context.sh ← the one hook NOT under bin/hooks/, for
-                       no recorded reason. Produces the "what was I last
-                       doing" context injected at SessionStart. Whether the
-                       two directories should be consolidated is open
-.mcp.json           ← HTTP endpoint for the MCP tools server, so a `claude`
-                       CLI in a plain shell (no Emacs) can reach org_* and
-                       friends; see "Emacs integration" below
-.warp/.mcp.json     ← the same endpoint again, for Warp's own agent
-CLAUDE.md           ← this file
-```
+`ls` answers most of this; only the non-obvious parts are written down.
+The elisp lives in `modules/tools/claude-code-ide-org/` (`config.el` plus
+its ERT suite). `bin/` holds the test suites and `bin/hooks/` every hook
+wired in `.claude/settings.json` — what each hook appends is in "Session
+tracking" below, not repeated here.
+
+Four things you would not guess:
+
+- **`plans/` is the archive, not the working copy.** Claude Code owns
+  `~/.claude/plans` and Plan Mode writes there, so that is the file org
+  headings link and a revision edits. A plan is copied here *iff* some
+  heading in TODO.org or DONE.org links it, which is what makes an
+  unlinked plan history-less. `bin/sync-plans --check` reports drift;
+  `.githooks/pre-push` refuses a push while the archive is stale.
+- **`.claude/hooks/session-context.sh` is the one hook not under
+  `bin/hooks/`**, for no recorded reason. It produces the "what was I last
+  doing" context injected at `SessionStart`. Whether the two directories
+  should be consolidated is open.
+- **`bin/check-org-dev-skill`** checks the org-dev skill's own claims still
+  hold — run it after editing that skill.
+- **`.warp/.mcp.json`** — see below; do not delete it.
 
 **`.warp/.mcp.json` is deliberate, not duplication — do not "clean it
 up."** It is currently byte-for-byte identical to the root `.mcp.json`,
@@ -251,76 +227,16 @@ are no checkboxes to report on.
 
 ## Org-mode conventions
 
-### File header
+Moved to **`.claude/rules/org-conventions.md`**, which is path-scoped to
+`**/*.org` and so loads only when an org file is actually in play: the file
+header template, tags, the top-level-headings-are-categories rule, and
+`:BLOCKER:` usage.
 
-Every `.org` file in a Claude Code project should start with:
-
-```org
-#+TODO: TODO(t!) NEXT(n!) PLANNING(p!) DOING(d!) REVIEW(r!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
-#+TAGS: code comms research review
-#+ARCHIVE: DONE.org::* Done
-```
-
-**The cookies are not decoration.** `!` records a timestamp on entering
-the state; `@` *prompts for a note*. So `WAIT` and `CANCELLED` prompt and
-every other transition does not — which means a transition driven
-non-interactively through `emacsclient -e` **hangs on those two keywords
-and only those two**. That asymmetry is one of the reasons state changes
-go through the queue instead of being applied live.
-
-### TODO keyword semantics
-
-Per-keyword meanings are in the **org skill**. Three things about them are
-project policy rather than org convention, and so live here:
-
-- `PLANNING` means *in Plan Mode, plan not yet approved* — entering it is a
-  judgment call made **before** `EnterPlanMode`; see the transition rules.
-- `REVIEW` is **experimental** (TODO.org `:ID:` c954f650): finished and
-  handed back for human judgement, as distinct from `WAIT`, which means
-  blocked on someone else. Use it where you would otherwise leave a heading
-  `DOING` at the end of a work increment. Its fate is not settled.
-- Priority is expressed through keyword choice, not `[#A]`/`[#B]`/`[#C]`
-  cookies. **Do not add priority cookies.**
-
-Note `org-todo-keywords` in the Doom config does **not** include `REVIEW`,
-so it resolves only in files carrying their own `#+TODO:` header. TODO.org
-does; a new file will not unless you give it one.
-
-### Tags
-
-The four standard tags (`:code:` `:comms:` `:research:` `:review:`), their
-meanings, and the archiving convention are documented in the **org skill**
-— including the per-heading `:ARCHIVE:` override, which this file used to
-omit. Tags are free-form beyond those four; declare additional ones in
-`#+TAGS:`.
-
-### Top-level headings
-
-Top-level (`*`) headings in `TODO.org` are categories/epics — pure
-structure, grouping related tasks — not tasks in their own right. They
-carry no `TODO` keyword, no tags, and no `:PROPERTIES:` drawer (so no
-`:ID:` and no `:CREATED:`, overriding the general "every heading
-creation" rule below for this one case specifically). Actual tracked
-work lives as their level-2+ children, each with its own `:ID:` per the
-usual rule. Don't put a `TODO`/`NEXT`/etc. keyword on a top-level
-heading — if a top-level heading needs to represent actionable work
-itself rather than just group children, demote it: give it an `:ID:`
-and treat it like any other task, or nest it one level deeper under a
-category heading instead.
-
-### Dependencies between tasks
-
-Use a `:BLOCKER:` property naming the blocking heading's `:ID:` rather than
-a prose "depends on ..." sentence — a property is machine-checkable and a
-sentence isn't. The org skill has the full syntax, including the inverse
-`:TRIGGER:`.
-
-**It is enforced.** `org-depend` is required in the Doom config, so
-`org-depend-block-todo` is live on `org-blocker-hook` and will refuse a
-`DONE` while any listed `:ID:` is unfinished. This project's own
-`claude-code-ide-org--blocker-clock-running-p` sits on the same hook but
-blocks on a *running clock* instead — two different guards, so don't
-assume a refused transition came from the project's one.
+What stayed in this file did so on one test: **a rule that must hold when no
+`.org` file is open cannot live in a path-scoped rule**, because a rule that
+doesn't load is a rule that doesn't apply, and the failure is silent. So
+"create a heading for any newly described task", the state transitions, and
+the queue architecture are all still here.
 
 ---
 
@@ -360,6 +276,15 @@ saying so over reaching for `emacsclient`: a direct `org-todo` call applies
 immediately and writes **nothing** to the queue, so the change is invisible
 to the review pass and to `org_pending_updates`. That is a real divergence
 between the file and the record, not a harmless shortcut.
+
+**And it can hang.** The `#+TODO:` line carries per-keyword logging
+cookies: `!` records a timestamp on entry, `@` *prompts for a note*. In
+this project `WAIT(w@/!)` and `CANCELLED(c@)` carry `@` and nothing else
+does — so a transition driven non-interactively through `emacsclient -e`
+blocks on a prompt for **those two keywords and only those two**. That
+asymmetry is one of the reasons state changes go through the queue rather
+than being applied live: apply runs inside a genuinely interactive command,
+where the prompt is answerable.
 **Rule**: entering `PLANNING` is a model judgment call made *before* calling
 `EnterPlanMode`, never during — Plan Mode itself forbids non-readonly tool
 calls, so `org_set_todo` cannot run once inside it. Leaving `PLANNING` is
