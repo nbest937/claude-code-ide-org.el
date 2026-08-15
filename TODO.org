@@ -9357,6 +9357,102 @@ up would make it something worth handing to someone else.
 =mcp-start=) aren't really designed as public standalone-mode API
 today, so an upstream PR is a bigger lift than it looks. Start with
 the snippet, treat upstreaming as a separate future MAYBE.
+** Make the org skill and its discipline portable to other repos :code:
+:PROPERTIES:
+:ID:       9ae4b17e-278c-482f-9114-df28b2254806
+:CREATED:  [2026-08-15 Sat 11:04]
+:BLOCKER:  ids(befaed0a-18ed-445e-b997-8b9c2965ad45)
+:END:
+
+Raised by the user 2026-08-15: the org skill is meant for use on other
+projects, and this repo's recursiveness — a tool for working on itself —
+is a means, not an end. So: does the discipline observed here survive
+outside this directory?
+
+*Measured, not assumed: no, and more starkly than the question supposes.*
+There is no =~/.claude/skills/=, no user-level MCP config, no user-level
+hooks, and no =~/.claude/rules/=. =/org= cannot be *invoked* outside this
+repo at all, because the skill lives in this project's
+=.claude/skills/=.
+
+*What actually produced the discipline, and what travels.* The skill is
+the small part. Of six layers, exactly one is user-scoped today:
+
+| layer                                        | lives in                  | travels |
+|----------------------------------------------+---------------------------+---------|
+| transition rules, "create a heading", journal | CLAUDE.md                 | no      |
+| keyword/tag/=:BLOCKER:= conventions           | =.claude/rules/=          | no      |
+| queue writing (pause/resume/blocks/todo)      | =.claude/settings.json=   | no      |
+| =org_*= tools                                 | =.mcp.json= + Doom elisp  | elisp only |
+| org skill                                     | =.claude/skills/=         | no      |
+| reload transparency, footnote discipline      | =~/.claude/CLAUDE.md=     | *yes*   |
+
+*The crux: the machinery is already global; only the activation is
+local.* The elisp module is in the Doom config, the queue writes to
+=~/.claude/org-updates/=, and tracked files come from
+=org-agenda-files=. None of that is repo-bound. Hooks and MCP servers
+*can* be user-scoped, so the queue could work anywhere without new
+machinery — what is repo-bound is wiring and prose.
+
+*Coupling in the skill itself is modest*, which is the good news: two
+references to CLAUDE.md (which dangle in any other repo), seven to
+TODO.org/DONE.org, three to =org_*= tools, one to the queue. Roughly 16
+lines of a 504-line file; the rest is generic org syntax and editing
+guidance that is already portable.
+
+*The file-location constraint the user added, and it is the deep one.*
+Other repos will have their own TODO.org/DONE.org, possibly at a
+different relative path (=./.org/= was the example). This is *not* a
+hardcoding problem — =claude-code-ide-org--tracked-files= is
+=(or claude-code-ide-org-query-files (org-agenda-files))=, and the only
+=TODO.org= strings in config.el are docstrings about the symlink truename
+issue. It is a *discovery* problem, and it has three teeth:
+
+- =org-agenda-files= is computed once at config load
+  (=directory-files-recursively= over =org-directory=), so a newly added
+  project needs an Emacs restart to be seen. It currently yields *2
+  files* — that is the real scale of what this system tracks today.
+- =org-id= resolves =:ID:= from that same universe. A heading in a file
+  outside it cannot be found by any tool here, so every =:ID:=-scoped
+  operation fails silently-ish rather than obviously.
+- =claude-code-ide-org-query-files= is a single global defcustom, so it
+  cannot express "this project's org files" per project.
+
+*Three candidate mechanisms, unevaluated:* keep the current symlink
+convention (each repo symlinks its org files into =~/org/<project>/= —
+works today, manual, restart-bound, and already carries recorded truename
+gotchas); per-project configuration via =.dir-locals.el= setting
+=claude-code-ide-org-query-files=; or make =--tracked-files=
+project-aware. The third is worth noting because *the hooks already
+receive =cwd= in their payload* — verified in a captured
+=PermissionRequest= on 2026-08-14 — so the queue could record which
+project an event came from and apply could resolve IDs within it.
+
+*The neat part, and the reason this is blocked rather than open:*
+[[id:befaed0a-18ed-445e-b997-8b9c2965ad45][befaed0a]]'s path-scoped rule
+turns out to be the *portability* mechanism, not merely a context-saving
+one. A user-level =~/.claude/rules/org-conventions.md= with
+=paths: ["**/*.org"]= costs nothing in repos with no org files and applies
+automatically in ones that have them. That decision was made for an
+unrelated reason and generalises exactly — but it rests on a mechanism
+nobody has yet confirmed loads, which is why befaed0a is =WAIT= and why
+this heading should not start before it clears.
+
+*Two risks to design against rather than discover.* First, correct here
+may be wrong there: "call =org_clock_in= when entering =DOING=" is sound
+only where the queue exists, so portable rules must state their own
+preconditions or degrade to "if the org tools are available." Second,
+2026-08-14 demonstrated the failure mode live — when =emacs-tools= did
+not connect, the session fell back to =emacsclient= and silently bypassed
+the queue. The rule added against that is project-scoped, so in another
+repo the tools would be *permanently* absent and the guardrail
+permanently missing.
+
+Closely related from the other end:
+[[id:1caed585-3209-4108-8501-eba16baf6a01][1caed585]], which asks what
+this module may change on a user's machine when installed — the same
+user-scope question, approached as an installation concern rather than a
+portability one. These two should probably be decided together.
 
 * Upstream (claude-code-ide.el)
 
