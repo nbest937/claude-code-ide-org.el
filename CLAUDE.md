@@ -270,43 +270,29 @@ go through the queue instead of being applied live.
 
 ### TODO keyword semantics
 
-| Keyword     | Meaning                          | Active? |
-|-------------|----------------------------------|---------|
-| `TODO`      | Not yet started                  | yes     |
-| `NEXT`      | Decided, up next                 | yes     |
-| `PLANNING`  | In Plan Mode, plan not yet approved | yes  |
-| `DOING`     | Actively being worked on         | yes     |
-| `REVIEW`    | Finished, handed back for human judgement | yes |
-| `WAIT`      | Blocked or waiting on someone    | yes     |
-| `MAYBE`     | Someday / maybe                  | yes     |
-| `DONE`      | Completed                        | no      |
-| `CANCELLED` | Abandoned                        | no      |
+Per-keyword meanings are in the **org skill**. Three things about them are
+project policy rather than org convention, and so live here:
 
-`REVIEW` is **experimental** (TODO.org `:ID:` c954f650) — work is finished
-and handed back to the human for judgement, as distinct from `WAIT`, which
-means blocked on someone else. Use it where you would otherwise leave a
-heading `DOING` at the end of a work increment. Its fate is not settled;
-do not treat it as established convention.
+- `PLANNING` means *in Plan Mode, plan not yet approved* — entering it is a
+  judgment call made **before** `EnterPlanMode`; see the transition rules.
+- `REVIEW` is **experimental** (TODO.org `:ID:` c954f650): finished and
+  handed back for human judgement, as distinct from `WAIT`, which means
+  blocked on someone else. Use it where you would otherwise leave a heading
+  `DOING` at the end of a work increment. Its fate is not settled.
+- Priority is expressed through keyword choice, not `[#A]`/`[#B]`/`[#C]`
+  cookies. **Do not add priority cookies.**
 
-Priority is expressed through keyword choice, not `[#A]`/`[#B]`/`[#C]` cookies.
-Do not add priority cookies.
+Note `org-todo-keywords` in the Doom config does **not** include `REVIEW`,
+so it resolves only in files carrying their own `#+TODO:` header. TODO.org
+does; a new file will not unless you give it one.
 
 ### Tags
 
-| Tag          | Meaning                          |
-|--------------|----------------------------------|
-| `:code:`     | Software / technical work        |
-| `:comms:`    | Communication, writing, outreach |
-| `:research:` | Investigation, reading, learning |
-| `:review:`   | Review, feedback, evaluation     |
-
-Tags are free-form beyond these four; declare additional ones in `#+TAGS:`.
-
-### Archiving convention
-
-`DONE` tasks tagged `:code:` are archived to `DONE.org::* Done` via the
-`#+ARCHIVE:` directive. Other tags use the same default unless overridden
-with a per-heading `:ARCHIVE:` property.
+The four standard tags (`:code:` `:comms:` `:research:` `:review:`), their
+meanings, and the archiving convention are documented in the **org skill**
+— including the per-heading `:ARCHIVE:` override, which this file used to
+omit. Tags are free-form beyond those four; declare additional ones in
+`#+TAGS:`.
 
 ### Top-level headings
 
@@ -324,18 +310,17 @@ category heading instead.
 
 ### Dependencies between tasks
 
-A heading that can't be marked `DONE` until another heading is done gets a
-`:BLOCKER:` property naming the blocking heading's `:ID:` (org-depend's
-native mechanism, not project-specific — see the org skill for the full
-syntax, including the inverse `:TRIGGER:` property). Prefer this over a
-prose "depends on ..." sentence whenever the blocking heading has a
-stable `:ID:` — it's machine-checkable, a sentence isn't. Whether
-anything currently *enforces* it (an `org-blocker-hook` function
-consulting `:BLOCKER:`) is separate from whether it's worth recording;
-this project's own `org-blocker-hook` function
-(`claude-code-ide-org--blocker-clock-running-p`) only blocks on a
-running clock today, not on `:BLOCKER:` — see "Enforce the transition
-rules" in TODO.org.
+Use a `:BLOCKER:` property naming the blocking heading's `:ID:` rather than
+a prose "depends on ..." sentence — a property is machine-checkable and a
+sentence isn't. The org skill has the full syntax, including the inverse
+`:TRIGGER:`.
+
+**It is enforced.** `org-depend` is required in the Doom config, so
+`org-depend-block-todo` is live on `org-blocker-hook` and will refuse a
+`DONE` while any listed `:ID:` is unfinished. This project's own
+`claude-code-ide-org--blocker-clock-running-p` sits on the same hook but
+blocks on a *running clock* instead — two different guards, so don't
+assume a refused transition came from the project's one.
 
 ---
 
@@ -633,63 +618,18 @@ not about guessing when a stale clock stopped, and is unaffected.
 
 ---
 
-## Emacs integration (`~/.config/doom/config.el`)
+## Emacs integration
 
-Key settings in the user's Doom config:
+**A reachable Emacs server is a hard prerequisite, not a convenience** —
+every MCP tool in this project goes through `emacsclient`. The Doom config
+starts one automatically; if tools fail, check that first.
 
-```elisp
-;; Auto-start the Emacs server — every MCP tool in this project goes
-;; through emacsclient, so a reachable server is a hard prerequisite,
-;; not just a convenience. Guarded so reloading config.el mid-session
-;; doesn't hit server-start's "already running" prompt.
-(unless (server-running-p)
-  (server-start))
-
-;; org-mode
-(after! org
-  (setq org-todo-keywords
-        '((sequence "TODO" "NEXT" "PLANNING" "DOING" "WAIT" "MAYBE" "|" "DONE" "CANCELLED")))
-  (setq org-clock-out-when-done t)
-  (setq org-clock-persist 'history)
-  (setq org-archive-location "DONE.org::* Done"))
-(add-hook 'kill-emacs-hook #'org-clock-out)
-(add-hook 'suspend-hook    #'org-clock-out)
-
-;; claude-code-ide
-(use-package! claude-code-ide
-  :config
-  (claude-code-ide-emacs-tools-setup)
-  (setq claude-code-ide-terminal-backend 'vterm)
-  (global-auto-revert-mode 1))
-```
-
-(Only relevant if you ever run two separate Emacs.app processes at once:
-the second one's `server-start` will hit the "already running" prompt,
-since both claim the same default socket name — a non-issue for the
-usual single-instance workflow.)
-
-No explicit clock-persistence-restore call is needed above — see the design
-note below. The user's live config additionally pins
-`claude-code-ide-mcp-server-port` and wires standalone Warp/CLI access
-(HTTP tools-server session registration + IDE-companion autostart, backing
-`.mcp.json`). That's general claude-code-ide infrastructure, not specific
-to org-mode, so it's intentionally not reproduced here.
-
-The `vterm` backend requires the `:term vterm` Doom module (enabled in
-`init.el`). Its native module is compiled with cmake against the
-homebrew `libvterm` (the bundled libvterm build needs GNU libtool,
-which is not installed); the resulting `vterm-module.so` lives in the
-straight repo dir and is symlinked into the straight build dir.
-
-`claude-code-ide` is declared in `~/.config/doom/packages.el`:
-
-```elisp
-(package! claude-code-ide
-  :recipe (:host github :repo "manzaltu/claude-code-ide.el"))
-```
-
-Clock-out on session end is handled at the Emacs level (hooks above), not
-by hooking into Claude Code session lifecycle events.
+The rest of the Doom config — the org settings, the clock-out hooks, the
+`claude-code-ide` block, vterm's build quirk, and which guards are live on
+`org-blocker-hook` — is documented in the **org-dev skill, §7**, which
+triggers precisely when you are changing those files. Read the live
+`~/.config/doom/config.el` rather than any summary of it; the copy that
+used to live here had drifted.
 
 ---
 
@@ -723,14 +663,8 @@ by hooking into Claude Code session lifecycle events.
   model actually cares about, and shorter names reduce per-request schema
   overhead.
 
-- **Why no explicit clock-persistence-restore call in the Doom config?**
-  Older org-mode required calling `(org-clock-persist-load)` yourself after
-  setting `org-clock-persist`. Upstream renamed it to `org-clock-load`, and
-  — more importantly — `org.el` now registers it on `org-mode-hook` itself,
-  so calling either name explicitly inside `(after! org ...)` is not just
-  outdated but actively breaks org-mode: `after!` fires the instant
-  `org.el` calls `(provide 'org)`, which is *before* `org-clock.el` (where
-  that function lives) has ever loaded, producing a void-function error
-  that aborts org-mode initialization for the first file you open in a
-  session. Don't add it back.
+(The `org-clock-persist-load` trap — why calling it inside `(after! org
+...)` breaks org-mode outright, and why the breakage only shows on a fresh
+boot — lives in the **org-dev skill, §2**, which triggers when the Doom
+config is being changed. It used to be duplicated here.)
 

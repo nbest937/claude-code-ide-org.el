@@ -32,7 +32,9 @@ This skill helps Claude work expertly with Emacs Org-Mode files. The focus areas
 ** Heading level 2
 *** TODO Task not yet started
 *** NEXT Up next / prioritised
+*** PLANNING In Plan Mode, plan not yet approved
 *** DOING Actively being worked on
+*** REVIEW Finished, handed back for human judgement
 *** WAIT Blocked or waiting on someone
 *** MAYBE Someday / maybe
 *** DONE Completed
@@ -40,13 +42,22 @@ This skill helps Claude work expertly with Emacs Org-Mode files. The focus areas
 ```
 
 Default keyword set used by this skill:
-`TODO NEXT DOING WAIT MAYBE | DONE CANCELLED`
+`TODO NEXT PLANNING DOING REVIEW WAIT MAYBE | DONE CANCELLED`
 
 The `|` separates active (incomplete) states on the left from terminal (done) states on
 the right. `DONE` and `CANCELLED` trigger Org's "task complete" behaviour (closing
-timestamp, struck-through in the agenda). The five states to the left are all active.
+timestamp, struck-through in the agenda). The seven states to the left are all active.
 Priority is expressed through keyword choice — do not add `[#A]`/`[#B]`/`[#C]` priority
 cookies unless the user explicitly asks.
+
+`REVIEW` is **experimental** — work finished and handed back for human judgement,
+as distinct from `WAIT`, which means blocked on someone else. Don't present it as
+settled convention.
+
+Real `#+TODO:` lines usually carry per-keyword logging cookies — `!` records a
+timestamp on entry, `@` prompts for a note. Read them off the file's own header
+rather than assuming: `@` means that transition **blocks on a prompt**, which
+matters enormously if anything drives it non-interactively.
 
 ### Tags
 

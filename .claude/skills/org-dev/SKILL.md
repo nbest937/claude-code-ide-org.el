@@ -121,8 +121,8 @@ depends on *when*, relative to other packages loading, a hook or
 restart to actually verify — reloading the already-running instance will
 look fine and tell you nothing about first-boot behavior.
 
-The concrete example this project hit (see CLAUDE.md's "Design notes",
-`org-clock-load` entry): `org-clock-persist-load`/`org-clock-load` used
+The concrete example this project hit, and which this skill now owns
+outright: `org-clock-persist-load`/`org-clock-load` used
 to need an explicit call after `(setq org-clock-persist ...)`. Newer
 `org.el` registers it on `org-mode-hook` itself, so calling it explicitly
 inside `(after! org ...)` in the Doom config is not just redundant but
@@ -275,3 +275,84 @@ If that glob ever matches nothing (e.g. a fresh straight checkout that
 hasn't built yet), `bin/test` silently falls back to the bundled org
 again with no error — the symptom is tests behaving as if a newer
 org-mode feature doesn't exist. Check `ls ~/.config/emacs/.local/straight/build-*/org` if that happens.
+
+## 7. What is in the Doom config, and why
+
+Moved here from CLAUDE.md 2026-08-14: it is setup reference consulted when
+changing these files, which is exactly this skill's trigger, not something
+every session needs in context.
+
+**Read the live file, not this summary, before acting on it.** The version
+CLAUDE.md carried had drifted — it showed `(add-hook 'kill-emacs-hook
+#'org-clock-out)` when the config actually uses a guarded wrapper. What
+follows was verified against `~/.config/doom/config.el` and the running
+Emacs on 2026-08-14.
+
+```elisp
+;; server.el must be required explicitly: server-running-p isn't
+;; autoloaded (server-start is), so a fresh startup errors void-function
+;; without this. The guard keeps a mid-session reload from hitting
+;; server-start's "already running" prompt.
+(require 'server)
+(unless (server-running-p) (server-start))
+
+(after! org
+  (setq org-todo-keywords
+        '((sequence "TODO" "NEXT" "PLANNING" "DOING" "WAIT" "MAYBE" "|" "DONE" "CANCELLED")))
+  (setq org-clock-out-when-done t)
+  (setq org-clock-persist 'history)
+  (setq org-archive-location "DONE.org::* Done")
+  ;; Doom's default is (list org-directory) and org expands it
+  ;; non-recursively, so a file one level down never resolves. One-time
+  ;; scan at load: a newly symlinked .org needs a restart to be seen.
+  (setq org-agenda-files (directory-files-recursively org-directory "\\.org$"))
+  (require 'org-depend))
+
+;; org-clock-out has no guard and signals (user-error "No active clock"),
+;; which these hooks would hit on every quit where nothing is clocked --
+;; the common case. Hence the wrapper.
+(defun claude-code-ide-org--clock-out-if-clocking ()
+  (when (org-clocking-p) (org-clock-out)))
+(add-hook 'kill-emacs-hook #'claude-code-ide-org--clock-out-if-clocking)
+(add-hook 'suspend-hook    #'claude-code-ide-org--clock-out-if-clocking)
+
+(use-package! claude-code-ide
+  :config
+  (setq claude-code-ide-mcp-server-port 45571)
+  (claude-code-ide-emacs-tools-setup)
+  (setq claude-code-ide-terminal-backend 'vterm)
+  (global-auto-revert-mode 1))
+```
+
+Declared in `~/.config/doom/packages.el`:
+
+```elisp
+(package! claude-code-ide
+  :recipe (:host github :repo "manzaltu/claude-code-ide.el"))
+```
+
+**`org-depend` is required, so `:BLOCKER:` is actually enforced.** Verified
+live: `org-blocker-hook` holds `org-depend-block-todo` alongside this
+project's own `claude-code-ide-org--blocker-clock-running-p`. The project's
+function blocks on a running clock; org-depend's blocks on unsatisfied
+`:BLOCKER:` IDs. Two different guards, both live — don't assume a refused
+`DONE` came from the project's one.
+
+**Known gap: `org-todo-keywords` has no `REVIEW`.** The sequence above
+predates it, so `REVIEW` resolves only in files carrying their own
+`#+TODO:` header line — TODO.org does, which is why it works there. A file
+without one will not accept it.
+
+**vterm**: requires the `:term vterm` Doom module (in `init.el`). Its
+native module is compiled with cmake against homebrew `libvterm` — the
+bundled build needs GNU libtool, which is not installed. The resulting
+`vterm-module.so` lives in the straight repo dir, symlinked into the
+straight build dir.
+
+The live config also wires standalone Warp/CLI access (HTTP tools-server
+session registration plus IDE-companion autostart, backing `.mcp.json`).
+That is general claude-code-ide infrastructure rather than org-specific.
+
+Only relevant with two Emacs.app processes at once: the second
+`server-start` hits the "already running" prompt, since both claim the
+default socket name.

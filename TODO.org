@@ -7538,6 +7538,11 @@ Kept separate from its sibling because it changes *where* instructions
 live rather than whether they are true, and it is the pass most likely to
 be judged wrong later.
 
+[[file:~/.claude/plans/nested-gathering-wozniak.md][Plan]] — the epic's
+plan document, which carries this child's design as its second half rather
+than a file of its own.
+
+
 *** TODO Decide whether CLAUDE.md needs a path-scoped =.claude/rules/= split :code:
 :PROPERTIES:
 :ID:       befaed0a-18ed-445e-b997-8b9c2965ad45
