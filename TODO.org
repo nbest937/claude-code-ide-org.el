@@ -9162,6 +9162,34 @@ seven sessions (back to 2026-08-08) out of the review buffer's sight,
 and its own docstring notes that a restored file which lost its
 watermark supports "only all-or-nothing" reprocessing.
 
+*The producer table above is superseded, same day it was written.*
+=claude-code-ide-org--review-format-annotation= used to branch on an
+item's =:agent:=, writing an *active* timestamp for anything without one.
+That is the row reading "Claude session, via apply | active =<>= | agenda
+yes". The branch was removed on 2026-08-14 — measured: all 68 events of
+one session carried =agent_id= nil, so every span it produced was
+published to the agenda as though the user had been at the keyboard. Apply
+now writes inactive timestamps unconditionally.
+
+*Which dissolves the contrast this heading was named around.* The
+paragraph above objects that solo work "lands in the same agenda-invisible
+bucket as unattended subagent work" while Claude-session work reaches the
+agenda. After the correction all three producers are agenda-invisible, so
+solo work is no longer the anomaly — it is the rule. The heading's purpose
+survives, but its motivating asymmetry does not; the reason to build
+attention intervals is now that *nothing* populates the agenda, rather
+than that the wrong thing does.
+
+*Left behind, and this is the part that bites:* 55 active =<>= annotations
+remain in TODO.org, dated 2026-08-10 through 2026-08-14, against 14
+inactive ones written since. The fix stopped the bleeding and cleaned
+nothing. Those 55 are agent-derived spans currently rendering in the
+agenda as human attention — and they occupy precisely the namespace this
+heading intends to fill. A first attention pass would be reading an agenda
+that is almost entirely mislabelled agent activity, which makes the
+cleanup a precondition rather than tidying. Tracked separately.
+
+
 ** DONE Report abandoned DOING leaves at session start, not only WAIT :code:
 :PROPERTIES:
 :ID:       9d7531f5-11c5-4203-89e3-56c3fe399df5
@@ -9513,6 +9541,57 @@ normalised project slug. Raw =cwd= is honest and free but varies with
 worktrees — this repo already uses git worktrees for parallel work
 (DONE.org's worktree entries), so two paths can mean one project. A slug
 would need a normalisation rule, which is a decision rather than a field.
+** Retire the 55 active annotations apply wrote before the agenda-visibility fix :code:
+:PROPERTIES:
+:ID:       df5afbbd-0eac-4032-be91-17cc22ef0cd7
+:CREATED:  [2026-08-15 Sat 16:35]
+:END:
+
+Found 2026-08-15 while checking whether a producer table in
+[[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] had gone stale. It
+had, and the residue is the interesting half.
+
+=claude-code-ide-org--review-format-annotation= used to write *active*
+=<>= timestamps for any item without an =:agent:=, which is every event
+of an outer session. Active timestamps inside =:LOGBOOK:= reach
+=org-agenda=; inactive ones do not. The branch was removed 2026-08-14 and
+apply now writes inactive unconditionally — but nothing cleaned up what
+the old behaviour had already written.
+
+*Measured 2026-08-15:* TODO.org holds *55* active =<>= annotations dated
+2026-08-10 through 2026-08-14, against 14 inactive ones written since the
+fix. All 55 are apply-derived agent spans, or predecessors of them, and
+all 55 currently render in the agenda as though they were the user's own
+attention.
+
+*Why this is a precondition and not tidying.* The active namespace inside
+=:LOGBOOK:= is exactly what
+[[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] intends to fill with
+hand-logged attention intervals — the convention being that the agenda is
+derived by reading active intervals and ignoring the inactive clock ones.
+Starting that work against an agenda already ~100% populated by
+mislabelled agent activity means the first attention pass cannot tell its
+own entries from the noise, and every subsequent one inherits the
+ambiguity.
+
+*Open questions for whoever takes it:*
+
+- *Delete, or convert to inactive?* Converting preserves the span and its
+  label while removing it from the agenda, which is the more conservative
+  move and matches what apply would write today. Deleting discards
+  information that is otherwise correct — these spans really happened,
+  they were merely published to the wrong audience.
+- *Do the ~10 dated 2026-08-10 differ?* They predate the 2026-08-11
+  cutover and so came from the older mechanism rather than from apply.
+  Worth confirming they are the same shape before treating them the same
+  way.
+- *Is TODO.org the whole scope?* DONE.org holds archived subtrees with
+  their own drawers and was not counted here.
+
+*Do not hand-edit these without checking for a running clock or an
+unsaved buffer* — 55 edits across one file is exactly the shape that
+desyncs =org-clock-marker=, and the same caution the module already
+applies to =org_amend= applies more here.
 
 * Bigger swings
 
