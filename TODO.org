@@ -1646,7 +1646,66 @@ capture and its keyword do not arrive a review pass apart.
 Worth noting the linter caught this and re-reading did not, which is the
 same lesson as the fabricated ID above and the same remedy: mechanical
 checks catch what looks correct.
+** org_outline's scoped mode reports satisfied blockers as [blocked], because org-map-entries narrows :code:
+:PROPERTIES:
+:ID:       f765d782-822d-454b-85eb-68e792cc514c
+:CREATED:  [2026-08-15 Sat 18:55]
+:END:
 
+Found 2026-08-15 when =org_outline= with =scope= =0c8644ff= printed
+=[blocked]= for a heading whose only =:BLOCKER:= names
+[[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]], which is =DONE=.
+The same heading in an *unscoped* listing carries no marker.
+
+*Not the bug the docstring already fixed.*
+=claude-code-ide-org--outline-blocked-marker= records that its first
+version conflated "has a =:BLOCKER:=" with "is blocked by it", so any
+heading that ever had one read as blocked forever. That was corrected,
+and the corrected logic is right: =[blocked]= only when a blocker
+resolves to =open=, =[blocked?]= when it cannot be resolved at all.
+
+*Proven mechanically, at point on the heading itself:*
+
+: :wide     "none"
+: :narrowed (:marker "  [blocked]" :state-seen open)
+
+Same buffer, same heading, same blocker — the only difference is
+=org-narrow-to-subtree=.
+
+*The mechanism.* =claude-code-ide-org-outline='s =:ID:= branch maps with
+=claude-code-ide-org--outline-map ... (quote tree)=, and =org-map-entries=
+narrows the buffer for a =tree= scope. =--outline-id-finished-p= then does
+=org-id-find= → =find-file-noselect= → =goto-char=. For a blocker *in the
+same file*, =find-file-noselect= returns that very buffer, still narrowed,
+so =goto-char= is clamped to the accessible region and
+=org-get-todo-state= reads whichever heading is there — the scoped one
+itself — rather than the blocker. =MAYBE= is not in
+=--outline-finished-keywords=, so it answers =open=.
+
+*Why this matters more than a cosmetic marker.* It asserts a *definite*
+dependency that does not exist, in the tool whose whole purpose is to be
+read instead of the file. =[blocked?]= exists precisely to express "could
+not resolve" and would have been the honest output; instead the failure
+takes the confident branch. And it fires for essentially every scoped
+call, since blockers are cross-cutting by nature and almost always live
+elsewhere in the same file.
+
+*Fix, one form:* wrap the buffer access in =--outline-id-finished-p= in
+=org-with-wide-buffer= (or =save-restriction= + =widen=) before
+=goto-char=. The codebase already uses =widen= for this class of problem
+elsewhere. A regression test wants to assert the marker *while narrowed*,
+since a test on a wide buffer passes against the unfixed code — the same
+discriminate-or-it-verifies-nothing rule that
+=bin/block-hooks-test= learned on 2026-08-14.
+
+*Also worth checking in the same pass:* whether any other =:ID:=-scoped
+tool reads a heading outside its scope through =find-file-noselect= and
+inherits the same narrowing. =--at-id= is the shared entry point and is
+used well beyond =org_outline=.
+
+Distinct from
+[[id:98908aff-63cc-4b71-b90b-817da361a23b][98908aff]], the other open
+=org_outline= defect, which is about =active_only= orphaning children.
 
 * Clock lifecycle & visibility
 
