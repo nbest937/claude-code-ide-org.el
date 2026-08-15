@@ -9319,7 +9319,7 @@ clocktable column until a real report wants it.
   applicable" rather than "no attention", and a bare 0 does not say which.
 
 *Reframed by the user 2026-08-15, and it inverts one of the cons above.*
-Attention is the *primary* measure for assigning active intervals post
+Attention is the *primary* measure for assigning attention intervals post
 hoc — not a supplement to clock duration. Long agent-work intervals do
 reflect agent productivity, but they are precisely the intervals in which
 the human attends to something else: email, post hoc review, or another
@@ -9375,7 +9375,7 @@ minute.
 
 *Corrected by the user 2026-08-15, on a misreading of "hourly
 resolution" in the entry above.* Hourly buckets are not a bucketing
-scheme. The *active intervals are constructed manually*, by the human,
+scheme. The *attention intervals are constructed manually*, by the human,
 on review of the gathered data. "Hourly" is a rule of thumb for the
 granularity of the answer to "what did I attend to today, roughly" — it
 does not mean splitting anything on the hour for presentation. The
@@ -9423,6 +9423,51 @@ of turn density is that it tells the human what a stretch *felt* like —
 at the keyboard, or set running and left — quickly enough that they
 recognise it and move on. A number they must weigh is heavier than a word
 they can recognise, and the requirement above says prefer the lighter one.
+
+*Vocabulary settled 2026-08-15, and the finding is that it was already
+settled and this session drifted from it.* The user observed that "review"
+names two different phases and asked for distinct signifiers. Searching
+for a name turned up one already in the file:
+[[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]], written 2026-08-14,
+is phase 2 — and it quotes the user's own term, "I expect my *attention
+intervals* to be coarser and just a bulk representation of what did I do
+that day." That heading also records that doing it through the review
+buffer does not work, so the two-phase separation had been found; only
+the naming was missing.
+
+Meanwhile "active intervals" appeared exactly twice in the whole repo,
+both in text written *by this session earlier today*. That was a fresh
+coinage competing with an existing term, and it has been corrected to
+"attention intervals" in both places.
+
+*The settled vocabulary, named by artifact rather than by ritual:*
+
+| phase | produces            | lives in    | status    | the act            |
+| 1     | clock intervals     | =:LOGBOOK:= | measured  | apply              |
+| 2     | attention intervals | the agenda  | attested  | the attention pass |
+
+The adjectives carry the distinction that matters: a *clock* interval is
+measured by the agent; an *attention* interval is attested by the human.
+That is exactly the difference between confirming what was observed and
+saying what one was actually doing.
+
+*Rejected: "logbook entry" / "agenda entry",* which was the user's own
+first proposal and closer than anything this session had produced.
+Rejected on three counts: =interval= is the established noun (334 uses
+against zero for =entry=); "agenda entry" collides with org's own meaning,
+where an agenda entry is a TODO appearing in the agenda view rather than a
+span of time, and that collision would be silent; and "logbook entry" is
+literally correct but too narrow, since the drawer also carries state
+lines and annotations while the meaningful product is the interval. The
+instinct to name by artifact was right — the artifacts simply already had
+names.
+
+*Explicitly out of scope, recorded so it is not mistaken for an
+oversight:* predicting or constructing attention intervals automatically,
+given more history, external signals, and practice. That may become
+possible and is not being attempted now. The present goal is only to make
+the human's manual construction better informed and lighter.
+
 
 ** Record the originating project in queue events :code:
 :PROPERTIES:
