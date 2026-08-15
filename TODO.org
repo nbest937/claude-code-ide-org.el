@@ -9003,6 +9003,63 @@ The sort key already has a slot for it.
 Orderless copes, but a plain =basic= completion style would not, and the
 decoration would be better as an =:affixation-function= so it is
 displayed without being matched against.
+** Rank assignment candidates by time correlation with the unassigned span :code:
+:PROPERTIES:
+:ID:       49cbe319-f7db-413a-ade8-c4850c1fab8c
+:CREATED:  [2026-08-15 Sat 17:45]
+:END:
+
+Proposed by the user 2026-08-15, while hitting
+[[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]]: the headings whose
+=[CREATED]--[most recent activity]= bracket sits closest to the
+unassigned interval are the most likely answers, and should float to the
+top of the completion list. The bracket should also be visible, so the
+human can see *why* a candidate is ranked where it is.
+
+*Half of this already exists, which makes it cheaper than it sounds.*
+=claude-code-ide-org--heading-activity-range= returns
+=(EARLIEST . LATEST)= across a subtree's CLOCK lines, and
+=--format-activity-range= renders it into the candidate string as a
+13-character fixed-width field. Its docstring already argues this
+heading's case: "A heading whose recorded work ended three days before
+the span is a far weaker answer than one clocked on the same afternoon,
+and neither its title nor its TODO state says so."
+
+*What is missing is that none of it reaches the sort.* The sort key in
+=claude-code-ide-org-review-assign= is, in order: DONE/CANCELLED demoted,
+then most-recently-created first. Creation recency is a poor proxy —
+it ranks a heading made this morning above one clocked *during the span
+itself*.
+
+*Two concrete defects to fix together:*
+
+- *The bracket the user described is not the one computed.* They said
+  =[CREATED]--[most_recent]=; the helper returns
+  =[earliest CLOCK]--[latest CLOCK]= and falls back to =made MM-DD= when
+  a heading has never been clocked. Those differ for exactly the headings
+  that matter here: one created during the span but not yet clocked has
+  no range at all. The bracket wants to be
+  =[min(CREATED, earliest clock)]--[max(latest clock, CREATED)]=.
+- *Day resolution is useless for same-day spans.* The field renders
+  =clocked 08-15= or =clocked 08-13-08-15=. Every candidate touched today
+  reads =clocked 08-15= against a span that is also 08-15, so the display
+  carries no information in precisely the case a human is most often
+  assigning. It needs time-of-day resolution when the bracket and the
+  span share a date.
+
+*Ranking metric, unresolved:* interval distance is the obvious choice —
+zero when the bracket and the span overlap, otherwise the gap to the
+nearest endpoint. Overlap is the strongest possible signal and should
+dominate. Open: whether overlap *duration* should rank above mere
+proximity, and how a heading with no bracket at all sorts against one
+with a distant bracket — absence is not distance, and the project has
+been bitten before by treating it as though it were.
+
+*Do not let this reintroduce the exclusion in
+[[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]].* Ranking is the
+right mechanism precisely because it never removes a candidate; the bug
+there is that a filter did. A heading created after the span should sort
+low, not vanish.
 
 * Observability
 
@@ -10113,6 +10170,56 @@ and the MCP server into user-level config, both of which can be
 user-scoped. The =.md= plan and the machinery plan have to land together
 or the first is worse than nothing.
 
+*Merged in from =ae2d9b4a= 2026-08-15, which was the same task written
+first.* That heading lived in =~/org/notes.org= — a tracked file, but not
+one this session searched — and was created 2026-08-14 09:22, a day
+before this one. It was found only when the assignment prompt offered its
+title as a completion candidate. The duplication is recorded rather than
+quietly erased because it is the second half of a lesson: a search that
+covers =TODO.org= and =DONE.org= is not a search of the tracked set. Its
+content follows; the heading itself has been removed from =notes.org=,
+and everything about this belongs here, since it is about *this* set of
+artifacts rather than about notes in general.
+
+*Its framing, which is better than the one this heading opened with.*
+Named on noticing that splitting
+[[id:52ede10e-5e6f-4392-b31d-b9ce9b450c3c][52ede10e]] out of
+=claude-code-ide-org= was the first time a heading had to leave the
+project's perimeter and still be tracked the same way. The conventions
+built here — =:ID:= on every heading, =:CREATED:= stamps, categories as
+keywordless top-level headings, =:BLOCKER:= dependencies, the
+state-transition and clocking rules, the org skill itself — were written
+as *this project's* conventions. They are not specific to it. That is the
+whole question, and it predates any of the measurement below.
+
+*Four questions it raised, none answered yet, and only the first is
+addressed by the work above:*
+
+1. Does the org skill trigger correctly outside the repo that defines it?
+   It lives in =claude-code-ide-org/.claude/skills/org/=, so a session
+   started elsewhere may not see it at all — "which would make 'apply it
+   in the wild' a packaging question before it is a conventions
+   question." Confirmed 2026-08-15: there is no =~/.claude/skills/=, so
+   the answer is no, and the packaging framing was right.
+2. *Do the state-transition rules make sense without a clock?* Much of
+   this module's machinery exists to attribute *work time*. Notes that
+   are not tasks may want the =:ID:=/=:CREATED:= discipline and none of
+   the clocking. Untouched by anything above.
+3. *What is the archive target for a file with no project?* =#+ARCHIVE:=
+   in =notes.org= names =DONE.org=, which does not exist in =~/org/=.
+4. *Does one =notes.org= scale,* or does user-level work want the same
+   category/epic structure =TODO.org= grew into?
+
+Questions 2--4 are about user-level org work generally rather than about
+this plugin, and may deserve to split back out once 1 is settled — but
+they are recorded here rather than lost, since the file that held them is
+no longer the place for them.
+
+Related from the other side:
+[[id:1caed585-3209-4108-8501-eba16baf6a01][1caed585]], on what this
+module may change on a user's machine when installed.
+
+
 
 * Upstream (claude-code-ide.el)
 
@@ -10328,7 +10435,9 @@ project's verification is the =~/.zshrc= one, and someone reasoning from
 
 The split also prompted naming a goal that had never been written down —
 applying these org conventions at the user level, across projects rather than
-inside one repo — recorded as [[id:ae2d9b4a-219c-4b32-9a0f-09162e9e5964][ae2d9b4a]].
+inside one repo — recorded as
+[[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] (originally
+=ae2d9b4a= in =notes.org=, merged here 2026-08-15).
 
 *Outcome, 2026-08-14.* Three artifacts, each confirmed present on disk
 rather than recalled: the org-dev skill carries the warning as its own
