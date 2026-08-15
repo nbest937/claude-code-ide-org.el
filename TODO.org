@@ -10855,6 +10855,34 @@ completely unactionable". Same root convention, different consumer:
 that one wants =completing-read= over titles, this one wants the MCP
 tools to accept what the prose already writes.
 
+*The complement of this request turned up 2026-08-15, and it is the same
+missing surface.* Asked to "show me 4f85", the only route was
+=grep -n ":ID: 4f8500e6"= to find the heading, =awk= to locate the next
+=^\*\* = and so compute the subtree's end, then =Read= with the resulting
+offset and line count. Three tools and hand-done line arithmetic to
+retrieve one heading — and the arithmetic is the fragile part, since the
+extent depends on finding the next sibling at the right level.
+
+So both directions are absent from the same surface: this heading asks
+for *front matter without the body*, and that request wanted *the body,
+whole*. Neither is served, and they want the same scoping argument.
+
+*The primitive already exists and is not exposed.*
+=claude-code-ide-org--subtree-text-at-point= (config.el:1961) returns a
+subtree from its heading through its last child as plain text, without
+modifying the buffer. It is used on the clocktable path. Exposing it is
+closer to plumbing than to design.
+
+*And the scoping already exists too:* =org_outline='s =target= accepts an
+=:ID:= to index only that subtree. Whatever resolves an id to a heading
+there is what a body-returning tool needs, which is also what makes the
+partial-=:ID:= failure above worth fixing once rather than twice.
+
+*Worth deciding together rather than separately,* since one tool with a
+mode argument may serve both: front matter only, body only, whole
+subtree, or structure — the last being =org_outline= as it stands.
+
+
 ** TODO Jump to a heading by title, not by pasting a UUID :code:
 :PROPERTIES:
 :ID:       915378ac-3bd4-461d-b0f0-83f67fbb3dac
