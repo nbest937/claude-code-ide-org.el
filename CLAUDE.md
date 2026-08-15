@@ -18,51 +18,50 @@ below for the current best guess at how these two goals combine.
 
 ---
 
-## Direction (not yet implemented)
+## Architecture: the event queue
 
-**This section describes a proposed target, not current behavior.**
-Everything else in this file documents what is actually built and verified;
-this section is the opposite — a UX vision this project is moving toward,
-captured in TODO.org (`:ID: b5f7c5c7-7ad6-4c68-9cce-3479db1f1644`) but not
-yet designed in Elisp, not implemented, and not approved as final. Treat it
-as a hypothesis to evaluate — including whether it's the right one — not a
-spec to execute against; a sub-task of that same heading
-(`:ID: c084553c-0621-4a96-9fa1-f32850aeec6a`) exists specifically to check
-whether org itself already offers a better mechanism before anything here
-gets built.
+**State and clock changes are queued, not applied.** This is the single
+most important thing to know before calling any tool below, because the
+tool names suggest otherwise. `org_set_todo` changes no TODO keyword.
+`org_clock_in` opens no clock. `org_clock_out` closes none. Each appends
+an event to a per-session file and returns; a human later reviews the
+accumulated events and applies the approved ones.
+
+A read that still shows the old keyword after you called `org_set_todo`
+is therefore **expected, not a failure**. Use `org_pending_updates` to
+see what is queued but not yet applied — that is how you tell "waiting
+for a human" apart from "the call didn't work."
 
 **The problem it responds to**: driving live org state (TODO keyword,
-clock, `:LOGBOOK:`/`:SESSIONS:` logging) directly and synchronously from
-Claude Code sessions — including concurrent and background ones — has
-produced a sustained run of desync, ownership, and logging bugs (see
-TODO.org's "Clock lifecycle & visibility" section). The pattern traces to
-one mismatch: org's clock/logging model assumes one human at one buffer;
-this project's actual workload is the opposite.
+clock, `:LOGBOOK:` logging) directly and synchronously from Claude Code
+sessions — including concurrent and background ones — produced a
+sustained run of desync, ownership, and logging bugs. The pattern traced
+to one mismatch: org's clock/logging model assumes one human at one
+buffer; this project's actual workload is the opposite.
 
-**The proposed shape**: Claude Code sessions stop touching the live buffer
-for state/clock changes. Instead they append events to a plain, per-session
-file — durable, cheap, no Emacs required to write. A human, at a moment of
-their own choosing, reviews the accumulated events in a purpose-built Emacs
-command and applies the approved ones for real, through org's own native
-`org-todo`/`org-clock-in`/`org-clock-out`, run inside a genuinely
-interactive command — so org's native state-change logging finally works
-instead of needing to be suppressed.
+**The shape**: sessions do not touch the live buffer for state/clock
+changes. They append events to a plain, per-session file — durable,
+cheap, no Emacs required to write. A human, at a moment of their own
+choosing, reviews the accumulated events (`M-x
+claude-code-ide-org-review`) and applies the approved ones through org's
+own native `org-todo`/`org-clock-in`/`org-clock-out`, run inside a
+genuinely interactive command — so org's native state-change logging
+works instead of needing to be suppressed.
 
-**Confirmed, load-bearing constraint on this shape**: apply is *always*
-human-triggered, never invoked by Claude programmatically. Not a style
-preference — org's native logging only completes correctly inside a real
-interactive session; a non-interactive `emacsclient -e` call hits the exact
-hang this design exists to route around. Practical consequence: clock/
-TODO-state accuracy is only ever as fresh as the last time a human ran the
-review pass, not live. That is an accepted, deliberate trade of "Claude
-does it all in real time" for "the record, once confirmed, is actually
-correct" — not an oversight to fix later.
+**Load-bearing constraint**: apply is *always* human-triggered, never
+invoked by Claude programmatically. Not a style preference — org's native
+logging only completes correctly inside a real interactive session; a
+non-interactive `emacsclient -e` call hits the exact hang this design
+exists to route around. Practical consequence: clock/TODO-state accuracy
+is only ever as fresh as the last time a human ran the review pass, not
+live. That is an accepted, deliberate trade of "Claude does it all in
+real time" for "the record, once confirmed, is actually correct" — not an
+oversight to fix later.
 
-**What doesn't change**: read-only queries, tagging, capture, refile,
-archive, and sort stay exactly as immediate and Emacs-chord-free as the
-opening goal promises. This trade is scoped narrowly to state transitions
-and clock start/stop — the two categories that have actually caused every
-incident to date.
+**What is still immediate**: read-only queries, tagging, capture, refile,
+archive, and sort remain as immediate and Emacs-chord-free as the opening
+goal promises. Queuing is scoped narrowly to state transitions and clock
+start/stop — the two categories that caused every incident.
 
 ---
 
@@ -74,6 +73,21 @@ modules/tools/claude-code-ide-org/
     config-test.el  ← ERT tests for config.el
     packages.el     ← dependency notes (no additional packages)
 bin/test            ← runs the ERT suite (emacs --batch)
+bin/queue-append-test  ← shell suite for the queue writer
+bin/block-hooks-test   ← shell suite for the permission-block hook pair
+bin/sync-plans-test    ← shell suite for bin/sync-plans
+bin/exitplanmode-promote-test ← shell suite for the ExitPlanMode hook
+bin/check-org-dev-skill ← checks the org-dev skill's claims still hold
+bin/lint-org        ← org-lint plus this project's own heading conventions
+bin/statusline.sh   ← Claude Code statusline: model + current task
+bin/hooks/          ← every hook wired in .claude/settings.json
+    queue-append    ← the only writer to the event queue; all others call it
+    session-pause   ← Stop → appends a `pause` guidepost
+    session-resume  ← UserPromptSubmit → appends a `resume` guidepost
+    block-start     ← PermissionRequest → opens a permission block
+    block-end       ← PostToolUse/PermissionDenied → closes one
+    exitplanmode-promote-planning ← ExitPlanMode → queues PLANNING→DOING
+    session-start-recovery-check  ← SessionStart → stale-interval report
 bin/sync-plans      ← copies this project's Plan Mode documents from
                        ~/.claude/plans into plans/, so they have history;
                        `--check` reports drift without copying
@@ -88,6 +102,10 @@ plans/              ← the archived copy. NOT the working copy: Claude Code
     org-dev/SKILL.md    ← Claude Code skill for reloading/verifying changes
                            to this project's own code (config.el, hooks,
                            bin/test) — see DONE.org's "org-dev skill" entry
+.claude/hooks/session-context.sh ← the one hook NOT under bin/hooks/, for
+                       no recorded reason. Produces the "what was I last
+                       doing" context injected at SessionStart. Whether the
+                       two directories should be consolidated is open
 .mcp.json           ← HTTP endpoint for the MCP tools server, so a `claude`
                        CLI in a plain shell (no Emacs) can reach org_* and
                        friends; see "Emacs integration" below
@@ -238,10 +256,17 @@ are no checkboxes to report on.
 Every `.org` file in a Claude Code project should start with:
 
 ```org
-#+TODO: TODO NEXT PLANNING DOING WAIT MAYBE | DONE CANCELLED
+#+TODO: TODO(t!) NEXT(n!) PLANNING(p!) DOING(d!) REVIEW(r!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 ```
+
+**The cookies are not decoration.** `!` records a timestamp on entering
+the state; `@` *prompts for a note*. So `WAIT` and `CANCELLED` prompt and
+every other transition does not — which means a transition driven
+non-interactively through `emacsclient -e` **hangs on those two keywords
+and only those two**. That asymmetry is one of the reasons state changes
+go through the queue instead of being applied live.
 
 ### TODO keyword semantics
 
@@ -251,10 +276,17 @@ Every `.org` file in a Claude Code project should start with:
 | `NEXT`      | Decided, up next                 | yes     |
 | `PLANNING`  | In Plan Mode, plan not yet approved | yes  |
 | `DOING`     | Actively being worked on         | yes     |
+| `REVIEW`    | Finished, handed back for human judgement | yes |
 | `WAIT`      | Blocked or waiting on someone    | yes     |
 | `MAYBE`     | Someday / maybe                  | yes     |
 | `DONE`      | Completed                        | no      |
 | `CANCELLED` | Abandoned                        | no      |
+
+`REVIEW` is **experimental** (TODO.org `:ID:` c954f650) — work is finished
+and handed back to the human for judgement, as distinct from `WAIT`, which
+means blocked on someone else. Use it where you would otherwise leave a
+heading `DOING` at the end of a work increment. Its fate is not settled;
+do not treat it as established convention.
 
 Priority is expressed through keyword choice, not `[#A]`/`[#B]`/`[#C]` cookies.
 Do not add priority cookies.
@@ -309,6 +341,12 @@ rules" in TODO.org.
 
 ## State transition rules
 
+**"Side effect" below means the call you must make, not something that
+happens to the file.** Every entry queues an event; the CLOCK line appears
+when a human applies it. The rules are unchanged by that — you still make
+exactly these calls, in exactly these places — but nothing in this table
+edits an org file at the moment you act.
+
 | Transition                | Side effect                         |
 |---------------------------|-------------------------------------|
 | `TODO`     → `NEXT`       | None                                |
@@ -332,6 +370,11 @@ clock interval rather than closing and reopening it.
 first, except the `PLANNING` → `DOING` handoff above.
 **Rule**: always use the MCP tools for state changes and clocking — do not
 edit CLOCK entries or TODO keywords by hand when the tools are available.
+If the `emacs-tools` MCP server is *not* connected, prefer stopping and
+saying so over reaching for `emacsclient`: a direct `org-todo` call applies
+immediately and writes **nothing** to the queue, so the change is invisible
+to the review pass and to `org_pending_updates`. That is a real divergence
+between the file and the record, not a harmless shortcut.
 **Rule**: entering `PLANNING` is a model judgment call made *before* calling
 `EnterPlanMode`, never during — Plan Mode itself forbids non-readonly tool
 calls, so `org_set_todo` cannot run once inside it. Leaving `PLANNING` is
@@ -401,12 +444,20 @@ Most tools locate a single heading by its `:ID:` property.  Every heading
 Claude is expected to act on must have one (`M-x org-id-get-create`).
 `org_query` is the exception — it searches across files by query, not by ID.
 
+**Queued (change nothing when called)** — the three that caused every
+incident, and the reason the queue exists:
+
+| Tool                | Notes                                  |
+|---------------------|-----------------------------------------|
+| `org_set_todo`      | Records a keyword change. **Changes no TODO keyword.** Call when entering/leaving any state |
+| `org_clock_in`      | Records the start of work. **Opens no clock.** Always call when entering DOING |
+| `org_clock_out`     | Records the end of work. **Closes no clock.** Always call when leaving DOING |
+
+**Immediate (act on the file when called)**:
+
 | Tool                | Wraps                    | Notes                                  |
 |---------------------|--------------------------|-----------------------------------------|
-| `org_clock_in`      | `org-clock-in`           | Always call when entering DOING        |
-| `org_clock_out`     | `org-clock-out`          | Always call when leaving DOING         |
 | `org_clock_report`  | `org-clock-report`       | Clocktable summary; :ID:-scoped or all |
-| `org_set_todo`      | `org-todo`               | Saves buffer after state change        |
 | `org_archive`       | `org-archive-subtree`    | Respects `#+ARCHIVE:` directive        |
 | `org_query`         | `org-ql-select`          | Cross-file search; not :ID:-scoped     |
 | `org_capture`       | `org-capture`            | Quick-add a new TODO heading           |
@@ -414,14 +465,31 @@ Claude is expected to act on must have one (`M-x org-id-get-create`).
 | `org_move_sibling`  | `org-move-subtree-up/down` | Move a heading up/down among siblings |
 | `org_sort_children` | `org-sort-entries`       | Sort a heading's direct children       |
 | `org_log_background_plan` | custom (insert-plan-link) | Write-back for background-planned headings: inserts the Plan link. Still accepts `session_id`, but no longer records it — that went with `:SESSIONS:`; never touches TODO state or the clock |
-| `org_pending_updates` | custom (queue reader)    | Read-only summary of queued-but-unapplied updates, grouped by heading. Counts *proposals*, not queue lines |
+
+**Conditional** — writes through Emacs when it can, queues when it can't:
+
+| Tool                | Notes                                  |
+|---------------------|-----------------------------------------|
+| `org_amend`         | Appends prose to a heading's body. Writes through Emacs when the file is free, and **queues the text for review when the human has unsaved changes in that buffer** — so an interjection never collides and is never lost. Prefer it over the Edit tool for body text on a tracked heading, which writes behind Emacs's back |
+
+**Read-only**:
+
+| Tool                | Notes                                  |
+|---------------------|-----------------------------------------|
+| `org_outline`       | Compact structural index: level, keyword, title, `:ID:`, tags. Marks `[blocked]` when a `:BLOCKER:` names an unfinished heading. Use before creating a heading, to see what already exists |
+| `org_pending_updates` | Summary of queued-but-unapplied updates, grouped by heading. Counts *proposals*, not queue lines. This is how you check a queued call landed |
+
+There is **no MCP tool that applies the queue**, by design. Apply is `M-x
+claude-code-ide-org-review`, run by a human. If you find yourself looking
+for `org_review_apply`, it is a log-source label in `config.el`, not a
+tool.
 
 Text editing (via the org skill) is used for adding or changing tags,
 generating new headings, and time reporting. `org_query` now covers
 structured cross-file reads (e.g. "what's blocked," "everything :research:
 and not DONE") that used to mean Claude reading whole files by hand.
 
-**Read-only buffers:** none of these five tools bind `inhibit-read-only`,
+**Read-only buffers:** none of the file-touching tools bind `inhibit-read-only`,
 so if the user has toggled a buffer read-only (`C-x C-q`) it fails
 outright with a `buffer-read-only` error. The user only does this to
 guard against their own stray keystrokes while viewing the file, not to
@@ -452,19 +520,46 @@ Two separate timekeeping mechanisms, deliberately kept apart:
   drawer recorded. Historical drawers are recoverable from git if that
   judgement turns out to be wrong.
 
-Driven by two Claude Code hooks, configured in `.claude/settings.json`:
+Driven by Claude Code hooks, configured in `.claude/settings.json`. None
+of them reaches Emacs any more — each appends a line to the session's
+queue file and exits:
 
-| Hook               | Script                        | Elisp entry point                    |
-|---------------------|-------------------------------|---------------------------------------|
-| `Stop`              | `bin/hooks/session-pause`     | `claude-code-ide-org-session-pause`   |
-| `UserPromptSubmit`  | `bin/hooks/session-resume`    | `claude-code-ide-org-session-resume`  |
+| Hook                | Script                        | Appends       |
+|---------------------|-------------------------------|---------------|
+| `Stop`              | `bin/hooks/session-pause`     | `pause`       |
+| `UserPromptSubmit`  | `bin/hooks/session-resume`    | `resume`      |
+| `PermissionRequest` | `bin/hooks/block-start`       | `block_start` |
+| `PostToolUse` (unscoped) | `bin/hooks/block-end`    | `block_end`, if a block is open |
+| `PermissionDenied`  | `bin/hooks/block-end`         | `block_end`, if a block is open |
+| `ExitPlanMode`      | `bin/hooks/exitplanmode-promote-planning` | `todo` DOING, if this session queued PLANNING |
 
-Both scripts are fire-and-forget: they call the elisp entry point via
-`emacsclient -e`, ignore the result, and always exit 0, so a stopped or
-unreachable Emacs server never blocks Claude Code itself. `session-pause`
-is a thin alias for `org_clock_out`. `session-resume` calls org's own
-`org-clock-in-last`, so it doesn't need to separately track *which* task
-was paused — org's clock history already does.
+`session-pause` and `session-resume` are one line each — `exec
+queue-append pause` / `resume`. They are *guideposts*: timestamps marking
+when the agent was running, which the review pass clusters into spans.
+They no longer call `org-clock-out`/`org-clock-in-last`, so a stopped
+Emacs costs nothing.
+
+**Permission blocks** (TODO.org `:ID:` f4e628ce). `Stop` fires when a
+*turn* ends, and a turn stalled waiting on a permission prompt has not
+ended — so the run of guideposts used to continue straight across the
+wait, crediting the human's decision latency as agent work. `block-start`
+and `block-end` bracket that wait, and the review pass removes the
+bracketed interval so the span splits around it.
+
+The pair is coordinated by a **sentinel**: an empty file at
+`~/.claude/org-updates/<session_id>.block-open`, whose existence is the
+whole message. `block-end` runs on every tool call in the session, so its
+common path must be one `stat` and an exit rather than a queue read.
+
+Two measured facts worth not rediscovering:
+
+- **`PermissionRequest` carries no `tool_use_id`.** `PostToolUse` does.
+  So the pair cannot be keyed by tool call, and is not — the sentinel is
+  one unkeyed slot per session.
+- **Prompts serialise.** Two tool calls dispatched in one parallel block
+  still produce the second `PermissionRequest` only after the first is
+  approved, so at most one block is open at a time and there is nothing
+  to tell apart.
 
 **Known edge case:** if the user's next prompt is about a different task
 than the one that got paused, `session-resume` still resumes the wrong
@@ -519,9 +614,10 @@ suggestion at all.
 `claude-code-ide-org-close-open-interval` (via `emacsclient`, not an MCP
 tool — this is a text-level fix for a stale interval, unrelated to
 whatever may currently be clocking) with the heading's `:ID:` and an org
-timestamp string. It closes the open CLOCK line (its `:SESSIONS:`
-entry is actually open (possibly both), computing the CLOCK duration and
-half is inert now that no drawer exists).
+timestamp string. It closes the open CLOCK line, computes the duration,
+and saves the buffer. It does not touch the live clock, and it no longer
+writes a `:SESSIONS:` entry or triggers a history consolidation — both
+were dropped in the 2026-08-11 retirement.
 
 **Won't do** (closed out 2026-08-14 with the guess heuristic itself,
 TODO.org `:ID:` 7771fc63): using the system sleep/wake/shutdown log
