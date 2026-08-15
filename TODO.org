@@ -9372,6 +9372,58 @@ per-minute precision is needed: bucket resume events by hour, per
 session, and compare. An hour with 30 turns in session A and 2 in session
 B allocates to A without needing to decide what happened minute by
 minute.
+
+*Corrected by the user 2026-08-15, on a misreading of "hourly
+resolution" in the entry above.* Hourly buckets are not a bucketing
+scheme. The *active intervals are constructed manually*, by the human,
+on review of the gathered data. "Hourly" is a rule of thumb for the
+granularity of the answer to "what did I attend to today, roughly" — it
+does not mean splitting anything on the hour for presentation. The
+preceding paragraph proposing to "bucket resume events by hour, per
+session, and compare" describes an automated allocation this project is
+not trying to build.
+
+*Explicit non-goal:* measuring how productive the human was using Claude
+versus not using Claude. Nothing here should be shaped to support that
+comparison.
+
+*So the tool's job is to inform a judgment, not to compute an
+allocation.* Constructing intervals depends on reflection about meatspace
+events this tool cannot capture and never will. What it can capture
+should be as informative and insightful as possible — *moderated by the
+necessity of keeping those judgment calls a lightweight exercise*. That
+moderation is a first-class requirement, not a nicety: a presentation
+that is more accurate but heavier to read is a worse presentation, and
+the tradeoff should be resolved in favour of lightness every time.
+
+*This reverses the "annotation only, keep it out of the review buffer"
+recommendation above.* That recommendation assumed the durable record was
+the point. If the human constructs intervals *at review*, then review is
+where the judgment happens and where the information has to be. The
+annotation's job is narrower: record enough of the outcome and its
+evidence that the call can be revisited without redoing it.
+
+*Two design consequences worth fixing now, before anything is built.*
+
+- *Never present a total that looks complete.* The tool sees Claude
+  sessions and nothing else. Any figure implying a full accounting of the
+  day is wrong in a way that invites trust — and the gaps are precisely
+  where meatspace went, which is the part the human alone can fill.
+- *Report the exceptions, not the measurements.* A dense stretch needs no
+  explanation; the human remembers being at the keyboard. A long sparse
+  stretch is the one that prompts "where was I?", which is the judgment
+  call they have to make anyway. This is not a new principle —
+  =claude-code-ide-org--span-evidence= already reports absences as gaps
+  for exactly this reason, and its docstring says why: "an absence is the
+  more useful half." Turn density should follow the precedent already set
+  in this file rather than adding a parallel one.
+
+*Which suggests the useful form is a recall cue, not a metric.* The value
+of turn density is that it tells the human what a stretch *felt* like —
+at the keyboard, or set running and left — quickly enough that they
+recognise it and move on. A number they must weigh is heavier than a word
+they can recognise, and the requirement above says prefer the lighter one.
+
 ** Record the originating project in queue events :code:
 :PROPERTIES:
 :ID:       83b3cdd6-982a-4ae1-878c-79a8c941f638
