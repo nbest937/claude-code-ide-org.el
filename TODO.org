@@ -9681,6 +9681,41 @@ unsaved buffer* — 55 edits across one file is exactly the shape that
 desyncs =org-clock-marker=, and the same caution the module already
 applies to =org_amend= applies more here.
 
+*Triage done 2026-08-15, and it collapses one of the open questions
+above: none of the 55 are the user's own.* Asked directly whether any
+active interval was human-authored rather than mistakenly accepted agent
+output, the answer is none, on two independent grounds.
+
+*Structural, and decisive on its own:* the active annotation is this
+module's apply-time invention rather than org's — clocking manually in
+Emacs writes a =CLOCK:= line and nothing else
+([[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]]). For one of these
+to be the user's, it would have had to be hand-typed in apply's exact
+format. There has never been a mechanism, which is why 4f8500e6 exists.
+
+*Signature, which agrees:* all 55 match =- <a>--<b> label= exactly. 37
+carry labels of the =org_clock_in= note shape — "record post-cutover
+vocabulary", "implement projected-state stale check", "drained definition
+and archive command". 18 are unlabelled, and
+=--review-annotation-label='s docstring records "17 such lines in one
+apply" as a known output of the era before labels were synthesised. Seven
+are *zero-width*, start equal to end, which apply produces from a single
+guidepost and which no human would write for their own attention.
+
+*The ~10 dated 2026-08-10 are not an exception,* which was the open
+question. They predate the 2026-08-11 cutover and so came from the older
+path, when =org_clock_in= wrote to the buffer directly rather than
+queueing. Still agent-authored, different era. Example, from
+=02aaae22='s drawer: =- <2026-08-10 Mon 19:10>--<2026-08-10 Mon 19:10>
+record post-cutover vocabulary= — zero-width, agent-worded, pre-cutover.
+
+*Consequence for this heading: no triage is needed.* The cleanup can
+treat all 55 uniformly rather than sorting human from agent, which was
+the expensive part. That also strengthens the "convert to inactive rather
+than delete" option, since converting is lossless and there is no subset
+that deserves to stay visible.
+
+
 * Bigger swings
 
 Significant directions this project has not committed to. Think hard
