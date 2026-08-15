@@ -9249,6 +9249,74 @@ value shows up only the next time a leaf is abandoned overnight, and
 =c5b02503='s ceiling still applies — a session has to relay it. The
 honest check is to look at the first session-start report that carries a
 =DOING, not clocked= line and ask whether it changed anything.
+** Record turns-per-interval as an attention signal, and decide where it surfaces :code:
+:PROPERTIES:
+:ID:       9e627dc0-d31b-42cc-857a-b1e5a77f44a5
+:CREATED:  [2026-08-15 Sat 14:07]
+:END:
+
+Raised by the user 2026-08-15: turns per interval would reflect human
+attention in a way clock duration cannot. Sixty minutes holding 2 turns
+and sixty holding 40 are identical on the clock and entirely different in
+attention — which is this project's second stated goal, not its first.
+
+*It is not another set of data points, and that is the strongest argument
+for it.* =resume= events already exist, one per =UserPromptSubmit=. The
+metric is a *view* of data already recorded: no new hook, no new payload
+field, no new failure mode, nothing to keep in sync. That is a materially
+cheaper proposition than anything requiring collection.
+
+*Count =resume=, not =pause=.* An interrupted turn emits no =pause= but
+always had a =resume=, so the resume is the robust anchor.
+
+*Measured 2026-08-15 against this session, because the foundation is worth
+checking before building on it:* 22 =resume= events against ~25
+string-content user messages in the transcript. Close but not equal, and
+the discrepancy is systematic rather than random — harness-injected
+user-role turns (=ToolSearch= "Tool loaded" replies, =/plan= output) and
+mid-turn interjections. Also worth recording so nobody repeats it: the
+transcript holds *276* =type:"user"= entries, almost all tool results. A
+naive count of user messages is off by an order of magnitude.
+
+*Three candidate surfaces, in the order they were judged useful:*
+
+1. *The =:LOGBOOK:= annotation line*
+   (=claude-code-ide-org--review-format-annotation=, config.el:3559).
+   This is the answer for genuinely *post hoc* review: queue files are
+   drained and archived, and =:LOGBOOK:= is what a human reads weeks
+   later. Not writing it there means re-deriving it from archives. Costs
+   one token on a line that already exists.
+2. *The review buffer's span-evidence block*
+   (=claude-code-ide-org--span-evidence=, config.el:4525) — available but
+   *partially redundant*. That block already reports absences ("nothing
+   for 12m, 14:03-14:15"), and a gap list is the same signal as a
+   distribution where turns-per-interval is its scalar summary. Judging a
+   single span, the distribution is strictly more informative.
+3. *A clocktable column via =org_clock_report=* — where aggregate
+   post-hoc analysis actually happens, and the one place the scalar wins
+   outright: turns/hour can be averaged across a week, and gap lists
+   cannot be summed at all.
+
+*Recommendation, not yet decided: annotation only.* Keep it out of the
+review buffer initially, since gaps already serve the review-time
+judgement better and that buffer is already carrying interval, label,
+staleness flags, evidence rows, gap rows and overflow counts. Defer the
+clocktable column until a real report wants it.
+
+*Cons worth carrying into the decision rather than discovering later.*
+
+- *The count is measured; the inference is the guess.* A turn may be
+  "continue" or three paragraphs of design, and the difference is
+  invisible. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the
+  precedent for retiring a plausible-but-wrong number on exactly this
+  reasoning, and that argument applies here with less force but not zero.
+- *It inverts under autonomy.* A 40-minute agent turn counts 1, the same
+  as "yes". Turns/hour therefore *drops* precisely when the agent is
+  working hardest — correct as a measure of human attention, badly
+  misleading if anyone reads it as productivity. Whatever surface carries
+  the number has to carry that caveat too.
+- *It reads 0 for background and subagent sessions*, which means "not
+  applicable" rather than "no attention", and a bare 0 does not say which.
 
 * Bigger swings
 
