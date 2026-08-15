@@ -8,10 +8,28 @@
 # of guideposts stays unbroken across the wait. Measured 2026-08-11: a
 # 57m51s turn of which 54m11s was one tool call awaiting approval.
 #
-# Appends the event, then drops a sentinel named for the tool call.
+# Appends the event, then sets a single per-session sentinel.
 # bin/hooks/block-end consults that sentinel -- and nothing else -- so it
 # can decline in one stat on the overwhelming majority of tool calls,
 # which are never blocked.
+#
+# ONE SLOT PER SESSION, NOT ONE PER TOOL CALL, and this is the whole
+# correction of 2026-08-14. The original keyed the sentinel by
+# `tool_use_id' so that interleaved blocks could be told apart. Measured:
+# `PermissionRequest' does not carry a `tool_use_id' at all -- the field
+# exists on `PostToolUse' and not on the event that opens the block -- so
+# the guard below refused every real payload and the feature never once
+# fired. Probed the same day: two Bash calls dispatched in a single
+# parallel block serialised anyway, the second `PermissionRequest' not
+# firing until the first was approved and run. Prompts block the turn, so
+# there is never more than one outstanding per session, so there is
+# nothing to tell apart and no key is needed.
+#
+# If a second `block_start' does arrive while the slot is set -- the
+# serialisation above rests on one trial with two Bash calls, not on a
+# guarantee -- the later one wins and the earlier open is dropped by the
+# review-time reader. That loses one block rather than inventing one,
+# which is the direction TODO.org :ID: 7771fc63 settled.
 #
 # Ordering matters: append first, sentinel second. A sentinel with no
 # block_start behind it would let block-end append an end for a block
@@ -26,20 +44,19 @@ input="$(cat)"
 command -v jq >/dev/null 2>&1 || exit 0
 
 session_id="$(jq -r '.session_id // empty' <<<"$input" 2>/dev/null)"
-tool_use_id="$(jq -r '.tool_use_id // empty' <<<"$input" 2>/dev/null)"
-[[ -n "$session_id" && -n "$tool_use_id" ]] || exit 0
+[[ -n "$session_id" ]] || exit 0
 
 case "$session_id" in
-  *[!A-Za-z0-9._-]*|''|.|..) exit 0 ;;
-esac
-case "$tool_use_id" in
   *[!A-Za-z0-9._-]*|''|.|..) exit 0 ;;
 esac
 
 printf '%s' "$input" | "$(dirname "${BASH_SOURCE[0]}")/queue-append" block_start
 
 queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
-mkdir -p "$queue_dir/$session_id.blocked" 2>/dev/null || exit 0
-: > "$queue_dir/$session_id.blocked/$tool_use_id" 2>/dev/null
+mkdir -p "$queue_dir" 2>/dev/null || exit 0
+# Deliberately not the old `$session_id.blocked/' directory name: a
+# leftover directory from the keyed scheme would satisfy block-end's
+# `-e' test forever and close blocks that were never opened.
+: > "$queue_dir/$session_id.block-open" 2>/dev/null
 
 exit 0

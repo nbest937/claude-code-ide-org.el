@@ -3492,19 +3492,50 @@ whole heading and the result read as \"never clocked\"."
         :tool-use-id tool-use-id
         :ts (time-add (date-to-time "2026-08-11T13:55:00-0500") offset)))
 
-(ert-deftest claude-code-ide-org-test-block-intervals-pair-by-tool-use-id ()
-  "Blocks pair by `tool_use_id', not by position: tool calls interleave,
-so a block opened by one call can close after another opened and closed
-inside it."
-  (let* ((events (list (claude-code-ide-org-test--ev 0 "block_start" "toolu_A")
-                       (claude-code-ide-org-test--ev 10 "block_start" "toolu_B")
-                       (claude-code-ide-org-test--ev 20 "block_end" "toolu_B")
-                       (claude-code-ide-org-test--ev 30 "block_end" "toolu_A")))
+(ert-deftest claude-code-ide-org-test-block-intervals-pair-by-position ()
+  "Blocks pair by position, since `PermissionRequest' carries no
+`tool_use_id' to pair on and prompts serialise so none is needed
+(TODO.org :ID: f4e628ce, 2026-08-14)."
+  (let* ((events (list (claude-code-ide-org-test--ev 0 "block_start")
+                       (claude-code-ide-org-test--ev 10 "block_end")
+                       (claude-code-ide-org-test--ev 30 "block_start")
+                       (claude-code-ide-org-test--ev 60 "block_end")))
          (ivs (claude-code-ide-org--block-intervals events)))
     (should (= 2 (length ivs)))
-    ;; B closed first and is the shorter of the two; A spans the whole.
-    (should (= 30 (float-time (time-subtract (cdr (nth 1 ivs)) (car (nth 1 ivs))))))
-    (should (= 10 (float-time (time-subtract (cdr (nth 0 ivs)) (car (nth 0 ivs))))))))
+    (should (= 10 (float-time (time-subtract (cdr (nth 0 ivs)) (car (nth 0 ivs))))))
+    (should (= 30 (float-time (time-subtract (cdr (nth 1 ivs)) (car (nth 1 ivs))))))))
+
+(ert-deftest claude-code-ide-org-test-block-intervals-pair-without-tool-use-id ()
+  "The regression that started this: a real `PermissionRequest' has no
+`tool_use_id', so events carrying nil must still pair. The previous
+implementation keyed on that field and silently produced nothing, which
+is exactly how the feature stayed inert through three green suites."
+  (let ((ivs (claude-code-ide-org--block-intervals
+              (list (claude-code-ide-org-test--ev 0 "block_start" nil)
+                    (claude-code-ide-org-test--ev 345 "block_end" nil)))))
+    (should (= 1 (length ivs)))
+    (should (= 345 (float-time (time-subtract (cdar ivs) (caar ivs)))))))
+
+(ert-deftest claude-code-ide-org-test-block-intervals-later-start-wins ()
+  "Two starts with no end between them cannot happen while prompts
+serialise, but that rests on one trial rather than a guarantee. If it
+does happen the later start wins and the earlier is dropped -- losing a
+block rather than inventing one, per :ID: 7771fc63."
+  (let ((ivs (claude-code-ide-org--block-intervals
+              (list (claude-code-ide-org-test--ev 0 "block_start")
+                    (claude-code-ide-org-test--ev 10 "block_start")
+                    (claude-code-ide-org-test--ev 20 "block_end")))))
+    (should (= 1 (length ivs)))
+    (should (= 10 (float-time (time-subtract (cdar ivs) (caar ivs)))))))
+
+(ert-deftest claude-code-ide-org-test-block-intervals-sorts-before-pairing ()
+  "Pairing is positional, so order is load-bearing: an out-of-order
+fixture must be sorted rather than paired as given."
+  (let ((ivs (claude-code-ide-org--block-intervals
+              (list (claude-code-ide-org-test--ev 60 "block_end")
+                    (claude-code-ide-org-test--ev 0 "block_start")))))
+    (should (= 1 (length ivs)))
+    (should (= 60 (float-time (time-subtract (cdar ivs) (caar ivs)))))))
 
 (ert-deftest claude-code-ide-org-test-block-intervals-drop-unmatched-start ()
   "An unmatched `block_start' is dropped, never extended to the last

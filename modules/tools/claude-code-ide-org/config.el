@@ -2984,15 +2984,27 @@ stream and a session-wide `current' would let them clobber each other
 (defun claude-code-ide-org--block-intervals (events)
   "Return (START . END) pairs for the permission blocks in EVENTS.
 
-A block is the stretch between a `block_start' and the `block_end'
-carrying the same `tool_use_id' -- the agent stalled waiting on a human
-to answer a permission prompt.  `Stop' cannot see this: it fires when a
-*turn* ends, and a turn blocked mid-flight has not ended, so the run of
-guideposts continues straight across the wait (TODO.org :ID: f4e628ce).
+A block is the stretch between a `block_start' and the next `block_end'
+-- the agent stalled waiting on a human to answer a permission prompt.
+`Stop' cannot see this: it fires when a *turn* ends, and a turn blocked
+mid-flight has not ended, so the run of guideposts continues straight
+across the wait (TODO.org :ID: f4e628ce).
 
-Paired by `tool_use_id' rather than by position, because tool calls
-interleave: a block opened by one call can close after another opened
-and closed inside it.
+Paired by position rather than by `tool_use_id', and that is the
+2026-08-14 correction rather than a simplification for its own sake.
+`PermissionRequest' carries no `tool_use_id' -- the field is on
+`PostToolUse' and absent from the event that opens the block -- so the
+original key did not exist to pair on, and the hook that required it
+refused every real payload.  Position is sound because prompts
+serialise: measured the same day, two calls dispatched in one parallel
+block still produced the second `PermissionRequest' only after the first
+was approved, so at most one block is open at a time and interleaving
+cannot arise.
+
+Should a second `block_start' arrive while one is open anyway -- that
+measurement is one trial, not a guarantee -- the later start wins and
+the earlier is dropped, on the same reasoning as an unmatched start
+below.
 
 An unmatched `block_start' is *dropped*, not extended to the end of the
 events.  It means the session died between the prompt and the tool
@@ -3006,20 +3018,27 @@ execution, since nothing signals the moment of approval separately.  For
 the case this was built for -- 54m11s of waiting and seconds of running
 -- that distinction is noise.  It would matter for a long-running
 approved tool, and the overstatement is bounded by that tool's runtime."
-  (let ((open (make-hash-table :test 'equal))
+  (let ((open nil)
         intervals)
-    (dolist (e events)
+    ;; Sorted explicitly rather than trusting the caller: the queue is
+    ;; append-only and so arrives in order, but position is now the
+    ;; whole pairing rule, and a fixture built out of order would pair
+    ;; silently wrong instead of failing loudly.
+    (dolist (e (sort (seq-filter
+                      (lambda (e)
+                        (member (plist-get e :kind)
+                                '("block_start" "block_end")))
+                      (copy-sequence events))
+                     (lambda (a b)
+                       (time-less-p (plist-get a :ts) (plist-get b :ts)))))
       (let ((kind (plist-get e :kind))
-            (key (plist-get e :tool-use-id))
             (ts (plist-get e :ts)))
-        (when key
-          (cond
-           ((equal kind "block_start") (puthash key ts open))
-           ((equal kind "block_end")
-            (let ((start (gethash key open)))
-              (when start
-                (push (cons start ts) intervals)
-                (remhash key open))))))))
+        (cond
+         ((equal kind "block_start") (setq open ts))
+         ((equal kind "block_end")
+          (when open
+            (push (cons open ts) intervals)
+            (setq open nil))))))
     (nreverse intervals)))
 
 (defun claude-code-ide-org--time-within-any-p (time intervals)
