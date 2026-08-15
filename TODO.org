@@ -9318,6 +9318,105 @@ clocktable column until a real report wants it.
 - *It reads 0 for background and subagent sessions*, which means "not
   applicable" rather than "no attention", and a bare 0 does not say which.
 
+*Reframed by the user 2026-08-15, and it inverts one of the cons above.*
+Attention is the *primary* measure for assigning active intervals post
+hoc — not a supplement to clock duration. Long agent-work intervals do
+reflect agent productivity, but they are precisely the intervals in which
+the human attends to something else: email, post hoc review, or another
+Claude Code session in another project. Intense back-and-forth means the
+human was at the keyboard interpreting responses, often alternating
+between tasks and meta-tasks inside one session. Stated goal: better
+attention-time allocation *at hourly resolution*. Imperfect by
+construction, and that is accepted.
+
+*So "it inverts under autonomy" is not a caveat, it is the signal.* The
+con recorded above — that turns/hour drops exactly when the agent works
+hardest — describes the metric working, not failing. A low-turn hour is
+evidence the human's attention was elsewhere, which is the thing being
+measured. The caveat that survives is narrower and worth keeping: the
+number must never be labelled or read as productivity, because it is the
+inverse of it.
+
+*The larger consequence: attention is zero-sum across concurrent
+sessions, so this is an allocation problem, not an annotation problem.*
+If the human was driving session B while session A's agent ground away,
+A's forty minutes should not be credited to A's heading at all — the
+attention belongs to B. Annotating each span with its own turn count is
+the easy half; apportioning an hour among the sessions that were live in
+it is the half that answers the question.
+
+*The data mostly exists, with one specific hole.* Queue files are
+per-session and all land in =~/.claude/org-updates/=, which is
+*user-global*, not per-project — so the directory is already the right
+shape for cross-session comparison. Two things stand in the way:
+
+- *Hooks are project-scoped.* Only sessions in this repo write queue
+  files at all, so today the directory sees one project and cross-project
+  allocation has nothing to compare. Moving hooks to
+  =~/.claude/settings.json= fixes this, which makes
+  [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] a *precondition*
+  for this heading rather than merely a neighbour. Worth noticing that
+  the portability work was motivated for an entirely different reason and
+  turns out to be load-bearing here.
+- *Queue events do not record which project they came from.*
+  =bin/hooks/queue-append= writes ts, kind, id, state, from, note, title,
+  target, tags, text, tool_use_id, session_id, agent_id, agent_type and
+  source — no =cwd=. The hook payload *does* carry =cwd= (verified in a
+  captured =PermissionRequest=, 2026-08-14), so this is one line in the
+  =jq= object rather than new instrumentation. Project is also derivable
+  indirectly, since =~/.claude/projects/<slug>/<session>.jsonl= encodes
+  it, but that is a fragile join where a recorded field is free.
+
+*Hourly resolution is a real simplification, not a hedge.* It means no
+per-minute precision is needed: bucket resume events by hour, per
+session, and compare. An hour with 30 turns in session A and 2 in session
+B allocates to A without needing to decide what happened minute by
+minute.
+** Record the originating project in queue events :code:
+:PROPERTIES:
+:ID:       83b3cdd6-982a-4ae1-878c-79a8c941f638
+:CREATED:  [2026-08-15 Sat 14:32]
+:END:
+
+=bin/hooks/queue-append= writes ts, kind, id, state, from, note, title,
+target, tags, text, tool_use_id, session_id, agent_id, agent_type and
+source. It does *not* record which project the event came from.
+
+That is invisible today because hooks are project-scoped, so every queue
+file in =~/.claude/org-updates/= is from this repo and the field would be
+a constant. It stops being a constant the moment hooks move to
+=~/.claude/settings.json= — see
+[[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] — and at that point
+the queue directory holds interleaved events from every project with no
+way to tell them apart.
+
+*The payload already carries it.* A captured =PermissionRequest= on
+2026-08-14 held =cwd= alongside =session_id=, =transcript_path=,
+=permission_mode= and =prompt_id=. So this is one line in the =jq= object
+builder, not new instrumentation — the same shape as the =tool_use_id=
+field already added there for the block events.
+
+*Derivable, but do not rely on that.*
+=~/.claude/projects/<slug>/<session>.jsonl= encodes the project in its
+path, so session-to-project can be recovered by looking at which projects
+directory holds a given transcript. That is a fragile join — it depends
+on a path convention this project does not own, and it breaks for any
+session whose transcript has been cleaned up — where a recorded field is
+free and permanent.
+
+*Why it matters beyond bookkeeping:* attention allocation across
+concurrent sessions
+([[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]]) needs to compare
+turn density per project per hour. Without the originating project on
+each event, the queue can say a session was busy but not which work that
+attention belonged to.
+
+*Open question worth deciding at implementation:* record raw =cwd=, or a
+normalised project slug. Raw =cwd= is honest and free but varies with
+worktrees — this repo already uses git worktrees for parallel work
+(DONE.org's worktree entries), so two paths can mean one project. A slug
+would need a normalisation rule, which is a decision rather than a field.
+
 * Bigger swings
 
 Significant directions this project has not committed to. Think hard
