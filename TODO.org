@@ -1556,10 +1556,14 @@ convention also carries no keyword, no =:ID:= and no tags. Nothing but
 the label as a heading turns each file into one spurious root. Worth
 fixing in the same pass, since both are the same class of bug: the
 format asserting less structure than the reader needs.
-** Add a tool to set heading properties, starting with :BLOCKER: :code:
+** TODO Add a tool to set heading properties, starting with :BLOCKER: :code:
 :PROPERTIES:
 :ID:       36b811d9-8bd3-4a32-b67d-39ccfe0d66c1
 :CREATED:  [2026-08-15 Sat 16:43]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-15 Sat 16:44] \\
+  property tool gap, three incidents tonight
 :END:
 
 None of the 14 registered tools sets a property. =org_capture= writes
@@ -7559,7 +7563,7 @@ epic becomes closeable — which is what
 on. The split itself is for a plainer reason: this is three passes with
 three plans, and a heading carries one plan link.
 
-*** DOING Correct CLAUDE.md's account of the queue architecture :code:
+*** DONE Correct CLAUDE.md's account of the queue architecture :code:
 :PROPERTIES:
 :ID:       43d317e8-f2b6-4ce2-9634-64e9bda83efe
 :CREATED:  [2026-08-14 Fri 19:59]
@@ -7567,6 +7571,9 @@ three plans, and a heading carries one plan link.
 :LOGBOOK:
 - State "DOING"      from "NEXT"       [2026-08-14 Fri 20:11] \\
   start CLAUDE.md correctness pass
+- State "DONE"       from "DOING"      [2026-08-14 Fri 20:15] \\
+  all ten defects corrected and verified
+- [2026-08-14 Fri 20:15]--[2026-08-14 Fri 20:15] assigned at review
 :END:
 
 The factual pass. CLAUDE.md still files the whole queue design under a
@@ -7601,10 +7608,19 @@ nowhere. Record =REVIEW= as experimental
 ([[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]) rather than as
 settled.
 
-*** TODO Remove CLAUDE.md content the org and org-dev skills already own :code:
+*** DONE Remove CLAUDE.md content the org and org-dev skills already own :code:
 :PROPERTIES:
 :ID:       c556a9ed-8e37-4fc3-ab4b-63292837236d
 :CREATED:  [2026-08-14 Fri 19:59]
+:END:
+:LOGBOOK:
+- State "PLANNING"   from "TODO"       [2026-08-14 Fri 20:43] \\
+  plan the skills dedupe pass
+- [2026-08-14 Fri 20:43]--[2026-08-14 Fri 20:43] assigned at review
+- State "DOING"      from "PLANNING"   [2026-08-14 Fri 21:22]
+- State "DONE"       from "DOING"      [2026-08-14 Fri 21:26] \\
+  dedupe done, both skills corrected
+- [2026-08-14 Fri 21:26]--[2026-08-14 Fri 21:26] assigned at review
 :END:
 
 The org skill already documents TODO keywords, the tag table,
@@ -7630,11 +7646,21 @@ plan document, which carries this child's design as its second half rather
 than a file of its own.
 
 
-*** TODO Decide whether CLAUDE.md needs a path-scoped =.claude/rules/= split :code:
+*** WAIT Decide whether CLAUDE.md needs a path-scoped =.claude/rules/= split :code:
 :PROPERTIES:
 :ID:       befaed0a-18ed-445e-b997-8b9c2965ad45
 :BLOCKER:  ids(43d317e8-f2b6-4ce2-9634-64e9bda83efe c556a9ed-8e37-4fc3-ab4b-63292837236d)
 :CREATED:  [2026-08-14 Fri 19:59]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-15 Sat 08:28]--[2026-08-15 Sat 08:34] =>  0:06
+- [2026-08-15 Sat 08:28]--[2026-08-15 Sat 08:34] assigned at review
+- State "DOING"      from "NEXT"       [2026-08-15 Sat 08:29] \\
+  judge the rules split on measured size
+- State "WAIT"       from "DOING"      [2026-08-15 Sat 08:34] \\
+  needs a fresh session to confirm loading
+- State "NEXT"       from "TODO"       [2026-08-15 Sat 17:11] \\
+  Auto-promoted: sole remaining TODO in its sibling group.
 :END:
 
 Blocked on both siblings deliberately: the decision takes the resulting
@@ -8917,7 +8943,66 @@ function returns and adds one prompt. Related to
 [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] by adjacency — that
 heading put the evidence on screen, and this one would capture the
 conclusion the human draws from it — but neither requires the other.
+** Assign excludes headings created after the span, which is the normal case not an impossibility :code:
+:PROPERTIES:
+:ID:       0d055205-a670-45c6-b4af-980961603a7c
+:CREATED:  [2026-08-15 Sat 17:17]
+:END:
 
+Reported by the user 2026-08-15 after applying some events: unassigned
+spans cannot be assigned because not every heading is offered by the
+completion prompt, and pasting a title yields =[Match required]=.
+
+*Reproduced by rebuilding the candidate list outside the command,*
+against the six unassigned spans left in the live =*org-review*= buffer.
+=claude-code-ide-org-review-assign= filters
+=org-id-locations= (147 entries) and excludes any heading whose
+=:CREATED:= is later than the span's end:
+
+: span ending 15:31 -> 122 offered, 2 excluded as too new
+: span ending 09:20 -> 119 offered, 5 excluded as too new
+
+For the 09:20 span the five excluded are *exactly the five headings
+created today*. So this morning's work cannot be assigned to any heading
+written this afternoon, and =completing-read= is called with
+=REQUIRE-MATCH= t, so a pasted title fails with no explanation of why the
+heading is absent.
+
+*The premise in the code is false.* The comment reads: "A heading created
+after the span ended cannot be what that time was spent on. This is a
+hard impossibility, so it is excluded outright rather than ranked down."
+It is not an impossibility — doing the work first and writing the heading
+afterwards is the normal case, and *this project's own convention
+mandates it*: "any time a new task is described in conversation, create
+an org heading for it." A heading is created when a task is described,
+which is during or after the work, rarely before it. On 2026-08-15 five
+headings were created for discussion that had been running since the
+morning.
+
+*The fix is already written twenty lines below, for the analogous case.*
+DONE/CANCELLED headings get exactly the right treatment: "A heading
+closed before the span is implausible but NOT impossible -- documenting a
+task after marking it DONE is routine -- so it demotes rather than
+vanishes." Created-after-span deserves the same demotion, not exclusion.
+The sort key already has a slot for it.
+
+*Ruled out while diagnosing, recorded so it is not re-checked:*
+
+- Not a stale =org-id= index — all five of today's headings resolve in
+  =org-id-locations=.
+- Not the completion style — =completion-styles= is =(orderless basic)=
+  with vertico, so a pasted substring would match if the candidate were
+  present.
+- Not the file filter, though it is worth knowing it drops 10 of 147
+  (fixtures and =/tmp= scratch), and 13 more resolve to no title at all —
+  stale =org-id= entries pointing at headings that no longer exist. That
+  second number is its own small defect.
+
+*Separate but adjacent:* candidate strings are decorated —
+=made 08-14    [DONE] Title  {shortid}= — so the title sits mid-string.
+Orderless copes, but a plain =basic= completion style would not, and the
+decoration would be better as an =:affixation-function= so it is
+displayed without being matched against.
 
 * Observability
 
@@ -9365,10 +9450,14 @@ value shows up only the next time a leaf is abandoned overnight, and
 =c5b02503='s ceiling still applies — a session has to relay it. The
 honest check is to look at the first session-start report that carries a
 =DOING, not clocked= line and ask whether it changed anything.
-** Record turns-per-interval as an attention signal, and decide where it surfaces :code:
+** TODO Record turns-per-interval as an attention signal, and decide where it surfaces :code:
 :PROPERTIES:
 :ID:       9e627dc0-d31b-42cc-857a-b1e5a77f44a5
 :CREATED:  [2026-08-15 Sat 14:07]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-15 Sat 14:07] \\
+  surface undecided, analysis recorded
 :END:
 
 Raised by the user 2026-08-15: turns per interval would reflect human
@@ -9585,10 +9674,14 @@ possible and is not being attempted now. The present goal is only to make
 the human's manual construction better informed and lighter.
 
 
-** Record the originating project in queue events :code:
+** TODO Record the originating project in queue events :code:
 :PROPERTIES:
 :ID:       83b3cdd6-982a-4ae1-878c-79a8c941f638
 :CREATED:  [2026-08-15 Sat 14:32]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-15 Sat 14:32] \\
+  cheap now, load-bearing later
 :END:
 
 =bin/hooks/queue-append= writes ts, kind, id, state, from, note, title,
@@ -9629,10 +9722,18 @@ normalised project slug. Raw =cwd= is honest and free but varies with
 worktrees — this repo already uses git worktrees for parallel work
 (DONE.org's worktree entries), so two paths can mean one project. A slug
 would need a normalisation rule, which is a decision rather than a field.
-** Retire the 55 active annotations apply wrote before the agenda-visibility fix :code:
+** DONE Retire the 55 active annotations apply wrote before the agenda-visibility fix :code:
 :PROPERTIES:
 :ID:       df5afbbd-0eac-4032-be91-17cc22ef0cd7
 :CREATED:  [2026-08-15 Sat 16:35]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-15 Sat 16:34]--[2026-08-15 Sat 16:57] =>  0:23
+- [2026-08-15 Sat 16:34]--[2026-08-15 Sat 16:57] assigned at review
+- State "NEXT"       from              [2026-08-15 Sat 16:35] \\
+  precondition for attention intervals
+- State "DONE"       from "NEXT"       [2026-08-15 Sat 16:57] \\
+  all 55 converted and verified
 :END:
 
 Found 2026-08-15 while checking whether a producer table in
@@ -9854,11 +9955,17 @@ up would make it something worth handing to someone else.
 =mcp-start=) aren't really designed as public standalone-mode API
 today, so an upstream PR is a bigger lift than it looks. Start with
 the snippet, treat upstreaming as a separate future MAYBE.
-** Make the org skill and its discipline portable to other repos :code:
+** NEXT Make the org skill and its discipline portable to other repos :code:
 :PROPERTIES:
 :ID:       9ae4b17e-278c-482f-9114-df28b2254806
 :CREATED:  [2026-08-15 Sat 11:04]
 :BLOCKER:  ids(befaed0a-18ed-445e-b997-8b9c2965ad45)
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-15 Sat 11:05] \\
+  blocked on rules-loading verification
+- State "NEXT"       from "TODO"       [2026-08-15 Sat 17:11] \\
+  Auto-promoted: sole remaining TODO in its sibling group.
 :END:
 
 Raised by the user 2026-08-15: the org skill is meant for use on other
