@@ -9454,6 +9454,62 @@ this module may change on a user's machine when installed — the same
 user-scope question, approached as an installation concern rather than a
 portability one. These two should probably be decided together.
 
+*Mechanism proposed by the user 2026-08-15, and it exists — with one
+correction.* The proposal was shared =.md= files referenced by both this
+repo's CLAUDE.md and the skill, so that loading the skill elsewhere brings
+its context with it. Two documented mechanisms do this, and =@path=
+imports — the obvious candidate — do *not*: they load eagerly at launch,
+and a path resolving outside the working directory additionally triggers
+an external-import approval dialog.
+
+- *Skills carry supporting files.* A skill directory may hold
+  =references/*.md= that =SKILL.md= points at, read on demand with normal
+  file tools. They travel with the skill. Neither skill here uses this
+  today; both are single-file.
+- *=.claude/rules/= supports symlinks, explicitly.* Per Claude Code's
+  memory docs: "you can maintain a shared set of rules and link them into
+  multiple projects. Symlinks are resolved and loaded normally." And
+  "personal rules in =~/.claude/rules/= apply to every project on your
+  machine," with project rules taking priority over user ones.
+
+*So the shape is one canonical copy, two consumers.* Content lives once —
+naturally in the skill directory, since that is the unit that travels.
+=~/.claude/rules/org-conventions.md= becomes a symlink to it carrying
+=paths: ["**/*.org"]=, which applies in every repo but only when an org
+file is in play. This repo's CLAUDE.md keeps a one-line pointer instead of
+a copy. Nothing is duplicated, and the skill and the rules read the same
+bytes.
+
+*Split the content by who must decide to load it,* because the two
+mechanisms differ in exactly that: a path-scoped rule fires
+automatically, while a skill reference is read only if the model chooses
+to. Conventions (keywords, tags, =:ARCHIVE:=, =:BLOCKER:=) want the rule —
+they must apply whether or not anyone thought to invoke the skill. Setup
+instructions ("here is what a repo must wire up") want the skill
+reference — they are consulted deliberately, once.
+
+*Two things this does not solve, and the second is the larger half.*
+
+First, a user-level rule applies to *every* project, including repos whose
+=.org= files follow different conventions. "Do not add priority cookies"
+is this project's policy, not a universal one. Project rules outrank user
+rules, so an override is possible, but the default is now assertive
+everywhere — the paths glob or the phrasing needs to carry that.
+
+Second, and this is the limit of the whole approach: *shared =.md= files
+reproduce the instructions, not the machinery.* A rule can say the queue
+exists; if the other repo's =.claude/settings.json= wires no hooks,
+nothing writes guideposts, no permission blocks are bracketed, and
+=org_set_todo= is not registered to be called. The instructions would then
+describe a system that is not running — which is precisely the failure
+[[id:f4e628ce-e653-429a-8f3c-0f5d4241b139][f4e628ce]] took three sessions
+to catch, in the one repo where the machinery *was* present. Making the
+machinery travel is a separate move: hooks into =~/.claude/settings.json=
+and the MCP server into user-level config, both of which can be
+user-scoped. The =.md= plan and the machinery plan have to land together
+or the first is worse than nothing.
+
+
 * Upstream (claude-code-ide.el)
 
 Issues found against the third-party =claude-code-ide.el=
