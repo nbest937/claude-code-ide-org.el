@@ -9730,6 +9730,35 @@ given more history, external signals, and practice. That may become
 possible and is not being attempted now. The present goal is only to make
 the human's manual construction better informed and lighter.
 
+*Clarification added 2026-08-15 during a consistency review, because the
+settled vocabulary collided with an org term and produced two ambiguous
+sentences within hours.* "Active" is doing two unrelated jobs:
+
+- *=active= vs =inactive= is a property of an org **timestamp**.*
+  =<2026-08-15 Sat 10:00>= reaches the agenda; =[2026-08-15 Sat 10:00]=
+  does not. This is org's own vocabulary and is not ours to redefine.
+- *=clock= vs =attention= is a property of an **interval**.* A clock
+  interval is measured by the agent; an attention interval is attested by
+  the human.
+
+The two axes are *orthogonal*, and the second is implemented using the
+first: an attention interval is written with active timestamps precisely
+so it reaches the agenda, and clock intervals use inactive ones so they
+do not. That is the mechanism, not a synonym.
+
+So "active interval" is ambiguous in both directions and should not be
+written at all — it was the rejected coinage, and it also reads as "an
+interval whose timestamps are active", which is a true statement about
+attention intervals that says nothing useful. Two sentences in
+[[id:df5afbbd-0eac-4032-be91-17cc22ef0cd7][df5afbbd]] used it in the
+org sense and were rewritten to say "active timestamps" and
+"active-timestamp annotation" instead.
+
+Rule of thumb: say *timestamp* when discussing the mechanism, and
+*interval* when discussing the thing being recorded. If a sentence needs
+both words, it is probably conflating them.
+
+
 
 ** TODO Record the originating project in queue events :code:
 :PROPERTIES:
@@ -9814,7 +9843,7 @@ attention.
 =:LOGBOOK:= is exactly what
 [[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] intends to fill with
 hand-logged attention intervals — the convention being that the agenda is
-derived by reading active intervals and ignoring the inactive clock ones.
+derived by reading active *timestamps* and ignoring inactive ones.
 Starting that work against an agenda already ~100% populated by
 mislabelled agent activity means the first attention pass cannot tell its
 own entries from the noise, and every subsequent one inherits the
@@ -9841,8 +9870,8 @@ applies to =org_amend= applies more here.
 
 *Triage done 2026-08-15, and it collapses one of the open questions
 above: none of the 55 are the user's own.* Asked directly whether any
-active interval was human-authored rather than mistakenly accepted agent
-output, the answer is none, on two independent grounds.
+active-timestamp annotation was human-authored rather than mistakenly
+accepted agent output, the answer is none, on two independent grounds.
 
 *Structural, and decisive on its own:* the active annotation is this
 module's apply-time invention rather than org's — clocking manually in
