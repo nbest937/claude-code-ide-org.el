@@ -1556,6 +1556,93 @@ convention also carries no keyword, no =:ID:= and no tags. Nothing but
 the label as a heading turns each file into one spurious root. Worth
 fixing in the same pass, since both are the same class of bug: the
 format asserting less structure than the reader needs.
+** Add a tool to set heading properties, starting with :BLOCKER: :code:
+:PROPERTIES:
+:ID:       36b811d9-8bd3-4a32-b67d-39ccfe0d66c1
+:CREATED:  [2026-08-15 Sat 16:43]
+:END:
+
+None of the 14 registered tools sets a property. =org_capture= writes
+=:ID:= and =:CREATED:= at creation and that is the whole of it, so every
+later property change is a hand-edit or an =emacsclient= call.
+
+*The gap has a behavioural cost, not just an ergonomic one.* CLAUDE.md's
+convention says to prefer =:BLOCKER:= over a prose "depends on ..."
+sentence, because a property is machine-checkable and a sentence is not.
+But there is no tool to write one, while prose costs nothing — so the
+*discouraged* form is cheaper than the *preferred* one, and the
+convention loses by default. Evidence from the session that found this:
+on 2026-08-15 a dependency was recorded on
+[[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] as the words
+"Tracked separately", with no link and no property, and only got a real
+=:BLOCKER:= when the omission was noticed on re-reading. Twice in the
+same session a property had to be set through =emacsclient= —
+=org-entry-put= on that heading and on
+[[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]].
+
+*Validation is the reason to build the specific tool rather than only a
+general one.* A =:BLOCKER:= naming an ID that does not exist never blocks
+anything and never errors — it simply does nothing, forever. A tool that
+resolves each ID before writing turns that silent failure into a refusal
+at the call site. The same session fabricated a UUID from an 8-character
+prefix and caught it only by a link-resolution sweep afterwards, which is
+precisely the failure this validation would have made impossible.
+
+*Design questions, unresolved:*
+
+- *General =org_set_property= or specific =org_add_blocker=?* The general
+  one is obviously more flexible and validates nothing. The specific one
+  encodes the convention, can resolve IDs, and can append to an existing
+  =ids(...)= list rather than overwriting it — which the general form
+  would silently get wrong, since =:BLOCKER:= holds a *set*.
+- *Write immediately or queue?* A property is neither TODO state nor
+  clock, so it is outside what the queue exists to defer. =org_amend='s
+  model looks right: write through Emacs when the file is free, queue when
+  the human has unsaved changes in that buffer.
+- *What else needs setting?* =:ARCHIVE:= per-heading overrides and
+  =:TRIGGER:= (the inverse of =:BLOCKER:=) are the other two the
+  conventions name. =:CREATED:= and =:ID:= are already handled at capture
+  and should stay there.
+
+Distinct from [[id:087e73e9-bb24-43b6-a972-b7f103d04017][087e73e9]],
+which is about *enforcing* =:BLOCKER:= once set. This one is about being
+able to set it at all.
+
+*Footnote to the above, written the same minute:* the paragraph arguing
+that a fabricated =:BLOCKER:= ID fails silently was itself written with a
+fabricated ID — =8ee85ba3-...=, invented for this very link, caught by
+the resolve-check rather than by reading it back. Third occurrence in one
+session. The lesson is not "be careful"; it is that the resolve-check is
+the only thing that has ever caught this, and a tool that validates at the
+call site would remove the opportunity entirely.
+
+*A fourth design constraint, found by =bin/lint-org= within a minute of
+this heading being written.* Setting =:BLOCKER:= on
+[[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] naming
+[[id:df5afbbd-0eac-4032-be91-17cc22ef0cd7][df5afbbd]] produced:
+
+: error: :BLOCKER: names keyword-less heading df5afbbd -- org-depend
+: blocks only on an unfinished TODO, so this is a silent no-op
+
+The linter is right, and the cause is architectural rather than careless.
+=org_capture= deliberately writes no TODO keyword — its own description
+says to set the state afterwards with =org_set_todo= — and =org_set_todo=
+queues. So *every heading captured in a session is keyword-less until a
+human applies the queue*, and any =:BLOCKER:= naming one is inert in the
+meantime. Not wrong, but not yet in force, and indistinguishable from
+working without the linter.
+
+This sharpens the validation argument above. A property tool should
+refuse, or at least warn, when the heading it is about to name carries no
+keyword — the same check the linter already implements, moved from
+after-the-fact to the call site. It also suggests a smaller companion
+question: whether =org_capture= should accept an initial state, so that a
+capture and its keyword do not arrive a review pass apart.
+
+Worth noting the linter caught this and re-reading did not, which is the
+same lesson as the fabricated ID above and the same remedy: mechanical
+checks catch what looks correct.
+
 
 * Clock lifecycle & visibility
 
@@ -9087,6 +9174,7 @@ is a defect in the precise layer and this decision does not touch it.
 :PROPERTIES:
 :ID:       4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba
 :CREATED:  [2026-08-14 Fri 11:35]
+:BLOCKER:  ids(df5afbbd-0eac-4032-be91-17cc22ef0cd7)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-14 Fri 11:36] \\
