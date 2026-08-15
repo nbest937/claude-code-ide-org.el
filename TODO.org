@@ -7786,6 +7786,40 @@ approval. Rarer, but decisive, and it is the thing to probe. If it turns
 out to be reachable, note that =prompt_id= does *not* rescue the design:
 it is per user prompt, so both calls would carry the same one.
 
+*Probed 2026-08-14 18:57--18:59: prompts are serialised, so the
+single-slot design holds.* Two =Bash= calls were issued in one parallel
+block, both requiring approval, with =PermissionRequest= timestamped by
+a temporary tee in =block-start=:
+
+: A  fired 18:57:01  ->  executed 18:58:47
+: B  fired 18:58:47  ->  executed 18:58:57
+
+*B's =PermissionRequest= did not fire until A had been approved and
+run* — the same second. The permission layer serialises even calls the
+model dispatched in parallel, so two prompts cannot be outstanding at
+once and a block never has to be told apart from another block. One
+sentinel per session is therefore sufficient, and no join key is needed:
+=block-start= sets the slot, the next =PostToolUse= clears it, and the
+absent =tool_use_id= stops being a problem instead of needing a
+substitute.
+
+*Corroborating detail, now measured rather than assumed:* both events
+carried the same =prompt_id= (=219b7d7b=), confirming it is per user
+prompt and not per tool call. That was the stated reason it could not
+serve as a join key; it is moot under serialisation, but it is no longer
+a guess. The payload also reported =permission_mode= as =default=,
+where the 18:40 capture said =acceptEdits= — the mode does change under
+foot, which is why the probe reads it from the payload rather than
+trusting the session's belief about itself.
+
+*Honest limit on the observation:* one trial, two =Bash= calls. It does
+not establish that *every* pair of parallel tool calls serialises — a
+mix of tool types, or an MCP tool alongside a builtin, is untested. The
+single-slot design should therefore treat a second =block_start= arriving
+while the slot is already set as a case to handle rather than an
+impossibility; overwriting the slot and dropping the earlier open is the
+conservative choice, since it loses one block rather than inventing one.
+
 *Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] on
 2026-08-14,* with three siblings, on the reasoning that heading already
 established twice: a defect in what the queue *records* does not have to
