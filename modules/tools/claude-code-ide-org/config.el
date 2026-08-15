@@ -1717,16 +1717,28 @@ Finishedness is tested against
 `claude-code-ide-org--outline-finished-keywords' rather than
 `org-done-keywords', for the reason given there: the latter is
 buffer-local and would be nil in the wrong buffer, quietly reporting
-every blocker as still open."
+every blocker as still open.
+
+`org-with-wide-buffer' rather than `save-excursion', and that is
+load-bearing: `org_outline' scoped to an :ID: maps with
+`org-map-entries' at `tree' scope, which *narrows* the buffer.  A
+blocker almost always lives elsewhere in the same file, so
+`find-file-noselect' hands back that very buffer, still narrowed,
+`goto-char' is clamped to the accessible region, and
+`org-get-todo-state' reads whichever heading is there -- the scoped one
+itself.  Being unfinished, it answered `open', so every scoped listing
+reported satisfied blockers as [blocked] (TODO.org :ID: f765d782).
+Note that failure took the *confident* branch: [blocked?] exists for
+\"cannot resolve\" and would have been the honest answer."
   (let ((loc (org-id-find id)))
     (when loc
       (with-current-buffer (find-file-noselect (car loc))
-        (save-excursion
-          (goto-char (cdr loc))
-          (if (member (org-get-todo-state)
-                      claude-code-ide-org--outline-finished-keywords)
-              'done
-            'open))))))
+        (org-with-wide-buffer
+         (goto-char (cdr loc))
+         (if (member (org-get-todo-state)
+                     claude-code-ide-org--outline-finished-keywords)
+             'done
+           'open))))))
 
 (defun claude-code-ide-org--outline-blocked-marker ()
   "Return the dependency marker for the heading at point, or nil.

@@ -2218,6 +2218,33 @@ it shipped, all 10 markers were false."
       (should (string-match-p "Formerly blocked" result))
       (should-not (string-match-p "Formerly blocked.*\\[blocked" result)))))
 
+(ert-deftest claude-code-ide-org-test-outline-scoped-resolves-blocker-outside-scope ()
+  "Scoping to an :ID: narrows the buffer, and a blocker living outside
+that narrowing is usually in the *same* buffer -- so resolving it has to
+widen first.  Without that, `org-id-find' hands back the narrowed
+buffer, `goto-char' is clamped to the accessible region, and
+`org-get-todo-state' reads the scoped heading itself.  A DONE blocker
+then answers `open' and the heading reads [blocked] forever.
+
+Asserts the *scoped* call deliberately.  The unscoped equivalent above
+passes against the unfixed code, because nothing narrows there -- which
+is exactly why the defect survived a suite that already covered
+satisfied blockers."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* DONE Finished blocker\n:PROPERTIES:\n"
+            ":ID:       33333333-3333-4333-8333-333333333333\n:END:\n"
+            "* MAYBE Formerly blocked\n:PROPERTIES:\n"
+            ":ID:       44444444-4444-4444-8444-444444444444\n"
+            ":BLOCKER:  ids(33333333-3333-4333-8333-333333333333)\n:END:\n")
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-outline
+                    "44444444-4444-4444-8444-444444444444")))
+      (should (string-match-p "Formerly blocked" result))
+      (should-not (string-match-p "\\[blocked" result)))))
+
 (ert-deftest claude-code-ide-org-test-outline-cancelled-blocker-counts-as-finished ()
   (claude-code-ide-org-test--with-heading
     (goto-char (point-max))

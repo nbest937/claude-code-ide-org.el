@@ -1707,6 +1707,42 @@ Distinct from
 [[id:98908aff-63cc-4b71-b90b-817da361a23b][98908aff]], the other open
 =org_outline= defect, which is about =active_only= orphaning children.
 
+*Fixed 2026-08-15.* One form:
+=claude-code-ide-org--outline-id-finished-p= now wraps its buffer access
+in =org-with-wide-buffer= instead of =save-excursion=, so a blocker is
+resolved against the whole file regardless of any narrowing the caller
+left in place. The docstring records why, since the next reader will
+otherwise see =save-excursion= as the obvious simplification.
+
+*The test was written first and confirmed failing,* which mattered here
+more than usual. =claude-code-ide-org-test-outline-unmarks-satisfied-blocker=
+already covered satisfied blockers and passed throughout — because it
+calls =org_outline= *unscoped*, and nothing narrows on that path. The new
+test asserts the same property through a *scoped* call, and it is the
+combination that was missing:
+
+: FAILED  121/277  ...outline-scoped-resolves-blocker-outside-scope   (before)
+: Ran 277 tests, 277 results as expected, 0 unexpected  (after)
+
+*Verified end to end in the live tool, not only in batch.* =bin/test=
+runs a fresh Emacs against the file on disk, so it says nothing about the
+running MCP server, which still held the pre-fix code. After
+=load-file=:
+
+: scope=0c8644ff  ->  no marker      (blocker 5ff5a4b8 is DONE)
+: scope=9ae4b17e  ->  [blocked]      (blocker befaed0a is WAIT)
+
+Both directions checked deliberately: the false positive is gone *and*
+the true positive survives. Fixing a marker by never emitting it would
+have passed the first check alone.
+
+*Still open, deliberately not fixed here:* whether other =:ID:=-scoped
+tools inherit the same narrowing through
+=claude-code-ide-org--at-id=, which is the shared entry point and is used
+well beyond =org_outline=. Nothing observed, nothing checked — the
+sweep belongs in its own pass rather than smuggled into a one-form fix.
+
+
 * Clock lifecycle & visibility
 
 Everything here is specifically about the clock subsystem's
