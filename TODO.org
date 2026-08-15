@@ -11255,6 +11255,42 @@ lookups should work, but it is worth confirming that =org-id-locations=
 does not end up with two entries per id, and worth deciding which path
 is canonical rather than letting it depend on who wrote last.
 
+*Measured 2026-08-15, and it makes the failure concrete rather than
+abstract:* =org-default-notes-file= is =/Users/neil.best/org/notes.org=.
+So the "silently reverts" above is not a vague risk — on the next Emacs
+restart every *target-less* =org_capture= writes into =notes.org=,
+the file that exists specifically for work belonging to no project.
+
+*Narrow exposure, worth stating so the urgency is not overestimated:*
+only target-less capture is affected. Every capture made on 2026-08-15
+passed an explicit =target=, and those are unaffected by the defcustom
+entirely.
+
+*But pinning it in the Doom config is a stopgap, not the fix, and the
+heading above should not be read as endorsing it.* A pinned value
+hardcodes *one repo's path* into a machine-global Emacs configuration.
+That is the same shape as everything
+[[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] is about: the
+moment a second project exists, the pin is wrong for it, and wrong in
+exactly the quiet way described above — capture keeps working, it just
+aims at the wrong file. Fixing the ephemerality by making the wrong
+value permanent is not obviously an improvement on having it evaporate.
+
+*The shape that would actually hold:* resolve the capture target from
+context rather than from a global. The session's =cwd= is already in
+every hook payload — see
+[[id:83b3cdd6-982a-4ae1-878c-79a8c941f638][83b3cdd6]] — so "the org file
+belonging to the project this session is running in" is derivable rather
+than configured. That also removes the =org-default-notes-file= fallback
+from the path entirely, which is the part that makes the failure silent.
+
+*Recorded because the question was asked directly:* "why do you suggest
+we pin the capture file in the doom config?" The honest answer is that
+the suggestion was inherited from this heading and repeated without being
+evaluated. It solves the ephemerality and creates a portability problem
+in its place.
+
+
 ** TODO The org 9.7+ dependency is real, undeclared, and unenforced :code:
 :PROPERTIES:
 :ID:       1ed7b2b4-a809-4547-b04f-099a3111fc1e
