@@ -2954,6 +2954,62 @@ Until the plan is revised, =event-queue-format.md= and
 =review-and-cutover.md= are authoritative where they disagree with it —
 they are later and were written against real code.
 
+* * *
+
+*Closed 2026-08-15, nine days after capture.* Final tally: 29 =DONE=
+children, 2 =CANCELLED=, and 9 headings promoted out to =**= over the
+epic's life rather than absorbed.
+
+*What shipped, against what was proposed above.* The redesign landed as
+described: sessions no longer touch the live buffer for clock- or
+state-sensitive work. =org_set_todo= changes no keyword, =org_clock_in=
+opens no clock, =org_clock_out= closes none — each appends to
+=~/.claude/org-updates/<session_id>.jsonl= through
+=bin/hooks/queue-append=, the sole writer. =M-x
+claude-code-ide-org-review= reads across pending session files and
+applies the approved subset through =org-todo=/=org-clock-in=/
+=org-clock-out= inside a genuinely interactive command.
+
+*The proximate trigger is resolved.* Native =!=/=@= state-change logging
+was suppressed for every tool-driven transition because it hung Emacs
+when driven through =emacsclient -e=. It now runs at apply time, inside a
+real interactive command, and nothing is suppressed. The hang was never
+fixed — it was routed around, which was the point.
+
+*Grew well past the proposal in three directions the plan did not
+anticipate:* guidepost reconstruction of spans from =pause=/=resume=
+with a tuned gap threshold; span evidence at review time (commits and
+=:CREATED:= stamps inside a span's window, which turned out to beat both
+transcript-reading and model assistance); and permission-block
+bracketing, since a turn stalled on a prompt never ends and so was
+credited as work.
+
+*Verified continuously rather than at the end:* 277 ERT tests plus four
+shell suites, and real use — 23 unattributed spans assigned by hand in
+one sitting, and repeated apply passes since.
+
+*What it deliberately did not settle, and this is the honest part.* The
+queue records *agent* activity and has never recorded the user's own
+attention; that distinction only got its vocabulary on 2026-08-15 —
+*clock intervals* measured, *attention intervals* attested — and the
+second half is [[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]],
+untouched. Defects found in the machinery after it shipped remain open:
+[[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]],
+[[id:49cbe319-f7db-413a-ade8-c4850c1fab8c][49cbe319]],
+[[id:09c134c4-31eb-4f6c-aa10-f836d1d28f16][09c134c4]] and
+[[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]].
+
+*Closed over two =MAYBE= children rather than by finishing them* —
+[[id:118373e5-b89b-4001-ad52-1f68374745fb][118373e5]] and
+[[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]] were promoted out
+on 2026-08-15 on the reasoning this heading applied seven times before:
+a capability the epic *enables* is not one it *requires*, and an epic
+that keeps every downstream capability can never close. Both remain
+=MAYBE= with their triggers written down.
+
+Unblocks [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]].
+
+
 *** DONE Design the append-only event-queue format and per-session file lifecycle :code:
 :PROPERTIES:
 :ID:       32272061-1d78-4726-b13b-90338edb2ba5
