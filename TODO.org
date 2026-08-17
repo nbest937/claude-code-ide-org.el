@@ -11965,8 +11965,8 @@ regress that.
 :BLOCKER:  ids(b5f7c5c7-7ad6-4c68-9cce-3479db1f1644)
 :END:
 :LOGBOOK:
-- State "PLANNING"   from "TODO"       [2026-08-17 Mon 15:59]
-CLOCK: [2026-08-17 Mon 15:59]
+- State "PLANNING"   from "TODO"       [2026-08-17 Mon 15:28]
+CLOCK: [2026-08-17 Mon 15:28]
 :END:
 
 Raised by the user 2026-08-12: nothing has been archived in quite some
