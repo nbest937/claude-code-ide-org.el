@@ -4023,13 +4023,16 @@ So the wrapper fix above should cover
 failed attempt marked nothing applied and the retry was clean -- no
 double-application, no half-applied batch. Whatever the fix, do not
 regress that.
-** DOING Archive the DONE backlog once the queue epic lands, then judge the structure question :code:
+** DONE Archive the DONE backlog once the queue epic lands, then judge the structure question :code:
+CLOSED: [2026-08-17 Mon 18:50]
 :PROPERTIES:
 :ID:       38b92521-bba4-4bb5-9cd9-465862471a72
 :CREATED:  [2026-08-12 Wed 14:06]
 :BLOCKER:  ids(b5f7c5c7-7ad6-4c68-9cce-3479db1f1644)
 :END:
 :LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-17 Mon 18:50] \\
+  swept and structure judged: keep both
 - State "PLANNING"   from "TODO"       [2026-08-17 Mon 15:28]
 CLOCK: [2026-08-17 Mon 15:28]--[2026-08-17 Mon 18:20] =>  2:52
 CLOCK: [2026-08-17 Mon 16:37]--[2026-08-17 Mon 16:49] =>  0:12
@@ -4044,6 +4047,8 @@ CLOCK: [2026-08-17 Mon 18:22]--[2026-08-17 Mon 18:35] =>  0:13
 - [2026-08-17 Mon 18:22]--[2026-08-17 Mon 18:35] assigned at review
 CLOCK: [2026-08-17 Mon 18:36]--[2026-08-17 Mon 18:37] =>  0:01
 - [2026-08-17 Mon 18:36]--[2026-08-17 Mon 18:37] assigned at review
+CLOCK: [2026-08-17 Mon 18:40]--[2026-08-17 Mon 18:50] =>  0:10
+- [2026-08-17 Mon 18:40]--[2026-08-17 Mon 18:50] assigned at review
 :END:
 
 Raised by the user 2026-08-12: nothing has been archived in quite some
