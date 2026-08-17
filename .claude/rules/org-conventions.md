@@ -50,9 +50,33 @@ declare additional ones in `#+TAGS:`.
 
 Top-level (`*`) headings in `TODO.org` are categories/epics — pure
 structure, grouping related tasks — not tasks in their own right. They carry
-no `TODO` keyword, no tags, and no `:PROPERTIES:` drawer, so no `:ID:` and
-no `:CREATED:`, overriding the general "every heading creation" rule for
-this one case.
+no `TODO` keyword, no tags, and **no task metadata**: no `:ID:` and no
+`:CREATED:`, overriding the general "every heading creation" rule for this
+one case.
+
+**"No task metadata", not "no properties drawer"** — narrowed 2026-08-17.
+The rule's purpose is that a category must not look like work, and its
+concrete targets are `:ID:` and `:CREATED:`. A *structural* property, which
+says something about the grouping rather than about work, is permitted.
+`bin/lint-org` has always read it this way: it checks `:ID:`, `:CREATED:`,
+the TODO keyword and tags, and nothing else.
+
+The case that forced the wording is `:ARCHIVE:`. Each category carries
+`:ARCHIVE: DONE.org::* <its own title>`, which is how archived work lands
+under a matching category in DONE.org instead of one flat `* Done` pile.
+The property is inherited, so one line per category routes every task
+beneath it.
+
+Two consequences worth knowing:
+
+- **Renaming a category means updating its `:ARCHIVE:` and the matching
+  DONE.org heading in the same edit.** The target is matched as a literal
+  string, and a mismatch does not error — org silently appends a second,
+  near-identical category heading at the end of the file.
+- **Archive at level 2 only.** Archiving a level-3 heading directly lands it
+  at level 2 under the category, severed from its parent, with only
+  `:ARCHIVE_OLPATH:` recording where it came from. Archiving its level-2
+  parent takes it along and keeps the nesting.
 
 Actual tracked work lives as their level-2+ children, each with its own
 `:ID:`. Don't put a `TODO`/`NEXT`/etc. keyword on a top-level heading — if
