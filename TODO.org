@@ -4095,6 +4095,72 @@ carries an =:ARCHIVE_OLPATH:= naming its source category.
 2026-08-17. Carries the sweep's mechanics and the ordering derivation; the
 41-row completion-time manifest lands in this body when the sweep runs.
 
+-----
+
+*Sweep executed 2026-08-17.* TODO.org 12,927 -> 4,645 lines; DONE.org 865
+-> 9,423. All 41 completed level-2 subtrees moved into mirrored categories,
+newest-completion-first. The *judge the structure question* half of this
+heading is deliberately still open -- that was the point of doing the pass
+first.
+
+*Completion-time manifest, kept so the ordering stays auditable.* T1 is the
+heading's own =State "DONE"/"CANCELLED"= log line (28 of 41); T2 is the
+first commit introducing the heading line, via =git log --reverse -S= (13).
+T3 (last CLOCK end) and T4 (=:CREATED:=) were declared as fallbacks and
+never needed. Ties sort by TODO.org line descending, so archiving order
+preserves the source file's own top-to-bottom sequence.
+
+*T1 must be scoped to the heading's own body.* Scanning the whole subtree
+dates a parent from one of its children: b5f7c5c7 came out as 2026-08-13
+16:08, a child's timestamp, instead of its own 2026-08-15 19:02. Caught
+before the sweep ran; it would have mis-ordered the two largest entries
+with nothing downstream to notice.
+
+| # | completed | tier | :ID: | category | heading |
+|---+-----------+------+------+----------+---------|
+| 1 | 2026-08-04 11:10 | T2 | e202e93d | Tooling | Case study: apply "maximum Emacs" to the statusli... |
+| 2 | 2026-08-04 11:10 | T2 | caf598a1 | Tooling | Move the statusline script into the repo :code: |
+| 3 | 2026-08-04 11:10 | T2 | 39b08ecd | Clock lifecycle & visibility | Enforce the transition rules :code: |
+| 4 | 2026-08-04 11:10 | T2 | 293ac49e | Clock lifecycle & visibility | org-clock-out-remove-zero-time-clocks silently er... |
+| 5 | 2026-08-04 11:10 | T2 | 337f7fb2 | Clock lifecycle & visibility | Concurrent Claude Code sessions share one global ... |
+| 6 | 2026-08-04 14:49 | T2 | 04d0e7d5 | Skill logic | Adopt org's native !/@ state-change logging, guar... |
+| 7 | 2026-08-04 14:49 | T2 | 05da96ad | Skill logic | Enforce a single NEXT action per level of the tas... |
+| 8 | 2026-08-05 14:00 | T2 | b95b9fba | Skill logic | Add a PLANNING TODO state, driven by the ExitPlan... |
+| 9 | 2026-08-06 13:33 | T2 | d8444673 | Skill logic | Org skill: parallelize background planning across... |
+| 10 | 2026-08-06 21:56 | T2 | ba8249c1 | Clock lifecycle & visibility | consolidate-history's :LOGBOOK: rewrite silently ... |
+| 11 | 2026-08-11 16:18 | T1 | 90a5a0cf | Skill logic | Add the (t!) logging marker to TODO in the #+TODO... |
+| 12 | 2026-08-11 16:47 | T1 | 0308e7d7 | Skill logic | Check for a modified Emacs buffer before text-edi... |
+| 13 | 2026-08-11 18:19 | T1 | cdcc065c | Skill logic | org_capture omits the :CREATED: property its own ... |
+| 14 | 2026-08-11 18:26 | T1 | 9f3c35c7 | Skill logic | Add org_outline, a compact structural index of an... |
+| 15 | 2026-08-11 21:03 | T1 | 47c027d2 | Skill logic | Rework org_capture: bare heading, :CREATED:, and ... |
+| 16 | 2026-08-12 12:38 | T1 | cce72644 | Tooling | Link or retire the four plans no heading referenc... |
+| 17 | 2026-08-12 12:38 | T2 | 3d862c6c | Skill logic | Implement the ten pending MCP-tool tasks in paral... |
+| 18 | 2026-08-12 17:37 | T1 | 782cda6c | Clock lifecycle & visibility | Audit for clock/session bookkeeping noise before ... |
+| 19 | 2026-08-12 17:37 | T1 | d150c02e | Clock lifecycle & visibility | org_clock_in doesn't record clock ownership, unli... |
+| 20 | 2026-08-12 17:37 | T1 | 582cc7f4 | Clock lifecycle & visibility | session-resume blindly inherits any session's las... |
+| 21 | 2026-08-12 17:37 | T1 | 2b0988ed | Clock lifecycle & visibility | Reorder :SESSIONS: entries to match :LOGBOOK: ord... |
+| 22 | 2026-08-14 11:56 | T1 | 5ff5a4b8 | Clock lifecycle & visibility | Show commits and heading creations inside an unas... |
+| 23 | 2026-08-14 12:17 | T1 | 4f9e552a | Tooling | emacs is a shell function that silently breaks in... |
+| 24 | 2026-08-14 12:35 | T1 | ab75d6d2 | Clock lifecycle & visibility | Container headings should change state without op... |
+| 25 | 2026-08-14 13:31 | T1 | 9d7531f5 | Observability | Report abandoned DOING leaves at session start, n... |
+| 26 | 2026-08-14 14:41 | T1 | 3bd3402b | Tooling | Lint TODO.org's structural conventions with a scr... |
+| 27 | 2026-08-14 14:51 | T1 | 4cda6bf7 | Tooling | Show the TODO keyword, not just clocked in/out, i... |
+| 28 | 2026-08-14 16:48 | T2 | b8e6007a | Observability | The agenda is for human attention; the queue reco... |
+| 29 | 2026-08-14 19:33 | T2 | f4e628ce | Clock lifecycle & visibility | pause/resume cannot see a turn blocked on a permi... |
+| 30 | 2026-08-15 16:57 | T1 | df5afbbd | Observability | Retire the 55 active annotations apply wrote befo... |
+| 31 | 2026-08-15 18:59 | T1 | f765d782 | Skill logic | org_outline's scoped mode reports satisfied block... |
+| 32 | 2026-08-15 19:02 | T1 | b5f7c5c7 | Clock lifecycle & visibility | Refactor clock/TODO-state driving to an append-on... (31 children) |
+| 33 | 2026-08-17 08:41 | T1 | 49cbe319 | Clock lifecycle & visibility | Rank assignment candidates by time correlation wi... |
+| 34 | 2026-08-17 08:41 | T1 | 0d055205 | Clock lifecycle & visibility | Assign excludes headings created after the span, ... |
+| 35 | 2026-08-17 09:04 | T1 | 9e80a32d | Clock lifecycle & visibility | Assign and interval-edit send point to the top of... |
+| 36 | 2026-08-17 09:11 | T1 | 2d032000 | Clock lifecycle & visibility | Route review-buffer commands through one mutate-r... |
+| 37 | 2026-08-17 09:11 | T1 | 73cd5a1b | Clock lifecycle & visibility | Dismissing an item discards every unapplied assig... |
+| 38 | 2026-08-17 09:32 | T1 | c02d11c8 | Clock lifecycle & visibility | Apply discards decisions on the items it did not ... |
+| 39 | 2026-08-17 14:17 | T1 | 85702dba | Clock lifecycle & visibility | The assignment dialog's proximity ranking is disc... |
+| 40 | 2026-08-17 14:19 | T1 | c2132d3f | Clock lifecycle & visibility | Lead review buffer group headings with the =:ID:=... |
+| 41 | 2026-08-17 15:01 | T1 | 23a75720 | Clock lifecycle & visibility | Stop treating an =:ID:= as guaranteed to resolve ... (3 children) |
+
+
 
 ** TODO Read a heading's front matter, and take a partial :ID:, without a whole-body read :code:
 :PROPERTIES:
