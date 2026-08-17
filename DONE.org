@@ -1289,6 +1289,916 @@ keywords that disagree. =bin/test= 39/39 at merge.
 
 * Clock lifecycle & visibility
 
+** DONE Stop treating an =:ID:= as guaranteed to resolve :code:
+:PROPERTIES:
+:ID:       23a75720-d1d3-496f-8dad-41571ad30440
+:CREATED:  [2026-08-17 Mon 12:40]
+:ARCHIVE_TIME: 2026-08-17 Mon 17:14
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_OLPATH: Clock lifecycle & visibility
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-17 Mon 13:42]--[2026-08-17 Mon 14:27] =>  0:45
+- [2026-08-17 Mon 13:42]--[2026-08-17 Mon 14:27] assigned at review
+- State "DONE"       from "TODO"       [2026-08-17 Mon 15:01] \\
+  two children shipped, one cancelled as false
+:END:
+
+Every =:ID:=-keyed path in this module assumes =org-id-find= returns a
+marker. Measured 2026-08-17: 22 of 151 registered IDs did not resolve,
+and the assumption failed silently in three ways at once — 45
+org-element warnings raised against =*org-review*=, candidate headings
+dropped from the assignment prompt with no message, and an error string
+rendered as a review-buffer group heading.
+
+*Why the children are one piece of work rather than three coincidences.*
+They are cause, tolerance and visibility, and each is incomplete alone:
+
+- [[id:89bf8663-dec9-4aee-a95b-4e7be04c6b95][89bf8663]] removes a cause this project owns. It cannot help against staleness
+  arriving from git operations, hand edits, or another session applying its
+  queue.
+- [[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]] makes the code behave correctly when resolution fails — required
+  *precisely because* the causes above are unreachable from here, so freshness
+  can never be an invariant.
+- [[id:8e969114-0982-4c39-9258-3b25a5425e09][8e969114]] makes the failures observable, so a regression in either of the
+  others is noticed rather than absorbed.
+
+Fixing any one alone leaves the silent-failure mode intact, which is the
+entire complaint.
+
+*Discovered together 2026-08-17*, from one symptom reported as "multiple
+warnings in the minibuffer" during a review pass. That shared provenance
+is not the argument for grouping them — the mutual incompleteness above
+is — but it is why they arrived at once.
+
+*Not an argument for rebuilding the ID index automatically.* A full
+=org-id-update-id-locations= scans 12 files including a 665 KB TODO.org,
+and still cannot cover the causes this module never sees. 89bf8663
+carries the measurement and the targeted alternative.
+
+-----
+
+*Outcome, 2026-08-17.*
+
+*What shipped.* Two of the three children.
+
+[[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]] guards the nil marker in =--assign-candidates=, so an unresolvable id
+no longer drags =org-get-heading=/=org-entry-get= into =*org-review*=. [[id:8e969114-0982-4c39-9258-3b25a5425e09][8e969114]]
+adds =--id-health=, which reports stale =org-id-locations= entries when the
+review buffer opens and on =g=, and stays silent when there are none.
+
+
+*What differed from the framing, and it is the substantive finding.*
+This heading was written as cause / tolerance / visibility.
+
+*There was no cause.*
+
+[[id:89bf8663-dec9-4aee-a95b-4e7be04c6b95][89bf8663]] — "org_archive leaves org-id-locations pointing at the old file" — is
+false: =org-archive-subtree= inserts via =org-paste-subtree=, which calls
+=org-id-paste-tracker=, which re-points every =:ID:= in the pasted text at the
+destination. Org has always done this. Cancelled.
+
+That strengthens the heading's argument rather than weakening it. Every
+remaining route to a stale entry — a heading deleted outright, a git
+checkout or merge rewriting a file, another session applying its queue —
+is unreachable from inside this module. Freshness cannot be made an
+invariant here by any amount of local bookkeeping, so 09230b93's
+tolerance of a nil marker is *mandatory*, not defensive. The original
+framing had it as one mitigation among three.
+
+*Verified, not just implemented.* Every fix was stash-tested: the change
+reverted, the suite re-run, and the new test confirmed to *fail* without
+it. That is what caught 89bf8663 — its fix was written, the suite went
+green at 288/288, and stashing it left the new test still passing, which
+is only possible when there is nothing to detect. Without that step a fix
+for a non-existent defect would have shipped with a test standing behind
+it. Final suite 292/292, and =config.el= reloaded into the running Emacs
+and checked there rather than only on disk.
+
+*The measurement that resolved 8e969114's MAYBE.* Per-id =org-id-find=
+over every registered id: 161 ids, 0.218 s, and it *visits* four files as
+a side effect. Scanning each distinct file once for =:ID:= lines: 7
+files, 0.007--0.018 s, visiting nothing. The MAYBE was justified; it was
+attached to the wrong algorithm.
+
+*Unfinished, deliberately.* What the 22 unresolvable ids actually were is
+still unknown and now unknowable — =org-id-update-id-locations= was run
+by hand that morning and cleared them before anything could inspect
+them. =--id-health= separates "heading gone" from "in another file",
+which =org-id-find= cannot, so the question is answerable the next time
+it happens. It was not answered this time.
+
+
+*** CANCELLED org_archive leaves org-id-locations pointing at the old file :code:
+:PROPERTIES:
+:ID:       89bf8663-dec9-4aee-a95b-4e7be04c6b95
+:CREATED:  [2026-08-17 Mon 12:21]
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "DOING"      [2026-08-17 Mon 14:12] \\
+  not a defect; org-paste-tracker handles it
+- State "DOING"      from "TODO"       [2026-08-17 Mon 14:09] \\
+  re-point moved IDs after archive
+:END:
+
+=claude-code-ide-org-archive= calls =org-archive-subtree= and saves,
+never re-pointing the moved heading's ID. The location map still names
+TODO.org while the heading now lives in DONE.org, so =org-id-find=
+returns nil for it — one of this project's own contributions to the stale
+IDs behind
+[[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]]. =org_refile= has
+the same gap whenever it crosses files.
+
+The fix is not a rescan. =org-id-add-location= is O(1) and is already the
+idiom at two other call sites in =config.el=, so this is reusing what is
+there rather than adding a mechanism. One wrinkle: =org-archive-subtree=
+moves the whole subtree, so children carrying their own =:ID:= move too —
+the IDs have to be collected *before* the move, not just the one passed
+in.
+
+=org-id-update-id-locations= does take =(&optional files silent)=, so a
+two-file scoped rescan is the fallback if the subtree walk proves
+awkward. Measured 2026-08-17: a full rebuild scans 12 files — agenda
+files plus =org-id-extra-files= and archives — including a 665 KB
+TODO.org, which is far too heavy to fire automatically on any hot path.
+That measurement is the reason this is a targeted re-point rather than an
+automatic =org-id-update-id-locations= call somewhere.
+
+*CANCELLED 2026-08-17 — the premise is false. Org already does this.*
+
+=org-archive-subtree= inserts the moved subtree with =org-paste-subtree=
+\(=org-archive.el:391=), =org-paste-subtree= calls
+=org-id-paste-tracker= \(=org.el:7562=), and that scans the pasted text
+for every =:ID:= line and calls =org-id-add-location= for each, pointing
+at the *destination* file \(=org-id.el:693-707=). So an archived
+subtree's IDs — parent and children alike — are re-pointed by org
+itself, with no help from this project.
+
+*How it was caught, which is the part worth keeping.* The fix was written
+and the suite went green, 288/288. Stashing the fix and re-running left
+the new test *still passing* — it could not distinguish a fixed
+=org_archive= from an unfixed one, because there was nothing to
+distinguish. Without that step this would have shipped as a fix for a
+defect that never existed, with a test standing behind it.
+
+*Consequence for the parent
+[[id:23a75720-d1d3-496f-8dad-41571ad30440][23a75720]]: its argument gets
+stronger, not weaker.* This was filed as the "cause this project owns".
+It turns out this project owns no cause. Every remaining route to a stale
+entry — a heading deleted outright, a git checkout or merge rewriting the
+file wholesale, another session applying its queue — is unreachable from
+inside this module. Freshness therefore cannot be made an invariant here
+by any amount of local bookkeeping, which is precisely why
+[[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]]'s tolerance of a
+nil marker is mandatory rather than defensive.
+
+*What the 22 unresolvable IDs actually were is still unknown*, and should
+not be guessed at again. The likeliest reading is that they are IDs whose
+headings no longer exist anywhere — deleted, or lost when a merge
+rewrote TODO.org — rather than IDs pointing at the wrong file. Those two
+look identical through =org-id-find= and are not the same defect.
+[[id:8e969114-0982-4c39-9258-3b25a5425e09][8e969114]] would tell them
+apart, which is an argument for it.
+
+
+
+*** DONE =org-with-point-at= on a nil marker runs its body in the wrong buffer :code:
+:PROPERTIES:
+:ID:       09230b93-b869-44b7-91ef-abd869d4eade
+:CREATED:  [2026-08-17 Mon 12:21]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-17 Mon 14:15] \\
+  guard shipped, test proven discriminating
+- State "DOING"      from "NEXT"       [2026-08-17 Mon 14:13] \\
+  guard the nil marker in assign-candidates
+- State "NEXT"       from "TODO"       [2026-08-17 Mon 14:52] \\
+  Auto-promoted: sole remaining TODO in its sibling group.
+:END:
+
+=claude-code-ide-org--assign-candidates= resolves each candidate with
+=(org-with-point-at (org-id-find id 'marker) ...)=. When =org-id-find=
+returns nil the macro does *not* switch buffers: its expansion calls
+=set-buffer= only under =(markerp ...)=, then falls through to
+=(goto-char (or nil (point)))=. Confirmed by macroexpanding it in the
+live Emacs (org 9.8.7) rather than from memory.
+
+The body therefore runs in whatever buffer was current — during a review
+pass that is =*org-review*= — and =org-get-heading= / =org-entry-get=
+route through org-element there, which is what emits "=org-element-at-point=
+cannot be used in non-Org buffer". Measured 2026-08-17: 45 such warnings
+in one pass, against 22 of 151 IDs in =org-id-locations= that no longer
+resolve.
+
+The whole form sits inside =ignore-errors=, so the failure is silent —
+those headings are dropped from the assignment candidate list with no
+message. That is the same harm
+[[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]] was filed against,
+candidates excluded for a reason the human never sees, reached by a
+different route.
+
+Fix is a guard matching the idiom
+=claude-code-ide-org--review-current-state= already uses: resolve the
+marker first, enter =org-with-point-at= only when it is non-nil.
+
+*Not solved by rebuilding the ID index.* Staleness also arrives from git
+operations, hand edits, and other sessions applying their queues, none of
+which this module can hook. Freshness is not achievable here, so
+tolerating nil is required regardless of what else is done.
+
+*** DONE Surface the count of unresolvable =:ID:=s when the review buffer opens :code:
+:PROPERTIES:
+:ID:       8e969114-0982-4c39-9258-3b25a5425e09
+:CREATED:  [2026-08-17 Mon 12:21]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-17 Mon 14:56] \\
+  file-scan report shipped, reload verified
+- State "DOING"      from "NEXT"       [2026-08-17 Mon 14:53] \\
+  implement the file-scan id health report
+- State "NEXT"       from "DOING"      [2026-08-17 Mon 14:51] \\
+  cost measured cheap; ready to implement
+- State "DOING"      from "MAYBE"      [2026-08-17 Mon 14:49] \\
+  measure the open-time cost to decide
+CLOCK: [2026-08-17 Mon 14:49]--[2026-08-17 Mon 15:02] =>  0:13
+- [2026-08-17 Mon 14:49]--[2026-08-17 Mon 15:02] assigned at review
+:END:
+
+Stale IDs are invisible today: they emit org-element warnings into
+=*Warnings*=, silently shrink the assignment candidate list, and nothing
+in the review buffer says so. A count reported when the pass opens turns
+that into something actionable — and, unlike an automatic index rebuild,
+does not hide a defect like
+[[id:89bf8663-dec9-4aee-a95b-4e7be04c6b95][89bf8663]] behind a cleanup
+that makes it look fixed.
+
+Surfacing is preferred to auto-repair for that reason: an automatic
+rebuild would have kept the archive bug invisible indefinitely, since its
+only symptom is staleness that something else quietly corrects.
+
+MAYBE rather than TODO because the cost is unmeasured: it means one
+=org-id-find= per registered ID at open time, 151 of them on 2026-08-17.
+Worth measuring before committing to it.
+
+*Measured 2026-08-17, and the MAYBE is resolved: keep it.* The cost
+objection was real but attached to the wrong algorithm.
+
+| approach              | scale     | time    | side effects     |
+|-----------------------+-----------+---------+------------------|
+| per-id =org-id-find=  | 161 ids   | 0.218 s | opens 4 buffers  |
+| per-file =:ID:= scan  | 7 files   | 0.018 s | none             |
+
+The per-id sweep is what this heading assumed, and its real cost is not
+the 218 ms — it is that resolving an id *visits the file*, so a
+diagnostic running at review-buffer open would silently pull four buffers
+into the user's Emacs. Reading each distinct file in =org-id-locations=
+once with =insert-file-contents= in a temp buffer, collecting =:ID:=
+values and diffing against the hash, is 12x faster and visits nothing.
+
+It also scales on the better axis. Per-id is O(ids); per-file is
+O(files). This project accumulates ids far faster than files — 161
+against 7 today — so the gap widens.
+
+*Two caveats recorded rather than smoothed over.* The 0.218 s is a *warm*
+best case, taken with the files already visited by that session's own
+work; cold it is worse, which only strengthens the conclusion. And the
+sweep found *zero* unresolvable ids, because
+=org-id-update-id-locations= had been run by hand earlier the same day
+and dropped all 22. The feature's value is precisely that it would have
+shown 22 that morning, when nothing did.
+
+*Design consequence:* report only when the count is non-zero, matching
+=claude-code-ide-org-write-session-start-report='s self-limiting
+behaviour. A line reading "0 unresolvable" on every pass is noise that
+trains the eye to skip the line that matters.
+
+*Still not settled:* whether an unresolvable id means "points at the
+wrong file" or "the heading no longer exists anywhere". Those are
+indistinguishable through =org-id-find= and are different defects. The
+file-scan can separate them for free — it already knows which ids each
+file actually contains — which is an argument for this approach beyond
+its speed.
+
+
+
+** DONE Lead review buffer group headings with the =:ID:= prefix :code:
+:PROPERTIES:
+:ID:       c2132d3f-dd78-4498-ba87-0ca814dc2f77
+:CREATED:  [2026-08-17 Mon 12:21]
+:ARCHIVE_TIME: 2026-08-17 Mon 17:13
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_OLPATH: Clock lifecycle & visibility
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-17 Mon 14:19] \\
+  prefix-first render shipped, reload verified
+- State "DOING"      from "TODO"       [2026-08-17 Mon 14:17] \\
+  lead group headings with the id prefix
+:END:
+
+The review buffer groups items under a heading title alone, so acting on
+a line means looking its ID up elsewhere — and this project's own
+convention cites 8-character prefixes in prose.
+
+*Prefix first, not trailing*, mirroring the way responses footnote a
+heading: the prefix leads, the title follows. Requested 2026-08-17 on
+seeing the trailing form proposed.
+
+: 09230b93  =org-with-point-at= on a nil marker runs its body in the wrong buffer
+:   [ ] state   TODO -> NEXT   08-17 12:21
+: 85702dba  The assignment dialog's proximity ranking is discarded by Vertico
+:   [ ] clock   12:08--12:11
+
+The reason is alignment, and it is why this is not merely a taste call.
+=claude-code-ide-org--short-id= returns exactly 8 characters for any real
+UUID, so leading with it puts every ID in a fixed column and the titles
+in a second one. A trailing ={id}= can never line up, because title
+lengths vary — which is precisely what makes a trailing form hard to scan
+in a buffer whose whole job is to be scanned.
+
+*Open, and deliberately not settled here:* the assignment dialog
+(=claude-code-ide-org-review-assign=) renders the trailing ={95087d8f}=
+form. Either it diverges from the review buffer, or it leads too. Leading
+in both is the obvious guess — it gains the same column alignment against
+=vertico-count= of 17, and orderless matches a typed prefix wherever it
+sits — but the two surfaces are used differently, one typed at and one
+read, so this is worth deciding rather than assuming.
+
+*It also fixes a rendering bug.* The group heading comes from a =cond=
+clause of the form =((claude-code-ide-org--at-id ...))=, whose value is
+its own test. =--at-id= *returns* the string "Error: no org heading found
+with :ID: ..." rather than signalling, so an unresolvable ID renders that
+error message as the group heading, and the =(t last-id)= fallback beneath
+it is unreachable. Resolving through =org-id-find= directly removes the
+error-string sniffing and cannot fall into
+[[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]]'s nil-marker trap.
+
+*It also fixes a rendering bug.* The group heading comes from a =cond=
+clause of the form =((claude-code-ide-org--at-id ...))=, whose value is
+its own test. =--at-id= *returns* the string "Error: no org heading found
+with :ID: ..." rather than signalling, so an unresolvable ID renders that
+error message as the group heading, and the =(t last-id)= fallback beneath
+it is unreachable. Resolving through =org-id-find= directly removes the
+error-string sniffing and cannot fall into
+[[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]]'s nil-marker trap.
+
+** DONE The assignment dialog's proximity ranking is discarded by Vertico :code:
+:PROPERTIES:
+:ID:       85702dba-8d15-4924-84bd-2bb7efac093a
+:CREATED:  [2026-08-17 Mon 12:21]
+:ARCHIVE_TIME: 2026-08-17 Mon 17:13
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_OLPATH: Clock lifecycle & visibility
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-17 Mon 14:17] \\
+  metadata declared, ranking now authoritative
+- State "DOING"      from "TODO"       [2026-08-17 Mon 14:15] \\
+  preserve ranking through completion metadata
+:END:
+
+=claude-code-ide-org--assign-candidates= sorts candidates best-first — gap
+to the span, then DONE/CANCELLED last, then creation recency — and
+=claude-code-ide-org-review-assign= hands the result to =completing-read=
+as a bare alist. An alist carries no completion metadata, so Vertico
+applies its own =vertico-sort-function=, measured 2026-08-17 as
+=vertico-sort-history-length-alpha=: history, then string *length*, then
+alphabetical.
+
+Title length has no relation to relevance, so an old DONE heading with a
+terse title outranks this morning's work. The list is not unranked; it is
+ranked on the wrong key, and the =[DONE]= marker and activity range
+already built into the display strings are the only surviving signal.
+With =vertico-count= at 17 the ordering decides what is seen at all.
+
+Fix: pass a collection *function* returning =(metadata
+(display-sort-function . identity) (cycle-sort-function . identity))=,
+which Vertico honours over its own sort.
+
+*Deliberately not a cutoff*, though "too many suggestions" invites one.
+Excluding old or DONE candidates is exactly what
+[[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]] was filed against.
+Ordering gets the same practical result with no cliff, since everything
+stays reachable by typing.
+
+** DONE Apply discards decisions on the items it did not apply :code:
+:PROPERTIES:
+:ID:       c02d11c8-cd29-40ca-a0f4-dc1c878dfa7d
+:CREATED:  [2026-08-17 Mon 09:29]
+:ARCHIVE_TIME: 2026-08-17 Mon 17:13
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_OLPATH: Clock lifecycle & visibility
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "DOING"      from              [2026-08-17 Mon 09:29] \\
+  remove applied in place, keep rest
+- State "DONE"       from "DOING"      [2026-08-17 Mon 09:32] \\
+  drops applied, keeps the rest
+:END:
+
+The last of the three commands that rebuilt the item list from the
+queue. =d= was fixed on 2026-08-17
+([[id:73cd5a1b-9b4f-409d-9aab-ffc6ea736ae5][73cd5a1b]]) and this was
+deliberately left then, because apply *writes org files* and re-reading
+the queue afterwards is how the view learns what was consumed — a
+better justification than dismiss had, but not a sufficient one.
+
+*The shape that made it dangerous.* =review-apply= rebuilt only when
+=(> :applied 0)=, so the discard happened on *success*. The better things
+went, the more was lost, which is the opposite of where anyone's guard
+is up. A total failure preserved everything.
+
+*Fixed 2026-08-17.* =--review-apply= now returns =:items= alongside the
+count, so the caller drops exactly what applied and keeps the rest *as
+the same objects*. Point lands on whatever followed the last item
+applied.
+
+*What survives now that did not:* assignments, narrowed intervals, notes,
+=:stale-confirmed=, and marks on items that *failed*. That last one has
+its own test and is the sharpest in practice — a stale transition you
+deliberately confirmed, which then failed for an unrelated reason, used
+to ask for confirmation again, because the confirmation lives on the item
+and a rebuilt item has none.
+
+*Staleness stays correct without the rebuild,* which was the open
+question. =--review-current-state= resolves through =org-id-find= on
+every render, so it reads the files this command has just written; a
+plain re-render recomputes it. The rebuild was never what kept staleness
+honest.
+
+*What is given up, and it is a real trade rather than a pure win:* events
+another session queued while you were reviewing no longer appear on their
+own. The item list is now a session-local view that only =g= reconciles.
+That is arguably the better behaviour — a list silently reordering
+mid-review is its own hazard — but it means =g= is now load-bearing for
+freshness rather than merely convenient, and its docstring was rewritten
+on 2026-08-17 to say what it discards in exchange.
+
+*Consequence for the human:* the "assign everything, then apply once"
+discipline is no longer necessary. Assign a few, apply, continue — the
+rhythm the backlog actually invites — and nothing accumulates risk.
+
+** DONE Dismissing an item discards every unapplied assignment in the review session :code:
+:PROPERTIES:
+:ID:       73cd5a1b-9b4f-409d-9aab-ffc6ea736ae5
+:CREATED:  [2026-08-17 Mon 09:03]
+:ARCHIVE_TIME: 2026-08-17 Mon 17:13
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_OLPATH: Clock lifecycle & visibility
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "NEXT"       from              [2026-08-17 Mon 09:04] \\
+  silent loss of human judgement
+- State "DOING"      from "NEXT"       [2026-08-17 Mon 09:09] \\
+  drop in place instead of refreshing
+- State "DONE"       from "DOING"      [2026-08-17 Mon 09:11] \\
+  assignments survive a dismissal
+:END:
+
+Reported by the user 2026-08-17: dismissing an item destroys every
+assignment made in the buffer during that review session, before
+anything has been applied.
+
+*Confirmed by reading, not inferred.*
+=claude-code-ide-org-review-dismiss= ends with
+=(claude-code-ide-org-review-refresh)=, and refresh's own docstring is
+"Rebuild the review buffer from the queue, discarding marks." It
+rebuilds =claude-code-ide-org--review-items= from the queue files, so
+*everything held only in memory is lost*: assigned headings
+(=:id=/=:assigned=), edited intervals (=:start=/=:end=), notes, and
+=:stale-confirmed=. The docstring admits to marks alone, which are
+selection state and cheap to redo; the rest is *judgement* and is not.
+
+*Why this is the serious one.* The queue's whole premise is that raw
+events are durable and re-clusterable while human judgement is the
+scarce input -- the asymmetry
+[[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] states as "the
+queue keeps every raw event and can be re-clustered at will, while
+annotations written into =:LOGBOOK:= cannot be re-derived." An
+assignment is precisely that scarce judgement, and =d= discards an
+arbitrary amount of it while appearing to act on *one line*.
+
+*Orthogonal in mechanism to
+[[id:9e80a32d-43e1-4647-a42c-cba10f6e79cc][9e80a32d]], related in kind,
+and far more severe.* That one is =--review-render= resetting point;
+this one is =--review-refresh= rebuilding the item list. Different
+functions, different triggers. What they share is that the review buffer
+carries unsaved session state which redrawing and rebuilding do not
+preserve, and that the commands differ in whether they bother to. Losing
+point costs a keystroke; losing assignments costs the judgement again,
+silently, with no undo and no warning.
+
+*Fix direction, unresolved.* =d= has already written the dismissal to
+the queue by the time it refreshes, so it does not need a rebuild at
+all -- dropping the item from =--review-items= in place and re-rendering
+would preserve the session. That also lets it restore point and advance
+like =a=, which is where this and 9e80a32d converge in the fix even
+though they diverge in the cause. Worth checking whether =x= (apply) has
+the same shape for the *unapplied* items it leaves behind.
+
+*Not attempted:* whether =g= should keep assignments too. It is
+explicitly the "rebuild from the queue" command and a human types it
+deliberately, so discarding there is arguably correct -- but it should
+say *assignments*, not "marks", because the current wording undersells
+what it throws away.
+
+*Fixed 2026-08-17.* =d= no longer calls =review-refresh=. It drops the
+item from =claude-code-ide-org--review-items= in place and re-renders
+through the shared path
+([[id:2d032000-bf04-47f5-b5e6-ef4299078d15][2d032000]]), landing point on
+the item that took its place. The dismissal is already durable in the
+queue by then, so the rebuild was adding nothing except the loss.
+
+*The test asserts the surviving item by identity, not by content,* which
+is the distinction that matters: a rebuild produces a fresh plist from
+the same queue events -- equal in every visible field, and empty of the
+decision. Confirmed failing before the fix and passing after (285 tests,
+1 unexpected → 0).
+
+*=review-apply= has the same shape and was deliberately left alone.* On
+success it refreshes, so decisions on items it did *not* apply are
+discarded too. The difference is that apply changes org files: re-reading
+the queue afterwards is how the view learns what was actually consumed,
+and dropping items in place risks a buffer that disagrees with the file
+it just wrote. Dismiss had no such justification. Whether apply can
+preserve the untouched items -- probably by removing only what applied
+and rebuilding the rest -- is a separate question and is not answered
+here.
+
+*Still true, and the reason this mattered more than the point bug:* the
+queue's premise is that raw events are cheap and re-derivable while human
+judgement is not. Every command that rebuilds from the queue is trading
+the expensive thing for the cheap one, and only =g= should be allowed to
+make that trade.
+
+** DONE Route review-buffer commands through one mutate-render-restore path :code:
+:PROPERTIES:
+:ID:       2d032000-bf04-47f5-b5e6-ef4299078d15
+:CREATED:  [2026-08-17 Mon 09:07]
+:ARCHIVE_TIME: 2026-08-17 Mon 17:13
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_OLPATH: Clock lifecycle & visibility
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "DOING"      from              [2026-08-17 Mon 09:07] \\
+  one path for mutate-render-restore
+- State "DONE"       from "DOING"      [2026-08-17 Mon 09:11] \\
+  one redraw path, advance rule recorded
+:END:
+
+*Done 2026-08-17.* =claude-code-ide-org--review-redraw= is the single
+path: re-render, put point back on the item by identity, and advance when
+asked. Every command that mutates an item now goes through it -- =m=/=u=
+(advance), =a= (advance), =d= (advance onto the item that replaced it),
+=e= and =N= (stay).
+
+*The advance rule, written down so it stops being decided per command:*
+advance when the command *answers* the question the line posed, stay when
+it does not. Marking, assigning and dismissing decide an item; narrowing
+an interval or editing a note are steps taken while still deciding.
+
+*Restores by identity, not line number.* =--review-goto-line= remains for
+=--review-set-all=, which acts on every item and so has no single one to
+return to. Everything else uses =--review-goto-item=, because assigning
+removes the evidence lines an unassigned span carries and the buffer is a
+different height afterwards.
+
+*Left calling =--review-render= directly, each deliberately:*
+=--review-set-all= (no single item), =review-refresh= (rebuilding is its
+purpose), =review-apply= (see below), and =review-dismiss= for its
+one branch where nothing remains to land on.
+
+*=review-refresh='s docstring was rewritten* rather than left saying
+"discarding marks". It discards every unapplied decision -- assignments,
+intervals, notes, stale confirmations. Marks are selection and cheap to
+redo; the rest is judgement. =g= is typed deliberately so discarding
+there is correct, but it has to say what it costs.
+
+*Boundary held on purpose: =review-apply= was not changed.* It has the
+same shape as the dismiss defect -- on success it calls
+=review-refresh=, discarding decisions on the items it did *not* apply --
+but the justification differs. Apply changes org files, so re-reading the
+queue afterwards reflects what was actually consumed, and dropping items
+in place would risk a view that disagrees with the file. Dismiss had no
+such excuse: it had already written its dismissal to the queue. Recorded
+on [[id:73cd5a1b-9b4f-409d-9aab-ffc6ea736ae5][73cd5a1b]] rather than
+fixed blind.
+** DONE Assign and interval-edit send point to the top of the review buffer :code:
+:PROPERTIES:
+:ID:       9e80a32d-43e1-4647-a42c-cba10f6e79cc
+:CREATED:  [2026-08-17 Mon 08:53]
+:ARCHIVE_TIME: 2026-08-17 Mon 17:13
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_OLPATH: Clock lifecycle & visibility
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-17 Mon 08:55]--[2026-08-17 Mon 09:33] =>  0:38
+- State "DOING"      from              [2026-08-17 Mon 08:55] \\
+  restore point after re-render
+- [2026-08-17 Mon 08:55]--[2026-08-17 Mon 09:33] assigned at review
+- State "DONE"       from "DOING"      [2026-08-17 Mon 09:04] \\
+  assign advances, interval edit stays
+:END:
+
+*Verified, not just implemented* (written 2026-08-17, before archiving —
+this heading reached =DONE= with an empty body).
+
+=--review-render= ends with =(goto-char (point-min))=, so every command
+that re-renders has to put point back. The mark commands already did, and
+their ADVANCE flag exists because its absence was "the single biggest
+complaint after the first real by-hand apply". Assign and interval-edit
+never got the same treatment.
+
+*Shipped in =0042615=.* Assign now advances — assigning *answers* the
+question the line posed — while interval-edit stays on the item, since
+=e= is the step taken before assigning rather than after. Point is
+restored *by identity, not line number*: assigning removes the evidence
+lines an unassigned span carries, so the buffer is shorter afterwards and
+the old line number points at something else. =--review-goto-item= is
+that lookup.
+
+*A second defect, found by the new test rather than by reading.* Building
+the candidate list parsed =(or (org-entry-get nil "CREATED") "")=, and
+parsing the empty string *signals* — inside a block wrapped in
+=ignore-errors=. So a heading with no =:CREATED:= was dropped from the
+list entirely, despite the comment beside it claiming such headings are
+kept. Invisible in production, where every heading has one; only a
+fixture without one exposed it. Measured after the fix: 147 org-id
+entries, 7 unassignable, list returns exactly 140 — 13 had been missing.
+
+*The pattern worth carrying forward:* both halves were assertions the
+code made about itself in prose — "kept, absence of evidence rules
+nothing out" — that the code did not honour. Neither was found by review.
+
+** DONE Assign excludes headings created after the span, which is the normal case not an impossibility :code:
+:PROPERTIES:
+:ID:       0d055205-a670-45c6-b4af-980961603a7c
+:CREATED:  [2026-08-15 Sat 17:17]
+:ARCHIVE_TIME: 2026-08-17 Mon 17:13
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_OLPATH: Clock lifecycle & visibility
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-15 Sat 17:13]--[2026-08-15 Sat 17:19] =>  0:06
+- [2026-08-15 Sat 17:13]--[2026-08-15 Sat 17:19] assigned at review
+- State "NEXT"       from              [2026-08-15 Sat 17:18] \\
+  blocks assigning today spans
+- State "DOING"      from "NEXT"       [2026-08-17 Mon 08:37] \\
+  demote instead of exclude
+- State "DONE"       from "DOING"      [2026-08-17 Mon 08:41] \\
+  exclusion removed, ranking subsumes it
+:END:
+
+Reported by the user 2026-08-15 after applying some events: unassigned
+spans cannot be assigned because not every heading is offered by the
+completion prompt, and pasting a title yields =[Match required]=.
+
+*Reproduced by rebuilding the candidate list outside the command,*
+against the six unassigned spans left in the live =*org-review*= buffer.
+=claude-code-ide-org-review-assign= filters
+=org-id-locations= (147 entries) and excludes any heading whose
+=:CREATED:= is later than the span's end:
+
+: span ending 15:31 -> 122 offered, 2 excluded as too new
+: span ending 09:20 -> 119 offered, 5 excluded as too new
+
+For the 09:20 span the five excluded are *exactly the five headings
+created today*. So this morning's work cannot be assigned to any heading
+written this afternoon, and =completing-read= is called with
+=REQUIRE-MATCH= t, so a pasted title fails with no explanation of why the
+heading is absent.
+
+*The premise in the code is false.* The comment reads: "A heading created
+after the span ended cannot be what that time was spent on. This is a
+hard impossibility, so it is excluded outright rather than ranked down."
+It is not an impossibility — doing the work first and writing the heading
+afterwards is the normal case, and *this project's own convention
+mandates it*: "any time a new task is described in conversation, create
+an org heading for it." A heading is created when a task is described,
+which is during or after the work, rarely before it. On 2026-08-15 five
+headings were created for discussion that had been running since the
+morning.
+
+*The fix is already written twenty lines below, for the analogous case.*
+DONE/CANCELLED headings get exactly the right treatment: "A heading
+closed before the span is implausible but NOT impossible -- documenting a
+task after marking it DONE is routine -- so it demotes rather than
+vanishes." Created-after-span deserves the same demotion, not exclusion.
+The sort key already has a slot for it.
+
+*Ruled out while diagnosing, recorded so it is not re-checked:*
+
+- Not a stale =org-id= index — all five of today's headings resolve in
+  =org-id-locations=.
+- Not the completion style — =completion-styles= is =(orderless basic)=
+  with vertico, so a pasted substring would match if the candidate were
+  present.
+- Not the file filter, though it is worth knowing it drops 10 of 147
+  (fixtures and =/tmp= scratch), and 13 more resolve to no title at all —
+  stale =org-id= entries pointing at headings that no longer exist. That
+  second number is its own small defect.
+
+*Separate but adjacent:* candidate strings are decorated —
+=made 08-14    [DONE] Title  {shortid}= — so the title sits mid-string.
+Orderless copes, but a plain =basic= completion style would not, and the
+decoration would be better as an =:affixation-function= so it is
+displayed without being matched against.
+
+*Correction 2026-08-17 to the diagnosis above.* That entry recorded, as
+an aside, that "13 more resolve to no title at all -- stale =org-id=
+entries pointing at headings that no longer exist. That second number is
+its own small defect." Wrong on the cause. They were not stale entries.
+
+Building the candidate list reads
+=(claude-code-ide-org--parse-org-timestamp (or (org-entry-get nil "CREATED") ""))=,
+and parsing the empty string *signals*. The whole =info= form is wrapped
+in =ignore-errors=, so any heading without a =:CREATED:= was silently
+dropped -- despite the code's own comment claiming "Headings with no
+=:CREATED:= are kept -- absence of evidence rules nothing out."
+
+Invisible in production because every heading in TODO.org carries a
+=:CREATED:=; the test fixture's heading does not, which is what surfaced
+it. Fixed in the same pass by guarding the parse.
+
+*Confirmed arithmetically after the fix:* =org-id-locations= holds 147
+entries, 7 of which are in unassignable files (fixtures, =/tmp=
+scratch), and the candidate list now returns exactly *140*. Nothing is
+dropped for any other reason. Before, 13 of those 140 were missing.
+
+Worth keeping as a pattern rather than a one-off: an =ignore-errors=
+wrapped around a *block* rather than around the one call that can
+signal turns a narrow parse failure into a silent whole-record drop,
+and the comment right beside it went on asserting the opposite for as
+long as nobody had a fixture that hit it.
+
+*Fixed 2026-08-17, and the fix is a deletion.* The =:CREATED:=-after-span
+exclusion is gone. Nothing is filtered out of the candidate list now;
+proximity ranking ([[id:49cbe319-f7db-413a-ade8-c4850c1fab8c][49cbe319]],
+done in the same pass) subsumes what the exclusion was reaching for, and
+does it without a cliff: a heading created five minutes after a span
+scores five minutes and stays near the top, one created a week later
+sorts far down on its own.
+
+*Verified against the span that broke.* The 09:19--09:20 span of
+2026-08-15 previously excluded exactly the five headings created that
+day. Its candidate list now:
+
+: 08-14..08-15  Decide whether CLAUDE.md needs a path-scoped ... {befaed0a}
+: 08-06..08-15  Update CLAUDE.md and the org skill ...          {02aaae22}
+: made 11:04    Make the org skill ... portable to other repos  {9ae4b17e}
+: made 14:07    Record turns-per-interval ...                   {9e627dc0}
+: made 14:32    Record the originating project in queue events  {83b3cdd6}
+
+The first two overlap the span and score zero. The next three were
+*unreachable* before, and are now ranked by how far after it they were
+written.
+
+*The reason this survived a 277-test suite is worth keeping.*
+=claude-code-ide-org-review-assign= is =(interactive)= and calls
+=completing-read=, so it had *no tests at all* -- the candidate list was
+only reachable by driving a minibuffer. The fix extracts
+=claude-code-ide-org--assign-candidates=, which takes a span and returns
+the ranked alist, and the four new tests exercise that. Making the thing
+testable was not incidental to fixing it; it is why the defect was
+invisible.
+
+All five new tests were confirmed failing first (=282 tests, 5
+unexpected= before; =282, 0 unexpected= after), and the fix was reloaded
+into the live Emacs and checked against real data rather than only in
+batch.
+
+
+** DONE Rank assignment candidates by time correlation with the unassigned span :code:
+:PROPERTIES:
+:ID:       49cbe319-f7db-413a-ade8-c4850c1fab8c
+:CREATED:  [2026-08-15 Sat 17:45]
+:ARCHIVE_TIME: 2026-08-17 Mon 17:13
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_OLPATH: Clock lifecycle & visibility
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-15 Sat 17:42]--[2026-08-15 Sat 18:03] =>  0:21
+- [2026-08-15 Sat 17:42]--[2026-08-15 Sat 18:03] assigned at review
+- State "TODO"       from              [2026-08-15 Sat 17:46] \\
+  ranking improvement, half already built
+CLOCK: [2026-08-17 Mon 08:36]--[2026-08-17 Mon 08:51] =>  0:15
+- [2026-08-17 Mon 08:36]--[2026-08-17 Mon 08:51] assigned at review
+- State "DONE"       from "TODO"       [2026-08-17 Mon 08:41] \\
+  bracket, gap ranking, time resolution
+:END:
+
+Proposed by the user 2026-08-15, while hitting
+[[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]]: the headings whose
+=[CREATED]--[most recent activity]= bracket sits closest to the
+unassigned interval are the most likely answers, and should float to the
+top of the completion list. The bracket should also be visible, so the
+human can see *why* a candidate is ranked where it is.
+
+*Half of this already exists, which makes it cheaper than it sounds.*
+=claude-code-ide-org--heading-activity-range= returns
+=(EARLIEST . LATEST)= across a subtree's CLOCK lines, and
+=--format-activity-range= renders it into the candidate string as a
+13-character fixed-width field. Its docstring already argues this
+heading's case: "A heading whose recorded work ended three days before
+the span is a far weaker answer than one clocked on the same afternoon,
+and neither its title nor its TODO state says so."
+
+*What is missing is that none of it reaches the sort.* The sort key in
+=claude-code-ide-org-review-assign= is, in order: DONE/CANCELLED demoted,
+then most-recently-created first. Creation recency is a poor proxy —
+it ranks a heading made this morning above one clocked *during the span
+itself*.
+
+*Two concrete defects to fix together:*
+
+- *The bracket the user described is not the one computed.* They said
+  =[CREATED]--[most_recent]=; the helper returns
+  =[earliest CLOCK]--[latest CLOCK]= and falls back to =made MM-DD= when
+  a heading has never been clocked. Those differ for exactly the headings
+  that matter here: one created during the span but not yet clocked has
+  no range at all. The bracket wants to be
+  =[min(CREATED, earliest clock)]--[max(latest clock, CREATED)]=.
+- *Day resolution is useless for same-day spans.* The field renders
+  =clocked 08-15= or =clocked 08-13-08-15=. Every candidate touched today
+  reads =clocked 08-15= against a span that is also 08-15, so the display
+  carries no information in precisely the case a human is most often
+  assigning. It needs time-of-day resolution when the bracket and the
+  span share a date.
+
+*Ranking metric, unresolved:* interval distance is the obvious choice —
+zero when the bracket and the span overlap, otherwise the gap to the
+nearest endpoint. Overlap is the strongest possible signal and should
+dominate. Open: whether overlap *duration* should rank above mere
+proximity, and how a heading with no bracket at all sorts against one
+with a distant bracket — absence is not distance, and the project has
+been bitten before by treating it as though it were.
+
+*Do not let this reintroduce the exclusion in
+[[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]].* Ranking is the
+right mechanism precisely because it never removes a candidate; the bug
+there is that a filter did. A heading created after the span should sort
+low, not vanish.
+
+*Implemented 2026-08-17, in one pass with
+[[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]] since both are the
+same function.*
+
+*Three parts, matching the three defects recorded above.*
+
+- =claude-code-ide-org--heading-bracket= merges =:CREATED:= with the
+  clock extent, so the bracket is =[CREATED..latest activity]= as the
+  user described rather than =[earliest clock..latest clock]=. A heading
+  created during a span but never clocked now has a position instead of
+  none -- which is the heading most likely to be wanted, since work
+  happens and the heading is written afterwards.
+- =claude-code-ide-org--interval-gap= scores proximity: zero when the
+  bracket and span overlap, otherwise seconds to the nearest endpoint,
+  symmetrically. Overlap dominates, which is what the "most likely
+  candidate" intuition amounts to.
+- =--format-activity-range= takes a reference time and renders *times*
+  rather than dates when the bracket falls on the reference's day. The
+  old field read =clocked 08-15= for every candidate touched today
+  against a span that is also today -- no information in exactly the
+  case it is most used.
+
+Sort order is now proximity, then open-before-finished, then creation
+recency. Creation recency was previously *primary*, which ranked a
+heading made this morning above one clocked *during* the span.
+
+*Verified live, against the real 14:31--15:31 span,* not only in batch:
+brackets sharing the day render as =16:34..16:57= and =made 14:07=,
+cross-day ones stay =08-06..08-15=.
+
+*The open question above is resolved by construction rather than
+decided:* "how does a heading with no bracket sort against one with a
+distant bracket?" A heading with neither =:CREATED:= nor a CLOCK line
+scores =most-positive-fixnum= and sorts last -- but is *not* removed,
+because absence of evidence rules nothing out. That was the whole lesson
+of 0d055205 and it would have been easy to repeat here.
+
+*Not done:* whether overlap *duration* should outrank mere proximity.
+Overlap collapses to zero either way, so a heading clocked for one minute
+inside the span ties with one clocked throughout it. No evidence yet that
+this matters; recorded rather than guessed at.
+
 ** DONE Refactor clock/TODO-state driving to an append-only event queue + interactive batch-apply review :code:
 :PROPERTIES:
 :ID:       b5f7c5c7-7ad6-4c68-9cce-3479db1f1644
@@ -5680,916 +6590,6 @@ remainder.
 truncate, assign, repeat — which
 [[id:3d0487f4-b8f8-451c-88bf-ab537663cbd0][3d0487f4]] had listed as
 explicitly out of scope for v1.
-** DONE Stop treating an =:ID:= as guaranteed to resolve :code:
-:PROPERTIES:
-:ID:       23a75720-d1d3-496f-8dad-41571ad30440
-:CREATED:  [2026-08-17 Mon 12:40]
-:ARCHIVE_TIME: 2026-08-17 Mon 17:14
-:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_OLPATH: Clock lifecycle & visibility
-:ARCHIVE_CATEGORY: TODO
-:ARCHIVE_TODO: DONE
-:END:
-:LOGBOOK:
-CLOCK: [2026-08-17 Mon 13:42]--[2026-08-17 Mon 14:27] =>  0:45
-- [2026-08-17 Mon 13:42]--[2026-08-17 Mon 14:27] assigned at review
-- State "DONE"       from "TODO"       [2026-08-17 Mon 15:01] \\
-  two children shipped, one cancelled as false
-:END:
-
-Every =:ID:=-keyed path in this module assumes =org-id-find= returns a
-marker. Measured 2026-08-17: 22 of 151 registered IDs did not resolve,
-and the assumption failed silently in three ways at once — 45
-org-element warnings raised against =*org-review*=, candidate headings
-dropped from the assignment prompt with no message, and an error string
-rendered as a review-buffer group heading.
-
-*Why the children are one piece of work rather than three coincidences.*
-They are cause, tolerance and visibility, and each is incomplete alone:
-
-- [[id:89bf8663-dec9-4aee-a95b-4e7be04c6b95][89bf8663]] removes a cause this project owns. It cannot help against staleness
-  arriving from git operations, hand edits, or another session applying its
-  queue.
-- [[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]] makes the code behave correctly when resolution fails — required
-  *precisely because* the causes above are unreachable from here, so freshness
-  can never be an invariant.
-- [[id:8e969114-0982-4c39-9258-3b25a5425e09][8e969114]] makes the failures observable, so a regression in either of the
-  others is noticed rather than absorbed.
-
-Fixing any one alone leaves the silent-failure mode intact, which is the
-entire complaint.
-
-*Discovered together 2026-08-17*, from one symptom reported as "multiple
-warnings in the minibuffer" during a review pass. That shared provenance
-is not the argument for grouping them — the mutual incompleteness above
-is — but it is why they arrived at once.
-
-*Not an argument for rebuilding the ID index automatically.* A full
-=org-id-update-id-locations= scans 12 files including a 665 KB TODO.org,
-and still cannot cover the causes this module never sees. 89bf8663
-carries the measurement and the targeted alternative.
-
------
-
-*Outcome, 2026-08-17.*
-
-*What shipped.* Two of the three children.
-
-[[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]] guards the nil marker in =--assign-candidates=, so an unresolvable id
-no longer drags =org-get-heading=/=org-entry-get= into =*org-review*=. [[id:8e969114-0982-4c39-9258-3b25a5425e09][8e969114]]
-adds =--id-health=, which reports stale =org-id-locations= entries when the
-review buffer opens and on =g=, and stays silent when there are none.
-
-
-*What differed from the framing, and it is the substantive finding.*
-This heading was written as cause / tolerance / visibility.
-
-*There was no cause.*
-
-[[id:89bf8663-dec9-4aee-a95b-4e7be04c6b95][89bf8663]] — "org_archive leaves org-id-locations pointing at the old file" — is
-false: =org-archive-subtree= inserts via =org-paste-subtree=, which calls
-=org-id-paste-tracker=, which re-points every =:ID:= in the pasted text at the
-destination. Org has always done this. Cancelled.
-
-That strengthens the heading's argument rather than weakening it. Every
-remaining route to a stale entry — a heading deleted outright, a git
-checkout or merge rewriting a file, another session applying its queue —
-is unreachable from inside this module. Freshness cannot be made an
-invariant here by any amount of local bookkeeping, so 09230b93's
-tolerance of a nil marker is *mandatory*, not defensive. The original
-framing had it as one mitigation among three.
-
-*Verified, not just implemented.* Every fix was stash-tested: the change
-reverted, the suite re-run, and the new test confirmed to *fail* without
-it. That is what caught 89bf8663 — its fix was written, the suite went
-green at 288/288, and stashing it left the new test still passing, which
-is only possible when there is nothing to detect. Without that step a fix
-for a non-existent defect would have shipped with a test standing behind
-it. Final suite 292/292, and =config.el= reloaded into the running Emacs
-and checked there rather than only on disk.
-
-*The measurement that resolved 8e969114's MAYBE.* Per-id =org-id-find=
-over every registered id: 161 ids, 0.218 s, and it *visits* four files as
-a side effect. Scanning each distinct file once for =:ID:= lines: 7
-files, 0.007--0.018 s, visiting nothing. The MAYBE was justified; it was
-attached to the wrong algorithm.
-
-*Unfinished, deliberately.* What the 22 unresolvable ids actually were is
-still unknown and now unknowable — =org-id-update-id-locations= was run
-by hand that morning and cleared them before anything could inspect
-them. =--id-health= separates "heading gone" from "in another file",
-which =org-id-find= cannot, so the question is answerable the next time
-it happens. It was not answered this time.
-
-
-*** CANCELLED org_archive leaves org-id-locations pointing at the old file :code:
-:PROPERTIES:
-:ID:       89bf8663-dec9-4aee-a95b-4e7be04c6b95
-:CREATED:  [2026-08-17 Mon 12:21]
-:END:
-:LOGBOOK:
-- State "CANCELLED"  from "DOING"      [2026-08-17 Mon 14:12] \\
-  not a defect; org-paste-tracker handles it
-- State "DOING"      from "TODO"       [2026-08-17 Mon 14:09] \\
-  re-point moved IDs after archive
-:END:
-
-=claude-code-ide-org-archive= calls =org-archive-subtree= and saves,
-never re-pointing the moved heading's ID. The location map still names
-TODO.org while the heading now lives in DONE.org, so =org-id-find=
-returns nil for it — one of this project's own contributions to the stale
-IDs behind
-[[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]]. =org_refile= has
-the same gap whenever it crosses files.
-
-The fix is not a rescan. =org-id-add-location= is O(1) and is already the
-idiom at two other call sites in =config.el=, so this is reusing what is
-there rather than adding a mechanism. One wrinkle: =org-archive-subtree=
-moves the whole subtree, so children carrying their own =:ID:= move too —
-the IDs have to be collected *before* the move, not just the one passed
-in.
-
-=org-id-update-id-locations= does take =(&optional files silent)=, so a
-two-file scoped rescan is the fallback if the subtree walk proves
-awkward. Measured 2026-08-17: a full rebuild scans 12 files — agenda
-files plus =org-id-extra-files= and archives — including a 665 KB
-TODO.org, which is far too heavy to fire automatically on any hot path.
-That measurement is the reason this is a targeted re-point rather than an
-automatic =org-id-update-id-locations= call somewhere.
-
-*CANCELLED 2026-08-17 — the premise is false. Org already does this.*
-
-=org-archive-subtree= inserts the moved subtree with =org-paste-subtree=
-\(=org-archive.el:391=), =org-paste-subtree= calls
-=org-id-paste-tracker= \(=org.el:7562=), and that scans the pasted text
-for every =:ID:= line and calls =org-id-add-location= for each, pointing
-at the *destination* file \(=org-id.el:693-707=). So an archived
-subtree's IDs — parent and children alike — are re-pointed by org
-itself, with no help from this project.
-
-*How it was caught, which is the part worth keeping.* The fix was written
-and the suite went green, 288/288. Stashing the fix and re-running left
-the new test *still passing* — it could not distinguish a fixed
-=org_archive= from an unfixed one, because there was nothing to
-distinguish. Without that step this would have shipped as a fix for a
-defect that never existed, with a test standing behind it.
-
-*Consequence for the parent
-[[id:23a75720-d1d3-496f-8dad-41571ad30440][23a75720]]: its argument gets
-stronger, not weaker.* This was filed as the "cause this project owns".
-It turns out this project owns no cause. Every remaining route to a stale
-entry — a heading deleted outright, a git checkout or merge rewriting the
-file wholesale, another session applying its queue — is unreachable from
-inside this module. Freshness therefore cannot be made an invariant here
-by any amount of local bookkeeping, which is precisely why
-[[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]]'s tolerance of a
-nil marker is mandatory rather than defensive.
-
-*What the 22 unresolvable IDs actually were is still unknown*, and should
-not be guessed at again. The likeliest reading is that they are IDs whose
-headings no longer exist anywhere — deleted, or lost when a merge
-rewrote TODO.org — rather than IDs pointing at the wrong file. Those two
-look identical through =org-id-find= and are not the same defect.
-[[id:8e969114-0982-4c39-9258-3b25a5425e09][8e969114]] would tell them
-apart, which is an argument for it.
-
-
-
-*** DONE =org-with-point-at= on a nil marker runs its body in the wrong buffer :code:
-:PROPERTIES:
-:ID:       09230b93-b869-44b7-91ef-abd869d4eade
-:CREATED:  [2026-08-17 Mon 12:21]
-:END:
-:LOGBOOK:
-- State "DONE"       from "DOING"      [2026-08-17 Mon 14:15] \\
-  guard shipped, test proven discriminating
-- State "DOING"      from "NEXT"       [2026-08-17 Mon 14:13] \\
-  guard the nil marker in assign-candidates
-- State "NEXT"       from "TODO"       [2026-08-17 Mon 14:52] \\
-  Auto-promoted: sole remaining TODO in its sibling group.
-:END:
-
-=claude-code-ide-org--assign-candidates= resolves each candidate with
-=(org-with-point-at (org-id-find id 'marker) ...)=. When =org-id-find=
-returns nil the macro does *not* switch buffers: its expansion calls
-=set-buffer= only under =(markerp ...)=, then falls through to
-=(goto-char (or nil (point)))=. Confirmed by macroexpanding it in the
-live Emacs (org 9.8.7) rather than from memory.
-
-The body therefore runs in whatever buffer was current — during a review
-pass that is =*org-review*= — and =org-get-heading= / =org-entry-get=
-route through org-element there, which is what emits "=org-element-at-point=
-cannot be used in non-Org buffer". Measured 2026-08-17: 45 such warnings
-in one pass, against 22 of 151 IDs in =org-id-locations= that no longer
-resolve.
-
-The whole form sits inside =ignore-errors=, so the failure is silent —
-those headings are dropped from the assignment candidate list with no
-message. That is the same harm
-[[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]] was filed against,
-candidates excluded for a reason the human never sees, reached by a
-different route.
-
-Fix is a guard matching the idiom
-=claude-code-ide-org--review-current-state= already uses: resolve the
-marker first, enter =org-with-point-at= only when it is non-nil.
-
-*Not solved by rebuilding the ID index.* Staleness also arrives from git
-operations, hand edits, and other sessions applying their queues, none of
-which this module can hook. Freshness is not achievable here, so
-tolerating nil is required regardless of what else is done.
-
-*** DONE Surface the count of unresolvable =:ID:=s when the review buffer opens :code:
-:PROPERTIES:
-:ID:       8e969114-0982-4c39-9258-3b25a5425e09
-:CREATED:  [2026-08-17 Mon 12:21]
-:END:
-:LOGBOOK:
-- State "DONE"       from "DOING"      [2026-08-17 Mon 14:56] \\
-  file-scan report shipped, reload verified
-- State "DOING"      from "NEXT"       [2026-08-17 Mon 14:53] \\
-  implement the file-scan id health report
-- State "NEXT"       from "DOING"      [2026-08-17 Mon 14:51] \\
-  cost measured cheap; ready to implement
-- State "DOING"      from "MAYBE"      [2026-08-17 Mon 14:49] \\
-  measure the open-time cost to decide
-CLOCK: [2026-08-17 Mon 14:49]--[2026-08-17 Mon 15:02] =>  0:13
-- [2026-08-17 Mon 14:49]--[2026-08-17 Mon 15:02] assigned at review
-:END:
-
-Stale IDs are invisible today: they emit org-element warnings into
-=*Warnings*=, silently shrink the assignment candidate list, and nothing
-in the review buffer says so. A count reported when the pass opens turns
-that into something actionable — and, unlike an automatic index rebuild,
-does not hide a defect like
-[[id:89bf8663-dec9-4aee-a95b-4e7be04c6b95][89bf8663]] behind a cleanup
-that makes it look fixed.
-
-Surfacing is preferred to auto-repair for that reason: an automatic
-rebuild would have kept the archive bug invisible indefinitely, since its
-only symptom is staleness that something else quietly corrects.
-
-MAYBE rather than TODO because the cost is unmeasured: it means one
-=org-id-find= per registered ID at open time, 151 of them on 2026-08-17.
-Worth measuring before committing to it.
-
-*Measured 2026-08-17, and the MAYBE is resolved: keep it.* The cost
-objection was real but attached to the wrong algorithm.
-
-| approach              | scale     | time    | side effects     |
-|-----------------------+-----------+---------+------------------|
-| per-id =org-id-find=  | 161 ids   | 0.218 s | opens 4 buffers  |
-| per-file =:ID:= scan  | 7 files   | 0.018 s | none             |
-
-The per-id sweep is what this heading assumed, and its real cost is not
-the 218 ms — it is that resolving an id *visits the file*, so a
-diagnostic running at review-buffer open would silently pull four buffers
-into the user's Emacs. Reading each distinct file in =org-id-locations=
-once with =insert-file-contents= in a temp buffer, collecting =:ID:=
-values and diffing against the hash, is 12x faster and visits nothing.
-
-It also scales on the better axis. Per-id is O(ids); per-file is
-O(files). This project accumulates ids far faster than files — 161
-against 7 today — so the gap widens.
-
-*Two caveats recorded rather than smoothed over.* The 0.218 s is a *warm*
-best case, taken with the files already visited by that session's own
-work; cold it is worse, which only strengthens the conclusion. And the
-sweep found *zero* unresolvable ids, because
-=org-id-update-id-locations= had been run by hand earlier the same day
-and dropped all 22. The feature's value is precisely that it would have
-shown 22 that morning, when nothing did.
-
-*Design consequence:* report only when the count is non-zero, matching
-=claude-code-ide-org-write-session-start-report='s self-limiting
-behaviour. A line reading "0 unresolvable" on every pass is noise that
-trains the eye to skip the line that matters.
-
-*Still not settled:* whether an unresolvable id means "points at the
-wrong file" or "the heading no longer exists anywhere". Those are
-indistinguishable through =org-id-find= and are different defects. The
-file-scan can separate them for free — it already knows which ids each
-file actually contains — which is an argument for this approach beyond
-its speed.
-
-
-
-** DONE Lead review buffer group headings with the =:ID:= prefix :code:
-:PROPERTIES:
-:ID:       c2132d3f-dd78-4498-ba87-0ca814dc2f77
-:CREATED:  [2026-08-17 Mon 12:21]
-:ARCHIVE_TIME: 2026-08-17 Mon 17:13
-:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_OLPATH: Clock lifecycle & visibility
-:ARCHIVE_CATEGORY: TODO
-:ARCHIVE_TODO: DONE
-:END:
-:LOGBOOK:
-- State "DONE"       from "DOING"      [2026-08-17 Mon 14:19] \\
-  prefix-first render shipped, reload verified
-- State "DOING"      from "TODO"       [2026-08-17 Mon 14:17] \\
-  lead group headings with the id prefix
-:END:
-
-The review buffer groups items under a heading title alone, so acting on
-a line means looking its ID up elsewhere — and this project's own
-convention cites 8-character prefixes in prose.
-
-*Prefix first, not trailing*, mirroring the way responses footnote a
-heading: the prefix leads, the title follows. Requested 2026-08-17 on
-seeing the trailing form proposed.
-
-: 09230b93  =org-with-point-at= on a nil marker runs its body in the wrong buffer
-:   [ ] state   TODO -> NEXT   08-17 12:21
-: 85702dba  The assignment dialog's proximity ranking is discarded by Vertico
-:   [ ] clock   12:08--12:11
-
-The reason is alignment, and it is why this is not merely a taste call.
-=claude-code-ide-org--short-id= returns exactly 8 characters for any real
-UUID, so leading with it puts every ID in a fixed column and the titles
-in a second one. A trailing ={id}= can never line up, because title
-lengths vary — which is precisely what makes a trailing form hard to scan
-in a buffer whose whole job is to be scanned.
-
-*Open, and deliberately not settled here:* the assignment dialog
-(=claude-code-ide-org-review-assign=) renders the trailing ={95087d8f}=
-form. Either it diverges from the review buffer, or it leads too. Leading
-in both is the obvious guess — it gains the same column alignment against
-=vertico-count= of 17, and orderless matches a typed prefix wherever it
-sits — but the two surfaces are used differently, one typed at and one
-read, so this is worth deciding rather than assuming.
-
-*It also fixes a rendering bug.* The group heading comes from a =cond=
-clause of the form =((claude-code-ide-org--at-id ...))=, whose value is
-its own test. =--at-id= *returns* the string "Error: no org heading found
-with :ID: ..." rather than signalling, so an unresolvable ID renders that
-error message as the group heading, and the =(t last-id)= fallback beneath
-it is unreachable. Resolving through =org-id-find= directly removes the
-error-string sniffing and cannot fall into
-[[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]]'s nil-marker trap.
-
-*It also fixes a rendering bug.* The group heading comes from a =cond=
-clause of the form =((claude-code-ide-org--at-id ...))=, whose value is
-its own test. =--at-id= *returns* the string "Error: no org heading found
-with :ID: ..." rather than signalling, so an unresolvable ID renders that
-error message as the group heading, and the =(t last-id)= fallback beneath
-it is unreachable. Resolving through =org-id-find= directly removes the
-error-string sniffing and cannot fall into
-[[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]]'s nil-marker trap.
-
-** DONE The assignment dialog's proximity ranking is discarded by Vertico :code:
-:PROPERTIES:
-:ID:       85702dba-8d15-4924-84bd-2bb7efac093a
-:CREATED:  [2026-08-17 Mon 12:21]
-:ARCHIVE_TIME: 2026-08-17 Mon 17:13
-:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_OLPATH: Clock lifecycle & visibility
-:ARCHIVE_CATEGORY: TODO
-:ARCHIVE_TODO: DONE
-:END:
-:LOGBOOK:
-- State "DONE"       from "DOING"      [2026-08-17 Mon 14:17] \\
-  metadata declared, ranking now authoritative
-- State "DOING"      from "TODO"       [2026-08-17 Mon 14:15] \\
-  preserve ranking through completion metadata
-:END:
-
-=claude-code-ide-org--assign-candidates= sorts candidates best-first — gap
-to the span, then DONE/CANCELLED last, then creation recency — and
-=claude-code-ide-org-review-assign= hands the result to =completing-read=
-as a bare alist. An alist carries no completion metadata, so Vertico
-applies its own =vertico-sort-function=, measured 2026-08-17 as
-=vertico-sort-history-length-alpha=: history, then string *length*, then
-alphabetical.
-
-Title length has no relation to relevance, so an old DONE heading with a
-terse title outranks this morning's work. The list is not unranked; it is
-ranked on the wrong key, and the =[DONE]= marker and activity range
-already built into the display strings are the only surviving signal.
-With =vertico-count= at 17 the ordering decides what is seen at all.
-
-Fix: pass a collection *function* returning =(metadata
-(display-sort-function . identity) (cycle-sort-function . identity))=,
-which Vertico honours over its own sort.
-
-*Deliberately not a cutoff*, though "too many suggestions" invites one.
-Excluding old or DONE candidates is exactly what
-[[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]] was filed against.
-Ordering gets the same practical result with no cliff, since everything
-stays reachable by typing.
-
-** DONE Apply discards decisions on the items it did not apply :code:
-:PROPERTIES:
-:ID:       c02d11c8-cd29-40ca-a0f4-dc1c878dfa7d
-:CREATED:  [2026-08-17 Mon 09:29]
-:ARCHIVE_TIME: 2026-08-17 Mon 17:13
-:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_OLPATH: Clock lifecycle & visibility
-:ARCHIVE_CATEGORY: TODO
-:ARCHIVE_TODO: DONE
-:END:
-:LOGBOOK:
-- State "DOING"      from              [2026-08-17 Mon 09:29] \\
-  remove applied in place, keep rest
-- State "DONE"       from "DOING"      [2026-08-17 Mon 09:32] \\
-  drops applied, keeps the rest
-:END:
-
-The last of the three commands that rebuilt the item list from the
-queue. =d= was fixed on 2026-08-17
-([[id:73cd5a1b-9b4f-409d-9aab-ffc6ea736ae5][73cd5a1b]]) and this was
-deliberately left then, because apply *writes org files* and re-reading
-the queue afterwards is how the view learns what was consumed — a
-better justification than dismiss had, but not a sufficient one.
-
-*The shape that made it dangerous.* =review-apply= rebuilt only when
-=(> :applied 0)=, so the discard happened on *success*. The better things
-went, the more was lost, which is the opposite of where anyone's guard
-is up. A total failure preserved everything.
-
-*Fixed 2026-08-17.* =--review-apply= now returns =:items= alongside the
-count, so the caller drops exactly what applied and keeps the rest *as
-the same objects*. Point lands on whatever followed the last item
-applied.
-
-*What survives now that did not:* assignments, narrowed intervals, notes,
-=:stale-confirmed=, and marks on items that *failed*. That last one has
-its own test and is the sharpest in practice — a stale transition you
-deliberately confirmed, which then failed for an unrelated reason, used
-to ask for confirmation again, because the confirmation lives on the item
-and a rebuilt item has none.
-
-*Staleness stays correct without the rebuild,* which was the open
-question. =--review-current-state= resolves through =org-id-find= on
-every render, so it reads the files this command has just written; a
-plain re-render recomputes it. The rebuild was never what kept staleness
-honest.
-
-*What is given up, and it is a real trade rather than a pure win:* events
-another session queued while you were reviewing no longer appear on their
-own. The item list is now a session-local view that only =g= reconciles.
-That is arguably the better behaviour — a list silently reordering
-mid-review is its own hazard — but it means =g= is now load-bearing for
-freshness rather than merely convenient, and its docstring was rewritten
-on 2026-08-17 to say what it discards in exchange.
-
-*Consequence for the human:* the "assign everything, then apply once"
-discipline is no longer necessary. Assign a few, apply, continue — the
-rhythm the backlog actually invites — and nothing accumulates risk.
-
-** DONE Dismissing an item discards every unapplied assignment in the review session :code:
-:PROPERTIES:
-:ID:       73cd5a1b-9b4f-409d-9aab-ffc6ea736ae5
-:CREATED:  [2026-08-17 Mon 09:03]
-:ARCHIVE_TIME: 2026-08-17 Mon 17:13
-:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_OLPATH: Clock lifecycle & visibility
-:ARCHIVE_CATEGORY: TODO
-:ARCHIVE_TODO: DONE
-:END:
-:LOGBOOK:
-- State "NEXT"       from              [2026-08-17 Mon 09:04] \\
-  silent loss of human judgement
-- State "DOING"      from "NEXT"       [2026-08-17 Mon 09:09] \\
-  drop in place instead of refreshing
-- State "DONE"       from "DOING"      [2026-08-17 Mon 09:11] \\
-  assignments survive a dismissal
-:END:
-
-Reported by the user 2026-08-17: dismissing an item destroys every
-assignment made in the buffer during that review session, before
-anything has been applied.
-
-*Confirmed by reading, not inferred.*
-=claude-code-ide-org-review-dismiss= ends with
-=(claude-code-ide-org-review-refresh)=, and refresh's own docstring is
-"Rebuild the review buffer from the queue, discarding marks." It
-rebuilds =claude-code-ide-org--review-items= from the queue files, so
-*everything held only in memory is lost*: assigned headings
-(=:id=/=:assigned=), edited intervals (=:start=/=:end=), notes, and
-=:stale-confirmed=. The docstring admits to marks alone, which are
-selection state and cheap to redo; the rest is *judgement* and is not.
-
-*Why this is the serious one.* The queue's whole premise is that raw
-events are durable and re-clusterable while human judgement is the
-scarce input -- the asymmetry
-[[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] states as "the
-queue keeps every raw event and can be re-clustered at will, while
-annotations written into =:LOGBOOK:= cannot be re-derived." An
-assignment is precisely that scarce judgement, and =d= discards an
-arbitrary amount of it while appearing to act on *one line*.
-
-*Orthogonal in mechanism to
-[[id:9e80a32d-43e1-4647-a42c-cba10f6e79cc][9e80a32d]], related in kind,
-and far more severe.* That one is =--review-render= resetting point;
-this one is =--review-refresh= rebuilding the item list. Different
-functions, different triggers. What they share is that the review buffer
-carries unsaved session state which redrawing and rebuilding do not
-preserve, and that the commands differ in whether they bother to. Losing
-point costs a keystroke; losing assignments costs the judgement again,
-silently, with no undo and no warning.
-
-*Fix direction, unresolved.* =d= has already written the dismissal to
-the queue by the time it refreshes, so it does not need a rebuild at
-all -- dropping the item from =--review-items= in place and re-rendering
-would preserve the session. That also lets it restore point and advance
-like =a=, which is where this and 9e80a32d converge in the fix even
-though they diverge in the cause. Worth checking whether =x= (apply) has
-the same shape for the *unapplied* items it leaves behind.
-
-*Not attempted:* whether =g= should keep assignments too. It is
-explicitly the "rebuild from the queue" command and a human types it
-deliberately, so discarding there is arguably correct -- but it should
-say *assignments*, not "marks", because the current wording undersells
-what it throws away.
-
-*Fixed 2026-08-17.* =d= no longer calls =review-refresh=. It drops the
-item from =claude-code-ide-org--review-items= in place and re-renders
-through the shared path
-([[id:2d032000-bf04-47f5-b5e6-ef4299078d15][2d032000]]), landing point on
-the item that took its place. The dismissal is already durable in the
-queue by then, so the rebuild was adding nothing except the loss.
-
-*The test asserts the surviving item by identity, not by content,* which
-is the distinction that matters: a rebuild produces a fresh plist from
-the same queue events -- equal in every visible field, and empty of the
-decision. Confirmed failing before the fix and passing after (285 tests,
-1 unexpected → 0).
-
-*=review-apply= has the same shape and was deliberately left alone.* On
-success it refreshes, so decisions on items it did *not* apply are
-discarded too. The difference is that apply changes org files: re-reading
-the queue afterwards is how the view learns what was actually consumed,
-and dropping items in place risks a buffer that disagrees with the file
-it just wrote. Dismiss had no such justification. Whether apply can
-preserve the untouched items -- probably by removing only what applied
-and rebuilding the rest -- is a separate question and is not answered
-here.
-
-*Still true, and the reason this mattered more than the point bug:* the
-queue's premise is that raw events are cheap and re-derivable while human
-judgement is not. Every command that rebuilds from the queue is trading
-the expensive thing for the cheap one, and only =g= should be allowed to
-make that trade.
-
-** DONE Route review-buffer commands through one mutate-render-restore path :code:
-:PROPERTIES:
-:ID:       2d032000-bf04-47f5-b5e6-ef4299078d15
-:CREATED:  [2026-08-17 Mon 09:07]
-:ARCHIVE_TIME: 2026-08-17 Mon 17:13
-:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_OLPATH: Clock lifecycle & visibility
-:ARCHIVE_CATEGORY: TODO
-:ARCHIVE_TODO: DONE
-:END:
-:LOGBOOK:
-- State "DOING"      from              [2026-08-17 Mon 09:07] \\
-  one path for mutate-render-restore
-- State "DONE"       from "DOING"      [2026-08-17 Mon 09:11] \\
-  one redraw path, advance rule recorded
-:END:
-
-*Done 2026-08-17.* =claude-code-ide-org--review-redraw= is the single
-path: re-render, put point back on the item by identity, and advance when
-asked. Every command that mutates an item now goes through it -- =m=/=u=
-(advance), =a= (advance), =d= (advance onto the item that replaced it),
-=e= and =N= (stay).
-
-*The advance rule, written down so it stops being decided per command:*
-advance when the command *answers* the question the line posed, stay when
-it does not. Marking, assigning and dismissing decide an item; narrowing
-an interval or editing a note are steps taken while still deciding.
-
-*Restores by identity, not line number.* =--review-goto-line= remains for
-=--review-set-all=, which acts on every item and so has no single one to
-return to. Everything else uses =--review-goto-item=, because assigning
-removes the evidence lines an unassigned span carries and the buffer is a
-different height afterwards.
-
-*Left calling =--review-render= directly, each deliberately:*
-=--review-set-all= (no single item), =review-refresh= (rebuilding is its
-purpose), =review-apply= (see below), and =review-dismiss= for its
-one branch where nothing remains to land on.
-
-*=review-refresh='s docstring was rewritten* rather than left saying
-"discarding marks". It discards every unapplied decision -- assignments,
-intervals, notes, stale confirmations. Marks are selection and cheap to
-redo; the rest is judgement. =g= is typed deliberately so discarding
-there is correct, but it has to say what it costs.
-
-*Boundary held on purpose: =review-apply= was not changed.* It has the
-same shape as the dismiss defect -- on success it calls
-=review-refresh=, discarding decisions on the items it did *not* apply --
-but the justification differs. Apply changes org files, so re-reading the
-queue afterwards reflects what was actually consumed, and dropping items
-in place would risk a view that disagrees with the file. Dismiss had no
-such excuse: it had already written its dismissal to the queue. Recorded
-on [[id:73cd5a1b-9b4f-409d-9aab-ffc6ea736ae5][73cd5a1b]] rather than
-fixed blind.
-** DONE Assign and interval-edit send point to the top of the review buffer :code:
-:PROPERTIES:
-:ID:       9e80a32d-43e1-4647-a42c-cba10f6e79cc
-:CREATED:  [2026-08-17 Mon 08:53]
-:ARCHIVE_TIME: 2026-08-17 Mon 17:13
-:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_OLPATH: Clock lifecycle & visibility
-:ARCHIVE_CATEGORY: TODO
-:ARCHIVE_TODO: DONE
-:END:
-:LOGBOOK:
-CLOCK: [2026-08-17 Mon 08:55]--[2026-08-17 Mon 09:33] =>  0:38
-- State "DOING"      from              [2026-08-17 Mon 08:55] \\
-  restore point after re-render
-- [2026-08-17 Mon 08:55]--[2026-08-17 Mon 09:33] assigned at review
-- State "DONE"       from "DOING"      [2026-08-17 Mon 09:04] \\
-  assign advances, interval edit stays
-:END:
-
-*Verified, not just implemented* (written 2026-08-17, before archiving —
-this heading reached =DONE= with an empty body).
-
-=--review-render= ends with =(goto-char (point-min))=, so every command
-that re-renders has to put point back. The mark commands already did, and
-their ADVANCE flag exists because its absence was "the single biggest
-complaint after the first real by-hand apply". Assign and interval-edit
-never got the same treatment.
-
-*Shipped in =0042615=.* Assign now advances — assigning *answers* the
-question the line posed — while interval-edit stays on the item, since
-=e= is the step taken before assigning rather than after. Point is
-restored *by identity, not line number*: assigning removes the evidence
-lines an unassigned span carries, so the buffer is shorter afterwards and
-the old line number points at something else. =--review-goto-item= is
-that lookup.
-
-*A second defect, found by the new test rather than by reading.* Building
-the candidate list parsed =(or (org-entry-get nil "CREATED") "")=, and
-parsing the empty string *signals* — inside a block wrapped in
-=ignore-errors=. So a heading with no =:CREATED:= was dropped from the
-list entirely, despite the comment beside it claiming such headings are
-kept. Invisible in production, where every heading has one; only a
-fixture without one exposed it. Measured after the fix: 147 org-id
-entries, 7 unassignable, list returns exactly 140 — 13 had been missing.
-
-*The pattern worth carrying forward:* both halves were assertions the
-code made about itself in prose — "kept, absence of evidence rules
-nothing out" — that the code did not honour. Neither was found by review.
-
-** DONE Assign excludes headings created after the span, which is the normal case not an impossibility :code:
-:PROPERTIES:
-:ID:       0d055205-a670-45c6-b4af-980961603a7c
-:CREATED:  [2026-08-15 Sat 17:17]
-:ARCHIVE_TIME: 2026-08-17 Mon 17:13
-:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_OLPATH: Clock lifecycle & visibility
-:ARCHIVE_CATEGORY: TODO
-:ARCHIVE_TODO: DONE
-:END:
-:LOGBOOK:
-CLOCK: [2026-08-15 Sat 17:13]--[2026-08-15 Sat 17:19] =>  0:06
-- [2026-08-15 Sat 17:13]--[2026-08-15 Sat 17:19] assigned at review
-- State "NEXT"       from              [2026-08-15 Sat 17:18] \\
-  blocks assigning today spans
-- State "DOING"      from "NEXT"       [2026-08-17 Mon 08:37] \\
-  demote instead of exclude
-- State "DONE"       from "DOING"      [2026-08-17 Mon 08:41] \\
-  exclusion removed, ranking subsumes it
-:END:
-
-Reported by the user 2026-08-15 after applying some events: unassigned
-spans cannot be assigned because not every heading is offered by the
-completion prompt, and pasting a title yields =[Match required]=.
-
-*Reproduced by rebuilding the candidate list outside the command,*
-against the six unassigned spans left in the live =*org-review*= buffer.
-=claude-code-ide-org-review-assign= filters
-=org-id-locations= (147 entries) and excludes any heading whose
-=:CREATED:= is later than the span's end:
-
-: span ending 15:31 -> 122 offered, 2 excluded as too new
-: span ending 09:20 -> 119 offered, 5 excluded as too new
-
-For the 09:20 span the five excluded are *exactly the five headings
-created today*. So this morning's work cannot be assigned to any heading
-written this afternoon, and =completing-read= is called with
-=REQUIRE-MATCH= t, so a pasted title fails with no explanation of why the
-heading is absent.
-
-*The premise in the code is false.* The comment reads: "A heading created
-after the span ended cannot be what that time was spent on. This is a
-hard impossibility, so it is excluded outright rather than ranked down."
-It is not an impossibility — doing the work first and writing the heading
-afterwards is the normal case, and *this project's own convention
-mandates it*: "any time a new task is described in conversation, create
-an org heading for it." A heading is created when a task is described,
-which is during or after the work, rarely before it. On 2026-08-15 five
-headings were created for discussion that had been running since the
-morning.
-
-*The fix is already written twenty lines below, for the analogous case.*
-DONE/CANCELLED headings get exactly the right treatment: "A heading
-closed before the span is implausible but NOT impossible -- documenting a
-task after marking it DONE is routine -- so it demotes rather than
-vanishes." Created-after-span deserves the same demotion, not exclusion.
-The sort key already has a slot for it.
-
-*Ruled out while diagnosing, recorded so it is not re-checked:*
-
-- Not a stale =org-id= index — all five of today's headings resolve in
-  =org-id-locations=.
-- Not the completion style — =completion-styles= is =(orderless basic)=
-  with vertico, so a pasted substring would match if the candidate were
-  present.
-- Not the file filter, though it is worth knowing it drops 10 of 147
-  (fixtures and =/tmp= scratch), and 13 more resolve to no title at all —
-  stale =org-id= entries pointing at headings that no longer exist. That
-  second number is its own small defect.
-
-*Separate but adjacent:* candidate strings are decorated —
-=made 08-14    [DONE] Title  {shortid}= — so the title sits mid-string.
-Orderless copes, but a plain =basic= completion style would not, and the
-decoration would be better as an =:affixation-function= so it is
-displayed without being matched against.
-
-*Correction 2026-08-17 to the diagnosis above.* That entry recorded, as
-an aside, that "13 more resolve to no title at all -- stale =org-id=
-entries pointing at headings that no longer exist. That second number is
-its own small defect." Wrong on the cause. They were not stale entries.
-
-Building the candidate list reads
-=(claude-code-ide-org--parse-org-timestamp (or (org-entry-get nil "CREATED") ""))=,
-and parsing the empty string *signals*. The whole =info= form is wrapped
-in =ignore-errors=, so any heading without a =:CREATED:= was silently
-dropped -- despite the code's own comment claiming "Headings with no
-=:CREATED:= are kept -- absence of evidence rules nothing out."
-
-Invisible in production because every heading in TODO.org carries a
-=:CREATED:=; the test fixture's heading does not, which is what surfaced
-it. Fixed in the same pass by guarding the parse.
-
-*Confirmed arithmetically after the fix:* =org-id-locations= holds 147
-entries, 7 of which are in unassignable files (fixtures, =/tmp=
-scratch), and the candidate list now returns exactly *140*. Nothing is
-dropped for any other reason. Before, 13 of those 140 were missing.
-
-Worth keeping as a pattern rather than a one-off: an =ignore-errors=
-wrapped around a *block* rather than around the one call that can
-signal turns a narrow parse failure into a silent whole-record drop,
-and the comment right beside it went on asserting the opposite for as
-long as nobody had a fixture that hit it.
-
-*Fixed 2026-08-17, and the fix is a deletion.* The =:CREATED:=-after-span
-exclusion is gone. Nothing is filtered out of the candidate list now;
-proximity ranking ([[id:49cbe319-f7db-413a-ade8-c4850c1fab8c][49cbe319]],
-done in the same pass) subsumes what the exclusion was reaching for, and
-does it without a cliff: a heading created five minutes after a span
-scores five minutes and stays near the top, one created a week later
-sorts far down on its own.
-
-*Verified against the span that broke.* The 09:19--09:20 span of
-2026-08-15 previously excluded exactly the five headings created that
-day. Its candidate list now:
-
-: 08-14..08-15  Decide whether CLAUDE.md needs a path-scoped ... {befaed0a}
-: 08-06..08-15  Update CLAUDE.md and the org skill ...          {02aaae22}
-: made 11:04    Make the org skill ... portable to other repos  {9ae4b17e}
-: made 14:07    Record turns-per-interval ...                   {9e627dc0}
-: made 14:32    Record the originating project in queue events  {83b3cdd6}
-
-The first two overlap the span and score zero. The next three were
-*unreachable* before, and are now ranked by how far after it they were
-written.
-
-*The reason this survived a 277-test suite is worth keeping.*
-=claude-code-ide-org-review-assign= is =(interactive)= and calls
-=completing-read=, so it had *no tests at all* -- the candidate list was
-only reachable by driving a minibuffer. The fix extracts
-=claude-code-ide-org--assign-candidates=, which takes a span and returns
-the ranked alist, and the four new tests exercise that. Making the thing
-testable was not incidental to fixing it; it is why the defect was
-invisible.
-
-All five new tests were confirmed failing first (=282 tests, 5
-unexpected= before; =282, 0 unexpected= after), and the fix was reloaded
-into the live Emacs and checked against real data rather than only in
-batch.
-
-
-** DONE Rank assignment candidates by time correlation with the unassigned span :code:
-:PROPERTIES:
-:ID:       49cbe319-f7db-413a-ade8-c4850c1fab8c
-:CREATED:  [2026-08-15 Sat 17:45]
-:ARCHIVE_TIME: 2026-08-17 Mon 17:13
-:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_OLPATH: Clock lifecycle & visibility
-:ARCHIVE_CATEGORY: TODO
-:ARCHIVE_TODO: DONE
-:END:
-:LOGBOOK:
-CLOCK: [2026-08-15 Sat 17:42]--[2026-08-15 Sat 18:03] =>  0:21
-- [2026-08-15 Sat 17:42]--[2026-08-15 Sat 18:03] assigned at review
-- State "TODO"       from              [2026-08-15 Sat 17:46] \\
-  ranking improvement, half already built
-CLOCK: [2026-08-17 Mon 08:36]--[2026-08-17 Mon 08:51] =>  0:15
-- [2026-08-17 Mon 08:36]--[2026-08-17 Mon 08:51] assigned at review
-- State "DONE"       from "TODO"       [2026-08-17 Mon 08:41] \\
-  bracket, gap ranking, time resolution
-:END:
-
-Proposed by the user 2026-08-15, while hitting
-[[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]]: the headings whose
-=[CREATED]--[most recent activity]= bracket sits closest to the
-unassigned interval are the most likely answers, and should float to the
-top of the completion list. The bracket should also be visible, so the
-human can see *why* a candidate is ranked where it is.
-
-*Half of this already exists, which makes it cheaper than it sounds.*
-=claude-code-ide-org--heading-activity-range= returns
-=(EARLIEST . LATEST)= across a subtree's CLOCK lines, and
-=--format-activity-range= renders it into the candidate string as a
-13-character fixed-width field. Its docstring already argues this
-heading's case: "A heading whose recorded work ended three days before
-the span is a far weaker answer than one clocked on the same afternoon,
-and neither its title nor its TODO state says so."
-
-*What is missing is that none of it reaches the sort.* The sort key in
-=claude-code-ide-org-review-assign= is, in order: DONE/CANCELLED demoted,
-then most-recently-created first. Creation recency is a poor proxy —
-it ranks a heading made this morning above one clocked *during the span
-itself*.
-
-*Two concrete defects to fix together:*
-
-- *The bracket the user described is not the one computed.* They said
-  =[CREATED]--[most_recent]=; the helper returns
-  =[earliest CLOCK]--[latest CLOCK]= and falls back to =made MM-DD= when
-  a heading has never been clocked. Those differ for exactly the headings
-  that matter here: one created during the span but not yet clocked has
-  no range at all. The bracket wants to be
-  =[min(CREATED, earliest clock)]--[max(latest clock, CREATED)]=.
-- *Day resolution is useless for same-day spans.* The field renders
-  =clocked 08-15= or =clocked 08-13-08-15=. Every candidate touched today
-  reads =clocked 08-15= against a span that is also 08-15, so the display
-  carries no information in precisely the case a human is most often
-  assigning. It needs time-of-day resolution when the bracket and the
-  span share a date.
-
-*Ranking metric, unresolved:* interval distance is the obvious choice —
-zero when the bracket and the span overlap, otherwise the gap to the
-nearest endpoint. Overlap is the strongest possible signal and should
-dominate. Open: whether overlap *duration* should rank above mere
-proximity, and how a heading with no bracket at all sorts against one
-with a distant bracket — absence is not distance, and the project has
-been bitten before by treating it as though it were.
-
-*Do not let this reintroduce the exclusion in
-[[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]].* Ranking is the
-right mechanism precisely because it never removes a candidate; the bug
-there is that a filter did. A heading created after the span should sort
-low, not vanish.
-
-*Implemented 2026-08-17, in one pass with
-[[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]] since both are the
-same function.*
-
-*Three parts, matching the three defects recorded above.*
-
-- =claude-code-ide-org--heading-bracket= merges =:CREATED:= with the
-  clock extent, so the bracket is =[CREATED..latest activity]= as the
-  user described rather than =[earliest clock..latest clock]=. A heading
-  created during a span but never clocked now has a position instead of
-  none -- which is the heading most likely to be wanted, since work
-  happens and the heading is written afterwards.
-- =claude-code-ide-org--interval-gap= scores proximity: zero when the
-  bracket and span overlap, otherwise seconds to the nearest endpoint,
-  symmetrically. Overlap dominates, which is what the "most likely
-  candidate" intuition amounts to.
-- =--format-activity-range= takes a reference time and renders *times*
-  rather than dates when the bracket falls on the reference's day. The
-  old field read =clocked 08-15= for every candidate touched today
-  against a span that is also today -- no information in exactly the
-  case it is most used.
-
-Sort order is now proximity, then open-before-finished, then creation
-recency. Creation recency was previously *primary*, which ranked a
-heading made this morning above one clocked *during* the span.
-
-*Verified live, against the real 14:31--15:31 span,* not only in batch:
-brackets sharing the day render as =16:34..16:57= and =made 14:07=,
-cross-day ones stay =08-06..08-15=.
-
-*The open question above is resolved by construction rather than
-decided:* "how does a heading with no bracket sort against one with a
-distant bracket?" A heading with neither =:CREATED:= nor a CLOCK line
-scores =most-positive-fixnum= and sorts last -- but is *not* removed,
-because absence of evidence rules nothing out. That was the whole lesson
-of 0d055205 and it would have been easy to repeat here.
-
-*Not done:* whether overlap *duration* should outrank mere proximity.
-Overlap collapses to zero either way, so a heading clocked for one minute
-inside the span ties with one clocked throughout it. No evidence yet that
-this matters; recorded rather than guessed at.
-
 ** DONE pause/resume cannot see a turn blocked on a permission prompt :code:
 :PROPERTIES:
 :ID:       f4e628ce-e653-429a-8f3c-0f5d4241b139
