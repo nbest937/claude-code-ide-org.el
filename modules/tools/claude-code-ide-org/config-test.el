@@ -5026,6 +5026,50 @@ replaced."
                          "  Test heading")
                  text))))))
 
+(ert-deftest claude-code-ide-org-test-id-health-separates-missing-from-misfiled ()
+  "`--id-health' must distinguish an id whose heading no longer exists
+anywhere from one that exists in a different file than the one recorded.
+They are different defects with different fixes, and `org-id-find' cannot
+tell them apart because both return nil -- which is why the file-scan
+earns its place over a per-id sweep (TODO.org :ID: 8e969114).
+
+Both counts are asserted in one fixture on purpose: a implementation that
+lumped them together would still satisfy either assertion alone."
+  (claude-code-ide-org-test--with-heading
+    (with-temp-file archive-file
+      (insert "* DONE Archived one\n:PROPERTIES:\n:ID:       test-0002\n:END:\n"
+              "* DONE Archived two\n:PROPERTIES:\n:ID:       test-0003\n:END:\n"))
+    ;; Correct entry -- and what causes archive-file to be scanned at all,
+    ;; since only files named as values in org-id-locations are read.
+    (org-id-add-location "test-0002" archive-file)
+    ;; Exists, but in archive-file rather than the file recorded here.
+    (org-id-add-location "test-0003" file)
+    ;; Exists in no known file.
+    (org-id-add-location "test-ghost" file)
+    (let ((health (claude-code-ide-org--id-health)))
+      (should (= 1 (plist-get health :misfiled)))
+      (should (= 1 (plist-get health :missing))))))
+
+(ert-deftest claude-code-ide-org-test-review-id-health-line-is-silent-when-clean ()
+  "The report says nothing when everything resolves.
+
+A line reading \"0 unresolvable\" on every pass is noise that trains the
+eye to skip the line that matters -- the same self-limiting reasoning as
+`claude-code-ide-org-write-session-start-report'.  Asserted rather than
+left to intent, because \"prints a zero\" is the natural thing for the
+next person to add."
+  (claude-code-ide-org-test--with-heading
+    (with-temp-buffer
+      (setq claude-code-ide-org--review-id-health (list :missing 0 :misfiled 0))
+      (should-not (claude-code-ide-org--review-id-health-line))
+      (setq claude-code-ide-org--review-id-health (list :missing 2 :misfiled 1))
+      (let ((line (claude-code-ide-org--review-id-health-line)))
+        (should line)
+        (should (string-match-p "3 org-id entries stale" line))
+        (should (string-match-p "2 headings gone" line))
+        (should (string-match-p "1 in another file" line))
+        (should (string-match-p "org-id-update-id-locations" line))))))
+
 (ert-deftest claude-code-ide-org-test-review-apply-restores-read-only ()
   "The flag the user set is theirs, and apply borrows it rather than
 taking it.  Clearing it and walking away silently disables the guard

@@ -4721,6 +4721,86 @@ back to the queue and the files for fresh answers.")
                      claude-code-ide-org--span-evidence-cache)
           hit)))))
 
+(defvar-local claude-code-ide-org--review-id-health nil
+  "Cached `claude-code-ide-org--id-health' result for this review buffer.
+Computed when the buffer is built and by `g', never during a redraw:
+marking a line re-renders, and a scan on every keystroke would be a
+tax paid for a number that cannot have changed.")
+
+(defun claude-code-ide-org--id-health ()
+  "Return (:missing N :misfiled M) describing `org-id-locations'.
+
+MISSING counts ids that no known file contains any more -- the heading
+was deleted, or a git operation rewrote the file out from under it.
+MISFILED counts ids that still exist, but in a different file than the
+one recorded.  Keeping them apart is the point: they are different
+defects with different fixes, and `org-id-find' cannot distinguish them
+because both simply return nil (TODO.org :ID: 8e969114).
+
+Scans each distinct file once rather than resolving each id, which is
+what makes this cheap enough to run when the review buffer opens.
+Measured 2026-08-17: 0.018 s over 7 files, against 0.218 s for 161
+`org-id-find' calls.  The time is the lesser reason -- resolving an id
+*visits* its file, so the per-id sweep pulled four buffers into the
+user's Emacs as a side effect, where this visits nothing.  It also
+scales on file count rather than id count, and this project accumulates
+ids far faster than files (161 against 7)."
+  (let ((by-file (make-hash-table :test 'equal))
+        (missing 0)
+        (misfiled 0))
+    (when (hash-table-p org-id-locations)
+      (maphash
+       (lambda (_id file)
+         (unless (gethash file by-file)
+           (puthash file
+                    (let ((ids (make-hash-table :test 'equal))
+                          (path (expand-file-name file)))
+                      (when (file-readable-p path)
+                        (with-temp-buffer
+                          (insert-file-contents path)
+                          (goto-char (point-min))
+                          (while (re-search-forward
+                                  "^[ \t]*:ID:[ \t]+\\([^ \t\n]+\\)" nil t)
+                            (puthash (match-string 1) t ids))))
+                      ids)
+                    by-file)))
+       org-id-locations)
+      (maphash
+       (lambda (id file)
+         (unless (gethash id (gethash file by-file))
+           (if (catch 'found
+                 (maphash (lambda (_f ids)
+                            (when (gethash id ids) (throw 'found t)))
+                          by-file)
+                 nil)
+               (setq misfiled (1+ misfiled))
+             (setq missing (1+ missing)))))
+       org-id-locations))
+    (list :missing missing :misfiled misfiled)))
+
+(defun claude-code-ide-org--review-id-health-line ()
+  "Return a one-line report on stale `org-id-locations' entries, or nil.
+
+Nil when everything resolves, deliberately.  A line reading \"0
+unresolvable\" on every pass is noise that trains the eye to skip the
+line that matters -- the same self-limiting reasoning as
+`claude-code-ide-org-write-session-start-report', which stays silent
+unless it has something to say.
+
+The condition it reports is otherwise invisible: stale entries produce
+org-element warnings in *Warnings* and silently shrink the assignment
+prompt's candidate list, and nothing in this buffer said so.  On
+2026-08-17 that hid 22 of 151."
+  (let* ((health claude-code-ide-org--review-id-health)
+         (missing (or (plist-get health :missing) 0))
+         (misfiled (or (plist-get health :misfiled) 0))
+         (total (+ missing misfiled)))
+    (when (> total 0)
+      (format "  %d org-id entr%s stale: %d heading%s gone, %d in another file.  M-x org-id-update-id-locations\n\n"
+              total (if (= total 1) "y" "ies")
+              missing (if (= missing 1) "" "s")
+              misfiled))))
+
 (defun claude-code-ide-org--review-render ()
   "Render `claude-code-ide-org--review-items' into the current buffer.
 
@@ -4739,6 +4819,8 @@ rest from lighting up."
     (insert "Pending org updates.  m/u mark, M/U all, t invert, "
             "a assign, e interval, N note,\n"
             "d dismiss, RET goto, x apply marked, g refresh, q quit\n\n")
+    (let ((health-line (claude-code-ide-org--review-id-health-line)))
+      (when health-line (insert health-line)))
     (if (null items)
         (insert "  Nothing pending.\n")
       (dolist (item items)
@@ -5389,6 +5471,11 @@ and look again\", and a commit made since the buffer was drawn is exactly
 the kind of thing a human presses it for."
   (interactive)
   (setq claude-code-ide-org--span-evidence-cache nil)
+  ;; Recomputed here and only here, so the scan runs when the buffer is
+  ;; built and when `g' is typed -- not on the redraw every mark triggers.
+  ;; `g' already means "go and look again", which is exactly when a stale
+  ;; org-id entry might have been fixed.
+  (setq claude-code-ide-org--review-id-health (claude-code-ide-org--id-health))
   (setq claude-code-ide-org--review-items
         (claude-code-ide-org--review-items-from-queue))
   (claude-code-ide-org--review-render))
