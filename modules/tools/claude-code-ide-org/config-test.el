@@ -5715,6 +5715,33 @@ wrong way round."
       (should (< (cl-position "66666666-6666-4666-8666-666666666666" ids :test #'equal)
                  (cl-position "77777777-7777-4777-8777-777777777777" ids :test #'equal))))))
 
+(ert-deftest claude-code-ide-org-test-assign-candidates-tolerates-unresolvable-id ()
+  "An `org-id' entry whose heading no longer exists must not drag org
+calls into the caller's buffer.  `org-with-point-at' does not switch
+buffers when handed nil -- its expansion calls `set-buffer' only under
+`(markerp ...)', then falls through to `(goto-char (or nil (point)))' --
+so the body runs wherever point already was.  From the review buffer that
+is `*org-review*', a non-Org buffer, where `org-get-heading' and
+`org-entry-get' warn through org-element instead of signalling.  One pass
+on 2026-08-17 produced 45 such warnings from 22 unresolvable IDs.
+
+Asserts on `display-warning' rather than on the returned candidates on
+purpose: the unguarded path drops the ghost candidate too, so the warning
+is the *only* observable difference between fixed and broken."
+  (claude-code-ide-org-test--with-heading
+    ;; An id org-id knows about, whose heading is not in the file.
+    (org-id-add-location "99999999-9999-4999-8999-999999999999" file)
+    (let* ((claude-code-ide-org-query-files (list file))
+           warned)
+      (cl-letf (((symbol-function 'display-warning)
+                 (lambda (&rest args) (push args warned))))
+        (with-temp-buffer
+          (fundamental-mode)
+          (claude-code-ide-org--assign-candidates
+           (claude-code-ide-org-test--t "09:19")
+           (claude-code-ide-org-test--t "09:20"))))
+      (should (null warned)))))
+
 (ert-deftest claude-code-ide-org-test-activity-range-uses-times-on-the-reference-day ()
   "Day resolution is useless in the case it is most used: every candidate
 touched today reads the same against a span that is also today."

@@ -5156,8 +5156,28 @@ sorts last rather than vanishing: absence of evidence rules nothing out."
     (maphash
      (lambda (id file)
        (when (member (file-truename file) allowed)
-         (let* ((info (ignore-errors
-                        (org-with-point-at (org-id-find id 'marker)
+         (let* ((marker (ignore-errors (org-id-find id 'marker)))
+                ;; `org-with-point-at' does NOT switch buffers when handed
+                ;; nil: its expansion calls `set-buffer' only under
+                ;; `(markerp ...)', then falls through to
+                ;; `(goto-char (or nil (point)))'. So a nil marker means
+                ;; the body runs in whatever buffer happens to be current
+                ;; -- during a review pass, `*org-review*' -- where
+                ;; `org-get-heading'/`org-entry-get' go through org-element
+                ;; and warn "cannot be used in non-Org buffer". Measured
+                ;; 2026-08-17: 45 such warnings in one pass, from 22 of 151
+                ;; registered IDs that no longer resolved (TODO.org :ID:
+                ;; 09230b93). Confirmed by macroexpanding it live, not read
+                ;; off the docstring.
+                ;;
+                ;; Staleness cannot be prevented from inside this module --
+                ;; a deleted heading, a git checkout, another session's
+                ;; apply -- so tolerating nil here is the fix, not an
+                ;; accompaniment to one. `--review-current-state' already
+                ;; guards this way; this is the same shape.
+                (info (and marker
+                           (ignore-errors
+                        (org-with-point-at marker
                           (list :title (org-no-properties
                                         (org-get-heading t t t t))
                                 :state (org-get-todo-state)
@@ -5174,7 +5194,7 @@ sorts last rather than vanishing: absence of evidence rules nothing out."
                                            (and raw (ignore-errors
                                                       (claude-code-ide-org--parse-org-timestamp
                                                        raw))))
-                                :range (claude-code-ide-org--heading-activity-range)))))
+                                :range (claude-code-ide-org--heading-activity-range))))))
                 (title (plist-get info :title))
                 (created (plist-get info :created))
                 (range (plist-get info :range))
