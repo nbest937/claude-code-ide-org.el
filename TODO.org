@@ -1750,7 +1750,6 @@ tools inherit the same narrowing through
 well beyond =org_outline=. Nothing observed, nothing checked — the
 sweep belongs in its own pass rather than smuggled into a one-form fix.
 
-
 * Clock lifecycle & visibility
 
 Everything here is specifically about the clock subsystem's
@@ -8007,6 +8006,42 @@ epic becomes closeable — which is what
 on. The split itself is for a plainer reason: this is three passes with
 three plans, and a heading carries one plan link.
 
+*Still owed, audited 2026-08-17.* Recorded here because
+[[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]] named this heading
+as where its consequence lands, and the consequence has not landed.
+Every item below was checked against the live files, not recalled.
+
+1. *The container exception is undocumented.* ab75d6d2 concluded that
+   "any transition to =DOING= or =PLANNING= must open a clock" needs a
+   stated exception for container headings, and said it belonged with
+   this rewrite rather than as a separate edit. CLAUDE.md still lists
+   exactly one exception there, =PLANNING= -> =DOING=.
+
+2. *The passage this body already called "concretely wrong" is still
+   there, verbatim.* "Session tracking" still describes =:LOGBOOK:= CLOCK
+   entries as tracking active Claude work time, paused when Claude stops
+   and resumed on the next prompt. No hook has written a CLOCK entry
+   since the cutover. This was predicted here on 2026-08-10 and survived
+   the rewrite anyway — worth noting as evidence that naming a defect in
+   a heading body does not by itself get it fixed.
+
+3. *The org skill's state-transition table still describes the
+   live-driving model.* Its rules say a transition to =DOING= "always
+   opens a new CLOCK entry", with no mention of queueing — where
+   CLAUDE.md's equivalent table now carries a preamble stating that the
+   side effect is the call you must make, not something that happens to
+   the file.
+
+4. *The NEXT-nomination rule taken on as scope 2026-08-11 is absent from
+   the org skill*, both halves of it.
+
+*Not blocked.* All three =:BLOCKER:= IDs — 7771fc63, e51d6ba1, c084553c
+— reached =DONE= on 2026-08-14. This heading is unfinished because it is
+a multi-part rewrite being consumed in pieces, with individual edits
+landing under it as they come up (today's "confirm emacs-tools is
+reachable" rule among them), not because it is waiting on anything.
+
+
 *** DONE Correct CLAUDE.md's account of the queue architecture :code:
 :PROPERTIES:
 :ID:       43d317e8-f2b6-4ce2-9634-64e9bda83efe
@@ -8138,6 +8173,121 @@ session to verify, not an assertion that it works.
 
 The documented target is under 200 lines. CLAUDE.md is 640. This may
 still close as won't-do.
+
+*** TODO CLAUDE.md's "Session tracking" still describes the pre-cutover clock :code:
+:PROPERTIES:
+:ID:       d39f5f0d-bee3-4aa4-8494-0bddd07e9067
+:CREATED:  [2026-08-17 Mon 13:43]
+:END:
+
+"Session tracking" still describes =:LOGBOOK:= CLOCK entries as tracking
+"active Claude work time only", paused the moment Claude Code stops and
+resumed when the user sends the next prompt. No hook has written a CLOCK
+entry since the 2026-08-11 cutover — =session-pause= and
+=session-resume= append guideposts and nothing else. The section
+documents the mechanism this refactor removed.
+
+*Split out of this parent's body rather than moved from it.* The defect
+was named there on 2026-08-10, then survived three days and a full
+rewrite of the file it describes. That is the evidence for making it a
+heading: a paragraph 400 lines into a parent body is invisible to
+=org_outline=, =org_query=, the agenda and the NEXT triggers. The
+original paragraph stays put — it is dated provenance, and CLAUDE.md
+forbids trimming bodies written before 2026-08-14.
+
+*Done when* the section describes guideposts and review-confirmed
+intervals in the vocabulary this parent settled on 2026-08-10: the
+emission stays per-turn, the record stops being per-turn.
+
+*Verify:* =grep -n -A8 '^## Session tracking' CLAUDE.md= shows no claim
+that any hook pauses or resumes a clock.
+
+*** TODO The org skill's state-transition table still describes live clock driving :code:
+:PROPERTIES:
+:ID:       d2efca5e-3a18-4b0d-90b6-2b84c17a0549
+:CREATED:  [2026-08-17 Mon 13:43]
+:END:
+
+=.claude/skills/org/SKILL.md= carries a transition table whose rules say
+that transitioning *to* =DOING= "always opens a new CLOCK entry (with
+start timestamp, no end yet)" and out of it "always closes the open
+CLOCK". That is the live-driving model. CLAUDE.md's equivalent table was
+already corrected and now carries a preamble stating that the side
+effect is the call you must make, not something that happens to the
+file. The skill got no such preamble.
+
+*Why this copy matters more than CLAUDE.md's did.* The skill is
+auto-discovered and triggers on =.org= work generally, and once
+[[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] lands it is meant
+to travel to other repos — so a stale table here misleads further than
+one in this project's own CLAUDE.md ever could.
+
+*Done when* the rules name the queue, or the table is replaced by a
+pointer to CLAUDE.md's.
+
+*Verify:* =grep -n 'always opens a new CLOCK' .claude/skills/org/SKILL.md=
+returns nothing.
+
+*** TODO CLAUDE.md's open-a-clock rule is missing the container exception :code:
+:PROPERTIES:
+:ID:       517a4290-4c66-43e7-b42e-dad7167b9c41
+:CREATED:  [2026-08-17 Mon 13:43]
+:END:
+
+[[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]] shipped an
+exemption — =claude-code-ide-org--trigger-auto-clock-in= skips headings
+with TODO-keyword descendants — because clocking a container does not
+*produce* a roll-up. Org's =:maxlevel= already rolls children up, so a
+parent's own time is additive *inside* that same total and cannot be
+told apart from the children's sum once summed. That heading concluded
+the rule needed a stated exception in CLAUDE.md, and assigned the edit
+here rather than to itself.
+
+CLAUDE.md still lists exactly one exception to "any transition *to*
+=DOING= or =PLANNING= must open a clock": =PLANNING= -> =DOING=.
+
+*Scope correction, measured 2026-08-17 — the wording must not just say
+"containers are exempt".* =--review-apply-item= binds
+=--auto-clock-in-active= around the whole apply, and that test precedes
+the container test in the hook, so on the apply path the hook
+short-circuits for *every* heading, container or leaf. The container
+exemption does its work in exactly one place: a TODO state changed by
+hand in Emacs.
+
+*Done when* the rule states both the exception and that hand-edit scope.
+
+*Verify:* =grep -n -i container CLAUDE.md= finds it in the transition
+rules, not only in the epic definition.
+
+*** TODO The NEXT-nomination rule was taken on as scope and never written :code:
+:PROPERTIES:
+:ID:       dd2399c0-52e2-463d-9423-e7d7a08f3b12
+:CREATED:  [2026-08-17 Mon 13:43]
+:END:
+
+Requested by the user 2026-08-11 and recorded in this parent's body as
+two halves: every transition *to* =DONE= should nominate a =NEXT= when
+clear candidates exist, and an obvious =NEXT= whose blockers live in a
+*different subtree* should have those blockers called out. Neither is in
+=.claude/skills/org/SKILL.md=.
+
+*It completes an invariant rather than adding a nicety.* This repo
+already enforces *at most* one =NEXT= per level mechanically, via
+=--trigger-auto-promote-sole-todo=. Part 1 supplies *at least* one, for
+the case no trigger can decide — several candidates, requiring
+judgement. Together they give exactly one, which is GTD's actual
+invariant: a live project always has a next action, and a project
+without one is the canonical defect a weekly review exists to catch.
+
+*Open question it inherits:* whether it belongs in the org skill or in
+CLAUDE.md. It is a way of working rather than an org-file convention,
+which is exactly the placement question
+[[id:befaed0a-18ed-445e-b997-8b9c2965ad45][befaed0a]] is deciding.
+
+*Done when* both halves are written, wherever placement lands.
+
+*Verify:* =grep -n -i nominat .claude/skills/org/SKILL.md CLAUDE.md=
+returns the rule.
 
 ** TODO Decouple live "what is Claude attending to" visibility from the authoritative org clock :code:
 :PROPERTIES:
@@ -9642,6 +9792,216 @@ Overlap collapses to zero either way, so a heading clocked for one minute
 inside the span ties with one clocked throughout it. No evidence yet that
 this matters; recorded rather than guessed at.
 
+** TODO Stop treating an =:ID:= as guaranteed to resolve :code:
+:PROPERTIES:
+:ID:       23a75720-d1d3-496f-8dad-41571ad30440
+:CREATED:  [2026-08-17 Mon 12:40]
+:END:
+
+Every =:ID:=-keyed path in this module assumes =org-id-find= returns a
+marker. Measured 2026-08-17: 22 of 151 registered IDs did not resolve,
+and the assumption failed silently in three ways at once — 45
+org-element warnings raised against =*org-review*=, candidate headings
+dropped from the assignment prompt with no message, and an error string
+rendered as a review-buffer group heading.
+
+*Why the children are one piece of work rather than three coincidences.*
+They are cause, tolerance and visibility, and each is incomplete alone:
+
+- [[id:89bf8663-dec9-4aee-a95b-4e7be04c6b95][89bf8663]] removes a cause
+  this project owns. It cannot help against staleness arriving from git
+  operations, hand edits, or another session applying its queue.
+- [[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]] makes the code
+  behave correctly when resolution fails — required *precisely because*
+  the causes above are unreachable from here, so freshness can never be
+  an invariant.
+- [[id:8e969114-0982-4c39-9258-3b25a5425e09][8e969114]] makes the
+  failures observable, so a regression in either of the others is
+  noticed rather than absorbed.
+
+Fixing any one alone leaves the silent-failure mode intact, which is the
+entire complaint.
+
+*Discovered together 2026-08-17*, from one symptom reported as "multiple
+warnings in the minibuffer" during a review pass. That shared provenance
+is not the argument for grouping them — the mutual incompleteness above
+is — but it is why they arrived at once.
+
+*Not an argument for rebuilding the ID index automatically.* A full
+=org-id-update-id-locations= scans 12 files including a 665 KB TODO.org,
+and still cannot cover the causes this module never sees. 89bf8663
+carries the measurement and the targeted alternative.
+
+*** TODO org_archive leaves org-id-locations pointing at the old file :code:
+:PROPERTIES:
+:ID:       89bf8663-dec9-4aee-a95b-4e7be04c6b95
+:CREATED:  [2026-08-17 Mon 12:21]
+:END:
+
+=claude-code-ide-org-archive= calls =org-archive-subtree= and saves,
+never re-pointing the moved heading's ID. The location map still names
+TODO.org while the heading now lives in DONE.org, so =org-id-find=
+returns nil for it — one of this project's own contributions to the stale
+IDs behind
+[[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]]. =org_refile= has
+the same gap whenever it crosses files.
+
+The fix is not a rescan. =org-id-add-location= is O(1) and is already the
+idiom at two other call sites in =config.el=, so this is reusing what is
+there rather than adding a mechanism. One wrinkle: =org-archive-subtree=
+moves the whole subtree, so children carrying their own =:ID:= move too —
+the IDs have to be collected *before* the move, not just the one passed
+in.
+
+=org-id-update-id-locations= does take =(&optional files silent)=, so a
+two-file scoped rescan is the fallback if the subtree walk proves
+awkward. Measured 2026-08-17: a full rebuild scans 12 files — agenda
+files plus =org-id-extra-files= and archives — including a 665 KB
+TODO.org, which is far too heavy to fire automatically on any hot path.
+That measurement is the reason this is a targeted re-point rather than an
+automatic =org-id-update-id-locations= call somewhere.
+
+
+*** TODO =org-with-point-at= on a nil marker runs its body in the wrong buffer :code:
+:PROPERTIES:
+:ID:       09230b93-b869-44b7-91ef-abd869d4eade
+:CREATED:  [2026-08-17 Mon 12:21]
+:END:
+
+=claude-code-ide-org--assign-candidates= resolves each candidate with
+=(org-with-point-at (org-id-find id 'marker) ...)=. When =org-id-find=
+returns nil the macro does *not* switch buffers: its expansion calls
+=set-buffer= only under =(markerp ...)=, then falls through to
+=(goto-char (or nil (point)))=. Confirmed by macroexpanding it in the
+live Emacs (org 9.8.7) rather than from memory.
+
+The body therefore runs in whatever buffer was current — during a review
+pass that is =*org-review*= — and =org-get-heading= / =org-entry-get=
+route through org-element there, which is what emits "=org-element-at-point=
+cannot be used in non-Org buffer". Measured 2026-08-17: 45 such warnings
+in one pass, against 22 of 151 IDs in =org-id-locations= that no longer
+resolve.
+
+The whole form sits inside =ignore-errors=, so the failure is silent —
+those headings are dropped from the assignment candidate list with no
+message. That is the same harm
+[[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]] was filed against,
+candidates excluded for a reason the human never sees, reached by a
+different route.
+
+Fix is a guard matching the idiom
+=claude-code-ide-org--review-current-state= already uses: resolve the
+marker first, enter =org-with-point-at= only when it is non-nil.
+
+*Not solved by rebuilding the ID index.* Staleness also arrives from git
+operations, hand edits, and other sessions applying their queues, none of
+which this module can hook. Freshness is not achievable here, so
+tolerating nil is required regardless of what else is done.
+
+*** MAYBE Surface the count of unresolvable =:ID:=s when the review buffer opens :code:
+:PROPERTIES:
+:ID:       8e969114-0982-4c39-9258-3b25a5425e09
+:CREATED:  [2026-08-17 Mon 12:21]
+:END:
+
+Stale IDs are invisible today: they emit org-element warnings into
+=*Warnings*=, silently shrink the assignment candidate list, and nothing
+in the review buffer says so. A count reported when the pass opens turns
+that into something actionable — and, unlike an automatic index rebuild,
+does not hide a defect like
+[[id:89bf8663-dec9-4aee-a95b-4e7be04c6b95][89bf8663]] behind a cleanup
+that makes it look fixed.
+
+Surfacing is preferred to auto-repair for that reason: an automatic
+rebuild would have kept the archive bug invisible indefinitely, since its
+only symptom is staleness that something else quietly corrects.
+
+MAYBE rather than TODO because the cost is unmeasured: it means one
+=org-id-find= per registered ID at open time, 151 of them on 2026-08-17.
+Worth measuring before committing to it.
+
+
+** TODO The assignment dialog's proximity ranking is discarded by Vertico :code:
+:PROPERTIES:
+:ID:       85702dba-8d15-4924-84bd-2bb7efac093a
+:CREATED:  [2026-08-17 Mon 12:21]
+:END:
+
+=claude-code-ide-org--assign-candidates= sorts candidates best-first — gap
+to the span, then DONE/CANCELLED last, then creation recency — and
+=claude-code-ide-org-review-assign= hands the result to =completing-read=
+as a bare alist. An alist carries no completion metadata, so Vertico
+applies its own =vertico-sort-function=, measured 2026-08-17 as
+=vertico-sort-history-length-alpha=: history, then string *length*, then
+alphabetical.
+
+Title length has no relation to relevance, so an old DONE heading with a
+terse title outranks this morning's work. The list is not unranked; it is
+ranked on the wrong key, and the =[DONE]= marker and activity range
+already built into the display strings are the only surviving signal.
+With =vertico-count= at 17 the ordering decides what is seen at all.
+
+Fix: pass a collection *function* returning =(metadata
+(display-sort-function . identity) (cycle-sort-function . identity))=,
+which Vertico honours over its own sort.
+
+*Deliberately not a cutoff*, though "too many suggestions" invites one.
+Excluding old or DONE candidates is exactly what
+[[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]] was filed against.
+Ordering gets the same practical result with no cliff, since everything
+stays reachable by typing.
+
+** TODO Lead review buffer group headings with the =:ID:= prefix :code:
+:PROPERTIES:
+:ID:       c2132d3f-dd78-4498-ba87-0ca814dc2f77
+:CREATED:  [2026-08-17 Mon 12:21]
+:END:
+
+The review buffer groups items under a heading title alone, so acting on
+a line means looking its ID up elsewhere — and this project's own
+convention cites 8-character prefixes in prose.
+
+*Prefix first, not trailing*, mirroring the way responses footnote a
+heading: the prefix leads, the title follows. Requested 2026-08-17 on
+seeing the trailing form proposed.
+
+: 09230b93  =org-with-point-at= on a nil marker runs its body in the wrong buffer
+:   [ ] state   TODO -> NEXT   08-17 12:21
+: 85702dba  The assignment dialog's proximity ranking is discarded by Vertico
+:   [ ] clock   12:08--12:11
+
+The reason is alignment, and it is why this is not merely a taste call.
+=claude-code-ide-org--short-id= returns exactly 8 characters for any real
+UUID, so leading with it puts every ID in a fixed column and the titles
+in a second one. A trailing ={id}= can never line up, because title
+lengths vary — which is precisely what makes a trailing form hard to scan
+in a buffer whose whole job is to be scanned.
+
+*Open, and deliberately not settled here:* the assignment dialog
+(=claude-code-ide-org-review-assign=) renders the trailing ={95087d8f}=
+form. Either it diverges from the review buffer, or it leads too. Leading
+in both is the obvious guess — it gains the same column alignment against
+=vertico-count= of 17, and orderless matches a typed prefix wherever it
+sits — but the two surfaces are used differently, one typed at and one
+read, so this is worth deciding rather than assuming.
+
+*It also fixes a rendering bug.* The group heading comes from a =cond=
+clause of the form =((claude-code-ide-org--at-id ...))=, whose value is
+its own test. =--at-id= *returns* the string "Error: no org heading found
+with :ID: ..." rather than signalling, so an unresolvable ID renders that
+error message as the group heading, and the =(t last-id)= fallback beneath
+it is unreachable. Resolving through =org-id-find= directly removes the
+error-string sniffing and cannot fall into
+[[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]]'s nil-marker trap.
+
+*It also fixes a rendering bug.* The group heading comes from a =cond=
+clause of the form =((claude-code-ide-org--at-id ...))=, whose value is
+its own test. =--at-id= *returns* the string "Error: no org heading found
+with :ID: ..." rather than signalling, so an unresolvable ID renders that
+error message as the group heading, and the =(t last-id)= fallback beneath
+it is unreachable. Resolving through =org-id-find= directly removes the
+error-string sniffing and cannot fall into
+[[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]]'s nil-marker trap.
 
 * Observability
 
