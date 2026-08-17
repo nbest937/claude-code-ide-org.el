@@ -9861,6 +9861,43 @@ TODO.org, which is far too heavy to fire automatically on any hot path.
 That measurement is the reason this is a targeted re-point rather than an
 automatic =org-id-update-id-locations= call somewhere.
 
+*CANCELLED 2026-08-17 — the premise is false. Org already does this.*
+
+=org-archive-subtree= inserts the moved subtree with =org-paste-subtree=
+\(=org-archive.el:391=), =org-paste-subtree= calls
+=org-id-paste-tracker= \(=org.el:7562=), and that scans the pasted text
+for every =:ID:= line and calls =org-id-add-location= for each, pointing
+at the *destination* file \(=org-id.el:693-707=). So an archived
+subtree's IDs — parent and children alike — are re-pointed by org
+itself, with no help from this project.
+
+*How it was caught, which is the part worth keeping.* The fix was written
+and the suite went green, 288/288. Stashing the fix and re-running left
+the new test *still passing* — it could not distinguish a fixed
+=org_archive= from an unfixed one, because there was nothing to
+distinguish. Without that step this would have shipped as a fix for a
+defect that never existed, with a test standing behind it.
+
+*Consequence for the parent
+[[id:23a75720-d1d3-496f-8dad-41571ad30440][23a75720]]: its argument gets
+stronger, not weaker.* This was filed as the "cause this project owns".
+It turns out this project owns no cause. Every remaining route to a stale
+entry — a heading deleted outright, a git checkout or merge rewriting the
+file wholesale, another session applying its queue — is unreachable from
+inside this module. Freshness therefore cannot be made an invariant here
+by any amount of local bookkeeping, which is precisely why
+[[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]]'s tolerance of a
+nil marker is mandatory rather than defensive.
+
+*What the 22 unresolvable IDs actually were is still unknown*, and should
+not be guessed at again. The likeliest reading is that they are IDs whose
+headings no longer exist anywhere — deleted, or lost when a merge
+rewrote TODO.org — rather than IDs pointing at the wrong file. Those two
+look identical through =org-id-find= and are not the same defect.
+[[id:8e969114-0982-4c39-9258-3b25a5425e09][8e969114]] would tell them
+apart, which is an argument for it.
+
+
 
 *** TODO =org-with-point-at= on a nil marker runs its body in the wrong buffer :code:
 :PROPERTIES:
