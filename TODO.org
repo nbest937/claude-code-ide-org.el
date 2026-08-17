@@ -1,7 +1,7 @@
 #+TODO: TODO(t!) NEXT(n!) PLANNING(p!) DOING(d!) REVIEW(r!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
-#+STARTUP: logdrawer
+#+STARTUP: logdrawer logdone
 
 * Skill logic
 :PROPERTIES:
@@ -1266,6 +1266,8 @@ CLOCK: [2026-08-14 Fri 17:44]--[2026-08-14 Fri 20:08] =>  2:24
 CLOCK: [2026-08-14 Fri 19:44]--[2026-08-14 Fri 19:59] =>  0:15
 - State "DOING"      from "PLANNING"   [2026-08-14 Fri 20:11] \\
   epic opened, children written
+CLOCK: [2026-08-17 Mon 15:22]--[2026-08-17 Mon 15:28] =>  0:06
+- [2026-08-17 Mon 15:22]--[2026-08-17 Mon 15:28] assigned at review
 :END:
 
 [[file:~/.claude/plans/nested-gathering-wozniak.md][Plan]]
@@ -3317,6 +3319,70 @@ normalised project slug. Raw =cwd= is honest and free but varies with
 worktrees — this repo already uses git worktrees for parallel work
 (DONE.org's worktree entries), so two paths can mean one project. A slug
 would need a normalisation rule, which is a decision rather than a field.
+
+** REVIEW Record completion time as a =CLOSED:= line, not only a state-change entry :code:
+:PROPERTIES:
+:ID:       11236fce-7ded-471a-a2a9-4e32671ab1d7
+:CREATED:  [2026-08-17 Mon 18:24]
+:END:
+
+=#+STARTUP: logdrawer logdone= on TODO.org line 4, so entering =DONE=
+writes =CLOSED: [ts]= directly under the headline in addition to the
+=- State "DONE"= line the =DONE(D!)= cookie already produces.
+
+*This adds no data. It adds an accessor that cannot be misused.* The
+timestamp was always recorded; reading it meant scanning =:LOGBOOK:= text
+and remembering to stop at the heading's first child. With =CLOSED:= it is
+=(org-entry-get nil "CLOSED")= — one call, no scan, no scope to get wrong.
+
+*The evidence is a bug this repo shipped and caught by luck.* The archive
+sweep's manifest dated =b5f7c5c7= from one of its 31 children —
+=2026-08-13 16:08= instead of its own =2026-08-15 19:02= — because the
+state-line scan covered the whole subtree. It surfaced only because the
+tier values were cross-checked against =:CREATED:= and last clock-out. A
+property read has no subtree to walk and could not have produced it.
+
+*Why =#+STARTUP:= rather than =(setq org-log-done 'time)= in the Doom
+config.* The Doom config is not in this repository. Setting it there makes
+this file's records depend on unversioned local state — the same shape as
+=core.hooksPath=, which CLAUDE.md already flags as silently absent in a
+fresh clone. A clone would stop recording =CLOSED:= with nothing to say
+why, and the convention would not travel to other repos, which
+[[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] cares about.
+Verified buffer-local: with =logdone= the buffer reads =time= while the
+global default stays =nil=.
+
+*Precedent, in this repo, for exactly this choice.*
+[[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]] records that
+=:LOG_INTO_DRAWER:= was blocked by the level-1 property rule, "which is why
+that fix went to =#+STARTUP:= instead". =logdone= sits beside =logdrawer=
+on the same line.
+
+*Not backfilling DONE.org, decided 2026-08-17.* The 41 swept headings'
+completion times are already recorded in
+[[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]]'s manifest *with
+their tier labels* — T1 from org's own log line, T2 from git archaeology,
+and 22 legacy entries with no completion time at all. A =CLOSED:= line
+looks identical whichever tier produced it, so backfilling would flatten
+that distinction and write an inference in the notation reserved for
+observation. Same objection as
+[[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]: a plausible
+suggestion is harder to reject than none. The 28 T1 entries are the only
+losslessly backfillable slice, and nothing reads =CLOSED:= yet to justify
+even those.
+
+*REVIEW rather than DONE* because the file edit is verifiable on disk but
+its effect is not: =#+STARTUP:= is read at mode initialisation, so the
+already-open buffer keeps =org-log-done= at nil until =M-x org-mode= is
+re-run. Confirmed nil in the live buffer immediately after the edit. The
+user is evaluating that step. Using REVIEW here is also a datapoint for
+[[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]], which is deciding
+whether the keyword earns its keep.
+
+*Does not backfill and does not apply retroactively.* Everything already
+archived keeps only its state-change line.
+
+
 * Bigger swings
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Bigger swings
@@ -3952,7 +4018,7 @@ So the wrapper fix above should cover
 failed attempt marked nothing applied and the retry was clean -- no
 double-application, no half-applied batch. Whatever the fix, do not
 regress that.
-** PLANNING Archive the DONE backlog once the queue epic lands, then judge the structure question :code:
+** DOING Archive the DONE backlog once the queue epic lands, then judge the structure question :code:
 :PROPERTIES:
 :ID:       38b92521-bba4-4bb5-9cd9-465862471a72
 :CREATED:  [2026-08-12 Wed 14:06]
@@ -3960,7 +4026,15 @@ regress that.
 :END:
 :LOGBOOK:
 - State "PLANNING"   from "TODO"       [2026-08-17 Mon 15:28]
-CLOCK: [2026-08-17 Mon 15:28]
+CLOCK: [2026-08-17 Mon 15:28]--[2026-08-17 Mon 18:20] =>  2:52
+CLOCK: [2026-08-17 Mon 16:37]--[2026-08-17 Mon 16:49] =>  0:12
+- [2026-08-17 Mon 16:37]--[2026-08-17 Mon 16:49] assigned at review
+- State "DOING"      from "PLANNING"   [2026-08-17 Mon 16:50] \\
+  plan approved, starting the sweep
+CLOCK: [2026-08-17 Mon 17:17]--[2026-08-17 Mon 17:46] =>  0:29
+- [2026-08-17 Mon 17:17]--[2026-08-17 Mon 17:46] suggested span, accepted at review
+CLOCK: [2026-08-17 Mon 18:06]--[2026-08-17 Mon 18:08] =>  0:02
+- [2026-08-17 Mon 18:06]--[2026-08-17 Mon 18:08] suggested span, accepted at review
 :END:
 
 Raised by the user 2026-08-12: nothing has been archived in quite some
