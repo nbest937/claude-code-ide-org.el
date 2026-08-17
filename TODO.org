@@ -8152,6 +8152,8 @@ CLOCK: [2026-08-17 Mon 12:08]--[2026-08-17 Mon 12:13] =>  0:05
 - [2026-08-17 Mon 12:08]--[2026-08-17 Mon 12:13] suggested span, accepted at review
 CLOCK: [2026-08-17 Mon 12:14]--[2026-08-17 Mon 13:13] =>  0:59
 - [2026-08-17 Mon 12:14]--[2026-08-17 Mon 13:13] assigned at review
+CLOCK: [2026-08-17 Mon 15:07]--[2026-08-17 Mon 15:11] =>  0:04
+- [2026-08-17 Mon 15:07]--[2026-08-17 Mon 15:11] assigned at review
 :END:
 
 Blocked on both siblings deliberately: the decision takes the resulting
