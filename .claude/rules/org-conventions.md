@@ -73,10 +73,13 @@ Two consequences worth knowing:
   DONE.org heading in the same edit.** The target is matched as a literal
   string, and a mismatch does not error — org silently appends a second,
   near-identical category heading at the end of the file.
-- **Archive at level 2 only.** Archiving a level-3 heading directly lands it
-  at level 2 under the category, severed from its parent, with only
-  `:ARCHIVE_OLPATH:` recording where it came from. Archiving its level-2
-  parent takes it along and keeps the nesting.
+- **Don't archive a child directly unless you are promoting it to a sibling
+  in the same move, explicitly.** Archiving a level-3 heading lands it at
+  level 2 under the category — a sibling of its former parent — with only
+  `:ARCHIVE_OLPATH:` recording where it came from. That promotion is a real
+  decision and sometimes the right one, so it isn't forbidden; what's
+  forbidden is arriving at it by accident. Archiving the level-2 parent
+  takes the child along and keeps the nesting, which is the default.
 
 Actual tracked work lives as their level-2+ children, each with its own
 `:ID:`. Don't put a `TODO`/`NEXT`/etc. keyword on a top-level heading — if

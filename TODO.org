@@ -4243,6 +4243,62 @@ with nothing downstream to notice.
 | 40 | 2026-08-17 14:19 | T1 | c2132d3f | Clock lifecycle & visibility | Lead review buffer group headings with the =:ID:=... |
 | 41 | 2026-08-17 15:01 | T1 | 23a75720 | Clock lifecycle & visibility | Stop treating an =:ID:= as guaranteed to resolve ... (3 children) |
 
+-----
+
+*The structure question, judged 2026-08-17 — the second half of this
+heading.* Keep the hierarchy. Keep the categories. Rebalance nothing.
+
+*The premise largely dissolved rather than being answered.* This was raised
+because TODO.org was unwieldy at 12,927 lines. It is 4,645 now, and 84% of
+what remains is live work rather than finished work. That is a legitimate
+outcome for a question deliberately deferred until there was evidence: the
+pass was supposed to inform the judgement, and what it showed is that the
+pressure motivating it is mostly gone.
+
+*Depth stays.* Eight level-3 children remain, seven of them under one
+heading, against 34 that archived today. Vestigial by count — but the count
+is low *because archiving works*: epics finish and leave. Removing the
+capability because it is currently underused would delete a mechanism
+several shipped features depend on, notably
+=claude-code-ide-org--container-heading-p= and the auto-clock-in exemption
+[[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]] built on it, and
+would forbid outright what
+[[id:b5f94b88-76e3-4a3c-ac73-729f34d33691][b5f94b88]] argues should be
+allowed to emerge.
+
+*Categories stay, and flattening them got more expensive today.* The
+original hot take was to flatten the source. DONE.org's mirroring now
+depends on level-1 headings carrying =:ARCHIVE:=; remove the categories and
+archive routing dies, back to a flat =* Done= or a new mechanism. Worth
+recording for whoever asks again: the answer to this question changed as a
+side effect of the same pass that was meant to inform it.
+
+*Imbalance measured and accepted, not fixed.*
+
+| category                     | tasks | children | lines |
+|------------------------------+-------+----------+-------|
+| Clock lifecycle & visibility |    18 |        7 |  2011 |
+| Tooling                      |    10 |        0 |   936 |
+| Skill logic                  |     8 |        0 |   707 |
+| Observability                |     6 |        0 |   667 |
+| Bigger swings                |     4 |        0 |   327 |
+| Documentation                |     2 |        0 |   101 |
+| Upstream (claude-code-ide.el)|     1 |        1 |    41 |
+
+Clock lifecycle is 43% of the file. Splitting it was considered and
+rejected: the imbalance reflects where the work has been for two weeks, not
+bad structure, and equalising line counts optimises the wrong thing. It
+would also cost a rename of a category's =:ARCHIVE:= and its DONE.org
+heading in the same edit, which is the silent-duplicate hazard now
+documented in =.claude/rules/org-conventions.md=.
+
+*One convention tightened in the same breath, from the user:* a child
+should not be archived directly *unless it is being promoted to a sibling
+explicitly in the same move*. The earlier wording here was a blanket
+"archive at level 2 only", which forbade a legitimate deliberate act along
+with the accidental one. Recorded in =org-conventions.md=.
+
+
 
 
 ** TODO Read a heading's front matter, and take a partial :ID:, without a whole-body read :code:
