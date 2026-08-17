@@ -9794,7 +9794,7 @@ Overlap collapses to zero either way, so a heading clocked for one minute
 inside the span ties with one clocked throughout it. No evidence yet that
 this matters; recorded rather than guessed at.
 
-** TODO Stop treating an =:ID:= as guaranteed to resolve :code:
+** DONE Stop treating an =:ID:= as guaranteed to resolve :code:
 :PROPERTIES:
 :ID:       23a75720-d1d3-496f-8dad-41571ad30440
 :CREATED:  [2026-08-17 Mon 12:40]
@@ -9802,6 +9802,8 @@ this matters; recorded rather than guessed at.
 :LOGBOOK:
 CLOCK: [2026-08-17 Mon 13:42]--[2026-08-17 Mon 14:27] =>  0:45
 - [2026-08-17 Mon 13:42]--[2026-08-17 Mon 14:27] assigned at review
+- State "DONE"       from "TODO"       [2026-08-17 Mon 15:01] \\
+  two children shipped, one cancelled as false
 :END:
 
 Every =:ID:=-keyed path in this module assumes =org-id-find= returns a
@@ -9814,16 +9816,14 @@ rendered as a review-buffer group heading.
 *Why the children are one piece of work rather than three coincidences.*
 They are cause, tolerance and visibility, and each is incomplete alone:
 
-- [[id:89bf8663-dec9-4aee-a95b-4e7be04c6b95][89bf8663]] removes a cause
-  this project owns. It cannot help against staleness arriving from git
-  operations, hand edits, or another session applying its queue.
-- [[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]] makes the code
-  behave correctly when resolution fails — required *precisely because*
-  the causes above are unreachable from here, so freshness can never be
-  an invariant.
-- [[id:8e969114-0982-4c39-9258-3b25a5425e09][8e969114]] makes the
-  failures observable, so a regression in either of the others is
-  noticed rather than absorbed.
+- [[id:89bf8663-dec9-4aee-a95b-4e7be04c6b95][89bf8663]] removes a cause this project owns. It cannot help against staleness
+  arriving from git operations, hand edits, or another session applying its
+  queue.
+- [[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]] makes the code behave correctly when resolution fails — required
+  *precisely because* the causes above are unreachable from here, so freshness
+  can never be an invariant.
+- [[id:8e969114-0982-4c39-9258-3b25a5425e09][8e969114]] makes the failures observable, so a regression in either of the
+  others is noticed rather than absorbed.
 
 Fixing any one alone leaves the silent-failure mode intact, which is the
 entire complaint.
@@ -9843,21 +9843,22 @@ carries the measurement and the targeted alternative.
 *Outcome, 2026-08-17.*
 
 *What shipped.* Two of the three children.
-[[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]] guards the nil
-marker in =--assign-candidates=, so an unresolvable id no longer drags
-=org-get-heading=/=org-entry-get= into =*org-review*=.
-[[id:8e969114-0982-4c39-9258-3b25a5425e09][8e969114]] adds
-=--id-health=, which reports stale =org-id-locations= entries when the
+
+[[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]] guards the nil marker in =--assign-candidates=, so an unresolvable id
+no longer drags =org-get-heading=/=org-entry-get= into =*org-review*=. [[id:8e969114-0982-4c39-9258-3b25a5425e09][8e969114]]
+adds =--id-health=, which reports stale =org-id-locations= entries when the
 review buffer opens and on =g=, and stays silent when there are none.
+
 
 *What differed from the framing, and it is the substantive finding.*
 This heading was written as cause / tolerance / visibility.
+
 *There was no cause.*
-[[id:89bf8663-dec9-4aee-a95b-4e7be04c6b95][89bf8663]] — "org_archive
-leaves org-id-locations pointing at the old file" — is false:
-=org-archive-subtree= inserts via =org-paste-subtree=, which calls
-=org-id-paste-tracker=, which re-points every =:ID:= in the pasted text
-at the destination. Org has always done this. Cancelled.
+
+[[id:89bf8663-dec9-4aee-a95b-4e7be04c6b95][89bf8663]] — "org_archive leaves org-id-locations pointing at the old file" — is
+false: =org-archive-subtree= inserts via =org-paste-subtree=, which calls
+=org-id-paste-tracker=, which re-points every =:ID:= in the pasted text at the
+destination. Org has always done this. Cancelled.
 
 That strengthens the heading's argument rather than weakening it. Every
 remaining route to a stale entry — a heading deleted outright, a git
@@ -10007,10 +10008,22 @@ operations, hand edits, and other sessions applying their queues, none of
 which this module can hook. Freshness is not achievable here, so
 tolerating nil is required regardless of what else is done.
 
-*** MAYBE Surface the count of unresolvable =:ID:=s when the review buffer opens :code:
+*** DONE Surface the count of unresolvable =:ID:=s when the review buffer opens :code:
 :PROPERTIES:
 :ID:       8e969114-0982-4c39-9258-3b25a5425e09
 :CREATED:  [2026-08-17 Mon 12:21]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-17 Mon 14:56] \\
+  file-scan report shipped, reload verified
+- State "DOING"      from "NEXT"       [2026-08-17 Mon 14:53] \\
+  implement the file-scan id health report
+- State "NEXT"       from "DOING"      [2026-08-17 Mon 14:51] \\
+  cost measured cheap; ready to implement
+- State "DOING"      from "MAYBE"      [2026-08-17 Mon 14:49] \\
+  measure the open-time cost to decide
+CLOCK: [2026-08-17 Mon 14:49]--[2026-08-17 Mon 15:02] =>  0:13
+- [2026-08-17 Mon 14:49]--[2026-08-17 Mon 15:02] assigned at review
 :END:
 
 Stale IDs are invisible today: they emit org-element warnings into
