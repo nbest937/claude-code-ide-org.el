@@ -9838,6 +9838,58 @@ is — but it is why they arrived at once.
 and still cannot cover the causes this module never sees. 89bf8663
 carries the measurement and the targeted alternative.
 
+-----
+
+*Outcome, 2026-08-17.*
+
+*What shipped.* Two of the three children.
+[[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]] guards the nil
+marker in =--assign-candidates=, so an unresolvable id no longer drags
+=org-get-heading=/=org-entry-get= into =*org-review*=.
+[[id:8e969114-0982-4c39-9258-3b25a5425e09][8e969114]] adds
+=--id-health=, which reports stale =org-id-locations= entries when the
+review buffer opens and on =g=, and stays silent when there are none.
+
+*What differed from the framing, and it is the substantive finding.*
+This heading was written as cause / tolerance / visibility.
+*There was no cause.*
+[[id:89bf8663-dec9-4aee-a95b-4e7be04c6b95][89bf8663]] — "org_archive
+leaves org-id-locations pointing at the old file" — is false:
+=org-archive-subtree= inserts via =org-paste-subtree=, which calls
+=org-id-paste-tracker=, which re-points every =:ID:= in the pasted text
+at the destination. Org has always done this. Cancelled.
+
+That strengthens the heading's argument rather than weakening it. Every
+remaining route to a stale entry — a heading deleted outright, a git
+checkout or merge rewriting a file, another session applying its queue —
+is unreachable from inside this module. Freshness cannot be made an
+invariant here by any amount of local bookkeeping, so 09230b93's
+tolerance of a nil marker is *mandatory*, not defensive. The original
+framing had it as one mitigation among three.
+
+*Verified, not just implemented.* Every fix was stash-tested: the change
+reverted, the suite re-run, and the new test confirmed to *fail* without
+it. That is what caught 89bf8663 — its fix was written, the suite went
+green at 288/288, and stashing it left the new test still passing, which
+is only possible when there is nothing to detect. Without that step a fix
+for a non-existent defect would have shipped with a test standing behind
+it. Final suite 292/292, and =config.el= reloaded into the running Emacs
+and checked there rather than only on disk.
+
+*The measurement that resolved 8e969114's MAYBE.* Per-id =org-id-find=
+over every registered id: 161 ids, 0.218 s, and it *visits* four files as
+a side effect. Scanning each distinct file once for =:ID:= lines: 7
+files, 0.007--0.018 s, visiting nothing. The MAYBE was justified; it was
+attached to the wrong algorithm.
+
+*Unfinished, deliberately.* What the 22 unresolvable ids actually were is
+still unknown and now unknowable — =org-id-update-id-locations= was run
+by hand that morning and cleared them before anything could inspect
+them. =--id-health= separates "heading gone" from "in another file",
+which =org-id-find= cannot, so the question is answerable the next time
+it happens. It was not answered this time.
+
+
 *** CANCELLED org_archive leaves org-id-locations pointing at the old file :code:
 :PROPERTIES:
 :ID:       89bf8663-dec9-4aee-a95b-4e7be04c6b95
