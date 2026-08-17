@@ -11958,11 +11958,15 @@ So the wrapper fix above should cover
 failed attempt marked nothing applied and the retry was clean -- no
 double-application, no half-applied batch. Whatever the fix, do not
 regress that.
-** TODO Archive the DONE backlog once the queue epic lands, then judge the structure question :code:
+** PLANNING Archive the DONE backlog once the queue epic lands, then judge the structure question :code:
 :PROPERTIES:
 :ID:       38b92521-bba4-4bb5-9cd9-465862471a72
 :CREATED:  [2026-08-12 Wed 14:06]
 :BLOCKER:  ids(b5f7c5c7-7ad6-4c68-9cce-3479db1f1644)
+:END:
+:LOGBOOK:
+- State "PLANNING"   from "TODO"       [2026-08-17 Mon 15:59]
+CLOCK: [2026-08-17 Mon 15:59]
 :END:
 
 Raised by the user 2026-08-12: nothing has been archived in quite some
@@ -12090,6 +12094,13 @@ headings all sit under =* Done=. Adopting mirroring leaves a split
 archive unless DONE.org is reorganised retroactively — which is
 mechanical rather than a judgement call, since every entry already
 carries an =:ARCHIVE_OLPATH:= naming its source category.
+
+-----
+
+[[file:~/.claude/plans/parsed-stargazing-lynx.md][Plan]] — approved
+2026-08-17. Carries the sweep's mechanics and the ordering derivation; the
+41-row completion-time manifest lands in this body when the sweep runs.
+
 
 ** DONE Link or retire the four plans no heading references :code:
 :PROPERTIES:
