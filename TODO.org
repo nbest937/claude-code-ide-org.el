@@ -8090,7 +8090,7 @@ plan document, which carries this child's design as its second half rather
 than a file of its own.
 
 
-*** WAIT Decide whether CLAUDE.md needs a path-scoped =.claude/rules/= split :code:
+*** DOING Decide whether CLAUDE.md needs a path-scoped =.claude/rules/= split :code:
 :PROPERTIES:
 :ID:       befaed0a-18ed-445e-b997-8b9c2965ad45
 :BLOCKER:  ids(43d317e8-f2b6-4ce2-9634-64e9bda83efe c556a9ed-8e37-4fc3-ab4b-63292837236d)
@@ -8105,6 +8105,16 @@ CLOCK: [2026-08-15 Sat 08:28]--[2026-08-15 Sat 08:34] =>  0:06
   needs a fresh session to confirm loading
 - State "NEXT"       from "TODO"       [2026-08-15 Sat 17:11] \\
   Auto-promoted: sole remaining TODO in its sibling group.
+CLOCK: [2026-08-17 Mon 10:44]--[2026-08-17 Mon 10:51] =>  0:07
+- [2026-08-17 Mon 10:44]--[2026-08-17 Mon 10:51] assigned at review
+CLOCK: [2026-08-17 Mon 10:51]--[2026-08-17 Mon 10:56] =>  0:05
+- State "DOING"      from "WAIT"       [2026-08-17 Mon 10:51] \\
+  rule loading confirmed, deciding outcome
+- [2026-08-17 Mon 10:51]--[2026-08-17 Mon 10:56] weigh split outcome against size target
+CLOCK: [2026-08-17 Mon 11:00]--[2026-08-17 Mon 11:03] =>  0:03
+- [2026-08-17 Mon 11:00]--[2026-08-17 Mon 11:03] suggested span, accepted at review
+CLOCK: [2026-08-17 Mon 12:08]--[2026-08-17 Mon 12:13] =>  0:05
+- [2026-08-17 Mon 12:08]--[2026-08-17 Mon 12:13] suggested span, accepted at review
 :END:
 
 Blocked on both siblings deliberately: the decision takes the resulting
@@ -11964,7 +11974,7 @@ the narrower question of what it may *assume*. And
 [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]]'s README would be
 the natural place a stated minimum lands for a human reader.
 
-** NEXT Concurrent sessions share one git index, and explicit staging protects nothing :code:
+** TODO Concurrent sessions share one git index, and explicit staging protects nothing :code:
 :PROPERTIES:
 :ID:       2aeb65d6-350e-4c75-811e-4a748044fe2c
 :CREATED:  [2026-08-12 Wed 16:20]
@@ -11972,6 +11982,8 @@ the natural place a stated minimum lands for a human reader.
 :LOGBOOK:
 - State "NEXT"       from              [2026-08-12 Wed 16:22] \\
   user is blocked on this: no second session until a mechanism exists
+- State "TODO"       from "NEXT"       [2026-08-17 Mon 12:11] \\
+  Auto-demoted: superseded by sibling [[id:95087d8f-e16d-45d3-bdea-9b179dc672b4][Lint for headings that are valid org but structurally unintended]] becoming NEXT.
 :END:
 
 *This one actually happened, deliberately, as a resilience test.* On
@@ -12312,10 +12324,18 @@ inline bold at line start, the transition tables. Sorting real from
 quoted is the actual work, and the answer decides whether these become
 errors or stay warnings.
 
-** Lint for headings that are valid org but structurally unintended :code:
+** NEXT Lint for headings that are valid org but structurally unintended :code:
 :PROPERTIES:
 :ID:       95087d8f-e16d-45d3-bdea-9b179dc672b4
 :CREATED:  [2026-08-17 Mon 10:10]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-17 Mon 09:54]--[2026-08-17 Mon 10:05] =>  0:11
+- [2026-08-17 Mon 09:54]--[2026-08-17 Mon 10:05] assigned at review
+CLOCK: [2026-08-17 Mon 10:05]--[2026-08-17 Mon 10:51] =>  0:46
+- [2026-08-17 Mon 10:05]--[2026-08-17 Mon 10:51] assigned at review
+- State "NEXT"       from              [2026-08-17 Mon 10:11] \\
+  would have caught a 6462-line break
 :END:
 
 Two checks =bin/lint-org= does not have, both identified 2026-08-17 after
