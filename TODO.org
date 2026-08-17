@@ -12311,3 +12311,57 @@ these files quote org syntax in prose constantly — example blocks,
 inline bold at line start, the transition tables. Sorting real from
 quoted is the actual work, and the answer decides whether these become
 errors or stay warnings.
+
+** Lint for headings that are valid org but structurally unintended :code:
+:PROPERTIES:
+:ID:       95087d8f-e16d-45d3-bdea-9b179dc672b4
+:CREATED:  [2026-08-17 Mon 10:10]
+:END:
+
+Two checks =bin/lint-org= does not have, both identified 2026-08-17 after
+a single line of prose re-parented 6462 lines of TODO.org and survived
+two days, a full review-and-apply, and repeated clean lint runs.
+
+*The incident, stated once so the checks have something concrete to be
+tested against.* =* * *= was written into
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]'s closing summary
+as a horizontal rule -- the markdown idiom, reached for without thinking.
+In org a =*= at column 0 is a headline, so it became a *level-1 category
+titled "* *"* which swallowed lines 3174--9636: sixteen level-2 headings
+and the queue epic's thirty-four children, none of which belonged to it.
+
+*=lint-org= reported =0 errors= throughout, correctly.* The file was
+valid org the entire time. That is the whole point of these two checks:
+the existing suite asks whether the file parses and whether this
+project's conventions hold on the headings it finds, and neither question
+notices a heading that should not exist at all.
+
+*Check 1: a heading title that is punctuation only.* =* *= has no word
+characters. No real heading in either file does, and none plausibly
+would. Cheap, and it catches the exact shape that occurred -- at any
+level, not just level 1.
+
+*Check 2: a level-1 heading outside the file's known categories.*
+Stronger and more general: level-1 headings in TODO.org are categories,
+a small and slow-changing set, and one appearing mid-file is almost
+certainly an accident. Would have caught this even if the phantom had
+been named something word-like. Needs a decision about how the known set
+is expressed -- enumerated in the check, or inferred as "every level-1
+that existed at the last clean run", the latter being self-maintaining
+but only as trustworthy as the run that seeded it.
+
+*Where they go.* =claude-code-ide-org--lint-file= (config.el:5501) is
+where the per-file conventions are checked; =bin/lint-org= is the 84-line
+shell wrapper and needs no change. Per that script's own header, each
+check wants a fixture that violates it -- "a lint whose assertions have
+never been seen to fail proves nothing".
+
+*Filed as one heading covering both* because they are one change to one
+check suite, tested the same way, arising from one incident. Split them
+if either turns out to want its own design decision -- check 2 plausibly
+does, over how the known category set is defined.
+
+*Related but distinct:*
+[[id:8d682a5b-1b03-4744-995c-a871a8b40ddc][8d682a5b]] is about
+diagnosing org-lint's *existing* misplaced-heading reports; this is about
+adding checks org-lint has no opinion on.
