@@ -8150,6 +8150,8 @@ CLOCK: [2026-08-17 Mon 11:00]--[2026-08-17 Mon 11:03] =>  0:03
 - [2026-08-17 Mon 11:00]--[2026-08-17 Mon 11:03] suggested span, accepted at review
 CLOCK: [2026-08-17 Mon 12:08]--[2026-08-17 Mon 12:13] =>  0:05
 - [2026-08-17 Mon 12:08]--[2026-08-17 Mon 12:13] suggested span, accepted at review
+CLOCK: [2026-08-17 Mon 12:14]--[2026-08-17 Mon 13:13] =>  0:59
+- [2026-08-17 Mon 12:14]--[2026-08-17 Mon 13:13] assigned at review
 :END:
 
 Blocked on both siblings deliberately: the decision takes the resulting
@@ -9797,6 +9799,10 @@ this matters; recorded rather than guessed at.
 :ID:       23a75720-d1d3-496f-8dad-41571ad30440
 :CREATED:  [2026-08-17 Mon 12:40]
 :END:
+:LOGBOOK:
+CLOCK: [2026-08-17 Mon 13:42]--[2026-08-17 Mon 14:27] =>  0:45
+- [2026-08-17 Mon 13:42]--[2026-08-17 Mon 14:27] assigned at review
+:END:
 
 Every =:ID:=-keyed path in this module assumes =org-id-find= returns a
 marker. Measured 2026-08-17: 22 of 151 registered IDs did not resolve,
@@ -9832,10 +9838,16 @@ is — but it is why they arrived at once.
 and still cannot cover the causes this module never sees. 89bf8663
 carries the measurement and the targeted alternative.
 
-*** TODO org_archive leaves org-id-locations pointing at the old file :code:
+*** CANCELLED org_archive leaves org-id-locations pointing at the old file :code:
 :PROPERTIES:
 :ID:       89bf8663-dec9-4aee-a95b-4e7be04c6b95
 :CREATED:  [2026-08-17 Mon 12:21]
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "DOING"      [2026-08-17 Mon 14:12] \\
+  not a defect; org-paste-tracker handles it
+- State "DOING"      from "TODO"       [2026-08-17 Mon 14:09] \\
+  re-point moved IDs after archive
 :END:
 
 =claude-code-ide-org-archive= calls =org-archive-subtree= and saves,
@@ -9899,10 +9911,18 @@ apart, which is an argument for it.
 
 
 
-*** TODO =org-with-point-at= on a nil marker runs its body in the wrong buffer :code:
+*** DONE =org-with-point-at= on a nil marker runs its body in the wrong buffer :code:
 :PROPERTIES:
 :ID:       09230b93-b869-44b7-91ef-abd869d4eade
 :CREATED:  [2026-08-17 Mon 12:21]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-17 Mon 14:15] \\
+  guard shipped, test proven discriminating
+- State "DOING"      from "NEXT"       [2026-08-17 Mon 14:13] \\
+  guard the nil marker in assign-candidates
+- State "NEXT"       from "TODO"       [2026-08-17 Mon 14:52] \\
+  Auto-promoted: sole remaining TODO in its sibling group.
 :END:
 
 =claude-code-ide-org--assign-candidates= resolves each candidate with
@@ -9998,10 +10018,16 @@ its speed.
 
 
 
-** TODO The assignment dialog's proximity ranking is discarded by Vertico :code:
+** DONE The assignment dialog's proximity ranking is discarded by Vertico :code:
 :PROPERTIES:
 :ID:       85702dba-8d15-4924-84bd-2bb7efac093a
 :CREATED:  [2026-08-17 Mon 12:21]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-17 Mon 14:17] \\
+  metadata declared, ranking now authoritative
+- State "DOING"      from "TODO"       [2026-08-17 Mon 14:15] \\
+  preserve ranking through completion metadata
 :END:
 
 =claude-code-ide-org--assign-candidates= sorts candidates best-first — gap
@@ -10028,10 +10054,16 @@ Excluding old or DONE candidates is exactly what
 Ordering gets the same practical result with no cliff, since everything
 stays reachable by typing.
 
-** TODO Lead review buffer group headings with the =:ID:= prefix :code:
+** DONE Lead review buffer group headings with the =:ID:= prefix :code:
 :PROPERTIES:
 :ID:       c2132d3f-dd78-4498-ba87-0ca814dc2f77
 :CREATED:  [2026-08-17 Mon 12:21]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-17 Mon 14:19] \\
+  prefix-first render shipped, reload verified
+- State "DOING"      from "TODO"       [2026-08-17 Mon 14:17] \\
+  lead group headings with the id prefix
 :END:
 
 The review buffer groups items under a heading title alone, so acting on
