@@ -3083,6 +3083,53 @@ in place would risk a view that disagrees with the file. Dismiss had no
 such excuse: it had already written its dismissal to the queue. Recorded
 on [[id:73cd5a1b-9b4f-409d-9aab-ffc6ea736ae5][73cd5a1b]] rather than
 fixed blind.
+** Apply discards decisions on the items it did not apply :code:
+:PROPERTIES:
+:ID:       c02d11c8-cd29-40ca-a0f4-dc1c878dfa7d
+:CREATED:  [2026-08-17 Mon 09:29]
+:END:
+
+The last of the three commands that rebuilt the item list from the
+queue. =d= was fixed on 2026-08-17
+([[id:73cd5a1b-9b4f-409d-9aab-ffc6ea736ae5][73cd5a1b]]) and this was
+deliberately left then, because apply *writes org files* and re-reading
+the queue afterwards is how the view learns what was consumed — a
+better justification than dismiss had, but not a sufficient one.
+
+*The shape that made it dangerous.* =review-apply= rebuilt only when
+=(> :applied 0)=, so the discard happened on *success*. The better things
+went, the more was lost, which is the opposite of where anyone's guard
+is up. A total failure preserved everything.
+
+*Fixed 2026-08-17.* =--review-apply= now returns =:items= alongside the
+count, so the caller drops exactly what applied and keeps the rest *as
+the same objects*. Point lands on whatever followed the last item
+applied.
+
+*What survives now that did not:* assignments, narrowed intervals, notes,
+=:stale-confirmed=, and marks on items that *failed*. That last one has
+its own test and is the sharpest in practice — a stale transition you
+deliberately confirmed, which then failed for an unrelated reason, used
+to ask for confirmation again, because the confirmation lives on the item
+and a rebuilt item has none.
+
+*Staleness stays correct without the rebuild,* which was the open
+question. =--review-current-state= resolves through =org-id-find= on
+every render, so it reads the files this command has just written; a
+plain re-render recomputes it. The rebuild was never what kept staleness
+honest.
+
+*What is given up, and it is a real trade rather than a pure win:* events
+another session queued while you were reviewing no longer appear on their
+own. The item list is now a session-local view that only =g= reconciles.
+That is arguably the better behaviour — a list silently reordering
+mid-review is its own hazard — but it means =g= is now load-bearing for
+freshness rather than merely convenient, and its docstring was rewritten
+on 2026-08-17 to say what it discards in exchange.
+
+*Consequence for the human:* the "assign everything, then apply once"
+discipline is no longer necessary. Assign a few, apply, continue — the
+rhythm the backlog actually invites — and nothing accumulates risk.
 
 * * *
 

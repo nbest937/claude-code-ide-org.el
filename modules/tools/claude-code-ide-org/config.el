@@ -3896,7 +3896,11 @@ it."
       (let ((error (claude-code-ide-org--review-apply-item item)))
         (if error (push error errors) (push item applied))))
     (claude-code-ide-org--review-record-applied applied)
-    (list :applied (length applied) :errors (nreverse errors))))
+    ;; :items alongside the count, so the caller can drop exactly what
+    ;; applied rather than rebuilding the list from the queue.  The count
+    ;; stays for the message, and existing callers are unaffected.
+    (list :applied (length applied) :errors (nreverse errors)
+          :items (nreverse applied))))
 
 ;;; Queue archiving ---------------------------------------------------------
 ;;
@@ -5376,10 +5380,45 @@ that re-evaluates staleness against the file as it now stands."
     ;; and nothing was cleared to put back.
     (let ((cleared (claude-code-ide-org--review-ensure-writable marked)))
       (unwind-protect
-          (let ((result (claude-code-ide-org--review-apply marked))
-                (line (line-number-at-pos)))
-            (if (> (plist-get result :applied) 0)
-                (claude-code-ide-org-review-refresh)
+          (let* ((result (claude-code-ide-org--review-apply marked))
+                 (line (line-number-at-pos))
+                 (done (plist-get result :items))
+                 ;; The item to land on: whatever followed the last one
+                 ;; applied, since that one is about to disappear.
+                 (successor (and done
+                                 (cadr (memq (car (last done))
+                                             claude-code-ide-org--review-items)))))
+            (if done
+                (progn
+                  ;; Drop exactly what applied and keep the rest *as the
+                  ;; same objects*.  This used to call
+                  ;; `claude-code-ide-org-review-refresh', which rebuilds
+                  ;; from the queue and so discarded every decision on the
+                  ;; items it had not applied -- assignments, narrowed
+                  ;; intervals, notes, and confirmations of staleness.
+                  ;;
+                  ;; Note the shape that made it dangerous: the rebuild ran
+                  ;; only when apply *succeeded*, so the better things went
+                  ;; the more was lost.  Marks on items that failed were
+                  ;; cleared too, so retrying a failure meant marking it
+                  ;; again.
+                  ;;
+                  ;; Staleness stays correct without the rebuild:
+                  ;; `claude-code-ide-org--review-current-state' resolves
+                  ;; through `org-id-find' on every render, so it reads the
+                  ;; files this command just wrote.
+                  ;;
+                  ;; What is given up is freshness -- events queued by
+                  ;; another session while you were reviewing no longer
+                  ;; appear on their own.  `g' is the command for that, and
+                  ;; saying so is better than a list that reorders under
+                  ;; you mid-review.
+                  (setq claude-code-ide-org--review-items
+                        (seq-remove (lambda (i) (memq i done))
+                                    claude-code-ide-org--review-items))
+                  (if successor
+                      (claude-code-ide-org--review-redraw successor)
+                    (claude-code-ide-org--review-render)))
               (claude-code-ide-org--review-render)
               (goto-char (point-min))
               (forward-line (1- line)))

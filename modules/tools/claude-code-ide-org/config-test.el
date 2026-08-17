@@ -4749,6 +4749,70 @@ buffer is shorter afterwards and the old line number points elsewhere."
             (should (eq (claude-code-ide-org--review-item-at-point) second)))
         (kill-buffer review)))))
 
+(ert-deftest claude-code-ide-org-test-review-apply-keeps-unapplied-decisions ()
+  "Applying some items used to rebuild the whole list from the queue,
+discarding every decision on the items it did *not* apply -- assignments,
+edited intervals, notes, and confirmations of staleness.
+
+The shape is nastier than it sounds: the rebuild happens only when apply
+*succeeds*, so the better things go the more is lost, which is the
+opposite of where anyone's guard is up.
+
+Asserts survivors by identity.  A rebuild yields fresh plists equal in
+every visible field and empty of the decision, so an `equal' test would
+pass against the unfixed code."
+  (claude-code-ide-org-test--with-heading
+    (let* ((review (get-buffer-create "*org-review-apply-keep-test*"))
+           (to-apply (list :type 'state :id id :ts (current-time)
+                           :from "TODO" :to "DOING" :marked t :events nil))
+           (decided (list :type 'clock :id id :assigned t :unassigned nil
+                          :note "a note the human wrote"
+                          :start (claude-code-ide-org-test--t "09:00")
+                          :end (claude-code-ide-org-test--t "09:30")
+                          :events nil)))
+      (unwind-protect
+          (with-current-buffer review
+            (claude-code-ide-org-review-mode)
+            (setq claude-code-ide-org--review-items (list to-apply decided))
+            (claude-code-ide-org--review-render)
+            (claude-code-ide-org-review-apply)
+            ;; The applied item is gone from the list...
+            (should-not (memq to-apply claude-code-ide-org--review-items))
+            ;; ...and the untouched one survives *as itself*, decision intact.
+            (should (memq decided claude-code-ide-org--review-items))
+            (should (plist-get decided :assigned))
+            (should (equal (plist-get decided :note) "a note the human wrote")))
+        (kill-buffer review)))))
+
+(ert-deftest claude-code-ide-org-test-review-apply-keeps-marks-on-failures ()
+  "A partial apply must leave the failures marked.  The rebuild cleared
+every mark, so retrying an item that failed for a transient reason meant
+marking it again -- and worse, a stale transition you had deliberately
+confirmed asked for confirmation a second time, because
+`:stale-confirmed' lives on the item and a rebuilt item has none.
+
+Covers the *partial* case specifically: the existing coverage is for
+nothing applying at all, which never took the discarding branch."
+  (claude-code-ide-org-test--with-heading
+    (let* ((review (get-buffer-create "*org-review-apply-fail-test*"))
+           (ok (list :type 'state :id id :ts (current-time)
+                     :from "TODO" :to "DOING" :marked t :events nil))
+           ;; Refused as stale: by the time this is reached the heading is
+           ;; DOING, so a transition claiming to come from MAYBE cannot be
+           ;; trusted and is left for the human to confirm.
+           (stale (list :type 'state :id id :ts (current-time)
+                        :from "MAYBE" :to "DONE" :marked t :events nil)))
+      (unwind-protect
+          (with-current-buffer review
+            (claude-code-ide-org-review-mode)
+            (setq claude-code-ide-org--review-items (list ok stale))
+            (claude-code-ide-org--review-render)
+            (claude-code-ide-org-review-apply)
+            (should-not (memq ok claude-code-ide-org--review-items))
+            (should (memq stale claude-code-ide-org--review-items))
+            (should (plist-get stale :marked)))
+        (kill-buffer review)))))
+
 (ert-deftest claude-code-ide-org-test-review-dismiss-keeps-unapplied-assignments ()
   "Dismissing used to end in `review-refresh', which rebuilds the item
 list from the queue -- discarding every unapplied decision in the
