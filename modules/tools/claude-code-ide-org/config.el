@@ -2129,17 +2129,34 @@ discard it."
 
 (defun claude-code-ide-org--trigger-auto-clock-in (change-plist)
   "For `org-trigger-hook': the moment any heading's TODO state becomes
-DOING or PLANNING -- via `claude-code-ide-org-set-todo', a hand-edit
-made directly in Emacs, or any other path at all -- automatically open
-a clock on it via `org-clock-in', unless a clock is already running on
-that exact heading, or the heading is a container
-\(`claude-code-ide-org--container-heading-p'). Guarded against
-re-entrancy by `claude-code-ide-org--auto-clock-in-active'.
+DOING or PLANNING, automatically open a clock on it via `org-clock-in',
+unless a clock is already running on that exact heading, or the heading
+is a container \(`claude-code-ide-org--container-heading-p'). Guarded
+against re-entrancy by `claude-code-ide-org--auto-clock-in-active'.
 CHANGE-PLIST is the plist `org-todo' passes to every
 `org-trigger-hook' function; see `org-trigger-hook's own docstring for
 its shape. Never calls `org-clock-in' or reads `org-clock-marker'
 except from inside this hook -- i.e. never at load or registration
-time."
+time.
+
+*Which paths actually reach it, corrected 2026-08-17.* This said \"via
+`claude-code-ide-org-set-todo', a hand-edit made directly in Emacs, or
+any other path at all\".  The first has been dead since the 2026-08-11
+cutover: `claude-code-ide-org-set-todo' appends a queue event and never
+calls `org-todo', so it cannot reach `org-trigger-hook' at all.
+
+What is left is narrower than \"any path at all\" in a second way too.
+`claude-code-ide-org--review-apply-item' binds
+`claude-code-ide-org--auto-clock-in-active' around the whole apply, and
+that test precedes the container test below -- so on the apply path this
+hook short-circuits for *every* heading, container or leaf, and the
+container exemption is unreachable there.
+
+So the container exemption does its work in exactly one place: a TODO
+state changed by hand in Emacs (`C-c C-t', `S-right'), which is the
+scenario that raised it (TODO.org :ID: ab75d6d2).  The exemption's
+*rationale* is unaffected by any of this and still holds -- see that
+heading for the measurement."
   (when (and (member (plist-get change-plist :to) '("DOING" "PLANNING"))
              (not claude-code-ide-org--auto-clock-in-active)
              (not (claude-code-ide-org--container-heading-p)))
