@@ -277,6 +277,19 @@ immediately and writes **nothing** to the queue, so the change is invisible
 to the review pass and to `org_pending_updates`. That is a real divergence
 between the file and the record, not a harmless shortcut.
 
+**Rule**: confirm the `emacs-tools` server is actually reachable *before*
+the first state or clock call of a session, rather than discovering it
+when a call fails. Check by calling `org_pending_updates` — it is
+read-only, and a reply proves the server is up in a way that the tools
+merely appearing in a list does not. If it is unreachable, say so before
+doing anything that would otherwise have been queued.
+
+This is a standing rule because the failure is silent and the fallback is
+tempting: on 2026-08-15 the server did not connect at session start,
+nothing announced it, and three state changes went through `emacsclient`
+and never reached the queue. Nothing in the transcript looked wrong at the
+time. The user should not have to ask for this check.
+
 **And it can hang.** The `#+TODO:` line carries per-keyword logging
 cookies: `!` records a timestamp on entry, `@` *prompts for a note*. In
 this project `WAIT(w@/!)` and `CANCELLED(c@)` carry `@` and nothing else
