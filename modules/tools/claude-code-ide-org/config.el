@@ -4405,16 +4405,64 @@ the same afternoon, and neither its title nor its TODO state says so."
             (when (or (null latest) (time-less-p latest b)) (setq latest b)))))
       (when earliest (cons earliest latest)))))
 
-(defun claude-code-ide-org--format-activity-range (range created)
-  "Render RANGE, or fall back to CREATED, as a compact fixed-width field."
-  (cond
-   ((and range (cdr range))
-    (let ((a (format-time-string "%m-%d" (car range)))
-          (b (format-time-string "%m-%d" (cdr range))))
-      (format "%-13s" (if (equal a b) (format "clocked %s" a)
-                        (format "clocked %s-%s" a b)))))
-   (created (format "%-13s" (format "made %s" (format-time-string "%m-%d" created))))
-   (t (make-string 13 ?\s))))
+(defun claude-code-ide-org--heading-bracket (range created)
+  "Return (EARLIEST . LATEST) spanning a heading's whole recorded life.
+
+RANGE is `claude-code-ide-org--heading-activity-range''s clock extent;
+CREATED is the `:CREATED:' stamp.  The bracket spans both, which is the
+correction recorded in TODO.org :ID: 49cbe319: the clock extent alone
+misses the heading most likely to be wanted, because a heading created
+during a span but not yet clocked has no clock extent at all.  Work
+happens, then the heading gets written -- so `:CREATED:' is the left
+edge far more often than the first CLOCK line is.
+
+Nil only when the heading has neither, which cannot be ranked and must
+not be mistaken for a bracket at the epoch."
+  (let ((points (delq nil (list (car-safe range) (cdr-safe range) created))))
+    (when points
+      (let ((sorted (sort points #'time-less-p)))
+        (cons (car sorted) (car (last sorted)))))))
+
+(defun claude-code-ide-org--interval-gap (a-start a-end b-start b-end)
+  "Seconds separating intervals A and B; 0 when they touch or overlap.
+
+Overlap is the strongest evidence available that a heading is what a
+span was spent on, so it collapses to 0 and nothing outranks it.
+Otherwise the distance is to the nearest endpoint, symmetrically -- which
+interval is later must not change the answer."
+  (cond ((time-less-p a-end b-start) (float-time (time-subtract b-start a-end)))
+        ((time-less-p b-end a-start) (float-time (time-subtract a-start b-end)))
+        (t 0)))
+
+(defun claude-code-ide-org--format-activity-range (range created &optional reference)
+  "Render a heading's bracket as a compact fixed-width field.
+
+REFERENCE, when given, is a time from the span being assigned.  A
+bracket falling on the same calendar day renders as *times* rather than
+dates, because day resolution carries no information in exactly the case
+it is most used: every candidate touched today otherwise reads
+`08-15' against a span that is also 08-15.
+
+Shows the merged bracket (`claude-code-ide-org--heading-bracket'), so
+the field and the ranking answer the same question.  `made' is kept only
+for a heading with no clock history at all, where the distinction
+between \"created then\" and \"worked then\" is real."
+  (let* ((bracket (claude-code-ide-org--heading-bracket range created))
+         (same-day (lambda (a b)
+                     (and a b (equal (format-time-string "%Y-%m-%d" a)
+                                     (format-time-string "%Y-%m-%d" b)))))
+         (fmt (if (and reference bracket
+                       (funcall same-day (car bracket) reference)
+                       (funcall same-day (cdr bracket) reference))
+                  "%H:%M" "%m-%d")))
+    (cond
+     ((and bracket (or (car-safe range) (cdr-safe range)))
+      (let ((a (format-time-string fmt (car bracket)))
+            (b (format-time-string fmt (cdr bracket))))
+        (format "%-13s" (if (equal a b) a (format "%s..%s" a b)))))
+     (bracket (format "%-13s" (format "made %s"
+                                      (format-time-string fmt (car bracket)))))
+     (t (make-string 13 ?\s)))))
 
 (defun claude-code-ide-org--short-id (id)
   "Return the first 8 characters of ID, or all of it when shorter.
@@ -5016,6 +5064,70 @@ decision, not part of the batch already confirmed."
           (setq claude-code-ide-org--review-items
                 (append claude-code-ide-org--review-items (list new))))))))
 
+(defun claude-code-ide-org--assign-candidates (span-start span-end)
+  "Return (DISPLAY . ID) pairs for assigning SPAN-START--SPAN-END, best first.
+
+Ranked by how close each heading's bracket
+\(`claude-code-ide-org--heading-bracket') sits to the span, nearest
+first, with overlap collapsing to zero.  TODO.org :ID: 49cbe319.
+
+*Nothing is excluded*, and that is the fix for :ID: 0d055205.  This
+previously dropped any heading whose `:CREATED:' was later than the
+span, calling it \"a hard impossibility\".  It is the normal case: work
+happens and the heading is written afterwards, which this project's own
+convention requires.  For one span on 2026-08-15 that removed exactly
+the five headings created that day -- every candidate the user could
+plausibly have wanted -- and `completing-read' runs with REQUIRE-MATCH,
+so the heading was simply unreachable with no explanation.
+
+Ranking subsumes the demotion that bug was reaching for: a heading
+created five minutes after a span scores five minutes and stays near the
+top, one created a week later sorts far down on its own.  No separate
+rule is needed, and none is a cliff.
+
+Ties break on open-before-finished, then on creation recency.  A
+heading with no bracket at all -- neither `:CREATED:' nor a CLOCK line --
+sorts last rather than vanishing: absence of evidence rules nothing out."
+  (let ((allowed (claude-code-ide-org--assignable-files))
+        rows)
+    (maphash
+     (lambda (id file)
+       (when (member (file-truename file) allowed)
+         (let* ((info (ignore-errors
+                        (org-with-point-at (org-id-find id 'marker)
+                          (list :title (org-no-properties
+                                        (org-get-heading t t t t))
+                                :state (org-get-todo-state)
+                                :created (claude-code-ide-org--parse-org-timestamp
+                                          (or (org-entry-get nil "CREATED") ""))
+                                :range (claude-code-ide-org--heading-activity-range)))))
+                (title (plist-get info :title))
+                (created (plist-get info :created))
+                (range (plist-get info :range))
+                (state (plist-get info :state))
+                (bracket (claude-code-ide-org--heading-bracket range created)))
+           (when title
+             (push (list (format "%s %s%s  {%s}"
+                                 (claude-code-ide-org--format-activity-range
+                                  range created span-start)
+                                 (if (member state '("DONE" "CANCELLED"))
+                                     (format "[%s] " state) "")
+                                 title (claude-code-ide-org--short-id id))
+                         id
+                         (if bracket
+                             (claude-code-ide-org--interval-gap
+                              span-start span-end (car bracket) (cdr bracket))
+                           most-positive-fixnum)
+                         (if (member state '("DONE" "CANCELLED")) 1 0)
+                         (if created (float-time created) 0))
+                   rows)))))
+     (or org-id-locations (make-hash-table :test 'equal)))
+    (mapcar (lambda (r) (cons (nth 0 r) (nth 1 r)))
+            (sort rows (lambda (a b)
+                         (cond ((/= (nth 2 a) (nth 2 b)) (< (nth 2 a) (nth 2 b)))
+                               ((/= (nth 3 a) (nth 3 b)) (< (nth 3 a) (nth 3 b)))
+                               (t (> (nth 4 a) (nth 4 b)))))))))
+
 (defun claude-code-ide-org-review-assign ()
   "Assign the span at point to a heading, replacing any suggestion.
 
@@ -5035,55 +5147,8 @@ guideposts and still deserve `e' before they are trusted.  Only the
     (unless item (user-error "No review item on this line"))
     (unless (eq (plist-get item :type) 'clock)
       (user-error "Only a span can be assigned to a heading"))
-    (let* ((deadline (plist-get item :end))
-           (allowed (claude-code-ide-org--assignable-files))
-           (candidates
-            (let (rows)
-              (maphash
-               (lambda (id file)
-                 (when (member (file-truename file) allowed)
-                   (let* ((info (ignore-errors
-                                  (org-with-point-at (org-id-find id 'marker)
-                                    (list :title (org-no-properties
-                                                  (org-get-heading t t t t))
-                                          :state (org-get-todo-state)
-                                          :created (claude-code-ide-org--parse-org-timestamp
-                                                    (or (org-entry-get nil "CREATED") ""))
-                                          :range (claude-code-ide-org--heading-activity-range)))))
-                          (title (plist-get info :title))
-                          (created (plist-get info :created))
-                          (range (plist-get info :range))
-                          (state (plist-get info :state)))
-                     ;; A heading created after the span ended cannot be
-                     ;; what that time was spent on. This is a hard
-                     ;; impossibility, so it is excluded outright rather
-                     ;; than ranked down. Headings with no :CREATED: are
-                     ;; kept -- absence of evidence rules nothing out.
-                     (when (and title
-                                (or (null created)
-                                    (not (time-less-p deadline created))))
-                       (push (list (format "%s %s%s  {%s}"
-                                           (claude-code-ide-org--format-activity-range
-                                            range created)
-                                           (if (member state '("DONE" "CANCELLED"))
-                                               (format "[%s] " state) "")
-                                           title (claude-code-ide-org--short-id id))
-                                   id
-                                   ;; Sort key: open work first, then most
-                                   ;; recently created. A heading closed
-                                   ;; before the span is implausible but
-                                   ;; NOT impossible -- documenting a task
-                                   ;; after marking it DONE is routine --
-                                   ;; so it demotes rather than vanishes.
-                                   (if (member state '("DONE" "CANCELLED")) 1 0)
-                                   (if created (float-time created) 0))
-                             rows)))))
-               (or org-id-locations (make-hash-table :test 'equal)))
-              (mapcar (lambda (r) (cons (nth 0 r) (nth 1 r)))
-                      (sort rows (lambda (a b)
-                                   (if (/= (nth 2 a) (nth 2 b))
-                                       (< (nth 2 a) (nth 2 b))
-                                     (> (nth 3 a) (nth 3 b))))))))
+    (let* ((candidates (claude-code-ide-org--assign-candidates
+                        (plist-get item :start) (plist-get item :end)))
            (default (and (plist-get item :id)
                          (car (rassoc (plist-get item :id) candidates))))
            (choice (completing-read

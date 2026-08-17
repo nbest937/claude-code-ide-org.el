@@ -5462,6 +5462,104 @@ will land and flags a target that no longer resolves, an amend names the
         (should (string-match-p "! capture \"Orphan\" +-> No Such Category (UNRESOLVED)" text))
         (should (string-match-p "amend +\"(unknown heading)\" +(3 lines)" text))))))
 
+;;; Assignment candidates (TODO.org :ID: 0d055205, :ID: 49cbe319) ------------
+
+(defun claude-code-ide-org-test--t (hhmm)
+  "A time on 2026-08-15 at HHMM, e.g. \"14:31\"."
+  (org-time-string-to-time (format "[2026-08-15 Sat %s]" hhmm)))
+
+(ert-deftest claude-code-ide-org-test-heading-bracket-spans-created-and-clocks ()
+  "The bracket is [CREATED..latest activity], not [earliest clock..latest
+clock].  A heading created during a span but not yet clocked has no clock
+range at all, and that is exactly the heading most likely to be the
+answer -- work first, heading afterwards."
+  (let ((created (claude-code-ide-org-test--t "09:00"))
+        (range (cons (claude-code-ide-org-test--t "11:00")
+                     (claude-code-ide-org-test--t "12:00"))))
+    (let ((b (claude-code-ide-org--heading-bracket range created)))
+      (should (equal (format-time-string "%H:%M" (car b)) "09:00"))
+      (should (equal (format-time-string "%H:%M" (cdr b)) "12:00")))
+    ;; Never clocked: the bracket collapses onto :CREATED: rather than
+    ;; vanishing, so the heading still has a position to be ranked by.
+    (let ((b (claude-code-ide-org--heading-bracket nil created)))
+      (should (equal (format-time-string "%H:%M" (car b)) "09:00"))
+      (should (equal (format-time-string "%H:%M" (cdr b)) "09:00")))
+    (should-not (claude-code-ide-org--heading-bracket nil nil))))
+
+(ert-deftest claude-code-ide-org-test-interval-gap-is-zero-on-overlap ()
+  "Overlap is the strongest possible signal and must dominate: a heading
+clocked *inside* the span scores 0 and nothing can beat it."
+  (should (= 0 (claude-code-ide-org--interval-gap
+                (claude-code-ide-org-test--t "10:00") (claude-code-ide-org-test--t "11:00")
+                (claude-code-ide-org-test--t "10:30") (claude-code-ide-org-test--t "12:00"))))
+  ;; Disjoint: the gap is to the nearest endpoint, in seconds, and is
+  ;; symmetric -- which side is later must not change the answer.
+  (should (= 1800 (claude-code-ide-org--interval-gap
+                   (claude-code-ide-org-test--t "10:00") (claude-code-ide-org-test--t "11:00")
+                   (claude-code-ide-org-test--t "11:30") (claude-code-ide-org-test--t "12:00"))))
+  (should (= 1800 (claude-code-ide-org--interval-gap
+                   (claude-code-ide-org-test--t "11:30") (claude-code-ide-org-test--t "12:00")
+                   (claude-code-ide-org-test--t "10:00") (claude-code-ide-org-test--t "11:00")))))
+
+(ert-deftest claude-code-ide-org-test-assign-offers-heading-created-after-the-span ()
+  "The regression: a heading created after the span ended was excluded
+outright as a `hard impossibility'.  It is the normal case -- the work
+happens, then the heading is written -- and this project's own convention
+mandates writing one when a task is described, which is during or after."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* TODO Written afterwards\n:PROPERTIES:\n"
+            ":ID:       55555555-5555-4555-8555-555555555555\n"
+            ":CREATED:  [2026-08-15 Sat 16:00]\n:END:\n")
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (let* ((claude-code-ide-org-query-files (list file))
+           (cands (claude-code-ide-org--assign-candidates
+                   (claude-code-ide-org-test--t "09:19")
+                   (claude-code-ide-org-test--t "09:20"))))
+      (should (cl-find "55555555-5555-4555-8555-555555555555" cands
+                       :key #'cdr :test #'equal)))))
+
+(ert-deftest claude-code-ide-org-test-assign-ranks-nearest-bracket-first ()
+  "49cbe319: rank by proximity of the heading's bracket to the span, not
+by creation recency.  The heading clocked *during* the span must beat one
+created more recently but hours away -- creation recency ranked those the
+wrong way round."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* TODO Clocked during the span\n:PROPERTIES:\n"
+            ":ID:       66666666-6666-4666-8666-666666666666\n"
+            ":CREATED:  [2026-08-15 Sat 09:00]\n:END:\n"
+            ":LOGBOOK:\n"
+            "CLOCK: [2026-08-15 Sat 14:35]--[2026-08-15 Sat 14:50] =>  0:15\n"
+            ":END:\n"
+            "* TODO Created later but far away\n:PROPERTIES:\n"
+            ":ID:       77777777-7777-4777-8777-777777777777\n"
+            ":CREATED:  [2026-08-15 Sat 19:00]\n:END:\n")
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (let* ((claude-code-ide-org-query-files (list file))
+           (cands (claude-code-ide-org--assign-candidates
+                   (claude-code-ide-org-test--t "14:31")
+                   (claude-code-ide-org-test--t "15:31")))
+           (ids (mapcar #'cdr cands)))
+      (should (< (cl-position "66666666-6666-4666-8666-666666666666" ids :test #'equal)
+                 (cl-position "77777777-7777-4777-8777-777777777777" ids :test #'equal))))))
+
+(ert-deftest claude-code-ide-org-test-activity-range-uses-times-on-the-reference-day ()
+  "Day resolution is useless in the case it is most used: every candidate
+touched today reads the same against a span that is also today."
+  (let ((range (cons (claude-code-ide-org-test--t "09:12")
+                     (claude-code-ide-org-test--t "15:31")))
+        (created (claude-code-ide-org-test--t "09:12")))
+    (should (string-match-p "09:12\\.\\.15:31"
+                            (claude-code-ide-org--format-activity-range
+                             range created (claude-code-ide-org-test--t "14:00"))))
+    ;; No reference, or a reference on another day, stays on dates.
+    (should (string-match-p "08-15"
+                            (claude-code-ide-org--format-activity-range
+                             range created nil)))))
+
 ;;; RET from the review buffer -----------------------------------------------
 
 (ert-deftest claude-code-ide-org-test-review-goto-keeps-the-review-buffer-visible ()
