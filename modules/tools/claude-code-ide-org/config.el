@@ -5222,6 +5222,37 @@ sorts last rather than vanishing: absence of evidence rules nothing out."
                                ((/= (nth 3 a) (nth 3 b)) (< (nth 3 a) (nth 3 b)))
                                (t (> (nth 4 a) (nth 4 b)))))))))
 
+(defun claude-code-ide-org--ordered-collection (candidates)
+  "Return a `completing-read' collection over CANDIDATES that keeps their order.
+
+CANDIDATES is an alist as `claude-code-ide-org--assign-candidates'
+returns it, already sorted best-first.  A bare alist carries no
+completion metadata, so the completion UI is free to re-sort it, and
+Vertico does: `vertico-sort-history-length-alpha' orders by minibuffer
+history, then string *length*, then alphabetically (TODO.org :ID:
+85702dba).
+
+Title length has no relationship to relevance, so that ranks an old DONE
+heading with a terse title above this morning's work.  The list was never
+unranked -- it was ranked on the wrong key, and the proximity ordering,
+the `[DONE]' marker and the activity range built into each display string
+were all computed and then discarded.  With `vertico-count' at 17 the
+order decides what is seen at all.
+
+Declaring `display-sort-function' and `cycle-sort-function' as `identity'
+is what makes the computed order authoritative; Vertico honours the
+metadata over its own `vertico-sort-function'.
+
+Deliberately *not* a cutoff, though \"too many candidates\" invites one.
+Excluding old or DONE headings is what :ID: 0d055205 was filed against,
+and ordering achieves the same practical result with no cliff: everything
+stays reachable by typing."
+  (lambda (string predicate action)
+    (if (eq action 'metadata)
+        '(metadata (display-sort-function . identity)
+                   (cycle-sort-function . identity))
+      (complete-with-action action candidates string predicate))))
+
 (defun claude-code-ide-org-review-assign ()
   "Assign the span at point to a heading, replacing any suggestion.
 
@@ -5248,7 +5279,8 @@ guideposts and still deserve `e' before they are trusted.  Only the
            (choice (completing-read
                     (if default (format "Assign span to heading (default %s): " default)
                       "Assign span to heading: ")
-                    candidates nil t nil nil default)))
+                    (claude-code-ide-org--ordered-collection candidates)
+                    nil t nil nil default)))
       (unless (and choice (not (string-empty-p choice)))
         (user-error "No heading chosen; span left unassigned"))
       (let ((id (cdr (assoc choice candidates))))

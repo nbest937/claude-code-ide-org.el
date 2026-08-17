@@ -4740,10 +4740,18 @@ buffer is shorter afterwards and the old line number points elsewhere."
               ;; actually builds, rather than recomputing it: this asserts
               ;; against what the command offers, not against a parallel
               ;; construction that could drift from it.
+              ;;
+              ;; Read through `all-completions' rather than `caar'. The
+              ;; collection is a function now, so that it can carry
+              ;; `display-sort-function' metadata and stop Vertico
+              ;; re-sorting the ranking away (:ID: 85702dba) -- and
+              ;; `all-completions' is the accessor that works whichever
+              ;; representation is in use, so this stub does not have to
+              ;; be revisited if it changes again.
               (cl-letf (((symbol-function 'completing-read)
                          (lambda (_prompt collection &rest _)
                            (should collection)
-                           (car (car collection)))))
+                           (car (all-completions "" collection nil)))))
                 (claude-code-ide-org-review-assign)))
             ;; Point is on the *second* span, not back at the top.
             (should (eq (claude-code-ide-org--review-item-at-point) second)))
@@ -5714,6 +5722,29 @@ wrong way round."
            (ids (mapcar #'cdr cands)))
       (should (< (cl-position "66666666-6666-4666-8666-666666666666" ids :test #'equal)
                  (cl-position "77777777-7777-4777-8777-777777777777" ids :test #'equal))))))
+
+(ert-deftest claude-code-ide-org-test-ordered-collection-declares-identity-sort ()
+  "The assignment prompt's candidates are sorted best-first before they are
+handed to `completing-read', and a bare alist carries no completion
+metadata -- so Vertico re-sorts by history, then string length, then
+alphabetically, discarding the ranking entirely (TODO.org :ID: 85702dba).
+
+Two assertions, because either alone would pass on a broken
+implementation: the metadata must declare `identity' sorting, *and* the
+collection must still complete normally rather than having been traded
+away for the metadata."
+  (let* ((candidates '(("first candidate"  . "id-1")
+                       ("z second"         . "id-2")
+                       ("aaa third"        . "id-3")))
+         (coll (claude-code-ide-org--ordered-collection candidates))
+         (md (funcall coll "" nil 'metadata)))
+    (should (eq 'metadata (car md)))
+    (should (eq #'identity (cdr (assq 'display-sort-function (cdr md)))))
+    (should (eq #'identity (cdr (assq 'cycle-sort-function (cdr md)))))
+    ;; Still a working collection: order preserved, and it completes.
+    (should (equal '("first candidate" "z second" "aaa third")
+                   (all-completions "" coll nil)))
+    (should (equal '("z second") (all-completions "z" coll nil)))))
 
 (ert-deftest claude-code-ide-org-test-assign-candidates-tolerates-unresolvable-id ()
   "An `org-id' entry whose heading no longer exists must not drag org
