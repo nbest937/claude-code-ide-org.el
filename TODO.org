@@ -4,6 +4,9 @@
 #+STARTUP: logdrawer
 
 * Skill logic
+:PROPERTIES:
+:ARCHIVE:  DONE.org::* Skill logic
+:END:
 
 ** DONE Enforce a single NEXT action per level of the task tree :code:
 :PROPERTIES:
@@ -1751,6 +1754,9 @@ well beyond =org_outline=. Nothing observed, nothing checked — the
 sweep belongs in its own pass rather than smuggled into a one-form fix.
 
 * Clock lifecycle & visibility
+:PROPERTIES:
+:ARCHIVE:  DONE.org::* Clock lifecycle & visibility
+:END:
 
 Everything here is specifically about the clock subsystem's
 correctness and observability, as opposed to the general TODO-state
@@ -10180,6 +10186,9 @@ error-string sniffing and cannot fall into
 [[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]]'s nil-marker trap.
 
 * Observability
+:PROPERTIES:
+:ARCHIVE:  DONE.org::* Observability
+:END:
 
 Broader than clocking — visibility into what every tool call
 actually did, both after the fact and at the start of a session.
@@ -11057,6 +11066,9 @@ was the point.
 
 
 * Bigger swings
+:PROPERTIES:
+:ARCHIVE:  DONE.org::* Bigger swings
+:END:
 
 Significant directions this project has not committed to. Think hard
 before building any of them. The first two are both about the
@@ -11381,6 +11393,9 @@ module may change on a user's machine when installed.
 
 
 * Upstream (claude-code-ide.el)
+:PROPERTIES:
+:ARCHIVE:  DONE.org::* Upstream (claude-code-ide.el)
+:END:
 
 Issues found against the third-party =claude-code-ide.el=
 (manzaltu/claude-code-ide.el) package itself, not this repo's own
@@ -11419,6 +11434,9 @@ persisted as a Doom config override) resolves both — a full
 this project's Doom config pending an upstream report/PR.
 
 * Documentation
+:PROPERTIES:
+:ARCHIVE:  DONE.org::* Documentation
+:END:
 
 ** TODO Add README.md and enforce its consistency with CLAUDE.md :code:comms:
 :PROPERTIES:
@@ -11517,6 +11535,9 @@ are inherently project-specific (they name this project's actual tool
 names and files) and are out of scope.
 
 * Tooling
+:PROPERTIES:
+:ARCHIVE:  DONE.org::* Tooling
+:END:
 
 ** DONE emacs is a shell function that silently breaks inline batch verification :code:
 :PROPERTIES:

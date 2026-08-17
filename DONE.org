@@ -4,12 +4,62 @@
 Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 
 
-* Done
+* Skill logic
 
-** DONE org_sort_children / org_move_sibling :code:
+** DONE org_query :code:
 :PROPERTIES:
-:ID:       aa6ee083-0bb8-4345-b6ef-f10402cc2c78
-:ARCHIVE_TIME: 2026-07-29 Wed 01:57
+:ID:       4ae3cdef-98b5-4361-818e-aef3491f2fb8
+:ARCHIVE_TIME: 2026-07-29 Wed 08:12
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_OLPATH: Roadmap/New MCP tools
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+Structured search over headings. Biggest ROI item here: most of
+what's actually slow today is Claude reading whole files to answer
+things a real query would answer in one call — "what's blocked",
+"what did I touch this week", "everything :research: and not DONE".
+Worth scoping against =org-ql= rather than hand-rolling a query
+language. Implemented against org-ql's actual source
+(github.com/alphapapa/org-ql), not guessed from memory.
+
+*Risk, confirmed and accepted:* =org-ql--query-string-to-sexp= is
+confirmed still a double-dash "private" function with no public
+alternative (dynamically =fset= near the end of org-ql.el at load
+time, so it's reliably present after a plain =(require 'org-ql)=) —
+the version-drift risk stands as originally flagged, nothing to do
+about it now beyond noting it. Separately, org-ql also exposes a full
+sexp predicate language — effectively arbitrary elisp execution
+against the user's files if exposed. Same class of concern as "Remote
+MCP access" below, just reachable locally instead of remotely; this
+tool never exposes that path.
+
+*Implementation notes:*
+- =bin/test= generalized to prepend /every/ straight-built package's
+  directory to load-path (not just org's), since org-ql pulls in
+  =peg=/=ts= transitively — avoids hand-listing org-ql's own
+  dependency set, which could drift.
+- =doom sync= alone did not pick up the new =packages.el= entry during
+  implementation: =~/.config/doom/modules/tools/claude-code-ide-org=
+  is a symlink to this repo's =main= checkout (see CLAUDE.md's
+  "Repository layout"), not to whichever branch/worktree is currently
+  being edited, so a feature-branch worktree's =packages.el= change is
+  invisible to =doom sync= until it lands on =main=. Installed org-ql
+  directly for testing instead: =emacsclient -e "(straight-use-package
+  '(org-ql :type git :host github :repo \"alphapapa/org-ql\"))"= —
+  same practical effect, sidesteps the symlink. The =packages.el=
+  entry remains the source of truth for a plain =doom sync= to pick up
+  once this branch reaches =main=.
+- All 24 tests pass (18 pre-existing + 6 new). Implemented on branch
+  =feature/org_query=; this TODO.org bookkeeping was applied directly
+  to =main= instead, per CLAUDE.md's feature-branch rule explicitly
+  exempting "small doc/TODO edits."
+
+** DONE org_clock_report :code:
+:PROPERTIES:
+:ID:       26215a14-6ec9-43a7-981b-5c8e888e65fd
+:BLOCKER:  4ae3cdef-98b5-4361-818e-aef3491f2fb8
+:ARCHIVE_TIME: 2026-07-29 Wed 07:49
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
 :ARCHIVE_OLPATH: Roadmap/New MCP tools
 :ARCHIVE_CATEGORY: TODO
@@ -17,118 +67,34 @@ Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 :END:
 :LOGBOOK:
 :END:
-Structural manipulation, lower priority than org_query — nice to
-have, nothing currently needs it.
+Summarize time in a date range. Wrap =org-clock-report=/column view
+so "what did I work on this week" is one tool call instead of
+Claude eyeballing LOGBOOK entries across files by hand.
 
-No major open question — the most mechanical item here, and it was
-implemented exactly as planned. 6 ERT tests added (alpha/todo-order
-sort, unknown-sort-type error, move up/down round-trip, boundary
-errors, unknown-direction error). One test-design bug caught before
-merge: the first draft's sort-children-todo-order test happened to
-have alpha order and todo-keyword order agree, which would have let a
-mis-wired sort-type mapping pass silently — fixed by choosing names/
-keywords that disagree. =bin/test= 39/39 at merge.
+*Risk, spot-checked deliberately — and the spot-check found a real
+bug*: =org-dblock-write:clocktable= inserts its output at *point*
+rather than replacing a region. For the =id=-scoped path (a copy of
+just that heading's subtree text inserted into the temp buffer
+first), that meant a naive =buffer-string= captured the copied source
+text *followed by* the report, leaking source text into the tool's
+return value. Caught by one of the branch's own tests failing on a
+real assertion, not by inspection — fixed by capturing the insertion
+point before calling the writer and returning only
+=(buffer-substring-no-properties origin (point-max))=. The
+whole-files path (no =id=) needed no such fix: =:scope= is a plain
+list of tracked file paths there, which
+=org-dblock-write:clocktable= itself resolves to buffers, same as
+=org_query='s =org-ql-select= already does.
 
-** DONE org_refile :code:
-:PROPERTIES:
-:ID:       f8f5cc3a-01ba-4523-b6e0-3b93ae656504
-:ARCHIVE_TIME: 2026-07-29 Wed 02:00
-:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_OLPATH: Roadmap/New MCP tools
-:ARCHIVE_CATEGORY: TODO
-:ARCHIVE_TODO: DONE
-:END:
-:LOGBOOK:
-:END:
-Move a heading to a new parent/file. Already flagged as deferred in
-the design notes. Needs a target-resolution story (:ID: of new
-parent? file + heading path?) worked out before implementation, not
-just a thin wrap of the interactive prompt.
-
-*Open question, resolved:* out of scope for v1, per the plan's own
-recommended default. Every other tool in this module resolves its
-target purely by :ID:, so a file-path+append second codepath would be
-an inconsistent one-off with no observed real usage; an unresolvable
-=target_id= returns a clean =Error: no org heading found with target
-:ID: "..."= string instead. Revisit if that assumption breaks in
-practice.
-
-*Implementation note:* =rfloc='s 4th element is the target's live
-*marker*, not a plain integer position — =org-refile= deletes the
-source subtree before visiting the target, and only a marker
-auto-relocates through that deletion (a same-file test deliberately
-places the source before the target to exercise this). =org-log-refile=
-is bound to nil for the call so a user config that logs refile notes
-can't turn this into an interactive prompt. 5 ERT tests added
-(same-file, cross-file with disk assertions on *both* files,
-unresolvable target, unresolvable source, refile-into-own-subtree
-error). =bin/test= 44/44 at merge.
-
-** DONE org-trigger-hook / org-blocker-hook :code:
-:PROPERTIES:
-:ID:       e47ac400-dd17-4e6a-91aa-bcd837151610
-:ARCHIVE_TIME: 2026-07-29 Wed 02:06
-:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_OLPATH: Roadmap/Enforce the transition rules
-:ARCHIVE_CATEGORY: TODO
-:ARCHIVE_TODO: DONE
-:END:
-Structural enforcement inside org itself. Block DONE while a clock
-is still running on that heading, or auto-open a clock the moment
-DOING is set through *any* path, not just our org_set_todo wrapper —
-this is the layer that also catches hand-edits made directly in
-Emacs.
-
-*Confirmed not a repeat of the org-clock-load trap:*
-=org-blocker-hook=/=org-trigger-hook= are plain defvars in org.el
-itself, present the instant =(provide 'org)= fires, and =add-hook=
-only stores a symbol, never invokes it.
-
-*Known limitations, deliberately accepted rather than silently
-left out:*
-- The blocker only matches a literal transition to =DONE=, not
-  =CANCELLED= — CLAUDE.md's transition table also requires closing
-  the clock before DOING→CANCELLED, but the plan's own wording said
-  "denying DONE" specifically. Flagged, not expanded, since widening
-  scope wasn't asked for.
-- In the live Doom config (=org-clock-out-when-done t=), a direct
-  DOING→DONE on a clocked heading now *blocks* instead of
-  auto-closing the clock and succeeding, since the blocker hook runs
-  before =org-clock-out-if-current=. This matches the plan's literal
-  intent and CLAUDE.md's table, but is a real behavior change from
-  the previously-frictionless auto-close — accepted as correct rather
-  than reverted.
-
-6 ERT tests added (blocker blocks/permits/scoped-to-own-heading,
-trigger fires on bare =org-todo= bypassing the wrapper, trigger skips
-a redundant clock-in, trigger doesn't fire for non-DOING states).
-=bin/test= 39/39 at merge.
-
-** DONE Extend config-test.el :code:
-:PROPERTIES:
-:ID:       799b14be-6849-4e22-8a76-4e214d8a25fe
-:BLOCKER:  e47ac400-dd17-4e6a-91aa-bcd837151610
-:ARCHIVE_TIME: 2026-07-29 Wed 02:06
-:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_OLPATH: Roadmap/Enforce the transition rules
-:ARCHIVE_CATEGORY: TODO
-:ARCHIVE_TODO: DONE
-:END:
-Once the two enforcement layers above exist, they need the same
-regression-test treatment the four wrappers already get — this
-exact class of bug (silent success, wrong on-disk state) is what
-bit us twice already, and enforcement code with no test is exactly
-where it'd bite a third time.
-
-Implemented together with the hooks themselves (same branch, same
-commit) rather than as a separate follow-up pass, since the two were
-always going to land atomically. All three items done exactly as
-planned; see the parent heading above for the resulting test list and
-pass count.
-
-*Note:* config-test.el is Emacs-only (ERT via =emacs --batch=) and
-structurally cannot test the PreToolUse guard script — that needs
-its own separate test vehicle, scoped as a sibling deliverable.
+*Judgment call worth naming:* with neither =block= nor an explicit
+=tstart=/=tend= pair given, the report defaults to fully unrestricted
+(all clocked time ever, in scope) rather than some implicit range
+like "today" — matches =org-clocktable-defaults=, no silent range
+assumption. 7 ERT tests added (id-scoped isolation from a sibling
+heading's own time, whole-files scope, explicit tstart/tend both
+in- and out-of-range, =:block "today"= — the test that caught the
+leak bug above — unknown =block= error, unknown =:id= error, no-args
+unrestricted case). =bin/test= 40/40 at merge.
 
 ** DONE org_capture :code:
 :PROPERTIES:
@@ -165,29 +131,182 @@ regression test that isolates it (=org-agenda-files= bound to nil) to
 prove the explicit registration, not a rescan, is what makes the ID
 resolve. 4 ERT tests added in total; =bin/test= 37/37 at merge.
 
-** DONE Surface current clock state :code:
+** DONE org_refile :code:
 :PROPERTIES:
-:ID:       1a2963ac-ea60-441d-a348-7db3b9e894e8
-:ARCHIVE_TIME: 2026-07-29 Wed 02:11
+:ID:       f8f5cc3a-01ba-4523-b6e0-3b93ae656504
+:ARCHIVE_TIME: 2026-07-29 Wed 02:00
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_OLPATH: Roadmap/New MCP tools
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+:END:
+Move a heading to a new parent/file. Already flagged as deferred in
+the design notes. Needs a target-resolution story (:ID: of new
+parent? file + heading path?) worked out before implementation, not
+just a thin wrap of the interactive prompt.
+
+*Open question, resolved:* out of scope for v1, per the plan's own
+recommended default. Every other tool in this module resolves its
+target purely by :ID:, so a file-path+append second codepath would be
+an inconsistent one-off with no observed real usage; an unresolvable
+=target_id= returns a clean =Error: no org heading found with target
+:ID: "..."= string instead. Revisit if that assumption breaks in
+practice.
+
+*Implementation note:* =rfloc='s 4th element is the target's live
+*marker*, not a plain integer position — =org-refile= deletes the
+source subtree before visiting the target, and only a marker
+auto-relocates through that deletion (a same-file test deliberately
+places the source before the target to exercise this). =org-log-refile=
+is bound to nil for the call so a user config that logs refile notes
+can't turn this into an interactive prompt. 5 ERT tests added
+(same-file, cross-file with disk assertions on *both* files,
+unresolvable target, unresolvable source, refile-into-own-subtree
+error). =bin/test= 44/44 at merge.
+
+** DONE org_sort_children / org_move_sibling :code:
+:PROPERTIES:
+:ID:       aa6ee083-0bb8-4345-b6ef-f10402cc2c78
+:ARCHIVE_TIME: 2026-07-29 Wed 01:57
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_OLPATH: Roadmap/New MCP tools
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+:END:
+Structural manipulation, lower priority than org_query — nice to
+have, nothing currently needs it.
+
+No major open question — the most mechanical item here, and it was
+implemented exactly as planned. 6 ERT tests added (alpha/todo-order
+sort, unknown-sort-type error, move up/down round-trip, boundary
+errors, unknown-direction error). One test-design bug caught before
+merge: the first draft's sort-children-todo-order test happened to
+have alpha order and todo-keyword order agree, which would have let a
+mis-wired sort-type mapping pass silently — fixed by choosing names/
+keywords that disagree. =bin/test= 39/39 at merge.
+
+* Clock lifecycle & visibility
+
+** DONE session-resume can reopen a clock on an already-DONE heading :code:
+:PROPERTIES:
+:ID:       2e34162a-4720-4d23-bf29-10eb295cd087
+:CREATED:  [2026-07-29 Wed 14:17]
+:ARCHIVE_TIME: 2026-07-30 Thu 15:48
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_OLPATH: Clock lifecycle & visibility
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+Caught live in this session: =org-clock-in-last= (called by
+=session-resume= on =UserPromptSubmit=) resumes onto
+=org-clock-history='s most recent entry with no check that it's still
+active — so finishing a task doesn't stop it from being re-clocked on
+the next turn boundary if nothing else clocks in after. Recurred three
+times in a row on the same just-finished heading — once per turn
+boundary, until a heading existed here to track it as work rather than
+just stripping the stray entry again; see the commit that fixed
+org-agenda-files for context on what was being worked on when this was
+first found.
+
+*Verified, not just implemented:* added
+=claude-code-ide-org--clock-history-head-done-p=, which checks whether
+=(car org-clock-history)= now points to a DONE-type heading, and a
+guard clause in =claude-code-ide-org-session-resume= that short-circuits
+with a "already DONE; nothing to resume" message instead of calling
+=org-clock-in-last= when that's true. The separate, deliberately-kept
+behavior — resuming onto the wrong but still-*active* task, which
+self-corrects via the next =org_clock_in= — is untouched. =bin/test=
+passes 79/79 including a new regression test
+(=session-resume-noop-when-history-head-done=) that pauses a clocked
+task, marks it DONE, and asserts resume refuses to reopen it. Also
+verified live against the running Doom Emacs (reload + a scratch-file
+functional check mirroring the unit test, not the real tracked
+headings) after reconnecting a mid-task Emacs/MCP-server outage that
+interrupted this session. While starting this task, surfaced a
+separate, previously-untracked gap — two concurrent Claude Code
+sessions share one global org-clock with no session identity — spun
+off as its own heading below rather than folded into this fix.
+
+** DONE Auto-consolidate SESSIONS/LOGBOOK on the fly :code:
+:PROPERTIES:
+:CREATED:  [2026-07-28 Tue 13:13]
+:ID:       a36d2436-7601-4bf5-a2e7-a4613755156d
+:ARCHIVE_TIME: 2026-07-29 Wed 08:12
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
 :ARCHIVE_OLPATH: Roadmap/Clock lifecycle & visibility
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
 :END:
 :LOGBOOK:
-CLOCK: [2026-07-29 Wed 01:57]--[2026-07-29 Wed 01:59] =>  0:02
+CLOCK: [2026-07-28 Tue 16:50]--[2026-07-28 Tue 17:00] =>  0:10
 :END:
-org-clock-in-hook / org-clock-out-hook writing the current task to
-a small status file. Could feed a Warp status line, a menu bar
-widget, or just answer "what's Claude doing right now" at a glance
-without opening Emacs.
+Companion to the retrospective one-time cleanup ("Consolidate
+historical SESSIONS/LOGBOOK entries", done this session): wire the
+same rounding/merging logic into =org_clock_out= itself, so the
+drawers stay consolidated continuously instead of needing another
+manual pass later. Reuses
+=claude-code-ide-org-consolidate-history= directly — that function
+was deliberately written and tested as a reusable capability, not a
+throwaway script, for exactly this.
 
-3 ERT tests added, plus the shared test fixture was extended to
-redirect =claude-code-ide-org-clock-status-file= into each test's own
-temp dir, since the many pre-existing clock-in/out tests were
-otherwise incidentally writing a stray =clock-status.json= into the
-real module directory on every =bin/test= run. =bin/test= 71/71 at
-merge, no deviations from the plan.
+Idempotency confirmed empirically (a manual =consolidate-history= call
+right after clock-out reports "Nothing to consolidate"). *Done
+differently than planned:* implemented as a full rescan of the drawer on
+every clock-out rather than the incremental "only re-examine today's
+entries and the newest CLOCK line" scheme originally proposed — these
+drawers are a handful of lines at most, so a full regex rescan costs
+nothing measurable. The incremental version remains available as a
+future optimization if a heading's history ever grows large enough for
+that to matter, which hasn't happened in practice.
+
+*Relationship to "Coarsen :SESSIONS: to session-level" above:*
+different mechanism, same underlying pain. That proposal changes
+*when* :SESSIONS: gets written (detach from per-turn
+Stop/UserPromptSubmit boundaries, write only at genuine session
+close) — nothing about :LOGBOOK:'s intentionally fine-grained CLOCK
+writes changes there. This proposal instead changes *what happens* to
+writes that continue to happen at the current frequency, compacting
+them immediately after each clock-out. If "Coarsen" ships first,
+there's less to consolidate per day in the first place, but
+:LOGBOOK: rounding/merging here would still apply regardless — the
+two are complementary, not competing, and could both land.
+
+*Risk:* rounding only ever touches already-closed history, so it can
+never corrupt a running clock — the retrospective run and its tests
+already exercise that exact boundary. The main remaining risk is
+purely mechanical: forgetting to scope the on-the-fly call to *only*
+the heading that was just clocked out of.
+
+** DONE Consolidate historical SESSIONS/LOGBOOK entries :code:
+:PROPERTIES:
+:CREATED:  [2026-07-28 Tue 13:01]
+:ID:       ccdff985-b206-4a8d-a6d2-9bc01cfdda3a
+:ARCHIVE_TIME: 2026-07-29 Wed 08:11
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-07-28 Tue 16:29]--[2026-07-28 Tue 16:32] =>  0:03
+CLOCK: [2026-07-28 Tue 16:24]--[2026-07-28 Tue 16:25] =>  0:01
+CLOCK: [2026-07-28 Tue 16:16]--[2026-07-28 Tue 16:17] =>  0:01
+CLOCK: [2026-07-28 Tue 16:08]--[2026-07-28 Tue 16:09] =>  0:01
+CLOCK: [2026-07-28 Tue 13:45]--[2026-07-28 Tue 14:00] =>  0:15
+CLOCK: [2026-07-28 Tue 13:05]--[2026-07-28 Tue 13:15] =>  0:10
+:END:
+One-time retrospective cleanup of the per-turn SESSIONS/LOGBOOK churn
+accumulated so far: collapse each heading's :SESSIONS: entries to one
+min-to-max span per calendar day; round each :LOGBOOK: CLOCK interval
+to the nearest 5-minute multiple; then, after sorting, merge any
+intervals that are adjacent or overlapping post-rounding into a single
+min-to-max span. Implemented as a reusable elisp function rather than a
+throwaway script, so the same logic can back the on-the-fly version
+scoped separately — see "Auto-consolidate SESSIONS/LOGBOOK on the fly"
+under Clock lifecycle & visibility.
 
 ** DONE PreToolUse transition guard :code:
 :PROPERTIES:
@@ -264,38 +383,97 @@ is stale. (See the "Tool-call audit log" entry below, and CLAUDE.md's
 stale-interval-recovery section, for why disk-level checks
 deliberately scan file *text* instead.)
 
-** DONE SessionStart context hook :code:
+** DONE Surface current clock state :code:
 :PROPERTIES:
-:ID:       f2b003af-b91c-4764-ae86-b5564429c92d
-:ARCHIVE_TIME: 2026-07-29 Wed 05:53
+:ID:       1a2963ac-ea60-441d-a348-7db3b9e894e8
+:ARCHIVE_TIME: 2026-07-29 Wed 02:11
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_OLPATH: Roadmap/Observability
+:ARCHIVE_OLPATH: Roadmap/Clock lifecycle & visibility
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
 :END:
 :LOGBOOK:
+CLOCK: [2026-07-29 Wed 01:57]--[2026-07-29 Wed 01:59] =>  0:02
 :END:
-Surface "what was I last doing." On any Claude Code session start
-in a project with org files, query the currently-clocked heading
-(if any) and any :WAIT: items and drop them into context
-automatically. Turns "what was I working on" from a question into
-something Claude already knows walking in — effectively a standing,
-automatic instance of whatever org_query above ends up answering on
-demand.
+org-clock-in-hook / org-clock-out-hook writing the current task to
+a small status file. Could feed a Warp status line, a menu bar
+widget, or just answer "what's Claude doing right now" at a glance
+without opening Emacs.
 
-Buffers opened via =find-file-noselect= during the query are killed again
-if they weren't already open, so the user's window config isn't
-disturbed. *Real bug caught in review before merge:* a bare
-=(kill-buffer buffer)= on a buffer Emacs considers modified triggers an
-interactive =yes-or-no-p= prompt, which blocks forever under
-=emacsclient -e= (no stdin) — fixed by clearing =set-buffer-modified-p
-nil= first, mirroring the shared test fixture's own teardown pattern.
+3 ERT tests added, plus the shared test fixture was extended to
+redirect =claude-code-ide-org-clock-status-file= into each test's own
+temp dir, since the many pre-existing clock-in/out tests were
+otherwise incidentally writing a stray =clock-status.json= into the
+real module directory on every =bin/test= run. =bin/test= 71/71 at
+merge, no deviations from the plan.
 
-8 ERT tests added for the elisp half (empty/clocked-only/WAIT-only/
-both/non-WAIT-ignored/buffer-kill-hygiene cases); the shell script's
-=emacsclient --eval= round trip against a live buffer-list is the one
-piece that could only be exercised by the coordinator post-merge, not
-from the isolated worktree. =bin/test= 68/68 at merge.
+** DONE org-trigger-hook / org-blocker-hook :code:
+:PROPERTIES:
+:ID:       e47ac400-dd17-4e6a-91aa-bcd837151610
+:ARCHIVE_TIME: 2026-07-29 Wed 02:06
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_OLPATH: Roadmap/Enforce the transition rules
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+Structural enforcement inside org itself. Block DONE while a clock
+is still running on that heading, or auto-open a clock the moment
+DOING is set through *any* path, not just our org_set_todo wrapper —
+this is the layer that also catches hand-edits made directly in
+Emacs.
+
+*Confirmed not a repeat of the org-clock-load trap:*
+=org-blocker-hook=/=org-trigger-hook= are plain defvars in org.el
+itself, present the instant =(provide 'org)= fires, and =add-hook=
+only stores a symbol, never invokes it.
+
+*Known limitations, deliberately accepted rather than silently
+left out:*
+- The blocker only matches a literal transition to =DONE=, not
+  =CANCELLED= — CLAUDE.md's transition table also requires closing
+  the clock before DOING→CANCELLED, but the plan's own wording said
+  "denying DONE" specifically. Flagged, not expanded, since widening
+  scope wasn't asked for.
+- In the live Doom config (=org-clock-out-when-done t=), a direct
+  DOING→DONE on a clocked heading now *blocks* instead of
+  auto-closing the clock and succeeding, since the blocker hook runs
+  before =org-clock-out-if-current=. This matches the plan's literal
+  intent and CLAUDE.md's table, but is a real behavior change from
+  the previously-frictionless auto-close — accepted as correct rather
+  than reverted.
+
+6 ERT tests added (blocker blocks/permits/scoped-to-own-heading,
+trigger fires on bare =org-todo= bypassing the wrapper, trigger skips
+a redundant clock-in, trigger doesn't fire for non-DOING states).
+=bin/test= 39/39 at merge.
+
+** DONE Extend config-test.el :code:
+:PROPERTIES:
+:ID:       799b14be-6849-4e22-8a76-4e214d8a25fe
+:BLOCKER:  e47ac400-dd17-4e6a-91aa-bcd837151610
+:ARCHIVE_TIME: 2026-07-29 Wed 02:06
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_OLPATH: Roadmap/Enforce the transition rules
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+Once the two enforcement layers above exist, they need the same
+regression-test treatment the four wrappers already get — this
+exact class of bug (silent success, wrong on-disk state) is what
+bit us twice already, and enforcement code with no test is exactly
+where it'd bite a third time.
+
+Implemented together with the hooks themselves (same branch, same
+commit) rather than as a separate follow-up pass, since the two were
+always going to land atomically. All three items done exactly as
+planned; see the parent heading above for the resulting test list and
+pass count.
+
+*Note:* config-test.el is Emacs-only (ERT via =emacs --batch=) and
+structurally cannot test the PreToolUse guard script — that needs
+its own separate test vehicle, scoped as a sibling deliverable.
+
+* Observability
 
 ** DONE Tool-call audit log :code:
 :PROPERTIES:
@@ -347,46 +525,244 @@ directly-callable =claude-code-ide-org--audit-flush= every other test
 uses. =bin/test= 76/76 at merge (77/77 after the =org_clock_in= fix's
 own additional test).
 
-** DONE org_clock_report :code:
+** DONE SessionStart context hook :code:
 :PROPERTIES:
-:ID:       26215a14-6ec9-43a7-981b-5c8e888e65fd
-:BLOCKER:  4ae3cdef-98b5-4361-818e-aef3491f2fb8
-:ARCHIVE_TIME: 2026-07-29 Wed 07:49
+:ID:       f2b003af-b91c-4764-ae86-b5564429c92d
+:ARCHIVE_TIME: 2026-07-29 Wed 05:53
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_OLPATH: Roadmap/New MCP tools
+:ARCHIVE_OLPATH: Roadmap/Observability
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
 :END:
 :LOGBOOK:
 :END:
-Summarize time in a date range. Wrap =org-clock-report=/column view
-so "what did I work on this week" is one tool call instead of
-Claude eyeballing LOGBOOK entries across files by hand.
+Surface "what was I last doing." On any Claude Code session start
+in a project with org files, query the currently-clocked heading
+(if any) and any :WAIT: items and drop them into context
+automatically. Turns "what was I working on" from a question into
+something Claude already knows walking in — effectively a standing,
+automatic instance of whatever org_query above ends up answering on
+demand.
 
-*Risk, spot-checked deliberately — and the spot-check found a real
-bug*: =org-dblock-write:clocktable= inserts its output at *point*
-rather than replacing a region. For the =id=-scoped path (a copy of
-just that heading's subtree text inserted into the temp buffer
-first), that meant a naive =buffer-string= captured the copied source
-text *followed by* the report, leaking source text into the tool's
-return value. Caught by one of the branch's own tests failing on a
-real assertion, not by inspection — fixed by capturing the insertion
-point before calling the writer and returning only
-=(buffer-substring-no-properties origin (point-max))=. The
-whole-files path (no =id=) needed no such fix: =:scope= is a plain
-list of tracked file paths there, which
-=org-dblock-write:clocktable= itself resolves to buffers, same as
-=org_query='s =org-ql-select= already does.
+Buffers opened via =find-file-noselect= during the query are killed again
+if they weren't already open, so the user's window config isn't
+disturbed. *Real bug caught in review before merge:* a bare
+=(kill-buffer buffer)= on a buffer Emacs considers modified triggers an
+interactive =yes-or-no-p= prompt, which blocks forever under
+=emacsclient -e= (no stdin) — fixed by clearing =set-buffer-modified-p
+nil= first, mirroring the shared test fixture's own teardown pattern.
 
-*Judgment call worth naming:* with neither =block= nor an explicit
-=tstart=/=tend= pair given, the report defaults to fully unrestricted
-(all clocked time ever, in scope) rather than some implicit range
-like "today" — matches =org-clocktable-defaults=, no silent range
-assumption. 7 ERT tests added (id-scoped isolation from a sibling
-heading's own time, whole-files scope, explicit tstart/tend both
-in- and out-of-range, =:block "today"= — the test that caught the
-leak bug above — unknown =block= error, unknown =:id= error, no-args
-unrestricted case). =bin/test= 40/40 at merge.
+8 ERT tests added for the elisp half (empty/clocked-only/WAIT-only/
+both/non-WAIT-ignored/buffer-kill-hygiene cases); the shell script's
+=emacsclient --eval= round trip against a live buffer-list is the one
+piece that could only be exercised by the coordinator post-merge, not
+from the isolated worktree. =bin/test= 68/68 at merge.
+
+* Bigger swings
+
+* Upstream (claude-code-ide.el)
+
+* Documentation
+
+* Tooling
+
+** DONE Fix org-agenda-files/tracked-files resolving to nothing (agenda + org_query/org_clock_report) :code:
+:PROPERTIES:
+:ID:       74f24402-978e-4c66-ac97-996f387c0ddb
+:CREATED:  [2026-07-29 Wed 12:25]
+:ARCHIVE_TIME: 2026-07-30 Thu 15:48
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-07-29 Wed 18:20]--[2026-07-29 Wed 18:30] =>  0:10
+CLOCK: [2026-07-29 Wed 17:00]--[2026-07-29 Wed 17:05] =>  0:05
+CLOCK: [2026-07-29 Wed 12:25]--[2026-07-29 Wed 12:30] =>  0:05
+:END:
+[[file:~/.claude/plans/cheerful-whistling-sketch.md][Plan]]
+
+Doom's =org-agenda-files= is =("~/org")= — a bare directory string —
+and org's directory expansion for it is non-recursive, so
+=(org-agenda-files)= resolves to nil (TODO.org is symlinked one level
+below =~/org=, inside =claude-code-ide-org/=). The interactive agenda
+never sees it.
+
+Worse: =claude-code-ide-org--tracked-files= (config.el:412) returns
+the *raw* =org-agenda-files= variable rather than calling the
+=(org-agenda-files)= function, so =org_query= and unscoped
+=org_clock_report= are also blind whenever they fall back to it —
+confirmed live: =(claude-code-ide-org-query "(todo)")= returned "No
+matches." despite an active DOING heading. Affects three consumers:
+the stale-interval recovery scan, =org_query=, and unscoped
+=org_clock_report=. No existing test exercises the directory-fallback
+path — every test binds =claude-code-ide-org-query-files= directly.
+
+*Verified, not just implemented:* =bin/test= (78/78 including the new
+regression test), plus live checks against the running Emacs after
+reloading both the Doom config setq (=emacsclient -e '(setq
+org-agenda-files ...)'=, since it doesn't touch any =after!=/hook
+timing — no restart needed per org-dev.skill's rule of thumb) and
+config.el itself (=emacsclient -e '(load-file
+"modules/tools/claude-code-ide-org/config.el")'=): =(org-agenda-files)=
+now resolves to TODO.org's real path; =org_query "todo:DOING"= finds
+both DOING headings instead of "No matches."; the interactive
+=org-todo-list= renders every heading in this file; =org_clock_report=
+returns real clocked time instead of an empty table.
+
+** DONE Bridge Warp's own MCP client to the Emacs tools server :code:
+:PROPERTIES:
+:ID:       6a6d5b4e-0327-4578-a44a-356576870ceb
+:CREATED:  [2026-07-30 Thu 09:36]
+:ARCHIVE_TIME: 2026-07-30 Thu 15:47
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-07-30 Thu 12:20]--[2026-07-30 Thu 12:25] =>  0:05
+CLOCK: [2026-07-30 Thu 12:05]--[2026-07-30 Thu 12:15] =>  0:10
+:END:
+[[file:~/.claude/plans/use-pipx-instead-use-starry-metcalfe.md][Plan]]
+
+Warp's own agent (already used on this repo — see commits
+co-authored by =Oz <oz-agent@warp.dev>=) needed a bridge to reach the
+Emacs MCP tools server. The initial hypothesis — that Emacs' HTTP
+server closes each connection with no SSE fallback, and Warp's
+persistent-connection client would trip over that — turned out to be
+a red herring.
+
+*Verified, not just implemented:* the plan's falsify-first Step A (a
+direct-HTTP =.warp/.mcp.json=, no proxy) surfaced the real bug in
+Warp's logs instead: =notifications/initialized= failed with
+"Transport channel closed". Root cause:
+=claude-code-ide-mcp-http-server--send-empty-response= replied =200=
++ =text/plain= to that notification where the MCP spec expects =202
+Accepted=. Fixed via a Doom config override (pending an upstream
+report — see the sibling subtask above); confirmed both via a direct
+=mcp-proxy= round-trip and live in Warp itself. With the real bug
+fixed, the direct-HTTP entry alone was sufficient — no proxy needed.
+The =pipx=/=mcp-proxy= stdio bridge explored along the way (which hit
+its own unrelated dependency breakage) was never actually required
+and has been uninstalled; nothing repo-tracked depends on it. Both
+=.mcp.json= and =.warp/.mcp.json= are kept regardless, even though
+currently identical, as a deliberate seam for the two clients to
+diverge later.
+
+** DONE Discard the Plan-checklist convention; migrate skills to plain-text format :code:
+:PROPERTIES:
+:ID:       5f4d407b-4db9-4139-aabc-79fb5ade7be9
+:CREATED:  [2026-07-29 Wed 18:32]
+:ARCHIVE_TIME: 2026-07-29 Wed 18:54
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_OLPATH: Roadmap/Developer tooling
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-07-30 Thu 07:10]--[2026-07-30 Thu 07:20] =>  0:10
+CLOCK: [2026-07-29 Wed 18:40]--[2026-07-29 Wed 18:55] =>  0:15
+:END:
+Plan: [[file:~/.claude/plans/let-s-rip-it-out-floofy-blossom.md][let-s-rip-it-out-floofy-blossom]]
+
+CLAUDE.md's Plan-checklist reconciliation rule (and org.skill's matching
+checklist-discipline guidance) is being discarded entirely as unnecessary
+overhead — a plan tracked twice (org checklist + Claude Code's own Plan
+Mode file) that then needs keeping in sync. Replacing with: a permanent
+link to the Plan Mode file, kept through DONE, plus a concise prose outcome
+summary at completion instead of checkbox reconciliation. Also migrating
+org.skill/org-dev.skill off their non-standard zip-archive packaging to
+Claude Code's actual native format (.claude/skills/<name>/SKILL.md, plain
+text) since both files are being edited anyway. See the linked plan for
+full scope.
+
+*Shipped as planned, two commits:* (1) org.skill/org-dev.skill migrated
+verbatim to =.claude/skills/org/SKILL.md=/=.claude/skills/org-dev/SKILL.md=
+— confirmed via Claude Code's own docs that zip archives were never a
+supported skill format, and that this repo had invented the convention
+itself. =bin/check-org-dev-skill='s zip-structure check replaced with a
+plain-text existence check; org-dev/SKILL.md's now-obsolete unzip/edit/
+rezip section removed. (2) the reconciliation rule removed from CLAUDE.md
+and replaced with the plan-link + concise-summary rules above; matching
+checklist-discipline guidance removed from the org skill; all 15
+checklists (each a =**** Plan= sub-heading with an =[N/M]= cookie) found
+across TODO.org/DONE.org stripped (one more
+than originally scoped — the still-unarchived "Fix org-agenda-files"
+DONE heading above also had one), folding any non-redundant verification
+claim or implementation deviation into surrounding prose rather than
+losing it. The one deviation from the approved plan: per the user's
+mid-task instruction, the new-heading-approval-gate step was itself
+promoted from a one-off sequencing note into a standing CLAUDE.md rule
+(see "State transition rules") rather than living only in the plan file.
+Verified: =bin/check-org-dev-skill= passes; =grep -n "Plan \["
+TODO.org DONE.org= returns zero matches; =org_query "todo:DOING"= shows
+only this heading while it was active.
+
+** DONE Revisit: does org.skill's checkbox discipline apply to TODO.org itself? :research:code:
+:PROPERTIES:
+:ID:       6a448345-016c-495f-b26b-ee81b30cd95c
+:CREATED:  [2026-07-29 Wed 07:42]
+:ARCHIVE_TIME: 2026-07-29 Wed 18:47
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_OLPATH: Roadmap/Developer tooling
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-07-29 Wed 11:45]--[2026-07-29 Wed 12:05] =>  0:20
+:END:
+Tonight's parallel-subagent batch (10 MCP tools) left every archived
+heading's Plan checkboxes at all-[ ], despite full implementation —
+org.skill's existing "check off as you go" discipline was never
+applied. Fixed retroactively (DONE.org reconciled by hand) plus a new
+CLAUDE.md rule making it a coordinator responsibility. But a later
+conversation pushed back on the reasoning behind that rule, and it got
+meta enough to warrant its own session rather than more tail-end
+discussion bolted onto an already-long one.
+
+*Why TODO.org is a special case, not a template for org.skill in
+general:* org.skill normally applies to a user's .org files living in
+arbitrary other projects/folders — files with no relationship to a
+git repo whose code is simultaneously being changed by parallel
+subagents. TODO.org here is unusual on two axes at once: (1) it's
+this repo's own tracked source file, in the same repo as the code
+the subagents are editing, and (2) it's edited through two different
+channels — live-Emacs/emacsclient (state, clock, archive) and
+git-tracked branch diffs (plan-checkbox text) — that don't normally
+have to coexist for an arbitrary end-user org file.
+
+*Where the discussion landed, tentatively, before deferring:* the
+real risk this session wasn't "two subagents' diffs collide" (rare —
+different headings, same shape as config.el's clean merges) — it was
+that the coordinator (this session) batched all TODO.org/DONE.org
+commits at the very end instead of committing incrementally per
+task, the same cadence used for config.el. That left git's tracked
+TODO.org frozen at its pre-session state for the whole session while
+the live-Emacs-edited on-disk file kept drifting — a mismatch that
+has nothing to do with how many subagents are running or what they
+touch. Tentative fix direction: commit TODO.org per-task (not
+batched); let a subagent check off its own heading's boxes/decisions
+directly in its own worktree; rely on the already-enabled
+global-auto-revert-mode to sync the live buffer after a merge before
+archiving that heading.
+
+*Resolved:* the fresh session concluded the whole reconciliation
+mechanism was the wrong fix — not "who reconciles it, coordinator or
+subagent" but "why maintain a second copy of the plan in org at all."
+Claude Code's own Plan Mode already persists the plan to a durable file
+(=~/.claude/plans/<slug>.md=, confirmed empirically to never be cleaned
+up); org now carries a permanent link to that file plus a concise prose
+outcome summary at =DONE=, never a transcribed checklist. This
+generalizes past this repo's own meta-bookkeeping file: the
+reconciliation rule is gone from CLAUDE.md entirely, and the matching
+checklist-discipline guidance is gone from org.skill too, so "does this
+apply to org.skill in general" is moot — there's no checklist
+convention left for it to apply to. The auto-revert/explicit-revert-buffer
+question is moot for the same reason: with no plan text transcribed into
+org, there's nothing left to keep in sync between git and the live
+buffer, so no revert-timing race this rule needs to guard against. See
+TODO.org's "Discard the Plan-checklist convention" heading and its
+linked plan for the full resolution.
 
 ** DONE Set git identity :code:
 :PROPERTIES:
@@ -403,33 +779,6 @@ git config user.name "Your Name"
 git config user.email "nbest937@gmail.com"
 #+end_src
 Then ask Claude to finish the commit it already staged.
-
-** DONE Consolidate historical SESSIONS/LOGBOOK entries :code:
-:PROPERTIES:
-:CREATED:  [2026-07-28 Tue 13:01]
-:ID:       ccdff985-b206-4a8d-a6d2-9bc01cfdda3a
-:ARCHIVE_TIME: 2026-07-29 Wed 08:11
-:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_CATEGORY: TODO
-:ARCHIVE_TODO: DONE
-:END:
-:LOGBOOK:
-CLOCK: [2026-07-28 Tue 16:29]--[2026-07-28 Tue 16:32] =>  0:03
-CLOCK: [2026-07-28 Tue 16:24]--[2026-07-28 Tue 16:25] =>  0:01
-CLOCK: [2026-07-28 Tue 16:16]--[2026-07-28 Tue 16:17] =>  0:01
-CLOCK: [2026-07-28 Tue 16:08]--[2026-07-28 Tue 16:09] =>  0:01
-CLOCK: [2026-07-28 Tue 13:45]--[2026-07-28 Tue 14:00] =>  0:15
-CLOCK: [2026-07-28 Tue 13:05]--[2026-07-28 Tue 13:15] =>  0:10
-:END:
-One-time retrospective cleanup of the per-turn SESSIONS/LOGBOOK churn
-accumulated so far: collapse each heading's :SESSIONS: entries to one
-min-to-max span per calendar day; round each :LOGBOOK: CLOCK interval
-to the nearest 5-minute multiple; then, after sorting, merge any
-intervals that are adjacent or overlapping post-rounding into a single
-min-to-max span. Implemented as a reusable elisp function rather than a
-throwaway script, so the same logic can back the on-the-fly version
-scoped separately — see "Auto-consolidate SESSIONS/LOGBOOK on the fly"
-under Clock lifecycle & visibility.
 
 ** DONE org-dev skill :code:
 :PROPERTIES:
@@ -526,340 +875,3 @@ exact line numbers from the doc entirely (e.g. citing the
 pressure altogether, but that's a doc-content trade-off — it makes the
 doc's own reference to readers less precise — left for a separate
 decision rather than made unilaterally here.
-
-** DONE org_query :code:
-:PROPERTIES:
-:ID:       4ae3cdef-98b5-4361-818e-aef3491f2fb8
-:ARCHIVE_TIME: 2026-07-29 Wed 08:12
-:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_OLPATH: Roadmap/New MCP tools
-:ARCHIVE_CATEGORY: TODO
-:ARCHIVE_TODO: DONE
-:END:
-Structured search over headings. Biggest ROI item here: most of
-what's actually slow today is Claude reading whole files to answer
-things a real query would answer in one call — "what's blocked",
-"what did I touch this week", "everything :research: and not DONE".
-Worth scoping against =org-ql= rather than hand-rolling a query
-language. Implemented against org-ql's actual source
-(github.com/alphapapa/org-ql), not guessed from memory.
-
-*Risk, confirmed and accepted:* =org-ql--query-string-to-sexp= is
-confirmed still a double-dash "private" function with no public
-alternative (dynamically =fset= near the end of org-ql.el at load
-time, so it's reliably present after a plain =(require 'org-ql)=) —
-the version-drift risk stands as originally flagged, nothing to do
-about it now beyond noting it. Separately, org-ql also exposes a full
-sexp predicate language — effectively arbitrary elisp execution
-against the user's files if exposed. Same class of concern as "Remote
-MCP access" below, just reachable locally instead of remotely; this
-tool never exposes that path.
-
-*Implementation notes:*
-- =bin/test= generalized to prepend /every/ straight-built package's
-  directory to load-path (not just org's), since org-ql pulls in
-  =peg=/=ts= transitively — avoids hand-listing org-ql's own
-  dependency set, which could drift.
-- =doom sync= alone did not pick up the new =packages.el= entry during
-  implementation: =~/.config/doom/modules/tools/claude-code-ide-org=
-  is a symlink to this repo's =main= checkout (see CLAUDE.md's
-  "Repository layout"), not to whichever branch/worktree is currently
-  being edited, so a feature-branch worktree's =packages.el= change is
-  invisible to =doom sync= until it lands on =main=. Installed org-ql
-  directly for testing instead: =emacsclient -e "(straight-use-package
-  '(org-ql :type git :host github :repo \"alphapapa/org-ql\"))"= —
-  same practical effect, sidesteps the symlink. The =packages.el=
-  entry remains the source of truth for a plain =doom sync= to pick up
-  once this branch reaches =main=.
-- All 24 tests pass (18 pre-existing + 6 new). Implemented on branch
-  =feature/org_query=; this TODO.org bookkeeping was applied directly
-  to =main= instead, per CLAUDE.md's feature-branch rule explicitly
-  exempting "small doc/TODO edits."
-
-** DONE Auto-consolidate SESSIONS/LOGBOOK on the fly :code:
-:PROPERTIES:
-:CREATED:  [2026-07-28 Tue 13:13]
-:ID:       a36d2436-7601-4bf5-a2e7-a4613755156d
-:ARCHIVE_TIME: 2026-07-29 Wed 08:12
-:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_OLPATH: Roadmap/Clock lifecycle & visibility
-:ARCHIVE_CATEGORY: TODO
-:ARCHIVE_TODO: DONE
-:END:
-:LOGBOOK:
-CLOCK: [2026-07-28 Tue 16:50]--[2026-07-28 Tue 17:00] =>  0:10
-:END:
-Companion to the retrospective one-time cleanup ("Consolidate
-historical SESSIONS/LOGBOOK entries", done this session): wire the
-same rounding/merging logic into =org_clock_out= itself, so the
-drawers stay consolidated continuously instead of needing another
-manual pass later. Reuses
-=claude-code-ide-org-consolidate-history= directly — that function
-was deliberately written and tested as a reusable capability, not a
-throwaway script, for exactly this.
-
-Idempotency confirmed empirically (a manual =consolidate-history= call
-right after clock-out reports "Nothing to consolidate"). *Done
-differently than planned:* implemented as a full rescan of the drawer on
-every clock-out rather than the incremental "only re-examine today's
-entries and the newest CLOCK line" scheme originally proposed — these
-drawers are a handful of lines at most, so a full regex rescan costs
-nothing measurable. The incremental version remains available as a
-future optimization if a heading's history ever grows large enough for
-that to matter, which hasn't happened in practice.
-
-*Relationship to "Coarsen :SESSIONS: to session-level" above:*
-different mechanism, same underlying pain. That proposal changes
-*when* :SESSIONS: gets written (detach from per-turn
-Stop/UserPromptSubmit boundaries, write only at genuine session
-close) — nothing about :LOGBOOK:'s intentionally fine-grained CLOCK
-writes changes there. This proposal instead changes *what happens* to
-writes that continue to happen at the current frequency, compacting
-them immediately after each clock-out. If "Coarsen" ships first,
-there's less to consolidate per day in the first place, but
-:LOGBOOK: rounding/merging here would still apply regardless — the
-two are complementary, not competing, and could both land.
-
-*Risk:* rounding only ever touches already-closed history, so it can
-never corrupt a running clock — the retrospective run and its tests
-already exercise that exact boundary. The main remaining risk is
-purely mechanical: forgetting to scope the on-the-fly call to *only*
-the heading that was just clocked out of.
-
-** DONE Revisit: does org.skill's checkbox discipline apply to TODO.org itself? :research:code:
-:PROPERTIES:
-:ID:       6a448345-016c-495f-b26b-ee81b30cd95c
-:CREATED:  [2026-07-29 Wed 07:42]
-:ARCHIVE_TIME: 2026-07-29 Wed 18:47
-:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_OLPATH: Roadmap/Developer tooling
-:ARCHIVE_CATEGORY: TODO
-:ARCHIVE_TODO: DONE
-:END:
-:LOGBOOK:
-CLOCK: [2026-07-29 Wed 11:45]--[2026-07-29 Wed 12:05] =>  0:20
-:END:
-Tonight's parallel-subagent batch (10 MCP tools) left every archived
-heading's Plan checkboxes at all-[ ], despite full implementation —
-org.skill's existing "check off as you go" discipline was never
-applied. Fixed retroactively (DONE.org reconciled by hand) plus a new
-CLAUDE.md rule making it a coordinator responsibility. But a later
-conversation pushed back on the reasoning behind that rule, and it got
-meta enough to warrant its own session rather than more tail-end
-discussion bolted onto an already-long one.
-
-*Why TODO.org is a special case, not a template for org.skill in
-general:* org.skill normally applies to a user's .org files living in
-arbitrary other projects/folders — files with no relationship to a
-git repo whose code is simultaneously being changed by parallel
-subagents. TODO.org here is unusual on two axes at once: (1) it's
-this repo's own tracked source file, in the same repo as the code
-the subagents are editing, and (2) it's edited through two different
-channels — live-Emacs/emacsclient (state, clock, archive) and
-git-tracked branch diffs (plan-checkbox text) — that don't normally
-have to coexist for an arbitrary end-user org file.
-
-*Where the discussion landed, tentatively, before deferring:* the
-real risk this session wasn't "two subagents' diffs collide" (rare —
-different headings, same shape as config.el's clean merges) — it was
-that the coordinator (this session) batched all TODO.org/DONE.org
-commits at the very end instead of committing incrementally per
-task, the same cadence used for config.el. That left git's tracked
-TODO.org frozen at its pre-session state for the whole session while
-the live-Emacs-edited on-disk file kept drifting — a mismatch that
-has nothing to do with how many subagents are running or what they
-touch. Tentative fix direction: commit TODO.org per-task (not
-batched); let a subagent check off its own heading's boxes/decisions
-directly in its own worktree; rely on the already-enabled
-global-auto-revert-mode to sync the live buffer after a merge before
-archiving that heading.
-
-*Resolved:* the fresh session concluded the whole reconciliation
-mechanism was the wrong fix — not "who reconciles it, coordinator or
-subagent" but "why maintain a second copy of the plan in org at all."
-Claude Code's own Plan Mode already persists the plan to a durable file
-(=~/.claude/plans/<slug>.md=, confirmed empirically to never be cleaned
-up); org now carries a permanent link to that file plus a concise prose
-outcome summary at =DONE=, never a transcribed checklist. This
-generalizes past this repo's own meta-bookkeeping file: the
-reconciliation rule is gone from CLAUDE.md entirely, and the matching
-checklist-discipline guidance is gone from org.skill too, so "does this
-apply to org.skill in general" is moot — there's no checklist
-convention left for it to apply to. The auto-revert/explicit-revert-buffer
-question is moot for the same reason: with no plan text transcribed into
-org, there's nothing left to keep in sync between git and the live
-buffer, so no revert-timing race this rule needs to guard against. See
-TODO.org's "Discard the Plan-checklist convention" heading and its
-linked plan for the full resolution.
-
-** DONE Discard the Plan-checklist convention; migrate skills to plain-text format :code:
-:PROPERTIES:
-:ID:       5f4d407b-4db9-4139-aabc-79fb5ade7be9
-:CREATED:  [2026-07-29 Wed 18:32]
-:ARCHIVE_TIME: 2026-07-29 Wed 18:54
-:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_OLPATH: Roadmap/Developer tooling
-:ARCHIVE_CATEGORY: TODO
-:ARCHIVE_TODO: DONE
-:END:
-:LOGBOOK:
-CLOCK: [2026-07-30 Thu 07:10]--[2026-07-30 Thu 07:20] =>  0:10
-CLOCK: [2026-07-29 Wed 18:40]--[2026-07-29 Wed 18:55] =>  0:15
-:END:
-Plan: [[file:~/.claude/plans/let-s-rip-it-out-floofy-blossom.md][let-s-rip-it-out-floofy-blossom]]
-
-CLAUDE.md's Plan-checklist reconciliation rule (and org.skill's matching
-checklist-discipline guidance) is being discarded entirely as unnecessary
-overhead — a plan tracked twice (org checklist + Claude Code's own Plan
-Mode file) that then needs keeping in sync. Replacing with: a permanent
-link to the Plan Mode file, kept through DONE, plus a concise prose outcome
-summary at completion instead of checkbox reconciliation. Also migrating
-org.skill/org-dev.skill off their non-standard zip-archive packaging to
-Claude Code's actual native format (.claude/skills/<name>/SKILL.md, plain
-text) since both files are being edited anyway. See the linked plan for
-full scope.
-
-*Shipped as planned, two commits:* (1) org.skill/org-dev.skill migrated
-verbatim to =.claude/skills/org/SKILL.md=/=.claude/skills/org-dev/SKILL.md=
-— confirmed via Claude Code's own docs that zip archives were never a
-supported skill format, and that this repo had invented the convention
-itself. =bin/check-org-dev-skill='s zip-structure check replaced with a
-plain-text existence check; org-dev/SKILL.md's now-obsolete unzip/edit/
-rezip section removed. (2) the reconciliation rule removed from CLAUDE.md
-and replaced with the plan-link + concise-summary rules above; matching
-checklist-discipline guidance removed from the org skill; all 15
-checklists (each a =**** Plan= sub-heading with an =[N/M]= cookie) found
-across TODO.org/DONE.org stripped (one more
-than originally scoped — the still-unarchived "Fix org-agenda-files"
-DONE heading above also had one), folding any non-redundant verification
-claim or implementation deviation into surrounding prose rather than
-losing it. The one deviation from the approved plan: per the user's
-mid-task instruction, the new-heading-approval-gate step was itself
-promoted from a one-off sequencing note into a standing CLAUDE.md rule
-(see "State transition rules") rather than living only in the plan file.
-Verified: =bin/check-org-dev-skill= passes; =grep -n "Plan \["
-TODO.org DONE.org= returns zero matches; =org_query "todo:DOING"= shows
-only this heading while it was active.
-
-** DONE Bridge Warp's own MCP client to the Emacs tools server :code:
-:PROPERTIES:
-:ID:       6a6d5b4e-0327-4578-a44a-356576870ceb
-:CREATED:  [2026-07-30 Thu 09:36]
-:ARCHIVE_TIME: 2026-07-30 Thu 15:47
-:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_CATEGORY: TODO
-:ARCHIVE_TODO: DONE
-:END:
-:LOGBOOK:
-CLOCK: [2026-07-30 Thu 12:20]--[2026-07-30 Thu 12:25] =>  0:05
-CLOCK: [2026-07-30 Thu 12:05]--[2026-07-30 Thu 12:15] =>  0:10
-:END:
-[[file:~/.claude/plans/use-pipx-instead-use-starry-metcalfe.md][Plan]]
-
-Warp's own agent (already used on this repo — see commits
-co-authored by =Oz <oz-agent@warp.dev>=) needed a bridge to reach the
-Emacs MCP tools server. The initial hypothesis — that Emacs' HTTP
-server closes each connection with no SSE fallback, and Warp's
-persistent-connection client would trip over that — turned out to be
-a red herring.
-
-*Verified, not just implemented:* the plan's falsify-first Step A (a
-direct-HTTP =.warp/.mcp.json=, no proxy) surfaced the real bug in
-Warp's logs instead: =notifications/initialized= failed with
-"Transport channel closed". Root cause:
-=claude-code-ide-mcp-http-server--send-empty-response= replied =200=
-+ =text/plain= to that notification where the MCP spec expects =202
-Accepted=. Fixed via a Doom config override (pending an upstream
-report — see the sibling subtask above); confirmed both via a direct
-=mcp-proxy= round-trip and live in Warp itself. With the real bug
-fixed, the direct-HTTP entry alone was sufficient — no proxy needed.
-The =pipx=/=mcp-proxy= stdio bridge explored along the way (which hit
-its own unrelated dependency breakage) was never actually required
-and has been uninstalled; nothing repo-tracked depends on it. Both
-=.mcp.json= and =.warp/.mcp.json= are kept regardless, even though
-currently identical, as a deliberate seam for the two clients to
-diverge later.
-
-** DONE Fix org-agenda-files/tracked-files resolving to nothing (agenda + org_query/org_clock_report) :code:
-:PROPERTIES:
-:ID:       74f24402-978e-4c66-ac97-996f387c0ddb
-:CREATED:  [2026-07-29 Wed 12:25]
-:ARCHIVE_TIME: 2026-07-30 Thu 15:48
-:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_CATEGORY: TODO
-:ARCHIVE_TODO: DONE
-:END:
-:LOGBOOK:
-CLOCK: [2026-07-29 Wed 18:20]--[2026-07-29 Wed 18:30] =>  0:10
-CLOCK: [2026-07-29 Wed 17:00]--[2026-07-29 Wed 17:05] =>  0:05
-CLOCK: [2026-07-29 Wed 12:25]--[2026-07-29 Wed 12:30] =>  0:05
-:END:
-[[file:~/.claude/plans/cheerful-whistling-sketch.md][Plan]]
-
-Doom's =org-agenda-files= is =("~/org")= — a bare directory string —
-and org's directory expansion for it is non-recursive, so
-=(org-agenda-files)= resolves to nil (TODO.org is symlinked one level
-below =~/org=, inside =claude-code-ide-org/=). The interactive agenda
-never sees it.
-
-Worse: =claude-code-ide-org--tracked-files= (config.el:412) returns
-the *raw* =org-agenda-files= variable rather than calling the
-=(org-agenda-files)= function, so =org_query= and unscoped
-=org_clock_report= are also blind whenever they fall back to it —
-confirmed live: =(claude-code-ide-org-query "(todo)")= returned "No
-matches." despite an active DOING heading. Affects three consumers:
-the stale-interval recovery scan, =org_query=, and unscoped
-=org_clock_report=. No existing test exercises the directory-fallback
-path — every test binds =claude-code-ide-org-query-files= directly.
-
-*Verified, not just implemented:* =bin/test= (78/78 including the new
-regression test), plus live checks against the running Emacs after
-reloading both the Doom config setq (=emacsclient -e '(setq
-org-agenda-files ...)'=, since it doesn't touch any =after!=/hook
-timing — no restart needed per org-dev.skill's rule of thumb) and
-config.el itself (=emacsclient -e '(load-file
-"modules/tools/claude-code-ide-org/config.el")'=): =(org-agenda-files)=
-now resolves to TODO.org's real path; =org_query "todo:DOING"= finds
-both DOING headings instead of "No matches."; the interactive
-=org-todo-list= renders every heading in this file; =org_clock_report=
-returns real clocked time instead of an empty table.
-
-** DONE session-resume can reopen a clock on an already-DONE heading :code:
-:PROPERTIES:
-:ID:       2e34162a-4720-4d23-bf29-10eb295cd087
-:CREATED:  [2026-07-29 Wed 14:17]
-:ARCHIVE_TIME: 2026-07-30 Thu 15:48
-:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
-:ARCHIVE_OLPATH: Clock lifecycle & visibility
-:ARCHIVE_CATEGORY: TODO
-:ARCHIVE_TODO: DONE
-:END:
-Caught live in this session: =org-clock-in-last= (called by
-=session-resume= on =UserPromptSubmit=) resumes onto
-=org-clock-history='s most recent entry with no check that it's still
-active — so finishing a task doesn't stop it from being re-clocked on
-the next turn boundary if nothing else clocks in after. Recurred three
-times in a row on the same just-finished heading — once per turn
-boundary, until a heading existed here to track it as work rather than
-just stripping the stray entry again; see the commit that fixed
-org-agenda-files for context on what was being worked on when this was
-first found.
-
-*Verified, not just implemented:* added
-=claude-code-ide-org--clock-history-head-done-p=, which checks whether
-=(car org-clock-history)= now points to a DONE-type heading, and a
-guard clause in =claude-code-ide-org-session-resume= that short-circuits
-with a "already DONE; nothing to resume" message instead of calling
-=org-clock-in-last= when that's true. The separate, deliberately-kept
-behavior — resuming onto the wrong but still-*active* task, which
-self-corrects via the next =org_clock_in= — is untouched. =bin/test=
-passes 79/79 including a new regression test
-(=session-resume-noop-when-history-head-done=) that pauses a clocked
-task, marks it DONE, and asserts resume refuses to reopen it. Also
-verified live against the running Doom Emacs (reload + a scratch-file
-functional check mirroring the unit test, not the real tracked
-headings) after reconnecting a mid-task Emacs/MCP-server outage that
-interrupted this session. While starting this task, surfaced a
-separate, previously-untracked gap — two concurrent Claude Code
-sessions share one global org-clock with no session identity — spun
-off as its own heading below rather than folded into this fix.
