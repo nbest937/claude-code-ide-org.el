@@ -4740,10 +4740,18 @@ buffer is shorter afterwards and the old line number points elsewhere."
               ;; actually builds, rather than recomputing it: this asserts
               ;; against what the command offers, not against a parallel
               ;; construction that could drift from it.
+              ;;
+              ;; Read through `all-completions' rather than `caar'. The
+              ;; collection is a function now, so that it can carry
+              ;; `display-sort-function' metadata and stop Vertico
+              ;; re-sorting the ranking away (:ID: 85702dba) -- and
+              ;; `all-completions' is the accessor that works whichever
+              ;; representation is in use, so this stub does not have to
+              ;; be revisited if it changes again.
               (cl-letf (((symbol-function 'completing-read)
                          (lambda (_prompt collection &rest _)
                            (should collection)
-                           (car (car collection)))))
+                           (car (all-completions "" collection nil)))))
                 (claude-code-ide-org-review-assign)))
             ;; Point is on the *second* span, not back at the top.
             (should (eq (claude-code-ide-org--review-item-at-point) second)))
@@ -4970,20 +4978,97 @@ twice, because `--review-format-annotation' already ends with it and
       (should (= 1 count)))))
 
 (ert-deftest claude-code-ide-org-test-review-unresolvable-id-renders-unescaped ()
-  "The other half of e3f70e61, which turned out not to be a defect: an
-unresolvable :ID: substitutes `--at-id's error string into the title
-slot, and it must appear as display text. Reported as leaking elisp
-escaping (\\\" and a dangling backslash); reproducing it 2026-08-12
-showed clean output, so the escaping came from how the report was
-transcribed. Pinned so a future `%S' cannot reintroduce it."
+  "An unresolvable :ID: renders as its 8-character prefix followed by
+`(unresolved)', and never as escaped elisp.
+
+The escaping half is the original e3f70e61 concern and is unchanged:
+reported as leaking `\\\"' and a dangling backslash, reproduced clean on
+2026-08-12, pinned since so a future `%S' cannot reintroduce it.
+
+The title half changed deliberately on 2026-08-17 (TODO.org :ID:
+c2132d3f). This used to assert that `--at-id's error string -- \"no org
+heading found with :ID: ...\" -- appeared as the group heading, on the
+grounds that it was display text rather than escaped elisp. That was
+true and beside the point: a `cond' clause of the form `((--at-id ...))'
+yields its own test, and `--at-id' *returns* its error rather than
+signalling, so the message landed where a title belongs and the
+`(t last-id)' fallback under it was unreachable. Rendering an error
+message as a heading was never intended, only unexamined."
   (claude-code-ide-org-test--with-heading
     (claude-code-ide-org-test--with-review-buffer
         (list (list :type 'clock :id "00000000-dead-beef-0000-000000000000"
                     :start (current-time) :end (current-time)
                     :note "bogus" :agent nil :suggested t :events nil))
       (let ((text (buffer-substring-no-properties (point-min) (point-max))))
-        (should (string-match-p "no org heading found" text))
+        (should (string-match-p "00000000  (unresolved)" text))
+        (should-not (string-match-p "no org heading found" text))
         (should-not (string-match-p "\\\\" text))))))
+
+(ert-deftest claude-code-ide-org-test-review-group-heading-leads-with-id-prefix ()
+  "The group heading leads with the 8-character :ID: prefix, then the
+title (TODO.org :ID: c2132d3f).
+
+Prefix-first rather than a trailing `{id}' is not a style preference:
+`--short-id' returns exactly 8 characters for any real UUID, so leading
+with it puts every id in one column and every title in a second, whereas
+a trailing form can never line up because title lengths vary.  Asserted
+as an anchored prefix for that reason -- a test that merely looked for
+the id *somewhere* in the line would pass on the trailing form this
+replaced."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--with-review-buffer
+        (list (list :type 'clock :id id
+                    :start (current-time) :end (current-time)
+                    :note "real heading" :agent nil :suggested t :events nil))
+      (let ((text (buffer-substring-no-properties (point-min) (point-max))))
+        (should (string-match-p
+                 (concat "^" (regexp-quote (claude-code-ide-org--short-id id))
+                         "  Test heading")
+                 text))))))
+
+(ert-deftest claude-code-ide-org-test-id-health-separates-missing-from-misfiled ()
+  "`--id-health' must distinguish an id whose heading no longer exists
+anywhere from one that exists in a different file than the one recorded.
+They are different defects with different fixes, and `org-id-find' cannot
+tell them apart because both return nil -- which is why the file-scan
+earns its place over a per-id sweep (TODO.org :ID: 8e969114).
+
+Both counts are asserted in one fixture on purpose: a implementation that
+lumped them together would still satisfy either assertion alone."
+  (claude-code-ide-org-test--with-heading
+    (with-temp-file archive-file
+      (insert "* DONE Archived one\n:PROPERTIES:\n:ID:       test-0002\n:END:\n"
+              "* DONE Archived two\n:PROPERTIES:\n:ID:       test-0003\n:END:\n"))
+    ;; Correct entry -- and what causes archive-file to be scanned at all,
+    ;; since only files named as values in org-id-locations are read.
+    (org-id-add-location "test-0002" archive-file)
+    ;; Exists, but in archive-file rather than the file recorded here.
+    (org-id-add-location "test-0003" file)
+    ;; Exists in no known file.
+    (org-id-add-location "test-ghost" file)
+    (let ((health (claude-code-ide-org--id-health)))
+      (should (= 1 (plist-get health :misfiled)))
+      (should (= 1 (plist-get health :missing))))))
+
+(ert-deftest claude-code-ide-org-test-review-id-health-line-is-silent-when-clean ()
+  "The report says nothing when everything resolves.
+
+A line reading \"0 unresolvable\" on every pass is noise that trains the
+eye to skip the line that matters -- the same self-limiting reasoning as
+`claude-code-ide-org-write-session-start-report'.  Asserted rather than
+left to intent, because \"prints a zero\" is the natural thing for the
+next person to add."
+  (claude-code-ide-org-test--with-heading
+    (with-temp-buffer
+      (setq claude-code-ide-org--review-id-health (list :missing 0 :misfiled 0))
+      (should-not (claude-code-ide-org--review-id-health-line))
+      (setq claude-code-ide-org--review-id-health (list :missing 2 :misfiled 1))
+      (let ((line (claude-code-ide-org--review-id-health-line)))
+        (should line)
+        (should (string-match-p "3 org-id entries stale" line))
+        (should (string-match-p "2 headings gone" line))
+        (should (string-match-p "1 in another file" line))
+        (should (string-match-p "org-id-update-id-locations" line))))))
 
 (ert-deftest claude-code-ide-org-test-review-apply-restores-read-only ()
   "The flag the user set is theirs, and apply borrows it rather than
@@ -5714,6 +5799,56 @@ wrong way round."
            (ids (mapcar #'cdr cands)))
       (should (< (cl-position "66666666-6666-4666-8666-666666666666" ids :test #'equal)
                  (cl-position "77777777-7777-4777-8777-777777777777" ids :test #'equal))))))
+
+(ert-deftest claude-code-ide-org-test-ordered-collection-declares-identity-sort ()
+  "The assignment prompt's candidates are sorted best-first before they are
+handed to `completing-read', and a bare alist carries no completion
+metadata -- so Vertico re-sorts by history, then string length, then
+alphabetically, discarding the ranking entirely (TODO.org :ID: 85702dba).
+
+Two assertions, because either alone would pass on a broken
+implementation: the metadata must declare `identity' sorting, *and* the
+collection must still complete normally rather than having been traded
+away for the metadata."
+  (let* ((candidates '(("first candidate"  . "id-1")
+                       ("z second"         . "id-2")
+                       ("aaa third"        . "id-3")))
+         (coll (claude-code-ide-org--ordered-collection candidates))
+         (md (funcall coll "" nil 'metadata)))
+    (should (eq 'metadata (car md)))
+    (should (eq #'identity (cdr (assq 'display-sort-function (cdr md)))))
+    (should (eq #'identity (cdr (assq 'cycle-sort-function (cdr md)))))
+    ;; Still a working collection: order preserved, and it completes.
+    (should (equal '("first candidate" "z second" "aaa third")
+                   (all-completions "" coll nil)))
+    (should (equal '("z second") (all-completions "z" coll nil)))))
+
+(ert-deftest claude-code-ide-org-test-assign-candidates-tolerates-unresolvable-id ()
+  "An `org-id' entry whose heading no longer exists must not drag org
+calls into the caller's buffer.  `org-with-point-at' does not switch
+buffers when handed nil -- its expansion calls `set-buffer' only under
+`(markerp ...)', then falls through to `(goto-char (or nil (point)))' --
+so the body runs wherever point already was.  From the review buffer that
+is `*org-review*', a non-Org buffer, where `org-get-heading' and
+`org-entry-get' warn through org-element instead of signalling.  One pass
+on 2026-08-17 produced 45 such warnings from 22 unresolvable IDs.
+
+Asserts on `display-warning' rather than on the returned candidates on
+purpose: the unguarded path drops the ghost candidate too, so the warning
+is the *only* observable difference between fixed and broken."
+  (claude-code-ide-org-test--with-heading
+    ;; An id org-id knows about, whose heading is not in the file.
+    (org-id-add-location "99999999-9999-4999-8999-999999999999" file)
+    (let* ((claude-code-ide-org-query-files (list file))
+           warned)
+      (cl-letf (((symbol-function 'display-warning)
+                 (lambda (&rest args) (push args warned))))
+        (with-temp-buffer
+          (fundamental-mode)
+          (claude-code-ide-org--assign-candidates
+           (claude-code-ide-org-test--t "09:19")
+           (claude-code-ide-org-test--t "09:20"))))
+      (should (null warned)))))
 
 (ert-deftest claude-code-ide-org-test-activity-range-uses-times-on-the-reference-day ()
   "Day resolution is useless in the case it is most used: every candidate

@@ -2129,17 +2129,34 @@ discard it."
 
 (defun claude-code-ide-org--trigger-auto-clock-in (change-plist)
   "For `org-trigger-hook': the moment any heading's TODO state becomes
-DOING or PLANNING -- via `claude-code-ide-org-set-todo', a hand-edit
-made directly in Emacs, or any other path at all -- automatically open
-a clock on it via `org-clock-in', unless a clock is already running on
-that exact heading, or the heading is a container
-\(`claude-code-ide-org--container-heading-p'). Guarded against
-re-entrancy by `claude-code-ide-org--auto-clock-in-active'.
+DOING or PLANNING, automatically open a clock on it via `org-clock-in',
+unless a clock is already running on that exact heading, or the heading
+is a container \(`claude-code-ide-org--container-heading-p'). Guarded
+against re-entrancy by `claude-code-ide-org--auto-clock-in-active'.
 CHANGE-PLIST is the plist `org-todo' passes to every
 `org-trigger-hook' function; see `org-trigger-hook's own docstring for
 its shape. Never calls `org-clock-in' or reads `org-clock-marker'
 except from inside this hook -- i.e. never at load or registration
-time."
+time.
+
+*Which paths actually reach it, corrected 2026-08-17.* This said \"via
+`claude-code-ide-org-set-todo', a hand-edit made directly in Emacs, or
+any other path at all\".  The first has been dead since the 2026-08-11
+cutover: `claude-code-ide-org-set-todo' appends a queue event and never
+calls `org-todo', so it cannot reach `org-trigger-hook' at all.
+
+What is left is narrower than \"any path at all\" in a second way too.
+`claude-code-ide-org--review-apply-item' binds
+`claude-code-ide-org--auto-clock-in-active' around the whole apply, and
+that test precedes the container test below -- so on the apply path this
+hook short-circuits for *every* heading, container or leaf, and the
+container exemption is unreachable there.
+
+So the container exemption does its work in exactly one place: a TODO
+state changed by hand in Emacs (`C-c C-t', `S-right'), which is the
+scenario that raised it (TODO.org :ID: ab75d6d2).  The exemption's
+*rationale* is unaffected by any of this and still holds -- see that
+heading for the measurement."
   (when (and (member (plist-get change-plist :to) '("DOING" "PLANNING"))
              (not claude-code-ide-org--auto-clock-in-active)
              (not (claude-code-ide-org--container-heading-p)))
@@ -4704,6 +4721,86 @@ back to the queue and the files for fresh answers.")
                      claude-code-ide-org--span-evidence-cache)
           hit)))))
 
+(defvar-local claude-code-ide-org--review-id-health nil
+  "Cached `claude-code-ide-org--id-health' result for this review buffer.
+Computed when the buffer is built and by `g', never during a redraw:
+marking a line re-renders, and a scan on every keystroke would be a
+tax paid for a number that cannot have changed.")
+
+(defun claude-code-ide-org--id-health ()
+  "Return (:missing N :misfiled M) describing `org-id-locations'.
+
+MISSING counts ids that no known file contains any more -- the heading
+was deleted, or a git operation rewrote the file out from under it.
+MISFILED counts ids that still exist, but in a different file than the
+one recorded.  Keeping them apart is the point: they are different
+defects with different fixes, and `org-id-find' cannot distinguish them
+because both simply return nil (TODO.org :ID: 8e969114).
+
+Scans each distinct file once rather than resolving each id, which is
+what makes this cheap enough to run when the review buffer opens.
+Measured 2026-08-17: 0.018 s over 7 files, against 0.218 s for 161
+`org-id-find' calls.  The time is the lesser reason -- resolving an id
+*visits* its file, so the per-id sweep pulled four buffers into the
+user's Emacs as a side effect, where this visits nothing.  It also
+scales on file count rather than id count, and this project accumulates
+ids far faster than files (161 against 7)."
+  (let ((by-file (make-hash-table :test 'equal))
+        (missing 0)
+        (misfiled 0))
+    (when (hash-table-p org-id-locations)
+      (maphash
+       (lambda (_id file)
+         (unless (gethash file by-file)
+           (puthash file
+                    (let ((ids (make-hash-table :test 'equal))
+                          (path (expand-file-name file)))
+                      (when (file-readable-p path)
+                        (with-temp-buffer
+                          (insert-file-contents path)
+                          (goto-char (point-min))
+                          (while (re-search-forward
+                                  "^[ \t]*:ID:[ \t]+\\([^ \t\n]+\\)" nil t)
+                            (puthash (match-string 1) t ids))))
+                      ids)
+                    by-file)))
+       org-id-locations)
+      (maphash
+       (lambda (id file)
+         (unless (gethash id (gethash file by-file))
+           (if (catch 'found
+                 (maphash (lambda (_f ids)
+                            (when (gethash id ids) (throw 'found t)))
+                          by-file)
+                 nil)
+               (setq misfiled (1+ misfiled))
+             (setq missing (1+ missing)))))
+       org-id-locations))
+    (list :missing missing :misfiled misfiled)))
+
+(defun claude-code-ide-org--review-id-health-line ()
+  "Return a one-line report on stale `org-id-locations' entries, or nil.
+
+Nil when everything resolves, deliberately.  A line reading \"0
+unresolvable\" on every pass is noise that trains the eye to skip the
+line that matters -- the same self-limiting reasoning as
+`claude-code-ide-org-write-session-start-report', which stays silent
+unless it has something to say.
+
+The condition it reports is otherwise invisible: stale entries produce
+org-element warnings in *Warnings* and silently shrink the assignment
+prompt's candidate list, and nothing in this buffer said so.  On
+2026-08-17 that hid 22 of 151."
+  (let* ((health claude-code-ide-org--review-id-health)
+         (missing (or (plist-get health :missing) 0))
+         (misfiled (or (plist-get health :misfiled) 0))
+         (total (+ missing misfiled)))
+    (when (> total 0)
+      (format "  %d org-id entr%s stale: %d heading%s gone, %d in another file.  M-x org-id-update-id-locations\n\n"
+              total (if (= total 1) "y" "ies")
+              missing (if (= missing 1) "" "s")
+              misfiled))))
+
 (defun claude-code-ide-org--review-render ()
   "Render `claude-code-ide-org--review-items' into the current buffer.
 
@@ -4722,20 +4819,48 @@ rest from lighting up."
     (insert "Pending org updates.  m/u mark, M/U all, t invert, "
             "a assign, e interval, N note,\n"
             "d dismiss, RET goto, x apply marked, g refresh, q quit\n\n")
+    (let ((health-line (claude-code-ide-org--review-id-health-line)))
+      (when health-line (insert health-line)))
     (if (null items)
         (insert "  Nothing pending.\n")
       (dolist (item items)
         (unless (equal (plist-get item :id) last-id)
           (setq last-id (plist-get item :id))
-          (insert (format "\n%s\n"
-                          (cond
-                           ;; A span nobody has assigned yet belongs to no
-                           ;; heading, so it gets its own group rather than
-                           ;; rendering the literal string "nil" as a title.
-                           ((null last-id) "(unassigned -- press `a' to choose a heading)")
-                           ((claude-code-ide-org--at-id
-                             last-id (lambda () (org-get-heading t t t t))))
-                           (t last-id)))))
+          ;; Resolved through `org-id-find' rather than
+          ;; `claude-code-ide-org--at-id', for two reasons. `--at-id'
+          ;; *returns* the string "Error: no org heading found with :ID:
+          ;; ..." rather than signalling, and a `cond' clause of the form
+          ;; `((--at-id ...))' yields its own test -- so an unresolvable
+          ;; :ID: used to render that error message as the group heading,
+          ;; leaving the `(t last-id)' fallback beneath it unreachable.
+          ;; And guarding the marker keeps this call site out of the nil
+          ;; trap in :ID: 09230b93.
+          (let* ((marker (and last-id (ignore-errors (org-id-find last-id 'marker))))
+                 (title (and marker
+                             (ignore-errors
+                               (org-with-point-at marker
+                                 (org-no-properties (org-get-heading t t t t)))))))
+            (insert (format "\n%s\n"
+                            (cond
+                             ;; A span nobody has assigned yet belongs to no
+                             ;; heading, so it gets its own group rather than
+                             ;; rendering the literal string "nil" as a title.
+                             ((null last-id)
+                              "(unassigned -- press `a' to choose a heading)")
+                             ;; Prefix first, mirroring how a response
+                             ;; footnotes a heading (:ID: c2132d3f). Not
+                             ;; taste: `--short-id' is exactly 8 characters
+                             ;; for any real UUID, so leading with it puts
+                             ;; every id in one column and every title in a
+                             ;; second. A trailing `{id}' cannot line up,
+                             ;; because title lengths vary -- which is what
+                             ;; makes it hard to scan in a buffer whose whole
+                             ;; job is scanning.
+                             (title (format "%s  %s"
+                                            (claude-code-ide-org--short-id last-id)
+                                            title))
+                             (t (format "%s  (unresolved)"
+                                        (claude-code-ide-org--short-id last-id))))))))
         (insert (propertize
                  (format "  [%s] %s\n"
                          (if (plist-get item :marked) "x" " ")
@@ -5139,8 +5264,28 @@ sorts last rather than vanishing: absence of evidence rules nothing out."
     (maphash
      (lambda (id file)
        (when (member (file-truename file) allowed)
-         (let* ((info (ignore-errors
-                        (org-with-point-at (org-id-find id 'marker)
+         (let* ((marker (ignore-errors (org-id-find id 'marker)))
+                ;; `org-with-point-at' does NOT switch buffers when handed
+                ;; nil: its expansion calls `set-buffer' only under
+                ;; `(markerp ...)', then falls through to
+                ;; `(goto-char (or nil (point)))'. So a nil marker means
+                ;; the body runs in whatever buffer happens to be current
+                ;; -- during a review pass, `*org-review*' -- where
+                ;; `org-get-heading'/`org-entry-get' go through org-element
+                ;; and warn "cannot be used in non-Org buffer". Measured
+                ;; 2026-08-17: 45 such warnings in one pass, from 22 of 151
+                ;; registered IDs that no longer resolved (TODO.org :ID:
+                ;; 09230b93). Confirmed by macroexpanding it live, not read
+                ;; off the docstring.
+                ;;
+                ;; Staleness cannot be prevented from inside this module --
+                ;; a deleted heading, a git checkout, another session's
+                ;; apply -- so tolerating nil here is the fix, not an
+                ;; accompaniment to one. `--review-current-state' already
+                ;; guards this way; this is the same shape.
+                (info (and marker
+                           (ignore-errors
+                        (org-with-point-at marker
                           (list :title (org-no-properties
                                         (org-get-heading t t t t))
                                 :state (org-get-todo-state)
@@ -5157,7 +5302,7 @@ sorts last rather than vanishing: absence of evidence rules nothing out."
                                            (and raw (ignore-errors
                                                       (claude-code-ide-org--parse-org-timestamp
                                                        raw))))
-                                :range (claude-code-ide-org--heading-activity-range)))))
+                                :range (claude-code-ide-org--heading-activity-range))))))
                 (title (plist-get info :title))
                 (created (plist-get info :created))
                 (range (plist-get info :range))
@@ -5185,6 +5330,37 @@ sorts last rather than vanishing: absence of evidence rules nothing out."
                                ((/= (nth 3 a) (nth 3 b)) (< (nth 3 a) (nth 3 b)))
                                (t (> (nth 4 a) (nth 4 b)))))))))
 
+(defun claude-code-ide-org--ordered-collection (candidates)
+  "Return a `completing-read' collection over CANDIDATES that keeps their order.
+
+CANDIDATES is an alist as `claude-code-ide-org--assign-candidates'
+returns it, already sorted best-first.  A bare alist carries no
+completion metadata, so the completion UI is free to re-sort it, and
+Vertico does: `vertico-sort-history-length-alpha' orders by minibuffer
+history, then string *length*, then alphabetically (TODO.org :ID:
+85702dba).
+
+Title length has no relationship to relevance, so that ranks an old DONE
+heading with a terse title above this morning's work.  The list was never
+unranked -- it was ranked on the wrong key, and the proximity ordering,
+the `[DONE]' marker and the activity range built into each display string
+were all computed and then discarded.  With `vertico-count' at 17 the
+order decides what is seen at all.
+
+Declaring `display-sort-function' and `cycle-sort-function' as `identity'
+is what makes the computed order authoritative; Vertico honours the
+metadata over its own `vertico-sort-function'.
+
+Deliberately *not* a cutoff, though \"too many candidates\" invites one.
+Excluding old or DONE headings is what :ID: 0d055205 was filed against,
+and ordering achieves the same practical result with no cliff: everything
+stays reachable by typing."
+  (lambda (string predicate action)
+    (if (eq action 'metadata)
+        '(metadata (display-sort-function . identity)
+                   (cycle-sort-function . identity))
+      (complete-with-action action candidates string predicate))))
+
 (defun claude-code-ide-org-review-assign ()
   "Assign the span at point to a heading, replacing any suggestion.
 
@@ -5211,7 +5387,8 @@ guideposts and still deserve `e' before they are trusted.  Only the
            (choice (completing-read
                     (if default (format "Assign span to heading (default %s): " default)
                       "Assign span to heading: ")
-                    candidates nil t nil nil default)))
+                    (claude-code-ide-org--ordered-collection candidates)
+                    nil t nil nil default)))
       (unless (and choice (not (string-empty-p choice)))
         (user-error "No heading chosen; span left unassigned"))
       (let ((id (cdr (assoc choice candidates))))
@@ -5294,6 +5471,11 @@ and look again\", and a commit made since the buffer was drawn is exactly
 the kind of thing a human presses it for."
   (interactive)
   (setq claude-code-ide-org--span-evidence-cache nil)
+  ;; Recomputed here and only here, so the scan runs when the buffer is
+  ;; built and when `g' is typed -- not on the redraw every mark triggers.
+  ;; `g' already means "go and look again", which is exactly when a stale
+  ;; org-id entry might have been fixed.
+  (setq claude-code-ide-org--review-id-health (claude-code-ide-org--id-health))
   (setq claude-code-ide-org--review-items
         (claude-code-ide-org--review-items-from-queue))
   (claude-code-ide-org--review-render))
