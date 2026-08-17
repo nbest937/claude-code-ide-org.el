@@ -2953,6 +2953,136 @@ it decides whether a whole subsystem gets deleted.
 Until the plan is revised, =event-queue-format.md= and
 =review-and-cutover.md= are authoritative where they disagree with it —
 they are later and were written against real code.
+** Assign and interval-edit send point to the top of the review buffer :code:
+:PROPERTIES:
+:ID:       9e80a32d-43e1-4647-a42c-cba10f6e79cc
+:CREATED:  [2026-08-17 Mon 08:53]
+:END:
+** Dismissing an item discards every unapplied assignment in the review session :code:
+:PROPERTIES:
+:ID:       73cd5a1b-9b4f-409d-9aab-ffc6ea736ae5
+:CREATED:  [2026-08-17 Mon 09:03]
+:END:
+
+Reported by the user 2026-08-17: dismissing an item destroys every
+assignment made in the buffer during that review session, before
+anything has been applied.
+
+*Confirmed by reading, not inferred.*
+=claude-code-ide-org-review-dismiss= ends with
+=(claude-code-ide-org-review-refresh)=, and refresh's own docstring is
+"Rebuild the review buffer from the queue, discarding marks." It
+rebuilds =claude-code-ide-org--review-items= from the queue files, so
+*everything held only in memory is lost*: assigned headings
+(=:id=/=:assigned=), edited intervals (=:start=/=:end=), notes, and
+=:stale-confirmed=. The docstring admits to marks alone, which are
+selection state and cheap to redo; the rest is *judgement* and is not.
+
+*Why this is the serious one.* The queue's whole premise is that raw
+events are durable and re-clusterable while human judgement is the
+scarce input -- the asymmetry
+[[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] states as "the
+queue keeps every raw event and can be re-clustered at will, while
+annotations written into =:LOGBOOK:= cannot be re-derived." An
+assignment is precisely that scarce judgement, and =d= discards an
+arbitrary amount of it while appearing to act on *one line*.
+
+*Orthogonal in mechanism to
+[[id:9e80a32d-43e1-4647-a42c-cba10f6e79cc][9e80a32d]], related in kind,
+and far more severe.* That one is =--review-render= resetting point;
+this one is =--review-refresh= rebuilding the item list. Different
+functions, different triggers. What they share is that the review buffer
+carries unsaved session state which redrawing and rebuilding do not
+preserve, and that the commands differ in whether they bother to. Losing
+point costs a keystroke; losing assignments costs the judgement again,
+silently, with no undo and no warning.
+
+*Fix direction, unresolved.* =d= has already written the dismissal to
+the queue by the time it refreshes, so it does not need a rebuild at
+all -- dropping the item from =--review-items= in place and re-rendering
+would preserve the session. That also lets it restore point and advance
+like =a=, which is where this and 9e80a32d converge in the fix even
+though they diverge in the cause. Worth checking whether =x= (apply) has
+the same shape for the *unapplied* items it leaves behind.
+
+*Not attempted:* whether =g= should keep assignments too. It is
+explicitly the "rebuild from the queue" command and a human types it
+deliberately, so discarding there is arguably correct -- but it should
+say *assignments*, not "marks", because the current wording undersells
+what it throws away.
+
+*Fixed 2026-08-17.* =d= no longer calls =review-refresh=. It drops the
+item from =claude-code-ide-org--review-items= in place and re-renders
+through the shared path
+([[id:2d032000-bf04-47f5-b5e6-ef4299078d15][2d032000]]), landing point on
+the item that took its place. The dismissal is already durable in the
+queue by then, so the rebuild was adding nothing except the loss.
+
+*The test asserts the surviving item by identity, not by content,* which
+is the distinction that matters: a rebuild produces a fresh plist from
+the same queue events -- equal in every visible field, and empty of the
+decision. Confirmed failing before the fix and passing after (285 tests,
+1 unexpected → 0).
+
+*=review-apply= has the same shape and was deliberately left alone.* On
+success it refreshes, so decisions on items it did *not* apply are
+discarded too. The difference is that apply changes org files: re-reading
+the queue afterwards is how the view learns what was actually consumed,
+and dropping items in place risks a buffer that disagrees with the file
+it just wrote. Dismiss had no such justification. Whether apply can
+preserve the untouched items -- probably by removing only what applied
+and rebuilding the rest -- is a separate question and is not answered
+here.
+
+*Still true, and the reason this mattered more than the point bug:* the
+queue's premise is that raw events are cheap and re-derivable while human
+judgement is not. Every command that rebuilds from the queue is trading
+the expensive thing for the cheap one, and only =g= should be allowed to
+make that trade.
+
+** Route review-buffer commands through one mutate-render-restore path :code:
+:PROPERTIES:
+:ID:       2d032000-bf04-47f5-b5e6-ef4299078d15
+:CREATED:  [2026-08-17 Mon 09:07]
+:END:
+
+*Done 2026-08-17.* =claude-code-ide-org--review-redraw= is the single
+path: re-render, put point back on the item by identity, and advance when
+asked. Every command that mutates an item now goes through it -- =m=/=u=
+(advance), =a= (advance), =d= (advance onto the item that replaced it),
+=e= and =N= (stay).
+
+*The advance rule, written down so it stops being decided per command:*
+advance when the command *answers* the question the line posed, stay when
+it does not. Marking, assigning and dismissing decide an item; narrowing
+an interval or editing a note are steps taken while still deciding.
+
+*Restores by identity, not line number.* =--review-goto-line= remains for
+=--review-set-all=, which acts on every item and so has no single one to
+return to. Everything else uses =--review-goto-item=, because assigning
+removes the evidence lines an unassigned span carries and the buffer is a
+different height afterwards.
+
+*Left calling =--review-render= directly, each deliberately:*
+=--review-set-all= (no single item), =review-refresh= (rebuilding is its
+purpose), =review-apply= (see below), and =review-dismiss= for its
+one branch where nothing remains to land on.
+
+*=review-refresh='s docstring was rewritten* rather than left saying
+"discarding marks". It discards every unapplied decision -- assignments,
+intervals, notes, stale confirmations. Marks are selection and cheap to
+redo; the rest is judgement. =g= is typed deliberately so discarding
+there is correct, but it has to say what it costs.
+
+*Boundary held on purpose: =review-apply= was not changed.* It has the
+same shape as the dismiss defect -- on success it calls
+=review-refresh=, discarding decisions on the items it did *not* apply --
+but the justification differs. Apply changes org files, so re-reading the
+queue afterwards reflects what was actually consumed, and dropping items
+in place would risk a view that disagrees with the file. Dismiss had no
+such excuse: it had already written its dismissal to the queue. Recorded
+on [[id:73cd5a1b-9b4f-409d-9aab-ffc6ea736ae5][73cd5a1b]] rather than
+fixed blind.
 
 * * *
 
@@ -9231,6 +9361,34 @@ The sort key already has a slot for it.
 Orderless copes, but a plain =basic= completion style would not, and the
 decoration would be better as an =:affixation-function= so it is
 displayed without being matched against.
+
+*Correction 2026-08-17 to the diagnosis above.* That entry recorded, as
+an aside, that "13 more resolve to no title at all -- stale =org-id=
+entries pointing at headings that no longer exist. That second number is
+its own small defect." Wrong on the cause. They were not stale entries.
+
+Building the candidate list reads
+=(claude-code-ide-org--parse-org-timestamp (or (org-entry-get nil "CREATED") ""))=,
+and parsing the empty string *signals*. The whole =info= form is wrapped
+in =ignore-errors=, so any heading without a =:CREATED:= was silently
+dropped -- despite the code's own comment claiming "Headings with no
+=:CREATED:= are kept -- absence of evidence rules nothing out."
+
+Invisible in production because every heading in TODO.org carries a
+=:CREATED:=; the test fixture's heading does not, which is what surfaced
+it. Fixed in the same pass by guarding the parse.
+
+*Confirmed arithmetically after the fix:* =org-id-locations= holds 147
+entries, 7 of which are in unassignable files (fixtures, =/tmp=
+scratch), and the candidate list now returns exactly *140*. Nothing is
+dropped for any other reason. Before, 13 of those 140 were missing.
+
+Worth keeping as a pattern rather than a one-off: an =ignore-errors=
+wrapped around a *block* rather than around the one call that can
+signal turns a narrow parse failure into a silent whole-record drop,
+and the comment right beside it went on asserting the opposite for as
+long as nobody had a fixture that hit it.
+
 ** Rank assignment candidates by time correlation with the unassigned span :code:
 :PROPERTIES:
 :ID:       49cbe319-f7db-413a-ade8-c4850c1fab8c

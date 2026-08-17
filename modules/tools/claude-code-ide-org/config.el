@@ -4767,8 +4767,7 @@ default, and never without having been told.  A `y-or-n-p' is safe here
 in a way it is not elsewhere in this module: this is a genuinely
 interactive command with a human at the keyboard, not an
 `emacsclient -e' call with nobody present to answer."
-  (let ((item (claude-code-ide-org--review-item-at-point))
-        (line (line-number-at-pos)))
+  (let ((item (claude-code-ide-org--review-item-at-point)))
     (unless item (user-error "No review item on this line"))
     (when (and marked (claude-code-ide-org--review-state-stale-p item))
       (if (y-or-n-p
@@ -4780,9 +4779,7 @@ interactive command with a human at the keyboard, not an
           (plist-put item :stale-confirmed t)
         (setq marked nil)))
     (plist-put item :marked marked)
-    (claude-code-ide-org--review-render)
-    (claude-code-ide-org--review-goto-line line)
-    (when advance (claude-code-ide-org--review-forward-item))))
+    (claude-code-ide-org--review-redraw item advance)))
 
 (defun claude-code-ide-org--review-goto-line (line)
   "Move point to LINE, 1-based, in the current buffer.
@@ -4791,6 +4788,29 @@ put point back by line number; this is that one line of arithmetic,
 named once."
   (goto-char (point-min))
   (forward-line (1- line)))
+
+(defun claude-code-ide-org--review-redraw (item &optional advance)
+  "Re-render, then put point back on ITEM.  With ADVANCE, on the next item.
+
+The one path every command that *mutates an item* should take, so that
+point handling stops being each command's own decision to remember or
+forget.  It was forgotten twice: `a' and `e' both dropped point at the
+top of the buffer, which meant assigning a run of spans required
+scrolling back to find your place after every one.
+
+ADVANCE encodes the rule the mark commands arrived at first: advance
+when the command *answers* the question the line posed -- marking,
+assigning, dismissing -- and stay when it does not.  `e' narrows an
+interval you are still deciding about and `N' annotates one, so both
+leave point where it was.
+
+Deliberately not used by `g'.  That command means \"rebuild from the
+queue\" and discards session state on purpose; restoring point into a
+list that may no longer contain the same items would only look like it
+had preserved something."
+  (claude-code-ide-org--review-render)
+  (when (claude-code-ide-org--review-goto-item item)
+    (when advance (claude-code-ide-org--review-forward-item))))
 
 (defun claude-code-ide-org--review-goto-item (item)
   "Move point to the line carrying ITEM.  Return non-nil when found.
@@ -4905,13 +4925,12 @@ words, and by review time the human knows what the work actually turned
 out to be.  This is the last moment it can be corrected before it
 becomes history."
   (interactive)
-  (let ((item (claude-code-ide-org--review-item-at-point))
-        (line (line-number-at-pos)))
+  (let ((item (claude-code-ide-org--review-item-at-point)))
     (unless item (user-error "No review item on this line"))
     (plist-put item :note
                (read-string "Note: " (or (plist-get item :note) "")))
-    (claude-code-ide-org--review-render)
-    (claude-code-ide-org--review-goto-line line)))
+    ;; No advance: annotating an item does not decide it.
+    (claude-code-ide-org--review-redraw item)))
 
 (defun claude-code-ide-org-review-goto ()
   "Show the org heading the item at point belongs to, in another window.
@@ -5036,14 +5055,10 @@ corrected to what actually happened before anything is written."
         (plist-put item :suggested nil)
         (when outside
           (claude-code-ide-org--review-insert-remainders item outside)))
-      (claude-code-ide-org--review-render)
-      ;; Stay on the item rather than advancing, unlike `a'.  Narrowing an
-      ;; interval does not finish it -- `e' is the step taken *before*
-      ;; assigning, and the docstring for assign says so: the endpoints
-      ;; still deserve `e' before they are trusted.  Advancing here would
-      ;; move off the span the human is still working on.  Point had been
-      ;; landing at the top of the buffer either way.
-      (claude-code-ide-org--review-goto-item item))))
+      ;; No advance: narrowing an interval does not finish it.  `e' is
+      ;; the step taken *before* assigning, so point stays on the span
+      ;; the human is still working on.
+      (claude-code-ide-org--review-redraw item))))
 
 (defun claude-code-ide-org--review-insert-remainders (item events)
   "Add items covering EVENTS, the events ITEM no longer spans.
@@ -5200,15 +5215,8 @@ guideposts and still deserve `e' before they are trusted.  Only the
         (plist-put item :id id)
         (plist-put item :unassigned nil)
         (plist-put item :assigned t)
-        (claude-code-ide-org--review-render)
-        ;; Advance, because assigning *answers* the question this line
-        ;; posed -- the same reasoning that gave the mark commands their
-        ;; ADVANCE flag, whose absence was "the single biggest complaint
-        ;; after the first real by-hand apply". Assigning nine spans in a
-        ;; sitting is exactly that shape, and re-rendering had been
-        ;; dropping point at the top of the buffer each time.
-        (when (claude-code-ide-org--review-goto-item item)
-          (claude-code-ide-org--review-forward-item))))))
+        ;; Advance: assigning *answers* the question this line posed.
+        (claude-code-ide-org--review-redraw item t)))))
 
 (defun claude-code-ide-org-review-dismiss ()
   "Retire the item at point permanently, so it stops being proposed.
@@ -5249,10 +5257,33 @@ touches no org file at all."
                          (claude-code-ide-org--queue-mark-dismissed
                           session-id ts-strings reason)))
                      by-session))
-          (claude-code-ide-org-review-refresh))))))
+          ;; Drop the item in place rather than refreshing.  This used to
+          ;; end in `claude-code-ide-org-review-refresh', which rebuilds
+          ;; the item list from the queue and so discarded *every
+          ;; unapplied decision in the session* -- assignments, edited
+          ;; intervals, notes -- while appearing to act on one line.  The
+          ;; dismissal is already durable in the queue by this point, so
+          ;; there is nothing a rebuild would add beyond that loss.
+          (let ((next (cadr (memq item claude-code-ide-org--review-items))))
+            (setq claude-code-ide-org--review-items
+                  (delq item claude-code-ide-org--review-items))
+            ;; Advance, because dismissing answers the line's question as
+            ;; surely as assigning does -- but onto the item that took its
+            ;; place, since this one is gone.
+            (if next
+                (claude-code-ide-org--review-redraw next)
+              (claude-code-ide-org--review-render))))))))
 
 (defun claude-code-ide-org-review-refresh ()
-  "Rebuild the review buffer from the queue, discarding marks.
+  "Rebuild the review buffer from the queue, discarding session state.
+
+That means every unapplied decision, not only marks: assigned headings,
+edited intervals, notes and stale confirmations all live in
+`claude-code-ide-org--review-items' until `x' applies them, and a
+rebuild replaces that list wholesale.  The old wording said \"discarding
+marks\", which undersold it -- marks are selection and cheap to redo,
+whereas an assignment is judgement that has to be made again.  `g' is
+typed deliberately, so discarding here is correct; it just has to say so.
 
 Also drops the span-evidence cache.  `g' is the command that means \"go
 and look again\", and a commit made since the buffer was drawn is exactly

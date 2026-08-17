@@ -4749,6 +4749,46 @@ buffer is shorter afterwards and the old line number points elsewhere."
             (should (eq (claude-code-ide-org--review-item-at-point) second)))
         (kill-buffer review)))))
 
+(ert-deftest claude-code-ide-org-test-review-dismiss-keeps-unapplied-assignments ()
+  "Dismissing used to end in `review-refresh', which rebuilds the item
+list from the queue -- discarding every unapplied decision in the
+session while appearing to act on one line.  Assignments are judgement,
+not selection: unlike a mark they cannot be redone cheaply, and nothing
+warned.
+
+Asserts the surviving item by identity *and* that its assignment is
+still on it, because a rebuild would produce a fresh plist for the same
+queue events -- equal in content, empty of the decision."
+  (claude-code-ide-org-test--with-heading
+    (let* ((review (get-buffer-create "*org-review-dismiss-test*"))
+           (assigned (list :type 'clock :id id :assigned t :unassigned nil
+                           :start (claude-code-ide-org-test--t "09:00")
+                           :end (claude-code-ide-org-test--t "09:30")
+                           :events nil))
+           (doomed (list :type 'state :id id :ts (current-time)
+                         :from "TODO" :to "DOING"
+                         :events (list (list :ts-string "2026-08-15T09:00:00-0500"
+                                             :session-id "sess-x")))))
+      (unwind-protect
+          (with-current-buffer review
+            (claude-code-ide-org-review-mode)
+            (setq claude-code-ide-org--review-items (list doomed assigned))
+            (claude-code-ide-org--review-render)
+            (claude-code-ide-org-test--goto-nth-item 0)
+            (cl-letf (((symbol-function 'read-string) (lambda (&rest _) "obsolete"))
+                      ((symbol-function 'y-or-n-p) (lambda (&rest _) t))
+                      ((symbol-function 'claude-code-ide-org--queue-mark-dismissed)
+                       (lambda (&rest _) t)))
+              (claude-code-ide-org-review-dismiss))
+            ;; The dismissed item is gone...
+            (should-not (memq doomed claude-code-ide-org--review-items))
+            ;; ...and the assignment made earlier in the session survives,
+            ;; as the very same object rather than a rebuilt equivalent.
+            (should (memq assigned claude-code-ide-org--review-items))
+            (should (plist-get assigned :assigned))
+            (should (equal (plist-get assigned :id) id)))
+        (kill-buffer review)))))
+
 (ert-deftest claude-code-ide-org-test-review-goto-item-survives-a-height-change ()
   "`--review-goto-item' locates by identity, so it still finds an item
 after the buffer changes height.  A line-number restore cannot: this is
