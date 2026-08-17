@@ -9957,6 +9957,46 @@ MAYBE rather than TODO because the cost is unmeasured: it means one
 =org-id-find= per registered ID at open time, 151 of them on 2026-08-17.
 Worth measuring before committing to it.
 
+*Measured 2026-08-17, and the MAYBE is resolved: keep it.* The cost
+objection was real but attached to the wrong algorithm.
+
+| approach              | scale     | time    | side effects     |
+|-----------------------+-----------+---------+------------------|
+| per-id =org-id-find=  | 161 ids   | 0.218 s | opens 4 buffers  |
+| per-file =:ID:= scan  | 7 files   | 0.018 s | none             |
+
+The per-id sweep is what this heading assumed, and its real cost is not
+the 218 ms — it is that resolving an id *visits the file*, so a
+diagnostic running at review-buffer open would silently pull four buffers
+into the user's Emacs. Reading each distinct file in =org-id-locations=
+once with =insert-file-contents= in a temp buffer, collecting =:ID:=
+values and diffing against the hash, is 12x faster and visits nothing.
+
+It also scales on the better axis. Per-id is O(ids); per-file is
+O(files). This project accumulates ids far faster than files — 161
+against 7 today — so the gap widens.
+
+*Two caveats recorded rather than smoothed over.* The 0.218 s is a *warm*
+best case, taken with the files already visited by that session's own
+work; cold it is worse, which only strengthens the conclusion. And the
+sweep found *zero* unresolvable ids, because
+=org-id-update-id-locations= had been run by hand earlier the same day
+and dropped all 22. The feature's value is precisely that it would have
+shown 22 that morning, when nothing did.
+
+*Design consequence:* report only when the count is non-zero, matching
+=claude-code-ide-org-write-session-start-report='s self-limiting
+behaviour. A line reading "0 unresolvable" on every pass is noise that
+trains the eye to skip the line that matters.
+
+*Still not settled:* whether an unresolvable id means "points at the
+wrong file" or "the heading no longer exists anywhere". Those are
+indistinguishable through =org-id-find= and are different defects. The
+file-scan can separate them for free — it already knows which ids each
+file actually contains — which is an argument for this approach beyond
+its speed.
+
+
 
 ** TODO The assignment dialog's proximity ranking is discarded by Vertico :code:
 :PROPERTIES:
