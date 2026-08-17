@@ -4978,20 +4978,53 @@ twice, because `--review-format-annotation' already ends with it and
       (should (= 1 count)))))
 
 (ert-deftest claude-code-ide-org-test-review-unresolvable-id-renders-unescaped ()
-  "The other half of e3f70e61, which turned out not to be a defect: an
-unresolvable :ID: substitutes `--at-id's error string into the title
-slot, and it must appear as display text. Reported as leaking elisp
-escaping (\\\" and a dangling backslash); reproducing it 2026-08-12
-showed clean output, so the escaping came from how the report was
-transcribed. Pinned so a future `%S' cannot reintroduce it."
+  "An unresolvable :ID: renders as its 8-character prefix followed by
+`(unresolved)', and never as escaped elisp.
+
+The escaping half is the original e3f70e61 concern and is unchanged:
+reported as leaking `\\\"' and a dangling backslash, reproduced clean on
+2026-08-12, pinned since so a future `%S' cannot reintroduce it.
+
+The title half changed deliberately on 2026-08-17 (TODO.org :ID:
+c2132d3f). This used to assert that `--at-id's error string -- \"no org
+heading found with :ID: ...\" -- appeared as the group heading, on the
+grounds that it was display text rather than escaped elisp. That was
+true and beside the point: a `cond' clause of the form `((--at-id ...))'
+yields its own test, and `--at-id' *returns* its error rather than
+signalling, so the message landed where a title belongs and the
+`(t last-id)' fallback under it was unreachable. Rendering an error
+message as a heading was never intended, only unexamined."
   (claude-code-ide-org-test--with-heading
     (claude-code-ide-org-test--with-review-buffer
         (list (list :type 'clock :id "00000000-dead-beef-0000-000000000000"
                     :start (current-time) :end (current-time)
                     :note "bogus" :agent nil :suggested t :events nil))
       (let ((text (buffer-substring-no-properties (point-min) (point-max))))
-        (should (string-match-p "no org heading found" text))
+        (should (string-match-p "00000000  (unresolved)" text))
+        (should-not (string-match-p "no org heading found" text))
         (should-not (string-match-p "\\\\" text))))))
+
+(ert-deftest claude-code-ide-org-test-review-group-heading-leads-with-id-prefix ()
+  "The group heading leads with the 8-character :ID: prefix, then the
+title (TODO.org :ID: c2132d3f).
+
+Prefix-first rather than a trailing `{id}' is not a style preference:
+`--short-id' returns exactly 8 characters for any real UUID, so leading
+with it puts every id in one column and every title in a second, whereas
+a trailing form can never line up because title lengths vary.  Asserted
+as an anchored prefix for that reason -- a test that merely looked for
+the id *somewhere* in the line would pass on the trailing form this
+replaced."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--with-review-buffer
+        (list (list :type 'clock :id id
+                    :start (current-time) :end (current-time)
+                    :note "real heading" :agent nil :suggested t :events nil))
+      (let ((text (buffer-substring-no-properties (point-min) (point-max))))
+        (should (string-match-p
+                 (concat "^" (regexp-quote (claude-code-ide-org--short-id id))
+                         "  Test heading")
+                 text))))))
 
 (ert-deftest claude-code-ide-org-test-review-apply-restores-read-only ()
   "The flag the user set is theirs, and apply borrows it rather than

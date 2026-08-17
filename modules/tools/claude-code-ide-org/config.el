@@ -4744,15 +4744,41 @@ rest from lighting up."
       (dolist (item items)
         (unless (equal (plist-get item :id) last-id)
           (setq last-id (plist-get item :id))
-          (insert (format "\n%s\n"
-                          (cond
-                           ;; A span nobody has assigned yet belongs to no
-                           ;; heading, so it gets its own group rather than
-                           ;; rendering the literal string "nil" as a title.
-                           ((null last-id) "(unassigned -- press `a' to choose a heading)")
-                           ((claude-code-ide-org--at-id
-                             last-id (lambda () (org-get-heading t t t t))))
-                           (t last-id)))))
+          ;; Resolved through `org-id-find' rather than
+          ;; `claude-code-ide-org--at-id', for two reasons. `--at-id'
+          ;; *returns* the string "Error: no org heading found with :ID:
+          ;; ..." rather than signalling, and a `cond' clause of the form
+          ;; `((--at-id ...))' yields its own test -- so an unresolvable
+          ;; :ID: used to render that error message as the group heading,
+          ;; leaving the `(t last-id)' fallback beneath it unreachable.
+          ;; And guarding the marker keeps this call site out of the nil
+          ;; trap in :ID: 09230b93.
+          (let* ((marker (and last-id (ignore-errors (org-id-find last-id 'marker))))
+                 (title (and marker
+                             (ignore-errors
+                               (org-with-point-at marker
+                                 (org-no-properties (org-get-heading t t t t)))))))
+            (insert (format "\n%s\n"
+                            (cond
+                             ;; A span nobody has assigned yet belongs to no
+                             ;; heading, so it gets its own group rather than
+                             ;; rendering the literal string "nil" as a title.
+                             ((null last-id)
+                              "(unassigned -- press `a' to choose a heading)")
+                             ;; Prefix first, mirroring how a response
+                             ;; footnotes a heading (:ID: c2132d3f). Not
+                             ;; taste: `--short-id' is exactly 8 characters
+                             ;; for any real UUID, so leading with it puts
+                             ;; every id in one column and every title in a
+                             ;; second. A trailing `{id}' cannot line up,
+                             ;; because title lengths vary -- which is what
+                             ;; makes it hard to scan in a buffer whose whole
+                             ;; job is scanning.
+                             (title (format "%s  %s"
+                                            (claude-code-ide-org--short-id last-id)
+                                            title))
+                             (t (format "%s  (unresolved)"
+                                        (claude-code-ide-org--short-id last-id))))))))
         (insert (propertize
                  (format "  [%s] %s\n"
                          (if (plist-get item :marked) "x" " ")
