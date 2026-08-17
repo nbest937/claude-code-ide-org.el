@@ -4792,6 +4792,26 @@ named once."
   (goto-char (point-min))
   (forward-line (1- line)))
 
+(defun claude-code-ide-org--review-goto-item (item)
+  "Move point to the line carrying ITEM.  Return non-nil when found.
+
+By *identity* rather than by line number, unlike
+`claude-code-ide-org--review-goto-line'.  The commands that only toggle a
+flag leave the buffer the same height, so arithmetic is enough for them.
+Assigning does not: an unassigned span carries its evidence lines
+underneath and an assigned one does not, so several lines vanish beneath
+the item in the same render that moves it into a heading's group.  The
+line it occupied before is not the line it occupies after, and restoring
+by number lands on whatever slid up into the gap."
+  (goto-char (point-min))
+  (let (found)
+    (while (and (not found) (not (eobp)))
+      (if (eq (claude-code-ide-org--review-item-at-point) item)
+          (setq found t)
+        (forward-line 1)))
+    (unless found (goto-char (point-min)))
+    found))
+
 (defun claude-code-ide-org--review-forward-item ()
   "Move point to the next line carrying a review item.
 
@@ -5016,7 +5036,14 @@ corrected to what actually happened before anything is written."
         (plist-put item :suggested nil)
         (when outside
           (claude-code-ide-org--review-insert-remainders item outside)))
-      (claude-code-ide-org--review-render))))
+      (claude-code-ide-org--review-render)
+      ;; Stay on the item rather than advancing, unlike `a'.  Narrowing an
+      ;; interval does not finish it -- `e' is the step taken *before*
+      ;; assigning, and the docstring for assign says so: the endpoints
+      ;; still deserve `e' before they are trusted.  Advancing here would
+      ;; move off the span the human is still working on.  Point had been
+      ;; landing at the top of the buffer either way.
+      (claude-code-ide-org--review-goto-item item))))
 
 (defun claude-code-ide-org--review-insert-remainders (item events)
   "Add items covering EVENTS, the events ITEM no longer spans.
@@ -5098,8 +5125,19 @@ sorts last rather than vanishing: absence of evidence rules nothing out."
                           (list :title (org-no-properties
                                         (org-get-heading t t t t))
                                 :state (org-get-todo-state)
-                                :created (claude-code-ide-org--parse-org-timestamp
-                                          (or (org-entry-get nil "CREATED") ""))
+                                ;; Guarded, and the guard is the fix for a
+                                ;; defect the old code's own comment denied
+                                ;; having: parsing "" signals, and the whole
+                                ;; `info' form is wrapped in `ignore-errors',
+                                ;; so a heading with no :CREATED: was dropped
+                                ;; entirely rather than "kept -- absence of
+                                ;; evidence rules nothing out". Invisible in
+                                ;; production because every heading here has
+                                ;; one; a fixture without one found it.
+                                :created (let ((raw (org-entry-get nil "CREATED")))
+                                           (and raw (ignore-errors
+                                                      (claude-code-ide-org--parse-org-timestamp
+                                                       raw))))
                                 :range (claude-code-ide-org--heading-activity-range)))))
                 (title (plist-get info :title))
                 (created (plist-get info :created))
@@ -5162,7 +5200,15 @@ guideposts and still deserve `e' before they are trusted.  Only the
         (plist-put item :id id)
         (plist-put item :unassigned nil)
         (plist-put item :assigned t)
-        (claude-code-ide-org--review-render)))))
+        (claude-code-ide-org--review-render)
+        ;; Advance, because assigning *answers* the question this line
+        ;; posed -- the same reasoning that gave the mark commands their
+        ;; ADVANCE flag, whose absence was "the single biggest complaint
+        ;; after the first real by-hand apply". Assigning nine spans in a
+        ;; sitting is exactly that shape, and re-rendering had been
+        ;; dropping point at the top of the buffer each time.
+        (when (claude-code-ide-org--review-goto-item item)
+          (claude-code-ide-org--review-forward-item))))))
 
 (defun claude-code-ide-org-review-dismiss ()
   "Retire the item at point permanently, so it stops being proposed.

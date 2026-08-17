@@ -4711,6 +4711,71 @@ an MCP call that throws is worse than one that explains."
                        (< seen n)))
       (forward-line 1))))
 
+(ert-deftest claude-code-ide-org-test-review-assign-advances-to-next-item ()
+  "Assigning answers the question a line poses, so point moves on -- the
+same reasoning behind the mark commands' ADVANCE.  Re-rendering erases
+the buffer and left point at the top, so assigning a run of spans meant
+scrolling back to find your place after every one.
+
+Restoring by identity rather than line number is load-bearing here:
+assigning removes the evidence lines an unassigned span carries, so the
+buffer is shorter afterwards and the old line number points elsewhere."
+  (claude-code-ide-org-test--with-heading
+    (let ((review (get-buffer-create "*org-review-assign-test*"))
+          (first (list :type 'clock :id nil :unassigned t :suggested t
+                       :start (claude-code-ide-org-test--t "09:00")
+                       :end (claude-code-ide-org-test--t "09:30") :events nil))
+          (second (list :type 'clock :id nil :unassigned t :suggested t
+                        :start (claude-code-ide-org-test--t "11:00")
+                        :end (claude-code-ide-org-test--t "11:30") :events nil)))
+      (org-id-update-id-locations (list file))
+      (unwind-protect
+          (with-current-buffer review
+            (claude-code-ide-org-review-mode)
+            (setq claude-code-ide-org--review-items (list first second))
+            (claude-code-ide-org--review-render)
+            (claude-code-ide-org-test--goto-nth-item 0)
+            (let ((claude-code-ide-org-query-files (list file)))
+              ;; Take the first candidate from the collection `assign'
+              ;; actually builds, rather than recomputing it: this asserts
+              ;; against what the command offers, not against a parallel
+              ;; construction that could drift from it.
+              (cl-letf (((symbol-function 'completing-read)
+                         (lambda (_prompt collection &rest _)
+                           (should collection)
+                           (car (car collection)))))
+                (claude-code-ide-org-review-assign)))
+            ;; Point is on the *second* span, not back at the top.
+            (should (eq (claude-code-ide-org--review-item-at-point) second)))
+        (kill-buffer review)))))
+
+(ert-deftest claude-code-ide-org-test-review-goto-item-survives-a-height-change ()
+  "`--review-goto-item' locates by identity, so it still finds an item
+after the buffer changes height.  A line-number restore cannot: this is
+the case that made assigning different from marking."
+  (let ((review (get-buffer-create "*org-review-goto-test*"))
+        (a (list :type 'state :id nil :ts (current-time)
+                 :from "TODO" :to "DOING" :events nil))
+        (b (list :type 'state :id nil :ts (current-time)
+                 :from "TODO" :to "NEXT" :events nil)))
+    (unwind-protect
+        (with-current-buffer review
+          (claude-code-ide-org-review-mode)
+          (setq claude-code-ide-org--review-items (list a b))
+          (claude-code-ide-org--review-render)
+          (should (claude-code-ide-org--review-goto-item b))
+          (let ((line-of-b (line-number-at-pos)))
+            ;; Shorten the buffer above B, then look again.
+            (setq claude-code-ide-org--review-items (list b))
+            (claude-code-ide-org--review-render)
+            (should (claude-code-ide-org--review-goto-item b))
+            (should (eq (claude-code-ide-org--review-item-at-point) b))
+            (should-not (= line-of-b (line-number-at-pos))))
+          ;; An item no longer present leaves point at the top and says so.
+          (should-not (claude-code-ide-org--review-goto-item a))
+          (should (= (point) (point-min))))
+      (kill-buffer review))))
+
 (ert-deftest claude-code-ide-org-test-review-mark-advances-to-next-item ()
   "Marking advances, dired-style. Without it, marking a run of items is
 `m n m n m' -- the single biggest complaint after the first real by-hand
