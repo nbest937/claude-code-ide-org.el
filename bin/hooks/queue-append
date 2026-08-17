@@ -1,0 +1,258 @@
+#!/usr/bin/env bash
+# Append one event to this session's append-only org update queue.
+#
+# The shared writer for the event-queue refactor (TODO.org :ID:
+# 32272061-1d78-4726-b13b-90338edb2ba5, under :ID:
+# b5f7c5c7-7ad6-4c68-9cce-3479db1f1644). Sessions never mutate live org
+# state for clock/TODO changes; they append events here, and a human
+# later applies the approved subset through org's own machinery inside a
+# genuinely interactive command.
+#
+# Called by several hooks, each passing the event kind as $1 and reading
+# the hook payload on stdin:
+#
+#   PostToolUse org_set_todo   -> todo
+#   PostToolUse org_clock_in   -> clock_in
+#   PostToolUse org_clock_out  -> clock_out
+#   PostToolUse org_capture    -> capture   (only when it deferred)
+#   PostToolUse org_amend      -> amend     (only when it deferred)
+#   Stop                       -> pause
+#   UserPromptSubmit           -> resume
+#
+# capture and amend differ from the rest: those tools write the file
+# immediately when it is free and only queue when the human has unsaved
+# changes in it (TODO.org :ID: b5f94b88). The tool decides; this script
+# obeys, by reading which of four fixed prefixes the reply carries. Those
+# prefixes are defined as constants in config.el and asserted against the
+# cases below by bin/queue-append-test, because a reply reworded on one
+# side alone either double-applies the write or silently drops it.
+#
+# Why the hook writes rather than the MCP tool: session_id is only ever
+# present on hook stdin. MCP tools are served by Emacs and never receive
+# it, so a tool-side writer could not key files by session. Same division
+# of labour as bin/hooks/posttooluse-record-planning-owner.
+#
+# This also gets subagent attribution for free, which is why the schema
+# has agent_id/agent_type. Tool events fire these same hooks inside a
+# subagent, and the payload then carries agent_id (unique per subagent
+# call) and agent_type (e.g. "Explore"); both are absent on the main
+# thread, hence null. No orchestrator-side reconstruction is needed --
+# see TODO.org :ID: 16160d23-273b-4510-858e-db18508d04a0, whose original
+# "orchestrator writes on the subagent's behalf" baseline this
+# supersedes.
+#
+# Built with jq -n throughout rather than shell interpolation, matching
+# bin/hooks/session-pause's reasoning: every field here originates in
+# untrusted payload JSON, and jq's own encoder is the only thing that
+# should be producing JSON string literals from it.
+#
+# Fire-and-forget: always exit 0, never block the hook that called it.
+# A missing jq, an unwritable queue directory, or a malformed payload
+# costs one event, never the caller.
+
+set -uo pipefail
+
+kind="${1:-}"
+case "$kind" in
+  todo|clock_in|clock_out|pause|resume|capture|amend) ;;
+  # A permission block: the agent is stalled waiting on a human, which
+  # no other event can express. `Stop' fires when a *turn* ends, and a
+  # turn blocked mid-flight has not ended -- see TODO.org :ID: f4e628ce.
+  # Paired by tool_use_id at review time, not here: this script stays a
+  # dumb appender and never reads back what it has written.
+  block_start|block_end) ;;
+  *) exit 0 ;;
+esac
+
+command -v jq >/dev/null 2>&1 || exit 0
+
+input="$(cat)"
+
+session_id="$(jq -r '.session_id // empty' <<<"$input" 2>/dev/null)"
+# Without a session_id there is no file to write to -- the queue is keyed
+# by it. Drop the event rather than inventing a filename, so a stray
+# unkeyed event can never be mistaken for a real session's work.
+[[ -n "$session_id" ]] || exit 0
+
+# Refuse anything that isn't a plain filename component. session_id is
+# interpolated into a path below, and this is the only place untrusted
+# payload data reaches the filesystem.
+case "$session_id" in
+  *[!A-Za-z0-9._-]*|''|.|..) exit 0 ;;
+esac
+
+# The tool wrappers return an "Error: ..." string rather than throwing
+# when :ID: resolution fails (see claude-code-ide-org--at-id). Treat that
+# as "nothing happened" -- a bad :ID: must not enter the queue and
+# resurface as a mystery at review time.
+#
+# tool_response arrives in several shapes and the extraction has to
+# recurse, not just branch once. A live MCP tool_response is an array of
+# content blocks -- [{"type":"text","text":"Error: ..."}] -- so a
+# single-level `map(tostring)' stringifies each *block* to its JSON and
+# yields a string starting with `{', which no amount of matching on
+# `Error:' will ever catch. That was a real escape: a clock_in for a
+# nonexistent :ID: reached the queue on 2026-08-11 and was only caught by
+# testing against a live payload rather than the hand-written string
+# shapes the suite had been using. Recursing also covers the
+# {"content":[...]} wrapper, which the old object branch broke on
+# identically.
+#
+# Plain strings still pass through unchanged, so pre-existing callers and
+# the older reply shapes are unaffected.
+response=""
+if [[ "$kind" == todo || "$kind" == clock_in || "$kind" == clock_out \
+   || "$kind" == capture || "$kind" == amend ]]; then
+  response="$(jq -r '
+    def totext:
+      if type == "object" then (.text // .content // .result // "" | totext)
+      elif type == "array" then (map(totext) | join(" "))
+      else tostring end;
+    (.tool_response // "") | totext' <<<"$input" 2>/dev/null)"
+  case "$response" in
+    Error:*) exit 0 ;;
+  esac
+fi
+
+# org_clock_out takes no id argument -- the running clock is the only
+# thing that knows which heading is being closed -- so recover it from
+# the tool's own reply, which reports the id it actually closed as
+# "Clocked out: \"HEADING\" (id: ID)". Authoritative in a way a
+# caller-supplied argument would not be: it cannot disagree with what
+# happened. Without this the event carries a null id and a clock_out read
+# on its own cannot name its heading.
+recovered_id=""
+if [[ "$kind" == clock_out ]]; then
+  recovered_id="$(sed -n 's/.*(id: \([^)]*\)).*/\1/p' <<<"$response")"
+fi
+
+# The write-through gate. org_capture and org_amend write the file
+# themselves when it is free, and queue only when it is busy, so this
+# script must append for exactly one of those two outcomes -- appending
+# for both would apply the same edit twice, once now and once at review.
+#
+# The four literals here are the other half of a contract with config.el's
+# claude-code-ide-org--reply-{captured,queued-capture,amended,queued-amend}.
+# bin/queue-append-test asserts they still agree, so rewording one side
+# alone fails the suite rather than silently changing behaviour.
+#
+# An unrecognised reply drops the event. That is the safe direction: a
+# drop loses one proposal the human can restate, while a wrong append
+# writes a heading twice and neither copy announces itself.
+if [[ "$kind" == capture || "$kind" == amend ]]; then
+  case "$response" in
+    "Queued capture: "*|"Queued amend: "*) ;;
+    *) exit 0 ;;
+  esac
+fi
+
+# org_capture mints the new heading's :ID: itself and reports it as
+# "(ID: ...)", so -- exactly like clock_out's "(id: ...)" above -- the id
+# has to be recovered from the reply rather than read off tool_input,
+# which never carried one. Keeping the pre-minted id is what lets a
+# caller act on the heading before it exists.
+if [[ "$kind" == capture ]]; then
+  recovered_id="$(sed -n 's/.*(ID: \([^)]*\)).*/\1/p' <<<"$response")"
+fi
+
+# org_set_todo reports the state the heading held *before* the change, as
+# "TODO state set to DOING (was NEXT): \"HEADING\"". Recovered from the
+# reply for the same reason as the id above, and emphatically not by
+# asking Emacs: this script must stay runnable with no Emacs at all,
+# which is the premise the whole queue rests on. The review command uses
+# it to notice at apply time that reality has moved past a queued
+# transition (TODO.org :ID: f9f61c04-150b-4ee7-96c9-582cf2bda95a).
+#
+# A heading with no keyword reports "(was none)", carried through
+# verbatim rather than normalised to null, so it stays distinguishable
+# from the null that events predating this field carry -- "the heading
+# had no keyword" and "we do not know what it had" must not collapse
+# into the same value, or the staleness check silently stops firing.
+recovered_from=""
+if [[ "$kind" == todo ]]; then
+  recovered_from="$(sed -n 's/.*(was \([^)]*\)).*/\1/p' <<<"$response")"
+fi
+
+# Explicit field overrides, for a *synthetic* event that does not
+# originate in an MCP tool call and so has no tool_input to read or
+# tool_response to parse. Only bin/hooks/exitplanmode-promote-planning
+# uses them: ExitPlanMode's payload says nothing about org, so the
+# heading and states have to be supplied by the caller that worked them
+# out. Kept as named variables rather than having that hook synthesise a
+# fake tool_response for the sed above to recover -- a caller faking the
+# shape of a tool reply it never received is exactly the kind of clever
+# that stops being readable the second time someone touches it.
+override_id="${QUEUE_APPEND_ID:-}"
+override_state="${QUEUE_APPEND_STATE:-}"
+override_from="${QUEUE_APPEND_FROM:-}"
+
+queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
+mkdir -p "$queue_dir" 2>/dev/null || exit 0
+
+# One line, built and encoded entirely by jq. Field names and the
+# timestamp format deliberately match the existing audit log written by
+# claude-code-ide-org--log-event, so both logs read the same way.
+#
+# id/state/from are null for the kinds that don't carry them: pause/resume
+# are session-global (nothing in them names a heading -- that attribution
+# is what the clock_in/clock_out events exist to provide), and state/from
+# are meaningful only for todo.
+#
+# block_start/block_end must be nulled *explicitly* rather than left to
+# fall through, and the reason is a trap rather than tidiness: their
+# payload is the blocked tool's own, so `tool_input.id' is that tool's
+# argument. A permission prompt on org_set_todo would otherwise attribute
+# the block to whatever heading that call named -- a heading the block
+# has nothing to do with. Same for `note'. A block names no heading by
+# construction; it is a fact about the session.
+#
+# tool_name needs no field of its own: `source' already resolves to it.
+line="$(jq -n -c \
+  --arg ts "$(date '+%Y-%m-%dT%H:%M:%S%z')" \
+  --arg kind "$kind" \
+  --arg session_id "$session_id" \
+  --arg recovered_id "$recovered_id" \
+  --arg recovered_from "$recovered_from" \
+  --arg override_id "$override_id" \
+  --arg override_state "$override_state" \
+  --arg override_from "$override_from" \
+  --argjson payload "$(jq -c '.' <<<"$input" 2>/dev/null || echo '{}')" \
+  '{
+     ts: $ts,
+     kind: $kind,
+     id: (if $override_id != "" then $override_id
+          elif $kind == "pause" or $kind == "resume"
+               or $kind == "block_start" or $kind == "block_end" then null
+          else ($payload.tool_input.id
+                // (if $recovered_id == "" then null else $recovered_id end))
+          end),
+     state: (if $override_state != "" then $override_state
+             elif $kind == "todo" then ($payload.tool_input.state // null)
+             else null end),
+     from: (if $override_from != "" then $override_from
+            elif $kind == "todo" and $recovered_from != "" then $recovered_from
+            else null end),
+     note: (if $kind == "pause" or $kind == "resume"
+               or $kind == "block_start" or $kind == "block_end" then null
+            else ($payload.tool_input.note // null) end),
+     title:  (if $kind == "capture" then ($payload.tool_input.title // null) else null end),
+     target: (if $kind == "capture" then ($payload.tool_input.target // null) else null end),
+     tags:   (if $kind == "capture" then ($payload.tool_input.tags // null) else null end),
+     text:   (if $kind == "amend" then ($payload.tool_input.text // null) else null end),
+     tool_use_id: (if $kind == "block_start" or $kind == "block_end"
+                   then ($payload.tool_use_id // null) else null end),
+     session_id: $session_id,
+     agent_id: ($payload.agent_id // null),
+     agent_type: ($payload.agent_type // null),
+     source: ($payload.tool_name // $payload.hook_event_name // $kind)
+   }' 2>/dev/null)"
+
+[[ -n "$line" ]] || exit 0
+
+# A single write of one short line to an O_APPEND fd: atomic on POSIX for
+# anything under PIPE_BUF, so concurrent writers can never interleave a
+# partial line. No locking needed, and none wanted -- a lock is another
+# thing that can wedge and block a hook.
+printf '%s\n' "$line" >> "$queue_dir/$session_id.jsonl" 2>/dev/null
+
+exit 0

@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+# Shell test harness for bin/hooks/block-start and bin/hooks/block-end,
+# the permission-block pair (TODO.org :ID: f4e628ce).
+#
+# Same register as bin/queue-append-test, and the same honesty about its
+# limits. Fully covered here: the sentinel round trip, the cheap decline
+# on an unblocked tool call, idempotency on replay, and the ordering
+# guarantee that no block_end is written without a block_start behind it.
+#
+# THE FIXTURES BELOW ARE REAL PAYLOADS, and that is the point of this
+# revision. The previous ones invented a `tool_use_id' on the
+# `PermissionRequest' payload; the field does not exist there. Every
+# assertion passed against the invented shape while the hook refused
+# every real one, so the suite certified a feature that had never fired.
+# `start' is now the payload captured live on 2026-08-14, field for
+# field, and `end' is a `PostToolUse' payload, which does carry a
+# `tool_use_id' -- unused now, and kept in the fixture precisely because
+# production sends it.
+#
+# NOT covered, and not claimed to be: that `PermissionRequest' fires in a
+# background job. That is an assumption about the harness, not about this
+# code, and it needs a real prompt in a real background session. The
+# other half of the old caveat -- whether the event fires at all -- was
+# settled on 2026-08-14: it does.
+
+set -uo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export CLAUDE_ORG_QUEUE_DIR="$(mktemp -d)"
+trap 'rm -rf "$CLAUDE_ORG_QUEUE_DIR"' EXIT
+
+failures=0
+
+check() {
+  local what="$1" want="$2" got="$3"
+  if [[ "$want" == "$got" ]]; then
+    echo "ok   - $what"
+  else
+    echo "FAIL - $what: wanted [$want], got [$got]"
+    failures=$((failures + 1))
+  fi
+}
+
+reset() { rm -rf "$CLAUDE_ORG_QUEUE_DIR"; mkdir -p "$CLAUDE_ORG_QUEUE_DIR"; }
+# Existence checked before the redirect, not after: `wc -l < missing'
+# fails in the *shell*, so `2>/dev/null' on wc never sees it and the
+# harness prints an error while reporting a pass. Noise in a passing run
+# is how a real failure goes unread.
+events() {
+  local f="$CLAUDE_ORG_QUEUE_DIR/sess-x.jsonl"
+  if [[ -e "$f" ]]; then wc -l < "$f" | tr -d ' '; else echo 0; fi
+}
+sentinel() { [[ -e "$CLAUDE_ORG_QUEUE_DIR/sess-x.block-open" ]] && echo yes || echo no; }
+
+# Captured from a live PermissionRequest, 2026-08-14 18:40:51. Note the
+# absence of tool_use_id: that absence is the whole bug this pair had.
+start='{"session_id":"sess-x","transcript_path":"/tmp/t.jsonl","cwd":"/tmp","prompt_id":"219b7d7b","permission_mode":"default","hook_event_name":"PermissionRequest","tool_name":"Bash","tool_input":{"command":"touch /tmp/x","description":"probe"}}'
+end='{"session_id":"sess-x","hook_event_name":"PostToolUse","tool_name":"Bash","tool_use_id":"toolu_ZZ","tool_response":"ok"}'
+
+# The path every unblocked tool call takes, and the reason this script
+# exists separately from queue-append: it runs on the unscoped
+# PostToolUse matcher, so it fires on every call in the session.
+reset
+printf '%s' "$end" | "$repo_root/bin/hooks/block-end"
+check "unblocked call writes nothing" "0" "$(events)"
+
+reset
+printf '%s' "$start" | "$repo_root/bin/hooks/block-start"
+check "block-start appends one event" "1" "$(events)"
+check "block-start sets the sentinel" "yes" "$(sentinel)"
+check "the event is a block_start" "block_start" \
+  "$(jq -r '.kind' < "$CLAUDE_ORG_QUEUE_DIR/sess-x.jsonl")"
+
+printf '%s' "$end" | "$repo_root/bin/hooks/block-end"
+check "block-end appends its own event" "2" "$(events)"
+check "block-end clears the sentinel" "no" "$(sentinel)"
+check "the second event is a block_end" "block_end" \
+  "$(jq -r '.kind' < "$CLAUDE_ORG_QUEUE_DIR/sess-x.jsonl" | tail -1)"
+
+# Idempotent by construction: the sentinel is gone, so a replayed
+# PostToolUse declines like any unblocked one. Without this a retried
+# hook would write a second end for one start.
+printf '%s' "$end" | "$repo_root/bin/hooks/block-end"
+check "replayed block-end does not double-append" "2" "$(events)"
+
+# The regression, stated as an assertion. A payload with no tool_use_id
+# is the ONLY shape PermissionRequest ever sends, so refusing it -- which
+# the previous implementation did -- means never firing at all.
+reset
+printf '%s' "$start" | "$repo_root/bin/hooks/block-start"
+check "block-start accepts a payload with no tool_use_id" "1" "$(events)"
+check "and sets the sentinel for it" "yes" "$(sentinel)"
+
+# A block names no heading: the payload is the blocked tool's own, so an
+# id lifted from tool_input would attribute the block to an unrelated
+# heading.
+check "the block_start carries no heading id" "null" \
+  "$(jq -r '.id' < "$CLAUDE_ORG_QUEUE_DIR/sess-x.jsonl")"
+
+# Session id is still required -- it names the queue file and the
+# sentinel, so there is nowhere to put either without it.
+reset
+echo '{"hook_event_name":"PermissionRequest","tool_name":"Bash"}' \
+  | "$repo_root/bin/hooks/block-start"
+check "block-start refuses a payload with no session_id" "0" "$(events)"
+
+# Path traversal: session_id is a path component of the sentinel.
+reset
+echo '{"session_id":"../escape","hook_event_name":"PermissionRequest"}' \
+  | "$repo_root/bin/hooks/block-start"
+check "block-start refuses a traversing session_id" "no" \
+  "$([[ -e "$CLAUDE_ORG_QUEUE_DIR/../escape.block-open" ]] && echo yes || echo no)"
+reset
+echo '{"session_id":"../escape","hook_event_name":"PostToolUse"}' \
+  | "$repo_root/bin/hooks/block-end"
+check "block-end refuses a traversing session_id" "0" "$(events)"
+
+echo
+if [[ $failures -eq 0 ]]; then
+  echo "All block-hooks tests passed."
+else
+  echo "$failures test(s) failed."
+  exit 1
+fi

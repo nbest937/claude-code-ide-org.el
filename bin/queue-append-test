@@ -1,0 +1,407 @@
+#!/usr/bin/env bash
+# Shell test harness for bin/hooks/queue-append's decision logic.
+#
+# Same register as bin/clock-notify-test, and the same honesty about its
+# limits. Fully covered here: kind validation, session_id extraction and
+# sanitisation, the "Error:" tool_response suppression, field mapping per
+# kind, append accumulation, and -- since 2026-08-11 -- the content-block
+# tool_response shape a live MCP PostToolUse payload actually carries.
+# NOT covered, and not claimed to be: the payload shape of the Stop and
+# UserPromptSubmit hooks, and the behavior of concurrent writers
+# appending at once (the atomicity claim rests on POSIX O_APPEND
+# semantics for sub-PIPE_BUF writes, not on a test).
+#
+# That one exclusion used to read "the real shape of a live payload" and
+# cover tool_response too, and the gap was not theoretical: every
+# tool_response fixture below was a hand-written string, the live shape
+# is an array of content blocks, and the "Error:" guard silently failed
+# against it for the whole window between the cutover and the first live
+# call. A fixture that never takes the shape of production data is a test
+# of the fixture. The LIVE PAYLOAD SHAPES section exists to keep that
+# specific lie from being told twice.
+#
+# The reader half is covered by ERT instead -- see the "Event queue"
+# section of config-test.el.
+
+set -uo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+script="$repo_root/bin/hooks/queue-append"
+
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+
+fail=0
+
+# Every invocation writes into a throwaway queue dir, never ~/.claude.
+export CLAUDE_ORG_QUEUE_DIR="$work/queue"
+
+reset_queue() { rm -rf "$CLAUDE_ORG_QUEUE_DIR"; }
+
+# run KIND PAYLOAD -- feed PAYLOAD to the script as one hook payload.
+run() {
+  printf '%s' "$2" | "$script" "$1"
+}
+
+# queue_lines SESSION -- emit that session's queue file, or nothing.
+queue_lines() {
+  cat "$CLAUDE_ORG_QUEUE_DIR/$1.jsonl" 2>/dev/null
+}
+
+check() {
+  local label="$1" expected="$2" actual="$3"
+  if [[ "$expected" == "$actual" ]]; then
+    echo "ok   - $label"
+  else
+    echo "FAIL - $label"
+    echo "         expected: $expected"
+    echo "         actual:   $actual"
+    fail=1
+  fi
+}
+
+# --- a clock_in call records the heading and the tool as source --------
+reset_queue
+run clock_in '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_clock_in","tool_input":{"id":"id-a"},"tool_response":"Clocked in: \"Some heading\""}'
+line="$(queue_lines sess-a)"
+check "clock_in records kind" "clock_in" "$(jq -r '.kind' <<<"$line")"
+check "clock_in records id" "id-a" "$(jq -r '.id' <<<"$line")"
+check "clock_in records session" "sess-a" "$(jq -r '.session_id' <<<"$line")"
+check "clock_in has null state" "null" "$(jq -r '.state' <<<"$line")"
+check "clock_in records source" "mcp__emacs-tools__org_clock_in" "$(jq -r '.source' <<<"$line")"
+check "timestamp is ISO 8601 with offset" "yes" \
+  "$(jq -r 'if (.ts|test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[-+][0-9]{4}$")) then "yes" else "no" end' <<<"$line")"
+
+# --- a todo call carries the requested state ---------------------------
+reset_queue
+run todo '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_set_todo","tool_input":{"id":"id-a","state":"DOING"},"tool_response":"TODO state set to DOING (was NEXT): \"x\""}'
+check "todo records state" "DOING" "$(jq -r '.state' <<<"$(queue_lines sess-a)")"
+
+# --- the prior state, recovered from the reply -------------------------
+# Same trick as clock_out's id below, for the same reason: this script
+# must work with no Emacs, so anything only Emacs knows has to arrive in
+# the tool's own reply. The review command needs `from' to notice that
+# reality moved past a queued transition before it replays it (TODO.org
+# :ID: f9f61c04-150b-4ee7-96c9-582cf2bda95a).
+check "todo recovers prior state from response" "NEXT" \
+  "$(jq -r '.from' <<<"$(queue_lines sess-a)")"
+
+reset_queue
+run todo '{"session_id":"sess-a","tool_input":{"id":"id-a","state":"NEXT"},"tool_response":"TODO state set to NEXT (was none): \"x\""}'
+check "todo keeps 'none' distinct from a missing prior state" "none" \
+  "$(jq -r '.from' <<<"$(queue_lines sess-a)")"
+
+# A reply in the old format (no parenthesised clause) must yield null
+# rather than a garbage capture -- the queue outlives any one version of
+# the tool that wrote it.
+reset_queue
+run todo '{"session_id":"sess-a","tool_input":{"id":"id-a","state":"DOING"},"tool_response":"TODO state set to DOING: \"x\""}'
+check "todo without a (was ...) clause has null from" "null" \
+  "$(jq -r '.from' <<<"$(queue_lines sess-a)")"
+
+reset_queue
+run clock_in '{"session_id":"sess-a","tool_input":{"id":"id-a"},"tool_response":"Clocked in: \"x\""}'
+check "non-todo kinds have null from" "null" \
+  "$(jq -r '.from' <<<"$(queue_lines sess-a)")"
+
+# --- pause/resume are session-global: no heading, no state -------------
+reset_queue
+run pause '{"session_id":"sess-a","hook_event_name":"Stop"}'
+line="$(queue_lines sess-a)"
+check "pause has null id" "null" "$(jq -r '.id' <<<"$line")"
+check "pause has null state" "null" "$(jq -r '.state' <<<"$line")"
+check "pause falls back to hook name as source" "Stop" "$(jq -r '.source' <<<"$line")"
+
+# --- the note rides through from tool_input ----------------------------
+reset_queue
+run clock_in '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_clock_in","tool_input":{"id":"id-a","note":"clarify backend schema design"},"tool_response":"Clocked in: \"x\""}'
+check "clock_in carries note" "clarify backend schema design" "$(jq -r '.note' <<<"$(queue_lines sess-a)")"
+
+reset_queue
+run todo '{"session_id":"sess-a","tool_input":{"id":"id-a","state":"WAIT","note":"request credentials from DBA"},"tool_response":"ok"}'
+check "todo carries note" "request credentials from DBA" "$(jq -r '.note' <<<"$(queue_lines sess-a)")"
+
+reset_queue
+run clock_in '{"session_id":"sess-a","tool_input":{"id":"id-a"},"tool_response":"Clocked in: \"x\""}'
+check "omitted note is null" "null" "$(jq -r '.note' <<<"$(queue_lines sess-a)")"
+
+# pause/resume come from hooks Claude never invokes, so no note can exist.
+reset_queue
+run pause '{"session_id":"sess-a","hook_event_name":"Stop"}'
+check "pause has null note" "null" "$(jq -r '.note' <<<"$(queue_lines sess-a)")"
+
+# --- permission blocks (TODO.org :ID: f4e628ce) ------------------------
+# The payload is the *blocked tool's* own, which is the whole trap: a
+# prompt on org_set_todo carries that call's tool_input, complete with a
+# heading id and note. A block names no heading -- it is a fact about the
+# session -- so both must be nulled rather than left to fall through.
+reset_queue
+run block_start '{"session_id":"sess-a","hook_event_name":"PermissionRequest","tool_name":"mcp__emacs-tools__org_set_todo","tool_use_id":"toolu_01ABC","tool_input":{"id":"id-a","state":"DOING","note":"should not survive"}}'
+line="$(queue_lines sess-a)"
+check "block_start is accepted" "block_start" "$(jq -r '.kind' <<<"$line")"
+check "block_start records tool_use_id" "toolu_01ABC" "$(jq -r '.tool_use_id' <<<"$line")"
+check "block_start does NOT inherit the blocked tool's id" "null" "$(jq -r '.id' <<<"$line")"
+check "block_start does NOT inherit the blocked tool's note" "null" "$(jq -r '.note' <<<"$line")"
+check "block_start has null state" "null" "$(jq -r '.state' <<<"$line")"
+check "block_start records the blocked tool as source" "mcp__emacs-tools__org_set_todo" "$(jq -r '.source' <<<"$line")"
+
+# A denied or failed call still ends a real block, so the "Error:"
+# suppression that guards clock_in/todo must not apply here. Without this
+# a denied permission would leave an unmatched block_start, and the
+# reader drops those -- the wait would silently read as work.
+reset_queue
+run block_end '{"session_id":"sess-a","hook_event_name":"PermissionDenied","tool_use_id":"toolu_01ABC","tool_response":[{"type":"text","text":"Error: permission denied"}]}'
+check "block_end survives an Error: response" "block_end" "$(jq -r '.kind' <<<"$(queue_lines sess-a)")"
+check "block_end records tool_use_id" "toolu_01ABC" "$(jq -r '.tool_use_id' <<<"$(queue_lines sess-a)")"
+
+# Other kinds must not carry the field, so a reader can key on it.
+reset_queue
+run pause '{"session_id":"sess-a","hook_event_name":"Stop","tool_use_id":"toolu_01ABC"}'
+check "pause has null tool_use_id" "null" "$(jq -r '.tool_use_id' <<<"$(queue_lines sess-a)")"
+
+# --- subagent attribution rides through --------------------------------
+# Tool events fire these same hooks inside a subagent, and the payload
+# then carries agent_id/agent_type. Both absent on the main thread.
+reset_queue
+run clock_in '{"session_id":"sess-a","agent_id":"a4bb098d74a939dc9","agent_type":"Explore","tool_input":{"id":"id-a"},"tool_response":"Clocked in: \"x\""}'
+line="$(queue_lines sess-a)"
+check "subagent agent_id captured" "a4bb098d74a939dc9" "$(jq -r '.agent_id' <<<"$line")"
+check "subagent agent_type captured" "Explore" "$(jq -r '.agent_type' <<<"$line")"
+
+reset_queue
+run clock_in '{"session_id":"sess-a","tool_input":{"id":"id-a"},"tool_response":"Clocked in: \"x\""}'
+line="$(queue_lines sess-a)"
+check "main-thread agent_id is null" "null" "$(jq -r '.agent_id' <<<"$line")"
+check "main-thread agent_type is null" "null" "$(jq -r '.agent_type' <<<"$line")"
+
+# --- clock_out recovers its id from the tool's own reply ---------------
+# org_clock_out takes no id argument; the running clock is the only thing
+# that knows which heading closed, so the reply is the authoritative source.
+reset_queue
+run clock_out '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_clock_out","tool_input":{},"tool_response":"Clocked out: \"Some heading\" (id: 3d576d29-747f-40b9-a5b3-ecc76679daad)"}'
+check "clock_out recovers id from response" "3d576d29-747f-40b9-a5b3-ecc76679daad" \
+  "$(jq -r '.id' <<<"$(queue_lines sess-a)")"
+
+reset_queue
+run clock_out '{"session_id":"sess-a","tool_input":{},"tool_response":"Clocked out: \"Heading with no ID\""}'
+check "clock_out without an id stays null" "null" "$(jq -r '.id' <<<"$(queue_lines sess-a)")"
+
+reset_queue
+run clock_out '{"session_id":"sess-a","tool_response":{"text":"Clocked out: \"H\" (id: abc-123)"}}'
+check "clock_out id recovered from object-shaped response" "abc-123" \
+  "$(jq -r '.id' <<<"$(queue_lines sess-a)")"
+
+# --- a failed tool call must not enter the queue -----------------------
+# claude-code-ide-org--at-id returns an "Error: ..." string rather than
+# throwing, so this is the only signal that the :ID: never resolved.
+reset_queue
+run clock_in '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_clock_in","tool_input":{"id":"nope"},"tool_response":"Error: No heading with :ID: nope"}'
+check "error response writes nothing" "" "$(queue_lines sess-a)"
+
+# --- but a pause is never suppressed by tool_response ------------------
+reset_queue
+run pause '{"session_id":"sess-a","tool_response":"Error: unrelated"}'
+check "pause ignores tool_response" "pause" "$(jq -r '.kind' <<<"$(queue_lines sess-a)")"
+
+# --- unusable invocations write nothing --------------------------------
+reset_queue
+run bogus_kind '{"session_id":"sess-a"}'
+check "unknown kind writes nothing" "" "$(ls "$CLAUDE_ORG_QUEUE_DIR" 2>/dev/null)"
+
+reset_queue
+run pause '{"tool_input":{"id":"id-a"}}'
+check "missing session_id writes nothing" "" "$(ls "$CLAUDE_ORG_QUEUE_DIR" 2>/dev/null)"
+
+reset_queue
+run pause '{"session_id":"../../etc/passwd"}'
+check "path-traversal session_id writes nothing" "" "$(find "$CLAUDE_ORG_QUEUE_DIR" -type f 2>/dev/null)"
+
+reset_queue
+run pause 'not json at all'
+check "unparseable payload writes nothing" "" "$(ls "$CLAUDE_ORG_QUEUE_DIR" 2>/dev/null)"
+
+# --- appends accumulate rather than overwrite --------------------------
+reset_queue
+run pause '{"session_id":"sess-a","hook_event_name":"Stop"}'
+run resume '{"session_id":"sess-a","hook_event_name":"UserPromptSubmit"}'
+check "appends accumulate" "2" "$(queue_lines sess-a | wc -l | tr -d ' ')"
+check "append order preserved" "pause resume" \
+  "$(queue_lines sess-a | jq -rs 'map(.kind)|join(" ")')"
+
+# --- sessions never share a file ---------------------------------------
+reset_queue
+run pause '{"session_id":"sess-a"}'
+run pause '{"session_id":"sess-b"}'
+check "one file per session" "1 1" \
+  "$(queue_lines sess-a | wc -l | tr -d ' ') $(queue_lines sess-b | wc -l | tr -d ' ')"
+
+# --- explicit field overrides, for synthetic events ---------------------
+# Added with the 2026-08-11 cutover: an event that did not come from an
+# MCP tool call has no tool_input to read, so the caller supplies the
+# fields. Only bin/hooks/exitplanmode-promote-planning uses this.
+reset_queue
+QUEUE_APPEND_ID="id-x" QUEUE_APPEND_STATE="DOING" QUEUE_APPEND_FROM="PLANNING" \
+  run todo '{"session_id":"sess-a","hook_event_name":"PostToolUse","tool_name":"ExitPlanMode"}'
+line="$(queue_lines sess-a)"
+check "override sets id" "id-x" "$(jq -r '.id' <<<"$line")"
+check "override sets state" "DOING" "$(jq -r '.state' <<<"$line")"
+check "override sets from" "PLANNING" "$(jq -r '.from' <<<"$line")"
+check "override keeps real source" "ExitPlanMode" "$(jq -r '.source' <<<"$line")"
+
+# An override must win over a tool_input that says otherwise, or the
+# precedence is decorative.
+reset_queue
+QUEUE_APPEND_ID="id-x" \
+  run todo '{"session_id":"sess-a","tool_input":{"id":"id-from-payload","state":"WAIT"}}'
+check "override beats tool_input" "id-x" "$(jq -r '.id' <<<"$(queue_lines sess-a)")"
+
+# Unset overrides must not disturb the ordinary path.
+reset_queue
+run todo '{"session_id":"sess-a","tool_input":{"id":"id-a","state":"DOING"},"tool_response":"Queued todo -> DOING (was NEXT): \"H\"; pending review."}'
+line="$(queue_lines sess-a)"
+check "no override leaves id from payload" "id-a" "$(jq -r '.id' <<<"$line")"
+check "no override recovers from from reply" "NEXT" "$(jq -r '.from' <<<"$line")"
+
+# --- the post-cutover reply shapes still parse -------------------------
+# The wrappers stopped mutating on 2026-08-11 and their replies changed
+# wording with them. queue-append recovers `from` by sed from that
+# wording, so these pin the two halves of the contract against the
+# strings config.el actually returns now.
+reset_queue
+run todo '{"session_id":"sess-a","tool_input":{"id":"id-a","state":"NEXT"},"tool_response":"Queued todo -> NEXT (was none): \"Bare heading\"; pending review."}'
+check "keywordless heading records none, not empty" "none" \
+  "$(jq -r '.from' <<<"$(queue_lines sess-a)")"
+
+reset_queue
+run clock_out '{"session_id":"sess-a","tool_input":{},"tool_response":"Queued clock_out; pending review."}'
+check "clock_out now has no id to recover" "null" \
+  "$(jq -r '.id' <<<"$(queue_lines sess-a)")"
+
+# A refused tool call must still be dropped -- the wrappers validate far
+# less than they used to, so this is now the only gate left.
+reset_queue
+run todo '{"session_id":"sess-a","tool_input":{"id":"nope","state":"DOING"},"tool_response":"Error: no org heading found with :ID: \"nope\""}'
+check "validation failure writes nothing" "" "$(ls "$CLAUDE_ORG_QUEUE_DIR" 2>/dev/null)"
+
+# --- LIVE PAYLOAD SHAPES ------------------------------------------------
+# Everything above feeds tool_response as a bare string. A real MCP
+# PostToolUse payload never does: it carries an array of content blocks.
+# The strings below are copied verbatim from the 2026-08-11 session that
+# exposed the bug, not invented, so they stay honest about the shape.
+
+# The regression itself. Before the recursive extractor this wrote a
+# clock_in for a heading that does not exist.
+reset_queue
+run clock_in '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_clock_in","tool_input":{"id":"00000000-dead-beef-0000-000000000000"},"tool_response":[{"type":"text","text":"Error: no org heading found with :ID: \"00000000-dead-beef-0000-000000000000\""}]}'
+check "content-block error response writes nothing" "" "$(queue_lines sess-a)"
+
+# The other shape the old code broke on identically: an object wrapping
+# the same array. The old object branch took .content and stringified the
+# array, yielding a leading '['.
+reset_queue
+run clock_in '{"session_id":"sess-a","tool_input":{"id":"nope"},"tool_response":{"content":[{"type":"text","text":"Error: no org heading found with :ID: \"nope\""}]}}'
+check "content-wrapper error response writes nothing" "" "$(queue_lines sess-a)"
+
+# The guard must not become so eager it eats real events. A successful
+# call in the very same shape has to survive.
+reset_queue
+run clock_in '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_clock_in","tool_input":{"id":"id-a"},"tool_response":[{"type":"text","text":"Queued clock_in on \"Rework the MCP tool / hook write paths to append-only\"; pending review."}]}'
+check "successful content-block response still enqueues" "clock_in" \
+  "$(jq -r '.kind' <<<"$(queue_lines sess-a)")"
+check "successful content-block response keeps its id" "id-a" \
+  "$(jq -r '.id' <<<"$(queue_lines sess-a)")"
+
+# The two sed recoveries read the same extracted string. They happened to
+# survive the bug by accident -- the wanted text sat inside the JSON the
+# old branch produced -- so fixing the extractor is exactly when they
+# could have broken. These pin them to the live shape.
+reset_queue
+run clock_out '{"session_id":"sess-a","tool_input":{},"tool_response":[{"type":"text","text":"Clocked out: \"Some heading\" (id: 3d576d29-747f-40b9-a5b3-ecc76679daad)"}]}'
+check "clock_out recovers id from content-block response" "3d576d29-747f-40b9-a5b3-ecc76679daad" \
+  "$(jq -r '.id' <<<"$(queue_lines sess-a)")"
+
+reset_queue
+run todo '{"session_id":"sess-a","tool_input":{"id":"id-a","state":"DOING"},"tool_response":[{"type":"text","text":"Queued todo -> DOING (was NEXT): \"H\"; pending review."}]}'
+check "todo recovers from from content-block response" "NEXT" \
+  "$(jq -r '.from' <<<"$(queue_lines sess-a)")"
+
+# Several blocks join in order rather than only the first surviving.
+reset_queue
+run clock_out '{"session_id":"sess-a","tool_input":{},"tool_response":[{"type":"text","text":"Clocked out: \"H\""},{"type":"text","text":"(id: multi-block-id)"}]}'
+check "multiple content blocks are joined" "multi-block-id" \
+  "$(jq -r '.id' <<<"$(queue_lines sess-a)")"
+
+# Deeper nesting must not defeat the guard -- the point of recursing.
+reset_queue
+run clock_in '{"session_id":"sess-a","tool_input":{"id":"nope"},"tool_response":[{"type":"text","content":[{"text":"Error: nested but still an error"}]}]}'
+check "nested error response writes nothing" "" "$(queue_lines sess-a)"
+
+# --- capture/amend: the write-through gate, both directions ------------
+#
+# The double-apply regression. org_capture writes the file itself when it
+# is free, so appending an event for that reply would file the heading
+# twice: once now and once when a human applies the queue. Both
+# directions are asserted because only testing the queued one would let a
+# gate that appends unconditionally pass.
+reset_queue
+run capture '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_capture","tool_input":{"title":"Wrote through"},"tool_response":[{"type":"text","text":"Captured: \"Wrote through\" (ID: cap-1) end of file"}]}'
+check "a capture that wrote through appends nothing" "" "$(queue_lines sess-a)"
+
+reset_queue
+run amend '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_amend","tool_input":{"id":"id-a","text":"prose"},"tool_response":[{"type":"text","text":"Amended: \"Some heading\""}]}'
+check "an amend that wrote through appends nothing" "" "$(queue_lines sess-a)"
+
+reset_queue
+run capture '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_capture","tool_input":{"title":"Deferred","target":"Tooling","tags":"code,research","note":"why"},"tool_response":[{"type":"text","text":"Queued capture: \"Deferred\" (ID: cap-2) under \"Tooling\"; pending review."}]}'
+line="$(queue_lines sess-a)"
+check "a deferred capture appends one line" "1" "$(wc -l <<<"$line" | tr -d ' ')"
+check "capture records kind" "capture" "$(jq -r '.kind' <<<"$line")"
+check "capture recovers the pre-minted id from the reply" "cap-2" "$(jq -r '.id' <<<"$line")"
+check "capture records title" "Deferred" "$(jq -r '.title' <<<"$line")"
+check "capture records target" "Tooling" "$(jq -r '.target' <<<"$line")"
+check "capture records tags" "code,research" "$(jq -r '.tags' <<<"$line")"
+check "capture records note" "why" "$(jq -r '.note' <<<"$line")"
+check "capture has null text" "null" "$(jq -r '.text' <<<"$line")"
+
+reset_queue
+run amend '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_amend","tool_input":{"id":"id-a","text":"two\nlines","note":"why"},"tool_response":[{"type":"text","text":"Queued amend: \"Some heading\" (2 lines); pending review."}]}'
+line="$(queue_lines sess-a)"
+check "amend records kind" "amend" "$(jq -r '.kind' <<<"$line")"
+check "amend takes its id from tool_input" "id-a" "$(jq -r '.id' <<<"$line")"
+check "amend records text verbatim" "two
+lines" "$(jq -r '.text' <<<"$line")"
+check "amend has null title" "null" "$(jq -r '.title' <<<"$line")"
+
+# An unrecognised reply drops the event rather than guessing. A drop
+# loses one proposal a human can restate; a wrong append writes the
+# heading twice and neither copy announces itself.
+reset_queue
+run capture '{"session_id":"sess-a","tool_input":{"title":"x"},"tool_response":[{"type":"text","text":"Something nobody planned for"}]}'
+check "an unrecognised capture reply appends nothing" "" "$(queue_lines sess-a)"
+
+# --- the reply-prefix contract with config.el --------------------------
+#
+# The prefixes above are a contract between two files that change
+# independently, and rewording one side alone either double-applies or
+# silently drops. This asserts the literals this script matches on are
+# still the ones config.el builds its replies from -- a test of the
+# agreement, not of today's spelling.
+config="$repo_root/modules/tools/claude-code-ide-org/config.el"
+for name in reply-queued-capture reply-queued-amend; do
+  literal="$(sed -n "s/^(defconst claude-code-ide-org--$name \"\\([^\"]*\\)\".*/\\1/p" "$config")"
+  check "config.el defines --$name" "yes" "$([[ -n "$literal" ]] && echo yes || echo no)"
+  check "queue-append matches on --$name's literal" "yes" \
+    "$(grep -qF "\"$literal\"" "$script" && echo yes || echo no)"
+done
+
+# --- the script never fails its caller ---------------------------------
+printf '%s' 'garbage' | "$script" pause >/dev/null 2>&1
+check "always exits 0" "0" "$?"
+
+echo
+if [[ $fail -eq 0 ]]; then
+  echo "All queue-append tests passed."
+else
+  echo "Some queue-append tests FAILED."
+fi
+exit $fail

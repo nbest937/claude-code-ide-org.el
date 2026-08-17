@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+# Copy this project's Plan Mode documents into the repo, so they have
+# history.
+#
+# Claude Code owns ~/.claude/plans/ and writes plan files there by
+# absolute path; Plan Mode cannot be redirected, and this script does not
+# try. That directory stays the *working* copy — the one org headings link
+# to and the one a plan revision edits. The copy under plans/ is an
+# archive: it exists to give plans diffs, blame and a record that survives
+# a lost home directory.
+#
+# Symlinking was considered and rejected. Any writer using the ordinary
+# temp-file-plus-rename idiom would replace the symlink with a regular
+# file, silently detaching the repo copy while looking like it worked.
+# Copying has no such failure mode.
+#
+# Project membership is declared by the org files, not by this script: a
+# plan is this project's if some heading in TODO.org or DONE.org links to
+# it. That keeps another project's plans out of this repo without needing
+# a hand-maintained list, and it makes an unreferenced plan visible rather
+# than silently included -- see the warning at the end.
+#
+# Usage:
+#   bin/sync-plans           copy, reporting what changed
+#   bin/sync-plans --check   report drift and exit 1; change nothing
+#
+# Env overrides exist for the test harness:
+#   PLANS_SRC_DIR   where plan files live       (default ~/.claude/plans)
+#   PLANS_DEST_DIR  where they are archived     (default <repo>/plans)
+#   PLANS_ORG_FILES space-separated org files   (default TODO.org DONE.org)
+
+set -uo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+src="${PLANS_SRC_DIR:-$HOME/.claude/plans}"
+dest="${PLANS_DEST_DIR:-$repo_root/plans}"
+read -r -a org_files <<<"${PLANS_ORG_FILES:-$repo_root/TODO.org $repo_root/DONE.org}"
+
+check_only=0
+[[ "${1:-}" == "--check" ]] && check_only=1
+
+[[ -d "$src" ]] || { echo "sync-plans: no such source directory: $src" >&2; exit 2; }
+
+# Referenced plans, deduplicated. Matches the link form CLAUDE.md
+# mandates: [[file:~/.claude/plans/<slug>.md][Plan]].
+referenced="$(grep -oh 'plans/[a-z0-9-]*\.md' "${org_files[@]}" 2>/dev/null \
+              | sed 's|^plans/||' | sort -u)"
+
+[[ -n "$referenced" ]] || { echo "sync-plans: no plan links found in ${org_files[*]}" >&2; exit 2; }
+
+changed=0 missing=0
+declare -a wanted=()
+
+while IFS= read -r name; do
+  [[ -n "$name" ]] || continue
+  wanted+=("$name")
+  if [[ ! -f "$src/$name" ]]; then
+    echo "  MISSING  $name (linked from org, absent from $src)"
+    missing=$((missing + 1))
+    continue
+  fi
+  if [[ ! -f "$dest/$name" ]]; then
+    echo "  new      $name"
+    changed=$((changed + 1))
+    [[ $check_only -eq 1 ]] || { mkdir -p "$dest" && cp "$src/$name" "$dest/$name"; }
+  elif ! cmp -s "$src/$name" "$dest/$name"; then
+    echo "  updated  $name"
+    changed=$((changed + 1))
+    [[ $check_only -eq 1 ]] || cp "$src/$name" "$dest/$name"
+  fi
+done <<<"$referenced"
+
+# A file in the archive that nothing links to any more: report, never
+# delete. A heading may have been archived, or a link dropped by mistake,
+# and deleting history on that inference is not this script's call.
+if [[ -d "$dest" ]]; then
+  for path in "$dest"/*.md; do
+    [[ -e "$path" ]] || continue
+    name="$(basename "$path")"
+    found=0
+    for w in "${wanted[@]}"; do [[ "$w" == "$name" ]] && { found=1; break; }; done
+    [[ $found -eq 1 ]] || echo "  ORPHAN   $name (in $dest, no longer linked from org — not deleted)"
+  done
+fi
+
+# Plans present at the source that no heading links. Not copied: org
+# membership is the rule. Worth surfacing, since it usually means a
+# missing Plan link rather than another project's work.
+#
+# Skipped under --check: an unlinked plan is advisory, never a drift
+# condition, and --check's output is read when something is blocking a
+# push. Mixing "here is why you are blocked" with "here is something to
+# tidy up someday" is how the second one teaches people to skim the first.
+unlinked=0
+if [[ $check_only -eq 0 ]]; then
+  for path in "$src"/*.md; do
+    [[ -e "$path" ]] || continue
+    name="$(basename "$path")"
+    found=0
+    for w in "${wanted[@]}"; do [[ "$w" == "$name" ]] && { found=1; break; }; done
+    if [[ $found -eq 0 ]]; then
+      [[ $unlinked -eq 0 ]] && echo "  --- unlinked at source, not archived: ---"
+      echo "  unlinked $name"
+      unlinked=$((unlinked + 1))
+    fi
+  done
+fi
+
+total=${#wanted[@]}
+if [[ $check_only -eq 1 ]]; then
+  if [[ $changed -gt 0 || $missing -gt 0 ]]; then
+    echo "sync-plans: $total linked, $changed out of date, $missing missing — run bin/sync-plans"
+    exit 1
+  fi
+  echo "sync-plans: $total plans in sync"
+  exit 0
+fi
+
+echo "sync-plans: $total linked, $changed copied, $missing missing, $unlinked unlinked at source"
+[[ $missing -eq 0 ]] || exit 1
+exit 0

@@ -46,6 +46,45 @@ repo) lives in `~/.claude/CLAUDE.md`. It is restated here because this
 project's own contributors are the ones most likely to need it, and a
 skill should not depend on a personal config file existing.
 
+### Never invoke bare `emacs` for a batch check — use `command emacs`
+
+This is the one command that lies about section 0 by construction. The
+user's shell profile defines:
+
+```sh
+emacs () {
+  if [[ "$*" == *-nw* ]]; then command emacs "$@"
+  else open -a Emacs --args "$@"; fi
+}
+```
+
+and Claude Code's own shell snapshots carry it into every Bash tool call.
+So `emacs --batch -Q --eval '...'` **does not run a batch Emacs at all**:
+it hands the arguments to the running GUI app, which steals focus from
+whatever the user is doing, and returns exit 0 with no stdout and no
+stderr. That is indistinguishable from a batch run that completed and
+found nothing wrong — so `check-parens`, a byte-compile, or an `--eval`
+probe all report success without ever having executed.
+
+Always:
+
+```sh
+command emacs --batch -Q -l ... -f ...      # or /opt/homebrew/bin/emacs
+```
+
+**`bin/test` is unaffected.** A `#!/usr/bin/env bash` script gets a
+non-interactive shell where the function is not defined, so its `exec
+emacs` resolves to the real binary. The trap is specific to inline
+one-off verification — which is exactly the kind of check this skill
+exists for.
+
+Two tells that you have just been bitten: an Emacs window taking focus,
+and a command that printed *nothing at all* when your own `--eval` ended
+in a `message`. Treat a silent success from `emacs --batch` as a failed
+check, not a passed one. Recorded as TODO.org `:ID: 4f9e552a`, where it
+is logged as having been hit three times in a row before anyone noticed,
+and twice more on 2026-08-14.
+
 ---
 
 ## 1. Live reload procedure
@@ -82,8 +121,8 @@ depends on *when*, relative to other packages loading, a hook or
 restart to actually verify — reloading the already-running instance will
 look fine and tell you nothing about first-boot behavior.
 
-The concrete example this project hit (see CLAUDE.md's "Design notes",
-`org-clock-load` entry): `org-clock-persist-load`/`org-clock-load` used
+The concrete example this project hit, and which this skill now owns
+outright: `org-clock-persist-load`/`org-clock-load` used
 to need an explicit call after `(setq org-clock-persist ...)`. Newer
 `org.el` registers it on `org-mode-hook` itself, so calling it explicitly
 inside `(after! org ...)` in the Doom config is not just redundant but
@@ -168,6 +207,41 @@ for `bin/test` — `bin/test` verifies wrapper-function *behavior* (see
 not just in-memory results); `fboundp` only tells you the symbol exists
 in the running session.
 
+### Deleting a function needs more than a reload
+
+`load-file` evaluates what is *in* a file. It does not unbind what you
+removed *from* it. A deleted `defun` stays live in the running image
+indefinitely, and — worse — anything still holding a reference keeps
+working, so the reload looks clean and the suite passes because batch
+loads a fresh Emacs each time.
+
+Retiring a function therefore takes two steps:
+
+```
+emacsclient -e '(load-file "modules/tools/claude-code-ide-org/config.el")'
+emacsclient -e '(fmakunbound (quote claude-code-ide-org--the-deleted-one))'
+```
+
+Then confirm the *callers* changed too, not just that the symbol is gone
+— a caller's old definition is still resident until the reload replaces
+it:
+
+```
+emacsclient -e '(string-match-p "the-deleted-one" (prin1-to-string (symbol-function (quote claude-code-ide-org-some-caller))))'
+```
+
+Expect `nil`. Note this matches docstrings as well as code, so a
+docstring that *mentions* the retired function will return a position and
+look like a failure — check what matched before believing it.
+
+This is not hypothetical. On 2026-08-11 the `:SESSIONS:` drawer was
+retired: every writer deleted, all 49 drawers removed from the org files,
+suite green. Minutes later a clock-out recreated one, because `config.el`
+had been edited on disk but never reloaded, so the live Emacs was still
+running the old writer. The count caught it; nothing else would have.
+Section 0's rule is the general form — this is the specific trap it
+catches most often here.
+
 ## 5. The Claude-Code-hook-side limit
 
 Editing `.claude/settings.json` (the `Stop`/`UserPromptSubmit`/
@@ -201,3 +275,84 @@ If that glob ever matches nothing (e.g. a fresh straight checkout that
 hasn't built yet), `bin/test` silently falls back to the bundled org
 again with no error — the symptom is tests behaving as if a newer
 org-mode feature doesn't exist. Check `ls ~/.config/emacs/.local/straight/build-*/org` if that happens.
+
+## 7. What is in the Doom config, and why
+
+Moved here from CLAUDE.md 2026-08-14: it is setup reference consulted when
+changing these files, which is exactly this skill's trigger, not something
+every session needs in context.
+
+**Read the live file, not this summary, before acting on it.** The version
+CLAUDE.md carried had drifted — it showed `(add-hook 'kill-emacs-hook
+#'org-clock-out)` when the config actually uses a guarded wrapper. What
+follows was verified against `~/.config/doom/config.el` and the running
+Emacs on 2026-08-14.
+
+```elisp
+;; server.el must be required explicitly: server-running-p isn't
+;; autoloaded (server-start is), so a fresh startup errors void-function
+;; without this. The guard keeps a mid-session reload from hitting
+;; server-start's "already running" prompt.
+(require 'server)
+(unless (server-running-p) (server-start))
+
+(after! org
+  (setq org-todo-keywords
+        '((sequence "TODO" "NEXT" "PLANNING" "DOING" "WAIT" "MAYBE" "|" "DONE" "CANCELLED")))
+  (setq org-clock-out-when-done t)
+  (setq org-clock-persist 'history)
+  (setq org-archive-location "DONE.org::* Done")
+  ;; Doom's default is (list org-directory) and org expands it
+  ;; non-recursively, so a file one level down never resolves. One-time
+  ;; scan at load: a newly symlinked .org needs a restart to be seen.
+  (setq org-agenda-files (directory-files-recursively org-directory "\\.org$"))
+  (require 'org-depend))
+
+;; org-clock-out has no guard and signals (user-error "No active clock"),
+;; which these hooks would hit on every quit where nothing is clocked --
+;; the common case. Hence the wrapper.
+(defun claude-code-ide-org--clock-out-if-clocking ()
+  (when (org-clocking-p) (org-clock-out)))
+(add-hook 'kill-emacs-hook #'claude-code-ide-org--clock-out-if-clocking)
+(add-hook 'suspend-hook    #'claude-code-ide-org--clock-out-if-clocking)
+
+(use-package! claude-code-ide
+  :config
+  (setq claude-code-ide-mcp-server-port 45571)
+  (claude-code-ide-emacs-tools-setup)
+  (setq claude-code-ide-terminal-backend 'vterm)
+  (global-auto-revert-mode 1))
+```
+
+Declared in `~/.config/doom/packages.el`:
+
+```elisp
+(package! claude-code-ide
+  :recipe (:host github :repo "manzaltu/claude-code-ide.el"))
+```
+
+**`org-depend` is required, so `:BLOCKER:` is actually enforced.** Verified
+live: `org-blocker-hook` holds `org-depend-block-todo` alongside this
+project's own `claude-code-ide-org--blocker-clock-running-p`. The project's
+function blocks on a running clock; org-depend's blocks on unsatisfied
+`:BLOCKER:` IDs. Two different guards, both live — don't assume a refused
+`DONE` came from the project's one.
+
+**Known gap: `org-todo-keywords` has no `REVIEW`.** The sequence above
+predates it, so `REVIEW` resolves only in files carrying their own
+`#+TODO:` header line — TODO.org does, which is why it works there. A file
+without one will not accept it.
+
+**vterm**: requires the `:term vterm` Doom module (in `init.el`). Its
+native module is compiled with cmake against homebrew `libvterm` — the
+bundled build needs GNU libtool, which is not installed. The resulting
+`vterm-module.so` lives in the straight repo dir, symlinked into the
+straight build dir.
+
+The live config also wires standalone Warp/CLI access (HTTP tools-server
+session registration plus IDE-companion autostart, backing `.mcp.json`).
+That is general claude-code-ide infrastructure rather than org-specific.
+
+Only relevant with two Emacs.app processes at once: the second
+`server-start` hits the "already running" prompt, since both claim the
+default socket name.

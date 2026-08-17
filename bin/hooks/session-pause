@@ -1,30 +1,22 @@
 #!/usr/bin/env bash
-# Stop hook: pause the running org clock the moment Claude finishes
-# responding and control returns to the user. Fire-and-forget — never
-# blocks or reports back to Claude Code, and fails soft if Emacs isn't
-# reachable (no server running yet, etc).
+# Stop hook: record a `pause` guidepost the moment Claude finishes
+# responding and control returns to the user.
 #
-# Passes this session's session_id through to
-# claude-code-ide-org-session-pause so it can no-op instead of pausing
-# a different concurrent session's actively-running clock (see TODO.org
-# :ID: 337f7fb2-b9e9-4c02-82dd-d88e60df364b). Built via jq's own
-# JSON-string encoding rather than naive shell interpolation into the
-# emacsclient -e expression — JSON string-escaping is a safe superset
-# of elisp string-literal escaping for the plain-ASCII UUIDs Claude
-# Code uses, and this avoids any injection risk from untrusted data.
-# An empty/missing session_id is passed through as elisp nil, not an
-# empty string, matching the function's own "nil means no session
-# context" default.
-input="$(cat)"
-
-session_id="$(jq -r '.session_id // empty' <<<"$input" 2>/dev/null)"
-
-if [[ -n "$session_id" ]]; then
-  session_id_elisp="$(printf '%s' "$session_id" | jq -R -s .)"
-else
-  session_id_elisp="nil"
-fi
-
-emacsclient -e "(claude-code-ide-org-session-pause $session_id_elisp)" >/dev/null 2>&1
-
-exit 0
+# Before the 2026-08-11 cutover (TODO.org :ID:
+# feba67eb-35b3-48bd-a892-8ecd47ca52e0) this also called
+# claude-code-ide-org-session-pause through `emacsclient -e` to close
+# the live clock at the turn boundary. It no longer touches Emacs: the
+# MCP tools open no clocks, so there is nothing here to pause. What the
+# turn boundary produces now is evidence -- a timestamp saying "this
+# session stopped working here" -- and the review command decides what
+# it brackets.
+#
+# Why that is better rather than merely simpler: a guidepost is written
+# by appending one line to a file, so it survives with no Emacs running,
+# no server socket, and no risk of a hook wedging on an `emacsclient`
+# call that cannot complete. The pause/resume stream also stays
+# undecimated in the queue, which the retired :SESSIONS: drawer never
+# managed.
+#
+# Fire-and-forget: always exit 0, never block Claude Code.
+exec "$(dirname "${BASH_SOURCE[0]}")/queue-append" pause

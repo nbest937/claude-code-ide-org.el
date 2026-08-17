@@ -32,7 +32,9 @@ This skill helps Claude work expertly with Emacs Org-Mode files. The focus areas
 ** Heading level 2
 *** TODO Task not yet started
 *** NEXT Up next / prioritised
+*** PLANNING In Plan Mode, plan not yet approved
 *** DOING Actively being worked on
+*** REVIEW Finished, handed back for human judgement
 *** WAIT Blocked or waiting on someone
 *** MAYBE Someday / maybe
 *** DONE Completed
@@ -40,13 +42,22 @@ This skill helps Claude work expertly with Emacs Org-Mode files. The focus areas
 ```
 
 Default keyword set used by this skill:
-`TODO NEXT DOING WAIT MAYBE | DONE CANCELLED`
+`TODO NEXT PLANNING DOING REVIEW WAIT MAYBE | DONE CANCELLED`
 
 The `|` separates active (incomplete) states on the left from terminal (done) states on
 the right. `DONE` and `CANCELLED` trigger Org's "task complete" behaviour (closing
-timestamp, struck-through in the agenda). The five states to the left are all active.
+timestamp, struck-through in the agenda). The seven states to the left are all active.
 Priority is expressed through keyword choice — do not add `[#A]`/`[#B]`/`[#C]` priority
 cookies unless the user explicitly asks.
+
+`REVIEW` is **experimental** — work finished and handed back for human judgement,
+as distinct from `WAIT`, which means blocked on someone else. Don't present it as
+settled convention.
+
+Real `#+TODO:` lines usually carry per-keyword logging cookies — `!` records a
+timestamp on entry, `@` prompts for a note. Read them off the file's own header
+rather than assuming: `@` means that transition **blocks on a prompt**, which
+matters enormously if anything drives it non-interactively.
 
 ### Tags
 
@@ -254,11 +265,61 @@ When helping the user move a task between states, follow these conventions:
 checkpoints — never treat plan approval alone as license to proceed
 straight into implementation, even under an auto-accept mode that
 otherwise biases toward not stopping. After a plan is approved, stop and
-get the user's explicit confirmation before doing any of: adding a Plan
-link to the task heading, transitioning that heading to `DOING` (or
-`PLANNING` → `DOING`), or making any code/file edits the plan describes.
-This holds regardless of whether the heading the plan is for already
-existed or is newly created as part of the plan.
+get the user's explicit confirmation before either of: transitioning the
+heading to `DOING` (or `PLANNING` → `DOING`), or making any code/file
+edits the plan describes. This holds regardless of whether the heading
+the plan is for already existed or is newly created as part of the plan.
+
+**The Plan link is not gated by this checkpoint** — add it as soon as the
+plan file is finalized, per CLAUDE.md's rule. This wording used to gate
+it alongside the two above, contradicting that rule; the contradiction
+was resolved in CLAUDE.md's favour on 2026-08-14 for a mechanical reason,
+not a stylistic one. `bin/sync-plans` archives only those plans some
+heading links, so an unlinked plan is never copied into `plans/` and has
+no history at all — waiting for confirmation costs the plan its archive
+while protecting nothing, since a link commits you to no work.
+
+### Before editing: check for an unsaved buffer
+
+**Before text-editing any `.org` file that may be open in a live Emacs,
+establish that Emacs is not holding unsaved changes to it.** One call:
+
+```elisp
+(let ((b (get-file-buffer "/abs/path/to/file.org")))
+  (list :open (and b t)
+        :modified (and b (buffer-modified-p b))
+        :in-sync (and b (verify-visited-file-modtime b))))
+```
+
+Read `:open` first — when it is nil the file has no buffer, nothing can
+diverge, and the other two fields are meaningless rather than alarming
+(`:in-sync nil` there means "not applicable," not "out of sync").
+
+`:modified` non-nil is the finding. **Stop and tell the user.** Do not
+revert (that discards their work) and do not save (that discards yours);
+which to do is theirs to decide, and they may need to merge.
+
+`:open t` with `:modified nil` is fine — an unmodified buffer auto-reverts
+and will pick up your edit on its own.
+
+**Why this is a precondition and not a nicety.** `global-auto-revert-mode`
+deliberately refuses to revert a *modified* buffer. So the moment a buffer
+picks up any change — including a stray keystroke — it silently stops
+tracking the file, with no warning and no visible difference. Every later
+disk edit then widens a divergence nobody can see. The two ways out are
+both destructive: saving overwrites the disk edits, reverting discards the
+buffer's.
+
+Real incident, 2026-08-11: six headings and three body edits were written
+to a `TODO.org` whose buffer had been stale for hours. It surfaced only
+because an unrelated `org-id-find` on a just-written `:ID:` returned nil.
+The buffer's sole unsaved content turned out to be four stray characters,
+so the resolution was cheap — by luck. Any real unsaved work there would
+have forced a three-way merge between disk, buffer, and intent.
+
+Note the check is about the *buffer*, not the file: a file can be
+perfectly readable on disk and still have a divergent buffer waiting to
+overwrite it.
 
 ### Editing & transforming
 
@@ -270,6 +331,42 @@ existed or is newly created as part of the plan.
 - **Close an open clock**: fill in the end timestamp and compute the duration.
 - **Always preserve**: indentation, drawer structure, existing entries — do not
   reformat content the user didn't ask to change.
+
+### Inserting content programmatically
+
+Writing org text from Elisp (via `emacsclient`, which is how larger edits
+are made when the file is open in a live Emacs) fails *silently* in two
+specific ways. Neither errors, and neither is visible in the return value.
+
+- **Any line starting with `* ` becomes a heading.** A horizontal rule
+  written as `* * *`, or prose that happens to wrap so a line begins with
+  an asterisk and a space, silently creates a top-level heading and
+  re-parents everything after it. Use `-----` for a rule. Note `*bold*`
+  at line start is safe — it takes `*` followed by a *space*.
+- **`org-end-of-subtree` on a parent lands past all its children.** Text
+  inserted there belongs to the parent's **last child**, not the parent,
+  because org body text attaches to the nearest preceding heading. This
+  is correct for inserting a new *child heading* and wrong for inserting
+  *body text* on the parent. For body text on a heading that has
+  children, insert before its first child (`outline-next-heading`)
+  instead.
+
+So verify after every programmatic insert, before moving on:
+
+```elisp
+(list :headings (length (org-map-entries (lambda () t)))
+      :parses (condition-case e (progn (org-element-parse-buffer) t)
+                (error (format "%S" e))))
+```
+
+A heading count that moved by anything other than the number of headings
+you meant to add is the `* ` trap. To check *ownership* — which heading a
+block of text actually landed under — find the text's line number and
+walk back to the nearest preceding heading; do not assume.
+
+Prefer `org-element-map` over line regexps when deleting or rewriting
+whole drawers, so a `:DRAWERNAME:` mentioned in *prose* is never matched
+as a real drawer.
 
 ### Generating .org content
 
@@ -369,11 +466,15 @@ risky. Only read-only research that writes solely to its own plan file
 6. Don't auto-commit the resulting diff. Leave it for explicit review.
 
 `org_log_background_plan` inserts the `[[file:...][Plan]]` link
-(idempotent — a heading only ever carries one) and appends a
-"Background-planned" `:SESSIONS:` entry tagged with the synthetic
-`session_id`. It never touches `:LOGBOOK:`, the TODO keyword, or the
-clock — the single-clock model can't represent true parallelism honestly,
-so this path doesn't try.
+(idempotent — a heading only ever carries one). It never touches
+`:LOGBOOK:`, the TODO keyword, or the clock — the single-clock model
+can't represent true parallelism honestly, so this path doesn't try.
+
+It still takes a synthetic `session_id`, but no longer records it
+anywhere: that was a `:SESSIONS:` drawer entry, and the drawer was
+retired 2026-08-11 (TODO.org `:ID: 9d2fcdad-…`). Pass it anyway — the
+argument is still validated, and it is the natural hook if per-session
+attribution comes back as a queued event.
 
 ---
 

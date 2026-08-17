@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# Check TODO.org and DONE.org against this project's own structural
+# conventions -- the assertions recorded on TODO.org :ID: 3bd3402b, each
+# of which was run by hand roughly twenty times on 2026-08-13.
+#
+# What it asserts, all decidable without judgement:
+#   - every [[id:...]] link resolves to a heading that exists
+#   - no level-4 headings (the file has three: category, task, epic-child)
+#   - every heading below level 1 carries :ID: and :CREATED:; every
+#     level-1 category carries neither, plus no TODO keyword and no tags
+#   - no repeating task sits under a completable ancestor, which could
+#     otherwise never reach DONE
+#   - every :BLOCKER: would actually block: the target exists AND carries
+#     a TODO keyword, and the blocked heading is not itself MAYBE
+#   - every plan link points at a file that exists
+#
+# What it deliberately does NOT assert: anything requiring judgement, and
+# in particular the *reasoning* kind of drift -- prose claiming behaviour
+# the code no longer has. That was measured on 2026-08-13 and is the
+# larger half; see the heading. A clean run here is not a claim that the
+# documents are true, only that their shape is well formed.
+#
+# The logic lives in config.el as named, tested functions rather than in
+# this script, so `bin/test' can feed each check a fixture that violates
+# it. A lint whose assertions have never been seen to fail proves
+# nothing.
+#
+# Usage:
+#   bin/lint-org                lint the tracked org files
+#   bin/lint-org FILE...        lint the named files instead
+#
+# Env override, for the test harness and for other checkouts:
+#   LINT_ORG_REF_FILES  space-separated files scanned for :ID:s but not
+#                       linted (default ~/org/notes.org)
+#
+# Exits 1 with one finding per line if anything is wrong, 0 otherwise.
+# Always prints something: silence is not a passing check.
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+module_dir="$repo_root/modules/tools/claude-code-ide-org"
+
+# Same reasoning as bin/test: `emacs --batch -Q' loads Emacs's bundled
+# org, not the straight-managed checkout Doom uses, and this code needs
+# the newer one (org-element-type-p and friends are absent before 9.7 --
+# see TODO.org :ID: 1ed7b2b4, which is about that dependency being real
+# but undeclared).
+build_root="$(find "$HOME/.config/emacs/.local/straight" -maxdepth 1 -name 'build-*' -type d 2>/dev/null | head -1)"
+
+emacs_args=(--batch -Q)
+if [[ -n "$build_root" ]]; then
+  for pkg_dir in "$build_root"/*/; do
+    [[ -d "$pkg_dir" ]] && emacs_args+=(--eval "(add-to-list 'load-path \"${pkg_dir%/}\")")
+  done
+fi
+
+# Files: either the ones named on the command line, or the tracked
+# defaults resolved inside elisp.
+if [[ $# -gt 0 ]]; then
+  files_form="(list"
+  for f in "$@"; do
+    files_form+=" \"$(cd "$(dirname "$f")" && pwd)/$(basename "$f")\""
+  done
+  files_form+=")"
+else
+  files_form="(list \"$repo_root/TODO.org\" \"$repo_root/DONE.org\")"
+fi
+
+# Files scanned for :ID:s but not themselves linted, so a link out of the
+# linted set still resolves. Headings in ~/org/notes.org are linked from
+# TODO.org (the environment half of 4f9e552a moved there), and without
+# this every such link would be reported on every run.
+: "${LINT_ORG_REF_FILES:=$HOME/org/notes.org}"
+ref_form="(list"
+for f in $LINT_ORG_REF_FILES; do ref_form+=" \"$f\""; done
+ref_form+=")"
+
+# `command emacs', not bare `emacs': the user's shell profile defines an
+# `emacs' function that hands off to the GUI app and returns 0 having run
+# nothing, which is indistinguishable from a clean lint. See TODO.org
+# :ID: 4f9e552a.
+exec command emacs "${emacs_args[@]}" \
+  -l "$module_dir/config.el" \
+  --eval "(claude-code-ide-org-lint-report $files_form $ref_form)"

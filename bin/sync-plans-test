@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+# Shell test harness for bin/sync-plans, in the same register as
+# bin/queue-append-test.
+#
+# Fully covered: which plans get archived (org links are the rule),
+# new/updated/unchanged detection, --check's exit status and its promise
+# to change nothing, missing-source handling, and the two report-only
+# categories (orphan in the archive, unlinked at the source).
+#
+# NOT covered, and not claimed: that ~/.claude/plans is really where
+# Claude Code writes plan files. That is an external contract this script
+# depends on and cannot assert.
+
+set -uo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+script="$repo_root/bin/sync-plans"
+
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+fail=0
+
+check() { # check NAME EXPECTED ACTUAL
+  if [[ "$2" == "$3" ]]; then echo "ok   - $1"
+  else echo "FAIL - $1"; echo "         expected: $2"; echo "         actual:   $3"; fail=1; fi
+}
+
+setup() {
+  rm -rf "$work/src" "$work/dest"
+  mkdir -p "$work/src"
+  printf '# alpha\n' > "$work/src/alpha-plan.md"
+  printf '# beta\n'  > "$work/src/beta-plan.md"
+  printf '# stray\n' > "$work/src/stray-plan.md"
+  cat > "$work/todo.org" <<'ORG'
+* Tasks
+** TODO One
+[[file:~/.claude/plans/alpha-plan.md][Plan]]
+** TODO Two
+[[file:~/.claude/plans/beta-plan.md][Plan]]
+ORG
+  : > "$work/done.org"
+}
+
+run() {
+  PLANS_SRC_DIR="$work/src" PLANS_DEST_DIR="$work/dest" \
+  PLANS_ORG_FILES="$work/todo.org $work/done.org" "$script" "$@"
+}
+
+# --- only linked plans are archived ------------------------------------
+setup
+out="$(run)"; rc=$?
+check "exits 0 on a clean sync" "0" "$rc"
+check "archives the linked plans" "alpha-plan.md beta-plan.md" \
+  "$(ls "$work/dest" | tr '\n' ' ' | sed 's/ $//')"
+check "reports both as new" "2" "$(grep -c '  new  ' <<<"$out")"
+check "reports the unlinked one" "1" "$(grep -c 'unlinked stray-plan.md' <<<"$out")"
+check "does not archive the unlinked one" "1" \
+  "$([[ ! -f "$work/dest/stray-plan.md" ]] && echo 1 || echo 0)"
+
+# --- a second run is a no-op -------------------------------------------
+out="$(run)"
+check "re-run copies nothing" "0" "$(grep -cE '^  (new|updated) ' <<<"$out")"
+
+# --- an edited source is detected and recopied -------------------------
+printf '# alpha, revised\n' > "$work/src/alpha-plan.md"
+out="$(run)"
+check "detects an updated plan" "1" "$(grep -c 'updated  alpha-plan.md' <<<"$out")"
+check "copies the new content" "# alpha, revised" "$(cat "$work/dest/alpha-plan.md")"
+
+# --- --check reports drift without changing anything -------------------
+printf '# alpha, revised again\n' > "$work/src/alpha-plan.md"
+out="$(run --check)"; rc=$?
+check "--check exits 1 on drift" "1" "$rc"
+check "--check changes nothing" "# alpha, revised" "$(cat "$work/dest/alpha-plan.md")"
+run >/dev/null
+out="$(run --check)"; rc=$?
+check "--check exits 0 when in sync" "0" "$rc"
+
+# --- a linked plan absent from the source ------------------------------
+setup; run >/dev/null
+rm "$work/src/beta-plan.md"
+out="$(run)"; rc=$?
+check "missing source plan is reported" "1" "$(grep -c 'MISSING  beta-plan.md' <<<"$out")"
+check "missing source plan is a failure" "1" "$rc"
+check "its archived copy is left alone" "1" \
+  "$([[ -f "$work/dest/beta-plan.md" ]] && echo 1 || echo 0)"
+
+# --- an archived plan no longer linked ---------------------------------
+setup; run >/dev/null
+cat > "$work/todo.org" <<'ORG'
+* Tasks
+** TODO One
+[[file:~/.claude/plans/alpha-plan.md][Plan]]
+ORG
+out="$(run)"
+check "orphan in the archive is reported" "1" "$(grep -c 'ORPHAN   beta-plan.md' <<<"$out")"
+check "orphan is never deleted" "1" \
+  "$([[ -f "$work/dest/beta-plan.md" ]] && echo 1 || echo 0)"
+
+# --- a missing source directory is an error, not a silent no-op --------
+out="$(PLANS_SRC_DIR="$work/nope" PLANS_DEST_DIR="$work/dest" \
+       PLANS_ORG_FILES="$work/todo.org" "$script" 2>&1)"; rc=$?
+check "missing source dir exits 2" "2" "$rc"
+
+echo
+if [[ $fail -eq 0 ]]; then echo "All sync-plans tests passed."; else echo "Some sync-plans tests FAILED."; fi
+exit $fail
