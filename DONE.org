@@ -1289,6 +1289,300 @@ keywords that disagree. =bin/test= 39/39 at merge.
 
 * Clock lifecycle & visibility
 
+** DONE Stop treating an =:ID:= as guaranteed to resolve :code:
+:PROPERTIES:
+:ID:       23a75720-d1d3-496f-8dad-41571ad30440
+:CREATED:  [2026-08-17 Mon 12:40]
+:ARCHIVE_TIME: 2026-08-17 Mon 17:14
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_OLPATH: Clock lifecycle & visibility
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-17 Mon 13:42]--[2026-08-17 Mon 14:27] =>  0:45
+- [2026-08-17 Mon 13:42]--[2026-08-17 Mon 14:27] assigned at review
+- State "DONE"       from "TODO"       [2026-08-17 Mon 15:01] \\
+  two children shipped, one cancelled as false
+:END:
+
+Every =:ID:=-keyed path in this module assumes =org-id-find= returns a
+marker. Measured 2026-08-17: 22 of 151 registered IDs did not resolve,
+and the assumption failed silently in three ways at once — 45
+org-element warnings raised against =*org-review*=, candidate headings
+dropped from the assignment prompt with no message, and an error string
+rendered as a review-buffer group heading.
+
+*Why the children are one piece of work rather than three coincidences.*
+They are cause, tolerance and visibility, and each is incomplete alone:
+
+- [[id:89bf8663-dec9-4aee-a95b-4e7be04c6b95][89bf8663]] removes a cause this project owns. It cannot help against staleness
+  arriving from git operations, hand edits, or another session applying its
+  queue.
+- [[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]] makes the code behave correctly when resolution fails — required
+  *precisely because* the causes above are unreachable from here, so freshness
+  can never be an invariant.
+- [[id:8e969114-0982-4c39-9258-3b25a5425e09][8e969114]] makes the failures observable, so a regression in either of the
+  others is noticed rather than absorbed.
+
+Fixing any one alone leaves the silent-failure mode intact, which is the
+entire complaint.
+
+*Discovered together 2026-08-17*, from one symptom reported as "multiple
+warnings in the minibuffer" during a review pass. That shared provenance
+is not the argument for grouping them — the mutual incompleteness above
+is — but it is why they arrived at once.
+
+*Not an argument for rebuilding the ID index automatically.* A full
+=org-id-update-id-locations= scans 12 files including a 665 KB TODO.org,
+and still cannot cover the causes this module never sees. 89bf8663
+carries the measurement and the targeted alternative.
+
+-----
+
+*Outcome, 2026-08-17.*
+
+*What shipped.* Two of the three children.
+
+[[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]] guards the nil marker in =--assign-candidates=, so an unresolvable id
+no longer drags =org-get-heading=/=org-entry-get= into =*org-review*=. [[id:8e969114-0982-4c39-9258-3b25a5425e09][8e969114]]
+adds =--id-health=, which reports stale =org-id-locations= entries when the
+review buffer opens and on =g=, and stays silent when there are none.
+
+
+*What differed from the framing, and it is the substantive finding.*
+This heading was written as cause / tolerance / visibility.
+
+*There was no cause.*
+
+[[id:89bf8663-dec9-4aee-a95b-4e7be04c6b95][89bf8663]] — "org_archive leaves org-id-locations pointing at the old file" — is
+false: =org-archive-subtree= inserts via =org-paste-subtree=, which calls
+=org-id-paste-tracker=, which re-points every =:ID:= in the pasted text at the
+destination. Org has always done this. Cancelled.
+
+That strengthens the heading's argument rather than weakening it. Every
+remaining route to a stale entry — a heading deleted outright, a git
+checkout or merge rewriting a file, another session applying its queue —
+is unreachable from inside this module. Freshness cannot be made an
+invariant here by any amount of local bookkeeping, so 09230b93's
+tolerance of a nil marker is *mandatory*, not defensive. The original
+framing had it as one mitigation among three.
+
+*Verified, not just implemented.* Every fix was stash-tested: the change
+reverted, the suite re-run, and the new test confirmed to *fail* without
+it. That is what caught 89bf8663 — its fix was written, the suite went
+green at 288/288, and stashing it left the new test still passing, which
+is only possible when there is nothing to detect. Without that step a fix
+for a non-existent defect would have shipped with a test standing behind
+it. Final suite 292/292, and =config.el= reloaded into the running Emacs
+and checked there rather than only on disk.
+
+*The measurement that resolved 8e969114's MAYBE.* Per-id =org-id-find=
+over every registered id: 161 ids, 0.218 s, and it *visits* four files as
+a side effect. Scanning each distinct file once for =:ID:= lines: 7
+files, 0.007--0.018 s, visiting nothing. The MAYBE was justified; it was
+attached to the wrong algorithm.
+
+*Unfinished, deliberately.* What the 22 unresolvable ids actually were is
+still unknown and now unknowable — =org-id-update-id-locations= was run
+by hand that morning and cleared them before anything could inspect
+them. =--id-health= separates "heading gone" from "in another file",
+which =org-id-find= cannot, so the question is answerable the next time
+it happens. It was not answered this time.
+
+
+*** CANCELLED org_archive leaves org-id-locations pointing at the old file :code:
+:PROPERTIES:
+:ID:       89bf8663-dec9-4aee-a95b-4e7be04c6b95
+:CREATED:  [2026-08-17 Mon 12:21]
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "DOING"      [2026-08-17 Mon 14:12] \\
+  not a defect; org-paste-tracker handles it
+- State "DOING"      from "TODO"       [2026-08-17 Mon 14:09] \\
+  re-point moved IDs after archive
+:END:
+
+=claude-code-ide-org-archive= calls =org-archive-subtree= and saves,
+never re-pointing the moved heading's ID. The location map still names
+TODO.org while the heading now lives in DONE.org, so =org-id-find=
+returns nil for it — one of this project's own contributions to the stale
+IDs behind
+[[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]]. =org_refile= has
+the same gap whenever it crosses files.
+
+The fix is not a rescan. =org-id-add-location= is O(1) and is already the
+idiom at two other call sites in =config.el=, so this is reusing what is
+there rather than adding a mechanism. One wrinkle: =org-archive-subtree=
+moves the whole subtree, so children carrying their own =:ID:= move too —
+the IDs have to be collected *before* the move, not just the one passed
+in.
+
+=org-id-update-id-locations= does take =(&optional files silent)=, so a
+two-file scoped rescan is the fallback if the subtree walk proves
+awkward. Measured 2026-08-17: a full rebuild scans 12 files — agenda
+files plus =org-id-extra-files= and archives — including a 665 KB
+TODO.org, which is far too heavy to fire automatically on any hot path.
+That measurement is the reason this is a targeted re-point rather than an
+automatic =org-id-update-id-locations= call somewhere.
+
+*CANCELLED 2026-08-17 — the premise is false. Org already does this.*
+
+=org-archive-subtree= inserts the moved subtree with =org-paste-subtree=
+\(=org-archive.el:391=), =org-paste-subtree= calls
+=org-id-paste-tracker= \(=org.el:7562=), and that scans the pasted text
+for every =:ID:= line and calls =org-id-add-location= for each, pointing
+at the *destination* file \(=org-id.el:693-707=). So an archived
+subtree's IDs — parent and children alike — are re-pointed by org
+itself, with no help from this project.
+
+*How it was caught, which is the part worth keeping.* The fix was written
+and the suite went green, 288/288. Stashing the fix and re-running left
+the new test *still passing* — it could not distinguish a fixed
+=org_archive= from an unfixed one, because there was nothing to
+distinguish. Without that step this would have shipped as a fix for a
+defect that never existed, with a test standing behind it.
+
+*Consequence for the parent
+[[id:23a75720-d1d3-496f-8dad-41571ad30440][23a75720]]: its argument gets
+stronger, not weaker.* This was filed as the "cause this project owns".
+It turns out this project owns no cause. Every remaining route to a stale
+entry — a heading deleted outright, a git checkout or merge rewriting the
+file wholesale, another session applying its queue — is unreachable from
+inside this module. Freshness therefore cannot be made an invariant here
+by any amount of local bookkeeping, which is precisely why
+[[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]]'s tolerance of a
+nil marker is mandatory rather than defensive.
+
+*What the 22 unresolvable IDs actually were is still unknown*, and should
+not be guessed at again. The likeliest reading is that they are IDs whose
+headings no longer exist anywhere — deleted, or lost when a merge
+rewrote TODO.org — rather than IDs pointing at the wrong file. Those two
+look identical through =org-id-find= and are not the same defect.
+[[id:8e969114-0982-4c39-9258-3b25a5425e09][8e969114]] would tell them
+apart, which is an argument for it.
+
+
+
+*** DONE =org-with-point-at= on a nil marker runs its body in the wrong buffer :code:
+:PROPERTIES:
+:ID:       09230b93-b869-44b7-91ef-abd869d4eade
+:CREATED:  [2026-08-17 Mon 12:21]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-17 Mon 14:15] \\
+  guard shipped, test proven discriminating
+- State "DOING"      from "NEXT"       [2026-08-17 Mon 14:13] \\
+  guard the nil marker in assign-candidates
+- State "NEXT"       from "TODO"       [2026-08-17 Mon 14:52] \\
+  Auto-promoted: sole remaining TODO in its sibling group.
+:END:
+
+=claude-code-ide-org--assign-candidates= resolves each candidate with
+=(org-with-point-at (org-id-find id 'marker) ...)=. When =org-id-find=
+returns nil the macro does *not* switch buffers: its expansion calls
+=set-buffer= only under =(markerp ...)=, then falls through to
+=(goto-char (or nil (point)))=. Confirmed by macroexpanding it in the
+live Emacs (org 9.8.7) rather than from memory.
+
+The body therefore runs in whatever buffer was current — during a review
+pass that is =*org-review*= — and =org-get-heading= / =org-entry-get=
+route through org-element there, which is what emits "=org-element-at-point=
+cannot be used in non-Org buffer". Measured 2026-08-17: 45 such warnings
+in one pass, against 22 of 151 IDs in =org-id-locations= that no longer
+resolve.
+
+The whole form sits inside =ignore-errors=, so the failure is silent —
+those headings are dropped from the assignment candidate list with no
+message. That is the same harm
+[[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]] was filed against,
+candidates excluded for a reason the human never sees, reached by a
+different route.
+
+Fix is a guard matching the idiom
+=claude-code-ide-org--review-current-state= already uses: resolve the
+marker first, enter =org-with-point-at= only when it is non-nil.
+
+*Not solved by rebuilding the ID index.* Staleness also arrives from git
+operations, hand edits, and other sessions applying their queues, none of
+which this module can hook. Freshness is not achievable here, so
+tolerating nil is required regardless of what else is done.
+
+*** DONE Surface the count of unresolvable =:ID:=s when the review buffer opens :code:
+:PROPERTIES:
+:ID:       8e969114-0982-4c39-9258-3b25a5425e09
+:CREATED:  [2026-08-17 Mon 12:21]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-17 Mon 14:56] \\
+  file-scan report shipped, reload verified
+- State "DOING"      from "NEXT"       [2026-08-17 Mon 14:53] \\
+  implement the file-scan id health report
+- State "NEXT"       from "DOING"      [2026-08-17 Mon 14:51] \\
+  cost measured cheap; ready to implement
+- State "DOING"      from "MAYBE"      [2026-08-17 Mon 14:49] \\
+  measure the open-time cost to decide
+CLOCK: [2026-08-17 Mon 14:49]--[2026-08-17 Mon 15:02] =>  0:13
+- [2026-08-17 Mon 14:49]--[2026-08-17 Mon 15:02] assigned at review
+:END:
+
+Stale IDs are invisible today: they emit org-element warnings into
+=*Warnings*=, silently shrink the assignment candidate list, and nothing
+in the review buffer says so. A count reported when the pass opens turns
+that into something actionable — and, unlike an automatic index rebuild,
+does not hide a defect like
+[[id:89bf8663-dec9-4aee-a95b-4e7be04c6b95][89bf8663]] behind a cleanup
+that makes it look fixed.
+
+Surfacing is preferred to auto-repair for that reason: an automatic
+rebuild would have kept the archive bug invisible indefinitely, since its
+only symptom is staleness that something else quietly corrects.
+
+MAYBE rather than TODO because the cost is unmeasured: it means one
+=org-id-find= per registered ID at open time, 151 of them on 2026-08-17.
+Worth measuring before committing to it.
+
+*Measured 2026-08-17, and the MAYBE is resolved: keep it.* The cost
+objection was real but attached to the wrong algorithm.
+
+| approach              | scale     | time    | side effects     |
+|-----------------------+-----------+---------+------------------|
+| per-id =org-id-find=  | 161 ids   | 0.218 s | opens 4 buffers  |
+| per-file =:ID:= scan  | 7 files   | 0.018 s | none             |
+
+The per-id sweep is what this heading assumed, and its real cost is not
+the 218 ms — it is that resolving an id *visits the file*, so a
+diagnostic running at review-buffer open would silently pull four buffers
+into the user's Emacs. Reading each distinct file in =org-id-locations=
+once with =insert-file-contents= in a temp buffer, collecting =:ID:=
+values and diffing against the hash, is 12x faster and visits nothing.
+
+It also scales on the better axis. Per-id is O(ids); per-file is
+O(files). This project accumulates ids far faster than files — 161
+against 7 today — so the gap widens.
+
+*Two caveats recorded rather than smoothed over.* The 0.218 s is a *warm*
+best case, taken with the files already visited by that session's own
+work; cold it is worse, which only strengthens the conclusion. And the
+sweep found *zero* unresolvable ids, because
+=org-id-update-id-locations= had been run by hand earlier the same day
+and dropped all 22. The feature's value is precisely that it would have
+shown 22 that morning, when nothing did.
+
+*Design consequence:* report only when the count is non-zero, matching
+=claude-code-ide-org-write-session-start-report='s self-limiting
+behaviour. A line reading "0 unresolvable" on every pass is noise that
+trains the eye to skip the line that matters.
+
+*Still not settled:* whether an unresolvable id means "points at the
+wrong file" or "the heading no longer exists anywhere". Those are
+indistinguishable through =org-id-find= and are different defects. The
+file-scan can separate them for free — it already knows which ids each
+file actually contains — which is an argument for this approach beyond
+its speed.
+
+
+
 ** DONE Lead review buffer group headings with the =:ID:= prefix :code:
 :PROPERTIES:
 :ID:       c2132d3f-dd78-4498-ba87-0ca814dc2f77
