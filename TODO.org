@@ -3320,10 +3320,15 @@ worktrees — this repo already uses git worktrees for parallel work
 (DONE.org's worktree entries), so two paths can mean one project. A slug
 would need a normalisation rule, which is a decision rather than a field.
 
-** REVIEW Record completion time as a =CLOSED:= line, not only a state-change entry :code:
+** DONE Record completion time as a =CLOSED:= line, not only a state-change entry :code:
+CLOSED: [2026-08-17 Mon 18:34]
 :PROPERTIES:
 :ID:       11236fce-7ded-471a-a2a9-4e32671ab1d7
 :CREATED:  [2026-08-17 Mon 18:24]
+:END:
+:LOGBOOK:
+- State "DONE"       from "REVIEW"     [2026-08-17 Mon 18:34] \\
+  logdone confirmed live, buffer-local
 :END:
 
 =#+STARTUP: logdrawer logdone= on TODO.org line 4, so entering =DONE=
@@ -4035,6 +4040,10 @@ CLOCK: [2026-08-17 Mon 17:17]--[2026-08-17 Mon 17:46] =>  0:29
 - [2026-08-17 Mon 17:17]--[2026-08-17 Mon 17:46] suggested span, accepted at review
 CLOCK: [2026-08-17 Mon 18:06]--[2026-08-17 Mon 18:08] =>  0:02
 - [2026-08-17 Mon 18:06]--[2026-08-17 Mon 18:08] suggested span, accepted at review
+CLOCK: [2026-08-17 Mon 18:22]--[2026-08-17 Mon 18:35] =>  0:13
+- [2026-08-17 Mon 18:22]--[2026-08-17 Mon 18:35] assigned at review
+CLOCK: [2026-08-17 Mon 18:36]--[2026-08-17 Mon 18:37] =>  0:01
+- [2026-08-17 Mon 18:36]--[2026-08-17 Mon 18:37] assigned at review
 :END:
 
 Raised by the user 2026-08-12: nothing has been archived in quite some
