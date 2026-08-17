@@ -1646,10 +1646,18 @@ capture and its keyword do not arrive a review pass apart.
 Worth noting the linter caught this and re-reading did not, which is the
 same lesson as the fabricated ID above and the same remedy: mechanical
 checks catch what looks correct.
-** org_outline's scoped mode reports satisfied blockers as [blocked], because org-map-entries narrows :code:
+** DONE org_outline's scoped mode reports satisfied blockers as [blocked], because org-map-entries narrows :code:
 :PROPERTIES:
 :ID:       f765d782-822d-454b-85eb-68e792cc514c
 :CREATED:  [2026-08-15 Sat 18:55]
+:END:
+:LOGBOOK:
+- State "NEXT"       from              [2026-08-15 Sat 18:56] \\
+  one-form fix, asserts false dependency
+- State "DOING"      from "NEXT"       [2026-08-15 Sat 18:57] \\
+  fix the narrowing leak
+- State "DONE"       from "DOING"      [2026-08-15 Sat 18:59] \\
+  fixed, tested, verified live
 :END:
 
 Found 2026-08-15 when =org_outline= with =scope= =0c8644ff= printed
@@ -2743,19 +2751,23 @@ hang in the clock path is the exact failure class that refactor exists
 to eliminate, and this one survives the cutover untouched, since the
 apply command clocks in through the same advised =org-clock-in=.
 
-** DOING Refactor clock/TODO-state driving to an append-only event queue + interactive batch-apply review :code:
+** DONE Refactor clock/TODO-state driving to an append-only event queue + interactive batch-apply review :code:
 :PROPERTIES:
 :ID:       b5f7c5c7-7ad6-4c68-9cce-3479db1f1644
 :CREATED:  [2026-08-06 Thu 10:47]
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-11 Tue 11:10]--[2026-08-11 Tue 11:13] =>  0:03
-- State "DOING"      from "NEXT"       [2026-08-06 Thu 22:35]
-CLOCK: [2026-08-06 Thu 15:45]--[2026-08-06 Thu 16:50] =>  1:05
 - State "NEXT"       from "TODO"       [2026-08-06 Thu 12:07] \\
   Auto-promoted: sole remaining TODO in its sibling group.
+CLOCK: [2026-08-06 Thu 15:45]--[2026-08-06 Thu 16:50] =>  1:05
+- State "DOING"      from "NEXT"       [2026-08-06 Thu 22:35]
+CLOCK: [2026-08-11 Tue 11:10]--[2026-08-11 Tue 11:13] =>  0:03
 CLOCK: [2026-08-14 Fri 13:58]--[2026-08-14 Fri 14:06] =>  0:08
 - [2026-08-14 Fri 13:58]--[2026-08-14 Fri 14:06] reallocated from e51d6ba1's mis-suggested span
+CLOCK: [2026-08-15 Sat 18:05]--[2026-08-15 Sat 19:03] =>  0:58
+- [2026-08-15 Sat 18:05]--[2026-08-15 Sat 19:03] assigned at review
+- State "DONE"       from "DOING"      [2026-08-15 Sat 19:02] \\
+  queue and review-apply shipped
 :END:
 
 [[file:~/.claude/plans/plan-this-task-clever-cupcake.md][Plan]]
@@ -2953,15 +2965,31 @@ it decides whether a whole subsystem gets deleted.
 Until the plan is revised, =event-queue-format.md= and
 =review-and-cutover.md= are authoritative where they disagree with it —
 they are later and were written against real code.
-** Assign and interval-edit send point to the top of the review buffer :code:
+** DONE Assign and interval-edit send point to the top of the review buffer :code:
 :PROPERTIES:
 :ID:       9e80a32d-43e1-4647-a42c-cba10f6e79cc
 :CREATED:  [2026-08-17 Mon 08:53]
 :END:
-** Dismissing an item discards every unapplied assignment in the review session :code:
+:LOGBOOK:
+CLOCK: [2026-08-17 Mon 08:55]--[2026-08-17 Mon 09:33] =>  0:38
+- State "DOING"      from              [2026-08-17 Mon 08:55] \\
+  restore point after re-render
+- [2026-08-17 Mon 08:55]--[2026-08-17 Mon 09:33] assigned at review
+- State "DONE"       from "DOING"      [2026-08-17 Mon 09:04] \\
+  assign advances, interval edit stays
+:END:
+** DONE Dismissing an item discards every unapplied assignment in the review session :code:
 :PROPERTIES:
 :ID:       73cd5a1b-9b4f-409d-9aab-ffc6ea736ae5
 :CREATED:  [2026-08-17 Mon 09:03]
+:END:
+:LOGBOOK:
+- State "NEXT"       from              [2026-08-17 Mon 09:04] \\
+  silent loss of human judgement
+- State "DOING"      from "NEXT"       [2026-08-17 Mon 09:09] \\
+  drop in place instead of refreshing
+- State "DONE"       from "DOING"      [2026-08-17 Mon 09:11] \\
+  assignments survive a dismissal
 :END:
 
 Reported by the user 2026-08-17: dismissing an item destroys every
@@ -3040,10 +3068,16 @@ judgement is not. Every command that rebuilds from the queue is trading
 the expensive thing for the cheap one, and only =g= should be allowed to
 make that trade.
 
-** Route review-buffer commands through one mutate-render-restore path :code:
+** DONE Route review-buffer commands through one mutate-render-restore path :code:
 :PROPERTIES:
 :ID:       2d032000-bf04-47f5-b5e6-ef4299078d15
 :CREATED:  [2026-08-17 Mon 09:07]
+:END:
+:LOGBOOK:
+- State "DOING"      from              [2026-08-17 Mon 09:07] \\
+  one path for mutate-render-restore
+- State "DONE"       from "DOING"      [2026-08-17 Mon 09:11] \\
+  one redraw path, advance rule recorded
 :END:
 
 *Done 2026-08-17.* =claude-code-ide-org--review-redraw= is the single
@@ -3083,10 +3117,16 @@ in place would risk a view that disagrees with the file. Dismiss had no
 such excuse: it had already written its dismissal to the queue. Recorded
 on [[id:73cd5a1b-9b4f-409d-9aab-ffc6ea736ae5][73cd5a1b]] rather than
 fixed blind.
-** Apply discards decisions on the items it did not apply :code:
+** DONE Apply discards decisions on the items it did not apply :code:
 :PROPERTIES:
 :ID:       c02d11c8-cd29-40ca-a0f4-dc1c878dfa7d
 :CREATED:  [2026-08-17 Mon 09:29]
+:END:
+:LOGBOOK:
+- State "DOING"      from              [2026-08-17 Mon 09:29] \\
+  remove applied in place, keep rest
+- State "DONE"       from "DOING"      [2026-08-17 Mon 09:32] \\
+  drops applied, keeps the rest
 :END:
 
 The last of the three commands that rebuilt the item list from the
@@ -9348,10 +9388,20 @@ function returns and adds one prompt. Related to
 [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] by adjacency — that
 heading put the evidence on screen, and this one would capture the
 conclusion the human draws from it — but neither requires the other.
-** Assign excludes headings created after the span, which is the normal case not an impossibility :code:
+** DONE Assign excludes headings created after the span, which is the normal case not an impossibility :code:
 :PROPERTIES:
 :ID:       0d055205-a670-45c6-b4af-980961603a7c
 :CREATED:  [2026-08-15 Sat 17:17]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-15 Sat 17:13]--[2026-08-15 Sat 17:19] =>  0:06
+- [2026-08-15 Sat 17:13]--[2026-08-15 Sat 17:19] assigned at review
+- State "NEXT"       from              [2026-08-15 Sat 17:18] \\
+  blocks assigning today spans
+- State "DOING"      from "NEXT"       [2026-08-17 Mon 08:37] \\
+  demote instead of exclude
+- State "DONE"       from "DOING"      [2026-08-17 Mon 08:41] \\
+  exclusion removed, ranking subsumes it
 :END:
 
 Reported by the user 2026-08-15 after applying some events: unassigned
@@ -9436,10 +9486,57 @@ signal turns a narrow parse failure into a silent whole-record drop,
 and the comment right beside it went on asserting the opposite for as
 long as nobody had a fixture that hit it.
 
-** Rank assignment candidates by time correlation with the unassigned span :code:
+*Fixed 2026-08-17, and the fix is a deletion.* The =:CREATED:=-after-span
+exclusion is gone. Nothing is filtered out of the candidate list now;
+proximity ranking ([[id:49cbe319-f7db-413a-ade8-c4850c1fab8c][49cbe319]],
+done in the same pass) subsumes what the exclusion was reaching for, and
+does it without a cliff: a heading created five minutes after a span
+scores five minutes and stays near the top, one created a week later
+sorts far down on its own.
+
+*Verified against the span that broke.* The 09:19--09:20 span of
+2026-08-15 previously excluded exactly the five headings created that
+day. Its candidate list now:
+
+: 08-14..08-15  Decide whether CLAUDE.md needs a path-scoped ... {befaed0a}
+: 08-06..08-15  Update CLAUDE.md and the org skill ...          {02aaae22}
+: made 11:04    Make the org skill ... portable to other repos  {9ae4b17e}
+: made 14:07    Record turns-per-interval ...                   {9e627dc0}
+: made 14:32    Record the originating project in queue events  {83b3cdd6}
+
+The first two overlap the span and score zero. The next three were
+*unreachable* before, and are now ranked by how far after it they were
+written.
+
+*The reason this survived a 277-test suite is worth keeping.*
+=claude-code-ide-org-review-assign= is =(interactive)= and calls
+=completing-read=, so it had *no tests at all* -- the candidate list was
+only reachable by driving a minibuffer. The fix extracts
+=claude-code-ide-org--assign-candidates=, which takes a span and returns
+the ranked alist, and the four new tests exercise that. Making the thing
+testable was not incidental to fixing it; it is why the defect was
+invisible.
+
+All five new tests were confirmed failing first (=282 tests, 5
+unexpected= before; =282, 0 unexpected= after), and the fix was reloaded
+into the live Emacs and checked against real data rather than only in
+batch.
+
+
+** DONE Rank assignment candidates by time correlation with the unassigned span :code:
 :PROPERTIES:
 :ID:       49cbe319-f7db-413a-ade8-c4850c1fab8c
 :CREATED:  [2026-08-15 Sat 17:45]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-15 Sat 17:42]--[2026-08-15 Sat 18:03] =>  0:21
+- [2026-08-15 Sat 17:42]--[2026-08-15 Sat 18:03] assigned at review
+- State "TODO"       from              [2026-08-15 Sat 17:46] \\
+  ranking improvement, half already built
+CLOCK: [2026-08-17 Mon 08:36]--[2026-08-17 Mon 08:51] =>  0:15
+- [2026-08-17 Mon 08:36]--[2026-08-17 Mon 08:51] assigned at review
+- State "DONE"       from "TODO"       [2026-08-17 Mon 08:41] \\
+  bracket, gap ranking, time resolution
 :END:
 
 Proposed by the user 2026-08-15, while hitting
@@ -9493,6 +9590,49 @@ been bitten before by treating it as though it were.
 right mechanism precisely because it never removes a candidate; the bug
 there is that a filter did. A heading created after the span should sort
 low, not vanish.
+
+*Implemented 2026-08-17, in one pass with
+[[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]] since both are the
+same function.*
+
+*Three parts, matching the three defects recorded above.*
+
+- =claude-code-ide-org--heading-bracket= merges =:CREATED:= with the
+  clock extent, so the bracket is =[CREATED..latest activity]= as the
+  user described rather than =[earliest clock..latest clock]=. A heading
+  created during a span but never clocked now has a position instead of
+  none -- which is the heading most likely to be wanted, since work
+  happens and the heading is written afterwards.
+- =claude-code-ide-org--interval-gap= scores proximity: zero when the
+  bracket and span overlap, otherwise seconds to the nearest endpoint,
+  symmetrically. Overlap dominates, which is what the "most likely
+  candidate" intuition amounts to.
+- =--format-activity-range= takes a reference time and renders *times*
+  rather than dates when the bracket falls on the reference's day. The
+  old field read =clocked 08-15= for every candidate touched today
+  against a span that is also today -- no information in exactly the
+  case it is most used.
+
+Sort order is now proximity, then open-before-finished, then creation
+recency. Creation recency was previously *primary*, which ranked a
+heading made this morning above one clocked *during* the span.
+
+*Verified live, against the real 14:31--15:31 span,* not only in batch:
+brackets sharing the day render as =16:34..16:57= and =made 14:07=,
+cross-day ones stay =08-06..08-15=.
+
+*The open question above is resolved by construction rather than
+decided:* "how does a heading with no bracket sort against one with a
+distant bracket?" A heading with neither =:CREATED:= nor a CLOCK line
+scores =most-positive-fixnum= and sorts last -- but is *not* removed,
+because absence of evidence rules nothing out. That was the whole lesson
+of 0d055205 and it would have been easy to repeat here.
+
+*Not done:* whether overlap *duration* should outrank mere proximity.
+Overlap collapses to zero either way, so a heading clocked for one minute
+inside the span ties with one clocked throughout it. No evidence yet that
+this matters; recorded rather than guessed at.
+
 
 * Observability
 
@@ -9946,8 +10086,12 @@ honest check is to look at the first session-start report that carries a
 :CREATED:  [2026-08-15 Sat 14:07]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-15 Sat 14:04]--[2026-08-15 Sat 14:08] =>  0:04
+- [2026-08-15 Sat 14:04]--[2026-08-15 Sat 14:08] assigned at review
 - State "TODO"       from              [2026-08-15 Sat 14:07] \\
   surface undecided, analysis recorded
+CLOCK: [2026-08-15 Sat 14:31]--[2026-08-15 Sat 15:31] =>  1:00
+- [2026-08-15 Sat 14:31]--[2026-08-15 Sat 15:31] assigned at review
 :END:
 
 Raised by the user 2026-08-15: turns per interval would reflect human
@@ -10481,8 +10625,16 @@ the snippet, treat upstreaming as a separate future MAYBE.
 :BLOCKER:  ids(befaed0a-18ed-445e-b997-8b9c2965ad45)
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-15 Sat 09:19]--[2026-08-15 Sat 09:20] =>  0:01
+- [2026-08-15 Sat 09:19]--[2026-08-15 Sat 09:20] assigned at review
+CLOCK: [2026-08-15 Sat 10:19]--[2026-08-15 Sat 10:21] =>  0:02
+- [2026-08-15 Sat 10:19]--[2026-08-15 Sat 10:21] assigned at review
+CLOCK: [2026-08-15 Sat 11:02]--[2026-08-15 Sat 11:10] =>  0:08
+- [2026-08-15 Sat 11:02]--[2026-08-15 Sat 11:10] assigned at review
 - State "TODO"       from              [2026-08-15 Sat 11:05] \\
   blocked on rules-loading verification
+CLOCK: [2026-08-15 Sat 13:27]--[2026-08-15 Sat 13:35] =>  0:08
+- [2026-08-15 Sat 13:27]--[2026-08-15 Sat 13:35] assigned at review
 - State "NEXT"       from "TODO"       [2026-08-15 Sat 17:11] \\
   Auto-promoted: sole remaining TODO in its sibling group.
 :END:
