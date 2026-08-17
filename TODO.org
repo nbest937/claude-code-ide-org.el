@@ -7155,6 +7155,37 @@ CLOCK: [2026-08-17 Mon 08:55]--[2026-08-17 Mon 09:33] =>  0:38
 - State "DONE"       from "DOING"      [2026-08-17 Mon 09:04] \\
   assign advances, interval edit stays
 :END:
+
+*Verified, not just implemented* (written 2026-08-17, before archiving —
+this heading reached =DONE= with an empty body).
+
+=--review-render= ends with =(goto-char (point-min))=, so every command
+that re-renders has to put point back. The mark commands already did, and
+their ADVANCE flag exists because its absence was "the single biggest
+complaint after the first real by-hand apply". Assign and interval-edit
+never got the same treatment.
+
+*Shipped in =0042615=.* Assign now advances — assigning *answers* the
+question the line posed — while interval-edit stays on the item, since
+=e= is the step taken before assigning rather than after. Point is
+restored *by identity, not line number*: assigning removes the evidence
+lines an unassigned span carries, so the buffer is shorter afterwards and
+the old line number points at something else. =--review-goto-item= is
+that lookup.
+
+*A second defect, found by the new test rather than by reading.* Building
+the candidate list parsed =(or (org-entry-get nil "CREATED") "")=, and
+parsing the empty string *signals* — inside a block wrapped in
+=ignore-errors=. So a heading with no =:CREATED:= was dropped from the
+list entirely, despite the comment beside it claiming such headings are
+kept. Invisible in production, where every heading has one; only a
+fixture without one exposed it. Measured after the fix: 147 org-id
+entries, 7 unassignable, list returns exactly 140 — 13 had been missing.
+
+*The pattern worth carrying forward:* both halves were assertions the
+code made about itself in prose — "kept, absence of evidence rules
+nothing out" — that the code did not honour. Neither was found by review.
+
 ** DONE Dismissing an item discards every unapplied assignment in the review session :code:
 :PROPERTIES:
 :ID:       73cd5a1b-9b4f-409d-9aab-ffc6ea736ae5
