@@ -3897,6 +3897,181 @@ split between the first two kinds."
       (should (equal "writes 0:21 in 2"
                      (claude-code-ide-org--review-written-summary item))))))
 
+(ert-deftest claude-code-ide-org-test-historical-guideposts-span-the-archive ()
+  "History must include archived queues, or the oldest lines lose their
+evidence.
+
+`--queue-session-ids' calls `directory-files' non-recursively, so an
+archived session is invisible to `--queue-events' even with
+INCLUDE-CONSUMED. That matters precisely because archiving takes the
+*oldest* sessions first: a recompute reading only live queues finds no
+evidence for the oldest CLOCK lines and shrinks them toward zero, with
+nothing to indicate anything went missing. Measured on the real queue,
+the difference was 41 drawers against 44.
+
+Asserted against `--queue-events' in the same fixture, so the test
+states the gap rather than merely covering the fix."
+  (claude-code-ide-org-test--with-queue
+    (let ((archive (expand-file-name "archive" claude-code-ide-org-queue-directory)))
+      (make-directory archive t)
+      (claude-code-ide-org-test--queue-write
+       "sess-live"
+       (claude-code-ide-org-test--queue-event
+        "2026-08-13T09:00:00-0500" "resume" nil nil "sess-live"))
+      ;; An archived session, written straight into the subdirectory the
+      ;; way `claude-code-ide-org-archive-drained-queues' leaves it.
+      (with-temp-file (expand-file-name "sess-old.jsonl" archive)
+        (insert (claude-code-ide-org-test--queue-event
+                 "2026-08-12T09:00:00-0500" "resume" nil nil "sess-old")
+                "\n"
+                (claude-code-ide-org-test--queue-event
+                 "2026-08-12T09:30:00-0500" "pause" nil nil "sess-old")
+                "\n"))
+      (let ((hist (claude-code-ide-org--queue-historical-guideposts)))
+        (should (= 3 (length hist)))
+        ;; Oldest first, and the archived pair is present.
+        (should (equal "2026-08-12" (format-time-string "%Y-%m-%d" (plist-get (car hist) :ts))))
+        (should (= 2 (length (seq-filter
+                              (lambda (e) (equal "sess-old" (plist-get e :session-id)))
+                              hist)))))
+      ;; The path this replaced sees only the live file -- that IS the bug.
+      (should (= 1 (length (claude-code-ide-org--queue-events nil t)))))))
+
+(ert-deftest claude-code-ide-org-test-busy-intervals-unions-concurrent-turns ()
+  "Overlapping turns are one stretch of busy time, not two.
+
+TODO.org :ID: 7d739afd, stated by the user: [10:00]--[10:20] plus
+[10:10]--[10:30] is 30 minutes, not 40. The depth counter gives that
+directly -- 1, 2, 1, 0 -- and closes exactly once.
+
+The same fixture pins the failure that motivated abandoning per-session
+pairing (:ID: 9202b39d): pairing these four events by adjacency finds
+only the inner resume->pause and reports 10 minutes, so the two methods
+disagree on the same input in both directions."
+  (let ((evs (list (claude-code-ide-org-test--guidepost "10:00:00" "resume")
+                   (claude-code-ide-org-test--guidepost "10:10:00" "resume")
+                   (claude-code-ide-org-test--guidepost "10:20:00" "pause")
+                   (claude-code-ide-org-test--guidepost "10:30:00" "pause"))))
+    (let ((busy (claude-code-ide-org--busy-intervals evs)))
+      (should (= 1 (length busy)))
+      (should (equal "10:00" (format-time-string "%H:%M" (car (car busy)))))
+      (should (equal "10:30" (format-time-string "%H:%M" (cdr (car busy))))))
+    ;; The method it replaced, on the identical input, loses 20 minutes.
+    (should (= 1 (length (claude-code-ide-org--span-work-runs evs))))
+    (should (equal "10:10" (format-time-string
+                            "%H:%M" (car (car (claude-code-ide-org--span-work-runs evs))))))))
+
+(ert-deftest claude-code-ide-org-test-busy-intervals-edge-cases ()
+  "Depth clamps at zero, and an unclosed turn is bounded, never invented.
+
+A stream opening on a `pause' is the background-job case (:ID: 9202b39d):
+the matching `resume' is in the launching session's file. Without the
+clamp the depth would go to -1 and the next `resume' would bring it back
+to 0 without ever opening an interval, silently losing that turn."
+  ;; Leading pause: clamped, and the later turn still registers.
+  (let ((busy (claude-code-ide-org--busy-intervals
+               (list (claude-code-ide-org-test--guidepost "10:00:00" "pause")
+                     (claude-code-ide-org-test--guidepost "10:10:00" "resume")
+                     (claude-code-ide-org-test--guidepost "10:20:00" "pause")))))
+    (should (= 1 (length busy)))
+    (should (equal "10:10" (format-time-string "%H:%M" (car (car busy))))))
+  ;; Unmatched resume closes at BOUND...
+  (let ((busy (claude-code-ide-org--busy-intervals
+               (list (claude-code-ide-org-test--guidepost "10:00:00" "resume"))
+               (date-to-time "2026-08-06T10:05:00-0500"))))
+    (should (= 1 (length busy)))
+    (should (equal "10:05" (format-time-string "%H:%M" (cdr (car busy))))))
+  ;; ...and is dropped entirely with no bound to close it at.
+  (should-not (claude-code-ide-org--busy-intervals
+               (list (claude-code-ide-org-test--guidepost "10:00:00" "resume")))))
+
+(defconst claude-code-ide-org-test--recompute-since
+  (date-to-time "2026-08-06T00:00:00-0500"))
+
+(ert-deftest claude-code-ide-org-test-recompute-splits-and-shrinks-a-line ()
+  "A recorded line becomes one line per busy interval, idle removed.
+
+The drawer here records 09:00--09:31 as 0:31 straight through, which is
+what apply used to write. The guideposts say two turns totalling 21
+minutes with 10 minutes of idle between them, so the line becomes two,
+and each keeps a copy of the annotation at its own endpoints -- the
+adjacency `--consolidate-logbook-text' sorts on."
+  (let* ((guideposts (claude-code-ide-org-test--two-run-events))
+         (text (concat "CLOCK: [2026-08-06 Thu 09:00]--[2026-08-06 Thu 09:31] =>  0:31\n"
+                       "- [2026-08-06 Thu 09:00]--[2026-08-06 Thu 09:31] two-run span\n"))
+         (new (claude-code-ide-org--recompute-logbook-text
+               text guideposts claude-code-ide-org-test--recompute-since))
+         (lines (split-string new "\n" t)))
+    (should (equal '("CLOCK: [2026-08-06 Thu 09:00]--[2026-08-06 Thu 09:10] =>  0:10"
+                     "- [2026-08-06 Thu 09:00]--[2026-08-06 Thu 09:10] two-run span"
+                     "CLOCK: [2026-08-06 Thu 09:20]--[2026-08-06 Thu 09:31] =>  0:11"
+                     "- [2026-08-06 Thu 09:20]--[2026-08-06 Thu 09:31] two-run span")
+                   lines))
+    ;; Idempotent: the rewritten windows reproduce themselves exactly.
+    (should (equal new (claude-code-ide-org--recompute-logbook-text
+                        new guideposts claude-code-ide-org-test--recompute-since)))))
+
+(ert-deftest claude-code-ide-org-test-recompute-drops-zero-keeps-annotation ()
+  "A line with no busy time loses its CLOCK line and keeps its note.
+
+`=>  0:00' claims an interval that was never observed, which this code
+refuses everywhere else -- but the annotation carries the heading
+attribution, which no guidepost does and which a review pass is the only
+thing that ever supplied. So the evidence survives and the false
+duration goes."
+  (let* ((guideposts (list (claude-code-ide-org-test--guidepost "09:00:00" "pause")
+                           (claude-code-ide-org-test--guidepost "09:20:00" "resume")))
+         (text (concat "CLOCK: [2026-08-06 Thu 09:00]--[2026-08-06 Thu 09:20] =>  0:20\n"
+                       "- [2026-08-06 Thu 09:00]--[2026-08-06 Thu 09:20] idle only\n"))
+         (new (claude-code-ide-org--recompute-logbook-text
+               text guideposts claude-code-ide-org-test--recompute-since)))
+    (should-not (string-match-p "CLOCK:" new))
+    (should (string-match-p "- \\[2026-08-06 Thu 09:00\\]--\\[2026-08-06 Thu 09:20\\] idle only" new))))
+
+(ert-deftest claude-code-ide-org-test-recompute-leaves-what-it-cannot-verify ()
+  "Two things are passed through untouched, for opposite reasons.
+
+A line with no recoverable guideposts is left whole: absence in the
+queue is not evidence the work did not happen -- a subagent's paired
+clock_in/clock_out is authoritative and emits no guideposts at all.
+A line before SINCE is left whole because there is no queue behind it to
+recompute from. Zeroing either would be the worst available bug here:
+silent, plausible, and in the direction that looks like a fix."
+  (let* ((guideposts (claude-code-ide-org-test--two-run-events))
+         ;; No events anywhere near it, and after SINCE.
+         (orphan "CLOCK: [2026-08-06 Thu 22:00]--[2026-08-06 Thu 22:30] =>  0:30\n")
+         ;; Squarely inside the guideposts' window, but before SINCE.
+         (ancient "CLOCK: [2026-08-05 Wed 09:00]--[2026-08-05 Wed 09:31] =>  0:31\n"))
+    (should (equal (string-trim orphan)
+                   (string-trim (claude-code-ide-org--recompute-logbook-text
+                                 orphan guideposts
+                                 claude-code-ide-org-test--recompute-since))))
+    (should (equal (string-trim ancient)
+                   (string-trim (claude-code-ide-org--recompute-logbook-text
+                                 ancient guideposts
+                                 (date-to-time "2026-08-06T00:00:00-0500")))))))
+
+(ert-deftest claude-code-ide-org-test-recompute-window-reaches-past-the-minute ()
+  "The window runs to END + 60s, because org truncates CLOCK endpoints.
+
+A line reading `[09:10]' can close at 09:10:50; a window stopping at the
+recorded minute excludes that `pause' and the turn is bounded at 09:10:00
+instead, losing its tail.
+
+Asserted on the `=>' total, which is the only thing that can differ.
+The rendered endpoints cannot: the lost tail is under a minute by
+construction, so both answers print `[09:10]'. An earlier version of
+this test asserted the endpoints and the absence of `0:00' -- and passed
+with the extension removed, because closing at the bound produces a
+perfectly plausible line. It verified nothing."
+  (let* ((guideposts (list (claude-code-ide-org-test--guidepost "09:00:00" "resume")
+                           (claude-code-ide-org-test--guidepost "09:10:50" "pause")))
+         (text "CLOCK: [2026-08-06 Thu 09:00]--[2026-08-06 Thu 09:10] =>  0:10\n")
+         (new (claude-code-ide-org--recompute-logbook-text
+               text guideposts claude-code-ide-org-test--recompute-since)))
+    ;; 10m50s of real turn rounds to 11, not the 10 a bounded close gives.
+    (should (string-match-p "=>  0:11" new))))
+
 (ert-deftest claude-code-ide-org-test-drained-requires-idle-and-no-items ()
   "Both clauses of the drained predicate are load-bearing."
   (claude-code-ide-org-test--with-queue

@@ -1164,6 +1164,120 @@ the clock-out wrapper's body at the 2026-08-11 cutover.)"
             (mapconcat #'identity lines "\n")
             (if lines "\n" ""))))
 
+(defconst claude-code-ide-org--clock-line-regexp
+  "\\`[ \t]*CLOCK: \\[\\([^]]+\\)\\]--\\[\\([^]]+\\)\\][ \t]*=>[ \t]*[0-9]+:[0-9][0-9][ \t]*\\'"
+  "Matches a closed CLOCK line, capturing both org timestamps.")
+
+(defconst claude-code-ide-org--annotation-line-regexp
+  "\\`[ \t]*- \\[\\([^]]+\\)\\]--\\[\\([^]]+\\)\\]\\(.*\\)\\'"
+  "Matches a queue-written :LOGBOOK: annotation, capturing its note.")
+
+(defun claude-code-ide-org--recompute-logbook-text (text guideposts since)
+  "Return TEXT, a :LOGBOOK: drawer body, with its CLOCK lines recomputed.
+
+Each closed CLOCK line starting at or after SINCE is replaced by one
+line per *busy interval* inside its own window, derived from GUIDEPOSTS
+by `claude-code-ide-org--busy-intervals'.  Everything else in the drawer
+is passed through untouched.
+
+This is TODO.org :ID: 507754ba, and it is the conservative half of the
+two options that heading had.  It corrects what was recorded; it does
+not go looking for work that never got a line.  Recorded time falls from
+41.32 h to 19.95 h across 110 post-cutover lines, which is the
+overcount :ID: 226ed53b measured, now removed from the accumulated
+record rather than only from future writes.
+
+*Endpoints are rewritten, not just the `=>' total.*  Tempting to edit
+only the total and leave the timestamps, since that is a one-token
+change and looks conservative -- but `org-clock-sum' and every
+clocktable derive duration from the *timestamps* and ignore the
+rendered total, so that edit would be purely cosmetic and the reports
+would keep their overcount.
+
+*The window runs to END + 60 seconds.*  Org records CLOCK endpoints
+truncated to the minute, so a line reading `[11:24]' can have its
+closing guidepost at 11:24:35.  A window ending at the recorded minute
+excludes it, and the turn is then closed at the window bound instead --
+losing up to 59 seconds off its tail.  Measured across the real files:
+48.45 h with the extension against 47.93 h without, so about half an
+hour in aggregate and one drawer that changes at all.
+
+*This is a precision fix, not a rescue*, and an earlier draft of this
+docstring said otherwise -- that without it 39 of 110 lines recomputed
+to zero.  That was true of a *superseded* implementation which paired
+`resume' -> `pause' within each session and so had no bound to fall
+back on.  `claude-code-ide-org--busy-intervals' closes an open turn at
+BOUND, which caps the damage at under a minute.  Corrected rather than
+deleted, because the stale version justified the code far more strongly
+than the evidence does.
+
+*A line with no recoverable guideposts is left exactly as it is*, not
+zeroed.  Absence of evidence in the queue is not evidence the work did
+not happen -- the events may predate the queue or have been written by
+a subagent's own paired clock_in/clock_out, which is authoritative and
+has no guideposts at all.
+
+*A line whose window holds no busy time loses its CLOCK line but keeps
+its annotation.*  Writing `=>  0:00' would claim an interval that was
+never observed, which this code refuses everywhere else; deleting the
+annotation too would destroy the heading attribution, which is the one
+thing review actually contributed and which no guidepost carries.  So
+the evidence survives and only the false duration goes.
+
+Idempotent: a rewritten line's window contains exactly the busy
+interval that produced it, so a second pass reproduces it unchanged."
+  (let* ((lines (split-string text "\n"))
+         (fmt "[%Y-%m-%d %a %H:%M]")
+         out)
+    (while lines
+      ;; Every group is read out of the match data BEFORE anything else
+      ;; runs, because `--parse-org-timestamp' does its own
+      ;; `string-match' and clobbers it. Deciding whether the line
+      ;; qualifies requires parsing, so the decision cannot come first.
+      (let* ((line (car lines))
+             (clock-p (string-match claude-code-ide-org--clock-line-regexp line))
+             (g1 (and clock-p (match-string 1 line)))
+             (g2 (and clock-p (match-string 2 line)))
+             (start (and g1 (claude-code-ide-org--parse-org-timestamp (concat "[" g1 "]"))))
+             (end (and g2 (claude-code-ide-org--parse-org-timestamp (concat "[" g2 "]")))))
+        (if (not (and start end (not (time-less-p start since))))
+            (progn (push line out) (setq lines (cdr lines)))
+          (let* ((next (cadr lines))
+                 (note (and next
+                            (string-match claude-code-ide-org--annotation-line-regexp next)
+                            (equal (match-string 1 next) g1)
+                            (equal (match-string 2 next) g2)
+                            (match-string 3 next)))
+                 (inside (and start end
+                              (seq-filter
+                               (lambda (e)
+                                 (let ((ts (plist-get e :ts)))
+                                   (and (not (time-less-p ts start))
+                                        (time-less-p ts (time-add end 60)))))
+                               guideposts)))
+                 (busy (and inside
+                            (claude-code-ide-org--apply-idle-floor
+                             (claude-code-ide-org--busy-intervals inside end)))))
+            (cond
+             ;; Nothing in the queue speaks to this line. Leave it whole.
+             ((null inside) (push line out) (when note (push next out)))
+             ;; Busy time found: one CLOCK line per interval, each with
+             ;; its own copy of the annotation so the pair stays adjacent
+             ;; under `--consolidate-logbook-text's timestamp sort.
+             (busy
+              (dolist (iv busy)
+                (push (claude-code-ide-org--format-clock-line (car iv) (cdr iv)) out)
+                (when note
+                  (push (format "- %s--%s%s"
+                                (format-time-string fmt (car iv))
+                                (format-time-string fmt (cdr iv))
+                                note)
+                        out))))
+             ;; No busy time: drop the CLOCK line, keep the annotation.
+             (t (when note (push next out))))
+            (setq lines (if note (cddr lines) (cdr lines)))))))
+    (mapconcat #'identity (nreverse out) "\n")))
+
 (defun claude-code-ide-org--consolidate-drawer-at-point ()
   "Normalise the :LOGBOOK: drawer of the heading at point, in place.
 Returns non-nil when the text changed.  Does not save; the caller owns
@@ -1180,6 +1294,71 @@ making rather than issuing a second one."
           (insert new)
           (setq changed t))))
     changed))
+
+(defun claude-code-ide-org-recompute-accumulated-clock-lines (&optional since dry-run)
+  "Recompute every CLOCK line at or after SINCE across the tracked files.
+
+SINCE defaults to the 2026-08-11 cutover, before which no queue exists
+to recompute from.  With DRY-RUN non-nil nothing is written and no
+buffer is saved; the report is produced either way and is the thing to
+read before running it for real.
+
+Each heading's :LOGBOOK: is rewritten by
+`claude-code-ide-org--recompute-logbook-text' -- see there for what is
+and is not touched.  This is the applying half of TODO.org :ID:
+507754ba.
+
+Reads history through
+`claude-code-ide-org--queue-historical-guideposts', which spans the
+archive as well as the live queues and ignores watermarks.  Every line
+being corrected was written from events a review pass has already
+consumed, and the oldest of them live in archived files -- so both
+halves of that are load-bearing, and getting either wrong shrinks lines
+toward zero without any sign that something went missing.
+
+Buffers are saved, but `claude-code-ide-org-consolidate-history' is
+deliberately NOT run afterwards: the rewrite already emits each CLOCK
+line immediately followed by its annotation, and re-sorting a drawer
+this has just restructured would be a second transformation with
+nothing verifying the composition."
+  (interactive (list nil (not current-prefix-arg)))
+  (let* ((since (or since (claude-code-ide-org--parse-org-timestamp "[2026-08-11 Tue 00:00]")))
+         (guideposts (claude-code-ide-org--queue-historical-guideposts))
+         (headings 0) (changed 0) (files 0))
+    (dolist (file (claude-code-ide-org--tracked-files))
+      (when (file-readable-p file)
+        (let* ((already-open (find-buffer-visiting file))
+               (buffer (or already-open (find-file-noselect file)))
+               (touched nil))
+          (with-current-buffer buffer
+            (let ((buffer-read-only nil))
+              (save-excursion
+                (goto-char (point-min))
+                (while (re-search-forward org-heading-regexp nil t)
+                  (let ((bounds (claude-code-ide-org--drawer-content-bounds "LOGBOOK")))
+                    (when bounds
+                      (setq headings (1+ headings))
+                      (let* ((old (buffer-substring-no-properties (nth 0 bounds) (nth 1 bounds)))
+                             (new (claude-code-ide-org--recompute-logbook-text
+                                   old guideposts since)))
+                        (unless (equal old new)
+                          (setq changed (1+ changed) touched t)
+                          (unless dry-run
+                            (delete-region (nth 0 bounds) (nth 1 bounds))
+                            (goto-char (nth 0 bounds))
+                            (insert new))))))))
+              (when (and touched (not dry-run))
+                (setq files (1+ files))
+                (save-buffer))))
+          (unless already-open
+            (with-current-buffer buffer (set-buffer-modified-p nil))
+            (kill-buffer buffer)))))
+    (let ((report (format "%s %d heading(s) with a :LOGBOOK: scanned, %d rewritten%s"
+                          (if dry-run "Dry run:" "Recomputed:")
+                          headings changed
+                          (if dry-run "" (format ", %d file(s) saved" files)))))
+      (when (called-interactively-p 'any) (message "%s" report))
+      report)))
 
 (defun claude-code-ide-org-consolidate-history (id)
   "Normalise the :LOGBOOK: drawer of the heading with :ID: equal to ID:
@@ -3068,6 +3247,47 @@ it would re-propose work already applied."
     (sort (nreverse events)
           (lambda (a b) (time-less-p (plist-get a :ts) (plist-get b :ts))))))
 
+(defun claude-code-ide-org--queue-historical-guideposts ()
+  "Return every pause/resume guidepost ever written, oldest first.
+
+Reads the live queue files *and the archive subdirectory*, ignoring
+watermarks entirely.  This is a question about history, not about what
+is pending, and it is the only kind of question for which the archive
+must be read.
+
+`claude-code-ide-org--queue-events' cannot answer it, even with
+INCLUDE-CONSUMED: it enumerates sessions via
+`claude-code-ide-org--queue-session-ids', which calls `directory-files'
+on the queue directory *non-recursively*, so an archived session simply
+does not exist as far as it is concerned.  Measured 2026-08-18: 11 live
+files against 7 archived, and the recompute in
+`claude-code-ide-org-recompute-accumulated-clock-lines' saw 41 drawers
+to rewrite through that path against 44 through this one.
+
+The three it missed are the failure this whole function exists to
+prevent, and they are worse than they sound: archiving happens to the
+*oldest* sessions first, so the events it hides are precisely the ones
+backing the oldest CLOCK lines.  A recompute reading only live queues
+would find no evidence for them and shrink or zero them -- silently,
+plausibly, and in the direction that looks like the correction working."
+  (let ((dirs (list claude-code-ide-org-queue-directory
+                    (expand-file-name "archive" claude-code-ide-org-queue-directory)))
+        events)
+    (dolist (dir dirs)
+      (when (file-directory-p dir)
+        (dolist (file (directory-files dir t "\\.jsonl\\'" t))
+          (when (file-readable-p file)
+            (dolist (line (split-string
+                           (with-temp-buffer (insert-file-contents file) (buffer-string))
+                           "\n" t))
+              (let ((event (claude-code-ide-org--queue-parse-line line)))
+                (when (and event
+                           (claude-code-ide-org--review-guidepost-p event)
+                           (not (plist-get event :agent-id)))
+                  (push event events))))))))
+    (sort (nreverse events)
+          (lambda (a b) (time-less-p (plist-get a :ts) (plist-get b :ts))))))
+
 (defun claude-code-ide-org--pending-capture (id)
   "Return the pending queued `capture' event that will create ID, or nil.
 
@@ -3433,29 +3653,107 @@ buffer's \"writes N\" summary and the corpus measurement all read one
 implementation.  Sorts defensively: callers hand it a span's `:events',
 which are filtered from an already-sorted list, but nothing in the type
 says so."
-  (let* ((floor (or floor claude-code-ide-org-span-idle-floor))
-         (fmt "[%Y-%m-%d %a %H:%M]")
-         (points (sort (mapcar (lambda (e) (cons (plist-get e :ts)
-                                                 (plist-get e :kind)))
-                               events)
-                       (lambda (a b) (time-less-p (car a) (car b)))))
-         runs previous)
+  (let ((points (sort (mapcar (lambda (e) (cons (plist-get e :ts)
+                                                (plist-get e :kind)))
+                              events)
+                      (lambda (a b) (time-less-p (car a) (car b)))))
+        runs previous)
     (dolist (point points)
       (when (and previous
                  (equal (cdr previous) "resume")
                  (equal (cdr point) "pause"))
-        (let ((start (car previous))
-              (end (car point))
-              (last (car runs)))
-          (if (and last
-                   (< (float-time (time-subtract start (cdr last))) floor))
-              (setcdr last end)
-            (push (cons start end) runs))))
+        (push (cons (car previous) (car point)) runs))
       (setq previous point))
-    (seq-remove (lambda (run)
-                  (equal (format-time-string fmt (car run))
-                         (format-time-string fmt (cdr run))))
-                (nreverse runs))))
+    (claude-code-ide-org--apply-idle-floor (nreverse runs) floor)))
+
+(defun claude-code-ide-org--apply-idle-floor (intervals &optional floor)
+  "Merge INTERVALS separated by less than FLOOR, then drop rendered zeros.
+
+The shared tail of every path that turns raw guidepost intervals into
+CLOCK lines -- `claude-code-ide-org--span-work-runs' for what apply
+writes, and `claude-code-ide-org--recompute-logbook-text' for correcting
+what was already written.  Extracted so the two cannot drift: a record
+corrected by one and extended by the other would otherwise be
+inconsistent with itself, fragmenting old spans more finely than new
+ones simply because different code wrote them.
+
+FLOOR defaults to `claude-code-ide-org-span-idle-floor'.  Strictly less
+than, so a gap of exactly FLOOR splits.
+
+Dropping an interval whose *rendered* endpoints share a minute is the
+second half and is not optional: org timestamps are minute-precision, so
+such an interval writes `=>  0:00' -- an interval that was never
+observed.  The floor alone does not prevent it, because a sub-minute
+turn isolated by more than FLOOR survives the merge, and because closing
+an unmatched turn at its window bound can produce a zero-width interval
+outright."
+  (let ((floor (or floor claude-code-ide-org-span-idle-floor))
+        (fmt "[%Y-%m-%d %a %H:%M]")
+        merged)
+    (dolist (interval (sort (copy-sequence intervals)
+                            (lambda (a b) (time-less-p (car a) (car b)))))
+      (let ((last (car merged)))
+        (if (and last
+                 (< (float-time (time-subtract (car interval) (cdr last))) floor))
+            (when (time-less-p (cdr last) (cdr interval))
+              (setcdr last (cdr interval)))
+          (push (cons (car interval) (cdr interval)) merged))))
+    (seq-remove (lambda (iv)
+                  (equal (format-time-string fmt (car iv))
+                         (format-time-string fmt (cdr iv))))
+                (nreverse merged))))
+
+(defun claude-code-ide-org--busy-intervals (events &optional bound)
+  "Return the union of intervals in which ANY turn was running, over EVENTS.
+
+A *depth counter*, not per-session pairing: `resume' increments,
+`pause' decrements, and the agent counts as busy while the depth is
+above zero.  Returns ascending, disjoint (START . END) conses.
+
+This is the union rule (TODO.org :ID: 7d739afd) rather than a sum, and
+the counter is what makes it free.  Two sessions working 10:00-10:20 and
+10:10-10:30 are one 30-minute stretch of elapsed busy time, not 40
+minutes; the depth goes 1, 2, 1, 0 and closes exactly once.
+
+It also repairs a failure that per-session pairing cannot (TODO.org
+:ID: 9202b39d).  A background job's first turn has its `resume' in the
+launching session's queue file and its `pause' in the job's, so pairing
+within a session loses the turn outright -- measured at 37 minutes on a
+single CLOCK line, which then \"corrected\" to 0:00 with nothing to
+flag it.  The counter never asks which file an event came from, so the
+pair survives.
+
+Two asymmetries are deliberate:
+
+- *Depth clamps at zero* rather than going negative.  A stream can
+  legitimately open on a `pause' whose `resume' belongs to another
+  session, which is exactly the background-job case above; without the
+  clamp a later `resume' would be swallowed bringing depth back to
+  zero.
+- *An interval still open at the end closes at BOUND*, or is dropped if
+  BOUND is nil.  An unmatched `resume' means a turn that had not ended
+  when the record was taken; running it to the last event would invent
+  an endpoint, and running it forever is worse.  Callers working inside
+  a known window pass that window's end.
+
+Contrast `claude-code-ide-org--span-work-runs', which pairs adjacencies
+and answers \"what should apply write for this one span\".  This answers
+\"when was anything running at all\", and only the second question has a
+sensible answer across sessions."
+  (let ((points (sort (mapcar (lambda (e) (cons (plist-get e :ts) (plist-get e :kind)))
+                              events)
+                      (lambda (a b) (time-less-p (car a) (car b)))))
+        (depth 0) open intervals)
+    (dolist (point points)
+      (if (equal (cdr point) "resume")
+          (progn (when (zerop depth) (setq open (car point)))
+                 (setq depth (1+ depth)))
+        (setq depth (max 0 (1- depth)))
+        (when (and (zerop depth) open)
+          (push (cons open (car point)) intervals)
+          (setq open nil))))
+    (when (and open bound) (push (cons open bound) intervals))
+    (nreverse intervals)))
 
 ;;; Review and apply ---------------------------------------------------------
 ;;
