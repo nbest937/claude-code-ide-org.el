@@ -755,17 +755,80 @@ convention as `claude-code-ide-org-write-session-start-report'."
 ;; project's Elisp does: it's the only place `bin/test' can exercise
 ;; it.
 
+(defun claude-code-ide-org--queue-latest-session-id ()
+  "Session id whose queue file was modified most recently, or nil.
+
+The statusline asks \"what is Claude doing *now*\", and with concurrent
+sessions that is the most recently written queue -- so this reads one
+file rather than every session's.  mtime is the available signal, the
+same one `claude-code-ide-org--queue-file-idle-p' uses to decide a queue
+has gone quiet."
+  (when (file-directory-p claude-code-ide-org-queue-directory)
+    (car (mapcar #'car
+                 (sort (mapcar (lambda (f)
+                                 (cons (file-name-base f)
+                                       (file-attribute-modification-time
+                                        (file-attributes f))))
+                               (directory-files
+                                claude-code-ide-org-queue-directory
+                                t "\\.jsonl\\'" t))
+                       (lambda (a b) (time-less-p (cdr b) (cdr a))))))))
+
+(defun claude-code-ide-org--statusline-queue-state ()
+  "Return (ID . RUNNING-P) from the most recently written queue, or nil.
+
+ID is the heading named by the newest event that names one -- a `todo'
+or `clock_in' -- which is the queue's answer to \"what is being worked
+on\".  RUNNING-P is non-nil when the newest guidepost is a `resume',
+meaning the agent is mid-turn rather than waiting on a human.
+
+Reads with INCLUDE-CONSUMED, deliberately: this is a question about
+history, not about what is pending, and an *applied* event is the
+strongest evidence of what was being worked on.  Filtering to pending
+would make the statusline go blank right after a review pass.
+
+Nil when the queue has nothing to say, which lets the caller fall back
+rather than render an empty line."
+  (let* ((sid (claude-code-ide-org--queue-latest-session-id))
+         (events (and sid (claude-code-ide-org--queue-events sid t)))
+         id running)
+    (dolist (e events)
+      (when (plist-get e :id) (setq id (plist-get e :id)))
+      (cond ((equal (plist-get e :kind) "resume") (setq running t))
+            ((equal (plist-get e :kind) "pause") (setq running nil))))
+    (and id (cons id running))))
+
 (defun claude-code-ide-org--statusline-task-string ()
-  "Return a short, pre-formatted description of the \"current default
-org task\" for the statusLine, or the empty string if there is
-neither a running clock nor any clock history to fall back to. Uses
-the currently-running clock's marker if `org-clocking-p', else `(car
-org-clock-history)'. The :ID: is truncated to 8 characters and the
-heading name to 30 (with an ellipsis), matching a git-commit-style
-short hash. Total clocked time is summed over the heading's whole
-subtree via `org-clock-sum', matching `org_clock_report''s own
-:ID:-scoped behavior."
-  (let ((marker (if (org-clocking-p) org-clock-marker (car org-clock-history))))
+  "Return a short, pre-formatted description of the task Claude is
+attending to, for the statusLine, or the empty string if nothing is
+known.  The :ID: is truncated to 8 characters and the heading name to
+30 (with an ellipsis), matching a git-commit-style short hash.  Total
+clocked time is summed over the heading's whole subtree via
+`org-clock-sum', matching `org_clock_report''s own :ID:-scoped
+behavior.
+
+Reads the *queue* rather than `org-clocking-p'/`org-clock-marker'
+\(TODO.org :ID: 290b6fc5).  Post-cutover the only thing that ever
+opened a live clock was `claude-code-ide-org--trigger-auto-clock-in',
+and silencing that -- :ID: 226ed53b -- would leave a marker-based
+statusline reporting the last *applied* heading, lagging by however
+long since the last review pass.  The queue is also the more honest
+source: it says what Claude is doing rather than what has been
+recorded, and it cannot desync the way a marker can, being an
+append-only file read fresh each time.
+
+Falls back to the clock when the queue has nothing to say, so a
+session with no queue -- and every existing test -- keeps working."
+  (let* ((qs (ignore-errors (claude-code-ide-org--statusline-queue-state)))
+         ;; Resolve once. A queue id that does not resolve -- an archived
+         ;; heading, a stale entry -- must fall through to the clock rather
+         ;; than blank the line: the queue having an opinion is not the same
+         ;; as that opinion being usable.
+         (qmarker (and qs (ignore-errors (org-id-find (car qs) 'marker))))
+         (marker (or qmarker
+                     (if (org-clocking-p) org-clock-marker
+                       (car org-clock-history))))
+         (running (if qmarker (cdr qs) (org-clocking-p))))
     (if (not (and marker (markerp marker) (marker-buffer marker)))
         ""
       (org-with-point-at marker
@@ -775,7 +838,7 @@ subtree via `org-clock-sum', matching `org_clock_report''s own
                (short-name (if (> (length name) 30)
                                (concat (substring name 0 29) "…")
                              name))
-               (status-label (if (org-clocking-p) "clocked in" "clocked out"))
+               (status-label (if running "clocked in" "clocked out"))
                (total-minutes (progn
                                 (save-restriction
                                   (org-narrow-to-subtree)

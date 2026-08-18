@@ -2753,6 +2753,65 @@ would leave one."
       ;; pause/resume are session-global: they carry no heading of their own.
       (should-not (plist-get (nth 2 events) :id)))))
 
+(ert-deftest claude-code-ide-org-test-statusline-reads-the-queue-over-the-clock ()
+  "The statusline reports the heading the *queue* names, even when a live
+clock is running on a different one (TODO.org :ID: 290b6fc5).
+
+The clock is deliberately pointed elsewhere: if the queue were ignored,
+this test would report \"Other heading\" and pass a laxer assertion. It is
+the disagreement between the two sources that makes the test mean
+anything, since agreeing sources cannot distinguish which was read."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--with-heading
+      (goto-char (point-max))
+      (insert "* TODO Other heading\n:PROPERTIES:\n:ID:       test-0002\n:END:\n")
+      (save-buffer)
+      (org-id-update-id-locations (list file))
+      (claude-code-ide-org-test--clock-in-for-real "test-0002")
+      (apply #'claude-code-ide-org-test--queue-write "sess-a"
+             (list (claude-code-ide-org-test--queue-event
+                    "2026-08-18T09:00:00-0500" "todo" id "DOING")
+                   (claude-code-ide-org-test--queue-event
+                    "2026-08-18T09:00:01-0500" "resume")))
+      (let ((result (claude-code-ide-org--statusline-task-string)))
+        (should (string-match-p "Test heading" result))
+        (should-not (string-match-p "Other heading" result))))))
+
+(ert-deftest claude-code-ide-org-test-statusline-running-state-follows-guideposts ()
+  "The running/paused label comes from the newest guidepost, not from
+`org-clocking-p'.  A trailing `resume' means mid-turn; a trailing `pause'
+means waiting on a human."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--with-heading
+      (apply #'claude-code-ide-org-test--queue-write "sess-a"
+             (list (claude-code-ide-org-test--queue-event
+                    "2026-08-18T09:00:00-0500" "todo" id "DOING")
+                   (claude-code-ide-org-test--queue-event
+                    "2026-08-18T09:00:01-0500" "resume")))
+      (should (string-match-p "clocked in"
+                              (claude-code-ide-org--statusline-task-string)))
+      (apply #'claude-code-ide-org-test--queue-write "sess-a"
+             (list (claude-code-ide-org-test--queue-event
+                    "2026-08-18T09:05:00-0500" "pause")))
+      (should (string-match-p "clocked out"
+                              (claude-code-ide-org--statusline-task-string))))))
+
+(ert-deftest claude-code-ide-org-test-statusline-falls-back-when-queue-id-is-unresolvable ()
+  "A queue naming a heading that no longer resolves must fall through to
+the clock, not blank the line.  The queue having an opinion is not the
+same as that opinion being usable -- an archived or deleted heading is
+exactly the case, and it was the defect in this function's first draft."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--with-heading
+      (claude-code-ide-org-test--clock-in-for-real id)
+      (apply #'claude-code-ide-org-test--queue-write "sess-a"
+             (list (claude-code-ide-org-test--queue-event
+                    "2026-08-18T09:00:00-0500" "todo" "no-such-id" "DOING")
+                   (claude-code-ide-org-test--queue-event
+                    "2026-08-18T09:00:01-0500" "resume")))
+      (should (string-match-p "Test heading"
+                              (claude-code-ide-org--statusline-task-string))))))
+
 (ert-deftest claude-code-ide-org-test-queue-carries-notes ()
   "The note rides through to the reader, and is absent where it should be."
   (claude-code-ide-org-test--with-queue
