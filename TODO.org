@@ -3651,8 +3651,8 @@ guideposts from several sessions and running
 =claude-code-ide-org--span-work-runs= over the merged stream does not
 merely double-count -- it *mangles* the pairing. Sorted, two overlapping
 turns read =resume, resume, pause, pause=, and the run finder pairs only
-the inner =resume= -> =pause=, yielding 10 minutes where the truth is
-30. Too high and too low are both reachable from the same defect,
+the inner =resume= -> =pause=, yielding 10 minutes where the
+truth is 30. Too high and too low are both reachable from the same defect,
 depending on the interleaving.
 
 The fix wherever runs are computed over multiple sessions is the same
