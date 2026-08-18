@@ -2777,6 +2777,65 @@ the exact failure
 silent when it has nothing to report.
 
 
+
+** TODO Two clock mechanisms disagree, and one of them predates the cutover :code:
+:PROPERTIES:
+:ID:       226ed53b-c302-4529-870f-a42962b50bde
+:CREATED:  [2026-08-18 Tue 07:20]
+:END:
+
+=38b92521='s :LOGBOOK: claimed *3:59* for a session that ran 15:28 to
+18:50. Corrected to 2:44 by hand on 2026-08-17. The overcount came from
+two mechanisms writing CLOCK lines into the same drawer with no knowledge
+of each other.
+
+*Mechanism 1, the intended one.* The review pass turns pause/resume
+guideposts into spans and writes them on apply. Six such spans were in
+that drawer, totalling 1:07, each annotated "assigned at review".
+
+*Mechanism 2, which should not exist post-cutover.*
+=claude-code-ide-org--trigger-auto-clock-in= opened a live clock when the
+user set PLANNING by hand with =C-c C-t=, and it ran *continuously* until
+closed — one 2:52 interval straight through every pause, overlapping
+almost all of mechanism 1's spans. This is precisely the pre-cutover
+behaviour the refactor removed from the hooks: =session-pause= and
+=session-resume= no longer clock, so nothing stops a live clock any more.
+The trigger reintroduces it by a path nobody intended.
+
+*The third finding, and the most serious: the guidepost model is blind to
+long turns.* Guideposts mark *turn boundaries*. A single long turn emits
+none, so =--aggregate-guideposts= sees one lone timestamp and produces a
+zero-width span. Measured on this heading: 15:28→16:37 was one 69-minute
+turn (exploration, planning, writing the plan) and 16:49→17:17 another of
+28 minutes. Both are real work. Both were invisible to the review pass,
+which is why they had to be added by hand. Together they are 1:37 — more
+than the 1:07 the review pass did record.
+
+That reframes [[id:31f766ab-90ed-4950-bc5b-787528c8fe84][31f766ab]]. Its zero-length spans are not merely
+annoying: each one is the review buffer's way of reporting *a long turn it
+cannot measure*. The aggregator's docstring calls a lone timestamp
+"honest — one interaction point is not evidence of a duration", which is
+true of the evidence and false of the world.
+
+*Directions, none chosen:*
+
+- Exempt hand-set PLANNING/DOING from the auto-clock-in trigger, or have
+  the trigger queue a =clock_in= event instead of opening a live clock, so
+  there is only one mechanism.
+- Emit a guidepost on some interval *within* a turn, not only at its
+  boundaries, so long turns stop being invisible. Changes what a guidepost
+  means.
+- Have apply refuse to write a span that overlaps an existing CLOCK line
+  on the same heading. Catches the symptom wherever it comes from.
+
+*Related but distinct:* [[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]] shipped the container
+exemption for this same trigger, so the trigger is already known to need
+scoping. And [[id:d39f5f0d-bee3-4aa4-8494-0bddd07e9067][d39f5f0d]] says CLAUDE.md's "Session tracking"
+section describes a clocking mechanism that no longer exists — it turns
+out the mechanism does still exist, which makes that section wrong in a
+more interesting way than "out of date".
+
+
 * Observability
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Observability
@@ -4087,10 +4146,13 @@ CLOSED: [2026-08-17 Mon 18:50]
 :BLOCKER:  ids(b5f7c5c7-7ad6-4c68-9cce-3479db1f1644)
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-17 Mon 15:28]--[2026-08-17 Mon 16:37] =>  1:09
+- [2026-08-17 Mon 15:28]--[2026-08-17 Mon 16:37] single turn, no guideposts inside it
+CLOCK: [2026-08-17 Mon 16:49]--[2026-08-17 Mon 17:17] =>  0:28
+- [2026-08-17 Mon 16:49]--[2026-08-17 Mon 17:17] single turn, no guideposts inside it
 - State "DONE"       from "DOING"      [2026-08-17 Mon 18:50] \\
   swept and structure judged: keep both
 - State "PLANNING"   from "TODO"       [2026-08-17 Mon 15:28]
-CLOCK: [2026-08-17 Mon 15:28]--[2026-08-17 Mon 18:20] =>  2:52
 CLOCK: [2026-08-17 Mon 16:37]--[2026-08-17 Mon 16:49] =>  0:12
 - [2026-08-17 Mon 16:37]--[2026-08-17 Mon 16:49] assigned at review
 - State "DOING"      from "PLANNING"   [2026-08-17 Mon 16:50] \\
