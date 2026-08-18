@@ -3584,7 +3584,7 @@ resolves the id to build the group's title, and =--at-id= *returns* its
 failure message as a string rather than signalling, so the message lands
 where a title belongs.
 
-*This is [[id:c2132d3f-2b73-4c39-a4f3-b3fbcb3e0cbc][c2132d3f]] again by a
+*This is [[id:c2132d3f-dd78-4498-ba87-0ca814dc2f77][c2132d3f]] again by a
 different route.* That heading fixed exactly this shape — an =--at-id=
 error string rendered as a group heading — for an :ID: that does not
 resolve, and its own note explains the mechanism: "a =cond= clause of the
