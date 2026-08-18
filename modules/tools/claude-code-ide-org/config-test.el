@@ -296,6 +296,45 @@ source file's on-disk copy of the heading in place, since
       (should (string-match-p ":ID: +test-0001" archived))
       (should (string-match-p ":ARCHIVE_TODO: +DONE" archived)))))
 
+(ert-deftest claude-code-ide-org-test-archive-moves-subtree-with-children ()
+  "Archiving must move the whole subtree, not just the heading line.
+
+Characterisation test, written before the 2026-08-17 archive sweep rather
+than after it.  `claude-code-ide-org-archive' has shipped for weeks and
+every existing test covers a *childless* heading -- yet the sweep's two
+largest calls move subtrees of 3 and 31 children, b5f7c5c7 alone being
+4,386 lines.  This asserts the behaviour the operation depends on before
+it depends on it.
+
+Note the level arithmetic, the part most likely to surprise: org pastes at
+`(org-get-valid-level 1 1)', so a level-1 source lands at level 2 under
+the target and its level-2 child at level 3.  Relative depth is preserved.
+Flattening happens only when a *child* is archived directly, which is why
+the sweep archives at level 2 only."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--add-child
+     file (concat "** DONE Child heading\n"
+                  ":PROPERTIES:\n"
+                  ":ID:       test-0002\n"
+                  ":END:\n"
+                  "Child body prose.\n"))
+    (claude-code-ide-org-test--set-todo-for-real id "DONE")
+    (claude-code-ide-org-archive id)
+    (let ((src (claude-code-ide-org-test--disk-contents file))
+          (arch (claude-code-ide-org-test--disk-contents archive-file)))
+      ;; The source loses the entire subtree.  Checking the child's *body*
+      ;; as well as its heading is deliberate: a cut that took the heading
+      ;; line but orphaned its prose would satisfy a heading-only check.
+      (should-not (string-match-p "Test heading" src))
+      (should-not (string-match-p "Child heading" src))
+      (should-not (string-match-p "Child body prose" src))
+      ;; Both arrive, at the right levels, with the child still nested.
+      (should (string-match-p "^\\*\\* DONE Test heading" arch))
+      (should (string-match-p "^\\*\\*\\* DONE Child heading" arch))
+      (should (string-match-p "Child body prose" arch))
+      ;; The child carries its own :ID: and must still resolve afterwards.
+      (should (org-id-find "test-0002" 'marker)))))
+
 ;;; Tool-call audit log ---------------------------------------------------
 
 (ert-deftest claude-code-ide-org-test-audit-log-real-timer-fires-without-manual-flush ()
