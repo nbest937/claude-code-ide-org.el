@@ -729,6 +729,10 @@ subtree, or structure — the last being =org_outline= as it stands.
 :ID:       915378ac-3bd4-461d-b0f0-83f67fbb3dac
 :CREATED:  [2026-08-11 Tue 12:02]
 :END:
+:LOGBOOK:
+CLOCK: [2026-08-18 Tue 07:57]--[2026-08-18 Tue 08:15] =>  0:18
+- [2026-08-18 Tue 07:57]--[2026-08-18 Tue 08:15] assigned at review
+:END:
 
 =org-id-goto= wants the *entire* ID, exactly, and offers no help getting
 it. Verified against the installed org 2026-08-11: it is
@@ -2879,9 +2883,14 @@ conclusion the human draws from it — but neither requires the other.
 :CREATED:  [2026-08-18 Tue 08:15]
 :END:
 :LOGBOOK:
-- State "DOING"      from "PLANNING"   [2026-08-18 Tue 08:54]
+CLOCK: [2026-08-18 Tue 08:20]--[2026-08-18 Tue 08:22] =>  0:02
+- [2026-08-18 Tue 08:20]--[2026-08-18 Tue 08:22] assigned at review
 - State "PLANNING"   from "TODO"       [2026-08-18 Tue 08:22] \\
   plan the pipeline epic and its four children
+- State "DOING"      from "PLANNING"   [2026-08-18 Tue 08:54]
+- [2026-08-18 Tue 08:56]--[2026-08-18 Tue 08:56] plan span pipeline end to end
+CLOCK: [2026-08-18 Tue 09:32]--[2026-08-18 Tue 10:08] =>  0:36
+- [2026-08-18 Tue 09:32]--[2026-08-18 Tue 10:08] plan span pipeline end to end
 :END:
 
 A span's duration is currently wrong in both directions, and the error
@@ -2985,10 +2994,18 @@ proximity rather than membership: the queue is complete without it.
 carries this child's design rather than a file of its own.
 
 
-*** TODO Two clock mechanisms disagree, and one of them predates the cutover :code:
+*** DOING Two clock mechanisms disagree, and one of them predates the cutover :code:
 :PROPERTIES:
 :ID:       226ed53b-c302-4529-870f-a42962b50bde
 :CREATED:  [2026-08-18 Tue 07:20]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-18 Tue 07:14]--[2026-08-18 Tue 07:56] =>  0:42
+- [2026-08-18 Tue 07:14]--[2026-08-18 Tue 07:56] assigned at review
+- State "DOING"      from "TODO"       [2026-08-18 Tue 10:18] \\
+  kind-aware clustering, per-run lines, silence trigger
+CLOCK: [2026-08-18 Tue 10:22]--[2026-08-18 Tue 10:40] =>  0:18
+- [2026-08-18 Tue 10:22]--[2026-08-18 Tue 10:40] implement the two-mechanism fix
 :END:
 
 =38b92521='s :LOGBOOK: claimed *3:59* for a session that ran 15:28 to
@@ -3219,12 +3236,17 @@ it. The scope of this correction should follow that answer.
 carries this child's design rather than a file of its own.
 
 
-*** TODO Decouple live "what is Claude attending to" visibility from the authoritative org clock :code:
+*** DONE Decouple live "what is Claude attending to" visibility from the authoritative org clock :code:
+CLOSED: [2026-08-18 Tue 10:16]
 :PROPERTIES:
 :ID:       290b6fc5-3ebb-4827-9a97-5a3542e354b6
 :CREATED:  [2026-08-06 Thu 10:47]
 :END:
 :LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-18 Tue 10:16] \\
+  queue-backed statusline shipped and verified
+- State "DOING"      from "TODO"       [2026-08-18 Tue 10:10] \\
+  point the statusline at the queue
 CLOCK: [2026-08-14 Fri 14:44]--[2026-08-14 Fri 14:51] =>  0:07
 - [2026-08-14 Fri 14:44]--[2026-08-14 Fri 14:51] reallocated from e51d6ba1's mis-suggested span
 :END:
