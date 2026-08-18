@@ -2721,6 +2721,62 @@ function returns and adds one prompt. Related to
 [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] by adjacency — that
 heading put the evidence on screen, and this one would capture the
 conclusion the human draws from it — but neither requires the other.
+
+** TODO The review buffer proposes spans that can only be dismissed :code:
+:PROPERTIES:
+:ID:       31f766ab-90ed-4950-bc5b-787528c8fe84
+:CREATED:  [2026-08-17 Mon 19:06]
+:END:
+
+Three times on 2026-08-17 the review buffer offered a span reading
+=[HH:MM]--[HH:MM]=, identical endpoints. Such an item cannot be assigned
+usefully — an interval of zero duration records nothing — so its only
+outcome is =d=. Each dismissal is a decision the human is asked to make
+about a thing that carries no information.
+
+*Two distinct causes produce the identical symptom, and they want
+different fixes.*
+
+1. *A real sub-minute span that does not cross a minute boundary.*
+   Observed: =resume= at =15:20:22=, =pause= at =15:20:50= — twenty-eight
+   seconds of genuine agent activity. Org timestamps are minute-precision,
+   so it renders as =15:20--15:20= and is *indistinguishable from* the
+   degenerate case. The span is real; only its display is lossy.
+
+2. *The cluster is still open when the buffer is rendered.* Observed:
+   =resume= at =18:51:39= with no =pause= yet when =org_pending_updates=
+   was called. The current cluster held exactly one timestamp, so start
+   and end were the same point. This is the more interesting defect: *the
+   review buffer is offering the interval the session is still inside*,
+   asking a human to assign work that has not finished.
+
+*Not the same thing as
+[[id:293ac49e-3324-421c-8495-de1a46fc04ac][293ac49e]]*, which is about
+=org-clock-out-remove-zero-time-clocks= erasing short CLOCK lines org
+itself wrote. This is upstream of any CLOCK line: it is about what the
+review buffer *proposes*, and nothing has been written yet.
+
+*Directions, none chosen:*
+
+- Exclude the trailing open cluster from proposals entirely — the
+  session's current span is not reviewable until it ends. Cheapest, and
+  addresses cause 2 exactly.
+- Suppress items below some duration floor. Addresses both symptoms but
+  silently discards cause 1's real twenty-eight seconds, which is the sort
+  of erasure [[id:293ac49e-3324-421c-8495-de1a46fc04ac][293ac49e]] was
+  filed against. Cheap and probably wrong.
+- Render sub-minute spans with seconds, so a real short span is legible as
+  such and only the degenerate one looks degenerate. Fixes the ambiguity
+  rather than the annoyance.
+
+*Measured, and it is not rare.* Three in one working day, all dismissed
+without comment. The cost is not the dismissal itself but what repeated
+no-op items do to a review buffer: they train the eye to skim, which is
+the exact failure
+[[id:8e969114-0982-4c39-9258-3b25a5425e09][8e969114]] avoided by staying
+silent when it has nothing to report.
+
+
 * Observability
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Observability
