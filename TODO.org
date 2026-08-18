@@ -3566,6 +3566,41 @@ from the queue files and is closer to what the report is actually trying
 to say. The alternative is that the line has no job left and should go.
 Deciding needs a look at what a session actually wants told to it, not
 just a mechanical port of the predicate.
+*** An unassigned span's group heading renders an error string where a title belongs :code:
+:PROPERTIES:
+:ID:       98700ea3-6770-429b-84dd-1fddde60afed
+:CREATED:  [2026-08-18 Tue 16:00]
+:END:
+
+Observed live 2026-08-18 in =org_pending_updates=, grouping two
+unassigned spans:
+
+: Error: no org heading found with :ID: "nil"  {nil}
+:   ! span  - [2026-08-18 Tue 12:10]--[2026-08-18 Tue 12:12] ... UNASSIGNED
+
+An unassigned span carries =:id nil= until a human presses =a=, which is
+the normal, expected state for it — not an error. But the grouping code
+resolves the id to build the group's title, and =--at-id= *returns* its
+failure message as a string rather than signalling, so the message lands
+where a title belongs.
+
+*This is [[id:c2132d3f-2b73-4c39-a4f3-b3fbcb3e0cbc][c2132d3f]] again by a
+different route.* That heading fixed exactly this shape — an =--at-id=
+error string rendered as a group heading — for an :ID: that does not
+resolve, and its own note explains the mechanism: "a =cond= clause of the
+form =((--at-id ...))= yields its own test, and =--at-id= returns its
+error rather than signalling". The nil-id path was not covered, and it is
+the one case where the missing id is *routine* rather than a defect, so
+it is the case that shows up most.
+
+Cosmetic — the spans are assignable with =a= and nothing is lost. Worth
+fixing because an "Error:" in the review buffer trains the reader to
+ignore errors there, which is the opposite of what that column is for.
+
+*Filed here for findability, not because it belongs to this epic's goal.*
+It was found while verifying
+[[id:31f766ab-90ed-4950-bc5b-787528c8fe84][31f766ab]] and is independent
+of the guidepost pipeline; refile freely.
 
 * Observability
 :PROPERTIES:
