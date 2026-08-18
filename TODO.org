@@ -2216,69 +2216,6 @@ which is exactly the placement question
 *Verify:* =grep -n -i nominat .claude/skills/org/SKILL.md CLAUDE.md=
 returns the rule.
 
-** TODO Decouple live "what is Claude attending to" visibility from the authoritative org clock :code:
-:PROPERTIES:
-:ID:       290b6fc5-3ebb-4827-9a97-5a3542e354b6
-:CREATED:  [2026-08-06 Thu 10:47]
-:END:
-:LOGBOOK:
-CLOCK: [2026-08-14 Fri 14:44]--[2026-08-14 Fri 14:51] =>  0:07
-- [2026-08-14 Fri 14:44]--[2026-08-14 Fri 14:51] reallocated from e51d6ba1's mis-suggested span
-:END:
-
-Point the statusline (=claude-code-ide-org--statusline-task-string=)
-at the *queue* files' latest event across all sessions, rather than
-=org-clocking-p=/=org-clock-marker=, once those stop being live in
-real time. Arguably more honest than today's version regardless of
-this refactor's fate — reflects "what Claude is doing" rather than
-"what's been recorded," and can't desync the way marker-based state
-can, since it's just reading append-only files.
-
-Explicit instruction, added 2026-08-06: don't stop at a bare
-event-name swap. Now that a pending-queue-inspection tool
-([[id:63a642c7-b04d-42dc-b6ec-3fb13df3ae04][63a642c7]]) exists in this
-same plan — and, since
-[[id:c9292ce8-8fb5-41c0-8de1-bbf74ffa7fce][c9292ce8]] was cancelled,
-is the *only* place queue state gets surfaced outside the review
-command — consider whether the statusline should surface that
-same information glanceably from the terminal — e.g. a pending-review
-count ("3 updates awaiting review"), or a visible distinction between
-"applied" and "queued, not yet reviewed" for whatever heading it
-names — rather than just relocating today's single clocked-in/out
-label to a different data source with the same one-line shape.
-
-*Third requirement, folded in from
-[[id:4cda6bf7-441b-47b2-b3d5-b8c7e7a207a5][4cda6bf7]] on 2026-08-14,
-which was cancelled in favour of this heading:* the label must
-distinguish the *states*, not just the clock. Today's binary collapses
-four distinct situations into two words — =PLANNING= and =DOING= both
-read "clocked in" though one is still designing and the other
-implementing; =WAIT= and =DONE= both read "clocked out" though one is
-blocked and the other finished.
-
-That heading proposed getting the keyword from =org-get-todo-state= at
-the clock marker. *Do not do that here* — it is the reason it was
-cancelled rather than merged as-is. The on-disk keyword lags the queue
-by an entire review pass, so it would report a heading as =TODO= while
-this session has already queued =DOING= on it. The keyword this
-statusline should show is *the one the queue last recorded*, which is
-the same source everything else in this heading reads from, and which is
-also the only version that answers "what is Claude attending to" rather
-than "what did the last review pass write down."
-
-Practical consequence for whoever builds this: the five existing
-=--statusline-task-string= regression tests assert on the literal
-"clocked in"/"clocked out" strings and will need rewriting. Doing both
-changes here means rewriting them once rather than twice.
-
-*Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] on
-2026-08-14.* A capability the epic *enables* rather than one it
-requires — the same test that promoted
-[[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] and
-[[id:d1cf852a-696a-4195-a4a7-039439c1f4b7][d1cf852a]] out on 2026-08-13.
-Decoupling live visibility is worth doing whether or not the epic ever
-closes, and the epic closes whether or not this is done.
-
 ** TODO Read power assertions as a review-time attribution signal :code:research:
 :PROPERTIES:
 :ID:       1a5a5254-f62d-46e7-9a6c-3d84f2f52873
@@ -2987,6 +2924,11 @@ referenced instead, and its subject changes if this work lands: the
 threshold is not the lever once the aggregator reads =:kind:=, so what
 that recurring measurement is *for* needs restating.
 
+[[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — approved 2026-08-18. Covers all five
+children; each links this same file rather than carrying one of its
+own, following 02aaae22 / c556a9ed.
+
+
 
 *** TODO Background-task notifications write phantom resume guideposts :code:
 :PROPERTIES:
@@ -3033,6 +2975,10 @@ with directly — both are about guideposts that are missing or phantom,
 and [[id:d1cf852a-696a-4195-a4a7-039439c1f4b7][d1cf852a]] already notes
 that a bracket bounds the damage from either. Filed under the epic by
 proximity rather than membership: the queue is complete without it.
+
+[[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — the epic's plan document, which
+carries this child's design rather than a file of its own.
+
 
 *** TODO Two clock mechanisms disagree, and one of them predates the cutover :code:
 :PROPERTIES:
@@ -3153,6 +3099,10 @@ those with recomputed values is what
 where rounding destroyed a reviewed interval. The archive should keep a
 documented bias rather than acquire a silent recomputation.
 
+[[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — the epic's plan document, which
+carries this child's design rather than a file of its own.
+
+
 
 
 
@@ -3210,6 +3160,10 @@ the exact failure
 [[id:8e969114-0982-4c39-9258-3b25a5425e09][8e969114]] avoided by staying
 silent when it has nothing to report.
 
+[[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — the epic's plan document, which
+carries this child's design rather than a file of its own.
+
+
 
 
 *** TODO Correct the accumulated record once the aggregator is fixed :code:
@@ -3255,6 +3209,77 @@ come out the other end ... driven by concrete reporting needs, most of
 which haven't been fully articulated yet". Per-heading totals make a 45%
 error disqualifying; a "what was I doing Thursday" view barely notices
 it. The scope of this correction should follow that answer.
+
+[[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — the epic's plan document, which
+carries this child's design rather than a file of its own.
+
+
+*** TODO Decouple live "what is Claude attending to" visibility from the authoritative org clock :code:
+:PROPERTIES:
+:ID:       290b6fc5-3ebb-4827-9a97-5a3542e354b6
+:CREATED:  [2026-08-06 Thu 10:47]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-14 Fri 14:44]--[2026-08-14 Fri 14:51] =>  0:07
+- [2026-08-14 Fri 14:44]--[2026-08-14 Fri 14:51] reallocated from e51d6ba1's mis-suggested span
+:END:
+
+Point the statusline (=claude-code-ide-org--statusline-task-string=)
+at the *queue* files' latest event across all sessions, rather than
+=org-clocking-p=/=org-clock-marker=, once those stop being live in
+real time. Arguably more honest than today's version regardless of
+this refactor's fate — reflects "what Claude is doing" rather than
+"what's been recorded," and can't desync the way marker-based state
+can, since it's just reading append-only files.
+
+Explicit instruction, added 2026-08-06: don't stop at a bare
+event-name swap. Now that a pending-queue-inspection tool
+([[id:63a642c7-b04d-42dc-b6ec-3fb13df3ae04][63a642c7]]) exists in this
+same plan — and, since
+[[id:c9292ce8-8fb5-41c0-8de1-bbf74ffa7fce][c9292ce8]] was cancelled,
+is the *only* place queue state gets surfaced outside the review
+command — consider whether the statusline should surface that
+same information glanceably from the terminal — e.g. a pending-review
+count ("3 updates awaiting review"), or a visible distinction between
+"applied" and "queued, not yet reviewed" for whatever heading it
+names — rather than just relocating today's single clocked-in/out
+label to a different data source with the same one-line shape.
+
+*Third requirement, folded in from
+[[id:4cda6bf7-441b-47b2-b3d5-b8c7e7a207a5][4cda6bf7]] on 2026-08-14,
+which was cancelled in favour of this heading:* the label must
+distinguish the *states*, not just the clock. Today's binary collapses
+four distinct situations into two words — =PLANNING= and =DOING= both
+read "clocked in" though one is still designing and the other
+implementing; =WAIT= and =DONE= both read "clocked out" though one is
+blocked and the other finished.
+
+That heading proposed getting the keyword from =org-get-todo-state= at
+the clock marker. *Do not do that here* — it is the reason it was
+cancelled rather than merged as-is. The on-disk keyword lags the queue
+by an entire review pass, so it would report a heading as =TODO= while
+this session has already queued =DOING= on it. The keyword this
+statusline should show is *the one the queue last recorded*, which is
+the same source everything else in this heading reads from, and which is
+also the only version that answers "what is Claude attending to" rather
+than "what did the last review pass write down."
+
+Practical consequence for whoever builds this: the five existing
+=--statusline-task-string= regression tests assert on the literal
+"clocked in"/"clocked out" strings and will need rewriting. Doing both
+changes here means rewriting them once rather than twice.
+
+*Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] on
+2026-08-14.* A capability the epic *enables* rather than one it
+requires — the same test that promoted
+[[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] and
+[[id:d1cf852a-696a-4195-a4a7-039439c1f4b7][d1cf852a]] out on 2026-08-13.
+Decoupling live visibility is worth doing whether or not the epic ever
+closes, and the epic closes whether or not this is done.
+
+[[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — the epic's plan document, which
+carries this child's design rather than a file of its own.
+
 
 * Observability
 :PROPERTIES:
