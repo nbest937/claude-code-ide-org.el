@@ -607,7 +607,8 @@ must never block this one from going DONE."
     ;; otherwise (correctly, but incidentally to what this test is
     ;; about) flip to NEXT -- unrelated to the DONE-blocker behavior
     ;; under test here.
-    (let ((org-trigger-hook (list #'claude-code-ide-org--trigger-auto-clock-in))
+    (let ((claude-code-ide-org-auto-clock-in-on-doing t)
+          (org-trigger-hook (list #'claude-code-ide-org--trigger-auto-clock-in))
           (other-id "test-0002"))
       (goto-char (point-max))
       (insert (concat "* TODO Other heading                                               :code:\n"
@@ -638,6 +639,7 @@ bare `org-todo' call, deliberately bypassing the wrapper entirely, to
 prove the enforcement lives in org itself and not merely in
 claude-code-ide-org-set-todo's own logic."
   (claude-code-ide-org-test--with-heading
+    (let ((claude-code-ide-org-auto-clock-in-on-doing t))
     (should (not (org-clocking-p)))
     (org-with-point-at (org-id-find id 'marker)
       (org-todo "DOING"))
@@ -649,7 +651,43 @@ claude-code-ide-org-set-todo's own logic."
     ;; the in-memory buffer for the CLOCK line, not the on-disk file.
     (should (string-match-p "CLOCK: \\["
                             (with-current-buffer (get-file-buffer file)
-                              (buffer-string))))))
+                              (buffer-string)))))))
+
+(ert-deftest claude-code-ide-org-test-trigger-is-silent-by-default ()
+  "By default a heading going DOING or PLANNING opens no clock at all.
+
+This is step 2(c) of TODO.org :ID: 226ed53b, and it reverses a decision
+the 2026-08-11 cutover took deliberately -- to keep the trigger so a
+human's own `C-c C-t' still starts timing. A clock the trigger opens is
+in no queue, so no review pass can see, confirm or correct it, which is
+the second of the two disagreeing mechanisms that heading is named for.
+
+Asserted with `claude-code-ide-org-auto-clock-in-on-doing' left at its
+real default rather than let-bound to nil: the default IS the claim, and
+a test that bound it would still pass if someone changed the default
+back. Every other trigger test in this file binds it to t, so this is
+the only one that would notice.
+
+The transition itself must still happen -- this silences a clock, not a
+state change -- and a deliberate `org-clock-in' must still work, since
+the user's own attention is not what was over-recorded."
+  (claude-code-ide-org-test--with-heading
+    (let ((org-trigger-hook (list #'claude-code-ide-org--trigger-auto-clock-in)))
+      (should-not claude-code-ide-org-auto-clock-in-on-doing)
+      (should-not (org-clocking-p))
+      (org-with-point-at (org-id-find id 'marker) (org-todo "DOING"))
+      (should-not (org-clocking-p))
+      (should (equal "DOING" (org-with-point-at (org-id-find id 'marker)
+                               (org-get-todo-state))))
+      (org-with-point-at (org-id-find id 'marker) (org-todo "PLANNING"))
+      (should-not (org-clocking-p))
+      (should-not (string-match-p "CLOCK: \\["
+                                  (with-current-buffer (get-file-buffer file)
+                                    (buffer-string))))
+      ;; The user's own clock is untouched: this removes an inference
+      ;; from a keyword, not the ability to say "I am working on this".
+      (claude-code-ide-org-test--clock-in-for-real id)
+      (should (org-clocking-p)))))
 
 (ert-deftest claude-code-ide-org-test-trigger-hook-skips-clock-in-when-already-clocked-there ()
   "If a clock is already running on the heading being set to DOING
@@ -680,12 +718,13 @@ never on transitions to any other state."
 -- TODO.org :ID: b95b9fba-f78e-48fe-8546-988709cce309 -- mirroring the
 existing DOING coverage above."
   (claude-code-ide-org-test--with-heading
-    (should (not (org-clocking-p)))
-    (org-with-point-at (org-id-find id 'marker)
-      (org-todo "PLANNING"))
-    (should (org-clocking-p))
-    (should (equal id (org-with-point-at org-clock-marker
-                        (org-entry-get nil "ID"))))))
+    (let ((claude-code-ide-org-auto-clock-in-on-doing t))
+      (should (not (org-clocking-p)))
+      (org-with-point-at (org-id-find id 'marker)
+        (org-todo "PLANNING"))
+      (should (org-clocking-p))
+      (should (equal id (org-with-point-at org-clock-marker
+                          (org-entry-get nil "ID")))))))
 
 ;; Container exemption -- TODO.org :ID: ab75d6d2-0e59-405d-92c6-2c67488db133.
 ;; Each of these binds `org-trigger-hook' down to the auto-clock-in
@@ -731,7 +770,8 @@ summed. Driven through a bare `org-todo', because since the cutover a
 hand-edit in Emacs is the only path that still reaches this trigger:
 apply binds `claude-code-ide-org--auto-clock-in-active' throughout."
   (claude-code-ide-org-test--with-heading
-    (let ((org-trigger-hook (list #'claude-code-ide-org--trigger-auto-clock-in)))
+    (let ((claude-code-ide-org-auto-clock-in-on-doing t)
+          (org-trigger-hook (list #'claude-code-ide-org--trigger-auto-clock-in)))
       (claude-code-ide-org-test--add-child file "** TODO A real child\n")
       (should (not (org-clocking-p)))
       (org-with-point-at (org-id-find id 'marker) (org-todo "DOING"))
@@ -751,7 +791,8 @@ clock exactly as it does for a childless leaf. Without this, a
 predicate that merely tested `has any child' would pass the container
 test and silently stop clocking ordinary headings."
   (claude-code-ide-org-test--with-heading
-    (let ((org-trigger-hook (list #'claude-code-ide-org--trigger-auto-clock-in)))
+    (let ((claude-code-ide-org-auto-clock-in-on-doing t)
+          (org-trigger-hook (list #'claude-code-ide-org--trigger-auto-clock-in)))
       (claude-code-ide-org-test--add-child file "** Just a sub-section\n")
       (org-with-point-at (org-id-find id 'marker) (org-todo "DOING"))
       (should (org-clocking-p))
@@ -764,7 +805,8 @@ clock only. A parent's own coordination and planning time is real, so
 an explicit `org-clock-in' on a container must still work -- a blanket
 `only clock leaves' rule would discard that category."
   (claude-code-ide-org-test--with-heading
-    (let ((org-trigger-hook (list #'claude-code-ide-org--trigger-auto-clock-in)))
+    (let ((claude-code-ide-org-auto-clock-in-on-doing t)
+          (org-trigger-hook (list #'claude-code-ide-org--trigger-auto-clock-in)))
       (claude-code-ide-org-test--add-child file "** TODO A real child\n")
       (claude-code-ide-org-test--clock-in-for-real id)
       (should (org-clocking-p))
@@ -776,7 +818,8 @@ an explicit `org-clock-in' on a container must still work -- a blanket
 open a clock via the same trigger, so both must skip it for a
 container."
   (claude-code-ide-org-test--with-heading
-    (let ((org-trigger-hook (list #'claude-code-ide-org--trigger-auto-clock-in)))
+    (let ((claude-code-ide-org-auto-clock-in-on-doing t)
+          (org-trigger-hook (list #'claude-code-ide-org--trigger-auto-clock-in)))
       (claude-code-ide-org-test--add-child file "** TODO A real child\n")
       (org-with-point-at (org-id-find id 'marker) (org-todo "PLANNING"))
       (should (not (org-clocking-p))))))
@@ -1129,6 +1172,12 @@ heading that is currently clocked must not also appear as abandoned --
 one heading, one line."
   (claude-code-ide-org-test--with-heading
     (claude-code-ide-org-test--set-todo-for-real id "DOING")
+    ;; Clocked deliberately, not via the trigger. This used to rely on
+    ;; `--trigger-auto-clock-in' firing on the DOING transition, which is
+    ;; off by default since 2026-08-18 -- and relying on it was wrong even
+    ;; before that, since what is under test is how session-context
+    ;; reports a clocked heading, not what opened the clock.
+    (claude-code-ide-org-test--clock-in-for-real id)
     (should (org-clocking-p))
     (let* ((claude-code-ide-org-query-files (list file))
            (result (claude-code-ide-org-session-context)))
@@ -4731,9 +4780,15 @@ note being destroyed outright -- does **not** reproduce under `emacs
 documented finding of 3d576d29, so this test asserts the part that is
 environment-independent rather than pretending to cover the part that
 is not."
+  ;; Both halves need the trigger switched ON: since 2026-08-18 it is off
+  ;; by default (`claude-code-ide-org-auto-clock-in-on-doing'), and a
+  ;; guard against a trigger that never fires would assert nothing. This
+  ;; pins that the guard still works for a user who opts back in.
+  ;;
   ;; Without the guard: a stray clock at now.
   (claude-code-ide-org-test--with-heading
-    (let ((ts (date-to-time "2026-08-06T09:00:00-0500")))
+    (let ((claude-code-ide-org-auto-clock-in-on-doing t)
+          (ts (date-to-time "2026-08-06T09:00:00-0500")))
       (claude-code-ide-org--at-id
        id
        (lambda ()
@@ -4746,6 +4801,7 @@ is not."
   ;; With the guard, via the real apply path: no clock at all, and the
   ;; note lands on the backdated state line.
   (claude-code-ide-org-test--with-heading
+   (let ((claude-code-ide-org-auto-clock-in-on-doing t))
     (should-not (claude-code-ide-org--review-apply-item
                  (list :type 'state :id id
                        :ts (date-to-time "2026-08-06T09:00:00-0500")
@@ -4753,7 +4809,7 @@ is not."
     (should-not (org-clocking-p))
     (let ((text (claude-code-ide-org-test--disk-contents file)))
       (should (string-match-p "this note must survive" text))
-      (should-not (string-match-p "CLOCK:" text)))))
+      (should-not (string-match-p "CLOCK:" text))))))
 
 (ert-deftest claude-code-ide-org-test-review-items-attribute-and-classify ()
   "Items are built per heading: todo events replay one-for-one, subagent

@@ -3182,6 +3182,70 @@ the precision claim was written from memory of the last run rather than
 from the runs, which is the thing this project's own conventions warn
 about.
 
+*Step 2(c) shipped 2026-08-18*: the auto-clock-in trigger is silent by
+default, behind a new =claude-code-ide-org-auto-clock-in-on-doing=
+(=defcustom=, nil). That closes the last open slice of this heading.
+
+*Reviewing the plan against the code first turned up three divergences,
+and one of them changed the design.*
+
+1. /The plan's instruction to keep the =--auto-clock-in-active= binding
+   was incoherent as written./ It said the binding's second job --
+   stopping the trigger destroying a pending state-change note during
+   =--review-apply-state= -- "survives regardless". It does not: that
+   variable's only reader is the trigger's own guard, so unregistering
+   the trigger would have left a variable bound during every apply and
+   read by nothing. Gating instead of unhooking is what makes the plan's
+   instruction true, since a user who opts back in needs the guard
+   exactly as before. This is why the change is a =defcustom= and not a
+   deleted =add-hook=.
+
+2. /The plan said =--blocker-clock-running-p= "goes quiet: nothing opens
+   a clock outside apply"./ Too strong — =org-clock-in= is a user-facing
+   command and nothing here takes it away, so a hand clock-in followed by
+   =C-c C-t= to DONE still reaches the blocker. Corrected in that
+   function's own docstring rather than in the plan, since that is where
+   someone will read it.
+
+3. /2(c) reverses a decision the cutover took deliberately./ DONE.org's
+   deviation table records "retire =--trigger-auto-clock-in=" against
+   "kept, and suppressed during apply via the re-entrancy guard", with
+   the stated reason that a human's own =C-c C-t= should still open a
+   clock. The reversal is right — a trigger-opened clock is in no queue,
+   so no review pass can see or correct it, which is the second
+   mechanism this heading is named for — but it costs the user that
+   behaviour, and the =defcustom= exists so the cost is opt-outable
+   rather than argued away.
+
+*Verified, not just implemented:* =bin/test= 306/306. The new test
+=trigger-is-silent-by-default= reads the real default rather than binding
+it, which is what makes it the only test in the file that would notice a
+change to that default -- every other trigger test now binds the flag to
+t, since they pin the opt-in behaviour. Both mutations (default flipped
+to t; gate removed from the trigger entirely) failed exactly that test
+and nothing else. =bin/lint-org= unchanged at 0 errors / 28 warnings.
+
+*Confirmed in the running Emacs, not only in batch:* after =load-file=,
+=org-todo "DOING"= on a scratch heading left =org-clocking-p= nil, wrote
+no CLOCK line, and still made the transition -- with the trigger still
+present on =org-trigger-hook=, gated rather than unhooked.
+
+*Corpus unchanged, as expected:* 23.70 h written over 872 guideposts
+against 23.05 h over 870 before, the difference being this session's own
+two new guideposts. Same 40 spans, same 255 CLOCK lines, same
+distribution -- 2(c) removes a *producer* of live clocks and touches no
+aggregation.
+
+*Two things went quiet along with the trigger*, both recorded rather than
+discovered later. =--clocked-heading-context= now always returns nil, so
+=SessionStart= loses its "Currently clocked in" line; and the
+clock-status file rests at idle between review passes. The third,
+=--attention-headings-context= reporting every DOING leaf as "DOING, not
+clocked", has its own heading -- see
+[[id:e0904e93-b99d-44ad-b641-e3e13aced8c4][e0904e93]], which also records
+why it is not a regression 2(c) introduced.
+
+
 
 
 
@@ -3402,8 +3466,39 @@ is labelled as one.
 *Not done here, and deliberately:* the second half of this heading's
 original brief — surfacing pending-review state glanceably in the
 statusline — is untouched. This landed only what step 2 requires.
+*** The session-start report's "DOING, not clocked" line has stopped discriminating :code:
+:PROPERTIES:
+:ID:       e0904e93-b99d-44ad-b641-e3e13aced8c4
+:CREATED:  [2026-08-18 Tue 11:41]
+:END:
 
+=claude-code-ide-org--attention-headings-context= reports a leaf as
+"DOING, not clocked" when it is not the heading =org-clock-marker= points
+at. The comment beside its sibling exclusion states the standard the line
+has to meet: "a report that always says the same thing stops being read,
+which defeats the only purpose this one has."
 
+It no longer meets it. The exclusion is keyed on a *live* clock, and
+after [[id:226ed53b-c302-4529-870f-a42962b50bde][226ed53b]]'s step 2(c)
+nothing holds one open outside a review pass, so every DOING leaf matches
+every time. This session's own =SessionStart= showed two such lines and
+no "Currently clocked in" line at all.
+
+*Not a regression 2(c) introduced, which is the point worth recording.*
+The 2026-08-11 cutover already stopped the MCP tools from clocking; the
+trigger was the last producer, and it only ever fired on a hand-edit. So
+the line has been drifting toward constant for a week and 2(c) merely
+finishes the drift. Nothing to roll back — the input the exclusion reads
+is simply gone.
+
+*Not yet decided:* what the line should key on instead. The obvious
+candidate is the queue rather than the marker, the same move
+[[id:290b6fc5-3ebb-4827-9a97-5a3542e354b6][290b6fc5]] made for the
+statusline — "has this heading seen a guidepost recently" is answerable
+from the queue files and is closer to what the report is actually trying
+to say. The alternative is that the line has no job left and should go.
+Deciding needs a look at what a session actually wants told to it, not
+just a mechanical port of the predicate.
 
 * Observability
 :PROPERTIES:

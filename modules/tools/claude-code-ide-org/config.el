@@ -2121,6 +2121,48 @@ BLOCK).  Never signals an error to the MCP layer."
 ;; `add-hook' composes regardless of load/merge order while `setq'
 ;; would clobber whatever is already there.
 
+(defcustom claude-code-ide-org-auto-clock-in-on-doing nil
+  "Whether a heading becoming DOING or PLANNING opens a clock by itself.
+
+Off.  `claude-code-ide-org--trigger-auto-clock-in' returns immediately
+unless this is non-nil, so the only thing that opens a clock in normal
+operation is a review pass applying a confirmed interval -- or the user
+deliberately clocking in with `C-c C-x C-i', which is untouched.
+
+*This reverses a decision, and does so knowingly.*  The 2026-08-11
+cutover considered retiring this trigger and explicitly kept it, on the
+grounds that \"a human's own `C-c C-t' still opens a clock\" (DONE.org's
+deviation table).  That was right while the trigger was the only live
+clock producer worth having.  It is wrong now, and TODO.org :ID:
+226ed53b is why: a clock opened by the trigger is not in any queue, so
+no review pass can see it, confirm it, or correct it -- the same
+divergence CLAUDE.md warns about for a state change driven through
+`emacsclient'.  Two mechanisms recording the same thing by different
+rules is the defect that heading names, and this is the mechanism that
+predates the cutover.
+
+*What a human gives up*, stated plainly because the reversal takes it
+away: `C-c C-t' to DOING no longer starts timing.  Attention on a
+hand-edited heading has to be claimed deliberately with `C-c C-x C-i',
+which still works and still writes a bare CLOCK line with no annotation
+-- the shape that marks an interval as the user's own rather than the
+agent's (TODO.org :ID: 4f8500e6, :ID: b8e6007a).
+
+Set this to t to have the old behaviour back.  It is a `defcustom' and
+not a deletion for exactly that reason: the capability is months old and
+the reversal is a judgement about which record to trust, not a claim
+that anyone wanting the trigger is confused.
+
+Note what turns quiet along with it, none of which is a break:
+`claude-code-ide-org--blocker-clock-running-p' now only ever fires for a
+clock the user opened by hand or the brief one apply opens;
+`claude-code-ide-org--clocked-heading-context' returns nil, so
+`SessionStart' loses its \"Currently clocked in\" line; and the
+clock-status file rests at idle between review passes.  The statusline
+was already moved off the live clock in preparation (:ID: 290b6fc5)."
+  :type 'boolean
+  :group 'claude-code-ide-org)
+
 (defvar claude-code-ide-org--auto-clock-in-active nil
   "Re-entrancy guard for `claude-code-ide-org--trigger-auto-clock-in'.
 Bound to t for the duration of that function's own `org-clock-in'
@@ -2142,7 +2184,21 @@ either heading lacks an :ID:. CHANGE-PLIST is the plist `org-todo'
 passes to every `org-blocker-hook' function; see `org-trigger-hook's
 docstring for its shape. Never reads `org-clock-marker' or calls any
 other org-clock.el function except from inside this hook -- i.e.
-never at load or registration time."
+never at load or registration time.
+
+*Rarely reached since 2026-08-18*, and kept regardless.  With
+`claude-code-ide-org-auto-clock-in-on-doing' off, the only running
+clocks left are one the user opened by hand and the brief one apply
+opens and closes around each interval it writes -- so the common case
+this was built for, a trigger-opened clock still running when DONE was
+requested, no longer arises.  It is not dead: a hand clock-in followed
+by `C-c C-t' to DONE still reaches it, which is a real sequence and
+exactly the one a human is most likely to get wrong unaided.
+
+The epic's plan said this \"goes quiet: nothing opens a clock outside
+apply\".  That is too strong and is corrected here rather than in the
+plan, because this is where someone will read it: `org-clock-in' is a
+user-facing command and no part of this change takes it away."
   (or (not (equal (plist-get change-plist :to) "DONE"))
       (not (org-clocking-p))
       (let ((target-id (org-entry-get nil "ID"))
@@ -2196,6 +2252,19 @@ DOING or PLANNING, automatically open a clock on it via `org-clock-in',
 unless a clock is already running on that exact heading, or the heading
 is a container \(`claude-code-ide-org--container-heading-p'). Guarded
 against re-entrancy by `claude-code-ide-org--auto-clock-in-active'.
+
+*Off by default since 2026-08-18* (TODO.org :ID: 226ed53b, step 2(c)):
+the first thing tested is `claude-code-ide-org-auto-clock-in-on-doing',
+which is nil, so in normal operation this function does nothing at all.
+Read that variable's docstring for the reversal and what it costs -- it
+is the one place the decision is argued, and everything below describes
+the behaviour a user gets by opting back in.
+
+The hook registration is deliberately left in place rather than removed.
+Unregistering would leave a function that is dead in production and live
+only in its own tests, which is precisely the shape this epic's plan
+flags as a finding worth avoiding rather than creating.  Gated, the
+tests exercise a real configuration a user can select.
 CHANGE-PLIST is the plist `org-todo' passes to every
 `org-trigger-hook' function; see `org-trigger-hook's own docstring for
 its shape. Never calls `org-clock-in' or reads `org-clock-marker'
@@ -2220,7 +2289,8 @@ state changed by hand in Emacs (`C-c C-t', `S-right'), which is the
 scenario that raised it (TODO.org :ID: ab75d6d2).  The exemption's
 *rationale* is unaffected by any of this and still holds -- see that
 heading for the measurement."
-  (when (and (member (plist-get change-plist :to) '("DOING" "PLANNING"))
+  (when (and claude-code-ide-org-auto-clock-in-on-doing
+             (member (plist-get change-plist :to) '("DOING" "PLANNING"))
              (not claude-code-ide-org--auto-clock-in-active)
              (not (claude-code-ide-org--container-heading-p)))
     (let* ((target-id (org-entry-get nil "ID"))
