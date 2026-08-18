@@ -4660,6 +4660,40 @@ UI itself is the fuzzy part and should be a documented manual check,
 per this project's own "reasonably feasible" rule rather than forced
 into a deterministic test.
 
+*Re-verified 2026-08-18, and the case got stronger.* =org-id-goto='s
+interactive form is still =(interactive "sID: ")= — a bare string prompt,
+no =completing-read= — against 162 live entries in =org-id-locations=.
+Nothing has changed on org's side, and no user-facing jump command exists
+in =config.el=; the only =goto= functions there are review-buffer
+internals.
+
+*What changed is the convention this serves.* The footnote rule was
+inverted the same day: prose now refers to a heading by *the first few
+words of its title*, and the 8-character id moves into the footnote. So
+both halves of this heading's proposal are now load-bearing rather than
+one being a convenience —
+
+- *titles displayed* is what makes a heading findable from the prose,
+  which is where the reader meets it;
+- *the 8-char prefix annotated onto each candidate* is what makes the
+  footnote actionable, since that is now the only place the id appears.
+
+The user's current workflow is =C-s= in TODO.org, which is not a
+workaround for missing knowledge — with no completion on =org-id-goto=, it
+is genuinely competitive today. That is the measure of the gap: the
+project's own reference convention is faster to search as plain text than
+to resolve through org's id machinery.
+
+*Sibling, not duplicate, of
+[[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]].* That one is
+model-facing — MCP tools that should accept a partial =:ID:= and return
+front matter without a whole-body read. This one is human-facing — an
+interactive command. They share one premise, worth stating once rather
+than in both: this project made every heading id-addressed and then made
+the 8-character prefix the unit of reference in prose, commits and
+conversation, while every actual lookup still demands all 36.
+
+
 ** TODO Persist claude-code-ide-org-capture-file in the Doom config
 :PROPERTIES:
 :ID:       bd482c92-a71a-4d7d-88df-47678ee94c79
