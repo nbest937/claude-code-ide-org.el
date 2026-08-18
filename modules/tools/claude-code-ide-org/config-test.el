@@ -3164,6 +3164,37 @@ This is the whole reason those two kinds are retained."
     ;; A tighter threshold splits the first cluster at its 7-minute gap.
     (should (= 3 (length (claude-code-ide-org--aggregate-guideposts events 360))))))
 
+(ert-deftest claude-code-ide-org-test-aggregate-guideposts-never-splits-inside-a-turn ()
+  "A `resume' -> `pause' gap is a turn running, and never splits however
+long it is (TODO.org :ID: 226ed53b).
+
+Guideposts mark turn *boundaries*, so a single long turn emits only its
+own two.  Clustering blind to `:kind' put them in different clusters and
+collapsed 69 minutes of continuous work into two zero-width points -- and
+the closing `pause' was then absorbed into the next cluster, describing a
+turn it had nothing to do with.
+
+The three cases are asserted together because the rule is a *pair* of
+claims and either alone is satisfiable by a wrong implementation: gating
+on the other adjacency direction would pass the first and fail the second."
+  (let ((t0 (date-to-time "2026-08-18T09:00:00-0500")))
+    ;; 1. resume -> pause, 69 min: one span, not two points.
+    (let ((spans (claude-code-ide-org--aggregate-guideposts
+                  (list (list :ts t0 :kind "resume")
+                        (list :ts (time-add t0 (* 69 60)) :kind "pause")))))
+      (should (= 1 (length spans)))
+      (should (= (* 69 60.0)
+                 (float-time (time-subtract (cdar spans) (caar spans))))))
+    ;; 2. pause -> resume, same 69 min: still splits. This is the gap the
+    ;;    1200 s threshold was actually measured on.
+    (should (= 2 (length (claude-code-ide-org--aggregate-guideposts
+                          (list (list :ts t0 :kind "pause")
+                                (list :ts (time-add t0 (* 69 60)) :kind "resume"))))))
+    ;; 3. a missing :kind stays splittable -- the bare-:ts fixtures rely on it.
+    (should (= 2 (length (claude-code-ide-org--aggregate-guideposts
+                          (list (list :ts t0)
+                                (list :ts (time-add t0 (* 69 60))))))))))
+
 (ert-deftest claude-code-ide-org-test-aggregate-guideposts-does-not-round ()
   "Spans keep their exact endpoints, and consolidation now keeps them too.
 

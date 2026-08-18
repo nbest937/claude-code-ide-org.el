@@ -3190,36 +3190,61 @@ other."
          ;; and it is decided here rather than offered at review because
          ;; a block is not ambiguous the way a commit-less gap is -- it
          ;; is a mechanically certain fact that nothing was running.
-         (times (sort (mapcar (lambda (e) (plist-get e :ts))
-                              (seq-remove
-                               (lambda (e)
-                                 (and blocks
-                                      (claude-code-ide-org--time-within-any-p
-                                       (plist-get e :ts) blocks)))
-                               events))
-                      #'time-less-p))
-         spans start previous)
-    (dolist (time times)
-      (cond
-       ((null start) (setq start time previous time))
-       ;; A block between two timestamps breaks the span even when the
-       ;; two are closer together than the gap threshold -- otherwise a
-       ;; 54-minute wait bracketed by guideposts a minute apart on each
-       ;; side would be clustered straight through.
-       ((and (<= (float-time (time-subtract time previous)) gap)
-             ;; Non-strict on both sides: the two timestamps either side
-             ;; of a block are normally the block's own endpoints -- a
-             ;; `block_start' is the last event before the wait and a
-             ;; `block_end' the first after it, since no guidepost fires
-             ;; while a turn is stalled. A strict test therefore never
-             ;; fires in the case this exists for.
-             (not (seq-find (lambda (iv)
-                              (and (not (time-less-p (car iv) previous))
-                                   (not (time-less-p time (cdr iv)))))
-                            blocks)))
-        (setq previous time))
-       (t (push (cons start previous) spans)
-          (setq start time previous time))))
+         ;; (TS . KIND) rather than bare timestamps: the gap between two
+         ;; guideposts means opposite things depending on which kinds
+         ;; bracket it, and the old code discarded `:kind' here -- which is
+         ;; how a long turn came to be unmeasurable (TODO.org :ID: 226ed53b).
+         (points (sort (mapcar (lambda (e) (cons (plist-get e :ts)
+                                                 (plist-get e :kind)))
+                               (seq-remove
+                                (lambda (e)
+                                  (and blocks
+                                       (claude-code-ide-org--time-within-any-p
+                                        (plist-get e :ts) blocks)))
+                                events))
+                       (lambda (a b) (time-less-p (car a) (car b)))))
+         spans start previous previous-kind)
+    (dolist (point points)
+      (let ((time (car point)) (kind (cdr point)))
+        (cond
+         ((null start) (setq start time previous time previous-kind kind))
+         ;; A block between two timestamps breaks the span even when the
+         ;; two are closer together than the gap threshold -- otherwise a
+         ;; 54-minute wait bracketed by guideposts a minute apart on each
+         ;; side would be clustered straight through.
+         ((and (or (<= (float-time (time-subtract time previous)) gap)
+                   ;; A `resume' -> `pause' gap is a turn *running*, not a
+                   ;; pause between turns, so it never splits however long
+                   ;; it is. This is the whole fix: guideposts mark turn
+                   ;; boundaries, so a single long turn emits only its own
+                   ;; two, and the threshold -- derived from `pause' ->
+                   ;; `resume' latency (:ID: 96a51c2f) -- would otherwise
+                   ;; read the strongest evidence of continuous work as
+                   ;; absence, collapsing the turn to two zero-width spans.
+                   ;;
+                   ;; Gated on the *adjacency kinds*, deliberately, not on
+                   ;; pairing a resume to "its" pause: with `resume,
+                   ;; resume, pause' there is no non-arbitrary matching,
+                   ;; and pairing would produce overlapping intervals. A
+                   ;; missing `:kind' fails this test and so stays
+                   ;; splittable, which is what the bare-`:ts' fixture in
+                   ;; config-test.el expects.
+                   (and (equal previous-kind "resume") (equal kind "pause")))
+               ;; Non-strict on both sides: the two timestamps either side
+               ;; of a block are normally the block's own endpoints -- a
+               ;; `block_start' is the last event before the wait and a
+               ;; `block_end' the first after it, since no guidepost fires
+               ;; while a turn is stalled. A strict test therefore never
+               ;; fires in the case this exists for. Left outside the kind
+               ;; gate: a block is a certain fact about nothing running,
+               ;; and outranks the adjacency.
+               (not (seq-find (lambda (iv)
+                                (and (not (time-less-p (car iv) previous))
+                                     (not (time-less-p time (cdr iv)))))
+                              blocks)))
+          (setq previous time previous-kind kind))
+         (t (push (cons start previous) spans)
+            (setq start time previous time previous-kind kind)))))
     (when start (push (cons start previous) spans))
     (nreverse spans)))
 
