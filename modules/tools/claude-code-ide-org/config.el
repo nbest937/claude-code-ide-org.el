@@ -2655,11 +2655,23 @@ recording as an interruption\".
 
 Why a floor at all, rather than maximum fidelity.  Measured over the
 post-cutover corpus on 2026-08-18: splitting at every idle gap turns one
-span into 54 CLOCK lines, and 43 of 420 turn-pairs are under a minute,
-so they render `=>  0:00' -- which this project already calls \"an
-interval that was never observed\" and refuses to write.  Two minutes
-brings that to roughly 2-4 lines per span, which is a drawer a human can
-read.
+span into 54 CLOCK lines, against 39 at two minutes.
+
+*Two minutes buys less legibility than planning expected, and is kept
+anyway.*  The plan predicted 2-4 lines per span; measured, 120s gives a
+median of 5, p90 16 and max 39 across 40 pooled spans.  A sweep says
+raising it does not pay: 300s gives median 3 and max 15 but writes
+30.89 h against 120s's 23.05 h, re-absorbing nearly 8 h of the idle this
+exists to stop recording.  Legibility is the only thing a larger floor
+buys and accuracy is the whole point, so the trade goes this way -- and
+this is a `defcustom' for anyone whose drawers say otherwise.
+
+Note the floor is *not* what keeps `=>  0:00' out of the drawer, though
+an earlier draft of this docstring said so.  It merges across short
+idle, and a sub-minute turn isolated by more than the floor on both
+sides survives the merge as its own run.  55 of 412 turn-pairs render
+inside a single minute; `claude-code-ide-org--span-work-runs' drops
+those on its own, by rendering them.
 
 It is *not* a rounding control and cannot delete an interval: absorbed
 idle is only ever added to a run that already exists.  The rounding that
@@ -3337,8 +3349,11 @@ outside:
   \"an interval that was never observed\", which
   `claude-code-ide-org--review-apply-clock' already refuses.  The floor
   alone does not prevent this: a sub-minute turn isolated by more than
-  FLOOR of idle on both sides survives the merge as its own run.  43 of
-  420 turn-pairs in the corpus are under a minute.
+  FLOOR of idle on both sides survives the merge as its own run.  55 of
+  412 turn-pairs in the corpus render inside one minute.  That is a
+  narrower set than \"under a minute\", which is 128 -- 09:00:50 to
+  09:01:10 is 20 seconds and still renders 0:01 -- and the rendered
+  count is the one that matters, since rendering is what decides.
 - EVENTS with no usable adjacency yield nil, and the caller writes an
   annotation with no CLOCK line -- the same answer a zero-width span has
   always got, for the same reason.

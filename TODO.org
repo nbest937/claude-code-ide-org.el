@@ -3167,6 +3167,18 @@ endpoints match, on the same "an interval that was never observed"
 grounds the zero-width span already used. This was not anticipated during
 planning and is the one place the design changed under measurement.
 
+/Correction to the paragraph above, same day:/ "each mutation failed
+exactly the test that claims to cover it and nothing else" is not what
+the runs showed. Two mutations failed more than one test, not one:
+"apply never splits" failed three (one-line-per-run, per-run
+idempotency, and no-run-is-annotated-only -- all three genuinely depend
+on it), and "any adjacency counts as work" failed six. The other five
+mutations failed exactly one test each. The discriminating claim holds;
+the precision claim was written from memory of the last run rather than
+from the runs, which is the thing this project's own conventions warn
+about.
+
+
 
 
 
