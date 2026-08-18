@@ -3853,6 +3853,50 @@ divergence to report."
                    (claude-code-ide-org--review-describe
                     (plist-put (copy-sequence split) :suggested nil)))))))
 
+(ert-deftest claude-code-ide-org-test-no-op-span-says-why-it-is-a-no-op ()
+  "An item that can only be dismissed must say which kind it is.
+
+TODO.org :ID: 31f766ab: at org's minute precision a real 28-second turn
+and a lone guidepost both render `[15:20]--[15:20]', so the human is
+asked to decide about two quite different things that look identical.
+Three reasons, asserted together because an implementation that
+collapsed any two of them would still satisfy the others.
+
+Measured over the corpus, per session: 4 such items in 57 spans, evenly
+split between the first two kinds."
+  (let ((claude-code-ide-org-span-idle-floor 120))
+    ;; A real short turn: 11 seconds, both ends inside 09:00.
+    (let* ((events (list (claude-code-ide-org-test--guidepost "09:00:14" "resume")
+                         (claude-code-ide-org-test--guidepost "09:00:25" "pause")))
+           (item (list :type 'clock :id "id-a" :suggested t :events events
+                       :start (plist-get (car events) :ts)
+                       :end (plist-get (cadr events) :ts))))
+      (should (equal "writes nothing (11s of turns, none crossing a minute)"
+                     (claude-code-ide-org--review-written-summary item))))
+    ;; The trailing in-flight span: one guidepost, start = end.
+    (let* ((events (list (claude-code-ide-org-test--guidepost "09:00:14" "resume")))
+           (item (list :type 'clock :id "id-a" :suggested t :events events
+                       :start (plist-get (car events) :ts)
+                       :end (plist-get (car events) :ts))))
+      (should (equal "writes nothing (a single point, not an interval)"
+                     (claude-code-ide-org--review-written-summary item))))
+    ;; Guideposts spanning real time, but never a resume then a pause.
+    (let* ((events (list (claude-code-ide-org-test--guidepost "09:00:00" "resume")
+                         (claude-code-ide-org-test--guidepost "09:08:00" "resume")))
+           (item (list :type 'clock :id "id-a" :suggested t :events events
+                       :start (plist-get (car events) :ts)
+                       :end (plist-get (cadr events) :ts))))
+      (should (equal "writes nothing (no completed turn in it)"
+                     (claude-code-ide-org--review-written-summary item))))
+    ;; And a span that DOES write keeps saying so -- the reason must not
+    ;; leak onto items that are not no-ops.
+    (let ((item (list :type 'clock :id "id-a" :suggested t
+                      :events (claude-code-ide-org-test--two-run-events)
+                      :start (date-to-time "2026-08-06T09:00:00-0500")
+                      :end (date-to-time "2026-08-06T09:31:00-0500"))))
+      (should (equal "writes 0:21 in 2"
+                     (claude-code-ide-org--review-written-summary item))))))
+
 (ert-deftest claude-code-ide-org-test-drained-requires-idle-and-no-items ()
   "Both clauses of the drained predicate are load-bearing."
   (claude-code-ide-org-test--with-queue

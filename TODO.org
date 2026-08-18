@@ -3309,6 +3309,73 @@ silent when it has nothing to report.
 [[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — the epic's plan document, which
 carries this child's design rather than a file of its own.
 
+*Verified 2026-08-18, and the plan's expectation for this heading was
+wrong.* The epic plan said cause 2 "dissolves as a consequence of (a) --
+verify rather than implement". It does not dissolve. 2(a) made clustering
+kind-aware, which never touched the case: a trailing =resume= with no
+=pause= yet still forms a cluster of one timestamp, and
+=--aggregate-guideposts= closes it as =(ts . ts)=. Nothing in the
+kind-aware predicate applies to a cluster with a single point in it.
+
+Step 2(a)'s own outcome already said so -- "1 zero-width remaining (a
+turn in flight, correct)" -- and that was never reconciled against this
+child's premise, which had been written before 2(a) ran.
+
+*Measured over the post-cutover corpus, per session, which is how the
+review buffer actually builds items* (pooling sessions, as the epic's
+other figures do, merges streams and gives the wrong answer here):
+16 sessions, 57 spans.
+
+| kind                                                    | count |
+|---------------------------------------------------------+-------|
+| cause 2 -- true zero-width, =start= = =end=              |     2 |
+| ...of those, the session's trailing cluster              |     2 |
+| ...interior, i.e. a clustering artifact                  |     0 |
+| cause 1 -- real span rendering inside one minute         |     2 |
+| write nothing after 2(b), total                          |     4 |
+| ...that nonetheless *look* like a real interval          |     0 |
+
+Two findings in that table. Cause 2 is now *entirely* confined to the
+trailing in-flight cluster -- zero interior occurrences -- so it is a
+fact about a live session rather than a clustering defect, which is a
+narrower thing than the heading assumed. And the last row is a negative
+result worth having: 2(b) introduced no new class of deceptive item.
+Every span that writes nothing already looks degenerate; none of them
+renders as a plausible interval while silently recording zero.
+
+The two cause-1 instances are =08-11 13:16:14--13:16:25= (11s) and
+=08-15 19:32:00--19:32:48= (48s), both =resume,pause= -- real turns, as
+the heading said.
+
+*Decision: explain, do not suppress.* Every no-op item now says which
+kind it is, at the point of decision --
+=writes nothing (a single point, not an interval)=,
+=writes nothing (11s of turns, none crossing a minute)=, or
+=writes nothing (no completed turn in it)=. Confirmed live in the
+running Emacs on the trailing in-flight span of this very session.
+
+Both suppression directions were rejected, with reasons:
+
+- /Suppress below a duration floor/ discards cause 1's real seconds,
+  which is exactly what [[id:293ac49e-3324-421c-8495-de1a46fc04ac][293ac49e]]
+  was filed against. The heading already called this "cheap and probably
+  wrong"; the measurement agrees -- it would erase 2 real turns to
+  silence 2 artifacts.
+- /Exclude the trailing open cluster/ needs a liveness signal, and the
+  only one available is queue-file mtime with an hour's idle threshold
+  (=claude-code-ide-org-queue-idle-seconds=). A crashed session's last
+  span would then be invisible for an hour, which is worse than the
+  annoyance. The case is self-resolving in any event: the next =pause=
+  grows the cluster and the item stops being degenerate.
+
+*What is deliberately not claimed:* the buffer still proposes items whose
+only answer is =d=, 4 in 57. The recorded cost was never the keystroke,
+it was that repeated no-op items train the eye to skim; an item that
+states its own reason is not skimmed the same way. If that judgement
+turns out wrong in use, the measurement above is the baseline to compare
+against.
+
+
 
 
 

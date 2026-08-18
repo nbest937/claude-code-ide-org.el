@@ -4647,7 +4647,71 @@ and leave no CLOCK line behind."
            (minutes (round (/ seconds 60))))
       (if runs
           (format "writes %d:%02d in %d" (/ minutes 60) (% minutes 60) (length runs))
-        "writes nothing"))))
+        (concat "writes nothing"
+                (claude-code-ide-org--review-nothing-reason item))))))
+
+(defun claude-code-ide-org--span-turn-seconds (events)
+  "Return (SECONDS . TURNS) for the raw `resume' -> `pause' adjacencies
+in EVENTS, before any floor merging or rendered-zero filtering.
+
+Deliberately separate from `claude-code-ide-org--span-work-runs', which
+answers \"what gets written\".  This answers \"was there anything there
+at all\", and the two differ exactly where a human needs to be told why:
+a real 11-second turn has turn time and writes nothing, while a span of
+unpaired resumes has neither."
+  (let ((points (sort (mapcar (lambda (e) (cons (plist-get e :ts) (plist-get e :kind)))
+                              events)
+                      (lambda (a b) (time-less-p (car a) (car b)))))
+        (seconds 0) (turns 0) previous)
+    (dolist (point points)
+      (when (and previous
+                 (equal (cdr previous) "resume")
+                 (equal (cdr point) "pause"))
+        (setq turns (1+ turns)
+              seconds (+ seconds (float-time (time-subtract (car point) (car previous))))))
+      (setq previous point))
+    (cons seconds turns)))
+
+(defun claude-code-ide-org--review-nothing-reason (item)
+  "Return a parenthesised reason ITEM will write no CLOCK line.
+
+TODO.org :ID: 31f766ab is the heading: the review buffer offers items
+whose only possible answer is `d', and -- worse -- two quite different
+things look identical when rendered at org's minute precision.  A real
+28-second turn and a span holding one lone guidepost both print
+`[15:20]--[15:20]'.
+
+Measured over the post-cutover corpus, per session as the review buffer
+actually builds items: 4 such items in 57 spans, 2 of each kind.  Rare,
+but the cost the heading names is not the keystroke -- it is that
+repeated no-op items train the eye to skim, which is the failure
+`claude-code-ide-org-write-session-start-report' avoids by staying
+silent when it has nothing to say.
+
+An item that explains itself is not skimmed the same way, so the reason
+is spelled out at the point of decision rather than the item being
+suppressed.  Suppression was considered and rejected for both kinds:
+dropping short spans discards real work, which is what :ID: 293ac49e was
+filed against; and hiding the trailing in-flight span needs a liveness
+signal, whose only available form is queue-file mtime with an hour's
+idle threshold -- so a crashed session's last span would vanish for an
+hour, which is worse than the annoyance it fixes.  The in-flight case is
+self-resolving anyway: the next `pause' grows the cluster and the item
+stops being degenerate."
+  (let* ((events (plist-get item :events))
+         (turns (claude-code-ide-org--span-turn-seconds events))
+         (seconds (car turns)))
+    (cond
+     ;; One interaction point, not an interval. The honest zero.
+     ((time-equal-p (plist-get item :start) (plist-get item :end))
+      " (a single point, not an interval)")
+     ;; Real turn time that org's minute precision cannot show.
+     ((> (cdr turns) 0)
+      (format " (%ds of turns, none crossing a minute)" (round seconds)))
+     ;; Guideposts, but never a resume followed by a pause -- TODO.org
+     ;; :ID: 09c134c4's question, surfaced rather than silently counted
+     ;; as zero.
+     (t " (no completed turn in it)"))))
 
 (defun claude-code-ide-org--review-describe (item)
   "Return the one-line description of ITEM shown in the review buffer.
