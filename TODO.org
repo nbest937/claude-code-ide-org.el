@@ -2994,7 +2994,7 @@ proximity rather than membership: the queue is complete without it.
 carries this child's design rather than a file of its own.
 
 
-*** DOING Two clock mechanisms disagree, and one of them predates the cutover :code:
+*** REVIEW Two clock mechanisms disagree, and one of them predates the cutover :code:
 :PROPERTIES:
 :ID:       226ed53b-c302-4529-870f-a42962b50bde
 :CREATED:  [2026-08-18 Tue 07:20]
@@ -3010,6 +3010,10 @@ CLOCK: [2026-08-18 Tue 10:44]--[2026-08-18 Tue 10:45] =>  0:01
 - [2026-08-18 Tue 10:44]--[2026-08-18 Tue 10:45] implement the two-mechanism fix
 CLOCK: [2026-08-18 Tue 10:47]--[2026-08-18 Tue 11:24] =>  0:37
 - [2026-08-18 Tue 10:47]--[2026-08-18 Tue 11:24] suggested span, accepted at review
+CLOCK: [2026-08-18 Tue 11:27]--[2026-08-18 Tue 11:44] =>  0:17
+- [2026-08-18 Tue 11:27]--[2026-08-18 Tue 11:44] assigned at review
+- State "REVIEW"     from "DOING"      [2026-08-18 Tue 11:43] \\
+  2(a)(b)(c) all shipped, handed back for judgement
 :END:
 
 =38b92521='s :LOGBOOK: claimed *3:59* for a session that ran 15:28 to
@@ -3252,10 +3256,21 @@ why it is not a regression 2(c) introduced.
 
 
 
-*** TODO The review buffer proposes spans that can only be dismissed :code:
+*** DONE The review buffer proposes spans that can only be dismissed :code:
+CLOSED: [2026-08-18 Tue 15:38]
 :PROPERTIES:
 :ID:       31f766ab-90ed-4950-bc5b-787528c8fe84
 :CREATED:  [2026-08-17 Mon 19:06]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-18 Tue 15:33]--[2026-08-18 Tue 15:39] =>  0:06
+- [2026-08-18 Tue 15:33]--[2026-08-18 Tue 15:39] assigned at review
+- State "DOING"      from "TODO"       [2026-08-18 Tue 15:34] \\
+  verify both zero-width causes after 2(a)+2(b)
+- State "DONE"       from "DOING"      [2026-08-18 Tue 15:38] \\
+  verified, decided, and no-op items now self-explaining
+CLOCK: [2026-08-18 Tue 15:55]--[2026-08-18 Tue 16:01] =>  0:06
+- [2026-08-18 Tue 15:55]--[2026-08-18 Tue 16:01] assigned at review
 :END:
 
 Three times on 2026-08-17 the review buffer offered a span reading
@@ -3533,10 +3548,16 @@ is labelled as one.
 *Not done here, and deliberately:* the second half of this heading's
 original brief — surfacing pending-review state glanceably in the
 statusline — is untouched. This landed only what step 2 requires.
-*** The session-start report's "DOING, not clocked" line has stopped discriminating :code:
+*** TODO The session-start report's "DOING, not clocked" line has stopped discriminating :code:
 :PROPERTIES:
 :ID:       e0904e93-b99d-44ad-b641-e3e13aced8c4
 :CREATED:  [2026-08-18 Tue 11:41]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-18 Tue 11:41] \\
+  found while silencing the auto-clock trigger
+CLOCK: [2026-08-18 Tue 12:10]--[2026-08-18 Tue 12:12] =>  0:02
+- [2026-08-18 Tue 12:10]--[2026-08-18 Tue 12:12] assigned at review
 :END:
 
 =claude-code-ide-org--attention-headings-context= reports a leaf as
@@ -3566,10 +3587,14 @@ from the queue files and is closer to what the report is actually trying
 to say. The alternative is that the line has no job left and should go.
 Deciding needs a look at what a session actually wants told to it, not
 just a mechanical port of the predicate.
-*** An unassigned span's group heading renders an error string where a title belongs :code:
+*** TODO An unassigned span's group heading renders an error string where a title belongs :code:
 :PROPERTIES:
 :ID:       98700ea3-6770-429b-84dd-1fddde60afed
 :CREATED:  [2026-08-18 Tue 16:00]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-18 Tue 16:00] \\
+  cosmetic review-buffer rendering defect
 :END:
 
 Observed live 2026-08-18 in =org_pending_updates=, grouping two
@@ -3601,6 +3626,104 @@ ignore errors there, which is the opposite of what that column is for.
 It was found while verifying
 [[id:31f766ab-90ed-4950-bc5b-787528c8fe84][31f766ab]] and is independent
 of the guidepost pipeline; refile freely.
+*** Concurrent sessions' turns must union, not sum, wherever time is totalled :code:
+:PROPERTIES:
+:ID:       7d739afd-f879-445c-b0b6-65e295585a94
+:CREATED:  [2026-08-18 Tue 16:36]
+:END:
+
+Stated by the user 2026-08-18: two sessions running at once produce
+turns that overlap in wall-clock time, and those must *union*, not sum.
+=[10:00]--[10:20]= plus =[10:10]--[10:30]= is *30 minutes*, not 40 --
+one stretch of elapsed time during which the agent was busy, not two
+separate stretches laid end to end.
+
+*The primitive already exists and is unwired.*
+=claude-code-ide-org--merge-time-intervals= (config.el:973) sorts
+=(START . END)= conses and merges anything adjacent or overlapping into
+a min-to-max span -- exactly this operation. It has carried an
+"UNWIRED as of 2026-08-10" note ever since. So this is a wiring
+decision, not a design one, and nothing needs coining.
+
+*Where it already bites, found while scoping
+[[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]]:* pooling
+guideposts from several sessions and running
+=claude-code-ide-org--span-work-runs= over the merged stream does not
+merely double-count -- it *mangles* the pairing. Sorted, two overlapping
+turns read =resume, resume, pause, pause=, and the run finder pairs only
+the inner =resume= -> =pause=, yielding 10 minutes where the truth is
+30. Too high and too low are both reachable from the same defect,
+depending on the interleaving.
+
+The fix wherever runs are computed over multiple sessions is the same
+shape: compute runs *per session*, then union the results. Never pool
+the events first.
+
+*Not the same as the overlap note in*
+[[id:226ed53b-c302-4529-870f-a42962b50bde][226ed53b]], which proposes
+apply refusing to write a span overlapping an existing CLOCK line on the
+same heading. That is one heading's record disagreeing with itself; this
+is two sessions' real, simultaneous work being counted twice.
+
+*Open:* whether the union applies at the CLOCK-line level (never write
+overlapping lines) or only at report time (clocktables and totals
+de-duplicate). Those differ when two sessions genuinely work on two
+*different* headings at once -- each heading's own interval is honestly
+its own, and only the sum across headings overstates elapsed time. That
+distinction has not been decided and should not be decided by whoever
+happens to touch this first.
+*** A background job's first turn is bracketed across two session_ids :code:
+:PROPERTIES:
+:ID:       9202b39d-49e4-441c-89f2-382feb4ef1ea
+:CREATED:  [2026-08-18 Tue 16:41]
+:END:
+
+Measured 2026-08-18 while recomputing the accumulated record for
+[[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]]. Today's
+guideposts, grouped by =session_id=:
+
+| session_id | resume | pause | first    | last     |
+|------------+--------+-------+----------+----------|
+| =0c504277= |     21 |    21 | 07:14:33 | 10:45:46 |
+| =330316ca= |      1 |     0 | 10:47:22 | 10:47:22 |
+| =6f28d85e= |      9 |     8 | 11:24:35 | 16:35:15 |
+
+=330316ca= is the interactive session; its single =resume= at 10:47:22
+is the =UserPromptSubmit= that *launched a background job*. =6f28d85e=
+is that job, and its stream opens with the matching =pause= at 11:24:35
+-- 37 minutes later, the end of the job's first turn.
+
+So a background job's first turn has its =resume= in the launching
+session's queue file and its =pause= in the job's. The two halves of one
+real turn are in different files.
+
+*What this breaks.* Any computation that pairs =resume= -> =pause=
+*within* a session loses that turn entirely. In the recompute it cost
+37 minutes on one CLOCK line, silently, and the line corrected to
+=0:00= -- a plausible-looking answer with nothing to flag it. The fix
+adopted there is a depth counter over the merged stream rather than
+per-session pairing: =resume= increments, =pause= decrements, busy while
+depth > 0. That also happens to give
+[[id:7d739afd-f879-445c-b0b6-65e295585a94][7d739afd]]'s union for free,
+so one mechanism answers both.
+
+*This is a third explanation for
+[[id:09c134c4-31eb-4f6c-aa10-f836d1d28f16][09c134c4]]'s unmatched
+resumes*, and it is not the one that heading proposes. Its hypothesis is
+"an interrupt or a queued follow-up" -- two =UserPromptSubmit= with no
+intervening =Stop=. Here the =Stop= exists; it is simply filed elsewhere.
+Worth checking how many of the 8 unmatched resumes are job launches
+before instrumenting anything, since that costs nothing and this one is
+already confirmed.
+
+*Possible consequence, not verified:* CLAUDE.md says the =ExitPlanMode=
+cross-session guard "comes free from the file being per-session --
+another session's =PLANNING= is simply not in it to be found". If a
+background job is launched by a turn that queued =PLANNING=, that event
+is in the launching session's file and the job's hook reads its own, so
+the promotion would not fire. Narrow -- it needs =PLANNING= set by the
+very turn that launches a job -- and it has not been reproduced. Filed
+as a question, not a defect.
 
 * Observability
 :PROPERTIES:
