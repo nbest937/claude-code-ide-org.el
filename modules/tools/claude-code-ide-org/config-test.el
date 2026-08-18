@@ -3407,6 +3407,66 @@ means it is never marked applied, so it returns on the next build."
                                  (plist-get i :events)))
                      claude-code-ide-org--review-items))))))
 
+(ert-deftest claude-code-ide-org-test-remainder-never-outlives-a-human-endpoint ()
+  "A remainder may never extend past the endpoint the human just set.
+
+Narrowing to a slice INSIDE a turn leaves that turn's `resume' and
+`pause' on opposite sides of the new window. Clustered together they
+form one span bridging it -- and since clustering became kind-aware a
+`resume' -> `pause' adjacency is exactly what refuses to split at any
+gap -- so the remainder offered back strictly CONTAINS the interval just
+confirmed. The same minutes twice, with the leftover looking like the
+more complete of the two.
+
+Neither existing narrowing test sees this: both assert on event counts,
+which are conserved either way, and both narrow to a boundary that
+leaves the leftovers all on one side. This one straddles."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:00:00-0500" "todo" "id-a" "DOING" "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:00:00-0500" "resume" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:02:00-0500" "pause" nil nil "sess-a")
+                 ;; A 30-minute turn. Longer than the gap threshold, and
+                 ;; kept whole by the resume->pause rule -- which is what
+                 ;; puts a splittable-looking pair either side of the
+                 ;; window narrowed to below.
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:05:00-0500" "resume" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:35:00-0500" "pause" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:40:00-0500" "resume" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:42:00-0500" "pause" nil nil "sess-a")))
+    (claude-code-ide-org-test--with-review-buffer
+        (claude-code-ide-org--review-items-from-queue)
+      (let* ((items claude-code-ide-org--review-items)
+             (span (seq-find (lambda (i) (plist-get i :unassigned)) items))
+             (from (date-to-time "2026-08-13T09:10:00-0500"))
+             (to (date-to-time "2026-08-13T09:20:00-0500")))
+        (should span)
+        (should (= 6 (length (plist-get span :events))))
+        (claude-code-ide-org-test--goto-nth-item (seq-position items span))
+        (cl-letf (((symbol-function 'read-string)
+                   (lambda (prompt &optional _initial &rest _)
+                     (if (string-prefix-p "Start" prompt)
+                         "[2026-08-13 Thu 09:10]"
+                       "[2026-08-13 Thu 09:20]"))))
+          (claude-code-ide-org-review-edit-interval))
+        (let ((remainders (seq-filter
+                           (lambda (i) (and (not (eq i span))
+                                            (eq 'clock (plist-get i :type))))
+                           claude-code-ide-org--review-items)))
+          ;; Both sides come back, so nothing was quietly dropped either.
+          (should (= 2 (length remainders)))
+          (dolist (r remainders)
+            ;; Each lies wholly on one side of the confirmed window.
+            (should (or (not (time-less-p from (plist-get r :end)))
+                        (not (time-less-p (plist-get r :start) to))))))))))
+
 (ert-deftest claude-code-ide-org-test-unbracketed-span-annotation-carries-a-label ()
   "A reconstructed span writes a labelled annotation, never a bare one.
 
@@ -3527,6 +3587,222 @@ intervals, and both must land."
     (should (equal 3 (cl-count-if (lambda (l) (string-match-p "CLOCK:" l))
                                   (split-string (claude-code-ide-org-test--disk-contents file)
                                                 "\n"))))))
+
+(defun claude-code-ide-org-test--guidepost (hhmm kind)
+  "Return a guidepost event plist at HHMM on 2026-08-06, of KIND."
+  (list :ts (date-to-time (format "2026-08-06T%s-0500" hhmm)) :kind kind))
+
+(defconst claude-code-ide-org-test--two-run-span
+  '(("09:00:00" "resume") ("09:10:00" "pause")   ; run A, 10 min
+    ("09:20:00" "resume") ("09:25:00" "pause")   ; run B, 5 min
+    ("09:26:00" "resume") ("09:31:00" "pause"))  ; 60s idle: merges into B
+  "Guideposts for one span whose work is 21 minutes across two runs.
+The span reads 09:00--09:31, i.e. 31 minutes, which is the overcount
+this whole change is about: 10 minutes of idle between the runs is the
+human thinking, and the 60 seconds before the last turn is below the
+floor and stays absorbed.")
+
+(defun claude-code-ide-org-test--two-run-events ()
+  (mapcar (lambda (spec)
+            (claude-code-ide-org-test--guidepost (car spec) (cadr spec)))
+          claude-code-ide-org-test--two-run-span))
+
+(ert-deftest claude-code-ide-org-test-work-runs-merge-below-the-floor ()
+  "Idle shorter than the floor is absorbed; idle at or above it splits.
+
+The boundary is asserted from both sides on purpose. `Shorter than' is
+the documented rule, so 120s of idle must split and 119s must not --
+a test that only checked a comfortably-large gap would pass on `<=' too,
+and the two disagree on exactly the value the defcustom names."
+  (let ((claude-code-ide-org-span-idle-floor 120))
+    ;; 60s of idle: one run spanning both turns.
+    (let ((runs (claude-code-ide-org--span-work-runs
+                 (list (claude-code-ide-org-test--guidepost "09:00:00" "resume")
+                       (claude-code-ide-org-test--guidepost "09:05:00" "pause")
+                       (claude-code-ide-org-test--guidepost "09:06:00" "resume")
+                       (claude-code-ide-org-test--guidepost "09:10:00" "pause")))))
+      (should (= 1 (length runs)))
+      (should (equal "09:00" (format-time-string "%H:%M" (car (nth 0 runs)))))
+      (should (equal "09:10" (format-time-string "%H:%M" (cdr (nth 0 runs))))))
+    ;; 119s: still merged.
+    (should (= 1 (length (claude-code-ide-org--span-work-runs
+                          (list (claude-code-ide-org-test--guidepost "09:00:00" "resume")
+                                (claude-code-ide-org-test--guidepost "09:05:00" "pause")
+                                (claude-code-ide-org-test--guidepost "09:06:59" "resume")
+                                (claude-code-ide-org-test--guidepost "09:10:00" "pause"))))))
+    ;; Exactly 120s: split.
+    (should (= 2 (length (claude-code-ide-org--span-work-runs
+                          (list (claude-code-ide-org-test--guidepost "09:00:00" "resume")
+                                (claude-code-ide-org-test--guidepost "09:05:00" "pause")
+                                (claude-code-ide-org-test--guidepost "09:07:00" "resume")
+                                (claude-code-ide-org-test--guidepost "09:10:00" "pause"))))))))
+
+(ert-deftest claude-code-ide-org-test-work-runs-count-only-turns ()
+  "Only a `resume' -> `pause' adjacency is work.
+
+Three silences in one fixture, because an implementation that got any
+one of them wrong would still satisfy the others: the idle between two
+turns is not work, an unpaired `resume' -> `resume' contributes nothing
+\(TODO.org :ID: 09c134c4 owns that question, not this function), and a
+turn too short to render a distinct minute is dropped rather than
+written as `=>  0:00'."
+  (let ((claude-code-ide-org-span-idle-floor 120))
+    ;; resume, resume, pause: only the second resume pairs.
+    (let ((runs (claude-code-ide-org--span-work-runs
+                 (list (claude-code-ide-org-test--guidepost "09:00:00" "resume")
+                       (claude-code-ide-org-test--guidepost "09:04:00" "resume")
+                       (claude-code-ide-org-test--guidepost "09:10:00" "pause")))))
+      (should (= 1 (length runs)))
+      (should (equal "09:04" (format-time-string "%H:%M" (car (nth 0 runs))))))
+    ;; A span with no pause at all writes nothing.
+    (should-not (claude-code-ide-org--span-work-runs
+                 (list (claude-code-ide-org-test--guidepost "09:00:00" "resume")
+                       (claude-code-ide-org-test--guidepost "09:04:00" "resume"))))
+    ;; A sub-minute turn, isolated by more than the floor on both sides,
+    ;; survives the merge and is dropped for rendering as zero.
+    (let ((runs (claude-code-ide-org--span-work-runs
+                 (list (claude-code-ide-org-test--guidepost "09:00:00" "resume")
+                       (claude-code-ide-org-test--guidepost "09:05:00" "pause")
+                       (claude-code-ide-org-test--guidepost "09:10:10" "resume")
+                       (claude-code-ide-org-test--guidepost "09:10:40" "pause")))))
+      (should (= 1 (length runs)))
+      (should (equal "09:05" (format-time-string "%H:%M" (cdr (nth 0 runs))))))))
+
+(ert-deftest claude-code-ide-org-test-apply-writes-one-line-per-run ()
+  "Apply writes a CLOCK line per run of work, not one across the span.
+
+Regression for TODO.org :ID: 226ed53b, measured at 39.10 h recorded
+against 21.59 h of turns over the post-cutover corpus. Asserted on the
+DURATIONS, not the line count alone: two lines that between them still
+covered 09:00--09:31 would satisfy a count-only test while recording
+exactly the idle this exists to stop recording."
+  (claude-code-ide-org-test--with-heading
+    (let* ((claude-code-ide-org-span-idle-floor 120)
+           (events (claude-code-ide-org-test--two-run-events))
+           (item (list :type 'clock :id id
+                       :start (plist-get (car events) :ts)
+                       :end (plist-get (car (last events)) :ts)
+                       :note "two-run span" :agent nil :suggested t
+                       :events events)))
+      (should-not (claude-code-ide-org--review-apply-item item))
+      (let* ((disk (claude-code-ide-org-test--disk-contents file))
+             (lines (split-string disk "\n"))
+             (clocks (seq-filter (lambda (l) (string-match-p "CLOCK:" l)) lines)))
+        (should (= 2 (length clocks)))
+        (should (string-match-p "09:00\\]--\\[2026-08-06 [A-Za-z]+ 09:10\\] =>  0:10"
+                                (nth 0 clocks)))
+        (should (string-match-p "09:20\\]--\\[2026-08-06 [A-Za-z]+ 09:31\\] =>  0:11"
+                                (nth 1 clocks)))
+        ;; Nothing spans the idle between them.
+        (should-not (string-match-p "09:00\\]--\\[2026-08-06 [A-Za-z]+ 09:31" disk))
+        ;; One annotation per line, at that line's own endpoints, and
+        ;; each sitting directly under the CLOCK line it describes.
+        ;; Adjacency is not decoration: `--consolidate-logbook-text'
+        ;; sorts every drawer entry by its first timestamp, so a pair
+        ;; that did not share one would be scattered by the very tidy-up
+        ;; apply runs on its way out.
+        (should (= 2 (cl-count-if (lambda (l) (string-match-p "^- \\[" l)) lines)))
+        (should (equal
+                 '("CLOCK: [2026-08-06 Thu 09:00]--[2026-08-06 Thu 09:10] =>  0:10"
+                   "- [2026-08-06 Thu 09:00]--[2026-08-06 Thu 09:10] two-run span"
+                   "CLOCK: [2026-08-06 Thu 09:20]--[2026-08-06 Thu 09:31] =>  0:11"
+                   "- [2026-08-06 Thu 09:20]--[2026-08-06 Thu 09:31] two-run span")
+                 (mapcar #'string-trim
+                         (seq-filter (lambda (l)
+                                       (string-match-p "\\`[ \t]*\\(CLOCK:\\|- \\[\\)" l))
+                                     lines))))))))
+
+(ert-deftest claude-code-ide-org-test-apply-writes-confirmed-endpoints-whole ()
+  "A confirmed interval writes ONE line, at exactly the endpoints set.
+
+`claude-code-ide-org-review-edit-interval' sets `:suggested' nil to mean
+`a human drew these', and apply's standing claim is that it writes
+exactly those endpoints. Run-splitting a confirmed interval would
+substitute the reconstruction the human had just corrected -- the events
+here are the same ones that split into two runs above, so an
+implementation that ignored `:suggested' would visibly write two lines."
+  (claude-code-ide-org-test--with-heading
+    (let* ((claude-code-ide-org-span-idle-floor 120)
+           (events (claude-code-ide-org-test--two-run-events))
+           (item (list :type 'clock :id id
+                       :start (date-to-time "2026-08-06T09:02:00-0500")
+                       :end (date-to-time "2026-08-06T09:29:00-0500")
+                       :note "confirmed by hand" :agent nil :suggested nil
+                       :events events)))
+      (should-not (claude-code-ide-org--review-apply-item item))
+      (let ((disk (claude-code-ide-org-test--disk-contents file)))
+        (should (= 1 (cl-count-if (lambda (l) (string-match-p "CLOCK:" l))
+                                  (split-string disk "\n"))))
+        (should (string-match-p "09:02\\]--\\[2026-08-06 [A-Za-z]+ 09:29\\] =>  0:27" disk))))))
+
+(ert-deftest claude-code-ide-org-test-apply-per-run-idempotency ()
+  "Replaying a split span writes nothing the second time.
+
+The idempotency key had to move with the split: `--logbook-has-interval-p'
+was checked against the ITEM's endpoints, which a split span no longer
+writes, so every line would have been duplicated on replay. Partial
+failure makes this the normal path rather than an exotic one -- the
+`unwind-protect' in the writer cancels mid-item, so the human retries."
+  (claude-code-ide-org-test--with-heading
+    (let* ((claude-code-ide-org-span-idle-floor 120)
+           (events (claude-code-ide-org-test--two-run-events))
+           (item (list :type 'clock :id id
+                       :start (plist-get (car events) :ts)
+                       :end (plist-get (car (last events)) :ts)
+                       :note "two-run span" :agent nil :suggested t
+                       :events events)))
+      (should-not (claude-code-ide-org--review-apply-item item))
+      (should-not (claude-code-ide-org--review-apply-item item))
+      (let ((lines (split-string (claude-code-ide-org-test--disk-contents file) "\n")))
+        (should (= 2 (cl-count-if (lambda (l) (string-match-p "CLOCK:" l)) lines)))
+        (should (= 2 (cl-count-if (lambda (l) (string-match-p "^- \\[" l)) lines)))))))
+
+(ert-deftest claude-code-ide-org-test-span-with-no-run-is-annotated-only ()
+  "A span whose guideposts pair into no turn still leaves its evidence.
+No CLOCK line, because no interval was observed -- but the annotation
+lands, so the span does not silently vanish from the drawer."
+  (claude-code-ide-org-test--with-heading
+    (let* ((events (list (claude-code-ide-org-test--guidepost "09:00:00" "resume")
+                         (claude-code-ide-org-test--guidepost "09:04:00" "resume")))
+           (item (list :type 'clock :id id
+                       :start (plist-get (car events) :ts)
+                       :end (plist-get (cadr events) :ts)
+                       :note "unpaired" :agent nil :suggested t :events events)))
+      (should-not (claude-code-ide-org--review-apply-item item))
+      (let ((disk (claude-code-ide-org-test--disk-contents file)))
+        (should-not (string-match-p "CLOCK:" disk))
+        (should (string-match-p "09:00\\]--\\[2026-08-06 [A-Za-z]+ 09:04\\] unpaired" disk))))))
+
+(ert-deftest claude-code-ide-org-test-review-line-shows-what-will-be-written ()
+  "The review line names the total apply will really write.
+
+The median span writes about 46% of what it displays, so confirming the
+displayed figure means confirming a number that is recorded nowhere.
+An item with no backing kinds says nothing extra -- there is no
+divergence to report."
+  (claude-code-ide-org-test--with-heading
+    (let* ((claude-code-ide-org-span-idle-floor 120)
+           (events (claude-code-ide-org-test--two-run-events))
+           (split (list :type 'clock :id id
+                        :start (plist-get (car events) :ts)
+                        :end (plist-get (car (last events)) :ts)
+                        :note "two-run span" :agent nil :suggested t
+                        :events events))
+           (bare (list :type 'clock :id id
+                       :start (plist-get (car events) :ts)
+                       :end (plist-get (car (last events)) :ts)
+                       :note "no events" :agent nil :suggested t :events nil)))
+      ;; 09:00--09:31 displayed, 21 minutes over two lines written.
+      (should (string-match-p "09:00\\]--\\[2026-08-06 [A-Za-z]+ 09:31\\]"
+                              (claude-code-ide-org--review-describe split)))
+      (should (string-match-p "writes 0:21 in 2"
+                              (claude-code-ide-org--review-describe split)))
+      (should-not (string-match-p "writes" (claude-code-ide-org--review-describe bare)))
+      ;; The confirmed case writes what it displays, and says nothing.
+      (should-not (string-match-p
+                   "writes"
+                   (claude-code-ide-org--review-describe
+                    (plist-put (copy-sequence split) :suggested nil)))))))
 
 (ert-deftest claude-code-ide-org-test-drained-requires-idle-and-no-items ()
   "Both clauses of the drained predicate are load-bearing."

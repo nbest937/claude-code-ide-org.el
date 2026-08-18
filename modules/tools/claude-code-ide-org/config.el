@@ -2627,7 +2627,43 @@ nothing in the data justifies splitting.
 1200s is the round number inside the band, at the start of that plateau
 with margin on both sides.  Still a default, not a law: n=150 gaps from
 one person over four days, so it is *better founded* rather than
-settled, and the heading above schedules a re-measure."
+settled, and the heading above schedules a re-measure.
+
+*This no longer defends any duration*, since 2026-08-18 (TODO.org :ID:
+226ed53b).  A span used to be written as one CLOCK line end to end, so
+where this threshold fell decided how much idle got recorded as work;
+that is what made its 1200s derivation load-bearing.  Apply now writes
+one line per run of `resume' -> `pause' work inside the span
+\(`claude-code-ide-org--span-work-runs'), and `claude-code-ide-org-span-
+idle-floor' is the only value that decides which idle survives.  What is
+left here is *grouping and display*: how many items a human is shown and
+how wide each one reads.  Raising or lowering it now moves lines around
+the review buffer without moving a single recorded minute."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defcustom claude-code-ide-org-span-idle-floor 120
+  "Seconds of idle inside a span that apply absorbs rather than splits on.
+
+A span groups guideposts for review; the work inside one is the runs
+where a `resume' was followed by a `pause'.  Apply writes one CLOCK line
+per run (`claude-code-ide-org--span-work-runs'), and two runs separated
+by less than this many seconds are merged into one line instead.
+Strictly less: a gap of exactly this many seconds splits, so the value
+reads as \"idle up to but not including two minutes is not worth
+recording as an interruption\".
+
+Why a floor at all, rather than maximum fidelity.  Measured over the
+post-cutover corpus on 2026-08-18: splitting at every idle gap turns one
+span into 54 CLOCK lines, and 43 of 420 turn-pairs are under a minute,
+so they render `=>  0:00' -- which this project already calls \"an
+interval that was never observed\" and refuses to write.  Two minutes
+brings that to roughly 2-4 lines per span, which is a drawer a human can
+read.
+
+It is *not* a rounding control and cannot delete an interval: absorbed
+idle is only ever added to a run that already exists.  The rounding that
+did delete one (:ID: b74e0f19) is not coming back through here."
   :type 'integer
   :group 'claude-code-ide-org)
 
@@ -3156,10 +3192,18 @@ Consecutive timestamps separated by less than THRESHOLD seconds (default
 gap starts a new one. A lone timestamp yields a zero-width span, which
 is honest -- one interaction point is not evidence of a duration.
 
-These spans are review scaffolding only. They are rendered as *active*
-timestamps so org's own agenda picks them up (confirmed live, TODO.org
-:ID: c084553c-0621-4a96-9fa1-f32850aeec6a), and they inform the human's
-composition of CLOCK: entries.  Nothing here rounds.
+These spans are review scaffolding only. They inform the human's
+composition of CLOCK: entries, and nothing here rounds.
+
+They are rendered as *inactive* timestamps, and the claim that they were
+active -- and so reached org's agenda (TODO.org :ID: c084553c) -- stood
+here until 2026-08-18 having been falsified in the file itself: it is
+`claude-code-ide-org--review-format-annotation' that renders a span, and
+it dropped the active branch outright when :ID: b8e6007a established
+that the queue records *agent* activity, which the agenda must not
+absorb.  Corrected rather than deleted, because the stale sentence read
+as a settled decision about the agenda and would have outlived anyone
+noticing.
 
 That last sentence used to carry a justification that has since expired,
 and it is corrected rather than deleted because the stale version read
@@ -3247,6 +3291,86 @@ other."
             (setq start time previous time previous-kind kind)))))
     (when start (push (cons start previous) spans))
     (nreverse spans)))
+
+(defun claude-code-ide-org--span-kinds-known-p (events)
+  "Non-nil when EVENTS carry the `:kind' that run-splitting reads.
+
+The split is a statement about which adjacencies were work, so it is
+only makeable when the adjacencies are labelled.  Real guideposts always
+are -- `claude-code-ide-org--review-guidepost-p' admits an event only by
+its kind -- but an item assembled by hand (a fixture, a caller
+constructing a plist) may carry `:ts' alone, and for those the honest
+answer is \"cannot tell\", which apply turns back into the single
+whole-span line it wrote before this existed."
+  (and (seq-find (lambda (e)
+                   (member (plist-get e :kind) '("pause" "resume")))
+                 events)
+       t))
+
+(defun claude-code-ide-org--span-work-runs (events &optional floor)
+  "Return the runs of work inside EVENTS as a list of (START . END).
+
+A run is a `resume' -> `pause' adjacency: the agent was running from the
+prompt that woke it until the turn ended.  Everything else between two
+guideposts is the human thinking, and used to be recorded as work
+because a span was written end to end -- 39.10 h against 21.59 h of
+actual turn time over the post-cutover corpus, a ~45% overcount
+\(TODO.org :ID: 226ed53b).
+
+Runs separated by less than FLOOR seconds (default
+`claude-code-ide-org-span-idle-floor') are merged, absorbing that idle
+rather than writing two lines around it.  Strictly less, so a gap of
+exactly FLOOR splits.
+
+Three deliberate silences, each of which looks like a bug from the
+outside:
+
+- A `resume' -> `resume' adjacency contributes nothing.  Work almost
+  certainly happened across it -- two `UserPromptSubmit' with no `Stop'
+  between them is what an interrupt or a queued follow-up looks like --
+  but there is no non-arbitrary way to pair those resumes, and inventing
+  an endpoint is exactly what this change exists to stop.  There are 9
+  such adjacencies in the corpus and they are TODO.org :ID: 09c134c4's
+  question, not this function's.
+- A run whose *rendered* endpoints are the same minute is dropped.  Org
+  timestamps are minute-precision, so such a run writes `=>  0:00' --
+  \"an interval that was never observed\", which
+  `claude-code-ide-org--review-apply-clock' already refuses.  The floor
+  alone does not prevent this: a sub-minute turn isolated by more than
+  FLOOR of idle on both sides survives the merge as its own run.  43 of
+  420 turn-pairs in the corpus are under a minute.
+- EVENTS with no usable adjacency yield nil, and the caller writes an
+  annotation with no CLOCK line -- the same answer a zero-width span has
+  always got, for the same reason.
+
+Pure, and takes EVENTS rather than an item, so apply, the review
+buffer's \"writes N\" summary and the corpus measurement all read one
+implementation.  Sorts defensively: callers hand it a span's `:events',
+which are filtered from an already-sorted list, but nothing in the type
+says so."
+  (let* ((floor (or floor claude-code-ide-org-span-idle-floor))
+         (fmt "[%Y-%m-%d %a %H:%M]")
+         (points (sort (mapcar (lambda (e) (cons (plist-get e :ts)
+                                                 (plist-get e :kind)))
+                               events)
+                       (lambda (a b) (time-less-p (car a) (car b)))))
+         runs previous)
+    (dolist (point points)
+      (when (and previous
+                 (equal (cdr previous) "resume")
+                 (equal (cdr point) "pause"))
+        (let ((start (car previous))
+              (end (car point))
+              (last (car runs)))
+          (if (and last
+                   (< (float-time (time-subtract start (cdr last))) floor))
+              (setcdr last end)
+            (push (cons start end) runs))))
+      (setq previous point))
+    (seq-remove (lambda (run)
+                  (equal (format-time-string fmt (car run))
+                         (format-time-string fmt (cdr run))))
+                (nreverse runs))))
 
 ;;; Review and apply ---------------------------------------------------------
 ;;
@@ -3673,8 +3797,18 @@ stated goal."
      ((plist-get item :assigned) "assigned at review")
      (t "suggested span, accepted at review"))))
 
-(defun claude-code-ide-org--review-format-annotation (item)
+(defun claude-code-ide-org--review-format-annotation (item &optional start end)
   "Return the :LOGBOOK: annotation line for ITEM.
+
+START and END override ITEM's own endpoints, which is how apply labels
+each of the several CLOCK lines a span can now write: one annotation per
+line, at that line's endpoints, rather than one envelope annotation the
+lines under it do not match.  That keeps the pairing
+`claude-code-ide-org--consolidate-logbook-text' depends on -- it sorts
+every drawer entry by its first timestamp, and a CLOCK line and the
+annotation describing it stay adjacent only because they share one.
+Omit both and the item's own `:start'/`:end' are used, which is what the
+review buffer wants: it is describing the span, not a line.
 
 Always *inactive* timestamps, so nothing written from the queue reaches
 `org-agenda'.
@@ -3703,8 +3837,8 @@ the first unreadable.  See :ID: b8e6007a."
   (let* ((fmt "[%Y-%m-%d %a %H:%M]")
          (note (claude-code-ide-org--review-annotation-label item)))
     (format "- %s--%s%s"
-            (format-time-string fmt (plist-get item :start))
-            (format-time-string fmt (plist-get item :end))
+            (format-time-string fmt (or start (plist-get item :start)))
+            (format-time-string fmt (or end (plist-get item :end)))
             (if (and note (not (string-empty-p note))) (concat " " note) ""))))
 
 (defun claude-code-ide-org--logbook-has-interval-p (start end)
@@ -3726,76 +3860,135 @@ The other half of the content idempotency described on
       (let ((limit (save-excursion (outline-next-heading) (point))))
         (and (search-forward needle limit t) t)))))
 
+(defun claude-code-ide-org--review-intervals-to-write (item)
+  "Return the (START . END) intervals apply will write for ITEM.
+
+One interval per run of work when ITEM is a *suggestion* whose backing
+events are labelled, and otherwise the single interval ITEM displays.
+
+The `:suggested' condition is the load-bearing half, not a performance
+guard.  `claude-code-ide-org-review-edit-interval' sets `:suggested' nil
+precisely to record that a human drew these endpoints, and apply's
+standing claim is that it writes exactly the endpoints the human
+confirmed.  Re-deriving runs from the events under a confirmed interval
+would throw those endpoints away and substitute the reconstruction the
+human had just corrected -- the one case where this feature would make
+the record less true rather than more.  The same clause is what keeps a
+subagent's own paired `clock_in'/`clock_out' intact: that interval is
+authoritative, and has no guideposts inside it to run-split anyway."
+  (if (and (plist-get item :suggested)
+           (claude-code-ide-org--span-kinds-known-p (plist-get item :events)))
+      (claude-code-ide-org--span-work-runs (plist-get item :events))
+    (list (cons (plist-get item :start) (plist-get item :end)))))
+
 (defun claude-code-ide-org--review-apply-clock (item)
-  "Write ITEM's CLOCK: interval and its :LOGBOOK: annotation at point.
+  "Write ITEM's CLOCK: intervals and their :LOGBOOK: annotations at point.
 Uses raw `org-clock-in'/`org-clock-out' with both endpoints supplied up
 front, never the consolidating wrapper, and binds
 `org-clock-out-remove-zero-time-clocks' nil so a short confirmed
-interval survives. The pair is written back to back so no clock is ever
+interval survives. Each pair is written back to back so no clock is ever
 left open across a state change -- `claude-code-ide-org--blocker-clock-
-running-p' would refuse a -> DONE transition if one were."
+running-p' would refuse a -> DONE transition if one were.
+
+*One line per run of work, not one per span* (TODO.org :ID: 226ed53b).
+A span is a cluster of guideposts and includes the human's thinking
+between turns; writing it end to end recorded that thinking as work, and
+over the post-cutover corpus that was 39.10 h recorded against 21.59 h
+of turns.  `claude-code-ide-org--review-intervals-to-write' decides what
+comes out, and it declines to split anything a human confirmed.
+
+An item with no run to write still gets its annotation.  That is the
+zero-width case generalised rather than a new rule: the guideposts are
+real evidence that something happened, and the absent CLOCK line is the
+same refusal to claim a duration nobody observed."
   (let ((start (plist-get item :start))
-        (end (plist-get item :end)))
-    ;; Close any running clock FIRST. `org-clock-in' throws `abort' and
-    ;; opens nothing when a clock is already running on this same heading
-    ;; at this same point (org-clock.el:1440) -- it just messages "Clock
-    ;; continues in ...". The subsequent `org-clock-out' then closes the
-    ;; *pre-existing* clock at our END, producing a negative-duration
-    ;; CLOCK line. Observed live on 2026-08-07: [15:53]--[13:17] => -3:24.
-    ;; Pre-cutover this is the common case, not an edge case, since the
-    ;; UserPromptSubmit hook keeps a live clock on whatever heading is
-    ;; being worked on -- typically the very one under review.
-    (when (org-clocking-p)
-      (org-clock-out nil t))
-    ;; A zero-width span is a single interaction point, not a duration --
-    ;; a lone guidepost with nothing to bracket it. Annotate it (it is
-    ;; real evidence that something happened at that moment) but write no
-    ;; CLOCK: line, since `=>  0:00' would claim an interval that was
-    ;; never observed. Note this is NOT the rounding behavior being
-    ;; avoided elsewhere: nothing is being discarded, because there was
-    ;; no duration to discard.
-    (unless (or (time-equal-p start end)
-                ;; Content-based idempotency: an interval with identical
-                ;; endpoints on this heading is a replay, not two real
-                ;; intervals a human happened to confirm twice. Without
-                ;; this, reprocessing an archived queue file silently
-                ;; doubles recorded time -- and silently is the problem,
-                ;; since a duplicated CLOCK line looks exactly like a
-                ;; legitimate one (TODO.org :ID: 78f485a8).
-                (claude-code-ide-org--logbook-has-interval-p start end))
-      (let ((org-clock-out-remove-zero-time-clocks nil)
-            (closed nil))
-        (org-clock-in nil start)
-        ;; Never close a clock we did not open. If `org-clock-in' aborted
-        ;; for any reason, calling `org-clock-out' here would close
-        ;; whatever else happens to be running, at our end time. Failing
-        ;; loudly is the only safe response -- the alternative is a
-        ;; plausible-looking interval on the wrong heading.
-        (unless (org-clocking-p)
-          (error "org-clock-in did not open a clock; refusing to clock out"))
-        ;; If `org-clock-out' signals, the clock we just opened stays
-        ;; running. `--review-apply' then carries on to the next item,
-        ;; whose own defensive close above shuts our clock at *now* --
-        ;; writing a duration nobody observed, scaling with the distance
-        ;; from the backdated start to wall-clock time. Measured at 9:56
-        ;; for an intended 0:30 (TODO.org :ID: 803314aa). Worse, this
-        ;; item's `--append-to-drawer' below never runs, so the fabricated
-        ;; CLOCK line carries no annotation and reads as legitimate.
-        ;;
-        ;; Cancelling is the honest cleanup, not retrying the close: the
-        ;; item is reported as an error, so its events are never marked
-        ;; applied and the interval stays pending for a later pass. No
-        ;; record beats a confident wrong one.
-        (unwind-protect
-            (progn (org-clock-out nil nil end)
-                   (setq closed t))
-          (unless closed
-            ;; `ignore-errors' so a failure here cannot mask the original
-            ;; error, which is the one the human needs to see.
-            (ignore-errors
-              (when (org-clocking-p) (org-clock-cancel))))))))
+        (end (plist-get item :end))
+        (runs (claude-code-ide-org--review-intervals-to-write item)))
+    (dolist (run runs)
+      (claude-code-ide-org--review-write-one-interval item (car run) (cdr run)))
+    ;; No run means no CLOCK line at all, so the span would go
+    ;; unannotated and vanish from the drawer entirely -- the evidence
+    ;; would be silently dropped rather than deliberately not-claimed.
+    (unless runs
+      (claude-code-ide-org--append-to-drawer
+       "LOGBOOK" (claude-code-ide-org--review-format-annotation item start end)))))
+
+(defun claude-code-ide-org--review-write-one-interval (item start end)
+  "Write one CLOCK: line for START--END plus ITEM's annotation, at point."
+  ;; Close any running clock FIRST. `org-clock-in' throws `abort' and
+  ;; opens nothing when a clock is already running on this same heading
+  ;; at this same point (org-clock.el:1440) -- it just messages "Clock
+  ;; continues in ...". The subsequent `org-clock-out' then closes the
+  ;; *pre-existing* clock at our END, producing a negative-duration
+  ;; CLOCK line. Observed live on 2026-08-07: [15:53]--[13:17] => -3:24.
+  ;; Pre-cutover this is the common case, not an edge case, since the
+  ;; UserPromptSubmit hook keeps a live clock on whatever heading is
+  ;; being worked on -- typically the very one under review.
+  (when (org-clocking-p)
+    (org-clock-out nil t))
+  ;; A zero-width span is a single interaction point, not a duration --
+  ;; a lone guidepost with nothing to bracket it. Annotate it (it is
+  ;; real evidence that something happened at that moment) but write no
+  ;; CLOCK: line, since `=>  0:00' would claim an interval that was
+  ;; never observed. Note this is NOT the rounding behavior being
+  ;; avoided elsewhere: nothing is being discarded, because there was
+  ;; no duration to discard.
+  (unless (or (time-equal-p start end)
+              ;; Content-based idempotency: an interval with identical
+              ;; endpoints on this heading is a replay, not two real
+              ;; intervals a human happened to confirm twice. Without
+              ;; this, reprocessing an archived queue file silently
+              ;; doubles recorded time -- and silently is the problem,
+              ;; since a duplicated CLOCK line looks exactly like a
+              ;; legitimate one (TODO.org :ID: 78f485a8).
+              ;;
+              ;; Keyed on the interval actually being written, which is
+              ;; why this sits here rather than in the caller: since a
+              ;; span writes several, a check keyed on the span's own
+              ;; endpoints would match nothing ever written and let a
+              ;; replay double every line. Worse, partial failure is
+              ;; NORMAL on this path -- the `unwind-protect' below
+              ;; cancels mid-item, so the retry that follows is the
+              ;; expected case rather than the exotic one, and it must
+              ;; land only the runs that did not.
+              (claude-code-ide-org--logbook-has-interval-p start end))
+    (let ((org-clock-out-remove-zero-time-clocks nil)
+          (closed nil))
+      (org-clock-in nil start)
+      ;; Never close a clock we did not open. If `org-clock-in' aborted
+      ;; for any reason, calling `org-clock-out' here would close
+      ;; whatever else happens to be running, at our end time. Failing
+      ;; loudly is the only safe response -- the alternative is a
+      ;; plausible-looking interval on the wrong heading.
+      (unless (org-clocking-p)
+        (error "org-clock-in did not open a clock; refusing to clock out"))
+      ;; If `org-clock-out' signals, the clock we just opened stays
+      ;; running. `--review-apply' then carries on to the next item,
+      ;; whose own defensive close above shuts our clock at *now* --
+      ;; writing a duration nobody observed, scaling with the distance
+      ;; from the backdated start to wall-clock time. Measured at 9:56
+      ;; for an intended 0:30 (TODO.org :ID: 803314aa). Worse, this
+      ;; item's `--append-to-drawer' below never runs, so the fabricated
+      ;; CLOCK line carries no annotation and reads as legitimate.
+      ;;
+      ;; Cancelling is the honest cleanup, not retrying the close: the
+      ;; item is reported as an error, so its events are never marked
+      ;; applied and the interval stays pending for a later pass. No
+      ;; record beats a confident wrong one.
+      (unwind-protect
+          (progn (org-clock-out nil nil end)
+                 (setq closed t))
+        (unless closed
+          ;; `ignore-errors' so a failure here cannot mask the original
+          ;; error, which is the one the human needs to see.
+          (ignore-errors
+            (when (org-clocking-p) (org-clock-cancel)))))))
+  ;; One annotation per line, at that line's endpoints. Its own
+  ;; exact-line idempotency (`--append-to-drawer') therefore keys on the
+  ;; same interval the CLOCK line does, so a replay skips both together
+  ;; rather than skipping one and duplicating the other.
   (claude-code-ide-org--append-to-drawer
-   "LOGBOOK" (claude-code-ide-org--review-format-annotation item)))
+   "LOGBOOK" (claude-code-ide-org--review-format-annotation item start end)))
 
 (defun claude-code-ide-org--review-apply-state (item)
   "Apply ITEM's TODO transition at point, backdated, with native logging.
@@ -4343,6 +4536,34 @@ all still pending.
   "Return the review item on the current line, or nil."
   (get-text-property (line-beginning-position) 'claude-code-ide-org-item))
 
+(defun claude-code-ide-org--review-written-summary (item)
+  "Return a short phrase naming what apply will really write for ITEM,
+or nil when that is exactly the interval ITEM already displays.
+
+The review buffer shows a *span* -- the cluster of guideposts, idle
+included -- and apply writes only the runs of work inside it.  Over the
+corpus the median span writes about 46% of what it displays.  A human
+pressing `x' on a line reading `2:52' while `1:19' is what lands has
+confirmed a number that exists nowhere, which is a worse failure than
+the overcount it replaced: the overcount was at least visible in the
+drawer afterwards.
+
+Says `writes nothing' rather than falling silent when no run survives.
+That is a real outcome -- a span of `resume' -> `resume' adjacencies, or
+of turns too short to render a minute -- and it is the one a human most
+needs to see before marking, since the item will otherwise look applied
+and leave no CLOCK line behind."
+  (when (and (plist-get item :suggested)
+             (claude-code-ide-org--span-kinds-known-p (plist-get item :events)))
+    (let* ((runs (claude-code-ide-org--span-work-runs (plist-get item :events)))
+           (seconds (apply #'+ (mapcar (lambda (r)
+                                         (float-time (time-subtract (cdr r) (car r))))
+                                       runs)))
+           (minutes (round (/ seconds 60))))
+      (if runs
+          (format "writes %d:%02d in %d" (/ minutes 60) (% minutes 60) (length runs))
+        "writes nothing"))))
+
 (defun claude-code-ide-org--review-describe (item)
   "Return the one-line description of ITEM shown in the review buffer.
 
@@ -4384,7 +4605,7 @@ a wrong log line."
            ;; than "something is wrong".  The heading it would land on is
            ;; named outright: a suggestion nobody can see is not a
            ;; suggestion, it is a silent guess.
-           (format "%sspan    %s  %s"
+           (format "%sspan    %s  %s%s"
                    (if (plist-get item :id) "? " "! ")
                    (claude-code-ide-org--review-format-annotation item)
                    (if (plist-get item :id)
@@ -4393,10 +4614,14 @@ a wrong log line."
                                (or (claude-code-ide-org--review-heading-title
                                     (plist-get item :id))
                                    "(unknown heading)"))
-                     "UNASSIGNED -- press `a' to choose a heading"))
-         (format "  clock   %s%s"
+                     "UNASSIGNED -- press `a' to choose a heading")
+                   (let ((written (claude-code-ide-org--review-written-summary item)))
+                     (if written (concat "  " written) "")))
+         (format "  clock   %s%s%s"
                  (claude-code-ide-org--review-format-annotation item)
-                 (if (plist-get item :suggested) "  (suggested)" "  (agent)"))))
+                 (if (plist-get item :suggested) "  (suggested)" "  (agent)")
+                 (let ((written (claude-code-ide-org--review-written-summary item)))
+                   (if written (concat "  " written) "")))))
       ;; The target is resolved here, at render time, purely to say
       ;; whether it still resolves -- a capture can easily outlive the
       ;; heading it was filed under, and finding that out at apply time
@@ -5288,9 +5513,34 @@ A remainder inherits ITEM's heading as a *suggestion* but is marked
 unassigned again when the original was reconstructed: narrowing usually
 means the tail belongs somewhere else, which is the whole reason the
 human reached for `e'.  Never inherits `:marked' -- a remainder is a new
-decision, not part of the batch already confirmed."
-  (let ((threshold claude-code-ide-org-guidepost-gap-threshold))
-    (dolist (span (claude-code-ide-org--aggregate-guideposts events threshold))
+decision, not part of the batch already confirmed.
+
+*A remainder may never extend past the endpoint the human just set.*
+The events before ITEM's new start and the events after its new end are
+clustered separately, and that separation is the whole rule -- clustered
+together they can form one span bridging the window ITEM now occupies.
+That is not hypothetical since clustering became kind-aware: narrowing
+to a slice *inside* a single turn leaves that turn's `resume' and
+`pause' on opposite sides, and a `resume' -> `pause' adjacency is
+precisely the one `claude-code-ide-org--aggregate-guideposts' now
+refuses to split at any gap.  The remainder offered back would then
+strictly contain the interval the human had just drawn -- the same time
+counted twice, once confirmed and once as a leftover, with the leftover
+looking like the more complete of the two.
+
+`config-test.el's two existing narrowing tests cannot see this: both
+assert on event *counts*, which are conserved either way, and both
+narrow to a boundary that happens to leave the leftovers all on one
+side."
+  (let ((threshold claude-code-ide-org-guidepost-gap-threshold)
+        (before (seq-filter (lambda (e) (time-less-p (plist-get e :ts)
+                                                     (plist-get item :start)))
+                            events))
+        (after (seq-filter (lambda (e) (time-less-p (plist-get item :end)
+                                                    (plist-get e :ts)))
+                           events)))
+    (dolist (span (append (claude-code-ide-org--aggregate-guideposts before threshold)
+                          (claude-code-ide-org--aggregate-guideposts after threshold)))
       ;; Skip a zero-width remainder. On the main path a lone guidepost
       ;; is real evidence that something happened at that moment, so a
       ;; zero-width span is honest and worth offering. As a *remainder*
