@@ -3680,13 +3680,18 @@ ones simply because different code wrote them.
 FLOOR defaults to `claude-code-ide-org-span-idle-floor'.  Strictly less
 than, so a gap of exactly FLOOR splits.
 
-Dropping an interval whose *rendered* endpoints share a minute is the
-second half and is not optional: org timestamps are minute-precision, so
-such an interval writes `=>  0:00' -- an interval that was never
-observed.  The floor alone does not prevent it, because a sub-minute
-turn isolated by more than FLOOR survives the merge, and because closing
-an unmatched turn at its window bound can produce a zero-width interval
-outright."
+An interval is then dropped when it would write `=>  0:00' -- \"an
+interval that was never observed\" -- or when its *rendered* endpoints
+share a minute.  The floor alone prevents neither: a sub-minute turn
+isolated by more than FLOOR survives the merge, and closing an unmatched
+turn at its window bound can produce a zero-width interval outright.
+
+*Both conditions are needed, and neither implies the other.*  An
+interval of 50 seconds inside one minute renders `[09:00]--[09:00]' but
+rounds to `=>  0:01'; one of 20 seconds across a minute boundary renders
+`[08:14]--[08:15]' but rounds to `=>  0:00'.  Testing only the endpoints
+was the first version, and it wrote nine `0:00' lines into the real
+files during the 507754ba recompute before the diff was read."
   (let ((floor (or floor claude-code-ide-org-span-idle-floor))
         (fmt "[%Y-%m-%d %a %H:%M]")
         merged)
@@ -3699,8 +3704,11 @@ outright."
               (setcdr last (cdr interval)))
           (push (cons (car interval) (cdr interval)) merged))))
     (seq-remove (lambda (iv)
-                  (equal (format-time-string fmt (car iv))
-                         (format-time-string fmt (cdr iv))))
+                  (or (equal (format-time-string fmt (car iv))
+                             (format-time-string fmt (cdr iv)))
+                      (zerop (round (/ (float-time
+                                        (time-subtract (cdr iv) (car iv)))
+                                       60)))))
                 (nreverse merged))))
 
 (defun claude-code-ide-org--busy-intervals (events &optional bound)

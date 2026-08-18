@@ -4011,6 +4011,34 @@ adjacency `--consolidate-logbook-text' sorts on."
     (should (equal new (claude-code-ide-org--recompute-logbook-text
                         new guideposts claude-code-ide-org-test--recompute-since)))))
 
+(ert-deftest claude-code-ide-org-test-idle-floor-drops-both-shapes-of-zero ()
+  "Two different intervals both write a line no one should read, and
+neither condition catches the other.
+
+50 seconds inside one minute renders `[09:00]--[09:00]' -- degenerate
+endpoints -- but rounds to `=>  0:01'. 20 seconds across a minute
+boundary renders `[08:14]--[08:15]' -- perfectly ordinary endpoints --
+but rounds to `=>  0:00', which this project calls an interval that was
+never observed.
+
+Testing only the endpoints was the first version of this, and it wrote
+nine `0:00' lines into the real org files during the 507754ba recompute.
+They were caught by reading the diff, not by the suite."
+  (let ((claude-code-ide-org-span-idle-floor 120))
+    ;; Degenerate endpoints, non-zero rounding.
+    (should-not (claude-code-ide-org--apply-idle-floor
+                 (list (cons (date-to-time "2026-08-06T09:00:05-0500")
+                             (date-to-time "2026-08-06T09:00:55-0500")))))
+    ;; Ordinary endpoints, zero rounding.
+    (should-not (claude-code-ide-org--apply-idle-floor
+                 (list (cons (date-to-time "2026-08-06T08:14:50-0500")
+                             (date-to-time "2026-08-06T08:15:10-0500")))))
+    ;; And an interval that survives both, so the filter is not simply
+    ;; discarding everything short.
+    (should (= 1 (length (claude-code-ide-org--apply-idle-floor
+                          (list (cons (date-to-time "2026-08-06T08:14:00-0500")
+                                      (date-to-time "2026-08-06T08:15:00-0500")))))))))
+
 (ert-deftest claude-code-ide-org-test-recompute-drops-zero-keeps-annotation ()
   "A line with no busy time loses its CLOCK line and keeps its note.
 
