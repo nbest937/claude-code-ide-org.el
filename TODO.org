@@ -2873,10 +2873,15 @@ function returns and adds one prompt. Related to
 heading put the evidence on screen, and this one would capture the
 conclusion the human draws from it — but neither requires the other.
 
-** TODO Make the guidepost pipeline produce durations that mean what they say :code:
+** DOING Make the guidepost pipeline produce durations that mean what they say :code:
 :PROPERTIES:
 :ID:       406e9200-c3e7-49ac-a8d0-d6ff8e061ce4
 :CREATED:  [2026-08-18 Tue 08:15]
+:END:
+:LOGBOOK:
+- State "DOING"      from "PLANNING"   [2026-08-18 Tue 08:54]
+- State "PLANNING"   from "TODO"       [2026-08-18 Tue 08:22] \\
+  plan the pipeline epic and its four children
 :END:
 
 A span's duration is currently wrong in both directions, and the error
@@ -4593,13 +4598,11 @@ CLOSED: [2026-08-17 Mon 18:50]
 :LOGBOOK:
 CLOCK: [2026-08-17 Mon 15:28]--[2026-08-17 Mon 16:37] =>  1:09
 - [2026-08-17 Mon 15:28]--[2026-08-17 Mon 16:37] single turn, no guideposts inside it
-CLOCK: [2026-08-17 Mon 16:49]--[2026-08-17 Mon 17:17] =>  0:28
-- [2026-08-17 Mon 16:49]--[2026-08-17 Mon 17:17] single turn, no guideposts inside it
-- State "DONE"       from "DOING"      [2026-08-17 Mon 18:50] \\
-  swept and structure judged: keep both
 - State "PLANNING"   from "TODO"       [2026-08-17 Mon 15:28]
 CLOCK: [2026-08-17 Mon 16:37]--[2026-08-17 Mon 16:49] =>  0:12
 - [2026-08-17 Mon 16:37]--[2026-08-17 Mon 16:49] assigned at review
+CLOCK: [2026-08-17 Mon 16:49]--[2026-08-17 Mon 17:17] =>  0:28
+- [2026-08-17 Mon 16:49]--[2026-08-17 Mon 17:17] single turn, no guideposts inside it
 - State "DOING"      from "PLANNING"   [2026-08-17 Mon 16:50] \\
   plan approved, starting the sweep
 CLOCK: [2026-08-17 Mon 17:17]--[2026-08-17 Mon 17:46] =>  0:29
@@ -4612,6 +4615,10 @@ CLOCK: [2026-08-17 Mon 18:36]--[2026-08-17 Mon 18:37] =>  0:01
 - [2026-08-17 Mon 18:36]--[2026-08-17 Mon 18:37] assigned at review
 CLOCK: [2026-08-17 Mon 18:40]--[2026-08-17 Mon 18:50] =>  0:10
 - [2026-08-17 Mon 18:40]--[2026-08-17 Mon 18:50] assigned at review
+- State "DONE"       from "DOING"      [2026-08-17 Mon 18:50] \\
+  swept and structure judged: keep both
+CLOCK: [2026-08-17 Mon 18:51]--[2026-08-17 Mon 19:11] =>  0:20
+- [2026-08-17 Mon 18:51]--[2026-08-17 Mon 19:11] assigned at review
 :END:
 
 Raised by the user 2026-08-12: nothing has been archived in quite some
