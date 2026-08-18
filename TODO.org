@@ -3494,6 +3494,61 @@ it. The scope of this correction should follow that answer.
 [[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — the epic's plan document, which
 carries this child's design rather than a file of its own.
 
+*Applied 2026-08-18* (=6df5043=, =47cabb8=, =79f23b5=), option A: correct
+what was recorded, rather than reconcile the record against everything
+the queue knows. The second would have needed a human to re-attribute
+about 9 hours that no guidepost carries a heading for, and the queue is
+append-only, so A forecloses nothing — B stays available.
+
+*Result.* 122 headings with a =:LOGBOOK:= scanned, 44 rewritten. The
+post-cutover portion, which is what was recomputed, falls *41.32 h ->
+19.95 h*. Counting all CLOCK lines including the pre-cutover ones this
+never touches: TODO.org 18.17 -> 11.83 h, DONE.org 49.27 -> 36.67 h. Line
+count roughly doubles, 170 -> 316, because a span written end-to-end
+becomes one line per run with the idle between them no longer recorded.
+Every heading attribution is preserved — the recompute rewrites intervals
+inside the drawer it found them in and never moves a line between
+headings.
+
+*Three simpler versions were wrong, and each failure is the same shape:
+silent, plausible, and in the direction that looks like the fix working.*
+
+1. /Per-session pairing/ lost a background job's first turn entirely,
+   because its =resume= is in the launching session's file and its
+   =pause= in the job's
+   ([[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]]). 37 minutes on
+   one line, which "corrected" to =0:00=. Replaced by a depth counter,
+   which also gives
+   [[id:7d739afd-f879-445c-b0b6-65e295585a94][7d739afd]]'s union rule for
+   free.
+2. /Reading only live queue files/ missed 7 archived sessions out of 18 —
+   41 drawers seen against 44. Archiving takes the *oldest* sessions
+   first, so what it hid was exactly the evidence behind the oldest CLOCK
+   lines.
+3. /Dropping only degenerate endpoints/ still wrote nine =>  0:00= lines
+   into the real files, because a 20-second turn across a minute boundary
+   renders =[08:14]--[08:15]= and looks ordinary. Caught by reading the
+   diff, not by the suite. The files were reverted and the command re-run
+   from the original record, so what landed is one clean application
+   rather than two stacked.
+
+*Verified:* no =>  0:00= line in either file; a second dry run reports 0
+drawers to rewrite, so the result is a fixed point; =bin/test= 315/315
+with each new test checked against a mutation of what it claims to pin;
+=bin/lint-org= unchanged at 0 errors / 28 warnings.
+
+*One test was found to verify nothing* and was rewritten. The window
+extension to END + 60s was asserted by checking the line did not become
+=0:00= — which passed with the extension removed, because closing an
+unmatched turn at its window bound produces a perfectly plausible line.
+It now asserts the =>= total, the only thing that can differ. The
+docstring was corrected with it: the extension recovers under a minute
+per line, worth 0.52 h across the corpus, not the rescue-from-zero the
+first draft claimed. That claim was true of the superseded pairing
+implementation and had been carried across unexamined — the same
+plan-drift pattern this epic keeps producing.
+
+
 
 *** DONE Decouple live "what is Claude attending to" visibility from the authoritative org clock :code:
 CLOSED: [2026-08-18 Tue 10:16]
