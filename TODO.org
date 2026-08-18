@@ -3006,6 +3006,10 @@ CLOCK: [2026-08-18 Tue 07:14]--[2026-08-18 Tue 07:56] =>  0:42
   kind-aware clustering, per-run lines, silence trigger
 CLOCK: [2026-08-18 Tue 10:22]--[2026-08-18 Tue 10:40] =>  0:18
 - [2026-08-18 Tue 10:22]--[2026-08-18 Tue 10:40] implement the two-mechanism fix
+CLOCK: [2026-08-18 Tue 10:44]--[2026-08-18 Tue 10:45] =>  0:01
+- [2026-08-18 Tue 10:44]--[2026-08-18 Tue 10:45] implement the two-mechanism fix
+CLOCK: [2026-08-18 Tue 10:47]--[2026-08-18 Tue 11:24] =>  0:37
+- [2026-08-18 Tue 10:47]--[2026-08-18 Tue 11:24] suggested span, accepted at review
 :END:
 
 =38b92521='s :LOGBOOK: claimed *3:59* for a session that ran 15:28 to
