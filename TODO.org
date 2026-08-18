@@ -2835,6 +2835,69 @@ section describes a clocking mechanism that no longer exists — it turns
 out the mechanism does still exist, which makes that section wrong in a
 more interesting way than "out of date".
 
+-----
+
+*The mechanism, demonstrated 2026-08-17 rather than argued.* A long turn
+does *not* emit zero guideposts — it emits exactly two, its own
+boundaries. =Stop= fires =pause= when a turn ends, =UserPromptSubmit=
+fires =resume= when the next begins, and nothing fires in between. So a
+turn of duration D contributes two timestamps D apart, and the only thing
+that decides their fate is D against the 1200-second threshold:
+
+: SHORT turn (10 min):  [10:00]--[10:10]  =>  10 min
+: LONG  turn (69 min):  [10:00]--[10:00]  =>   0 min
+:                       [11:09]--[11:09]  =>   0 min
+
+Identical evidence, opposite outcome. Worse, in the real 15:28 case the
+long turn's closing =pause= was absorbed into the *following* cluster,
+where it described a 3-minute turn it had nothing to do with — so the
+duration is not merely lost, part of its evidence is re-attributed.
+
+*Root cause: =--aggregate-guideposts= never reads =:kind:=.* It maps
+=:ts= over the events and clusters an undifferentiated stream of
+timestamps. But the two gap types mean opposite things — =pause= ->
+=resume= is nobody being there, =resume= -> =pause= is one turn running.
+The threshold was tuned for the first (bimodal latency over four days,
+:ID: 96a51c2f). Applied to the second it inverts: the strongest evidence
+of continuous work reads as absence. *The fix is therefore not retuning
+1200* — raising it swallows real idle, lowering it fragments more turns.
+The distinction is already on every event and is discarded before
+clustering.
+
+*Measured across the whole post-cutover record, and it corrects the
+direction stated above.* 834 guideposts, 2026-08-11 onward:
+
+| method                                  | total   |
+|-----------------------------------------+---------|
+| kind-blind clustering (what runs today) | 39.10 h |
+| =resume= -> =pause= pairing             | 21.59 h |
+| difference                              | −17.50 h |
+
+*The net bias is overcounting, not undercounting* — about 45%. Clustering
+absorbs every idle gap under 20 minutes into the surrounding span, and
+CLAUDE.md defines a CLOCK entry as active work only. The long-turn
+blindness is real but minor beside it: *six* turns in the entire
+post-cutover history exceeded the threshold, 4.88 h in total. Two opposite
+biases, and the smaller one is the one that gets noticed because it
+produces a visible zero-width item.
+
+*A post-cutover regression, specifically.* Before 2026-08-11 the hooks
+clocked directly — the clock ran *through* a turn and stopped at its
+boundary, which is method B. The refactor replaced a mechanism that
+handled long turns correctly with one that cannot see them.
+
+*On correcting the historical record: measure, do not rewrite.* Raw
+=pause=/=resume= events survive from 2026-08-07 (910 of them, live and
+archived queue files). But 31 of DONE.org's 114 CLOCK lines predate the
+queue and are unrecoverable; pre-cutover lines are not affected anyway;
+and every post-cutover span carries "suggested span, accepted at review"
+or "assigned at review" — a human looked and said yes. Silently replacing
+those with recomputed values is what
+[[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]] was filed against,
+where rounding destroyed a reviewed interval. The archive should keep a
+documented bias rather than acquire a silent recomputation.
+
+
 
 * Observability
 :PROPERTIES:
