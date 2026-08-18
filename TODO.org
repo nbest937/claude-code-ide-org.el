@@ -3034,6 +3034,66 @@ proximity rather than membership: the queue is complete without it.
 [[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — the epic's plan document, which
 carries this child's design rather than a file of its own.
 
+*Ran the free check 2026-08-18, and it says do not instrument.* The plan
+asked for this before writing any code: 891 post-cutover guideposts
+across 16 sessions, classified from data already on disk.
+
+| unmatched =resume=                                | 2 |
+| ...handoff to a background job                    | 1 |
+| ...in flight, the stream still open               | 1 |
+| ...unexplained                                    | 0 |
+| =resume= -> =resume= adjacencies                  | 9 |
+| ...with an agent finishing within 5 minutes       | 0 |
+| ...followed by real work (a =pause= 8s-1959s on)  | 9 |
+
+Every one of the nine is an interrupt or a queued follow-up — a second
+=UserPromptSubmit= before the first turn's =Stop= fired, with gaps of
+30s to 1705s and genuine work after each. That is exactly the hypothesis
+the plan proposed testing first, and it holds with nothing left over.
+The one handoff is
+[[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]], found earlier
+today and not a phantom either.
+
+*Not phantom-free evidence, and it must not be read that way.* Only
+*two* subagent runs exist post-cutover (2 =clock_in=, 2 =clock_out=,
+2 distinct agents). The condition that produced the original observation
+barely occurred, so "no phantoms found" is close to uninformative on its
+own. The case for closing rests on the next paragraph, not this one.
+
+*The harm has no mechanism left, whether or not phantoms still fire.*
+This heading's stated defect is that a robot wake-up "reads as the human
+returning to the keyboard" and so "inflates apparent human-present
+time". Nothing claims human-present time any more.
+[[id:b8e6007a-ae13-4b13-bb2e-a5df39435af0][b8e6007a]] made every
+queue-derived annotation *inactive*, on the finding that the queue
+records agent activity and nothing else, and that conflating the two
+makes the agenda unreadable. And since
+[[id:226ed53b-c302-4529-870f-a42962b50bde][226ed53b]]'s step 2(b) the
+only thing written as duration is a =resume= -> =pause= run. A phantom
+=resume= marks the moment the model was genuinely re-invoked and began
+working; the run that follows it is real agent time, and counting it is
+*correct* under the semantics the record now has.
+
+So the defect dissolved sideways — not by anything done to it, but
+because the quantity it corrupted stopped being claimed. Worth naming as
+the same shape as
+[[id:31f766ab-90ed-4950-bc5b-787528c8fe84][31f766ab]]'s cause 2, which
+the plan *predicted* would dissolve and did not: predictions about which
+defects evaporate under a refactor have now been wrong once and right
+once, so neither should be trusted without the check.
+
+*The one residual is a sentence, not a mechanism.* CLAUDE.md still says
+a clock is "resumed the moment the user sends the next prompt", which is
+precisely what a background wake-up falsifies. That line is already
+owned by [[id:d39f5f0d-bee3-4aa4-8494-0bddd07e9067][d39f5f0d]], so it is
+left there rather than duplicated here.
+
+*Nothing was built, deliberately.* The plan's fallback — record
+=transcript_path= plus an offset in =bin/hooks/queue-append= — is not
+warranted: it would answer a question whose answer no longer changes any
+number.
+
+
 
 *** REVIEW Two clock mechanisms disagree, and one of them predates the cutover :code:
 :PROPERTIES:
