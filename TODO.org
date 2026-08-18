@@ -3124,6 +3124,50 @@ documented bias rather than acquire a silent recomputation.
 [[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — the epic's plan document, which
 carries this child's design rather than a file of its own.
 
+*Step 2(b) shipped 2026-08-18* (=e297bbd=): apply writes one CLOCK line
+per run of work rather than one across the span.
+=claude-code-ide-org--span-work-runs= is the pure decision layer, and
+=claude-code-ide-org-span-idle-floor= (new =defcustom=, 120 s) is the
+only value that now decides which idle is recorded.
+
+*Verified, not just implemented:* =bin/test= 305/305, with each new test
+checked against a mutation of the thing it pins -- floor =<== instead of
+=<=, the rendered-zero filter removed, any adjacency counted as work, the
+=:suggested= guard dropped, apply never splitting, remainders clustered
+together again, the review line's summary removed. Each mutation failed
+exactly the test that claims to cover it and nothing else, except "any
+adjacency counts as work", which correctly failed six. =bin/lint-org=
+unchanged at 0 errors / 28 warnings. Reloaded into the running Emacs and
+the real pending queue rendered =writes 0:01 in 1= and =writes nothing=
+on its two items.
+
+*Corpus, 870 post-cutover guideposts in 40 spans*, pooled the way the
+39.10 h baseline was taken: displayed 46.04 h (unchanged by 2(b), correct
+after 2(a) -- spans now cover the long turns), written *23.05 h*, zero
+zero-width spans. Raw =resume= -> =pause= pairing over the same corpus is
+20.76 h, so the floor absorbs 2.29 h of sub-two-minute idle. Grouped per
+session, which is how production actually clusters, written is *26.67 h*:
+pooling interleaves concurrent sessions and destroys real adjacencies, so
+the baseline's own grouping slightly *under*counts. Nothing in the epic's
+figures was taken per session before, which is worth knowing before step
+5 recomputes the accumulated record against them.
+
+*What differed from the plan.* The plan expected 2-4 CLOCK lines per span
+at a 120 s floor. Measured: median 5, p90 16, max 39. A floor sweep says
+raising it does not pay -- 300 s gives median 3 and max 15 but writes
+30.89 h, re-absorbing nearly 8 h of the idle 2(b) exists to stop
+recording. 120 s is kept as the better trade, with the =defcustom= there
+for anyone who disagrees.
+
+*The floor does not, on its own, prevent* =>  0:00=. It merges across
+short *idle*; a sub-minute turn isolated by more than the floor on both
+sides survives the merge as its own run. 55 of 412 turn-pairs render as a
+single minute. So =--span-work-runs= drops any run whose *rendered*
+endpoints match, on the same "an interval that was never observed"
+grounds the zero-width span already used. This was not anticipated during
+planning and is the one place the design changed under measurement.
+
+
 
 
 
