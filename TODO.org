@@ -552,75 +552,266 @@ with no blank line separating it from the preceding body text or the
 following heading, unlike every hand-written heading in this file. Fixed
 by hand here. Probably wants =:empty-lines-before 1= on the template.
 
-** TODO org_outline's active_only orphans children of finished headings :code:
+** TODO Make the 8-character prefix resolve, for the model and the human alike :code:
 :PROPERTIES:
-:ID:       98908aff-63cc-4b71-b90b-817da361a23b
-:CREATED:  [2026-08-12 Wed 16:06]
-:END:
-:LOGBOOK:
-- State "TODO"       from              [2026-08-12 Wed 16:07] \\
-  found while documenting the tool's own response format
+:ID:       478d6ec9-1b99-4c6c-88e9-c793ad4b2f22
+:CREATED:  [2026-08-18 Tue 08:18]
 :END:
 
-Indentation is the *only* thing =org_outline='s output says about
-parentage: =claude-code-ide-org--outline-line= emits two spaces per
-absolute =org-current-level=, and =org-map-entries= emits in document
-order. A reader reconstructs the tree as "parent = nearest preceding
-line with a smaller indent," which holds only while every intermediate
-ancestor is present.
+This project made every heading =:ID:=-addressed, then made *the first
+eight characters* the unit of reference — in prose, in commit messages, in
+conversation, and as of 2026-08-18 in the footnote convention itself.
+Every actual lookup still demands all thirty-six. The abbreviations are
+readable and completely unactionable, which is not org's fault: it is the
+cost of a convention this project adopted deliberately and then did not
+finish.
 
-=active_only= breaks that. The filter lives in =--outline-line=, which
-returns nil for a DONE/CANCELLED heading — it does *not* skip the
-subtree in =--outline-map=, so that heading's still-active descendants
-are emitted anyway, at their unchanged absolute indent. Verified
-2026-08-12 against a scratch file:
+*The gap is measurable by how it is worked around.* The user's method for
+finding a heading is =C-s= in TODO.org. That is not ignorance of a better
+way — =org-id-goto= exists but its interactive form is =(interactive
+"sID: ")=, a bare string prompt with no completion against 162 live
+=org-id-locations= entries, so a prefix does not work there. Plain text
+search beats the id machinery at the project's own convention.
 
-: * Category
-: ** DONE Finished parent
-: *** TODO Active child
+*Four children, two on each side of the tool boundary:*
 
-returns
+- Reading, model-facing:
+  [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] — a partial
+  =:ID:= currently *misreports*, falling through to filename handling, and
+  no tool returns front matter without a whole-body read. Measured at
+  roughly fifteen times the cost of the answer.
+- Reading, human-facing:
+  [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]] — an interactive
+  command that completes over titles and annotates each candidate with its
+  8-character prefix, so both halves of the new footnote convention become
+  actionable.
+- Writing:
+  [[id:36b811d9-8bd3-4a32-b67d-39ccfe0d66c1][36b811d9]] — the same front
+  matter, from the other direction. Its absence was felt on 2026-08-18:
+  setting a =:BLOCKER:= required a hand-written =org-entry-put= through
+  =emacsclient=.
+- The index itself:
+  [[id:98908aff-63cc-4b71-b90b-817da361a23b][98908aff]] — =org_outline= is
+  what every one of the above would query, and its =active_only= mode
+  drops children of finished headings.
 
-: Category
-:     TODO Active child
+*Why these four and not more.* The =org_capture= items are about heading
+*creation*, a different concern with its own tighter cluster.
+[[id:c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b][c8a97d9d]] — the read-only flag
+left cleared — is tool hygiene rather than addressing, though it is the
+most frequently *felt* friction of the three: every =org_amend= and
+=org_refile= in this session cost an extra round trip to clear it. Worth
+its own decision about grouping rather than being absorbed here.
 
-The indent jumps two levels, and a reader re-parents the child onto its
-*grandparent* with nothing in the output marking that it did. Silent
-wrong structure, not a visible gap.
 
-*Not currently observable in this project's own files*, which is why it
-took this long to notice: TODO.org's level-1 headings are categories
-carrying no TODO keyword, so nothing on the path from a category to a
-level-2 task can ever be filtered out. All 60 lines of a full-depth
-=active_only= run were checked and no indent jump occurs. That is a
-property of the top-level-heading convention, not a guarantee from the
-format — the bug is one three-level task tree away from biting.
+*** TODO Read a heading's front matter, and take a partial :ID:, without a whole-body read :code:
+:PROPERTIES:
+:ID:       2d9eeebd-4375-4790-8485-92b244236a21
+:CREATED:  [2026-08-14 Fri 17:27]
+:END:
 
-=max_depth= is safe by contrast: it only ever drops the deepest lines,
-truncating leaves rather than severing an ancestor.
+*Raised by the user 2026-08-14, from a concrete request the tools cannot
+serve:* "show me the front matter of =f4e628ce= — sans body — and the
+tree of anything below it." Both halves fail, for different reasons.
 
-*Options, none chosen:*
-- *Emit the elided ancestors anyway*, unfiltered, so the path stays
-  intact. Keeps reconstruction sound and costs a few lines the caller
-  asked not to see.
-- *Re-indent survivors to their visible depth*, so indent means "depth
-  in the returned tree" rather than absolute level. Cheapest output,
-  but contradicts the deliberate absolute-level decision in
-  [[id:9f3c35c7-0229-4cd6-908b-779267ec9b97][9f3c35c7]] that makes
-  =max_depth= mean the same thing for a file and for a subtree.
-- *Skip the whole subtree* when a heading is filtered out. Simplest
-  rule, and the most likely to surprise — an active child of a DONE
-  parent is exactly the thing =active_only= should be showing.
+*What the surface actually offers.* =org_outline= returns *structure*
+only: one line per heading with level, keyword, title, =:ID:=, tags and
+a =[blocked]= marker. =org_query= returns *matches*: one line with
+state, heading, tags, =:ID:= and file. Neither returns a properties
+drawer, a =:BLOCKER:= value, a plan link, or any body.
 
-*Related, same output, separate defect:* in a multi-file call the
-per-file label is a bare =file-name-nondirectory= at column 0,
-structurally identical to a level-1 heading, which by this project's
-convention also carries no keyword, no =:ID:= and no tags. Nothing but
-"it looks like a filename" distinguishes them, so a reader that treats
-the label as a heading turns each file into one spurious root. Worth
-fixing in the same pass, since both are the same class of bug: the
-format asserting less structure than the reader needs.
-** TODO Add a tool to set heading properties, starting with :BLOCKER: :code:
+*The partial-:ID: failure is worse than absence, because it misreports.*
+=org_outline= with =scope= =f4e628ce= answered
+=Error: no readable file at .../f4e628ce=: an unrecognised scope falls
+through to being treated as a *filename*, so a truncated id reads as a
+missing file rather than an unresolvable heading. Partial *titles* do
+work — =org_query heading:"permission prompt"= resolved to the full id —
+so title-to-id lookup exists and id-prefix lookup does not, which is the
+opposite of how this project's prose, commits and conversation refer to
+headings.
+
+*Measured, because the cost is the argument:* =TODO.org= holds 111
+headings across 10,251 lines — median heading 75 lines, mean 92, largest
+405 ([[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]]). Front
+matter is 5 or 6. So answering "what state is this in, what blocks it,
+what is under it" by reading the heading costs roughly *fifteen times*
+what the answer needs, and that read happened about twenty times in the
+2026-08-14 session alone, twice as a 60-line window to see one =:ID:=
+line.
+
+*An honest deduction from that number, before it is used to justify
+anything:* part of the waste was habit rather than absence. =org_query=
+already answers "what state is X in" in one line and already resolves a
+partial title; it was passed over for =awk= repeatedly that day. The
+genuine gap is narrower than the measurement suggests — properties are
+unreachable, and 8-character ids are unusable — and a tool built to the
+full measurement would be built to the wrong size.
+
+*Proposed shape: extend =org_outline=, do not add a third tool.*
+CLAUDE.md's own design note argues the surface should stay small because
+each tool's schema costs tokens on every request, so extending an
+existing tool beats adding one:
+1. =scope= accepts an =:ID:= *prefix*, resolving it when unambiguous and
+   saying so plainly when not — and, either way, never reporting an
+   unresolved scope as a missing file. No change to the output at all.
+2. When =scope= resolves to a heading, that heading's front matter
+   precedes the tree: =:CREATED:=, the =:BLOCKER:= *value*, the plan
+   link. Today none of those three is reachable — the tree line carries
+   keyword, title, id and tags, and a =[blocked]= marker that says a
+   blocker exists without saying which ids.
+
+*Root only, never per line, and not behind a flag.* Two corrections made
+2026-08-14 while the proposal was being read back, both worth keeping
+because the first reading was wrong in a way that would have damaged the
+tool.
+
+*Per-heading front matter would destroy what the tool is for.*
+=org_outline='s stated value is being "roughly 40x smaller" than reading
+the file; multiplying every line by a property drawer scales with heading
+count — 37 lines scoped to
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]], 111 unscoped.
+Scope-root only grows the reply by a *fixed* four lines however large the
+subtree is.
+
+*And it should not be optional.* A boolean is itself schema, paid on
+every request whether or not anyone sets it — which is the same argument
+that ruled out a third tool, applied one level down. Four lines is below
+the size at which a knob earns its keep, and a caller who names a single
+heading by id is nearly always asking *about that heading*.
+
+*Deliberately out of scope: semantic matching.* The user asked whether
+title matching is semantic; it is not, and it should not become so here.
+A fuzzy resolver that returns the wrong heading confidently is the same
+failure this project has now measured twice — see
+[[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] on a guess that was
+wrong more often than right, and the suggestion fallback removed the same
+day. Prefix matching is decidable; semantic similarity is not.
+
+*Sibling, not duplicate:*
+[[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]] is this problem for
+the *human* at Emacs — an interactive jump-by-title command, which
+already establishes that =org-id-goto= is exact-match by construction and
+that this project's 8-character abbreviations are "readable and
+completely unactionable". Same root convention, different consumer:
+that one wants =completing-read= over titles, this one wants the MCP
+tools to accept what the prose already writes.
+
+*The complement of this request turned up 2026-08-15, and it is the same
+missing surface.* Asked to "show me 4f85", the only route was
+=grep -n ":ID: 4f8500e6"= to find the heading, =awk= to locate the next
+=^\*\* = and so compute the subtree's end, then =Read= with the resulting
+offset and line count. Three tools and hand-done line arithmetic to
+retrieve one heading — and the arithmetic is the fragile part, since the
+extent depends on finding the next sibling at the right level.
+
+So both directions are absent from the same surface: this heading asks
+for *front matter without the body*, and that request wanted *the body,
+whole*. Neither is served, and they want the same scoping argument.
+
+*The primitive already exists and is not exposed.*
+=claude-code-ide-org--subtree-text-at-point= (config.el:1961) returns a
+subtree from its heading through its last child as plain text, without
+modifying the buffer. It is used on the clocktable path. Exposing it is
+closer to plumbing than to design.
+
+*And the scoping already exists too:* =org_outline='s =target= accepts an
+=:ID:= to index only that subtree. Whatever resolves an id to a heading
+there is what a body-returning tool needs, which is also what makes the
+partial-=:ID:= failure above worth fixing once rather than twice.
+
+*Worth deciding together rather than separately,* since one tool with a
+mode argument may serve both: front matter only, body only, whole
+subtree, or structure — the last being =org_outline= as it stands.
+
+
+*** TODO Jump to a heading by title, not by pasting a UUID :code:
+:PROPERTIES:
+:ID:       915378ac-3bd4-461d-b0f0-83f67fbb3dac
+:CREATED:  [2026-08-11 Tue 12:02]
+:END:
+
+=org-id-goto= wants the *entire* ID, exactly, and offers no help getting
+it. Verified against the installed org 2026-08-11: it is
+=(interactive "sID: ")=, a plain string prompt with no =completing-read=;
+=org-id-find= resolves through the =org-id-locations= hash, which is
+exact by construction; and the file-level fallback calls
+=org-find-entry-with-id=, also exact. A miss is worse than a fast
+failure — =org-id-find= re-runs =org-id-update-id-locations= and tries
+again, so a partial ID costs a full rescan before returning nothing.
+
+*Why this bites here specifically.* This project is unusually
+ID-centric: every heading carries an =:ID:=, headings cross-reference
+each other as =[[id:...]]=, and both conversation and commit messages
+routinely name headings by their first eight characters — =720b2dcf=,
+=f9f61c04=. Those abbreviations are readable and completely
+unactionable. The gap is not org's fault; it is the cost of a convention
+this project adopted deliberately.
+
+*Proposal:* an interactive command that =completing-read=s over the
+known headings, displaying *titles* rather than UUIDs, and jumps via
+=org-id-goto= with the full ID behind the candidate.
+
+*One design detail worth getting right:* annotate each candidate with
+the ID's first eight characters. Doom's completion styles match against
+the whole candidate string, so typing =720b2dcf= would then narrow
+directly — which makes every abbreviation in these headings, in commit
+messages and in conversation immediately typeable, rather than
+something to look up first. That is most of the value; titles alone
+would be a lesser tool.
+
+*Building the candidates:* =org-id-locations= maps id to file and knows
+nothing about titles, so they have to come from a scan. Either =org-ql=
+over =claude-code-ide-org--tracked-files= — already a dependency, and
+the same path =org_query= uses — or a plain =org-map-entries=. Do not
+cache without measuring first: the tracked set is two files and well
+under a hundred headings, so a rescan per invocation is very likely
+cheaper than any invalidation bug it would buy.
+
+*Not a gap, a convenience.* =C-c C-o= on any =[[id:...]]= link already
+works and needs no new code, because the links in the file carry full
+IDs. Scope this accordingly — it is a small command, not a subsystem.
+
+*Testing:* the candidate-building function is ordinary and testable
+(given a file set, assert the expected id/title pairs). The completion
+UI itself is the fuzzy part and should be a documented manual check,
+per this project's own "reasonably feasible" rule rather than forced
+into a deterministic test.
+
+*Re-verified 2026-08-18, and the case got stronger.* =org-id-goto='s
+interactive form is still =(interactive "sID: ")= — a bare string prompt,
+no =completing-read= — against 162 live entries in =org-id-locations=.
+Nothing has changed on org's side, and no user-facing jump command exists
+in =config.el=; the only =goto= functions there are review-buffer
+internals.
+
+*What changed is the convention this serves.* The footnote rule was
+inverted the same day: prose now refers to a heading by *the first few
+words of its title*, and the 8-character id moves into the footnote. So
+both halves of this heading's proposal are now load-bearing rather than
+one being a convenience —
+
+- *titles displayed* is what makes a heading findable from the prose,
+  which is where the reader meets it;
+- *the 8-char prefix annotated onto each candidate* is what makes the
+  footnote actionable, since that is now the only place the id appears.
+
+The user's current workflow is =C-s= in TODO.org, which is not a
+workaround for missing knowledge — with no completion on =org-id-goto=, it
+is genuinely competitive today. That is the measure of the gap: the
+project's own reference convention is faster to search as plain text than
+to resolve through org's id machinery.
+
+*Sibling, not duplicate, of
+[[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]].* That one is
+model-facing — MCP tools that should accept a partial =:ID:= and return
+front matter without a whole-body read. This one is human-facing — an
+interactive command. They share one premise, worth stating once rather
+than in both: this project made every heading id-addressed and then made
+the 8-character prefix the unit of reference in prose, commits and
+conversation, while every actual lookup still demands all 36.
+
+
+*** TODO Add a tool to set heading properties, starting with :BLOCKER: :code:
 :PROPERTIES:
 :ID:       36b811d9-8bd3-4a32-b67d-39ccfe0d66c1
 :CREATED:  [2026-08-15 Sat 16:43]
@@ -710,6 +901,75 @@ capture and its keyword do not arrive a review pass apart.
 Worth noting the linter caught this and re-reading did not, which is the
 same lesson as the fabricated ID above and the same remedy: mechanical
 checks catch what looks correct.
+
+*** TODO org_outline's active_only orphans children of finished headings :code:
+:PROPERTIES:
+:ID:       98908aff-63cc-4b71-b90b-817da361a23b
+:CREATED:  [2026-08-12 Wed 16:06]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-12 Wed 16:07] \\
+  found while documenting the tool's own response format
+:END:
+
+Indentation is the *only* thing =org_outline='s output says about
+parentage: =claude-code-ide-org--outline-line= emits two spaces per
+absolute =org-current-level=, and =org-map-entries= emits in document
+order. A reader reconstructs the tree as "parent = nearest preceding
+line with a smaller indent," which holds only while every intermediate
+ancestor is present.
+
+=active_only= breaks that. The filter lives in =--outline-line=, which
+returns nil for a DONE/CANCELLED heading — it does *not* skip the
+subtree in =--outline-map=, so that heading's still-active descendants
+are emitted anyway, at their unchanged absolute indent. Verified
+2026-08-12 against a scratch file:
+
+: * Category
+: ** DONE Finished parent
+: *** TODO Active child
+
+returns
+
+: Category
+:     TODO Active child
+
+The indent jumps two levels, and a reader re-parents the child onto its
+*grandparent* with nothing in the output marking that it did. Silent
+wrong structure, not a visible gap.
+
+*Not currently observable in this project's own files*, which is why it
+took this long to notice: TODO.org's level-1 headings are categories
+carrying no TODO keyword, so nothing on the path from a category to a
+level-2 task can ever be filtered out. All 60 lines of a full-depth
+=active_only= run were checked and no indent jump occurs. That is a
+property of the top-level-heading convention, not a guarantee from the
+format — the bug is one three-level task tree away from biting.
+
+=max_depth= is safe by contrast: it only ever drops the deepest lines,
+truncating leaves rather than severing an ancestor.
+
+*Options, none chosen:*
+- *Emit the elided ancestors anyway*, unfiltered, so the path stays
+  intact. Keeps reconstruction sound and costs a few lines the caller
+  asked not to see.
+- *Re-indent survivors to their visible depth*, so indent means "depth
+  in the returned tree" rather than absolute level. Cheapest output,
+  but contradicts the deliberate absolute-level decision in
+  [[id:9f3c35c7-0229-4cd6-908b-779267ec9b97][9f3c35c7]] that makes
+  =max_depth= mean the same thing for a file and for a subtree.
+- *Skip the whole subtree* when a heading is filtered out. Simplest
+  rule, and the most likely to surprise — an active child of a DONE
+  parent is exactly the thing =active_only= should be showing.
+
+*Related, same output, separate defect:* in a multi-file call the
+per-file label is a bare =file-name-nondirectory= at column 0,
+structurally identical to a level-1 heading, which by this project's
+convention also carries no keyword, no =:ID:= and no tags. Nothing but
+"it looks like a filename" distinguishes them, so a reader that treats
+the label as a heading turns each file into one spurious root. Worth
+fixing in the same pass, since both are the same class of bug: the
+format asserting less structure than the reader needs.
 * Clock lifecycle & visibility
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Clock lifecycle & visibility
@@ -4582,213 +4842,6 @@ explicitly in the same move*. The earlier wording here was a blanket
 with the accidental one. Recorded in =org-conventions.md=.
 
 
-
-
-** TODO Read a heading's front matter, and take a partial :ID:, without a whole-body read :code:
-:PROPERTIES:
-:ID:       2d9eeebd-4375-4790-8485-92b244236a21
-:CREATED:  [2026-08-14 Fri 17:27]
-:END:
-
-*Raised by the user 2026-08-14, from a concrete request the tools cannot
-serve:* "show me the front matter of =f4e628ce= — sans body — and the
-tree of anything below it." Both halves fail, for different reasons.
-
-*What the surface actually offers.* =org_outline= returns *structure*
-only: one line per heading with level, keyword, title, =:ID:=, tags and
-a =[blocked]= marker. =org_query= returns *matches*: one line with
-state, heading, tags, =:ID:= and file. Neither returns a properties
-drawer, a =:BLOCKER:= value, a plan link, or any body.
-
-*The partial-:ID: failure is worse than absence, because it misreports.*
-=org_outline= with =scope= =f4e628ce= answered
-=Error: no readable file at .../f4e628ce=: an unrecognised scope falls
-through to being treated as a *filename*, so a truncated id reads as a
-missing file rather than an unresolvable heading. Partial *titles* do
-work — =org_query heading:"permission prompt"= resolved to the full id —
-so title-to-id lookup exists and id-prefix lookup does not, which is the
-opposite of how this project's prose, commits and conversation refer to
-headings.
-
-*Measured, because the cost is the argument:* =TODO.org= holds 111
-headings across 10,251 lines — median heading 75 lines, mean 92, largest
-405 ([[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]]). Front
-matter is 5 or 6. So answering "what state is this in, what blocks it,
-what is under it" by reading the heading costs roughly *fifteen times*
-what the answer needs, and that read happened about twenty times in the
-2026-08-14 session alone, twice as a 60-line window to see one =:ID:=
-line.
-
-*An honest deduction from that number, before it is used to justify
-anything:* part of the waste was habit rather than absence. =org_query=
-already answers "what state is X in" in one line and already resolves a
-partial title; it was passed over for =awk= repeatedly that day. The
-genuine gap is narrower than the measurement suggests — properties are
-unreachable, and 8-character ids are unusable — and a tool built to the
-full measurement would be built to the wrong size.
-
-*Proposed shape: extend =org_outline=, do not add a third tool.*
-CLAUDE.md's own design note argues the surface should stay small because
-each tool's schema costs tokens on every request, so extending an
-existing tool beats adding one:
-1. =scope= accepts an =:ID:= *prefix*, resolving it when unambiguous and
-   saying so plainly when not — and, either way, never reporting an
-   unresolved scope as a missing file. No change to the output at all.
-2. When =scope= resolves to a heading, that heading's front matter
-   precedes the tree: =:CREATED:=, the =:BLOCKER:= *value*, the plan
-   link. Today none of those three is reachable — the tree line carries
-   keyword, title, id and tags, and a =[blocked]= marker that says a
-   blocker exists without saying which ids.
-
-*Root only, never per line, and not behind a flag.* Two corrections made
-2026-08-14 while the proposal was being read back, both worth keeping
-because the first reading was wrong in a way that would have damaged the
-tool.
-
-*Per-heading front matter would destroy what the tool is for.*
-=org_outline='s stated value is being "roughly 40x smaller" than reading
-the file; multiplying every line by a property drawer scales with heading
-count — 37 lines scoped to
-[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]], 111 unscoped.
-Scope-root only grows the reply by a *fixed* four lines however large the
-subtree is.
-
-*And it should not be optional.* A boolean is itself schema, paid on
-every request whether or not anyone sets it — which is the same argument
-that ruled out a third tool, applied one level down. Four lines is below
-the size at which a knob earns its keep, and a caller who names a single
-heading by id is nearly always asking *about that heading*.
-
-*Deliberately out of scope: semantic matching.* The user asked whether
-title matching is semantic; it is not, and it should not become so here.
-A fuzzy resolver that returns the wrong heading confidently is the same
-failure this project has now measured twice — see
-[[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] on a guess that was
-wrong more often than right, and the suggestion fallback removed the same
-day. Prefix matching is decidable; semantic similarity is not.
-
-*Sibling, not duplicate:*
-[[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]] is this problem for
-the *human* at Emacs — an interactive jump-by-title command, which
-already establishes that =org-id-goto= is exact-match by construction and
-that this project's 8-character abbreviations are "readable and
-completely unactionable". Same root convention, different consumer:
-that one wants =completing-read= over titles, this one wants the MCP
-tools to accept what the prose already writes.
-
-*The complement of this request turned up 2026-08-15, and it is the same
-missing surface.* Asked to "show me 4f85", the only route was
-=grep -n ":ID: 4f8500e6"= to find the heading, =awk= to locate the next
-=^\*\* = and so compute the subtree's end, then =Read= with the resulting
-offset and line count. Three tools and hand-done line arithmetic to
-retrieve one heading — and the arithmetic is the fragile part, since the
-extent depends on finding the next sibling at the right level.
-
-So both directions are absent from the same surface: this heading asks
-for *front matter without the body*, and that request wanted *the body,
-whole*. Neither is served, and they want the same scoping argument.
-
-*The primitive already exists and is not exposed.*
-=claude-code-ide-org--subtree-text-at-point= (config.el:1961) returns a
-subtree from its heading through its last child as plain text, without
-modifying the buffer. It is used on the clocktable path. Exposing it is
-closer to plumbing than to design.
-
-*And the scoping already exists too:* =org_outline='s =target= accepts an
-=:ID:= to index only that subtree. Whatever resolves an id to a heading
-there is what a body-returning tool needs, which is also what makes the
-partial-=:ID:= failure above worth fixing once rather than twice.
-
-*Worth deciding together rather than separately,* since one tool with a
-mode argument may serve both: front matter only, body only, whole
-subtree, or structure — the last being =org_outline= as it stands.
-
-
-** TODO Jump to a heading by title, not by pasting a UUID :code:
-:PROPERTIES:
-:ID:       915378ac-3bd4-461d-b0f0-83f67fbb3dac
-:CREATED:  [2026-08-11 Tue 12:02]
-:END:
-
-=org-id-goto= wants the *entire* ID, exactly, and offers no help getting
-it. Verified against the installed org 2026-08-11: it is
-=(interactive "sID: ")=, a plain string prompt with no =completing-read=;
-=org-id-find= resolves through the =org-id-locations= hash, which is
-exact by construction; and the file-level fallback calls
-=org-find-entry-with-id=, also exact. A miss is worse than a fast
-failure — =org-id-find= re-runs =org-id-update-id-locations= and tries
-again, so a partial ID costs a full rescan before returning nothing.
-
-*Why this bites here specifically.* This project is unusually
-ID-centric: every heading carries an =:ID:=, headings cross-reference
-each other as =[[id:...]]=, and both conversation and commit messages
-routinely name headings by their first eight characters — =720b2dcf=,
-=f9f61c04=. Those abbreviations are readable and completely
-unactionable. The gap is not org's fault; it is the cost of a convention
-this project adopted deliberately.
-
-*Proposal:* an interactive command that =completing-read=s over the
-known headings, displaying *titles* rather than UUIDs, and jumps via
-=org-id-goto= with the full ID behind the candidate.
-
-*One design detail worth getting right:* annotate each candidate with
-the ID's first eight characters. Doom's completion styles match against
-the whole candidate string, so typing =720b2dcf= would then narrow
-directly — which makes every abbreviation in these headings, in commit
-messages and in conversation immediately typeable, rather than
-something to look up first. That is most of the value; titles alone
-would be a lesser tool.
-
-*Building the candidates:* =org-id-locations= maps id to file and knows
-nothing about titles, so they have to come from a scan. Either =org-ql=
-over =claude-code-ide-org--tracked-files= — already a dependency, and
-the same path =org_query= uses — or a plain =org-map-entries=. Do not
-cache without measuring first: the tracked set is two files and well
-under a hundred headings, so a rescan per invocation is very likely
-cheaper than any invalidation bug it would buy.
-
-*Not a gap, a convenience.* =C-c C-o= on any =[[id:...]]= link already
-works and needs no new code, because the links in the file carry full
-IDs. Scope this accordingly — it is a small command, not a subsystem.
-
-*Testing:* the candidate-building function is ordinary and testable
-(given a file set, assert the expected id/title pairs). The completion
-UI itself is the fuzzy part and should be a documented manual check,
-per this project's own "reasonably feasible" rule rather than forced
-into a deterministic test.
-
-*Re-verified 2026-08-18, and the case got stronger.* =org-id-goto='s
-interactive form is still =(interactive "sID: ")= — a bare string prompt,
-no =completing-read= — against 162 live entries in =org-id-locations=.
-Nothing has changed on org's side, and no user-facing jump command exists
-in =config.el=; the only =goto= functions there are review-buffer
-internals.
-
-*What changed is the convention this serves.* The footnote rule was
-inverted the same day: prose now refers to a heading by *the first few
-words of its title*, and the 8-character id moves into the footnote. So
-both halves of this heading's proposal are now load-bearing rather than
-one being a convenience —
-
-- *titles displayed* is what makes a heading findable from the prose,
-  which is where the reader meets it;
-- *the 8-char prefix annotated onto each candidate* is what makes the
-  footnote actionable, since that is now the only place the id appears.
-
-The user's current workflow is =C-s= in TODO.org, which is not a
-workaround for missing knowledge — with no completion on =org-id-goto=, it
-is genuinely competitive today. That is the measure of the gap: the
-project's own reference convention is faster to search as plain text than
-to resolve through org's id machinery.
-
-*Sibling, not duplicate, of
-[[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]].* That one is
-model-facing — MCP tools that should accept a partial =:ID:= and return
-front matter without a whole-body read. This one is human-facing — an
-interactive command. They share one premise, worth stating once rather
-than in both: this project made every heading id-addressed and then made
-the 8-character prefix the unit of reference in prose, commits and
-conversation, while every actual lookup still demands all 36.
 
 
 ** TODO Persist claude-code-ide-org-capture-file in the Doom config
