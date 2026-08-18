@@ -3285,6 +3285,43 @@ closes, and the epic closes whether or not this is done.
 [[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — the epic's plan document, which
 carries this child's design rather than a file of its own.
 
+*Verified, not just implemented* — shipped 2026-08-18 as step 1 of
+[[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]].
+
+=--statusline-task-string= now asks the queue first, via two new helpers:
+=--queue-latest-session-id= (newest queue by mtime, so one file is read
+rather than every session's) and =--statusline-queue-state= (the heading
+named by the newest id-bearing event, plus whether the newest guidepost is
+a =resume=). It reads with INCLUDE-CONSUMED on purpose — an *applied*
+event is the strongest evidence of what was being worked on, and filtering
+to pending would blank the statusline right after every review pass.
+
+*The live check is the one worth keeping.* After reload, with
+=org-clocking-p= returning *nil* — no live clock anywhere — the statusline
+still read =Decouple live "what is Claude… [290b6fc5] (clocked in, 0:07
+total)=. That is precisely the regression this heading exists to prevent,
+demonstrated *before*
+[[id:226ed53b-c302-4529-870f-a42962b50bde][226ed53b]] silences the
+trigger.
+
+*A defect in the first draft, caught by the existing suite.* It returned
+the empty string when the queue named a heading that would not resolve.
+Wrong: an archived or deleted id is exactly that case, and the queue
+having an opinion is not the same as that opinion being usable. Five
+statusline tests failed — because they run against the real
+=~/.claude/org-updates= and so the queue *did* have something to say. The
+fix falls through to the clock when the queue id does not resolve.
+
+*Test honesty:* three tests added, two of which fail when the change is
+stashed. The third asserts the fallback and cannot discriminate, since the
+old code read the clock unconditionally; it is a characterisation test and
+is labelled as one.
+
+*Not done here, and deliberately:* the second half of this heading's
+original brief — surfacing pending-review state glanceably in the
+statusline — is untouched. This landed only what step 2 requires.
+
+
 
 * Observability
 :PROPERTIES:
