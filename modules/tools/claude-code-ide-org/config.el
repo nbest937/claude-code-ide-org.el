@@ -6564,9 +6564,42 @@ no-op."
              ;; got, and silently maps over nothing.
              nil nil)))))))
 
-(defun claude-code-ide-org--lint-file (file known-ids)
+(defun claude-code-ide-org--lint-routing-categories (files)
+  "Return the level-1 headings across FILES that carry `:ARCHIVE:'.
+
+These are the categories: a level-1 heading with an archive target is
+the thing this project means by one, and the property is what makes it
+routable rather than merely top-level.  Measured 2026-08-19: all seven
+level-1 headings in TODO.org carry it and none of DONE.org's seven do,
+because the latter are archive *targets* rather than sources -- so the
+set is collected across every linted file and matched by title, which
+lets a target be recognised by the source it mirrors.
+
+Returned as a list of titles rather than a count, so
+`claude-code-ide-org--lint-file' can tell a mirror from a stray."
+  (let (titles)
+    (dolist (file files (nreverse titles))
+      (when (file-exists-p file)
+        (with-temp-buffer
+          (let ((org-inhibit-startup t))
+            (insert-file-contents file)
+            (org-mode)
+            (org-map-entries
+             (lambda ()
+               (when (and (= 1 (org-current-level))
+                          (org-entry-get nil "ARCHIVE"))
+                 (let ((title (org-get-heading t t t t)))
+                   (unless (member title titles) (push title titles)))))
+             ;; Scope nil, not `file', for the reason documented on
+             ;; `claude-code-ide-org--lint-heading-ids' above: a temp
+             ;; buffer has no `buffer-file-name', so `file' scope maps
+             ;; over nothing and reports that as success.
+             nil nil)))))))
+
+(defun claude-code-ide-org--lint-file (file known-ids &optional categories)
   "Return a list of finding strings for FILE.  KNOWN-IDS is the hash
-from `claude-code-ide-org--lint-heading-ids'."
+from `claude-code-ide-org--lint-heading-ids'.  CATEGORIES is the list
+from `claude-code-ide-org--lint-routing-categories'."
   (let ((name (file-name-nondirectory file))
         findings)
     (cl-flet ((report (severity line fmt &rest args)
@@ -6602,6 +6635,24 @@ from `claude-code-ide-org--lint-heading-ids'."
                  (report 'error line "level-%d heading; the file has three levels \
 (category, task, epic-child): %s" level title))
                 ((= level 1)
+                 ;; A level-1 heading is a category, and a category
+                 ;; routes to an archive target. One that neither routes
+                 ;; nor mirrors something that does is almost certainly
+                 ;; not a heading anyone wrote deliberately -- TODO.org
+                 ;; :ID: 95087d8f, where `* *' typed as a markdown
+                 ;; horizontal rule became a level-1 category and
+                 ;; swallowed 6462 lines while every lint run stayed
+                 ;; clean.
+                 ;;
+                 ;; Skipped when CATEGORIES is empty: with no routing
+                 ;; level-1 anywhere in the linted set there is nothing
+                 ;; to infer the convention from, and a fixture of one
+                 ;; bare `* Category' must stay legal.
+                 (when (and categories
+                            (not (org-entry-get nil "ARCHIVE"))
+                            (not (member title categories)))
+                   (report 'error line "level-1 heading is neither a category \
+(no :ARCHIVE:) nor a mirror of one: %s" title))
                  (when id (report 'error line "level-1 category carries :ID: -- \
 categories are structure, not tasks: %s" title))
                  (when created
@@ -6615,6 +6666,16 @@ categories are structure, not tasks: %s" title))
                  (unless id (report 'error line "heading has no :ID:: %s" title))
                  (unless created
                    (report 'warn line "heading has no :CREATED:: %s" title))))
+               ;; A title with no word characters at all is punctuation
+               ;; mistaken for structure. `* *' -- markdown's horizontal
+               ;; rule -- is the shape that occurred: org read the
+               ;; leading asterisk as a headline and the rest as its
+               ;; title. Checked at every level, since the same typo
+               ;; nested is no more intentional.
+               (unless (string-match-p "[[:word:]]" (or title ""))
+                 (report 'error line
+                         "heading title has no word characters, so it is \
+probably punctuation read as structure: %S" title))
                ;; A repeating task never reaches DONE, so a completable
                ;; ancestor never can either -- this is the check that
                ;; caught 38b92521 frozen via its :BLOCKER:.
@@ -6726,8 +6787,10 @@ evidence lines, arriving here by a different route."
          (known (claude-code-ide-org--lint-heading-ids
                  (append files (seq-filter #'file-exists-p
                                            (or reference-files nil))))))
-    (apply #'append
-           (mapcar (lambda (f) (claude-code-ide-org--lint-file f known)) files))))
+    (let ((categories (claude-code-ide-org--lint-routing-categories files)))
+      (apply #'append
+             (mapcar (lambda (f) (claude-code-ide-org--lint-file f known categories))
+                     files)))))
 
 (defun claude-code-ide-org-lint-report (&optional files reference-files)
   "Print `claude-code-ide-org-lint' findings and exit non-zero if any.

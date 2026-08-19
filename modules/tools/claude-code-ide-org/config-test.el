@@ -1821,6 +1821,84 @@ Without this the other tests could pass by the lint flagging everything."
                          ":END:\n"
                          "Body referring to [[id:11111111-1111-1111-1111-111111111111][itself]].\n")))))
 
+(ert-deftest claude-code-ide-org-test-lint-catches-punctuation-only-title ()
+  "The `* *' that swallowed 6462 lines, as a fixture.
+
+TODO.org :ID: 95087d8f. Markdown's horizontal rule written into a
+heading body: org reads the leading asterisk as a headline and `*' as
+its title. The file stayed valid org and lint stayed clean for two days.
+
+Asserted at level 3 as well, because the same typo nested is no more
+deliberate and the check has no reason to care about depth."
+  (should (claude-code-ide-org-test--lint-matches
+           (claude-code-ide-org-test--lint "* Category\n* *\n")
+           'error "no word characters"))
+  (should (claude-code-ide-org-test--lint-matches
+           (claude-code-ide-org-test--lint
+            (concat "* Category\n** TODO A task\n:PROPERTIES:\n"
+                    ":ID:       11111111-1111-1111-1111-111111111111\n"
+                    ":CREATED:  [2026-08-14 Fri 10:00]\n:END:\n"
+                    "*** ---\n:PROPERTIES:\n"
+                    ":ID:       22222222-2222-2222-2222-222222222222\n"
+                    ":CREATED:  [2026-08-14 Fri 10:00]\n:END:\n"))
+           'error "no word characters")))
+
+(ert-deftest claude-code-ide-org-test-lint-catches-stray-level-1-heading ()
+  "A level-1 heading that neither routes nor mirrors one that does.
+
+The stronger half of :ID: 95087d8f: it catches the incident even had the
+phantom been named something word-like. A category is a level-1 heading
+with an =:ARCHIVE:= target, which is what makes it routable rather than
+merely top-level.
+
+Three cases in one fixture, because an implementation that collapsed any
+two would still satisfy the others."
+  ;; Routing category present, so the convention is in evidence: a
+  ;; second level-1 without :ARCHIVE: is a stray.
+  (should (claude-code-ide-org-test--lint-matches
+           (claude-code-ide-org-test--lint
+            (concat "* Real category\n:PROPERTIES:\n"
+                    ":ARCHIVE:  DONE.org::* Real category\n:END:\n"
+                    "* Phantom\n"))
+           'error "neither a category"))
+  ;; No routing level-1 anywhere: nothing to infer the convention from,
+  ;; so the check stays silent rather than flagging every fixture in
+  ;; this file.
+  (should-not (claude-code-ide-org-test--lint-matches
+               (claude-code-ide-org-test--lint "* Category\n")
+               'error "neither a category")))
+
+(ert-deftest claude-code-ide-org-test-lint-allows-an-archive-mirror ()
+  "A level-1 heading mirroring a category, in the file it archives to.
+
+Measured on the real files 2026-08-19: all seven of TODO.org's level-1
+headings carry =:ARCHIVE:= and none of DONE.org's seven do, because the
+latter are archive *targets*. So the routing set is collected across
+every linted file and matched by title, and a target is recognised by
+the source it mirrors.
+
+Two files, not one, because that is the only shape in which this case
+exists -- an earlier single-file version of this assertion passed with
+the mirror allowance mutated away, since its only level-1 carried
+=:ARCHIVE:= and the allowance was never reached."
+  (let* ((dir (file-name-as-directory (make-temp-file "lint-mirror" t)))
+         (src (expand-file-name "TODO.org" dir))
+         (dst (expand-file-name "DONE.org" dir)))
+    (unwind-protect
+        (progn
+          (with-temp-file src
+            (insert "* Real category\n:PROPERTIES:\n"
+                    ":ARCHIVE:  DONE.org::* Real category\n:END:\n"))
+          (with-temp-file dst
+            (insert "* Real category\n"      ; the mirror: no :ARCHIVE:
+                    "* Phantom\n"))          ; and a stray beside it
+          (let ((findings (claude-code-ide-org-lint (list src dst))))
+            (should-not (claude-code-ide-org-test--lint-matches
+                         findings 'error "mirror of one: Real category"))
+            (should (claude-code-ide-org-test--lint-matches
+                     findings 'error "mirror of one: Phantom"))))
+      (delete-directory dir t))))
+
 (ert-deftest claude-code-ide-org-test-lint-catches-dangling-id-link ()
   "A fabricated UUID reads as correct and fails only when followed —
 this check caught four of them in one session."
