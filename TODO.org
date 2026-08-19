@@ -6460,6 +6460,46 @@ inline bold at line start, the transition tables. Sorting real from
 quoted is the actual work, and the answer decides whether these become
 errors or stay warnings.
 
+*Diagnosed 2026-08-19. All eleven are markdown-style =**bold**= in files
+whose bold is =*single*=. None is a misplaced heading.*
+
+=org-lint-misplaced-heading= searches for =[^*\n\r ,]\*\*+ = — an
+ordinary character, two or more asterisks, then a space — as a heuristic
+for the corruption in its own docstring, =** Heading 1** Oops heading 2=.
+What it actually catches here is the *closing* =**= of a markdown bold
+span followed by a space. Running that regex over both files returns
+exactly eleven lines, matching the eleven reports one for one:
+
+| file     |                                            lines |
+|----------+--------------------------------------------------|
+| TODO.org |                                       2505, 6304 |
+| DONE.org | 3047, 3058, 3649, 3656, 3660, 3669, 3757, 6079, 9363 |
+
+*Ten are real defects; one is not.* =DONE.org:9363= is =**** Plan=
+inside verbatim =­=…=­= markup, legitimately naming a level-4 heading —
+a true false positive. The other ten are markdown habit leaking into
+org.
+
+*And they are visible defects, not merely stylistic.* Checked in this
+Emacs: org parses =**bold**= as a =bold= element whose *contents* are
+the literal string =*bold*=. So it renders as bold text with stray
+asterisks around it, which is not what any of the ten authors intended.
+
+*The finding for [[id:95087d8f-e16d-45d3-bdea-9b179dc672b4][95087d8f]]*:
+org-lint already detects this class — the problem is that it reports it
+under a name describing a different and much more alarming defect.
+Anyone reading "Possibly misplaced heading line" goes looking for broken
+structure and finds prose. A local checker naming it "markdown bold in
+an org file" would cost one regex and would not need org-lint's
+heuristic at all.
+
+*Not fixed here.* Ten mechanical =**= -> =*= edits, nine of them in
+=DONE.org=, would take the warning count from 28 to 18. Left as its own
+decision because the spans cross line breaks in at least one case
+\(TODO.org 2504-2505\) and because editing archived prose deserves to be
+asked for rather than assumed.
+
+
 *** NEXT Lint for headings that are valid org but structurally unintended :code:
 :PROPERTIES:
 :ID:       95087d8f-e16d-45d3-bdea-9b179dc672b4
