@@ -4768,12 +4768,28 @@ the MCP layer."
         (dolist (item items)
           (unless (equal (plist-get item :id) last-id)
             (setq last-id (plist-get item :id))
-            (push (format "\n%s  {%s}"
-                          (or (claude-code-ide-org--at-id
-                               last-id (lambda () (org-get-heading t t t t)))
-                              "(unresolvable :ID:)")
-                          last-id)
-                  lines))
+            ;; `--at-id' RETURNS its failure as a string rather than
+            ;; signalling, so an `or' around it never falls through and the
+            ;; message lands where a title belongs.  That is exactly the
+            ;; defect :ID: c2132d3f fixed for the review buffer, reachable
+            ;; here through the one path it did not cover: an *unassigned*
+            ;; span carries `:id' nil until a human presses `a', which is
+            ;; routine rather than a fault -- so this is the case that shows
+            ;; up most.  Reported live as
+            ;; `Error: no org heading found with :ID: "nil"' standing as a
+            ;; group title (:ID: 98700ea3).
+            ;;
+            ;; `--review-heading-title' is used instead because it returns
+            ;; *nil* when an id does not resolve, which is what makes a
+            ;; `cond' able to tell the three cases apart at all.
+            (let ((title (and last-id
+                              (claude-code-ide-org--review-heading-title last-id))))
+              (push (cond
+                     ((null last-id)
+                      "\n(unassigned -- press `a' in the review buffer to choose a heading)")
+                     (title (format "\n%s  {%s}" title last-id))
+                     (t (format "\n(unresolvable :ID:)  {%s}" last-id)))
+                    lines)))
           (push (claude-code-ide-org--review-describe item) lines))
         (if (null items)
             (format (concat "Nothing pending: no queued update is proposing a "

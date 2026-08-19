@@ -4100,6 +4100,48 @@ perfectly plausible line. It verified nothing."
     ;; 10m50s of real turn rounds to 11, not the 10 a bounded close gives.
     (should (string-match-p "=>  0:11" new))))
 
+(ert-deftest claude-code-ide-org-test-pending-groups-unassigned-without-an-error ()
+  "An unassigned span must not be grouped under an error message.
+
+TODO.org :ID: 98700ea3. An unassigned span carries `:id' nil until a
+human presses `a' -- routine, not a fault -- but the grouping code
+resolved that id to build a title, and `--at-id' *returns* its failure
+as a string rather than signalling, so `Error: no org heading found with
+:ID: \"nil\"' stood where a heading title belongs.
+
+The same shape as :ID: c2132d3f, which fixed it for the review buffer
+and left this path uncovered. Asserted three ways because a `cond' that
+collapsed any two of them would still satisfy the others: an unassigned
+group says so, a resolvable id shows its title, and an unresolvable one
+says it is unresolvable -- and none of them contains \"Error:\"."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--with-queue
+      (apply #'claude-code-ide-org-test--queue-write "sess-a"
+             (list (claude-code-ide-org-test--queue-event
+                    "2026-08-13T09:05:00-0500" "resume" nil nil "sess-a")
+                   (claude-code-ide-org-test--queue-event
+                    "2026-08-13T09:10:00-0500" "pause" nil nil "sess-a")
+                   ;; A real heading, so a resolvable group appears too.
+                   (claude-code-ide-org-test--queue-event
+                    "2026-08-13T09:20:00-0500" "todo" id "DOING" "sess-a")
+                   ;; And one that resolves to nothing.
+                   (claude-code-ide-org-test--queue-event
+                    "2026-08-13T09:30:00-0500" "todo"
+                    "00000000-dead-beef-0000-000000000000" "WAIT" "sess-a")))
+      (let ((report (claude-code-ide-org-pending-updates))
+            ;; `string-match-p' honours `case-fold-search', which defaults
+            ;; to t. Without this the group assertion below matches the
+            ;; ITEM line's "UNASSIGNED -- press `a'..." instead, and passes
+            ;; whatever the group heading says -- verifying nothing. Caught
+            ;; by mutating the branch away and watching the test still pass.
+            (case-fold-search nil))
+        ;; Anchored on the opening paren, which only the group line has.
+        (should (string-match-p "\n(unassigned -- press" report))
+        (should (string-match-p "Test heading" report))
+        (should (string-match-p "\n(unresolvable :ID:)" report))
+        ;; The whole point: no failure message rendered as a title.
+        (should-not (string-match-p "Error: no org heading found" report))))))
+
 (ert-deftest claude-code-ide-org-test-drained-requires-idle-and-no-items ()
   "Both clauses of the drained predicate are load-bearing."
   (claude-code-ide-org-test--with-queue
