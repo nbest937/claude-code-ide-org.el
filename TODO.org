@@ -982,6 +982,55 @@ convention also carries no keyword, no =:ID:= and no tags. Nothing but
 the label as a heading turns each file into one spurious root. Worth
 fixing in the same pass, since both are the same class of bug: the
 format asserting less structure than the reader needs.
+** TODO Auto-promote makes a container the next action :code:
+:PROPERTIES:
+:ID:       42808717-2736-4bf4-872e-887f990203ca
+:CREATED:  [2026-08-19 Wed 07:36]
+:END:
+
+=claude-code-ide-org--trigger-auto-promote-sole-todo= promotes the sole
+remaining =TODO= in a sibling group to =NEXT=. It counts siblings and
+checks nothing else — so when that sole survivor is a *container*, the
+promotion declares a project to be an action.
+
+Reproduced 2026-08-19 on a scratch file, after setting the only =NEXT=
+sibling to =DONE=:
+
+: ** DONE Ordinary sibling
+: ** NEXT An epic with children
+: *** TODO A real child action
+:   Auto-promoted: sole remaining TODO in its sibling group.
+
+The epic is now =NEXT= while its own child action is merely =TODO=,
+which inverts the one thing =NEXT= is supposed to mean.
+
+*The guard already exists and is simply not used here.*
+=claude-code-ide-org--container-heading-p= is what exempts containers
+from =--trigger-auto-clock-in=, on an argument that applies verbatim:
+CLAUDE.md holds that an epic is emergent — "a heading that has acquired
+children carrying TODO keywords" — and
+[[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]] measured the cost
+of treating one as a leaf. Two triggers sit on the same hook; one
+consults the predicate and the other does not.
+
+*Found by checking something that turned out to be correct.* The user
+asked whether setting =NEXT= on a subtask affects only its siblings and
+never toggles the parent. It does exactly that, verified both
+directions: a child going =NEXT= left its parent and an unrelated
+top-level =NEXT= untouched, and a top-level heading going =NEXT= demoted
+its top-level sibling while leaving a child's =NEXT= alone.
+=claude-code-ide-org--map-siblings= walks with =org-get-next-sibling= /
+=org-get-previous-sibling=, which stop at the enclosing parent's
+boundary, so the level scoping is structural rather than incidental. The
+defect is not that the cascade reaches the wrong level — it is that at
+the *right* level it never asks what kind of heading it is promoting.
+
+*Fix is one clause*, mirroring the auto-clock-in trigger: skip the
+promotion when the sole remaining TODO is a container. Open question
+whether it should then promote nothing, or descend and promote the
+container's own sole remaining child — the second is more useful and
+more surprising, and no evidence has been gathered either way.
+
 * Clock lifecycle & visibility
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Clock lifecycle & visibility
@@ -5216,6 +5265,90 @@ the "MCP tools", "Session tracking", and "Emacs integration" sections
 are inherently project-specific (they name this project's actual tool
 names and files) and are out of scope.
 
+** Heading bodies grow into narratives no human will read; decide what to stop capturing :code:
+:PROPERTIES:
+:ID:       b07df584-3adc-433c-ab49-e104f88aecf7
+:CREATED:  [2026-08-18 Tue 19:43]
+:END:
+
+Raised by the user 2026-08-18, in these words: /"I am questioning the
+long-term utility of capturing this quantity of minutiae."/ The trigger
+was reading [[id:226ed53b-c302-4529-870f-a42962b50bde][226ed53b]] and
+saying, plainly, /"I can't grok it."/
+
+*The case study.* 226ed53b was created at 07:20 and by 17:00 its body
+was *274 lines*, written by Claude in four sittings on one day:
+
+| section                                  | lines | written |
+|------------------------------------------+-------+---------|
+| original diagnosis                       |   ~85 | 07:20   |
+| "Directions, none chosen" (3 options)    |   ~12 | 07:20   |
+| 2(a) root-cause analysis                 |   ~60 | 10:00   |
+| 2(b) shipping journal                    |   ~55 | 11:00   |
+| 2(c) shipping journal                    |   ~70 | 16:00   |
+
+No summary anywhere. A reader hit ninety lines of "here is what is
+broken and what we might do" before reaching "here is what we did", and
+the section that looked most like a decision point — "Directions, none
+chosen" — was false by then, since the first direction had shipped as
+2(c). A stale claim ("the mechanism does still exist") sat mid-body,
+true for one morning.
+
+*What went wrong is structural, not stylistic, and worth naming
+precisely:*
+
+1. =org_amend= only *appends*. Every correction and every summary
+   therefore lands at the bottom, furthest from where a reader starts.
+   The tool's shape produced the document's shape. Inserting the
+   summary at the top required a hand edit through =emacsclient=.
+2. *Nothing ever marks a passage superseded.* The convention says a body
+   is a journal, which accumulates — but a journal of a *live* task also
+   contains predictions and open options, and those go stale silently
+   while the accumulation rule protects them from deletion.
+3. *The volume is generated by the party that does not have to read
+   it.* Claude writes these; the user reads them. Every incentive that
+   would normally bound length is missing.
+
+*The real question, which this heading exists to answer and which should
+not be answered by whoever touches it first:* what is actually worth
+keeping? Candidates, none chosen —
+
+- /Everything, but structured/: summary first, mandatory, with the
+  narrative below it. Cheapest, and does not reduce volume at all.
+- /Outcome and falsification only/: what shipped, what was measured,
+  what turned out wrong. Drop the reasoning that led nowhere. Risks
+  losing the "three simpler versions were wrong first" material, which
+  is the most reused thing in this repo.
+- /A length budget per heading/, forcing a decision about what earns its
+  place. Arbitrary, but arbitrary limits are how most writing gets
+  edited.
+- /Split journal from record/: a short heading body, with the long-form
+  narrative in the linked plan file or a separate archive.
+
+*Evidence to gather before deciding*, since this is exactly the kind of
+question that should not be settled by taste alone: how many of these
+bodies has anyone reread? =DONE.org= is 9000+ lines. A defensible
+starting measure is how often an older heading's body is cited by a
+later one — this repo does that constantly via =[[id:...]]= links, and
+those links are countable. If long bodies are cited and short ones are
+not, the volume is earning its keep; if the citations all point at the
+same handful of paragraphs, it is not.
+
+*Related:* the same failure has now appeared twice in one day at
+different scales — a plan file whose claims were falsified during
+execution and never revised
+([[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]] and 226ed53b both
+corrected plan claims in code rather than in the plan), and a heading
+body whose early sections were falsified by its own later ones. The
+mechanism is identical: append-only records with no supersession marker.
+
+*Scope, corrected by the user 2026-08-19:* this is about *body prose*,
+not =:LOGBOOK:= entries. The drawers are machine-written, bounded by the
+work that happened, and now shorter per line than before
+[[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]] — they are not the
+problem and should not be swept up by whatever this heading decides.
+What is at issue is the hand-written narrative underneath: the four
+sittings of prose in the table above, none of which any tool bounds.
 * Tooling
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Tooling
