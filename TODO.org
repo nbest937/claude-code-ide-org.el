@@ -1944,8 +1944,8 @@ org skill.* Pairs directly with the "it can silently demote" warning
 above — that warning says a =NEXT= nomination may demote a sibling, but
 never says how to find out *which* sibling before committing to it.
 
-The idiom: **to survey a heading's siblings, call =org_outline= scoped
-to the _parent's_ =:ID:=**, with =active_only= and a =max_depth=. One
+The idiom: *to survey a heading's siblings, call =org_outline= scoped
+to the _parent's_ =:ID:=*, with =active_only= and a =max_depth=. One
 call, one screen:
 
 : org_outline scope=<parent id> active_only=true max_depth=3
@@ -2501,8 +2501,8 @@ things:
 
 *The result, and it is sharper than expected: the second is bimodal with
 an empty band between the modes.* Sorted gaps run =… 949, 971, 1061=
-and then jump straight to =2070, 2103, 2135 …=. **No gap anywhere in the
-corpus falls between 1061s and 2070s.** A threshold sweep sees the same
+and then jump straight to =2070, 2103, 2135 …=. *No gap anywhere in the
+corpus falls between 1061s and 2070s.* A threshold sweep sees the same
 hole from the other side: span count falls steeply, then sits flat at 29
 across 1200-1800s, then resumes falling. Every value inside the band
 produces an identical reconstruction.
@@ -4880,10 +4880,10 @@ the human's manual construction better informed and lighter.
 settled vocabulary collided with an org term and produced two ambiguous
 sentences within hours.* "Active" is doing two unrelated jobs:
 
-- *=active= vs =inactive= is a property of an org **timestamp**.*
+- *=active= vs =inactive= is a property of an org *timestamp*.*
   =<2026-08-15 Sat 10:00>= reaches the agenda; =[2026-08-15 Sat 10:00]=
   does not. This is org's own vocabulary and is not ours to redefine.
-- *=clock= vs =attention= is a property of an **interval**.* A clock
+- *=clock= vs =attention= is a property of an *interval*.* A clock
   interval is measured by the agent; an attention interval is attested by
   the human.
 
@@ -6300,8 +6300,8 @@ which by that heading's own =:ID:=-uniqueness and clock-fragmentation
 argument is exactly the file that *cannot* be partitioned into a
 worktree. So a worktree session must still write and commit TODO.org
 in the main checkout, through the main checkout's index, and hits this
-identically. **Worktrees do not fix this scenario; they fix everything
-around it.** That is new information for 2e09adb7, which assumed the
+identically. *Worktrees do not fix this scenario; they fix everything
+around it.* That is new information for 2e09adb7, which assumed the
 code side was the whole problem.
 
 *Related but distinct:*

@@ -2389,8 +2389,8 @@ this heading never established.
 *What it costs, honestly:* real-time org state lags until a review pass runs
 (mitigate by pointing the statusline at the *queue* files instead of live clock
 state — see sub-task below); adds a manual review step to the human's workflow
-(keep it cheap — one keybinding); and this **likely obsoletes, in their
-currently-planned form**, [[file:~/.claude/plans/clock-marker-desync-guard.md][=53b0047d='s plan]], [[file:~/.claude/plans/session-resume-continuity-guard.md][=582cc7f4='s plan]], and [[file:~/.claude/plans/clock-in-ownership-recording.md][=d150c02e='s
+(keep it cheap — one keybinding); and this *likely obsoletes, in their
+currently-planned form*, [[file:~/.claude/plans/clock-marker-desync-guard.md][=53b0047d='s plan]], [[file:~/.claude/plans/session-resume-continuity-guard.md][=582cc7f4='s plan]], and [[file:~/.claude/plans/clock-in-ownership-recording.md][=d150c02e='s
 plan]] — each patches a problem this architecture makes structurally impossible
 rather than mitigated. Not wasted work: each documents its failure mode
 precisely, which is exactly the input this redesign is answering. [[file:~/.claude/plans/sessions-logbook-ordering.md][=2b0988ed='s
@@ -3042,20 +3042,20 @@ item at a time, synchronously, inside this one command — genuinely
 interactive, so native logging fires without the =org-inhibit-
 logging= workaround.
 
-**Core design principle, added 2026-08-06 from conversation: two
+*Core design principle, added 2026-08-06 from conversation: two
 genuinely different modes, not one uniform "propose an interval"
-behavior** — the system cannot tell when a human was actually
+behavior* — the system cannot tell when a human was actually
 reading/thinking/composing versus idle, attending to something else
 entirely (another task, email, lunch), between logged interaction
 points, so it must not pretend otherwise:
-- **Unattended/subagent-derived events**
+- *Unattended/subagent-derived events*
   ([[id:16160d23-273b-4510-858e-db18508d04a0][16160d23]]) — the
   interval genuinely *is* knowable (a subagent was either running or
   not; =duration_ms= is authoritative), so the apply command can
   propose, and the human can accept in bulk, a real =CLOCK:= entry
   directly. Still reviewed, per the core queue+review model — but
   mechanically derived, not reconstructed.
-- **Human-session-derived events** — the apply command must *not*
+- *Human-session-derived events* — the apply command must *not*
   auto-write a =CLOCK:= interval on the human's behalf; doing so
   would be exactly the kind of "confidently wrong" record this whole
   redesign exists to avoid. Instead: render each logged =pause=/
@@ -3646,18 +3646,18 @@ stands today (unchanged), separately read the relevant queue file(s),
 join by =:ID:=, and annotate/override the displayed state before
 formatting the response. Three sub-decisions this needs, not just "go
 merge them":
-- **Whose queue?** Default to the *calling session's own* pending
+- *Whose queue?* Default to the *calling session's own* pending
   events — that's what actually prevents the within-one-conversation
   contradiction above. A lightweight "+N pending from other sessions"
   count on top is a smaller, separate call; avoid a full cross-session
   merge at query time, which would reintroduce exactly the kind of
   concurrent-state-guessing this whole redesign exists to get away
   from.
-- **Multiple queued events for one heading.** Show the *latest* by
+- *Multiple queued events for one heading.* Show the *latest* by
   timestamp, not the first — same "final proposed value wins" logic
   the apply command itself needs anyway.
-- **=org_clock_report= is a different shape of problem than
-  =org_query=** — a single overlaid *state* is easy; accumulated
+- *=org_clock_report= is a different shape of problem than
+  =org_query=* — a single overlaid *state* is easy; accumulated
   *duration* is not. Silently blending unconfirmed queued intervals
   into an authoritative-looking total risks the same "confidently
   wrong" failure flagged for the marker-desync case
@@ -3665,8 +3665,8 @@ merge them":
   interval might still get edited or rejected at review time. Keep
   applied and pending totals visibly separate ("applied: 2:15, +0:40
   pending review") rather than merged into one number.
-- **Overlapping intervals on the same heading, once concurrent actors
-  are possible** ([[id:16160d23-273b-4510-858e-db18508d04a0][16160d23]]
+- *Overlapping intervals on the same heading, once concurrent actors
+  are possible* ([[id:16160d23-273b-4510-858e-db18508d04a0][16160d23]]
   makes this a real case, not hypothetical): *decided* 2026-08-06 —
   union, not sum, since two overlapping intervals mean the system was
   busy doing *something* during that span, not that twice the work
@@ -3736,7 +3736,7 @@ of an arbitrary per-batch number. Fix: use the real =(session_id,
 agent_id)= pair as a genuine compound key on each queued event,
 rather than reinventing a synthetic label.
 
-**File layout**: one file per real =session_id= (matching one writer
+*File layout*: one file per real =session_id= (matching one writer
 stream, no contention), with =agent_id= as a field on individual
 events, not a separate file per subagent — a subagent's contribution
 is typically 1-2 events, not enough to justify file proliferation.
@@ -3744,7 +3744,7 @@ The review-and-apply command's existing "group by heading and
 session" logic extends naturally to sub-group by =agent_id= when
 present.
 
-**Confirmed baseline, no open uncertainty**: the orchestrating
+*Confirmed baseline, no open uncertainty*: the orchestrating
 session writes these events *on the subagent's behalf* after each
 one completes — same shape as today's =org_log_background_plan= call,
 just with the real =agent_id= and a genuine start/end interval
@@ -3753,8 +3753,8 @@ own =duration_ms= field (already present in every background-agent
 completion this project has seen). Requires no change to what
 subagents are permitted to do.
 
-**Why this data gets auto-derived treatment while human-session data
-doesn't** (see
+*Why this data gets auto-derived treatment while human-session data
+doesn't* (see
 [[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]'s core design
 principle): a subagent interval carries none of the "was the human
 actually attending, or idle/elsewhere" ambiguity that makes human-
@@ -3763,8 +3763,8 @@ subagent was mechanically either running or not. That's precisely
 what makes =duration_ms= trustworthy enough to write directly, no
 manual reconstruction needed.
 
-**Separate, genuinely uncertain stretch goal, do not assume either
-way**: whether a subagent could instead self-report its own event
+*Separate, genuinely uncertain stretch goal, do not assume either
+way*: whether a subagent could instead self-report its own event
 mid-flight (more accurate than reconstructing from =duration_ms=
 after the fact) depends on whether a spawned subagent process has
 access to its own =agent_id= from inside its own execution context —
@@ -4029,8 +4029,8 @@ annotations, and org's own agenda does become a free retrospective
 "what did I actually attend to" view with no bespoke tooling. Verified
 in org 9.8.7, the straight build Doom uses.
 
-**One concrete lead already found, added 2026-08-06 — verify, don't
-rediscover from scratch**: active (=<...>=) timestamps are picked up
+*One concrete lead already found, added 2026-08-06 — verify, don't
+rediscover from scratch*: active (=<...>=) timestamps are picked up
 by =org-agenda=/=org-agenda-list=, inactive (=[...]=) ones are not,
 including (per informal web research, not yet confirmed live in this
 project's own Emacs) freeform list-item notes inside a =:LOGBOOK:=
@@ -4042,8 +4042,8 @@ confirmed, this becomes the mechanism behind
 [[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]'s active-marker
 "guidepost" annotations — org's own agenda would double as a free,
 retrospective "what did I actually attend to" view, no bespoke
-tooling needed for that specific piece. **Verify before relying on
-it**: on a scratch heading, put one active-timestamp and one
+tooling needed for that specific piece. *Verify before relying on
+it*: on a scratch heading, put one active-timestamp and one
 inactive-timestamp list item inside =:LOGBOOK:=, run
 =org-agenda-list=, confirm exactly the active one appears — cheap,
 direct, matches this project's own "confirmed live, not just
@@ -4857,7 +4857,7 @@ drawer text:*
 : output: CLOCK: [12:45]--[12:50] =>  0:05      <- the 0:01 absorbed
 
 and, more starkly, the same 0:01 interval *alone* with nothing to merge
-into consolidates to the **empty string**. Any interval shorter than the
+into consolidates to the *empty string*. Any interval shorter than the
 rounding granularity is not shortened or flagged; it is deleted.
 
 *Why this is more than another short-interval bug.* The annotation
@@ -6075,8 +6075,8 @@ in *two rounds*: round one consumed =ae39='s pair, and in round two
 replaying the real =--review-items-from-queue= against a copy of the
 queue with =ae39='s events marked applied.
 
-That makes the defect *worse*, not milder, and reframes it: **heading
-attribution of id-less events depends on watermark state.** The same
+That makes the defect *worse*, not milder, and reframes it: *heading
+attribution of id-less events depends on watermark state.* The same
 queue file yields different attribution depending on what was applied
 before it — so the record a heading ends up with is a function of when
 the human happened to run apply and how they batched it, not of what
