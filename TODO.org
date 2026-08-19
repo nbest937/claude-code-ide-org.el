@@ -4072,7 +4072,7 @@ recorded time. Decide against a month of data, not these eight days —
 counting =[10:00]--[10:01]= as two minutes puts a =>= total on the line
 that =org-clock-sum= contradicts from the same timestamps; bumping an
 endpoint outward fabricates time — about an hour across the 65 lines
-that would move — which is [[id:b74e0f19-8dc1-4c65-97b6-c1b02b1cd07e][b74e0f19]]'s
+that would move — which is [[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]]'s
 rounding incident pointed the other way.
 
 ** A hand-set TODO transition records the change but never the time :code:
