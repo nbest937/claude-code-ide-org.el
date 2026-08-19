@@ -5502,6 +5502,15 @@ last session got there. "What would the next person need to start" is a
 sharper test than any length budget, and unlike a budget it does not
 punish the measurements, which are the part most often reused.
 
+*Do not answer this heading without asking first.* The user has a new
+task lifecycle in mind (stated 2026-08-19, deliberately not elaborated
+at the time). It very likely determines what a body is *for*, and
+therefore what belongs in one — so any answer composed before hearing it
+is a guess that will need redoing.
+
+Ask for it before picking this up.
+
+
 * Tooling
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Tooling
@@ -6349,3 +6358,39 @@ does, over how the known category set is defined.
 [[id:8d682a5b-1b03-4744-995c-a871a8b40ddc][8d682a5b]] is about
 diagnosing org-lint's *existing* misplaced-heading reports; this is about
 adding checks org-lint has no opinion on.
+** TODO Run bin/lint-org in a pre-commit hook, scoped to staged org files :code:
+:PROPERTIES:
+:ID:       7e9aa4ea-4757-4e58-bac3-3c3e67fc4cb1
+:CREATED:  [2026-08-19 Wed 10:56]
+:END:
+
+=bin/lint-org= runs nowhere automatically — not in a hook, not in
+=bin/test=. The only git hook is =.githooks/pre-push=, which checks the
+plans archive. =core.hooksPath= is already set to =.githooks=, so a new
+hook needs no setup step.
+
+*Evidence it would pay.* Five org errors were introduced and committed
+across 2026-08-18/19: four =:ID:= UUIDs written from memory (correct
+8-character prefix, wrong tail, every time) and one line of prose that
+wrapped so =30.= began a line, which org parsed as an ordered-list
+bullet. All five were caught by =bin/lint-org= *after* the commit and
+each needed a follow-up commit. Runtime is 1.6s over both files.
+
+*Scope to staged =.org= files, linting their staged content.* The
+=pre-push= hook's own header argues against pre-commit for =sync-plans=
+on two grounds. Neither survives here: it would mutate the index —
+linting mutates nothing; and it would couple unrelated commits — true
+only of a whole-tree lint. Scoped to staged paths, an elisp-only commit
+lints nothing and costs nothing, and a concurrent session's unstaged org
+edit cannot block it. Linting the staged content rather than the
+worktree is also the more correct semantics: the check should describe
+what is about to be committed.
+
+*Fail on errors only.* 28 warnings are currently accepted and would
+block every commit.
+
+*Why not pre-push instead*, which is where this project puts its other
+check: pre-push is too late for the observed harm. All five errors were
+caught before any push; the cost was noise in local history, which only
+a pre-commit hook prevents. Whether pre-push should lint as well, for
+anything that reached history via =--no-verify=, is open and cheap.
