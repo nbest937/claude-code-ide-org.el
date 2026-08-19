@@ -5511,6 +5511,50 @@ is a guess that will need redoing.
 Ask for it before picking this up.
 
 
+** TODO Find a convention marking which children a container's plan actually covered :code:research:
+:PROPERTIES:
+:ID:       9651d4c8-6887-4b0a-91d9-562c3bc49a75
+:CREATED:  [2026-08-19 Wed 11:00]
+:END:
+
+Wanted: a markup or convention showing which of a container's children
+were in its *original* plan, and which accrued afterwards. Raised
+2026-08-19, for future research — not now.
+
+*The case study is exact.*
+[[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] was planned with
+five children (=290b6fc5=, =226ed53b=, =31f766ab=, =09c134c4=,
+=507754ba=). Two days later it has *ten* — =e0904e93=, =98700ea3=,
+=7d739afd=, =9202b39d= and =e0c55d26= all accrued during execution.
+Nothing in =TODO.org= distinguishes the two sets.
+
+*The information exists, in the wrong place, and is never updated.* The
+plan file opens /"Covers all five children"/ — which was true when
+written and is now false. So the provenance is recorded once, in a
+document nobody revises, rather than on the headings themselves where it
+would survive.
+
+*What the answer has to survive:* containers grow by accretion, so any
+convention that requires editing the container each time a child is
+added will drift exactly as the plan file did. Something set at
+*creation* of the child, and never touched again, is the shape most
+likely to hold — a property, a tag, or the presence or absence of the
+plan link itself.
+
+*And it forces a question that is genuinely open.* Under the current
+discipline every planned task carries a plan link, so a container that
+doubles in size after planning implies plans for the follow-on children
+too — doubling the planning overhead for exactly the work that was
+unforeseen. Whether that discipline is warranted at that scale has not
+been decided, and neither has the related question from the same day:
+whether a plan is a *maintained document* or a dated snapshot of intent
+that execution supersedes. Both bear on this and neither should be
+settled by whoever picks this up first.
+
+Adjacent to [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]], and
+gated the same way: the user has an unstated task lifecycle in mind that
+likely reframes all of it.
+
 * Tooling
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Tooling
