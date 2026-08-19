@@ -6438,3 +6438,29 @@ check: pre-push is too late for the observed harm. All five errors were
 caught before any push; the cost was noise in local history, which only
 a pre-commit hook prevents. Whether pre-push should lint as well, for
 anything that reached history via =--no-verify=, is open and cheap.
+
+*Decided 2026-08-19: block the human too.* The caveat about blocking the
+user on an error they did not write was raised and dismissed by them —
+=git commit --no-verify= is the escape hatch, and
+=.githooks/pre-push= already establishes the convention, documenting the
+bypass in a header comment and printing =Skip: git push --no-verify= in
+its own failure message. The new hook should print its equivalent.
+
+Two things that decision does not cover, both worth building in:
+
+- *The hook is not author-aware*, and cannot be. It lints staged =.org=
+  content, so it blocks whoever runs =git commit= regardless of who
+  introduced the error. That is the right behaviour — the committer is
+  the one publishing it — but it means "block me on my errors" is really
+  "block the commit on the file's errors".
+- *Claude must never pass =--no-verify=.* All five errors this hook is
+  being built for were Claude's, so a bypass Claude may use defeats the
+  hook entirely. The escape hatch belongs to the human alone, and that
+  needs to be a written rule rather than an assumption, because it costs
+  nothing to type and would silently restore the status quo.
+
+*Gotcha to document in the hook itself:* it lints the *staged* content,
+not the Emacs buffer. =TODO.org= is normally open and sometimes has
+unsaved changes — that is why =org_amend= has a deferred path at all —
+so a clean lint at commit time says nothing about what is still only in
+the buffer.
