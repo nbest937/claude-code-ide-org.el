@@ -3129,6 +3129,26 @@ CLOCK: [2026-08-18 Tue 11:27]--[2026-08-18 Tue 11:44] =>  0:17
   2(a)(b)(c) all shipped, handed back for judgement
 :END:
 
+*Where this ended up.* Two mechanisms were writing clock time by
+different rules, and the intended one counted your idle time between
+turns as work. Three changes fixed it: *2(a)* made clustering
+kind-aware so a long turn survives (=a931eb1=); *2(b)* made apply
+write one CLOCK line per run of work rather than one per span,
+removing a ~45% overcount (=e297bbd=); *2(c)* silenced the
+pre-cutover auto-clock-in trigger, leaving one mechanism (=c9fc1a3=).
+The accumulated record was recomputed separately under
+[[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]].
+
+*Two decisions are yours, and are the only reason this is REVIEW
+rather than DONE.* Is a 5-16 line drawer readable, at
+=claude-code-ide-org-span-idle-floor= 120s? Raising it to 300s reads
+better and re-absorbs about 8 h of idle. And do you want =C-c C-t= to
+start a clock again (=claude-code-ide-org-auto-clock-in-on-doing= ->
+t)? Both are one-line changes either way.
+
+Everything below is the original diagnosis followed by three shipping
+journals, in the order they were written.
+
 =38b92521='s :LOGBOOK: claimed *3:59* for a session that ran 15:28 to
 18:50. Corrected to 2:44 by hand on 2026-08-17. The overcount came from
 two mechanisms writing CLOCK lines into the same drawer with no knowledge
@@ -3162,7 +3182,11 @@ cannot measure*. The aggregator's docstring calls a lone timestamp
 "honest — one interaction point is not evidence of a duration", which is
 true of the evidence and false of the world.
 
-*Directions, none chosen:*
+*Directions, since decided* — recorded as open on the morning of
+2026-08-18 and settled by that evening. The first shipped as 2(c)
+below. The second was never taken. The third is moot: apply no
+longer writes a span end to end, so there is no long interval left
+to overlap with:
 
 - Exempt hand-set PLANNING/DOING from the auto-clock-in trigger, or have
   the trigger queue a =clock_in= event instead of opening a live clock, so
@@ -3176,9 +3200,11 @@ true of the evidence and false of the world.
 *Related but distinct:* [[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]] shipped the container
 exemption for this same trigger, so the trigger is already known to need
 scoping. And [[id:d39f5f0d-bee3-4aa4-8494-0bddd07e9067][d39f5f0d]] says CLAUDE.md's "Session tracking"
-section describes a clocking mechanism that no longer exists — it turns
-out the mechanism does still exist, which makes that section wrong in a
-more interesting way than "out of date".
+section describes a clocking mechanism that no longer exists. This
+paragraph then said the mechanism *did* still exist, which was true
+until 2(c) silenced it that same evening. So CLAUDE.md is wrong about
+it for a third distinct reason now: the mechanism exists, and is off
+by default.
 
 -----
 
