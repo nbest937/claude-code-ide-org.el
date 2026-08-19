@@ -2300,13 +2300,24 @@ BLOCK).  Never signals an error to the MCP layer."
 ;; `add-hook' composes regardless of load/merge order while `setq'
 ;; would clobber whatever is already there.
 
-(defcustom claude-code-ide-org-auto-clock-in-on-doing nil
+(defcustom claude-code-ide-org-auto-clock-in-on-doing t
   "Whether a heading becoming DOING or PLANNING opens a clock by itself.
 
-Off.  `claude-code-ide-org--trigger-auto-clock-in' returns immediately
-unless this is non-nil, so the only thing that opens a clock in normal
-operation is a review pass applying a confirmed interval -- or the user
-deliberately clocking in with `C-c C-x C-i', which is untouched.
+On.  A heading set to DOING or PLANNING by hand -- `C-c C-t', `S-right',
+the agenda's `t' -- opens a clock on it, so work done at the keyboard is
+timed without having to remember `C-c C-x C-i'.
+
+*Off between 2026-08-18 and 2026-08-19, and the reason it could come
+back is worth keeping.*  The defect was never that a clock existed
+outside the queue: a human's own bare CLOCK line is the expected shape
+\(TODO.org :ID: 4f8500e6).  It was *double counting* -- :ID: 38b92521's
+drawer claimed 3:59 for a session spanning 3:22, because a
+trigger-opened clock and a queue-derived span covered the same period on
+the same heading.  Step 2(b) shortened the written lines without making
+them non-overlapping, so it did not help.  What fixed it is
+`claude-code-ide-org--subtract-intervals' (:ID: dadc08cf): apply now
+subtracts whatever this trigger already recorded before writing, so the
+two mechanisms compose instead of summing.
 
 *This reverses a decision, and does so knowingly.*  The 2026-08-11
 cutover considered retiring this trigger and explicitly kept it, on the
@@ -4232,25 +4243,6 @@ the first unreadable.  See :ID: b8e6007a."
             (format-time-string fmt (or end (plist-get item :end)))
             (if (and note (not (string-empty-p note))) (concat " " note) ""))))
 
-(defun claude-code-ide-org--logbook-has-interval-p (start end)
-  "Non-nil when the heading at point already records a CLOCK interval
-with exactly START and END.
-
-Compares the *rendered* timestamps rather than parsed times, because
-that is what a replay would write: org formats both ends the same way
-every time, so string equality on the org form is exact here and avoids
-re-parsing every line in the drawer.
-
-The other half of the content idempotency described on
-`claude-code-ide-org--append-to-drawer'."
-  (let ((needle (format "CLOCK: %s--%s"
-                        (format-time-string "[%Y-%m-%d %a %H:%M]" start)
-                        (format-time-string "[%Y-%m-%d %a %H:%M]" end))))
-    (save-excursion
-      (org-back-to-heading t)
-      (let ((limit (save-excursion (outline-next-heading) (point))))
-        (and (search-forward needle limit t) t)))))
-
 (defun claude-code-ide-org--review-intervals-to-write (item)
   "Return the (START . END) intervals apply will write for ITEM.
 
@@ -4272,6 +4264,89 @@ authoritative, and has no guideposts inside it to run-split anyway."
       (claude-code-ide-org--span-work-runs (plist-get item :events))
     (list (cons (plist-get item :start) (plist-get item :end)))))
 
+(defun claude-code-ide-org--recorded-intervals-at-point ()
+  "Return the closed CLOCK intervals already in this heading's :LOGBOOK:.
+
+Ascending (START . END) conses.  An *open* CLOCK line is ignored: it has
+no end, so nothing can be subtracted from it, and it belongs to a clock
+still running rather than to history."
+  (let ((bounds (claude-code-ide-org--drawer-content-bounds "LOGBOOK"))
+        intervals)
+    (when bounds
+      (dolist (line (split-string
+                     (buffer-substring-no-properties (nth 0 bounds) (nth 1 bounds))
+                     "\n"))
+        (when (string-match claude-code-ide-org--clock-line-regexp line)
+          ;; Both groups read before parsing: `--parse-org-timestamp'
+          ;; runs its own `string-match' and clobbers the match data.
+          (let* ((g1 (match-string 1 line))
+                 (g2 (match-string 2 line))
+                 (s (claude-code-ide-org--parse-org-timestamp (concat "[" g1 "]")))
+                 (e (claude-code-ide-org--parse-org-timestamp (concat "[" g2 "]"))))
+            (when (and s e) (push (cons s e) intervals))))))
+    (sort (nreverse intervals) (lambda (a b) (time-less-p (car a) (car b))))))
+
+(defun claude-code-ide-org--subtract-intervals (runs recorded)
+  "Return RUNS with every part already covered by RECORDED removed.
+
+The union rule (TODO.org :ID: 7d739afd) applied one level up: there it
+was two agent sessions overlapping, here it is the agent's reconstructed
+span against a CLOCK line the human wrote by hand.  Both are true at
+once -- the human was attending and the agent was running -- but org
+sums every CLOCK line in a drawer identically, so writing both makes
+every clocktable overcount by the overlap.
+
+Subtracting rather than skipping the whole run is deliberate.  Skipping
+would discard real agent time that falls *outside* the human's interval,
+which is the undercount the same union rule rejects in the other
+direction.  A run straddling a recorded interval therefore comes back as
+two pieces, which is what actually happened.
+
+This also subsumes the exact-match idempotency that
+`claude-code-ide-org--logbook-has-interval-p' used to provide: a replay
+finds its own previously written line in RECORDED, subtracts to nothing,
+and writes nothing.  Generalised rather than removed -- the old check
+could only recognise an interval it had written verbatim, and a
+re-derived run whose endpoints moved by a second slipped straight past
+it."
+  (let (out)
+    (dolist (run runs)
+      (let ((pieces (list run)))
+        (dolist (rec recorded)
+          (setq pieces
+                (apply #'append
+                       (mapcar
+                        (lambda (p)
+                          (cond
+                           ;; Disjoint: untouched.
+                           ((or (not (time-less-p (car rec) (cdr p)))
+                                (not (time-less-p (car p) (cdr rec))))
+                            (list p))
+                           ;; Otherwise keep whatever lies outside REC.
+                           (t (append
+                               (when (time-less-p (car p) (car rec))
+                                 (list (cons (car p) (car rec))))
+                               (when (time-less-p (cdr rec) (cdr p))
+                                 (list (cons (cdr rec) (cdr p))))))))
+                        pieces))))
+        (setq out
+              (append out
+                      (if (equal pieces (list run))
+                          ;; Untouched: pass through exactly. A run that
+                          ;; overlapped nothing must reach the writer as
+                          ;; it was -- including a zero-width one, which
+                          ;; the writer annotates without a CLOCK line.
+                          ;; Filtering here instead swallowed that
+                          ;; annotation.
+                          pieces
+                        ;; Cut: drop any remnant too short to render.
+                        ;; Floor 0 so the pieces are never merged back
+                        ;; across the hole just cut, which would undo the
+                        ;; subtraction; this call is only here for the
+                        ;; rendered-zero half of that function.
+                        (claude-code-ide-org--apply-idle-floor pieces 0))))))
+    out))
+
 (defun claude-code-ide-org--review-apply-clock (item)
   "Write ITEM's CLOCK: intervals and their :LOGBOOK: annotations at point.
 Uses raw `org-clock-in'/`org-clock-out' with both endpoints supplied up
@@ -4292,15 +4367,26 @@ An item with no run to write still gets its annotation.  That is the
 zero-width case generalised rather than a new rule: the guideposts are
 real evidence that something happened, and the absent CLOCK line is the
 same refusal to claim a duration nobody observed."
-  (let ((start (plist-get item :start))
-        (end (plist-get item :end))
-        (runs (claude-code-ide-org--review-intervals-to-write item)))
+  (let* ((start (plist-get item :start))
+         (end (plist-get item :end))
+         (observed (claude-code-ide-org--review-intervals-to-write item))
+         (runs (claude-code-ide-org--subtract-intervals
+                observed
+                (claude-code-ide-org--recorded-intervals-at-point))))
     (dolist (run runs)
       (claude-code-ide-org--review-write-one-interval item (car run) (cdr run)))
-    ;; No run means no CLOCK line at all, so the span would go
-    ;; unannotated and vanish from the drawer entirely -- the evidence
-    ;; would be silently dropped rather than deliberately not-claimed.
-    (unless runs
+    ;; Nothing observed at all means no CLOCK line, so the span would
+    ;; vanish from the drawer entirely -- the evidence would be silently
+    ;; dropped rather than deliberately not-claimed, so it is annotated.
+    ;;
+    ;; Gated on OBSERVED rather than RUNS, and the difference is the
+    ;; whole of a replay: a second apply observes the same runs and
+    ;; subtracts every one of them as already recorded. Keyed on RUNS
+    ;; that case would write an envelope annotation spanning the lot,
+    ;; which is a line no first pass ever writes -- caught by the
+    ;; per-run idempotency test finding three annotations where it
+    ;; expected two.
+    (unless observed
       (claude-code-ide-org--append-to-drawer
        "LOGBOOK" (claude-code-ide-org--review-format-annotation item start end)))))
 
@@ -4324,25 +4410,14 @@ same refusal to claim a duration nobody observed."
   ;; never observed. Note this is NOT the rounding behavior being
   ;; avoided elsewhere: nothing is being discarded, because there was
   ;; no duration to discard.
-  (unless (or (time-equal-p start end)
-              ;; Content-based idempotency: an interval with identical
-              ;; endpoints on this heading is a replay, not two real
-              ;; intervals a human happened to confirm twice. Without
-              ;; this, reprocessing an archived queue file silently
-              ;; doubles recorded time -- and silently is the problem,
-              ;; since a duplicated CLOCK line looks exactly like a
-              ;; legitimate one (TODO.org :ID: 78f485a8).
-              ;;
-              ;; Keyed on the interval actually being written, which is
-              ;; why this sits here rather than in the caller: since a
-              ;; span writes several, a check keyed on the span's own
-              ;; endpoints would match nothing ever written and let a
-              ;; replay double every line. Worse, partial failure is
-              ;; NORMAL on this path -- the `unwind-protect' below
-              ;; cancels mid-item, so the retry that follows is the
-              ;; expected case rather than the exotic one, and it must
-              ;; land only the runs that did not.
-              (claude-code-ide-org--logbook-has-interval-p start end))
+  ;; Content-based idempotency moved to the caller, as interval
+  ;; subtraction: a replay finds its own previously written line among
+  ;; the recorded intervals and subtracts to nothing (TODO.org :ID:
+  ;; 78f485a8). That matters because partial failure is NORMAL here --
+  ;; the `unwind-protect' below cancels mid-item, so a retry is the
+  ;; expected case rather than the exotic one, and it must land only the
+  ;; runs that did not.
+  (unless (time-equal-p start end)
     (let ((org-clock-out-remove-zero-time-clocks nil)
           (closed nil))
       (org-clock-in nil start)

@@ -653,41 +653,30 @@ claude-code-ide-org-set-todo's own logic."
                             (with-current-buffer (get-file-buffer file)
                               (buffer-string)))))))
 
-(ert-deftest claude-code-ide-org-test-trigger-is-silent-by-default ()
-  "By default a heading going DOING or PLANNING opens no clock at all.
+(ert-deftest claude-code-ide-org-test-trigger-clocks-by-default ()
+  "A heading going DOING opens a clock, and that is the default again.
 
-This is step 2(c) of TODO.org :ID: 226ed53b, and it reverses a decision
-the 2026-08-11 cutover took deliberately -- to keep the trigger so a
-human's own `C-c C-t' still starts timing. A clock the trigger opens is
-in no queue, so no review pass can see, confirm or correct it, which is
-the second of the two disagreeing mechanisms that heading is named for.
+Asserted against `claude-code-ide-org-auto-clock-in-on-doing''s real
+value rather than a let-binding: the default IS the claim, and every
+other trigger test in this file binds the flag explicitly, so this is the
+only one that would notice it changing.
 
-Asserted with `claude-code-ide-org-auto-clock-in-on-doing' left at its
-real default rather than let-bound to nil: the default IS the claim, and
-a test that bound it would still pass if someone changed the default
-back. Every other trigger test in this file binds it to t, so this is
-the only one that would notice.
-
-The transition itself must still happen -- this silences a clock, not a
-state change -- and a deliberate `org-clock-in' must still work, since
-the user's own attention is not what was over-recorded."
+It was nil between 2026-08-18 and 2026-08-19. The defect that took it
+away was double counting -- a trigger-opened clock and a queue-derived
+span covering the same period on one heading -- and what let it come back
+is `claude-code-ide-org--subtract-intervals\' (TODO.org :ID: dadc08cf),
+which makes apply yield to whatever this trigger already recorded. The
+two mechanisms now compose instead of summing, which is pinned by
+`claude-code-ide-org-test-apply-yields-to-a-hand-clocked-interval\'."
   (claude-code-ide-org-test--with-heading
     (let ((org-trigger-hook (list #'claude-code-ide-org--trigger-auto-clock-in)))
-      (should-not claude-code-ide-org-auto-clock-in-on-doing)
+      (should claude-code-ide-org-auto-clock-in-on-doing)
       (should-not (org-clocking-p))
       (org-with-point-at (org-id-find id 'marker) (org-todo "DOING"))
-      (should-not (org-clocking-p))
+      (should (org-clocking-p))
+      (should (equal id (org-with-point-at org-clock-marker (org-entry-get nil "ID"))))
       (should (equal "DOING" (org-with-point-at (org-id-find id 'marker)
-                               (org-get-todo-state))))
-      (org-with-point-at (org-id-find id 'marker) (org-todo "PLANNING"))
-      (should-not (org-clocking-p))
-      (should-not (string-match-p "CLOCK: \\["
-                                  (with-current-buffer (get-file-buffer file)
-                                    (buffer-string))))
-      ;; The user's own clock is untouched: this removes an inference
-      ;; from a keyword, not the ability to say "I am working on this".
-      (claude-code-ide-org-test--clock-in-for-real id)
-      (should (org-clocking-p)))))
+                               (org-get-todo-state)))))))
 
 (ert-deftest claude-code-ide-org-test-trigger-hook-skips-clock-in-when-already-clocked-there ()
   "If a clock is already running on the heading being set to DOING
@@ -4141,6 +4130,65 @@ says it is unresolvable -- and none of them contains \"Error:\"."
         (should (string-match-p "\n(unresolvable :ID:)" report))
         ;; The whole point: no failure message rendered as a title.
         (should-not (string-match-p "Error: no org heading found" report))))))
+
+(ert-deftest claude-code-ide-org-test-subtract-intervals-splits-and-clears ()
+  "Subtraction is the union rule one level up, not a skip.
+
+TODO.org :ID: dadc08cf. A run straddling an already-recorded interval
+comes back as the two pieces outside it -- skipping the whole run would
+discard real agent time outside the human's clock, which is the
+undercount the union rule (:ID: 7d739afd) rejects in the other
+direction."
+  (let* ((run (cons (date-to-time "2026-08-06T10:00:00-0500")
+                    (date-to-time "2026-08-06T11:00:00-0500")))
+         (fmt (lambda (i) (concat (format-time-string "%H:%M" (car i)) "-"
+                                  (format-time-string "%H:%M" (cdr i)))))
+         (sub (lambda (from to)
+                (mapcar fmt (claude-code-ide-org--subtract-intervals
+                             (list run)
+                             (list (cons (date-to-time (concat "2026-08-06T" from "-0500"))
+                                         (date-to-time (concat "2026-08-06T" to "-0500")))))))))
+    ;; Straddled: two pieces, not zero.
+    (should (equal '("10:00-10:20" "10:40-11:00") (funcall sub "10:20:00" "10:40:00")))
+    ;; Wholly covered: nothing left -- this is how a replay writes nothing.
+    (should-not (funcall sub "09:00:00" "12:00:00"))
+    ;; Overlapping one end: the uncovered remainder only.
+    (should (equal '("10:30-11:00") (funcall sub "09:00:00" "10:30:00")))
+    ;; Disjoint: untouched.
+    (should (equal '("10:00-11:00") (funcall sub "12:00:00" "13:00:00")))))
+
+(ert-deftest claude-code-ide-org-test-apply-yields-to-a-hand-clocked-interval ()
+  "Apply must not double count against a CLOCK line the human wrote.
+
+TODO.org :ID: 226ed53b's original incident: a drawer claimed 3:59 for a
+session spanning 3:22, because a trigger-opened clock and a queue-derived
+span covered the same period on the same heading. 2(b) made the written
+lines shorter, not non-overlapping, so the overcount survived it -- which
+is why re-enabling the auto-clock-in trigger waited on this.
+
+Here the human clocked 09:00--09:30 by hand and the agent's run is
+09:00--09:10, wholly inside it. Nothing new may be written, and the
+drawer must still total 30 minutes rather than 40."
+  (claude-code-ide-org-test--with-heading
+    ;; A bare human CLOCK line, the shape :ID: 4f8500e6 describes.
+    (claude-code-ide-org--at-id
+     id (lambda ()
+          (claude-code-ide-org--append-to-drawer
+           "LOGBOOK" (claude-code-ide-org--format-clock-line
+                      (date-to-time "2026-08-06T09:00:00-0500")
+                      (date-to-time "2026-08-06T09:30:00-0500")))
+          (save-buffer)))
+    (should-not (claude-code-ide-org--review-apply-item
+                 (list :type 'clock :id id
+                       :start (date-to-time "2026-08-06T09:00:00-0500")
+                       :end (date-to-time "2026-08-06T09:10:00-0500")
+                       :note "agent run inside the human's clock"
+                       :agent nil :suggested nil :events nil)))
+    (let ((clocks (seq-filter
+                   (lambda (l) (string-match-p "CLOCK:" l))
+                   (split-string (claude-code-ide-org-test--disk-contents file) "\n"))))
+      (should (= 1 (length clocks)))
+      (should (string-match-p "=>  0:30" (car clocks))))))
 
 (ert-deftest claude-code-ide-org-test-drained-requires-idle-and-no-items ()
   "Both clauses of the drained predicate are load-bearing."
