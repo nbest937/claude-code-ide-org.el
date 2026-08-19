@@ -6305,7 +6305,34 @@ four command forms, asserting exit status and message.
 second concurrent session until a mechanism is in place, so this gates
 concurrent work generally rather than being one more backlog item.
 
-** TODO Diagnose the 11 misplaced-heading reports org-lint found :code:
+** Enforce org structural hygiene, from diagnosis to commit gate :code:
+:PROPERTIES:
+:ID:       aded703f-8110-439e-b470-5e0375121c95
+:CREATED:  [2026-08-19 Wed 12:16]
+:END:
+
+One arc in three steps: find the structural drift that already exists,
+teach the linter to catch that class, then stop new instances reaching
+history.
+
+The three were filed separately over two weeks and only read as a set
+once =7e9aa4ea= joined them on 2026-08-19. Composed rather than left
+scattered because they must land in this order — the diagnosis decides
+what rules are worth writing, and enforcing rules nobody has validated
+would block commits on false positives.
+
+*Evidence from one session, 2026-08-18/19.* Five structural errors were
+introduced and committed: four =:ID:= UUIDs written from memory, each
+with a correct 8-character prefix and a wrong tail, and one line of
+prose that wrapped so =30.= began a line and org parsed it as an
+ordered-list bullet. All five were caught by =bin/lint-org= *after* the
+commit, each needing a follow-up. That is the case for the third step
+and it is also a rough measure of the rate.
+
+Every member already carries its own detail; this heading deliberately
+holds only what the set shares.
+
+*** TODO Diagnose the 11 misplaced-heading reports org-lint found :code:
 :PROPERTIES:
 :ID:       8d682a5b-1b03-4744-995c-a871a8b40ddc
 :CREATED:  [2026-08-14 Fri 14:40]
@@ -6335,7 +6362,7 @@ inline bold at line start, the transition tables. Sorting real from
 quoted is the actual work, and the answer decides whether these become
 errors or stay warnings.
 
-** NEXT Lint for headings that are valid org but structurally unintended :code:
+*** NEXT Lint for headings that are valid org but structurally unintended :code:
 :PROPERTIES:
 :ID:       95087d8f-e16d-45d3-bdea-9b179dc672b4
 :CREATED:  [2026-08-17 Mon 10:10]
@@ -6402,7 +6429,7 @@ does, over how the known category set is defined.
 [[id:8d682a5b-1b03-4744-995c-a871a8b40ddc][8d682a5b]] is about
 diagnosing org-lint's *existing* misplaced-heading reports; this is about
 adding checks org-lint has no opinion on.
-** TODO Run bin/lint-org in a pre-commit hook, scoped to staged org files :code:
+*** TODO Run bin/lint-org in a pre-commit hook, scoped to staged org files :code:
 :PROPERTIES:
 :ID:       7e9aa4ea-4757-4e58-bac3-3c3e67fc4cb1
 :CREATED:  [2026-08-19 Wed 10:56]
