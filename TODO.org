@@ -3820,6 +3820,28 @@ ignore errors there, which is the opposite of what that column is for.
 It was found while verifying
 [[id:31f766ab-90ed-4950-bc5b-787528c8fe84][31f766ab]] and is independent
 of the guidepost pipeline; refile freely.
+
+*Fixed 2026-08-18* (=4ff1b53=). The grouping code now uses
+=claude-code-ide-org--review-heading-title=, which returns *nil* when an
+id does not resolve — which is what lets a =cond= tell three cases
+apart: unassigned, resolvable, unresolvable. The review buffer already
+had that =cond= from
+[[id:c2132d3f-dd78-4498-ba87-0ca814dc2f77][c2132d3f]]; only
+=org_pending_updates= was left on =--at-id=.
+
+*The test did not discriminate on the first attempt, and the reason is
+worth keeping.* It asserted =(string-match-p "unassigned -- press"
+report)=, which passed with the fix mutated away — because
+=string-match-p= honours =case-fold-search=, defaulting to =t=, so it
+was matching the *item* line's =UNASSIGNED -- press `a'...= rather than
+the group heading at all. Now binds =case-fold-search= nil and anchors
+on the opening paren, which only the group line carries. Caught by
+mutating the branch away, not by reading the test.
+
+That is the second fake assertion this practice caught today — the other
+was in [[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]], where a
+window-extension test asserted only that a line looked plausible.
+
 *** Concurrent sessions' turns must union, not sum, wherever time is totalled :code:
 :PROPERTIES:
 :ID:       7d739afd-f879-445c-b0b6-65e295585a94
