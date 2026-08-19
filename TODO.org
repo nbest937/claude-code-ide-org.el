@@ -557,7 +557,6 @@ exactly what that heading makes permanent.
 with no blank line separating it from the preceding body text or the
 following heading, unlike every hand-written heading in this file. Fixed
 by hand here. Probably wants =:empty-lines-before 1= on the template.
-
 ** TODO Make the 8-character prefix resolve, for the model and the human alike :code:
 :PROPERTIES:
 :ID:       478d6ec9-1b99-4c6c-88e9-c793ad4b2f22
@@ -4110,6 +4109,54 @@ Everything else already behaves the way the user's question assumes it
 should. That narrows the fix to the overlap question above rather than
 to anything about how transitions are accepted.
 
+
+** Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit :code:
+:PROPERTIES:
+:ID:       79c224ab-188a-4ed4-a606-c28ee2cfe72d
+:CREATED:  [2026-08-19 Wed 08:06]
+:END:
+
+*Incident, 2026-08-19.* Five queued transitions were applied by the
+human, marked consumed in the watermark, and then destroyed —
+=09c134c4= -> DONE, =507754ba= -> DONE, =7d739afd= -> TODO,
+=9202b39d= -> TODO, and =507754ba= -> DOING. The queue said they were
+applied; the file never carried them; =git log -S= confirms the keywords
+reached no commit at all. Discovered only because someone asked whether
+there were open loops.
+
+*Cause.* Claude ran =git checkout -- TODO.org= to undo a botched edit of
+its own, having first run =git status --porcelain=, seen =M TODO.org=,
+and assumed the modification was entirely its own. It was not: the same
+working-tree change also held the human's applied review results from
+after the previous commit. One command reverted both.
+
+*Why nothing caught it.* The watermark lives in =~/.claude/org-updates/=
+and the record lives in git, so discarding the second leaves the first
+claiming work that no longer exists. Nothing reconciles them, and the
+review buffer reads the watermark — so the lost transitions did not
+reappear as pending. They were invisible in both directions: gone from
+the file, and gone from the queue's idea of what is outstanding.
+
+This is the same class as the note already in CLAUDE.md's memory about
+never running a pathspec-less =git commit=, and it generalises: *the
+working tree is shared*, so any command that discards uncommitted state
+— =checkout=, =restore=, =stash=, =reset --hard= — must be preceded by
+reading the diff, not by assuming authorship of it.
+
+*Recovered* by re-queueing the four transitions that mattered. The
+=DOING= step of =507754ba= was not re-queued: it is now DONE, and
+replaying an intermediate state would write a State line for a
+transition that never happened at that time.
+
+*Not recovered:* the =- State ...= log lines the original apply wrote,
+which carried the real timestamps. The re-queued events carry today's.
+
+*Candidate fixes, none chosen.* A reconciliation check that reports
+watermark entries whose effect is absent from the file would have caught
+this the moment it happened, and is the only option that catches it
+whoever the culprit is. Cheaper and narrower: a hook or a documented
+rule that refuses to discard =TODO.org=/=DONE.org= working-tree changes
+without showing the diff first.
 
 * Observability
 :PROPERTIES:
