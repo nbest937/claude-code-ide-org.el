@@ -3184,9 +3184,12 @@ true of the evidence and false of the world.
 
 *Directions, since decided* — recorded as open on the morning of
 2026-08-18 and settled by that evening. The first shipped as 2(c)
-below. The second was never taken. The third is moot: apply no
-longer writes a span end to end, so there is no long interval left
-to overlap with:
+below. The second was never taken. The third is *not* moot, though
+this paragraph said so for a day: 2(b) makes the written lines
+shorter, not non-overlapping, so a human's own CLOCK line can still
+contain several of them. It is the enabling fix for accepting
+hand-set transitions gracefully — see
+[[id:dadc08cf-9e12-4e93-bde8-68c241622b0f][dadc08cf]]:
 
 - Exempt hand-set PLANNING/DOING from the auto-clock-in trigger, or have
   the trigger queue a =clock_in= event instead of opening a live clock, so
@@ -3940,6 +3943,124 @@ is in the launching session's file and the job's hook reads its own, so
 the promotion would not fire. Narrow -- it needs =PLANNING= set by the
 very turn that launches a job -- and it has not been reproduced. Filed
 as a question, not a defect.
+** A hand-set TODO transition records the change but never the time :code:
+:PROPERTIES:
+:ID:       dadc08cf-9e12-4e93-bde8-68c241622b0f
+:CREATED:  [2026-08-19 Wed 07:29]
+:END:
+
+Raised by the user 2026-08-19: /"Don't we have to allow for the
+possibility that users will toggle TODO status directly and expect it to
+be accepted and incorporated gracefully?"/ Yes — and the honest answer
+is that it half is.
+
+*What already works, verified rather than assumed.* =TODO.org= declares
+=DOING(d!)=, and the =!= cookie makes org write a timestamped line on
+*every* entry to that state, hand-edits included. Probed live
+2026-08-19 on a scratch file: =C-c C-t= to DOING leaves
+
+: - State "DOING"      from "TODO"       [2026-08-19 Wed 07:28]
+
+and no clock. (The probe needed =(run-hooks 'post-command-hook)= to see
+it — org schedules the log line from =post-command-hook=, which does not
+fire under =emacsclient -e=, so a first probe wrongly reported no line
+at all.) The queue side is graceful too:
+=claude-code-ide-org--review-state-stale-p= compares a queued event's
+=from= against the file's *current* state, so a hand-edit that moves a
+heading under a queued transition is detected and the replay refused
+rather than silently applied.
+
+So the *transition* is accepted, recorded, timestamped, and defended
+against stale replay. Nothing is lost.
+
+*What is not incorporated is time, and only in one case.* If the human
+hand-sets DOING and then *Claude* works, guideposts produce a span and
+the time is recorded through the queue. If the human hand-sets DOING and
+works *alone*, there are no guideposts, no span, and — since
+[[id:226ed53b-c302-4529-870f-a42962b50bde][226ed53b]]'s step 2(c) —
+no trigger either. That work is timed only if they remember =C-c C-x
+C-i=. Converting a discipline requirement back into a mechanism is
+exactly what this project normally does.
+
+*Why simply re-enabling the trigger is not the fix.* The original defect
+behind 226ed53b was not "a clock exists outside the queue" — a human's
+own bare CLOCK line is legitimate and expected
+([[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]]). It was *double
+counting*: =38b92521='s drawer claimed 3:59 for a session spanning 3:22,
+because a trigger-opened clock and a queue-derived span covered the same
+period on the same heading. That happens whenever both mechanisms are
+live at once, which is precisely the case the user is asking about.
+
+*The enabling fix is the third direction 226ed53b listed and never
+took*: have apply refuse to write a run that overlaps an existing CLOCK
+line on the same heading. With that in place the trigger can be switched
+back on — or even defaulted back on — because the failure it caused
+becomes unreachable.
+
+Note this corrects a claim written into 226ed53b on 2026-08-18, which
+called that direction moot on the grounds that "apply no longer writes a
+span end to end, so there is no long interval left to overlap with".
+Wrong: 2(b) makes the written lines *shorter*, not non-overlapping. A
+human clocking 10:00–11:00 by hand while Claude works 10:20–10:40 still
+yields 80 minutes of CLOCK for 60 minutes elapsed.
+
+*The deeper reason it bites, worth stating once.*
+[[id:b8e6007a-ae13-4b13-bb2e-a5df39435af0][b8e6007a]] separated the two
+quantities *semantically* — the agenda answers "where did my attention
+go", the queue answers "what was the agent doing", and the annotation
+style distinguishes them. But both still write =CLOCK:= lines into the
+same drawer, and =org-clock-sum= and every clocktable add them up
+identically. The separation exists in the annotations and not in the
+arithmetic, so any report double counts wherever the two overlap. That
+is the same shape as
+[[id:7d739afd-f879-445c-b0b6-65e295585a94][7d739afd]]'s union rule, one
+level up: there it was two agent sessions, here it is the agent and the
+human.
+
+*Not decided:* whether apply should skip an overlapping run, trim it to
+the uncovered remainder, or write it and report the overlap for a human
+to resolve. Trimming is the most accurate and the most likely to
+surprise; skipping is the most conservative and loses agent time the
+human's clock did not really represent.
+
+*The NEXT cascade is intact on hand-edits, and that was worth checking
+rather than assuming.* Raised by the user as the special case: toggling
+TODO or MAYBE to NEXT should set off side effects. It does. Probed live
+2026-08-19 on a scratch file with three siblings — one already =NEXT=,
+one =MAYBE=, one =TODO= — and hand-setting the =MAYBE= one to =NEXT=
+produced:
+
+: ** TODO Already the next action
+:   Auto-demoted: superseded by sibling [[id:probe-maybe][Someday item]] becoming NEXT.
+: ** NEXT Someday item
+: ** TODO A third one
+
+So GTD's single-next-action-per-group is enforced, the demotion is
+explained in place, and the superseding sibling is named by an
+=[[id:]]= link rather than a title that could later go stale.
+
+The reason this survives is structural rather than lucky:
+=claude-code-ide-org-auto-clock-in-on-doing= gates *only*
+=--trigger-auto-clock-in=. =--trigger-demote-conflicting-next= and
+=--trigger-auto-promote-sole-todo= are registered on =org-trigger-hook=
+alongside it and read no flag at all, so 2(c) narrowed exactly one
+behaviour and left the cascade untouched. Confirmed by grep: the flag
+has one reader in the whole file.
+
+*Which sharpens what this heading is actually about.* Of the things a
+hand-edit could reasonably expect —
+
+| the transition is applied                    | works |
+| it is timestamped in the log                 | works |
+| a stale queued event cannot silently replay over it | works |
+| the NEXT cascade fires                       | works |
+| the work gets timed                          | *does not* |
+
+— only the last is missing, and only when the human then works alone.
+Everything else already behaves the way the user's question assumes it
+should. That narrows the fix to the overlap question above rather than
+to anything about how transitions are accepted.
+
 
 * Observability
 :PROPERTIES:
