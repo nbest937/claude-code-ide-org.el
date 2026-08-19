@@ -1030,6 +1030,47 @@ whether it should then promote nothing, or descend and promote the
 container's own sole remaining child — the second is more useful and
 more surprising, and no evidence has been gathered either way.
 
+** MAYBE Adopt org-native mechanisms for the heading tiers :code:research:
+:PROPERTIES:
+:ID:       29439196-bbb8-4b64-b8d5-3bf9d457bf6c
+:CREATED:  [2026-08-19 Wed 16:18]
+:END:
+
+Parked 2026-08-19, *not accepted* — recorded so the research need not be
+redone, not because a case was made.
+
+*Verified in this Emacs:* =:CATEGORY:= on a level-1 heading is reported
+by a level-3 grandchild, so one property per top-level heading labels
+its whole subtree. A =[/]= cookie on a parent moved =[1/3]= -> =[2/3]=
+on a child's state change with no explicit update call, so cookies
+self-maintain through the review pass.
+
+*Verified absent from this repo:* =:CATEGORY:=, statistics cookies,
+=:VISIBILITY:=, and tag groups — zero uses of each. The level-1
+"category" convention is hand-built where org has its own.
+
+*Org practice, from two sources not a consensus:* epic as subtree,
+cross-cutting axes as tags — one practitioner tags literally
+=:sprint2:= alongside =:release4_2:=. Org's manual treats the tree as
+the single structure and everything cross-cutting as a tag or property
+match. Sources: [[https://jeffbradberry.com/posts/2023/08/orgmode-epic-organization/][Bradberry, Epic Organization]] and
+[[https://orgmode.org/manual/Matching-tags-and-properties.html][Matching tags and properties]].
+
+*Candidate tier naming discussed:* level 1 epic, level 2 story, level 3
+task, sprint as a cross-cutting tag. =bin/lint-org='s header would need
+updating from "category, task, epic-child".
+
+*Closing action discussed for a heading:* fold historical prose into a
+drawer (drawers fold by default; no =:VISIBILITY:= needed) and leave a
+short summary — problem, plan, outcome, how verified, what differed from
+the plan, what was rejected and why, what it spawned. The last two are
+the reused parts and the easiest to drop.
+
+Note [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]] closed the
+related flattening question against, on the grounds that archive routing
+depends on level-1 =:ARCHIVE:=. That cost is real but is a mapping to be
+written, not a wall.
+
 * Clock lifecycle & visibility
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Clock lifecycle & visibility
