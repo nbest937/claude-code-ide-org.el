@@ -2293,6 +2293,30 @@ which is exactly the placement question
 
 *Verify:* =grep -n -i nominat .claude/skills/org/SKILL.md CLAUDE.md=
 returns the rule.
+*** CLAUDE.md documents neither span floor, and mis-describes the gap threshold :code:
+:PROPERTIES:
+:ID:       594adec6-4855-470d-8ceb-5fe29bf0c935
+:CREATED:  [2026-08-19 Wed 08:43]
+:END:
+
+Three gaps, all in "Session tracking", all created by the 2026-08-18
+work and none yet written down:
+
+1. =claude-code-ide-org-span-idle-floor= (120s) is undocumented. It is
+   now the value that decides how much idle the record claims as work —
+   the single most consequential number in the subsystem.
+2. The floor on what gets *written* is undocumented and unnamed;
+   [[id:e0c55d26-706c-42b6-9405-54e9d5ed4750][e0c55d26]] gives it a name
+   first.
+3. =claude-code-ide-org-guidepost-gap-threshold= is described as though
+   it governs reconstruction. Since 2(b) it is grouping and display
+   only, and its own docstring now says so.
+
+Verified 2026-08-19: =grep= for either floor in =CLAUDE.md= returns
+nothing.
+
+Blocked in practice on 1 only in the sense that 2 needs its name first;
+1 and 3 can be written today.
 
 ** TODO Read power assertions as a review-time attribution signal :code:research:
 :PROPERTIES:
@@ -2489,6 +2513,30 @@ gone. Append; do not overwrite the previous month's numbers.
 
 Charts from the original survey are an artifact, not committed here —
 regenerate rather than trusting a stale rendering.
+
+*Retarget before the September run — this is now pointed at the wrong
+knob.* Since 2026-08-18 (=226ed53b= step 2(b)) the gap threshold governs
+only *grouping and display*: it decides how many items a review buffer
+shows and how wide each reads, and moves no recorded minute. Its
+docstring says so. Re-measuring it on a month of data would answer a
+question whose answer changes nothing.
+
+What now decides recorded duration is the pair of floors:
+
+- =claude-code-ide-org-span-idle-floor= (120s) — how much idle is
+  absorbed into a run.
+- the floor on what gets written, unnamed until
+  [[id:e0c55d26-706c-42b6-9405-54e9d5ed4750][e0c55d26]] — effectively
+  ~30s today; a 120s value would cost 6.5% of recorded time and remove a
+  third of the lines.
+
+Both rest on eight days of data. This heading's own body already names
+that failure: /"adopting a four-day number as permanent because nobody
+re-ran it."/ Same trap, one knob over.
+
+Keep the =+1m= repeater and the parentless placement — the reasoning
+recorded above still holds, and applies to the floors identically.
+
 
 ** TODO Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
@@ -3991,6 +4039,42 @@ is in the launching session's file and the job's hook reads its own, so
 the promotion would not fire. Narrow -- it needs =PLANNING= set by the
 very turn that launches a job -- and it has not been reproduced. Filed
 as a question, not a defect.
+*** Name the floor on what gets written, so both floors are knobs :code:
+:PROPERTIES:
+:ID:       e0c55d26-706c-42b6-9405-54e9d5ed4750
+:CREATED:  [2026-08-19 Wed 08:43]
+:END:
+
+=claude-code-ide-org-span-idle-floor= is a named =defcustom=. The floor
+on what gets *written* is not: it is two conditions inside
+=claude-code-ide-org--apply-idle-floor= — drop when the rendered
+endpoints share a minute, or when the duration rounds to =0:00= — giving
+an effective minimum near 30s. Shortest run actually written: 39s.
+
+Give it a name and a default preserving today's behaviour, so both
+floors have the same shape and either can be tuned without editing code.
+
+*The value is deliberately not set here.* Measured 2026-08-19 over the
+272 runs the current code writes (28.36 h), for whoever decides later:
+
+| cutoff | lines dropped | time dropped |
+|--------+---------------+--------------|
+| 60s    | 25 (9.2%)     | 0.34 h (1.2%) |
+| 120s   | 89 (32.7%)    | 1.84 h (6.5%) |
+| 180s   | 127 (46.7%)   | 3.36 h (11.9%) |
+
+24% of written lines currently read =>  0:01=. A 120s floor buys
+symmetry with the idle floor and a one-number rule of thumb, at 6.5% of
+recorded time. Decide against a month of data, not these eight days —
+[[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]].
+
+*Two mechanisms considered and rejected*, both raised 2026-08-19:
+counting =[10:00]--[10:01]= as two minutes puts a =>= total on the line
+that =org-clock-sum= contradicts from the same timestamps; bumping an
+endpoint outward fabricates time — about an hour across the 65 lines
+that would move — which is [[id:b74e0f19-8dc1-4c65-97b6-c1b02b1cd07e][b74e0f19]]'s
+rounding incident pointed the other way.
+
 ** A hand-set TODO transition records the change but never the time :code:
 :PROPERTIES:
 :ID:       dadc08cf-9e12-4e93-bde8-68c241622b0f
@@ -5396,6 +5480,28 @@ work that happened, and now shorter per line than before
 problem and should not be swept up by whatever this heading decides.
 What is at issue is the hand-written narrative underneath: the four
 sittings of prose in the table above, none of which any tool bounds.
+
+*Scope again, corrected a second time 2026-08-19.* This is about *body
+prose per heading* — not the number of headings, and not =:LOGBOOK:=.
+The user's position on heading count is the opposite: /"a high number of
+well-bounded tasks seems like a good thing, especially if we
+aggressively gather them into coherent containers that can be planned
+and executed as larger sets of such tasks."/
+
+So the target is the wrong one if any candidate answer reduces *how
+many* headings get filed. Filing more, smaller, sharper headings is the
+desired direction; writing four sittings of narrative into one of them
+is not.
+
+That also supplies the criterion this heading was missing. The stated
+goal is *longer planning turns and longer implementation turns, with
+fewer context switches through the day* — so prose earns its place when
+it lets a future session pick a container up and run it without
+re-deriving the context, and fails when it is a narrative of how the
+last session got there. "What would the next person need to start" is a
+sharper test than any length budget, and unlike a budget it does not
+punish the measurements, which are the part most often reused.
+
 * Tooling
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Tooling
