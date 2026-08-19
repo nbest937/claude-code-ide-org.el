@@ -3528,6 +3528,26 @@ clocked", has its own heading -- see
 [[id:e0904e93-b99d-44ad-b641-e3e13aced8c4][e0904e93]], which also records
 why it is not a regression 2(c) introduced.
 
+*Both decisions made 2026-08-19, and this heading closes.*
+
+1. /The line count and the 120s idle floor are fine./ No change to
+   =claude-code-ide-org-span-idle-floor=. Whether that value survives a
+   month of data is
+   [[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]]'s question, not
+   this one's.
+2. /=C-c C-t= clocks again./ =claude-code-ide-org-auto-clock-in-on-doing=
+   is back to =t=, but only after
+   [[id:dadc08cf-9e12-4e93-bde8-68c241622b0f][dadc08cf]] made apply
+   subtract what the trigger already recorded. So the two mechanisms
+   that this heading is named for no longer disagree — they compose, and
+   the double count that produced =38b92521='s 3:59-for-3:22 is
+   unreachable rather than merely unlikely.
+
+That is a better ending than the one 2(c) left. Silencing the trigger
+removed the conflict by removing a mechanism; subtracting removes the
+conflict and keeps both.
+
+
 
 
 
@@ -4233,6 +4253,43 @@ hand-edit could reasonably expect —
 Everything else already behaves the way the user's question assumes it
 should. That narrows the fix to the overlap question above rather than
 to anything about how transitions are accepted.
+
+*Shipped 2026-08-19* (=eca3a77=). Apply subtracts the heading's
+already-recorded CLOCK intervals from each run before writing, so a hand
+clock and a reconstructed span compose instead of summing. With that in
+place =claude-code-ide-org-auto-clock-in-on-doing= is back on by
+default, so a hand-set DOING times itself again.
+
+*Subtract, not skip.* Skipping a run that overlaps would discard real
+agent time falling outside the human's clock — the undercount
+[[id:7d739afd-f879-445c-b0b6-65e295585a94][7d739afd]]'s rule rejects in
+the other direction. A run straddling a recorded interval comes back as
+the two pieces outside it.
+
+=--logbook-has-interval-p= is removed, subsumed: a replay finds its own
+previous line among the recorded intervals and subtracts to nothing. The
+old check only recognised an interval written verbatim, so a re-derived
+run whose endpoints moved by a second went straight past it.
+
+*Two subtleties the tests caught, not review.* The envelope annotation
+had to be gated on what was *observed* rather than what survives
+subtraction — keyed on the latter a replay writes one annotation
+spanning every run, a line no first pass produces. And subtraction must
+only filter runs it actually cut; filtering unconditionally swallowed
+the zero-width span's annotation, which reaches the writer intact
+precisely so it can be annotated without a CLOCK line.
+
+*Verified:* =bin/test= 318/318, three mutations each failing the test
+that pins them. Confirmed live — =C-c C-t= to DOING opened a clock on
+that heading. Note the flag needed =custom-reevaluate-setting= in the
+running Emacs: =defcustom= does not reset an already-bound variable, so
+the new default reaches an existing session only when set explicitly,
+and otherwise at next start.
+
+*Still open from this heading:* nothing about hand-set transitions. The
+gap it named — a heading hand-set to DOING and worked alone going
+untimed — is closed by the trigger being back on.
+
 
 
 ** Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit :code:
