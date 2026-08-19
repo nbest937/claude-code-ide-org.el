@@ -6465,7 +6465,10 @@ whose bold is =*single*=. None is a misplaced heading.*
 
 =org-lint-misplaced-heading= searches for =[^*\n\r ,]\*\*+ = — an
 ordinary character, two or more asterisks, then a space — as a heuristic
-for the corruption in its own docstring, =** Heading 1** Oops heading 2=.
+for the corruption its own docstring illustrates:
+
+: ** Heading 1** Oops heading 2
+
 What it actually catches here is the *closing* =**= of a markdown bold
 span followed by a space. Running that regex over both files returns
 exactly eleven lines, matching the eleven reports one for one:
@@ -6475,8 +6478,7 @@ exactly eleven lines, matching the eleven reports one for one:
 | TODO.org |                                       2505, 6304 |
 | DONE.org | 3047, 3058, 3649, 3656, 3660, 3669, 3757, 6079, 9363 |
 
-*Ten are real defects; one is not.* =DONE.org:9363= is =**** Plan=
-inside verbatim =­=…=­= markup, legitimately naming a level-4 heading —
+*Ten are real defects; one is not.* =DONE.org:9363= names a level-4 heading inside verbatim markup —
 a true false positive. The other ten are markdown habit leaking into
 org.
 
@@ -6493,7 +6495,8 @@ structure and finds prose. A local checker naming it "markdown bold in
 an org file" would cost one regex and would not need org-lint's
 heuristic at all.
 
-*Not fixed here.* Ten mechanical =**= -> =*= edits, nine of them in
+*Not fixed here.* Ten mechanical edits collapsing a doubled asterisk
+to a single one, nine of them in
 =DONE.org=, would take the warning count from 28 to 18. Left as its own
 decision because the spans cross line breaks in at least one case
 \(TODO.org 2504-2505\) and because editing archived prose deserves to be
