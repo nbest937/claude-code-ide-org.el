@@ -6599,6 +6599,50 @@ does, over how the known category set is defined.
 [[id:8d682a5b-1b03-4744-995c-a871a8b40ddc][8d682a5b]] is about
 diagnosing org-lint's *existing* misplaced-heading reports; this is about
 adding checks org-lint has no opinion on.
+
+*Shipped 2026-08-19* (=cc25adc=). Both checks live in
+=claude-code-ide-org--lint-file=; =bin/lint-org= needed no change, as
+predicted. Replayed against the incident by injecting =* *= into a copy
+of the real =TODO.org=: each check flags it independently.
+
+*Check 2 needed neither option this heading offered.* The choice recorded
+here was an enumerated category list or a set inferred from the last
+clean run. The categories already identify themselves: measured on the
+real files, all seven level-1 headings in =TODO.org= carry =:ARCHIVE:=
+and none of =DONE.org='s seven do, because the latter are archive
+targets. So the routing set is collected across every linted file and
+matched by title — a target is recognised by the source it mirrors. No
+enumeration to maintain, no seed state whose trustworthiness depends on
+the run that made it, and adding a category keeps the check correct for
+free.
+
+*One constraint this heading did not anticipate.* The suite's own
+fixtures use a bare =* Category= with no =:ARCHIVE:=, so an
+unconditional rule fails its positive control. The check is skipped when
+no routing level-1 exists anywhere in the linted set: with nothing to
+infer the convention from, saying nothing is the honest answer. It costs
+nothing here, where seven categories route.
+
+*Both got a violating fixture*, per this file's rule. Four mutations
+checked; three discriminated at once. The fourth — removing the mirror
+allowance — failed nothing, because its fixture's only level-1 carried
+=:ARCHIVE:= so the allowance was never reached. Replaced with a two-file
+fixture, the only shape in which a mirror exists, and it discriminates.
+
+*And the trap documented three lines above the new function was walked
+into anyway:* =org-map-entries= resolves =file= scope through
+=buffer-file-name=, which a temp buffer has not got, so it maps over
+nothing and reports that as success. The collector silently returned no
+categories and the check silently passed. Scope nil, with the comment
+repeated at the new call site.
+
+=bin/test= 321/321; =bin/lint-org= unchanged at 0 errors / 18 warnings,
+so neither check false-positives on the real corpus.
+
+*Not split.* Both landed as one change, as this heading allowed for —
+check 2's design decision resolved itself once the =:ARCHIVE:= property
+turned out to be the discriminator.
+
 *** TODO Run bin/lint-org in a pre-commit hook, scoped to staged org files :code:
 :PROPERTIES:
 :ID:       7e9aa4ea-4757-4e58-bac3-3c3e67fc4cb1
