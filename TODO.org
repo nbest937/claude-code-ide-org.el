@@ -6502,6 +6502,35 @@ decision because the spans cross line breaks in at least one case
 \(TODO.org 2504-2505\) and because editing archived prose deserves to be
 asked for rather than assumed.
 
+*Fixed 2026-08-19* (=4f25341=). Warnings 28 -> 18. Twenty-one spans
+converted, not ten — and that was forced rather than chosen.
+
+*The flagged subset cannot be fixed on its own.* org-lint only reports a
+closing marker followed by a space, so the ten it names are scattered
+through a class of twenty-one whose members share delimiters. A first
+attempt to fix only the ten matched from one span's opening across to a
+later span's closing and collapsed the outer pair, leaving
+=DONE.org:3051= and =3058= each with one marker of the wrong width. That
+was reverted.
+
+*What worked:* pair the markers properly. Walk every doubled asterisk
+that is not inside verbatim markup and not part of a longer run;
+classify as opening when the next character is not whitespace and
+closing when the previous one is not; pair within a paragraph. Twenty-one
+spans, each read before applying.
+
+Left alone, correctly: glob patterns inside =paths:= values, the
+verbatim mention that names the marker itself, the level-4 heading in
+=DONE.org:9363=, and eight example heading lines inside fixed-width
+blocks. =DONE.org= now holds no doubled asterisk outside verbatim at
+all; the eight left in =TODO.org= are all examples.
+
+*Verification worth reusing:* every changed line, with asterisks
+stripped, matches its predecessor exactly — so the edit provably changed
+nothing but emphasis markers. That check is what caught the corruption
+the first time, and it is cheap.
+
+
 
 *** NEXT Lint for headings that are valid org but structurally unintended :code:
 :PROPERTIES:
