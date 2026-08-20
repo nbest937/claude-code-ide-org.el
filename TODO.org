@@ -1100,6 +1100,10 @@ CLOCK: [2026-08-19 Wed 16:31]--[2026-08-19 Wed 16:32] =>  0:01
 - [2026-08-19 Wed 16:31]--[2026-08-19 Wed 16:32] assigned at review
 CLOCK: [2026-08-19 Wed 16:39]--[2026-08-19 Wed 18:36] =>  1:57
 - [2026-08-19 Wed 16:39]--[2026-08-19 Wed 18:36] assigned at review
+CLOCK: [2026-08-20 Thu 13:58]--[2026-08-20 Thu 14:00] =>  0:02
+- [2026-08-20 Thu 13:58]--[2026-08-20 Thu 14:00] assigned at review
+CLOCK: [2026-08-20 Thu 14:08]--[2026-08-20 Thu 14:18] =>  0:10
+- [2026-08-20 Thu 14:08]--[2026-08-20 Thu 14:18] assigned at review
 :END:
 
 Parked 2026-08-19, *not accepted* — recorded so the research need not be
@@ -1506,10 +1510,17 @@ The objection that append-only protected against was losing the evolution of a b
 *Under consideration, not decided:* a timestamped commit log in a drawer, giving a reader an index into the git history for the rare \"how did we get here?\" question, so that the body never has to carry that answer itself.
 
 This heading is now a *dependency of* [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] rather than a neighbour of it: the retention policy cannot be applied to an existing body without a tool that can rewrite one.
-** Rename the WAIT keyword to WAITING, matching the org community's spelling :code:
+** DONE Rename the WAIT keyword to WAITING, matching the org community's spelling :code:
+CLOSED: [2026-08-20 Thu 16:20]
 :PROPERTIES:
 :ID:       a729c32a-d6b2-49c5-a40e-81ed5adeeb2f
 :CREATED:  [2026-08-20 Thu 14:18]
+:END:
+:LOGBOOK:
+- State "DOING"      from              [2026-08-20 Thu 16:16] \\
+  precondition re-verified: 0 WAIT headings, 0 pending WAIT events
+- State "DONE"       from "DOING"      [2026-08-20 Thu 16:20] \\
+  renamed; hook scope fixed as a prerequisite
 :END:
 
 *Done 2026-08-20, same day it was filed.* Both preconditions re-verified immediately before the edit rather than trusted from the survey: zero =WAIT= headings across TODO.org, DONE.org and notes.org, and no unapplied =WAIT= event queued.
@@ -3512,7 +3523,7 @@ function returns and adds one prompt. Related to
 heading put the evidence on screen, and this one would capture the
 conclusion the human draws from it — but neither requires the other.
 
-** DOING [6/10] Make the guidepost pipeline produce durations that mean what they say :code:
+** DOING [7/10] Make the guidepost pipeline produce durations that mean what they say :code:
 :PROPERTIES:
 :ID:       406e9200-c3e7-49ac-a8d0-d6ff8e061ce4
 :CREATED:  [2026-08-18 Tue 08:15]
@@ -4584,7 +4595,8 @@ is in the launching session's file and the job's hook reads its own, so
 the promotion would not fire. Narrow -- it needs =PLANNING= set by the
 very turn that launches a job -- and it has not been reproduced. Filed
 as a question, not a defect.
-*** TODO Name the floor on what gets written, so both floors are knobs :code:
+*** DONE Name the floor on what gets written, so both floors are knobs :code:
+CLOSED: [2026-08-20 Thu 11:05]
 :PROPERTIES:
 :ID:       e0c55d26-706c-42b6-9405-54e9d5ed4750
 :CREATED:  [2026-08-19 Wed 08:43]
@@ -4592,6 +4604,12 @@ as a question, not a defect.
 :LOGBOOK:
 - State "TODO"       from              [2026-08-19 Wed 08:43] \\
   form now, value in September
+CLOCK: [2026-08-20 Thu 10:19]--[2026-08-20 Thu 10:22] =>  0:03
+- [2026-08-20 Thu 10:19]--[2026-08-20 Thu 10:22] assigned at review
+- State "DOING"      from "TODO"       [2026-08-20 Thu 10:53] \\
+  name the write floor as a defcustom
+- State "DONE"       from "DOING"      [2026-08-20 Thu 11:05] \\
+  shipped as a defcustom defaulting to 0; sweep recorded for 96a51c2f
 :END:
 
 =claude-code-ide-org-span-idle-floor= is a named =defcustom=. The floor
@@ -6724,16 +6742,19 @@ with the accidental one. Recorded in =org-conventions.md=.
 
 
 
-** REVIEW Persist claude-code-ide-org-capture-file in the Doom config
+** DONE Persist claude-code-ide-org-capture-file in the Doom config
+CLOSED: [2026-08-20 Thu 11:08]
 :PROPERTIES:
 :ID:       bd482c92-a71a-4d7d-88df-47678ee94c79
 :CREATED:  [2026-08-11 Tue 21:20]
 :END:
 :LOGBOOK:
-- State "REVIEW"     from "TODO"       [2026-08-20 Thu 08:32] \\
-  persisted and live-verified; startup check pending
 - State "TODO"       from              [2026-08-11 Tue 21:21] \\
   persist the capture-file defcustom
+- State "REVIEW"     from "TODO"       [2026-08-20 Thu 08:32] \\
+  persisted and live-verified; startup check pending
+- State "DONE"       from "REVIEW"     [2026-08-20 Thu 11:08] \\
+  verified by unset-then-load, not by the reload alone
 :END:
 
 Set live on 2026-08-11 via =M-:= to
@@ -7392,16 +7413,18 @@ CLOSED: [2026-08-19 Wed 19:30]
 :CREATED:  [2026-08-19 Wed 10:56]
 :END:
 :LOGBOOK:
-- State "DONE"       from "DOING"      [2026-08-19 Wed 19:30] \\
-  hook shipped, tested, verified live
-- State "DOING"      from "NEXT"       [2026-08-19 Wed 19:27] \\
-  write the pre-commit lint hook
 CLOCK: [2026-08-19 Wed 10:54]--[2026-08-19 Wed 11:05] =>  0:11
 - [2026-08-19 Wed 10:54]--[2026-08-19 Wed 11:05] assigned at review
 CLOCK: [2026-08-19 Wed 11:14]--[2026-08-19 Wed 11:16] =>  0:02
 - [2026-08-19 Wed 11:14]--[2026-08-19 Wed 11:16] assigned at review
 - State "NEXT"       from "TODO"       [2026-08-19 Wed 18:56] \\
   Auto-promoted: sole remaining TODO in its sibling group.
+- State "DOING"      from "NEXT"       [2026-08-19 Wed 19:27] \\
+  write the pre-commit lint hook
+- State "DONE"       from "DOING"      [2026-08-19 Wed 19:30] \\
+  hook shipped, tested, verified live
+CLOCK: [2026-08-20 Thu 16:14]--[2026-08-20 Thu 16:21] =>  0:07
+- [2026-08-20 Thu 16:14]--[2026-08-20 Thu 16:21] assigned at review
 :END:
 
 =bin/lint-org= runs nowhere automatically — not in a hook, not in
@@ -7491,4 +7514,8 @@ project scripts are not currently written against a stated baseline.
 :PROPERTIES:
 :ID:       5a5e87c9-f432-44c6-a5a6-f6f3755e4347
 :CREATED:  [2026-08-20 Thu 11:02]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-20 Thu 10:50]--[2026-08-20 Thu 11:09] =>  0:19
+- [2026-08-20 Thu 10:50]--[2026-08-20 Thu 11:09] assigned at review
 :END:
