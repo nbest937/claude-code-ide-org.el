@@ -1169,6 +1169,40 @@ from the same pattern — writing a keyword inline at creation because
 \([[id:97696fc2-f07b-4586-b280-de6a7d26fb87][97696fc2]]\), then setting
 the state the tool way out of habit.
 
+*Half shipped 2026-08-19* (=c2cf203=): =org_set_todo= now refuses when
+the requested state is the state on disk, returning an =Error:= reply so
+=bin/hooks/queue-append= drops the event.
+
+*The =Error:= prefix is the mechanism, not a verdict.* The reply is the
+tool's only channel, and the hook decides whether to write an event by
+testing that prefix — so refusing *requires* it, and the wording has to
+carry what the prefix misstates: the requested state is already true,
+which is success by every reading except the queue's. The test asserts
+the prefix specifically, because a politely-worded refusal without it
+would queue the no-op anyway.
+
+*Compares against disk, not against pending events*, which is what
+=from= already means throughout. Confirmed live: a heading with a
+pending =TODO -> DOING= still accepted =DOING=, because disk still held
+=TODO=. That is correct rather than a gap — a queued transition is a
+proposal, and proposing against the file as it stands is the whole
+premise.
+
+*Verified end to end through the MCP tool*, not by calling the elisp:
+the reply was the refusal and the queue file stayed at 121 lines. An
+earlier check of the same thing proved nothing, because invoking the
+function over =emacsclient= never fires the =PostToolUse= hook that
+writes the queue, so the count could not have moved either way. That is
+the "silence is not a passing check" failure in a new costume — a
+measurement that cannot distinguish the outcomes.
+
+*Still open: the apply-side half.* Apply remains intolerant of a no-op,
+so the three events queued before this change will still fail and want
+dismissing with =d=. Treating an already-true event as satisfied rather
+than failed is the more correct semantics and is what would have spared
+those three; it is unbuilt.
+
+
 
 * Clock lifecycle & visibility
 :PROPERTIES:
