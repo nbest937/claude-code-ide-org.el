@@ -1746,7 +1746,7 @@ had it written through, and two similar templates would drift."
                      :immediate-finish t))))
     (org-capture-string title "z")))
 
-(defun claude-code-ide-org-capture (title &optional target tags note)
+(cl-defun claude-code-ide-org-capture (title &optional target tags note)
   "Quick-add TITLE as a new heading via `org-capture'.
 
 Writes a *keyword-less* heading carrying a freshly-generated :ID: and a
@@ -1784,7 +1784,30 @@ later lookup lie.
 Returns \"Captured: \\=\"TITLE\\=\" (ID: ...) <where>\" when it wrote,
 \"Queued capture: ...\" when it deferred, or an \"Error: ...\" string.
 Those prefixes are a contract with `bin/hooks/queue-append' — see
-`claude-code-ide-org--reply-captured'.  Never signals to the MCP layer."
+`claude-code-ide-org--reply-captured'.  Never signals to the MCP layer.
+
+TARGET is required.  It was optional until 2026-08-20, falling back to
+appending at the end of the capture file — reasoned as \"the honest
+answer for placement unknown\", which it is in general and is not here:
+the capture file is TODO.org, so appending means a *level-1* heading,
+and this project reserves those for categories carrying no keyword, no
+tags and no properties.  Such a capture produced a heading violating the
+convention on three counts, to be refiled by hand — the manual step this
+tool exists to remove (TODO.org :ID: 97696fc2).
+
+Refusing rather than guessing costs the one case the fallback existed
+for: a passing mention whose home is genuinely unknown.  That case turned
+out not to be real — the call that finally hit this had a category in
+mind and omitted the argument out of habit.
+
+`cl-defun' for the early return only; the body is one `condition-case'
+form and wrapping it in a conditional would mean re-indenting all of it
+to add a guard that belongs at the top."
+  (when (string-empty-p (string-trim (or target "")))
+    (cl-return-from claude-code-ide-org-capture
+      (concat "Error: target is required — name an :ID: or a category title. "
+              "Appending at the end of the file would create a level-1 heading, "
+              "which is reserved for categories. Run org_outline to see what exists.")))
   (condition-case err
       (let* ((resolved (claude-code-ide-org--capture-target-spec target))
              (file (plist-get resolved :file))
@@ -6934,12 +6957,14 @@ silent run can never be mistaken for a passing one."
    :description (concat
                  "Quick-add a new heading from TITLE via org-capture, in one "
                  "call instead of hand-writing a heading and then calling "
-                 "org-id-get-create separately. The heading is written with "
+                 "org-id-get-create separately. TARGET is required — a "
+                 "heading has to belong somewhere, and there is no sensible "
+                 "default. The heading is written with "
                  "an :ID: and a :CREATED: stamp but NO TODO keyword — set "
                  "its state afterwards with org_set_todo, which queues the "
-                 "transition for review so org logs it natively. Use TARGET "
-                 "to place it; run org_outline first if you need to see what "
-                 "categories exist. Returns a confirmation containing the "
+                 "transition for review so org logs it natively. "
+                 "Run org_outline first if you need to see what "
+                 "Returns a confirmation containing the "
                  "new heading's real :ID: and where it landed. Writes "
                  "immediately when the target file is free; when the human "
                  "has unsaved changes in it, the heading is queued for "
@@ -6952,8 +6977,7 @@ silent run can never be mistaken for a passing one."
             :description "The heading text for the new heading.")
            (:name "target"
             :type string
-            :optional t
-            :description "Where to put it: an :ID: to file it under that heading, or the exact title of a top-level category. Omit to append at the end of the capture file.")
+            :description "REQUIRED. Where to put it: an :ID: to file it under that heading, or the exact title of a top-level category. Run org_outline first if you need to see what categories exist. There is deliberately no default: appending at the end of the file would create a level-1 heading, which this project reserves for categories.")
            (:name "tags"
             :type string
             :optional t

@@ -2097,7 +2097,12 @@ the temp directory afterwards."
              (insert "#+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
                      "#+TAGS: code comms research review\n"
                      "#+ARCHIVE: DONE.org::* Done\n"
-                     "\n"))
+                     "\n"
+                     ;; A category to file into. `target' is required
+                     ;; since 2026-08-20 (:ID: 97696fc2), so a fixture
+                     ;; with nowhere to put a heading cannot exercise
+                     ;; capture at all.
+                     "* Scratch\n"))
            ,@body)
        (when (org-clocking-p) (org-clock-out))
        (let ((buf (get-file-buffer capture-file)))
@@ -2108,14 +2113,14 @@ the temp directory afterwards."
 
 (ert-deftest claude-code-ide-org-test-capture-creates-heading-with-id ()
   (claude-code-ide-org-test--with-capture-file
-    (let ((result (claude-code-ide-org-capture "Buy stamps")))
+    (let ((result (claude-code-ide-org-capture "Buy stamps" "Scratch")))
       (should (string-match-p "\\`Captured: \"Buy stamps\" (ID: [^)]+)" result))
       (string-match "(ID: \\([^)]+\\))" result)
       (let ((returned-id (match-string 1 result))
             (disk (claude-code-ide-org-test--disk-contents capture-file)))
         ;; A real, non-empty ID landed both in the return string and on disk.
         (should (> (length returned-id) 0))
-        (should (string-match-p "^\\* Buy stamps[ \t]*$" disk))
+        (should (string-match-p "^\\*\\* Buy stamps[ \t]*$" disk))
         (should (string-match-p (concat "^:ID: +" (regexp-quote returned-id) "[ \t]*$") disk))
         (should (not (buffer-modified-p (get-file-buffer capture-file))))))))
 
@@ -2124,9 +2129,9 @@ the temp directory afterwards."
 ingestion so org logs the transition natively, rather than asserted live
 by a tool whose every other state write is queued."
   (claude-code-ide-org-test--with-capture-file
-    (claude-code-ide-org-capture "Keywordless task")
+    (claude-code-ide-org-capture "Keywordless task" "Scratch")
     (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
-      (should (string-match-p "^\\* Keywordless task[ \t]*$" disk))
+      (should (string-match-p "^\\*\\* Keywordless task[ \t]*$" disk))
       (should-not (string-match-p "^\\* \\(TODO\\|NEXT\\|DOING\\) " disk)))))
 
 (ert-deftest claude-code-ide-org-test-capture-writes-created-property ()
@@ -2134,7 +2139,7 @@ by a tool whose every other state write is queued."
 fails to expand leaves a literal \"%U\" and still passes a naive
 is-the-property-there check."
   (claude-code-ide-org-test--with-capture-file
-    (claude-code-ide-org-capture "Stamped task")
+    (claude-code-ide-org-capture "Stamped task" "Scratch")
     (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
       (should (string-match-p
                "^:CREATED: +\\[[0-9]\\{4\\}-[0-9][0-9]-[0-9][0-9] [A-Z][a-z][a-z] [0-9][0-9]:[0-9][0-9]\\][ \t]*$"
@@ -2155,7 +2160,7 @@ clock in / set state on the new heading, so the ID must resolve
 right away with no rescan needed."
   (claude-code-ide-org-test--with-capture-file
     (let* ((org-agenda-files nil)
-           (result (claude-code-ide-org-capture "Round trip task")))
+           (result (claude-code-ide-org-capture "Round trip task" "Scratch")))
       (string-match "(ID: \\([^)]+\\))" result)
       (let ((returned-id (match-string 1 result)))
         (should (org-id-find returned-id 'marker))
@@ -2170,7 +2175,7 @@ survive into the heading verbatim via `%i', not get partially eaten
 as template escapes or regexp backreferences."
   (claude-code-ide-org-test--with-capture-file
     (let* ((title "Reply to Jane: 100% [urgent] re: \\1 in Q3 report")
-           (result (claude-code-ide-org-capture title)))
+           (result (claude-code-ide-org-capture title "Scratch")))
       (should (string-match-p (regexp-quote (format "Captured: \"%s\"" title)) result))
       (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
         (should (string-match-p (regexp-quote (concat "* " title)) disk))))))
@@ -2216,12 +2221,26 @@ worse off than one that got an error."
       (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
         (should-not (string-match-p "Nowhere task" disk))))))
 
-(ert-deftest claude-code-ide-org-test-capture-omitted-target-appends ()
+(ert-deftest claude-code-ide-org-test-capture-refuses-without-a-target ()
+  "Omitting `target\' is refused rather than guessed at.
+
+This test asserted the opposite until 2026-08-20: that capture appended
+at end of file. That fallback was reasoned as \"the honest answer for
+placement unknown\", which it is in general and is not here -- the capture
+file is TODO.org, so appending means a *level-1* heading, and this
+project reserves those for categories (TODO.org :ID: 97696fc2).
+
+The `Error:\' prefix is asserted specifically, because
+`bin/hooks/queue-append\' drops a reply carrying it -- so the prefix is
+what stops a deferred capture being queued as well."
   (claude-code-ide-org-test--with-capture-file
-    (let ((result (claude-code-ide-org-capture "Unplaced task")))
-      (should (string-match-p "end of file" result))
-      (should (string-match-p "^\\* Unplaced task"
-                              (claude-code-ide-org-test--disk-contents capture-file))))))
+    (dolist (bad (list nil "" "   "))
+      (let ((result (claude-code-ide-org-capture "Unplaced task" bad)))
+        (should (string-prefix-p "Error:" result))
+        (should (string-match-p "target is required" result))))
+    ;; Nothing was written under any of them.
+    (should-not (string-match-p "Unplaced task"
+                                (claude-code-ide-org-test--disk-contents capture-file)))))
 
 (ert-deftest claude-code-ide-org-test-capture-uses-org-default-notes-file-when-unset ()
   "When `claude-code-ide-org-capture-file' is nil, capture must fall
@@ -2236,7 +2255,11 @@ nothing."
          (org-default-notes-file notes-file))
     (unwind-protect
         (progn
-          (claude-code-ide-org-capture "Fallback target task")
+          ;; `target\' is required since :ID: 97696fc2, so the fallback file
+          ;; needs a category to name. What is under test is still which
+          ;; *file* capture resolves to, not where in it the heading lands.
+          (with-temp-file notes-file (insert "* Inbox\n"))
+          (claude-code-ide-org-capture "Fallback target task" "Inbox")
           (let ((buf (get-file-buffer notes-file)))
             (when buf (with-current-buffer buf (save-buffer))))
           (should (file-exists-p notes-file))
@@ -6473,9 +6496,9 @@ for (TODO.org :ID: b5f94b88)."
   (claude-code-ide-org-test--with-capture-file
     ;; Buffer exists and is clean -- the distinction under test.
     (find-file-noselect capture-file)
-    (let ((result (claude-code-ide-org-capture "Immediate task")))
+    (let ((result (claude-code-ide-org-capture "Immediate task" "Scratch")))
       (should (string-prefix-p claude-code-ide-org--reply-captured result))
-      (should (string-match-p "^\\* Immediate task[ \t]*$"
+      (should (string-match-p "^\\*\\* Immediate task[ \t]*$"
                               (claude-code-ide-org-test--disk-contents capture-file))))))
 
 (ert-deftest claude-code-ide-org-test-capture-defers-when-busy ()
@@ -6485,7 +6508,7 @@ reply that says queued while the heading also landed is the
 double-apply this gate exists to prevent."
   (claude-code-ide-org-test--with-capture-file
     (claude-code-ide-org-test--make-busy capture-file)
-    (let ((result (claude-code-ide-org-capture "Deferred task")))
+    (let ((result (claude-code-ide-org-capture "Deferred task" "Scratch")))
       (should (string-prefix-p claude-code-ide-org--reply-queued-capture result))
       ;; The id is still minted and reported, so the caller can act on it.
       (should (string-match "(ID: \\([^)]+\\))" result))
