@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# Refuse a commit whose staged org files violate this project's structural
+# conventions.
+#
+# Why pre-commit, when the plans check next door is deliberately pre-push:
+#
+#   The two guard different things. `sync-plans' compares the repo against
+#   files that live outside it, so a stale archive says nothing about the
+#   commit being made -- coupling them would block unrelated commits, and
+#   that hook's own header says so.
+#
+#   Lint is a property of the content being committed. Every error it
+#   catches was introduced by the same edit that staged it: five in one
+#   session on 2026-08-18/19 -- four :ID: UUIDs written from memory and a
+#   line of prose org parsed as a list bullet -- each caught only after
+#   the commit, each needing a follow-up. Pre-push would have caught them
+#   before sharing, but the cost was noise in local history, and only
+#   pre-commit prevents that (TODO.org :ID: 7e9aa4ea).
+#
+# Scoped to staged .org files, so a commit touching only elisp pays
+# nothing. Lints the *staged* content rather than the worktree, because
+# the question is what is about to be committed -- these files are
+# normally open in Emacs and sometimes dirty, which is why `org_amend'
+# has a deferred path at all.
+#
+# Fails on errors only. Warnings are conventions that cannot be
+# retrofitted honestly -- see `claude-code-ide-org--lint-file' -- and
+# there are eighteen of them, so failing on those would block everything.
+#
+# Written for bash 3.2, which is what macOS ships and what
+# `#!/usr/bin/env bash' therefore resolves to here: no `mapfile', no
+# associative arrays, and no bare `"${arr[@]}"' on an empty array, which
+# 3.2 treats as unbound under `set -u'. The first draft used all three
+# and failed every passing case (TODO.org :ID: 84b7d8b3).
+#
+# Bypass with `git commit --no-verify` when you mean to.
+
+set -uo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+lint="$repo_root/bin/lint-org"
+
+# Never be the reason a commit is impossible: an older checkout, or a
+# worktree mid-rebase, may not have the script at all.
+[ -x "$lint" ] || exit 0
+
+# Added, copied, modified or renamed -- not deleted, whose staged blob
+# cannot be read and whose absence is not a lint question.
+staged="$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.org$')"
+[ -n "$staged" ] || exit 0
+
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
+# Lint the staged content of everything staged, plus the *worktree* copy
+# of the rest of the tracked set as context. Both halves matter: without
+# the staged versions the check describes the wrong tree, and without the
+# context files every cross-file [[id:]] link reads as dangling and every
+# DONE.org category as a stray level-1 heading, since the category set is
+# collected across the linted files.
+seen=""
+files=""
+
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
+  base="$(basename "$f")"
+  if git show ":$f" > "$tmp/$base" 2>/dev/null; then
+    files="$files $tmp/$base"
+    seen="$seen $base"
+  fi
+done <<EOF
+$staged
+EOF
+
+for f in TODO.org DONE.org; do
+  case " $seen " in *" $f "*) continue ;; esac
+  [ -f "$repo_root/$f" ] || continue
+  cp "$repo_root/$f" "$tmp/$f"
+  files="$files $tmp/$f"
+done
+
+# shellcheck disable=SC2086 -- $files holds temp paths under mktemp -d,
+# which contain no whitespace; quoting it would pass one long argument.
+if ! output="$("$lint" $files 2>&1)"; then
+  echo "pre-commit: staged org files have structural errors." >&2
+  echo >&2
+  # Report against real basenames, not the temp copies the check ran on.
+  printf '%s\n' "$output" | grep -E '^error' | sed "s|$tmp/|  |" >&2
+  echo >&2
+  echo "  Check: bin/lint-org" >&2
+  echo "  Skip:  git commit --no-verify" >&2
+  exit 1
+fi
+
+exit 0

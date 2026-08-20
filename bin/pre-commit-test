@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# Exercise .githooks/pre-commit against a scratch repository.
+#
+# A hook that has never been seen to refuse anything proves nothing --
+# the same argument bin/lint-org's own header makes about its checks. So
+# every case here stages something real and asserts on the exit status.
+#
+# Runs the hook directly rather than through `git commit', because a
+# commit that succeeds would need a commit that also fails to be
+# meaningful, and driving both through git buys nothing over calling the
+# hook with the index it would have read.
+
+set -uo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+hook="$repo_root/.githooks/pre-commit"
+pass=0 fail=0
+
+check () { # name expected_status actual_status extra
+  if [[ "$2" == "$3" ]]; then
+    printf '  ok    %s\n' "$1"; pass=$((pass + 1))
+  else
+    printf '  FAIL  %s (expected exit %s, got %s)%s\n' "$1" "$2" "$3" "${4:+ -- $4}"
+    fail=$((fail + 1))
+  fi
+}
+
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+
+git -C "$work" init -q
+git -C "$work" config user.email t@example.com
+git -C "$work" config user.name  Test
+mkdir -p "$work/bin" "$work/modules/tools/claude-code-ide-org"
+cp "$repo_root/bin/lint-org" "$work/bin/"
+cp "$repo_root/modules/tools/claude-code-ide-org/config.el" \
+   "$work/modules/tools/claude-code-ide-org/"
+
+header='#+TODO: TODO NEXT PLANNING DOING WAIT MAYBE | DONE CANCELLED
+#+TAGS: code
+'
+clean_task=':PROPERTIES:
+:ID:       11111111-1111-1111-1111-111111111111
+:CREATED:  [2026-08-19 Wed 10:00]
+:END:
+'
+
+write_pair () { # todo_body
+  printf '%s* Category\n:PROPERTIES:\n:ARCHIVE:  DONE.org::* Category\n:END:\n%s' \
+         "$header" "$1" > "$work/TODO.org"
+  printf '%s* Category\n' "$header" > "$work/DONE.org"
+}
+
+run_hook () { ( cd "$work" && "$hook" >/dev/null 2>&1 ); echo $?; }
+
+# 1. Nothing staged at all.
+check "no staged files is a no-op" 0 "$(run_hook)"
+
+# 2. A staged non-org file must not trigger a lint at all -- this is what
+#    makes an elisp-only commit free.
+echo ";; nothing" > "$work/other.el"
+git -C "$work" add other.el
+check "staged non-org file is a no-op" 0 "$(run_hook)"
+
+# 3. Clean org files pass.
+write_pair "** TODO A task :code:
+$clean_task"
+git -C "$work" add TODO.org DONE.org
+check "clean staged org passes" 0 "$(run_hook)"
+
+# 4. A dangling [[id:]] link is an error and must refuse.
+write_pair "** TODO A task :code:
+${clean_task}See [[id:deadbeef-0000-0000-0000-000000000000][nowhere]].
+"
+git -C "$work" add TODO.org
+check "dangling id link refuses" 1 "$(run_hook)"
+
+# 5. The `* *' that motivated the checks: punctuation read as structure.
+write_pair "** TODO A task :code:
+$clean_task* *
+"
+git -C "$work" add TODO.org
+check "punctuation-only heading refuses" 1 "$(run_hook)"
+
+# 6. Staged content is what gets linted, not the worktree. Stage a clean
+#    file, then dirty the worktree copy: the commit is clean and must
+#    pass. This is the case a worktree-based check would get wrong.
+write_pair "** TODO A task :code:
+$clean_task"
+git -C "$work" add TODO.org DONE.org
+printf '%s* Category\n:PROPERTIES:\n:ARCHIVE:  DONE.org::* Category\n:END:\n* *\n' \
+       "$header" > "$work/TODO.org"
+check "lints staged content, not the worktree" 0 "$(run_hook)"
+
+# 7. And the converse: a broken *staged* version refuses even when the
+#    worktree copy is clean.
+git -C "$work" add TODO.org            # stage the broken one
+write_pair "** TODO A task :code:
+$clean_task"                            # ...and clean up the worktree
+check "refuses on staged breakage with a clean worktree" 1 "$(run_hook)"
+
+printf '\n%d passed, %d failed\n' "$pass" "$fail"
+[[ $fail -eq 0 ]]
