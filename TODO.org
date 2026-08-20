@@ -1,7 +1,7 @@
 #+TODO: TODO(t!) NEXT(n!) PLANNING(p!) DOING(d!) REVIEW(r!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
-#+STARTUP: logdrawer logdone
+#+STARTUP: logdrawer logdone content
 
 * Skill logic
 :PROPERTIES:
@@ -6002,6 +6002,7 @@ names and files) and are out of scope.
 ** TODO Heading bodies grow into narratives no human will read; decide what to stop capturing :code:
 :PROPERTIES:
 :ID:       b07df584-3adc-433c-ab49-e104f88aecf7
+:BLOCKER:  3063c3e5-0dd0-4354-8985-271b0313c5d1
 :CREATED:  [2026-08-18 Tue 19:43]
 :END:
 :LOGBOOK:
@@ -6225,6 +6226,16 @@ This is better than the exception it replaces. The rule currently reads \"any tr
 *The WAIT propagation as stated over-triggers, and this is the one part to change before implementing.* The proposal was \"when any child is WAITing then the parent should be also WAITing.\" But a container with one WAIT child and two DOING children is not blocked — work is happening inside it, which is exactly what DOING on a container was just defined to mean. Marking it WAIT would assert the opposite. The rule that carries the intent is *every non-terminal child is WAIT* — nothing inside can progress. The two readings coincide whenever a container has a single unfinished child, which is probably why \"any\" felt right; they diverge as soon as it has two.
 
 *One caveat worth naming, not blocking.* Containment is emergent, so a heading clocked as a leaf can later acquire TODO children and become a container. Its own historical CLOCK lines then sit inside a subtree that also rolls up its children's — the [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] double-count in miniature. The lines are honest records of real work; the risk is only in how a clocktable totals them.
+
+*Accepted by the user 2026-08-20:* the WAIT propagation rule is *every non-terminal child is WAIT*, not "any child". Implement that reading; the "any" wording above is recorded only so the distinction is not re-litigated.
+
+So the full rule set, settled and ready to be written down:
+
+1. A clock opens when a *leaf* enters DOING, and only then.
+2. A container may enter DOING to mean "something is happening inside", at no clock cost.
+3. A container leaves DOING when all children are DONE or CANCELLED.
+4. A container is WAIT when every non-terminal child is WAIT.
+
 ** Index a heading's git history from a drawer, so the body never has to narrate it :code:research:
 :PROPERTIES:
 :ID:       41cf5830-fc2e-4dc6-b243-a0c2718a53a3
