@@ -1506,8 +1506,11 @@ The objection that append-only protected against was losing the evolution of a b
 *Under consideration, not decided:* a timestamped commit log in a drawer, giving a reader an index into the git history for the rare \"how did we get here?\" question, so that the body never has to carry that answer itself.
 
 This heading is now a *dependency of* [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] rather than a neighbour of it: the retention policy cannot be applied to an existing body without a tool that can rewrite one.
-
-
+** Rename the WAIT keyword to WAITING, matching the org community's spelling :code:
+:PROPERTIES:
+:ID:       a729c32a-d6b2-49c5-a40e-81ed5adeeb2f
+:CREATED:  [2026-08-20 Thu 14:18]
+:END:
 * Clock lifecycle & visibility
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Clock lifecycle & visibility
