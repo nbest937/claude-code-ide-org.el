@@ -1449,6 +1449,23 @@ the thirteen.
 :ID:       1cd2df62-35e9-47dc-bcce-dda7bae3c522
 :CREATED:  [2026-08-20 Thu 16:45]
 :END:
+
+=org_capture= takes =(title target tags note)=. On 2026-08-20 it was called five times with two invented arguments, =todo_state= and =body=. Every call succeeded, returned /"Captured: ... (ID: ...)"/, and silently dropped both.
+
+*The measured damage, all in one session.* Three headings landed with no TODO keyword. *Four landed with no body at all* -- =41cf5830=, =c6fc6f46=, =5a5e87c9= and this one -- losing every word of analysis written into them. Only =a729c32a= survived, and only because =org_amend= was called on it later for an unrelated reason.
+
+*Neither loss announced itself.* A keywordless heading is absent from every agenda TODO view, invisible to =org_query todo:TODO=, uncounted by its parent's statistics cookie, and ignored by =--trigger-auto-promote-sole-todo=. An empty body looks exactly like a heading someone has not written up yet. Both were reported to the user as filed work, with content quoted back that was never in the file.
+
+*It went unnoticed for five hours and was found by accident* -- the user asked where a concept had been parked, and the heading holding it was empty. Nothing in the tool's replies, the lint run, the test suite or the review queue could have surfaced it, because from every one of those angles a heading with a title and an =:ID:= is well-formed.
+
+*The tool was not at fault and this is the point.* Its description says, in capitals, that the heading is written with /NO TODO keyword/ and that the state must be set afterwards with =org_set_todo=; it advertises no =body= parameter at all. The documentation was correct, prominent, and unread. Only the silence made the error survivable. A parameter the schema does not declare should be an error, not a no-op -- the same argument =org_set_todo= already accepts for an undeclared keyword, which returns /"WAIT is not a TODO keyword in this file (have: ...)"/ rather than proceeding.
+
+*Where the check belongs is the open question.* If =claude-code-ide-mcp= dispatches by arity or by plist, an unknown key may be discarded before this module ever sees it, in which case this is an upstream report ([[id:9d6449c7-529f-49a0-b28f-015cce869715][9d6449c7]]) rather than a local fix. Establish which before proposing anything.
+
+*Related defect found in the same reading:* =org_capture='s own description contained a truncated sentence -- /"Run org_outline first if you need to see what "/ ran straight into /"Returns a confirmation containing the "/, losing "categories exist." Repaired 2026-08-20. Evidence for this parent's premise that the advertising has never been read end to end.
+
+/Body restored 2026-08-20 by =org_amend=; the original capture silently discarded it -- by the very defect this heading describes./
+
 ** TODO org_amend can only append, so every correction lands furthest from the reader :code:
 :PROPERTIES:
 :ID:       3063c3e5-0dd0-4354-8985-271b0313c5d1
@@ -4659,6 +4676,21 @@ rounding incident pointed the other way.
 :ID:       c6fc6f46-4954-4fdf-9d7e-7c8bf3a1a952
 :CREATED:  [2026-08-20 Thu 16:43]
 :END:
+
+=claude-code-ide-org--review-written-summary= sums raw seconds across a span's runs. org computes a CLOCK line's duration from the two *minute-truncated* timestamps it records. The two disagree by a minute whenever the seconds fall either side of a boundary.
+
+Caught on a real line, 2026-08-20. The review buffer previewed =writes 0:02= for the 10:19--10:22 span; apply wrote =CLOCK: [2026-08-20 Thu 10:19]--[2026-08-20 Thu 10:22] =>  0:03=. Guideposts were 10:19:49 and 10:22:18 -- 149s, which rounds to 2, while org subtracts 10:19 from 10:22 and gets 3.
+
+*Measured across the whole queue corpus:* of 361 runs where either method writes a minute, *25.5% disagree* -- 43 runs (11.9%) where org writes one minute less than previewed, 49 (13.6%) where it writes one more. Near-symmetric, so aggregate totals barely move; the error is per-line and does not cancel for a human reading one line.
+
+*This is the function failing its own stated contract*, which is what makes it worth fixing rather than tolerating. Its docstring says it returns "what apply will *really* write", and the reasoning recorded there is that confirming a number which exists nowhere is worse than the overcount it replaced. A prediction that is wrong a quarter of the time reintroduces exactly that failure, one minute at a time.
+
+*Approach:* compute the preview the way org does -- truncate each run's endpoints to the minute, then subtract -- rather than summing float seconds. That also makes the preview agree with =--apply-idle-floor='s own rendered-endpoint test, which already truncates, so the two would stop reasoning about time in different units.
+
+*Verify:* a test pinning a run of 10:19:49--10:22:18 to a preview of =0:03=, and failing on the current =0:02=.
+
+/Body restored 2026-08-20 by =org_amend=; the original capture silently discarded it -- see/ [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]].
+
 ** DONE A hand-set TODO transition records the change but never the time :code:
 CLOSED: [2026-08-19 Wed 17:47]
 :PROPERTIES:
@@ -6283,6 +6315,25 @@ So the full rule set, settled and ready to be written down:
 :ID:       41cf5830-fc2e-4dc6-b243-a0c2718a53a3
 :CREATED:  [2026-08-20 Thu 11:07]
 :END:
+
+Raised by the user 2026-08-20 alongside the retention policy at [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]], and separable from it: once a body may be revised wholesale, the evolution it used to carry lives only in git, and nothing points a reader at it.
+
+Proposal: a timestamped commit log in a drawer -- possibly =:LOGBOOK:=, possibly its own -- listing the commits that touched this heading. Not the history itself, an index into it. The framing that makes it worth building is the user's: "how did we get here?" is a *rare* question, so the answer belongs one hop away rather than inline, which is precisely the trade the current bodies get backwards.
+
+*The query, settled 2026-08-20 and measured.* The first proposal here was =git log -S<id>=, and it is wrong. Against =02aaae22=: of the 24 commits =-S= reports, *only 4 actually touched the heading*, and it misses 23 of the 27 that did. Both failures follow from what =-S= does -- it matches the ID string anywhere in the *file*, so a commit is reported merely for adding an =[[id:02aaae22...]]= link inside some other heading's body, while an edit to this heading's own prose never touches the =:ID:= line and so is invisible.
+
+The user's formulation is the correct one: commits touching anything from the heading line to the character before the next heading. That is =git log -L <start>,<end>:TODO.org=, which follows the range backwards through history as the file changes. Locate the range at HEAD by =:ID:=, then hand the line numbers to =-L=.
+
+Anchoring =-L= on a regex instead was tried and is worse: =/:ID:       <uuid>/= starts the range *below* the headline, losing retitles, tag edits and cookie updates -- 20 commits against the line range's 27, with no false positives. A title regex is worse still, since titles and statistics cookies both change.
+
+*Range compression works but does not transform the problem.* Of 302 commits to TODO.org, 27 touched =02aaae22=; consecutive runs are 4, 3, 2, 2, 2, 2 and twelve singletons, so =a..b= notation gives 18 entries instead of 27 -- a third off.
+
+*That number now argues against the drawer.* Eighteen entries for one heading, in a file whose largest containers will accumulate more, is not an index a human scans -- it is a second body, which is the thing this heading exists to prevent. Derived on demand still looks stronger, but on *volume* grounds rather than the staleness grounds first recorded here.
+
+Remaining open: which drawer, if stored; and what generates it. A commit touching a heading is detectable at commit time, and =.githooks/pre-commit= is the only thing that runs then -- at the cost of making a lint hook a writer.
+
+/Body restored 2026-08-20 by =org_amend=; the original capture silently discarded it -- see/ [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]]. /This heading being empty is how the loss was noticed at all: the user asked where the concept was parked, and there was nothing there./
+
 * Tooling
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Tooling
@@ -7527,3 +7578,13 @@ project scripts are not currently written against a stated baseline.
 CLOCK: [2026-08-20 Thu 10:50]--[2026-08-20 Thu 11:09] =>  0:19
 - [2026-08-20 Thu 10:50]--[2026-08-20 Thu 11:09] assigned at review
 :END:
+
+=claude-code-ide-org-clock-report= prefixes its table with =#+CAPTION: Clock summary at [2026-08-20 Thu 11:00], ...=. Two tests assert on durations with =(string-match-p "1:00" result)= against that whole string, so the caption's own clock satisfies the match.
+
+Observed, not theorised: =test-clock-report-block-today= and =test-clock-report-explicit-tstart-tend= passed at 10:59:52 on 2026-08-20, failed at 11:00:12, 11:00:20 and 11:00:44, then passed again at 11:01. The failing assertion is the negative one, =(should (not (string-match-p "1:00" result)))=, which is the shape a green suite cannot catch: it only fires when the substring appears for the wrong reason.
+
+Three minutes a day for this duration -- 01:00, 11:00, 21:00. Other durations asserted the same way have the same exposure at their own minutes.
+
+Approach: assert against the table row, =| *Total time* | *0:00* |=, rather than the whole report. Stripping the caption would also work but matching the row is what the assertion means.
+
+/Body restored 2026-08-20 by =org_amend=; the original capture silently discarded it -- see/ [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]].
