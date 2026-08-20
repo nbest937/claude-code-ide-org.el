@@ -36,7 +36,7 @@ cp "$repo_root/bin/lint-org" "$work/bin/"
 cp "$repo_root/modules/tools/claude-code-ide-org/config.el" \
    "$work/modules/tools/claude-code-ide-org/"
 
-header='#+TODO: TODO NEXT PLANNING DOING WAIT MAYBE | DONE CANCELLED
+header='#+TODO: TODO NEXT PLANNING DOING WAITING MAYBE | DONE CANCELLED
 #+TAGS: code
 '
 clean_task=':PROPERTIES:
@@ -98,6 +98,18 @@ git -C "$work" add TODO.org            # stage the broken one
 write_pair "** TODO A task :code:
 $clean_task"                            # ...and clean up the worktree
 check "refuses on staged breakage with a clean worktree" 1 "$(run_hook)"
+
+# 8. A staged .org file that is not a task file must not be gated on
+#    task-file conventions. clock-template.org is a worked
+#    LOGBOOK-conventions example: its level-1 headings are illustrations,
+#    and linting it as a task file produces six errors that are all false.
+write_pair "** TODO A task :code:
+$clean_task"
+git -C "$work" add TODO.org DONE.org
+printf '%s* DONE Illustrative level-1 heading :code:\n:PROPERTIES:\n:ID:       99999999-9999-9999-9999-999999999999\n:END:\n' \
+       "$header" > "$work/clock-template.org"
+git -C "$work" add clock-template.org
+check "a non-task .org file is not gated" 0 "$(run_hook)"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [[ $fail -eq 0 ]]
