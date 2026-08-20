@@ -1035,6 +1035,18 @@ more surprising, and no evidence has been gathered either way.
 :ID:       29439196-bbb8-4b64-b8d5-3bf9d457bf6c
 :CREATED:  [2026-08-19 Wed 16:18]
 :END:
+:LOGBOOK:
+CLOCK: [2026-08-19 Wed 12:40]--[2026-08-19 Wed 12:44] =>  0:04
+- [2026-08-19 Wed 12:40]--[2026-08-19 Wed 12:44] assigned at review
+CLOCK: [2026-08-19 Wed 14:42]--[2026-08-19 Wed 14:45] =>  0:03
+- [2026-08-19 Wed 14:42]--[2026-08-19 Wed 14:45] assigned at review
+CLOCK: [2026-08-19 Wed 16:18]--[2026-08-19 Wed 16:19] =>  0:01
+- [2026-08-19 Wed 16:18]--[2026-08-19 Wed 16:19] assigned at review
+CLOCK: [2026-08-19 Wed 16:31]--[2026-08-19 Wed 16:32] =>  0:01
+- [2026-08-19 Wed 16:31]--[2026-08-19 Wed 16:32] assigned at review
+CLOCK: [2026-08-19 Wed 16:39]--[2026-08-19 Wed 18:36] =>  1:57
+- [2026-08-19 Wed 16:39]--[2026-08-19 Wed 18:36] assigned at review
+:END:
 
 Parked 2026-08-19, *not accepted* — recorded so the research need not be
 redone, not because a case was made.
@@ -2334,10 +2346,14 @@ which is exactly the placement question
 
 *Verify:* =grep -n -i nominat .claude/skills/org/SKILL.md CLAUDE.md=
 returns the rule.
-*** CLAUDE.md documents neither span floor, and mis-describes the gap threshold :code:
+*** TODO CLAUDE.md documents neither span floor, and mis-describes the gap threshold :code:
 :PROPERTIES:
 :ID:       594adec6-4855-470d-8ceb-5fe29bf0c935
 :CREATED:  [2026-08-19 Wed 08:43]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-19 Wed 08:43] \\
+  two of three writable today
 :END:
 
 Three gaps, all in "Session tracking", all created by the 2026-08-18
@@ -3122,7 +3138,8 @@ own, following 02aaae22 / c556a9ed.
 
 
 
-*** TODO Background-task notifications write phantom resume guideposts :code:
+*** DONE Background-task notifications write phantom resume guideposts :code:
+CLOSED: [2026-08-19 Wed 08:05]
 :PROPERTIES:
 :ID:       09c134c4-31eb-4f6c-aa10-f836d1d28f16
 :CREATED:  [2026-08-12 Wed 17:46]
@@ -3130,6 +3147,8 @@ own, following 02aaae22 / c556a9ed.
 :LOGBOOK:
 - State "TODO"       from              [2026-08-12 Wed 17:47] \\
   phantom resume inflates human-present time
+- State "DONE"       from "TODO"       [2026-08-19 Wed 08:05] \\
+  re-queued, lost to my git checkout
 :END:
 
 Observed 2026-08-12 during the subagent experiment behind
@@ -3232,7 +3251,8 @@ number.
 
 
 
-*** REVIEW Two clock mechanisms disagree, and one of them predates the cutover :code:
+*** DONE Two clock mechanisms disagree, and one of them predates the cutover :code:
+CLOSED: [2026-08-19 Wed 17:48]
 :PROPERTIES:
 :ID:       226ed53b-c302-4529-870f-a42962b50bde
 :CREATED:  [2026-08-18 Tue 07:20]
@@ -3250,7 +3270,7 @@ CLOCK: [2026-08-18 Tue 07:54]--[2026-08-18 Tue 07:56] =>  0:02
 - [2026-08-18 Tue 07:54]--[2026-08-18 Tue 07:56] assigned at review
 - State "DOING"      from "TODO"       [2026-08-18 Tue 10:18] \\
   kind-aware clustering, per-run lines, silence trigger
-CLOCK: [2026-08-18 Tue 10:24]--[2026-08-18 Tue 10:27] =>  0:02
+CLOCK: [2026-08-18 Tue 10:24]--[2026-08-18 Tue 10:27] =>  0:03
 - [2026-08-18 Tue 10:24]--[2026-08-18 Tue 10:27] implement the two-mechanism fix
 CLOCK: [2026-08-18 Tue 10:31]--[2026-08-18 Tue 10:33] =>  0:02
 - [2026-08-18 Tue 10:31]--[2026-08-18 Tue 10:33] implement the two-mechanism fix
@@ -3264,6 +3284,8 @@ CLOCK: [2026-08-18 Tue 11:27]--[2026-08-18 Tue 11:44] =>  0:17
 - [2026-08-18 Tue 11:27]--[2026-08-18 Tue 11:44] assigned at review
 - State "REVIEW"     from "DOING"      [2026-08-18 Tue 11:43] \\
   2(a)(b)(c) all shipped, handed back for judgement
+- State "DONE"       from "REVIEW"     [2026-08-19 Wed 17:48] \\
+  both review decisions made, mechanisms compose
 :END:
 
 *Where this ended up.* Two mechanisms were writing clock time by
@@ -3693,10 +3715,15 @@ against.
 
 
 
-*** TODO Correct the accumulated record once the aggregator is fixed :code:
+*** DONE Correct the accumulated record once the aggregator is fixed :code:
+CLOSED: [2026-08-19 Wed 08:05]
 :PROPERTIES:
 :ID:       507754ba-ae82-4f04-b209-8d8c58ac268e
 :CREATED:  [2026-08-18 Tue 08:15]
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-08-19 Wed 08:05] \\
+  re-queued, lost to my git checkout
 :END:
 
 98 post-cutover CLOCK lines carry the pipeline's error — 38 in TODO.org,
@@ -3902,7 +3929,7 @@ is labelled as one.
 *Not done here, and deliberately:* the second half of this heading's
 original brief — surfacing pending-review state glanceably in the
 statusline — is untouched. This landed only what step 2 requires.
-*** TODO The session-start report's "DOING, not clocked" line has stopped discriminating :code:
+*** NEXT The session-start report's "DOING, not clocked" line has stopped discriminating :code:
 :PROPERTIES:
 :ID:       e0904e93-b99d-44ad-b641-e3e13aced8c4
 :CREATED:  [2026-08-18 Tue 11:41]
@@ -3912,6 +3939,8 @@ statusline — is untouched. This landed only what step 2 requires.
   found while silencing the auto-clock trigger
 CLOCK: [2026-08-18 Tue 12:10]--[2026-08-18 Tue 12:12] =>  0:02
 - [2026-08-18 Tue 12:10]--[2026-08-18 Tue 12:12] assigned at review
+- State "NEXT"       from "TODO"       [2026-08-19 Wed 18:56] \\
+  Auto-promoted: sole remaining TODO in its sibling group.
 :END:
 
 =claude-code-ide-org--attention-headings-context= reports a leaf as
@@ -3941,7 +3970,8 @@ from the queue files and is closer to what the report is actually trying
 to say. The alternative is that the line has no job left and should go.
 Deciding needs a look at what a session actually wants told to it, not
 just a mechanical port of the predicate.
-*** TODO An unassigned span's group heading renders an error string where a title belongs :code:
+*** DONE An unassigned span's group heading renders an error string where a title belongs :code:
+CLOSED: [2026-08-18 Tue 19:47]
 :PROPERTIES:
 :ID:       98700ea3-6770-429b-84dd-1fddde60afed
 :CREATED:  [2026-08-18 Tue 16:00]
@@ -3949,6 +3979,8 @@ just a mechanical port of the predicate.
 :LOGBOOK:
 - State "TODO"       from              [2026-08-18 Tue 16:00] \\
   cosmetic review-buffer rendering defect
+- State "DONE"       from "TODO"       [2026-08-18 Tue 19:47] \\
+  fixed, tested, confirmed live
 :END:
 
 Observed live 2026-08-18 in =org_pending_updates=, grouping two
@@ -4002,10 +4034,14 @@ That is the second fake assertion this practice caught today — the other
 was in [[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]], where a
 window-extension test asserted only that a line looked plausible.
 
-*** Concurrent sessions' turns must union, not sum, wherever time is totalled :code:
+*** TODO Concurrent sessions' turns must union, not sum, wherever time is totalled :code:
 :PROPERTIES:
 :ID:       7d739afd-f879-445c-b0b6-65e295585a94
 :CREATED:  [2026-08-18 Tue 16:36]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-19 Wed 08:05] \\
+  re-queued, lost to my git checkout
 :END:
 
 Stated by the user 2026-08-18: two sessions running at once produce
@@ -4048,10 +4084,14 @@ de-duplicate). Those differ when two sessions genuinely work on two
 its own, and only the sum across headings overstates elapsed time. That
 distinction has not been decided and should not be decided by whoever
 happens to touch this first.
-*** A background job's first turn is bracketed across two session_ids :code:
+*** TODO A background job's first turn is bracketed across two session_ids :code:
 :PROPERTIES:
 :ID:       9202b39d-49e4-441c-89f2-382feb4ef1ea
 :CREATED:  [2026-08-18 Tue 16:41]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-19 Wed 08:06] \\
+  re-queued, lost to my git checkout
 :END:
 
 Measured 2026-08-18 while recomputing the accumulated record for
@@ -4100,10 +4140,14 @@ is in the launching session's file and the job's hook reads its own, so
 the promotion would not fire. Narrow -- it needs =PLANNING= set by the
 very turn that launches a job -- and it has not been reproduced. Filed
 as a question, not a defect.
-*** Name the floor on what gets written, so both floors are knobs :code:
+*** TODO Name the floor on what gets written, so both floors are knobs :code:
 :PROPERTIES:
 :ID:       e0c55d26-706c-42b6-9405-54e9d5ed4750
 :CREATED:  [2026-08-19 Wed 08:43]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-19 Wed 08:43] \\
+  form now, value in September
 :END:
 
 =claude-code-ide-org-span-idle-floor= is a named =defcustom=. The floor
@@ -4136,10 +4180,22 @@ endpoint outward fabricates time — about an hour across the 65 lines
 that would move — which is [[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]]'s
 rounding incident pointed the other way.
 
-** A hand-set TODO transition records the change but never the time :code:
+** DONE A hand-set TODO transition records the change but never the time :code:
+CLOSED: [2026-08-19 Wed 17:47]
 :PROPERTIES:
 :ID:       dadc08cf-9e12-4e93-bde8-68c241622b0f
 :CREATED:  [2026-08-19 Wed 07:29]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-19 Wed 07:26]--[2026-08-19 Wed 07:37] =>  0:11
+- [2026-08-19 Wed 07:26]--[2026-08-19 Wed 07:37] assigned at review
+- State "TODO"       from              [2026-08-19 Wed 07:32] \\
+  overlap-aware apply is the enabling fix
+- State "DOING"      from "TODO"       [2026-08-19 Wed 16:40] \\
+  overlap-aware apply, then re-enable the trigger
+- [2026-08-19 Wed 17:34]--[2026-08-19 Wed 17:34] make apply subtract already-recorded intervals
+- State "DONE"       from "DOING"      [2026-08-19 Wed 17:47] \\
+  overlap-aware apply shipped and verified
 :END:
 
 Raised by the user 2026-08-19: /"Don't we have to allow for the
@@ -4292,10 +4348,22 @@ untimed — is closed by the trigger being back on.
 
 
 
-** Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit :code:
+** TODO Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit :code:
 :PROPERTIES:
 :ID:       79c224ab-188a-4ed4-a606-c28ee2cfe72d
 :CREATED:  [2026-08-19 Wed 08:06]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-19 Wed 08:02]--[2026-08-19 Wed 08:08] =>  0:06
+- [2026-08-19 Wed 08:02]--[2026-08-19 Wed 08:08] assigned at review
+- State "TODO"       from              [2026-08-19 Wed 08:07] \\
+  reconciliation check is the durable fix
+CLOCK: [2026-08-19 Wed 08:20]--[2026-08-19 Wed 08:22] =>  0:02
+- [2026-08-19 Wed 08:20]--[2026-08-19 Wed 08:22] assigned at review
+CLOCK: [2026-08-19 Wed 08:28]--[2026-08-19 Wed 08:29] =>  0:01
+- [2026-08-19 Wed 08:28]--[2026-08-19 Wed 08:29] assigned at review
+CLOCK: [2026-08-19 Wed 08:42]--[2026-08-19 Wed 08:46] =>  0:04
+- [2026-08-19 Wed 08:42]--[2026-08-19 Wed 08:46] assigned at review
 :END:
 
 *Incident, 2026-08-19.* Five queued transitions were applied by the
@@ -5499,6 +5567,12 @@ names and files) and are out of scope.
 :ID:       b07df584-3adc-433c-ab49-e104f88aecf7
 :CREATED:  [2026-08-18 Tue 19:43]
 :END:
+:LOGBOOK:
+CLOCK: [2026-08-18 Tue 19:25]--[2026-08-18 Tue 19:26] =>  0:01
+- [2026-08-18 Tue 19:25]--[2026-08-18 Tue 19:26] assigned at review
+CLOCK: [2026-08-18 Tue 19:40]--[2026-08-18 Tue 19:47] =>  0:07
+- [2026-08-18 Tue 19:40]--[2026-08-18 Tue 19:47] assigned at review
+:END:
 
 Raised by the user 2026-08-18, in these words: /"I am questioning the
 long-term utility of capturing this quantity of minutiae."/ The trigger
@@ -6403,10 +6477,16 @@ four command forms, asserting exit status and message.
 second concurrent session until a mechanism is in place, so this gates
 concurrent work generally rather than being one more backlog item.
 
-** Enforce org structural hygiene, from diagnosis to commit gate :code:
+** TODO Enforce org structural hygiene, from diagnosis to commit gate :code:
 :PROPERTIES:
 :ID:       aded703f-8110-439e-b470-5e0375121c95
 :CREATED:  [2026-08-19 Wed 12:16]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-19 Wed 12:14]--[2026-08-19 Wed 12:17] =>  0:03
+- [2026-08-19 Wed 12:14]--[2026-08-19 Wed 12:17] assigned at review
+- State "TODO"       from              [2026-08-19 Wed 12:16] \\
+  composed from three existing children
 :END:
 
 One arc in three steps: find the structural drift that already exists,
@@ -6430,10 +6510,19 @@ and it is also a rough measure of the rate.
 Every member already carries its own detail; this heading deliberately
 holds only what the set shares.
 
-*** TODO Diagnose the 11 misplaced-heading reports org-lint found :code:
+*** DONE Diagnose the 11 misplaced-heading reports org-lint found :code:
+CLOSED: [2026-08-19 Wed 18:36]
 :PROPERTIES:
 :ID:       8d682a5b-1b03-4744-995c-a871a8b40ddc
 :CREATED:  [2026-08-14 Fri 14:40]
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-08-19 Wed 17:48] \\
+  diagnose the 11 misplaced-heading reports
+- [2026-08-19 Wed 17:53]--[2026-08-19 Wed 17:53] classify each misplaced-heading report
+- [2026-08-19 Wed 18:31]--[2026-08-19 Wed 18:31] classify each misplaced-heading report
+- State "DONE"       from "DOING"      [2026-08-19 Wed 18:36] \\
+  all 11 diagnosed and the class fixed
 :END:
 
 *Surfaced 2026-08-14 the moment =org-lint= was wired into
@@ -6532,7 +6621,7 @@ the first time, and it is cheap.
 
 
 
-*** NEXT Lint for headings that are valid org but structurally unintended :code:
+*** DOING Lint for headings that are valid org but structurally unintended :code:
 :PROPERTIES:
 :ID:       95087d8f-e16d-45d3-bdea-9b179dc672b4
 :CREATED:  [2026-08-17 Mon 10:10]
@@ -6544,12 +6633,14 @@ CLOCK: [2026-08-17 Mon 09:59]--[2026-08-17 Mon 10:05] =>  0:06
 - [2026-08-17 Mon 09:59]--[2026-08-17 Mon 10:05] assigned at review
 CLOCK: [2026-08-17 Mon 10:09]--[2026-08-17 Mon 10:11] =>  0:02
 - [2026-08-17 Mon 10:09]--[2026-08-17 Mon 10:11] assigned at review
-CLOCK: [2026-08-17 Mon 10:19]--[2026-08-17 Mon 10:38] =>  0:20
+- State "NEXT"       from              [2026-08-17 Mon 10:11] \\
+  would have caught a 6462-line break
+CLOCK: [2026-08-17 Mon 10:19]--[2026-08-17 Mon 10:38] =>  0:19
 - [2026-08-17 Mon 10:19]--[2026-08-17 Mon 10:38] assigned at review
 CLOCK: [2026-08-17 Mon 10:40]--[2026-08-17 Mon 10:48] =>  0:08
 - [2026-08-17 Mon 10:40]--[2026-08-17 Mon 10:48] assigned at review
-- State "NEXT"       from              [2026-08-17 Mon 10:11] \\
-  would have caught a 6462-line break
+- State "DOING"      from "NEXT"       [2026-08-19 Wed 18:47] \\
+  add the two structural lint checks
 :END:
 
 Two checks =bin/lint-org= does not have, both identified 2026-08-17 after
@@ -6643,10 +6734,18 @@ so neither check false-positives on the real corpus.
 check 2's design decision resolved itself once the =:ARCHIVE:= property
 turned out to be the discriminator.
 
-*** TODO Run bin/lint-org in a pre-commit hook, scoped to staged org files :code:
+*** NEXT Run bin/lint-org in a pre-commit hook, scoped to staged org files :code:
 :PROPERTIES:
 :ID:       7e9aa4ea-4757-4e58-bac3-3c3e67fc4cb1
 :CREATED:  [2026-08-19 Wed 10:56]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-19 Wed 10:54]--[2026-08-19 Wed 11:05] =>  0:11
+- [2026-08-19 Wed 10:54]--[2026-08-19 Wed 11:05] assigned at review
+CLOCK: [2026-08-19 Wed 11:14]--[2026-08-19 Wed 11:16] =>  0:02
+- [2026-08-19 Wed 11:14]--[2026-08-19 Wed 11:16] assigned at review
+- State "NEXT"       from "TODO"       [2026-08-19 Wed 18:56] \\
+  Auto-promoted: sole remaining TODO in its sibling group.
 :END:
 
 =bin/lint-org= runs nowhere automatically — not in a hook, not in
