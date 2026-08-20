@@ -4300,6 +4300,42 @@ drawer must still total 30 minutes rather than 40."
       (should (= 1 (length clocks)))
       (should (string-match-p "=>  0:30" (car clocks))))))
 
+(ert-deftest claude-code-ide-org-test-apply-tolerates-an-already-true-state ()
+  "Applying a transition the heading already satisfies is success.
+
+TODO.org :ID: cc0c17a7 was filed claiming the opposite -- that such an
+event reaches apply and fails there. Probing it showed apply returns nil
+and writes nothing, so the claim was wrong and the heading is corrected.
+
+It works by omission rather than by intent, which is why this test
+exists: `org-todo' on a no-op never calls `org-add-log-setup', so
+`org-log-note-marker' stays nil and `--review-apply-state's note block is
+skipped entirely. Nothing declares that tolerance, so nothing currently
+stops a later change to the note handling from turning a harmless no-op
+into a refusal -- and the event would then be stuck in the queue with no
+way to satisfy it, since the state it asks for is already true.
+
+Asserted three ways: the apply reports success, so its events are marked
+consumed and it leaves the queue; the keyword is untouched; and no State
+line is written, because org has no transition to record and inventing
+one would date a change that never happened.
+
+Adjacent to, and not a duplicate of,
+`claude-code-ide-org-test-review-no-op-transition-writes-nothing-elsewhere':
+that one guards the same no-op against writing a stale note onto a
+*different* heading (:ID: 3d93021d). It never asserts that apply
+*succeeds*, which is the part that decides whether the event can ever
+leave the queue."
+  (claude-code-ide-org-test--with-heading
+    (should-not (claude-code-ide-org--review-apply-item
+                 (list :type 'state :id id :ts (date-to-time "2026-08-06T09:00:00-0500")
+                       :from "TODO" :to "TODO" :note "already there" :events nil)))
+    (should (equal "TODO" (org-with-point-at (org-id-find id 'marker)
+                            (org-get-todo-state))))
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      (should-not (string-match-p "State +\"TODO\" +from +\"TODO\"" disk))
+      (should-not (string-match-p "already there" disk)))))
+
 (ert-deftest claude-code-ide-org-test-drained-requires-idle-and-no-items ()
   "Both clauses of the drained predicate are load-bearing."
   (claude-code-ide-org-test--with-queue
