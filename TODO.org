@@ -1511,6 +1511,19 @@ This heading is now a *dependency of* [[id:b07df584-3adc-433c-ab49-e104f88aecf7]
 :ID:       a729c32a-d6b2-49c5-a40e-81ed5adeeb2f
 :CREATED:  [2026-08-20 Thu 14:18]
 :END:
+
+*Done 2026-08-20, same day it was filed.* Both preconditions re-verified immediately before the edit rather than trusted from the survey: zero =WAIT= headings across TODO.org, DONE.org and notes.org, and no unapplied =WAIT= event queued.
+
+*Renamed* where the text states a rule or is a fixture -- both live =#+TODO:= lines plus 73 occurrences across nine files. *Not renamed*, 68 occurrences: every =State "WAIT"= line in a =:LOGBOOK:= drawer, all other TODO.org/DONE.org body prose, and =plans/=.
+
+*The one judgement call:* [[id:241a4c54-ed59-4780-b602-2a86efee978a][241a4c54]]'s body was renamed (4 lines) despite being journal prose, because it holds the four container rules as settled and pending transcription -- [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]]'s sweep copies them into CLAUDE.md, so leaving =WAIT= there would have seeded the old keyword back into the file this change just cleaned.
+
+*Verified, not assumed.* Both buffers reverted *without* =preserve-modes=, since =#+TODO:= is parsed only at mode init -- the reason the earlier =#+STARTUP: content= check appeared to fail. Both then reported =org-todo-keywords-1= containing =WAITING= and not =WAIT=. =config.el= reloaded into the running Emacs, its literal =(equal state "WAIT")= comparison having been live. Then probed the real tool: =org_set_todo= with =WAIT= returns /"WAIT is not a TODO keyword in this file (have: ... WAITING ...)"/ and queues nothing, so the safety property is demonstrated rather than asserted.
+
+*Two things the survey got wrong.* Scope was estimated at 65 occurrences across seven files; it was 73 across nine, because =bin/queue-append-test= and =bin/pre-commit-test= carry keyword fixtures and the survey's grep was scoped to =*.el=, =*.md=, =*.org= and =*.json= -- extensionless scripts fell outside it. Worth remembering: a file-glob survey under-reports in a repo whose scripts have no extension.
+
+*And the commit was refused, correctly.* The pre-commit hook linted =clock-template.org= -- staged for the first time ever by this change -- against task-file conventions it was never meant to satisfy, producing six false errors. =bin/lint-org= governs exactly TODO.org and DONE.org; the hook gated every staged =.org=. Fixed by scoping the hook to the linter's own set rather than passing =--no-verify=, in its own commit ahead of this one, with a test that fails when the scoping is reverted. A gate wider than its linter blocks correct work and teaches the bypass habit the hook exists to make unnecessary.
+
 * Clock lifecycle & visibility
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Clock lifecycle & visibility
