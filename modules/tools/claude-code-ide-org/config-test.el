@@ -2035,6 +2035,56 @@ state."
     (should (claude-code-ide-org-test--lint-matches findings 'error "names unknown :ID:"))
     (should (claude-code-ide-org-test--lint-matches findings 'warn "MAYBE heading is dormant"))))
 
+(ert-deftest claude-code-ide-org-test-lint-requires-a-cookie-on-containers ()
+  "A heading that has acquired TODO children states its progress.
+
+Four probes, because the interesting half of this check is what it must
+*not* flag. A level-1 category has TODO children by definition and is
+structure rather than a task, so the keyword gate is what keeps the
+check off every category in the file."
+  (let* ((props (concat ":PROPERTIES:\n:ID:       11111111-1111-1111-1111-111111111111\n"
+                        ":CREATED:  [2026-08-20 Thu 10:00]\n:END:\n"))
+         (kid (concat "*** TODO Kid\n:PROPERTIES:\n"
+                      ":ID:       22222222-2222-2222-2222-222222222222\n"
+                      ":CREATED:  [2026-08-20 Thu 10:00]\n:END:\n"))
+         (with-kid (lambda (headline)
+                     (claude-code-ide-org-test--lint
+                      (concat "* Category\n" headline props kid)))))
+    ;; Container, no cookie: flagged.
+    (should (claude-code-ide-org-test--lint-matches
+             (funcall with-kid "** TODO Parent\n") 'error "no statistics cookie"))
+    ;; Container with a cookie: silent.
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (funcall with-kid "** TODO [0/1] Parent\n") 'error "no statistics cookie"))
+    ;; A percentage cookie counts too.
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (funcall with-kid "** TODO [0%] Parent\n") 'error "no statistics cookie"))
+    ;; A category has TODO children and no keyword of its own: silent.
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint
+                  (concat "* Category\n** TODO Leaf\n" props))
+                 'error "no statistics cookie"))))
+
+(ert-deftest claude-code-ide-org-test-lint-catches-a-repeated-tag ()
+  "A tag written twice on one heading cannot be deliberate.
+
+The check is only meaningful because `org-get-tags\' does not
+deduplicate -- verified 2026-08-20, it returns (\"code\" \"code\") for
+`:code:code:\'. Were it to dedupe, the comparison would be
+unconditionally true and the test would pass while checking nothing.
+Produced in the real file by a hand-edit appending a tag a headline
+already carried, which org-lint does not look for."
+  (let ((props (concat ":PROPERTIES:\n:ID:       11111111-1111-1111-1111-111111111111\n"
+                       ":CREATED:  [2026-08-20 Thu 10:00]\n:END:\n")))
+    (should (claude-code-ide-org-test--lint-matches
+             (claude-code-ide-org-test--lint
+              (concat "* Category\n** TODO Task :code:code:\n" props))
+             'error "repeats a tag"))
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint
+                  (concat "* Category\n** TODO Task :code:research:\n" props))
+                 'error "repeats a tag"))))
+
 (ert-deftest claude-code-ide-org-test-lint-catches-dangling-plan-link ()
   "bin/sync-plans --check covers the archive side; nothing covered a
 heading linking a plan file that is not there."

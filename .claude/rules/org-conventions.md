@@ -46,6 +46,11 @@ meanings, and the archiving convention are in the **org skill** — including
 the per-heading `:ARCHIVE:` override. Tags are free-form beyond those four;
 declare additional ones in `#+TAGS:`.
 
+Don't write the same tag twice on one headline. `org-get-tags` does not
+deduplicate, so `:code:code:` survives untouched and org-lint says nothing;
+`bin/lint-org` reports it as an error. It happens when a tag is appended to
+a headline by hand without checking what is already there.
+
 ## Top-level headings
 
 Top-level (`*`) headings in `TODO.org` are categories/epics — pure
@@ -91,6 +96,21 @@ An epic is not declared, it is emergent: a heading that has acquired
 children carrying TODO keywords. Detectable via
 `claude-code-ide-org--container-heading-p`. Don't classify a heading as one
 when writing it.
+
+**A heading with TODO-carrying children carries a statistics cookie.** Add
+`[/]` to the headline and let org fill it in
+(`org-update-statistics-cookies`, `C-c #`); `[%]` works too. The point is
+that a container's progress is readable without unfolding it — with
+`#+STARTUP: content` folding every body by default, the cookie is often the
+only thing distinguishing a container that is nearly finished from one that
+has not started.
+
+Add it when the *first* child appears, since that is the moment the heading
+becomes a container. `bin/lint-org` reports a missing cookie as an **error**,
+so a commit will refuse: unlike `:CREATED:`, the count is derived from
+structure and can be retrofitted honestly, so there is no reason to let it
+slide. The check tests only that a cookie is *present* — org owns the
+arithmetic.
 
 ## Dependencies between tasks
 

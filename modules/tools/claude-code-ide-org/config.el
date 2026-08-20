@@ -6783,6 +6783,41 @@ categories are structure, not tasks: %s" title))
                  (report 'error line
                          "heading title has no word characters, so it is \
 probably punctuation read as structure: %S" title))
+               ;; A tag repeated on one heading cannot be deliberate.
+               ;; `org-get-tags' does not deduplicate -- verified
+               ;; 2026-08-20, it returns ("code" "code") -- so the
+               ;; comparison is real rather than always-true. Produced
+               ;; here by a hand-edit that appended a tag to a headline
+               ;; that already carried it; org-lint does not look.
+               (let ((tags (org-get-tags nil t)))
+                 (unless (= (length tags) (length (delete-dups (copy-sequence tags))))
+                   (report 'error line "heading repeats a tag %S: %s"
+                           tags title)))
+               ;; A heading that has acquired TODO-carrying children is a
+               ;; container, and a container states its progress in a
+               ;; statistics cookie so the count is visible without
+               ;; unfolding it. Gated on the heading carrying a keyword
+               ;; of its own: a level-1 category has TODO children by
+               ;; definition and is structure, not a task.
+               ;;
+               ;; Presence only, not accuracy -- org recomputes the
+               ;; numbers itself (`org-update-statistics-cookies'), and a
+               ;; check that recomputed them here would be asserting
+               ;; against org's own arithmetic rather than against the
+               ;; convention.
+               ;;
+               ;; An `error' rather than a `warn' on two grounds: it is
+               ;; honestly retrofittable, since the count is derived from
+               ;; structure and not a fact about the past the way
+               ;; :CREATED: is; and it can only fire on the commit that
+               ;; gives a heading its *first* child, which is exactly
+               ;; when the convention needs stating.
+               (when (and todo
+                          (claude-code-ide-org--container-heading-p)
+                          (not (string-match-p "\\[[0-9]*\\(?:%\\|/[0-9]*\\)\\]"
+                                               (or title ""))))
+                 (report 'error line "heading has TODO children but no statistics \
+cookie -- add [/] and run `org-update-statistics-cookies': %s" title))
                ;; A repeating task never reaches DONE, so a completable
                ;; ancestor never can either -- this is the check that
                ;; caught 38b92521 frozen via its :BLOCKER:.

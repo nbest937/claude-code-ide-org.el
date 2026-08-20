@@ -611,7 +611,7 @@ asserts the refusal instead, across nil, empty and whitespace; removing
 the guard fails it and nothing else.
 
 
-** TODO Make the 8-character prefix resolve, for the model and the human alike :code:
+** TODO [0/4] Make the 8-character prefix resolve, for the model and the human alike :code:
 :PROPERTIES:
 :ID:       478d6ec9-1b99-4c6c-88e9-c793ad4b2f22
 :CREATED:  [2026-08-18 Tue 08:18]
@@ -2043,7 +2043,7 @@ close. With this and
 children are 29 =DONE= and 2 =CANCELLED=, and it can close.
 
 
-** DOING Update CLAUDE.md and the org skill for the new architecture :code:
+** DOING [2/8] Update CLAUDE.md and the org skill for the new architecture :code:
 :PROPERTIES:
 :ID:       02aaae22-0958-4c0f-b5bb-2cbea32416ae
 :BLOCKER:  ids(7771fc63-9374-4c8a-9e80-24ceec21977c e51d6ba1-cc1d-4745-8aa7-e4b1183a230b c084553c-0621-4a96-9fa1-f32850aeec6a)
@@ -3496,7 +3496,7 @@ function returns and adds one prompt. Related to
 heading put the evidence on screen, and this one would capture the
 conclusion the human draws from it — but neither requires the other.
 
-** DOING Make the guidepost pipeline produce durations that mean what they say :code:
+** DOING [6/10] Make the guidepost pipeline produce durations that mean what they say :code:
 :PROPERTIES:
 :ID:       406e9200-c3e7-49ac-a8d0-d6ff8e061ce4
 :CREATED:  [2026-08-18 Tue 08:15]
@@ -5864,7 +5864,7 @@ Issues found against the third-party =claude-code-ide.el=
 (manzaltu/claude-code-ide.el) package itself, not this repo's own
 code — worth reporting upstream but not this repo's work to fix.
 
-** MAYBE Accumulate issues to report upstream to claude-code-ide.el :code:
+** MAYBE [0/1] Accumulate issues to report upstream to claude-code-ide.el :code:
 :PROPERTIES:
 :ID:       9d6449c7-529f-49a0-b28f-015cce869715
 :CREATED:  [2026-07-30 Thu 12:21]
@@ -7077,7 +7077,7 @@ four command forms, asserting exit status and message.
 second concurrent session until a mechanism is in place, so this gates
 concurrent work generally rather than being one more backlog item.
 
-** DONE Enforce org structural hygiene, from diagnosis to commit gate :code:
+** DONE [3/3] Enforce org structural hygiene, from diagnosis to commit gate :code:
 CLOSED: [2026-08-19 Wed 19:31]
 :PROPERTIES:
 :ID:       aded703f-8110-439e-b470-5e0375121c95
