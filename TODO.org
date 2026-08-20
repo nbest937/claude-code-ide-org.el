@@ -575,6 +575,37 @@ Which sharpens the choice already listed: *require =target== would have
 refused that call outright and cost nothing, since the caller did have a
 category in mind and only omitted it out of habit.
 
+*Shipped 2026-08-20* (=535c98c=), taking the first of the three options
+above: refuse rather than guess. =target= is required in both layers
+that matter — the schema drops =:optional= and says why, and the
+function returns an =Error:= reply, so =bin/hooks/queue-append= also
+drops a *deferred* capture rather than queuing one with nowhere to go.
+
+*Urgency rose today rather than fell.* While the capture file had
+reverted to =notes.org=
+\([[id:bd482c92-a71a-4d7d-88df-47678ee94c79][bd482c92]]\) a target-less
+capture merely went to the wrong file. Now that it points at =TODO.org=
+again, the same call would create exactly the stray level-1 heading that
+[[id:95087d8f-e16d-45d3-bdea-9b179dc672b4][95087d8f]]'s new check flags
+and the pre-commit hook refuses — containment, not a fix.
+
+*The cost this option was said to carry turned out not to be real.* It
+was "the one case the fallback was for: a passing mention whose right
+home genuinely is not known". The call that finally hit this had a
+category in mind and omitted the argument out of habit, which is not
+that case. If the real one ever arrives, the refusal names
+=org_outline=, so the cost is one extra call rather than a wrong
+placement.
+
+*Six existing tests captured without a target and now name one*, which
+meant giving the fixture a category to name — =Scratch=, because
+=capture-target-by-category-title= makes its own =Tooling= and two would
+not be unique on level 1. Those headings are level 2 now and the
+assertions moved with them. The test that asserted the old fallback
+asserts the refusal instead, across nil, empty and whitespace; removing
+the guard fails it and nothing else.
+
+
 ** TODO Make the 8-character prefix resolve, for the model and the human alike :code:
 :PROPERTIES:
 :ID:       478d6ec9-1b99-4c6c-88e9-c793ad4b2f22
