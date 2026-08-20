@@ -1101,6 +1101,60 @@ related flattening question against, on the grounds that archive routing
 depends on level-1 =:ARCHIVE:=. That cost is real but is a mapping to be
 written, not a wall.
 
+*Composing a story by reference rather than by moving.* Parked
+2026-08-20, unreviewed, because it existed only in conversation and
+would otherwise be lost. Same standing as the rest of this heading: not
+accepted.
+
+*The problem.* A story whose members sit in different categories cannot
+be composed as a subtree — level 4 is forbidden, so composing means
+*relocating* level-2 headings under a new container.
+
+*Four mechanisms, and the axis that separates them is who declares
+membership:*
+
+| mechanism                            | declared at   | drifts? |
+|--------------------------------------+---------------+---------|
+| =[[id:]]= links in the container body | the container | yes     |
+| a =:MEMBERS:= property on it          | the container | yes     |
+| a tag on each member                  | *the member*  | no      |
+| an id-valued property on each member  | *the member*  | no      |
+
+The top two are the shape that already failed twice here: one edit point
+nobody revisits, exactly like the plan file's /"Covers all five
+children"/, true when written and false two days later.
+
+*A tag, not a bespoke property* — and that reverses what was recommended
+first. The argument for an id-valued =:SPRINT:= property was that a tag
+is a string needing rewriting if the story is renamed. That is backwards
+for org: stories are named by number or date and are not renamed, and a
+tag buys agenda filtering, =org-tags-view=, inheritance and group tags
+\(=:startgrouptag:=\) for free, where a property buys none of it without
+code. Sources: [[https://jeffbradberry.com/posts/2023/08/orgmode-epic-organization/][Bradberry, Epic Organization]], who tags literally
+=:sprint2:= beside =:release4_2:=, and [[https://orgmode.org/manual/Matching-tags-and-properties.html][Matching tags and properties]],
+where the manual treats the tree as the single structure and everything
+cross-cutting as a match.
+
+*The concrete cost of the alternative, which is the strongest argument
+here:* categories carry =:ARCHIVE:=, inherited by their subtree. Moving
+a heading across a category boundary to compose a story therefore
+changes where it lands when it closes. Composition by relocation
+silently rewrites archive routing; a reference changes nothing. Note
+this is a *different* claim from
+[[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]]'s, which is about
+removing categories altogether.
+
+*The case that would test it*, and it is a good one because the odd
+member is the important one: the capture cluster is
+[[id:bd482c92-a71a-4d7d-88df-47678ee94c79][bd482c92]] in *Tooling* —
+the root cause — with
+[[id:97696fc2-f07b-4586-b280-de6a7d26fb87][97696fc2]],
+[[id:7fa68d5c-b6c0-43df-85c6-764b1d56511f][7fa68d5c]] and
+[[id:8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b][8ddd7fa8]] in *Skill logic*.
+Composing it by moving would relocate the root cause away from the
+category it belongs to, purely to make the story expressible.
+
+
 ** TODO Moving a heading between files by hand leaves org-id pointing at the old one :code:
 :PROPERTIES:
 :ID:       8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b
@@ -1281,10 +1335,20 @@ evidence this heading never had.
 
 
 
-** Review how the emacs-tools are advertised, against which ones get used :code:research:
+** TODO Review how the emacs-tools are advertised, against which ones get used :code:research:
 :PROPERTIES:
 :ID:       420816ec-677e-45a5-b898-fb5db70d214b
 :CREATED:  [2026-08-20 Thu 07:41]
+:END:
+:LOGBOOK:
+- State "TODO"       from "TODO"       [2026-08-20 Thu 07:49] \\
+  re-queued; keyword was dismissed
+- State "TODO"       from              [2026-08-20 Thu 07:41] \\
+  seven of thirteen tools never called
+CLOCK: [2026-08-20 Thu 07:47]--[2026-08-20 Thu 07:52] =>  0:05
+- [2026-08-20 Thu 07:47]--[2026-08-20 Thu 07:52] assigned at review
+CLOCK: [2026-08-20 Thu 07:57]--[2026-08-20 Thu 07:58] =>  0:01
+- [2026-08-20 Thu 07:57]--[2026-08-20 Thu 07:58] assigned at review
 :END:
 
 Thirteen tools are advertised. Over a two-day session that did almost
