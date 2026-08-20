@@ -256,12 +256,12 @@ edits an org file at the moment you act.
 | `NEXT`     → `PLANNING`   | Open a CLOCK (call `org_clock_in`)  |
 | `PLANNING` → `DOING`      | None — same clock interval continues, no close/reopen |
 | `PLANNING` → `DONE`       | Close the CLOCK (call `org_clock_out`) |
-| `PLANNING` → `WAIT`       | Close the CLOCK (call `org_clock_out`) |
+| `PLANNING` → `WAITING`       | Close the CLOCK (call `org_clock_out`) |
 | `PLANNING` → `CANCELLED`  | Close the CLOCK (call `org_clock_out`) |
 | `DOING`    → `DONE`       | Close the CLOCK (call `org_clock_out`) |
-| `DOING`    → `WAIT`       | Close the CLOCK (call `org_clock_out`) |
+| `DOING`    → `WAITING`       | Close the CLOCK (call `org_clock_out`) |
 | `DOING`    → `CANCELLED`  | Close the CLOCK (call `org_clock_out`) |
-| `WAIT`     → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
+| `WAITING`     → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
 | Any        → `MAYBE`      | None                                |
 
 **Rule**: any transition *to* `DOING` or `PLANNING` must open a clock, with
@@ -292,7 +292,7 @@ time. The user should not have to ask for this check.
 
 **And it can hang.** The `#+TODO:` line carries per-keyword logging
 cookies: `!` records a timestamp on entry, `@` *prompts for a note*. In
-this project `WAIT(w@/!)` and `CANCELLED(c@)` carry `@` and nothing else
+this project `WAITING(w@/!)` and `CANCELLED(c@)` carry `@` and nothing else
 does — so a transition driven non-interactively through `emacsclient -e`
 blocks on a prompt for **those two keywords and only those two**. That
 asymmetry is one of the reasons state changes go through the queue rather

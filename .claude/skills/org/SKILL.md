@@ -35,14 +35,14 @@ This skill helps Claude work expertly with Emacs Org-Mode files. The focus areas
 *** PLANNING In Plan Mode, plan not yet approved
 *** DOING Actively being worked on
 *** REVIEW Finished, handed back for human judgement
-*** WAIT Blocked or waiting on someone
+*** WAITING Blocked or waiting on someone
 *** MAYBE Someday / maybe
 *** DONE Completed
 *** CANCELLED Cancelled
 ```
 
 Default keyword set used by this skill:
-`TODO NEXT PLANNING DOING REVIEW WAIT MAYBE | DONE CANCELLED`
+`TODO NEXT PLANNING DOING REVIEW WAITING MAYBE | DONE CANCELLED`
 
 The `|` separates active (incomplete) states on the left from terminal (done) states on
 the right. `DONE` and `CANCELLED` trigger Org's "task complete" behaviour (closing
@@ -51,7 +51,7 @@ Priority is expressed through keyword choice — do not add `[#A]`/`[#B]`/`[#C]`
 cookies unless the user explicitly asks.
 
 `REVIEW` is **experimental** — work finished and handed back for human judgement,
-as distinct from `WAIT`, which means blocked on someone else. Don't present it as
+as distinct from `WAITING`, which means blocked on someone else. Don't present it as
 settled convention.
 
 Real `#+TODO:` lines usually carry per-keyword logging cookies — `!` records a
@@ -276,9 +276,9 @@ When helping the user move a task between states, follow these conventions:
 | `TODO` → `DOING`        | Starting work immediately            | Open a CLOCK                 |
 | `NEXT` → `DOING`        | Starting work                        | Open a CLOCK                 |
 | `DOING` → `DONE`        | Finished                             | Close the open CLOCK         |
-| `DOING` → `WAIT`        | Blocked mid-task                     | Close the open CLOCK         |
+| `DOING` → `WAITING`        | Blocked mid-task                     | Close the open CLOCK         |
 | `DOING` → `CANCELLED`   | Abandoning                           | Close the open CLOCK         |
-| `WAIT` → `DOING`        | Unblocked, resuming                  | Open a CLOCK                 |
+| `WAITING` → `DOING`        | Unblocked, resuming                  | Open a CLOCK                 |
 | Any → `MAYBE`           | Deferring indefinitely               | None                         |
 
 **Rules:**

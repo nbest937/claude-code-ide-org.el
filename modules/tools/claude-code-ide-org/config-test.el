@@ -54,7 +54,7 @@ stray clock-status.json into the real module directory."
      (unwind-protect
          (progn
            (with-temp-file file
-             (insert "#+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
+             (insert "#+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
                      "#+TAGS: code comms research review\n"
                      "#+ARCHIVE: DONE.org::* Done\n"
                      "\n"
@@ -133,7 +133,7 @@ say so explicitly rather than getting one as a side effect of
 Same reason as `claude-code-ide-org-test--clock-in-for-real': the
 wrapper only queues now, so any test that needs the *file* to hold a
 state has to say so.  `org-inhibit-logging' is bound because these are
-setup steps, not the thing under test -- WAIT and CANCELLED are
+setup steps, not the thing under test -- WAITING and CANCELLED are
 `@'-flagged and would otherwise block on a note prompt under batch."
   (org-with-point-at (org-id-find id 'marker)
     (let ((org-inhibit-logging t)) (org-todo state))
@@ -293,7 +293,7 @@ org's own clock-in machinery, when its target directory does not
 ;; bin/queue-append-test.
 
 (ert-deftest claude-code-ide-org-test-set-todo-never-pops-the-note-buffer ()
-  "WAIT and CANCELLED are `@'-flagged (note required) in this project's
+  "WAITING and CANCELLED are `@'-flagged (note required) in this project's
 `#+TODO:' line.  Driving those through `org-todo' non-interactively is
 what hangs (TODO.org :ID: 04d0e7d5-ab6b-4972-925d-d517484c7595), and the
 wrapper used to need `org-inhibit-logging' bound to t to survive them.
@@ -301,7 +301,7 @@ It no longer calls `org-todo' at all, so this is now a cheap structural
 guard: if anyone ever restores a live write here, the `@' keywords are
 where it will show up first."
   (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-set-todo id "WAIT")
+    (claude-code-ide-org-set-todo id "WAITING")
     (should (not (get-buffer "*Org Note*")))
     (claude-code-ide-org-set-todo id "CANCELLED")
     (should (not (get-buffer "*Org Note*")))
@@ -532,7 +532,7 @@ BOTH buffers, not just the one org-refile happens to leave point in."
   (claude-code-ide-org-test--with-heading
     (let ((target-file (expand-file-name "target.org" dir)))
       (with-temp-file target-file
-        (insert (concat "#+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
+        (insert (concat "#+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
                          "#+TAGS: code comms research review\n"
                          "\n"
                          "* TODO Target heading                                              :code:\n"
@@ -731,7 +731,7 @@ never on transitions to any other state."
   (claude-code-ide-org-test--with-heading
     (org-with-point-at (org-id-find id 'marker) (org-todo "NEXT"))
     (should (not (org-clocking-p)))
-    (org-with-point-at (org-id-find id 'marker) (org-todo "WAIT"))
+    (org-with-point-at (org-id-find id 'marker) (org-todo "WAITING"))
     (should (not (org-clocking-p)))))
 
 (ert-deftest claude-code-ide-org-test-trigger-hook-auto-clocks-in-on-planning ()
@@ -999,10 +999,10 @@ NEXT, with an explanatory LOGBOOK note."
         (should (= 1 count))))))
 
 (ert-deftest claude-code-ide-org-test-single-next-leaves-non-todo-sole-survivor-alone ()
-  "A sole survivor sitting in WAIT (not TODO) must never be
+  "A sole survivor sitting in WAITING (not TODO) must never be
 force-promoted to NEXT."
   (claude-code-ide-org-test--with-heading
-    (org-with-point-at (org-id-find id 'marker) (org-todo "WAIT"))
+    (org-with-point-at (org-id-find id 'marker) (org-todo "WAITING"))
     (goto-char (point-max))
     (insert (concat "* NEXT Sibling B                                                   :code:\n"
                      ":PROPERTIES:\n"
@@ -1011,7 +1011,7 @@ force-promoted to NEXT."
     (save-buffer)
     (org-id-update-id-locations (list file))
     (org-with-point-at (org-id-find "test-0002" 'marker) (org-todo "DONE"))
-    (should (equal "WAIT" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))))
+    (should (equal "WAITING" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))))
 
 (ert-deftest claude-code-ide-org-test-single-next-leaves-two-todos-alone ()
   "A sibling group with two TODOs and no NEXT must not have either
@@ -1037,7 +1037,7 @@ one promoted -- promotion requires an unambiguous sole survivor."
   "A single NEXT among otherwise-non-TODO siblings must be left alone."
   (claude-code-ide-org-test--with-heading
     (goto-char (point-max))
-    (insert (concat "* WAIT Sibling B                                                   :code:\n"
+    (insert (concat "* WAITING Sibling B                                                   :code:\n"
                      ":PROPERTIES:\n"
                      ":ID:       test-0002\n"
                      ":END:\n"))
@@ -1045,7 +1045,7 @@ one promoted -- promotion requires an unambiguous sole survivor."
     (org-id-update-id-locations (list file))
     (org-with-point-at (org-id-find id 'marker) (org-todo "NEXT"))
     (should (equal "NEXT" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))
-    (should (equal "WAIT" (org-with-point-at (org-id-find "test-0002" 'marker) (org-get-todo-state))))))
+    (should (equal "WAITING" (org-with-point-at (org-id-find "test-0002" 'marker) (org-get-todo-state))))))
 
 (ert-deftest claude-code-ide-org-test-single-next-does-not-recreate-double-next-on-race ()
   "The core correctness case: a 2-sibling group with A already NEXT,
@@ -1117,7 +1117,7 @@ claude-code-ide-org-set-todo's wrapper."
 manually demoting a solitary NEXT back to TODO sticks -- promotion
 only resolves conflicts among >= 2 competing candidates."
   (claude-code-ide-org-test--with-heading
-    (org-with-point-at (org-id-find id 'marker) (org-todo "WAIT"))
+    (org-with-point-at (org-id-find id 'marker) (org-todo "WAITING"))
     (org-with-point-at (org-id-find id 'marker) (org-todo "TODO"))
     (should (equal "TODO" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))
     (org-with-point-at (org-id-find id 'marker) (org-todo "NEXT"))
@@ -1128,7 +1128,7 @@ only resolves conflicts among >= 2 competing candidates."
 ;;; Session context ("what was I last doing") -----------------------------
 
 (ert-deftest claude-code-ide-org-test-session-context-empty-when-nothing ()
-  "No running clock and no WAIT headings: session-context reports
+  "No running clock and no WAITING headings: session-context reports
 nothing, and the JSON wrapper collapses that to an empty hook object."
   (claude-code-ide-org-test--with-heading
     (let ((claude-code-ide-org-query-files (list file)))
@@ -1147,12 +1147,12 @@ nothing, and the JSON wrapper collapses that to an empty hook object."
 (ert-deftest claude-code-ide-org-test-session-context-includes-wait-headings ()
   (claude-code-ide-org-test--with-heading
     (goto-char (point-max))
-    (insert "* WAIT Blocked heading                                              :code:\n"
+    (insert "* WAITING Blocked heading                                              :code:\n"
             ":PROPERTIES:\n:ID:       test-0002\n:END:\n")
     (save-buffer)
     (let* ((claude-code-ide-org-query-files (list file))
            (result (claude-code-ide-org-session-context)))
-      (should (string-match-p "WAIT: \"Blocked heading\" (:ID: test-0002, in test.org)" result)))))
+      (should (string-match-p "WAITING: \"Blocked heading\" (:ID: test-0002, in test.org)" result)))))
 
 ;; Abandoned DOING leaves -- TODO.org :ID: 9d7531f5-11c5-4203-89e3-56c3fe399df5.
 
@@ -1206,22 +1206,22 @@ one heading, one line."
       (should (not (string-match-p "not clocked" result))))))
 
 (ert-deftest claude-code-ide-org-test-session-context-clocked-then-waits-order ()
-  "When both a clocked heading and WAIT headings exist, the clocked
+  "When both a clocked heading and WAITING headings exist, the clocked
 heading is reported first."
   (claude-code-ide-org-test--with-heading
     (goto-char (point-max))
-    (insert "* WAIT Blocked heading                                              :code:\n"
+    (insert "* WAITING Blocked heading                                              :code:\n"
             ":PROPERTIES:\n:ID:       test-0002\n:END:\n")
     (save-buffer)
     (claude-code-ide-org-test--clock-in-for-real id)
     (let* ((claude-code-ide-org-query-files (list file))
            (result (claude-code-ide-org-session-context))
            (pos-clocked (string-match "Currently clocked in" result))
-           (pos-wait (string-match "WAIT: " result)))
+           (pos-wait (string-match "WAITING: " result)))
       (should (and pos-clocked pos-wait (< pos-clocked pos-wait))))))
 
 (ert-deftest claude-code-ide-org-test-session-context-ignores-non-wait-states ()
-  "A DONE heading must not be mistaken for a WAIT heading."
+  "A DONE heading must not be mistaken for a WAITING heading."
   (claude-code-ide-org-test--with-heading
     (goto-char (point-max))
     (insert "* DONE Finished heading                                             :code:\n")
@@ -1231,7 +1231,7 @@ heading is reported first."
       (should (equal "" result)))))
 
 (ert-deftest claude-code-ide-org-test-session-context-kills-buffers-it-opened ()
-  "Scanning for WAIT headings must not leave stray buffers behind for
+  "Scanning for WAITING headings must not leave stray buffers behind for
 files that were not already open — but must leave alone (and not
 kill) a file the user already had open."
   (claude-code-ide-org-test--with-heading
@@ -1240,7 +1240,7 @@ kill) a file the user already had open."
       (unwind-protect
           (progn
             (with-temp-file other-file
-              (insert "* WAIT Other file heading                                           :code:\n"))
+              (insert "* WAITING Other file heading                                           :code:\n"))
             ;; `file' (the base fixture's own org file) is already open —
             ;; via `find-file' in the fixture itself — so it must survive
             ;; the scan; `other-file' is not yet open and must be killed
@@ -1447,7 +1447,7 @@ corrupting the file header."
     (let ((disk (claude-code-ide-org-test--disk-contents file)))
       ;; The file header must be completely untouched.
       (should (string-prefix-p
-               "#+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n#+TAGS:"
+               "#+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n#+TAGS:"
                disk))
       ;; CLOCK line correctly closed with the right duration (3:45).
       (should (string-match-p
@@ -1661,7 +1661,7 @@ deliberately places a note *with* a continuation between two clock lines
 that must move past it."
   (let* ((text (concat
                 "CLOCK: [2026-08-06 Thu 15:00]--[2026-08-06 Thu 15:45] =>  0:45\n"
-                "- State \"WAIT\"       from \"DOING\"      [2026-08-06 Thu 14:10] \\\\\n"
+                "- State \"WAITING\"       from \"DOING\"      [2026-08-06 Thu 14:10] \\\\\n"
                 "  request credentials from DBA\n"
                 "CLOCK: [2026-08-06 Thu 09:00]--[2026-08-06 Thu 09:15] =>  0:15\n"
                 "- <2026-08-06 Thu 13:30>--<2026-08-06 Thu 14:10> design tradeoffs\n"
@@ -1672,7 +1672,7 @@ that must move past it."
     ;; 14:20, 15:00.
     (should (string-prefix-p "CLOCK: [2026-08-06 Thu 09:00]" (nth 0 lines)))
     (should (string-prefix-p "- <2026-08-06 Thu 13:30>" (nth 1 lines)))
-    (should (string-match-p "State \"WAIT\"" (nth 2 lines)))
+    (should (string-match-p "State \"WAITING\"" (nth 2 lines)))
     ;; The continuation moved with its note and stayed directly beneath it.
     (should (equal "  request credentials from DBA" (nth 3 lines)))
     (should (string-prefix-p "- [2026-08-06 Thu 14:20]" (nth 4 lines)))
@@ -1680,7 +1680,7 @@ that must move past it."
     (should (= 6 (length lines)))
     ;; Nothing was lost: every input line is still present.
     (dolist (needle '("0:45" "0:15" "request credentials from DBA"
-                      "design tradeoffs" "write unit tests" "State \"WAIT\""))
+                      "design tradeoffs" "write unit tests" "State \"WAITING\""))
       (should (string-match-p (regexp-quote needle) out)))
     ;; And it is a fixed point -- sorting an already-sorted drawer is
     ;; identity, so consolidation cannot oscillate.
@@ -1829,7 +1829,7 @@ not itself linted."
           ;; recognise MAYBE/DOING at all and a fixture using them reads
           ;; as a plain heading whose title happens to start with a word.
           (with-temp-file file
-            (insert "#+TODO: TODO NEXT PLANNING DOING WAIT MAYBE | DONE CANCELLED\n")
+            (insert "#+TODO: TODO NEXT PLANNING DOING WAITING MAYBE | DONE CANCELLED\n")
             (insert text))
           (when ref-text (with-temp-file ref (insert ref-text)))
           (claude-code-ide-org-lint (list file) (and ref-text (list ref))))
@@ -2144,7 +2144,7 @@ the temp directory afterwards."
      (unwind-protect
          (progn
            (with-temp-file capture-file
-             (insert "#+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
+             (insert "#+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
                      "#+TAGS: code comms research review\n"
                      "#+ARCHIVE: DONE.org::* Done\n"
                      "\n"
@@ -2641,7 +2641,7 @@ code (?o), not accidentally alpha (?a)."
     (save-buffer)
     (claude-code-ide-org-sort-children id "todo-order")
     (let ((disk (claude-code-ide-org-test--disk-contents file)))
-      ;; Sequence order is TODO NEXT DOING WAIT MAYBE | DONE CANCELLED,
+      ;; Sequence order is TODO NEXT DOING WAITING MAYBE | DONE CANCELLED,
       ;; so Charlie (TODO) < Bravo (NEXT) < Alpha (DONE) — the reverse
       ;; of alpha-on-name order.
       (should (< (string-match-p "Charlie" disk) (string-match-p "Bravo" disk)))
@@ -4337,7 +4337,7 @@ says it is unresolvable -- and none of them contains \"Error:\"."
                    ;; And one that resolves to nothing.
                    (claude-code-ide-org-test--queue-event
                     "2026-08-13T09:30:00-0500" "todo"
-                    "00000000-dead-beef-0000-000000000000" "WAIT" "sess-a")))
+                    "00000000-dead-beef-0000-000000000000" "WAITING" "sess-a")))
       (let ((report (claude-code-ide-org-pending-updates))
             ;; `string-match-p' honours `case-fold-search', which defaults
             ;; to t. Without this the group assertion below matches the
@@ -5210,10 +5210,10 @@ every legacy event would only teach the reader to ignore the flag."
     (claude-code-ide-org-set-todo id "DOING")
     (let ((item (list :type 'state :id id
                       :ts (date-to-time "2026-08-06T09:00:00-0500")
-                      :from nil :to "WAIT" :events nil)))
+                      :from nil :to "WAITING" :events nil)))
       (should-not (claude-code-ide-org--review-state-stale-p item))
       (should-not (claude-code-ide-org--review-apply-item item))
-      (should (equal "WAIT" (org-with-point-at (org-id-find id 'marker)
+      (should (equal "WAITING" (org-with-point-at (org-id-find id 'marker)
                               (org-get-todo-state)))))))
 
 (ert-deftest claude-code-ide-org-test-review-none-matches-a-keywordless-heading ()
@@ -5279,7 +5279,7 @@ while a chain in the same batch applies, so the flag keeps meaning
 
 A third sibling exists only to keep
 `claude-code-ide-org--trigger-auto-promote-sole-todo' out of the way:
-with just two, moving one to WAIT leaves the other the sole TODO of its
+with just two, moving one to WAITING leaves the other the sole TODO of its
 group and org promotes it to NEXT behind the test's back, which is that
 rule working correctly and would make this test assert the wrong thing."
   (claude-code-ide-org-test--with-heading
@@ -5295,7 +5295,7 @@ rule working correctly and would make this test assert the wrong thing."
     (save-buffer)
     (org-id-update-id-locations (list file))
     ;; Out of band, and nothing in the batch explains it.
-    (claude-code-ide-org-test--set-todo-for-real "test-0002" "WAIT")
+    (claude-code-ide-org-test--set-todo-for-real "test-0002" "WAITING")
     (should (equal "TODO" (org-with-point-at (org-id-find id 'marker)
                             (org-get-todo-state))))
     (let* ((items (list (list :type 'state :id id :from "TODO" :to "DOING"
@@ -5315,7 +5315,7 @@ rule working correctly and would make this test assert the wrong thing."
                               (car (plist-get result :errors))))
       (should (equal "DONE" (org-with-point-at (org-id-find id 'marker)
                               (org-get-todo-state))))
-      (should (equal "WAIT" (org-with-point-at (org-id-find "test-0002" 'marker)
+      (should (equal "WAITING" (org-with-point-at (org-id-find "test-0002" 'marker)
                               (org-get-todo-state)))))))
 
 (ert-deftest claude-code-ide-org-test-review-chain-does-not-render-stale ()
@@ -5341,7 +5341,7 @@ on nearly every chain trains the reader to confirm without reading."
        items (lambda (item) (plist-get item :marked)))
       (should (string-prefix-p "  " (claude-code-ide-org--review-describe second)))
       ;; But a transition this batch cannot account for still is.
-      (let ((alien (list :type 'state :id id :from "WAIT" :to "DONE"
+      (let ((alien (list :type 'state :id id :from "WAITING" :to "DONE"
                          :ts (date-to-time "2026-08-11T21:05:00-0500") :events nil)))
         (claude-code-ide-org--review-projected-staleness
          (list first alien) (lambda (item) (plist-get item :marked)))
@@ -5734,7 +5734,7 @@ an MCP call that throws is worse than one that explains."
                  "2026-08-07T09:00:00-0500" "todo" id "DOING" "sess-a" "in a"))
       (claude-code-ide-org-test--queue-write
        "sess-b" (claude-code-ide-org-test--queue-event
-                 "2026-08-07T09:05:00-0500" "todo" id "WAIT" "sess-b" "in b"))
+                 "2026-08-07T09:05:00-0500" "todo" id "WAITING" "sess-b" "in b"))
       (should (string-match-p "in a" (claude-code-ide-org-pending-updates "sess-a")))
       (should-not (string-match-p "in b" (claude-code-ide-org-pending-updates "sess-a")))
       ;; An empty string means "no scope", not a session literally named "".
@@ -5950,7 +5950,7 @@ apply. Advancing must land on an *item*, never a blank or group-heading
 line, or the next keystroke reports \"No review item on this line\"."
   (claude-code-ide-org-test--with-heading
     (let ((a (list :type 'state :id id :ts (current-time) :from "TODO" :to "DOING" :events nil))
-          (b (list :type 'state :id id :ts (current-time) :from "TODO" :to "WAIT" :events nil)))
+          (b (list :type 'state :id id :ts (current-time) :from "TODO" :to "WAITING" :events nil)))
       (claude-code-ide-org-test--with-review-buffer (list a b)
         (claude-code-ide-org-test--goto-nth-item 0)
         (claude-code-ide-org-review-mark)
@@ -5977,7 +5977,7 @@ counted; unmarking is never refused, since it asks nothing."
                     :start (current-time) :end (current-time)
                     :note "fine" :agent nil :suggested t :events nil))
           (stale (list :type 'state :id id :ts (current-time)
-                       :from "TODO" :to "WAIT" :events nil)))
+                       :from "TODO" :to "WAITING" :events nil)))
       (should (claude-code-ide-org--review-state-stale-p stale))
       (claude-code-ide-org-test--with-review-buffer (list ok stale)
         (claude-code-ide-org-review-mark-all)
@@ -6178,7 +6178,7 @@ command changed, not imposing read-only on a buffer that never had it."
           (with-current-buffer (get-file-buffer file) (read-only-mode -1))))
       ;; Never read-only to begin with: nothing was borrowed, so nothing
       ;; is put back and the buffer stays as the user left it.
-      (let ((item (list :type 'state :id id :ts (current-time) :to "WAIT"
+      (let ((item (list :type 'state :id id :ts (current-time) :to "WAITING"
                         :from "DOING" :marked t :events nil)))
         (should-not (buffer-local-value 'buffer-read-only (get-file-buffer file)))
         (unwind-protect

@@ -618,13 +618,13 @@ unescape emacsclient's printed-representation output in shell."
 ;;; Session context (SessionStart "what was I last doing") -------------------
 ;;
 ;; Surfaces "what was I last doing" automatically at session start: the
-;; currently clocked-in heading (if any) plus every WAIT-state heading
+;; currently clocked-in heading (if any) plus every WAITING-state heading
 ;; across `claude-code-ide-org--tracked-files' (the same file list
 ;; stale-interval-recovery and org_query already use), collapsed into a
 ;; single plain-text string. Turns "what was I working on" from a
 ;; question into something Claude already knows walking in — a standing,
 ;; automatic instance of what `claude-code-ide-org-query' answers on
-;; demand via "todo:WAIT".
+;; demand via "todo:WAITING".
 
 (defun claude-code-ide-org--clocked-heading-context ()
   "Return a one-line description of the currently clocked-in org
@@ -645,7 +645,7 @@ heading, or nil if no clock is running."
 told about, or nil if none. Two kinds, which are the same keyword's
 opposite news (TODO.org :ID: ab75d6d2, :ID: 9d7531f5):
 
-- WAIT -- blocked, or waiting on someone.
+- WAITING -- blocked, or waiting on someone.
 - DOING on a leaf that is not the currently clocked heading -- an
   increment somebody walked away from.
 
@@ -684,7 +684,7 @@ would silently eat this hook's whole timeout."
                       (heading-id (org-entry-get nil "ID"))
                       (label
                        (cond
-                        ((equal state "WAIT") "WAIT")
+                        ((equal state "WAITING") "WAITING")
                         ((and (equal state "DOING")
                               (not (and clocked-id heading-id
                                         (equal clocked-id heading-id)))
@@ -707,7 +707,7 @@ would silently eat this hook's whole timeout."
   "Return a plain-text summary of \"what was I last doing\": the
 currently clocked-in heading, if any, followed by one line per heading
 worth flagging at session start across
-`claude-code-ide-org--tracked-files' -- WAIT headings and abandoned
+`claude-code-ide-org--tracked-files' -- WAITING headings and abandoned
 DOING leaves, per `claude-code-ide-org--attention-headings-context'.
 Returns the empty string when there is nothing to report, so callers
 can treat an empty result as \"nothing worth injecting\"."
@@ -1938,7 +1938,7 @@ called with point already at the heading."
 
 (defun claude-code-ide-org-query (query)
   "Search `claude-code-ide-org--tracked-files' with QUERY, an org-ql
-plain-string query, e.g. \"todo:WAIT\", \"tags:research,code\"
+plain-string query, e.g. \"todo:WAITING\", \"tags:research,code\"
 (comma = OR), \"priority:A\", \"heading:\\\"text\\\"\", or negated
 with `!' (e.g. \"!todo:DONE\").  Multiple space-separated terms are
 combined with AND.  Returns one line per match — TODO state,
@@ -2653,7 +2653,7 @@ equivalent line by hand instead."
 included, group size >= 2) has exactly one member in TODO and none in
 NEXT, promote that lone TODO to NEXT, with an explanatory :LOGBOOK:
 note. Deliberately unconditional on CHANGE-PLIST's :to -- a transition
-to DONE/CANCELLED/WAIT/MAYBE/DOING on ANY sibling can be what drops
+to DONE/CANCELLED/WAITING/MAYBE/DOING on ANY sibling can be what drops
 the group to one TODO survivor, not just a transition into/out of
 NEXT. Always re-derives group state fresh from the live buffer, never
 from CHANGE-PLIST -- this is what keeps this safe against re-promoting
@@ -4094,7 +4094,7 @@ in a second place.
 
 Not read from `org-todo-keywords' because that answers a different
 question.  Org divides keywords into not-done and done at the `|'; this
-divides them into \"being worked\" and everything else, and WAIT, TODO
+divides them into \"being worked\" and everything else, and WAITING, TODO
 and NEXT all sit on org's not-done side while meaning nobody is working.")
 
 (defun claude-code-ide-org--review-suggest-heading (time events)
@@ -6977,7 +6977,7 @@ silent run can never be mistaken for a passing one."
    :description (concat
                  "Record the end of work on the task most recently started "
                  "with org_clock_in. Always call this when transitioning away "
-                 "from DOING (to DONE, WAIT, or CANCELLED). Takes no id -- it "
+                 "from DOING (to DONE, WAITING, or CANCELLED). Takes no id -- it "
                  "closes whatever this session last started. Queues the event "
                  "for human review; it does NOT close a clock or change the "
                  "file.")
@@ -6992,10 +6992,10 @@ silent run can never be mistaken for a passing one."
    :description (concat
                  "Record a TODO keyword change on an org-mode heading by its "
                  ":ID: property. Valid states: TODO NEXT PLANNING DOING "
-                 "REVIEW WAIT MAYBE DONE CANCELLED. REVIEW is EXPERIMENTAL "
+                 "REVIEW WAITING MAYBE DONE CANCELLED. REVIEW is EXPERIMENTAL "
                  "(TODO.org :ID: c954f650): it means work is finished and "
                  "handed back to the human for judgement, as distinct from "
-                 "WAIT, which means blocked on someone else. Use it where you "
+                 "WAITING, which means blocked on someone else. Use it where you "
                  "would otherwise leave a heading DOING at the end of a work "
                  "increment. Queues the event for human review; it "
                  "does NOT change the heading. The file keeps its current "
@@ -7010,7 +7010,7 @@ silent run can never be mistaken for a passing one."
             :description "The :ID: property value of the target org heading.")
            (:name "state"
             :type string
-            :description "TODO keyword to set: TODO NEXT PLANNING DOING REVIEW WAIT MAYBE DONE CANCELLED.")
+            :description "TODO keyword to set: TODO NEXT PLANNING DOING REVIEW WAITING MAYBE DONE CANCELLED.")
            (:name "note"
             :type string
             :optional t
@@ -7113,7 +7113,7 @@ silent run can never be mistaken for a passing one."
                  "Search org-mode headings across "
                  "`claude-code-ide-org-query-files' (or org-agenda-files) using "
                  "org-ql's plain-string query syntax. Predicates: todo:KEYWORD "
-                 "(e.g. todo:WAIT), tags:TAG1,TAG2 (comma = OR), priority:A, "
+                 "(e.g. todo:WAITING), tags:TAG1,TAG2 (comma = OR), priority:A, "
                  "heading:\"text\". Prefix any predicate with ! to negate it "
                  "(e.g. !todo:DONE). Separate predicates with spaces to combine "
                  "with AND, e.g. \"todo:NEXT tags:code\". Returns one line per "
@@ -7123,7 +7123,7 @@ silent run can never be mistaken for a passing one."
                  "changed this week.")
    :args '((:name "query"
             :type string
-            :description "org-ql plain-string query, e.g. \"todo:WAIT\", \"tags:research,code\", \"priority:A\", \"!todo:DONE\".")))
+            :description "org-ql plain-string query, e.g. \"todo:WAITING\", \"tags:research,code\", \"priority:A\", \"!todo:DONE\".")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-outline

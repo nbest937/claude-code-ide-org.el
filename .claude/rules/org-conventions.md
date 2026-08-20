@@ -16,7 +16,7 @@ failure is silent.
 Every `.org` file in this project should start with:
 
 ```org
-#+TODO: TODO(t!) NEXT(n!) PLANNING(p!) DOING(d!) REVIEW(r!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
+#+TODO: TODO(t!) NEXT(n!) PLANNING(p!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 ```
@@ -34,7 +34,7 @@ a new file will not unless you give it one.
 Per-keyword meanings are in the **org skill**. Project policy on top of it:
 
 - `REVIEW` is **experimental** (TODO.org `:ID:` c954f650): finished and
-  handed back for human judgement, as distinct from `WAIT`, which means
+  handed back for human judgement, as distinct from `WAITING`, which means
   blocked on someone else. Its fate is not settled.
 - Priority is expressed through keyword choice, not `[#A]`/`[#B]`/`[#C]`
   cookies. **Do not add priority cookies.**

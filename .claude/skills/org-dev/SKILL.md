@@ -298,7 +298,7 @@ Emacs on 2026-08-14.
 
 (after! org
   (setq org-todo-keywords
-        '((sequence "TODO" "NEXT" "PLANNING" "DOING" "WAIT" "MAYBE" "|" "DONE" "CANCELLED")))
+        '((sequence "TODO" "NEXT" "PLANNING" "DOING" "WAITING" "MAYBE" "|" "DONE" "CANCELLED")))
   (setq org-clock-out-when-done t)
   (setq org-clock-persist 'history)
   (setq org-archive-location "DONE.org::* Done")

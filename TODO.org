@@ -1,4 +1,4 @@
-#+TODO: TODO(t!) NEXT(n!) PLANNING(p!) DOING(d!) REVIEW(r!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
+#+TODO: TODO(t!) NEXT(n!) PLANNING(p!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 #+STARTUP: logdrawer logdone content
@@ -6211,7 +6211,7 @@ child does, *without* a clock, and leaves it when no child is active.
 
 *Unclear, and worth deciding before writing it:* whether leaving is
 symmetric. A container whose children are all DONE is finished; one whose
-children are all WAIT is blocked, not done, and DOING would be a lie.
+children are all WAITING is blocked, not done, and DOING would be a lie.
 Also whether this should be a hook at all — it is mechanical enough for
 =org-trigger-hook=, which already carries two sibling-state triggers, and
 unlike "is this conversation about that task" it needs no judgement.
@@ -6226,18 +6226,18 @@ This is better than the exception it replaces. The rule currently reads \"any tr
 
 *Leaving condition, settled:* all children DONE or CANCELLED. Terminal, machine-checkable, no judgement.
 
-*The WAIT propagation as stated over-triggers, and this is the one part to change before implementing.* The proposal was \"when any child is WAITing then the parent should be also WAITing.\" But a container with one WAIT child and two DOING children is not blocked — work is happening inside it, which is exactly what DOING on a container was just defined to mean. Marking it WAIT would assert the opposite. The rule that carries the intent is *every non-terminal child is WAIT* — nothing inside can progress. The two readings coincide whenever a container has a single unfinished child, which is probably why \"any\" felt right; they diverge as soon as it has two.
+*The WAITING propagation as stated over-triggers, and this is the one part to change before implementing.* The proposal was \"when any child is WAITing then the parent should be also WAITing.\" But a container with one WAITING child and two DOING children is not blocked — work is happening inside it, which is exactly what DOING on a container was just defined to mean. Marking it WAITING would assert the opposite. The rule that carries the intent is *every non-terminal child is WAITING* — nothing inside can progress. The two readings coincide whenever a container has a single unfinished child, which is probably why \"any\" felt right; they diverge as soon as it has two.
 
 *One caveat worth naming, not blocking.* Containment is emergent, so a heading clocked as a leaf can later acquire TODO children and become a container. Its own historical CLOCK lines then sit inside a subtree that also rolls up its children's — the [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] double-count in miniature. The lines are honest records of real work; the risk is only in how a clocktable totals them.
 
-*Accepted by the user 2026-08-20:* the WAIT propagation rule is *every non-terminal child is WAIT*, not "any child". Implement that reading; the "any" wording above is recorded only so the distinction is not re-litigated.
+*Accepted by the user 2026-08-20:* the WAITING propagation rule is *every non-terminal child is WAITING*, not "any child". Implement that reading; the "any" wording above is recorded only so the distinction is not re-litigated.
 
 So the full rule set, settled and ready to be written down:
 
 1. A clock opens when a *leaf* enters DOING, and only then.
 2. A container may enter DOING to mean "something is happening inside", at no clock cost.
 3. A container leaves DOING when all children are DONE or CANCELLED.
-4. A container is WAIT when every non-terminal child is WAIT.
+4. A container is WAITING when every non-terminal child is WAITING.
 
 ** Index a heading's git history from a drawer, so the body never has to narrate it :code:research:
 :PROPERTIES:
