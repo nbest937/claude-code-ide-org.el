@@ -1127,7 +1127,7 @@ Observed 2026-08-19: apply refused
 There was nothing to do — the heading already held that keyword — but
 the event was queued, offered at review, marked, and failed there.
 
-*Cause.* The heading was created by writing =** TODO ...= into the
+*Cause.* The heading was created by writing the keyword straight into the
 heading text directly, and =org_set_todo TODO= was then called on it.
 The tool recorded the transition faithfully; the reply even said
 =(was TODO)=, which was the signal and was not read.
@@ -1146,6 +1146,29 @@ queued before the refusal existed.
 *Related:* [[id:97696fc2-f07b-4586-b280-de6a7d26fb87][97696fc2]] is why
 headings get created by hand-written text at all — =org_capture= with no
 target misfiles, so it gets avoided.
+
+*Reproduced within minutes of filing this, on this heading.* All three
+headings filed that afternoon were created by writing the keyword into
+the heading text, then had =org_set_todo TODO= called on them — queuing
+three more no-ops, one of them against this very heading. The tool's
+reply said =(was TODO)= each time, which is the signal, and it was not
+read because the calls had been redirected to =/dev/null=.
+
+Two lessons, and the second is the more useful:
+
+- Suppressing a tool's output turns a no-op into an apparent success.
+  That is the standing "silence is not a passing check" rule, hit again.
+- The reply already carries the diagnosis. =(was TODO)= going to =TODO=
+  is machine-detectable at the moment it happens, which is the argument
+  for refusing at =org_set_todo= rather than at apply: by apply the
+  context that would explain it is hours gone.
+
+Frequency is now four occurrences in one day, all self-inflicted and all
+from the same pattern — writing a keyword inline at creation because
+=org_capture= cannot target a category
+\([[id:97696fc2-f07b-4586-b280-de6a7d26fb87][97696fc2]]\), then setting
+the state the tool way out of habit.
+
 
 * Clock lifecycle & visibility
 :PROPERTIES:
@@ -5807,7 +5830,7 @@ to a child at all.
 
 *Why it is not merely an omission.* Writing it down collides with the
 rule immediately below the table: /any transition to DOING must open a
-clock/. A container must **not** open one —
+clock/. A container must /not/ open one —
 =claude-code-ide-org--container-heading-p= exempts containers from
 auto-clock-in precisely because a parent's own CLOCK line lands inside
 the total org already rolls up from its children, measured on
