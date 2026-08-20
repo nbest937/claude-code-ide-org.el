@@ -510,12 +510,17 @@ nothing real. Revisit if the tool becomes the normal creation path.
 than needing a mechanism of its own — apply would write the creation
 entry exactly as it writes a state transition.
 
-** TODO org_capture's no-target fallback writes a level-1 heading, violating the category convention
+** DONE org_capture's no-target fallback writes a level-1 heading, violating the category convention
+CLOSED: [2026-08-20 Thu 08:42]
 :PROPERTIES:
 :ID:       97696fc2-f07b-4586-b280-de6a7d26fb87
 :CREATED:  [2026-08-11 Tue 21:25]
 :END:
 :LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-20 Thu 08:42] \\
+  refuse rather than guess; shipped and verified
+- State "DOING"      from "TODO"       [2026-08-20 Thu 08:33] \\
+  require target rather than guess placement
 - State "TODO"       from              [2026-08-11 Tue 21:26] \\
   fallback placement defect found by using the tool
 :END:
@@ -1435,10 +1440,19 @@ records every tool that queues, and this session shows =org_set_todo= 36,
 at all, which is itself worth fixing before judging them — right now
 "never used" and "used and forgotten" are indistinguishable for seven of
 the thirteen.
-** org_amend can only append, so every correction lands furthest from the reader :code:
+** TODO org_amend can only append, so every correction lands furthest from the reader :code:
 :PROPERTIES:
 :ID:       3063c3e5-0dd0-4354-8985-271b0313c5d1
 :CREATED:  [2026-08-20 Thu 08:30]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-20 Thu 08:31] \\
+  append-only constraint has no revising counterpart
+- [2026-08-20 Thu 08:00]--[2026-08-20 Thu 08:03] assigned at review
+CLOCK: [2026-08-20 Thu 08:28]--[2026-08-20 Thu 08:43] =>  0:15
+- [2026-08-20 Thu 08:28]--[2026-08-20 Thu 08:43] assigned at review
+CLOCK: [2026-08-20 Thu 08:49]--[2026-08-20 Thu 08:50] =>  0:01
+- [2026-08-20 Thu 08:49]--[2026-08-20 Thu 08:50] assigned at review
 :END:
 
 =org_amend= appends to the end of a heading's body and can do nothing
@@ -1478,6 +1492,21 @@ own. It is also the capture that proved
 [[id:bd482c92-a71a-4d7d-88df-47678ee94c79][bd482c92]] fixed: this heading
 was filed with =target: "Skill logic"=, a category title, which was
 refused outright the day before.
+
+*Decided 2026-08-20 by the user: =org_amend= should allow wholesale revision of a body, not only append.* This closes the three-option question above by rejecting its premise — the problem is not where a correction lands, it is that append-only forces every body to be a transcript.
+
+The objection that append-only protected against was losing the evolution of a body. It does not need protecting: *git already holds every revision*, so the discipline is simply to commit before revising. That makes revision cheap and reversible, and it is the same argument =plans/= already rests on.
+
+*What an open heading's body is for, stated positively:* the problem, the latest intended approach, and relevant verified facts. Not the stream of consciousness of how we got there. The body describes the current state of the question, not its history.
+
+*What a closed heading's body is for:* a concise debrief — what the problem was (a slightly elaborated restatement of the title) and what the actual solution turned out to be. The original problem statement and plan of attack move into a drawer rather than being deleted.
+
+*Two additions offered against the user's \"keep it short\" constraint, both already in DONE.org's house style:* how it was verified, in a clause; and any claim that was *falsified*, because that is what stops the same wrong turn being taken twice. This project's own evidence supports the second — three headings carried confident design claims later found wrong, while no journal claim needed correcting in the same period. Four short items total, not four paragraphs.
+
+*Under consideration, not decided:* a timestamped commit log in a drawer, giving a reader an index into the git history for the rare \"how did we get here?\" question, so that the body never has to carry that answer itself.
+
+This heading is now a *dependency of* [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] rather than a neighbour of it: the retention policy cannot be applied to an existing body without a tool that can rewrite one.
+
 
 * Clock lifecycle & visibility
 :PROPERTIES:
@@ -2978,10 +3007,13 @@ What now decides recorded duration is the pair of floors:
 
 - =claude-code-ide-org-span-idle-floor= (120s) — how much idle is
   absorbed into a run.
-- the floor on what gets written, unnamed until
-  [[id:e0c55d26-706c-42b6-9405-54e9d5ed4750][e0c55d26]] — effectively
-  ~30s today; a 120s value would cost 6.5% of recorded time and remove a
-  third of the lines.
+- =claude-code-ide-org-span-minimum-interval= — the floor on what gets
+  written, named 2026-08-20 by
+  [[id:e0c55d26-706c-42b6-9405-54e9d5ed4750][e0c55d26]]. It is 0 today,
+  meaning the two rendering conditions alone; its docstring carries the
+  sweep this review needs. *Do not cite a stored number.* 120s measured
+  at 6.5% of recorded time on 2026-08-18 and at 3.03% two days later on
+  a grown corpus — the estimate halved without the code changing.
 
 Both rest on eight days of data. This heading's own body already names
 that failure: /"adopting a four-day number as permanent because nobody
@@ -4576,6 +4608,15 @@ endpoint outward fabricates time — about an hour across the 65 lines
 that would move — which is [[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]]'s
 rounding incident pointed the other way.
 
+*Shipped 2026-08-20 as =claude-code-ide-org-span-minimum-interval=, defaulting to 0.* Zero is the point: it reproduces today's behaviour exactly, so naming the floor moved nothing. What had been holding the line was two rendering conditions inside =claude-code-ide-org--apply-idle-floor= — endpoints inside one minute, or a duration rounding to =0:00= — which are consequences of the clock format, not a policy anyone chose. Both remain; the new variable is a third condition that does nothing until set.
+
+*Verified by mutation, not by a green suite.* Three separate mutations each fail a distinct assertion: deleting the drop condition, defaulting it to 120, and relaxing =<= to =<==. Strictly-less matches =claude-code-ide-org-span-idle-floor=, so the two read the same way at their boundary.
+
+*Measured for September rather than decided now.* Post-cutover corpus, 283 lines / 36.88 h: 120s drops 23.7% of lines for 3.03% of recorded time; 180s, 40.6% for 7.37%; 300s, 63.6% for 17.71%; 60s drops nothing, confirming the rendering conditions already cover that range. The sweep lives in the docstring and the value belongs to [[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]].
+
+*The measurement that did not replicate is the more useful half.* 96a51c2f recorded 6.5% of recorded time for the same 120s value on 2026-08-18; the same measurement on 2026-08-20 gives 3.03%. No code changed — the corpus grew and the mix shifted. That heading's instruction to re-derive rather than confirm now has a two-day counterexample behind it, and its body was corrected to say so.
+
+
 ** DONE A hand-set TODO transition records the change but never the time :code:
 CLOSED: [2026-08-19 Wed 17:47]
 :PROPERTIES:
@@ -6080,6 +6121,13 @@ is a guess that will need redoing.
 
 Ask for it before picking this up.
 
+*Largely answered 2026-08-20.* The user supplied the retention policy this heading was waiting on, recorded in full at [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] because it arrived as a decision about =org_amend=. In short: an open body holds the problem, the latest intended approach and verified facts; a closed body holds a concise debrief; the original problem statement and plan move into a drawer; git holds the evolution, indexed from a drawer rather than narrated in the body.
+
+*What remains here is the retrofit, which is the harder half.* The policy is prospective by construction — CLAUDE.md already forbids trimming bodies written before 2026-08-14 — so this heading is now about the boundary: which existing bodies get rewritten when they are next touched, and which are left as they are. It is blocked on [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]], since no tool can rewrite a body today.
+
+*Note this heading is not ungated on the \"task lifecycle\" the user has twice mentioned.* The retention policy is one part of that lifecycle, not the whole of it; the transition rules discussed the same day (a clock starting only at a leaf, a container leaving DOING when all children are terminal) are another part and are recorded against [[id:241a4c54-ed59-4780-b602-2a86efee978a][241a4c54]].
+
+
 
 ** TODO Find a convention marking which children a container's plan actually covered :code:research:
 :PROPERTIES:
@@ -6125,6 +6173,11 @@ Adjacent to [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]], and
 gated the same way: the user has an unstated task lifecycle in mind that
 likely reframes all of it.
 
+*Constrained, not ungated, by the 2026-08-20 retention policy* ([[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]]). That policy says a closing heading's plan of attack moves into a drawer; it does not say which children the plan covered, so the question here is still open.
+
+What it does settle is where the answer *cannot* live. If a body may be rewritten wholesale on closure, then prose in the body is not a durable marker — it is exactly the kind of content the policy exists to remove. The convention has to be structural: a property, a tag, or a drawer entry. That rules out the cheapest option and is worth knowing before the research starts.
+
+
 ** TODO A container entering DOING when a child does is nowhere written down :code:
 :PROPERTIES:
 :ID:       241a4c54-ed59-4780-b602-2a86efee978a
@@ -6163,6 +6216,20 @@ Backdated by hand this time, which the queue cannot express: it stamps an
 event when written, not when it was true. =--format-log-state-line= now
 takes an optional TIME for exactly this.
 
+*Proposed by the user 2026-08-20, and it dissolves this heading's problem rather than solving it.* Scope the clock rule to leaves: *a clock opens when a leaf enters DOING, and only then.* A container may then enter DOING freely, because DOING on a container no longer means \"I am working on this\" — it means \"something is happening inside\", and costs nothing.
+
+This is better than the exception it replaces. The rule currently reads \"any transition to DOING must open a clock\" with a container carve-out bolted on ([[id:517a4290-4c66-43e7-b42e-dad7167b9c41][517a4290]] exists because CLAUDE.md never grew that carve-out). Scoping to leaves removes the carve-out: there is one rule, and containers simply are not in its domain. =claude-code-ide-org--container-heading-p= already exists and the auto-clock-in trigger already consults it, so most of the code is written.
+
+*Leaving condition, settled:* all children DONE or CANCELLED. Terminal, machine-checkable, no judgement.
+
+*The WAIT propagation as stated over-triggers, and this is the one part to change before implementing.* The proposal was \"when any child is WAITing then the parent should be also WAITing.\" But a container with one WAIT child and two DOING children is not blocked — work is happening inside it, which is exactly what DOING on a container was just defined to mean. Marking it WAIT would assert the opposite. The rule that carries the intent is *every non-terminal child is WAIT* — nothing inside can progress. The two readings coincide whenever a container has a single unfinished child, which is probably why \"any\" felt right; they diverge as soon as it has two.
+
+*One caveat worth naming, not blocking.* Containment is emergent, so a heading clocked as a leaf can later acquire TODO children and become a container. Its own historical CLOCK lines then sit inside a subtree that also rolls up its children's — the [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] double-count in miniature. The lines are honest records of real work; the risk is only in how a clocktable totals them.
+** Index a heading's git history from a drawer, so the body never has to narrate it :code:research:
+:PROPERTIES:
+:ID:       41cf5830-fc2e-4dc6-b243-a0c2718a53a3
+:CREATED:  [2026-08-20 Thu 11:07]
+:END:
 * Tooling
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Tooling
@@ -6630,12 +6697,14 @@ with the accidental one. Recorded in =org-conventions.md=.
 
 
 
-** TODO Persist claude-code-ide-org-capture-file in the Doom config
+** REVIEW Persist claude-code-ide-org-capture-file in the Doom config
 :PROPERTIES:
 :ID:       bd482c92-a71a-4d7d-88df-47678ee94c79
 :CREATED:  [2026-08-11 Tue 21:20]
 :END:
 :LOGBOOK:
+- State "REVIEW"     from "TODO"       [2026-08-20 Thu 08:32] \\
+  persisted and live-verified; startup check pending
 - State "TODO"       from              [2026-08-11 Tue 21:21] \\
   persist the capture-file defcustom
 :END:
@@ -7383,3 +7452,9 @@ in the hook's own header.
 [[id:84b7d8b3-5161-4146-9167-0e7e2100e365][84b7d8b3]] is the standing
 shell question; this is it arriving in practice, and it is evidence that
 project scripts are not currently written against a stated baseline.
+
+** A duration assertion matches the clocktable's own timestamp, three minutes a day :code:
+:PROPERTIES:
+:ID:       5a5e87c9-f432-44c6-a5a6-f6f3755e4347
+:CREATED:  [2026-08-20 Thu 11:02]
+:END:
