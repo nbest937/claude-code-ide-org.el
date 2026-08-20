@@ -6637,6 +6637,33 @@ and it is also a rough measure of the rate.
 Every member already carries its own detail; this heading deliberately
 holds only what the set shares.
 
+*All three children done, 2026-08-19.* The arc held: the diagnosis
+decided what rules were worth writing, and the rules were validated
+before being enforced.
+
+- [[id:8d682a5b-1b03-4744-995c-a871a8b40ddc][8d682a5b]] — all eleven
+  org-lint reports were markdown bold, none a misplaced heading. Fixing
+  them took 28 warnings to 18, and had to convert twenty-one spans
+  rather than the ten flagged, because org-lint only reports a closing
+  marker followed by a space and the ten are entangled with the rest.
+- [[id:95087d8f-e16d-45d3-bdea-9b179dc672b4][95087d8f]] — two checks org
+  had no opinion on. The second needed neither design this heading
+  proposed: categories identify themselves by carrying =:ARCHIVE:=.
+- [[id:7e9aa4ea-4757-4e58-bac3-3c3e67fc4cb1][7e9aa4ea]] — the commit
+  gate, scoped to staged content, verified by refusing a real commit.
+
+*Ordering was load-bearing, as expected.* Had the gate landed first it
+would have been enforcing rules nobody had validated, against a corpus
+carrying eighteen unexamined warnings.
+
+*Backdated into DOING* at 17:48, when 8d682a5b started, rather than at
+composition — see
+[[id:241a4c54-ed59-4780-b602-2a86efee978a][241a4c54]] for why that rule
+is written nowhere and why writing it down is not trivial. No clock: a
+container's own CLOCK line lands inside the total org already rolls up
+from its children.
+
+
 *** DONE Diagnose the 11 misplaced-heading reports org-lint found :code:
 CLOSED: [2026-08-19 Wed 18:36]
 :PROPERTIES:
@@ -6931,3 +6958,29 @@ not the Emacs buffer. =TODO.org= is normally open and sometimes has
 unsaved changes — that is why =org_amend= has a deferred path at all —
 so a clean lint at commit time says nothing about what is still only in
 the buffer.
+
+*Shipped 2026-08-19* (=4b22f72=), as =.githooks/pre-commit= with
+=bin/pre-commit-test= beside it. =core.hooksPath= was already set, so it
+took effect with no setup step.
+
+*Verified live in this repo, not only in a fixture:* appending =* *= to
+=TODO.org= and committing was refused, reporting both checks added that
+afternoon under [[id:95087d8f-e16d-45d3-bdea-9b179dc672b4][95087d8f]],
+and nothing landed. The commit that added the hook itself stages no org,
+so it exited immediately — the free path, demonstrated by the change
+that introduced it.
+
+Seven tests, of which two pin the staged-versus-worktree distinction in
+both directions: a clean staged file with a broken worktree passes, and a
+broken staged file with a clean worktree refuses. That is the case a
+worktree-based check would get backwards.
+
+*The first draft failed every passing case.* It used =mapfile=, an
+associative array, and a bare =\"${arr[@]}\"= on an empty array — all
+bash 4 or later. macOS ships 3.2 and =#!/usr/bin/env bash= resolves to
+it, so the refusing cases passed for the wrong reason while every
+should-pass case exited 1. Rewritten for 3.2, with the constraint stated
+in the hook's own header.
+[[id:84b7d8b3-5161-4146-9167-0e7e2100e365][84b7d8b3]] is the standing
+shell question; this is it arriving in practice, and it is evidence that
+project scripts are not currently written against a stated baseline.
