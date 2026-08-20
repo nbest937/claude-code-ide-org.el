@@ -6846,6 +6846,13 @@ layer that has not reloaded is indistinguishable from a passing one. The
 next session verifies it for free — if capture works without anyone
 setting anything, it persisted.
 
+*Verified 2026-08-20, and the first check was not a verification.* After the user ran =doom/reload=, reading the variable showed the configured value — but a reload cannot disprove the alternative, because the live =setq= from the session that filed this heading would have survived it just as well. The discriminating test is to unset first: =(setq claude-code-ide-org-capture-file nil)=, then =(load (expand-file-name "config.el" doom-user-dir))=, then read. Result =(:before nil :after "/Users/neil.best/org/claude-code-ide-org/TODO.org")=. The config sets it.
+
+*The symlink-versus-real-path argument recorded earlier does not hold, and nothing depends on it.* The value was set to the =~/org/= symlink path on the reasoning that =--tracked-files= and =org-agenda-files= use it. But =find-file-visit-truename= is =t= here, so Emacs resolves the symlink on open: the buffer visiting either path is one buffer, named for the truename =~/git/claude-code-ide-org/TODO.org=. Either value would have worked. Keeping the symlink form for consistency with the surrounding settings, not because it is load-bearing.
+
+*Discovered by the same check, and separately useful:* =get-file-buffer= on the symlink path returns nil while a buffer for that file is plainly open, because it matches on =buffer-file-name= rather than the truename. Any future code that asks \"is this file already open?\" by that route will be wrong here.
+
+
 
 
 
