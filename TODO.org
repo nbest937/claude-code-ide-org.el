@@ -1116,7 +1116,7 @@ buffer should distinguish "no such :ID: anywhere" from "not where the
 index says", since the two want different responses and currently read
 identically.
 
-** TODO A no-op TODO -> TODO transition reaches apply and fails there :code:
+** TODO A no-op TODO -> TODO transition should never be queued :code:
 :PROPERTIES:
 :ID:       cc0c17a7-a554-426d-afeb-09cbee7339f0
 :CREATED:  [2026-08-19 Wed 19:24]
@@ -1201,6 +1201,46 @@ so the three events queued before this change will still fail and want
 dismissing with =d=. Treating an already-true event as satisfied rather
 than failed is the more correct semantics and is what would have spared
 those three; it is unbuilt.
+
+*The apply-side half needed nothing, because the premise was wrong.*
+Probed 2026-08-20: applying a =TODO -> TODO= item returns nil, leaves the
+keyword untouched, and writes no State line. Apply already treats an
+already-true event as satisfied, so its events are consumed and it leaves
+the queue.
+
+Nor does a queued *chain* fail, which was the other candidate:
+=NEXT -> DOING= and =NEXT -> DONE=, both carrying =from: NEXT= because
+the file had not moved when either was queued, apply in one pass and land
+on DONE.
+
+*So this heading was filed on an inference, not an observation.* Its
+original title asserted that such a transition "reaches apply and fails
+there". The evidence was that two items failed in one apply run and this
+was one of the unapplied ones — but the error text was never seen, and
+the inference was wrong. Retitled, because a false title is the worst
+kind of stale claim: it is what a reader sees without opening the body.
+
+*What did ship* is the source-side refusal (=c2cf203=): =org_set_todo=
+returns an =Error:= reply when the requested state is already held, so
+=queue-append= drops it and the no-op never reaches the queue at all.
+Verified end to end through the MCP tool, with the queue file unchanged
+at 121 lines.
+
+*And the tolerance is now declared rather than incidental* (=9b4d4f8=).
+It worked by omission — =org-todo= on a no-op never calls
+=org-add-log-setup=, so =org-log-note-marker= stays nil and
+=--review-apply-state='s note block is skipped. Nothing said so, so
+nothing stopped a later change to the note handling from turning a
+harmless no-op into a permanent queue resident: the event asks for a
+state that is already true, so nothing could ever satisfy it. Mutating
+apply into refusing one fails the new test and two existing ones.
+
+*Left unexplained, deliberately:* what actually failed for
+[[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] in that run. Both
+its =:ID:= and =b07df584='s resolve now, and both pending events should
+apply on the next pass. If either fails again, the error text is the
+evidence this heading never had.
+
 
 
 
