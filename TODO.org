@@ -1404,6 +1404,49 @@ records every tool that queues, and this session shows =org_set_todo= 36,
 at all, which is itself worth fixing before judging them — right now
 "never used" and "used and forgotten" are indistinguishable for seven of
 the thirteen.
+** org_amend can only append, so every correction lands furthest from the reader :code:
+:PROPERTIES:
+:ID:       3063c3e5-0dd0-4354-8985-271b0313c5d1
+:CREATED:  [2026-08-20 Thu 08:30]
+:END:
+
+=org_amend= appends to the end of a heading's body and can do nothing
+else. Its description says so — "the text lands at the end of the
+heading's own body" — but frames it as *placement*, not as a
+constraint, and nothing at the call site suggests what it costs.
+
+*What it costs.* Every correction, every outcome summary, every "this
+turned out to be wrong" lands furthest from where a reader starts. That
+is the mechanism behind
+[[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]]: 226ed53b reached
+274 lines with its summary nowhere, because the only tool available put
+each addition at the bottom. Writing that summary where it belonged took
+a hand edit through =emacsclient=, and the first attempt corrupted a
+sibling heading.
+
+*The shape of the gap*, stated so it is not confused with a formatting
+preference: a journal genuinely accumulates and appending is right for
+it. What has no tool at all is *revising* — correcting a claim in place,
+or putting a summary first. So the question is not whether =org_amend=
+should insert elsewhere, but whether a second operation is wanted beside
+it.
+
+*Options, none chosen:*
+- A =position= argument on =org_amend= — cheapest, and the least
+  honest, since "append or prepend" is not the distinction that matters.
+- A separate tool for *replacing* a delimited region, which is what a
+  correction actually is.
+- Neither: keep appending and let the closing action fold history into a
+  drawer, which is the direction
+  [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] was heading
+  before it was gated on the task lifecycle.
+
+Filed 2026-08-20 as the one mis-advertisement from
+[[id:420816ec-677e-45a5-b898-fb5db70d214b][420816ec]] with no home of its
+own. It is also the capture that proved
+[[id:bd482c92-a71a-4d7d-88df-47678ee94c79][bd482c92]] fixed: this heading
+was filed with =target: "Skill logic"=, a category title, which was
+refused outright the day before.
 
 * Clock lifecycle & visibility
 :PROPERTIES:
@@ -6664,6 +6707,45 @@ produced the inline-keyword habit behind
 [[id:cc0c17a7-a554-426d-afeb-09cbee7339f0][cc0c17a7]]. An unpersisted
 =defcustom= propagated into three other headings before anyone asked
 what it was actually part of.
+
+*Persisted 2026-08-20.* One =setq= in the =after! org= block of
+=~/.config/doom/config.el=, and set live in the running Emacs so the
+tool works now.
+
+*The path question is answered, and not the way the line above proposes.*
+That line names =~/git/claude-code-ide-org/TODO.org=. Measured instead:
+=claude-code-ide-org--tracked-files= returns
+=/Users/neil.best/org/claude-code-ide-org/TODO.org=, =org-agenda-files=
+holds the same, and only =file-truename= gives the =~/git/= path. Every
+other part of this system therefore knows the file by the *symlink*
+name, because =org-agenda-files= is built by scanning =org-directory=.
+Pointing capture at the git path is precisely what would give =org-id=
+two entries per id — the divergence this heading warned about, not one
+to accept. Written as
+=(expand-file-name "claude-code-ide-org/TODO.org" org-directory)= so it
+tracks =org-directory= rather than restating it.
+
+*The "narrow exposure" paragraph above is wrong and is corrected here.*
+It says only *target-less* capture is affected. Measured 2026-08-19: a
+capture carrying an explicit =target= of ="Clock lifecycle &
+visibility"= was refused as "neither a known =:ID:= nor a top-level
+heading in *notes.org*". A title target resolves against the capture
+file, so while that file was =notes.org= no category could be named at
+all. Only *:ID:* targets were unaffected — which is why the captures of
+2026-08-15 all worked, and why the claim looked true.
+
+*Verified by using it, not by reading it:*
+[[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] was filed with
+=target: "Skill logic"= and landed as a level-2 heading under that
+category. The same call shape failed the day before.
+
+*One claim still open, deliberately.* Persistence itself is unverified:
+setting the value live proves the tool, not the config. The =after! org=
+block only runs at startup, and per the org-dev skill a check against a
+layer that has not reloaded is indistinguishable from a passing one. The
+next session verifies it for free — if capture works without anyone
+setting anything, it persisted.
+
 
 
 
