@@ -1244,6 +1244,66 @@ evidence this heading never had.
 
 
 
+** Review how the emacs-tools are advertised, against which ones get used :code:research:
+:PROPERTIES:
+:ID:       420816ec-677e-45a5-b898-fb5db70d214b
+:CREATED:  [2026-08-20 Thu 07:41]
+:END:
+
+Thirteen tools are advertised. Over a two-day session that did almost
+nothing *but* org work, *seven were never called once*: =org_query=,
+=org_refile=, =org_move_sibling=, =org_sort_children=,
+=org_clock_report=, =org_archive=, =org_log_background_plan=.
+
+*And the work they exist for was done anyway, by other means.* That is
+the finding — not that they went unneeded, but that they went unreached:
+
+| what happened                                    | tool not reached for |
+|--------------------------------------------------+----------------------|
+| cross-file searches, dozens of them              | =org_query=          |
+| moved three subtrees between files and levels    | =org_refile=         |
+| ordered a composed epic's children               | =org_sort_children=  |
+| totalled clock time over the whole corpus        | =org_clock_report=   |
+
+Each was done with =grep=, =python=, or hand-written =org-cut-subtree=
+/=org-paste-subtree= elisp. In every case the tool would have been
+shorter and safer; the hand-rolled subtree move is exactly what left
+=org-id= stale in
+[[id:8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b][8ddd7fa8]].
+
+*Four specific mis-advertisements, each with a cost already paid:*
+
+1. =org_capture='s =target= is optional and omitting it writes *outside
+   the repository*, to the capture file. The description does not say
+   so. Cost: a heading filed where the user could not see it
+   \([[id:97696fc2-f07b-4586-b280-de6a7d26fb87][97696fc2]]\).
+2. =org_capture= can only target an =:ID:= or a top-level heading *of
+   the capture file*, so filing under a real category is impossible —
+   categories deliberately carry no =:ID:=, and =bin/lint-org= enforces
+   that. The natural call cannot be expressed, so headings get
+   hand-written instead.
+3. =org_amend= only ever appends. Nothing says so at the call site, and
+   it is the mechanism behind
+   [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]]: every summary
+   and correction lands furthest from where a reader starts.
+4. =org_set_todo= accepted a transition to the state already held, four
+   times in one day, before =c2cf203= refused it.
+
+*The question this heading asks* is not "are the descriptions accurate"
+— mostly they are, and several are excellent. It is whether they are
+written so a model reaches for them *at the moment of need*. A
+description read once at session start competes with =grep=, which needs
+no recall at all. What would change that is unproven: naming the
+alternative it beats, stating the failure it prevents, or something
+else.
+
+*Measurement to repeat, since it is cheap:* the queue's =source= field
+records every tool that queues, and this session shows =org_set_todo= 36,
+=org_clock_out= 10, =org_clock_in= 9. The immediate tools leave no trace
+at all, which is itself worth fixing before judging them — right now
+"never used" and "used and forgotten" are indistinguishable for seven of
+the thirteen.
+
 * Clock lifecycle & visibility
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Clock lifecycle & visibility
