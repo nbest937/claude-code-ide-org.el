@@ -557,6 +557,24 @@ exactly what that heading makes permanent.
 with no blank line separating it from the preceding body text or the
 following heading, unlike every hand-written heading in this file. Fixed
 by hand here. Probably wants =:empty-lines-before 1= on the template.
+
+*Correction, 2026-08-20:* the line above saying /"Nothing has landed
+wrong yet: both real captures named a target"/ was true when written and
+is no longer. On 2026-08-18 a no-target capture placed
+[[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] as a level-1
+heading, and it sat unnoticed until someone went looking for it.
+
+*But it landed in =~/org/notes.org=, not =TODO.org=*, which means it is
+not quite this heading's defect. The capture file had reverted to
+=org-default-notes-file= because
+[[id:bd482c92-a71a-4d7d-88df-47678ee94c79][bd482c92]]'s setting was
+never persisted. The level-1 fallback is still wrong for =TODO.org= and
+this heading still stands — it simply has not been the thing biting.
+
+Which sharpens the choice already listed: *require =target== would have
+refused that call outright and cost nothing, since the caller did have a
+category in mind and only omitted it out of habit.
+
 ** TODO Make the 8-character prefix resolve, for the model and the human alike :code:
 :PROPERTIES:
 :ID:       478d6ec9-1b99-4c6c-88e9-c793ad4b2f22
@@ -1088,6 +1106,14 @@ written, not a wall.
 :ID:       8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b
 :CREATED:  [2026-08-19 Wed 19:24]
 :END:
+:LOGBOOK:
+CLOCK: [2026-08-19 Wed 18:58]--[2026-08-19 Wed 19:03] =>  0:05
+- [2026-08-19 Wed 18:58]--[2026-08-19 Wed 19:03] assigned at review
+CLOCK: [2026-08-19 Wed 19:07]--[2026-08-19 Wed 19:09] =>  0:02
+- [2026-08-19 Wed 19:07]--[2026-08-19 Wed 19:09] assigned at review
+CLOCK: [2026-08-19 Wed 19:18]--[2026-08-19 Wed 19:31] =>  0:13
+- [2026-08-19 Wed 19:18]--[2026-08-19 Wed 19:31] assigned at review
+:END:
 
 Observed 2026-08-19: an apply pass refused
 [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]]'s =none -> TODO=
@@ -1116,10 +1142,21 @@ buffer should distinguish "no such :ID: anywhere" from "not where the
 index says", since the two want different responses and currently read
 identically.
 
-** TODO A no-op TODO -> TODO transition should never be queued :code:
+** DONE A no-op TODO -> TODO transition should never be queued :code:
+CLOSED: [2026-08-20 Thu 07:38]
 :PROPERTIES:
 :ID:       cc0c17a7-a554-426d-afeb-09cbee7339f0
 :CREATED:  [2026-08-19 Wed 19:24]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-20 Thu 07:38] \\
+  refusal shipped, tolerance pinned, premise corrected
+CLOCK: [2026-08-19 Wed 22:24]--[2026-08-19 Wed 22:29] =>  0:05
+- [2026-08-19 Wed 22:24]--[2026-08-19 Wed 22:29] assigned at review
+- State "DOING"      from "TODO"       [2026-08-19 Wed 22:25] \\
+  refuse no-op transitions at the tool
+CLOCK: [2026-08-20 Thu 07:33]--[2026-08-20 Thu 07:39] =>  0:06
+- [2026-08-20 Thu 07:33]--[2026-08-20 Thu 07:39] assigned at review
 :END:
 
 Observed 2026-08-19: apply refused
@@ -5783,12 +5820,14 @@ the "MCP tools", "Session tracking", and "Emacs integration" sections
 are inherently project-specific (they name this project's actual tool
 names and files) and are out of scope.
 
-** Heading bodies grow into narratives no human will read; decide what to stop capturing :code:
+** TODO Heading bodies grow into narratives no human will read; decide what to stop capturing :code:
 :PROPERTIES:
 :ID:       b07df584-3adc-433c-ab49-e104f88aecf7
 :CREATED:  [2026-08-18 Tue 19:43]
 :END:
 :LOGBOOK:
+- State "TODO"       from              [2026-08-18 Tue 19:43] \\
+  decide what is worth capturing at all
 CLOCK: [2026-08-18 Tue 19:25]--[2026-08-18 Tue 19:26] =>  0:01
 - [2026-08-18 Tue 19:25]--[2026-08-18 Tue 19:26] assigned at review
 CLOCK: [2026-08-18 Tue 19:40]--[2026-08-18 Tue 19:47] =>  0:07
@@ -6525,6 +6564,44 @@ the suggestion was inherited from this heading and repeated without being
 evaluated. It solves the ephemerality and creates a portability problem
 in its place.
 
+*The failure this heading predicted has now happened, and it is the
+cause of two defects filed elsewhere as if they were separate.* Measured
+2026-08-20: =claude-code-ide-org-capture-file= is =nil=,
+=--capture-target-file= resolves to =/Users/neil.best/org/notes.org=,
+and the Doom config still contains no mention of it. The =M-:= of
+2026-08-11 died with that Emacs process, exactly as written above.
+
+*Both symptoms follow from it:*
+
+- A capture with no =target= wrote
+  [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] into
+  =~/org/notes.org=, outside the repository, where it sat unnoticed
+  until someone went looking. That was attributed to
+  [[id:97696fc2-f07b-4586-b280-de6a7d26fb87][97696fc2]], which is about
+  the fallback writing a *level-1* heading — a real defect, but a
+  different one, and it only bites when the capture file is =TODO.org=
+  in the first place.
+- A capture *with* a target failed: =target: "Clock lifecycle &
+  visibility"= was refused as "neither a known =:ID:= nor a top-level
+  heading in *notes.org*". The title form resolves against the capture
+  file, so while that file is =notes.org= no category of =TODO.org= can
+  be named at all.
+
+*So the "org_capture cannot target a category" problem is this heading,
+not a design limitation.* With the capture file pointing at =TODO.org=,
+the categories *are* its top-level headings and the title form works.
+The one-line fix above removes both symptoms.
+
+*What it cost in the meantime*, worth recording because the workaround
+looked reasonable each time: every heading created this session was
+written by hand-inserted elisp instead, which is what left =org-id=
+stale in [[id:8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b][8ddd7fa8]] and what
+produced the inline-keyword habit behind
+[[id:cc0c17a7-a554-426d-afeb-09cbee7339f0][cc0c17a7]]. An unpersisted
+=defcustom= propagated into three other headings before anyone asked
+what it was actually part of.
+
+
 
 ** TODO The org 9.7+ dependency is real, undeclared, and unenforced :code:
 :PROPERTIES:
@@ -6736,12 +6813,15 @@ four command forms, asserting exit status and message.
 second concurrent session until a mechanism is in place, so this gates
 concurrent work generally rather than being one more backlog item.
 
-** DOING Enforce org structural hygiene, from diagnosis to commit gate :code:
+** DONE Enforce org structural hygiene, from diagnosis to commit gate :code:
+CLOSED: [2026-08-19 Wed 19:31]
 :PROPERTIES:
 :ID:       aded703f-8110-439e-b470-5e0375121c95
 :CREATED:  [2026-08-19 Wed 12:16]
 :END:
 :LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-19 Wed 19:31] \\
+  all three children shipped
 CLOCK: [2026-08-19 Wed 12:14]--[2026-08-19 Wed 12:17] =>  0:03
 - [2026-08-19 Wed 12:14]--[2026-08-19 Wed 12:17] assigned at review
 - State "TODO"       from              [2026-08-19 Wed 12:16] \\
@@ -6909,12 +6989,15 @@ the first time, and it is cheap.
 
 
 
-*** DOING Lint for headings that are valid org but structurally unintended :code:
+*** DONE Lint for headings that are valid org but structurally unintended :code:
+CLOSED: [2026-08-19 Wed 19:23]
 :PROPERTIES:
 :ID:       95087d8f-e16d-45d3-bdea-9b179dc672b4
 :CREATED:  [2026-08-17 Mon 10:10]
 :END:
 :LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-19 Wed 19:23] \\
+  re-queued; prior event went stale on from
 CLOCK: [2026-08-17 Mon 09:54]--[2026-08-17 Mon 09:55] =>  0:01
 - [2026-08-17 Mon 09:54]--[2026-08-17 Mon 09:55] assigned at review
 CLOCK: [2026-08-17 Mon 09:59]--[2026-08-17 Mon 10:05] =>  0:06
@@ -7022,12 +7105,17 @@ so neither check false-positives on the real corpus.
 check 2's design decision resolved itself once the =:ARCHIVE:= property
 turned out to be the discriminator.
 
-*** NEXT Run bin/lint-org in a pre-commit hook, scoped to staged org files :code:
+*** DONE Run bin/lint-org in a pre-commit hook, scoped to staged org files :code:
+CLOSED: [2026-08-19 Wed 19:30]
 :PROPERTIES:
 :ID:       7e9aa4ea-4757-4e58-bac3-3c3e67fc4cb1
 :CREATED:  [2026-08-19 Wed 10:56]
 :END:
 :LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-19 Wed 19:30] \\
+  hook shipped, tested, verified live
+- State "DOING"      from "NEXT"       [2026-08-19 Wed 19:27] \\
+  write the pre-commit lint hook
 CLOCK: [2026-08-19 Wed 10:54]--[2026-08-19 Wed 11:05] =>  0:11
 - [2026-08-19 Wed 10:54]--[2026-08-19 Wed 11:05] assigned at review
 CLOCK: [2026-08-19 Wed 11:14]--[2026-08-19 Wed 11:16] =>  0:02
