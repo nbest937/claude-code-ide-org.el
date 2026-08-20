@@ -7164,7 +7164,7 @@ silent run can never be mistaken for a passing one."
    :args '((:name "id"
             :type string
             :description "The :ID: property value of the parent heading whose children should be sorted.")
-           (:name "sort-type"
+           (:name "sort_type"
             :type string
             :description "One of: alpha, todo-order, priority, scheduled, deadline, clock-time.")))
 

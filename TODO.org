@@ -1466,6 +1466,27 @@ the thirteen.
 
 /Body restored 2026-08-20 by =org_amend=; the original capture silently discarded it -- by the very defect this heading describes./
 
+*Gating question answered 2026-08-20: the drop is upstream, so this is a report, not a local fix.* =claude-code-ide-mcp-http-server--validate-args= iterates over =arg-specs= -- the declared schema -- and pulls each declared name out of the supplied =args= alist. It never iterates =args=. A key the schema does not declare is therefore never looked at, and silence is structural rather than a missing check:
+
+: (dolist (spec arg-specs (nreverse result))
+:   (let* ((name (plist-get spec :name))
+:          (optional (plist-get spec :optional))
+:          (value (alist-get (intern name) args)))
+:     (when (and (not optional) (not value))
+:       (signal 'json-rpc-error (list -32602 (format "Missing required argument: %s" name))))
+:     (push value result)))
+
+Note the asymmetry: a *missing required* argument signals =-32602=, so the machinery for refusing a malformed call already exists and is used. Only the unknown-key direction is unguarded. That makes the upstream report a small one -- one pass over =args= for keys absent from =arg-specs= -- rather than a design change. Belongs with [[id:9d6449c7-529f-49a0-b28f-015cce869715][9d6449c7]] alongside the =200=-versus-=202= finding.
+
+There is a second dispatch path, =claude-code-ide-mcp.el= line 352, which hands the whole alist to a handler; it was not examined. Establish whether it has the same gap before writing the report.
+
+*The same reading turned up a live trap in this project's own schema, now fixed.* Keys are matched verbatim -- =(intern name)= against the JSON key -- so the advertised spelling is what a caller must send. =org_sort_children= advertised =sort-type= with a hyphen while every other multi-word argument in all fourteen tools uses snake_case. A model sending the conventional =sort_type= would have had it silently discarded, which is this heading's failure mode arriving by a different door. Renamed to =sort_type= 2026-08-20.
+
+*The rest of the surface is clean, which is worth recording so it is not re-audited.* All fourteen tools were checked mechanically, comparing each advertised argument name against its handler's arglist: *zero mismatches* once snake_case is normalised to kebab-case. Every advertised parameter exists and every real parameter is advertised. The five failures on 2026-08-20 -- =todo_state=, =body=, =file=, =max_level=, and =body= again -- were invented wholesale, not misread from a bad schema. Fixing descriptions would not have prevented any of them.
+
+*One measured consequence beyond the lost bodies:* an =org_outline= call passing =file= and =max_level= returned the *unrestricted default* rather than the scoped view it appeared to return, and was reported as scoped. A dropped argument does not merely fail to apply -- it silently substitutes a different answer to a different question.
+
+
 ** TODO org_amend can only append, so every correction lands furthest from the reader :code:
 :PROPERTIES:
 :ID:       3063c3e5-0dd0-4354-8985-271b0313c5d1
