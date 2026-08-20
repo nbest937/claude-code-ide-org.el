@@ -1375,7 +1375,7 @@ evidence this heading never had.
 
 
 
-** TODO Review how the emacs-tools are advertised, against which ones get used :code:research:
+** TODO [0/0] Review how the emacs-tools are advertised, against which ones get used :code:research:
 :PROPERTIES:
 :ID:       420816ec-677e-45a5-b898-fb5db70d214b
 :CREATED:  [2026-08-20 Thu 07:41]
@@ -1444,6 +1444,11 @@ records every tool that queues, and this session shows =org_set_todo= 36,
 at all, which is itself worth fixing before judging them — right now
 "never used" and "used and forgotten" are indistinguishable for seven of
 the thirteen.
+*** An MCP tool accepts arguments it does not have, and says nothing :code:
+:PROPERTIES:
+:ID:       1cd2df62-35e9-47dc-bcce-dda7bae3c522
+:CREATED:  [2026-08-20 Thu 16:45]
+:END:
 ** TODO org_amend can only append, so every correction lands furthest from the reader :code:
 :PROPERTIES:
 :ID:       3063c3e5-0dd0-4354-8985-271b0313c5d1
@@ -4649,8 +4654,11 @@ rounding incident pointed the other way.
 *Measured for September rather than decided now.* Post-cutover corpus, 283 lines / 36.88 h: 120s drops 23.7% of lines for 3.03% of recorded time; 180s, 40.6% for 7.37%; 300s, 63.6% for 17.71%; 60s drops nothing, confirming the rendering conditions already cover that range. The sweep lives in the docstring and the value belongs to [[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]].
 
 *The measurement that did not replicate is the more useful half.* 96a51c2f recorded 6.5% of recorded time for the same 120s value on 2026-08-18; the same measurement on 2026-08-20 gives 3.03%. No code changed — the corpus grew and the mix shifted. That heading's instruction to re-derive rather than confirm now has a two-day counterexample behind it, and its body was corrected to say so.
-
-
+*** The review buffer predicts a duration org does not write :code:
+:PROPERTIES:
+:ID:       c6fc6f46-4954-4fdf-9d7e-7c8bf3a1a952
+:CREATED:  [2026-08-20 Thu 16:43]
+:END:
 ** DONE A hand-set TODO transition records the change but never the time :code:
 CLOSED: [2026-08-19 Wed 17:47]
 :PROPERTIES:
