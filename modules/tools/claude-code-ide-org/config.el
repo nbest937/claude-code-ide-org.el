@@ -2988,6 +2988,55 @@ did delete one (:ID: b74e0f19) is not coming back through here."
   :type 'integer
   :group 'claude-code-ide-org)
 
+(defcustom claude-code-ide-org-span-minimum-interval 0
+  "Seconds below which an interval is dropped rather than written.
+
+The counterpart to `claude-code-ide-org-span-idle-floor', and the
+reason both now exist: that one is a floor on the *gap* between runs,
+this one a floor on the *run*.  Before this variable there was no
+number to set for the second -- what kept short intervals out of the
+drawer was two rendering conditions in
+`claude-code-ide-org--apply-idle-floor' (endpoints inside one minute,
+or a duration rounding to `=>  0:00'), which are consequences of the
+clock format rather than a policy anyone chose.  A knob that cannot be
+turned is not a knob, so this names the policy without yet changing it.
+
+*Zero is deliberate and means \"exactly today's behaviour\"* -- the two
+rendering conditions still apply and still drop everything under a
+minute, so a fresh install writes what it wrote before.  The value is a
+reporting decision, not an implementation one, and it belongs to the
+September review of what these drawers are for (TODO.org
+:ID: 96a51c2f).
+
+What that review needs is measured, so it does not have to be measured
+again.  Scoped to the 283 post-cutover CLOCK lines standing on
+2026-08-20 (36.88 h) -- the population this floor would actually
+govern, since pre-cutover lines were written by the old aggregator and
+are not being rewritten:
+
+  | floor | lines dropped | share of lines | time dropped | share of time |
+  |-------+---------------+----------------+--------------+---------------|
+  |   60s |             0 |           0.0% |        0 min |         0.00% |
+  |  120s |            67 |          23.7% |       67 min |         3.03% |
+  |  180s |           115 |          40.6% |      163 min |         7.37% |
+  |  300s |           180 |          63.6% |      392 min |        17.71% |
+
+120s is the favourable trade -- a quarter of the lines for 3% of the
+recorded time -- and 300s is not, taking nearly two thirds of the lines
+for 18%.  60s drops nothing, confirming the two rendering conditions
+already cover that range.  Setting this to 120 would also make the pair
+read as one rule: idle under two minutes is not an interruption, work
+under two minutes is not an interval.
+
+*The estimate moves, which is the argument for re-measuring rather than
+citing this table in September.*  TODO.org :ID: 96a51c2f carried
+\"6.5% of recorded time, a third of the lines\" for the same 120s value,
+measured on 2026-08-18.  Two days of work later the same measurement
+gives 3.03% and a quarter.  Neither is wrong; the corpus grew and the
+mix shifted.  Re-derive against the month, as that heading instructs."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
 (defcustom claude-code-ide-org-span-evidence-slack 300
   "Seconds past an unassigned span's end still counted as its window.
 
@@ -3751,7 +3800,14 @@ interval of 50 seconds inside one minute renders `[09:00]--[09:00]' but
 rounds to `=>  0:01'; one of 20 seconds across a minute boundary renders
 `[08:14]--[08:15]' but rounds to `=>  0:00'.  Testing only the endpoints
 was the first version, and it wrote nine `0:00' lines into the real
-files during the 507754ba recompute before the diff was read."
+files during the 507754ba recompute before the diff was read.
+
+A third condition, `claude-code-ide-org-span-minimum-interval', drops
+anything shorter than a set duration.  It defaults to 0 and so does
+nothing until someone sets it; the two rendering conditions above are
+what actually hold the line today.  Named separately because they are
+different kinds of rule -- those two fall out of the clock format, that
+one is a choice about what is worth recording."
   (let ((floor (or floor claude-code-ide-org-span-idle-floor))
         (fmt "[%Y-%m-%d %a %H:%M]")
         merged)
@@ -3768,7 +3824,9 @@ files during the 507754ba recompute before the diff was read."
                              (format-time-string fmt (cdr iv)))
                       (zerop (round (/ (float-time
                                         (time-subtract (cdr iv) (car iv)))
-                                       60)))))
+                                       60)))
+                      (< (float-time (time-subtract (cdr iv) (car iv)))
+                         claude-code-ide-org-span-minimum-interval)))
                 (nreverse merged))))
 
 (defun claude-code-ide-org--busy-intervals (events &optional bound)

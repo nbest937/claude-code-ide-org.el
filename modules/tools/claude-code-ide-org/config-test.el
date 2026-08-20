@@ -4161,6 +4161,44 @@ They were caught by reading the diff, not by the suite."
                           (list (cons (date-to-time "2026-08-06T08:14:00-0500")
                                       (date-to-time "2026-08-06T08:15:00-0500")))))))))
 
+(ert-deftest claude-code-ide-org-test-minimum-interval-defaults-to-no-op ()
+  "Naming the write floor must not move it.
+
+`claude-code-ide-org-span-minimum-interval\' was added to give the
+second floor a name, not to change what gets written -- so at its
+default every interval that survived before still survives.  100
+seconds is the probe because it is shorter than the value the September
+review is expected to pick (120) and longer than anything the two
+rendering conditions already remove, so it can only be dropped by this
+variable being non-zero by accident."
+  (let ((claude-code-ide-org-span-idle-floor 120)
+        (interval (list (cons (date-to-time "2026-08-06T09:00:20-0500")
+                              (date-to-time "2026-08-06T09:02:00-0500")))))
+    (should (= 0 claude-code-ide-org-span-minimum-interval))
+    (should (= 1 (length (claude-code-ide-org--apply-idle-floor interval))))))
+
+(ert-deftest claude-code-ide-org-test-minimum-interval-drops-short-runs ()
+  "Set, the floor drops a short run -- and only a short one.
+
+Three probes, because a filter that drops everything would pass a test
+that only checked the first.  Strictly less than, matching
+`claude-code-ide-org-span-idle-floor\': a run of exactly the floor
+survives, so both variables read the same way at their boundary."
+  (let ((claude-code-ide-org-span-idle-floor 120)
+        (claude-code-ide-org-span-minimum-interval 120))
+    ;; 100s: under the floor, dropped.
+    (should-not (claude-code-ide-org--apply-idle-floor
+                 (list (cons (date-to-time "2026-08-06T09:00:20-0500")
+                             (date-to-time "2026-08-06T09:02:00-0500")))))
+    ;; Exactly 120s: strictly-less means this survives.
+    (should (= 1 (length (claude-code-ide-org--apply-idle-floor
+                          (list (cons (date-to-time "2026-08-06T09:00:00-0500")
+                                      (date-to-time "2026-08-06T09:02:00-0500")))))))
+    ;; 155s: comfortably over, survives.
+    (should (= 1 (length (claude-code-ide-org--apply-idle-floor
+                          (list (cons (date-to-time "2026-08-06T09:00:00-0500")
+                                      (date-to-time "2026-08-06T09:02:35-0500")))))))))
+
 (ert-deftest claude-code-ide-org-test-recompute-drops-zero-keeps-annotation ()
   "A line with no busy time loses its CLOCK line and keeps its note.
 
