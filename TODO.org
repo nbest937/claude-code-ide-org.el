@@ -1083,6 +1083,70 @@ related flattening question against, on the grounds that archive routing
 depends on level-1 =:ARCHIVE:=. That cost is real but is a mapping to be
 written, not a wall.
 
+** TODO Moving a heading between files by hand leaves org-id pointing at the old one :code:
+:PROPERTIES:
+:ID:       8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b
+:CREATED:  [2026-08-19 Wed 19:24]
+:END:
+
+Observed 2026-08-19: an apply pass refused
+[[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]]'s =none -> TODO=
+because =--at-id= could not find the heading. The heading existed; the
+index did not know where.
+
+*Cause.* It was captured with no target, so
+[[id:97696fc2-f07b-4586-b280-de6a7d26fb87][97696fc2]] put it in
+=~/org/notes.org=, and it was then moved into =TODO.org= by cutting and
+re-inserting the subtree text. That never touches =org-id-locations=, so
+=org-id-find= kept resolving to a file the heading had left.
+
+*Wider than its cause.* Any hand move between files does this — a
+=git= operation, an =Edit= tool call, a refile done as text. Only
+=org-refile= maintains the index, and this project edits org text
+directly all the time.
+
+*Candidate fixes, none chosen.* Call =org-id-update-id-locations= after
+any tool that relocates a subtree; or have =--at-id= fall back to a scan
+of the tracked files when the index misses, which is self-healing and
+costs a scan only on the failing path. The second also covers moves made
+outside Emacs entirely, which the first cannot.
+
+*Left as a question:* whether the =Error:= that reaches the review
+buffer should distinguish "no such :ID: anywhere" from "not where the
+index says", since the two want different responses and currently read
+identically.
+
+** TODO A no-op TODO -> TODO transition reaches apply and fails there :code:
+:PROPERTIES:
+:ID:       cc0c17a7-a554-426d-afeb-09cbee7339f0
+:CREATED:  [2026-08-19 Wed 19:24]
+:END:
+
+Observed 2026-08-19: apply refused
+[[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]]'s =TODO -> TODO=.
+There was nothing to do — the heading already held that keyword — but
+the event was queued, offered at review, marked, and failed there.
+
+*Cause.* The heading was created by writing =** TODO ...= into the
+heading text directly, and =org_set_todo TODO= was then called on it.
+The tool recorded the transition faithfully; the reply even said
+=(was TODO)=, which was the signal and was not read.
+
+*Two places it could be stopped, and they are not equivalent.*
+=org_set_todo= could refuse to queue when =from= equals =to=, which
+costs one comparison and gives the caller immediate feedback instead of
+a failure hours later at apply. Or apply could treat a no-op as
+satisfied rather than failed, since the file already holds the requested
+state — arguably the more correct semantics, because an event whose
+outcome is already true has in every meaningful sense been applied.
+
+Doing both is defensible: refuse early, and be tolerant late for events
+queued before the refusal existed.
+
+*Related:* [[id:97696fc2-f07b-4586-b280-de6a7d26fb87][97696fc2]] is why
+headings get created by hand-written text at all — =org_capture= with no
+target misfiles, so it gets avoided.
+
 * Clock lifecycle & visibility
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Clock lifecycle & visibility
@@ -5727,6 +5791,44 @@ Adjacent to [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]], and
 gated the same way: the user has an unstated task lifecycle in mind that
 likely reframes all of it.
 
+** TODO A container entering DOING when a child does is nowhere written down :code:
+:PROPERTIES:
+:ID:       241a4c54-ed59-4780-b602-2a86efee978a
+:CREATED:  [2026-08-19 Wed 19:24]
+:END:
+
+Asked by the user 2026-08-19 of
+[[id:aded703f-8110-439e-b470-5e0375121c95][aded703f]], which should have
+entered DOING the moment its first child did and did not: /"is that not
+codified anywhere?"/ It is not. Verified by grep across =CLAUDE.md=, the
+path-scoped rules and the org skill — the transition table governs a
+heading's own state and clock, and nothing mentions a container reacting
+to a child at all.
+
+*Why it is not merely an omission.* Writing it down collides with the
+rule immediately below the table: /any transition to DOING must open a
+clock/. A container must **not** open one —
+=claude-code-ide-org--container-heading-p= exempts containers from
+auto-clock-in precisely because a parent's own CLOCK line lands inside
+the total org already rolls up from its children, measured on
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] as a parent
+claiming 14:52 against children summing 13:44.
+
+So the rule cannot be stated as "a container goes DOING like anything
+else". It needs its own clause: a container enters DOING when its first
+child does, *without* a clock, and leaves it when no child is active.
+
+*Unclear, and worth deciding before writing it:* whether leaving is
+symmetric. A container whose children are all DONE is finished; one whose
+children are all WAIT is blocked, not done, and DOING would be a lie.
+Also whether this should be a hook at all — it is mechanical enough for
+=org-trigger-hook=, which already carries two sibling-state triggers, and
+unlike "is this conversation about that task" it needs no judgement.
+
+Backdated by hand this time, which the queue cannot express: it stamps an
+event when written, not when it was true. =--format-log-state-line= now
+takes an optional TIME for exactly this.
+
 * Tooling
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Tooling
@@ -6477,7 +6579,7 @@ four command forms, asserting exit status and message.
 second concurrent session until a mechanism is in place, so this gates
 concurrent work generally rather than being one more backlog item.
 
-** TODO Enforce org structural hygiene, from diagnosis to commit gate :code:
+** DOING Enforce org structural hygiene, from diagnosis to commit gate :code:
 :PROPERTIES:
 :ID:       aded703f-8110-439e-b470-5e0375121c95
 :CREATED:  [2026-08-19 Wed 12:16]
@@ -6487,6 +6589,8 @@ CLOCK: [2026-08-19 Wed 12:14]--[2026-08-19 Wed 12:17] =>  0:03
 - [2026-08-19 Wed 12:14]--[2026-08-19 Wed 12:17] assigned at review
 - State "TODO"       from              [2026-08-19 Wed 12:16] \\
   composed from three existing children
+- State "DOING"      from "TODO"       [2026-08-19 Wed 17:48] \\
+  backdated: container entered DOING when its first child 8d682a5b did
 :END:
 
 One arc in three steps: find the structural drift that already exists,

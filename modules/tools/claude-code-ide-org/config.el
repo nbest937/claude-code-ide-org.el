@@ -2547,18 +2547,24 @@ headings need no special-casing. Point is restored afterward."
     (save-excursion (while (org-get-next-sibling) (funcall function)))
     (save-excursion (while (org-get-previous-sibling) (funcall function)))))
 
-(defun claude-code-ide-org--format-log-state-line (new-state old-state cause)
+(defun claude-code-ide-org--format-log-state-line (new-state old-state cause &optional time)
   "Format a single :LOGBOOK: line matching org's own native
 `org-log-note-headings' \"state\" template (\"State %-12s from %-12s
 %t\"), but with CAUSE as the note text instead of one typed
 interactively. Used by automatic transitions that already know exactly
 why they fired, so they can produce output indistinguishable from a
 real interactively-logged state change without ever going through
-org's own note-prompt machinery."
+org's own note-prompt machinery.
+
+TIME backdates the stamp, defaulting to now.  A transition that should
+have been recorded when something else happened -- a container entering
+DOING because a child did, noticed only afterwards -- is otherwise
+unrecordable at its real time, since the queue stamps an event when it
+is written rather than when it was true."
   (format "- State %-12s from %-12s %s \\\\\n  %s"
           (format "\"%s\"" new-state)
           (format "\"%s\"" old-state)
-          (format-time-string "[%Y-%m-%d %a %H:%M]")
+          (format-time-string "[%Y-%m-%d %a %H:%M]" time)
           cause))
 
 (defun claude-code-ide-org--trigger-demote-conflicting-next (change-plist)
