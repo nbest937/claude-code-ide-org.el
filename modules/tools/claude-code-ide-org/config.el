@@ -1473,13 +1473,33 @@ unresolved."
      ;; misspelled keyword that reaches the queue is a refusal at apply
      ;; time, in front of a human who has no way to tell whether the
      ;; typo was theirs or the model's.
-     (if (not (member state org-todo-keywords-1))
-         (format "Error: %s is not a TODO keyword in this file (have: %s)"
-                 state (string-join org-todo-keywords-1 " "))
+     (cond
+      ((not (member state org-todo-keywords-1))
+       (format "Error: %s is not a TODO keyword in this file (have: %s)"
+               state (string-join org-todo-keywords-1 " ")))
+      ;; A transition to the state already held is a no-op: there is
+      ;; nothing for apply to do, and org's own logging has no state
+      ;; change to record. Left to queue, it is offered at review,
+      ;; marked, and only then fails -- hours after the context that
+      ;; would explain it (TODO.org :ID: cc0c17a7). Four occurrences in
+      ;; one day, every one from writing a keyword into a heading at
+      ;; creation and then setting the same state through this tool.
+      ;;
+      ;; Refused with an `Error:' prefix because that is the mechanism,
+      ;; not because it is a failure in the ordinary sense: the reply is
+      ;; the only channel this tool has, and `bin/hooks/queue-append'
+      ;; decides whether to write an event by testing that prefix. The
+      ;; wording therefore has to carry what the prefix does not -- that
+      ;; the requested state is the state on disk, which is success by
+      ;; any reading except the queue's.
+      ((equal state (org-get-todo-state))
+       (format "Error: no change -- \"%s\" already holds %s, so nothing was queued"
+               (org-get-heading t t t t) state))
+      (t
        (format "Queued todo -> %s (was %s): \"%s\"; pending review."
                state
                (or (org-get-todo-state) "none")
-               (org-get-heading t t t t))))))))
+               (org-get-heading t t t t)))))))))
 
 (defun claude-code-ide-org-archive (id)
   "Archive the org heading whose :ID: property equals ID.

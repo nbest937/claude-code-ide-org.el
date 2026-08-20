@@ -205,6 +205,38 @@ string: the queue has to keep \"had no keyword\" distinguishable from
       (should (string-match-p "(was none)" result))
       (should-not (string-prefix-p "Error:" result)))))
 
+(ert-deftest claude-code-ide-org-test-set-todo-refuses-a-no-op-transition ()
+  "Setting the state a heading already holds must not reach the queue.
+
+TODO.org :ID: cc0c17a7. Such an event has nothing for apply to do and
+org has no state change to log, so left queued it is offered at review,
+marked, and only then fails -- hours after the context that would
+explain it. Four occurrences in one day.
+
+The `Error:' prefix is asserted specifically, not merely that a refusal
+happened: `bin/hooks/queue-append' decides whether to write the event by
+testing that prefix, so the prefix IS the refusal. A politely-worded
+reply without it would queue the no-op anyway."
+  (claude-code-ide-org-test--with-heading
+    (let ((result (claude-code-ide-org-set-todo id "TODO" "already there")))
+      (should (string-prefix-p "Error:" result))
+      (should (string-match-p "already holds TODO" result))
+      ;; Names the heading, so a caller with several in flight can tell
+      ;; which one it was.
+      (should (string-match-p "Test heading" result)))
+    ;; A real transition on the same heading is unaffected -- the check
+    ;; must not have swallowed the ordinary path.
+    (should (string-prefix-p
+             "Queued todo -> DOING (was TODO)"
+             (claude-code-ide-org-set-todo id "DOING" "a real change")))
+    ;; And a keyword-less heading going to a real keyword is not a no-op,
+    ;; even though `from' renders as the string "none".
+    (claude-code-ide-org--at-id
+     id (lambda () (let ((org-inhibit-logging t)) (org-todo 'none)) (save-buffer)))
+    (should (string-prefix-p
+             "Queued todo -> TODO (was none)"
+             (claude-code-ide-org-set-todo id "TODO" "from keywordless")))))
+
 (ert-deftest claude-code-ide-org-test-set-todo-rejects-an-undeclared-keyword ()
   "A keyword this file's own `#+TODO:' line does not declare is refused
 here, where the model can see why, rather than at apply time in front of
