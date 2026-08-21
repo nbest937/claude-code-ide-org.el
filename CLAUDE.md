@@ -122,6 +122,11 @@ Four things you would not guess:
   `bin/hooks/`**, for no recorded reason. It produces the "what was I last
   doing" context injected at `SessionStart`. Whether the two directories
   should be consolidated is open.
+- **`.claude/commands/` is new as of 2026-08-21** and holds prompt files
+  Claude Code exposes as slash commands — `next-session.md` is `/next-session`,
+  the sequenced slice of work queued for the next session. It is a *plan*, not
+  a convention: expect it to be rewritten or deleted once consumed, unlike
+  everything else under `.claude/`, which is standing configuration.
 - **`bin/check-org-dev-skill`** checks the org-dev skill's own claims still
   hold — run it after editing that skill.
 - **`.warp/.mcp.json`** — see below; do not delete it.
