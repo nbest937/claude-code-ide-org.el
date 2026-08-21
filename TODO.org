@@ -8421,6 +8421,18 @@ Approach: assert against the table row, =| *Total time* | *0:00* |=, rather than
 
 /Body restored 2026-08-20 by =org_amend=; the original capture silently discarded it -- see/ [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]].
 
+** TODO Every orgit link a body adds costs a permanent lint warning :code:
+:PROPERTIES:
+:ID:       43201e64-3fe8-4fa6-81f5-d2ab5b65d191
+:CREATED:  [2026-08-21 Fri 16:07]
+:END:
+
+The commit-reference convention shipped 2026-08-21 ([[id:7b54c439-ab2c-4398-b332-2b2cc0d98ac9][7b54c439]]) says to link commits in org bodies as =orgit-rev:=. Its *first actual use* -- one link on [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] the same evening -- pushed =bin/lint-org= from 23 warnings to 24: =org-lint: Unknown fuzzy location "orgit-rev:claude-code-ide-org::f0cdc90"=. The two earlier occurrences in TODO.org are inside =verbatim= markup and are never parsed as links, so nothing had exercised the convention until now.
+
+*Cause.* =orgit= is a Doom package present in the live Emacs, but =bin/lint-org= runs =emacs --batch -Q= with only org and =config.el= loaded. With no =orgit-rev= link type registered, org-lint falls back to treating it as a fuzzy internal link and cannot resolve it.
+
+*Why it matters more than one warning.* The cost is per-link and permanent, so following a documented convention makes the report grow monotonically -- and a report that accumulates stops being read, which is the exact failure [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] measured and the lint's own error/warn split exists to prevent. Candidate fixes, none chosen: load orgit in the lint's =emacs_args=, register the link type with a stub =org-link-set-parameters=, or filter this org-lint check. The first is honest but adds a package dependency to a batch script that deliberately has none.
+
 ** TODO Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit :code:
 :PROPERTIES:
 :ID:       d2a0f54c-b59a-4855-ae3d-c93a6d3aa177
