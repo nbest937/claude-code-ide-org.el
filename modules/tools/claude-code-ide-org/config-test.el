@@ -1157,18 +1157,25 @@ nothing, and the JSON wrapper collapses that to an empty hook object."
 ;; Abandoned DOING leaves -- TODO.org :ID: 9d7531f5-11c5-4203-89e3-56c3fe399df5.
 
 (ert-deftest claude-code-ide-org-test-session-context-includes-abandoned-doing-leaf ()
-  "A leaf left in DOING with no clock is an increment somebody walked
-away from, and is exactly what a starting session needs told."
-  (claude-code-ide-org-test--with-heading
-    (goto-char (point-max))
-    (insert "* DOING Abandoned leaf                                              :code:\n"
-            ":PROPERTIES:\n:ID:       test-0002\n:END:\n")
-    (save-buffer)
-    (let* ((claude-code-ide-org-query-files (list file))
-           (result (claude-code-ide-org-session-context)))
-      (should (string-match-p
-               "DOING, not clocked: \"Abandoned leaf\" (:ID: test-0002, in test.org)"
-               result)))))
+  "A leaf left in DOING that the queue has nothing pending for is an
+increment somebody walked away from, and is exactly what a starting
+session needs told.
+
+Wrapped in `claude-code-ide-org-test--with-queue' since the report began
+keying on the queue (TODO.org :ID: e0904e93): without it this reads the
+real ~/.claude/org-updates and its answer depends on the user's live
+state."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--with-heading
+      (goto-char (point-max))
+      (insert "* DOING Abandoned leaf                                              :code:\n"
+              ":PROPERTIES:\n:ID:       test-0002\n:END:\n")
+      (save-buffer)
+      (let* ((claude-code-ide-org-query-files (list file))
+             (result (claude-code-ide-org-session-context)))
+        (should (string-match-p
+                 "nothing ever queued for it: \"Abandoned leaf\" (:ID: test-0002, in test.org)"
+                 result))))))
 
 (ert-deftest claude-code-ide-org-test-session-context-omits-doing-containers ()
   "A container in DOING is a true and unremarkable statement about the
@@ -7150,6 +7157,76 @@ an answer that says what to do rather than a bare \"cannot find entry\"."
     (should (string-match-p
              "capture is still pending"
              (cadr (should-error (claude-code-ide-org-review-goto) :type 'user-error))))))
+
+(defmacro claude-code-ide-org-test--with-attention-file (text &rest body)
+  "Write TEXT to a real temp .org file, point `claude-code-ide-org-query-files'
+at it, and run BODY.  A real file rather than a temp buffer because
+`claude-code-ide-org--attention-headings-context' scans via
+`find-file-noselect' over `claude-code-ide-org--tracked-files'."
+  (declare (indent 1))
+  `(let* ((file (make-temp-file "claude-code-ide-org-attention" nil ".org"))
+          (claude-code-ide-org-query-files (list file))
+          (org-inhibit-startup t))
+     (unwind-protect
+         (progn (write-region ,text nil file nil 'silent) ,@body)
+       (when (find-buffer-visiting file) (kill-buffer (find-buffer-visiting file)))
+       (delete-file file))))
+
+(defun claude-code-ide-org-test--attention-line (id lines)
+  "Return the line in LINES naming ID, or nil."
+  (seq-find (lambda (l) (string-match-p (regexp-quote id) l)) lines))
+
+(ert-deftest claude-code-ide-org-test-attention-keys-on-queue-divergence ()
+  "The session-start report compares the file against the queue, not against
+the clock (TODO.org :ID: e0904e93).  The three cases that must be told apart
+are all live states of this repo's own queue, and the old clock-keyed
+predicate collapsed them: it reported every DOING leaf identically and said
+nothing at all about a heading whose DOING was still queued."
+  (claude-code-ide-org-test--with-queue
+    (let* ((now (current-time))
+           (stamp (lambda (time) (format-time-string "%Y-%m-%dT%H:%M:%S%z" time)))
+           (long-ago (time-subtract now (days-to-time 3))))
+      (claude-code-ide-org-test--queue-write
+       "sess-a"
+       ;; behind: file still DOING, queue has already moved it on
+       (claude-code-ide-org-test--queue-event
+        (funcall stamp now) "todo" "id-behind" "DONE" "sess-a")
+       ;; ahead: queue says DOING, file carries no keyword at all
+       (claude-code-ide-org-test--queue-event
+        (funcall stamp now) "todo" "id-ahead" "DOING" "sess-a")
+       ;; agreeing: file DOING, queue active today on the same heading
+       (claude-code-ide-org-test--queue-event
+        (funcall stamp now) "clock_in" "id-agree" nil "sess-a")
+       ;; abandoned: file DOING, queue silent since before today
+       (claude-code-ide-org-test--queue-event
+        (funcall stamp long-ago) "clock_in" "id-stale" nil "sess-a"))
+      (claude-code-ide-org-test--with-attention-file
+          (concat "#+TODO: TODO NEXT DOING WAITING | DONE CANCELLED\n"
+                  "* DOING Behind\n:PROPERTIES:\n:ID: id-behind\n:END:\n"
+                  "* Ahead\n:PROPERTIES:\n:ID: id-ahead\n:END:\n"
+                  "* DOING Agreeing\n:PROPERTIES:\n:ID: id-agree\n:END:\n"
+                  "* DOING Abandoned\n:PROPERTIES:\n:ID: id-stale\n:END:\n")
+        (let ((lines (claude-code-ide-org--attention-headings-context)))
+          ;; 1. File behind the queue.
+          (should (string-match-p
+                   "queued -> DONE, not yet applied"
+                   (or (claude-code-ide-org-test--attention-line "id-behind" lines) "")))
+          ;; 2. Queue ahead of the file -- the case the old predicate could
+          ;; not express at all, since the heading is not DOING in the file.
+          (should (string-match-p
+                   "queued DOING, not yet applied"
+                   (or (claude-code-ide-org-test--attention-line "id-ahead" lines) "")))
+          ;; 3. The silence that makes the report worth reading. Under the
+          ;; old clock-keyed predicate this line was always emitted, which
+          ;; is exactly why the report stopped discriminating.
+          (should-not (claude-code-ide-org-test--attention-line "id-agree" lines))
+          ;; 4. Genuinely walked away from.
+          (should (string-match-p
+                   "nothing queued since"
+                   (or (claude-code-ide-org-test--attention-line "id-stale" lines) "")))
+          ;; 5. The retired vocabulary must not come back: nothing holds a
+          ;; live clock outside a review pass, so "clocked" can only mislead.
+          (should-not (string-match-p "clocked" (mapconcat #'identity lines "\n"))))))))
 
 (provide 'claude-code-ide-org-config-test)
 

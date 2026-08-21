@@ -639,24 +639,73 @@ heading, or nil if no clock is running."
                 (if id (format " (:ID: %s)" id) "")
                 (if file (format " in %s" (file-name-nondirectory file)) ""))))))
 
+(defun claude-code-ide-org--queue-heading-divergence ()
+  "Return a hash of heading :ID: -> what the queue currently says about it.
+
+Each value is a plist: :queued-state, the keyword named by that
+heading\'s most recent *pending* `todo\' event, or nil when it has none;
+and :latest, the timestamp of its most recent pending event of any kind.
+
+Exists so `claude-code-ide-org--attention-headings-context\' can compare
+the file against the queue rather than against the clock (TODO.org :ID:
+e0904e93).  Pending only, deliberately -- an applied event is by
+definition one the file already agrees with, so counting it would
+report a divergence at the exact moment it was resolved."
+  (let ((table (make-hash-table :test 'equal)))
+    (dolist (group (claude-code-ide-org--queue-events-by-id))
+      (when (car group)
+        (let (queued-state queued-ts latest)
+          (dolist (event (cdr group))
+            (let ((ts (plist-get event :ts)))
+              (when (or (null latest) (time-less-p latest ts))
+                (setq latest ts))
+              (when (and (equal (plist-get event :kind) "todo")
+                         (or (null queued-ts) (time-less-p queued-ts ts)))
+                (setq queued-state (plist-get event :state)
+                      queued-ts ts))))
+          (puthash (car group)
+                   (list :queued-state queued-state :latest latest)
+                   table))))
+    table))
+
 (defun claude-code-ide-org--attention-headings-context ()
   "Return a list of one-line descriptions, one per heading across
-`claude-code-ide-org--tracked-files' that a *starting* session should be
-told about, or nil if none. Two kinds, which are the same keyword's
-opposite news (TODO.org :ID: ab75d6d2, :ID: 9d7531f5):
+`claude-code-ide-org--tracked-files\' that a *starting* session should be
+told about, or nil if none. Three kinds:
 
 - WAITING -- blocked, or waiting on someone.
-- DOING on a leaf that is not the currently clocked heading -- an
-  increment somebody walked away from.
+- A DOING leaf the file and the queue disagree about, or that the queue
+  has been silent on since before today -- an increment somebody walked
+  away from.
+- A heading the queue has already moved to DOING which the file does not
+  show yet.
 
-A DOING *container* (`claude-code-ide-org--container-heading-p') is
-deliberately excluded. A container in DOING is a true and unremarkable
-statement about the project, so reporting it would add one permanent,
-never-changing line -- and a report that always says the same thing
-stops being read, which defeats the only purpose this one has. The
-currently clocked heading is excluded for a duller reason:
-`claude-code-ide-org--clocked-heading-context' already reports it on its
-own line, ahead of these.
+*Keyed on file-versus-queue divergence, not on the clock* (TODO.org
+:ID: e0904e93). This used to report a DOING leaf as \"DOING, not
+clocked\" whenever it was not `org-clock-marker\'\'s heading. After the
+2026-08-11 cutover nothing holds a live clock outside a review pass, so
+every DOING leaf matched every time and the line went constant -- and a
+report that always says the same thing stops being read, which defeats
+the only purpose this one has. The word \"clocked\" went with it: it
+named a mechanism this project no longer runs, so it could only
+mislead a reader trying to act on the line.
+
+Divergence meets that standard by construction, because it goes silent
+exactly when the file and the queue agree. Both directions are real and
+both were observed on 2026-08-21: befaed0a sat DOING in the file with a
+DONE queued and unapplied, while c6fc6f46 carried no keyword at all
+while a session actively worked it, its DOING still sitting in the
+queue. The old predicate reported the first as merely \"not clocked\"
+and said nothing whatever about the second.
+
+Quiet-since-before-today is the abandonment test, matching
+`claude-code-ide-org-write-session-start-report\'\'s own self-limiting
+rule so that both reports answer \"first thing each day\" the same way.
+
+A DOING *container* (`claude-code-ide-org--container-heading-p\') is
+still excluded, for the reason the old comment gave: a container in
+DOING is a true and unremarkable statement about the project, so
+reporting it would add one permanent, never-changing line.
 
 Scans each tracked file via `find-file-noselect'; any buffer
 that was not already open before the scan is killed again afterward,
@@ -669,9 +718,7 @@ some other hook touched, or a decoding/`find-file-hook' side effect
 in the user's real config — would otherwise prompt with
 `yes-or-no-p', which blocks indefinitely under `emacsclient -e' and
 would silently eat this hook's whole timeout."
-  (let ((clocked-id (and (org-clocking-p)
-                         (org-with-point-at org-clock-marker
-                           (org-entry-get nil "ID"))))
+  (let ((divergence (claude-code-ide-org--queue-heading-divergence))
         results)
     (dolist (file (claude-code-ide-org--tracked-files))
       (when (file-exists-p file)
@@ -682,20 +729,43 @@ would silently eat this hook's whole timeout."
              (lambda ()
                (let* ((state (org-get-todo-state))
                       (heading-id (org-entry-get nil "ID"))
+                      (queue (and heading-id (gethash heading-id divergence)))
+                      (queued-state (plist-get queue :queued-state))
+                      (latest (plist-get queue :latest))
                       (label
                        (cond
                         ((equal state "WAITING") "WAITING")
                         ((and (equal state "DOING")
-                              (not (and clocked-id heading-id
-                                        (equal clocked-id heading-id)))
                               (not (claude-code-ide-org--container-heading-p)))
-                         "DOING, not clocked"))))
+                         (cond
+                          ((and queued-state (not (equal queued-state "DOING")))
+                           (format "DOING in file, queued -> %s, not yet applied"
+                                   queued-state))
+                          ((null latest)
+                           "DOING in file, nothing ever queued for it")
+                          ((not (claude-code-ide-org--today-p latest))
+                           (format "DOING in file, nothing queued since %s"
+                                   (format-time-string "%Y-%m-%d %H:%M" latest))))))))
                  (when label
                    (push (format "%s: \"%s\" (:ID: %s, in %s)"
                                  label
                                  (org-get-heading t t t t)
                                  (or heading-id "none")
                                  (file-name-nondirectory file))
+                         results))
+                 ;; The other direction. Emitted here rather than in a
+                 ;; second pass because this is the one place the
+                 ;; heading's title and file are already in hand -- a
+                 ;; queued id alone cannot name itself.
+                 (when (and heading-id
+                            (equal queued-state "DOING")
+                            (not (equal state "DOING")))
+                   (push (format
+                          "queued DOING, not yet applied: \"%s\" (:ID: %s, in %s; file says %s)"
+                          (org-get-heading t t t t)
+                          heading-id
+                          (file-name-nondirectory file)
+                          (or state "no keyword"))
                          results))))
              nil 'file))
           (unless already-open
