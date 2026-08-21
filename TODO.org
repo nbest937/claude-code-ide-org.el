@@ -3617,6 +3617,19 @@ One function answers "which heading is today's meta-work node", and it is called
 
 *Open design question, recorded 2026-08-21 (user-flagged for their decision, found reviewing the next-session prompt).* "Two callers: =org_clock_in= creates" is unsettled, not settled: =org_clock_in= is a queued tool that by architecture changes nothing when called. Either (a) the resolver runs at *queue time* -- an immediate file write triggered by a queued tool, a new hybrid class like =org_amend=, so the day-node =:ID:= is resolved while "today" is still today; or (b) it runs at *apply time* inside the review command -- pure, but an event queued late Monday and applied Tuesday resolves "today" to the wrong day's node. (a) keeps the timestamp honest and (b) keeps the tool pure; they cannot both hold. Decide before building; the next-session prompt no longer implies this is specified.
 
+*The open question above has three answers, not the two it poses.* Recorded 2026-08-21 at the user's request, so the analysis does not have to be rebuilt; the decision itself is still theirs.
+
+*(a) Queue time -- =org_clock_in= creates the node when called.* Resolves "today" while today is still today, and hands Claude the id inside the session. Against: it breaks the invariant that queued tools change nothing, which was bought with a documented run of desync bugs; a background or concurrent session would write to TODO.org unreviewed; and a node is created even for a clock event the human later dismisses, which is precisely the empty-node problem this heading's on-demand design exists to prevent.
+
+*(b) Apply time, dated "today" -- the review command creates it.* Tools stay pure, every write stays human-triggered, and no node is made for dismissed work. Against, and disqualifying on its own: an event queued Monday 23:00 and applied Tuesday files Monday's work under Tuesday. Silent wrong attribution is the failure this whole project exists to prevent.
+
+*(c) Apply time, dated from the event's own timestamp.* Everything (b) has, with (b)'s only real defect removed -- using data the event already carries, since every queued event is stamped when it is written. Against: Claude never learns the day-node id during the session.
+
+*Recommended: (c), because its single cost is one this heading has already accepted.* The paragraph above says so outright -- "Claude never learns the daily UUID, which is the point", the target being the stable category title =Review and planning=. So (c) is not a compromise between the other two. It strictly dominates (b), and beats (a) without surrendering anything the design wanted.
+
+*Two consequences to know before committing.* =org-clock-default-task= degrades gracefully rather than silently: the =SessionStart= hook still resolves today's node read-only and never creates, so before the first apply the default task is simply unset -- [[id:6ae83993-906c-4d8b-b11e-c91be8996962][6ae83993]]'s territory, already off the critical path. And a late apply becomes *correct* rather than convenient: meta-work clocked Monday and applied Friday creates Monday's node on Friday, dated Monday. That reads odd until it is set beside the archive behaviour measured the same day on [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] -- =org-archive-subtree= files by =CLOSED=, not by archive time. "File by when it happened, not by when it was recorded" is then one principle holding in two places, rather than a special case invented here.
+
+
 
 *** TODO Institute the Review and planning category, with its DATE_TREE and ritual repeater :code:
 :PROPERTIES:
