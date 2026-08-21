@@ -4729,6 +4729,39 @@ Caught on a real line, 2026-08-20. The review buffer previewed =writes 0:02= for
 
 /Body restored 2026-08-20 by =org_amend=; the original capture silently discarded it -- see/ [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]].
 
+*Fixed 2026-08-21, and the reported symptom was the smaller half.* Chasing the root cause found that *56 of the 353 CLOCK lines standing in TODO.org and DONE.org disagree with their own printed timestamps* -- 35 printing a minute less than their stamps imply, 21 a minute more. Same cause: raw seconds summed and rounded, where org derives a line's total by subtracting two minute-precision stamps.
+
+*Nothing could have surfaced those 56.* A clocktable recomputes from the timestamps and never reads the =>= field, so =org_clock_report= has been quietly reporting different totals than the drawer a human was reading, with no error anywhere. The lines are *not* repaired here -- that is a data change and belongs to its own approved step.
+
+New =claude-code-ide-org--clock-minutes= truncates both endpoints before subtracting; =--format-clock-line= derives its total from it, so a line agrees with its own stamps by construction. The preview computes *per run* rather than pooling, because org writes each line separately and summing raw seconds first also invents a minute out of combined remainders.
+
+*Two of the three sites were live, one was not, and saying which matters.* The preview and =--format-clock-line= via the recompute caller are where the 56 came from. =claude-code-ide-org-close-open-interval= and the consolidate caller are fed endpoints already parsed from org timestamps, so raw rounding was exact there today -- routed through the helper anyway so the invariant survives either input gaining seconds. *Latent, not fixed.*
+
+*One existing test had to be rewritten rather than re-expected, which is the more interesting finding.* =test-recompute-window-reaches-past-the-minute= pinned the =>= figure to prove the 60-second window extension mattered. Under correct arithmetic it cannot: any guidepost inside that extension truncates to the same minute as END *by construction*, so it can never move a total. Verified by removing the extension -- byte-identical output, exactly the "verified nothing" failure that test's own docstring was written to warn about. It now asserts on *membership* instead: a lone =pause= at 09:10:30 drops the line when the window includes it and leaves it whole when it does not, a difference no rounding coincidence can imitate.
+
+*Known limit, flagged not chased.* Even corrected, the preview cannot model the already-recorded-interval subtraction apply performs at point, because an unassigned span has no heading to read a drawer from. The truncation fix removes the 25.5% class; that residual is inherent to previewing before assignment.
+
+Mutation-tested three ways -- reverting to raw rounding, truncating only one endpoint, and removing the window extension each fail a distinct test. 329 tests.
+*** Fifty-six CLOCK lines disagree with their own timestamps :code:
+:PROPERTIES:
+:ID:       057cec53-d10e-45d0-b9ef-32713411c439
+:CREATED:  [2026-08-21 Fri 07:52]
+:END:
+
+Measured 2026-08-21: of 353 CLOCK lines across TODO.org and DONE.org, *56 print a =>= total that does not match their own two timestamps* -- 35 a minute low, 21 a minute high. Example, TODO.org:184: =[...09:31]--[...09:36] =>  0:04=, where the stamps say five minutes.
+
+The cause is fixed ([[id:c6fc6f46-4954-4fdf-9d7e-7c8bf3a1a952][c6fc6f46]]) and no new line can be written this way. These are the ones already on disk.
+
+*Why nobody noticed, and why it still matters.* A clocktable recomputes from the timestamps and never reads the =>= field, so =org_clock_report= has been silently disagreeing with the drawer a human reads. Neither number is corrupt; they simply cannot both be right, and the *timestamps are the record* -- they are what org itself computes from, and what every report already uses.
+
+*Deliberately not repaired at the same time as the code.* Rewriting the accumulated record in bulk is the shape behind [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]] and the =b74e0f19= rounding incident, and the one comparable pass (the =507754ba= recompute) was explicitly approved first. Fixing the writer is safe on its own; rewriting history is a separate decision with a separate blast radius.
+
+*Approach when approved.* A targeted totals-only rewrite: for each matching CLOCK line, recompute =>= from the two stamps already printed on it and replace *only that field*. Not a =--consolidate-logbook-text= pass, which rewrites whole drawers and is exactly the incident shape. The endpoints are never touched, so no interval changes, only the derived label agrees with the interval again.
+
+*Verification is already written* -- the same script that found the 56 re-run after, expecting 0. Sequencing: commit first, write on disk with the buffers unmodified, =revert-buffer= without =preserve-modes=, lint, separate commit.
+
+*Open, and the reason this is not simply a chore.* Whether pre-cutover lines should be repaired at all. They were written by the old aggregator against a different model of what an interval meant, and =claude-code-ide-org-span-minimum-interval='s docstring already treats them as a population deliberately left alone. Making their labels self-consistent is defensible; so is leaving them visibly of their era.
+
 ** DONE A hand-set TODO transition records the change but never the time :code:
 CLOSED: [2026-08-19 Wed 17:47]
 :PROPERTIES:
