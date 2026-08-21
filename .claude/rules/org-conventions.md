@@ -121,21 +121,27 @@ this project cites both constantly. Distinguish them.
 registered:
 
 ```org
-[[orgit-rev:~/git/claude-code-ide-org/::b146008][b146008]]
+[[orgit-rev:claude-code-ide-org::b146008][b146008]]
 ```
 
-It renders in org's link face — a stronger cue than verbatim — and opens the
-commit in Magit. Use `orgit-log:` for a range.
+**Use the repo *name*, never a path.** `orgit--repository-directory` resolves
+a name from `magit-repos-alist` before falling back to `expand-file-name`, so
+the named form is machine-independent while a path form hard-codes one
+machine. The Doom config sets `magit-repository-directories` to `("~/git/" . 1)`,
+which names every repo there by its basename — verified 2026-08-21 to resolve
+`claude-code-ide-org` to the right directory.
+
+The link renders in org's link face — a stronger cue than verbatim — and
+opens the commit in Magit. Use `orgit-log:` for a range.
+
+**There is no implicit "the repo this file is in".** Nothing resolves that;
+relative forms (`./…`) work but resolve against `default-directory`, and here
+that is unreliable — `~/org/claude-code-ide-org/TODO.org` is a *symlink* to
+the copy in the repo, so which directory a buffer reports depends on which
+path opened it, and via the agenda path it is not a git repo at all.
 
 **Prospective only.** The 25 existing `(=535c98c=)` references stay; there is
 nothing wrong with them and rewriting them is churn.
-
-**Portability caveat, measured 2026-08-21.** `orgit--repository-directory`
-resolves a *name* from `magit-repos-alist` before falling back to
-`expand-file-name`, so `orgit-rev:claude-code-ide-org::b146008` would be
-machine-independent — but `magit-repository-directories` is nil here, so
-today only the path form resolves. Setting it in the Doom config is the
-upgrade; until then a link carries this machine's path.
 
 ## Dependencies between tasks
 
