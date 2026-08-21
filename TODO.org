@@ -1605,6 +1605,19 @@ This heading is now a *dependency of* [[id:b07df584-3adc-433c-ab49-e104f88aecf7]
 
 *The cheapest mitigation needs neither this tool nor that decision:* write shorter bodies. That is standing user guidance -- economise on body prose, never on heading count -- and 2026-08-21's own output did not follow it.
 
+*The policy was applied by hand to one closed body, 2026-08-21* ([[orgit-rev:claude-code-ide-org::f0cdc90][f0cdc90]]). [[id:cc0c17a7-a554-426d-afeb-09cbee7339f0][cc0c17a7]] went from 138 lines to 34: the four items, one live loose end, and the original problem statement plus plan of attack moved into a drawer. It was a good test case because its body *contradicted itself* -- "Still open: the apply-side half" forty lines above "The apply-side half needed nothing, because the premise was wrong" -- so a reader stopping in the middle came away with a false belief. That is the append-only defect in its most expensive form.
+
+*So the answer to "can this be done programmatically" is yes, and the answer to "should it be done this way" is no.* Locating a heading by =:ID:=, taking the range to the next heading and rewriting it is a dozen lines of script. The hazard is not the rewrite, it is the range.
+
+*The first attempt corrupted the file, and this is the second recorded instance.* The next-heading test was =startswith("*")=, which matched a *bold prose line* (=*Cause.*=) rather than a headline, so it replaced 6 lines of a 123-line body and left the remainder orphaned below the new text. The body above already records that an earlier hand edit through =emacsclient= "corrupted a sibling heading". Two corruptions, two different range bugs, both from hand-rolling the same operation -- which is the argument for a tool that owns the range logic once, rather than for care.
+
+*And =bin/lint-org= did not catch it: 0 errors on the corrupted file.* The lint checks structure, and the corruption was prose-level -- orphaned paragraphs under an otherwise well-formed heading. Nothing mechanical would have caught it. *Git was the only safety net*, and =git checkout -- TODO.org= restored all 136 lines exactly. That converts "commit before revising" from ceremony into the load-bearing precondition, and it is the concrete vindication of the deletion-reversibility argument recorded above.
+
+*One convention this created and did not ratify:* the drawer is named =:ORIGINAL:=. The policy above says "move into a drawer" without naming one. If that name stands it belongs in =.claude/rules/org-conventions.md= beside the other drawer conventions, and =bin/lint-org= could then assert that a closed body's history lives in it. Deliberately flagged rather than quietly established.
+
+*Immediate consequence worth sequencing on:* this operation is what [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] is blocked on. Archiving stalls because CLAUDE.md requires an outcome summary before a =DONE= heading is archived, and there are 30 of them; producing those summaries *is* this revision applied 30 times.
+
+
 ** DONE Rename the WAIT keyword to WAITING, matching the org community's spelling :code:
 CLOSED: [2026-08-20 Thu 16:20]
 :PROPERTIES:
