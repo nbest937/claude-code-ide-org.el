@@ -3629,6 +3629,15 @@ One function answers "which heading is today's meta-work node", and it is called
 
 *Two consequences to know before committing.* =org-clock-default-task= degrades gracefully rather than silently: the =SessionStart= hook still resolves today's node read-only and never creates, so before the first apply the default task is simply unset -- [[id:6ae83993-906c-4d8b-b11e-c91be8996962][6ae83993]]'s territory, already off the critical path. And a late apply becomes *correct* rather than convenient: meta-work clocked Monday and applied Friday creates Monday's node on Friday, dated Monday. That reads odd until it is set beside the archive behaviour measured the same day on [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] -- =org-archive-subtree= files by =CLOSED=, not by archive time. "File by when it happened, not by when it was recorded" is then one principle holding in two places, rather than a special case invented here.
 
+*DECIDED 2026-08-21 by the user: option (c).* The resolver runs at *apply time* and dates the node from *the event's own timestamp*, never from "today".
+
+This supersedes the "Two callers, and the asymmetry between them is the design" paragraph above, which says "=org_clock_in= calls it when the target names the category, and *creates* if absent". It does not create. =org_clock_in= queues an event as every queued tool does, and creation happens when that event is applied, against the day the event was stamped. The =SessionStart= half of that paragraph is unchanged and still correct: it resolves read-only and never creates.
+
+*What to build, restated under the decision:* find the =:DATE_TREE:= heading; =org-datetree-find-date-create= for *the event's date*; stamp =:ID:= and =:CREATED:= if the node was just made; set =org-clock-default-task=; return the id. The only change from the original steps is the date argument, which is why this is a smaller build than the open question made it look.
+
+/Recorded by appending, which is itself/ [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]]/'s defect: the decision sits below the superseded paragraph rather than replacing it, so a reader meets the stale version first./
+
+
 
 
 *** TODO Institute the Review and planning category, with its DATE_TREE and ritual repeater :code:
