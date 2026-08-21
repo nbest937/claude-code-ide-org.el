@@ -1361,127 +1361,23 @@ CLOCK: [2026-08-20 Thu 07:33]--[2026-08-20 Thu 07:39] =>  0:06
 - [2026-08-20 Thu 07:33]--[2026-08-20 Thu 07:39] assigned at review
 :END:
 
-Observed 2026-08-19: apply refused
-[[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]]'s =TODO -> TODO=.
-There was nothing to do — the heading already held that keyword — but
-the event was queued, offered at review, marked, and failed there.
+*Problem.* =org_set_todo= queued transitions whose requested state was already the state on disk. Each no-op cost a queue event, a review-buffer line and a dismissal. Four occurrences in one day, all the same pattern: writing a keyword inline at heading creation -- because =org_capture= cannot target a category ([[id:97696fc2-f07b-4586-b280-de6a7d26fb87][97696fc2]]) -- then calling =org_set_todo= for that same state out of habit.
 
-*Cause.* The heading was created by writing the keyword straight into the
-heading text directly, and =org_set_todo TODO= was then called on it.
-The tool recorded the transition faithfully; the reply even said
-=(was TODO)=, which was the signal and was not read.
+*Solution: refuse at the source; the apply side already tolerated it.* =org_set_todo= now returns an =Error:= reply when the requested state is already held on disk, so =bin/hooks/queue-append= drops the event and the no-op never reaches the queue (=c2cf203=). The =Error:= prefix is the mechanism rather than a verdict -- the hook decides by testing for it, so refusing *requires* it, and the wording carries what the prefix misstates. It compares against disk, not against pending events, which is what =from= means everywhere else. Apply needed no code change, but its tolerance is now pinned by a test rather than working by omission (=9b4d4f8=).
 
-*Two places it could be stopped, and they are not equivalent.*
-=org_set_todo= could refuse to queue when =from= equals =to=, which
-costs one comparison and gives the caller immediate feedback instead of
-a failure hours later at apply. Or apply could treat a no-op as
-satisfied rather than failed, since the file already holds the requested
-state — arguably the more correct semantics, because an event whose
-outcome is already true has in every meaningful sense been applied.
+*Verified* end to end through the MCP tool rather than by calling the elisp -- the reply was the refusal and the queue file stayed at 121 lines. An earlier check proved nothing: invoking the function over =emacsclient= never fires the =PostToolUse= hook that writes the queue, so the count could not have moved either way.
 
-Doing both is defensible: refuse early, and be tolerant late for events
-queued before the refusal existed.
+*Falsified -- the premise this heading was filed on.* Its original title asserted such a transition "reaches apply and fails there". Probed 2026-08-20: applying a =TODO -> TODO= item returns nil, leaves the keyword untouched and writes no State line, and a queued chain (=NEXT -> DOING= then =NEXT -> DONE=, both carrying =from: NEXT=) applies in one pass. The heading was filed on an inference drawn from two failures in one apply run whose error text was never read. Retitled, because a false title is the worst stale claim: it is what a reader sees without opening the body.
 
-*Related:* [[id:97696fc2-f07b-4586-b280-de6a7d26fb87][97696fc2]] is why
-headings get created by hand-written text at all — =org_capture= with no
-target misfiles, so it gets avoided.
+*Loose end, deliberately unexplained:* what actually failed for [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] in that run. If it fails again, the error text is the evidence this heading never had.
 
-*Reproduced within minutes of filing this, on this heading.* All three
-headings filed that afternoon were created by writing the keyword into
-the heading text, then had =org_set_todo TODO= called on them — queuing
-three more no-ops, one of them against this very heading. The tool's
-reply said =(was TODO)= each time, which is the signal, and it was not
-read because the calls had been redirected to =/dev/null=.
+:ORIGINAL:
+Observed 2026-08-19: apply refused [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]]'s =TODO -> TODO=. There was nothing to do -- the heading already held that keyword -- but the event was queued, offered at review, marked, and failed there.
 
-Two lessons, and the second is the more useful:
+*Cause.* The heading was created by writing the keyword straight into the heading text, and =org_set_todo TODO= was then called on it. The tool recorded the transition faithfully; the reply even said =(was TODO)=, which was the signal and was not read.
 
-- Suppressing a tool's output turns a no-op into an apparent success.
-  That is the standing "silence is not a passing check" rule, hit again.
-- The reply already carries the diagnosis. =(was TODO)= going to =TODO=
-  is machine-detectable at the moment it happens, which is the argument
-  for refusing at =org_set_todo= rather than at apply: by apply the
-  context that would explain it is hours gone.
-
-Frequency is now four occurrences in one day, all self-inflicted and all
-from the same pattern — writing a keyword inline at creation because
-=org_capture= cannot target a category
-\([[id:97696fc2-f07b-4586-b280-de6a7d26fb87][97696fc2]]\), then setting
-the state the tool way out of habit.
-
-*Half shipped 2026-08-19* (=c2cf203=): =org_set_todo= now refuses when
-the requested state is the state on disk, returning an =Error:= reply so
-=bin/hooks/queue-append= drops the event.
-
-*The =Error:= prefix is the mechanism, not a verdict.* The reply is the
-tool's only channel, and the hook decides whether to write an event by
-testing that prefix — so refusing *requires* it, and the wording has to
-carry what the prefix misstates: the requested state is already true,
-which is success by every reading except the queue's. The test asserts
-the prefix specifically, because a politely-worded refusal without it
-would queue the no-op anyway.
-
-*Compares against disk, not against pending events*, which is what
-=from= already means throughout. Confirmed live: a heading with a
-pending =TODO -> DOING= still accepted =DOING=, because disk still held
-=TODO=. That is correct rather than a gap — a queued transition is a
-proposal, and proposing against the file as it stands is the whole
-premise.
-
-*Verified end to end through the MCP tool*, not by calling the elisp:
-the reply was the refusal and the queue file stayed at 121 lines. An
-earlier check of the same thing proved nothing, because invoking the
-function over =emacsclient= never fires the =PostToolUse= hook that
-writes the queue, so the count could not have moved either way. That is
-the "silence is not a passing check" failure in a new costume — a
-measurement that cannot distinguish the outcomes.
-
-*Still open: the apply-side half.* Apply remains intolerant of a no-op,
-so the three events queued before this change will still fail and want
-dismissing with =d=. Treating an already-true event as satisfied rather
-than failed is the more correct semantics and is what would have spared
-those three; it is unbuilt.
-
-*The apply-side half needed nothing, because the premise was wrong.*
-Probed 2026-08-20: applying a =TODO -> TODO= item returns nil, leaves the
-keyword untouched, and writes no State line. Apply already treats an
-already-true event as satisfied, so its events are consumed and it leaves
-the queue.
-
-Nor does a queued *chain* fail, which was the other candidate:
-=NEXT -> DOING= and =NEXT -> DONE=, both carrying =from: NEXT= because
-the file had not moved when either was queued, apply in one pass and land
-on DONE.
-
-*So this heading was filed on an inference, not an observation.* Its
-original title asserted that such a transition "reaches apply and fails
-there". The evidence was that two items failed in one apply run and this
-was one of the unapplied ones — but the error text was never seen, and
-the inference was wrong. Retitled, because a false title is the worst
-kind of stale claim: it is what a reader sees without opening the body.
-
-*What did ship* is the source-side refusal (=c2cf203=): =org_set_todo=
-returns an =Error:= reply when the requested state is already held, so
-=queue-append= drops it and the no-op never reaches the queue at all.
-Verified end to end through the MCP tool, with the queue file unchanged
-at 121 lines.
-
-*And the tolerance is now declared rather than incidental* (=9b4d4f8=).
-It worked by omission — =org-todo= on a no-op never calls
-=org-add-log-setup=, so =org-log-note-marker= stays nil and
-=--review-apply-state='s note block is skipped. Nothing said so, so
-nothing stopped a later change to the note handling from turning a
-harmless no-op into a permanent queue resident: the event asks for a
-state that is already true, so nothing could ever satisfy it. Mutating
-apply into refusing one fails the new test and two existing ones.
-
-*Left unexplained, deliberately:* what actually failed for
-[[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] in that run. Both
-its =:ID:= and =b07df584='s resolve now, and both pending events should
-apply on the next pass. If either fails again, the error text is the
-evidence this heading never had.
-
-
-
+*Two places it could be stopped, and they are not equivalent.* =org_set_todo= could refuse to queue when =from= equals =to=, which costs one comparison and gives the caller immediate feedback instead of a failure hours later at apply. Or apply could treat a no-op as satisfied rather than failed, since the file already holds the requested state. Doing both is defensible: refuse early, be tolerant late for events queued before the refusal existed.
+:END:
 
 ** DOING [0/1] Review how the emacs-tools are advertised, against which ones get used :code:research:
 :PROPERTIES:
