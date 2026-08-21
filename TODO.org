@@ -1375,20 +1375,28 @@ evidence this heading never had.
 
 
 
-** TODO [0/0] Review how the emacs-tools are advertised, against which ones get used :code:research:
+** DOING [0/1] Review how the emacs-tools are advertised, against which ones get used :code:research:
 :PROPERTIES:
 :ID:       420816ec-677e-45a5-b898-fb5db70d214b
 :CREATED:  [2026-08-20 Thu 07:41]
 :END:
 :LOGBOOK:
-- State "TODO"       from "TODO"       [2026-08-20 Thu 07:49] \\
-  re-queued; keyword was dismissed
 - State "TODO"       from              [2026-08-20 Thu 07:41] \\
   seven of thirteen tools never called
 CLOCK: [2026-08-20 Thu 07:47]--[2026-08-20 Thu 07:52] =>  0:05
 - [2026-08-20 Thu 07:47]--[2026-08-20 Thu 07:52] assigned at review
+- State "TODO"       from "TODO"       [2026-08-20 Thu 07:49] \\
+  re-queued; keyword was dismissed
 CLOCK: [2026-08-20 Thu 07:57]--[2026-08-20 Thu 07:58] =>  0:01
 - [2026-08-20 Thu 07:57]--[2026-08-20 Thu 07:58] assigned at review
+- State "DOING"      from "TODO"       [2026-08-20 Thu 21:10] \\
+  measuring usage across 69 transcripts
+CLOCK: [2026-08-21 Fri 07:49]--[2026-08-21 Fri 07:56] =>  0:07
+- [2026-08-21 Fri 07:49]--[2026-08-21 Fri 07:56] assigned at review
+CLOCK: [2026-08-21 Fri 07:59]--[2026-08-21 Fri 08:02] =>  0:03
+- [2026-08-21 Fri 07:59]--[2026-08-21 Fri 08:02] assigned at review
+CLOCK: [2026-08-21 Fri 08:43]--[2026-08-21 Fri 08:45] =>  0:02
+- [2026-08-21 Fri 08:43]--[2026-08-21 Fri 08:45] assigned at review
 :END:
 
 Thirteen tools are advertised. Over a two-day session that did almost
@@ -1461,10 +1469,18 @@ Set against it, on the same day: =org_capture='s description states in capital l
 
 *What not to conclude.* Low breadth is not obviously a defect. Sorting a heading's children is genuinely rare, and =org_sort_children='s zero calls may be honest rather than a discovery failure. Deciding which of the six under-used tools deserve a rule, and which are simply niche, is the remaining judgement and is not answered by any of the above.
 
-*** An MCP tool accepts arguments it does not have, and says nothing :code:
+*** TODO An MCP tool accepts arguments it does not have, and says nothing :code:
 :PROPERTIES:
 :ID:       1cd2df62-35e9-47dc-bcce-dda7bae3c522
 :CREATED:  [2026-08-20 Thu 16:45]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-20 Thu 16:45] \\
+  silent parameter drop; found by its own consequence
+CLOCK: [2026-08-20 Thu 17:18]--[2026-08-20 Thu 17:22] =>  0:04
+- [2026-08-20 Thu 17:18]--[2026-08-20 Thu 17:22] assigned at review
+CLOCK: [2026-08-20 Thu 21:08]--[2026-08-20 Thu 21:11] =>  0:03
+- [2026-08-20 Thu 21:08]--[2026-08-20 Thu 21:11] assigned at review
 :END:
 
 =org_capture= takes =(title target tags note)=. On 2026-08-20 it was called five times with two invented arguments, =todo_state= and =body=. Every call succeeded, returned /"Captured: ... (ID: ...)"/, and silently dropped both.
@@ -1581,6 +1597,8 @@ CLOSED: [2026-08-20 Thu 16:20]
   precondition re-verified: 0 WAIT headings, 0 pending WAIT events
 - State "DONE"       from "DOING"      [2026-08-20 Thu 16:20] \\
   renamed; hook scope fixed as a prerequisite
+CLOCK: [2026-08-20 Thu 16:42]--[2026-08-20 Thu 16:46] =>  0:04
+- [2026-08-20 Thu 16:42]--[2026-08-20 Thu 16:46] assigned at review
 :END:
 
 *Done 2026-08-20, same day it was filed.* Both preconditions re-verified immediately before the edit rather than trusted from the survey: zero =WAIT= headings across TODO.org, DONE.org and notes.org, and no unapplied =WAIT= event queued.
@@ -2130,7 +2148,7 @@ close. With this and
 children are 29 =DONE= and 2 =CANCELLED=, and it can close.
 
 
-** DOING [2/8] Update CLAUDE.md and the org skill for the new architecture :code:
+** DOING [3/8] Update CLAUDE.md and the org skill for the new architecture :code:
 :PROPERTIES:
 :ID:       02aaae22-0958-4c0f-b5bb-2cbea32416ae
 :BLOCKER:  ids(7771fc63-9374-4c8a-9e80-24ceec21977c e51d6ba1-cc1d-4745-8aa7-e4b1183a230b c084553c-0621-4a96-9fa1-f32850aeec6a)
@@ -2685,7 +2703,8 @@ plan document, which carries this child's design as its second half rather
 than a file of its own.
 
 
-*** DOING Decide whether CLAUDE.md needs a path-scoped =.claude/rules/= split :code:
+*** DONE Decide whether CLAUDE.md needs a path-scoped =.claude/rules/= split :code:
+CLOSED: [2026-08-21 Fri 08:08]
 :PROPERTIES:
 :ID:       befaed0a-18ed-445e-b997-8b9c2965ad45
 :BLOCKER:  ids(43d317e8-f2b6-4ce2-9634-64e9bda83efe c556a9ed-8e37-4fc3-ab4b-63292837236d)
@@ -2702,10 +2721,10 @@ CLOCK: [2026-08-15 Sat 08:28]--[2026-08-15 Sat 08:34] =>  0:06
   Auto-promoted: sole remaining TODO in its sibling group.
 CLOCK: [2026-08-17 Mon 10:44]--[2026-08-17 Mon 10:48] =>  0:04
 - [2026-08-17 Mon 10:44]--[2026-08-17 Mon 10:48] assigned at review
-CLOCK: [2026-08-17 Mon 10:55]--[2026-08-17 Mon 10:56] =>  0:01
 - State "DOING"      from "WAIT"       [2026-08-17 Mon 10:51] \\
   rule loading confirmed, deciding outcome
 - [2026-08-17 Mon 10:51]--[2026-08-17 Mon 10:56] weigh split outcome against size target
+CLOCK: [2026-08-17 Mon 10:55]--[2026-08-17 Mon 10:56] =>  0:01
 CLOCK: [2026-08-17 Mon 11:00]--[2026-08-17 Mon 11:03] =>  0:03
 - [2026-08-17 Mon 11:00]--[2026-08-17 Mon 11:03] suggested span, accepted at review
 CLOCK: [2026-08-17 Mon 12:08]--[2026-08-17 Mon 12:13] =>  0:05
@@ -2720,6 +2739,8 @@ CLOCK: [2026-08-17 Mon 12:45]--[2026-08-17 Mon 13:13] =>  0:28
 - [2026-08-17 Mon 12:45]--[2026-08-17 Mon 13:13] assigned at review
 CLOCK: [2026-08-17 Mon 15:07]--[2026-08-17 Mon 15:11] =>  0:04
 - [2026-08-17 Mon 15:07]--[2026-08-17 Mon 15:11] assigned at review
+- State "DONE"       from "DOING"      [2026-08-21 Fri 08:08] \\
+  split shipped; loading confirmed this session
 :END:
 
 Blocked on both siblings deliberately: the decision takes the resulting
@@ -3592,7 +3613,7 @@ function returns and adds one prompt. Related to
 heading put the evidence on screen, and this one would capture the
 conclusion the human draws from it — but neither requires the other.
 
-** DOING [7/10] Make the guidepost pipeline produce durations that mean what they say :code:
+** DOING [10/12] Make the guidepost pipeline produce durations that mean what they say :code:
 :PROPERTIES:
 :ID:       406e9200-c3e7-49ac-a8d0-d6ff8e061ce4
 :CREATED:  [2026-08-18 Tue 08:15]
@@ -4453,7 +4474,8 @@ is labelled as one.
 *Not done here, and deliberately:* the second half of this heading's
 original brief — surfacing pending-review state glanceably in the
 statusline — is untouched. This landed only what step 2 requires.
-*** NEXT The session-start report's "DOING, not clocked" line has stopped discriminating :code:
+*** DONE The session-start report's "DOING, not clocked" line has stopped discriminating :code:
+CLOSED: [2026-08-21 Fri 08:31]
 :PROPERTIES:
 :ID:       e0904e93-b99d-44ad-b641-e3e13aced8c4
 :CREATED:  [2026-08-18 Tue 11:41]
@@ -4465,6 +4487,10 @@ CLOCK: [2026-08-18 Tue 12:10]--[2026-08-18 Tue 12:12] =>  0:02
 - [2026-08-18 Tue 12:10]--[2026-08-18 Tue 12:12] assigned at review
 - State "NEXT"       from "TODO"       [2026-08-19 Wed 18:56] \\
   Auto-promoted: sole remaining TODO in its sibling group.
+- State "DONE"       from "DOING"      [2026-08-21 Fri 08:31] \\
+  shipped, mutation-tested, verified live
+- State "DOING"      from "NEXT"       [2026-08-21 Fri 08:31] \\
+  re-key session report on queue divergence
 :END:
 
 =claude-code-ide-org--attention-headings-context= reports a leaf as
@@ -4646,6 +4672,8 @@ That number is an argument about *where*, not *whether*. At 0.5% there is no cas
 :CREATED:  [2026-08-18 Tue 16:41]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-21 Fri 08:20]--[2026-08-21 Fri 08:32] =>  0:12
+- [2026-08-21 Fri 08:20]--[2026-08-21 Fri 08:32] depth-counter verification, reassigned by hand from 420816ec
 - State "TODO"       from              [2026-08-19 Wed 08:06] \\
   re-queued, lost to my git checkout
 :END:
@@ -4771,10 +4799,23 @@ rounding incident pointed the other way.
 *Measured for September rather than decided now.* Post-cutover corpus, 283 lines / 36.88 h: 120s drops 23.7% of lines for 3.03% of recorded time; 180s, 40.6% for 7.37%; 300s, 63.6% for 17.71%; 60s drops nothing, confirming the rendering conditions already cover that range. The sweep lives in the docstring and the value belongs to [[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]].
 
 *The measurement that did not replicate is the more useful half.* 96a51c2f recorded 6.5% of recorded time for the same 120s value on 2026-08-18; the same measurement on 2026-08-20 gives 3.03%. No code changed — the corpus grew and the mix shifted. That heading's instruction to re-derive rather than confirm now has a two-day counterexample behind it, and its body was corrected to say so.
-*** The review buffer predicts a duration org does not write :code:
+*** DONE The review buffer predicts a duration org does not write :code:
+CLOSED: [2026-08-21 Fri 07:52]
 :PROPERTIES:
 :ID:       c6fc6f46-4954-4fdf-9d7e-7c8bf3a1a952
 :CREATED:  [2026-08-20 Thu 16:43]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-20 Thu 16:28]--[2026-08-20 Thu 16:29] =>  0:01
+- [2026-08-20 Thu 16:28]--[2026-08-20 Thu 16:29] assigned at review
+CLOCK: [2026-08-20 Thu 16:41]--[2026-08-20 Thu 16:46] =>  0:05
+- [2026-08-20 Thu 16:41]--[2026-08-20 Thu 16:46] assigned at review
+- State "TODO"       from              [2026-08-20 Thu 16:45] \\
+  captured keywordless; state never set
+- State "DOING"      from "TODO"       [2026-08-21 Fri 07:48] \\
+  one root cause, three sites; 56 written lines already self-inconsistent
+- State "DONE"       from "DOING"      [2026-08-21 Fri 07:52] \\
+  root cause fixed at all three sites; the 56 stale lines left for a separate approval
 :END:
 
 =claude-code-ide-org--review-written-summary= sums raw seconds across a span's runs. org computes a CLOCK line's duration from the two *minute-truncated* timestamps it records. The two disagree by a minute whenever the seconds fall either side of a boundary.
@@ -4804,10 +4845,19 @@ New =claude-code-ide-org--clock-minutes= truncates both endpoints before subtrac
 *Known limit, flagged not chased.* Even corrected, the preview cannot model the already-recorded-interval subtraction apply performs at point, because an unassigned span has no heading to read a drawer from. The truncation fix removes the 25.5% class; that residual is inherent to previewing before assignment.
 
 Mutation-tested three ways -- reverting to raw rounding, truncating only one endpoint, and removing the window extension each fail a distinct test. 329 tests.
-*** Fifty-six CLOCK lines disagree with their own timestamps :code:
+*** DONE Fifty-six CLOCK lines disagree with their own timestamps :code:
+CLOSED: [2026-08-21 Fri 08:01]
 :PROPERTIES:
 :ID:       057cec53-d10e-45d0-b9ef-32713411c439
 :CREATED:  [2026-08-21 Fri 07:52]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-21 Fri 07:53] \\
+  data repair, awaiting approval; writer already fixed
+- State "DOING"      from "TODO"       [2026-08-21 Fri 08:00] \\
+  approved; all 56 are post-cutover so the era question is moot
+- State "DONE"       from "DOING"      [2026-08-21 Fri 08:01] \\
+  56 repaired, 0 remaining; all post-cutover
 :END:
 
 Measured 2026-08-21: of 353 CLOCK lines across TODO.org and DONE.org, *56 print a =>= total that does not match their own two timestamps* -- 35 a minute low, 21 a minute high. Example, TODO.org:184: =[...09:31]--[...09:36] =>  0:04=, where the stamps say five minutes.
@@ -5062,10 +5112,14 @@ this the moment it happened, and is the only option that catches it
 whoever the culprit is. Cheaper and narrower: a hook or a documented
 rule that refuses to discard =TODO.org=/=DONE.org= working-tree changes
 without showing the diff first.
-** Decide how far the review-apply cycle can be automated, given the interactive constraint :code:
+** TODO Decide how far the review-apply cycle can be automated, given the interactive constraint :code:
 :PROPERTIES:
 :ID:       361e2708-8124-4bd1-9c44-f97ca97aca4a
 :CREATED:  [2026-08-21 Fri 08:08]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-21 Fri 08:09] \\
+  decide the automation boundary
 :END:
 
 Raised by the user 2026-08-21: the review-apply cycle "seems pretty straightforward lately", so how much of it still needs a human at all?
@@ -5082,10 +5136,14 @@ Raised by the user 2026-08-21: the review-apply cycle "seems pretty straightforw
 
 *The objection that binds, and its exact scope.* [[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]] records that a model reasoning over the queue file alone has *strictly less* information than the threshold algorithm -- the same timestamps and heading IDs, minus any domain knowledge -- and that a fluent proposal is harder to reject than a transparently mechanical one. That holds against any automation whose only input is the queue. It does not settle the case for an automation that reads the session transcripts, which carry what the queue does not.
 
-** An unassigned span's readout omits the evidence that would make its heading obvious :code:
+** TODO An unassigned span's readout omits the evidence that would make its heading obvious :code:
 :PROPERTIES:
 :ID:       5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46
 :CREATED:  [2026-08-21 Fri 08:08]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-21 Fri 08:09] \\
+  add transcript evidence to span readout
 :END:
 
 Stated by the user 2026-08-21, as the one hitch left in an otherwise straightforward review pass: the readout "lacks adequate context of what was happening immediately before it to make the assignment obvious, but I believe it's there in the data."
@@ -5099,6 +5157,34 @@ Stated by the user 2026-08-21, as the one hitch left in an otherwise straightfor
 *Render evidence, do not recommend a heading.* "This session edited =config.el= around 10:20" is a fact the human weighs; "this span was probably c6fc6f46" is a proposal, and 0c8644ff's anchoring argument applies to the second and not the first. Holding that line is what keeps this heading independent of the automation decision in [[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]] rather than a prerequisite for it.
 
 *Test corpus is already sitting in the queue:* three unassigned spans as of 2026-08-21 -- =16:28--16:54= and =17:18--17:22= on 08-20, =21:08--21:11= on 08-20. Whether the added evidence makes each one's heading obvious is answerable against those three before anything is generalised.
+** The heading suggester will name a container, which is never itself the work :code:
+:PROPERTIES:
+:ID:       62c6b1be-4e3c-4ea1-9f0c-19ee70be0e1e
+:CREATED:  [2026-08-21 Fri 09:01]
+:END:
+
+*Measured live 2026-08-21, at the cost of 24 minutes credited to the wrong heading.* Four spans applied at review all named [[id:420816ec-677e-45a5-b898-fb5db70d214b][420816ec]] -- 0:07, 0:03, 0:12 and 0:02 -- none of which was work on it. The 0:12 was reassigned by hand to [[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]]; the other three are genuinely cross-cutting and were left where they landed, which is [[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]]'s case arriving in practice.
+
+*=claude-code-ide-org--review-suggest-heading= behaved exactly as documented*, and that is the point. Its rule is that a heading is the answer while it is in a work-in-progress state and nothing has taken it out. 420816ec entered DOING at [2026-08-20 Thu 21:10] and never left, so it was the only candidate and it won every span. No latch bug: zero matches for "container" anywhere in the function.
+
+*But a container can never itself be the work.* =claude-code-ide-org--container-heading-p= returns =t= for 420816ec and =nil= for 9202b39d, checked live. This project already relies on exactly that distinction one screen away: =claude-code-ide-org--attention-headings-context= excludes DOING containers because "a container in DOING is a true and unremarkable statement about the project". Two consumers read the same state and treat it oppositely, and the suggester has the harmful half -- an unremarkable statement is the worst possible basis for a guess, because it is true for as long as any child is open.
+
+*Proposed fix, one condition:* return nil when the active id is a container, letting the span fall to the unassigned path [[id:3d0487f4-b8f8-451c-88bf-ab537663cbd0][3d0487f4]] built for it. Nil is already this function's documented answer whenever it cannot do better, and the same argument its docstring makes twice -- that a plausible wrong id is worse than none -- applies with more force here, since a container's plausibility never expires.
+
+*Distinct from [[id:d1cf852a-696a-4195-a4a7-039439c1f4b7][d1cf852a]]*, which proposes a hard *right edge* so guideposts after an increment provably leave the heading. That bounds a latch in time; this one says a whole class of heading should never be suggested at any time. Either alone would have prevented these four spans, which is worth knowing before both are built.
+
+*The other half of the cause was mine and no code change fixes it.* CLAUDE.md's standing rule is to set DOING before beginning work on a tracked heading. This session closed befaed0a, ran the depth-counter verification and shipped [[id:e0904e93-b99d-44ad-b641-e3e13aced8c4][e0904e93]] while calling =org_clock_in= exactly once, at 08:31:36, five seconds before clocking out. Every guidepost was therefore unattributed and fell to the suggester. Container exclusion would have turned a confident wrong answer into an honest nil; it would not have produced the right one.
+
+*Shipped 2026-08-21.* =claude-code-ide-org--review-suggest-heading= resolves its answer once at the end and returns nil when that id is a container, via a new =claude-code-ide-org--container-id-p=. Resolved at the end rather than inside the loop because the loop runs over every queued =todo= event and this reads a file. The helper mirrors =claude-code-ide-org--review-heading-title= -- =org-id-find= to a marker, =org-with-point-at=, release the marker -- and answers nil for an id that resolves to nothing, since a lookup failure is not evidence of container-ness and suppressing on it would lose a suggestion the human could still act on.
+
+*Verified live against the heading that caused this, after =load-file=* -- the running Emacs held the old definition and would otherwise have answered for it. Given the real DOING event that won those four spans, 420816ec now yields nil, while the leaf 9202b39d still yields its own id from an identical event.
+
+*Verified by mutation, not by a green suite.* Three mutations each fail: removing the condition (the pre-fix behaviour), applying it to every id rather than containers only, and inverting the helper. The second is the informative one -- it fails *six* tests, not one, because five existing suggestion tests depend on a leaf still being suggested. The new test asserts both directions in one place for the same reason: an assertion that only checks the container is refused would pass against a function that had simply stopped answering.
+
+*What it does not fix, recorded so the split stays visible.* Container exclusion converts a confident wrong answer into an honest nil. It does not produce the right answer; only clocking in on the heading actually being worked does that, and the 24 minutes were lost because this session called =org_clock_in= once, at 08:31:36, five seconds before clocking out. The code half and the discipline half are independent, and only the code half is closed here.
+
+*A detail worth keeping about why this was invisible for so long.* The defect needs a container to sit in DOING while a session works something else -- which is the normal state of this project, not an edge case. On the day it was found, all three DOING headings in TODO.org were containers, so the function could not have returned a right answer for any span at all. It had presumably been wrong for as long as containers have been entering DOING, and every wrong answer was one keystroke from correction at review, which is exactly why nobody caught it.
+
 
 * Observability
 :PROPERTIES:
@@ -6491,10 +6577,14 @@ So the full rule set, settled and ready to be written down:
 3. A container leaves DOING when all children are DONE or CANCELLED.
 4. A container is WAITING when every non-terminal child is WAITING.
 
-** Index a heading's git history from a drawer, so the body never has to narrate it :code:research:
+** TODO Index a heading's git history from a drawer, so the body never has to narrate it :code:research:
 :PROPERTIES:
 :ID:       41cf5830-fc2e-4dc6-b243-a0c2718a53a3
 :CREATED:  [2026-08-20 Thu 11:07]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-20 Thu 16:44] \\
+  captured keywordless; state never set
 :END:
 
 Raised by the user 2026-08-20 alongside the retention policy at [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]], and separable from it: once a body may be revised wholesale, the evolution it used to carry lives only in git, and nothing points a reader at it.
@@ -7750,7 +7840,7 @@ in the hook's own header.
 shell question; this is it arriving in practice, and it is evidence that
 project scripts are not currently written against a stated baseline.
 
-** A duration assertion matches the clocktable's own timestamp, three minutes a day :code:
+** TODO A duration assertion matches the clocktable's own timestamp, three minutes a day :code:
 :PROPERTIES:
 :ID:       5a5e87c9-f432-44c6-a5a6-f6f3755e4347
 :CREATED:  [2026-08-20 Thu 11:02]
@@ -7758,6 +7848,8 @@ project scripts are not currently written against a stated baseline.
 :LOGBOOK:
 CLOCK: [2026-08-20 Thu 10:50]--[2026-08-20 Thu 11:09] =>  0:19
 - [2026-08-20 Thu 10:50]--[2026-08-20 Thu 11:09] assigned at review
+- State "TODO"       from              [2026-08-20 Thu 16:44] \\
+  captured keywordless; state never set
 :END:
 
 =claude-code-ide-org-clock-report= prefixes its table with =#+CAPTION: Clock summary at [2026-08-20 Thu 11:00], ...=. Two tests assert on durations with =(string-match-p "1:00" result)= against that whole string, so the caption's own clock satisfies the match.

@@ -7228,6 +7228,41 @@ nothing at all about a heading whose DOING was still queued."
           ;; live clock outside a review pass, so "clocked" can only mislead.
           (should-not (string-match-p "clocked" (mapconcat #'identity lines "\n"))))))))
 
+(ert-deftest claude-code-ide-org-test-suggest-heading-refuses-a-container ()
+  "A container is never itself the work, so it must never be suggested for a
+span however active it looks (TODO.org :ID: 62c6b1be).  The leaf and the
+container here are put into DOING by identical events at the identical time,
+so nothing but container-ness can explain a different answer -- and the leaf
+must still be suggested, or the assertion would pass on a function that had
+simply stopped working."
+  (let* ((file (make-temp-file "claude-code-ide-org-suggest" nil ".org"))
+         (org-inhibit-startup t)
+         (now (current-time))
+         (earlier (time-subtract now 600)))
+    (unwind-protect
+        (progn
+          (write-region
+           (concat "#+TODO: TODO DOING | DONE\n"
+                   "* DOING Container\n:PROPERTIES:\n:ID: sug-container\n:END:\n"
+                   "** TODO A child that makes it one\n"
+                   ":PROPERTIES:\n:ID: sug-child\n:END:\n"
+                   "* DOING Leaf\n:PROPERTIES:\n:ID: sug-leaf\n:END:\n")
+           nil file nil 'silent)
+          (org-id-update-id-locations (list file))
+          (let ((events (list (list :kind "todo" :id "sug-container"
+                                    :state "DOING" :ts earlier)))
+                (leaf-events (list (list :kind "todo" :id "sug-leaf"
+                                         :state "DOING" :ts earlier))))
+            ;; The leaf is suggested: the function still works.
+            (should (equal "sug-leaf"
+                           (claude-code-ide-org--review-suggest-heading
+                            now leaf-events)))
+            ;; The container, identically active, is refused.
+            (should-not (claude-code-ide-org--review-suggest-heading
+                         now events))))
+      (when (find-buffer-visiting file) (kill-buffer (find-buffer-visiting file)))
+      (delete-file file))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here

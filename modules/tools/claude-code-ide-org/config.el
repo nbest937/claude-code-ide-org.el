@@ -4243,7 +4243,18 @@ DOING emits no `todo' event and every later guidepost would then attach
 to the wrong heading -- silently.  That objection stands and nothing
 here weakens it: attribution is unchanged, and a wrong guess made *here*
 is visible on the review line at the moment of decision and one keystroke
-from correction.  See TODO.org :ID: 3d0487f4."
+from correction.  See TODO.org :ID: 3d0487f4.
+
+A *container* is never the answer, however active it looks (TODO.org
+:ID: 62c6b1be).  Being in DOING is a true and unremarkable statement
+about a container -- `claude-code-ide-org--attention-headings-context'
+already excludes them from the session-start report on exactly that
+ground -- and its plausibility therefore never expires: it stays true
+for as long as any child is open, so it wins every span in between.
+Measured 2026-08-21, four spans totalling 24 minutes were assigned to
+one `[0/1]' container that no session had worked on for a day.  On the
+same date all three DOING headings in TODO.org were containers, so
+every answer this function could return was wrong by construction."
   (let (active)
     (dolist (e events)
       (when (and (equal (plist-get e :kind) "todo")
@@ -4270,7 +4281,25 @@ from correction.  See TODO.org :ID: 3d0487f4."
            ;; yet (TODO.org :ID: c954f650, where adding REVIEW is under
            ;; discussion).
            ((equal id active) (setq active nil))))))
-    active))
+    ;; Resolved once, at the end, rather than per event: the loop runs
+    ;; over every queued `todo' and this reads a file.
+    (unless (claude-code-ide-org--container-id-p active)
+      active)))
+
+(defun claude-code-ide-org--container-id-p (id)
+  "Non-nil when ID resolves to a container heading.
+
+Resolves through `org-id-find' the way
+`claude-code-ide-org--review-heading-title' does, and releases the
+marker the same way.  Nil for an ID that resolves to nothing: an
+unresolvable id is not a container, and answering t would suppress a
+suggestion on the strength of a lookup failure."
+  (when id
+    (let ((marker (ignore-errors (org-id-find id 'marker))))
+      (when marker
+        (prog1 (org-with-point-at marker
+                 (claude-code-ide-org--container-heading-p))
+          (set-marker marker nil))))))
 
 (defun claude-code-ide-org--review-current-state (id)
   "Return the TODO keyword heading ID holds right now, or nil.
