@@ -6669,6 +6669,34 @@ Anchoring =-L= on a regex instead was tried and is worse: =/:ID:       <uuid>/= 
 Remaining open: which drawer, if stored; and what generates it. A commit touching a heading is detectable at commit time, and =.githooks/pre-commit= is the only thing that runs then -- at the cost of making a lint hook a writer.
 
 /Body restored 2026-08-20 by =org_amend=; the original capture silently discarded it -- see/ [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]]. /This heading being empty is how the loss was noticed at all: the user asked where the concept was parked, and there was nothing there./
+** Comma-escape headline lines when documenting org structure inside a body :code:
+:PROPERTIES:
+:ID:       8a23d6ec-ca45-454d-b65f-e46ea9204816
+:CREATED:  [2026-08-21 Fri 10:03]
+:END:
+
+Proposed by the user 2026-08-21, while asking for a materialized example of a proposed subtree: if showing org structure inside a heading body works, make it a general habit rather than a one-off, since it would also help linting.
+
+*It works, and the mechanism is not the one the question assumed.* The block type is irrelevant. Measured over four variants, counting what =org-map-entries= returns from a buffer holding one real heading, an example block, and a second real heading:
+
+| block            | escaped | org-map-entries sees                        |
+|------------------+---------+---------------------------------------------|
+| =#+BEGIN_SRC org=  | no      | Real, *Fake A*, *Fake B*, Second            |
+| =#+BEGIN_SRC org=  | =,*=      | Real, Second                                |
+| =#+BEGIN_EXAMPLE=  | no      | Real, *Fake A*, *Fake B*, Second            |
+| =#+BEGIN_EXAMPLE=  | =,*=      | Real, Second                                |
+
+=SRC= and =EXAMPLE= behave identically in both columns. *The comma escape is the whole mechanism*, and execution has nothing to do with it -- disabling evaluation would not have helped, because the risk is the outline, not the code.
+
+*Unescaped, example org is not example org -- it is real headings.* A raw =* Fake A= inside a block is walked into by =org-map-entries= and matched by a bare =^\*+ = regex alike, so it would corrupt =org_outline=, =claude-code-ide-org--container-heading-p= (a body full of examples would make any heading a container), the statistics cookies derived from that, and =bin/lint-org= -- each silently, and each in a way that looks like a content bug rather than a formatting one.
+
+*So the rule is "comma-escape headline lines", not "use example blocks".* Stating it the second way is what would make it fail: someone reaches for a block, gets the syntax highlighting they wanted, and inherits the defect the block never protected against.
+
+*Related precedent already in the suite.* =claude-code-ide-org-test--decoy-heading= pins that a *drawer*-shaped line inside =#+begin_example= is not a drawer, and =claude-code-ide-org--find-drawer= skips it. Headings are the case that was never covered, and they behave the opposite way -- the parser is not consulted, so the block does not protect them.
+
+*Where this should land if adopted:* =.claude/rules/org-conventions.md=, which is path-scoped to =**/*.org= and already owns the file-shape conventions. A first specimen is live in [[id:25ec37b0-460f-404d-be83-8a4b4d355cdc][25ec37b0]]'s body.
+
+*Open:* whether =bin/lint-org= should *enforce* it -- flagging an unescaped headline line inside a block -- or whether documenting it is enough. Enforcement is attractive because the failure is silent, but it needs care: a block quoting a *diff* or a shell transcript may legitimately contain a line starting with =*=.
 
 * Tooling
 :PROPERTIES:
