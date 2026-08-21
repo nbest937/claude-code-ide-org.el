@@ -2948,7 +2948,11 @@ Raised by the user: guidance should be =org_outline= first, DONE ignored by refl
 "DONE.org is reference, never orientation" is stronger and more accurate than "archaeological". Every useful DONE.org read on 2026-08-21 was =:ID:=-targeted and none was a survey -- and one of them stopped [[id:a279216c-38db-478c-ba52-ad31c87fbfd9][a279216c]] being filed as a defect when it was [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]]'s deliberate design.
 
 *One exception kept:* "the code is authoritative" holds for implementation state, not for *why* a decision went a given way, which exists only in a body. That is why the load-bearing ones are quoted in CLAUDE.md directly rather than left to a lookup.
-
+*** CLAUDE.md contradicts the skills, rules, and memories in four places :code:
+:PROPERTIES:
+:ID:       ea725ceb-3652-4ee1-840c-11198f0f6e0c
+:CREATED:  [2026-08-21 Fri 12:42]
+:END:
 ** TODO Read power assertions as a review-time attribution signal :code:research:
 :PROPERTIES:
 :ID:       1a5a5254-f62d-46e7-9a6c-3d84f2f52873
