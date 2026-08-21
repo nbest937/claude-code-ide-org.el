@@ -6998,6 +6998,9 @@ So the line controlling how every one of these files opens -- and, via =logdrawe
 :ID:       8707de36-93a7-4e34-b4ba-48008c7e1e3b
 :CREATED:  [2026-08-21 Fri 12:54]
 :END:
+
+*Shipped 2026-08-21* (commit =75bb17a=). Three fixes to =.claude/commands/next-session.md=: the at-most-one-NEXT invariant re-attributed to =--trigger-demote-conflicting-next= (verified against =config.el:2721='s docstring before writing -- the swapped name was headed for CLAUDE.md's permanent rule text); item 4's rebuttal of CLAUDE.md's deletion claim replaced with a citation of =0ca1363='s correction, since it argued with text that no longer exists; item 3's verify grep given explicit polarity (zero hits today, success = hits in CLAUDE.md, none in the skill). Item 5's queue-time-vs-apply-time creation ambiguity recorded on [[id:9575e65b-b589-465a-830c-286541780f96][9575e65b]] as a user decision, with a do-not-pick-silently caveat in the prompt.
+
 * Tooling
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Tooling
