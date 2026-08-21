@@ -1258,6 +1258,26 @@ Proposed by the user 2026-08-21, as what flattening the categories ([[id:2943919
 
 *Closely related and not a duplicate:* [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] asks which of a container's children were in its original plan. A declared story answers that question by construction, since membership is written rather than inferred from what accumulated.
 
+*A story is a fourth heading class, and that -- not the story -- is the finding.* The user's point 2026-08-21: "story" becomes another category, qualified by its members having a particular structure, which deserves its own convention-enforcement definition. Taking it seriously exposes a pattern this project has been repeating without naming.
+
+Four classes exist, each detected by a *different, bespoke* mechanism, and not one of them declared:
+
+| class             | detected by                                  | asserted of it                                          |
+|-------------------+----------------------------------------------+---------------------------------------------------------|
+| category          | heading *level* (= 1)                        | no =:ID:=, no =:CREATED:=, no keyword, no tags; has =:ARCHIVE:= |
+| container / epic  | =--container-heading-p=, a descendant scan   | carries a statistics cookie                             |
+| datetree node     | =--datetree-node-role=, position *plus* a title regex | day node carries =:ID:= and =:CREATED:=            |
+| story             | -- nothing yet --                            | checkbox list of id links; blocker ids match those links; cookie present |
+
+A level test, a descendant scan, and a position-and-regex test: three answers to one question, and a fourth class would need a fourth. That is a sharper argument for [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] than either overload of heading level -- the problem is not that depth carries too much, it is that there is *no way to say what kind a heading is*, so every class invents its own tell. Verified 2026-08-21: no =:KIND:=, =:TYPE:= or equivalent property exists anywhere in this repo.
+
+*And a story cannot be emergent, which is the substantive break from the container.* =--container-heading-p= can *derive* container-ness because "has a TODO-carrying descendant" is an unambiguous structural fact. "Has a checkbox list of id links" is not -- an ordinary body may hold one for reference, and inferring story-ness from it would misclassify. So the story class must be *declared*. That does not contradict the emergent/declared dichotomy; it is that dichotomy doing its job, and it is why epics stay derived while stories are marked.
+
+*A tag is the likely mechanism, and it is already sanctioned.* =.claude/rules/org-conventions.md= holds that tags are free-form beyond the four declared, so =#+TAGS:= gains one word. A tag is also natively agenda-matchable (=+story=), which is exactly what [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] exists to evaluate -- so choosing it would put a first real query in front of that heading rather than a hypothetical one. One detail to check rather than assume: =org-use-tag-inheritance= defaults to =t= and is unset in the Doom config, so a story's tag would be inherited by any subheading it ever acquired. Harmless while stories have no children by design, but it is the shape that bites later.
+
+*The enforcement definition belongs in =bin/lint-org=*, beside the category, container-cookie and datetree rules it already carries -- not in [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]]'s proposed =bin/check-conventions=. That split is [[id:3bd3402b-3ab6-4ace-b20b-3ff84caa3fb2][3bd3402b]]'s: check-conventions checks claims *about* the system, =bin/lint-org= checks the org files' *own* structure. A story's qualification is the latter.
+
+
 ** TODO Evaluate Org's own agenda, sparse-tree and column views against this corpus :code:research:
 :PROPERTIES:
 :ID:       82df2a6c-881d-4117-a752-5b3b04c9656d
