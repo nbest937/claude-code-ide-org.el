@@ -181,12 +181,12 @@ cross-referenced as they are now.
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-13 Thu 12:28]--[2026-08-13 Thu 12:30] =>  0:02
-CLOCK: [2026-08-13 Thu 12:35]--[2026-08-13 Thu 12:40] =>  0:04
+CLOCK: [2026-08-13 Thu 12:35]--[2026-08-13 Thu 12:40] =>  0:05
 CLOCK: [2026-08-13 Thu 12:42]--[2026-08-13 Thu 12:45] =>  0:03
 CLOCK: [2026-08-13 Thu 12:48]--[2026-08-13 Thu 12:49] =>  0:01
 CLOCK: [2026-08-13 Thu 12:53]--[2026-08-13 Thu 13:01] =>  0:08
 CLOCK: [2026-08-13 Thu 13:03]--[2026-08-13 Thu 13:04] =>  0:01
-CLOCK: [2026-08-13 Thu 13:07]--[2026-08-13 Thu 13:09] =>  0:01
+CLOCK: [2026-08-13 Thu 13:07]--[2026-08-13 Thu 13:09] =>  0:02
 - State "TODO"       from "MAYBE"      [2026-08-13 Thu 12:21] \\
   ungated; gate was unsatisfiable and a proxy
 CLOCK: [2026-08-10 Mon 20:48]--[2026-08-10 Mon 20:49] =>  0:01
@@ -789,9 +789,9 @@ subtree, or structure — the last being =org_outline= as it stands.
 :CREATED:  [2026-08-11 Tue 12:02]
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-18 Tue 08:02]--[2026-08-18 Tue 08:04] =>  0:01
+CLOCK: [2026-08-18 Tue 08:02]--[2026-08-18 Tue 08:04] =>  0:02
 - [2026-08-18 Tue 08:02]--[2026-08-18 Tue 08:04] assigned at review
-CLOCK: [2026-08-18 Tue 08:08]--[2026-08-18 Tue 08:10] =>  0:01
+CLOCK: [2026-08-18 Tue 08:08]--[2026-08-18 Tue 08:10] =>  0:02
 - [2026-08-18 Tue 08:08]--[2026-08-18 Tue 08:10] assigned at review
 :END:
 
@@ -2142,7 +2142,7 @@ CLOCK: [2026-08-10 Mon 19:07]--[2026-08-10 Mon 20:48] =>  1:41
 CLOCK: [2026-08-10 Mon 20:09]--[2026-08-10 Mon 20:11] =>  0:02
 - [2026-08-10 Mon 20:09]--[2026-08-10 Mon 20:11] record post-cutover vocabulary
 - [2026-08-10 Mon 20:47]--[2026-08-10 Mon 20:47] record post-cutover vocabulary
-CLOCK: [2026-08-11 Tue 12:00]--[2026-08-11 Tue 12:06] =>  0:05
+CLOCK: [2026-08-11 Tue 12:00]--[2026-08-11 Tue 12:06] =>  0:06
 CLOCK: [2026-08-11 Tue 12:29]--[2026-08-11 Tue 12:30] =>  0:01
 - State "NEXT"       from "TODO"       [2026-08-14 Fri 14:57] \\
   Auto-promoted: sole remaining TODO in its sibling group.
@@ -2152,7 +2152,7 @@ CLOCK: [2026-08-14 Fri 18:13]--[2026-08-14 Fri 18:25] =>  0:12
 - [2026-08-14 Fri 18:13]--[2026-08-14 Fri 18:25] assigned at review
 CLOCK: [2026-08-14 Fri 18:29]--[2026-08-14 Fri 19:01] =>  0:32
 - [2026-08-14 Fri 18:29]--[2026-08-14 Fri 19:01] assigned at review
-CLOCK: [2026-08-14 Fri 19:03]--[2026-08-14 Fri 19:08] =>  0:04
+CLOCK: [2026-08-14 Fri 19:03]--[2026-08-14 Fri 19:08] =>  0:05
 - [2026-08-14 Fri 19:03]--[2026-08-14 Fri 19:08] assigned at review
 CLOCK: [2026-08-14 Fri 19:24]--[2026-08-14 Fri 19:34] =>  0:10
 - [2026-08-14 Fri 19:24]--[2026-08-14 Fri 19:34] assigned at review
@@ -2163,7 +2163,7 @@ CLOCK: [2026-08-14 Fri 19:43]--[2026-08-14 Fri 20:01] =>  0:18
 CLOCK: [2026-08-14 Fri 19:44]--[2026-08-14 Fri 19:59] =>  0:15
 - State "DOING"      from "PLANNING"   [2026-08-14 Fri 20:11] \\
   epic opened, children written
-CLOCK: [2026-08-17 Mon 15:22]--[2026-08-17 Mon 15:28] =>  0:05
+CLOCK: [2026-08-17 Mon 15:22]--[2026-08-17 Mon 15:28] =>  0:06
 - [2026-08-17 Mon 15:22]--[2026-08-17 Mon 15:28] assigned at review
 :END:
 
@@ -2706,15 +2706,15 @@ CLOCK: [2026-08-17 Mon 10:55]--[2026-08-17 Mon 10:56] =>  0:01
 - State "DOING"      from "WAIT"       [2026-08-17 Mon 10:51] \\
   rule loading confirmed, deciding outcome
 - [2026-08-17 Mon 10:51]--[2026-08-17 Mon 10:56] weigh split outcome against size target
-CLOCK: [2026-08-17 Mon 11:00]--[2026-08-17 Mon 11:03] =>  0:04
+CLOCK: [2026-08-17 Mon 11:00]--[2026-08-17 Mon 11:03] =>  0:03
 - [2026-08-17 Mon 11:00]--[2026-08-17 Mon 11:03] suggested span, accepted at review
-CLOCK: [2026-08-17 Mon 12:08]--[2026-08-17 Mon 12:13] =>  0:04
+CLOCK: [2026-08-17 Mon 12:08]--[2026-08-17 Mon 12:13] =>  0:05
 - [2026-08-17 Mon 12:08]--[2026-08-17 Mon 12:13] suggested span, accepted at review
 CLOCK: [2026-08-17 Mon 12:14]--[2026-08-17 Mon 12:26] =>  0:12
 - [2026-08-17 Mon 12:14]--[2026-08-17 Mon 12:26] assigned at review
 CLOCK: [2026-08-17 Mon 12:31]--[2026-08-17 Mon 12:35] =>  0:04
 - [2026-08-17 Mon 12:31]--[2026-08-17 Mon 12:35] assigned at review
-CLOCK: [2026-08-17 Mon 12:39]--[2026-08-17 Mon 12:42] =>  0:04
+CLOCK: [2026-08-17 Mon 12:39]--[2026-08-17 Mon 12:42] =>  0:03
 - [2026-08-17 Mon 12:39]--[2026-08-17 Mon 12:42] assigned at review
 CLOCK: [2026-08-17 Mon 12:45]--[2026-08-17 Mon 13:13] =>  0:28
 - [2026-08-17 Mon 12:45]--[2026-08-17 Mon 13:13] assigned at review
@@ -3118,9 +3118,9 @@ recorded above still holds, and applies to the floors identically.
 :LOGBOOK:
 CLOCK: [2026-08-14 Fri 14:11]--[2026-08-14 Fri 14:12] =>  0:01
 - [2026-08-14 Fri 14:11]--[2026-08-14 Fri 14:12] reallocated from e51d6ba1's mis-suggested span
-CLOCK: [2026-08-14 Fri 14:21]--[2026-08-14 Fri 14:23] =>  0:01
+CLOCK: [2026-08-14 Fri 14:21]--[2026-08-14 Fri 14:23] =>  0:02
 - [2026-08-14 Fri 14:21]--[2026-08-14 Fri 14:23] reallocated from e51d6ba1's mis-suggested span
-CLOCK: [2026-08-14 Fri 14:26]--[2026-08-14 Fri 14:28] =>  0:01
+CLOCK: [2026-08-14 Fri 14:26]--[2026-08-14 Fri 14:28] =>  0:02
 - [2026-08-14 Fri 14:26]--[2026-08-14 Fri 14:28] reallocated from e51d6ba1's mis-suggested span
 :END:
 
@@ -3416,7 +3416,7 @@ CLOCK: [2026-08-14 Fri 08:26]--[2026-08-14 Fri 08:28] =>  0:02
 - [2026-08-14 Fri 08:26]--[2026-08-14 Fri 08:28] suggested span, accepted at review
 CLOCK: [2026-08-14 Fri 08:37]--[2026-08-14 Fri 08:44] =>  0:07
 - [2026-08-14 Fri 08:37]--[2026-08-14 Fri 08:44] suggested span, accepted at review
-CLOCK: [2026-08-14 Fri 08:49]--[2026-08-14 Fri 08:59] =>  0:09
+CLOCK: [2026-08-14 Fri 08:49]--[2026-08-14 Fri 08:59] =>  0:10
 - [2026-08-14 Fri 08:49]--[2026-08-14 Fri 08:59] suggested span, accepted at review
 CLOCK: [2026-08-14 Fri 09:02]--[2026-08-14 Fri 09:04] =>  0:02
 - [2026-08-14 Fri 09:02]--[2026-08-14 Fri 09:04] suggested span, accepted at review
@@ -3594,7 +3594,7 @@ conclusion the human draws from it — but neither requires the other.
   plan the pipeline epic and its four children
 - State "DOING"      from "PLANNING"   [2026-08-18 Tue 08:54]
 - [2026-08-18 Tue 08:56]--[2026-08-18 Tue 08:56] plan span pipeline end to end
-CLOCK: [2026-08-18 Tue 09:32]--[2026-08-18 Tue 09:33] =>  0:02
+CLOCK: [2026-08-18 Tue 09:32]--[2026-08-18 Tue 09:33] =>  0:01
 - [2026-08-18 Tue 09:32]--[2026-08-18 Tue 09:33] plan span pipeline end to end
 CLOCK: [2026-08-18 Tue 09:52]--[2026-08-18 Tue 09:54] =>  0:02
 - [2026-08-18 Tue 09:52]--[2026-08-18 Tue 09:54] plan span pipeline end to end
@@ -4099,7 +4099,7 @@ CLOSED: [2026-08-18 Tue 15:38]
 :CREATED:  [2026-08-17 Mon 19:06]
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-18 Tue 15:33]--[2026-08-18 Tue 15:39] =>  0:07
+CLOCK: [2026-08-18 Tue 15:33]--[2026-08-18 Tue 15:39] =>  0:06
 - [2026-08-18 Tue 15:33]--[2026-08-18 Tue 15:39] assigned at review
 - State "DOING"      from "TODO"       [2026-08-18 Tue 15:34] \\
   verify both zero-width causes after 2(a)+2(b)
@@ -5297,7 +5297,7 @@ cleanup a precondition rather than tidying. Tracked separately.
 :CREATED:  [2026-08-15 Sat 14:07]
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-15 Sat 14:04]--[2026-08-15 Sat 14:08] =>  0:03
+CLOCK: [2026-08-15 Sat 14:04]--[2026-08-15 Sat 14:08] =>  0:04
 - [2026-08-15 Sat 14:04]--[2026-08-15 Sat 14:08] assigned at review
 - State "TODO"       from              [2026-08-15 Sat 14:07] \\
   surface undecided, analysis recorded
@@ -5307,7 +5307,7 @@ CLOCK: [2026-08-15 Sat 14:44]--[2026-08-15 Sat 14:45] =>  0:01
 - [2026-08-15 Sat 14:44]--[2026-08-15 Sat 14:45] assigned at review
 CLOCK: [2026-08-15 Sat 14:53]--[2026-08-15 Sat 14:58] =>  0:05
 - [2026-08-15 Sat 14:53]--[2026-08-15 Sat 14:58] assigned at review
-CLOCK: [2026-08-15 Sat 15:01]--[2026-08-15 Sat 15:03] =>  0:03
+CLOCK: [2026-08-15 Sat 15:01]--[2026-08-15 Sat 15:03] =>  0:02
 - [2026-08-15 Sat 15:01]--[2026-08-15 Sat 15:03] assigned at review
 CLOCK: [2026-08-15 Sat 15:17]--[2026-08-15 Sat 15:31] =>  0:14
 - [2026-08-15 Sat 15:17]--[2026-08-15 Sat 15:31] assigned at review
@@ -6590,20 +6590,20 @@ CLOCK: [2026-08-17 Mon 16:49]--[2026-08-17 Mon 17:17] =>  0:28
   plan approved, starting the sweep
 CLOCK: [2026-08-17 Mon 17:27]--[2026-08-17 Mon 17:28] =>  0:01
 - [2026-08-17 Mon 17:27]--[2026-08-17 Mon 17:28] suggested span, accepted at review
-CLOCK: [2026-08-17 Mon 17:31]--[2026-08-17 Mon 17:32] =>  0:02
+CLOCK: [2026-08-17 Mon 17:31]--[2026-08-17 Mon 17:32] =>  0:01
 - [2026-08-17 Mon 17:31]--[2026-08-17 Mon 17:32] suggested span, accepted at review
 CLOCK: [2026-08-17 Mon 17:35]--[2026-08-17 Mon 17:36] =>  0:01
 - [2026-08-17 Mon 17:35]--[2026-08-17 Mon 17:36] suggested span, accepted at review
 CLOCK: [2026-08-17 Mon 17:42]--[2026-08-17 Mon 17:46] =>  0:04
 - [2026-08-17 Mon 17:42]--[2026-08-17 Mon 17:46] suggested span, accepted at review
-CLOCK: [2026-08-17 Mon 18:06]--[2026-08-17 Mon 18:08] =>  0:01
+CLOCK: [2026-08-17 Mon 18:06]--[2026-08-17 Mon 18:08] =>  0:02
 - [2026-08-17 Mon 18:06]--[2026-08-17 Mon 18:08] suggested span, accepted at review
 CLOCK: [2026-08-17 Mon 18:22]--[2026-08-17 Mon 18:25] =>  0:03
 - [2026-08-17 Mon 18:22]--[2026-08-17 Mon 18:25] assigned at review
 CLOCK: [2026-08-17 Mon 18:34]--[2026-08-17 Mon 18:35] =>  0:01
 - [2026-08-17 Mon 18:34]--[2026-08-17 Mon 18:35] assigned at review
 - [2026-08-17 Mon 18:36]--[2026-08-17 Mon 18:37] assigned at review
-CLOCK: [2026-08-17 Mon 18:40]--[2026-08-17 Mon 18:43] =>  0:02
+CLOCK: [2026-08-17 Mon 18:40]--[2026-08-17 Mon 18:43] =>  0:03
 - [2026-08-17 Mon 18:40]--[2026-08-17 Mon 18:43] assigned at review
 CLOCK: [2026-08-17 Mon 18:48]--[2026-08-17 Mon 18:50] =>  0:02
 - [2026-08-17 Mon 18:48]--[2026-08-17 Mon 18:50] assigned at review
