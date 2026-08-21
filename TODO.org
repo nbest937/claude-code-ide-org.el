@@ -1035,10 +1035,14 @@ convention also carries no keyword, no =:ID:= and no tags. Nothing but
 the label as a heading turns each file into one spurious root. Worth
 fixing in the same pass, since both are the same class of bug: the
 format asserting less structure than the reader needs.
-** TODO Auto-promote makes a container the next action :code:
+** DOING Auto-promote makes a container the next action :code:
 :PROPERTIES:
 :ID:       42808717-2736-4bf4-872e-887f990203ca
 :CREATED:  [2026-08-19 Wed 07:36]
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-08-21 Fri 13:07] \\
+  fixing both auto-promote guards together
 :END:
 
 =claude-code-ide-org--trigger-auto-promote-sole-todo= promotes the sole
@@ -1083,6 +1087,15 @@ promotion when the sole remaining TODO is a container. Open question
 whether it should then promote nothing, or descend and promote the
 container's own sole remaining child — the second is more useful and
 more surprising, and no evidence has been gathered either way.
+
+*Shipped 2026-08-21*, in one pass with [[id:c8a6c5d2-8777-44d2-9900-e56eb03aa2d9][c8a6c5d2]] -- two guards on one function sharing one test scaffold. =--trigger-auto-promote-sole-todo= now consults =--container-heading-p= and promotes nothing when the sole survivor is a container.
+
+*Guarded at the promotion site, not while collecting candidates* -- the narrower of the two readings. A group of {container TODO, leaf TODO} still promotes nothing, exactly as before. Excluding containers from the *count* instead would newly promote the leaf there: more useful, possibly right, and a behaviour change this defect did not ask for.
+
+*Descend-vs-nothing is decided in favour of nothing*, matching the honest-nil argument =--review-suggest-heading= makes for the same class of refusal at [[id:62c6b1be-4e3c-4ea1-9f0c-19ee70be0e1e][62c6b1be]]. Still no evidence either way; the test pins the shipped answer so that changing it later has to be deliberate.
+
+*Verified by mutation, then live.* Removing the condition fails only the new container test. Applying it to *every* heading rather than containers only fails that test's discriminating partner -- the pre-existing sole-remaining-TODO promotion test -- which is the same over-application signal 62c6b1be relied on. In the running Emacs after =load-file=: a container sole survivor stays TODO with zero =Auto-promoted= lines, a leaf sole survivor comes out NEXT with one.
+
 
 ** MAYBE Adopt org-native mechanisms for the heading tiers :code:research:
 :PROPERTIES:
@@ -2163,7 +2176,7 @@ close. With this and
 children are 29 =DONE= and 2 =CANCELLED=, and it can close.
 
 
-** DOING [3/8] Update CLAUDE.md and the org skill for the new architecture :code:
+** DOING [6/11] Update CLAUDE.md and the org skill for the new architecture :code:
 :PROPERTIES:
 :ID:       02aaae22-0958-4c0f-b5bb-2cbea32416ae
 :BLOCKER:  ids(7771fc63-9374-4c8a-9e80-24ceec21977c e51d6ba1-cc1d-4745-8aa7-e4b1183a230b c084553c-0621-4a96-9fa1-f32850aeec6a)
@@ -2817,10 +2830,17 @@ emission stays per-turn, the record stops being per-turn.
 *Verify:* =grep -n -A8 '^## Session tracking' CLAUDE.md= shows no claim
 that any hook pauses or resumes a clock.
 
-*** TODO The org skill's state-transition table still describes live clock driving :code:
+*** DONE The org skill's state-transition table still describes live clock driving :code:
+CLOSED: [2026-08-21 Fri 12:46]
 :PROPERTIES:
 :ID:       d2efca5e-3a18-4b0d-90b6-2b84c17a0549
 :CREATED:  [2026-08-17 Mon 13:43]
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-08-21 Fri 12:45] \\
+  fixing the org skill transition table now
+- State "DONE"       from "DOING"      [2026-08-21 Fri 12:46] \\
+  shipped as 7da5a89, own verify grep clean
 :END:
 
 =.claude/skills/org/SKILL.md= carries a transition table whose rules say
@@ -2934,10 +2954,15 @@ nothing.
 
 Blocked in practice on 1 only in the sense that 2 needs its name first;
 1 and 3 can be written today.
-*** CLAUDE.md says nothing about how to read the tracker at session start :code:
+*** DONE CLAUDE.md says nothing about how to read the tracker at session start :code:
+CLOSED: [2026-08-21 Fri 11:54]
 :PROPERTIES:
 :ID:       fed6e32f-4db6-49dc-b759-18b806b6c718
 :CREATED:  [2026-08-21 Fri 11:53]
+:END:
+:LOGBOOK:
+- State "DONE"       from              [2026-08-21 Fri 11:54] \\
+  Reading the tracker section shipped
 :END:
 
 *Shipped 2026-08-21* as CLAUDE.md's "Reading the tracker", between the queue architecture and the repository layout.
@@ -2951,17 +2976,28 @@ Raised by the user: guidance should be =org_outline= first, DONE ignored by refl
 "DONE.org is reference, never orientation" is stronger and more accurate than "archaeological". Every useful DONE.org read on 2026-08-21 was =:ID:=-targeted and none was a survey -- and one of them stopped [[id:a279216c-38db-478c-ba52-ad31c87fbfd9][a279216c]] being filed as a defect when it was [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]]'s deliberate design.
 
 *One exception kept:* "the code is authoritative" holds for implementation state, not for *why* a decision went a given way, which exists only in a body. That is why the load-bearing ones are quoted in CLAUDE.md directly rather than left to a lookup.
-*** CLAUDE.md contradicts the skills, rules, and memories in four places :code:
+*** DONE CLAUDE.md contradicts the skills, rules, and memories in four places :code:
+CLOSED: [2026-08-21 Fri 12:45]
 :PROPERTIES:
 :ID:       ea725ceb-3652-4ee1-840c-11198f0f6e0c
 :CREATED:  [2026-08-21 Fri 12:42]
 :END:
+:LOGBOOK:
+- State "DOING"      from              [2026-08-21 Fri 12:42] \\
+  reconciling the four stale claims now
+- State "DONE"       from "DOING"      [2026-08-21 Fri 12:45] \\
+  shipped as 0ca1363, journaled on the heading
+:END:
 
 *Shipped 2026-08-21* (commit =0ca1363=). Four claims reconciled at source, each verified before writing: the hook safety net is live (five guards read out of =config.el:2792-2795=, gate default =t= at =config.el:2454=), not "not built yet"; deletion-irreversibility rescoped to =plans/= only, matching the org skill; the read-only rule regained its restore-when-done half, which had lived only in a memory file; and =REVIEW= got transition-table rows (clock-wise identical to =WAITING=) after a day in live use with no written semantics. The dangling pointer to a since-deleted "Enforce the transition rules" heading went with the rewrite. The falsified concurrent-session sentence in the =feedback_concurrent_editing= memory was corrected in the same pass (memory dir, outside this repo).
-*** CLAUDE.md carries dated history that costs every session's context :code:
+*** TODO CLAUDE.md carries dated history that costs every session's context :code:
 :PROPERTIES:
 :ID:       9d009401-93dd-40e5-a243-7a30a8a5bd55
 :CREATED:  [2026-08-21 Fri 12:47]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-21 Fri 12:48] \\
+  filed from audit, prune needs user in loop
 :END:
 
 *Filed 2026-08-21, not done.* CLAUDE.md is ~5,500 words, loaded into every session, and a large share is dated narrative -- retirements, incident stories, won't-dos, measured-on-date facts -- the same disease [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] names in TODO.org bodies, in the one file no session can skip. The rules should stay; the archaeology should live in DONE.org bodies or the relevant heading, with a pointer where the rule needs its provenance. Judgment-heavy prune, so it needs the user in the loop, not a background pass.
@@ -5444,7 +5480,7 @@ CLOCK: [2026-08-21 Fri 09:06]--[2026-08-21 Fri 09:12] =>  0:06
 *What it does not fix, recorded so the split stays visible.* Container exclusion converts a confident wrong answer into an honest nil. It does not produce the right answer; only clocking in on the heading actually being worked does that, and the 24 minutes were lost because this session called =org_clock_in= once, at 08:31:36, five seconds before clocking out. The code half and the discipline half are independent, and only the code half is closed here.
 
 *A detail worth keeping about why this was invisible for so long.* The defect needs a container to sit in DOING while a session works something else -- which is the normal state of this project, not an edge case. On the day it was found, all three DOING headings in TODO.org were containers, so the function could not have returned a right answer for any span at all. It had presumably been wrong for as long as containers have been entering DOING, and every wrong answer was one keystroke from correction at review, which is exactly why nobody caught it.
-** TODO Auto-promote fires on apply order, so NEXT records which capture landed first :code:
+** DOING Auto-promote fires on apply order, so NEXT records which capture landed first :code:
 :PROPERTIES:
 :ID:       c8a6c5d2-8777-44d2-9900-e56eb03aa2d9
 :CREATED:  [2026-08-21 Fri 10:33]
@@ -5452,6 +5488,8 @@ CLOCK: [2026-08-21 Fri 09:06]--[2026-08-21 Fri 09:12] =>  0:06
 :LOGBOOK:
 - State "TODO"       from              [2026-08-21 Fri 10:33] \\
   guard auto-promote against half-applied batches
+- State "DOING"      from "TODO"       [2026-08-21 Fri 13:07] \\
+  fixing both auto-promote guards together
 :END:
 
 *Observed live 2026-08-21, on this repo's own file.* Five children were captured under [[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]] in one session, each keywordless, each with a =todo -> TODO= event queued. The human applied the queue, and one of them came out =NEXT=:
@@ -5471,10 +5509,27 @@ Nobody chose it. =claude-code-ide-org--trigger-auto-promote-sole-todo= promotes 
 *The third instance of one shape*, which is the reason to record it rather than fix it quietly. =--trigger-auto-promote-sole-todo= counts siblings and checks nothing else: [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]] is the same trigger promoting a *container*, and [[id:62c6b1be-4e3c-4ea1-9f0c-19ee70be0e1e][62c6b1be]] was =--review-suggest-heading= naming a container for the same underlying reason -- a predicate reading state without asking whether the heading is the kind of thing the answer should apply to. Worth fixing together with 42808717, since both are guards on the same function.
 
 *Possible shapes, none chosen:* suppress the trigger while a review pass is applying (the apply already runs as one command, so it has a natural window); require the group to have been stable rather than mid-batch; or -- simplest -- decline to promote when the group contains keywordless siblings, since that is precisely the signature of a half-applied batch.
-** A gap covering the whole span restates its own timestamps and reads as a bug :code:
+
+*Shipped 2026-08-21* with [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]]. None of the three shapes recorded above was taken as written.
+
+*"Decline when the group holds keywordless siblings" was rejected*, despite being the simplest. A capture whose =todo -> TODO= event the human dismisses at review stays keywordless for good, and its group then silently never auto-promotes again -- a missing NEXT nobody can see, where the defect it replaces is a wrong NEXT anyone can demote. It also collides with the permanent keywordless scaffolding [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]] is about to introduce.
+
+*What shipped is suppress-then-settle.* =--review-apply= binds a new batch-scoped =--review-applying= around its loop; the trigger declines while it is bound; =--review-settle-auto-promote= then runs the trigger once per touched heading, against the batch's finished state. Only =state= items settle -- nothing else moves a keyword, and a capture writes its heading without one.
+
+*Suppression alone was considered and rejected.* Under the queue architecture nearly every real transition arrives through apply, so a trigger that only declined there would be live in its tests and dead in production -- the shape =--trigger-auto-clock-in='s own docstring already flags as worth avoiding. The settle pass keeps the rule and changes only *when* it is evaluated.
+
+*A new flag rather than reusing =--auto-clock-in-active=*, which =--review-apply-item= binds per *item* as one function's clock re-entrancy guard. What must not be seen here is the half-applied state *between* items, which is a property of the batch.
+
+*Verified by mutation.* Dropping the suppression fails only the new apply-order test; dropping the settle pass fails only the sole-survivor test, whose whole job is to catch a suppress-only fix. Confirmed live in the running Emacs after =load-file=: three children applied as one batch all end TODO with zero =Auto-promoted= lines.
+
+** TODO A gap covering the whole span restates its own timestamps and reads as a bug :code:
 :PROPERTIES:
 :ID:       a279216c-38db-478c-ba52-ad31c87fbfd9
 :CREATED:  [2026-08-21 Fri 10:53]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-21 Fri 10:54] \\
+  collapse the whole-span gap line
 :END:
 
 *Reported by the user 2026-08-21, reviewing a real batch:* a suggested span rendered =(nothing for 10m, 10:37-10:47)= beneath a header already reading =10:37--10:47=, and the first question it prompted was whether the line was a defect.
@@ -6958,10 +7013,14 @@ Unescaped, the second line's =*= is at column 0 and =org-map-entries= returned a
 *So: reserve it for rendering, if these files are ever exported, and do not adopt it as a habit.* ===verbatim=== stays the convention for inline code, and the comma escape stays the rule for block-level structure. Two mechanisms, each for the case it actually addresses.
 
 *One honest limit on the above.* Whether org parses these as =inline-src-block= / =verbatim= objects was *not* verified -- three attempts at an =org-element-map= probe returned nil even for ===verbatim===, which org certainly does parse, so the probe was broken rather than the syntax. The outline and babel results above stand on their own mechanisms and do not depend on it.
-** The #+STARTUP line is undocumented and the two org files disagree on it :code:
+** TODO The #+STARTUP line is undocumented and the two org files disagree on it :code:
 :PROPERTIES:
 :ID:       bba1088c-d8e1-49f7-bef8-b070860f5257
 :CREATED:  [2026-08-21 Fri 10:54]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-21 Fri 10:55] \\
+  document STARTUP, reconcile the two files
 :END:
 
 =.claude/rules/org-conventions.md= prescribes a file header of =#+TODO:=, =#+TAGS:= and =#+ARCHIVE:=. It says nothing about =#+STARTUP:=, and the two files that exist disagree:
@@ -6978,10 +7037,15 @@ So the line controlling how every one of these files opens -- and, via =logdrawe
 *Measured on a fresh open of TODO.org in the live Emacs (org 9.8.7):* 104 headings, *all visible, none hidden* -- 7 at level 1, 63 at level 2, 34 at level 3 -- and no heading carrying a =:VISIBILITY:= property. The mechanism is working; there is nothing to fix in TODO.org's own line.
 
 *Decide, then write it into the template:* whether =content= is the house default for every file or a TODO.org-specific choice, and whether =logdone= belongs everywhere =logdrawer= does. DONE.org arguably wants a *different* answer rather than the same one -- it is an archive, read rarely and in full -- so this is a decision about two files, not a copy-paste.
-** Write a commit reference the same way twice: orgit links in bodies, the word in prose :code:
+** DONE Write a commit reference the same way twice: orgit links in bodies, the word in prose :code:
+CLOSED: [2026-08-21 Fri 12:23]
 :PROPERTIES:
 :ID:       7b54c439-ab2c-4398-b332-2b2cc0d98ac9
 :CREATED:  [2026-08-21 Fri 12:22]
+:END:
+:LOGBOOK:
+- State "DONE"       from              [2026-08-21 Fri 12:23] \\
+  both halves written and in place
 :END:
 
 *Shipped 2026-08-21.* Prompted by the user asking "what is =3255589=? I don't see it in TODO.org" — it was a commit, cited in the same form as the org =:ID:= prefixes beside it.
@@ -6993,10 +7057,17 @@ So the line controlling how every one of these files opens -- and, via =logdrawe
 *Portability is available but not configured.* =orgit--repository-directory= resolves a *name* from =magit-repos-alist= before falling back to =expand-file-name=, so =orgit-rev:claude-code-ide-org::b146008= would be machine-independent. =magit-repository-directories= is nil here, so today's links carry this machine's path. Setting it is a one-line Doom change and is the upgrade path for [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]].
 
 *Prospective only:* the 25 existing =(=535c98c=)= references stay.
-** Correct the next-session prompt: swapped trigger, stale rebuttal, ambiguous verify :code:
+** DONE Correct the next-session prompt: swapped trigger, stale rebuttal, ambiguous verify :code:
+CLOSED: [2026-08-21 Fri 12:56]
 :PROPERTIES:
 :ID:       8707de36-93a7-4e34-b4ba-48008c7e1e3b
 :CREATED:  [2026-08-21 Fri 12:54]
+:END:
+:LOGBOOK:
+- State "DOING"      from              [2026-08-21 Fri 12:55] \\
+  fixing the three prompt defects now
+- State "DONE"       from "DOING"      [2026-08-21 Fri 12:56] \\
+  shipped as 75bb17a
 :END:
 
 *Shipped 2026-08-21* (commit =75bb17a=). Three fixes to =.claude/commands/next-session.md=: the at-most-one-NEXT invariant re-attributed to =--trigger-demote-conflicting-next= (verified against =config.el:2721='s docstring before writing -- the swapped name was headed for CLAUDE.md's permanent rule text); item 4's rebuttal of CLAUDE.md's deletion claim replaced with a citation of =0ca1363='s correction, since it argued with text that no longer exists; item 3's verify grep given explicit polarity (zero hits today, success = hits in CLAUDE.md, none in the skill). Item 5's queue-time-vs-apply-time creation ambiguity recorded on [[id:9575e65b-b589-465a-830c-286541780f96][9575e65b]] as a user decision, with a do-not-pick-silently caveat in the prompt.
@@ -8258,10 +8329,14 @@ Approach: assert against the table row, =| *Total time* | *0:00* |=, rather than
 
 /Body restored 2026-08-20 by =org_amend=; the original capture silently discarded it -- see/ [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]].
 
-** Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit :code:
+** TODO Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit :code:
 :PROPERTIES:
 :ID:       d2a0f54c-b59a-4855-ae3d-c93a6d3aa177
 :CREATED:  [2026-08-21 Fri 12:54]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-21 Fri 12:55] \\
+  filed from audit garden-weeding recommendation
 :END:
 
 *Filed 2026-08-21, not built.* The 2026-08-21 cross-artifact audit found that prose conventions recur (UUID-from-memory, clock-in-at-drift) while mechanically checked ones fail loudly and get fixed -- and that duplicated conventions drift into contradiction (four found in CLAUDE.md, one in a memory, one in the next-session prompt). =bin/check-org-dev-skill= already embodies the fix for one file; generalize it: the CLAUDE.md and org-skill transition tables agree; every cited =:ID:=, defcustom, and function name resolves (=git grep= the symbol); every "is live"/"not built" claim carries a greppable anchor (e.g. =config.el:2792=) that still matches. Wire into =bin/hooks/pre-commit= beside the existing lint. Not a prose rule about keeping prose fresh -- that is the anti-pattern recursing.

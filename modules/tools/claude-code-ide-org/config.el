@@ -2756,6 +2756,21 @@ equivalent line by hand instead."
              (format "Auto-demoted: superseded by sibling %s becoming NEXT."
                      reference)))))))))
 
+(defvar claude-code-ide-org--review-applying nil
+  "Non-nil while `claude-code-ide-org--review-apply' is working through a
+batch, and read only by `claude-code-ide-org--trigger-auto-promote-sole-todo'.
+
+Distinct from `claude-code-ide-org--auto-clock-in-active', which is bound
+per *item* by `claude-code-ide-org--review-apply-item' as a re-entrancy
+guard for one function's own `org-clock-in'.  This one is bound around
+the *whole* loop, because what the promote trigger must not see is the
+half-applied intermediate state between items -- a property of the batch,
+not of any item in it (TODO.org :ID: c8a6c5d2).
+
+Deliberately not reused for the demote trigger, which is order-independent:
+whichever order a batch's NEXT transitions land in, the last one wins and
+the end state is the same.")
+
 (defun claude-code-ide-org--trigger-auto-promote-sole-todo (_change-plist)
   "For `org-trigger-hook': whenever this heading's sibling group (self
 included, group size >= 2) has exactly one member in TODO and none in
@@ -2771,22 +2786,60 @@ NEXT already shows as NEXT in the buffer, so the next-p guard below
 correctly refuses to create a second simultaneous NEXT. A group of
 size 1 (no siblings) is never eligible -- auto-promotion only resolves
 conflicts among competing candidates, it is not a rule that a solitary
-heading must always be NEXT."
-  (let (todo-markers next-p (group-size 0))
-    (claude-code-ide-org--map-siblings
-     (lambda ()
-       (setq group-size (1+ group-size))
-       (let ((state (org-get-todo-state)))
-         (cond ((equal state "NEXT") (setq next-p t))
-               ((equal state "TODO") (push (point-marker) todo-markers)))))
-     'include-self)
-    (when (and (> group-size 1) (not next-p) (= (length todo-markers) 1))
-      (org-with-point-at (car todo-markers)
-        (let ((org-inhibit-logging t)) (org-todo "NEXT"))
-        (claude-code-ide-org--append-to-drawer
-         "LOGBOOK"
-         (claude-code-ide-org--format-log-state-line
-          "NEXT" "TODO" "Auto-promoted: sole remaining TODO in its sibling group."))))))
+heading must always be NEXT.
+
+Two guards sit in front of that rule, added 2026-08-21, both instances
+of one shape: the counting above reads sibling *state* without asking
+whether the state it is reading, or the heading it would promote, is the
+kind of thing the answer should apply to.
+
+*Mid-batch suppression* (TODO.org :ID: c8a6c5d2). Re-deriving from the
+live buffer is right for a hand-edit and wrong during a review apply,
+which lands one event at a time: the moment the first of five captured
+children gets its keyword it is momentarily the only keyworded sibling
+of five, the group-size guard passes because size counts all siblings,
+and the promotion records queue order rather than judgement.  Observed
+live 2026-08-21 on this repo's own file.  So the trigger declines while
+`claude-code-ide-org--review-applying' is bound, and
+`claude-code-ide-org--review-settle-auto-promote' runs it once per
+touched heading afterwards, against the batch's finished state.  Note
+what this is *not*: suppressing without that settle pass would leave the
+function dead in production and live only in its tests, since under the
+queue architecture nearly every transition arrives through apply.
+
+*Container exclusion* (TODO.org :ID: 42808717). Promoting a container
+declares a project to be an action, inverting the one thing NEXT means:
+reproduced 2026-08-19 with an epic going NEXT while its own child action
+stayed TODO.  `claude-code-ide-org--container-heading-p' is the same
+predicate `claude-code-ide-org--trigger-auto-clock-in' consults one
+screen up, on an argument that applies verbatim.  Checked at the
+*promotion site* rather than while collecting candidates, which is the
+narrower of the two readings: a group of {container TODO, leaf TODO}
+still promotes nothing, exactly as before.  Excluding containers from
+the count instead would newly promote the leaf there -- more useful,
+possibly right, and a behaviour change the defect did not ask for.
+42808717 leaves open whether a refused promotion should instead descend
+into the container's own sole remaining child; no evidence has been
+gathered either way, so this promotes nothing, matching the honest-nil
+argument `claude-code-ide-org--review-suggest-heading' makes for the
+same class of refusal."
+  (unless claude-code-ide-org--review-applying
+    (let (todo-markers next-p (group-size 0))
+      (claude-code-ide-org--map-siblings
+       (lambda ()
+         (setq group-size (1+ group-size))
+         (let ((state (org-get-todo-state)))
+           (cond ((equal state "NEXT") (setq next-p t))
+                 ((equal state "TODO") (push (point-marker) todo-markers)))))
+       'include-self)
+      (when (and (> group-size 1) (not next-p) (= (length todo-markers) 1))
+        (org-with-point-at (car todo-markers)
+          (unless (claude-code-ide-org--container-heading-p)
+            (let ((org-inhibit-logging t)) (org-todo "NEXT"))
+            (claude-code-ide-org--append-to-drawer
+             "LOGBOOK"
+             (claude-code-ide-org--format-log-state-line
+              "NEXT" "TODO" "Auto-promoted: sole remaining TODO in its sibling group."))))))))
 
 (with-eval-after-load 'org
   (add-hook 'org-blocker-hook #'claude-code-ide-org--blocker-clock-running-p)
@@ -4884,6 +4937,48 @@ an already-applied item impossible."
                  (claude-code-ide-org--queue-mark-applied session-id ts-strings)))
              by-session)))
 
+(defun claude-code-ide-org--review-settle-auto-promote (applied-items)
+  "Run the sole-TODO promotion once per heading APPLIED-ITEMS touched,
+after `claude-code-ide-org--review-apply\'s loop has finished and
+`claude-code-ide-org--review-applying\' is no longer bound.
+
+This is the half that keeps the mid-batch suppression from amounting to
+deleting the trigger (TODO.org :ID: c8a6c5d2).  Under the queue
+architecture nearly every real transition arrives through apply, so a
+trigger that only declines there would be live in its tests and dead in
+production -- the shape `claude-code-ide-org--trigger-auto-clock-in\'s
+docstring already flags as worth avoiding.  Suppress-then-settle keeps
+the rule and changes only *when* it is evaluated: once, against the
+batch\'s finished state, instead of once per half-applied intermediate.
+
+Only `state\' items are considered.  They are the only kind that changes
+a TODO keyword, and keyword composition is the entire input to the
+promotion -- a clock or amend cannot move a group toward or away from
+having one sole TODO survivor, and a capture writes its heading without
+a keyword at all.
+
+Deduplicated by :ID:, so a chain of transitions applied to one heading in
+one batch settles once.  The trigger is idempotent by construction (it
+re-derives group state fresh and refuses when any sibling is already
+NEXT), so a second call would be harmless -- the dedup is about not doing
+one file visit per event.
+
+An id that no longer resolves is skipped silently: `claude-code-ide-org--at-id\'
+returns its error string rather than signalling, and a heading that has
+gone away since it was applied has no sibling group left to settle."
+  (let ((seen (make-hash-table :test 'equal)))
+    (dolist (item applied-items)
+      (let ((id (plist-get item :id)))
+        (when (and (eq (plist-get item :type) 'state)
+                   id
+                   (not (gethash id seen)))
+          (puthash id t seen)
+          (claude-code-ide-org--at-id
+           id
+           (lambda ()
+             (claude-code-ide-org--trigger-auto-promote-sole-todo nil)
+             (save-buffer))))))))
+
 (defun claude-code-ide-org--review-apply (items)
   "Apply ITEMS in order. Returns a plist (:applied N :errors ERRORS).
 
@@ -4897,12 +4992,21 @@ inherited from render time.  That is what keeps
 `claude-code-ide-org--review-apply-item's guarantee intact: the file is
 re-read now, so a heading changed out of band since the buffer was drawn
 is still caught, and only this batch's own effects are projected over
-it."
+it.
+
+Binds `claude-code-ide-org--review-applying' around the loop and calls
+`claude-code-ide-org--review-settle-auto-promote' after it, so the
+sole-TODO promotion sees the batch's finished state rather than each
+half-applied intermediate one.  See that variable for why the flag is
+batch-scoped where `claude-code-ide-org--auto-clock-in-active' is
+item-scoped."
   (claude-code-ide-org--review-projected-staleness items)
   (let (applied errors)
-    (dolist (item items)
-      (let ((error (claude-code-ide-org--review-apply-item item)))
-        (if error (push error errors) (push item applied))))
+    (let ((claude-code-ide-org--review-applying t))
+      (dolist (item items)
+        (let ((error (claude-code-ide-org--review-apply-item item)))
+          (if error (push error errors) (push item applied)))))
+    (claude-code-ide-org--review-settle-auto-promote applied)
     (claude-code-ide-org--review-record-applied applied)
     ;; :items alongside the count, so the caller can drop exactly what
     ;; applied rather than rebuilding the list from the queue.  The count

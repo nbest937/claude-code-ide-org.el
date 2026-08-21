@@ -1125,6 +1125,106 @@ only resolves conflicts among >= 2 competing candidates."
     (should (equal "TODO" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))))
 
 
+(ert-deftest claude-code-ide-org-test-single-next-does-not-promote-a-container ()
+  "A container is a project, not an action, so the sole-TODO promotion
+must refuse it however cleanly it survives its sibling group (TODO.org
+:ID: 42808717).  Reproduces 2026-08-19's scratch-file case: an epic left
+NEXT while its own child action stayed TODO, which inverts the one thing
+NEXT means.
+
+The discriminating half -- that a *leaf* sole survivor is still promoted
+-- is asserted by
+`claude-code-ide-org-test-single-next-promotes-sole-remaining-todo-when-sibling-goes-done\',
+which fails the moment this guard is applied to every heading rather than
+to containers only.  Both are needed: an assertion that only checks the
+refusal would pass against a function that had simply stopped promoting."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* TODO An epic with children                                       :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0002\n"
+                     ":END:\n"
+                     "** TODO A real child action                                        :code:\n"
+                     ":PROPERTIES:\n"
+                     ":ID:       test-0003\n"
+                     ":END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    ;; Group is {id=TODO, epic=TODO}; close `id\' so the epic becomes the
+    ;; sole TODO survivor with no NEXT anywhere in the group.
+    (org-with-point-at (org-id-find id 'marker) (org-todo "DONE"))
+    (should (equal "TODO" (org-with-point-at (org-id-find "test-0002" 'marker)
+                            (org-get-todo-state))))
+    ;; And nothing descended into the child either -- 42808717 leaves
+    ;; descend-vs-nothing open, and this pins the answer shipped.
+    (should (equal "TODO" (org-with-point-at (org-id-find "test-0003" 'marker)
+                            (org-get-todo-state))))
+    (save-buffer)
+    (should-not (string-match-p "Auto-promoted"
+                                (claude-code-ide-org-test--disk-contents file)))))
+
+(ert-deftest claude-code-ide-org-test-review-batch-does-not-promote-on-apply-order ()
+  "Observed live 2026-08-21 on this repo's own file (TODO.org :ID:
+c8a6c5d2): children captured in one session are keywordless until their
+queued `none -> TODO\' events are applied, and apply lands one event at a
+time -- so the first child to land is momentarily the only keyworded
+sibling of the group and gets promoted to NEXT.  Nobody chose it; the
+NEXT records queue order.
+
+Three children rather than the five that were observed: the mechanism is
+the first landing, not the count."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "** Child A\n:PROPERTIES:\n:ID:       test-0002\n:END:\n"
+                     "** Child B\n:PROPERTIES:\n:ID:       test-0003\n:END:\n"
+                     "** Child C\n:PROPERTIES:\n:ID:       test-0004\n:END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (let* ((mk (lambda (child at)
+                 (list :type 'state :id child :from "none" :to "TODO"
+                       :ts (date-to-time (format "2026-08-21T%s-0500" at))
+                       :events nil)))
+           (result (claude-code-ide-org--review-apply
+                    (list (funcall mk "test-0002" "09:52:00")
+                          (funcall mk "test-0003" "09:52:10")
+                          (funcall mk "test-0004" "09:52:20")))))
+      (should (= 3 (plist-get result :applied)))
+      (should-not (plist-get result :errors))
+      (dolist (child '("test-0002" "test-0003" "test-0004"))
+        (should (equal "TODO" (org-with-point-at (org-id-find child 'marker)
+                                (org-get-todo-state)))))
+      (should-not (string-match-p "Auto-promoted"
+                                  (claude-code-ide-org-test--disk-contents file))))))
+
+(ert-deftest claude-code-ide-org-test-review-batch-still-promotes-a-genuine-sole-survivor ()
+  "The other half of c8a6c5d2's fix, and the one that keeps it from
+amounting to deleting the trigger.  Suppressing the promotion during a
+batch and stopping there would leave it dead in production -- under the
+queue architecture nearly every transition arrives through apply -- so
+`claude-code-ide-org--review-settle-auto-promote\' runs it once
+afterwards, against the batch's finished state.
+
+Here the batch genuinely does reduce the group to one TODO survivor, and
+that survivor must come out NEXT.  This test fails against a
+suppress-only fix, which is exactly what it is for."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "** TODO Survivor\n:PROPERTIES:\n:ID:       test-0002\n:END:\n"
+                     "** TODO Closes in the batch\n:PROPERTIES:\n:ID:       test-0003\n:END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (let ((result (claude-code-ide-org--review-apply
+                   (list (list :type 'state :id "test-0003" :from "TODO" :to "DONE"
+                               :ts (date-to-time "2026-08-21T10:27:00-0500")
+                               :events nil)))))
+      (should (= 1 (plist-get result :applied)))
+      (should-not (plist-get result :errors))
+      (should (equal "NEXT" (org-with-point-at (org-id-find "test-0002" 'marker)
+                              (org-get-todo-state))))
+      (should (string-match-p "Auto-promoted: sole remaining TODO in its sibling group"
+                              (claude-code-ide-org-test--disk-contents file))))))
+
+
 ;;; Session context ("what was I last doing") -----------------------------
 
 (ert-deftest claude-code-ide-org-test-session-context-empty-when-nothing ()
