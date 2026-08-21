@@ -236,11 +236,15 @@ falsified, and why a decision went the way it did. It does not restate
 design the linked plan already holds.
 
 *Prospective only.* Bodies written before 2026-08-14 are not to be
-trimmed to fit this; do not relitigate them. Deletion is the one
-irreversible half of the practice, and `plans/`' history is bounded
-rather than complete — `.githooks/pre-push` only bounds how stale the
-archive can be, so a plan revised twice between syncs loses its
-intermediate state.
+trimmed to fit this; do not relitigate them — that is churn nobody asked
+for, not a data-safety matter. (Corrected 2026-08-21: this file used to
+call deletion "the one irreversible half of the practice," which is true
+only of *plans* — `plans/`' history is bounded rather than complete,
+since `.githooks/pre-push` only bounds how stale the archive can be, so
+a plan revised twice between syncs loses its intermediate state. Body
+prose in the version-controlled `.org` files is recoverable from any
+commit; the only real exposure is text written and deleted inside a
+single uncommitted window. The org skill says the same.)
 
 *The evidence for the split, from a single day's drift:* three headings
 carried confident design claims that were later found wrong —
@@ -302,9 +306,19 @@ edits an org file at the moment you act.
 | `PLANNING` → `CANCELLED`  | Close the CLOCK (call `org_clock_out`) |
 | `DOING`    → `DONE`       | Close the CLOCK (call `org_clock_out`) |
 | `DOING`    → `WAITING`       | Close the CLOCK (call `org_clock_out`) |
+| `DOING`    → `REVIEW`     | Close the CLOCK (call `org_clock_out`) |
 | `DOING`    → `CANCELLED`  | Close the CLOCK (call `org_clock_out`) |
 | `WAITING`     → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
+| `REVIEW`   → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
+| `REVIEW`   → `DONE`       | None                                |
 | Any        → `MAYBE`      | None                                |
+
+`REVIEW` is **experimental** (TODO.org `:ID:` c954f650) — finished work
+handed back for human judgement. Clock-wise it behaves exactly like
+`WAITING`: entering it closes the clock, leaving it for `DOING` opens one,
+and `REVIEW` → `DONE` touches nothing because no clock is running. These
+rows were added 2026-08-21; until then the keyword was in live use with
+its clock semantics written down nowhere.
 
 **Rule**: any transition *to* `DOING` or `PLANNING` must open a clock, with
 one documented exception: `PLANNING` → `DOING` reuses the already-running
@@ -373,10 +387,18 @@ a `:ID:`, transition it to `DOING` via `org_set_todo` *before* beginning,
 unless it's already `DOING`. This has to be a standing instruction, not a
 hook — deciding "this conversation is now doing that task" is a judgment
 call about intent, which only the model can make. Hooks can only enforce
-the mechanics of a transition once it's triggered — `org-trigger-hook`/
-`org-blocker-hook` are the intended safety net for that (opening the clock
-the moment DOING is set, however it got set), but they are not built yet;
-see "Enforce the transition rules" in TODO.org.
+the mechanics of a transition once it's triggered — and that safety net
+**is live** (corrected 2026-08-21; this file said "not built yet" long
+after it was). On `org-blocker-hook`: `org-depend-block-todo` (refuses
+DONE while a `:BLOCKER:` names unfinished work) and
+`claude-code-ide-org--blocker-clock-running-p` (refuses DONE while the
+heading's own clock is running). On `org-trigger-hook`:
+`--trigger-auto-clock-in` (opens the clock the moment DOING/PLANNING is
+set by hand — gated by `claude-code-ide-org-auto-clock-in-on-doing`,
+default `t`), plus `--trigger-demote-conflicting-next` and
+`--trigger-auto-promote-sole-todo`, both live and ungated — the latter
+pair has two known record-corrupting defects, TODO.org `:ID:` c8a6c5d2
+and `:ID:` 42808717, first in the queued next-session slice.
 **Rule**: any time a new task is described in conversation, create an org
 heading for it (with a `:ID:`) and set its initial TODO state, rather than
 only tracking it in conversation memory. Same reasoning as above — this is
@@ -459,9 +481,13 @@ so if the user has toggled a buffer read-only (`C-x C-q`) it fails
 outright with a `buffer-read-only` error. The user only does this to
 guard against their own stray keystrokes while viewing the file, not to
 block Claude — clear it (`(setq buffer-read-only nil)` via
-`emacsclient`) and proceed, no need to ask first. If they ever want a
-specific buffer left alone, they'll say so explicitly; that overrides
-this default for that instance only.
+`emacsclient`) and proceed, no need to ask first. **Restore it when the
+work is done, and say so** — clearing is permitted, leaving it cleared
+is not: each unrestored clear silently switches the user's guard off
+until they happen to notice (their request, 2026-08-10; the proper fix —
+tools binding `inhibit-read-only` themselves — is TODO.org `:ID:`
+c8a97d9d). If they ever want a specific buffer left alone, they'll say
+so explicitly; that overrides this default for that instance only.
 
 ---
 
