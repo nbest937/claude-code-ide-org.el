@@ -98,9 +98,10 @@ Added to this slice because it is the direct answer to the stated worry, and
 it is cheap: it is writing a rule, not building a mechanism.
 
 Its own body has the argument: this repo already enforces **at most** one
-NEXT per level mechanically, via `--trigger-auto-promote-sole-todo`. The
-nomination rule supplies **at least** one, for the case no trigger can
-decide. Together they give exactly one — "a live project always has a next
+NEXT per level mechanically, via `--trigger-demote-conflicting-next`
+(`--trigger-auto-promote-sole-todo` is the *at-least-one* half, but only in
+the sole-surviving-TODO case). The nomination rule supplies **at least**
+one for every case no trigger can decide. Together they give exactly one — "a live project always has a next
 action, and a project without one is the canonical defect a weekly review
 exists to catch."
 
@@ -113,7 +114,9 @@ CLAUDE.md.
 Both halves must be written: nominate a NEXT on every transition to DONE
 when clear candidates exist, and call out blockers that live in a *different*
 subtree. Verify with
-`grep -n -i nominat .claude/skills/org/SKILL.md CLAUDE.md`.
+`grep -n -i nominat .claude/skills/org/SKILL.md CLAUDE.md` — today that
+greps **zero hits**; success is hits appearing in CLAUDE.md (where befaed0a
+placed it) and still none in the skill.
 
 ## 4. `3063c3e5` — the revise-in-place gap
 
@@ -128,12 +131,11 @@ Measured: TODO.org is ~118,000 tokens; across 72 active headings the median
 body is **50 lines**, the longest 404, and **44 bodies of 40+ lines carry 86%
 of all active body text**.
 
-**The main objection is weaker than the heading's neighbourhood assumed.**
-CLAUDE.md calls deletion "the one irreversible half", but justifies that by
-`plans/`'s history being *bounded*. `.org` files are version-controlled in
-full, so superseded prose stays recoverable from git. Revision is reversible
-here; only prose written and deleted inside one uncommitted window is at
-risk.
+**The main objection is already retired in the text** (CLAUDE.md corrected
+2026-08-21, commit `0ca1363`): deletion-irreversibility is scoped to
+`plans/` only, and `.org` prose is recoverable from any commit. Rely on the
+corrected wording; only prose written and deleted inside one uncommitted
+window is at risk.
 
 An interim convention shipped 2026-08-21 in `.claude/skills/org/SKILL.md`
 ("Body prose and the task lifecycle") and does **not** close this — it stops
@@ -146,6 +148,12 @@ heading, `org-datetree-find-date-create` for today, stamp `:ID:`/`:CREATED:`
 if new, set `org-clock-default-task`, return the id. Two callers:
 `org_clock_in` creates; the `SessionStart` hook refreshes only and **never**
 creates.
+
+**Not settled — read `9575e65b`'s recorded open question before building:**
+"`org_clock_in` creates" conflicts with queued-tools-change-nothing unless
+creation happens at queue time (a hybrid write, like `org_amend`); creation
+at apply time resolves "today" to the wrong day for events applied late.
+The user decides which; do not pick silently.
 
 **Cut line:** if the session is running long, stop after item 3. The
 mechanism already works by hand at that point, and item 4 is a steady-state
