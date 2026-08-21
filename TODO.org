@@ -2843,6 +2843,9 @@ pointer to CLAUDE.md's.
 *Verify:* =grep -n 'always opens a new CLOCK' .claude/skills/org/SKILL.md=
 returns nothing.
 
+*Shipped 2026-08-21* (commit =7da5a89=). The rules now name the queue rather than live driving, per this heading's own "done when": queue-repo reading first (side effect = the =org_clock_in=/=org_clock_out= call, file untouched until a human applies), literal-edit reading scoped to plain org setups so the skill still travels. Added the =PLANNING= and =REVIEW= rows the table lacked, matching CLAUDE.md's table, which the skill now names as authoritative here. Verified by this heading's own check -- =grep 'always opens a new CLOCK'= over the skill returns nothing.
+
+
 *** TODO CLAUDE.md's open-a-clock rule is missing the container exception :code:
 :PROPERTIES:
 :ID:       517a4290-4c66-43e7-b42e-dad7167b9c41
@@ -2953,6 +2956,16 @@ Raised by the user: guidance should be =org_outline= first, DONE ignored by refl
 :ID:       ea725ceb-3652-4ee1-840c-11198f0f6e0c
 :CREATED:  [2026-08-21 Fri 12:42]
 :END:
+
+*Shipped 2026-08-21* (commit =0ca1363=). Four claims reconciled at source, each verified before writing: the hook safety net is live (five guards read out of =config.el:2792-2795=, gate default =t= at =config.el:2454=), not "not built yet"; deletion-irreversibility rescoped to =plans/= only, matching the org skill; the read-only rule regained its restore-when-done half, which had lived only in a memory file; and =REVIEW= got transition-table rows (clock-wise identical to =WAITING=) after a day in live use with no written semantics. The dangling pointer to a since-deleted "Enforce the transition rules" heading went with the rewrite. The falsified concurrent-session sentence in the =feedback_concurrent_editing= memory was corrected in the same pass (memory dir, outside this repo).
+*** CLAUDE.md carries dated history that costs every session's context :code:
+:PROPERTIES:
+:ID:       9d009401-93dd-40e5-a243-7a30a8a5bd55
+:CREATED:  [2026-08-21 Fri 12:47]
+:END:
+
+*Filed 2026-08-21, not done.* CLAUDE.md is ~5,500 words, loaded into every session, and a large share is dated narrative -- retirements, incident stories, won't-dos, measured-on-date facts -- the same disease [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] names in TODO.org bodies, in the one file no session can skip. The rules should stay; the archaeology should live in DONE.org bodies or the relevant heading, with a pointer where the rule needs its provenance. Judgment-heavy prune, so it needs the user in the loop, not a background pass.
+
 ** TODO Read power assertions as a review-time attribution signal :code:research:
 :PROPERTIES:
 :ID:       1a5a5254-f62d-46e7-9a6c-3d84f2f52873
