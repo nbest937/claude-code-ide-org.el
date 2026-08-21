@@ -3160,6 +3160,8 @@ CLOCK: [2026-08-21 Fri 10:02]--[2026-08-21 Fri 10:05] =>  0:03
 - [2026-08-21 Fri 10:02]--[2026-08-21 Fri 10:05] assess the daily-recurrence proposal
 CLOCK: [2026-08-21 Fri 10:10]--[2026-08-21 Fri 10:13] =>  0:03
 - [2026-08-21 Fri 10:10]--[2026-08-21 Fri 10:13] assess the daily-recurrence proposal
+CLOCK: [2026-08-21 Fri 10:31]--[2026-08-21 Fri 10:34] =>  0:03
+- [2026-08-21 Fri 10:31]--[2026-08-21 Fri 10:34] assess the daily-recurrence proposal
 :END:
 
 Proposed by the user 2026-08-10: a standing pseudo-task to clock
@@ -3272,7 +3274,7 @@ spans that genuinely belong to no task.
 
 *One draft was falsified along the way and the finding is in [[id:25ec37b0-460f-404d-be83-8a4b4d355cdc][25ec37b0]]:* the outline path in =file+olp+datetree= does not nest the tree. Nesting comes from a =:DATE_TREE:= property. Worth knowing before anyone writes the capture template from the template name alone, which is exactly how the first draft went wrong.
 
-*** NEXT Teach org_capture to target a datetree, with an addressable day node :code:
+*** TODO Teach org_capture to target a datetree, with an addressable day node :code:
 :PROPERTIES:
 :ID:       25ec37b0-460f-404d-be83-8a4b4d355cdc
 :CREATED:  [2026-08-21 Fri 09:51]
@@ -3282,6 +3284,8 @@ spans that genuinely belong to no task.
   datetree target and addressable day node
 - State "NEXT"       from "TODO"       [2026-08-21 Fri 10:27] \\
   Auto-promoted: sole remaining TODO in its sibling group.
+- State "TODO"       from "NEXT"       [2026-08-21 Fri 10:47] \\
+  Auto-demoted: superseded by sibling [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][bin/lint-org will drown in datetree scaffolding it can never satisfy]] becoming NEXT.
 :END:
 
 =claude-code-ide-org--capture-target-spec= (config.el:1747) resolves exactly three shapes: =(file F)=, =(id ID)= and =(file+olp F CATEGORY)=. A datetree needs a fourth.
@@ -3333,7 +3337,7 @@ spans that genuinely belong to no task.
 
 *Do not solve Claude's half here.* Resolving "today's node" to an =:ID:= without pasting a UUID is [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]]'s subject, under [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]]. Building a second lookup here would be the parallel-convention mistake c084553c exists to prevent, one level down.
 
-*** TODO bin/lint-org will drown in datetree scaffolding it can never satisfy :code:
+*** NEXT bin/lint-org will drown in datetree scaffolding it can never satisfy :code:
 :PROPERTIES:
 :ID:       e30d52d7-960b-44f3-ab92-93846c81a1bd
 :CREATED:  [2026-08-21 Fri 09:51]
@@ -3341,6 +3345,8 @@ spans that genuinely belong to no task.
 :LOGBOOK:
 - State "TODO"       from              [2026-08-21 Fri 09:52] \\
   exempt datetree scaffolding from CREATED
+- State "NEXT"       from "TODO"       [2026-08-21 Fri 10:32] \\
+  must land before the tree exists
 :END:
 
 =bin/lint-org= warns on any heading missing =:CREATED:=. Datetree scaffolding can never satisfy it: org writes =** 2026=, =*** 2026-08 August= and =**** 2026-08-21 Friday= bare, and a year node has no creation moment worth stamping anyway.
@@ -5369,10 +5375,14 @@ CLOCK: [2026-08-21 Fri 09:06]--[2026-08-21 Fri 09:12] =>  0:06
 *What it does not fix, recorded so the split stays visible.* Container exclusion converts a confident wrong answer into an honest nil. It does not produce the right answer; only clocking in on the heading actually being worked does that, and the 24 minutes were lost because this session called =org_clock_in= once, at 08:31:36, five seconds before clocking out. The code half and the discipline half are independent, and only the code half is closed here.
 
 *A detail worth keeping about why this was invisible for so long.* The defect needs a container to sit in DOING while a session works something else -- which is the normal state of this project, not an edge case. On the day it was found, all three DOING headings in TODO.org were containers, so the function could not have returned a right answer for any span at all. It had presumably been wrong for as long as containers have been entering DOING, and every wrong answer was one keystroke from correction at review, which is exactly why nobody caught it.
-** Auto-promote fires on apply order, so NEXT records which capture landed first :code:
+** TODO Auto-promote fires on apply order, so NEXT records which capture landed first :code:
 :PROPERTIES:
 :ID:       c8a6c5d2-8777-44d2-9900-e56eb03aa2d9
 :CREATED:  [2026-08-21 Fri 10:33]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-21 Fri 10:33] \\
+  guard auto-promote against half-applied batches
 :END:
 
 *Observed live 2026-08-21, on this repo's own file.* Five children were captured under [[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]] in one session, each keywordless, each with a =todo -> TODO= event queued. The human applied the queue, and one of them came out =NEXT=:
@@ -5392,6 +5402,23 @@ Nobody chose it. =claude-code-ide-org--trigger-auto-promote-sole-todo= promotes 
 *The third instance of one shape*, which is the reason to record it rather than fix it quietly. =--trigger-auto-promote-sole-todo= counts siblings and checks nothing else: [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]] is the same trigger promoting a *container*, and [[id:62c6b1be-4e3c-4ea1-9f0c-19ee70be0e1e][62c6b1be]] was =--review-suggest-heading= naming a container for the same underlying reason -- a predicate reading state without asking whether the heading is the kind of thing the answer should apply to. Worth fixing together with 42808717, since both are guards on the same function.
 
 *Possible shapes, none chosen:* suppress the trigger while a review pass is applying (the apply already runs as one command, so it has a natural window); require the group to have been stable rather than mid-batch; or -- simplest -- decline to promote when the group contains keywordless siblings, since that is precisely the signature of a half-applied batch.
+** A gap covering the whole span restates its own timestamps and reads as a bug :code:
+:PROPERTIES:
+:ID:       a279216c-38db-478c-ba52-ad31c87fbfd9
+:CREATED:  [2026-08-21 Fri 10:53]
+:END:
+
+*Reported by the user 2026-08-21, reviewing a real batch:* a suggested span rendered =(nothing for 10m, 10:37-10:47)= beneath a header already reading =10:37--10:47=, and the first question it prompted was whether the line was a defect.
+
+*It is not. It is [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]]'s deliberate empty case*, and the reasoning there is sound: a span with no evidence used to render *no lines at all*, so "nothing was found here" was visually identical to "nobody looked". Making the absence visible is the whole point and should not be undone.
+
+*What is wrong is only the degenerate form.* When the gap covers the entire span, the line prints the same two timestamps the item header prints, one line apart. Redundancy at the top of an item reads as malfunction rather than as information -- which is why the first response to it was to ask whether something had broken, rather than to decide what the span was.
+
+*This is the answer to a question 5ff5a4b8 left open on purpose.* Its body declined to claim the fix worked: "whether gap lines actually induce evaluation is unknown until the next batch is reviewed, and the honest test is to ask again afterwards rather than to assume." A batch has now been reviewed. The finding is partial -- the line *did* draw attention, so the mechanism works; it drew attention to itself rather than to the decision, so the rendering does not.
+
+*Proposed fix, small and preserving the intent:* when the gap's interval equals the span's, drop the timestamps and say only that no evidence was found in the window. The absence stays visible, the "nobody looked" ambiguity stays resolved, and nothing is printed twice. Interior gaps -- the case where a stretch inside a span is empty while other stretches are not -- keep their timestamps, because there the times are the information.
+
+*Do not raise =claude-code-ide-org-span-evidence-gap= to suppress it.* The threshold exists to filter *interior* gaps by significance; using it to hide the empty case would restore exactly the "nothing found is indistinguishable from nobody looked" defect 5ff5a4b8 fixed, and would do so silently for short spans only.
 
 * Observability
 :PROPERTIES:
@@ -6862,7 +6889,26 @@ Unescaped, the second line's =*= is at column 0 and =org-map-entries= returned a
 *So: reserve it for rendering, if these files are ever exported, and do not adopt it as a habit.* ===verbatim=== stays the convention for inline code, and the comma escape stays the rule for block-level structure. Two mechanisms, each for the case it actually addresses.
 
 *One honest limit on the above.* Whether org parses these as =inline-src-block= / =verbatim= objects was *not* verified -- three attempts at an =org-element-map= probe returned nil even for ===verbatim===, which org certainly does parse, so the probe was broken rather than the syntax. The outline and babel results above stand on their own mechanisms and do not depend on it.
+** The #+STARTUP line is undocumented and the two org files disagree on it :code:
+:PROPERTIES:
+:ID:       bba1088c-d8e1-49f7-bef8-b070860f5257
+:CREATED:  [2026-08-21 Fri 10:54]
+:END:
 
+=.claude/rules/org-conventions.md= prescribes a file header of =#+TODO:=, =#+TAGS:= and =#+ARCHIVE:=. It says nothing about =#+STARTUP:=, and the two files that exist disagree:
+
+| file     | =#+STARTUP:=                  |
+|----------+-------------------------------|
+| TODO.org | =logdrawer logdone content=   |
+| DONE.org | =logdrawer=                   |
+
+So the line controlling how every one of these files opens -- and, via =logdrawer=/=logdone=, *where org writes state-change logging* -- is undocumented, and a third file created from the template would carry neither setting. =logdrawer= in particular is not cosmetic: without it org writes state notes loose under the heading instead of into =:LOGBOOK:=, which is the shape every reader and every parser in this project assumes.
+
+*Found 2026-08-21 while answering a different question*, namely whether =#+STARTUP: content= caps depth. It does not, and that is worth recording here so nobody re-derives it: =org-cycle-set-startup-visibility= dispatches =content= to =(org-cycle-content)= with *no argument*, and a nil argument selects the regexp =^\*+ = -- every level. The capped variants are separate keywords, =show2levels= through =show5levels=, which call =(org-cycle-content N)=.
+
+*Measured on a fresh open of TODO.org in the live Emacs (org 9.8.7):* 104 headings, *all visible, none hidden* -- 7 at level 1, 63 at level 2, 34 at level 3 -- and no heading carrying a =:VISIBILITY:= property. The mechanism is working; there is nothing to fix in TODO.org's own line.
+
+*Decide, then write it into the template:* whether =content= is the house default for every file or a TODO.org-specific choice, and whether =logdone= belongs everywhere =logdrawer= does. DONE.org arguably wants a *different* answer rather than the same one -- it is an archive, read rarely and in full -- so this is a decision about two files, not a copy-paste.
 
 * Tooling
 :PROPERTIES:
