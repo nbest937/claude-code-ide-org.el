@@ -59,15 +59,33 @@ promoted**, which is what catches an over-applied guard.
 These two are the whole critical path to clocking meta-work. **They are
 smaller than the five children of `a1d63f52` make it look.**
 
-- `e30d52d7` — exempt **year and month** datetree nodes from `bin/lint-org`'s
-  `:CREATED:` check. The day node keeps `:ID:`/`:CREATED:` and stays linted.
-  Check whether the existing top-level-category exemption has a predicate to
-  extend rather than adding a branch. Must land first: once several hundred
-  warnings exist the temptation becomes silencing the check.
+- `e30d52d7` — **bigger than its title suggests; re-scoped 2026-08-21 by
+  linting the proposed structure.** It is not a warning flood, it is three
+  *errors* the pre-commit hook refuses:
+
+  ```
+  error: heading has no :ID:: 2026
+  error: heading has no :ID:: 2026-08 August
+  error: level-4 heading; the file has three levels: 2026-08-21 Friday
+  ```
+
+  Year and month fail on `:ID:` — an error — before reaching the `:CREATED:`
+  warning. And **the level-4 rule rejects the day node itself**, the one
+  heading that does carry `:ID:`/`:CREATED:` and that should stay linted, so
+  exempting scaffolding does not reach it.
+
+  The level rule is a documented assertion, not an implementation detail:
+  `3bd3402b`, restated in `bin/lint-org`'s header as "the file has three
+  levels (category, task, epic-child)". A datetree makes that false. **Read
+  `3bd3402b` before touching the rule** — this is revising a structural claim
+  about TODO.org, not tweaking a linter.
 - `cd1e974e` — write the category, its `:DATE_TREE:` and `:ARCHIVE:`
   properties, the ritual repeater, and the matching `* Review and planning`
   in DONE.org *in the same edit* (the archive target is matched as a literal
   string and a mismatch silently appends a second category).
+
+Doing item 2 in the previously-scoped order would exempt two warnings, then
+hit three errors partway through `cd1e974e` with the category half-written.
 
 **After `cd1e974e` you can clock meta-work the same day**, by hand-creating
 the first day node with an `:ID:` and `:CREATED:`. That is the ASAP answer —
