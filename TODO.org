@@ -3390,6 +3390,23 @@ spans that genuinely belong to no task.
 *Exempt the class, not the file.* The day node is the one that will carry =:ID:= and =:CREATED:= (see [[id:25ec37b0-460f-404d-be83-8a4b4d355cdc][25ec37b0]]), so it should stay linted like any other tracked heading; only the *year and month* nodes are pure structure. That distinction is mechanical -- a datetree year or month node is a heading whose title matches org's own datetree format and which sits under a =:DATE_TREE:= heading -- so the exemption can be stated precisely rather than as "skip anything that looks like a date".
 
 *Note this is the same shape as the categories exemption already in the linter*, which skips =:ID:=/=:CREATED:= on top-level headings because they are structure rather than work. Worth reading that code first; this may be one more case for an existing predicate rather than a new branch.
+
+*Measured 2026-08-21 by linting the exact proposed structure, and the scope above is understated.* The warning flood is the least of it — the real blockers are three *errors*, which the pre-commit hook refuses on:
+
+#+BEGIN_EXAMPLE
+error: heading has no :ID:: 2026
+error: heading has no :ID:: 2026-08 August
+error: level-4 heading; the file has three levels (category, task, epic-child): 2026-08-21 Friday
+warn : heading has no :CREATED:: 2026
+warn : heading has no :CREATED:: 2026-08 August
+#+END_EXAMPLE
+
+Two corrections follow. The year and month nodes fail on *=:ID:=*, an error, before they ever reach the =:CREATED:= warning this heading was written about. And the *level-4 rule rejects the day node itself* — the one heading that does carry =:ID:= and =:CREATED:=, and the one we most want linted. Exempting scaffolding does not reach it.
+
+*The level rule is an assertion with a source*, recorded on [[id:3bd3402b-3ab6-4ace-b20b-3ff84caa3fb2][3bd3402b]] and restated in =bin/lint-org='s header as "the file has three levels (category, task, epic-child)". A datetree makes that false: category, year, month, day is four before any task exists. So this is not a lint tweak but a revision of a documented structural claim about TODO.org, and 3bd3402b should be read before the rule is touched.
+
+*Consequence for sequencing:* proceeding as previously scoped would exempt the two warnings, then hit three errors at [[id:cd1e974e-e006-4974-b770-cdc1cf2e4ab2][cd1e974e]] with the category half-written.
+
 *** TODO Resolve today's node on demand, never storing or scheduling its ID :code:
 :PROPERTIES:
 :ID:       9575e65b-b589-465a-830c-286541780f96
