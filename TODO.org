@@ -3140,7 +3140,7 @@ Keep the =+1m= repeater and the parentless placement — the reasoning
 recorded above still holds, and applies to the floors identically.
 
 
-** TODO [0/0] Institute a catch-all heading for cross-cutting meta-work :code:
+** TODO [0/5] Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
 :ID:       a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5
 :CREATED:  [2026-08-10 Mon 12:50]
@@ -3152,6 +3152,14 @@ CLOCK: [2026-08-14 Fri 14:21]--[2026-08-14 Fri 14:23] =>  0:02
 - [2026-08-14 Fri 14:21]--[2026-08-14 Fri 14:23] reallocated from e51d6ba1's mis-suggested span
 CLOCK: [2026-08-14 Fri 14:26]--[2026-08-14 Fri 14:28] =>  0:02
 - [2026-08-14 Fri 14:26]--[2026-08-14 Fri 14:28] reallocated from e51d6ba1's mis-suggested span
+CLOCK: [2026-08-21 Fri 09:32]--[2026-08-21 Fri 09:33] =>  0:01
+- [2026-08-21 Fri 09:32]--[2026-08-21 Fri 09:33] assess the daily-recurrence proposal
+CLOCK: [2026-08-21 Fri 09:47]--[2026-08-21 Fri 09:53] =>  0:06
+- [2026-08-21 Fri 09:47]--[2026-08-21 Fri 09:53] assess the daily-recurrence proposal
+CLOCK: [2026-08-21 Fri 10:02]--[2026-08-21 Fri 10:05] =>  0:03
+- [2026-08-21 Fri 10:02]--[2026-08-21 Fri 10:05] assess the daily-recurrence proposal
+CLOCK: [2026-08-21 Fri 10:10]--[2026-08-21 Fri 10:13] =>  0:03
+- [2026-08-21 Fri 10:10]--[2026-08-21 Fri 10:13] assess the daily-recurrence proposal
 :END:
 
 Proposed by the user 2026-08-10: a standing pseudo-task to clock
@@ -3264,10 +3272,16 @@ spans that genuinely belong to no task.
 
 *One draft was falsified along the way and the finding is in [[id:25ec37b0-460f-404d-be83-8a4b4d355cdc][25ec37b0]]:* the outline path in =file+olp+datetree= does not nest the tree. Nesting comes from a =:DATE_TREE:= property. Worth knowing before anyone writes the capture template from the template name alone, which is exactly how the first draft went wrong.
 
-*** Teach org_capture to target a datetree, with an addressable day node :code:
+*** NEXT Teach org_capture to target a datetree, with an addressable day node :code:
 :PROPERTIES:
 :ID:       25ec37b0-460f-404d-be83-8a4b4d355cdc
 :CREATED:  [2026-08-21 Fri 09:51]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-21 Fri 09:52] \\
+  datetree target and addressable day node
+- State "NEXT"       from "TODO"       [2026-08-21 Fri 10:27] \\
+  Auto-promoted: sole remaining TODO in its sibling group.
 :END:
 
 =claude-code-ide-org--capture-target-spec= (config.el:1747) resolves exactly three shapes: =(file F)=, =(id ID)= and =(file+olp F CATEGORY)=. A datetree needs a fourth.
@@ -3299,10 +3313,14 @@ spans that genuinely belong to no task.
 
 *Verified on org 9.6.15* (the batch Emacs =bin/test= runs). The live Emacs is on *9.8.7*; both carry =org-datetree--find-create-group= and the =:DATE_TREE:= lookup, but the split is [[id:1ed7b2b4-a809-4547-b04f-099a3111fc1e][1ed7b2b4]]'s undeclared-dependency gap showing up in practice, and a datetree test will run against the older one.
 
-*** Point org-clock-default-task at the day node, and re-point it daily :code:
+*** TODO Point org-clock-default-task at the day node, and re-point it daily :code:
 :PROPERTIES:
 :ID:       6ae83993-906c-4d8b-b11e-c91be8996962
 :CREATED:  [2026-08-21 Fri 09:51]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-21 Fri 09:52] \\
+  wire and re-point the default task
 :END:
 
 =org-clock-default-task= is org's own answer to "somewhere to clock cross-cutting time", which is why [[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]] pointed at it under c084553c's check-org-first rule. Chosen by the user 2026-08-21, alongside the datetree.
@@ -3315,10 +3333,14 @@ spans that genuinely belong to no task.
 
 *Do not solve Claude's half here.* Resolving "today's node" to an =:ID:= without pasting a UUID is [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]]'s subject, under [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]]. Building a second lookup here would be the parallel-convention mistake c084553c exists to prevent, one level down.
 
-*** bin/lint-org will drown in datetree scaffolding it can never satisfy :code:
+*** TODO bin/lint-org will drown in datetree scaffolding it can never satisfy :code:
 :PROPERTIES:
 :ID:       e30d52d7-960b-44f3-ab92-93846c81a1bd
 :CREATED:  [2026-08-21 Fri 09:51]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-21 Fri 09:52] \\
+  exempt datetree scaffolding from CREATED
 :END:
 
 =bin/lint-org= warns on any heading missing =:CREATED:=. Datetree scaffolding can never satisfy it: org writes =** 2026=, =*** 2026-08 August= and =**** 2026-08-21 Friday= bare, and a year node has no creation moment worth stamping anyway.
@@ -3330,10 +3352,14 @@ spans that genuinely belong to no task.
 *Exempt the class, not the file.* The day node is the one that will carry =:ID:= and =:CREATED:= (see [[id:25ec37b0-460f-404d-be83-8a4b4d355cdc][25ec37b0]]), so it should stay linted like any other tracked heading; only the *year and month* nodes are pure structure. That distinction is mechanical -- a datetree year or month node is a heading whose title matches org's own datetree format and which sits under a =:DATE_TREE:= heading -- so the exemption can be stated precisely rather than as "skip anything that looks like a date".
 
 *Note this is the same shape as the categories exemption already in the linter*, which skips =:ID:=/=:CREATED:= on top-level headings because they are structure rather than work. Worth reading that code first; this may be one more case for an existing predicate rather than a new branch.
-*** Resolve today's node on demand, never storing or scheduling its ID :code:
+*** TODO Resolve today's node on demand, never storing or scheduling its ID :code:
 :PROPERTIES:
 :ID:       9575e65b-b589-465a-830c-286541780f96
 :CREATED:  [2026-08-21 Fri 10:10]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-21 Fri 10:11] \\
+  build the on-demand resolver
 :END:
 
 One function answers "which heading is today's meta-work node", and it is called at the moment something needs the answer rather than run ahead of time. Steps: find the =:DATE_TREE:= heading; =org-datetree-find-date-create= for today, which is org's own idempotent find-or-create; stamp =:ID:= and =:CREATED:= if the node was just made; set =org-clock-default-task= to its marker; return the id.
@@ -3352,10 +3378,15 @@ One function answers "which heading is today's meta-work node", and it is called
 
 *Shared by [[id:25ec37b0-460f-404d-be83-8a4b4d355cdc][25ec37b0]] and [[id:6ae83993-906c-4d8b-b11e-c91be8996962][6ae83993]]*, which each need part of it -- the day node's =:ID:= and the default-task marker respectively. Build it once here rather than twice there.
 
-*** Institute the Review and planning category, with its DATE_TREE and ritual repeater :code:
+*** TODO Institute the Review and planning category, with its DATE_TREE and ritual repeater :code:
 :PROPERTIES:
 :ID:       cd1e974e-e006-4974-b770-cdc1cf2e4ab2
 :CREATED:  [2026-08-21 Fri 10:10]
+:BLOCKER:  ids(e30d52d7-960b-44f3-ab92-93846c81a1bd)
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-21 Fri 10:11] \\
+  institute the category once lint is exempt
 :END:
 
 The act of putting the design into TODO.org. Deliberately last: the user's instruction 2026-08-21 was that the branch and the real edit belong together, at the moment the structure lands rather than while it is being scoped.
@@ -3388,12 +3419,6 @@ A matching =* Review and planning= must be added to DONE.org in the same edit, o
 *A category is the one place in this repo a repeater is safe.* [[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]] records the trap: a repeater never reaches DONE, so it has no completable parent, and being one made an epic uncompletable. A category carries no keyword and completes nothing, so the trap does not apply.
 
 *Blocked on [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]] and not on the others.* That heading's own instruction is to fix the linter "before the tree exists, not after", because once several hundred warnings are present the temptation is to silence the check rather than exempt the class. The datetree tooling can land in either order; the linter cannot.
-
-*The dependency above is prose, not a =:BLOCKER:=, and that is temporary.* Setting the property was tried 2026-08-21 and =bin/lint-org= refused the commit: =:BLOCKER: names keyword-less heading e30d52d7 -- org-depend blocks only on an unfinished TODO, so this is a silent no-op=.
-
-*The cause is the queue, not a mistake in the target.* e30d52d7's =TODO= keyword was queued and not yet applied, so in the file it carried no keyword at all. Any =:BLOCKER:= naming a heading whose state change is still pending is inert for exactly as long as the queue goes unapplied -- a window that is normal here, not exceptional. Worth knowing generally: a dependency written in the same session that captured its target will not bind until a human runs the review pass.
-
-*Set the property once e30d52d7 carries a real keyword*, and delete this note when you do. The linter is what will catch it if nobody does, since it refuses the no-op rather than accepting it quietly -- which is why the commit was fixed rather than pushed through with =--no-verify=.
 
 
 ** TODO Let a session interject without waiting: advisory locks, or extend the queue to capture/amend :code:
@@ -5302,10 +5327,25 @@ Stated by the user 2026-08-21, as the one hitch left in an otherwise straightfor
 *Render evidence, do not recommend a heading.* "This session edited =config.el= around 10:20" is a fact the human weighs; "this span was probably c6fc6f46" is a proposal, and 0c8644ff's anchoring argument applies to the second and not the first. Holding that line is what keeps this heading independent of the automation decision in [[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]] rather than a prerequisite for it.
 
 *Test corpus is already sitting in the queue:* three unassigned spans as of 2026-08-21 -- =16:28--16:54= and =17:18--17:22= on 08-20, =21:08--21:11= on 08-20. Whether the added evidence makes each one's heading obvious is answerable against those three before anything is generalised.
-** The heading suggester will name a container, which is never itself the work :code:
+** DONE The heading suggester will name a container, which is never itself the work :code:
+CLOSED: [2026-08-21 Fri 09:11]
 :PROPERTIES:
 :ID:       62c6b1be-4e3c-4ea1-9f0c-19ee70be0e1e
 :CREATED:  [2026-08-21 Fri 09:01]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-21 Fri 08:52]--[2026-08-21 Fri 08:54] =>  0:02
+- [2026-08-21 Fri 08:52]--[2026-08-21 Fri 08:54] assigned at review
+CLOCK: [2026-08-21 Fri 08:59]--[2026-08-21 Fri 09:02] =>  0:03
+- [2026-08-21 Fri 08:59]--[2026-08-21 Fri 09:02] assigned at review
+- State "TODO"       from              [2026-08-21 Fri 09:01] \\
+  exclude containers from the heading guess
+CLOCK: [2026-08-21 Fri 09:06]--[2026-08-21 Fri 09:12] =>  0:06
+- [2026-08-21 Fri 09:06]--[2026-08-21 Fri 09:12] assigned at review
+- State "DOING"      from "TODO"       [2026-08-21 Fri 09:09] \\
+  one condition plus a discriminating test
+- State "DONE"       from "DOING"      [2026-08-21 Fri 09:11] \\
+  one condition, mutation-tested, verified live
 :END:
 
 *Measured live 2026-08-21, at the cost of 24 minutes credited to the wrong heading.* Four spans applied at review all named [[id:420816ec-677e-45a5-b898-fb5db70d214b][420816ec]] -- 0:07, 0:03, 0:12 and 0:02 -- none of which was work on it. The 0:12 was reassigned by hand to [[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]]; the other three are genuinely cross-cutting and were left where they landed, which is [[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]]'s case arriving in practice.
@@ -5329,7 +5369,29 @@ Stated by the user 2026-08-21, as the one hitch left in an otherwise straightfor
 *What it does not fix, recorded so the split stays visible.* Container exclusion converts a confident wrong answer into an honest nil. It does not produce the right answer; only clocking in on the heading actually being worked does that, and the 24 minutes were lost because this session called =org_clock_in= once, at 08:31:36, five seconds before clocking out. The code half and the discipline half are independent, and only the code half is closed here.
 
 *A detail worth keeping about why this was invisible for so long.* The defect needs a container to sit in DOING while a session works something else -- which is the normal state of this project, not an edge case. On the day it was found, all three DOING headings in TODO.org were containers, so the function could not have returned a right answer for any span at all. It had presumably been wrong for as long as containers have been entering DOING, and every wrong answer was one keystroke from correction at review, which is exactly why nobody caught it.
+** Auto-promote fires on apply order, so NEXT records which capture landed first :code:
+:PROPERTIES:
+:ID:       c8a6c5d2-8777-44d2-9900-e56eb03aa2d9
+:CREATED:  [2026-08-21 Fri 10:33]
+:END:
 
+*Observed live 2026-08-21, on this repo's own file.* Five children were captured under [[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]] in one session, each keywordless, each with a =todo -> TODO= event queued. The human applied the queue, and one of them came out =NEXT=:
+
+#+BEGIN_EXAMPLE
+- State "TODO"       from              [2026-08-21 Fri 09:52]
+- State "NEXT"       from "TODO"       [2026-08-21 Fri 10:27] \\
+  Auto-promoted: sole remaining TODO in its sibling group.
+#+END_EXAMPLE
+
+Nobody chose it. =claude-code-ide-org--trigger-auto-promote-sole-todo= promotes the lone =TODO= in a sibling group when no sibling is =NEXT=, and *during a batch apply that condition is true transiently*: the review pass applies one event at a time, so the moment the first child's keyword lands it is the only keyworded sibling of five. Group size counts all siblings, so the size >= 2 guard passes. The promotion is correct by the trigger's own rule and meaningless in fact -- it records apply order, not judgement.
+
+*It also lands on the wrong heading in a way that matters.* Here the child that must genuinely go first was [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]], which has a hard ordering constraint the others do not; =NEXT= went to whichever event the queue happened to hold first. A reader who trusts =NEXT= gets the opposite of the ordering the bodies argue for.
+
+*Self-correcting, but only if someone notices.* Setting the right sibling =NEXT= makes =--trigger-demote-conflicting-next= put the stray one back to =TODO= with a note, so no cleanup is needed beyond the correction itself. The cost is that the wrong =NEXT= is indistinguishable from a real one until read closely -- the =:LOGBOOK:= note is the only tell.
+
+*The third instance of one shape*, which is the reason to record it rather than fix it quietly. =--trigger-auto-promote-sole-todo= counts siblings and checks nothing else: [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]] is the same trigger promoting a *container*, and [[id:62c6b1be-4e3c-4ea1-9f0c-19ee70be0e1e][62c6b1be]] was =--review-suggest-heading= naming a container for the same underlying reason -- a predicate reading state without asking whether the heading is the kind of thing the answer should apply to. Worth fixing together with 42808717, since both are guards on the same function.
+
+*Possible shapes, none chosen:* suppress the trigger while a review pass is applying (the apply already runs as one command, so it has a natural window); require the group to have been stable rather than mid-batch; or -- simplest -- decline to promote when the group contains keywordless siblings, since that is precisely the signature of a half-applied batch.
 
 * Observability
 :PROPERTIES:
@@ -6749,10 +6811,14 @@ Anchoring =-L= on a regex instead was tried and is worse: =/:ID:       <uuid>/= 
 Remaining open: which drawer, if stored; and what generates it. A commit touching a heading is detectable at commit time, and =.githooks/pre-commit= is the only thing that runs then -- at the cost of making a lint hook a writer.
 
 /Body restored 2026-08-20 by =org_amend=; the original capture silently discarded it -- see/ [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]]. /This heading being empty is how the loss was noticed at all: the user asked where the concept was parked, and there was nothing there./
-** Comma-escape headline lines when documenting org structure inside a body :code:
+** TODO Comma-escape headline lines when documenting org structure inside a body :code:
 :PROPERTIES:
 :ID:       8a23d6ec-ca45-454d-b65f-e46ea9204816
 :CREATED:  [2026-08-21 Fri 10:03]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-21 Fri 10:03] \\
+  document the escape, decide on enforcement
 :END:
 
 Proposed by the user 2026-08-21, while asking for a materialized example of a proposed subtree: if showing org structure inside a heading body works, make it a general habit rather than a one-off, since it would also help linting.
