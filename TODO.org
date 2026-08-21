@@ -6844,6 +6844,26 @@ Proposed by the user 2026-08-21, while asking for a materialized example of a pr
 
 *Open:* whether =bin/lint-org= should *enforce* it -- flagging an unescaped headline line inside a block -- or whether documenting it is enough. Enforcement is attractive because the failure is silent, but it needs care: a block quoting a *diff* or a shell transcript may legitimately contain a line starting with =*=.
 
+*Inline =src_LANG{BODY}= was raised by the user 2026-08-21 as a possible companion for short snippets, and as another aid to linting. Measured, it is neither -- and on the linting question it cuts slightly the wrong way.*
+
+*It cannot help, because the hazard it would guard against cannot occur inline.* The defect this heading exists for is a =*= at *column 0 on its own line*. An inline snippet sits inside a paragraph by definition, so its =*= is never at column 0. Confirmed alongside the alternatives -- =src_org{,* x}=, ==* asterisk== and =~* asterisk~= each left =org-map-entries= reporting exactly the two real headings. There is nothing here for an inline form to protect, and ===verbatim=== is equally safe and already this repo's convention.
+
+*Where the hazard does live, inline src fails.* An attempted multi-line inline block leaked:
+
+#+BEGIN_EXAMPLE
+src_org{,* one
+,* two}
+#+END_EXAMPLE
+
+Unescaped, the second line's =*= is at column 0 and =org-map-entries= returned a heading titled =two}=. Inline forms cannot span lines, so they cannot express the multi-line structure that made this heading necessary.
+
+*It adds an execution surface that ===verbatim=== does not have.* =org-babel-map-inline-src-blocks= finds =src_emacs-lisp{(+ 1 2)}= as one executable block, so anything that walks a buffer for babel -- =org-babel-execute-buffer=, export with default =:exports= -- treats it as code rather than as text. For files that tools read and rewrite constantly, that is a new hazard bought for no linting benefit. Disabling evaluation per block is possible and is exactly the kind of per-use precaution that gets forgotten once.
+
+*So: reserve it for rendering, if these files are ever exported, and do not adopt it as a habit.* ===verbatim=== stays the convention for inline code, and the comma escape stays the rule for block-level structure. Two mechanisms, each for the case it actually addresses.
+
+*One honest limit on the above.* Whether org parses these as =inline-src-block= / =verbatim= objects was *not* verified -- three attempts at an =org-element-map= probe returned nil even for ===verbatim===, which org certainly does parse, so the probe was broken rather than the syntax. The outline and babel results above stand on their own mechanisms and do not depend on it.
+
+
 * Tooling
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Tooling
