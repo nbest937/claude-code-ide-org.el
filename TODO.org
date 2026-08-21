@@ -3542,6 +3542,17 @@ A matching =* Review and planning= must be added to DONE.org in the same edit, o
 
 *Blocked on [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]] and not on the others.* That heading's own instruction is to fix the linter "before the tree exists, not after", because once several hundred warnings are present the temptation is to silence the check rather than exempt the class. The datetree tooling can land in either order; the linter cannot.
 
+*Shipped 2026-08-21*, as one edit across both files: the category with its =:DATE_TREE:= and =:ARCHIVE:=, the ritual repeater, today's day node, and the matching bare =* Review and planning= at the end of DONE.org. Placed last among the categories in both files. Written exactly as materialized above, with one addition -- today's day node (=2026-08-21 Friday=, =:ID:= 758643f2) was hand-created with =:ID:= and =:CREATED:=, so meta-work can be clocked today rather than waiting on [[id:9575e65b-b589-465a-830c-286541780f96][9575e65b]].
+
+*The DONE.org mirror carries no =:DATE_TREE:=, deliberately.* Archiving moves a subtree under the target heading as an ordinary child; nothing runs a datetree capture against DONE.org, so the property would assert a structure that file does not have. An archived day node lints there as an ordinary level-2 heading, since it keeps the =:ID:= and =:CREATED:= it was created with.
+
+*=bin/lint-org= on the real files with the tree present: 0 errors, 23 warnings* -- the same 23 as before it existed. That is [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]]'s fix verified against the real structure rather than against fixtures, which is the check that could only be run at this moment.
+
+*Placement verified against the real file, not a sketch.* A copy was driven through =org-datetree-find-date-create= for two dates months apart. Both landed *inside* the category: =2026-08-22 Saturday= nested under the existing =2026-08 August= in date order, and a new =2026-12 December= after it in month order. The repeater sits at =org-datetree-base-level=, the same level org wants for year nodes, and org skipped it rather than clashing with it.
+
+*One consequence worth knowing before 9575e65b lands.* Org writes day nodes bare, so any node org creates that the resolver has not stamped will fail the lint with =heading has no :ID:=. That is the intended guard, not a gap: a day node without an =:ID:= exists and is unreachable, and the lint now says so loudly instead of the node being silently unusable.
+
+
 
 ** TODO Let a session interject without waiting: advisory locks, or extend the queue to capture/amend :code:
 :PROPERTIES:
@@ -8351,3 +8362,34 @@ Approach: assert against the table row, =| *Total time* | *0:00* |=, rather than
 :END:
 
 *Filed 2026-08-21, not built.* The 2026-08-21 cross-artifact audit found that prose conventions recur (UUID-from-memory, clock-in-at-drift) while mechanically checked ones fail loudly and get fixed -- and that duplicated conventions drift into contradiction (four found in CLAUDE.md, one in a memory, one in the next-session prompt). =bin/check-org-dev-skill= already embodies the fix for one file; generalize it: the CLAUDE.md and org-skill transition tables agree; every cited =:ID:=, defcustom, and function name resolves (=git grep= the symbol); every "is live"/"not built" claim carries a greppable anchor (e.g. =config.el:2792=) that still matches. Wire into =bin/hooks/pre-commit= beside the existing lint. Not a prose rule about keeping prose fresh -- that is the anti-pattern recursing.
+
+* Review and planning
+:PROPERTIES:
+:DATE_TREE: t
+:ARCHIVE:  DONE.org::* Review and planning
+:END:
+
+Meta-work: the review pass, planning, and the time that goes into deciding what to do rather than doing it. Time is clocked against the *day node*, which is why the day node carries an =:ID:= and the year and month nodes above it do not -- they are org-datetree's own scaffolding, and =bin/lint-org= knows the difference ([[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]]).
+
+=:DATE_TREE:= is what makes org nest the tree *inside* this category instead of writing a second =* 2026= at level 1; it is a structural property about the grouping, permitted on a category on the same footing as =:ARCHIVE:=. The =:ARCHIVE:= target is matched as a literal string, so renaming this category means renaming the matching heading in DONE.org in the same edit.
+
+** TODO Open today's node
+SCHEDULED: <2026-08-22 Sat +1d>
+:PROPERTIES:
+:ID:       2aff1e6d-71cf-4b3f-8a3f-b3fc63d07c99
+:CREATED:  [2026-08-21 Fri 13:20]
+:END:
+
+The ritual: a standing daily prompt to actually do review and planning.
+
+*It reminds; it does not create.* Creating today's node is [[id:9575e65b-b589-465a-830c-286541780f96][9575e65b]]'s job and happens when work happens. A repeater that created the node instead would manufacture one per calendar day whether or not anything occurred, and re-couple the node's id to a schedule -- both of the things the on-demand resolver exists to avoid.
+
+*A category is the one place in this repo a repeater is safe* ([[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]]): a repeater never reaches DONE, so it can never sit under a completable ancestor, and a category carries no keyword and completes nothing.
+
+** 2026
+*** 2026-08 August
+**** 2026-08-21 Friday
+:PROPERTIES:
+:ID:       758643f2-2046-4894-8a25-7ab44e4dad9a
+:CREATED:  [2026-08-21 Fri 13:20]
+:END:
