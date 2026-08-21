@@ -3249,6 +3249,21 @@ heading retrospectively, rather than requiring anyone to clock into a
 standing task in advance. If that lands, this heading is no longer a
 mechanism to remember — it is just a convenient assignment target for
 spans that genuinely belong to no task.
+
+*Decided 2026-08-21, in conversation with the user, and now scoped into five children.* The standing pseudo-task above becomes a *datetree*: one node per day under a =Review and planning= category, clocked against directly rather than captured beneath.
+
+*The daily node answers this heading's own recorded risk.* It warned that a permanent open task "never archives, so its =:LOGBOOK:= grows without bound -- probably fine for a pure time record, but it is a decision, not an oversight." A day node is bounded by construction and the year rolls into DONE.org on the existing =:ARCHIVE:= route, so the unbounded case never arises.
+
+*The dumping-ground risk is unchanged and gets one concrete guard:* the day node carries *no TODO keyword*, so =claude-code-ide-org--review-suggest-heading= will never propose it -- and after [[id:62c6b1be-4e3c-4ea1-9f0c-19ee70be0e1e][62c6b1be]] it would refuse a container anyway. Every span that lands there costs a deliberate =a= at review. That keeps this a place time is *assigned* to, not a place it *falls*.
+
+*=org-clock-default-task= is adopted*, closing the check-org-first item this heading raised: org already had a name for the concept and it is now wired rather than merely noted. Its limit is worth stating plainly -- it is a live-Emacs convenience for the human, and Claude cannot use it at all, since every clock call here goes through =org_clock_in= with an =:ID:=.
+
+*Creation is on demand, not scheduled.* The user asked whether a cron job or a recurrence should create the node; measured against three consequences -- empty nodes on non-working days, a stored id that can go stale, and a scheduler failure that announces nothing -- the answer was neither. See [[id:9575e65b-b589-465a-830c-286541780f96][9575e65b]].
+
+*The repeater is kept, for the ritual and not the mechanism.* A daily =SCHEDULED: <... +1d>= prompt to actually do review and planning, which is what the original scrum-ish framing was reaching for. It reminds; it does not create.
+
+*One draft was falsified along the way and the finding is in [[id:25ec37b0-460f-404d-be83-8a4b4d355cdc][25ec37b0]]:* the outline path in =file+olp+datetree= does not nest the tree. Nesting comes from a =:DATE_TREE:= property. Worth knowing before anyone writes the capture template from the template name alone, which is exactly how the first draft went wrong.
+
 *** Teach org_capture to target a datetree, with an addressable day node :code:
 :PROPERTIES:
 :ID:       25ec37b0-460f-404d-be83-8a4b4d355cdc
@@ -3315,6 +3330,71 @@ spans that genuinely belong to no task.
 *Exempt the class, not the file.* The day node is the one that will carry =:ID:= and =:CREATED:= (see [[id:25ec37b0-460f-404d-be83-8a4b4d355cdc][25ec37b0]]), so it should stay linted like any other tracked heading; only the *year and month* nodes are pure structure. That distinction is mechanical -- a datetree year or month node is a heading whose title matches org's own datetree format and which sits under a =:DATE_TREE:= heading -- so the exemption can be stated precisely rather than as "skip anything that looks like a date".
 
 *Note this is the same shape as the categories exemption already in the linter*, which skips =:ID:=/=:CREATED:= on top-level headings because they are structure rather than work. Worth reading that code first; this may be one more case for an existing predicate rather than a new branch.
+*** Resolve today's node on demand, never storing or scheduling its ID :code:
+:PROPERTIES:
+:ID:       9575e65b-b589-465a-830c-286541780f96
+:CREATED:  [2026-08-21 Fri 10:10]
+:END:
+
+One function answers "which heading is today's meta-work node", and it is called at the moment something needs the answer rather than run ahead of time. Steps: find the =:DATE_TREE:= heading; =org-datetree-find-date-create= for today, which is org's own idempotent find-or-create; stamp =:ID:= and =:CREATED:= if the node was just made; set =org-clock-default-task= to its marker; return the id.
+
+*Two callers, and the asymmetry between them is the design.* =org_clock_in= calls it when the target names the category, and *creates* if absent. The =SessionStart= hook calls it to refresh =org-clock-default-task= and must *never* create -- a session starting is not evidence that meta-work happened.
+
+*Why on demand rather than scheduled, which was the question that produced this heading.* The user asked 2026-08-21 whether creation should be a cron job or a recurrence. Three consequences decided it:
+
+- *A schedule manufactures empty nodes.* One per calendar day whether or not anything happened -- on the order of 365 a year against a working year's worth of real ones. That is [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]]'s scaffolding problem being fed rather than contained.
+- *A stored id goes stale; a computed one cannot.* The premise of the original question -- "the default id would have to be updated to match today's node" -- is only true if something remembers yesterday's. Recomputing deletes the failure mode instead of scheduling around it.
+- *Nothing announces a scheduler that stopped running.* A missing node is noticed the moment someone clocks; a silent scheduler failure is noticed at review, days later, as absent time.
+
+*The scheduling tools available to Claude cannot do this job anyway.* =CronCreate= and the =schedule= skill run *cloud* agents, which have no route to this machine's Emacs server. Recorded from the tooling description rather than from a test, but the shape is not marginal. A local scheduler would also fire on non-working days, and -- recursively -- a session spawned to fix attribution generates its own guideposts needing attribution.
+
+*Claude never learns the daily UUID, which is the point.* The target is the stable category title =Review and planning=, reusing the precedent =claude-code-ide-org--capture-target-spec= already argues for: top-level categories are few, human-curated, and never move, so the properties that make titles unsafe elsewhere do not hold. That sidesteps [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]] rather than waiting on it.
+
+*Shared by [[id:25ec37b0-460f-404d-be83-8a4b4d355cdc][25ec37b0]] and [[id:6ae83993-906c-4d8b-b11e-c91be8996962][6ae83993]]*, which each need part of it -- the day node's =:ID:= and the default-task marker respectively. Build it once here rather than twice there.
+
+*** Institute the Review and planning category, with its DATE_TREE and ritual repeater :code:
+:PROPERTIES:
+:ID:       cd1e974e-e006-4974-b770-cdc1cf2e4ab2
+:CREATED:  [2026-08-21 Fri 10:10]
+:END:
+
+The act of putting the design into TODO.org. Deliberately last: the user's instruction 2026-08-21 was that the branch and the real edit belong together, at the moment the structure lands rather than while it is being scoped.
+
+*The whole initial subtree, as org actually writes it* -- materialized, not sketched, and comma-escaped per [[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]]:
+
+#+BEGIN_EXAMPLE
+,* Review and planning
+:PROPERTIES:
+:DATE_TREE: t
+:ARCHIVE:  DONE.org::* Review and planning
+:END:
+,** TODO Open today's node
+SCHEDULED: <2026-08-22 Sat +1d>
+:PROPERTIES:
+:ID:       <stamped at creation>
+:CREATED:  <stamped at creation>
+:END:
+,** 2026
+,*** 2026-08 August
+,**** 2026-08-21 Friday
+#+END_EXAMPLE
+
+A matching =* Review and planning= must be added to DONE.org in the same edit, or the =:ARCHIVE:= target is matched as a literal string, fails to resolve, and org silently appends a second near-identical category at the end of the file.
+
+*The repeater reminds; it does not create.* Chosen by the user 2026-08-21 alongside the on-demand resolver, and the division is load-bearing: creation is [[id:9575e65b-b589-465a-830c-286541780f96][9575e65b]]'s job and happens when work happens. If the repeater created the node instead, every calendar day would produce one whether or not anything occurred, and the id would be re-coupled to a schedule -- both of the things the resolver exists to avoid. What the repeater buys is the ritual: a standing daily prompt to actually do review and planning.
+
+*Verified that the repeater and the datetree coexist*, which was not obvious -- the repeater sits at =org-datetree-base-level=, the same level org wants for year nodes. Materialized with two dates months apart: org skipped the non-year sibling, inserted =** 2026= after it, and kept month order (August before December). No clash.
+
+*A category is the one place in this repo a repeater is safe.* [[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]] records the trap: a repeater never reaches DONE, so it has no completable parent, and being one made an epic uncompletable. A category carries no keyword and completes nothing, so the trap does not apply.
+
+*Blocked on [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]] and not on the others.* That heading's own instruction is to fix the linter "before the tree exists, not after", because once several hundred warnings are present the temptation is to silence the check rather than exempt the class. The datetree tooling can land in either order; the linter cannot.
+
+*The dependency above is prose, not a =:BLOCKER:=, and that is temporary.* Setting the property was tried 2026-08-21 and =bin/lint-org= refused the commit: =:BLOCKER: names keyword-less heading e30d52d7 -- org-depend blocks only on an unfinished TODO, so this is a silent no-op=.
+
+*The cause is the queue, not a mistake in the target.* e30d52d7's =TODO= keyword was queued and not yet applied, so in the file it carried no keyword at all. Any =:BLOCKER:= naming a heading whose state change is still pending is inert for exactly as long as the queue goes unapplied -- a window that is normal here, not exceptional. Worth knowing generally: a dependency written in the same session that captured its target will not bind until a human runs the review pass.
+
+*Set the property once e30d52d7 carries a real keyword*, and delete this note when you do. The linter is what will catch it if nobody does, since it refuses the no-op rather than accepting it quietly -- which is why the commit was fixed rather than pushed through with =--no-verify=.
+
 
 ** TODO Let a session interject without waiting: advisory locks, or extend the queue to capture/amend :code:
 :PROPERTIES:
