@@ -913,7 +913,13 @@ nothing left to contribute here anyway."
                   (prefix (match-string 1))
                   (start-str (match-string 2))
                   (start-time (claude-code-ide-org--parse-org-timestamp start-str))
-                  (minutes (round (/ (float-time (time-subtract stop-time start-time)) 60))))
+                  ;; Latent rather than live: both endpoints are parsed
+                  ;; from org timestamp strings and so already carry
+                  ;; minute precision, which makes raw subtraction exact
+                  ;; here today. Routed through the shared helper anyway,
+                  ;; so the invariant holds by construction if either
+                  ;; input ever gains seconds.
+                  (minutes (claude-code-ide-org--clock-minutes start-time stop-time)))
              (goto-char match-beg)
              (delete-region match-beg match-end)
              (insert (format "%s%s--%s =>  %d:%02d"
@@ -1091,10 +1097,42 @@ original indentation included."
     (when current (push current entries))
     (list :open open :entries (nreverse entries))))
 
+(defun claude-code-ide-org--clock-minutes (start end)
+  "Minutes org would record for a CLOCK line running START to END.
+
+*Both endpoints are truncated to the minute before subtracting*, which
+is what org does -- a CLOCK line stores minute-precision timestamps and
+its `=>  H:MM\' is those two stamps subtracted.  Summing raw seconds and
+rounding gives a different answer whenever the seconds fall either side
+of a minute boundary, and it is the wrong one: the line then contradicts
+the timestamps printed beside it on that same line.
+
+Measured 2026-08-21, before this existed: *56 of 353 CLOCK lines in
+TODO.org and DONE.org disagreed with their own timestamps* -- 35
+printing a minute less than their stamps imply, 21 a minute more.  A
+clocktable does not read the `=>' field at all, so `org_clock_report'
+silently reported different totals than the drawer a human was reading.
+
+Also the reason `claude-code-ide-org--review-written-summary\' could
+promise \"what apply will really write\" and be wrong for a quarter of
+runs: apply writes through native `org-clock-in\'/`org-clock-out\', so
+org computes the duration this way and the preview did not."
+  (/ (round (float-time (time-subtract (claude-code-ide-org--truncate-to-minute end)
+                                       (claude-code-ide-org--truncate-to-minute start))))
+     60))
+
+(defun claude-code-ide-org--truncate-to-minute (time)
+  "Return TIME with its seconds discarded, as org records timestamps."
+  (let ((d (decode-time time)))
+    (encode-time 0 (nth 1 d) (nth 2 d) (nth 3 d) (nth 4 d) (nth 5 d) (nth 8 d))))
+
 (defun claude-code-ide-org--format-clock-line (start end)
   "Format START and END (time values) as a closed CLOCK line,
-matching org's own \"CLOCK: [start]--[end] =>  H:MM\" convention."
-  (let ((minutes (round (/ (float-time (time-subtract end start)) 60))))
+matching org's own \"CLOCK: [start]--[end] =>  H:MM\" convention.
+
+The total comes from `claude-code-ide-org--clock-minutes\', so it agrees
+with the two timestamps this same call prints, by construction."
+  (let ((minutes (claude-code-ide-org--clock-minutes start end)))
     (format "CLOCK: %s--%s =>  %d:%02d"
             (format-time-string "[%Y-%m-%d %a %H:%M]" start)
             (format-time-string "[%Y-%m-%d %a %H:%M]" end)
@@ -5145,10 +5183,16 @@ and leave no CLOCK line behind."
   (when (and (plist-get item :suggested)
              (claude-code-ide-org--span-kinds-known-p (plist-get item :events)))
     (let* ((runs (claude-code-ide-org--span-work-runs (plist-get item :events)))
-           (seconds (apply #'+ (mapcar (lambda (r)
-                                         (float-time (time-subtract (cdr r) (car r))))
-                                       runs)))
-           (minutes (round (/ seconds 60))))
+           ;; Per run, the way org will compute it -- NOT the sum of raw
+           ;; seconds rounded once at the end. Two different errors are
+           ;; avoided: each run's own seconds no longer round across a
+           ;; minute boundary, and the runs no longer pool their
+           ;; remainders into a minute org will never write, since org
+           ;; writes each line separately.
+           (minutes (apply #'+ (mapcar (lambda (r)
+                                         (claude-code-ide-org--clock-minutes
+                                          (car r) (cdr r)))
+                                       runs))))
       (if runs
           (format "writes %d:%02d in %d" (/ minutes 60) (% minutes 60) (length runs))
         (concat "writes nothing"

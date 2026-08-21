@@ -4292,23 +4292,81 @@ silent, plausible, and in the direction that looks like a fix."
 (ert-deftest claude-code-ide-org-test-recompute-window-reaches-past-the-minute ()
   "The window runs to END + 60s, because org truncates CLOCK endpoints.
 
-A line reading `[09:10]' can close at 09:10:50; a window stopping at the
-recorded minute excludes that `pause' and the turn is bounded at 09:10:00
-instead, losing its tail.
+A line reading `[09:10]' can be closed by a guidepost at 09:10:30, which
+a window stopping at the recorded minute would exclude.
 
-Asserted on the `=>' total, which is the only thing that can differ.
-The rendered endpoints cannot: the lost tail is under a minute by
-construction, so both answers print `[09:10]'. An earlier version of
-this test asserted the endpoints and the absence of `0:00' -- and passed
-with the extension removed, because closing at the bound produces a
-perfectly plausible line. It verified nothing."
-  (let* ((guideposts (list (claude-code-ide-org-test--guidepost "09:00:00" "resume")
-                           (claude-code-ide-org-test--guidepost "09:10:50" "pause")))
+*Asserted on whether the line survives, not on its total, and the
+distinction is the whole test.*  This originally pinned the `=>' figure:
+a turn of 09:00:00--09:10:50 was said to round to `0:11' where a bounded
+close gave `0:10'.  That stopped discriminating on 2026-08-21, when
+`claude-code-ide-org--clock-minutes' began truncating both endpoints the
+way org does -- any guidepost inside the 60-second extension truncates to
+the same minute as END by construction, so it can never move the total.
+Verified by removing the extension: the old fixture produced a
+byte-identical result either way.
+
+What the extension still decides is *membership*, which is visible one
+level up.  A lone `pause' at 09:10:30 is inside the extended window and
+outside the plain one, and the two paths diverge completely: included, it
+makes the span queue-known and yields no busy interval, so the CLOCK line
+is dropped; excluded, `inside' is nil and the line is left whole.
+Removing the extension turns the empty string back into the original
+line, which no rounding coincidence can imitate."
+  (let* ((guideposts (list (claude-code-ide-org-test--guidepost "09:10:30" "pause")))
          (text "CLOCK: [2026-08-06 Thu 09:00]--[2026-08-06 Thu 09:10] =>  0:10\n")
          (new (claude-code-ide-org--recompute-logbook-text
                text guideposts claude-code-ide-org-test--recompute-since)))
-    ;; 10m50s of real turn rounds to 11, not the 10 a bounded close gives.
-    (should (string-match-p "=>  0:11" new))))
+    (should (equal "" new))))
+
+(ert-deftest claude-code-ide-org-test-clock-total-agrees-with-its-own-timestamps ()
+  "A CLOCK line's `=>' total must equal its two printed timestamps.
+
+The invariant `claude-code-ide-org--clock-minutes' exists to hold.  It
+was broken for every interval whose seconds straddled a minute boundary:
+56 of the 353 CLOCK lines standing on 2026-08-21 disagreed with their own
+timestamps, 35 printing a minute less than their stamps imply and 21 a
+minute more.  Nothing surfaced it, because a clocktable recomputes from
+the timestamps and never reads the `=>' field -- so `org_clock_report'
+quietly disagreed with the drawer a human was reading.
+
+Both directions are probed, since rounding is only wrong on one side of
+each boundary and a fix truncating just one endpoint would pass half of
+this."
+  ;; 149s: raw rounding says 2, the stamps [10:19]--[10:22] say 3.
+  (should (= 3 (claude-code-ide-org--clock-minutes
+                (date-to-time "2026-08-20T10:19:49-0500")
+                (date-to-time "2026-08-20T10:22:18-0500"))))
+  ;; 650s: raw rounding says 11, the stamps [09:00]--[09:10] say 10.
+  (should (= 10 (claude-code-ide-org--clock-minutes
+                 (date-to-time "2026-08-06T09:00:00-0500")
+                 (date-to-time "2026-08-06T09:10:50-0500"))))
+  ;; And the formatted line says the same thing the helper does.
+  (should (string-match-p
+           "10:19\\]--\\[2026-08-20 Thu 10:22\\] =>  0:03"
+           (claude-code-ide-org--format-clock-line
+            (date-to-time "2026-08-20T10:19:49-0500")
+            (date-to-time "2026-08-20T10:22:18-0500")))))
+
+(ert-deftest claude-code-ide-org-test-preview-matches-what-org-will-write ()
+  "The review buffer's `writes H:MM' must be what apply really writes.
+
+Apply goes through native `org-clock-in'/`org-clock-out', so org computes
+each duration from minute-truncated stamps.  The preview summed raw
+seconds and rounded once, disagreeing on 25.5% of runs across the corpus
+-- 11.9% low, 13.6% high.
+
+Two runs, deliberately.  Each straddles a boundary, and summing their raw
+seconds before rounding pools the remainders into a minute org never
+writes, since org writes each line separately: 149s + 149s = 298s rounds
+to 5, while org writes 3 + 3 = 6."
+  (let* ((events (list (claude-code-ide-org-test--guidepost "10:19:49" "resume")
+                       (claude-code-ide-org-test--guidepost "10:22:18" "pause")
+                       (claude-code-ide-org-test--guidepost "10:30:49" "resume")
+                       (claude-code-ide-org-test--guidepost "10:33:18" "pause")))
+         (item (list :suggested t :events events)))
+    (should (equal "writes 0:06 in 2"
+                   (claude-code-ide-org--review-written-summary item)))))
+
 
 (ert-deftest claude-code-ide-org-test-pending-groups-unassigned-without-an-error ()
   "An unassigned span must not be grouped under an error message.
