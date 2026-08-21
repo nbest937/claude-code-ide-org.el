@@ -1221,6 +1221,31 @@ category it belongs to, purely to make the story expressible.
 
 
 
+** TODO Evaluate Org's own agenda, sparse-tree and column views against this corpus :code:research:
+:PROPERTIES:
+:ID:       82df2a6c-881d-4117-a752-5b3b04c9656d
+:CREATED:  [2026-08-21 Fri 15:06]
+:END:
+
+The missing half of [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]], which is entirely cost analysis and mechanism comparison with no statement of what the change would *buy*. That asymmetry is the likeliest reason it has sat parked since 2026-08-19 instead of resolving either way.
+
+*Why the features are unused, stated by the user 2026-08-21, and it is not neglect.* It is this project's founding motivation arriving one level up. CLAUDE.md's opening goal is "natural-language manipulation of =.org= files from within Emacs ... without needing to internalise Emacs chord sequences" -- and judging an agenda view, a sparse tree or a column view currently *requires* exactly that fluency, because you cannot evaluate a feature you cannot yet invoke. Nor was there, until this project, a corpus over which exercising them would show anything.
+
+*The corpus now exists, measured 2026-08-21:* TODO.org 8433 lines across 8 categories; DONE.org 9554 lines and 63 archived entries; 353 =[[id:]]= links between the live documents; roughly 200 headings carrying nine TODO keywords and four tags; a =:DATE_TREE:= subtree; and clock data on most active headings.
+
+*Advertised features to point at it, all read-only:*
+- =org-agenda= tag/property/TODO matching across =org-agenda-files=, with =org-agenda-custom-commands= to save composite views
+- sparse trees (=org-match-sparse-tree=, =C-c /=), which fold away non-matches in the buffer itself
+- column view (=org-columns= plus a =COLUMNS= property) -- properties as a table, with summary roll-ups
+- =:CATEGORY:= as an inherited agenda label, and statistics cookies: both already verified working here by 29439196, and both unused
+- =org-ql=, already a dependency -- =org_query= wraps it, so its query language is reachable from a session today
+
+*The decisive reframing: none of this requires the refactor.* Agenda views, sparse trees and column view all run against the structure exactly as it stands. So 29439196's implied sequencing -- settle the tier mechanism, then get the views -- is backwards. Look through org's own lenses at the corpus first. The views either show something worth having or they do not, and only then is there a real question about whether tiers must move to get more of it.
+
+*What it would buy if they do earn it.* A story or slice becomes a *query* rather than a subtree, composable without relocating headings -- which is the shared problem behind 29439196's membership table and [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]]'s plan-coverage question. Both would largely dissolve.
+
+*And Claude is how they get evaluated without the chords*, which closes the loop: a view or column spec can be built, run and rendered on request, so muscle memory stops being a precondition for the judgement. That is the founding goal applied to org's own feature set rather than to task edits.
+
 ** TODO Moving a heading between files by hand leaves org-id pointing at the old one :code:
 :PROPERTIES:
 :ID:       8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b
@@ -3127,6 +3152,15 @@ Open: what triggers a prune (size, age, or deliberate act — probably
 deliberate); whether tier 3 is its own =CHANGELOG.org= or a datetree
 inside DONE.org; and whether anything should enumerate inbound =[[id:]]=
 references before a prune, since nothing does today.
+
+*Cancelled 2026-08-21, and the re-measure this heading asked for is the reason.* Its own instruction was "restore the archiving cadence first and re-measure -- tier 3 may not be needed for a long time." Re-measured: DONE.org has gone 955 -> 9554 lines and 22 -> 63 entries, but TODO.org still carries *30* finished headings against the 13 recorded above, and the newest =:ARCHIVE_TIME:= in the file is =2026-08-17=. The original diagnosis therefore holds and has worsened: the pressure is tier 1->2 stalling, not tier 2 overflowing, and a third tier would still relieve none of it.
+
+*Superseded rather than merely deferred*, which is why this is CANCELLED and not left at MAYBE. Both jobs a third tier was for now have owners. Semantic compression is answered at the *body* level by the 2026-08-20 retention policy recorded at [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] -- a closed body holds a concise debrief, the problem statement and plan move to a drawer. And "git is already a chronological changelog, so what does this add" is answered by [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]], an index into git rather than a retelling of it. A third *file* has no remaining unique job.
+
+*One fact kept deliberately, because it outlives the proposal.* The referential-integrity constraint is now much larger than when it was written: 21 inbound =[[id:]]= links into archived headings then, 353 id links across the live documents today. Any future pruning or compression of DONE.org must carry the original =:ID:= or leave an ID-bearing stub, or it breaks inbound links silently. That constraint belongs to whoever eventually compresses DONE.org, not to this heading.
+
+*And it leaves one thing unowned, which is the real finding of the re-measure.* Archiving *cadence*. [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]] ran the archive once and closed on 2026-08-17 -- the same date as the newest =:ARCHIVE_TIME:=. Nothing owns the recurring pass, and 30 finished headings sitting in the live file is a direct contribution to [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]]'s context-cost complaint.
+
 
 ** TODO Re-measure the guidepost gap threshold against a month of queue data :code:research:
 SCHEDULED: <2026-09-13 Sun +1m>
