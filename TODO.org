@@ -1207,6 +1207,19 @@ the root cause — with
 Composing it by moving would relocate the root cause away from the
 category it belongs to, purely to make the story expressible.
 
+*New evidence 2026-08-21, from building the datetree* ([[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]], [[id:cd1e974e-e006-4974-b770-cdc1cf2e4ab2][cd1e974e]]). It cuts both ways, which is why this stays parked rather than promoted.
+
+*Against, and worth stating first: depth-as-storage did not break.* =org_outline=, =claude-code-ide-org--container-heading-p= and the lint's =org-map-entries= all read level correctly. What broke was reading depth *textually* -- an =awk= parent-inference that returned each heading's own title rather than its parent, which put a wrong claim about this file's structure into conversation before =org_outline= corrected it. A tag is equally mis-readable by a bad grep. That lesson is "read through org", not "change what org stores".
+
+*For, and stronger: level became ambiguous within a single file.* Level 4 is an error outside a =:DATE_TREE:= subtree and *is* the day node inside one, so =bin/lint-org= now carries a *context-sensitive* level rule -- the level number alone stopped being a sufficient predicate. Level 1 likewise now means two things, task category and datetree root; =* Review and planning= holds no tasks directly. This is the first *measured* instance of the overload this heading had only hypothesised.
+
+*And the shipped fix is itself the argument.* Depth could not carry the distinction, so the lint gates on org-datetree's literal title patterns instead -- a property-shaped answer smuggled in as a string match. A =:DATETREE_ROLE:= property would be the honest form. Note where that lands on this heading's own membership table: =:DATE_TREE:= plus pattern-inference is declared *at the container*, which is the drifting shape, not at the member.
+
+*Correction to the work item recorded above.* "=bin/lint-org='s header would need updating from 'category, task, epic-child'" already happened on 2026-08-21, for an unrelated reason -- it now reads "three levels ... outside a =:DATE_TREE:= subtree". So that header is no longer the untouched baseline this note assumed, and the change was made to accommodate a datetree rather than to adopt any tier scheme.
+
+*Promotion trigger, since "parked, not accepted" deserves a condition rather than a mood:* move to TODO when a *second* independent overload of heading level appears. One instance is a special case; two is a pattern, and the second is the case this heading was parked for want of. Related and not duplicates: [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] is the same membership-by-reference problem arriving from the plan-coverage side, and [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]] is where the flattening half was closed against.
+
+
 
 ** TODO Moving a heading between files by hand leaves org-id pointing at the old one :code:
 :PROPERTIES:
@@ -7102,6 +7115,22 @@ CLOSED: [2026-08-21 Fri 12:56]
 :END:
 
 *Shipped 2026-08-21* (commit =75bb17a=). Three fixes to =.claude/commands/next-session.md=: the at-most-one-NEXT invariant re-attributed to =--trigger-demote-conflicting-next= (verified against =config.el:2721='s docstring before writing -- the swapped name was headed for CLAUDE.md's permanent rule text); item 4's rebuttal of CLAUDE.md's deletion claim replaced with a citation of =0ca1363='s correction, since it argued with text that no longer exists; item 3's verify grep given explicit polarity (zero hits today, success = hits in CLAUDE.md, none in the skill). Item 5's queue-time-vs-apply-time creation ambiguity recorded on [[id:9575e65b-b589-465a-830c-286541780f96][9575e65b]] as a user decision, with a do-not-pick-silently caveat in the prompt.
+
+** TODO Codify the next-session prompt format, starting with a per-item decision marker :code:
+:PROPERTIES:
+:ID:       c10bfb15-d0c7-47c0-b482-e944558711e9
+:CREATED:  [2026-08-21 Fri 14:53]
+:END:
+
+The =/next-session= idiom is used but not codified. One line outside the file mentions it -- =CLAUDE.md:126= -- and it documents the *artifact* while explicitly denying it is a convention: "a plan, not a convention". Nothing states when one is written, what it must contain, or what "consumed" means.
+
+*First assertion: every item states whether it carries an unresolved decision, and whose it is.* The 2026-08-21 prompt did this correctly for its item 5 ("the user decides; do not pick silently") and not for item 1, where "Possible shapes, none chosen" sat in the heading body instead -- so the executing session chose a shape with no checkpoint. That is the gap in one sentence: the prompt planned at the *sequencing* altitude (survey, slice, order, cut line) and not at the *design* altitude, and only the second needs a marker.
+
+*Evidence this is a recurring class rather than one slip.* =* Documentation= already holds six headings of the "a convention is nowhere written down" shape: [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]], [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]], [[id:241a4c54-ed59-4780-b602-2a86efee978a][241a4c54]], [[id:bba1088c-d8e1-49f7-bef8-b070860f5257][bba1088c]], [[id:8707de36-93a7-4e34-b4ba-48008c7e1e3b][8707de36]] and this one. [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] is the mechanical answer to the class and would check this format once it exists.
+
+*Home: a new user-scoped skill, not the org-dev skill.* org-dev's trigger is changing this repo's own code and verifying it took effect; writing a prompt at end-of-session is neither, so the rule would silently never load -- the same failure CLAUDE.md names for path-scoped rules. And the idiom is org-free, Emacs-free and repo-free, which makes it the most portable thing here. [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] measured that only =~/.claude/= travels; this is its easiest first instance, a skill with *zero* repo coupling against the org skill's measured 16 lines. The format can additionally self-host in the prompt file's own header, which needs no trigger at all.
+
+*Open:* there is no end-of-session trigger to hang the writing rule on. Candidate is firing on an explicit request to write or revise the prompt, with the self-hosted header as the backstop.
 
 * Tooling
 :PROPERTIES:
