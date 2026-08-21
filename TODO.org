@@ -8525,6 +8525,23 @@ The ritual: a standing daily prompt to actually do review and planning.
 
 *A category is the one place in this repo a repeater is safe* ([[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]]): a repeater never reaches DONE, so it can never sit under a completable ancestor, and a category carries no keyword and completes nothing.
 
+** TODO Archive completed work weekly, so the live file stops carrying it :code:
+SCHEDULED: <2026-08-28 Fri +1w>
+:PROPERTIES:
+:ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
+:CREATED:  [2026-08-21 Fri 15:35]
+:END:
+
+Nothing owns the recurring archive pass. [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]] ran it once and closed on 2026-08-17 -- the same date as the newest =:ARCHIVE_TIME:= in DONE.org -- and the cadence stopped with it. Measured 2026-08-21: TODO.org carries *30* finished headings, against the 13 that [[id:4c0044bf-1b6c-44ea-807a-8f9e3523e3fd][4c0044bf]] recorded on 2026-08-07 when it made this same observation and was cancelled partly for it.
+
+*Why it stalls, which is the part worth knowing.* Archiving here is not mechanical. CLAUDE.md requires a concise prose outcome summary on a =DONE= heading *before* it is archived -- what shipped, how it was verified, what differed from the plan. A pass over 30 headings is therefore 30 judgements about whether that summary exists and is adequate, not 30 tool calls. Any attempt to automate the cadence without addressing that will simply archive un-summarised work faster.
+
+*A direct cost, not housekeeping.* Those 30 bodies are read into context by every session that opens the tracker, which is [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]]'s complaint with a number attached to it.
+
+*The first pass is a backlog, not a cadence.* Clearing the existing 30 should not wait for the repeater; the schedule is for the steady state afterwards.
+
+*Deliberately out of scope: where archived work lands.* The per-category =:ARCHIVE:= routing in force today, versus a =datetree/= location, is [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]'s question -- and switching would break [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]]'s lint rule until that is settled. This heading is about the pass *running*, not about its destination.
+
 ** 2026
 *** 2026-08 August
 **** 2026-08-21 Friday
