@@ -396,9 +396,38 @@ heading's own clock is running). On `org-trigger-hook`:
 `--trigger-auto-clock-in` (opens the clock the moment DOING/PLANNING is
 set by hand — gated by `claude-code-ide-org-auto-clock-in-on-doing`,
 default `t`), plus `--trigger-demote-conflicting-next` and
-`--trigger-auto-promote-sole-todo`, both live and ungated — the latter
-pair has two known record-corrupting defects, TODO.org `:ID:` c8a6c5d2
-and `:ID:` 42808717, first in the queued next-session slice.
+`--trigger-auto-promote-sole-todo`, both live and ungated.
+
+`--trigger-auto-promote-sole-todo` carries two guards, both added
+2026-08-21 (TODO.org `:ID:` 42808717 and `:ID:` c8a6c5d2, which this file
+listed as open defects until they shipped). It refuses to promote a
+*container*, since that would declare a project to be an action; and it
+declines entirely while a review pass is mid-batch, because apply lands
+one event at a time and the first of several captured children is
+transiently the only keyworded sibling of its group. The promotion is not
+lost, only deferred — `--review-settle-auto-promote` runs it once after
+the batch, against the finished state.
+
+**Rule**: every transition *to* `DONE` nominates the next action — set
+`NEXT` on whichever remaining sibling should be picked up next, or say in
+a sentence that no clear candidate exists. Leaving the group silently
+un-nominated is the thing to avoid. This completes an invariant the
+triggers only half-enforce: `--trigger-demote-conflicting-next` gives *at
+most* one `NEXT` per sibling group, and `--trigger-auto-promote-sole-todo`
+gives *at least* one only in the sole-survivor case. Everything between —
+several live candidates needing judgement — is what no trigger can decide,
+and it is the common case. GTD's actual invariant is that a live project
+always has a next action; a project without one is the canonical defect a
+weekly review exists to catch.
+
+**Rule**: when nominating, call out blockers that live in a *different*
+subtree. Name the blocking heading and where it is; a `:BLOCKER:` property
+is the machine-checkable form. A dependency inside the same sibling group
+needs no announcement — anyone reading that group can already see it — but
+a cross-subtree one is invisible from either side. Note that a `:BLOCKER:`
+naming a heading captured in the same session is **inert** until a human
+applies the queue, since `org-depend` blocks only on an unfinished TODO
+keyword and a fresh capture is keywordless on disk.
 **Rule**: any time a new task is described in conversation, create an org
 heading for it (with a `:ID:`) and set its initial TODO state, rather than
 only tracking it in conversation memory. Same reasoning as above — this is

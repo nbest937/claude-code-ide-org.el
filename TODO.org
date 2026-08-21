@@ -2926,6 +2926,15 @@ which is exactly the placement question
 
 *Verify:* =grep -n -i nominat .claude/skills/org/SKILL.md CLAUDE.md=
 returns the rule.
+
+*Shipped 2026-08-21 into CLAUDE.md*, both halves, as two adjacent =**Rule**:= entries in the state-transition section. Placement was settled by [[id:befaed0a-18ed-445e-b997-8b9c2965ad45][befaed0a]] closing the same day -- path-scoped rules hold org-*file* conventions, CLAUDE.md holds ways of working -- and this heading already said of itself that it is the latter. Verify grep now returns three hits in CLAUDE.md and none in the skill, which is the polarity the rule's own =Verify= line asks for.
+
+*One correction made while writing it.* This body attributes the *at-most-one* enforcement to =--trigger-auto-promote-sole-todo=. It is =--trigger-demote-conflicting-next= that demotes competing siblings, and =--trigger-auto-promote-sole-todo= that supplies at-least-one, and only in the sole-survivor case. Both docstrings were read before the rule was written rather than recalled; the swapped name was headed into CLAUDE.md's permanent rule text, which is the same defect [[id:8707de36-93a7-4e34-b4ba-48008c7e1e3b][8707de36]] caught in the next-session prompt.
+
+*The rule was then applied to its own occasion rather than only written.* Closing [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]] and [[id:cd1e974e-e006-4974-b770-cdc1cf2e4ab2][cd1e974e]] left [[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]] with three TODO children and no NEXT -- several live candidates, which is precisely the case no trigger can decide and the one the rule exists for. [[id:9575e65b-b589-465a-830c-286541780f96][9575e65b]] was nominated, because its own body records that the other two each need part of it. Its blocker is not a =:BLOCKER:= but a recorded open design question awaiting the user's decision (resolve at queue time or at apply time), which is called out here rather than left in the body for a reader to rediscover.
+
+*Also corrected in the same edit, since it was a claim about code changed hours earlier:* CLAUDE.md described =--trigger-auto-promote-sole-todo='s two defects as open and queued. Both shipped that morning, so the paragraph now describes the guards instead.
+
 *** TODO CLAUDE.md documents neither span floor, and mis-describes the gap threshold :code:
 :PROPERTIES:
 :ID:       594adec6-4855-470d-8ceb-5fe29bf0c935
