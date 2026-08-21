@@ -1586,6 +1586,21 @@ The objection that append-only protected against was losing the evolution of a b
 *Under consideration, not decided:* a timestamped commit log in a drawer, giving a reader an index into the git history for the rare \"how did we get here?\" question, so that the body never has to carry that answer itself.
 
 This heading is now a *dependency of* [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] rather than a neighbour of it: the retention policy cannot be applied to an existing body without a tool that can rewrite one.
+
+*Filed 2026-08-20, not built. An interim convention landed 2026-08-21 and does not close this.*
+
+*A workaround now exists in =.claude/skills/org/SKILL.md= ("Body prose and the task lifecycle").* It cannot put the outcome first -- append-only forbids that -- but it stops the body *contradicting* the keyword, which is the half that was actually costing time. The rule: the keyword owns the status, completion vocabulary (=Shipped=, =Fixed=, =Verified by mutation=) is reserved for outcome prose, and investigation words (=Measured=, =Observed=, =Reproduced=) are what a capture may use.
+
+*The word that broke it was =Verified=,* which fits both stages. Written on 2026-08-21 in two opposite senses within one hour: =Verified on org 9.6.15= (the investigation is sound, heading still TODO) and =Verified by mutation= (the fix works, heading DONE). Nothing distinguished them, and the user reported mistaking filed headings for resolved ones the same day.
+
+*Measured, since the cost had only been asserted:* TODO.org is ~118,000 tokens. Across 72 active headings the median body is *50 lines*, the longest 404, and *44 bodies of 40+ lines carry 86% of all active body text*. That is the context every session re-reads to understand a heading.
+
+*The deletion objection is weaker than this heading's neighbourhood assumed.* CLAUDE.md calls deletion "the one irreversible half of the practice", but justifies it by =plans/='s history being *bounded*. That justification does not transfer to =.org= files, which are version-controlled in full -- as the user pointed out, superseded prose stays recoverable from the commit history. Revising in place is therefore reversible here, and the case against building this tool is correspondingly thinner. The residual risk is only prose written and deleted inside one uncommitted window.
+
+*It blocks [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]]*, which is the user's standing concern -- raised 2026-08-18 as "I am questioning the long-term utility of capturing this quantity of minutiae", and repeated 2026-08-21 with the added observation that the accumulated prose is costing *working context*, not just readability. Machinery gates the policy: what to stop capturing is hard to settle while nothing can revise what was already captured.
+
+*The cheapest mitigation needs neither this tool nor that decision:* write shorter bodies. That is standing user guidance -- economise on body prose, never on heading count -- and 2026-08-21's own output did not follow it.
+
 ** DONE Rename the WAIT keyword to WAITING, matching the org community's spelling :code:
 CLOSED: [2026-08-20 Thu 16:20]
 :PROPERTIES:
@@ -2916,6 +2931,23 @@ nothing.
 
 Blocked in practice on 1 only in the sense that 2 needs its name first;
 1 and 3 can be written today.
+*** CLAUDE.md says nothing about how to read the tracker at session start :code:
+:PROPERTIES:
+:ID:       fed6e32f-4db6-49dc-b759-18b806b6c718
+:CREATED:  [2026-08-21 Fri 11:53]
+:END:
+
+*Shipped 2026-08-21* as CLAUDE.md's "Reading the tracker", between the queue architecture and the repository layout.
+
+Raised by the user: guidance should be =org_outline= first, DONE ignored by reflex, and DONE.org treated as archaeology rather than orientation, because the current state of the implementation lives in the code, tests and config. TODO.org is for planning, orchestration and coordination of future work.
+
+*Adopted with two refinements, both evidenced.*
+
+=active_only= also drops *live children of a finished parent* ([[id:98908aff-63cc-4b71-b90b-817da361a23b][98908aff]]). Measured: zero headings are hidden that way today, so the reflex is safe now and will fail silently the first time a parent is closed over unfinished children. Recorded as latent rather than theoretical.
+
+"DONE.org is reference, never orientation" is stronger and more accurate than "archaeological". Every useful DONE.org read on 2026-08-21 was =:ID:=-targeted and none was a survey -- and one of them stopped [[id:a279216c-38db-478c-ba52-ad31c87fbfd9][a279216c]] being filed as a defect when it was [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]]'s deliberate design.
+
+*One exception kept:* "the code is authoritative" holds for implementation state, not for *why* a decision went a given way, which exists only in a body. That is why the load-bearing ones are quoted in CLAUDE.md directly rather than left to a lookup.
 
 ** TODO Read power assertions as a review-time attribution signal :code:research:
 :PROPERTIES:

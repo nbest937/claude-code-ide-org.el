@@ -65,6 +65,43 @@ start/stop — the two categories that caused every incident.
 
 ---
 
+## Reading the tracker
+
+**Start with `org_outline`, not a file read.** It is roughly 40x smaller
+than the file and answers most orientation questions on its own. TODO.org is
+~118,000 tokens and the median active heading body is 50 lines, so reading
+around to find something costs more than the answer is usually worth. Drop
+to `org_query` for a predicate ("what's blocked", "everything `:research:`
+and not DONE") and to a targeted read only once you have an `:ID:` and a
+reason.
+
+**Pass `active_only`, and ignore DONE by reflex.** What a finished heading
+records is *history*; the current state of the implementation is in the
+code, the tests and the config, which are authoritative in a way a body
+written weeks ago is not. TODO.org exists to inform planning, orchestration
+and coordination of *future* work — read it for what to do next, not for
+what the system currently is.
+
+*One caveat, latent rather than theoretical:* `active_only` also drops live
+children of a finished parent (`:ID:` 98908aff). Measured 2026-08-21 — zero
+headings are hidden that way today, so the reflex is safe now and will fail
+**silently** the first time a parent is closed with unfinished children
+under it.
+
+**DONE.org is reference, never orientation.** Do not survey it to start a
+session; it will not tell you what to work on. Open it when something live
+names an ID in it — a `:BLOCKER:`, a body cross-reference, a docstring, or
+this file. That is worth doing: on 2026-08-21 a review-buffer line was about
+to be filed as a defect until DONE.org showed it was `:ID:` 5ff5a4b8's
+deliberate design, along with the open question it had deferred.
+
+The exception to "the code is authoritative" is *why* a decision went the
+way it did, which lives only in a body — which is why the load-bearing ones
+(the `.warp/.mcp.json` investigation, the retired guess heuristic) are
+quoted directly in this file rather than left to a lookup.
+
+---
+
 ## Repository layout
 
 `ls` answers most of this; only the non-obvious parts are written down.
