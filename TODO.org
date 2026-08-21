@@ -1444,6 +1444,23 @@ records every tool that queues, and this session shows =org_set_todo= 36,
 at all, which is itself worth fixing before judging them — right now
 "never used" and "used and forgotten" are indistinguishable for seven of
 the thirteen.
+
+*Measured 2026-08-20 across all 69 session transcripts in this project.* The measurement half of this heading is now done; what remains is the child and whatever follows from finding 4.
+
+*1. The original premise held for a session and does not hold for the corpus.* Only *one* tool of fourteen has never been called in any session: =org_sort_children=. =org_query=, =org_refile= and =org_move_sibling=, named above as never called, have since been used -- 27, 14 and 2 times. The "seven of thirteen" observation was true of the two-day session it was made in, and that scoping is what makes it interesting rather than wrong.
+
+*2. Per-session breadth is the real number, and it is low.* Of 20 sessions making 10 or more org tool calls, the median reaches for *5 distinct tools of 14*. No session used more than 8. So the surface is not unused; it is unused *at any given moment*.
+
+*3. =org_amend= is the sharpest case of recall rather than utility.* 121 lifetime calls -- the third most-used tool -- yet absent from 16 of 20 active sessions. When it is remembered it carries a session; most sessions never think of it. Also absent from most active sessions: =org_log_background_plan= (19/20), =org_archive= (18/20), =org_refile= (18/20), =org_move_sibling= (18/20), =org_clock_report= (17/20).
+
+*4. The finding that reframes this heading: a standing rule works and a good description does not.* CLAUDE.md requires calling =org_pending_updates= before the first state or clock call of a session. Compliance since that rule landed on 2026-08-17 is *4 of 4 sessions, 100%*; before it, 3 of 34, and those three were coincidence. Small n and worth re-measuring, but unambiguous so far.
+
+Set against it, on the same day: =org_capture='s description states in capital letters that it writes NO TODO keyword and that =org_set_todo= must follow. That instruction was ignored five times in one session by a reader who had the description in context, losing four heading bodies ([[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]]).
+
+*So the title's framing may be wrong.* This heading asks how the tools are *advertised*. The evidence says advertising is not the lever that moves usage -- a directive in CLAUDE.md is, because it is read at session start rather than at the moment of a call that is never made. If under-use is worth fixing, the intervention to test is a standing rule naming the tool for a situation, not a better =:description=.
+
+*What not to conclude.* Low breadth is not obviously a defect. Sorting a heading's children is genuinely rare, and =org_sort_children='s zero calls may be honest rather than a discovery failure. Deciding which of the six under-used tools deserve a rule, and which are simply niche, is the remaining judgement and is not answered by any of the above.
+
 *** An MCP tool accepts arguments it does not have, and says nothing :code:
 :PROPERTIES:
 :ID:       1cd2df62-35e9-47dc-bcce-dda7bae3c522
