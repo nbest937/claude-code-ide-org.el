@@ -4762,6 +4762,17 @@ The cause is fixed ([[id:c6fc6f46-4954-4fdf-9d7e-7c8bf3a1a952][c6fc6f46]]) and n
 
 *Open, and the reason this is not simply a chore.* Whether pre-cutover lines should be repaired at all. They were written by the old aggregator against a different model of what an interval meant, and =claude-code-ide-org-span-minimum-interval='s docstring already treats them as a population deliberately left alone. Making their labels self-consistent is defensible; so is leaving them visibly of their era.
 
+*Repaired 2026-08-21 on the user's approval, commit =7db9a4b=.* All 56 lines now agree with their own timestamps; the finder re-run reports 353 CLOCK lines and 0 disagreements.
+
+*The open question above answered itself.* All 56 turned out to be *post-cutover* -- 36 in DONE.org, 20 in TODO.org -- so nothing written by the old aggregator was touched, and the judgement about whether to leave pre-cutover lines visibly of their era never had to be made. Worth recording as the reason, rather than leaving the impression it was decided.
+
+*Verified three ways rather than one.* The script that found the 56, re-run: 0 remaining. The diff: exactly 112 lines, 56 pairs, *no pair differing anywhere before* =>= -- so no endpoint moved and no interval changed, only the derived label. And no non-CLOCK line touched at all.
+
+*Net effect: +14 minutes across 65.65 h*, 35 lines gaining a minute and 21 losing one. Small in aggregate, which is exactly what a near-symmetric rounding error predicts -- and exactly why aggregate totals were never going to surface this. The individual lines were wrong in both directions.
+
+*One thing the repair confirmed about the earlier count.* 365 lines in the two files carry a =>=  H:MM= string but only 353 are CLOCK entries; the other twelve are prose discussing clock lines, including this heading's own body. A whole-line anchored pattern excluded them. A looser grep would have rewritten documentation.
+
+
 ** DONE A hand-set TODO transition records the change but never the time :code:
 CLOSED: [2026-08-19 Wed 17:47]
 :PROPERTIES:
