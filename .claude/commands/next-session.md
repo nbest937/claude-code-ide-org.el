@@ -97,7 +97,31 @@ when clear candidates exist, and call out blockers that live in a *different*
 subtree. Verify with
 `grep -n -i nominat .claude/skills/org/SKILL.md CLAUDE.md`.
 
-## 4. `9575e65b` — the resolver
+## 4. `3063c3e5` — the revise-in-place gap
+
+Raised to the slice 2026-08-21. It **blocks `b07df584`**, which is the
+user's standing concern: *"I am questioning the long-term utility of
+capturing this quantity of minutiae"* (2026-08-18), repeated 2026-08-21 with
+the added point that accumulated prose costs *working context*, not just
+readability. Machinery gates the policy — what to stop capturing is hard to
+settle while nothing can revise what was already captured.
+
+Measured: TODO.org is ~118,000 tokens; across 72 active headings the median
+body is **50 lines**, the longest 404, and **44 bodies of 40+ lines carry 86%
+of all active body text**.
+
+**The main objection is weaker than the heading's neighbourhood assumed.**
+CLAUDE.md calls deletion "the one irreversible half", but justifies that by
+`plans/`'s history being *bounded*. `.org` files are version-controlled in
+full, so superseded prose stays recoverable from git. Revision is reversible
+here; only prose written and deleted inside one uncommitted window is at
+risk.
+
+An interim convention shipped 2026-08-21 in `.claude/skills/org/SKILL.md`
+("Body prose and the task lifecycle") and does **not** close this — it stops
+the body contradicting the keyword, but cannot put the outcome first.
+
+## 5. `9575e65b` — the resolver
 
 Automates the hand-made day node from item 2. Find the `:DATE_TREE:`
 heading, `org-datetree-find-date-create` for today, stamp `:ID:`/`:CREATED:`
@@ -106,7 +130,16 @@ if new, set `org-clock-default-task`, return the id. Two callers:
 creates.
 
 **Cut line:** if the session is running long, stop after item 3. The
-mechanism already works by hand at that point.
+mechanism already works by hand at that point, and item 4 is a steady-state
+cost rather than an accelerating one.
+
+## Free, and starting immediately: write shorter bodies
+
+Needs no tool and no decision, and it is already standing user guidance —
+*economise on body prose, never on heading count.* 2026-08-21's own output
+did not follow it: 13 headings filed, several with 40+ line bodies. Two
+bounded headings beat one long body. This is the largest available
+improvement per unit of effort on the list and it costs nothing.
 
 ---
 

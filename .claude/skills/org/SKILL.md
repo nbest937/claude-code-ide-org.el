@@ -362,6 +362,52 @@ overwrite it.
 - **Always preserve**: indentation, drawer structure, existing entries — do not
   reformat content the user didn't ask to change.
 
+### Body prose and the task lifecycle
+
+`org_amend` appends and can do nothing else, so a heading's outcome always
+lands furthest from where a reader starts. Until that is fixed (TODO.org
+`:ID:` 3063c3e5) these conventions keep the body from *contradicting* the
+keyword, which is the confusion that actually costs time.
+
+**The keyword owns the status. Body prose must never assert a state the
+keyword owns.** A `TODO` whose body reads like finished work is the failure
+mode — the eye trusts the paragraph over the keyword.
+
+**Reserve completion vocabulary for outcome prose.** Investigation and
+resolution had been sharing words, which is what made a filed heading read
+as a resolved one:
+
+| stage | use | never at capture |
+|---|---|---|
+| capture / investigation | `Measured`, `Observed`, `Reproduced`, `Falsified` | |
+| resolution | | `Shipped`, `Fixed`, `Closed`, `Verified by mutation` |
+
+The trap is `Verified`, which fits both: *"Verified on org 9.6.15"* is an
+investigation, *"Verified by mutation"* is an outcome. Qualify it or pick a
+narrower word.
+
+**Date-stamp proposal prose so it stays true after shipping.** *"The fix is
+one condition"* goes stale the moment it ships; *"Proposed 2026-08-21: one
+condition"* is a permanent fact. This is the journal principle applied to
+the design half rather than exempting it, and it is what makes the prose
+compatible with append-only — nothing later has to be revised.
+
+**Open a capture body with a dated, permanently-true status sentence** —
+`*Filed 2026-08-21, not built.*` — and **open outcome prose with a bold
+dated marker** — `*Shipped 2026-08-21*`, `*Closed 2026-08-21, won't do:*`.
+
+**Keep bodies short.** Economise on body prose, never on heading count: two
+bounded headings beat one long body. Measured 2026-08-21 in this repo — 72
+active headings, median body 50 lines, longest 404, and 44 bodies of 40+
+lines carrying 86% of all body text. A body nobody can read is a body that
+does not do its job, and it is re-read by every session that touches the
+heading.
+
+**Prospective only.** Do not rewrite existing bodies to match. Deletion of
+superseded prose is recoverable from git for version-controlled `.org`
+files, so it is not irreversible — but relitigating past bodies is still
+churn nobody asked for.
+
 ### Inserting content programmatically
 
 Writing org text from Elisp (via `emacsclient`, which is how larger edits
