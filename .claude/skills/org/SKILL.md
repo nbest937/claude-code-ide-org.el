@@ -270,24 +270,42 @@ When the user shares an .org file or snippet:
 
 When helping the user move a task between states, follow these conventions:
 
-| Transition              | Meaning                              | Side effect                  |
+| Transition              | Meaning                              | Clock side effect            |
 |-------------------------|--------------------------------------|------------------------------|
 | `TODO` → `NEXT`         | Decided to do it soon                | None                         |
 | `TODO` → `DOING`        | Starting work immediately            | Open a CLOCK                 |
 | `NEXT` → `DOING`        | Starting work                        | Open a CLOCK                 |
-| `DOING` → `DONE`        | Finished                             | Close the open CLOCK         |
-| `DOING` → `WAITING`        | Blocked mid-task                     | Close the open CLOCK         |
-| `DOING` → `CANCELLED`   | Abandoning                           | Close the open CLOCK         |
-| `WAITING` → `DOING`        | Unblocked, resuming                  | Open a CLOCK                 |
+| `NEXT` → `PLANNING`     | Entering Plan Mode on it             | Open a CLOCK                 |
+| `PLANNING` → `DOING`    | Plan approved, implementing          | None — same clock continues |
+| `PLANNING` → `DONE`/`WAITING`/`CANCELLED` | Stopping out of planning | Close the CLOCK       |
+| `DOING` → `DONE`        | Finished                             | Close the CLOCK              |
+| `DOING` → `WAITING`     | Blocked mid-task                     | Close the CLOCK              |
+| `DOING` → `REVIEW`      | Finished, awaiting human judgement   | Close the CLOCK              |
+| `DOING` → `CANCELLED`   | Abandoning                           | Close the CLOCK              |
+| `WAITING` → `DOING`     | Unblocked, resuming                  | Open a CLOCK                 |
+| `REVIEW` → `DOING`      | Judgement sent it back               | Open a CLOCK                 |
+| `REVIEW` → `DONE`       | Judgement accepted it                | None                         |
 | Any → `MAYBE`           | Deferring indefinitely               | None                         |
 
-**Rules:**
-- Transitioning **to `DOING`** always opens a new CLOCK entry (with start timestamp,
-  no end yet).
-- Transitioning **out of `DOING`** always closes the open CLOCK (fill in end timestamp
-  and compute duration).
-- Always append a LOGBOOK state-change note when changing TODO state:
-  `- State "NEW"  from "OLD"  [timestamp]`
+**What "side effect" means depends on the setup — read this before acting:**
+
+- **In a repo using the claude-code-ide-org event queue** (this project;
+  the `org_*` MCP tools are the tell), the side effect is the **call you
+  must make** — `org_clock_in` / `org_clock_out` alongside `org_set_todo`
+  — and *nothing edits the file when you call it*. Events queue for human
+  review and org performs the clock edits and LOGBOOK logging natively at
+  apply time. Never hand-write CLOCK lines, keywords, or `- State` notes
+  there, and never expect a read-back to show the new state before a
+  human applies the queue. CLAUDE.md's transition table is the
+  authoritative copy for that project; this one mirrors it.
+- **In a plain org setup with no such tooling**, the side effect is a
+  literal edit: open a CLOCK line (start timestamp, no end) on entering
+  `DOING`/`PLANNING`, close it (end timestamp, computed duration) on
+  leaving, and append the LOGBOOK state-change note
+  `- State "NEW"  from "OLD"  [timestamp]` if the file logs states.
+
+`REVIEW` is experimental where it appears; clock-wise it behaves exactly
+like `WAITING`.
 
 ### Plan Mode checkpoint
 
