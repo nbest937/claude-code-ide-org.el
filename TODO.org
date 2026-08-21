@@ -6958,6 +6958,21 @@ So the line controlling how every one of these files opens -- and, via =logdrawe
 *Measured on a fresh open of TODO.org in the live Emacs (org 9.8.7):* 104 headings, *all visible, none hidden* -- 7 at level 1, 63 at level 2, 34 at level 3 -- and no heading carrying a =:VISIBILITY:= property. The mechanism is working; there is nothing to fix in TODO.org's own line.
 
 *Decide, then write it into the template:* whether =content= is the house default for every file or a TODO.org-specific choice, and whether =logdone= belongs everywhere =logdrawer= does. DONE.org arguably wants a *different* answer rather than the same one -- it is an archive, read rarely and in full -- so this is a decision about two files, not a copy-paste.
+** Write a commit reference the same way twice: orgit links in bodies, the word in prose :code:
+:PROPERTIES:
+:ID:       7b54c439-ab2c-4398-b332-2b2cc0d98ac9
+:CREATED:  [2026-08-21 Fri 12:22]
+:END:
+
+*Shipped 2026-08-21.* Prompted by the user asking "what is =3255589=? I don't see it in TODO.org" — it was a commit, cited in the same form as the org =:ID:= prefixes beside it.
+
+*Two halves, two homes.* In prose, spell the word: /commit =b146008=/, never a bare hex token. In an org body, link it: =[[orgit-rev:~/git/claude-code-ide-org/::b146008][b146008]]=, written into =.claude/rules/org-conventions.md=. =orgit= is installed and its link types are already registered, so this is org's own mechanism rather than a coined one.
+
+*=git:= was considered and declined.* It is =org-git-link='s scheme, and that package is not installed here — the link type would not resolve — and it reads like git's =git://= protocol besides.
+
+*Portability is available but not configured.* =orgit--repository-directory= resolves a *name* from =magit-repos-alist= before falling back to =expand-file-name=, so =orgit-rev:claude-code-ide-org::b146008= would be machine-independent. =magit-repository-directories= is nil here, so today's links carry this machine's path. Setting it is a one-line Doom change and is the upgrade path for [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]].
+
+*Prospective only:* the 25 existing =(=535c98c=)= references stay.
 
 * Tooling
 :PROPERTIES:

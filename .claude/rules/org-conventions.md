@@ -112,6 +112,31 @@ structure and can be retrofitted honestly, so there is no reason to let it
 slide. The check tests only that a cookie is *present* — org owns the
 arithmetic.
 
+## Referring to a commit
+
+A 7-hex SHA and an 8-hex `:ID:` prefix look identical in running text, and
+this project cites both constantly. Distinguish them.
+
+**In an org body, link it.** `orgit` is installed and its link types are
+registered:
+
+```org
+[[orgit-rev:~/git/claude-code-ide-org/::b146008][b146008]]
+```
+
+It renders in org's link face — a stronger cue than verbatim — and opens the
+commit in Magit. Use `orgit-log:` for a range.
+
+**Prospective only.** The 25 existing `(=535c98c=)` references stay; there is
+nothing wrong with them and rewriting them is churn.
+
+**Portability caveat, measured 2026-08-21.** `orgit--repository-directory`
+resolves a *name* from `magit-repos-alist` before falling back to
+`expand-file-name`, so `orgit-rev:claude-code-ide-org::b146008` would be
+machine-independent — but `magit-repository-directories` is nil here, so
+today only the path form resolves. Setting it in the Doom config is the
+upgrade; until then a link carries this machine's path.
+
 ## Dependencies between tasks
 
 Use a `:BLOCKER:` property naming the blocking heading's `:ID:` rather than
