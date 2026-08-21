@@ -3140,7 +3140,7 @@ Keep the =+1m= repeater and the parentless placement — the reasoning
 recorded above still holds, and applies to the floors identically.
 
 
-** TODO Institute a catch-all heading for cross-cutting meta-work :code:
+** TODO [0/0] Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
 :ID:       a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5
 :CREATED:  [2026-08-10 Mon 12:50]
@@ -3249,7 +3249,72 @@ heading retrospectively, rather than requiring anyone to clock into a
 standing task in advance. If that lands, this heading is no longer a
 mechanism to remember — it is just a convenient assignment target for
 spans that genuinely belong to no task.
+*** Teach org_capture to target a datetree, with an addressable day node :code:
+:PROPERTIES:
+:ID:       25ec37b0-460f-404d-be83-8a4b4d355cdc
+:CREATED:  [2026-08-21 Fri 09:51]
+:END:
 
+=claude-code-ide-org--capture-target-spec= (config.el:1747) resolves exactly three shapes: =(file F)=, =(id ID)= and =(file+olp F CATEGORY)=. A datetree needs a fourth.
+
+*The olp in =file+olp+datetree= does not nest the tree, which is the opposite of what the template's own name suggests.* Read from org-capture.el rather than assumed: the branch resolves the outline path to a marker, goes to it -- and then calls =(widen)= and hands =org-datetree-find-date-create= the date with *no* =keep-restriction= argument. The marker is discarded. Nesting comes from somewhere else entirely.
+
+*Two mechanisms actually control placement*, both in =org-datetree--find-create-group=:
+
+- =keep-restriction= = ='subtree-at-point=, which narrows to the heading at point and sets =org-datetree-base-level= from it. Capture never passes this.
+- a =:DATE_TREE:= property, found anywhere in the file by =org-find-property= after the widen. When present, org narrows to that heading and sets the base level from it. *This is the one capture actually uses.*
+
+*Materialized both ways rather than reasoned about.* Without the property, two captures against =* Review and planning= produced two separate =* 2026= trees at *level 1*, outside the category and duplicated. With =:DATE_TREE: t= on the category, one tree nested correctly:
+
+#+BEGIN_EXAMPLE
+,* Review and planning
+:PROPERTIES:
+:DATE_TREE: t
+:ARCHIVE:  DONE.org::* Review and planning
+:END:
+,** 2026
+,*** 2026-08 August
+,**** 2026-08-19 Wednesday
+,**** 2026-08-21 Friday
+#+END_EXAMPLE
+
+*=:DATE_TREE:= is permitted on a category by the narrowed rule, not in spite of it.* =.claude/rules/org-conventions.md= allows "a *structural* property, which says something about the grouping rather than about work", and names =:ARCHIVE:= as the case that forced the wording. =:DATE_TREE:= is the same kind of statement -- it says how this grouping is organised -- and sits beside =:ARCHIVE:= on identical footing.
+
+*The day node is bare, and that is the part that blocks everything else.* Org writes =**** 2026-08-21 Friday= with no property drawer at all. The whole point of this design is to *clock against the day node*, and every tool here addresses headings by =:ID:=, so the capture path must stamp =:ID:= and =:CREATED:= on the day node at creation. Without that the node exists and is unreachable.
+
+*Verified on org 9.6.15* (the batch Emacs =bin/test= runs). The live Emacs is on *9.8.7*; both carry =org-datetree--find-create-group= and the =:DATE_TREE:= lookup, but the split is [[id:1ed7b2b4-a809-4547-b04f-099a3111fc1e][1ed7b2b4]]'s undeclared-dependency gap showing up in practice, and a datetree test will run against the older one.
+
+*** Point org-clock-default-task at the day node, and re-point it daily :code:
+:PROPERTIES:
+:ID:       6ae83993-906c-4d8b-b11e-c91be8996962
+:CREATED:  [2026-08-21 Fri 09:51]
+:END:
+
+=org-clock-default-task= is org's own answer to "somewhere to clock cross-cutting time", which is why [[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]] pointed at it under c084553c's check-org-first rule. Chosen by the user 2026-08-21, alongside the datetree.
+
+*It is entirely unwired today.* Zero references to =clock-default-task= across =modules/= and =~/.config/doom/config.el=. Nothing to migrate; this is a first wiring.
+
+*It moves every day, and nothing moves it.* The variable holds a *marker*, set from point by =org-clock-mark-default-task=. With a datetree the intended target is a different heading each morning, so on any day after the first the default task points at yesterday. Something has to re-point it -- a =SessionStart= hook, an idle timer, or on-demand resolution when the day node is created. Deciding which is the substance of this heading; the wiring itself is one =setq=.
+
+*It serves the human and not Claude, and that asymmetry should be accepted deliberately rather than discovered.* =org-clock-default-task= is a live-Emacs convenience: clock into it with a keystroke. Claude cannot use it at all -- every clock call here goes through =org_clock_in= with an =:ID:=, and the queue architecture means Claude never touches a live clock in the first place. So this buys *you* one-keystroke meta-work clocking, while Claude still needs the day node resolved to a UUID.
+
+*Do not solve Claude's half here.* Resolving "today's node" to an =:ID:= without pasting a UUID is [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]]'s subject, under [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]]. Building a second lookup here would be the parallel-convention mistake c084553c exists to prevent, one level down.
+
+*** bin/lint-org will drown in datetree scaffolding it can never satisfy :code:
+:PROPERTIES:
+:ID:       e30d52d7-960b-44f3-ab92-93846c81a1bd
+:CREATED:  [2026-08-21 Fri 09:51]
+:END:
+
+=bin/lint-org= warns on any heading missing =:CREATED:=. Datetree scaffolding can never satisfy it: org writes =** 2026=, =*** 2026-08 August= and =**** 2026-08-21 Friday= bare, and a year node has no creation moment worth stamping anyway.
+
+*The arithmetic is what makes this a blocker rather than a nuisance.* One day node per working day plus a month node each month is on the order of 300-400 headings a year, against *18 warnings in the whole repo today*. The scaffolding would outnumber the real findings roughly twenty to one inside the first year, and a warning list nobody reads is the same as no lint at all -- the failure mode [[id:e0904e93-b99d-44ad-b641-e3e13aced8c4][e0904e93]] just finished fixing in the session-start report, arriving in a second place.
+
+*Fix it before the tree exists, not after.* Once several hundred warnings are already there the temptation is to silence the check rather than exempt the class, and those are very different decisions.
+
+*Exempt the class, not the file.* The day node is the one that will carry =:ID:= and =:CREATED:= (see [[id:25ec37b0-460f-404d-be83-8a4b4d355cdc][25ec37b0]]), so it should stay linted like any other tracked heading; only the *year and month* nodes are pure structure. That distinction is mechanical -- a datetree year or month node is a heading whose title matches org's own datetree format and which sits under a =:DATE_TREE:= heading -- so the exemption can be stated precisely rather than as "skip anything that looks like a date".
+
+*Note this is the same shape as the categories exemption already in the linter*, which skips =:ID:=/=:CREATED:= on top-level headings because they are structure rather than work. Worth reading that code first; this may be one more case for an existing predicate rather than a new branch.
 
 ** TODO Let a session interject without waiting: advisory locks, or extend the queue to capture/amend :code:
 :PROPERTIES:
