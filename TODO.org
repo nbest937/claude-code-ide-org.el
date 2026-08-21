@@ -3460,6 +3460,17 @@ Two corrections follow. The year and month nodes fail on *=:ID:=*, an error, bef
 
 *Consequence for sequencing:* proceeding as previously scoped would exempt the two warnings, then hit three errors at [[id:cd1e974e-e006-4974-b770-cdc1cf2e4ab2][cd1e974e]] with the category half-written.
 
+*Shipped 2026-08-21, before the tree exists.* All three errors are gone and none of them was silenced. =claude-code-ide-org--lint-file= now tracks the innermost enclosing =:DATE_TREE:= heading's level while it maps entries -- =org-map-entries= walks in document order, so an anchor is always seen before its descendants -- and classifies each descendant by a new =claude-code-ide-org--datetree-node-role=.
+
+*The level rule is scoped, not dropped.* 3bd3402b's claim -- 624 headings, zero at level 4 -- was true of a file with no datetree in it. It now reads: three levels outside a =:DATE_TREE:= subtree, and inside one exactly org's year/month scaffolding plus its day node. A level-4 heading anywhere else is still an error, and so is anything *below* a day node, since nothing is filed under one. =bin/lint-org='s header carries the same revised wording; =.claude/rules/org-conventions.md= never stated the rule, so nothing there needed changing.
+
+*Gated on org's literal title shapes, not on depth*, and that is the load-bearing choice. A =:DATE_TREE:= category holds real tasks beside its tree -- [[id:cd1e974e-e006-4974-b770-cdc1cf2e4ab2][cd1e974e]]'s ritual repeater is a level-2 heading under that very category, exactly where the year node sits -- so a depth-only exemption would have waived =:ID:= and =:CREATED:= for it and for anything ever refiled there. That is the same over-application shape guarded twice in [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]] and [[id:c8a6c5d2-8777-44d2-9900-e56eb03aa2d9][c8a6c5d2]] earlier the same day: a predicate reading position without asking what kind of heading it is looking at. The patterns are org's own =comparefun= regexes, read out of the straight checkout's =org-datetree.el= rather than recalled. Quarter and ISO-week groupings are deliberately not accepted.
+
+*The day node stays linted, which took an explicit fall-through.* Writing the level clause as a branch that matched the day node and did nothing would have exempted the one heading here that most needs =:ID:= -- it is what this project clocks against. The condition is =and=-ed instead, so a day node falls through to the ordinary =:ID:=/=:CREATED:= checks.
+
+*Verified by mutation, four ways, each failing exactly its own test:* removing the year/month exemption, refusing the day node its level-4 allowance, making the role depth-only, and treating the day node as scaffolding. The third is the one that matters -- it is the only mutation the depth-only design would have shipped. Fixtures are literal text and never call =org-datetree-find-date-create=, keeping [[id:1ed7b2b4-a809-4547-b04f-099a3111fc1e][1ed7b2b4]]'s 9.6-vs-9.8 org split out of a lint that only reads structure. =bin/lint-org= on the real files: 0 errors, 23 pre-existing warnings.
+
+
 *** TODO Resolve today's node on demand, never storing or scheduling its ID :code:
 :PROPERTIES:
 :ID:       9575e65b-b589-465a-830c-286541780f96

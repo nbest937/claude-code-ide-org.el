@@ -2081,6 +2081,101 @@ as a reference — otherwise every cross-file link reads as dangling."
                     ":CREATED:  [2026-08-14 Fri 10:00]\n:END:\n"))
            'error "level-4 heading")))
 
+(ert-deftest claude-code-ide-org-test-lint-accepts-a-well-formed-datetree ()
+  "A datetree under a :DATE_TREE: category lints clean (TODO.org :ID:
+e30d52d7).  Against the pre-2026-08-21 rule this fixture produced three
+errors -- no :ID: on the year, no :ID: on the month, and a level-4 day
+node -- which is the whole reason the structural claim recorded on :ID:
+3bd3402b had to be scoped rather than simply exempted.
+
+The fixture is literal text and never calls `org-datetree-find-date-create'.
+The lint only reads structure, and going through org's own writer would
+drag the 9.6-vs-9.8 org split (TODO.org :ID: 1ed7b2b4) into a test that
+has nothing to do with it."
+  (should (null (claude-code-ide-org-test--lint
+                 (concat "* Review and planning\n"
+                         ":PROPERTIES:\n"
+                         ":DATE_TREE: t\n"
+                         ":ARCHIVE:  DONE.org::* Review and planning\n"
+                         ":END:\n"
+                         "** 2026\n"
+                         "*** 2026-08 August\n"
+                         "**** 2026-08-21 Friday\n"
+                         ":PROPERTIES:\n"
+                         ":ID:       aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\n"
+                         ":CREATED:  [2026-08-21 Fri 09:00]\n:END:\n")))))
+
+(ert-deftest claude-code-ide-org-test-lint-still-requires-an-id-on-the-day-node ()
+  "The day node is the one heading in the tree that must stay linted: it
+is what this project clocks against, every tool addresses headings by
+:ID:, and without one it exists and is unreachable.  Allowing it at level
+4 must not become exempting it.
+
+This is what a cond branch matching the day node and doing nothing would
+break, silently."
+  (should (claude-code-ide-org-test--lint-matches
+           (claude-code-ide-org-test--lint
+            (concat "* Review and planning\n"
+                    ":PROPERTIES:\n"
+                    ":DATE_TREE: t\n"
+                    ":ARCHIVE:  DONE.org::* Review and planning\n"
+                    ":END:\n"
+                    "** 2026\n"
+                    "*** 2026-08 August\n"
+                    "**** 2026-08-21 Friday\n"))
+           'error "heading has no :ID:")))
+
+(ert-deftest claude-code-ide-org-test-lint-does-not-exempt-a-task-beside-the-datetree ()
+  "The exemption names org-datetree's own scaffolding, not everything
+that happens to sit at its depth.  A :DATE_TREE: category holds real
+tasks beside its tree -- the ritual repeater TODO.org :ID: cd1e974e
+institutes is a level-2 heading under this very category, exactly where
+the year node sits -- and those are ordinary work that must carry :ID:
+and :CREATED:.
+
+Fails against a depth-only implementation, which is what it is for."
+  (let ((findings (claude-code-ide-org-test--lint
+                   (concat "* Review and planning\n"
+                           ":PROPERTIES:\n"
+                           ":DATE_TREE: t\n"
+                           ":ARCHIVE:  DONE.org::* Review and planning\n"
+                           ":END:\n"
+                           "** 2026\n"
+                           "*** 2026-08 August\n"
+                           "**** 2026-08-21 Friday\n"
+                           ":PROPERTIES:\n"
+                           ":ID:       aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\n"
+                           ":CREATED:  [2026-08-21 Fri 09:00]\n:END:\n"
+                           "** TODO Review and plan the day\n"))))
+    (should (claude-code-ide-org-test--lint-matches
+             findings 'error "heading has no :ID:"))
+    (should (claude-code-ide-org-test--lint-matches
+             findings 'warn "heading has no :CREATED:"))))
+
+(ert-deftest claude-code-ide-org-test-lint-catches-a-heading-below-the-day-node ()
+  "Nothing is filed under a day node -- the day node is the thing time is
+assigned to, which is what ruled out capturing entries beneath it.  So
+the level rule keeps biting immediately below it rather than being lifted
+for the whole subtree."
+  (should (claude-code-ide-org-test--lint-matches
+           (claude-code-ide-org-test--lint
+            (concat "* Review and planning\n"
+                    ":PROPERTIES:\n"
+                    ":DATE_TREE: t\n"
+                    ":ARCHIVE:  DONE.org::* Review and planning\n"
+                    ":END:\n"
+                    "** 2026\n"
+                    "*** 2026-08 August\n"
+                    "**** 2026-08-21 Friday\n"
+                    ":PROPERTIES:\n"
+                    ":ID:       aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\n"
+                    ":CREATED:  [2026-08-21 Fri 09:00]\n:END:\n"
+                    "***** TODO Filed under the day\n"
+                    ":PROPERTIES:\n"
+                    ":ID:       bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb\n"
+                    ":CREATED:  [2026-08-21 Fri 09:00]\n:END:\n"))
+           'error "level-5 heading")))
+
 (ert-deftest claude-code-ide-org-test-lint-catches-category-conventions ()
   "Level-1 headings are structure: no keyword, no :ID:, no tags."
   (let ((findings (claude-code-ide-org-test--lint

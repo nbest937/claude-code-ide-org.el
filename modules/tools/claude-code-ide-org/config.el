@@ -6950,11 +6950,44 @@ Returned as a list of titles rather than a count, so
              ;; over nothing and reports that as success.
              nil nil)))))))
 
+(defun claude-code-ide-org--datetree-node-role (depth title)
+  "Return `year\', `month\' or `day\' when TITLE at DEPTH levels below a
+:DATE_TREE: heading is one of org-datetree\'s own scaffolding nodes, and
+nil for anything else.
+
+Gated on org\'s literal title shapes, not on depth alone, and that is the
+whole point of the function.  A `:DATE_TREE:\' category holds real tasks
+beside its tree -- the ritual repeater TODO.org :ID: cd1e974e institutes
+sits at depth 1, exactly where the year node does -- so a depth-only test
+would waive :ID: and :CREATED: for every one of them.  That is the same
+over-application shape guarded against at
+`claude-code-ide-org--trigger-auto-promote-sole-todo\': a predicate
+reading position without asking what kind of heading it is looking at.
+
+The patterns are org\'s own, lifted from the `comparefun\' regexes
+`org-datetree-find-date-create\' passes for the year/month/day grouping
+(org-datetree.el, verified against the straight checkout 2026-08-21):
+a four-digit year, `YYYY-MM Month\', `YYYY-MM-DD Dayname\'.  Org\'s other
+groupings -- quarter (`YYYY-QN\') and ISO week (`YYYY-WNN\') -- are
+deliberately absent: this project uses year/month/day, and a tree in
+another grouping should fail the lint rather than be quietly accepted by
+a rule nobody chose."
+  (pcase depth
+    (1 (and (string-match-p "\\`[12][0-9]\\{3\\}\\'" title) 'year))
+    (2 (and (string-match-p "\\`[12][0-9]\\{3\\}-[01][0-9] [[:alpha:]]" title) 'month))
+    (3 (and (string-match-p "\\`[12][0-9]\\{3\\}-[01][0-9]-[0123][0-9] [[:alpha:]]" title) 'day))))
+
 (defun claude-code-ide-org--lint-file (file known-ids &optional categories)
   "Return a list of finding strings for FILE.  KNOWN-IDS is the hash
 from `claude-code-ide-org--lint-heading-ids'.  CATEGORIES is the list
 from `claude-code-ide-org--lint-routing-categories'."
   (let ((name (file-name-nondirectory file))
+        ;; Level of the innermost enclosing :DATE_TREE: heading, or nil.
+        ;; Tracked as state across the map because `org-map-entries'
+        ;; walks in document order, so an anchor is always seen before
+        ;; its descendants and a heading at or above the anchor's level
+        ;; has left the subtree.
+        (datetree-level nil)
         findings)
     (cl-flet ((report (severity line fmt &rest args)
                 ;; Severity is what makes this usable as a gate. An
@@ -6983,11 +7016,48 @@ from `claude-code-ide-org--lint-routing-categories'."
                     (id (org-entry-get nil "ID"))
                     (created (org-entry-get nil "CREATED"))
                     (todo (org-get-todo-state))
-                    (title (org-get-heading t t t t)))
+                    (title (org-get-heading t t t t))
+                    (datetree-role
+                     (progn
+                       ;; Left the subtree: a sibling of the anchor, or
+                       ;; anything shallower, ends it.
+                       (when (and datetree-level (<= level datetree-level))
+                         (setq datetree-level nil))
+                       (and datetree-level
+                            (claude-code-ide-org--datetree-node-role
+                             (- level datetree-level) title)))))
+               ;; Non-inherited: an inherited lookup would make every
+               ;; descendant of the anchor read as an anchor itself.
+               (when (org-entry-get nil "DATE_TREE") (setq datetree-level level))
                (cond
-                ((> level 3)
+                ;; Org writes year and month nodes bare -- no property
+                ;; drawer at all -- and they are scaffolding rather than
+                ;; work, so :ID: and :CREATED: are not theirs to carry.
+                ;; The day node deliberately does NOT land here: it is
+                ;; the heading this project clocks against, every tool
+                ;; addresses headings by :ID:, and a day node without one
+                ;; exists and is unreachable (TODO.org :ID: e30d52d7).
+                ((memq datetree-role '(year month)) nil)
+                ;; `and'-ed rather than tested inside the branch: a day
+                ;; node must fall THROUGH to the :ID:/:CREATED: clause
+                ;; below, and a cond branch that matched and did nothing
+                ;; would silently exempt the one heading here that most
+                ;; needs linting.
+                ((and (> level 3) (not (eq datetree-role 'day)))
+                 ;; Revised 2026-08-21 (TODO.org :ID: e30d52d7). The
+                 ;; three-level claim recorded on :ID: 3bd3402b -- 624
+                 ;; headings, zero at level 4 -- was true of a file with
+                 ;; no datetree in it, and a datetree is category, year,
+                 ;; month, day before any task exists. So the assertion
+                 ;; is now scoped rather than dropped: three levels
+                 ;; outside a :DATE_TREE: subtree, and inside one exactly
+                 ;; the scaffolding plus its day node. A level-4 heading
+                 ;; anywhere else is still an error, and so is anything
+                 ;; below a day node -- nothing is filed under one, since
+                 ;; the day node is the thing time is assigned to.
                  (report 'error line "level-%d heading; the file has three levels \
-(category, task, epic-child): %s" level title))
+(category, task, epic-child) outside a :DATE_TREE: subtree, and inside one only \
+year/month scaffolding and its day node: %s" level title))
                 ((= level 1)
                  ;; A level-1 heading is a category, and a category
                  ;; routes to an archive target. One that neither routes
