@@ -1360,6 +1360,13 @@ CLOCK: [2026-08-19 Wed 22:24]--[2026-08-19 Wed 22:29] =>  0:05
 CLOCK: [2026-08-20 Thu 07:33]--[2026-08-20 Thu 07:39] =>  0:06
 - [2026-08-20 Thu 07:33]--[2026-08-20 Thu 07:39] assigned at review
 :END:
+:PLAN:
+Observed 2026-08-19: apply refused [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]]'s =TODO -> TODO=. There was nothing to do -- the heading already held that keyword -- but the event was queued, offered at review, marked, and failed there.
+
+*Cause.* The heading was created by writing the keyword straight into the heading text, and =org_set_todo TODO= was then called on it. The tool recorded the transition faithfully; the reply even said =(was TODO)=, which was the signal and was not read.
+
+*Two places it could be stopped, and they are not equivalent.* =org_set_todo= could refuse to queue when =from= equals =to=, which costs one comparison and gives the caller immediate feedback instead of a failure hours later at apply. Or apply could treat a no-op as satisfied rather than failed, since the file already holds the requested state. Doing both is defensible: refuse early, be tolerant late for events queued before the refusal existed.
+:END:
 
 *Problem.* =org_set_todo= queued transitions whose requested state was already the state on disk. Each no-op cost a queue event, a review-buffer line and a dismissal. Four occurrences in one day, all the same pattern: writing a keyword inline at heading creation -- because =org_capture= cannot target a category ([[id:97696fc2-f07b-4586-b280-de6a7d26fb87][97696fc2]]) -- then calling =org_set_todo= for that same state out of habit.
 
@@ -1371,13 +1378,8 @@ CLOCK: [2026-08-20 Thu 07:33]--[2026-08-20 Thu 07:39] =>  0:06
 
 *Loose end, deliberately unexplained:* what actually failed for [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] in that run. If it fails again, the error text is the evidence this heading never had.
 
-:ORIGINAL:
-Observed 2026-08-19: apply refused [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]]'s =TODO -> TODO=. There was nothing to do -- the heading already held that keyword -- but the event was queued, offered at review, marked, and failed there.
+/This heading is the trial vehicle for the/ =:PLAN:= /drawer layout (2026-08-21), which is why its shape differs from its siblings. The planning content sits in a drawer beside/ =:PROPERTIES:= /and/ =:LOGBOOK:= /rather than below the prose, so a folded heading shows the debrief and nothing else./
 
-*Cause.* The heading was created by writing the keyword straight into the heading text, and =org_set_todo TODO= was then called on it. The tool recorded the transition faithfully; the reply even said =(was TODO)=, which was the signal and was not read.
-
-*Two places it could be stopped, and they are not equivalent.* =org_set_todo= could refuse to queue when =from= equals =to=, which costs one comparison and gives the caller immediate feedback instead of a failure hours later at apply. Or apply could treat a no-op as satisfied rather than failed, since the file already holds the requested state. Doing both is defensible: refuse early, be tolerant late for events queued before the refusal existed.
-:END:
 
 ** DOING [0/1] Review how the emacs-tools are advertised, against which ones get used :code:research:
 :PROPERTIES:
