@@ -3757,8 +3757,19 @@ the first version of this did."
                    (time-less-p time (cdr iv))))
             intervals))
 
-(defun claude-code-ide-org--aggregate-guideposts (events &optional threshold)
+(defun claude-code-ide-org--aggregate-guideposts (events &optional threshold
+                                                          exclusions)
   "Collapse EVENTS' timestamps into (START . END) spans for review.
+
+EXCLUSIONS is a list of (START . END) intervals treated exactly like a
+permission block: a timestamp strictly inside one is dropped, and one
+lying wholly between two timestamps splits the span rather than being
+clustered through.  Permission blocks are found in EVENTS themselves;
+EXCLUSIONS is for intervals whose evidence is somewhere else, which
+today means the `clock_in'/`clock_out' brackets that already have an
+owner (TODO.org :ID: eaeeb4ee).  Without it an unattributed span
+clusters straight across the brackets that partition it and the same
+minutes are offered twice.
 Consecutive timestamps separated by less than THRESHOLD seconds (default
 `claude-code-ide-org-guidepost-gap-threshold') join one span; a larger
 gap starts a new one. A lone timestamp yields a zero-width span, which
@@ -3799,7 +3810,8 @@ only touching or overlapping intervals, with no gap tolerance, which is
 a different question from clustering points that are merely near each
 other."
   (let* ((gap (or threshold claude-code-ide-org-guidepost-gap-threshold))
-         (blocks (claude-code-ide-org--block-intervals events))
+         (blocks (append (claude-code-ide-org--block-intervals events)
+                         exclusions))
          ;; A guidepost inside a permission block is not evidence of
          ;; work: the agent was stalled waiting on a human for the whole
          ;; of it. Dropping those timestamps is what splits the span,
@@ -3864,6 +3876,50 @@ other."
     (when start (push (cons start previous) spans))
     (nreverse spans)))
 
+(defconst claude-code-ide-org--run-opening-kinds
+  '("resume" "clock_in" "block_end")
+  "Event kinds at which the agent *starts* running.
+
+`resume' is the original member and the only one for a long time: a
+`UserPromptSubmit' wakes the agent.  The other two were added 2026-08-22
+with TODO.org :ID: eaeeb4ee, and both mark the same physical fact.
+
+A `clock_in' is the agent declaring it has begun work on a named
+heading, which is a stronger statement than a guidepost makes -- the
+guidepost says a turn started, the `clock_in' says what it started on.
+A `block_end' is the moment a permission prompt was answered and the
+tool finally ran.
+
+Kept as data rather than folded into
+`claude-code-ide-org--span-work-runs' because
+`claude-code-ide-org--span-kinds-known-p' has to ask the same question
+about the same set, and the two drifting apart would silently disable
+run-splitting for exactly the events the other half had just learned to
+read.")
+
+(defconst claude-code-ide-org--run-closing-kinds
+  '("pause" "clock_out" "block_start")
+  "Event kinds at which the agent *stops* running.
+
+The mirror of `claude-code-ide-org--run-opening-kinds': `pause' is a
+`Stop', `clock_out' is the agent declaring the work finished, and
+`block_start' is the instant a permission prompt appeared and the turn
+stalled.
+
+`block_start' is what makes a permission wait subtract rather than
+count.  Note that it is a *closer* while `block_end' is an opener, which
+reads backwards until you hold it the right way round: the block is the
+hole, so the run ends where the block begins.")
+
+(defun claude-code-ide-org--run-boundary-kind (kind)
+  "Return `open' or `close' for KIND, or nil when it is neither.
+
+Normalising to two symbols is what lets one adjacency rule serve three
+kinds of evidence -- turn guideposts, explicit clock brackets, and
+permission blocks -- instead of three near-copies of it."
+  (cond ((member kind claude-code-ide-org--run-opening-kinds) 'open)
+        ((member kind claude-code-ide-org--run-closing-kinds) 'close)))
+
 (defun claude-code-ide-org--span-kinds-known-p (events)
   "Non-nil when EVENTS carry the `:kind' that run-splitting reads.
 
@@ -3875,7 +3931,8 @@ constructing a plist) may carry `:ts' alone, and for those the honest
 answer is \"cannot tell\", which apply turns back into the single
 whole-span line it wrote before this existed."
   (and (seq-find (lambda (e)
-                   (member (plist-get e :kind) '("pause" "resume")))
+                   (claude-code-ide-org--run-boundary-kind
+                    (plist-get e :kind)))
                  events)
        t))
 
@@ -3923,21 +3980,38 @@ buffer's \"writes N\" summary and the corpus measurement all read one
 implementation.  Sorts defensively: callers hand it a span's `:events',
 which are filtered from an already-sorted list, but nothing in the type
 says so."
-  (let ((points (sort (mapcar (lambda (e) (cons (plist-get e :ts)
-                                                (plist-get e :kind)))
+  (let ((points (sort (mapcar (lambda (e)
+                                (cons (plist-get e :ts)
+                                      (claude-code-ide-org--run-boundary-kind
+                                       (plist-get e :kind))))
                               events)
                       (lambda (a b) (time-less-p (car a) (car b)))))
         runs previous)
     (dolist (point points)
       (when (and previous
-                 (equal (cdr previous) "resume")
-                 (equal (cdr point) "pause"))
+                 (eq (cdr previous) 'open)
+                 (eq (cdr point) 'close))
         (push (cons (car previous) (car point)) runs))
       (setq previous point))
-    (claude-code-ide-org--apply-idle-floor (nreverse runs) floor)))
+    ;; The blocks come from EVENTS themselves, so a caller that hands
+    ;; over a bracket's events gets the wait subtracted without having
+    ;; to know it was there.  Harmless where there are none: the
+    ;; barrier list is empty and the floor behaves exactly as before.
+    (claude-code-ide-org--apply-idle-floor
+     (nreverse runs) floor (claude-code-ide-org--block-intervals events))))
 
-(defun claude-code-ide-org--apply-idle-floor (intervals &optional floor)
+(defun claude-code-ide-org--apply-idle-floor (intervals &optional floor barriers)
   "Merge INTERVALS separated by less than FLOOR, then drop rendered zeros.
+
+BARRIERS is a list of (START . END) intervals across which two runs are
+never merged however small the gap.  It exists for permission blocks
+(TODO.org :ID: eaeeb4ee): the floor absorbs idle on the theory that a
+short gap between turns is not worth a second CLOCK line, but a block is
+a mechanically certain fact that nothing was running, and the measured
+case is 1m51s -- comfortably under the default floor, so without this
+the two sides of a permission wait merge straight back together and the
+wait is credited as work.  The gap rule and the barrier rule disagree
+only inside FLOOR, which is precisely where a block needs to win.
 
 The shared tail of every path that turns raw guidepost intervals into
 CLOCK lines -- `claude-code-ide-org--span-work-runs' for what apply
@@ -3976,7 +4050,11 @@ one is a choice about what is worth recording."
                             (lambda (a b) (time-less-p (car a) (car b)))))
       (let ((last (car merged)))
         (if (and last
-                 (< (float-time (time-subtract (car interval) (cdr last))) floor))
+                 (< (float-time (time-subtract (car interval) (cdr last))) floor)
+                 (not (seq-find (lambda (b)
+                                  (and (not (time-less-p (car b) (cdr last)))
+                                       (not (time-less-p (car interval) (cdr b)))))
+                                barriers)))
             (when (time-less-p (cdr last) (cdr interval))
               (setcdr last (cdr interval)))
           (push (cons (car interval) (cdr interval)) merged))))
@@ -4078,6 +4156,103 @@ Each is a plist; see `claude-code-ide-org--review-items-from-queue'.")
   "Non-nil when EVENT is a pause/resume guidepost."
   (member (plist-get event :kind) '("pause" "resume")))
 
+(defun claude-code-ide-org--span-events (events agent &optional session)
+  "Return EVENTS belonging to lane AGENT that bear on a span's shape.
+
+Guideposts *and* permission-block markers.  The block markers are the
+2026-08-22 correction (TODO.org :ID: eaeeb4ee): every caller used to
+filter with `claude-code-ide-org--review-guidepost-p' alone, which
+admits `pause' and `resume' and nothing else, so the block events were
+gone before `claude-code-ide-org--aggregate-guideposts' looked for them
+and `claude-code-ide-org--block-intervals' returned nil on every real
+call.  The permission-block feature (:ID: f4e628ce) was therefore inert
+in production for as long as it had existed, while its tests passed --
+they hand the block events straight to `--aggregate-guideposts' and so
+never crossed the filter that was dropping them.
+
+AGENT selects the lane: nil means the main session, which is the only
+lane whose events carry no `agent_id'.  SESSION, when given, additionally
+restricts to one session's file -- required whenever EVENTS spans more
+than one, since every main lane shares a nil `agent_id' and would
+otherwise pool."
+  (seq-filter (lambda (e)
+                (and (or (claude-code-ide-org--review-guidepost-p e)
+                         (member (plist-get e :kind)
+                                 '("block_start" "block_end")))
+                     (equal (plist-get e :agent-id) agent)
+                     (or (null session)
+                         (equal (plist-get e :session-id) session))))
+              events))
+
+(defun claude-code-ide-org--events-within (events start end agent &optional session)
+  "Return lane AGENT/SESSION's span events from EVENTS inside START..END.
+
+Strictly inside: the bracket's own endpoints are supplied by the caller,
+and a guidepost landing exactly on one would double the boundary."
+  (seq-filter (lambda (e)
+                (let ((ts (plist-get e :ts)))
+                  (and (time-less-p start ts) (time-less-p ts end))))
+              (claude-code-ide-org--span-events events agent session)))
+
+(defun claude-code-ide-org--lane-clock-pairs (events)
+  "Pair EVENTS' `clock_in'/`clock_out' per lane, oldest first.
+
+Returns a list of (OPEN CLOSE) event pairs.  A lane is `agent_id' when
+the event came from a subagent and the main session otherwise -- the
+same partition `claude-code-ide-org--queue-events-by-id' uses, and for
+the same reason: subagents share their parent's `session_id', so a
+single `open' variable would let concurrent agents close each other's
+brackets (TODO.org :ID: 0d789b68).
+
+An unmatched `clock_in' yields no pair and is deliberately left
+unconsumed.  It is the lane's anchor for work that is still running, and
+inventing an end for it is the class of guess :ID: 7771fc63 retired.  A
+`clock_out' with no open `clock_in' is likewise dropped rather than
+extended backwards."
+  (let ((lanes (make-hash-table :test 'equal))
+        pairs)
+    (dolist (event (sort (seq-filter
+                          (lambda (e)
+                            (member (plist-get e :kind)
+                                    '("clock_in" "clock_out")))
+                          (copy-sequence events))
+                         (lambda (a b)
+                           (time-less-p (plist-get a :ts) (plist-get b :ts)))))
+      ;; The session is part of the lane key, not just the agent. Two
+      ;; sessions' main lanes both carry a nil `agent_id', so keying on
+      ;; the agent alone lets one session's `clock_out' close another's
+      ;; bracket -- which only shows up once this function is run over
+      ;; the full multi-session history, as the subdivision path below
+      ;; must.
+      (let ((lane (cons (plist-get event :session-id)
+                        (or (plist-get event :agent-id) :main))))
+        (if (equal (plist-get event :kind) "clock_in")
+            (puthash lane event lanes)
+          (let ((open (gethash lane lanes)))
+            (when open
+              (push (list open event) pairs)
+              (remhash lane lanes))))))
+    (nreverse pairs)))
+
+(defun claude-code-ide-org--lane-clock-intervals (events &optional agent)
+  "Return (START . END) intervals for EVENTS' clock brackets.
+
+With AGENT non-nil, only that lane's; with AGENT nil, only the main
+session's.  Pass `all' for every lane regardless.
+
+These are the intervals that already have an owner, which is what makes
+them subtractable: anything inside one is accounted for by the bracket's
+own review item, so a span clustered over the same minutes would offer
+them a second time."
+  (delq nil
+        (mapcar (lambda (pair)
+                  (let ((open (nth 0 pair)))
+                    (when (or (eq agent 'all)
+                              (equal (plist-get open :agent-id) agent))
+                      (cons (plist-get open :ts)
+                            (plist-get (nth 1 pair) :ts)))))
+                (claude-code-ide-org--lane-clock-pairs events))))
+
 (defun claude-code-ide-org--review-items-from-queue (&optional session-id)
   "Build review items from the pending queue, oldest first.
 
@@ -4104,7 +4279,8 @@ clock_in/clock_out, where the interval is authoritative.
 Items carry the `:events' they were derived from, which is what lets
 `claude-code-ide-org--review-advance-watermarks' tell an applied event
 from a skipped one."
-  (let (items)
+  (let ((history (claude-code-ide-org--queue-events session-id t))
+        items)
     (dolist (group (claude-code-ide-org--queue-events-by-id session-id))
       (let* ((id (car group))
              (events (cdr group)))
@@ -4142,45 +4318,98 @@ from a skipped one."
                            :note (plist-get event :note)
                            :events (list event))
                      items))))
-          ;; Subagent intervals: pair each agent's own clock_in/clock_out.
-          (let ((by-agent (make-hash-table :test 'equal)))
-            (dolist (event events)
-              (when (and (plist-get event :agent-id)
-                         (member (plist-get event :kind) '("clock_in" "clock_out")))
-                (push event (gethash (plist-get event :agent-id) by-agent))))
-            (maphash
-             (lambda (agent agent-events)
-               (let ((ordered (nreverse agent-events))
-                     open)
-                 (dolist (event ordered)
-                   (if (equal (plist-get event :kind) "clock_in")
-                       (setq open event)
-                     (when open
-                       (push (list :type 'clock :id id
-                                   :start (plist-get open :ts)
-                                   :end (plist-get event :ts)
-                                   :note (or (plist-get open :note)
-                                             (plist-get event :note))
-                                   :agent agent :suggested nil
-                                   :events (list open event))
-                             items)
-                       (setq open nil))))))
-             by-agent))
-          ;; Human spans: cluster this heading's guideposts. The label
-          ;; inherits the enclosing clock_in's note, which is the only
-          ;; source of one -- pause/resume come from hooks Claude never
-          ;; invokes, so they can carry no note of their own.
-          (let* ((guideposts (seq-filter
+          ;; Explicit brackets: pair each lane's own clock_in/clock_out.
+          ;;
+          ;; Every lane, including the main session's -- and that `every'
+          ;; is the 2026-08-22 fix (TODO.org :ID: eaeeb4ee). This loop
+          ;; used to require an `agent_id', on the reasoning that a main
+          ;; -lane bracket may span human idle and so must have its
+          ;; duration reconstructed from guideposts rather than taken
+          ;; whole. The reasoning is sound and is kept below; requiring
+          ;; the agent_id *here* was the wrong place to enforce it,
+          ;; because guideposts are turn boundaries and a bracket opened
+          ;; and closed inside one turn contains none. Measured on the
+          ;; 2026-08-21 queue: four headings clocked across fifteen
+          ;; minutes with no `pause' or `resume' anywhere between the
+          ;; first clock_in and the last clock_out, producing no review
+          ;; item at all, while an hour of their work was offered as one
+          ;; unassigned span and landed on an unrelated heading.
+          (dolist (pair (claude-code-ide-org--lane-clock-pairs events))
+            (let* ((open (nth 0 pair))
+                   (close (nth 1 pair))
+                   (agent (plist-get open :agent-id))
+                   (start (plist-get open :ts))
+                   (end (plist-get close :ts)))
+              (push (list :type 'clock :id id
+                          :start start :end end
+                          ;; The pair's *own* note, not the first
+                          ;; clock_in note in the group. A heading
+                          ;; clocked twice in a session has two notes
+                          ;; describing two different pieces of work,
+                          ;; and the old `(car ...)' over the whole
+                          ;; group labelled both spans with the first.
+                          :note (or (plist-get open :note)
+                                    (plist-get close :note))
+                          :agent agent
+                          ;; A subagent's interval is authoritative end
+                          ;; to end: it ran unattended, so there is no
+                          ;; idle inside to subtract, and `:suggested'
+                          ;; nil is what stops apply re-deriving runs.
+                          ;;
+                          ;; A main-lane bracket is authoritative for
+                          ;; *attribution* and not for duration -- the
+                          ;; human may have sat inside it for an hour.
+                          ;; `:suggested' t sends it through
+                          ;; `--span-work-runs', which now reads the
+                          ;; bracket's own endpoints as run boundaries,
+                          ;; so a bracket with no guideposts inside
+                          ;; yields one run covering it and a bracket
+                          ;; full of them is subdivided as before.
+                          :suggested (if agent nil t)
+                          :origin 'bracketed
+                          ;; Read from the *full* history, applied
+                          ;; events included, and this is not a
+                          ;; refinement -- it is what makes subdivision
+                          ;; work at all. Emission stays pending-only
+                          ;; (the group above is pending), but the
+                          ;; guideposts that subdivide a bracket are
+                          ;; usually applied long before the bracket
+                          ;; itself is, because a `pause'/`resume' pair
+                          ;; reaches the review buffer as a span on the
+                          ;; day it happens while the bracket sat
+                          ;; unconsumed. Measured on the 2026-08-21
+                          ;; queue: with the pending group alone the day
+                          ;; node's bracket saw no guideposts inside it
+                          ;; and offered 48 minutes as one unbroken run,
+                          ;; against ~11 of actual turn time. Same
+                          ;; lesson as `--review-suggest-heading', which
+                          ;; reads the full history for the same reason.
+                          :events (cons open
+                                        (append
+                                         (claude-code-ide-org--events-within
+                                          history start end agent
+                                          (plist-get open :session-id))
+                                         (list close))))
+                    items)))
+          ;; Human spans: cluster whatever guideposts the brackets above
+          ;; did not already account for. Before 2026-08-22 this was the
+          ;; only path that produced a main-lane interval; it now covers
+          ;; the residue, which in practice means an unmatched
+          ;; `clock_in' whose work is still running and has no closing
+          ;; bracket to be partitioned by.
+          (let* ((covered (claude-code-ide-org--lane-clock-intervals history nil))
+                 (guideposts (seq-remove
                               (lambda (e)
-                                (and (claude-code-ide-org--review-guidepost-p e)
-                                     (not (plist-get e :agent-id))))
-                              events))
+                                (claude-code-ide-org--time-within-any-p
+                                 (plist-get e :ts) covered))
+                              (claude-code-ide-org--span-events events nil)))
                  (label (car (delq nil
                                    (mapcar (lambda (e)
                                              (and (equal (plist-get e :kind) "clock_in")
                                                   (plist-get e :note)))
                                            events)))))
-            (dolist (span (claude-code-ide-org--aggregate-guideposts guideposts))
+            (dolist (span (claude-code-ide-org--aggregate-guideposts
+                           guideposts nil covered))
               (push (list :type 'clock :id id
                           :start (car span) :end (cdr span)
                           :note label :agent nil :suggested t
@@ -4215,12 +4444,21 @@ from a skipped one."
            ;; suggestion wants. Nothing is proposed from these; they are
            ;; read only to answer "what was being worked on then".
            (all (claude-code-ide-org--queue-events session-id t))
-           (guideposts (seq-filter
-                        (lambda (e)
-                          (and (claude-code-ide-org--review-guidepost-p e)
-                               (not (plist-get e :agent-id))))
-                        orphans)))
-      (dolist (span (claude-code-ide-org--aggregate-guideposts guideposts))
+           ;; Every bracket in the *pending* queue, whatever heading or
+           ;; lane it belongs to, is subtracted from the orphan stream.
+           ;; Without this the fix above mints the double-count it is
+           ;; meant to remove: on 2026-08-21 the `resume' at 13:07:10 and
+           ;; the `pause' at 13:24:41 are both orphans -- the lane is
+           ;; empty at both moments -- and they are *adjacent* in the
+           ;; orphan stream, because everything between them is bracketed
+           ;; and so attributed elsewhere. A `resume' -> `pause'
+           ;; adjacency never splits however long the gap, so the span
+           ;; would straddle all four brackets by construction and offer
+           ;; their fifteen minutes a second time.
+           (bracketed (claude-code-ide-org--lane-clock-intervals all 'all))
+           (guideposts (claude-code-ide-org--span-events orphans nil)))
+      (dolist (span (claude-code-ide-org--aggregate-guideposts
+                     guideposts nil bracketed))
         (push (list :type 'clock
                     :id (claude-code-ide-org--review-suggest-heading (car span) all)
                     :start (car span) :end (cdr span)

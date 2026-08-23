@@ -7458,6 +7458,211 @@ simply stopped working."
       (when (find-buffer-visiting file) (kill-buffer (find-buffer-visiting file)))
       (delete-file file))))
 
+;;; Explicit clock brackets as authoritative attribution (TODO.org :ID: eaeeb4ee)
+;;
+;; Before 2026-08-22 a main-lane `clock_in'/`clock_out' pair produced no
+;; review item of its own.  Duration came only from clustering pause/resume
+;; guideposts, and guideposts are *turn boundaries* -- so a bracket opened
+;; and closed inside a single turn contained none and vanished entirely.
+;; Measured on the 2026-08-21 queue: four headings, fifteen minutes, no
+;; item, while an hour of their work was offered as one unassigned span
+;; and landed on an unrelated heading.
+
+(defun claude-code-ide-org-test--clock-items (&optional session)
+  "Every `clock' review item from the queue, oldest first."
+  (seq-filter (lambda (i) (eq (plist-get i :type) 'clock))
+              (claude-code-ide-org--review-items-from-queue session)))
+
+(defun claude-code-ide-org-test--written-seconds (item)
+  "Total seconds ITEM's runs would write as CLOCK lines."
+  (apply #'+ (mapcar (lambda (r) (float-time (time-subtract (cdr r) (car r))))
+                     (claude-code-ide-org--review-intervals-to-write item))))
+
+(ert-deftest claude-code-ide-org-test-bracket-without-guideposts-still-yields-an-item ()
+  "A bracket opened and closed inside one turn produces an item covering it.
+
+This is the whole of :ID: eaeeb4ee.  There is deliberately *no*
+pause/resume anywhere between the `clock_in' and the `clock_out', which
+is what a single uninterrupted turn looks like and what the old code
+could not see: it filtered to guideposts, found none, clustered nothing,
+and emitted nothing at all.  The heading's own note has to survive too,
+since the note is the thing that makes the attribution certain rather
+than guessed."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-21T13:07:10-0500" "resume")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-21T13:07:36-0500" "clock_in" "id-a" nil nil
+                  "guard auto-promote against containers")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-21T13:16:20-0500" "clock_out" nil nil nil "shipped")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-21T13:24:41-0500" "pause")))
+    (let* ((items (claude-code-ide-org-test--clock-items))
+           (bracket (seq-find (lambda (i) (equal (plist-get i :id) "id-a")) items)))
+      (should bracket)
+      (should (equal (plist-get bracket :origin) 'bracketed))
+      (should (equal (plist-get bracket :note)
+                     "guard auto-promote against containers"))
+      ;; 13:07:36 to 13:16:20 is 8m44s, and all of it is work: the turn
+      ;; never stopped, which is exactly why no guidepost fell inside.
+      (should (= 524 (claude-code-ide-org-test--written-seconds bracket))))))
+
+(ert-deftest claude-code-ide-org-test-bracket-subtracts-a-permission-block ()
+  "A permission wait inside a bracket splits it and is not written.
+
+Discriminating twice over.  The block is 111 seconds -- *under* the
+120-second `claude-code-ide-org-span-idle-floor' -- so a run-splitter
+that produced two runs and then let the floor merge them back would
+report the same single interval as one that never split at all.  And the
+block events reach the item only because the span filter now admits
+them; while it admitted `pause'/`resume' alone,
+`claude-code-ide-org--block-intervals' was handed a list it had already
+been filtered out of and returned nil on every production call."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-21T13:07:36-0500" "clock_in" "id-a" nil nil "work")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-21T13:11:01-0500" "block_start")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-21T13:12:52-0500" "block_end")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-21T13:16:20-0500" "clock_out")))
+    (let* ((bracket (car (claude-code-ide-org-test--clock-items)))
+           (runs (claude-code-ide-org--review-intervals-to-write bracket)))
+      (should (= 2 (length runs)))
+      ;; 8m44s of bracket less the 1m51s nobody was working.
+      (should (= 413 (claude-code-ide-org-test--written-seconds bracket))))))
+
+(ert-deftest claude-code-ide-org-test-bracket-recovers-its-own-edges ()
+  "The bracket's endpoints are run boundaries, so the edges are not lost.
+
+`clock_in' -> `pause' is the opening stretch of work and `resume' ->
+`clock_out' the closing one.  Both fell outside every span before, because
+the guidepost filter dropped the two `clock_*' events and the first and
+last runs had nothing to pair against.  Written as one assertion because
+the rule is symmetric and half of it passing is not the rule."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-21T14:53:42-0500" "clock_in" "id-a" nil nil "review")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-21T14:54:44-0500" "pause")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-21T15:41:17-0500" "resume")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-21T15:42:08-0500" "clock_out")))
+    (let* ((bracket (car (claude-code-ide-org-test--clock-items)))
+           (runs (claude-code-ide-org--review-intervals-to-write bracket)))
+      (should (= 2 (length runs)))
+      ;; The leading 62s and the trailing 51s, and *not* the 46m33s of
+      ;; human thinking between the pause and the resume.
+      (should (= 113 (claude-code-ide-org-test--written-seconds bracket))))))
+
+(ert-deftest claude-code-ide-org-test-subagent-bracket-stays-authoritative ()
+  "A subagent's own interval is still written whole, not run-split.
+
+The counterweight to the three tests above, and the reason the main-lane
+change could not simply be `treat every bracket alike'.  A subagent runs
+unattended, so there is no human idle inside its bracket to subtract --
+`:suggested' nil is what records that and what stops apply re-deriving
+runs from guideposts that belong to the parent session anyway.  Without
+this assertion the fix would have quietly converted every subagent
+interval into a reconstruction."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-21T09:00:00-0500" "clock_in" "id-a" nil nil
+                  "delegated work" "agent-1" "general-purpose")
+                 ;; A parent-session pause lands inside the agent's
+                 ;; bracket; it must not subdivide it.
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-21T09:10:00-0500" "pause")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-21T09:30:00-0500" "clock_out" nil nil nil nil
+                  "agent-1" "general-purpose")))
+    (let ((bracket (seq-find (lambda (i) (plist-get i :agent))
+                             (claude-code-ide-org-test--clock-items))))
+      (should bracket)
+      (should-not (plist-get bracket :suggested))
+      (should (= 1 (length (claude-code-ide-org--review-intervals-to-write bracket))))
+      (should (= 1800 (claude-code-ide-org-test--written-seconds bracket))))))
+
+(ert-deftest claude-code-ide-org-test-unassigned-span-excludes-bracketed-minutes ()
+  "An unassigned span is partitioned by the brackets inside it.
+
+The double-count this fix would otherwise mint, and it is not
+hypothetical: on 2026-08-21 the `resume' before the first `clock_in' and
+the `pause' after the last `clock_out' are *adjacent* in the orphan
+stream, because everything between them is bracketed and attributed
+elsewhere.  A `resume' -> `pause' adjacency never splits however long the
+gap, so the span would have straddled all four brackets and offered
+their minutes a second time -- against headings chosen by guesswork,
+while the brackets that named them correctly sat right there."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-21T13:07:10-0500" "resume")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-21T13:07:36-0500" "clock_in" "id-a" nil nil "work")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-21T13:16:20-0500" "clock_out")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-21T13:24:41-0500" "pause")))
+    (let ((unassigned (seq-filter (lambda (i) (plist-get i :unassigned))
+                                  (claude-code-ide-org-test--clock-items))))
+      ;; Whatever is offered unassigned, none of it may be the bracket's
+      ;; own 13:07:36--13:16:20.
+      (dolist (item unassigned)
+        (should (zerop (claude-code-ide-org-test--written-seconds item)))))))
+
+(ert-deftest claude-code-ide-org-test-each-bracket-carries-its-own-note ()
+  "Two brackets on one heading get two labels, not the first one twice.
+
+The old code took the label from the first `clock_in' note anywhere in
+the heading's events, so a heading picked up twice in a session -- which
+is ordinary, not exotic -- had both intervals described by the earlier
+piece of work.  Observed on the real queue for `cc0c17a7', clocked on
+two different days with two different notes."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-21T09:00:00-0500" "clock_in" "id-a" nil nil "first piece")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-21T09:20:00-0500" "clock_out")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-21T14:00:00-0500" "clock_in" "id-a" nil nil "second piece")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-21T14:20:00-0500" "clock_out")))
+    (should (equal (mapcar (lambda (i) (plist-get i :note))
+                           (claude-code-ide-org-test--clock-items))
+                   '("first piece" "second piece")))))
+
+(ert-deftest claude-code-ide-org-test-unmatched-clock-in-leaves-the-residue-span ()
+  "An open bracket is not consumed, and its guideposts still cluster.
+
+`claude-code-ide-org--lane-clock-pairs' drops an unmatched `clock_in'
+rather than inventing an end for it -- the class of guess :ID: 7771fc63
+retired.  That must not cost the work its item: the guideposts after it
+are attributed to the heading by lane tracking and have to keep reaching
+review through the residue path, which is the only reason that path
+still exists."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-21T09:00:00-0500" "clock_in" "id-a" nil nil "still going")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-21T09:01:00-0500" "resume")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-21T09:11:00-0500" "pause")))
+    (let ((items (claude-code-ide-org-test--clock-items)))
+      (should (= 1 (length items)))
+      (should (equal (plist-get (car items) :id) "id-a"))
+      (should-not (eq (plist-get (car items) :origin) 'bracketed))
+      (should (= 600 (claude-code-ide-org-test--written-seconds (car items)))))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here
