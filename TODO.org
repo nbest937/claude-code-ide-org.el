@@ -1620,6 +1620,31 @@ This heading is now a *dependency of* [[id:b07df584-3adc-433c-ab49-e104f88aecf7]
 *Immediate consequence worth sequencing on:* this operation is what [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] is blocked on. Archiving stalls because CLAUDE.md requires an outcome summary before a =DONE= heading is archived, and there are 30 of them; producing those summaries *is* this revision applied 30 times.
 
 
+** TODO Adopt the :PLAN: drawer lifecycle for heading bodies :code:
+:PROPERTIES:
+:ID:       8bcd56f4-22a8-4673-bad6-a99433027b81
+:CREATED:  [2026-08-22 Sat 21:34]
+:BLOCKER:  ids(3063c3e5-0dd0-4354-8985-271b0313c5d1)
+:END:
+
+Designed by the user 2026-08-21/22. A heading body has two lives, and today they are the same text in the same place, which is why bodies become transcripts.
+
+*Prospective, while the task is open.* The body holds motivation, observations and speculation -- everything leading up to the moment of implementation. It is *pared and revised continuously*, from creation right up to realization, so that it stays concise and internally consistent. It describes the current state of the question, never the history of how the question moved. The plan-file link, when one exists, goes at the *end* of the body the moment it is composed: the plan can supersede any statement above it, so it must be read last.
+
+*Retrospective, once the task is carried out.* The whole prospective body -- plan link included -- is wrapped in a =:PLAN:= drawer, which sits beside =:PROPERTIES:= and =:LOGBOOK:= rather than below the prose. The body is then the debrief alone: problem restated, what the solution turned out to be, how it was verified, what was falsified ([[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]]'s four items). A folded heading therefore shows the debrief and nothing else.
+
+*Relocation, never deletion.* The plan link moves into the drawer with the rest of the planning content because it *is* planning content -- and a forward-looking pointer inside a retrospective readout invites a reader to treat the plan as current. CLAUDE.md's "not removed at =DONE=" is a rule against losing the link, not against moving it, and must be reworded to say so.
+
+*Readers skip the drawer.* The org skill should tell agentic readers to ignore =:PLAN:= entirely until a retrospective "how did we get here" question is actually asked. The debrief and the source code describe present reality; the plan describes an intention that may not have survived contact.
+
+*Two mechanisms, and only one of them is missing.* Measured 2026-08-21 on [[id:cc0c17a7-a554-426d-afeb-09cbee7339f0][cc0c17a7]]: =org_amend= already appends *below* a =:PLAN:= drawer that sits at the top of a body, so the debrief needs no new tool at all. The only new operation is *wrapping* -- insert the drawer at the end-of-drawers boundary, close it after the last body line -- which is two insertions at computable positions rather than a range replacement. That distinction is not cosmetic: both of that day's file corruptions were range bugs, and neither was caught by =bin/lint-org=, which sees structure and not prose. Continuous paring still needs general in-place revision, which is why this is blocked on 3063c3e5 rather than merely related to it.
+
+*What it enables mechanically:* =bin/lint-org= can assert that a =DONE= heading with a substantial body carries a =:PLAN:= drawer -- the project's usual answer to a convention that would otherwise recur ([[id:3bd3402b-3ab6-4ace-b20b-3ff84caa3fb2][3bd3402b]]'s split puts this in the lint, not in =bin/check-conventions=).
+
+*Deliberately deferred until the wrapping tool exists*, so that a rule never describes something no session can perform: CLAUDE.md's plan-link wording, and the org skill's "Body prose and the task lifecycle" section, which is explicitly an interim workaround for append-only ("Until that is fixed") and is superseded wholesale by this. =.claude/rules/org-conventions.md= gains =:PLAN:= beside the other drawer conventions in the same pass.
+
+*Migration of the existing backlog is settled and is not this heading's work:* sweep old bodies in unedited, recorded on [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]]. Old drawers will be raw transcripts where new ones are pared plans; the ignore-the-drawer rule makes that invisible in normal reading.
+
 ** DONE Rename the WAIT keyword to WAITING, matching the org community's spelling :code:
 CLOSED: [2026-08-20 Thu 16:20]
 :PROPERTIES:
