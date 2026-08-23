@@ -1035,7 +1035,8 @@ convention also carries no keyword, no =:ID:= and no tags. Nothing but
 the label as a heading turns each file into one spurious root. Worth
 fixing in the same pass, since both are the same class of bug: the
 format asserting less structure than the reader needs.
-** DOING Auto-promote makes a container the next action :code:
+** DONE Auto-promote makes a container the next action :code:
+CLOSED: [2026-08-21 Fri 13:16]
 :PROPERTIES:
 :ID:       42808717-2736-4bf4-872e-887f990203ca
 :CREATED:  [2026-08-19 Wed 07:36]
@@ -1043,6 +1044,8 @@ format asserting less structure than the reader needs.
 :LOGBOOK:
 - State "DOING"      from "TODO"       [2026-08-21 Fri 13:07] \\
   fixing both auto-promote guards together
+- State "DONE"       from "DOING"      [2026-08-21 Fri 13:16] \\
+  container guard shipped, mutation-tested, live
 :END:
 
 =claude-code-ide-org--trigger-auto-promote-sole-todo= promotes the sole
@@ -1097,7 +1100,7 @@ more surprising, and no evidence has been gathered either way.
 *Verified by mutation, then live.* Removing the condition fails only the new container test. Applying it to *every* heading rather than containers only fails that test's discriminating partner -- the pre-existing sole-remaining-TODO promotion test -- which is the same over-application signal 62c6b1be relied on. In the running Emacs after =load-file=: a container sole survivor stays TODO with zero =Auto-promoted= lines, a leaf sole survivor comes out NEXT with one.
 
 
-** MAYBE Adopt org-native mechanisms for the heading tiers :code:research:
+** TODO Adopt org-native mechanisms for the heading tiers :code:research:
 :PROPERTIES:
 :ID:       29439196-bbb8-4b64-b8d5-3bf9d457bf6c
 :CREATED:  [2026-08-19 Wed 16:18]
@@ -1117,6 +1120,8 @@ CLOCK: [2026-08-20 Thu 13:58]--[2026-08-20 Thu 14:00] =>  0:02
 - [2026-08-20 Thu 13:58]--[2026-08-20 Thu 14:00] assigned at review
 CLOCK: [2026-08-20 Thu 14:08]--[2026-08-20 Thu 14:18] =>  0:10
 - [2026-08-20 Thu 14:08]--[2026-08-20 Thu 14:18] assigned at review
+- State "TODO"       from "MAYBE"      [2026-08-21 Fri 15:27] \\
+  promotion trigger met: org itself overloads level
 :END:
 
 Parked 2026-08-19, *not accepted* — recorded so the research need not be
@@ -1283,6 +1288,12 @@ A level test, a descendant scan, and a position-and-regex test: three answers to
 :ID:       82df2a6c-881d-4117-a752-5b3b04c9656d
 :CREATED:  [2026-08-21 Fri 15:06]
 :END:
+:LOGBOOK:
+CLOCK: [2026-08-21 Fri 14:53]--[2026-08-21 Fri 15:42] =>  0:49
+- [2026-08-21 Fri 14:53]--[2026-08-21 Fri 15:42] assigned at review
+CLOCK: [2026-08-21 Fri 15:59]--[2026-08-21 Fri 16:02] =>  0:03
+- [2026-08-21 Fri 15:59]--[2026-08-21 Fri 16:02] assigned at review
+:END:
 
 The missing half of [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]], which is entirely cost analysis and mechanism comparison with no statement of what the change would *buy*. That asymmetry is the likeliest reason it has sat parked since 2026-08-19 instead of resolving either way.
 
@@ -1351,14 +1362,20 @@ CLOSED: [2026-08-20 Thu 07:38]
 :CREATED:  [2026-08-19 Wed 19:24]
 :END:
 :LOGBOOK:
-- State "DONE"       from "DOING"      [2026-08-20 Thu 07:38] \\
-  refusal shipped, tolerance pinned, premise corrected
 CLOCK: [2026-08-19 Wed 22:24]--[2026-08-19 Wed 22:29] =>  0:05
 - [2026-08-19 Wed 22:24]--[2026-08-19 Wed 22:29] assigned at review
 - State "DOING"      from "TODO"       [2026-08-19 Wed 22:25] \\
   refuse no-op transitions at the tool
 CLOCK: [2026-08-20 Thu 07:33]--[2026-08-20 Thu 07:39] =>  0:06
 - [2026-08-20 Thu 07:33]--[2026-08-20 Thu 07:39] assigned at review
+- State "DONE"       from "DOING"      [2026-08-20 Thu 07:38] \\
+  refusal shipped, tolerance pinned, premise corrected
+CLOCK: [2026-08-22 Sat 09:53]--[2026-08-22 Sat 09:54] =>  0:01
+- [2026-08-22 Sat 09:53]--[2026-08-22 Sat 09:54] assigned at review
+CLOCK: [2026-08-22 Sat 16:37]--[2026-08-22 Sat 16:38] =>  0:01
+- [2026-08-22 Sat 16:37]--[2026-08-22 Sat 16:38] assigned at review
+CLOCK: [2026-08-22 Sat 16:54]--[2026-08-22 Sat 16:58] =>  0:04
+- [2026-08-22 Sat 16:54]--[2026-08-22 Sat 16:58] assigned at review
 :END:
 :PLAN:
 Observed 2026-08-19: apply refused [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]]'s =TODO -> TODO=. There was nothing to do -- the heading already held that keyword -- but the event was queued, offered at review, marked, and failed there.
@@ -1532,13 +1549,15 @@ There is a second dispatch path, =claude-code-ide-mcp.el= line 352, which hands 
 :CREATED:  [2026-08-20 Thu 08:30]
 :END:
 :LOGBOOK:
-- State "TODO"       from              [2026-08-20 Thu 08:31] \\
-  append-only constraint has no revising counterpart
 - [2026-08-20 Thu 08:00]--[2026-08-20 Thu 08:03] assigned at review
 CLOCK: [2026-08-20 Thu 08:28]--[2026-08-20 Thu 08:43] =>  0:15
 - [2026-08-20 Thu 08:28]--[2026-08-20 Thu 08:43] assigned at review
+- State "TODO"       from              [2026-08-20 Thu 08:31] \\
+  append-only constraint has no revising counterpart
 CLOCK: [2026-08-20 Thu 08:49]--[2026-08-20 Thu 08:50] =>  0:01
 - [2026-08-20 Thu 08:49]--[2026-08-20 Thu 08:50] assigned at review
+CLOCK: [2026-08-22 Sat 18:35]--[2026-08-22 Sat 18:37] =>  0:02
+- [2026-08-22 Sat 18:35]--[2026-08-22 Sat 18:37] assigned at review
 :END:
 
 =org_amend= appends to the end of a heading's body and can do nothing
@@ -1625,6 +1644,15 @@ This heading is now a *dependency of* [[id:b07df584-3adc-433c-ab49-e104f88aecf7]
 :ID:       8bcd56f4-22a8-4673-bad6-a99433027b81
 :CREATED:  [2026-08-22 Sat 21:34]
 :BLOCKER:  ids(3063c3e5-0dd0-4354-8985-271b0313c5d1)
+:END:
+:LOGBOOK:
+- [2026-08-22 Sat 20:18]--[2026-08-22 Sat 20:18] assigned at review
+CLOCK: [2026-08-22 Sat 21:23]--[2026-08-22 Sat 21:24] =>  0:01
+- [2026-08-22 Sat 21:23]--[2026-08-22 Sat 21:24] assigned at review
+CLOCK: [2026-08-22 Sat 21:34]--[2026-08-22 Sat 21:35] =>  0:01
+- [2026-08-22 Sat 21:34]--[2026-08-22 Sat 21:35] assigned at review
+CLOCK: [2026-08-22 Sat 21:54]--[2026-08-22 Sat 21:55] =>  0:01
+- [2026-08-22 Sat 21:54]--[2026-08-22 Sat 21:55] assigned at review
 :END:
 
 Designed by the user 2026-08-21/22. A heading body has two lives, and today they are the same text in the same place, which is why bodies become transcripts.
@@ -2207,7 +2235,7 @@ close. With this and
 children are 29 =DONE= and 2 =CANCELLED=, and it can close.
 
 
-** DOING [6/11] Update CLAUDE.md and the org skill for the new architecture :code:
+** DOING [7/11] Update CLAUDE.md and the org skill for the new architecture :code:
 :PROPERTIES:
 :ID:       02aaae22-0958-4c0f-b5bb-2cbea32416ae
 :BLOCKER:  ids(7771fc63-9374-4c8a-9e80-24ceec21977c e51d6ba1-cc1d-4745-8aa7-e4b1183a230b c084553c-0621-4a96-9fa1-f32850aeec6a)
@@ -2928,10 +2956,17 @@ hand in Emacs.
 *Verify:* =grep -n -i container CLAUDE.md= finds it in the transition
 rules, not only in the epic definition.
 
-*** TODO The NEXT-nomination rule was taken on as scope and never written :code:
+*** DONE The NEXT-nomination rule was taken on as scope and never written :code:
+CLOSED: [2026-08-21 Fri 13:22]
 :PROPERTIES:
 :ID:       dd2399c0-52e2-463d-9423-e7d7a08f3b12
 :CREATED:  [2026-08-17 Mon 13:43]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-21 Fri 13:22] \\
+  both halves written, verify grep passes
+- State "DOING"      from "TODO"       [2026-08-21 Fri 13:22] \\
+  write the NEXT-nomination rule into CLAUDE.md
 :END:
 
 Requested by the user 2026-08-11 and recorded in this parent's body as
@@ -3088,10 +3123,15 @@ won't-do: that one guessed when a stale clock stopped, this one assigns
 an existing span to a heading at review time. Same data source,
 different question, and only the first was refuted.
 
-** MAYBE Add a third retention tier for completed work as a chronological changelog :code:
+** CANCELLED Add a third retention tier for completed work as a chronological changelog :code:
+CLOSED: [2026-08-21 Fri 15:07]
 :PROPERTIES:
 :ID:       4c0044bf-1b6c-44ea-807a-8f9e3523e3fd
 :CREATED:  [2026-08-07 Fri 09:41]
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "MAYBE"      [2026-08-21 Fri 15:07] \\
+  superseded by 3063c3e5's policy and 41cf5830's git index
 :END:
 
 Captured 2026-08-07 from conversation. Proposal: TODO.org (live) →
@@ -3274,7 +3314,7 @@ Keep the =+1m= repeater and the parentless placement — the reasoning
 recorded above still holds, and applies to the floors identically.
 
 
-** TODO [0/5] Institute a catch-all heading for cross-cutting meta-work :code:
+** TODO [2/5] Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
 :ID:       a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5
 :CREATED:  [2026-08-10 Mon 12:50]
@@ -3471,7 +3511,8 @@ spans that genuinely belong to no task.
 
 *Do not solve Claude's half here.* Resolving "today's node" to an =:ID:= without pasting a UUID is [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]]'s subject, under [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]]. Building a second lookup here would be the parallel-convention mistake c084553c exists to prevent, one level down.
 
-*** NEXT bin/lint-org will drown in datetree scaffolding it can never satisfy :code:
+*** DONE bin/lint-org will drown in datetree scaffolding it can never satisfy :code:
+CLOSED: [2026-08-21 Fri 13:20]
 :PROPERTIES:
 :ID:       e30d52d7-960b-44f3-ab92-93846c81a1bd
 :CREATED:  [2026-08-21 Fri 09:51]
@@ -3481,6 +3522,10 @@ spans that genuinely belong to no task.
   exempt datetree scaffolding from CREATED
 - State "NEXT"       from "TODO"       [2026-08-21 Fri 10:32] \\
   must land before the tree exists
+- State "DOING"      from "NEXT"       [2026-08-21 Fri 13:16] \\
+  revise the level rule for the datetree
+- State "DONE"       from "DOING"      [2026-08-21 Fri 13:20] \\
+  level rule scoped, four mutations verified
 :END:
 
 =bin/lint-org= warns on any heading missing =:CREATED:=. Datetree scaffolding can never satisfy it: org writes =** 2026=, =*** 2026-08 August= and =**** 2026-08-21 Friday= bare, and a year node has no creation moment worth stamping anyway.
@@ -3525,7 +3570,7 @@ Not a defect in what shipped: the rule was scoped to the structure that existed,
 
 
 
-*** TODO Resolve today's node on demand, never storing or scheduling its ID :code:
+*** NEXT Resolve today's node on demand, never storing or scheduling its ID :code:
 :PROPERTIES:
 :ID:       9575e65b-b589-465a-830c-286541780f96
 :CREATED:  [2026-08-21 Fri 10:10]
@@ -3533,6 +3578,8 @@ Not a defect in what shipped: the rule was scoped to the structure that existed,
 :LOGBOOK:
 - State "TODO"       from              [2026-08-21 Fri 10:11] \\
   build the on-demand resolver
+- State "NEXT"       from "TODO"       [2026-08-21 Fri 13:22] \\
+  nominated: resolver gates both remaining siblings
 :END:
 
 One function answers "which heading is today's meta-work node", and it is called at the moment something needs the answer rather than run ahead of time. Steps: find the =:DATE_TREE:= heading; =org-datetree-find-date-create= for today, which is org's own idempotent find-or-create; stamp =:ID:= and =:CREATED:= if the node was just made; set =org-clock-default-task= to its marker; return the id.
@@ -3576,7 +3623,8 @@ This supersedes the "Two callers, and the asymmetry between them is the design" 
 
 
 
-*** TODO Institute the Review and planning category, with its DATE_TREE and ritual repeater :code:
+*** DONE Institute the Review and planning category, with its DATE_TREE and ritual repeater :code:
+CLOSED: [2026-08-21 Fri 13:21]
 :PROPERTIES:
 :ID:       cd1e974e-e006-4974-b770-cdc1cf2e4ab2
 :CREATED:  [2026-08-21 Fri 10:10]
@@ -3585,6 +3633,10 @@ This supersedes the "Two callers, and the asymmetry between them is the design" 
 :LOGBOOK:
 - State "TODO"       from              [2026-08-21 Fri 10:11] \\
   institute the category once lint is exempt
+- State "DOING"      from "TODO"       [2026-08-21 Fri 13:20] \\
+  institute the Review and planning category
+- State "DONE"       from "DOING"      [2026-08-21 Fri 13:21] \\
+  category instituted, lint and placement verified
 :END:
 
 The act of putting the design into TODO.org. Deliberately last: the user's instruction 2026-08-21 was that the branch and the real edit belong together, at the moment the structure lands rather than while it is being scoped.
@@ -5578,7 +5630,8 @@ CLOCK: [2026-08-21 Fri 09:06]--[2026-08-21 Fri 09:12] =>  0:06
 *What it does not fix, recorded so the split stays visible.* Container exclusion converts a confident wrong answer into an honest nil. It does not produce the right answer; only clocking in on the heading actually being worked does that, and the 24 minutes were lost because this session called =org_clock_in= once, at 08:31:36, five seconds before clocking out. The code half and the discipline half are independent, and only the code half is closed here.
 
 *A detail worth keeping about why this was invisible for so long.* The defect needs a container to sit in DOING while a session works something else -- which is the normal state of this project, not an edge case. On the day it was found, all three DOING headings in TODO.org were containers, so the function could not have returned a right answer for any span at all. It had presumably been wrong for as long as containers have been entering DOING, and every wrong answer was one keystroke from correction at review, which is exactly why nobody caught it.
-** DOING Auto-promote fires on apply order, so NEXT records which capture landed first :code:
+** DONE Auto-promote fires on apply order, so NEXT records which capture landed first :code:
+CLOSED: [2026-08-21 Fri 13:16]
 :PROPERTIES:
 :ID:       c8a6c5d2-8777-44d2-9900-e56eb03aa2d9
 :CREATED:  [2026-08-21 Fri 10:33]
@@ -5588,6 +5641,8 @@ CLOCK: [2026-08-21 Fri 09:06]--[2026-08-21 Fri 09:12] =>  0:06
   guard auto-promote against half-applied batches
 - State "DOING"      from "TODO"       [2026-08-21 Fri 13:07] \\
   fixing both auto-promote guards together
+- State "DONE"       from "DOING"      [2026-08-21 Fri 13:16] \\
+  suppress-then-settle shipped and mutation-tested
 :END:
 
 *Observed live 2026-08-21, on this repo's own file.* Five children were captured under [[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]] in one session, each keywordless, each with a =todo -> TODO= event queued. The human applied the queue, and one of them came out =NEXT=:
@@ -5626,8 +5681,38 @@ Nobody chose it. =claude-code-ide-org--trigger-auto-promote-sole-todo= promotes 
 :CREATED:  [2026-08-21 Fri 10:53]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-21 Fri 10:47]--[2026-08-21 Fri 10:49] =>  0:02
+- [2026-08-21 Fri 10:47]--[2026-08-21 Fri 10:49] assigned at review
+CLOCK: [2026-08-21 Fri 10:52]--[2026-08-21 Fri 10:55] =>  0:03
+- [2026-08-21 Fri 10:52]--[2026-08-21 Fri 10:55] assigned at review
 - State "TODO"       from              [2026-08-21 Fri 10:54] \\
   collapse the whole-span gap line
+CLOCK: [2026-08-21 Fri 10:58]--[2026-08-21 Fri 11:06] =>  0:08
+- [2026-08-21 Fri 10:58]--[2026-08-21 Fri 11:06] assigned at review
+CLOCK: [2026-08-21 Fri 11:16]--[2026-08-21 Fri 11:17] =>  0:01
+- [2026-08-21 Fri 11:16]--[2026-08-21 Fri 11:17] assigned at review
+CLOCK: [2026-08-21 Fri 11:23]--[2026-08-21 Fri 11:33] =>  0:10
+- [2026-08-21 Fri 11:23]--[2026-08-21 Fri 11:33] assigned at review
+CLOCK: [2026-08-21 Fri 11:52]--[2026-08-21 Fri 11:54] =>  0:02
+- [2026-08-21 Fri 11:52]--[2026-08-21 Fri 11:54] assigned at review
+CLOCK: [2026-08-21 Fri 11:57]--[2026-08-21 Fri 12:02] =>  0:05
+- [2026-08-21 Fri 11:57]--[2026-08-21 Fri 12:02] assigned at review
+CLOCK: [2026-08-21 Fri 12:08]--[2026-08-21 Fri 12:09] =>  0:01
+- [2026-08-21 Fri 12:08]--[2026-08-21 Fri 12:09] assigned at review
+CLOCK: [2026-08-21 Fri 12:15]--[2026-08-21 Fri 12:16] =>  0:01
+- [2026-08-21 Fri 12:15]--[2026-08-21 Fri 12:16] assigned at review
+CLOCK: [2026-08-21 Fri 12:21]--[2026-08-21 Fri 12:23] =>  0:02
+- [2026-08-21 Fri 12:21]--[2026-08-21 Fri 12:23] assigned at review
+CLOCK: [2026-08-21 Fri 12:29]--[2026-08-21 Fri 12:30] =>  0:01
+- [2026-08-21 Fri 12:29]--[2026-08-21 Fri 12:30] assigned at review
+CLOCK: [2026-08-21 Fri 12:36]--[2026-08-21 Fri 12:37] =>  0:01
+- [2026-08-21 Fri 12:36]--[2026-08-21 Fri 12:37] assigned at review
+CLOCK: [2026-08-21 Fri 12:49]--[2026-08-21 Fri 12:50] =>  0:01
+- [2026-08-21 Fri 12:49]--[2026-08-21 Fri 12:50] assigned at review
+CLOCK: [2026-08-21 Fri 12:54]--[2026-08-21 Fri 12:59] =>  0:05
+- [2026-08-21 Fri 12:54]--[2026-08-21 Fri 12:59] assigned at review
+CLOCK: [2026-08-21 Fri 13:07]--[2026-08-21 Fri 13:24] =>  0:17
+- [2026-08-21 Fri 13:07]--[2026-08-21 Fri 13:24] assigned at review
 :END:
 
 *Reported by the user 2026-08-21, reviewing a real batch:* a suggested span rendered =(nothing for 10m, 10:37-10:47)= beneath a header already reading =10:37--10:47=, and the first question it prompted was whether the line was a defect.
@@ -7175,6 +7260,14 @@ CLOSED: [2026-08-21 Fri 12:56]
 :ID:       c10bfb15-d0c7-47c0-b482-e944558711e9
 :CREATED:  [2026-08-21 Fri 14:53]
 :END:
+:LOGBOOK:
+CLOCK: [2026-08-21 Fri 13:52]--[2026-08-21 Fri 13:53] =>  0:01
+- [2026-08-21 Fri 13:52]--[2026-08-21 Fri 13:53] assigned at review
+CLOCK: [2026-08-21 Fri 14:02]--[2026-08-21 Fri 14:06] =>  0:04
+- [2026-08-21 Fri 14:02]--[2026-08-21 Fri 14:06] assigned at review
+CLOCK: [2026-08-21 Fri 14:13]--[2026-08-21 Fri 14:24] =>  0:11
+- [2026-08-21 Fri 14:13]--[2026-08-21 Fri 14:24] assigned at review
+:END:
 
 The =/next-session= idiom is used but not codified. One line outside the file mentions it -- =CLAUDE.md:126= -- and it documents the *artifact* while explicitly denying it is a convention: "a plan, not a convention". Nothing states when one is written, what it must contain, or what "consumed" means.
 
@@ -8453,6 +8546,10 @@ Approach: assert against the table row, =| *Total time* | *0:00* |=, rather than
 :ID:       43201e64-3fe8-4fa6-81f5-d2ab5b65d191
 :CREATED:  [2026-08-21 Fri 16:07]
 :END:
+:LOGBOOK:
+CLOCK: [2026-08-21 Fri 17:11]--[2026-08-21 Fri 17:17] =>  0:06
+- [2026-08-21 Fri 17:11]--[2026-08-21 Fri 17:17] assigned at review
+:END:
 
 The commit-reference convention shipped 2026-08-21 ([[id:7b54c439-ab2c-4398-b332-2b2cc0d98ac9][7b54c439]]) says to link commits in org bodies as =orgit-rev:=. Its *first actual use* -- one link on [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] the same evening -- pushed =bin/lint-org= from 23 warnings to 24: =org-lint: Unknown fuzzy location "orgit-rev:claude-code-ide-org::f0cdc90"=. The two earlier occurrences in TODO.org are inside =verbatim= markup and are never parsed as links, so nothing had exercised the convention until now.
 
@@ -8522,4 +8619,14 @@ Nothing owns the recurring archive pass. [[id:38b92521-bba4-4bb5-9cd9-465862471a
 :PROPERTIES:
 :ID:       758643f2-2046-4894-8a25-7ab44e4dad9a
 :CREATED:  [2026-08-21 Fri 13:20]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-21 Fri 15:06]--[2026-08-21 Fri 15:07] =>  0:01
+- [2026-08-21 Fri 15:06]--[2026-08-21 Fri 15:07] reviewing next-session idiom and structure question
+CLOCK: [2026-08-21 Fri 15:11]--[2026-08-21 Fri 15:13] =>  0:02
+- [2026-08-21 Fri 15:11]--[2026-08-21 Fri 15:13] reviewing next-session idiom and structure question
+CLOCK: [2026-08-21 Fri 15:25]--[2026-08-21 Fri 15:30] =>  0:05
+- [2026-08-21 Fri 15:25]--[2026-08-21 Fri 15:30] reviewing next-session idiom and structure question
+CLOCK: [2026-08-21 Fri 15:34]--[2026-08-21 Fri 15:35] =>  0:01
+- [2026-08-21 Fri 15:34]--[2026-08-21 Fri 15:35] reviewing next-session idiom and structure question
 :END:
