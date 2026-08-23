@@ -8479,7 +8479,11 @@ SCHEDULED: <2026-08-28 Fri +1w>
 
 Nothing owns the recurring archive pass. [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]] ran it once and closed on 2026-08-17 -- the same date as the newest =:ARCHIVE_TIME:= in DONE.org -- and the cadence stopped with it. Measured 2026-08-21: TODO.org carries *30* finished headings, against the 13 that [[id:4c0044bf-1b6c-44ea-807a-8f9e3523e3fd][4c0044bf]] recorded on 2026-08-07 when it made this same observation and was cancelled partly for it.
 
-*Why it stalls, which is the part worth knowing.* Archiving here is not mechanical. CLAUDE.md requires a concise prose outcome summary on a =DONE= heading *before* it is archived -- what shipped, how it was verified, what differed from the plan. A pass over 30 headings is therefore 30 judgements about whether that summary exists and is adequate, not 30 tool calls. Any attempt to automate the cadence without addressing that will simply archive un-summarised work faster.
+*Why it stalls.* Archiving is not mechanical: CLAUDE.md requires a concise prose outcome summary on a =DONE= heading *before* it is archived -- what shipped, how it was verified, what differed from the plan. Automating the cadence without addressing that would only archive un-summarised work faster.
+
+*Decided 2026-08-21 by the user: sweep the old bodies into =:PLAN:= unedited.* The backlog does not get the faithful paring a newly written heading will; the existing body is wrapped as-is and the debrief written beneath it. That splits the migration into one mechanical step and one cheap one. *Wrapping* is scriptable and needs no judgement at all -- insert the drawer at the end-of-drawers boundary, close it after the last body line. The *debrief* still has to be written per heading, but is far cheaper than the [[id:cc0c17a7-a554-426d-afeb-09cbee7339f0][cc0c17a7]] trial suggested: the expensive judgement there was never the four items, it was deciding what to discard, and sweeping discards nothing.
+
+*Consequence, accepted rather than overlooked:* old drawers will be raw transcripts where new ones are pared plans. The skill's ignore-the-drawer instruction covers both, so the inconsistency is invisible in normal reading, and any heading that is touched again can be pared then.
 
 *A direct cost, not housekeeping.* Those 30 bodies are read into context by every session that opens the tracker, which is [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]]'s complaint with a number attached to it.
 
