@@ -5415,9 +5415,28 @@ the MCP layer."
              ;; holding a residual event -- the latter is nearly all of
              ;; them, forever, and reporting it as "from N sessions"
              ;; would imply N sessions have something waiting.
-             (backing (delete-dups
-                       (apply #'append
-                              (mapcar (lambda (i) (plist-get i :events)) items))))
+             ;; Restricted to events still pending, which the
+             ;; denominator also counts. An item's `:events' may include
+             ;; *applied* ones since 2026-08-22 (TODO.org :ID: eaeeb4ee):
+             ;; a bracket is subdivided by guideposts read from the full
+             ;; history, and those are usually applied long before the
+             ;; bracket is. Counting them here printed "248 of 186",
+             ;; which reads as a corrupt queue rather than as the
+             ;; scaffolding note it is trying to be.
+             (pending (let ((h (make-hash-table :test 'equal)))
+                        (dolist (e events h)
+                          (puthash (cons (plist-get e :session-id)
+                                         (plist-get e :ts-string))
+                                   t h))))
+             (backing (seq-filter
+                       (lambda (e)
+                         (gethash (cons (plist-get e :session-id)
+                                        (plist-get e :ts-string))
+                                  pending))
+                       (delete-dups
+                        (apply #'append
+                               (mapcar (lambda (i) (plist-get i :events))
+                                       items)))))
              (sessions (delete-dups
                         (delq nil (mapcar (lambda (e) (plist-get e :session-id))
                                           backing))))
