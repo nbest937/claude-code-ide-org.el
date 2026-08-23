@@ -5567,6 +5567,34 @@ Raised by the user 2026-08-21: the review-apply cycle "seems pretty straightforw
 
 *The objection that binds, and its exact scope.* [[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]] records that a model reasoning over the queue file alone has *strictly less* information than the threshold algorithm -- the same timestamps and heading IDs, minus any domain knowledge -- and that a fluent proposal is harder to reject than a transparently mechanical one. That holds against any automation whose only input is the queue. It does not settle the case for an automation that reads the session transcripts, which carry what the queue does not.
 
+** TODO Clock pairs name the heading; the review pass asks anyway :code:
+:PROPERTIES:
+:ID:       eaeeb4ee-ceee-4094-8598-bbcdc8214b66
+:CREATED:  [2026-08-22 Sat 22:21]
+:END:
+
+*Measured 2026-08-22, on the previous day's own queue.* The 2026-08-21 files hold *twelve* =clock_in=/=clock_out= pairs, each carrying a heading =:ID:= and a human-written note -- "guard auto-promote against containers and batches" on =42808717= from 13:07:36 to 13:16:20, then =e30d52d7=, =cd1e974e=, =dd2399c0= in sequence. Every one is =applied: false=. The review pass offered instead a *single* unassigned span, =10:37--13:24=, and asked which one heading it belonged to. The human picked [[id:a279216c-38db-478c-ba52-ad31c87fbfd9][a279216c]] -- a cosmetic item explicitly off the critical path that nobody had opened -- and an hour of implementation work on five headings landed there.
+
+*The capability is not missing; it fired for one heading and not the others.* =config.el= already builds =clock= items by pairing =clock_in= with =clock_out=, and already resolves "the enclosing =clock_in='s note" when labelling a span. The 2026-08-21 day node proves the path works end to end: its pair became a suggested item and applied as 0:09 in 4 runs. The four headings clocked in the same session, by the same session, produced no CLOCK line at all. *That asymmetry is the bug, and finding it is this heading's work* -- it is an investigation, not a design.
+
+*The reframing it forces, which is worth more than the fix.* Attribution has been treated as a *reconstruction* problem -- guess the heading from timestamps at review -- and every increment has gone into guessing better: the suggester, its container guard, [[id:5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46][5a6d2c75]]'s evidence rendering, [[id:1a5a5254-f62d-46e7-9a6c-3d84f2f52873][1a5a5254]]'s power assertions. But it is a *recording* problem: the session knew what it was working on, said so, and the record was discarded. [[id:62c6b1be-4e3c-4ea1-9f0c-19ee70be0e1e][62c6b1be]] diagnosed the same day's failure as insufficient discipline -- "calling =org_clock_in= exactly once" -- and the fix was read as "call it more often". On 2026-08-21 it was called twelve times, correctly, and the outcome was identical. The discipline half is done; the consumption half is missing.
+
+*What it enables once consumed, in order of value:* a work-run falling inside a =clock_in=/=clock_out= interval is attributed with *certainty* and needs no human at all; a span is then *partitioned* by the pairs it contains rather than assigned whole; and only the residue -- runs no pair covers -- reaches a person. On the measured day that would have auto-assigned roughly 24 minutes across twelve headings correctly and left a much smaller, more local question. 5a6d2c75's evidence then matters for the residue, which is the case it was actually written for.
+
+** TODO A span and an explicit clock interval can both apply, double-counting the minutes :code:
+:PROPERTIES:
+:ID:       2d100d0d-2d04-43b9-af1e-f4d6b52bbada
+:CREATED:  [2026-08-22 Sat 22:21]
+:END:
+
+*Observed in the applied record 2026-08-22.* [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] carries =CLOCK: [2026-08-21 Fri 14:53]--[15:42] => 0:49=, and the day node =2026-08-21 Friday= carries four intervals -- 15:06--15:07, 15:11--15:13, 15:25--15:30, 15:34--15:35 -- every one of them *inside* that window. About nine minutes is clocked against two headings at once.
+
+Both items were offered in the same review buffer and both were correct in isolation: one an assigned span, the other the suggested rendering of an explicit =clock_in=/=clock_out= pair. Nothing checked them against each other.
+
+*Not a rounding concern.* The second co-equal goal of this project is a trustworthy record of where attention went, and a clocktable that sums to more than the elapsed day is the plainest possible violation of it. A remainder-style guard already exists for editing one item's interval; the missing check is across items in one batch.
+
+*Related and distinct:* [[id:eaeeb4ee-ceee-4094-8598-bbcdc8214b66][eaeeb4ee]] would make explicit pairs authoritative, which shrinks this problem by construction -- a partitioned span cannot overlap the pair that partitioned it -- but does not remove the need for the check.
+
 ** TODO An unassigned span's readout omits the evidence that would make its heading obvious :code:
 :PROPERTIES:
 :ID:       5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46
@@ -5588,6 +5616,15 @@ Stated by the user 2026-08-21, as the one hitch left in an otherwise straightfor
 *Render evidence, do not recommend a heading.* "This session edited =config.el= around 10:20" is a fact the human weighs; "this span was probably c6fc6f46" is a proposal, and 0c8644ff's anchoring argument applies to the second and not the first. Holding that line is what keeps this heading independent of the automation decision in [[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]] rather than a prerequisite for it.
 
 *Test corpus is already sitting in the queue:* three unassigned spans as of 2026-08-21 -- =16:28--16:54= and =17:18--17:22= on 08-20, =21:08--21:11= on 08-20. Whether the added evidence makes each one's heading obvious is answerable against those three before anything is generalised.
+
+*Two cues the user asked for by name, 2026-08-22, after allocating a batch and only afterwards realising what it contained.* Both are about what the buffer *already knows* and does not show, which is this heading's subject rather than a new one.
+
+*"Am I actually catching meta-work? I didn't even notice because there's no visual cue in the review dialog."* A span assigned to the =Review and planning= day node and a span assigned to an ordinary task look identical, so the one measurement the datetree exists to produce is invisible at the moment it is being made. The day node is mechanically distinguishable -- it is the =:DATE_TREE:= heading's descendant -- so this is a rendering decision, not an inference.
+
+*Coverage, per span rather than per item.* Once [[id:eaeeb4ee-ceee-4094-8598-bbcdc8214b66][eaeeb4ee]] makes explicit =clock_in= pairs authoritative, most runs in a span will already have an owner. The buffer should say which: "12 of 15 runs attributed, 3 need you" turns an hour-long yes/no into three small local questions, and shows the human where their judgement is actually required. Rendered from the same data, and it is the difference between allocating and *confirming*.
+
+*Why this pairing matters more than either alone.* The evidence this heading was filed about answers "which heading?" The coverage line answers the prior question -- "is this even mine to decide?" -- which on the measured day was the one that went wrong: an hour that the queue had already attributed was presented as a single undifferentiated choice.
+
 ** DONE The heading suggester will name a container, which is never itself the work :code:
 CLOSED: [2026-08-21 Fri 09:11]
 :PROPERTIES:
