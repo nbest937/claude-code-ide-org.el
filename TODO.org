@@ -5581,6 +5581,56 @@ Raised by the user 2026-08-21: the review-apply cycle "seems pretty straightforw
 
 *What it enables once consumed, in order of value:* a work-run falling inside a =clock_in=/=clock_out= interval is attributed with *certainty* and needs no human at all; a span is then *partitioned* by the pairs it contains rather than assigned whole; and only the residue -- runs no pair covers -- reaches a person. On the measured day that would have auto-assigned roughly 24 minutes across twelve headings correctly and left a much smaller, more local question. 5a6d2c75's evidence then matters for the residue, which is the case it was actually written for.
 
+*Diagnosed 2026-08-22, and it is two mechanisms rather than the one the heading assumed.*
+
+The =:agent-id= gate on the pairing loop in =--review-items-from-queue= is not the bug. It is deliberate: a main-lane bracket can span human idle, so duration is meant to come from guideposts *subdividing* the bracket, while the pair contributes attribution (via =--queue-events-by-id='s lane tracking) and the span's label. =:suggested= names exactly that split.
+
+*The operative defect is downstream.* Guideposts are turn boundaries -- =Stop= and =UserPromptSubmit= -- so a bracket opened and closed inside a *single turn* contains none of them, yields no span, and produces no item at all. Continuous, uninterrupted work is precisely the case that vanishes.
+
+The interleaved queue for session =44ebddaf= on 2026-08-21 is the proof, and needs no interpretation:
+
+: 13:07:10 resume
+: 13:07:36 clock_in  42808717
+: 13:11:01 block_start
+: 13:12:52 block_end
+: 13:16:20 clock_out
+: 13:16:56 clock_in  e30d52d7
+: 13:20:25 clock_out
+: 13:20:46 clock_in  cd1e974e
+: 13:21:46 clock_out
+: 13:22:08 clock_in  dd2399c0
+: 13:22:38 clock_out
+: 13:24:41 pause
+
+Fifteen minutes, four brackets, *zero* pause/resume between the first =clock_in= and the last =clock_out=. By contrast the 2026-08-21 day node's bracket -- 14:53:42 to 15:42:08 -- straddles many turns, so its inside guideposts clustered and it applied as 0:09 in 4 runs. *That is the whole asymmetry*: an item appears iff a turn boundary happens to fall inside the bracket. It also explains why the =DONE= transitions all applied while the CLOCK lines did not -- =todo= events emit an item unconditionally, with no guidepost dependency.
+
+*Two traps the naive fix walks into, both visible in the same data.*
+
+1. Emitting each main-lane pair as one whole item re-imports the overcount =--span-work-runs= exists to kill: the day node's bracket is 48m26s of wall clock against ~9m of actual runs. Pairs must be authoritative for *attribution*, not for duration -- which is what this heading already said, and the implementation has to honour: a pair bounds the interval, runs subdivide it.
+2. The pair endpoints must also be excised from the *orphan* stream, or the fix mints the double-count it is chasing. =resume 13:07:10= and =pause 13:24:41= are both orphans (the lane is empty at both moments) and are *adjacent* in the orphan stream, since everything between them is bracket-attributed -- and a =resume= -> =pause= adjacency never splits however long the gap. The unassigned span would straddle all four brackets by construction. Pair intervals want the treatment block intervals already get in =--aggregate-guideposts=.
+
+*Bracket edges are recoverable and are currently thrown away.* =clock_in 14:53:42= -> =pause 14:54:44= and =resume 15:41:17= -> =clock_out 15:42:08= appear in no span today, because the guidepost filter drops the =clock_in=/=clock_out= events before the runs are computed. Treating the endpoints as =resume=/=pause= respectively recovers both, and is a discriminating test.
+
+*Shipped 2026-08-22* on =feature/authoritative-clock-pairs=.
+
+A main-lane bracket now emits its own review item, =:origin 'bracketed=, carrying the pair's *own* note rather than the first =clock_in= note anywhere in the heading's events -- =cc0c17a7= was clocked on two days with two different notes and both spans wore the earlier one. The =:agent-id= distinction is *kept*, because the reasoning behind it was sound: a subagent's interval stays =:suggested= nil and is written end to end, while a main-lane bracket is =:suggested= t and subdivided into runs. The bracket's own endpoints are now read as run boundaries, so a bracket with no guideposts inside yields one run covering it and a bracket full of them is subdivided as before.
+
+*Three further defects surfaced on the way, each measured, none of them anticipated:*
+
+1. *=--block-intervals= returned nil on every production call.* Callers filtered events to pause/resume before handing them over, so the block markers were gone before anything looked for them. The permission-block feature ([[id:f4e628ce-e653-429a-8f3c-0f5d4241b139][f4e628ce]]) was inert for as long as it had existed, and its tests passed throughout because they hand the block events straight to =--aggregate-guideposts= and so never cross the filter that was dropping them.
+2. *The idle floor merged the two sides of a permission wait back together.* The measured block is 1m51s against a 120s floor, so splitting the runs was necessary but not sufficient -- =--apply-idle-floor= now takes barriers it will not merge across.
+3. *Subdividing from the pending queue alone sees an empty bracket.* A bracket's inside guideposts are usually applied long before the bracket is, because a pause/resume pair reaches review as a span on the day it happens while the bracket sits unconsumed. With the pending group alone the day node offered 48 minutes as one unbroken run. Subdivision now reads the full history; emission stays pending-only. Same lesson as =--review-suggest-heading='s, and it was written down there already.
+
+*Verified live, not only in batch.* 345 tests, 344 as expected -- the one failure (=clock-report-block-today=) fails identically on the unmodified tree and is unrelated. Five of the seven new tests fail with =config.el= reverted and the tests kept, so they discriminate; the other two are deliberate regression guards asserting *unchanged* behaviour (a subagent interval stays authoritative, an unmatched =clock_in= still reaches review through the residue path) and pass both ways by design.
+
+End to end over the real 2026-08-21 queue, read-only: all twelve pairs produce items with their own notes, and the four-session total falls from 297.5 to 155.0 minutes written. =42808717= is 0:08 in 2 runs with the 1m51s wait excised; the day node is 0:11 in 6 rather than 48 minutes whole. Then re-verified through the running Emacs via =org_pending_updates=, which is what proves the reload took: 78 items across 51 headings, against *one* before.
+
+*Two things a reader should expect rather than treat as defects.* Two of the twelve write no CLOCK line at all -- they are 30s and 5s and render as =0:00=, which the existing rendered-zero rule refuses; that rule is unchanged and honest. And the review buffer now surfaces a large backlog of bracketed items reaching back to 2026-08-11, because every one of them was being silently discarded. That is the bug's own history becoming visible, not new work appearing.
+
+*The record it now contradicts.* The hour of 2026-08-21 implementation work is already applied to [[id:a279216c-38db-478c-ba52-ad31c87fbfd9][a279216c]], and the day node already carries its 0:09. The correct items are pending over an already-wrong record, so reconciling the two is a human decision in the review buffer, not something apply should be taught to do. [[id:2d100d0d-2d04-43b9-af1e-f4d6b52bbada][2d100d0d]]'s cross-item overlap check remains a separate heading and is now much cheaper: a span partitioned by the brackets it contains cannot overlap them.
+
+
+
 ** TODO A span and an explicit clock interval can both apply, double-counting the minutes :code:
 :PROPERTIES:
 :ID:       2d100d0d-2d04-43b9-af1e-f4d6b52bbada
@@ -8605,6 +8655,22 @@ The commit-reference convention shipped 2026-08-21 ([[id:7b54c439-ab2c-4398-b332
 :END:
 
 *Filed 2026-08-21, not built.* The 2026-08-21 cross-artifact audit found that prose conventions recur (UUID-from-memory, clock-in-at-drift) while mechanically checked ones fail loudly and get fixed -- and that duplicated conventions drift into contradiction (four found in CLAUDE.md, one in a memory, one in the next-session prompt). =bin/check-org-dev-skill= already embodies the fix for one file; generalize it: the CLAUDE.md and org-skill transition tables agree; every cited =:ID:=, defcustom, and function name resolves (=git grep= the symbol); every "is live"/"not built" claim carries a greppable anchor (e.g. =config.el:2792=) that still matches. Wire into =bin/hooks/pre-commit= beside the existing lint. Not a prose rule about keeping prose fresh -- that is the anti-pattern recursing.
+** A clock-report test fails every evening, because its fixture spills past midnight :code:
+:PROPERTIES:
+:ID:       c31b6c76-8ad8-45d4-a87b-39e085e31368
+:CREATED:  [2026-08-22 Sat 23:16]
+:END:
+
+*Measured 2026-08-22 at 23:16.* =claude-code-ide-org-test-clock-report-block-today= builds its fixture as "now, seconds zeroed" plus one hour, then asserts the report contains =1:00=. Run after 23:00 the interval crosses midnight, so =:block "today"= sees only the part before it and the table reads =*0:44*=:
+
+: (string-match-p "1:00" "#+CAPTION: Clock summary at [2026-08-22 Sat 23:16], ...
+: | *Total time* | *0:44* |")  => nil
+
+So the test is red for the last hour of every day, and green the other 23. Confirmed pre-existing: it fails identically on an unmodified tree, which is how it was ruled out while [[id:eaeeb4ee-ceee-4094-8598-bbcdc8214b66][eaeeb4ee]] was being verified.
+
+*Distinct from* [[id:5a5e87c9-f432-44c6-a5a6-f6f3755e4347][5a5e87c9]], which names this same test and is easy to mistake for it. That one is the =#+CAPTION:='s own timestamp satisfying a duration match for three minutes a day; this one is the fixture's *interval* leaving the queried window, and the assertion that fails is the positive one rather than the negative. Both are the same underlying habit -- a test whose fixture is pinned to =(current-time)= and whose assertion is a substring match over the whole report -- so they are worth fixing together even though neither is the other.
+
+Approach: anchor the fixture to a fixed date rather than to now, which removes the dependence on when the suite runs instead of narrowing the window in which it breaks.
 
 * Review and planning
 :PROPERTIES:
