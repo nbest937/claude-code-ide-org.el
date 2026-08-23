@@ -1,5 +1,5 @@
 #+title: Clock Template
-#+TODO: TODO NEXT PLANNING DOING WAIT MAYBE | DONE CANCELLED
+#+TODO: TODO NEXT PLANNING DOING WAITING MAYBE | DONE CANCELLED
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 
@@ -23,10 +23,10 @@
   CLOCK: [2026-08-06 Thu 13:30]--[2026-08-06 Thu 14:10] =>  0:40
   - <2026-08-06 Thu 13:30>--<2026-08-06 Thu 14:10> consider design alternative tradeoffs and decide:
     session-scoped token store over stateless JWT rotation
-  - State "WAIT"       from "DOING"      [2026-08-06 Thu 14:10] \\
+  - State "WAITING"       from "DOING"      [2026-08-06 Thu 14:10] \\
     request credentials from DBA
   - [2026-08-06 Thu 14:20]--[2026-08-06 Thu 14:50] write unit tests for the registration endpoint
-  - State "DOING"      from "WAIT"       [2026-08-06 Thu 14:55] \\
+  - State "DOING"      from "WAITING"       [2026-08-06 Thu 14:55] \\
     Staging credentials arrived from the DBA.
   CLOCK: [2026-08-06 Thu 15:00]--[2026-08-06 Thu 15:45] =>  0:45
   - <2026-08-06 Thu 15:00>--<2026-08-06 Thu 15:45> user authentication code review
@@ -66,13 +66,13 @@
     knowable — an agent was either running or not — so review may
     accept a matching CLOCK line (09:15 planning, 11:30 implementation)
     or decline one (14:20 unit tests, which ran while the heading sat
-    in WAIT); the annotation stays either way.
+    in WAITING); the annotation stays either way.
   - =- State "X" from "Y" [ts]= lines :: org's *native* state-change
     log, produced by =org-todo= running inside the interactive
     review-and-apply command with a backdated effective time — never
     hand-formatted, never suppressed with =org-inhibit-logging=. The
     =\\= continuation carries an optional note. The DOING → PLANNING →
-    DOING arc (09:15/11:30) is the Plan Mode round-trip; WAIT → DOING
+    DOING arc (09:15/11:30) is the Plan Mode round-trip; WAITING → DOING
     (14:55) closes and reopens clocks around the blocked span.
   - Gaps :: honest absence of a record (09:30–11:30, 14:50–15:00).
     Nobody attended and nothing ran, so no line claims that time.

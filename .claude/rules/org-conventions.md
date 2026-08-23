@@ -16,7 +16,7 @@ failure is silent.
 Every `.org` file in this project should start with:
 
 ```org
-#+TODO: TODO(t!) NEXT(n!) PLANNING(p!) DOING(d!) REVIEW(r!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
+#+TODO: TODO(t!) NEXT(n!) PLANNING(p!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 ```
@@ -34,7 +34,7 @@ a new file will not unless you give it one.
 Per-keyword meanings are in the **org skill**. Project policy on top of it:
 
 - `REVIEW` is **experimental** (TODO.org `:ID:` c954f650): finished and
-  handed back for human judgement, as distinct from `WAIT`, which means
+  handed back for human judgement, as distinct from `WAITING`, which means
   blocked on someone else. Its fate is not settled.
 - Priority is expressed through keyword choice, not `[#A]`/`[#B]`/`[#C]`
   cookies. **Do not add priority cookies.**
@@ -45,6 +45,11 @@ The four standard tags (`:code:` `:comms:` `:research:` `:review:`), their
 meanings, and the archiving convention are in the **org skill** — including
 the per-heading `:ARCHIVE:` override. Tags are free-form beyond those four;
 declare additional ones in `#+TAGS:`.
+
+Don't write the same tag twice on one headline. `org-get-tags` does not
+deduplicate, so `:code:code:` survives untouched and org-lint says nothing;
+`bin/lint-org` reports it as an error. It happens when a tag is appended to
+a headline by hand without checking what is already there.
 
 ## Top-level headings
 
@@ -91,6 +96,52 @@ An epic is not declared, it is emergent: a heading that has acquired
 children carrying TODO keywords. Detectable via
 `claude-code-ide-org--container-heading-p`. Don't classify a heading as one
 when writing it.
+
+**A heading with TODO-carrying children carries a statistics cookie.** Add
+`[/]` to the headline and let org fill it in
+(`org-update-statistics-cookies`, `C-c #`); `[%]` works too. The point is
+that a container's progress is readable without unfolding it — with
+`#+STARTUP: content` folding every body by default, the cookie is often the
+only thing distinguishing a container that is nearly finished from one that
+has not started.
+
+Add it when the *first* child appears, since that is the moment the heading
+becomes a container. `bin/lint-org` reports a missing cookie as an **error**,
+so a commit will refuse: unlike `:CREATED:`, the count is derived from
+structure and can be retrofitted honestly, so there is no reason to let it
+slide. The check tests only that a cookie is *present* — org owns the
+arithmetic.
+
+## Referring to a commit
+
+A 7-hex SHA and an 8-hex `:ID:` prefix look identical in running text, and
+this project cites both constantly. Distinguish them.
+
+**In an org body, link it.** `orgit` is installed and its link types are
+registered:
+
+```org
+[[orgit-rev:claude-code-ide-org::b146008][b146008]]
+```
+
+**Use the repo *name*, never a path.** `orgit--repository-directory` resolves
+a name from `magit-repos-alist` before falling back to `expand-file-name`, so
+the named form is machine-independent while a path form hard-codes one
+machine. The Doom config sets `magit-repository-directories` to `("~/git/" . 1)`,
+which names every repo there by its basename — verified 2026-08-21 to resolve
+`claude-code-ide-org` to the right directory.
+
+The link renders in org's link face — a stronger cue than verbatim — and
+opens the commit in Magit. Use `orgit-log:` for a range.
+
+**There is no implicit "the repo this file is in".** Nothing resolves that;
+relative forms (`./…`) work but resolve against `default-directory`, and here
+that is unreliable — `~/org/claude-code-ide-org/TODO.org` is a *symlink* to
+the copy in the repo, so which directory a buffer reports depends on which
+path opened it, and via the agenda path it is not a git repo at all.
+
+**Prospective only.** The 25 existing `(=535c98c=)` references stay; there is
+nothing wrong with them and rewriting them is churn.
 
 ## Dependencies between tasks
 

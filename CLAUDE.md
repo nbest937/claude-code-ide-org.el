@@ -65,6 +65,43 @@ start/stop — the two categories that caused every incident.
 
 ---
 
+## Reading the tracker
+
+**Start with `org_outline`, not a file read.** It is roughly 40x smaller
+than the file and answers most orientation questions on its own. TODO.org is
+~118,000 tokens and the median active heading body is 50 lines, so reading
+around to find something costs more than the answer is usually worth. Drop
+to `org_query` for a predicate ("what's blocked", "everything `:research:`
+and not DONE") and to a targeted read only once you have an `:ID:` and a
+reason.
+
+**Pass `active_only`, and ignore DONE by reflex.** What a finished heading
+records is *history*; the current state of the implementation is in the
+code, the tests and the config, which are authoritative in a way a body
+written weeks ago is not. TODO.org exists to inform planning, orchestration
+and coordination of *future* work — read it for what to do next, not for
+what the system currently is.
+
+*One caveat, latent rather than theoretical:* `active_only` also drops live
+children of a finished parent (`:ID:` 98908aff). Measured 2026-08-21 — zero
+headings are hidden that way today, so the reflex is safe now and will fail
+**silently** the first time a parent is closed with unfinished children
+under it.
+
+**DONE.org is reference, never orientation.** Do not survey it to start a
+session; it will not tell you what to work on. Open it when something live
+names an ID in it — a `:BLOCKER:`, a body cross-reference, a docstring, or
+this file. That is worth doing: on 2026-08-21 a review-buffer line was about
+to be filed as a defect until DONE.org showed it was `:ID:` 5ff5a4b8's
+deliberate design, along with the open question it had deferred.
+
+The exception to "the code is authoritative" is *why* a decision went the
+way it did, which lives only in a body — which is why the load-bearing ones
+(the `.warp/.mcp.json` investigation, the retired guess heuristic) are
+quoted directly in this file rather than left to a lookup.
+
+---
+
 ## Repository layout
 
 `ls` answers most of this; only the non-obvious parts are written down.
@@ -85,6 +122,11 @@ Four things you would not guess:
   `bin/hooks/`**, for no recorded reason. It produces the "what was I last
   doing" context injected at `SessionStart`. Whether the two directories
   should be consolidated is open.
+- **`.claude/commands/` is new as of 2026-08-21** and holds prompt files
+  Claude Code exposes as slash commands — `next-session.md` is `/next-session`,
+  the sequenced slice of work queued for the next session. It is a *plan*, not
+  a convention: expect it to be rewritten or deleted once consumed, unlike
+  everything else under `.claude/`, which is standing configuration.
 - **`bin/check-org-dev-skill`** checks the org-dev skill's own claims still
   hold — run it after editing that skill.
 - **`.warp/.mcp.json`** — see below; do not delete it.
@@ -194,11 +236,15 @@ falsified, and why a decision went the way it did. It does not restate
 design the linked plan already holds.
 
 *Prospective only.* Bodies written before 2026-08-14 are not to be
-trimmed to fit this; do not relitigate them. Deletion is the one
-irreversible half of the practice, and `plans/`' history is bounded
-rather than complete — `.githooks/pre-push` only bounds how stale the
-archive can be, so a plan revised twice between syncs loses its
-intermediate state.
+trimmed to fit this; do not relitigate them — that is churn nobody asked
+for, not a data-safety matter. (Corrected 2026-08-21: this file used to
+call deletion "the one irreversible half of the practice," which is true
+only of *plans* — `plans/`' history is bounded rather than complete,
+since `.githooks/pre-push` only bounds how stale the archive can be, so
+a plan revised twice between syncs loses its intermediate state. Body
+prose in the version-controlled `.org` files is recoverable from any
+commit; the only real exposure is text written and deleted inside a
+single uncommitted window. The org skill says the same.)
 
 *The evidence for the split, from a single day's drift:* three headings
 carried confident design claims that were later found wrong —
@@ -256,13 +302,23 @@ edits an org file at the moment you act.
 | `NEXT`     → `PLANNING`   | Open a CLOCK (call `org_clock_in`)  |
 | `PLANNING` → `DOING`      | None — same clock interval continues, no close/reopen |
 | `PLANNING` → `DONE`       | Close the CLOCK (call `org_clock_out`) |
-| `PLANNING` → `WAIT`       | Close the CLOCK (call `org_clock_out`) |
+| `PLANNING` → `WAITING`       | Close the CLOCK (call `org_clock_out`) |
 | `PLANNING` → `CANCELLED`  | Close the CLOCK (call `org_clock_out`) |
 | `DOING`    → `DONE`       | Close the CLOCK (call `org_clock_out`) |
-| `DOING`    → `WAIT`       | Close the CLOCK (call `org_clock_out`) |
+| `DOING`    → `WAITING`       | Close the CLOCK (call `org_clock_out`) |
+| `DOING`    → `REVIEW`     | Close the CLOCK (call `org_clock_out`) |
 | `DOING`    → `CANCELLED`  | Close the CLOCK (call `org_clock_out`) |
-| `WAIT`     → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
+| `WAITING`     → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
+| `REVIEW`   → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
+| `REVIEW`   → `DONE`       | None                                |
 | Any        → `MAYBE`      | None                                |
+
+`REVIEW` is **experimental** (TODO.org `:ID:` c954f650) — finished work
+handed back for human judgement. Clock-wise it behaves exactly like
+`WAITING`: entering it closes the clock, leaving it for `DOING` opens one,
+and `REVIEW` → `DONE` touches nothing because no clock is running. These
+rows were added 2026-08-21; until then the keyword was in live use with
+its clock semantics written down nowhere.
 
 **Rule**: any transition *to* `DOING` or `PLANNING` must open a clock, with
 one documented exception: `PLANNING` → `DOING` reuses the already-running
@@ -292,7 +348,7 @@ time. The user should not have to ask for this check.
 
 **And it can hang.** The `#+TODO:` line carries per-keyword logging
 cookies: `!` records a timestamp on entry, `@` *prompts for a note*. In
-this project `WAIT(w@/!)` and `CANCELLED(c@)` carry `@` and nothing else
+this project `WAITING(w@/!)` and `CANCELLED(c@)` carry `@` and nothing else
 does — so a transition driven non-interactively through `emacsclient -e`
 blocks on a prompt for **those two keywords and only those two**. That
 asymmetry is one of the reasons state changes go through the queue rather
@@ -331,10 +387,47 @@ a `:ID:`, transition it to `DOING` via `org_set_todo` *before* beginning,
 unless it's already `DOING`. This has to be a standing instruction, not a
 hook — deciding "this conversation is now doing that task" is a judgment
 call about intent, which only the model can make. Hooks can only enforce
-the mechanics of a transition once it's triggered — `org-trigger-hook`/
-`org-blocker-hook` are the intended safety net for that (opening the clock
-the moment DOING is set, however it got set), but they are not built yet;
-see "Enforce the transition rules" in TODO.org.
+the mechanics of a transition once it's triggered — and that safety net
+**is live** (corrected 2026-08-21; this file said "not built yet" long
+after it was). On `org-blocker-hook`: `org-depend-block-todo` (refuses
+DONE while a `:BLOCKER:` names unfinished work) and
+`claude-code-ide-org--blocker-clock-running-p` (refuses DONE while the
+heading's own clock is running). On `org-trigger-hook`:
+`--trigger-auto-clock-in` (opens the clock the moment DOING/PLANNING is
+set by hand — gated by `claude-code-ide-org-auto-clock-in-on-doing`,
+default `t`), plus `--trigger-demote-conflicting-next` and
+`--trigger-auto-promote-sole-todo`, both live and ungated.
+
+`--trigger-auto-promote-sole-todo` carries two guards, both added
+2026-08-21 (TODO.org `:ID:` 42808717 and `:ID:` c8a6c5d2, which this file
+listed as open defects until they shipped). It refuses to promote a
+*container*, since that would declare a project to be an action; and it
+declines entirely while a review pass is mid-batch, because apply lands
+one event at a time and the first of several captured children is
+transiently the only keyworded sibling of its group. The promotion is not
+lost, only deferred — `--review-settle-auto-promote` runs it once after
+the batch, against the finished state.
+
+**Rule**: every transition *to* `DONE` nominates the next action — set
+`NEXT` on whichever remaining sibling should be picked up next, or say in
+a sentence that no clear candidate exists. Leaving the group silently
+un-nominated is the thing to avoid. This completes an invariant the
+triggers only half-enforce: `--trigger-demote-conflicting-next` gives *at
+most* one `NEXT` per sibling group, and `--trigger-auto-promote-sole-todo`
+gives *at least* one only in the sole-survivor case. Everything between —
+several live candidates needing judgement — is what no trigger can decide,
+and it is the common case. GTD's actual invariant is that a live project
+always has a next action; a project without one is the canonical defect a
+weekly review exists to catch.
+
+**Rule**: when nominating, call out blockers that live in a *different*
+subtree. Name the blocking heading and where it is; a `:BLOCKER:` property
+is the machine-checkable form. A dependency inside the same sibling group
+needs no announcement — anyone reading that group can already see it — but
+a cross-subtree one is invisible from either side. Note that a `:BLOCKER:`
+naming a heading captured in the same session is **inert** until a human
+applies the queue, since `org-depend` blocks only on an unfinished TODO
+keyword and a fresh capture is keywordless on disk.
 **Rule**: any time a new task is described in conversation, create an org
 heading for it (with a `:ID:`) and set its initial TODO state, rather than
 only tracking it in conversation memory. Same reasoning as above — this is
@@ -417,9 +510,13 @@ so if the user has toggled a buffer read-only (`C-x C-q`) it fails
 outright with a `buffer-read-only` error. The user only does this to
 guard against their own stray keystrokes while viewing the file, not to
 block Claude — clear it (`(setq buffer-read-only nil)` via
-`emacsclient`) and proceed, no need to ask first. If they ever want a
-specific buffer left alone, they'll say so explicitly; that overrides
-this default for that instance only.
+`emacsclient`) and proceed, no need to ask first. **Restore it when the
+work is done, and say so** — clearing is permitted, leaving it cleared
+is not: each unrestored clear silently switches the user's guard off
+until they happen to notice (their request, 2026-08-10; the proper fix —
+tools binding `inhibit-read-only` themselves — is TODO.org `:ID:`
+c8a97d9d). If they ever want a specific buffer left alone, they'll say
+so explicitly; that overrides this default for that instance only.
 
 ---
 

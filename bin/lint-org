@@ -6,6 +6,13 @@
 # What it asserts, all decidable without judgement:
 #   - every [[id:...]] link resolves to a heading that exists
 #   - no level-4 headings (the file has three: category, task, epic-child)
+#     -- scoped 2026-08-21 to "outside a :DATE_TREE: subtree", since a
+#     datetree is category/year/month/day before any task exists. Inside
+#     one, org's own year and month nodes are exempt from :ID:/:CREATED:
+#     and the day node is allowed at level 4 but still required to carry
+#     both -- it is what this project clocks against, and every tool here
+#     addresses headings by :ID:. Gated on org-datetree's literal title
+#     shapes, so a real task filed beside the tree is still linted.
 #   - every heading below level 1 carries :ID: and :CREATED:; every
 #     level-1 category carries neither, plus no TODO keyword and no tags
 #   - no repeating task sits under a completable ancestor, which could

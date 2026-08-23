@@ -35,14 +35,14 @@ This skill helps Claude work expertly with Emacs Org-Mode files. The focus areas
 *** PLANNING In Plan Mode, plan not yet approved
 *** DOING Actively being worked on
 *** REVIEW Finished, handed back for human judgement
-*** WAIT Blocked or waiting on someone
+*** WAITING Blocked or waiting on someone
 *** MAYBE Someday / maybe
 *** DONE Completed
 *** CANCELLED Cancelled
 ```
 
 Default keyword set used by this skill:
-`TODO NEXT PLANNING DOING REVIEW WAIT MAYBE | DONE CANCELLED`
+`TODO NEXT PLANNING DOING REVIEW WAITING MAYBE | DONE CANCELLED`
 
 The `|` separates active (incomplete) states on the left from terminal (done) states on
 the right. `DONE` and `CANCELLED` trigger Org's "task complete" behaviour (closing
@@ -51,7 +51,7 @@ Priority is expressed through keyword choice — do not add `[#A]`/`[#B]`/`[#C]`
 cookies unless the user explicitly asks.
 
 `REVIEW` is **experimental** — work finished and handed back for human judgement,
-as distinct from `WAIT`, which means blocked on someone else. Don't present it as
+as distinct from `WAITING`, which means blocked on someone else. Don't present it as
 settled convention.
 
 Real `#+TODO:` lines usually carry per-keyword logging cookies — `!` records a
@@ -270,24 +270,42 @@ When the user shares an .org file or snippet:
 
 When helping the user move a task between states, follow these conventions:
 
-| Transition              | Meaning                              | Side effect                  |
+| Transition              | Meaning                              | Clock side effect            |
 |-------------------------|--------------------------------------|------------------------------|
 | `TODO` → `NEXT`         | Decided to do it soon                | None                         |
 | `TODO` → `DOING`        | Starting work immediately            | Open a CLOCK                 |
 | `NEXT` → `DOING`        | Starting work                        | Open a CLOCK                 |
-| `DOING` → `DONE`        | Finished                             | Close the open CLOCK         |
-| `DOING` → `WAIT`        | Blocked mid-task                     | Close the open CLOCK         |
-| `DOING` → `CANCELLED`   | Abandoning                           | Close the open CLOCK         |
-| `WAIT` → `DOING`        | Unblocked, resuming                  | Open a CLOCK                 |
+| `NEXT` → `PLANNING`     | Entering Plan Mode on it             | Open a CLOCK                 |
+| `PLANNING` → `DOING`    | Plan approved, implementing          | None — same clock continues |
+| `PLANNING` → `DONE`/`WAITING`/`CANCELLED` | Stopping out of planning | Close the CLOCK       |
+| `DOING` → `DONE`        | Finished                             | Close the CLOCK              |
+| `DOING` → `WAITING`     | Blocked mid-task                     | Close the CLOCK              |
+| `DOING` → `REVIEW`      | Finished, awaiting human judgement   | Close the CLOCK              |
+| `DOING` → `CANCELLED`   | Abandoning                           | Close the CLOCK              |
+| `WAITING` → `DOING`     | Unblocked, resuming                  | Open a CLOCK                 |
+| `REVIEW` → `DOING`      | Judgement sent it back               | Open a CLOCK                 |
+| `REVIEW` → `DONE`       | Judgement accepted it                | None                         |
 | Any → `MAYBE`           | Deferring indefinitely               | None                         |
 
-**Rules:**
-- Transitioning **to `DOING`** always opens a new CLOCK entry (with start timestamp,
-  no end yet).
-- Transitioning **out of `DOING`** always closes the open CLOCK (fill in end timestamp
-  and compute duration).
-- Always append a LOGBOOK state-change note when changing TODO state:
-  `- State "NEW"  from "OLD"  [timestamp]`
+**What "side effect" means depends on the setup — read this before acting:**
+
+- **In a repo using the claude-code-ide-org event queue** (this project;
+  the `org_*` MCP tools are the tell), the side effect is the **call you
+  must make** — `org_clock_in` / `org_clock_out` alongside `org_set_todo`
+  — and *nothing edits the file when you call it*. Events queue for human
+  review and org performs the clock edits and LOGBOOK logging natively at
+  apply time. Never hand-write CLOCK lines, keywords, or `- State` notes
+  there, and never expect a read-back to show the new state before a
+  human applies the queue. CLAUDE.md's transition table is the
+  authoritative copy for that project; this one mirrors it.
+- **In a plain org setup with no such tooling**, the side effect is a
+  literal edit: open a CLOCK line (start timestamp, no end) on entering
+  `DOING`/`PLANNING`, close it (end timestamp, computed duration) on
+  leaving, and append the LOGBOOK state-change note
+  `- State "NEW"  from "OLD"  [timestamp]` if the file logs states.
+
+`REVIEW` is experimental where it appears; clock-wise it behaves exactly
+like `WAITING`.
 
 ### Plan Mode checkpoint
 
@@ -361,6 +379,52 @@ overwrite it.
 - **Close an open clock**: fill in the end timestamp and compute the duration.
 - **Always preserve**: indentation, drawer structure, existing entries — do not
   reformat content the user didn't ask to change.
+
+### Body prose and the task lifecycle
+
+`org_amend` appends and can do nothing else, so a heading's outcome always
+lands furthest from where a reader starts. Until that is fixed (TODO.org
+`:ID:` 3063c3e5) these conventions keep the body from *contradicting* the
+keyword, which is the confusion that actually costs time.
+
+**The keyword owns the status. Body prose must never assert a state the
+keyword owns.** A `TODO` whose body reads like finished work is the failure
+mode — the eye trusts the paragraph over the keyword.
+
+**Reserve completion vocabulary for outcome prose.** Investigation and
+resolution had been sharing words, which is what made a filed heading read
+as a resolved one:
+
+| stage | use | never at capture |
+|---|---|---|
+| capture / investigation | `Measured`, `Observed`, `Reproduced`, `Falsified` | |
+| resolution | | `Shipped`, `Fixed`, `Closed`, `Verified by mutation` |
+
+The trap is `Verified`, which fits both: *"Verified on org 9.6.15"* is an
+investigation, *"Verified by mutation"* is an outcome. Qualify it or pick a
+narrower word.
+
+**Date-stamp proposal prose so it stays true after shipping.** *"The fix is
+one condition"* goes stale the moment it ships; *"Proposed 2026-08-21: one
+condition"* is a permanent fact. This is the journal principle applied to
+the design half rather than exempting it, and it is what makes the prose
+compatible with append-only — nothing later has to be revised.
+
+**Open a capture body with a dated, permanently-true status sentence** —
+`*Filed 2026-08-21, not built.*` — and **open outcome prose with a bold
+dated marker** — `*Shipped 2026-08-21*`, `*Closed 2026-08-21, won't do:*`.
+
+**Keep bodies short.** Economise on body prose, never on heading count: two
+bounded headings beat one long body. Measured 2026-08-21 in this repo — 72
+active headings, median body 50 lines, longest 404, and 44 bodies of 40+
+lines carrying 86% of all body text. A body nobody can read is a body that
+does not do its job, and it is re-read by every session that touches the
+heading.
+
+**Prospective only.** Do not rewrite existing bodies to match. Deletion of
+superseded prose is recoverable from git for version-controlled `.org`
+files, so it is not irreversible — but relitigating past bodies is still
+churn nobody asked for.
 
 ### Inserting content programmatically
 

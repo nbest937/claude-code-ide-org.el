@@ -118,7 +118,7 @@ run clock_in '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_clock_in
 check "clock_in carries note" "clarify backend schema design" "$(jq -r '.note' <<<"$(queue_lines sess-a)")"
 
 reset_queue
-run todo '{"session_id":"sess-a","tool_input":{"id":"id-a","state":"WAIT","note":"request credentials from DBA"},"tool_response":"ok"}'
+run todo '{"session_id":"sess-a","tool_input":{"id":"id-a","state":"WAITING","note":"request credentials from DBA"},"tool_response":"ok"}'
 check "todo carries note" "request credentials from DBA" "$(jq -r '.note' <<<"$(queue_lines sess-a)")"
 
 reset_queue
@@ -252,7 +252,7 @@ check "override keeps real source" "ExitPlanMode" "$(jq -r '.source' <<<"$line")
 # precedence is decorative.
 reset_queue
 QUEUE_APPEND_ID="id-x" \
-  run todo '{"session_id":"sess-a","tool_input":{"id":"id-from-payload","state":"WAIT"}}'
+  run todo '{"session_id":"sess-a","tool_input":{"id":"id-from-payload","state":"WAITING"}}'
 check "override beats tool_input" "id-x" "$(jq -r '.id' <<<"$(queue_lines sess-a)")"
 
 # Unset overrides must not disturb the ordinary path.
