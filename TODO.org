@@ -5850,6 +5850,38 @@ Counting drawers with two or more timestamped entries, and asking whether their 
 *Why this rather than reversing the sort.* Newest-first would end the drift by construction, by agreeing with org's insert convention. It was considered and rejected: it reverses the narrative order that was the whole of af7d3687's request, it breaks that heading's byte-identical fixed-point test against =clock-template.org=, and it systematically flips every tie whose adjacency the stable sort was chosen to preserve. The drift is a *coverage* problem, not an *ordering* one, and the coverage fix keeps what was asked for.
 
 *Shape:* a command that consolidates every drawer in the tracked files, reusing =--consolidate-logbook-text= unchanged -- already idempotent and pinned lossless. Worth running before an archive pass in particular, since that is the last moment a heading is ever touched; that makes it a natural companion to [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] rather than a separate ritual.
+** Backfill CLOSED: from the LOGBOOK where the evidence is already in the file :code:
+:PROPERTIES:
+:ID:       f4b07fc0-187a-4975-aa3b-b9bd4b1c0799
+:CREATED:  [2026-08-24 Mon 10:14]
+:END:
+
+*Shipped and run 2026-08-24* (=8927796=, =adb5044=). =claude-code-ide-org-backfill-closed= reconstructs a =CLOSED:= marker from the =- State "DONE"=/="CANCELLED"= line already in a heading's =:LOGBOOK:=, for headings finished before =#+STARTUP: logdone= arrived on 2026-08-17 ([[id:bba1088c-d8e1-49f7-bef8-b070860f5257][bba1088c]]). The latest close wins: a heading reopened and closed again was closed when it was closed *last*.
+
+*Result: 58 filled, 39 skipped, 0 already present.* Pure insertion -- 58 added lines, no deletions, every added line a =CLOSED:= line, none of them inside a =:PROPERTIES:= drawer, =bin/lint-org= 0 errors. Insertion goes through =org-add-planning-info=, so the planning-line position between the heading and its property drawer is org's rule to enforce rather than this code's.
+
+*Nothing was invented for the 39.* =:ARCHIVE_TIME:= is the obvious substitute and is a *different fact wearing the right shape* -- when the subtree moved, not when the work stopped. Wiring that fallback in fails two of the three new tests, which is what makes them worth having rather than merely present. Those 39 are [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]]'s question.
+
+*One correction worth keeping, because it changed the answer.* The estimate quoted before the tool existed was "59 of 97", produced by scanning each heading's whole body for a =State= line. The real figure is *58*. [[id:3d93021d-1d8a-4657-bc5c-77734f91fb9d][3d93021d]] has no =:LOGBOOK:= at all, but quotes =- State "DONE" from "NEXT" [2026-08-07 Fri 08:19]= *in prose*, while diagnosing the bug that produced that very line. A body-wide scan reads it as evidence and dates the heading from a sentence about a bug. The shipped code bounds its search to the drawer, so it does not -- and the discrepancy between the two counts is the only reason the difference was noticed at all. Worth reading twice, because the prose that fooled the estimate is *correctly quoted org*, not malformed text, and nothing structural would ever flag it.
+
+** Recover a close time from git for the headings with no in-file evidence :code:research:
+:PROPERTIES:
+:ID:       b7b46a26-2fd6-4784-bed3-d0112a917c0a
+:CREATED:  [2026-08-24 Mon 10:14]
+:END:
+
+*Filed 2026-08-24, the residue of* [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]]. That pass filled 58 of DONE.org's 97 finished headings from their own =:LOGBOOK:=. *39 have no in-file evidence at all* -- mostly early headings from before the =!= cookies in =#+TODO:= were adopted, e.g. "Implement the ten pending MCP-tool tasks in parallel worktrees", "Add a PLANNING TODO state, driven by the ExitPlanMode matcher", and the original =org_query= / =org_clock_report= / =org_capture= tool headings.
+
+*The one honest source left is git.* The commit that first shows the heading carrying a done keyword is real evidence, reachable with =git log -S= over the heading's =:ID:= line or its title. Nothing else in the tree knows.
+
+*Two things to settle before building, and they are the whole of this heading:*
+
+1. *It dates a different event, and the marker must not pretend otherwise.* A commit timestamp is when the change was *recorded*, not when the work stopped -- and in this project those can be far apart, since state changes reach the file only when a human runs the review pass. A =CLOSED:= written from a commit is therefore an upper bound, not a measurement. Whether that is worth having is the open question, not a detail: =7771fc63= retired an entire feature on the finding that a plausible guess is harder to reject than no guess at all, and this is the same shape of decision.
+2. *If it is worth having, the approximation has to be visible in the file*, or the next reader cannot tell these 39 from the 58 that are exact. A property recording the derivation -- or simply not using =CLOSED:= for them at all -- is the choice to make.
+
+*Note the third option, which does not require this to be built:* leave the 39 blank and record explicitly that no close time is recoverable, so the gap is a stated fact rather than an absence somebody tries to fill again in six months. That was offered alongside the git approach and deferred rather than rejected.
+
+*A hazard already measured, and it applies directly here.* f4b07fc0's pre-tool estimate said 59 rather than 58, because a body-wide scan matched a =- State "DONE" ...= line quoted *in prose* on [[id:3d93021d-1d8a-4657-bc5c-77734f91fb9d][3d93021d]], a heading that has no =:LOGBOOK:= and was diagnosing the bug that produced that line. Any git-side matching on heading text or on =State= lines in a diff faces the same trap, with no drawer boundary available to bound it.
 
 * Observability
 :PROPERTIES:
