@@ -1672,7 +1672,8 @@ Two insertions at computable positions, never a range replacement, and no bounda
 *This heading is not done.* Its title names the real problem -- =org_amend= can still only append -- and general in-place revision, which *continuous paring* needs, is untouched. What shipped is the separable half the completion transition needs, split out deliberately so [[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]] and [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] stop waiting on the harder one.
 
 
-** TODO Adopt the :PLAN: drawer lifecycle for heading bodies :code:
+** DONE Adopt the :PLAN: drawer lifecycle for heading bodies :code:
+CLOSED: [2026-08-24 Mon 11:23]
 :PROPERTIES:
 :ID:       8bcd56f4-22a8-4673-bad6-a99433027b81
 :CREATED:  [2026-08-22 Sat 21:34]
@@ -1693,6 +1694,10 @@ CLOCK: [2026-08-24 Mon 09:29]--[2026-08-24 Mon 09:34] =>  0:05
 - [2026-08-24 Mon 09:29]--[2026-08-24 Mon 09:34] land rewording and wrap af7d3687
 CLOCK: [2026-08-24 Mon 09:46]--[2026-08-24 Mon 09:53] =>  0:07
 - [2026-08-24 Mon 09:46]--[2026-08-24 Mon 09:53] land rewording and wrap af7d3687
+CLOCK: [2026-08-24 Mon 11:18]--[2026-08-24 Mon 11:23] =>  0:05
+- [2026-08-24 Mon 11:18]--[2026-08-24 Mon 11:23] land the five deferred convention edits
+- State "DONE"       from "TODO"       [2026-08-24 Mon 11:23] \\
+  all five edits landed and pinned
 :END:
 
 Designed by the user 2026-08-21/22. A heading body has two lives, and today they are the same text in the same place, which is why bodies become transcripts.
@@ -3423,7 +3428,7 @@ Keep the =+1m= repeater and the parentless placement — the reasoning
 recorded above still holds, and applies to the floors identically.
 
 
-** TODO [2/5] Institute a catch-all heading for cross-cutting meta-work :code:
+** TODO [3/5] Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
 :ID:       a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5
 :CREATED:  [2026-08-10 Mon 12:50]
@@ -3689,7 +3694,8 @@ Two corrections follow. The year and month nodes fail on *=:ID:=*, an error, bef
 Not a defect in what shipped: the rule was scoped to the structure that existed, and it correctly refuses a shape nobody has adopted. But it means the exemption is keyed on a property org's own archive path never writes, so "recognise a datetree" and "recognise our =:DATE_TREE:= anchor" are not the same predicate. Whoever takes up [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] or the archive-cadence question should read this rule before choosing an archive location, not after.
 
 
-*** NEXT Resolve today's node on demand, never storing or scheduling its ID :code:
+*** DONE Resolve today's node on demand, never storing or scheduling its ID :code:
+CLOSED: [2026-08-24 Mon 12:31]
 :PROPERTIES:
 :ID:       9575e65b-b589-465a-830c-286541780f96
 :CREATED:  [2026-08-21 Fri 10:10]
@@ -3699,6 +3705,16 @@ Not a defect in what shipped: the rule was scoped to the structure that existed,
   build the on-demand resolver
 - State "NEXT"       from "TODO"       [2026-08-21 Fri 13:22] \\
   nominated: resolver gates both remaining siblings
+CLOCK: [2026-08-24 Mon 12:27]--[2026-08-24 Mon 12:31] =>  0:04
+- State "DOING"      from "NEXT"       [2026-08-24 Mon 12:27] \\
+  build the on-demand day-node resolver
+- [2026-08-24 Mon 12:27]--[2026-08-24 Mon 12:31] build the day-node resolver
+- State "DONE"       from "DOING"      [2026-08-24 Mon 12:31] \\
+  resolver shipped, dated from the event
+CLOCK: [2026-08-24 Mon 12:46]--[2026-08-24 Mon 12:48] =>  0:02
+- [2026-08-24 Mon 12:46]--[2026-08-24 Mon 12:48] make the category assignable at review
+CLOCK: [2026-08-24 Mon 13:02]--[2026-08-24 Mon 13:03] =>  0:01
+- [2026-08-24 Mon 13:02]--[2026-08-24 Mon 13:03] make the category assignable at review
 :END:
 
 One function answers "which heading is today's meta-work node", and it is called at the moment something needs the answer rather than run ahead of time. Steps: find the =:DATE_TREE:= heading; =org-datetree-find-date-create= for today, which is org's own idempotent find-or-create; stamp =:ID:= and =:CREATED:= if the node was just made; set =org-clock-default-task= to its marker; return the id.
@@ -6093,6 +6109,8 @@ CLOCK: [2026-08-24 Mon 11:02]--[2026-08-24 Mon 11:06] =>  0:04
 - [2026-08-24 Mon 11:02]--[2026-08-24 Mon 11:06] audit the session-start report path
 CLOCK: [2026-08-24 Mon 11:14]--[2026-08-24 Mon 11:15] =>  0:01
 - [2026-08-24 Mon 11:14]--[2026-08-24 Mon 11:15] suggested span, accepted at review
+CLOCK: [2026-08-24 Mon 11:17]--[2026-08-24 Mon 11:18] =>  0:01
+- [2026-08-24 Mon 11:17]--[2026-08-24 Mon 11:18] suggested span, accepted at review
 :END:
 
 Asked 2026-08-24: can the daily ceremony ([[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]], now =<... 07:00 ++1d>=) be scheduled in the agentic CLI so a prompt arrives at the first opportunity each day and the agent performs it?
@@ -6125,10 +6143,19 @@ It also already has the right manners for this: [[id:7771fc63-9374-4c8a-9e80-24c
 *Comment corrected in* =bin/hooks/session-start-recovery-check=. It still described injecting "an educated guess ... based on =claude-code-ide-org-working-hours=", retired 2026-08-14 with [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]], and still mentioned =:SESSIONS:=, retired 2026-08-11. The behaviour was right; only the comment lied. It now also says to *expect silence*, with the audit's reason -- so the next reader does not go looking for a bug in a feature that is working.
 
 
-** A sub-minute run is observed work; round it up rather than drop it :code:
+** DONE A sub-minute run is observed work; round it up rather than drop it :code:
+CLOSED: [2026-08-24 Mon 12:16]
 :PROPERTIES:
 :ID:       31c6ac39-1a06-4b17-8d89-b91fd2628874
 :CREATED:  [2026-08-24 Mon 12:10]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-24 Mon 12:10]--[2026-08-24 Mon 12:16] =>  0:06
+- State "DOING"      from              [2026-08-24 Mon 12:10] \\
+  institute the one-minute floor
+- [2026-08-24 Mon 12:10]--[2026-08-24 Mon 12:16] round sub-minute runs up to one minute
+- State "DONE"       from "DOING"      [2026-08-24 Mon 12:16] \\
+  floor shipped and pinned by tests
 :END:
 
 *Shipped 2026-08-24* (=413e737=), at the user's request after they edited a number of 0-minute spans up to 1 minute by hand during a review pass. Instituted in =--apply-idle-floor= rather than at review, so every path that writes a CLOCK line gets it and nobody has to remember.
@@ -6146,10 +6173,15 @@ The two conditions are now named once as =--renders-as-nothing-p= and used for *
 *Carried in the same commit:* =--lane-clock-intervals= hoisted out of the per-group loop in =--review-items-from-queue=, where it ran once per heading -- 53 groups against ~250 events, re-filtering and re-sorting the full history each time -- for an answer that does not vary by group. Introduced by [[id:eaeeb4ee-ceee-4094-8598-bbcdc8214b66][eaeeb4ee]] this morning. It is *not* the cause of the Emacs hang that followed the apply: that process sat at 0.0% CPU, which rules out anything computing.
 
 
-** The review buffer truncated lines the human had to read :code:
+** DONE The review buffer truncated lines the human had to read :code:
+CLOSED: [2026-08-24 Mon 13:08]
 :PROPERTIES:
 :ID:       111ca40a-3fdb-4106-ad52-991e30737ece
 :CREATED:  [2026-08-24 Mon 13:08]
+:END:
+:LOGBOOK:
+- State "DONE"       from              [2026-08-24 Mon 13:08] \\
+  wrap default shipped and verified live
 :END:
 
 *Shipped 2026-08-24* (=5de3948=), from the user asking whether the review command could open its buffer wrapped "as I have it now".
@@ -7771,10 +7803,14 @@ The =/next-session= idiom is used but not codified. One line outside the file me
 *Open:* there is no end-of-session trigger to hang the writing rule on. Candidate is firing on an explicit request to write or revise the prompt, with the self-hosted header as the backstop.
 
 
-** A repeater never reaches DONE, so its body is never pruned :code:
+** TODO A repeater never reaches DONE, so its body is never pruned :code:
 :PROPERTIES:
 :ID:       ff92700e-1713-4862-a3fe-8fd972ad96fa
 :CREATED:  [2026-08-24 Mon 13:10]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-24 Mon 13:11] \\
+  captured keywordless, setting initial state
 :END:
 
 *Found 2026-08-24 while paring [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]]*, whose body had reached 47 lines against a 35-line median.
@@ -9126,10 +9162,20 @@ So the test is red for the last hour of every day, and green the other 23. Confi
 Approach: anchor the fixture to a fixed date rather than to now, which removes the dependence on when the suite runs instead of narrowing the window in which it breaks.
 
 
-** Footnote discipline decays on re-mention; enforce it at Stop :code:
+** REVIEW Footnote discipline decays on re-mention; enforce it at Stop :code:
 :PROPERTIES:
 :ID:       2758f3a0-3c47-405e-9662-a7669dcb60cc
 :CREATED:  [2026-08-24 Mon 11:28]
+:END:
+:LOGBOOK:
+- State "NEXT"       from              [2026-08-24 Mon 11:29] \\
+  captured keywordless, nominating as next
+CLOCK: [2026-08-24 Mon 12:31]--[2026-08-24 Mon 12:38] =>  0:07
+- State "DOING"      from "NEXT"       [2026-08-24 Mon 12:31] \\
+  build the Stop-hook footnote check
+- [2026-08-24 Mon 12:31]--[2026-08-24 Mon 12:38] build the footnote Stop hook
+- State "REVIEW"     from "DOING"      [2026-08-24 Mon 12:38] \\
+  shipped; cannot verify until a new session
 :END:
 
 *Measured 2026-08-24 over this session's own transcript*, after the user observed the footnotes had gone spotty. 132 assistant messages, 32 of which cited an org =:ID:=.
@@ -9244,6 +9290,17 @@ Paired with [[id:2aff1e6d-71cf-4b3f-8a3f-b3fc63d07c99][2aff1e6d]] at the same ti
 *** 2026-08 August
 
 
+**** 2026-08-14 Friday
+:PROPERTIES:
+:ID:       5794fcf8-e42c-49ff-91a2-f08360750889
+:CREATED:  [2026-08-14 Fri 19:33]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-14 Fri 19:33]--[2026-08-14 Fri 19:47] =>  0:14
+- [2026-08-14 Fri 19:33]--[2026-08-14 Fri 19:47] assigned at review
+:END:
+
+
 **** 2026-08-21 Friday
 :PROPERTIES:
 :ID:       758643f2-2046-4894-8a25-7ab44e4dad9a
@@ -9265,10 +9322,49 @@ CLOCK: [2026-08-21 Fri 15:41]--[2026-08-21 Fri 15:42] =>  0:01
 :END:
 
 
-** Clear the 36-heading archive backlog, sweeping bodies into :PLAN: unedited :code:
+**** 2026-08-22 Saturday
+:PROPERTIES:
+:ID:       073ff212-8dea-402d-82cb-41d01c7a06be
+:CREATED:  [2026-08-22 Sat 22:07]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-22 Sat 22:07]--[2026-08-22 Sat 22:09] =>  0:02
+- [2026-08-22 Sat 22:07]--[2026-08-22 Sat 22:09] assigned at review
+CLOCK: [2026-08-22 Sat 22:13]--[2026-08-22 Sat 22:15] =>  0:02
+- [2026-08-22 Sat 22:13]--[2026-08-22 Sat 22:15] assigned at review
+CLOCK: [2026-08-22 Sat 22:18]--[2026-08-22 Sat 22:31] =>  0:13
+- [2026-08-22 Sat 22:18]--[2026-08-22 Sat 22:31] assigned at review
+CLOCK: [2026-08-22 Sat 22:35]--[2026-08-22 Sat 22:36] =>  0:01
+- [2026-08-22 Sat 22:35]--[2026-08-22 Sat 22:36] assigned at review
+:END:
+
+
+**** 2026-08-24 Monday
+:PROPERTIES:
+:ID:       bc5525eb-4941-4a6d-a0e4-07b50fdaa1c6
+:CREATED:  [2026-08-24 Mon 10:08]
+:END:
+:LOGBOOK:
+- [2026-08-24 Mon 10:08]--[2026-08-24 Mon 10:13] assigned at review
+- [2026-08-24 Mon 10:21]--[2026-08-24 Mon 10:22] assigned at review
+- [2026-08-24 Mon 13:03]--[2026-08-24 Mon 13:05] assigned at review
+:END:
+
+
+** DOING Clear the 36-heading archive backlog, sweeping bodies into :PLAN: unedited :code:
 :PROPERTIES:
 :ID:       7fbab3b3-7843-4290-94a5-d421413f2be4
 :CREATED:  [2026-08-24 Mon 13:09]
+:END:
+:LOGBOOK:
+- State "NEXT"       from              [2026-08-24 Mon 13:11] \\
+  backlog extracted, ready to run
+- State "DOING"      from "NEXT"       [2026-08-24 Mon 13:14] \\
+  run the backlog sweep
+CLOCK: [2026-08-24 Mon 13:21]--[2026-08-24 Mon 13:25] =>  0:04
+- [2026-08-24 Mon 13:21]--[2026-08-24 Mon 13:25] sweep the archive backlog into PLAN
+CLOCK: [2026-08-24 Mon 13:33]--[2026-08-24 Mon 13:37] =>  0:04
+- [2026-08-24 Mon 13:33]--[2026-08-24 Mon 13:37] sweep the archive backlog into PLAN
 :END:
 
 *Split out of [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] on 2026-08-24*, which had been carrying three different things at once: a recurring ritual, this one-time migration, and a set of standing conventions. The conventions went to =.claude/rules/org-conventions.md=; the ritual stayed; this is the backlog.

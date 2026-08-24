@@ -5740,12 +5740,16 @@ CLOSED: [2026-08-12 Wed 10:02]
 :BLOCKER:  ids(feba67eb-35b3-48bd-a892-8ecd47ca52e0)
 :END:
 :LOGBOOK:
-- State "DONE"       from "DOING"      [2026-08-12 Wed 10:02] \\
-  projected-state stale check shipped and verified
+CLOCK: [2026-08-11 Tue 22:29]--[2026-08-11 Tue 22:37] =>  0:08
 - State "DOING"      from "TODO"       [2026-08-11 Tue 22:29] \\
   implementing chain-aware staleness
+- [2026-08-11 Tue 22:29]--[2026-08-11 Tue 22:37] implement projected-state stale check
 - [2026-08-11 Tue 22:37]--[2026-08-11 Tue 22:37] implement projected-state stale check
+CLOCK: [2026-08-12 Wed 09:58]--[2026-08-12 Wed 10:02] =>  0:04
 - [2026-08-12 Wed 09:58]--[2026-08-12 Wed 09:58] implement projected-state stale check
+- [2026-08-12 Wed 09:58]--[2026-08-12 Wed 10:02] implement projected-state stale check
+- State "DONE"       from "DOING"      [2026-08-12 Wed 10:02] \\
+  projected-state stale check shipped and verified
 :END:
 [[file:~/.claude/plans/hazy-moseying-sky.md][Plan]]
 
