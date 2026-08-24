@@ -421,10 +421,21 @@ lines carrying 86% of all body text. A body nobody can read is a body that
 does not do its job, and it is re-read by every session that touches the
 heading.
 
-**Prospective only.** Do not rewrite existing bodies to match. Deletion of
-superseded prose is recoverable from git for version-controlled `.org`
-files, so it is not irreversible — but relitigating past bodies is still
-churn nobody asked for.
+**Revision is expected.** Reversed 2026-08-24; this said "Prospective only
+— do not rewrite existing bodies to match." A finished body may be split
+with `org_wrap_plan`: the prospective half into a `:PLAN:` drawer, the
+debrief left as the body. Relocation is lossless and needs no permission.
+Condensing the prospective half is wanted where the seam is confident,
+because a self-contradicting body pollutes the context of every session
+that later reads it for background.
+
+Untouched: **open questions** (keep them verbatim — settling one now by
+inference is the only thing "relitigating" meant), **the debrief**, and
+**anything whose seam is unclear** (wrap it whole, condense nothing).
+Condense in a separate commit from the wrap: a bad pare inside `:PLAN:`
+is invisible by design, since readers skip the drawer. For the archive
+backlog the rule is wrap unedited (`cbe282ec`); split only when you are
+already reading the heading for another reason.
 
 ### Inserting content programmatically
 

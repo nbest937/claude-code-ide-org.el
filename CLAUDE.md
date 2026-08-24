@@ -235,16 +235,37 @@ happened: what shipped, how it was verified, what was measured, what was
 falsified, and why a decision went the way it did. It does not restate
 design the linked plan already holds.
 
-*Prospective only.* Bodies written before 2026-08-14 are not to be
-trimmed to fit this; do not relitigate them — that is churn nobody asked
-for, not a data-safety matter. (Corrected 2026-08-21: this file used to
-call deletion "the one irreversible half of the practice," which is true
-only of *plans* — `plans/`' history is bounded rather than complete,
-since `.githooks/pre-push` only bounds how stale the archive can be, so
-a plan revised twice between syncs loses its intermediate state. Body
-prose in the version-controlled `.org` files is recoverable from any
-commit; the only real exposure is text written and deleted inside a
-single uncommitted window. The org skill says the same.)
+*Revision is expected, not forbidden* (reversed 2026-08-24; this rule
+previously read "Prospective only — bodies written before 2026-08-14 are
+not to be trimmed"). A finished heading's body may be split: the
+prospective half wrapped into a `:PLAN:` drawer via `org_wrap_plan`, the
+debrief left as the body. Relocation is lossless and needs no
+permission. *Condensing* the prospective half is wanted where the seam
+is confident — a body that contradicts itself pollutes the context of
+every later session that consults it for background, which is a cost
+paid repeatedly rather than once.
+
+Three things stay untouched. **Open questions**: a body that asks
+something nobody answered keeps its question verbatim — do not settle it
+now by inference, which is the only thing "relitigating" ever meant.
+**The debrief**: what happened, how it was verified, what was falsified.
+**Anything whose seam you are unsure of** — wrap it whole and condense
+nothing; uncertainty is a reason to relocate rather than to stop.
+
+*Condense in a separate commit from the wrap, never the same one.* A bad
+pare inside `:PLAN:` is invisible by design, since readers are told to
+skip the drawer — it is the one edit here that no later reader will
+catch, which is a sharper hazard than the reversibility question the old
+rule turned on. (That question is settled and no longer load-bearing:
+body prose in the version-controlled `.org` files is recoverable from
+any commit, and only *plans* have bounded history, since
+`.githooks/pre-push` merely bounds how stale the archive can be.)
+
+*The backlog is not this rule.* `cbe282ec` chose "sweep old bodies in
+unedited" to keep 30 headings cheap, and that stands: **backlog = wrap
+unedited; opportunistic = split when you are already reading the heading
+anyway.** Letting the backlog pass acquire per-heading judgement is
+exactly the cost that decision was made to avoid.
 
 *The evidence for the split, from a single day's drift:* three headings
 carried confident design claims that were later found wrong —
