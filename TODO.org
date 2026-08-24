@@ -1638,6 +1638,13 @@ This heading is now a *dependency of* [[id:b07df584-3adc-433c-ab49-e104f88aecf7]
 
 *Immediate consequence worth sequencing on:* this operation is what [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] is blocked on. Archiving stalls because CLAUDE.md requires an outcome summary before a =DONE= heading is archived, and there are 30 of them; producing those summaries *is* this revision applied 30 times.
 
+*Shipped 2026-08-24, the wrapping half only* (=8170ddd=). =org_wrap_plan= wraps a body's prospective part in a =:PLAN:= drawer, with an optional =until= marker naming the first line that stays in the body -- the retroactive case, where a body written before the convention already holds both halves.
+
+Two insertions at computable positions, never a range replacement, and no boundary comes from a regexp of ours: =outline-next-heading= and =org-end-of-meta-data= decide, so a line org would not parse as a heading cannot be treated as one. *Verified by reintroducing the bug*: swapping in the =startswith("*")= next-heading test that orphaned 117 lines on 2026-08-21 fails exactly two of the five new tests and nothing else. Refusals rather than guesses on a missing, duplicated or first-line seam, because a silently-wrong seam is the one mistake here no later reader will catch -- the drawer is one readers are told to skip.
+
+*This heading is not done.* Its title names the real problem -- =org_amend= can still only append -- and general in-place revision, which *continuous paring* needs, is untouched. What shipped is the separable half the completion transition needs, split out deliberately so [[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]] and [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] stop waiting on the harder one.
+
+
 
 ** TODO Adopt the :PLAN: drawer lifecycle for heading bodies :code:
 :PROPERTIES:
@@ -5813,6 +5820,36 @@ CLOCK: [2026-08-21 Fri 13:07]--[2026-08-21 Fri 13:24] =>  0:17
 *Proposed fix, small and preserving the intent:* when the gap's interval equals the span's, drop the timestamps and say only that no evidence was found in the window. The absence stays visible, the "nobody looked" ambiguity stays resolved, and nothing is printed twice. Interior gaps -- the case where a stretch inside a span is empty while other stretches are not -- keep their timestamps, because there the times are the information.
 
 *Do not raise =claude-code-ide-org-span-evidence-gap= to suppress it.* The threshold exists to filter *interior* gaps by significance; using it to hide the empty case would restore exactly the "nothing found is indistinguishable from nobody looked" defect 5ff5a4b8 fixed, and would do so silently for short spans only.
+** Consolidation only reaches drawers an apply pass happens to touch :code:
+:PROPERTIES:
+:ID:       7ae6562d-25c8-453e-b78b-920e036c5665
+:CREATED:  [2026-08-24 Mon 09:20]
+:END:
+
+*Measured 2026-08-24, over both files.* =claude-code-ide-org-consolidate-on-apply= is =t= and works -- but it only fires on a heading that an apply pass *writes to*. A drawer disturbed by anything else keeps its disorder, and archiving ends the only thing that would have repaired it.
+
+Counting drawers with two or more timestamped entries, and asking whether their entries ascend:
+
+| file                     | drifted | of  |
+|--------------------------+---------+-----|
+| TODO.org                 |       9 |  62 |
+| DONE.org                 |      43 |  60 |
+
+*The split by =:ARCHIVE_TIME:= is what makes it a finding rather than a backlog.* Consolidation-on-apply landed 2026-08-13, so anything archived before then is expected to be disordered and is not evidence. Anything archived after is:
+
+| archived            | drifted | of |
+|---------------------+---------+----|
+| before 2026-08-13   |       6 |  6 |
+| on/after 2026-08-13 |      13 | 25 |
+| no =:ARCHIVE_TIME:= |      24 | 29 |
+
+*Over half of everything archived since the feature shipped is out of order*, which is not what "consolidate on apply" implies to a reader of the defcustom.
+
+*Cause, and it is structural rather than a bug.* Org inserts =CLOCK:= lines newest-first; =--append-to-drawer= appends annotations before =:END:=; the ascending order [[id:af7d3687-6d1e-4480-a9e2-df772785713f][af7d3687]] chose is neither. So a drawer drifts the moment anything writes to it outside apply -- a hand =C-c C-x C-i=, or =--trigger-auto-clock-in= firing on a hand-set =DOING=. TODO.org stays healthy only because apply keeps returning to those headings. Once a heading is archived, nothing ever touches it again and the drift is permanent.
+
+*Why this rather than reversing the sort.* Newest-first would end the drift by construction, by agreeing with org's insert convention. It was considered and rejected: it reverses the narrative order that was the whole of af7d3687's request, it breaks that heading's byte-identical fixed-point test against =clock-template.org=, and it systematically flips every tie whose adjacency the stable sort was chosen to preserve. The drift is a *coverage* problem, not an *ordering* one, and the coverage fix keeps what was asked for.
+
+*Shape:* a command that consolidates every drawer in the tracked files, reusing =--consolidate-logbook-text= unchanged -- already idempotent and pinned lossless. Worth running before an archive pass in particular, since that is the last moment a heading is ever touched; that makes it a natural companion to [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] rather than a separate ritual.
 
 * Observability
 :PROPERTIES:
