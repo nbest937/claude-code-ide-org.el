@@ -6776,14 +6776,23 @@ its commit before it means anything."
   "The case that matters most.  An evidence-free span used to render no
 lines at all, which made \"nothing was found here\" look exactly like
 \"nobody looked\" -- and the first real use of this feature was a batch
-applied without critical evaluation."
+applied without critical evaluation.
+
+The line must therefore always appear.  What it says changed 2026-08-24
+(TODO.org :ID: a279216c): a gap covering the whole span no longer prints
+the span's own two timestamps back at the reader, one line under the
+line already showing them.  The absence stays visible; only the
+duplication goes."
   (let* ((start (date-to-time "2026-08-13T17:18:00-0500"))
          (end (time-add start (* 14 60)))
          (claude-code-ide-org-span-evidence-gap 300))
     (claude-code-ide-org-test--with-stub-evidence nil
       (let ((lines (claude-code-ide-org--span-evidence start end)))
         (should (= 1 (length lines)))
-        (should (string-match-p "(nothing for 14m, 17:18-17:32)" (car lines)))))))
+        (should (string-match-p "(no evidence found in this window)" (car lines)))
+        ;; The redundant restatement is what was removed, and it must
+        ;; stay removed: these are the span's own endpoints.
+        (should-not (string-match-p "17:18-17:32" (car lines)))))))
 
 (ert-deftest claude-code-ide-org-test-span-gaps-ignore-the-slack-window ()
   "A commit after the span concluded it rather than filled it, so it
@@ -6797,8 +6806,9 @@ would silently absolve exactly the spans with nothing in them."
         (list (cons (time-add end 120) "commit  ccc just after"))
       (let ((lines (claude-code-ide-org--span-evidence start end)))
         (should (= 2 (length lines)))
-        ;; The gap covers the whole span and comes first...
-        (should (string-match-p "(nothing for 10m, 17:18-17:28)" (nth 0 lines)))
+        ;; The gap covers the whole span, so it says only that, and
+        ;; comes first...
+        (should (string-match-p "(no evidence found in this window)" (nth 0 lines)))
         ;; ...and the slack commit is still shown, just not credited.
         (should (string-match-p "just after" (nth 1 lines)))))))
 
@@ -8187,6 +8197,27 @@ protects its contents -- the whole finding is that it does not."
      id (lambda ()
           (should-not (claude-code-ide-org--find-drawer "PLAN"))
           (should-not (org-get-repeat))))))
+
+(ert-deftest claude-code-ide-org-test-interior-gap-keeps-its-timestamps ()
+  "An interior gap still prints its times, because there they are the
+information.
+
+The discriminator for :ID: a279216c's fix: it drops the timestamps only
+when the gap spans the whole window, where they merely repeat the line
+above. A gap between two pieces of evidence says WHICH stretch was
+empty, and that cannot be recovered from the span's own endpoints."
+  (let* ((start (date-to-time "2026-08-13T17:00:00-0500"))
+         (end (time-add start (* 30 60)))
+         (claude-code-ide-org-span-evidence-gap 300))
+    (claude-code-ide-org-test--with-stub-evidence
+        (list (cons start "commit  aaa at the start")
+              (cons (time-add start (* 20 60)) "commit  bbb twenty minutes in"))
+      (let ((lines (claude-code-ide-org--span-evidence start end)))
+        (should (seq-find (lambda (l) (string-match-p "nothing for" l)) lines))
+        (should (seq-find (lambda (l) (string-match-p "17:00-17:20" l)) lines))
+        (should-not (seq-find (lambda (l)
+                                (string-match-p "no evidence found in this window" l))
+                              lines))))))
 
 (provide 'claude-code-ide-org-config-test)
 

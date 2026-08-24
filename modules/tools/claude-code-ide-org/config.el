@@ -6076,13 +6076,23 @@ a review buffer is not."
   (and id (substring id 0 (min 8 (length id)))))
 
 (defun claude-code-ide-org--review-heading-title (id)
-  "Return ID's heading title, or nil when ID resolves to nothing."
+  "Return ID's heading title, or nil when ID resolves to nothing.
+
+A `:DATE_TREE:' category target answers with its own title plus what it
+will become, since it names no heading *yet*: the day node is created at
+apply, from the item's own timestamp. Without this the group heading
+rendered the first eight characters of the category title and called it
+unresolved -- literally \"Review a  (unresolved)\" -- because the render
+assumed every id is a UUID and `claude-code-ide-org--short-id' truncates
+to eight (TODO.org :ID: 9575e65b, reported by the user)."
   (when id
+    (if (claude-code-ide-org--day-node-target-p id)
+        (format "%s -- that day\'s meta-work node, created at apply" id)
     (let ((marker (ignore-errors (org-id-find id 'marker))))
       (when marker
         (prog1 (org-with-point-at marker
                  (org-no-properties (org-get-heading t t t t)))
-          (set-marker marker nil))))))
+          (set-marker marker nil)))))))
 
 ;;; Span evidence ------------------------------------------------------------
 ;;
@@ -6219,13 +6229,34 @@ that is not there."
                           (cdr row)))
             entries))
     (dolist (gap gaps)
-      (push (cons (car gap)
-                  (format "%7s(nothing for %s, %s-%s)" ""
-                          (claude-code-ide-org--format-duration (cdr gap))
-                          (format-time-string "%H:%M" (car gap))
-                          (format-time-string
-                           "%H:%M" (time-add (car gap) (cdr gap)))))
-            entries))
+      ;; A gap covering the *whole* span prints the span's own two
+      ;; timestamps back at the reader, one line under the line that
+      ;; already shows them, and reads as a bug rather than as evidence
+      ;; (TODO.org :ID: a279216c, reported twice by the user).
+      ;;
+      ;; The line still appears, and that is deliberate: it is
+      ;; :ID: 5ff5a4b8's empty case, and suppressing it entirely would
+      ;; restore the "nothing found is indistinguishable from nobody
+      ;; looked" defect that heading exists to fix. Only the redundant
+      ;; timestamps are dropped. An *interior* gap keeps them, because
+      ;; there the times are the information -- they say which stretch
+      ;; inside the span was empty.
+      ;;
+      ;; Not fixed by raising `claude-code-ide-org-span-evidence-gap':
+      ;; that threshold filters interior gaps by significance, and using
+      ;; it here would hide the empty case silently, for short spans
+      ;; only.
+      (let ((whole (and (time-equal-p (car gap) start)
+                        (time-equal-p (time-add (car gap) (cdr gap)) end))))
+        (push (cons (car gap)
+                    (if whole
+                        (format "%7s(no evidence found in this window)" "")
+                      (format "%7s(nothing for %s, %s-%s)" ""
+                              (claude-code-ide-org--format-duration (cdr gap))
+                              (format-time-string "%H:%M" (car gap))
+                              (format-time-string
+                               "%H:%M" (time-add (car gap) (cdr gap))))))
+              entries)))
     (let ((lines (mapcar #'cdr
                          (sort (nreverse entries)
                                (lambda (a b) (time-less-p (car a) (car b)))))))
