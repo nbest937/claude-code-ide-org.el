@@ -6106,6 +6106,20 @@ CLOCK: [2026-08-24 Mon 10:14]--[2026-08-24 Mon 10:20] =>  0:06
 
 *A hazard already measured, and it applies directly here.* f4b07fc0's pre-tool estimate said 59 rather than 58, because a body-wide scan matched a =- State "DONE" ...= line quoted *in prose* on [[id:3d93021d-1d8a-4657-bc5c-77734f91fb9d][3d93021d]], a heading that has no =:LOGBOOK:= and was diagnosing the bug that produced that line. Any git-side matching on heading text or on =State= lines in a diff faces the same trap, with no drawer boundary available to bound it.
 
+*Cancelled 2026-08-24 by the user's decision, and the reasoning is the point rather than the verdict.*
+
+The heading posed the question as "is a commit timestamp a good enough upper bound", and answering *that* would have taken the git archaeology to find out. It turns out not to be the deciding question.
+
+*Nothing mechanical consumes =CLOSED:= on these 39 headings, and nothing ever will.* [[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]]'s lint rule is scoped to headings closed on or after 2026-08-24, so these are exempt *permanently, by design* -- the scoping is what makes that rule usable at all. Archive routing is per-category =:ARCHIVE:=, not datetree, so nothing files by =CLOSED:=. No clocktable reads it. The only consumer left is a human reading DONE.org, and 35 of the 39 already carry an =:ARCHIVE_TIME:=.
+
+So the work would derive a date from a *different event*, write it into a field nothing reads, on headings in a file that CLAUDE.md says is reference and never orientation. That is the shape [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] settled against, arrived at from the other direction: not "the guess is unreliable" but "nothing is asking".
+
+*The measurement that was expected to decide it, recorded because it did not:* the 39 are not uniformly pre-cutover. By =:ARCHIVE_TIME:= they split 19 / 3 / 13 / 4 across 2026-07-29, 07-30, 08-17 and none. A pre-cutover close is tightly bounded by its commit, since =org-todo= applied live; a post-cutover one is bounded only by when a human next ran the review pass, which today reached back two weeks. So the bound would have been tight for some and arbitrarily loose for others, with nothing in the file to say which -- a worse outcome than a uniform absence.
+
+*Option (c) is also declined,* for the same reason rather than a different one: marking 39 headings as "no close time recoverable" costs 39 property writes to record an absence that is already visible as an absence. The absence is not ambiguous here -- there is no "nobody looked" reading to resolve, which is what made that distinction worth paying for on [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]].
+
+*What would reopen this:* a consumer appearing. If archive filing ever moves to a datetree ([[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]'s question), =CLOSED:= becomes load-bearing for placement and these 39 become genuinely undatable rather than merely undated.
+
 
 ** DONE A sub-minute run is observed work; round it up rather than drop it :code:
 CLOSED: [2026-08-24 Mon 12:16]
@@ -7829,6 +7843,16 @@ The =/next-session= idiom is used but not codified. One line outside the file me
 - *Accept it and rely on the periodic review* to notice. This is what happened, and it worked only because a human read the heading and asked.
 
 *The lint direction is the one worth measuring first,* since it is the project's usual answer to a convention that would otherwise recur and it needs no new concept -- just a length threshold on headings carrying a repeater.
+
+*Decided and shipped 2026-08-24* (=6e0aef9=): the lint cap, direction 1 of the three recorded above. =bin/lint-org= warns when a heading carrying a repeater exceeds =claude-code-ide-org-repeater-body-max= body lines, default 25.
+
+*Direction 2 stays rejected on its own terms* -- treating each firing as a completion would wrap a ritual's standing instructions into =:PLAN:=, hiding the very text the ritual exists to state. Direction 3 is what had been happening, and it worked once because the user happened to ask.
+
+*The cap fires on nothing today, and that is stated rather than glossed.* The three repeaters hold 3, 7 and 9 body lines. It is a forward-looking guard on the same footing as [[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]]'s rule, and the honest claim is that 25 would have caught [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] at 47 lines, shortly before it had to be split three ways by hand.
+
+*A mismeasurement worth keeping, because it nearly set the threshold.* The first survey reported an 80-line repeater -- [[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]] -- and the cap was proposed *because* of it, framed as "flags exactly one heading". The real figure is *7*. The survey counted drawer contents as body prose, which is precisely what =--lint-body-prose-lines= exists to exclude, and 96a51c2f's =:LOGBOOK:= is long.
+
+Two things follow. A body-size rule calibrated against a body-size measurement that does not use the rule's own counter is calibrated to nothing -- so the counter is now shared with =--lint-substantial-body-p=, and the fixture asserts the drawer case directly. And the recommendation that reached the user was wrong in its evidence while right in its conclusion, which is the more uncomfortable half: it would have been accepted either way.
 
 
 * Tooling
