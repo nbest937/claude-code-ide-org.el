@@ -7663,6 +7663,127 @@ still exists."
       (should-not (eq (plist-get (car items) :origin) 'bracketed))
       (should (= 600 (claude-code-ide-org-test--written-seconds (car items)))))))
 
+;;; :PLAN: drawer wrapping (TODO.org :ID: 3063c3e5)
+
+(defun claude-code-ide-org-test--body-of (id)
+  "Return heading ID's raw text from the heading line to its next heading."
+  (claude-code-ide-org--at-id
+   id (lambda ()
+        (buffer-substring-no-properties
+         (line-beginning-position)
+         (save-excursion (outline-next-heading)
+                         (if (eobp) (point-max) (point)))))))
+
+(ert-deftest claude-code-ide-org-test-wrap-plan-wraps-a-whole-body ()
+  "The completion transition: a purely prospective body goes in whole.
+
+Asserts the drawer opens *after* the existing metadata drawers rather
+than before them, since the point of the layout is that :PLAN: sits
+beside :PROPERTIES: and :LOGBOOK: and a folded heading shows neither."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "\nMotivation for the thing.\n\nA second paragraph.\n")
+    (save-buffer)
+    (let ((result (claude-code-ide-org-wrap-plan id)))
+      (should (string-match-p "Text preserved: yes" result)))
+    (let ((text (claude-code-ide-org-test--body-of id)))
+      ;; :PLAN: abuts the property drawer's :END:, with the blank line
+      ;; that separated prose from metadata now inside the drawer.
+      (should (string-match-p ":END:\n:PLAN:\n\nMotivation for the thing" text))
+      (should (string-match-p "A second paragraph\\.\n:END:" text)))))
+
+(ert-deftest claude-code-ide-org-test-wrap-plan-splits-at-a-seam ()
+  "The retroactive case: only the text above the seam is wrapped.
+
+A body written before the convention existed generally holds both
+halves, and wrapping it whole would bury the debrief inside a drawer
+readers are told to skip -- the exact inversion the convention exists to
+prevent.  So the debrief must remain in the body, outside :PLAN:."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "\nThe plan was to do it this way.\n\n"
+            "*Outcome.* It went differently.\n")
+    (save-buffer)
+    (claude-code-ide-org-wrap-plan id "*Outcome.*")
+    (let ((text (claude-code-ide-org-test--body-of id)))
+      (should (string-match-p ":PLAN:\n\nThe plan was to do it this way" text))
+      (should (string-match-p "this way\\.\n\n:END:\n\\*Outcome\\.\\*" text))
+      ;; The debrief is outside the drawer, which is the whole point.
+      (should-not (string-match-p ":PLAN:\\(.\\|\n\\)*Outcome\\(.\\|\n\\)*:END:" text)))))
+
+(ert-deftest claude-code-ide-org-test-wrap-plan-ignores-bold-prose-lines ()
+  "A body line starting with `*' is prose, and must not end the body.
+
+This is the recorded corruption, not a hypothetical: a `startswith(\"*\")'
+next-heading test matched a bold prose line and orphaned 117 lines, and
+`bin/lint-org' reported 0 errors because the damage is prose-level under
+a well-formed heading.  The body here opens with such a line, so a
+wrapper using that test closes the drawer immediately and strands
+everything below it.
+
+Also pins the boundary at the far end: the *real* next heading and its
+content must be untouched."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "\n*Scope, as stated:* one ordering across every entry style.\n\n"
+            "*Why this is not a quick sort:* three line shapes.\n\n"
+            "*Outcome.* Done as specified.\n"
+            "** A real child heading\nChild body.\n")
+    (save-buffer)
+    (let ((result (claude-code-ide-org-wrap-plan id "*Outcome.*")))
+      (should (string-match-p "Text preserved: yes" result)))
+    (let ((text (claude-code-ide-org-test--body-of id)))
+      ;; Both bold prose lines are inside the drawer; neither ended it.
+      (should (string-match-p ":PLAN:\n\n\\*Scope" text))
+      (should (string-match-p "three line shapes\\.\n\n:END:" text))
+      (should (string-match-p ":END:\n\\*Outcome\\.\\* Done as specified" text)))
+    ;; The child heading kept its own body, outside everything.
+    (should (string-match-p
+             "^\\*\\* A real child heading\nChild body\\.\n"
+             (claude-code-ide-org--at-id
+              id (lambda () (buffer-substring-no-properties (point-min) (point-max))))))))
+
+(ert-deftest claude-code-ide-org-test-wrap-plan-stops-at-the-first-child ()
+  "A parent's body ends at its first child, not at the end of its subtree.
+
+Without this the drawer would swallow every descendant heading, which is
+a structural corruption rather than a prose one -- and the only one of
+these failures `bin/lint-org' would actually catch."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "\nParent body.\n** Child\nChild body.\n")
+    (save-buffer)
+    (claude-code-ide-org-wrap-plan id)
+    (let ((text (claude-code-ide-org-test--body-of id)))
+      (should (string-match-p ":PLAN:\n\nParent body\\.\n:END:" text))
+      (should-not (string-match-p "Child" text)))))
+
+(ert-deftest claude-code-ide-org-test-wrap-plan-refuses-rather-than-guesses ()
+  "Every refusal path, because each one silently succeeding is a corruption.
+
+A second wrap would nest drawers; an absent or ambiguous seam would put
+the split in a place nobody chose.  The seam decides which half of a
+body becomes invisible to ordinary reading, so guessing it is the one
+mistake here that no later reader will catch."
+  (claude-code-ide-org-test--with-heading
+    ;; No body at all.
+    (should (string-match-p "no body to wrap" (claude-code-ide-org-wrap-plan id)))
+    (goto-char (point-max))
+    (insert "\nA line.\nA repeated marker.\nA repeated marker.\n")
+    (save-buffer)
+    (should (string-match-p "not found"
+                            (claude-code-ide-org-wrap-plan id "nowhere in the body")))
+    (should (string-match-p "appears 2 times"
+                            (claude-code-ide-org-wrap-plan id "A repeated marker")))
+    (should (string-match-p "nothing would be wrapped"
+                            (claude-code-ide-org-wrap-plan id "A line.")))
+    ;; None of those refusals may have written anything.
+    (should-not (string-match-p ":PLAN:" (claude-code-ide-org-test--body-of id)))
+    ;; A successful wrap, then a second attempt on the same heading.
+    (claude-code-ide-org-wrap-plan id)
+    (should (string-match-p "already has a :PLAN: drawer"
+                            (claude-code-ide-org-wrap-plan id)))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here

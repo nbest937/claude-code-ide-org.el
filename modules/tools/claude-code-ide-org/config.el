@@ -7525,7 +7525,177 @@ silent run can never be mistaken for a passing one."
 
 ;;; MCP tool registration -------------------------------------------------
 
+;;; :PLAN: drawer wrapping (TODO.org :ID: 3063c3e5)
+;;
+;; The cheap half of body revision, and the only half the completion
+;; transition needs. `org_amend' already appends *below* a :PLAN: drawer
+;; sitting at the top of a body, so the debrief needs no new tool at all
+;; (measured on :ID: cc0c17a7). What is missing is wrapping: put the
+;; prospective body inside a drawer beside :PROPERTIES: and :LOGBOOK:,
+;; so a folded heading shows the debrief and nothing else.
+;;
+;; Two insertions at computable positions, deliberately -- NOT a range
+;; replacement. Both of 2026-08-21's file corruptions were range bugs,
+;; and neither was caught by `bin/lint-org', which sees structure and
+;; not prose. The nastier one used a `startswith("*")' test to find the
+;; next heading and matched a *bold prose line* instead, orphaning 117
+;; lines. Nothing here asks whether a line looks like a heading: org's
+;; own `outline-next-heading' decides, so a line org would not parse as
+;; a heading cannot be treated as one.
+
+(defun claude-code-ide-org--heading-body-bounds ()
+  "Return (OPEN BEG END) delimiting the body of the heading at point.
+
+BEG is the first body character and END is just past the last, with
+trailing blank lines excluded so a `:END:' inserted at END lands against
+the last real line.  END stops at the next heading of *any* level, so a
+parent's body ends at its first child rather than swallowing the
+subtree.
+
+OPEN is where a `:PLAN:' marker goes, and it is not BEG: it sits
+immediately after the last metadata drawer, before any blank line
+separating that drawer from the prose.  So the blank line ends up
+*inside* the drawer and `:PLAN:' abuts the preceding `:END:', matching
+the layout :ID: cc0c17a7 established as the trial vehicle.  Keeping the
+blank rather than consuming it is what preserves the insert-only
+property -- moving it would be a deletion, and deletion is how the two
+2026-08-21 corruptions happened.
+
+Returns nil when the heading has no body -- there is nothing to wrap,
+which is a fact for the caller to report rather than an error."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((limit (save-excursion
+                   ;; org's own notion of the next heading. Never a
+                   ;; regexp of ours: see the corruption noted above.
+                   (outline-next-heading)
+                   (if (and (eobp) (not (org-at-heading-p))) (point-max) (point)))))
+      (org-end-of-meta-data t)
+      (let ((beg (point))
+            (end limit)
+            open)
+        ;; Walk back over the blank lines `org-end-of-meta-data' skipped,
+        ;; to find where the metadata drawers actually stop.
+        (save-excursion
+          (goto-char beg)
+          (skip-chars-backward " \t\n")
+          (unless (bolp) (forward-line 1) (beginning-of-line))
+          (setq open (point)))
+        ;; Walk back over trailing blank lines.
+        (save-excursion
+          (goto-char end)
+          (skip-chars-backward " \t\n" beg)
+          (unless (bolp) (forward-line 1) (beginning-of-line))
+          (setq end (max beg (point))))
+        (and (< beg end) (list open beg end))))))
+
+(defun claude-code-ide-org--plan-seam (beg end marker)
+  "Return the position in BEG..END where the line containing MARKER starts.
+
+MARKER is matched literally and must appear exactly once in the region,
+at the start of a line.  Anything else is an error rather than a best
+guess: the seam decides which half of a body becomes invisible to
+ordinary reading, and a silently-wrong seam is the one mistake here that
+no later reader will catch, since `:PLAN:' is a drawer readers are told
+to skip."
+  (save-excursion
+    (goto-char beg)
+    (let (hits)
+      (while (search-forward marker end t)
+        (push (line-beginning-position) hits))
+      (cond
+       ((null hits)
+        (error "Seam marker not found in body: %s" marker))
+       ((cdr hits)
+        (error "Seam marker appears %d times; it must be unique: %s"
+               (length hits) marker))
+       ((= (car hits) beg)
+        (error "Seam marker is the first body line; nothing would be wrapped"))
+       (t (car hits))))))
+
+(defun claude-code-ide-org-wrap-plan (id &optional until)
+  "Wrap the prospective part of heading ID's body in a :PLAN: drawer.
+
+With UNTIL nil the whole body is wrapped, which is the completion
+transition for a heading whose body is still purely prospective.
+
+With UNTIL given, only the text *above* the line containing it is
+wrapped and everything from that line down stays as the body.  That is
+the retroactive case: a body written before the convention existed
+usually holds both halves already, and wrapping it whole would bury the
+debrief inside the drawer -- the exact inversion the convention exists
+to prevent.
+
+Refuses when a :PLAN: drawer already exists, so a repeat is a no-op with
+an explanation rather than a nested drawer.  Lossless by construction:
+two insertions, no deletion, no reflow.  Returns a summary string."
+  (claude-code-ide-org--at-id
+   id
+   (lambda ()
+     (if (claude-code-ide-org--find-drawer "PLAN")
+         (format "Error: \"%s\" already has a :PLAN: drawer; nothing done."
+                 (org-get-heading t t t t))
+       (let ((bounds (claude-code-ide-org--heading-body-bounds)))
+         (if (null bounds)
+             (format "Error: \"%s\" has no body to wrap."
+                     (org-get-heading t t t t))
+           (let* ((open (nth 0 bounds))
+                  (beg (nth 1 bounds))
+                  (end (nth 2 bounds))
+                  (stop (if until
+                            (claude-code-ide-org--plan-seam beg end until)
+                          end))
+                  (before (buffer-substring-no-properties open end)))
+             ;; Close first, then open. Inserting at the later position
+             ;; before the earlier one keeps BEG valid; doing it the
+             ;; other way round would shift STOP by the length of the
+             ;; opening marker and close the drawer one line late.
+             (save-excursion
+               (goto-char stop)
+               (insert ":END:\n"))
+             (save-excursion
+               (goto-char open)
+               (insert ":PLAN:\n"))
+             (save-buffer)
+             ;; Prove the move was lossless right here, against the text
+             ;; read before the insertions, rather than trusting the
+             ;; arithmetic. `bin/lint-org' cannot make this check: the
+             ;; damage it would catch is structural and this one is
+             ;; prose-level under a well-formed heading.
+             (let* ((after (buffer-substring-no-properties
+                            open (+ end (length ":PLAN:\n:END:\n"))))
+                    (stripped (replace-regexp-in-string
+                               "^:\\(PLAN\\|END\\):\n" "" after)))
+               (format "Wrapped %s of \"%s\" in :PLAN:%s. Text preserved: %s."
+                       (if until "the body above the seam" "the whole body")
+                       (org-get-heading t t t t)
+                       (if until (format " (seam: %s)" until) "")
+                       (if (equal stripped before) "yes" "NO -- INSPECT"))))))))))
+
 (with-eval-after-load 'claude-code-ide
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-wrap-plan
+   :name "org_wrap_plan"
+   :description (concat
+                 "Wrap the prospective part of a heading's body in a :PLAN: "
+                 "drawer, leaving the debrief as the body. Call this at the "
+                 "moment a task is carried out: the planning content moves "
+                 "beside :PROPERTIES: and :LOGBOOK: so a folded heading shows "
+                 "the debrief alone. Writes immediately. Lossless -- two "
+                 "insertions, nothing deleted or reflowed, and the reply says "
+                 "whether the text was preserved. Refuses rather than guesses: "
+                 "a heading that already has a :PLAN: drawer, a heading with no "
+                 "body, and an `until' marker that is missing or appears more "
+                 "than once are all errors. Use org_amend afterwards to add "
+                 "debrief prose; it appends below the drawer.")
+   :args '((:name "id"
+            :type string
+            :description "The :ID: property value of the heading to wrap.")
+           (:name "until"
+            :type string
+            :optional t
+            :description "Literal text identifying the first body line that should STAY in the body, i.e. where the debrief begins. Must occur exactly once. Omit to wrap the whole body, which is right when the body is still purely prospective; supply it for a body written before this convention existed, which usually already holds both halves.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-clock-in
