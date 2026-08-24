@@ -1,186 +1,175 @@
----
-description: The sequenced slice of work queued for the next session, with its blockers and rationale
----
-
 # Next session
 
-Rewritten 2026-08-21 (evening); revised 2026-08-22 to add `8bcd56f4`, then
-again to put `eaeeb4ee` first.
+Rewritten 2026-08-24, replacing the slice of 2026-08-21/22 — which is
+finished. Every item on it shipped except `82df2a6c`, which was never
+started.
 
-Read the heading bodies before starting any item — each carries measurements
+Read the heading bodies before starting any item. Each carries measurements
 this prompt only summarises.
 
 **Before anything else:** confirm `emacs-tools` is reachable by calling
 `org_pending_updates`. Items may have moved if a review pass ran since this
 was written.
 
-**Format note, under trial.** Every item carries a **Decision:** line saying
-whether it holds an unresolved decision and whose it is (`c10bfb15`'s first
-assertion). Nothing in this slice is blocked on a decision — the discussions
-that produced these items settled all of them. That is the marker working, not
-the marker finding nothing.
+**Decision markers, continued from the last slice.** Every item says whether
+it holds an unresolved decision and whose it is. Two items here do, and both
+are the user's — that is the marker earning its place, after a slice where it
+found nothing.
 
 ---
 
 ## What is already true, so it is not re-derived
 
-- The meta-work mechanism **works by hand**: `* Review and planning` with
-  `:DATE_TREE:`, a weekly archive repeater, a daily ritual repeater, and a
-  live day node carrying an `:ID:`.
-- `bin/lint-org` understands datetree scaffolding. 0 errors throughout.
-- `--trigger-auto-promote-sole-todo` no longer promotes containers and no
-  longer fires mid-batch; it settles once after apply. Verified in production.
-- The NEXT-nomination rule is in CLAUDE.md.
-- The `:PLAN:` lifecycle is designed and filed (`8bcd56f4`), the drawer name
-  is settled, and `cc0c17a7` is a worked example of the end state.
-- **The queue holds precise per-heading attribution that the review pass does
-  not use.** Twelve `clock_in`/`clock_out` pairs from 2026-08-21, each naming
-  a heading and carrying a note, all `applied: false`. That is item 1.
+- **Explicit clock brackets are authoritative.** `eaeeb4ee` shipped: a
+  main-lane `clock_in`/`clock_out` pair produces a review item, subdivided
+  into runs, with permission blocks excised. A sub-minute run is rounded up
+  to a minute rather than dropped (`31c6ac39`).
+- **The meta-work day node resolves on demand** (`9575e65b`), dated from the
+  event rather than from today, and `Review and planning` is offered first
+  when assigning a span.
+- **The `:PLAN:` lifecycle is adopted** (`8bcd56f4`): `org_wrap_plan` exists,
+  the conventions are written down, and `bin/lint-org` asserts it for
+  headings closed on or after 2026-08-24.
+- **The archive backlog is swept**: 34 of 43 closed headings carry a `:PLAN:`
+  drawer. The nine that do not are correct — their bodies are entirely
+  debrief.
+- **Both org files are normalised**: 58 backfilled `CLOSED:` markers, every
+  heading separated by two blank lines, `#+STARTUP:` lines identical.
+- **The suite is 368 tests, plus `bin/footnote-check-test`.** Lint: 0 errors.
 
 ---
 
-## 1. `eaeeb4ee` — make explicit clock pairs authoritative
+## 1. `edd47f32` — make the daily ceremony cheap enough to run
 
-**Decision: none outstanding.** This is a bug hunt, not a design.
+**Decision: none outstanding.** The sequence is settled and written down in
+`.claude/rules/org-conventions.md`: apply, consolidate, re-separate, archive.
 
-**First, because it corrupts the record now and compounds** — the same test
-that put the auto-promote guards first in the previous slice. Every review
-pass mis-allocates, and each pass adds more. Measured: an hour of
-implementation work across five headings landed on `a279216c`, a cosmetic
-item nobody had opened, while the queue held the correct answer for all of it.
+**First, because everything else this slice does makes more of the mess it
+cleans up.** The ceremony has four steps, two have a tool, and nothing
+composes them. Measured: 13 of 25 drawers archived since consolidate-on-apply
+shipped are still out of order, and the separation normaliser had to be
+re-run three times in one session — once after every apply.
 
-**The capability is not missing — find why it doesn't fire.** `config.el`
-already pairs `clock_in` with `clock_out` into items, and already resolves
-"the enclosing `clock_in`'s note" when labelling a span. The 2026-08-21 day
-node proves the path works end to end. Four headings clocked in the same
-session, by the same session, produced no CLOCK line at all. **That asymmetry
-is the whole task.**
+Three children, and the order matters: `7ae6562d` (the consolidation sweep,
+not built) is the missing tool; `e1284bdb` (separation) is built and only
+needs wiring into the same command; `aa1ba915` (the prompt) is what makes
+any of it happen without being remembered.
 
-**Do not read this as a discipline problem.** `62c6b1be` diagnosed the same
-failure on 2026-08-20 as calling `org_clock_in` too seldom. On 2026-08-21 it
-was called twelve times, correctly, with notes — identical outcome. The
-discipline half is done; the consumption half is missing. That is a
-falsification, not an opinion.
+`aa1ba915` carries a measured constraint worth reading before designing
+around it: neither available scheduler can do this. `CronCreate` is
+session-only and expires in seven days; the `schedule` skill runs cloud
+agents with no route to a local Emacs. The `SessionStart` hook is the
+mechanism, and it already does the shape — fires at first opportunity,
+self-limits to once a day, asks rather than proposes.
 
-Once consumed: a work-run inside a `clock_in`/`clock_out` interval is
-attributed with **certainty** and needs no human; a span is **partitioned** by
-the pairs it contains rather than assigned whole; only the residue reaches a
-person. Follow-ons that get much cheaper afterwards — `2d100d0d` (a span and
-an explicit interval can both apply, double-counting nine minutes on the
-measured day) and `5a6d2c75` (evidence, plus a coverage line and a meta-work
-cue), which then only has to serve the residue it was written for.
+**Not a child, deliberately:** `cbe282ec`, the ritual itself. It carries a
+repeater and `bin/lint-org` refuses a repeater under a completable ancestor.
 
-## 2. `9575e65b` — build the resolver
+## 2. `3063c3e5` — the revision half of body editing
 
-**Decision: none outstanding.** Option (c), chosen by the user: the resolver
-runs at **apply time** and dates the node from **the event's own timestamp**,
-never from "today".
+**Decision: none outstanding.**
 
-Smaller than the heading's length suggests — the recorded steps are unchanged
-except for the date argument to `org-datetree-find-date-create`. The body
-still holds a superseded "`org_clock_in` … *creates* if absent" paragraph
-*above* the decision; append-only, flagged in place. Read to the bottom.
+The wrapping half shipped as `org_wrap_plan`. The heading's actual title —
+`org_amend` can only append — is untouched, and it is what *continuous
+paring* needs. Every correction still lands furthest from the reader.
 
-Independent of items 3–5. Pairs naturally with item 1: item 1 makes clocks
-land, this makes there be somewhere to land meta-work.
+Now cheaper to judge than before: the sweep exercised wrapping across 34
+real headings, so the shape of a body-editing operation that must not
+corrupt is well understood. Two corruptions are on record, both range bugs,
+and `org_wrap_plan`'s guards (`outline-next-heading` for boundaries, a bare
+`:END:` refusal, a text-preservation check in the reply) are the pattern to
+reuse rather than reinvent.
 
-## 3. `3063c3e5` — build the body-revision tools
+## 3. `f421c5c3` — the `:PLAN:` lint over-demands
 
-**Decision: none outstanding.** The drawer is `:PLAN:`, chosen by the user.
+**Decision: none outstanding.** Small, and it protects a rule that is
+currently silent.
 
-**Build wrapping first; it is not the same job as revision.** Measured on
-`cc0c17a7`: `org_amend` *already* appends below a `:PLAN:` drawer at the top
-of a body, so the debrief needs no new tool. The only new operation the
-completion transition needs is **wrapping** — insert the drawer at the
-end-of-drawers boundary, close it after the last body line. Two insertions at
-computable positions. General in-place revision is the harder tool and is
-needed for *continuous paring*, not for completion; splitting them unblocks
-items 4 and 5 after the cheap half.
+A debrief-only heading has no prospective half to wrap, and six exist. Only
+a ten-prose-line threshold keeps the lint from demanding a drawer for one of
+them — and satisfying that warning would mean wrapping a debrief into a
+drawer readers are told to skip, which is the inversion the lifecycle exists
+to prevent, arrived at by obeying the lint.
 
-**Do not hand-roll either.** Two corruptions are on record, each a different
-range bug — an `emacsclient` edit that "corrupted a sibling heading", and a
-`startswith("*")` next-heading test that matched a *bold prose line* and
-orphaned 117 lines. Both times `bin/lint-org` reported **0 errors**, because
-the damage is prose-level under a well-formed heading. Git was the only safety
-net.
+The signal already exists: `--plan-seam`'s "first body line" condition *is*
+the test for "no prospective half".
 
-## 4. `8bcd56f4` — adopt the `:PLAN:` lifecycle
+## 4. `ff92700e` — a repeater's body is never pruned
 
-**Decision: none outstanding.** The design is settled; this writes it down and
-switches the conventions over. **Blocked on item 3**, verified live.
+**Decision: yours, and it is a design choice rather than a defect report.**
 
-Deferred edits, held back so no rule describes something a session cannot yet
-perform: CLAUDE.md's plan-link wording ("not removed at `DONE`" → *relocated
-into `:PLAN:`, not deleted*); `.claude/rules/org-conventions.md` gains
-`:PLAN:`; the org skill's "Body prose and the task lifecycle" section is
-**superseded wholesale**, plus the rule that agentic readers ignore the
-`:PLAN:` drawer until a retrospective question is asked; and `bin/lint-org`
-can then assert a `DONE` heading with a substantial body carries one.
+`8bcd56f4`'s lifecycle prunes a body at completion. A repeater never
+completes — its keyword resets and its `SCHEDULED` stamp advances — so a
+ritual heading accumulates prose forever and *no event in the convention will
+ever collect it*. `cbe282ec` reached 47 lines and had to be split three ways
+by hand.
 
-## 5. `cbe282ec` — clear the archive backlog
+Three directions are recorded on the heading; the lint one is measurable
+first and needs no new concept, since `bin/lint-org` already reads
+`org-get-repeat`.
 
-**Decision: none outstanding.** Migration is **sweep the old bodies into
-`:PLAN:` unedited**, chosen by the user.
+## 5. `2758f3a0` — confirm the footnote hook actually fires
 
-30 finished headings sit in TODO.org; the newest `:ARCHIVE_TIME:` is
-2026-08-17. Under the sweep decision this is one mechanical step (wrapping —
-item 3's cheap half, zero judgement) and one cheap one (the debrief, still
-per-heading, but the expensive judgement was deciding what to *discard* and
-sweeping discards nothing). The weekly repeater is for the steady state; this
-first pass is a backlog.
+**Decision: none outstanding.** It is in `REVIEW` for a reason no work can
+remove: hook configuration is read once at session start, so the session that
+wrote it could not test it.
 
-**Out of scope:** *where* archived work lands — item 6's question, and
-switching would break `e30d52d7`'s lint rule until settled.
+If the first response of the next session citing an `:ID:` carries its
+footnote, it works. If a turn hangs or loops, the sentinel guard is wrong and
+the hook should come out of `.claude/settings.json` immediately — the docs
+describe no `stop_hook_active` flag, which is why the guard exists.
 
-## 6. `82df2a6c` — look through Org's own lenses before moving anything
+## 6. `82df2a6c` — look through Org's own lenses
 
 **Decision: none yet, and that is the point** — this produces the evidence a
-decision would need. Not a mandate to refactor.
+decision would need. The only item carried over unstarted from the last
+slice, and still the right one to do last: agenda views, sparse trees and
+column view all run against the current structure, so evaluate them on the
+corpus as it stands.
 
-Agenda views, sparse trees and column view **all run against the current
-structure**, so evaluate them on the corpus as it stands. If they show nothing
-worth having, `29439196` resolves against and the line closes. Related:
-`8ca6541d` (stories as checkbox lists — needs `--container-heading-p` taught
-about them or it reintroduces `42808717`), `9651d4c8`.
+The corpus is now materially better suited to it than it was: `CLOSED:` is
+populated, drawers are consistent, the datetree exists with a real day node.
+Related: `29439196`, `8ca6541d`, `9651d4c8`.
 
-**Cut line:** stop after item 5. Items 3–5 are one arc — build the tool, adopt
-the convention, apply it to the backlog — and stopping mid-arc leaves a tool
-built and unused. **If the session is short, do 1 and 2 only:** together they
-make the time record trustworthy, which is the co-equal goal CLAUDE.md names.
+**Cut line:** stop after item 3. Items 1–3 leave the tooling coherent; 4–6
+are judgement and evaluation that keep. **If the session is short, do 1
+only** — it is the one that stops the record degrading between passes.
 
 ---
 
 ## Deliberately off the critical path
 
-- `6ae83993` (`org-clock-default-task`) — a human keystroke convenience. Under
-  option (c) it degrades gracefully: unset until the first apply.
-- `25ec37b0` — **may be half dead scope.** Settle before building.
-- `a279216c` (whole-span gap line) — real but cosmetic.
-- `43201e64` — every orgit link a body adds costs a permanent lint warning.
-  Small; worth doing before the convention is used much more.
-- `c10bfb15` — the format rule this file is trialling. Write it up once the
-  marker has survived a session or two.
+- `b7b46a26` — git archaeology for the 39 headings with no recoverable close
+  time. **Decision: yours**, and the heading argues it may not be worth
+  having: a commit dates when a change was *recorded*, which in this project
+  can be far from when work stopped.
+- `c31b6c76` — a test that fails for the last hour of every day. Real,
+  bounded, and green whenever anyone actually looks.
+- `2d100d0d` — cross-item overlap. Much cheaper since `eaeeb4ee`: a span
+  partitioned by its own brackets cannot overlap them.
+- `5a6d2c75` — span evidence. Now serves only the residue it was written for.
+- `7fbab3b3` — the backlog's wrapping phase is complete. What remains is the
+  archive step itself, which belongs to item 1's ceremony.
 
 ---
 
 ## Standing rules, with what actually happened
 
-- **Verify the clock landed, not just the state change.** New, and it is the
-  rule that would have caught item 1 a day earlier. The 2026-08-21 session
-  confirmed its `DONE`s applied and never checked whether a single CLOCK line
-  did — on the mechanism this project exists for.
-- **Clock in at the drift, not at the ask.** Necessary but *not sufficient*:
-  it was followed twelve times on 2026-08-21 and the record still came out
-  wrong. Do it anyway; just don't mistake it for the fix.
-- **Read structure through org, not through text.** An `awk` parent-inference
-  returned each heading's *own* title instead of its parent and put a wrong
-  structural claim into conversation. `org_outline` answers parentage,
-  keywords, titles and tags in one call.
-- **Grep before coining a name.** `:ORIGINAL:` was invented for a concept the
-  project already had a word for; `:PLAN:` was free and obvious in hindsight.
-- **Run a proposed mechanism before recommending it.** Held up well — the
-  archive path was read *and* executed before anything was built on it, which
-  is how `CLOSED`-based filing was found.
+- **Never `git stash` to compare before and after.** On a clean tree `stash`
+  saves nothing and the paired `pop` takes an *older* stash. This swept a
+  freshly applied review pass out of the working tree and into a stash on
+  2026-08-24; it was recovered by luck. Copy the file aside instead.
+- **Verify an ID before writing it.** Two invented UUIDs reached files this
+  session — one placeholder link and one typed from memory — and both were
+  caught by lint rather than by care.
+- **A rule that has never been seen to fail proves nothing.** The `:PLAN:`
+  lint reports nothing on the real files by design, so its positive case is a
+  fixture. Same for the wrap guards: reintroducing the exact recorded bug
+  fails exactly the tests written for it.
+- **Measure the blast radius before writing a lint rule.** Unscoped, the
+  `:PLAN:` rule fired on 124 headings; scoped by `CLOSED:` date it fires on
+  zero and grows with new work.
+- **Read structure through org, not through text.** A `:END:` inside a
+  `#+BEGIN_EXAMPLE` block terminates a drawer — blocks do not protect their
+  contents — which corrupted one heading before the guard existed.
 - **Never pass `--no-verify`.**
-- **A `:BLOCKER:` written in the same session that captured its target is
-  inert** until a human applies the queue.
