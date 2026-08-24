@@ -431,15 +431,22 @@ NOTE rides the tool call into the queue, where the hook reads it off
 exactly the reason the cutover generalises (TODO.org :ID:
 32272061-1d78-4726-b13b-90338edb2ba5).  See clock-template.org for the
 conventions it feeds."
-  (claude-code-ide-org--tolerating-pending-capture id
-    (lambda (title)
-      (format "Queued clock_in on \"%s\"; pending review." title))
-    (lambda ()
-      (claude-code-ide-org--at-id
-       id
-       (lambda ()
-         (format "Queued clock_in on \"%s\"; pending review."
-                 (org-get-heading t t t t)))))))
+  ;; The meta-work category is a legal target and resolves to no
+  ;; heading, so it is accepted here without a lookup. Nothing is
+  ;; created: the day node is minted when this event is *applied*, and
+  ;; dated from the event's own timestamp (TODO.org :ID: 9575e65b).
+  ;; Queuing stays what it has always been -- a line appended to a file.
+  (if (claude-code-ide-org--day-node-target-p id)
+      (format "Queued clock_in on the meta-work day node for today; pending review. The node itself is created when this is applied, dated from this event, so a late apply still files the work under today.")
+    (claude-code-ide-org--tolerating-pending-capture id
+      (lambda (title)
+        (format "Queued clock_in on \"%s\"; pending review." title))
+      (lambda ()
+        (claude-code-ide-org--at-id
+         id
+         (lambda ()
+           (format "Queued clock_in on \"%s\"; pending review."
+                   (org-get-heading t t t t))))))))
 
 (defun claude-code-ide-org-clock-out (&optional note)
   "Report the clock_out as queued.  Closes no clock.
@@ -5107,6 +5114,24 @@ contents, so empty yields a bare State line and non-empty yields the
           ;; errors under batch; the note is already written by then.
           (ignore-errors (org-store-log-note)))))))
 
+(defun claude-code-ide-org--resolve-item-target (item)
+  "Return the :ID: ITEM should be applied against.
+
+Ordinarily ITEM's own `:id'.  When that names the `:DATE_TREE:' category
+instead of a heading, the meta-work day node for ITEM's own timestamp is
+returned, created if it does not exist yet (TODO.org :ID: 9575e65b).
+
+Creation is deliberately here rather than at queue time: a queued tool
+changes nothing, and a node minted for a clock event the human later
+dismisses would be exactly the empty-node problem the on-demand design
+exists to prevent."
+  (let ((id (plist-get item :id)))
+    (if (claude-code-ide-org--day-node-target-p id)
+        (claude-code-ide-org-resolve-day-node
+         (or (plist-get item :start) (plist-get item :ts))
+         'create)
+      id)))
+
 (defun claude-code-ide-org--review-apply-item (item)
   "Apply one review ITEM. Returns nil on success, an error string on failure.
 
@@ -5149,7 +5174,13 @@ lands at all."
           (claude-code-ide-org--review-apply-capture item)
       (let ((result
              (claude-code-ide-org--at-id
-              (plist-get item :id)
+              ;; A category target becomes a real day node here, and
+              ;; only here. Dated from the event rather than from now,
+              ;; so meta-work clocked Monday and applied Friday creates
+              ;; Monday's node on Friday -- the same rule
+              ;; `org-archive-subtree' follows in filing by CLOSED
+              ;; rather than by archive time.
+              (claude-code-ide-org--resolve-item-target item)
               (lambda ()
                 (pcase (plist-get item :type)
                   ('clock (claude-code-ide-org--review-apply-clock item))
@@ -7910,6 +7941,135 @@ ours.  Returns a summary string."
             (file-name-nondirectory file) filled no-evidence already
             (if dry-run "  [dry run -- nothing written]" ""))))
 
+;;; The meta-work day node (TODO.org :ID: 9575e65b)
+;;
+;; One function answers "which heading is the meta-work node for this
+;; moment", computed when something needs the answer rather than run
+;; ahead of time. Nothing stores the id and nothing schedules its
+;; creation.
+;;
+;; *Dated from the event, never from "today"* -- option (c), decided by
+;; the user 2026-08-21. The resolver runs at apply time, so it is pure
+;; with respect to the queue and every write stays human-triggered; and
+;; it takes its date from the timestamp the event already carries, so
+;; work clocked at 23:00 Monday and applied Tuesday still lands on
+;; Monday. That is the same principle `org-archive-subtree' follows in
+;; filing by CLOSED rather than by archive time: file by when it
+;; happened, not by when it was recorded.
+;;
+;; The rejected alternatives are worth knowing, because each looks
+;; reasonable in isolation. Creating at *queue* time would hand Claude
+;; the id inside the session, but breaks the invariant that a queued
+;; tool changes nothing -- bought with a documented run of desync bugs
+;; -- and mints a node even for a clock event the human later dismisses.
+;; Creating at apply time dated "today" keeps the tools pure but files
+;; Monday's work under Tuesday, which is the silent misattribution this
+;; whole project exists to prevent.
+
+(defconst claude-code-ide-org--day-node-format "%Y-%m-%d %A"
+  "Title format for a datetree day node, matching org-datetree's own.")
+
+(defun claude-code-ide-org--datetree-anchor-position ()
+  "Move point to the `:DATE_TREE:' heading in this buffer; return it or nil.
+
+Non-inherited, so only the heading that actually carries the property
+answers -- an inherited lookup would make every descendant of the anchor
+read as an anchor itself, which is the same mistake
+`claude-code-ide-org--lint-file' guards against when tracking datetree
+depth."
+  (goto-char (point-min))
+  (let (found)
+    (while (and (not found) (re-search-forward org-heading-regexp nil t))
+      (beginning-of-line)
+      (if (org-entry-get (point) "DATE_TREE")
+          (setq found (point))
+        (end-of-line)))
+    (when found (goto-char found) found)))
+
+(defun claude-code-ide-org-resolve-day-node (time &optional create)
+  "Return the :ID: of the meta-work day node for TIME, or nil.
+
+With CREATE non-nil the node is created if absent, stamped with a fresh
+`:ID:' and a `:CREATED:' matching TIME, and the buffer saved.  Without
+it nothing is written and nil means \"no node for that day yet\" -- which
+is the answer the `SessionStart' side needs, since a session starting is
+not evidence that any meta-work happened.
+
+TIME is the *event's* timestamp, not the current time.  Passing
+`current-time' here would reintroduce exactly the defect option (b) was
+rejected for.
+
+`:CREATED:' is stamped from TIME rather than from now, for the same
+reason the node is: a node minted on Friday for Monday's work was
+created, as a record, on Monday."
+  (let ((file (claude-code-ide-org--capture-target-file)))
+    (when (and file (file-readable-p file))
+      (with-current-buffer (find-file-noselect file)
+        (let ((buffer-read-only nil))
+          (org-with-wide-buffer
+           (when (claude-code-ide-org--datetree-anchor-position)
+             (let* ((title (format-time-string
+                            claude-code-ide-org--day-node-format time))
+                    (existing (save-excursion
+                                (claude-code-ide-org--find-day-node title))))
+               (cond
+                (existing (goto-char existing) (org-entry-get (point) "ID"))
+                ((not create) nil)
+                (t
+                 ;; org's own idempotent find-or-create, scoped inside
+                 ;; the anchor's subtree by `org-datetree-find-date-create's
+                 ;; KEEP-RESTRICTION argument -- which is what makes the
+                 ;; tree nest under the category instead of writing a
+                 ;; second `* 2026' at level 1.
+                 (org-narrow-to-subtree)
+                 (require 'org-datetree)
+                 (org-datetree-find-date-create
+                  (list (nth 4 (decode-time time))
+                        (nth 3 (decode-time time))
+                        (nth 5 (decode-time time)))
+                  'keep-restriction)
+                 (let ((id (org-id-get-create)))
+                   (org-entry-put (point) "CREATED"
+                                  (format-time-string "[%Y-%m-%d %a %H:%M]" time))
+                   (save-buffer)
+                   id)))))))))))
+
+(defun claude-code-ide-org--find-day-node (title)
+  "Return the position of the day node titled TITLE under point's subtree.
+
+Matched on the exact rendered title rather than by parsing dates back
+out of headings: org-datetree writes one shape and this reads that same
+shape, so the two cannot disagree about what a day node looks like."
+  (save-excursion
+    (org-narrow-to-subtree)
+    (goto-char (point-min))
+    (let (found)
+      (while (and (not found) (re-search-forward org-heading-regexp nil t))
+        (beginning-of-line)
+        (if (equal (org-get-heading t t t t) title)
+            (setq found (point))
+          (end-of-line)))
+      (widen)
+      found)))
+
+(defun claude-code-ide-org--day-node-target-p (target)
+  "Non-nil when TARGET names the meta-work category rather than a heading.
+
+The stable category *title* is the handle, deliberately: top-level
+categories are few, human-curated and never move, which is the same risk
+profile `claude-code-ide-org--capture-target-spec' already accepts a
+title for.  It also means Claude never learns the daily UUID, which is
+the point rather than a limitation -- a stored id is the thing that goes
+stale, and there is nothing to update if nothing remembers."
+  (and (stringp target)
+       (let ((file (claude-code-ide-org--capture-target-file)))
+         (and file (file-readable-p file)
+              (with-current-buffer (find-file-noselect file)
+                (org-with-wide-buffer
+                 (and (claude-code-ide-org--datetree-anchor-position)
+                      (equal (string-trim target)
+                             (org-get-heading t t t t)))))))))
+
 (with-eval-after-load 'claude-code-ide
 
   (claude-code-ide-make-tool
@@ -7947,7 +8107,7 @@ ours.  Returns a summary string."
                  "expect a later read to reflect it.")
    :args '((:name "id"
             :type string
-            :description "The :ID: property value of the target org heading.")
+            :description "The :ID: property value of the target org heading. For cross-cutting meta-work -- review, planning, deciding what to do rather than doing it -- pass the exact title of the meta-work category (\"Review and planning\") instead of an :ID:, and the interval is filed against that day\'s node in its datetree. The day node is created when the event is applied and dated from this event, so a late apply still files the work under the day it happened. There is deliberately no way to learn the day node\'s own :ID:; the category title is the handle.")
            (:name "note"
             :type string
             :optional t

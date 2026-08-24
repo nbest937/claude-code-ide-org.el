@@ -7974,6 +7974,118 @@ CLOCK lines would be told to wrap a body it does not have."
              "One line of prose.\n"))
     'warn "no :PLAN: drawer")))
 
+;;; The meta-work day node (TODO.org :ID: 9575e65b)
+
+(defmacro claude-code-ide-org-test--with-datetree (&rest body)
+  "Run BODY with `file' bound to an org file holding a :DATE_TREE: category."
+  (declare (indent 0))
+  `(let* ((dir (file-name-as-directory (make-temp-file "ccio-datetree" t)))
+          (file (expand-file-name "TODO.org" dir))
+          (org-id-locations-file (expand-file-name ".org-id-locations" dir))
+          (org-id-locations (make-hash-table :test 'equal))
+          (org-id-files nil)
+          (claude-code-ide-org-capture-file file)
+          (claude-code-ide-org-query-files (list file)))
+     (unwind-protect
+         (progn
+           (with-temp-file file
+             (insert "#+TODO: TODO(t!) DOING(d!) | DONE(D!)\n\n"
+                     "* Review and planning\n:PROPERTIES:\n:DATE_TREE: t\n:END:\n\n"
+                     "Meta-work.\n"))
+           ,@body)
+       (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-day-node-dates-from-the-event-not-today ()
+  "The node is dated from the event's timestamp, which is the whole decision.
+
+Option (b) -- apply time, dated \"today\" -- was rejected precisely
+because an event queued Monday 23:00 and applied Tuesday files Monday's
+work under Tuesday. So this asks for a node for a date that is
+emphatically not today and asserts the title org wrote."
+  (claude-code-ide-org-test--with-datetree
+    (let* ((when- (date-to-time "2026-08-17T23:00:00-0500"))
+           (id (claude-code-ide-org-resolve-day-node when- 'create)))
+      (should id)
+      (with-temp-buffer
+        (insert-file-contents file)
+        (should (string-match-p "^\\*\\*\\*\\* 2026-08-17 Monday$" (buffer-string)))
+        ;; And nothing dated today crept in.
+        (should-not (string-match-p (format-time-string "^\\*\\*\\*\\* %Y-%m-%d %A$")
+                                    (buffer-string)))
+        ;; :CREATED: is stamped from the event too -- a node minted later
+        ;; for Monday's work was created, as a record, on Monday.
+        (should (string-match-p ":CREATED:  \\[2026-08-17 Mon 23:00\\]" (buffer-string)))))))
+
+(ert-deftest claude-code-ide-org-test-day-node-is-idempotent-and-nests ()
+  "Resolving twice returns the same id and writes one node, and the tree
+nests inside the category rather than beside it.
+
+The nesting is what `:DATE_TREE:' buys: without the narrowing,
+`org-datetree-find-date-create' writes a second `* 2026' at level 1,
+which `bin/lint-org' would then see as an uncategorised level-1
+heading."
+  (claude-code-ide-org-test--with-datetree
+    (let* ((when- (date-to-time "2026-08-17T09:00:00-0500"))
+           (a (claude-code-ide-org-resolve-day-node when- 'create))
+           (b (claude-code-ide-org-resolve-day-node when- 'create)))
+      (should (equal a b))
+      (with-temp-buffer
+        (insert-file-contents file)
+        (let ((text (buffer-string)))
+          (should (= 1 (cl-count "2026-08-17 Monday" (split-string text "\n")
+                                 :test (lambda (n l) (string-match-p (regexp-quote n) l)))))
+          ;; year node under the category, not at level 1
+          (should (string-match-p "^\\*\\* 2026$" text))
+          (should-not (string-match-p "^\\* 2026$" text)))))))
+
+(ert-deftest claude-code-ide-org-test-day-node-never-created-without-create ()
+  "Read-only resolution creates nothing and answers nil.
+
+This is the `SessionStart' side: a session starting is not evidence that
+any meta-work happened, so refreshing `org-clock-default-task' must
+never mint a node. Without this the on-demand design would manufacture
+one node per calendar day after all, just from a different trigger."
+  (claude-code-ide-org-test--with-datetree
+    (let ((before (with-temp-buffer (insert-file-contents file) (buffer-string))))
+      (should-not (claude-code-ide-org-resolve-day-node
+                   (date-to-time "2026-08-17T09:00:00-0500")))
+      (should (equal before (with-temp-buffer (insert-file-contents file)
+                                              (buffer-string)))))))
+
+(ert-deftest claude-code-ide-org-test-day-node-target-recognises-only-the-category ()
+  "The category title is a target; anything else is not.
+
+If this were loose, an ordinary heading whose title happened to match
+would be silently redirected into the datetree."
+  (claude-code-ide-org-test--with-datetree
+    (should (claude-code-ide-org--day-node-target-p "Review and planning"))
+    (should (claude-code-ide-org--day-node-target-p "  Review and planning  "))
+    (should-not (claude-code-ide-org--day-node-target-p "Review and planning!"))
+    (should-not (claude-code-ide-org--day-node-target-p "Tooling"))
+    (should-not (claude-code-ide-org--day-node-target-p
+                 "11111111-1111-1111-1111-111111111111"))
+    (should-not (claude-code-ide-org--day-node-target-p nil))))
+
+(ert-deftest claude-code-ide-org-test-apply-resolves-a-category-target ()
+  "An item naming the category applies against that day's node.
+
+The end-to-end shape of the decision: the queue carries the category,
+apply turns it into a real heading, and the date comes from the item."
+  (claude-code-ide-org-test--with-datetree
+    (let* ((start (date-to-time "2026-08-17T09:00:00-0500"))
+           (item (list :type 'clock :id "Review and planning"
+                       :start start :end (time-add start 600)))
+           (resolved (claude-code-ide-org--resolve-item-target item)))
+      (should resolved)
+      (should-not (equal resolved "Review and planning"))
+      (with-temp-buffer
+        (insert-file-contents file)
+        (should (string-match-p "2026-08-17 Monday" (buffer-string))))
+      ;; An ordinary :ID: target passes straight through, untouched.
+      (should (equal "some-id"
+                     (claude-code-ide-org--resolve-item-target
+                      (list :type 'clock :id "some-id" :start start)))))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here
