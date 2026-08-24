@@ -5703,7 +5703,23 @@ contiguous run of items that actually succeeded.  Apply the third item
 but not the first two and nothing is consumed -- press \\[claude-code-ide-org-review-refresh] and it is
 all still pending.
 
-\\{claude-code-ide-org-review-mode-map}")
+\\{claude-code-ide-org-review-mode-map}"
+  ;; Wrap rather than truncate, buffer-locally.
+  ;;
+  ;; The user had been toggling this by hand on every review buffer
+  ;; (observed 2026-08-24: `truncate-lines' globally t, buffer-locally
+  ;; nil in the live *org-review* buffer -- the signature of
+  ;; `toggle-truncate-lines'). Every line here is prose the human has to
+  ;; read to decide something -- an annotation label, a heading title, a
+  ;; reason an item writes nothing -- and a truncated line hides exactly
+  ;; the part that carries the decision.
+  ;;
+  ;; `word-wrap' is set alongside, and not merely inherited: with
+  ;; truncation off but word-wrap nil the break lands mid-word, which is
+  ;; worse to read than either extreme. Both are buffer-local, so a
+  ;; global preference for truncation is untouched everywhere else.
+  (setq-local truncate-lines nil)
+  (setq-local word-wrap t))
 
 (defun claude-code-ide-org--review-item-at-point ()
   "Return the review item on the current line, or nil."

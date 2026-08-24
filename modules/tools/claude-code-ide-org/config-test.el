@@ -8132,6 +8132,27 @@ prompt."
                                   cands))))
       (delete-directory dir t))))
 
+(ert-deftest claude-code-ide-org-test-review-buffer-wraps-rather-than-truncates ()
+  "The review buffer wraps, at word boundaries, whatever the global default.
+
+Every line in it is prose the human reads to decide something -- an
+annotation label, a heading title, the reason an item writes nothing --
+so truncation hides the part that carries the decision. Asserted against
+a global default of t, because that is the case that matters: this user's
+Doom config sets truncate-lines globally, and the buffer had been
+toggled by hand on every visit.
+
+word-wrap is asserted too: with truncation off but word-wrap nil the
+break lands mid-word, which reads worse than either extreme."
+  (let ((truncate-lines t) (word-wrap nil))
+    (with-temp-buffer
+      (claude-code-ide-org-review-mode)
+      (should-not truncate-lines)
+      (should word-wrap)
+      ;; Buffer-local, so a global preference for truncation survives.
+      (should (local-variable-p 'truncate-lines))
+      (should (local-variable-p 'word-wrap)))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here
