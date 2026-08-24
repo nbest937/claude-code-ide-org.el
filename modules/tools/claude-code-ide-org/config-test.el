@@ -8265,6 +8265,60 @@ purpose is to create the heading it names."
     (should (claude-code-ide-org--pending-capture "cap-0001"))
     (should-not (claude-code-ide-org--pending-capture "cap-9999"))))
 
+(ert-deftest claude-code-ide-org-test-lint-caps-a-repeater-body ()
+  "A repeater with an oversized body warns; a short one does not.
+
+TODO.org :ID: ff92700e. Every pruning event in the :PLAN: lifecycle is
+tied to reaching DONE, and a repeater never does -- its keyword resets
+and its SCHEDULED stamp advances -- so nothing in the convention will
+ever collect its body. The lint is the only thing that can notice.
+
+It fires on nothing in the real files, so the positive case has to be a
+fixture. Drawer contents are excluded from the count, which is asserted
+here because the first measurement of this defect counted them and was
+off by an order of magnitude."
+  (let ((claude-code-ide-org-repeater-body-max 5))
+    (let ((long (concat "* Category\n"
+                        "** TODO A ritual                                                    :code:\n"
+                        "SCHEDULED: <2026-08-24 Mon 07:00 ++1d>\n"
+                        ":PROPERTIES:\n"
+                        ":ID:       11111111-1111-1111-1111-111111111111\n"
+                        ":CREATED:  [2026-08-14 Fri 10:00]\n"
+                        ":END:\n"
+                        (mapconcat (lambda (n) (format "Prose line %d." n))
+                                   (number-sequence 1 8) "\n")
+                        "\n")))
+      (should (claude-code-ide-org-test--lint-matches
+               (claude-code-ide-org-test--lint long) 'warn "repeater with a")))
+    ;; A short body does not warn ...
+    (let ((short (concat "* Category\n"
+                         "** TODO A ritual                                                    :code:\n"
+                         "SCHEDULED: <2026-08-24 Mon 07:00 ++1d>\n"
+                         ":PROPERTIES:\n"
+                         ":ID:       11111111-1111-1111-1111-111111111111\n"
+                         ":CREATED:  [2026-08-14 Fri 10:00]\n"
+                         ":END:\n"
+                         "One line.\n")))
+      (should-not (claude-code-ide-org-test--lint-matches
+                   (claude-code-ide-org-test--lint short) 'warn "repeater with a")))
+    ;; ... and neither does a short body inside a long drawer, which is
+    ;; the miscount that made the first measurement of this defect wrong.
+    (let ((drawered (concat "* Category\n"
+                            "** TODO A ritual                                                :code:\n"
+                            "SCHEDULED: <2026-08-24 Mon 07:00 ++1d>\n"
+                            ":PROPERTIES:\n"
+                            ":ID:       11111111-1111-1111-1111-111111111111\n"
+                            ":CREATED:  [2026-08-14 Fri 10:00]\n"
+                            ":END:\n"
+                            ":LOGBOOK:\n"
+                            (mapconcat (lambda (n)
+                                         (format "- note line %d" n))
+                                       (number-sequence 1 20) "\n")
+                            "\n:END:\n"
+                            "One line.\n")))
+      (should-not (claude-code-ide-org-test--lint-matches
+                   (claude-code-ide-org-test--lint drawered) 'warn "repeater with a")))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here

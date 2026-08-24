@@ -7345,18 +7345,43 @@ check."
   :type '(repeat integer)
   :group 'claude-code-ide-org)
 
-(defun claude-code-ide-org--lint-substantial-body-p ()
-  "Non-nil when the heading at point has a body worth wrapping.
+(defcustom claude-code-ide-org-repeater-body-max 25
+  "Body lines a heading carrying a repeater may hold before the lint warns.
 
-\"Substantial\" is ten or more lines of actual prose: drawers, planning
-lines and their contents do not count, and neither does a body that is
-only a plan link.  The threshold exists so the rule never fires on a
-one-line heading, where a `:PLAN:\' drawer would be ceremony rather than
-structure.
+A repeater never reaches DONE -- its keyword resets and its SCHEDULED
+stamp advances -- so no event in the `:PLAN:\' lifecycle ever prunes its
+body, and a ritual heading accumulates prose forever (TODO.org :ID:
+ff92700e).
 
-Counts from the end of the metadata to the next heading of any level --
-`outline-next-heading\', never a regexp of ours, for the reason recorded
-on `claude-code-ide-org--heading-body-bounds\'."
+25 is calibrated against the case that actually went wrong, and it
+*fires on nothing today* -- the three repeaters that exist hold 3, 7 and
+9 body lines.  It is a forward-looking guard, on the same footing as the
+:PLAN: rule, and the honest claim is that it would have caught :ID:
+cbe282ec at 47 lines shortly before that heading had to be split three
+ways by hand.
+
+An earlier draft of this docstring claimed it flagged an 80-line
+repeater. That measurement was wrong -- it counted drawer contents as
+body prose, which is exactly what `claude-code-ide-org--lint-body-prose
+-lines' exists to avoid, and the real figure was 7.  Recorded because
+the mistake is instructive: a body-size rule written against a
+body-size measurement that does not match the rule's own counter is a
+rule calibrated to nothing.
+
+The cap is a *forcing function*, not a style rule.  Length is the
+symptom; the cause is that a recurring heading is where cross-cutting
+prose gets written down, because it is the heading being edited at the
+time and there is nowhere else obvious.  The cure is to move that prose
+to a rule file, a linked heading or a one-time task -- which is what
+splitting :ID: cbe282ec three ways did by hand."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defun claude-code-ide-org--lint-body-prose-lines ()
+  "Count the heading-at-point's own body lines, excluding drawer contents.
+
+Shared by the two rules that ask about body size so they cannot disagree
+about what a body line is."
   (save-excursion
     (org-back-to-heading t)
     (let ((limit (save-excursion (outline-next-heading) (point)))
@@ -7373,7 +7398,21 @@ on `claude-code-ide-org--heading-body-bounds\'."
            ((or in-drawer (string-empty-p text)) nil)
            (t (setq lines (1+ lines)))))
         (forward-line 1))
-      (>= lines 10))))
+      lines)))
+
+(defun claude-code-ide-org--lint-substantial-body-p ()
+  "Non-nil when the heading at point has a body worth wrapping.
+
+\"Substantial\" is ten or more lines of actual prose: drawers, planning
+lines and their contents do not count, and neither does a body that is
+only a plan link.  The threshold exists so the rule never fires on a
+one-line heading, where a `:PLAN:\' drawer would be ceremony rather than
+structure.
+
+Counts from the end of the metadata to the next heading of any level --
+`outline-next-heading\', never a regexp of ours, for the reason recorded
+on `claude-code-ide-org--heading-body-bounds\'."
+  (>= (claude-code-ide-org--lint-body-prose-lines) 10))
 
 (defun claude-code-ide-org--lint-heading-ids (files)
   "Return a hash of every :ID: defined across FILES, mapped to its
@@ -7656,6 +7695,22 @@ cookie -- add [/] and run `org-update-statistics-cookies': %s" title))
                                     (claude-code-ide-org--parse-org-timestamp closed)
                                     claude-code-ide-org-plan-drawer-since)))
                      (report 'warn line "finished heading with a substantial body and no :PLAN: drawer -- wrap the prospective half with org_wrap_plan: %s" title))))
+               ;; A repeater's body is never pruned, because every
+               ;; pruning event in the :PLAN: lifecycle is tied to
+               ;; reaching DONE and a repeater never does (TODO.org
+               ;; :ID: ff92700e). Nothing else in the convention will
+               ;; ever collect it, so the lint is the only thing that
+               ;; can notice. It fires on nothing today; it would have
+               ;; caught :ID: cbe282ec at 47 lines, shortly before that
+               ;; heading had to be split three ways by hand.
+               (when (and (org-get-repeat)
+                          (> (claude-code-ide-org--lint-body-prose-lines)
+                             claude-code-ide-org-repeater-body-max))
+                 (report 'warn line "repeater with a %d-line body (max %d) -- \
+a repeater never reaches DONE, so nothing ever prunes it; move the durable \
+prose to a rule file, a linked heading or a one-time task: %s"
+                         (claude-code-ide-org--lint-body-prose-lines)
+                         claude-code-ide-org-repeater-body-max title))
                ;; A repeating task never reaches DONE, so a completable
                ;; ancestor never can either -- this is the check that
                ;; caught 38b92521 frozen via its :BLOCKER:.
