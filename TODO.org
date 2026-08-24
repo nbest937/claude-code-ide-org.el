@@ -7344,6 +7344,24 @@ So the line controlling how every one of these files opens -- and, via =logdrawe
 *Measured on a fresh open of TODO.org in the live Emacs (org 9.8.7):* 104 headings, *all visible, none hidden* -- 7 at level 1, 63 at level 2, 34 at level 3 -- and no heading carrying a =:VISIBILITY:= property. The mechanism is working; there is nothing to fix in TODO.org's own line.
 
 *Decide, then write it into the template:* whether =content= is the house default for every file or a TODO.org-specific choice, and whether =logdone= belongs everywhere =logdrawer= does. DONE.org arguably wants a *different* answer rather than the same one -- it is an archive, read rarely and in full -- so this is a decision about two files, not a copy-paste.
+
+*Resolved 2026-08-24, and the disagreement turned out to matter.* The two lines were:
+
+: TODO.org:  #+STARTUP: logdrawer logdone content
+: DONE.org:  #+STARTUP: logdrawer content
+
+=#+STARTUP:= is *file-local*, applied at buffer setup, and nothing in =~/.config/doom/config.el= sets =org-log-done= or =org-log-into-drawer= globally -- both sit at their defaults. So the divergence was live rather than notional; the buffers read =:log-done time= and =:log-done nil= respectively. Per org's own =org-startup-options=, =logdone= maps to =(org-log-done time)=, which is what writes the =CLOSED:= planning line. It is a separate record from the =!= cookies in =#+TODO:=, which write the =- State "DONE" from "DOING" [ts]= line into =:LOGBOOK:=.
+
+*The consequence, which is reachable and which* [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] *walks toward.* Apply resolves a heading by =:ID:= through =org-id=, and DONE.org is in =org-agenda-files=, so a queued =todo= event applies wherever the heading now lives. Archive the backlog first and then apply a pending =DONE= for one of those headings, and the transition executes *in DONE.org* with =org-log-done= nil: the =:LOGBOOK:= gets its =State= line and no =CLOSED:= is written. Silent, and afterwards the heading is indistinguishable from the 97 that never had one.
+
+Measured before deciding: *zero* such post-archive closes have happened yet, checked by comparing every =State "DONE"= timestamp in DONE.org against its own heading's =:ARCHIVE_TIME:= across the 63 headings carrying one. So this is a guard against a case the archive backlog creates, not a repair of one already present.
+
+*Both guards taken.* The ordering one -- apply the queue *before* an archive pass, never after -- removes the case outright and is recorded on cbe282ec where the pass is planned. Adding =logdone= to DONE.org costs nothing when no transition occurs there and makes the ordering a preference rather than a requirement. The two lines are now byte-identical, which is this heading's actual complaint answered.
+
+*Verified after* =org-mode-restart=, not merely after the edit: =#+STARTUP:= is read at buffer setup, so the live buffer kept =:log-done nil= until the mode was restarted, at which point it read =time=.
+
+*Left open, and it is the larger half of the question:* DONE.org holds *97* =DONE=/=CANCELLED= headings and *zero* =CLOSED:= markers, because =logdone= only arrived 2026-08-17 (=7be24df=) and the newest =:ARCHIVE_TIME:= is that same day -- so every archived heading was closed before the setting existed. All 34 markers in TODO.org sit on headings still awaiting archive. Backfilling is only *partly* mechanical: 59 of the 97 carry a =State "DONE"=/=CANCELLED= line to read a time from, and *38 carry no in-file evidence at all*. For those, =:ARCHIVE_TIME:= is a different fact wearing the right shape, and writing it as =CLOSED:= would be the class of guess [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] retired. Git history is the one honest source left for them.
+
 ** DONE Write a commit reference the same way twice: orgit links in bodies, the word in prose :code:
 CLOSED: [2026-08-21 Fri 12:23]
 :PROPERTIES:
@@ -8752,6 +8770,17 @@ Nothing owns the recurring archive pass. [[id:38b92521-bba4-4bb5-9cd9-465862471a
 *The first pass is a backlog, not a cadence.* Clearing the existing 30 should not wait for the repeater; the schedule is for the steady state afterwards.
 
 *Deliberately out of scope: where archived work lands.* The per-category =:ARCHIVE:= routing in force today, versus a =datetree/= location, is [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]'s question -- and switching would break [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]]'s lint rule until that is settled. This heading is about the pass *running*, not about its destination.
+
+*Ordering constraint, added 2026-08-24: apply the queue* before *this pass, never after.*
+
+Apply resolves a heading by =:ID:= through =org-id=, so a pending event lands wherever the heading currently lives -- and after this pass that is DONE.org. Two things then go wrong that do not go wrong in the other order.
+
+A pending =DONE= would execute in DONE.org, which until today had no =logdone= in its =#+STARTUP:= line, so no =CLOSED:= marker would be written ([[id:bba1088c-d8e1-49f7-bef8-b070860f5257][bba1088c]], now fixed -- but ordering removes the case outright rather than relying on the fix). And the pending clock backlog is large and old: as of today 84 items across 53 headings reach back to 2026-08-11, most of them bracketed intervals that [[id:eaeeb4ee-ceee-4094-8598-bbcdc8214b66][eaeeb4ee]] made visible for the first time. Applying those after the move means writing two weeks of CLOCK lines into a file that is meant to be settled.
+
+Related and worth doing in the same sitting: [[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]]'s consolidation sweep. Archiving is the *last* moment a heading is ever touched, so a drawer that is out of order when it moves stays that way permanently -- which is how 13 of the 25 drawers archived since consolidate-on-apply shipped came to be disordered.
+
+Sequence, then: apply the queue, consolidate every drawer, then archive.
+
 
 ** 2026
 *** 2026-08 August
