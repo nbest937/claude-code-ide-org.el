@@ -6090,6 +6090,25 @@ The two conditions are now named once as =--renders-as-nothing-p= and used for *
 *Measured on the live queue:* 16 CLOCK lines to 17, 88.3 to 89.3 minutes, items writing nothing 13 to 12, and zero lines rounding to =0:00= either way. Small today because the backlog was applied an hour earlier; the point is that it applies from here on without anyone editing by hand.
 
 *Carried in the same commit:* =--lane-clock-intervals= hoisted out of the per-group loop in =--review-items-from-queue=, where it ran once per heading -- 53 groups against ~250 events, re-filtering and re-sorting the full history each time -- for an answer that does not vary by group. Introduced by [[id:eaeeb4ee-ceee-4094-8598-bbcdc8214b66][eaeeb4ee]] this morning. It is *not* the cause of the Emacs hang that followed the apply: that process sat at 0.0% CPU, which rules out anything computing.
+** The review buffer truncated lines the human had to read :code:
+:PROPERTIES:
+:ID:       111ca40a-3fdb-4106-ad52-991e30737ece
+:CREATED:  [2026-08-24 Mon 13:08]
+:END:
+
+*Shipped 2026-08-24* (=5de3948=), from the user asking whether the review command could open its buffer wrapped "as I have it now".
+
+*Diagnosed by reading their live buffer rather than guessing which wrap was meant.* =truncate-lines= is =t= in the *global* value -- their Doom config sets it -- and =nil= *buffer-locally* in the live =*org-review*= buffer, with =(local-variable-p 'truncate-lines)= true. That combination is the signature of =toggle-truncate-lines=: they had been turning it off by hand on every review buffer. =word-wrap= is globally =t=, which is why the result was word wrap rather than a mid-word break.
+
+*Why it matters more here than in an ordinary buffer.* Every line in the review buffer is prose someone reads *in order to decide something* -- an annotation label, a heading title, the reason an item writes nothing. A truncated line hides the tail, and the tail is where the deciding information sits: ="writes nothing (34s of turns, none crossing a minute)"= is entirely tail.
+
+=word-wrap= is set alongside =truncate-lines= rather than left to the global value. With truncation off but =word-wrap= nil the break lands mid-word, which reads worse than either extreme -- and a different machine, or this one after a config change, would get exactly that.
+
+*Both are buffer-local, and that is asserted rather than assumed.* The point is to change one buffer, not the editor; the test pins =(local-variable-p ...)= for both and runs with a global default of =t= so it is testing the case that actually occurs.
+
+*One test assertion was written and removed in the same pass*, worth recording because it is a tempting mistake: it asserted =(default-value 'truncate-lines)= was =t=, which is a claim about *the user's Doom config*, not about this code. It passed nowhere but this machine and failed immediately in batch, where Doom is not loaded. A unit test may not assert the environment it happens to run in.
+
+*Note for anyone verifying this:* reloading =config.el= updates the mode definition but does *not* change an already-open review buffer, whose locals were set when its mode ran. Only a newly created review buffer picks it up -- which is why the live check was done in a fresh buffer.
 
 * Observability
 :PROPERTIES:
@@ -7671,6 +7690,29 @@ The =/next-session= idiom is used but not codified. One line outside the file me
 *Home: a new user-scoped skill, not the org-dev skill.* org-dev's trigger is changing this repo's own code and verifying it took effect; writing a prompt at end-of-session is neither, so the rule would silently never load -- the same failure CLAUDE.md names for path-scoped rules. And the idiom is org-free, Emacs-free and repo-free, which makes it the most portable thing here. [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] measured that only =~/.claude/= travels; this is its easiest first instance, a skill with *zero* repo coupling against the org skill's measured 16 lines. The format can additionally self-host in the prompt file's own header, which needs no trigger at all.
 
 *Open:* there is no end-of-session trigger to hang the writing rule on. Candidate is firing on an explicit request to write or revise the prompt, with the self-hosted header as the backstop.
+** A repeater never reaches DONE, so its body is never pruned :code:
+:PROPERTIES:
+:ID:       ff92700e-1713-4862-a3fe-8fd972ad96fa
+:CREATED:  [2026-08-24 Mon 13:10]
+:END:
+
+*Found 2026-08-24 while paring [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]]*, whose body had reached 47 lines against a 35-line median.
+
+[[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]]'s lifecycle prunes a body at *completion*: the prospective half is wrapped into =:PLAN:= when the task is carried out, leaving the debrief. Every pruning event in the design is tied to reaching =DONE=.
+
+*A repeater never reaches =DONE=.* Its keyword resets and its =SCHEDULED= stamp advances; that is the whole mechanism. So a recurring heading accumulates body prose indefinitely and *nothing in the convention will ever collect it* -- not once, not on a schedule, never. The lifecycle has no event for it.
+
+*It is not a small class.* Every ritual heading is one, and ritual headings are exactly the ones re-read most often, since they are the ones a session opens to find out what to do.
+
+*And the accumulation has a specific shape rather than being general growth.* =cbe282ec= grew because a recurring heading is where cross-cutting decisions get written down -- there is nowhere else obvious, and it is the heading being edited at the time. It had collected three different things: the ritual itself, a one-time backlog ([[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]]), and a set of standing conventions that turned out to belong in =.claude/rules/org-conventions.md=. The pruning gap is what let that go unnoticed; the *cause* is that a repeater attracts prose that is not about the repetition.
+
+*Directions, none chosen:*
+
+- *A repeater's body is capped by convention* -- say a dozen lines -- with anything longer required to move out to a rule, a linked heading, or a one-time task. Mechanically checkable by =bin/lint-org=, which already knows =org-get-repeat=: it uses it to refuse a repeater under a completable ancestor.
+- *Prune at the repeat*, treating each firing as a completion for lifecycle purposes. Attractive symmetry, but wrapping a ritual's standing instructions into =:PLAN:= would hide the very text the ritual exists to state, which inverts the drawer's purpose.
+- *Accept it and rely on the periodic review* to notice. This is what happened, and it worked only because a human read the heading and asked.
+
+*The lint direction is the one worth measuring first,* since it is the project's usual answer to a convention that would otherwise recur and it needs no new concept -- just a length threshold on headings carrying a repeater.
 
 * Tooling
 :PROPERTIES:
@@ -9082,53 +9124,21 @@ CLOCK: [2026-08-24 Mon 10:29]--[2026-08-24 Mon 10:30] =>  0:01
 CLOCK: [2026-08-24 Mon 10:52]--[2026-08-24 Mon 10:55] =>  0:03
 - [2026-08-24 Mon 10:52]--[2026-08-24 Mon 10:55] suggested span, accepted at review
 :END:
+The recurring pass: archive what is closed, so the live file stops carrying it.
 
-Nothing owns the recurring archive pass. [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]] ran it once and closed on 2026-08-17 -- the same date as the newest =:ARCHIVE_TIME:= in DONE.org -- and the cadence stopped with it. Re-measured 2026-08-24, against the two terminal keywords rather than =DONE= alone: TODO.org carries *36* closed headings -- 35 =DONE= and 1 =CANCELLED=. (The earlier count of 30, measured 2026-08-21, was =DONE=-only.) Against the 13 that [[id:4c0044bf-1b6c-44ea-807a-8f9e3523e3fd][4c0044bf]] recorded on 2026-08-07 when it made this same observation and was cancelled partly for it.
+*What to do,* in order -- the reasons are in =.claude/rules/org-conventions.md= under "Archiving", not here:
 
-*Why it stalls.* Archiving is not mechanical: CLAUDE.md requires a concise prose outcome summary on a =DONE= heading *before* it is archived -- what shipped, how it was verified, what differed from the plan. Automating the cadence without addressing that would only archive un-summarised work faster.
+1. Apply the queue.
+2. Consolidate every drawer ([[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]]).
+3. Archive every =DONE= *and* =CANCELLED= heading that carries an outcome summary.
 
-*What "closed" covers, since the title now says it.* Both terminal keywords, =DONE= and =CANCELLED= -- confirmed against org itself rather than by reading the =#+TODO:= line: =org-done-keywords= is exactly =("DONE" "CANCELLED")= and the other seven are all not-done. A sweep that filtered on =DONE= would leave every abandoned heading behind permanently, since nothing else ever removes one.
+Paired with [[id:2aff1e6d-71cf-4b3f-8a3f-b3fc63d07c99][2aff1e6d]] at the same timestamp so the two land as one sitting. =SCHEDULED= not =DEADLINE=, and =++1d= not =+1d=: the first says the time is a suggestion, the second means a missed day is skipped rather than banked.
 
-*One gap the retitle exposes.* CLAUDE.md's outcome-summary rule names =DONE= headings only, so a =CANCELLED= heading is not covered by it. That is probably right rather than an oversight: =CANCELLED(c@)= carries an =@= cookie, so org already prompts for a note at the transition and the reason is captured where it happens. Worth stating so the asymmetry reads as deliberate.
+*Step 1 cannot be delegated* -- apply is human-triggered by design -- which bounds what any scheduler can do here. [[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]] is the prompt; it can prepare and remind, not perform.
 
-*Read finishedness from the right place when this is built.* =org-done-keywords= is *buffer-local* and nil outside a visited org buffer, so a filter using it from the wrong buffer silently passes everything. =claude-code-ide-org--outline-finished-keywords= exists precisely for that and is the constant to reuse.
+*The existing backlog is [[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]], not this heading.* Clearing 36 accumulated headings is a one-time migration with a decision attached; this is the steady state after it.
 
-*Decided 2026-08-21 by the user: sweep the old bodies into =:PLAN:= unedited.* The backlog does not get the faithful paring a newly written heading will; the existing body is wrapped as-is and the debrief written beneath it. That splits the migration into one mechanical step and one cheap one. *Wrapping* is scriptable and needs no judgement at all -- insert the drawer at the end-of-drawers boundary, close it after the last body line. The *debrief* still has to be written per heading, but is far cheaper than the [[id:cc0c17a7-a554-426d-afeb-09cbee7339f0][cc0c17a7]] trial suggested: the expensive judgement there was never the four items, it was deciding what to discard, and sweeping discards nothing.
-
-*Consequence, accepted rather than overlooked:* old drawers will be raw transcripts where new ones are pared plans. The skill's ignore-the-drawer instruction covers both, so the inconsistency is invisible in normal reading, and any heading that is touched again can be pared then.
-
-*A direct cost, not housekeeping.* Those 30 bodies are read into context by every session that opens the tracker, which is [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]]'s complaint with a number attached to it.
-
-*The first pass is a backlog, not a cadence.* Clearing the existing 36 should not wait for the repeater; the schedule is for the steady state afterwards.
-
-*Deliberately out of scope: where archived work lands.* The per-category =:ARCHIVE:= routing in force today, versus a =datetree/= location, is [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]'s question -- and switching would break [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]]'s lint rule until that is settled. This heading is about the pass *running*, not about its destination.
-
-*Ordering constraint, added 2026-08-24: apply the queue* before *this pass, never after.*
-
-Apply resolves a heading by =:ID:= through =org-id=, so a pending event lands wherever the heading currently lives -- and after this pass that is DONE.org. Two things then go wrong that do not go wrong in the other order.
-
-A pending =DONE= would execute in DONE.org, which until today had no =logdone= in its =#+STARTUP:= line, so no =CLOSED:= marker would be written ([[id:bba1088c-d8e1-49f7-bef8-b070860f5257][bba1088c]], now fixed -- but ordering removes the case outright rather than relying on the fix). And the pending clock backlog is large and old: as of today 84 items across 53 headings reach back to 2026-08-11, most of them bracketed intervals that [[id:eaeeb4ee-ceee-4094-8598-bbcdc8214b66][eaeeb4ee]] made visible for the first time. Applying those after the move means writing two weeks of CLOCK lines into a file that is meant to be settled.
-
-Related and worth doing in the same sitting: [[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]]'s consolidation sweep. Archiving is the *last* moment a heading is ever touched, so a drawer that is out of order when it moves stays that way permanently -- which is how 13 of the 25 drawers archived since consolidate-on-apply shipped came to be disordered.
-
-Sequence, then: apply the queue, consolidate every drawer, then archive.
-
-*Made daily 2026-08-24, at the user's request, so the two repeaters land as one ceremony.* Both this heading and [[id:2aff1e6d-71cf-4b3f-8a3f-b3fc63d07c99][2aff1e6d]] now read =SCHEDULED: <2026-08-24 Mon 07:00 ++1d>= -- identical strings, so opening the day's node and clearing the archive are one sitting rather than two cadences that drift apart.
-
-*Three deliberate choices in that timestamp.*
-
-=SCHEDULED=, not =DEADLINE=, and that already carries the user's "a suggestion, not a deadline": org's own semantics are that =SCHEDULED= means *start working on this on or after this date* while =DEADLINE= means *must be finished by*. Nothing extra was needed to express it.
-
-=++1d= rather than =+1d=. A plain =+1d= advances by exactly one day from the *old* timestamp, so a pass missed for five days shifts to a date still in the past and accrues a queue of catch-up shifts. =++1d= advances repeatedly until the date is in the future -- missed days are skipped, not banked. That is the cookie that means "late is fine".
-
-Dated *today* rather than tomorrow, even though it is already past 07:00. A late occurrence should be live and visibly late, which is what the =SCHEDULED= semantics give; deferring to tomorrow would have silently skipped today. Verified: org reports =:repeat "++1d"=, scheduled 07:00, zero days overdue.
-
-*What the ceremony is, in order,* now that it is one sitting: apply the queue (human, and see below), consolidate every drawer ([[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]], not yet built), then archive.
-
-*The first step cannot be delegated, and that bounds what any scheduler can do here.* CLAUDE.md names it load-bearing: apply is always human-triggered, never invoked programmatically, because org's native state-change logging only completes inside a genuinely interactive command and a non-interactive =emacsclient -e= hits the hang the queue exists to route around. So an agent can prepare the ceremony, report what is waiting, and perform the consolidate and archive steps *after* the human has applied -- but the pass cannot run unattended end to end. Scheduling is [[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]]'s question.
-
-
-
+/Body pared 2026-08-24, from 47 lines. It had grown to hold three different things -- this ritual, that backlog, and a set of standing conventions -- and a repeater never reaches/ =DONE=/, so nothing in the/ =:PLAN:= /lifecycle would ever have collected it. See/ [[id:ff92700e-1713-4862-a3fe-8fd972ad96fa][ff92700e]]./
 ** 2026
 *** 2026-08 August
 **** 2026-08-21 Friday
@@ -9150,3 +9160,24 @@ CLOCK: [2026-08-21 Fri 15:34]--[2026-08-21 Fri 15:35] =>  0:01
 CLOCK: [2026-08-21 Fri 15:41]--[2026-08-21 Fri 15:42] =>  0:01
 - [2026-08-21 Fri 15:41]--[2026-08-21 Fri 15:42] reviewing next-session idiom and structure question
 :END:
+** Clear the 36-heading archive backlog, sweeping bodies into :PLAN: unedited :code:
+:PROPERTIES:
+:ID:       7fbab3b3-7843-4290-94a5-d421413f2be4
+:CREATED:  [2026-08-24 Mon 13:09]
+:END:
+
+*Split out of [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] on 2026-08-24*, which had been carrying three different things at once: a recurring ritual, this one-time migration, and a set of standing conventions. The conventions went to =.claude/rules/org-conventions.md=; the ritual stayed; this is the backlog.
+
+*The first pass is a backlog, not a cadence.* Clearing the existing 36 should not wait for the repeater -- the schedule is for the steady state afterwards. Re-measured 2026-08-24 against both terminal keywords: *36* closed headings in TODO.org, 35 =DONE= and 1 =CANCELLED=. (An earlier count of 30 was =DONE=-only, which is exactly the omission that makes a =DONE=-filtered sweep strand abandoned work.) [[id:4c0044bf-1b6c-44ea-807a-8f9e3523e3fd][4c0044bf]] made the same observation on 2026-08-07 at 13 headings and was cancelled partly for it.
+
+*A direct cost, not housekeeping.* Those bodies are read into context by every session that opens the tracker, which is [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]]'s complaint with a number attached.
+
+*DECIDED 2026-08-21 by the user: sweep the old bodies into =:PLAN:= unedited.* The backlog does not get the faithful paring a newly written heading will; the existing body is wrapped as-is and the debrief written beneath it. That splits the migration into one mechanical step and one cheap one. *Wrapping* is now a tool -- =org_wrap_plan=, shipped 2026-08-24 -- and needs no judgement at all. The *debrief* is still per heading, but far cheaper than the [[id:cc0c17a7-a554-426d-afeb-09cbee7339f0][cc0c17a7]] trial suggested: the expensive judgement there was deciding what to *discard*, and sweeping discards nothing.
+
+*Consequence, accepted rather than overlooked:* old drawers will be raw transcripts where new ones are pared plans. The ignore-the-drawer rule covers both, so the inconsistency is invisible in normal reading, and any heading touched again can be pared then.
+
+*Why it stalls, and what changed.* CLAUDE.md requires a prose outcome summary on a =DONE= heading before it is archived, so this was never mechanical. That is still true and is the whole remaining cost -- but the two things that used to block it are gone: the wrapping tool exists, and the ordering it depends on is written down in the rules file rather than in a task body nobody would find.
+
+*Sequence, from the rules file:* apply the queue, consolidate every drawer ([[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]]), then archive. Never archive first.
+
+*Note the lint will start reporting these as they close.* =bin/lint-org= now warns when a heading closed on or after 2026-08-24 has a substantial body and no =:PLAN:= drawer. The 36 here are all closed before that date and are deliberately exempt, so the backlog stays silent rather than shouting 124 findings a day.

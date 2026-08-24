@@ -137,6 +137,36 @@ describes an intention that may not have survived contact, and reading it
 for current fact is how superseded design claims get repeated as though
 they still held.
 
+## Archiving
+
+**Both terminal keywords are archived, not just `DONE`.** `org-done-keywords`
+is exactly `("DONE" "CANCELLED")`; the other seven are not-done. A sweep
+filtering on `DONE` strands every abandoned heading permanently, because
+nothing else ever removes one.
+
+Read finishedness from `claude-code-ide-org--outline-finished-keywords`, not
+from `org-done-keywords` — the latter is **buffer-local and nil outside a
+visited org buffer**, so a filter using it from the wrong buffer silently
+passes everything.
+
+**Order: apply the queue, consolidate the drawers, then archive.** Never
+archive first. Apply resolves a heading by `:ID:` through `org-id`, so a
+pending event lands wherever the heading now lives; applied after a move it
+executes inside DONE.org. And archiving is the *last* moment a heading is
+ever touched, so a drawer out of order when it moves stays that way forever
+— which is how 13 of the 25 drawers archived since consolidate-on-apply
+shipped came to be disordered.
+
+**A `CANCELLED` heading needs no outcome summary.** CLAUDE.md's rule names
+`DONE` only, and that asymmetry is deliberate: `CANCELLED(c@)` carries an
+`@` cookie, so org already prompts for the reason at the transition and
+captures it where it happens.
+
+**Where archived work lands is unsettled** — per-category `:ARCHIVE:`
+routing today, versus a `datetree/` location. Don't switch unilaterally;
+it would break `bin/lint-org`'s datetree rule until the question is
+settled.
+
 ## Referring to a commit
 
 A 7-hex SHA and an 8-hex `:ID:` prefix look identical in running text, and
