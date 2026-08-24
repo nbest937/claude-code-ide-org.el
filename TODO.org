@@ -1680,6 +1680,23 @@ Designed by the user 2026-08-21/22. A heading body has two lives, and today they
 
 *Migration of the existing backlog is settled and is not this heading's work:* sweep old bodies in unedited, recorded on [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]]. Old drawers will be raw transcripts where new ones are pared plans; the ignore-the-drawer rule makes that invisible in normal reading.
 
+*Adopted 2026-08-24* (=44b7020=, =fe376db=). All five deferred edits landed, once [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]]'s wrapping half made them describable without describing something no session could perform.
+
+1. *CLAUDE.md's plan-link wording* now says the link is *relocated into* =:PLAN:=, not deleted, at =DONE=. The old "not removed at =DONE=" was a rule against *losing* the link and was being read as a rule against *moving* it.
+2. *=.claude/rules/org-conventions.md= gains a =:PLAN:= section* beside the other drawer conventions: what goes in it, that =org_wrap_plan= makes it, and that readers skip it.
+3. *The org skill's "Body prose and the task lifecycle" section is reframed* -- and this is where the plan and the outcome diverge, deliberately. This heading anticipated the section being "superseded wholesale". It is not, and saying so would have thrown away good rules: the completion-vocabulary table, the date-stamping rule and the brevity rule each stand on their own and are kept. What is superseded is the *framing* -- the section opened by stating that =org_amend= appends and can do nothing else, so an outcome always lands furthest from the reader, and cast everything below it as interim "until that is fixed". That premise is now half-false. The date-stamp rule's stated justification is adjusted too, since it leaned on nothing later needing revision.
+4. *The ignore-the-drawer rule is in both files*: treat =:PLAN:= as absent unless the question is explicitly retrospective. Reading it for current fact is how a superseded design claim gets repeated as though it still held -- which is the reason the two halves were separated at all.
+5. *=bin/lint-org= asserts it*, and this was the one that needed measuring first.
+
+*The lint rule's scoping is the whole of whether it is usable.* Measured before writing it: unscoped it fires on *124* headings at once -- 30 in TODO.org, 94 in DONE.org -- taking the report from 24 warnings to 147. That is exactly the drowning [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]] had to rescue this lint from once already. Scoped by =CLOSED:= date to headings finished on or after the convention landed, it fires *zero* times today and grows only with new work.
+
+*And that scoping is only possible because of a few hours earlier.* [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]] backfilled 58 =CLOCK=-derived =CLOSED:= markers this morning; before that, "closed after date X" was not a question these files could answer. The backfill was filed as housekeeping and turned out to be the enabling step.
+
+*Because the rule reports nothing on the real files by design, the positive case is a fixture* -- a rule never seen to fail proves nothing. Removing the date scoping fails the exemption test and takes the real report to 147 warnings, so both the rule and its scoping are pinned. =--lint-substantial-body-p= excludes drawer contents, so thirty =CLOCK= lines cannot make a short heading look substantial.
+
+*Still open, and not this heading's:* the backlog itself. 124 finished headings carry a substantial body and no drawer, which is [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]]'s sweep. The lint is deliberately silent about them rather than counting them daily.
+
+
 ** DONE Rename the WAIT keyword to WAITING, matching the org community's spelling :code:
 CLOSED: [2026-08-20 Thu 16:20]
 :PROPERTIES:
