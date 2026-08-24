@@ -7666,11 +7666,18 @@ two insertions, no deletion, no reflow.  Returns a summary string."
                             open (+ end (length ":PLAN:\n:END:\n"))))
                     (stripped (replace-regexp-in-string
                                "^:\\(PLAN\\|END\\):\n" "" after)))
-               (format "Wrapped %s of \"%s\" in :PLAN:%s. Text preserved: %s."
-                       (if until "the body above the seam" "the whole body")
-                       (org-get-heading t t t t)
-                       (if until (format " (seam: %s)" until) "")
-                       (if (equal stripped before) "yes" "NO -- INSPECT"))))))))))
+               ;; `substring-no-properties', because `org-get-heading'
+               ;; returns the fontified heading and the MCP layer
+               ;; serializes its text properties as pages of
+               ;; `(face (org-headline-done ...))' around the answer.
+               ;; Same trap as `--outline-line' and the pending-updates
+               ;; report; observed here on the first real call.
+               (substring-no-properties
+                (format "Wrapped %s of \"%s\" in :PLAN:%s. Text preserved: %s."
+                        (if until "the body above the seam" "the whole body")
+                        (org-get-heading t t t t)
+                        (if until (format " (seam: %s)" until) "")
+                        (if (equal stripped before) "yes" "NO -- INSPECT")))))))))))
 
 (with-eval-after-load 'claude-code-ide
 
