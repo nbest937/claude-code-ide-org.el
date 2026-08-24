@@ -5905,6 +5905,19 @@ It also already has the right manners for this: [[id:7771fc63-9374-4c8a-9e80-24c
 
 *Not to be confused with a nag.* The org repeater already makes the item show up in the agenda daily. This heading is only about the *agentic* prompt, for the case where the agenda is not what the user is looking at.
 
+*Audited 2026-08-24, prompted by the user asking whether the report has ever actually asked them anything.* It has not, and that is correct behaviour rather than a fault.
+
+*The mechanism works.* Verified today by running a synthetic stale interval through the real path in batch Emacs: =--session-start-hook-json= returns well-formed =hookSpecificOutput= / =additionalContext=, and the text does ask what time work stopped while explicitly forbidding the relaying session to propose one. So this is *not* [[id:c5b02503-1700-47fd-bf89-bd3296b24af2][c5b02503]] -- the report was never suppressed in relaying, it was never generated.
+
+*Its single condition has never held.* The report fires only for an unclosed =CLOCK:= line whose open timestamp *predates today*. Scanning every commit that touched TODO.org: unclosed lines were routine between 2026-07-28 and 2026-08-17, and *every one of them was closed the same day it opened*. Not one survived overnight.
+
+*Two things see to that.* =kill-emacs-hook= and =suspend-hook= both run =claude-code-ide-org--clock-out-if-clocking=, so a clean quit or a sleep closes an open clock -- which covers everything short of a crash or power loss. And since the 2026-08-11 cutover =org_clock_in= queues rather than opening a clock at all, so the only live clocks left come from a human clocking by hand or =--trigger-auto-clock-in= firing on a hand-set =DOING=. The feature is a net for an unclean death, not a routine check.
+
+*A correction worth keeping, because the first answer was the opposite one.* The initial scan reported overnight-stale intervals throughout, up to and including today. It was wrong: the pattern matched =CLOCK: [date= without anchoring the end of the line, and a *closed* line begins identically -- =CLOCK: [start]--[end] => H:MM=. So every closed interval from a previous day counted as an open one. Anchoring with =$= reversed the finding completely. The same shape of mistake as [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]]'s prose-quoting one, hours apart: a pattern that matches more than it names, over text where the extra matches look exactly like real hits.
+
+*Comment corrected in* =bin/hooks/session-start-recovery-check=. It still described injecting "an educated guess ... based on =claude-code-ide-org-working-hours=", retired 2026-08-14 with [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]], and still mentioned =:SESSIONS:=, retired 2026-08-11. The behaviour was right; only the comment lied. It now also says to *expect silence*, with the audit's reason -- so the next reader does not go looking for a bug in a feature that is working.
+
+
 * Observability
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Observability
