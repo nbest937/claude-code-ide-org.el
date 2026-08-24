@@ -7784,6 +7784,90 @@ mistake here that no later reader will catch."
     (should (string-match-p "already has a :PLAN: drawer"
                             (claude-code-ide-org-wrap-plan id)))))
 
+;;; CLOSED: backfill (TODO.org :ID: f4b07fc0)
+
+(defmacro claude-code-ide-org-test--with-backfill-file (&rest body)
+  "Run BODY with `file' bound to an org file holding four finished
+headings: one evidenced, one reopened-then-closed, one with no State
+line at all, and one that already carries CLOSED:."
+  (declare (indent 0))
+  `(let* ((dir (file-name-as-directory (make-temp-file "ccio-backfill" t)))
+          (file (expand-file-name "DONE.org" dir)))
+     (unwind-protect
+         (progn
+           (with-temp-file file
+             (insert "#+TODO: TODO(t!) DOING(d!) | DONE(D!) CANCELLED(c@)\n"
+                     "#+STARTUP: logdrawer logdone content\n\n"
+                     "* DONE Evidenced\n:LOGBOOK:\n"
+                     "- State \"DONE\"       from \"DOING\"      [2026-08-12 Wed 17:01]\n"
+                     ":END:\n"
+                     "* DONE Reopened then closed again\n:LOGBOOK:\n"
+                     "- State \"DONE\"       from \"DOING\"      [2026-08-14 Fri 09:00]\n"
+                     "- State \"DOING\"      from \"DONE\"       [2026-08-13 Thu 12:00]\n"
+                     "- State \"DONE\"       from \"DOING\"      [2026-08-13 Thu 09:00]\n"
+                     ":END:\n"
+                     "* DONE No evidence\n:PROPERTIES:\n:ARCHIVE_TIME: 2026-08-17 Sun 10:00\n:END:\n"
+                     "* DONE Already closed\nCLOSED: [2026-08-01 Sat 08:00]\n"
+                     ":LOGBOOK:\n"
+                     "- State \"DONE\"       from \"DOING\"      [2026-08-02 Sun 09:00]\n"
+                     ":END:\n"))
+           ,@body)
+       (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-backfill-closed-uses-only-recorded-times ()
+  "Fills from the :LOGBOOK:, takes the latest close, and invents nothing.
+
+The no-evidence heading deliberately carries an :ARCHIVE_TIME:, which is
+the obvious substitute and the wrong one -- when the subtree moved, not
+when the work stopped.  If it were ever used, this heading would gain a
+CLOSED: of 2026-08-17 that reads as authoritative.  The assertion is
+that it gains nothing at all."
+  (claude-code-ide-org-test--with-backfill-file
+    (let ((report (claude-code-ide-org-backfill-closed file)))
+      (should (string-match-p "2 filled" report))
+      (should (string-match-p "1 skipped" report))
+      (should (string-match-p "1 already" report)))
+    (with-current-buffer (find-file-noselect file)
+      (revert-buffer t t t)
+      (let ((text (buffer-substring-no-properties (point-min) (point-max))))
+        (should (string-match-p "\\* DONE Evidenced\nCLOSED: \\[2026-08-12 Wed 17:01\\]" text))
+        ;; The LATEST close, not the first one in the drawer.
+        (should (string-match-p
+                 "\\* DONE Reopened then closed again\nCLOSED: \\[2026-08-14 Fri 09:00\\]" text))
+        ;; Nothing invented from :ARCHIVE_TIME:.
+        (should-not (string-match-p "CLOSED: \\[2026-08-17" text))
+        (should (string-match-p "\\* DONE No evidence\n:PROPERTIES:" text))
+        ;; The pre-existing marker is left exactly as it was.
+        (should (string-match-p "CLOSED: \\[2026-08-01 Sat 08:00\\]" text))
+        (should-not (string-match-p "CLOSED: \\[2026-08-02" text))))))
+
+(ert-deftest claude-code-ide-org-test-backfill-closed-dry-run-writes-nothing ()
+  "A dry run reports exactly what a real run would do, and changes no byte.
+
+The report has to be identical, because a dry run whose output differs
+from the real one is not a preview of anything."
+  (claude-code-ide-org-test--with-backfill-file
+    (let ((before (with-temp-buffer (insert-file-contents file) (buffer-string)))
+          (dry (claude-code-ide-org-backfill-closed file t)))
+      (should (string-match-p "dry run" dry))
+      (should (equal before
+                     (with-temp-buffer (insert-file-contents file) (buffer-string))))
+      ;; Same counts as the real run that follows it.
+      (let ((real (claude-code-ide-org-backfill-closed file)))
+        (should (equal (replace-regexp-in-string "  \\[dry run.*" "" dry) real))))))
+
+(ert-deftest claude-code-ide-org-test-backfill-closed-is-idempotent ()
+  "A second pass fills nothing, because the first pass's markers are seen.
+
+Without this a repeated run would stack CLOSED: lines, and the command
+is one somebody will reasonably run twice while wondering whether it
+worked."
+  (claude-code-ide-org-test--with-backfill-file
+    (claude-code-ide-org-backfill-closed file)
+    (let ((second (claude-code-ide-org-backfill-closed file)))
+      (should (string-match-p "0 filled" second))
+      (should (string-match-p "3 already had" second)))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here

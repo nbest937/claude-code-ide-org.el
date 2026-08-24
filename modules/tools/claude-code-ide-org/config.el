@@ -7679,6 +7679,92 @@ two insertions, no deletion, no reflow.  Returns a summary string."
                         (if until (format " (seam: %s)" until) "")
                         (if (equal stripped before) "yes" "NO -- INSPECT")))))))))))
 
+;;; CLOSED: backfill (TODO.org :ID: f4b07fc0)
+;;
+;; `#+STARTUP: logdone' only reached TODO.org on 2026-08-17, and the
+;; newest :ARCHIVE_TIME: is that same day -- so every archived heading was
+;; closed before the option existed and DONE.org held 97 finished
+;; headings and zero CLOSED: markers.
+;;
+;; The `!' cookies in `#+TODO:' were logging state changes long before
+;; that, so for many of those headings the closing moment *is* already in
+;; the file, on a `- State "DONE" from "..." [ts]' line. Where it is, the
+;; marker can be reconstructed from evidence rather than guessed.
+;;
+;; Where it is not, nothing is written. :ARCHIVE_TIME: is the obvious
+;; candidate and is a *different fact wearing the right shape* -- when
+;; the subtree moved, not when the work stopped. Writing it as CLOSED:
+;; would produce a plausible timestamp that is not the one it claims to
+;; be, which is the class of guess :ID: 7771fc63 retired for being wrong
+;; more often than right.
+
+(defun claude-code-ide-org--recorded-close-time ()
+  "Return the latest close time logged for the heading at point, or nil.
+
+Reads `- State \"DONE\"' and `- State \"CANCELLED\"' lines from the
+heading's own :LOGBOOK:.  The *latest* wins: a heading reopened and
+closed again was closed when it was closed last, and the earlier line
+records a moment that a later one superseded.
+
+Returns nil when no such line exists.  That is the answer for 38 of
+DONE.org's 97 finished headings, and it must stay nil rather than fall
+back to anything -- see this section's header."
+  (let ((bounds (claude-code-ide-org--drawer-content-bounds "LOGBOOK"))
+        latest)
+    (when bounds
+      (save-excursion
+        (goto-char (nth 0 bounds))
+        (while (re-search-forward
+                "^- State \"\\(?:DONE\\|CANCELLED\\)\"[ \t]+from[ \t]+\"[^\"]*\"[ \t]+\\(\\[[^]]+\\]\\)"
+                (nth 1 bounds) t)
+          (let ((time (claude-code-ide-org--parse-org-timestamp (match-string 1))))
+            (when (or (null latest) (time-less-p latest time))
+              (setq latest time))))))
+    latest))
+
+(defun claude-code-ide-org-backfill-closed (&optional file dry-run)
+  "Add a CLOSED: line to finished headings in FILE that can evidence one.
+
+FILE defaults to the archive target.  With DRY-RUN non-nil nothing is
+written and the buffer is not saved; the report is identical either way,
+which is what makes the dry run worth trusting.
+
+A heading is a candidate when its keyword is one of `org-done-keywords'
+and it has no CLOSED: already.  The time comes from
+`claude-code-ide-org--recorded-close-time', and a candidate with none is
+counted and skipped, never filled from a substitute.
+
+Insertion goes through org's own `org-add-planning-info', not through
+text: CLOSED: is a *planning* line and has to sit between the heading and
+its :PROPERTIES: drawer, which is org's rule to enforce rather than
+ours.  Returns a summary string."
+  (interactive)
+  (let ((file (or file (claude-code-ide-org--capture-target-file)))
+        (filled 0) (no-evidence 0) (already 0))
+    (with-current-buffer (find-file-noselect file)
+      (let ((buffer-read-only nil))
+        (org-with-wide-buffer
+         (goto-char (point-min))
+         (while (re-search-forward org-heading-regexp nil t)
+           (beginning-of-line)
+           (let ((keyword (org-get-todo-state)))
+             (when (member keyword org-done-keywords)
+               (cond
+                ((org-entry-get (point) "CLOSED") (setq already (1+ already)))
+                (t (let ((time (claude-code-ide-org--recorded-close-time)))
+                     (cond
+                      ((null time) (setq no-evidence (1+ no-evidence)))
+                      (t (setq filled (1+ filled))
+                         (unless dry-run
+                           (org-add-planning-info 'closed time)))))))))
+           (end-of-line)))
+        (when (and (not dry-run) (> filled 0))
+          (save-buffer))))
+    (format (concat "%s: %d filled from :LOGBOOK:, %d skipped (no recorded "
+                    "close time), %d already had CLOSED:.%s")
+            (file-name-nondirectory file) filled no-evidence already
+            (if dry-run "  [dry run -- nothing written]" ""))))
+
 (with-eval-after-load 'claude-code-ide
 
   (claude-code-ide-make-tool
