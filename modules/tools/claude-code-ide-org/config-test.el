@@ -8319,6 +8319,83 @@ off by an order of magnitude."
       (should-not (claude-code-ide-org-test--lint-matches
                    (claude-code-ide-org-test--lint drawered) 'warn "repeater with a")))))
 
+(ert-deftest claude-code-ide-org-test-auto-promote-does-not-re-enter-itself ()
+  "The promotion writes ONCE, counted rather than inferred.
+
+TODO.org: the trigger calls `org-todo', which fires `org-trigger-hook',
+which is the trigger -- so without a re-entrancy guard it promotes in
+the group it has just changed, and repeats. Measured on one real apply
+2026-08-24: 1201 mutations across 114 headings in nine seconds, against
+twelve queued state changes.
+
+Counted, not asserted on the end state, and that is the whole point of
+this test. The finished keywords can be perfectly correct while
+hundreds of writes happened underneath -- which is exactly what the
+audit log showed and what no end-state assertion would have caught.
+
+*This test does not discriminate on its own*, and saying so matters. A
+single sibling group cannot cascade into itself: after the promotion the
+group holds a NEXT, so the re-entered call refuses on its own terms. The
+production cascade came from the settle loop firing across many groups,
+plus level-1 categories becoming eligible once one acquired a keyword,
+and no minimal fixture reproduces that. The guard is pinned by the test
+below; this one is a regression guard on the write count.
+
+`--review-applying' does not cover this: it is unbound during
+`--review-settle-auto-promote' by design, which is when the cascade
+ran."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* Parent\n"
+            "** TODO Only child left                                             :code:\n"
+            ":PROPERTIES:\n:ID:       test-promo-1\n:CREATED:  [2026-08-14 Fri 10:00]\n:END:\n"
+            "** DONE Finished sibling                                            :code:\n"
+            ":PROPERTIES:\n:ID:       test-promo-2\n:CREATED:  [2026-08-14 Fri 10:00]\n:END:\n")
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (let ((calls 0))
+      (cl-letf* ((real (symbol-function 'org-todo))
+                 ((symbol-function 'org-todo)
+                  (lambda (&rest args) (setq calls (1+ calls)) (apply real args))))
+        (claude-code-ide-org--at-id
+         "test-promo-1"
+         (lambda () (claude-code-ide-org--trigger-auto-promote-sole-todo nil))))
+      ;; Exactly one write: the promotion itself, and nothing it caused.
+      (should (= 1 calls)))
+    ;; And it did the right thing while doing it once.
+    (should (equal "NEXT"
+                   (claude-code-ide-org--at-id
+                    "test-promo-1" (lambda () (org-get-todo-state)))))))
+
+(ert-deftest claude-code-ide-org-test-auto-promote-guard-is-not-review-applying ()
+  "The two guards are not substitutes, which is why the cascade was possible.
+
+`--review-applying' suppresses the promotion for a whole apply batch so
+it can settle once afterwards; it is deliberately unbound during that
+settle. `--auto-promote-active' guards a single call against its own
+`org-todo'. Binding either alone leaves a hole, so both are asserted to
+stop the trigger independently."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* Parent\n"
+            "** TODO Only child left                                             :code:\n"
+            ":PROPERTIES:\n:ID:       test-promo-1\n:CREATED:  [2026-08-14 Fri 10:00]\n:END:\n"
+            "** DONE Finished sibling                                            :code:\n"
+            ":PROPERTIES:\n:ID:       test-promo-2\n:CREATED:  [2026-08-14 Fri 10:00]\n:END:\n")
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (dolist (guard '(claude-code-ide-org--review-applying
+                     claude-code-ide-org--auto-promote-active))
+      (claude-code-ide-org--at-id
+       "test-promo-1"
+       (lambda ()
+         (eval `(let ((,guard t))
+                  (claude-code-ide-org--trigger-auto-promote-sole-todo nil))
+               t)))
+      (should (equal "TODO"
+                     (claude-code-ide-org--at-id
+                      "test-promo-1" (lambda () (org-get-todo-state))))))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here

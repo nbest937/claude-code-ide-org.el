@@ -2763,6 +2763,23 @@ equivalent line by hand instead."
              (format "Auto-demoted: superseded by sibling %s becoming NEXT."
                      reference)))))))))
 
+(defvar claude-code-ide-org--auto-promote-active nil
+  "Re-entrancy guard for `claude-code-ide-org--trigger-auto-promote-sole-todo'.
+
+Bound to t around that function's own `org-todo' call.  `org-todo' fires
+`org-trigger-hook', which is that function, so without this the
+promotion re-enters itself on the group it has just changed.
+
+Distinct from `claude-code-ide-org--review-applying', which suppresses
+the promotion for a whole apply batch so it can be settled once
+afterwards.  That one is deliberately *unbound* during the settle phase,
+which is precisely when this one is needed -- the two are not
+substitutes and the absence of this one is what let a single apply make
+1201 mutations across 114 headings (TODO.org :ID: filed 2026-08-24).
+
+Modelled on `claude-code-ide-org--auto-clock-in-active', which guards
+the sibling trigger against the same shape.")
+
 (defvar claude-code-ide-org--review-applying nil
   "Non-nil while `claude-code-ide-org--review-apply' is working through a
 batch, and read only by `claude-code-ide-org--trigger-auto-promote-sole-todo'.
@@ -2830,7 +2847,8 @@ into the container's own sole remaining child; no evidence has been
 gathered either way, so this promotes nothing, matching the honest-nil
 argument `claude-code-ide-org--review-suggest-heading' makes for the
 same class of refusal."
-  (unless claude-code-ide-org--review-applying
+  (unless (or claude-code-ide-org--review-applying
+              claude-code-ide-org--auto-promote-active)
     (let (todo-markers next-p (group-size 0))
       (claude-code-ide-org--map-siblings
        (lambda ()
@@ -2842,7 +2860,29 @@ same class of refusal."
       (when (and (> group-size 1) (not next-p) (= (length todo-markers) 1))
         (org-with-point-at (car todo-markers)
           (unless (claude-code-ide-org--container-heading-p)
-            (let ((org-inhibit-logging t)) (org-todo "NEXT"))
+            ;; Bound around this call and nothing else. `org-todo' fires
+            ;; `org-trigger-hook', which is this function -- so without
+            ;; the binding the promotion re-enters itself, promotes in
+            ;; the newly-promoted heading's group, and repeats.
+            ;;
+            ;; `--review-applying' does NOT cover this. It is bound only
+            ;; around the apply loop and deliberately unbound during
+            ;; `--review-settle-auto-promote', which is the whole point
+            ;; of suppress-then-settle -- so the settle phase ran with
+            ;; no re-entrancy protection at all. Measured 2026-08-24 on
+            ;; one real apply: 1201 mutations across 114 headings in
+            ;; nine seconds, against twelve queued state changes,
+            ;; sustained at ~240 writes per second. 50 of them landed on
+            ;; level-1 categories, because once the cascade writes a
+            ;; keyword onto one, the level-1 sibling group satisfies the
+            ;; promotion's own condition and feeds it.
+            ;;
+            ;; Exactly the shape `claude-code-ide-org--auto-clock-in-active'
+            ;; already guards for `--trigger-auto-clock-in'. That one had
+            ;; it from the start; this one never got the equivalent.
+            (let ((claude-code-ide-org--auto-promote-active t)
+                  (org-inhibit-logging t))
+              (org-todo "NEXT"))
             (claude-code-ide-org--append-to-drawer
              "LOGBOOK"
              (claude-code-ide-org--format-log-state-line
