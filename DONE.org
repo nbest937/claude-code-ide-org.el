@@ -6,6 +6,7 @@ Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 
 * Skill logic
 
+
 ** DONE org_outline's scoped mode reports satisfied blockers as [blocked], because org-map-entries narrows :code:
 CLOSED: [2026-08-15 Sat 18:59]
 :PROPERTIES:
@@ -116,6 +117,7 @@ tools inherit the same narrowing through
 well beyond =org_outline=. Nothing observed, nothing checked — the
 sweep belongs in its own pass rather than smuggled into a one-form fix.
 
+
 ** DONE Implement the ten pending MCP-tool tasks in parallel worktrees :code:
 :PROPERTIES:
 :ID:       3d862c6c-6d03-4fe9-9923-067966ef943a
@@ -169,6 +171,7 @@ subagents in isolated worktrees cannot safely touch — is exactly the
 problem [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]'s event
 queue replaced. The worktree orchestration still stands; the clocking
 discipline around it does not.
+
 
 ** DONE Rework org_capture: bare heading, :CREATED:, and a placement target :code:
 CLOSED: [2026-08-11 Tue 21:03]
@@ -370,6 +373,7 @@ for immediate =:ID:= registration. Build the smallest thing that makes
 it correct, not a parameter surface sized as though it were the primary
 way headings get made.
 
+
 ** DONE Add org_outline, a compact structural index of an org file :code:
 CLOSED: [2026-08-11 Tue 18:26]
 :PROPERTIES:
@@ -554,6 +558,7 @@ because the old code marked *everything* blocked and so matched the
 positive cases by accident — kept as pins, not counted as evidence.
 Live, the real TODO.org went from 10 =[blocked]= markers to 0.
 
+
 ** CANCELLED org_capture omits the :CREATED: property its own convention requires :code:
 CLOSED: [2026-08-11 Tue 18:19]
 :PROPERTIES:
@@ -615,6 +620,7 @@ separately meant editing that string three times. This heading stays in
 place rather than being deleted because five other headings link to it;
 the analysis above is still the reference for *why* =:CREATED:= is owed
 and how to verify it, and =47c027d2= carries the work.
+
 
 ** DONE Check for a modified Emacs buffer before text-editing a tracked org file :code:
 CLOSED: [2026-08-11 Tue 16:47]
@@ -711,6 +717,7 @@ trigger-matching, which this project's engineering practices explicitly
 exempt from deterministic testing. What is verified is that the content
 is correct when read.
 
+
 ** DONE Add the (t!) logging marker to TODO in the #+TODO: line :code:
 CLOSED: [2026-08-11 Tue 16:18]
 :PROPERTIES:
@@ -746,6 +753,7 @@ no error was raised.
 *Done 2026-08-11:* =TODO= → =TODO(t!)= on line 1. One character. The
 blast radius is every future =TODO= transition gaining a =:LOGBOOK:=
 line, which is the point.
+
 
 ** DONE Org skill: parallelize background planning across the NEXT/TODO backlog, without touching the shared clock :code:
 :PROPERTIES:
@@ -866,6 +874,7 @@ heading via =emacsclient=: confirmed the Plan link and a
 or TODO-state change occurs, and a second call with a different
 plan-file path does not duplicate the Plan link.
 
+
 ** DONE Add a PLANNING TODO state, driven by the ExitPlanMode matcher :code:
 :PROPERTIES:
 :ID:       b95b9fba-f78e-48fe-8546-988709cce309
@@ -956,6 +965,7 @@ in CLAUDE.md's "State transition rules" section (the "Cross-session
 guard" paragraph, CLAUDE.md:193-196) rather than in this heading's own
 body. Both would require a second concurrent session or a plan
 rejection to trigger, neither of which this pass attempted.
+
 
 ** DONE Enforce a single NEXT action per level of the task tree :code:
 :PROPERTIES:
@@ -1049,6 +1059,8 @@ for evidence of this change.
 =NEXT= promotion in these files so far has happened with no sibling
 holding =NEXT=. The two "Auto-demoted" strings in TODO.org are prose in
 outcome notes, not logged transitions.
+
+
 ** DONE Adopt org's native !/@ state-change logging, guarded by org-inhibit-logging :code:
 :PROPERTIES:
 :ID:       04d0e7d5-ab6b-4972-925d-d517484c7595
@@ -1118,6 +1130,7 @@ now reports success correctly for both calls, with the combined
 =CANCELLED= on the same heading both succeed with no =*Org Note*=
 buffer ever created.
 
+
 ** DONE org_query :code:
 :PROPERTIES:
 :ID:       4ae3cdef-98b5-4361-818e-aef3491f2fb8
@@ -1167,6 +1180,7 @@ tool never exposes that path.
   to =main= instead, per CLAUDE.md's feature-branch rule explicitly
   exempting "small doc/TODO edits."
 
+
 ** DONE org_clock_report :code:
 :PROPERTIES:
 :ID:       26215a14-6ec9-43a7-981b-5c8e888e65fd
@@ -1208,6 +1222,7 @@ in- and out-of-range, =:block "today"= — the test that caught the
 leak bug above — unknown =block= error, unknown =:id= error, no-args
 unrestricted case). =bin/test= 40/40 at merge.
 
+
 ** DONE org_capture :code:
 :PROPERTIES:
 :ID:       405e05b6-dc0c-42c1-99ce-7a94d266ca6d
@@ -1242,6 +1257,7 @@ agenda-files rescan, which isn't guaranteed. Added the call plus a
 regression test that isolates it (=org-agenda-files= bound to nil) to
 prove the explicit registration, not a rescan, is what makes the ID
 resolve. 4 ERT tests added in total; =bin/test= 37/37 at merge.
+
 
 ** DONE org_refile :code:
 :PROPERTIES:
@@ -1278,6 +1294,7 @@ can't turn this into an interactive prompt. 5 ERT tests added
 unresolvable target, unresolvable source, refile-into-own-subtree
 error). =bin/test= 44/44 at merge.
 
+
 ** DONE org_sort_children / org_move_sibling :code:
 :PROPERTIES:
 :ID:       aa6ee083-0bb8-4345-b6ef-f10402cc2c78
@@ -1301,7 +1318,9 @@ have alpha order and todo-keyword order agree, which would have let a
 mis-wired sort-type mapping pass silently — fixed by choosing names/
 keywords that disagree. =bin/test= 39/39 at merge.
 
+
 * Clock lifecycle & visibility
+
 
 ** DONE [3/3] Stop treating an =:ID:= as guaranteed to resolve :code:
 CLOSED: [2026-08-17 Mon 15:01]
@@ -1483,7 +1502,6 @@ look identical through =org-id-find= and are not the same defect.
 apart, which is an argument for it.
 
 
-
 *** DONE =org-with-point-at= on a nil marker runs its body in the wrong buffer :code:
 CLOSED: [2026-08-17 Mon 14:15]
 :PROPERTIES:
@@ -1530,6 +1548,7 @@ marker first, enter =org-with-point-at= only when it is non-nil.
 operations, hand edits, and other sessions applying their queues, none of
 which this module can hook. Freshness is not achievable here, so
 tolerating nil is required regardless of what else is done.
+
 
 *** DONE Surface the count of unresolvable =:ID:=s when the review buffer opens :code:
 CLOSED: [2026-08-17 Mon 14:56]
@@ -1610,7 +1629,6 @@ file actually contains — which is an argument for this approach beyond
 its speed.
 
 
-
 ** DONE Lead review buffer group headings with the =:ID:= prefix :code:
 CLOSED: [2026-08-17 Mon 14:19]
 :PROPERTIES:
@@ -1677,6 +1695,7 @@ it is unreachable. Resolving through =org-id-find= directly removes the
 error-string sniffing and cannot fall into
 [[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]]'s nil-marker trap.
 
+
 ** DONE The assignment dialog's proximity ranking is discarded by Vertico :code:
 CLOSED: [2026-08-17 Mon 14:17]
 :PROPERTIES:
@@ -1718,6 +1737,7 @@ Excluding old or DONE candidates is exactly what
 [[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]] was filed against.
 Ordering gets the same practical result with no cliff, since everything
 stays reachable by typing.
+
 
 ** DONE Apply discards decisions on the items it did not apply :code:
 CLOSED: [2026-08-17 Mon 09:32]
@@ -1780,6 +1800,7 @@ on 2026-08-17 to say what it discards in exchange.
 *Consequence for the human:* the "assign everything, then apply once"
 discipline is no longer necessary. Assign a few, apply, continue — the
 rhythm the backlog actually invites — and nothing accumulates risk.
+
 
 ** DONE Dismissing an item discards every unapplied assignment in the review session :code:
 CLOSED: [2026-08-17 Mon 09:11]
@@ -1879,6 +1900,7 @@ judgement is not. Every command that rebuilds from the queue is trading
 the expensive thing for the cheap one, and only =g= should be allowed to
 make that trade.
 
+
 ** DONE Route review-buffer commands through one mutate-render-restore path :code:
 CLOSED: [2026-08-17 Mon 09:11]
 :PROPERTIES:
@@ -1934,6 +1956,8 @@ in place would risk a view that disagrees with the file. Dismiss had no
 such excuse: it had already written its dismissal to the queue. Recorded
 on [[id:73cd5a1b-9b4f-409d-9aab-ffc6ea736ae5][73cd5a1b]] rather than
 fixed blind.
+
+
 ** DONE Assign and interval-edit send point to the top of the review buffer :code:
 CLOSED: [2026-08-17 Mon 09:04]
 :PROPERTIES:
@@ -1987,6 +2011,7 @@ entries, 7 unassignable, list returns exactly 140 — 13 had been missing.
 *The pattern worth carrying forward:* both halves were assertions the
 code made about itself in prose — "kept, absence of evidence rules
 nothing out" — that the code did not honour. Neither was found by review.
+
 
 ** DONE Assign excludes headings created after the span, which is the normal case not an impossibility :code:
 CLOSED: [2026-08-17 Mon 08:41]
@@ -2246,6 +2271,7 @@ of 0d055205 and it would have been easy to repeat here.
 Overlap collapses to zero either way, so a heading clocked for one minute
 inside the span ties with one clocked throughout it. No evidence yet that
 this matters; recorded rather than guessed at.
+
 
 ** DONE [31/31] Refactor clock/TODO-state driving to an append-only event queue + interactive batch-apply review :code:
 CLOSED: [2026-08-15 Sat 19:02]
@@ -2734,6 +2760,8 @@ from what shipped in four places:
   [[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]]; the conclusion
   still holds but the reason cited for it, and the =config.el:900/991=
   line references, do not.
+
+
 *** DONE Rework the MCP tool / hook write paths to append-only :code:
 CLOSED: [2026-08-11 Tue 16:41]
 :PROPERTIES:
@@ -3031,6 +3059,8 @@ un-appliable queue item. Recorded rather than worked around, since
 "what closing a heading means when the clock is a queued concept" is a
 real gap in the transition rules that
 [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] should settle.
+
+
 *** DONE Build the interactive review-and-apply Emacs command :code:
 CLOSED: [2026-08-11 Tue 12:14]
 :PROPERTIES:
@@ -3213,6 +3243,8 @@ their own headings rather than holding this one open:
 Neither blocks [[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]]:
 the cutover needs a command that applies queued events correctly, which
 this is, not a comfortable one.
+
+
 *** DONE Root-cause how apply wrote a DONE nobody queued, onto the wrong heading :code:
 :PROPERTIES:
 :ID:       3d93021d-1d8a-4657-bc5c-77734f91fb9d
@@ -3300,6 +3332,7 @@ files. This was one bug of five found by a single interactive pass, and
 [[id:f9f61c04-150b-4ee7-96c9-582cf2bda95a][f9f61c04]] — replaying state
 events reality has moved past — is still open and still writes
 plausible-looking wrong history.
+
 
 *** DONE Apply must not replay a state event that reality has moved past :code:
 CLOSED: [2026-08-11 Tue 12:06]
@@ -3496,6 +3529,8 @@ buffer is full of items that are stale purely because the tool already
 applied them live, and confirming a stale item writes plausible history
 that is wrong. Both disappear at the cutover; until then, refusing is
 almost always the right answer.
+
+
 *** DONE Sort :LOGBOOK: chronologically, keeping notes with their continuations :code:
 CLOSED: [2026-08-12 Wed 17:01]
 :PROPERTIES:
@@ -3583,6 +3618,7 @@ between consolidations. Nothing runs consolidation automatically now
 that it is off the clock-out path, so in practice a drawer is sorted
 when someone asks.
 
+
 *** DONE Add a read-only MCP tool to inspect and summarize the pending queue :code:
 CLOSED: [2026-08-12 Wed 16:55]
 :PROPERTIES:
@@ -3648,6 +3684,7 @@ other tool here holds. Live-reloaded and run against the real queue.
 CLAUDE.md's MCP tool table gained a row — a factual addition, not part
 of [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]]'s rewrite,
 which still owns the prose around it.
+
 
 *** CANCELLED Design a read-time overlay for org_query/org_clock_report against the pending queue :code:
 :PROPERTIES:
@@ -3719,6 +3756,7 @@ decision (bullet 4) belongs to
 [[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]'s apply-time
 reconciliation, which is where overlapping intervals actually have to
 be resolved — it survives this cancellation, it just doesn't live here.
+
 
 *** DONE Support per-subagent activity intervals via a compound (session_id, agent_id) key :code:
 CLOSED: [2026-08-13 Thu 11:15]
@@ -3890,6 +3928,7 @@ only as prose in this heading. That belongs to
 [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]]'s rewrite —
 recorded here so it is not lost when this heading is archived.
 
+
 *** DONE Verify org's clock/logging APIs actually support backdated timestamps for batch apply-time backfill :code:
 :PROPERTIES:
 :ID:       3d576d29-747f-40b9-a5b3-ecc76679daad
@@ -3986,6 +4025,7 @@ trigger during apply, is now a design requirement, not a nicety.
 enforcement is "not built yet." It is — four functions are live on
 =org-trigger-hook=. Fold that correction into
 [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]].)
+
 
 *** DONE Survey org's own API for built-in mechanisms we may have overlooked or dismissed too quickly :code:
 CLOSED: [2026-08-14 Fri 13:36]
@@ -4147,6 +4187,8 @@ because this project has repeatedly built bespoke machinery without
 doing so — held up: it did not overturn the architecture, but it did
 find one real defect and it did stop a migration that would have
 introduced =nil= bounds into working code.
+
+
 *** DONE The drawer reader gives up on a decoy where the writer loops past it :code:
 CLOSED: [2026-08-14 Fri 14:09]
 :PROPERTIES:
@@ -4236,6 +4278,7 @@ character region.
 real drawer — but the cost of the fix was one helper and the removal of
 two duplicated searches, so the argument for waiting for a live incident
 was weak.
+
 
 *** DONE Decide the fate of the stale-interval recovery feature, whose premise this refactor removes :code:
 CLOSED: [2026-08-14 Fri 13:45]
@@ -4399,6 +4442,7 @@ removing the retired one. Separately, CLAUDE.md still shows
 actually installs =claude-code-ide-org--clock-out-if-clocking=. That one
 is left for the rewrite, since it is not this heading's to fix, but it is
 load-bearing for the argument above about clean exits.
+
 
 *** DONE Decide whether the :SESSIONS: drawer and its machinery survive the refactor :code:
 CLOSED: [2026-08-11 Tue 11:48]
@@ -4827,6 +4871,7 @@ that participates in attribution is not an audit trail. If a failed-call
 record is ever wanted, it needs a shape the reader ignores — a distinct
 =kind=, not a normal event with a bad =:ID:=.
 
+
 *** DONE consolidate-history destroys reviewed intervals minutes after apply writes them :code:
 CLOSED: [2026-08-10 Mon 18:31]
 :PROPERTIES:
@@ -4977,6 +5022,7 @@ newest-first position, so the annotation and the arithmetic agree again.
 returns to =:LOGBOOK:= until
 [[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]] stops per-turn
 clocking altogether. That is the thing to watch.
+
 
 *** DONE Let the review buffer assign unattributed guideposts to a heading :code:
 CLOSED: [2026-08-13 Thu 14:10]
@@ -5259,6 +5305,8 @@ forbidding consolidation at apply is stale).
 reviewable against 3.6 hours then recorded. 23 spans, not 316
 guideposts — the workload objection that nearly sank this heading
 dissolved once measured.
+
+
 *** DONE Make ingestion idempotent and archive drained queue files rather than deleting them :code:
 CLOSED: [2026-08-13 Thu 15:57]
 :PROPERTIES:
@@ -5522,6 +5570,7 @@ went from *3.6 hours* before spans existed to *20.9 hours* across 53
 intervals. The live queue holds one file — the session still running —
 and seven are archived, restorable, and no longer in anyone's way.
 
+
 *** DONE Review-buffer interaction fixes, for after the cutover :code:
 CLOSED: [2026-08-12 Wed 16:13]
 :PROPERTIES:
@@ -5599,6 +5648,7 @@ Live-reloaded and the real queue rendered: two-line header, new bindings
 resolving. Note =claude-code-ide-org-review-toggle= remains =fboundp= in
 the running image — =load-file= does not unbind a deleted function — but
 it is gone from source and nothing binds it.
+
 
 *** DONE A read-only target buffer costs the human their whole review pass :code:
 CLOSED: [2026-08-12 Wed 16:09]
@@ -5680,6 +5730,7 @@ live prompt — happened for real on 2026-08-12, during
 and the apply that followed it. The pre-flight named =TODO.org=, cleared
 it on a yes, and the apply landed. Everything this heading built is now
 exercised by a person, not a stub.
+
 
 *** DONE Decide how the stale check reads a chain of transitions in one batch :code:
 CLOSED: [2026-08-12 Wed 10:02]
@@ -5845,6 +5896,7 @@ to WAIT left the subject the sole TODO of its sibling group, so
 it to NEXT behind the test's back. The test now carries a third sibling
 and says why.
 
+
 *** DONE The review buffer has no way to dismiss an item you will never apply :code:
 CLOSED: [2026-08-12 Wed 10:02]
 :PROPERTIES:
@@ -5940,6 +5992,7 @@ file and so created an empty =386e84cc-….applied= that had not existed.
 It reads ={"applied":[],"dismissed":{}}=, which the reader treats
 exactly as a missing file. Not cleaned up — the delete was declined.
 
+
 *** DONE Restore the read-only flag after review-apply clears it :code:
 CLOSED: [2026-08-12 Wed 10:02]
 :PROPERTIES:
@@ -6006,6 +6059,7 @@ queued =DONE= transitions into =TODO.org= at 10:02 with the fix loaded.
 That apply had to make the buffer writable to land, and =TODO.org= was
 read-only again afterwards — with the user confirming they did not
 re-set it by hand. That is the whole loop: borrowed, written, returned.
+
 
 *** DONE Two display defects in the review buffer's rendering of a failed item :code:
 CLOSED: [2026-08-12 Wed 16:13]
@@ -6074,6 +6128,8 @@ and also why it was never checked before being written down. Both
 behaviors are now pinned by tests, including one asserting the rendered
 title contains no backslash, so a future =%S= cannot introduce the
 defect this heading believed it had found.
+
+
 *** DONE Queue attribution is session-scoped, so concurrent subagents lose intervals :code:
 CLOSED: [2026-08-13 Thu 09:46]
 :PROPERTIES:
@@ -6231,6 +6287,7 @@ agenda. Nothing detects this class of thing: a fix that stops new bad
 data does not clean up old, and no test asserts over the contents of
 :LOGBOOK: drawers in the real file — only over fixtures.
 
+
 *** DONE Apply's clock pair has no unwind-protect: a failed clock_out fabricates a huge interval :code:
 CLOSED: [2026-08-12 Wed 22:38]
 :PROPERTIES:
@@ -6380,6 +6437,8 @@ One further path worth noting, not fixed here:
 written (org-clock.el:~1898). A signal from it would leave a correct
 interval plus a failed item — a different and milder shape than the one
 fixed, but it would still mark the item failed while its write stood.
+
+
 *** CANCELLED Apply writes headless state notes -- RETRACTED, a grep artifact :code:
 CLOSED: [2026-08-12 Wed 19:45]
 :PROPERTIES:
@@ -6447,6 +6506,8 @@ boundaries, a scratch file built from documentation instead of the real
 header — over the artifact itself. The file said the opposite each
 time, and reading it directly took one command. Prefer the primary
 artifact; treat any filter as a hypothesis about what it hides.
+
+
 *** DONE An assigned span writes a label-less annotation line :code:
 CLOSED: [2026-08-13 Thu 16:08]
 :PROPERTIES:
@@ -6519,6 +6580,7 @@ the first real one read
 =- <2026-08-10 Mon 12:36>--<2026-08-10 Mon 12:59> assigned at review=.
 Fixed going forward only, at the user's instruction; the 17 already
 written stand as they are.
+
 
 *** DONE Reconsider consolidating at apply: the rounding hazard that forbade it is retired :code:
 CLOSED: [2026-08-13 Thu 16:41]
@@ -6626,6 +6688,8 @@ inverted. The fixtures had it backwards and asserted a property that was
 already true. Caught by stashing =config.el= and re-running — the check
 that had been written into a memory minutes earlier, and which found its
 first defect immediately.
+
+
 *** DONE Editing a span's interval does not re-scope its events, so truncating loses the remainder :code:
 CLOSED: [2026-08-13 Thu 16:08]
 :PROPERTIES:
@@ -6733,6 +6797,8 @@ remainder.
 truncate, assign, repeat — which
 [[id:3d0487f4-b8f8-451c-88bf-ab537663cbd0][3d0487f4]] had listed as
 explicitly out of scope for v1.
+
+
 ** DONE pause/resume cannot see a turn blocked on a permission prompt :code:
 :PROPERTIES:
 :ID:       f4e628ce-e653-429a-8f3c-0f5d4241b139
@@ -7107,6 +7173,7 @@ An epic that absorbs every defect found in the code it produced can
 never close, and [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]]
 is waiting on this one closing.
 
+
 ** DONE Container headings should change state without opening a clock :code:
 CLOSED: [2026-08-14 Fri 12:35]
 :PROPERTIES:
@@ -7469,6 +7536,7 @@ critical — was falsified on first contact. Whether gap lines actually
 induce evaluation is unknown until the next batch is reviewed, and the
 honest test is to ask again afterwards rather than to assume.
 
+
 ** CANCELLED Reorder :SESSIONS: entries to match :LOGBOOK: ordering :code:
 CLOSED: [2026-08-12 Wed 17:37]
 :PROPERTIES:
@@ -7532,6 +7600,7 @@ the *surviving* drawer should use, was answered separately and shipped
 by [[id:af7d3687-6d1e-4480-a9e2-df772785713f][af7d3687]] (commit
 =4d2dcab=): one *ascending* timeline across every entry style — the
 opposite of the newest-first convention this heading proposed matching.
+
 
 ** CANCELLED session-resume blindly inherits any session's last-clocked heading :code:
 CLOSED: [2026-08-12 Wed 17:37]
@@ -7613,6 +7682,7 @@ comes from the surrounding =clock_in=/=clock_out= events at review time.
 commit =220ba78=); the hook script's own header names this heading as
 the bug it removed. The failure mode documented here remains the
 clearest statement of why that cutover was worth doing.
+
 
 ** CANCELLED org_clock_in doesn't record clock ownership, unlike session-resume :code:
 CLOSED: [2026-08-12 Wed 17:37]
@@ -7705,6 +7775,7 @@ filename — so attribution is recorded per event and survives an Emacs
 restart, which no global variable did. Caveat worth carrying forward:
 as of 2026-08-12 the =agent_id=/=agent_type= fields have never been
 populated in 347 events, so that half is designed but unexercised.
+
 
 ** CANCELLED Audit for clock/session bookkeeping noise before committing during a clocking-suppressed session :code:
 CLOSED: [2026-08-12 Wed 17:37]
@@ -7834,6 +7905,7 @@ single-session half and
 one, which found the real hazard to be the shared =.git/index=, not
 drawer deltas: a different mechanism from the one hypothesised here.
 
+
 ** DONE consolidate-history's :LOGBOOK: rewrite silently deletes non-CLOCK lines :code:
 :PROPERTIES:
 :ID:       ba8249c1-28cd-4ff1-918b-4b8439345d9a
@@ -7889,6 +7961,7 @@ a real in-situ =consolidate-history= pass. Scope grew one sibling
 during the fix: =:SESSIONS:= consolidation had the same bug class
 and was silently eating =Background-planned= write-backs; fixed
 and regression-tested in the same pass.
+
 
 ** DONE Concurrent Claude Code sessions share one global org-clock with no session identity :code:
 :PROPERTIES:
@@ -7955,6 +8028,7 @@ with the clock left untouched and still owned by A; session A then
 paused its own clock normally, with the owner correctly clearing
 afterward.
 
+
 ** DONE org-clock-out-remove-zero-time-clocks silently erases short CLOCK intervals :code:
 :PROPERTIES:
 :ID:       293ac49e-3324-421c-8495-de1a46fc04ac
@@ -8002,6 +8076,7 @@ against a scratch heading): a same-minute clock-in/out under
 interval correctly dropped by this project's own logic, no crash, no
 premature deletion.
 
+
 ** DONE Enforce the transition rules :code:
 :PROPERTIES:
 :ID:       39b08ecd-6350-48a2-b169-98535b626ac7
@@ -8036,6 +8111,7 @@ exists to add. =config-test.el= has four dedicated regression tests,
 including one that bypasses the wrapper entirely (a bare =org-todo=
 call) to prove the enforcement lives in org itself. =bin/test= passes
 79/79.
+
 
 ** DONE session-resume can reopen a clock on an already-DONE heading :code:
 :PROPERTIES:
@@ -8076,6 +8152,7 @@ interrupted this session. While starting this task, surfaced a
 separate, previously-untracked gap — two concurrent Claude Code
 sessions share one global org-clock with no session identity — spun
 off as its own heading below rather than folded into this fix.
+
 
 ** DONE Auto-consolidate SESSIONS/LOGBOOK on the fly :code:
 :PROPERTIES:
@@ -8127,6 +8204,7 @@ already exercise that exact boundary. The main remaining risk is
 purely mechanical: forgetting to scope the on-the-fly call to *only*
 the heading that was just clocked out of.
 
+
 ** DONE Consolidate historical SESSIONS/LOGBOOK entries :code:
 :PROPERTIES:
 :CREATED:  [2026-07-28 Tue 13:01]
@@ -8153,6 +8231,7 @@ min-to-max span. Implemented as a reusable elisp function rather than a
 throwaway script, so the same logic can back the on-the-fly version
 scoped separately — see "Auto-consolidate SESSIONS/LOGBOOK on the fly"
 under Clock lifecycle & visibility.
+
 
 ** DONE PreToolUse transition guard :code:
 :PROPERTIES:
@@ -8186,6 +8265,7 @@ hook config is only read at session start; that claim needs revisiting
 (=SessionStart= hooks themselves are the one category that genuinely
 can't be re-triggered mid-session, since starting a session is the
 event).
+
 
 ** DONE Clock-change notifications :code:
 :PROPERTIES:
@@ -8229,6 +8309,7 @@ is stale. (See the "Tool-call audit log" entry below, and CLAUDE.md's
 stale-interval-recovery section, for why disk-level checks
 deliberately scan file *text* instead.)
 
+
 ** DONE Surface current clock state :code:
 :PROPERTIES:
 :ID:       1a2963ac-ea60-441d-a348-7db3b9e894e8
@@ -8252,6 +8333,7 @@ temp dir, since the many pre-existing clock-in/out tests were
 otherwise incidentally writing a stray =clock-status.json= into the
 real module directory on every =bin/test= run. =bin/test= 71/71 at
 merge, no deviations from the plan.
+
 
 ** DONE org-trigger-hook / org-blocker-hook :code:
 :PROPERTIES:
@@ -8293,6 +8375,7 @@ trigger fires on bare =org-todo= bypassing the wrapper, trigger skips
 a redundant clock-in, trigger doesn't fire for non-DOING states).
 =bin/test= 39/39 at merge.
 
+
 ** DONE Extend config-test.el :code:
 :PROPERTIES:
 :ID:       799b14be-6849-4e22-8a76-4e214d8a25fe
@@ -8319,7 +8402,9 @@ pass count.
 structurally cannot test the PreToolUse guard script — that needs
 its own separate test vehicle, scoped as a sibling deliverable.
 
+
 * Observability
+
 
 ** DONE Retire the 55 active annotations apply wrote before the agenda-visibility fix :code:
 CLOSED: [2026-08-15 Sat 16:57]
@@ -8456,7 +8541,6 @@ an empty agenda rather than one full of mislabelled agent spans, which
 was the point.
 
 
-
 ** DONE The agenda is for human attention; the queue records agent activity :code:
 :PROPERTIES:
 :ID:       b8e6007a-ae13-4b13-bb2e-a5df39435af0
@@ -8530,6 +8614,7 @@ before it, this looked like it wanted a new event kind.
 threshold cannot reach — a turn stalled on a permission prompt emits no
 =pause=, so the *agent* layer claims activity that did not happen. That
 is a defect in the precise layer and this decision does not touch it.
+
 
 ** DONE Report abandoned DOING leaves at session start, not only WAIT :code:
 CLOSED: [2026-08-14 Fri 13:31]
@@ -8624,6 +8709,8 @@ value shows up only the next time a leaf is abandoned overnight, and
 =c5b02503='s ceiling still applies — a session has to relay it. The
 honest check is to look at the first session-start report that carries a
 =DOING, not clocked= line and ask whether it changed anything.
+
+
 ** DONE Tool-call audit log :code:
 :PROPERTIES:
 :ID:       008e7504-e9df-4573-875c-4d6ec653b72f
@@ -8674,6 +8761,7 @@ directly-callable =claude-code-ide-org--audit-flush= every other test
 uses. =bin/test= 76/76 at merge (77/77 after the =org_clock_in= fix's
 own additional test).
 
+
 ** DONE SessionStart context hook :code:
 :PROPERTIES:
 :ID:       f2b003af-b91c-4764-ae86-b5564429c92d
@@ -8707,13 +8795,18 @@ both/non-WAIT-ignored/buffer-kill-hygiene cases); the shell script's
 piece that could only be exercised by the coordinator post-merge, not
 from the isolated worktree. =bin/test= 68/68 at merge.
 
+
 * Bigger swings
+
 
 * Upstream (claude-code-ide.el)
 
+
 * Documentation
 
+
 * Tooling
+
 
 ** CANCELLED Show the TODO keyword, not just clocked in/out, in the statusline :code:
 CLOSED: [2026-08-14 Fri 14:51]
@@ -8810,6 +8903,7 @@ declined every time it came up.
 all four into clocked in/out — is now the third bullet of =290b6fc5='s
 instruction list. The five =--statusline-task-string= regression tests
 this would have rewritten get rewritten once, there, instead of twice.
+
 
 ** DONE Lint TODO.org's structural conventions with a script :code:
 CLOSED: [2026-08-14 Fri 14:41]
@@ -8988,6 +9082,7 @@ silently could not fire.
 *Left open:* the 11 misplaced-heading reports are surfaced, not
 diagnosed — filed as
 [[id:8d682a5b-1b03-4744-995c-a871a8b40ddc][8d682a5b]].
+
 
 ** DONE emacs is a shell function that silently breaks inline batch verification :code:
 CLOSED: [2026-08-14 Fri 12:17]
@@ -9243,6 +9338,7 @@ line where it needed a substring. Same shape as the drawer-scoped grep
 failures already recorded above: a wrong answer that looks like a
 finding.
 
+
 ** DONE Move the statusline script into the repo :code:
 :PROPERTIES:
 :ID:       caf598a1-2770-4836-a069-3890597b1665
@@ -9295,6 +9391,7 @@ there's no reason it has to stay a personal, undiscoverable setup step.
    copy in play now, and it ships with the repo for anyone who clones
    it, no personal setup step required.
 
+
 ** DONE Case study: apply "maximum Emacs" to the statusline script :code:
 :PROPERTIES:
 :ID:       e202e93d-cfa7-4d0a-8721-8f06428bc1e4
@@ -9335,6 +9432,7 @@ passes 95/95. =.claude/settings.json='s =statusLine.command= updated to
 Live: reloaded =config.el=, ran the exact configured command end-to-end
 against real clock state — correct output, model name and task info
 both present, no fish, no =jq= anywhere in the pipeline.
+
 
 ** DONE Fix org-agenda-files/tracked-files resolving to nothing (agenda + org_query/org_clock_report) :code:
 :PROPERTIES:
@@ -9380,6 +9478,7 @@ both DOING headings instead of "No matches."; the interactive
 =org-todo-list= renders every heading in this file; =org_clock_report=
 returns real clocked time instead of an empty table.
 
+
 ** DONE Bridge Warp's own MCP client to the Emacs tools server :code:
 :PROPERTIES:
 :ID:       6a6d5b4e-0327-4578-a44a-356576870ceb
@@ -9418,6 +9517,7 @@ and has been uninstalled; nothing repo-tracked depends on it. Both
 =.mcp.json= and =.warp/.mcp.json= are kept regardless, even though
 currently identical, as a deliberate seam for the two clients to
 diverge later.
+
 
 ** DONE Discard the Plan-checklist convention; migrate skills to plain-text format :code:
 :PROPERTIES:
@@ -9467,6 +9567,7 @@ promoted from a one-off sequencing note into a standing CLAUDE.md rule
 Verified: =bin/check-org-dev-skill= passes; =grep -n "Plan \["
 TODO.org DONE.org= returns zero matches; =org_query "todo:DOING"= shows
 only this heading while it was active.
+
 
 ** DONE Revisit: does org.skill's checkbox discipline apply to TODO.org itself? :research:code:
 :PROPERTIES:
@@ -9534,6 +9635,7 @@ buffer, so no revert-timing race this rule needs to guard against. See
 TODO.org's "Discard the Plan-checklist convention" heading and its
 linked plan for the full resolution.
 
+
 ** DONE Set git identity :code:
 :PROPERTIES:
 :ID:       51591672-95b9-4092-a037-af7b3fe45fbc
@@ -9549,6 +9651,7 @@ git config user.name "Your Name"
 git config user.email "nbest937@gmail.com"
 #+end_src
 Then ask Claude to finish the commit it already staged.
+
 
 ** DONE org-dev skill :code:
 :PROPERTIES:
@@ -9605,6 +9708,7 @@ everything.
   as-is — no code follow-up needed, recorded here per CLAUDE.md's rule
   to say so explicitly rather than skip silently.)
 
+
 ** DONE Make check-org-dev-skill line-number checks robust to config.el drift :code:
 :PROPERTIES:
 :ID:       9be21b6b-5219-4acd-950a-e04b60d8fe1e
@@ -9645,5 +9749,6 @@ exact line numbers from the doc entirely (e.g. citing the
 pressure altogether, but that's a doc-content trade-off — it makes the
 doc's own reference to readers less precise — left for a separate
 decision rather than made unilaterally here.
+
 
 * Review and planning

@@ -8122,6 +8122,90 @@ stale, and there is nothing to update if nothing remembers."
                       (equal (string-trim target)
                              (org-get-heading t t t t)))))))))
 
+;;; Heading separation (TODO.org :ID: e1284bdb)
+;;
+;; Every heading's content ends with exactly two blank lines before the
+;; next heading, which is what makes a *folded* outline readable: org
+;; hides the blank line between a collapsed subtree and the following
+;; headline unless there are at least `org-cycle-separator-lines' of
+;; them, and that variable is 2 by default. So two blank lines in the
+;; file buys exactly one visible line of air between folded headings,
+;; and one blank line buys none.
+;;
+;; The number is not arbitrary and must not be "tidied" to one: at one,
+;; the folded outline is a solid block of headlines with no grouping cue
+;; at all, which is the state this repo was in -- 33% of TODO.org's
+;; heading gaps conformed, and 9% of DONE.org's.
+
+(defcustom claude-code-ide-org-heading-separator-lines 2
+  "Blank lines to leave at the end of a heading, before the next one.
+
+Defaults to 2 to match `org-cycle-separator-lines', which decides how
+many are needed before org shows one of them in a folded outline.
+Setting this below that variable makes the convention purely cosmetic in
+the file and invisible where it was meant to be seen."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defun claude-code-ide-org-normalize-heading-separation (&optional file dry-run)
+  "Give every heading in FILE exactly N blank lines before the next one.
+
+N is `claude-code-ide-org-heading-separator-lines'.  FILE defaults to
+the archive target's source.  With DRY-RUN non-nil nothing is written.
+
+Touches *only* the run of blank lines immediately preceding a heading.
+Blank lines inside a body -- between paragraphs, inside a drawer, around
+a source block -- are never counted or altered, because the region is
+found by walking back from the next heading and stopping at the first
+non-blank line.  That is the whole safety property: the edit cannot
+reach text.
+
+The final heading in the file is left alone.  There is no following
+heading to separate it from, and normalising it would be a claim about
+trailing whitespace at end of file rather than about outline
+readability.
+
+Returns a summary string."
+  (interactive)
+  (let ((file (or file (claude-code-ide-org--capture-target-file)))
+        (want claude-code-ide-org-heading-separator-lines)
+        (fixed 0) (already 0))
+    (with-current-buffer (find-file-noselect file)
+      (let ((buffer-read-only nil))
+        (org-with-wide-buffer
+         ;; Backwards, so each edit cannot shift the position of a
+         ;; heading not yet visited.
+         (goto-char (point-max))
+         (let (heads)
+           (while (re-search-backward org-heading-regexp nil t)
+             (push (point) heads))
+           ;; `heads' is now ascending; drop the first, which has no
+           ;; predecessor to separate from, and walk the rest in reverse.
+           (dolist (pos (nreverse (cdr heads)))
+             (goto-char pos)
+             (let ((end (point))
+                   (blanks 0))
+               (forward-line -1)
+               (while (and (> (point) (point-min))
+                           (string-empty-p (string-trim
+                                            (buffer-substring-no-properties
+                                             (line-beginning-position)
+                                             (line-end-position)))))
+                 (setq blanks (1+ blanks))
+                 (forward-line -1))
+               (forward-line 1)
+               (if (= blanks want)
+                   (setq already (1+ already))
+                 (setq fixed (1+ fixed))
+                 (unless dry-run
+                   (delete-region (point) end)
+                   (insert (make-string want ?\n))))))))
+        (when (and (not dry-run) (> fixed 0))
+          (save-buffer))))
+    (format "%s: %d heading(s) re-separated, %d already had %d blank line(s).%s"
+            (file-name-nondirectory file) fixed already want
+            (if dry-run "  [dry run -- nothing written]" ""))))
+
 (with-eval-after-load 'claude-code-ide
 
   (claude-code-ide-make-tool

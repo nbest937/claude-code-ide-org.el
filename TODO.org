@@ -8,6 +8,7 @@
 :ARCHIVE:  DONE.org::* Skill logic
 :END:
 
+
 ** MAYBE Org skill: auto-capture and dedupe modification requests against existing TODOs :code:
 :PROPERTIES:
 :ID:       7eb7dd8d-2d9b-4a63-afbd-5878298e42a4
@@ -64,6 +65,7 @@ Open questions deferred to actual planning, not resolved here: how
 or whether the check also needs to search prose for informal
 cross-references that predate this convention, and exactly when in the
 org skill's flow this check should fire.
+
 
 ** MAYBE Make org-blocker-hook actually consult :BLOCKER: :code:
 :PROPERTIES:
@@ -126,6 +128,7 @@ property (documented in the org skill alongside =:BLOCKER:=) is an
 open question for planning — =org-depend= itself implements both, but
 this project may only need one direction enforced.
 
+
 ** MAYBE Org skill: commit a newly-captured TODO immediately, when safe :code:
 :PROPERTIES:
 :ID:       3cb3f955-f10a-47cd-84ab-e629d73ea59d
@@ -173,6 +176,7 @@ open question above ("doesn't get tangled up with other unrelated
 uncommitted changes"). Not merging them here; worth deciding during
 planning whether they should be one task, sequenced, or just
 cross-referenced as they are now.
+
 
 ** TODO Revisit the TODO keyword progression, starting with whether PLANNING earns its keep :code:
 :PROPERTIES:
@@ -509,6 +513,7 @@ nothing real. Revisit if the tool becomes the normal creation path.
 ([[id:d9132c57-9dcf-47e9-ba74-7f5a1ced3ae5][d9132c57]]) can ride this same event rather
 than needing a mechanism of its own — apply would write the creation
 entry exactly as it writes a state transition.
+
 
 ** DONE org_capture's no-target fallback writes a level-1 heading, violating the category convention
 CLOSED: [2026-08-20 Thu 08:42]
@@ -969,6 +974,7 @@ Worth noting the linter caught this and re-reading did not, which is the
 same lesson as the fabricated ID above and the same remedy: mechanical
 checks catch what looks correct.
 
+
 *** TODO org_outline's active_only orphans children of finished headings :code:
 :PROPERTIES:
 :ID:       98908aff-63cc-4b71-b90b-817da361a23b
@@ -1037,6 +1043,8 @@ convention also carries no keyword, no =:ID:= and no tags. Nothing but
 the label as a heading turns each file into one spurious root. Worth
 fixing in the same pass, since both are the same class of bug: the
 format asserting less structure than the reader needs.
+
+
 ** DONE Auto-promote makes a container the next action :code:
 CLOSED: [2026-08-21 Fri 13:16]
 :PROPERTIES:
@@ -1243,8 +1251,6 @@ category it belongs to, purely to make the story expressible.
 *Promoted MAYBE -> TODO on that basis*, by the condition recorded above, six hours after it was written. The story-by-reference composition the flattening enables is filed separately at [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]] rather than folded in here.
 
 
-
-
 ** TODO Compose stories by reference: a checkbox list of id links, blocked on its members :code:research:
 :PROPERTIES:
 :ID:       8ca6541d-0fc7-45a2-a4d3-76e1608f658d
@@ -1320,6 +1326,7 @@ The missing half of [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]], which
 
 *And Claude is how they get evaluated without the chords*, which closes the loop: a view or column spec can be built, run and rendered on request, so muscle memory stops being a precondition for the judgement. That is the founding goal applied to org's own feature set rather than to task edits.
 
+
 ** TODO Moving a heading between files by hand leaves org-id pointing at the old one :code:
 :PROPERTIES:
 :ID:       8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b
@@ -1360,6 +1367,7 @@ outside Emacs entirely, which the first cannot.
 buffer should distinguish "no such :ID: anywhere" from "not where the
 index says", since the two want different responses and currently read
 identically.
+
 
 ** DONE A no-op TODO -> TODO transition should never be queued :code:
 CLOSED: [2026-08-20 Thu 07:38]
@@ -1497,6 +1505,7 @@ Set against it, on the same day: =org_capture='s description states in capital l
 *So the title's framing may be wrong.* This heading asks how the tools are *advertised*. The evidence says advertising is not the lever that moves usage -- a directive in CLAUDE.md is, because it is read at session start rather than at the moment of a call that is never made. If under-use is worth fixing, the intervention to test is a standing rule naming the tool for a situation, not a better =:description=.
 
 *What not to conclude.* Low breadth is not obviously a defect. Sorting a heading's children is genuinely rare, and =org_sort_children='s zero calls may be honest rather than a discovery failure. Deciding which of the six under-used tools deserve a rule, and which are simply niche, is the remaining judgement and is not answered by any of the above.
+
 
 *** TODO An MCP tool accepts arguments it does not have, and says nothing :code:
 :PROPERTIES:
@@ -1659,7 +1668,6 @@ Two insertions at computable positions, never a range replacement, and no bounda
 *This heading is not done.* Its title names the real problem -- =org_amend= can still only append -- and general in-place revision, which *continuous paring* needs, is untouched. What shipped is the separable half the completion transition needs, split out deliberately so [[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]] and [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] stop waiting on the harder one.
 
 
-
 ** TODO Adopt the :PLAN: drawer lifecycle for heading bodies :code:
 :PROPERTIES:
 :ID:       8bcd56f4-22a8-4673-bad6-a99433027b81
@@ -1722,7 +1730,6 @@ Designed by the user 2026-08-21/22. A heading body has two lives, and today they
 Left in place it would have blocked this heading's own =DONE= at apply: =org-depend-block-todo= refuses a =DONE= whose =:BLOCKER:= names a heading still carrying a keyword, and 3063c3e5 is =NEXT=. So the property had gone from a true statement to a false one that would fire as a real refusal.
 
 
-
 ** DONE Rename the WAIT keyword to WAITING, matching the org community's spelling :code:
 CLOSED: [2026-08-20 Thu 16:20]
 :PROPERTIES:
@@ -1752,6 +1759,7 @@ CLOCK: [2026-08-20 Thu 16:42]--[2026-08-20 Thu 16:46] =>  0:04
 
 *And the commit was refused, correctly.* The pre-commit hook linted =clock-template.org= -- staged for the first time ever by this change -- against task-file conventions it was never meant to satisfy, producing six false errors. =bin/lint-org= governs exactly TODO.org and DONE.org; the hook gated every staged =.org=. Fixed by scoping the hook to the linter's own set rather than passing =--no-verify=, in its own commit ahead of this one, with a test that fails when the scoping is reverted. A gate wider than its linter blocks correct work and teaches the bypass habit the hook exists to make unnecessary.
 
+
 * Clock lifecycle & visibility
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Clock lifecycle & visibility
@@ -1761,6 +1769,7 @@ Everything here is specifically about the clock subsystem's
 correctness and observability, as opposed to the general TODO-state
 machine above — three different angles on "make sure the clock is
 never silently wrong."
+
 
 ** TODO Direct file writes to a live org buffer can desync org-clock-marker :code:
 :PROPERTIES:
@@ -1877,6 +1886,7 @@ can carry:
    *keep* =claude-code-ide-org-close-open-interval= rests explicitly on
    this heading — a shipped decision now cites it as a reason.
 
+
 ** MAYBE Idle-based auto clock-out :code:
 :PROPERTIES:
 :ID:       b2ac0353-1e9a-47f7-8add-e0b37994a7af
@@ -1888,6 +1898,7 @@ died mid-DOING without ever reaching org_clock_out.
 
 No config.el/config-test.el changes — there's no wall-clock idle to
 simulate in ERT's scratch-buffer fixtures.
+
 
 ** MAYBE Coarsen :SESSIONS: to session-level, not turn-level :code:
 :PROPERTIES:
@@ -1910,6 +1921,7 @@ always a manual call — auto-detecting day boundaries crosses into
 guessing user intent, exactly the kind of call CLAUDE.md's existing
 rules say only the model/user should make, not a hook.
 
+
 ** MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
 :PROPERTIES:
 :ID:       0465c1d5-a064-4c8f-8082-9b853377ddf6
@@ -1931,6 +1943,7 @@ symlinking =DONE.org= alongside =TODO.org= in =~/org= if/when this
 becomes worth building — it keeps the interactive prospective agenda
 and the retrospective clock-report scope independently correct
 instead of coupled to the same file list.
+
 
 ** MAYBE Worktree-based session partitioning, with a canonical-file caveat :code:
 :PROPERTIES:
@@ -1988,6 +2001,7 @@ Not reopening the conclusion here — just flagging that if/when this
 gets planned, it should be read against that fresh evidence, not just
 the original 2026-07-30 reasoning.
 
+
 ** TODO Stale entries in org-clock's persisted history hang the first clock-in after a restart :code:
 :PROPERTIES:
 :ID:       001fb310-69f7-4417-81be-a224a3bf83e0
@@ -2044,6 +2058,7 @@ Relevant to [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]: a
 hang in the clock path is the exact failure class that refactor exists
 to eliminate, and this one survives the cutover untouched, since the
 apply command clocks in through the same advised =org-clock-in=.
+
 
 ** MAYBE Let the review command ask Claude to explain the ambiguous gaps between guideposts :code:
 :PROPERTIES:
@@ -2808,6 +2823,7 @@ nowhere. Record =REVIEW= as experimental
 ([[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]) rather than as
 settled.
 
+
 *** DONE Remove CLAUDE.md content the org and org-dev skills already own :code:
 :PROPERTIES:
 :ID:       c556a9ed-8e37-4fc3-ab4b-63292837236d
@@ -2957,6 +2973,7 @@ emission stays per-turn, the record stops being per-turn.
 *Verify:* =grep -n -A8 '^## Session tracking' CLAUDE.md= shows no claim
 that any hook pauses or resumes a clock.
 
+
 *** DONE The org skill's state-transition table still describes live clock driving :code:
 CLOSED: [2026-08-21 Fri 12:46]
 :PROPERTIES:
@@ -3026,6 +3043,7 @@ hand in Emacs.
 *Verify:* =grep -n -i container CLAUDE.md= finds it in the transition
 rules, not only in the epic definition.
 
+
 *** DONE The NEXT-nomination rule was taken on as scope and never written :code:
 CLOSED: [2026-08-21 Fri 13:22]
 :PROPERTIES:
@@ -3073,6 +3091,7 @@ returns the rule.
 
 *Also corrected in the same edit, since it was a claim about code changed hours earlier:* CLAUDE.md described =--trigger-auto-promote-sole-todo='s two defects as open and queued. Both shipped that morning, so the paragraph now describes the guards instead.
 
+
 *** TODO CLAUDE.md documents neither span floor, and mis-describes the gap threshold :code:
 :PROPERTIES:
 :ID:       594adec6-4855-470d-8ceb-5fe29bf0c935
@@ -3101,6 +3120,8 @@ nothing.
 
 Blocked in practice on 1 only in the sense that 2 needs its name first;
 1 and 3 can be written today.
+
+
 *** DONE CLAUDE.md says nothing about how to read the tracker at session start :code:
 CLOSED: [2026-08-21 Fri 11:54]
 :PROPERTIES:
@@ -3123,6 +3144,8 @@ Raised by the user: guidance should be =org_outline= first, DONE ignored by refl
 "DONE.org is reference, never orientation" is stronger and more accurate than "archaeological". Every useful DONE.org read on 2026-08-21 was =:ID:=-targeted and none was a survey -- and one of them stopped [[id:a279216c-38db-478c-ba52-ad31c87fbfd9][a279216c]] being filed as a defect when it was [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]]'s deliberate design.
 
 *One exception kept:* "the code is authoritative" holds for implementation state, not for *why* a decision went a given way, which exists only in a body. That is why the load-bearing ones are quoted in CLAUDE.md directly rather than left to a lookup.
+
+
 *** DONE CLAUDE.md contradicts the skills, rules, and memories in four places :code:
 CLOSED: [2026-08-21 Fri 12:45]
 :PROPERTIES:
@@ -3137,6 +3160,8 @@ CLOSED: [2026-08-21 Fri 12:45]
 :END:
 
 *Shipped 2026-08-21* (commit =0ca1363=). Four claims reconciled at source, each verified before writing: the hook safety net is live (five guards read out of =config.el:2792-2795=, gate default =t= at =config.el:2454=), not "not built yet"; deletion-irreversibility rescoped to =plans/= only, matching the org skill; the read-only rule regained its restore-when-done half, which had lived only in a memory file; and =REVIEW= got transition-table rows (clock-wise identical to =WAITING=) after a day in live use with no written semantics. The dangling pointer to a since-deleted "Enforce the transition rules" heading went with the rewrite. The falsified concurrent-session sentence in the =feedback_concurrent_editing= memory was corrected in the same pass (memory dir, outside this repo).
+
+
 *** TODO CLAUDE.md carries dated history that costs every session's context :code:
 :PROPERTIES:
 :ID:       9d009401-93dd-40e5-a243-7a30a8a5bd55
@@ -3148,6 +3173,7 @@ CLOSED: [2026-08-21 Fri 12:45]
 :END:
 
 *Filed 2026-08-21, not done.* CLAUDE.md is ~5,500 words, loaded into every session, and a large share is dated narrative -- retirements, incident stories, won't-dos, measured-on-date facts -- the same disease [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] names in TODO.org bodies, in the one file no session can skip. The rules should stay; the archaeology should live in DONE.org bodies or the relevant heading, with a pointer where the rule needs its provenance. Judgment-heavy prune, so it needs the user in the loop, not a background pass.
+
 
 ** TODO Read power assertions as a review-time attribution signal :code:research:
 :PROPERTIES:
@@ -3194,6 +3220,7 @@ explicitly *not* the =pmset= lead that
 won't-do: that one guessed when a stale clock stopped, this one assigns
 an existing span to a heading at review time. Same data source,
 different question, and only the first was refuted.
+
 
 ** CANCELLED Add a third retention tier for completed work as a chronological changelog :code:
 CLOSED: [2026-08-21 Fri 15:07]
@@ -3522,6 +3549,7 @@ spans that genuinely belong to no task.
 
 *One draft was falsified along the way and the finding is in [[id:25ec37b0-460f-404d-be83-8a4b4d355cdc][25ec37b0]]:* the outline path in =file+olp+datetree= does not nest the tree. Nesting comes from a =:DATE_TREE:= property. Worth knowing before anyone writes the capture template from the template name alone, which is exactly how the first draft went wrong.
 
+
 *** TODO Teach org_capture to target a datetree, with an addressable day node :code:
 :PROPERTIES:
 :ID:       25ec37b0-460f-404d-be83-8a4b4d355cdc
@@ -3565,6 +3593,7 @@ spans that genuinely belong to no task.
 
 *Verified on org 9.6.15* (the batch Emacs =bin/test= runs). The live Emacs is on *9.8.7*; both carry =org-datetree--find-create-group= and the =:DATE_TREE:= lookup, but the split is [[id:1ed7b2b4-a809-4547-b04f-099a3111fc1e][1ed7b2b4]]'s undeclared-dependency gap showing up in practice, and a datetree test will run against the older one.
 
+
 *** TODO Point org-clock-default-task at the day node, and re-point it daily :code:
 :PROPERTIES:
 :ID:       6ae83993-906c-4d8b-b11e-c91be8996962
@@ -3584,6 +3613,7 @@ spans that genuinely belong to no task.
 *It serves the human and not Claude, and that asymmetry should be accepted deliberately rather than discovered.* =org-clock-default-task= is a live-Emacs convenience: clock into it with a keystroke. Claude cannot use it at all -- every clock call here goes through =org_clock_in= with an =:ID:=, and the queue architecture means Claude never touches a live clock in the first place. So this buys *you* one-keystroke meta-work clocking, while Claude still needs the day node resolved to a UUID.
 
 *Do not solve Claude's half here.* Resolving "today's node" to an =:ID:= without pasting a UUID is [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]]'s subject, under [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]]. Building a second lookup here would be the parallel-convention mistake c084553c exists to prevent, one level down.
+
 
 *** DONE bin/lint-org will drown in datetree scaffolding it can never satisfy :code:
 CLOSED: [2026-08-21 Fri 13:20]
@@ -3645,7 +3675,6 @@ Two corrections follow. The year and month nodes fail on *=:ID:=*, an error, bef
 *A second datetree is already visible, and this rule does not cover it.* Measured 2026-08-21, hours after shipping: if DONE.org ever takes an =org-archive-location= of the =datetree/= form, org builds a year/month/day tree there *with no =:DATE_TREE:= property on it* and files entries at *level 4* beneath the day node. Against the rule as written that is four errors per archived item -- three scaffolding nodes with no =:ID:=, plus a level-4 heading that is not a day node.
 
 Not a defect in what shipped: the rule was scoped to the structure that existed, and it correctly refuses a shape nobody has adopted. But it means the exemption is keyed on a property org's own archive path never writes, so "recognise a datetree" and "recognise our =:DATE_TREE:= anchor" are not the same predicate. Whoever takes up [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] or the archive-cadence question should read this rule before choosing an archive location, not after.
-
 
 
 *** NEXT Resolve today's node on demand, never storing or scheduling its ID :code:
@@ -3715,9 +3744,6 @@ This supersedes the "Two callers, and the asymmetry between them is the design" 
 *Now unblocked:* the meta-work spans sitting unassigned in the queue from 08-17, 08-22 and today can be assigned to the category and will file themselves under the right day. That was the practical reason this went first.
 
 
-
-
-
 *** DONE Institute the Review and planning category, with its DATE_TREE and ritual repeater :code:
 CLOSED: [2026-08-21 Fri 13:21]
 :PROPERTIES:
@@ -3776,7 +3802,6 @@ A matching =* Review and planning= must be added to DONE.org in the same edit, o
 *Placement verified against the real file, not a sketch.* A copy was driven through =org-datetree-find-date-create= for two dates months apart. Both landed *inside* the category: =2026-08-22 Saturday= nested under the existing =2026-08 August= in date order, and a new =2026-12 December= after it in month order. The repeater sits at =org-datetree-base-level=, the same level org wants for year nodes, and org skipped it rather than clashing with it.
 
 *One consequence worth knowing before 9575e65b lands.* Org writes day nodes bare, so any node org creates that the resolver has not stamped will fail the lint with =heading has no :ID:=. That is the intended guard, not a gap: a day node without an =:ID:= exists and is unreachable, and the lint now says so loudly instead of the node being silently unusable.
-
 
 
 ** TODO Let a session interject without waiting: advisory locks, or extend the queue to capture/amend :code:
@@ -4088,6 +4113,7 @@ robust to the keyword set changing." The =WAIT= framing in the title is
 vestigial — the keyword was never the load-bearing part, and the title
 should be retitled if this heading is picked up.
 
+
 ** TODO Type a span's annotation at review time, not by hand-editing it after :code:
 :PROPERTIES:
 :ID:       8028e875-3032-4ade-949e-414d9861b928
@@ -4144,6 +4170,7 @@ function returns and adds one prompt. Related to
 [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] by adjacency — that
 heading put the evidence on screen, and this one would capture the
 conclusion the human draws from it — but neither requires the other.
+
 
 ** DOING [10/12] Make the guidepost pipeline produce durations that mean what they say :code:
 :PROPERTIES:
@@ -4215,7 +4242,6 @@ that recurring measurement is *for* needs restating.
 [[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — approved 2026-08-18. Covers all five
 children; each links this same file rather than carrying one of its
 own, following 02aaae22 / c556a9ed.
-
 
 
 *** DONE Background-task notifications write phantom resume guideposts :code:
@@ -4330,7 +4356,6 @@ left there rather than duplicated here.
 =transcript_path= plus an offset in =bin/hooks/queue-append= — is not
 warranted: it would answer a question whose answer no longer changes any
 number.
-
 
 
 *** DONE Two clock mechanisms disagree, and one of them predates the cutover :code:
@@ -4652,13 +4677,6 @@ removed the conflict by removing a mechanism; subtracting removes the
 conflict and keeps both.
 
 
-
-
-
-
-
-
-
 *** DONE The review buffer proposes spans that can only be dismissed :code:
 CLOSED: [2026-08-18 Tue 15:38]
 :PROPERTIES:
@@ -4794,9 +4812,6 @@ turns out wrong in use, the measurement above is the baseline to compare
 against.
 
 
-
-
-
 *** DONE Correct the accumulated record once the aggregator is fixed :code:
 CLOSED: [2026-08-19 Wed 08:05]
 :PROPERTIES:
@@ -4908,7 +4923,6 @@ implementation and had been carried across unexamined — the same
 plan-drift pattern this epic keeps producing.
 
 
-
 *** DONE Decouple live "what is Claude attending to" visibility from the authoritative org clock :code:
 CLOSED: [2026-08-18 Tue 10:16]
 :PROPERTIES:
@@ -5017,6 +5031,8 @@ is labelled as one.
 *Not done here, and deliberately:* the second half of this heading's
 original brief — surfacing pending-review state glanceably in the
 statusline — is untouched. This landed only what step 2 requires.
+
+
 *** DONE The session-start report's "DOING, not clocked" line has stopped discriminating :code:
 CLOSED: [2026-08-21 Fri 08:31]
 :PROPERTIES:
@@ -5086,6 +5102,7 @@ just a mechanical port of the predicate.
 
 *One test changed, and the reason matters more than the wording.* =...-includes-abandoned-doing-leaf= asserted the old string; it now asserts =nothing ever queued for it= and is wrapped in =claude-code-ide-org-test--with-queue=. Without that wrapper it read the user's real =~/.claude/org-updates=, which the report's new input made load-bearing -- a suite that consults live user state can flake on it.
 
+
 *** DONE An unassigned span's group heading renders an error string where a title belongs :code:
 CLOSED: [2026-08-18 Tue 19:47]
 :PROPERTIES:
@@ -5150,6 +5167,7 @@ That is the second fake assertion this practice caught today — the other
 was in [[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]], where a
 window-extension test asserted only that a line looked plausible.
 
+
 *** TODO Concurrent sessions' turns must union, not sum, wherever time is totalled :code:
 :PROPERTIES:
 :ID:       7d739afd-f879-445c-b0b6-65e295585a94
@@ -5210,6 +5228,7 @@ Running it settles the matter the other way. Over the 844-guidepost corpus the d
 That number is an argument about *where*, not *whether*. At 0.5% there is no case for paying for the union at write time, where the cost of being wrong is a CLOCK line that was refused and cannot be recovered. The report-time half is recomputable, reversible, and already written: =claude-code-ide-org--merge-time-intervals= (config.el:973) has carried an "UNWIRED as of 2026-08-10" note for eleven days and does precisely this operation.
 
 *The open question above is deliberately still open.* Its own words -- the CLOCK-line-versus-report-time call "should not be decided by whoever happens to touch this first" -- and the ratification that would have closed it was conditional on a verification that failed. What the measurement adds is a recommendation with a number behind it, not a decision: wire =--merge-time-intervals= wherever a total is taken *across* headings, leave per-heading CLOCK lines written as computed, and let the 0.5% decide whether even that is worth doing now.
+
 
 *** TODO A background job's first turn is bracketed across two session_ids :code:
 :PROPERTIES:
@@ -5290,6 +5309,7 @@ as a question, not a defect.
 
 *One caveat, recorded because the corpus could not test it.* The implementation picks the *latest* open resume when several are candidates, and every case the corpus presented had exactly one. Multi-candidate ambiguity is untested; treat the rule as measured, not as general, and re-check it the first time two sessions have unclosed resumes when a background job's pause lands.
 
+
 *** DONE Name the floor on what gets written, so both floors are knobs :code:
 CLOSED: [2026-08-20 Thu 11:05]
 :PROPERTIES:
@@ -5344,6 +5364,8 @@ rounding incident pointed the other way.
 *Measured for September rather than decided now.* Post-cutover corpus, 283 lines / 36.88 h: 120s drops 23.7% of lines for 3.03% of recorded time; 180s, 40.6% for 7.37%; 300s, 63.6% for 17.71%; 60s drops nothing, confirming the rendering conditions already cover that range. The sweep lives in the docstring and the value belongs to [[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]].
 
 *The measurement that did not replicate is the more useful half.* 96a51c2f recorded 6.5% of recorded time for the same 120s value on 2026-08-18; the same measurement on 2026-08-20 gives 3.03%. No code changed — the corpus grew and the mix shifted. That heading's instruction to re-derive rather than confirm now has a two-day counterexample behind it, and its body was corrected to say so.
+
+
 *** DONE The review buffer predicts a duration org does not write :code:
 CLOSED: [2026-08-21 Fri 07:52]
 :PROPERTIES:
@@ -5392,6 +5414,8 @@ New =claude-code-ide-org--clock-minutes= truncates both endpoints before subtrac
 *Known limit, flagged not chased.* Even corrected, the preview cannot model the already-recorded-interval subtraction apply performs at point, because an unassigned span has no heading to read a drawer from. The truncation fix removes the 25.5% class; that residual is inherent to previewing before assignment.
 
 Mutation-tested three ways -- reverting to raw rounding, truncating only one endpoint, and removing the window extension each fail a distinct test. 329 tests.
+
+
 *** DONE Fifty-six CLOCK lines disagree with their own timestamps :code:
 CLOSED: [2026-08-21 Fri 08:01]
 :PROPERTIES:
@@ -5603,7 +5627,6 @@ gap it named — a heading hand-set to DOING and worked alone going
 untimed — is closed by the trigger being back on.
 
 
-
 ** TODO Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit :code:
 :PROPERTIES:
 :ID:       79c224ab-188a-4ed4-a606-c28ee2cfe72d
@@ -5663,6 +5686,8 @@ this the moment it happened, and is the only option that catches it
 whoever the culprit is. Cheaper and narrower: a hook or a documented
 rule that refuses to discard =TODO.org=/=DONE.org= working-tree changes
 without showing the diff first.
+
+
 ** TODO Decide how far the review-apply cycle can be automated, given the interactive constraint :code:
 :PROPERTIES:
 :ID:       361e2708-8124-4bd1-9c44-f97ca97aca4a
@@ -5686,6 +5711,7 @@ Raised by the user 2026-08-21: the review-apply cycle "seems pretty straightforw
 *What has to be defined before any of it is built:* what "unambiguous" means mechanically. A rule that admits a bulk confirmation has to be one a human can trust without reading the items, which is a higher bar than the per-item readout meets today.
 
 *The objection that binds, and its exact scope.* [[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]] records that a model reasoning over the queue file alone has *strictly less* information than the threshold algorithm -- the same timestamps and heading IDs, minus any domain knowledge -- and that a fluent proposal is harder to reject than a transparently mechanical one. That holds against any automation whose only input is the queue. It does not settle the case for an automation that reads the session transcripts, which carry what the queue does not.
+
 
 ** DONE Clock pairs name the heading; the review pass asks anyway :code:
 CLOSED: [2026-08-22 Sat 23:14]
@@ -5759,7 +5785,6 @@ End to end over the real 2026-08-21 queue, read-only: all twelve pairs produce i
 *The record it now contradicts.* The hour of 2026-08-21 implementation work is already applied to [[id:a279216c-38db-478c-ba52-ad31c87fbfd9][a279216c]], and the day node already carries its 0:09. The correct items are pending over an already-wrong record, so reconciling the two is a human decision in the review buffer, not something apply should be taught to do. [[id:2d100d0d-2d04-43b9-af1e-f4d6b52bbada][2d100d0d]]'s cross-item overlap check remains a separate heading and is now much cheaper: a span partitioned by the brackets it contains cannot overlap them.
 
 
-
 ** TODO A span and an explicit clock interval can both apply, double-counting the minutes :code:
 :PROPERTIES:
 :ID:       2d100d0d-2d04-43b9-af1e-f4d6b52bbada
@@ -5779,6 +5804,7 @@ Both items were offered in the same review buffer and both were correct in isola
 *Not a rounding concern.* The second co-equal goal of this project is a trustworthy record of where attention went, and a clocktable that sums to more than the elapsed day is the plainest possible violation of it. A remainder-style guard already exists for editing one item's interval; the missing check is across items in one batch.
 
 *Related and distinct:* [[id:eaeeb4ee-ceee-4094-8598-bbcdc8214b66][eaeeb4ee]] would make explicit pairs authoritative, which shrinks this problem by construction -- a partitioned span cannot overlap the pair that partitioned it -- but does not remove the need for the check.
+
 
 ** TODO An unassigned span's readout omits the evidence that would make its heading obvious :code:
 :PROPERTIES:
@@ -5809,6 +5835,7 @@ Stated by the user 2026-08-21, as the one hitch left in an otherwise straightfor
 *Coverage, per span rather than per item.* Once [[id:eaeeb4ee-ceee-4094-8598-bbcdc8214b66][eaeeb4ee]] makes explicit =clock_in= pairs authoritative, most runs in a span will already have an owner. The buffer should say which: "12 of 15 runs attributed, 3 need you" turns an hour-long yes/no into three small local questions, and shows the human where their judgement is actually required. Rendered from the same data, and it is the difference between allocating and *confirming*.
 
 *Why this pairing matters more than either alone.* The evidence this heading was filed about answers "which heading?" The coverage line answers the prior question -- "is this even mine to decide?" -- which on the measured day was the one that went wrong: an hour that the queue had already attributed was presented as a single undifferentiated choice.
+
 
 ** DONE The heading suggester will name a container, which is never itself the work :code:
 CLOSED: [2026-08-21 Fri 09:11]
@@ -5852,6 +5879,8 @@ CLOCK: [2026-08-21 Fri 09:06]--[2026-08-21 Fri 09:12] =>  0:06
 *What it does not fix, recorded so the split stays visible.* Container exclusion converts a confident wrong answer into an honest nil. It does not produce the right answer; only clocking in on the heading actually being worked does that, and the 24 minutes were lost because this session called =org_clock_in= once, at 08:31:36, five seconds before clocking out. The code half and the discipline half are independent, and only the code half is closed here.
 
 *A detail worth keeping about why this was invisible for so long.* The defect needs a container to sit in DOING while a session works something else -- which is the normal state of this project, not an edge case. On the day it was found, all three DOING headings in TODO.org were containers, so the function could not have returned a right answer for any span at all. It had presumably been wrong for as long as containers have been entering DOING, and every wrong answer was one keystroke from correction at review, which is exactly why nobody caught it.
+
+
 ** DONE Auto-promote fires on apply order, so NEXT records which capture landed first :code:
 CLOSED: [2026-08-21 Fri 13:16]
 :PROPERTIES:
@@ -5896,6 +5925,7 @@ Nobody chose it. =claude-code-ide-org--trigger-auto-promote-sole-todo= promotes 
 *A new flag rather than reusing =--auto-clock-in-active=*, which =--review-apply-item= binds per *item* as one function's clock re-entrancy guard. What must not be seen here is the half-applied state *between* items, which is a property of the batch.
 
 *Verified by mutation.* Dropping the suppression fails only the new apply-order test; dropping the settle pass fails only the sole-survivor test, whose whole job is to catch a suppress-only fix. Confirmed live in the running Emacs after =load-file=: three children applied as one batch all end TODO with zero =Auto-promoted= lines.
+
 
 ** TODO A gap covering the whole span restates its own timestamps and reads as a bug :code:
 :PROPERTIES:
@@ -5948,6 +5978,8 @@ CLOCK: [2026-08-21 Fri 13:07]--[2026-08-21 Fri 13:24] =>  0:17
 *Proposed fix, small and preserving the intent:* when the gap's interval equals the span's, drop the timestamps and say only that no evidence was found in the window. The absence stays visible, the "nobody looked" ambiguity stays resolved, and nothing is printed twice. Interior gaps -- the case where a stretch inside a span is empty while other stretches are not -- keep their timestamps, because there the times are the information.
 
 *Do not raise =claude-code-ide-org-span-evidence-gap= to suppress it.* The threshold exists to filter *interior* gaps by significance; using it to hide the empty case would restore exactly the "nothing found is indistinguishable from nobody looked" defect 5ff5a4b8 fixed, and would do so silently for short spans only.
+
+
 ** TODO Consolidation only reaches drawers an apply pass happens to touch :code:
 :PROPERTIES:
 :ID:       7ae6562d-25c8-453e-b78b-920e036c5665
@@ -5982,6 +6014,8 @@ Counting drawers with two or more timestamped entries, and asking whether their 
 *Why this rather than reversing the sort.* Newest-first would end the drift by construction, by agreeing with org's insert convention. It was considered and rejected: it reverses the narrative order that was the whole of af7d3687's request, it breaks that heading's byte-identical fixed-point test against =clock-template.org=, and it systematically flips every tie whose adjacency the stable sort was chosen to preserve. The drift is a *coverage* problem, not an *ordering* one, and the coverage fix keeps what was asked for.
 
 *Shape:* a command that consolidates every drawer in the tracked files, reusing =--consolidate-logbook-text= unchanged -- already idempotent and pinned lossless. Worth running before an archive pass in particular, since that is the last moment a heading is ever touched; that makes it a natural companion to [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] rather than a separate ritual.
+
+
 ** DONE Backfill CLOSED: from the LOGBOOK where the evidence is already in the file :code:
 CLOSED: [2026-08-24 Mon 10:20]
 :PROPERTIES:
@@ -6005,6 +6039,7 @@ CLOCK: [2026-08-24 Mon 10:14]--[2026-08-24 Mon 10:20] =>  0:06
 
 *One correction worth keeping, because it changed the answer.* The estimate quoted before the tool existed was "59 of 97", produced by scanning each heading's whole body for a =State= line. The real figure is *58*. [[id:3d93021d-1d8a-4657-bc5c-77734f91fb9d][3d93021d]] has no =:LOGBOOK:= at all, but quotes =- State "DONE" from "NEXT" [2026-08-07 Fri 08:19]= *in prose*, while diagnosing the bug that produced that very line. A body-wide scan reads it as evidence and dates the heading from a sentence about a bug. The shipped code bounds its search to the drawer, so it does not -- and the discrepancy between the two counts is the only reason the difference was noticed at all. Worth reading twice, because the prose that fooled the estimate is *correctly quoted org*, not malformed text, and nothing structural would ever flag it.
 
+
 ** TODO Recover a close time from git for the headings with no in-file evidence :code:research:
 :PROPERTIES:
 :ID:       b7b46a26-2fd6-4784-bed3-d0112a917c0a
@@ -6027,6 +6062,8 @@ CLOCK: [2026-08-24 Mon 10:14]--[2026-08-24 Mon 10:20] =>  0:06
 *Note the third option, which does not require this to be built:* leave the 39 blank and record explicitly that no close time is recoverable, so the gap is a stated fact rather than an absence somebody tries to fill again in six months. That was offered alongside the git approach and deferred rather than rejected.
 
 *A hazard already measured, and it applies directly here.* f4b07fc0's pre-tool estimate said 59 rather than 58, because a body-wide scan matched a =- State "DONE" ...= line quoted *in prose* on [[id:3d93021d-1d8a-4657-bc5c-77734f91fb9d][3d93021d]], a heading that has no =:LOGBOOK:= and was diagnosing the bug that produced that line. Any git-side matching on heading text or on =State= lines in a diff faces the same trap, with no drawer boundary available to bound it.
+
+
 ** DOING Prompt the daily ceremony automatically, within what a scheduler can reach :code:
 :PROPERTIES:
 :ID:       aa1ba915-ee68-48df-afea-197ae60aac63
@@ -6071,6 +6108,8 @@ It also already has the right manners for this: [[id:7771fc63-9374-4c8a-9e80-24c
 *A correction worth keeping, because the first answer was the opposite one.* The initial scan reported overnight-stale intervals throughout, up to and including today. It was wrong: the pattern matched =CLOCK: [date= without anchoring the end of the line, and a *closed* line begins identically -- =CLOCK: [start]--[end] => H:MM=. So every closed interval from a previous day counted as an open one. Anchoring with =$= reversed the finding completely. The same shape of mistake as [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]]'s prose-quoting one, hours apart: a pattern that matches more than it names, over text where the extra matches look exactly like real hits.
 
 *Comment corrected in* =bin/hooks/session-start-recovery-check=. It still described injecting "an educated guess ... based on =claude-code-ide-org-working-hours=", retired 2026-08-14 with [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]], and still mentioned =:SESSIONS:=, retired 2026-08-11. The behaviour was right; only the comment lied. It now also says to *expect silence*, with the audit's reason -- so the next reader does not go looking for a bug in a feature that is working.
+
+
 ** A sub-minute run is observed work; round it up rather than drop it :code:
 :PROPERTIES:
 :ID:       31c6ac39-1a06-4b17-8d89-b91fd2628874
@@ -6090,6 +6129,8 @@ The two conditions are now named once as =--renders-as-nothing-p= and used for *
 *Measured on the live queue:* 16 CLOCK lines to 17, 88.3 to 89.3 minutes, items writing nothing 13 to 12, and zero lines rounding to =0:00= either way. Small today because the backlog was applied an hour earlier; the point is that it applies from here on without anyone editing by hand.
 
 *Carried in the same commit:* =--lane-clock-intervals= hoisted out of the per-group loop in =--review-items-from-queue=, where it ran once per heading -- 53 groups against ~250 events, re-filtering and re-sorting the full history each time -- for an answer that does not vary by group. Introduced by [[id:eaeeb4ee-ceee-4094-8598-bbcdc8214b66][eaeeb4ee]] this morning. It is *not* the cause of the Emacs hang that followed the apply: that process sat at 0.0% CPU, which rules out anything computing.
+
+
 ** The review buffer truncated lines the human had to read :code:
 :PROPERTIES:
 :ID:       111ca40a-3fdb-4106-ad52-991e30737ece
@@ -6110,6 +6151,7 @@ The two conditions are now named once as =--renders-as-nothing-p= and used for *
 
 *Note for anyone verifying this:* reloading =config.el= updates the mode definition but does *not* change an already-open review buffer, whose locals were set when its mode ran. Only a newly created review buffer picks it up -- which is why the live check was done in a fresh buffer.
 
+
 * Observability
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Observability
@@ -6117,6 +6159,7 @@ The two conditions are now named once as =--renders-as-nothing-p= and used for *
 
 Broader than clocking — visibility into what every tool call
 actually did, both after the fact and at the start of a session.
+
 
 ** TODO Make task lifecycle answerable from one timeline, starting at creation :code:
 :PROPERTIES:
@@ -6225,6 +6268,8 @@ capture durability there, timeline origin here.
 They coincide throughout this project because every task heading is born
 with a keyword, but the equivalence is a local accident, not a rule, and
 a heading that gains a keyword later would make them diverge.
+
+
 ** TODO Hook-injected context is only as reliable as the model choosing to relay it :code:
 :PROPERTIES:
 :ID:       c5b02503-1700-47fd-bf89-bd3296b24af2
@@ -6675,7 +6720,6 @@ Rule of thumb: say *timestamp* when discussing the mechanism, and
 both words, it is probably conflating them.
 
 
-
 ** TODO Record the originating project in queue events :code:
 :PROPERTIES:
 :ID:       83b3cdd6-982a-4ae1-878c-79a8c941f638
@@ -6724,6 +6768,7 @@ normalised project slug. Raw =cwd= is honest and free but varies with
 worktrees — this repo already uses git worktrees for parallel work
 (DONE.org's worktree entries), so two paths can mean one project. A slug
 would need a normalisation rule, which is a decision rather than a field.
+
 
 ** DONE Record completion time as a =CLOSED:= line, not only a state-change entry :code:
 CLOSED: [2026-08-17 Mon 18:34]
@@ -6802,6 +6847,7 @@ Significant directions this project has not committed to. Think hard
 before building any of them. The first two are both about the
 standalone/Warp-access subsystem from this session.
 
+
 ** MAYBE Decide what this module may change on a user's machine when installed :code:
 :PROPERTIES:
 :ID:       1caed585-3209-4108-8501-eba16baf6a01
@@ -6865,6 +6911,7 @@ the other's decision.
 [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] owns the file-header
 convention the =#+STARTUP:= line was added to.
 
+
 ** MAYBE Remote MCP access :code:
 :PROPERTIES:
 :ID:       5adeb6c2-afc0-4472-9529-fff48f8ba825
@@ -6886,6 +6933,7 @@ your live Emacs — a bearer token alone adds no TLS, per-tool
 scoping, or rate limiting. Don't just flip the host to 0.0.0.0 and
 call it done.
 
+
 ** MAYBE Package the Warp wiring :code:
 :PROPERTIES:
 :ID:       e396f94a-59db-4c6b-80b4-dc144146877b
@@ -6903,6 +6951,8 @@ up would make it something worth handing to someone else.
 =mcp-start=) aren't really designed as public standalone-mode API
 today, so an upstream PR is a bigger lift than it looks. Start with
 the snippet, treat upstreaming as a separate future MAYBE.
+
+
 ** NEXT Make the org skill and its discipline portable to other repos :code:
 :PROPERTIES:
 :ID:       9ae4b17e-278c-482f-9114-df28b2254806
@@ -7119,7 +7169,6 @@ Related from the other side:
 module may change on a user's machine when installed.
 
 
-
 * Upstream (claude-code-ide.el)
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Upstream (claude-code-ide.el)
@@ -7128,6 +7177,7 @@ module may change on a user's machine when installed.
 Issues found against the third-party =claude-code-ide.el=
 (manzaltu/claude-code-ide.el) package itself, not this repo's own
 code — worth reporting upstream but not this repo's work to fix.
+
 
 ** MAYBE [0/1] Accumulate issues to report upstream to claude-code-ide.el :code:
 :PROPERTIES:
@@ -7140,6 +7190,7 @@ spec-compliance gap in the package itself, it gets a subtask here
 rather than being silently patched and forgotten in personal Doom
 config. Filing upstream is optional/whenever; the point is not
 losing track of what's been found.
+
 
 *** TODO MCP HTTP server responds 200 instead of 202 Accepted to notifications :code:
 :PROPERTIES:
@@ -7161,10 +7212,12 @@ persisted as a Doom config override) resolves both — a full
 =tools/list= round-trip succeeded afterward. Worked around locally in
 this project's Doom config pending an upstream report/PR.
 
+
 * Documentation
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Documentation
 :END:
+
 
 ** TODO Add README.md and enforce its consistency with CLAUDE.md :code:comms:
 :PROPERTIES:
@@ -7263,6 +7316,7 @@ specifically looking for anything portable-but-undocumented-in-skill;
 the "MCP tools", "Session tracking", and "Emacs integration" sections
 are inherently project-specific (they name this project's actual tool
 names and files) and are out of scope.
+
 
 ** TODO Heading bodies grow into narratives no human will read; decide what to stop capturing :code:
 :PROPERTIES:
@@ -7394,7 +7448,6 @@ Ask for it before picking this up.
 *Note this heading is not ungated on the \"task lifecycle\" the user has twice mentioned.* The retention policy is one part of that lifecycle, not the whole of it; the transition rules discussed the same day (a clock starting only at a leaf, a container leaving DOING when all children are terminal) are another part and are recorded against [[id:241a4c54-ed59-4780-b602-2a86efee978a][241a4c54]].
 
 
-
 ** TODO Find a convention marking which children a container's plan actually covered :code:research:
 :PROPERTIES:
 :ID:       9651d4c8-6887-4b0a-91d9-562c3bc49a75
@@ -7501,6 +7554,7 @@ So the full rule set, settled and ready to be written down:
 3. A container leaves DOING when all children are DONE or CANCELLED.
 4. A container is WAITING when every non-terminal child is WAITING.
 
+
 ** TODO Index a heading's git history from a drawer, so the body never has to narrate it :code:research:
 :PROPERTIES:
 :ID:       41cf5830-fc2e-4dc6-b243-a0c2718a53a3
@@ -7528,6 +7582,8 @@ Anchoring =-L= on a regex instead was tried and is worse: =/:ID:       <uuid>/= 
 Remaining open: which drawer, if stored; and what generates it. A commit touching a heading is detectable at commit time, and =.githooks/pre-commit= is the only thing that runs then -- at the cost of making a lint hook a writer.
 
 /Body restored 2026-08-20 by =org_amend=; the original capture silently discarded it -- see/ [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]]. /This heading being empty is how the loss was noticed at all: the user asked where the concept was parked, and there was nothing there./
+
+
 ** TODO Comma-escape headline lines when documenting org structure inside a body :code:
 :PROPERTIES:
 :ID:       8a23d6ec-ca45-454d-b65f-e46ea9204816
@@ -7581,6 +7637,8 @@ Unescaped, the second line's =*= is at column 0 and =org-map-entries= returned a
 *So: reserve it for rendering, if these files are ever exported, and do not adopt it as a habit.* ===verbatim=== stays the convention for inline code, and the comma escape stays the rule for block-level structure. Two mechanisms, each for the case it actually addresses.
 
 *One honest limit on the above.* Whether org parses these as =inline-src-block= / =verbatim= objects was *not* verified -- three attempts at an =org-element-map= probe returned nil even for ===verbatim===, which org certainly does parse, so the probe was broken rather than the syntax. The outline and babel results above stand on their own mechanisms and do not depend on it.
+
+
 ** DONE The #+STARTUP line is undocumented and the two org files disagree on it :code:
 CLOSED: [2026-08-24 Mon 10:08]
 :PROPERTIES:
@@ -7630,6 +7688,7 @@ Measured before deciding: *zero* such post-archive closes have happened yet, che
 
 *Left open, and it is the larger half of the question:* DONE.org holds *97* =DONE=/=CANCELLED= headings and *zero* =CLOSED:= markers, because =logdone= only arrived 2026-08-17 (=7be24df=) and the newest =:ARCHIVE_TIME:= is that same day -- so every archived heading was closed before the setting existed. All 34 markers in TODO.org sit on headings still awaiting archive. Backfilling is only *partly* mechanical: 59 of the 97 carry a =State "DONE"=/=CANCELLED= line to read a time from, and *38 carry no in-file evidence at all*. For those, =:ARCHIVE_TIME:= is a different fact wearing the right shape, and writing it as =CLOSED:= would be the class of guess [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] retired. Git history is the one honest source left for them.
 
+
 ** DONE Write a commit reference the same way twice: orgit links in bodies, the word in prose :code:
 CLOSED: [2026-08-21 Fri 12:23]
 :PROPERTIES:
@@ -7652,6 +7711,8 @@ CLOCK: [2026-08-21 Fri 12:22]--[2026-08-21 Fri 12:23] =>  0:01
 *Portability is available but not configured.* =orgit--repository-directory= resolves a *name* from =magit-repos-alist= before falling back to =expand-file-name=, so =orgit-rev:claude-code-ide-org::b146008= would be machine-independent. =magit-repository-directories= is nil here, so today's links carry this machine's path. Setting it is a one-line Doom change and is the upgrade path for [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]].
 
 *Prospective only:* the 25 existing =(=535c98c=)= references stay.
+
+
 ** DONE Correct the next-session prompt: swapped trigger, stale rebuttal, ambiguous verify :code:
 CLOSED: [2026-08-21 Fri 12:56]
 :PROPERTIES:
@@ -7666,6 +7727,7 @@ CLOSED: [2026-08-21 Fri 12:56]
 :END:
 
 *Shipped 2026-08-21* (commit =75bb17a=). Three fixes to =.claude/commands/next-session.md=: the at-most-one-NEXT invariant re-attributed to =--trigger-demote-conflicting-next= (verified against =config.el:2721='s docstring before writing -- the swapped name was headed for CLAUDE.md's permanent rule text); item 4's rebuttal of CLAUDE.md's deletion claim replaced with a citation of =0ca1363='s correction, since it argued with text that no longer exists; item 3's verify grep given explicit polarity (zero hits today, success = hits in CLAUDE.md, none in the skill). Item 5's queue-time-vs-apply-time creation ambiguity recorded on [[id:9575e65b-b589-465a-830c-286541780f96][9575e65b]] as a user decision, with a do-not-pick-silently caveat in the prompt.
+
 
 ** TODO Codify the next-session prompt format, starting with a per-item decision marker :code:
 :PROPERTIES:
@@ -7690,6 +7752,8 @@ The =/next-session= idiom is used but not codified. One line outside the file me
 *Home: a new user-scoped skill, not the org-dev skill.* org-dev's trigger is changing this repo's own code and verifying it took effect; writing a prompt at end-of-session is neither, so the rule would silently never load -- the same failure CLAUDE.md names for path-scoped rules. And the idiom is org-free, Emacs-free and repo-free, which makes it the most portable thing here. [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] measured that only =~/.claude/= travels; this is its easiest first instance, a skill with *zero* repo coupling against the org skill's measured 16 lines. The format can additionally self-host in the prompt file's own header, which needs no trigger at all.
 
 *Open:* there is no end-of-session trigger to hang the writing rule on. Candidate is firing on an explicit request to write or revise the prompt, with the self-hosted header as the backstop.
+
+
 ** A repeater never reaches DONE, so its body is never pruned :code:
 :PROPERTIES:
 :ID:       ff92700e-1713-4862-a3fe-8fd972ad96fa
@@ -7714,10 +7778,12 @@ The =/next-session= idiom is used but not codified. One line outside the file me
 
 *The lint direction is the one worth measuring first,* since it is the project's usual answer to a convention that would otherwise recur and it needs no new concept -- just a length threshold on headings carrying a repeater.
 
+
 * Tooling
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Tooling
 :END:
+
 
 ** MAYBE Evaluate choice of shell and standardize all project scripts :code:
 :PROPERTIES:
@@ -7802,6 +7868,7 @@ a project convention (e.g. in CLAUDE.md's "Repository layout" or a new
 "Scripting conventions" note) so it doesn't have to be
 re-litigated per script.
 
+
 ** TODO Clearing a buffer's read-only flag for an MCP tool leaves it cleared :code:
 :PROPERTIES:
 :ID:       c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b
@@ -7880,6 +7947,8 @@ So the wrapper fix above should cover
 failed attempt marked nothing applied and the retry was clean -- no
 double-application, no half-applied batch. Whatever the fix, do not
 regress that.
+
+
 ** DONE Archive the DONE backlog once the queue epic lands, then judge the structure question :code:
 CLOSED: [2026-08-17 Mon 18:50]
 :PROPERTIES:
@@ -8183,9 +8252,6 @@ with the accidental one. Recorded in =org-conventions.md=.
 Left DONE: the archiving this heading actually did is done, and the structure question it deferred now lives at [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]], promoted to TODO the same day on separate evidence.
 
 
-
-
-
 ** DONE Persist claude-code-ide-org-capture-file in the Doom config
 CLOSED: [2026-08-20 Thu 11:08]
 :PROPERTIES:
@@ -8345,9 +8411,6 @@ setting anything, it persisted.
 *Discovered by the same check, and separately useful:* =get-file-buffer= on the symlink path returns nil while a buffer for that file is plainly open, because it matches on =buffer-file-name= rather than the truename. Any future code that asks \"is this file already open?\" by that route will be wrong here.
 
 
-
-
-
 ** TODO The org 9.7+ dependency is real, undeclared, and unenforced :code:
 :PROPERTIES:
 :ID:       1ed7b2b4-a809-4547-b04f-099a3111fc1e
@@ -8407,6 +8470,7 @@ what this module may change on a user's machine when installed; this is
 the narrower question of what it may *assume*. And
 [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]]'s README would be
 the natural place a stated minimum lands for a human reader.
+
 
 ** TODO Concurrent sessions share one git index, and explicit staging protects nothing :code:
 :PROPERTIES:
@@ -8557,6 +8621,7 @@ four command forms, asserting exit status and message.
 *Blocked on this in practice:* the user has stated they will not run a
 second concurrent session until a mechanism is in place, so this gates
 concurrent work generally rather than being one more backlog item.
+
 
 ** DONE [3/3] Enforce org structural hygiene, from diagnosis to commit gate :code:
 CLOSED: [2026-08-19 Wed 19:31]
@@ -8737,7 +8802,6 @@ nothing but emphasis markers. That check is what caught the corruption
 the first time, and it is cheap.
 
 
-
 *** DONE Lint for headings that are valid org but structurally unintended :code:
 CLOSED: [2026-08-19 Wed 19:23]
 :PROPERTIES:
@@ -8856,6 +8920,7 @@ so neither check false-positives on the real corpus.
 check 2's design decision resolved itself once the =:ARCHIVE:= property
 turned out to be the discriminator.
 
+
 *** DONE Run bin/lint-org in a pre-commit hook, scoped to staged org files :code:
 CLOSED: [2026-08-19 Wed 19:30]
 :PROPERTIES:
@@ -8962,6 +9027,7 @@ in the hook's own header.
 shell question; this is it arriving in practice, and it is evidence that
 project scripts are not currently written against a stated baseline.
 
+
 ** TODO A duration assertion matches the clocktable's own timestamp, three minutes a day :code:
 :PROPERTIES:
 :ID:       5a5e87c9-f432-44c6-a5a6-f6f3755e4347
@@ -8984,6 +9050,7 @@ Approach: assert against the table row, =| *Total time* | *0:00* |=, rather than
 
 /Body restored 2026-08-20 by =org_amend=; the original capture silently discarded it -- see/ [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]].
 
+
 ** TODO Every orgit link a body adds costs a permanent lint warning :code:
 :PROPERTIES:
 :ID:       43201e64-3fe8-4fa6-81f5-d2ab5b65d191
@@ -9000,6 +9067,7 @@ The commit-reference convention shipped 2026-08-21 ([[id:7b54c439-ab2c-4398-b332
 
 *Why it matters more than one warning.* The cost is per-link and permanent, so following a documented convention makes the report grow monotonically -- and a report that accumulates stops being read, which is the exact failure [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] measured and the lint's own error/warn split exists to prevent. Candidate fixes, none chosen: load orgit in the lint's =emacs_args=, register the link type with a stub =org-link-set-parameters=, or filter this org-lint check. The first is honest but adds a package dependency to a batch script that deliberately has none.
 
+
 ** TODO Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit :code:
 :PROPERTIES:
 :ID:       d2a0f54c-b59a-4855-ae3d-c93a6d3aa177
@@ -9011,6 +9079,8 @@ The commit-reference convention shipped 2026-08-21 ([[id:7b54c439-ab2c-4398-b332
 :END:
 
 *Filed 2026-08-21, not built.* The 2026-08-21 cross-artifact audit found that prose conventions recur (UUID-from-memory, clock-in-at-drift) while mechanically checked ones fail loudly and get fixed -- and that duplicated conventions drift into contradiction (four found in CLAUDE.md, one in a memory, one in the next-session prompt). =bin/check-org-dev-skill= already embodies the fix for one file; generalize it: the CLAUDE.md and org-skill transition tables agree; every cited =:ID:=, defcustom, and function name resolves (=git grep= the symbol); every "is live"/"not built" claim carries a greppable anchor (e.g. =config.el:2792=) that still matches. Wire into =bin/hooks/pre-commit= beside the existing lint. Not a prose rule about keeping prose fresh -- that is the anti-pattern recursing.
+
+
 ** TODO A clock-report test fails every evening, because its fixture spills past midnight :code:
 :PROPERTIES:
 :ID:       c31b6c76-8ad8-45d4-a87b-39e085e31368
@@ -9031,6 +9101,8 @@ So the test is red for the last hour of every day, and green the other 23. Confi
 *Distinct from* [[id:5a5e87c9-f432-44c6-a5a6-f6f3755e4347][5a5e87c9]], which names this same test and is easy to mistake for it. That one is the =#+CAPTION:='s own timestamp satisfying a duration match for three minutes a day; this one is the fixture's *interval* leaving the queried window, and the assertion that fails is the positive one rather than the negative. Both are the same underlying habit -- a test whose fixture is pinned to =(current-time)= and whose assertion is a substring match over the whole report -- so they are worth fixing together even though neither is the other.
 
 Approach: anchor the fixture to a fixed date rather than to now, which removes the dependence on when the suite runs instead of narrowing the window in which it breaks.
+
+
 ** Footnote discipline decays on re-mention; enforce it at Stop :code:
 :PROPERTIES:
 :ID:       2758f3a0-3c47-405e-9662-a7669dcb60cc
@@ -9097,6 +9169,7 @@ Meta-work: the review pass, planning, and the time that goes into deciding what 
 
 =:DATE_TREE:= is what makes org nest the tree *inside* this category instead of writing a second =* 2026= at level 1; it is a structural property about the grouping, permitted on a category on the same footing as =:ARCHIVE:=. The =:ARCHIVE:= target is matched as a literal string, so renaming this category means renaming the matching heading in DONE.org in the same edit.
 
+
 ** TODO Open today's node
 SCHEDULED: <2026-08-24 Mon 07:00 ++1d>
 :PROPERTIES:
@@ -9109,6 +9182,7 @@ The ritual: a standing daily prompt to actually do review and planning.
 *It reminds; it does not create.* Creating today's node is [[id:9575e65b-b589-465a-830c-286541780f96][9575e65b]]'s job and happens when work happens. A repeater that created the node instead would manufacture one per calendar day whether or not anything occurred, and re-couple the node's id to a schedule -- both of the things the on-demand resolver exists to avoid.
 
 *A category is the one place in this repo a repeater is safe* ([[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]]): a repeater never reaches DONE, so it can never sit under a completable ancestor, and a category carries no keyword and completes nothing.
+
 
 ** TODO Archive closed tasks daily
 SCHEDULED: <2026-08-24 Mon 07:00 ++1d>
@@ -9139,8 +9213,14 @@ Paired with [[id:2aff1e6d-71cf-4b3f-8a3f-b3fc63d07c99][2aff1e6d]] at the same ti
 *The existing backlog is [[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]], not this heading.* Clearing 36 accumulated headings is a one-time migration with a decision attached; this is the steady state after it.
 
 /Body pared 2026-08-24, from 47 lines. It had grown to hold three different things -- this ritual, that backlog, and a set of standing conventions -- and a repeater never reaches/ =DONE=/, so nothing in the/ =:PLAN:= /lifecycle would ever have collected it. See/ [[id:ff92700e-1713-4862-a3fe-8fd972ad96fa][ff92700e]]./
+
+
 ** 2026
+
+
 *** 2026-08 August
+
+
 **** 2026-08-21 Friday
 :PROPERTIES:
 :ID:       758643f2-2046-4894-8a25-7ab44e4dad9a
@@ -9160,6 +9240,8 @@ CLOCK: [2026-08-21 Fri 15:34]--[2026-08-21 Fri 15:35] =>  0:01
 CLOCK: [2026-08-21 Fri 15:41]--[2026-08-21 Fri 15:42] =>  0:01
 - [2026-08-21 Fri 15:41]--[2026-08-21 Fri 15:42] reviewing next-session idiom and structure question
 :END:
+
+
 ** Clear the 36-heading archive backlog, sweeping bodies into :PLAN: unedited :code:
 :PROPERTIES:
 :ID:       7fbab3b3-7843-4290-94a5-d421413f2be4
