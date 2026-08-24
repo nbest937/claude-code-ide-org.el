@@ -219,9 +219,16 @@ entering Plan Mode on the same task) edit that same plan file in place —
 Claude Code reuses the existing plan file path for a continuation of the
 same task — so the link is written once and never needs updating to point
 at a new file. No transcription of the plan into org, ever; the link is the
-record, and it is **not removed at `DONE`**. A task with no separate Plan
-Mode session simply carries no link — that's expected, not a gap to fill
-in.
+record.
+
+At `DONE` the link is **relocated into the `:PLAN:` drawer, not deleted** —
+it travels with the rest of the prospective body when `org_wrap_plan` wraps
+it, because a plan link *is* planning content, and a forward-looking pointer
+sitting in a retrospective readout invites a reader to treat the plan as
+current. (Reworded 2026-08-24; this said "not removed at `DONE`", which was
+a rule against losing the link and got read as a rule against moving it.)
+A task with no separate Plan Mode session simply carries no link — that's
+expected, not a gap to fill in.
 
 The link is also what makes the plan durable, which is why it is not
 gated on anything: `bin/sync-plans` copies only those plans some heading

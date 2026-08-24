@@ -112,6 +112,31 @@ structure and can be retrofitted honestly, so there is no reason to let it
 slide. The check tests only that a cookie is *present* — org owns the
 arithmetic.
 
+## The `:PLAN:` drawer
+
+A finished heading's body has two halves, and they live in different places.
+
+- **`:PLAN:`** holds the *prospective* half — motivation, observations,
+  speculation, and the `[[file:~/.claude/plans/...][Plan]]` link if there is
+  one. It sits beside `:PROPERTIES:` and `:LOGBOOK:`, above the prose.
+- **The body** is the *debrief* alone: problem restated, what the solution
+  turned out to be, how it was verified, what was falsified.
+
+So a folded heading shows the debrief and nothing else.
+
+Create it with `org_wrap_plan`, never by hand — it takes an optional seam
+marker naming the first line that stays in the body, which is what a heading
+written before this convention needs, since such a body usually already holds
+both halves. `org_amend` appends *below* a `:PLAN:` drawer, so the debrief
+needs no special handling.
+
+**Readers skip it.** Treat `:PLAN:` as absent unless the question you are
+answering is retrospective — "how did we get here", "why was it done this
+way". The debrief and the source code describe present reality; the plan
+describes an intention that may not have survived contact, and reading it
+for current fact is how superseded design claims get repeated as though
+they still held.
+
 ## Referring to a commit
 
 A 7-hex SHA and an 8-hex `:ID:` prefix look identical in running text, and

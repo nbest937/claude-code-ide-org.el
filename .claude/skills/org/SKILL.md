@@ -382,10 +382,29 @@ overwrite it.
 
 ### Body prose and the task lifecycle
 
-`org_amend` appends and can do nothing else, so a heading's outcome always
-lands furthest from where a reader starts. Until that is fixed (TODO.org
-`:ID:` 3063c3e5) these conventions keep the body from *contradicting* the
-keyword, which is the confusion that actually costs time.
+**A body has two lives, and since 2026-08-24 they live in different
+places.** While the task is open the body is *prospective* — motivation,
+observations, speculation, and the plan link if there is one — and is pared
+and revised as understanding changes. When the task is carried out,
+`org_wrap_plan` moves that whole half into a `:PLAN:` drawer beside
+`:PROPERTIES:` and `:LOGBOOK:`, and what remains as the body is the
+*debrief*: problem restated, what the solution turned out to be, how it was
+verified, what was falsified. A folded heading then shows the debrief and
+nothing else.
+
+**Skip `:PLAN:` when reading.** Treat the drawer as absent unless the
+question is explicitly retrospective — "how did we get here", "why this
+way". The debrief and the source code describe present reality; the plan
+describes an intention that may not have survived contact. Reading it for
+current fact is how a superseded design claim gets repeated as though it
+still held, and it is the whole reason the two halves were separated.
+
+*This section used to open by saying `org_amend` appends and can do nothing
+else, so an outcome always lands furthest from the reader, and that the
+conventions below were interim "until that is fixed" (TODO.org `:ID:`
+3063c3e5). The premise is now half-false — `org_wrap_plan` exists, and the
+debrief no longer lands furthest from anything. The rules below are kept
+because each stands on its own, not because append-only forces them.*
 
 **The keyword owns the status. Body prose must never assert a state the
 keyword owns.** A `TODO` whose body reads like finished work is the failure
@@ -408,7 +427,10 @@ narrower word.
 one condition"* goes stale the moment it ships; *"Proposed 2026-08-21: one
 condition"* is a permanent fact. This is the journal principle applied to
 the design half rather than exempting it, and it is what makes the prose
-compatible with append-only — nothing later has to be revised.
+compatible with append-only — nothing later has to be revised. That last
+clause is now a convenience rather than a constraint, since a prospective
+body *can* be revised; the reason to date-stamp is still that an undated
+claim silently expires.
 
 **Open a capture body with a dated, permanently-true status sentence** —
 `*Filed 2026-08-21, not built.*` — and **open outcome prose with a bold
