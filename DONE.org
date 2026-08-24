@@ -1491,10 +1491,12 @@ CLOSED: [2026-08-17 Mon 14:15]
 :CREATED:  [2026-08-17 Mon 12:21]
 :END:
 :LOGBOOK:
-- State "DONE"       from "DOING"      [2026-08-17 Mon 14:15] \\
-  guard shipped, test proven discriminating
+CLOCK: [2026-08-17 Mon 14:13]--[2026-08-17 Mon 14:15] =>  0:02
 - State "DOING"      from "NEXT"       [2026-08-17 Mon 14:13] \\
   guard the nil marker in assign-candidates
+- [2026-08-17 Mon 14:13]--[2026-08-17 Mon 14:15] implement nil-marker guard and test
+- State "DONE"       from "DOING"      [2026-08-17 Mon 14:15] \\
+  guard shipped, test proven discriminating
 - State "NEXT"       from "TODO"       [2026-08-17 Mon 14:52] \\
   Auto-promoted: sole remaining TODO in its sibling group.
 :END:
@@ -1536,18 +1538,18 @@ CLOSED: [2026-08-17 Mon 14:56]
 :CREATED:  [2026-08-17 Mon 12:21]
 :END:
 :LOGBOOK:
-- State "DONE"       from "DOING"      [2026-08-17 Mon 14:56] \\
-  file-scan report shipped, reload verified
-- State "DOING"      from "NEXT"       [2026-08-17 Mon 14:53] \\
-  implement the file-scan id health report
-- State "NEXT"       from "DOING"      [2026-08-17 Mon 14:51] \\
-  cost measured cheap; ready to implement
 - State "DOING"      from "MAYBE"      [2026-08-17 Mon 14:49] \\
   measure the open-time cost to decide
 CLOCK: [2026-08-17 Mon 14:49]--[2026-08-17 Mon 14:51] =>  0:02
 - [2026-08-17 Mon 14:49]--[2026-08-17 Mon 14:51] assigned at review
+- State "NEXT"       from "DOING"      [2026-08-17 Mon 14:51] \\
+  cost measured cheap; ready to implement
+- State "DOING"      from "NEXT"       [2026-08-17 Mon 14:53] \\
+  implement the file-scan id health report
 CLOCK: [2026-08-17 Mon 14:53]--[2026-08-17 Mon 14:56] =>  0:03
 - [2026-08-17 Mon 14:53]--[2026-08-17 Mon 14:56] assigned at review
+- State "DONE"       from "DOING"      [2026-08-17 Mon 14:56] \\
+  file-scan report shipped, reload verified
 CLOCK: [2026-08-17 Mon 14:59]--[2026-08-17 Mon 15:02] =>  0:03
 - [2026-08-17 Mon 14:59]--[2026-08-17 Mon 15:02] assigned at review
 :END:
@@ -1621,10 +1623,12 @@ CLOSED: [2026-08-17 Mon 14:19]
 :ARCHIVE_TODO: DONE
 :END:
 :LOGBOOK:
-- State "DONE"       from "DOING"      [2026-08-17 Mon 14:19] \\
-  prefix-first render shipped, reload verified
+CLOCK: [2026-08-17 Mon 14:17]--[2026-08-17 Mon 14:19] =>  0:02
 - State "DOING"      from "TODO"       [2026-08-17 Mon 14:17] \\
   lead group headings with the id prefix
+- [2026-08-17 Mon 14:17]--[2026-08-17 Mon 14:19] implement id-first group heading render
+- State "DONE"       from "DOING"      [2026-08-17 Mon 14:19] \\
+  prefix-first render shipped, reload verified
 :END:
 
 The review buffer groups items under a heading title alone, so acting on
@@ -1727,8 +1731,10 @@ CLOSED: [2026-08-17 Mon 09:32]
 :ARCHIVE_TODO: DONE
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-17 Mon 09:29]--[2026-08-17 Mon 09:32] =>  0:03
 - State "DOING"      from              [2026-08-17 Mon 09:29] \\
   remove applied in place, keep rest
+- [2026-08-17 Mon 09:29]--[2026-08-17 Mon 09:32] preserve unapplied decisions on apply
 - State "DONE"       from "DOING"      [2026-08-17 Mon 09:32] \\
   drops applied, keeps the rest
 :END:
@@ -1789,8 +1795,10 @@ CLOSED: [2026-08-17 Mon 09:11]
 :LOGBOOK:
 - State "NEXT"       from              [2026-08-17 Mon 09:04] \\
   silent loss of human judgement
+CLOCK: [2026-08-17 Mon 09:09]--[2026-08-17 Mon 09:11] =>  0:02
 - State "DOING"      from "NEXT"       [2026-08-17 Mon 09:09] \\
   drop in place instead of refreshing
+- [2026-08-17 Mon 09:09]--[2026-08-17 Mon 09:11] stop dismiss discarding assignments
 - State "DONE"       from "DOING"      [2026-08-17 Mon 09:11] \\
   assignments survive a dismissal
 :END:
@@ -3582,10 +3590,12 @@ CLOSED: [2026-08-12 Wed 16:55]
 :CREATED:  [2026-08-06 Thu 11:59]
 :END:
 :LOGBOOK:
-- State "DONE"       from "DOING"      [2026-08-12 Wed 16:55] \\
-  org_pending_updates shipped, 186/186
+CLOCK: [2026-08-12 Wed 16:52]--[2026-08-12 Wed 16:55] =>  0:03
 - State "DOING"      from "TODO"       [2026-08-12 Wed 16:52] \\
   read-only pending-queue summary tool
+- [2026-08-12 Wed 16:52]--[2026-08-12 Wed 16:55] build org_pending_updates
+- State "DONE"       from "DOING"      [2026-08-12 Wed 16:55] \\
+  org_pending_updates shipped, 186/186
 :END:
 
 Captured 2026-08-06 from conversation: nothing in the current tool
@@ -3984,8 +3994,10 @@ CLOSED: [2026-08-14 Fri 13:36]
 :CREATED:  [2026-08-06 Thu 10:47]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-14 Fri 13:32]--[2026-08-14 Fri 13:36] =>  0:04
 - State "DOING"      from "TODO"       [2026-08-14 Fri 13:32] \\
   surveying org-element for drawer writes
+- [2026-08-14 Fri 13:32]--[2026-08-14 Fri 13:36] org-element vs regex drawer editing
 - State "DONE"       from "DOING"      [2026-08-14 Fri 13:36] \\
   all four checklist items discharged
 :END:
@@ -4233,8 +4245,10 @@ CLOSED: [2026-08-14 Fri 13:45]
 :END:
 :LOGBOOK:
 - [2026-08-12 Wed 17:40]--[2026-08-12 Wed 17:42] subagent investigating recovery fate
+CLOCK: [2026-08-14 Fri 13:40]--[2026-08-14 Fri 13:45] =>  0:05
 - State "DOING"      from "TODO"       [2026-08-14 Fri 13:40] \\
   deciding the recovery feature's fate
+- [2026-08-14 Fri 13:40]--[2026-08-14 Fri 13:45] decide stale-interval recovery fate
 - State "DONE"       from "DOING"      [2026-08-14 Fri 13:45] \\
   decided and executed: guess retired
 :END:
@@ -4622,8 +4636,10 @@ CLOSED: [2026-08-14 Fri 13:51]
 :END:
 :LOGBOOK:
 - [2026-08-12 Wed 17:40]--[2026-08-12 Wed 17:43] subagent investigating heading fates
+CLOCK: [2026-08-14 Fri 13:49]--[2026-08-14 Fri 13:51] =>  0:02
 - State "DOING"      from "TODO"       [2026-08-14 Fri 13:49] \\
   reconciling superseded ownership infrastructure
+- [2026-08-14 Fri 13:49]--[2026-08-14 Fri 13:51] reconcile superseded ownership plans
 - State "DONE"       from "DOING"      [2026-08-14 Fri 13:51] \\
   all six reconciled; plans audit clean
 :END:
@@ -4969,18 +4985,24 @@ CLOSED: [2026-08-13 Thu 14:10]
 :CREATED:  [2026-08-11 Tue 07:24]
 :END:
 :LOGBOOK:
-- State "DONE"       from "DOING"      [2026-08-13 Thu 14:10] \\
-  spans reviewable; 14.6h recovered, 203 green
-CLOCK: [2026-08-13 Thu 13:47]--[2026-08-13 Thu 13:52] =>  0:05
-CLOCK: [2026-08-13 Thu 13:27]--[2026-08-13 Thu 13:40] =>  0:13
-CLOCK: [2026-08-13 Thu 13:18]--[2026-08-13 Thu 13:19] =>  0:01
-- State "DOING"      from "NEXT"       [2026-08-13 Thu 13:10] \\
-  implementing suggested guidepost assignment
 - State "NEXT"       from "TODO"       [2026-08-13 Thu 13:00] \\
   decided: build with suggested assignment
+CLOCK: [2026-08-13 Thu 13:10]--[2026-08-13 Thu 13:16] =>  0:06
+- State "DOING"      from "NEXT"       [2026-08-13 Thu 13:10] \\
+  implementing suggested guidepost assignment
+- [2026-08-13 Thu 13:10]--[2026-08-13 Thu 13:16] building unassigned span assignment
 - [2026-08-13 Thu 13:16]--[2026-08-13 Thu 13:22] building unassigned span assignment
+CLOCK: [2026-08-13 Thu 13:18]--[2026-08-13 Thu 13:19] =>  0:01
+CLOCK: [2026-08-13 Thu 13:22]--[2026-08-13 Thu 13:24] =>  0:02
+- [2026-08-13 Thu 13:22]--[2026-08-13 Thu 13:24] building unassigned span assignment
 - [2026-08-13 Thu 13:24]--[2026-08-13 Thu 13:44] building unassigned span assignment
+CLOCK: [2026-08-13 Thu 13:27]--[2026-08-13 Thu 13:40] =>  0:13
+CLOCK: [2026-08-13 Thu 13:47]--[2026-08-13 Thu 13:52] =>  0:05
 - [2026-08-13 Thu 13:47]--[2026-08-13 Thu 14:09] building unassigned span assignment
+CLOCK: [2026-08-13 Thu 14:09]--[2026-08-13 Thu 14:10] =>  0:01
+- [2026-08-13 Thu 14:09]--[2026-08-13 Thu 14:10] building unassigned span assignment
+- State "DONE"       from "DOING"      [2026-08-13 Thu 14:10] \\
+  spans reviewable; 14.6h recovered, 203 green
 :END:
 
 Guideposts carry no heading of their own; they inherit whichever one the
@@ -5244,24 +5266,26 @@ CLOSED: [2026-08-13 Thu 15:57]
 :CREATED:  [2026-08-11 Tue 11:16]
 :END:
 :LOGBOOK:
-- State "DONE"       from "DOING"      [2026-08-13 Thu 15:57] \\
-  seven files archived; 3.6h to 20.9h recorded
-CLOCK: [2026-08-13 Thu 15:40]--[2026-08-13 Thu 15:43] =>  0:03
-CLOCK: [2026-08-13 Thu 15:49]--[2026-08-13 Thu 15:53] =>  0:04
-CLOCK: [2026-08-13 Thu 15:18]--[2026-08-13 Thu 15:19] =>  0:01
-CLOCK: [2026-08-13 Thu 15:28]--[2026-08-13 Thu 15:29] =>  0:01
-CLOCK: [2026-08-13 Thu 14:35]--[2026-08-13 Thu 14:45] =>  0:10
-CLOCK: [2026-08-13 Thu 14:51]--[2026-08-13 Thu 15:04] =>  0:13
 - State "DOING"      from "TODO"       [2026-08-13 Thu 14:23] \\
   investigating the clock pair asymmetry first
 CLOCK: [2026-08-13 Thu 14:23]--[2026-08-13 Thu 14:25] =>  0:02
 - [2026-08-13 Thu 14:23]--[2026-08-13 Thu 14:25] assigned at review
+- [2026-08-13 Thu 14:25]--[2026-08-13 Thu 15:04] drained definition and archive command
+CLOCK: [2026-08-13 Thu 14:35]--[2026-08-13 Thu 14:45] =>  0:10
 CLOCK: [2026-08-13 Thu 14:35]--[2026-08-13 Thu 14:45] =>  0:10
 - [2026-08-13 Thu 14:35]--[2026-08-13 Thu 14:45] assigned at review
-- [2026-08-13 Thu 14:25]--[2026-08-13 Thu 15:04] drained definition and archive command
+CLOCK: [2026-08-13 Thu 14:51]--[2026-08-13 Thu 15:04] =>  0:13
+CLOCK: [2026-08-13 Thu 15:18]--[2026-08-13 Thu 15:19] =>  0:01
 - [2026-08-13 Thu 15:18]--[2026-08-13 Thu 15:29] drained definition and archive command
+CLOCK: [2026-08-13 Thu 15:28]--[2026-08-13 Thu 15:29] =>  0:01
+CLOCK: [2026-08-13 Thu 15:40]--[2026-08-13 Thu 15:43] =>  0:03
 - [2026-08-13 Thu 15:40]--[2026-08-13 Thu 15:53] drained definition and archive command
+CLOCK: [2026-08-13 Thu 15:49]--[2026-08-13 Thu 15:53] =>  0:04
+CLOCK: [2026-08-13 Thu 15:56]--[2026-08-13 Thu 15:57] =>  0:01
 - [2026-08-13 Thu 15:56]--[2026-08-13 Thu 15:56] drained definition and archive command
+- [2026-08-13 Thu 15:56]--[2026-08-13 Thu 15:57] drained definition and archive command
+- State "DONE"       from "DOING"      [2026-08-13 Thu 15:57] \\
+  seven files archived; 3.6h to 20.9h recorded
 :END:
 
 Proposed by the user 2026-08-11 as the middle ground between treating a
@@ -5506,10 +5530,12 @@ CLOSED: [2026-08-12 Wed 16:13]
 :BLOCKER:  ids(feba67eb-35b3-48bd-a892-8ecd47ca52e0)
 :END:
 :LOGBOOK:
-- State "DONE"       from "DOING"      [2026-08-12 Wed 16:13] \\
-  mark advance, note editing, bulk marks shipped
+CLOCK: [2026-08-12 Wed 16:09]--[2026-08-12 Wed 16:13] =>  0:04
 - State "DOING"      from "TODO"       [2026-08-12 Wed 16:09] \\
   review-buffer interaction fixes
+- [2026-08-12 Wed 16:09]--[2026-08-12 Wed 16:13] mark advance, note editing, bulk marks
+- State "DONE"       from "DOING"      [2026-08-12 Wed 16:13] \\
+  mark advance, note editing, bulk marks shipped
 :END:
 
 Requested by the user 2026-08-11, after applying a real batch by hand —
@@ -6055,16 +6081,18 @@ CLOSED: [2026-08-13 Thu 09:46]
 :CREATED:  [2026-08-12 Wed 17:45]
 :END:
 :LOGBOOK:
-- State "DONE"       from "DOING"      [2026-08-13 Thu 09:46] \\
-  per-lane attribution; both agents pair correctly
-- State "DOING"      from "NEXT"       [2026-08-13 Thu 09:44] \\
-  implementing per-agent attribution lanes
-- State "NEXT"       from "TODO"       [2026-08-13 Thu 09:43] \\
-  re-promoted after auto-demotion side effect
 - State "NEXT"       from              [2026-08-12 Wed 17:46] \\
   reproducible attribution bug, fix is small
 - State "TODO"       from "NEXT"       [2026-08-12 Wed 22:39] \\
   Auto-demoted: superseded by sibling [[id:7387f97c-6c3e-4667-8851-203af024fdd9][Apply writes headless state notes -- RETRACTED, a grep artifact]] becoming NEXT.
+- State "NEXT"       from "TODO"       [2026-08-13 Thu 09:43] \\
+  re-promoted after auto-demotion side effect
+CLOCK: [2026-08-13 Thu 09:44]--[2026-08-13 Thu 09:46] =>  0:02
+- State "DOING"      from "NEXT"       [2026-08-13 Thu 09:44] \\
+  implementing per-agent attribution lanes
+- [2026-08-13 Thu 09:44]--[2026-08-13 Thu 09:46] fixing queue attribution
+- State "DONE"       from "DOING"      [2026-08-13 Thu 09:46] \\
+  per-lane attribution; both agents pair correctly
 :END:
 
 Found 2026-08-12 by deliberately running two subagents concurrently to
@@ -6359,17 +6387,21 @@ CLOSED: [2026-08-12 Wed 19:45]
 :CREATED:  [2026-08-12 Wed 19:14]
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-12 Wed 22:36]--[2026-08-12 Wed 22:41] =>  0:05
-CLOCK: [2026-08-12 Wed 19:56]--[2026-08-12 Wed 19:58] =>  0:02
-- State "CANCELLED"  from "DOING"      [2026-08-12 Wed 19:45] \\
-  no defect; grep artifact, see body
-CLOCK: [2026-08-12 Wed 19:39]--[2026-08-12 Wed 19:42] =>  0:03
-- State "DOING"      from "NEXT"       [2026-08-12 Wed 19:25] \\
-  diagnosing the missing State header
 - State "NEXT"       from              [2026-08-12 Wed 19:15] \\
   native state logging silently malformed
+CLOCK: [2026-08-12 Wed 19:25]--[2026-08-12 Wed 19:33] =>  0:08
+- State "DOING"      from "NEXT"       [2026-08-12 Wed 19:25] \\
+  diagnosing the missing State header
+- [2026-08-12 Wed 19:25]--[2026-08-12 Wed 19:33] fixing headless state notes
 - [2026-08-12 Wed 19:33]--[2026-08-12 Wed 19:42] fixing headless state notes
+CLOCK: [2026-08-12 Wed 19:39]--[2026-08-12 Wed 19:42] =>  0:03
+CLOCK: [2026-08-12 Wed 19:42]--[2026-08-12 Wed 19:45] =>  0:03
+- [2026-08-12 Wed 19:42]--[2026-08-12 Wed 19:45] fixing headless state notes
+- State "CANCELLED"  from "DOING"      [2026-08-12 Wed 19:45] \\
+  no defect; grep artifact, see body
 - [2026-08-12 Wed 19:46]--[2026-08-12 Wed 19:58]
+CLOCK: [2026-08-12 Wed 19:56]--[2026-08-12 Wed 19:58] =>  0:02
+CLOCK: [2026-08-12 Wed 22:36]--[2026-08-12 Wed 22:41] =>  0:05
 - [2026-08-12 Wed 22:36]--[2026-08-12 Wed 22:41]
 :END:
 
@@ -6495,12 +6527,14 @@ CLOSED: [2026-08-13 Thu 16:41]
 :CREATED:  [2026-08-13 Thu 13:50]
 :END:
 :LOGBOOK:
-- State "DONE"       from "DOING"      [2026-08-13 Thu 16:41] \\
-  apply consolidates its own heading's drawer
-- State "DOING"      from "TODO"       [2026-08-13 Thu 16:38] \\
-  deciding whether apply should consolidate
 - State "TODO"       from              [2026-08-13 Thu 13:51] \\
   stale rationale; consolidation may be safe now
+CLOCK: [2026-08-13 Thu 16:38]--[2026-08-13 Thu 16:41] =>  0:03
+- State "DOING"      from "TODO"       [2026-08-13 Thu 16:38] \\
+  deciding whether apply should consolidate
+- [2026-08-13 Thu 16:38]--[2026-08-13 Thu 16:41] consolidation at apply
+- State "DONE"       from "DOING"      [2026-08-13 Thu 16:41] \\
+  apply consolidates its own heading's drawer
 :END:
 
 *A documented rationale has outlived its cause.* Apply deliberately does
@@ -6712,11 +6746,15 @@ explicitly out of scope for v1.
 :LOGBOOK:
 CLOCK: [2026-08-14 Fri 16:44]--[2026-08-14 Fri 16:48] =>  0:04
 - [2026-08-14 Fri 16:44]--[2026-08-14 Fri 16:48] assigned at review
+CLOCK: [2026-08-14 Fri 16:51]--[2026-08-14 Fri 17:00] =>  0:09
 - State "PLANNING"   from "TODO"       [2026-08-14 Fri 16:51] \\
   planning the blocked-turn detection
+- [2026-08-14 Fri 16:51]--[2026-08-14 Fri 17:00] plan permission-block visibility
 - State "DOING"      from "PLANNING"   [2026-08-14 Fri 16:57]
 CLOCK: [2026-08-14 Fri 17:03]--[2026-08-14 Fri 17:05] =>  0:02
 - [2026-08-14 Fri 17:03]--[2026-08-14 Fri 17:05] plan permission-block visibility
+CLOCK: [2026-08-14 Fri 17:08]--[2026-08-14 Fri 17:09] =>  0:01
+- [2026-08-14 Fri 17:08]--[2026-08-14 Fri 17:09] plan permission-block visibility
 CLOCK: [2026-08-14 Fri 17:13]--[2026-08-14 Fri 17:14] =>  0:01
 - [2026-08-14 Fri 17:13]--[2026-08-14 Fri 17:14] plan permission-block visibility
 CLOCK: [2026-08-14 Fri 17:19]--[2026-08-14 Fri 17:22] =>  0:03
@@ -6725,6 +6763,13 @@ CLOCK: [2026-08-14 Fri 17:26]--[2026-08-14 Fri 17:28] =>  0:02
 - [2026-08-14 Fri 17:26]--[2026-08-14 Fri 17:28] plan permission-block visibility
 CLOCK: [2026-08-14 Fri 17:34]--[2026-08-14 Fri 17:35] =>  0:01
 - [2026-08-14 Fri 17:34]--[2026-08-14 Fri 17:35] plan permission-block visibility
+CLOCK: [2026-08-14 Fri 17:35]--[2026-08-14 Fri 17:43] =>  0:08
+- [2026-08-14 Fri 17:35]--[2026-08-14 Fri 17:43] plan permission-block visibility
+- [2026-08-14 Fri 19:24]--[2026-08-14 Fri 19:24] assigned at review
+CLOCK: [2026-08-14 Fri 19:30]--[2026-08-14 Fri 19:31] =>  0:01
+- [2026-08-14 Fri 19:30]--[2026-08-14 Fri 19:30] assigned at review
+- [2026-08-14 Fri 19:30]--[2026-08-14 Fri 19:31] assigned at review
+- [2026-08-14 Fri 19:32]--[2026-08-14 Fri 19:33] assigned at review
 :END:
 [[file:~/.claude/plans/cheerful-riding-robin.md][Plan]]
 
@@ -7076,8 +7121,10 @@ CLOSED: [2026-08-14 Fri 12:35]
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-08-14 Fri 10:26] \\
   report change is blocked behind it
+CLOCK: [2026-08-14 Fri 12:32]--[2026-08-14 Fri 12:35] =>  0:03
 - State "DOING"      from "NEXT"       [2026-08-14 Fri 12:32] \\
   exempting containers from auto-clock-in
+- [2026-08-14 Fri 12:32]--[2026-08-14 Fri 12:35] exempt container headings from auto-clock-in
 - State "DONE"       from "DOING"      [2026-08-14 Fri 12:35] \\
   shipped, mutation-tested, verified live
 CLOCK: [2026-08-14 Fri 13:25]--[2026-08-14 Fri 13:37] =>  0:12
@@ -7270,20 +7317,23 @@ CLOSED: [2026-08-14 Fri 11:56]
 :ARCHIVE_TODO: DONE
 :END:
 :LOGBOOK:
-- State "DONE"       from "DOING"      [2026-08-14 Fri 11:56]
 - State "NEXT"       from              [2026-08-13 Thu 16:29] \\
   prototyped by hand; build before 0c8644ff
+CLOCK: [2026-08-13 Thu 17:32]--[2026-08-13 Thu 17:40] =>  0:08
 - State "DOING"      from "NEXT"       [2026-08-13 Thu 17:32] \\
   starting span evidence rendering
+- [2026-08-13 Thu 17:32]--[2026-08-13 Thu 17:40] show commits and :CREATED: in span windows
 - [2026-08-13 Thu 17:40]--[2026-08-13 Thu 17:55] show commits and :CREATED: in span windows
 CLOCK: [2026-08-13 Thu 17:55]--[2026-08-13 Thu 18:09] =>  0:14
-CLOCK: [2026-08-13 Thu 18:15]--[2026-08-13 Thu 18:19] =>  0:04
-CLOCK: [2026-08-13 Thu 18:32]--[2026-08-13 Thu 18:36] =>  0:04
 - State "WAIT"       from "DOING"      [2026-08-13 Thu 17:55] \\
   awaiting hands-on review of the buffer
 - [2026-08-13 Thu 17:55]--[2026-08-13 Thu 18:36] suggested span, accepted at review
+CLOCK: [2026-08-13 Thu 18:15]--[2026-08-13 Thu 18:19] =>  0:04
+CLOCK: [2026-08-13 Thu 18:32]--[2026-08-13 Thu 18:36] =>  0:04
+CLOCK: [2026-08-14 Fri 09:38]--[2026-08-14 Fri 09:41] =>  0:03
 - State "DOING"      from "WAIT"       [2026-08-14 Fri 09:38] \\
   adding gap lines after use feedback
+- [2026-08-14 Fri 09:38]--[2026-08-14 Fri 09:41] show unaccounted time inside spans
 CLOCK: [2026-08-14 Fri 09:49]--[2026-08-14 Fri 09:51] =>  0:02
 - [2026-08-14 Fri 09:49]--[2026-08-14 Fri 09:51] suggested span, accepted at review
 CLOCK: [2026-08-14 Fri 09:53]--[2026-08-14 Fri 09:56] =>  0:03
@@ -7300,6 +7350,7 @@ CLOCK: [2026-08-14 Fri 10:43]--[2026-08-14 Fri 10:44] =>  0:01
 - [2026-08-14 Fri 10:43]--[2026-08-14 Fri 10:44] suggested span, accepted at review
 CLOCK: [2026-08-14 Fri 10:48]--[2026-08-14 Fri 10:49] =>  0:01
 - [2026-08-14 Fri 10:48]--[2026-08-14 Fri 10:49] suggested span, accepted at review
+- State "DONE"       from "DOING"      [2026-08-14 Fri 11:56]
 :END:
 
 *Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]
