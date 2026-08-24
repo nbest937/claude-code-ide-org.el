@@ -1650,7 +1650,6 @@ Two insertions at computable positions, never a range replacement, and no bounda
 :PROPERTIES:
 :ID:       8bcd56f4-22a8-4673-bad6-a99433027b81
 :CREATED:  [2026-08-22 Sat 21:34]
-:BLOCKER:  ids(3063c3e5-0dd0-4354-8985-271b0313c5d1)
 :END:
 :LOGBOOK:
 - [2026-08-22 Sat 20:18]--[2026-08-22 Sat 20:18] assigned at review
@@ -1695,6 +1694,11 @@ Designed by the user 2026-08-21/22. A heading body has two lives, and today they
 *Because the rule reports nothing on the real files by design, the positive case is a fixture* -- a rule never seen to fail proves nothing. Removing the date scoping fails the exemption test and takes the real report to 147 warnings, so both the rule and its scoping are pinned. =--lint-substantial-body-p= excludes drawer contents, so thirty =CLOCK= lines cannot make a short heading look substantial.
 
 *Still open, and not this heading's:* the backlog itself. 124 finished headings carry a substantial body and no drawer, which is [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]]'s sweep. The lint is deliberately silent about them rather than counting them daily.
+
+*=:BLOCKER:= dropped 2026-08-24*, having read =ids(3063c3e5)=. It was set because adoption could not describe an operation no session could perform; =org_wrap_plan= shipped this morning, so the thing it guarded exists. [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] stays open for the *revision* half its title names, which adoption never needed -- that half serves continuous paring, not the completion transition.
+
+Left in place it would have blocked this heading's own =DONE= at apply: =org-depend-block-todo= refuses a =DONE= whose =:BLOCKER:= names a heading still carrying a keyword, and 3063c3e5 is =NEXT=. So the property had gone from a true statement to a false one that would fire as a real refusal.
+
 
 
 ** DONE Rename the WAIT keyword to WAITING, matching the org community's spelling :code:
@@ -8810,6 +8814,42 @@ So the test is red for the last hour of every day, and green the other 23. Confi
 *Distinct from* [[id:5a5e87c9-f432-44c6-a5a6-f6f3755e4347][5a5e87c9]], which names this same test and is easy to mistake for it. That one is the =#+CAPTION:='s own timestamp satisfying a duration match for three minutes a day; this one is the fixture's *interval* leaving the queried window, and the assertion that fails is the positive one rather than the negative. Both are the same underlying habit -- a test whose fixture is pinned to =(current-time)= and whose assertion is a substring match over the whole report -- so they are worth fixing together even though neither is the other.
 
 Approach: anchor the fixture to a fixed date rather than to now, which removes the dependence on when the suite runs instead of narrowing the window in which it breaks.
+** Footnote discipline decays on re-mention; enforce it at Stop :code:
+:PROPERTIES:
+:ID:       2758f3a0-3c47-405e-9662-a7669dcb60cc
+:CREATED:  [2026-08-24 Mon 11:28]
+:END:
+
+*Measured 2026-08-24 over this session's own transcript*, after the user observed the footnotes had gone spotty. 132 assistant messages, 32 of which cited an org =:ID:=.
+
+*Coverage: 37 of 85 citations footnoted -- 43%.*
+
+Two findings, and the second is the actionable one.
+
+*It is all-or-nothing per message, not sloppiness within one.* 25 of the 32 messages either footnoted every id they cited or none of them; only 7 were partial. So nothing is being forgotten mid-paragraph -- a per-message decision is flipping.
+
+*It decays on re-mention, and every offender was correct the first time.*
+
+| id | missed | of | first footnoted |
+|----------+--------+----+-----------------|
+| cbe282ec |      9 | 13 | yes             |
+| 8bcd56f4 |      5 |  9 | yes             |
+| 3063c3e5 |      4 |  7 | yes             |
+| cc0c17a7 |      3 |  4 | yes             |
+| 7771fc63 |      3 |  4 | yes             |
+| aa1ba915 |      3 |  4 | yes             |
+
+*The mechanism, stated plainly:* once an id has been footnoted, it stops reading as opaque *to the writer*, who has just looked the title up and is holding it. But the rule is per *response*, and the reader of message 122 does not have message 44 on screen. The rule's own wording -- "one footnote per distinct identifier, ordered by first appearance" -- is silent on whether "distinct" means within the response or within the conversation, and the failure lives exactly in that silence.
+
+*Three fixes, and they are complementary rather than alternatives.*
+
+1. *Say the quiet part in the rule*: distinct **within this response**, regardless of whether it was footnoted earlier in the conversation. One clause, aimed precisely at the measured failure. Cheapest, and it is what the data says is missing -- but memory alone is what just produced 43%.
+2. *Enforce it at =Stop=.* Verified against the Claude Code hook docs rather than assumed: a =Stop= hook can prevent the turn ending, either with exit 2 or with =continue: false= plus =hookSpecificOutput.stopReason=, and the reason is shown to the model. Crucially it receives *=last_assistant_message=* as a Stop-specific input field, and the docs explicitly direct hooks needing the current turn's final text to use it rather than =transcript_path=, which lags. So the check is: scan for =\b[0-9a-f]{8}\b=, scan the footnote block, block if any cited id is unfootnoted. This is the project's standing answer to a convention that recurs -- the same instinct as =bin/lint-org= and the =org-trigger-hook= guards.
+3. *Make compliance cheap.* The real cost is looking up an exact title per id, which is why the discipline degrades exactly when a response cites five of them. [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] and its child [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] are already this: resolve an 8-character prefix and read front matter without a whole-body read. A batch prefix→title lookup makes footnoting nearly free, and a rule that is free to obey does not need enforcing.
+
+*The one hazard in (2), and it is not incidental:* the docs describe *no* loop guard for a blocking =Stop= hook -- no =stop_hook_active= flag. A hook that blocks on a condition the model then fails to satisfy loops forever. It needs its own sentinel, one fire per turn, on the model of the =block-open= file [[id:f4e628ce-e653-429a-8f3c-0f5d4241b139][f4e628ce]] already uses.
+
+*Related but a different surface:* [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] generalises convention checking over *files* at pre-commit. This one checks *response prose* at turn end. Same instinct, no shared code.
 
 * Review and planning
 :PROPERTIES:
