@@ -1699,6 +1699,7 @@ CLOCK: [2026-08-24 Mon 11:18]--[2026-08-24 Mon 11:23] =>  0:05
 - State "DONE"       from "TODO"       [2026-08-24 Mon 11:23] \\
   all five edits landed and pinned
 :END:
+:PLAN:
 
 Designed by the user 2026-08-21/22. A heading body has two lives, and today they are the same text in the same place, which is why bodies become transcripts.
 
@@ -1718,6 +1719,7 @@ Designed by the user 2026-08-21/22. A heading body has two lives, and today they
 
 *Migration of the existing backlog is settled and is not this heading's work:* sweep old bodies in unedited, recorded on [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]]. Old drawers will be raw transcripts where new ones are pared plans; the ignore-the-drawer rule makes that invisible in normal reading.
 
+:END:
 *Adopted 2026-08-24* (=44b7020=, =fe376db=). All five deferred edits landed, once [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]]'s wrapping half made them describable without describing something no session could perform.
 
 1. *CLAUDE.md's plan-link wording* now says the link is *relocated into* =:PLAN:=, not deleted, at =DONE=. The old "not removed at =DONE=" was a rule against *losing* the link and was being read as a rule against *moving* it.
@@ -3718,6 +3720,7 @@ CLOCK: [2026-08-24 Mon 12:46]--[2026-08-24 Mon 12:48] =>  0:02
 CLOCK: [2026-08-24 Mon 13:02]--[2026-08-24 Mon 13:03] =>  0:01
 - [2026-08-24 Mon 13:02]--[2026-08-24 Mon 13:03] make the category assignable at review
 :END:
+:PLAN:
 
 One function answers "which heading is today's meta-work node", and it is called at the moment something needs the answer rather than run ahead of time. Steps: find the =:DATE_TREE:= heading; =org-datetree-find-date-create= for today, which is org's own idempotent find-or-create; stamp =:ID:= and =:CREATED:= if the node was just made; set =org-clock-default-task= to its marker; return the id.
 
@@ -3757,6 +3760,7 @@ This supersedes the "Two callers, and the asymmetry between them is the design" 
 
 /Recorded by appending, which is itself/ [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]]/'s defect: the decision sits below the superseded paragraph rather than replacing it, so a reader meets the stale version first./
 
+:END:
 *Shipped 2026-08-24* (=2b9be1c=), built to the decision recorded above: option (c), apply time, dated from the event.
 
 =claude-code-ide-org-resolve-day-node= takes a TIME and an optional CREATE. =org_clock_in= now accepts the category title =Review and planning= as its target and *creates nothing* -- queuing stays a line appended to a file. =--resolve-item-target= turns that target into a real day node at apply, dated from the item's own timestamp.
@@ -4845,6 +4849,7 @@ CLOCK: [2026-08-18 Tue 16:56]--[2026-08-18 Tue 17:26] =>  0:30
 - State "DONE"       from "TODO"       [2026-08-19 Wed 08:05] \\
   re-queued, lost to my git checkout
 :END:
+:PLAN:
 
 98 post-cutover CLOCK lines carry the pipeline's error — 38 in TODO.org,
 60 in DONE.org. The other 60 in DONE.org predate 2026-08-11 and need
@@ -4887,6 +4892,7 @@ it. The scope of this correction should follow that answer.
 [[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — the epic's plan document, which
 carries this child's design rather than a file of its own.
 
+:END:
 *Applied 2026-08-18* (=6df5043=, =47cabb8=, =79f23b5=), option A: correct
 what was recorded, rather than reconcile the record against everything
 the queue knows. The second would have needed a human to re-attribute
@@ -9274,6 +9280,18 @@ Two findings, and the second is the actionable one.
 :ID:       e1284bdb-0a18-402a-81cb-1ac8d09fb8a2
 :CREATED:  [2026-08-24 Mon 13:12]
 :END:
+
+*Shipped 2026-08-24* (=b6619e5=). Every heading's content now ends with exactly two blank lines before the next heading.
+
+*Two, and the number is not a matter of taste.* Org hides the blank line between a collapsed subtree and the following headline unless there are at least =org-cycle-separator-lines= of them, and that variable is 2 by default here. Two in the file buys exactly one visible line of air when folded; one buys none. So the convention is calibrated to a setting that already existed, and needed no configuration change.
+
+*Before every heading, not only before same-level ones,* and the corpus settled that. The gap you see before =** B= in a folded outline is the trailing space of A's *last child*, not of A's own body: 7 of 88 level-2 headings are preceded by a deeper heading, and 31 of 134 gaps sit between different levels. A same-level rule would skip exactly those.
+
+*=claude-code-ide-org-normalize-heading-separation= touches only the run of blank lines immediately preceding a heading*, found by walking back from the next heading and stopping at the first non-blank line. That is the safety property: the edit cannot reach text. Verified on the first run -- 224 insertions, 37 deletions, and *zero* changed lines carrying any character. The last heading in each file is left alone; there is nothing after it to separate from.
+
+*Re-run twice since,* because applying queued events inserts lines without the convention. That is the shape of the thing: it is a normaliser, not a one-time migration, and it belongs in the same sitting as the consolidation sweep [[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]] rather than being remembered separately.
+
+*Not yet written down as a convention anywhere* -- neither =.claude/rules/org-conventions.md= nor CLAUDE.md mentions it, so nothing tells a session to preserve it and no lint asserts it. That is this heading's remaining work.
 
 
 * Review and planning
