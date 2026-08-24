@@ -6913,11 +6913,38 @@ sorts last rather than vanishing: absence of evidence rules nothing out."
                          (if created (float-time created) 0))
                    rows)))))
      (or org-id-locations (make-hash-table :test 'equal)))
-    (mapcar (lambda (r) (cons (nth 0 r) (nth 1 r)))
-            (sort rows (lambda (a b)
-                         (cond ((/= (nth 2 a) (nth 2 b)) (< (nth 2 a) (nth 2 b)))
-                               ((/= (nth 3 a) (nth 3 b)) (< (nth 3 a) (nth 3 b)))
-                               (t (> (nth 4 a) (nth 4 b)))))))))
+    (let ((ranked (mapcar (lambda (r) (cons (nth 0 r) (nth 1 r)))
+                          (sort rows
+                                (lambda (a b)
+                                  (cond ((/= (nth 2 a) (nth 2 b)) (< (nth 2 a) (nth 2 b)))
+                                        ((/= (nth 3 a) (nth 3 b)) (< (nth 3 a) (nth 3 b)))
+                                        (t (> (nth 4 a) (nth 4 b))))))))
+          (category (claude-code-ide-org--datetree-category-title)))
+      ;; The meta-work category, offered first and by *title*, because it
+      ;; is the one destination `org-id' cannot supply: a category
+      ;; carries no :ID: by convention, and `bin/lint-org' enforces that,
+      ;; so the loop above can never reach it however it is ranked
+      ;; (TODO.org :ID: 9575e65b).
+      ;;
+      ;; First rather than ranked, and that is a claim about this list's
+      ;; actual population: a span that got here is one no heading could
+      ;; be guessed for, and the recurring reason a span has no plausible
+      ;; heading is that the work was not on a heading at all -- review,
+      ;; planning, deciding what to do next. Ranking it among headings
+      ;; would bury the answer to the commonest case behind dozens of
+      ;; wrong ones.
+      ;;
+      ;; The id here is the category *title*, not a UUID, and that is
+      ;; deliberate: apply resolves it to the day node for the item's own
+      ;; timestamp, so assigning a span from last Monday files it under
+      ;; last Monday. Nothing needs to know the day node's id, and
+      ;; nothing stores it.
+      (if category
+          (cons (cons (format "%-18s %s  {meta-work: files under that day's node}"
+                              "(the day it happened)" category)
+                      category)
+                ranked)
+        ranked))))
 
 (defun claude-code-ide-org--ordered-collection (candidates)
   "Return a `completing-read' collection over CANDIDATES that keeps their order.
@@ -8051,6 +8078,15 @@ shape, so the two cannot disagree about what a day node looks like."
           (end-of-line)))
       (widen)
       found)))
+
+(defun claude-code-ide-org--datetree-category-title ()
+  "Return the title of the `:DATE_TREE:\' category, or nil when there is none."
+  (let ((file (claude-code-ide-org--capture-target-file)))
+    (when (and file (file-readable-p file))
+      (with-current-buffer (find-file-noselect file)
+        (org-with-wide-buffer
+         (when (claude-code-ide-org--datetree-anchor-position)
+           (substring-no-properties (org-get-heading t t t t))))))))
 
 (defun claude-code-ide-org--day-node-target-p (target)
   "Non-nil when TARGET names the meta-work category rather than a heading.

@@ -8086,6 +8086,52 @@ apply turns it into a real heading, and the date comes from the item."
                      (claude-code-ide-org--resolve-item-target
                       (list :type 'clock :id "some-id" :start start)))))))
 
+(ert-deftest claude-code-ide-org-test-assign-offers-the-meta-work-category ()
+  "The category is offered first, by title, and resolves through apply.
+
+It is the one destination `org-id' cannot supply -- a category carries no
+:ID: by convention and bin/lint-org enforces that -- so without this the
+review buffer's `a' can never reach it however candidates are ranked.
+That gap is not theoretical: the resolver shipped, and assigning a span
+to the day node was still impossible from the only command meant to do
+it (TODO.org :ID: 9575e65b)."
+  (claude-code-ide-org-test--with-datetree
+    (let* ((start (date-to-time "2026-08-17T09:00:00-0500"))
+           (cands (claude-code-ide-org--assign-candidates start (time-add start 600))))
+      ;; Present, first, and carrying the title rather than a UUID.
+      (should (equal "Review and planning" (cdr (car cands))))
+      (should (string-match-p "meta-work" (car (car cands))))
+      ;; And what `a' would store resolves to a real day node dated from
+      ;; the span, not from today.
+      (let ((resolved (claude-code-ide-org--resolve-item-target
+                       (list :type 'clock :id (cdr (car cands)) :start start))))
+        (should resolved)
+        (should-not (equal resolved "Review and planning"))
+        (with-temp-buffer
+          (insert-file-contents file)
+          (should (string-match-p "2026-08-17 Monday" (buffer-string))))))))
+
+(ert-deftest claude-code-ide-org-test-assign-omits-the-category-when-there-is-none ()
+  "A file with no :DATE_TREE: offers no category row.
+
+Without this the candidate list would grow a permanent entry naming a
+destination that does not exist, and `completing-read' runs with
+REQUIRE-MATCH -- so choosing it would fail at apply rather than at the
+prompt."
+  (let* ((dir (file-name-as-directory (make-temp-file "ccio-nodt" t)))
+         (file (expand-file-name "TODO.org" dir))
+         (claude-code-ide-org-capture-file file)
+         (claude-code-ide-org-query-files (list file)))
+    (unwind-protect
+        (progn
+          (with-temp-file file (insert "* Tooling\n** DONE A task\n"))
+          (should-not (claude-code-ide-org--datetree-category-title))
+          (let ((cands (claude-code-ide-org--assign-candidates
+                        (current-time) (current-time))))
+            (should-not (seq-find (lambda (c) (string-match-p "meta-work" (car c)))
+                                  cands))))
+      (delete-directory dir t))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here
