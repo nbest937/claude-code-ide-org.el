@@ -7858,6 +7858,32 @@ two insertions, no deletion, no reflow.  Returns a summary string."
          (if (null bounds)
              (format "Error: \"%s\" has no body to wrap."
                      (org-get-heading t t t t))
+           ;; A body containing a bare `:END:' line cannot be wrapped,
+           ;; and that is org's grammar rather than a limitation here:
+           ;; `:END:' *is* the drawer terminator, `org-element's drawer
+           ;; parser stops at the first line matching it, and nothing
+           ;; escapes that -- not a comma, not a #+BEGIN_ block. Blocks
+           ;; themselves are perfectly legal inside a drawer; it is
+           ;; specifically the `:END:' line that cannot be contained,
+           ;; which is why this tests for that and not for blocks.
+           ;;
+           ;; Measured 2026-08-24 on org 9.8.7 against :ID: cd1e974e,
+           ;; whose body demonstrates a datetree subtree inside
+           ;; #+BEGIN_EXAMPLE, :PROPERTIES:/:END: pair and all. Wrapping
+           ;; it closed the :PLAN: drawer at the example's `:END:',
+           ;; leaving the rest of the body -- including a literal
+           ;; `SCHEDULED: <2026-08-22 Sat +1d>' -- outside the drawer at
+           ;; body top level, where `org-get-repeat' found it and
+           ;; bin/lint-org reported a repeater under a completable
+           ;; ancestor. One error and five spurious warnings out of two
+           ;; inserted lines, and the heading still looked fine.
+           (if (save-excursion
+                 (goto-char (nth 1 bounds))
+                 (re-search-forward "^[ \t]*:END:[ \t]*$" (nth 2 bounds) t))
+               (format "Error: \"%s\" has a bare :END: line in its body, which \
+would close the :PLAN: drawer early -- :END: is org's drawer terminator and \
+nothing escapes it. Not wrapped."
+                       (org-get-heading t t t t))
            (let* ((open (nth 0 bounds))
                   (beg (nth 1 bounds))
                   (end (nth 2 bounds))
@@ -7896,7 +7922,7 @@ two insertions, no deletion, no reflow.  Returns a summary string."
                         (if until "the body above the seam" "the whole body")
                         (org-get-heading t t t t)
                         (if until (format " (seam: %s)" until) "")
-                        (if (equal stripped before) "yes" "NO -- INSPECT")))))))))))
+                        (if (equal stripped before) "yes" "NO -- INSPECT"))))))))))))
 
 ;;; CLOSED: backfill (TODO.org :ID: f4b07fc0)
 ;;

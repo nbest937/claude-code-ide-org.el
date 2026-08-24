@@ -137,6 +137,32 @@ describes an intention that may not have survived contact, and reading it
 for current fact is how superseded design claims get repeated as though
 they still held.
 
+## The meta-work datetree
+
+`* Review and planning` carries `:DATE_TREE: t`, which is what makes org nest
+the year/month/day tree *inside* the category instead of writing a second
+`* 2026` at level 1.
+
+**A real task sits beside the tree, at the same depth as the year node:**
+
+```
+* Review and planning          :DATE_TREE:
+** TODO Open today's node      <- a real task, level 2
+** 2026                        <- org's scaffolding, also level 2
+*** 2026-08 August
+**** 2026-08-24 Monday         <- carries :ID:, and is what time is clocked against
+```
+
+That collision is the whole reason `claude-code-ide-org--datetree-node-role`
+gates on org's literal title shapes rather than on depth. A depth-only test
+would read every ritual heading as scaffolding and waive `:ID:`/`:CREATED:`
+for it — and the day node is the one heading here that most needs them,
+since every tool addresses headings by `:ID:` and time is clocked against
+that node.
+
+Year and month nodes carry neither `:ID:` nor `:CREATED:`; the day node
+carries both. `bin/lint-org` knows the difference.
+
 ## Archiving
 
 **Both terminal keywords are archived, not just `DONE`.** `org-done-keywords`

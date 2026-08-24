@@ -8153,6 +8153,41 @@ break lands mid-word, which reads worse than either extreme."
       (should (local-variable-p 'truncate-lines))
       (should (local-variable-p 'word-wrap)))))
 
+(ert-deftest claude-code-ide-org-test-wrap-plan-refuses-a-body-holding-END ()
+  "A bare `:END:' in the body is refused, because org's grammar cannot
+contain it.
+
+`:END:' IS the drawer terminator: `org-element's drawer parser stops at
+the first line matching it and nothing escapes that -- not a comma, not
+a #+BEGIN_ block. Measured on org 9.8.7 with :ID: cd1e974e, whose body
+demonstrates a datetree subtree inside #+BEGIN_EXAMPLE. Wrapping closed
+the drawer at the example's own `:END:', leaving the rest of the body --
+a literal `SCHEDULED: <... +1d>' among it -- outside the drawer, where
+`org-get-repeat' found it. One lint error and five spurious warnings out
+of two inserted lines, with the heading still looking fine on screen.
+
+The fixture is that heading in miniature. Note it deliberately puts the
+`:END:' inside a block, since a reasonable reading is that a block
+protects its contents -- the whole finding is that it does not."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "\nProspective prose.\n\n"
+            "#+BEGIN_EXAMPLE\n"
+            ",* Demo heading\n"
+            ":PROPERTIES:\n:ID:  demo\n:END:\n"
+            "SCHEDULED: <2026-08-22 Sat +1d>\n"
+            "#+END_EXAMPLE\n\n"
+            "*Shipped.* The debrief.\n")
+    (save-buffer)
+    (let ((result (claude-code-ide-org-wrap-plan id "*Shipped.*")))
+      (should (string-match-p "bare :END: line" result)))
+    ;; Refused means untouched: no drawer, and the heading still reads
+    ;; as having no repeater.
+    (claude-code-ide-org--at-id
+     id (lambda ()
+          (should-not (claude-code-ide-org--find-drawer "PLAN"))
+          (should-not (org-get-repeat))))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here

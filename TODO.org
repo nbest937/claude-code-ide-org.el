@@ -3773,27 +3773,13 @@ CLOCK: [2026-08-21 Fri 13:20]--[2026-08-21 Fri 13:21] =>  0:01
 - State "DONE"       from "DOING"      [2026-08-21 Fri 13:21] \\
   category instituted, lint and placement verified
 :END:
+:PLAN:
 
 The act of putting the design into TODO.org. Deliberately last: the user's instruction 2026-08-21 was that the branch and the real edit belong together, at the moment the structure lands rather than while it is being scoped.
 
 *The whole initial subtree, as org actually writes it* -- materialized, not sketched, and comma-escaped per [[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]]:
 
-#+BEGIN_EXAMPLE
-,* Review and planning
-:PROPERTIES:
-:DATE_TREE: t
-:ARCHIVE:  DONE.org::* Review and planning
-:END:
-,** TODO Open today's node
-SCHEDULED: <2026-08-22 Sat +1d>
-:PROPERTIES:
-:ID:       <stamped at creation>
-:CREATED:  <stamped at creation>
-:END:
-,** 2026
-,*** 2026-08 August
-,**** 2026-08-21 Friday
-#+END_EXAMPLE
+The shape it created is documented in =.claude/rules/org-conventions.md= under "The meta-work datetree" -- moved there 2026-08-24 because it is a standing structural fact rather than this task's history, and because the =:PROPERTIES:=/=:END:= pairs in the worked example made this body unwrappable: =:END:= is org's drawer terminator and closes a =:PLAN:= drawer wherever it appears.
 
 A matching =* Review and planning= must be added to DONE.org in the same edit, or the =:ARCHIVE:= target is matched as a literal string, fails to resolve, and org silently appends a second near-identical category at the end of the file.
 
@@ -3805,6 +3791,7 @@ A matching =* Review and planning= must be added to DONE.org in the same edit, o
 
 *Blocked on [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]] and not on the others.* That heading's own instruction is to fix the linter "before the tree exists, not after", because once several hundred warnings are present the temptation is to silence the check rather than exempt the class. The datetree tooling can land in either order; the linter cannot.
 
+:END:
 *Shipped 2026-08-21*, as one edit across both files: the category with its =:DATE_TREE:= and =:ARCHIVE:=, the ritual repeater, today's day node, and the matching bare =* Review and planning= at the end of DONE.org. Placed last among the categories in both files. Written exactly as materialized above, with one addition -- today's day node (=2026-08-21 Friday=, =:ID:= 758643f2) was hand-created with =:ID:= and =:CREATED:=, so meta-work can be clocked today rather than waiting on [[id:9575e65b-b589-465a-830c-286541780f96][9575e65b]].
 
 *The DONE.org mirror carries no =:DATE_TREE:=, deliberately.* Archiving moves a subtree under the target heading as an ordinary child; nothing runs a datetree capture against DONE.org, so the property would assert a structure that file does not have. An archived day node lints there as an ordinary level-2 heading, since it keeps the =:ID:= and =:CREATED:= it was created with.
