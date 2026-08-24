@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Tests for bin/hooks/footnote-check (TODO.org :ID: 2758f3a0).
+#
+# Shell, not ERT: the thing under test is a shell script reading a JSON
+# payload, and testing it through its real interface is the only way to
+# catch a jq or awk mistake. Always prints a result -- silence is not a
+# passing check.
+
+set -uo pipefail
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+hook="$repo/bin/hooks/footnote-check"
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+export CLAUDE_ORG_QUEUE_DIR="$tmp"
+export CLAUDE_PROJECT_DIR="$repo"
+
+pass=0; fail=0
+# A real tracked id, and a real one used as the "already footnoted" case.
+REAL="$(grep -ohE '^:ID: +[0-9a-f]{8}' "$repo/TODO.org" | head -1 | awk '{print $2}')"
+REAL2="$(grep -ohE '^:ID: +[0-9a-f]{8}' "$repo/TODO.org" | sed -n '2p' | awk '{print $2}')"
+
+run () { # run <session> <message> -> stdout
+  jq -n --arg s "$1" --arg m "$2" \
+    '{session_id:$s, last_assistant_message:$m}' | "$hook"
+}
+check () { # check <name> <expect blocked|allowed> <output>
+  local name="$1" want="$2" out="$3" got
+  if grep -q '"continue": *false' <<<"$out"; then got=blocked; else got=allowed; fi
+  if [[ "$got" == "$want" ]]; then
+    printf 'ok   - %s (%s)\n' "$name" "$got"; pass=$((pass+1))
+  else
+    printf 'FAIL - %s: wanted %s, got %s\n' "$name" "$want" "$got"; fail=$((fail+1))
+  fi
+}
+
+check "cited id with no footnote block blocks" blocked \
+  "$(run s1 "See ${REAL} for the detail.")"
+
+check "cited id with a footnote passes" allowed \
+  "$(run s2 "See ${REAL}¹ for the detail.
+
+---
+
+¹ \`${REAL}\` — TODO *Some exact title*")"
+
+check "one footnoted, one not, still blocks" blocked \
+  "$(run s3 "Both ${REAL} and ${REAL2} matter.
+
+---
+
+¹ \`${REAL}\` — TODO *Some exact title*")"
+
+check "an 8-hex token that is not a tracked :ID: is ignored" allowed \
+  "$(run s4 "Commit deadbeef fixed it.")"
+
+check "an 8-digit number is not an id" allowed \
+  "$(run s5 "There were 20260824 events.")"
+
+check "a message citing nothing passes" allowed \
+  "$(run s6 "No identifiers here at all.")"
+
+# The loop guard: the same session blocking twice must not block again.
+out1="$(run s7 "See ${REAL} for the detail.")"
+out2="$(run s7 "See ${REAL} for the detail.")"
+check "first block sets the sentinel" blocked "$out1"
+check "second call in the same turn does NOT block (loop guard)" allowed "$out2"
+
+printf 'footnote-check-test: %d passed, %d failed\n' "$pass" "$fail"
+[[ $fail -eq 0 ]]

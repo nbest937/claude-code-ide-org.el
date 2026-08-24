@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# Stop hook: refuse to end a turn whose response cites a tracked org
+# :ID: without footnoting it.
+#
+# TODO.org :ID: 2758f3a0. Measured over one session's own transcript:
+# 37 of 85 citations footnoted, 43%. The failure has a precise shape --
+# 25 of 32 messages footnoted every id or none, so nothing is dropped
+# mid-paragraph; and every offender was footnoted correctly the FIRST
+# time it appeared and dropped on re-mention. Once an id has been looked
+# up it stops reading as opaque to the writer, who is holding the title.
+# But the rule is per RESPONSE, and the reader of the twentieth message
+# does not have the fourth one on screen.
+#
+# Reads `last_assistant_message', not `transcript_path'. The hook docs
+# are explicit that the transcript is written asynchronously and may lag
+# the in-memory conversation, so a hook needing the current turn's final
+# text must use this field. Reading the transcript would check the
+# PREVIOUS response and block on the wrong thing.
+#
+# Candidate ids are validated against the org files before being
+# required. An 8-hex token is not necessarily an :ID: -- a git short
+# hash is the obvious collision, and this project's prose is full of
+# them -- so only tokens that actually appear as `:ID:  <token>...' in a
+# tracked file are enforced. That turns a heuristic into a lookup and
+# makes a false positive nearly impossible.
+#
+# LOOP GUARD, and it is not optional: the docs describe no
+# `stop_hook_active' flag for a blocking Stop hook, so a hook that
+# blocks on a condition the model then fails to satisfy blocks forever.
+# This fires at most once per turn, using a per-session sentinel on the
+# model of bin/hooks/block-start's -- written when it blocks, cleared by
+# bin/hooks/session-resume when the next prompt starts a new turn. The
+# worst case is one extra continuation per turn, never a hang.
+
+set -uo pipefail
+
+input="$(cat)"
+command -v jq >/dev/null 2>&1 || exit 0
+
+session_id="$(jq -r '.session_id // empty' <<<"$input" 2>/dev/null)"
+[[ -n "$session_id" ]] || exit 0
+case "$session_id" in
+  *[!A-Za-z0-9._-]*|''|.|..) exit 0 ;;
+esac
+
+queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
+sentinel="$queue_dir/$session_id.footnote-blocked"
+# Already blocked once this turn: let it stop rather than loop.
+[[ -e "$sentinel" ]] && exit 0
+
+message="$(jq -r '.last_assistant_message // empty' <<<"$input" 2>/dev/null)"
+[[ -n "$message" ]] || exit 0
+
+repo="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+org_files=()
+for f in "$repo/TODO.org" "$repo/DONE.org"; do
+  [[ -r "$f" ]] && org_files+=("$f")
+done
+[[ ${#org_files[@]} -gt 0 ]] || exit 0
+
+# Split at the LAST line that is exactly `---': everything after it is
+# the footnote block. A response with no such line has no footnotes, so
+# every citation in it is unfootnoted.
+body="$(awk 'BEGIN{n=0} {l[NR]=$0; if ($0=="---") n=NR} END{if(n==0)n=NR+1; for(i=1;i<n;i++) print l[i]}' <<<"$message")"
+foot="$(awk 'BEGIN{n=0} {l[NR]=$0; if ($0=="---") n=NR} END{if(n>0) for(i=n+1;i<=NR;i++) print l[i]}' <<<"$message")"
+
+# Candidates: 8 hex chars, not all digits (a bare number or date is not
+# an id), deduplicated.
+#
+# bash 3.2 throughout, which macOS still ships and which
+# `#!/usr/bin/env bash' resolves to. No `mapfile', no associative
+# arrays, and no bare "${arr[@]}" on a possibly-empty array under
+# `set -u'. Written that way after this script's first draft used
+# `mapfile' and failed every case that should have blocked -- the same
+# three bash-4 constructs, in the same order, that TODO.org :ID:
+# 7e9aa4ea already recorded hitting.
+candidates="$(grep -oE '\b[0-9a-f]{8}\b' <<<"$body" | grep -vE '^[0-9]{8}$' | sort -u)"
+[[ -n "$candidates" ]] || exit 0
+
+missing=""
+while IFS= read -r id; do
+  [[ -n "$id" ]] || continue
+  grep -qE "^:ID: +$id" "${org_files[@]}" || continue   # not a tracked heading
+  grep -qF "$id" <<<"$foot" && continue                 # already footnoted
+  missing="$missing${missing:+ }$id"
+done <<<"$candidates"
+[[ -n "$missing" ]] || exit 0
+
+: > "$sentinel" 2>/dev/null
+
+printf '%s' "$(jq -n --arg ids "$missing" '{
+  hookSpecificOutput: {
+    hookEventName: "Stop",
+    stopReason: ("This response cites tracked org :ID:s without footnoting them: "
+      + $ids
+      + ". Append a footnote for each, superscript-marked in the prose (¹²³), "
+      + "each footnote line carrying the id, its current TODO keyword and its EXACT full title, "
+      + "looked up rather than recalled. The rule is per RESPONSE: footnote an id even if an "
+      + "earlier response in this conversation already did, because the reader does not have "
+      + "that response on screen.")
+  },
+  continue: false
+}')"
+exit 0

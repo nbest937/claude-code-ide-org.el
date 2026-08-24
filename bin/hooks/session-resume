@@ -13,5 +13,25 @@
 # clock_in/clock_out events at review time -- so there is no longer a
 # wrong heading to guess.
 #
+# It also clears bin/hooks/footnote-check's per-turn sentinel, since a
+# new prompt is exactly what starts a new turn. That hook may block a
+# turn at most once, and this is what re-arms it (TODO.org :ID:
+# 2758f3a0). Clearing it here rather than in the Stop hook itself is
+# deliberate: a Stop hook that cleared its own sentinel could block, be
+# re-entered, and block again forever, which is the loop the docs
+# describe no guard against.
+#
 # Fire-and-forget: always exit 0, never block Claude Code.
-exec "$(dirname "${BASH_SOURCE[0]}")/queue-append" resume
+
+input="$(cat)"
+
+if command -v jq >/dev/null 2>&1; then
+  session_id="$(jq -r '.session_id // empty' <<<"$input" 2>/dev/null)"
+  case "$session_id" in
+    ''|.|..|*[!A-Za-z0-9._-]*) ;;
+    *) rm -f "${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}/$session_id.footnote-blocked" 2>/dev/null ;;
+  esac
+fi
+
+printf '%s' "$input" | "$(dirname "${BASH_SOURCE[0]}")/queue-append" resume
+exit 0
