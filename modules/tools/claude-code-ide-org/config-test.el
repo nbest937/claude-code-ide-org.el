@@ -7868,6 +7868,80 @@ worked."
       (should (string-match-p "0 filled" second))
       (should (string-match-p "3 already had" second)))))
 
+;;; :PLAN: drawer lint rule (TODO.org :ID: 8bcd56f4)
+
+(defun claude-code-ide-org-test--plan-fixture (closed body &optional plan)
+  "A finished heading CLOSED at that date, with BODY prose lines.
+With PLAN non-nil the prose is wrapped in a :PLAN: drawer."
+  (concat "* Category\n"
+          "** DONE A finished task                                             :code:\n"
+          (if closed (format "CLOSED: %s\n" closed) "")
+          ":PROPERTIES:\n"
+          ":ID:       11111111-1111-1111-1111-111111111111\n"
+          ":CREATED:  [2026-08-14 Fri 10:00]\n"
+          ":END:\n"
+          (if plan ":PLAN:\n" "")
+          (mapconcat (lambda (n) (format "Prose line %d." n))
+                     (number-sequence 1 body) "\n")
+          "\n"
+          (if plan ":END:\n" "")))
+
+(ert-deftest claude-code-ide-org-test-lint-wants-a-plan-drawer-on-recent-finished-headings ()
+  "The rule fires, which is the assertion the real files cannot make.
+
+On the tracked files this check reports nothing at all -- by design, since
+it is scoped to headings closed on or after the convention landed and none
+are yet. A rule that has never been seen to fail proves nothing, so the
+positive case has to come from a fixture."
+  (should (claude-code-ide-org-test--lint-matches
+           (claude-code-ide-org-test--lint
+            (claude-code-ide-org-test--plan-fixture "[2026-08-25 Tue 09:00]" 12))
+           'warn "no :PLAN: drawer")))
+
+(ert-deftest claude-code-ide-org-test-lint-plan-drawer-rule-is-narrow ()
+  "Every exemption, because each one silently swallowing a real finding is
+how a lint rule becomes decorative.
+
+Four ways not to fire, and they are different in kind: the drawer is
+already there; the heading closed before the convention existed; it has no
+CLOSED: at all, so its date is unknowable and 39 headings in DONE.org are
+permanently in that position; and the body is too short to be worth
+wrapping."
+  (dolist (case (list
+                 ;; Already wrapped.
+                 (claude-code-ide-org-test--plan-fixture "[2026-08-25 Tue 09:00]" 12 t)
+                 ;; Closed before the convention landed.
+                 (claude-code-ide-org-test--plan-fixture "[2026-08-01 Sat 09:00]" 12)
+                 ;; No CLOSED: at all -- date unknowable, so exempt.
+                 (claude-code-ide-org-test--plan-fixture nil 12)
+                 ;; Body too short to be worth a drawer.
+                 (claude-code-ide-org-test--plan-fixture "[2026-08-25 Tue 09:00]" 3)))
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint case)
+                 'warn "no :PLAN: drawer"))))
+
+(ert-deftest claude-code-ide-org-test-lint-plan-drawer-body-length-excludes-drawers ()
+  "Drawer contents are not body prose, so a :LOGBOOK: cannot make a short
+heading look substantial. Without this a heading whose only bulk is thirty
+CLOCK lines would be told to wrap a body it does not have."
+  (should-not
+   (claude-code-ide-org-test--lint-matches
+    (claude-code-ide-org-test--lint
+     (concat "* Category\n"
+             "** DONE Short body, long logbook                                    :code:\n"
+             "CLOSED: [2026-08-25 Tue 09:00]\n"
+             ":PROPERTIES:\n"
+             ":ID:       11111111-1111-1111-1111-111111111111\n"
+             ":CREATED:  [2026-08-14 Fri 10:00]\n"
+             ":END:\n"
+             ":LOGBOOK:\n"
+             (mapconcat (lambda (n)
+                          (format "CLOCK: [2026-08-2%d Tue 09:00]--[2026-08-2%d Tue 09:30] =>  0:30" (mod n 9) (mod n 9)))
+                        (number-sequence 1 30) "\n")
+             "\n:END:\n"
+             "One line of prose.\n"))
+    'warn "no :PLAN: drawer")))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here

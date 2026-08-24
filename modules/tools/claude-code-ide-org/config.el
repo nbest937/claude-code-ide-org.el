@@ -7148,6 +7148,51 @@ correctly inside a real interactive command."
 ;; kind, where prose asserts behaviour the code no longer has.  Both read
 ;; as settled fact; only one is a string.
 
+(defcustom claude-code-ide-org-plan-drawer-since
+  (encode-time 0 0 0 24 8 2026)
+  "Date from which a finished heading is expected to carry a `:PLAN:' drawer.
+
+Headings closed before this are exempt, because the convention did not
+exist and wrapping them is `cbe282ec\'s backlog rather than a defect.
+Defaults to 2026-08-24, the day the drawer lifecycle was adopted
+\(TODO.org :ID: 8bcd56f4).
+
+A `defcustom\' rather than a constant so a different checkout, or this
+one after the backlog is swept, can move the line without editing the
+check."
+  :type '(repeat integer)
+  :group 'claude-code-ide-org)
+
+(defun claude-code-ide-org--lint-substantial-body-p ()
+  "Non-nil when the heading at point has a body worth wrapping.
+
+\"Substantial\" is ten or more lines of actual prose: drawers, planning
+lines and their contents do not count, and neither does a body that is
+only a plan link.  The threshold exists so the rule never fires on a
+one-line heading, where a `:PLAN:\' drawer would be ceremony rather than
+structure.
+
+Counts from the end of the metadata to the next heading of any level --
+`outline-next-heading\', never a regexp of ours, for the reason recorded
+on `claude-code-ide-org--heading-body-bounds\'."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((limit (save-excursion (outline-next-heading) (point)))
+          (lines 0)
+          (in-drawer nil))
+      (org-end-of-meta-data t)
+      (while (< (point) limit)
+        (let ((text (string-trim (buffer-substring-no-properties
+                                  (line-beginning-position)
+                                  (line-end-position)))))
+          (cond
+           ((string-match-p "\\`:[A-Za-z_]+:\\'" text) (setq in-drawer t))
+           ((equal text ":END:") (setq in-drawer nil))
+           ((or in-drawer (string-empty-p text)) nil)
+           (t (setq lines (1+ lines)))))
+        (forward-line 1))
+      (>= lines 10))))
+
 (defun claude-code-ide-org--lint-heading-ids (files)
   "Return a hash of every :ID: defined across FILES, mapped to its
 heading's TODO keyword (or nil when it carries none).  The keyword is
@@ -7392,6 +7437,43 @@ probably punctuation read as structure: %S" title))
                                                (or title ""))))
                  (report 'error line "heading has TODO children but no statistics \
 cookie -- add [/] and run `org-update-statistics-cookies': %s" title))
+               ;; A finished heading with a substantial body carries a
+               ;; :PLAN: drawer (TODO.org :ID: 8bcd56f4): the prospective
+               ;; half wrapped away, the debrief left as the body.
+               ;;
+               ;; *Scoped by CLOSED: date, and that scoping is the whole
+               ;; of whether this rule is usable.* Measured 2026-08-24:
+               ;; unscoped it fires on 124 headings at once -- 30 in
+               ;; TODO.org and 94 in DONE.org -- which is exactly the
+               ;; drowning :ID: e30d52d7 had to rescue this lint from
+               ;; once already. A report carrying 124 permanent findings
+               ;; is one nobody reads, which is the failure 5ff5a4b8
+               ;; measured. Scoped to headings closed on or after the
+               ;; convention landed it fires zero times today and grows
+               ;; only with new work.
+               ;;
+               ;; The scoping is only *possible* because :ID: f4b07fc0
+               ;; backfilled 58 CLOCK-derived CLOSED: markers hours
+               ;; earlier. Before that, "closed after date X" was not a
+               ;; question this file could answer.
+               ;;
+               ;; A heading with no CLOSED: at all is exempt rather than
+               ;; reported: it was closed before the marker existed, so
+               ;; its date is unknown, and 39 headings in DONE.org are in
+               ;; that position permanently. `warn' rather than `error'
+               ;; on the standing rule above -- it is a convention a new
+               ;; heading must satisfy, and wrapping a body is a judgement
+               ;; about where the seam falls, not a mechanical repair.
+               (when (and todo
+                          (member todo claude-code-ide-org--outline-finished-keywords)
+                          (claude-code-ide-org--lint-substantial-body-p)
+                          (not (claude-code-ide-org--find-drawer "PLAN")))
+                 (let ((closed (org-entry-get nil "CLOSED")))
+                   (when (and closed
+                              (not (time-less-p
+                                    (claude-code-ide-org--parse-org-timestamp closed)
+                                    claude-code-ide-org-plan-drawer-since)))
+                     (report 'warn line "finished heading with a substantial body and no :PLAN: drawer -- wrap the prospective half with org_wrap_plan: %s" title))))
                ;; A repeating task never reaches DONE, so a completable
                ;; ancestor never can either -- this is the check that
                ;; caught 38b92521 frozen via its :BLOCKER:.
