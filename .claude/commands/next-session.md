@@ -12,9 +12,13 @@ this prompt only summarises.
 was written.
 
 **Decision markers, continued from the last slice.** Every item says whether
-it holds an unresolved decision and whose it is. Two items here do, and both
-are the user's — that is the marker earning its place, after a slice where it
-found nothing.
+it holds an unresolved decision and whose it is. *Nothing here is blocked on
+one.* Two items carried a user decision when this was first drafted and both
+were made the same afternoon — the repeater cap and the `CLOSED:` archaeology
+— which is the marker doing its job rather than the format finding nothing.
+What remains is one deliberately-open sub-question (item 4's datetree) and
+one item whose entire purpose is to produce evidence a decision would need
+(item 6).
 
 ---
 
@@ -35,7 +39,14 @@ found nothing.
   debrief.
 - **Both org files are normalised**: 58 backfilled `CLOSED:` markers, every
   heading separated by two blank lines, `#+STARTUP:` lines identical.
-- **The suite is 368 tests, plus `bin/footnote-check-test`.** Lint: 0 errors.
+- **The suite is 369 tests, plus `bin/footnote-check-test`.** Lint: 0 errors.
+- **A repeater's body is capped** (`ff92700e`, decided and shipped): nothing
+  else ever prunes one, since every pruning event in the `:PLAN:` lifecycle
+  is tied to reaching `DONE`. Fires on nothing today; would have caught
+  `cbe282ec` at 47 lines.
+- **`b7b46a26` is cancelled.** Nothing mechanical consumes `CLOSED:` on the
+  39 headings that lack one, and nothing ever will — the `:PLAN:` lint
+  exempts them permanently by design. Don't re-derive this.
 
 ---
 
@@ -94,19 +105,30 @@ to prevent, arrived at by obeying the lint.
 The signal already exists: `--plan-seam`'s "first body line" condition *is*
 the test for "no prospective half".
 
-## 4. `ff92700e` — a repeater's body is never pruned
+## 4. `961f15b6` — clock the human's review attention
 
-**Decision: yours, and it is a design choice rather than a defect report.**
+**Decision: none outstanding on the mechanism.** Both open questions were
+settled 2026-08-24: the clock starts on `claude-code-ide-org-review` itself
+rather than on a spoken cue, ends on the user's word, and treats *burying*
+the buffer as the backstop.
 
-`8bcd56f4`'s lifecycle prunes a body at completion. A repeater never
-completes — its keyword resets and its `SCHEDULED` stamp advances — so a
-ritual heading accumulates prose forever and *no event in the convention will
-ever collect it*. `cbe282ec` reached 47 lines and had to be split three ways
-by hand.
+The review pass is the one activity this project never measures and the one
+it most depends on — nothing reaches an org file without it.
 
-Three directions are recorded on the heading; the lint one is measurable
-first and needs no new concept, since `bin/lint-org` already reads
-`org-get-repeat`.
+**Three things are already reasoned out on the heading; do not re-derive
+them.** It is not an exception to the union convention — human attention and
+agent activity are different quantities that were never meant to be added.
+It does not go through the queue: a human inside an interactive command has
+none of the constraints the queue exists for, so it writes a native
+`org-clock-in` with an *active* timestamp, which is exactly what
+`--review-format-annotation` reserves for human-logged intervals.
+
+**And `q` does not kill the buffer** — it is `special-mode`'s `quit-window`,
+which buries. A naive `kill-buffer-hook` would clock all night. Verified
+live; the fix is to treat burying as the end.
+
+**Left open on purpose:** whether it gets its own datetree. Decide that
+against a report someone actually wants, not in advance.
 
 ## 5. `2758f3a0` — confirm the footnote hook actually fires
 
@@ -131,18 +153,15 @@ The corpus is now materially better suited to it than it was: `CLOSED:` is
 populated, drawers are consistent, the datetree exists with a real day node.
 Related: `29439196`, `8ca6541d`, `9651d4c8`.
 
-**Cut line:** stop after item 3. Items 1–3 leave the tooling coherent; 4–6
-are judgement and evaluation that keep. **If the session is short, do 1
+**Cut line:** stop after item 4. Items 1–4 are all builds with settled
+designs and leave the tooling coherent; 5 needs only a new session to observe
+itself, and 6 is evaluation that keeps. **If the session is short, do 1
 only** — it is the one that stops the record degrading between passes.
 
 ---
 
 ## Deliberately off the critical path
 
-- `b7b46a26` — git archaeology for the 39 headings with no recoverable close
-  time. **Decision: yours**, and the heading argues it may not be worth
-  having: a commit dates when a change was *recorded*, which in this project
-  can be far from when work stopped.
 - `c31b6c76` — a test that fails for the last hour of every day. Real,
   bounded, and green whenever anyone actually looks.
 - `2d100d0d` — cross-item overlap. Much cheaper since `eaeeb4ee`: a span
