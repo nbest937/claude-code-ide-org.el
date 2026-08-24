@@ -7,6 +7,7 @@ Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 * Skill logic
 
 ** DONE org_outline's scoped mode reports satisfied blockers as [blocked], because org-map-entries narrows :code:
+CLOSED: [2026-08-15 Sat 18:59]
 :PROPERTIES:
 :ID:       f765d782-822d-454b-85eb-68e792cc514c
 :CREATED:  [2026-08-15 Sat 18:55]
@@ -170,6 +171,7 @@ queue replaced. The worktree orchestration still stands; the clocking
 discipline around it does not.
 
 ** DONE Rework org_capture: bare heading, :CREATED:, and a placement target :code:
+CLOSED: [2026-08-11 Tue 21:03]
 :PROPERTIES:
 :ID:       47c027d2-7b5a-4de0-baf4-f992f3b814bd
 :CREATED:  [2026-08-11 Tue 15:52]
@@ -369,6 +371,7 @@ it correct, not a parameter surface sized as though it were the primary
 way headings get made.
 
 ** DONE Add org_outline, a compact structural index of an org file :code:
+CLOSED: [2026-08-11 Tue 18:26]
 :PROPERTIES:
 :ID:       9f3c35c7-0229-4cd6-908b-779267ec9b97
 :CREATED:  [2026-08-11 Tue 16:58]
@@ -552,6 +555,7 @@ positive cases by accident — kept as pins, not counted as evidence.
 Live, the real TODO.org went from 10 =[blocked]= markers to 0.
 
 ** CANCELLED org_capture omits the :CREATED: property its own convention requires :code:
+CLOSED: [2026-08-11 Tue 18:19]
 :PROPERTIES:
 :ID:       cdcc065c-628d-4350-b1ba-fcf686e9c4c1
 :CREATED:  [2026-08-11 Tue 07:31]
@@ -613,6 +617,7 @@ the analysis above is still the reference for *why* =:CREATED:= is owed
 and how to verify it, and =47c027d2= carries the work.
 
 ** DONE Check for a modified Emacs buffer before text-editing a tracked org file :code:
+CLOSED: [2026-08-11 Tue 16:47]
 :PROPERTIES:
 :ID:       0308e7d7-06ea-48fb-8579-6a5a43277674
 :CREATED:  [2026-08-11 Tue 16:22]
@@ -707,6 +712,7 @@ exempt from deterministic testing. What is verified is that the content
 is correct when read.
 
 ** DONE Add the (t!) logging marker to TODO in the #+TODO: line :code:
+CLOSED: [2026-08-11 Tue 16:18]
 :PROPERTIES:
 :ID:       90a5a0cf-a81d-45dc-a453-0bfe61e3ef93
 :CREATED:  [2026-08-11 Tue 15:52]
@@ -1298,6 +1304,7 @@ keywords that disagree. =bin/test= 39/39 at merge.
 * Clock lifecycle & visibility
 
 ** DONE [3/3] Stop treating an =:ID:= as guaranteed to resolve :code:
+CLOSED: [2026-08-17 Mon 15:01]
 :PROPERTIES:
 :ID:       23a75720-d1d3-496f-8dad-41571ad30440
 :CREATED:  [2026-08-17 Mon 12:40]
@@ -1404,6 +1411,7 @@ it happens. It was not answered this time.
 
 
 *** CANCELLED org_archive leaves org-id-locations pointing at the old file :code:
+CLOSED: [2026-08-17 Mon 14:12]
 :PROPERTIES:
 :ID:       89bf8663-dec9-4aee-a95b-4e7be04c6b95
 :CREATED:  [2026-08-17 Mon 12:21]
@@ -1477,6 +1485,7 @@ apart, which is an argument for it.
 
 
 *** DONE =org-with-point-at= on a nil marker runs its body in the wrong buffer :code:
+CLOSED: [2026-08-17 Mon 14:15]
 :PROPERTIES:
 :ID:       09230b93-b869-44b7-91ef-abd869d4eade
 :CREATED:  [2026-08-17 Mon 12:21]
@@ -1521,6 +1530,7 @@ which this module can hook. Freshness is not achievable here, so
 tolerating nil is required regardless of what else is done.
 
 *** DONE Surface the count of unresolvable =:ID:=s when the review buffer opens :code:
+CLOSED: [2026-08-17 Mon 14:56]
 :PROPERTIES:
 :ID:       8e969114-0982-4c39-9258-3b25a5425e09
 :CREATED:  [2026-08-17 Mon 12:21]
@@ -1600,6 +1610,7 @@ its speed.
 
 
 ** DONE Lead review buffer group headings with the =:ID:= prefix :code:
+CLOSED: [2026-08-17 Mon 14:19]
 :PROPERTIES:
 :ID:       c2132d3f-dd78-4498-ba87-0ca814dc2f77
 :CREATED:  [2026-08-17 Mon 12:21]
@@ -1663,6 +1674,7 @@ error-string sniffing and cannot fall into
 [[id:09230b93-b869-44b7-91ef-abd869d4eade][09230b93]]'s nil-marker trap.
 
 ** DONE The assignment dialog's proximity ranking is discarded by Vertico :code:
+CLOSED: [2026-08-17 Mon 14:17]
 :PROPERTIES:
 :ID:       85702dba-8d15-4924-84bd-2bb7efac093a
 :CREATED:  [2026-08-17 Mon 12:21]
@@ -1704,6 +1716,7 @@ Ordering gets the same practical result with no cliff, since everything
 stays reachable by typing.
 
 ** DONE Apply discards decisions on the items it did not apply :code:
+CLOSED: [2026-08-17 Mon 09:32]
 :PROPERTIES:
 :ID:       c02d11c8-cd29-40ca-a0f4-dc1c878dfa7d
 :CREATED:  [2026-08-17 Mon 09:29]
@@ -1763,6 +1776,7 @@ discipline is no longer necessary. Assign a few, apply, continue — the
 rhythm the backlog actually invites — and nothing accumulates risk.
 
 ** DONE Dismissing an item discards every unapplied assignment in the review session :code:
+CLOSED: [2026-08-17 Mon 09:11]
 :PROPERTIES:
 :ID:       73cd5a1b-9b4f-409d-9aab-ffc6ea736ae5
 :CREATED:  [2026-08-17 Mon 09:03]
@@ -1858,6 +1872,7 @@ the expensive thing for the cheap one, and only =g= should be allowed to
 make that trade.
 
 ** DONE Route review-buffer commands through one mutate-render-restore path :code:
+CLOSED: [2026-08-17 Mon 09:11]
 :PROPERTIES:
 :ID:       2d032000-bf04-47f5-b5e6-ef4299078d15
 :CREATED:  [2026-08-17 Mon 09:07]
@@ -1912,6 +1927,7 @@ such excuse: it had already written its dismissal to the queue. Recorded
 on [[id:73cd5a1b-9b4f-409d-9aab-ffc6ea736ae5][73cd5a1b]] rather than
 fixed blind.
 ** DONE Assign and interval-edit send point to the top of the review buffer :code:
+CLOSED: [2026-08-17 Mon 09:04]
 :PROPERTIES:
 :ID:       9e80a32d-43e1-4647-a42c-cba10f6e79cc
 :CREATED:  [2026-08-17 Mon 08:53]
@@ -1965,6 +1981,7 @@ code made about itself in prose — "kept, absence of evidence rules
 nothing out" — that the code did not honour. Neither was found by review.
 
 ** DONE Assign excludes headings created after the span, which is the normal case not an impossibility :code:
+CLOSED: [2026-08-17 Mon 08:41]
 :PROPERTIES:
 :ID:       0d055205-a670-45c6-b4af-980961603a7c
 :CREATED:  [2026-08-15 Sat 17:17]
@@ -2105,6 +2122,7 @@ batch.
 
 
 ** DONE Rank assignment candidates by time correlation with the unassigned span :code:
+CLOSED: [2026-08-17 Mon 08:41]
 :PROPERTIES:
 :ID:       49cbe319-f7db-413a-ade8-c4850c1fab8c
 :CREATED:  [2026-08-15 Sat 17:45]
@@ -2222,6 +2240,7 @@ inside the span ties with one clocked throughout it. No evidence yet that
 this matters; recorded rather than guessed at.
 
 ** DONE [31/31] Refactor clock/TODO-state driving to an append-only event queue + interactive batch-apply review :code:
+CLOSED: [2026-08-15 Sat 19:02]
 :PROPERTIES:
 :ID:       b5f7c5c7-7ad6-4c68-9cce-3479db1f1644
 :CREATED:  [2026-08-06 Thu 10:47]
@@ -2708,6 +2727,7 @@ from what shipped in four places:
   still holds but the reason cited for it, and the =config.el:900/991=
   line references, do not.
 *** DONE Rework the MCP tool / hook write paths to append-only :code:
+CLOSED: [2026-08-11 Tue 16:41]
 :PROPERTIES:
 :ID:       feba67eb-35b3-48bd-a892-8ecd47ca52e0
 :CREATED:  [2026-08-06 Thu 10:47]
@@ -3004,6 +3024,7 @@ un-appliable queue item. Recorded rather than worked around, since
 real gap in the transition rules that
 [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] should settle.
 *** DONE Build the interactive review-and-apply Emacs command :code:
+CLOSED: [2026-08-11 Tue 12:14]
 :PROPERTIES:
 :ID:       720b2dcf-6af1-45f3-96a7-aa841e5651e1
 :CREATED:  [2026-08-06 Thu 10:47]
@@ -3273,6 +3294,7 @@ events reality has moved past — is still open and still writes
 plausible-looking wrong history.
 
 *** DONE Apply must not replay a state event that reality has moved past :code:
+CLOSED: [2026-08-11 Tue 12:06]
 :PROPERTIES:
 :ID:       f9f61c04-150b-4ee7-96c9-582cf2bda95a
 :CREATED:  [2026-08-07 Fri 16:06]
@@ -3467,6 +3489,7 @@ applied them live, and confirming a stale item writes plausible history
 that is wrong. Both disappear at the cutover; until then, refusing is
 almost always the right answer.
 *** DONE Sort :LOGBOOK: chronologically, keeping notes with their continuations :code:
+CLOSED: [2026-08-12 Wed 17:01]
 :PROPERTIES:
 :ID:       af7d3687-6d1e-4480-a9e2-df772785713f
 :CREATED:  [2026-08-07 Fri 16:06]
@@ -3553,6 +3576,7 @@ that it is off the clock-out path, so in practice a drawer is sorted
 when someone asks.
 
 *** DONE Add a read-only MCP tool to inspect and summarize the pending queue :code:
+CLOSED: [2026-08-12 Wed 16:55]
 :PROPERTIES:
 :ID:       63a642c7-b04d-42dc-b6ec-3fb13df3ae04
 :CREATED:  [2026-08-06 Thu 11:59]
@@ -3687,6 +3711,7 @@ reconciliation, which is where overlapping intervals actually have to
 be resolved — it survives this cancellation, it just doesn't live here.
 
 *** DONE Support per-subagent activity intervals via a compound (session_id, agent_id) key :code:
+CLOSED: [2026-08-13 Thu 11:15]
 :PROPERTIES:
 :ID:       16160d23-273b-4510-858e-db18508d04a0
 :CREATED:  [2026-08-06 Thu 13:06]
@@ -3953,6 +3978,7 @@ enforcement is "not built yet." It is — four functions are live on
 [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]].)
 
 *** DONE Survey org's own API for built-in mechanisms we may have overlooked or dismissed too quickly :code:
+CLOSED: [2026-08-14 Fri 13:36]
 :PROPERTIES:
 :ID:       c084553c-0621-4a96-9fa1-f32850aeec6a
 :CREATED:  [2026-08-06 Thu 10:47]
@@ -4110,6 +4136,7 @@ doing so — held up: it did not overturn the architecture, but it did
 find one real defect and it did stop a migration that would have
 introduced =nil= bounds into working code.
 *** DONE The drawer reader gives up on a decoy where the writer loops past it :code:
+CLOSED: [2026-08-14 Fri 14:09]
 :PROPERTIES:
 :ID:       f42641ab-fdd6-4754-add9-490dd6b24ef8
 :CREATED:  [2026-08-14 Fri 13:34]
@@ -4199,6 +4226,7 @@ two duplicated searches, so the argument for waiting for a live incident
 was weak.
 
 *** DONE Decide the fate of the stale-interval recovery feature, whose premise this refactor removes :code:
+CLOSED: [2026-08-14 Fri 13:45]
 :PROPERTIES:
 :ID:       7771fc63-9374-4c8a-9e80-24ceec21977c
 :CREATED:  [2026-08-06 Thu 22:26]
@@ -4359,6 +4387,7 @@ is left for the rewrite, since it is not this heading's to fix, but it is
 load-bearing for the argument above about clean exits.
 
 *** DONE Decide whether the :SESSIONS: drawer and its machinery survive the refactor :code:
+CLOSED: [2026-08-11 Tue 11:48]
 :PROPERTIES:
 :ID:       9d2fcdad-9bf7-47b6-8018-223b13ec4577
 :CREATED:  [2026-08-07 Fri 15:09]
@@ -4586,6 +4615,7 @@ should have been stated before the check rather than after it.
 
 
 *** DONE Reconcile or retire the now-likely-superseded clock/session-ownership plans and infrastructure :code:
+CLOSED: [2026-08-14 Fri 13:51]
 :PROPERTIES:
 :ID:       e51d6ba1-cc1d-4745-8aa7-e4b1183a230b
 :CREATED:  [2026-08-06 Thu 10:47]
@@ -4662,6 +4692,7 @@ closes. Nothing to do.
 
 
 *** DONE Failed tool calls still enter the queue when the error is content-wrapped :code:
+CLOSED: [2026-08-11 Tue 15:59]
 :PROPERTIES:
 :ID:       5e2a1c04-7b3f-4d21-9c88-2f6e0a91b7d3
 :CREATED:  [2026-08-10 Mon 12:50]
@@ -4781,6 +4812,7 @@ record is ever wanted, it needs a shape the reader ignores — a distinct
 =kind=, not a normal event with a bad =:ID:=.
 
 *** DONE consolidate-history destroys reviewed intervals minutes after apply writes them :code:
+CLOSED: [2026-08-10 Mon 18:31]
 :PROPERTIES:
 :ID:       b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04
 :CREATED:  [2026-08-10 Mon 15:33]
@@ -4931,6 +4963,7 @@ returns to =:LOGBOOK:= until
 clocking altogether. That is the thing to watch.
 
 *** DONE Let the review buffer assign unattributed guideposts to a heading :code:
+CLOSED: [2026-08-13 Thu 14:10]
 :PROPERTIES:
 :ID:       3d0487f4-b8f8-451c-88bf-ab537663cbd0
 :CREATED:  [2026-08-11 Tue 07:24]
@@ -5205,6 +5238,7 @@ reviewable against 3.6 hours then recorded. 23 spans, not 316
 guideposts — the workload objection that nearly sank this heading
 dissolved once measured.
 *** DONE Make ingestion idempotent and archive drained queue files rather than deleting them :code:
+CLOSED: [2026-08-13 Thu 15:57]
 :PROPERTIES:
 :ID:       78f485a8-e808-43ce-af5f-277a5c97c471
 :CREATED:  [2026-08-11 Tue 11:16]
@@ -5465,6 +5499,7 @@ intervals. The live queue holds one file — the session still running —
 and seven are archived, restorable, and no longer in anyone's way.
 
 *** DONE Review-buffer interaction fixes, for after the cutover :code:
+CLOSED: [2026-08-12 Wed 16:13]
 :PROPERTIES:
 :ID:       d409390b-6624-4820-82bb-730d763962fd
 :CREATED:  [2026-08-11 Tue 12:06]
@@ -5540,6 +5575,7 @@ the running image — =load-file= does not unbind a deleted function — but
 it is gone from source and nothing binds it.
 
 *** DONE A read-only target buffer costs the human their whole review pass :code:
+CLOSED: [2026-08-12 Wed 16:09]
 :PROPERTIES:
 :ID:       8f2c1a90-4b7e-4d1a-9c3e-1f5a6b8d2e47
 :CREATED:  [2026-08-11 Tue 13:10]
@@ -5620,6 +5656,7 @@ it on a yes, and the apply landed. Everything this heading built is now
 exercised by a person, not a stub.
 
 *** DONE Decide how the stale check reads a chain of transitions in one batch :code:
+CLOSED: [2026-08-12 Wed 10:02]
 :PROPERTIES:
 :ID:       6b1e73c4-25da-4f0e-8a51-9c0d3f7ab214
 :CREATED:  [2026-08-11 Tue 13:24]
@@ -5783,6 +5820,7 @@ it to NEXT behind the test's back. The test now carries a third sibling
 and says why.
 
 *** DONE The review buffer has no way to dismiss an item you will never apply :code:
+CLOSED: [2026-08-12 Wed 10:02]
 :PROPERTIES:
 :ID:       f290161c-f9e7-4bfb-9adf-4c5630d4c5ae
 :CREATED:  [2026-08-11 Tue 16:32]
@@ -5877,6 +5915,7 @@ It reads ={"applied":[],"dismissed":{}}=, which the reader treats
 exactly as a missing file. Not cleaned up — the delete was declined.
 
 *** DONE Restore the read-only flag after review-apply clears it :code:
+CLOSED: [2026-08-12 Wed 10:02]
 :PROPERTIES:
 :ID:       45ec3ff6-cde1-42a6-a899-6b11982112cb
 :CREATED:  [2026-08-12 Wed 10:00]
@@ -5943,6 +5982,7 @@ read-only again afterwards — with the user confirming they did not
 re-set it by hand. That is the whole loop: borrowed, written, returned.
 
 *** DONE Two display defects in the review buffer's rendering of a failed item :code:
+CLOSED: [2026-08-12 Wed 16:13]
 :PROPERTIES:
 :ID:       e3f70e61-6616-4c57-81e8-e350ffd5824c
 :CREATED:  [2026-08-11 Tue 16:32]
@@ -6009,6 +6049,7 @@ behaviors are now pinned by tests, including one asserting the rendered
 title contains no backslash, so a future =%S= cannot introduce the
 defect this heading believed it had found.
 *** DONE Queue attribution is session-scoped, so concurrent subagents lose intervals :code:
+CLOSED: [2026-08-13 Thu 09:46]
 :PROPERTIES:
 :ID:       0d789b68-faca-4911-868a-fdd70acbfd40
 :CREATED:  [2026-08-12 Wed 17:45]
@@ -6163,6 +6204,7 @@ data does not clean up old, and no test asserts over the contents of
 :LOGBOOK: drawers in the real file — only over fixtures.
 
 *** DONE Apply's clock pair has no unwind-protect: a failed clock_out fabricates a huge interval :code:
+CLOSED: [2026-08-12 Wed 22:38]
 :PROPERTIES:
 :ID:       803314aa-eda9-4d48-9e43-b3eb4802a4e8
 :CREATED:  [2026-08-12 Wed 17:46]
@@ -6311,6 +6353,7 @@ written (org-clock.el:~1898). A signal from it would leave a correct
 interval plus a failed item — a different and milder shape than the one
 fixed, but it would still mark the item failed while its write stood.
 *** CANCELLED Apply writes headless state notes -- RETRACTED, a grep artifact :code:
+CLOSED: [2026-08-12 Wed 19:45]
 :PROPERTIES:
 :ID:       7387f97c-6c3e-4667-8851-203af024fdd9
 :CREATED:  [2026-08-12 Wed 19:14]
@@ -6373,6 +6416,7 @@ header — over the artifact itself. The file said the opposite each
 time, and reading it directly took one command. Prefer the primary
 artifact; treat any filter as a hypothesis about what it hides.
 *** DONE An assigned span writes a label-less annotation line :code:
+CLOSED: [2026-08-13 Thu 16:08]
 :PROPERTIES:
 :ID:       c97b3564-5b14-4fc5-8964-a64775c5dc5d
 :CREATED:  [2026-08-13 Thu 13:50]
@@ -6445,6 +6489,7 @@ Fixed going forward only, at the user's instruction; the 17 already
 written stand as they are.
 
 *** DONE Reconsider consolidating at apply: the rounding hazard that forbade it is retired :code:
+CLOSED: [2026-08-13 Thu 16:41]
 :PROPERTIES:
 :ID:       12e0adac-5aa4-4e95-a5d5-574ce32c1db0
 :CREATED:  [2026-08-13 Thu 13:50]
@@ -6548,6 +6593,7 @@ already true. Caught by stashing =config.el= and re-running — the check
 that had been written into a memory minutes earlier, and which found its
 first defect immediately.
 *** DONE Editing a span's interval does not re-scope its events, so truncating loses the remainder :code:
+CLOSED: [2026-08-13 Thu 16:08]
 :PROPERTIES:
 :ID:       ffe65444-50ed-49f8-a4c3-27c1c4c843c3
 :CREATED:  [2026-08-13 Thu 15:42]
@@ -7017,6 +7063,7 @@ never close, and [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]]
 is waiting on this one closing.
 
 ** DONE Container headings should change state without opening a clock :code:
+CLOSED: [2026-08-14 Fri 12:35]
 :PROPERTIES:
 :ID:       ab75d6d2-0e59-405d-92c6-2c67488db133
 :CREATED:  [2026-08-12 Wed 11:25]
@@ -7212,6 +7259,7 @@ definition of "container" rather than two.
 
 
 ** DONE Show commits and heading creations inside an unassigned span's window :code:
+CLOSED: [2026-08-14 Fri 11:56]
 :PROPERTIES:
 :ID:       5ff5a4b8-2fee-472a-b5e1-c9de8cf96704
 :CREATED:  [2026-08-13 Thu 16:28]
@@ -7371,6 +7419,7 @@ induce evaluation is unknown until the next batch is reviewed, and the
 honest test is to ask again afterwards rather than to assume.
 
 ** CANCELLED Reorder :SESSIONS: entries to match :LOGBOOK: ordering :code:
+CLOSED: [2026-08-12 Wed 17:37]
 :PROPERTIES:
 :ID:       2b0988ed-eb92-4fa7-904a-cb2d10941bfd
 :CREATED:  [2026-08-04 Tue 17:58]
@@ -7434,6 +7483,7 @@ by [[id:af7d3687-6d1e-4480-a9e2-df772785713f][af7d3687]] (commit
 opposite of the newest-first convention this heading proposed matching.
 
 ** CANCELLED session-resume blindly inherits any session's last-clocked heading :code:
+CLOSED: [2026-08-12 Wed 17:37]
 :PROPERTIES:
 :ID:       582cc7f4-41a2-4666-ad3f-1b76b459147e
 :CREATED:  [2026-08-04 Tue 18:27]
@@ -7514,6 +7564,7 @@ the bug it removed. The failure mode documented here remains the
 clearest statement of why that cutover was worth doing.
 
 ** CANCELLED org_clock_in doesn't record clock ownership, unlike session-resume :code:
+CLOSED: [2026-08-12 Wed 17:37]
 :PROPERTIES:
 :ID:       d150c02e-06fe-4514-bf69-e2cc5d8df4c7
 :CREATED:  [2026-08-05 Wed 14:28]
@@ -7605,6 +7656,7 @@ as of 2026-08-12 the =agent_id=/=agent_type= fields have never been
 populated in 347 events, so that half is designed but unexercised.
 
 ** CANCELLED Audit for clock/session bookkeeping noise before committing during a clocking-suppressed session :code:
+CLOSED: [2026-08-12 Wed 17:37]
 :PROPERTIES:
 :ID:       782cda6c-111c-454e-93eb-b2b27012078b
 :CREATED:  [2026-08-05 Wed 14:28]
@@ -8219,6 +8271,7 @@ its own separate test vehicle, scoped as a sibling deliverable.
 * Observability
 
 ** DONE Retire the 55 active annotations apply wrote before the agenda-visibility fix :code:
+CLOSED: [2026-08-15 Sat 16:57]
 :PROPERTIES:
 :ID:       df5afbbd-0eac-4032-be91-17cc22ef0cd7
 :CREATED:  [2026-08-15 Sat 16:35]
@@ -8428,6 +8481,7 @@ threshold cannot reach — a turn stalled on a permission prompt emits no
 is a defect in the precise layer and this decision does not touch it.
 
 ** DONE Report abandoned DOING leaves at session start, not only WAIT :code:
+CLOSED: [2026-08-14 Fri 13:31]
 :PROPERTIES:
 :ID:       9d7531f5-11c5-4203-89e3-56c3fe399df5
 :CREATED:  [2026-08-14 Fri 13:28]
@@ -8611,6 +8665,7 @@ from the isolated worktree. =bin/test= 68/68 at merge.
 * Tooling
 
 ** CANCELLED Show the TODO keyword, not just clocked in/out, in the statusline :code:
+CLOSED: [2026-08-14 Fri 14:51]
 :PROPERTIES:
 :ID:       4cda6bf7-441b-47b2-b3d5-b8c7e7a207a5
 :CREATED:  [2026-08-05 Wed 14:04]
@@ -8706,6 +8761,7 @@ instruction list. The five =--statusline-task-string= regression tests
 this would have rewritten get rewritten once, there, instead of twice.
 
 ** DONE Lint TODO.org's structural conventions with a script :code:
+CLOSED: [2026-08-14 Fri 14:41]
 :PROPERTIES:
 :ID:       3bd3402b-3ab6-4ace-b20b-3ff84caa3fb2
 :CREATED:  [2026-08-13 Thu 17:02]
@@ -8883,6 +8939,7 @@ diagnosed — filed as
 [[id:8d682a5b-1b03-4744-995c-a871a8b40ddc][8d682a5b]].
 
 ** DONE emacs is a shell function that silently breaks inline batch verification :code:
+CLOSED: [2026-08-14 Fri 12:17]
 :PROPERTIES:
 :ID:       4f9e552a-e1a9-48dd-8801-3f23a31b9e32
 :CREATED:  [2026-08-11 Tue 15:52]
@@ -9004,6 +9061,7 @@ like it was the narrowing.
 
 
 ** DONE Link or retire the four plans no heading references :code:
+CLOSED: [2026-08-12 Wed 12:38]
 :PROPERTIES:
 :ID:       cce72644-7d5e-4def-a165-0a3b815f482b
 :CREATED:  [2026-08-11 Tue 11:21]
