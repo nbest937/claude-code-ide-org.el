@@ -3452,6 +3452,8 @@ CLOCK: [2026-08-21 Fri 10:31]--[2026-08-21 Fri 10:34] =>  0:03
 - [2026-08-21 Fri 10:31]--[2026-08-21 Fri 10:34] assess the daily-recurrence proposal
 CLOCK: [2026-08-21 Fri 11:02]--[2026-08-21 Fri 11:03] =>  0:01
 - [2026-08-21 Fri 11:02]--[2026-08-21 Fri 11:03] re-cut the critical path for the mechanism
+- [2026-08-24 Mon 12:17]--[2026-08-24 Mon 12:26] assigned at review
+- [2026-08-24 Mon 12:39]--[2026-08-24 Mon 12:46] assigned at review
 :END:
 
 Proposed by the user 2026-08-10: a standing pseudo-task to clock
@@ -6010,6 +6012,16 @@ CLOCK: [2026-08-21 Fri 13:07]--[2026-08-21 Fri 13:24] =>  0:17
 
 *Do not raise =claude-code-ide-org-span-evidence-gap= to suppress it.* The threshold exists to filter *interior* gaps by significance; using it to hide the empty case would restore exactly the "nothing found is indistinguishable from nobody looked" defect 5ff5a4b8 fixed, and would do so silently for short spans only.
 
+*Shipped 2026-08-24* (=078bf65=), as the body proposed and for the reason it gave: when the gap's interval equals the span's, the timestamps are dropped and the line says only =(no evidence found in this window)=.
+
+*The line still appears,* which is the load-bearing half. Suppressing it entirely would restore [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]]'s "nothing found is indistinguishable from nobody looked" defect, and raising =claude-code-ide-org-span-evidence-gap= to hide it would do the same thing silently and for short spans only. Both were rejected here before the fix was written, and the fix took neither.
+
+*An interior gap keeps its timestamps,* and that distinction is now pinned by its own test. There the times *are* the information -- they say which stretch inside the span was empty, which cannot be recovered from the span's endpoints. A fix that dropped timestamps unconditionally would satisfy this heading and quietly destroy the case the feature exists for.
+
+*Two existing tests asserted the redundant form* and were updated. They had encoded the defect: =test-span-with-no-evidence-says-so= and =test-span-gaps-ignore-the-slack-window= both matched on =(nothing for 14m, 17:18-17:32)=, the exact string this heading calls a bug.
+
+*Reported twice before it was fixed* -- 2026-08-21 when it was filed, and again 2026-08-24 while the user was working through a live review buffer. Worth noting against the "real but cosmetic" label it was filed under and carried on the next-session prompt's off-the-critical-path list: a cosmetic defect that gets re-reported is costing attention every pass, which is the cost the label was implying it did not have.
+
 
 ** TODO Consolidation only reaches drawers an apply pass happens to touch :code:
 :PROPERTIES:
@@ -6111,6 +6123,12 @@ CLOCK: [2026-08-24 Mon 11:14]--[2026-08-24 Mon 11:15] =>  0:01
 - [2026-08-24 Mon 11:14]--[2026-08-24 Mon 11:15] suggested span, accepted at review
 CLOCK: [2026-08-24 Mon 11:17]--[2026-08-24 Mon 11:18] =>  0:01
 - [2026-08-24 Mon 11:17]--[2026-08-24 Mon 11:18] suggested span, accepted at review
+CLOCK: [2026-08-24 Mon 11:26]--[2026-08-24 Mon 11:29] =>  0:03
+- [2026-08-24 Mon 11:26]--[2026-08-24 Mon 11:29] suggested span, accepted at review
+CLOCK: [2026-08-24 Mon 11:44]--[2026-08-24 Mon 11:46] =>  0:02
+- [2026-08-24 Mon 11:44]--[2026-08-24 Mon 11:46] suggested span, accepted at review
+CLOCK: [2026-08-24 Mon 12:00]--[2026-08-24 Mon 12:08] =>  0:08
+- [2026-08-24 Mon 12:00]--[2026-08-24 Mon 12:08] suggested span, accepted at review
 :END:
 
 Asked 2026-08-24: can the daily ceremony ([[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]], now =<... 07:00 ++1d>=) be scheduled in the agentic CLI so a prompt arrives at the first opportunity each day and the agent performs it?
@@ -6197,6 +6215,29 @@ CLOSED: [2026-08-24 Mon 13:08]
 *One test assertion was written and removed in the same pass*, worth recording because it is a tempting mistake: it asserted =(default-value 'truncate-lines)= was =t=, which is a claim about *the user's Doom config*, not about this code. It passed nowhere but this machine and failed immediately in batch, where Doom is not loaded. A unit test may not assert the environment it happens to run in.
 
 *Note for anyone verifying this:* reloading =config.el= updates the mode definition but does *not* change an already-open review buffer, whose locals were set when its mode ran. Only a newly created review buffer picks it up -- which is why the live check was done in a fresh buffer.
+
+
+** The group-heading render has been wrong three times; the cond has the wrong shape :code:
+:PROPERTIES:
+:ID:       2b050e7a-b0c4-45d3-835e-68befcebb7bb
+:CREATED:  [2026-08-24 Mon 14:51]
+:END:
+
+*Filed and fixed 2026-08-24* (=f7acc03=), from the user asking whether there was any task to log a render fix against. There was not -- but there was a *precedent*, and finding it turned a one-line fix into a pattern worth naming.
+
+*Three fixes to one =cond=, each adding a case rather than questioning the shape.*
+
+1. [[id:98700ea3-6770-429b-84dd-1fddde60afed][98700ea3]]: an unassigned span's group heading rendered an *error string* where a title belonged.
+2. A =:DATE_TREE:= category target rendered as the first eight characters of its own title -- literally ="Review a  (unresolved)"=. =--review-heading-title= could not resolve a title through =org-id=, and =--short-id= truncates to eight.
+3. A *pending capture* rendered as ="(unresolvable :ID:)"= -- of an id whose heading is *supposed* not to exist yet, because apply is what creates it.
+
+*The shape was the defect.* The =cond= branched on whether =org-id= happens to resolve an id, which admits exactly two states and calls everything else broken. The real question is what *kind* of id it is: unassigned, a resolvable heading, a destination that is not a heading, a heading not yet written, or genuinely unknown. It now branches on that, and the final branch keeps its meaning rather than being a catch-all for anything unusual.
+
+*The capture case is not cosmetic.* The human is being asked to *approve* that item, and ="unresolvable"= reads as a fault in the thing they are approving -- the wrong prompt for an item whose entire purpose is to create the heading it names.
+
+*Note where instances 2 and 3 came from:* both were introduced by features that made an =:id= mean something new. [[id:9575e65b-b589-465a-830c-286541780f96][9575e65b]] made a category title a legal target, and the queued-capture path made an =:ID:= forward-referencing. Neither touched the render, and neither had reason to -- which is the argument for the render asking what an id *is* rather than enumerating what it has seen.
+
+*Tested across all four kinds together*, because the failure each time was a case falling into a branch that describes something else, and only comparing them shows that.
 
 
 * Observability
@@ -9228,6 +9269,13 @@ Two findings, and the second is the actionable one.
 *Still worth doing, and it is the half that removes the problem rather than policing it:* [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] and [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] make a prefix→title lookup cheap. A rule that is free to obey does not need enforcing, and the enforcement exists because looking up five exact titles mid-response is not free today.
 
 
+** End every heading with two blank lines, so folded trees are separated :code:
+:PROPERTIES:
+:ID:       e1284bdb-0a18-402a-81cb-1ac8d09fb8a2
+:CREATED:  [2026-08-24 Mon 13:12]
+:END:
+
+
 * Review and planning
 :PROPERTIES:
 :DATE_TREE: t
@@ -9301,6 +9349,17 @@ CLOCK: [2026-08-14 Fri 19:33]--[2026-08-14 Fri 19:47] =>  0:14
 :END:
 
 
+**** 2026-08-17 Monday
+:PROPERTIES:
+:ID:       370ca507-ed58-48cd-80c9-4366617a798b
+:CREATED:  [2026-08-17 Mon 16:10]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-17 Mon 16:10]--[2026-08-17 Mon 16:25] =>  0:15
+- [2026-08-17 Mon 16:10]--[2026-08-17 Mon 16:25] assigned at review
+:END:
+
+
 **** 2026-08-21 Friday
 :PROPERTIES:
 :ID:       758643f2-2046-4894-8a25-7ab44e4dad9a
@@ -9345,6 +9404,14 @@ CLOCK: [2026-08-22 Sat 22:35]--[2026-08-22 Sat 22:36] =>  0:01
 :CREATED:  [2026-08-24 Mon 10:08]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-24 Mon 08:37]--[2026-08-24 Mon 08:39] =>  0:02
+- [2026-08-24 Mon 08:37]--[2026-08-24 Mon 08:39] assigned at review
+CLOCK: [2026-08-24 Mon 08:42]--[2026-08-24 Mon 08:44] =>  0:02
+- [2026-08-24 Mon 08:42]--[2026-08-24 Mon 08:44] assigned at review
+CLOCK: [2026-08-24 Mon 08:52]--[2026-08-24 Mon 08:57] =>  0:05
+- [2026-08-24 Mon 08:52]--[2026-08-24 Mon 08:57] assigned at review
+CLOCK: [2026-08-24 Mon 09:57]--[2026-08-24 Mon 09:59] =>  0:02
+- [2026-08-24 Mon 09:57]--[2026-08-24 Mon 09:59] assigned at review
 - [2026-08-24 Mon 10:08]--[2026-08-24 Mon 10:13] assigned at review
 - [2026-08-24 Mon 10:21]--[2026-08-24 Mon 10:22] assigned at review
 - [2026-08-24 Mon 13:03]--[2026-08-24 Mon 13:05] assigned at review
@@ -9365,6 +9432,8 @@ CLOCK: [2026-08-24 Mon 13:21]--[2026-08-24 Mon 13:25] =>  0:04
 - [2026-08-24 Mon 13:21]--[2026-08-24 Mon 13:25] sweep the archive backlog into PLAN
 CLOCK: [2026-08-24 Mon 13:33]--[2026-08-24 Mon 13:37] =>  0:04
 - [2026-08-24 Mon 13:33]--[2026-08-24 Mon 13:37] sweep the archive backlog into PLAN
+CLOCK: [2026-08-24 Mon 13:55]--[2026-08-24 Mon 14:00] =>  0:05
+- [2026-08-24 Mon 13:55]--[2026-08-24 Mon 14:00] sweep the archive backlog into PLAN
 :END:
 
 *Split out of [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] on 2026-08-24*, which had been carrying three different things at once: a recurring ritual, this one-time migration, and a set of standing conventions. The conventions went to =.claude/rules/org-conventions.md=; the ritual stayed; this is the backlog.
