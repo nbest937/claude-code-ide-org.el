@@ -3477,6 +3477,7 @@ almost always the right answer.
 - State "DOING"      from "TODO"       [2026-08-12 Wed 16:56] \\
   chronological LOGBOOK ordering
 :END:
+:PLAN:
 
 Requested 2026-08-07: a =:LOGBOOK:= sorted by start time is markedly
 easier to read than the current arrangement, where
@@ -3516,6 +3517,7 @@ Test against a drawer containing all three shapes at once, including a
 note with a continuation between two clock lines, and assert nothing is
 lost — the =ba8249c1= regression case is the one to extend.
 
+:END:
 *Outcome, 2026-08-12.* Done as specified, ascending, one timeline across
 every entry style.
 
