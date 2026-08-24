@@ -531,6 +531,7 @@ CLOCK: [2026-08-20 Thu 08:33]--[2026-08-20 Thu 08:41] =>  0:08
 - State "DONE"       from "DOING"      [2026-08-20 Thu 08:42] \\
   refuse rather than guess; shipped and verified
 :END:
+:PLAN:
 
 [[id:47c027d2-7b5a-4de0-baf4-f992f3b814bd][47c027d2]] gave =org_capture=
 an optional =target= and kept =(file <spec>)= as the fallback when it is
@@ -587,6 +588,7 @@ Which sharpens the choice already listed: *require =target== would have
 refused that call outright and cost nothing, since the caller did have a
 category in mind and only omitted it out of habit.
 
+:END:
 *Shipped 2026-08-20* (=535c98c=), taking the first of the three options
 above: refuse rather than guess. =target= is required in both layers
 that matter — the schema drops =:optional= and says why, and the
@@ -1061,6 +1063,7 @@ CLOCK: [2026-08-21 Fri 13:12]--[2026-08-21 Fri 13:16] =>  0:04
 - State "DONE"       from "DOING"      [2026-08-21 Fri 13:16] \\
   container guard shipped, mutation-tested, live
 :END:
+:PLAN:
 
 =claude-code-ide-org--trigger-auto-promote-sole-todo= promotes the sole
 remaining =TODO= in a sibling group to =NEXT=. It counts siblings and
@@ -1105,6 +1108,7 @@ whether it should then promote nothing, or descend and promote the
 container's own sole remaining child — the second is more useful and
 more surprising, and no evidence has been gathered either way.
 
+:END:
 *Shipped 2026-08-21*, in one pass with [[id:c8a6c5d2-8777-44d2-9900-e56eb03aa2d9][c8a6c5d2]] -- two guards on one function sharing one test scaffold. =--trigger-auto-promote-sole-todo= now consults =--container-heading-p= and promotes nothing when the sole survivor is a container.
 
 *Guarded at the promotion site, not while collecting candidates* -- the narrower of the two readings. A group of {container TODO, leaf TODO} still promotes nothing, exactly as before. Excluding containers from the *count* instead would newly promote the leaf there: more useful, possibly right, and a behaviour change this defect did not ask for.
@@ -2913,6 +2917,7 @@ CLOCK: [2026-08-17 Mon 15:07]--[2026-08-17 Mon 15:11] =>  0:04
 - State "DONE"       from "DOING"      [2026-08-21 Fri 08:08] \\
   split shipped; loading confirmed this session
 :END:
+:PLAN:
 
 Blocked on both siblings deliberately: the decision takes the resulting
 file size and shape as input, and the user's standing instruction is to
@@ -2940,6 +2945,7 @@ still close as won't-do.
 
 *The split test that decided what moved, and it is not size.* A rule that must hold when no =.org= file is open cannot live in a path-scoped rule, because a rule that does not load is a rule that does not apply and the failure is silent. So the state transition table, "create a heading for any newly described task", and the queue architecture all stayed in CLAUDE.md regardless of how much room moving them would have bought.
 
+:END:
 *Verified 2026-08-21 by the standard this heading set for itself* -- "adopting it needs a fresh session to verify, not an assertion that it works." A session with no prior knowledge of the file read =TODO.org= and the rule was injected unprompted at that moment, not at launch. That is the lazy-load behaviour the decision rested on, observed rather than asserted.
 
 *Unblocks [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]]*, which was waiting on exactly this confirmation: its body records that the path-scoped rule "turns out to be the *portability* mechanism, not merely a context-saving one", since a user-level =~/.claude/rules/org-conventions.md= costs nothing in repos with no org files.
@@ -2988,6 +2994,7 @@ CLOCK: [2026-08-21 Fri 12:45]--[2026-08-21 Fri 12:46] =>  0:01
 - State "DONE"       from "DOING"      [2026-08-21 Fri 12:46] \\
   shipped as 7da5a89, own verify grep clean
 :END:
+:PLAN:
 
 =.claude/skills/org/SKILL.md= carries a transition table whose rules say
 that transitioning *to* =DOING= "always opens a new CLOCK entry (with
@@ -3009,6 +3016,7 @@ pointer to CLAUDE.md's.
 *Verify:* =grep -n 'always opens a new CLOCK' .claude/skills/org/SKILL.md=
 returns nothing.
 
+:END:
 *Shipped 2026-08-21* (commit =7da5a89=). The rules now name the queue rather than live driving, per this heading's own "done when": queue-repo reading first (side effect = the =org_clock_in=/=org_clock_out= call, file untouched until a human applies), literal-edit reading scoped to plain org setups so the skill still travels. Added the =PLANNING= and =REVIEW= rows the table lacked, matching CLAUDE.md's table, which the skill now names as authoritative here. Verified by this heading's own check -- =grep 'always opens a new CLOCK'= over the skill returns nothing.
 
 
@@ -3058,6 +3066,7 @@ CLOCK: [2026-08-21 Fri 13:22]--[2026-08-21 Fri 13:23] =>  0:01
   write the NEXT-nomination rule into CLAUDE.md
 - [2026-08-21 Fri 13:22]--[2026-08-21 Fri 13:23] write both halves of the nomination rule
 :END:
+:PLAN:
 
 Requested by the user 2026-08-11 and recorded in this parent's body as
 two halves: every transition *to* =DONE= should nominate a =NEXT= when
@@ -3083,6 +3092,7 @@ which is exactly the placement question
 *Verify:* =grep -n -i nominat .claude/skills/org/SKILL.md CLAUDE.md=
 returns the rule.
 
+:END:
 *Shipped 2026-08-21 into CLAUDE.md*, both halves, as two adjacent =**Rule**:= entries in the state-transition section. Placement was settled by [[id:befaed0a-18ed-445e-b997-8b9c2965ad45][befaed0a]] closing the same day -- path-scoped rules hold org-*file* conventions, CLAUDE.md holds ways of working -- and this heading already said of itself that it is the latter. Verify grep now returns three hits in CLAUDE.md and none in the skill, which is the polarity the rule's own =Verify= line asks for.
 
 *One correction made while writing it.* This body attributes the *at-most-one* enforcement to =--trigger-auto-promote-sole-todo=. It is =--trigger-demote-conflicting-next= that demotes competing siblings, and =--trigger-auto-promote-sole-todo= that supplies at-least-one, and only in the sole-survivor case. Both docstrings were read before the rule was written rather than recalled; the swapped name was headed into CLAUDE.md's permanent rule text, which is the same defect [[id:8707de36-93a7-4e34-b4ba-48008c7e1e3b][8707de36]] caught in the next-session prompt.
@@ -3635,6 +3645,7 @@ CLOCK: [2026-08-21 Fri 13:16]--[2026-08-21 Fri 13:20] =>  0:04
 - State "DONE"       from "DOING"      [2026-08-21 Fri 13:20] \\
   level rule scoped, four mutations verified
 :END:
+:PLAN:
 
 =bin/lint-org= warns on any heading missing =:CREATED:=. Datetree scaffolding can never satisfy it: org writes =** 2026=, =*** 2026-08 August= and =**** 2026-08-21 Friday= bare, and a year node has no creation moment worth stamping anyway.
 
@@ -3662,6 +3673,7 @@ Two corrections follow. The year and month nodes fail on *=:ID:=*, an error, bef
 
 *Consequence for sequencing:* proceeding as previously scoped would exempt the two warnings, then hit three errors at [[id:cd1e974e-e006-4974-b770-cdc1cf2e4ab2][cd1e974e]] with the category half-written.
 
+:END:
 *Shipped 2026-08-21, before the tree exists.* All three errors are gone and none of them was silenced. =claude-code-ide-org--lint-file= now tracks the innermost enclosing =:DATE_TREE:= heading's level while it maps entries -- =org-map-entries= walks in document order, so an anchor is always seen before its descendants -- and classifies each descendant by a new =claude-code-ide-org--datetree-node-role=.
 
 *The level rule is scoped, not dropped.* 3bd3402b's claim -- 624 headings, zero at level 4 -- was true of a file with no datetree in it. It now reads: three levels outside a =:DATE_TREE:= subtree, and inside one exactly org's year/month scaffolding plus its day node. A level-4 heading anywhere else is still an error, and so is anything *below* a day node, since nothing is filed under one. =bin/lint-org='s header carries the same revised wording; =.claude/rules/org-conventions.md= never stated the rule, so nothing there needed changing.
@@ -4693,6 +4705,7 @@ CLOCK: [2026-08-18 Tue 15:33]--[2026-08-18 Tue 15:39] =>  0:06
 CLOCK: [2026-08-18 Tue 15:55]--[2026-08-18 Tue 16:01] =>  0:06
 - [2026-08-18 Tue 15:55]--[2026-08-18 Tue 16:01] assigned at review
 :END:
+:PLAN:
 
 Three times on 2026-08-17 the review buffer offered a span reading
 =[HH:MM]--[HH:MM]=, identical endpoints. Such an item cannot be assigned
@@ -4745,6 +4758,7 @@ silent when it has nothing to report.
 [[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — the epic's plan document, which
 carries this child's design rather than a file of its own.
 
+:END:
 *Verified 2026-08-18, and the plan's expectation for this heading was
 wrong.* The epic plan said cause 2 "dissolves as a consequence of (a) --
 verify rather than implement". It does not dissolve. 2(a) made clustering
@@ -5053,6 +5067,7 @@ CLOCK: [2026-08-21 Fri 08:31]--[2026-08-21 Fri 08:32] =>  0:01
   re-key session report on queue divergence
 - [2026-08-21 Fri 08:31]--[2026-08-21 Fri 08:32] re-key session report on queue divergence
 :END:
+:PLAN:
 
 =claude-code-ide-org--attention-headings-context= reports a leaf as
 "DOING, not clocked" when it is not the heading =org-clock-marker= points
@@ -5092,6 +5107,7 @@ just a mechanical port of the predicate.
 
 *It discriminates by construction*, which is the standard this heading was opened to restore: it goes silent exactly when the file and the queue agree. Pending events only -- an applied event is one the file already matches, so counting it would report a divergence at the instant it was resolved.
 
+:END:
 *Verified live against the real files and the real queue, after =load-file=* -- the running Emacs held the old definition and would otherwise have answered for it. Two lines, both true and neither constant: 420816ec as =queued DOING, not yet applied ... file says TODO=, and befaed0a as =DOING in file, queued -> DONE, not yet applied=. The two DOING containers were correctly silent. Under the old predicate the first was unreportable and the second read only "not clocked".
 
 *Both directions were live specimens on the day, which is why both are implemented.* The old line named befaed0a, which was finished; it said nothing about c6fc6f46, which was keywordless in the file while a session actively worked it.
@@ -5326,6 +5342,7 @@ CLOCK: [2026-08-20 Thu 10:19]--[2026-08-20 Thu 10:22] =>  0:03
 - State "DONE"       from "DOING"      [2026-08-20 Thu 11:05] \\
   shipped as a defcustom defaulting to 0; sweep recorded for 96a51c2f
 :END:
+:PLAN:
 
 =claude-code-ide-org-span-idle-floor= is a named =defcustom=. The floor
 on what gets *written* is not: it is two conditions inside
@@ -5357,6 +5374,7 @@ endpoint outward fabricates time — about an hour across the 65 lines
 that would move — which is [[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]]'s
 rounding incident pointed the other way.
 
+:END:
 *Shipped 2026-08-20 as =claude-code-ide-org-span-minimum-interval=, defaulting to 0.* Zero is the point: it reproduces today's behaviour exactly, so naming the floor moved nothing. What had been holding the line was two rendering conditions inside =claude-code-ide-org--apply-idle-floor= — endpoints inside one minute, or a duration rounding to =0:00= — which are consequences of the clock format, not a policy anyone chose. Both remain; the new variable is a third condition that does nothing until set.
 
 *Verified by mutation, not by a green suite.* Three separate mutations each fail a distinct assertion: deleting the drop condition, defaulting it to 120, and relaxing =<= to =<==. Strictly-less matches =claude-code-ide-org-span-idle-floor=, so the two read the same way at their boundary.
@@ -5432,6 +5450,7 @@ CLOCK: [2026-08-21 Fri 08:00]--[2026-08-21 Fri 08:01] =>  0:01
 - State "DONE"       from "DOING"      [2026-08-21 Fri 08:01] \\
   56 repaired, 0 remaining; all post-cutover
 :END:
+:PLAN:
 
 Measured 2026-08-21: of 353 CLOCK lines across TODO.org and DONE.org, *56 print a =>= total that does not match their own two timestamps* -- 35 a minute low, 21 a minute high. Example, TODO.org:184: =[...09:31]--[...09:36] =>  0:04=, where the stamps say five minutes.
 
@@ -5451,6 +5470,7 @@ The cause is fixed ([[id:c6fc6f46-4954-4fdf-9d7e-7c8bf3a1a952][c6fc6f46]]) and n
 
 *The open question above answered itself.* All 56 turned out to be *post-cutover* -- 36 in DONE.org, 20 in TODO.org -- so nothing written by the old aggregator was touched, and the judgement about whether to leave pre-cutover lines visibly of their era never had to be made. Worth recording as the reason, rather than leaving the impression it was decided.
 
+:END:
 *Verified three ways rather than one.* The script that found the 56, re-run: 0 remaining. The diff: exactly 112 lines, 56 pairs, *no pair differing anywhere before* =>= -- so no endpoint moved and no interval changed, only the derived label. And no non-CLOCK line touched at all.
 
 *Net effect: +14 minutes across 65.65 h*, 35 lines gaining a minute and 21 losing one. Small in aggregate, which is exactly what a near-symmetric rounding error predicts -- and exactly why aggregate totals were never going to surface this. The individual lines were wrong in both directions.
@@ -5477,6 +5497,7 @@ CLOCK: [2026-08-19 Wed 17:34]--[2026-08-19 Wed 17:47] =>  0:13
 - State "DONE"       from "DOING"      [2026-08-19 Wed 17:47] \\
   overlap-aware apply shipped and verified
 :END:
+:PLAN:
 
 Raised by the user 2026-08-19: /"Don't we have to allow for the
 possibility that users will toggle TODO status directly and expect it to
@@ -5590,6 +5611,7 @@ Everything else already behaves the way the user's question assumes it
 should. That narrows the fix to the overlap question above rather than
 to anything about how transitions are accepted.
 
+:END:
 *Shipped 2026-08-19* (=eca3a77=). Apply subtracts the heading's
 already-recorded CLOCK intervals from each run before writing, so a hand
 clock and a reconstructed span compose instead of summing. With that in
@@ -5727,6 +5749,7 @@ CLOCK: [2026-08-22 Sat 22:56]--[2026-08-22 Sat 23:14] =>  0:18
 - State "DONE"       from "DOING"      [2026-08-22 Sat 23:14] \\
   brackets authoritative, verified live
 :END:
+:PLAN:
 
 *Measured 2026-08-22, on the previous day's own queue.* The 2026-08-21 files hold *twelve* =clock_in=/=clock_out= pairs, each carrying a heading =:ID:= and a human-written note -- "guard auto-promote against containers and batches" on =42808717= from 13:07:36 to 13:16:20, then =e30d52d7=, =cd1e974e=, =dd2399c0= in sequence. Every one is =applied: false=. The review pass offered instead a *single* unassigned span, =10:37--13:24=, and asked which one heading it belonged to. The human picked [[id:a279216c-38db-478c-ba52-ad31c87fbfd9][a279216c]] -- a cosmetic item explicitly off the critical path that nobody had opened -- and an hour of implementation work on five headings landed there.
 
@@ -5766,6 +5789,7 @@ Fifteen minutes, four brackets, *zero* pause/resume between the first =clock_in=
 
 *Bracket edges are recoverable and are currently thrown away.* =clock_in 14:53:42= -> =pause 14:54:44= and =resume 15:41:17= -> =clock_out 15:42:08= appear in no span today, because the guidepost filter drops the =clock_in=/=clock_out= events before the runs are computed. Treating the endpoints as =resume=/=pause= respectively recovers both, and is a discriminating test.
 
+:END:
 *Shipped 2026-08-22* on =feature/authoritative-clock-pairs=.
 
 A main-lane bracket now emits its own review item, =:origin 'bracketed=, carrying the pair's *own* note rather than the first =clock_in= note anywhere in the heading's events -- =cc0c17a7= was clocked on two days with two different notes and both spans wore the earlier one. The =:agent-id= distinction is *kept*, because the reasoning behind it was sound: a subagent's interval stays =:suggested= nil and is written end to end, while a main-lane bracket is =:suggested= t and subdivided into runs. The bracket's own endpoints are now read as run boundaries, so a bracket with no guideposts inside yields one run covering it and a bracket full of them is subdivided as before.
@@ -5857,6 +5881,7 @@ CLOCK: [2026-08-21 Fri 09:06]--[2026-08-21 Fri 09:12] =>  0:06
 - State "DONE"       from "DOING"      [2026-08-21 Fri 09:11] \\
   one condition, mutation-tested, verified live
 :END:
+:PLAN:
 
 *Measured live 2026-08-21, at the cost of 24 minutes credited to the wrong heading.* Four spans applied at review all named [[id:420816ec-677e-45a5-b898-fb5db70d214b][420816ec]] -- 0:07, 0:03, 0:12 and 0:02 -- none of which was work on it. The 0:12 was reassigned by hand to [[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]]; the other three are genuinely cross-cutting and were left where they landed, which is [[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]]'s case arriving in practice.
 
@@ -5870,6 +5895,7 @@ CLOCK: [2026-08-21 Fri 09:06]--[2026-08-21 Fri 09:12] =>  0:06
 
 *The other half of the cause was mine and no code change fixes it.* CLAUDE.md's standing rule is to set DOING before beginning work on a tracked heading. This session closed befaed0a, ran the depth-counter verification and shipped [[id:e0904e93-b99d-44ad-b641-e3e13aced8c4][e0904e93]] while calling =org_clock_in= exactly once, at 08:31:36, five seconds before clocking out. Every guidepost was therefore unattributed and fell to the suggester. Container exclusion would have turned a confident wrong answer into an honest nil; it would not have produced the right one.
 
+:END:
 *Shipped 2026-08-21.* =claude-code-ide-org--review-suggest-heading= resolves its answer once at the end and returns nil when that id is a container, via a new =claude-code-ide-org--container-id-p=. Resolved at the end rather than inside the loop because the loop runs over every queued =todo= event and this reads a file. The helper mirrors =claude-code-ide-org--review-heading-title= -- =org-id-find= to a marker, =org-with-point-at=, release the marker -- and answers nil for an id that resolves to nothing, since a lookup failure is not evidence of container-ness and suppressing on it would lose a suggestion the human could still act on.
 
 *Verified live against the heading that caused this, after =load-file=* -- the running Emacs held the old definition and would otherwise have answered for it. Given the real DOING event that won those four spans, 420816ec now yields nil, while the leaf 9202b39d still yields its own id from an identical event.
@@ -5895,6 +5921,7 @@ CLOSED: [2026-08-21 Fri 13:16]
 - State "DONE"       from "DOING"      [2026-08-21 Fri 13:16] \\
   suppress-then-settle shipped and mutation-tested
 :END:
+:PLAN:
 
 *Observed live 2026-08-21, on this repo's own file.* Five children were captured under [[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]] in one session, each keywordless, each with a =todo -> TODO= event queued. The human applied the queue, and one of them came out =NEXT=:
 
@@ -5914,6 +5941,7 @@ Nobody chose it. =claude-code-ide-org--trigger-auto-promote-sole-todo= promotes 
 
 *Possible shapes, none chosen:* suppress the trigger while a review pass is applying (the apply already runs as one command, so it has a natural window); require the group to have been stable rather than mid-batch; or -- simplest -- decline to promote when the group contains keywordless siblings, since that is precisely the signature of a half-applied batch.
 
+:END:
 *Shipped 2026-08-21* with [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]]. None of the three shapes recorded above was taken as written.
 
 *"Decline when the group holds keywordless siblings" was rejected*, despite being the simplest. A capture whose =todo -> TODO= event the human dismisses at review stays keywordless for good, and its group then silently never auto-promotes again -- a missing NEXT nobody can see, where the defect it replaces is a wrong NEXT anyone can demote. It also collides with the permanent keywordless scaffolding [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]] is about to introduce.
@@ -7655,6 +7683,7 @@ CLOCK: [2026-08-24 Mon 10:05]--[2026-08-24 Mon 10:08] =>  0:03
 - State "DONE"       from "DOING"      [2026-08-24 Mon 10:08] \\
   lines aligned, divergence documented
 :END:
+:PLAN:
 
 =.claude/rules/org-conventions.md= prescribes a file header of =#+TODO:=, =#+TAGS:= and =#+ARCHIVE:=. It says nothing about =#+STARTUP:=, and the two files that exist disagree:
 
@@ -7671,6 +7700,7 @@ So the line controlling how every one of these files opens -- and, via =logdrawe
 
 *Decide, then write it into the template:* whether =content= is the house default for every file or a TODO.org-specific choice, and whether =logdone= belongs everywhere =logdrawer= does. DONE.org arguably wants a *different* answer rather than the same one -- it is an archive, read rarely and in full -- so this is a decision about two files, not a copy-paste.
 
+:END:
 *Resolved 2026-08-24, and the disagreement turned out to matter.* The two lines were:
 
 : TODO.org:  #+STARTUP: logdrawer logdone content
@@ -8266,6 +8296,7 @@ CLOSED: [2026-08-20 Thu 11:08]
 - State "DONE"       from "REVIEW"     [2026-08-20 Thu 11:08] \\
   verified by unset-then-load, not by the reload alone
 :END:
+:PLAN:
 
 Set live on 2026-08-11 via =M-:= to
 =~/git/claude-code-ide-org/TODO.org=, which is what makes
@@ -8392,6 +8423,7 @@ file, so while that file was =notes.org= no category could be named at
 all. Only *:ID:* targets were unaffected — which is why the captures of
 2026-08-15 all worked, and why the claim looked true.
 
+:END:
 *Verified by using it, not by reading it:*
 [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] was filed with
 =target: "Skill logic"= and landed as a level-2 heading under that
@@ -8828,6 +8860,7 @@ CLOCK: [2026-08-19 Wed 18:47]--[2026-08-19 Wed 18:55] =>  0:08
 - State "DONE"       from "DOING"      [2026-08-19 Wed 19:23] \\
   re-queued; prior event went stale on from
 :END:
+:PLAN:
 
 Two checks =bin/lint-org= does not have, both identified 2026-08-17 after
 a single line of prose re-parented 6462 lines of TODO.org and survived
@@ -8877,6 +8910,7 @@ does, over how the known category set is defined.
 diagnosing org-lint's *existing* misplaced-heading reports; this is about
 adding checks org-lint has no opinion on.
 
+:END:
 *Shipped 2026-08-19* (=cc25adc=). Both checks live in
 =claude-code-ide-org--lint-file=; =bin/lint-org= needed no change, as
 predicted. Replayed against the incident by injecting =* *= into a copy
@@ -8943,6 +8977,7 @@ CLOCK: [2026-08-19 Wed 19:27]--[2026-08-19 Wed 19:30] =>  0:03
 CLOCK: [2026-08-20 Thu 16:14]--[2026-08-20 Thu 16:21] =>  0:07
 - [2026-08-20 Thu 16:14]--[2026-08-20 Thu 16:21] assigned at review
 :END:
+:PLAN:
 
 =bin/lint-org= runs nowhere automatically — not in a hook, not in
 =bin/test=. The only git hook is =.githooks/pre-push=, which checks the
@@ -9001,6 +9036,7 @@ unsaved changes — that is why =org_amend= has a deferred path at all —
 so a clean lint at commit time says nothing about what is still only in
 the buffer.
 
+:END:
 *Shipped 2026-08-19* (=4b22f72=), as =.githooks/pre-commit= with
 =bin/pre-commit-test= beside it. =core.hooksPath= was already set, so it
 took effect with no setup step.
