@@ -5550,10 +5550,24 @@ the MCP layer."
             ;; `cond' able to tell the three cases apart at all.
             (let ((title (and last-id
                               (claude-code-ide-org--review-heading-title last-id))))
+              ;; Branch on what the id *is*, not on whether org-id
+              ;; happens to resolve it. There are four kinds, and the
+              ;; last two both used to fall into "unresolvable" -- which
+              ;; is true of neither (TODO.org :ID: 2b050e7a; the first
+              ;; instance was :ID: 98700ea3, which fixed one branch and
+              ;; left the shape).
               (push (cond
                      ((null last-id)
                       "\n(unassigned -- press `a' in the review buffer to choose a heading)")
                      (title (format "\n%s  {%s}" title last-id))
+                     ;; A capture's :ID: names a heading that does not
+                     ;; exist YET -- that is the whole job of a capture,
+                     ;; and apply is what creates it. Calling that
+                     ;; unresolvable reads as a fault in the item the
+                     ;; human is about to approve.
+                     ((claude-code-ide-org--pending-capture last-id)
+                      (format "\n(new heading, created when this is applied)  {%s}"
+                              last-id))
                      (t (format "\n(unresolvable :ID:)  {%s}" last-id)))
                     lines)))
           (push (claude-code-ide-org--review-describe item) lines))

@@ -8219,6 +8219,52 @@ empty, and that cannot be recovered from the span's own endpoints."
                                 (string-match-p "no evidence found in this window" l))
                               lines))))))
 
+(ert-deftest claude-code-ide-org-test-group-heading-names-all-four-kinds-of-id ()
+  "The group heading distinguishes four kinds of :id, not two.
+
+TODO.org :ID: 2b050e7a. This `cond' has been wrong three times, and each
+fix added a case rather than questioning the shape: :ID: 98700ea3 fixed an
+error string appearing where a title belonged, then a :DATE_TREE:
+category target rendered as the first eight characters of its own title
+\(\"Review a  (unresolved)\"), then a pending capture rendered as
+\"(unresolvable :ID:)\" -- of an id whose heading is *supposed* not to
+exist yet, since apply is what creates it.
+
+Asserted together because the failure each time was a case falling into
+a branch that describes a different thing, and only comparing all four
+shows that."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--with-datetree
+      ;; 1. A real heading resolves to its title.
+      (should (equal "Review and planning -- that day's meta-work node, created at apply"
+                     (claude-code-ide-org--review-heading-title "Review and planning")))
+      ;; 2. A category target is not unresolvable: it names a real
+      ;;    destination that is not a heading.
+      (should-not (string-match-p
+                   "unresolv"
+                   (claude-code-ide-org--review-heading-title "Review and planning")))
+      ;; 3. A genuinely unknown id still answers nil, so the last branch
+      ;;    keeps its meaning rather than being emptied by the others.
+      (should-not (claude-code-ide-org--review-heading-title
+                   "deadbeef-0000-0000-0000-000000000000")))))
+
+(ert-deftest claude-code-ide-org-test-pending-capture-is-not-unresolvable ()
+  "A capture's :ID: names a heading that does not exist YET, and the
+render must say so rather than calling it broken.
+
+The distinction is not cosmetic: the human is being asked to approve
+that item, and `(unresolvable :ID:)' reads as a fault in the thing they
+are approving -- exactly the wrong prompt for an item whose entire
+purpose is to create the heading it names."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (json-encode
+                  `((ts . "2026-08-24T09:00:00-0500") (kind . "capture")
+                    (id . "cap-0001") (title . "A heading not yet written")
+                    (target . "Tooling") (session_id . "sess-a")))))
+    (should (claude-code-ide-org--pending-capture "cap-0001"))
+    (should-not (claude-code-ide-org--pending-capture "cap-9999"))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here
