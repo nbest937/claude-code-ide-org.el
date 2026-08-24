@@ -5882,6 +5882,28 @@ Counting drawers with two or more timestamped entries, and asking whether their 
 *Note the third option, which does not require this to be built:* leave the 39 blank and record explicitly that no close time is recoverable, so the gap is a stated fact rather than an absence somebody tries to fill again in six months. That was offered alongside the git approach and deferred rather than rejected.
 
 *A hazard already measured, and it applies directly here.* f4b07fc0's pre-tool estimate said 59 rather than 58, because a body-wide scan matched a =- State "DONE" ...= line quoted *in prose* on [[id:3d93021d-1d8a-4657-bc5c-77734f91fb9d][3d93021d]], a heading that has no =:LOGBOOK:= and was diagnosing the bug that produced that line. Any git-side matching on heading text or on =State= lines in a diff faces the same trap, with no drawer boundary available to bound it.
+** Prompt the daily ceremony automatically, within what a scheduler can reach :code:
+:PROPERTIES:
+:ID:       aa1ba915-ee68-48df-afea-197ae60aac63
+:CREATED:  [2026-08-24 Mon 10:27]
+:END:
+
+Asked 2026-08-24: can the daily ceremony ([[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]], now =<... 07:00 ++1d>=) be scheduled in the agentic CLI so a prompt arrives at the first opportunity each day and the agent performs it?
+
+*Measured against the actual tool surface, not assumed.* Two schedulers exist and neither fits:
+
+- =CronCreate= is *session-only* -- in-memory, nothing written to disk, gone when the session exits, recurring jobs auto-expire after 7 days, and jobs fire only while the REPL is idle. A standing daily ritual outlives any session, so this is the wrong shape by construction rather than by degree.
+- The =schedule= skill creates *cloud* routines. A cloud agent cannot reach =localhost:45571=, and every MCP tool in this project goes through =emacsclient= to a local Emacs server. It could not perform a single step.
+
+*And the first step of the ceremony cannot be delegated at all.* Apply is human-triggered by design: org's native state-change logging only completes inside a genuinely interactive command. So "performed by the agent" is unavailable for the pass as a whole no matter which scheduler is used. What is available is *prompting* plus the steps after apply -- consolidate and archive.
+
+*The mechanism this repo already has is the right one, and it is the =SessionStart= hook.* =bin/hooks/session-start-recovery-check= already fires at session start, already injects =additionalContext= that the session relays to the user as a question, and is already *self-limiting to first thing each day* -- it reports only intervals opened before today, so it goes quiet once handled. That is precisely the requested behaviour: a prompt at the first opportunity each day, no nagging, and nothing at all on a day with no session.
+
+It also already has the right manners for this: [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] established that the report *asks and never proposes*. A ceremony line should follow that -- state what is waiting (pending item count, headings ready to archive, drawers out of order) and let the human decide, rather than announcing an intention to act.
+
+*The one design question to settle before building:* what counts as "already done today". Candidates -- a stamp file, on the model of the =block-open= sentinel; the existence of a day node for today; or the pending-queue count having dropped since the last pass. The stamp file is the cheapest and the only one that does not conflate "ceremony performed" with "work happened".
+
+*Not to be confused with a nag.* The org repeater already makes the item show up in the agenda daily. This heading is only about the *agentic* prompt, for the case where the agenda is not what the user is looking at.
 
 * Observability
 :PROPERTIES:
@@ -8770,7 +8792,7 @@ Meta-work: the review pass, planning, and the time that goes into deciding what 
 =:DATE_TREE:= is what makes org nest the tree *inside* this category instead of writing a second =* 2026= at level 1; it is a structural property about the grouping, permitted on a category on the same footing as =:ARCHIVE:=. The =:ARCHIVE:= target is matched as a literal string, so renaming this category means renaming the matching heading in DONE.org in the same edit.
 
 ** TODO Open today's node
-SCHEDULED: <2026-08-22 Sat +1d>
+SCHEDULED: <2026-08-24 Mon 07:00 ++1d>
 :PROPERTIES:
 :ID:       2aff1e6d-71cf-4b3f-8a3f-b3fc63d07c99
 :CREATED:  [2026-08-21 Fri 13:20]
@@ -8783,7 +8805,7 @@ The ritual: a standing daily prompt to actually do review and planning.
 *A category is the one place in this repo a repeater is safe* ([[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]]): a repeater never reaches DONE, so it can never sit under a completable ancestor, and a category carries no keyword and completes nothing.
 
 ** TODO Archive completed work weekly, so the live file stops carrying it :code:
-SCHEDULED: <2026-08-28 Fri +1w>
+SCHEDULED: <2026-08-24 Mon 07:00 ++1d>
 :PROPERTIES:
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
@@ -8812,6 +8834,21 @@ A pending =DONE= would execute in DONE.org, which until today had no =logdone= i
 Related and worth doing in the same sitting: [[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]]'s consolidation sweep. Archiving is the *last* moment a heading is ever touched, so a drawer that is out of order when it moves stays that way permanently -- which is how 13 of the 25 drawers archived since consolidate-on-apply shipped came to be disordered.
 
 Sequence, then: apply the queue, consolidate every drawer, then archive.
+
+*Made daily 2026-08-24, at the user's request, so the two repeaters land as one ceremony.* Both this heading and [[id:2aff1e6d-71cf-4b3f-8a3f-b3fc63d07c99][2aff1e6d]] now read =SCHEDULED: <2026-08-24 Mon 07:00 ++1d>= -- identical strings, so opening the day's node and clearing the archive are one sitting rather than two cadences that drift apart.
+
+*Three deliberate choices in that timestamp.*
+
+=SCHEDULED=, not =DEADLINE=, and that already carries the user's "a suggestion, not a deadline": org's own semantics are that =SCHEDULED= means *start working on this on or after this date* while =DEADLINE= means *must be finished by*. Nothing extra was needed to express it.
+
+=++1d= rather than =+1d=. A plain =+1d= advances by exactly one day from the *old* timestamp, so a pass missed for five days shifts to a date still in the past and accrues a queue of catch-up shifts. =++1d= advances repeatedly until the date is in the future -- missed days are skipped, not banked. That is the cookie that means "late is fine".
+
+Dated *today* rather than tomorrow, even though it is already past 07:00. A late occurrence should be live and visibly late, which is what the =SCHEDULED= semantics give; deferring to tomorrow would have silently skipped today. Verified: org reports =:repeat "++1d"=, scheduled 07:00, zero days overdue.
+
+*What the ceremony is, in order,* now that it is one sitting: apply the queue (human, and see below), consolidate every drawer ([[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]], not yet built), then archive.
+
+*The first step cannot be delegated, and that bounds what any scheduler can do here.* CLAUDE.md names it load-bearing: apply is always human-triggered, never invoked programmatically, because org's native state-change logging only completes inside a genuinely interactive command and a non-interactive =emacsclient -e= hits the hang the queue exists to route around. So an agent can prepare the ceremony, report what is waiting, and perform the consolidate and archive steps *after* the human has applied -- but the pass cannot run unattended end to end. Scheduling is [[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]]'s question.
+
 
 
 ** 2026
