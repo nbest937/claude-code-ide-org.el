@@ -9294,6 +9294,25 @@ Two findings, and the second is the actionable one.
 *Not yet written down as a convention anywhere* -- neither =.claude/rules/org-conventions.md= nor CLAUDE.md mentions it, so nothing tells a session to preserve it and no lint asserts it. That is this heading's remaining work.
 
 
+** The :PLAN: lint will demand a drawer from a debrief-only heading :code:
+:PROPERTIES:
+:ID:       f421c5c3-f81f-4ebf-99c9-42c53cc00558
+:CREATED:  [2026-08-24 Mon 15:02]
+:END:
+
+*Latent, not firing yet, and found 2026-08-24 by running the sweep rather than by reading the rule.*
+
+[[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]]'s lint rule warns when a heading closed on or after 2026-08-24 has a substantial body and no =:PLAN:= drawer. It assumes every finished heading has a prospective half to wrap. *Six do not.*
+
+Those six refused =org_wrap_plan= with =Seam marker is the first body line; nothing would be wrapped= -- their bodies are *entirely debrief*, written outcome-first since the convention landed. A heading written after the convention often has nothing to wrap, which is the convention working, not a heading missing a step.
+
+*Only a threshold is keeping the rule quiet.* =--lint-substantial-body-p= requires ten prose lines and those six carry five to eight. A debrief-only heading with a longer outcome -- and this project writes long outcomes -- would warn, and the only way to satisfy the warning would be to wrap a debrief into a drawer readers are told to skip. That is the inversion the whole lifecycle exists to prevent, arrived at by obeying the lint.
+
+*The signal already exists and is cheap.* =claude-code-ide-org--plan-seam='s "first body line" condition is exactly the test for "no prospective half", so the rule can ask before it warns rather than inferring from body length. A body whose first line is an outcome marker needs no drawer.
+
+*Not fixed now* because it fires on nothing today, and a rule changed while quiet cannot be seen to improve. Worth doing before the next long-bodied heading closes.
+
+
 * Review and planning
 :PROPERTIES:
 :DATE_TREE: t
