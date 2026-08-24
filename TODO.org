@@ -3698,6 +3698,23 @@ This supersedes the "Two callers, and the asymmetry between them is the design" 
 
 /Recorded by appending, which is itself/ [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]]/'s defect: the decision sits below the superseded paragraph rather than replacing it, so a reader meets the stale version first./
 
+*Shipped 2026-08-24* (=2b9be1c=), built to the decision recorded above: option (c), apply time, dated from the event.
+
+=claude-code-ide-org-resolve-day-node= takes a TIME and an optional CREATE. =org_clock_in= now accepts the category title =Review and planning= as its target and *creates nothing* -- queuing stays a line appended to a file. =--resolve-item-target= turns that target into a real day node at apply, dated from the item's own timestamp.
+
+*Verified live against the real TODO.org, read-only:* the category is recognised; today resolves to =nil= because no node exists and none was made; 2026-08-21 resolves to =758643f2=, the node that actually exists; and =git status= stayed clean throughout, so read-only really is read-only. That last check matters more than it looks -- the =SessionStart= caller depends on it, and a resolver that quietly created would manufacture exactly the one-node-per-calendar-day problem this heading's design exists to prevent.
+
+*The dating is pinned by a test that fails under the rejected design.* Reintroducing option (b) -- =(current-time)= instead of the event's timestamp -- fails =test-apply-resolves-a-category-target= and nothing else. The fixture asks for a node dated 2026-08-17 and asserts both that org wrote =2026-08-17 Monday= and that nothing dated today appeared, so it cannot pass by accident on a day that happens to match.
+
+*=:CREATED:= is stamped from the event as well*, not from now. A node minted on Friday for Monday's work was created, as a record, on Monday; stamping it Friday would put a date in the drawer that contradicts the heading title directly above it.
+
+*Nesting is load-bearing and is asserted.* =org-narrow-to-subtree= plus =find-date-create='s =keep-restriction= keeps the tree inside the category. Without it org writes a second =* 2026= at level 1, which =bin/lint-org= would then flag as an uncategorised level-1 heading -- the failure [[id:95087d8f-e16d-45d3-bdea-9b179dc672b4][95087d8f]] filed after =* *= swallowed 6462 lines.
+
+*Not built here, and deliberately:* the =SessionStart= refresh of =org-clock-default-task=. The read-only half of the resolver is what that needs and it exists; wiring it is [[id:6ae83993-906c-4d8b-b11e-c91be8996962][6ae83993]], which this heading always said was off the critical path. Until then the default task is simply unset, which is the graceful degradation the decision anticipated.
+
+*Now unblocked:* the meta-work spans sitting unassigned in the queue from 08-17, 08-22 and today can be assigned to the category and will file themselves under the right day. That was the practical reason this went first.
+
+
 
 
 
@@ -9008,6 +9025,25 @@ Two findings, and the second is the actionable one.
 *The one hazard in (2), and it is not incidental:* the docs describe *no* loop guard for a blocking =Stop= hook -- no =stop_hook_active= flag. A hook that blocks on a condition the model then fails to satisfy loops forever. It needs its own sentinel, one fire per turn, on the model of the =block-open= file [[id:f4e628ce-e653-429a-8f3c-0f5d4241b139][f4e628ce]] already uses.
 
 *Related but a different surface:* [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] generalises convention checking over *files* at pre-commit. This one checks *response prose* at turn end. Same instinct, no shared code.
+
+*Shipped 2026-08-24* (=9fcc08b=): =bin/hooks/footnote-check=, wired to =Stop=, with =bin/footnote-check-test= covering it. 8 of 8 pass.
+
+*Reads =last_assistant_message=, not =transcript_path=.* The hook docs are explicit that the transcript is written asynchronously and may lag the in-memory conversation, so a hook needing the current turn's final text must use that field. Reading the transcript would have checked the *previous* response and blocked on the wrong thing -- a bug that would have looked like flakiness rather than like a mistake.
+
+*Candidates are validated against the org files rather than pattern-matched.* An 8-hex token is not necessarily an =:ID:=; a git short hash is the obvious collision and this repo's prose is full of them. Only tokens appearing as =:ID:  <token>= in a tracked file are enforced, which turns a heuristic into a lookup and makes a false positive nearly impossible. Two of the eight tests pin that: =deadbeef= and an 8-digit number are both ignored.
+
+*The loop guard is load-bearing, not defensive.* The docs describe no =stop_hook_active= flag, so a hook that blocks on a condition the model then fails to satisfy blocks forever. It fires at most once per turn via a per-session sentinel on the =block-open= model, written when it blocks and cleared by =bin/hooks/session-resume= when the next prompt starts a new turn. Clearing it from the =Stop= hook itself would reintroduce the loop exactly.
+
+*The first draft failed every case that should have blocked,* and the cause is already on record here: =mapfile=, an unguarded ="${arr[@]}"= under =set -u=, and array append -- all bash 4, while macOS ships 3.2 and =#!/usr/bin/env bash= resolves to it. The same three constructs, in the same order, that [[id:7e9aa4ea-4757-4e58-bac3-3c3e67fc4cb1][7e9aa4ea]] recorded hitting. Rewritten for 3.2. Worth noting the tests caught it immediately, which is the only reason it cost minutes rather than a silently non-firing feature -- the failure mode [[id:f4e628ce-e653-429a-8f3c-0f5d4241b139][f4e628ce]] lived in for weeks.
+
+*Two failures measured while testing were my test's fault, not the code's,* and both were the same mistake: =VAR=x cmd1 | cmd2= scopes VAR to =cmd1= only, so the hook under test read the default queue directory and appeared not to clear its sentinel. Recorded because it will recur -- every hook here takes its payload on stdin through a pipe, so the natural way to write the test is the wrong one.
+
+*Known interaction, accepted rather than engineered around:* a blocked turn fires =Stop= twice, so =session-pause= writes two =pause= guideposts with no =resume= between them. The second is the true turn end; the first does not pair, since =--span-work-runs= only pairs =resume= -> =pause=. So a span ends where it should and the cost is one unpaired point.
+
+*Not live in this session.* Hook configuration is read once at session start, so the new =Stop= entry takes effect in a new session only. This heading's own claim to work cannot be verified until then -- the first real test is whether the next session's responses carry their footnotes.
+
+*Still worth doing, and it is the half that removes the problem rather than policing it:* [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] and [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] make a prefix→title lookup cheap. A rule that is free to obey does not need enforcing, and the enforcement exists because looking up five exact titles mid-response is not free today.
+
 
 * Review and planning
 :PROPERTIES:
