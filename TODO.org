@@ -8804,16 +8804,22 @@ The ritual: a standing daily prompt to actually do review and planning.
 
 *A category is the one place in this repo a repeater is safe* ([[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]]): a repeater never reaches DONE, so it can never sit under a completable ancestor, and a category carries no keyword and completes nothing.
 
-** TODO Archive completed work weekly, so the live file stops carrying it :code:
+** TODO Archive closed tasks daily
 SCHEDULED: <2026-08-24 Mon 07:00 ++1d>
 :PROPERTIES:
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
 :END:
 
-Nothing owns the recurring archive pass. [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]] ran it once and closed on 2026-08-17 -- the same date as the newest =:ARCHIVE_TIME:= in DONE.org -- and the cadence stopped with it. Measured 2026-08-21: TODO.org carries *30* finished headings, against the 13 that [[id:4c0044bf-1b6c-44ea-807a-8f9e3523e3fd][4c0044bf]] recorded on 2026-08-07 when it made this same observation and was cancelled partly for it.
+Nothing owns the recurring archive pass. [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]] ran it once and closed on 2026-08-17 -- the same date as the newest =:ARCHIVE_TIME:= in DONE.org -- and the cadence stopped with it. Re-measured 2026-08-24, against the two terminal keywords rather than =DONE= alone: TODO.org carries *36* closed headings -- 35 =DONE= and 1 =CANCELLED=. (The earlier count of 30, measured 2026-08-21, was =DONE=-only.) Against the 13 that [[id:4c0044bf-1b6c-44ea-807a-8f9e3523e3fd][4c0044bf]] recorded on 2026-08-07 when it made this same observation and was cancelled partly for it.
 
 *Why it stalls.* Archiving is not mechanical: CLAUDE.md requires a concise prose outcome summary on a =DONE= heading *before* it is archived -- what shipped, how it was verified, what differed from the plan. Automating the cadence without addressing that would only archive un-summarised work faster.
+
+*What "closed" covers, since the title now says it.* Both terminal keywords, =DONE= and =CANCELLED= -- confirmed against org itself rather than by reading the =#+TODO:= line: =org-done-keywords= is exactly =("DONE" "CANCELLED")= and the other seven are all not-done. A sweep that filtered on =DONE= would leave every abandoned heading behind permanently, since nothing else ever removes one.
+
+*One gap the retitle exposes.* CLAUDE.md's outcome-summary rule names =DONE= headings only, so a =CANCELLED= heading is not covered by it. That is probably right rather than an oversight: =CANCELLED(c@)= carries an =@= cookie, so org already prompts for a note at the transition and the reason is captured where it happens. Worth stating so the asymmetry reads as deliberate.
+
+*Read finishedness from the right place when this is built.* =org-done-keywords= is *buffer-local* and nil outside a visited org buffer, so a filter using it from the wrong buffer silently passes everything. =claude-code-ide-org--outline-finished-keywords= exists precisely for that and is the constant to reuse.
 
 *Decided 2026-08-21 by the user: sweep the old bodies into =:PLAN:= unedited.* The backlog does not get the faithful paring a newly written heading will; the existing body is wrapped as-is and the debrief written beneath it. That splits the migration into one mechanical step and one cheap one. *Wrapping* is scriptable and needs no judgement at all -- insert the drawer at the end-of-drawers boundary, close it after the last body line. The *debrief* still has to be written per heading, but is far cheaper than the [[id:cc0c17a7-a554-426d-afeb-09cbee7339f0][cc0c17a7]] trial suggested: the expensive judgement there was never the four items, it was deciding what to discard, and sweeping discards nothing.
 
@@ -8821,7 +8827,7 @@ Nothing owns the recurring archive pass. [[id:38b92521-bba4-4bb5-9cd9-465862471a
 
 *A direct cost, not housekeeping.* Those 30 bodies are read into context by every session that opens the tracker, which is [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]]'s complaint with a number attached to it.
 
-*The first pass is a backlog, not a cadence.* Clearing the existing 30 should not wait for the repeater; the schedule is for the steady state afterwards.
+*The first pass is a backlog, not a cadence.* Clearing the existing 36 should not wait for the repeater; the schedule is for the steady state afterwards.
 
 *Deliberately out of scope: where archived work lands.* The per-category =:ARCHIVE:= routing in force today, versus a =datetree/= location, is [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]'s question -- and switching would break [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]]'s lint rule until that is settled. This heading is about the pass *running*, not about its destination.
 
