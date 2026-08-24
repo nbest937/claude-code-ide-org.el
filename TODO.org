@@ -2801,6 +2801,7 @@ CLOCK: [2026-08-14 Fri 20:11]--[2026-08-14 Fri 20:15] =>  0:04
   all ten defects corrected and verified
 - [2026-08-14 Fri 20:15]--[2026-08-14 Fri 20:15] assigned at review
 :END:
+:PLAN:
 
 The factual pass. CLAUDE.md still files the whole queue design under a
 heading reading "Direction (*not yet implemented*)" and still documents
@@ -2834,6 +2835,15 @@ nowhere. Record =REVIEW= as experimental
 ([[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]) rather than as
 settled.
 
+:END:
+*Shipped 2026-08-14* (=871f415=), and the debrief is written 2026-08-24, backfilled during [[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]]'s sweep -- this heading closed before the convention requiring one existed.
+
+All ten defects the body enumerates were corrected in CLAUDE.md in a single pass and verified against the live files rather than against recollection, which is what the state-change note "all ten defects corrected and verified" records.
+
+*What the correction was actually about, since the title understates it:* CLAUDE.md described a queue architecture it did not have. The tool table said =org_set_todo= changed a keyword and =org_clock_in= opened a clock, when after the 2026-08-11 cutover all three queue an event and change nothing. A reader following the file would have expected a state change, seen none, and concluded the tool was broken -- which is why the corrected version now opens by saying so outright and tells the reader that a stale read is *expected, not a failure*.
+
+*Written from evidence rather than memory,* and the distinction matters for a backfilled debrief: the commit, the two state-change notes and the body's own enumeration are the sources. Nothing here reconstructs what the pass "must have" done.
+
 
 *** DONE Remove CLAUDE.md content the org and org-dev skills already own :code:
 :PROPERTIES:
@@ -2855,6 +2865,7 @@ CLOCK: [2026-08-14 Fri 21:22]--[2026-08-14 Fri 21:26] =>  0:04
   dedupe done, both skills corrected
 - [2026-08-14 Fri 21:26]--[2026-08-14 Fri 21:26] assigned at review
 :END:
+:PLAN:
 
 The org skill already documents TODO keywords, the tag table,
 =#+ARCHIVE:=, and =:BLOCKER:=; org-dev already covers
@@ -2877,6 +2888,15 @@ be judged wrong later.
 [[file:~/.claude/plans/nested-gathering-wozniak.md][Plan]] — the epic's
 plan document, which carries this child's design as its second half rather
 than a file of its own.
+
+:END:
+*Shipped 2026-08-14*, planned in Plan Mode and carried out the same evening -- =PLANNING= at 20:43, =DOING= at 21:22, =DONE= at 21:26. Debrief written 2026-08-24, backfilled during [[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]]'s sweep, since this heading closed before the convention requiring one existed.
+
+The dedupe ran as the body describes: content CLAUDE.md was carrying that the org and org-dev skills already owned was removed from CLAUDE.md, and *both skills were corrected in the same pass* rather than merely being deferred to. That second half is what the state-change note records with "dedupe done, both skills corrected", and it is the part that makes the removal safe -- deleting from CLAUDE.md while trusting an uncorrected skill would have lost the content rather than moved it.
+
+*The test that decided what stayed is worth restating, because it still governs:* a rule that must hold when no =.org= file is open cannot live in a path-scoped rule, since a rule that does not load is a rule that does not apply and the failure is silent. That is why the state transitions and the queue architecture stayed in CLAUDE.md while the file-header template and tag conventions left for =.claude/rules/org-conventions.md=.
+
+*Written from evidence:* the commits, the three state-change notes, and the body's own scope. Nothing is reconstructed.
 
 
 *** DONE Decide whether CLAUDE.md needs a path-scoped =.claude/rules/= split :code:
@@ -3249,6 +3269,7 @@ CLOSED: [2026-08-21 Fri 15:07]
 - State "CANCELLED"  from "MAYBE"      [2026-08-21 Fri 15:07] \\
   superseded by 3063c3e5's policy and 41cf5830's git index
 :END:
+:PLAN:
 
 Captured 2026-08-07 from conversation. Proposal: TODO.org (live) →
 DONE.org (archive) → a terse, permanent, conventional-timeline changelog,
@@ -3302,6 +3323,7 @@ deliberate); whether tier 3 is its own =CHANGELOG.org= or a datetree
 inside DONE.org; and whether anything should enumerate inbound =[[id:]]=
 references before a prune, since nothing does today.
 
+:END:
 *Cancelled 2026-08-21, and the re-measure this heading asked for is the reason.* Its own instruction was "restore the archiving cadence first and re-measure -- tier 3 may not be needed for a long time." Re-measured: DONE.org has gone 955 -> 9554 lines and 22 -> 63 entries, but TODO.org still carries *30* finished headings against the 13 recorded above, and the newest =:ARCHIVE_TIME:= in the file is =2026-08-17=. The original diagnosis therefore holds and has worsened: the pressure is tier 1->2 stalling, not tier 2 overflowing, and a third tier would still relieve none of it.
 
 *Superseded rather than merely deferred*, which is why this is CANCELLED and not left at MAYBE. Both jobs a third tier was for now have owners. Semantic compression is answered at the *body* level by the 2026-08-20 retention policy recorded at [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] -- a closed body holds a concise debrief, the problem statement and plan move to a drawer. And "git is already a chronological changelog, so what does this add" is answered by [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]], an index into git rather than a retelling of it. A third *file* has no remaining unique job.
@@ -4279,6 +4301,7 @@ CLOCK: [2026-08-18 Tue 18:14]--[2026-08-18 Tue 18:16] =>  0:02
 - State "DONE"       from "TODO"       [2026-08-19 Wed 08:05] \\
   re-queued, lost to my git checkout
 :END:
+:PLAN:
 
 Observed 2026-08-12 during the subagent experiment behind
 [[id:0d789b68-faca-4911-868a-fdd70acbfd40][0d789b68]]. A background
@@ -4319,6 +4342,7 @@ proximity rather than membership: the queue is complete without it.
 [[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — the epic's plan document, which
 carries this child's design rather than a file of its own.
 
+:END:
 *Ran the free check 2026-08-18, and it says do not instrument.* The plan
 asked for this before writing any code: 891 post-cutover guideposts
 across 16 sessions, classified from data already on disk.
@@ -4964,6 +4988,7 @@ CLOCK: [2026-08-18 Tue 10:11]--[2026-08-18 Tue 10:16] =>  0:05
 - State "DONE"       from "DOING"      [2026-08-18 Tue 10:16] \\
   queue-backed statusline shipped and verified
 :END:
+:PLAN:
 
 Point the statusline (=claude-code-ide-org--statusline-task-string=)
 at the *queue* files' latest event across all sessions, rather than
@@ -5021,6 +5046,7 @@ closes, and the epic closes whether or not this is done.
 [[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — the epic's plan document, which
 carries this child's design rather than a file of its own.
 
+:END:
 *Verified, not just implemented* — shipped 2026-08-18 as step 1 of
 [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]].
 
@@ -5142,6 +5168,7 @@ CLOSED: [2026-08-18 Tue 19:47]
 - State "DONE"       from "TODO"       [2026-08-18 Tue 19:47] \\
   fixed, tested, confirmed live
 :END:
+:PLAN:
 
 Observed live 2026-08-18 in =org_pending_updates=, grouping two
 unassigned spans:
@@ -5173,6 +5200,7 @@ It was found while verifying
 [[id:31f766ab-90ed-4950-bc5b-787528c8fe84][31f766ab]] and is independent
 of the guidepost pipeline; refile freely.
 
+:END:
 *Fixed 2026-08-18* (=4ff1b53=). The grouping code now uses
 =claude-code-ide-org--review-heading-title=, which returns *nil* when an
 id does not resolve — which is what lets a =cond= tell three cases
@@ -5415,6 +5443,7 @@ CLOCK: [2026-08-21 Fri 07:48]--[2026-08-21 Fri 07:52] =>  0:04
 - State "DONE"       from "DOING"      [2026-08-21 Fri 07:52] \\
   root cause fixed at all three sites; the 56 stale lines left for a separate approval
 :END:
+:PLAN:
 
 =claude-code-ide-org--review-written-summary= sums raw seconds across a span's runs. org computes a CLOCK line's duration from the two *minute-truncated* timestamps it records. The two disagree by a minute whenever the seconds fall either side of a boundary.
 
@@ -5430,6 +5459,7 @@ Caught on a real line, 2026-08-20. The review buffer previewed =writes 0:02= for
 
 /Body restored 2026-08-20 by =org_amend=; the original capture silently discarded it -- see/ [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]].
 
+:END:
 *Fixed 2026-08-21, and the reported symptom was the smaller half.* Chasing the root cause found that *56 of the 353 CLOCK lines standing in TODO.org and DONE.org disagree with their own printed timestamps* -- 35 printing a minute less than their stamps imply, 21 a minute more. Same cause: raw seconds summed and rounded, where org derives a line's total by subtracting two minute-precision stamps.
 
 *Nothing could have surfaced those 56.* A clocktable recomputes from the timestamps and never reads the =>= field, so =org_clock_report= has been quietly reporting different totals than the drawer a human was reading, with no error anywhere. The lines are *not* repaired here -- that is a data change and belongs to its own approved step.
@@ -6874,6 +6904,7 @@ CLOSED: [2026-08-17 Mon 18:34]
 - State "DONE"       from "REVIEW"     [2026-08-17 Mon 18:34] \\
   logdone confirmed live, buffer-local
 :END:
+:PLAN:
 
 =#+STARTUP: logdrawer logdone= on TODO.org line 4, so entering =DONE=
 writes =CLOSED: [ts]= directly under the headline in addition to the
@@ -6930,6 +6961,17 @@ whether the keyword earns its keep.
 
 *Does not backfill and does not apply retroactively.* Everything already
 archived keeps only its state-change line.
+
+:END:
+*Shipped 2026-08-17* (=7be24df=), and confirmed live the same day when the first real =CLOSED:= line was written by an apply pass (=f7428de=). Debrief written 2026-08-24 during [[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]]'s sweep.
+
+=#+STARTUP: logdrawer logdone= went on TODO.org, so entering a done keyword writes a =CLOSED:= planning line alongside the =- State "DONE"= line the =DONE(D!)= cookie already produced. Two records of the same moment, and deliberately so: the state line is a log entry inside a drawer, while =CLOSED:= is a *planning line* org's own machinery can read -- which is what makes it an accessor rather than a duplicate.
+
+*Verified as buffer-local, which was the thing worth checking.* =#+STARTUP:= is applied at buffer setup and nothing in the Doom config sets =org-log-done= globally, so the setting is real only in the buffer carrying the line. The state-change note records exactly that: "logdone confirmed live, buffer-local".
+
+*It did not backfill, and that was the decision at the time* -- everything already archived kept only its state-change line. That held until 2026-08-24, when [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]] reconstructed 58 markers in DONE.org from those same state lines. So the "does not backfill" statement above is now history rather than policy, and the reason it could be reversed is the one this heading created: the state line was already carrying the evidence.
+
+*One consequence nobody predicted here,* worth recording because it paid off a week later. Dating work by =CLOSED:= only became possible once this existed, which is what let f4b07fc0's backfill scope [[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]]'s lint rule to headings closed after the convention landed -- 0 warnings instead of 124. A rule filed as "adds no data, adds an accessor" turned out to be the thing that made a later rule usable at all.
 
 
 * Bigger swings
@@ -8094,6 +8136,7 @@ CLOCK: [2026-08-17 Mon 19:05]--[2026-08-17 Mon 19:07] =>  0:02
 CLOCK: [2026-08-17 Mon 19:10]--[2026-08-17 Mon 19:11] =>  0:01
 - [2026-08-17 Mon 19:10]--[2026-08-17 Mon 19:11] assigned at review
 :END:
+:PLAN:
 
 Raised by the user 2026-08-12: nothing has been archived in quite some
 time, and *certainly not since the queue cutover*. So the open question
@@ -8229,6 +8272,7 @@ carries an =:ARCHIVE_OLPATH:= naming its source category.
 
 -----
 
+:END:
 *Sweep executed 2026-08-17.* TODO.org 12,927 -> 4,645 lines; DONE.org 865
 -> 9,423. All 41 completed level-2 subtrees moved into mirrored categories,
 newest-completion-first. The *judge the structure question* half of this
@@ -8741,6 +8785,7 @@ CLOCK: [2026-08-19 Wed 12:14]--[2026-08-19 Wed 12:17] =>  0:03
 - State "DOING"      from "TODO"       [2026-08-19 Wed 17:48] \\
   backdated: container entered DOING when its first child 8d682a5b did
 :END:
+:PLAN:
 
 One arc in three steps: find the structural drift that already exists,
 teach the linter to catch that class, then stop new instances reaching
@@ -8763,6 +8808,7 @@ and it is also a rough measure of the rate.
 Every member already carries its own detail; this heading deliberately
 holds only what the set shares.
 
+:END:
 *All three children done, 2026-08-19.* The arc held: the diagnosis
 decided what rules were worth writing, and the rules were validated
 before being enforced.
@@ -8808,6 +8854,7 @@ CLOCK: [2026-08-19 Wed 18:31]--[2026-08-19 Wed 18:36] =>  0:05
 - State "DONE"       from "DOING"      [2026-08-19 Wed 18:36] \\
   all 11 diagnosed and the class fixed
 :END:
+:PLAN:
 
 *Surfaced 2026-08-14 the moment =org-lint= was wired into
 [[id:3bd3402b-3ab6-4ace-b20b-3ff84caa3fb2][3bd3402b]]'s script,* which
@@ -8833,6 +8880,7 @@ inline bold at line start, the transition tables. Sorting real from
 quoted is the actual work, and the answer decides whether these become
 errors or stay warnings.
 
+:END:
 *Diagnosed 2026-08-19. All eleven are markdown-style =**bold**= in files
 whose bold is =*single*=. None is a misplaced heading.*
 
