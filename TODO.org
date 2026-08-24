@@ -6898,6 +6898,45 @@ archived keeps only its state-change line.
 *One consequence nobody predicted here,* worth recording because it paid off a week later. Dating work by =CLOSED:= only became possible once this existed, which is what let f4b07fc0's backfill scope [[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]]'s lint rule to headings closed after the convention landed -- 0 warnings instead of 124. A rule filed as "adds no data, adds an accessor" turned out to be the thing that made a later rule usable at all.
 
 
+** Track the human's review attention, clocked by the review command itself :code:research:
+:PROPERTIES:
+:ID:       961f15b6-d782-40b8-8ceb-ba086d188a3b
+:CREATED:  [2026-08-24 Mon 16:32]
+:END:
+
+*Proposed by the user 2026-08-24, reviewing a live queue.* The review pass is the one activity this project has never measured, and it is the one the project most depends on: nothing reaches an org file without it. Its cost is currently invisible, so "the review-apply cycle seems pretty straightforward lately" ([[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]]) is an impression rather than a number.
+
+*It is a different quantity, not an exception.* The user framed this as a first exception to the union-overlapping-intervals convention, since the agent may be busy elsewhere while the human reviews. It is not: [[id:7d739afd-f879-445c-b0b6-65e295585a94][7d739afd]] unions concurrent *turns* because they are the same quantity measured twice. Human attention and agent activity are different quantities and should never have been added together, so they are simply separate totals and the convention does not reach them. That is a cleaner resolution than an exception, and it is the framing to build against.
+
+*The project already cut this seam.* =claude-code-ide-org--review-format-annotation= records that the queue captures *agent* activity and nothing else, and that an active timestamp inside =:LOGBOOK:= -- the kind org's agenda absorbs -- is "reserved for intervals a human logs themselves" ([[id:b8e6007a-ae13-4b13-bb2e-a5df39435af0][b8e6007a]], [[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]]). So the mechanism for human attention was decided before there was anything to put in it. This is that thing.
+
+*No, it does not begin with an arbitrary prompt, and that is the design's main improvement on the proposal.* The user's contract was "tell you to clock me in, then clock me out when I report the outcome". That works, but it depends on a person remembering to say a sentence at both ends -- the discipline half that [[id:eaeeb4ee-ceee-4094-8598-bbcdc8214b66][eaeeb4ee]] proved insufficient even when followed twelve times correctly.
+
+=M-x claude-code-ide-org-review= *is the event*. It is an interactive command in this project's own code, it is the documented and only entry point to the pass, and it cannot be invoked by accident. Starting the clock there needs no utterance and cannot be forgotten.
+
+*And it should not go through the queue at all.* The queue exists because concurrent agent sessions cannot touch a live buffer safely. A human running an interactive command in Emacs has none of those constraints -- they are already inside the interactive session the whole design routes toward. So this writes a native =org-clock-in= directly, with an *active* timestamp, which is exactly what the annotation rule reserves for human-logged intervals.
+
+Three consequences follow, and each removes a problem the queue framing created:
+
+- *No lane collision.* The obstacle noted in conversation was that =org_clock_out= closes whatever the session last opened, one slot per lane, so a human clock would clobber the agent's. Writing natively sidesteps the queue's slot entirely; org's own clock is a separate mechanism.
+- *No attribution guesswork.* There are no guideposts to cluster and no span to suggest, because the interval is bracketed by two real events.
+- *It reaches the agenda.* An active timestamp is what makes "where did my attention go" answerable there, which is [[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]]'s whole question.
+
+*Where the interval ends is the real design question, and it is not obvious.* Three candidates, none clean:
+
+- *Buffer killed.* Automatic and precise about the buffer, wrong about the person: leaving it open over lunch clocks lunch.
+- *Apply completes.* Precise about the work, but a pass that ends in dismissals applies nothing and would record no time at all -- and reviewing carefully enough to dismiss everything is the *most* expensive outcome, not the least.
+- *The user says so.* Their original contract, correct and unforgeable, but back to depending on a sentence.
+
+*Recommended: start on the command, end on the user's word, with the buffer's death as a backstop.* The start needs no discipline because the command is unambiguous; the end genuinely requires judgement -- "I am done thinking about this" is not observable -- so ask for it rather than infer it. A killed buffer with the clock still running is the stale-interval case [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s recovery report already handles, which is why it can be the fallback rather than needing a new mechanism.
+
+*The iterate-while-open case the user raised is handled by construction:* asking questions about what the buffer shows does not close it, so the clock keeps running across the conversation. That is the behaviour they described wanting, obtained without a rule.
+
+*Its own datetree, or the existing one?* The user asked for a separate one. The reporting question is genuinely different -- "where did my attention go" against "what was the agent doing" -- and mixing them in one tree makes both harder to read. But a second =:DATE_TREE:= category doubles the scaffolding [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]] had to teach the lint about, and [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] is still open on whether this project wants more datetrees at all. *Undecided, and it should be decided against a report someone actually wants* rather than in advance -- the same discipline CLAUDE.md states for the whole attention-tracking goal.
+
+*What this does not do.* It measures the review pass only. It is not general human time tracking, and it should not grow into it without a separate decision: the review pass earns measurement because it is the project's own bottleneck, not because measuring people is generally good.
+
+
 * Bigger swings
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Bigger swings
