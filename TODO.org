@@ -6936,6 +6936,29 @@ Three consequences follow, and each removes a problem the queue framing created:
 
 *What this does not do.* It measures the review pass only. It is not general human time tracking, and it should not grow into it without a separate decision: the review pass earns measurement because it is the project's own bottleneck, not because measuring people is generally good.
 
+*How the backstop is actually detected, worked out 2026-08-24 rather than assumed.* "Buffer death" sounds like one event and is three, and the obvious mechanism misses the common case.
+
+*=kill-buffer-hook= is the right hook and =q= never fires it.* =q= in the review buffer is inherited from =special-mode= and runs =quit-window=, whose own docstring is explicit: "Quit WINDOW and *bury* its buffer. ... With prefix argument KILL non-nil, kill the buffer instead of burying it." Verified live: =(key-binding (kbd "q"))= in =*org-review*= is =quit-window=. So the ordinary way anyone leaves the buffer buries it, the buffer stays alive, and a naive =kill-buffer-hook= implementation would clock straight through until the buffer was next killed explicitly -- which in practice is never. The failure would present as a clock running all night.
+
+*Three layers, and two of them already exist:*
+
+| how the pass ends | mechanism | state |
+|--------------------+---------------------------------------------+----------------|
+| buffer buried (=q=) | advice on =quit-window= -- see below | to build |
+| buffer killed | =kill-buffer-hook=, buffer-local, runs before the kill with the buffer current | to build |
+| Emacs quits | =kill-emacs-hook= -> =--clock-out-if-clocking= | already live |
+| crash or =kill -9= | stale-interval detection -> the =SessionStart= report asks when work stopped | already live |
+
+That last row closes a loop worth naming: the recovery report has never fired in this repo's entire history, because every agent clock is queued and every clean shutdown closes what it opened ([[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]]'s audit). A *human* clock left open by a crash is exactly the case it was built for, and would be the first thing it ever had to say.
+
+*DECIDED 2026-08-24 by the user: treat burying as ending the pass* -- option 2 of the three considered, advising or wrapping the quit path rather than rebinding =q=.
+
+Rejected: rebinding =q= to =(quit-window t)= so it kills. It would make =kill-buffer-hook= sufficient, but it changes the behaviour of a key every =special-mode= buffer in Emacs shares, to serve a clock -- a surprising cost paid by someone who is not thinking about clocks. Also rejected: relying on the user's word alone with kill and crash as the only backstops, which loses precisely the walked-away case the backstop exists for.
+
+*The reasoning for burying is that it matches what happens.* Burying *is* how a person leaves this buffer; it is not a lesser form of closing it. So the clock stops when the buffer stops being visible, and the user's word remains the primary signal for the case where they say so before leaving.
+
+*Refresh is safe and was checked rather than assumed.* =g= rebuilds contents through =get-buffer-create= on the same buffer -- =claude-code-ide-org-review= is =(let ((buffer (get-buffer-create "*org-review*"))) ...)= -- so it neither kills nor buries, and the clock correctly survives a refresh mid-pass. That matters because =g= is the command a human runs when confused, which is exactly when the pass is most expensive and least should be under-recorded.
+
 
 * Bigger swings
 :PROPERTIES:
