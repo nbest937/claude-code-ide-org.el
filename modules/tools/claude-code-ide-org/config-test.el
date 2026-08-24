@@ -4067,8 +4067,12 @@ Three silences in one fixture, because an implementation that got any
 one of them wrong would still satisfy the others: the idle between two
 turns is not work, an unpaired `resume' -> `resume' contributes nothing
 \(TODO.org :ID: 09c134c4 owns that question, not this function), and a
-turn too short to render a distinct minute is dropped rather than
-written as `=>  0:00'."
+turn too short to render a distinct minute is *promoted to one minute*
+rather than dropped (TODO.org :ID: 31c6ac39, 2026-08-24 -- it was
+dropped until then). A sub-minute turn is work that happened; org's
+minute precision is the only reason it cannot be shown exactly, and
+recording it as 0:01 is a rounding error where discarding it is a false
+statement that nothing occurred."
   (let ((claude-code-ide-org-span-idle-floor 120))
     ;; resume, resume, pause: only the second resume pairs.
     (let ((runs (claude-code-ide-org--span-work-runs
@@ -4082,14 +4086,31 @@ written as `=>  0:00'."
                  (list (claude-code-ide-org-test--guidepost "09:00:00" "resume")
                        (claude-code-ide-org-test--guidepost "09:04:00" "resume"))))
     ;; A sub-minute turn, isolated by more than the floor on both sides,
-    ;; survives the merge and is dropped for rendering as zero.
+    ;; survives the merge and is now PROMOTED to one minute rather than
+    ;; dropped: 30 seconds of work happened, and the only reason it
+    ;; cannot be shown exactly is org's minute precision.
     (let ((runs (claude-code-ide-org--span-work-runs
                  (list (claude-code-ide-org-test--guidepost "09:00:00" "resume")
                        (claude-code-ide-org-test--guidepost "09:05:00" "pause")
                        (claude-code-ide-org-test--guidepost "09:10:10" "resume")
                        (claude-code-ide-org-test--guidepost "09:10:40" "pause")))))
+      (should (= 2 (length runs)))
+      (should (equal "09:05" (format-time-string "%H:%M" (cdr (nth 0 runs)))))
+      (should (= 60 (float-time (time-subtract (cdr (nth 1 runs)) (car (nth 1 runs)))))))
+    ;; 34 seconds is the case that a duration-only promotion missed:
+    ;; `round' takes 34/60 to 1, so it does not read as zero, yet it
+    ;; still renders [09:10]--[09:10] and would be dropped for that.
+    (let ((runs (claude-code-ide-org--span-work-runs
+                 (list (claude-code-ide-org-test--guidepost "09:10:03" "resume")
+                       (claude-code-ide-org-test--guidepost "09:10:37" "pause")))))
       (should (= 1 (length runs)))
-      (should (equal "09:05" (format-time-string "%H:%M" (cdr (nth 0 runs))))))))
+      (should (= 60 (float-time (time-subtract (cdr (car runs)) (car (car runs)))))))
+    ;; A zero-width point is NOT promoted: nothing was observed there,
+    ;; and inventing a minute from one timestamp is the class of guess
+    ;; :ID: 7771fc63 retired.
+    (should-not (claude-code-ide-org--span-work-runs
+                 (list (claude-code-ide-org-test--guidepost "09:00:00" "resume")
+                       (claude-code-ide-org-test--guidepost "09:00:00" "pause"))))))
 
 (ert-deftest claude-code-ide-org-test-apply-writes-one-line-per-run ()
   "Apply writes a CLOCK line per run of work, not one across the span.
@@ -4239,14 +4260,18 @@ collapsed any two of them would still satisfy the others.
 Measured over the corpus, per session: 4 such items in 57 spans, evenly
 split between the first two kinds."
   (let ((claude-code-ide-org-span-idle-floor 120))
-    ;; A real short turn: 11 seconds, both ends inside 09:00.
+    ;; A real short turn no longer reads as a no-op at all: since the
+    ;; one-minute floor (:ID: 31c6ac39) it writes 0:01. This used to
+    ;; assert "writes nothing (11s of turns, none crossing a minute)",
+    ;; and that reason is now unreachable by construction -- the branch
+    ;; survives only as a guard that says so.
     (let* ((events (list (claude-code-ide-org-test--guidepost "09:00:14" "resume")
                          (claude-code-ide-org-test--guidepost "09:00:25" "pause")))
            (item (list :type 'clock :id "id-a" :suggested t :events events
                        :start (plist-get (car events) :ts)
                        :end (plist-get (cadr events) :ts))))
-      (should (equal "writes nothing (11s of turns, none crossing a minute)"
-                     (claude-code-ide-org--review-written-summary item))))
+      (should-not (string-match-p "writes nothing"
+                                  (claude-code-ide-org--review-written-summary item))))
     ;; The trailing in-flight span: one guidepost, start = end.
     (let* ((events (list (claude-code-ide-org-test--guidepost "09:00:14" "resume")))
            (item (list :type 'clock :id "id-a" :suggested t :events events
@@ -4385,33 +4410,40 @@ adjacency `--consolidate-logbook-text' sorts on."
     (should (equal new (claude-code-ide-org--recompute-logbook-text
                         new guideposts claude-code-ide-org-test--recompute-since)))))
 
-(ert-deftest claude-code-ide-org-test-idle-floor-drops-both-shapes-of-zero ()
-  "Two different intervals both write a line no one should read, and
-neither condition catches the other.
+(ert-deftest claude-code-ide-org-test-idle-floor-promotes-both-shapes-of-zero ()
+  "Two different intervals would each write a line no one should read,
+and neither condition catches the other -- so both must be recognised,
+and since 2026-08-24 both are *promoted* rather than dropped.
 
 50 seconds inside one minute renders `[09:00]--[09:00]' -- degenerate
 endpoints -- but rounds to `=>  0:01'. 20 seconds across a minute
 boundary renders `[08:14]--[08:15]' -- perfectly ordinary endpoints --
-but rounds to `=>  0:00', which this project calls an interval that was
-never observed.
+but rounds to `=>  0:00'.
 
-Testing only the endpoints was the first version of this, and it wrote
-nine `0:00' lines into the real org files during the 507754ba recompute.
-They were caught by reading the diff, not by the suite."
-  (let ((claude-code-ide-org-span-idle-floor 120))
-    ;; Degenerate endpoints, non-zero rounding.
+Testing only the endpoints was the first version of the drop, and it
+wrote nine `0:00' lines into the real org files during the 507754ba
+recompute; they were caught by reading the diff, not by the suite.
+Testing only the duration was the first version of the *promotion*, and
+it left a 34-second run to be dropped while promoting an 11-second one.
+The invariant that outlived both: whatever comes out of this function,
+no interval may render as nothing (TODO.org :ID: 31c6ac39)."
+  (let ((claude-code-ide-org-span-idle-floor 120)
+        (fmt "[%Y-%m-%d %a %H:%M]"))
+    (dolist (case (list (cons "2026-08-06T09:00:05-0500" "2026-08-06T09:00:55-0500")
+                        (cons "2026-08-06T08:14:50-0500" "2026-08-06T08:15:10-0500")
+                        (cons "2026-08-06T08:14:00-0500" "2026-08-06T08:15:00-0500")))
+      (let ((out (claude-code-ide-org--apply-idle-floor
+                  (list (cons (date-to-time (car case)) (date-to-time (cdr case)))))))
+        ;; Every positive interval now survives ...
+        (should (= 1 (length out)))
+        ;; ... and none of them renders as nothing, which is the whole
+        ;; guarantee the old drop existed to provide.
+        (should-not (claude-code-ide-org--renders-as-nothing-p (car out) fmt))))
+    ;; A zero-width interval is still dropped: nothing was observed, and
+    ;; promoting it would invent a minute from a single timestamp.
     (should-not (claude-code-ide-org--apply-idle-floor
-                 (list (cons (date-to-time "2026-08-06T09:00:05-0500")
-                             (date-to-time "2026-08-06T09:00:55-0500")))))
-    ;; Ordinary endpoints, zero rounding.
-    (should-not (claude-code-ide-org--apply-idle-floor
-                 (list (cons (date-to-time "2026-08-06T08:14:50-0500")
-                             (date-to-time "2026-08-06T08:15:10-0500")))))
-    ;; And an interval that survives both, so the filter is not simply
-    ;; discarding everything short.
-    (should (= 1 (length (claude-code-ide-org--apply-idle-floor
-                          (list (cons (date-to-time "2026-08-06T08:14:00-0500")
-                                      (date-to-time "2026-08-06T08:15:00-0500")))))))))
+                 (list (let ((tm (date-to-time "2026-08-06T09:00:05-0500")))
+                         (cons tm tm)))))))
 
 (ert-deftest claude-code-ide-org-test-minimum-interval-defaults-to-no-op ()
   "Naming the write floor must not move it.

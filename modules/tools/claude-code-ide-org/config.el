@@ -4000,6 +4000,25 @@ says so."
     (claude-code-ide-org--apply-idle-floor
      (nreverse runs) floor (claude-code-ide-org--block-intervals events))))
 
+(defun claude-code-ide-org--renders-as-nothing-p (interval fmt)
+  "Non-nil when INTERVAL would write a CLOCK line saying nothing.
+
+Two conditions, and neither implies the other -- which is why they are
+named here once and used twice, to promote and to drop, instead of
+being spelled out at each site and drifting apart.
+
+An interval of 50 seconds inside one minute renders `[09:00]--[09:00]\'
+but rounds to `=>  0:01\'; one of 20 seconds across a minute boundary
+renders `[08:14]--[08:15]\' but rounds to `=>  0:00\'.  Testing only the
+endpoints was the first version of the drop, and it wrote nine `0:00\'
+lines into the real org files during the 507754ba recompute.  Testing
+only the duration was the first version of the *promotion* and left a
+34-second run to be dropped while promoting an 11-second one."
+  (or (equal (format-time-string fmt (car interval))
+             (format-time-string fmt (cdr interval)))
+      (zerop (round (/ (float-time (time-subtract (cdr interval) (car interval)))
+                       60)))))
+
 (defun claude-code-ide-org--apply-idle-floor (intervals &optional floor barriers)
   "Merge INTERVALS separated by less than FLOOR, then drop rendered zeros.
 
@@ -4058,12 +4077,41 @@ one is a choice about what is worth recording."
             (when (time-less-p (cdr last) (cdr interval))
               (setcdr last (cdr interval)))
           (push (cons (car interval) (cdr interval)) merged))))
+    ;; Promote before dropping, and the order is the whole point. A run
+    ;; with a *positive* duration was observed: 28 seconds of agent time
+    ;; is work that happened, and org's minute-precision timestamps are
+    ;; the only reason it renders `=>  0:00'. Extending its end to one
+    ;; minute records the observation at the coarsest granularity the
+    ;; format can carry, which is a rounding error; discarding it is a
+    ;; false statement that nothing happened, which is the erasure :ID:
+    ;; 293ac49e was filed against.
+    ;;
+    ;; A run of *zero* width is left alone and falls through to be
+    ;; dropped below. Nothing was observed there -- it is a lone
+    ;; guidepost with nothing to bracket it -- and promoting it would
+    ;; invent a minute of work out of a single timestamp, which is
+    ;; exactly the class of guess :ID: 7771fc63 retired.
+    ;;
+    ;; Instituted 2026-08-24 at the user's request, after they edited a
+    ;; number of 0-minute spans up to 1 minute by hand at review. Doing
+    ;; it here rather than at review means the floor applies to every
+    ;; path that writes a CLOCK line, and nobody has to remember it.
+    ;; The trigger must mirror *both* rendering conditions below, not
+    ;; one. A 34-second run rounds to `0:01' -- `round' goes to nearest,
+    ;; so 34/60 is 1, not 0 -- and would survive the duration test while
+    ;; still being dropped for rendering `[11:17]--[11:17]'. Testing
+    ;; only the duration promoted an 11-second run and silently left a
+    ;; 34-second one to be discarded, which is the exact shape of bug
+    ;; the two-condition drop was written for in the first place.
+    (setq merged
+          (mapcar (lambda (iv)
+                    (if (and (time-less-p (car iv) (cdr iv))
+                             (claude-code-ide-org--renders-as-nothing-p iv fmt))
+                        (cons (car iv) (time-add (car iv) 60))
+                      iv))
+                  merged))
     (seq-remove (lambda (iv)
-                  (or (equal (format-time-string fmt (car iv))
-                             (format-time-string fmt (cdr iv)))
-                      (zerop (round (/ (float-time
-                                        (time-subtract (cdr iv) (car iv)))
-                                       60)))
+                  (or (claude-code-ide-org--renders-as-nothing-p iv fmt)
                       (< (float-time (time-subtract (cdr iv) (car iv)))
                          claude-code-ide-org-span-minimum-interval)))
                 (nreverse merged))))
@@ -4279,8 +4327,15 @@ clock_in/clock_out, where the interval is authoritative.
 Items carry the `:events' they were derived from, which is what lets
 `claude-code-ide-org--review-advance-watermarks' tell an applied event
 from a skipped one."
-  (let ((history (claude-code-ide-org--queue-events session-id t))
-        items)
+  (let* ((history (claude-code-ide-org--queue-events session-id t))
+         ;; Hoisted out of the per-group loop 2026-08-24. Computed
+         ;; inside it, this ran once per heading -- 53 groups against
+         ;; ~250 events, each call re-filtering and re-sorting the whole
+         ;; history. The answer does not vary by group, so it was
+         ;; O(groups x history) for a constant.
+         (main-brackets (claude-code-ide-org--lane-clock-intervals history nil))
+         (all-brackets (claude-code-ide-org--lane-clock-intervals history 'all))
+         items)
     (dolist (group (claude-code-ide-org--queue-events-by-id session-id))
       (let* ((id (car group))
              (events (cdr group)))
@@ -4397,7 +4452,7 @@ from a skipped one."
           ;; the residue, which in practice means an unmatched
           ;; `clock_in' whose work is still running and has no closing
           ;; bracket to be partitioned by.
-          (let* ((covered (claude-code-ide-org--lane-clock-intervals history nil))
+          (let* ((covered main-brackets)
                  (guideposts (seq-remove
                               (lambda (e)
                                 (claude-code-ide-org--time-within-any-p
@@ -4455,7 +4510,7 @@ from a skipped one."
            ;; adjacency never splits however long the gap, so the span
            ;; would straddle all four brackets by construction and offer
            ;; their fifteen minutes a second time.
-           (bracketed (claude-code-ide-org--lane-clock-intervals all 'all))
+           (bracketed all-brackets)
            (guideposts (claude-code-ide-org--span-events orphans nil)))
       (dolist (span (claude-code-ide-org--aggregate-guideposts
                      guideposts nil bracketed))
@@ -5713,9 +5768,17 @@ stops being degenerate."
      ;; One interaction point, not an interval. The honest zero.
      ((time-equal-p (plist-get item :start) (plist-get item :end))
       " (a single point, not an interval)")
-     ;; Real turn time that org's minute precision cannot show.
+     ;; Retired 2026-08-24 and kept as a guard rather than deleted.
+     ;; This used to report real turn time that org's minute precision
+     ;; could not show -- the case a human then edited up to a minute by
+     ;; hand. `claude-code-ide-org--apply-idle-floor' now promotes any
+     ;; positive run to one minute, so a span with turn time always
+     ;; writes something and can no longer reach this function at all.
+     ;; If it ever does, the two are disagreeing and that is worth
+     ;; saying out loud rather than falling through to "no completed
+     ;; turn", which would be false.
      ((> (cdr turns) 0)
-      (format " (%ds of turns, none crossing a minute)" (round seconds)))
+      (format " (%ds of turns but nothing written -- unexpected since the one-minute floor; please report)" (round seconds)))
      ;; Guideposts, but never a resume followed by a pause -- TODO.org
      ;; :ID: 09c134c4's question, surfaced rather than silently counted
      ;; as zero.
