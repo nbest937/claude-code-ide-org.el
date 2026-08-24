@@ -6059,42 +6059,6 @@ CLOCK: [2026-08-21 Fri 13:07]--[2026-08-21 Fri 13:24] =>  0:17
 *Reported twice before it was fixed* -- 2026-08-21 when it was filed, and again 2026-08-24 while the user was working through a live review buffer. Worth noting against the "real but cosmetic" label it was filed under and carried on the next-session prompt's off-the-critical-path list: a cosmetic defect that gets re-reported is costing attention every pass, which is the cost the label was implying it did not have.
 
 
-** TODO Consolidation only reaches drawers an apply pass happens to touch :code:
-:PROPERTIES:
-:ID:       7ae6562d-25c8-453e-b78b-920e036c5665
-:CREATED:  [2026-08-24 Mon 09:20]
-:END:
-:LOGBOOK:
-- State "TODO"       from              [2026-08-24 Mon 09:21] \\
-  captured keywordless, setting initial state
-:END:
-
-*Measured 2026-08-24, over both files.* =claude-code-ide-org-consolidate-on-apply= is =t= and works -- but it only fires on a heading that an apply pass *writes to*. A drawer disturbed by anything else keeps its disorder, and archiving ends the only thing that would have repaired it.
-
-Counting drawers with two or more timestamped entries, and asking whether their entries ascend:
-
-| file                     | drifted | of  |
-|--------------------------+---------+-----|
-| TODO.org                 |       9 |  62 |
-| DONE.org                 |      43 |  60 |
-
-*The split by =:ARCHIVE_TIME:= is what makes it a finding rather than a backlog.* Consolidation-on-apply landed 2026-08-13, so anything archived before then is expected to be disordered and is not evidence. Anything archived after is:
-
-| archived            | drifted | of |
-|---------------------+---------+----|
-| before 2026-08-13   |       6 |  6 |
-| on/after 2026-08-13 |      13 | 25 |
-| no =:ARCHIVE_TIME:= |      24 | 29 |
-
-*Over half of everything archived since the feature shipped is out of order*, which is not what "consolidate on apply" implies to a reader of the defcustom.
-
-*Cause, and it is structural rather than a bug.* Org inserts =CLOCK:= lines newest-first; =--append-to-drawer= appends annotations before =:END:=; the ascending order [[id:af7d3687-6d1e-4480-a9e2-df772785713f][af7d3687]] chose is neither. So a drawer drifts the moment anything writes to it outside apply -- a hand =C-c C-x C-i=, or =--trigger-auto-clock-in= firing on a hand-set =DOING=. TODO.org stays healthy only because apply keeps returning to those headings. Once a heading is archived, nothing ever touches it again and the drift is permanent.
-
-*Why this rather than reversing the sort.* Newest-first would end the drift by construction, by agreeing with org's insert convention. It was considered and rejected: it reverses the narrative order that was the whole of af7d3687's request, it breaks that heading's byte-identical fixed-point test against =clock-template.org=, and it systematically flips every tie whose adjacency the stable sort was chosen to preserve. The drift is a *coverage* problem, not an *ordering* one, and the coverage fix keeps what was asked for.
-
-*Shape:* a command that consolidates every drawer in the tracked files, reusing =--consolidate-logbook-text= unchanged -- already idempotent and pinned lossless. Worth running before an archive pass in particular, since that is the last moment a heading is ever touched; that makes it a natural companion to [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] rather than a separate ritual.
-
-
 ** DONE Backfill CLOSED: from the LOGBOOK where the evidence is already in the file :code:
 CLOSED: [2026-08-24 Mon 10:20]
 :PROPERTIES:
@@ -6141,60 +6105,6 @@ CLOCK: [2026-08-24 Mon 10:14]--[2026-08-24 Mon 10:20] =>  0:06
 *Note the third option, which does not require this to be built:* leave the 39 blank and record explicitly that no close time is recoverable, so the gap is a stated fact rather than an absence somebody tries to fill again in six months. That was offered alongside the git approach and deferred rather than rejected.
 
 *A hazard already measured, and it applies directly here.* f4b07fc0's pre-tool estimate said 59 rather than 58, because a body-wide scan matched a =- State "DONE" ...= line quoted *in prose* on [[id:3d93021d-1d8a-4657-bc5c-77734f91fb9d][3d93021d]], a heading that has no =:LOGBOOK:= and was diagnosing the bug that produced that line. Any git-side matching on heading text or on =State= lines in a diff faces the same trap, with no drawer boundary available to bound it.
-
-
-** DOING Prompt the daily ceremony automatically, within what a scheduler can reach :code:
-:PROPERTIES:
-:ID:       aa1ba915-ee68-48df-afea-197ae60aac63
-:CREATED:  [2026-08-24 Mon 10:27]
-:END:
-:LOGBOOK:
-- State "NEXT"       from              [2026-08-24 Mon 10:28] \\
-  captured keywordless, nominating as next
-CLOCK: [2026-08-24 Mon 11:02]--[2026-08-24 Mon 11:06] =>  0:04
-- State "DOING"      from "NEXT"       [2026-08-24 Mon 11:02] \\
-  fix stale comment, audit whether the report fires
-- [2026-08-24 Mon 11:02]--[2026-08-24 Mon 11:06] audit the session-start report path
-CLOCK: [2026-08-24 Mon 11:14]--[2026-08-24 Mon 11:15] =>  0:01
-- [2026-08-24 Mon 11:14]--[2026-08-24 Mon 11:15] suggested span, accepted at review
-CLOCK: [2026-08-24 Mon 11:17]--[2026-08-24 Mon 11:18] =>  0:01
-- [2026-08-24 Mon 11:17]--[2026-08-24 Mon 11:18] suggested span, accepted at review
-CLOCK: [2026-08-24 Mon 11:26]--[2026-08-24 Mon 11:29] =>  0:03
-- [2026-08-24 Mon 11:26]--[2026-08-24 Mon 11:29] suggested span, accepted at review
-CLOCK: [2026-08-24 Mon 11:44]--[2026-08-24 Mon 11:46] =>  0:02
-- [2026-08-24 Mon 11:44]--[2026-08-24 Mon 11:46] suggested span, accepted at review
-CLOCK: [2026-08-24 Mon 12:00]--[2026-08-24 Mon 12:08] =>  0:08
-- [2026-08-24 Mon 12:00]--[2026-08-24 Mon 12:08] suggested span, accepted at review
-:END:
-
-Asked 2026-08-24: can the daily ceremony ([[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]], now =<... 07:00 ++1d>=) be scheduled in the agentic CLI so a prompt arrives at the first opportunity each day and the agent performs it?
-
-*Measured against the actual tool surface, not assumed.* Two schedulers exist and neither fits:
-
-- =CronCreate= is *session-only* -- in-memory, nothing written to disk, gone when the session exits, recurring jobs auto-expire after 7 days, and jobs fire only while the REPL is idle. A standing daily ritual outlives any session, so this is the wrong shape by construction rather than by degree.
-- The =schedule= skill creates *cloud* routines. A cloud agent cannot reach =localhost:45571=, and every MCP tool in this project goes through =emacsclient= to a local Emacs server. It could not perform a single step.
-
-*And the first step of the ceremony cannot be delegated at all.* Apply is human-triggered by design: org's native state-change logging only completes inside a genuinely interactive command. So "performed by the agent" is unavailable for the pass as a whole no matter which scheduler is used. What is available is *prompting* plus the steps after apply -- consolidate and archive.
-
-*The mechanism this repo already has is the right one, and it is the =SessionStart= hook.* =bin/hooks/session-start-recovery-check= already fires at session start, already injects =additionalContext= that the session relays to the user as a question, and is already *self-limiting to first thing each day* -- it reports only intervals opened before today, so it goes quiet once handled. That is precisely the requested behaviour: a prompt at the first opportunity each day, no nagging, and nothing at all on a day with no session.
-
-It also already has the right manners for this: [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] established that the report *asks and never proposes*. A ceremony line should follow that -- state what is waiting (pending item count, headings ready to archive, drawers out of order) and let the human decide, rather than announcing an intention to act.
-
-*The one design question to settle before building:* what counts as "already done today". Candidates -- a stamp file, on the model of the =block-open= sentinel; the existence of a day node for today; or the pending-queue count having dropped since the last pass. The stamp file is the cheapest and the only one that does not conflate "ceremony performed" with "work happened".
-
-*Not to be confused with a nag.* The org repeater already makes the item show up in the agenda daily. This heading is only about the *agentic* prompt, for the case where the agenda is not what the user is looking at.
-
-*Audited 2026-08-24, prompted by the user asking whether the report has ever actually asked them anything.* It has not, and that is correct behaviour rather than a fault.
-
-*The mechanism works.* Verified today by running a synthetic stale interval through the real path in batch Emacs: =--session-start-hook-json= returns well-formed =hookSpecificOutput= / =additionalContext=, and the text does ask what time work stopped while explicitly forbidding the relaying session to propose one. So this is *not* [[id:c5b02503-1700-47fd-bf89-bd3296b24af2][c5b02503]] -- the report was never suppressed in relaying, it was never generated.
-
-*Its single condition has never held.* The report fires only for an unclosed =CLOCK:= line whose open timestamp *predates today*. Scanning every commit that touched TODO.org: unclosed lines were routine between 2026-07-28 and 2026-08-17, and *every one of them was closed the same day it opened*. Not one survived overnight.
-
-*Two things see to that.* =kill-emacs-hook= and =suspend-hook= both run =claude-code-ide-org--clock-out-if-clocking=, so a clean quit or a sleep closes an open clock -- which covers everything short of a crash or power loss. And since the 2026-08-11 cutover =org_clock_in= queues rather than opening a clock at all, so the only live clocks left come from a human clocking by hand or =--trigger-auto-clock-in= firing on a hand-set =DOING=. The feature is a net for an unclean death, not a routine check.
-
-*A correction worth keeping, because the first answer was the opposite one.* The initial scan reported overnight-stale intervals throughout, up to and including today. It was wrong: the pattern matched =CLOCK: [date= without anchoring the end of the line, and a *closed* line begins identically -- =CLOCK: [start]--[end] => H:MM=. So every closed interval from a previous day counted as an open one. Anchoring with =$= reversed the finding completely. The same shape of mistake as [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]]'s prose-quoting one, hours apart: a pattern that matches more than it names, over text where the extra matches look exactly like real hits.
-
-*Comment corrected in* =bin/hooks/session-start-recovery-check=. It still described injecting "an educated guess ... based on =claude-code-ide-org-working-hours=", retired 2026-08-14 with [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]], and still mentioned =:SESSIONS:=, retired 2026-08-11. The behaviour was right; only the comment lied. It now also says to *expect silence*, with the audit's reason -- so the next reader does not go looking for a bug in a feature that is working.
 
 
 ** DONE A sub-minute run is observed work; round it up rather than drop it :code:
@@ -9323,25 +9233,6 @@ Two findings, and the second is the actionable one.
 *Still worth doing, and it is the half that removes the problem rather than policing it:* [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] and [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] make a prefix→title lookup cheap. A rule that is free to obey does not need enforcing, and the enforcement exists because looking up five exact titles mid-response is not free today.
 
 
-** End every heading with two blank lines, so folded trees are separated :code:
-:PROPERTIES:
-:ID:       e1284bdb-0a18-402a-81cb-1ac8d09fb8a2
-:CREATED:  [2026-08-24 Mon 13:12]
-:END:
-
-*Shipped 2026-08-24* (=b6619e5=). Every heading's content now ends with exactly two blank lines before the next heading.
-
-*Two, and the number is not a matter of taste.* Org hides the blank line between a collapsed subtree and the following headline unless there are at least =org-cycle-separator-lines= of them, and that variable is 2 by default here. Two in the file buys exactly one visible line of air when folded; one buys none. So the convention is calibrated to a setting that already existed, and needed no configuration change.
-
-*Before every heading, not only before same-level ones,* and the corpus settled that. The gap you see before =** B= in a folded outline is the trailing space of A's *last child*, not of A's own body: 7 of 88 level-2 headings are preceded by a deeper heading, and 31 of 134 gaps sit between different levels. A same-level rule would skip exactly those.
-
-*=claude-code-ide-org-normalize-heading-separation= touches only the run of blank lines immediately preceding a heading*, found by walking back from the next heading and stopping at the first non-blank line. That is the safety property: the edit cannot reach text. Verified on the first run -- 224 insertions, 37 deletions, and *zero* changed lines carrying any character. The last heading in each file is left alone; there is nothing after it to separate from.
-
-*Re-run twice since,* because applying queued events inserts lines without the convention. That is the shape of the thing: it is a normaliser, not a one-time migration, and it belongs in the same sitting as the consolidation sweep [[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]] rather than being remembered separately.
-
-*Not yet written down as a convention anywhere* -- neither =.claude/rules/org-conventions.md= nor CLAUDE.md mentions it, so nothing tells a session to preserve it and no lint asserts it. That is this heading's remaining work.
-
-
 ** The :PLAN: lint will demand a drawer from a debrief-only heading :code:
 :PROPERTIES:
 :ID:       f421c5c3-f81f-4ebf-99c9-42c53cc00558
@@ -9536,3 +9427,137 @@ CLOCK: [2026-08-24 Mon 13:55]--[2026-08-24 Mon 14:00] =>  0:05
 *Sequence, from the rules file:* apply the queue, consolidate every drawer ([[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]]), then archive. Never archive first.
 
 *Note the lint will start reporting these as they close.* =bin/lint-org= now warns when a heading closed on or after 2026-08-24 has a substantial body and no =:PLAN:= drawer. The 36 here are all closed before that date and are deliberately exempt, so the backlog stays silent rather than shouting 124 findings a day.
+
+
+** [0/2] Make the daily ceremony cheap enough that it actually runs :code:
+:PROPERTIES:
+:ID:       edd47f32-e6c9-4ab3-8e8a-46a37ea29605
+:CREATED:  [2026-08-24 Mon 15:36]
+:END:
+
+*The story these three share, noticed 2026-08-24 while surveying what the session had captured.* They were filed separately, into three different categories, and each reads as a small independent defect. Together they are one thing: *the ceremony has four steps, two of them have a tool, and nothing composes them or reminds anyone.*
+
+The sequence, from =.claude/rules/org-conventions.md=: *apply the queue, consolidate every drawer, then archive* -- plus re-separating headings, which applying always disturbs.
+
+| step | state |
+|--------------------------+-------------------------------------------|
+| apply the queue | human-only by design, and permanently so |
+| consolidate the drawers | [[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]] -- not built |
+| re-separate the headings | [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]] -- built, must be re-run by hand |
+| archive | manual |
+| *remember to do any of it* | [[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]] -- not built |
+
+*The shape of the problem is not "these are unbuilt".* It is that each one only helps if a human remembers it at the right moment, and the moment is the same moment for all of them. A normaliser that must be recalled separately from the pass that disturbs the file is a normaliser that will drift -- measured on [[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]] itself, where 13 of 25 drawers archived since consolidate-on-apply shipped are still out of order, and observed three times today with the separation normaliser, which had to be re-run after every apply.
+
+*Why the ritual heading is not a child of this one, though it is the same subject.* [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] carries a repeater, and =bin/lint-org= refuses a repeater under a completable ancestor -- correctly, since such an ancestor could never reach =DONE=. So the ritual stays where it is and this heading covers only the *tooling that makes the ritual cheap*. That constraint is worth stating: it is why an obvious "everything about the ceremony" subtree is not the right shape.
+
+*Done when* a human runs one command, answers the prompts apply asks, and the file comes out consolidated, separated and archived -- with the prompt to do so arriving on its own.
+
+
+*** TODO Consolidation only reaches drawers an apply pass happens to touch :code:
+:PROPERTIES:
+:ID:       7ae6562d-25c8-453e-b78b-920e036c5665
+:CREATED:  [2026-08-24 Mon 09:20]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-24 Mon 09:21] \\
+  captured keywordless, setting initial state
+:END:
+
+*Measured 2026-08-24, over both files.* =claude-code-ide-org-consolidate-on-apply= is =t= and works -- but it only fires on a heading that an apply pass *writes to*. A drawer disturbed by anything else keeps its disorder, and archiving ends the only thing that would have repaired it.
+
+Counting drawers with two or more timestamped entries, and asking whether their entries ascend:
+
+| file                     | drifted | of  |
+|--------------------------+---------+-----|
+| TODO.org                 |       9 |  62 |
+| DONE.org                 |      43 |  60 |
+
+*The split by =:ARCHIVE_TIME:= is what makes it a finding rather than a backlog.* Consolidation-on-apply landed 2026-08-13, so anything archived before then is expected to be disordered and is not evidence. Anything archived after is:
+
+| archived            | drifted | of |
+|---------------------+---------+----|
+| before 2026-08-13   |       6 |  6 |
+| on/after 2026-08-13 |      13 | 25 |
+| no =:ARCHIVE_TIME:= |      24 | 29 |
+
+*Over half of everything archived since the feature shipped is out of order*, which is not what "consolidate on apply" implies to a reader of the defcustom.
+
+*Cause, and it is structural rather than a bug.* Org inserts =CLOCK:= lines newest-first; =--append-to-drawer= appends annotations before =:END:=; the ascending order [[id:af7d3687-6d1e-4480-a9e2-df772785713f][af7d3687]] chose is neither. So a drawer drifts the moment anything writes to it outside apply -- a hand =C-c C-x C-i=, or =--trigger-auto-clock-in= firing on a hand-set =DOING=. TODO.org stays healthy only because apply keeps returning to those headings. Once a heading is archived, nothing ever touches it again and the drift is permanent.
+
+*Why this rather than reversing the sort.* Newest-first would end the drift by construction, by agreeing with org's insert convention. It was considered and rejected: it reverses the narrative order that was the whole of af7d3687's request, it breaks that heading's byte-identical fixed-point test against =clock-template.org=, and it systematically flips every tie whose adjacency the stable sort was chosen to preserve. The drift is a *coverage* problem, not an *ordering* one, and the coverage fix keeps what was asked for.
+
+*Shape:* a command that consolidates every drawer in the tracked files, reusing =--consolidate-logbook-text= unchanged -- already idempotent and pinned lossless. Worth running before an archive pass in particular, since that is the last moment a heading is ever touched; that makes it a natural companion to [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] rather than a separate ritual.
+
+
+*** End every heading with two blank lines, so folded trees are separated :code:
+:PROPERTIES:
+:ID:       e1284bdb-0a18-402a-81cb-1ac8d09fb8a2
+:CREATED:  [2026-08-24 Mon 13:12]
+:END:
+
+*Shipped 2026-08-24* (=b6619e5=). Every heading's content now ends with exactly two blank lines before the next heading.
+
+*Two, and the number is not a matter of taste.* Org hides the blank line between a collapsed subtree and the following headline unless there are at least =org-cycle-separator-lines= of them, and that variable is 2 by default here. Two in the file buys exactly one visible line of air when folded; one buys none. So the convention is calibrated to a setting that already existed, and needed no configuration change.
+
+*Before every heading, not only before same-level ones,* and the corpus settled that. The gap you see before =** B= in a folded outline is the trailing space of A's *last child*, not of A's own body: 7 of 88 level-2 headings are preceded by a deeper heading, and 31 of 134 gaps sit between different levels. A same-level rule would skip exactly those.
+
+*=claude-code-ide-org-normalize-heading-separation= touches only the run of blank lines immediately preceding a heading*, found by walking back from the next heading and stopping at the first non-blank line. That is the safety property: the edit cannot reach text. Verified on the first run -- 224 insertions, 37 deletions, and *zero* changed lines carrying any character. The last heading in each file is left alone; there is nothing after it to separate from.
+
+*Re-run twice since,* because applying queued events inserts lines without the convention. That is the shape of the thing: it is a normaliser, not a one-time migration, and it belongs in the same sitting as the consolidation sweep [[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]] rather than being remembered separately.
+
+*Not yet written down as a convention anywhere* -- neither =.claude/rules/org-conventions.md= nor CLAUDE.md mentions it, so nothing tells a session to preserve it and no lint asserts it. That is this heading's remaining work.
+
+
+*** DOING Prompt the daily ceremony automatically, within what a scheduler can reach :code:
+:PROPERTIES:
+:ID:       aa1ba915-ee68-48df-afea-197ae60aac63
+:CREATED:  [2026-08-24 Mon 10:27]
+:END:
+:LOGBOOK:
+- State "NEXT"       from              [2026-08-24 Mon 10:28] \\
+  captured keywordless, nominating as next
+CLOCK: [2026-08-24 Mon 11:02]--[2026-08-24 Mon 11:06] =>  0:04
+- State "DOING"      from "NEXT"       [2026-08-24 Mon 11:02] \\
+  fix stale comment, audit whether the report fires
+- [2026-08-24 Mon 11:02]--[2026-08-24 Mon 11:06] audit the session-start report path
+CLOCK: [2026-08-24 Mon 11:14]--[2026-08-24 Mon 11:15] =>  0:01
+- [2026-08-24 Mon 11:14]--[2026-08-24 Mon 11:15] suggested span, accepted at review
+CLOCK: [2026-08-24 Mon 11:17]--[2026-08-24 Mon 11:18] =>  0:01
+- [2026-08-24 Mon 11:17]--[2026-08-24 Mon 11:18] suggested span, accepted at review
+CLOCK: [2026-08-24 Mon 11:26]--[2026-08-24 Mon 11:29] =>  0:03
+- [2026-08-24 Mon 11:26]--[2026-08-24 Mon 11:29] suggested span, accepted at review
+CLOCK: [2026-08-24 Mon 11:44]--[2026-08-24 Mon 11:46] =>  0:02
+- [2026-08-24 Mon 11:44]--[2026-08-24 Mon 11:46] suggested span, accepted at review
+CLOCK: [2026-08-24 Mon 12:00]--[2026-08-24 Mon 12:08] =>  0:08
+- [2026-08-24 Mon 12:00]--[2026-08-24 Mon 12:08] suggested span, accepted at review
+:END:
+
+Asked 2026-08-24: can the daily ceremony ([[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]], now =<... 07:00 ++1d>=) be scheduled in the agentic CLI so a prompt arrives at the first opportunity each day and the agent performs it?
+
+*Measured against the actual tool surface, not assumed.* Two schedulers exist and neither fits:
+
+- =CronCreate= is *session-only* -- in-memory, nothing written to disk, gone when the session exits, recurring jobs auto-expire after 7 days, and jobs fire only while the REPL is idle. A standing daily ritual outlives any session, so this is the wrong shape by construction rather than by degree.
+- The =schedule= skill creates *cloud* routines. A cloud agent cannot reach =localhost:45571=, and every MCP tool in this project goes through =emacsclient= to a local Emacs server. It could not perform a single step.
+
+*And the first step of the ceremony cannot be delegated at all.* Apply is human-triggered by design: org's native state-change logging only completes inside a genuinely interactive command. So "performed by the agent" is unavailable for the pass as a whole no matter which scheduler is used. What is available is *prompting* plus the steps after apply -- consolidate and archive.
+
+*The mechanism this repo already has is the right one, and it is the =SessionStart= hook.* =bin/hooks/session-start-recovery-check= already fires at session start, already injects =additionalContext= that the session relays to the user as a question, and is already *self-limiting to first thing each day* -- it reports only intervals opened before today, so it goes quiet once handled. That is precisely the requested behaviour: a prompt at the first opportunity each day, no nagging, and nothing at all on a day with no session.
+
+It also already has the right manners for this: [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] established that the report *asks and never proposes*. A ceremony line should follow that -- state what is waiting (pending item count, headings ready to archive, drawers out of order) and let the human decide, rather than announcing an intention to act.
+
+*The one design question to settle before building:* what counts as "already done today". Candidates -- a stamp file, on the model of the =block-open= sentinel; the existence of a day node for today; or the pending-queue count having dropped since the last pass. The stamp file is the cheapest and the only one that does not conflate "ceremony performed" with "work happened".
+
+*Not to be confused with a nag.* The org repeater already makes the item show up in the agenda daily. This heading is only about the *agentic* prompt, for the case where the agenda is not what the user is looking at.
+
+*Audited 2026-08-24, prompted by the user asking whether the report has ever actually asked them anything.* It has not, and that is correct behaviour rather than a fault.
+
+*The mechanism works.* Verified today by running a synthetic stale interval through the real path in batch Emacs: =--session-start-hook-json= returns well-formed =hookSpecificOutput= / =additionalContext=, and the text does ask what time work stopped while explicitly forbidding the relaying session to propose one. So this is *not* [[id:c5b02503-1700-47fd-bf89-bd3296b24af2][c5b02503]] -- the report was never suppressed in relaying, it was never generated.
+
+*Its single condition has never held.* The report fires only for an unclosed =CLOCK:= line whose open timestamp *predates today*. Scanning every commit that touched TODO.org: unclosed lines were routine between 2026-07-28 and 2026-08-17, and *every one of them was closed the same day it opened*. Not one survived overnight.
+
+*Two things see to that.* =kill-emacs-hook= and =suspend-hook= both run =claude-code-ide-org--clock-out-if-clocking=, so a clean quit or a sleep closes an open clock -- which covers everything short of a crash or power loss. And since the 2026-08-11 cutover =org_clock_in= queues rather than opening a clock at all, so the only live clocks left come from a human clocking by hand or =--trigger-auto-clock-in= firing on a hand-set =DOING=. The feature is a net for an unclean death, not a routine check.
+
+*A correction worth keeping, because the first answer was the opposite one.* The initial scan reported overnight-stale intervals throughout, up to and including today. It was wrong: the pattern matched =CLOCK: [date= without anchoring the end of the line, and a *closed* line begins identically -- =CLOCK: [start]--[end] => H:MM=. So every closed interval from a previous day counted as an open one. Anchoring with =$= reversed the finding completely. The same shape of mistake as [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]]'s prose-quoting one, hours apart: a pattern that matches more than it names, over text where the extra matches look exactly like real hits.
+
+*Comment corrected in* =bin/hooks/session-start-recovery-check=. It still described injecting "an educated guess ... based on =claude-code-ide-org-working-hours=", retired 2026-08-14 with [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]], and still mentioned =:SESSIONS:=, retired 2026-08-11. The behaviour was right; only the comment lied. It now also says to *expect silence*, with the audit's reason -- so the next reader does not go looking for a bug in a feature that is working.
