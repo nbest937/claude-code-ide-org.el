@@ -25,7 +25,7 @@
 
 Work that makes a review pass cheaper to run, more accurate in what it reports, and less likely to leave the record worse than it found it.
 
-- [ ] [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]] TODO [0/3] Make the daily ceremony cheap enough that it actually runs
+- [ ] [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]] TODO Make the daily ceremony cheap enough that it actually runs
   - [ ] [[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]] TODO Consolidation only reaches drawers an apply pass happens to touch
   - [ ] [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]] NEXT End every heading with two blank lines, so folded trees are separated
   - [-] [[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]] DOING Prompt the daily ceremony automatically, within what a scheduler can reach
@@ -36,7 +36,7 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 - [ ] [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] TODO Evaluate Org's own agenda, sparse-tree and column views against this corpus
 - [ ] [[id:21c91613-76e0-4590-affe-e2af9f1321ca][21c91613]] NEXT Apply consumes queue events with no way to roll one back
 - [ ] [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]] TODO Compose slices by reference: a checkbox list of id links, blocked on its members
-- [X] [[id:43201e64-3fe8-4fa6-81f5-d2ab5b65d191][43201e64]] TODO Every orgit link a body adds costs a permanent lint warning
+- [X] [[id:43201e64-3fe8-4fa6-81f5-d2ab5b65d191][43201e64]] DONE Every orgit link a body adds costs a permanent lint warning
 - [X] [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]] DONE Backfill CLOSED: from the LOGBOOK where the evidence is already in the file
 - [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] CANCELLED Recover a close time from git for the headings with no in-file evidence
 - [X] [[id:31c6ac39-1a06-4b17-8d89-b91fd2628874][31c6ac39]] DONE A sub-minute run is observed work; round it up rather than drop it
@@ -47,7 +47,7 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 - [X] [[id:7148cddc-aca3-416e-8bcb-f164d4d2bba0][7148cddc]] DONE The promotion trigger re-entered itself; one apply made 1201 mutations
 - [X] [[id:df1cf43c-749f-435c-9f45-3d8df1d725ad][df1cf43c]] DONE An apply failure named nothing: five identical messages, no item, no stack
 - [X] [[id:49557477-e50c-496f-85df-82c65109832b][49557477]] DONE Expand an 8-character prefix at both surfaces where a tail gets invented
-- [[id:637ee73d-e1b7-4a84-9213-830c49a400b4][637ee73d]] TODO Snapshot the next-session.md that drove each slice, the way plans are archived
+- [[id:637ee73d-e1b7-4a84-9213-830c49a400b4][637ee73d]] CANCELLED Snapshot the next-session.md that drove each slice, the way plans are archived
 
 *The prompt that drove this slice, one link per revision of it:*
 
@@ -8562,6 +8562,26 @@ Two things follow. A body-size rule calibrated against a body-size measurement t
 *Rejected, with a reason, so it is not re-proposed:* a custom =slice:= link type whose =:activate-func= renders the referent's live keyword and title as display properties. Nothing would be stored, so nothing could go stale -- but it is honest only inside Emacs, and a =git diff=, a =grep= or a web view would see a bare id. This project keeps its files legible as plain text on purpose; that is the founding premise of the event queue.
 
 *Already demonstrated twice.* [[id:46e4ce2b-fdc8-447b-ad09-b4845602540f][46e4ce2b]] was retitled *after* [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] was drafted -- had it been a member, the slice would now carry a title that no longer exists anywhere.
+
+*Measured 2026-08-25 by simulating the next apply on a copy*, in answer to the user asking whether a slice's checklist changes when its referents do. It does not, and the more useful half of the answer is that *nothing says so*.
+
+Applying the two pending state changes to a copy of TODO.org leaves [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] reading:
+
+: - [ ] [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]] TODO Compose slices by reference: ...
+
+against a referent that is now =DONE=. Three stored facts are wrong at once -- the checkbox, the copied keyword, and the =[9/21]= cookie -- and both available checks stay quiet:
+
+- =bin/lint-org= is silent. Its slice rule compares =:BLOCKER:= against the *checkbox list*, and both are unchanged, so they still agree. It has no rule comparing a checkbox against its *referent*, which is the axis that drifts.
+- =org-update-statistics-cookies= is silent too, and necessarily: it recomputes the cookie from the checkboxes, and the checkboxes did not change. Org agrees with =[9/21]= because org is answering a different question.
+
+*So the slice is at its most misleading precisely after a review pass*, which is the moment someone is most likely to read it -- and it is misleading in the flattering direction, showing less progress than exists rather than more.
+
+*The =:BLOCKER:= needs no refresh in this case*, worth stating so the manual repair is not cargo-culted. A member going =DONE= keeps its cookie, so the blocker set is unchanged and org-depend simply stops blocking on a finished id. The refresher is only needed when a member's cookie is *deleted* -- cancellation or deferral -- which changes the set.
+
+*Manual repair until this is built:* tick the box, correct the copied keyword, and let =C-c C-c= recompute the cookie.
+
+*This strengthens the case for the trigger being apply rather than a schedule.* The staleness is not gradual; it is created in one step, by one command, at a known moment.
+
 
 
 ** CANCELLED Snapshot the next-session.md that drove each slice, the way plans are archived :code:

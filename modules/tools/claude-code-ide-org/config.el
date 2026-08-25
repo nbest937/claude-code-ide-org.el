@@ -2700,6 +2700,162 @@ what the lint assertion checks."
    (mapcar #'car
            (seq-filter (lambda (m) (cdr m)) (claude-code-ide-org--slice-members)))))
 
+(defconst claude-code-ide-org--slice-checkbox-by-keyword
+  '(("DONE"      . "X")
+    ("DOING"     . "-")
+    ("REVIEW"    . "-")
+    ("PLANNING"  . "-")
+    ("WAITING"   . "-")
+    ("TODO"      . " ")
+    ("NEXT"      . " ")
+    ("CANCELLED" . nil)
+    ("MAYBE"     . nil))
+  "How a member's checkbox follows from its referent's TODO keyword.
+
+Total, and derived rather than chosen -- there is no judgement in a
+slice's checkbox.  `DONE'/`CANCELLED'/`DOING'/`REVIEW' were given by the
+user; the rest follow the same logic.  `PLANNING' and `WAITING' are `-'
+because work started and a clock opened; `MAYBE' has no cookie because
+deferral is treated exactly as cancellation -- the member keeps its line
+and stops counting, in either direction.
+
+A nil cdr means the cookie is *deleted*, leaving a plain `- ' item.")
+
+(defun claude-code-ide-org--slice-referent-index ()
+  "Hash of full :ID: to (KEYWORD . TITLE) across the tracked files.
+
+One scan rather than an `org-id-find' per member: a slice of twenty
+members would otherwise open and search files twenty times to render one
+heading."
+  (let ((table (make-hash-table :test 'equal))
+        (kw-re (concat "\\`\\(" (mapconcat #'regexp-quote
+                                           (mapcar #'car claude-code-ide-org--slice-checkbox-by-keyword)
+                                           "\\|")
+                       "\\)\\_>")))
+    (dolist (file (claude-code-ide-org--tracked-files) table)
+      (when (file-exists-p file)
+        (with-temp-buffer
+          (let ((org-inhibit-startup t))
+            (insert-file-contents file)
+            (goto-char (point-min))
+            (let (pending)
+              (while (not (eobp))
+                (cond
+                 ((looking-at "^\\*+ +\\(.*\\)$")
+                  (let* ((raw (match-string-no-properties 1))
+                         (kw (and (string-match kw-re raw) (match-string 1 raw)))
+                         (title (if kw (substring raw (match-end 1)) raw)))
+                    (setq title (string-trim (replace-regexp-in-string
+                                              "[ \t]+:[[:alnum:]_@#%:]+:[ \t]*\\'" "" title)))
+                    ;; Strip the referent's own statistics cookie. Copying
+                    ;; `[0/1]' into a slice's checkbox list does not carry
+                    ;; the referent's progress across -- org reads it as a
+                    ;; cookie belonging to *that list item* and recomputes
+                    ;; it against the slice's own structure. Measured: a
+                    ;; leaf member became `[0/0]', and a member with three
+                    ;; nested members kept `[0/3]' only because its
+                    ;; referent happened to have three unfinished children
+                    ;; too. Either way the number reports the slice and
+                    ;; reads as the referent, which is worse than absent.
+                    (setq title (replace-regexp-in-string
+                                 "\\`\\[[0-9]*\\(?:%\\|/[0-9]*\\)\\][ \t]*" "" title))
+                    (setq pending (cons kw title))))
+                 ((and pending (looking-at "^[ \t]*:ID:[ \t]+\\(\\S-+\\)[ \t]*$"))
+                  (puthash (downcase (match-string-no-properties 1)) pending table)
+                  (setq pending nil)))
+                (forward-line 1)))))))))
+
+(defun claude-code-ide-org--refresh-slice-members-at-point (index)
+  "Rewrite the slice-at-point's member lines from INDEX.  Returns a count.
+
+Each line is regenerated as `- [BOX] LINK KEYWORD TITLE': the checkbox
+from the referent's keyword, and the keyword and title copied fresh.  The
+link itself is left alone -- it is the one part that cannot go stale --
+and so is the ordering.
+
+A member whose id is not in INDEX, or whose referent carries no keyword,
+is skipped rather than guessed at.  Both are already errors in
+`bin/lint-org', and a regenerator that invented a state for them would
+paper over exactly what that error exists to surface.
+
+*Everything after the link is replaced*, so a member line carries no
+annotation of its own.  That is the convention rather than a limitation
+of this function: the line is a rendering, and anything hand-written on
+it would be destroyed at the next apply anyway."
+  (save-excursion
+    (org-back-to-heading t)
+    ;; A *marker*, not a position. Each rewrite changes the line's length,
+    ;; and a fixed integer end would drift: the first replacement here was
+    ;; longer than what it replaced, which pushed the second member line
+    ;; past the bound and left it silently unrefreshed.
+    (let ((end (copy-marker (save-excursion (outline-next-heading) (or (point) (point-max)))))
+          (changed 0))
+      (while (re-search-forward
+              "^\\([ \t]*\\)- \\(\\[[ Xx-]\\] \\)?\\(\\[\\[id:\\([^]]+\\)\\]\\[[^]]*\\]\\]\\)\\(.*\\)$"
+              end t)
+        (let* ((indent (match-string-no-properties 1))
+               (link (match-string-no-properties 3))
+               (id (downcase (match-string-no-properties 4)))
+               (entry (gethash id index))
+               (kw (car entry))
+               (title (cdr entry)))
+          (when (and entry kw)
+            (let* ((box (cdr (assoc kw claude-code-ide-org--slice-checkbox-by-keyword)))
+                   (new (concat indent "- " (if box (format "[%s] " box) "")
+                                link " " kw " " title))
+                   (old (match-string-no-properties 0)))
+              (unless (equal old new)
+                ;; LITERAL is t, so NEW goes in verbatim.  Passing it
+                ;; through `regexp-quote' as well would insert the
+                ;; backslashes into the file -- visible immediately on a
+                ;; title like "[0/3] Make the daily ceremony ...".
+                (replace-match new t t)
+                (setq changed (1+ changed)))))))
+      (set-marker end nil)
+      changed)))
+
+(defun claude-code-ide-org-refresh-slice (&optional id)
+  "Regenerate every slice's checklist from its referents.
+
+The counterpart to applying the queue, and the reason it exists: apply
+changes referents' keywords in bulk, and a slice's member lines are
+*copies* of those keywords.  Nothing else makes a slice stale, and
+nothing detects it when it happens -- `bin/lint-org' compares the
+`:BLOCKER:' against the checkbox list, which both go stale together, and
+`org-update-statistics-cookies' recomputes the cookie from checkboxes
+that have not changed.  Measured 2026-08-25 (TODO.org :ID: 0acc1df2).
+
+Rewrites member lines, then the statistics cookie, then the `:BLOCKER:'
+-- in that order, because each depends on the one before: a member going
+`CANCELLED' loses its cookie, which changes both the count and the
+blocker set.
+
+With ID, refreshes that slice only.  Returns a human-readable summary."
+  (interactive)
+  (require 'org-id)
+  (let ((index (claude-code-ide-org--slice-referent-index))
+        (slices 0) (lines 0) (blockers 0))
+    (dolist (file (claude-code-ide-org--tracked-files))
+      (when (file-exists-p file)
+        (with-current-buffer (find-file-noselect file)
+          (org-with-wide-buffer
+           (goto-char (point-min))
+           (while (re-search-forward org-heading-regexp nil t)
+             (when (and (claude-code-ide-org--slice-p)
+                        (or (null id)
+                            (equal (downcase (or (org-entry-get nil "ID") ""))
+                                   (downcase id))))
+               (setq slices (1+ slices))
+               (setq lines (+ lines (claude-code-ide-org--refresh-slice-members-at-point index)))
+               (org-update-statistics-cookies nil)
+               (when (claude-code-ide-org--refresh-slice-blocker-at-point)
+                 (setq blockers (1+ blockers))))))
+          (when (buffer-modified-p) (save-buffer)))))
+    (format "%d slice%s refreshed, %d member line%s rewritten, %d blocker%s updated"
+            slices (if (= slices 1) "" "s")
+            lines (if (= lines 1) "" "s")
+            blockers (if (= blockers 1) "" "s"))))
+
 (defun claude-code-ide-org-refresh-slice-blocker (&optional id)
   "Write the `:BLOCKER:' of the slice with :ID: ID from its checkbox list.
 

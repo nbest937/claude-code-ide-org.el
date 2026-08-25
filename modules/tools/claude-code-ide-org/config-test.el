@@ -8832,6 +8832,75 @@ derived."
                   (concat cat "** DOING Not a slice\n" "\n" member))
                  'error "slice :BLOCKER:"))))
 
+(ert-deftest claude-code-ide-org-test-refresh-slice-regenerates-member-lines ()
+  "A stale member line is rewritten from its referent.
+
+Covers the three fields that are copies -- checkbox, keyword, title --
+and the one that is not: the link is left alone, because it is the only
+part that cannot go stale.
+
+The referent's own statistics cookie is *stripped*, and that is not
+cosmetic. Copying `[0/1]' into a checkbox list does not carry the
+referent's progress across: org reads it as a cookie belonging to that
+list item and recomputes it against the slice's structure, so a leaf
+member renders `[0/0]' -- a number that reports the slice while reading
+as the referent."
+  (claude-code-ide-org-test--with-heading
+    (let ((slice (expand-file-name "slice.org" dir)))
+      (with-temp-file slice
+        (insert "#+TODO: TODO NEXT DOING REVIEW | DONE CANCELLED\n"
+                "* Slices\n:PROPERTIES:\n:ARCHIVE:  DONE.org::* Slices\n:END:\n"
+                "** DOING [0/0] S\n:PROPERTIES:\n:KIND:     slice\n"
+                ":COOKIE_DATA: checkbox recursive\n:END:\n\n"
+                ;; every field stale: box, keyword and title
+                "- [ ] [[id:11111111-0000-0000-0000-000000000000][11111111]] TODO an old title\n"
+                "- [X] [[id:22222222-0000-0000-0000-000000000000][22222222]] DONE also stale\n\n"
+                "* Work\n"
+                "** DONE [1/2] Finished, and carrying a cookie\n:PROPERTIES:\n"
+                ":ID:       11111111-0000-0000-0000-000000000000\n:END:\n"
+                "** REVIEW Handed back\n:PROPERTIES:\n"
+                ":ID:       22222222-0000-0000-0000-000000000000\n:END:\n"))
+      (let ((claude-code-ide-org-query-files (list slice)))
+        (claude-code-ide-org-refresh-slice)
+        (with-temp-buffer
+          (insert-file-contents slice)
+          (let ((text (buffer-string)))
+            ;; DONE -> [X], keyword and title refreshed, cookie stripped
+            (should (string-match-p
+                     "- \\[X\\] \\[\\[id:11111111[^]]*\\]\\[11111111\\]\\] DONE Finished, and carrying a cookie$"
+                     text))
+            (should-not (string-match-p "11111111\\]\\] DONE \\[1/2\\]" text))
+            ;; REVIEW -> [-], and the wrongly-ticked box is corrected downward
+            (should (string-match-p
+                     "- \\[-\\] \\[\\[id:22222222[^]]*\\]\\[22222222\\]\\] REVIEW Handed back$"
+                     text))
+            ;; the slice's own cookie follows
+            (should (string-match-p "^\\*\\* DOING \\[1/2\\] S" text))))))))
+
+(ert-deftest claude-code-ide-org-test-refresh-slice-skips-what-it-cannot-resolve ()
+  "An unresolvable or keywordless member is left exactly as written.
+
+Both are already errors in `bin/lint-org'. A regenerator that invented a
+state for them would paper over precisely what those errors exist to
+surface, and it would do so by *editing the file*, which is the harder
+kind of wrong to notice."
+  (claude-code-ide-org-test--with-heading
+    (let ((slice (expand-file-name "slice2.org" dir)))
+      (with-temp-file slice
+        (insert "#+TODO: TODO | DONE\n"
+                "* Slices\n** DOING S\n:PROPERTIES:\n:KIND:     slice\n:END:\n\n"
+                "- [ ] [[id:99999999-0000-0000-0000-000000000000][99999999]] TODO resolves to nothing\n"
+                "- [ ] [[id:33333333-0000-0000-0000-000000000000][33333333]] TODO keywordless target\n\n"
+                "* Work\n** A heading with no keyword\n:PROPERTIES:\n"
+                ":ID:       33333333-0000-0000-0000-000000000000\n:END:\n"))
+      (let ((claude-code-ide-org-query-files (list slice))
+            (before (with-temp-buffer (insert-file-contents slice) (buffer-string))))
+        (claude-code-ide-org-refresh-slice)
+        (with-temp-buffer
+          (insert-file-contents slice)
+          (should (string-match-p "99999999\\]\\] TODO resolves to nothing" (buffer-string)))
+          (should (string-match-p "33333333\\]\\] TODO keywordless target" (buffer-string))))))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here
