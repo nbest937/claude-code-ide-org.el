@@ -74,22 +74,7 @@ Switch to its buffer, move point to the heading, and call FN with
 no arguments.  Return FN's value, or an error string if the ID
 cannot be resolved or FN signals an error."
   (require 'org-id)
-  ;; An 8-character prefix is accepted wherever a full :ID: is, and this
-  ;; is the second half of the fabrication fix. Expanding links protects
-  ;; what gets *written*; every tool here also takes an `id' ARGUMENT,
-  ;; which is the other place a tail has to be produced from nothing --
-  ;; and was, on 2026-08-25, in an `org_amend' call that errored.
-  ;;
-  ;; Doing it here rather than per-tool means every entry point that
-  ;; resolves a heading gains it at once, including ones written later.
-  ;; An ambiguous prefix still fails: `--expand-id-prefix' refuses rather
-  ;; than choosing, because a link that resolves to a plausible wrong
-  ;; heading is worse than one that resolves to nothing.
-  (when (and (stringp id) (= (length id) 8) (string-match-p "\\`[0-9a-fA-F]+\\'" id))
-    (let ((full (claude-code-ide-org--expand-id-prefix
-                 id (claude-code-ide-org--known-id-table))))
-      (when (stringp full) (setq id full))))
-  (let ((marker (org-id-find id 'marker)))
+  (let ((marker (claude-code-ide-org--id-find id 'marker)))
     (if (not marker)
         (format "Error: no org heading found with :ID: \"%s\"" id)
       (condition-case err
@@ -939,7 +924,7 @@ session with no queue -- and every existing test -- keeps working."
          ;; heading, a stale entry -- must fall through to the clock rather
          ;; than blank the line: the queue having an opinion is not the same
          ;; as that opinion being usable.
-         (qmarker (and qs (ignore-errors (org-id-find (car qs) 'marker))))
+         (qmarker (and qs (ignore-errors (claude-code-ide-org--id-find (car qs) 'marker))))
          (marker (or qmarker
                      (if (org-clocking-p) org-clock-marker
                        (car org-clock-history))))
@@ -1713,8 +1698,8 @@ note interactively, which would hang or error under the MCP layer's
 non-interactive call — the same never-block guarantee every other
 tool here gives."
   (require 'org-id)
-  (let ((marker (org-id-find id 'marker))
-        (target-marker (org-id-find target-id 'marker)))
+  (let ((marker (claude-code-ide-org--id-find id 'marker))
+        (target-marker (claude-code-ide-org--id-find target-id 'marker)))
     (cond
      ((not marker)
       (format "Error: no org heading found with :ID: \"%s\"" id))
@@ -1814,9 +1799,9 @@ different one is worse off than a caller that got an error."
     (cond
      ((null target)
       (list :spec (list 'file default) :file default :where "end of file"))
-     ((org-id-find target)
+     ((claude-code-ide-org--id-find target)
       (list :spec (list 'id target)
-            :file (car (org-id-find target))
+            :file (car (claude-code-ide-org--id-find target))
             :where (format "under :ID: %s" target)))
      ((member target (claude-code-ide-org--capture-level-1-headings default))
       (list :spec (list 'file+olp default target)
@@ -2041,7 +2026,7 @@ Returns \"Amended: ...\", \"Queued amend: ...\", or \"Error: ...\"."
     (unless (car resolved) (setq id nil))
     (when (car resolved) (setq text (cdr resolved)))
     (if (null id) (cdr resolved)
-  (let ((marker (ignore-errors (org-id-find id 'marker))))
+  (let ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker))))
     (if (not marker)
         (format "Error: no org heading found with :ID: \"%s\"" id)
       (let* ((file (buffer-file-name (marker-buffer marker)))
@@ -2179,7 +2164,7 @@ itself.  Being unfinished, it answered `open', so every scoped listing
 reported satisfied blockers as [blocked] (TODO.org :ID: f765d782).
 Note that failure took the *confident* branch: [blocked?] exists for
 \"cannot resolve\" and would have been the honest answer."
-  (let ((loc (org-id-find id)))
+  (let ((loc (claude-code-ide-org--id-find id)))
     (when loc
       (with-current-buffer (find-file-noselect (car loc))
         (org-with-wide-buffer
@@ -2300,7 +2285,7 @@ layer."
         (cond
          ;; An :ID: that resolves wins over a file interpretation --
          ;; an :ID: can never also be a readable file name.
-         ((and scope (org-id-find scope))
+         ((and scope (claude-code-ide-org--id-find scope))
           (let ((lines (claude-code-ide-org--at-id
                         scope
                         (lambda ()
@@ -4737,7 +4722,7 @@ marker the same way.  Nil for an ID that resolves to nothing: an
 unresolvable id is not a container, and answering t would suppress a
 suggestion on the strength of a lookup failure."
   (when id
-    (let ((marker (ignore-errors (org-id-find id 'marker))))
+    (let ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker))))
       (when marker
         (prog1 (org-with-point-at marker
                  (claude-code-ide-org--container-heading-p))
@@ -4750,7 +4735,7 @@ other read here uses.  Returns the symbol `unresolved' -- distinct from
 nil, which is a real answer meaning \"no keyword\" -- when the :ID:
 names nothing, so a caller can tell \"heading has no keyword\" from
 \"heading is gone\"."
-  (let ((marker (ignore-errors (org-id-find id 'marker))))
+  (let ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker))))
     (if (not marker)
         'unresolved
       (org-with-point-at marker (org-get-todo-state)))))
@@ -6231,7 +6216,7 @@ to eight (TODO.org :ID: 9575e65b, reported by the user)."
   (when id
     (if (claude-code-ide-org--day-node-target-p id)
         (format "%s -- that day\'s meta-work node, created at apply" id)
-    (let ((marker (ignore-errors (org-id-find id 'marker))))
+    (let ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker))))
       (when marker
         (prog1 (org-with-point-at marker
                  (org-no-properties (org-get-heading t t t t)))
@@ -6589,7 +6574,7 @@ rest from lighting up."
           ;; leaving the `(t last-id)' fallback beneath it unreachable.
           ;; And guarding the marker keeps this call site out of the nil
           ;; trap in :ID: 09230b93.
-          (let* ((marker (and last-id (ignore-errors (org-id-find last-id 'marker))))
+          (let* ((marker (and last-id (ignore-errors (claude-code-ide-org--id-find last-id 'marker))))
                  (title (and marker
                              (ignore-errors
                                (org-with-point-at marker
@@ -6866,7 +6851,7 @@ usually the place the human was reading when they ran the review."
       ;; rather than `org-id-goto's bare "Cannot find entry".
       (unless id
         (user-error "This span is not assigned to a heading yet; press `a' to choose one"))
-      (let ((marker (ignore-errors (org-id-find id 'marker))))
+      (let ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker))))
         (unless marker
           (if (eq (plist-get item :type) 'capture)
               (user-error "Not written yet -- this heading's capture is still pending; apply it first")
@@ -7081,7 +7066,7 @@ sorts last rather than vanishing: absence of evidence rules nothing out."
     (maphash
      (lambda (id file)
        (when (member (file-truename file) allowed)
-         (let* ((marker (ignore-errors (org-id-find id 'marker)))
+         (let* ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker)))
                 ;; `org-with-point-at' does NOT switch buffers when handed
                 ;; nil: its expansion calls `set-buffer' only under
                 ;; `(markerp ...)', then falls through to
@@ -7334,7 +7319,7 @@ that on its own terms."
   (require 'org-id)
   (let (buffers)
     (dolist (item items)
-      (let* ((marker (ignore-errors (org-id-find (plist-get item :id) 'marker)))
+      (let* ((marker (ignore-errors (claude-code-ide-org--id-find (plist-get item :id) 'marker)))
              (buffer (and marker (marker-buffer marker))))
         (when (and buffer
                    (buffer-local-value 'buffer-read-only buffer)
@@ -8539,6 +8524,27 @@ Returns a summary string."
             (goto-char (point-min))
             (while (re-search-forward "^[ \t]*:ID:[ \t]+\\([0-9a-fA-F-]+\\)[ \t]*$" nil t)
               (puthash (downcase (match-string 1)) t table))))))))
+
+(defun claude-code-ide-org--id-find (id &optional markerp)
+  "Like `org-id-find\', but ID may be an 8-character prefix.
+
+Every heading lookup in this file goes through here rather than calling
+`org-id-find\' directly, and that indirection is the whole point.  The
+first version of this fix expanded prefixes inside
+`claude-code-ide-org--at-id\' only, and the commit message claimed it
+therefore covered every tool taking an `id\' argument.  It did not:
+`claude-code-ide-org-amend\' does its own `org-id-find\' *before*
+reaching `--at-id\', so it failed on a prefix while `org_set_todo\'
+accepted one -- found by using the feature minutes after shipping it.
+Fourteen such call sites existed.
+
+The length-and-hex guard runs before the table is built, so the common
+case of a full uuid costs one `length\' call and no file scanning."
+  (when (and (stringp id) (= (length id) 8) (string-match-p "\\`[0-9a-fA-F]+\\'" id))
+    (let ((full (claude-code-ide-org--expand-id-prefix
+                 id (claude-code-ide-org--known-id-table))))
+      (when (stringp full) (setq id full))))
+  (org-id-find id markerp))
 
 (defun claude-code-ide-org--expand-id-prefix (prefix table)
   "Return the single full :ID: in TABLE beginning with PREFIX, or a symbol.

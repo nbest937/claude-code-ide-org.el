@@ -8647,6 +8647,35 @@ lookup failure is reported exactly as before."
                             (claude-code-ide-org--at-id
                              "deadbeef" (lambda () "unreachable"))))))
 
+(ert-deftest claude-code-ide-org-test-amend-accepts-an-8-char-prefix ()
+  "`org_amend\' takes a prefix, like every other id-taking tool.
+
+The regression this exists for is specific and was found by using the
+feature rather than by testing it.  `claude-code-ide-org-amend\' does its
+own `org-id-find\' *before* delegating to `--at-id\', so the first
+version of the prefix fix -- which expanded inside `--at-id\' only --
+left amend failing on a prefix while `org_set_todo\' accepted one, and
+the commit message claimed it covered every tool.  Fourteen call sites
+had the same shape.
+
+Asserting through the tool rather than through the wrapper is the point:
+a wrapper test would have passed against the broken version."
+  (claude-code-ide-org-test--with-heading
+    (let ((claude-code-ide-org-query-files (list file))
+          (full "3ad9c47e-51b2-4f0c-8e63-7d2a90b615cc"))
+      (with-current-buffer (find-file-noselect file)
+        (goto-char (point-max))
+        (insert "\n* TODO Amend target\n:PROPERTIES:\n:ID:       " full
+                "\n:END:\n\nOriginal body.\n")
+        (save-buffer))
+      (org-id-add-location full file)
+      (let ((reply (claude-code-ide-org-amend (substring full 0 8) "Appended by prefix.")))
+        (should (string-match-p "Amend target" reply))
+        (should-not (string-match-p "no org heading found" reply)))
+      (with-temp-buffer
+        (insert-file-contents file)
+        (should (string-match-p "Appended by prefix\\." (buffer-string)))))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here
