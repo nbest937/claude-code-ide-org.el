@@ -3704,8 +3704,11 @@ whole file. This is the single place that judgement is made."
                 :source (alist-get 'source obj)))))))
 
 (defun claude-code-ide-org--queue-applied (session-id)
-  "Return the set of SESSION-ID's already-applied event timestamps.
-A hash table keyed by `ts' string; empty when nothing has been applied.
+  "Return SESSION-ID's already-applied events, a hash of `ts' -> apply time.
+Empty when nothing has been applied. The value is the timestamp of the
+*apply pass* that consumed the event, in the queue's own
+`%Y-%m-%dT%H:%M:%S%z' format -- or the empty string for an entry written
+before this field existed.
 
 A *set* rather than a high-water mark, deliberately. A watermark can
 only describe a contiguous prefix, and review is not contiguous: a human
@@ -3713,11 +3716,33 @@ applies the two items they care about and leaves the rest, whose events
 sit earlier in the same file. A watermark then cannot advance at all --
 observed 2026-08-07, where a real apply wrote no watermark whatsoever and
 every applied item would have been re-proposed, and re-applied, on the
-next pass. Per-event is the honest model for per-item review."
+next pass. Per-event is the honest model for per-item review.
+
+*Why each entry carries when it was consumed* (TODO.org :ID: 21c91613).
+On 2026-08-24 an apply had to be undone, and the ledger could not say
+which events belonged to which pass -- so \"un-apply the pass of 17:17\"
+had to be reconstructed from an `org_pending_updates' report that
+happened to have been captured minutes earlier. With the stamp it is a
+filter. The obvious cheaper fix, a `.applied.bak' snapshot, was
+considered and refused: it can only undo the *most recent* pass, which
+is precisely the case that incident was not -- a third, correct apply
+had already landed on top.
+
+*Both on-disk shapes are read.* Entries written before the field existed
+are a bare JSON array of `ts' strings, and each yields \"\" -- not a
+fabricated time. The same ethos as the retired stale-clock guess: a
+plausible wrong timestamp is worse than a visibly absent one, because it
+survives being read back as fact. The upgrade happens on the next write,
+since the file is rewritten wholesale every time."
   (let ((table (make-hash-table :test 'equal)))
-    (dolist (ts (alist-get 'applied
-                           (claude-code-ide-org--queue-watermark-data session-id)))
-      (puthash ts t table))
+    (dolist (entry (alist-get 'applied
+                              (claude-code-ide-org--queue-watermark-data session-id)))
+      (if (consp entry)
+          ;; New shape: a JSON object, so `json-parse-string' with
+          ;; :object-type `alist' hands back (symbol . string) cells.
+          (puthash (format "%s" (car entry)) (or (cdr entry) "") table)
+        ;; Legacy shape: a bare array element, already a string.
+        (puthash entry "" table)))
     table))
 
 (defun claude-code-ide-org--queue-watermark-data (session-id)
@@ -3769,19 +3794,29 @@ construction rather than by remembering."
   (claude-code-ide-org--atomic-write
    (claude-code-ide-org--queue-watermark-file session-id)
    (json-encode
-    ;; An empty set serializes as `[]'/`{}', never `null'.  Elisp spells
-    ;; the empty list, the empty object and JSON null all as nil, so
+    ;; An empty set serializes as `{}', never `null'.  Elisp spells the
+    ;; empty list, the empty object and JSON null all as nil, so
     ;; `json-encode' would happily emit `null' and this reader would
     ;; happily accept it -- the round-trip works only because both ends
     ;; are lossy in the same direction.  No other JSON stack is: the
-    ;; common `d.get("applied", [])' idiom does not fall back when the
-    ;; key is present holding null, so the field would be an array
+    ;; common `d.get("applied", {})' idiom does not fall back when the
+    ;; key is present holding null, so the field would be an object
     ;; sometimes and null others, which is not a shape worth handing to
-    ;; whatever eventually reports on these files.  A vector and a hash
-    ;; table are how you say "empty, and still an array/object" here.
+    ;; whatever eventually reports on these files.  An empty hash table
+    ;; is how you say "empty, and still an object" here.
+    ;;
+    ;; `applied' became an object rather than an array when each entry
+    ;; started carrying the time of the pass that consumed it; the
+    ;; reader still accepts the older array.  Both fields are now the
+    ;; same shape, which is the point -- one serialization idiom, not
+    ;; two that drift.
     `((applied . ,(let (all)
-                    (maphash (lambda (k _) (push k all)) applied)
-                    (if all (sort all #'string<) [])))
+                    (maphash (lambda (k v) (push (cons (intern k) v) all)) applied)
+                    (if all
+                        (sort all (lambda (a b)
+                                    (string< (symbol-name (car a))
+                                             (symbol-name (car b)))))
+                      (make-hash-table))))
       (dismissed . ,(let (all)
                       (maphash (lambda (k v) (push (cons (intern k) v) all)) dismissed)
                       (if all
@@ -3818,10 +3853,23 @@ atomic -- a cross-filesystem rename is not."
       (with-temp-file tmp (insert string))
       (rename-file tmp path t))))
 
-(defun claude-code-ide-org--queue-mark-applied (session-id ts-strings)
+(defun claude-code-ide-org--queue-mark-applied (session-id ts-strings &optional applied-at)
   "Add TS-STRINGS to SESSION-ID's set of applied events.
 Unions with whatever is already recorded, so a partial apply followed by
 another partial apply accumulates rather than replacing.
+
+APPLIED-AT is the timestamp recorded against each of TS-STRINGS,
+defaulting to now.  *The unit is a pass, not an event*, which is why the
+caller computes it rather than this function: \"un-apply the pass of
+17:17\" is only a filter if every event consumed together carries the
+*same* stamp, and a `now' taken here would differ across the sessions
+`claude-code-ide-org--review-record-applied' loops over.  The default is
+for a one-shot caller with no pass to speak of.
+
+An event already recorded keeps its original stamp.  Re-marking is not a
+second consumption -- the event was consumed once, by the pass named --
+and overwriting would quietly rewrite history the field exists to
+preserve.
 
 Never truncates or rewrites the queue file itself: the session that owns
 it may still be appending, and racing an appending writer is exactly the
@@ -3831,8 +3879,10 @@ recorded beside the log, never in it.
 Round-trips the `dismissed' map untouched. It shares this file, and
 writing only `applied' would erase every dismissal the moment anything
 was applied -- see `claude-code-ide-org--queue-watermark-data'."
-  (let ((applied (claude-code-ide-org--queue-applied session-id)))
-    (dolist (ts ts-strings) (puthash ts t applied))
+  (let ((applied (claude-code-ide-org--queue-applied session-id))
+        (stamp (or applied-at (format-time-string "%Y-%m-%dT%H:%M:%S%z"))))
+    (dolist (ts ts-strings)
+      (unless (gethash ts applied) (puthash ts stamp applied)))
     (claude-code-ide-org--queue-watermark-write
      session-id applied
      (claude-code-ide-org--queue-dismissed session-id))))
@@ -5655,15 +5705,22 @@ told something failed."
 Marks exactly the events that were consumed -- no more. A skipped item's
 events stay pending regardless of where they sit relative to applied
 ones, which is what makes applying a subset safe and makes re-applying
-an already-applied item impossible."
-  (let ((by-session (make-hash-table :test 'equal)))
+an already-applied item impossible.
+
+*One stamp for the whole pass*, computed here and pushed down, because
+the pass is the unit anyone will ever want to undo (TODO.org :ID:
+21c91613).  Taking the time inside the per-session loop below would give
+each session its own value and answer a subtly different question."
+  (let ((by-session (make-hash-table :test 'equal))
+        (applied-at (format-time-string "%Y-%m-%dT%H:%M:%S%z")))
     (dolist (item applied-items)
       (dolist (event (plist-get item :events))
         (push (plist-get event :ts-string)
               (gethash (plist-get event :session-id) by-session))))
     (maphash (lambda (session-id ts-strings)
                (when session-id
-                 (claude-code-ide-org--queue-mark-applied session-id ts-strings)))
+                 (claude-code-ide-org--queue-mark-applied
+                  session-id ts-strings applied-at)))
              by-session)))
 
 (defun claude-code-ide-org--review-settle-auto-promote (applied-items)

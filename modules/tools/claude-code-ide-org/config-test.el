@@ -3430,6 +3430,146 @@ since either writer could be the one that forgets."
     (should (gethash "2026-08-07T10:05:00-0500"
                      (claude-code-ide-org--queue-dismissed "sess-b")))))
 
+(ert-deftest claude-code-ide-org-test-queue-applied-records-the-pass-time ()
+  "Each consumed event carries the time of the pass that consumed it,
+round-tripping through the file (TODO.org :ID: 21c91613).
+
+The field exists so \"un-apply the pass of 17:17\" is a filter rather
+than the archaeology the 2026-08-24 recovery actually required."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org--queue-mark-applied
+     "sess-a" '("2026-08-07T09:00:00-0500" "2026-08-07T09:05:00-0500")
+     "2026-08-07T17:17:00-0500")
+    (let ((applied (claude-code-ide-org--queue-applied "sess-a")))
+      (should (equal "2026-08-07T17:17:00-0500"
+                     (gethash "2026-08-07T09:00:00-0500" applied)))
+      (should (equal "2026-08-07T17:17:00-0500"
+                     (gethash "2026-08-07T09:05:00-0500" applied))))
+    ;; A later pass stamps only its own events, and does not disturb the
+    ;; first pass's.  This is what makes the two separable at all.
+    (claude-code-ide-org--queue-mark-applied
+     "sess-a" '("2026-08-07T09:10:00-0500") "2026-08-07T18:40:00-0500")
+    (let ((applied (claude-code-ide-org--queue-applied "sess-a")))
+      (should (equal "2026-08-07T17:17:00-0500"
+                     (gethash "2026-08-07T09:00:00-0500" applied)))
+      (should (equal "2026-08-07T18:40:00-0500"
+                     (gethash "2026-08-07T09:10:00-0500" applied))))
+    ;; Re-marking an already-consumed event keeps the original stamp: the
+    ;; event was consumed once, by the pass named.
+    (claude-code-ide-org--queue-mark-applied
+     "sess-a" '("2026-08-07T09:00:00-0500") "2026-08-07T19:00:00-0500")
+    (should (equal "2026-08-07T17:17:00-0500"
+                   (gethash "2026-08-07T09:00:00-0500"
+                            (claude-code-ide-org--queue-applied "sess-a"))))))
+
+(ert-deftest claude-code-ide-org-test-queue-applied-stamps-one-pass-once ()
+  "Every event a single apply consumes carries the *same* stamp, even
+across sessions.
+
+The unit to undo is a pass, not an event.  A `now' taken per session --
+or per event -- would differ across one batch and make \"un-apply the
+pass of 17:17\" a range query over values nobody chose.
+
+*The clock is stubbed rather than read*, and that is what makes this
+test discriminate.  The stamps carry second resolution, so a real
+per-session `now' would agree with a per-pass one whenever the batch
+takes under a second -- which is always, in a test.  Counting the calls
+asserts the mechanism instead of a coincidence: one `format-time-string'
+for the whole pass, however many sessions it touches."
+  (claude-code-ide-org-test--with-queue
+    (let ((calls 0))
+      (cl-letf (((symbol-function 'format-time-string)
+                 (lambda (&rest args)
+                   (setq calls (1+ calls))
+                   (format "stamp-%d" calls))))
+        (claude-code-ide-org--review-record-applied
+         (list (list :events (list (list :ts-string "2026-08-07T09:00:00-0500"
+                                         :session-id "sess-a")
+                                   (list :ts-string "2026-08-07T09:05:00-0500"
+                                         :session-id "sess-a")))
+               (list :events (list (list :ts-string "2026-08-07T10:00:00-0500"
+                                         :session-id "sess-b"))))))
+      (should (= 1 calls)))
+    (should (equal '("stamp-1" "stamp-1" "stamp-1")
+                   (list (gethash "2026-08-07T09:00:00-0500"
+                                  (claude-code-ide-org--queue-applied "sess-a"))
+                         (gethash "2026-08-07T09:05:00-0500"
+                                  (claude-code-ide-org--queue-applied "sess-a"))
+                         (gethash "2026-08-07T10:00:00-0500"
+                                  (claude-code-ide-org--queue-applied "sess-b")))))
+    ;; And the real path writes the queue's own timestamp format, so a
+    ;; stamp and an event `ts' are comparable without conversion.
+    (claude-code-ide-org--review-record-applied
+     (list (list :events (list (list :ts-string "2026-08-07T11:00:00-0500"
+                                     :session-id "sess-c")))))
+    (should (string-match-p
+             "\\`[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}T[0-9]\\{2\\}:[0-9]\\{2\\}:[0-9]\\{2\\}[-+][0-9]\\{4\\}\\'"
+             (gethash "2026-08-07T11:00:00-0500"
+                      (claude-code-ide-org--queue-applied "sess-c"))))))
+
+(ert-deftest claude-code-ide-org-test-queue-applied-reads-the-legacy-array ()
+  "Every watermark file written before :ID: 21c91613 holds `applied' as a
+bare array of `ts' strings.  Those keep reading, and upgrade in place on
+the next write without losing entries or dismissals.
+
+A legacy entry's apply time is the empty string, never a fabricated one.
+Same ethos as the retired stale-clock guess (:ID: 7771fc63): a plausible
+wrong timestamp survives being read back as fact, and an absent one does
+not."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org--atomic-write
+     (claude-code-ide-org--queue-watermark-file "sess-a")
+     ;; `intern' rather than a literal: Elisp has no `|...|' symbol
+     ;; escaping, so a bare timestamp key written in source is a symbol
+     ;; whose name contains the pipes, and they reach the JSON.
+     (json-encode
+      (list (cons 'applied (list "2026-08-07T09:00:00-0500"
+                                 "2026-08-07T09:05:00-0500"))
+            (cons 'dismissed
+                  (list (cons (intern "2026-08-07T08:00:00-0500")
+                              "phantom clock"))))))
+    (let ((applied (claude-code-ide-org--queue-applied "sess-a")))
+      (should (= 2 (hash-table-count applied)))
+      (should (equal "" (gethash "2026-08-07T09:00:00-0500" applied)))
+      (should (equal "" (gethash "2026-08-07T09:05:00-0500" applied))))
+    ;; The upgrade: a new pass rewrites the file wholesale, so the legacy
+    ;; entries survive as object keys with their empty stamps intact, the
+    ;; new one carries a real stamp, and the dismissal is untouched.
+    (claude-code-ide-org--queue-mark-applied
+     "sess-a" '("2026-08-07T09:10:00-0500") "2026-08-07T17:17:00-0500")
+    (let ((text (claude-code-ide-org-test--disk-contents
+                 (claude-code-ide-org--queue-watermark-file "sess-a"))))
+      (should (string-match-p "\"applied\":{" text))
+      (should (string-match-p "\"2026-08-07T09:00:00-0500\":\"\"" text)))
+    (let ((applied (claude-code-ide-org--queue-applied "sess-a")))
+      (should (= 3 (hash-table-count applied)))
+      (should (equal "" (gethash "2026-08-07T09:00:00-0500" applied)))
+      (should (equal "2026-08-07T17:17:00-0500"
+                     (gethash "2026-08-07T09:10:00-0500" applied))))
+    (should (equal "phantom clock"
+                   (gethash "2026-08-07T08:00:00-0500"
+                            (claude-code-ide-org--queue-dismissed "sess-a"))))))
+
+(ert-deftest claude-code-ide-org-test-queue-dismissal-preserves-apply-times ()
+  "A dismissal after an apply must not flatten the apply times.
+
+The sharp edge of making `applied' a map: `--queue-mark-dismissed'
+round-trips `--queue-applied''s return straight back into the writer, so
+a reader that normalized values away would silently erase every stamp
+the first time anything was dismissed -- and the ledger would look
+perfectly well-formed afterwards."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org--queue-mark-applied
+     "sess-a" '("2026-08-07T09:00:00-0500") "2026-08-07T17:17:00-0500")
+    (claude-code-ide-org--queue-mark-dismissed
+     "sess-a" '("2026-08-07T09:05:00-0500") "never applying this one")
+    (should (equal "2026-08-07T17:17:00-0500"
+                   (gethash "2026-08-07T09:00:00-0500"
+                            (claude-code-ide-org--queue-applied "sess-a"))))
+    (should (equal "never applying this one"
+                   (gethash "2026-08-07T09:05:00-0500"
+                            (claude-code-ide-org--queue-dismissed "sess-a"))))))
+
 (ert-deftest claude-code-ide-org-test-queue-dismissal-reason-round-trips ()
   "The reason is the point of a map rather than a set: \"already applied
 live pre-cutover\" and \"this event should never have existed\" want
@@ -3489,21 +3629,24 @@ a migration step."
                      (claude-code-ide-org--queue-dismissed "sess-a")))))
 
 (ert-deftest claude-code-ide-org-test-queue-watermark-empty-sets-are-not-null ()
-  "An empty set is written as `[]'/`{}', never `null'.
+  "An empty set is written as `{}', never `null'.
 
 Asserted on the bytes, because the round-trip cannot catch this: Elisp
 spells the empty list, the empty object and JSON null all as nil, so
 this reader accepts `null' happily and every in-process test still
 passes.  No other JSON stack is that forgiving -- `d.get(\"applied\",
-[])' does not fall back when the key is present holding null, which
+{})' does not fall back when the key is present holding null, which
 crashed a real inspection script on a real watermark file.  Dismissing
-before anything is applied is the case that produces it."
+before anything is applied is the case that produces it.
+
+`applied' is an object rather than an array as of :ID: 21c91613, since
+each entry now carries the time of the pass that consumed it."
   (claude-code-ide-org-test--with-queue
     (claude-code-ide-org--queue-mark-dismissed
      "sess-a" '("2026-08-07T09:00:00-0500") "never applying this")
     (let ((text (claude-code-ide-org-test--disk-contents
                  (claude-code-ide-org--queue-watermark-file "sess-a"))))
-      (should (string-match-p "\"applied\":\\[\\]" text))
+      (should (string-match-p "\"applied\":{}" text))
       (should-not (string-match-p "null" text)))
     ;; ...and the mirror case: applied with nothing dismissed.
     (claude-code-ide-org--queue-mark-applied "sess-b" '("2026-08-07T10:00:00-0500"))
