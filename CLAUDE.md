@@ -206,6 +206,32 @@ machine-detectable via `claude-code-ide-org--container-heading-p`. No
 heading needs to be classified as one when it is written; see TODO.org
 `:ID:` b5f94b88, which says so about itself.
 
+**The axis under both of those, and the one worth carrying:** a grouping
+is either **emergent** or **declared**, and which it is determines the
+mechanism it needs.
+
+An epic is emergent. It becomes one by acquiring keyworded children, so
+it can be *detected* — nothing is written down, and therefore nothing
+can go stale. That is the whole reason the paragraph above says not to
+classify one: a declaration of something already derivable is a second
+copy that can disagree with the first.
+
+A **story** or a **slice** is declared. It asserts that these particular
+tasks belong together for a reason the tree does not encode — and a
+story deliberately cuts *across* epics, so no arrangement of parents
+could carry it. Being underivable, it has to be written down as an
+explicit list of `[[id:...]]` references; being written down, it *can*
+go stale, and needs whatever keeps it honest (the checkbox list blocked
+on its members, in `:ID:` 8ca6541d's design).
+
+Two consequences that are easy to get backwards. Declaring an emergent
+grouping is the error the epic paragraph guards against. Trying to
+*infer* a declared one — reading a story out of the tree's shape — is
+the same error mirrored, and it is what a top-level category tier
+silently does today (`:ID:` 29439196). And note that a declared grouping
+is made of ids, which is why `:ID:` 478d6ec9 is load-bearing here rather
+than a convenience.
+
 **Rule**: work planned via Claude Code's own Plan Mode gets a single
 permanent link in its heading body — `[[file:~/.claude/plans/<slug>.md][Plan]]`
 — added as soon as the first round of planning finishes (right after

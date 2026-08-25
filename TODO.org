@@ -6369,10 +6369,14 @@ Five times, identically. Every word true. Between them they identified *nothing*
 *Still unverified against the original failure.* By the time the instrumentation was live, the five items had been dismissed as stale -- the partial applies had moved their headings to the states the events described. So the message that motivated this has never been seen through it, and the underlying cause of "Before first headline at position 1" remains unknown.
 
 
-** The assign completion omits the :ID: prefix every other rendering carries :code:
+** TODO Lead every review-buffer rendering with the :ID: prefix, rather than trailing it :code:
 :PROPERTIES:
 :ID:       46e4ce2b-fdc8-447b-ad09-b4845602540f
 :CREATED:  [2026-08-25 Tue 08:34]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-25 Tue 08:34] \\
+  captured keywordless, setting initial state
 :END:
 
 *Reported by the user 2026-08-25*, using =a= in the review buffer: the completion list should carry the =:ID:= prefix the way other renderings do.
@@ -6390,10 +6394,14 @@ So this is a *scanning* consistency, not a functional gap, and that changes what
 *Note the one entry that has no id and must stay legible:* the meta-work category, offered first, whose "id" is the title =Review and planning= ([[id:9575e65b-b589-465a-830c-286541780f96][9575e65b]]). Whatever prefix format is chosen has to leave that row readable rather than showing a truncated title where a prefix belongs.
 
 
-** "writes 0:09 in 1" reads as two swappable numbers; "in 1" has no unit :code:
+** TODO "writes 0:09 in 1" reads as two swappable numbers; "in 1" has no unit :code:
 :PROPERTIES:
 :ID:       98c302e0-ab1b-40bf-92d0-d2f2e16ac05d
 :CREATED:  [2026-08-25 Tue 08:34]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-25 Tue 08:34] \\
+  captured keywordless, setting initial state
 :END:
 
 *Reported by the user 2026-08-25* as "it looks like the arguments are reversed in the string interpolation".
@@ -9806,6 +9814,14 @@ CLOCK: [2026-08-25 Tue 08:02]--[2026-08-25 Tue 08:03] =>  0:01
 - [2026-08-25 Tue 08:02]--[2026-08-25 Tue 08:03] assigned at review
 CLOCK: [2026-08-25 Tue 08:24]--[2026-08-25 Tue 08:25] =>  0:01
 - [2026-08-25 Tue 08:24]--[2026-08-25 Tue 08:25] assigned at review
+CLOCK: [2026-08-25 Tue 08:28]--[2026-08-25 Tue 08:29] =>  0:01
+- [2026-08-25 Tue 08:28]--[2026-08-25 Tue 08:29] assigned at review
+CLOCK: [2026-08-25 Tue 08:32]--[2026-08-25 Tue 08:38] =>  0:06
+- [2026-08-25 Tue 08:32]--[2026-08-25 Tue 08:38] assigned at review
+CLOCK: [2026-08-25 Tue 08:42]--[2026-08-25 Tue 08:45] =>  0:03
+- [2026-08-25 Tue 08:42]--[2026-08-25 Tue 08:45] assigned at review
+CLOCK: [2026-08-25 Tue 08:50]--[2026-08-25 Tue 08:52] =>  0:02
+- [2026-08-25 Tue 08:50]--[2026-08-25 Tue 08:52] assigned at review
 :END:
 
 
