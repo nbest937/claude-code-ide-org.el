@@ -1457,6 +1457,19 @@ Everything already verified above serves that -- =:CATEGORY:= inherited by a lev
 
 *Note the fourth class 8ca6541d found is unaffected and still unresolved:* category, container/epic, datetree node and story are each detected by a different bespoke mechanism, none declared. Flattening removes one of those detectors -- heading level -- which makes the inconsistency smaller but does not answer how a story or a slice declares itself.
 
+*=:EPIC:= rather than =:CATEGORY:=, proposed by the user 2026-08-25, and it is the better name for three reasons rather than one.*
+
+*It names one thing.* =:CATEGORY:= is org-native and arrives with semantics that are not being asked for: it is displayed in the agenda's category column, it is inherited down a subtree, and it defaults from the filename or a =#+CATEGORY:= line. Every one of those is a behaviour to reason about before the property can be trusted to mean "which epic". =:EPIC:= means which epic and nothing else.
+
+*It settles the collision recorded on [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]], by choosing a sense.* Two things are called "epic" here: this heading's table uses it for the level-1 grouping ("a level-1 heading, structural"), while CLAUDE.md uses it for a heading that has *acquired keyworded children*. Naming the declared property =:EPIC:= gives the word to the grouping, and leaves the emergent one its existing code name -- *container*, as in =--container-heading-p=. That is not a coinage; it is the word the predicate already uses, and the two never need to share a name again.
+
+*The split then falls exactly on this project's own axis.* The epic is *declared* -- a heading says which one it belongs to, at the member, where this heading's own membership table says a non-drifting declaration must live. The container is *derived* -- detected by scanning for keyworded children, never written down, and therefore unable to go stale. One property and one predicate, answering two questions that were only ever confused because they shared a word.
+
+*What it gives up, and how to get it back if it turns out to matter.* =:CATEGORY:= buys org's native agenda integration for free -- the category column, =org-agenda-filter-by-category=. Whether that is worth anything here is precisely what [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] exists to measure, and it is unstarted, so choosing =:CATEGORY:= now would be choosing before the evidence this heading says it needs.
+
+*If the evidence lands in favour, the answer is not to switch -- it is to derive.* Declare =:EPIC:=, and have a normaliser write =:CATEGORY:= from it. That is the pattern already built twice on 2026-08-25: a slice's =:BLOCKER:= generated from its checklist, and a slice's member lines regenerated from their referents. A declaration plus a derived copy, with something that keeps them in step, is strictly better than one field asked to mean two things.
+
+
 
 ** DONE Compose slices by reference: a checkbox list of id links, blocked on its members :code:research:
 CLOSED: [2026-08-25 Tue 12:56]
@@ -7641,6 +7654,19 @@ standalone/Warp-access subsystem from this session.
 *Order that falls out of that.* Datetree first, because it is the one 29439196 already named and the string match is the most obviously wrong; then the depth rules, which can be expressed against =:KIND:= instead of level; then the category tier, which is the flattening itself and is the only step that needs [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]]'s evidence.
 
 *Not a rename of what exists.* =--container-heading-p= keeps working exactly as it does; nothing about the epic changes. The claim is narrower than "declare everything": declare what is already declared implicitly, and leave derived things derived.
+
+*=:DATETREE_ROLE:= and =:KIND:= are the same axis, and the proposal is to collapse them.* The role names *which tier of a datetree* a node is -- =year=, =month= or =day=. Today =claude-code-ide-org--datetree-node-role= infers it from org's own title regexes (a four-digit year, =YYYY-MM Month=, =YYYY-MM-DD Dayname=) rather than from depth, deliberately: a real task can sit at depth 1 beside the year node, so a depth-only test would waive =:ID:= and =:CREATED:= for every one of them.
+
+*The three roles are different kinds, not three values of one behaviour*, which is what makes collapsing right rather than merely tidy. The lint treats year and month as pure scaffolding and exempts them from the =:ID:=/=:CREATED:= requirement; the day node must carry both, because it is what time is assigned to. So =:KIND: datetree-year=, =datetree-month=, =datetree-day=. A separate =:DATETREE_ROLE:= alongside =:KIND:= would be a *fifth* mechanism for saying what a heading is, which is the disease this heading exists to cure.
+
+*Half of it already exists and should stay.* The datetree *root* declares itself with =:DATE_TREE:=, which is why [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] describes the current state as declared-at-the-container: the container says "a tree hangs here" and the nodes are then guessed at. Keep =:DATE_TREE:= for that -- it carries a subtree-scoped meaning no per-node kind expresses -- and let =:KIND:= carry the per-node one.
+
+*"Category" and "epic" are distinct in the code and collide in the prose, and this needs settling before anything is flattened.* In the table above, /category/ is the level-1 filing tier -- =* Tooling= -- detected by =(= level 1)=, carrying no =:ID:= and no keyword, routing archives through =:ARCHIVE:=. /Epic/ is a *task* that acquired keyworded children, detected by =--container-heading-p=, carrying =:ID:=, a keyword and a cookie. Different things.
+
+*But the corpus uses "epic" for both.* =.claude/rules/org-conventions.md= says top-level headings "are categories/epics -- pure structure, grouping related tasks", while CLAUDE.md says an epic is "simply a heading that has acquired children carrying TODO keywords". [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]'s own membership table uses the first sense: its /epic/ row describes today's form as "a level-1 heading, structural".
+
+*The ambiguity is load-bearing rather than cosmetic.* "Flatten the top-level headings into categories (epics)" has two readings, and they differ where it matters: once level 1 is gone, does a task's label name the old *filing group* it lived in, or the *emergent parent task* it belongs to? Those disagree for a task with no parent, and for a task whose parent epic sits in a different filing group. Deciding which sense the label carries is a prerequisite for the flattening, not a detail of it.
+
 
 
 ** TODO Task mitosis: a leaf that outgrows itself divides rather than becoming a parent :code:research:
