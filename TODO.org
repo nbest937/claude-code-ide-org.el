@@ -60,7 +60,7 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 - [[orgit-rev:claude-code-ide-org::bbac58b][bbac58b]] [2026-08-25 Tue 15:10] rewritten around finishing the slice rather than extending it
 
 
-** TODO Proposed slice: make the mechanism mean what the keywords now say :code:
+** TODO Proposed slice: close the gap between what we declare and what the code infers :code:
 :PROPERTIES:
 :ID:       979e02b6-2a4c-4328-8b08-ffaec03bd02e
 :CREATED:  [2026-08-25 Tue 15:29]
@@ -71,7 +71,7 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
   sketched as a proposal, not declared a slice
 :END:
 
-Reconcile the code with the keyword semantics settled 2026-08-25, so that =DOING= and the clock stop disagreeing about what a heading is doing.
+Wherever this project declares something in prose and the code infers it some other way, make the code read the declaration. Two halves: what a *keyword* means, and what *kind* a heading is.
 
 *Six members, ordered by dependency rather than size*: the docstring first because the next three read the variable it lies about, then the trigger that unblocks two transitions left unqueued today, then the predicate, the policy it enables, the mechanism that makes the policy enforceable, and the general keyword review last, once its evidence exists.
 
@@ -83,6 +83,9 @@ Reconcile the code with the keyword semantics settled 2026-08-25, so that =DOING
 - [ ] [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]] TODO A container carries clocks it earned before it was one
 - [ ] [[id:a0813ae3-0c6d-43de-bae1-fb4414cdb519][a0813ae3]] TODO Task mitosis: a leaf that outgrows itself divides rather than becoming a parent
 - [ ] [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]] TODO Revisit the TODO keyword progression, starting with whether PLANNING earns its keep
+- [ ] [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]] TODO Generalise :KIND: to every declared heading class, so level stops meaning anything
+- [ ] [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] TODO Adopt org-native mechanisms for the heading tiers
+- [ ] [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] TODO Find a convention marking which children a container's plan actually covered
 
 *Not included, and the reason is the same for all of them.* The review-buffer readout defects ([[id:46e4ce2b-fdc8-447b-ad09-b4845602540f][46e4ce2b]], [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]]) belong with [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]]'s audit, which is a different story about a different surface. [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] is upstream of *stories*, not of keywords. A slice that swept in everything open would be a backlog wearing a slice's clothes.
 
@@ -7610,6 +7613,36 @@ before building any of them. The first two are both about the
 standalone/Warp-access subsystem from this session.
 
 
+** TODO Generalise :KIND: to every declared heading class, so level stops meaning anything :code:research:
+:PROPERTIES:
+:ID:       2e660571-26df-41e4-bb64-b9d74a3d7efe
+:CREATED:  [2026-08-25 Tue 16:16]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-25 Tue 16:16] \\
+  the honest form 29439196 named now exists
+:END:
+
+*[[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] named this and could not have it.* Of the datetree lint gate it says: "A =:DATETREE_ROLE:= property would be the honest form", and calls what shipped instead "a property-shaped answer smuggled in as a string match". =:KIND:= shipped 2026-08-25 for slices. It is that property, arrived at from a different direction and already in production.
+
+*Four classes, four mechanisms, and only the newest is a declaration.* Counted in =config.el= rather than recalled:
+
+| class         | detected by                                    | kind      |
+|---------------+------------------------------------------------+-----------|
+| epic          | =--container-heading-p=, a descendant scan     | derived   |
+| datetree node | =--datetree-node-role (depth title)= -- depth *plus a title regex* | inferred |
+| category      | =(= level 1)=, plus =(> level 3)= for depth    | inferred  |
+| slice         | =--slice-p=, a =:KIND:= property               | *declared* |
+
+*The split is today's axis applied to heading classes, and it decides the scope.* The epic stays *derived* -- it is emergent, structurally detectable, and a declaration of it could go stale. Everything else in that table is *declared in fact and inferred in code*, which is the mismatch. So: datetree nodes and slices declare themselves; the epic does not; and the category tier is what [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] proposes to remove entirely.
+
+*Why this accelerates flattening rather than merely tidying.* Flattening is risky today because *level carries meaning in three places at once* -- the level-1 category rule, the three-level depth rule, and the datetree's level-4 exception. Each is a separate thing that breaks when level-1 headings stop being categories. Once every declared class says what it is, level carries nothing, and the flattening becomes a mechanical edit rather than a coordinated change to three inference rules.
+
+*Order that falls out of that.* Datetree first, because it is the one 29439196 already named and the string match is the most obviously wrong; then the depth rules, which can be expressed against =:KIND:= instead of level; then the category tier, which is the flattening itself and is the only step that needs [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]]'s evidence.
+
+*Not a rename of what exists.* =--container-heading-p= keeps working exactly as it does; nothing about the epic changes. The claim is narrower than "declare everything": declare what is already declared implicitly, and leave derived things derived.
+
+
 ** TODO Task mitosis: a leaf that outgrows itself divides rather than becoming a parent :code:research:
 :PROPERTIES:
 :ID:       a0813ae3-0c6d-43de-bae1-fb4414cdb519
@@ -8385,6 +8418,17 @@ So the full rule set, settled and ready to be written down:
 2. A container may enter DOING to mean "something is happening inside", at no clock cost.
 3. A container leaves DOING when all children are DONE or CANCELLED.
 4. A container is WAITING when every non-terminal child is WAITING.
+
+*Codified 2026-08-25, and this heading was not consulted while it happened* -- which is the part worth recording.
+
+*The answer, now in CLAUDE.md beside the transition table.* =DOING= on a container means "at least one member is in the mail" -- one level up from the leaf sense of "started and owed a return". It takes no clock, is plural, and is derivable from the members rather than asserted. =--trigger-auto-clock-in= already implements the no-clock half by exempting containers; the gap is that a slice is not recognised as one ([[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]]).
+
+*So the question this heading asked -- "is that not codified anywhere?" -- now has the answer "yes", and it got there by a route that never mentioned this heading.* The recalibration was driven by a conversation about what =DOING= should mean, written into CLAUDE.md, the org skill and [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]], and this heading sat open through all of it asking for exactly that.
+
+*Found only when the user asked whether =org_outline= should have been used*, which is the lesson rather than the outcome. The preceding search had been =grep= for ids already in mind, and a search like that can only return what the searcher already remembers. One =org_outline= call with =active_only= surfaced this heading immediately. CLAUDE.md says to start there and gives the reason; the reason is not compactness, it is that the index shows what you were not looking for.
+
+*The collision this heading warned about did not materialise, and that is worth stating since it was the reason for hesitating.* Writing it down was said to collide with the transition table's per-heading framing. It did not: the table now carries a note that it describes a heading acting for itself, and the container sense sits beside it as a separate paragraph rather than as another row.
+
 
 
 ** TODO Index a heading's git history from a drawer, so the body never has to narrate it :code:research:
