@@ -6566,6 +6566,27 @@ Broader than clocking — visibility into what every tool call
 actually did, both after the fact and at the start of a session.
 
 
+** TODO The footnote hook's stopReason never reaches the model; the block is opaque :code:
+:PROPERTIES:
+:ID:       5787bfc6-3ba5-4d94-802c-f8a7879de68d
+:CREATED:  [2026-08-25 Tue 11:57]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-25 Tue 11:57] \\
+  observed twice; the hook blocked and said nothing
+:END:
+
+*Observed 2026-08-25, twice in one session.* The hook fired and the text that reached the model was exactly =Stop hook stopped continuation: Stop hook prevented continuation= -- no ids, no instruction, none of the =stopReason= the hook composes. The model continued without correcting anything, because it had nothing to correct *from*.
+
+*The hook itself is fine, and that was checked rather than assumed.* Fed a body citing two tracked ids with one footnoted, it emits well-formed JSON naming the missing one and carrying the full instruction. Both real blocks were genuine violations -- =46e4ce2b= and =98c302e0= cited and unfootnoted in one response, =8ca6541d= and =aa1ba915= in another. So the *detection* half is verified in production; it is the delivery half that is missing.
+
+*Why that matters more than it sounds.* A gate that blocks without saying why converts a corrective nudge into an unexplained stall: the turn ends, the model is re-invoked, and the violation is still there. The loop guard means it costs one extra continuation and never hangs, so the failure is quiet -- which is how it survived two occurrences without being noticed as a defect rather than as the feature working.
+
+*What is not yet known* is where the text is lost. Candidates, none tested: =stopReason= may be surfaced to the *user* rather than to the model; the field may need to sit somewhere other than =hookSpecificOutput= for a blocking Stop hook; or the harness may summarise any block to a fixed string. Worth checking against the hook documentation before changing the hook, since the JSON shape currently matches what was designed from those docs.
+
+*Blocks judgement on* the parent [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]], which is in =REVIEW= awaiting exactly this evidence: it fires, it is accurate, and it cannot yet tell anyone what it found.
+
+
 ** TODO Make task lifecycle answerable from one timeline, starting at creation :code:
 :PROPERTIES:
 :ID:       d9132c57-9dcf-47e9-ba74-7f5a1ced3ae5
@@ -8364,7 +8385,8 @@ Two things follow. A body-size rule calibrated against a body-size measurement t
 :END:
 
 
-** TODO Snapshot the next-session.md that drove each slice, the way plans are archived :code:
+** CANCELLED Snapshot the next-session.md that drove each slice, the way plans are archived :code:
+CLOSED: [2026-08-25 Tue 11:46]
 :PROPERTIES:
 :ID:       637ee73d-e1b7-4a84-9213-830c49a400b4
 :CREATED:  [2026-08-25 Tue 11:10]
@@ -8372,6 +8394,8 @@ Two things follow. A body-size rule calibrated against a body-size measurement t
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 11:10] \\
   first snapshot taken by hand; the mechanism is not built
+- State "CANCELLED"  from "TODO"       [2026-08-25 Tue 11:46] \\
+  superseded by orgit revision links
 :END:
 
 *=.claude/commands/next-session.md= is reused in place*, rewritten once per slice, so the text that drove slice N is overwritten when slice N+1 is planned. The first snapshot was taken by hand on 2026-08-25 -- =slices/2026-08-24-harden-the-review-pass.md=, linked from [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]]. Nothing automates it, and nothing notices when it drifts.
@@ -9672,7 +9696,8 @@ Approach: assert against the table row, =| *Total time* | *0:00* |=, rather than
 /Body restored 2026-08-20 by =org_amend=; the original capture silently discarded it -- see/ [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]].
 
 
-** TODO Every orgit link a body adds costs a permanent lint warning :code:
+** DONE Every orgit link a body adds costs a permanent lint warning :code:
+CLOSED: [2026-08-25 Tue 11:46]
 :PROPERTIES:
 :ID:       43201e64-3fe8-4fa6-81f5-d2ab5b65d191
 :CREATED:  [2026-08-21 Fri 16:07]
@@ -9680,6 +9705,8 @@ Approach: assert against the table row, =| *Total time* | *0:00* |=, rather than
 :LOGBOOK:
 CLOCK: [2026-08-21 Fri 17:11]--[2026-08-21 Fri 17:17] =>  0:06
 - [2026-08-21 Fri 17:11]--[2026-08-21 Fri 17:17] assigned at review
+- State "DONE"       from "TODO"       [2026-08-25 Tue 11:46] \\
+  stub link types registered in the lint
 :END:
 
 The commit-reference convention shipped 2026-08-21 ([[id:7b54c439-ab2c-4398-b332-2b2cc0d98ac9][7b54c439]]) says to link commits in org bodies as =orgit-rev:=. Its *first actual use* -- one link on [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] the same evening -- pushed =bin/lint-org= from 23 warnings to 24: =org-lint: Unknown fuzzy location "orgit-rev:claude-code-ide-org::f0cdc90"=. The two earlier occurrences in TODO.org are inside =verbatim= markup and are never parsed as links, so nothing had exercised the convention until now.
@@ -10020,6 +10047,16 @@ CLOCK: [2026-08-25 Tue 08:42]--[2026-08-25 Tue 08:45] =>  0:03
 - [2026-08-25 Tue 08:42]--[2026-08-25 Tue 08:45] assigned at review
 CLOCK: [2026-08-25 Tue 08:50]--[2026-08-25 Tue 08:52] =>  0:02
 - [2026-08-25 Tue 08:50]--[2026-08-25 Tue 08:52] assigned at review
+CLOCK: [2026-08-25 Tue 09:39]--[2026-08-25 Tue 09:54] =>  0:15
+- [2026-08-25 Tue 09:39]--[2026-08-25 Tue 09:54] assigned at review
+CLOCK: [2026-08-25 Tue 10:01]--[2026-08-25 Tue 10:04] =>  0:03
+- [2026-08-25 Tue 10:01]--[2026-08-25 Tue 10:04] assigned at review
+CLOCK: [2026-08-25 Tue 10:12]--[2026-08-25 Tue 10:16] =>  0:04
+- [2026-08-25 Tue 10:12]--[2026-08-25 Tue 10:16] assigned at review
+CLOCK: [2026-08-25 Tue 10:56]--[2026-08-25 Tue 11:10] =>  0:14
+- [2026-08-25 Tue 10:56]--[2026-08-25 Tue 11:10] assigned at review
+CLOCK: [2026-08-25 Tue 11:44]--[2026-08-25 Tue 11:49] =>  0:05
+- [2026-08-25 Tue 11:44]--[2026-08-25 Tue 11:49] assigned at review
 :END:
 
 
