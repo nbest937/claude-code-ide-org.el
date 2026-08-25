@@ -7515,6 +7515,21 @@ standalone/Warp-access subsystem from this session.
 
 *Wants a tool rather than a hand edit*, on this repo's own evidence: two body corruptions are on record, both range bugs, and =org_wrap_plan= exists precisely because hand-rolling that class of edit failed twice with =bin/lint-org= reporting zero errors both times.
 
+*The =:ID:= clause is settled, and the proposal was right as originally stated: the id goes with the leaf.* The table above raised three objections and all three fail. Recorded rather than deleted because the way they failed is the useful part -- the first measurement taken was the wrong one.
+
+*"27 percent of headings have no inbound reference" measured density, not damage.* It establishes that references exist; it says nothing about whether any would break. The user asked for an example, which is what exposed it -- a statistic about a population cannot answer a question about a mechanism.
+
+*Prose links land in the general area, which is all they were ever doing.* The most-referenced open heading is [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] with 20 inbound links, and they read like this one: "prose, because it holds the four container rules as settled and pending transcription". A reader following that wants the topic, and after division the topic is the story -- but landing on the elder child reaches it in one keystroke.
+
+*The =:BLOCKER:= objection is empirically empty, and not by accident.* Of the 38 headings named by some blocker, only 13 are still open and therefore still able to gate anything. *Their largest body is 53 lines. The smallest plausible mitosis candidate is 97.* The two populations do not overlap at all.
+
+The reason they do not is structural rather than lucky: you block on a *bounded, specific* deliverable, and a bounded specific deliverable is precisely the kind of heading that never inflates enough to need dividing. The eight large headings that *are* named by blockers are all closed, so they gate nothing. Worth re-measuring if that ever stops holding, but it is not a coincidence to be nervous about.
+
+*And the queued-events case actively argues **for** the proposal rather than against it.* A queued =clock_in= names a heading by id, and apply opens a clock on whatever holds that id. If the id moved to the new parent, applying a pending clock event would open a clock *on a container* -- the exact outcome mitosis exists to prevent. The id must follow the leaf for the queue to stay correct.
+
+*So the counter-case flagged above -- dividing a heading with unapplied events naming it -- resolves too.* The events follow the leaf, which is where they belonged. The one residue is a queued state transition whose intent was the whole task: it will land on the elder child rather than the story. Small, visible at review, and the review pass is a human reading each item anyway.
+
+
 
 ** MAYBE Decide what this module may change on a user's machine when installed :code:
 :PROPERTIES:
