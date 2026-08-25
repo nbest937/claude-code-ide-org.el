@@ -383,6 +383,11 @@ edits an org file at the moment you act.
 | `REVIEW`   → `DONE`       | None                                |
 | Any        → `MAYBE`      | None                                |
 
+**The table describes setting a keyword because the work is happening
+now.** Under `DOING`'s looser sense — started and owed, not executing —
+a keyword can also be set *retroactively*, and then none of the clock
+column applies. See the rules below.
+
 `REVIEW` is **experimental** (TODO.org `:ID:` c954f650) — finished work
 handed back for human judgement. Clock-wise it behaves exactly like
 `WAITING`: entering it closes the clock, leaving it for `DOING` opens one,
@@ -423,11 +428,20 @@ Consequences, each of which has been got wrong in practice:
   batch. Recording that something *was* started is not the same act as
   starting it. See `:ID:` 4f6a6bb1.
 
-**Rule**: any transition *to* `DOING` or `PLANNING` must open a clock, with
-one documented exception: `PLANNING` → `DOING` reuses the already-running
-clock interval rather than closing and reopening it.
-**Rule**: any transition *from* `DOING` or `PLANNING` must close the clock
-first, except the `PLANNING` → `DOING` handoff above.
+**Rule**: a transition *to* `DOING` or `PLANNING` opens a clock **when you
+are starting work now** — the ordinary case, and what the table above
+describes. Two exceptions. `PLANNING` → `DOING` reuses the already-running
+interval rather than closing and reopening it. And a **retroactive**
+`DOING` — recording that a heading was started earlier — opens nothing,
+because the work did not happen now. The mechanism does not yet honour
+that second exception: `org-todo "DOING"` clocks in regardless (`:ID:`
+4f6a6bb1), which is why such a transition should not be queued until it
+is settled.
+**Rule**: a transition *from* `DOING` or `PLANNING` closes the clock **if
+this heading's clock is the one running**. Because `DOING` is plural, a
+heading can be `DOING` with no clock — another heading holds it — and
+there is then nothing to close. The `PLANNING` → `DOING` handoff above
+closes nothing either.
 **Rule**: always use the MCP tools for state changes and clocking — do not
 edit CLOCK entries or TODO keywords by hand when the tools are available.
 If the `emacs-tools` MCP server is *not* connected, prefer stopping and

@@ -507,6 +507,21 @@ file headers and the Doom config in the same commit.
 =config.el=. Doing this before those are reconciled guarantees conflicts
 in a file where a conflict is expensive to resolve correctly.
 
+*=DOING= was recalibrated 2026-08-25*, which is this heading's subject arriving from a different direction than the =PLANNING= question it opens with.
+
+*The old sense, written in the org skill as "actively being worked on", was singular by construction* -- org runs one clock, so if =DOING= means "executing right now", at most one heading can hold it. The new sense is *started and owed a return*, the user's metaphor being **in the mail**: durable, plural, and silent about whether anyone is at the keyboard. What records execution is the *clock*, not the keyword.
+
+*On a container the same word reads one level up*: at least one member is in the mail. That sense takes no clock at all, which =--trigger-auto-clock-in= already implements for epics by exempting containers -- and does not for slices, whose members are links rather than children ([[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]]).
+
+*GTD's one-thing-at-a-time is deliberately not followed*, and the reason is worth keeping because it is not a concession. That rule is calibrated to human working memory. An agent re-reading a checklist each turn has different limits, and keeping several started items visible is what stops them being silently dropped.
+
+*What this settles that was previously open here.* A heading worked and set down stays =DOING= rather than being demoted to =NEXT=, so the record no longer loses the fact that it is owed. Two headings were sitting in exactly that wrong state when the question was asked -- [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]] at =NEXT= with a shipped normaliser, [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]] at =TODO= with a design written up in full -- and neither transition has been queued, because of the next paragraph.
+
+*Codified but not enacted, and the gap is a real one.* The prose lives in CLAUDE.md and the org skill; nothing in the code implements it, and one thing contradicts it. =(org-todo "DOING")= clocks in immediately, verified in batch, so *recording* that something was started earlier credits time to the present ([[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]]). Until that is settled the looser sense is only safe for transitions that coincide with actually starting.
+
+*One inconsistency was introduced and repaired the same day*, worth recording because it is the shape this heading exists to prevent. The recalibration was written into CLAUDE.md directly above two rules -- "any transition *to* =DOING= must open a clock", "any transition *from* =DOING= must close the clock" -- that the new sense contradicts. Both are now conditional: opening applies when work is starting now, closing applies only when this heading's clock is the one running, since a plural =DOING= means a heading can hold the keyword and no clock.
+
+
 
 ** TODO Fall back to the queue when org_capture cannot reach Emacs :code:
 :PROPERTIES:
