@@ -6345,7 +6345,11 @@ Five times, identically. Every word true. Between them they identified *nothing*
 
 *Current shape*, from =--assign-candidates=: =(format "%s %s%s  {%s}" range state title short-id)= -- the id trails in braces after the title. That is where every other rendering puts it too, so "begin with the prefix" is a change to the *convention* rather than a divergence from it, and it should be applied everywhere at once or not at all.
 
-*The argument for leading with it, in this list specifically.* The assign prompt is a =completing-read=: the human types to narrow. Leading with the 8-character prefix makes the id typeable, which it currently is not without scrolling to the end of a long line -- and this is the one rendering whose entries are *selected by typing* rather than read.
+*The actual reason, corrected 2026-08-25 by the user.* It is not reachability -- the id is perfectly reachable where it is. It is that *every other place they read an id puts it first*, so the eye arrives expecting a prefix and finds a title. The footnote convention in this project's own conversational replies is the strongest trainer: =^1 `46e4ce2b` -- TODO *title*=, id first, every time.
+
+So this is a *scanning* consistency, not a functional gap, and that changes what a fix has to achieve: matching the shape the reader is already trained on, rather than making anything newly possible.
+
+/An earlier draft of this paragraph argued the id was hard to reach in a/ =completing-read= /and therefore hard to type. That was invented -- a plausible functional justification substituted for the one actually given -- and is recorded rather than deleted because a manufactured rationale in a heading body outlives the conversation that would correct it./
 
 *Note the one entry that has no id and must stay legible:* the meta-work category, offered first, whose "id" is the title =Review and planning= ([[id:9575e65b-b589-465a-830c-286541780f96][9575e65b]]). Whatever prefix format is chosen has to leave that row readable rather than showing a truncated title where a prefix belongs.
 
