@@ -154,6 +154,13 @@ heading.
   per response. Four turns were blocked today, each for an id footnoted
   earlier and dropped on re-mention, including one in a sentence *about*
   having dropped footnotes.
+- **Clock in when work starts, and set `DOING` before `DONE`.** The
+  2026-08-25 session queued 52 state changes and **zero** clock events: every
+  heading went `TODO` → `DONE` in one step, so nothing ever entered a clocked
+  state and nothing ever needed a clock. Nine hours landed on the meta-work
+  day node as unassigned spans a human had to attribute by hand — which is the
+  residue `eaeeb4ee` shipped to eliminate, and it shipped as the *first member
+  of this very slice*. The discipline half is the half that regressed.
 - **Write the 8-character prefix; let the tool expand it.** See above.
 - **Check a buffer against disk before clearing `buffer-read-only`.** On
   2026-08-25 the TODO.org buffer held 1274 bytes of the user's unsaved draft

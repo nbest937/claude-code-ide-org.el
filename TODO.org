@@ -6766,6 +6766,20 @@ actually did, both after the fact and at the start of a session.
 
 *Open, and worth deciding before building:* whether the report should also fire when *no* slice is open, which would be a different and probably more annoying question -- "you did work and no slice claims it" is sometimes just true.
 
+*The same signal answers a second question, found 2026-08-25 when the user asked whether the session's work was attached to any task at all.* It was not: 52 state changes queued that day and *zero* clock events, the last having been 2026-08-24 16:42.
+
+*The mechanism is visible in those two numbers.* Every heading went =TODO= -> =DONE= in one step. That is not a listed transition -- the table has =DOING= -> =DONE=, =PLANNING= -> =DONE=, =REVIEW= -> =DONE= -- so skipping the clocked state means no rule was ever triggered to open a clock. The omission is structural rather than forgetful: nothing asks for a clock on a transition that was never made.
+
+*So the detector proposed here generalises for free.* An id in a commit subject is evidence that the commit was *about* that heading. Cross that against the day's clock intervals and two questions fall out of one scan:
+
+- *which worked headings no slice names* -- this heading's original subject; and
+- *which worked headings carry no clock interval that day* -- the attribution gap.
+
+*The second is the more valuable of the two, on the day's evidence.* A forgotten slice member is a bookkeeping error someone notices at review. Un-clocked work is invisible: it lands on the meta-work day node as an unassigned span, indistinguishable at review from planning, and the human attributing it has no way to tell that three of those hours were implementation on a specific heading.
+
+*And it is exactly the residue [[id:eaeeb4ee-ceee-4094-8598-bbcdc8214b66][eaeeb4ee]] shipped to eliminate*, which is the sharp part. That heading made explicit clock pairs authoritative so attribution would stop needing a human -- and it is the first member of the slice during which the pairs stopped being produced at all. It closed the consumption half; the discipline half regressed behind it.
+
+
 
 ** CANCELLED Something writes a :blocked: tag; a derived fact stored is one that can go stale :code:
 CLOSED: [2026-08-25 Tue 14:12]
