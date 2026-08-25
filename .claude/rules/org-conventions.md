@@ -258,6 +258,24 @@ written before this convention needs, since such a body usually already holds
 both halves. `org_amend` appends *below* a `:PLAN:` drawer, so the debrief
 needs no special handling.
 
+**An empty `:PLAN:` drawer is a real answer, not an accident.** A heading
+written outcome-first has no prospective half at all, and that is the
+convention working rather than a heading missing a step. Pass the debrief's
+first line as the seam and `org_wrap_plan` writes an empty drawer, recording
+that the question was asked and answered; the whole body stays visible.
+
+The point is that **whether a body has a prospective half is a judgement,
+not something derivable from its prose** — bodies of both kinds open with a
+bold lead, so nothing in the text distinguishes them. So it is *declared*,
+by running the wrap, exactly as a slice is declared rather than inferred.
+
+This is also what makes the lint's question answerable. `bin/lint-org` warns
+when a finished heading has a substantial body and no `:PLAN:` drawer; before
+the empty drawer existed, the only way to satisfy that warning on a
+debrief-only heading was to wrap the debrief into a drawer readers are told
+to skip — the exact inversion the lifecycle exists to prevent. See `:ID:`
+f421c5c3.
+
 **Readers skip it.** Treat `:PLAN:` as absent unless the question you are
 answering is retrospective — "how did we get here", "why was it done this
 way". The debrief and the source code describe present reality; the plan

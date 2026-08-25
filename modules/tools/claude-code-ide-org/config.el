@@ -8449,7 +8449,7 @@ which is a fact for the caller to report rather than an error."
           (setq end (max beg (point))))
         (and (< beg end) (list open beg end))))))
 
-(defun claude-code-ide-org--plan-seam (beg end marker)
+(defun claude-code-ide-org--plan-seam (beg end marker &optional empty-ok)
   "Return the position in BEG..END where the line containing MARKER starts.
 
 MARKER is matched literally and must appear exactly once in the region,
@@ -8457,7 +8457,21 @@ at the start of a line.  Anything else is an error rather than a best
 guess: the seam decides which half of a body becomes invisible to
 ordinary reading, and a silently-wrong seam is the one mistake here that
 no later reader will catch, since `:PLAN:' is a drawer readers are told
-to skip."
+to skip.
+
+*The seam landing on the first body line is not an error condition; it
+is an answer* (TODO.org :ID: f421c5c3).  It says the body is debrief all
+the way up -- there is no prospective half -- which is what a heading
+written outcome-first under this convention looks like, and six existing
+headings are in exactly that position.  With EMPTY-OK non-nil this
+returns BEG, and the caller wraps nothing into an *empty* `:PLAN:'
+drawer, which records that the question was asked and answered.  Without
+it the old error stands, so a caller that cannot represent the answer
+still refuses rather than silently producing an empty drawer.
+
+Uniqueness is still enforced in both modes.  EMPTY-OK relaxes only the
+\"nothing to wrap\" case, never \"I could not tell which line you
+meant\"."
   (save-excursion
     (goto-char beg)
     (let (hits)
@@ -8469,7 +8483,7 @@ to skip."
        ((cdr hits)
         (error "Seam marker appears %d times; it must be unique: %s"
                (length hits) marker))
-       ((= (car hits) beg)
+       ((and (= (car hits) beg) (not empty-ok))
         (error "Seam marker is the first body line; nothing would be wrapped"))
        (t (car hits))))))
 
@@ -8528,8 +8542,12 @@ nothing escapes it. Not wrapped."
            (let* ((open (nth 0 bounds))
                   (beg (nth 1 bounds))
                   (end (nth 2 bounds))
+                  ;; EMPTY-OK: a seam on the first body line means "no
+                  ;; prospective half", and an empty drawer is how that
+                  ;; is recorded rather than an error the caller has no
+                  ;; way to satisfy (TODO.org :ID: f421c5c3).
                   (stop (if until
-                            (claude-code-ide-org--plan-seam beg end until)
+                            (claude-code-ide-org--plan-seam beg end until t)
                           end))
                   (before (buffer-substring-no-properties open end)))
              ;; Close first, then open. Inserting at the later position
@@ -8559,11 +8577,17 @@ nothing escapes it. Not wrapped."
                ;; Same trap as `--outline-line' and the pending-updates
                ;; report; observed here on the first real call.
                (substring-no-properties
-                (format "Wrapped %s of \"%s\" in :PLAN:%s. Text preserved: %s."
-                        (if until "the body above the seam" "the whole body")
-                        (org-get-heading t t t t)
-                        (if until (format " (seam: %s)" until) "")
-                        (if (equal stripped before) "yes" "NO -- INSPECT"))))))))))))
+                (if (= stop beg)
+                    (format "\"%s\" has no prospective half -- the seam is its \
+first body line -- so an empty :PLAN: drawer records that, and the whole body \
+stays visible as the debrief. Text preserved: %s."
+                            (org-get-heading t t t t)
+                            (if (equal stripped before) "yes" "NO -- INSPECT"))
+                  (format "Wrapped %s of \"%s\" in :PLAN:%s. Text preserved: %s."
+                          (if until "the body above the seam" "the whole body")
+                          (org-get-heading t t t t)
+                          (if until (format " (seam: %s)" until) "")
+                          (if (equal stripped before) "yes" "NO -- INSPECT")))))))))))))
 
 ;;; CLOSED: backfill (TODO.org :ID: f4b07fc0)
 ;;

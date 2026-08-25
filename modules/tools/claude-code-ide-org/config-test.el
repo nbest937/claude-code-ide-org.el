@@ -7960,12 +7960,74 @@ mistake here that no later reader will catch."
                             (claude-code-ide-org-wrap-plan id "nowhere in the body")))
     (should (string-match-p "appears 2 times"
                             (claude-code-ide-org-wrap-plan id "A repeated marker")))
-    (should (string-match-p "nothing would be wrapped"
-                            (claude-code-ide-org-wrap-plan id "A line.")))
-    ;; None of those refusals may have written anything.
+    ;; None of those refusals may have written anything.  A seam on the
+    ;; first body line is deliberately NOT in this list any more -- it is
+    ;; an answer, not an ambiguity; see the empty-drawer test below.
     (should-not (string-match-p ":PLAN:" (claude-code-ide-org-test--body-of id)))
     ;; A successful wrap, then a second attempt on the same heading.
     (claude-code-ide-org-wrap-plan id)
+    (should (string-match-p "already has a :PLAN: drawer"
+                            (claude-code-ide-org-wrap-plan id)))))
+
+(ert-deftest claude-code-ide-org-test-plan-seam-refuses-empty-unless-allowed ()
+  "`--plan-seam' still refuses a first-line seam by default.
+
+The relaxation is opt-in, so a caller that cannot represent \"there was
+nothing to wrap\" keeps refusing rather than silently producing an empty
+drawer.  Uniqueness is enforced in *both* modes: EMPTY-OK answers
+\"nothing is prospective\", never \"I could not tell which line you
+meant\"."
+  (with-temp-buffer
+    (org-mode)
+    (insert "* H\n")
+    (let* ((beg (point))
+           (_ (insert "First line.\nSecond line.\nDuplicated.\nDuplicated.\n"))
+           (end (point)))
+      ;; Default: the old error stands.
+      (should-error (claude-code-ide-org--plan-seam beg end "First line.")
+                    :type 'error)
+      ;; EMPTY-OK: the same call answers BEG instead.
+      (should (= beg (claude-code-ide-org--plan-seam beg end "First line." t)))
+      ;; A genuine seam is unaffected by the flag.
+      (should (= (claude-code-ide-org--plan-seam beg end "Second line.")
+                 (claude-code-ide-org--plan-seam beg end "Second line." t)))
+      ;; Ambiguity still errors *with* the flag -- this is the assertion
+      ;; that keeps EMPTY-OK from becoming "never refuse anything".
+      (should-error (claude-code-ide-org--plan-seam beg end "Duplicated." t)
+                    :type 'error)
+      (should-error (claude-code-ide-org--plan-seam beg end "Absent." t)
+                    :type 'error))))
+
+(ert-deftest claude-code-ide-org-test-wrap-plan-records-no-prospective-half ()
+  "A debrief-only body gets an EMPTY :PLAN: drawer, not a refusal.
+
+TODO.org :ID: f421c5c3.  The `:PLAN:' lint asks one question -- is there
+a drawer? -- and a heading written outcome-first had no way to answer
+\"yes, and it is empty on purpose\".  Six existing headings are in that
+position, and the only way to satisfy the warning was to wrap a debrief
+into a drawer readers are told to skip, which is the exact inversion the
+lifecycle exists to prevent.
+
+Whether a body has a prospective half is a judgement, not something
+derivable from its prose -- so it is *declared*, by running the wrap and
+letting it record the answer."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "\n*Shipped 2026-08-25.* It works, and here is how it was checked.\nA second debrief line.\n")
+    (save-buffer)
+    (let ((result (claude-code-ide-org-wrap-plan
+                   id "*Shipped 2026-08-25.* It works, and here is how it was checked.")))
+      (should (string-match-p "no prospective half" result))
+      (should (string-match-p "Text preserved: yes" result)))
+    (let ((body (claude-code-ide-org-test--body-of id)))
+      ;; The drawer exists, so the lint's question now has an answer...
+      (should (string-match-p ":PLAN:" body))
+      ;; ...and it is empty: nothing between the markers but whitespace.
+      (should (string-match-p ":PLAN:[ \t\n]*:END:" body))
+      ;; The debrief stayed in the body, where a reader will see it.
+      (should (string-match-p "It works, and here is how it was checked" body))
+      (should-not (string-match-p ":PLAN:[ \t\n]*\\*Shipped" body)))
+    ;; Idempotent for the same reason a real wrap is: the drawer exists.
     (should (string-match-p "already has a :PLAN: drawer"
                             (claude-code-ide-org-wrap-plan id)))))
 
