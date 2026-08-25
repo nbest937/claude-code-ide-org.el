@@ -249,6 +249,34 @@ checkbox that disagrees with its referent means the slice is stale or
 the referent's keyword is under-reporting; it never means someone
 formed a second opinion worth recording.
 
+**Where a story comes from — the direction, not current practice.** A
+task that outgrows itself **divides** rather than being promoted: a new
+parent appears, the original leaf moves under it *carrying its `:ID:`,
+clock and `:LOGBOOK:`*, and the undone parts of its swollen body become
+new sibling leaves. `:ID:` a0813ae3, designed and **not built** — today
+stories arise by growth or refiling, so what follows is what the model
+buys, not what the files currently guarantee.
+
+The payoff is that **a story is precipitated, never authored.** The new
+parent *is* a story the instant it has keyworded children, so there is
+no moment where anyone decides "this is now a story" and writes it down
+— which is the decision that was always going to be got wrong, and the
+one the emergent definition exists to avoid.
+
+And it is **born empty**, which settles three open things *by
+construction rather than by rule*:
+
+- **No clock.** `:ID:` 3964c575 wants containers to carry none and
+  cannot enforce it, because a heading clocked honestly as a leaf
+  becomes a container retroactively. A story born by division has never
+  been worked, so it has no clock it could have earned.
+- **No history.** The `:ID:`, `:LOGBOOK:` and state transitions travel
+  with the elder child, which is the task that actually did the work.
+- **No body of actions.** The engorged body is *consumed* producing the
+  new leaves. What is left is the reason the group exists — which is the
+  one thing a story's body should hold, and why "a story has no body" is
+  a consequence here rather than an instruction to remember.
+
 Two consequences that are easy to get backwards. Declaring an emergent
 grouping is the error the epic paragraph guards against. Trying to
 *infer* a declared one — reading a story out of the tree's shape — is
