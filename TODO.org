@@ -6215,10 +6215,15 @@ CLOCK: [2026-08-24 Mon 14:51]--[2026-08-24 Mon 14:53] =>  0:02
 *Tested across all four kinds together*, because the failure each time was a case falling into a branch that describes something else, and only comparing them shows that.
 
 
-** The promotion trigger re-entered itself; one apply made 1201 mutations :code:
+** DONE The promotion trigger re-entered itself; one apply made 1201 mutations :code:
+CLOSED: [2026-08-24 Mon 19:07]
 :PROPERTIES:
 :ID:       7148cddc-aca3-416e-8bcb-f164d4d2bba0
 :CREATED:  [2026-08-24 Mon 19:07]
+:END:
+:LOGBOOK:
+- State "DONE"       from              [2026-08-24 Mon 19:07] \\
+  guard shipped, cascade cannot recur
 :END:
 
 *Shipped 2026-08-24* (=7c7d992=), filed after the fact because the incident is worth keeping even though the fix took twenty minutes.
@@ -6240,10 +6245,14 @@ Its only guard was =--review-applying=, and that is bound around the apply *loop
 *What the rollback cost, which was under-described at the time.* Assignments and edited intervals live in =--review-items=, in memory, never in the queue. Rebuilding items from the queue restores the *events* and discards the judgement applied to them. The user lost a hand-made assignment and an edited interval, and was told the rollback would "cost the review pass again" -- which sounded like keystrokes and meant decisions.
 
 
-** Apply consumes queue events with no way to roll one back :code:
+** NEXT Apply consumes queue events with no way to roll one back :code:
 :PROPERTIES:
 :ID:       21c91613-76e0-4590-affe-e2af9f1321ca
 :CREATED:  [2026-08-24 Mon 19:08]
+:END:
+:LOGBOOK:
+- State "NEXT"       from              [2026-08-24 Mon 19:08] \\
+  cheap fix, found the hard way
 :END:
 
 *Found 2026-08-24 while recovering from [[id:7148cddc-aca3-416e-8bcb-f164d4d2bba0][7148cddc]]*, which is the only reason it was noticed: nothing had ever needed to undo an apply before.
@@ -6265,10 +6274,14 @@ An apply writes to the org file *and* marks its events consumed in =<session>.ap
 The second is the one that would have made this recovery a single command instead of an archaeology exercise, and it is nearly free.
 
 
-** Auto-mark the state items that carry no judgement :code:
+** TODO Auto-mark the state items that carry no judgement :code:
 :PROPERTIES:
 :ID:       b6e229c7-3035-4c0e-943b-710a12bfd7d1
 :CREATED:  [2026-08-24 Mon 19:08]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-24 Mon 19:08] \\
+  measure staleness rate before building
 :END:
 
 *Proposed by the user 2026-08-24, after a long review pass:* "it seems like state transitions never require any judgment anymore. could those be applied invisibly or at least marked automatically?"
@@ -6288,10 +6301,17 @@ So the rule is clean, and the predicate for it already exists: =--review-markabl
 *Worth measuring before building:* how often a state item is stale in practice. On 2026-08-24 after two partial applies it was *every* item -- =markable 0= -- because the applies had already moved those headings to the states their events described. If that is typical rather than an artefact of a bad day, auto-marking buys less than it appears to and the honest answer is that the staleness check is doing most of the work.
 
 
-** An apply failure named nothing: five identical messages, no item, no stack :code:
+** DONE An apply failure named nothing: five identical messages, no item, no stack :code:
+CLOSED: [2026-08-24 Mon 19:51]
 :PROPERTIES:
 :ID:       df1cf43c-749f-435c-9f45-3d8df1d725ad
 :CREATED:  [2026-08-24 Mon 19:51]
+:END:
+:LOGBOOK:
+- State "DONE"       from              [2026-08-24 Mon 19:51] \\
+  instrumentation shipped and tested
+CLOCK: [2026-08-24 Mon 19:50]--[2026-08-24 Mon 19:53] =>  0:03
+- [2026-08-24 Mon 19:50]--[2026-08-24 Mon 19:53] assigned at review
 :END:
 
 *Shipped 2026-08-24* (=f1dcec9=), and filed after the fact -- the user asked for a heading and got one only for its sibling proposal, which is its own small instance of the same defect.
@@ -6311,6 +6331,42 @@ Five times, identically. Every word true. Between them they identified *nothing*
 *One real mistake, recorded because it was nearly shipped.* The first draft used =condition-case-unless-debug=, which broke four existing tests -- ERT binds =debug-on-error=, so errors stopped being converted at all. =--at-id='s contract is that it *always* converts; the capture had to be additive, not a change to when it catches. The suite caught it in one run.
 
 *Still unverified against the original failure.* By the time the instrumentation was live, the five items had been dismissed as stale -- the partial applies had moved their headings to the states the events described. So the message that motivated this has never been seen through it, and the underlying cause of "Before first headline at position 1" remains unknown.
+
+
+** The assign completion omits the :ID: prefix every other rendering carries :code:
+:PROPERTIES:
+:ID:       46e4ce2b-fdc8-447b-ad09-b4845602540f
+:CREATED:  [2026-08-25 Tue 08:34]
+:END:
+
+*Reported by the user 2026-08-25*, using =a= in the review buffer: the completion list should carry the =:ID:= prefix the way other renderings do.
+
+[[id:c2132d3f-dd78-4498-ba87-0ca814dc2f77][c2132d3f]] established the convention and its reason: "the review buffer groups items under a heading title alone, so acting on a line means looking its ID up elsewhere -- and this project's own convention cites 8-character prefixes in prose." The assign completion is the same problem in the same buffer, unfixed because it was a different call site.
+
+*Current shape*, from =--assign-candidates=: =(format "%s %s%s  {%s}" range state title short-id)= -- the id trails in braces after the title. That is where every other rendering puts it too, so "begin with the prefix" is a change to the *convention* rather than a divergence from it, and it should be applied everywhere at once or not at all.
+
+*The argument for leading with it, in this list specifically.* The assign prompt is a =completing-read=: the human types to narrow. Leading with the 8-character prefix makes the id typeable, which it currently is not without scrolling to the end of a long line -- and this is the one rendering whose entries are *selected by typing* rather than read.
+
+*Note the one entry that has no id and must stay legible:* the meta-work category, offered first, whose "id" is the title =Review and planning= ([[id:9575e65b-b589-465a-830c-286541780f96][9575e65b]]). Whatever prefix format is chosen has to leave that row readable rather than showing a truncated title where a prefix belongs.
+
+
+** "writes 0:09 in 1" reads as two swappable numbers; "in 1" has no unit :code:
+:PROPERTIES:
+:ID:       98c302e0-ab1b-40bf-92d0-d2f2e16ac05d
+:CREATED:  [2026-08-25 Tue 08:34]
+:END:
+
+*Reported by the user 2026-08-25* as "it looks like the arguments are reversed in the string interpolation".
+
+*They are not, and checking mattered.* =--review-written-summary= is =(format "writes %d:%02d in %d" (/ minutes 60) (% minutes 60) (length runs))= -- hours, minutes, run count, in that order. Verified against an independently computed case rather than by reading the format: the 2026-08-24 span 16:43--18:06 had nine runs, which had been enumerated separately and summed to about 36 minutes, and it rendered =writes 0:36 in 9=. Duration first, count second, correct.
+
+*What is actually wrong is that nothing says so.* ="in 9"= carries no unit, so ="0:36 in 9"= and ="0:09 in 36"= are equally readable and the two numbers look interchangeable. The reader has to already know the convention to parse the line, and the line exists to tell them something they do not know.
+
+*A person who reads this buffer daily read it as a bug*, which is the measurement that matters -- not whether the code is right but whether the reader can tell. Every candidate fix is a wording change and none touches the computation: ="writes 0:36 across 9 runs"=, ="writes 0:36 in 9 runs"=, or splitting the count onto the annotation where the runs are actually listed.
+
+*Another instance of [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]]*, filed the previous evening: the code knows the second number counts runs, and the message does not say it. That heading proposed an audit of exactly this -- every place the review buffer reports a value, ask whether it distinguishes something the wording does not. This is the first case the audit would have caught, found by a human the next morning instead.
+
+*Worth doing in the same pass as that audit* rather than alone, since a one-word fix here and an unchanged wording three lines below would leave the buffer inconsistent in a way that is worse than uniformly terse.
 
 
 * Observability
@@ -7011,7 +7067,7 @@ archived keeps only its state-change line.
 *One consequence nobody predicted here,* worth recording because it paid off a week later. Dating work by =CLOSED:= only became possible once this existed, which is what let f4b07fc0's backfill scope [[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]]'s lint rule to headings closed after the convention landed -- 0 warnings instead of 124. A rule filed as "adds no data, adds an accessor" turned out to be the thing that made a later rule usable at all.
 
 
-** NEXT Track the human's review attention, clocked by the review command itself :code:research:
+** TODO Track the human's review attention, clocked by the review command itself :code:research:
 :PROPERTIES:
 :ID:       961f15b6-d782-40b8-8ceb-ba086d188a3b
 :CREATED:  [2026-08-24 Mon 16:32]
@@ -7019,6 +7075,8 @@ archived keeps only its state-change line.
 :LOGBOOK:
 - State "NEXT"       from              [2026-08-24 Mon 16:33] \\
   design settled except where to file it
+- State "TODO"       from "NEXT"       [2026-08-25 Tue 08:33] \\
+  Auto-demoted: superseded by sibling [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][Six defects in one day, all the same: the code knew more than it said]] becoming NEXT.
 :END:
 
 *Proposed by the user 2026-08-24, reviewing a live queue.* The review pass is the one activity this project has never measured, and it is the one the project most depends on: nothing reaches an org file without it. Its cost is currently invisible, so "the review-apply cycle seems pretty straightforward lately" ([[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]]) is an impression rather than a number.
@@ -7091,10 +7149,14 @@ Verified against the hook documentation rather than assumed: Claude Code exposes
 So AFK/BAK is *not* needed for a gap that ends the working stretch -- silence handles that by itself. It earns its keep for a gap *inside* one: the user steps away while a turn is running, or between two prompts that bracket a span, where the guideposts either side make the interval look continuous. That is a narrower case than it first appeared, and worth knowing before building for the general one.
 
 
-** Six defects in one day, all the same: the code knew more than it said :code:research:
+** NEXT Six defects in one day, all the same: the code knew more than it said :code:research:
 :PROPERTIES:
 :ID:       6cc71c36-0fa6-4773-9b35-c0582f4cee82
 :CREATED:  [2026-08-24 Mon 19:52]
+:END:
+:LOGBOOK:
+- State "NEXT"       from              [2026-08-24 Mon 19:52] \\
+  audit the review buffer's readouts
 :END:
 
 *Noticed 2026-08-24 when the user asked whether the day's new headings formed a group.* They do, and the grouping is not the one the categories suggest.
@@ -9687,6 +9749,23 @@ CLOCK: [2026-08-24 Mon 17:49]--[2026-08-24 Mon 18:06] =>  0:17
 - [2026-08-24 Mon 17:49]--[2026-08-24 Mon 18:06] assigned at review
 CLOCK: [2026-08-24 Mon 18:46]--[2026-08-24 Mon 18:55] =>  0:09
 - [2026-08-24 Mon 18:46]--[2026-08-24 Mon 18:55] assigned at review
+CLOCK: [2026-08-24 Mon 19:02]--[2026-08-24 Mon 19:11] =>  0:09
+- [2026-08-24 Mon 19:02]--[2026-08-24 Mon 19:11] assigned at review
+CLOCK: [2026-08-24 Mon 20:54]--[2026-08-24 Mon 20:55] =>  0:01
+- [2026-08-24 Mon 20:54]--[2026-08-24 Mon 20:55] assigned at review
+:END:
+
+
+**** 2026-08-25 Tuesday
+:PROPERTIES:
+:ID:       df001961-a70c-42f3-a198-53a021db144c
+:CREATED:  [2026-08-25 Tue 08:02]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-25 Tue 08:02]--[2026-08-25 Tue 08:03] =>  0:01
+- [2026-08-25 Tue 08:02]--[2026-08-25 Tue 08:03] assigned at review
+CLOCK: [2026-08-25 Tue 08:24]--[2026-08-25 Tue 08:25] =>  0:01
+- [2026-08-25 Tue 08:24]--[2026-08-25 Tue 08:25] assigned at review
 :END:
 
 
