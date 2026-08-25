@@ -58,6 +58,37 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 - [[orgit-rev:claude-code-ide-org::bbac58b][bbac58b]] [2026-08-25 Tue 15:10] rewritten around finishing the slice rather than extending it
 
 
+** TODO Proposed slice: make the mechanism mean what the keywords now say :code:
+:PROPERTIES:
+:ID:       979e02b6-2a4c-4328-8b08-ffaec03bd02e
+:CREATED:  [2026-08-25 Tue 15:29]
+:COOKIE_DATA: checkbox recursive
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-25 Tue 15:29] \\
+  sketched as a proposal, not declared a slice
+:END:
+
+Reconcile the code with the keyword semantics settled 2026-08-25, so that =DOING= and the clock stop disagreeing about what a heading is doing.
+
+*Deliberately not carrying =:KIND: slice=, and that is the point.* Declaring is the act of committing to a slice, so a proposal is exactly a slice-shaped heading with the declaration withheld. It also keeps the checklist out of =bin/lint-org='s slice rules until someone means it -- otherwise the missing =:BLOCKER:= would be an error against a list nobody has agreed to yet.
+
+*No prompt link yet* for the same reason: there is no next-session.md revision driving this, and there will not be until it is picked up.
+
+*Why these six are one thing.* Today's session relaxed =DOING= to "started and owed a return", wrote it into CLAUDE.md, the org skill and [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]] -- and changed no code. Every member below is a place where the mechanism still implements the older, singular sense, and two of them are actively blocking work: two state transitions were left unqueued today because applying them would clock time that was never spent.
+
+*Ordered by dependency rather than by size.* The docstring first because it lies about the very variable the next three read; the trigger next because it unblocks the queued transitions; then the predicate, then the policy it enables, then the mechanism that makes the policy enforceable, and the general keyword review last, since by then most of its evidence exists.
+
+- [ ] [[id:6a21e08b-4880-4d2b-9b0f-12c35558fe08][6a21e08b]] TODO --trigger-auto-clock-in's docstring says the feature is off; it is on
+- [ ] [[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]] TODO Setting DOING retroactively opens a clock, which the looser sense makes wrong
+- [ ] [[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]] TODO A slice gets clocked and auto-promoted, because its members are links not children
+- [ ] [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]] TODO A container carries clocks it earned before it was one
+- [ ] [[id:a0813ae3-0c6d-43de-bae1-fb4414cdb519][a0813ae3]] TODO Task mitosis: a leaf that outgrows itself divides rather than becoming a parent
+- [ ] [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]] TODO Revisit the TODO keyword progression, starting with whether PLANNING earns its keep
+
+*Not included, and the reason is the same for all of them.* The review-buffer readout defects ([[id:46e4ce2b-fdc8-447b-ad09-b4845602540f][46e4ce2b]], [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]]) belong with [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]]'s audit, which is a different story about a different surface. [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] is upstream of *stories*, not of keywords. A slice that swept in everything open would be a backlog wearing a slice's clothes.
+
+
 * Skill logic
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Skill logic
