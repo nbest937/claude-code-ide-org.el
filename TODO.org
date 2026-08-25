@@ -6215,6 +6215,79 @@ CLOCK: [2026-08-24 Mon 14:51]--[2026-08-24 Mon 14:53] =>  0:02
 *Tested across all four kinds together*, because the failure each time was a case falling into a branch that describes something else, and only comparing them shows that.
 
 
+** The promotion trigger re-entered itself; one apply made 1201 mutations :code:
+:PROPERTIES:
+:ID:       7148cddc-aca3-416e-8bcb-f164d4d2bba0
+:CREATED:  [2026-08-24 Mon 19:07]
+:END:
+
+*Shipped 2026-08-24* (=7c7d992=), filed after the fact because the incident is worth keeping even though the fix took twenty minutes.
+
+*What happened.* A single apply of ~12 queued state changes produced *1201 mutations across 114 headings in nine seconds*, sustained at roughly 240 writes per second. Seven level-1 categories acquired TODO keywords, five headings ended up holding each other's states, and ~146 spurious =State= log lines were written into =:LOGBOOK:= drawers. Read from the audit log rather than inferred: every record attributed to =org_review_apply=, 50 of them on headings with no =:ID:= at all.
+
+*The mechanism.* =--trigger-auto-promote-sole-todo= runs on =org-trigger-hook= and, when it promotes, calls =org-todo=. =org-todo= fires =org-trigger-hook=. So the trigger re-enters itself.
+
+Its only guard was =--review-applying=, and that is bound around the apply *loop* and deliberately *unbound* during =--review-settle-auto-promote= -- which is the entire point of suppress-then-settle ([[id:c8a6c5d2-8777-44d2-9900-e56eb03aa2d9][c8a6c5d2]]). So the settle phase ran with no re-entrancy protection at all.
+
+*Why categories.* Once the cascade writes a keyword onto any level-1 heading, the level-1 sibling group satisfies the promotion's own condition -- more than one sibling, none =NEXT=, exactly one carrying a TODO keyword. The condition it tests for is *created by the cascade*, so it feeds itself. [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]]'s container guard should have refused those and did not, but that is downstream: without the cascade it is never asked.
+
+*The fix is the one this project already wrote once.* =--auto-promote-active=, bound around that single =org-todo= call, modelled exactly on =--auto-clock-in-active=, which guards =--trigger-auto-clock-in= against the identical shape and has done since it was written. The promotion trigger never got the equivalent.
+
+*Only one of the two tests discriminates, and that is recorded in the test itself.* A single sibling group cannot cascade into itself -- after the promotion the group holds a =NEXT= and the re-entered call refuses on its own terms -- so no minimal fixture reproduces production. The guard is pinned by asserting that the two guards each stop the trigger independently, which fails when the new one is removed. The write-counting test is a regression guard on the count, not a proof.
+
+*Recovery, and the part worth remembering.* The file was restored from =HEAD= and the queue's =.applied= set rolled back so the events became pending again. The obvious cut -- "un-apply everything since the last commit" -- would have been *wrong*: a third apply had happened at 16:42 and was already committed, so cutting there would have re-offered work that was correctly filed. The seam came from a pending report captured minutes before the bad apply: 54 events, not 85.
+
+*What the rollback cost, which was under-described at the time.* Assignments and edited intervals live in =--review-items=, in memory, never in the queue. Rebuilding items from the queue restores the *events* and discards the judgement applied to them. The user lost a hand-made assignment and an edited interval, and was told the rollback would "cost the review pass again" -- which sounded like keystrokes and meant decisions.
+
+
+** Apply consumes queue events with no way to roll one back :code:
+:PROPERTIES:
+:ID:       21c91613-76e0-4590-affe-e2af9f1321ca
+:CREATED:  [2026-08-24 Mon 19:08]
+:END:
+
+*Found 2026-08-24 while recovering from [[id:7148cddc-aca3-416e-8bcb-f164d4d2bba0][7148cddc]]*, which is the only reason it was noticed: nothing had ever needed to undo an apply before.
+
+An apply writes to the org file *and* marks its events consumed in =<session>.applied=. The two are independent writes with nothing tying them together, so when the file has to be restored from git the queue still believes the work is done -- and the events are never offered again. Restoring the file alone silently discards them.
+
+*No backup is written.* =git checkout HEAD -- TODO.org= is a one-keystroke undo for half the operation, and the other half has none. (A stray =2d057349-....applied.bak= exists in the queue directory from a hand-made copy months ago; nothing in the code produces one.)
+
+*What the recovery actually required,* recorded because it is not obvious and had to be worked out under pressure: the applied set is a *set of event timestamps*, not a watermark, and carries no record of *when* each entry was consumed. So "un-apply the last pass" is not answerable from the file. It was reconstructed from a =org_pending_updates= report captured minutes before the bad apply -- 54 events, cut at 13:14:41.
+
+*The obvious heuristic is wrong,* and nearly cost more than the incident. "Un-apply everything since the last commit" looked right and would have rolled back 85 events, because a *third* apply had landed at 16:42 and was already committed. Its work was correct and would have been re-offered and re-applied.
+
+*Directions, none chosen:*
+
+- *Write =<session>.applied.bak= before each apply,* one file, trivially restorable. Cheapest, and covers exactly the case that occurred.
+- *Record the apply time alongside each consumed event* -- =("ts" . "applied-at")= rather than a bare list -- which makes "un-apply the pass of 17:17" answerable directly, and costs one field.
+- *Make apply transactional with the file* -- attractive and much larger, since the file write is org's and spans several buffers.
+
+The second is the one that would have made this recovery a single command instead of an archaeology exercise, and it is nearly free.
+
+
+** Auto-mark the state items that carry no judgement :code:
+:PROPERTIES:
+:ID:       b6e229c7-3035-4c0e-943b-710a12bfd7d1
+:CREATED:  [2026-08-24 Mon 19:08]
+:END:
+
+*Proposed by the user 2026-08-24, after a long review pass:* "it seems like state transitions never require any judgment anymore. could those be applied invisibly or at least marked automatically?"
+
+*Mostly true, and the exception is the whole design.* A =state= item carries exactly one judgement: *staleness*. =--review-state-stale-p= exists because on 2026-08-07 applying a transition whose premise no longer held wrote plausible, correctly-formatted, wrong history -- and that is the failure this project exists to prevent. Everything else about a state item is mechanical.
+
+So the rule is clean, and the predicate for it already exists: =--review-markable-p= encodes precisely "can be marked without asking the human anything". Auto-marking is that predicate applied at *render* time rather than when =M= is pressed.
+
+- *Auto-mark* non-stale =state= items, so they arrive selected.
+- *Leave stale ones unmarked*, exactly as =--review-set-all= already refuses them.
+- *Do not auto-apply.*
+
+*That last line is load-bearing rather than cautious.* Apply must stay human-triggered: org's native state-change logging only completes inside a genuinely interactive command, which is the constraint the entire queue architecture was built around, and a non-interactive apply hits the hang it exists to route around. Auto-*marking* removes keystrokes without touching that; auto-*applying* would dismantle it.
+
+*A second reason, which the same afternoon supplied.* When an apply reported "Applied 0 item(s); 5 failed", the human had no independent expectation to compare against -- they had pressed =M= and did not know how many it had marked. Pre-marked items make the mismatch immediate: five marked, five failed, and the discrepancy is visible rather than inferred from a truncated message.
+
+*Worth measuring before building:* how often a state item is stale in practice. On 2026-08-24 after two partial applies it was *every* item -- =markable 0= -- because the applies had already moved those headings to the states their events described. If that is typical rather than an artefact of a bad day, auto-marking buys less than it appears to and the honest answer is that the staleness check is doing most of the work.
+
+
 * Observability
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Observability
@@ -6977,6 +7050,20 @@ Rejected: rebinding =q= to =(quit-window t)= so it kills. It would make =kill-bu
 *The reasoning for burying is that it matches what happens.* Burying *is* how a person leaves this buffer; it is not a lesser form of closing it. So the clock stops when the buffer stops being visible, and the user's word remains the primary signal for the case where they say so before leaving.
 
 *Refresh is safe and was checked rather than assumed.* =g= rebuilds contents through =get-buffer-create= on the same buffer -- =claude-code-ide-org-review= is =(let ((buffer (get-buffer-create "*org-review*"))) ...)= -- so it neither kills nor buries, and the clock correctly survives a refresh mid-pass. That matters because =g= is the command a human runs when confused, which is exactly when the pass is most expensive and least should be under-recorded.
+
+*AFK/BAK supplies the one bit no hook can observe* -- proposed by the user 2026-08-24 and measured the same evening.
+
+Verified against the hook documentation rather than assumed: Claude Code exposes 31 hook events and *none* fires during composition. There is no keystroke, input-change, draft or idle event. =UserPromptSubmit= fires after submission. So the gap between two prompts is irreducibly ambiguous -- the user thinking about a design and the user making coffee produce byte-identical records, and no configuration, hook or instrument will ever separate them. The human is the only possible source of that bit.
+
+*The machinery already exists, which is why this is small.* An AFK/BAK pair is structurally identical to =block_start=/=block_end=: a bracketed interval *excised* from a span rather than counted. =--block-intervals= pairs by position, =--time-within-any-p= drops guideposts inside, =--aggregate-guideposts= splits spans across them, and the =exclusions= argument added for clock brackets ([[id:eaeeb4ee-ceee-4094-8598-bbcdc8214b66][eaeeb4ee]]) generalises it. A third kind of excision is an addition, not a mechanism.
+
+=BAK= is the established complement in the idiom -- "back at keyboard", from IRC and gaming. =BTK= is not a thing.
+
+*First real measurement, 2026-08-24:* =AFK= at 18:06:10, =BAK= at 18:46:57 -- *41 minutes*. Both endpoints came from =resume= events the =UserPromptSubmit= hook had already written, with no new instrumentation at all.
+
+*And the measurement immediately showed where it does and does not earn its keep.* Those 41 minutes were *already* excluded: no guideposts fired while the user was away, so the gap never entered a span, and the adjacent item is a lone point at 19:02. The span before it ends at 18:06 exactly.
+
+So AFK/BAK is *not* needed for a gap that ends the working stretch -- silence handles that by itself. It earns its keep for a gap *inside* one: the user steps away while a turn is running, or between two prompts that bracket a span, where the guideposts either side make the interval look continuous. That is a narrower case than it first appeared, and worth knowing before building for the general one.
 
 
 * Bigger swings
