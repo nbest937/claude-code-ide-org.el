@@ -390,29 +390,38 @@ and `REVIEW` → `DONE` touches nothing because no clock is running. These
 rows were added 2026-08-21; until then the keyword was in live use with
 its clock semantics written down nowhere.
 
-**`DOING` means two different things, and which one depends on whether
-the heading is a container.** On a leaf it means *the agent is working on
-this right now* — that is the original sense, it is clock-bearing, and it
-is necessarily singular because org runs one clock. On a container
-(epic, story, slice) it means *at least one thing inside is in flight*.
-That sense takes no clock, is plural, and is derivable from the members
-rather than asserted.
+**`DOING` means started and owed a return — not executing right now.**
+The useful metaphor is *in the mail*: we have begun and need to circle
+back as soon as possible. It is durable and **plural**; several headings
+may be `DOING` at once. What records actual execution is the *clock*,
+not the keyword, and at most one heading carries a running clock because
+org runs one.
 
-The code already encodes the split: `--trigger-auto-clock-in` exempts a
-container, so setting `DOING` on one opens nothing. The gap is that a
-*slice* is not recognised as a container, because its members are links
-rather than children — `:ID:` 95c27fca.
+On a container (epic, story, slice) the same word reads one level up: at
+least one member is in the mail. That sense takes no clock at all, and
+`--trigger-auto-clock-in` already exempts containers. The gap is that a
+*slice* is not recognised as one, because its members are links rather
+than children — `:ID:` 95c27fca.
 
-Two consequences worth stating, because both have been got wrong here:
+GTD's one-thing-at-a-time is not being followed here, deliberately. That
+rule is calibrated to human working memory; an agent re-reading a
+checklist each turn has different limits, and keeping several started
+items visible is what stops them being silently dropped.
 
-- **A leaf held for the user's judgement is `WAITING`, not `DOING`.**
-  Nothing is in flight, so a clock would be lying about attention.
-- **The keyword tracks attention, not progress.** A leaf that was worked
-  and set down goes back to `NEXT` or `TODO`; that it is half-built lives
-  in its body, its commits and its children, not in the keyword. There is
-  deliberately no "started but resting" state, and asking for one is a
-  sign the heading wants splitting — the finished part `DONE`, the
-  remainder a fresh task.
+Consequences, each of which has been got wrong in practice:
+
+- **A leaf held for *the user's* judgement is `WAITING`, not `DOING`** —
+  nothing is owed by us, so nothing is in the mail.
+- **A heading that was worked and set down stays `DOING`.** Demoting it
+  to `NEXT` or `TODO` loses the fact that it is owed. This reverses an
+  earlier draft of this section, which claimed the keyword tracks
+  attention rather than progress and that no "started but resting" state
+  should exist; that is exactly the state `DOING` is for.
+- **Setting `DOING` retroactively still opens a clock**, which under this
+  looser sense is a misattribution rather than a nicety: `org-todo
+  "DOING"` fires `--trigger-auto-clock-in` immediately, verified in
+  batch. Recording that something *was* started is not the same act as
+  starting it. See `:ID:` 4f6a6bb1.
 
 **Rule**: any transition *to* `DOING` or `PLANNING` must open a clock, with
 one documented exception: `PLANNING` → `DOING` reuses the already-running

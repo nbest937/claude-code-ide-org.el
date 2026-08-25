@@ -22,15 +22,7 @@
   retconned; the slice itself opened 2026-08-24 with the plan it links
 :END:
 
-*The first slice, and it is retrospective.* The heading was written 2026-08-25 for work that began 2026-08-24, so its checkbox states are reconstructed from the org files rather than recorded as they happened. Everything below was verified against the current keyword of each referent at the moment of writing; nothing was recalled.
-
-*The theme, which is what makes these a slice rather than a list.* Every member touches the review pass -- what it costs to run, whether what it reports is true, and whether the record survives it. That cut across four categories, which is exactly the property that made a parent heading unusable and a by-reference list necessary ([[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]]).
-
-*Membership is narrower than "everything touched".* The rule applied here: a member is something the slice *committed to* or *actually worked*. Headings captured during the slice but never worked are products of it, not members -- [[id:46e4ce2b-fdc8-447b-ad09-b4845602540f][46e4ce2b]] and [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]], both filed this morning, are deliberately absent. So are the items the driving plan listed as off the critical path and never reached. A slice need not contain every child of a story it refers to, and it need not contain everything that happened while it ran.
-
-*Two states are worth reading carefully rather than trusting the shape.* [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]] shipped its normaliser on 2026-08-24 but its own body names remaining work -- the convention is written down nowhere -- and a grep of =.claude/rules/org-conventions.md= confirms it still is not, so it is partial rather than done. [[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]] wrapped 34 of 43 headings and still owes the archive step. Both would have been marked =[X]= from memory.
-
-*One member carries no checkbox at all*, which is the mechanism rather than an omission: [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] was worked to a decision and cancelled, so its cookie is deleted and it neither counts toward the numerator nor inflates the denominator. Deferral to a later slice takes the same form. The line stays, because the record of having considered and dropped something is the part a bare list loses.
+Work that makes a review pass cheaper to run, more accurate in what it reports, and less likely to leave the record worse than it found it.
 
 - [ ] [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]] TODO [0/3] Make the daily ceremony cheap enough that it actually runs
   - [ ] [[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]] TODO Consolidation only reaches drawers an apply pass happens to touch
@@ -56,16 +48,12 @@
 - [X] [[id:49557477-e50c-496f-85df-82c65109832b][49557477]] DONE Expand an 8-character prefix at both surfaces where a tail gets invented
 - [[id:637ee73d-e1b7-4a84-9213-830c49a400b4][637ee73d]] TODO Snapshot the next-session.md that drove each slice, the way plans are archived
 
-*The prompt that drove this slice, revision by revision.* =.claude/commands/next-session.md= is rewritten in place, so a single reference to it names whatever it says today rather than what it said when the slice opened. Each commit below is one revision of that prompt:
+*The prompt that drove this slice, one link per revision of it:*
 
 - [[orgit-rev:claude-code-ide-org::97e1ef2][97e1ef2]] [2026-08-24 Mon 15:39] defined the slice
 - [[orgit-rev:claude-code-ide-org::7abdc4e][7abdc4e]] [2026-08-24 Mon 16:51] refreshed mid-session, having drifted while it ran
 - [[orgit-rev:claude-code-ide-org::8afbc68][8afbc68]] [2026-08-24 Mon 19:11] folded in the afternoon's incident
 - [[orgit-rev:claude-code-ide-org::7e20e79][7e20e79]] [2026-08-24 Mon 19:53] named the pattern the day's defects shared
-
-*Several links rather than one is what lets a slice outlive a session.* A CLI restart or a cleared context is a *revision of the prompt*, not a new slice -- so unfinished members stay where they are instead of being deferred into a successor. That matters here specifically: none of the original members are complete, because the eleven appended ones are unanticipated work found while doing them, and under a one-plan-per-slice rule the whole original list would now be deferred and re-mentioned in a slice that had not earned it.
-
-*This replaced a copied snapshot* under =slices/=, removed in the same commit ([[id:637ee73d-e1b7-4a84-9213-830c49a400b4][637ee73d]]). The copy existed to give the prompt a stable identity; an =orgit-rev:= link is that and nothing else, and it costs no sync script, no drift check and no pre-push gate.
 
 
 * Skill logic
@@ -1962,6 +1950,29 @@ Everything here is specifically about the clock subsystem's
 correctness and observability, as opposed to the general TODO-state
 machine above — three different angles on "make sure the clock is
 never silently wrong."
+
+
+** TODO Setting DOING retroactively opens a clock, which the looser sense makes wrong :code:
+:PROPERTIES:
+:ID:       4f6a6bb1-7773-4657-949e-1fe1ba9484be
+:CREATED:  [2026-08-25 Tue 13:51]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-25 Tue 13:51] \\
+  blocks two queued transitions; verified in batch
+:END:
+
+*=DOING= was relaxed 2026-08-25* from "the agent is executing this right now" to "started and owed a return" -- *in the mail*. The looser sense is durable and plural, and it immediately collides with a trigger built for the stricter one.
+
+*=--trigger-auto-clock-in= assumes entering DOING means starting now.* Verified in batch rather than read off the docstring, which is itself wrong about this ([[id:6a21e08b-4880-4d2b-9b0f-12c35558fe08][6a21e08b]]): =(org-todo "DOING")= on a fresh leaf returns =org-clocking-p= t immediately, with =claude-code-ide-org-auto-clock-in-on-doing= at its live value of =t=.
+
+*So recording that something was started earlier now credits time to the present.* Two transitions are waiting on exactly this and were deliberately *not* queued: [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]], whose design was written up 2026-08-24, and [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]], whose normaliser shipped the same day. Both are =DOING= under the new sense and neither is being worked now.
+
+*Worse than one stray interval, because apply lands events in sequence.* Two retroactive DOINGs applied together would clock in on the first, then clock in on the second -- which closes the first, leaving a stray sub-minute interval on it -- and finish with a clock left running on the second. That is the known resume-the-wrong-heading edge case arriving by a different route, but self-inflicted and predictable rather than incidental.
+
+*The distinction the trigger needs is between two acts that currently look identical*: beginning work, and recording that work began. Only the first should clock. Candidates, none chosen -- a queue event that carries "retroactive" and suppresses the trigger on apply; splitting the transition from the clock entirely so =org_clock_in= is the only thing that ever opens one; or narrowing =--trigger-auto-clock-in= to genuinely interactive keystrokes, which is what its docstring already claims it is for.
+
+*Note the second candidate is close to what the queue architecture already believes.* =org_set_todo= and =org_clock_in= are separate calls precisely so that state and clock are decided separately; the trigger reintroduces the coupling at apply time, on the one path that is not going through those calls.
 
 
 ** TODO A container carries clocks it earned before it was one :code:research:
@@ -6619,6 +6630,27 @@ So this is a *scanning* consistency, not a functional gap, and that changes what
 
 Broader than clocking — visibility into what every tool call
 actually did, both after the fact and at the start of a session.
+
+
+** TODO Something writes a :blocked: tag; a derived fact stored is one that can go stale :code:
+:PROPERTIES:
+:ID:       a7f4b40c-d6e0-4bde-82ba-94bcf45253f4
+:CREATED:  [2026-08-25 Tue 13:53]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-25 Tue 13:53] \\
+  observed, not reproduced; writer unknown
+:END:
+
+*Observed 2026-08-25.* [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]]'s tag line became =:code:slice:blocked:=. The =slice= tag was written deliberately; =blocked= was not written by anything in this repo -- =grep '"blocked"'= over =config.el= returns nothing.
+
+*Not reproduced, and that is the state of knowledge rather than a conclusion.* It entered in =ed2aca6=, the commit that tagged the slice and ran =claude-code-ide-org-refresh-slice-blocker= against the *live* Emacs. Two candidates were tested in batch and both cleared: =org-depend-tag-blocked-tasks= is void, and =org-entry-blocked-p= leaves =org-get-tags= untouched and was verified to do so on a fixture. So the writer is something loaded in the live session that =emacs --batch -Q= does not load.
+
+*Why it matters more than one stray tag.* Blocked-ness is *derivable* -- =org_outline= computes it per read, and =org-entry-blocked-p= answers it on demand. A tag is *stored*. The moment the last blocker finishes, a stored tag says "blocked" about a heading that is not, and nothing in this repo would notice: the tag is undeclared in =#+TAGS:=, =bin/lint-org= is silent about it, and no test covers it. That is the same second-copy-that-can-disagree failure the slice design spent this session eliminating from checkboxes and blocker lists, arriving from outside the design.
+
+*Left in place deliberately.* Removing it without knowing the writer would most likely see it return on the next operation, and the churn would be a worse signal than the tag. Find the writer first.
+
+*Two ways it could resolve, and they point opposite directions.* If a package is maintaining it *correctly* -- adding and removing in step -- it is a useful visible marker and should be declared in =#+TAGS:= and left alone. If it is write-only, it is a bug and should be turned off rather than linted around.
 
 
 ** TODO Make task lifecycle answerable from one timeline, starting at creation :code:
