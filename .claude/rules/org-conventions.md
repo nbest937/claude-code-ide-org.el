@@ -53,7 +53,7 @@ a headline by hand without checking what is already there.
 
 ## Top-level headings
 
-Top-level (`*`) headings in `TODO.org` are categories/epics — pure
+Top-level (`*`) headings in `TODO.org` are epics — pure
 structure, grouping related tasks — not tasks in their own right. They carry
 no `TODO` keyword, no tags, and **no task metadata**: no `:ID:` and no
 `:CREATED:`, overriding the general "every heading creation" rule for this
@@ -92,10 +92,12 @@ one needs to represent actionable work rather than group children, demote
 it: give it an `:ID:` and treat it like any other task, or nest it a level
 deeper under a category heading.
 
-An epic is not declared, it is emergent: a heading that has acquired
+A **story** is not declared, it is emergent: a task that has acquired
 children carrying TODO keywords. Detectable via
-`claude-code-ide-org--container-heading-p`. Don't classify a heading as one
-when writing it.
+`claude-code-ide-org--container-heading-p` — "container" is the code's
+older word for a story. Don't classify a heading as one when writing it.
+An **epic** is the separate thing: the grouping a task belongs to, today
+a level-1 heading and proposed as an `:EPIC:` label (`:ID:` 29439196).
 
 **A heading with TODO-carrying children carries a statistics cookie.** Add
 `[/]` to the headline and let org fill it in
@@ -115,7 +117,7 @@ arithmetic.
 ## Slices
 
 A **slice** is a declared grouping: a sequenced set of tasks asserted to
-belong together for a reason the tree does not encode. Unlike an epic,
+belong together for a reason the tree does not encode. Unlike a story,
 which is emergent and detected from its keyworded children, a slice
 cannot be derived — so it is written down as an explicit list, and being
 written down, it can go stale.

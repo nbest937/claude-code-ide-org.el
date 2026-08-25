@@ -90,35 +90,6 @@ Wherever this project declares something in prose and the code infers it some ot
 *Not included, and the reason is the same for all of them.* The review-buffer readout defects ([[id:46e4ce2b-fdc8-447b-ad09-b4845602540f][46e4ce2b]], [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]]) belong with [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]]'s audit, which is a different story about a different surface. [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] is upstream of *stories*, not of keywords. A slice that swept in everything open would be a backlog wearing a slice's clothes.
 
 
-** TODO Settle what a slice proposal is, and write the procedure down :code:
-:PROPERTIES:
-:ID:       7c4d6ef6-c914-4d33-b267-cc9158a9f359
-:CREATED:  [2026-08-25 Tue 15:49]
-:END:
-:LOGBOOK:
-- State "TODO"       from              [2026-08-25 Tue 15:49] \\
-  extracted from the first proposal's body
-:END:
-
-*Extracted 2026-08-25 from the body of the first proposed slice*, where it had been written as though it were that proposal's own reasoning. It is not: it describes what *any* proposal is, which is the same error [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] was trimmed for hours earlier -- a slice's body carrying the convention rather than the instance. The user caught both.
-
-*Done when the procedure is in* =.claude/rules/org-conventions.md= *beside the slice convention*, not when it is merely agreed here.
-
-*What is settled already, by having done it once.* A proposal is a slice-shaped heading with the *declaration withheld*: the checklist, the theme and the ordering, but no =:KIND: slice=. Withholding is not bookkeeping -- declaring is the act of committing, so a heading without the declaration is precisely a proposal. It also keeps the checklist out of =bin/lint-org='s slice rules until someone means it; otherwise the absent =:BLOCKER:= would be an error against a list nobody has agreed to.
-
-*And no prompt link*, for the same reason: there is no =next-session.md= revision driving a proposal, and there will not be until it is picked up.
-
-*What accepting one means, which follows but has not been exercised:* add =:KIND: slice=, run =claude-code-ide-org-refresh-slice= so the blocker and cookie appear, and link the prompt revision that picks it up. Three steps, all mechanical, and worth a single command if proposals become routine.
-
-*Genuinely open.* Where proposals live -- under =* Slices= beside real ones, as they are now, or somewhere that cannot be mistaken for a live slice at a glance. What keyword a proposal carries: =TODO= today, though =MAYBE= would read more honestly and would also stop [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]]'s promotion trigger from ever nominating one as a next action. And what becomes of a rejected proposal -- =CANCELLED= keeps the argument, which is usually the part worth keeping.
-
-
-* Skill logic
-:PROPERTIES:
-:ARCHIVE:  DONE.org::* Skill logic
-:END:
-
-
 ** MAYBE Org skill: auto-capture and dedupe modification requests against existing TODOs :code:
 :PROPERTIES:
 :ID:       7eb7dd8d-2d9b-4a63-afbd-5878298e42a4
@@ -7718,6 +7689,30 @@ The reason they do not is structural rather than lucky: you block on a *bounded,
 
 *So the counter-case flagged above -- dividing a heading with unapplied events naming it -- resolves too.* The events follow the leaf, which is where they belonged. The one residue is a queued state transition whose intent was the whole task: it will land on the elder child rather than the story. Small, visible at review, and the review pass is a human reading each item anyway.
 
+*Crossed with the user's definition 2026-08-25 -- "a task that acquired keyworded children is a story, point of fact" -- and the two together stop being definitions and become a lifecycle.*
+
+*Mitosis is how a story comes into existence.* The new parent this creates has keyworded children the instant it exists, so by that definition it *is* a story. Nothing is promoted and nothing is classified: a task divides, and what appears above it is a story because of what is now under it. That is the emergent definition doing real work rather than merely describing a state.
+
+*So a story is never authored. It is precipitated.* This matters for where the project is headed because it removes the act that was always going to be got wrong -- deciding that something "is now an epic" and writing it down. There is no such decision. There is a task that got too big, and a division.
+
+*And a story is born empty, which settles three open things at once by construction rather than by rule.*
+
+- *No clock.* [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]] wants containers to carry none and cannot enforce it, because a heading clocked honestly as a leaf becomes a container retroactively. A story created by mitosis has never been worked, so it has no clock to have earned. The 45 existing lines across eight containers are then exactly what they look like: pre-mitosis artefacts, not a rule being broken.
+- *No history.* The =:ID:=, =:LOGBOOK:= and state transitions travel with the elder child, which is the task that actually did the work. The story has no past because it did not have one.
+- *No body of actions.* The user's earlier claim -- that a story should have nowhere to describe an action to take, all actions being distributed among its children -- is not a rule to obey under mitosis. It is what happens: the engorged body is *consumed* in producing the new leaves. Whatever is left is the reason the group exists, which is the one thing a story's body should hold.
+
+*Where this leaves the four words, which is the point of the crossing.* They are not a taxonomy of heading types to be assigned. They are a lifecycle plus two orthogonal labels:
+
+| concept | what it is | how it arises |
+|---------+------------+---------------|
+| task    | a leaf, the unit of work        | written |
+| story   | a task with keyworded children  | *precipitated by mitosis* |
+| epic    | the grouping a task belongs to  | declared, as an =:EPIC:= label on the task |
+| slice   | a sequenced set, by reference   | declared, cutting across everything |
+
+*Note the epic column, because it is the payoff for flattening.* Since the label sits on the *task*, a story's children may carry different =:EPIC:= values, so a story spans epics for free -- no refiling, and no arrangement of parents to work around. That was the constraint [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] existed to remove, and mitosis plus a per-task label removes it without either mechanism knowing about the other.
+
+
 
 
 ** MAYBE Decide what this module may change on a user's machine when installed :code:
@@ -8088,6 +8083,35 @@ this project's Doom config pending an upstream report/PR.
 * Documentation
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Documentation
+:END:
+
+
+** TODO Settle what a slice proposal is, and write the procedure down :code:
+:PROPERTIES:
+:ID:       7c4d6ef6-c914-4d33-b267-cc9158a9f359
+:CREATED:  [2026-08-25 Tue 15:49]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-25 Tue 15:49] \\
+  extracted from the first proposal's body
+:END:
+
+*Extracted 2026-08-25 from the body of the first proposed slice*, where it had been written as though it were that proposal's own reasoning. It is not: it describes what *any* proposal is, which is the same error [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] was trimmed for hours earlier -- a slice's body carrying the convention rather than the instance. The user caught both.
+
+*Done when the procedure is in* =.claude/rules/org-conventions.md= *beside the slice convention*, not when it is merely agreed here.
+
+*What is settled already, by having done it once.* A proposal is a slice-shaped heading with the *declaration withheld*: the checklist, the theme and the ordering, but no =:KIND: slice=. Withholding is not bookkeeping -- declaring is the act of committing, so a heading without the declaration is precisely a proposal. It also keeps the checklist out of =bin/lint-org='s slice rules until someone means it; otherwise the absent =:BLOCKER:= would be an error against a list nobody has agreed to.
+
+*And no prompt link*, for the same reason: there is no =next-session.md= revision driving a proposal, and there will not be until it is picked up.
+
+*What accepting one means, which follows but has not been exercised:* add =:KIND: slice=, run =claude-code-ide-org-refresh-slice= so the blocker and cookie appear, and link the prompt revision that picks it up. Three steps, all mechanical, and worth a single command if proposals become routine.
+
+*Genuinely open.* Where proposals live -- under =* Slices= beside real ones, as they are now, or somewhere that cannot be mistaken for a live slice at a glance. What keyword a proposal carries: =TODO= today, though =MAYBE= would read more honestly and would also stop [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]]'s promotion trigger from ever nominating one as a next action. And what becomes of a rejected proposal -- =CANCELLED= keeps the argument, which is usually the part worth keeping.
+
+
+* Skill logic
+:PROPERTIES:
+:ARCHIVE:  DONE.org::* Skill logic
 :END:
 
 

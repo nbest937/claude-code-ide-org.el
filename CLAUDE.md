@@ -200,31 +200,40 @@ predicted the practice, and that costs momentum on every heading to
 answer.
 
 **Related, since it is the same instinct**: don't reach for a
-feature-vs-epic classification either. An epic is simply a heading that
-has acquired children carrying TODO keywords — emergent, reversible, and
-machine-detectable via `claude-code-ide-org--container-heading-p`. No
-heading needs to be classified as one when it is written; see TODO.org
-`:ID:` b5f94b88, which says so about itself.
+feature-vs-story classification either. **A task that has acquired
+children carrying TODO keywords is a story** — emergent, reversible, and
+machine-detectable via `claude-code-ide-org--container-heading-p`, whose
+"container" is simply the code's older word for it. No heading needs to
+be classified as one when it is written; see TODO.org `:ID:` b5f94b88,
+which says so about itself.
+
+**Three words, and they do not overlap.** An **epic** is the grouping a
+task belongs to — today a level-1 heading, and `:ID:` 29439196 proposes
+making it an `:EPIC:` label carried by the task instead. A **story** is a
+task that grew keyworded children. A **slice** names members by
+reference and sequences them. Earlier drafts of this file called a story
+an "epic", which is why `:ID:` 2e660571 exists.
 
 **The axis under both of those, and the one worth carrying:** a grouping
 is either **emergent** or **declared**, and which it is determines the
 mechanism it needs.
 
-An epic is emergent. It becomes one by acquiring keyworded children, so
-it can be *detected* — nothing is written down, and therefore nothing
-can go stale. That is the whole reason the paragraph above says not to
-classify one: a declaration of something already derivable is a second
-copy that can disagree with the first.
+A **story** is emergent. A task becomes one by acquiring keyworded
+children — however they arrived, whether grown or refiled — so it can be
+*detected*, nothing is written down, and therefore nothing can go stale.
+That is the whole reason the paragraph above says not to classify one: a
+declaration of something already derivable is a second copy that can
+disagree with the first.
 
-A **story** and a **slice** are both declared, and they are not the same
-thing — a distinction worth keeping straight, because the first draft of
-this paragraph ran them together. Each asserts that particular tasks
-belong together for a reason the tree does not encode; they differ in
-what they do about it.
+An **epic** and a **slice** are both declared, and they are not the same
+thing. Each asserts that particular tasks belong together for a reason
+the tree does not encode; they differ in what they do about it.
 
-A **story** is a parent heading whose children are the work. Declaring
-it means *refiling* things under it, which is why it can only span epics
-once `:ID:` 29439196 makes a category a label rather than a place.
+An **epic** is a *label* on the task — `:ID:` 29439196's proposal, named
+`:EPIC:` rather than `:CATEGORY:` so it means one thing. Note what that
+buys once level-1 groupings are gone: a story spans epics for free,
+because its children simply carry different `:EPIC:` values. No refiling,
+and no arrangement of parents to work around.
 
 A **slice** names its members *by reference* — a checkbox list of
 `[[id:...]]` links — and **sequences** them. Nothing moves, so a slice
@@ -402,7 +411,7 @@ may be `DOING` at once. What records actual execution is the *clock*,
 not the keyword, and at most one heading carries a running clock because
 org runs one.
 
-On a container (epic, story, slice) the same word reads one level up: at
+On a container (a story, or a slice) the same word reads one level up: at
 least one member is in the mail. That sense takes no clock at all, and
 `--trigger-auto-clock-in` already exempts containers. The gap is that a
 *slice* is not recognised as one, because its members are links rather
