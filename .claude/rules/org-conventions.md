@@ -139,6 +139,27 @@ The link target is the only part that cannot go stale; keeping the
 keyword and title as plain text alongside it makes the copy visible
 *as* a copy.
 
+**A slice declares itself with the `slice` tag**, not by where it sits or
+what its body looks like. "Has a checkbox list of id links" is not a
+structural fact — an ordinary body may hold one for reference — so unlike
+an epic, which is *derived*, a slice must be *declared*. The tag is
+tested locally (`org-get-tags nil t`), never inherited, since
+`org-use-tag-inheritance` is `t` here.
+
+**A slice carries a `:BLOCKER:` naming exactly its cookie-carrying
+members**, so it cannot reach `DONE` before they do. Derived, never
+authored — `M-x claude-code-ide-org-refresh-slice-blocker` writes it from
+the checklist, and `bin/lint-org` reports an **error** if the two
+disagree in either direction. The checkbox list is the human half and the
+blocker the machine-readable one; redundancy without a check is just two
+things that can disagree.
+
+A member whose cookie was **deleted** is deliberately *not* in the
+blocker set. Cancelled is harmless either way, but a **deferred** member
+is unfinished, so blocking on it would hold the slice open forever for
+work it explicitly decided not to do. Cookie and blocker are the same set
+by construction.
+
 **The checkbox is derived from the referent's keyword, not chosen.**
 There is no judgement in it, and a slice that disagrees with its
 referent is simply stale:

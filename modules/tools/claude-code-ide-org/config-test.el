@@ -8676,6 +8676,155 @@ a wrapper test would have passed against the broken version."
         (insert-file-contents file)
         (should (string-match-p "Appended by prefix\\." (buffer-string)))))))
 
+;;; Slices: the :BLOCKER: half and its lint assertion --------------------
+
+(defconst claude-code-ide-org-test--slice-fixture
+  (concat "* Slices\n:PROPERTIES:\n:ARCHIVE:  DONE.org::* Slices\n:END:\n"
+          "** DOING [1/3] A slice :slice:\n:PROPERTIES:\n"
+          ":ID:       aaaaaaaa-0000-0000-0000-000000000000\n"
+          ":COOKIE_DATA: checkbox recursive\n:END:\n\n"
+          "- [X] [[id:11111111-0000-0000-0000-000000000000][11111111]] DONE done one\n"
+          "  - [ ] [[id:22222222-0000-0000-0000-000000000000][22222222]] TODO nested, unstarted\n"
+          "- [-] [[id:33333333-0000-0000-0000-000000000000][33333333]] DOING partial\n"
+          "- [[id:44444444-0000-0000-0000-000000000000][44444444]] CANCELLED cookie deleted\n"
+          "- [[orgit-rev:claude-code-ide-org::abc1234][abc1234]] a plan revision, not a member\n")
+  "One slice covering every member shape at once.
+
+Each line is here to defeat a different plausible-but-wrong parser: a
+ticked member, an *unstarted* one (`[ ]' is a cookie, and an early
+version of `--slice-members' wrongly treated it as an absent one), a
+nested one, a cancelled one whose cookie was deleted, and an
+`orgit-rev:' revision link that is a cookie-less list item but not a
+member at all.")
+
+(ert-deftest claude-code-ide-org-test-slice-members-parse ()
+  "Every member shape is read, and the revision link is not one.
+
+The nested member counts: a slice may mirror the tree, and a member
+indented under another is still a member of the slice."
+  (claude-code-ide-org-test--with-heading
+    (with-temp-buffer
+      (insert claude-code-ide-org-test--slice-fixture)
+      (org-mode)
+      (goto-char (point-min))
+      (search-forward "** DOING")
+      (let ((members (claude-code-ide-org--slice-members)))
+        (should (= 4 (length members)))
+        (should (equal '("11111111" "22222222" "33333333" "44444444")
+                       (mapcar (lambda (m) (substring (car m) 0 8)) members)))
+        ;; the cancelled member is the only one with no cookie
+        (should (equal '("X" " " "-" nil) (mapcar #'cdr members)))))))
+
+(ert-deftest claude-code-ide-org-test-slice-blocker-ids-exclude-deleted-cookies ()
+  "A member whose cookie was deleted must not block the slice.
+
+This is the whole reason the two sets are defined as \"members that
+still carry a cookie\" rather than \"all members\". A deferred member is
+*unfinished*, so blocking on it would hold the slice open forever for
+work it explicitly decided not to do -- and unlike a cancelled one,
+org-depend would never see it finish."
+  (claude-code-ide-org-test--with-heading
+    (with-temp-buffer
+      (insert claude-code-ide-org-test--slice-fixture)
+      (org-mode)
+      (goto-char (point-min))
+      (search-forward "** DOING")
+      (let ((ids (claude-code-ide-org--slice-blocker-ids)))
+        (should (= 3 (length ids)))
+        (should (equal '("11111111" "22222222" "33333333")
+                       (mapcar (lambda (i) (substring i 0 8)) ids)))
+        (should-not (seq-find (lambda (i) (string-prefix-p "44444444" i)) ids))))))
+
+(ert-deftest claude-code-ide-org-test-slice-requires-its-own-tag ()
+  "The detector is the heading's own `slice' tag, never an inherited one.
+
+`org-use-tag-inheritance' is t in this project, so a subheading of a
+slice would answer yes to an inheriting test. Slices have no subheadings
+by design, which is exactly why this would go unnoticed until one did."
+  (claude-code-ide-org-test--with-heading
+    (with-temp-buffer
+      (insert "* Top :slice:\n** Child\n*** TODO Grandchild :slice:\n")
+      (org-mode)
+      (goto-char (point-min))
+      (search-forward "** Child")
+      (should-not (claude-code-ide-org--slice-p))
+      (goto-char (point-min))
+      (search-forward "* Top")
+      (should (claude-code-ide-org--slice-p)))))
+
+(ert-deftest claude-code-ide-org-test-refresh-slice-blocker-writes-the-property ()
+  "The blocker is derived from the checklist, not authored.
+
+Asserts idempotence too: a second run reports no change, which is what
+lets this sit in the ceremony beside the other normalisers without
+producing a diff every time it is run."
+  (claude-code-ide-org-test--with-heading
+    (with-temp-buffer
+      (insert claude-code-ide-org-test--slice-fixture)
+      (org-mode)
+      (goto-char (point-min))
+      (search-forward "** DOING")
+      (should (claude-code-ide-org--refresh-slice-blocker-at-point))
+      (let ((blocker (org-entry-get nil "BLOCKER")))
+        (should (string-prefix-p "ids(" blocker))
+        (should (= 3 (length (claude-code-ide-org--lint-blocker-ids blocker))))
+        (should-not (string-match-p "44444444" blocker)))
+      ;; idempotent
+      (should-not (claude-code-ide-org--refresh-slice-blocker-at-point)))))
+
+(ert-deftest claude-code-ide-org-test-refresh-slice-blocker-removes-an-empty-one ()
+  "A slice with no cookie-carrying members loses its :BLOCKER: entirely.
+
+`ids()' is not written, because it would read as a declaration that
+nothing blocks and the lint would then have to tell that apart from a
+slice whose blocker was never built."
+  (claude-code-ide-org-test--with-heading
+    (with-temp-buffer
+      (insert "* Slices\n** DOING A slice :slice:\n:PROPERTIES:\n"
+              ":BLOCKER:  ids(11111111-0000-0000-0000-000000000000)\n:END:\n\n"
+              "- [[id:11111111-0000-0000-0000-000000000000][11111111]] CANCELLED dropped\n")
+      (org-mode)
+      (goto-char (point-min))
+      (search-forward "** DOING")
+      (should (claude-code-ide-org--refresh-slice-blocker-at-point))
+      (should-not (org-entry-get nil "BLOCKER")))))
+
+(ert-deftest claude-code-ide-org-test-lint-catches-slice-blocker-drift ()
+  "The lint reports a slice whose blocker and checklist disagree.
+
+Both directions, because an implementation that only compared one way
+would pass the other. And the negative case matters most: an untagged
+heading carrying an identical checkbox list must NOT be linted as a
+slice, since an ordinary body may hold a list of id links for reference
+-- which is precisely why a slice has to be declared rather than
+derived."
+  (let ((cat "* Slices\n:PROPERTIES:\n:ARCHIVE:  DONE.org::* Slices\n:END:\n")
+        (member "- [X] [[id:11111111-0000-0000-0000-000000000000][11111111]] DONE one\n"))
+    ;; blocker missing entirely
+    (should (claude-code-ide-org-test--lint-matches
+             (claude-code-ide-org-test--lint
+              (concat cat "** DOING A slice :slice:\n" "\n" member))
+             'error "omits 1 checked member"))
+    ;; blocker names something that is not a checked member
+    (should (claude-code-ide-org-test--lint-matches
+             (claude-code-ide-org-test--lint
+              (concat cat "** DOING A slice :slice:\n:PROPERTIES:\n"
+                      ":BLOCKER:  ids(11111111-0000-0000-0000-000000000000 "
+                      "99999999-0000-0000-0000-000000000000)\n:END:\n\n" member))
+             'error "not a checked member"))
+    ;; matching: silent
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint
+                  (concat cat "** DOING A slice :slice:\n:PROPERTIES:\n"
+                          ":BLOCKER:  ids(11111111-0000-0000-0000-000000000000)\n:END:\n\n"
+                          member))
+                 'error "slice :BLOCKER:"))
+    ;; same list, no tag: not a slice, not linted
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint
+                  (concat cat "** DOING Not a slice\n" "\n" member))
+                 'error "slice :BLOCKER:"))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here

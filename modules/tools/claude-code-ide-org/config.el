@@ -2628,6 +2628,107 @@ discard it."
           (when (org-get-todo-state) (setq found t)))
         found))))
 
+(defconst claude-code-ide-org--slice-member-regexp
+  "^[ \t]*- \\(?:\\[\\([ Xx-]\\)\\] \\)?\\[\\[id:\\([^]]+\\)\\]"
+  "Matches one member line of a slice's checkbox list.
+
+Group 1 is the checkbox mark, absent for a cancelled or deferred member
+whose cookie has been deleted.  Group 2 is the link target.
+
+Requiring an `id:' link is what keeps the revision links out: a slice
+also carries a plain list of `orgit-rev:' links for the prompt that drove
+it, and those are list items with no cookie, which would otherwise be
+indistinguishable from a deferred member.")
+
+(defun claude-code-ide-org--slice-p ()
+  "Non-nil when the heading at point is a slice.
+
+Detected by its own `slice' tag, never an inherited one --
+`org-use-tag-inheritance' is t here, so a subheading would otherwise
+answer yes.  A slice has no subheadings by design, which makes the
+distinction free today and load-bearing the first time one acquires
+some.
+
+A tag rather than a structural test because a slice cannot be derived:
+\"has a checkbox list of id links\" is not a structural fact -- an
+ordinary body may hold one for reference -- so unlike an epic, which
+`claude-code-ide-org--container-heading-p' derives, a slice has to be
+declared.  TODO.org :ID: 8ca6541d argues this at length."
+  (member "slice" (org-get-tags nil t)))
+
+(defun claude-code-ide-org--slice-members ()
+  "Return the slice-at-point's members as a list of (ID . MARK).
+
+MARK is the checkbox character, or nil for a member whose cookie has
+been deleted.  Scans the heading's own body only, stopping at the first
+subheading."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((end (save-excursion (outline-next-heading) (or (point) (point-max))))
+          (members nil))
+      (while (re-search-forward claude-code-ide-org--slice-member-regexp end t)
+        ;; MARK is nil only when group 1 did not match at all -- an
+        ;; *absent* cookie.  An empty `[ ]' is a cookie like any other and
+        ;; its member still blocks; conflating the two cost a wrong
+        ;; blocker set of 12 ids instead of 20 the first time this ran.
+        (push (cons (match-string-no-properties 2)
+                    (match-string-no-properties 1))
+              members))
+      (nreverse members))))
+
+(defun claude-code-ide-org--slice-blocker-ids ()
+  "Return the ids the slice at point should block on.
+
+Exactly the members that still carry a checkbox cookie.  A member whose
+cookie was deleted is cancelled or deferred, and deferral is the case
+that matters: a deferred member is *unfinished*, so blocking on it would
+hold the slice open forever for work it explicitly decided not to do.
+Cookie and blocker are therefore the same set by construction, which is
+what the lint assertion checks."
+  (delete-dups
+   (mapcar #'car
+           (seq-filter (lambda (m) (cdr m)) (claude-code-ide-org--slice-members)))))
+
+(defun claude-code-ide-org-refresh-slice-blocker (&optional id)
+  "Write the `:BLOCKER:' of the slice with :ID: ID from its checkbox list.
+
+Interactively, or with ID nil, refreshes every slice in the tracked
+files.  Derived rather than authored, for the same reason every other
+field on a member line is: a hand-maintained blocker list is a second
+copy of the checklist that can disagree with it.
+
+Returns a human-readable summary."
+  (interactive)
+  (require 'org-id)
+  (if id
+      (claude-code-ide-org--at-id
+       id (lambda () (claude-code-ide-org--refresh-slice-blocker-at-point)))
+    (let ((n 0) (changed 0))
+      (dolist (file (claude-code-ide-org--tracked-files))
+        (when (file-exists-p file)
+          (with-current-buffer (find-file-noselect file)
+            (org-with-wide-buffer
+             (goto-char (point-min))
+             (while (re-search-forward org-heading-regexp nil t)
+               (when (claude-code-ide-org--slice-p)
+                 (setq n (1+ n))
+                 (when (claude-code-ide-org--refresh-slice-blocker-at-point)
+                   (setq changed (1+ changed))))))
+            (when (buffer-modified-p) (save-buffer)))))
+      (format "%d slice%s scanned, %d updated" n (if (= n 1) "" "s") changed))))
+
+(defun claude-code-ide-org--refresh-slice-blocker-at-point ()
+  "Set or clear the slice-at-point's `:BLOCKER:'.  Non-nil if it changed."
+  (let* ((ids (claude-code-ide-org--slice-blocker-ids))
+         (new (and ids (format "ids(%s)" (mapconcat #'identity ids " "))))
+         (old (org-entry-get nil "BLOCKER")))
+    (unless (equal old new)
+      ;; Removed rather than emptied when a slice has no blocking
+      ;; members: `ids()' would read as a declaration that nothing blocks,
+      ;; which the lint would then have to tell apart from "not built yet".
+      (if new (org-entry-put nil "BLOCKER" new) (org-entry-delete nil "BLOCKER"))
+      t)))
+
 (defun claude-code-ide-org--trigger-auto-clock-in (change-plist)
   "For `org-trigger-hook': the moment any heading's TODO state becomes
 DOING or PLANNING, automatically open a clock on it via `org-clock-in',
@@ -7877,6 +7978,38 @@ prose to a rule file, a linked heading or a one-time task: %s"
                ;; block: the target must exist AND carry a keyword, and
                ;; the blocked heading's own state must be one org-depend
                ;; evaluates.
+               ;; A slice's `:BLOCKER:' must name exactly the members that
+               ;; still carry a checkbox cookie.  The two halves are
+               ;; deliberately redundant -- the checkbox list is the human
+               ;; one and the blocker the machine-readable one -- and
+               ;; redundancy without a check is just two things that can
+               ;; disagree.  TODO.org :ID: 29439196 made exactly that
+               ;; objection to link lists ("one edit point nobody
+               ;; revisits"); this assertion is the answer to it.
+               ;;
+               ;; An error rather than a warning: the correct value is
+               ;; computable from the body, so a mismatch is never a
+               ;; judgement call, and
+               ;; `claude-code-ide-org-refresh-slice-blocker' fixes it
+               ;; without asking anything.
+               (when (claude-code-ide-org--slice-p)
+                 (let* ((want (claude-code-ide-org--slice-blocker-ids))
+                        (have (claude-code-ide-org--lint-blocker-ids
+                               (or (org-entry-get nil "BLOCKER") "")))
+                        (missing (seq-difference want have))
+                        (extra (seq-difference have want)))
+                   (when missing
+                     (report 'error line "slice :BLOCKER: omits %d checked member%s \
+(%s) -- run claude-code-ide-org-refresh-slice-blocker: %s"
+                             (length missing) (if (= 1 (length missing)) "" "s")
+                             (mapconcat (lambda (i) (substring i 0 8)) missing " ")
+                             title))
+                   (when extra
+                     (report 'error line "slice :BLOCKER: names %d id%s that is not a \
+checked member (%s) -- a cancelled or deferred member must not block: %s"
+                             (length extra) (if (= 1 (length extra)) "" "s")
+                             (mapconcat (lambda (i) (substring i 0 8)) extra " ")
+                             title))))
                (let ((blocker (org-entry-get nil "BLOCKER")))
                  (when blocker
                    (when (equal todo "MAYBE")

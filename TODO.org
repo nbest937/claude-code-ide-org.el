@@ -1,5 +1,5 @@
 #+TODO: TODO(t!) NEXT(n!) PLANNING(p!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
-#+TAGS: code comms research review
+#+TAGS: code comms research review slice
 #+ARCHIVE: DONE.org::* Done
 #+STARTUP: logdrawer logdone content
 
@@ -10,11 +10,12 @@
 :END:
 
 
-** DOING [9/20] Harden the review pass: its cost, its correctness, and its record :code:
+** DOING [9/21] Harden the review pass: its cost, its correctness, and its record :code:slice:blocked:
 :PROPERTIES:
 :ID:       c44c2119-dbf8-4510-99e2-6aaa7f259d94
 :CREATED:  [2026-08-25 Tue 11:06]
 :COOKIE_DATA: checkbox recursive
+:BLOCKER:  ids(edd47f32-e6c9-4ab3-8e8a-46a37ea29605 7ae6562d-25c8-453e-b78b-920e036c5665 e1284bdb-0a18-402a-81cb-1ac8d09fb8a2 aa1ba915-ee68-48df-afea-197ae60aac63 3063c3e5-0dd0-4354-8985-271b0313c5d1 f421c5c3-f81f-4ebf-99c9-42c53cc00558 961f15b6-d782-40b8-8ceb-ba086d188a3b 2758f3a0-3c47-405e-9662-a7669dcb60cc 82df2a6c-881d-4117-a752-5b3b04c9656d 21c91613-76e0-4590-affe-e2af9f1321ca 8ca6541d-0fc7-45a2-a4d3-76e1608f658d 43201e64-3fe8-4fa6-81f5-d2ab5b65d191 f4b07fc0-187a-4975-aa3b-b9bd4b1c0799 31c6ac39-1a06-4b17-8d89-b91fd2628874 111ca40a-3fdb-4106-ad52-991e30737ece 7fbab3b3-7843-4290-94a5-d421413f2be4 ff92700e-1713-4862-a3fe-8fd972ad96fa 2b050e7a-b0c4-45d3-835e-68befcebb7bb 7148cddc-aca3-416e-8bcb-f164d4d2bba0 df1cf43c-749f-435c-9f45-3d8df1d725ad 49557477-e50c-496f-85df-82c65109832b)
 :END:
 :LOGBOOK:
 - State "DOING"      from              [2026-08-25 Tue 11:06] \\
@@ -41,6 +42,7 @@
 - [-] [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] REVIEW Footnote discipline decays on re-mention; enforce it at Stop
 - [ ] [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] TODO Evaluate Org's own agenda, sparse-tree and column views against this corpus
 - [ ] [[id:21c91613-76e0-4590-affe-e2af9f1321ca][21c91613]] NEXT Apply consumes queue events with no way to roll one back
+- [ ] [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]] TODO Compose slices by reference: a checkbox list of id links, blocked on its members
 - [X] [[id:43201e64-3fe8-4fa6-81f5-d2ab5b65d191][43201e64]] TODO Every orgit link a body adds costs a permanent lint warning
 - [X] [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]] DONE Backfill CLOSED: from the LOGBOOK where the evidence is already in the file
 - [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] CANCELLED Recover a close time from git for the headings with no in-file evidence
@@ -1462,6 +1464,21 @@ Proposed by the user 2026-08-21, as what flattening the categories ([[id:2943919
 *Consequence for the predicates, which must not be missed -- and was not.* =--container-heading-p= scans descendants for TODO keywords, so a slice holding only checkboxes is *not* a container by that test, making it eligible for auto-clock-in and for auto-promotion to NEXT -- precisely the defect [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]] fixed for containers. Confirmed on the first real slice rather than left as a prediction: =(:container-p nil :auto-clock-in t :would-clock t)=. Filed as [[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]], which also records the sharper form of the problem -- the predicate tests a mechanism ("has keyworded descendants") while its callers want a meaning ("is a grouping whose time lives elsewhere"), and a slice is the first case where those two part.
 
 *Closely related and not a duplicate:* [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] asks which of a container's children were in its original plan. A declared slice answers that question by construction, since membership is written rather than inferred from what accumulated.
+
+*Built 2026-08-25.* The two halves this heading still owed after the prototype -- a slice that refuses DONE until its members finish, and an assertion that its two member lists agree -- both shipped. 389 tests, 0 lint errors.
+
+*The declaration mechanism is the tag proposed above*, unchanged: =#+TAGS:= gains =slice=, and =claude-code-ide-org--slice-p= tests the heading's *own* tags via =(org-get-tags nil t)=. The inheritance caveat recorded above was checked rather than assumed -- =org-use-tag-inheritance= is =t= live -- and the local-only test is what neutralises it, with a test asserting a tagged grandchild does not make its parent a slice.
+
+*Blocker ids are the members that still carry a cookie, and that identity is the design.* A member whose cookie was deleted is cancelled or deferred, and deferral is the case that forced the rule: a deferred member is *unfinished*, so blocking on it would hold the slice open forever for work it explicitly decided not to do. Cookie and blocker are therefore the same set by construction, which is exactly what the lint asserts -- =seq-difference= both ways, since an implementation comparing one direction only would pass the other.
+
+*The lint is an error, not a warning.* The correct value is computable from the body, so a mismatch is never a judgement call, and the message names the command that fixes it. Blast radius was measured before the rule was allowed to matter: with nothing tagged it fired on zero, and it grows only as slices are declared.
+
+*Verified end to end on the real file rather than only in fixtures.* Tagging [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] produced the error naming all 20 members; refreshing produced =:blocked-p t= with 20 blocker ids; adding a twenty-first member re-broke the lint within one command, and the refresher fixed it. That round trip is the answer to [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]'s objection that a link list is "one edit point nobody revisits" -- nobody has to revisit it, and nobody can forget to.
+
+*One bug, found by the data and worth recording because the tests would not have caught it unaided.* The first parser treated an empty =[ ]= as an absent cookie, so the first real run proposed 12 blocker ids instead of 20. An unstarted member still blocks; only a *deleted* cookie does not. The fixture now carries all five member shapes -- ticked, unstarted, nested, cookie-deleted, and an =orgit-rev:= revision link that is a cookie-less list item but not a member -- and reintroducing the bug fails exactly three tests.
+
+*Not included, and filed rather than forgotten:* teaching =--container-heading-p= about slices, which this heading correctly warned would otherwise reintroduce [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]]. Measured on the prototype and filed as [[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]].
+
 
 
 ** TODO Evaluate Org's own agenda, sparse-tree and column views against this corpus :code:research:
