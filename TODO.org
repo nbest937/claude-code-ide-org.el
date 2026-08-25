@@ -1283,24 +1283,6 @@ Everything already verified above serves that -- =:CATEGORY:= inherited by a lev
 :CREATED:  [2026-08-21 Fri 15:26]
 :END:
 
-Proposed by the user 2026-08-21, as what flattening the categories ([[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]) would enable. A *story* is a composite task whose members are named *by reference* -- a checkbox list of =[[id:]]= links -- rather than contained as children. No nested copies at a lower level; tasks keep their own subtasks exactly as now.
-
-*Why the archive orders it correctly for free.* Archiving files by =CLOSED= (measured on 29439196), and a story cannot close before its members, so it lands *later* in the datetree than everything it references. The archive then reads as narrative: the constituent work, then the story summarising it. Day-granular only -- within one day node entries append in archive order, not by =CLOSED= time.
-
-*Two halves are already native, verified 2026-08-21:*
-- A headline =[/]= cookie *counts body checkboxes*, not just TODO children -- =* TODO A story [/]= over three items became =[1/3]= with no children present. So progress is visible and self-maintaining, and =bin/lint-org='s container-cookie rule is satisfiable.
-- =:BLOCKER: ids(...)= already refuses DONE until every named id is finished, via =org-depend=, which this project loads. "Closes only once its checklist completes" therefore needs no new machinery -- it is the blocker list.
-
-*One gap, and it is the whole build.* Nothing ticks a checkbox when the referenced heading closes. =:TRIGGER:= acts on *headings* by id (=XYZ-is-my-id(TODO)=, =chain-siblings=) and has no checkbox facility -- read from =org-depend.el=, not assumed. The seam here is the apply path: every DONE transition already flows through one reviewed command.
-
-*This answers 29439196's own objection to the shape.* That heading's membership table calls a container-declared link list the *drifting* form, "one edit point nobody revisits". Two things change that here. The blocker list is the machine-readable half and the checkbox list the human half, so neither carries the burden alone; and a lint assertion that the two id sets *match* makes disagreement loud rather than silent. =bin/lint-org= already validates that every =:BLOCKER:= resolves and would actually block, so this is one more assertion in an existing harness rather than a new guard.
-
-*Emergent vs declared, reconciled rather than contradicted.* The epic stays emergent -- a subtree that acquired TODO-carrying children, detected by =claude-code-ide-org--container-heading-p=. The story is explicitly *declared*. Separating them stops one mechanism serving two masters: today a container is simultaneously "what happened to grow children" and "what you would want to slice by", and those are rarely the same set.
-
-*Consequence for the predicates, which must not be missed.* =--container-heading-p= scans descendants for TODO keywords, so a story holding only checkboxes is *not* a container by that test -- making it eligible for auto-clock-in and for auto-promotion to NEXT, which is precisely the defect [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]] fixed for containers. Any story mechanism has to teach that predicate about stories in the same pass, or it reintroduces a bug closed the same day this was proposed.
-
-*Closely related and not a duplicate:* [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] asks which of a container's children were in its original plan. A declared story answers that question by construction, since membership is written rather than inferred from what accumulated.
-
 *A story is a fourth heading class, and that -- not the story -- is the finding.* The user's point 2026-08-21: "story" becomes another category, qualified by its members having a particular structure, which deserves its own convention-enforcement definition. Taking it seriously exposes a pattern this project has been repeating without naming.
 
 Four classes exist, each detected by a *different, bespoke* mechanism, and not one of them declared:
@@ -1332,7 +1314,25 @@ The reasoning above is sound *given today's structure*: "a story whose members s
 
 *Sequencing consequence, which is the practical point.* Building this first delivers by-reference composition for stories and then discovers that stories no longer need it while slices do. 29439196 is upstream: decide flattening, and this heading's scope follows from the answer.
 
-*Unaffected:* the fourth-heading-class finding below. Flattening removes one bespoke detector -- heading level -- which makes the inconsistency smaller without answering how a story or a slice declares itself.
+*Unaffected:* the fourth-heading-class finding above. Flattening removes one bespoke detector -- heading level -- which makes the inconsistency smaller without answering how a story or a slice declares itself.
+
+Proposed by the user 2026-08-21, as what flattening the categories ([[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]) would enable. A *story* is a composite task whose members are named *by reference* -- a checkbox list of =[[id:]]= links -- rather than contained as children. No nested copies at a lower level; tasks keep their own subtasks exactly as now.
+
+*Why the archive orders it correctly for free.* Archiving files by =CLOSED= (measured on 29439196), and a story cannot close before its members, so it lands *later* in the datetree than everything it references. The archive then reads as narrative: the constituent work, then the story summarising it. Day-granular only -- within one day node entries append in archive order, not by =CLOSED= time.
+
+*Two halves are already native, verified 2026-08-21:*
+- A headline =[/]= cookie *counts body checkboxes*, not just TODO children -- =* TODO A story [/]= over three items became =[1/3]= with no children present. So progress is visible and self-maintaining, and =bin/lint-org='s container-cookie rule is satisfiable.
+- =:BLOCKER: ids(...)= already refuses DONE until every named id is finished, via =org-depend=, which this project loads. "Closes only once its checklist completes" therefore needs no new machinery -- it is the blocker list.
+
+*One gap, and it is the whole build.* Nothing ticks a checkbox when the referenced heading closes. =:TRIGGER:= acts on *headings* by id (=XYZ-is-my-id(TODO)=, =chain-siblings=) and has no checkbox facility -- read from =org-depend.el=, not assumed. The seam here is the apply path: every DONE transition already flows through one reviewed command.
+
+*This answers 29439196's own objection to the shape.* That heading's membership table calls a container-declared link list the *drifting* form, "one edit point nobody revisits". Two things change that here. The blocker list is the machine-readable half and the checkbox list the human half, so neither carries the burden alone; and a lint assertion that the two id sets *match* makes disagreement loud rather than silent. =bin/lint-org= already validates that every =:BLOCKER:= resolves and would actually block, so this is one more assertion in an existing harness rather than a new guard.
+
+*Emergent vs declared, reconciled rather than contradicted.* The epic stays emergent -- a subtree that acquired TODO-carrying children, detected by =claude-code-ide-org--container-heading-p=. The story is explicitly *declared*. Separating them stops one mechanism serving two masters: today a container is simultaneously "what happened to grow children" and "what you would want to slice by", and those are rarely the same set.
+
+*Consequence for the predicates, which must not be missed.* =--container-heading-p= scans descendants for TODO keywords, so a story holding only checkboxes is *not* a container by that test -- making it eligible for auto-clock-in and for auto-promotion to NEXT, which is precisely the defect [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]] fixed for containers. Any story mechanism has to teach that predicate about stories in the same pass, or it reintroduces a bug closed the same day this was proposed.
+
+*Closely related and not a duplicate:* [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] asks which of a container's children were in its original plan. A declared story answers that question by construction, since membership is written rather than inferred from what accumulated.
 
 
 ** TODO Evaluate Org's own agenda, sparse-tree and column views against this corpus :code:research:
