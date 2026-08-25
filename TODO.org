@@ -620,7 +620,7 @@ asserts the refusal instead, across nil, empty and whitespace; removing
 the guard fails it and nothing else.
 
 
-** TODO [0/4] Make the 8-character prefix resolve, for the model and the human alike :code:
+** TODO [1/5] Make the 8-character prefix resolve, for the model and the human alike :code:
 :PROPERTIES:
 :ID:       478d6ec9-1b99-4c6c-88e9-c793ad4b2f22
 :CREATED:  [2026-08-18 Tue 08:18]
@@ -670,6 +670,58 @@ left cleared — is tool hygiene rather than addressing, though it is the
 most frequently *felt* friction of the three: every =org_amend= and
 =org_refile= in this session cost an extra round trip to clear it. Worth
 its own decision about grouping rather than being absorbed here.
+
+
+*** DONE Expand an 8-character prefix at both surfaces where a tail gets invented :code:
+CLOSED: [2026-08-25 Tue 09:52]
+:PROPERTIES:
+:ID:       49557477-e50c-496f-85df-82c65109832b
+:CREATED:  [2026-08-25 Tue 09:52]
+:END:
+
+*Shipped 2026-08-25*, commit =3a569ac=, 382 tests green.
+
+*The rule was correct and did not work.* Nine uuids were fabricated
+across two sessions, every one with a right prefix and an invented tail,
+despite a standing "grep before writing" instruction that names the
+failure exactly. The trigger is composing continuous prose that happens
+to contain uuids, not forgetting the rule -- so the fix stops requiring
+the tail to be produced at all.
+
+*Two surfaces, found by asking where a tail actually gets typed.*
+=resolve-id-links= expands =[[id:PREFIX]]= before =org_amend= writes and
+refuses the whole amend if any prefix is unknown or ambiguous. =--at-id=
+accepts a prefix wherever a full =:ID:= is accepted, which covers every
+tool taking an =id= argument at once, including ones written later. The
+second surface was the one nearly missed: link text is the visible case,
+but a tool *argument* is where the 2026-08-25 slip actually landed.
+
+*Both refuse rather than guess.* An ambiguous prefix resolving to a
+plausible wrong heading is worse than one resolving to nothing, which is
+the same reasoning that retired the stale-clock guess heuristic
+([[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]).
+
+*One test assumption was wrong before the code was*, and it is worth not
+repeating: the fixture's id is the literal =test-0001=, so
+=(substring id 0 8)= is not hexadecimal and the expansion correctly
+declines. A test written against the fixture id would have passed for
+the wrong reason. The heading it uses now carries a real hexadecimal
+uuid and is appended through the *visiting buffer*, because org-id
+searches the buffer and a =write-region= behind it finds nothing.
+
+*Arrives at the write boundary, not as the read tool* this epic's other
+children describe -- the two are complementary, and the read half is
+still open.
+
+*The guard has a hole, demonstrated by this heading.* It was written by
+a direct disk edit rather than through =org_amend=, and carried a
+fabricated tail on the [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] link -- inside the debrief for the fix.
+=bin/lint-org= caught it, as it has caught most of them. So the
+expansion covers the *tool* path only, and heading creation by text
+editing is sanctioned by CLAUDE.md and bypasses it entirely. Either
+=org_capture= gains the same expansion, or the lint stays the real
+backstop and the expansion is a convenience on one path -- worth
+deciding rather than assuming the first fix closed it.
 
 
 *** TODO Read a heading's front matter, and take a partial :ID:, without a whole-body read :code:
