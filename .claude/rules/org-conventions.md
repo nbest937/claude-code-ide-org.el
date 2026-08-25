@@ -112,6 +112,55 @@ structure and can be retrofitted honestly, so there is no reason to let it
 slide. The check tests only that a cookie is *present* — org owns the
 arithmetic.
 
+## Slices
+
+A **slice** is a declared grouping: a sequenced set of tasks asserted to
+belong together for a reason the tree does not encode. Unlike an epic,
+which is emergent and detected from its keyworded children, a slice
+cannot be derived — so it is written down as an explicit list, and being
+written down, it can go stale.
+
+Slices live under the level-1 `* Slices` category and are level-2
+headings. Each carries an `:ID:`, a `:CREATED:`, and a
+`:COOKIE_DATA: checkbox recursive` property so its statistics cookie
+counts nested members as well as top-level ones.
+
+**Members are `[[id:...]]` links in a checkbox list**, not child
+headings. The list may mirror the tree — a story's children indented
+under it — but it need not contain every child of a story it refers to.
+Write the link so it displays the 8-character prefix, and put the
+referent's keyword and title *outside* the brackets:
+
+```
+- [X] [[id:49557477-e50c-496f-85df-82c65109832b][49557477]] DONE Expand an 8-character prefix ...
+```
+
+The link target is the only part that cannot go stale; keeping the
+keyword and title as plain text alongside it makes the copy visible
+*as* a copy.
+
+**Checkbox states**: `[ ]` not started, `[-]` worked but not finished,
+`[X]` complete. **A cancelled or deferred member has its checkbox cookie
+deleted entirely**, leaving a plain `- ` list item. That is the whole
+mechanism for keeping the slice's aggregate honest — a cancelled item
+must not count against the numerator, and must not inflate the
+denominator either. The line stays, because the record of having
+considered and dropped something is what a bare list loses.
+
+**A slice carries state but never a clock.** Its `:LOGBOOK:` records
+state transitions only; every referent already carries its own clock, so
+clocking the slice would add a second quantity inside the one that
+already exists and could not be told apart from the sum. Note this is
+not yet enforced — `--container-heading-p` does not recognise a slice,
+so hand-setting `DOING` on one *does* open a clock today (`:ID:`
+95c27fca).
+
+**The plan that drove the slice is linked at the end of the body**, as a
+`file:` link into `slices/`, mirroring how a task links its Plan Mode
+document. `.claude/commands/next-session.md` is rewritten in place once
+per slice, so the snapshot is what preserves which text drove which
+slice; taking it is currently manual (`:ID:` 637ee73d).
+
 ## The `:PLAN:` drawer
 
 A finished heading's body has two halves, and they live in different places.

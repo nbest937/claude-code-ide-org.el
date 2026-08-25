@@ -3,6 +3,58 @@
 #+ARCHIVE: DONE.org::* Done
 #+STARTUP: logdrawer logdone content
 
+
+* Slices
+:PROPERTIES:
+:ARCHIVE:  DONE.org::* Slices
+:END:
+
+
+** DOING [8/19] Harden the review pass: its cost, its correctness, and its record :code:
+:PROPERTIES:
+:ID:       c44c2119-dbf8-4510-99e2-6aaa7f259d94
+:CREATED:  [2026-08-25 Tue 11:06]
+:COOKIE_DATA: checkbox recursive
+:END:
+:LOGBOOK:
+- State "DOING"      from              [2026-08-25 Tue 11:06] \\
+  retconned; the slice itself opened 2026-08-24 with the plan it links
+:END:
+
+*The first slice, and it is retrospective.* The heading was written 2026-08-25 for work that began 2026-08-24, so its checkbox states are reconstructed from the org files rather than recorded as they happened. Everything below was verified against the current keyword of each referent at the moment of writing; nothing was recalled.
+
+*The theme, which is what makes these a slice rather than a list.* Every member touches the review pass -- what it costs to run, whether what it reports is true, and whether the record survives it. That cut across four categories, which is exactly the property that made a parent heading unusable and a by-reference list necessary ([[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]]).
+
+*Membership is narrower than "everything touched".* The rule applied here: a member is something the slice *committed to* or *actually worked*. Headings captured during the slice but never worked are products of it, not members -- [[id:46e4ce2b-fdc8-447b-ad09-b4845602540f][46e4ce2b]] and [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]], both filed this morning, are deliberately absent. So are the items the driving plan listed as off the critical path and never reached. A slice need not contain every child of a story it refers to, and it need not contain everything that happened while it ran.
+
+*Two states are worth reading carefully rather than trusting the shape.* [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]] shipped its normaliser on 2026-08-24 but its own body names remaining work -- the convention is written down nowhere -- and a grep of =.claude/rules/org-conventions.md= confirms it still is not, so it is partial rather than done. [[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]] wrapped 34 of 43 headings and still owes the archive step. Both would have been marked =[X]= from memory.
+
+*One member carries no checkbox at all*, which is the mechanism rather than an omission: [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] was worked to a decision and cancelled, so its cookie is deleted and it neither counts toward the numerator nor inflates the denominator. Deferral to a later slice takes the same form. The line stays, because the record of having considered and dropped something is the part a bare list loses.
+
+- [-] [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]] TODO [0/3] Make the daily ceremony cheap enough that it actually runs
+  - [ ] [[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]] TODO Consolidation only reaches drawers an apply pass happens to touch
+  - [-] [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]] NEXT End every heading with two blank lines, so folded trees are separated
+  - [-] [[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]] DOING Prompt the daily ceremony automatically, within what a scheduler can reach
+- [ ] [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] NEXT org_amend can only append, so every correction lands furthest from the reader
+- [ ] [[id:f421c5c3-f81f-4ebf-99c9-42c53cc00558][f421c5c3]] TODO The :PLAN: lint will demand a drawer from a debrief-only heading
+- [-] [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]] TODO Track the human's review attention, clocked by the review command itself
+- [-] [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] REVIEW Footnote discipline decays on re-mention; enforce it at Stop
+- [ ] [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] TODO Evaluate Org's own agenda, sparse-tree and column views against this corpus
+- [ ] [[id:21c91613-76e0-4590-affe-e2af9f1321ca][21c91613]] NEXT Apply consumes queue events with no way to roll one back
+- [X] [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]] DONE Backfill CLOSED: from the LOGBOOK where the evidence is already in the file
+- [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] CANCELLED Recover a close time from git for the headings with no in-file evidence
+- [X] [[id:31c6ac39-1a06-4b17-8d89-b91fd2628874][31c6ac39]] DONE A sub-minute run is observed work; round it up rather than drop it
+- [X] [[id:111ca40a-3fdb-4106-ad52-991e30737ece][111ca40a]] DONE The review buffer truncated lines the human had to read
+- [-] [[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]] REVIEW Clear the 36-heading archive backlog, sweeping bodies into :PLAN: unedited
+- [X] [[id:ff92700e-1713-4862-a3fe-8fd972ad96fa][ff92700e]] DONE A repeater never reaches DONE, so its body is never pruned
+- [X] [[id:2b050e7a-b0c4-45d3-835e-68befcebb7bb][2b050e7a]] DONE The group-heading render has been wrong three times; the cond has the wrong shape
+- [X] [[id:7148cddc-aca3-416e-8bcb-f164d4d2bba0][7148cddc]] DONE The promotion trigger re-entered itself; one apply made 1201 mutations
+- [X] [[id:df1cf43c-749f-435c-9f45-3d8df1d725ad][df1cf43c]] DONE An apply failure named nothing: five identical messages, no item, no stack
+- [X] [[id:49557477-e50c-496f-85df-82c65109832b][49557477]] DONE Expand an 8-character prefix at both surfaces where a tail gets invented
+
+[[file:slices/2026-08-24-harden-the-review-pass.md][The next-session.md that drove this slice]]
+
+
 * Skill logic
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Skill logic
@@ -724,10 +776,14 @@ backstop and the expansion is a convenience on one path -- worth
 deciding rather than assuming the first fix closed it.
 
 
-*** TODO Read a heading's front matter, and take a partial :ID:, without a whole-body read :code:
+*** NEXT Read a heading's front matter, and take a partial :ID:, without a whole-body read :code:
 :PROPERTIES:
 :ID:       2d9eeebd-4375-4790-8485-92b244236a21
 :CREATED:  [2026-08-14 Fri 17:27]
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-08-25 Tue 09:53] \\
+  read half remains after the write-boundary fix
 :END:
 
 *Raised by the user 2026-08-14, from a concrete request the tools cannot
@@ -1868,6 +1924,27 @@ Everything here is specifically about the clock subsystem's
 correctness and observability, as opposed to the general TODO-state
 machine above — three different angles on "make sure the clock is
 never silently wrong."
+
+
+** TODO A slice gets clocked and auto-promoted, because its members are links not children :code:
+:PROPERTIES:
+:ID:       95c27fca-136c-46f6-b454-fe94261e0e5d
+:CREATED:  [2026-08-25 Tue 11:10]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-25 Tue 11:10] \\
+  measured against the first real slice
+:END:
+
+*Measured 2026-08-25 against the first slice* ([[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]]), not reasoned about: =(:container-p nil :auto-clock-in t :would-clock t)=. Setting =DOING= on a slice by hand opens a clock on the slice itself.
+
+*The cause is structural and will not go away on its own.* =claude-code-ide-org--container-heading-p= asks whether a heading has a descendant carrying a TODO keyword, and exempts containers from =--trigger-auto-clock-in= on the argument that org already rolls a subtree's time up to its parent. A slice's members are =[[id:...]]= links in a checkbox list, not descendants, so the predicate says =nil= and the exemption does not apply -- while the *reason* for the exemption applies with full force, since every referent carries its own clock. The predicate tests the mechanism, and the argument is about the meaning.
+
+*Same shape, second consequence:* =--trigger-auto-promote-sole-todo= also refuses containers, and also will not recognise a slice. A sole =TODO= slice under =* Slices= would be promoted to =NEXT= as though it were an action. This is the reintroduction of [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]] by a route its fix did not cover, which [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]] predicted in the abstract before any slice existed.
+
+*Not urgent today only because the first slice's =DOING= was written as text*, which fires no trigger. The moment a slice's state goes through the queue and apply -- which uses =org-todo= -- both hooks run.
+
+*The open question is what the predicate should ask.* "Has keyworded descendants" and "is a grouping whose time lives elsewhere" have been the same thing until now. A slice is the first case where they part, so either =--container-heading-p= learns about by-reference members, or the two callers stop sharing one predicate.
 
 
 ** TODO Direct file writes to a live org buffer can desync org-clock-marker :code:
@@ -7668,6 +7745,25 @@ this project's Doom config pending an upstream report/PR.
 :END:
 
 
+** TODO --trigger-auto-clock-in's docstring says the feature is off; it is on :code:
+:PROPERTIES:
+:ID:       6a21e08b-4880-4d2b-9b0f-12c35558fe08
+:CREATED:  [2026-08-25 Tue 11:10]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-25 Tue 11:10] \\
+  docstring contradicts its own defcustom
+:END:
+
+*The docstring of =claude-code-ide-org--trigger-auto-clock-in= reads* "Off by default since 2026-08-18 (TODO.org :ID: 226ed53b, step 2(c)): the first thing tested is =claude-code-ide-org-auto-clock-in-on-doing=, which is nil, so in normal operation this function does nothing at all."
+
+*It is not nil.* The =defcustom= two hundred lines above is =t=, and the running Emacs returns =t=. So the docstring describes a configuration that was reversed and never re-described, and it does so in the most misleading possible way -- by telling the reader the function is inert.
+
+*Caught 2026-08-25 while reasoning about whether a slice would be clocked*, and it very nearly landed the wrong answer in a heading body: the docstring was read first and taken at face value, and only a direct evaluation of the variable contradicted it. CLAUDE.md, for once, was the accurate source.
+
+*Worth a sweep rather than a one-line fix.* A docstring that contradicts its own =defcustom= is invisible to every test and to =bin/lint-org=, so if this one drifted, the reversal that produced it may have left others. Check what else references =226ed53b='s step 2(c).
+
+
 ** TODO Add README.md and enforce its consistency with CLAUDE.md :code:comms:
 :PROPERTIES:
 :ID:       d7849119-8224-4993-a8ab-83e1434df53c
@@ -8255,6 +8351,27 @@ Two things follow. A body-size rule calibrated against a body-size measurement t
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Tooling
 :END:
+
+
+** TODO Snapshot the next-session.md that drove each slice, the way plans are archived :code:
+:PROPERTIES:
+:ID:       637ee73d-e1b7-4a84-9213-830c49a400b4
+:CREATED:  [2026-08-25 Tue 11:10]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-25 Tue 11:10] \\
+  first snapshot taken by hand; the mechanism is not built
+:END:
+
+*=.claude/commands/next-session.md= is reused in place*, rewritten once per slice, so the text that drove slice N is overwritten when slice N+1 is planned. The first snapshot was taken by hand on 2026-08-25 -- =slices/2026-08-24-harden-the-review-pass.md=, linked from [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]]. Nothing automates it, and nothing notices when it drifts.
+
+*The analogy to =bin/sync-plans= is close but the reason is different, and getting that backwards would misdesign it.* =plans/= exists because =~/.claude/plans= is *outside the repo* and would otherwise have no history at all. =next-session.md= is inside the repo and already has ten commits of history, so history is not what is missing. What is missing is *identity*: a stable, immutable path a slice heading can link, so "the plan that drove this slice" is a link rather than an archaeology exercise through commits that all touch the same path.
+
+*What carries over unchanged* is the membership rule, which is the part of =sync-plans= worth copying: a file belongs to the archive iff some org heading links it. That keeps the directory from accumulating and makes an unlinked snapshot visible rather than silently included.
+
+*What differs*: the copy is taken at slice *close* rather than continuously, since a slice's plan is edited throughout its life and only the final text is the record of what drove it. That makes =--check= mean something different too -- not "the archive is stale" but "a closed slice links a snapshot that does not exist, or a live one has none yet".
+
+*Open:* whether =.githooks/pre-push= should refuse a push on that, as it does for plans. The plan case is stricter because the source can vanish with a home directory; here the source is committed, so a missing snapshot loses ordering and attribution, not content.
 
 
 ** MAYBE Evaluate choice of shell and standardize all project scripts :code:
@@ -9928,10 +10045,14 @@ CLOCK: [2026-08-24 Mon 15:32]--[2026-08-24 Mon 15:39] =>  0:07
 *Note the lint will start reporting these as they close.* =bin/lint-org= now warns when a heading closed on or after 2026-08-24 has a substantial body and no =:PLAN:= drawer. The 36 here are all closed before that date and are deliberately exempt, so the backlog stays silent rather than shouting 124 findings a day.
 
 
-** [0/3] Make the daily ceremony cheap enough that it actually runs :code:
+** TODO [0/3] Make the daily ceremony cheap enough that it actually runs :code:
 :PROPERTIES:
 :ID:       edd47f32-e6c9-4ab3-8e8a-46a37ea29605
 :CREATED:  [2026-08-24 Mon 15:36]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-25 Tue 10:03] \\
+  never had an initial state set
 :END:
 
 *The story these three share, noticed 2026-08-24 while surveying what the session had captured.* They were filed separately, into three different categories, and each reads as a small independent defect. Together they are one thing: *the ceremony has four steps, two of them have a tool, and nothing composes them or reminds anyone.*
@@ -9951,6 +10072,17 @@ The sequence, from =.claude/rules/org-conventions.md=: *apply the queue, consoli
 *Why the ritual heading is not a child of this one, though it is the same subject.* [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] carries a repeater, and =bin/lint-org= refuses a repeater under a completable ancestor -- correctly, since such an ancestor could never reach =DONE=. So the ritual stays where it is and this heading covers only the *tooling that makes the ritual cheap*. That constraint is worth stating: it is why an obvious "everything about the ceremony" subtree is not the right shape.
 
 *Done when* a human runs one command, answers the prompts apply asks, and the file comes out consolidated, separated and archived -- with the prompt to do so arriving on its own.
+
+*This heading carried no TODO keyword until 2026-08-25*, and the user asked whether that was deliberate. It was not: there is no =:LOGBOOK:= on it at all, so no state was ever set. It was written directly as a parent in =4b115d8=, rather than captured and then given an initial state, which is how every other container heading here got one. Seven of eight carry a keyword; this was the only exception.
+
+*The exception falls exactly on the emergent/declared axis*, which is why the question was worth asking rather than just fixing. The other seven all *acquired* their children -- emergent epics, detectable and never declared. This one was created to bundle three headings that already existed, filed under three different categories; its opening line says so. So the corpus accidentally encoded "emergent gets a keyword, declared does not", in a sample of one, with nothing written down and no mechanism enforcing it.
+
+*Keywordless is not a defensible marker for a declared grouping, though, and the reason is mechanical.* A story composed by reference is a checkbox list blocked on its members ([[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]]), and =org-depend= blocks on an *unfinished TODO keyword*. A member with no keyword can never be unfinished, so a checkbox naming it is inert -- the same inertness CLAUDE.md already records for a =:BLOCKER:= written in the session that captured its target. Found while the user was drafting exactly such a list against this heading, which is the only reason it surfaced at all.
+
+*Set to =TODO= rather than =DOING=, deliberately.* A transition to =DOING= obliges a clock, and a container's own clock measures nothing -- the work clocks on [[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]], which is the child actually in progress.
+
+*The cost of the omission was narrower than assumed, and worth recording so it is not overstated later.* =org_outline= with =active_only= keeps a keywordless heading, since the filter drops only =DONE= and =CANCELLED= -- verified against this subtree. What it actually forfeits is narrower: it can never be nominated =NEXT=, never appears in a TODO agenda, and its =[0/3]= cookie can never reach =DONE=.
+
 
 
 *** TODO Consolidation only reaches drawers an apply pass happens to touch :code:
