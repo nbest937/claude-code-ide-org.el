@@ -216,13 +216,29 @@ can go stale. That is the whole reason the paragraph above says not to
 classify one: a declaration of something already derivable is a second
 copy that can disagree with the first.
 
-A **story** or a **slice** is declared. It asserts that these particular
-tasks belong together for a reason the tree does not encode — and a
-story deliberately cuts *across* epics, so no arrangement of parents
-could carry it. Being underivable, it has to be written down as an
-explicit list of `[[id:...]]` references; being written down, it *can*
-go stale, and needs whatever keeps it honest (the checkbox list blocked
-on its members, in `:ID:` 8ca6541d's design).
+A **story** and a **slice** are both declared, and they are not the same
+thing — a distinction worth keeping straight, because the first draft of
+this paragraph ran them together. Each asserts that particular tasks
+belong together for a reason the tree does not encode; they differ in
+what they do about it.
+
+A **story** is a parent heading whose children are the work. Declaring
+it means *refiling* things under it, which is why it can only span epics
+once `:ID:` 29439196 makes a category a label rather than a place.
+
+A **slice** names its members *by reference* — a checkbox list of
+`[[id:...]]` links — and **sequences** them. Nothing moves, so a slice
+can pick a whole story or one task inside one, and the same task can
+appear in one slice and not the next. `:ID:` c44c2119 is the working
+prototype and carries the composition rules inline; the convention
+extracted from it is in `.claude/rules/org-conventions.md`.
+
+What a slice declares is **membership and order, and nothing else**.
+Every other field on one of its lines — keyword, title, checkbox — is
+*derived* from the referent and gets regenerated, never hand-set. A
+checkbox that disagrees with its referent means the slice is stale or
+the referent's keyword is under-reporting; it never means someone
+formed a second opinion worth recording.
 
 Two consequences that are easy to get backwards. Declaring an emergent
 grouping is the error the epic paragraph guards against. Trying to
