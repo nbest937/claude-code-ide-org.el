@@ -8893,6 +8893,23 @@ failed attempt marked nothing applied and the retry was clean -- no
 double-application, no half-applied batch. Whatever the fix, do not
 regress that.
 
+*A worse instance than the one this heading was filed for, 2026-08-25.* The read-only flag did not merely inconvenience an MCP tool -- it *failed the human's own review pass*. =M-x claude-code-ide-org-review=, =x=, and "Applied 0 item(s); 1 failed".
+
+*The human pressing =x= is unambiguous authorisation to write*, which is what makes this different in kind from a tool call arriving unannounced. The guard exists so the user's stray keystrokes cannot edit the buffer; it is not meant to stand between them and a command they just invoked. So the apply path is the one place where binding =inhibit-read-only= is not a judgement call.
+
+*Caused by the restore half of this heading's own subject.* The flag was cleared for an =org_amend=, restored immediately afterwards as the convention requires, and the next review pass hit it. Cleared and restored roughly eight times over the session; the failure came from doing it *correctly*.
+
+*Diagnosed in one call because [[id:df1cf43c-749f-435c-9f45-3d8df1d725ad][df1cf43c]] shipped this morning*, which is the clearest return that instrumentation has paid here. The bare message names nothing; the captured record named everything:
+
+: (:id "df001961-..." :message "Buffer is read-only: #<buffer TODO.org>" :backtrace nil)
+
+*One limitation of that instrumentation is now visible:* =:backtrace nil=. Capture is additive on top of a plain =condition-case=, so a backtrace only materialises when =debug-on-error= is set -- which it is under ERT and is not in normal use. The item and the message carried the whole diagnosis this time, so the gap cost nothing, but it will not always.
+
+*Verified no data was lost*, which was the real worry given [[id:21c91613-76e0-4590-affe-e2af9f1321ca][21c91613]]: apply writes the file and marks events consumed as two independent operations, so a failed write could still have consumed. It did not. The applied ledger's last entry was =2026-08-25T15:36:32= before and after the failure, and the day node's last CLOCK line remained =15:33--15:36=.
+
+*Narrow fix available and worth taking before the general one:* bind =inhibit-read-only= around the apply write only. The general case this heading describes -- every file-touching tool binding it -- is a larger change with a real argument against it, since a tool call is not a human keystroke. The apply path has no such ambiguity.
+
+
 
 ** DONE Archive the DONE backlog once the queue epic lands, then judge the structure question :code:
 CLOSED: [2026-08-17 Mon 18:50]
