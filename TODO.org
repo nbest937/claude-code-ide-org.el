@@ -8364,6 +8364,33 @@ Two things follow. A body-size rule calibrated against a body-size measurement t
 :END:
 
 
+** TODO Keep a slice's depiction in step with its referents, without overwriting judgement :code:
+:PROPERTIES:
+:ID:       0acc1df2-6916-4180-867a-99bfa551806b
+:CREATED:  [2026-08-25 Tue 12:04]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-25 Tue 12:04] \\
+  asked by the user the day slices were introduced
+:END:
+
+*A slice line copies two facts and declares one*, and the three need different mechanisms. =- [X] [[id:...][49557477]] DONE Expand an 8-character prefix ...= holds a link target that cannot go stale, a *keyword* and a *title* copied from the referent, and a *checkbox* that is derivable from nothing because it is the slice's own judgement -- =[-]= means "worked, unfinished", which no referent state expresses.
+
+*Regenerate the copied half; never hand-maintain it.* A normaliser walks each slice's checklist, resolves each =[[id:]]=, and rewrites the keyword and title from the referent, leaving the checkbox and any trailing prose untouched. Idempotent and judgement-free -- the same shape as =--consolidate-logbook-text= and =claude-code-ide-org-normalize-heading-separation=, both of which already exist and are already normalisers rather than migrations.
+
+*The trigger is apply, not a schedule.* Applying the queue is the only thing that changes referents' keywords in bulk, so a slice is stale exactly when a review pass ends. That makes this a fifth step in the ceremony [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]] already sequences -- apply, consolidate, re-separate, archive -- and it inherits that sequence's whole argument: a normaliser recalled separately from the pass that disturbs the file is one that will drift.
+
+*Lint the declared half for contradiction, and do not rewrite it.* Three are detectable: a referent =DONE= under an unticked box; a =CANCELLED= referent whose line still carries a cookie the convention says to delete; and a =[X]= over a referent that is not finished, which is the alarming direction because the slice claims more than the record supports.
+
+*They must be warnings rather than errors, and today proved why.* [[id:43201e64-3fe8-4fa6-81f5-d2ab5b65d191][43201e64]] and [[id:637ee73d-e1b7-4a84-9213-830c49a400b4][637ee73d]] carried a finished checkbox against a =TODO= keyword for about an hour, because both state changes were queued and unapplied. That is the queue behaving exactly as designed, not drift, and a rule that errored on it would fire on every correctly-run session.
+
+*Membership staleness needs nothing new.* A referent archived into DONE.org still resolves, since =org-id= spans files, and a deleted one already produces =bin/lint-org='s existing "id: link resolves to nothing" error -- which caught two fabricated links today.
+
+*Rejected, with a reason, so it is not re-proposed:* a custom =slice:= link type whose =:activate-func= renders the referent's live keyword and title as display properties. Nothing would be stored, so nothing could go stale -- but it is honest only inside Emacs, and a =git diff=, a =grep= or a web view would see a bare id. This project keeps its files legible as plain text on purpose; that is the founding premise of the event queue.
+
+*Already demonstrated twice.* [[id:46e4ce2b-fdc8-447b-ad09-b4845602540f][46e4ce2b]] was retitled *after* [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] was drafted -- had it been a member, the slice would now carry a title that no longer exists anywhere.
+
+
 ** CANCELLED Snapshot the next-session.md that drove each slice, the way plans are archived :code:
 CLOSED: [2026-08-25 Tue 11:46]
 :PROPERTIES:
