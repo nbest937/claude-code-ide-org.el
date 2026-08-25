@@ -5509,6 +5509,30 @@ lands at all."
               (or (claude-code-ide-org--review-current-state (plist-get item :id))
                   "unset"))
     (let ((claude-code-ide-org--auto-clock-in-active t)
+          ;; Apply is the one path where a read-only buffer must not
+          ;; stop the write, and the reason is about *authorisation*
+          ;; rather than convenience. The user sets `buffer-read-only'
+          ;; to guard against their own stray keystrokes while reading a
+          ;; file; pressing `x' in the review buffer is the opposite of
+          ;; a stray keystroke. The guard was never meant to stand
+          ;; between them and a command they just invoked.
+          ;;
+          ;; Hit for real 2026-08-25: a pass reported "Applied 0
+          ;; item(s); 1 failed", and the failure was
+          ;; `Buffer is read-only: #<buffer TODO.org>' on a day node --
+          ;; caused by an assistant *correctly* restoring the flag after
+          ;; borrowing it for an `org_amend'. Doing the convention right
+          ;; is what broke the pass.
+          ;;
+          ;; Deliberately narrower than TODO.org :ID: c8a97d9d's general
+          ;; proposal that every file-touching tool bind this. A tool
+          ;; call arrives unannounced and there is a real argument for
+          ;; letting the flag stop it; apply has no such ambiguity.
+          ;;
+          ;; A binding, not a `setq': the flag is restored when this
+          ;; scope exits, including on a non-local exit, so a failure
+          ;; part-way through cannot leave the buffer writable.
+          (inhibit-read-only t)
           (claude-code-ide-org--log-source
            (or claude-code-ide-org--log-source "org_review_apply")))
       ;; A capture is the one item whose :ID: names a heading that does

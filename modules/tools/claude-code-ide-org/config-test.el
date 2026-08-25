@@ -8901,6 +8901,34 @@ kind of wrong to notice."
           (should (string-match-p "99999999\\]\\] TODO resolves to nothing" (buffer-string)))
           (should (string-match-p "33333333\\]\\] TODO keywordless target" (buffer-string))))))))
 
+(ert-deftest claude-code-ide-org-test-apply-writes-through-a-read-only-buffer ()
+  "Apply succeeds when the user has set `buffer-read-only', and restores it.
+
+The user sets that flag to guard against their own stray keystrokes
+while reading a file. Pressing `x' in the review buffer is the opposite
+of a stray keystroke, so the guard must not stand between them and a
+command they just invoked.
+
+Hit for real 2026-08-25: a pass reported \"Applied 0 item(s); 1 failed\"
+and the failure was `Buffer is read-only', caused by an assistant
+*correctly* restoring the flag after borrowing it for an `org_amend'.
+
+The second assertion is the one that keeps this honest. `inhibit-read-only'
+is *bound*, not set, so the buffer must still be read-only afterwards --
+an implementation that cleared `buffer-read-only' instead would pass the
+first assertion and silently disarm the user's guard, which is the very
+defect c8a97d9d is named for."
+  (claude-code-ide-org-test--with-heading
+    (let ((item (list :type 'clock :id id
+                      :start (date-to-time "2026-08-06T09:00:00-0500")
+                      :end (date-to-time "2026-08-06T09:15:00-0500")
+                      :agent nil :suggested nil :events nil)))
+      (with-current-buffer (find-file-noselect file)
+        (setq buffer-read-only t))
+      (should-not (claude-code-ide-org--review-apply-item item))
+      (should (string-match-p "=>  0:15" (claude-code-ide-org-test--logbook file)))
+      (should (with-current-buffer (find-file-noselect file) buffer-read-only)))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here

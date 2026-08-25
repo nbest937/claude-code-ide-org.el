@@ -10,13 +10,13 @@
 :END:
 
 
-** DOING [9/22] Harden the review pass: its cost, its correctness, and its record
+** DOING [11/23] Harden the review pass: its cost, its correctness, and its record
 :PROPERTIES:
 :KIND:     slice
 :ID:       c44c2119-dbf8-4510-99e2-6aaa7f259d94
 :CREATED:  [2026-08-25 Tue 11:06]
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(edd47f32-e6c9-4ab3-8e8a-46a37ea29605 7ae6562d-25c8-453e-b78b-920e036c5665 e1284bdb-0a18-402a-81cb-1ac8d09fb8a2 aa1ba915-ee68-48df-afea-197ae60aac63 3063c3e5-0dd0-4354-8985-271b0313c5d1 f421c5c3-f81f-4ebf-99c9-42c53cc00558 961f15b6-d782-40b8-8ceb-ba086d188a3b 2758f3a0-3c47-405e-9662-a7669dcb60cc 82df2a6c-881d-4117-a752-5b3b04c9656d 21c91613-76e0-4590-affe-e2af9f1321ca 8ca6541d-0fc7-45a2-a4d3-76e1608f658d 43201e64-3fe8-4fa6-81f5-d2ab5b65d191 f4b07fc0-187a-4975-aa3b-b9bd4b1c0799 31c6ac39-1a06-4b17-8d89-b91fd2628874 111ca40a-3fdb-4106-ad52-991e30737ece 7fbab3b3-7843-4290-94a5-d421413f2be4 ff92700e-1713-4862-a3fe-8fd972ad96fa 2b050e7a-b0c4-45d3-835e-68befcebb7bb 7148cddc-aca3-416e-8bcb-f164d4d2bba0 df1cf43c-749f-435c-9f45-3d8df1d725ad 49557477-e50c-496f-85df-82c65109832b 0acc1df2-6916-4180-867a-99bfa551806b)
+:BLOCKER:  ids(edd47f32-e6c9-4ab3-8e8a-46a37ea29605 7ae6562d-25c8-453e-b78b-920e036c5665 e1284bdb-0a18-402a-81cb-1ac8d09fb8a2 aa1ba915-ee68-48df-afea-197ae60aac63 3063c3e5-0dd0-4354-8985-271b0313c5d1 f421c5c3-f81f-4ebf-99c9-42c53cc00558 961f15b6-d782-40b8-8ceb-ba086d188a3b 2758f3a0-3c47-405e-9662-a7669dcb60cc 82df2a6c-881d-4117-a752-5b3b04c9656d 21c91613-76e0-4590-affe-e2af9f1321ca 8ca6541d-0fc7-45a2-a4d3-76e1608f658d 43201e64-3fe8-4fa6-81f5-d2ab5b65d191 f4b07fc0-187a-4975-aa3b-b9bd4b1c0799 31c6ac39-1a06-4b17-8d89-b91fd2628874 111ca40a-3fdb-4106-ad52-991e30737ece 7fbab3b3-7843-4290-94a5-d421413f2be4 ff92700e-1713-4862-a3fe-8fd972ad96fa 2b050e7a-b0c4-45d3-835e-68befcebb7bb 7148cddc-aca3-416e-8bcb-f164d4d2bba0 df1cf43c-749f-435c-9f45-3d8df1d725ad 49557477-e50c-496f-85df-82c65109832b 0acc1df2-6916-4180-867a-99bfa551806b 97b030a4-50df-4b8b-a781-bd4acd2931d0)
 :END:
 :LOGBOOK:
 - State "DOING"      from              [2026-08-25 Tue 11:06] \\
@@ -35,7 +35,7 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 - [-] [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] REVIEW Footnote discipline decays on re-mention; enforce it at Stop
 - [ ] [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] TODO Evaluate Org's own agenda, sparse-tree and column views against this corpus
 - [ ] [[id:21c91613-76e0-4590-affe-e2af9f1321ca][21c91613]] NEXT Apply consumes queue events with no way to roll one back
-- [ ] [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]] TODO Compose slices by reference: a checkbox list of id links, blocked on its members
+- [X] [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]] DONE Compose slices by reference: a checkbox list of id links, blocked on its members
 - [X] [[id:43201e64-3fe8-4fa6-81f5-d2ab5b65d191][43201e64]] DONE Every orgit link a body adds costs a permanent lint warning
 - [X] [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]] DONE Backfill CLOSED: from the LOGBOOK where the evidence is already in the file
 - [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] CANCELLED Recover a close time from git for the headings with no in-file evidence
@@ -49,6 +49,7 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 - [X] [[id:49557477-e50c-496f-85df-82c65109832b][49557477]] DONE Expand an 8-character prefix at both surfaces where a tail gets invented
 - [ ] [[id:0acc1df2-6916-4180-867a-99bfa551806b][0acc1df2]] TODO Regenerate a slice's depiction from its referents; only membership and order are declared
 - [[id:637ee73d-e1b7-4a84-9213-830c49a400b4][637ee73d]] CANCELLED Snapshot the next-session.md that drove each slice, the way plans are archived
+- [X] [[id:97b030a4-50df-4b8b-a781-bd4acd2931d0][97b030a4]] DONE Bind inhibit-read-only in the apply path, where the human asked for the write
 
 *The prompt that drove this slice, one link per revision of it:*
 
@@ -8814,7 +8815,7 @@ a project convention (e.g. in CLAUDE.md's "Repository layout" or a new
 re-litigated per script.
 
 
-** TODO Clearing a buffer's read-only flag for an MCP tool leaves it cleared :code:
+** TODO [1/1] Clearing a buffer's read-only flag for an MCP tool leaves it cleared :code:
 :PROPERTIES:
 :ID:       c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b
 :CREATED:  [2026-08-10 Mon 12:37]
@@ -8910,6 +8911,25 @@ regress that.
 *Narrow fix available and worth taking before the general one:* bind =inhibit-read-only= around the apply write only. The general case this heading describes -- every file-touching tool binding it -- is a larger change with a real argument against it, since a tool call is not a human keystroke. The apply path has no such ambiguity.
 
 
+
+*** DONE Bind inhibit-read-only in the apply path, where the human asked for the write
+CLOSED: [2026-08-25 Tue 16:09]
+:PROPERTIES:
+:ID:       97b030a4-50df-4b8b-a781-bd4acd2931d0
+:CREATED:  [2026-08-25 Tue 16:09]
+:END:
+:LOGBOOK:
+- State "DONE"       from              [2026-08-25 Tue 16:09] \\
+  narrow fix; the general tool case stays open on the parent
+:END:
+
+*Shipped 2026-08-25, the same afternoon it bit.* =claude-code-ide-org--review-apply-item= binds =inhibit-read-only= alongside the re-entrancy guard it already binds, which covers both the capture path and the =--at-id= path in one place.
+
+*Narrow on purpose, and the parent stays open because of it.* The general proposal -- every file-touching tool binds this -- has a real argument against it: a tool call arrives unannounced, and letting the flag stop one is defensible. Apply has no such ambiguity, because the human pressed =x=.
+
+*A binding rather than a =setq=, which is the whole safety property.* The flag returns when the scope exits, including on a non-local exit, so a failure part-way through cannot leave the buffer writable. The test asserts exactly that: the buffer is still read-only *after* a successful apply. An implementation that cleared =buffer-read-only= instead would pass the write assertion and silently disarm the user's guard -- which is the defect the parent heading is named for, reintroduced by its own fix.
+
+*Verified discriminating*: removing the one binding fails this test and nothing else.
 
 ** DONE Archive the DONE backlog once the queue epic lands, then judge the structure question :code:
 CLOSED: [2026-08-17 Mon 18:50]
@@ -10421,6 +10441,8 @@ CLOCK: [2026-08-25 Tue 15:20]--[2026-08-25 Tue 15:30] =>  0:10
 - [2026-08-25 Tue 15:20]--[2026-08-25 Tue 15:30] assigned at review
 CLOCK: [2026-08-25 Tue 15:33]--[2026-08-25 Tue 15:36] =>  0:03
 - [2026-08-25 Tue 15:33]--[2026-08-25 Tue 15:36] assigned at review
+CLOCK: [2026-08-25 Tue 15:46]--[2026-08-25 Tue 15:50] =>  0:04
+- [2026-08-25 Tue 15:46]--[2026-08-25 Tue 15:50] assigned at review
 :END:
 
 
