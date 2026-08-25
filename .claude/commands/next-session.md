@@ -44,6 +44,15 @@ one item whose entire purpose is to produce evidence a decision would need
   else ever prunes one, since every pruning event in the `:PLAN:` lifecycle
   is tied to reaching `DONE`. Fires on nothing today; would have caught
   `cbe282ec` at 47 lines.
+- **The promotion trigger no longer re-enters itself** (`7148cddc`). One
+  apply made 1201 mutations across 114 headings before the guard existed;
+  the file was restored from `HEAD` and the queue rolled back by hand.
+- **Apply failures now name their item and keep a backtrace.** Five
+  identical "Before first headline" messages cost an afternoon and three
+  withdrawn hypotheses.
+- **`e` honours the bracket style you type**: `<...>` records an interval
+  as *your* attention, `[...]` stays agent activity. Inactive is still the
+  default.
 - **`b7b46a26` is cancelled.** Nothing mechanical consumes `CLOSED:` on the
   39 headings that lack one, and nothing ever will — the `:PLAN:` lint
   exempts them permanently by design. Don't re-derive this.
@@ -152,6 +161,22 @@ corpus as it stands.
 The corpus is now materially better suited to it than it was: `CLOSED:` is
 populated, drawers are consistent, the datetree exists with a real day node.
 Related: `29439196`, `8ca6541d`, `9651d4c8`.
+
+## 7. `21c91613` — an apply cannot be rolled back
+
+**Decision: yours, between three recorded options**, the cheapest of which
+is nearly free.
+
+Apply writes the org file and marks its events consumed as two independent
+operations. Restore the file from git and the queue still believes the work
+is done, so the events are never offered again. Found the hard way on
+2026-08-24, when the recovery had to reconstruct the consumed set from a
+`org_pending_updates` report captured minutes earlier — and where the
+obvious heuristic would have rolled back 85 events instead of 54, because a
+third apply had already landed and been committed.
+
+Recording the *apply time* beside each consumed event is the option that
+would have made that recovery one command.
 
 **Cut line:** stop after item 4. Items 1–4 are all builds with settled
 designs and leave the tooling coherent; 5 needs only a new session to observe
