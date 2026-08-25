@@ -5996,7 +5996,8 @@ Nobody chose it. =claude-code-ide-org--trigger-auto-promote-sole-todo= promotes 
 *Verified by mutation.* Dropping the suppression fails only the new apply-order test; dropping the settle pass fails only the sole-survivor test, whose whole job is to catch a suppress-only fix. Confirmed live in the running Emacs after =load-file=: three children applied as one batch all end TODO with zero =Auto-promoted= lines.
 
 
-** TODO A gap covering the whole span restates its own timestamps and reads as a bug :code:
+** DONE A gap covering the whole span restates its own timestamps and reads as a bug :code:
+CLOSED: [2026-08-24 Mon 14:51]
 :PROPERTIES:
 :ID:       a279216c-38db-478c-ba52-ad31c87fbfd9
 :CREATED:  [2026-08-21 Fri 10:53]
@@ -6034,6 +6035,8 @@ CLOCK: [2026-08-21 Fri 12:54]--[2026-08-21 Fri 12:59] =>  0:05
 - [2026-08-21 Fri 12:54]--[2026-08-21 Fri 12:59] assigned at review
 CLOCK: [2026-08-21 Fri 13:07]--[2026-08-21 Fri 13:24] =>  0:17
 - [2026-08-21 Fri 13:07]--[2026-08-21 Fri 13:24] assigned at review
+- State "DONE"       from "TODO"       [2026-08-24 Mon 14:51] \\
+  whole-span gap line fixed and pinned
 :END:
 
 *Reported by the user 2026-08-21, reviewing a real batch:* a suggested span rendered =(nothing for 10m, 10:37-10:47)= beneath a header already reading =10:37--10:47=, and the first question it prompted was whether the line was a defect.
@@ -6083,7 +6086,8 @@ CLOCK: [2026-08-24 Mon 10:14]--[2026-08-24 Mon 10:20] =>  0:06
 *One correction worth keeping, because it changed the answer.* The estimate quoted before the tool existed was "59 of 97", produced by scanning each heading's whole body for a =State= line. The real figure is *58*. [[id:3d93021d-1d8a-4657-bc5c-77734f91fb9d][3d93021d]] has no =:LOGBOOK:= at all, but quotes =- State "DONE" from "NEXT" [2026-08-07 Fri 08:19]= *in prose*, while diagnosing the bug that produced that very line. A body-wide scan reads it as evidence and dates the heading from a sentence about a bug. The shipped code bounds its search to the drawer, so it does not -- and the discrepancy between the two counts is the only reason the difference was noticed at all. Worth reading twice, because the prose that fooled the estimate is *correctly quoted org*, not malformed text, and nothing structural would ever flag it.
 
 
-** TODO Recover a close time from git for the headings with no in-file evidence :code:research:
+** CANCELLED Recover a close time from git for the headings with no in-file evidence :code:research:
+CLOSED: [2026-08-24 Mon 15:59]
 :PROPERTIES:
 :ID:       b7b46a26-2fd6-4784-bed3-d0112a917c0a
 :CREATED:  [2026-08-24 Mon 10:14]
@@ -6091,6 +6095,8 @@ CLOCK: [2026-08-24 Mon 10:14]--[2026-08-24 Mon 10:20] =>  0:06
 :LOGBOOK:
 - State "TODO"       from              [2026-08-24 Mon 10:20] \\
   captured keywordless, setting initial state
+- State "CANCELLED"  from "TODO"       [2026-08-24 Mon 15:59] \\
+  nothing consumes CLOSED: on those headings
 :END:
 
 *Filed 2026-08-24, the residue of* [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]]. That pass filled 58 of DONE.org's 97 finished headings from their own =:LOGBOOK:=. *39 have no in-file evidence at all* -- mostly early headings from before the =!= cookies in =#+TODO:= were adopted, e.g. "Implement the ten pending MCP-tool tasks in parallel worktrees", "Add a PLANNING TODO state, driven by the ExitPlanMode matcher", and the original =org_query= / =org_clock_report= / =org_capture= tool headings.
@@ -6177,10 +6183,19 @@ CLOSED: [2026-08-24 Mon 13:08]
 *Note for anyone verifying this:* reloading =config.el= updates the mode definition but does *not* change an already-open review buffer, whose locals were set when its mode ran. Only a newly created review buffer picks it up -- which is why the live check was done in a fresh buffer.
 
 
-** The group-heading render has been wrong three times; the cond has the wrong shape :code:
+** DONE The group-heading render has been wrong three times; the cond has the wrong shape :code:
+CLOSED: [2026-08-24 Mon 14:53]
 :PROPERTIES:
 :ID:       2b050e7a-b0c4-45d3-835e-68befcebb7bb
 :CREATED:  [2026-08-24 Mon 14:51]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-24 Mon 14:51]--[2026-08-24 Mon 14:53] =>  0:02
+- State "DOING"      from              [2026-08-24 Mon 14:51] \\
+  fix the third instance, reshape the cond
+- [2026-08-24 Mon 14:51]--[2026-08-24 Mon 14:53] reshape the group-heading render
+- State "DONE"       from "DOING"      [2026-08-24 Mon 14:53] \\
+  cond reshaped, all four kinds tested
 :END:
 
 *Filed and fixed 2026-08-24* (=f7acc03=), from the user asking whether there was any task to log a render fix against. There was not -- but there was a *precedent*, and finding it turned a one-line fix into a pattern worth naming.
@@ -6898,10 +6913,14 @@ archived keeps only its state-change line.
 *One consequence nobody predicted here,* worth recording because it paid off a week later. Dating work by =CLOSED:= only became possible once this existed, which is what let f4b07fc0's backfill scope [[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]]'s lint rule to headings closed after the convention landed -- 0 warnings instead of 124. A rule filed as "adds no data, adds an accessor" turned out to be the thing that made a later rule usable at all.
 
 
-** Track the human's review attention, clocked by the review command itself :code:research:
+** NEXT Track the human's review attention, clocked by the review command itself :code:research:
 :PROPERTIES:
 :ID:       961f15b6-d782-40b8-8ceb-ba086d188a3b
 :CREATED:  [2026-08-24 Mon 16:32]
+:END:
+:LOGBOOK:
+- State "NEXT"       from              [2026-08-24 Mon 16:33] \\
+  design settled except where to file it
 :END:
 
 *Proposed by the user 2026-08-24, reviewing a live queue.* The review pass is the one activity this project has never measured, and it is the one the project most depends on: nothing reaches an org file without it. Its cost is currently invisible, so "the review-apply cycle seems pretty straightforward lately" ([[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]]) is an impression rather than a number.
@@ -7878,14 +7897,21 @@ The =/next-session= idiom is used but not codified. One line outside the file me
 *Open:* there is no end-of-session trigger to hang the writing rule on. Candidate is firing on an explicit request to write or revise the prompt, with the self-hosted header as the backstop.
 
 
-** TODO A repeater never reaches DONE, so its body is never pruned :code:
+** DONE A repeater never reaches DONE, so its body is never pruned :code:
+CLOSED: [2026-08-24 Mon 16:00]
 :PROPERTIES:
 :ID:       ff92700e-1713-4862-a3fe-8fd972ad96fa
 :CREATED:  [2026-08-24 Mon 13:10]
 :END:
 :LOGBOOK:
+- State "DONE"       from "DOING"      [2026-08-24 Mon 16:00] \\
+  cap shipped; direction 1 chosen
+- State "DOING"      from "TODO"       [2026-08-24 Mon 15:56] \\
+  build the repeater body cap
 - State "TODO"       from              [2026-08-24 Mon 13:11] \\
   captured keywordless, setting initial state
+CLOCK: [2026-08-24 Mon 15:56]--[2026-08-24 Mon 15:59] =>  0:03
+- [2026-08-24 Mon 15:56]--[2026-08-24 Mon 15:59] build the repeater body cap
 :END:
 
 *Found 2026-08-24 while paring [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]]*, whose body had reached 47 lines against a 35-line median.
@@ -9319,10 +9345,15 @@ Two findings, and the second is the actionable one.
 *Still worth doing, and it is the half that removes the problem rather than policing it:* [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] and [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] make a prefix→title lookup cheap. A rule that is free to obey does not need enforcing, and the enforcement exists because looking up five exact titles mid-response is not free today.
 
 
-** The :PLAN: lint will demand a drawer from a debrief-only heading :code:
+** TODO The :PLAN: lint will demand a drawer from a debrief-only heading :code:
 :PROPERTIES:
 :ID:       f421c5c3-f81f-4ebf-99c9-42c53cc00558
 :CREATED:  [2026-08-24 Mon 15:02]
+:END:
+:LOGBOOK:
+- [2026-08-24 Mon 14:53]--[2026-08-24 Mon 14:58] assigned at review
+- State "TODO"       from              [2026-08-24 Mon 15:02] \\
+  captured keywordless, setting initial state
 :END:
 
 *Latent, not firing yet, and found 2026-08-24 by running the sweep rather than by reading the rule.*
@@ -9477,25 +9508,74 @@ CLOCK: [2026-08-24 Mon 09:57]--[2026-08-24 Mon 09:59] =>  0:02
 - [2026-08-24 Mon 10:08]--[2026-08-24 Mon 10:13] assigned at review
 - [2026-08-24 Mon 10:21]--[2026-08-24 Mon 10:22] assigned at review
 - [2026-08-24 Mon 13:03]--[2026-08-24 Mon 13:05] assigned at review
+- [2026-08-24 Mon 15:40]--[2026-08-24 Mon 15:43] assigned at review
+CLOCK: [2026-08-24 Mon 15:44]--[2026-08-24 Mon 15:45] =>  0:01
+- [2026-08-24 Mon 15:44]--[2026-08-24 Mon 15:45] decide the repeater-pruning and git-dating questions
+CLOCK: [2026-08-24 Mon 15:55]--[2026-08-24 Mon 15:56] =>  0:01
+- [2026-08-24 Mon 15:55]--[2026-08-24 Mon 15:56] decide the repeater-pruning and git-dating questions
+CLOCK: [2026-08-24 Mon 16:00]--[2026-08-24 Mon 16:01] =>  0:01
+- [2026-08-24 Mon 16:00]--[2026-08-24 Mon 16:01] assigned at review
+CLOCK: [2026-08-24 Mon 16:31]--[2026-08-24 Mon 16:33] =>  0:02
+- [2026-08-24 Mon 16:31]--[2026-08-24 Mon 16:33] design human-attention tracking for review
+CLOCK: [2026-08-24 Mon 16:40]--[2026-08-24 Mon 16:41] =>  0:01
+- [2026-08-24 Mon 16:40]--[2026-08-24 Mon 16:41] assigned at review
+CLOCK: [2026-08-24 Mon 16:42]--[2026-08-24 Mon 16:43] =>  0:01
+- [2026-08-24 Mon 16:42]--[2026-08-24 Mon 16:43] record the buffer-death decision
+CLOCK: [2026-08-24 Mon 16:48]--[2026-08-24 Mon 16:52] =>  0:04
+- [2026-08-24 Mon 16:48]--[2026-08-24 Mon 16:52] assigned at review
+CLOCK: [2026-08-24 Mon 16:59]--[2026-08-24 Mon 17:01] =>  0:02
+- [2026-08-24 Mon 16:59]--[2026-08-24 Mon 17:01] assigned at review
+CLOCK: [2026-08-24 Mon 17:08]--[2026-08-24 Mon 17:09] =>  0:01
+- [2026-08-24 Mon 17:08]--[2026-08-24 Mon 17:09] assigned at review
+CLOCK: [2026-08-24 Mon 17:12]--[2026-08-24 Mon 17:13] =>  0:01
+- [2026-08-24 Mon 17:12]--[2026-08-24 Mon 17:13] assigned at review
+CLOCK: [2026-08-24 Mon 17:17]--[2026-08-24 Mon 17:19] =>  0:02
+- [2026-08-24 Mon 17:17]--[2026-08-24 Mon 17:19] assigned at review
+CLOCK: [2026-08-24 Mon 17:22]--[2026-08-24 Mon 17:30] =>  0:08
+- [2026-08-24 Mon 17:22]--[2026-08-24 Mon 17:30] assigned at review
+CLOCK: [2026-08-24 Mon 17:38]--[2026-08-24 Mon 17:43] =>  0:05
+- [2026-08-24 Mon 17:38]--[2026-08-24 Mon 17:43] assigned at review
+CLOCK: [2026-08-24 Mon 17:45]--[2026-08-24 Mon 17:46] =>  0:01
+- [2026-08-24 Mon 17:45]--[2026-08-24 Mon 17:46] assigned at review
+CLOCK: [2026-08-24 Mon 17:49]--[2026-08-24 Mon 18:06] =>  0:17
+- [2026-08-24 Mon 17:49]--[2026-08-24 Mon 18:06] assigned at review
+CLOCK: [2026-08-24 Mon 18:46]--[2026-08-24 Mon 18:55] =>  0:09
+- [2026-08-24 Mon 18:46]--[2026-08-24 Mon 18:55] assigned at review
 :END:
 
 
-** DOING Clear the 36-heading archive backlog, sweeping bodies into :PLAN: unedited :code:
+** REVIEW Clear the 36-heading archive backlog, sweeping bodies into :PLAN: unedited :code:
 :PROPERTIES:
 :ID:       7fbab3b3-7843-4290-94a5-d421413f2be4
 :CREATED:  [2026-08-24 Mon 13:09]
 :END:
 :LOGBOOK:
+- State "REVIEW"     from "DOING"      [2026-08-24 Mon 15:39] \\
+  wrapping complete; archive step remains
 - State "NEXT"       from              [2026-08-24 Mon 13:11] \\
   backlog extracted, ready to run
+CLOCK: [2026-08-24 Mon 13:14]--[2026-08-24 Mon 13:18] =>  0:04
 - State "DOING"      from "NEXT"       [2026-08-24 Mon 13:14] \\
   run the backlog sweep
+- [2026-08-24 Mon 13:14]--[2026-08-24 Mon 13:18] sweep the archive backlog into PLAN
 CLOCK: [2026-08-24 Mon 13:21]--[2026-08-24 Mon 13:25] =>  0:04
 - [2026-08-24 Mon 13:21]--[2026-08-24 Mon 13:25] sweep the archive backlog into PLAN
+CLOCK: [2026-08-24 Mon 13:25]--[2026-08-24 Mon 13:26] =>  0:01
+- [2026-08-24 Mon 13:25]--[2026-08-24 Mon 13:26] sweep the archive backlog into PLAN
 CLOCK: [2026-08-24 Mon 13:33]--[2026-08-24 Mon 13:37] =>  0:04
 - [2026-08-24 Mon 13:33]--[2026-08-24 Mon 13:37] sweep the archive backlog into PLAN
+CLOCK: [2026-08-24 Mon 13:37]--[2026-08-24 Mon 13:38] =>  0:01
+- [2026-08-24 Mon 13:37]--[2026-08-24 Mon 13:38] sweep the archive backlog into PLAN
 CLOCK: [2026-08-24 Mon 13:55]--[2026-08-24 Mon 14:00] =>  0:05
 - [2026-08-24 Mon 13:55]--[2026-08-24 Mon 14:00] sweep the archive backlog into PLAN
+CLOCK: [2026-08-24 Mon 14:00]--[2026-08-24 Mon 14:01] =>  0:01
+- [2026-08-24 Mon 14:00]--[2026-08-24 Mon 14:01] sweep the archive backlog into PLAN
+CLOCK: [2026-08-24 Mon 14:49]--[2026-08-24 Mon 14:51] =>  0:02
+- [2026-08-24 Mon 14:49]--[2026-08-24 Mon 14:51] sweep the archive backlog into PLAN
+CLOCK: [2026-08-24 Mon 14:58]--[2026-08-24 Mon 15:03] =>  0:05
+- [2026-08-24 Mon 14:58]--[2026-08-24 Mon 15:03] inspect refusals, work the debriefs
+CLOCK: [2026-08-24 Mon 15:32]--[2026-08-24 Mon 15:39] =>  0:07
+- [2026-08-24 Mon 15:32]--[2026-08-24 Mon 15:39] inspect refusals, work the debriefs
 :END:
 
 *Split out of [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] on 2026-08-24*, which had been carrying three different things at once: a recurring ritual, this one-time migration, and a set of standing conventions. The conventions went to =.claude/rules/org-conventions.md=; the ritual stayed; this is the backlog.
@@ -9515,7 +9595,7 @@ CLOCK: [2026-08-24 Mon 13:55]--[2026-08-24 Mon 14:00] =>  0:05
 *Note the lint will start reporting these as they close.* =bin/lint-org= now warns when a heading closed on or after 2026-08-24 has a substantial body and no =:PLAN:= drawer. The 36 here are all closed before that date and are deliberately exempt, so the backlog stays silent rather than shouting 124 findings a day.
 
 
-** [0/2] Make the daily ceremony cheap enough that it actually runs :code:
+** [0/3] Make the daily ceremony cheap enough that it actually runs :code:
 :PROPERTIES:
 :ID:       edd47f32-e6c9-4ab3-8e8a-46a37ea29605
 :CREATED:  [2026-08-24 Mon 15:36]
@@ -9576,7 +9656,7 @@ Counting drawers with two or more timestamped entries, and asking whether their 
 *Shape:* a command that consolidates every drawer in the tracked files, reusing =--consolidate-logbook-text= unchanged -- already idempotent and pinned lossless. Worth running before an archive pass in particular, since that is the last moment a heading is ever touched; that makes it a natural companion to [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] rather than a separate ritual.
 
 
-*** End every heading with two blank lines, so folded trees are separated :code:
+*** NEXT End every heading with two blank lines, so folded trees are separated :code:
 :PROPERTIES:
 :ID:       e1284bdb-0a18-402a-81cb-1ac8d09fb8a2
 :CREATED:  [2026-08-24 Mon 13:12]
