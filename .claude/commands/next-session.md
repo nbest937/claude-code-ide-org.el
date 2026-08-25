@@ -5,9 +5,10 @@ revision predates slices existing, so it duplicated a list that now lives in
 one place.
 
 **The job is to finish the current slice, not to grow it.** `c44c2119` is at
-`[9/21]` and every one of the nine completions came from work found *while*
-doing the planned work. Ten new headings were filed today and are
-deliberately **not** members. Resist adding more; a new slice can be cut later.
+`[11/23]`, and every completion so far came from work found *while* doing the
+planned work rather than from the plan. A dozen headings filed on 2026-08-25
+are deliberately **not** members. Resist adding more; `979e02b6` is the
+proposed next slice and is where new work belongs.
 
 **The slice is the list.** Do not re-derive it here — open `c44c2119` and read
 its checklist. Each line carries the member's id, current keyword and title,
@@ -20,20 +21,14 @@ and the slice's `:BLOCKER:` names every member still carrying a cookie.
 1. **Confirm `emacs-tools` is reachable** by calling `org_pending_updates`. It
    is read-only, and a reply proves the server is up in a way that seeing the
    tools listed does not.
-2. **Apply the queue first, before touching the slice.** As of this writing 7
-   items are pending across 3 headings, including two state changes —
-   `8ca6541d` → `DONE` and `a7f4b40c` → `CANCELLED`. The slice's checkboxes are
-   *derived from each referent's keyword*, so applying changes what the slice
-   should say.
-3. **Then fix the slice by hand, and expect to.** `0acc1df2` — regenerate a
-   slice's depiction from its referents — is designed and **not built**. So
-   after apply, `8ca6541d`'s checkbox will still read `[ ]` against a `DONE`
-   heading, and the cookie will still read `[9/21]`. Tick it, bump the cookie,
-   and run `M-x claude-code-ide-org-refresh-slice-blocker`.
-
-That third step is the first thing that will bite, and it is an argument for
-making `0acc1df2` a member. **That is a decision for the user, not a thing to
-do quietly** — it would be expanding the slice.
+2. **Apply the queue first, before touching the slice.** The slice's
+   checkboxes are *derived from each referent's keyword*, so applying changes
+   what the slice should say.
+3. **Then run `M-x claude-code-ide-org-refresh-slice`.** It rewrites every
+   member line from its referent, recomputes the cookie, and regenerates the
+   `:BLOCKER:`. Built 2026-08-25 (`0acc1df2`); before it existed this step was
+   manual and silently skippable, because nothing detects the drift — the lint
+   compares `:BLOCKER:` against the checkbox list, and both go stale together.
 
 ---
 
@@ -69,8 +64,16 @@ Everything below shipped 2026-08-25, after the previous revision.
   block was a real unfootnoted id. Its child `5787bfc6` carries the remaining
   half: the `stopReason` never reaches the model, so the block is opaque.
 - **Task mitosis is settled but unbuilt** (`a0813ae3`): a leaf that outgrows
-  itself divides, the id going with the leaf. Relevant only if a member
-  inflates while being worked.
+  itself divides, the id going with the leaf.
+- **Three words, corrected 2026-08-25 and not interchangeable.** An **epic**
+  is the grouping a task belongs to — proposed as an `:EPIC:` label rather
+  than `:CATEGORY:`, which is overloaded. A **story** is a task that acquired
+  keyworded children; `--container-heading-p` detects one, and "container" is
+  the code's older word for it. A **slice** names members by reference and
+  sequences them. Earlier drafts called a story an "epic" throughout.
+- **Apply binds `inhibit-read-only`** (`97b030a4`). A read-only TODO.org no
+  longer fails a pass. Other paths — including `refresh-slice` — still stop,
+  deliberately.
 
 ---
 
@@ -107,9 +110,19 @@ clock left running. Settle `4f6a6bb1` before setting either.
 5. `961f15b6`, `21c91613`, `3063c3e5`, `82df2a6c` — the four genuinely large
    ones. `21c91613` carries a user decision between three recorded options.
 
-**Cut line: stop after 4.** That would take the slice from `[9/21]` to roughly
-`[15/21]` and leaves the ceremony coherent. **If the session is short, do 1 and
-2** — together they are under an hour and both close members outright.
+**Cut line: stop after 4.** That would take the slice from `[11/23]` to
+roughly `[17/23]` and leaves the ceremony coherent. **If the session is short,
+do 1 and 2** — together they are under an hour and both close members
+outright.
+
+**One member carries a live decision and the evidence is now one-sided.**
+`21c91613` offers a `.applied.bak` snapshot or an apply-time field per
+consumed event. Prefer the field: a snapshot can only undo the *most recent*
+pass, and the recorded incident is precisely one where a third apply had
+already landed, which is what made the obvious heuristic wrong. The field
+makes "un-apply the pass of 17:17" answerable directly, which is what the
+recovery needed and had to reconstruct by hand. The choice is still the
+user's; it is no longer a toss-up.
 
 ---
 

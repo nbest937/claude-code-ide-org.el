@@ -6595,6 +6595,19 @@ An apply writes to the org file *and* marks its events consumed in =<session>.ap
 
 The second is the one that would have made this recovery a single command instead of an archaeology exercise, and it is nearly free.
 
+*The two recorded directions are no longer a toss-up, 2026-08-25, and the tie is broken by this heading's own incident rather than by preference.*
+
+*A =.applied.bak= snapshot can only undo the **most recent** pass.* That is exactly the case the incident was *not*. The recovery record above says the obvious heuristic "un-apply everything since the last commit" would have rolled back 85 events instead of 54, "because a *third* apply had already landed at 16:42 and was already committed". A snapshot has the same shape of blind spot: it restores the ledger to a moment, and if anything landed after that moment, restoring it un-applies correct work too. The cheapest option is cheapest only for the failure that did not happen.
+
+*Recording the apply time per consumed event answers the question that was actually asked under pressure.* "Un-apply the pass of 17:17" becomes a filter rather than a reconstruction. The recovery had to rebuild the consumed set from an =org_pending_updates= report captured minutes earlier, which is available by luck rather than by design.
+
+*Its cost was re-checked against the file rather than assumed.* The ledger is =\{"applied": [ts, ts, ...]\}= -- a bare list of event timestamps, confirmed by reading it 2026-08-25 -- and it is rewritten wholesale on each apply. So pairing each entry with its apply time is one field and no new write path; the structure is already replaced every time.
+
+*One data point on how often this bites, since it argues for doing the cheap thing well rather than urgently.* A pass failed the same day with "Applied 0 item(s); 1 failed" ([[id:c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b][c8a97d9d]]), and the ledger was verified unchanged before and after -- so a failed *write* did not consume. The two-operation hazard is real but did not fire; what fired was a plain failure that rolled nothing forward.
+
+*Still the user's decision.* This narrows it to one recommendation with the reasoning attached, rather than making it.
+
+
 
 ** TODO Auto-mark the state items that carry no judgement :code:
 :PROPERTIES:
@@ -7547,6 +7560,15 @@ Verified against the hook documentation rather than assumed: Claude Code exposes
 *And the measurement immediately showed where it does and does not earn its keep.* Those 41 minutes were *already* excluded: no guideposts fired while the user was away, so the gap never entered a span, and the adjacent item is a lone point at 19:02. The span before it ends at 18:06 exactly.
 
 So AFK/BAK is *not* needed for a gap that ends the working stretch -- silence handles that by itself. It earns its keep for a gap *inside* one: the user steps away while a turn is running, or between two prompts that bracket a span, where the guideposts either side make the interval look continuous. That is a narrower case than it first appeared, and worth knowing before building for the general one.
+
+*The datetree question's main objection weakened 2026-08-25, without the question being answered.* It was recorded as: a second =:DATE_TREE:= category "doubles the scaffolding [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]] had to teach the lint about".
+
+*That cost is about to become close to zero.* [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]] proposes replacing =--datetree-node-role='s title-regex inference with =:KIND: datetree-year|month|day=. Once a node declares what it is, a *second* tree costs the lint nothing extra -- there is no per-tree scaffolding to teach, only a property to read. So the argument that was doing most of the work against a separate tree is the one being removed.
+
+*The other argument stands, and it is the one that should decide.* "Decide against a report someone actually wants, rather than in advance." Nothing has appeared that wants the separation -- no report has been asked for that mixing the two trees would make harder to read. So this stays undecided, but for a smaller reason than before: not because a second tree is expensive, but because nobody has yet needed one.
+
+*Worth re-reading once [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] lands*, since that is the heading whose whole purpose is to produce evidence about which org lenses this corpus can support -- which is exactly the "report someone actually wants" this decision is waiting on.
+
 
 
 ** NEXT Six defects in one day, all the same: the code knew more than it said :code:research:
