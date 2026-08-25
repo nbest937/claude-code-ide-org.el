@@ -8520,6 +8520,133 @@ b8e6007a was filed for."
       (should-not (string-match-p "\\["
                                   (claude-code-ide-org--review-format-annotation asserted))))))
 
+;;; :ID: prefix expansion at the write boundary
+
+(defmacro claude-code-ide-org-test--with-known-ids (&rest body)
+  "Run BODY against a scratch file holding two known :ID:s."
+  (declare (indent 0))
+  `(let* ((dir (file-name-as-directory (make-temp-file "ccio-ids" t)))
+          (file (expand-file-name "TODO.org" dir))
+          (claude-code-ide-org-query-files (list file))
+          (claude-code-ide-org-capture-file file))
+     (unwind-protect
+         (progn
+           (with-temp-file file
+             (insert "* Category\n"
+                     "** TODO First\n:PROPERTIES:\n"
+                     ":ID:       8ca6541d-0fc7-45a2-a4d3-76e1608f658d\n:END:\n"
+                     "** TODO Second\n:PROPERTIES:\n"
+                     ":ID:       29439196-bbb8-4b64-b8d5-3bf9d457bf6c\n:END:\n"))
+           ,@body)
+       (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-id-prefix-is-expanded ()
+  "An 8-character prefix becomes the full :ID:.
+
+This is the whole fix, and it is not policing -- it removes the need to
+produce a tail at all. Nine UUIDs were fabricated across two sessions,
+every one with a correct prefix and a wrong tail, with a memory
+forbidding exactly that in force throughout. The prefix is reliably
+known because it is cited in prose constantly; the 28 characters after
+it feel like part of the same recollection and are not."
+  (claude-code-ide-org-test--with-known-ids
+    (let ((r (claude-code-ide-org-resolve-id-links
+              "See [[id:8ca6541d][8ca6541d]] and [[id:29439196][29439196]].")))
+      (should (car r))
+      (should (string-match-p "8ca6541d-0fc7-45a2-a4d3-76e1608f658d" (cdr r)))
+      (should (string-match-p "29439196-bbb8-4b64-b8d5-3bf9d457bf6c" (cdr r)))
+      ;; The display half is untouched -- prose still cites the prefix.
+      (should (string-match-p "\\]\\[8ca6541d\\]\\]" (cdr r))))))
+
+(ert-deftest claude-code-ide-org-test-fabricated-id-is-refused ()
+  "A full UUID that resolves to nothing is refused, not written.
+
+The literal case from 2026-08-25: `8ca6541d-0fc7-41a3-9a3f-4dc9d8a97c9c'
+was written for `...-0fc7-45a2-a4d3-76e1608f658d'. Correct for eleven
+characters, wrong after, and it reached the file -- caught by
+bin/lint-org on the next run, which meant a second commit and a
+conversation that had already moved on."
+  (claude-code-ide-org-test--with-known-ids
+    (let ((r (claude-code-ide-org-resolve-id-links
+              "See [[id:8ca6541d-0fc7-41a3-9a3f-4dc9d8a97c9c][8ca6541d]].")))
+      (should-not (car r))
+      (should (string-match-p "resolves to no heading" (cdr r)))
+      ;; The message names the offender and the remedy.
+      (should (string-match-p "8ca6541d-0fc7-41a3" (cdr r)))
+      (should (string-match-p "8-character prefix" (cdr r))))))
+
+(ert-deftest claude-code-ide-org-test-id-prefix-refuses-rather-than-guesses ()
+  "An unmatched or ambiguous prefix is an error, never a choice.
+
+Picking one of two candidates would produce a link that resolves, points
+somewhere plausible, and is wrong -- the confidently-wrong record this
+whole project exists to avoid."
+  (claude-code-ide-org-test--with-known-ids
+    (let ((r (claude-code-ide-org-resolve-id-links "See [[id:deadbeef][deadbeef]].")))
+      (should-not (car r))
+      (should (string-match-p "matches no heading" (cdr r))))
+    ;; Both known ids share no prefix, so build ambiguity explicitly.
+    (let* ((table (make-hash-table :test 'equal)))
+      (puthash "abcd1234-1111-1111-1111-111111111111" t table)
+      (puthash "abcd1234-2222-2222-2222-222222222222" t table)
+      (should (eq 'ambiguous
+                  (claude-code-ide-org--expand-id-prefix "abcd1234" table))))))
+
+(ert-deftest claude-code-ide-org-test-text-without-id-links-is-untouched ()
+  "Prose with no id links passes through byte-identical.
+
+Every amendment goes through this, so a transform that altered ordinary
+text would corrupt bodies wholesale rather than fail visibly."
+  (claude-code-ide-org-test--with-known-ids
+    (let* ((text "*Shipped 2026-08-25.* No links here -- just = markup = and [brackets].")
+           (r (claude-code-ide-org-resolve-id-links text)))
+      (should (car r))
+      (should (equal text (cdr r))))))
+
+(ert-deftest claude-code-ide-org-test-at-id-accepts-an-8-char-prefix ()
+  "Every tool taking an :ID: argument accepts the prefix instead.
+
+The second fabrication surface. Expanding links protects what gets
+WRITTEN; the `id\' argument is the other place a tail has to be produced
+from nothing, and was on 2026-08-25 -- an `org_amend\' call carrying a
+uuid whose first eight characters were right and whose remaining
+twenty-eight were invented.  It errored, which is the good case.
+
+Asserted through `--at-id\' rather than through a tool, because that is
+where the expansion lives and every entry point inherits it, including
+ones written later.
+
+Note the heading here carries a *hexadecimal* id rather than the
+fixture\'s `test-0001\': the expansion is gated on eight hex characters,
+so the fixture id is correctly left alone and would make this test pass
+for the wrong reason."
+  (claude-code-ide-org-test--with-heading
+    (let ((claude-code-ide-org-query-files (list file))
+          (full "9f3c21ae-6b40-4d18-9a77-0c5e2b81d4f6"))
+      ;; Append through the visiting buffer rather than `write-region\',
+      ;; because the fixture has already opened FILE and org-id would
+      ;; otherwise search the stale buffer and not find the heading.
+      (with-current-buffer (find-file-noselect file)
+        (goto-char (point-max))
+        (insert "\n* TODO Prefixed heading\n:PROPERTIES:\n:ID:       " full
+                "\n:END:\n\nBody.\n")
+        (save-buffer))
+      (org-id-add-location full file)
+      (should (equal (claude-code-ide-org--at-id
+                      (substring full 0 8) (lambda () (org-get-heading t t t t)))
+                     "Prefixed heading")))))
+
+(ert-deftest claude-code-ide-org-test-at-id-still-refuses-an-unknown-prefix ()
+  "An 8-character string that matches nothing is still an error.
+
+The expansion must not turn `no such heading' into a silent
+no-op: it leaves the id untouched when nothing matches, so the normal
+lookup failure is reported exactly as before."
+  (claude-code-ide-org-test--with-heading
+    (should (string-match-p "no org heading found"
+                            (claude-code-ide-org--at-id
+                             "deadbeef" (lambda () "unreachable"))))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here

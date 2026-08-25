@@ -74,6 +74,21 @@ Switch to its buffer, move point to the heading, and call FN with
 no arguments.  Return FN's value, or an error string if the ID
 cannot be resolved or FN signals an error."
   (require 'org-id)
+  ;; An 8-character prefix is accepted wherever a full :ID: is, and this
+  ;; is the second half of the fabrication fix. Expanding links protects
+  ;; what gets *written*; every tool here also takes an `id' ARGUMENT,
+  ;; which is the other place a tail has to be produced from nothing --
+  ;; and was, on 2026-08-25, in an `org_amend' call that errored.
+  ;;
+  ;; Doing it here rather than per-tool means every entry point that
+  ;; resolves a heading gains it at once, including ones written later.
+  ;; An ambiguous prefix still fails: `--expand-id-prefix' refuses rather
+  ;; than choosing, because a link that resolves to a plausible wrong
+  ;; heading is worse than one that resolves to nothing.
+  (when (and (stringp id) (= (length id) 8) (string-match-p "\\`[0-9a-fA-F]+\\'" id))
+    (let ((full (claude-code-ide-org--expand-id-prefix
+                 id (claude-code-ide-org--known-id-table))))
+      (when (stringp full) (setq id full))))
   (let ((marker (org-id-find id 'marker)))
     (if (not marker)
         (format "Error: no org heading found with :ID: \"%s\"" id)
@@ -2015,6 +2030,17 @@ enforcement.
 
 Returns \"Amended: ...\", \"Queued amend: ...\", or \"Error: ...\"."
   (require 'org-id)
+  ;; Resolve `[[id:...]]' links first, so a fabricated UUID is refused
+  ;; rather than written and caught later by `bin/lint-org'. An
+  ;; 8-character prefix is *expanded* here, which is the point: the
+  ;; writer supplies what they reliably know and the tail is looked up.
+  ;; Nine fabrications across two sessions preceded this, every one with a
+  ;; correct prefix and a wrong tail, and a memory forbidding it
+  ;; throughout.
+  (let ((resolved (claude-code-ide-org-resolve-id-links text)))
+    (unless (car resolved) (setq id nil))
+    (when (car resolved) (setq text (cdr resolved)))
+    (if (null id) (cdr resolved)
   (let ((marker (ignore-errors (org-id-find id 'marker))))
     (if (not marker)
         (format "Error: no org heading found with :ID: \"%s\"" id)
@@ -2040,7 +2066,7 @@ Returns \"Amended: ...\", \"Queued amend: ...\", or \"Error: ...\"."
                     (save-buffer)
                     nil))))
             (or (and (stringp result) result)
-                (format "%s\"%s\"" claude-code-ide-org--reply-amended title))))))))
+                (format "%s\"%s\"" claude-code-ide-org--reply-amended title))))))))))
 
 ;;; Query -------------------------------------------------------------------
 ;;
@@ -8472,6 +8498,100 @@ Returns a summary string."
     (format "%s: %d heading(s) re-separated, %d already had %d blank line(s).%s"
             (file-name-nondirectory file) fixed already want
             (if dry-run "  [dry run -- nothing written]" ""))))
+
+;;; :ID: prefix expansion at the write boundary
+;;
+;; Nine fabricated UUIDs across two sessions (four on 2026-08-19, five on
+;; 2026-08-25), every one with a correct 8-character prefix and a wrong
+;; tail. A memory forbidding exactly this existed throughout and did not
+;; prevent the second run of five.
+;;
+;; The reason it keeps happening is not carelessness about the rule. The
+;; prefix is *reliably* remembered -- it is cited in prose constantly --
+;; which makes the remaining 28 characters feel like part of the same
+;; recollection. They are not, and nothing at the point of writing says
+;; so.
+;;
+;; So this does not police the tail; it removes the need to produce one.
+;; A link written `[[id:8ca6541d][8ca6541d]]' is expanded to the full
+;; UUID on the way in. What the writer supplies is what they actually
+;; know; what they cannot know is looked up. A full UUID that resolves to
+;; nothing is refused outright, which catches the case where one was
+;; typed anyway.
+;;
+;; Deliberately at the write boundary rather than at review or commit.
+;; `bin/lint-org' already catches these, and did catch several -- but by
+;; then the text is in the file, the fix is a second commit, and the
+;; conversation that knew the right id has moved on.
+
+(defconst claude-code-ide-org--id-link-regexp
+  "\\[\\[id:\\([0-9a-fA-F][0-9a-fA-F-]*\\)\\]"
+  "Matches the target of an `[[id:...]]' link, full or prefix.")
+
+(defun claude-code-ide-org--known-id-table ()
+  "Hash of every :ID: across the tracked files, mapped to t."
+  (let ((table (make-hash-table :test 'equal)))
+    (dolist (file (claude-code-ide-org--tracked-files) table)
+      (when (file-exists-p file)
+        (with-temp-buffer
+          (let ((org-inhibit-startup t))
+            (insert-file-contents file)
+            (goto-char (point-min))
+            (while (re-search-forward "^[ \t]*:ID:[ \t]+\\([0-9a-fA-F-]+\\)[ \t]*$" nil t)
+              (puthash (downcase (match-string 1)) t table))))))))
+
+(defun claude-code-ide-org--expand-id-prefix (prefix table)
+  "Return the single full :ID: in TABLE beginning with PREFIX, or a symbol.
+
+`none' when nothing matches and `ambiguous' when more than one does.
+Both are errors rather than guesses: an id chosen from two candidates is
+the confidently-wrong record this project exists to avoid."
+  (let (hits)
+    (maphash (lambda (id _) (when (string-prefix-p (downcase prefix) id)
+                              (push id hits)))
+             table)
+    (cond ((null hits) 'none)
+          ((cdr hits) 'ambiguous)
+          (t (car hits)))))
+
+(defun claude-code-ide-org-resolve-id-links (text)
+  "Return TEXT with `[[id:PREFIX]' links expanded, or an error string.
+
+An 8-character prefix is expanded to the full :ID:.  A longer target is
+verified and left alone.  Either way an unresolvable target is refused,
+naming it, rather than written and caught later by `bin/lint-org'.
+
+Returns a cons (t . EXPANDED) on success, or (nil . MESSAGE)."
+  (let ((table (claude-code-ide-org--known-id-table))
+        (case-fold-search t)
+        (bad nil)
+        (start 0)
+        (out text))
+    (while (string-match claude-code-ide-org--id-link-regexp out start)
+      (let* ((target (match-string 1 out))
+             (mb (match-beginning 1))
+             (me (match-end 1)))
+        (setq start me)
+        (cond
+         ;; Already a full id that resolves: leave it.
+         ((gethash (downcase target) table) nil)
+         ;; A bare prefix: expand it.
+         ((not (string-match-p "-" target))
+          (let ((full (claude-code-ide-org--expand-id-prefix target table)))
+            (cond
+             ((stringp full)
+              (setq out (concat (substring out 0 mb) full (substring out me)))
+              (setq start (+ mb (length full))))
+             ((eq full 'ambiguous)
+              (push (format "%s (matches more than one heading)" target) bad))
+             (t (push (format "%s (matches no heading)" target) bad)))))
+         ;; A full-looking id that resolves to nothing: refuse.
+         (t (push (format "%s (resolves to no heading)" target) bad)))))
+    (if bad
+        (cons nil (format "Error: unresolvable :ID: link(s): %s. \
+Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded here."
+                          (string-join (nreverse bad) "; ")))
+      (cons t out))))
 
 (with-eval-after-load 'claude-code-ide
 
