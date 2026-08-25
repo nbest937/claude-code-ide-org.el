@@ -55,6 +55,7 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 - [[orgit-rev:claude-code-ide-org::7abdc4e][7abdc4e]] [2026-08-24 Mon 16:51] refreshed mid-session, having drifted while it ran
 - [[orgit-rev:claude-code-ide-org::8afbc68][8afbc68]] [2026-08-24 Mon 19:11] folded in the afternoon's incident
 - [[orgit-rev:claude-code-ide-org::7e20e79][7e20e79]] [2026-08-24 Mon 19:53] named the pattern the day's defects shared
+- [[orgit-rev:claude-code-ide-org::bbac58b][bbac58b]] [2026-08-25 Tue 15:10] rewritten around finishing the slice rather than extending it
 
 
 * Skill logic
