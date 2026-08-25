@@ -155,11 +155,35 @@ not yet enforced — `--container-heading-p` does not recognise a slice,
 so hand-setting `DOING` on one *does* open a clock today (`:ID:`
 95c27fca).
 
-**The plan that drove the slice is linked at the end of the body**, as a
-`file:` link into `slices/`, mirroring how a task links its Plan Mode
-document. `.claude/commands/next-session.md` is rewritten in place once
-per slice, so the snapshot is what preserves which text drove which
-slice; taking it is currently manual (`:ID:` 637ee73d).
+**The plan that drove the slice is linked at the end of the body, as one
+`orgit-rev:` link per revision of it.** `.claude/commands/next-session.md`
+is rewritten in place, so a single reference names whatever it says today
+rather than what it said when the slice opened. Each commit that revised
+the prompt gets a link, oldest first, with its date and what the revision
+did:
+
+```org
+- [[orgit-rev:claude-code-ide-org::97e1ef2][97e1ef2]] [2026-08-24 Mon 15:39] defined the slice
+```
+
+This is deliberately *not* the `plans/` pattern. A copied snapshot was
+built first and removed the same day (`:ID:` 637ee73d): `plans/` exists
+because `~/.claude/plans` is outside the repo and would otherwise have no
+history, whereas this file is committed and only lacks a stable identity
+— which is exactly what an `orgit-rev:` link is, at no cost in sync
+scripts or drift checks.
+
+**Several links, not one, is what lets a slice outlive a session.** A CLI
+restart or a cleared context is a *revision of the prompt*, not a new
+slice, so unfinished members stay put instead of being deferred into a
+successor slice that has not earned them. Deferral proliferates mentions
+of tasks that were planned and never reached the top of the stack; a
+slice that can span sessions mostly removes the need for it.
+
+Note the links cost nothing in `bin/lint-org` as of 2026-08-25 (`:ID:`
+43201e64) — before that each one added a permanent unresolvable-location
+warning, which would have made this convention degrade the report a
+little more with every slice.
 
 ## The `:PLAN:` drawer
 

@@ -10,7 +10,7 @@
 :END:
 
 
-** DOING [8/19] Harden the review pass: its cost, its correctness, and its record :code:
+** DOING [9/20] Harden the review pass: its cost, its correctness, and its record :code:
 :PROPERTIES:
 :ID:       c44c2119-dbf8-4510-99e2-6aaa7f259d94
 :CREATED:  [2026-08-25 Tue 11:06]
@@ -41,6 +41,7 @@
 - [-] [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] REVIEW Footnote discipline decays on re-mention; enforce it at Stop
 - [ ] [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] TODO Evaluate Org's own agenda, sparse-tree and column views against this corpus
 - [ ] [[id:21c91613-76e0-4590-affe-e2af9f1321ca][21c91613]] NEXT Apply consumes queue events with no way to roll one back
+- [X] [[id:43201e64-3fe8-4fa6-81f5-d2ab5b65d191][43201e64]] TODO Every orgit link a body adds costs a permanent lint warning
 - [X] [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]] DONE Backfill CLOSED: from the LOGBOOK where the evidence is already in the file
 - [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] CANCELLED Recover a close time from git for the headings with no in-file evidence
 - [X] [[id:31c6ac39-1a06-4b17-8d89-b91fd2628874][31c6ac39]] DONE A sub-minute run is observed work; round it up rather than drop it
@@ -51,8 +52,18 @@
 - [X] [[id:7148cddc-aca3-416e-8bcb-f164d4d2bba0][7148cddc]] DONE The promotion trigger re-entered itself; one apply made 1201 mutations
 - [X] [[id:df1cf43c-749f-435c-9f45-3d8df1d725ad][df1cf43c]] DONE An apply failure named nothing: five identical messages, no item, no stack
 - [X] [[id:49557477-e50c-496f-85df-82c65109832b][49557477]] DONE Expand an 8-character prefix at both surfaces where a tail gets invented
+- [[id:637ee73d-e1b7-4a84-9213-830c49a400b4][637ee73d]] TODO Snapshot the next-session.md that drove each slice, the way plans are archived
 
-[[file:slices/2026-08-24-harden-the-review-pass.md][The next-session.md that drove this slice]]
+*The prompt that drove this slice, revision by revision.* =.claude/commands/next-session.md= is rewritten in place, so a single reference to it names whatever it says today rather than what it said when the slice opened. Each commit below is one revision of that prompt:
+
+- [[orgit-rev:claude-code-ide-org::97e1ef2][97e1ef2]] [2026-08-24 Mon 15:39] defined the slice
+- [[orgit-rev:claude-code-ide-org::7abdc4e][7abdc4e]] [2026-08-24 Mon 16:51] refreshed mid-session, having drifted while it ran
+- [[orgit-rev:claude-code-ide-org::8afbc68][8afbc68]] [2026-08-24 Mon 19:11] folded in the afternoon's incident
+- [[orgit-rev:claude-code-ide-org::7e20e79][7e20e79]] [2026-08-24 Mon 19:53] named the pattern the day's defects shared
+
+*Several links rather than one is what lets a slice outlive a session.* A CLI restart or a cleared context is a *revision of the prompt*, not a new slice -- so unfinished members stay where they are instead of being deferred into a successor. That matters here specifically: none of the original members are complete, because the eleven appended ones are unanticipated work found while doing them, and under a one-plan-per-slice rule the whole original list would now be deferred and re-mentioned in a slice that had not earned it.
+
+*This replaced a copied snapshot* under =slices/=, removed in the same commit ([[id:637ee73d-e1b7-4a84-9213-830c49a400b4][637ee73d]]). The copy existed to give the prompt a stable identity; an =orgit-rev:= link is that and nothing else, and it costs no sync script, no drift check and no pre-push gate.
 
 
 * Skill logic
@@ -8373,6 +8384,15 @@ Two things follow. A body-size rule calibrated against a body-size measurement t
 
 *Open:* whether =.githooks/pre-push= should refuse a push on that, as it does for plans. The plan case is stricter because the source can vanish with a home directory; here the source is committed, so a missing snapshot loses ordering and attribution, not content.
 
+*Cancelled 2026-08-25, hours after being filed*, superseded by a better answer to the same problem: a slice links =orgit-rev:= commits instead of a copied file, and links *several* of them -- one per revision of the prompt.
+
+*The reason it was cancellable is the finding this heading itself recorded.* It argued that the =plans/= analogy was imperfect because =next-session.md= already has history and what it lacks is *identity*. An =orgit-rev:= link is exactly identity and nothing else: this path, at this commit, resolvable through Magit. Once that was said out loud, the copy under =slices/= was doing no work that the link does not do better, and it brought a sync script, a =--check= mode, a drift definition and a pre-push question along with it. All of that existed to keep a copy honest, and the copy was the part that was not needed.
+
+*Two things the link form gains that the copy could not.* A slice can carry *many* links rather than one, so the evolution of the plan across a slice's life is legible instead of collapsed into its final text. And because a slice can then span sessions -- a CLI restart or a cleared context is a revision, not a new slice -- there is far less pressure to defer unfinished members into a successor slice, which was proliferating mentions of tasks that were planned and never reached the top of the stack.
+
+*=slices/= was removed in the same commit*, its single snapshot replaced by the four =orgit-rev:= links now on [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]]. Nothing is lost: the file is recoverable from any commit, which was always true and is the reason the copy was redundant.
+
+
 
 ** MAYBE Evaluate choice of shell and standardize all project scripts :code:
 :PROPERTIES:
@@ -9667,6 +9687,15 @@ The commit-reference convention shipped 2026-08-21 ([[id:7b54c439-ab2c-4398-b332
 *Cause.* =orgit= is a Doom package present in the live Emacs, but =bin/lint-org= runs =emacs --batch -Q= with only org and =config.el= loaded. With no =orgit-rev= link type registered, org-lint falls back to treating it as a fuzzy internal link and cannot resolve it.
 
 *Why it matters more than one warning.* The cost is per-link and permanent, so following a documented convention makes the report grow monotonically -- and a report that accumulates stops being read, which is the exact failure [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] measured and the lint's own error/warn split exists to prevent. Candidate fixes, none chosen: load orgit in the lint's =emacs_args=, register the link type with a stub =org-link-set-parameters=, or filter this org-lint check. The first is honest but adds a package dependency to a batch script that deliberately has none.
+
+*Fixed 2026-08-25* by the second of the three candidates recorded above -- registering the link types with a stub =org-link-set-parameters= in =bin/lint-org=, rather than loading orgit or filtering the check. 29 warnings to 28, and zero =orgit= matches in the report.
+
+*The first candidate was rejected on the reason this heading already gave.* =(require 'orgit)= would drag magit into a batch script that deliberately carries no package dependencies, to buy nothing the lint uses: org-lint does not need the link to *work*, only to know the scheme exists so it stops guessing the location is fuzzy. The stub is three lines and registers =orgit-rev=, =orgit-log= and =orgit-status= together, so the two link types nothing has used yet are covered before their first use rather than after.
+
+*Guarded with =unless (assoc type org-link-parameters)=*, so the stub can never clobber a real registration if the lint's environment ever does load orgit.
+
+*Forced by [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] rather than chosen*, which is worth recording because this heading predicted it. It was filed as "small; worth doing before the convention is used much more", and sat unworked for four days. The slice's revision-link design adds four orgit links at once and one per slice thereafter, so the monotonic growth this heading warned about arrived as a concrete number the same afternoon the design was proposed.
+
 
 
 ** TODO Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit :code:

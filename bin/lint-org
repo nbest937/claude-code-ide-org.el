@@ -86,6 +86,27 @@ ref_form+=")"
 # `emacs' function that hands off to the GUI app and returns 0 having run
 # nothing, which is indistinguishable from a clean lint. See TODO.org
 # :ID: 4f9e552a.
+# Register orgit's link types as no-ops before linting. orgit is a Doom
+# package that exists in the live Emacs but is never loaded here, so
+# org-lint falls back to treating `orgit-rev:...' as a fuzzy internal
+# link and reports one unresolvable-location warning per link -- see
+# TODO.org :ID: 43201e64. The cost is per-link and permanent, so
+# following the documented commit-reference convention made the report
+# grow monotonically, and a report that accumulates stops being read.
+#
+# A stub rather than `(require 'orgit)': loading it would drag magit into
+# a batch script that deliberately has no package dependencies, to buy
+# nothing the lint uses. Registering the type is the whole fix -- org-lint
+# only needs to know the scheme exists to stop guessing it is fuzzy.
+#
+# `ol' is required explicitly because -Q means nothing has loaded org yet
+# at the time this --eval runs.
+orgit_stub="(progn (require 'ol)
+  (dolist (type '(\"orgit-rev\" \"orgit-log\" \"orgit-status\"))
+    (unless (assoc type org-link-parameters)
+      (org-link-set-parameters type))))"
+
 exec command emacs "${emacs_args[@]}" \
   -l "$module_dir/config.el" \
+  --eval "$orgit_stub" \
   --eval "(claude-code-ide-org-lint-report $files_form $ref_form)"
