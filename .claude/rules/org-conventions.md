@@ -139,12 +139,20 @@ The link target is the only part that cannot go stale; keeping the
 keyword and title as plain text alongside it makes the copy visible
 *as* a copy.
 
-**A slice declares itself with the `slice` tag**, not by where it sits or
-what its body looks like. "Has a checkbox list of id links" is not a
-structural fact — an ordinary body may hold one for reference — so unlike
-an epic, which is *derived*, a slice must be *declared*. The tag is
-tested locally (`org-get-tags nil t`), never inherited, since
-`org-use-tag-inheritance` is `t` here.
+**A slice declares itself with a `:KIND: slice` property**, not by where
+it sits or what its body looks like. "Has a checkbox list of id links" is
+not a structural fact — an ordinary body may hold one for reference — so
+unlike an epic, which is *derived*, a slice must be *declared*. Read
+without inheritance, so a subheading of a slice is not one.
+
+A tag was tried first and lasted an hour. When the tags on the first
+slice were deleted as inadvertent, the lint assertion built on them went
+**silently inert** — zero errors because nothing was a slice any more,
+which reads exactly like nothing being wrong. A declaration whose removal
+is invisible is the wrong declaration. `:KIND:` was not coined for this:
+`:ID:` 8ca6541d had already named it as the missing property while
+listing four heading classes each detected by a different bespoke
+mechanism.
 
 **A slice carries a `:BLOCKER:` naming exactly its cookie-carrying
 members**, so it cannot reach `DONE` before they do. Derived, never

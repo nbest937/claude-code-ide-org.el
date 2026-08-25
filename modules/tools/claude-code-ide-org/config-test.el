@@ -8680,7 +8680,8 @@ a wrapper test would have passed against the broken version."
 
 (defconst claude-code-ide-org-test--slice-fixture
   (concat "* Slices\n:PROPERTIES:\n:ARCHIVE:  DONE.org::* Slices\n:END:\n"
-          "** DOING [1/3] A slice :slice:\n:PROPERTIES:\n"
+          "** DOING [1/3] A slice\n:PROPERTIES:\n"
+          ":KIND:     slice\n"
           ":ID:       aaaaaaaa-0000-0000-0000-000000000000\n"
           ":COOKIE_DATA: checkbox recursive\n:END:\n\n"
           "- [X] [[id:11111111-0000-0000-0000-000000000000][11111111]] DONE done one\n"
@@ -8735,15 +8736,21 @@ org-depend would never see it finish."
                        (mapcar (lambda (i) (substring i 0 8)) ids)))
         (should-not (seq-find (lambda (i) (string-prefix-p "44444444" i)) ids))))))
 
-(ert-deftest claude-code-ide-org-test-slice-requires-its-own-tag ()
-  "The detector is the heading's own `slice' tag, never an inherited one.
+(ert-deftest claude-code-ide-org-test-slice-declaration-is-not-inherited ()
+  "A subheading of a slice is not itself a slice.
 
-`org-use-tag-inheritance' is t in this project, so a subheading of a
-slice would answer yes to an inheriting test. Slices have no subheadings
-by design, which is exactly why this would go unnoticed until one did."
+`org-entry-get' without the inherit flag, so a child cannot pick the
+declaration up from its parent. Slices have no subheadings by design,
+which is exactly why an inheriting test would go unnoticed until one
+did.
+
+This replaced a tag-based detector that lasted an hour: the tags on the
+first real slice were deleted as inadvertent and the lint assertion built
+on them went silently inert, reporting zero errors because nothing was a
+slice any more."
   (claude-code-ide-org-test--with-heading
     (with-temp-buffer
-      (insert "* Top :slice:\n** Child\n*** TODO Grandchild :slice:\n")
+      (insert "* Top\n:PROPERTIES:\n:KIND:     slice\n:END:\n** Child\n")
       (org-mode)
       (goto-char (point-min))
       (search-forward "** Child")
@@ -8780,7 +8787,7 @@ nothing blocks and the lint would then have to tell that apart from a
 slice whose blocker was never built."
   (claude-code-ide-org-test--with-heading
     (with-temp-buffer
-      (insert "* Slices\n** DOING A slice :slice:\n:PROPERTIES:\n"
+      (insert "* Slices\n** DOING A slice\n:PROPERTIES:\n:KIND:     slice\n"
               ":BLOCKER:  ids(11111111-0000-0000-0000-000000000000)\n:END:\n\n"
               "- [[id:11111111-0000-0000-0000-000000000000][11111111]] CANCELLED dropped\n")
       (org-mode)
@@ -8803,19 +8810,19 @@ derived."
     ;; blocker missing entirely
     (should (claude-code-ide-org-test--lint-matches
              (claude-code-ide-org-test--lint
-              (concat cat "** DOING A slice :slice:\n" "\n" member))
+              (concat cat "** DOING A slice\n:PROPERTIES:\n:KIND:     slice\n:END:\n" "\n" member))
              'error "omits 1 checked member"))
     ;; blocker names something that is not a checked member
     (should (claude-code-ide-org-test--lint-matches
              (claude-code-ide-org-test--lint
-              (concat cat "** DOING A slice :slice:\n:PROPERTIES:\n"
+              (concat cat "** DOING A slice\n:PROPERTIES:\n:KIND:     slice\n"
                       ":BLOCKER:  ids(11111111-0000-0000-0000-000000000000 "
                       "99999999-0000-0000-0000-000000000000)\n:END:\n\n" member))
              'error "not a checked member"))
     ;; matching: silent
     (should-not (claude-code-ide-org-test--lint-matches
                  (claude-code-ide-org-test--lint
-                  (concat cat "** DOING A slice :slice:\n:PROPERTIES:\n"
+                  (concat cat "** DOING A slice\n:PROPERTIES:\n:KIND:     slice\n"
                           ":BLOCKER:  ids(11111111-0000-0000-0000-000000000000)\n:END:\n\n"
                           member))
                  'error "slice :BLOCKER:"))

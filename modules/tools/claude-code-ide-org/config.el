@@ -2643,18 +2643,29 @@ indistinguishable from a deferred member.")
 (defun claude-code-ide-org--slice-p ()
   "Non-nil when the heading at point is a slice.
 
-Detected by its own `slice' tag, never an inherited one --
-`org-use-tag-inheritance' is t here, so a subheading would otherwise
-answer yes.  A slice has no subheadings by design, which makes the
-distinction free today and load-bearing the first time one acquires
-some.
+Declared by a `:KIND: slice' property.  A slice cannot be *derived* the
+way an epic can -- \"has a checkbox list of id links\" is not a
+structural fact, since an ordinary body may hold one for reference -- so
+unlike `claude-code-ide-org--container-heading-p', which reads structure,
+this reads a declaration.  TODO.org :ID: 8ca6541d argues that at length.
 
-A tag rather than a structural test because a slice cannot be derived:
-\"has a checkbox list of id links\" is not a structural fact -- an
-ordinary body may hold one for reference -- so unlike an epic, which
-`claude-code-ide-org--container-heading-p' derives, a slice has to be
-declared.  TODO.org :ID: 8ca6541d argues this at length."
-  (member "slice" (org-get-tags nil t)))
+*A tag was tried first and lasted an hour.*  It was that heading's own
+proposal and it looked right: sanctioned by the conventions, natively
+agenda-matchable.  Then the tags on the first real slice were deleted as
+inadvertent, and the assertion built on them went silently inert --
+`bin/lint-org' reported zero errors because nothing was a slice any more,
+which is indistinguishable from nothing being wrong.  A detector whose
+removal is invisible is the wrong detector.
+
+`:KIND:' rather than a coined name: 8ca6541d had already observed that no
+`:KIND:', `:TYPE:' or equivalent property exists in this repo, naming the
+gap while listing four heading classes each detected by a different
+bespoke mechanism.  This is the first one to declare itself, and the
+property is deliberately general enough for the others.
+
+Not inherited -- `org-entry-get' without the inherit flag -- so a
+subheading of a slice is not one."
+  (equal "slice" (org-entry-get nil "KIND")))
 
 (defun claude-code-ide-org--slice-members ()
   "Return the slice-at-point's members as a list of (ID . MARK).

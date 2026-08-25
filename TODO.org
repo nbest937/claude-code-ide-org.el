@@ -1,5 +1,5 @@
 #+TODO: TODO(t!) NEXT(n!) PLANNING(p!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
-#+TAGS: code comms research review slice
+#+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 #+STARTUP: logdrawer logdone content
 
@@ -10,8 +10,9 @@
 :END:
 
 
-** DOING [9/21] Harden the review pass: its cost, its correctness, and its record :code:slice:blocked:
+** DOING [9/21] Harden the review pass: its cost, its correctness, and its record
 :PROPERTIES:
+:KIND:     slice
 :ID:       c44c2119-dbf8-4510-99e2-6aaa7f259d94
 :CREATED:  [2026-08-25 Tue 11:06]
 :COOKIE_DATA: checkbox recursive
@@ -6652,6 +6653,15 @@ actually did, both after the fact and at the start of a session.
 
 *Two ways it could resolve, and they point opposite directions.* If a package is maintaining it *correctly* -- adding and removing in step -- it is a useful visible marker and should be declared in =#+TAGS:= and left alone. If it is write-only, it is a bug and should be turned off rather than linted around.
 
+*Cancelled 2026-08-25, hours after being filed.* The user identified the tag as inadvertent -- a side effect of hand-drafting the slice heading in Emacs -- and deleted it along with the others. There is no writer to find, so the heading's premise is withdrawn rather than answered.
+
+*The evidence is consistent with that and was not consistent with much else.* Two mechanical candidates had already been tested and cleared in batch: =org-depend-tag-blocked-tasks= is void, and =org-entry-blocked-p= leaves =org-get-tags= untouched on a fixture. The tag entered during a window in which the user was editing the same heading by hand. Direct knowledge beats an unreproduced hypothesis.
+
+*What was actually right here survives elsewhere, and is worth separating from the wrong part.* The reasoning -- that a *derived* fact written down is a second copy that can silently disagree with the thing it derives from -- was sound; it was aimed at the wrong instance. It is the same argument that removed judgement from slice checkboxes and made =:BLOCKER:= a regenerated list, and it now applies to the tag mechanism as a whole.
+
+*Because the tags went with it, and that had a sharper consequence than the tag itself.* =--slice-p= detected a slice by a =slice= tag, so deleting the tags left [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] undetected and the new =:BLOCKER:= lint assertion *silently inert* -- =bin/lint-org= reported zero errors because nothing was a slice, which is indistinguishable from nothing being wrong. The detector is now a =:KIND: slice= property, and the episode is recorded on [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]], whose tag proposal it falsifies.
+
+
 
 ** TODO Make task lifecycle answerable from one timeline, starting at creation :code:
 :PROPERTIES:
@@ -7470,6 +7480,40 @@ Six defects were found in a single afternoon, all in the review-and-apply surfac
 Significant directions this project has not committed to. Think hard
 before building any of them. The first two are both about the
 standalone/Warp-access subsystem from this session.
+
+
+** TODO Task mitosis: a leaf that outgrows itself divides rather than becoming a parent :code:research:
+:PROPERTIES:
+:ID:       a0813ae3-0c6d-43de-bae1-fb4414cdb519
+:CREATED:  [2026-08-25 Tue 14:13]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-25 Tue 14:13] \\
+  proposed by the user as the answer to container clocks
+:END:
+
+*The user's proposal 2026-08-25.* When a leaf inflates far enough that it is really a story, do not promote it in place. Create a *new* parent, move the original leaf underneath it carrying its clock, LOGBOOK, state history and identity, and derive one or more further leaves from the engorged body. Division rather than promotion.
+
+*It dissolves the objection this repo had already recorded against migrating clocks.* [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]] listed "migrate on promotion" as a candidate and called it dangerous, because "the time was spent on the parent's own work, and there may be no child it belongs to". Under mitosis there always is one, by construction: the child *is* the parent's own work. The danger was an artefact of promoting in place, not of moving clocks.
+
+*And it makes the forward-looking rule enforceable.* A container that never acquires a clock can be asserted; one that acquires clocks retroactively cannot. Mitosis is what turns "containers carry no clock" from an aspiration into a rule -- for new work. The 45 existing lines across eight containers are unaffected unless those headings are divided deliberately.
+
+*Today's own case has exactly this shape and was done the other way.* [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] was a clocked leaf until [[id:5787bfc6-3ba5-4d94-802c-f8a7879de68d][5787bfc6]] was refiled under it, promoting it in place and leaving its clock on the container. Mitosis would have made a fresh parent with both as children, and the hook-building clock would sit on the child that did the hook building. The delta between the two approaches is exactly one CLOCK line in the wrong place.
+
+*One clause needs deciding before this is built, and it is not a detail.* The proposal says the leaf takes its =:ID:= with it. Measured over both files rather than assumed: *251 headings carry an =:ID:=, and only 67 of them -- 27 percent -- have no inbound* =[[id:]]= *reference at all.* The rest are referenced up to 39 times, and 38 headings are named by some =:BLOCKER:=. So the id is load-bearing for most headings, and identity and history pull in opposite directions:
+
+| what needs it              | where the =:ID:= should go | why                                                          |
+|----------------------------+----------------------------+--------------------------------------------------------------|
+| prose cross-references     | the parent                 | "see [[id:X]]" is about the topic, which after division is the story |
+| =:BLOCKER:= entries        | the parent                 | blocking on X means "until X is finished", now the whole story |
+| queued clock/state events  | the child                  | an event naming X must not land its clock on a container      |
+| clock lines, LOGBOOK, body | the child either way       | they travel with the subtree text, not with the id            |
+
+*So the history argument may not need the id at all*, which is the thing to check before building: LOGBOOK and CLOCK lines move because the *text* moves. What genuinely needs the id to follow the leaf is the queue -- and queue events are transient, consumed at the next apply. If that holds, the id stays with the parent, the child takes a fresh one, and the proposal survives intact everywhere except that clause.
+
+*The counter-case to test:* a heading divided while it has unapplied queued events naming it. On any working day here that is not hypothetical.
+
+*Wants a tool rather than a hand edit*, on this repo's own evidence: two body corruptions are on record, both range bugs, and =org_wrap_plan= exists precisely because hand-rolling that class of edit failed twice with =bin/lint-org= reporting zero errors both times.
 
 
 ** MAYBE Decide what this module may change on a user's machine when installed :code:
