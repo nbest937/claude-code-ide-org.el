@@ -324,8 +324,10 @@ carrying any character.
 
 **Not asserted by `bin/lint-org`.** Nothing fails when the files drift, so
 the convention holds only as long as the normaliser is actually run — and it
-does drift: measured 2026-08-25, TODO.org had 18 of 169 headings off the
-convention while DONE.org had 0 of 105. The asymmetry is the mechanism
+does drift: measured 2026-08-25 by the normaliser's own dry run, TODO.org
+had 18 of 168 headings off the convention while DONE.org had 0 of 104.
+(Those denominators exclude each file's last heading, which the convention
+exempts.) The asymmetry is the mechanism
 showing itself. DONE.org is written by archiving, which moves whole
 subtrees; TODO.org is where applies and `org_amend` land, and both append
 without the trailing lines.
