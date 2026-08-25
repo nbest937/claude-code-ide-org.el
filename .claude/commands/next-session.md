@@ -93,36 +93,58 @@ clock left running. Settle `4f6a6bb1` before setting either.
 
 ## Suggested order
 
-**Cheapest first, because two of them are minutes.**
+**Do 1 and 2 first and put them to bed.** Both were carrying decisions; both
+decisions are now made, so neither needs a conversation before it can start.
 
-1. `e1284bdb` — one paragraph. Its normaliser shipped 2026-08-24; all that
+1. **`21c91613` — decided: record the apply time alongside each consumed
+   event.** `("ts" . "applied-at")` rather than a bare list. Not the cheapest
+   option, and chosen against the cheapest deliberately: a `.applied.bak`
+   snapshot can only undo the *most recent* pass, and the incident this
+   heading was filed for is exactly the case that is not — a third apply had
+   already landed and been committed, which is what made "un-apply everything
+   since the last commit" roll back 85 events instead of 54. The field makes
+   "un-apply the pass of 17:17" a filter instead of a reconstruction.
+
+   Costs one field and no new write path: the ledger is
+   `{"applied": [ts, …]}`, re-read 2026-08-25 rather than assumed, and it is
+   rewritten wholesale on every apply. Read the heading's recovery record
+   before starting; it is the requirements document.
+
+2. **`82df2a6c` — evaluate Org's own lenses against this corpus.** Agenda
+   views, sparse trees, column view. It is *evidence-producing*, which is why
+   it is early rather than last: three separate decisions are parked on it.
+   `29439196` says flattening should be decided against it; `961f15b6`'s
+   separate-datetree question is explicitly waiting for "a report someone
+   actually wants"; and the `:EPIC:` versus `:CATEGORY:` choice turns on
+   whether org's native agenda integration is worth anything here.
+
+   The corpus is better suited to it than when the heading was written:
+   `CLOSED:` is populated, drawers are consistent, the datetree has real day
+   nodes, and a slice with 23 members exists to point column view at.
+
+**Then the ceremony, which is the largest remaining block.**
+
+3. `e1284bdb` — one paragraph. Its normaliser shipped 2026-08-24; all that
    remains is writing the two-blank-lines convention down, which is nowhere.
-   Grepped twice today: absent from both `org-conventions.md` and CLAUDE.md.
-2. `f421c5c3` — small, and it protects a rule that is currently silent. The
+   Grepped twice: absent from both `org-conventions.md` and CLAUDE.md.
+4. `f421c5c3` — small, and it protects a rule that is currently silent. The
    signal already exists: `--plan-seam`'s "first body line" condition *is* the
    test for "no prospective half".
-3. `edd47f32` and its three children — the ceremony, and the largest remaining
-   block. `7ae6562d` is the missing tool; `e1284bdb` only needs wiring into the
-   same command once written down; `aa1ba915` is the `SessionStart` prompt that
-   makes any of it happen without being remembered.
-4. `7fbab3b3` — the archive step, which belongs in that same ceremony rather
-   than as its own ritual.
-5. `961f15b6`, `21c91613`, `3063c3e5`, `82df2a6c` — the four genuinely large
-   ones. `21c91613` carries a user decision between three recorded options.
+5. `edd47f32` and its three children. `7ae6562d` is the missing tool;
+   `e1284bdb` only needs wiring into the same command once written down;
+   `aa1ba915` is the `SessionStart` prompt that makes any of it happen without
+   being remembered.
+6. `7fbab3b3` — the archive step, which belongs in that ceremony rather than
+   as its own ritual.
+7. `961f15b6` and `3063c3e5` — the two remaining large ones.
 
-**Cut line: stop after 4.** That would take the slice from `[11/23]` to
-roughly `[17/23]` and leaves the ceremony coherent. **If the session is short,
-do 1 and 2** — together they are under an hour and both close members
-outright.
+**Cut line: stop after 6.** **If the session is short, do 1 and 2** — they
+are the two that unblock other things, and nothing else in the slice is
+waiting on anything.
 
-**One member carries a live decision and the evidence is now one-sided.**
-`21c91613` offers a `.applied.bak` snapshot or an apply-time field per
-consumed event. Prefer the field: a snapshot can only undo the *most recent*
-pass, and the recorded incident is precisely one where a third apply had
-already landed, which is what made the obvious heuristic wrong. The field
-makes "un-apply the pass of 17:17" answerable directly, which is what the
-recovery needed and had to reconstruct by hand. The choice is still the
-user's; it is no longer a toss-up.
+**No open decisions remain among the members.** Both that carried one have
+been settled above; the rest are builds with designs already recorded on the
+heading.
 
 ---
 

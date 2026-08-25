@@ -2834,6 +2834,14 @@ With ID, refreshes that slice only.  Returns a human-readable summary."
   (interactive)
   (require 'org-id)
   (let ((index (claude-code-ide-org--slice-referent-index))
+        ;; Same reasoning as the apply path (TODO.org :ID: 97b030a4): the
+        ;; user's `buffer-read-only' guards against their own stray
+        ;; keystrokes, and `M-x claude-code-ide-org-refresh-slice' is not
+        ;; one. This is a ceremony step run immediately after apply --
+        ;; the daily sequence tells the human to run it there -- so a
+        ;; read-only buffer failing it would reproduce the exact incident
+        ;; the apply-path binding was added for, one command later.
+        (inhibit-read-only t)
         (slices 0) (lines 0) (blockers 0))
     (dolist (file (claude-code-ide-org--tracked-files))
       (when (file-exists-p file)

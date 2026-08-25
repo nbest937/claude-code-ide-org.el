@@ -6607,6 +6607,15 @@ The second is the one that would have made this recovery a single command instea
 
 *Still the user's decision.* This narrows it to one recommendation with the reasoning attached, rather than making it.
 
+*Decided 2026-08-25 by the user: record the apply time alongside each consumed event.* =("ts" . "applied-at")= rather than a bare list. The =.applied.bak= snapshot is not taken, and the reasoning above is why -- it covers only the most recent pass, which is the case this heading's own incident was not.
+
+*So this is no longer a decision, it is a build*, and the recovery record above is its requirements document rather than background. Two things it specifies that a fresh reading might otherwise miss: the applied set is a *set*, not a watermark, so nothing about ordering can be assumed from it; and the file is rewritten wholesale on each apply, which is why adding a field costs no new write path.
+
+*The unit to record against is a pass, not an event.* "Un-apply the pass of 17:17" is the question that was actually asked under pressure, and it only becomes a filter if every event consumed in one apply carries the *same* stamp. A per-event =now= would make the values differ by milliseconds across a batch and answer a subtly different question.
+
+*Sequenced first in the next session*, ahead of the ceremony work, on the grounds that it was carrying a decision and no longer is.
+
+
 
 
 ** TODO Auto-mark the state items that carry no judgement :code:

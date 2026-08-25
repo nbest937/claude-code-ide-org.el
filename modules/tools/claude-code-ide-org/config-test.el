@@ -8929,6 +8929,34 @@ defect c8a97d9d is named for."
       (should (string-match-p "=>  0:15" (claude-code-ide-org-test--logbook file)))
       (should (with-current-buffer (find-file-noselect file) buffer-read-only)))))
 
+(ert-deftest claude-code-ide-org-test-refresh-slice-survives-a-read-only-buffer ()
+  "The ceremony step after apply must not fail where apply now succeeds.
+
+`claude-code-ide-org-refresh-slice' runs immediately after a review
+pass, on the human's own `M-x'. Leaving it subject to `buffer-read-only'
+would reproduce the 2026-08-25 incident one command later: apply
+succeeds, the normaliser that keeps the slice honest does not, and the
+slice silently stays stale -- which nothing detects, since the lint
+compares :BLOCKER: against the checkbox list and both go stale together.
+
+As in the apply path the flag is *bound*, so the buffer is still
+read-only afterwards."
+  (claude-code-ide-org-test--with-heading
+    (let ((slice (expand-file-name "ro-slice.org" dir)))
+      (with-temp-file slice
+        (insert "#+TODO: TODO | DONE\n"
+                "* Slices\n** DOING [0/0] S\n:PROPERTIES:\n:KIND:     slice\n:END:\n\n"
+                "- [ ] [[id:11111111-0000-0000-0000-000000000000][11111111]] TODO stale\n\n"
+                "* Work\n** DONE Finished\n:PROPERTIES:\n"
+                ":ID:       11111111-0000-0000-0000-000000000000\n:END:\n"))
+      (with-current-buffer (find-file-noselect slice) (setq buffer-read-only t))
+      (let ((claude-code-ide-org-query-files (list slice)))
+        (claude-code-ide-org-refresh-slice)
+        (with-temp-buffer
+          (insert-file-contents slice)
+          (should (string-match-p "- \\[X\\] .*11111111\\]\\] DONE Finished" (buffer-string))))
+        (should (with-current-buffer (find-file-noselect slice) buffer-read-only))))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here
