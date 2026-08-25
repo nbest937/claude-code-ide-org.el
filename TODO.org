@@ -6288,6 +6288,31 @@ So the rule is clean, and the predicate for it already exists: =--review-markabl
 *Worth measuring before building:* how often a state item is stale in practice. On 2026-08-24 after two partial applies it was *every* item -- =markable 0= -- because the applies had already moved those headings to the states their events described. If that is typical rather than an artefact of a bad day, auto-marking buys less than it appears to and the honest answer is that the staleness check is doing most of the work.
 
 
+** An apply failure named nothing: five identical messages, no item, no stack :code:
+:PROPERTIES:
+:ID:       df1cf43c-749f-435c-9f45-3d8df1d725ad
+:CREATED:  [2026-08-24 Mon 19:51]
+:END:
+
+*Shipped 2026-08-24* (=f1dcec9=), and filed after the fact -- the user asked for a heading and got one only for its sibling proposal, which is its own small instance of the same defect.
+
+*The measurement.* An apply reported:
+
+: Applied 0 item(s); 5 failed: Error: Before first headline at position 1 in buffer TODO.org; Error: Before first headline...
+
+Five times, identically. Every word true. Between them they identified *nothing* -- not which heading, not which kind of item, not which timestamp, not where in the stack. Three hypotheses were raised and withdrawn against that message before anyone could act on it, and the state that produced it was gone by the time it could be probed.
+
+*Why the information was thrown away, which is the part worth keeping.* =--at-id= converts every error to a string, deliberately: that is what lets a caller report a failure without unwinding a whole batch. But conversion happens at the boundary where the stack still exists and the caller's identity is still known, and both were discarded there. The design decision was right; the *lossiness* was incidental to it.
+
+*What shipped.* =--at-id= records =--last-error-backtrace= -- =(:id :message :backtrace)= -- on every conversion. =--review-apply= snapshots it per item and annotates each failure with the item's type, short id and timestamp, so the report reads =[state ff92700e 15:56]=. The stack goes to =*Messages*= rather than into the returned string, because the return value is rendered in the review buffer where a stack would bury the summary.
+
+*An item with no =:ID:= identifies itself as "unassigned"* rather than erroring. That case is not hypothetical: the five failures could each have been an unassigned span, and a describer assuming an id would have replaced a bad diagnosis with none.
+
+*One real mistake, recorded because it was nearly shipped.* The first draft used =condition-case-unless-debug=, which broke four existing tests -- ERT binds =debug-on-error=, so errors stopped being converted at all. =--at-id='s contract is that it *always* converts; the capture had to be additive, not a change to when it catches. The suite caught it in one run.
+
+*Still unverified against the original failure.* By the time the instrumentation was live, the five items had been dismissed as stale -- the partial applies had moved their headings to the states the events described. So the message that motivated this has never been seen through it, and the underlying cause of "Before first headline at position 1" remains unknown.
+
+
 * Observability
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Observability
@@ -7064,6 +7089,40 @@ Verified against the hook documentation rather than assumed: Claude Code exposes
 *And the measurement immediately showed where it does and does not earn its keep.* Those 41 minutes were *already* excluded: no guideposts fired while the user was away, so the gap never entered a span, and the adjacent item is a lone point at 19:02. The span before it ends at 18:06 exactly.
 
 So AFK/BAK is *not* needed for a gap that ends the working stretch -- silence handles that by itself. It earns its keep for a gap *inside* one: the user steps away while a turn is running, or between two prompts that bracket a span, where the guideposts either side make the interval look continuous. That is a narrower case than it first appeared, and worth knowing before building for the general one.
+
+
+** Six defects in one day, all the same: the code knew more than it said :code:research:
+:PROPERTIES:
+:ID:       6cc71c36-0fa6-4773-9b35-c0582f4cee82
+:CREATED:  [2026-08-24 Mon 19:52]
+:END:
+
+*Noticed 2026-08-24 when the user asked whether the day's new headings formed a group.* They do, and the grouping is not the one the categories suggest.
+
+Six defects were found in a single afternoon, all in the review-and-apply surface, and every one has the same shape: *information existed at a boundary and was discarded there.*
+
+| where | knew | said |
+|-----------------------------+---------------------------+-------------------------|
+| =--at-id= | the stack, the =:ID:= | a bare error string |
+| apply's failure report | which item failed | five identical sentences |
+| =M= (=--review-set-all=) | two kinds of refusal | "13 stale item(s)" |
+| the group heading | four kinds of =:ID:= | resolvable or "unresolvable" |
+| =e= (=--review-edit-interval=) | the bracket style typed | discarded at parse |
+| the review buffer | the whole line | truncated at the window |
+
+*None of these is a logic error.* Every one of those functions computes the right answer and then narrows it on the way out. That is why they survived so long: tests assert the computed value, and the loss happens after.
+
+*The cost is not cosmetic, and the day priced it.* "13 stale item(s)" nearly led to dismissing six spans, three carrying real recorded time, with no undo. Five identical failure messages consumed an afternoon and three withdrawn hypotheses. ="Review a  (unresolved)"= made a working feature look broken. The truncation hid the tail of exactly the lines a human reads to decide something.
+
+*Why this surface specifically.* The review buffer is the one place a human is *asked to judge*, so it is the only surface where a lost distinction converts directly into a wrong decision. Everywhere else in this project, discarded information is merely absent; here it is actively misleading, because the human acts on what the buffer says.
+
+*The related-but-distinct heading:* [[id:2b050e7a-b0c4-45d3-835e-68befcebb7bb][2b050e7a]] names the same shape *within one function*, fixed three times. This heading is that observation one level up -- the =cond= there had the wrong shape for the same reason the messages here do.
+
+*Proposed check, and it is cheap.* For each place the review buffer reports a refusal, a failure or an absence, ask: *does the code distinguish cases the message does not?* Every one of the six answers yes and is repaired by widening the message, never by changing the computation. That is a review-buffer-wide audit of perhaps a dozen call sites, not a redesign.
+
+*Deliberately not a subtree.* Four of the six are already =DONE=, and refiling closed headings under a new epic would churn the file for a grouping that is a *lesson* rather than a work item. This heading holds the lesson; the instances stay where they are.
+
+*Related:* [[id:b8e6007a-ae13-4b13-bb2e-a5df39435af0][b8e6007a]] and [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] are earlier members of the same family -- both are about a readout that could not distinguish two things a human needed told apart.
 
 
 * Bigger swings

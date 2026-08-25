@@ -187,6 +187,14 @@ only** — it is the one that stops the record degrading between passes.
 
 ## Deliberately off the critical path
 
+- `6cc71c36` — **the pattern behind the afternoon**: six defects, every one
+  a place where the code computed the right answer and narrowed it on the
+  way out. Proposes a review-buffer-wide audit of readouts, which is a
+  dozen call sites rather than a redesign. Off the critical path only
+  because nothing is currently broken by it.
+- `b6e229c7` — auto-marking. Measure the staleness rate first; after two
+  partial applies every state item was stale, so the check may be doing
+  most of the work the proposal would automate.
 - `c31b6c76` — a test that fails for the last hour of every day. Real,
   bounded, and green whenever anyone actually looks.
 - `2d100d0d` — cross-item overlap. Much cheaper since `eaeeb4ee`: a span
