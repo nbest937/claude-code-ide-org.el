@@ -60,6 +60,14 @@ to `org-default-notes-file' when nil, same convention as
 
 ;;; Helper ----------------------------------------------------------------
 
+(defvar claude-code-ide-org--last-error-backtrace nil
+  "Details of the most recent error `claude-code-ide-org--at-id' swallowed.
+
+A plist (:id ID :message MSG :backtrace STRING), or nil.  Overwritten by
+each conversion, so it answers \"what went wrong just now\" rather than
+keeping a history -- `claude-code-ide-org--review-apply' snapshots it per
+item, which is where a history is actually wanted.")
+
 (defun claude-code-ide-org--at-id (id fn)
   "Find the org heading whose :ID: property equals ID.
 Switch to its buffer, move point to the heading, and call FN with
@@ -72,7 +80,22 @@ cannot be resolved or FN signals an error."
       (condition-case err
           (org-with-point-at marker
             (funcall fn))
-        (error (format "Error: %s" (error-message-string err)))))))
+        (error
+         ;; Record where it actually failed. This function converts every
+         ;; error into a string, which is what lets callers report a
+         ;; failure without unwinding a batch -- but it also means a
+         ;; failure arrives as prose with no stack and no identity, and
+         ;; the caller cannot tell a typo'd :ID: from a bug three frames
+         ;; down. Measured cost, 2026-08-24: five apply failures reading
+         ;; "Before first headline at position 1" and nothing else, which
+         ;; survived three wrong hypotheses before anyone could act on
+         ;; them.
+         (setq claude-code-ide-org--last-error-backtrace
+               (list :id id
+                     :message (error-message-string err)
+                     :backtrace (ignore-errors
+                                  (backtrace-to-string (backtrace-get-frames)))))
+         (format "Error: %s" (error-message-string err)))))))
 
 ;;; Tool-call audit log ------------------------------------------------------
 ;;
@@ -5284,6 +5307,35 @@ exists to prevent (TODO.org :ID: b5f94b88)."
         nil)
     (error (format "Error: %s" (error-message-string err)))))
 
+(defun claude-code-ide-org--review-describe-failure (item error)
+  "Return ERROR annotated with ITEM's identity, and log any backtrace.
+
+The error string alone is what five identical `Before first headline'
+messages looked like on 2026-08-24: true, useless, and indistinguishable
+from each other.  Naming the item costs nothing and is the difference
+between a mystery and a defect report.
+
+The backtrace goes to *Messages* rather than into the returned string:
+the return value is rendered in the review buffer, where a stack would
+bury the summary, while *Messages* is where someone looks after being
+told something failed."
+  (let ((bt claude-code-ide-org--last-error-backtrace))
+    (when (plist-get bt :backtrace)
+      (message "org-review: %s on %s item %s (%s)\n%s"
+               (plist-get bt :message)
+               (plist-get item :type)
+               (or (plist-get item :id) "(no id)")
+               (format-time-string
+                "%H:%M:%S" (or (plist-get item :ts) (plist-get item :start)))
+               (plist-get bt :backtrace)))
+    (format "%s [%s %s %s]"
+            error
+            (plist-get item :type)
+            (let ((id (plist-get item :id)))
+              (if id (claude-code-ide-org--short-id id) "unassigned"))
+            (format-time-string
+             "%H:%M" (or (plist-get item :ts) (plist-get item :start))))))
+
 (defun claude-code-ide-org--review-record-applied (applied-items)
   "Record every event behind APPLIED-ITEMS as applied, per session.
 
@@ -5368,8 +5420,17 @@ item-scoped."
   (let (applied errors)
     (let ((claude-code-ide-org--review-applying t))
       (dolist (item items)
+        (setq claude-code-ide-org--last-error-backtrace nil)
         (let ((error (claude-code-ide-org--review-apply-item item)))
-          (if error (push error errors) (push item applied)))))
+          (if error
+              ;; Name the item. A bare error string cannot say WHICH of
+              ;; five failures it belongs to, and the review buffer shows
+              ;; them as one run-on line -- so the human sees the same
+              ;; sentence five times and learns nothing about which
+              ;; heading, kind or timestamp produced it.
+              (push (claude-code-ide-org--review-describe-failure item error)
+                    errors)
+            (push item applied)))))
     (claude-code-ide-org--review-settle-auto-promote applied)
     (claude-code-ide-org--review-record-applied applied)
     ;; :items alongside the count, so the caller can drop exactly what

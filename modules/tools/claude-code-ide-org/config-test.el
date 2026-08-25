@@ -8396,6 +8396,62 @@ stop the trigger independently."
                      (claude-code-ide-org--at-id
                       "test-promo-1" (lambda () (org-get-todo-state))))))))
 
+(ert-deftest claude-code-ide-org-test-apply-failure-names-the-item ()
+  "A failed item's report says WHICH item failed.
+
+Measured 2026-08-24: an apply reported \"Applied 0 item(s); 5 failed:
+Error: Before first headline at position 1 in buffer TODO.org\" five
+times over. Every word true, and between them they identified nothing --
+not the heading, not the kind, not the time. Three wrong hypotheses were
+tried before anyone could act on it.
+
+The bare error string is what `claude-code-ide-org--at-id' produces by
+design: it converts every error so a batch is not unwound. This asserts
+the identity is added back at the point of reporting."
+  (let ((item (list :type 'state :id "11111111-1111-1111-1111-111111111111"
+                    :ts (date-to-time "2026-08-24T15:02:00-0500")
+                    :from "TODO" :to "DONE"))
+        (claude-code-ide-org--last-error-backtrace nil))
+    (let ((s (claude-code-ide-org--review-describe-failure
+              item "Error: Before first headline at position 1")))
+      (should (string-match-p "Before first headline" s))
+      (should (string-match-p "state" s))
+      (should (string-match-p "11111111" s))
+      (should (string-match-p "15:02" s)))))
+
+(ert-deftest claude-code-ide-org-test-apply-failure-handles-an-unassigned-item ()
+  "An item with no :ID: still identifies itself.
+
+The five failures that prompted this could each have been an unassigned
+span, and a describer that assumed an :ID: would have errored while
+reporting an error -- replacing a bad diagnosis with no diagnosis."
+  (let ((item (list :type 'clock :id nil
+                    :start (date-to-time "2026-08-24T16:00:00-0500")
+                    :end (date-to-time "2026-08-24T16:31:00-0500")))
+        (claude-code-ide-org--last-error-backtrace nil))
+    (let ((s (claude-code-ide-org--review-describe-failure item "Error: boom")))
+      (should (string-match-p "unassigned" s))
+      (should (string-match-p "clock" s))
+      (should (string-match-p "16:00" s)))))
+
+(ert-deftest claude-code-ide-org-test-at-id-records-a-backtrace ()
+  "`--at-id' keeps the stack it swallows.
+
+It converts every error to a string so callers can report a failure
+without unwinding a batch. That is deliberate and stays -- but it also
+discarded the only evidence of WHERE the failure was, which is what made
+five identical messages unactionable."
+  (let ((claude-code-ide-org--last-error-backtrace nil))
+    (claude-code-ide-org-test--with-heading
+      (let ((result (claude-code-ide-org--at-id
+                     id (lambda () (error "deliberate test failure")))))
+        (should (string-match-p "deliberate test failure" result)))
+      (let ((bt claude-code-ide-org--last-error-backtrace))
+        (should bt)
+        (should (equal id (plist-get bt :id)))
+        (should (string-match-p "deliberate test failure" (plist-get bt :message)))
+        (should (stringp (plist-get bt :backtrace)))))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here
