@@ -145,6 +145,14 @@ not a structural fact — an ordinary body may hold one for reference — so
 unlike an epic, which is *derived*, a slice must be *declared*. Read
 without inheritance, so a subheading of a slice is not one.
 
+**Not `:CATEGORY:`**, which is the obvious org-native candidate: `:ID:`
+29439196 already assigns it to *epic assignment* — "a label, carried by
+headings, not a place they live". Sharing one property would make
+`:CATEGORY: X` undecidable, since nothing would say whether `X` names an
+epic or a kind. They also answer different questions: a category says
+what a heading is *about*, a kind says what it *is*, and a slice belongs
+to no epic by design while certainly being a slice.
+
 A tag was tried first and lasted an hour. When the tags on the first
 slice were deleted as inadvertent, the lint assertion built on them went
 **silently inert** — zero errors because nothing was a slice any more,

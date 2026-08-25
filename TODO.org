@@ -1435,10 +1435,19 @@ Everything already verified above serves that -- =:CATEGORY:= inherited by a lev
 *Note the fourth class 8ca6541d found is unaffected and still unresolved:* category, container/epic, datetree node and story are each detected by a different bespoke mechanism, none declared. Flattening removes one of those detectors -- heading level -- which makes the inconsistency smaller but does not answer how a story or a slice declares itself.
 
 
-** TODO Compose slices by reference: a checkbox list of id links, blocked on its members :code:research:
+** DONE Compose slices by reference: a checkbox list of id links, blocked on its members :code:research:
+CLOSED: [2026-08-25 Tue 12:56]
 :PROPERTIES:
 :ID:       8ca6541d-0fc7-45a2-a4d3-76e1608f658d
 :CREATED:  [2026-08-21 Fri 15:26]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-25 Tue 12:36]--[2026-08-25 Tue 12:45] =>  0:09
+- [2026-08-25 Tue 12:36]--[2026-08-25 Tue 12:45] assigned at review
+CLOCK: [2026-08-25 Tue 12:50]--[2026-08-25 Tue 13:00] =>  0:10
+- [2026-08-25 Tue 12:50]--[2026-08-25 Tue 13:00] assigned at review
+- State "DONE"       from "TODO"       [2026-08-25 Tue 12:56] \\
+  blocker half and lint assertion built
 :END:
 
 *Two words, deliberately, and they are not synonyms.* A *story* is a parent heading whose children are the work -- declared by refiling things under it, and able to span epics only once [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] makes categories a label rather than a place. A *slice* names its members *by reference* and sequences them, so it can pick a whole story or one task inside one, and needs nothing moved. This heading is about the slice; where "story" appears below it means the parent-heading sense.
@@ -1515,6 +1524,21 @@ Proposed by the user 2026-08-21, as what flattening the categories ([[id:2943919
 *One bug, found by the data and worth recording because the tests would not have caught it unaided.* The first parser treated an empty =[ ]= as an absent cookie, so the first real run proposed 12 blocker ids instead of 20. An unstarted member still blocks; only a *deleted* cookie does not. The fixture now carries all five member shapes -- ticked, unstarted, nested, cookie-deleted, and an =orgit-rev:= revision link that is a cookie-less list item but not a member -- and reintroducing the bug fails exactly three tests.
 
 *Not included, and filed rather than forgotten:* teaching =--container-heading-p= about slices, which this heading correctly warned would otherwise reintroduce [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]]. Measured on the prototype and filed as [[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]].
+
+*Where =:KIND:= came from, asked by the user 2026-08-25 because it had only ever been argued in a commit message.* That is the real defect the question exposed: a vocabulary decision was made in passing while fixing something else, and never written where anyone would meet it.
+
+*It was taken from this heading, but from the wrong sentence.* The line above reads "Verified 2026-08-21: no =:KIND:=, =:TYPE:= or equivalent property exists anywhere in this repo" -- a statement of what is *missing*, offered as evidence for the four-heading-classes finding. This heading's actual *proposal* was a tag. So =:KIND:= was not invented, but neither was it proposed; the tag was tried, failed within an hour, and the name was reached for from the sentence that had named the gap.
+
+*Why not =:CATEGORY:=, which is the obvious org-native candidate.* Because it is already spoken for, by [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]], whose membership table assigns it to *epic assignment*: "a *label* -- tag or =:CATEGORY:= -- carried by headings, not a place they live". That is the same mechanism the user described leaning toward, and 29439196 has already verified it works here, including inheritance by a level-3 grandchild.
+
+*Sharing the property would make it undecidable.* If epics are categories, then reading =:CATEGORY: X= you cannot tell whether =X= names an epic or a kind. That is one mechanism serving two masters, which is the failure this heading's own four-classes table exists to name -- arriving from the other direction, by *merging* detectors rather than by multiplying them.
+
+*And the two answer different questions.* A category says what a heading is *about*, or where it belongs. A kind says what sort of thing it *is*. A slice belongs to no epic by design, since it cuts across them, while it certainly *is* a slice -- so the one property that would be empty for a slice is exactly the one being proposed to carry its declaration.
+
+*Inheritance points the same way, though it is the weakest of the three reasons.* Org inherits =:CATEGORY:= down a subtree by design. That is the latent hazard already recorded here for tags, and =:KIND:= avoids it by being read with =org-entry-get= without the inherit flag.
+
+*Reversible if the user prefers otherwise*: the detector is one =equal= in =claude-code-ide-org--slice-p=, plus fixtures in four tests.
+
 
 
 
@@ -6714,7 +6738,8 @@ actually did, both after the fact and at the start of a session.
 *Open, and worth deciding before building:* whether the report should also fire when *no* slice is open, which would be a different and probably more annoying question -- "you did work and no slice claims it" is sometimes just true.
 
 
-** TODO Something writes a :blocked: tag; a derived fact stored is one that can go stale :code:
+** CANCELLED Something writes a :blocked: tag; a derived fact stored is one that can go stale :code:
+CLOSED: [2026-08-25 Tue 14:12]
 :PROPERTIES:
 :ID:       a7f4b40c-d6e0-4bde-82ba-94bcf45253f4
 :CREATED:  [2026-08-25 Tue 13:53]
@@ -6722,6 +6747,8 @@ actually did, both after the fact and at the start of a session.
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 13:53] \\
   observed, not reproduced; writer unknown
+- State "CANCELLED"  from "TODO"       [2026-08-25 Tue 14:12] \\
+  tag was a manual edit, not a writer
 :END:
 
 *Observed 2026-08-25.* [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]]'s tag line became =:code:slice:blocked:=. The =slice= tag was written deliberately; =blocked= was not written by anything in this repo -- =grep '"blocked"'= over =config.el= returns nothing.
@@ -7571,6 +7598,8 @@ standalone/Warp-access subsystem from this session.
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 14:13] \\
   proposed by the user as the answer to container clocks
+CLOCK: [2026-08-25 Tue 14:41]--[2026-08-25 Tue 14:44] =>  0:03
+- [2026-08-25 Tue 14:41]--[2026-08-25 Tue 14:44] assigned at review
 :END:
 
 *The user's proposal 2026-08-25.* When a leaf inflates far enough that it is really a story, do not promote it in place. Create a *new* parent, move the original leaf underneath it carrying its clock, LOGBOOK, state history and identity, and derive one or more further leaves from the engorged body. Division rather than promotion.
@@ -10342,6 +10371,20 @@ CLOCK: [2026-08-25 Tue 10:56]--[2026-08-25 Tue 11:10] =>  0:14
 - [2026-08-25 Tue 10:56]--[2026-08-25 Tue 11:10] assigned at review
 CLOCK: [2026-08-25 Tue 11:44]--[2026-08-25 Tue 11:49] =>  0:05
 - [2026-08-25 Tue 11:44]--[2026-08-25 Tue 11:49] assigned at review
+CLOCK: [2026-08-25 Tue 12:01]--[2026-08-25 Tue 12:04] =>  0:03
+- [2026-08-25 Tue 12:01]--[2026-08-25 Tue 12:04] assigned at review
+CLOCK: [2026-08-25 Tue 13:49]--[2026-08-25 Tue 13:54] =>  0:05
+- [2026-08-25 Tue 13:49]--[2026-08-25 Tue 13:54] assigned at review
+CLOCK: [2026-08-25 Tue 14:08]--[2026-08-25 Tue 14:14] =>  0:06
+- [2026-08-25 Tue 14:08]--[2026-08-25 Tue 14:14] assigned at review
+CLOCK: [2026-08-25 Tue 15:07]--[2026-08-25 Tue 15:11] =>  0:04
+- [2026-08-25 Tue 15:07]--[2026-08-25 Tue 15:11] assigned at review
+CLOCK: [2026-08-25 Tue 15:13]--[2026-08-25 Tue 15:16] =>  0:03
+- [2026-08-25 Tue 15:13]--[2026-08-25 Tue 15:16] assigned at review
+CLOCK: [2026-08-25 Tue 15:20]--[2026-08-25 Tue 15:30] =>  0:10
+- [2026-08-25 Tue 15:20]--[2026-08-25 Tue 15:30] assigned at review
+CLOCK: [2026-08-25 Tue 15:33]--[2026-08-25 Tue 15:36] =>  0:03
+- [2026-08-25 Tue 15:33]--[2026-08-25 Tue 15:36] assigned at review
 :END:
 
 
