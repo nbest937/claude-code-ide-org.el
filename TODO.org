@@ -31,13 +31,13 @@
 
 *One member carries no checkbox at all*, which is the mechanism rather than an omission: [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] was worked to a decision and cancelled, so its cookie is deleted and it neither counts toward the numerator nor inflates the denominator. Deferral to a later slice takes the same form. The line stays, because the record of having considered and dropped something is the part a bare list loses.
 
-- [-] [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]] TODO [0/3] Make the daily ceremony cheap enough that it actually runs
+- [ ] [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]] TODO [0/3] Make the daily ceremony cheap enough that it actually runs
   - [ ] [[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]] TODO Consolidation only reaches drawers an apply pass happens to touch
-  - [-] [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]] NEXT End every heading with two blank lines, so folded trees are separated
+  - [ ] [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]] NEXT End every heading with two blank lines, so folded trees are separated
   - [-] [[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]] DOING Prompt the daily ceremony automatically, within what a scheduler can reach
 - [ ] [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] NEXT org_amend can only append, so every correction lands furthest from the reader
 - [ ] [[id:f421c5c3-f81f-4ebf-99c9-42c53cc00558][f421c5c3]] TODO The :PLAN: lint will demand a drawer from a debrief-only heading
-- [-] [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]] TODO Track the human's review attention, clocked by the review command itself
+- [ ] [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]] TODO Track the human's review attention, clocked by the review command itself
 - [-] [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] REVIEW Footnote discipline decays on re-mention; enforce it at Stop
 - [ ] [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] TODO Evaluate Org's own agenda, sparse-tree and column views against this corpus
 - [ ] [[id:21c91613-76e0-4590-affe-e2af9f1321ca][21c91613]] NEXT Apply consumes queue events with no way to roll one back
@@ -8364,7 +8364,7 @@ Two things follow. A body-size rule calibrated against a body-size measurement t
 :END:
 
 
-** TODO Keep a slice's depiction in step with its referents, without overwriting judgement :code:
+** TODO Regenerate a slice's depiction from its referents; only membership and order are declared :code:
 :PROPERTIES:
 :ID:       0acc1df2-6916-4180-867a-99bfa551806b
 :CREATED:  [2026-08-25 Tue 12:04]
@@ -8374,15 +8374,26 @@ Two things follow. A body-size rule calibrated against a body-size measurement t
   asked by the user the day slices were introduced
 :END:
 
-*A slice line copies two facts and declares one*, and the three need different mechanisms. =- [X] [[id:...][49557477]] DONE Expand an 8-character prefix ...= holds a link target that cannot go stale, a *keyword* and a *title* copied from the referent, and a *checkbox* that is derivable from nothing because it is the slice's own judgement -- =[-]= means "worked, unfinished", which no referent state expresses.
+*A slice line renders its referent and declares almost nothing.* =- [X] [[id:...][49557477]] DONE Expand an 8-character prefix ...= holds a link target, a keyword, a title and a checkbox -- and every one of the four is derivable from the referent. What the slice actually declares is *which* headings are members and *in what order*, which is exactly what a declared grouping should assert and nothing more.
 
-*Regenerate the copied half; never hand-maintain it.* A normaliser walks each slice's checklist, resolves each =[[id:]]=, and rewrites the keyword and title from the referent, leaving the checkbox and any trailing prose untouched. Idempotent and judgement-free -- the same shape as =--consolidate-logbook-text= and =claude-code-ide-org-normalize-heading-separation=, both of which already exist and are already normalisers rather than migrations.
+*The checkbox maps from the referent's keyword, totally.* Four rows were given by the user; the rest follow the same logic and are marked as inferred rather than agreed:
 
-*The trigger is apply, not a schedule.* Applying the queue is the only thing that changes referents' keywords in bulk, so a slice is stale exactly when a review pass ends. That makes this a fifth step in the ceremony [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]] already sequences -- apply, consolidate, re-separate, archive -- and it inherits that sequence's whole argument: a normaliser recalled separately from the pass that disturbs the file is one that will drift.
+| referent keyword          | checkbox  |                  |
+|---------------------------+-----------+------------------|
+| =DONE=                    | =[X]=     | given            |
+| =CANCELLED=               | no cookie | given            |
+| =DOING=, =REVIEW=         | =[-]=     | given            |
+| =TODO=, =NEXT=            | =[ ]=     | inferred         |
+| =PLANNING=, =WAITING=     | =[-]=     | inferred: work started, clock opened then closed |
+| =MAYBE=                   | no cookie | inferred: deferral, same treatment as cancellation |
 
-*Lint the declared half for contradiction, and do not rewrite it.* Three are detectable: a referent =DONE= under an unticked box; a =CANCELLED= referent whose line still carries a cookie the convention says to delete; and a =[X]= over a referent that is not finished, which is the alarming direction because the slice claims more than the record supports.
+*So the tool is a pure regenerator and the lint rule collapses.* Walk each slice's checklist, resolve each =[[id:]]=, rewrite keyword, title and checkbox from the referent, leave the ordering and any trailing prose alone. Nothing needs to detect contradiction, because nothing independent is stored to contradict.
 
-*They must be warnings rather than errors, and today proved why.* [[id:43201e64-3fe8-4fa6-81f5-d2ab5b65d191][43201e64]] and [[id:637ee73d-e1b7-4a84-9213-830c49a400b4][637ee73d]] carried a finished checkbox against a =TODO= keyword for about an hour, because both state changes were queued and unapplied. That is the queue behaving exactly as designed, not drift, and a rule that errored on it would fire on every correctly-run session.
+*The trigger is apply, not a schedule.* Applying the queue is the only thing that changes referents' keywords in bulk, so a slice is stale exactly when a review pass ends. That makes this a fifth step in the ceremony [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]] already sequences -- apply, consolidate, re-separate, archive -- and it inherits that sequence's argument: a normaliser recalled separately from the pass that disturbs the file is one that will drift.
+
+/This heading first claimed the checkbox was slice judgement that a normaliser must not touch, and proposed lint warnings to catch contradictions between it and the referent. The user asked what there was to judge, and there was nothing./ /The claim was tested against all 22 members: 19 matched a pure keyword mapping and the three that did not were all mine --/ =edd47f32=, =e1284bdb= /and/ =961f15b6=, /each marked/ =[-]= /because I knew work had happened. A search for a second derivation rule for the parent case found none: org left parent checkboxes untouched in every configuration tried, including all-children-done./
+
+*And the three mismatches were information about the referents, not about the slice*, which is the part worth keeping. [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]] is =NEXT= while its normaliser shipped 2026-08-24; [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]] is =TODO= while its design was written up in full. Both keywords under-report what happened. A hand-set =[-]= papered over that in the slice and made it invisible; a mechanical rule surfaces it as a question about the *referent's* keyword, which is where the fix belongs. That is an argument *for* the mapping, not a cost of it.
 
 *Membership staleness needs nothing new.* A referent archived into DONE.org still resolves, since =org-id= spans files, and a deleted one already produces =bin/lint-org='s existing "id: link resolves to nothing" error -- which caught two fabricated links today.
 

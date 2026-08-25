@@ -139,13 +139,29 @@ The link target is the only part that cannot go stale; keeping the
 keyword and title as plain text alongside it makes the copy visible
 *as* a copy.
 
-**Checkbox states**: `[ ]` not started, `[-]` worked but not finished,
-`[X]` complete. **A cancelled or deferred member has its checkbox cookie
-deleted entirely**, leaving a plain `- ` list item. That is the whole
-mechanism for keeping the slice's aggregate honest — a cancelled item
-must not count against the numerator, and must not inflate the
-denominator either. The line stays, because the record of having
-considered and dropped something is what a bare list loses.
+**The checkbox is derived from the referent's keyword, not chosen.**
+There is no judgement in it, and a slice that disagrees with its
+referent is simply stale:
+
+| referent keyword     | checkbox    |
+|----------------------|-------------|
+| `DONE`               | `[X]`       |
+| `DOING` `REVIEW` `PLANNING` `WAITING` | `[-]` |
+| `TODO` `NEXT`        | `[ ]`       |
+| `CANCELLED` `MAYBE`  | *no cookie* |
+
+**A cancelled or deferred member has its checkbox cookie deleted
+entirely**, leaving a plain `- ` list item, so it neither counts against
+the numerator nor inflates the denominator. The line stays, because the
+record of having considered and dropped something is what a bare list
+loses.
+
+Because every field is derived, **the only things a slice declares are
+membership and order** — which headings belong and in what sequence. If
+a checkbox looks wrong, either the slice needs regenerating or the
+*referent's keyword* is under-reporting; the fix is never to set the box
+by hand. Regenerating is `:ID:` 0acc1df2, and belongs immediately after
+apply.
 
 **A slice carries state but never a clock.** Its `:LOGBOOK:` records
 state transitions only; every referent already carries its own clock, so
