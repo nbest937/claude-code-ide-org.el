@@ -291,6 +291,45 @@ that node.
 Year and month nodes carry neither `:ID:` nor `:CREATED:`; the day node
 carries both. `bin/lint-org` knows the difference.
 
+## Heading separation
+
+**Every heading is preceded by exactly two blank lines**, at every level and
+whatever its TODO state; the last heading in a file is the only exception.
+The *why* — that `org-cycle-separator-lines` defaults to 2, so two lines in
+the file buy one visible line of air in a folded outline and one line buys
+none — is in the **org skill**, along with the corpus measurement that
+retired the older same-level-only version of the rule.
+
+What is project-specific is that **it is maintained by a normaliser, not by
+hand**: `M-x claude-code-ide-org-normalize-heading-separation`, which takes
+an optional file and a dry-run flag. The count is
+`claude-code-ide-org-heading-separator-lines`, default `2` — set it below
+`org-cycle-separator-lines` and the convention still changes the file but
+stops being visible anywhere, which is the one way to get it wrong.
+
+**It is a normaliser, not a migration, and that distinction is the reason it
+has to be re-run.** Applying queued events inserts lines without the
+convention, so the files drift out of it as a matter of course rather than
+by mistake. It has been re-run twice since it first shipped for exactly that
+reason. Run it in the same sitting as the drawer consolidation sweep and
+before the archive step below — the order in "Archiving" is where it belongs,
+not as its own ritual.
+
+**The safety property is worth knowing before running it on a dirty tree.**
+It touches only the run of blank lines immediately preceding a heading,
+found by walking back from the next heading and stopping at the first
+non-blank line, so the edit cannot reach text. Verified on its first run
+over both files: 224 insertions, 37 deletions, and zero changed lines
+carrying any character.
+
+**Not asserted by `bin/lint-org`.** Nothing fails when the files drift, so
+the convention holds only as long as the normaliser is actually run — and it
+does drift: measured 2026-08-25, TODO.org had 18 of 169 headings off the
+convention while DONE.org had 0 of 105. The asymmetry is the mechanism
+showing itself. DONE.org is written by archiving, which moves whole
+subtrees; TODO.org is where applies and `org_amend` land, and both append
+without the trailing lines.
+
 ## Archiving
 
 **Both terminal keywords are archived, not just `DONE`.** `org-done-keywords`

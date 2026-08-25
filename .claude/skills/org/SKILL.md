@@ -518,14 +518,23 @@ When creating tasks or files from scratch, or when adding tasks to an existing f
 - **A single space before a heading's tag, never column-aligned.** Don't pad
   with spaces to push `:tag:` out to a fixed column, even though many Org
   setups do this by default (`org-tags-column`) — see "Tags" above for why.
-- **Two blank lines before a level-2 (`**`) heading that has no TODO
-  keyword** — the top-level section dividers of a file (e.g. `** Roadmap`'s
-  own children), as opposed to the individual TODO-tracked items nested
-  under them. Everywhere else — before a TODO-item heading (`*** DONE ...`,
-  `*** MAYBE ...`) or any other content — a single blank line is the norm.
-  The extra line at level 2 only, and only when untagged-by-TODO-state, is a
-  deliberate visual break between major sections; doubling it everywhere
-  would just be noise.
+- **Two blank lines before *every* heading**, at every level, whatever its
+  TODO state. The last heading in a file is the only exception — there is
+  nothing after it to separate from.
+
+  **Two, and the number is not a matter of taste.** Org hides the blank
+  line between a collapsed subtree and the following headline unless there
+  are at least `org-cycle-separator-lines` of them, and that variable
+  defaults to `2`. Two blank lines in the file buy exactly one visible line
+  of air in a folded outline; one buys none. So the rule is calibrated to a
+  setting that already exists, and needs no configuration to pay off.
+
+  **Before every heading, not only same-level ones** — an earlier version of
+  this rule said two lines at level 2 only, and the corpus falsified it. The
+  gap you see before `** B` in a folded outline is the trailing space of A's
+  *last child*, not of A's own body: measured over this project's files, 31
+  of 134 heading gaps sit between headings of *different* levels, and a
+  same-level rule skips exactly those.
 
 ---
 
