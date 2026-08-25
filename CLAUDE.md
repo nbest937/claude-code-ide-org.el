@@ -390,6 +390,30 @@ and `REVIEW` → `DONE` touches nothing because no clock is running. These
 rows were added 2026-08-21; until then the keyword was in live use with
 its clock semantics written down nowhere.
 
+**`DOING` means two different things, and which one depends on whether
+the heading is a container.** On a leaf it means *the agent is working on
+this right now* — that is the original sense, it is clock-bearing, and it
+is necessarily singular because org runs one clock. On a container
+(epic, story, slice) it means *at least one thing inside is in flight*.
+That sense takes no clock, is plural, and is derivable from the members
+rather than asserted.
+
+The code already encodes the split: `--trigger-auto-clock-in` exempts a
+container, so setting `DOING` on one opens nothing. The gap is that a
+*slice* is not recognised as a container, because its members are links
+rather than children — `:ID:` 95c27fca.
+
+Two consequences worth stating, because both have been got wrong here:
+
+- **A leaf held for the user's judgement is `WAITING`, not `DOING`.**
+  Nothing is in flight, so a clock would be lying about attention.
+- **The keyword tracks attention, not progress.** A leaf that was worked
+  and set down goes back to `NEXT` or `TODO`; that it is half-built lives
+  in its body, its commits and its children, not in the keyword. There is
+  deliberately no "started but resting" state, and asking for one is a
+  sign the heading wants splitting — the finished part `DONE`, the
+  remainder a fresh task.
+
 **Rule**: any transition *to* `DOING` or `PLANNING` must open a clock, with
 one documented exception: `PLANNING` → `DOING` reuses the already-running
 clock interval rather than closing and reopening it.

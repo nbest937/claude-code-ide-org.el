@@ -1964,6 +1964,34 @@ machine above — three different angles on "make sure the clock is
 never silently wrong."
 
 
+** TODO A container carries clocks it earned before it was one :code:research:
+:PROPERTIES:
+:ID:       3964c575-50bc-4cc9-abeb-bdd1c0162c2c
+:CREATED:  [2026-08-25 Tue 12:59]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-25 Tue 12:59] \\
+  proposed by the user; blast radius measured first
+:END:
+
+*The user's proposal 2026-08-25:* slices carry no clock, so stories should not either. The argument is the one =--container-heading-p='s docstring already makes -- org rolls a subtree's time up natively, so clocking the parent adds a second quantity *inside* the one that already existed, where it can no longer be told apart. Measured there on =:ID:= b5f7c5c7: parent row 14:52, ten children summing 13:44, the 1:08 difference indistinguishable from a rounding artefact.
+
+*Measured before proposing a rule, and the number is not zero.* Eight container headings across both files carry CLOCK lines of their own: 5, 13, 9, 4, 1, 1, 3 and 9 lines. So this is not a convention that merely needs writing down; it describes a state the corpus is not in.
+
+*And the reason is structural rather than a discipline failure, which is the finding.* A container is *emergent* -- it becomes one by acquiring keyworded children. So a heading is clocked honestly as a leaf, grows children later, and becomes a container that retroactively "should never have been clocked". Nothing was done wrong at the time and no rule applied at the time.
+
+*Demonstrated the same day it was proposed.* [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] carried one CLOCK line as a leaf. Refiling [[id:5787bfc6-3ba5-4d94-802c-f8a7879de68d][5787bfc6]] under it made it a container an hour later, and its clock line did not move. Auto-clock-in already exempts containers, so *nothing new* would have been added -- the line is purely historical.
+
+*So the rule has to be about new clocks, not existing ones*, and the candidates differ in what they do to that history:
+- *Prevent only*: refuse a clock-in on a container, leave existing lines. Cheapest, and matches what =--trigger-auto-clock-in= already does. Leaves the 45 lines misattributed.
+- *Migrate on promotion*: when a heading becomes a container, move its clock lines to a child. Correct-looking and dangerous -- the time was spent on the parent's own work, and there may be no child it belongs to.
+- *Accept and mark*: keep the lines, and have any roll-up report the parent's own time separately from the children's sum, which is the only reading that is not a lie.
+
+*The third is the one the docstring's measurement actually argues for*, since its complaint is that the two quantities become indistinguishable -- not that the parent's time is fake.
+
+*Not the same question as whether a container has a body.* That inference was drawn alongside this one and does not follow; see the note on [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]], which has no clock and a substantial body.
+
+
 ** TODO A slice gets clocked and auto-promoted, because its members are links not children :code:
 :PROPERTIES:
 :ID:       95c27fca-136c-46f6-b454-fe94261e0e5d
