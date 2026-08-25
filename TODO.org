@@ -6566,27 +6566,6 @@ Broader than clocking — visibility into what every tool call
 actually did, both after the fact and at the start of a session.
 
 
-** TODO The footnote hook's stopReason never reaches the model; the block is opaque :code:
-:PROPERTIES:
-:ID:       5787bfc6-3ba5-4d94-802c-f8a7879de68d
-:CREATED:  [2026-08-25 Tue 11:57]
-:END:
-:LOGBOOK:
-- State "TODO"       from              [2026-08-25 Tue 11:57] \\
-  observed twice; the hook blocked and said nothing
-:END:
-
-*Observed 2026-08-25, twice in one session.* The hook fired and the text that reached the model was exactly =Stop hook stopped continuation: Stop hook prevented continuation= -- no ids, no instruction, none of the =stopReason= the hook composes. The model continued without correcting anything, because it had nothing to correct *from*.
-
-*The hook itself is fine, and that was checked rather than assumed.* Fed a body citing two tracked ids with one footnoted, it emits well-formed JSON naming the missing one and carrying the full instruction. Both real blocks were genuine violations -- =46e4ce2b= and =98c302e0= cited and unfootnoted in one response, =8ca6541d= and =aa1ba915= in another. So the *detection* half is verified in production; it is the delivery half that is missing.
-
-*Why that matters more than it sounds.* A gate that blocks without saying why converts a corrective nudge into an unexplained stall: the turn ends, the model is re-invoked, and the violation is still there. The loop guard means it costs one extra continuation and never hangs, so the failure is quiet -- which is how it survived two occurrences without being noticed as a defect rather than as the feature working.
-
-*What is not yet known* is where the text is lost. Candidates, none tested: =stopReason= may be surfaced to the *user* rather than to the model; the field may need to sit somewhere other than =hookSpecificOutput= for a blocking Stop hook; or the harness may summarise any block to a fixed string. Worth checking against the hook documentation before changing the hook, since the JSON shape currently matches what was designed from those docs.
-
-*Blocks judgement on* the parent [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]], which is in =REVIEW= awaiting exactly this evidence: it fires, it is accurate, and it cannot yet tell anyone what it found.
-
-
 ** TODO Make task lifecycle answerable from one timeline, starting at creation :code:
 :PROPERTIES:
 :ID:       d9132c57-9dcf-47e9-ba74-7f5a1ced3ae5
@@ -9760,7 +9739,7 @@ So the test is red for the last hour of every day, and green the other 23. Confi
 Approach: anchor the fixture to a fixed date rather than to now, which removes the dependence on when the suite runs instead of narrowing the window in which it breaks.
 
 
-** REVIEW Footnote discipline decays on re-mention; enforce it at Stop :code:
+** REVIEW [0/1] Footnote discipline decays on re-mention; enforce it at Stop :code:
 :PROPERTIES:
 :ID:       2758f3a0-3c47-405e-9662-a7669dcb60cc
 :CREATED:  [2026-08-24 Mon 11:28]
@@ -9824,6 +9803,27 @@ Two findings, and the second is the actionable one.
 *Not live in this session.* Hook configuration is read once at session start, so the new =Stop= entry takes effect in a new session only. This heading's own claim to work cannot be verified until then -- the first real test is whether the next session's responses carry their footnotes.
 
 *Still worth doing, and it is the half that removes the problem rather than policing it:* [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] and [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] make a prefix→title lookup cheap. A rule that is free to obey does not need enforcing, and the enforcement exists because looking up five exact titles mid-response is not free today.
+
+
+*** TODO The footnote hook's stopReason never reaches the model; the block is opaque :code:
+:PROPERTIES:
+:ID:       5787bfc6-3ba5-4d94-802c-f8a7879de68d
+:CREATED:  [2026-08-25 Tue 11:57]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-25 Tue 11:57] \\
+  observed twice; the hook blocked and said nothing
+:END:
+
+*Observed 2026-08-25, twice in one session.* The hook fired and the text that reached the model was exactly =Stop hook stopped continuation: Stop hook prevented continuation= -- no ids, no instruction, none of the =stopReason= the hook composes. The model continued without correcting anything, because it had nothing to correct *from*.
+
+*The hook itself is fine, and that was checked rather than assumed.* Fed a body citing two tracked ids with one footnoted, it emits well-formed JSON naming the missing one and carrying the full instruction. Both real blocks were genuine violations -- =46e4ce2b= and =98c302e0= cited and unfootnoted in one response, =8ca6541d= and =aa1ba915= in another. So the *detection* half is verified in production; it is the delivery half that is missing.
+
+*Why that matters more than it sounds.* A gate that blocks without saying why converts a corrective nudge into an unexplained stall: the turn ends, the model is re-invoked, and the violation is still there. The loop guard means it costs one extra continuation and never hangs, so the failure is quiet -- which is how it survived two occurrences without being noticed as a defect rather than as the feature working.
+
+*What is not yet known* is where the text is lost. Candidates, none tested: =stopReason= may be surfaced to the *user* rather than to the model; the field may need to sit somewhere other than =hookSpecificOutput= for a blocking Stop hook; or the harness may summarise any block to a fixed string. Worth checking against the hook documentation before changing the hook, since the JSON shape currently matches what was designed from those docs.
+
+*Blocks judgement on* the parent [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]], which is in =REVIEW= awaiting exactly this evidence: it fires, it is accurate, and it cannot yet tell anyone what it found.
 
 
 ** TODO The :PLAN: lint will demand a drawer from a debrief-only heading :code:
