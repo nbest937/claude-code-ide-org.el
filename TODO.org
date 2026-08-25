@@ -1254,6 +1254,28 @@ category it belongs to, purely to make the story expressible.
 
 *Promoted MAYBE -> TODO on that basis*, by the condition recorded above, six hours after it was written. The story-by-reference composition the flattening enables is filed separately at [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]] rather than folded in here.
 
+*What this heading is actually for, stated by the user 2026-08-25.* The title says "adopt org-native mechanisms for the heading tiers", which is the *means*. The end is narrower and worth naming: *flatten away the top-level categories and capture them some other way.*
+
+Everything already verified above serves that -- =:CATEGORY:= inherited by a level-3 grandchild, tag groups, both absent from this repo -- but it reads as a menu of org features rather than as one change with a purpose.
+
+*The three tiers resolve into distinct things once flattening happens, and only then.*
+
+| term | after flattening | today |
+|-------+--------------------------------------------+----------------------------|
+| epic | a *label* -- tag or =:CATEGORY:= -- carried by headings, not a place they live | a level-1 heading, structural |
+| story | a real parent heading, free to *cut across* epics because epics are no longer structural | cannot span categories without refiling |
+| slice | a *sequenced selection*, composed by reference | no representation at all |
+
+*A slice is the thing that needs composition by reference,* and this is the correction to [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]]. A slice picks off open tasks *at either level* -- a whole story, or a single task inside one -- and *sequences them intentionally*. That is not a subtree and cannot be: its members already live somewhere, its ordering is the point, and the same task can appear in one slice and not the next. A checkbox list of id links is the natural shape for exactly that, and only that.
+
+*Stories, by contrast, stop needing it.* 8ca6541d proposes by-reference composition *for stories*, and its reasoning is sound *given today's structure*: "a story whose members sit in different categories cannot be expressed without moving a heading across a category boundary". Flattening removes that constraint at the root. So 8ca6541d's premise is *conditional on this heading not happening* -- and if it does, 8ca6541d changes subject rather than becoming wrong.
+
+*Which sequences the two.* This heading is upstream: decide flattening first, and 8ca6541d's scope follows from the answer. Doing 8ca6541d first would build by-reference composition for stories and then discover that stories no longer need it while slices do.
+
+*And it settles the vocabulary,* which is currently loose -- "slice" appears five times in this file across three unrelated senses (a portion of work, a portion of data, and the next-session work queue). Under this model it has exactly one meaning, and it is the third: a sequenced selection of open work. The other two uses are casual and should give way.
+
+*Note the fourth class 8ca6541d found is unaffected and still unresolved:* category, container/epic, datetree node and story are each detected by a different bespoke mechanism, none declared. Flattening removes one of those detectors -- heading level -- which makes the inconsistency smaller but does not answer how a story or a slice declares itself.
+
 
 ** TODO Compose stories by reference: a checkbox list of id links, blocked on its members :code:research:
 :PROPERTIES:
@@ -1297,6 +1319,20 @@ A level test, a descendant scan, and a position-and-regex test: three answers to
 *A tag is the likely mechanism, and it is already sanctioned.* =.claude/rules/org-conventions.md= holds that tags are free-form beyond the four declared, so =#+TAGS:= gains one word. A tag is also natively agenda-matchable (=+story=), which is exactly what [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] exists to evaluate -- so choosing it would put a first real query in front of that heading rather than a hypothetical one. One detail to check rather than assume: =org-use-tag-inheritance= defaults to =t= and is unset in the Doom config, so a story's tag would be inherited by any subheading it ever acquired. Harmless while stories have no children by design, but it is the shape that bites later.
 
 *The enforcement definition belongs in =bin/lint-org=*, beside the category, container-cookie and datetree rules it already carries -- not in [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]]'s proposed =bin/check-conventions=. That split is [[id:3bd3402b-3ab6-4ace-b20b-3ff84caa3fb2][3bd3402b]]'s: check-conventions checks claims *about* the system, =bin/lint-org= checks the org files' *own* structure. A story's qualification is the latter.
+
+*This heading's premise is conditional, and the condition is [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]* -- established by the user 2026-08-25, and it changes what this is about rather than whether it is right.
+
+The reasoning above is sound *given today's structure*: "a story whose members sit in different categories cannot be expressed without moving a heading across a category boundary". That constraint exists only because categories are *structural* -- a level-1 heading is a place, so belonging to one means living there.
+
+29439196 removes it at the root. Flatten the categories into a label carried by a heading rather than a place it lives, and a *story becomes an ordinary parent heading that can span epics*. It stops needing composition by reference, because refiling stops being the cost.
+
+*What still needs by-reference composition is a slice,* and that is a different object than this heading describes. A slice picks off open work *at either level* -- a whole story, or one task inside one -- and *sequences it intentionally*. Its members already live somewhere, its ordering is the payload, and the same task may appear in one slice and not the next. A checkbox list of id links fits that exactly, and fits a story only as a workaround for structure that 29439196 proposes to remove.
+
+*So the title's "stories" is likely to become "slices"* -- but only after flattening, not now. Asked directly on 2026-08-25 whether the current parlance made it "slices" already, the answer was measured from corpus usage and came back *no*: 33 uses of "story" against 5 loose uses of "slice", with the tiers naming "level 1 epic, level 2 story, level 3". That measurement was accurate about established usage and blind to an intended model being revised -- frequency cannot see where a word is going.
+
+*Sequencing consequence, which is the practical point.* Building this first delivers by-reference composition for stories and then discovers that stories no longer need it while slices do. 29439196 is upstream: decide flattening, and this heading's scope follows from the answer.
+
+*Unaffected:* the fourth-heading-class finding below. Flattening removes one bespoke detector -- heading level -- which makes the inconsistency smaller without answering how a story or a slice declares itself.
 
 
 ** TODO Evaluate Org's own agenda, sparse-tree and column views against this corpus :code:research:
