@@ -8452,6 +8452,74 @@ five identical messages unactionable."
         (should (string-match-p "deliberate test failure" (plist-get bt :message)))
         (should (stringp (plist-get bt :backtrace)))))))
 
+(ert-deftest claude-code-ide-org-test-mark-all-distinguishes-its-two-refusals ()
+  "`M' says which items it skipped and why, because the answers differ.
+
+`--review-markable-p' refuses two unrelated things: a STALE item, whose
+heading has moved past what the event assumed, and an UNASSIGNED span
+with no suggestion, which simply needs `a'. Reporting both as \"stale\"
+told the user on 2026-08-24 that 13 items were stale when 7 were --
+and sent them to dismiss six spans that merely wanted a heading, three
+of which carried real recorded time. A dismissal has no undo.
+
+Asserted on the message text, since the message is the defect."
+  (let ((claude-code-ide-org--review-items
+         (list
+          ;; unassigned, no suggestion -> wants `a'
+          (list :type 'clock :id nil :unassigned t :suggested t
+                :start (date-to-time "2026-08-24T16:00:00-0500")
+                :end (date-to-time "2026-08-24T16:31:00-0500"))
+          ;; stale state item -> wants individual confirmation
+          (list :type 'state :id "test-0001" :from "TODO" :to "DONE"
+                :ts (date-to-time "2026-08-24T15:00:00-0500")
+                :stale t)))
+        captured)
+    (cl-letf (((symbol-function 'claude-code-ide-org--review-render) #'ignore)
+              ((symbol-function 'claude-code-ide-org--review-goto-line) #'ignore)
+              ((symbol-function 'claude-code-ide-org--review-state-stale-p)
+               (lambda (item) (plist-get item :stale)))
+              ((symbol-function 'message)
+               (lambda (fmt &rest args) (setq captured (apply #'format fmt args)))))
+      (claude-code-ide-org--review-set-all (lambda (_) t)))
+    (should captured)
+    (should (string-match-p "1 stale" captured))
+    (should (string-match-p "1 unassigned" captured))
+    ;; And it names the remedy for each, since they are different.
+    (should (string-match-p "individually" captured))
+    (should (string-match-p "assign a heading" captured))))
+
+(ert-deftest claude-code-ide-org-test-annotation-honours-an-asserted-active-interval ()
+  "An interval the human typed with <...> renders active; [...] does not.
+
+Reported 2026-08-24: the user edited [16:00]--[16:00] to
+<16:00>--<16:31> via `e', to say \"I thought about the design for those
+31 minutes\". The times were kept and the bracket style -- the only
+signal available about what KIND of time it was -- was discarded at
+parse, because `--parse-org-timestamp' reads both forms identically.
+
+Active matters: it is what reaches org-agenda, and
+`--review-format-annotation' reserves it for intervals a human logs
+themselves. :ID: b8e6007a established that rule while noting there was
+no case that could reach it. `e' is that case.
+
+Inactive stays the default and is asserted too, since an accidental
+active timestamp publishes agent activity to the agenda -- the defect
+b8e6007a was filed for."
+  (let* ((start (date-to-time "2026-08-24T16:00:00-0500"))
+         (end (date-to-time "2026-08-24T16:31:00-0500"))
+         (base (list :type 'clock :id "id-a" :start start :end end :note "thinking")))
+    ;; Default: inactive.
+    (should (string-match-p "\\`- \\[2026-08-24"
+                            (claude-code-ide-org--review-format-annotation base)))
+    (should-not (string-match-p "<"
+                                (claude-code-ide-org--review-format-annotation base)))
+    ;; Asserted by the human: active, both endpoints.
+    (let ((asserted (append base (list :active t))))
+      (should (string-match-p "\\`- <2026-08-24[^>]*>--<2026-08-24[^>]*>"
+                              (claude-code-ide-org--review-format-annotation asserted)))
+      (should-not (string-match-p "\\["
+                                  (claude-code-ide-org--review-format-annotation asserted))))))
+
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here

@@ -4896,7 +4896,9 @@ mechanism -- but it is now reserved for intervals a human logs
 themselves.  The agenda answers \"where did *my* attention go\"; the
 queue answers \"what was the agent doing\", and conflating them makes
 the first unreadable.  See :ID: b8e6007a."
-  (let* ((fmt "[%Y-%m-%d %a %H:%M]")
+  (let* ((fmt (if (plist-get item :active)
+                  "<%Y-%m-%d %a %H:%M>"
+                "[%Y-%m-%d %a %H:%M]"))
          (note (claude-code-ide-org--review-annotation-label item)))
     (format "- %s--%s%s"
             (format-time-string fmt (or start (plist-get item :start)))
@@ -6726,17 +6728,35 @@ the prompt-fatigue failure `6b1e73c4' already argued against.  Unmarking
 is never refused, since it asks nothing of anyone.  Reports the count it
 skipped rather than leaving the human to notice."
   (let ((line (line-number-at-pos))
-        (skipped 0))
+        (stale 0) (unassigned 0))
     (dolist (item claude-code-ide-org--review-items)
       (let ((want (funcall fn item)))
         (if (and want (not (claude-code-ide-org--review-markable-p item)))
-            (setq skipped (1+ skipped))
+            ;; Count the two refusals separately. They are different
+            ;; problems with different answers, and reporting both as
+            ;; "stale" sent the user to dismiss six spans that were
+            ;; merely unassigned -- three of which carried real recorded
+            ;; time (observed 2026-08-24, "13 stale item(s)" when seven
+            ;; were stale and six wanted `a').
+            (if (and (plist-get item :unassigned) (null (plist-get item :id)))
+                (setq unassigned (1+ unassigned))
+              (setq stale (1+ stale)))
           (plist-put item :marked want))))
     (claude-code-ide-org--review-render)
     (claude-code-ide-org--review-goto-line line)
-    (when (> skipped 0)
-      (message "%d stale item(s) left unmarked -- mark individually to confirm"
-               skipped))))
+    (when (> (+ stale unassigned) 0)
+      (message "%s left unmarked%s"
+               (string-join
+                (delq nil
+                      (list (and (> stale 0) (format "%d stale" stale))
+                            (and (> unassigned 0)
+                                 (format "%d unassigned" unassigned))))
+                ", ")
+               (concat
+                (and (> stale 0) " -- mark stale ones individually to confirm")
+                (and (> unassigned 0)
+                     (format "%s press `a' to assign a heading"
+                             (if (> stale 0) ";" " --"))))))))
 
 (defun claude-code-ide-org-review-mark ()
   "Mark the item at point and move to the next one."
@@ -6878,6 +6898,26 @@ corrected to what actually happened before anything is written."
            (end-time (claude-code-ide-org--parse-org-timestamp end)))
       (unless (and start-time end-time)
         (user-error "Could not parse those timestamps"))
+      ;; Honour the bracket style. `--parse-org-timestamp' is
+      ;; `org-time-string-to-time', which reads <...> and [...]
+      ;; identically and returns a bare time -- so the one signal a human
+      ;; can give about what KIND of time this is was being discarded at
+      ;; parse, and the annotation re-rendered inactive regardless.
+      ;;
+      ;; Reported 2026-08-24: the user edited [16:00]--[16:00] to
+      ;; <16:00>--<16:31> to say "I thought about the design for those 31
+      ;; minutes". The times were kept and the assertion was dropped.
+      ;;
+      ;; Two different things go through `e' and only the human can tell
+      ;; them apart: correcting an agent interval's bounds (still agent
+      ;; activity, inactive) and asserting an interval as one's own
+      ;; attention (human activity, active -- the case
+      ;; `--review-format-annotation' reserves active timestamps for, and
+      ;; which :ID: b8e6007a established there was no way to reach).
+      ;; Inactive stays the default, since an accidental active timestamp
+      ;; reaches org-agenda.
+      (plist-put item :active (and (string-prefix-p "<" (string-trim start))
+                                   (string-prefix-p "<" (string-trim end))))
       (when (time-less-p end-time start-time)
         (user-error "End is before start"))
       ;; Re-scope the backing events to the new endpoints, and offer
