@@ -10,7 +10,7 @@
 :END:
 
 
-** DOING [23/27] Harden the review pass: its cost, its correctness, and its record
+** DOING [27/27] Harden the review pass: its cost, its correctness, and its record
 :PROPERTIES:
 :KIND:     slice
 :ID:       c44c2119-dbf8-4510-99e2-6aaa7f259d94
@@ -25,17 +25,17 @@
 
 Work that makes a review pass cheaper to run, more accurate in what it reports, and less likely to leave the record worse than it found it.
 
-- [ ] [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]] TODO Make the daily ceremony cheap enough that it actually runs
+- [X] [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]] DONE Make the daily ceremony cheap enough that it actually runs
   - [X] [[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]] DONE Consolidation only reaches drawers an apply pass happens to touch
   - [X] [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]] DONE End every heading with two blank lines, so folded trees are separated
   - [X] [[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]] DONE Prompt the daily ceremony automatically, within what a scheduler can reach
   - [X] [[id:806ff394-3ede-4d67-82aa-9c44fe1cf86e][806ff394]] DONE Nothing stamps the ceremony done, so the prompt relies on a model remembering
-  - [ ] [[id:601c885c-7d8c-46d4-af14-0d8d3ea69ba8][601c885c]] NEXT bin/lint-org does not assert the two-blank-line separation it now documents
-  - [ ] [[id:a0abf97d-0f98-42df-9749-e1647b723596][a0abf97d]] TODO Nothing refreshes a slice after apply, so its lines are stale by default
+  - [X] [[id:601c885c-7d8c-46d4-af14-0d8d3ea69ba8][601c885c]] DONE bin/lint-org does not assert the two-blank-line separation it now documents
+  - [X] [[id:a0abf97d-0f98-42df-9749-e1647b723596][a0abf97d]] DONE Nothing refreshes a slice after apply, so its lines are stale by default
 - [X] [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] DONE org_amend can only append, so every correction lands furthest from the reader
 - [X] [[id:f421c5c3-f81f-4ebf-99c9-42c53cc00558][f421c5c3]] DONE The :PLAN: lint will demand a drawer from a debrief-only heading
 - [X] [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]] DONE Track the human's review attention, clocked by the review command itself
-- [-] [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] REVIEW Footnote discipline decays on re-mention; enforce it at Stop
+- [X] [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] DONE Footnote discipline decays on re-mention; enforce it at Stop
   - [X] [[id:5787bfc6-3ba5-4d94-802c-f8a7879de68d][5787bfc6]] DONE The footnote hook's stopReason never reaches the model; the block is opaque
 - [X] [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] DONE Evaluate Org's own agenda, sparse-tree and column views against this corpus
 - [X] [[id:21c91613-76e0-4590-affe-e2af9f1321ca][21c91613]] DONE Apply consumes queue events with no way to roll one back
@@ -65,6 +65,8 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 - [[orgit-rev:claude-code-ide-org::e5731a8][e5731a8]] [2026-08-25 Tue 16:36] brought current; narrowed two open decisions
 - [[orgit-rev:claude-code-ide-org::60454fc][60454fc]] [2026-08-25 Tue 16:46] recorded 21c91613's decision and sequenced it first
 - [[orgit-rev:claude-code-ide-org::13960c9][13960c9]] [2026-08-25 Tue 16:48] folded in the clocking gap the previous session left
+
+
 ** TODO Close the gap between what we declare and what the code infers :code:
 :PROPERTIES:
 :ID:       979e02b6-2a4c-4328-8b08-ffaec03bd02e
@@ -78,11 +80,9 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
   sketched as a proposal, not declared a slice
 :END:
 
-Wherever this project declares something in prose and the code infers it some other way, make the code read the declaration. Two halves: what a *keyword* means, and what *kind* a heading is.
+Wherever this project declares something in prose and the code infers it some other way, make the code read the declaration.
 
-*Six members, ordered by dependency rather than size*: the docstring first because the next three read the variable it lies about, then the trigger that unblocks two transitions left unqueued today, then the predicate, the policy it enables, the mechanism that makes the policy enforceable, and the general keyword review last, once its evidence exists.
-
-*A proposal, not a slice* -- see [[id:7c4d6ef6-c914-4d33-b267-cc9158a9f359][7c4d6ef6]] for what that means and what accepting one takes.
+*Ordered by dependency rather than size*: the docstring first because the next three read the variable it lies about, then the trigger that unblocks two transitions left unqueued, then the predicate, the policy it enables, the mechanism that makes the policy enforceable, and the general keyword review once its evidence exists. The two tool-surface members come last because they are consequences of the same root rather than causes of anything.
 
 - [ ] [[id:6a21e08b-4880-4d2b-9b0f-12c35558fe08][6a21e08b]] TODO --trigger-auto-clock-in's docstring says the feature is off; it is on
 - [ ] [[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]] NEXT Setting DOING retroactively opens a clock, which the looser sense makes wrong
@@ -96,7 +96,9 @@ Wherever this project declares something in prose and the code infers it some ot
 - [ ] [[id:8183fc7c-905e-40c8-81cb-10c56158c6ce][8183fc7c]] TODO org_outline is blind to a slice: scoped to one, it returns a single line
 - [ ] [[id:798bb7a1-d5a6-4c08-8cf0-cc91a82d08e6][798bb7a1]] TODO A slice member captured this session cannot be rendered or blocked on until apply
 
-*Not included, and the reason is the same for all of them.* The review-buffer readout defects ([[id:46e4ce2b-fdc8-447b-ad09-b4845602540f][46e4ce2b]], [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]]) belong with [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]]'s audit, which is a different story about a different surface. [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] is upstream of *stories*, not of keywords. A slice that swept in everything open would be a backlog wearing a slice's clothes.
+*The prompt that drove this slice, one link per revision of it:*
+
+- [[orgit-rev:claude-code-ide-org::7b9bd74][7b9bd74]] [2026-08-26 Wed 11:12] opened the slice, replacing c44c2119's prompt
 
 
 * Clock lifecycle & visibility
@@ -1689,8 +1691,6 @@ different question, and only the first was refuted.
 *What it would have bought today.* [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] was credited 0:03 for roughly seven minutes of real work. The wake edge anchors the post-wake segment exactly; the pre-sleep segment is bounded below by its own =clock_in= and above by the last artefact, giving 17:06:54--17:09:45. Neither bound is a guess. The sleep *onset* stays unbounded within a forty-minute window, and should stay that way in any record.
 
 *Note the shape of the correction.* This is the second time the useful signal turned out to be a different line in a log that had already been dismissed wholesale. Worth re-reading a rejected source for the *specific* record wanted, rather than re-litigating the rejection.
-
-
 
 
 ** CANCELLED Add a third retention tier for completed work as a chronological changelog :code:
@@ -3951,6 +3951,8 @@ The cause is fixed ([[id:c6fc6f46-4954-4fdf-9d7e-7c8bf3a1a952][c6fc6f46]]) and n
 *Net effect: +14 minutes across 65.65 h*, 35 lines gaining a minute and 21 losing one. Small in aggregate, which is exactly what a near-symmetric rounding error predicts -- and exactly why aggregate totals were never going to surface this. The individual lines were wrong in both directions.
 
 *One thing the repair confirmed about the earlier count.* 365 lines in the two files carry a =>=  H:MM= string but only 353 are CLOCK entries; the other twelve are prose discussing clock lines, including this heading's own body. A whole-line anchored pattern excluded them. A looser grep would have rewritten documentation.
+
+
 *** TODO A split span drops the unowned gaps between the clock pairs that split it :code:
 :PROPERTIES:
 :ID:       c54c4215-90e3-4e0c-9de1-990c0406a2b2
@@ -4800,9 +4802,6 @@ The second is the one that would have made this recovery a single command instea
 *Reload precondition, unmet at the time of writing.* =bin/test= spawns a fresh batch Emacs and loads =config.el= from disk, so the suite is real evidence. The user's *live* Emacs still holds the old definitions; the next real review pass writes the old bare-array shape until =config.el= is reloaded there. Nothing breaks either way -- the new reader accepts both -- but the field will be missing from that pass.
 
 
-
-
-
 ** TODO Auto-mark the state items that carry no judgement :code:
 :PROPERTIES:
 :ID:       b6e229c7-3035-4c0e-943b-710a12bfd7d1
@@ -4908,6 +4907,8 @@ So this is a *scanning* consistency, not a functional gap, and that changes what
 *Another instance of [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]]*, filed the previous evening: the code knows the second number counts runs, and the message does not say it. That heading proposed an audit of exactly this -- every place the review buffer reports a value, ask whether it distinguishes something the wording does not. This is the first case the audit would have caught, found by a human the next morning instead.
 
 *Worth doing in the same pass as that audit* rather than alone, since a one-word fix here and an unchanged wording three lines below would leave the buffer inconsistent in a way that is worse than uniformly terse.
+
+
 ** TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key :code:
 :PROPERTIES:
 :ID:       01849bef-fdc9-4c30-b467-00ca8606e8e0
@@ -4932,6 +4933,8 @@ So this is a *scanning* consistency, not a functional gap, and that changes what
 - *Which key.* =a= is assign, =e= is edit-interval, =N= is note, =d= is dismiss. =t= (for *type*) and =A= (active) both look free; check the keymap before choosing rather than trusting this list.
 
 *Do not let this quietly become [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]]'s substitute.* A key that makes the manual path bearable reduces the pressure to automate it, and the automated version is strictly better -- it knows when the review command was running, which a human retrofitting brackets afterwards is reconstructing from memory.
+
+
 ** TODO A guidepost gap containing an apply timestamp is provably the human's attention :code:
 :PROPERTIES:
 :ID:       996fd2bd-be90-44b3-b2c5-9018255940b3
@@ -4963,6 +4966,7 @@ The third is the important one: it is the known negative, confirmed independentl
 *Its limits, stated so it is not over-trusted.* It finds only gaps in which someone *applied*; a pass that reviews carefully and dismisses everything writes no apply timestamp and would be missed, which is the same blind spot the "apply completes" stop-signal had in [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]]'s design. And it is retrospective by nature: it explains gaps already recorded rather than measuring attention as it happens.
 
 *Worth applying to the backlog once*, since the ledger reaches back to 2026-08-18 and the gaps are all still there to be scored.
+
 
 * Observability
 :PROPERTIES:
@@ -5019,7 +5023,6 @@ actually did, both after the fact and at the start of a session.
 *And it is exactly the residue [[id:eaeeb4ee-ceee-4094-8598-bbcdc8214b66][eaeeb4ee]] shipped to eliminate*, which is the sharp part. That heading made explicit clock pairs authoritative so attribution would stop needing a human -- and it is the first member of the slice during which the pairs stopped being produced at all. It closed the consumption half; the discipline half regressed behind it.
 
 
-
 ** CANCELLED Something writes a :blocked: tag; a derived fact stored is one that can go stale :code:
 CLOSED: [2026-08-25 Tue 14:12]
 :PROPERTIES:
@@ -5050,7 +5053,6 @@ CLOSED: [2026-08-25 Tue 14:12]
 *What was actually right here survives elsewhere, and is worth separating from the wrong part.* The reasoning -- that a *derived* fact written down is a second copy that can silently disagree with the thing it derives from -- was sound; it was aimed at the wrong instance. It is the same argument that removed judgement from slice checkboxes and made =:BLOCKER:= a regenerated list, and it now applies to the tag mechanism as a whole.
 
 *Because the tags went with it, and that had a sharper consequence than the tag itself.* =--slice-p= detected a slice by a =slice= tag, so deleting the tags left [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] undetected and the new =:BLOCKER:= lint assertion *silently inert* -- =bin/lint-org= reported zero errors because nothing was a slice, which is indistinguishable from nothing being wrong. The detector is now a =:KIND: slice= property, and the episode is recorded on [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]], whose tag proposal it falsifies.
-
 
 
 ** TODO Make task lifecycle answerable from one timeline, starting at creation :code:
@@ -5878,9 +5880,6 @@ Inactive, and it is org's own grammar rather than a setting -- there is no confi
 *Also not done: nothing reports on it yet.* The clocktable that makes this legible -- =:step day= over the attention heading -- exists as a measured technique and not as anything anyone runs. Whether that belongs in the ceremony alongside the other steps is [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]]'s question, and it is the fourth thing there that nobody invokes.
 
 
-
-
-
 ** TODO Six defects in one day, all the same: the code knew more than it said :code:research:
 :PROPERTIES:
 :ID:       6cc71c36-0fa6-4773-9b35-c0582f4cee82
@@ -5973,7 +5972,6 @@ standalone/Warp-access subsystem from this session.
 *The ambiguity is load-bearing rather than cosmetic.* "Flatten the top-level headings into categories (epics)" has two readings, and they differ where it matters: once level 1 is gone, does a task's label name the old *filing group* it lived in, or the *emergent parent task* it belongs to? Those disagree for a task with no parent, and for a task whose parent epic sits in a different filing group. Deciding which sense the label carries is a prerequisite for the flattening, not a detail of it.
 
 
-
 ** TODO Task mitosis: a leaf that outgrows itself divides rather than becoming a parent :code:research:
 :PROPERTIES:
 :ID:       a0813ae3-0c6d-43de-bae1-fb4414cdb519
@@ -6045,8 +6043,6 @@ The reason they do not is structural rather than lucky: you block on a *bounded,
 | slice   | a sequenced set, by reference   | declared, cutting across everything |
 
 *Note the epic column, because it is the payoff for flattening.* Since the label sits on the *task*, a story's children may carry different =:EPIC:= values, so a story spans epics for free -- no refiling, and no arrangement of parents to work around. That was the constraint [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] existed to remove, and mitosis plus a per-task label removes it without either mechanism knowing about the other.
-
-
 
 
 ** MAYBE Decide what this module may change on a user's machine when installed :code:
@@ -6819,7 +6815,6 @@ So the full rule set, settled and ready to be written down:
 *The collision this heading warned about did not materialise, and that is worth stating since it was the reason for hesitating.* Writing it down was said to collide with the transition table's per-heading framing. It did not: the table now carries a note that it describes a heading acting for itself, and the container sense sits beside it as a separate paragraph rather than as another row.
 
 
-
 ** TODO Index a heading's git history from a drawer, so the body never has to narrate it :code:research:
 :PROPERTIES:
 :ID:       41cf5830-fc2e-4dc6-b243-a0c2718a53a3
@@ -7523,7 +7518,6 @@ in a file where a conflict is expensive to resolve correctly.
 *Codified but not enacted, and the gap is a real one.* The prose lives in CLAUDE.md and the org skill; nothing in the code implements it, and one thing contradicts it. =(org-todo "DOING")= clocks in immediately, verified in batch, so *recording* that something was started earlier credits time to the present ([[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]]). Until that is settled the looser sense is only safe for transitions that coincide with actually starting.
 
 *One inconsistency was introduced and repaired the same day*, worth recording because it is the shape this heading exists to prevent. The recalibration was written into CLAUDE.md directly above two rules -- "any transition *to* =DOING= must open a clock", "any transition *from* =DOING= must close the clock" -- that the new sense contradicts. Both are now conditional: opening applies when work is starting now, closing applies only when this heading's clock is the one running, since a plural =DOING= means a heading can hold the keyword and no clock.
-
 
 
 ** TODO Fall back to the queue when org_capture cannot reach Emacs :code:
@@ -8418,7 +8412,6 @@ Everything already verified above serves that -- =:CATEGORY:= inherited by a lev
 *If the evidence lands in favour, the answer is not to switch -- it is to derive.* Declare =:EPIC:=, and have a normaliser write =:CATEGORY:= from it. That is the pattern already built twice on 2026-08-25: a slice's =:BLOCKER:= generated from its checklist, and a slice's member lines regenerated from their referents. A declaration plus a derived copy, with something that keeps them in step, is strictly better than one field asked to mean two things.
 
 
-
 ** DONE Compose slices by reference: a checkbox list of id links, blocked on its members :code:research:
 CLOSED: [2026-08-25 Tue 12:56]
 :PROPERTIES:
@@ -8522,8 +8515,6 @@ Proposed by the user 2026-08-21, as what flattening the categories ([[id:2943919
 *Inheritance points the same way, though it is the weakest of the three reasons.* Org inherits =:CATEGORY:= down a subtree by design. That is the latent hazard already recorded here for tags, and =:KIND:= avoids it by being read with =org-entry-get= without the inherit flag.
 
 *Reversible if the user prefers otherwise*: the detector is one =equal= in =claude-code-ide-org--slice-p=, plus fixtures in four tests.
-
-
 
 
 ** DONE Evaluate Org's own agenda, sparse-tree and column views against this corpus :code:research:
@@ -8651,7 +8642,6 @@ which returns 10. The two misses are real headings, not rounding: a story whose 
 *Still open, and not answerable from here:* whether review attention wants its own datetree ([[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]]). The clocktable above is a report someone would actually want, which was that heading's stated precondition -- but it groups by epic, so what it says about review time depends on where review time is clocked, not on how the table is built.
 
 *The scripts are not archived.* Four probe scripts produced everything above and were left in the session scratch directory deliberately: they are throwaway instrumentation, and the numbers they produced are here. Anything worth re-running belongs in =bin/= as a real check, which is a separate decision.
-
 
 
 ** TODO Moving a heading between files by hand leaves org-id pointing at the old one :code:
@@ -9024,7 +9014,6 @@ Two insertions at computable positions, never a range replacement, and no bounda
 *What this unblocks, stated because it was the reason to build it.* [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]]'s retention policy could not be applied to an existing body without a tool that can rewrite one; this heading was its dependency rather than its neighbour. The rules that follow from the decision -- an open heading's body is the problem, the latest intended approach and verified facts; a closed one is a concise debrief with the prospective half wrapped rather than deleted -- are now enforceable rather than aspirational.
 
 
-
 ** DONE Adopt the :PLAN: drawer lifecycle for heading bodies :code:
 CLOSED: [2026-08-24 Mon 11:23]
 :PROPERTIES:
@@ -9122,6 +9111,8 @@ CLOCK: [2026-08-20 Thu 16:42]--[2026-08-20 Thu 16:46] =>  0:04
 *Two things the survey got wrong.* Scope was estimated at 65 occurrences across seven files; it was 73 across nine, because =bin/queue-append-test= and =bin/pre-commit-test= carry keyword fixtures and the survey's grep was scoped to =*.el=, =*.md=, =*.org= and =*.json= -- extensionless scripts fell outside it. Worth remembering: a file-glob survey under-reports in a repo whose scripts have no extension.
 
 *And the commit was refused, correctly.* The pre-commit hook linted =clock-template.org= -- staged for the first time ever by this change -- against task-file conventions it was never meant to satisfy, producing six false errors. =bin/lint-org= governs exactly TODO.org and DONE.org; the hook gated every staged =.org=. Fixed by scoping the hook to the linter's own set rather than passing =--no-verify=, in its own commit ahead of this one, with a test that fails when the scoping is reverted. A gate wider than its linter blocks correct work and teaches the bypass habit the hook exists to make unnecessary.
+
+
 ** TODO org_outline is blind to a slice: scoped to one, it returns a single line :code:
 :PROPERTIES:
 :ID:       8183fc7c-905e-40c8-81cb-10c56158c6ce
@@ -9192,6 +9183,7 @@ CLOCK: [2026-08-20 Thu 16:42]--[2026-08-20 Thu 16:46] =>  0:04
 
 *The transient lint error resolved by itself* when the queue was applied a few minutes later, which is the expected behaviour and worth stating so nobody "fixes" it by deleting the blocker entry.
 
+
 * Tooling
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Tooling
@@ -9258,7 +9250,6 @@ against a referent that is now =DONE=. Three stored facts are wrong at once -- t
 *This strengthens the case for the trigger being apply rather than a schedule.* The staleness is not gradual; it is created in one step, by one command, at a known moment.
 
 
-
 ** CANCELLED Snapshot the next-session.md that drove each slice, the way plans are archived :code:
 CLOSED: [2026-08-25 Tue 11:46]
 :PROPERTIES:
@@ -9289,7 +9280,6 @@ CLOSED: [2026-08-25 Tue 11:46]
 *Two things the link form gains that the copy could not.* A slice can carry *many* links rather than one, so the evolution of the plan across a slice's life is legible instead of collapsed into its final text. And because a slice can then span sessions -- a CLI restart or a cleared context is a revision, not a new slice -- there is far less pressure to defer unfinished members into a successor slice, which was proliferating mentions of tasks that were planned and never reached the top of the stack.
 
 *=slices/= was removed in the same commit*, its single snapshot replaced by the four =orgit-rev:= links now on [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]]. Nothing is lost: the file is recoverable from any commit, which was always true and is the reason the copy was redundant.
-
 
 
 ** MAYBE Evaluate choice of shell and standardize all project scripts :code:
@@ -9472,7 +9462,6 @@ regress that.
 *Narrow fix available and worth taking before the general one:* bind =inhibit-read-only= around the apply write only. The general case this heading describes -- every file-touching tool binding it -- is a larger change with a real argument against it, since a tool call is not a human keystroke. The apply path has no such ambiguity.
 
 
-
 *** DONE Bind inhibit-read-only in the apply path, where the human asked for the write
 CLOSED: [2026-08-25 Tue 16:09]
 :PROPERTIES:
@@ -9491,6 +9480,7 @@ CLOSED: [2026-08-25 Tue 16:09]
 *A binding rather than a =setq=, which is the whole safety property.* The flag returns when the scope exits, including on a non-local exit, so a failure part-way through cannot leave the buffer writable. The test asserts exactly that: the buffer is still read-only *after* a successful apply. An implementation that cleared =buffer-read-only= instead would pass the write assertion and silently disarm the user's guard -- which is the defect the parent heading is named for, reintroduced by its own fix.
 
 *Verified discriminating*: removing the one binding fails this test and nothing else.
+
 
 ** DONE Archive the DONE backlog once the queue epic lands, then judge the structure question :code:
 CLOSED: [2026-08-17 Mon 18:50]
@@ -10634,7 +10624,6 @@ The commit-reference convention shipped 2026-08-21 ([[id:7b54c439-ab2c-4398-b332
 *Forced by [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] rather than chosen*, which is worth recording because this heading predicted it. It was filed as "small; worth doing before the convention is used much more", and sat unworked for four days. The slice's revision-link design adds four orgit links at once and one per slice thereafter, so the monotonic growth this heading warned about arrived as a concrete number the same afternoon the design was proposed.
 
 
-
 ** NEXT Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit :code:
 :PROPERTIES:
 :ID:       d2a0f54c-b59a-4855-ae3d-c93a6d3aa177
@@ -10672,7 +10661,8 @@ So the test is red for the last hour of every day, and green the other 23. Confi
 Approach: anchor the fixture to a fixed date rather than to now, which removes the dependence on when the suite runs instead of narrowing the window in which it breaks.
 
 
-** REVIEW [1/1] Footnote discipline decays on re-mention; enforce it at Stop :code:
+** DONE [1/1] Footnote discipline decays on re-mention; enforce it at Stop :code:
+CLOSED: [2026-08-26 Wed 10:45]
 :PROPERTIES:
 :ID:       2758f3a0-3c47-405e-9662-a7669dcb60cc
 :CREATED:  [2026-08-24 Mon 11:28]
@@ -10686,6 +10676,8 @@ CLOCK: [2026-08-24 Mon 12:31]--[2026-08-24 Mon 12:38] =>  0:07
 - [2026-08-24 Mon 12:31]--[2026-08-24 Mon 12:38] build the footnote Stop hook
 - State "REVIEW"     from "DOING"      [2026-08-24 Mon 12:38] \\
   shipped; cannot verify until a new session
+- State "DONE"       from "REVIEW"     [2026-08-26 Wed 10:45] \\
+  user judged it done; fires, accurate, reports
 :END:
 
 *Measured 2026-08-24 over this session's own transcript*, after the user observed the footnotes had gone spotty. 132 assistant messages, 32 of which cited an org =:ID:=.
@@ -10801,8 +10793,6 @@ The id, the instruction, the rule. The first of eight blocks to say anything at 
 *What this releases.* [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] has been in =REVIEW= waiting on exactly this. It fires, it is accurate at 41 of 45 measured over a real transcript, and it can now tell the model what it found. There is nothing left for it to wait for.
 
 
-
-
 ** DONE The :PLAN: lint will demand a drawer from a debrief-only heading :code:
 CLOSED: [2026-08-25 Tue 18:12]
 :PROPERTIES:
@@ -10856,6 +10846,8 @@ Those six refused =org_wrap_plan= with =Seam marker is the first body line; noth
 *Live reload done and confirmed*, so this is not merely on disk: =(func-arity 'claude-code-ide-org--plan-seam)= reads =(3 . 4)= in the running Emacs and the MCP server is still on 45571.
 
 *Not done here, and not this heading's work:* the seven headings currently warning are still warning. Wrapping them is the archive/ceremony backlog ([[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]], [[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]]); what this heading owed was a way for the debrief-only ones to be satisfiable at all.
+
+
 ** MAYBE Render a session transcript to readable org, so scrollback stops being the index :code:
 :PROPERTIES:
 :ID:       96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d
@@ -10880,6 +10872,7 @@ Those six refused =org_wrap_plan= with =Seam marker is the first body line; noth
 
 *=MAYBE= deliberately.* The =/config= change may resolve the pain entirely, and this costs a script plus its tests. Worth building only if reading the transcript in Emacs turns out to be something the user actually does, rather than something that sounds useful.
 
+
 * Review and planning
 :PROPERTIES:
 :DATE_TREE: t
@@ -10888,13 +10881,15 @@ Those six refused =org_wrap_plan= with =Seam marker is the first body line; noth
 Meta-work: the review pass, planning, and the time that goes into deciding what to do rather than doing it. Time is clocked against the *day node*, which is why the day node carries an =:ID:= and the year and month nodes above it do not -- they are org-datetree's own scaffolding, and =bin/lint-org= knows the difference ([[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]]).
 
 =:DATE_TREE:= is what makes org nest the tree *inside* this category instead of writing a second =* 2026= at level 1; it is a structural property about the grouping, permitted on a category on the same footing as =:ARCHIVE:=. The =:ARCHIVE:= target is matched as a literal string, so renaming this category means renaming the matching heading in DONE.org in the same edit.
+
+
 ** Review attention
 :PROPERTIES:
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-26 Wed 11:06]
+CLOCK: [2026-08-26 Wed 11:06]--[2026-08-26 Wed 11:10] =>  0:04
 CLOCK: [2026-08-26 Wed 10:33]--[2026-08-26 Wed 10:37] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
@@ -11141,6 +11136,7 @@ CLOCK: [2026-08-25 Tue 19:17]--[2026-08-25 Tue 19:36] =>  0:19
 - <2026-08-25 Tue 19:17>--<2026-08-25 Tue 19:36> assigned at review
 :END:
 
+
 **** 2026-08-26 Wednesday
 :PROPERTIES:
 :ID:       d6913804-a569-41fa-a423-c2e53d488bbd
@@ -11157,7 +11153,10 @@ CLOCK: [2026-08-26 Wed 09:49]--[2026-08-26 Wed 09:59] =>  0:10
 - <2026-08-26 Wed 09:49>--<2026-08-26 Wed 09:59> assigned at review
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:16] =>  0:17
 - <2026-08-26 Wed 09:59>--<2026-08-26 Wed 10:16> assigned at review
+CLOCK: [2026-08-26 Wed 10:59]--[2026-08-26 Wed 11:06] =>  0:07
+- <2026-08-26 Wed 10:59>--<2026-08-26 Wed 11:06> assigned at review
 :END:
+
 
 ** DONE Clear the 36-heading archive backlog, sweeping bodies into :PLAN: unedited :code:
 CLOSED: [2026-08-25 Tue 19:16]
@@ -11213,7 +11212,8 @@ CLOCK: [2026-08-24 Mon 15:32]--[2026-08-24 Mon 15:39] =>  0:07
 *Note the lint will start reporting these as they close.* =bin/lint-org= now warns when a heading closed on or after 2026-08-24 has a substantial body and no =:PLAN:= drawer. The 36 here are all closed before that date and are deliberately exempt, so the backlog stays silent rather than shouting 124 findings a day.
 
 
-** TODO [4/6] Make the daily ceremony cheap enough that it actually runs :code:
+** DONE [6/6] Make the daily ceremony cheap enough that it actually runs :code:
+CLOSED: [2026-08-26 Wed 10:56]
 :PROPERTIES:
 :ID:       edd47f32-e6c9-4ab3-8e8a-46a37ea29605
 :CREATED:  [2026-08-24 Mon 15:36]
@@ -11221,6 +11221,8 @@ CLOCK: [2026-08-24 Mon 15:32]--[2026-08-24 Mon 15:39] =>  0:07
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 10:03] \\
   never had an initial state set
+- State "DONE"       from "TODO"       [2026-08-26 Wed 10:56] \\
+  all six children finished
 :END:
 
 *The story these three share, noticed 2026-08-24 while surveying what the session had captured.* They were filed separately, into three different categories, and each reads as a small independent defect. Together they are one thing: *the ceremony has four steps, two of them have a tool, and nothing composes them or reminds anyone.*
@@ -11250,7 +11252,6 @@ The sequence, from =.claude/rules/org-conventions.md=: *apply the queue, consoli
 *Set to =TODO= rather than =DOING=, deliberately.* A transition to =DOING= obliges a clock, and a container's own clock measures nothing -- the work clocks on [[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]], which is the child actually in progress.
 
 *The cost of the omission was narrower than assumed, and worth recording so it is not overstated later.* =org_outline= with =active_only= keeps a keywordless heading, since the filter drops only =DONE= and =CANCELLED= -- verified against this subtree. What it actually forfeits is narrower: it can never be nominated =NEXT=, never appears in a TODO agenda, and its =[0/3]= cookie can never reach =DONE=.
-
 
 
 *** DONE Consolidation only reaches drawers an apply pass happens to touch :code:
@@ -11318,7 +11319,6 @@ Counting drawers with two or more timestamped entries, and asking whether their 
 *Where it belongs, per this heading: before an archive pass.* Archiving is the last moment a heading is ever touched, so a drawer disordered when it moves stays that way permanently -- which is how DONE.org reached 43 of 60. Wiring it into the ceremony alongside the heading-separation normaliser is [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]]'s remaining work, not this heading's.
 
 
-
 *** DONE End every heading with two blank lines, so folded trees are separated :code:
 CLOSED: [2026-08-25 Tue 19:16]
 :PROPERTIES:
@@ -11366,7 +11366,6 @@ CLOCK: [2026-08-25 Tue 17:59]--[2026-08-25 Tue 18:02] =>  0:03
 *The normaliser was deliberately not run.* Three reasons, in order of weight: TODO.org is open in the user's live Emacs, and a batch write behind that buffer is the desync hazard [[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]] describes; the file also holds the user's own in-flight edits; and the fix belongs in the ceremony, which is where the convention now says it goes.
 
 *The lint assertion is not built, and that is why this is =REVIEW= rather than =DONE=.* This heading's remaining work was named as two things -- nothing telling a session to preserve the convention, and no lint asserting it -- and only the first is addressed. What the second would now cost is no longer a guess: 18 sites, all in one file, against a checker that already walks every heading. That is a small enough blast radius to decide cheaply, which was the point of measuring it before proposing a rule.
-
 
 
 *** DONE Prompt the daily ceremony automatically, within what a scheduler can reach :code:
@@ -11449,7 +11448,9 @@ It also already has the right manners for this: [[id:7771fc63-9374-4c8a-9e80-24c
 
 *What this does not do.* It prompts; it does not perform. And nothing yet *calls* =mark-ceremony-done= automatically at the end of a pass -- the report asks the session to, which is a instruction to a model rather than a mechanism. Wiring it into the review command's exit is the honest completion, and belongs to [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]].
 
-*** NEXT bin/lint-org does not assert the two-blank-line separation it now documents :code:
+
+*** DONE bin/lint-org does not assert the two-blank-line separation it now documents :code:
+CLOSED: [2026-08-26 Wed 10:56]
 :PROPERTIES:
 :ID:       601c885c-7d8c-46d4-af14-0d8d3ea69ba8
 :CREATED:  [2026-08-25 Tue 19:16]
@@ -11459,6 +11460,12 @@ It also already has the right manners for this: [[id:7771fc63-9374-4c8a-9e80-24c
   captured keywordless, setting initial state
 - State "NEXT"       from "TODO"       [2026-08-25 Tue 20:47] \\
   sole remaining TODO in the ceremony group
+CLOCK: [2026-08-26 Wed 10:53]--[2026-08-26 Wed 10:56] =>  0:03
+- State "DOING"      from "NEXT"       [2026-08-26 Wed 10:53] \\
+  fix the drift at its source, not lint it
+- [2026-08-26 Wed 10:53]--[2026-08-26 Wed 10:56] normalise in settle rather than lint
+- State "DONE"       from "DOING"      [2026-08-26 Wed 10:56] \\
+  repair at source; assertion declined
 :END:
 
 *Split out of [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]] 2026-08-25*, which was closed having done the other half: the convention is now written down in both the org skill (the generic part -- two lines, why two, why every level) and =.claude/rules/org-conventions.md= (the normaliser, its defcustom, its safety property, where it sits in the ceremony). Nothing asserts it, so it holds only as long as =claude-code-ide-org-normalize-heading-separation= is actually run.
@@ -11539,7 +11546,8 @@ CLOCK: [2026-08-26 Wed 10:29]--[2026-08-26 Wed 10:32] =>  0:03
 *What remains, and it is smaller than it was.* Nothing yet calls =mark-ceremony-done= automatically -- but that is now only about the *record*, not about the nagging, and a record of a human judgement arguably *should* need a human act. The honest residue is that the record will be sparse until someone habitually marks it, and the report makes that visible by printing the date every time it asks.
 
 
-*** TODO Nothing refreshes a slice after apply, so its lines are stale by default :code:
+*** DONE Nothing refreshes a slice after apply, so its lines are stale by default :code:
+CLOSED: [2026-08-26 Wed 10:53]
 :PROPERTIES:
 :ID:       a0abf97d-0f98-42df-9749-e1647b723596
 :CREATED:  [2026-08-26 Wed 09:04]
@@ -11547,6 +11555,16 @@ CLOCK: [2026-08-26 Wed 10:29]--[2026-08-26 Wed 10:32] =>  0:03
 :LOGBOOK:
 - State "TODO"       from              [2026-08-26 Wed 09:04] \\
   captured keywordless, setting initial state
+CLOCK: [2026-08-26 Wed 10:41]--[2026-08-26 Wed 10:42] =>  0:01
+- [2026-08-26 Wed 10:41]--[2026-08-26 Wed 10:42] assigned at review
+CLOCK: [2026-08-26 Wed 10:45]--[2026-08-26 Wed 10:47] =>  0:02
+- [2026-08-26 Wed 10:45]--[2026-08-26 Wed 10:47] assigned at review
+CLOCK: [2026-08-26 Wed 10:49]--[2026-08-26 Wed 10:53] =>  0:04
+- State "DOING"      from "TODO"       [2026-08-26 Wed 10:49] \\
+  refresh slices in the settle phase
+- [2026-08-26 Wed 10:49]--[2026-08-26 Wed 10:53] wire refresh-slice into the settle phase
+- State "DONE"       from "DOING"      [2026-08-26 Wed 10:53] \\
+  settle phase; every slice; errors swallowed
 :END:
 
 *Filed 2026-08-26 at the user's request*, after they asked whether they still have to refresh the slice by hand. They do.
