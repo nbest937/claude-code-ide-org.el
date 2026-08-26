@@ -8061,6 +8061,143 @@ line at all, and one that already carries CLOSED:."
            ,@body)
        (delete-directory dir t))))
 
+(defmacro claude-code-ide-org-test--with-drifted-drawers (&rest body)
+  "Run BODY with `file' bound to a tracked org file whose drawers drift.
+
+Three headings: one newest-first (org's own insert order, which is
+exactly what a hand `C-c C-x C-i' leaves behind), one already ascending,
+and one carrying a still-open CLOCK line above older closed ones.
+`claude-code-ide-org-query-files' is bound to it, so
+`claude-code-ide-org--tracked-files' returns this and nothing else --
+the real agenda is never touched."
+  (declare (indent 0))
+  `(let* ((dir (file-name-as-directory (make-temp-file "ccio-consol" t)))
+          (file (expand-file-name "TODO.org" dir))
+          (claude-code-ide-org-query-files (list file)))
+     (unwind-protect
+         (progn
+           (with-temp-file file
+             (insert "#+TODO: TODO(t!) DOING(d!) | DONE(D!) CANCELLED(c@)\n\n"
+                     "* DONE Newest first\n:LOGBOOK:\n"
+                     "CLOCK: [2026-08-20 Thu 11:00]--[2026-08-20 Thu 11:30] =>  0:30\n"
+                     "CLOCK: [2026-08-20 Thu 09:00]--[2026-08-20 Thu 09:15] =>  0:15\n"
+                     ":END:\n"
+                     "* DONE Already ascending\n:LOGBOOK:\n"
+                     "CLOCK: [2026-08-21 Fri 09:00]--[2026-08-21 Fri 09:20] =>  0:20\n"
+                     "CLOCK: [2026-08-21 Fri 10:00]--[2026-08-21 Fri 10:10] =>  0:10\n"
+                     ":END:\n"
+                     "* DOING Open clock on top\n:LOGBOOK:\n"
+                     "CLOCK: [2026-08-22 Sat 14:00]\n"
+                     "CLOCK: [2026-08-22 Sat 10:00]--[2026-08-22 Sat 10:30] =>  0:30\n"
+                     "CLOCK: [2026-08-22 Sat 08:00]--[2026-08-22 Sat 08:45] =>  0:45\n"
+                     ":END:\n"))
+           ,@body)
+       (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-consolidate-all-drawers-reaches-untouched-headings ()
+  "The point of the command: it repairs drawers no apply pass will revisit.
+
+TODO.org :ID: 7ae6562d.  `consolidate-on-apply' only fires on a heading
+an apply actually writes to, so a drawer disturbed by a hand `C-c C-x
+C-i' stays disordered forever -- and archiving is the last moment a
+heading is ever touched, which is how 43 of 60 multi-entry drawers in
+DONE.org came to be out of order."
+  (claude-code-ide-org-test--with-drifted-drawers
+    ;; Explicit t: from Lisp the default is to WRITE, matching its
+    ;; sibling `recompute-accumulated-clock-lines'.  Only a bare `M-x'
+    ;; defaults to a dry run.  Asserted here so the asymmetry has a test
+    ;; holding it in place rather than only a docstring.
+    (let ((report (claude-code-ide-org-consolidate-all-drawers t)))
+      (should (string-match-p "Dry run:" report))
+      (should (string-match-p "3 drawer(s) scanned" report))
+      (should (string-match-p "2 would be reordered" report)))
+    ;; Dry run wrote NOTHING: the first drawer is still newest-first.
+    ;; Asserted on ORDER, not on the presence of a timestamp -- both
+    ;; orderings contain both lines, so a presence check passes whether
+    ;; the dry run wrote or not.  It did exactly that until a
+    ;; stash-and-break pass caught it.
+    (should (string-match-p
+             "11:00\\]--\\[2026-08-20 Thu 11:30\\][^\0]*09:00\\]--\\[2026-08-20 Thu 09:15\\]"
+             (with-temp-buffer (insert-file-contents file)
+                               (buffer-substring-no-properties (point-min) (point-max)))))
+    (let ((report (claude-code-ide-org-consolidate-all-drawers nil)))
+      (should (string-match-p "Consolidated:" report))
+      (should (string-match-p "2 reordered" report))
+      (should (string-match-p "1 file(s) saved" report)))
+    (let ((text (with-temp-buffer (insert-file-contents file)
+                                  (buffer-substring-no-properties (point-min) (point-max)))))
+      ;; Newest-first drawer is now ascending.
+      (should (string-match-p
+               "09:00\\]--\\[2026-08-20 Thu 09:15\\][^\0]*11:00\\]--\\[2026-08-20 Thu 11:30\\]"
+               text))
+      ;; The still-open CLOCK stays FIRST -- it is live state, not history.
+      (should (string-match-p
+               ":LOGBOOK:\nCLOCK: \\[2026-08-22 Sat 14:00\\]\n" text))
+      ;; Nothing was invented or dropped: still seven CLOCK lines
+      ;; (2 + 2 + 3 across the three fixture headings).
+      (should (= 7 (cl-count-if (lambda (l) (string-prefix-p "CLOCK:" l))
+                                (split-string text "\n")))))))
+
+(ert-deftest claude-code-ide-org-test-consolidate-all-drawers-dry-run-spares-open-buffers ()
+  "A dry run must not leave an already-open buffer modified.
+
+*This is the only assertion that actually reaches the dry-run guard on
+the write*, and it took a break-it-on-a-copy pass to find that out.  The
+save gate blocks the write to disk whether or not the region was edited,
+and a buffer this command opened is killed with `set-buffer-modified-p'
+nil -- so checking the FILE passes even with the guard removed.  The one
+case it protects is the human's own open buffer, which would otherwise
+be left silently dirty and written out by their next `C-x C-s'."
+  (claude-code-ide-org-test--with-drifted-drawers
+    (let ((pre (find-file-noselect file)))
+      (unwind-protect
+          (progn
+            (claude-code-ide-org-consolidate-all-drawers t)
+            (should-not (buffer-modified-p pre))
+            ;; ...and the real run does modify it, so the assertion above
+            ;; is about the dry run rather than about nothing happening.
+            (claude-code-ide-org-consolidate-all-drawers nil)
+            (should-not (buffer-modified-p pre))   ; saved, hence clean
+            (should (string-match-p
+                     "09:00\\]--\\[2026-08-20 Thu 09:15\\][^\0]*11:00\\]--\\[2026-08-20 Thu 11:30\\]"
+                     (with-current-buffer pre
+                       (buffer-substring-no-properties (point-min) (point-max))))))
+        (with-current-buffer pre (set-buffer-modified-p nil))
+        (kill-buffer pre)))))
+
+(ert-deftest claude-code-ide-org-test-consolidate-all-drawers-is-idempotent ()
+  "Running it twice changes nothing the second time, and a healthy file
+is left byte-identical.
+
+That is what makes it safe to put in a daily ceremony: a maintenance
+command whose second run is not a no-op cannot be run on a schedule."
+  (claude-code-ide-org-test--with-drifted-drawers
+    (claude-code-ide-org-consolidate-all-drawers nil)
+    (let ((after-first (with-temp-buffer (insert-file-contents file)
+                                         (buffer-string))))
+      (let ((report (claude-code-ide-org-consolidate-all-drawers nil)))
+        (should (string-match-p "0 reordered" report))
+        (should (string-match-p "0 file(s) saved" report)))
+      (should (equal after-first
+                     (with-temp-buffer (insert-file-contents file)
+                                       (buffer-string)))))))
+
+(ert-deftest claude-code-ide-org-test-consolidate-all-drawers-leaves-open-buffers-open ()
+  "A file the user already had open is left open; one this command opened
+is closed again.
+
+Killing a buffer the human was working in would be a surprising side
+effect of a maintenance command, and leaking a buffer per file would
+accumulate across a daily run."
+  (claude-code-ide-org-test--with-drifted-drawers
+    (let ((pre (find-file-noselect file)))
+      (claude-code-ide-org-consolidate-all-drawers nil)
+      (should (buffer-live-p pre))
+      (kill-buffer pre))
+    ;; Now with no buffer open beforehand: none is left behind.
+    (claude-code-ide-org-consolidate-all-drawers nil)
+    (should-not (find-buffer-visiting file))))
+
 (ert-deftest claude-code-ide-org-test-backfill-closed-uses-only-recorded-times ()
   "Fills from the :LOGBOOK:, takes the latest close, and invents nothing.
 

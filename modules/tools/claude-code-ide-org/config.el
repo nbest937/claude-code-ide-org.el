@@ -1498,6 +1498,93 @@ nothing verifying the composition."
       (when (called-interactively-p 'any) (message "%s" report))
       report)))
 
+(defun claude-code-ide-org-consolidate-all-drawers (&optional dry-run)
+  "Consolidate every :LOGBOOK: drawer across the tracked files.
+
+With DRY-RUN non-nil nothing is written and the report says what would
+change.  A bare `M-x' passes t, so the destructive form has to be asked
+for with a prefix argument.
+
+*From Lisp the default is reversed and that is deliberate but sharp*:
+`(claude-code-ide-org-consolidate-all-drawers)' with no argument
+*writes*.  This matches `claude-code-ide-org-recompute-accumulated-clock-lines',
+whose signature has the same shape, so the two do not disagree -- but a
+caller reading only the interactive behaviour will guess wrong.  Pass
+the argument explicitly either way.
+
+*Why this exists at all, since `claude-code-ide-org-consolidate-on-apply'
+is already t* (TODO.org :ID: 7ae6562d).  That setting fires only on a
+heading an apply pass actually *writes to*.  A drawer disturbed by
+anything else -- a hand `C-c C-x C-i', `--trigger-auto-clock-in' firing
+on a hand-set DOING -- keeps its disorder, and nothing ever returns to
+repair it.  Measured 2026-08-24: 43 of 60 multi-entry drawers in
+DONE.org were out of order, and over half of everything archived *since*
+consolidate-on-apply shipped.  TODO.org looked healthy only because
+apply keeps revisiting those headings.
+
+*The drift is structural, not a bug.*  Org inserts CLOCK lines
+newest-first, `--append-to-drawer' appends before `:END:', and the
+ascending order :ID: af7d3687 chose is neither -- so any writer outside
+apply leaves a drawer disordered by construction.  Reversing the sort to
+match org would end the drift and was rejected: it discards the
+narrative order af7d3687 asked for, breaks that heading's byte-identical
+fixed-point test against `clock-template.org', and flips every tie the
+stable sort exists to preserve.  This is a *coverage* fix, which keeps
+what was asked for, rather than an *ordering* one, which would not.
+
+*Run it before archiving.*  Archiving is the last moment a heading is
+ever touched, so a drawer that is disordered when it moves stays that
+way permanently -- which is how DONE.org got into the state above.  That
+makes this a companion to the archive step (:ID: cbe282ec) rather than a
+ritual of its own.
+
+Reuses `claude-code-ide-org--consolidate-logbook-text' unchanged, which
+is already idempotent and pinned lossless by its own tests, so running
+this twice is a no-op and running it on a healthy file changes nothing."
+  (interactive (list (not current-prefix-arg)))
+  (let ((headings 0) (changed 0) (files 0))
+    (dolist (file (claude-code-ide-org--tracked-files))
+      (when (file-readable-p file)
+        (let* ((already-open (find-buffer-visiting file))
+               (buffer (or already-open (find-file-noselect file)))
+               (touched nil))
+          (with-current-buffer buffer
+            ;; Bound, not cleared: the user's own read-only guard is
+            ;; restored the moment this returns, however it returns.
+            ;; Binding at all follows :ID: 97b030a4's reasoning -- this
+            ;; is a write the human asked for by name.
+            (let ((buffer-read-only nil))
+              (save-excursion
+                (goto-char (point-min))
+                (while (re-search-forward org-heading-regexp nil t)
+                  (let ((bounds (claude-code-ide-org--drawer-content-bounds "LOGBOOK")))
+                    (when bounds
+                      (setq headings (1+ headings))
+                      (let* ((old (buffer-substring-no-properties
+                                   (nth 0 bounds) (nth 1 bounds)))
+                             (new (claude-code-ide-org--consolidate-logbook-text old)))
+                        (unless (equal old new)
+                          (setq changed (1+ changed) touched t)
+                          (unless dry-run
+                            (delete-region (nth 0 bounds) (nth 1 bounds))
+                            (goto-char (nth 0 bounds))
+                            (insert new))))))))
+              (when (and touched (not dry-run))
+                (setq files (1+ files))
+                (save-buffer))))
+          ;; A file this command opened is closed again; one the user
+          ;; already had open is left exactly as found.
+          (unless already-open
+            (with-current-buffer buffer (set-buffer-modified-p nil))
+            (kill-buffer buffer)))))
+    (let ((report (format "%s %d drawer(s) scanned, %d %s%s"
+                          (if dry-run "Dry run:" "Consolidated:")
+                          headings changed
+                          (if dry-run "would be reordered" "reordered")
+                          (if dry-run "" (format ", %d file(s) saved" files)))))
+      (when (called-interactively-p 'any) (message "%s" report))
+      report)))
+
 (defun claude-code-ide-org-consolidate-history (id)
   "Normalise the :LOGBOOK: drawer of the heading with :ID: equal to ID:
 re-emit every entry on one *ascending* timeline with endpoints exactly as
