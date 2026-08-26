@@ -64,8 +64,27 @@ done
 body="$(awk 'BEGIN{n=0} {l[NR]=$0; if ($0=="---") n=NR} END{if(n==0)n=NR+1; for(i=1;i<n;i++) print l[i]}' <<<"$message")"
 foot="$(awk 'BEGIN{n=0} {l[NR]=$0; if ($0=="---") n=NR} END{if(n>0) for(i=n+1;i<=NR;i++) print l[i]}' <<<"$message")"
 
-# Candidates: 8 hex chars, not all digits (a bare number or date is not
-# an id), deduplicated.
+# Candidates: 8 hex chars, deduplicated. Deliberately NOT filtered by
+# shape -- the `:ID:' lookup below is the discriminator, and any shape
+# test in front of it can only subtract.
+#
+# There WAS an `| grep -vE '^[0-9]{8}$'' here, excluding all-digit
+# tokens on the reasoning that "a bare number or date is not an id".
+# True of a date, false of an id: 5 of this repo's 267 tracked ids are
+# all digits (29439196, 32272061, 42808717, 49557477, 51591672), and
+# were therefore unenforceable. Measured 2026-08-26 after the hook let
+# an unfootnoted 29439196 through, and -- worse -- blocked on a response
+# citing 29439196 AND 4f6a6bb1 while naming only the second. A block
+# that reports a strict subset of what is missing is the bad failure
+# here: it reads as authoritative, so complying with it exactly still
+# leaves the response wrong.
+#
+# Removing the filter costs nothing, because the case it was written for
+# is already covered: a date like 20260824 is rejected by the lookup for
+# not being a tracked id, which is the same test every hex token gets.
+# The only way to false-positive now is prose containing an 8-digit
+# number that IS one of those five -- no likelier than the hex
+# collision the design already accepts.
 #
 # bash 3.2 throughout, which macOS still ships and which
 # `#!/usr/bin/env bash' resolves to. No `mapfile', no associative
@@ -74,7 +93,7 @@ foot="$(awk 'BEGIN{n=0} {l[NR]=$0; if ($0=="---") n=NR} END{if(n>0) for(i=n+1;i<
 # `mapfile' and failed every case that should have blocked -- the same
 # three bash-4 constructs, in the same order, that TODO.org :ID:
 # 7e9aa4ea already recorded hitting.
-candidates="$(grep -oE '\b[0-9a-f]{8}\b' <<<"$body" | grep -vE '^[0-9]{8}$' | sort -u)"
+candidates="$(grep -oE '\b[0-9a-f]{8}\b' <<<"$body" | sort -u)"
 [[ -n "$candidates" ]] || exit 0
 
 missing=""
