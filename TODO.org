@@ -99,6 +99,7 @@ Wherever this project declares something in prose and the code infers it some ot
 *The prompt that drove this slice, one link per revision of it:*
 
 - [[orgit-rev:claude-code-ide-org::7b9bd74][7b9bd74]] [2026-08-26 Wed 11:12] opened the slice, replacing c44c2119's prompt
+- [[orgit-rev:claude-code-ide-org::2301de9][2301de9]] [2026-08-26 Wed 11:24] named the decision and the design question it opens with
 
 
 * Clock lifecycle & visibility
@@ -4966,6 +4967,40 @@ The third is the important one: it is the known negative, confirmed independentl
 *Its limits, stated so it is not over-trusted.* It finds only gaps in which someone *applied*; a pass that reviews carefully and dismisses everything writes no apply timestamp and would be missed, which is the same blind spot the "apply completes" stop-signal had in [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]]'s design. And it is retrospective by nature: it explains gaps already recorded rather than measuring attention as it happens.
 
 *Worth applying to the backlog once*, since the ledger reaches back to 2026-08-18 and the gaps are all still there to be scored.
+
+
+** TODO g in the review buffer discards unapplied judgement without asking :code:
+:PROPERTIES:
+:ID:       8d0716fe-ca88-429d-b46b-e2f880f5b2cc
+:CREATED:  [2026-08-26 Wed 11:13]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-26 Wed 11:13] \\
+  captured keywordless, setting initial state
+:END:
+
+*Reported by the user 2026-08-26:* "I have a tendency to hit =g= when I mean =x= and I lose all of my review work." =g= and =x= are adjacent intentions -- refresh and apply -- and one of them is destructive.
+
+*The loss is already documented; what is wrong is the assumption around it.* =claude-code-ide-org-review-refresh='s own docstring spells out the cost -- "every unapplied decision, not only marks: assigned headings, edited intervals, notes and stale confirmations all live in =--review-items= until =x= applies them, and a rebuild replaces that list wholesale" -- and then concludes: *"=g= is typed deliberately, so discarding here is correct; it just has to say so."* That conclusion is what this heading falsifies. It is typed deliberately and it is sometimes typed *instead of* =x=.
+
+*This is the same loss the 2026-08-24 recovery already paid for once* ([[id:7148cddc-aca3-416e-8bcb-f164d4d2bba0][7148cddc]]): "Assignments and edited intervals live in =--review-items=, in memory, never in the queue. Rebuilding items from the queue restores the *events* and discards the judgement applied to them." The user lost a hand-made assignment and an edited interval then, and was told the rollback would "cost the review pass again" -- which sounded like keystrokes and meant decisions.
+
+*Detectable, and checked before filing rather than assumed.* Three of the four kinds leave an unambiguous flag on the item plist:
+
+| judgement | set by | flag |
+|-----------+--------+------|
+| marks | =review-mark=, =review-mark-all= | =:marked= |
+| assignment | =review-assign= | =:assigned t= (and =:id=) |
+| note | =review-edit-note= | =:note= |
+| edited interval | =review-edit-interval= | *no flag of its own* |
+
+*The fourth needs one line.* =review-edit-interval= overwrites =:start= and =:end= in place, and both keys exist on every span item straight from the queue, so presence proves nothing. It does set =:suggested nil= with the comment "an edited interval is a confirmed one, not a suggestion" -- which is *close* to the signal wanted but not the same claim, since an accepted-as-suggested span may also be confirmed. Adding an explicit =:edited t= beside it is the honest fix.
+
+*So the predicate is:* any item carrying =:marked=, =:assigned=, =:note= or =:edited=. Cheap, exact, and it can also say *how much* is at stake -- "3 marked, 1 assigned, 1 note" reads better than a bare "are you sure?", because the answer depends on the amount.
+
+*Prompt only when there is something to lose.* A confirmation on every =g= trains the reflex that dismisses it, which is how a guard becomes decoration. With nothing pending, =g= should stay instant.
+
+*Worth considering instead of, or alongside, the prompt:* make the discard recoverable. The items are a list in memory; stashing the pre-refresh copy in a buffer-local variable and offering =C-/= or an =undo-refresh= command would make the slip cost a keystroke rather than a decision. That is strictly better than asking, and the two are not exclusive.
 
 
 * Observability
@@ -11155,6 +11190,8 @@ CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:16] =>  0:17
 - <2026-08-26 Wed 09:59>--<2026-08-26 Wed 10:16> assigned at review
 CLOCK: [2026-08-26 Wed 10:59]--[2026-08-26 Wed 11:06] =>  0:07
 - <2026-08-26 Wed 10:59>--<2026-08-26 Wed 11:06> assigned at review
+CLOCK: [2026-08-26 Wed 11:06]--[2026-08-26 Wed 11:14] =>  0:08
+- [2026-08-26 Wed 11:06]--[2026-08-26 Wed 11:14] assigned at review
 :END:
 
 
