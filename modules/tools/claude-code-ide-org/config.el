@@ -8087,6 +8087,133 @@ that re-evaluates staleness against the file as it now stands."
         (claude-code-ide-org--review-restore-read-only cleared)))))
 
 ;;;###autoload
+;;; The human's review attention (TODO.org :ID: 961f15b6) ------------------
+;;
+;; The review pass is the one activity this project has never measured and
+;; the one it most depends on -- nothing reaches an org file without it.
+;;
+;; Human attention and agent activity are *different quantities*, not the
+;; same one measured twice, so the union-overlapping-intervals convention
+;; (:ID: 7d739afd) simply does not reach them and they are separate
+;; totals.  Two consequences, both measured 2026-08-26 rather than
+;; assumed:
+;;
+;;   - `org-clock-in' writes an INACTIVE timestamp and there is no
+;;     configuration that changes it.  So the two quantities cannot be
+;;     told apart by bracket style in a clocktable, and separation has to
+;;     be structural: a heading of their own.
+;;   - A clocktable with `:step day' reports per-day totals from CLOCK
+;;     lines on one ordinary heading, so that heading needs no
+;;     `:DATE_TREE:' -- which is what makes structural separation cheap
+;;     enough to prefer, rather than doubling the datetree scaffolding
+;;     the lint had to learn.
+;;
+;; Not queued, deliberately.  The queue exists because concurrent agent
+;; sessions cannot touch a live buffer safely; a human running an
+;; interactive command in Emacs has none of those constraints and is
+;; already inside the interactive session the whole design routes toward.
+
+(defcustom claude-code-ide-org-review-attention-heading "Review attention"
+  "Exact title of the heading the human's review time is clocked against.
+
+A plain heading, not a `:DATE_TREE:' category.  Per-day reporting comes
+from a clocktable's `:step day', measured 2026-08-26, so the tree buys
+nothing here and costs the scaffolding `e30d52d7' had to teach the lint.
+
+Set to nil to disable review-attention clocking entirely."
+  :type '(choice (const :tag "Disabled" nil) string)
+  :group 'claude-code-ide-org)
+
+(defvar claude-code-ide-org--review-attention-marker nil
+  "Marker for the heading this session's review pass is clocked against.
+Non-nil exactly while a human review interval is open.")
+
+(defun claude-code-ide-org--review-attention-target (&optional create)
+  "Return a marker for the review-attention heading, creating it with CREATE.
+
+Created as a level-2 heading under the meta-work category, since it is
+meta-work by definition and this project reserves level 1 for
+categories."
+  (let ((title claude-code-ide-org-review-attention-heading)
+        (file (claude-code-ide-org--capture-target-file)))
+    (when (and title file (file-readable-p file))
+      (with-current-buffer (find-file-noselect file)
+        (org-with-wide-buffer
+         (goto-char (point-min))
+         (let (found)
+           (while (and (not found) (re-search-forward org-heading-regexp nil t))
+             (beginning-of-line)
+             (if (equal (org-get-heading t t t t) title)
+                 (setq found (point-marker))
+               (end-of-line)))
+           (or found
+               (when create
+                 (let ((buffer-read-only nil))
+                   (goto-char (point-min))
+                   (if (re-search-forward "^\\* Review and planning$" nil t)
+                       (progn (end-of-line) (forward-line 1))
+                     (goto-char (point-max)))
+                   (insert "\n** " title "\n")
+                   (forward-line -1)
+                   (org-id-get-create)
+                   (org-entry-put (point) "CREATED"
+                                  (format-time-string "[%Y-%m-%d %a %H:%M]"))
+                   (save-buffer)
+                   (point-marker))))))))))
+
+(defun claude-code-ide-org-review-attention-start ()
+  "Open a clock on the review-attention heading.  Idempotent within a pass."
+  (when (and claude-code-ide-org-review-attention-heading
+             (not claude-code-ide-org--review-attention-marker))
+    (let ((marker (claude-code-ide-org--review-attention-target 'create)))
+      (when marker
+        (setq claude-code-ide-org--review-attention-marker marker)
+        (org-with-point-at marker
+          (let ((buffer-read-only nil))
+            (org-clock-in)))
+        marker))))
+
+(defun claude-code-ide-org-review-attention-stop (&optional reason)
+  "Close the review-attention clock, if this session opened one.
+
+REASON is recorded on an *active*-timestamped annotation beside the
+interval.  Active because that is the one part of a `:LOGBOOK:' entry
+that can be -- the `CLOCK:' line above it cannot -- and because an
+active timestamp is what puts the human's own time in the agenda
+\(TODO.org :ID: b8e6007a reserved exactly that for intervals a human
+logs themselves)."
+  (when claude-code-ide-org--review-attention-marker
+    (let ((marker claude-code-ide-org--review-attention-marker)
+          (start org-clock-start-time))
+      (setq claude-code-ide-org--review-attention-marker nil)
+      (when (org-clocking-p)
+        (org-with-point-at marker
+          (let ((buffer-read-only nil))
+            (org-clock-out)
+            (when start
+              (claude-code-ide-org--append-to-drawer
+               "LOGBOOK"
+               (format "- <%s>--<%s> %s"
+                       (format-time-string "%Y-%m-%d %a %H:%M" start)
+                       (format-time-string "%Y-%m-%d %a %H:%M")
+                       (or reason "review pass"))))
+            (save-buffer))))
+      t)))
+
+(defun claude-code-ide-org--review-attention-on-quit (&rest _)
+  "Stop the attention clock when the review buffer stops being visible.
+
+Advice on `quit-window' rather than a rebinding of `q'.  `q' here is
+`special-mode's `quit-window', which *buries*; rebinding it to kill
+would change a key every `special-mode' buffer in Emacs shares, to serve
+a clock.  And burying is not a lesser form of closing -- it is how a
+person actually leaves this buffer, so it is the event to watch."
+  (when (and claude-code-ide-org--review-attention-marker
+             (derived-mode-p 'claude-code-ide-org-review-mode))
+    (claude-code-ide-org-review-attention-stop "review pass (buffer buried)")))
+
+(advice-add 'quit-window :before #'claude-code-ide-org--review-attention-on-quit)
+
 (defun claude-code-ide-org-review ()
   "Review pending org updates and apply the approved ones.
 
@@ -8099,6 +8226,21 @@ correctly inside a real interactive command."
   (let ((buffer (get-buffer-create "*org-review*")))
     (with-current-buffer buffer
       (claude-code-ide-org-review-mode)
+      ;; The command *is* the event (TODO.org :ID: 961f15b6): it is the
+      ;; documented and only entry point to the pass, it cannot be
+      ;; invoked by accident, and starting here needs no utterance and
+      ;; cannot be forgotten -- unlike the "tell you to clock me in"
+      ;; contract, which depends on remembering a sentence at both ends.
+      (claude-code-ide-org-review-attention-start)
+      ;; Buffer-local, and it runs with the buffer current just before
+      ;; the kill.  This is the second of three layers: burying is
+      ;; handled by advice on `quit-window', and `kill-emacs-hook'
+      ;; already runs `--clock-out-if-clocking'.
+      (add-hook 'kill-buffer-hook
+                (lambda ()
+                  (claude-code-ide-org-review-attention-stop
+                   "review pass (buffer killed)"))
+                nil t)
       (claude-code-ide-org-review-refresh))
     (pop-to-buffer buffer)))
 

@@ -6049,6 +6049,97 @@ pair must close before any state change."
     (should (string-match-p "^\\* DONE "
                             (claude-code-ide-org-test--disk-contents file)))))
 
+(defmacro claude-code-ide-org-test--with-attention-target (&rest body)
+  "Run BODY with `file' bound to an org file holding the meta-work category,
+and the review-attention machinery pointed at it."
+  (declare (indent 0))
+  `(let* ((dir (file-name-as-directory (make-temp-file "ccio-attn" t)))
+          (file (expand-file-name "TODO.org" dir))
+          (org-id-locations-file (expand-file-name ".org-id-locations" dir))
+          (org-id-locations (make-hash-table :test 'equal))
+          (org-id-files nil)
+          (org-clock-persist nil)
+          (org-clock-history nil)
+          (claude-code-ide-org-capture-file file)
+          (claude-code-ide-org--review-attention-marker nil))
+     (unwind-protect
+         (progn
+           (with-temp-file file
+             (insert "#+TODO: TODO | DONE\n\n* Review and planning\n"
+                     ":PROPERTIES:\n:DATE_TREE: t\n:END:\n\n"))
+           ,@body)
+       (when (org-clocking-p) (ignore-errors (org-clock-out)))
+       (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-review-attention-clocks-natively ()
+  "The pass is clocked against its own heading, not the queue.
+
+TODO.org :ID: 961f15b6.  Human attention and agent activity are
+different quantities; the queue exists for concurrent agent sessions,
+and a human inside an interactive Emacs command has none of those
+constraints.  So this writes org's own clock directly, and the heading
+is created on first use under the meta-work category."
+  (claude-code-ide-org-test--with-attention-target
+    (should-not (claude-code-ide-org--review-attention-target))
+    (should (claude-code-ide-org-review-attention-start))
+    (should claude-code-ide-org--review-attention-marker)
+    (should (org-clocking-p))
+    ;; Second call inside the same pass does not open a second clock.
+    (should-not (claude-code-ide-org-review-attention-start))
+    (should (claude-code-ide-org-review-attention-stop "done thinking"))
+    (should-not (org-clocking-p))
+    (should-not claude-code-ide-org--review-attention-marker)
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      (should (string-match-p "^\\*\\* Review attention$" disk))
+      ;; A real CLOCK line, and -- measured, not assumed -- inactive,
+      ;; because org-clock-in cannot write anything else.
+      (should (string-match-p "CLOCK: \\[[0-9]" disk))
+      ;; The annotation beside it IS active, which is the half that can
+      ;; be and the half the agenda absorbs.
+      (should (string-match-p "^- <[0-9][^>]*>--<[0-9][^>]*> done thinking$" disk)))))
+
+(ert-deftest claude-code-ide-org-test-review-attention-stops-on-bury ()
+  "Burying the review buffer ends the pass -- `q' never kills it.
+
+This is the case a naive `kill-buffer-hook' implementation misses
+entirely: `q' is `special-mode's `quit-window', which *buries*, so the
+buffer stays alive and the clock would run until the buffer was next
+killed explicitly, which in practice is never.  The failure would
+present as a clock running all night."
+  (claude-code-ide-org-test--with-attention-target
+    (claude-code-ide-org-review-attention-start)
+    (should (org-clocking-p))
+    (with-temp-buffer
+      (claude-code-ide-org-review-mode)
+      ;; Call the advice's trigger the way `q' would, from a buffer in
+      ;; the review mode.
+      (claude-code-ide-org--review-attention-on-quit))
+    (should-not (org-clocking-p))
+    (should (string-match-p "buffer buried"
+                            (claude-code-ide-org-test--disk-contents file)))))
+
+(ert-deftest claude-code-ide-org-test-review-attention-ignores-other-buffers ()
+  "Quitting any other `special-mode' buffer must not stop the clock.
+
+The advice is on `quit-window', which every such buffer uses, so
+without the mode guard reading `M-x describe-key' mid-pass would end
+the pass."
+  (claude-code-ide-org-test--with-attention-target
+    (claude-code-ide-org-review-attention-start)
+    (should (org-clocking-p))
+    (with-temp-buffer
+      (special-mode)
+      (claude-code-ide-org--review-attention-on-quit))
+    (should (org-clocking-p))
+    (claude-code-ide-org-review-attention-stop)))
+
+(ert-deftest claude-code-ide-org-test-review-attention-can-be-disabled ()
+  "Setting the heading to nil disables the whole mechanism."
+  (claude-code-ide-org-test--with-attention-target
+    (let ((claude-code-ide-org-review-attention-heading nil))
+      (should-not (claude-code-ide-org-review-attention-start))
+      (should-not (org-clocking-p)))))
+
 (ert-deftest claude-code-ide-org-test-review-apply-reports-unresolvable-id ()
   "A bad :ID: is reported, not thrown, and does not count as applied."
   (claude-code-ide-org-test--with-heading
