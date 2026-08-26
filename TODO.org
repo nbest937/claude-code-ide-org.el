@@ -106,7 +106,7 @@ Wherever this project declares something in prose and the code infers it some ot
 - [X] [[id:6a21e08b-4880-4d2b-9b0f-12c35558fe08][6a21e08b]] DONE --trigger-auto-clock-in's docstring says the feature is off; it is on
 - [-] [[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]] REVIEW Setting DOING retroactively opens a clock, which the looser sense makes wrong
 - [X] [[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]] DONE A slice gets clocked and auto-promoted, because its members are links not children
-- [ ] [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]] NEXT A container carries clocks it earned before it was one
+- [X] [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]] DONE A container carries clocks it earned before it was one
 - [ ] [[id:a0813ae3-0c6d-43de-bae1-fb4414cdb519][a0813ae3]] TODO Task mitosis: a leaf that outgrows itself divides rather than becoming a parent
 - [ ] [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]] TODO Revisit the TODO keyword progression, starting with whether PLANNING earns its keep
 - [ ] [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]] TODO Generalise :KIND: to every declared heading class, so level stops meaning anything
@@ -187,7 +187,8 @@ CLOCK: [2026-08-26 Wed 12:59]--[2026-08-26 Wed 13:00] =>  0:01
 *Handed back as REVIEW rather than closed*, because the judgement is yours: the operational defect is falsified and nothing is left to build, but this heading also framed a design question -- "the distinction the trigger needs is between two acts that currently look identical" -- and whether the surviving hand-edit case retires that question or merely shrinks it is not mine to decide.
 
 
-** NEXT A container carries clocks it earned before it was one :code:research:
+** DONE A container carries clocks it earned before it was one :code:research:
+CLOSED: [2026-08-26 Wed 14:47]
 :PROPERTIES:
 :ID:       3964c575-50bc-4cc9-abeb-bdd1c0162c2c
 :CREATED:  [2026-08-25 Tue 12:59]
@@ -197,6 +198,12 @@ CLOCK: [2026-08-26 Wed 12:59]--[2026-08-26 Wed 13:00] =>  0:01
   proposed by the user; blast radius measured first
 - State "NEXT"       from "TODO"       [2026-08-26 Wed 13:03] \\
   member 4; last of the mechanical four
+CLOCK: [2026-08-26 Wed 14:45]--[2026-08-26 Wed 14:47] =>  0:02
+- State "DOING"      from "NEXT"       [2026-08-26 Wed 14:45] \\
+  starting now; A+B-C+D approved
+- [2026-08-26 Wed 14:45]--[2026-08-26 Wed 14:47] record the convention; measure the roll-up question
+- State "DONE"       from "DOING"      [2026-08-26 Wed 14:47] \\
+  declined with reasoning; research delivered its decision
 :END:
 
 *The user's proposal 2026-08-25:* slices carry no clock, so stories should not either. The argument is the one =--container-heading-p='s docstring already makes -- org rolls a subtree's time up natively, so clocking the parent adds a second quantity *inside* the one that already existed, where it can no longer be told apart. Measured there on =:ID:= b5f7c5c7: parent row 14:52, ten children summing 13:44, the 1:08 difference indistinguishable from a rounding artefact.
@@ -235,7 +242,6 @@ CLOCK: [2026-08-26 Wed 12:59]--[2026-08-26 Wed 13:00] =>  0:01
 *Coverage divides with no overlap and no gap*: A and B handle the nine existing groupings — legitimised, then made legible — and D handles every future one, by never needing to move a record at all.
 
 *Written down in three places*: CLAUDE.md's clock rules now state that a grouping may be clocked deliberately and that the existing lines are history; CLAUDE.md's mitosis bullet is re-pointed off the retired claim; and =.claude/rules/org-conventions.md= now distinguishes a *story* (may be clocked deliberately) from a *slice* (may not, being a sequencing declaration rather than a place work happens).
-
 
 
 ** DONE A slice gets clocked and auto-promoted, because its members are links not children :code:
@@ -5054,7 +5060,6 @@ So this is a *scanning* consistency, not a functional gap, and that changes what
 *Still open and unchanged by any of this*: the three design questions above -- what the flip *means*, what it applies to, and which key.
 
 
-
 ** TODO A guidepost gap containing an apply timestamp is provably the human's attention :code:
 :PROPERTIES:
 :ID:       996fd2bd-be90-44b3-b2c5-9018255940b3
@@ -5120,10 +5125,16 @@ The third is the important one: it is the known negative, confirmed independentl
 *Prompt only when there is something to lose.* A confirmation on every =g= trains the reflex that dismisses it, which is how a guard becomes decoration. With nothing pending, =g= should stay instant.
 
 *Worth considering instead of, or alongside, the prompt:* make the discard recoverable. The items are a list in memory; stashing the pre-refresh copy in a buffer-local variable and offering =C-/= or an =undo-refresh= command would make the slip cost a keystroke rather than a decision. That is strictly better than asking, and the two are not exclusive.
-** A span's headline interval is not the interval it writes :code:
+
+
+** TODO A span's headline interval is not the interval it writes :code:
 :PROPERTIES:
 :ID:       44cef181-8dac-4735-8860-f123e132fdbc
 :CREATED:  [2026-08-26 Wed 13:41]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-26 Wed 13:42] \\
+  captured keywordless, setting initial state
 :END:
 
 *Found by the user 2026-08-26, from a readout they correctly refused to believe:* "I sense a contradiction. you just confirmed that [2026-08-26 Wed 13:05]--[2026-08-26 Wed 13:20] is my attention but something else says otherwise? who wins?"
@@ -5144,10 +5155,18 @@ The third is the important one: it is the known negative, confirmed independentl
 *Related but not the same*: [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]] proposes reclaiming a guidepost gap as the human's attention when an apply timestamp falls inside it. That is about *capturing* the missing 14 minutes; this is about not implying they are already captured. If 996fd2bd ships, this heading still stands -- a window and its payload would still be two quantities.
 
 *Filed with a finding attached.* Writing this body hit [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] live: =org_amend='s link checker expanded all four TODO.org prefixes above and refused =b8e6007a=, which is identical in form and differs only in living in DONE.org. So the expander is scoped to TODO.org, and a cross-file reference has to be written as plain text -- which is why one citation here is not a link.
-** A clocktable never shows a parent's own time, only own-plus-subtree :code:
+
+
+** NEXT A clocktable never shows a parent's own time, only own-plus-subtree :code:
 :PROPERTIES:
 :ID:       64d34a64-d336-40a8-a8e8-da8133d0da06
 :CREATED:  [2026-08-26 Wed 14:46]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-26 Wed 14:46] \\
+  captured keywordless, setting initial state
+- State "NEXT"       from "TODO"       [2026-08-26 Wed 14:47] \\
+  direct continuation of what 3964c575 decided
 :END:
 
 *The reporting half of [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]], split out when that heading was decided 2026-08-26.* That one asked whether a grouping may carry its own clock; the answer is yes, a parent's own coordination time is real work. This is what makes that answer *legible*.
@@ -5167,6 +5186,31 @@ The third is the important one: it is the known negative, confirmed independentl
 *Scope: presentation only, and deliberately so.* Nothing about what is extracted, stored or applied changes. Candidate shapes, none chosen -- a =:formatter= adding an own-time column; a project-level clocktable wrapper; or surfacing it only where it matters rather than in every table. Whether every parent row wants a second number, or only the nine that currently carry own lines, is the first thing to settle.
 
 *Nine headings currently make this visible*, measured 2026-08-26: 46 own CLOCK lines across four active and five finished groupings.
+** Orient the datetree newest-at-top, by re-sorting after day-node creation :code:
+:PROPERTIES:
+:ID:       0c3f1319-67c0-4b29-a8e7-5ffa12948aaf
+:CREATED:  [2026-08-26 Wed 14:57]
+:END:
+
+*Requested by the user 2026-08-26*, while noticing that the [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] flattening analysis "both forgot about datetrees". The ask was for a custom sort function giving the datetree a newest-at-top orientation, to match the same recency ordering proposed for TODO.org and DONE.org.
+
+*No custom sort function is needed, measured.* =(org-sort-entries nil ?A)= on the month node produces =("2026-08-21" "2026-08-17" "2026-08-14")= in one call. Org's day nodes are ISO-prefixed, so lexical order *is* date order and reverse-alphanumeric *is* newest-first. Same for month nodes within a year and year nodes within the anchor. The comparator this needs already ships.
+
+*The work is placement, not comparison.* =org-datetree-find-date-create= assumes ascending and inserts accordingly, so a newly created node lands in the wrong place in a descending tree -- measured: filing 2026-08-25 into a descending month appended it at the *bottom*. One =org-sort-entries= call afterwards corrects it, verified end to end:
+
+: before create : ("08-21" "08-17" "08-14")
+: after create  : ("08-21" "08-17" "08-14" "08-25")
+: after resort  : ("08-25" "08-21" "08-17" "08-14")
+
+*So the change is a re-sort at one call site*, =claude-code-ide-org--ensure-day-node=, which already creates the node, stamps =:CREATED:=, takes an =:ID:= and saves. Sorting the three scaffolding levels before that save is contained and idempotent.
+
+*The hazard, which is real but not on this project's path.* Raw =org-datetree-find-date-create= does a *sorted scan with early exit*, so against a descending tree it passes the target, concludes the date is absent, and creates a **duplicate day node**. Measured: filing an already-present 2026-08-17 produced =("08-17" "08-21" "08-17" "08-14")=. Two nodes for one day, each taking its own =:ID:=, would split that day's meta-work clock silently -- the worst available failure for this subsystem.
+
+*It does not reach us because =--ensure-day-node= never calls org's finder blind.* It looks the node up first via =claude-code-ide-org--find-day-node=, which scans *every* heading in the subtree matching on exact rendered title, with no early exit and no order assumption. Verified against a descending tree: all three present days found, a nonexistent one correctly nil. Org's finder is reached only when the day genuinely does not exist, which is the one case where insertion order cannot duplicate anything.
+
+*What remains exposed is anything that bypasses that wrapper* -- an =org-capture= template targeting =file+olp+datetree=, or a hand =C-c C-j=. Neither is configured here today. If the tree is reoriented, that becomes a standing constraint worth writing down rather than a latent bug: *the day node is created through =--ensure-day-node= or not at all.*
+
+*Independent of the flattening decision.* This is wanted whether or not [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] goes ahead, and touches none of the same code.
 
 * Observability
 :PROPERTIES:
@@ -8642,6 +8686,19 @@ Everything already verified above serves that -- =:CATEGORY:= inherited by a lev
 
 *If the evidence lands in favour, the answer is not to switch -- it is to derive.* Declare =:EPIC:=, and have a normaliser write =:CATEGORY:= from it. That is the pattern already built twice on 2026-08-25: a slice's =:BLOCKER:= generated from its checklist, and a slice's member lines regenerated from their referents. A declaration plus a derived copy, with something that keeps them in step, is strictly better than one field asked to mean two things.
 
+*The datetree was missing from every version of this analysis, noticed by the user 2026-08-26.* Neither the cost list here, nor [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]]'s evaluation, nor the 2026-08-26 conversation that measured the flat case considered =* Review and planning=. It is the one subtree that *cannot* flatten.
+
+*It is an irreducible four-level tree*: the =:DATE_TREE:= anchor, then year, month, day. =org-datetree= writes that shape and this project reads it back by exact title. So "every task is level 1" cannot be literal -- there is one island of nesting, permanently.
+
+*Which is less damaging than it first looks, and in one respect helps.* The relevant code is already written in *relative* depth rather than absolute: =claude-code-ide-org--datetree-node-role= computes =level - datetree-level= from the anchor, so it does not care what level the anchor sits at. Flattening the categories around it changes nothing there.
+
+*And it dissolves a collision the conventions currently have to work around.* =.claude/rules/org-conventions.md= records that "a real task sits beside the tree, at the same depth as the year node" -- =** TODO Open today's node= next to =** 2026= -- and that this is "the whole reason =--datetree-node-role= gates on org's literal title shapes rather than on depth". Under flattening those real tasks become level 1 and level 2 beneath the anchor holds *only* scaffolding. The depth test that was unsafe becomes safe. The title-shape gate should still be kept, since it is stricter and costs nothing, but the hazard it defends against would be gone.
+
+*What genuinely needs rework is =bin/lint-org='s level-1 rule*, which today asserts that a level-1 heading is either a category or a mirror of one. Flattened, level 1 is where the tasks live and =* Review and planning= is the sole surviving container. That is a rule to rewrite, not a wall -- the same standing as the =:ARCHIVE:= routing objection recorded above from [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]].
+
+*Separately, the datetree's own ordering is now filed as [[id:0c3f1319-67c0-4b29-a8e7-5ffa12948aaf][0c3f1319]]*, since the user's recency-ordering vision applies to it too and it is wanted either way. Short version: reverse-alphanumeric sorting already gives newest-first because day titles are ISO-prefixed, so the work is a re-sort after creation rather than a comparator -- and the duplicate-day-node hazard that a descending tree exposes in raw =org-datetree-find-date-create= does not reach this project, because =--ensure-day-node= looks the node up by title first.
+
+
 
 ** DONE Compose slices by reference: a checkbox list of id links, blocked on its members :code:research:
 CLOSED: [2026-08-25 Tue 12:56]
@@ -11401,6 +11458,10 @@ CLOCK: [2026-08-26 Wed 12:26]--[2026-08-26 Wed 12:27] =>  0:01
 - [2026-08-26 Wed 12:26]--[2026-08-26 Wed 12:27] assigned at review
 CLOCK: [2026-08-26 Wed 12:29]--[2026-08-26 Wed 12:30] =>  0:01
 - [2026-08-26 Wed 12:29]--[2026-08-26 Wed 12:30] assigned at review
+CLOCK: [2026-08-26 Wed 13:05]--[2026-08-26 Wed 14:07] =>  1:02
+- <2026-08-26 Wed 13:05>--<2026-08-26 Wed 14:07> assigned at review
+CLOCK: [2026-08-26 Wed 14:31]--[2026-08-26 Wed 14:44] =>  0:13
+- <2026-08-26 Wed 14:31>--<2026-08-26 Wed 14:44> assigned at review
 :END:
 
 
