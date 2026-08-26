@@ -65,6 +65,40 @@ started credits time to the present.
 
 ---
 
+## Settle these before building the middle
+
+Two things are pending that are **not** builds, and they are different kinds
+of thing. Do not treat them as one.
+
+**A decision, and it needs the user.** `29439196` — `:EPIC:` versus
+`:CATEGORY:` for the heading tier — has been open since 2026-08-19, parked on
+"decide it against a report someone actually wants". That report now exists
+(`82df2a6c`), so the evidence is quantified rather than argued:
+
+- `:CATEGORY:` populates the agenda prefix column, inherits with no
+  configuration, and enables `org-agenda-filter-by-category`. Today that
+  column carries **two** distinct values across 274 headings — the file name.
+- `:EPIC:` gets none of that and costs one `org-use-property-inheritance`
+  entry to match on the property alone.
+- **Neither side had this before:** flattening the tier into a label destroys
+  the grouped clock report, because `:maxlevel 2` groups by the level-1
+  headings *being headings*.
+
+Put it to the user early. It is answerable in a conversation and it gates how
+`2e660571` and `9651d4c8` are built.
+
+**A design question, and it may collapse three members into one.**
+`2e660571` (generalise `:KIND:`), `29439196` (heading tiers) and `8183fc7c`
+(a slice invisible to `org_outline`) are all "a declared thing the code infers
+some other way". The user's proposal on `8183fc7c` — carry blocker *ids* in
+the general schema rather than a bare `[blocked]` flag — is arguably the
+general mechanism `2e660571` is asking for.
+
+Work that out **before** building any of the three. Discovering it halfway
+through the second one is the expensive path, and this is the corner worth
+looking around. Whether that warrants Plan Mode is a judgement to make at the
+time, not a step to follow.
+
 ## Suggested order
 
 The checklist is already in dependency order and the first four are one
