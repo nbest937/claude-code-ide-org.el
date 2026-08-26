@@ -65,5 +65,31 @@ out2="$(run s7 "See ${REAL} for the detail.")"
 check "first block sets the sentinel" blocked "$out1"
 check "second call in the same turn does NOT block (loop guard)" allowed "$out2"
 
+# The message must ride on `systemMessage', which is documented as "text
+# shown to Claude in the next turn" -- NOT on `stopReason', which is an
+# enum of "user_request"/"max_turns"/"model_stop_token"/"completion" and
+# silently discards prose. That mistake made six real blocks arrive as
+# the bare harness default and told the model nothing (TODO.org
+# :ID: 5787bfc6). Blocking without saying why is the whole defect, so it
+# is asserted rather than left to the JSON shape.
+out="$(run s8 "See ${REAL} for the detail.")"
+assert_json () { # assert_json <name> <jq filter> <expected>
+  local name="$1" filter="$2" want="$3" got
+  got="$(jq -r "$filter" <<<"$out")"
+  if [[ "$got" == "$want" ]]; then
+    printf 'ok   - %s (%s)\n' "$name" "$got"; pass=$((pass+1))
+  else
+    printf 'FAIL - %s: wanted %s, got %s\n' "$name" "$want" "$got"; fail=$((fail+1))
+  fi
+}
+assert_json "message reaches the model via top-level systemMessage" \
+  'if (.systemMessage // "") | test("without footnoting them") then "yes" else "no" end' yes
+assert_json "and via hookSpecificOutput.systemMessage" \
+  'if (.hookSpecificOutput.systemMessage // "") | test("without footnoting them") then "yes" else "no" end' yes
+assert_json "the missing id is named in it" \
+  "if (.systemMessage // \"\") | test(\"${REAL}\") then \"yes\" else \"no\" end" yes
+assert_json "prose is NOT put in the stopReason enum" \
+  'if (.hookSpecificOutput | has("stopReason")) then "present" else "absent" end' absent
+
 printf 'footnote-check-test: %d passed, %d failed\n' "$pass" "$fail"
 [[ $fail -eq 0 ]]

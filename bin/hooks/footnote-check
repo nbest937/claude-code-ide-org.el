@@ -86,19 +86,50 @@ while IFS= read -r id; do
 done <<<"$candidates"
 [[ -n "$missing" ]] || exit 0
 
+# `mkdir -p' first: a bare `: > "$sentinel" 2>/dev/null' does NOT
+# suppress the failure when the directory is absent, because bash
+# processes the output redirection before the stderr one -- so the error
+# still prints and, far worse, the sentinel is never written. That
+# sentinel is the loop guard this script's own header calls not
+# optional, and without it a Stop hook that blocks on a condition the
+# model cannot satisfy blocks forever. Found 2026-08-26 by running the
+# hook against a queue directory that did not exist.
+mkdir -p "$queue_dir" 2>/dev/null
 : > "$sentinel" 2>/dev/null
 
-printf '%s' "$(jq -n --arg ids "$missing" '{
-  hookSpecificOutput: {
-    hookEventName: "Stop",
-    stopReason: ("This response cites tracked org :ID:s without footnoting them: "
-      + $ids
-      + ". Append a footnote for each, superscript-marked in the prose (¹²³), "
-      + "each footnote line carrying the id, its current TODO keyword and its EXACT full title, "
-      + "looked up rather than recalled. The rule is per RESPONSE: footnote an id even if an "
-      + "earlier response in this conversation already did, because the reader does not have "
-      + "that response on screen.")
-  },
-  continue: false
-}')"
+# The message goes in `systemMessage', NOT `stopReason' (TODO.org
+# :ID: 5787bfc6). `stopReason' is an ENUM -- the docs give it as
+# "user_request", "max_turns", "model_stop_token" or "completion" -- so a
+# paragraph of prose in it is discarded, and what reached the model was
+# the harness default, verbatim: "Stop hook prevented continuation".
+# Twice on 2026-08-25 and four more times on 2026-08-26, the block fired
+# on a real violation and told the model nothing, which is why it read as
+# the feature working rather than as a defect.
+#
+# `systemMessage' is documented as "text shown to Claude in the next turn
+# as a system message", which is exactly the channel wanted. It is
+# emitted in BOTH positions -- top level and inside hookSpecificOutput --
+# because the two documentation passes disagreed about which one the
+# harness reads, and emitting both costs nothing while guessing wrong
+# costs another silent block. Drop whichever proves redundant once a
+# session has actually been observed receiving it.
+#
+# `reason' is deliberately not used: it is documented as shown to the
+# USER only, and the user is not the one who has to fix the footnotes.
+printf '%s' "$(jq -n --arg ids "$missing" '
+  ("This response cites tracked org :ID:s without footnoting them: "
+    + $ids
+    + ". Append a footnote for each, superscript-marked in the prose (¹²³), "
+    + "each footnote line carrying the id, its current TODO keyword and its EXACT full title, "
+    + "looked up rather than recalled. The rule is per RESPONSE: footnote an id even if an "
+    + "earlier response in this conversation already did, because the reader does not have "
+    + "that response on screen.") as $msg
+  | {
+      hookSpecificOutput: {
+        hookEventName: "Stop",
+        systemMessage: $msg
+      },
+      systemMessage: $msg,
+      continue: false
+    }')"
 exit 0
