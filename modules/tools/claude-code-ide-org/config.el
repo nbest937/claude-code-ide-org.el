@@ -677,13 +677,49 @@ applies a couple of items and archives nothing."
       (message "Ceremony marked done for today."))
     file))
 
+(defun claude-code-ide-org--ceremony-reviewed-today-p ()
+  "Non-nil when a review pass was actually run today.
+
+*Derived, not remembered* (TODO.org :ID: 806ff394).  Since :ID: 961f15b6
+the review command opens a real clock on the attention heading, so a
+CLOCK line dated today is *evidence that the pass ran* -- created by
+running the command, which is the act itself rather than a promise to
+record it afterwards.
+
+This is what removes the model from the nag guard.  The prompt used to
+depend on a session remembering to call
+`claude-code-ide-org-mark-ceremony-done' an hour and many turns after
+being told to, which is the shape this project has already measured
+failing (:ID: 2758f3a0, 41 of 45, every miss on re-mention)."
+  (let ((marker (claude-code-ide-org--review-attention-target)))
+    (when marker
+      (org-with-point-at marker
+        (let ((end (save-excursion (org-end-of-subtree t) (point)))
+              found)
+          (save-excursion
+            (while (and (not found)
+                        (re-search-forward "^[ \t]*CLOCK: \\(\\[[^]]+\\]\\)" end t))
+              (when (claude-code-ide-org--today-p
+                     (claude-code-ide-org--parse-org-timestamp (match-string 1)))
+                (setq found t))))
+          found)))))
+
 (defun claude-code-ide-org--ceremony-status ()
   "Return a plist of what the ceremony has waiting: (:pending N :drifted N
 :archivable N), or nil when the ceremony has already run today.
 
 Counts only.  Deciding what to do about them is the human's, which is
 why this returns numbers and the formatter below asks a question."
-  (unless (claude-code-ide-org--ceremony-done-today-p)
+  ;; Two independent ways to be quiet, and they answer different
+  ;; questions on purpose (TODO.org :ID: 806ff394).  The stamp says *the
+  ;; ceremony was completed* -- a claim only a human can make, since it
+  ;; spans steps nothing observes.  The clock says *a pass was run*,
+  ;; which is derived from the act itself and cannot be forgotten.
+  ;; Either is reason enough not to ask again today; only the first is
+  ;; reason to believe the ceremony is done, which is why the report
+  ;; below states when that last happened rather than implying it.
+  (unless (or (claude-code-ide-org--ceremony-done-today-p)
+              (claude-code-ide-org--ceremony-reviewed-today-p))
     (let ((pending (length (claude-code-ide-org--review-items-from-queue)))
           (drifted (nth 1 (claude-code-ide-org--consolidate-drawers-1 t)))
           (archivable 0))
@@ -699,7 +735,13 @@ why this returns numbers and the formatter below asks a question."
                              claude-code-ide-org--outline-finished-keywords)
                  (setq archivable (1+ archivable))))
              nil 'file))))
-      (list :pending pending :drifted drifted :archivable archivable))))
+      (list :pending pending :drifted drifted :archivable archivable
+            :last-done (let ((f (claude-code-ide-org--ceremony-stamp-file)))
+                         (when (file-exists-p f)
+                           (format-time-string
+                            "%Y-%m-%d %a"
+                            (file-attribute-modification-time
+                             (file-attributes f)))))))))
 
 (defun claude-code-ide-org--format-ceremony-report (status)
   "Format STATUS into a line for Claude to relay as a question.
@@ -723,8 +765,14 @@ before it was unwelcome."
        (format (concat "Today's review-and-planning pass has not been run yet. "
                        "Waiting: %d queued item(s) pending review, %d :LOGBOOK: "
                        "drawer(s) out of order, %d finished heading(s) not yet "
-                       "archived. ")
-               pending drifted archivable)
+                       "archived. The ceremony was last marked complete %s. ")
+               pending drifted archivable
+               ;; Stated, never implied.  This prompt goes quiet as soon
+               ;; as a pass is *run*, which is not the same as the
+               ;; ceremony being *finished* -- so the date it was last
+               ;; finished has to be visible or silence would read as
+               ;; completion (TODO.org :ID: 806ff394).
+               (or (plist-get status :last-done) "never"))
        "Ask the user whether they want to run it now; do not announce that you "
        "will, and do not run any part of it unasked. Apply is theirs alone -- "
        "M-x claude-code-ide-org-review -- because org's state-change logging "

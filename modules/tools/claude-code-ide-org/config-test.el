@@ -8362,6 +8362,40 @@ date, so a stamp backdated to yesterday must not silence today."
       (set-file-times f (time-subtract (current-time) (days-to-time 1)))
       (should-not (claude-code-ide-org--ceremony-done-today-p)))))
 
+(ert-deftest claude-code-ide-org-test-ceremony-quiets-on-a-real-pass ()
+  "Running a pass silences the prompt, with nobody remembering anything.
+
+TODO.org :ID: 806ff394.  The prompt used to depend on a session calling
+`mark-ceremony-done' an hour and many turns after being told to -- the
+shape :ID: 2758f3a0 measured failing at 41 of 45, every miss on
+re-mention.  Since :ID: 961f15b6 the review command opens a real clock,
+so \"a pass ran today\" is *derived from the act itself*."
+  (claude-code-ide-org-test--with-attention-target
+    (let ((claude-code-ide-org-queue-directory
+           (file-name-directory (claude-code-ide-org--capture-target-file))))
+      (should-not (claude-code-ide-org--ceremony-reviewed-today-p))
+      ;; Running a pass is what creates the evidence.
+      (claude-code-ide-org-review-attention-start)
+      (claude-code-ide-org-review-attention-stop)
+      (should (claude-code-ide-org--ceremony-reviewed-today-p))
+      (should-not (claude-code-ide-org--ceremony-status)))))
+
+(ert-deftest claude-code-ide-org-test-ceremony-quiet-does-not-mean-complete ()
+  "Silence after a pass must not read as the ceremony being finished.
+
+The two signals answer different questions and the report has to keep
+them apart: a pass being *run* is derived and cannot be forgotten; the
+ceremony being *complete* spans steps nothing observes and only a human
+can assert.  So the report states when it was last actually marked
+complete, rather than letting quiet imply it."
+  (let ((text (claude-code-ide-org--format-ceremony-report
+               '(:pending 3 :drifted 1 :archivable 9 :last-done "2026-08-20 Thu"))))
+    (should (string-match-p "last marked complete 2026-08-20 Thu" text)))
+  ;; Never marked complete says so outright rather than omitting it.
+  (let ((text (claude-code-ide-org--format-ceremony-report
+               '(:pending 3 :drifted 1 :archivable 9))))
+    (should (string-match-p "last marked complete never" text))))
+
 (ert-deftest claude-code-ide-org-test-ceremony-report-asks-and-never-proposes ()
   "It states counts and asks; it must not announce an intention to act.
 
