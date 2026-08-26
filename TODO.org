@@ -6517,6 +6517,27 @@ this project's Doom config pending an upstream report/PR.
 
 *Worth a sweep rather than a one-line fix.* A docstring that contradicts its own =defcustom= is invisible to every test and to =bin/lint-org=, so if this one drifted, the reversal that produced it may have left others. Check what else references =226ed53b='s step 2(c).
 
+*Shipped [2026-08-26 Wed] as [[orgit-rev:claude-code-ide-org::24df841][24df841]].* Three docstrings re-described, two test comments corrected, one regression test added.
+
+*The sweep found exactly three falsified sites, and the test that bounded it was tense rather than topic.* =--trigger-auto-clock-in= (the tracked one), =--blocker-clock-running-p='s "Rarely reached since 2026-08-18" paragraph, and the =defcustom='s own tail -- "What a human gives up", "Set this to t to have the old behaviour back", and the list of what turns quiet. Every *other* =226ed53b= reference in both files is a historical claim about the double-counting repair, which was never reverted, so all of them stay. That distinction is what kept this from becoming a rewrite of eleven sites.
+
+*Verified against the running Emacs rather than read off the =defcustom=*: =(:live t :standard t)=. Both readings matter -- the docstring's "which is nil" was false of the default *and* of the live value, so no local customisation could have excused it.
+
+*The blame is precise and worth keeping.* [[orgit-rev:claude-code-ide-org::eca3a77][eca3a77]] re-enabled the variable on 2026-08-19 and updated the =defcustom='s opening line but not its readers. So the drift lasted a week, past a green suite and a clean =bin/lint-org=, in the most misleading available form: inertness asserted of a live function.
+
+*Measured a consequence rather than reasoning about it, and it is easy to state backwards.* With the trigger on, =C-c C-t= to DOING opens a clock -- and =C-c C-t= to DONE on that same heading is then *refused* by =--blocker-clock-running-p=: the keyword stays DOING and =org-block-entry-blocking= names the heading. =org-clock-out-when-done= does not rescue it, because =org-blocker-hook= runs before any after-state-change hook. So the hand-edit path is close the clock, *then* set DONE. That now lives in the blocker's own docstring, where whoever is about to hit it will read it.
+
+*The heading's real complaint is answered, not just its example.* It objected that a docstring contradicting its own =defcustom= "is invisible to every test and to =bin/lint-org=". =claude-code-ide-org-test-no-source-line-claims-the-trigger-is-off= is that test. It scans file *text*, not loaded docstrings, because half the drift was in =config-test.el= comments, which are not docstrings and would otherwise stay unguarded.
+
+*Proved discriminating before being believed*: reintroducing the exact original phrasing fails it at =config.el:3250=, and it passes on either side of that. 422/422.
+
+*Two things it found about itself, both kept in its docstring.* Its needles must be assembled with =concat=, because a literal needle written anywhere in the file is found by its own search -- caught on first run. And the needles are phrase-level, so the rule they actually enforce is narrower than it looks: *say when instead*. One of the historical rewordings made in this same commit -- "off by default for the day between 2026-08-18 and 2026-08-19" -- tripped it and had to be reworded again. That is the right rule anyway: the phrasing is what a reader takes as current, whatever clause follows it.
+
+*Not covered, stated so nobody trusts it further than it goes.* It pins two phrasings that actually drifted, not the meaning; the same falsehood in new words passes. *Not filed as residue*, deliberately: a semantic prose-versus-code lint is not a thing anyone knows how to build, and the general form of "a declared thing the code infers some other way" is already this slice's whole subject.
+
+*Left undone by choice*: this heading's prospective body was not wrapped into a =:PLAN:= drawer. Its DONE is queued, not applied, so the heading still reads NEXT on disk, and a finished-heading treatment ahead of the keyword would misreport it. Available to the next ceremony.
+
+
 
 ** TODO Add README.md and enforce its consistency with CLAUDE.md :code:comms:
 :PROPERTIES:
