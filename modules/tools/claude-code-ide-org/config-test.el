@@ -710,6 +710,66 @@ two mechanisms now compose instead of summing, which is pinned by
       (should (equal "DOING" (org-with-point-at (org-id-find id 'marker)
                                (org-get-todo-state)))))))
 
+(ert-deftest claude-code-ide-org-test-no-source-line-claims-the-trigger-is-off ()
+  "No docstring or comment may assert in the present tense that
+`claude-code-ide-org-auto-clock-in-on-doing' is off, while its standard
+value is t.
+
+*This is the defect it exists for, not a general prose lint.*  TODO.org
+:ID: 6a21e08b: `eca3a77' re-enabled the variable on 2026-08-19 and
+updated the `defcustom' but not its readers, so
+`--trigger-auto-clock-in''s docstring went on telling the reader the
+function was inert -- for a week, past a green suite and a clean
+`bin/lint-org', and it very nearly landed the wrong answer in a heading
+body.  That heading's complaint was precisely that such a contradiction
+\"is invisible to every test\"; this is the test.
+
+Scans *file text* rather than loaded docstrings, because half the drift
+was in `config-test.el' comments, which are not docstrings and would
+otherwise stay unguarded.
+
+*The needles are assembled with `concat' rather than written out, and
+this docstring spells them hyphenated*, because the scan reads the file
+this test lives in: a needle written literally anywhere here is found by
+its own search.  Discovered the moment it was first run.  The two are
+off-by-default and which-is-nil.
+
+*The needles are phrase-level, so the rule they actually enforce is
+\"do not use that phrasing at all -- say *when* instead\".*  A historical
+claim is welcome and several are kept, but it has to be worded so the
+dates carry it: \"Off between 2026-08-18 and 2026-08-19\" passes, while
+the same fact written as off-by-default-for-a-day does not.  That is a
+narrower rule than it first looks, and it is the right one: the phrasing
+is what a reader takes as current, whatever clause follows it.  Found by
+running this -- one of the fixes made alongside it tripped it.
+
+*What this does not cover, stated so nobody trusts it further than it
+goes*: it pins two phrasings that actually drifted, not the meaning.
+Prose asserting the same falsehood in new words passes.  A regression
+test, in the ordinary sense."
+  (skip-unless claude-code-ide-org-test--repo-root)
+  (should (eval (car (get 'claude-code-ide-org-auto-clock-in-on-doing
+                          'standard-value))))
+  (let ((needles (list (concat "off by " "default")
+                       (concat "which is " "nil")))
+        (hits nil))
+    (dolist (name '("config.el" "config-test.el"))
+      (let ((file (expand-file-name
+                   (concat "modules/tools/claude-code-ide-org/" name)
+                   claude-code-ide-org-test--repo-root)))
+        (skip-unless (file-readable-p file))
+        (with-temp-buffer
+          (insert-file-contents file)
+          (dolist (needle needles)
+            (goto-char (point-min))
+            (let ((case-fold-search t))
+              (while (re-search-forward (regexp-quote needle) nil t)
+                ;; Collect where, not just whether -- a bare nil failure
+                ;; on a whole-file scan tells whoever gets it nothing.
+                (push (format "%s:%d: %S" name (line-number-at-pos) needle)
+                      hits)))))))
+    (should-not (nreverse hits))))
+
 (ert-deftest claude-code-ide-org-test-trigger-hook-skips-clock-in-when-already-clocked-there ()
   "If a clock is already running on the heading being set to DOING
 (e.g. via org_clock_in called ahead of the state change), the trigger
@@ -1301,10 +1361,11 @@ one heading, one line."
   (claude-code-ide-org-test--with-heading
     (claude-code-ide-org-test--set-todo-for-real id "DOING")
     ;; Clocked deliberately, not via the trigger. This used to rely on
-    ;; `--trigger-auto-clock-in' firing on the DOING transition, which is
-    ;; off by default since 2026-08-18 -- and relying on it was wrong even
-    ;; before that, since what is under test is how session-context
-    ;; reports a clocked heading, not what opened the clock.
+    ;; `--trigger-auto-clock-in' firing on the DOING transition, which the
+    ;; default switched off for the day between 2026-08-18 and 2026-08-19
+    ;; -- and relying on it was wrong even before that, since what is under
+    ;; test is how session-context reports a clocked heading, not what
+    ;; opened the clock.
     (claude-code-ide-org-test--clock-in-for-real id)
     (should (org-clocking-p))
     (let* ((claude-code-ide-org-query-files (list file))
@@ -5809,10 +5870,12 @@ note being destroyed outright -- does **not** reproduce under `emacs
 documented finding of 3d576d29, so this test asserts the part that is
 environment-independent rather than pretending to cover the part that
 is not."
-  ;; Both halves need the trigger switched ON: since 2026-08-18 it is off
-  ;; by default (`claude-code-ide-org-auto-clock-in-on-doing'), and a
-  ;; guard against a trigger that never fires would assert nothing. This
-  ;; pins that the guard still works for a user who opts back in.
+  ;; Both halves bind the trigger ON explicitly rather than leaning on
+  ;; the default (`claude-code-ide-org-auto-clock-in-on-doing', t today,
+  ;; nil for the day between 2026-08-18 and 2026-08-19). A guard against
+  ;; a trigger that never fires would assert nothing, so the binding pins
+  ;; the guard under the setting that actually exercises it -- and keeps
+  ;; the test honest if the default is ever reversed again.
   ;;
   ;; Without the guard: a stray clock at now.
   (claude-code-ide-org-test--with-heading

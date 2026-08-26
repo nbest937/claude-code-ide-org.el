@@ -2842,37 +2842,33 @@ them non-overlapping, so it did not help.  What fixed it is
 subtracts whatever this trigger already recorded before writing, so the
 two mechanisms compose instead of summing.
 
-*This reverses a decision, and does so knowingly.*  The 2026-08-11
-cutover considered retiring this trigger and explicitly kept it, on the
-grounds that \"a human's own `C-c C-t' still opens a clock\" (DONE.org's
-deviation table).  That was right while the trigger was the only live
-clock producer worth having.  It is wrong now, and TODO.org :ID:
-226ed53b is why: a clock opened by the trigger is not in any queue, so
-no review pass can see it, confirm it, or correct it -- the same
-divergence CLAUDE.md warns about for a state change driven through
-`emacsclient'.  Two mechanisms recording the same thing by different
-rules is the defect that heading names, and this is the mechanism that
-predates the cutover.
+*The argument that took it away, kept because it is the argument that
+could take it away again.*  The 2026-08-11 cutover considered retiring
+this trigger and explicitly kept it, on the grounds that \"a human's own
+`C-c C-t' still opens a clock\" (DONE.org's deviation table).  TODO.org
+:ID: 226ed53b then objected that a clock opened by the trigger is in no
+queue, so no review pass can see it, confirm it, or correct it -- the
+same divergence CLAUDE.md warns about for a state change driven through
+`emacsclient'.  The paragraph above is where that objection was
+answered rather than merely overruled: invisibility to review was never
+the defect, double counting was, and `--subtract-intervals' removes the
+double counting without removing the trigger.
 
-*What a human gives up*, stated plainly because the reversal takes it
-away: `C-c C-t' to DOING no longer starts timing.  Attention on a
-hand-edited heading has to be claimed deliberately with `C-c C-x C-i',
-which still works and still writes a bare CLOCK line with no annotation
--- the shape that marks an interval as the user's own rather than the
-agent's (TODO.org :ID: 4f8500e6, :ID: b8e6007a).
+*What setting this to nil would cost*, since off is now the road not
+taken: `C-c C-t' to DOING would stop starting timing, and attention on a
+hand-edited heading would have to be claimed deliberately with `C-c C-x
+C-i' -- which works either way, and writes a bare CLOCK line with no
+annotation, the shape that marks an interval as the user's own rather
+than the agent's (TODO.org :ID: 4f8500e6, :ID: b8e6007a).
 
-Set this to t to have the old behaviour back.  It is a `defcustom' and
-not a deletion for exactly that reason: the capability is months old and
-the reversal is a judgement about which record to trust, not a claim
-that anyone wanting the trigger is confused.
-
-Note what turns quiet along with it, none of which is a break:
-`claude-code-ide-org--blocker-clock-running-p' now only ever fires for a
-clock the user opened by hand or the brief one apply opens;
-`claude-code-ide-org--clocked-heading-context' returns nil, so
-`SessionStart' loses its \"Currently clocked in\" line; and the
-clock-status file rests at idle between review passes.  The statusline
-was already moved off the live clock in preparation (:ID: 290b6fc5)."
+Three things go quiet when it is nil, none of them a break:
+`claude-code-ide-org--blocker-clock-running-p' would only ever fire for
+a clock the user opened by hand or the brief one apply opens;
+`claude-code-ide-org--clocked-heading-context' would return nil, so
+`SessionStart' would lose its \"Currently clocked in\" line; and the
+clock-status file would rest at idle between review passes.  The
+statusline was already moved off the live clock (:ID: 290b6fc5), so that
+last one costs nothing either way."
   :type 'boolean
   :group 'claude-code-ide-org)
 
@@ -2899,14 +2895,23 @@ docstring for its shape. Never reads `org-clock-marker' or calls any
 other org-clock.el function except from inside this hook -- i.e.
 never at load or registration time.
 
-*Rarely reached since 2026-08-18*, and kept regardless.  With
-`claude-code-ide-org-auto-clock-in-on-doing' off, the only running
-clocks left are one the user opened by hand and the brief one apply
-opens and closes around each interval it writes -- so the common case
-this was built for, a trigger-opened clock still running when DONE was
-requested, no longer arises.  It is not dead: a hand clock-in followed
-by `C-c C-t' to DONE still reaches it, which is a real sequence and
-exactly the one a human is most likely to get wrong unaided.
+*Routinely reached, and it was briefly not.*  Between 2026-08-18 and
+2026-08-19, with `claude-code-ide-org-auto-clock-in-on-doing' nil, the
+only running clocks left were one the user opened by hand and the brief
+one apply opens and closes around each interval it writes -- so the
+common case this was built for, a trigger-opened clock still running
+when DONE was requested, did not arise.  With the trigger on by default
+again it is the ordinary case.
+
+*Measured in batch 2026-08-26* (TODO.org :ID: 6a21e08b), because the
+consequence is easy to state backwards: `C-c C-t' to DOING opens a clock
+via the trigger, and `C-c C-t' to DONE on that same heading is then
+*refused here* -- the keyword stays DOING and `org-block-entry-blocking'
+names the heading.  `org-clock-out-when-done' does not rescue it, since
+`org-blocker-hook' runs before any after-state-change hook.  So the
+hand-edit path is close the clock, then set DONE, in that order.  A hand
+`C-c C-x C-i' followed by DONE reaches this the same way, and is the
+sequence a human is most likely to get wrong unaided.
 
 The epic's plan said this \"goes quiet: nothing opens a clock outside
 apply\".  That is too strong and is corrected here rather than in the
@@ -3242,18 +3247,24 @@ unless a clock is already running on that exact heading, or the heading
 is a container \(`claude-code-ide-org--container-heading-p'). Guarded
 against re-entrancy by `claude-code-ide-org--auto-clock-in-active'.
 
-*Off by default since 2026-08-18* (TODO.org :ID: 226ed53b, step 2(c)):
-the first thing tested is `claude-code-ide-org-auto-clock-in-on-doing',
-which is nil, so in normal operation this function does nothing at all.
-Read that variable's docstring for the reversal and what it costs -- it
-is the one place the decision is argued, and everything below describes
-the behaviour a user gets by opting back in.
+*On by default.*  The first thing tested is
+`claude-code-ide-org-auto-clock-in-on-doing', whose standard value is t
+and whose live value is t, so in normal operation this function does
+fire.  Read that variable's docstring for the argument on both sides --
+it is the one place the decision is made.
 
-The hook registration is deliberately left in place rather than removed.
-Unregistering would leave a function that is dead in production and live
-only in its own tests, which is precisely the shape this epic's plan
-flags as a finding worth avoiding rather than creating.  Gated, the
-tests exercise a real configuration a user can select.
+*This paragraph said the opposite for a week* (TODO.org :ID: 6a21e08b,
+fixed 2026-08-26).  The variable was nil between 2026-08-18 and
+2026-08-19 (:ID: 226ed53b, step 2(c)); `eca3a77' put it back and updated
+the `defcustom' but not its readers, leaving this docstring asserting
+inertness of a live function -- the most misleading available way to be
+stale, and one no test and no lint can see.
+
+The hook registration is unconditional and the gate is inside the
+function, so setting the variable nil leaves a registered no-op rather
+than unregistering anything.  That is deliberate: it keeps the tests
+exercising a real configuration a user can select, whichever way the
+variable is set.
 CHANGE-PLIST is the plist `org-todo' passes to every
 `org-trigger-hook' function; see `org-trigger-hook's own docstring for
 its shape. Never calls `org-clock-in' or reads `org-clock-marker'
