@@ -200,11 +200,90 @@ predicted the practice, and that costs momentum on every heading to
 answer.
 
 **Related, since it is the same instinct**: don't reach for a
-feature-vs-epic classification either. An epic is simply a heading that
-has acquired children carrying TODO keywords — emergent, reversible, and
-machine-detectable via `claude-code-ide-org--container-heading-p`. No
-heading needs to be classified as one when it is written; see TODO.org
-`:ID:` b5f94b88, which says so about itself.
+feature-vs-story classification either. **A task that has acquired
+children carrying TODO keywords is a story** — emergent, reversible, and
+machine-detectable via `claude-code-ide-org--container-heading-p`, whose
+"container" is simply the code's older word for it. No heading needs to
+be classified as one when it is written; see TODO.org `:ID:` b5f94b88,
+which says so about itself.
+
+**Three words, and they do not overlap.** An **epic** is the grouping a
+task belongs to — today a level-1 heading, and `:ID:` 29439196 proposes
+making it an `:EPIC:` label carried by the task instead. A **story** is a
+task that grew keyworded children. A **slice** names members by
+reference and sequences them. Earlier drafts of this file called a story
+an "epic", which is why `:ID:` 2e660571 exists.
+
+**The axis under both of those, and the one worth carrying:** a grouping
+is either **emergent** or **declared**, and which it is determines the
+mechanism it needs.
+
+A **story** is emergent. A task becomes one by acquiring keyworded
+children — however they arrived, whether grown or refiled — so it can be
+*detected*, nothing is written down, and therefore nothing can go stale.
+That is the whole reason the paragraph above says not to classify one: a
+declaration of something already derivable is a second copy that can
+disagree with the first.
+
+An **epic** and a **slice** are both declared, and they are not the same
+thing. Each asserts that particular tasks belong together for a reason
+the tree does not encode; they differ in what they do about it.
+
+An **epic** is a *label* on the task — `:ID:` 29439196's proposal, named
+`:EPIC:` rather than `:CATEGORY:` so it means one thing. Note what that
+buys once level-1 groupings are gone: a story spans epics for free,
+because its children simply carry different `:EPIC:` values. No refiling,
+and no arrangement of parents to work around.
+
+A **slice** names its members *by reference* — a checkbox list of
+`[[id:...]]` links — and **sequences** them. Nothing moves, so a slice
+can pick a whole story or one task inside one, and the same task can
+appear in one slice and not the next. `:ID:` c44c2119 is the working
+prototype and carries the composition rules inline; the convention
+extracted from it is in `.claude/rules/org-conventions.md`.
+
+What a slice declares is **membership and order, and nothing else**.
+Every other field on one of its lines — keyword, title, checkbox — is
+*derived* from the referent and gets regenerated, never hand-set. A
+checkbox that disagrees with its referent means the slice is stale or
+the referent's keyword is under-reporting; it never means someone
+formed a second opinion worth recording.
+
+**Where a story comes from — the direction, not current practice.** A
+task that outgrows itself **divides** rather than being promoted: a new
+parent appears, the original leaf moves under it *carrying its `:ID:`,
+clock and `:LOGBOOK:`*, and the undone parts of its swollen body become
+new sibling leaves. `:ID:` a0813ae3, designed and **not built** — today
+stories arise by growth or refiling, so what follows is what the model
+buys, not what the files currently guarantee.
+
+The payoff is that **a story is precipitated, never authored.** The new
+parent *is* a story the instant it has keyworded children, so there is
+no moment where anyone decides "this is now a story" and writes it down
+— which is the decision that was always going to be got wrong, and the
+one the emergent definition exists to avoid.
+
+And it is **born empty**, which settles three open things *by
+construction rather than by rule*:
+
+- **No clock.** `:ID:` 3964c575 wants containers to carry none and
+  cannot enforce it, because a heading clocked honestly as a leaf
+  becomes a container retroactively. A story born by division has never
+  been worked, so it has no clock it could have earned.
+- **No history.** The `:ID:`, `:LOGBOOK:` and state transitions travel
+  with the elder child, which is the task that actually did the work.
+- **No body of actions.** The engorged body is *consumed* producing the
+  new leaves. What is left is the reason the group exists — which is the
+  one thing a story's body should hold, and why "a story has no body" is
+  a consequence here rather than an instruction to remember.
+
+Two consequences that are easy to get backwards. Declaring an emergent
+grouping is the error the epic paragraph guards against. Trying to
+*infer* a declared one — reading a story out of the tree's shape — is
+the same error mirrored, and it is what a top-level category tier
+silently does today (`:ID:` 29439196). And note that a declared grouping
+is made of ids, which is why `:ID:` 478d6ec9 is load-bearing here rather
+than a convenience.
 
 **Rule**: work planned via Claude Code's own Plan Mode gets a single
 permanent link in its heading body — `[[file:~/.claude/plans/<slug>.md][Plan]]`
@@ -219,9 +298,16 @@ entering Plan Mode on the same task) edit that same plan file in place —
 Claude Code reuses the existing plan file path for a continuation of the
 same task — so the link is written once and never needs updating to point
 at a new file. No transcription of the plan into org, ever; the link is the
-record, and it is **not removed at `DONE`**. A task with no separate Plan
-Mode session simply carries no link — that's expected, not a gap to fill
-in.
+record.
+
+At `DONE` the link is **relocated into the `:PLAN:` drawer, not deleted** —
+it travels with the rest of the prospective body when `org_wrap_plan` wraps
+it, because a plan link *is* planning content, and a forward-looking pointer
+sitting in a retrospective readout invites a reader to treat the plan as
+current. (Reworded 2026-08-24; this said "not removed at `DONE`", which was
+a rule against losing the link and got read as a rule against moving it.)
+A task with no separate Plan Mode session simply carries no link — that's
+expected, not a gap to fill in.
 
 The link is also what makes the plan durable, which is why it is not
 gated on anything: `bin/sync-plans` copies only those plans some heading
@@ -235,16 +321,37 @@ happened: what shipped, how it was verified, what was measured, what was
 falsified, and why a decision went the way it did. It does not restate
 design the linked plan already holds.
 
-*Prospective only.* Bodies written before 2026-08-14 are not to be
-trimmed to fit this; do not relitigate them — that is churn nobody asked
-for, not a data-safety matter. (Corrected 2026-08-21: this file used to
-call deletion "the one irreversible half of the practice," which is true
-only of *plans* — `plans/`' history is bounded rather than complete,
-since `.githooks/pre-push` only bounds how stale the archive can be, so
-a plan revised twice between syncs loses its intermediate state. Body
-prose in the version-controlled `.org` files is recoverable from any
-commit; the only real exposure is text written and deleted inside a
-single uncommitted window. The org skill says the same.)
+*Revision is expected, not forbidden* (reversed 2026-08-24; this rule
+previously read "Prospective only — bodies written before 2026-08-14 are
+not to be trimmed"). A finished heading's body may be split: the
+prospective half wrapped into a `:PLAN:` drawer via `org_wrap_plan`, the
+debrief left as the body. Relocation is lossless and needs no
+permission. *Condensing* the prospective half is wanted where the seam
+is confident — a body that contradicts itself pollutes the context of
+every later session that consults it for background, which is a cost
+paid repeatedly rather than once.
+
+Three things stay untouched. **Open questions**: a body that asks
+something nobody answered keeps its question verbatim — do not settle it
+now by inference, which is the only thing "relitigating" ever meant.
+**The debrief**: what happened, how it was verified, what was falsified.
+**Anything whose seam you are unsure of** — wrap it whole and condense
+nothing; uncertainty is a reason to relocate rather than to stop.
+
+*Condense in a separate commit from the wrap, never the same one.* A bad
+pare inside `:PLAN:` is invisible by design, since readers are told to
+skip the drawer — it is the one edit here that no later reader will
+catch, which is a sharper hazard than the reversibility question the old
+rule turned on. (That question is settled and no longer load-bearing:
+body prose in the version-controlled `.org` files is recoverable from
+any commit, and only *plans* have bounded history, since
+`.githooks/pre-push` merely bounds how stale the archive can be.)
+
+*The backlog is not this rule.* `cbe282ec` chose "sweep old bodies in
+unedited" to keep 30 headings cheap, and that stands: **backlog = wrap
+unedited; opportunistic = split when you are already reading the heading
+anyway.** Letting the backlog pass acquire per-heading judgement is
+exactly the cost that decision was made to avoid.
 
 *The evidence for the split, from a single day's drift:* three headings
 carried confident design claims that were later found wrong —
@@ -313,6 +420,11 @@ edits an org file at the moment you act.
 | `REVIEW`   → `DONE`       | None                                |
 | Any        → `MAYBE`      | None                                |
 
+**The table describes setting a keyword because the work is happening
+now.** Under `DOING`'s looser sense — started and owed, not executing —
+a keyword can also be set *retroactively*, and then none of the clock
+column applies. See the rules below.
+
 `REVIEW` is **experimental** (TODO.org `:ID:` c954f650) — finished work
 handed back for human judgement. Clock-wise it behaves exactly like
 `WAITING`: entering it closes the clock, leaving it for `DOING` opens one,
@@ -320,11 +432,53 @@ and `REVIEW` → `DONE` touches nothing because no clock is running. These
 rows were added 2026-08-21; until then the keyword was in live use with
 its clock semantics written down nowhere.
 
-**Rule**: any transition *to* `DOING` or `PLANNING` must open a clock, with
-one documented exception: `PLANNING` → `DOING` reuses the already-running
-clock interval rather than closing and reopening it.
-**Rule**: any transition *from* `DOING` or `PLANNING` must close the clock
-first, except the `PLANNING` → `DOING` handoff above.
+**`DOING` means started and owed a return — not executing right now.**
+The useful metaphor is *in the mail*: we have begun and need to circle
+back as soon as possible. It is durable and **plural**; several headings
+may be `DOING` at once. What records actual execution is the *clock*,
+not the keyword, and at most one heading carries a running clock because
+org runs one.
+
+On a container (a story, or a slice) the same word reads one level up: at
+least one member is in the mail. That sense takes no clock at all, and
+`--trigger-auto-clock-in` already exempts containers. The gap is that a
+*slice* is not recognised as one, because its members are links rather
+than children — `:ID:` 95c27fca.
+
+GTD's one-thing-at-a-time is not being followed here, deliberately. That
+rule is calibrated to human working memory; an agent re-reading a
+checklist each turn has different limits, and keeping several started
+items visible is what stops them being silently dropped.
+
+Consequences, each of which has been got wrong in practice:
+
+- **A leaf held for *the user's* judgement is `WAITING`, not `DOING`** —
+  nothing is owed by us, so nothing is in the mail.
+- **A heading that was worked and set down stays `DOING`.** Demoting it
+  to `NEXT` or `TODO` loses the fact that it is owed. This reverses an
+  earlier draft of this section, which claimed the keyword tracks
+  attention rather than progress and that no "started but resting" state
+  should exist; that is exactly the state `DOING` is for.
+- **Setting `DOING` retroactively still opens a clock**, which under this
+  looser sense is a misattribution rather than a nicety: `org-todo
+  "DOING"` fires `--trigger-auto-clock-in` immediately, verified in
+  batch. Recording that something *was* started is not the same act as
+  starting it. See `:ID:` 4f6a6bb1.
+
+**Rule**: a transition *to* `DOING` or `PLANNING` opens a clock **when you
+are starting work now** — the ordinary case, and what the table above
+describes. Two exceptions. `PLANNING` → `DOING` reuses the already-running
+interval rather than closing and reopening it. And a **retroactive**
+`DOING` — recording that a heading was started earlier — opens nothing,
+because the work did not happen now. The mechanism does not yet honour
+that second exception: `org-todo "DOING"` clocks in regardless (`:ID:`
+4f6a6bb1), which is why such a transition should not be queued until it
+is settled.
+**Rule**: a transition *from* `DOING` or `PLANNING` closes the clock **if
+this heading's clock is the one running**. Because `DOING` is plural, a
+heading can be `DOING` with no clock — another heading holds it — and
+there is then nothing to close. The `PLANNING` → `DOING` handoff above
+closes nothing either.
 **Rule**: always use the MCP tools for state changes and clocking — do not
 edit CLOCK entries or TODO keywords by hand when the tools are available.
 If the `emacs-tools` MCP server is *not* connected, prefer stopping and
@@ -419,6 +573,28 @@ several live candidates needing judgement — is what no trigger can decide,
 and it is the common case. GTD's actual invariant is that a live project
 always has a next action; a project without one is the canonical defect a
 weekly review exists to catch.
+
+**Rule, same moment**: any work the closing debrief names as *not done*
+becomes a filed heading before the `DONE` is queued — or the debrief says
+explicitly that it is not worth filing. **A sentence pointing at another
+heading is not a filing action**, and neither is "belongs to X".
+
+This exists because both halves happened in one session, hours apart, and
+nothing distinguished them at the time. `:ID:` e1284bdb was closed *after*
+its unfinished half was split out as `:ID:` 601c885c. `:ID:` aa1ba915 was
+closed with its gap described in prose as belonging to `:ID:` edd47f32 —
+which was never told, and whose four children did not include it. The user
+caught it a day later by asking whether the heading was really done.
+
+The reason prose is not enough is structural rather than a matter of
+diligence: residue named in a *closed* heading's body sits in a document
+readers are told to treat as history, and `org_wrap_plan` will eventually
+sweep it into a `:PLAN:` drawer readers are told to skip. It is on a path
+to becoming invisible from the moment it is written.
+
+Note this is a strictly stronger claim than the nomination rule above.
+Nominating answers "what next in this group"; this answers "what did
+closing this leave behind", which may belong to no group yet.
 
 **Rule**: when nominating, call out blockers that live in a *different*
 subtree. Name the blocking heading and where it is; a `:BLOCKER:` property
@@ -611,6 +787,31 @@ predates today, so once closed (or if nothing was ever left open) it
 stays quiet regardless of how many sessions start that day. The report is
 injected as `additionalContext`, which Claude is expected to relay to the
 user as a question — the hook itself has no way to literally prompt.
+
+**That hook now carries a second, independent report: the daily ceremony
+prompt** (TODO.org `:ID:` aa1ba915). One hook and one payload, because
+`additionalContext` is a single string and a second SessionStart hook
+would double the Emacs round-trip to say the same thing. Either half may
+be absent; the payload is `{}` only when both are, and the script's
+`[[ -s ]]` guard drops it.
+
+The ceremony half names what is waiting — pending queue items, drawers
+out of order, finished headings not yet archived — and then **asks**,
+following the same rule as the stale-interval report above. It is
+explicit that apply is the human's alone, so a session must not offer to
+run the pass. Its "already done today" test is a stamp file,
+`ceremony-last-run` in the queue directory, whose *mtime* carries the
+date; `M-x claude-code-ide-org-mark-ceremony-done` writes it. A day node
+or a falling pending count were both rejected for conflating "the
+ceremony was performed" with "something happened".
+
+The two commands the ceremony runs after apply are
+`claude-code-ide-org-consolidate-all-drawers` (`:ID:` 7ae6562d — reaches
+every drawer, not only ones an apply pass happened to touch) and
+`claude-code-ide-org-normalize-heading-separation` (`:ID:` e1284bdb).
+Both are idempotent and both default to a dry run interactively; **from
+Lisp both default to writing**, which is the one thing to know before
+calling either from code.
 
 **The report asks; it never proposes.** It states the timestamp the
 interval opened at — a fact it has — and asks what time work actually

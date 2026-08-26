@@ -1,15 +1,29 @@
 #!/usr/bin/env bash
-# SessionStart hook: check for open CLOCK/:SESSIONS: intervals left
-# over from a previous day (crash, system shutdown, etc. before Stop
-# could pause them) and, if any are found, inject a note asking
-# Claude to prompt the user for the actual stop time — with an
-# educated guess included, based on claude-code-ide-org-working-hours.
+# SessionStart hook: check for open CLOCK intervals left over from a
+# previous day (crash, system shutdown, etc. before Stop could pause
+# them) and, if any are found, inject a note asking Claude to prompt
+# the user for the actual stop time.
+#
+# It ASKS; it never proposes. The educated guess this used to carry,
+# based on claude-code-ide-org-working-hours, was retired 2026-08-14
+# (TODO.org :ID: 7771fc63) when the premise was measured and failed --
+# 11 of 19 long gaps began INSIDE working hours. A wrong guess is worse
+# than none, because a plausible suggestion is harder to reject than no
+# suggestion at all. (:SESSIONS: is also gone, retired 2026-08-11.)
 #
 # Self-limiting to "first thing each day": it only reports intervals
 # whose open timestamp predates today, so once closed it stays quiet
 # regardless of how many sessions start that day. No-ops entirely if
 # claude-code-ide-org-session-recovery-enabled is nil, or if Emacs
 # isn't reachable.
+#
+# Expect silence. Audited 2026-08-24: no unclosed interval in this
+# repo's whole history ever survived overnight -- every one was closed
+# the same day it opened -- so this has correctly never fired. Two
+# things see to that: kill-emacs-hook and suspend-hook both run
+# claude-code-ide-org--clock-out-if-clocking, and since the 2026-08-11
+# cutover org_clock_in queues rather than opening a clock at all. It is
+# a net for an unclean death, not a routine check.
 cat >/dev/null
 
 out="$(mktemp)"

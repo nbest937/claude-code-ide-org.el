@@ -60,19 +60,42 @@ to `org-default-notes-file' when nil, same convention as
 
 ;;; Helper ----------------------------------------------------------------
 
+(defvar claude-code-ide-org--last-error-backtrace nil
+  "Details of the most recent error `claude-code-ide-org--at-id' swallowed.
+
+A plist (:id ID :message MSG :backtrace STRING), or nil.  Overwritten by
+each conversion, so it answers \"what went wrong just now\" rather than
+keeping a history -- `claude-code-ide-org--review-apply' snapshots it per
+item, which is where a history is actually wanted.")
+
 (defun claude-code-ide-org--at-id (id fn)
   "Find the org heading whose :ID: property equals ID.
 Switch to its buffer, move point to the heading, and call FN with
 no arguments.  Return FN's value, or an error string if the ID
 cannot be resolved or FN signals an error."
   (require 'org-id)
-  (let ((marker (org-id-find id 'marker)))
+  (let ((marker (claude-code-ide-org--id-find id 'marker)))
     (if (not marker)
         (format "Error: no org heading found with :ID: \"%s\"" id)
       (condition-case err
           (org-with-point-at marker
             (funcall fn))
-        (error (format "Error: %s" (error-message-string err)))))))
+        (error
+         ;; Record where it actually failed. This function converts every
+         ;; error into a string, which is what lets callers report a
+         ;; failure without unwinding a batch -- but it also means a
+         ;; failure arrives as prose with no stack and no identity, and
+         ;; the caller cannot tell a typo'd :ID: from a bug three frames
+         ;; down. Measured cost, 2026-08-24: five apply failures reading
+         ;; "Before first headline at position 1" and nothing else, which
+         ;; survived three wrong hypotheses before anyone could act on
+         ;; them.
+         (setq claude-code-ide-org--last-error-backtrace
+               (list :id id
+                     :message (error-message-string err)
+                     :backtrace (ignore-errors
+                                  (backtrace-to-string (backtrace-get-frames)))))
+         (format "Error: %s" (error-message-string err)))))))
 
 ;;; Tool-call audit log ------------------------------------------------------
 ;;
@@ -431,15 +454,22 @@ NOTE rides the tool call into the queue, where the hook reads it off
 exactly the reason the cutover generalises (TODO.org :ID:
 32272061-1d78-4726-b13b-90338edb2ba5).  See clock-template.org for the
 conventions it feeds."
-  (claude-code-ide-org--tolerating-pending-capture id
-    (lambda (title)
-      (format "Queued clock_in on \"%s\"; pending review." title))
-    (lambda ()
-      (claude-code-ide-org--at-id
-       id
-       (lambda ()
-         (format "Queued clock_in on \"%s\"; pending review."
-                 (org-get-heading t t t t)))))))
+  ;; The meta-work category is a legal target and resolves to no
+  ;; heading, so it is accepted here without a lookup. Nothing is
+  ;; created: the day node is minted when this event is *applied*, and
+  ;; dated from the event's own timestamp (TODO.org :ID: 9575e65b).
+  ;; Queuing stays what it has always been -- a line appended to a file.
+  (if (claude-code-ide-org--day-node-target-p id)
+      (format "Queued clock_in on the meta-work day node for today; pending review. The node itself is created when this is applied, dated from this event, so a late apply still files the work under today.")
+    (claude-code-ide-org--tolerating-pending-capture id
+      (lambda (title)
+        (format "Queued clock_in on \"%s\"; pending review." title))
+      (lambda ()
+        (claude-code-ide-org--at-id
+         id
+         (lambda ()
+           (format "Queued clock_in on \"%s\"; pending review."
+                   (org-get-heading t t t t))))))))
 
 (defun claude-code-ide-org-clock-out (&optional note)
   "Report the clock_out as queued.  Closes no clock.
@@ -594,18 +624,190 @@ not."
                                  (plist-get f :logbook-open))))
    findings "\n\n"))
 
+;;; The daily ceremony prompt (TODO.org :ID: aa1ba915) ---------------------
+;;
+;; "Can the ceremony be scheduled so a prompt arrives each day?"  Both
+;; schedulers were measured and neither fits: `CronCreate' is
+;; session-only and in-memory, and the `schedule' skill runs in the
+;; cloud, where localhost:45571 -- and therefore every tool in this
+;; project -- is unreachable.  And the first step cannot be delegated at
+;; all, because apply must run inside a genuinely interactive command.
+;;
+;; So what is buildable is the *prompt*, and the mechanism already
+;; exists: SessionStart, which fires at the first opportunity each day,
+;; injects `additionalContext', and stays silent when there is nothing
+;; to say.  This rides alongside the stale-interval report rather than
+;; adding a second hook.
+
+(defun claude-code-ide-org--ceremony-stamp-file ()
+  "Path of the stamp recording when the ceremony was last performed.
+
+One file whose *mtime* carries the date, not one file per day.  A
+dated-filename scheme accumulates forever and needs a reaper; an mtime
+is already a date and is already maintained by the act of writing."
+  (expand-file-name "ceremony-last-run"
+                    claude-code-ide-org-queue-directory))
+
+(defun claude-code-ide-org--ceremony-done-today-p ()
+  "Non-nil when the ceremony stamp was last written today.
+
+*This is the question the heading had to settle*, and the alternatives
+were rejected on one test: does the signal mean \"the ceremony was
+performed\" or merely \"something happened\"?  The existence of a day
+node conflates them -- a node is created by any meta-work clock-in.  So
+does a drop in the pending count, which falls whenever anyone applies a
+single item.  An explicit stamp means only what it says."
+  (let ((file (claude-code-ide-org--ceremony-stamp-file)))
+    (and (file-exists-p file)
+         (claude-code-ide-org--today-p
+          (file-attribute-modification-time (file-attributes file))))))
+
+(defun claude-code-ide-org-mark-ceremony-done ()
+  "Record that today's ceremony has been performed, silencing the prompt.
+
+Interactive and explicit.  It is deliberately *not* called from the
+apply path: apply is one step of the ceremony, not the whole of it, and
+stamping there would silence the prompt for the days when someone
+applies a couple of items and archives nothing."
+  (interactive)
+  (let ((file (claude-code-ide-org--ceremony-stamp-file)))
+    (make-directory (file-name-directory file) t)
+    (write-region "" nil file nil 'quiet)
+    (when (called-interactively-p 'any)
+      (message "Ceremony marked done for today."))
+    file))
+
+(defun claude-code-ide-org--ceremony-reviewed-today-p ()
+  "Non-nil when a review pass was actually run today.
+
+*Derived, not remembered* (TODO.org :ID: 806ff394).  Since :ID: 961f15b6
+the review command opens a real clock on the attention heading, so a
+CLOCK line dated today is *evidence that the pass ran* -- created by
+running the command, which is the act itself rather than a promise to
+record it afterwards.
+
+This is what removes the model from the nag guard.  The prompt used to
+depend on a session remembering to call
+`claude-code-ide-org-mark-ceremony-done' an hour and many turns after
+being told to, which is the shape this project has already measured
+failing (:ID: 2758f3a0, 41 of 45, every miss on re-mention)."
+  (let ((marker (claude-code-ide-org--review-attention-target)))
+    (when marker
+      (org-with-point-at marker
+        (let ((end (save-excursion (org-end-of-subtree t) (point)))
+              found)
+          (save-excursion
+            (while (and (not found)
+                        (re-search-forward "^[ \t]*CLOCK: \\(\\[[^]]+\\]\\)" end t))
+              (when (claude-code-ide-org--today-p
+                     (claude-code-ide-org--parse-org-timestamp (match-string 1)))
+                (setq found t))))
+          found)))))
+
+(defun claude-code-ide-org--ceremony-status ()
+  "Return a plist of what the ceremony has waiting: (:pending N :drifted N
+:archivable N), or nil when the ceremony has already run today.
+
+Counts only.  Deciding what to do about them is the human's, which is
+why this returns numbers and the formatter below asks a question."
+  ;; Two independent ways to be quiet, and they answer different
+  ;; questions on purpose (TODO.org :ID: 806ff394).  The stamp says *the
+  ;; ceremony was completed* -- a claim only a human can make, since it
+  ;; spans steps nothing observes.  The clock says *a pass was run*,
+  ;; which is derived from the act itself and cannot be forgotten.
+  ;; Either is reason enough not to ask again today; only the first is
+  ;; reason to believe the ceremony is done, which is why the report
+  ;; below states when that last happened rather than implying it.
+  (unless (or (claude-code-ide-org--ceremony-done-today-p)
+              (claude-code-ide-org--ceremony-reviewed-today-p))
+    (let ((pending (length (claude-code-ide-org--review-items-from-queue)))
+          (drifted (nth 1 (claude-code-ide-org--consolidate-drawers-1 t)))
+          (archivable 0))
+      (dolist (file (claude-code-ide-org--tracked-files))
+        ;; Only the *source* files can have anything to archive; a
+        ;; DONE.org heading is already where archiving would put it.
+        (when (and (file-exists-p file)
+                   (not (string-equal (file-name-nondirectory file) "DONE.org")))
+          (with-current-buffer (find-file-noselect file)
+            (org-map-entries
+             (lambda ()
+               (when (member (org-get-todo-state)
+                             claude-code-ide-org--outline-finished-keywords)
+                 (setq archivable (1+ archivable))))
+             nil 'file))))
+      (list :pending pending :drifted drifted :archivable archivable
+            :last-done (let ((f (claude-code-ide-org--ceremony-stamp-file)))
+                         (when (file-exists-p f)
+                           (format-time-string
+                            "%Y-%m-%d %a"
+                            (file-attribute-modification-time
+                             (file-attributes f)))))))))
+
+(defun claude-code-ide-org--format-ceremony-report (status)
+  "Format STATUS into a line for Claude to relay as a question.
+
+*Asks; never proposes*, on the same footing as the stale-interval
+report (TODO.org :ID: 7771fc63).  It states counts, which are facts, and
+asks whether to run the pass, which is a decision.  It must not announce
+an intention to act: the first step of the ceremony cannot be performed
+by an agent at all, so an agent saying it will do it would be wrong
+before it was unwelcome."
+  ;; STATUS is nil whenever the ceremony has already run today, which is
+  ;; the *common* case rather than an edge one -- so this guard is what
+  ;; keeps `--session-start-hook-json' from erroring on an ordinary
+  ;; second session of the day and taking the stale-interval report down
+  ;; with it.  Found by the test, not by reading.
+  (let* ((pending (or (plist-get status :pending) 0))
+         (drifted (or (plist-get status :drifted) 0))
+         (archivable (or (plist-get status :archivable) 0)))
+    (when (and status (> (+ pending drifted archivable) 0))
+      (concat
+       (format (concat "Today's review-and-planning pass has not been run yet. "
+                       "Waiting: %d queued item(s) pending review, %d :LOGBOOK: "
+                       "drawer(s) out of order, %d finished heading(s) not yet "
+                       "archived. The ceremony was last marked complete %s. ")
+               pending drifted archivable
+               ;; Stated, never implied.  This prompt goes quiet as soon
+               ;; as a pass is *run*, which is not the same as the
+               ;; ceremony being *finished* -- so the date it was last
+               ;; finished has to be visible or silence would read as
+               ;; completion (TODO.org :ID: 806ff394).
+               (or (plist-get status :last-done) "never"))
+       "Ask the user whether they want to run it now; do not announce that you "
+       "will, and do not run any part of it unasked. Apply is theirs alone -- "
+       "M-x claude-code-ide-org-review -- because org's state-change logging "
+       "only completes inside a genuinely interactive command. After they "
+       "apply, the remaining steps are yours if they ask: "
+       "claude-code-ide-org-consolidate-all-drawers, then "
+       "claude-code-ide-org-normalize-heading-separation, then archiving. "
+       "When the pass is finished, call claude-code-ide-org-mark-ceremony-done "
+       "so this stops asking until tomorrow."))))
+
 (defun claude-code-ide-org--session-start-hook-json ()
-  "Return the SessionStart hook JSON payload: an empty object if
-there is nothing to report, otherwise one with additionalContext
-describing every stale open interval and its educated guess."
-  (let ((findings (claude-code-ide-org-find-stale-open-intervals)))
-    (if (not findings)
+  "Return the SessionStart hook JSON payload: an empty object if there is
+nothing to report, otherwise one whose additionalContext carries every
+stale open interval and, if today's ceremony has not been run, what it
+has waiting.
+
+*Two reports, one hook, one payload.*  They are independent questions --
+a stale clock is an unclean death, the ceremony is a routine -- but both
+want the same moment and the same manners, and `additionalContext' is a
+single string.  Adding a second SessionStart hook would double the
+Emacs round-trip at every session start to say the same thing twice as
+often.  Either half may be absent; the payload is empty only when both
+are."
+  (let* ((findings (claude-code-ide-org-find-stale-open-intervals))
+         (stale (and findings
+                     (claude-code-ide-org--format-stale-interval-report findings)))
+         (ceremony (claude-code-ide-org--format-ceremony-report
+                    (claude-code-ide-org--ceremony-status)))
+         (parts (delq nil (list stale ceremony))))
+    (if (null parts)
         "{}"
       (json-encode
        `((hookSpecificOutput
           . ((hookEventName . "SessionStart")
-             (additionalContext
-              . ,(claude-code-ide-org--format-stale-interval-report findings)))))))))
+             (additionalContext . ,(mapconcat #'identity parts "\n\n")))))))))
 
 (defun claude-code-ide-org-write-session-start-report (output-path)
   "Write the SessionStart hook JSON payload to OUTPUT-PATH.
@@ -894,7 +1096,7 @@ session with no queue -- and every existing test -- keeps working."
          ;; heading, a stale entry -- must fall through to the clock rather
          ;; than blank the line: the queue having an opinion is not the same
          ;; as that opinion being usable.
-         (qmarker (and qs (ignore-errors (org-id-find (car qs) 'marker))))
+         (qmarker (and qs (ignore-errors (claude-code-ide-org--id-find (car qs) 'marker))))
          (marker (or qmarker
                      (if (org-clocking-p) org-clock-marker
                        (car org-clock-history))))
@@ -1468,6 +1670,105 @@ nothing verifying the composition."
       (when (called-interactively-p 'any) (message "%s" report))
       report)))
 
+(defun claude-code-ide-org-consolidate-all-drawers (&optional dry-run)
+  "Consolidate every :LOGBOOK: drawer across the tracked files.
+
+With DRY-RUN non-nil nothing is written and the report says what would
+change.  A bare `M-x' passes t, so the destructive form has to be asked
+for with a prefix argument.
+
+*From Lisp the default is reversed and that is deliberate but sharp*:
+`(claude-code-ide-org-consolidate-all-drawers)' with no argument
+*writes*.  This matches `claude-code-ide-org-recompute-accumulated-clock-lines',
+whose signature has the same shape, so the two do not disagree -- but a
+caller reading only the interactive behaviour will guess wrong.  Pass
+the argument explicitly either way.
+
+*Why this exists at all, since `claude-code-ide-org-consolidate-on-apply'
+is already t* (TODO.org :ID: 7ae6562d).  That setting fires only on a
+heading an apply pass actually *writes to*.  A drawer disturbed by
+anything else -- a hand `C-c C-x C-i', `--trigger-auto-clock-in' firing
+on a hand-set DOING -- keeps its disorder, and nothing ever returns to
+repair it.  Measured 2026-08-24: 43 of 60 multi-entry drawers in
+DONE.org were out of order, and over half of everything archived *since*
+consolidate-on-apply shipped.  TODO.org looked healthy only because
+apply keeps revisiting those headings.
+
+*The drift is structural, not a bug.*  Org inserts CLOCK lines
+newest-first, `--append-to-drawer' appends before `:END:', and the
+ascending order :ID: af7d3687 chose is neither -- so any writer outside
+apply leaves a drawer disordered by construction.  Reversing the sort to
+match org would end the drift and was rejected: it discards the
+narrative order af7d3687 asked for, breaks that heading's byte-identical
+fixed-point test against `clock-template.org', and flips every tie the
+stable sort exists to preserve.  This is a *coverage* fix, which keeps
+what was asked for, rather than an *ordering* one, which would not.
+
+*Run it before archiving.*  Archiving is the last moment a heading is
+ever touched, so a drawer that is disordered when it moves stays that
+way permanently -- which is how DONE.org got into the state above.  That
+makes this a companion to the archive step (:ID: cbe282ec) rather than a
+ritual of its own.
+
+Reuses `claude-code-ide-org--consolidate-logbook-text' unchanged, which
+is already idempotent and pinned lossless by its own tests, so running
+this twice is a no-op and running it on a healthy file changes nothing."
+  (interactive (list (not current-prefix-arg)))
+  (let* ((counts (claude-code-ide-org--consolidate-drawers-1 dry-run))
+         (headings (nth 0 counts))
+         (changed (nth 1 counts))
+         (files (nth 2 counts))
+         (report (format "%s %d drawer(s) scanned, %d %s%s"
+                         (if dry-run "Dry run:" "Consolidated:")
+                         headings changed
+                         (if dry-run "would be reordered" "reordered")
+                         (if dry-run "" (format ", %d file(s) saved" files)))))
+    (when (called-interactively-p 'any) (message "%s" report))
+    report))
+
+(defun claude-code-ide-org--consolidate-drawers-1 (dry-run)
+  "Do the work of `claude-code-ide-org-consolidate-all-drawers'.
+Returns (HEADINGS CHANGED FILES) rather than a sentence, so a caller
+that wants the *number* of drifted drawers -- the ceremony report does
+(TODO.org :ID: aa1ba915) -- can have it without parsing prose back out
+of a message string."
+  (let ((headings 0) (changed 0) (files 0))
+    (dolist (file (claude-code-ide-org--tracked-files))
+      (when (file-readable-p file)
+        (let* ((already-open (find-buffer-visiting file))
+               (buffer (or already-open (find-file-noselect file)))
+               (touched nil))
+          (with-current-buffer buffer
+            ;; Bound, not cleared: the user's own read-only guard is
+            ;; restored the moment this returns, however it returns.
+            ;; Binding at all follows :ID: 97b030a4's reasoning -- this
+            ;; is a write the human asked for by name.
+            (let ((buffer-read-only nil))
+              (save-excursion
+                (goto-char (point-min))
+                (while (re-search-forward org-heading-regexp nil t)
+                  (let ((bounds (claude-code-ide-org--drawer-content-bounds "LOGBOOK")))
+                    (when bounds
+                      (setq headings (1+ headings))
+                      (let* ((old (buffer-substring-no-properties
+                                   (nth 0 bounds) (nth 1 bounds)))
+                             (new (claude-code-ide-org--consolidate-logbook-text old)))
+                        (unless (equal old new)
+                          (setq changed (1+ changed) touched t)
+                          (unless dry-run
+                            (delete-region (nth 0 bounds) (nth 1 bounds))
+                            (goto-char (nth 0 bounds))
+                            (insert new))))))))
+              (when (and touched (not dry-run))
+                (setq files (1+ files))
+                (save-buffer))))
+          ;; A file this command opened is closed again; one the user
+          ;; already had open is left exactly as found.
+          (unless already-open
+            (with-current-buffer buffer (set-buffer-modified-p nil))
+            (kill-buffer buffer)))))
+    (list headings changed files)))
+
 (defun claude-code-ide-org-consolidate-history (id)
   "Normalise the :LOGBOOK: drawer of the heading with :ID: equal to ID:
 re-emit every entry on one *ascending* timeline with endpoints exactly as
@@ -1668,8 +1969,8 @@ note interactively, which would hang or error under the MCP layer's
 non-interactive call — the same never-block guarantee every other
 tool here gives."
   (require 'org-id)
-  (let ((marker (org-id-find id 'marker))
-        (target-marker (org-id-find target-id 'marker)))
+  (let ((marker (claude-code-ide-org--id-find id 'marker))
+        (target-marker (claude-code-ide-org--id-find target-id 'marker)))
     (cond
      ((not marker)
       (format "Error: no org heading found with :ID: \"%s\"" id))
@@ -1769,9 +2070,9 @@ different one is worse off than a caller that got an error."
     (cond
      ((null target)
       (list :spec (list 'file default) :file default :where "end of file"))
-     ((org-id-find target)
+     ((claude-code-ide-org--id-find target)
       (list :spec (list 'id target)
-            :file (car (org-id-find target))
+            :file (car (claude-code-ide-org--id-find target))
             :where (format "under :ID: %s" target)))
      ((member target (claude-code-ide-org--capture-level-1-headings default))
       (list :spec (list 'file+olp default target)
@@ -1960,8 +2261,50 @@ level or above — which is not a child — can never be mistaken for one."
     (goto-char (or child end))
     (skip-chars-backward " \t\n")))
 
-(defun claude-code-ide-org-amend (id text &optional note)
+(defun claude-code-ide-org--replace-body (text)
+  "Replace the prose body of the heading at point with TEXT.
+
+*Prose only, and that is a structural guarantee rather than care taken.*
+`claude-code-ide-org--heading-body-bounds' begins after
+`org-end-of-meta-data', which skips every leading drawer -- measured
+2026-08-26 against `:PROPERTIES:', `:LOGBOOK:' and `:PLAN:' in
+combination.  So there is no reachable input to this function that
+destroys a drawer; the region it can write to starts below all of them.
+That is what makes wholesale revision safe enough to offer at all.
+
+A heading with no body yet has no bounds, in which case there is nothing
+to replace and the caller should append instead."
+  (let ((bounds (claude-code-ide-org--heading-body-bounds)))
+    (when bounds
+      (delete-region (nth 1 bounds) (nth 2 bounds))
+      (goto-char (nth 1 bounds))
+      (insert (string-trim (or text "")))
+      t)))
+
+(defun claude-code-ide-org-amend (id text &optional note replace)
   "Append TEXT to the body of the heading with :ID: ID.
+
+With REPLACE non-nil, *replace* the body's prose with TEXT instead of
+appending to it (TODO.org :ID: 3063c3e5).
+
+*Why revision is offered despite being destructive.*  Append-only forces
+every body to be a transcript: each correction, each outcome summary,
+each \"this turned out to be wrong\" lands furthest from where a reader
+starts.  The objection append-only answered -- losing how a body
+evolved -- does not need answering here, because *git already holds
+every revision*.  The discipline is simply to commit before revising,
+which is the same argument `plans/' already rests on.  Decided by the
+user 2026-08-20.
+
+*What it cannot touch.*  Only the prose below every drawer; see
+`claude-code-ide-org--replace-body'.  `:PROPERTIES:', `:LOGBOOK:' and a
+`:PLAN:' drawer are all outside the region by construction, so revising
+a finished heading cannot destroy the plan it was wrapped with.
+
+*What an open heading's body is for*, since that is what revision makes
+achievable: the problem, the latest intended approach, and relevant
+verified facts -- the current state of the question, not the stream of
+consciousness of how it got there.
 
 The queue-aware counterpart to editing a heading's prose with the `Edit'
 tool.  Writes through when the file is free and queues the proposal when
@@ -1985,7 +2328,18 @@ enforcement.
 
 Returns \"Amended: ...\", \"Queued amend: ...\", or \"Error: ...\"."
   (require 'org-id)
-  (let ((marker (ignore-errors (org-id-find id 'marker))))
+  ;; Resolve `[[id:...]]' links first, so a fabricated UUID is refused
+  ;; rather than written and caught later by `bin/lint-org'. An
+  ;; 8-character prefix is *expanded* here, which is the point: the
+  ;; writer supplies what they reliably know and the tail is looked up.
+  ;; Nine fabrications across two sessions preceded this, every one with a
+  ;; correct prefix and a wrong tail, and a memory forbidding it
+  ;; throughout.
+  (let ((resolved (claude-code-ide-org-resolve-id-links text)))
+    (unless (car resolved) (setq id nil))
+    (when (car resolved) (setq text (cdr resolved)))
+    (if (null id) (cdr resolved)
+  (let ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker))))
     (if (not marker)
         (format "Error: no org heading found with :ID: \"%s\"" id)
       (let* ((file (buffer-file-name (marker-buffer marker)))
@@ -1993,24 +2347,42 @@ Returns \"Amended: ...\", \"Queued amend: ...\", or \"Error: ...\"."
                       (org-no-properties (org-get-heading t t t t)))))
         (set-marker marker nil)
         (if (claude-code-ide-org--file-busy-p file)
-            (format "%s\"%s\" (%d line%s); pending review."
+            ;; Revision defers exactly as an append does.  It must:
+            ;; racing a human's unsaved edits is the one case where
+            ;; replacing a body could destroy work git has never seen.
+            (format "%s\"%s\" (%d line%s%s); pending review."
                     claude-code-ide-org--reply-queued-amend
                     title
                     (length (split-string (or text "") "\n"))
-                    (if (= 1 (length (split-string (or text "") "\n"))) "" "s"))
-          (let ((result
-                 (claude-code-ide-org--at-id
-                  id
-                  (lambda ()
-                    (claude-code-ide-org--end-of-body)
-                    ;; Blank line before, so the amendment reads as its own
-                    ;; paragraph rather than running into whatever the body
-                    ;; already ended with.
-                    (insert "\n\n" (string-trim (or text "")) "\n")
-                    (save-buffer)
-                    nil))))
+                    (if (= 1 (length (split-string (or text "") "\n"))) "" "s")
+                    (if replace ", replacing the body" ""))
+          (let* ((replaced nil)
+                 (result
+                  (claude-code-ide-org--at-id
+                   id
+                   (lambda ()
+                     (if replace
+                         (setq replaced
+                               (claude-code-ide-org--replace-body text))
+                       (claude-code-ide-org--end-of-body)
+                       ;; Blank line before, so the amendment reads as its own
+                       ;; paragraph rather than running into whatever the body
+                       ;; already ended with.
+                       (insert "\n\n" (string-trim (or text "")) "\n"))
+                     ;; A heading with no body has nothing to replace, so
+                     ;; the revision degrades to an append rather than
+                     ;; silently doing nothing.
+                     (when (and replace (not replaced))
+                       (claude-code-ide-org--end-of-body)
+                       (insert "\n\n" (string-trim (or text "")) "\n"))
+                     (save-buffer)
+                     nil))))
             (or (and (stringp result) result)
-                (format "%s\"%s\"" claude-code-ide-org--reply-amended title))))))))
+                (format "%s\"%s\"%s"
+                        (if replace "Revised: " claude-code-ide-org--reply-amended)
+                        title
+                        (if (and replace (not replaced))
+                            " (had no body; appended instead)" "")))))))))))
 
 ;;; Query -------------------------------------------------------------------
 ;;
@@ -2123,7 +2495,7 @@ itself.  Being unfinished, it answered `open', so every scoped listing
 reported satisfied blockers as [blocked] (TODO.org :ID: f765d782).
 Note that failure took the *confident* branch: [blocked?] exists for
 \"cannot resolve\" and would have been the honest answer."
-  (let ((loc (org-id-find id)))
+  (let ((loc (claude-code-ide-org--id-find id)))
     (when loc
       (with-current-buffer (find-file-noselect (car loc))
         (org-with-wide-buffer
@@ -2244,7 +2616,7 @@ layer."
         (cond
          ;; An :ID: that resolves wins over a file interpretation --
          ;; an :ID: can never also be a readable file name.
-         ((and scope (org-id-find scope))
+         ((and scope (claude-code-ide-org--id-find scope))
           (let ((lines (claude-code-ide-org--at-id
                         scope
                         (lambda ()
@@ -2587,6 +2959,282 @@ discard it."
           (when (org-get-todo-state) (setq found t)))
         found))))
 
+(defconst claude-code-ide-org--slice-member-regexp
+  "^[ \t]*- \\(?:\\[\\([ Xx-]\\)\\] \\)?\\[\\[id:\\([^]]+\\)\\]"
+  "Matches one member line of a slice's checkbox list.
+
+Group 1 is the checkbox mark, absent for a cancelled or deferred member
+whose cookie has been deleted.  Group 2 is the link target.
+
+Requiring an `id:' link is what keeps the revision links out: a slice
+also carries a plain list of `orgit-rev:' links for the prompt that drove
+it, and those are list items with no cookie, which would otherwise be
+indistinguishable from a deferred member.")
+
+(defun claude-code-ide-org--slice-p ()
+  "Non-nil when the heading at point is a slice.
+
+Declared by a `:KIND: slice' property.  A slice cannot be *derived* the
+way an epic can -- \"has a checkbox list of id links\" is not a
+structural fact, since an ordinary body may hold one for reference -- so
+unlike `claude-code-ide-org--container-heading-p', which reads structure,
+this reads a declaration.  TODO.org :ID: 8ca6541d argues that at length.
+
+*A tag was tried first and lasted an hour.*  It was that heading's own
+proposal and it looked right: sanctioned by the conventions, natively
+agenda-matchable.  Then the tags on the first real slice were deleted as
+inadvertent, and the assertion built on them went silently inert --
+`bin/lint-org' reported zero errors because nothing was a slice any more,
+which is indistinguishable from nothing being wrong.  A detector whose
+removal is invisible is the wrong detector.
+
+`:KIND:' rather than a coined name: 8ca6541d had already observed that no
+`:KIND:', `:TYPE:' or equivalent property exists in this repo, naming the
+gap while listing four heading classes each detected by a different
+bespoke mechanism.  This is the first one to declare itself, and the
+property is deliberately general enough for the others.
+
+Not inherited -- `org-entry-get' without the inherit flag -- so a
+subheading of a slice is not one."
+  (equal "slice" (org-entry-get nil "KIND")))
+
+(defun claude-code-ide-org--slice-members ()
+  "Return the slice-at-point's members as a list of (ID . MARK).
+
+MARK is the checkbox character, or nil for a member whose cookie has
+been deleted.  Scans the heading's own body only, stopping at the first
+subheading."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((end (save-excursion (outline-next-heading) (or (point) (point-max))))
+          (members nil))
+      (while (re-search-forward claude-code-ide-org--slice-member-regexp end t)
+        ;; MARK is nil only when group 1 did not match at all -- an
+        ;; *absent* cookie.  An empty `[ ]' is a cookie like any other and
+        ;; its member still blocks; conflating the two cost a wrong
+        ;; blocker set of 12 ids instead of 20 the first time this ran.
+        (push (cons (match-string-no-properties 2)
+                    (match-string-no-properties 1))
+              members))
+      (nreverse members))))
+
+(defun claude-code-ide-org--slice-blocker-ids ()
+  "Return the ids the slice at point should block on.
+
+Exactly the members that still carry a checkbox cookie.  A member whose
+cookie was deleted is cancelled or deferred, and deferral is the case
+that matters: a deferred member is *unfinished*, so blocking on it would
+hold the slice open forever for work it explicitly decided not to do.
+Cookie and blocker are therefore the same set by construction, which is
+what the lint assertion checks."
+  (delete-dups
+   (mapcar #'car
+           (seq-filter (lambda (m) (cdr m)) (claude-code-ide-org--slice-members)))))
+
+(defconst claude-code-ide-org--slice-checkbox-by-keyword
+  '(("DONE"      . "X")
+    ("DOING"     . "-")
+    ("REVIEW"    . "-")
+    ("PLANNING"  . "-")
+    ("WAITING"   . "-")
+    ("TODO"      . " ")
+    ("NEXT"      . " ")
+    ("CANCELLED" . nil)
+    ("MAYBE"     . nil))
+  "How a member's checkbox follows from its referent's TODO keyword.
+
+Total, and derived rather than chosen -- there is no judgement in a
+slice's checkbox.  `DONE'/`CANCELLED'/`DOING'/`REVIEW' were given by the
+user; the rest follow the same logic.  `PLANNING' and `WAITING' are `-'
+because work started and a clock opened; `MAYBE' has no cookie because
+deferral is treated exactly as cancellation -- the member keeps its line
+and stops counting, in either direction.
+
+A nil cdr means the cookie is *deleted*, leaving a plain `- ' item.")
+
+(defun claude-code-ide-org--slice-referent-index ()
+  "Hash of full :ID: to (KEYWORD . TITLE) across the tracked files.
+
+One scan rather than an `org-id-find' per member: a slice of twenty
+members would otherwise open and search files twenty times to render one
+heading."
+  (let ((table (make-hash-table :test 'equal))
+        (kw-re (concat "\\`\\(" (mapconcat #'regexp-quote
+                                           (mapcar #'car claude-code-ide-org--slice-checkbox-by-keyword)
+                                           "\\|")
+                       "\\)\\_>")))
+    (dolist (file (claude-code-ide-org--tracked-files) table)
+      (when (file-exists-p file)
+        (with-temp-buffer
+          (let ((org-inhibit-startup t))
+            (insert-file-contents file)
+            (goto-char (point-min))
+            (let (pending)
+              (while (not (eobp))
+                (cond
+                 ((looking-at "^\\*+ +\\(.*\\)$")
+                  (let* ((raw (match-string-no-properties 1))
+                         (kw (and (string-match kw-re raw) (match-string 1 raw)))
+                         (title (if kw (substring raw (match-end 1)) raw)))
+                    (setq title (string-trim (replace-regexp-in-string
+                                              "[ \t]+:[[:alnum:]_@#%:]+:[ \t]*\\'" "" title)))
+                    ;; Strip the referent's own statistics cookie. Copying
+                    ;; `[0/1]' into a slice's checkbox list does not carry
+                    ;; the referent's progress across -- org reads it as a
+                    ;; cookie belonging to *that list item* and recomputes
+                    ;; it against the slice's own structure. Measured: a
+                    ;; leaf member became `[0/0]', and a member with three
+                    ;; nested members kept `[0/3]' only because its
+                    ;; referent happened to have three unfinished children
+                    ;; too. Either way the number reports the slice and
+                    ;; reads as the referent, which is worse than absent.
+                    (setq title (replace-regexp-in-string
+                                 "\\`\\[[0-9]*\\(?:%\\|/[0-9]*\\)\\][ \t]*" "" title))
+                    (setq pending (cons kw title))))
+                 ((and pending (looking-at "^[ \t]*:ID:[ \t]+\\(\\S-+\\)[ \t]*$"))
+                  (puthash (downcase (match-string-no-properties 1)) pending table)
+                  (setq pending nil)))
+                (forward-line 1)))))))))
+
+(defun claude-code-ide-org--refresh-slice-members-at-point (index)
+  "Rewrite the slice-at-point's member lines from INDEX.  Returns a count.
+
+Each line is regenerated as `- [BOX] LINK KEYWORD TITLE': the checkbox
+from the referent's keyword, and the keyword and title copied fresh.  The
+link itself is left alone -- it is the one part that cannot go stale --
+and so is the ordering.
+
+A member whose id is not in INDEX, or whose referent carries no keyword,
+is skipped rather than guessed at.  Both are already errors in
+`bin/lint-org', and a regenerator that invented a state for them would
+paper over exactly what that error exists to surface.
+
+*Everything after the link is replaced*, so a member line carries no
+annotation of its own.  That is the convention rather than a limitation
+of this function: the line is a rendering, and anything hand-written on
+it would be destroyed at the next apply anyway."
+  (save-excursion
+    (org-back-to-heading t)
+    ;; A *marker*, not a position. Each rewrite changes the line's length,
+    ;; and a fixed integer end would drift: the first replacement here was
+    ;; longer than what it replaced, which pushed the second member line
+    ;; past the bound and left it silently unrefreshed.
+    (let ((end (copy-marker (save-excursion (outline-next-heading) (or (point) (point-max)))))
+          (changed 0))
+      (while (re-search-forward
+              "^\\([ \t]*\\)- \\(\\[[ Xx-]\\] \\)?\\(\\[\\[id:\\([^]]+\\)\\]\\[[^]]*\\]\\]\\)\\(.*\\)$"
+              end t)
+        (let* ((indent (match-string-no-properties 1))
+               (link (match-string-no-properties 3))
+               (id (downcase (match-string-no-properties 4)))
+               (entry (gethash id index))
+               (kw (car entry))
+               (title (cdr entry)))
+          (when (and entry kw)
+            (let* ((box (cdr (assoc kw claude-code-ide-org--slice-checkbox-by-keyword)))
+                   (new (concat indent "- " (if box (format "[%s] " box) "")
+                                link " " kw " " title))
+                   (old (match-string-no-properties 0)))
+              (unless (equal old new)
+                ;; LITERAL is t, so NEW goes in verbatim.  Passing it
+                ;; through `regexp-quote' as well would insert the
+                ;; backslashes into the file -- visible immediately on a
+                ;; title like "[0/3] Make the daily ceremony ...".
+                (replace-match new t t)
+                (setq changed (1+ changed)))))))
+      (set-marker end nil)
+      changed)))
+
+(defun claude-code-ide-org-refresh-slice (&optional id)
+  "Regenerate every slice's checklist from its referents.
+
+The counterpart to applying the queue, and the reason it exists: apply
+changes referents' keywords in bulk, and a slice's member lines are
+*copies* of those keywords.  Nothing else makes a slice stale, and
+nothing detects it when it happens -- `bin/lint-org' compares the
+`:BLOCKER:' against the checkbox list, which both go stale together, and
+`org-update-statistics-cookies' recomputes the cookie from checkboxes
+that have not changed.  Measured 2026-08-25 (TODO.org :ID: 0acc1df2).
+
+Rewrites member lines, then the statistics cookie, then the `:BLOCKER:'
+-- in that order, because each depends on the one before: a member going
+`CANCELLED' loses its cookie, which changes both the count and the
+blocker set.
+
+With ID, refreshes that slice only.  Returns a human-readable summary."
+  (interactive)
+  (require 'org-id)
+  (let ((index (claude-code-ide-org--slice-referent-index))
+        ;; Same reasoning as the apply path (TODO.org :ID: 97b030a4): the
+        ;; user's `buffer-read-only' guards against their own stray
+        ;; keystrokes, and `M-x claude-code-ide-org-refresh-slice' is not
+        ;; one. This is a ceremony step run immediately after apply --
+        ;; the daily sequence tells the human to run it there -- so a
+        ;; read-only buffer failing it would reproduce the exact incident
+        ;; the apply-path binding was added for, one command later.
+        (inhibit-read-only t)
+        (slices 0) (lines 0) (blockers 0))
+    (dolist (file (claude-code-ide-org--tracked-files))
+      (when (file-exists-p file)
+        (with-current-buffer (find-file-noselect file)
+          (org-with-wide-buffer
+           (goto-char (point-min))
+           (while (re-search-forward org-heading-regexp nil t)
+             (when (and (claude-code-ide-org--slice-p)
+                        (or (null id)
+                            (equal (downcase (or (org-entry-get nil "ID") ""))
+                                   (downcase id))))
+               (setq slices (1+ slices))
+               (setq lines (+ lines (claude-code-ide-org--refresh-slice-members-at-point index)))
+               (org-update-statistics-cookies nil)
+               (when (claude-code-ide-org--refresh-slice-blocker-at-point)
+                 (setq blockers (1+ blockers))))))
+          (when (buffer-modified-p) (save-buffer)))))
+    (format "%d slice%s refreshed, %d member line%s rewritten, %d blocker%s updated"
+            slices (if (= slices 1) "" "s")
+            lines (if (= lines 1) "" "s")
+            blockers (if (= blockers 1) "" "s"))))
+
+(defun claude-code-ide-org-refresh-slice-blocker (&optional id)
+  "Write the `:BLOCKER:' of the slice with :ID: ID from its checkbox list.
+
+Interactively, or with ID nil, refreshes every slice in the tracked
+files.  Derived rather than authored, for the same reason every other
+field on a member line is: a hand-maintained blocker list is a second
+copy of the checklist that can disagree with it.
+
+Returns a human-readable summary."
+  (interactive)
+  (require 'org-id)
+  (if id
+      (claude-code-ide-org--at-id
+       id (lambda () (claude-code-ide-org--refresh-slice-blocker-at-point)))
+    (let ((n 0) (changed 0))
+      (dolist (file (claude-code-ide-org--tracked-files))
+        (when (file-exists-p file)
+          (with-current-buffer (find-file-noselect file)
+            (org-with-wide-buffer
+             (goto-char (point-min))
+             (while (re-search-forward org-heading-regexp nil t)
+               (when (claude-code-ide-org--slice-p)
+                 (setq n (1+ n))
+                 (when (claude-code-ide-org--refresh-slice-blocker-at-point)
+                   (setq changed (1+ changed))))))
+            (when (buffer-modified-p) (save-buffer)))))
+      (format "%d slice%s scanned, %d updated" n (if (= n 1) "" "s") changed))))
+
+(defun claude-code-ide-org--refresh-slice-blocker-at-point ()
+  "Set or clear the slice-at-point's `:BLOCKER:'.  Non-nil if it changed."
+  (let* ((ids (claude-code-ide-org--slice-blocker-ids))
+         (new (and ids (format "ids(%s)" (mapconcat #'identity ids " "))))
+         (old (org-entry-get nil "BLOCKER")))
+    (unless (equal old new)
+      ;; Removed rather than emptied when a slice has no blocking
+      ;; members: `ids()' would read as a declaration that nothing blocks,
+      ;; which the lint would then have to tell apart from "not built yet".
+      (if new (org-entry-put nil "BLOCKER" new) (org-entry-delete nil "BLOCKER"))
+      t)))
+
 (defun claude-code-ide-org--trigger-auto-clock-in (change-plist)
   "For `org-trigger-hook': the moment any heading's TODO state becomes
 DOING or PLANNING, automatically open a clock on it via `org-clock-in',
@@ -2756,6 +3404,23 @@ equivalent line by hand instead."
              (format "Auto-demoted: superseded by sibling %s becoming NEXT."
                      reference)))))))))
 
+(defvar claude-code-ide-org--auto-promote-active nil
+  "Re-entrancy guard for `claude-code-ide-org--trigger-auto-promote-sole-todo'.
+
+Bound to t around that function's own `org-todo' call.  `org-todo' fires
+`org-trigger-hook', which is that function, so without this the
+promotion re-enters itself on the group it has just changed.
+
+Distinct from `claude-code-ide-org--review-applying', which suppresses
+the promotion for a whole apply batch so it can be settled once
+afterwards.  That one is deliberately *unbound* during the settle phase,
+which is precisely when this one is needed -- the two are not
+substitutes and the absence of this one is what let a single apply make
+1201 mutations across 114 headings (TODO.org :ID: filed 2026-08-24).
+
+Modelled on `claude-code-ide-org--auto-clock-in-active', which guards
+the sibling trigger against the same shape.")
+
 (defvar claude-code-ide-org--review-applying nil
   "Non-nil while `claude-code-ide-org--review-apply' is working through a
 batch, and read only by `claude-code-ide-org--trigger-auto-promote-sole-todo'.
@@ -2823,7 +3488,8 @@ into the container's own sole remaining child; no evidence has been
 gathered either way, so this promotes nothing, matching the honest-nil
 argument `claude-code-ide-org--review-suggest-heading' makes for the
 same class of refusal."
-  (unless claude-code-ide-org--review-applying
+  (unless (or claude-code-ide-org--review-applying
+              claude-code-ide-org--auto-promote-active)
     (let (todo-markers next-p (group-size 0))
       (claude-code-ide-org--map-siblings
        (lambda ()
@@ -2835,7 +3501,29 @@ same class of refusal."
       (when (and (> group-size 1) (not next-p) (= (length todo-markers) 1))
         (org-with-point-at (car todo-markers)
           (unless (claude-code-ide-org--container-heading-p)
-            (let ((org-inhibit-logging t)) (org-todo "NEXT"))
+            ;; Bound around this call and nothing else. `org-todo' fires
+            ;; `org-trigger-hook', which is this function -- so without
+            ;; the binding the promotion re-enters itself, promotes in
+            ;; the newly-promoted heading's group, and repeats.
+            ;;
+            ;; `--review-applying' does NOT cover this. It is bound only
+            ;; around the apply loop and deliberately unbound during
+            ;; `--review-settle-auto-promote', which is the whole point
+            ;; of suppress-then-settle -- so the settle phase ran with
+            ;; no re-entrancy protection at all. Measured 2026-08-24 on
+            ;; one real apply: 1201 mutations across 114 headings in
+            ;; nine seconds, against twelve queued state changes,
+            ;; sustained at ~240 writes per second. 50 of them landed on
+            ;; level-1 categories, because once the cascade writes a
+            ;; keyword onto one, the level-1 sibling group satisfies the
+            ;; promotion's own condition and feeds it.
+            ;;
+            ;; Exactly the shape `claude-code-ide-org--auto-clock-in-active'
+            ;; already guards for `--trigger-auto-clock-in'. That one had
+            ;; it from the start; this one never got the equivalent.
+            (let ((claude-code-ide-org--auto-promote-active t)
+                  (org-inhibit-logging t))
+              (org-todo "NEXT"))
             (claude-code-ide-org--append-to-drawer
              "LOGBOOK"
              (claude-code-ide-org--format-log-state-line
@@ -3347,8 +4035,11 @@ whole file. This is the single place that judgement is made."
                 :source (alist-get 'source obj)))))))
 
 (defun claude-code-ide-org--queue-applied (session-id)
-  "Return the set of SESSION-ID's already-applied event timestamps.
-A hash table keyed by `ts' string; empty when nothing has been applied.
+  "Return SESSION-ID's already-applied events, a hash of `ts' -> apply time.
+Empty when nothing has been applied. The value is the timestamp of the
+*apply pass* that consumed the event, in the queue's own
+`%Y-%m-%dT%H:%M:%S%z' format -- or the empty string for an entry written
+before this field existed.
 
 A *set* rather than a high-water mark, deliberately. A watermark can
 only describe a contiguous prefix, and review is not contiguous: a human
@@ -3356,11 +4047,33 @@ applies the two items they care about and leaves the rest, whose events
 sit earlier in the same file. A watermark then cannot advance at all --
 observed 2026-08-07, where a real apply wrote no watermark whatsoever and
 every applied item would have been re-proposed, and re-applied, on the
-next pass. Per-event is the honest model for per-item review."
+next pass. Per-event is the honest model for per-item review.
+
+*Why each entry carries when it was consumed* (TODO.org :ID: 21c91613).
+On 2026-08-24 an apply had to be undone, and the ledger could not say
+which events belonged to which pass -- so \"un-apply the pass of 17:17\"
+had to be reconstructed from an `org_pending_updates' report that
+happened to have been captured minutes earlier. With the stamp it is a
+filter. The obvious cheaper fix, a `.applied.bak' snapshot, was
+considered and refused: it can only undo the *most recent* pass, which
+is precisely the case that incident was not -- a third, correct apply
+had already landed on top.
+
+*Both on-disk shapes are read.* Entries written before the field existed
+are a bare JSON array of `ts' strings, and each yields \"\" -- not a
+fabricated time. The same ethos as the retired stale-clock guess: a
+plausible wrong timestamp is worse than a visibly absent one, because it
+survives being read back as fact. The upgrade happens on the next write,
+since the file is rewritten wholesale every time."
   (let ((table (make-hash-table :test 'equal)))
-    (dolist (ts (alist-get 'applied
-                           (claude-code-ide-org--queue-watermark-data session-id)))
-      (puthash ts t table))
+    (dolist (entry (alist-get 'applied
+                              (claude-code-ide-org--queue-watermark-data session-id)))
+      (if (consp entry)
+          ;; New shape: a JSON object, so `json-parse-string' with
+          ;; :object-type `alist' hands back (symbol . string) cells.
+          (puthash (format "%s" (car entry)) (or (cdr entry) "") table)
+        ;; Legacy shape: a bare array element, already a string.
+        (puthash entry "" table)))
     table))
 
 (defun claude-code-ide-org--queue-watermark-data (session-id)
@@ -3412,19 +4125,29 @@ construction rather than by remembering."
   (claude-code-ide-org--atomic-write
    (claude-code-ide-org--queue-watermark-file session-id)
    (json-encode
-    ;; An empty set serializes as `[]'/`{}', never `null'.  Elisp spells
-    ;; the empty list, the empty object and JSON null all as nil, so
+    ;; An empty set serializes as `{}', never `null'.  Elisp spells the
+    ;; empty list, the empty object and JSON null all as nil, so
     ;; `json-encode' would happily emit `null' and this reader would
     ;; happily accept it -- the round-trip works only because both ends
     ;; are lossy in the same direction.  No other JSON stack is: the
-    ;; common `d.get("applied", [])' idiom does not fall back when the
-    ;; key is present holding null, so the field would be an array
+    ;; common `d.get("applied", {})' idiom does not fall back when the
+    ;; key is present holding null, so the field would be an object
     ;; sometimes and null others, which is not a shape worth handing to
-    ;; whatever eventually reports on these files.  A vector and a hash
-    ;; table are how you say "empty, and still an array/object" here.
+    ;; whatever eventually reports on these files.  An empty hash table
+    ;; is how you say "empty, and still an object" here.
+    ;;
+    ;; `applied' became an object rather than an array when each entry
+    ;; started carrying the time of the pass that consumed it; the
+    ;; reader still accepts the older array.  Both fields are now the
+    ;; same shape, which is the point -- one serialization idiom, not
+    ;; two that drift.
     `((applied . ,(let (all)
-                    (maphash (lambda (k _) (push k all)) applied)
-                    (if all (sort all #'string<) [])))
+                    (maphash (lambda (k v) (push (cons (intern k) v) all)) applied)
+                    (if all
+                        (sort all (lambda (a b)
+                                    (string< (symbol-name (car a))
+                                             (symbol-name (car b)))))
+                      (make-hash-table))))
       (dismissed . ,(let (all)
                       (maphash (lambda (k v) (push (cons (intern k) v) all)) dismissed)
                       (if all
@@ -3461,10 +4184,23 @@ atomic -- a cross-filesystem rename is not."
       (with-temp-file tmp (insert string))
       (rename-file tmp path t))))
 
-(defun claude-code-ide-org--queue-mark-applied (session-id ts-strings)
+(defun claude-code-ide-org--queue-mark-applied (session-id ts-strings &optional applied-at)
   "Add TS-STRINGS to SESSION-ID's set of applied events.
 Unions with whatever is already recorded, so a partial apply followed by
 another partial apply accumulates rather than replacing.
+
+APPLIED-AT is the timestamp recorded against each of TS-STRINGS,
+defaulting to now.  *The unit is a pass, not an event*, which is why the
+caller computes it rather than this function: \"un-apply the pass of
+17:17\" is only a filter if every event consumed together carries the
+*same* stamp, and a `now' taken here would differ across the sessions
+`claude-code-ide-org--review-record-applied' loops over.  The default is
+for a one-shot caller with no pass to speak of.
+
+An event already recorded keeps its original stamp.  Re-marking is not a
+second consumption -- the event was consumed once, by the pass named --
+and overwriting would quietly rewrite history the field exists to
+preserve.
 
 Never truncates or rewrites the queue file itself: the session that owns
 it may still be appending, and racing an appending writer is exactly the
@@ -3474,8 +4210,10 @@ recorded beside the log, never in it.
 Round-trips the `dismissed' map untouched. It shares this file, and
 writing only `applied' would erase every dismissal the moment anything
 was applied -- see `claude-code-ide-org--queue-watermark-data'."
-  (let ((applied (claude-code-ide-org--queue-applied session-id)))
-    (dolist (ts ts-strings) (puthash ts t applied))
+  (let ((applied (claude-code-ide-org--queue-applied session-id))
+        (stamp (or applied-at (format-time-string "%Y-%m-%dT%H:%M:%S%z"))))
+    (dolist (ts ts-strings)
+      (unless (gethash ts applied) (puthash ts stamp applied)))
     (claude-code-ide-org--queue-watermark-write
      session-id applied
      (claude-code-ide-org--queue-dismissed session-id))))
@@ -3757,8 +4495,19 @@ the first version of this did."
                    (time-less-p time (cdr iv))))
             intervals))
 
-(defun claude-code-ide-org--aggregate-guideposts (events &optional threshold)
+(defun claude-code-ide-org--aggregate-guideposts (events &optional threshold
+                                                          exclusions)
   "Collapse EVENTS' timestamps into (START . END) spans for review.
+
+EXCLUSIONS is a list of (START . END) intervals treated exactly like a
+permission block: a timestamp strictly inside one is dropped, and one
+lying wholly between two timestamps splits the span rather than being
+clustered through.  Permission blocks are found in EVENTS themselves;
+EXCLUSIONS is for intervals whose evidence is somewhere else, which
+today means the `clock_in'/`clock_out' brackets that already have an
+owner (TODO.org :ID: eaeeb4ee).  Without it an unattributed span
+clusters straight across the brackets that partition it and the same
+minutes are offered twice.
 Consecutive timestamps separated by less than THRESHOLD seconds (default
 `claude-code-ide-org-guidepost-gap-threshold') join one span; a larger
 gap starts a new one. A lone timestamp yields a zero-width span, which
@@ -3799,7 +4548,8 @@ only touching or overlapping intervals, with no gap tolerance, which is
 a different question from clustering points that are merely near each
 other."
   (let* ((gap (or threshold claude-code-ide-org-guidepost-gap-threshold))
-         (blocks (claude-code-ide-org--block-intervals events))
+         (blocks (append (claude-code-ide-org--block-intervals events)
+                         exclusions))
          ;; A guidepost inside a permission block is not evidence of
          ;; work: the agent was stalled waiting on a human for the whole
          ;; of it. Dropping those timestamps is what splits the span,
@@ -3864,6 +4614,50 @@ other."
     (when start (push (cons start previous) spans))
     (nreverse spans)))
 
+(defconst claude-code-ide-org--run-opening-kinds
+  '("resume" "clock_in" "block_end")
+  "Event kinds at which the agent *starts* running.
+
+`resume' is the original member and the only one for a long time: a
+`UserPromptSubmit' wakes the agent.  The other two were added 2026-08-22
+with TODO.org :ID: eaeeb4ee, and both mark the same physical fact.
+
+A `clock_in' is the agent declaring it has begun work on a named
+heading, which is a stronger statement than a guidepost makes -- the
+guidepost says a turn started, the `clock_in' says what it started on.
+A `block_end' is the moment a permission prompt was answered and the
+tool finally ran.
+
+Kept as data rather than folded into
+`claude-code-ide-org--span-work-runs' because
+`claude-code-ide-org--span-kinds-known-p' has to ask the same question
+about the same set, and the two drifting apart would silently disable
+run-splitting for exactly the events the other half had just learned to
+read.")
+
+(defconst claude-code-ide-org--run-closing-kinds
+  '("pause" "clock_out" "block_start")
+  "Event kinds at which the agent *stops* running.
+
+The mirror of `claude-code-ide-org--run-opening-kinds': `pause' is a
+`Stop', `clock_out' is the agent declaring the work finished, and
+`block_start' is the instant a permission prompt appeared and the turn
+stalled.
+
+`block_start' is what makes a permission wait subtract rather than
+count.  Note that it is a *closer* while `block_end' is an opener, which
+reads backwards until you hold it the right way round: the block is the
+hole, so the run ends where the block begins.")
+
+(defun claude-code-ide-org--run-boundary-kind (kind)
+  "Return `open' or `close' for KIND, or nil when it is neither.
+
+Normalising to two symbols is what lets one adjacency rule serve three
+kinds of evidence -- turn guideposts, explicit clock brackets, and
+permission blocks -- instead of three near-copies of it."
+  (cond ((member kind claude-code-ide-org--run-opening-kinds) 'open)
+        ((member kind claude-code-ide-org--run-closing-kinds) 'close)))
+
 (defun claude-code-ide-org--span-kinds-known-p (events)
   "Non-nil when EVENTS carry the `:kind' that run-splitting reads.
 
@@ -3875,7 +4669,8 @@ constructing a plist) may carry `:ts' alone, and for those the honest
 answer is \"cannot tell\", which apply turns back into the single
 whole-span line it wrote before this existed."
   (and (seq-find (lambda (e)
-                   (member (plist-get e :kind) '("pause" "resume")))
+                   (claude-code-ide-org--run-boundary-kind
+                    (plist-get e :kind)))
                  events)
        t))
 
@@ -3923,21 +4718,57 @@ buffer's \"writes N\" summary and the corpus measurement all read one
 implementation.  Sorts defensively: callers hand it a span's `:events',
 which are filtered from an already-sorted list, but nothing in the type
 says so."
-  (let ((points (sort (mapcar (lambda (e) (cons (plist-get e :ts)
-                                                (plist-get e :kind)))
+  (let ((points (sort (mapcar (lambda (e)
+                                (cons (plist-get e :ts)
+                                      (claude-code-ide-org--run-boundary-kind
+                                       (plist-get e :kind))))
                               events)
                       (lambda (a b) (time-less-p (car a) (car b)))))
         runs previous)
     (dolist (point points)
       (when (and previous
-                 (equal (cdr previous) "resume")
-                 (equal (cdr point) "pause"))
+                 (eq (cdr previous) 'open)
+                 (eq (cdr point) 'close))
         (push (cons (car previous) (car point)) runs))
       (setq previous point))
-    (claude-code-ide-org--apply-idle-floor (nreverse runs) floor)))
+    ;; The blocks come from EVENTS themselves, so a caller that hands
+    ;; over a bracket's events gets the wait subtracted without having
+    ;; to know it was there.  Harmless where there are none: the
+    ;; barrier list is empty and the floor behaves exactly as before.
+    (claude-code-ide-org--apply-idle-floor
+     (nreverse runs) floor (claude-code-ide-org--block-intervals events))))
 
-(defun claude-code-ide-org--apply-idle-floor (intervals &optional floor)
+(defun claude-code-ide-org--renders-as-nothing-p (interval fmt)
+  "Non-nil when INTERVAL would write a CLOCK line saying nothing.
+
+Two conditions, and neither implies the other -- which is why they are
+named here once and used twice, to promote and to drop, instead of
+being spelled out at each site and drifting apart.
+
+An interval of 50 seconds inside one minute renders `[09:00]--[09:00]\'
+but rounds to `=>  0:01\'; one of 20 seconds across a minute boundary
+renders `[08:14]--[08:15]\' but rounds to `=>  0:00\'.  Testing only the
+endpoints was the first version of the drop, and it wrote nine `0:00\'
+lines into the real org files during the 507754ba recompute.  Testing
+only the duration was the first version of the *promotion* and left a
+34-second run to be dropped while promoting an 11-second one."
+  (or (equal (format-time-string fmt (car interval))
+             (format-time-string fmt (cdr interval)))
+      (zerop (round (/ (float-time (time-subtract (cdr interval) (car interval)))
+                       60)))))
+
+(defun claude-code-ide-org--apply-idle-floor (intervals &optional floor barriers)
   "Merge INTERVALS separated by less than FLOOR, then drop rendered zeros.
+
+BARRIERS is a list of (START . END) intervals across which two runs are
+never merged however small the gap.  It exists for permission blocks
+(TODO.org :ID: eaeeb4ee): the floor absorbs idle on the theory that a
+short gap between turns is not worth a second CLOCK line, but a block is
+a mechanically certain fact that nothing was running, and the measured
+case is 1m51s -- comfortably under the default floor, so without this
+the two sides of a permission wait merge straight back together and the
+wait is credited as work.  The gap rule and the barrier rule disagree
+only inside FLOOR, which is precisely where a block needs to win.
 
 The shared tail of every path that turns raw guidepost intervals into
 CLOCK lines -- `claude-code-ide-org--span-work-runs' for what apply
@@ -3976,16 +4807,49 @@ one is a choice about what is worth recording."
                             (lambda (a b) (time-less-p (car a) (car b)))))
       (let ((last (car merged)))
         (if (and last
-                 (< (float-time (time-subtract (car interval) (cdr last))) floor))
+                 (< (float-time (time-subtract (car interval) (cdr last))) floor)
+                 (not (seq-find (lambda (b)
+                                  (and (not (time-less-p (car b) (cdr last)))
+                                       (not (time-less-p (car interval) (cdr b)))))
+                                barriers)))
             (when (time-less-p (cdr last) (cdr interval))
               (setcdr last (cdr interval)))
           (push (cons (car interval) (cdr interval)) merged))))
+    ;; Promote before dropping, and the order is the whole point. A run
+    ;; with a *positive* duration was observed: 28 seconds of agent time
+    ;; is work that happened, and org's minute-precision timestamps are
+    ;; the only reason it renders `=>  0:00'. Extending its end to one
+    ;; minute records the observation at the coarsest granularity the
+    ;; format can carry, which is a rounding error; discarding it is a
+    ;; false statement that nothing happened, which is the erasure :ID:
+    ;; 293ac49e was filed against.
+    ;;
+    ;; A run of *zero* width is left alone and falls through to be
+    ;; dropped below. Nothing was observed there -- it is a lone
+    ;; guidepost with nothing to bracket it -- and promoting it would
+    ;; invent a minute of work out of a single timestamp, which is
+    ;; exactly the class of guess :ID: 7771fc63 retired.
+    ;;
+    ;; Instituted 2026-08-24 at the user's request, after they edited a
+    ;; number of 0-minute spans up to 1 minute by hand at review. Doing
+    ;; it here rather than at review means the floor applies to every
+    ;; path that writes a CLOCK line, and nobody has to remember it.
+    ;; The trigger must mirror *both* rendering conditions below, not
+    ;; one. A 34-second run rounds to `0:01' -- `round' goes to nearest,
+    ;; so 34/60 is 1, not 0 -- and would survive the duration test while
+    ;; still being dropped for rendering `[11:17]--[11:17]'. Testing
+    ;; only the duration promoted an 11-second run and silently left a
+    ;; 34-second one to be discarded, which is the exact shape of bug
+    ;; the two-condition drop was written for in the first place.
+    (setq merged
+          (mapcar (lambda (iv)
+                    (if (and (time-less-p (car iv) (cdr iv))
+                             (claude-code-ide-org--renders-as-nothing-p iv fmt))
+                        (cons (car iv) (time-add (car iv) 60))
+                      iv))
+                  merged))
     (seq-remove (lambda (iv)
-                  (or (equal (format-time-string fmt (car iv))
-                             (format-time-string fmt (cdr iv)))
-                      (zerop (round (/ (float-time
-                                        (time-subtract (cdr iv) (car iv)))
-                                       60)))
+                  (or (claude-code-ide-org--renders-as-nothing-p iv fmt)
                       (< (float-time (time-subtract (cdr iv) (car iv)))
                          claude-code-ide-org-span-minimum-interval)))
                 (nreverse merged))))
@@ -4078,6 +4942,103 @@ Each is a plist; see `claude-code-ide-org--review-items-from-queue'.")
   "Non-nil when EVENT is a pause/resume guidepost."
   (member (plist-get event :kind) '("pause" "resume")))
 
+(defun claude-code-ide-org--span-events (events agent &optional session)
+  "Return EVENTS belonging to lane AGENT that bear on a span's shape.
+
+Guideposts *and* permission-block markers.  The block markers are the
+2026-08-22 correction (TODO.org :ID: eaeeb4ee): every caller used to
+filter with `claude-code-ide-org--review-guidepost-p' alone, which
+admits `pause' and `resume' and nothing else, so the block events were
+gone before `claude-code-ide-org--aggregate-guideposts' looked for them
+and `claude-code-ide-org--block-intervals' returned nil on every real
+call.  The permission-block feature (:ID: f4e628ce) was therefore inert
+in production for as long as it had existed, while its tests passed --
+they hand the block events straight to `--aggregate-guideposts' and so
+never crossed the filter that was dropping them.
+
+AGENT selects the lane: nil means the main session, which is the only
+lane whose events carry no `agent_id'.  SESSION, when given, additionally
+restricts to one session's file -- required whenever EVENTS spans more
+than one, since every main lane shares a nil `agent_id' and would
+otherwise pool."
+  (seq-filter (lambda (e)
+                (and (or (claude-code-ide-org--review-guidepost-p e)
+                         (member (plist-get e :kind)
+                                 '("block_start" "block_end")))
+                     (equal (plist-get e :agent-id) agent)
+                     (or (null session)
+                         (equal (plist-get e :session-id) session))))
+              events))
+
+(defun claude-code-ide-org--events-within (events start end agent &optional session)
+  "Return lane AGENT/SESSION's span events from EVENTS inside START..END.
+
+Strictly inside: the bracket's own endpoints are supplied by the caller,
+and a guidepost landing exactly on one would double the boundary."
+  (seq-filter (lambda (e)
+                (let ((ts (plist-get e :ts)))
+                  (and (time-less-p start ts) (time-less-p ts end))))
+              (claude-code-ide-org--span-events events agent session)))
+
+(defun claude-code-ide-org--lane-clock-pairs (events)
+  "Pair EVENTS' `clock_in'/`clock_out' per lane, oldest first.
+
+Returns a list of (OPEN CLOSE) event pairs.  A lane is `agent_id' when
+the event came from a subagent and the main session otherwise -- the
+same partition `claude-code-ide-org--queue-events-by-id' uses, and for
+the same reason: subagents share their parent's `session_id', so a
+single `open' variable would let concurrent agents close each other's
+brackets (TODO.org :ID: 0d789b68).
+
+An unmatched `clock_in' yields no pair and is deliberately left
+unconsumed.  It is the lane's anchor for work that is still running, and
+inventing an end for it is the class of guess :ID: 7771fc63 retired.  A
+`clock_out' with no open `clock_in' is likewise dropped rather than
+extended backwards."
+  (let ((lanes (make-hash-table :test 'equal))
+        pairs)
+    (dolist (event (sort (seq-filter
+                          (lambda (e)
+                            (member (plist-get e :kind)
+                                    '("clock_in" "clock_out")))
+                          (copy-sequence events))
+                         (lambda (a b)
+                           (time-less-p (plist-get a :ts) (plist-get b :ts)))))
+      ;; The session is part of the lane key, not just the agent. Two
+      ;; sessions' main lanes both carry a nil `agent_id', so keying on
+      ;; the agent alone lets one session's `clock_out' close another's
+      ;; bracket -- which only shows up once this function is run over
+      ;; the full multi-session history, as the subdivision path below
+      ;; must.
+      (let ((lane (cons (plist-get event :session-id)
+                        (or (plist-get event :agent-id) :main))))
+        (if (equal (plist-get event :kind) "clock_in")
+            (puthash lane event lanes)
+          (let ((open (gethash lane lanes)))
+            (when open
+              (push (list open event) pairs)
+              (remhash lane lanes))))))
+    (nreverse pairs)))
+
+(defun claude-code-ide-org--lane-clock-intervals (events &optional agent)
+  "Return (START . END) intervals for EVENTS' clock brackets.
+
+With AGENT non-nil, only that lane's; with AGENT nil, only the main
+session's.  Pass `all' for every lane regardless.
+
+These are the intervals that already have an owner, which is what makes
+them subtractable: anything inside one is accounted for by the bracket's
+own review item, so a span clustered over the same minutes would offer
+them a second time."
+  (delq nil
+        (mapcar (lambda (pair)
+                  (let ((open (nth 0 pair)))
+                    (when (or (eq agent 'all)
+                              (equal (plist-get open :agent-id) agent))
+                      (cons (plist-get open :ts)
+                            (plist-get (nth 1 pair) :ts)))))
+                (claude-code-ide-org--lane-clock-pairs events))))
+
 (defun claude-code-ide-org--review-items-from-queue (&optional session-id)
   "Build review items from the pending queue, oldest first.
 
@@ -4104,7 +5065,15 @@ clock_in/clock_out, where the interval is authoritative.
 Items carry the `:events' they were derived from, which is what lets
 `claude-code-ide-org--review-advance-watermarks' tell an applied event
 from a skipped one."
-  (let (items)
+  (let* ((history (claude-code-ide-org--queue-events session-id t))
+         ;; Hoisted out of the per-group loop 2026-08-24. Computed
+         ;; inside it, this ran once per heading -- 53 groups against
+         ;; ~250 events, each call re-filtering and re-sorting the whole
+         ;; history. The answer does not vary by group, so it was
+         ;; O(groups x history) for a constant.
+         (main-brackets (claude-code-ide-org--lane-clock-intervals history nil))
+         (all-brackets (claude-code-ide-org--lane-clock-intervals history 'all))
+         items)
     (dolist (group (claude-code-ide-org--queue-events-by-id session-id))
       (let* ((id (car group))
              (events (cdr group)))
@@ -4142,45 +5111,98 @@ from a skipped one."
                            :note (plist-get event :note)
                            :events (list event))
                      items))))
-          ;; Subagent intervals: pair each agent's own clock_in/clock_out.
-          (let ((by-agent (make-hash-table :test 'equal)))
-            (dolist (event events)
-              (when (and (plist-get event :agent-id)
-                         (member (plist-get event :kind) '("clock_in" "clock_out")))
-                (push event (gethash (plist-get event :agent-id) by-agent))))
-            (maphash
-             (lambda (agent agent-events)
-               (let ((ordered (nreverse agent-events))
-                     open)
-                 (dolist (event ordered)
-                   (if (equal (plist-get event :kind) "clock_in")
-                       (setq open event)
-                     (when open
-                       (push (list :type 'clock :id id
-                                   :start (plist-get open :ts)
-                                   :end (plist-get event :ts)
-                                   :note (or (plist-get open :note)
-                                             (plist-get event :note))
-                                   :agent agent :suggested nil
-                                   :events (list open event))
-                             items)
-                       (setq open nil))))))
-             by-agent))
-          ;; Human spans: cluster this heading's guideposts. The label
-          ;; inherits the enclosing clock_in's note, which is the only
-          ;; source of one -- pause/resume come from hooks Claude never
-          ;; invokes, so they can carry no note of their own.
-          (let* ((guideposts (seq-filter
+          ;; Explicit brackets: pair each lane's own clock_in/clock_out.
+          ;;
+          ;; Every lane, including the main session's -- and that `every'
+          ;; is the 2026-08-22 fix (TODO.org :ID: eaeeb4ee). This loop
+          ;; used to require an `agent_id', on the reasoning that a main
+          ;; -lane bracket may span human idle and so must have its
+          ;; duration reconstructed from guideposts rather than taken
+          ;; whole. The reasoning is sound and is kept below; requiring
+          ;; the agent_id *here* was the wrong place to enforce it,
+          ;; because guideposts are turn boundaries and a bracket opened
+          ;; and closed inside one turn contains none. Measured on the
+          ;; 2026-08-21 queue: four headings clocked across fifteen
+          ;; minutes with no `pause' or `resume' anywhere between the
+          ;; first clock_in and the last clock_out, producing no review
+          ;; item at all, while an hour of their work was offered as one
+          ;; unassigned span and landed on an unrelated heading.
+          (dolist (pair (claude-code-ide-org--lane-clock-pairs events))
+            (let* ((open (nth 0 pair))
+                   (close (nth 1 pair))
+                   (agent (plist-get open :agent-id))
+                   (start (plist-get open :ts))
+                   (end (plist-get close :ts)))
+              (push (list :type 'clock :id id
+                          :start start :end end
+                          ;; The pair's *own* note, not the first
+                          ;; clock_in note in the group. A heading
+                          ;; clocked twice in a session has two notes
+                          ;; describing two different pieces of work,
+                          ;; and the old `(car ...)' over the whole
+                          ;; group labelled both spans with the first.
+                          :note (or (plist-get open :note)
+                                    (plist-get close :note))
+                          :agent agent
+                          ;; A subagent's interval is authoritative end
+                          ;; to end: it ran unattended, so there is no
+                          ;; idle inside to subtract, and `:suggested'
+                          ;; nil is what stops apply re-deriving runs.
+                          ;;
+                          ;; A main-lane bracket is authoritative for
+                          ;; *attribution* and not for duration -- the
+                          ;; human may have sat inside it for an hour.
+                          ;; `:suggested' t sends it through
+                          ;; `--span-work-runs', which now reads the
+                          ;; bracket's own endpoints as run boundaries,
+                          ;; so a bracket with no guideposts inside
+                          ;; yields one run covering it and a bracket
+                          ;; full of them is subdivided as before.
+                          :suggested (if agent nil t)
+                          :origin 'bracketed
+                          ;; Read from the *full* history, applied
+                          ;; events included, and this is not a
+                          ;; refinement -- it is what makes subdivision
+                          ;; work at all. Emission stays pending-only
+                          ;; (the group above is pending), but the
+                          ;; guideposts that subdivide a bracket are
+                          ;; usually applied long before the bracket
+                          ;; itself is, because a `pause'/`resume' pair
+                          ;; reaches the review buffer as a span on the
+                          ;; day it happens while the bracket sat
+                          ;; unconsumed. Measured on the 2026-08-21
+                          ;; queue: with the pending group alone the day
+                          ;; node's bracket saw no guideposts inside it
+                          ;; and offered 48 minutes as one unbroken run,
+                          ;; against ~11 of actual turn time. Same
+                          ;; lesson as `--review-suggest-heading', which
+                          ;; reads the full history for the same reason.
+                          :events (cons open
+                                        (append
+                                         (claude-code-ide-org--events-within
+                                          history start end agent
+                                          (plist-get open :session-id))
+                                         (list close))))
+                    items)))
+          ;; Human spans: cluster whatever guideposts the brackets above
+          ;; did not already account for. Before 2026-08-22 this was the
+          ;; only path that produced a main-lane interval; it now covers
+          ;; the residue, which in practice means an unmatched
+          ;; `clock_in' whose work is still running and has no closing
+          ;; bracket to be partitioned by.
+          (let* ((covered main-brackets)
+                 (guideposts (seq-remove
                               (lambda (e)
-                                (and (claude-code-ide-org--review-guidepost-p e)
-                                     (not (plist-get e :agent-id))))
-                              events))
+                                (claude-code-ide-org--time-within-any-p
+                                 (plist-get e :ts) covered))
+                              (claude-code-ide-org--span-events events nil)))
                  (label (car (delq nil
                                    (mapcar (lambda (e)
                                              (and (equal (plist-get e :kind) "clock_in")
                                                   (plist-get e :note)))
                                            events)))))
-            (dolist (span (claude-code-ide-org--aggregate-guideposts guideposts))
+            (dolist (span (claude-code-ide-org--aggregate-guideposts
+                           guideposts nil covered))
               (push (list :type 'clock :id id
                           :start (car span) :end (cdr span)
                           :note label :agent nil :suggested t
@@ -4215,12 +5237,21 @@ from a skipped one."
            ;; suggestion wants. Nothing is proposed from these; they are
            ;; read only to answer "what was being worked on then".
            (all (claude-code-ide-org--queue-events session-id t))
-           (guideposts (seq-filter
-                        (lambda (e)
-                          (and (claude-code-ide-org--review-guidepost-p e)
-                               (not (plist-get e :agent-id))))
-                        orphans)))
-      (dolist (span (claude-code-ide-org--aggregate-guideposts guideposts))
+           ;; Every bracket in the *pending* queue, whatever heading or
+           ;; lane it belongs to, is subtracted from the orphan stream.
+           ;; Without this the fix above mints the double-count it is
+           ;; meant to remove: on 2026-08-21 the `resume' at 13:07:10 and
+           ;; the `pause' at 13:24:41 are both orphans -- the lane is
+           ;; empty at both moments -- and they are *adjacent* in the
+           ;; orphan stream, because everything between them is bracketed
+           ;; and so attributed elsewhere. A `resume' -> `pause'
+           ;; adjacency never splits however long the gap, so the span
+           ;; would straddle all four brackets by construction and offer
+           ;; their fifteen minutes a second time.
+           (bracketed all-brackets)
+           (guideposts (claude-code-ide-org--span-events orphans nil)))
+      (dolist (span (claude-code-ide-org--aggregate-guideposts
+                     guideposts nil bracketed))
         (push (list :type 'clock
                     :id (claude-code-ide-org--review-suggest-heading (car span) all)
                     :start (car span) :end (cdr span)
@@ -4348,7 +5379,7 @@ marker the same way.  Nil for an ID that resolves to nothing: an
 unresolvable id is not a container, and answering t would suppress a
 suggestion on the strength of a lookup failure."
   (when id
-    (let ((marker (ignore-errors (org-id-find id 'marker))))
+    (let ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker))))
       (when marker
         (prog1 (org-with-point-at marker
                  (claude-code-ide-org--container-heading-p))
@@ -4361,7 +5392,7 @@ other read here uses.  Returns the symbol `unresolved' -- distinct from
 nil, which is a real answer meaning \"no keyword\" -- when the :ID:
 names nothing, so a caller can tell \"heading has no keyword\" from
 \"heading is gone\"."
-  (let ((marker (ignore-errors (org-id-find id 'marker))))
+  (let ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker))))
     (if (not marker)
         'unresolved
       (org-with-point-at marker (org-get-todo-state)))))
@@ -4533,7 +5564,9 @@ mechanism -- but it is now reserved for intervals a human logs
 themselves.  The agenda answers \"where did *my* attention go\"; the
 queue answers \"what was the agent doing\", and conflating them makes
 the first unreadable.  See :ID: b8e6007a."
-  (let* ((fmt "[%Y-%m-%d %a %H:%M]")
+  (let* ((fmt (if (plist-get item :active)
+                  "<%Y-%m-%d %a %H:%M>"
+                "[%Y-%m-%d %a %H:%M]"))
          (note (claude-code-ide-org--review-annotation-label item)))
     (format "- %s--%s%s"
             (format-time-string fmt (or start (plist-get item :start)))
@@ -4814,6 +5847,24 @@ contents, so empty yields a bare State line and non-empty yields the
           ;; errors under batch; the note is already written by then.
           (ignore-errors (org-store-log-note)))))))
 
+(defun claude-code-ide-org--resolve-item-target (item)
+  "Return the :ID: ITEM should be applied against.
+
+Ordinarily ITEM's own `:id'.  When that names the `:DATE_TREE:' category
+instead of a heading, the meta-work day node for ITEM's own timestamp is
+returned, created if it does not exist yet (TODO.org :ID: 9575e65b).
+
+Creation is deliberately here rather than at queue time: a queued tool
+changes nothing, and a node minted for a clock event the human later
+dismisses would be exactly the empty-node problem the on-demand design
+exists to prevent."
+  (let ((id (plist-get item :id)))
+    (if (claude-code-ide-org--day-node-target-p id)
+        (claude-code-ide-org-resolve-day-node
+         (or (plist-get item :start) (plist-get item :ts))
+         'create)
+      id)))
+
 (defun claude-code-ide-org--review-apply-item (item)
   "Apply one review ITEM. Returns nil on success, an error string on failure.
 
@@ -4847,6 +5898,30 @@ lands at all."
               (or (claude-code-ide-org--review-current-state (plist-get item :id))
                   "unset"))
     (let ((claude-code-ide-org--auto-clock-in-active t)
+          ;; Apply is the one path where a read-only buffer must not
+          ;; stop the write, and the reason is about *authorisation*
+          ;; rather than convenience. The user sets `buffer-read-only'
+          ;; to guard against their own stray keystrokes while reading a
+          ;; file; pressing `x' in the review buffer is the opposite of
+          ;; a stray keystroke. The guard was never meant to stand
+          ;; between them and a command they just invoked.
+          ;;
+          ;; Hit for real 2026-08-25: a pass reported "Applied 0
+          ;; item(s); 1 failed", and the failure was
+          ;; `Buffer is read-only: #<buffer TODO.org>' on a day node --
+          ;; caused by an assistant *correctly* restoring the flag after
+          ;; borrowing it for an `org_amend'. Doing the convention right
+          ;; is what broke the pass.
+          ;;
+          ;; Deliberately narrower than TODO.org :ID: c8a97d9d's general
+          ;; proposal that every file-touching tool bind this. A tool
+          ;; call arrives unannounced and there is a real argument for
+          ;; letting the flag stop it; apply has no such ambiguity.
+          ;;
+          ;; A binding, not a `setq': the flag is restored when this
+          ;; scope exits, including on a non-local exit, so a failure
+          ;; part-way through cannot leave the buffer writable.
+          (inhibit-read-only t)
           (claude-code-ide-org--log-source
            (or claude-code-ide-org--log-source "org_review_apply")))
       ;; A capture is the one item whose :ID: names a heading that does
@@ -4856,7 +5931,13 @@ lands at all."
           (claude-code-ide-org--review-apply-capture item)
       (let ((result
              (claude-code-ide-org--at-id
-              (plist-get item :id)
+              ;; A category target becomes a real day node here, and
+              ;; only here. Dated from the event rather than from now,
+              ;; so meta-work clocked Monday and applied Friday creates
+              ;; Monday's node on Friday -- the same rule
+              ;; `org-archive-subtree' follows in filing by CLOSED
+              ;; rather than by archive time.
+              (claude-code-ide-org--resolve-item-target item)
               (lambda ()
                 (pcase (plist-get item :type)
                   ('clock (claude-code-ide-org--review-apply-clock item))
@@ -4920,22 +6001,125 @@ exists to prevent (TODO.org :ID: b5f94b88)."
         nil)
     (error (format "Error: %s" (error-message-string err)))))
 
+(defun claude-code-ide-org--review-describe-failure (item error)
+  "Return ERROR annotated with ITEM's identity, and log any backtrace.
+
+The error string alone is what five identical `Before first headline'
+messages looked like on 2026-08-24: true, useless, and indistinguishable
+from each other.  Naming the item costs nothing and is the difference
+between a mystery and a defect report.
+
+The backtrace goes to *Messages* rather than into the returned string:
+the return value is rendered in the review buffer, where a stack would
+bury the summary, while *Messages* is where someone looks after being
+told something failed."
+  (let ((bt claude-code-ide-org--last-error-backtrace))
+    (when (plist-get bt :backtrace)
+      (message "org-review: %s on %s item %s (%s)\n%s"
+               (plist-get bt :message)
+               (plist-get item :type)
+               (or (plist-get item :id) "(no id)")
+               (format-time-string
+                "%H:%M:%S" (or (plist-get item :ts) (plist-get item :start)))
+               (plist-get bt :backtrace)))
+    (format "%s [%s %s %s]"
+            error
+            (plist-get item :type)
+            (let ((id (plist-get item :id)))
+              (if id (claude-code-ide-org--short-id id) "unassigned"))
+            (format-time-string
+             "%H:%M" (or (plist-get item :ts) (plist-get item :start))))))
+
 (defun claude-code-ide-org--review-record-applied (applied-items)
   "Record every event behind APPLIED-ITEMS as applied, per session.
 
 Marks exactly the events that were consumed -- no more. A skipped item's
 events stay pending regardless of where they sit relative to applied
 ones, which is what makes applying a subset safe and makes re-applying
-an already-applied item impossible."
-  (let ((by-session (make-hash-table :test 'equal)))
+an already-applied item impossible.
+
+*One stamp for the whole pass*, computed here and pushed down, because
+the pass is the unit anyone will ever want to undo (TODO.org :ID:
+21c91613).  Taking the time inside the per-session loop below would give
+each session its own value and answer a subtly different question."
+  (let ((by-session (make-hash-table :test 'equal))
+        (applied-at (format-time-string "%Y-%m-%dT%H:%M:%S%z")))
     (dolist (item applied-items)
       (dolist (event (plist-get item :events))
         (push (plist-get event :ts-string)
               (gethash (plist-get event :session-id) by-session))))
     (maphash (lambda (session-id ts-strings)
                (when session-id
-                 (claude-code-ide-org--queue-mark-applied session-id ts-strings)))
+                 (claude-code-ide-org--queue-mark-applied
+                  session-id ts-strings applied-at)))
              by-session)))
+
+(defun claude-code-ide-org--review-settle-separation (applied-items)
+  "Restore heading separation once APPLIED-ITEMS have all landed.
+
+*Chosen over a lint rule, and the heading that asked for one is where
+the reasoning belongs* (TODO.org :ID: 601c885c).  Three options were
+recorded there -- an error, a warning that never escalates, or a
+pre-commit hook that runs the normaliser -- and all three *report* a
+condition whose repair is one idempotent command.  Eighteen warnings
+telling a human to run `claude-code-ide-org-normalize-heading-separation'
+is eighteen lines of noise standing in for one call.
+
+The fourth option is available only because the same heading measured
+where the drift comes from: it is *structural*, arriving every time the
+queue is applied, because apply appends without the trailing lines.  A
+defect produced by apply can be repaired by apply.  Nothing is left to
+assert, so nothing needs a rule.
+
+*What this does not cover*, stated so the gap is not mistaken for
+completeness: `org_amend' causes the same drift and is not an apply, so
+prose added between passes stays unseparated until the next one.  That
+is acceptable because applies are frequent, and it is the residue to
+revisit if it ever stops being true.
+
+Deliberately after `--review-settle-slices': that one rewrites member
+lines and can itself disturb separation, so normalising must see its
+output rather than the other way round.  Errors are swallowed for the
+same reason they are there -- bookkeeping after the work must not turn a
+landed pass into a failed one."
+  (when applied-items
+    (condition-case err
+        (claude-code-ide-org-normalize-heading-separation nil nil)
+      (error (message "Heading separation after apply failed: %s"
+                      (error-message-string err))))))
+
+(defun claude-code-ide-org--review-settle-slices (applied-items)
+  "Regenerate every slice once APPLIED-ITEMS have all landed.
+
+*The third step of the ceremony that nobody invoked* (TODO.org :ID:
+a0abf97d).  A slice's member lines are copies of its referents'
+keywords, and apply is the only thing that changes those in bulk -- so a
+slice is stale by default between passes, and silently: `bin/lint-org'
+compares the `:BLOCKER:' against the checkbox list, and
+`refresh-slice' regenerates both, so the two agree with each other while
+disagreeing with the tree.
+
+*After the batch, not per item*, for the same reason
+`--review-settle-auto-promote' is: a mid-batch refresh sees
+half-applied state.  Worse here than there -- a member whose `todo'
+event has not landed yet is *keywordless on disk*, which leaves its line
+unrewritten AND manufactures a `:BLOCKER:' lint error naming a
+keyword-less heading (:ID: 798bb7a1, observed the same day).
+
+*Every slice, not only ones this batch touched.*  `refresh-slice' is
+idempotent and there is one live slice; a touched-only variant would
+need the batch to report which ids it wrote, which is machinery bought
+before the distinction costs anything.
+
+Errors are swallowed deliberately.  This is bookkeeping *after* the
+work; a slice that cannot be regenerated must not turn a successful
+apply into a failed one, and the staleness it leaves is the status quo
+ante rather than new damage."
+  (when applied-items
+    (condition-case err
+        (claude-code-ide-org-refresh-slice)
+      (error (message "Slice refresh after apply failed: %s"
+                      (error-message-string err))))))
 
 (defun claude-code-ide-org--review-settle-auto-promote (applied-items)
   "Run the sole-TODO promotion once per heading APPLIED-ITEMS touched,
@@ -5004,9 +6188,20 @@ item-scoped."
   (let (applied errors)
     (let ((claude-code-ide-org--review-applying t))
       (dolist (item items)
+        (setq claude-code-ide-org--last-error-backtrace nil)
         (let ((error (claude-code-ide-org--review-apply-item item)))
-          (if error (push error errors) (push item applied)))))
+          (if error
+              ;; Name the item. A bare error string cannot say WHICH of
+              ;; five failures it belongs to, and the review buffer shows
+              ;; them as one run-on line -- so the human sees the same
+              ;; sentence five times and learns nothing about which
+              ;; heading, kind or timestamp produced it.
+              (push (claude-code-ide-org--review-describe-failure item error)
+                    errors)
+            (push item applied)))))
     (claude-code-ide-org--review-settle-auto-promote applied)
+    (claude-code-ide-org--review-settle-slices applied)
+    (claude-code-ide-org--review-settle-separation applied)
     (claude-code-ide-org--review-record-applied applied)
     ;; :items alongside the count, so the caller can drop exactly what
     ;; applied rather than rebuilding the list from the queue.  The count
@@ -5177,9 +6372,28 @@ the MCP layer."
              ;; holding a residual event -- the latter is nearly all of
              ;; them, forever, and reporting it as "from N sessions"
              ;; would imply N sessions have something waiting.
-             (backing (delete-dups
-                       (apply #'append
-                              (mapcar (lambda (i) (plist-get i :events)) items))))
+             ;; Restricted to events still pending, which the
+             ;; denominator also counts. An item's `:events' may include
+             ;; *applied* ones since 2026-08-22 (TODO.org :ID: eaeeb4ee):
+             ;; a bracket is subdivided by guideposts read from the full
+             ;; history, and those are usually applied long before the
+             ;; bracket is. Counting them here printed "248 of 186",
+             ;; which reads as a corrupt queue rather than as the
+             ;; scaffolding note it is trying to be.
+             (pending (let ((h (make-hash-table :test 'equal)))
+                        (dolist (e events h)
+                          (puthash (cons (plist-get e :session-id)
+                                         (plist-get e :ts-string))
+                                   t h))))
+             (backing (seq-filter
+                       (lambda (e)
+                         (gethash (cons (plist-get e :session-id)
+                                        (plist-get e :ts-string))
+                                  pending))
+                       (delete-dups
+                        (apply #'append
+                               (mapcar (lambda (i) (plist-get i :events))
+                                       items)))))
              (sessions (delete-dups
                         (delq nil (mapcar (lambda (e) (plist-get e :session-id))
                                           backing))))
@@ -5207,10 +6421,24 @@ the MCP layer."
             ;; `cond' able to tell the three cases apart at all.
             (let ((title (and last-id
                               (claude-code-ide-org--review-heading-title last-id))))
+              ;; Branch on what the id *is*, not on whether org-id
+              ;; happens to resolve it. There are four kinds, and the
+              ;; last two both used to fall into "unresolvable" -- which
+              ;; is true of neither (TODO.org :ID: 2b050e7a; the first
+              ;; instance was :ID: 98700ea3, which fixed one branch and
+              ;; left the shape).
               (push (cond
                      ((null last-id)
                       "\n(unassigned -- press `a' in the review buffer to choose a heading)")
                      (title (format "\n%s  {%s}" title last-id))
+                     ;; A capture's :ID: names a heading that does not
+                     ;; exist YET -- that is the whole job of a capture,
+                     ;; and apply is what creates it. Calling that
+                     ;; unresolvable reads as a fault in the item the
+                     ;; human is about to approve.
+                     ((claude-code-ide-org--pending-capture last-id)
+                      (format "\n(new heading, created when this is applied)  {%s}"
+                              last-id))
                      (t (format "\n(unresolvable :ID:)  {%s}" last-id)))
                     lines)))
           (push (claude-code-ide-org--review-describe item) lines))
@@ -5360,7 +6588,23 @@ contiguous run of items that actually succeeded.  Apply the third item
 but not the first two and nothing is consumed -- press \\[claude-code-ide-org-review-refresh] and it is
 all still pending.
 
-\\{claude-code-ide-org-review-mode-map}")
+\\{claude-code-ide-org-review-mode-map}"
+  ;; Wrap rather than truncate, buffer-locally.
+  ;;
+  ;; The user had been toggling this by hand on every review buffer
+  ;; (observed 2026-08-24: `truncate-lines' globally t, buffer-locally
+  ;; nil in the live *org-review* buffer -- the signature of
+  ;; `toggle-truncate-lines'). Every line here is prose the human has to
+  ;; read to decide something -- an annotation label, a heading title, a
+  ;; reason an item writes nothing -- and a truncated line hides exactly
+  ;; the part that carries the decision.
+  ;;
+  ;; `word-wrap' is set alongside, and not merely inherited: with
+  ;; truncation off but word-wrap nil the break lands mid-word, which is
+  ;; worse to read than either extreme. Both are buffer-local, so a
+  ;; global preference for truncation is untouched everywhere else.
+  (setq-local truncate-lines nil)
+  (setq-local word-wrap t))
 
 (defun claude-code-ide-org--review-item-at-point ()
   "Return the review item on the current line, or nil."
@@ -5456,9 +6700,17 @@ stops being degenerate."
      ;; One interaction point, not an interval. The honest zero.
      ((time-equal-p (plist-get item :start) (plist-get item :end))
       " (a single point, not an interval)")
-     ;; Real turn time that org's minute precision cannot show.
+     ;; Retired 2026-08-24 and kept as a guard rather than deleted.
+     ;; This used to report real turn time that org's minute precision
+     ;; could not show -- the case a human then edited up to a minute by
+     ;; hand. `claude-code-ide-org--apply-idle-floor' now promotes any
+     ;; positive run to one minute, so a span with turn time always
+     ;; writes something and can no longer reach this function at all.
+     ;; If it ever does, the two are disagreeing and that is worth
+     ;; saying out loud rather than falling through to "no completed
+     ;; turn", which would be false.
      ((> (cdr turns) 0)
-      (format " (%ds of turns, none crossing a minute)" (round seconds)))
+      (format " (%ds of turns but nothing written -- unexpected since the one-minute floor; please report)" (round seconds)))
      ;; Guideposts, but never a resume followed by a pause -- TODO.org
      ;; :ID: 09c134c4's question, surfaced rather than silently counted
      ;; as zero.
@@ -5709,13 +6961,23 @@ a review buffer is not."
   (and id (substring id 0 (min 8 (length id)))))
 
 (defun claude-code-ide-org--review-heading-title (id)
-  "Return ID's heading title, or nil when ID resolves to nothing."
+  "Return ID's heading title, or nil when ID resolves to nothing.
+
+A `:DATE_TREE:' category target answers with its own title plus what it
+will become, since it names no heading *yet*: the day node is created at
+apply, from the item's own timestamp. Without this the group heading
+rendered the first eight characters of the category title and called it
+unresolved -- literally \"Review a  (unresolved)\" -- because the render
+assumed every id is a UUID and `claude-code-ide-org--short-id' truncates
+to eight (TODO.org :ID: 9575e65b, reported by the user)."
   (when id
-    (let ((marker (ignore-errors (org-id-find id 'marker))))
+    (if (claude-code-ide-org--day-node-target-p id)
+        (format "%s -- that day\'s meta-work node, created at apply" id)
+    (let ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker))))
       (when marker
         (prog1 (org-with-point-at marker
                  (org-no-properties (org-get-heading t t t t)))
-          (set-marker marker nil))))))
+          (set-marker marker nil)))))))
 
 ;;; Span evidence ------------------------------------------------------------
 ;;
@@ -5852,13 +7114,34 @@ that is not there."
                           (cdr row)))
             entries))
     (dolist (gap gaps)
-      (push (cons (car gap)
-                  (format "%7s(nothing for %s, %s-%s)" ""
-                          (claude-code-ide-org--format-duration (cdr gap))
-                          (format-time-string "%H:%M" (car gap))
-                          (format-time-string
-                           "%H:%M" (time-add (car gap) (cdr gap)))))
-            entries))
+      ;; A gap covering the *whole* span prints the span's own two
+      ;; timestamps back at the reader, one line under the line that
+      ;; already shows them, and reads as a bug rather than as evidence
+      ;; (TODO.org :ID: a279216c, reported twice by the user).
+      ;;
+      ;; The line still appears, and that is deliberate: it is
+      ;; :ID: 5ff5a4b8's empty case, and suppressing it entirely would
+      ;; restore the "nothing found is indistinguishable from nobody
+      ;; looked" defect that heading exists to fix. Only the redundant
+      ;; timestamps are dropped. An *interior* gap keeps them, because
+      ;; there the times are the information -- they say which stretch
+      ;; inside the span was empty.
+      ;;
+      ;; Not fixed by raising `claude-code-ide-org-span-evidence-gap':
+      ;; that threshold filters interior gaps by significance, and using
+      ;; it here would hide the empty case silently, for short spans
+      ;; only.
+      (let ((whole (and (time-equal-p (car gap) start)
+                        (time-equal-p (time-add (car gap) (cdr gap)) end))))
+        (push (cons (car gap)
+                    (if whole
+                        (format "%7s(no evidence found in this window)" "")
+                      (format "%7s(nothing for %s, %s-%s)" ""
+                              (claude-code-ide-org--format-duration (cdr gap))
+                              (format-time-string "%H:%M" (car gap))
+                              (format-time-string
+                               "%H:%M" (time-add (car gap) (cdr gap))))))
+              entries)))
     (let ((lines (mapcar #'cdr
                          (sort (nreverse entries)
                                (lambda (a b) (time-less-p (car a) (car b)))))))
@@ -6048,7 +7331,7 @@ rest from lighting up."
           ;; leaving the `(t last-id)' fallback beneath it unreachable.
           ;; And guarding the marker keeps this call site out of the nil
           ;; trap in :ID: 09230b93.
-          (let* ((marker (and last-id (ignore-errors (org-id-find last-id 'marker))))
+          (let* ((marker (and last-id (ignore-errors (claude-code-ide-org--id-find last-id 'marker))))
                  (title (and marker
                              (ignore-errors
                                (org-with-point-at marker
@@ -6213,17 +7496,35 @@ the prompt-fatigue failure `6b1e73c4' already argued against.  Unmarking
 is never refused, since it asks nothing of anyone.  Reports the count it
 skipped rather than leaving the human to notice."
   (let ((line (line-number-at-pos))
-        (skipped 0))
+        (stale 0) (unassigned 0))
     (dolist (item claude-code-ide-org--review-items)
       (let ((want (funcall fn item)))
         (if (and want (not (claude-code-ide-org--review-markable-p item)))
-            (setq skipped (1+ skipped))
+            ;; Count the two refusals separately. They are different
+            ;; problems with different answers, and reporting both as
+            ;; "stale" sent the user to dismiss six spans that were
+            ;; merely unassigned -- three of which carried real recorded
+            ;; time (observed 2026-08-24, "13 stale item(s)" when seven
+            ;; were stale and six wanted `a').
+            (if (and (plist-get item :unassigned) (null (plist-get item :id)))
+                (setq unassigned (1+ unassigned))
+              (setq stale (1+ stale)))
           (plist-put item :marked want))))
     (claude-code-ide-org--review-render)
     (claude-code-ide-org--review-goto-line line)
-    (when (> skipped 0)
-      (message "%d stale item(s) left unmarked -- mark individually to confirm"
-               skipped))))
+    (when (> (+ stale unassigned) 0)
+      (message "%s left unmarked%s"
+               (string-join
+                (delq nil
+                      (list (and (> stale 0) (format "%d stale" stale))
+                            (and (> unassigned 0)
+                                 (format "%d unassigned" unassigned))))
+                ", ")
+               (concat
+                (and (> stale 0) " -- mark stale ones individually to confirm")
+                (and (> unassigned 0)
+                     (format "%s press `a' to assign a heading"
+                             (if (> stale 0) ";" " --"))))))))
 
 (defun claude-code-ide-org-review-mark ()
   "Mark the item at point and move to the next one."
@@ -6307,7 +7608,7 @@ usually the place the human was reading when they ran the review."
       ;; rather than `org-id-goto's bare "Cannot find entry".
       (unless id
         (user-error "This span is not assigned to a heading yet; press `a' to choose one"))
-      (let ((marker (ignore-errors (org-id-find id 'marker))))
+      (let ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker))))
         (unless marker
           (if (eq (plist-get item :type) 'capture)
               (user-error "Not written yet -- this heading's capture is still pending; apply it first")
@@ -6365,6 +7666,26 @@ corrected to what actually happened before anything is written."
            (end-time (claude-code-ide-org--parse-org-timestamp end)))
       (unless (and start-time end-time)
         (user-error "Could not parse those timestamps"))
+      ;; Honour the bracket style. `--parse-org-timestamp' is
+      ;; `org-time-string-to-time', which reads <...> and [...]
+      ;; identically and returns a bare time -- so the one signal a human
+      ;; can give about what KIND of time this is was being discarded at
+      ;; parse, and the annotation re-rendered inactive regardless.
+      ;;
+      ;; Reported 2026-08-24: the user edited [16:00]--[16:00] to
+      ;; <16:00>--<16:31> to say "I thought about the design for those 31
+      ;; minutes". The times were kept and the assertion was dropped.
+      ;;
+      ;; Two different things go through `e' and only the human can tell
+      ;; them apart: correcting an agent interval's bounds (still agent
+      ;; activity, inactive) and asserting an interval as one's own
+      ;; attention (human activity, active -- the case
+      ;; `--review-format-annotation' reserves active timestamps for, and
+      ;; which :ID: b8e6007a established there was no way to reach).
+      ;; Inactive stays the default, since an accidental active timestamp
+      ;; reaches org-agenda.
+      (plist-put item :active (and (string-prefix-p "<" (string-trim start))
+                                   (string-prefix-p "<" (string-trim end))))
       (when (time-less-p end-time start-time)
         (user-error "End is before start"))
       ;; Re-scope the backing events to the new endpoints, and offer
@@ -6502,7 +7823,7 @@ sorts last rather than vanishing: absence of evidence rules nothing out."
     (maphash
      (lambda (id file)
        (when (member (file-truename file) allowed)
-         (let* ((marker (ignore-errors (org-id-find id 'marker)))
+         (let* ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker)))
                 ;; `org-with-point-at' does NOT switch buffers when handed
                 ;; nil: its expansion calls `set-buffer' only under
                 ;; `(markerp ...)', then falls through to
@@ -6562,11 +7883,38 @@ sorts last rather than vanishing: absence of evidence rules nothing out."
                          (if created (float-time created) 0))
                    rows)))))
      (or org-id-locations (make-hash-table :test 'equal)))
-    (mapcar (lambda (r) (cons (nth 0 r) (nth 1 r)))
-            (sort rows (lambda (a b)
-                         (cond ((/= (nth 2 a) (nth 2 b)) (< (nth 2 a) (nth 2 b)))
-                               ((/= (nth 3 a) (nth 3 b)) (< (nth 3 a) (nth 3 b)))
-                               (t (> (nth 4 a) (nth 4 b)))))))))
+    (let ((ranked (mapcar (lambda (r) (cons (nth 0 r) (nth 1 r)))
+                          (sort rows
+                                (lambda (a b)
+                                  (cond ((/= (nth 2 a) (nth 2 b)) (< (nth 2 a) (nth 2 b)))
+                                        ((/= (nth 3 a) (nth 3 b)) (< (nth 3 a) (nth 3 b)))
+                                        (t (> (nth 4 a) (nth 4 b))))))))
+          (category (claude-code-ide-org--datetree-category-title)))
+      ;; The meta-work category, offered first and by *title*, because it
+      ;; is the one destination `org-id' cannot supply: a category
+      ;; carries no :ID: by convention, and `bin/lint-org' enforces that,
+      ;; so the loop above can never reach it however it is ranked
+      ;; (TODO.org :ID: 9575e65b).
+      ;;
+      ;; First rather than ranked, and that is a claim about this list's
+      ;; actual population: a span that got here is one no heading could
+      ;; be guessed for, and the recurring reason a span has no plausible
+      ;; heading is that the work was not on a heading at all -- review,
+      ;; planning, deciding what to do next. Ranking it among headings
+      ;; would bury the answer to the commonest case behind dozens of
+      ;; wrong ones.
+      ;;
+      ;; The id here is the category *title*, not a UUID, and that is
+      ;; deliberate: apply resolves it to the day node for the item's own
+      ;; timestamp, so assigning a span from last Monday files it under
+      ;; last Monday. Nothing needs to know the day node's id, and
+      ;; nothing stores it.
+      (if category
+          (cons (cons (format "%-18s %s  {meta-work: files under that day's node}"
+                              "(the day it happened)" category)
+                      category)
+                ranked)
+        ranked))))
 
 (defun claude-code-ide-org--ordered-collection (candidates)
   "Return a `completing-read' collection over CANDIDATES that keeps their order.
@@ -6728,7 +8076,7 @@ that on its own terms."
   (require 'org-id)
   (let (buffers)
     (dolist (item items)
-      (let* ((marker (ignore-errors (org-id-find (plist-get item :id) 'marker)))
+      (let* ((marker (ignore-errors (claude-code-ide-org--id-find (plist-get item :id) 'marker)))
              (buffer (and marker (marker-buffer marker))))
         (when (and buffer
                    (buffer-local-value 'buffer-read-only buffer)
@@ -6856,6 +8204,150 @@ that re-evaluates staleness against the file as it now stands."
         (claude-code-ide-org--review-restore-read-only cleared)))))
 
 ;;;###autoload
+;;; The human's review attention (TODO.org :ID: 961f15b6) ------------------
+;;
+;; The review pass is the one activity this project has never measured and
+;; the one it most depends on -- nothing reaches an org file without it.
+;;
+;; Human attention and agent activity are *different quantities*, not the
+;; same one measured twice, so the union-overlapping-intervals convention
+;; (:ID: 7d739afd) simply does not reach them and they are separate
+;; totals.  Two consequences, both measured 2026-08-26 rather than
+;; assumed:
+;;
+;;   - `org-clock-in' writes an INACTIVE timestamp and there is no
+;;     configuration that changes it.  So the two quantities cannot be
+;;     told apart by bracket style in a clocktable, and separation has to
+;;     be structural: a heading of their own.
+;;   - A clocktable with `:step day' reports per-day totals from CLOCK
+;;     lines on one ordinary heading, so that heading needs no
+;;     `:DATE_TREE:' -- which is what makes structural separation cheap
+;;     enough to prefer, rather than doubling the datetree scaffolding
+;;     the lint had to learn.
+;;
+;; Not queued, deliberately.  The queue exists because concurrent agent
+;; sessions cannot touch a live buffer safely; a human running an
+;; interactive command in Emacs has none of those constraints and is
+;; already inside the interactive session the whole design routes toward.
+
+(defcustom claude-code-ide-org-review-attention-heading "Review attention"
+  "Exact title of the heading the human's review time is clocked against.
+
+A plain heading, not a `:DATE_TREE:' category.  Per-day reporting comes
+from a clocktable's `:step day', measured 2026-08-26, so the tree buys
+nothing here and costs the scaffolding `e30d52d7' had to teach the lint.
+
+Set to nil to disable review-attention clocking entirely."
+  :type '(choice (const :tag "Disabled" nil) string)
+  :group 'claude-code-ide-org)
+
+(defvar claude-code-ide-org--review-attention-marker nil
+  "Marker for the heading this session's review pass is clocked against.
+Non-nil exactly while a human review interval is open.")
+
+(defun claude-code-ide-org--review-attention-target (&optional create)
+  "Return a marker for the review-attention heading, creating it with CREATE.
+
+Created as a level-2 heading under the meta-work category, since it is
+meta-work by definition and this project reserves level 1 for
+categories."
+  (let ((title claude-code-ide-org-review-attention-heading)
+        (file (claude-code-ide-org--capture-target-file)))
+    (when (and title file (file-readable-p file))
+      (with-current-buffer (find-file-noselect file)
+        (org-with-wide-buffer
+         (goto-char (point-min))
+         (let (found)
+           (while (and (not found) (re-search-forward org-heading-regexp nil t))
+             (beginning-of-line)
+             (if (equal (org-get-heading t t t t) title)
+                 (setq found (point-marker))
+               (end-of-line)))
+           (or found
+               (when create
+                 (let ((buffer-read-only nil))
+                   (goto-char (point-min))
+                   ;; END of the category's subtree, not the line after
+                   ;; its headline.  The first version inserted at
+                   ;; headline+1, which is the category's own
+                   ;; `:PROPERTIES:' drawer -- so the new heading was
+                   ;; wedged between the category and its drawer and
+                   ;; *inherited* it.  On the real file that handed
+                   ;; `:DATE_TREE:' and `:ARCHIVE:' to this heading,
+                   ;; which cost the category its archive routing and
+                   ;; made `org-datetree-find-date-create' build a
+                   ;; second, nested datetree.  Eleven lint errors, and
+                   ;; the user's file, on the first real invocation.
+                   ;;
+                   ;; `org-end-of-subtree' cannot land inside a drawer
+                   ;; or a body, so the class of bug is gone rather than
+                   ;; the instance.
+                   (if (re-search-forward "^\\* Review and planning$" nil t)
+                       (progn (org-back-to-heading t)
+                              (org-end-of-subtree t t))
+                     (goto-char (point-max)))
+                   (unless (bolp) (insert "\n"))
+                   (insert "** " title "\n")
+                   (forward-line -1)
+                   (org-id-get-create)
+                   (org-entry-put (point) "CREATED"
+                                  (format-time-string "[%Y-%m-%d %a %H:%M]"))
+                   (save-buffer)
+                   (point-marker))))))))))
+
+(defun claude-code-ide-org-review-attention-start ()
+  "Open a clock on the review-attention heading.  Idempotent within a pass."
+  (when (and claude-code-ide-org-review-attention-heading
+             (not claude-code-ide-org--review-attention-marker))
+    (let ((marker (claude-code-ide-org--review-attention-target 'create)))
+      (when marker
+        (setq claude-code-ide-org--review-attention-marker marker)
+        (org-with-point-at marker
+          (let ((buffer-read-only nil))
+            (org-clock-in)))
+        marker))))
+
+(defun claude-code-ide-org-review-attention-stop (&optional reason)
+  "Close the review-attention clock, if this session opened one.
+
+REASON is recorded on an *active*-timestamped annotation beside the
+interval.  Active because that is the one part of a `:LOGBOOK:' entry
+that can be -- the `CLOCK:' line above it cannot -- and because an
+active timestamp is what puts the human's own time in the agenda
+\(TODO.org :ID: b8e6007a reserved exactly that for intervals a human
+logs themselves)."
+  (when claude-code-ide-org--review-attention-marker
+    (let ((marker claude-code-ide-org--review-attention-marker)
+          (start org-clock-start-time))
+      (setq claude-code-ide-org--review-attention-marker nil)
+      (when (org-clocking-p)
+        (org-with-point-at marker
+          (let ((buffer-read-only nil))
+            (org-clock-out)
+            (when start
+              (claude-code-ide-org--append-to-drawer
+               "LOGBOOK"
+               (format "- <%s>--<%s> %s"
+                       (format-time-string "%Y-%m-%d %a %H:%M" start)
+                       (format-time-string "%Y-%m-%d %a %H:%M")
+                       (or reason "review pass"))))
+            (save-buffer))))
+      t)))
+
+(defun claude-code-ide-org--review-attention-on-quit (&rest _)
+  "Stop the attention clock when the review buffer stops being visible.
+
+Advice on `quit-window' rather than a rebinding of `q'.  `q' here is
+`special-mode's `quit-window', which *buries*; rebinding it to kill
+would change a key every `special-mode' buffer in Emacs shares, to serve
+a clock.  And burying is not a lesser form of closing -- it is how a
+person actually leaves this buffer, so it is the event to watch."
+  (when (and claude-code-ide-org--review-attention-marker
+             (derived-mode-p 'claude-code-ide-org-review-mode))
+    (claude-code-ide-org-review-attention-stop "review pass (buffer buried)")))
+
+(advice-add 'quit-window :before #'claude-code-ide-org--review-attention-on-quit)
+
 (defun claude-code-ide-org-review ()
   "Review pending org updates and apply the approved ones.
 
@@ -6868,6 +8360,21 @@ correctly inside a real interactive command."
   (let ((buffer (get-buffer-create "*org-review*")))
     (with-current-buffer buffer
       (claude-code-ide-org-review-mode)
+      ;; The command *is* the event (TODO.org :ID: 961f15b6): it is the
+      ;; documented and only entry point to the pass, it cannot be
+      ;; invoked by accident, and starting here needs no utterance and
+      ;; cannot be forgotten -- unlike the "tell you to clock me in"
+      ;; contract, which depends on remembering a sentence at both ends.
+      (claude-code-ide-org-review-attention-start)
+      ;; Buffer-local, and it runs with the buffer current just before
+      ;; the kill.  This is the second of three layers: burying is
+      ;; handled by advice on `quit-window', and `kill-emacs-hook'
+      ;; already runs `--clock-out-if-clocking'.
+      (add-hook 'kill-buffer-hook
+                (lambda ()
+                  (claude-code-ide-org-review-attention-stop
+                   "review pass (buffer killed)"))
+                nil t)
       (claude-code-ide-org-review-refresh))
     (pop-to-buffer buffer)))
 
@@ -6890,6 +8397,90 @@ correctly inside a real interactive command."
 ;; repeater under a completable parent -- and misses the *reasoning*
 ;; kind, where prose asserts behaviour the code no longer has.  Both read
 ;; as settled fact; only one is a string.
+
+(defcustom claude-code-ide-org-plan-drawer-since
+  (encode-time 0 0 0 24 8 2026)
+  "Date from which a finished heading is expected to carry a `:PLAN:' drawer.
+
+Headings closed before this are exempt, because the convention did not
+exist and wrapping them is `cbe282ec\'s backlog rather than a defect.
+Defaults to 2026-08-24, the day the drawer lifecycle was adopted
+\(TODO.org :ID: 8bcd56f4).
+
+A `defcustom\' rather than a constant so a different checkout, or this
+one after the backlog is swept, can move the line without editing the
+check."
+  :type '(repeat integer)
+  :group 'claude-code-ide-org)
+
+(defcustom claude-code-ide-org-repeater-body-max 25
+  "Body lines a heading carrying a repeater may hold before the lint warns.
+
+A repeater never reaches DONE -- its keyword resets and its SCHEDULED
+stamp advances -- so no event in the `:PLAN:\' lifecycle ever prunes its
+body, and a ritual heading accumulates prose forever (TODO.org :ID:
+ff92700e).
+
+25 is calibrated against the case that actually went wrong, and it
+*fires on nothing today* -- the three repeaters that exist hold 3, 7 and
+9 body lines.  It is a forward-looking guard, on the same footing as the
+:PLAN: rule, and the honest claim is that it would have caught :ID:
+cbe282ec at 47 lines shortly before that heading had to be split three
+ways by hand.
+
+An earlier draft of this docstring claimed it flagged an 80-line
+repeater. That measurement was wrong -- it counted drawer contents as
+body prose, which is exactly what `claude-code-ide-org--lint-body-prose
+-lines' exists to avoid, and the real figure was 7.  Recorded because
+the mistake is instructive: a body-size rule written against a
+body-size measurement that does not match the rule's own counter is a
+rule calibrated to nothing.
+
+The cap is a *forcing function*, not a style rule.  Length is the
+symptom; the cause is that a recurring heading is where cross-cutting
+prose gets written down, because it is the heading being edited at the
+time and there is nowhere else obvious.  The cure is to move that prose
+to a rule file, a linked heading or a one-time task -- which is what
+splitting :ID: cbe282ec three ways did by hand."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defun claude-code-ide-org--lint-body-prose-lines ()
+  "Count the heading-at-point's own body lines, excluding drawer contents.
+
+Shared by the two rules that ask about body size so they cannot disagree
+about what a body line is."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((limit (save-excursion (outline-next-heading) (point)))
+          (lines 0)
+          (in-drawer nil))
+      (org-end-of-meta-data t)
+      (while (< (point) limit)
+        (let ((text (string-trim (buffer-substring-no-properties
+                                  (line-beginning-position)
+                                  (line-end-position)))))
+          (cond
+           ((string-match-p "\\`:[A-Za-z_]+:\\'" text) (setq in-drawer t))
+           ((equal text ":END:") (setq in-drawer nil))
+           ((or in-drawer (string-empty-p text)) nil)
+           (t (setq lines (1+ lines)))))
+        (forward-line 1))
+      lines)))
+
+(defun claude-code-ide-org--lint-substantial-body-p ()
+  "Non-nil when the heading at point has a body worth wrapping.
+
+\"Substantial\" is ten or more lines of actual prose: drawers, planning
+lines and their contents do not count, and neither does a body that is
+only a plan link.  The threshold exists so the rule never fires on a
+one-line heading, where a `:PLAN:\' drawer would be ceremony rather than
+structure.
+
+Counts from the end of the metadata to the next heading of any level --
+`outline-next-heading\', never a regexp of ours, for the reason recorded
+on `claude-code-ide-org--heading-body-bounds\'."
+  (>= (claude-code-ide-org--lint-body-prose-lines) 10))
 
 (defun claude-code-ide-org--lint-heading-ids (files)
   "Return a hash of every :ID: defined across FILES, mapped to its
@@ -7135,6 +8726,59 @@ probably punctuation read as structure: %S" title))
                                                (or title ""))))
                  (report 'error line "heading has TODO children but no statistics \
 cookie -- add [/] and run `org-update-statistics-cookies': %s" title))
+               ;; A finished heading with a substantial body carries a
+               ;; :PLAN: drawer (TODO.org :ID: 8bcd56f4): the prospective
+               ;; half wrapped away, the debrief left as the body.
+               ;;
+               ;; *Scoped by CLOSED: date, and that scoping is the whole
+               ;; of whether this rule is usable.* Measured 2026-08-24:
+               ;; unscoped it fires on 124 headings at once -- 30 in
+               ;; TODO.org and 94 in DONE.org -- which is exactly the
+               ;; drowning :ID: e30d52d7 had to rescue this lint from
+               ;; once already. A report carrying 124 permanent findings
+               ;; is one nobody reads, which is the failure 5ff5a4b8
+               ;; measured. Scoped to headings closed on or after the
+               ;; convention landed it fires zero times today and grows
+               ;; only with new work.
+               ;;
+               ;; The scoping is only *possible* because :ID: f4b07fc0
+               ;; backfilled 58 CLOCK-derived CLOSED: markers hours
+               ;; earlier. Before that, "closed after date X" was not a
+               ;; question this file could answer.
+               ;;
+               ;; A heading with no CLOSED: at all is exempt rather than
+               ;; reported: it was closed before the marker existed, so
+               ;; its date is unknown, and 39 headings in DONE.org are in
+               ;; that position permanently. `warn' rather than `error'
+               ;; on the standing rule above -- it is a convention a new
+               ;; heading must satisfy, and wrapping a body is a judgement
+               ;; about where the seam falls, not a mechanical repair.
+               (when (and todo
+                          (member todo claude-code-ide-org--outline-finished-keywords)
+                          (claude-code-ide-org--lint-substantial-body-p)
+                          (not (claude-code-ide-org--find-drawer "PLAN")))
+                 (let ((closed (org-entry-get nil "CLOSED")))
+                   (when (and closed
+                              (not (time-less-p
+                                    (claude-code-ide-org--parse-org-timestamp closed)
+                                    claude-code-ide-org-plan-drawer-since)))
+                     (report 'warn line "finished heading with a substantial body and no :PLAN: drawer -- wrap the prospective half with org_wrap_plan: %s" title))))
+               ;; A repeater's body is never pruned, because every
+               ;; pruning event in the :PLAN: lifecycle is tied to
+               ;; reaching DONE and a repeater never does (TODO.org
+               ;; :ID: ff92700e). Nothing else in the convention will
+               ;; ever collect it, so the lint is the only thing that
+               ;; can notice. It fires on nothing today; it would have
+               ;; caught :ID: cbe282ec at 47 lines, shortly before that
+               ;; heading had to be split three ways by hand.
+               (when (and (org-get-repeat)
+                          (> (claude-code-ide-org--lint-body-prose-lines)
+                             claude-code-ide-org-repeater-body-max))
+                 (report 'warn line "repeater with a %d-line body (max %d) -- \
+a repeater never reaches DONE, so nothing ever prunes it; move the durable \
+prose to a rule file, a linked heading or a one-time task: %s"
+                         (claude-code-ide-org--lint-body-prose-lines)
+                         claude-code-ide-org-repeater-body-max title))
                ;; A repeating task never reaches DONE, so a completable
                ;; ancestor never can either -- this is the check that
                ;; caught 38b92521 frozen via its :BLOCKER:.
@@ -7149,6 +8793,38 @@ cookie -- add [/] and run `org-update-statistics-cookies': %s" title))
                ;; block: the target must exist AND carry a keyword, and
                ;; the blocked heading's own state must be one org-depend
                ;; evaluates.
+               ;; A slice's `:BLOCKER:' must name exactly the members that
+               ;; still carry a checkbox cookie.  The two halves are
+               ;; deliberately redundant -- the checkbox list is the human
+               ;; one and the blocker the machine-readable one -- and
+               ;; redundancy without a check is just two things that can
+               ;; disagree.  TODO.org :ID: 29439196 made exactly that
+               ;; objection to link lists ("one edit point nobody
+               ;; revisits"); this assertion is the answer to it.
+               ;;
+               ;; An error rather than a warning: the correct value is
+               ;; computable from the body, so a mismatch is never a
+               ;; judgement call, and
+               ;; `claude-code-ide-org-refresh-slice-blocker' fixes it
+               ;; without asking anything.
+               (when (claude-code-ide-org--slice-p)
+                 (let* ((want (claude-code-ide-org--slice-blocker-ids))
+                        (have (claude-code-ide-org--lint-blocker-ids
+                               (or (org-entry-get nil "BLOCKER") "")))
+                        (missing (seq-difference want have))
+                        (extra (seq-difference have want)))
+                   (when missing
+                     (report 'error line "slice :BLOCKER: omits %d checked member%s \
+(%s) -- run claude-code-ide-org-refresh-slice-blocker: %s"
+                             (length missing) (if (= 1 (length missing)) "" "s")
+                             (mapconcat (lambda (i) (substring i 0 8)) missing " ")
+                             title))
+                   (when extra
+                     (report 'error line "slice :BLOCKER: names %d id%s that is not a \
+checked member (%s) -- a cancelled or deferred member must not block: %s"
+                             (length extra) (if (= 1 (length extra)) "" "s")
+                             (mapconcat (lambda (i) (substring i 0 8)) extra " ")
+                             title))))
                (let ((blocker (org-entry-get nil "BLOCKER")))
                  (when blocker
                    (when (equal todo "MAYBE")
@@ -7268,7 +8944,657 @@ silent run can never be mistaken for a passing one."
 
 ;;; MCP tool registration -------------------------------------------------
 
+;;; :PLAN: drawer wrapping (TODO.org :ID: 3063c3e5)
+;;
+;; The cheap half of body revision, and the only half the completion
+;; transition needs. `org_amend' already appends *below* a :PLAN: drawer
+;; sitting at the top of a body, so the debrief needs no new tool at all
+;; (measured on :ID: cc0c17a7). What is missing is wrapping: put the
+;; prospective body inside a drawer beside :PROPERTIES: and :LOGBOOK:,
+;; so a folded heading shows the debrief and nothing else.
+;;
+;; Two insertions at computable positions, deliberately -- NOT a range
+;; replacement. Both of 2026-08-21's file corruptions were range bugs,
+;; and neither was caught by `bin/lint-org', which sees structure and
+;; not prose. The nastier one used a `startswith("*")' test to find the
+;; next heading and matched a *bold prose line* instead, orphaning 117
+;; lines. Nothing here asks whether a line looks like a heading: org's
+;; own `outline-next-heading' decides, so a line org would not parse as
+;; a heading cannot be treated as one.
+
+(defun claude-code-ide-org--heading-body-bounds ()
+  "Return (OPEN BEG END) delimiting the body of the heading at point.
+
+BEG is the first body character and END is just past the last, with
+trailing blank lines excluded so a `:END:' inserted at END lands against
+the last real line.  END stops at the next heading of *any* level, so a
+parent's body ends at its first child rather than swallowing the
+subtree.
+
+OPEN is where a `:PLAN:' marker goes, and it is not BEG: it sits
+immediately after the last metadata drawer, before any blank line
+separating that drawer from the prose.  So the blank line ends up
+*inside* the drawer and `:PLAN:' abuts the preceding `:END:', matching
+the layout :ID: cc0c17a7 established as the trial vehicle.  Keeping the
+blank rather than consuming it is what preserves the insert-only
+property -- moving it would be a deletion, and deletion is how the two
+2026-08-21 corruptions happened.
+
+Returns nil when the heading has no body -- there is nothing to wrap,
+which is a fact for the caller to report rather than an error."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((limit (save-excursion
+                   ;; org's own notion of the next heading. Never a
+                   ;; regexp of ours: see the corruption noted above.
+                   (outline-next-heading)
+                   (if (and (eobp) (not (org-at-heading-p))) (point-max) (point)))))
+      (org-end-of-meta-data t)
+      (let ((beg (point))
+            (end limit)
+            open)
+        ;; Walk back over the blank lines `org-end-of-meta-data' skipped,
+        ;; to find where the metadata drawers actually stop.
+        (save-excursion
+          (goto-char beg)
+          (skip-chars-backward " \t\n")
+          (unless (bolp) (forward-line 1) (beginning-of-line))
+          (setq open (point)))
+        ;; Walk back over trailing blank lines.
+        (save-excursion
+          (goto-char end)
+          (skip-chars-backward " \t\n" beg)
+          (unless (bolp) (forward-line 1) (beginning-of-line))
+          (setq end (max beg (point))))
+        (and (< beg end) (list open beg end))))))
+
+(defun claude-code-ide-org--plan-seam (beg end marker &optional empty-ok)
+  "Return the position in BEG..END where the line containing MARKER starts.
+
+MARKER is matched literally and must appear exactly once in the region,
+at the start of a line.  Anything else is an error rather than a best
+guess: the seam decides which half of a body becomes invisible to
+ordinary reading, and a silently-wrong seam is the one mistake here that
+no later reader will catch, since `:PLAN:' is a drawer readers are told
+to skip.
+
+*The seam landing on the first body line is not an error condition; it
+is an answer* (TODO.org :ID: f421c5c3).  It says the body is debrief all
+the way up -- there is no prospective half -- which is what a heading
+written outcome-first under this convention looks like, and six existing
+headings are in exactly that position.  With EMPTY-OK non-nil this
+returns BEG, and the caller wraps nothing into an *empty* `:PLAN:'
+drawer, which records that the question was asked and answered.  Without
+it the old error stands, so a caller that cannot represent the answer
+still refuses rather than silently producing an empty drawer.
+
+Uniqueness is still enforced in both modes.  EMPTY-OK relaxes only the
+\"nothing to wrap\" case, never \"I could not tell which line you
+meant\"."
+  (save-excursion
+    (goto-char beg)
+    (let (hits)
+      (while (search-forward marker end t)
+        (push (line-beginning-position) hits))
+      (cond
+       ((null hits)
+        (error "Seam marker not found in body: %s" marker))
+       ((cdr hits)
+        (error "Seam marker appears %d times; it must be unique: %s"
+               (length hits) marker))
+       ((and (= (car hits) beg) (not empty-ok))
+        (error "Seam marker is the first body line; nothing would be wrapped"))
+       (t (car hits))))))
+
+(defun claude-code-ide-org-wrap-plan (id &optional until)
+  "Wrap the prospective part of heading ID's body in a :PLAN: drawer.
+
+With UNTIL nil the whole body is wrapped, which is the completion
+transition for a heading whose body is still purely prospective.
+
+With UNTIL given, only the text *above* the line containing it is
+wrapped and everything from that line down stays as the body.  That is
+the retroactive case: a body written before the convention existed
+usually holds both halves already, and wrapping it whole would bury the
+debrief inside the drawer -- the exact inversion the convention exists
+to prevent.
+
+Refuses when a :PLAN: drawer already exists, so a repeat is a no-op with
+an explanation rather than a nested drawer.  Lossless by construction:
+two insertions, no deletion, no reflow.  Returns a summary string."
+  (claude-code-ide-org--at-id
+   id
+   (lambda ()
+     (if (claude-code-ide-org--find-drawer "PLAN")
+         (format "Error: \"%s\" already has a :PLAN: drawer; nothing done."
+                 (org-get-heading t t t t))
+       (let ((bounds (claude-code-ide-org--heading-body-bounds)))
+         (if (null bounds)
+             (format "Error: \"%s\" has no body to wrap."
+                     (org-get-heading t t t t))
+           ;; A body containing a bare `:END:' line cannot be wrapped,
+           ;; and that is org's grammar rather than a limitation here:
+           ;; `:END:' *is* the drawer terminator, `org-element's drawer
+           ;; parser stops at the first line matching it, and nothing
+           ;; escapes that -- not a comma, not a #+BEGIN_ block. Blocks
+           ;; themselves are perfectly legal inside a drawer; it is
+           ;; specifically the `:END:' line that cannot be contained,
+           ;; which is why this tests for that and not for blocks.
+           ;;
+           ;; Measured 2026-08-24 on org 9.8.7 against :ID: cd1e974e,
+           ;; whose body demonstrates a datetree subtree inside
+           ;; #+BEGIN_EXAMPLE, :PROPERTIES:/:END: pair and all. Wrapping
+           ;; it closed the :PLAN: drawer at the example's `:END:',
+           ;; leaving the rest of the body -- including a literal
+           ;; `SCHEDULED: <2026-08-22 Sat +1d>' -- outside the drawer at
+           ;; body top level, where `org-get-repeat' found it and
+           ;; bin/lint-org reported a repeater under a completable
+           ;; ancestor. One error and five spurious warnings out of two
+           ;; inserted lines, and the heading still looked fine.
+           (if (save-excursion
+                 (goto-char (nth 1 bounds))
+                 (re-search-forward "^[ \t]*:END:[ \t]*$" (nth 2 bounds) t))
+               (format "Error: \"%s\" has a bare :END: line in its body, which \
+would close the :PLAN: drawer early -- :END: is org's drawer terminator and \
+nothing escapes it. Not wrapped."
+                       (org-get-heading t t t t))
+           (let* ((open (nth 0 bounds))
+                  (beg (nth 1 bounds))
+                  (end (nth 2 bounds))
+                  ;; EMPTY-OK: a seam on the first body line means "no
+                  ;; prospective half", and an empty drawer is how that
+                  ;; is recorded rather than an error the caller has no
+                  ;; way to satisfy (TODO.org :ID: f421c5c3).
+                  (stop (if until
+                            (claude-code-ide-org--plan-seam beg end until t)
+                          end))
+                  (before (buffer-substring-no-properties open end)))
+             ;; Close first, then open. Inserting at the later position
+             ;; before the earlier one keeps BEG valid; doing it the
+             ;; other way round would shift STOP by the length of the
+             ;; opening marker and close the drawer one line late.
+             (save-excursion
+               (goto-char stop)
+               (insert ":END:\n"))
+             (save-excursion
+               (goto-char open)
+               (insert ":PLAN:\n"))
+             (save-buffer)
+             ;; Prove the move was lossless right here, against the text
+             ;; read before the insertions, rather than trusting the
+             ;; arithmetic. `bin/lint-org' cannot make this check: the
+             ;; damage it would catch is structural and this one is
+             ;; prose-level under a well-formed heading.
+             (let* ((after (buffer-substring-no-properties
+                            open (+ end (length ":PLAN:\n:END:\n"))))
+                    (stripped (replace-regexp-in-string
+                               "^:\\(PLAN\\|END\\):\n" "" after)))
+               ;; `substring-no-properties', because `org-get-heading'
+               ;; returns the fontified heading and the MCP layer
+               ;; serializes its text properties as pages of
+               ;; `(face (org-headline-done ...))' around the answer.
+               ;; Same trap as `--outline-line' and the pending-updates
+               ;; report; observed here on the first real call.
+               (substring-no-properties
+                (if (= stop beg)
+                    (format "\"%s\" has no prospective half -- the seam is its \
+first body line -- so an empty :PLAN: drawer records that, and the whole body \
+stays visible as the debrief. Text preserved: %s."
+                            (org-get-heading t t t t)
+                            (if (equal stripped before) "yes" "NO -- INSPECT"))
+                  (format "Wrapped %s of \"%s\" in :PLAN:%s. Text preserved: %s."
+                          (if until "the body above the seam" "the whole body")
+                          (org-get-heading t t t t)
+                          (if until (format " (seam: %s)" until) "")
+                          (if (equal stripped before) "yes" "NO -- INSPECT")))))))))))))
+
+;;; CLOSED: backfill (TODO.org :ID: f4b07fc0)
+;;
+;; `#+STARTUP: logdone' only reached TODO.org on 2026-08-17, and the
+;; newest :ARCHIVE_TIME: is that same day -- so every archived heading was
+;; closed before the option existed and DONE.org held 97 finished
+;; headings and zero CLOSED: markers.
+;;
+;; The `!' cookies in `#+TODO:' were logging state changes long before
+;; that, so for many of those headings the closing moment *is* already in
+;; the file, on a `- State "DONE" from "..." [ts]' line. Where it is, the
+;; marker can be reconstructed from evidence rather than guessed.
+;;
+;; Where it is not, nothing is written. :ARCHIVE_TIME: is the obvious
+;; candidate and is a *different fact wearing the right shape* -- when
+;; the subtree moved, not when the work stopped. Writing it as CLOSED:
+;; would produce a plausible timestamp that is not the one it claims to
+;; be, which is the class of guess :ID: 7771fc63 retired for being wrong
+;; more often than right.
+
+(defun claude-code-ide-org--recorded-close-time ()
+  "Return the latest close time logged for the heading at point, or nil.
+
+Reads `- State \"DONE\"' and `- State \"CANCELLED\"' lines from the
+heading's own :LOGBOOK:.  The *latest* wins: a heading reopened and
+closed again was closed when it was closed last, and the earlier line
+records a moment that a later one superseded.
+
+Returns nil when no such line exists.  That is the answer for 38 of
+DONE.org's 97 finished headings, and it must stay nil rather than fall
+back to anything -- see this section's header."
+  (let ((bounds (claude-code-ide-org--drawer-content-bounds "LOGBOOK"))
+        latest)
+    (when bounds
+      (save-excursion
+        (goto-char (nth 0 bounds))
+        (while (re-search-forward
+                "^- State \"\\(?:DONE\\|CANCELLED\\)\"[ \t]+from[ \t]+\"[^\"]*\"[ \t]+\\(\\[[^]]+\\]\\)"
+                (nth 1 bounds) t)
+          (let ((time (claude-code-ide-org--parse-org-timestamp (match-string 1))))
+            (when (or (null latest) (time-less-p latest time))
+              (setq latest time))))))
+    latest))
+
+(defun claude-code-ide-org-backfill-closed (&optional file dry-run)
+  "Add a CLOSED: line to finished headings in FILE that can evidence one.
+
+FILE defaults to the archive target.  With DRY-RUN non-nil nothing is
+written and the buffer is not saved; the report is identical either way,
+which is what makes the dry run worth trusting.
+
+A heading is a candidate when its keyword is one of `org-done-keywords'
+and it has no CLOSED: already.  The time comes from
+`claude-code-ide-org--recorded-close-time', and a candidate with none is
+counted and skipped, never filled from a substitute.
+
+Insertion goes through org's own `org-add-planning-info', not through
+text: CLOSED: is a *planning* line and has to sit between the heading and
+its :PROPERTIES: drawer, which is org's rule to enforce rather than
+ours.  Returns a summary string."
+  (interactive)
+  (let ((file (or file (claude-code-ide-org--capture-target-file)))
+        (filled 0) (no-evidence 0) (already 0))
+    (with-current-buffer (find-file-noselect file)
+      (let ((buffer-read-only nil))
+        (org-with-wide-buffer
+         (goto-char (point-min))
+         (while (re-search-forward org-heading-regexp nil t)
+           (beginning-of-line)
+           (let ((keyword (org-get-todo-state)))
+             (when (member keyword org-done-keywords)
+               (cond
+                ((org-entry-get (point) "CLOSED") (setq already (1+ already)))
+                (t (let ((time (claude-code-ide-org--recorded-close-time)))
+                     (cond
+                      ((null time) (setq no-evidence (1+ no-evidence)))
+                      (t (setq filled (1+ filled))
+                         (unless dry-run
+                           (org-add-planning-info 'closed time)))))))))
+           (end-of-line)))
+        (when (and (not dry-run) (> filled 0))
+          (save-buffer))))
+    (format (concat "%s: %d filled from :LOGBOOK:, %d skipped (no recorded "
+                    "close time), %d already had CLOSED:.%s")
+            (file-name-nondirectory file) filled no-evidence already
+            (if dry-run "  [dry run -- nothing written]" ""))))
+
+;;; The meta-work day node (TODO.org :ID: 9575e65b)
+;;
+;; One function answers "which heading is the meta-work node for this
+;; moment", computed when something needs the answer rather than run
+;; ahead of time. Nothing stores the id and nothing schedules its
+;; creation.
+;;
+;; *Dated from the event, never from "today"* -- option (c), decided by
+;; the user 2026-08-21. The resolver runs at apply time, so it is pure
+;; with respect to the queue and every write stays human-triggered; and
+;; it takes its date from the timestamp the event already carries, so
+;; work clocked at 23:00 Monday and applied Tuesday still lands on
+;; Monday. That is the same principle `org-archive-subtree' follows in
+;; filing by CLOSED rather than by archive time: file by when it
+;; happened, not by when it was recorded.
+;;
+;; The rejected alternatives are worth knowing, because each looks
+;; reasonable in isolation. Creating at *queue* time would hand Claude
+;; the id inside the session, but breaks the invariant that a queued
+;; tool changes nothing -- bought with a documented run of desync bugs
+;; -- and mints a node even for a clock event the human later dismisses.
+;; Creating at apply time dated "today" keeps the tools pure but files
+;; Monday's work under Tuesday, which is the silent misattribution this
+;; whole project exists to prevent.
+
+(defconst claude-code-ide-org--day-node-format "%Y-%m-%d %A"
+  "Title format for a datetree day node, matching org-datetree's own.")
+
+(defun claude-code-ide-org--datetree-anchor-position ()
+  "Move point to the `:DATE_TREE:' heading in this buffer; return it or nil.
+
+Non-inherited, so only the heading that actually carries the property
+answers -- an inherited lookup would make every descendant of the anchor
+read as an anchor itself, which is the same mistake
+`claude-code-ide-org--lint-file' guards against when tracking datetree
+depth."
+  (goto-char (point-min))
+  (let (found)
+    (while (and (not found) (re-search-forward org-heading-regexp nil t))
+      (beginning-of-line)
+      (if (org-entry-get (point) "DATE_TREE")
+          (setq found (point))
+        (end-of-line)))
+    (when found (goto-char found) found)))
+
+(defun claude-code-ide-org-resolve-day-node (time &optional create)
+  "Return the :ID: of the meta-work day node for TIME, or nil.
+
+With CREATE non-nil the node is created if absent, stamped with a fresh
+`:ID:' and a `:CREATED:' matching TIME, and the buffer saved.  Without
+it nothing is written and nil means \"no node for that day yet\" -- which
+is the answer the `SessionStart' side needs, since a session starting is
+not evidence that any meta-work happened.
+
+TIME is the *event's* timestamp, not the current time.  Passing
+`current-time' here would reintroduce exactly the defect option (b) was
+rejected for.
+
+`:CREATED:' is stamped from TIME rather than from now, for the same
+reason the node is: a node minted on Friday for Monday's work was
+created, as a record, on Monday."
+  (let ((file (claude-code-ide-org--capture-target-file)))
+    (when (and file (file-readable-p file))
+      (with-current-buffer (find-file-noselect file)
+        (let ((buffer-read-only nil))
+          (org-with-wide-buffer
+           (when (claude-code-ide-org--datetree-anchor-position)
+             (let* ((title (format-time-string
+                            claude-code-ide-org--day-node-format time))
+                    (existing (save-excursion
+                                (claude-code-ide-org--find-day-node title))))
+               (cond
+                (existing (goto-char existing) (org-entry-get (point) "ID"))
+                ((not create) nil)
+                (t
+                 ;; org's own idempotent find-or-create, scoped inside
+                 ;; the anchor's subtree by `org-datetree-find-date-create's
+                 ;; KEEP-RESTRICTION argument -- which is what makes the
+                 ;; tree nest under the category instead of writing a
+                 ;; second `* 2026' at level 1.
+                 (org-narrow-to-subtree)
+                 (require 'org-datetree)
+                 (org-datetree-find-date-create
+                  (list (nth 4 (decode-time time))
+                        (nth 3 (decode-time time))
+                        (nth 5 (decode-time time)))
+                  'keep-restriction)
+                 (let ((id (org-id-get-create)))
+                   (org-entry-put (point) "CREATED"
+                                  (format-time-string "[%Y-%m-%d %a %H:%M]" time))
+                   (save-buffer)
+                   id)))))))))))
+
+(defun claude-code-ide-org--find-day-node (title)
+  "Return the position of the day node titled TITLE under point's subtree.
+
+Matched on the exact rendered title rather than by parsing dates back
+out of headings: org-datetree writes one shape and this reads that same
+shape, so the two cannot disagree about what a day node looks like."
+  (save-excursion
+    (org-narrow-to-subtree)
+    (goto-char (point-min))
+    (let (found)
+      (while (and (not found) (re-search-forward org-heading-regexp nil t))
+        (beginning-of-line)
+        (if (equal (org-get-heading t t t t) title)
+            (setq found (point))
+          (end-of-line)))
+      (widen)
+      found)))
+
+(defun claude-code-ide-org--datetree-category-title ()
+  "Return the title of the `:DATE_TREE:\' category, or nil when there is none."
+  (let ((file (claude-code-ide-org--capture-target-file)))
+    (when (and file (file-readable-p file))
+      (with-current-buffer (find-file-noselect file)
+        (org-with-wide-buffer
+         (when (claude-code-ide-org--datetree-anchor-position)
+           (substring-no-properties (org-get-heading t t t t))))))))
+
+(defun claude-code-ide-org--day-node-target-p (target)
+  "Non-nil when TARGET names the meta-work category rather than a heading.
+
+The stable category *title* is the handle, deliberately: top-level
+categories are few, human-curated and never move, which is the same risk
+profile `claude-code-ide-org--capture-target-spec' already accepts a
+title for.  It also means Claude never learns the daily UUID, which is
+the point rather than a limitation -- a stored id is the thing that goes
+stale, and there is nothing to update if nothing remembers."
+  (and (stringp target)
+       (let ((file (claude-code-ide-org--capture-target-file)))
+         (and file (file-readable-p file)
+              (with-current-buffer (find-file-noselect file)
+                (org-with-wide-buffer
+                 (and (claude-code-ide-org--datetree-anchor-position)
+                      (equal (string-trim target)
+                             (org-get-heading t t t t)))))))))
+
+;;; Heading separation (TODO.org :ID: e1284bdb)
+;;
+;; Every heading's content ends with exactly two blank lines before the
+;; next heading, which is what makes a *folded* outline readable: org
+;; hides the blank line between a collapsed subtree and the following
+;; headline unless there are at least `org-cycle-separator-lines' of
+;; them, and that variable is 2 by default. So two blank lines in the
+;; file buys exactly one visible line of air between folded headings,
+;; and one blank line buys none.
+;;
+;; The number is not arbitrary and must not be "tidied" to one: at one,
+;; the folded outline is a solid block of headlines with no grouping cue
+;; at all, which is the state this repo was in -- 33% of TODO.org's
+;; heading gaps conformed, and 9% of DONE.org's.
+
+(defcustom claude-code-ide-org-heading-separator-lines 2
+  "Blank lines to leave at the end of a heading, before the next one.
+
+Defaults to 2 to match `org-cycle-separator-lines', which decides how
+many are needed before org shows one of them in a folded outline.
+Setting this below that variable makes the convention purely cosmetic in
+the file and invisible where it was meant to be seen."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defun claude-code-ide-org-normalize-heading-separation (&optional file dry-run)
+  "Give every heading in FILE exactly N blank lines before the next one.
+
+N is `claude-code-ide-org-heading-separator-lines'.  FILE defaults to
+the archive target's source.  With DRY-RUN non-nil nothing is written.
+
+Touches *only* the run of blank lines immediately preceding a heading.
+Blank lines inside a body -- between paragraphs, inside a drawer, around
+a source block -- are never counted or altered, because the region is
+found by walking back from the next heading and stopping at the first
+non-blank line.  That is the whole safety property: the edit cannot
+reach text.
+
+The final heading in the file is left alone.  There is no following
+heading to separate it from, and normalising it would be a claim about
+trailing whitespace at end of file rather than about outline
+readability.
+
+Returns a summary string."
+  (interactive)
+  (let ((file (or file (claude-code-ide-org--capture-target-file)))
+        (want claude-code-ide-org-heading-separator-lines)
+        (fixed 0) (already 0))
+    (with-current-buffer (find-file-noselect file)
+      (let ((buffer-read-only nil))
+        (org-with-wide-buffer
+         ;; Backwards, so each edit cannot shift the position of a
+         ;; heading not yet visited.
+         (goto-char (point-max))
+         (let (heads)
+           (while (re-search-backward org-heading-regexp nil t)
+             (push (point) heads))
+           ;; `heads' is now ascending; drop the first, which has no
+           ;; predecessor to separate from, and walk the rest in reverse.
+           (dolist (pos (nreverse (cdr heads)))
+             (goto-char pos)
+             (let ((end (point))
+                   (blanks 0))
+               (forward-line -1)
+               (while (and (> (point) (point-min))
+                           (string-empty-p (string-trim
+                                            (buffer-substring-no-properties
+                                             (line-beginning-position)
+                                             (line-end-position)))))
+                 (setq blanks (1+ blanks))
+                 (forward-line -1))
+               (forward-line 1)
+               (if (= blanks want)
+                   (setq already (1+ already))
+                 (setq fixed (1+ fixed))
+                 (unless dry-run
+                   (delete-region (point) end)
+                   (insert (make-string want ?\n))))))))
+        (when (and (not dry-run) (> fixed 0))
+          (save-buffer))))
+    (format "%s: %d heading(s) re-separated, %d already had %d blank line(s).%s"
+            (file-name-nondirectory file) fixed already want
+            (if dry-run "  [dry run -- nothing written]" ""))))
+
+;;; :ID: prefix expansion at the write boundary
+;;
+;; Nine fabricated UUIDs across two sessions (four on 2026-08-19, five on
+;; 2026-08-25), every one with a correct 8-character prefix and a wrong
+;; tail. A memory forbidding exactly this existed throughout and did not
+;; prevent the second run of five.
+;;
+;; The reason it keeps happening is not carelessness about the rule. The
+;; prefix is *reliably* remembered -- it is cited in prose constantly --
+;; which makes the remaining 28 characters feel like part of the same
+;; recollection. They are not, and nothing at the point of writing says
+;; so.
+;;
+;; So this does not police the tail; it removes the need to produce one.
+;; A link written `[[id:8ca6541d][8ca6541d]]' is expanded to the full
+;; UUID on the way in. What the writer supplies is what they actually
+;; know; what they cannot know is looked up. A full UUID that resolves to
+;; nothing is refused outright, which catches the case where one was
+;; typed anyway.
+;;
+;; Deliberately at the write boundary rather than at review or commit.
+;; `bin/lint-org' already catches these, and did catch several -- but by
+;; then the text is in the file, the fix is a second commit, and the
+;; conversation that knew the right id has moved on.
+
+(defconst claude-code-ide-org--id-link-regexp
+  "\\[\\[id:\\([0-9a-fA-F][0-9a-fA-F-]*\\)\\]"
+  "Matches the target of an `[[id:...]]' link, full or prefix.")
+
+(defun claude-code-ide-org--known-id-table ()
+  "Hash of every :ID: across the tracked files, mapped to t."
+  (let ((table (make-hash-table :test 'equal)))
+    (dolist (file (claude-code-ide-org--tracked-files) table)
+      (when (file-exists-p file)
+        (with-temp-buffer
+          (let ((org-inhibit-startup t))
+            (insert-file-contents file)
+            (goto-char (point-min))
+            (while (re-search-forward "^[ \t]*:ID:[ \t]+\\([0-9a-fA-F-]+\\)[ \t]*$" nil t)
+              (puthash (downcase (match-string 1)) t table))))))))
+
+(defun claude-code-ide-org--id-find (id &optional markerp)
+  "Like `org-id-find\', but ID may be an 8-character prefix.
+
+Every heading lookup in this file goes through here rather than calling
+`org-id-find\' directly, and that indirection is the whole point.  The
+first version of this fix expanded prefixes inside
+`claude-code-ide-org--at-id\' only, and the commit message claimed it
+therefore covered every tool taking an `id\' argument.  It did not:
+`claude-code-ide-org-amend\' does its own `org-id-find\' *before*
+reaching `--at-id\', so it failed on a prefix while `org_set_todo\'
+accepted one -- found by using the feature minutes after shipping it.
+Fourteen such call sites existed.
+
+The length-and-hex guard runs before the table is built, so the common
+case of a full uuid costs one `length\' call and no file scanning."
+  (when (and (stringp id) (= (length id) 8) (string-match-p "\\`[0-9a-fA-F]+\\'" id))
+    (let ((full (claude-code-ide-org--expand-id-prefix
+                 id (claude-code-ide-org--known-id-table))))
+      (when (stringp full) (setq id full))))
+  (org-id-find id markerp))
+
+(defun claude-code-ide-org--expand-id-prefix (prefix table)
+  "Return the single full :ID: in TABLE beginning with PREFIX, or a symbol.
+
+`none' when nothing matches and `ambiguous' when more than one does.
+Both are errors rather than guesses: an id chosen from two candidates is
+the confidently-wrong record this project exists to avoid."
+  (let (hits)
+    (maphash (lambda (id _) (when (string-prefix-p (downcase prefix) id)
+                              (push id hits)))
+             table)
+    (cond ((null hits) 'none)
+          ((cdr hits) 'ambiguous)
+          (t (car hits)))))
+
+(defun claude-code-ide-org-resolve-id-links (text)
+  "Return TEXT with `[[id:PREFIX]' links expanded, or an error string.
+
+An 8-character prefix is expanded to the full :ID:.  A longer target is
+verified and left alone.  Either way an unresolvable target is refused,
+naming it, rather than written and caught later by `bin/lint-org'.
+
+Returns a cons (t . EXPANDED) on success, or (nil . MESSAGE)."
+  (let ((table (claude-code-ide-org--known-id-table))
+        (case-fold-search t)
+        (bad nil)
+        (start 0)
+        (out text))
+    (while (string-match claude-code-ide-org--id-link-regexp out start)
+      (let* ((target (match-string 1 out))
+             (mb (match-beginning 1))
+             (me (match-end 1)))
+        (setq start me)
+        (cond
+         ;; Already a full id that resolves: leave it.
+         ((gethash (downcase target) table) nil)
+         ;; A bare prefix: expand it.
+         ((not (string-match-p "-" target))
+          (let ((full (claude-code-ide-org--expand-id-prefix target table)))
+            (cond
+             ((stringp full)
+              (setq out (concat (substring out 0 mb) full (substring out me)))
+              (setq start (+ mb (length full))))
+             ((eq full 'ambiguous)
+              (push (format "%s (matches more than one heading)" target) bad))
+             (t (push (format "%s (matches no heading)" target) bad)))))
+         ;; A full-looking id that resolves to nothing: refuse.
+         (t (push (format "%s (resolves to no heading)" target) bad)))))
+    (if bad
+        (cons nil (format "Error: unresolvable :ID: link(s): %s. \
+Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded here."
+                          (string-join (nreverse bad) "; ")))
+      (cons t out))))
+
 (with-eval-after-load 'claude-code-ide
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-wrap-plan
+   :name "org_wrap_plan"
+   :description (concat
+                 "Wrap the prospective part of a heading's body in a :PLAN: "
+                 "drawer, leaving the debrief as the body. Call this at the "
+                 "moment a task is carried out: the planning content moves "
+                 "beside :PROPERTIES: and :LOGBOOK: so a folded heading shows "
+                 "the debrief alone. Writes immediately. Lossless -- two "
+                 "insertions, nothing deleted or reflowed, and the reply says "
+                 "whether the text was preserved. Refuses rather than guesses: "
+                 "a heading that already has a :PLAN: drawer, a heading with no "
+                 "body, and an `until' marker that is missing or appears more "
+                 "than once are all errors. Use org_amend afterwards to add "
+                 "debrief prose; it appends below the drawer.")
+   :args '((:name "id"
+            :type string
+            :description "The :ID: property value of the heading to wrap.")
+           (:name "until"
+            :type string
+            :optional t
+            :description "Literal text identifying the first body line that should STAY in the body, i.e. where the debrief begins. Must occur exactly once. Omit to wrap the whole body, which is right when the body is still purely prospective; supply it for a body written before this convention existed, which usually already holds both halves.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-clock-in
@@ -7282,7 +9608,7 @@ silent run can never be mistaken for a passing one."
                  "expect a later read to reflect it.")
    :args '((:name "id"
             :type string
-            :description "The :ID: property value of the target org heading.")
+            :description "The :ID: property value of the target org heading. For cross-cutting meta-work -- review, planning, deciding what to do rather than doing it -- pass the exact title of the meta-work category (\"Review and planning\") instead of an :ID:, and the interval is filed against that day\'s node in its datetree. The day node is created when the event is applied and dated from this event, so a late apply still files the work under the day it happened. There is deliberately no way to learn the day node\'s own :ID:; the category title is the handle.")
            (:name "note"
             :type string
             :optional t
@@ -7412,17 +9738,30 @@ silent run can never be mistaken for a passing one."
                  "lands at the end of the heading's own body, after any "
                  "drawers and before its first child. Positional, not "
                  "contextual: it appends wherever the body now ends, with no "
-                 "conflict detection.")
+                 "conflict detection. "
+                 "With replace=true it REVISES instead: the body's prose is "
+                 "replaced wholesale by the new text. Use that when a body "
+                 "has become a transcript — when a correction, or the "
+                 "outcome, belongs at the top rather than buried under "
+                 "everything it supersedes. It rewrites only the prose below "
+                 "every drawer, so :PROPERTIES:, :LOGBOOK: and a :PLAN: "
+                 "drawer are outside the region it can write to and cannot be "
+                 "destroyed. COMMIT FIRST: git is the undo, and it is the "
+                 "only one.")
    :args '((:name "id"
             :type string
             :description "The :ID: property value of the heading to amend.")
            (:name "text"
             :type string
-            :description "The prose block to append. May be multiple lines.")
+            :description "The prose block. Appended by default; with replace=true it becomes the body's entire prose.")
            (:name "note"
             :type string
             :optional t
-            :description "Short 3-10 word reason for the amendment, recorded on the queued event when the write defers.")))
+            :description "Short 3-10 word reason for the amendment, recorded on the queued event when the write defers.")
+           (:name "replace"
+            :type boolean
+            :optional t
+            :description "Replace the body's prose instead of appending to it. Destructive and irreversible except through git, so commit before using it. Drawers are never touched. On a heading with no body yet it simply appends, and says so.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-query

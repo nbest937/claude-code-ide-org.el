@@ -33,7 +33,7 @@ This skill helps Claude work expertly with Emacs Org-Mode files. The focus areas
 *** TODO Task not yet started
 *** NEXT Up next / prioritised
 *** PLANNING In Plan Mode, plan not yet approved
-*** DOING Actively being worked on
+*** DOING Started and owed a return — "in the mail", not necessarily executing now; several headings may be DOING at once
 *** REVIEW Finished, handed back for human judgement
 *** WAITING Blocked or waiting on someone
 *** MAYBE Someday / maybe
@@ -287,6 +287,14 @@ When helping the user move a task between states, follow these conventions:
 | `REVIEW` → `DONE`       | Judgement accepted it                | None                         |
 | Any → `MAYBE`           | Deferring indefinitely               | None                         |
 
+**The table is the ordinary case: setting a keyword because the work is
+happening now.** `DOING` also covers *started and owed a return* — several
+headings may be `DOING` at once, and only one can carry a running clock.
+Setting `DOING` **retroactively**, to record that something was begun
+earlier, should open no clock at all; the trigger does not honour that yet
+(TODO.org `:ID:` 4f6a6bb1), so do not queue such a transition until it is
+settled.
+
 **What "side effect" means depends on the setup — read this before acting:**
 
 - **In a repo using the claude-code-ide-org event queue** (this project;
@@ -382,10 +390,29 @@ overwrite it.
 
 ### Body prose and the task lifecycle
 
-`org_amend` appends and can do nothing else, so a heading's outcome always
-lands furthest from where a reader starts. Until that is fixed (TODO.org
-`:ID:` 3063c3e5) these conventions keep the body from *contradicting* the
-keyword, which is the confusion that actually costs time.
+**A body has two lives, and since 2026-08-24 they live in different
+places.** While the task is open the body is *prospective* — motivation,
+observations, speculation, and the plan link if there is one — and is pared
+and revised as understanding changes. When the task is carried out,
+`org_wrap_plan` moves that whole half into a `:PLAN:` drawer beside
+`:PROPERTIES:` and `:LOGBOOK:`, and what remains as the body is the
+*debrief*: problem restated, what the solution turned out to be, how it was
+verified, what was falsified. A folded heading then shows the debrief and
+nothing else.
+
+**Skip `:PLAN:` when reading.** Treat the drawer as absent unless the
+question is explicitly retrospective — "how did we get here", "why this
+way". The debrief and the source code describe present reality; the plan
+describes an intention that may not have survived contact. Reading it for
+current fact is how a superseded design claim gets repeated as though it
+still held, and it is the whole reason the two halves were separated.
+
+*This section used to open by saying `org_amend` appends and can do nothing
+else, so an outcome always lands furthest from the reader, and that the
+conventions below were interim "until that is fixed" (TODO.org `:ID:`
+3063c3e5). The premise is now half-false — `org_wrap_plan` exists, and the
+debrief no longer lands furthest from anything. The rules below are kept
+because each stands on its own, not because append-only forces them.*
 
 **The keyword owns the status. Body prose must never assert a state the
 keyword owns.** A `TODO` whose body reads like finished work is the failure
@@ -408,7 +435,10 @@ narrower word.
 one condition"* goes stale the moment it ships; *"Proposed 2026-08-21: one
 condition"* is a permanent fact. This is the journal principle applied to
 the design half rather than exempting it, and it is what makes the prose
-compatible with append-only — nothing later has to be revised.
+compatible with append-only — nothing later has to be revised. That last
+clause is now a convenience rather than a constraint, since a prospective
+body *can* be revised; the reason to date-stamp is still that an undated
+claim silently expires.
 
 **Open a capture body with a dated, permanently-true status sentence** —
 `*Filed 2026-08-21, not built.*` — and **open outcome prose with a bold
@@ -421,10 +451,21 @@ lines carrying 86% of all body text. A body nobody can read is a body that
 does not do its job, and it is re-read by every session that touches the
 heading.
 
-**Prospective only.** Do not rewrite existing bodies to match. Deletion of
-superseded prose is recoverable from git for version-controlled `.org`
-files, so it is not irreversible — but relitigating past bodies is still
-churn nobody asked for.
+**Revision is expected.** Reversed 2026-08-24; this said "Prospective only
+— do not rewrite existing bodies to match." A finished body may be split
+with `org_wrap_plan`: the prospective half into a `:PLAN:` drawer, the
+debrief left as the body. Relocation is lossless and needs no permission.
+Condensing the prospective half is wanted where the seam is confident,
+because a self-contradicting body pollutes the context of every session
+that later reads it for background.
+
+Untouched: **open questions** (keep them verbatim — settling one now by
+inference is the only thing "relitigating" meant), **the debrief**, and
+**anything whose seam is unclear** (wrap it whole, condense nothing).
+Condense in a separate commit from the wrap: a bad pare inside `:PLAN:`
+is invisible by design, since readers skip the drawer. For the archive
+backlog the rule is wrap unedited (`cbe282ec`); split only when you are
+already reading the heading for another reason.
 
 ### Inserting content programmatically
 
@@ -477,14 +518,23 @@ When creating tasks or files from scratch, or when adding tasks to an existing f
 - **A single space before a heading's tag, never column-aligned.** Don't pad
   with spaces to push `:tag:` out to a fixed column, even though many Org
   setups do this by default (`org-tags-column`) — see "Tags" above for why.
-- **Two blank lines before a level-2 (`**`) heading that has no TODO
-  keyword** — the top-level section dividers of a file (e.g. `** Roadmap`'s
-  own children), as opposed to the individual TODO-tracked items nested
-  under them. Everywhere else — before a TODO-item heading (`*** DONE ...`,
-  `*** MAYBE ...`) or any other content — a single blank line is the norm.
-  The extra line at level 2 only, and only when untagged-by-TODO-state, is a
-  deliberate visual break between major sections; doubling it everywhere
-  would just be noise.
+- **Two blank lines before *every* heading**, at every level, whatever its
+  TODO state. The last heading in a file is the only exception — there is
+  nothing after it to separate from.
+
+  **Two, and the number is not a matter of taste.** Org hides the blank
+  line between a collapsed subtree and the following headline unless there
+  are at least `org-cycle-separator-lines` of them, and that variable
+  defaults to `2`. Two blank lines in the file buy exactly one visible line
+  of air in a folded outline; one buys none. So the rule is calibrated to a
+  setting that already exists, and needs no configuration to pay off.
+
+  **Before every heading, not only same-level ones** — an earlier version of
+  this rule said two lines at level 2 only, and the corpus falsified it. The
+  gap you see before `** B` in a folded outline is the trailing space of A's
+  *last child*, not of A's own body: measured over this project's files, 31
+  of 134 heading gaps sit between headings of *different* levels, and a
+  same-level rule skips exactly those.
 
 ---
 
