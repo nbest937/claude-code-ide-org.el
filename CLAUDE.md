@@ -574,6 +574,28 @@ and it is the common case. GTD's actual invariant is that a live project
 always has a next action; a project without one is the canonical defect a
 weekly review exists to catch.
 
+**Rule, same moment**: any work the closing debrief names as *not done*
+becomes a filed heading before the `DONE` is queued — or the debrief says
+explicitly that it is not worth filing. **A sentence pointing at another
+heading is not a filing action**, and neither is "belongs to X".
+
+This exists because both halves happened in one session, hours apart, and
+nothing distinguished them at the time. `:ID:` e1284bdb was closed *after*
+its unfinished half was split out as `:ID:` 601c885c. `:ID:` aa1ba915 was
+closed with its gap described in prose as belonging to `:ID:` edd47f32 —
+which was never told, and whose four children did not include it. The user
+caught it a day later by asking whether the heading was really done.
+
+The reason prose is not enough is structural rather than a matter of
+diligence: residue named in a *closed* heading's body sits in a document
+readers are told to treat as history, and `org_wrap_plan` will eventually
+sweep it into a `:PLAN:` drawer readers are told to skip. It is on a path
+to becoming invisible from the moment it is written.
+
+Note this is a strictly stronger claim than the nomination rule above.
+Nominating answers "what next in this group"; this answers "what did
+closing this leave behind", which may belong to no group yet.
+
 **Rule**: when nominating, call out blockers that live in a *different*
 subtree. Name the blocking heading and where it is; a `:BLOCKER:` property
 is the machine-checkable form. A dependency inside the same sibling group
