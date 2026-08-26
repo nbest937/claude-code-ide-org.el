@@ -2213,8 +2213,50 @@ level or above — which is not a child — can never be mistaken for one."
     (goto-char (or child end))
     (skip-chars-backward " \t\n")))
 
-(defun claude-code-ide-org-amend (id text &optional note)
+(defun claude-code-ide-org--replace-body (text)
+  "Replace the prose body of the heading at point with TEXT.
+
+*Prose only, and that is a structural guarantee rather than care taken.*
+`claude-code-ide-org--heading-body-bounds' begins after
+`org-end-of-meta-data', which skips every leading drawer -- measured
+2026-08-26 against `:PROPERTIES:', `:LOGBOOK:' and `:PLAN:' in
+combination.  So there is no reachable input to this function that
+destroys a drawer; the region it can write to starts below all of them.
+That is what makes wholesale revision safe enough to offer at all.
+
+A heading with no body yet has no bounds, in which case there is nothing
+to replace and the caller should append instead."
+  (let ((bounds (claude-code-ide-org--heading-body-bounds)))
+    (when bounds
+      (delete-region (nth 1 bounds) (nth 2 bounds))
+      (goto-char (nth 1 bounds))
+      (insert (string-trim (or text "")))
+      t)))
+
+(defun claude-code-ide-org-amend (id text &optional note replace)
   "Append TEXT to the body of the heading with :ID: ID.
+
+With REPLACE non-nil, *replace* the body's prose with TEXT instead of
+appending to it (TODO.org :ID: 3063c3e5).
+
+*Why revision is offered despite being destructive.*  Append-only forces
+every body to be a transcript: each correction, each outcome summary,
+each \"this turned out to be wrong\" lands furthest from where a reader
+starts.  The objection append-only answered -- losing how a body
+evolved -- does not need answering here, because *git already holds
+every revision*.  The discipline is simply to commit before revising,
+which is the same argument `plans/' already rests on.  Decided by the
+user 2026-08-20.
+
+*What it cannot touch.*  Only the prose below every drawer; see
+`claude-code-ide-org--replace-body'.  `:PROPERTIES:', `:LOGBOOK:' and a
+`:PLAN:' drawer are all outside the region by construction, so revising
+a finished heading cannot destroy the plan it was wrapped with.
+
+*What an open heading's body is for*, since that is what revision makes
+achievable: the problem, the latest intended approach, and relevant
+verified facts -- the current state of the question, not the stream of
+consciousness of how it got there.
 
 The queue-aware counterpart to editing a heading's prose with the `Edit'
 tool.  Writes through when the file is free and queues the proposal when
@@ -2257,24 +2299,42 @@ Returns \"Amended: ...\", \"Queued amend: ...\", or \"Error: ...\"."
                       (org-no-properties (org-get-heading t t t t)))))
         (set-marker marker nil)
         (if (claude-code-ide-org--file-busy-p file)
-            (format "%s\"%s\" (%d line%s); pending review."
+            ;; Revision defers exactly as an append does.  It must:
+            ;; racing a human's unsaved edits is the one case where
+            ;; replacing a body could destroy work git has never seen.
+            (format "%s\"%s\" (%d line%s%s); pending review."
                     claude-code-ide-org--reply-queued-amend
                     title
                     (length (split-string (or text "") "\n"))
-                    (if (= 1 (length (split-string (or text "") "\n"))) "" "s"))
-          (let ((result
-                 (claude-code-ide-org--at-id
-                  id
-                  (lambda ()
-                    (claude-code-ide-org--end-of-body)
-                    ;; Blank line before, so the amendment reads as its own
-                    ;; paragraph rather than running into whatever the body
-                    ;; already ended with.
-                    (insert "\n\n" (string-trim (or text "")) "\n")
-                    (save-buffer)
-                    nil))))
+                    (if (= 1 (length (split-string (or text "") "\n"))) "" "s")
+                    (if replace ", replacing the body" ""))
+          (let* ((replaced nil)
+                 (result
+                  (claude-code-ide-org--at-id
+                   id
+                   (lambda ()
+                     (if replace
+                         (setq replaced
+                               (claude-code-ide-org--replace-body text))
+                       (claude-code-ide-org--end-of-body)
+                       ;; Blank line before, so the amendment reads as its own
+                       ;; paragraph rather than running into whatever the body
+                       ;; already ended with.
+                       (insert "\n\n" (string-trim (or text "")) "\n"))
+                     ;; A heading with no body has nothing to replace, so
+                     ;; the revision degrades to an append rather than
+                     ;; silently doing nothing.
+                     (when (and replace (not replaced))
+                       (claude-code-ide-org--end-of-body)
+                       (insert "\n\n" (string-trim (or text "")) "\n"))
+                     (save-buffer)
+                     nil))))
             (or (and (stringp result) result)
-                (format "%s\"%s\"" claude-code-ide-org--reply-amended title))))))))))
+                (format "%s\"%s\"%s"
+                        (if replace "Revised: " claude-code-ide-org--reply-amended)
+                        title
+                        (if (and replace (not replaced))
+                            " (had no body; appended instead)" "")))))))))))
 
 ;;; Query -------------------------------------------------------------------
 ;;
@@ -9402,17 +9462,30 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
                  "lands at the end of the heading's own body, after any "
                  "drawers and before its first child. Positional, not "
                  "contextual: it appends wherever the body now ends, with no "
-                 "conflict detection.")
+                 "conflict detection. "
+                 "With replace=true it REVISES instead: the body's prose is "
+                 "replaced wholesale by the new text. Use that when a body "
+                 "has become a transcript — when a correction, or the "
+                 "outcome, belongs at the top rather than buried under "
+                 "everything it supersedes. It rewrites only the prose below "
+                 "every drawer, so :PROPERTIES:, :LOGBOOK: and a :PLAN: "
+                 "drawer are outside the region it can write to and cannot be "
+                 "destroyed. COMMIT FIRST: git is the undo, and it is the "
+                 "only one.")
    :args '((:name "id"
             :type string
             :description "The :ID: property value of the heading to amend.")
            (:name "text"
             :type string
-            :description "The prose block to append. May be multiple lines.")
+            :description "The prose block. Appended by default; with replace=true it becomes the body's entire prose.")
            (:name "note"
             :type string
             :optional t
-            :description "Short 3-10 word reason for the amendment, recorded on the queued event when the write defers.")))
+            :description "Short 3-10 word reason for the amendment, recorded on the queued event when the write defers.")
+           (:name "replace"
+            :type boolean
+            :optional t
+            :description "Replace the body's prose instead of appending to it. Destructive and irreversible except through git, so commit before using it. Drawers are never touched. On a heading with no body yet it simply appends, and says so.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-query

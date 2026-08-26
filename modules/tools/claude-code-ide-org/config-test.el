@@ -7168,6 +7168,90 @@ heading while looking perfectly fine."
       ;; And nowhere near the drawers.
       (should-not (string-match-p ":LOGBOOK:\n- note\nAppended" disk)))))
 
+(ert-deftest claude-code-ide-org-test-amend-replace-rewrites-only-prose ()
+  "Revision replaces the body's prose and cannot reach a drawer.
+
+TODO.org :ID: 3063c3e5.  This is the whole safety case for offering a
+destructive operation at all: `--heading-body-bounds' begins after
+`org-end-of-meta-data', which skips every leading drawer, so
+:PROPERTIES:, :LOGBOOK: and :PLAN: are outside the writable region by
+construction rather than by care.  A finished heading can therefore be
+revised without endangering the plan it was wrapped with."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n"
+              "* Parent\n:PROPERTIES:\n:ID: parent-1\n:END:\n"
+              ":LOGBOOK:\n- note\n:END:\n"
+              ":PLAN:\nthe original plan\n:END:\n\n"
+              "Old body line one.\nOld body line two.\n\n"
+              "** Child\n:PROPERTIES:\n:ID: child-1\n:END:\n\nChild body.\n"))
+    (org-id-update-id-locations (list capture-file))
+    (should (string-prefix-p
+             "Revised: "
+             (claude-code-ide-org-amend "parent-1" "The outcome, first." nil t)))
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      ;; The prose is replaced, not appended to.
+      (should (string-match-p "The outcome, first\\." disk))
+      (should-not (string-match-p "Old body line one" disk))
+      (should-not (string-match-p "Old body line two" disk))
+      ;; Every drawer survives verbatim.
+      (should (string-match-p ":PROPERTIES:\n:ID: parent-1\n:END:" disk))
+      (should (string-match-p ":LOGBOOK:\n- note\n:END:" disk))
+      (should (string-match-p ":PLAN:\nthe original plan\n:END:" disk))
+      ;; The blank line separating the last drawer from the prose
+      ;; survives.  This is what pins the replacement to BEG rather than
+      ;; OPEN: deleting from OPEN keeps every drawer intact -- so the
+      ;; safety assertions above still pass -- and silently butts the new
+      ;; prose against `:END:'.  A break-it-on-a-copy pass found that the
+      ;; drawer checks alone could not tell the two apart.
+      (should (string-match-p ":PLAN:\nthe original plan\n:END:\n\nThe outcome, first\\." disk))
+      ;; And the child is untouched, as with an append.
+      (should (string-match-p "\\*\\* Child" disk))
+      (should (string-match-p "Child body\\." disk)))))
+
+(ert-deftest claude-code-ide-org-test-amend-replace-appends-when-there-is-no-body ()
+  "Revising a heading with no body yet degrades to an append and says so.
+
+`--heading-body-bounds' returns nil when there is nothing there, and a
+revision that silently did nothing would be the worst of the three
+possible behaviours -- the caller would believe the text had landed."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n"
+              "* Bare\n:PROPERTIES:\n:ID: bare-1\n:END:\n"))
+    (org-id-update-id-locations (list capture-file))
+    (let ((reply (claude-code-ide-org-amend "bare-1" "First prose." nil t)))
+      (should (string-match-p "had no body" reply)))
+    (should (string-match-p "First prose\\."
+                            (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-amend-replace-defers-when-busy ()
+  "Revision defers on unsaved changes exactly as an append does.
+
+It *must*: racing a human's unsaved edits is the one case where
+replacing a body destroys work git has never seen, so the queue gate is
+load-bearing here in a way it merely is prudent for an append."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n"
+              "* Parent\n:PROPERTIES:\n:ID: parent-1\n:END:\n\nOld body.\n"))
+    (org-id-update-id-locations (list capture-file))
+    (let ((buf (find-file-noselect capture-file)))
+      (unwind-protect
+          (progn
+            (with-current-buffer buf
+              (goto-char (point-max))
+              (insert "\nthe human is mid-sentence"))   ; unsaved
+            (let ((reply (claude-code-ide-org-amend "parent-1" "New body." nil t)))
+              (should (string-prefix-p claude-code-ide-org--reply-queued-amend reply))
+              (should (string-match-p "replacing the body" reply)))
+            ;; Nothing was written: the old body survives on disk.
+            (should (string-match-p
+                     "Old body\\."
+                     (claude-code-ide-org-test--disk-contents capture-file))))
+        (with-current-buffer buf (set-buffer-modified-p nil))
+        (kill-buffer buf)))))
+
 (ert-deftest claude-code-ide-org-test-amend-defers-when-busy ()
   "Same gate as capture, and the same load-bearing half: nothing is
 written when it defers."
