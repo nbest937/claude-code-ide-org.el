@@ -228,6 +228,32 @@ never silently wrong."
 
 *The open question is what the predicate should ask.* "Has keyworded descendants" and "is a grouping whose time lives elsewhere" have been the same thing until now. A slice is the first case where they part, so either =--container-heading-p= learns about by-reference members, or the two callers stop sharing one predicate.
 
+*Shipped [2026-08-26 Wed] as [[orgit-rev:claude-code-ide-org::2c4796e][2c4796e]].* =claude-code-ide-org--grouping-heading-p= is the new predicate; both triggers now ask it.
+
+*The open question above is answered by taking neither of its two options.* It offered "=--container-heading-p= learns about by-reference members" or "the two callers stop sharing one predicate". The third way is that they keep sharing a predicate, and it is a *new* one: the union. Widening =--container-heading-p= would have made it contradict its own docstring -- it says it is derived from structure "rather than declared in a property someone has to remember to maintain" -- and =--slice-p= says the mirror image about itself. Both are right, so neither could absorb the other. A docstring made to lie about what it reads is precisely what [[id:6a21e08b-4880-4d2b-9b0f-12c35558fe08][6a21e08b]] closed three hours earlier on this same branch.
+
+*=grouping= is not a coinage, which is why it is the name.* Searched before naming: CLAUDE.md already carries "a grouping is either *emergent* or *declared*", and =.claude/rules/org-conventions.md= already says "a slice is a declared grouping". The word existed and the code simply had no function wearing it.
+
+*Reproduced first, and the fix verified not to overreach.* Four probes, batch, on scratch files:
+
+| behaviour             | before      | after            |
+|-----------------------+-------------+------------------|
+| DOING on a slice      | =clocking=t= | =clocking=nil=   |
+| DOING on a plain leaf | =clocking=t= | =clocking=t= (unchanged) |
+| sole TODO slice       | -> NEXT     | stays TODO       |
+| sole TODO leaf        | -> NEXT     | -> NEXT (unchanged) |
+
+The two "unchanged" rows are the point. An exemption is only right if it is also *narrow*, and a predicate returning t for everything would have passed the first and third rows alone.
+
+*Four of five call sites moved, and the fifth is the interesting one.* The two triggers are this heading's tracked defect. =--queue-heading-divergence='s abandoned-DOING report and =--review-suggest-heading='s filter are the same defect seen from two other surfaces -- a DOING slice is no more abandoned, and no more suggestible as an unassigned span's owner, than a container is -- so they moved too, and =--container-id-p= was renamed =--grouping-id-p= because its question moved with it. =bin/lint-org='s statistics-cookie rule *keeps* the narrow predicate: there the subject really is TODO children, and a slice carries a checkbox cookie over links instead. Different convention, not this one's business.
+
+*Three tests, each proved discriminating* by reverting the union to its container half: all three fail, all three pass either side. 425/425.
+
+*The payoff is immediate and this heading is where it lands.* [[id:979e02b6-2a4c-4328-8b08-ffaec03bd02e][979e02b6]] -- the slice this is a member of -- has been held at TODO precisely because setting it DOING would have clocked the slice itself. That constraint is now lifted, and the slice is set DOING in the same pass: at least one member is in the mail, which is what the word means one level up.
+
+*[[id:42808717-2736-4bf4-872e-887f990203ca][42808717]] is now closed by route as well as by case*, and [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]]'s abstract prediction -- made before any slice existed -- is confirmed and discharged.
+
+
 
 ** TODO Direct file writes to a live org buffer can desync org-clock-marker :code:
 :PROPERTIES:
