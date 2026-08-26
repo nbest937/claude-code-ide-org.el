@@ -62,11 +62,16 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 - [[orgit-rev:claude-code-ide-org::8afbc68][8afbc68]] [2026-08-24 Mon 19:11] folded in the afternoon's incident
 - [[orgit-rev:claude-code-ide-org::7e20e79][7e20e79]] [2026-08-24 Mon 19:53] named the pattern the day's defects shared
 - [[orgit-rev:claude-code-ide-org::bbac58b][bbac58b]] [2026-08-25 Tue 15:10] rewritten around finishing the slice rather than extending it
-** TODO Proposed slice: close the gap between what we declare and what the code infers :code:
+- [[orgit-rev:claude-code-ide-org::e5731a8][e5731a8]] [2026-08-25 Tue 16:36] brought current; narrowed two open decisions
+- [[orgit-rev:claude-code-ide-org::60454fc][60454fc]] [2026-08-25 Tue 16:46] recorded 21c91613's decision and sequenced it first
+- [[orgit-rev:claude-code-ide-org::13960c9][13960c9]] [2026-08-25 Tue 16:48] folded in the clocking gap the previous session left
+** TODO Close the gap between what we declare and what the code infers :code:
 :PROPERTIES:
 :ID:       979e02b6-2a4c-4328-8b08-ffaec03bd02e
 :CREATED:  [2026-08-25 Tue 15:29]
 :COOKIE_DATA: checkbox recursive
+:KIND:     slice
+:BLOCKER:  ids(6a21e08b-4880-4d2b-9b0f-12c35558fe08 4f6a6bb1-7773-4657-949e-1fe1ba9484be 95c27fca-136c-46f6-b454-fe94261e0e5d 3964c575-50bc-4cc9-abeb-bdd1c0162c2c a0813ae3-0c6d-43de-bae1-fb4414cdb519 c954f650-b92f-4920-9967-ab6c44577b30 2e660571-26df-41e4-bb64-b9d74a3d7efe 29439196-bbb8-4b64-b8d5-3bf9d457bf6c 9651d4c8-6887-4b0a-91d9-562c3bc49a75 8183fc7c-905e-40c8-81cb-10c56158c6ce 798bb7a1-d5a6-4c08-8cf0-cc91a82d08e6)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 15:29] \\
@@ -80,7 +85,7 @@ Wherever this project declares something in prose and the code infers it some ot
 *A proposal, not a slice* -- see [[id:7c4d6ef6-c914-4d33-b267-cc9158a9f359][7c4d6ef6]] for what that means and what accepting one takes.
 
 - [ ] [[id:6a21e08b-4880-4d2b-9b0f-12c35558fe08][6a21e08b]] TODO --trigger-auto-clock-in's docstring says the feature is off; it is on
-- [ ] [[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]] TODO Setting DOING retroactively opens a clock, which the looser sense makes wrong
+- [ ] [[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]] NEXT Setting DOING retroactively opens a clock, which the looser sense makes wrong
 - [ ] [[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]] TODO A slice gets clocked and auto-promoted, because its members are links not children
 - [ ] [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]] TODO A container carries clocks it earned before it was one
 - [ ] [[id:a0813ae3-0c6d-43de-bae1-fb4414cdb519][a0813ae3]] TODO Task mitosis: a leaf that outgrows itself divides rather than becoming a parent
@@ -88,6 +93,8 @@ Wherever this project declares something in prose and the code infers it some ot
 - [ ] [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]] TODO Generalise :KIND: to every declared heading class, so level stops meaning anything
 - [ ] [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] TODO Adopt org-native mechanisms for the heading tiers
 - [ ] [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] TODO Find a convention marking which children a container's plan actually covered
+- [ ] [[id:8183fc7c-905e-40c8-81cb-10c56158c6ce][8183fc7c]] TODO org_outline is blind to a slice: scoped to one, it returns a single line
+- [ ] [[id:798bb7a1-d5a6-4c08-8cf0-cc91a82d08e6][798bb7a1]] TODO A slice member captured this session cannot be rendered or blocked on until apply
 
 *Not included, and the reason is the same for all of them.* The review-buffer readout defects ([[id:46e4ce2b-fdc8-447b-ad09-b4845602540f][46e4ce2b]], [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]]) belong with [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]]'s audit, which is a different story about a different surface. [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] is upstream of *stories*, not of keywords. A slice that swept in everything open would be a backlog wearing a slice's clothes.
 
@@ -10887,6 +10894,7 @@ Meta-work: the review pass, planning, and the time that goes into deciding what 
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-26 Wed 11:06]
 CLOCK: [2026-08-26 Wed 10:33]--[2026-08-26 Wed 10:37] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
