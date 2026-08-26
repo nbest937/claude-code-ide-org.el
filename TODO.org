@@ -82,7 +82,7 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 *No residue.* Everything named as unfinished during its life was filed as a heading before the heading naming it closed -- a rule this slice produced by breaking it once ([[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]]) and then writing it into CLAUDE.md.
 
 
-** DOING Close the gap between what we declare and what the code infers :code:
+** DOING Close the gap between what we declare and what the code infers [3/11] :code:
 :PROPERTIES:
 :ID:       979e02b6-2a4c-4328-8b08-ffaec03bd02e
 :CREATED:  [2026-08-25 Tue 15:29]
@@ -5186,6 +5186,8 @@ The third is the important one: it is the known negative, confirmed independentl
 *Scope: presentation only, and deliberately so.* Nothing about what is extracted, stored or applied changes. Candidate shapes, none chosen -- a =:formatter= adding an own-time column; a project-level clocktable wrapper; or surfacing it only where it matters rather than in every table. Whether every parent row wants a second number, or only the nine that currently carry own lines, is the first thing to settle.
 
 *Nine headings currently make this visible*, measured 2026-08-26: 46 own CLOCK lines across four active and five finished groupings.
+
+
 ** Orient the datetree newest-at-top, by re-sorting after day-node creation :code:
 :PROPERTIES:
 :ID:       0c3f1319-67c0-4b29-a8e7-5ffa12948aaf
@@ -6702,6 +6704,30 @@ this project's Doom config pending an upstream report/PR.
 *What accepting one means, which follows but has not been exercised:* add =:KIND: slice=, run =claude-code-ide-org-refresh-slice= so the blocker and cookie appear, and link the prompt revision that picks it up. Three steps, all mechanical, and worth a single command if proposals become routine.
 
 *Genuinely open.* Where proposals live -- under =* Slices= beside real ones, as they are now, or somewhere that cannot be mistaken for a live slice at a glance. What keyword a proposal carries: =TODO= today, though =MAYBE= would read more honestly and would also stop [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]]'s promotion trigger from ever nominating one as a next action. And what becomes of a rejected proposal -- =CANCELLED= keeps the argument, which is usually the part worth keeping.
+
+
+** A slice created without a statistics cookie never gets one, and nothing says so :code:
+:PROPERTIES:
+:ID:       28415ca8-a4ce-43a4-9af6-9ec0e7d5662a
+:CREATED:  [2026-08-26 Wed 15:46]
+:END:
+
+*Found by the user 2026-08-26*, noticing that [[id:979e02b6-2a4c-4328-8b08-ffaec03bd02e][979e02b6]] carried no statistics cookie, and asking that this become part of slice creation and validation discipline.
+
+*Three mechanisms could have caught it and all three declined, silently.*
+
+1. =org-update-statistics-cookies= *updates* a cookie and never *inserts* one. Measured: a slice headline with =[/]= became =[1/2]=; the same headline without one came back byte-identical. So the refresher called it on every apply and found nothing to recompute, forever.
+2. =bin/lint-org='s cookie rule asks =--container-heading-p=, which is "has descendants carrying a TODO keyword". A slice's members are links, so it has none, so the rule never fired. This is the same predicate-versus-meaning split as [[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]], surfacing at a third caller.
+3. The convention is written down in =.claude/rules/org-conventions.md= and depended on a human typing =[/]= at creation. [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] has =[27/27]= only because somebody remembered; 979e02b6 ran a whole slice's life without one.
+
+*Fixed as self-healing rather than as a creation rule, which is the point.* =claude-code-ide-org--ensure-statistics-cookie-at-point= appends =[/]= when the headline lacks one, and =claude-code-ide-org-refresh-slice= calls it immediately before =org-update-statistics-cookies=. Establishing the slot and filling it are separate acts, and only the second one org will do. Verified live on the real file: the refresher produced =[3/11]= on 979e02b6, counting three =[X]= of eleven members, correctly excluding the =[-]= for the =REVIEW= member and the two =orgit-rev:= prompt-revision lines that carry no checkbox.
+
+*A discipline that depends on remembering is the thing this repo keeps discovering it cannot have* — so the lint clause is the backstop, not the mechanism. It is a *second* clause rather than a widened predicate: the container rule counts children and this one counts checkbox members, and they genuinely differ in what they count. Folding them into =--grouping-heading-p= would have made one rule assert two different things.
+
+*The cookie regexp is now a shared =defconst=*, so the inserter and both lint clauses cannot disagree about what counts as a cookie already being present. It was previously an inline literal in one place.
+
+*Placement detail worth not rediscovering*: the cookie is appended before the tags, since org requires tags to end the headline. =org-edit-headline= handles that; writing it at the end of the raw line would have produced =... :code: [/]=, which org does not read as a cookie.
+
 
 
 * Skill logic
@@ -8718,7 +8744,6 @@ Everything already verified above serves that -- =:CATEGORY:= inherited by a lev
 *What genuinely needs rework is =bin/lint-org='s level-1 rule*, which today asserts that a level-1 heading is either a category or a mirror of one. Flattened, level 1 is where the tasks live and =* Review and planning= is the sole surviving container. That is a rule to rewrite, not a wall -- the same standing as the =:ARCHIVE:= routing objection recorded above from [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]].
 
 *Separately, the datetree's own ordering is now filed as [[id:0c3f1319-67c0-4b29-a8e7-5ffa12948aaf][0c3f1319]]*, since the user's recency-ordering vision applies to it too and it is wanted either way. Short version: reverse-alphanumeric sorting already gives newest-first because day titles are ISO-prefixed, so the work is a re-sort after creation rather than a comparator -- and the duplicate-day-node hazard that a descending tree exposes in raw =org-datetree-find-date-create= does not reach this project, because =--ensure-day-node= looks the node up by title first.
-
 
 
 ** DONE Compose slices by reference: a checkbox list of id links, blocked on its members :code:research:

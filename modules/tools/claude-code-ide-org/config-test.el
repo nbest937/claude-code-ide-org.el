@@ -841,6 +841,61 @@ heading with a prose sub-section would be exempted from clocking."
                    (org-goto-first-child)
                    (claude-code-ide-org--container-heading-p))))))
 
+(ert-deftest claude-code-ide-org-test-ensure-cookie-inserts-only-when-absent ()
+  "`--ensure-statistics-cookie-at-point' establishes the slot org will not.
+
+TODO.org :ID: 28415ca8. `org-update-statistics-cookies' *updates* a
+cookie and never *inserts* one -- measured 2026-08-26 -- so a slice whose
+creator did not type `[/]' was inert to every later refresh, silently and
+permanently.
+
+Idempotence is asserted, not assumed: this runs on every apply, so an
+inserter that appended a second `[/]' each time would corrupt the
+headline within a day.
+
+The tagged case is the one that actually bites. Org requires tags to end
+the headline, so appending to the raw line yields `... :code: [/]', which
+org does not read as a cookie at all -- a fix that looks applied and
+is not."
+  (claude-code-ide-org-test--with-heading
+    (org-with-point-at (org-id-find id 'marker)
+      ;; The fixture heading carries a :code: tag, so this is the tagged case.
+      (should (claude-code-ide-org--ensure-statistics-cookie-at-point))
+      (let ((h (org-get-heading t t t t)))
+        (should (string-match-p "\\[/\\]" h))
+        ;; Cookie inside the headline text, tags still terminal.
+        (should (equal '("code") (org-get-tags nil t))))
+      ;; Idempotent: a second call inserts nothing.
+      (should-not (claude-code-ide-org--ensure-statistics-cookie-at-point))
+      (should (equal 1 (cl-count ?/ (org-get-heading t t t t))))
+      ;; And org will now actually fill it, which is the whole point.
+      (org-update-statistics-cookies nil)
+      (should (string-match-p "\\[[0-9]*/[0-9]*\\]"
+                              (org-get-heading t t t t))))))
+
+(ert-deftest claude-code-ide-org-test-refresh-slice-self-heals-a-missing-cookie ()
+  "A cookie-less slice gains one through the ordinary refresh path.
+
+TODO.org :ID: 28415ca8, found on :ID: 979e02b6 by the user after it had
+run a whole slice's life uncookied. Asserts the count too, not just
+presence: a `[-]' member is not done and must not be counted as such,
+which is what makes 1-of-2 rather than 2-of-2 the right answer here."
+  (claude-code-ide-org-test--with-heading
+    (org-with-point-at (org-id-find id 'marker)
+      (org-entry-put nil "KIND" "slice")
+      (org-entry-put nil "COOKIE_DATA" "checkbox recursive")
+      (org-end-of-meta-data t)
+      (insert "- [X] [[id:zzz-1][zzz-1]] DONE a finished member\n"
+              "- [-] [[id:zzz-2][zzz-2]] REVIEW a member in review\n")
+      (save-buffer))
+    (let ((claude-code-ide-org-query-files (list file)))
+      (claude-code-ide-org-refresh-slice))
+    (should (equal "1/2"
+                   (let ((h (org-with-point-at (org-id-find id 'marker)
+                              (org-get-heading t t t t))))
+                     (and (string-match "\\[\\([0-9]+/[0-9]+\\)\\]" h)
+                          (match-string 1 h)))))))
+
 (ert-deftest claude-code-ide-org-test-grouping-heading-p-covers-both-kinds ()
   "The grouping predicate is the union of the two ways a heading can be a
 grouping, and is nil for a leaf.

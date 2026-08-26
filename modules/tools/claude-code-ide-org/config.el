@@ -3003,6 +3003,30 @@ Not inherited -- `org-entry-get' without the inherit flag -- so a
 subheading of a slice is not one."
   (equal "slice" (org-entry-get nil "KIND")))
 
+(defconst claude-code-ide-org--statistics-cookie-regexp
+  "\\[[0-9]*\\(?:%\\|/[0-9]*\\)\\]"
+  "Matches an org statistics cookie: `[/]', `[2/5]', `[%]' or `[40%]'.
+Shared by the inserter and by `bin/lint-org's cookie rules, so the two
+cannot disagree about what counts as a cookie already being present.")
+
+(defun claude-code-ide-org--ensure-statistics-cookie-at-point ()
+  "Append `[/]' to the headline at point when it carries no cookie.
+Returns non-nil when one was inserted.
+
+`org-update-statistics-cookies' updates a cookie in place and will not
+create one -- verified 2026-08-26 -- so a headline that never got `[/]'
+typed into it is inert to every later refresh. This closes that, and is
+deliberately separate from recomputing: it establishes the slot, org
+fills it.
+
+Inserted *before* the tags, since org requires tags to end the headline.
+A heading with no tags simply gets it at the end."
+  (let ((title (org-get-heading t t t t)))
+    (unless (string-match-p claude-code-ide-org--statistics-cookie-regexp
+                            (or title ""))
+      (org-edit-headline (concat title " [/]"))
+      t)))
+
 (defun claude-code-ide-org--grouping-heading-p ()
   "Non-nil when the heading at point is a grouping -- a container or a
 slice -- rather than a unit of work in its own right.
@@ -3228,6 +3252,20 @@ With ID, refreshes that slice only.  Returns a human-readable summary."
                                    (downcase id))))
                (setq slices (1+ slices))
                (setq lines (+ lines (claude-code-ide-org--refresh-slice-members-at-point index)))
+               ;; Insert the cookie before updating it, because
+               ;; `org-update-statistics-cookies' only ever *updates* one
+               ;; that is already in the headline -- measured 2026-08-26,
+               ;; TODO.org :ID: 28415ca8. A slice whose creator did not
+               ;; type `[/]' by hand was therefore refreshed on every
+               ;; apply, silently, forever: this call found nothing to
+               ;; recompute and said so to nobody. Found on :ID: 979e02b6
+               ;; by the user, six days and one whole slice after
+               ;; :ID: c44c2119 got one only because somebody remembered.
+               ;;
+               ;; Self-healing rather than a creation-time rule, which is
+               ;; the point: a discipline that depends on remembering is
+               ;; the thing this repo keeps discovering it cannot have.
+               (claude-code-ide-org--ensure-statistics-cookie-at-point)
                (org-update-statistics-cookies nil)
                (when (claude-code-ide-org--refresh-slice-blocker-at-point)
                  (setq blockers (1+ blockers))))))
@@ -8776,10 +8814,30 @@ probably punctuation read as structure: %S" title))
                ;; when the convention needs stating.
                (when (and todo
                           (claude-code-ide-org--container-heading-p)
-                          (not (string-match-p "\\[[0-9]*\\(?:%\\|/[0-9]*\\)\\]"
-                                               (or title ""))))
+                          (not (string-match-p
+                                claude-code-ide-org--statistics-cookie-regexp
+                                (or title ""))))
                  (report 'error line "heading has TODO children but no statistics \
 cookie -- add [/] and run `org-update-statistics-cookies': %s" title))
+               ;; A slice states its progress the same way, over its
+               ;; checkbox list of members rather than over children --
+               ;; so it needs its own clause, not a widened predicate.
+               ;; The rule above asks `--container-heading-p' and a slice
+               ;; has no children to satisfy it with, which is why
+               ;; :ID: 979e02b6 sat cookie-less through a whole slice's
+               ;; life with three separate mechanisms declining to
+               ;; mention it (TODO.org :ID: 28415ca8).
+               ;;
+               ;; Kept as a second clause rather than folded into the
+               ;; first: `--grouping-heading-p' is the right predicate
+               ;; where the question is about *meaning*, and here the two
+               ;; rules genuinely differ in what they count.
+               (when (and (claude-code-ide-org--slice-p)
+                          (not (string-match-p
+                                claude-code-ide-org--statistics-cookie-regexp
+                                (or title ""))))
+                 (report 'error line "slice has no statistics cookie -- add [/]; \
+`M-x claude-code-ide-org-refresh-slice' now does this itself: %s" title))
                ;; A finished heading with a substantial body carries a
                ;; :PLAN: drawer (TODO.org :ID: 8bcd56f4): the prospective
                ;; half wrapped away, the debrief left as the body.

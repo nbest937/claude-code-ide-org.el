@@ -127,6 +127,21 @@ headings. Each carries an `:ID:`, a `:CREATED:`, and a
 `:COOKIE_DATA: checkbox recursive` property so its statistics cookie
 counts nested members as well as top-level ones.
 
+**The statistics cookie itself is not yours to remember.** A slice's
+headline carries `[n/m]` over its checkbox list, and
+`M-x claude-code-ide-org-refresh-slice` now *inserts* the `[/]` when it
+is missing rather than only recomputing an existing one. `bin/lint-org`
+reports a cookie-less slice as an **error** as a backstop.
+
+Both halves were added 2026-08-26 (`:ID:` 28415ca8) because relying on
+the creator to type `[/]` failed on the second slice ever written.
+`org-update-statistics-cookies` updates a cookie and never inserts one,
+and the container cookie rule asks "has TODO-carrying children", which a
+slice never does — so three separate mechanisms declined to mention it
+and `:ID:` 979e02b6 ran most of its life uncookied. The lint rule is a
+*second* clause rather than a widened predicate, since the two rules
+count different things: children, versus checkbox members.
+
 **Members are `[[id:...]]` links in a checkbox list**, not child
 headings. The list may mirror the tree — a story's children indented
 under it — but it need not contain every child of a story it refers to.
