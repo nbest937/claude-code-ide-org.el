@@ -8138,6 +8138,79 @@ DONE.org came to be out of order."
       (should (= 7 (cl-count-if (lambda (l) (string-prefix-p "CLOCK:" l))
                                 (split-string text "\n")))))))
 
+(ert-deftest claude-code-ide-org-test-ceremony-stamp-silences-until-tomorrow ()
+  "The stamp is what stops the prompt being a nag.
+
+TODO.org :ID: aa1ba915.  Before it is written the ceremony has a status;
+after, it has none until the date rolls over.  The mtime carries the
+date, so a stamp backdated to yesterday must not silence today."
+  (claude-code-ide-org-test--with-queue
+    (should-not (claude-code-ide-org--ceremony-done-today-p))
+    (claude-code-ide-org-mark-ceremony-done)
+    (should (claude-code-ide-org--ceremony-done-today-p))
+    (should-not (claude-code-ide-org--ceremony-status))
+    ;; Backdate it: yesterday's ceremony does not count as today's.
+    (let ((f (claude-code-ide-org--ceremony-stamp-file)))
+      (set-file-times f (time-subtract (current-time) (days-to-time 1)))
+      (should-not (claude-code-ide-org--ceremony-done-today-p)))))
+
+(ert-deftest claude-code-ide-org-test-ceremony-report-asks-and-never-proposes ()
+  "It states counts and asks; it must not announce an intention to act.
+
+The first step of the ceremony cannot be performed by an agent at all --
+apply only completes inside a genuinely interactive command -- so a
+report that said \"I will run it\" would be wrong before it was
+unwelcome.  Same manners :ID: 7771fc63 established for the stale-clock
+report, which asks the stop time and forbids guessing one."
+  (let ((text (claude-code-ide-org--format-ceremony-report
+               '(:pending 4 :drifted 12 :archivable 7))))
+    (should text)
+    (should (string-match-p "4 queued item" text))
+    (should (string-match-p "12 :LOGBOOK: drawer" text))
+    (should (string-match-p "7 finished heading" text))
+    (should (string-match-p "Ask the user whether" text))
+    (should (string-match-p "do not announce that you will" text))
+    (should (string-match-p "claude-code-ide-org-mark-ceremony-done" text))
+    ;; Nothing waiting: no line at all, rather than a cheerful "0 items".
+    (should-not (claude-code-ide-org--format-ceremony-report
+                 '(:pending 0 :drifted 0 :archivable 0)))
+    ;; And no status at all (already run today) is also silence.
+    (should-not (claude-code-ide-org--format-ceremony-report nil))))
+
+(ert-deftest claude-code-ide-org-test-session-start-payload-carries-both-reports ()
+  "One hook, one payload, either half optional.
+
+A stale clock and the ceremony are independent questions wanting the
+same moment; `additionalContext' is a single string, so they concatenate
+rather than needing a second SessionStart hook and a second Emacs
+round-trip.  The payload is `{}' only when both are silent."
+  (claude-code-ide-org-test--with-queue
+    (cl-letf (((symbol-function 'claude-code-ide-org-find-stale-open-intervals)
+               (lambda () nil))
+              ((symbol-function 'claude-code-ide-org--ceremony-status)
+               (lambda () '(:pending 2 :drifted 0 :archivable 0))))
+      (let ((json (claude-code-ide-org--session-start-hook-json)))
+        (should (string-match-p "SessionStart" json))
+        (should (string-match-p "2 queued item" json))))
+    ;; Ceremony silent AND no stale interval -> empty object, so the
+    ;; hook script's `[[ -s ]]' guard suppresses it entirely.
+    (cl-letf (((symbol-function 'claude-code-ide-org-find-stale-open-intervals)
+               (lambda () nil))
+              ((symbol-function 'claude-code-ide-org--ceremony-status)
+               (lambda () nil)))
+      (should (equal "{}" (claude-code-ide-org--session-start-hook-json))))
+    ;; A stale interval alone still reports, ceremony or not -- the
+    ;; pre-existing behaviour must survive the addition.
+    (cl-letf (((symbol-function 'claude-code-ide-org-find-stale-open-intervals)
+               (lambda () (list (list :id "deadbeef" :heading "H"
+                                      :file "/tmp/TODO.org"
+                                      :logbook-open (current-time)))))
+              ((symbol-function 'claude-code-ide-org--ceremony-status)
+               (lambda () nil)))
+      (let ((json (claude-code-ide-org--session-start-hook-json)))
+        (should (string-match-p "unclosed CLOCK entry" json))
+        (should-not (string-match-p "review-and-planning pass" json))))))
+
 (ert-deftest claude-code-ide-org-test-consolidate-all-drawers-dry-run-spares-open-buffers ()
   "A dry run must not leave an already-open buffer modified.
 

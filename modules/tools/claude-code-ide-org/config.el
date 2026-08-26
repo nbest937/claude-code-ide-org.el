@@ -624,18 +624,142 @@ not."
                                  (plist-get f :logbook-open))))
    findings "\n\n"))
 
+;;; The daily ceremony prompt (TODO.org :ID: aa1ba915) ---------------------
+;;
+;; "Can the ceremony be scheduled so a prompt arrives each day?"  Both
+;; schedulers were measured and neither fits: `CronCreate' is
+;; session-only and in-memory, and the `schedule' skill runs in the
+;; cloud, where localhost:45571 -- and therefore every tool in this
+;; project -- is unreachable.  And the first step cannot be delegated at
+;; all, because apply must run inside a genuinely interactive command.
+;;
+;; So what is buildable is the *prompt*, and the mechanism already
+;; exists: SessionStart, which fires at the first opportunity each day,
+;; injects `additionalContext', and stays silent when there is nothing
+;; to say.  This rides alongside the stale-interval report rather than
+;; adding a second hook.
+
+(defun claude-code-ide-org--ceremony-stamp-file ()
+  "Path of the stamp recording when the ceremony was last performed.
+
+One file whose *mtime* carries the date, not one file per day.  A
+dated-filename scheme accumulates forever and needs a reaper; an mtime
+is already a date and is already maintained by the act of writing."
+  (expand-file-name "ceremony-last-run"
+                    claude-code-ide-org-queue-directory))
+
+(defun claude-code-ide-org--ceremony-done-today-p ()
+  "Non-nil when the ceremony stamp was last written today.
+
+*This is the question the heading had to settle*, and the alternatives
+were rejected on one test: does the signal mean \"the ceremony was
+performed\" or merely \"something happened\"?  The existence of a day
+node conflates them -- a node is created by any meta-work clock-in.  So
+does a drop in the pending count, which falls whenever anyone applies a
+single item.  An explicit stamp means only what it says."
+  (let ((file (claude-code-ide-org--ceremony-stamp-file)))
+    (and (file-exists-p file)
+         (claude-code-ide-org--today-p
+          (file-attribute-modification-time (file-attributes file))))))
+
+(defun claude-code-ide-org-mark-ceremony-done ()
+  "Record that today's ceremony has been performed, silencing the prompt.
+
+Interactive and explicit.  It is deliberately *not* called from the
+apply path: apply is one step of the ceremony, not the whole of it, and
+stamping there would silence the prompt for the days when someone
+applies a couple of items and archives nothing."
+  (interactive)
+  (let ((file (claude-code-ide-org--ceremony-stamp-file)))
+    (make-directory (file-name-directory file) t)
+    (write-region "" nil file nil 'quiet)
+    (when (called-interactively-p 'any)
+      (message "Ceremony marked done for today."))
+    file))
+
+(defun claude-code-ide-org--ceremony-status ()
+  "Return a plist of what the ceremony has waiting: (:pending N :drifted N
+:archivable N), or nil when the ceremony has already run today.
+
+Counts only.  Deciding what to do about them is the human's, which is
+why this returns numbers and the formatter below asks a question."
+  (unless (claude-code-ide-org--ceremony-done-today-p)
+    (let ((pending (length (claude-code-ide-org--review-items-from-queue)))
+          (drifted (nth 1 (claude-code-ide-org--consolidate-drawers-1 t)))
+          (archivable 0))
+      (dolist (file (claude-code-ide-org--tracked-files))
+        ;; Only the *source* files can have anything to archive; a
+        ;; DONE.org heading is already where archiving would put it.
+        (when (and (file-exists-p file)
+                   (not (string-equal (file-name-nondirectory file) "DONE.org")))
+          (with-current-buffer (find-file-noselect file)
+            (org-map-entries
+             (lambda ()
+               (when (member (org-get-todo-state)
+                             claude-code-ide-org--outline-finished-keywords)
+                 (setq archivable (1+ archivable))))
+             nil 'file))))
+      (list :pending pending :drifted drifted :archivable archivable))))
+
+(defun claude-code-ide-org--format-ceremony-report (status)
+  "Format STATUS into a line for Claude to relay as a question.
+
+*Asks; never proposes*, on the same footing as the stale-interval
+report (TODO.org :ID: 7771fc63).  It states counts, which are facts, and
+asks whether to run the pass, which is a decision.  It must not announce
+an intention to act: the first step of the ceremony cannot be performed
+by an agent at all, so an agent saying it will do it would be wrong
+before it was unwelcome."
+  ;; STATUS is nil whenever the ceremony has already run today, which is
+  ;; the *common* case rather than an edge one -- so this guard is what
+  ;; keeps `--session-start-hook-json' from erroring on an ordinary
+  ;; second session of the day and taking the stale-interval report down
+  ;; with it.  Found by the test, not by reading.
+  (let* ((pending (or (plist-get status :pending) 0))
+         (drifted (or (plist-get status :drifted) 0))
+         (archivable (or (plist-get status :archivable) 0)))
+    (when (and status (> (+ pending drifted archivable) 0))
+      (concat
+       (format (concat "Today's review-and-planning pass has not been run yet. "
+                       "Waiting: %d queued item(s) pending review, %d :LOGBOOK: "
+                       "drawer(s) out of order, %d finished heading(s) not yet "
+                       "archived. ")
+               pending drifted archivable)
+       "Ask the user whether they want to run it now; do not announce that you "
+       "will, and do not run any part of it unasked. Apply is theirs alone -- "
+       "M-x claude-code-ide-org-review -- because org's state-change logging "
+       "only completes inside a genuinely interactive command. After they "
+       "apply, the remaining steps are yours if they ask: "
+       "claude-code-ide-org-consolidate-all-drawers, then "
+       "claude-code-ide-org-normalize-heading-separation, then archiving. "
+       "When the pass is finished, call claude-code-ide-org-mark-ceremony-done "
+       "so this stops asking until tomorrow."))))
+
 (defun claude-code-ide-org--session-start-hook-json ()
-  "Return the SessionStart hook JSON payload: an empty object if
-there is nothing to report, otherwise one with additionalContext
-describing every stale open interval and its educated guess."
-  (let ((findings (claude-code-ide-org-find-stale-open-intervals)))
-    (if (not findings)
+  "Return the SessionStart hook JSON payload: an empty object if there is
+nothing to report, otherwise one whose additionalContext carries every
+stale open interval and, if today's ceremony has not been run, what it
+has waiting.
+
+*Two reports, one hook, one payload.*  They are independent questions --
+a stale clock is an unclean death, the ceremony is a routine -- but both
+want the same moment and the same manners, and `additionalContext' is a
+single string.  Adding a second SessionStart hook would double the
+Emacs round-trip at every session start to say the same thing twice as
+often.  Either half may be absent; the payload is empty only when both
+are."
+  (let* ((findings (claude-code-ide-org-find-stale-open-intervals))
+         (stale (and findings
+                     (claude-code-ide-org--format-stale-interval-report findings)))
+         (ceremony (claude-code-ide-org--format-ceremony-report
+                    (claude-code-ide-org--ceremony-status)))
+         (parts (delq nil (list stale ceremony))))
+    (if (null parts)
         "{}"
       (json-encode
        `((hookSpecificOutput
           . ((hookEventName . "SessionStart")
-             (additionalContext
-              . ,(claude-code-ide-org--format-stale-interval-report findings)))))))))
+             (additionalContext . ,(mapconcat #'identity parts "\n\n")))))))))
 
 (defun claude-code-ide-org-write-session-start-report (output-path)
   "Write the SessionStart hook JSON payload to OUTPUT-PATH.
@@ -1542,6 +1666,24 @@ Reuses `claude-code-ide-org--consolidate-logbook-text' unchanged, which
 is already idempotent and pinned lossless by its own tests, so running
 this twice is a no-op and running it on a healthy file changes nothing."
   (interactive (list (not current-prefix-arg)))
+  (let* ((counts (claude-code-ide-org--consolidate-drawers-1 dry-run))
+         (headings (nth 0 counts))
+         (changed (nth 1 counts))
+         (files (nth 2 counts))
+         (report (format "%s %d drawer(s) scanned, %d %s%s"
+                         (if dry-run "Dry run:" "Consolidated:")
+                         headings changed
+                         (if dry-run "would be reordered" "reordered")
+                         (if dry-run "" (format ", %d file(s) saved" files)))))
+    (when (called-interactively-p 'any) (message "%s" report))
+    report))
+
+(defun claude-code-ide-org--consolidate-drawers-1 (dry-run)
+  "Do the work of `claude-code-ide-org-consolidate-all-drawers'.
+Returns (HEADINGS CHANGED FILES) rather than a sentence, so a caller
+that wants the *number* of drifted drawers -- the ceremony report does
+(TODO.org :ID: aa1ba915) -- can have it without parsing prose back out
+of a message string."
   (let ((headings 0) (changed 0) (files 0))
     (dolist (file (claude-code-ide-org--tracked-files))
       (when (file-readable-p file)
@@ -1577,13 +1719,7 @@ this twice is a no-op and running it on a healthy file changes nothing."
           (unless already-open
             (with-current-buffer buffer (set-buffer-modified-p nil))
             (kill-buffer buffer)))))
-    (let ((report (format "%s %d drawer(s) scanned, %d %s%s"
-                          (if dry-run "Dry run:" "Consolidated:")
-                          headings changed
-                          (if dry-run "would be reordered" "reordered")
-                          (if dry-run "" (format ", %d file(s) saved" files)))))
-      (when (called-interactively-p 'any) (message "%s" report))
-      report)))
+    (list headings changed files)))
 
 (defun claude-code-ide-org-consolidate-history (id)
   "Normalise the :LOGBOOK: drawer of the heading with :ID: equal to ID:
