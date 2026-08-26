@@ -6054,6 +6054,40 @@ each session its own value and answer a subtly different question."
                   session-id ts-strings applied-at)))
              by-session)))
 
+(defun claude-code-ide-org--review-settle-separation (applied-items)
+  "Restore heading separation once APPLIED-ITEMS have all landed.
+
+*Chosen over a lint rule, and the heading that asked for one is where
+the reasoning belongs* (TODO.org :ID: 601c885c).  Three options were
+recorded there -- an error, a warning that never escalates, or a
+pre-commit hook that runs the normaliser -- and all three *report* a
+condition whose repair is one idempotent command.  Eighteen warnings
+telling a human to run `claude-code-ide-org-normalize-heading-separation'
+is eighteen lines of noise standing in for one call.
+
+The fourth option is available only because the same heading measured
+where the drift comes from: it is *structural*, arriving every time the
+queue is applied, because apply appends without the trailing lines.  A
+defect produced by apply can be repaired by apply.  Nothing is left to
+assert, so nothing needs a rule.
+
+*What this does not cover*, stated so the gap is not mistaken for
+completeness: `org_amend' causes the same drift and is not an apply, so
+prose added between passes stays unseparated until the next one.  That
+is acceptable because applies are frequent, and it is the residue to
+revisit if it ever stops being true.
+
+Deliberately after `--review-settle-slices': that one rewrites member
+lines and can itself disturb separation, so normalising must see its
+output rather than the other way round.  Errors are swallowed for the
+same reason they are there -- bookkeeping after the work must not turn a
+landed pass into a failed one."
+  (when applied-items
+    (condition-case err
+        (claude-code-ide-org-normalize-heading-separation nil nil)
+      (error (message "Heading separation after apply failed: %s"
+                      (error-message-string err))))))
+
 (defun claude-code-ide-org--review-settle-slices (applied-items)
   "Regenerate every slice once APPLIED-ITEMS have all landed.
 
@@ -6167,6 +6201,7 @@ item-scoped."
             (push item applied)))))
     (claude-code-ide-org--review-settle-auto-promote applied)
     (claude-code-ide-org--review-settle-slices applied)
+    (claude-code-ide-org--review-settle-separation applied)
     (claude-code-ide-org--review-record-applied applied)
     ;; :items alongside the count, so the caller can drop exactly what
     ;; applied rather than rebuilding the list from the queue.  The count

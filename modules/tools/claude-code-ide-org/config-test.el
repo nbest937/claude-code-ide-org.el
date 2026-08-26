@@ -9440,6 +9440,55 @@ whether or not anything called it."
       (claude-code-ide-org--review-settle-slices '((:id "a") (:id "b") (:id "c")))
       (should (= 1 calls)))))
 
+(ert-deftest claude-code-ide-org-test-settle-normalises-separation-after-apply ()
+  "Apply repairs the separation drift it causes, rather than reporting it.
+
+TODO.org :ID: 601c885c asked for a lint rule and got this instead.  The
+drift is *structural* -- apply appends without the trailing lines, so it
+arrives on every pass -- and a defect produced by apply can be repaired
+by apply.  Eighteen warnings telling a human to run one idempotent
+command is eighteen lines standing in for one call.
+
+Ordered after the slice refresh, which rewrites member lines and can
+itself disturb separation."
+  (let (calls)
+    (cl-letf (((symbol-function 'claude-code-ide-org-normalize-heading-separation)
+               (lambda (&optional _f _dry) (push 'separation calls))))
+      (claude-code-ide-org--review-settle-separation nil)
+      (should (null calls))
+      (claude-code-ide-org--review-settle-separation '((:id "a")))
+      (should (equal '(separation) calls))))
+  ;; Ordering is asserted against the CALL SITE, not by calling the two
+  ;; in sequence here -- that only proves this test's own order and
+  ;; passes with the call site reversed, which a break-it pass showed.
+  (let ((src (prin1-to-string
+              (symbol-function 'claude-code-ide-org--review-apply))))
+    (should (string-match-p "settle-slices" src))
+    (should (string-match-p "settle-separation" src))
+    (should (< (string-match "settle-slices" src)
+               (string-match "settle-separation" src)))))
+
+(ert-deftest claude-code-ide-org-test-settle-separation-failure-does-not-fail-the-apply ()
+  "Same contract as the slice refresh: bookkeeping must not sink the pass."
+  (cl-letf (((symbol-function 'claude-code-ide-org-normalize-heading-separation)
+             (lambda (&optional _f _dry) (error "normaliser is on fire"))))
+    (should (eq 'survived
+                (condition-case nil
+                    (progn (claude-code-ide-org--review-settle-separation '((:id "a")))
+                           'survived)
+                  (error 'escaped))))))
+
+(ert-deftest claude-code-ide-org-test-settle-separation-writes-rather-than-reports ()
+  "It must run for real, not as a dry run.
+
+The whole decision was to repair instead of report; passing DRY-RUN
+non-nil would silently turn it back into a report nobody reads."
+  (let (args)
+    (cl-letf (((symbol-function 'claude-code-ide-org-normalize-heading-separation)
+               (lambda (&optional f dry) (setq args (list f dry)))))
+      (claude-code-ide-org--review-settle-separation '((:id "a")))
+      (should (equal '(nil nil) args)))))
+
 (ert-deftest claude-code-ide-org-test-settle-slice-failure-does-not-fail-the-apply ()
   "A slice that cannot be regenerated must not sink a successful apply.
 
