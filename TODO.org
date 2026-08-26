@@ -5020,6 +5020,17 @@ So this is a *scanning* consistency, not a functional gap, and that changes what
 
 *Do not let this quietly become [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]]'s substitute.* A key that makes the manual path bearable reduces the pressure to automate it, and the automated version is strictly better -- it knows when the review command was running, which a human retrofitting brackets afterwards is reconstructing from memory.
 
+*Correction [2026-08-26 Wed]: the premise above is stale.* "Until it exists, the human is doing by hand exactly what it would automate" was written while [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]] was open. It is now =DONE= -- the review pass clocks itself onto =Review attention= ([[id:335dfa97-c1b0-4e98-804f-81495eb63f20][335dfa97]]), and the command *is* the event. The automated path exists, so this heading is no longer the only way the human's attention gets represented.
+
+*Which sharpens this heading's own closing caution rather than retiring it.* "Do not let this quietly become 961f15b6's substitute" was a warning about a future; it is now a live constraint. A key that flips brackets by hand is *worse* than what already ships for any interval a review pass covers, because the pass knows when it was running while a human retrofitting brackets afterwards is reconstructing from memory. Binding the key for that case would be building the inferior half of a thing already built.
+
+*So the question narrows to a real one: what attention is neither an agent turn nor a review pass?* Measured 2026-08-26 rather than supposed. The span =[2026-08-26 Wed 13:05]--[2026-08-26 Wed 13:22]= is backed by six guideposts and nothing else. =--span-work-runs= extracts *one minute* of agent work from it, correctly, since only a =resume= -> =pause= adjacency counts. The other fourteen minutes are the user reading a session report: real attention, on this project, captured by nothing. Not agent activity, so =:ID:= b8e6007a (DONE.org) rightly keeps queue-derived spans out of the agenda; not a review pass, so 961f15b6's clock never opened.
+
+*That gap is the actual want behind the original request*, and it is worth separating from the tedium that prompted it. The user's words were "that edit is tedious for me" and, the same day, that they had "forgotten to represent my attention as active spans". The tedium argues for a key. The forgetting argues a key will not fix it either -- an omission caused by having to remember is not repaired by making the remembering cheaper.
+
+*Two neighbours now carry pieces of this.* [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]] proposes reclaiming such a gap when an apply timestamp falls inside it, which is the automatic answer to the same question. [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] records that the review buffer *names* an item by that 17-minute window while writing only the 1-minute payload -- so today the readout implies the gap is already accounted for, which is part of why it goes unnoticed.
+
+*Still open and unchanged by any of this*: the three design questions above -- what the flip *means*, what it applies to, and which key.
 
 
 
@@ -5088,6 +5099,31 @@ The third is the important one: it is the known negative, confirmed independentl
 *Prompt only when there is something to lose.* A confirmation on every =g= trains the reflex that dismisses it, which is how a guard becomes decoration. With nothing pending, =g= should stay instant.
 
 *Worth considering instead of, or alongside, the prompt:* make the discard recoverable. The items are a list in memory; stashing the pre-refresh copy in a buffer-local variable and offering =C-/= or an =undo-refresh= command would make the slip cost a keystroke rather than a decision. That is strictly better than asking, and the two are not exclusive.
+** A span's headline interval is not the interval it writes :code:
+:PROPERTIES:
+:ID:       44cef181-8dac-4735-8860-f123e132fdbc
+:CREATED:  [2026-08-26 Wed 13:41]
+:END:
+
+*Found by the user 2026-08-26, from a readout they correctly refused to believe:* "I sense a contradiction. you just confirmed that [2026-08-26 Wed 13:05]--[2026-08-26 Wed 13:20] is my attention but something else says otherwise? who wins?"
+
+*Nothing wins, because the two claims are about different intervals -- and the review buffer prints only one of them.* An unassigned span item carries:
+
+- a *window*, rendered as its headline: =[2026-08-26 Wed 13:05]--[2026-08-26 Wed 13:22]=, 17 minutes, being the outer bracket of a guidepost cluster;
+- a *payload*, rendered as =writes 0:01 in 1=: one CLOCK line of about a minute, extracted by =--span-work-runs= as the sole =resume= -> =pause= adjacency inside it.
+
+*The two belong to different people.* The payload is agent activity, and =:ID:= b8e6007a (in DONE.org) correctly rules it inactive and out of the agenda. The remaining ~14 minutes of the window is the human reading a session report -- real attention, discarded by the extraction rather than recorded as anything. So b8e6007a never sees it, and the natural reading of the item ("this 17-minute range is about to be written down") is false in both directions at once: that range is not what gets written, and the part of it that *is* the human's is not written at all.
+
+*Measured, on the item that produced the complaint.* Six guideposts back it and nothing else -- =pause= 13:05:50, =pause= 13:05:58, =resume= 13:20:21, =pause= 13:20:32, =pause= 13:20:43, =resume= 13:22:51. No =todo= or =clock= event falls inside, which is also why it is unassigned: there is no heading in the window to attribute it to.
+
+*Why this is a readout defect rather than a pipeline defect.* The pipeline is behaving exactly as designed and every number it produces is right. What is wrong is that the item is *named* by a quantity it does not write, so a reader infers the headline is the record. The fix is presentational -- show the run(s) the item will actually write, or mark the window as a bracket rather than an interval -- and deliberately does not touch what is extracted.
+
+*Distinct from the three neighbours it will be mistaken for.* [[id:5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46][5a6d2c75]] wants the *evidence* that would make an unassigned span's heading obvious; [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]] is about the units in "writes 0:01 in 1"; [[id:46e4ce2b-fdc8-447b-ad09-b4845602540f][46e4ce2b]] is about where the =:ID:= prefix sits on a line. All three are about a line that is hard to read. This one is about a line that is *misleading when read correctly*, which is the sharper failure and needs a different fix.
+
+*Related but not the same*: [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]] proposes reclaiming a guidepost gap as the human's attention when an apply timestamp falls inside it. That is about *capturing* the missing 14 minutes; this is about not implying they are already captured. If 996fd2bd ships, this heading still stands -- a window and its payload would still be two quantities.
+
+*Filed with a finding attached.* Writing this body hit [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] live: =org_amend='s link checker expanded all four TODO.org prefixes above and refused =b8e6007a=, which is identical in form and differs only in living in DONE.org. So the expander is scoped to TODO.org, and a cross-file reference has to be written as plain text -- which is why one citation here is not a link.
+
 * Observability
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Observability
