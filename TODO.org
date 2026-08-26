@@ -10,13 +10,13 @@
 :END:
 
 
-** DOING [20/25] Harden the review pass: its cost, its correctness, and its record
+** DOING [23/27] Harden the review pass: its cost, its correctness, and its record
 :PROPERTIES:
 :KIND:     slice
 :ID:       c44c2119-dbf8-4510-99e2-6aaa7f259d94
 :CREATED:  [2026-08-25 Tue 11:06]
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(edd47f32-e6c9-4ab3-8e8a-46a37ea29605 7ae6562d-25c8-453e-b78b-920e036c5665 e1284bdb-0a18-402a-81cb-1ac8d09fb8a2 aa1ba915-ee68-48df-afea-197ae60aac63 806ff394-3ede-4d67-82aa-9c44fe1cf86e 3063c3e5-0dd0-4354-8985-271b0313c5d1 f421c5c3-f81f-4ebf-99c9-42c53cc00558 961f15b6-d782-40b8-8ceb-ba086d188a3b 2758f3a0-3c47-405e-9662-a7669dcb60cc 5787bfc6-3ba5-4d94-802c-f8a7879de68d 82df2a6c-881d-4117-a752-5b3b04c9656d 21c91613-76e0-4590-affe-e2af9f1321ca 8ca6541d-0fc7-45a2-a4d3-76e1608f658d 43201e64-3fe8-4fa6-81f5-d2ab5b65d191 f4b07fc0-187a-4975-aa3b-b9bd4b1c0799 31c6ac39-1a06-4b17-8d89-b91fd2628874 111ca40a-3fdb-4106-ad52-991e30737ece 7fbab3b3-7843-4290-94a5-d421413f2be4 ff92700e-1713-4862-a3fe-8fd972ad96fa 2b050e7a-b0c4-45d3-835e-68befcebb7bb 7148cddc-aca3-416e-8bcb-f164d4d2bba0 df1cf43c-749f-435c-9f45-3d8df1d725ad 49557477-e50c-496f-85df-82c65109832b 0acc1df2-6916-4180-867a-99bfa551806b 97b030a4-50df-4b8b-a781-bd4acd2931d0)
+:BLOCKER:  ids(edd47f32-e6c9-4ab3-8e8a-46a37ea29605 7ae6562d-25c8-453e-b78b-920e036c5665 e1284bdb-0a18-402a-81cb-1ac8d09fb8a2 aa1ba915-ee68-48df-afea-197ae60aac63 806ff394-3ede-4d67-82aa-9c44fe1cf86e 601c885c-7d8c-46d4-af14-0d8d3ea69ba8 a0abf97d-0f98-42df-9749-e1647b723596 3063c3e5-0dd0-4354-8985-271b0313c5d1 f421c5c3-f81f-4ebf-99c9-42c53cc00558 961f15b6-d782-40b8-8ceb-ba086d188a3b 2758f3a0-3c47-405e-9662-a7669dcb60cc 5787bfc6-3ba5-4d94-802c-f8a7879de68d 82df2a6c-881d-4117-a752-5b3b04c9656d 21c91613-76e0-4590-affe-e2af9f1321ca 8ca6541d-0fc7-45a2-a4d3-76e1608f658d 43201e64-3fe8-4fa6-81f5-d2ab5b65d191 f4b07fc0-187a-4975-aa3b-b9bd4b1c0799 31c6ac39-1a06-4b17-8d89-b91fd2628874 111ca40a-3fdb-4106-ad52-991e30737ece 7fbab3b3-7843-4290-94a5-d421413f2be4 ff92700e-1713-4862-a3fe-8fd972ad96fa 2b050e7a-b0c4-45d3-835e-68befcebb7bb 7148cddc-aca3-416e-8bcb-f164d4d2bba0 df1cf43c-749f-435c-9f45-3d8df1d725ad 49557477-e50c-496f-85df-82c65109832b 0acc1df2-6916-4180-867a-99bfa551806b 97b030a4-50df-4b8b-a781-bd4acd2931d0)
 :END:
 :LOGBOOK:
 - State "DOING"      from              [2026-08-25 Tue 11:06] \\
@@ -29,12 +29,14 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
   - [X] [[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]] DONE Consolidation only reaches drawers an apply pass happens to touch
   - [X] [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]] DONE End every heading with two blank lines, so folded trees are separated
   - [X] [[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]] DONE Prompt the daily ceremony automatically, within what a scheduler can reach
-  - [ ] [[id:806ff394-3ede-4d67-82aa-9c44fe1cf86e][806ff394]] TODO Nothing stamps the ceremony done, so the prompt relies on a model remembering
+  - [X] [[id:806ff394-3ede-4d67-82aa-9c44fe1cf86e][806ff394]] DONE Nothing stamps the ceremony done, so the prompt relies on a model remembering
+  - [ ] [[id:601c885c-7d8c-46d4-af14-0d8d3ea69ba8][601c885c]] NEXT bin/lint-org does not assert the two-blank-line separation it now documents
+  - [ ] [[id:a0abf97d-0f98-42df-9749-e1647b723596][a0abf97d]] TODO Nothing refreshes a slice after apply, so its lines are stale by default
 - [X] [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] DONE org_amend can only append, so every correction lands furthest from the reader
 - [X] [[id:f421c5c3-f81f-4ebf-99c9-42c53cc00558][f421c5c3]] DONE The :PLAN: lint will demand a drawer from a debrief-only heading
-- [ ] [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]] NEXT Track the human's review attention, clocked by the review command itself
+- [X] [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]] DONE Track the human's review attention, clocked by the review command itself
 - [-] [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] REVIEW Footnote discipline decays on re-mention; enforce it at Stop
-  - [ ] [[id:5787bfc6-3ba5-4d94-802c-f8a7879de68d][5787bfc6]] TODO The footnote hook's stopReason never reaches the model; the block is opaque
+  - [X] [[id:5787bfc6-3ba5-4d94-802c-f8a7879de68d][5787bfc6]] DONE The footnote hook's stopReason never reaches the model; the block is opaque
 - [X] [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] DONE Evaluate Org's own agenda, sparse-tree and column views against this corpus
 - [X] [[id:21c91613-76e0-4590-affe-e2af9f1321ca][21c91613]] DONE Apply consumes queue events with no way to roll one back
 - [X] [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]] DONE Compose slices by reference: a checkbox list of id links, blocked on its members
@@ -4923,10 +4925,14 @@ So this is a *scanning* consistency, not a functional gap, and that changes what
 - *Which key.* =a= is assign, =e= is edit-interval, =N= is note, =d= is dismiss. =t= (for *type*) and =A= (active) both look free; check the keymap before choosing rather than trusting this list.
 
 *Do not let this quietly become [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]]'s substitute.* A key that makes the manual path bearable reduces the pressure to automate it, and the automated version is strictly better -- it knows when the review command was running, which a human retrofitting brackets afterwards is reconstructing from memory.
-** A guidepost gap containing an apply timestamp is provably the human's attention :code:
+** TODO A guidepost gap containing an apply timestamp is provably the human's attention :code:
 :PROPERTIES:
 :ID:       996fd2bd-be90-44b3-b2c5-9018255940b3
 :CREATED:  [2026-08-26 Wed 10:09]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-26 Wed 10:10] \\
+  captured keywordless, setting initial state
 :END:
 
 *Found 2026-08-26* while the user asked whether a span they had flipped to active notation "fits the data", and whether such spans should always be offered that way.
@@ -10659,7 +10665,7 @@ So the test is red for the last hour of every day, and green the other 23. Confi
 Approach: anchor the fixture to a fixed date rather than to now, which removes the dependence on when the suite runs instead of narrowing the window in which it breaks.
 
 
-** REVIEW [0/1] Footnote discipline decays on re-mention; enforce it at Stop :code:
+** REVIEW [1/1] Footnote discipline decays on re-mention; enforce it at Stop :code:
 :PROPERTIES:
 :ID:       2758f3a0-3c47-405e-9662-a7669dcb60cc
 :CREATED:  [2026-08-24 Mon 11:28]
@@ -10725,7 +10731,8 @@ Two findings, and the second is the actionable one.
 *Still worth doing, and it is the half that removes the problem rather than policing it:* [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] and [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] make a prefix→title lookup cheap. A rule that is free to obey does not need enforcing, and the enforcement exists because looking up five exact titles mid-response is not free today.
 
 
-*** REVIEW The footnote hook's stopReason never reaches the model; the block is opaque :code:
+*** DONE The footnote hook's stopReason never reaches the model; the block is opaque :code:
+CLOSED: [2026-08-26 Wed 10:27]
 :PROPERTIES:
 :ID:       5787bfc6-3ba5-4d94-802c-f8a7879de68d
 :CREATED:  [2026-08-25 Tue 11:57]
@@ -10739,6 +10746,8 @@ CLOCK: [2026-08-26 Wed 09:44]--[2026-08-26 Wed 09:48] =>  0:04
 - [2026-08-26 Wed 09:44]--[2026-08-26 Wed 09:48] check hook docs, fix the delivery half
 - State "REVIEW"     from "DOING"      [2026-08-26 Wed 09:48] \\
   fix shipped; awaits one observed block
+- State "DONE"       from "REVIEW"     [2026-08-26 Wed 10:27] \\
+  exit 2 + stderr; observed delivering
 :END:
 
 *Observed 2026-08-25, twice in one session.* The hook fired and the text that reached the model was exactly =Stop hook stopped continuation: Stop hook prevented continuation= -- no ids, no instruction, none of the =stopReason= the hook composes. The model continued without correcting anything, because it had nothing to correct *from*.
@@ -10764,6 +10773,26 @@ CLOCK: [2026-08-26 Wed 09:44]--[2026-08-26 Wed 09:48] =>  0:04
 *Corrected while writing this up, because the first version of the claim was wrong.* The fix is live *now*, not next session: the hook *script* is read fresh on every invocation, and only the *wiring* in =.claude/settings.json= is read at session start -- which is unchanged. So the next block in any running session is the test, and the six-block history says one will come along.
 
 *What this leaves for the parent.* [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] sits in =REVIEW= awaiting exactly this: it fires, it is accurate at 41 of 45 measured over a real transcript, and the reason it could not report is now understood and addressed. What it still lacks is one *observed* block carrying its message -- which is a matter of waiting rather than of building.
+
+*Verified end to end 2026-08-26, by deliberately tripping the hook at the user's instruction.* A response cited =806ff394= with no footnote block, and what came back was:
+
+: Stop hook feedback:
+: [${CLAUDE_PROJECT_DIR}/bin/hooks/footnote-check]: This response cites
+: tracked org :ID:s without footnoting them: 806ff394. Append a footnote
+: for each, superscript-marked in the prose ...
+
+The id, the instruction, the rule. The first of eight blocks to say anything at all.
+
+*The deliberate trip is what settled it, and it took two of them.* The first trip *falsified* the =systemMessage= fix -- the block arrived as the bare default, unchanged -- which is the only reason the exit code was examined at all. Waiting for a natural block would have produced the same evidence eventually and much later; asking for one produced it in a turn. Worth remembering as a technique: a gate that fails silently can be *made* to fail on demand.
+
+*The final diagnosis, after two wrong ones.* =stopReason= is an enum and discards prose -- true, and not the cause. =systemMessage= is a real field -- true, and not the cause either. The cause was =exit 0=: "Stderr from a hook that exits 0 goes to the debug log only, never the transcript, and Claude never sees it." Both earlier attempts rearranged fields inside a channel that was shut. Now it is =exit 2= with the text on stderr and no JSON at all, which the docs give as the blocking path for =Stop=.
+
+*A bug in the test harness fell out of the rewrite and is worth keeping.* =run= is always used inside =$(...)=, which is a subshell, so its =RC=$?= could never reach the caller -- four tests that should have blocked silently reported "allowed". The exit status now travels as the first line of =run='s own output. Reverting to the JSON/exit-0 form takes 12 passed to 6 passed / 6 failed, so the assertions bite.
+
+*Honest note on the record.* The build interval for this fix was not clocked -- it happened across the same stretch as the =Review attention= corruption repair, and neither was clocked at the time. Recording that rather than backfilling a guess, per [[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]].
+
+*What this releases.* [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] has been in =REVIEW= waiting on exactly this. It fires, it is accurate at 41 of 45 measured over a real transcript, and it can now tell the model what it found. There is nothing left for it to wait for.
+
 
 
 
@@ -10858,8 +10887,11 @@ Meta-work: the review pass, planning, and the time that goes into deciding what 
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-26 Wed 10:33]--[2026-08-26 Wed 10:37] =>  0:04
+CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
+- <2026-08-26 Wed 10:38>--<2026-08-26 Wed 10:38> review pass (buffer buried)
 :END:
 
 
@@ -11107,12 +11139,16 @@ CLOCK: [2026-08-25 Tue 19:17]--[2026-08-25 Tue 19:36] =>  0:19
 :CREATED:  [2026-08-26 Wed 08:08]
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-26 Wed 09:49]--[2026-08-26 Wed 09:59] =>  0:10
-- <2026-08-26 Wed 09:49>--<2026-08-26 Wed 09:59> assigned at review
 CLOCK: [2026-08-26 Wed 08:08]--[2026-08-26 Wed 08:28] =>  0:20
 - <2026-08-26 Wed 08:08>--<2026-08-26 Wed 08:28> assigned at review
 CLOCK: [2026-08-26 Wed 09:16]--[2026-08-26 Wed 09:17] =>  0:01
 - [2026-08-26 Wed 09:16]--[2026-08-26 Wed 09:17] assigned at review
+CLOCK: [2026-08-26 Wed 09:23]--[2026-08-26 Wed 09:29] =>  0:06
+- <2026-08-26 Wed 09:23>--<2026-08-26 Wed 09:29> assigned at review
+CLOCK: [2026-08-26 Wed 09:49]--[2026-08-26 Wed 09:59] =>  0:10
+- <2026-08-26 Wed 09:49>--<2026-08-26 Wed 09:59> assigned at review
+CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:16] =>  0:17
+- <2026-08-26 Wed 09:59>--<2026-08-26 Wed 10:16> assigned at review
 :END:
 
 ** DONE Clear the 36-heading archive backlog, sweeping bodies into :PLAN: unedited :code:
@@ -11169,7 +11205,7 @@ CLOCK: [2026-08-24 Mon 15:32]--[2026-08-24 Mon 15:39] =>  0:07
 *Note the lint will start reporting these as they close.* =bin/lint-org= now warns when a heading closed on or after 2026-08-24 has a substantial body and no =:PLAN:= drawer. The 36 here are all closed before that date and are deliberately exempt, so the backlog stays silent rather than shouting 124 findings a day.
 
 
-** TODO [3/6] Make the daily ceremony cheap enough that it actually runs :code:
+** TODO [4/6] Make the daily ceremony cheap enough that it actually runs :code:
 :PROPERTIES:
 :ID:       edd47f32-e6c9-4ab3-8e8a-46a37ea29605
 :CREATED:  [2026-08-24 Mon 15:36]
@@ -11430,7 +11466,25 @@ It also already has the right manners for this: [[id:7771fc63-9374-4c8a-9e80-24c
 
 *Do not reach for the count as a threshold.* The separator count is =claude-code-ide-org-heading-separator-lines= (default 2, matched to =org-cycle-separator-lines=); any check must read that variable rather than hard-coding 2, or it will disagree with the normaliser the moment either moves.
 
-*** TODO Nothing stamps the ceremony done, so the prompt relies on a model remembering :code:
+*Answered 2026-08-26 by rejecting the question* ([[orgit-rev:claude-code-ide-org::395d233][395d233]]). No lint assertion was added. Apply now repairs the drift it causes, in its settle phase, beside the slice refresh.
+
+*The three recorded options share a flaw this heading had already half-noticed.* An error, a warning that never escalates, and a pre-commit hook that runs the normaliser all *report* -- or at best prompt for -- a condition whose repair is one idempotent command. The body above says it plainly: "18 warnings telling a human to run one command is noise." The fourth option is to run the command.
+
+*It became available only because the drift was measured rather than assumed.* "Structural -- it arrives every time the queue is applied, not occasionally through carelessness" is what makes this a defect apply can fix. A drift arriving from carelessness would need a check; a drift arriving from a known mechanism can be repaired at that mechanism.
+
+*Ordered after [[id:a0abf97d-0f98-42df-9749-e1647b723596][a0abf97d]]'s refresh*, which rewrites member lines and can itself disturb separation. That ordering is asserted *against the call site* -- reading =--review-apply='s own definition -- and not by calling the two in sequence inside the test. The first version did the latter and passed with the call site reversed, which a break-it pass caught. A test that only proves its own ordering is worse than none, because it reads like coverage.
+
+*It runs for real, not as a dry run*, and that is pinned by its own test: passing =DRY-RUN= would silently turn the repair back into the report this heading declined to build.
+
+*The count is untouched, as instructed.* Nothing here hard-codes 2; the normaliser reads =claude-code-ide-org-heading-separator-lines= as it always did, so the two cannot disagree.
+
+*Known gap, stated rather than left implicit.* =org_amend= causes the same drift and is not an apply, so prose added between passes stays unseparated until the next one. Acceptable while applies are frequent -- and the residue to revisit if that stops being true.
+
+*What this means for the original ask:* =bin/lint-org= still does not assert the separation convention, and now should not. There is no drift for it to find that apply has not already repaired, and a rule reporting a self-healing condition is a rule that will only ever fire on the window between a stray edit and the next pass.
+
+
+*** DONE Nothing stamps the ceremony done, so the prompt relies on a model remembering :code:
+CLOSED: [2026-08-26 Wed 10:32]
 :PROPERTIES:
 :ID:       806ff394-3ede-4d67-82aa-9c44fe1cf86e
 :CREATED:  [2026-08-26 Wed 08:31]
@@ -11438,6 +11492,14 @@ It also already has the right manners for this: [[id:7771fc63-9374-4c8a-9e80-24c
 :LOGBOOK:
 - State "TODO"       from              [2026-08-26 Wed 08:32] \\
   captured keywordless, setting initial state
+- State "DOING"      from "TODO"       [2026-08-26 Wed 10:00] \\
+  settle the stamp trigger question
+CLOCK: [2026-08-26 Wed 10:22]--[2026-08-26 Wed 10:27] =>  0:05
+- [2026-08-26 Wed 10:22]--[2026-08-26 Wed 10:27] suggested span, accepted at review
+CLOCK: [2026-08-26 Wed 10:29]--[2026-08-26 Wed 10:32] =>  0:03
+- [2026-08-26 Wed 10:29]--[2026-08-26 Wed 10:32] derive the nag guard from the pass clock
+- State "DONE"       from "DOING"      [2026-08-26 Wed 10:32] \\
+  derived from the pass clock, verified live
 :END:
 
 *Split out of [[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]] 2026-08-26, and it should have been filed when that heading closed rather than a day later.* The debrief named this gap in prose and said it "belongs to [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]]" -- but nothing was filed, so the only record sat in a finished heading's body, which readers are told to treat as history and which =org_wrap_plan= will eventually sweep into a drawer they are told to skip. The user caught it by asking whether the heading was really done.
@@ -11451,6 +11513,23 @@ It also already has the right manners for this: [[id:7771fc63-9374-4c8a-9e80-24c
 *The obvious hook is the review command's exit*, since apply is the one step that must be interactive and is therefore the one moment a human is provably present. Not chosen: apply is *one step* of the ceremony, and stamping there would go quiet on the days when someone applies two items and archives nothing -- which is the same objection that kept =mark-ceremony-done= out of the apply path in the first place. Whatever is chosen has to distinguish "a pass happened" from "the pass happened".
 
 *Cheapest honest alternative, if the trigger question stays open:* have the prompt itself decay -- report at most once per day per *machine* by stamping when the report is *emitted* rather than when the ceremony completes. That is strictly worse as a record and strictly better as a nag guard, and it needs no new trigger at all.
+
+*Shipped 2026-08-26* ([[orgit-rev:claude-code-ide-org::d56e1ac][d56e1ac]]), and the answer is neither of the two options recorded above -- because [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]] landed in between and changed what was available.
+
+*The trigger question dissolves once a pass leaves evidence.* The review command now opens a real clock on the attention heading, so "a pass ran today" is *derived from the act itself* rather than from anyone remembering to announce it. =--ceremony-reviewed-today-p= reads that clock, and either it or the stamp silences the prompt. Nothing has to be called at the end of a pass for the prompt to go quiet.
+
+*Both recorded candidates are superseded rather than chosen between.* Stamping on the review command's exit was rejected here for going quiet on a day when someone applies two items and archives nothing -- and that objection still holds *for the record*, which is why the stamp keeps its old meaning. Making the prompt decay on emission was rejected as "strictly worse as a record" -- also still true, and now unnecessary, because the derived signal is about the pass rather than about the prompt.
+
+*The two signals answer different questions and are deliberately kept apart.* The clock says a pass was *run*: derived, unforgettable, and reason enough not to ask again today. The stamp says the ceremony was *completed*: a claim spanning consolidate, normalise and archive -- steps nothing observes -- which only a human can make. Conflating them is what made the original design hard; keeping both costs one =or=.
+
+*So the report now names the last completion, "never" included.* Silence after a pass must not read as the ceremony being finished, and without that date it would. Stated rather than implied, on the same footing as the rest of this report's manners.
+
+*Verified live against the real corpus*, not only in fixtures: after reload, =(:reviewed-today t :stamp-today nil :status nil)= -- quiet today because a pass genuinely ran, with =mark-ceremony-done= never called. Three real =CLOCK= lines sit on the attention heading from today's passes, including one the user created minutes earlier.
+
+*Both attempted breaks discriminate*: removing the clock derivation, and dropping the last-completed date from the report.
+
+*What remains, and it is smaller than it was.* Nothing yet calls =mark-ceremony-done= automatically -- but that is now only about the *record*, not about the nagging, and a record of a human judgement arguably *should* need a human act. The honest residue is that the record will be sparse until someone habitually marks it, and the report makes that visible by printing the date every time it asks.
+
 
 *** TODO Nothing refreshes a slice after apply, so its lines are stale by default :code:
 :PROPERTIES:
@@ -11475,3 +11554,19 @@ It also already has the right manners for this: [[id:7771fc63-9374-4c8a-9e80-24c
 *The right seam probably already exists:* =--review-settle-auto-promote= runs once after apply's loop finishes, against the batch's finished state, precisely because per-item evaluation was wrong for the same reason ([[id:c8a6c5d2-8777-44d2-9900-e56eb03aa2d9][c8a6c5d2]]). A slice refresh wants exactly that phase, and adding it there costs one call rather than a new mechanism.
 
 *Open:* whether to refresh *every* slice or only ones whose members the batch touched. Every slice is simpler and idempotent; touched-only is cheaper and needs the batch to report which ids it wrote. With one live slice the distinction does not yet matter, which argues for the simple version until it does.
+
+*Shipped 2026-08-26* ([[orgit-rev:claude-code-ide-org::9761cdf][9761cdf]]). =--review-settle-slices= runs from the same seam as =--review-settle-auto-promote=, immediately after apply's loop and before the watermark is written.
+
+*The seam this heading identified was the right one, and both open questions resolved in the direction it guessed.* After the batch rather than per item, and every slice rather than only touched ones -- the latter because =refresh-slice= is idempotent and there is one live slice, so a touched-only variant would buy machinery before the distinction costs anything.
+
+*The per-item alternative is worse here than it is for auto-promote*, which is worth stating because the two look symmetrical. A member whose =todo= event has not landed yet is *keywordless on disk*, so a mid-batch refresh leaves its line unrewritten *and* manufactures a =:BLOCKER:= lint error naming a keyword-less heading. That is [[id:798bb7a1-d5a6-4c08-8cf0-cc91a82d08e6][798bb7a1]], observed the same day this was filed.
+
+*Errors are swallowed, deliberately.* This is bookkeeping *after* the work. A slice that cannot be regenerated leaves staleness that is the status quo ante rather than new damage; an error escaping would report a pass that genuinely landed as a failed one.
+
+*The tests assert the invocation, not the regeneration.* =refresh-slice= is already covered by [[id:0acc1df2-6916-4180-867a-99bfa551806b][0acc1df2]]'s tests, and re-testing its output here would pass whether or not anything called it -- so these count calls: none for an empty batch, exactly one for a batch of three. Proved to discriminate by disabling the call site.
+
+*One test was wrong before it was right, in a way worth recording.* The failure test first asserted =should-not= on the return value; the function returns whatever =message= hands back, so it failed against correct code. It now asserts on whether an error *escapes*, which is the actual property.
+
+*Verified live after reload*: =--review-settle-slices= is bound and =claude-code-ide-org--review-apply='s definition contains the call. The first probe reported =nil= only because it named =--review-apply-items=, a function that does not exist -- a reminder that a negative from a hand-written probe is worth checking before it is believed.
+
+*What this closes.* Three ceremony steps depended on someone remembering; this was the third and last of them to be wired. The remaining one, [[id:601c885c-7d8c-46d4-af14-0d8d3ea69ba8][601c885c]], is not a missing trigger but an open decision about whether a lint rule is wanted at all.
