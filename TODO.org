@@ -66,6 +66,19 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 - [[orgit-rev:claude-code-ide-org::60454fc][60454fc]] [2026-08-25 Tue 16:46] recorded 21c91613's decision and sequenced it first
 - [[orgit-rev:claude-code-ide-org::13960c9][13960c9]] [2026-08-25 Tue 16:48] folded in the clocking gap the previous session left
 
+*Closed 2026-08-26 at 27 of 27*, having opened 2026-08-24. Two members were cancelled with their cookies deleted; the rest shipped.
+
+*Kept deliberately short, and the tension is worth naming.* CLAUDE.md asks a =DONE= heading for an outcome summary before archiving; the slice convention says a slice's body is one sentence, the checklist and the revision links, "and nothing else". For a slice those pull against each other, and the checklist wins: what shipped is twenty-five member headings each carrying its own debrief, and restating them here would be a second copy that can disagree with the first. What follows is only what is true of the *slice* rather than of its members.
+
+*It grew by half while it ran*, from twenty members to twenty-seven, and every addition came from work found *while* doing the planned work rather than from the plan. Three arrived on the last morning. That is the shape the prompt kept warning about -- "the job is to finish the current slice, not to grow it" -- and the warning was right about the risk and wrong about the outcome: the additions were the parts that made the ceremony actually run.
+
+*The slice mechanism grew up during its own first use.* It began as a checkbox list nothing maintained. It ends with a =:KIND:= declaration, a derived =:BLOCKER:=, a lint assertion, a regenerator, and -- as of [[id:a0abf97d-0f98-42df-9749-e1647b723596][a0abf97d]] -- an automatic refresh in apply's settle phase, so the staleness this slice was hand-repaired for five times on its final day cannot recur. Eight prompt revisions are linked below.
+
+*What it was actually for.* The review pass is the one activity this project depends on and had never measured. It now records when each event was applied, repairs the drift it causes, prompts its own ceremony once a day, and clocks the human who runs it. Every one of those was invisible when the slice opened.
+
+*No residue.* Everything named as unfinished during its life was filed as a heading before the heading naming it closed -- a rule this slice produced by breaking it once ([[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]]) and then writing it into CLAUDE.md.
+
+
 
 ** TODO Close the gap between what we declare and what the code infers :code:
 :PROPERTIES:
@@ -10924,6 +10937,7 @@ Meta-work: the review pass, planning, and the time that goes into deciding what 
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-26 Wed 11:40]--[2026-08-26 Wed 11:41] =>  0:01
 CLOCK: [2026-08-26 Wed 11:06]--[2026-08-26 Wed 11:10] =>  0:04
 CLOCK: [2026-08-26 Wed 10:33]--[2026-08-26 Wed 10:37] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -11192,6 +11206,10 @@ CLOCK: [2026-08-26 Wed 10:59]--[2026-08-26 Wed 11:06] =>  0:07
 - <2026-08-26 Wed 10:59>--<2026-08-26 Wed 11:06> assigned at review
 CLOCK: [2026-08-26 Wed 11:06]--[2026-08-26 Wed 11:14] =>  0:08
 - [2026-08-26 Wed 11:06]--[2026-08-26 Wed 11:14] assigned at review
+CLOCK: [2026-08-26 Wed 11:20]--[2026-08-26 Wed 11:22] =>  0:02
+- [2026-08-26 Wed 11:20]--[2026-08-26 Wed 11:22] assigned at review
+CLOCK: [2026-08-26 Wed 11:35]--[2026-08-26 Wed 11:36] =>  0:01
+- [2026-08-26 Wed 11:35]--[2026-08-26 Wed 11:36] assigned at review
 :END:
 
 
