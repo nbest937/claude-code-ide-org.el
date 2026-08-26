@@ -82,7 +82,7 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 *No residue.* Everything named as unfinished during its life was filed as a heading before the heading naming it closed -- a rule this slice produced by breaking it once ([[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]]) and then writing it into CLAUDE.md.
 
 
-** NEXT Close the gap between what we declare and what the code infers :code:
+** DOING Close the gap between what we declare and what the code infers :code:
 :PROPERTIES:
 :ID:       979e02b6-2a4c-4328-8b08-ffaec03bd02e
 :CREATED:  [2026-08-25 Tue 15:29]
@@ -95,20 +95,22 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
   sketched as a proposal, not declared a slice
 - State "NEXT"       from "TODO"       [2026-08-26 Wed 12:28] \\
   Auto-promoted: sole remaining TODO in its sibling group.
+- State "DOING"      from "NEXT"       [2026-08-26 Wed 13:03] \\
+  members in the mail; grouping now takes no clock
 :END:
 
 Wherever this project declares something in prose and the code infers it some other way, make the code read the declaration.
 
 *Ordered by dependency rather than size*: the docstring first because the next three read the variable it lies about, then the trigger that unblocks two transitions left unqueued, then the predicate, the policy it enables, the mechanism that makes the policy enforceable, and the general keyword review once its evidence exists. The two tool-surface members come last because they are consequences of the same root rather than causes of anything.
 
-- [ ] [[id:6a21e08b-4880-4d2b-9b0f-12c35558fe08][6a21e08b]] NEXT --trigger-auto-clock-in's docstring says the feature is off; it is on
-- [ ] [[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]] NEXT Setting DOING retroactively opens a clock, which the looser sense makes wrong
-- [ ] [[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]] TODO A slice gets clocked and auto-promoted, because its members are links not children
-- [ ] [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]] TODO A container carries clocks it earned before it was one
+- [X] [[id:6a21e08b-4880-4d2b-9b0f-12c35558fe08][6a21e08b]] DONE --trigger-auto-clock-in's docstring says the feature is off; it is on
+- [-] [[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]] REVIEW Setting DOING retroactively opens a clock, which the looser sense makes wrong
+- [X] [[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]] DONE A slice gets clocked and auto-promoted, because its members are links not children
+- [ ] [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]] NEXT A container carries clocks it earned before it was one
 - [ ] [[id:a0813ae3-0c6d-43de-bae1-fb4414cdb519][a0813ae3]] TODO Task mitosis: a leaf that outgrows itself divides rather than becoming a parent
 - [ ] [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]] TODO Revisit the TODO keyword progression, starting with whether PLANNING earns its keep
 - [ ] [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]] TODO Generalise :KIND: to every declared heading class, so level stops meaning anything
-- [ ] [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] TODO Adopt org-native mechanisms for the heading tiers
+- [ ] [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] NEXT Adopt org-native mechanisms for the heading tiers
 - [ ] [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] TODO Find a convention marking which children a container's plan actually covered
 - [ ] [[id:8183fc7c-905e-40c8-81cb-10c56158c6ce][8183fc7c]] TODO org_outline is blind to a slice: scoped to one, it returns a single line
 - [ ] [[id:798bb7a1-d5a6-4c08-8cf0-cc91a82d08e6][798bb7a1]] TODO A slice member captured this session cannot be rendered or blocked on until apply
@@ -130,7 +132,7 @@ machine above — three different angles on "make sure the clock is
 never silently wrong."
 
 
-** NEXT Setting DOING retroactively opens a clock, which the looser sense makes wrong :code:
+** REVIEW Setting DOING retroactively opens a clock, which the looser sense makes wrong :code:
 :PROPERTIES:
 :ID:       4f6a6bb1-7773-4657-949e-1fe1ba9484be
 :CREATED:  [2026-08-25 Tue 13:51]
@@ -140,6 +142,12 @@ never silently wrong."
   blocks two queued transitions; verified in batch
 - State "NEXT"       from "TODO"       [2026-08-25 Tue 17:06] \\
   only group candidate blocking queued work
+CLOCK: [2026-08-26 Wed 12:59]--[2026-08-26 Wed 13:00] =>  0:01
+- State "DOING"      from "NEXT"       [2026-08-26 Wed 12:59] \\
+  starting now; genuine start, not retroactive
+- [2026-08-26 Wed 12:59]--[2026-08-26 Wed 13:00] measure whether apply reaches the trigger at all
+- State "REVIEW"     from "DOING"      [2026-08-26 Wed 13:00] \\
+  falsified and documented; close-or-keep is yours
 :END:
 
 *=DOING= was relaxed 2026-08-25* from "the agent is executing this right now" to "started and owed a return" -- *in the mail*. The looser sense is durable and plural, and it immediately collides with a trigger built for the stricter one.
@@ -179,8 +187,7 @@ never silently wrong."
 *Handed back as REVIEW rather than closed*, because the judgement is yours: the operational defect is falsified and nothing is left to build, but this heading also framed a design question -- "the distinction the trigger needs is between two acts that currently look identical" -- and whether the surviving hand-edit case retires that question or merely shrinks it is not mine to decide.
 
 
-
-** TODO A container carries clocks it earned before it was one :code:research:
+** NEXT A container carries clocks it earned before it was one :code:research:
 :PROPERTIES:
 :ID:       3964c575-50bc-4cc9-abeb-bdd1c0162c2c
 :CREATED:  [2026-08-25 Tue 12:59]
@@ -188,6 +195,8 @@ never silently wrong."
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 12:59] \\
   proposed by the user; blast radius measured first
+- State "NEXT"       from "TODO"       [2026-08-26 Wed 13:03] \\
+  member 4; last of the mechanical four
 :END:
 
 *The user's proposal 2026-08-25:* slices carry no clock, so stories should not either. The argument is the one =--container-heading-p='s docstring already makes -- org rolls a subtree's time up natively, so clocking the parent adds a second quantity *inside* the one that already existed, where it can no longer be told apart. Measured there on =:ID:= b5f7c5c7: parent row 14:52, ten children summing 13:44, the 1:08 difference indistinguishable from a rounding artefact.
@@ -208,7 +217,8 @@ never silently wrong."
 *Not the same question as whether a container has a body.* That inference was drawn alongside this one and does not follow; see the note on [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]], which has no clock and a substantial body.
 
 
-** TODO A slice gets clocked and auto-promoted, because its members are links not children :code:
+** DONE A slice gets clocked and auto-promoted, because its members are links not children :code:
+CLOSED: [2026-08-26 Wed 13:03]
 :PROPERTIES:
 :ID:       95c27fca-136c-46f6-b454-fe94261e0e5d
 :CREATED:  [2026-08-25 Tue 11:10]
@@ -216,6 +226,14 @@ never silently wrong."
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 11:10] \\
   measured against the first real slice
+CLOCK: [2026-08-26 Wed 13:01]--[2026-08-26 Wed 13:03] =>  0:02
+- State "DOING"      from "NEXT"       [2026-08-26 Wed 13:01] \\
+  starting now on the shared-predicate fix
+- State "NEXT"       from "TODO"       [2026-08-26 Wed 13:01] \\
+  next slice member; --slice-p already exists
+- [2026-08-26 Wed 13:01]--[2026-08-26 Wed 13:03] teach the two triggers about a slice
+- State "DONE"       from "DOING"      [2026-08-26 Wed 13:03] \\
+  grouping predicate; both triggers exempt a slice
 :END:
 
 *Measured 2026-08-25 against the first slice* ([[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]]), not reasoned about: =(:container-p nil :auto-clock-in t :would-clock t)=. Setting =DOING= on a slice by hand opens a clock on the slice itself.
@@ -252,7 +270,6 @@ The two "unchanged" rows are the point. An exemption is only right if it is also
 *The payoff is immediate and this heading is where it lands.* [[id:979e02b6-2a4c-4328-8b08-ffaec03bd02e][979e02b6]] -- the slice this is a member of -- has been held at TODO precisely because setting it DOING would have clocked the slice itself. That constraint is now lifted, and the slice is set DOING in the same pass: at least one member is in the mail, which is what the word means one level up.
 
 *[[id:42808717-2736-4bf4-872e-887f990203ca][42808717]] is now closed by route as well as by case*, and [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]]'s abstract prediction -- made before any slice existed -- is confirmed and discharged.
-
 
 
 ** TODO Direct file writes to a live org buffer can desync org-clock-marker :code:
@@ -5004,6 +5021,8 @@ So this is a *scanning* consistency, not a functional gap, and that changes what
 *Do not let this quietly become [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]]'s substitute.* A key that makes the manual path bearable reduces the pressure to automate it, and the automated version is strictly better -- it knows when the review command was running, which a human retrofitting brackets afterwards is reconstructing from memory.
 
 
+
+
 ** TODO A guidepost gap containing an apply timestamp is provably the human's attention :code:
 :PROPERTIES:
 :ID:       996fd2bd-be90-44b3-b2c5-9018255940b3
@@ -5069,8 +5088,6 @@ The third is the important one: it is the known negative, confirmed independentl
 *Prompt only when there is something to lose.* A confirmation on every =g= trains the reflex that dismisses it, which is how a guard becomes decoration. With nothing pending, =g= should stay instant.
 
 *Worth considering instead of, or alongside, the prompt:* make the discard recoverable. The items are a list in memory; stashing the pre-refresh copy in a buffer-local variable and offering =C-/= or an =undo-refresh= command would make the slip cost a keystroke rather than a decision. That is strictly better than asking, and the two are not exclusive.
-
-
 * Observability
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Observability
@@ -6548,7 +6565,8 @@ this project's Doom config pending an upstream report/PR.
 :END:
 
 
-** NEXT --trigger-auto-clock-in's docstring says the feature is off; it is on :code:
+** DONE --trigger-auto-clock-in's docstring says the feature is off; it is on :code:
+CLOSED: [2026-08-26 Wed 12:56]
 :PROPERTIES:
 :ID:       6a21e08b-4880-4d2b-9b0f-12c35558fe08
 :CREATED:  [2026-08-25 Tue 11:10]
@@ -6558,6 +6576,12 @@ this project's Doom config pending an upstream report/PR.
   docstring contradicts its own defcustom
 - State "NEXT"       from "TODO"       [2026-08-26 Wed 11:42] \\
   first member of the successor slice
+CLOCK: [2026-08-26 Wed 12:52]--[2026-08-26 Wed 12:56] =>  0:04
+- State "DOING"      from "NEXT"       [2026-08-26 Wed 12:52] \\
+  starting the docstring drift sweep
+- [2026-08-26 Wed 12:52]--[2026-08-26 Wed 12:56] sweep docstrings falsified by the reversal
+- State "DONE"       from "DOING"      [2026-08-26 Wed 12:56] \\
+  three sites fixed, regression test proved discriminating
 :END:
 
 *The docstring of =claude-code-ide-org--trigger-auto-clock-in= reads* "Off by default since 2026-08-18 (TODO.org :ID: 226ed53b, step 2(c)): the first thing tested is =claude-code-ide-org-auto-clock-in-on-doing=, which is nil, so in normal operation this function does nothing at all."
@@ -6587,7 +6611,6 @@ this project's Doom config pending an upstream report/PR.
 *Not covered, stated so nobody trusts it further than it goes.* It pins two phrasings that actually drifted, not the meaning; the same falsehood in new words passes. *Not filed as residue*, deliberately: a semantic prose-versus-code lint is not a thing anyone knows how to build, and the general form of "a declared thing the code infers some other way" is already this slice's whole subject.
 
 *Left undone by choice*: this heading's prospective body was not wrapped into a =:PLAN:= drawer. Its DONE is queued, not applied, so the heading still reads NEXT on disk, and a finished-heading treatment ahead of the keyword would misreport it. Available to the next ceremony.
-
 
 
 ** TODO Add README.md and enforce its consistency with CLAUDE.md :code:comms:
@@ -8367,7 +8390,7 @@ more surprising, and no evidence has been gathered either way.
 *Verified by mutation, then live.* Removing the condition fails only the new container test. Applying it to *every* heading rather than containers only fails that test's discriminating partner -- the pre-existing sole-remaining-TODO promotion test -- which is the same over-application signal 62c6b1be relied on. In the running Emacs after =load-file=: a container sole survivor stays TODO with zero =Auto-promoted= lines, a leaf sole survivor comes out NEXT with one.
 
 
-** TODO Adopt org-native mechanisms for the heading tiers :code:research:
+** NEXT Adopt org-native mechanisms for the heading tiers :code:research:
 :PROPERTIES:
 :ID:       29439196-bbb8-4b64-b8d5-3bf9d457bf6c
 :CREATED:  [2026-08-19 Wed 16:18]
@@ -8389,6 +8412,8 @@ CLOCK: [2026-08-20 Thu 14:08]--[2026-08-20 Thu 14:18] =>  0:10
 - [2026-08-20 Thu 14:08]--[2026-08-20 Thu 14:18] assigned at review
 - State "TODO"       from "MAYBE"      [2026-08-21 Fri 15:27] \\
   promotion trigger met: org itself overloads level
+- State "NEXT"       from "TODO"       [2026-08-26 Wed 12:57] \\
+  next Skill logic member; needs the user's decision
 :END:
 
 Parked 2026-08-19, *not accepted* — recorded so the research need not be
@@ -11015,6 +11040,7 @@ Meta-work: the review pass, planning, and the time that goes into deciding what 
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-26 Wed 13:20]--[2026-08-26 Wed 13:21] =>  0:01
 CLOCK: [2026-08-26 Wed 12:27]--[2026-08-26 Wed 12:28] =>  0:01
 CLOCK: [2026-08-26 Wed 11:40]--[2026-08-26 Wed 11:41] =>  0:01
 CLOCK: [2026-08-26 Wed 11:06]--[2026-08-26 Wed 11:10] =>  0:04
@@ -11293,6 +11319,8 @@ CLOCK: [2026-08-26 Wed 11:41]--[2026-08-26 Wed 11:43] =>  0:02
 - [2026-08-26 Wed 11:41]--[2026-08-26 Wed 11:43] assigned at review
 CLOCK: [2026-08-26 Wed 12:26]--[2026-08-26 Wed 12:27] =>  0:01
 - [2026-08-26 Wed 12:26]--[2026-08-26 Wed 12:27] assigned at review
+CLOCK: [2026-08-26 Wed 12:29]--[2026-08-26 Wed 12:30] =>  0:01
+- [2026-08-26 Wed 12:29]--[2026-08-26 Wed 12:30] assigned at review
 :END:
 
 
