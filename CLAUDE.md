@@ -459,21 +459,27 @@ Consequences, each of which has been got wrong in practice:
   earlier draft of this section, which claimed the keyword tracks
   attention rather than progress and that no "started but resting" state
   should exist; that is exactly the state `DOING` is for.
-- **Setting `DOING` retroactively still opens a clock**, which under this
-  looser sense is a misattribution rather than a nicety: `org-todo
-  "DOING"` fires `--trigger-auto-clock-in` immediately, verified in
-  batch. Recording that something *was* started is not the same act as
-  starting it. See `:ID:` 4f6a6bb1.
+- **Setting `DOING` retroactively is safe through the queue, and only
+  through the queue.** `org_set_todo` opens no clock by itself, and apply
+  binds `--trigger-auto-clock-in` off for every item it lands — measured
+  2026-08-26, and pinned by
+  `claude-code-ide-org-test-review-suppresses-the-auto-clock-in-trigger`.
+  A hand `C-c C-t` to `DOING` in Emacs *does* clock in at once, so
+  recording that something *was* started is a queue action rather than a
+  keystroke. See `:ID:` 4f6a6bb1.
 
 **Rule**: a transition *to* `DOING` or `PLANNING` opens a clock **when you
 are starting work now** — the ordinary case, and what the table above
 describes. Two exceptions. `PLANNING` → `DOING` reuses the already-running
 interval rather than closing and reopening it. And a **retroactive**
 `DOING` — recording that a heading was started earlier — opens nothing,
-because the work did not happen now. The mechanism does not yet honour
-that second exception: `org-todo "DOING"` clocks in regardless (`:ID:`
-4f6a6bb1), which is why such a transition should not be queued until it
-is settled.
+because the work did not happen now. **The queue honours that exception,
+so such a transition may be queued freely.** This said the opposite until
+2026-08-26 and was wrong the whole time (`:ID:` 4f6a6bb1): `org_set_todo`
+and `org_clock_in` are separate calls precisely so state and clock are
+decided separately, and apply suppresses the trigger outright. The one
+path that does *not* honour it is a hand `C-c C-t` in Emacs — where a
+human is present to know which act they are performing.
 **Rule**: a transition *from* `DOING` or `PLANNING` closes the clock **if
 this heading's clock is the one running**. Because `DOING` is plural, a
 heading can be `DOING` with no clock — another heading holds it — and

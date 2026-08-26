@@ -291,9 +291,11 @@ When helping the user move a task between states, follow these conventions:
 happening now.** `DOING` also covers *started and owed a return* — several
 headings may be `DOING` at once, and only one can carry a running clock.
 Setting `DOING` **retroactively**, to record that something was begun
-earlier, should open no clock at all; the trigger does not honour that yet
-(TODO.org `:ID:` 4f6a6bb1), so do not queue such a transition until it is
-settled.
+earlier, should open no clock at all — and in a queue-backed repo it does
+not, so queue it freely. Apply binds the auto-clock-in trigger off for
+every item (measured 2026-08-26, TODO.org `:ID:` 4f6a6bb1). Where there is
+no queue, a bare `org-todo "DOING"` clocks in at once, and a retroactive
+transition has to be recorded some other way.
 
 **What "side effect" means depends on the setup — read this before acting:**
 
