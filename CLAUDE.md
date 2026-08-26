@@ -266,10 +266,13 @@ one the emergent definition exists to avoid.
 And it is **born empty**, which settles three open things *by
 construction rather than by rule*:
 
-- **No clock.** `:ID:` 3964c575 wants containers to carry none and
-  cannot enforce it, because a heading clocked honestly as a leaf
-  becomes a container retroactively. A story born by division has never
-  been worked, so it has no clock it could have earned.
+- **No clock, and this bullet is narrower than it was.** A story born by
+  division has never been worked, so it starts with no clock. That is a
+  statement about its *birth*, not a rule that groupings stay clockless
+  — `:ID:` 3964c575 asked for the latter and was **declined** 2026-08-26
+  (see the clock rules below). Mitosis never needed that argument: its
+  case is that the record stays with the task that earned it, which is
+  the next bullet.
 - **No history.** The `:ID:`, `:LOGBOOK:` and state transitions travel
   with the elder child, which is the task that actually did the work.
 - **No body of actions.** The engorged body is *consumed* producing the
@@ -440,8 +443,25 @@ not the keyword, and at most one heading carries a running clock because
 org runs one.
 
 On a **grouping** — a story or a slice — the same word reads one level
-up: at least one member is in the mail. That sense takes no clock at all,
-and takes no `NEXT` either, since both belong to a member. Both triggers
+up: at least one member is in the mail. That sense opens *no automatic*
+clock, and takes no `NEXT` either, since both belong to a member.
+
+**A grouping may still be clocked deliberately, and that is not a
+defect.** `:ID:` 3964c575 proposed that groupings carry no clock at all;
+declined 2026-08-26. A parent's own coordination and planning time is
+real work, and a blanket "only leaves may be clocked" rule discards it —
+which is what `--container-heading-p`'s docstring has said all along. So
+the exemption is deliberately narrow: it suppresses the *automatic*
+clock a state change would open, never a deliberate `C-c C-x C-i`.
+
+Two consequences worth stating, since both have been read backwards. The
+nine groupings carrying their own CLOCK lines today are **history, not
+debt** — each was clocked honestly while it was still a leaf, and became
+a grouping later by acquiring children or by a refile. Nothing is to be
+migrated. And the resulting ambiguity is a **reporting** problem, not a
+data one: measured 2026-08-26, a clocktable row for a parent shows own
+plus subtree as one number and its own share appears nowhere, recoverable
+only by subtracting every child (`:ID:` 64d34a64). Both triggers
 now ask `claude-code-ide-org--grouping-heading-p`, which is the union of
 the two ways a heading can be one: a container is *emergent* (it acquired
 keyworded children) and a slice is *declared* (`:KIND: slice`). Until

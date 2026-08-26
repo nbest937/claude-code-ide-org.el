@@ -216,6 +216,27 @@ CLOCK: [2026-08-26 Wed 12:59]--[2026-08-26 Wed 13:00] =>  0:01
 
 *Not the same question as whether a container has a body.* That inference was drawn alongside this one and does not follow; see the note on [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]], which has no clock and a substantial body.
 
+*Decided [2026-08-26 Wed]: declined, and the corpus is not in debt.* The user's approved shape was A + B − C + D — record the convention, fix the report, do not migrate, keep mitosis.
+
+*What settled it was a decision already on record, which this heading did not consult.* =--container-heading-p='s docstring has said all along that the exemption is "deliberately narrow: it suppresses only the *automatic* clock, never a deliberate =org-clock-in= on a parent, since a parent's own coordination and planning time is real and a blanket \"only clock leaves\" rule would discard it." So the proposal here was not filling a gap; it was *reversing* a decision, and the reversal was never argued against that sentence.
+
+*Re-measured 2026-08-26 rather than trusting the 2026-08-25 count.* Nine groupings, not eight, carrying 46 own CLOCK lines: 13, 9, 9, 5, 4, 3, 1, 1, 1. Four are still active and five are finished. They are *not growing on their own* — auto-clock-in exempts groupings, and as of [[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]] that now includes slices. The only path that adds one is a deliberate =C-c C-x C-i= on a parent, which is precisely the act the docstring blesses.
+
+*So the 46 lines are history, not debt.* Each was clocked honestly while the heading was still a leaf; it became a grouping later by acquiring children or by a refile. This heading's own best finding says so — "nothing was done wrong at the time and no rule applied at the time" — and that argument, followed through, refutes the proposal it was written to support.
+
+*C was rejected outright: relocating a true record to make a report readable is backwards.* It would also require inventing a child on nine headings purely to hold history, which fabricates structure rather than recording it.
+
+*B was measured before being filed, and it is a real feature rather than a documentation line* — [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]]. The parent's own time is not merely mixed into the roll-up; it is *printed nowhere*, recoverable only by subtracting every child, and =:maxlevel= truncation breaks that subtraction silently. That also explains the 1:08 on =:ID:= b5f7c5c7 (DONE.org) which this body called "indistinguishable from a rounding artefact": it was the parent's own two lines, indistinguishable only because the table declines to name them.
+
+*D survives and gets stronger by getting narrower.* CLAUDE.md justified mitosis ([[id:a0813ae3-0c6d-43de-bae1-fb4414cdb519][a0813ae3]]) partly on this heading — "3964c575 wants containers to carry none and cannot enforce it" — an argument that conceded its own unenforceability in the same sentence. Declining A removes that strand entirely. Mitosis now rests only on the claim that carries weight: the =:ID:=, =:LOGBOOK:= and clock stay with the task that earned them.
+
+*And note C and D are opposites, not variants of one idea* — the distinction that made the combination coherent. C *moves* a parent's records onto an invented child. D moves nothing: the original leaf stays itself, keeping its id, clock and logbook, while a new empty parent appears above it. Ruling out C does not weaken D; D is what makes C permanently unnecessary for every future division.
+
+*Coverage divides with no overlap and no gap*: A and B handle the nine existing groupings — legitimised, then made legible — and D handles every future one, by never needing to move a record at all.
+
+*Written down in three places*: CLAUDE.md's clock rules now state that a grouping may be clocked deliberately and that the existing lines are history; CLAUDE.md's mitosis bullet is re-pointed off the retired claim; and =.claude/rules/org-conventions.md= now distinguishes a *story* (may be clocked deliberately) from a *slice* (may not, being a sequencing declaration rather than a place work happens).
+
+
 
 ** DONE A slice gets clocked and auto-promoted, because its members are links not children :code:
 CLOSED: [2026-08-26 Wed 13:03]
@@ -5123,6 +5144,29 @@ The third is the important one: it is the known negative, confirmed independentl
 *Related but not the same*: [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]] proposes reclaiming a guidepost gap as the human's attention when an apply timestamp falls inside it. That is about *capturing* the missing 14 minutes; this is about not implying they are already captured. If 996fd2bd ships, this heading still stands -- a window and its payload would still be two quantities.
 
 *Filed with a finding attached.* Writing this body hit [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] live: =org_amend='s link checker expanded all four TODO.org prefixes above and refused =b8e6007a=, which is identical in form and differs only in living in DONE.org. So the expander is scoped to TODO.org, and a cross-file reference has to be written as plain text -- which is why one citation here is not a link.
+** A clocktable never shows a parent's own time, only own-plus-subtree :code:
+:PROPERTIES:
+:ID:       64d34a64-d336-40a8-a8e8-da8133d0da06
+:CREATED:  [2026-08-26 Wed 14:46]
+:END:
+
+*The reporting half of [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]], split out when that heading was decided 2026-08-26.* That one asked whether a grouping may carry its own clock; the answer is yes, a parent's own coordination time is real work. This is what makes that answer *legible*.
+
+*Measured, not inferred.* A parent carrying 1:00 of its own, with children of 2:00 and 0:30:
+
+: | A story        | 3:30 |      |
+: | \_  Child one  |      | 2:00 |
+: | \_  Child two  |      | 0:30 |
+
+*The parent's own 1:00 appears nowhere.* This is worse than the usual framing, which is that own time is "mixed in and cannot be told apart" -- it is not printed at all. It is recoverable only as =parent_row - sum(child_rows)=, which is arithmetic the reader performs silently and which =:maxlevel= truncation breaks without warning: cap the depth and the subtraction quietly returns the wrong number, with nothing on the page indicating that it did.
+
+*So the 1:08 on =:ID:= b5f7c5c7 (DONE.org) was never a rounding artefact.* 3964c575's body recorded "parent row 14:52, ten children summing 13:44, the 1:08 difference indistinguishable from a rounding artefact". It was the parent's own two CLOCK lines, and it was indistinguishable only because the table declines to name it.
+
+*No native parameter does this.* Checked in org 9.8.7: the clocktable has no own-time or non-recursive option, and =:properties= only adds property columns, not a derived quantity. =org-clock-sum= is recursive by definition and writes one =CLOCKSUM= per heading.
+
+*Scope: presentation only, and deliberately so.* Nothing about what is extracted, stored or applied changes. Candidate shapes, none chosen -- a =:formatter= adding an own-time column; a project-level clocktable wrapper; or surfacing it only where it matters rather than in every table. Whether every parent row wants a second number, or only the nine that currently carry own lines, is the first thing to settle.
+
+*Nine headings currently make this visible*, measured 2026-08-26: 46 own CLOCK lines across four active and five finished groupings.
 
 * Observability
 :PROPERTIES:

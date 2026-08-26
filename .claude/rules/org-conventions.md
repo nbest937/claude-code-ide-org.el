@@ -205,10 +205,18 @@ apply.
 **A slice carries state but never a clock.** Its `:LOGBOOK:` records
 state transitions only; every referent already carries its own clock, so
 clocking the slice would add a second quantity inside the one that
-already exists and could not be told apart from the sum. Note this is
-not yet enforced — `--container-heading-p` does not recognise a slice,
-so hand-setting `DOING` on one *does* open a clock today (`:ID:`
-95c27fca).
+already exists and could not be told apart from the sum. **Enforced
+since 2026-08-26** (`:ID:` 95c27fca): both triggers now consult
+`claude-code-ide-org--grouping-heading-p`, which recognises a slice by
+its `:KIND:` declaration as well as a container by its children, so
+hand-setting `DOING` on a slice opens nothing.
+
+Note this is stricter than the rule for a *story*, and deliberately.
+A story may be clocked deliberately, because a parent's own coordination
+time is real (`:ID:` 3964c575, decided 2026-08-26). A slice may not,
+because it is a sequencing declaration rather than a place work happens
+— there is no coordination to record that is not already one of its
+members'.
 
 **The plan that drove the slice is linked at the end of the body, as one
 `orgit-rev:` link per revision of it.** `.claude/commands/next-session.md`
