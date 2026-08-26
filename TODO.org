@@ -10,7 +10,8 @@
 :END:
 
 
-** DOING [27/27] Harden the review pass: its cost, its correctness, and its record
+** DONE [27/27] Harden the review pass: its cost, its correctness, and its record
+CLOSED: [2026-08-26 Wed 11:42]
 :PROPERTIES:
 :KIND:     slice
 :ID:       c44c2119-dbf8-4510-99e2-6aaa7f259d94
@@ -21,6 +22,8 @@
 :LOGBOOK:
 - State "DOING"      from              [2026-08-25 Tue 11:06] \\
   retconned; the slice itself opened 2026-08-24 with the plan it links
+- State "DONE"       from "DOING"      [2026-08-26 Wed 11:42] \\
+  27 of 27; successor 979e02b6 declared
 :END:
 
 Work that makes a review pass cheaper to run, more accurate in what it reports, and less likely to leave the record worse than it found it.
@@ -79,8 +82,7 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 *No residue.* Everything named as unfinished during its life was filed as a heading before the heading naming it closed -- a rule this slice produced by breaking it once ([[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]]) and then writing it into CLAUDE.md.
 
 
-
-** TODO Close the gap between what we declare and what the code infers :code:
+** NEXT Close the gap between what we declare and what the code infers :code:
 :PROPERTIES:
 :ID:       979e02b6-2a4c-4328-8b08-ffaec03bd02e
 :CREATED:  [2026-08-25 Tue 15:29]
@@ -91,13 +93,15 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 15:29] \\
   sketched as a proposal, not declared a slice
+- State "NEXT"       from "TODO"       [2026-08-26 Wed 12:28] \\
+  Auto-promoted: sole remaining TODO in its sibling group.
 :END:
 
 Wherever this project declares something in prose and the code infers it some other way, make the code read the declaration.
 
 *Ordered by dependency rather than size*: the docstring first because the next three read the variable it lies about, then the trigger that unblocks two transitions left unqueued, then the predicate, the policy it enables, the mechanism that makes the policy enforceable, and the general keyword review once its evidence exists. The two tool-surface members come last because they are consequences of the same root rather than causes of anything.
 
-- [ ] [[id:6a21e08b-4880-4d2b-9b0f-12c35558fe08][6a21e08b]] TODO --trigger-auto-clock-in's docstring says the feature is off; it is on
+- [ ] [[id:6a21e08b-4880-4d2b-9b0f-12c35558fe08][6a21e08b]] NEXT --trigger-auto-clock-in's docstring says the feature is off; it is on
 - [ ] [[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]] NEXT Setting DOING retroactively opens a clock, which the looser sense makes wrong
 - [ ] [[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]] TODO A slice gets clocked and auto-promoted, because its members are links not children
 - [ ] [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]] TODO A container carries clocks it earned before it was one
@@ -6493,7 +6497,7 @@ this project's Doom config pending an upstream report/PR.
 :END:
 
 
-** TODO --trigger-auto-clock-in's docstring says the feature is off; it is on :code:
+** NEXT --trigger-auto-clock-in's docstring says the feature is off; it is on :code:
 :PROPERTIES:
 :ID:       6a21e08b-4880-4d2b-9b0f-12c35558fe08
 :CREATED:  [2026-08-25 Tue 11:10]
@@ -6501,6 +6505,8 @@ this project's Doom config pending an upstream report/PR.
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 11:10] \\
   docstring contradicts its own defcustom
+- State "NEXT"       from "TODO"       [2026-08-26 Wed 11:42] \\
+  first member of the successor slice
 :END:
 
 *The docstring of =claude-code-ide-org--trigger-auto-clock-in= reads* "Off by default since 2026-08-18 (TODO.org :ID: 226ed53b, step 2(c)): the first thing tested is =claude-code-ide-org-auto-clock-in-on-doing=, which is nil, so in normal operation this function does nothing at all."
@@ -10937,6 +10943,7 @@ Meta-work: the review pass, planning, and the time that goes into deciding what 
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-26 Wed 12:27]--[2026-08-26 Wed 12:28] =>  0:01
 CLOCK: [2026-08-26 Wed 11:40]--[2026-08-26 Wed 11:41] =>  0:01
 CLOCK: [2026-08-26 Wed 11:06]--[2026-08-26 Wed 11:10] =>  0:04
 CLOCK: [2026-08-26 Wed 10:33]--[2026-08-26 Wed 10:37] =>  0:04
@@ -11210,6 +11217,10 @@ CLOCK: [2026-08-26 Wed 11:20]--[2026-08-26 Wed 11:22] =>  0:02
 - [2026-08-26 Wed 11:20]--[2026-08-26 Wed 11:22] assigned at review
 CLOCK: [2026-08-26 Wed 11:35]--[2026-08-26 Wed 11:36] =>  0:01
 - [2026-08-26 Wed 11:35]--[2026-08-26 Wed 11:36] assigned at review
+CLOCK: [2026-08-26 Wed 11:41]--[2026-08-26 Wed 11:43] =>  0:02
+- [2026-08-26 Wed 11:41]--[2026-08-26 Wed 11:43] assigned at review
+CLOCK: [2026-08-26 Wed 12:26]--[2026-08-26 Wed 12:27] =>  0:01
+- [2026-08-26 Wed 12:26]--[2026-08-26 Wed 12:27] assigned at review
 :END:
 
 
