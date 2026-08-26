@@ -439,11 +439,21 @@ may be `DOING` at once. What records actual execution is the *clock*,
 not the keyword, and at most one heading carries a running clock because
 org runs one.
 
-On a container (a story, or a slice) the same word reads one level up: at
-least one member is in the mail. That sense takes no clock at all, and
-`--trigger-auto-clock-in` already exempts containers. The gap is that a
-*slice* is not recognised as one, because its members are links rather
-than children — `:ID:` 95c27fca.
+On a **grouping** — a story or a slice — the same word reads one level
+up: at least one member is in the mail. That sense takes no clock at all,
+and takes no `NEXT` either, since both belong to a member. Both triggers
+now ask `claude-code-ide-org--grouping-heading-p`, which is the union of
+the two ways a heading can be one: a container is *emergent* (it acquired
+keyworded children) and a slice is *declared* (`:KIND: slice`). Until
+2026-08-26 they asked the container predicate alone, so a slice was
+clocked and auto-promoted like an action, its members being links rather
+than children (`:ID:` 95c27fca).
+
+Note which predicate goes where. `--grouping-heading-p` is right wherever
+the question is about *meaning* — whose clock, whose next action. Where
+the question really is "does this have TODO children", as in
+`bin/lint-org`'s statistics-cookie rule, the narrow container predicate
+stays.
 
 GTD's one-thing-at-a-time is not being followed here, deliberately. That
 rule is calibrated to human working memory; an agent re-reading a

@@ -841,6 +841,97 @@ heading with a prose sub-section would be exempted from clocking."
                    (org-goto-first-child)
                    (claude-code-ide-org--container-heading-p))))))
 
+(ert-deftest claude-code-ide-org-test-grouping-heading-p-covers-both-kinds ()
+  "The grouping predicate is the union of the two ways a heading can be a
+grouping, and is nil for a leaf.
+
+TODO.org :ID: 95c27fca. A container is *emergent* -- it acquires
+keyworded children -- and a slice is *declared*, by `:KIND: slice', so
+neither existing predicate can answer for the other without
+contradicting its own docstring. The union is what the two triggers
+actually meant all along: a heading whose time and whose next action
+live in its members."
+  (claude-code-ide-org-test--with-heading
+    ;; A bare leaf: neither.
+    (should-not (org-with-point-at (org-id-find id 'marker)
+                  (claude-code-ide-org--grouping-heading-p)))
+    ;; Declared: a slice, with no children at all.
+    (org-with-point-at (org-id-find id 'marker)
+      (org-entry-put nil "KIND" "slice")
+      (save-buffer))
+    (should (org-with-point-at (org-id-find id 'marker)
+              (claude-code-ide-org--slice-p)))
+    (should-not (org-with-point-at (org-id-find id 'marker)
+                  (claude-code-ide-org--container-heading-p)))
+    (should (org-with-point-at (org-id-find id 'marker)
+              (claude-code-ide-org--grouping-heading-p)))
+    ;; Emergent: drop the declaration, add a keyworded child.
+    (org-with-point-at (org-id-find id 'marker)
+      (org-entry-delete nil "KIND")
+      (save-buffer))
+    (should-not (org-with-point-at (org-id-find id 'marker)
+                  (claude-code-ide-org--grouping-heading-p)))
+    (claude-code-ide-org-test--add-child file "** TODO A real child\n")
+    (should (org-with-point-at (org-id-find id 'marker)
+              (claude-code-ide-org--container-heading-p)))
+    (should (org-with-point-at (org-id-find id 'marker)
+              (claude-code-ide-org--grouping-heading-p)))))
+
+(ert-deftest claude-code-ide-org-test-trigger-hook-skips-a-slice ()
+  "Setting a slice to DOING must open no clock on the slice itself.
+
+TODO.org :ID: 95c27fca, measured before the fix as `(:container-p nil
+:auto-clock-in t :would-clock t)': the slice's members are `[[id:...]]'
+links rather than descendants, so `--container-heading-p' said nil and
+the exemption did not apply -- while its *reason* applied with full
+force, since every referent carries its own clock.
+
+The trigger is bound ON explicitly: a slice exempted from a trigger that
+never fires would assert nothing.
+
+Deliberately paired with a leaf in the same test. An exemption is only
+correct if it is also *narrow*, and a predicate that returned t for
+everything would pass the first half alone."
+  (claude-code-ide-org-test--with-heading
+    (let ((claude-code-ide-org-auto-clock-in-on-doing t)
+          (org-trigger-hook (list #'claude-code-ide-org--trigger-auto-clock-in)))
+      (org-with-point-at (org-id-find id 'marker)
+        (org-entry-put nil "KIND" "slice")
+        (save-buffer))
+      (org-with-point-at (org-id-find id 'marker) (org-todo "DOING"))
+      (should-not (org-clocking-p))
+      ;; Narrowness: the same transition on a plain leaf still clocks.
+      (claude-code-ide-org-test--add-child
+       file "* TODO A leaf\n:PROPERTIES:\n:ID:       test-leaf-1\n:END:\n")
+      (org-with-point-at (org-id-find "test-leaf-1" 'marker) (org-todo "DOING"))
+      (should (org-clocking-p))
+      (should (equal "test-leaf-1"
+                     (org-with-point-at org-clock-marker (org-entry-get nil "ID")))))))
+
+(ert-deftest claude-code-ide-org-test-auto-promote-skips-a-slice ()
+  "A sole remaining TODO slice must not be promoted to NEXT.
+
+TODO.org :ID: 95c27fca's second consequence, and it is the
+reintroduction of :ID: 42808717 by a route that fix did not cover:
+promoting a grouping declares a project to be an action. :ID: 8ca6541d
+predicted it in the abstract before any slice existed.
+
+Both headings here are slices, so closing one leaves the other as the
+sole TODO of a group of two -- which is exactly the shape the promotion
+fires on, and it must decline anyway."
+  (claude-code-ide-org-test--with-heading
+    (let ((org-trigger-hook
+           (list #'claude-code-ide-org--trigger-auto-promote-sole-todo)))
+      (org-with-point-at (org-id-find id 'marker)
+        (org-entry-put nil "KIND" "slice")
+        (save-buffer))
+      (claude-code-ide-org-test--add-child
+       file (concat "* TODO A second slice\n:PROPERTIES:\n"
+                    ":ID:       test-slice-2\n:KIND:     slice\n:END:\n"))
+      (org-with-point-at (org-id-find "test-slice-2" 'marker) (org-todo "DONE"))
+      (should (equal "TODO" (org-with-point-at (org-id-find id 'marker)
+                              (org-get-todo-state)))))))
+
 (ert-deftest claude-code-ide-org-test-trigger-hook-skips-container-headings ()
   "Setting a container to DOING must NOT open a clock on it. Org already
 rolls a subtree's time up to its parent natively, so a parent's own

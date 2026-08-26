@@ -938,7 +938,7 @@ would silently eat this hook's whole timeout."
                        (cond
                         ((equal state "WAITING") "WAITING")
                         ((and (equal state "DOING")
-                              (not (claude-code-ide-org--container-heading-p)))
+                              (not (claude-code-ide-org--grouping-heading-p)))
                          (cond
                           ((and queued-state (not (equal queued-state "DOING")))
                            (format "DOING in file, queued -> %s, not yet applied"
@@ -3003,6 +3003,43 @@ Not inherited -- `org-entry-get' without the inherit flag -- so a
 subheading of a slice is not one."
   (equal "slice" (org-entry-get nil "KIND")))
 
+(defun claude-code-ide-org--grouping-heading-p ()
+  "Non-nil when the heading at point is a grouping -- a container or a
+slice -- rather than a unit of work in its own right.
+
+*The union exists because two callers were asking the wrong question.*
+`claude-code-ide-org--trigger-auto-clock-in' and
+`claude-code-ide-org--trigger-auto-promote-sole-todo' both consulted
+`claude-code-ide-org--container-heading-p', whose argument is about
+*meaning* -- a grouping's time and its next action live in its members,
+not in it -- while the predicate itself tests a *mechanism*, namely
+whether keyworded headings sit underneath.  Those were the same thing
+until a slice existed.  A slice's members are `[[id:...]]' links in a
+checkbox list rather than descendants, so the mechanism answers nil
+while the argument applies with full force: every referent carries its
+own clock, and every referent is a better next action than the slice.
+TODO.org :ID: 95c27fca measured it -- `(:container-p nil :auto-clock-in
+t :would-clock t)' against the first real slice.
+
+*Why a third predicate rather than teaching one of the two.*
+`--container-heading-p' documents itself as derived from structure
+\"rather than declared in a property someone has to remember to
+maintain\", and `--slice-p' documents itself as reading a declaration
+because a slice cannot be derived.  Both are right about themselves.
+Widening either would make it contradict its own docstring, which is the
+failure mode this repo spent 2026-08-26 cleaning up (:ID: 6a21e08b).  So
+the union goes in a third name, and \"grouping\" is not a coinage: it is
+already CLAUDE.md's word for exactly this union, in the sentence \"a
+grouping is either emergent or declared\".
+
+*Not every `--container-heading-p' caller should become this one.*
+`bin/lint-org's statistics-cookie rule deliberately still asks the
+narrow question, because there the subject really is TODO *children* --
+a slice carries a checkbox cookie over links instead, which is a
+different convention and not this one's business."
+  (or (claude-code-ide-org--container-heading-p)
+      (claude-code-ide-org--slice-p)))
+
 (defun claude-code-ide-org--slice-members ()
   "Return the slice-at-point's members as a list of (ID . MARK).
 
@@ -3292,7 +3329,7 @@ heading for the measurement."
   (when (and claude-code-ide-org-auto-clock-in-on-doing
              (member (plist-get change-plist :to) '("DOING" "PLANNING"))
              (not claude-code-ide-org--auto-clock-in-active)
-             (not (claude-code-ide-org--container-heading-p)))
+             (not (claude-code-ide-org--grouping-heading-p)))
     (let* ((target-id (org-entry-get nil "ID"))
            (already-clocked-here
             (and (org-clocking-p)
@@ -3511,7 +3548,7 @@ same class of refusal."
        'include-self)
       (when (and (> group-size 1) (not next-p) (= (length todo-markers) 1))
         (org-with-point-at (car todo-markers)
-          (unless (claude-code-ide-org--container-heading-p)
+          (unless (claude-code-ide-org--grouping-heading-p)
             ;; Bound around this call and nothing else. `org-todo' fires
             ;; `org-trigger-hook', which is this function -- so without
             ;; the binding the promotion re-enters itself, promotes in
@@ -5378,11 +5415,17 @@ every answer this function could return was wrong by construction."
            ((equal id active) (setq active nil))))))
     ;; Resolved once, at the end, rather than per event: the loop runs
     ;; over every queued `todo' and this reads a file.
-    (unless (claude-code-ide-org--container-id-p active)
+    (unless (claude-code-ide-org--grouping-id-p active)
       active)))
 
-(defun claude-code-ide-org--container-id-p (id)
-  "Non-nil when ID resolves to a container heading.
+(defun claude-code-ide-org--grouping-id-p (id)
+  "Non-nil when ID resolves to a grouping heading -- a container or a
+slice (`claude-code-ide-org--grouping-heading-p').
+
+Renamed from `--container-id-p' 2026-08-26 (TODO.org :ID: 95c27fca)
+along with the question it asks: a slice is no more suggestible as the
+owner of an unassigned span than a container is, and for the same
+reason -- the time belongs to a member.
 
 Resolves through `org-id-find' the way
 `claude-code-ide-org--review-heading-title' does, and releases the
@@ -5393,7 +5436,7 @@ suggestion on the strength of a lookup failure."
     (let ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker))))
       (when marker
         (prog1 (org-with-point-at marker
-                 (claude-code-ide-org--container-heading-p))
+                 (claude-code-ide-org--grouping-heading-p))
           (set-marker marker nil))))))
 
 (defun claude-code-ide-org--review-current-state (id)
