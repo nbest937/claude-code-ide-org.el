@@ -154,6 +154,31 @@ never silently wrong."
 
 *Note the second candidate is close to what the queue architecture already believes.* =org_set_todo= and =org_clock_in= are separate calls precisely so that state and clock are decided separately; the trigger reintroduces the coupling at apply time, on the one path that is not going through those calls.
 
+*The cascade above does not happen, measured [2026-08-26 Wed] against the real apply path* ([[orgit-rev:claude-code-ide-org::19a3873][19a3873]]). Three probes, batch, scratch org files:
+
+| probe | path                                | result                          |
+|-------+-------------------------------------+---------------------------------|
+| A     | bare =(org-todo "DOING")=           | =clocking=t=                    |
+| B     | one =state= -> DOING through apply  | keyword set, =clocking=nil=     |
+| C     | two retroactive DOINGs in sequence  | *0* CLOCK lines, nothing running |
+
+*C is this heading's own prediction, and it is falsified.* =--review-apply-item= binds =--auto-clock-in-active= for the whole item, and =--trigger-auto-clock-in= tests that flag before anything else -- so apply short-circuits the trigger for *every* heading, container or leaf.
+
+*The error was generalising from the path that was actually tested.* "Verified in batch" above is true of probe A and only of probe A. =--trigger-auto-clock-in='s own docstring has said apply is exempt since its 2026-08-17 correction; this heading was written 2026-08-25 and did not consult it. Note the symmetry with [[id:6a21e08b-4880-4d2b-9b0f-12c35558fe08][6a21e08b]], closed an hour earlier: there a docstring was wrong and the code right, here the code and the docstring agreed and the *heading* was wrong. Both are [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]]'s shape -- the code knew more than the prose said.
+
+*So candidate 2 is already the architecture.* "Splitting the transition from the clock entirely so =org_clock_in= is the only thing that ever opens one" describes the queue as it already stands: =org_set_todo= opens no clock, and apply opens none on its behalf. Candidate 1 (a queue event carrying "retroactive") is moot, since apply suppresses unconditionally rather than selectively. Candidate 3 (narrow to interactive keystrokes) is *de facto* true -- after the cutover a hand-edit is the only path left that reaches the trigger at all.
+
+*Already pinned, and not by anything written today.* =claude-code-ide-org-test-review-suppresses-the-auto-clock-in-trigger= asserts both halves -- stray clock without the guard, none with it, through =--review-apply-item= -- and predates this. No new test was added, because the missing guard was not missing.
+
+*The cost was real, which is the part worth keeping.* Two transitions were held unqueued for days on this warning ([[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]], [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]]). Both have since reached DONE without ever getting the DOING they were owed, so the record of when they were started is simply gone. A false warning cost more than the defect it warned about.
+
+*What survives, and it is narrower.* A hand =C-c C-t= to DOING in Emacs does clock in at once. There a human is present and knows which of the two acts they are performing, which is exactly the distinction no mechanism can draw. Left standing rather than fixed.
+
+*Corrected in both places that were wrong*: CLAUDE.md's consequence bullet and its transition rule, and the org skill's keyword table note. No code changed.
+
+*Handed back as REVIEW rather than closed*, because the judgement is yours: the operational defect is falsified and nothing is left to build, but this heading also framed a design question -- "the distinction the trigger needs is between two acts that currently look identical" -- and whether the surviving hand-edit case retires that question or merely shrinks it is not mine to decide.
+
+
 
 ** TODO A container carries clocks it earned before it was one :code:research:
 :PROPERTIES:
