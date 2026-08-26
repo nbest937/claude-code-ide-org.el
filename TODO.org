@@ -8745,6 +8745,23 @@ Everything already verified above serves that -- =:CATEGORY:= inherited by a lev
 
 *Separately, the datetree's own ordering is now filed as [[id:0c3f1319-67c0-4b29-a8e7-5ffa12948aaf][0c3f1319]]*, since the user's recency-ordering vision applies to it too and it is wanted either way. Short version: reverse-alphanumeric sorting already gives newest-first because day titles are ISO-prefixed, so the work is a re-sort after creation rather than a comparator -- and the duplicate-day-node hazard that a descending tree exposes in raw =org-datetree-find-date-create= does not reach this project, because =--ensure-day-node= looks the node up by title first.
 
+*Decided and planned [2026-08-26 Wed], after sitting parked since 2026-08-19.* [[file:~/.claude/plans/goofy-baking-wall.md][Plan]]
+
+*Approved:* =:CATEGORY:= over =:EPIC:=, and flatten the level-1 tier. Category values are single capitalised words. The transition is two-step -- a mechanical migration carrying the nine existing names verbatim, then the taxonomy as separate work.
+
+*What unblocked it, none of which was available when it was parked.* The =:EPIC:=-means-one-thing objection turns out to exist only as a clause in CLAUDE.md and never in this body, which records =:CATEGORY:= inheritance as a *verified benefit*. The clocktable cost was overstated in conversation and corrected: =:match "CATEGORY=\"X\""= reproduces per-category roll-ups on a flat file, so flattening rebuilds the report rather than destroying it, exactly as [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] said. And [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]]'s archive-routing objection *inverts* -- flattened there is one target instead of nine.
+
+*The argument that actually decided it, and which nobody had made:* flattening converts a grouping *inferred from level position* into one *declared on the task*. That is [[id:979e02b6-2a4c-4328-8b08-ffaec03bd02e][979e02b6]]'s thesis, and CLAUDE.md already names this tier as the standing example of the inference error. The tiers question is not adjacent to that slice; it is its central case.
+
+*Two things the planning surfaced that were not part of the question.*
+
+First, =NEXT= itself. Flattening would have collapsed nine sibling groups into one, and the first instinct was to teach =--map-siblings= about =:CATEGORY:= so the old behaviour survived. The user asked the better question -- when have we ever called tier-2 tasks siblings? -- and the evidence says the old behaviour was never right: of roughly eight top-level auto-promotions, *three are now =MAYBE=*. A category is a filing drawer, not a project, so its sole survivor asserts nothing. This is [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]] one tier up, and it is now its own heading landing first.
+
+Second, =org_outline= and its consumers. Today the grouping *is* the tree, so flattening would render a wall of 121 unindented lines. Grouping its output by =:CATEGORY:= keeps the rendered shape byte-identical while changing only its source -- and that is what holds the documentation churn to four capture sites instead of rewriting CLAUDE.md's orientation section.
+
+*The corpus survey, which the taxonomy step rests on.* Counting every descendant in both files, 273 headings: =Clock lifecycle & visibility= holds *138, or 51%*, while four categories hold twelve between them and have never had a single item archived. The user's own tell is the sharpest summary -- only two category names contain a conjunction, and both are the ones the survey independently flagged as compound.
+
+
 
 ** DONE Compose slices by reference: a checkbox list of id links, blocked on its members :code:research:
 CLOSED: [2026-08-25 Tue 12:56]
