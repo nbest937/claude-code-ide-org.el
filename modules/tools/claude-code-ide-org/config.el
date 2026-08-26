@@ -6054,6 +6054,39 @@ each session its own value and answer a subtly different question."
                   session-id ts-strings applied-at)))
              by-session)))
 
+(defun claude-code-ide-org--review-settle-slices (applied-items)
+  "Regenerate every slice once APPLIED-ITEMS have all landed.
+
+*The third step of the ceremony that nobody invoked* (TODO.org :ID:
+a0abf97d).  A slice's member lines are copies of its referents'
+keywords, and apply is the only thing that changes those in bulk -- so a
+slice is stale by default between passes, and silently: `bin/lint-org'
+compares the `:BLOCKER:' against the checkbox list, and
+`refresh-slice' regenerates both, so the two agree with each other while
+disagreeing with the tree.
+
+*After the batch, not per item*, for the same reason
+`--review-settle-auto-promote' is: a mid-batch refresh sees
+half-applied state.  Worse here than there -- a member whose `todo'
+event has not landed yet is *keywordless on disk*, which leaves its line
+unrewritten AND manufactures a `:BLOCKER:' lint error naming a
+keyword-less heading (:ID: 798bb7a1, observed the same day).
+
+*Every slice, not only ones this batch touched.*  `refresh-slice' is
+idempotent and there is one live slice; a touched-only variant would
+need the batch to report which ids it wrote, which is machinery bought
+before the distinction costs anything.
+
+Errors are swallowed deliberately.  This is bookkeeping *after* the
+work; a slice that cannot be regenerated must not turn a successful
+apply into a failed one, and the staleness it leaves is the status quo
+ante rather than new damage."
+  (when applied-items
+    (condition-case err
+        (claude-code-ide-org-refresh-slice)
+      (error (message "Slice refresh after apply failed: %s"
+                      (error-message-string err))))))
+
 (defun claude-code-ide-org--review-settle-auto-promote (applied-items)
   "Run the sole-TODO promotion once per heading APPLIED-ITEMS touched,
 after `claude-code-ide-org--review-apply\'s loop has finished and
@@ -6133,6 +6166,7 @@ item-scoped."
                     errors)
             (push item applied)))))
     (claude-code-ide-org--review-settle-auto-promote applied)
+    (claude-code-ide-org--review-settle-slices applied)
     (claude-code-ide-org--review-record-applied applied)
     ;; :items alongside the count, so the caller can drop exactly what
     ;; applied rather than rebuilding the list from the queue.  The count

@@ -9416,6 +9416,48 @@ slice any more."
       (search-forward "* Top")
       (should (claude-code-ide-org--slice-p)))))
 
+(ert-deftest claude-code-ide-org-test-settle-refreshes-slices-after-apply ()
+  "Apply's settle phase regenerates slices; an empty batch does not.
+
+TODO.org :ID: a0abf97d.  A slice's member lines are copies of its
+referents' keywords, and apply is the only thing that changes those in
+bulk -- so without this a slice is stale by default between passes, and
+silently, since `bin/lint-org' compares the `:BLOCKER:' against the
+checkbox list and `refresh-slice' regenerates both together.
+
+Asserted by counting calls rather than by inspecting a file, because
+what was missing was the *invocation*: `refresh-slice' itself is already
+covered by :ID: 0acc1df2's tests, and re-testing it here would pass
+whether or not anything called it."
+  (let ((calls 0))
+    (cl-letf (((symbol-function 'claude-code-ide-org-refresh-slice)
+               (lambda (&optional _id) (setq calls (1+ calls)))))
+      ;; Nothing applied -> nothing to restate.
+      (claude-code-ide-org--review-settle-slices nil)
+      (should (= 0 calls))
+      ;; Anything applied -> exactly one regeneration for the batch,
+      ;; not one per item.
+      (claude-code-ide-org--review-settle-slices '((:id "a") (:id "b") (:id "c")))
+      (should (= 1 calls)))))
+
+(ert-deftest claude-code-ide-org-test-settle-slice-failure-does-not-fail-the-apply ()
+  "A slice that cannot be regenerated must not sink a successful apply.
+
+This is bookkeeping *after* the work.  The staleness left behind is the
+status quo ante rather than new damage, whereas an error escaping here
+would report a pass that genuinely landed as a failed one."
+  (cl-letf (((symbol-function 'claude-code-ide-org-refresh-slice)
+             (lambda (&optional _id) (error "slice is on fire"))))
+    ;; Asserted on whether an error ESCAPES, not on the return value --
+    ;; the function returns whatever `message' hands back, so
+    ;; `should-not' on its result tests the wrong thing and fails
+    ;; against correct code.
+    (should (eq 'survived
+                (condition-case nil
+                    (progn (claude-code-ide-org--review-settle-slices '((:id "a")))
+                           'survived)
+                  (error 'escaped))))))
+
 (ert-deftest claude-code-ide-org-test-refresh-slice-blocker-writes-the-property ()
   "The blocker is derived from the checklist, not authored.
 
