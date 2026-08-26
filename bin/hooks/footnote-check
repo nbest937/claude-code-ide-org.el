@@ -97,39 +97,36 @@ done <<<"$candidates"
 mkdir -p "$queue_dir" 2>/dev/null
 : > "$sentinel" 2>/dev/null
 
-# The message goes in `systemMessage', NOT `stopReason' (TODO.org
-# :ID: 5787bfc6). `stopReason' is an ENUM -- the docs give it as
-# "user_request", "max_turns", "model_stop_token" or "completion" -- so a
-# paragraph of prose in it is discarded, and what reached the model was
-# the harness default, verbatim: "Stop hook prevented continuation".
-# Twice on 2026-08-25 and four more times on 2026-08-26, the block fired
-# on a real violation and told the model nothing, which is why it read as
-# the feature working rather than as a defect.
+# STDERR AND EXIT 2. Not JSON, and not exit 0 (TODO.org :ID: 5787bfc6).
 #
-# `systemMessage' is documented as "text shown to Claude in the next turn
-# as a system message", which is exactly the channel wanted. It is
-# emitted in BOTH positions -- top level and inside hookSpecificOutput --
-# because the two documentation passes disagreed about which one the
-# harness reads, and emitting both costs nothing while guessing wrong
-# costs another silent block. Drop whichever proves redundant once a
-# session has actually been observed receiving it.
+# The docs are explicit and this took two wrong attempts to read
+# properly: "Stderr from a hook that exits 0 goes to the debug log only,
+# never the transcript, and Claude never sees it." So while this script
+# exited 0, NOTHING it said could reach the model in any field --
+# `continue: false' blocked the turn but the message channel was shut.
+# Six blocks arrived as the bare harness default, "Stop hook prevented
+# continuation", and rearranging fields inside a closed channel could
+# never have helped.
 #
-# `reason' is deliberately not used: it is documented as shown to the
-# USER only, and the user is not the one who has to fix the footnotes.
-printf '%s' "$(jq -n --arg ids "$missing" '
-  ("This response cites tracked org :ID:s without footnoting them: "
-    + $ids
-    + ". Append a footnote for each, superscript-marked in the prose (¹²³), "
-    + "each footnote line carrying the id, its current TODO keyword and its EXACT full title, "
-    + "looked up rather than recalled. The rule is per RESPONSE: footnote an id even if an "
-    + "earlier response in this conversation already did, because the reader does not have "
-    + "that response on screen.") as $msg
-  | {
-      hookSpecificOutput: {
-        hookEventName: "Stop",
-        systemMessage: $msg
-      },
-      systemMessage: $msg,
-      continue: false
-    }')"
-exit 0
+# Attempt one blamed `stopReason', which IS wrong -- it is an enum of
+# "user_request"/"max_turns"/"model_stop_token"/"completion" and
+# discards prose -- but fixing it changed nothing. Attempt two moved the
+# text to `systemMessage' and was falsified by deliberately tripping the
+# hook: the block still arrived empty. Only then did the exit code turn
+# out to be the whole story.
+#
+# Exit 2 is the documented blocking path, and for `Stop' specifically
+# the stderr text is fed back to Claude as the reason. No JSON is
+# printed: "the blocking message is the reason from your JSON's blocking
+# decision when it makes one, and your stderr text otherwise" -- so
+# emitting no decision leaves stderr as the message, which is the whole
+# point here.
+cat >&2 <<EOF
+This response cites tracked org :ID:s without footnoting them: $missing. \
+Append a footnote for each, superscript-marked in the prose (¹²³), each \
+footnote line carrying the id, its current TODO keyword and its EXACT full \
+title, looked up rather than recalled. The rule is per RESPONSE: footnote an \
+id even if an earlier response in this conversation already did, because the \
+reader does not have that response on screen.
+EOF
+exit 2
