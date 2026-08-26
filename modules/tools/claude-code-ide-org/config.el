@@ -8150,10 +8150,27 @@ categories."
                (when create
                  (let ((buffer-read-only nil))
                    (goto-char (point-min))
+                   ;; END of the category's subtree, not the line after
+                   ;; its headline.  The first version inserted at
+                   ;; headline+1, which is the category's own
+                   ;; `:PROPERTIES:' drawer -- so the new heading was
+                   ;; wedged between the category and its drawer and
+                   ;; *inherited* it.  On the real file that handed
+                   ;; `:DATE_TREE:' and `:ARCHIVE:' to this heading,
+                   ;; which cost the category its archive routing and
+                   ;; made `org-datetree-find-date-create' build a
+                   ;; second, nested datetree.  Eleven lint errors, and
+                   ;; the user's file, on the first real invocation.
+                   ;;
+                   ;; `org-end-of-subtree' cannot land inside a drawer
+                   ;; or a body, so the class of bug is gone rather than
+                   ;; the instance.
                    (if (re-search-forward "^\\* Review and planning$" nil t)
-                       (progn (end-of-line) (forward-line 1))
+                       (progn (org-back-to-heading t)
+                              (org-end-of-subtree t t))
                      (goto-char (point-max)))
-                   (insert "\n** " title "\n")
+                   (unless (bolp) (insert "\n"))
+                   (insert "** " title "\n")
                    (forward-line -1)
                    (org-id-get-create)
                    (org-entry-put (point) "CREATED"

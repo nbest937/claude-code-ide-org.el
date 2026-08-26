@@ -6098,6 +6098,39 @@ is created on first use under the meta-work category."
       ;; be and the half the agenda absorbs.
       (should (string-match-p "^- <[0-9][^>]*>--<[0-9][^>]*> done thinking$" disk)))))
 
+(ert-deftest claude-code-ide-org-test-review-attention-leaves-the-category-intact ()
+  "Creating the heading must not disturb the category's own drawer.
+
+The regression that matters, and it is not hypothetical: the first
+version inserted at headline+1, which is the category's `:PROPERTIES:'
+line, wedging the new heading between the category and its drawer so
+that it *inherited* `:DATE_TREE:' and `:ARCHIVE:'.  On the real file
+that cost the category its archive routing and made
+`org-datetree-find-date-create' build a second datetree nested inside
+the new heading -- eleven lint errors, on the first real invocation.
+
+Asserted on the category's properties rather than on the heading's
+position, because position is what was wrong and inheritance is what it
+broke."
+  (claude-code-ide-org-test--with-attention-target
+    (claude-code-ide-org-review-attention-start)
+    (claude-code-ide-org-review-attention-stop)
+    ;; Asserted on the raw text of each drawer, because what broke was
+    ;; *ownership* -- which drawer the properties physically sit in.
+    ;; `org-entry-get' with inheritance is the wrong instrument here: a
+    ;; child of a `:DATE_TREE:' category inherits it legitimately, so
+    ;; that check reports "t" whether the file is sound or wrecked.
+    (let* ((disk (claude-code-ide-org-test--disk-contents file))
+           (cat (substring disk (string-match "^\\* Review and planning$" disk)))
+           (cat-head (substring cat 0 (string-match "^\\*\\* " cat)))
+           (attn (substring disk (string-match "^\\*\\* Review attention$" disk))))
+      ;; The category kept its own structural properties...
+      (should (string-match-p ":DATE_TREE: t" cat-head))
+      ;; ...and they are NOT in the attention heading's drawer.
+      (should-not (string-match-p ":DATE_TREE:" attn))
+      (should-not (string-match-p ":ARCHIVE:" attn))
+      (should (string-match-p ":ID: " attn)))))
+
 (ert-deftest claude-code-ide-org-test-review-attention-stops-on-bury ()
   "Burying the review buffer ends the pass -- `q' never kills it.
 
