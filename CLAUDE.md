@@ -766,6 +766,31 @@ stays quiet regardless of how many sessions start that day. The report is
 injected as `additionalContext`, which Claude is expected to relay to the
 user as a question — the hook itself has no way to literally prompt.
 
+**That hook now carries a second, independent report: the daily ceremony
+prompt** (TODO.org `:ID:` aa1ba915). One hook and one payload, because
+`additionalContext` is a single string and a second SessionStart hook
+would double the Emacs round-trip to say the same thing. Either half may
+be absent; the payload is `{}` only when both are, and the script's
+`[[ -s ]]` guard drops it.
+
+The ceremony half names what is waiting — pending queue items, drawers
+out of order, finished headings not yet archived — and then **asks**,
+following the same rule as the stale-interval report above. It is
+explicit that apply is the human's alone, so a session must not offer to
+run the pass. Its "already done today" test is a stamp file,
+`ceremony-last-run` in the queue directory, whose *mtime* carries the
+date; `M-x claude-code-ide-org-mark-ceremony-done` writes it. A day node
+or a falling pending count were both rejected for conflating "the
+ceremony was performed" with "something happened".
+
+The two commands the ceremony runs after apply are
+`claude-code-ide-org-consolidate-all-drawers` (`:ID:` 7ae6562d — reaches
+every drawer, not only ones an apply pass happened to touch) and
+`claude-code-ide-org-normalize-heading-separation` (`:ID:` e1284bdb).
+Both are idempotent and both default to a dry run interactively; **from
+Lisp both default to writing**, which is the one thing to know before
+calling either from code.
+
 **The report asks; it never proposes.** It states the timestamp the
 interval opened at — a fact it has — and asks what time work actually
 stopped, explicitly instructing the relaying session not to invent one.
