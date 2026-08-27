@@ -82,7 +82,7 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 *No residue.* Everything named as unfinished during its life was filed as a heading before the heading naming it closed -- a rule this slice produced by breaking it once ([[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]]) and then writing it into CLAUDE.md.
 
 
-** DOING Close the gap between what we declare and what the code infers [3/11] :code:
+** DOING Close the gap between what we declare and what the code infers [5/11] :code:
 :PROPERTIES:
 :ID:       979e02b6-2a4c-4328-8b08-ffaec03bd02e
 :CREATED:  [2026-08-25 Tue 15:29]
@@ -104,7 +104,7 @@ Wherever this project declares something in prose and the code infers it some ot
 *Ordered by dependency rather than size*: the docstring first because the next three read the variable it lies about, then the trigger that unblocks two transitions left unqueued, then the predicate, the policy it enables, the mechanism that makes the policy enforceable, and the general keyword review once its evidence exists. The two tool-surface members come last because they are consequences of the same root rather than causes of anything.
 
 - [X] [[id:6a21e08b-4880-4d2b-9b0f-12c35558fe08][6a21e08b]] DONE --trigger-auto-clock-in's docstring says the feature is off; it is on
-- [-] [[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]] REVIEW Setting DOING retroactively opens a clock, which the looser sense makes wrong
+- [X] [[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]] DONE Setting DOING retroactively opens a clock, which the looser sense makes wrong
 - [X] [[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]] DONE A slice gets clocked and auto-promoted, because its members are links not children
 - [X] [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]] DONE A container carries clocks it earned before it was one
 - [ ] [[id:a0813ae3-0c6d-43de-bae1-fb4414cdb519][a0813ae3]] TODO Task mitosis: a leaf that outgrows itself divides rather than becoming a parent
@@ -112,7 +112,7 @@ Wherever this project declares something in prose and the code infers it some ot
 - [ ] [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]] TODO Generalise :KIND: to every declared heading class, so level stops meaning anything
 - [ ] [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] NEXT Adopt org-native mechanisms for the heading tiers
 - [ ] [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] TODO Find a convention marking which children a container's plan actually covered
-- [ ] [[id:8183fc7c-905e-40c8-81cb-10c56158c6ce][8183fc7c]] TODO org_outline is blind to a slice: scoped to one, it returns a single line
+- [X] [[id:8183fc7c-905e-40c8-81cb-10c56158c6ce][8183fc7c]] DONE org_outline is blind to a slice: scoped to one, it returns a single line
 - [ ] [[id:798bb7a1-d5a6-4c08-8cf0-cc91a82d08e6][798bb7a1]] TODO A slice member captured this session cannot be rendered or blocked on until apply
 
 *The prompt that drove this slice, one link per revision of it:*
@@ -132,7 +132,8 @@ machine above — three different angles on "make sure the clock is
 never silently wrong."
 
 
-** REVIEW Setting DOING retroactively opens a clock, which the looser sense makes wrong :code:
+** DONE Setting DOING retroactively opens a clock, which the looser sense makes wrong :code:
+CLOSED: [2026-08-26 Wed 20:17]
 :PROPERTIES:
 :ID:       4f6a6bb1-7773-4657-949e-1fe1ba9484be
 :CREATED:  [2026-08-25 Tue 13:51]
@@ -148,6 +149,10 @@ CLOCK: [2026-08-26 Wed 12:59]--[2026-08-26 Wed 13:00] =>  0:01
 - [2026-08-26 Wed 12:59]--[2026-08-26 Wed 13:00] measure whether apply reaches the trigger at all
 - State "REVIEW"     from "DOING"      [2026-08-26 Wed 13:00] \\
   falsified and documented; close-or-keep is yours
+CLOCK: [2026-08-26 Wed 20:01]--[2026-08-26 Wed 20:16] =>  0:15
+- <2026-08-26 Wed 20:01>--<2026-08-26 Wed 20:16> assigned at review
+- State "DONE"       from "REVIEW"     [2026-08-26 Wed 20:17] \\
+  review found nothing missing; ordinary close
 :END:
 
 *=DOING= was relaxed 2026-08-25* from "the agent is executing this right now" to "started and owed a return" -- *in the mail*. The looser sense is durable and plural, and it immediately collides with a trigger built for the stricter one.
@@ -5196,10 +5201,18 @@ The third is the important one: it is the known negative, confirmed independentl
 *Nine headings currently make this visible*, measured 2026-08-26: 46 own CLOCK lines across four active and five finished groupings.
 
 
-** Orient the datetree newest-at-top, by re-sorting after day-node creation :code:
+** TODO Orient the datetree newest-at-top, by re-sorting after day-node creation :code:
 :PROPERTIES:
 :ID:       0c3f1319-67c0-4b29-a8e7-5ffa12948aaf
 :CREATED:  [2026-08-26 Wed 14:57]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-26 Wed 14:58] \\
+  captured keywordless, setting initial state
+CLOCK: [2026-08-26 Wed 15:33]--[2026-08-26 Wed 15:36] =>  0:03
+- [2026-08-26 Wed 15:33]--[2026-08-26 Wed 15:36] assigned at review
+CLOCK: [2026-08-26 Wed 15:43]--[2026-08-26 Wed 15:44] =>  0:01
+- [2026-08-26 Wed 15:43]--[2026-08-26 Wed 15:44] assigned at review
 :END:
 
 *Requested by the user 2026-08-26*, while noticing that the [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] flattening analysis "both forgot about datetrees". The ask was for a custom sort function giving the datetree a newest-at-top orientation, to match the same recency ordering proposed for TODO.org and DONE.org.
@@ -6754,10 +6767,19 @@ this project's Doom config pending an upstream report/PR.
 *Genuinely open.* Where proposals live -- under =* Slices= beside real ones, as they are now, or somewhere that cannot be mistaken for a live slice at a glance. What keyword a proposal carries: =TODO= today, though =MAYBE= would read more honestly and would also stop [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]]'s promotion trigger from ever nominating one as a next action. And what becomes of a rejected proposal -- =CANCELLED= keeps the argument, which is usually the part worth keeping.
 
 
-** A slice created without a statistics cookie never gets one, and nothing says so :code:
+** DONE A slice created without a statistics cookie never gets one, and nothing says so :code:
+CLOSED: [2026-08-26 Wed 15:50]
 :PROPERTIES:
 :ID:       28415ca8-a4ce-43a4-9af6-9ec0e7d5662a
 :CREATED:  [2026-08-26 Wed 15:46]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-26 Wed 15:46]--[2026-08-26 Wed 15:50] =>  0:04
+- State "DOING"      from              [2026-08-26 Wed 15:46] \\
+  starting now; self-heal plus a lint rule
+- [2026-08-26 Wed 15:46]--[2026-08-26 Wed 15:50] make the refresher insert, and lint assert
+- State "DONE"       from "DOING"      [2026-08-26 Wed 15:50] \\
+  refresher inserts, lint asserts, 979e02b6 healed
 :END:
 
 *Found by the user 2026-08-26*, noticing that [[id:979e02b6-2a4c-4328-8b08-ffaec03bd02e][979e02b6]] carried no statistics cookie, and asking that this become part of slice creation and validation discipline.
@@ -8062,7 +8084,7 @@ asserts the refusal instead, across nil, empty and whitespace; removing
 the guard fails it and nothing else.
 
 
-** TODO [1/5] Make the 8-character prefix resolve, for the model and the human alike :code:
+** TODO [5/9] Make the 8-character prefix resolve, for the model and the human alike :code:
 :PROPERTIES:
 :ID:       478d6ec9-1b99-4c6c-88e9-c793ad4b2f22
 :CREATED:  [2026-08-18 Tue 08:18]
@@ -8545,10 +8567,19 @@ fixing in the same pass, since both are the same class of bug: the
 format asserting less structure than the reader needs.
 
 
-*** DONE.org is not a tracked file, so no id in it resolves :code:
+*** DONE DONE.org is not a tracked file, so no id in it resolves :code:
+CLOSED: [2026-08-26 Wed 20:22]
 :PROPERTIES:
 :ID:       020d3688-f08d-460f-a3e8-931a1677074a
 :CREATED:  [2026-08-26 Wed 20:18]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-26 Wed 20:18]--[2026-08-26 Wed 20:22] =>  0:04
+- State "DOING"      from              [2026-08-26 Wed 20:18] \\
+  starting; derive archives from the tracked files
+- [2026-08-26 Wed 20:18]--[2026-08-26 Wed 20:22] make id resolution see the archive
+- State "DONE"       from "DOING"      [2026-08-26 Wed 20:22] \\
+  177 to 275 ids; truename pinned by a symlink fixture
 :END:
 
 *Found [2026-08-26 Wed] by hitting it twice in one session*, both times =org_amend= refusing a correct =[[id:b8e6007a-ae13-4b13-bb2e-a5df39435af0]]= prefix -- in a session that was, at the time, documenting the prefix convention.
@@ -8578,10 +8609,21 @@ format asserting less structure than the reader needs.
 *So this heading's lasting contribution is the diagnosis and =--id-scannable-files=*, which survives with one caller -- the slice referent index, which needs a heading's keyword and title rather than its mere existence, and that is the one thing org does not index.
 
 *The pattern is now written down* rather than left to be rediscovered: org-dev SKILL.md gains section 0b, "check whether org already has it", with the eight instances from these two days and the places to look ([[orgit-rev:claude-code-ide-org::06e7cff][06e7cff]], [[orgit-rev:claude-code-ide-org::e1c086c][e1c086c]]).
-*** Hand-rolled the archive derivation org already had :code:
+
+
+*** DONE Hand-rolled the archive derivation org already had :code:
+CLOSED: [2026-08-27 Thu 07:05]
 :PROPERTIES:
 :ID:       e6d1d810-5e88-4356-b002-bbb10cf19fc9
 :CREATED:  [2026-08-27 Thu 07:05]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-27 Thu 06:58]--[2026-08-27 Thu 07:05] =>  0:07
+- [2026-08-27 Thu 06:58]--[2026-08-27 Thu 07:05] assigned at review
+- State "DONE"       from              [2026-08-27 Thu 07:05] \\
+  retcon: shipped 45292b8 2026-08-27 07:05
+CLOCK: [2026-08-27 Thu 07:07]--[2026-08-27 Thu 07:09] =>  0:02
+- [2026-08-27 Thu 07:07]--[2026-08-27 Thu 07:09] suggested span, accepted at review
 :END:
 
 *Retconned [2026-08-27 Thu]; shipped [2026-08-27 Thu 07:05] as [[orgit-rev:claude-code-ide-org::45292b8][45292b8]].*
@@ -8594,10 +8636,16 @@ About 35 lines to read =#+ARCHIVE:= and =:ARCHIVE:= and resolve the paths agains
 
 Net -22 lines, and the symlink test still discriminates: org resolves the archive against the link target the same way the hand-rolled version did.
 
-*** Expand prefixes against org-id-locations rather than a table of our own :code:
+
+*** DONE Expand prefixes against org-id-locations rather than a table of our own :code:
+CLOSED: [2026-08-27 Thu 07:32]
 :PROPERTIES:
 :ID:       93f6c908-1c15-44e5-84f9-03f1ffb6d5db
 :CREATED:  [2026-08-27 Thu 07:32]
+:END:
+:LOGBOOK:
+- State "DONE"       from              [2026-08-27 Thu 07:32] \\
+  retcon: shipped 94b3985 2026-08-27 07:32
 :END:
 
 *Retconned [2026-08-27 Thu]; shipped [2026-08-27 Thu 07:32] as [[orgit-rev:claude-code-ide-org::94b3985][94b3985]].*
@@ -8612,10 +8660,16 @@ Verified a strict superset before switching; all 276 keys lowercase, so prefix m
 
 *Two bugs found by the tests, both mine.* Restarting the scan after a rescan used =(match-beginning 1)=, which resumes *inside* the link's opening delimiter where the regexp cannot match again -- the loop ended early with no error and an unresolvable link was accepted silently. And the second rescan was initially unproven, no fixture reaching it; rather than delete it, a fixture with the honest shape was added -- a file org never visited, an index that has never seen it.
 
-*** Convert plain-text id workarounds left by the unresolvable-prefix era :code:
+
+*** DONE Convert plain-text id workarounds left by the unresolvable-prefix era :code:
+CLOSED: [2026-08-27 Thu 07:06]
 :PROPERTIES:
 :ID:       c69df700-dbba-4437-bb98-44cff81501f2
 :CREATED:  [2026-08-27 Thu 07:06]
+:END:
+:LOGBOOK:
+- State "DONE"       from              [2026-08-27 Thu 07:06] \\
+  retcon: shipped 2e24407 2026-08-27 07:06
 :END:
 
 *Retconned [2026-08-27 Thu]; shipped [2026-08-27 Thu 07:06] as [[orgit-rev:claude-code-ide-org::2e24407][2e24407]].*
@@ -8627,6 +8681,7 @@ Six references written as plain text rather than =[[id:]]= links, because the ex
 *That is the finding worth keeping.* A tool that refuses a correct input does not merely fail; it teaches the writer a worse habit, and the habit outlives the fix. Nobody filed the refusals because writing the id as plain text worked well enough.
 
 Converted through Emacs rather than by editing the file behind it. =bin/lint-org= is the check that matters: it asserts every =[[id:]]= resolves, so a bad expansion fails rather than sitting in the file looking plausible. Prose about the =:ID:= *property* was untouched, since the pattern required a following 8-hex prefix.
+
 
 ** DONE Auto-promote makes a container the next action :code:
 CLOSED: [2026-08-21 Fri 13:16]
@@ -8723,6 +8778,18 @@ CLOCK: [2026-08-20 Thu 14:08]--[2026-08-20 Thu 14:18] =>  0:10
   promotion trigger met: org itself overloads level
 - State "NEXT"       from "TODO"       [2026-08-26 Wed 12:57] \\
   next Skill logic member; needs the user's decision
+CLOCK: [2026-08-26 Wed 16:35]--[2026-08-26 Wed 16:39] =>  0:04
+- [2026-08-26 Wed 16:35]--[2026-08-26 Wed 16:39] plan CATEGORY plus flattening
+CLOCK: [2026-08-26 Wed 16:42]--[2026-08-26 Wed 16:43] =>  0:01
+- [2026-08-26 Wed 16:42]--[2026-08-26 Wed 16:43] plan CATEGORY plus flattening
+CLOCK: [2026-08-26 Wed 16:52]--[2026-08-26 Wed 16:54] =>  0:02
+- [2026-08-26 Wed 16:52]--[2026-08-26 Wed 16:54] plan CATEGORY plus flattening
+CLOCK: [2026-08-26 Wed 17:42]--[2026-08-26 Wed 17:43] =>  0:01
+- [2026-08-26 Wed 17:42]--[2026-08-26 Wed 17:43] plan CATEGORY plus flattening
+CLOCK: [2026-08-26 Wed 17:54]--[2026-08-26 Wed 17:56] =>  0:02
+- [2026-08-26 Wed 17:54]--[2026-08-26 Wed 17:56] plan CATEGORY plus flattening
+CLOCK: [2026-08-26 Wed 18:25]--[2026-08-26 Wed 18:27] =>  0:02
+- [2026-08-26 Wed 18:25]--[2026-08-26 Wed 18:27] plan CATEGORY plus flattening
 :END:
 
 Parked 2026-08-19, *not accepted* — recorded so the research need not be
@@ -9601,7 +9668,8 @@ CLOCK: [2026-08-20 Thu 16:42]--[2026-08-20 Thu 16:46] =>  0:04
 *And the commit was refused, correctly.* The pre-commit hook linted =clock-template.org= -- staged for the first time ever by this change -- against task-file conventions it was never meant to satisfy, producing six false errors. =bin/lint-org= governs exactly TODO.org and DONE.org; the hook gated every staged =.org=. Fixed by scoping the hook to the linter's own set rather than passing =--no-verify=, in its own commit ahead of this one, with a test that fails when the scoping is reverted. A gate wider than its linter blocks correct work and teaches the bypass habit the hook exists to make unnecessary.
 
 
-** TODO org_outline is blind to a slice: scoped to one, it returns a single line :code:
+** DONE org_outline is blind to a slice: scoped to one, it returns a single line :code:
+CLOSED: [2026-08-26 Wed 19:40]
 :PROPERTIES:
 :ID:       8183fc7c-905e-40c8-81cb-10c56158c6ce
 :CREATED:  [2026-08-25 Tue 19:34]
@@ -9609,6 +9677,12 @@ CLOCK: [2026-08-20 Thu 16:42]--[2026-08-20 Thu 16:46] =>  0:04
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 20:38] \\
   captured keywordless, setting initial state
+CLOCK: [2026-08-26 Wed 19:35]--[2026-08-26 Wed 19:40] =>  0:05
+- State "DOING"      from "TODO"       [2026-08-26 Wed 19:35] \\
+  prerequisite for the flattening migration
+- [2026-08-26 Wed 19:35]--[2026-08-26 Wed 19:40] name blocker ids; expand slice members when scoped
+- State "DONE"       from "DOING"      [2026-08-26 Wed 19:40] \\
+  one line becomes twelve; blocker ids named
 :END:
 
 *Observed 2026-08-25*, asked by the user as "does =org_outline= need an enhancement to represent slices in a helpful way, or does that deserve a new tool?" Scoping it to the 24-member slice returns exactly one line:
@@ -9690,10 +9764,19 @@ CLOCK: [2026-08-20 Thu 16:42]--[2026-08-20 Thu 16:46] =>  0:04
 - *Have it refuse loudly* rather than skip silently -- the cheapest, and it converts an invisible stale line into a message. Probably the floor regardless of what else is done.
 
 *The transient lint error resolved by itself* when the queue was applied a few minutes later, which is the expected behaviour and worth stating so nobody "fixes" it by deleting the blocker entry.
-** Reuse org's own facilities instead of rebuilding them beside it :code:
+
+
+** DONE Reuse org's own facilities instead of rebuilding them beside it :code:
+CLOSED: [2026-08-27 Thu 08:14]
 :PROPERTIES:
 :ID:       4eb2492e-1791-44c0-8e2b-635dc094b0cf
 :CREATED:  [2026-08-27 Thu 08:14]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-27 Thu 08:10]--[2026-08-27 Thu 08:14] =>  0:04
+- [2026-08-27 Thu 08:10]--[2026-08-27 Thu 08:14] assigned at review
+- State "DONE"       from              [2026-08-27 Thu 08:14] \\
+  retcon: 06e7cff and e1c086c
 :END:
 
 *Retconned [2026-08-27 Thu]; shipped as [[orgit-rev:claude-code-ide-org::06e7cff][06e7cff]] and [[orgit-rev:claude-code-ide-org::e1c086c][e1c086c]].*
@@ -9710,10 +9793,15 @@ org-dev gains section 0b: the search order -- *tracker, running Emacs, straight 
 
 *Verification is a documented manual pass*, not a test -- whether a description matches a future session's intent is the inherently fuzzy case CLAUDE.md exempts. What is checkable is checked: =bin/check-org-dev-skill= asserts 0b's cited paths exist and its named facilities are still bound, 18 checks, both halves proved to discriminate.
 
-** org_capture swallows a title beginning with a TODO keyword :code:
+
+** TODO org_capture swallows a title beginning with a TODO keyword :code:
 :PROPERTIES:
 :ID:       2b2db914-c96e-416a-a80a-e31028308de0
 :CREATED:  [2026-08-26 Wed 18:50]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-26 Wed 18:50] \\
+  still open; guard not yet written
 :END:
 
 *Open. Promised during 2026-08-26's session and not filed until the next morning* -- which is itself the pattern that produced the other six retcons.
@@ -9725,6 +9813,7 @@ org-dev gains section 0b: the search order -- *tracker, running Emacs, straight 
 *Caught only because =org_set_todo='s reply echoed the truncated title back*: "Queued todo -> DOING (was NEXT)" on a heading that had just been captured keywordless. Nothing else would have shown it; the heading looks entirely normal in the file.
 
 *Cheap guard, since the tool already knows the keyword set.* Refuse, or escape, a title whose first word is one. Refusing is probably right: such a title is nearly always a mistake, and a silently renamed heading is worse than an error. Note =bin/lint-org= cannot catch it either -- the result is a well-formed heading.
+
 
 * Tooling
 :PROPERTIES:
@@ -11415,10 +11504,15 @@ Those six refused =org_wrap_plan= with =Seam marker is the first body line; noth
 *=MAYBE= deliberately.* The =/config= change may resolve the pain entirely, and this costs a script plus its tests. Worth building only if reading the transcript in Emacs turns out to be something the user actually does, rather than something that sounds useful.
 
 
-** Footnote check treats a code fence as prose, so pasted output demands footnotes :code:
+** DONE Footnote check treats a code fence as prose, so pasted output demands footnotes :code:
+CLOSED: [2026-08-26 Wed 20:11]
 :PROPERTIES:
 :ID:       762b7836-52db-4619-a664-25a09f84da46
 :CREATED:  [2026-08-26 Wed 20:11]
+:END:
+:LOGBOOK:
+- State "DONE"       from              [2026-08-26 Wed 20:11] \\
+  fence exemption shipped; narrowness pinned both ways
 :END:
 
 *Found and fixed [2026-08-26 Wed]*, in the response that provoked it. Asked to show a slice's checklist as it would read after an apply pass, the reply displayed eleven member lines in a code block -- and the hook demanded a footnote for *twelve* ids, each restating a keyword and title already visible three lines above it inside the block.
@@ -11434,10 +11528,17 @@ Those six refused =org_wrap_plan= with =Seam marker is the first body line; noth
 *An unclosed fence swallows the rest of the body*, which is the safe direction -- it under-reports rather than demanding footnotes for something the reader is already looking at.
 
 *Third amendment to this hook in one day*, after the all-digit id defect ([[id:28415ca8-a4ce-43a4-9af6-9ec0e7d5662a][28415ca8]] is a different heading; the digit fix was =60f311b=). All three were found the same way: by the hook firing, in front of the user, on a case it was wrong about.
-** All-digit :ID: prefixes were invisible to footnote-check :code:
+
+
+** DONE All-digit :ID: prefixes were invisible to footnote-check :code:
+CLOSED: [2026-08-26 Wed 13:36]
 :PROPERTIES:
 :ID:       daca2a7d-5a7f-4714-96dd-ad10d114db4f
 :CREATED:  [2026-08-26 Wed 13:36]
+:END:
+:LOGBOOK:
+- State "DONE"       from              [2026-08-26 Wed 13:36] \\
+  retcon: shipped 60f311b 2026-08-26 13:36
 :END:
 
 *Retconned [2026-08-27 Thu]; shipped [2026-08-26 Wed 13:36] as [[orgit-rev:claude-code-ide-org::60f311b][60f311b]].*
@@ -11450,10 +11551,16 @@ Those six refused =org_wrap_plan= with =Seam marker is the first body line; noth
 
 Four tests. Note the mixed-citation case blocks *even when broken*, because the hex half trips it -- so the assertion that the message names **both** ids is the one doing the work.
 
-** bin/check-org-dev-skill printed FAIL but exited 0, so no caller could see it :code:
+
+** DONE bin/check-org-dev-skill printed FAIL but exited 0, so no caller could see it :code:
+CLOSED: [2026-08-27 Thu 07:38]
 :PROPERTIES:
 :ID:       36481e67-d460-45a4-80b1-d23f209042e4
 :CREATED:  [2026-08-27 Thu 07:38]
+:END:
+:LOGBOOK:
+- State "DONE"       from              [2026-08-27 Thu 07:38] \\
+  retcon: shipped in 06e7cff 2026-08-27 07:38
 :END:
 
 *Retconned [2026-08-27 Thu]; shipped [2026-08-27 Thu 07:38] inside [[orgit-rev:claude-code-ide-org::06e7cff][06e7cff]].*
@@ -11465,6 +11572,7 @@ Four tests. Note the mixed-citation case blocks *even when broken*, because the 
 *The =check= function was always correct*, using =set -g=, which is exactly why this looked fine: the checks that used the helper behaved, and only the two hand-written blocks did not.
 
 *Found by breaking a claim and checking the exit code rather than the output* -- the same instinct this skill's own section 0 exists to enforce, applied to the skill's own checker. Now: clean exits 0, a broken claim exits 1.
+
 
 * Review and planning
 :PROPERTIES:
@@ -11482,7 +11590,7 @@ Meta-work: the review pass, planning, and the time that goes into deciding what 
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
-CLOCK: [2026-08-27 Thu 08:32]
+CLOCK: [2026-08-27 Thu 08:32]--[2026-08-27 Thu 08:54] =>  0:22
 CLOCK: [2026-08-26 Wed 13:20]--[2026-08-26 Wed 13:21] =>  0:01
 CLOCK: [2026-08-26 Wed 12:27]--[2026-08-26 Wed 12:28] =>  0:01
 CLOCK: [2026-08-26 Wed 11:40]--[2026-08-26 Wed 11:41] =>  0:01
@@ -11768,6 +11876,19 @@ CLOCK: [2026-08-26 Wed 13:05]--[2026-08-26 Wed 14:07] =>  1:02
 - <2026-08-26 Wed 13:05>--<2026-08-26 Wed 14:07> assigned at review
 CLOCK: [2026-08-26 Wed 14:31]--[2026-08-26 Wed 14:44] =>  0:13
 - <2026-08-26 Wed 14:31>--<2026-08-26 Wed 14:44> assigned at review
+CLOCK: [2026-08-26 Wed 19:40]--[2026-08-26 Wed 19:41] =>  0:01
+- <2026-08-26 Wed 19:40>--<2026-08-26 Wed 19:41> assigned at review
+:END:
+
+
+**** 2026-08-27 Thursday
+:PROPERTIES:
+:ID:       126a28c2-4937-429c-9701-cefa6fd88168
+:CREATED:  [2026-08-27 Thu 08:14]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-27 Thu 08:14]--[2026-08-27 Thu 08:30] =>  0:16
+- <2026-08-27 Thu 08:14>--<2026-08-27 Thu 08:30> assigned at review
 :END:
 
 
