@@ -3673,10 +3673,12 @@ equivalent line by hand instead."
              ;; sibling group worth the name: its "siblings" are every
              ;; other task in the file, so demoting among them asserts
              ;; one next action for the whole corpus. TODO.org :ID:
-             ;; 62b65ad0 decided that `NEXT' belongs to containers --
-             ;; stories and slices -- because that is what GTD means by
-             ;; a project. Having a parent IS the test: a keyworded
-             ;; heading with a parent makes that parent a container by
+             ;; 62b65ad0 decided that `NEXT' belongs to a container's
+             ;; *members* -- the children of a story, the referents of a
+             ;; slice -- and never to a container itself, because that is
+             ;; what GTD means by the next action of a project.
+             ;; Having a parent IS the test: a keyworded heading with a
+             ;; parent makes that parent a container by
              ;; `--container-heading-p''s own definition.
              (save-excursion (org-back-to-heading t) (org-up-heading-safe)))
     ;; Name the superseding sibling by an [[id:...]] link rather than a

@@ -5243,7 +5243,7 @@ The third is the important one: it is the known negative, confirmed independentl
 *Consequence for the flattening question* ([[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]): none. This is orthogonal and was already noted there as independent.
 
 
-** NEXT Reserve the NEXT keyword for containers; nominate rather than promote :code:
+** NEXT Reserve NEXT for use within a container; nominate rather than promote :code:
 :PROPERTIES:
 :ID:       62b65ad0-304b-4cf1-bd95-2f1ecb671d6b
 :CREATED:  [2026-08-26 Wed 18:50]
@@ -11482,6 +11482,7 @@ Meta-work: the review pass, planning, and the time that goes into deciding what 
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-27 Thu 08:32]
 CLOCK: [2026-08-26 Wed 13:20]--[2026-08-26 Wed 13:21] =>  0:01
 CLOCK: [2026-08-26 Wed 12:27]--[2026-08-26 Wed 12:28] =>  0:01
 CLOCK: [2026-08-26 Wed 11:40]--[2026-08-26 Wed 11:41] =>  0:01

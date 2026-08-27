@@ -600,8 +600,12 @@ set by hand — gated by `claude-code-ide-org-auto-clock-in-on-doing`,
 default `t`), plus `--trigger-demote-conflicting-next`, live and
 ungated **inside a container**.
 
-**`NEXT` belongs to containers, and nothing sets it by itself**
-(`:ID:` 62b65ad0, 2026-08-26). A `--trigger-auto-promote-sole-todo`
+**`NEXT` belongs to a container's *members*, and nothing sets it by
+itself** (`:ID:` 62b65ad0, 2026-08-26). Read that carefully: `NEXT` is
+meaningful *within* a story or a slice, and a container itself must
+never carry it — promoting one declares a project to be an action, which
+is `:ID:` 42808717. "Belongs to containers" was the original phrasing
+here and read as the opposite of what it meant. A `--trigger-auto-promote-sole-todo`
 stood here and set `NEXT` on a container's sole remaining `TODO`
 autonomously. It is gone, along with its three guards — a re-entrancy
 flag, a mid-batch suppression flag, and the settle pass that re-ran what
