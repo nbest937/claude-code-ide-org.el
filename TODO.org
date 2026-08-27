@@ -2151,6 +2151,19 @@ spans that genuinely belong to no task.
 
 *One draft was falsified along the way and the finding is in [[id:25ec37b0-460f-404d-be83-8a4b4d355cdc][25ec37b0]]:* the outline path in =file+olp+datetree= does not nest the tree. Nesting comes from a =:DATE_TREE:= property. Worth knowing before anyone writes the capture template from the template name alone, which is exactly how the first draft went wrong.
 
+*Correction [2026-08-27 Thu]: "=org-clock-default-task= is adopted … now wired rather than merely noted" is wrong, and contradicts its own next sentence.*
+
+That paragraph says in one breath that org's variable is wired, and then that "Claude cannot use it at all, since every clock call here goes through =org_clock_in= with an =:ID:=". Both cannot be true of a mechanism that is doing the work. [[id:6ae83993-906c-4d8b-b11e-c91be8996962][6ae83993]] states the fact plainly: *zero references to =clock-default-task= across =modules/= and the Doom config.* It has never been wired.
+
+*What actually shipped is ours, not org's.* Meta-work time is allocated by =claude-code-ide-org--ensure-day-node= plus =org_clock_in= accepting the *category title* in place of an =:ID:=, resolving today's day node on demand and filing the interval against it. That is why the allocation works today and has for days -- the user noticed exactly this and asked.
+
+*So the check-org-first item this heading raised was closed against the wrong evidence.* Org did have a name for the concept, which is what the item asked. It does not follow that we used it, and the body recorded the first as though it settled the second. Being right about the search and wrong about the outcome is the more dangerous shape, because it reads as diligence.
+
+*What =org-clock-default-task= would still buy, narrowly.* One thing: the *human*, in Emacs, clocking meta-work with =C-u C-u C-c C-x C-i= without navigating to today's node first. Nothing for Claude, nothing for the queue. [[id:6ae83993-906c-4d8b-b11e-c91be8996962][6ae83993]] remains open on those terms and should be judged on them rather than on "org has a name for it" -- a reason this session has now watched fail eight times in two days.
+
+*And the interval it would produce is inactive, necessarily.* Measured 2026-08-27: =org-clock-in= writes =CLOCK: [ts]--[ts]= and org has no active variant of a CLOCK line at all. The active/inactive distinction this project cares about lives on the *annotation* line beneath, never on the CLOCK line -- so what marks such an interval as the human's own is the *absence* of an annotation, which is what [[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] and =:ID:= b8e6007a (DONE.org) already say.
+
+
 
 ** TODO Teach org_capture to target a datetree, with an addressable day node :code:
 :PROPERTIES:
@@ -8821,6 +8834,7 @@ CLOCK: [2026-08-20 Thu 14:08]--[2026-08-20 Thu 14:18] =>  0:10
   next Skill logic member; needs the user's decision
 - State "PLANNING"   from "NEXT"       [2026-08-26 Wed 15:57] \\
   approved: :CATEGORY: plus flattening
+- [2026-08-26 Wed 16:29]--[2026-08-26 Wed 16:34] plan CATEGORY plus flattening
 CLOCK: [2026-08-26 Wed 16:35]--[2026-08-26 Wed 16:39] =>  0:04
 - [2026-08-26 Wed 16:35]--[2026-08-26 Wed 16:39] plan CATEGORY plus flattening
 CLOCK: [2026-08-26 Wed 16:42]--[2026-08-26 Wed 16:43] =>  0:01
@@ -8836,6 +8850,14 @@ CLOCK: [2026-08-26 Wed 18:25]--[2026-08-26 Wed 18:27] =>  0:02
 - State "DOING"      from "PLANNING"   [2026-08-26 Wed 18:48]
 - State "DOING"      from "DOING"      [2026-08-27 Thu 09:09] \\
   starting Step 1, the mechanical migration
+CLOCK: [2026-08-27 Thu 15:54]--[2026-08-27 Thu 15:57] =>  0:03
+- [2026-08-27 Thu 15:54]--[2026-08-27 Thu 15:57] plan CATEGORY plus flattening
+CLOCK: [2026-08-27 Thu 16:05]--[2026-08-27 Thu 16:06] =>  0:01
+- [2026-08-27 Thu 16:05]--[2026-08-27 Thu 16:06] plan CATEGORY plus flattening
+CLOCK: [2026-08-27 Thu 16:10]--[2026-08-27 Thu 16:11] =>  0:01
+- [2026-08-27 Thu 16:10]--[2026-08-27 Thu 16:11] plan CATEGORY plus flattening
+CLOCK: [2026-08-27 Thu 16:14]--[2026-08-27 Thu 16:20] =>  0:06
+- [2026-08-27 Thu 16:14]--[2026-08-27 Thu 16:20] plan CATEGORY plus flattening
 :END:
 
 Parked 2026-08-19, *not accepted* — recorded so the research need not be
@@ -11914,6 +11936,7 @@ CLOCK: [2026-08-27 Thu 08:55]--[2026-08-27 Thu 08:58] =>  0:03
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-27 Thu 16:26]--[2026-08-27 Thu 16:32] =>  0:06
 CLOCK: [2026-08-27 Thu 15:47]--[2026-08-27 Thu 15:55] =>  0:08
 CLOCK: [2026-08-27 Thu 08:32]--[2026-08-27 Thu 08:54] =>  0:22
 CLOCK: [2026-08-26 Wed 13:20]--[2026-08-26 Wed 13:21] =>  0:01
