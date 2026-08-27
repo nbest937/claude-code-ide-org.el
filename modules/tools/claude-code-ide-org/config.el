@@ -3227,6 +3227,23 @@ A heading with no tags simply gets it at the end."
       (org-edit-headline (concat title " [/]"))
       t)))
 
+(defun claude-code-ide-org--category-property-p ()
+  "Non-nil when the heading at point literally carries a `:CATEGORY:'.
+
+Distinct from `(org-entry-get nil \"CATEGORY\")', which *computes* a
+category: absent a property it returns the file name, or `\"???\"' in a
+buffer visiting no file. So the obvious presence test can never fail,
+and a lint rule written on it is inert.
+
+That fallback is not incidental to this project -- it is the whole
+finding behind TODO.org :ID: 29439196. Across 274 headings the agenda's
+category column held exactly two distinct values, `TODO' and `DONE',
+because it was showing file names."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((end (save-excursion (outline-next-heading) (point))))
+      (and (re-search-forward "^[ \t]*:CATEGORY:[ \t]+\\S-" end t) t))))
+
 (defun claude-code-ide-org--grouping-heading-p ()
   "Non-nil when the heading at point is a grouping -- a container or a
 slice -- rather than a unit of work in its own right.
@@ -8795,33 +8812,57 @@ from `claude-code-ide-org--lint-routing-categories'."
 (category, task, epic-child) outside a :DATE_TREE: subtree, and inside one only \
 year/month scaffolding and its day node: %s" level title))
                 ((= level 1)
-                 ;; A level-1 heading is a category, and a category
-                 ;; routes to an archive target. One that neither routes
-                 ;; nor mirrors something that does is almost certainly
-                 ;; not a heading anyone wrote deliberately -- TODO.org
-                 ;; :ID: 95087d8f, where `* *' typed as a markdown
-                 ;; horizontal rule became a level-1 category and
-                 ;; swallowed 6462 lines while every lint run stayed
-                 ;; clean.
+                 ;; *Inverted 2026-08-27* (TODO.org :ID: 29439196). Level 1
+                 ;; used to be the category tier -- structure, forbidden to
+                 ;; carry :ID:, :CREATED:, a keyword or tags. Flattening
+                 ;; moved the grouping onto the task as :CATEGORY:, so
+                 ;; level 1 is now where the *work* lives and must carry
+                 ;; exactly what every other task does. The old rule is
+                 ;; preserved in `.claude/rules/org-conventions.md', since
+                 ;; a reader of older commits will meet it.
                  ;;
-                 ;; Skipped when CATEGORIES is empty: with no routing
-                 ;; level-1 anywhere in the linted set there is nothing
-                 ;; to infer the convention from, and a fixture of one
-                 ;; bare `* Category' must stay legal.
-                 (when (and categories
-                            (not (org-entry-get nil "ARCHIVE"))
-                            (not (member title categories)))
-                   (report 'error line "level-1 heading is neither a category \
-(no :ARCHIVE:) nor a mirror of one: %s" title))
-                 (when id (report 'error line "level-1 category carries :ID: -- \
-categories are structure, not tasks: %s" title))
-                 (when created
-                   (report 'error line "level-1 category carries :CREATED:: %s" title))
-                 (when todo
-                   (report 'error line "level-1 category carries TODO keyword %s: %s"
-                           todo title))
-                 (when (org-get-tags nil t)
-                   (report 'error line "level-1 category carries tags: %s" title)))
+                 ;; The `:DATE_TREE:' anchor is the one structural level-1
+                 ;; heading left: org-datetree's year/month/day nodes are
+                 ;; an irreducible tree and need a container to nest in.
+                 ;; It is exempted by carrying the property, not by title,
+                 ;; so a rename cannot silently un-exempt it.
+                 (if (org-entry-get nil "DATE_TREE")
+                     (progn
+                       (when todo
+                         (report 'error line
+                                 "the :DATE_TREE: anchor carries TODO keyword %s: %s"
+                                 todo title))
+                       (when id
+                         (report 'error line
+                                 "the :DATE_TREE: anchor carries :ID:: %s" title)))
+                   ;; An ordinary level-1 task.
+                   (unless id
+                     (report 'error line "level-1 task has no :ID:: %s" title))
+                   ;; `warn', matching what a deeper heading gets. A
+                   ;; missing :CREATED: is not retrofittable -- nobody
+                   ;; knows when a 2026-07 heading was written -- and
+                   ;; erroring would have turned 13 pre-convention
+                   ;; DONE.org headings into blockers overnight purely
+                   ;; because flattening moved them to level 1. An :ID:
+                   ;; IS retrofittable, so that one stays an error.
+                   (unless created
+                     (report 'warn line "level-1 task has no :CREATED:: %s" title))
+                   ;; A task without a category is unfiled: nothing in the
+                   ;; tree says where it belongs any more, which is exactly
+                   ;; what the flattening traded away. Warn rather than
+                   ;; error -- a freshly captured heading may legitimately
+                   ;; not have one yet.
+                   ;; Read the drawer, not `org-entry-get'. Org
+                   ;; *computes* CATEGORY -- falling back to the file
+                   ;; name, or "???" in a buffer with no file -- so it
+                   ;; is never nil and a presence test through it always
+                   ;; passes. That fallback is the same one that made the
+                   ;; agenda's category column carry two distinct values
+                   ;; across 274 headings, which is what prompted
+                   ;; :ID: 29439196 in the first place. Measured, not
+                   ;; assumed: a bare heading answers "???".
+                   (unless (claude-code-ide-org--category-property-p)
+                     (report 'warn line "level-1 task has no :CATEGORY:: %s" title))))
                 (t
                  (unless id (report 'error line "heading has no :ID:: %s" title))
                  (unless created

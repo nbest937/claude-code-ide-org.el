@@ -51,10 +51,47 @@ deduplicate, so `:code:code:` survives untouched and org-lint says nothing;
 `bin/lint-org` reports it as an error. It happens when a tag is appended to
 a headline by hand without checking what is already there.
 
-## Top-level headings
+## Top-level headings, and the category they used to be
 
-Top-level (`*`) headings in `TODO.org` are epics — pure
-structure, grouping related tasks — not tasks in their own right. They carry
+**Since 2026-08-27 (`:ID:` 29439196) a top-level heading is a *task*.** The
+level-1 category tier is gone: a task's grouping is declared on the task
+itself, as `:CATEGORY:`, rather than inferred from its position in the tree.
+Level 1 is therefore where `:ID:`, `:CREATED:`, a TODO keyword and tags all
+belong — the exact inverse of the rule that stood here before, which is
+quoted below because a reader of older commits will meet it.
+
+One exception, and it is structural rather than a carve-out: **`* Review and
+planning` remains a level-1 container**, because org-datetree's
+year/month/day scaffolding is an irreducible tree. Real tasks that used to
+sit beside that scaffolding were moved out to level 1; level 2 beneath the
+anchor now holds nothing but org's own nodes.
+
+### What each category meant
+
+A `:CATEGORY:` value is a bare string, so the prose that used to live in a
+category heading's body has nowhere to go in the file. Preserved here
+verbatim, as the input to the taxonomy work (`:ID:` 29439196, step 2), which
+is expected to rename and regroup several of these:
+
+- **Clock lifecycle & visibility** — "Everything here is specifically about
+  the clock subsystem's correctness and observability, as opposed to the
+  general TODO-state machine above — three different angles on 'make sure the
+  clock is never silently wrong.'"
+- **Observability** — "Broader than clocking — visibility into what every
+  tool call actually did, both after the fact and at the start of a session."
+- **Bigger swings** — "Significant directions this project has not committed
+  to. Think hard before building any of them."
+- **Upstream (claude-code-ide.el)** — "Issues found against the third-party
+  `claude-code-ide.el` (manzaltu/claude-code-ide.el) package itself, not this
+  repo's own code — worth reporting upstream but not this repo's work to fix."
+
+`Slices`, `Documentation`, `Skill logic` and `Tooling` carried no body prose
+and lost nothing.
+
+### The rule that stood until 2026-08-27
+
+Top-level (`*`) headings in `TODO.org` were epics — pure
+structure, grouping related tasks — not tasks in their own right. They carried
 no `TODO` keyword, no tags, and **no task metadata**: no `:ID:` and no
 `:CREATED:`, overriding the general "every heading creation" rule for this
 one case.

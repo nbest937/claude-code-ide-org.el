@@ -2087,13 +2087,17 @@ not itself linted."
 
 (ert-deftest claude-code-ide-org-test-lint-clean-file-has-no-findings ()
   "Positive control: a file obeying every convention reports nothing.
-Without this the other tests could pass by the lint flagging everything."
+Without this the other tests could pass by the lint flagging everything.
+
+*Reshaped 2026-08-27* (TODO.org :ID: 29439196). Level 1 is now where the
+work lives, so a clean file is a level-1 task carrying :ID:, :CREATED:
+and :CATEGORY: -- not a bare category heading with children."
   (should (null (claude-code-ide-org-test--lint
-                 (concat "* Category\n"
-                         "** TODO A task                                     :code:\n"
+                 (concat "* TODO A task                                      :code:\n"
                          ":PROPERTIES:\n"
                          ":ID:       11111111-1111-1111-1111-111111111111\n"
                          ":CREATED:  [2026-08-14 Fri 10:00]\n"
+                         ":CATEGORY: Tools\n"
                          ":END:\n"
                          "Body referring to [[id:11111111-1111-1111-1111-111111111111][itself]].\n")))))
 
@@ -2119,61 +2123,24 @@ deliberate and the check has no reason to care about depth."
                     ":CREATED:  [2026-08-14 Fri 10:00]\n:END:\n"))
            'error "no word characters")))
 
-(ert-deftest claude-code-ide-org-test-lint-catches-stray-level-1-heading ()
-  "A level-1 heading that neither routes nor mirrors one that does.
+(ert-deftest claude-code-ide-org-test-lint-still-catches-a-phantom-level-1-heading ()
+  "The :ID: 95087d8f incident stays caught after flattening, by a
+different rule.
 
-The stronger half of :ID: 95087d8f: it catches the incident even had the
-phantom been named something word-like. A category is a level-1 heading
-with an =:ARCHIVE:= target, which is what makes it routable rather than
-merely top-level.
+That heading was `* *' -- markdown's horizontal rule -- which org read as
+a level-1 headline and which swallowed 6462 lines while every lint run
+stayed clean. The rule written for it asked whether a level-1 heading
+routed to an archive or mirrored one that did; flattening deleted the
+category tier that rule was built on.
 
-Three cases in one fixture, because an implementation that collapsed any
-two would still satisfy the others."
-  ;; Routing category present, so the convention is in evidence: a
-  ;; second level-1 without :ARCHIVE: is a stray.
-  (should (claude-code-ide-org-test--lint-matches
-           (claude-code-ide-org-test--lint
-            (concat "* Real category\n:PROPERTIES:\n"
-                    ":ARCHIVE:  DONE.org::* Real category\n:END:\n"
-                    "* Phantom\n"))
-           'error "neither a category"))
-  ;; No routing level-1 anywhere: nothing to infer the convention from,
-  ;; so the check stays silent rather than flagging every fixture in
-  ;; this file.
-  (should-not (claude-code-ide-org-test--lint-matches
-               (claude-code-ide-org-test--lint "* Category\n")
-               'error "neither a category")))
+It is still caught twice over: a phantom carries no :ID:, which is an
+error at level 1, and a punctuation-only title is an error at any level.
+Asserting both, because either alone would let the other rot."
+  (let ((findings (claude-code-ide-org-test--lint "* *\nSwallowed prose.\n")))
+    (should (claude-code-ide-org-test--lint-matches findings 'error "level-1 task has no :ID:"))
+    (should (claude-code-ide-org-test--lint-matches
+             findings 'error "no word characters"))))
 
-(ert-deftest claude-code-ide-org-test-lint-allows-an-archive-mirror ()
-  "A level-1 heading mirroring a category, in the file it archives to.
-
-Measured on the real files 2026-08-19: all seven of TODO.org's level-1
-headings carry =:ARCHIVE:= and none of DONE.org's seven do, because the
-latter are archive *targets*. So the routing set is collected across
-every linted file and matched by title, and a target is recognised by
-the source it mirrors.
-
-Two files, not one, because that is the only shape in which this case
-exists -- an earlier single-file version of this assertion passed with
-the mirror allowance mutated away, since its only level-1 carried
-=:ARCHIVE:= and the allowance was never reached."
-  (let* ((dir (file-name-as-directory (make-temp-file "lint-mirror" t)))
-         (src (expand-file-name "TODO.org" dir))
-         (dst (expand-file-name "DONE.org" dir)))
-    (unwind-protect
-        (progn
-          (with-temp-file src
-            (insert "* Real category\n:PROPERTIES:\n"
-                    ":ARCHIVE:  DONE.org::* Real category\n:END:\n"))
-          (with-temp-file dst
-            (insert "* Real category\n"      ; the mirror: no :ARCHIVE:
-                    "* Phantom\n"))          ; and a stray beside it
-          (let ((findings (claude-code-ide-org-lint (list src dst))))
-            (should-not (claude-code-ide-org-test--lint-matches
-                         findings 'error "mirror of one: Real category"))
-            (should (claude-code-ide-org-test--lint-matches
-                     findings 'error "mirror of one: Phantom"))))
-      (delete-directory dir t))))
 
 (ert-deftest claude-code-ide-org-test-lint-catches-dangling-id-link ()
   "A fabricated UUID reads as correct and fails only when followed —
@@ -2190,15 +2157,26 @@ this check caught four of them in one session."
   "Prose in these files shows the link syntax itself; documentation is
 not a dangling target."
   (should (null (claude-code-ide-org-test--lint
-                 "* Category\nWrite links as [[id:...]] in prose.\n"))))
+                 (concat "* TODO A task                                      :code:\n"
+                         ":PROPERTIES:\n"
+                         ":ID:       11111111-1111-1111-1111-111111111111\n"
+                         ":CREATED:  [2026-08-14 Fri 10:00]\n"
+                         ":CATEGORY: Tools\n:END:\n"
+                         "Write links as [[id:...]] in prose.\n")))))
 
 (ert-deftest claude-code-ide-org-test-lint-resolves-across-reference-files ()
   "A link out of the linted set resolves when the target file is given
 as a reference — otherwise every cross-file link reads as dangling."
-  (let ((text (concat "* Category\nSee [[id:22222222-2222-2222-2222-222222222222][elsewhere]].\n"))
-        (ref (concat "* Notes\n** TODO Over here\n:PROPERTIES:\n"
+  (let ((text (concat "* TODO A task                                      :code:\n"
+                      ":PROPERTIES:\n"
+                      ":ID:       11111111-1111-1111-1111-111111111111\n"
+                      ":CREATED:  [2026-08-14 Fri 10:00]\n"
+                      ":CATEGORY: Tools\n:END:\n"
+                      "See [[id:22222222-2222-2222-2222-222222222222][elsewhere]].\n"))
+        (ref (concat "* TODO Over here\n:PROPERTIES:\n"
                      ":ID:       22222222-2222-2222-2222-222222222222\n"
-                     ":CREATED:  [2026-08-14 Fri 10:00]\n:END:\n")))
+                     ":CREATED:  [2026-08-14 Fri 10:00]\n"
+                     ":CATEGORY: Tools\n:END:\n")))
     (should (claude-code-ide-org-test--lint-matches
              (claude-code-ide-org-test--lint text) 'error "resolves to nothing"))
     (should (null (claude-code-ide-org-test--lint text ref)))))
@@ -2313,17 +2291,33 @@ for the whole subtree."
                     ":CREATED:  [2026-08-21 Fri 09:00]\n:END:\n"))
            'error "level-5 heading")))
 
-(ert-deftest claude-code-ide-org-test-lint-catches-category-conventions ()
-  "Level-1 headings are structure: no keyword, no :ID:, no tags."
+(ert-deftest claude-code-ide-org-test-lint-requires-task-metadata-at-level-1 ()
+  "A level-1 heading is a task and must carry what a task carries.
+
+*Inverted 2026-08-27* (TODO.org :ID: 29439196). This asserted the exact
+opposite until then -- that a level-1 heading carrying :ID:, :CREATED:,
+a keyword or tags was an error, because level 1 was the category tier.
+Flattening moved the grouping onto the task as :CATEGORY:, so all four
+are now expected and their *absence* is what gets reported.
+
+:ID: errors and :CREATED: only warns, matching deeper headings: an id is
+retrofittable, a creation date is not. A missing :CATEGORY: warns too --
+a freshly captured heading may not have one yet, and erroring would make
+capture-then-categorise impossible."
   (let ((findings (claude-code-ide-org-test--lint
-                   (concat "* TODO Category                                  :code:\n"
+                   (concat "* TODO Bare level-1 task                           :code:\n"))))
+    (should (claude-code-ide-org-test--lint-matches findings 'error "level-1 task has no :ID:"))
+    (should (claude-code-ide-org-test--lint-matches findings 'warn "level-1 task has no :CREATED:"))
+    (should (claude-code-ide-org-test--lint-matches findings 'warn "level-1 task has no :CATEGORY:")))
+  ;; And a fully-formed one is silent about all three.
+  (let ((findings (claude-code-ide-org-test--lint
+                   (concat "* TODO A task                                      :code:\n"
                            ":PROPERTIES:\n"
-                           ":ID:       55555555-5555-5555-5555-555555555555\n"
-                           ":CREATED:  [2026-08-14 Fri 10:00]\n:END:\n"))))
-    (should (claude-code-ide-org-test--lint-matches findings 'error "carries TODO keyword"))
-    (should (claude-code-ide-org-test--lint-matches findings 'error "carries :ID:"))
-    (should (claude-code-ide-org-test--lint-matches findings 'error "carries tags"))
-    (should (claude-code-ide-org-test--lint-matches findings 'error "carries :CREATED:"))))
+                           ":ID:       11111111-1111-1111-1111-111111111111\n"
+                           ":CREATED:  [2026-08-14 Fri 10:00]\n"
+                           ":CATEGORY: Tools\n:END:\n"))))
+    (should-not (claude-code-ide-org-test--lint-matches findings 'error "level-1 task"))
+    (should-not (claude-code-ide-org-test--lint-matches findings 'warn "level-1 task"))))
 
 (ert-deftest claude-code-ide-org-test-lint-separates-missing-id-from-missing-created ()
   "A missing :ID: is an error — the heading is unreachable by every tool
