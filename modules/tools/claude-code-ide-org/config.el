@@ -2620,19 +2620,58 @@ heading that ever had one read as blocked forever.  Measured on
 TODO.org the day it shipped: all 10 markers were false, because all four
 referenced headings were DONE.
 
-  [blocked]   at least one named blocker is not in a finished state
-  [blocked?]  a dependency exists that cannot be resolved -- an id that
-              no longer points anywhere, or a form naming no ids at all.
-              Deliberately not silent: unresolvable is not the same as
-              satisfied, and collapsing them is how the first version
-              went wrong in the other direction."
+  [blocked: a1b2c3d4 ...]   the named blockers that are not finished
+  [blocked?: a1b2c3d4 ...]  a dependency exists that cannot be resolved --
+              an id that no longer points anywhere; bare `[blocked?]' for a
+              form naming no ids at all (`previous-sibling'). Deliberately
+              not silent: unresolvable is not the same as satisfied, and
+              collapsing them is how the first version went wrong in the
+              other direction.
+
+*The ids are named rather than merely flagged since 2026-08-26* (TODO.org
+:ID: 8183fc7c, the user's proposal).  A bare `[blocked]' says *something*
+unfinished blocks this and sends the reader off to find out what, which
+defeats an index whose whole job is answering structural questions
+without opening the file.  Naming them makes every dependency traversable
+in the index itself, and it is what makes `[blocked?]' actionable at all:
+it used to say a dependency could not be resolved without saying which.
+
+Only the *offending* ids are listed -- the unfinished ones for
+`[blocked]', the unresolvable ones for `[blocked?]' -- not the whole
+declaration.  A satisfied blocker is not news, and a slice with 24
+members would otherwise print all 24 forever.
+
+Prefixes, not full ids, at this project's 8 characters.  Measured before
+committing to it: 17 headings carry a `:BLOCKER:' across both files, 44
+ids in total, so the whole-corpus outline grows by roughly 440 characters
+against 20,264 -- *+2.2%*, against an index some 65x smaller than the
+files it stands in for."
   (let ((raw (org-entry-get nil "BLOCKER")))
     (when raw
       (let* ((ids (claude-code-ide-org--outline-blocker-ids raw))
-             (states (mapcar #'claude-code-ide-org--outline-id-finished-p ids)))
-        (cond ((memq 'open states) "  [blocked]")
-              ((or (null ids) (memq nil states)) "  [blocked?]")
+             (pairs (mapcar (lambda (id)
+                              (cons id (claude-code-ide-org--outline-id-finished-p id)))
+                            ids))
+             (open (mapcar #'car (seq-filter (lambda (p) (eq (cdr p) 'open)) pairs)))
+             (unresolved (mapcar #'car (seq-filter (lambda (p) (null (cdr p))) pairs))))
+        (cond (open (format "  [blocked: %s]"
+                            (mapconcat #'claude-code-ide-org--id-prefix open " ")))
+              (unresolved (format "  [blocked?: %s]"
+                                  (mapconcat #'claude-code-ide-org--id-prefix
+                                             unresolved " ")))
+              ((null ids) "  [blocked?]")
               (t nil))))))
+
+(defconst claude-code-ide-org--id-prefix-length 8
+  "How many characters of an :ID: this project cites.
+One constant so the outline, the review buffer and anything else that
+abbreviates an id cannot drift apart about it.")
+
+(defun claude-code-ide-org--id-prefix (id)
+  "Return the first `claude-code-ide-org--id-prefix-length' chars of ID."
+  (if (and (stringp id) (> (length id) claude-code-ide-org--id-prefix-length))
+      (substring id 0 claude-code-ide-org--id-prefix-length)
+    id))
 
 (defun claude-code-ide-org--outline-line (active-only max-depth)
   "Format the heading at point as one index line, or nil to omit it.
@@ -2679,6 +2718,54 @@ subtree."
                 (and tags (format "  :%s:" (string-join tags ":")))
                 (claude-code-ide-org--outline-blocked-marker)))))))
 
+(defun claude-code-ide-org--outline-slice-members ()
+  "Reference lines for the slice at point, or nil when it is not one.
+
+TODO.org :ID: 8183fc7c.  Scoped to a slice, `org_outline' used to return
+a single line for two dozen members -- a *wrong answer*, not a missing
+feature, since a slice is structure and the tool is advertised as the way
+to see structure without reading the file.
+
+*Members render as references, never as children.*  A slice may name one
+task inside another story, so indenting them under it would assert a
+containment that does not exist.  The `->' marker and the referent's own
+file are what say \"look over there\" rather than \"contained here\".
+
+*Every member is listed, including dropped ones*, and that is the whole
+reason this is not simply the blocker list one screen up.  A member whose
+checkbox cookie was deleted is deliberately absent from `:BLOCKER:' --
+blocking on a deferred member would hold the slice open forever for work
+it explicitly decided not to do -- so a blocker-derived view silently
+loses the record of having considered and dropped something, which the
+conventions say a list must not lose.  Here it reads `(dropped)'.
+
+Likewise unfiltered by ACTIVE-ONLY, which is why this takes no such
+argument: a slice's member list *is* its definition, and hiding the
+finished half would misreport what the slice is.  The statistics cookie
+already carries the progress."
+  (when (claude-code-ide-org--slice-p)
+    (let ((members (claude-code-ide-org--slice-members)))
+      (when members
+        ;; Built only for a slice, and only once: it scans every tracked
+        ;; file, so paying for it on ordinary scoped calls would tax the
+        ;; common case for the rare one.
+        (let ((index (claude-code-ide-org--slice-referent-index)))
+          (mapcar
+           (lambda (member)
+             (let* ((id (car member))
+                    (mark (cdr member))
+                    (ref (gethash (downcase id) index))
+                    (loc (claude-code-ide-org--id-find id)))
+               (concat "  -> "
+                       (if mark (format "[%s] " mark) "(dropped) ")
+                       (if (car ref) (concat (car ref) " ") "")
+                       (or (cdr ref) "(unresolved referent)")
+                       (format "  {%s}" id)
+                       (if loc
+                           (format "  (%s)" (file-name-nondirectory (car loc)))
+                         ""))))
+           members))))))
+
 (defun claude-code-ide-org--outline-map (active-only max-depth scope)
   "Collect index lines over SCOPE, an `org-map-entries' scope value."
   (let (lines)
@@ -2724,8 +2811,17 @@ layer."
           (let ((lines (claude-code-ide-org--at-id
                         scope
                         (lambda ()
-                          (claude-code-ide-org--outline-map
-                           active depth 'tree)))))
+                          ;; Members first, while the buffer is still
+                          ;; wide: `--outline-map' narrows to the tree.
+                          ;; Only the *scoped* call expands them -- in a
+                          ;; whole-file outline every member already has
+                          ;; a line where it lives, and the statistics
+                          ;; cookie reports the size, so expanding there
+                          ;; would print each member twice.
+                          (let ((members (claude-code-ide-org--outline-slice-members)))
+                            (append (claude-code-ide-org--outline-map
+                                     active depth 'tree)
+                                    members))))))
             (if (stringp lines) lines      ; --at-id's "Error: ..." string
               (if lines (mapconcat #'identity lines "\n")
                 "No headings in scope."))))

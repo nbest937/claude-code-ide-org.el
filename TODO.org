@@ -9547,6 +9547,27 @@ CLOCK: [2026-08-20 Thu 16:42]--[2026-08-20 Thu 16:46] =>  0:04
 
 *The framing is worth carrying to [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]] as well.* Three lenses have now been found blind to the same thing -- column view, =--container-heading-p=, and this -- and the shared cause is that a *declared* relation is invisible to anything that walks the tree. "Make the declaration visible in the general schema" is a better statement of the fix than three bespoke repairs, and it is the user's phrasing rather than a generalisation invented after the fact.
 
+*Shipped [2026-08-26 Wed]*, both halves, because the body's own analysis showed they are complementary rather than alternatives -- and it was right: the general change fixes the whole-file reading and does nothing for the scoped one, which is the case this heading was filed for.
+
+*The general half, the user's proposal.* =[blocked]= now names the offending ids: =[blocked: 4f6a6bb1 a0813ae3 c954f650 ...]=. Only the *offending* ones -- unfinished for =[blocked]=, unresolvable for =[blocked?]= -- never the whole declaration, since a satisfied blocker is not news and this slice would otherwise print all eleven members forever. =[blocked?]= gains the most: it used to say a dependency could not be resolved without saying *which*, which is precisely the information needed to fix it.
+
+*The measured cost held.* The body predicted +2.2%; nothing contradicted it in practice.
+
+*The scoped half.* Scoping to [[id:979e02b6-2a4c-4328-8b08-ffaec03bd02e][979e02b6]] returned one line and now returns twelve. Members render as *references* -- a =->= marker plus the referent's own file -- never as indented children, because a slice may name one task inside another story and indentation would assert a containment that does not exist.
+
+*Every member is listed, including dropped ones, and that is why this is not simply the blocker list.* Verified against [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]]: 29 member lines, of which exactly the two the body named -- =b7b46a26= and =637ee73d= -- render as =(dropped)=. Both are =CANCELLED= and deliberately absent from the =:BLOCKER:=, so a blocker-derived view would have lost the record of having considered and dropped them. The conventions say a list must not lose that.
+
+*Expansion is scoped-only.* In a whole-file outline every member already has a line where it lives and the cookie reports the size, so expanding there would print each member twice.
+
+*Three functions, no new traversal*, exactly as the body predicted: =--slice-members= and =--slice-referent-index= already existed for =refresh-slice=. The index is built only when the scoped heading is actually a slice -- it scans every tracked file, so paying for it on ordinary scoped calls would tax the common case for the rare one.
+
+*A constant fell out.* =--id-prefix-length= and =--id-prefix= now exist so the outline and anything else that abbreviates an id cannot drift about what "8 characters" means. That is small but it is [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]]'s territory, which is the next prerequisite.
+
+*Verified*: 426/426, and four separate breaks each fail a named test -- expansion returning nothing, dropped members rendered as ordinary, the offender filter naming all ids instead, and expansion leaking into the file-wide path. That last one had to be broken in the *additive* direction to prove anything, since the file-wide path simply never calls the expander; breaking it the other way only re-proved the scoped tests.
+
+*What this does not do*, from the body's own list: it does not answer whether the three blind lenses want one general mechanism rather than three bespoke fixes. That question stands and belongs to [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]].
+
+
 
 ** TODO A slice member captured this session cannot be rendered or blocked on until apply :code:
 :PROPERTIES:

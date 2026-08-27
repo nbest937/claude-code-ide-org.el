@@ -2784,6 +2784,80 @@ shortened index would force a second lookup on every use."
       (should (string-match-p "Child heading" result))
       (should-not (string-match-p "Unrelated sibling" result)))))
 
+(ert-deftest claude-code-ide-org-test-outline-expands-a-scoped-slice ()
+  "Scoped to a slice, the outline lists its members.
+
+TODO.org :ID: 8183fc7c: it used to return a single line for two dozen
+members. That is a wrong answer rather than a missing feature -- a slice
+IS structure, and this tool is advertised as the way to see structure
+without opening the file.
+
+Members render as references, not children: a slice may name one task
+inside another story, so indentation would assert a containment that
+does not exist."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* TODO A referent                                                   :code:\n"
+            ":PROPERTIES:\n:ID:       test-0002\n:END:\n")
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (org-with-point-at (org-id-find id 'marker)
+      (org-entry-put nil "KIND" "slice")
+      (org-end-of-meta-data t)
+      (insert "- [ ] [[id:test-0002][test-0002]] TODO A referent\n")
+      (save-buffer))
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-outline id)))
+      (should (string-match-p "-> \\[ \\] TODO A referent" result))
+      (should (string-match-p "{test-0002}" result))
+      ;; A reference marker, not indentation-as-containment.
+      (should-not (string-match-p "^  TODO A referent" result)))))
+
+(ert-deftest claude-code-ide-org-test-outline-slice-shows-dropped-members ()
+  "A member whose checkbox cookie was deleted still appears, as (dropped).
+
+This is why the expansion is not simply the `:BLOCKER:' list. The
+conventions deliberately exclude a cookie-less member from the blocker
+set -- blocking on a deferred member would hold the slice open forever
+for work it explicitly decided not to do -- so a blocker-derived view
+loses the record of having considered and dropped something. That record
+is the one thing the conventions say a list must not lose."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* CANCELLED A dropped referent                                      :code:\n"
+            ":PROPERTIES:\n:ID:       test-0003\n:END:\n")
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (org-with-point-at (org-id-find id 'marker)
+      (org-entry-put nil "KIND" "slice")
+      (org-end-of-meta-data t)
+      ;; No checkbox at all -- the cookie was deleted.
+      (insert "- [[id:test-0003][test-0003]] CANCELLED A dropped referent\n")
+      (save-buffer))
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-outline id)))
+      (should (string-match-p "-> (dropped) CANCELLED A dropped referent" result)))))
+
+(ert-deftest claude-code-ide-org-test-outline-does-not-expand-slices-file-wide ()
+  "Only the scoped call expands. In a whole-file outline every member
+already has a line where it lives and the statistics cookie reports the
+size, so expanding would print each member twice."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* TODO A referent                                                   :code:\n"
+            ":PROPERTIES:\n:ID:       test-0002\n:END:\n")
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (org-with-point-at (org-id-find id 'marker)
+      (org-entry-put nil "KIND" "slice")
+      (org-end-of-meta-data t)
+      (insert "- [ ] [[id:test-0002][test-0002]] TODO A referent\n")
+      (save-buffer))
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-outline file)))
+      (should (string-match-p "A referent" result))
+      (should-not (string-match-p "->" result)))))
+
 (ert-deftest claude-code-ide-org-test-outline-marks-blocked-when-blocker-open ()
   "A :BLOCKER: naming an unfinished heading is a real block."
   (claude-code-ide-org-test--with-heading
@@ -2796,8 +2870,13 @@ shortened index would force a second lookup on every use."
     (org-id-update-id-locations (list file))
     (let* ((claude-code-ide-org-query-files (list file))
            (result (claude-code-ide-org-outline)))
-      (should (string-match-p "Blocked heading.*\\[blocked\\]" result))
-      (should-not (string-match-p "Test heading.*\\[blocked\\]" result)))))
+      ;; The id is named, not merely flagged (TODO.org :ID: 8183fc7c):
+      ;; a bare marker sends the reader off to find out what blocks it,
+      ;; which defeats an index that exists to answer without opening
+      ;; the file. Asserting the prefix specifically -- a bare-marker
+      ;; match would still pass against the old format.
+      (should (string-match-p "Blocked heading.*\\[blocked: 11111111\\]" result))
+      (should-not (string-match-p "Test heading.*\\[blocked" result)))))
 
 (ert-deftest claude-code-ide-org-test-outline-unmarks-satisfied-blocker ()
   "The regression this replaced: :BLOCKER: is a durable declaration, not a
@@ -2869,8 +2948,12 @@ ids at all, both get [blocked?] rather than being silently dropped."
     (save-buffer)
     (let* ((claude-code-ide-org-query-files (list file))
            (result (claude-code-ide-org-outline)))
-      (should (string-match-p "Dangling blocker.*\\[blocked\\?\\]" result))
-      (should (string-match-p "Sibling-form blocker.*\\[blocked\\?\\]" result)))))
+      ;; An unresolvable id is NAMED -- that is the id you have to go
+      ;; and fix, and the old bare marker withheld exactly it. A form
+      ;; naming no ids has nothing to name, so it stays bare.
+      (should (string-match-p "Dangling blocker.*\\[blocked\\?: 44444444\\]" result))
+      (should (string-match-p "Sibling-form blocker.*\\[blocked\\?\\]" result))
+      (should-not (string-match-p "Sibling-form blocker.*\\[blocked\\?:" result)))))
 
 (ert-deftest claude-code-ide-org-test-outline-reads-bare-id-blocker ()
   "TODO.org contains one :BLOCKER: written as a bare id with no ids()
@@ -2886,7 +2969,7 @@ rather than report the heading as dependency-free."
     (org-id-update-id-locations (list file))
     (let* ((claude-code-ide-org-query-files (list file))
            (result (claude-code-ide-org-outline)))
-      (should (string-match-p "Bare-form dependent.*\\[blocked\\]" result)))))
+      (should (string-match-p "Bare-form dependent.*\\[blocked: 55555555\\]" result)))))
 
 (ert-deftest claude-code-ide-org-test-outline-includes-tags ()
   (claude-code-ide-org-test--with-heading
