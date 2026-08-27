@@ -2140,14 +2140,26 @@ effect immediately."
   (or claude-code-ide-org-capture-file org-default-notes-file))
 
 (defun claude-code-ide-org--capture-level-1-headings (file)
-  "Titles of FILE's level-1 headings — this project's categories.
-They carry no :ID: by convention, so a title is the only handle there
-is; see `claude-code-ide-org--capture-target-spec' for why that is
-acceptable here and nowhere else."
+  "The distinct :CATEGORY: values in use across FILE.
+
+*Was the titles of FILE's level-1 headings* until 2026-08-27, when
+TODO.org :ID: 29439196 dissolved that tier. A level-1 heading is now a
+task, so offering those titles as capture targets would invite filing a
+heading *under another task* by name -- both a nesting nobody asked for
+and an address-by-title, which this project forbids everywhere else.
+
+Kept as the answer to \"what categories exist?\", which is what
+`org_capture's schema sends a reader here for. Read from the drawer
+rather than `org-entry-get', which computes a fallback and would report
+the file name as a category on every uncategorised heading."
   (with-current-buffer (find-file-noselect file)
-    (org-map-entries (lambda () (substring-no-properties
-                                 (org-get-heading t t t t)))
-                     "LEVEL=1" 'file)))
+    (let (cats)
+      (org-with-wide-buffer
+       (goto-char (point-min))
+       (while (re-search-forward "^[ \t]*:CATEGORY:[ \t]+\\(\\S-.*?\\)[ \t]*$" nil t)
+         (let ((c (substring-no-properties (match-string 1))))
+           (unless (member c cats) (push c cats)))))
+      (nreverse cats))))
 
 (defun claude-code-ide-org--capture-target-spec (target)
   "Resolve TARGET to a plist (:spec SPEC :file FILE :where DESC).
@@ -2172,17 +2184,20 @@ different one is worse off than a caller that got an error."
                      (not (string-empty-p (string-trim target)))
                      (string-trim target))))
     (cond
+     ;; No target: the top of the capture file. *Prepend*, not append --
+     ;; TODO.org :ID: 29439196 flattened the category tier, and with no
+     ;; heading to file under, recency is the ordering that remains. It
+     ;; is also what the user asked for: newest first.
      ((null target)
-      (list :spec (list 'file default) :file default :where "end of file"))
+      (list :spec (list 'file default) :file default :where "top of file"))
      ((claude-code-ide-org--id-find target)
       (list :spec (list 'id target)
             :file (car (claude-code-ide-org--id-find target))
             :where (format "under :ID: %s" target)))
-     ((member target (claude-code-ide-org--capture-level-1-headings default))
-      (list :spec (list 'file+olp default target)
-            :file default
-            :where (format "under \"%s\"" target)))
-     (t (error "target %S is neither a known :ID: nor a top-level heading in %s"
+     (t (error "target %S is not a known :ID:. Since 2026-08-27 a category \
+is a :CATEGORY: property rather than a heading, so there is nothing to file \
+*under* by name -- omit the target to prepend at the top of %s and pass \
+category instead"
                target (file-name-nondirectory default))))))
 
 ;;; Write-through gate for capture and amend ---------------------------------
@@ -2256,7 +2271,16 @@ had it written through, and two similar templates would drift."
                      (format "* %%i%s\n:PROPERTIES:\n:ID:       %s\n:CREATED:  %s\n:END:\n"
                              (claude-code-ide-org--format-tags tags)
                              new-id created)
-                     :immediate-finish t))))
+                     :immediate-finish t
+                     ;; Prepend only for a bare file target. TODO.org
+                     ;; :ID: 29439196 flattened the categories, so a
+                     ;; targetless capture lands at file level and
+                     ;; recency is the ordering that remains -- newest
+                     ;; first, which is what the user asked for. An
+                     ;; `(id ...)' target is untouched: prepending there
+                     ;; would make a new child the FIRST child, which is
+                     ;; a different decision nobody has taken.
+                     :prepend (eq (car-safe spec) 'file)))))
     (org-capture-string title "z")))
 
 (cl-defun claude-code-ide-org-capture (title &optional target tags note)
@@ -2299,28 +2323,24 @@ Returns \"Captured: \\=\"TITLE\\=\" (ID: ...) <where>\" when it wrote,
 Those prefixes are a contract with `bin/hooks/queue-append' — see
 `claude-code-ide-org--reply-captured'.  Never signals to the MCP layer.
 
-TARGET is required.  It was optional until 2026-08-20, falling back to
-appending at the end of the capture file — reasoned as \"the honest
-answer for placement unknown\", which it is in general and is not here:
-the capture file is TODO.org, so appending means a *level-1* heading,
-and this project reserves those for categories carrying no keyword, no
-tags and no properties.  Such a capture produced a heading violating the
-convention on three counts, to be refiled by hand — the manual step this
-tool exists to remove (TODO.org :ID: 97696fc2).
+TARGET is optional again as of 2026-08-27, and the reason it was ever
+required has been deleted rather than overridden.
 
-Refusing rather than guessing costs the one case the fallback existed
-for: a passing mention whose home is genuinely unknown.  That case turned
-out not to be real — the call that finally hit this had a category in
-mind and omitted the argument out of habit.
+It was required from 2026-08-20 because appending at the end of the
+capture file meant a *level-1* heading, and level 1 was the category
+tier: such a capture violated the convention on three counts and had to
+be refiled by hand — the manual step this tool exists to remove
+(TODO.org :ID: 97696fc2).  TODO.org :ID: 29439196 dissolved that tier.
+Level 1 is now exactly where a task belongs, so the shape the guard
+existed to prevent is the shape a capture should produce.
 
-`cl-defun' for the early return only; the body is one `condition-case'
-form and wrapping it in a conditional would mean re-indenting all of it
-to add a guard that belongs at the top."
-  (when (string-empty-p (string-trim (or target "")))
-    (cl-return-from claude-code-ide-org-capture
-      (concat "Error: target is required — name an :ID: or a category title. "
-              "Appending at the end of the file would create a level-1 heading, "
-              "which is reserved for categories. Run org_outline to see what exists.")))
+Omitting TARGET therefore prepends at the top of the capture file, and
+`:CATEGORY:' is set afterwards or not at all.  Naming an :ID: still
+files underneath it.  What is no longer accepted is a category *title*:
+those are property values now, not headings, so there is nothing to file
+under by that name — and accepting one would mean filing a heading under
+another task, addressed by title, which this project forbids everywhere
+else."
   (condition-case err
       (let* ((resolved (claude-code-ide-org--capture-target-spec target))
              (file (plist-get resolved :file))
@@ -2673,7 +2693,7 @@ abbreviates an id cannot drift apart about it.")
       (substring id 0 claude-code-ide-org--id-prefix-length)
     id))
 
-(defun claude-code-ide-org--outline-line (active-only max-depth)
+(defun claude-code-ide-org--outline-line (active-only max-depth &optional indent-offset)
   "Format the heading at point as one index line, or nil to omit it.
 Omits finished headings when ACTIVE-ONLY, and anything deeper than
 MAX-DEPTH when that is non-nil.  Levels are absolute, so a MAX-DEPTH
@@ -2697,7 +2717,7 @@ subtree."
         ;; rewritten to propertize the fixture by hand, since batch Emacs
         ;; runs no font-lock and a scratch org file is clean either way.
         (substring-no-properties
-         (concat (make-string (* 2 (1- level)) ?\s)
+         (concat (make-string (* 2 (+ (1- level) (or indent-offset 0))) ?\s)
                 (and keyword (concat keyword " "))
                 ;; All four flags on: no TODO keyword (added above, so it
                 ;; is not doubled), no priority cookie, no tags, no
@@ -2766,15 +2786,63 @@ already carries the progress."
                          ""))))
            members))))))
 
-(defun claude-code-ide-org--outline-map (active-only max-depth scope)
-  "Collect index lines over SCOPE, an `org-map-entries' scope value."
+(defun claude-code-ide-org--outline-map (active-only max-depth scope &optional grouped)
+  "Collect index lines over SCOPE, an `org-map-entries' scope value.
+
+With GROUPED, return (CATEGORY . LINE) pairs and indent every line one
+level further, leaving room for the synthetic category header the caller
+emits.  Without it, return plain lines exactly as before."
   (let (lines)
     (org-map-entries
      (lambda ()
-       (let ((line (claude-code-ide-org--outline-line active-only max-depth)))
-         (when line (push line lines))))
+       (let ((line (claude-code-ide-org--outline-line
+                    active-only max-depth (and grouped 1))))
+         (when line
+           (push (if grouped
+                     (cons (claude-code-ide-org--outline-category) line)
+                   line)
+                 lines))))
      nil scope)
     (nreverse lines)))
+
+(defun claude-code-ide-org--outline-category ()
+  "The `:CATEGORY:' governing the heading at point, inherited, or nil.
+
+Inherited on purpose: a story stamps its children, and a child of a
+story should group with its parent rather than appear uncategorised.
+Uses `org-entry-get' WITH inheritance and then rejects org's computed
+fallback -- absent any property org answers the file name, or a literal
+question-mark triple, so a bare presence test always succeeds
+(TODO.org :ID: 29439196)."
+  (let ((v (org-entry-get nil "CATEGORY" t))
+        (file (and (buffer-file-name)
+                   (file-name-base (buffer-file-name)))))
+    (and v (not (equal v "???")) (not (equal v file)) v)))
+
+(defun claude-code-ide-org--outline-group (pairs)
+  "Render (CATEGORY . LINE) PAIRS as category headers with members under.
+
+*The rendered shape is deliberately identical to the pre-2026-08-27
+outline*, where a category was a real heading: a bare unindented line
+with its tasks indented beneath.  Only the source changed, from position
+in the tree to a declared property -- which is TODO.org :ID: 979e02b6's
+whole thesis applied to the tool itself.
+
+Groups appear in first-seen order, so the outline still reflects the
+file rather than imposing an alphabetical order the file does not have.
+Uncategorised headings collect under a final `(no :CATEGORY:)' group
+rather than being dropped or silently attached to the previous one."
+  (let (order table out)
+    (dolist (pair pairs)
+      (let ((cat (or (car pair) "(no :CATEGORY:)")))
+        (unless (assoc cat table)
+          (push cat order)
+          (push (cons cat nil) table))
+        (push (cdr pair) (cdr (assoc cat table)))))
+    (dolist (cat (nreverse order) (nreverse out))
+      (push cat out)
+      (dolist (line (nreverse (cdr (assoc cat table))))
+        (push line out)))))
 
 (defun claude-code-ide-org-outline (&optional scope max-depth active-only)
   "Return a compact one-line-per-heading index.
@@ -2834,8 +2902,9 @@ layer."
             (dolist (file files)
               (unless (file-readable-p file)
                 (error "no readable file at %s" file))
-              (let ((lines (claude-code-ide-org--outline-map
-                            active depth (list file))))
+              (let ((lines (claude-code-ide-org--outline-group
+                            (claude-code-ide-org--outline-map
+                             active depth (list file) 'grouped))))
                 (when lines
                   (push (if multiple
                             ;; Only label files when there is more than
@@ -9999,14 +10068,13 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
    :description (concat
                  "Quick-add a new heading from TITLE via org-capture, in one "
                  "call instead of hand-writing a heading and then calling "
-                 "org-id-get-create separately. TARGET is required — a "
-                 "heading has to belong somewhere, and there is no sensible "
-                 "default. The heading is written with "
+                 "org-id-get-create separately. The heading is written with "
                  "an :ID: and a :CREATED: stamp but NO TODO keyword — set "
                  "its state afterwards with org_set_todo, which queues the "
                  "transition for review so org logs it natively. "
-                 "Run org_outline first if you need to see what "
-                 "categories exist. "
+                 "Omit it to prepend at the top of the capture file. "
+                 "Category is a :CATEGORY: property now, not a heading, so there is "
+                 "nothing to file under by that name. "
                  "Returns a confirmation containing the "
                  "new heading's real :ID: and where it landed. Writes "
                  "immediately when the target file is free; when the human "
@@ -10020,7 +10088,7 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
             :description "The heading text for the new heading.")
            (:name "target"
             :type string
-            :description "REQUIRED. Where to put it: an :ID: to file it under that heading, or the exact title of a top-level category. Run org_outline first if you need to see what categories exist. There is deliberately no default: appending at the end of the file would create a level-1 heading, which this project reserves for categories.")
+            :description "Optional. An :ID: to file the new heading under that one. Omit it to prepend at the top of the capture file, which is where a task belongs since the level-1 category tier was retired. A category TITLE is no longer accepted -- categories are :CATEGORY: property values, not headings.")
            (:name "tags"
             :type string
             :optional t
@@ -10094,9 +10162,12 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
    :description (concat
                  "Compact structural index of tracked org files: one line per "
                  "heading with its level (by indent), TODO keyword, title, "
-                 ":ID:, and tags. Marks [blocked] when a :BLOCKER: names a "
-                 "heading that is not finished, and [blocked?] when a "
-                 "dependency exists but cannot be resolved. Read-only. "
+                 ":ID:, and tags. A whole-file listing is grouped under its "
+                 ":CATEGORY: values, each a bare header line with its tasks "
+                 "indented beneath. Marks [blocked: id ...] naming the "
+                 "unfinished blockers, and [blocked?: id ...] naming ones "
+                 "that cannot be resolved. Scoped to a slice, it also lists "
+                 "the slice's members as -> references. Read-only. "
                  "Use this before creating a heading, to see what already "
                  "exists and where it belongs, and instead of reading a whole "
                  "org file to find something — the index is roughly 40x "

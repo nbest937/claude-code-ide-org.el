@@ -2496,14 +2496,14 @@ the temp directory afterwards."
 
 (ert-deftest claude-code-ide-org-test-capture-creates-heading-with-id ()
   (claude-code-ide-org-test--with-capture-file
-    (let ((result (claude-code-ide-org-capture "Buy stamps" "Scratch")))
+    (let ((result (claude-code-ide-org-capture "Buy stamps")))
       (should (string-match-p "\\`Captured: \"Buy stamps\" (ID: [^)]+)" result))
       (string-match "(ID: \\([^)]+\\))" result)
       (let ((returned-id (match-string 1 result))
             (disk (claude-code-ide-org-test--disk-contents capture-file)))
         ;; A real, non-empty ID landed both in the return string and on disk.
         (should (> (length returned-id) 0))
-        (should (string-match-p "^\\*\\* Buy stamps[ \t]*$" disk))
+        (should (string-match-p "^\\* Buy stamps[ \t]*$" disk))
         (should (string-match-p (concat "^:ID: +" (regexp-quote returned-id) "[ \t]*$") disk))
         (should (not (buffer-modified-p (get-file-buffer capture-file))))))))
 
@@ -2512,9 +2512,9 @@ the temp directory afterwards."
 ingestion so org logs the transition natively, rather than asserted live
 by a tool whose every other state write is queued."
   (claude-code-ide-org-test--with-capture-file
-    (claude-code-ide-org-capture "Keywordless task" "Scratch")
+    (claude-code-ide-org-capture "Keywordless task")
     (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
-      (should (string-match-p "^\\*\\* Keywordless task[ \t]*$" disk))
+      (should (string-match-p "^\\* Keywordless task[ \t]*$" disk))
       (should-not (string-match-p "^\\* \\(TODO\\|NEXT\\|DOING\\) " disk)))))
 
 (ert-deftest claude-code-ide-org-test-capture-writes-created-property ()
@@ -2522,7 +2522,7 @@ by a tool whose every other state write is queued."
 fails to expand leaves a literal \"%U\" and still passes a naive
 is-the-property-there check."
   (claude-code-ide-org-test--with-capture-file
-    (claude-code-ide-org-capture "Stamped task" "Scratch")
+    (claude-code-ide-org-capture "Stamped task")
     (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
       (should (string-match-p
                "^:CREATED: +\\[[0-9]\\{4\\}-[0-9][0-9]-[0-9][0-9] [A-Z][a-z][a-z] [0-9][0-9]:[0-9][0-9]\\][ \t]*$"
@@ -2543,7 +2543,7 @@ clock in / set state on the new heading, so the ID must resolve
 right away with no rescan needed."
   (claude-code-ide-org-test--with-capture-file
     (let* ((org-agenda-files nil)
-           (result (claude-code-ide-org-capture "Round trip task" "Scratch")))
+           (result (claude-code-ide-org-capture "Round trip task")))
       (string-match "(ID: \\([^)]+\\))" result)
       (let ((returned-id (match-string 1 result)))
         (should (org-id-find returned-id 'marker))
@@ -2558,27 +2558,31 @@ survive into the heading verbatim via `%i', not get partially eaten
 as template escapes or regexp backreferences."
   (claude-code-ide-org-test--with-capture-file
     (let* ((title "Reply to Jane: 100% [urgent] re: \\1 in Q3 report")
-           (result (claude-code-ide-org-capture title "Scratch")))
+           (result (claude-code-ide-org-capture title)))
       (should (string-match-p (regexp-quote (format "Captured: \"%s\"" title)) result))
       (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
         (should (string-match-p (regexp-quote (concat "* " title)) disk))))))
 
-(ert-deftest claude-code-ide-org-test-capture-target-by-category-title ()
-  "Top-level categories carry no :ID: by convention, so a title is the
-only handle.  Safe for these specifically: few, human-curated, never
-refiled."
+(ert-deftest claude-code-ide-org-test-capture-refuses-a-category-title-as-target ()
+  "A category title is no longer a place to file under.
+
+*Inverted 2026-08-27* (TODO.org :ID: 29439196). Categories were level-1
+headings and a title was the only handle they had; now they are
+:CATEGORY: property values, so there is no heading of that name to file
+beneath. Accepting one would mean nesting a task under another task,
+addressed by title -- which this project forbids everywhere else, and
+which the old allowance justified only by categories being exempt.
+
+The error says what to do instead, because a bare refusal on a call that
+worked yesterday teaches nothing."
   (claude-code-ide-org-test--with-capture-file
-    (with-current-buffer (find-file-noselect capture-file)
-      (goto-char (point-max))
-      (insert "* Tooling\n* Skill logic\n")
-      (save-buffer))
-    (let ((result (claude-code-ide-org-capture "Filed under a category" "Tooling")))
-      (should (string-match-p "under \"Tooling\"" result))
-      (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
-        ;; Landed as a child of Tooling, not of Skill logic, and not at
-        ;; the end of the file.
-        (should (string-match-p
-                 "^\\* Tooling\n\\*\\* Filed under a category" disk))))))
+    (with-temp-file capture-file
+      (insert "* TODO A task\n:PROPERTIES:\n:ID:       cat-0001\n"
+              ":CATEGORY: Tooling\n:END:\n"))
+    (let ((result (claude-code-ide-org-capture "Misfiled" "Tooling")))
+      (should (string-match-p "\\`Error:" result))
+      (should (string-match-p "not a known :ID:" result))
+      (should (string-match-p "omit the target" result)))))
 
 (ert-deftest claude-code-ide-org-test-capture-target-by-id ()
   (claude-code-ide-org-test--with-capture-file
@@ -2604,26 +2608,27 @@ worse off than one that got an error."
       (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
         (should-not (string-match-p "Nowhere task" disk))))))
 
-(ert-deftest claude-code-ide-org-test-capture-refuses-without-a-target ()
-  "Omitting `target\' is refused rather than guessed at.
+(ert-deftest claude-code-ide-org-test-capture-without-a-target-lands-at-top ()
+  "Omitting the target prepends at the top of the capture file.
 
-This test asserted the opposite until 2026-08-20: that capture appended
-at end of file. That fallback was reasoned as \"the honest answer for
-placement unknown\", which it is in general and is not here -- the capture
-file is TODO.org, so appending means a *level-1* heading, and this
-project reserves those for categories (TODO.org :ID: 97696fc2).
+*Inverted 2026-08-27* (TODO.org :ID: 29439196). This asserted that a
+targetless capture was REFUSED, because appending at the end of TODO.org
+would have produced a level-1 heading and level 1 was the category tier
+-- a heading violating the convention on three counts. Flattening made
+level 1 exactly where a task belongs, so the shape the guard existed to
+prevent is now the shape a capture should produce.
 
-The `Error:\' prefix is asserted specifically, because
-`bin/hooks/queue-append\' drops a reply carrying it -- so the prefix is
-what stops a deferred capture being queued as well."
+Prepend rather than append, which is the other half: with no category
+heading to file under, recency is the ordering that remains."
   (claude-code-ide-org-test--with-capture-file
-    (dolist (bad (list nil "" "   "))
-      (let ((result (claude-code-ide-org-capture "Unplaced task" bad)))
-        (should (string-prefix-p "Error:" result))
-        (should (string-match-p "target is required" result))))
-    ;; Nothing was written under any of them.
-    (should-not (string-match-p "Unplaced task"
-                                (claude-code-ide-org-test--disk-contents capture-file)))))
+    (with-temp-file capture-file (insert "* TODO Already here\n"))
+    (let ((result (claude-code-ide-org-capture "Fresh capture")))
+      (should (string-match-p "\\`Captured:" result)))
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p "^\\* Fresh capture" disk))
+      ;; Above what was already there.
+      (should (< (string-match "Fresh capture" disk)
+                 (string-match "Already here" disk))))))
 
 (ert-deftest claude-code-ide-org-test-capture-uses-org-default-notes-file-when-unset ()
   "When `claude-code-ide-org-capture-file' is nil, capture must fall
@@ -2638,11 +2643,12 @@ nothing."
          (org-default-notes-file notes-file))
     (unwind-protect
         (progn
-          ;; `target\' is required since :ID: 97696fc2, so the fallback file
-          ;; needs a category to name. What is under test is still which
-          ;; *file* capture resolves to, not where in it the heading lands.
+          ;; No target: since TODO.org :ID: 29439196 that is legal again
+          ;; and lands at the top of whichever file capture resolves to,
+          ;; which is exactly what this test is about. The heading it
+          ;; used to need to name is gone with the category tier.
           (with-temp-file notes-file (insert "* Inbox\n"))
-          (claude-code-ide-org-capture "Fallback target task" "Inbox")
+          (claude-code-ide-org-capture "Fallback target task")
           (let ((buf (get-file-buffer notes-file)))
             (when buf (with-current-buffer buf (save-buffer))))
           (should (file-exists-p notes-file))
@@ -2739,8 +2745,15 @@ shortened index would force a second lookup on every use."
     (save-buffer)
     (let* ((claude-code-ide-org-query-files (list file))
            (result (claude-code-ide-org-outline)))
-      (should (string-match-p "^TODO Test heading" result))
-      (should (string-match-p "^  TODO Child heading" result)))))
+      ;; A category header now leads each group, and members sit one
+    ;; level in under it -- the same shape the level-1 category
+    ;; headings used to give, from :CATEGORY: instead of position
+    ;; (TODO.org :ID: 29439196). The fixture heading carries none,
+    ;; so it groups under the explicit uncategorised header rather
+    ;; than being dropped.
+    (should (string-match-p "^(no :CATEGORY:)$" result))
+    (should (string-match-p "^  TODO Test heading" result))
+      (should (string-match-p "^    TODO Child heading" result)))))
 
 (ert-deftest claude-code-ide-org-test-outline-active-only-drops-finished ()
   (claude-code-ide-org-test--with-heading
@@ -7446,9 +7459,9 @@ for (TODO.org :ID: b5f94b88)."
   (claude-code-ide-org-test--with-capture-file
     ;; Buffer exists and is clean -- the distinction under test.
     (find-file-noselect capture-file)
-    (let ((result (claude-code-ide-org-capture "Immediate task" "Scratch")))
+    (let ((result (claude-code-ide-org-capture "Immediate task")))
       (should (string-prefix-p claude-code-ide-org--reply-captured result))
-      (should (string-match-p "^\\*\\* Immediate task[ \t]*$"
+      (should (string-match-p "^\\* Immediate task[ \t]*$"
                               (claude-code-ide-org-test--disk-contents capture-file))))))
 
 (ert-deftest claude-code-ide-org-test-capture-defers-when-busy ()
@@ -7458,7 +7471,7 @@ reply that says queued while the heading also landed is the
 double-apply this gate exists to prevent."
   (claude-code-ide-org-test--with-capture-file
     (claude-code-ide-org-test--make-busy capture-file)
-    (let ((result (claude-code-ide-org-capture "Deferred task" "Scratch")))
+    (let ((result (claude-code-ide-org-capture "Deferred task")))
       (should (string-prefix-p claude-code-ide-org--reply-queued-capture result))
       ;; The id is still minted and reported, so the caller can act on it.
       (should (string-match "(ID: \\([^)]+\\))" result))
@@ -7713,7 +7726,7 @@ will land and flags a target that no longer resolves, an amend names the
               (list :type 'amend :id "nope" :ts (current-time)
                     :text "a\nb\nc" :note "why" :events nil))
       (let ((text (buffer-substring-no-properties (point-min) (point-max))))
-        (should (string-match-p "capture \"New thing\" +-> end of file" text))
+        (should (string-match-p "capture \"New thing\" +-> top of file" text))
         (should (string-match-p "! capture \"Orphan\" +-> No Such Category (UNRESOLVED)" text))
         (should (string-match-p "amend +\"(unknown heading)\" +(3 lines)" text))))))
 
