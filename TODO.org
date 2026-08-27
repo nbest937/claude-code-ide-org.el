@@ -186,6 +186,14 @@ CLOCK: [2026-08-26 Wed 12:59]--[2026-08-26 Wed 13:00] =>  0:01
 
 *Handed back as REVIEW rather than closed*, because the judgement is yours: the operational defect is falsified and nothing is left to build, but this heading also framed a design question -- "the distinction the trigger needs is between two acts that currently look identical" -- and whether the surviving hand-edit case retires that question or merely shrinks it is not mine to decide.
 
+*Review completed [2026-08-26 Wed]: nothing missing or broken, so this closes =DONE=.*
+
+Under the rule the user stated the same day, =REVIEW= -> =DONE= is the ordinary exit and =REVIEW= -> =DOING= is *rework*, taken only when the review finds something absent or wrong. It found neither. The measurements stand, the documentation corrections shipped, and no code was owed.
+
+*What the review was actually deciding.* The operational defect was falsified outright -- the predicted cascade does not happen, because =--review-apply-item= binds the guard for the whole item -- so the only open question was whether the *design* question this heading also framed ("the distinction the trigger needs is between two acts that currently look identical") survived its own defect. It does not need to: the queue already draws that distinction, since =org_set_todo= and =org_clock_in= are separate calls and apply opens no clock on a state event's behalf. The surviving hand-edit case is a human at a keyboard who knows which act they are performing, which is the one case no mechanism can improve on.
+
+*Recorded here rather than left implicit*, because a =REVIEW= that closes silently loses the fact that a judgement was made at all -- which is the same failure the nomination rule guards against one level up.
+
 
 ** DONE A container carries clocks it earned before it was one :code:research:
 CLOSED: [2026-08-26 Wed 14:47]
@@ -8535,6 +8543,29 @@ convention also carries no keyword, no =:ID:= and no tags. Nothing but
 the label as a heading turns each file into one spurious root. Worth
 fixing in the same pass, since both are the same class of bug: the
 format asserting less structure than the reader needs.
+
+
+*** DONE.org is not a tracked file, so no id in it resolves :code:
+:PROPERTIES:
+:ID:       020d3688-f08d-460f-a3e8-931a1677074a
+:CREATED:  [2026-08-26 Wed 20:18]
+:END:
+
+*Found [2026-08-26 Wed] by hitting it twice in one session*, both times =org_amend= refusing a correct =[[id:b8e6007a-ae13-4b13-bb2e-a5df39435af0]]= prefix -- in a session that was, at the time, documenting the prefix convention.
+
+*It is not a code defect.* =~/org/claude-code-ide-org/= contains a symlink to TODO.org *and nothing else*. DONE.org was never linked, so =org-agenda-files= -- computed by =(directory-files-recursively org-directory "\\.org$")= -- never saw it, and =--tracked-files= inherited the blindness. Measured: the id table held **177** ids where the corpus has 275.
+
+*So the archive was invisible to every consumer of =--tracked-files=*, not just link expansion: the slice referent index, =org_query=, =org_clock_report=, the nomination report. Any of those could have surfaced it and none did, because an undeclared file and an unreadable one look identical from there -- there is no error to notice.
+
+*Fixed by derivation rather than configuration.* =--id-scannable-files= is the tracked files plus the archives they *declare*: =--archive-files-of= reads =#+ARCHIVE:= and every =:ARCHIVE:= property and resolves the path against the file's **true** directory. A =defcustom= would have fixed this checkout and left a fresh clone with the same silent gap; the declaration is already in the file, since a tracked file says where it archives to.
+
+*The truename is the load-bearing part, and it is what kept this hidden.* Resolving =DONE.org= against the *symlink's* directory finds nothing at all. A same-directory fixture cannot reproduce that, which is why the first three tests passed while the production path stayed broken -- so the suite now builds the real shape: a link in one directory pointing at a file in another, with the archive beside the target. Removing =file-truename= fails exactly that test and nothing else.
+
+*Scoped deliberately to id resolution.* =--tracked-files= answers a different question -- which files the agenda and clock reports cover -- and DONE.org should *not* join =org-agenda-files=: 9,700 lines of finished work has no business in an agenda, and CLAUDE.md already says the archive is reference and never orientation. The two lists were the same until it mattered, and then they were not.
+
+*Verified*: 177 -> 275 ids; =b8e6007a= expands; a genuinely unknown prefix is still refused by name, so widening the scan did not turn the check into a rubber stamp. 430/430, with three breaks each failing a named test.
+
+*One fixture lesson worth keeping*: =--known-id-table= only matches hex-shaped ids, so the first draft of these tests used =arch-0001= and silently produced an *empty* table. The assertion caught it, but only because it asserted a specific id rather than that the table was non-empty.
 
 
 ** DONE Auto-promote makes a container the next action :code:

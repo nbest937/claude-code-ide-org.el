@@ -3329,7 +3329,10 @@ heading."
                                            (mapcar #'car claude-code-ide-org--slice-checkbox-by-keyword)
                                            "\\|")
                        "\\)\\_>")))
-    (dolist (file (claude-code-ide-org--tracked-files) table)
+    ;; Archives included: a slice keeps naming its members after they are
+    ;; archived, so a referent index blind to DONE.org would render them
+    ;; "(unresolved referent)" (TODO.org :ID: 020d3688).
+    (dolist (file (claude-code-ide-org--id-scannable-files) table)
       (when (file-exists-p file)
         (with-temp-buffer
           (let ((org-inhibit-startup t))
@@ -9645,10 +9648,67 @@ Returns a summary string."
   "\\[\\[id:\\([0-9a-fA-F][0-9a-fA-F-]*\\)\\]"
   "Matches the target of an `[[id:...]]' link, full or prefix.")
 
+(defun claude-code-ide-org--archive-files-of (file)
+  "Absolute paths of the archive targets FILE declares.
+
+Reads `#+ARCHIVE:' and every `:ARCHIVE:' property, takes the part before
+`::', and resolves it against FILE's *true* directory -- which matters
+here, because TODO.org is reached through a symlink in `org-directory'
+and a naive `expand-file-name' would resolve DONE.org into the symlink's
+directory, where it does not exist."
+  (let ((dir (file-name-directory (file-truename file)))
+        (found nil))
+    (with-temp-buffer
+      (let ((org-inhibit-startup t))
+        (insert-file-contents file)
+        (goto-char (point-min))
+        (while (re-search-forward
+                "^[ \t]*\\(?:#\\+ARCHIVE:\\|:ARCHIVE:\\)[ \t]+\\([^:\n]+\\)" nil t)
+          (let* ((raw (string-trim (match-string 1)))
+                 (path (and (not (string-empty-p raw))
+                            (expand-file-name raw dir))))
+            (when (and path (file-exists-p path) (not (member path found)))
+              (push path found))))))
+    (nreverse found)))
+
+(defun claude-code-ide-org--id-scannable-files ()
+  "Tracked files plus the archives they declare.
+
+*An id is an id wherever it lives*, and `claude-code-ide-org--tracked-files'
+answers a different question -- which files the agenda and the clock
+reports cover. Those two were the same list until it mattered, and then
+they were not.
+
+TODO.org :ID: 020d3688: `org-agenda-files' is computed by scanning
+`org-directory', and `~/org/claude-code-ide-org/' holds a symlink to
+TODO.org *and nothing else* -- DONE.org was never linked. So the archive
+was invisible to every consumer of `--tracked-files', and no id in it
+resolved. Hit twice on 2026-08-26 by `org_amend' refusing a perfectly
+good `[[id:b8e6007a]]' prefix, in a session that was documenting the
+prefix convention at the time.
+
+Derived rather than configured, deliberately. A `defcustom' would fix
+this checkout and leave a fresh clone with the same silent gap, and the
+declaration is already in the file: a tracked file *says* where it
+archives to."
+  (let ((files (claude-code-ide-org--tracked-files)))
+    (delete-dups
+     (append (copy-sequence files)
+             (apply #'append
+                    (mapcar (lambda (f)
+                              (and (file-exists-p f)
+                                   (claude-code-ide-org--archive-files-of f)))
+                            files))))))
+
 (defun claude-code-ide-org--known-id-table ()
-  "Hash of every :ID: across the tracked files, mapped to t."
+  "Hash of every :ID: across the tracked files and their archives, to t.
+
+Scans `claude-code-ide-org--id-scannable-files', not
+`--tracked-files': a link into DONE.org is as legitimate as one into
+TODO.org, and refusing it taught a writer to avoid the convention rather
+than to fix anything (TODO.org :ID: 020d3688)."
   (let ((table (make-hash-table :test 'equal)))
-    (dolist (file (claude-code-ide-org--tracked-files) table)
+    (dolist (file (claude-code-ide-org--id-scannable-files) table)
       (when (file-exists-p file)
         (with-temp-buffer
           (let ((org-inhibit-startup t))

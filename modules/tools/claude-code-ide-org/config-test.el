@@ -2784,6 +2784,82 @@ shortened index would force a second lookup on every use."
       (should (string-match-p "Child heading" result))
       (should-not (string-match-p "Unrelated sibling" result)))))
 
+(ert-deftest claude-code-ide-org-test-id-scan-includes-declared-archives ()
+  "A tracked file's archive is scanned for ids, and the path is resolved
+against the file's TRUE directory.
+
+TODO.org :ID: 020d3688. `org-agenda-files' is a scan of `org-directory',
+which in this checkout holds a symlink to TODO.org and nothing else -- so
+DONE.org was invisible and no id in it resolved. The truename part is not
+incidental: resolving the archive against the *symlink's* directory finds
+nothing, which is precisely how the gap stayed silent."
+  (claude-code-ide-org-test--with-heading
+    (with-temp-file archive-file
+      (insert "* Done\n** DONE An archived heading\n"
+              ":PROPERTIES:\n:ID:       aaaa0001-1111-4111-8111-111111111111\n:END:\n"))
+    ;; The fixture file already declares #+ARCHIVE: DONE.org::* Done.
+    (let ((claude-code-ide-org-query-files (list file)))
+      (should (member (file-truename archive-file)
+                      (mapcar #'file-truename
+                              (claude-code-ide-org--id-scannable-files))))
+      ;; Hex-shaped, because `--known-id-table' only matches ids that
+      ;; look like org's own -- a lesson from this test's first draft.
+      (should (gethash "aaaa0001-1111-4111-8111-111111111111"
+                       (claude-code-ide-org--known-id-table))))))
+
+(ert-deftest claude-code-ide-org-test-id-scan-resolves-archive-through-a-symlink ()
+  "The archive path resolves against the tracked file's TRUE directory.
+
+This is the condition that kept TODO.org :ID: 020d3688 silent for weeks
+and that a same-directory fixture cannot reproduce. In the real checkout
+`org-agenda-files' names `~/org/claude-code-ide-org/TODO.org', a symlink
+into the repo; resolving `DONE.org' against the *link's* directory finds
+nothing, so the archive was simply absent and every id in it failed to
+resolve -- with no error anywhere, because an unreadable file and an
+undeclared one look identical from there.
+
+So the fixture builds the same shape: a link in one directory pointing at
+a file in another, with the archive beside the *target*."
+  (claude-code-ide-org-test--with-heading
+    (with-temp-file archive-file
+      (insert "* Done\n** DONE Archived via a link\n"
+              ":PROPERTIES:\n:ID:       bbbb0001-1111-4111-8111-111111111111\n:END:\n"))
+    (let* ((linkdir (file-name-as-directory (make-temp-file "linkdir" t)))
+           (link (expand-file-name "TODO.org" linkdir)))
+      (unwind-protect
+          (progn
+            (make-symbolic-link file link)
+            (let ((claude-code-ide-org-query-files (list link)))
+              (should (gethash "bbbb0001-1111-4111-8111-111111111111"
+                               (claude-code-ide-org--known-id-table)))))
+        (delete-directory linkdir t)))))
+
+(ert-deftest claude-code-ide-org-test-id-link-resolves-into-the-archive ()
+  "A link naming an archived heading expands rather than being refused.
+
+The defect this closes was hit twice in one session by `org_amend'
+refusing a correct prefix -- which teaches a writer to stop using the
+convention rather than to fix anything."
+  (claude-code-ide-org-test--with-heading
+    (with-temp-file archive-file
+      (insert "* Done\n** DONE An archived heading\n"
+              ":PROPERTIES:\n:ID:       aaaa0002-4444-4444-8444-444444444444\n:END:\n"))
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-resolve-id-links
+                    "See [[id:aaaa0002][aaaa0002]].")))
+      (should (car result))
+      (should (string-match-p "id:aaaa0002-4444-4444-8444-444444444444" (cdr result))))))
+
+(ert-deftest claude-code-ide-org-test-id-scan-still-refuses-an-unknown-prefix ()
+  "Widening the scan must not turn the check into a rubber stamp: a
+prefix matching nothing anywhere is still refused, naming it."
+  (claude-code-ide-org-test--with-heading
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-resolve-id-links
+                    "See [[id:deadbeef][deadbeef]].")))
+      (should-not (car result))
+      (should (string-match-p "deadbeef (matches no heading)" (cdr result))))))
+
 (ert-deftest claude-code-ide-org-test-outline-expands-a-scoped-slice ()
   "Scoped to a slice, the outline lists its members.
 
