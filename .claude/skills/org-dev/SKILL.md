@@ -13,6 +13,13 @@ description: >
   take effect") and proactively whenever config.el, config-test.el, or
   the Doom config has just been edited in this session — don't wait to
   be asked before checking that a code change actually loaded.
+  Also trigger BEFORE writing any helper that touches org's own data —
+  resolving or expanding an :ID:, finding archive files, listing agenda
+  files, summing clocks, walking or sorting a datetree, following
+  links, deriving a file path from #+ARCHIVE: — because org very often
+  already provides it and the hand-rolled version is where the gaps
+  live. Section 0b names where to look and what it cost the eight times
+  this was skipped in one day.
 ---
 
 # org-dev — Reload & Verify Skill
