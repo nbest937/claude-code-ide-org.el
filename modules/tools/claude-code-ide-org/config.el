@@ -975,6 +975,109 @@ would silently eat this hook's whole timeout."
             (kill-buffer buffer)))))
     (nreverse results)))
 
+(defun claude-code-ide-org--nomination-candidates-context ()
+  "One line per container that has live members and no NEXT among them.
+
+*Nominating, not promoting* (TODO.org :ID: 62b65ad0).  A trigger used to
+set NEXT on a container's sole remaining TODO by itself.  It was retired
+because a `NEXT' it wrote could be wrong and was invisible: three of
+roughly eight top-level promotions ended up parked as MAYBE.  Choosing
+the next action is judgement, so this states the fact and leaves the
+choice -- the same contract the stale-interval and ceremony reports
+already follow, and the reason they are trusted.
+
+Reports a *container* only, which is the whole point: GTD's invariant is
+that a live project always has a next action, and a project here is a
+story or a slice, never a filing category.  Handles both, since their
+members differ in kind: a story's are child headings, a slice's are
+`[[id:...]]' links resolved through the referent index.
+
+Says how many candidates there are but never picks one.  A sole
+candidate is named, because there naming it costs nothing and no
+judgement is being pre-empted; several are counted, because that is
+exactly the case no rule can decide."
+  (let ((index (claude-code-ide-org--slice-referent-index))
+        (results nil))
+    (dolist (file (claude-code-ide-org--tracked-files))
+      (when (file-exists-p file)
+        (let* ((already-open (find-buffer-visiting file))
+               (buffer (or already-open (find-file-noselect file))))
+          (with-current-buffer buffer
+            (org-with-wide-buffer
+             (goto-char (point-min))
+             (while (re-search-forward org-heading-regexp nil t)
+               (let ((kw (org-get-todo-state)))
+                 (when (and kw
+                            (not (member kw claude-code-ide-org--outline-finished-keywords)))
+                   ;; No `--grouping-heading-p' guard, deliberately.
+                   ;; Having live members IS being a container: the
+                   ;; children scan below returns nil for a leaf and
+                   ;; `--slice-members' returns nil for a non-slice, so
+                   ;; the `states' test already excludes everything the
+                   ;; predicate would have. Measured 2026-08-26 --
+                   ;; removing the guard changed no test, which is what
+                   ;; a redundant guard looks like. Keeping it would have
+                   ;; doubled the descendant scan and implied a coverage
+                   ;; the suite could not actually demonstrate.
+                   (let ((states (claude-code-ide-org--member-keywords index)))
+                     (when (and states
+                                (not (member "NEXT" (mapcar #'car states)))
+                                (assoc "TODO" states))
+                       (let ((todos (seq-filter (lambda (s) (equal (car s) "TODO")) states)))
+                         ;; Stripped over the assembled line. Every
+                         ;; component read from the buffer carries text
+                         ;; properties -- `org-get-heading' most visibly --
+                         ;; and `format' propagates them, so an MCP client
+                         ;; would be handed a `#("..." 0 11 (...))'
+                         ;; literal. Same trap `--outline-line' documents;
+                         ;; caught here by reading the live output rather
+                         ;; than by a test, since batch Emacs runs no
+                         ;; font-lock and the fixtures come back clean.
+                         (push (substring-no-properties
+                                (format "no next action in \"%s\" (:ID: %s): %s"
+                                       (org-get-heading t t t t)
+                                       (or (org-entry-get nil "ID") "none")
+                                       (if (= 1 (length todos))
+                                           (format "one candidate, \"%s\"" (cdr (car todos)))
+                                         (format "%d candidates" (length todos)))))
+                               results)))))))))
+          (unless already-open
+            (with-current-buffer buffer (set-buffer-modified-p nil))
+            (kill-buffer buffer)))))
+    (nreverse results)))
+
+(defun claude-code-ide-org--member-keywords (index)
+  "Return (KEYWORD . TITLE) for each live member of the container at point.
+
+A slice's members are links and a story's are child headings, so this
+resolves the two differently and returns the same shape either way.
+INDEX is a `claude-code-ide-org--slice-referent-index' hash, used only
+for the slice case.
+
+Returns *every* keyworded member, finished ones included, and leaves
+liveness to the caller. A filter stood here and was removed 2026-08-26
+after breaking it changed no test: the caller selects TODO members
+anyway, so a DONE member could never reach the output. Three redundant
+guards were written into this function on the first pass and all three
+were found the same way -- by breaking them and watching the suite stay
+green."
+  (let ((raw
+         (if (claude-code-ide-org--slice-p)
+             (delq nil
+                   (mapcar (lambda (member)
+                             (gethash (downcase (car member)) index))
+                           (claude-code-ide-org--slice-members)))
+           (let ((end (save-excursion (org-end-of-subtree t t)))
+                 (acc nil))
+             (save-excursion
+               (org-back-to-heading t)
+               (forward-line 1)
+               (while (re-search-forward org-heading-regexp end t)
+                 (let ((kw (org-get-todo-state)))
+                   (when kw (push (cons kw (org-get-heading t t t t)) acc)))))
+             (nreverse acc)))))
+    raw))
+
 (defun claude-code-ide-org-session-context ()
   "Return a plain-text summary of \"what was I last doing\": the
 currently clocked-in heading, if any, followed by one line per heading
@@ -985,7 +1088,8 @@ Returns the empty string when there is nothing to report, so callers
 can treat an empty result as \"nothing worth injecting\"."
   (let* ((clocked (claude-code-ide-org--clocked-heading-context))
          (waits (claude-code-ide-org--attention-headings-context))
-         (lines (append (when clocked (list clocked)) waits)))
+         (nominations (claude-code-ide-org--nomination-candidates-context))
+         (lines (append (when clocked (list clocked)) waits nominations)))
     (mapconcat #'identity lines "\n")))
 
 (defun claude-code-ide-org--session-context-hook-json ()
@@ -3032,8 +3136,8 @@ A heading with no tags simply gets it at the end."
 slice -- rather than a unit of work in its own right.
 
 *The union exists because two callers were asking the wrong question.*
-`claude-code-ide-org--trigger-auto-clock-in' and
-`claude-code-ide-org--trigger-auto-promote-sole-todo' both consulted
+`claude-code-ide-org--trigger-auto-clock-in' and the since-retired
+sole-TODO promotion trigger both consulted
 `claude-code-ide-org--container-heading-p', whose argument is about
 *meaning* -- a grouping's time and its next action live in its members,
 not in it -- while the predicate itself tests a *mechanism*, namely
@@ -3458,14 +3562,24 @@ moment any heading's TODO state becomes NEXT, demote every OTHER
 heading in the same sibling group that is currently NEXT back to TODO,
 with an explanatory :LOGBOOK: note. No-op unless CHANGE-PLIST's :to is
 \"NEXT\". Demoting a sibling re-enters `org-todo' (hence this hook)
-for that sibling -- safe by construction, see
-`claude-code-ide-org--trigger-auto-promote-sole-todo's docstring. The
+for that sibling -- safe by construction, because the nested call's
+:to is \"TODO\" and this function no-ops on anything but \"NEXT\". The
 nested `org-todo' call is wrapped in `org-inhibit-logging' so org's own
 native logging (an interactive note-prompt, if TODO or NEXT is ever
 marked `@' in the future) never fires for this programmatic
 transition; `claude-code-ide-org--format-log-state-line' supplies an
 equivalent line by hand instead."
-  (when (equal (plist-get change-plist :to) "NEXT")
+  (when (and (equal (plist-get change-plist :to) "NEXT")
+             ;; Only inside a container. A top-level heading has no
+             ;; sibling group worth the name: its "siblings" are every
+             ;; other task in the file, so demoting among them asserts
+             ;; one next action for the whole corpus. TODO.org :ID:
+             ;; 62b65ad0 decided that `NEXT' belongs to containers --
+             ;; stories and slices -- because that is what GTD means by
+             ;; a project. Having a parent IS the test: a keyworded
+             ;; heading with a parent makes that parent a container by
+             ;; `--container-heading-p''s own definition.
+             (save-excursion (org-back-to-heading t) (org-up-heading-safe)))
     ;; Name the superseding sibling by an [[id:...]] link rather than a
     ;; bare title. Titles are not stable here -- headings get retitled as
     ;; their scope becomes clearer, which is exactly why every tool in
@@ -3490,136 +3604,13 @@ equivalent line by hand instead."
              (format "Auto-demoted: superseded by sibling %s becoming NEXT."
                      reference)))))))))
 
-(defvar claude-code-ide-org--auto-promote-active nil
-  "Re-entrancy guard for `claude-code-ide-org--trigger-auto-promote-sole-todo'.
 
-Bound to t around that function's own `org-todo' call.  `org-todo' fires
-`org-trigger-hook', which is that function, so without this the
-promotion re-enters itself on the group it has just changed.
 
-Distinct from `claude-code-ide-org--review-applying', which suppresses
-the promotion for a whole apply batch so it can be settled once
-afterwards.  That one is deliberately *unbound* during the settle phase,
-which is precisely when this one is needed -- the two are not
-substitutes and the absence of this one is what let a single apply make
-1201 mutations across 114 headings (TODO.org :ID: filed 2026-08-24).
-
-Modelled on `claude-code-ide-org--auto-clock-in-active', which guards
-the sibling trigger against the same shape.")
-
-(defvar claude-code-ide-org--review-applying nil
-  "Non-nil while `claude-code-ide-org--review-apply' is working through a
-batch, and read only by `claude-code-ide-org--trigger-auto-promote-sole-todo'.
-
-Distinct from `claude-code-ide-org--auto-clock-in-active', which is bound
-per *item* by `claude-code-ide-org--review-apply-item' as a re-entrancy
-guard for one function's own `org-clock-in'.  This one is bound around
-the *whole* loop, because what the promote trigger must not see is the
-half-applied intermediate state between items -- a property of the batch,
-not of any item in it (TODO.org :ID: c8a6c5d2).
-
-Deliberately not reused for the demote trigger, which is order-independent:
-whichever order a batch's NEXT transitions land in, the last one wins and
-the end state is the same.")
-
-(defun claude-code-ide-org--trigger-auto-promote-sole-todo (_change-plist)
-  "For `org-trigger-hook': whenever this heading's sibling group (self
-included, group size >= 2) has exactly one member in TODO and none in
-NEXT, promote that lone TODO to NEXT, with an explanatory :LOGBOOK:
-note. Deliberately unconditional on CHANGE-PLIST's :to -- a transition
-to DONE/CANCELLED/WAITING/MAYBE/DOING on ANY sibling can be what drops
-the group to one TODO survivor, not just a transition into/out of
-NEXT. Always re-derives group state fresh from the live buffer, never
-from CHANGE-PLIST -- this is what keeps this safe against re-promoting
-a heading that `claude-code-ide-org--trigger-demote-conflicting-next'
-just demoted: by the time this function evaluates, any sibling still
-NEXT already shows as NEXT in the buffer, so the next-p guard below
-correctly refuses to create a second simultaneous NEXT. A group of
-size 1 (no siblings) is never eligible -- auto-promotion only resolves
-conflicts among competing candidates, it is not a rule that a solitary
-heading must always be NEXT.
-
-Two guards sit in front of that rule, added 2026-08-21, both instances
-of one shape: the counting above reads sibling *state* without asking
-whether the state it is reading, or the heading it would promote, is the
-kind of thing the answer should apply to.
-
-*Mid-batch suppression* (TODO.org :ID: c8a6c5d2). Re-deriving from the
-live buffer is right for a hand-edit and wrong during a review apply,
-which lands one event at a time: the moment the first of five captured
-children gets its keyword it is momentarily the only keyworded sibling
-of five, the group-size guard passes because size counts all siblings,
-and the promotion records queue order rather than judgement.  Observed
-live 2026-08-21 on this repo's own file.  So the trigger declines while
-`claude-code-ide-org--review-applying' is bound, and
-`claude-code-ide-org--review-settle-auto-promote' runs it once per
-touched heading afterwards, against the batch's finished state.  Note
-what this is *not*: suppressing without that settle pass would leave the
-function dead in production and live only in its tests, since under the
-queue architecture nearly every transition arrives through apply.
-
-*Container exclusion* (TODO.org :ID: 42808717). Promoting a container
-declares a project to be an action, inverting the one thing NEXT means:
-reproduced 2026-08-19 with an epic going NEXT while its own child action
-stayed TODO.  `claude-code-ide-org--container-heading-p' is the same
-predicate `claude-code-ide-org--trigger-auto-clock-in' consults one
-screen up, on an argument that applies verbatim.  Checked at the
-*promotion site* rather than while collecting candidates, which is the
-narrower of the two readings: a group of {container TODO, leaf TODO}
-still promotes nothing, exactly as before.  Excluding containers from
-the count instead would newly promote the leaf there -- more useful,
-possibly right, and a behaviour change the defect did not ask for.
-42808717 leaves open whether a refused promotion should instead descend
-into the container's own sole remaining child; no evidence has been
-gathered either way, so this promotes nothing, matching the honest-nil
-argument `claude-code-ide-org--review-suggest-heading' makes for the
-same class of refusal."
-  (unless (or claude-code-ide-org--review-applying
-              claude-code-ide-org--auto-promote-active)
-    (let (todo-markers next-p (group-size 0))
-      (claude-code-ide-org--map-siblings
-       (lambda ()
-         (setq group-size (1+ group-size))
-         (let ((state (org-get-todo-state)))
-           (cond ((equal state "NEXT") (setq next-p t))
-                 ((equal state "TODO") (push (point-marker) todo-markers)))))
-       'include-self)
-      (when (and (> group-size 1) (not next-p) (= (length todo-markers) 1))
-        (org-with-point-at (car todo-markers)
-          (unless (claude-code-ide-org--grouping-heading-p)
-            ;; Bound around this call and nothing else. `org-todo' fires
-            ;; `org-trigger-hook', which is this function -- so without
-            ;; the binding the promotion re-enters itself, promotes in
-            ;; the newly-promoted heading's group, and repeats.
-            ;;
-            ;; `--review-applying' does NOT cover this. It is bound only
-            ;; around the apply loop and deliberately unbound during
-            ;; `--review-settle-auto-promote', which is the whole point
-            ;; of suppress-then-settle -- so the settle phase ran with
-            ;; no re-entrancy protection at all. Measured 2026-08-24 on
-            ;; one real apply: 1201 mutations across 114 headings in
-            ;; nine seconds, against twelve queued state changes,
-            ;; sustained at ~240 writes per second. 50 of them landed on
-            ;; level-1 categories, because once the cascade writes a
-            ;; keyword onto one, the level-1 sibling group satisfies the
-            ;; promotion's own condition and feeds it.
-            ;;
-            ;; Exactly the shape `claude-code-ide-org--auto-clock-in-active'
-            ;; already guards for `--trigger-auto-clock-in'. That one had
-            ;; it from the start; this one never got the equivalent.
-            (let ((claude-code-ide-org--auto-promote-active t)
-                  (org-inhibit-logging t))
-              (org-todo "NEXT"))
-            (claude-code-ide-org--append-to-drawer
-             "LOGBOOK"
-             (claude-code-ide-org--format-log-state-line
-              "NEXT" "TODO" "Auto-promoted: sole remaining TODO in its sibling group."))))))))
 
 (with-eval-after-load 'org
   (add-hook 'org-blocker-hook #'claude-code-ide-org--blocker-clock-running-p)
   (add-hook 'org-trigger-hook #'claude-code-ide-org--trigger-auto-clock-in)
-  (add-hook 'org-trigger-hook #'claude-code-ide-org--trigger-demote-conflicting-next)
-  (add-hook 'org-trigger-hook #'claude-code-ide-org--trigger-auto-promote-sole-todo))
+  (add-hook 'org-trigger-hook #'claude-code-ide-org--trigger-demote-conflicting-next))
 
 ;;; Clock status file -------------------------------------------------------
 ;;
@@ -6191,8 +6182,7 @@ compares the `:BLOCKER:' against the checkbox list, and
 `refresh-slice' regenerates both, so the two agree with each other while
 disagreeing with the tree.
 
-*After the batch, not per item*, for the same reason
-`--review-settle-auto-promote' is: a mid-batch refresh sees
+*After the batch, not per item*: a mid-batch refresh sees
 half-applied state.  Worse here than there -- a member whose `todo'
 event has not landed yet is *keywordless on disk*, which leaves its line
 unrewritten AND manufactures a `:BLOCKER:' lint error naming a
@@ -6213,47 +6203,6 @@ ante rather than new damage."
       (error (message "Slice refresh after apply failed: %s"
                       (error-message-string err))))))
 
-(defun claude-code-ide-org--review-settle-auto-promote (applied-items)
-  "Run the sole-TODO promotion once per heading APPLIED-ITEMS touched,
-after `claude-code-ide-org--review-apply\'s loop has finished and
-`claude-code-ide-org--review-applying\' is no longer bound.
-
-This is the half that keeps the mid-batch suppression from amounting to
-deleting the trigger (TODO.org :ID: c8a6c5d2).  Under the queue
-architecture nearly every real transition arrives through apply, so a
-trigger that only declines there would be live in its tests and dead in
-production -- the shape `claude-code-ide-org--trigger-auto-clock-in\'s
-docstring already flags as worth avoiding.  Suppress-then-settle keeps
-the rule and changes only *when* it is evaluated: once, against the
-batch\'s finished state, instead of once per half-applied intermediate.
-
-Only `state\' items are considered.  They are the only kind that changes
-a TODO keyword, and keyword composition is the entire input to the
-promotion -- a clock or amend cannot move a group toward or away from
-having one sole TODO survivor, and a capture writes its heading without
-a keyword at all.
-
-Deduplicated by :ID:, so a chain of transitions applied to one heading in
-one batch settles once.  The trigger is idempotent by construction (it
-re-derives group state fresh and refuses when any sibling is already
-NEXT), so a second call would be harmless -- the dedup is about not doing
-one file visit per event.
-
-An id that no longer resolves is skipped silently: `claude-code-ide-org--at-id\'
-returns its error string rather than signalling, and a heading that has
-gone away since it was applied has no sibling group left to settle."
-  (let ((seen (make-hash-table :test 'equal)))
-    (dolist (item applied-items)
-      (let ((id (plist-get item :id)))
-        (when (and (eq (plist-get item :type) 'state)
-                   id
-                   (not (gethash id seen)))
-          (puthash id t seen)
-          (claude-code-ide-org--at-id
-           id
-           (lambda ()
-             (claude-code-ide-org--trigger-auto-promote-sole-todo nil)
-             (save-buffer))))))))
 
 (defun claude-code-ide-org--review-apply (items)
   "Apply ITEMS in order. Returns a plist (:applied N :errors ERRORS).
@@ -6270,15 +6219,19 @@ re-read now, so a heading changed out of band since the buffer was drawn
 is still caught, and only this batch's own effects are projected over
 it.
 
-Binds `claude-code-ide-org--review-applying' around the loop and calls
-`claude-code-ide-org--review-settle-auto-promote' after it, so the
-sole-TODO promotion sees the batch's finished state rather than each
-half-applied intermediate one.  See that variable for why the flag is
-batch-scoped where `claude-code-ide-org--auto-clock-in-active' is
-item-scoped."
+Settles slices and heading separation after the loop rather than per
+item, so each sees the batch's finished state rather than a
+half-applied intermediate one.
+
+*A batch-scoped suppression flag stood here until 2026-08-26* (TODO.org
+:ID: 62b65ad0).  It existed only to hold the sole-TODO promotion back
+until the batch finished; retiring that promotion left nothing to
+suppress, and the flag, its re-entrancy companion and the settle pass
+that re-ran what it skipped all went with it -- 163 lines whose whole
+purpose was guarding a trigger that wrote to the file on its own."
   (claude-code-ide-org--review-projected-staleness items)
   (let (applied errors)
-    (let ((claude-code-ide-org--review-applying t))
+    (progn
       (dolist (item items)
         (setq claude-code-ide-org--last-error-backtrace nil)
         (let ((error (claude-code-ide-org--review-apply-item item)))
@@ -6291,7 +6244,6 @@ item-scoped."
               (push (claude-code-ide-org--review-describe-failure item error)
                     errors)
             (push item applied)))))
-    (claude-code-ide-org--review-settle-auto-promote applied)
     (claude-code-ide-org--review-settle-slices applied)
     (claude-code-ide-org--review-settle-separation applied)
     (claude-code-ide-org--review-record-applied applied)
@@ -8643,9 +8595,9 @@ whole point of the function.  A `:DATE_TREE:\' category holds real tasks
 beside its tree -- the ritual repeater TODO.org :ID: cd1e974e institutes
 sits at depth 1, exactly where the year node does -- so a depth-only test
 would waive :ID: and :CREATED: for every one of them.  That is the same
-over-application shape guarded against at
-`claude-code-ide-org--trigger-auto-promote-sole-todo\': a predicate
-reading position without asking what kind of heading it is looking at.
+over-application shape the retired sole-TODO promotion kept running
+into: a predicate reading position without asking what kind of heading
+it is looking at.
 
 The patterns are org\'s own, lifted from the `comparefun\' regexes
 `org-datetree-find-date-create\' passes for the year/month/day grouping

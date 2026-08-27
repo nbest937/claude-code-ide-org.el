@@ -585,28 +585,53 @@ DONE while a `:BLOCKER:` names unfinished work) and
 heading's own clock is running). On `org-trigger-hook`:
 `--trigger-auto-clock-in` (opens the clock the moment DOING/PLANNING is
 set by hand — gated by `claude-code-ide-org-auto-clock-in-on-doing`,
-default `t`), plus `--trigger-demote-conflicting-next` and
-`--trigger-auto-promote-sole-todo`, both live and ungated.
+default `t`), plus `--trigger-demote-conflicting-next`, live and
+ungated **inside a container**.
 
-`--trigger-auto-promote-sole-todo` carries two guards, both added
-2026-08-21 (TODO.org `:ID:` 42808717 and `:ID:` c8a6c5d2, which this file
-listed as open defects until they shipped). It refuses to promote a
-*container*, since that would declare a project to be an action; and it
-declines entirely while a review pass is mid-batch, because apply lands
-one event at a time and the first of several captured children is
-transiently the only keyworded sibling of its group. The promotion is not
-lost, only deferred — `--review-settle-auto-promote` runs it once after
-the batch, against the finished state.
+**`NEXT` belongs to containers, and nothing sets it by itself**
+(`:ID:` 62b65ad0, 2026-08-26). A `--trigger-auto-promote-sole-todo`
+stood here and set `NEXT` on a container's sole remaining `TODO`
+autonomously. It is gone, along with its three guards — a re-entrancy
+flag, a mid-batch suppression flag, and the settle pass that re-ran what
+the suppression skipped. 163 lines, every one of which existed *because*
+the trigger wrote to the file on its own.
 
-**Rule**: every transition *to* `DONE` nominates the next action — set
-`NEXT` on whichever remaining sibling should be picked up next, or say in
-a sentence that no clear candidate exists. Leaving the group silently
-un-nominated is the thing to avoid. This completes an invariant the
-triggers only half-enforce: `--trigger-demote-conflicting-next` gives *at
-most* one `NEXT` per sibling group, and `--trigger-auto-promote-sole-todo`
-gives *at least* one only in the sole-survivor case. Everything between —
-several live candidates needing judgement — is what no trigger can decide,
-and it is the common case. GTD's actual invariant is that a live project
+Two things went wrong with it, and only the second is obvious in
+hindsight. It nominated badly: three of roughly eight top-level
+promotions ended up parked as `MAYBE`. And its sibling group was a
+*category* — `--map-siblings` walks with `org-get-next-sibling`, which at
+top level stops only at the file's boundary — so "the sole remaining
+`TODO` in Tooling" was a claim about a filing drawer, not a project. That
+is `:ID:` 42808717 one tier up: it taught the trigger to refuse a
+container because promoting one declares a project to be an action; this
+retires the case where the *group* is the wrong kind of thing.
+
+`--trigger-demote-conflicting-next` survives, scoped the same way: it
+declines at top level, where there is no sibling group worth the name.
+Having a parent is the test, since a keyworded heading with a parent
+makes that parent a container by definition.
+
+**What replaced the promotion is a report, not a rule.**
+`--nomination-candidates-context` names every container whose live
+members include no `NEXT`, at `SessionStart`, alongside the
+stale-interval and ceremony reports — and it *asks* rather than acting,
+which is the contract those reports already keep. It names a sole
+candidate and merely counts several, because that is the case no rule
+can decide. Measured on this corpus the day it shipped: five containers,
+each a real un-nominated project.
+
+**Rule**: every transition *to* `DONE` **inside a container** nominates
+the next action — set `NEXT` on whichever remaining member should be
+picked up next, or say in a sentence that no clear candidate exists.
+Leaving the group silently un-nominated is the thing to avoid. Closing a
+*top-level* task nominates nothing, because it has no group; several
+top-level `NEXT`s at once are expected and correct, one per live
+workstream.
+
+Since 2026-08-26 this is the *whole* invariant rather than half of it.
+`--trigger-demote-conflicting-next` still gives at most one `NEXT` per
+container, but nothing gives you one automatically any more — setting
+`NEXT` is strictly intentional, and the report only points. GTD's actual invariant is that a live project
 always has a next action; a project without one is the canonical defect a
 weekly review exists to catch.
 

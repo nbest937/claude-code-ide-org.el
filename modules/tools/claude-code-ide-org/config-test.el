@@ -963,29 +963,6 @@ everything would pass the first half alone."
       (should (equal "test-leaf-1"
                      (org-with-point-at org-clock-marker (org-entry-get nil "ID")))))))
 
-(ert-deftest claude-code-ide-org-test-auto-promote-skips-a-slice ()
-  "A sole remaining TODO slice must not be promoted to NEXT.
-
-TODO.org :ID: 95c27fca's second consequence, and it is the
-reintroduction of :ID: 42808717 by a route that fix did not cover:
-promoting a grouping declares a project to be an action. :ID: 8ca6541d
-predicted it in the abstract before any slice existed.
-
-Both headings here are slices, so closing one leaves the other as the
-sole TODO of a group of two -- which is exactly the shape the promotion
-fires on, and it must decline anyway."
-  (claude-code-ide-org-test--with-heading
-    (let ((org-trigger-hook
-           (list #'claude-code-ide-org--trigger-auto-promote-sole-todo)))
-      (org-with-point-at (org-id-find id 'marker)
-        (org-entry-put nil "KIND" "slice")
-        (save-buffer))
-      (claude-code-ide-org-test--add-child
-       file (concat "* TODO A second slice\n:PROPERTIES:\n"
-                    ":ID:       test-slice-2\n:KIND:     slice\n:END:\n"))
-      (org-with-point-at (org-id-find "test-slice-2" 'marker) (org-todo "DONE"))
-      (should (equal "TODO" (org-with-point-at (org-id-find id 'marker)
-                              (org-get-todo-state)))))))
 
 (ert-deftest claude-code-ide-org-test-trigger-hook-skips-container-headings ()
   "Setting a container to DOING must NOT open a clock on it. Org already
@@ -1077,58 +1054,74 @@ heading being set to PLANNING."
 ;; claude-code-ide-org--trigger-auto-promote-sole-todo, registered
 ;; alongside the pair above.
 
-(ert-deftest claude-code-ide-org-test-single-next-demotes-old-next-among-top-level-headings ()
-  "Setting a top-level sibling to NEXT while another top-level sibling
-is already NEXT must demote the old one back to TODO, with an
-explanatory LOGBOOK note, and leave the new one at NEXT."
+(defun claude-code-ide-org-test--two-children (file)
+  "Give the fixture heading two keyworded children and refresh org-id.
+
+`NEXT' is only meaningful inside a container (TODO.org :ID: 62b65ad0),
+so every demote test needs a real parent. The fixture heading becomes
+one by acquiring these, which is `--container-heading-p''s own
+definition -- nothing is declared."
+  (claude-code-ide-org-test--add-child
+   file (concat "** TODO Child A                                                    :code:\n"
+                ":PROPERTIES:\n:ID:       test-0002\n:END:\n"))
+  (claude-code-ide-org-test--add-child
+   file (concat "** TODO Child B                                                    :code:\n"
+                ":PROPERTIES:\n:ID:       test-0003\n:END:\n")))
+
+(ert-deftest claude-code-ide-org-test-single-next-leaves-top-level-headings-alone ()
+  "Two top-level headings both at NEXT must BOTH stay NEXT.
+
+*Inverted 2026-08-26* (TODO.org :ID: 62b65ad0). This asserted the
+opposite until then: that a top-level NEXT demoted its top-level peers.
+The evidence says that was never right. `--map-siblings' walks with
+`org-get-next-sibling', which at top level stops only at the file's
+boundary -- so \"sibling group\" meant *every task in the corpus*, and
+demoting among them asserts one next action for the whole file.
+
+A category is a filing drawer, not a project. GTD's invariant is that a
+live *project* has a next action, and a project here is a story or a
+slice. Three of roughly eight real top-level auto-promotions ended up
+parked as MAYBE, which is what a wrong nomination looks like after the
+fact."
   (claude-code-ide-org-test--with-heading
     (org-with-point-at (org-id-find id 'marker) (org-todo "NEXT"))
     (goto-char (point-max))
-    (insert (concat "* TODO Sibling B                                                   :code:\n"
-                     ":PROPERTIES:\n"
-                     ":ID:       test-0002\n"
-                     ":END:\n"))
+    (insert (concat "* TODO Peer B                                                      :code:\n"
+                    ":PROPERTIES:\n"
+                    ":ID:       test-0002\n"
+                    ":END:\n"))
     (save-buffer)
     (org-id-update-id-locations (list file))
     (org-with-point-at (org-id-find "test-0002" 'marker) (org-todo "NEXT"))
-    (should (equal "TODO" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))
+    ;; Both survive.
+    (should (equal "NEXT" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))
     (should (equal "NEXT" (org-with-point-at (org-id-find "test-0002" 'marker) (org-get-todo-state))))
     (save-buffer)
-    ;; The superseding sibling is named by an [[id:...]] link, not a bare
-    ;; title: titles get revised as scope clarifies, and a note explaining
-    ;; *why* something was demoted is the last place a stale name should
-    ;; appear. Asserting the id specifically, since a title-only match
-    ;; would still pass against the old format.
-    (let ((disk (claude-code-ide-org-test--disk-contents file)))
-      (should (string-match-p
-               "Auto-demoted: superseded by sibling \\[\\[id:test-0002\\]\\[Sibling B\\]\\] becoming NEXT"
-               disk))
-      (should-not (string-match-p "sibling \"Sibling B\"" disk)))))
+    (should-not (string-match-p "Auto-demoted"
+                                (claude-code-ide-org-test--disk-contents file)))))
 
 (ert-deftest claude-code-ide-org-test-single-next-demote-note-falls-back-to-title ()
   "When the superseding sibling has no :ID:, the note names it by quoted
 title rather than producing a broken link. A slightly stale name beats a
-dangling [[id:nil]], and beats no note at all -- the note exists to
-explain a demotion the reader did not ask for.
+link that goes nowhere.
 
-Note this test passes against the *pre-id-link* implementation too, which
-always quoted the title: it pins the fallback rather than demonstrating
-the change. The discriminating assertion lives in
-`claude-code-ide-org-test-single-next-demotes-old-next-among-top-level-headings\'."
+Runs inside a container: `NEXT' is only meaningful there (TODO.org
+:ID: 62b65ad0)."
   (claude-code-ide-org-test--with-heading
-    (org-with-point-at (org-id-find id 'marker) (org-todo "NEXT"))
-    (goto-char (point-max))
-    (insert "* TODO Sibling with no id                                           :code:\n")
-    (save-buffer)
-    (goto-char (point-min))
-    (re-search-forward "^\\* TODO Sibling with no id")
-    (org-todo "NEXT")
+    (claude-code-ide-org-test--add-child
+     file (concat "** TODO Child A                                                    :code:\n"
+                  ":PROPERTIES:\n:ID:       test-0002\n:END:\n"))
+    ;; No :ID: on this one -- that is the case under test.
+    (claude-code-ide-org-test--add-child file "** TODO Untracked child\n")
+    (org-with-point-at (org-id-find "test-0002" 'marker) (org-todo "NEXT"))
+    (org-with-point-at (org-id-find id 'marker)
+      (org-goto-first-child)
+      (org-get-next-sibling)
+      (org-todo "NEXT"))
     (save-buffer)
     (let ((disk (claude-code-ide-org-test--disk-contents file)))
-      (should (string-match-p
-               "Auto-demoted: superseded by sibling \"Sibling with no id\" becoming NEXT"
-               disk))
-      (should-not (string-match-p "\\[\\[id:" disk)))))
+      (should (string-match-p "Auto-demoted: superseded by sibling \"Untracked child\" becoming NEXT"
+                              disk)))))
 
 (ert-deftest claude-code-ide-org-test-single-next-demotes-old-next-among-direct-children ()
   "The same demotion must apply one level down, among a heading's own
@@ -1176,33 +1169,6 @@ parent's own children."
     (should (equal "NEXT" (org-with-point-at (org-id-find "test-0002" 'marker) (org-get-todo-state))))
     (should (equal "NEXT" (org-with-point-at (org-id-find "test-0004" 'marker) (org-get-todo-state))))))
 
-(ert-deftest claude-code-ide-org-test-single-next-promotes-sole-remaining-todo-when-sibling-goes-done ()
-  "Reducing a sibling group to exactly one TODO survivor via a
-transition to DONE (not NEXT) must auto-promote that survivor to
-NEXT, with an explanatory LOGBOOK note."
-  (claude-code-ide-org-test--with-heading
-    (goto-char (point-max))
-    (insert (concat "* NEXT Sibling B                                                   :code:\n"
-                     ":PROPERTIES:\n"
-                     ":ID:       test-0002\n"
-                     ":END:\n"))
-    (save-buffer)
-    (org-id-update-id-locations (list file))
-    ;; Group is now {id=TODO, B=NEXT}; drop B to DONE so `id' becomes
-    ;; the sole TODO survivor with no NEXT in the group.
-    (org-with-point-at (org-id-find "test-0002" 'marker) (org-todo "DONE"))
-    (should (equal "NEXT" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))
-    (save-buffer)
-    (let ((disk (claude-code-ide-org-test--disk-contents file)))
-      (should (string-match-p "Auto-promoted: sole remaining TODO in its sibling group" disk))
-      ;; NEXT is `!'-marked in the test fixture's own #+TODO: line, so
-      ;; without org-inhibit-logging around the hook's nested org-todo
-      ;; call this would double-log: one native line plus this custom
-      ;; one. Exactly one "State \"NEXT\"" line must exist.
-      (let ((count 0) (start 0))
-        (while (string-match "State \"NEXT\"" disk start)
-          (setq count (1+ count) start (match-end 0)))
-        (should (= 1 count))))))
 
 (ert-deftest claude-code-ide-org-test-single-next-leaves-non-todo-sole-survivor-alone ()
   "A sole survivor sitting in WAITING (not TODO) must never be
@@ -1254,184 +1220,66 @@ one promoted -- promotion requires an unambiguous sole survivor."
     (should (equal "WAITING" (org-with-point-at (org-id-find "test-0002" 'marker) (org-get-todo-state))))))
 
 (ert-deftest claude-code-ide-org-test-single-next-does-not-recreate-double-next-on-race ()
-  "The core correctness case: a 2-sibling group with A already NEXT,
-setting B to NEXT must not result in BOTH ending up NEXT -- the
-promote trigger's re-derivation from the live buffer must see A's
-just-applied demotion, not stale change-plist state."
+  "The core correctness case: a 2-child group with A already NEXT,
+setting B to NEXT must not leave BOTH at NEXT -- the demote must see the
+live buffer, not stale change-plist state.
+
+Moved inside a container 2026-08-26 (TODO.org :ID: 62b65ad0); it used to
+run against top-level headings, where there is no longer a sibling group."
   (claude-code-ide-org-test--with-heading
-    (org-with-point-at (org-id-find id 'marker) (org-todo "NEXT"))
-    (goto-char (point-max))
-    (insert (concat "* TODO Sibling B                                                   :code:\n"
-                     ":PROPERTIES:\n"
-                     ":ID:       test-0002\n"
-                     ":END:\n"))
-    (save-buffer)
-    (org-id-update-id-locations (list file))
+    (claude-code-ide-org-test--two-children file)
     (org-with-point-at (org-id-find "test-0002" 'marker) (org-todo "NEXT"))
+    (org-with-point-at (org-id-find "test-0003" 'marker) (org-todo "NEXT"))
     (let ((next-count 0))
-      (dolist (heading-id (list id "test-0002"))
-        (when (equal "NEXT" (org-with-point-at (org-id-find heading-id 'marker) (org-get-todo-state)))
+      (dolist (heading-id (list "test-0002" "test-0003"))
+        (when (equal "NEXT" (org-with-point-at (org-id-find heading-id 'marker)
+                              (org-get-todo-state)))
           (setq next-count (1+ next-count))))
       (should (= 1 next-count)))))
 
 (ert-deftest claude-code-ide-org-test-single-next-pre-existing-invalid-state-collapses-to-one-next ()
-  "Two siblings hand-constructed as already (invalidly) NEXT:
-transitioning a third sibling to NEXT must still leave exactly one
-NEXT survivor across the whole group afterward."
+  "Two children hand-constructed as already (invalidly) NEXT:
+transitioning a third to NEXT must still leave exactly one NEXT across
+the group.
+
+Moved inside a container 2026-08-26 (TODO.org :ID: 62b65ad0)."
   (claude-code-ide-org-test--with-heading
-    (goto-char (point-max))
-    (insert (concat "* NEXT Sibling B                                                   :code:\n"
-                     ":PROPERTIES:\n"
-                     ":ID:       test-0002\n"
-                     ":END:\n"
-                     "* NEXT Sibling C                                                   :code:\n"
-                     ":PROPERTIES:\n"
-                     ":ID:       test-0003\n"
-                     ":END:\n"
-                     "* TODO Sibling D                                                   :code:\n"
-                     ":PROPERTIES:\n"
-                     ":ID:       test-0004\n"
-                     ":END:\n"))
-    (save-buffer)
-    (org-id-update-id-locations (list file))
+    (claude-code-ide-org-test--add-child
+     file (concat "** NEXT Child B                                                    :code:\n"
+                  ":PROPERTIES:\n:ID:       test-0002\n:END:\n"
+                  "** NEXT Child C                                                    :code:\n"
+                  ":PROPERTIES:\n:ID:       test-0003\n:END:\n"
+                  "** TODO Child D                                                    :code:\n"
+                  ":PROPERTIES:\n:ID:       test-0004\n:END:\n"))
     (org-with-point-at (org-id-find "test-0004" 'marker) (org-todo "NEXT"))
     (let ((next-count 0))
-      (dolist (heading-id (list id "test-0002" "test-0003" "test-0004"))
-        (when (equal "NEXT" (org-with-point-at (org-id-find heading-id 'marker) (org-get-todo-state)))
+      (dolist (heading-id (list "test-0002" "test-0003" "test-0004"))
+        (when (equal "NEXT" (org-with-point-at (org-id-find heading-id 'marker)
+                              (org-get-todo-state)))
           (setq next-count (1+ next-count))))
       (should (= 1 next-count))
-      (should (equal "NEXT" (org-with-point-at (org-id-find "test-0004" 'marker) (org-get-todo-state)))))))
+      (should (equal "NEXT" (org-with-point-at (org-id-find "test-0004" 'marker)
+                              (org-get-todo-state)))))))
 
 (ert-deftest claude-code-ide-org-test-single-next-fires-through-bare-org-todo ()
-  "Mirrors the auto-clock-in trigger's own bare-org-todo test: the
-demote/promote enforcement must live in org itself, not just in
-claude-code-ide-org-set-todo's wrapper."
+  "The demote runs off `org-trigger-hook', so a bare `org-todo' reaches
+it -- no MCP wrapper required. That is what makes it a safety net rather
+than a convention.
+
+Inside a container, per TODO.org :ID: 62b65ad0."
   (claude-code-ide-org-test--with-heading
-    (org-with-point-at (org-id-find id 'marker) (org-todo "NEXT"))
-    (goto-char (point-max))
-    (insert (concat "* TODO Sibling B                                                   :code:\n"
-                     ":PROPERTIES:\n"
-                     ":ID:       test-0002\n"
-                     ":END:\n"))
+    (claude-code-ide-org-test--two-children file)
     (org-with-point-at (org-id-find "test-0002" 'marker) (org-todo "NEXT"))
-    (let ((disk (with-current-buffer (get-file-buffer file) (buffer-string))))
-      (should (string-match-p "^\\* TODO Test heading" disk))
-      (should (string-match-p "^\\* NEXT Sibling B" disk)))))
-
-(ert-deftest claude-code-ide-org-test-single-next-lone-heading-with-no-siblings-is-not-auto-promoted ()
-  "A heading with no siblings at all is never auto-promoted, and
-manually demoting a solitary NEXT back to TODO sticks -- promotion
-only resolves conflicts among >= 2 competing candidates."
-  (claude-code-ide-org-test--with-heading
-    (org-with-point-at (org-id-find id 'marker) (org-todo "WAITING"))
-    (org-with-point-at (org-id-find id 'marker) (org-todo "TODO"))
-    (should (equal "TODO" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))
-    (org-with-point-at (org-id-find id 'marker) (org-todo "NEXT"))
-    (org-with-point-at (org-id-find id 'marker) (org-todo "TODO"))
-    (should (equal "TODO" (org-with-point-at (org-id-find id 'marker) (org-get-todo-state))))))
-
-
-(ert-deftest claude-code-ide-org-test-single-next-does-not-promote-a-container ()
-  "A container is a project, not an action, so the sole-TODO promotion
-must refuse it however cleanly it survives its sibling group (TODO.org
-:ID: 42808717).  Reproduces 2026-08-19's scratch-file case: an epic left
-NEXT while its own child action stayed TODO, which inverts the one thing
-NEXT means.
-
-The discriminating half -- that a *leaf* sole survivor is still promoted
--- is asserted by
-`claude-code-ide-org-test-single-next-promotes-sole-remaining-todo-when-sibling-goes-done\',
-which fails the moment this guard is applied to every heading rather than
-to containers only.  Both are needed: an assertion that only checks the
-refusal would pass against a function that had simply stopped promoting."
-  (claude-code-ide-org-test--with-heading
-    (goto-char (point-max))
-    (insert (concat "* TODO An epic with children                                       :code:\n"
-                     ":PROPERTIES:\n"
-                     ":ID:       test-0002\n"
-                     ":END:\n"
-                     "** TODO A real child action                                        :code:\n"
-                     ":PROPERTIES:\n"
-                     ":ID:       test-0003\n"
-                     ":END:\n"))
-    (save-buffer)
-    (org-id-update-id-locations (list file))
-    ;; Group is {id=TODO, epic=TODO}; close `id\' so the epic becomes the
-    ;; sole TODO survivor with no NEXT anywhere in the group.
-    (org-with-point-at (org-id-find id 'marker) (org-todo "DONE"))
+    (org-with-point-at (org-id-find "test-0003" 'marker) (org-todo "NEXT"))
     (should (equal "TODO" (org-with-point-at (org-id-find "test-0002" 'marker)
                             (org-get-todo-state))))
-    ;; And nothing descended into the child either -- 42808717 leaves
-    ;; descend-vs-nothing open, and this pins the answer shipped.
-    (should (equal "TODO" (org-with-point-at (org-id-find "test-0003" 'marker)
-                            (org-get-todo-state))))
-    (save-buffer)
-    (should-not (string-match-p "Auto-promoted"
-                                (claude-code-ide-org-test--disk-contents file)))))
-
-(ert-deftest claude-code-ide-org-test-review-batch-does-not-promote-on-apply-order ()
-  "Observed live 2026-08-21 on this repo's own file (TODO.org :ID:
-c8a6c5d2): children captured in one session are keywordless until their
-queued `none -> TODO\' events are applied, and apply lands one event at a
-time -- so the first child to land is momentarily the only keyworded
-sibling of the group and gets promoted to NEXT.  Nobody chose it; the
-NEXT records queue order.
-
-Three children rather than the five that were observed: the mechanism is
-the first landing, not the count."
-  (claude-code-ide-org-test--with-heading
-    (goto-char (point-max))
-    (insert (concat "** Child A\n:PROPERTIES:\n:ID:       test-0002\n:END:\n"
-                     "** Child B\n:PROPERTIES:\n:ID:       test-0003\n:END:\n"
-                     "** Child C\n:PROPERTIES:\n:ID:       test-0004\n:END:\n"))
-    (save-buffer)
-    (org-id-update-id-locations (list file))
-    (let* ((mk (lambda (child at)
-                 (list :type 'state :id child :from "none" :to "TODO"
-                       :ts (date-to-time (format "2026-08-21T%s-0500" at))
-                       :events nil)))
-           (result (claude-code-ide-org--review-apply
-                    (list (funcall mk "test-0002" "09:52:00")
-                          (funcall mk "test-0003" "09:52:10")
-                          (funcall mk "test-0004" "09:52:20")))))
-      (should (= 3 (plist-get result :applied)))
-      (should-not (plist-get result :errors))
-      (dolist (child '("test-0002" "test-0003" "test-0004"))
-        (should (equal "TODO" (org-with-point-at (org-id-find child 'marker)
-                                (org-get-todo-state)))))
-      (should-not (string-match-p "Auto-promoted"
-                                  (claude-code-ide-org-test--disk-contents file))))))
-
-(ert-deftest claude-code-ide-org-test-review-batch-still-promotes-a-genuine-sole-survivor ()
-  "The other half of c8a6c5d2's fix, and the one that keeps it from
-amounting to deleting the trigger.  Suppressing the promotion during a
-batch and stopping there would leave it dead in production -- under the
-queue architecture nearly every transition arrives through apply -- so
-`claude-code-ide-org--review-settle-auto-promote\' runs it once
-afterwards, against the batch's finished state.
-
-Here the batch genuinely does reduce the group to one TODO survivor, and
-that survivor must come out NEXT.  This test fails against a
-suppress-only fix, which is exactly what it is for."
-  (claude-code-ide-org-test--with-heading
-    (goto-char (point-max))
-    (insert (concat "** TODO Survivor\n:PROPERTIES:\n:ID:       test-0002\n:END:\n"
-                     "** TODO Closes in the batch\n:PROPERTIES:\n:ID:       test-0003\n:END:\n"))
-    (save-buffer)
-    (org-id-update-id-locations (list file))
-    (let ((result (claude-code-ide-org--review-apply
-                   (list (list :type 'state :id "test-0003" :from "TODO" :to "DONE"
-                               :ts (date-to-time "2026-08-21T10:27:00-0500")
-                               :events nil)))))
-      (should (= 1 (plist-get result :applied)))
-      (should-not (plist-get result :errors))
-      (should (equal "NEXT" (org-with-point-at (org-id-find "test-0002" 'marker)
-                              (org-get-todo-state))))
-      (should (string-match-p "Auto-promoted: sole remaining TODO in its sibling group"
-                              (claude-code-ide-org-test--disk-contents file))))))
+    (should (equal "NEXT" (org-with-point-at (org-id-find "test-0003" 'marker)
+                            (org-get-todo-state))))))
 
 
-;;; Session context ("what was I last doing") -----------------------------
+
+
+
 
 (ert-deftest claude-code-ide-org-test-session-context-empty-when-nothing ()
   "No running clock and no WAITING headings: session-context reports
@@ -1483,6 +1331,83 @@ state."
                  "nothing ever queued for it: \"Abandoned leaf\" (:ID: test-0002, in test.org)"
                  result))))))
 
+(ert-deftest claude-code-ide-org-test-nomination-reports-a-container-with-no-next ()
+  "A container whose live members include no NEXT is named, with its
+sole candidate.
+
+TODO.org :ID: 62b65ad0. This replaces the trigger that used to set NEXT
+by itself. The report states the fact and leaves the choice, which is
+the contract the stale-interval and ceremony reports already keep --
+and the reason a wrong nomination is no longer possible."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--add-child
+     file (concat "** TODO The only candidate                                          :code:\n"
+                  ":PROPERTIES:\n:ID:       test-0002\n:END:\n"))
+    (let* ((claude-code-ide-org-query-files (list file))
+           (lines (claude-code-ide-org--nomination-candidates-context)))
+      (should (= 1 (length lines)))
+      (should (string-match-p "no next action in \"Test heading\"" (car lines)))
+      (should (string-match-p "one candidate, \"The only candidate\"" (car lines))))))
+
+(ert-deftest claude-code-ide-org-test-nomination-is-quiet-when-a-next-exists ()
+  "The whole value of the report is that it goes quiet when there is
+nothing to do. A container that already has a NEXT is not named, and
+neither is a plain leaf -- only a *container* can lack a next action,
+because only a container is a project."
+  (claude-code-ide-org-test--with-heading
+    (let ((claude-code-ide-org-query-files (list file)))
+      ;; A bare leaf is never reported -- not by a predicate, but because
+      ;; it has no members to have a next action among. That IS the
+      ;; container test; a separate one would be redundant.
+      (should-not (claude-code-ide-org--nomination-candidates-context))
+      (claude-code-ide-org-test--add-child
+       file (concat "** NEXT Already nominated                                           :code:\n"
+                    ":PROPERTIES:\n:ID:       test-0002\n:END:\n"
+                    "** TODO Another one                                                 :code:\n"
+                    ":PROPERTIES:\n:ID:       test-0003\n:END:\n"))
+      (should-not (claude-code-ide-org--nomination-candidates-context)))))
+
+(ert-deftest claude-code-ide-org-test-nomination-counts-rather-than-picks ()
+  "With several candidates the report counts them and names none.
+
+That is the case no rule can decide, and the one the retired trigger
+never reached: it only ever fired on a sole survivor. Naming one here
+would be the same guess by a slower route."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--two-children file)
+    (let* ((claude-code-ide-org-query-files (list file))
+           (lines (claude-code-ide-org--nomination-candidates-context)))
+      (should (= 1 (length lines)))
+      (should (string-match-p "2 candidates" (car lines)))
+      (should-not (string-match-p "Child A" (car lines)))
+      (should-not (string-match-p "Child B" (car lines))))))
+
+(ert-deftest claude-code-ide-org-test-nomination-handles-a-slice ()
+  "A slice is a container whose members are links, so it is reported the
+same way -- resolved through the referent index rather than by walking
+children.
+
+Both kinds matter: the user's decision was that NEXT belongs to
+containers, \"slices and stories\", and a slice that reported nothing
+would silently exempt exactly the grouping this project invented."
+  (claude-code-ide-org-test--with-heading
+    (org-with-point-at (org-id-find id 'marker)
+      (org-entry-put nil "KIND" "slice")
+      (save-buffer))
+    (goto-char (point-max))
+    (insert "* TODO A referent                                                   :code:\n"
+            ":PROPERTIES:\n:ID:       test-0002\n:END:\n")
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (org-with-point-at (org-id-find id 'marker)
+      (org-end-of-meta-data t)
+      (insert "- [ ] [[id:test-0002][test-0002]] TODO A referent\n")
+      (save-buffer))
+    (let* ((claude-code-ide-org-query-files (list file))
+           (lines (claude-code-ide-org--nomination-candidates-context)))
+      (should (= 1 (length lines)))
+      (should (string-match-p "one candidate, \"A referent\"" (car lines))))))
+
 (ert-deftest claude-code-ide-org-test-session-context-omits-doing-containers ()
   "A container in DOING is a true and unremarkable statement about the
 project. Reporting it would add one permanent, never-changing line --
@@ -1492,9 +1417,14 @@ excluded while an otherwise identical leaf is not."
     (goto-char (point-max))
     (insert "* DOING Epic heading                                                :code:\n"
             ":PROPERTIES:\n:ID:       test-0002\n:END:\n"
-            "** TODO A real child                                                :code:\n"
+            "** NEXT A real child                                                :code:\n"
             ":PROPERTIES:\n:ID:       test-0003\n:END:\n")
     (save-buffer)
+    ;; The child is NEXT, not TODO, so the nomination advisory
+    ;; (TODO.org :ID: 62b65ad0) stays quiet and this test keeps testing
+    ;; only what it is named for. With a TODO child the container would
+    ;; be reported as having no next action -- correctly, and by a
+    ;; different rule.
     (let* ((claude-code-ide-org-query-files (list file))
            (result (claude-code-ide-org-session-context)))
       (should (not (string-match-p "Epic heading" result)))
@@ -5651,14 +5581,15 @@ A single-heading fixture never fires them, which is why every other
 apply test passes; the real TODO.org has siblings, so they fire on
 nearly every transition."
   (claude-code-ide-org-test--with-heading
-    (goto-char (point-max))
-    (insert (concat "* NEXT Sibling B                                                   :code:\n"
-                    ":PROPERTIES:\n"
-                    ":ID:       test-0002\n"
-                    ":END:\n"))
-    (save-buffer)
-    (org-id-update-id-locations (list file))
-    (let ((item (list :type 'state :id id
+    ;; Both headings must sit inside a container: since TODO.org
+    ;; :ID: 62b65ad0 a top-level NEXT demotes nothing, so a top-level
+    ;; fixture would no longer fire the trigger this test needs.
+    (claude-code-ide-org-test--add-child
+     file (concat "** NEXT Child B                                                    :code:\n"
+                  ":PROPERTIES:\n:ID:       test-0002\n:END:\n"
+                  "** TODO Child C                                                    :code:\n"
+                  ":PROPERTIES:\n:ID:       test-0003\n:END:\n"))
+    (let ((item (list :type 'state :id "test-0003"
                       :ts (date-to-time "2026-08-12T19:00:00-0500")
                       :from "TODO" :to "NEXT"
                       :note "applied while a sibling was NEXT"
@@ -9185,82 +9116,7 @@ off by an order of magnitude."
       (should-not (claude-code-ide-org-test--lint-matches
                    (claude-code-ide-org-test--lint drawered) 'warn "repeater with a")))))
 
-(ert-deftest claude-code-ide-org-test-auto-promote-does-not-re-enter-itself ()
-  "The promotion writes ONCE, counted rather than inferred.
 
-TODO.org: the trigger calls `org-todo', which fires `org-trigger-hook',
-which is the trigger -- so without a re-entrancy guard it promotes in
-the group it has just changed, and repeats. Measured on one real apply
-2026-08-24: 1201 mutations across 114 headings in nine seconds, against
-twelve queued state changes.
-
-Counted, not asserted on the end state, and that is the whole point of
-this test. The finished keywords can be perfectly correct while
-hundreds of writes happened underneath -- which is exactly what the
-audit log showed and what no end-state assertion would have caught.
-
-*This test does not discriminate on its own*, and saying so matters. A
-single sibling group cannot cascade into itself: after the promotion the
-group holds a NEXT, so the re-entered call refuses on its own terms. The
-production cascade came from the settle loop firing across many groups,
-plus level-1 categories becoming eligible once one acquired a keyword,
-and no minimal fixture reproduces that. The guard is pinned by the test
-below; this one is a regression guard on the write count.
-
-`--review-applying' does not cover this: it is unbound during
-`--review-settle-auto-promote' by design, which is when the cascade
-ran."
-  (claude-code-ide-org-test--with-heading
-    (goto-char (point-max))
-    (insert "* Parent\n"
-            "** TODO Only child left                                             :code:\n"
-            ":PROPERTIES:\n:ID:       test-promo-1\n:CREATED:  [2026-08-14 Fri 10:00]\n:END:\n"
-            "** DONE Finished sibling                                            :code:\n"
-            ":PROPERTIES:\n:ID:       test-promo-2\n:CREATED:  [2026-08-14 Fri 10:00]\n:END:\n")
-    (save-buffer)
-    (org-id-update-id-locations (list file))
-    (let ((calls 0))
-      (cl-letf* ((real (symbol-function 'org-todo))
-                 ((symbol-function 'org-todo)
-                  (lambda (&rest args) (setq calls (1+ calls)) (apply real args))))
-        (claude-code-ide-org--at-id
-         "test-promo-1"
-         (lambda () (claude-code-ide-org--trigger-auto-promote-sole-todo nil))))
-      ;; Exactly one write: the promotion itself, and nothing it caused.
-      (should (= 1 calls)))
-    ;; And it did the right thing while doing it once.
-    (should (equal "NEXT"
-                   (claude-code-ide-org--at-id
-                    "test-promo-1" (lambda () (org-get-todo-state)))))))
-
-(ert-deftest claude-code-ide-org-test-auto-promote-guard-is-not-review-applying ()
-  "The two guards are not substitutes, which is why the cascade was possible.
-
-`--review-applying' suppresses the promotion for a whole apply batch so
-it can settle once afterwards; it is deliberately unbound during that
-settle. `--auto-promote-active' guards a single call against its own
-`org-todo'. Binding either alone leaves a hole, so both are asserted to
-stop the trigger independently."
-  (claude-code-ide-org-test--with-heading
-    (goto-char (point-max))
-    (insert "* Parent\n"
-            "** TODO Only child left                                             :code:\n"
-            ":PROPERTIES:\n:ID:       test-promo-1\n:CREATED:  [2026-08-14 Fri 10:00]\n:END:\n"
-            "** DONE Finished sibling                                            :code:\n"
-            ":PROPERTIES:\n:ID:       test-promo-2\n:CREATED:  [2026-08-14 Fri 10:00]\n:END:\n")
-    (save-buffer)
-    (org-id-update-id-locations (list file))
-    (dolist (guard '(claude-code-ide-org--review-applying
-                     claude-code-ide-org--auto-promote-active))
-      (claude-code-ide-org--at-id
-       "test-promo-1"
-       (lambda ()
-         (eval `(let ((,guard t))
-                  (claude-code-ide-org--trigger-auto-promote-sole-todo nil))
-               t)))
-      (should (equal "TODO"
-                     (claude-code-ide-org--at-id
-                      "test-promo-1" (lambda () (org-get-todo-state))))))))
 
 (ert-deftest claude-code-ide-org-test-apply-failure-names-the-item ()
   "A failed item's report says WHICH item failed.

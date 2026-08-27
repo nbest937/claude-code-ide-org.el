@@ -5235,6 +5235,47 @@ The third is the important one: it is the known negative, confirmed independentl
 *Consequence for the flattening question* ([[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]): none. This is orthogonal and was already noted there as independent.
 
 
+** NEXT Reserve the NEXT keyword for containers; nominate rather than promote :code:
+:PROPERTIES:
+:ID:       62b65ad0-304b-4cf1-bd95-2f1ecb671d6b
+:CREATED:  [2026-08-26 Wed 18:50]
+:END:
+
+*Step 0 of [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]'s plan, and it stands on its own* -- flattening only *exposed* this; the fix improves today's file unchanged.
+
+*What exposed it.* Flattening would collapse nine sibling groups into one, since =--map-siblings= walks with =org-get-next-sibling=, which at top level stops only at the file's boundary. The first instinct was to teach it about =:CATEGORY:= so the old behaviour survived. The user asked the better question -- *when have we ever referred to tier-2 tasks as siblings?* -- and the evidence says the old behaviour was never right.
+
+*Three findings, none of them from reasoning.*
+
+1. *The nominations were bad.* Of roughly eight promotions that fired at level 2, **three are now =MAYBE=**: worktree partitioning, "commit a newly-captured TODO", and "evaluate choice of shell". The trigger declared something next and a human later parked it.
+2. *A category is a drawer, not a project.* GTD's invariant is that a live *project* has a next action. "The sole remaining TODO in Tooling" asserts nothing.
+3. *The test fixture has no category tier at all.* =--with-heading= builds a level-1 task with level-2 children, so every trigger test already modelled the flat world -- and "top-level sibling" in [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]]'s verification meant *task*, never *category*. The suite encoded semantics production never had.
+
+*This is 42808717 one tier up.* That heading taught the trigger to refuse a *container*, because promoting one "declares a project to be an action, inverting the one thing =NEXT= means". It fixed the case where the promoted heading was the wrong kind of thing; this fixes the case where the *sibling group* is.
+
+*What shipped.* =NEXT= is meaningful only inside a container. =--trigger-demote-conflicting-next= survives, scoped by "has a parent" -- which *is* the container test, since a keyworded heading with a parent makes that parent one by definition. Autonomous promotion is gone, replaced by =--nomination-candidates-context=: a =SessionStart= line naming every container whose live members include no =NEXT=. It names a sole candidate and merely *counts* several, because that is the case no rule can decide.
+
+*163 lines of code retired, and the shape of them is the point.*
+
+| retired                            | lines | existed only because…                     |
+|------------------------------------+-------+-------------------------------------------|
+| =--trigger-auto-promote-sole-todo= |    92 | it wrote to the file on its own           |
+| =--review-settle-auto-promote=     |    41 | suppression skipped it mid-batch          |
+| =--auto-promote-active=            |    16 | re-entrancy; 1201 mutations in nine seconds |
+| =--review-applying=                |    14 | apply lands one event at a time           |
+
+Both flags had *exactly one reader* -- the trigger itself. Each guard was added after an incident caused by the previous one's absence, and the plan was about to add a fifth. Advisory promotion leaves nothing to guard. Net across the change: **-172 lines**, including 235 lines of tests for retired code.
+
+*Three redundant guards were written into the new function on the first pass, and all three were found the same way* -- by breaking them and watching the suite stay green. A =--grouping-heading-p= check (implied by having members), a =states= non-nil check (implied by =(assoc "TODO" states)=), and a finished-member filter (implied by selecting =TODO= downstream). All removed. The remaining conditions each fail a named test when broken.
+
+*A defect the tests could not have caught.* The advisory returned *propertized* strings -- =#("..." 0 11 (...))= -- because =org-get-heading= carries text properties and =format= propagates them. Batch Emacs runs no font-lock, so every fixture came back clean. Found by reading the live output, which is the same trap =--outline-line='s own comment documents.
+
+*Measured on the real corpus:* five containers with no next action, each a genuine un-nominated project. Not a wall, and unlike a =DOING=-container line each one disappears the moment somebody nominates -- so it is not the "permanent, never-changing line" that =session-context='s container filter exists to prevent.
+
+*Verified*: 423/423; the demote guard, the quiet-when-NEXT-exists rule, the count-rather-than-pick rule and the slice path each fail a named test when broken. The live Emacs needed =remove-hook= as well as a reload -- the retired trigger was still registered on =org-trigger-hook= after =load-file=, which is exactly the org-dev skill's deletion warning.
+
+
+
 * Observability
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Observability
@@ -6727,7 +6768,6 @@ this project's Doom config pending an upstream report/PR.
 *The cookie regexp is now a shared =defconst=*, so the inserter and both lint clauses cannot disagree about what counts as a cookie already being present. It was previously an inline literal in one place.
 
 *Placement detail worth not rediscovering*: the cookie is appended before the tags, since org requires tags to end the headline. =org-edit-headline= handles that; writing it at the end of the raw line would have produced =... :code: [/]=, which org does not read as a cookie.
-
 
 
 * Skill logic
@@ -8760,7 +8800,6 @@ First, =NEXT= itself. Flattening would have collapsed nine sibling groups into o
 Second, =org_outline= and its consumers. Today the grouping *is* the tree, so flattening would render a wall of 121 unindented lines. Grouping its output by =:CATEGORY:= keeps the rendered shape byte-identical while changing only its source -- and that is what holds the documentation churn to four capture sites instead of rewriting CLAUDE.md's orientation section.
 
 *The corpus survey, which the taxonomy step rests on.* Counting every descendant in both files, 273 headings: =Clock lifecycle & visibility= holds *138, or 51%*, while four categories hold twelve between them and have never had a single item archived. The user's own tell is the sharpest summary -- only two category names contain a conjunction, and both are the ones the survey independently flagged as compound.
-
 
 
 ** DONE Compose slices by reference: a checkbox list of id links, blocked on its members :code:research:
