@@ -2465,7 +2465,27 @@ Returns \"Amended: ...\", \"Queued amend: ...\", or \"Error: ...\"."
     (if (null id) (cdr resolved)
   (let ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker))))
     (if (not marker)
-        (format "Error: no org heading found with :ID: \"%s\"" id)
+        ;; A capture queued this session has an :ID: but no heading yet,
+        ;; so this resolution fails -- truthfully and uselessly: "no org
+        ;; heading found" reads as a typo when `org_capture' returned
+        ;; that id seconds earlier. `org_set_todo' and `org_clock_in'
+        ;; have tolerated the state since the silent-drop regression;
+        ;; amend never did (TODO.org :ID: 798bb7a1), hit on 2026-08-27
+        ;; while filing a heading about it.
+        ;;
+        ;; Amend genuinely cannot proceed -- there is no body to write
+        ;; into -- so this stays a refusal, and says which refusal it is.
+        ;; The check belongs HERE and not around the `--at-id' below:
+        ;; amend resolves the id early to choose write-through versus
+        ;; queue, so a guard further down is unreachable. `--id-find's
+        ;; own docstring says exactly that, and a first attempt put it
+        ;; there anyway.
+        (let ((pending (claude-code-ide-org--pending-capture id)))
+          (if pending
+              (format "Error: \"%s\" is a capture queued this session and not \
+yet applied, so it has no body to amend. Apply the queue, then amend."
+                      (plist-get pending :title))
+            (format "Error: no org heading found with :ID: \"%s\"" id)))
       (let* ((file (buffer-file-name (marker-buffer marker)))
              (title (org-with-point-at marker
                       (org-no-properties (org-get-heading t t t t)))))
@@ -3489,7 +3509,8 @@ it would be destroyed at the next apply anyway."
     ;; longer than what it replaced, which pushed the second member line
     ;; past the bound and left it silently unrefreshed.
     (let ((end (copy-marker (save-excursion (outline-next-heading) (or (point) (point-max)))))
-          (changed 0))
+          (changed 0)
+          (skipped nil))
       (while (re-search-forward
               "^\\([ \t]*\\)- \\(\\[[ Xx-]\\] \\)?\\(\\[\\[id:\\([^]]+\\)\\]\\[[^]]*\\]\\]\\)\\(.*\\)$"
               end t)
@@ -3499,6 +3520,18 @@ it would be destroyed at the next apply anyway."
                (entry (gethash id index))
                (kw (car entry))
                (title (cdr entry)))
+          ;; A member with no entry, or an entry carrying no keyword, is
+          ;; skipped -- and used to be skipped *silently*, leaving the
+          ;; placeholder text standing as though it were the referent's
+          ;; real title. That is the "a slice line disagrees with its
+          ;; referent" failure the conventions exist to prevent, arriving
+          ;; through a door they do not describe (TODO.org :ID: 798bb7a1).
+          ;;
+          ;; Counted rather than repaired: the honest rendering of a
+          ;; heading whose `todo' event is still queued is not something
+          ;; this function can invent, so it reports instead.
+          (unless (and entry kw)
+            (push id skipped))
           (when (and entry kw)
             (let* ((box (cdr (assoc kw claude-code-ide-org--slice-checkbox-by-keyword)))
                    (new (concat indent "- " (if box (format "[%s] " box) "")
@@ -3512,7 +3545,7 @@ it would be destroyed at the next apply anyway."
                 (replace-match new t t)
                 (setq changed (1+ changed)))))))
       (set-marker end nil)
-      changed)))
+      (cons changed (nreverse skipped)))))
 
 (defun claude-code-ide-org-refresh-slice (&optional id)
   "Regenerate every slice's checklist from its referents.
@@ -3542,7 +3575,7 @@ With ID, refreshes that slice only.  Returns a human-readable summary."
         ;; read-only buffer failing it would reproduce the exact incident
         ;; the apply-path binding was added for, one command later.
         (inhibit-read-only t)
-        (slices 0) (lines 0) (blockers 0))
+        (slices 0) (lines 0) (blockers 0) (unrendered nil))
     (dolist (file (claude-code-ide-org--tracked-files))
       (when (file-exists-p file)
         (with-current-buffer (find-file-noselect file)
@@ -3554,7 +3587,9 @@ With ID, refreshes that slice only.  Returns a human-readable summary."
                             (equal (downcase (or (org-entry-get nil "ID") ""))
                                    (downcase id))))
                (setq slices (1+ slices))
-               (setq lines (+ lines (claude-code-ide-org--refresh-slice-members-at-point index)))
+               (let ((result (claude-code-ide-org--refresh-slice-members-at-point index)))
+                 (setq lines (+ lines (car result)))
+                 (setq unrendered (append unrendered (cdr result))))
                ;; Insert the cookie before updating it, because
                ;; `org-update-statistics-cookies' only ever *updates* one
                ;; that is already in the headline -- measured 2026-08-26,
@@ -3573,10 +3608,21 @@ With ID, refreshes that slice only.  Returns a human-readable summary."
                (when (claude-code-ide-org--refresh-slice-blocker-at-point)
                  (setq blockers (1+ blockers))))))
           (when (buffer-modified-p) (save-buffer)))))
-    (format "%d slice%s refreshed, %d member line%s rewritten, %d blocker%s updated"
-            slices (if (= slices 1) "" "s")
-            lines (if (= lines 1) "" "s")
-            blockers (if (= blockers 1) "" "s"))))
+    (concat
+     (format "%d slice%s refreshed, %d member line%s rewritten, %d blocker%s updated"
+             slices (if (= slices 1) "" "s")
+             lines (if (= lines 1) "" "s")
+             blockers (if (= blockers 1) "" "s"))
+     ;; Named, not merely counted. "1 skipped" sends the reader hunting
+     ;; through a 27-member list; the id says which line is still showing
+     ;; its placeholder, and the reason says what will fix it.
+     (when unrendered
+       (format ".  %d member%s left unrendered because %s keywordless on \
+disk -- a queued capture or `todo' event, not yet applied: %s"
+               (length unrendered)
+               (if (= 1 (length unrendered)) "" "s")
+               (if (= 1 (length unrendered)) "it is" "they are")
+               (mapconcat #'claude-code-ide-org--id-prefix unrendered " "))))))
 
 (defun claude-code-ide-org-refresh-slice-blocker (&optional id)
   "Write the `:BLOCKER:' of the slice with :ID: ID from its checkbox list.

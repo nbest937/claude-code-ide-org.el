@@ -9873,6 +9873,23 @@ CLOCK: [2026-08-26 Wed 19:35]--[2026-08-26 Wed 19:40] =>  0:05
 
 *The transient lint error resolved by itself* when the queue was applied a few minutes later, which is the expected behaviour and worth stating so nobody "fixes" it by deleting the blocker entry.
 
+*Shipped [2026-08-27 Thu], taking the third candidate above -- "have it refuse loudly rather than skip silently ... probably the floor regardless of what else is done."* Both other candidates are left open on purpose: ordering the workflow costs a human round-trip, and teaching a rendering function about the queue is a layering decision this does not need to make.
+
+*Two surfaces, not one.* The body above found =refresh-slice=; the same root has a second face that only showed up by being hit. =org_amend= on a queued capture answered =Error: no org heading found with :ID: "..."= -- true, and useless: it reads as a typo when =org_capture= returned that id seconds earlier. =org_set_todo= and =org_clock_in= have tolerated that state since the silent-drop regression; amend never did.
+
+*Both now name the condition and the remedy.*
+- Amend: ="..." is a capture queued this session and not yet applied, so it has no body to amend. Apply the queue, then amend.=
+- Refresh: =1 member left unrendered because it is keywordless on disk -- a queued capture or todo event, not yet applied: bbb22222=. Named rather than counted, because "1 skipped" sends a reader hunting through a 27-member list.
+
+*Counted rather than repaired, deliberately.* The honest rendering of a heading whose keyword has not landed is not something =refresh-slice= can invent, and inventing one would manufacture exactly the "slice line disagrees with its referent" state the conventions forbid. Reporting is the whole fix.
+
+*Where the guard goes is the interesting part, and I got it wrong first.* The obvious place is around =--at-id=, which is where the failure appears to happen. It is unreachable: =org_amend= resolves the id *early*, to choose write-through versus queue, and returns the generic error before =--at-id= is ever called. =--id-find='s own docstring says so in as many words -- "=claude-code-ide-org-amend= does its own =org-id-find= *before* reaching =--at-id=" -- recorded there in 2026-08-18 after fourteen call sites were missed the same way. I read that docstring earlier in this session and still put the guard in the wrong place; the test is what caught it.
+
+*Hit live twice on 2026-08-27*: once refreshing a slice, and once amending [[id:6c48d5a6-1c78-4ce5-ac97-5e1091bdb25c][6c48d5a6]] -- a heading being filed *because* work had gone unfiled. The queue was busy with the user's own unsaved edits, which is exactly the condition that makes a capture defer.
+
+*Verified*: 434/434, and each surface fails a named test when its guard is removed. The narrowness is asserted too -- a genuinely unknown id still reports plainly, with no mention of a pending capture, because =bin/hooks/queue-append= drops any reply beginning =Error:= and that drop is what stands between a typo and an unexplainable queue entry.
+
+
 
 * DONE Reuse org's own facilities instead of rebuilding them beside it :code:
 CLOSED: [2026-08-27 Thu 08:14]

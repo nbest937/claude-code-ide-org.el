@@ -7528,6 +7528,73 @@ losing the state with nothing to show for it."
       ;; ...and so does a keyword the target file does not declare.
       (should (string-prefix-p "Error:" (claude-code-ide-org-set-todo "cap-id-2" "BOGUS"))))))
 
+(ert-deftest claude-code-ide-org-test-amend-names-a-pending-capture ()
+  "Amending a queued capture refuses by name, not as an unknown id.
+
+TODO.org :ID: 798bb7a1. `org_set_todo' and `org_clock_in' have tolerated
+a pending capture since the silent-drop regression; `org_amend' did not,
+so it answered \"no org heading found\" for an :ID: that `org_capture'
+had returned seconds earlier. True, and useless -- it reads as a typo.
+
+Amend genuinely cannot proceed, since there is no body to write into, so
+this stays a refusal. What changes is that the refusal says which one it
+is and what unblocks it. Hit live on 2026-08-27 while filing a heading
+about having failed to file things."
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-test--with-queue
+      (claude-code-ide-org-test--queue-write
+       "sess-a" (claude-code-ide-org-test--capture-line
+                 "2026-01-15T09:14:00-0500" "cap-id-3" "Not written yet"))
+      (let ((reply (claude-code-ide-org-amend "cap-id-3" "some prose")))
+        (should (string-prefix-p "Error:" reply))
+        (should (string-match-p "Not written yet" reply))
+        (should (string-match-p "queued this session" reply))
+        (should (string-match-p "Apply the queue" reply))
+        ;; NOT the generic message, which is what sent a reader hunting.
+        (should-not (string-match-p "no org heading found" reply)))
+      ;; The tolerance stays narrow: an unknown id still reports plainly.
+      (let ((reply (claude-code-ide-org-amend "no-such-id" "some prose")))
+        (should (string-prefix-p "Error:" reply))
+        (should-not (string-match-p "queued this session" reply))))))
+
+(ert-deftest claude-code-ide-org-test-refresh-slice-names-unrendered-members ()
+  "A member it cannot render is reported, with its id.
+
+TODO.org :ID: 798bb7a1. `refresh-slice' skipped a member whose referent
+carries no keyword -- a capture or `todo' event still queued -- and said
+only \"0 member lines rewritten\", leaving the placeholder text standing
+as though it were the referent's real title. That is the \"a slice line
+disagrees with its referent\" failure the conventions exist to prevent,
+arriving through a door they do not describe.
+
+Counted rather than repaired: the honest rendering of a heading whose
+keyword has not landed is not something this function can invent. Named
+rather than counted, because \"1 skipped\" sends a reader hunting through
+a 27-member list."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* TODO A real referent\n:PROPERTIES:\n"
+            ":ID:       aaa11111-1111-4111-8111-111111111111\n:END:\n"
+            "* A keywordless referent\n:PROPERTIES:\n"
+            ":ID:       bbb22222-2222-4222-8222-222222222222\n:END:\n")
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (org-with-point-at (org-id-find id 'marker)
+      (org-entry-put nil "KIND" "slice")
+      (org-end-of-meta-data t)
+      (insert "- [ ] [[id:aaa11111-1111-4111-8111-111111111111][aaa11111]] placeholder\n"
+              "- [ ] [[id:bbb22222-2222-4222-8222-222222222222][bbb22222]] placeholder\n")
+      (save-buffer))
+    (let* ((claude-code-ide-org-query-files (list file))
+           (summary (claude-code-ide-org-refresh-slice)))
+      ;; The one with a keyword rendered.
+      (should (string-match-p "1 member line rewritten" summary))
+      ;; The one without is named, with the reason and the remedy.
+      (should (string-match-p "1 member left unrendered" summary))
+      (should (string-match-p "bbb22222" summary))
+      (should (string-match-p "keywordless on disk" summary))
+      (should-not (string-match-p "aaa11111" summary)))))
+
 (ert-deftest claude-code-ide-org-test-capture-then-todo-apply-in-one-batch ()
   "A capture at T0 and a todo at T1 on the same id are one dependency
 chain.  The todo must not render STALE -- the heading it names is
