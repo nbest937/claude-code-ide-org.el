@@ -9692,22 +9692,6 @@ have produced both the diagnosis and the tool."
           (kill-buffer buf))))
     files))
 
-(defun claude-code-ide-org--known-id-table ()
-  "Hash of every :ID: across the tracked files and their archives, to t.
-
-Scans `claude-code-ide-org--id-scannable-files', not
-`--tracked-files': a link into DONE.org is as legitimate as one into
-TODO.org, and refusing it taught a writer to avoid the convention rather
-than to fix anything (TODO.org :ID: 020d3688)."
-  (let ((table (make-hash-table :test 'equal)))
-    (dolist (file (claude-code-ide-org--id-scannable-files) table)
-      (when (file-exists-p file)
-        (with-temp-buffer
-          (let ((org-inhibit-startup t))
-            (insert-file-contents file)
-            (goto-char (point-min))
-            (while (re-search-forward "^[ \t]*:ID:[ \t]+\\([0-9a-fA-F-]+\\)[ \t]*$" nil t)
-              (puthash (downcase (match-string 1)) t table))))))))
 
 (defun claude-code-ide-org--id-find (id &optional markerp)
   "Like `org-id-find\', but ID may be an 8-character prefix.
@@ -9726,9 +9710,49 @@ The length-and-hex guard runs before the table is built, so the common
 case of a full uuid costs one `length\' call and no file scanning."
   (when (and (stringp id) (= (length id) 8) (string-match-p "\\`[0-9a-fA-F]+\\'" id))
     (let ((full (claude-code-ide-org--expand-id-prefix
-                 id (claude-code-ide-org--known-id-table))))
+                 id (claude-code-ide-org--id-index))))
+      ;; Rescan once before giving up, naming our tracked files: an id
+      ;; that arrived by hand edit or `git pull' is not in org's index
+      ;; until something looks (TODO.org :ID: 020d3688).
+      (unless (stringp full)
+        (org-id-update-id-locations
+         (claude-code-ide-org--id-scannable-files) t)
+        (setq full (claude-code-ide-org--expand-id-prefix
+                    id (claude-code-ide-org--id-index))))
       (when (stringp full) (setq id full))))
   (org-id-find id markerp))
+
+(defun claude-code-ide-org--id-index ()
+  "Org's own id-to-file index, loaded if it is not already.
+
+*This replaced a table of our own* (TODO.org :ID: 020d3688, 2026-08-27).
+A `--known-id-table' re-read every tracked file from disk on *every*
+`org_amend' to build a hash org already maintains in memory: 17.5 ms
+against 0.57 us for a lookup, some 23,000x, to produce a strictly worse
+answer.
+
+Worse in three ways, each of which had cost something. It was built from
+`--tracked-files', which is derived from `org-agenda-files' and so
+silently omitted DONE.org -- the defect that made every id in the archive
+unresolvable. Org's index has no such gap: `org-id-search-archives'
+defaults to t, so archives are indexed as a matter of course. It knew
+only ids matching a hex-shaped regexp. And it learned about a new heading
+only on the next full re-read, where org's is updated by
+`org-id-add-location' at the moment `org-id-get-create' runs.
+
+Measured before switching: org's index is a strict *superset* -- nothing
+in the hand-built table was missing from it, and it carried one id ours
+did not (a fixture in `clock-template.org'). All 276 keys are lowercase,
+so prefix matching needs no normalisation.
+
+*The lesson is the one 0465c1d5 had already recorded and nobody read*:
+this project keeps rebuilding org machinery beside org rather than on
+it, and the rebuilt version is where the gaps live."
+  (require 'org-id)
+  (unless (and (bound-and-true-p org-id-locations)
+               (hash-table-p org-id-locations))
+    (org-id-locations-load))
+  (and (hash-table-p org-id-locations) org-id-locations))
 
 (defun claude-code-ide-org--expand-id-prefix (prefix table)
   "Return the single full :ID: in TABLE beginning with PREFIX, or a symbol.
@@ -9752,7 +9776,8 @@ verified and left alone.  Either way an unresolvable target is refused,
 naming it, rather than written and caught later by `bin/lint-org'.
 
 Returns a cons (t . EXPANDED) on success, or (nil . MESSAGE)."
-  (let ((table (claude-code-ide-org--known-id-table))
+  (let ((table (claude-code-ide-org--id-index))
+        (rescanned nil)
         (case-fold-search t)
         (bad nil)
         (start 0)
@@ -9760,11 +9785,18 @@ Returns a cons (t . EXPANDED) on success, or (nil . MESSAGE)."
     (while (string-match claude-code-ide-org--id-link-regexp out start)
       (let* ((target (match-string 1 out))
              (mb (match-beginning 1))
-             (me (match-end 1)))
+             (me (match-end 1))
+             ;; The WHOLE match, not group 1. Restarting the scan at
+             ;; `mb' would resume *inside* `[[id:', where the regexp
+             ;; cannot match again -- so the loop would end early with
+             ;; no error and an unresolvable link would be accepted
+             ;; silently. Caught by the refuses-rather-than-guesses
+             ;; test, which is exactly the failure it was written for.
+             (m0 (match-beginning 0)))
         (setq start me)
         (cond
          ;; Already a full id that resolves: leave it.
-         ((gethash (downcase target) table) nil)
+         ((and table (gethash (downcase target) table)) nil)
          ;; A bare prefix: expand it.
          ((not (string-match-p "-" target))
           (let ((full (claude-code-ide-org--expand-id-prefix target table)))
@@ -9774,6 +9806,25 @@ Returns a cons (t . EXPANDED) on success, or (nil . MESSAGE)."
               (setq start (+ mb (length full))))
              ((eq full 'ambiguous)
               (push (format "%s (matches more than one heading)" target) bad))
+             ;; Rescan once before refusing, exactly as `org-id-find'
+             ;; does: org's index is updated in memory when a heading is
+             ;; created *here*, but an id that arrived by `git pull' or
+             ;; from another Emacs is unknown until something rescans.
+             ;; Refusing a real id teaches the writer to stop using the
+             ;; convention, which is how the last gap went unreported for
+             ;; weeks (TODO.org :ID: 020d3688).
+             ((not rescanned)
+              (setq rescanned t)
+              ;; Pass our own file list explicitly. Org rescans agenda
+              ;; files, their archives and open buffers; this project's
+              ;; tracked set is `claude-code-ide-org-query-files' when
+              ;; that is set, which need not be any of those. Naming
+              ;; them makes org's index a superset of ours by
+              ;; construction rather than by coincidence.
+              (org-id-update-id-locations
+               (claude-code-ide-org--id-scannable-files) t)
+              (setq table (claude-code-ide-org--id-index))
+              (setq start m0))
              (t (push (format "%s (matches no heading)" target) bad)))))
          ;; A full-looking id that resolves to nothing: refuse.
          (t (push (format "%s (resolves to no heading)" target) bad)))))

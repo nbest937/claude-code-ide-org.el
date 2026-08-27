@@ -2802,10 +2802,10 @@ nothing, which is precisely how the gap stayed silent."
       (should (member (file-truename archive-file)
                       (mapcar #'file-truename
                               (claude-code-ide-org--id-scannable-files))))
-      ;; Hex-shaped, because `--known-id-table' only matches ids that
-      ;; look like org's own -- a lesson from this test's first draft.
-      (should (gethash "aaaa0001-1111-4111-8111-111111111111"
-                       (claude-code-ide-org--known-id-table))))))
+      ;; Resolvable through org's own index, which is what expansion
+      ;; consults since 2026-08-27.
+      (should (org-id-find-id-in-file "aaaa0001-1111-4111-8111-111111111111"
+                                      archive-file)))))
 
 (ert-deftest claude-code-ide-org-test-id-scan-resolves-archive-through-a-symlink ()
   "The archive path resolves against the tracked file's TRUE directory.
@@ -2830,8 +2830,8 @@ a file in another, with the archive beside the *target*."
           (progn
             (make-symbolic-link file link)
             (let ((claude-code-ide-org-query-files (list link)))
-              (should (gethash "bbbb0001-1111-4111-8111-111111111111"
-                               (claude-code-ide-org--known-id-table)))))
+              (should (org-id-find-id-in-file
+                       "bbbb0001-1111-4111-8111-111111111111" archive-file))))
         (delete-directory linkdir t)))))
 
 (ert-deftest claude-code-ide-org-test-id-link-resolves-into-the-archive ()
@@ -9418,7 +9418,14 @@ b8e6007a was filed for."
                      ":ID:       8ca6541d-0fc7-45a2-a4d3-76e1608f658d\n:END:\n"
                      "** TODO Second\n:PROPERTIES:\n"
                      ":ID:       29439196-bbb8-4b64-b8d5-3bf9d457bf6c\n:END:\n"))
-           ,@body)
+           ;; Ids written as raw text are unknown to org until something
+           ;; scans for them -- which is the honest shape of a hand edit
+           ;; or a `git pull', and exactly what the rescan-on-miss in
+           ;; `claude-code-ide-org-resolve-id-links' exists to survive.
+           ;; A fresh table per test, so one never leaks into the next.
+           (let ((org-id-locations (make-hash-table :test 'equal))
+                 (org-id-track-globally t))
+             ,@body))
        (delete-directory dir t))))
 
 (ert-deftest claude-code-ide-org-test-id-prefix-is-expanded ()
@@ -9483,6 +9490,42 @@ text would corrupt bodies wholesale rather than fail visibly."
            (r (claude-code-ide-org-resolve-id-links text)))
       (should (car r))
       (should (equal text (cdr r))))))
+
+(ert-deftest claude-code-ide-org-test-id-find-rescans-for-an-unindexed-prefix ()
+  "A prefix whose full id org has never indexed still expands.
+
+TODO.org :ID: 020d3688. Since 2026-08-27 expansion consults
+`org-id-locations' rather than a table rebuilt from disk each call. That
+is faster and strictly more complete, but it inherits org's one
+assumption: an id enters the index when `org-id-get-create' runs *here*.
+An id that arrived by hand edit, by `git pull', or from another Emacs is
+unknown until something rescans.
+
+`org-id-find's own fallback cannot cover this. It rescans and retries
+the id it was given -- and what we hold is an eight-character prefix,
+which will never match a full uuid however many times org looks. So the
+rescan has to happen during expansion, before `org-id-find' is called at
+all.
+
+The fixture builds exactly that shape: a file written without org ever
+visiting it, and an index that has never seen it."
+  (let* ((dir (file-name-as-directory (make-temp-file "ccio-unindexed" t)))
+         (file (expand-file-name "TODO.org" dir))
+         (claude-code-ide-org-query-files (list file))
+         (org-id-locations (make-hash-table :test 'equal))
+         (org-id-track-globally t))
+    (unwind-protect
+        (progn
+          (with-temp-file file
+            (insert "* Category\n"
+                    "** TODO Arrived out of band\n:PROPERTIES:\n"
+                    ":ID:       7e1d40cb-2222-4222-8222-222222222222\n:END:\n"))
+          (should-not (gethash "7e1d40cb-2222-4222-8222-222222222222"
+                               org-id-locations))
+          (let ((loc (claude-code-ide-org--id-find "7e1d40cb")))
+            (should loc)
+            (should (equal (file-truename file) (file-truename (car loc))))))
+      (delete-directory dir t))))
 
 (ert-deftest claude-code-ide-org-test-at-id-accepts-an-8-char-prefix ()
   "Every tool taking an :ID: argument accepts the prefix instead.
