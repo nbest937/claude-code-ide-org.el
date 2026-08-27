@@ -9648,28 +9648,6 @@ Returns a summary string."
   "\\[\\[id:\\([0-9a-fA-F][0-9a-fA-F-]*\\)\\]"
   "Matches the target of an `[[id:...]]' link, full or prefix.")
 
-(defun claude-code-ide-org--archive-files-of (file)
-  "Absolute paths of the archive targets FILE declares.
-
-Reads `#+ARCHIVE:' and every `:ARCHIVE:' property, takes the part before
-`::', and resolves it against FILE's *true* directory -- which matters
-here, because TODO.org is reached through a symlink in `org-directory'
-and a naive `expand-file-name' would resolve DONE.org into the symlink's
-directory, where it does not exist."
-  (let ((dir (file-name-directory (file-truename file)))
-        (found nil))
-    (with-temp-buffer
-      (let ((org-inhibit-startup t))
-        (insert-file-contents file)
-        (goto-char (point-min))
-        (while (re-search-forward
-                "^[ \t]*\\(?:#\\+ARCHIVE:\\|:ARCHIVE:\\)[ \t]+\\([^:\n]+\\)" nil t)
-          (let* ((raw (string-trim (match-string 1)))
-                 (path (and (not (string-empty-p raw))
-                            (expand-file-name raw dir))))
-            (when (and path (file-exists-p path) (not (member path found)))
-              (push path found))))))
-    (nreverse found)))
 
 (defun claude-code-ide-org--id-scannable-files ()
   "Tracked files plus the archives they declare.
@@ -9687,18 +9665,32 @@ resolved. Hit twice on 2026-08-26 by `org_amend' refusing a perfectly
 good `[[id:b8e6007a]]' prefix, in a session that was documenting the
 prefix convention at the time.
 
-Derived rather than configured, deliberately. A `defcustom' would fix
-this checkout and leave a fresh clone with the same silent gap, and the
-declaration is already in the file: a tracked file *says* where it
-archives to."
-  (let ((files (claude-code-ide-org--tracked-files)))
-    (delete-dups
-     (append (copy-sequence files)
-             (apply #'append
-                    (mapcar (lambda (f)
-                              (and (file-exists-p f)
-                                   (claude-code-ide-org--archive-files-of f)))
-                            files))))))
+*Org's own `org-add-archive-files' does the derivation*, following each
+file's `#+ARCHIVE:' and `:ARCHIVE:' declarations. This wrapper exists
+only to undo its one side effect: it visits each file with
+`org-get-agenda-file-buffer', which leaves real buffers behind, and this
+runs on every `org_amend'. Buffers that were not already open are killed
+again, matching what `--attention-headings-context' does and for the
+same reason -- a tool call must not quietly populate the user's buffer
+list.
+
+A first version of this hand-rolled the derivation in about 35 lines,
+before checking whether org had it. :ID: 0465c1d5 had named the right
+family of mechanisms a month earlier -- `agenda-with-archives' and
+`file-with-archives' -- and had even recorded the missing symlink as the
+reason the archive was out of scope. Searching the tracker first would
+have produced both the diagnosis and the tool."
+  (require 'org-archive)
+  (let* ((before (delq nil (mapcar #'buffer-file-name (buffer-list))))
+         (files (org-add-archive-files (claude-code-ide-org--tracked-files))))
+    (dolist (buf (buffer-list))
+      (let ((name (buffer-file-name buf)))
+        (when (and name (not (member name before))
+                   (member (file-truename name)
+                           (mapcar #'file-truename files)))
+          (with-current-buffer buf (set-buffer-modified-p nil))
+          (kill-buffer buf))))
+    files))
 
 (defun claude-code-ide-org--known-id-table ()
   "Hash of every :ID: across the tracked files and their archives, to t.
