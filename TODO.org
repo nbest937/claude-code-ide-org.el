@@ -8567,6 +8567,66 @@ format asserting less structure than the reader needs.
 
 *One fixture lesson worth keeping*: =--known-id-table= only matches hex-shaped ids, so the first draft of these tests used =arch-0001= and silently produced an *empty* table. The assertion caught it, but only because it asserted a specific id rather than that the table was non-empty.
 
+*Correction [2026-08-27 Thu]: the fix described above is not what shipped.* =--archive-files-of=, the ~35 lines of =#+ARCHIVE:=-reading and path resolution this body credits, lasted about forty minutes. Org already had it -- =org-add-archive-files= -- and [[orgit-rev:claude-code-ide-org::45292b8][45292b8]] replaced the hand-rolled version with a wrapper whose only job is undoing org's one side effect: it visits each file with =org-get-agenda-file-buffer= and leaves real buffers behind, which is unacceptable on a path that runs on every =org_amend=.
+
+*Read the paragraphs above as the diagnosis, not the implementation.* Everything they say about the *cause* stands -- the missing symlink, the 177-versus-275 id count, the truename being load-bearing, an undeclared file being indistinguishable from an unreadable one. Only the remedy changed.
+
+*And the deeper correction is that neither version should have been written.* [[id:0465c1d5-a064-4c8f-8082-9b853377ddf6][0465c1d5]] had named =agenda-with-archives= and =file-with-archives= on 2026-07-29, and had recorded the missing DONE.org symlink as the reason the archive was out of scope -- a month before this heading re-derived both from scratch. Searching the tracker would have produced the diagnosis *and* the tool.
+
+*Superseded again the same morning*, and this time entirely. [[orgit-rev:claude-code-ide-org::94b3985][94b3985]] deleted =--known-id-table=, the consumer this heading existed to fix, and expanded prefixes against =org-id-locations= instead: org's own index, which is archive-aware by default (=org-id-search-archives=), updated at =org-id-get-create= time rather than on the next re-read, and about 23,000x faster than rebuilding a hash from disk on every call. Measured as a strict superset before switching.
+
+*So this heading's lasting contribution is the diagnosis and =--id-scannable-files=*, which survives with one caller -- the slice referent index, which needs a heading's keyword and title rather than its mere existence, and that is the one thing org does not index.
+
+*The pattern is now written down* rather than left to be rediscovered: org-dev SKILL.md gains section 0b, "check whether org already has it", with the eight instances from these two days and the places to look ([[orgit-rev:claude-code-ide-org::06e7cff][06e7cff]], [[orgit-rev:claude-code-ide-org::e1c086c][e1c086c]]).
+*** Hand-rolled the archive derivation org already had :code:
+:PROPERTIES:
+:ID:       e6d1d810-5e88-4356-b002-bbb10cf19fc9
+:CREATED:  [2026-08-27 Thu 07:05]
+:END:
+
+*Retconned [2026-08-27 Thu]; shipped [2026-08-27 Thu 07:05] as [[orgit-rev:claude-code-ide-org::45292b8][45292b8]].*
+
+About 35 lines to read =#+ARCHIVE:= and =:ARCHIVE:= and resolve the paths against a file's true directory. Org has =org-add-archive-files=, which does exactly that and dedupes with =file-equal-p= rather than string equality.
+
+*The wrapper that survives has one job.* Org visits each file with =org-get-agenda-file-buffer=, leaving real buffers behind, and this runs on every =org_amend=. Buffers not already open are killed again, matching what =--attention-headings-context= does and for the same reason -- a tool call must not quietly populate the user's buffer list. Verified: 26 buffers before and after, DONE.org not left open.
+
+*[[id:0465c1d5-a064-4c8f-8082-9b853377ddf6][0465c1d5]] had named the right mechanisms a month earlier* -- =agenda-with-archives= and =file-with-archives= -- and had recorded the missing symlink as the reason the archive was out of scope. Searching the tracker first would have produced both the diagnosis and the tool.
+
+Net -22 lines, and the symlink test still discriminates: org resolves the archive against the link target the same way the hand-rolled version did.
+
+*** Expand prefixes against org-id-locations rather than a table of our own :code:
+:PROPERTIES:
+:ID:       93f6c908-1c15-44e5-84f9-03f1ffb6d5db
+:CREATED:  [2026-08-27 Thu 07:32]
+:END:
+
+*Retconned [2026-08-27 Thu]; shipped [2026-08-27 Thu 07:32] as [[orgit-rev:claude-code-ide-org::94b3985][94b3985]].*
+
+=--known-id-table= re-read every tracked file from disk on *every* =org_amend= to build a hash org already keeps in memory: **17.5 ms against 0.57 us**, some 23,000x, for a strictly worse answer.
+
+Worse in three ways, each of which had cost something. Built from =--tracked-files=, so blind to DONE.org -- the defect [[id:020d3688-f08d-460f-a3e8-931a1677074a][020d3688]] was filed for. Matched only hex-shaped ids. And it learned of a new heading only on the next full re-read, where org's index is updated by =org-id-add-location= the moment =org-id-get-create= runs.
+
+Verified a strict superset before switching; all 276 keys lowercase, so prefix matching needs no normalisation.
+
+*Both expansion sites rescan once on a miss, naming our files explicitly.* =org-id-find='s own fallback cannot cover this: it retries the id it was *given*, and what we hold is an eight-character prefix that will never match a full uuid however often org looks. So the rescan has to happen during expansion.
+
+*Two bugs found by the tests, both mine.* Restarting the scan after a rescan used =(match-beginning 1)=, which resumes *inside* the link's opening delimiter where the regexp cannot match again -- the loop ended early with no error and an unresolvable link was accepted silently. And the second rescan was initially unproven, no fixture reaching it; rather than delete it, a fixture with the honest shape was added -- a file org never visited, an index that has never seen it.
+
+*** Convert plain-text id workarounds left by the unresolvable-prefix era :code:
+:PROPERTIES:
+:ID:       c69df700-dbba-4437-bb98-44cff81501f2
+:CREATED:  [2026-08-27 Thu 07:06]
+:END:
+
+*Retconned [2026-08-27 Thu]; shipped [2026-08-27 Thu 07:06] as [[orgit-rev:claude-code-ide-org::2e24407][2e24407]].*
+
+Six references written as plain text rather than =[[id:]]= links, because the expander refused any prefix living in DONE.org until [[id:020d3688-f08d-460f-a3e8-931a1677074a][020d3688]] fixed the file list.
+
+*Three predate that session* -- [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] twice, and the 2026-08-21 day-node pair -- so the gap had been costing links for weeks, and the workaround had begun to look like a house style.
+
+*That is the finding worth keeping.* A tool that refuses a correct input does not merely fail; it teaches the writer a worse habit, and the habit outlives the fix. Nobody filed the refusals because writing the id as plain text worked well enough.
+
+Converted through Emacs rather than by editing the file behind it. =bin/lint-org= is the check that matters: it asserts every =[[id:]]= resolves, so a bad expansion fails rather than sitting in the file looking plausible. Prose about the =:ID:= *property* was untouched, since the pattern required a following 8-hex prefix.
 
 ** DONE Auto-promote makes a container the next action :code:
 CLOSED: [2026-08-21 Fri 13:16]
@@ -9630,7 +9690,41 @@ CLOCK: [2026-08-20 Thu 16:42]--[2026-08-20 Thu 16:46] =>  0:04
 - *Have it refuse loudly* rather than skip silently -- the cheapest, and it converts an invisible stale line into a message. Probably the floor regardless of what else is done.
 
 *The transient lint error resolved by itself* when the queue was applied a few minutes later, which is the expected behaviour and worth stating so nobody "fixes" it by deleting the blocker entry.
+** Reuse org's own facilities instead of rebuilding them beside it :code:
+:PROPERTIES:
+:ID:       4eb2492e-1791-44c0-8e2b-635dc094b0cf
+:CREATED:  [2026-08-27 Thu 08:14]
+:END:
 
+*Retconned [2026-08-27 Thu]; shipped as [[orgit-rev:claude-code-ide-org::06e7cff][06e7cff]] and [[orgit-rev:claude-code-ide-org::e1c086c][e1c086c]].*
+
+*Eight times in one session this project rebuilt something org already had*, which is how the rule got written: =org-add-archive-files=, =org-id-locations=, =org-id-search-archives=, =org-datetree-find-create-hierarchy=, =org-archive-reversed-order=, the manual's 10-character category guidance, =org-agenda-prefix-format=, and the manual's own statement of why archiving exists at all.
+
+*Three were asserted as fact without checking and happened to be right*, which is worse than being wrong: it produces confident prose nobody re-examines. All three were caught by the user asking where the claim came from.
+
+org-dev gains section 0b: the search order -- *tracker, running Emacs, straight checkout* -- and the test that decides it, **does org track this already?** Org indexes ids, locations, archive targets, clock sums. It does not index a heading's keyword-and-title by id, which is why =--slice-referent-index= legitimately scans files and =--known-id-table= never should have.
+
+*The tracker comes first deliberately.* [[id:0465c1d5-a064-4c8f-8082-9b853377ddf6][0465c1d5]] had named =agenda-with-archives= and diagnosed the missing DONE.org symlink a month before the same ground was re-covered from scratch.
+
+*The trigger moved too*, and that is the half that matters: every existing trigger fired *after* an edit, so 0b could only ever be read too late. The description now names the operations that should stop a writer before they start.
+
+*Verification is a documented manual pass*, not a test -- whether a description matches a future session's intent is the inherently fuzzy case CLAUDE.md exempts. What is checkable is checked: =bin/check-org-dev-skill= asserts 0b's cited paths exist and its named facilities are still bound, 18 checks, both halves proved to discriminate.
+
+** org_capture swallows a title beginning with a TODO keyword :code:
+:PROPERTIES:
+:ID:       2b2db914-c96e-416a-a80a-e31028308de0
+:CREATED:  [2026-08-26 Wed 18:50]
+:END:
+
+*Open. Promised during 2026-08-26's session and not filed until the next morning* -- which is itself the pattern that produced the other six retcons.
+
+*=org_capture= with a title beginning with a TODO keyword loses that word.* Capturing "NEXT belongs to containers; nominate rather than promote" produced =** NEXT belongs to containers; ...=: org parsed the leading =NEXT= as the *keyword*, so the heading acquired a state it was never given and its title lost its first word.
+
+*The tool cannot prevent this by documentation.* Its description already says the heading is written with no TODO keyword, and that remains true -- the keyword does not come from the tool, it comes from the title.
+
+*Caught only because =org_set_todo='s reply echoed the truncated title back*: "Queued todo -> DOING (was NEXT)" on a heading that had just been captured keywordless. Nothing else would have shown it; the heading looks entirely normal in the file.
+
+*Cheap guard, since the tool already knows the keyword set.* Refuse, or escape, a title whose first word is one. Refusing is probably right: such a title is nearly always a mistake, and a silently renamed heading is worse than an error. Note =bin/lint-org= cannot catch it either -- the result is a well-formed heading.
 
 * Tooling
 :PROPERTIES:
@@ -11340,7 +11434,37 @@ Those six refused =org_wrap_plan= with =Seam marker is the first body line; noth
 *An unclosed fence swallows the rest of the body*, which is the safe direction -- it under-reports rather than demanding footnotes for something the reader is already looking at.
 
 *Third amendment to this hook in one day*, after the all-digit id defect ([[id:28415ca8-a4ce-43a4-9af6-9ec0e7d5662a][28415ca8]] is a different heading; the digit fix was =60f311b=). All three were found the same way: by the hook firing, in front of the user, on a case it was wrong about.
+** All-digit :ID: prefixes were invisible to footnote-check :code:
+:PROPERTIES:
+:ID:       daca2a7d-5a7f-4714-96dd-ad10d114db4f
+:CREATED:  [2026-08-26 Wed 13:36]
+:END:
 
+*Retconned [2026-08-27 Thu]; shipped [2026-08-26 Wed 13:36] as [[orgit-rev:claude-code-ide-org::60f311b][60f311b]].*
+
+=footnote-check= dropped all-digit 8-character tokens *before* the =:ID:= lookup, on the reasoning that "a bare number or date is not an id". True of a date, false of an id: *5 of 267* tracked ids are all digits, so 1.9% of the corpus was unenforceable.
+
+*The damaging shape was not the silent miss but the partial one.* A response citing both =29439196= and =4f6a6bb1= was blocked naming only the second, so complying with the message exactly still left the first unfootnoted. A block reporting a strict subset of what is missing reads as authoritative and teaches the wrong lesson.
+
+*The filter was redundant with the lookup it preceded.* A date is rejected for not being a tracked id, exactly as a git short hash is -- the header already argued that turning a heuristic into a lookup "makes a false positive nearly impossible", then ran a heuristic in front of it.
+
+Four tests. Note the mixed-citation case blocks *even when broken*, because the hex half trips it -- so the assertion that the message names **both** ids is the one doing the work.
+
+** bin/check-org-dev-skill printed FAIL but exited 0, so no caller could see it :code:
+:PROPERTIES:
+:ID:       36481e67-d460-45a4-80b1-d23f209042e4
+:CREATED:  [2026-08-27 Thu 07:38]
+:END:
+
+*Retconned [2026-08-27 Thu]; shipped [2026-08-27 Thu 07:38] inside [[orgit-rev:claude-code-ide-org::06e7cff][06e7cff]].*
+
+*Filed separately because burying it in a documentation commit was the defect's second act.* A subject line reading "teach org-dev to look for org's own facilities" is not where anyone will look for a bug in the checker.
+
+*Checks 3 and 4 used a bare =set fail 1= inside an =if= block.* In fish that creates a **block-local** variable, so the outer flag stayed 0 and the script exited 0 while printing =FAIL=. Every failure it ever reported was invisible to any caller -- a pre-commit hook or a CI step would have read success.
+
+*The =check= function was always correct*, using =set -g=, which is exactly why this looked fine: the checks that used the helper behaved, and only the two hand-written blocks did not.
+
+*Found by breaking a claim and checking the exit code rather than the output* -- the same instinct this skill's own section 0 exists to enforce, applied to the skill's own checker. Now: clean exits 0, a broken claim exits 1.
 
 * Review and planning
 :PROPERTIES:
