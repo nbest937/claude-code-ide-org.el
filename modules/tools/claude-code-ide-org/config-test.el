@@ -9470,6 +9470,63 @@ conversation that had already moved on."
       (should (string-match-p "8ca6541d-0fc7-41a3" (cdr r)))
       (should (string-match-p "8-character prefix" (cdr r))))))
 
+(ert-deftest claude-code-ide-org-test-id-prefix-accepts-four-characters ()
+  "A prefix shorter than eight expands, provided it is unique.
+
+TODO.org :ID: 478d6ec9. The eight-character floor was the citation
+convention's width, never a correctness requirement -- uniqueness is
+what makes a prefix safe, and `--expand-id-prefix' already refuses an
+ambiguous one rather than guessing.
+
+Measured over the real corpus 2026-08-27, 282 ids: two characters
+collide in 73 groups, three in four, and four in none -- identical to
+eight. The user reports using short prefixes constantly, and until this
+change every one of them fell through to `org-id-find' with a string
+that could not possibly match."
+  (claude-code-ide-org-test--with-heading
+    (let ((claude-code-ide-org-query-files (list file))
+          (full "9f3c21ae-6b40-4d18-9a77-0c5e2b81d4f6"))
+      (claude-code-ide-org-test--add-child
+       file (concat "* TODO Short-prefix target\n:PROPERTIES:\n:ID:       "
+                    full "\n:END:\n"))
+      (org-id-update-id-locations (list file))
+      (dolist (prefix '("9f3c" "9f3c21" "9f3c21ae"))
+        (let ((loc (claude-code-ide-org--id-find prefix)))
+          (should loc)
+          (should (equal (file-truename file) (file-truename (car loc))))))
+      ;; Below the floor, no expansion is attempted at all.
+      (should-not (claude-code-ide-org--id-find "9f")))))
+
+(ert-deftest claude-code-ide-org-test-ambiguous-prefix-does-not-rescan ()
+  "An ambiguous prefix must not trigger a full re-index.
+
+Rescanning reads every tracked file and its archives. For a *missing*
+id that is worth it -- the id may have arrived out of band. For an
+ambiguous one it is worthless by construction: more data can only add
+matches, never resolve them.
+
+Missing that distinction is what pinned Emacs at 99% CPU on 2026-08-27,
+when a four-character prefix fell past the eight-character gate and
+every lookup rescanned the corpus. Asserted by counting calls rather
+than by timing, which would be flaky."
+  (claude-code-ide-org-test--with-heading
+    (let ((claude-code-ide-org-query-files (list file))
+          (calls 0))
+      (claude-code-ide-org-test--add-child
+       file (concat "* TODO One\n:PROPERTIES:\n"
+                    ":ID:       abcd1234-1111-4111-8111-111111111111\n:END:\n"
+                    "* TODO Two\n:PROPERTIES:\n"
+                    ":ID:       abcd1234-2222-4222-8222-222222222222\n:END:\n"))
+      (org-id-update-id-locations (list file))
+      (cl-letf* ((orig (symbol-function 'org-id-update-id-locations))
+                 ((symbol-function 'org-id-update-id-locations)
+                  (lambda (&rest args) (setq calls (1+ calls)) (apply orig args))))
+        (claude-code-ide-org--id-find "abcd1234")
+        (should (= 0 calls))
+        ;; A genuinely absent prefix still earns exactly one rescan.
+        (claude-code-ide-org--id-find "beef")
+        (should (= 1 calls))))))
+
 (ert-deftest claude-code-ide-org-test-id-prefix-refuses-rather-than-guesses ()
   "An unmatched or ambiguous prefix is an error, never a choice.
 
@@ -9484,8 +9541,14 @@ whole project exists to avoid."
     (let* ((table (make-hash-table :test 'equal)))
       (puthash "abcd1234-1111-1111-1111-111111111111" t table)
       (puthash "abcd1234-2222-2222-2222-222222222222" t table)
-      (should (eq 'ambiguous
-                  (claude-code-ide-org--expand-id-prefix "abcd1234" table))))))
+      (let ((verdict (claude-code-ide-org--expand-id-prefix "abcd1234" table)))
+      (should (eq 'ambiguous (car-safe verdict)))
+      ;; The candidates travel with the verdict, so a caller can say
+      ;; WHICH headings collided instead of "try again" -- the answer
+      ;; that matters most for a short prefix.
+      (should (equal '("abcd1234-1111-1111-1111-111111111111"
+                       "abcd1234-2222-2222-2222-222222222222")
+                     (cdr verdict)))))))
 
 (ert-deftest claude-code-ide-org-test-text-without-id-links-is-untouched ()
   "Prose with no id links passes through byte-identical.

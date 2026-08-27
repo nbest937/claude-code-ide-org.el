@@ -2682,6 +2682,20 @@ files it stands in for."
               ((null ids) "  [blocked?]")
               (t nil))))))
 
+(defconst claude-code-ide-org--id-prefix-minimum 4
+  "Shortest :ID: prefix a tool will try to expand.
+
+Uniqueness, not length, is what makes a prefix safe:
+`claude-code-ide-org--expand-id-prefix' refuses an ambiguous one rather
+than guessing.  So this is a floor on *effort*, not on correctness --
+below it a prefix is so likely to collide that expanding is a waste.
+
+Measured over this corpus 2026-08-27, 282 ids: two characters collide in
+73 groups, three in 4, and **four in none** -- the same as eight. Raised
+from a hard-coded 8 because the user reports using short prefixes
+constantly, and there was never a reason beyond the convention's own
+citation width.")
+
 (defconst claude-code-ide-org--id-prefix-length 8
   "How many characters of an :ID: this project cites.
 One constant so the outline, the review buffer and anything else that
@@ -9820,19 +9834,39 @@ Fourteen such call sites existed.
 
 The length-and-hex guard runs before the table is built, so the common
 case of a full uuid costs one `length\' call and no file scanning."
-  (when (and (stringp id) (= (length id) 8) (string-match-p "\\`[0-9a-fA-F]+\\'" id))
+  (let ((prefix-unresolved nil))
+   (when (and (stringp id)
+              (<= claude-code-ide-org--id-prefix-minimum
+                  (length id)
+                  claude-code-ide-org--id-prefix-length)
+              (string-match-p "\\`[0-9a-fA-F]+\\'" id))
     (let ((full (claude-code-ide-org--expand-id-prefix
                  id (claude-code-ide-org--id-index))))
       ;; Rescan once before giving up, naming our tracked files: an id
       ;; that arrived by hand edit or `git pull' is not in org's index
       ;; until something looks (TODO.org :ID: 020d3688).
-      (unless (stringp full)
+      ;;
+      ;; Only for `none'. An `ambiguous' prefix is not stale data --
+      ;; rescanning can only ever find MORE matches, so it cannot help
+      ;; and the scan is not cheap: it reads every tracked file and its
+      ;; archives. Missing that distinction is what let a short prefix
+      ;; spin the whole Emacs on 2026-08-27.
+      (when (eq full 'none)
         (org-id-update-id-locations
          (claude-code-ide-org--id-scannable-files) t)
         (setq full (claude-code-ide-org--expand-id-prefix
                     id (claude-code-ide-org--id-index))))
-      (when (stringp full) (setq id full))))
-  (org-id-find id markerp))
+      (if (stringp full)
+          (setq id full)
+        ;; Expansion was attempted and failed, so stop here rather than
+        ;; handing `org-id-find' a bare prefix. It cannot match a full
+        ;; uuid, and org's own miss path rescans every agenda file and
+        ;; archive before returning nil -- a second full scan after the
+        ;; one above, or a first one for an ambiguous prefix that no
+        ;; amount of scanning can resolve.
+        (setq prefix-unresolved t))))
+   (unless prefix-unresolved
+     (org-id-find id markerp))))
 
 (defun claude-code-ide-org--id-index ()
   "Org's own id-to-file index, loaded if it is not already.
@@ -9873,11 +9907,18 @@ it, and the rebuilt version is where the gaps live."
 Both are errors rather than guesses: an id chosen from two candidates is
 the confidently-wrong record this project exists to avoid."
   (let (hits)
-    (maphash (lambda (id _) (when (string-prefix-p (downcase prefix) id)
-                              (push id hits)))
-             table)
+    (when table
+      (maphash (lambda (id _) (when (string-prefix-p (downcase prefix) id)
+                                (push id hits)))
+               table))
     (cond ((null hits) 'none)
-          ((cdr hits) 'ambiguous)
+          ;; The candidates travel with the verdict. A short prefix is
+          ;; ambiguous often enough that "try again" is a poor answer
+          ;; when the tool is holding the very list you need to pick
+          ;; from -- and lengthening a prefix blind is how a wrong tail
+          ;; gets invented, which is the failure :ID: 478d6ec9 exists to
+          ;; stop.
+          ((cdr hits) (cons 'ambiguous (sort hits #'string<)))
           (t (car hits)))))
 
 (defun claude-code-ide-org-resolve-id-links (text)
@@ -9916,8 +9957,12 @@ Returns a cons (t . EXPANDED) on success, or (nil . MESSAGE)."
              ((stringp full)
               (setq out (concat (substring out 0 mb) full (substring out me)))
               (setq start (+ mb (length full))))
-             ((eq full 'ambiguous)
-              (push (format "%s (matches more than one heading)" target) bad))
+             ((eq (car-safe full) 'ambiguous)
+              (push (format "%s (matches %d headings: %s)"
+                            target (length (cdr full))
+                            (mapconcat #'claude-code-ide-org--id-prefix
+                                       (cdr full) " "))
+                    bad))
              ;; Rescan once before refusing, exactly as `org-id-find'
              ;; does: org's index is updated in memory when a heading is
              ;; created *here*, but an id that arrived by `git pull' or
