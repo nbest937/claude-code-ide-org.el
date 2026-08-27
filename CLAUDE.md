@@ -435,6 +435,18 @@ and `REVIEW` → `DONE` touches nothing because no clock is running. These
 rows were added 2026-08-21; until then the keyword was in live use with
 its clock semantics written down nowhere.
 
+**`REVIEW` → `DONE` is the expected exit; `REVIEW` → `DOING` is the
+exception** (the user, 2026-08-26). Going back to `DOING` means the review
+found something *missing or broken* — it is rework, not the normal close.
+Read the two rows above in that light: the clock reopens only because
+work resumed, and most `REVIEW` headings should never reach that row at
+all.
+
+Which makes the keyword a claim worth being careful with. Setting
+`REVIEW` asserts the work is finished and only judgement remains, so a
+heading parked there to mean "not sure yet" is misusing it — that is
+`WAITING`, or it is still `DOING`.
+
 **`DOING` means started and owed a return — not executing right now.**
 The useful metaphor is *in the mail*: we have begun and need to circle
 back as soon as possible. It is durable and **plural**; several headings

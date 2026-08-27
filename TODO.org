@@ -5275,7 +5275,6 @@ Both flags had *exactly one reader* -- the trigger itself. Each guard was added 
 *Verified*: 423/423; the demote guard, the quiet-when-NEXT-exists rule, the count-rather-than-pick rule and the slice path each fail a named test when broken. The live Emacs needed =remove-hook= as well as a reload -- the retired trigger was still registered on =org-trigger-hook= after =load-file=, which is exactly the org-dev skill's deletion warning.
 
 
-
 * Observability
 :PROPERTIES:
 :ARCHIVE:  DONE.org::* Observability
@@ -7879,6 +7878,14 @@ in a file where a conflict is expensive to resolve correctly.
 
 *One inconsistency was introduced and repaired the same day*, worth recording because it is the shape this heading exists to prevent. The recalibration was written into CLAUDE.md directly above two rules -- "any transition *to* =DOING= must open a clock", "any transition *from* =DOING= must close the clock" -- that the new sense contradicts. Both are now conditional: opening applies when work is starting now, closing applies only when this heading's clock is the one running, since a plural =DOING= means a heading can hold the keyword and no clock.
 
+*=REVIEW='s intended exit, stated by the user 2026-08-26*, and it settles one of the things this heading exists to decide: "In general REVIEW should only go to DOING if there is something missing or broken in the change. Usually it will go to DONE on review completion. That's the goal anyhow."
+
+*So the two outbound rows are not symmetric.* =REVIEW= -> =DONE= is the ordinary close and touches no clock. =REVIEW= -> =DOING= is *rework* -- it reopens a clock because work genuinely resumed, and most headings in =REVIEW= should never reach that row. Recorded in CLAUDE.md, where the state table previously listed both rows with no indication which was the expected path.
+
+*A consequence worth carrying into this heading's wider question.* If =REVIEW= means "finished, only judgement remains", then a heading parked in it to mean "not sure yet" is misusing it -- that is =WAITING=, or the work is still =DOING=. That gives =REVIEW= a sharper definition than "experimental" and is a point in favour of keeping it when this heading finally weighs the progression.
+
+*Live instance to test it against:* [[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]] sits in =REVIEW= right now, handed back because its operational defect was falsified and only the design question remains. Under the rule just stated it should close =DONE= unless the user finds something missing -- which is exactly the judgement =REVIEW= is for.
+
 
 ** TODO Fall back to the queue when org_capture cannot reach Emacs :code:
 :PROPERTIES:
@@ -9566,7 +9573,6 @@ CLOCK: [2026-08-20 Thu 16:42]--[2026-08-20 Thu 16:46] =>  0:04
 *Verified*: 426/426, and four separate breaks each fail a named test -- expansion returning nothing, dropped members rendered as ordinary, the offender filter naming all ids instead, and expansion leaking into the file-wide path. That last one had to be broken in the *additive* direction to prove anything, since the file-wide path simply never calls the expander; breaking it the other way only re-proved the scoped tests.
 
 *What this does not do*, from the body's own list: it does not answer whether the three blind lenses want one general mechanism rather than three bespoke fixes. That question stands and belongs to [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]].
-
 
 
 ** TODO A slice member captured this session cannot be rendered or blocked on until apply :code:
@@ -11282,6 +11288,27 @@ Those six refused =org_wrap_plan= with =Seam marker is the first body line; noth
 *Non-obvious detail worth capturing before it is rediscovered:* a =type: "user"= entry is *usually a tool result*, not a human turn. In this session's transcript, 218 of 231 were. Any renderer that treats them as prompts will report roughly twenty times too many turns -- which is exactly the error the footnote audit made on its first pass, reporting 81 of 83 blocks as end-of-turn before the filter was corrected to 11 of 84.
 
 *=MAYBE= deliberately.* The =/config= change may resolve the pain entirely, and this costs a script plus its tests. Worth building only if reading the transcript in Emacs turns out to be something the user actually does, rather than something that sounds useful.
+
+
+** Footnote check treats a code fence as prose, so pasted output demands footnotes :code:
+:PROPERTIES:
+:ID:       762b7836-52db-4619-a664-25a09f84da46
+:CREATED:  [2026-08-26 Wed 20:11]
+:END:
+
+*Found and fixed [2026-08-26 Wed]*, in the response that provoked it. Asked to show a slice's checklist as it would read after an apply pass, the reply displayed eleven member lines in a code block -- and the hook demanded a footnote for *twelve* ids, each restating a keyword and title already visible three lines above it inside the block.
+
+*The signal was that the convention made the response worse.* Footnotes exist to keep prose scannable while every reference stays recoverable. A rendered checklist is *already* id, keyword and title in one line; footnoting it duplicates the block wholesale. When a rule's output is redundant with what it is applied to, the rule is over-applying rather than the writer being lazy.
+
+*It got sharper the same hour.* [[id:8183fc7c-905e-40c8-81cb-10c56158c6ce][8183fc7c]] had just made =[blocked]= name its ids, so pasting a whole-file =org_outline= would now open footnote debt for *44 ids across 17 headings* -- a feature shipped an hour earlier generating work for a check shipped six hours earlier.
+
+*The fix is one condition in the =awk= that already splits the body at =---=*: lines inside a fenced block (=```= or =~~~=) are dropped before the scan. A fence is a *transcript* -- tool output, a file excerpt -- not a citation, and a transcript is already in its own context.
+
+*Inline code is deliberately still scanned*, and that narrowness is the part worth pinning. A backticked id in a sentence *is* a citation and is the normal way one gets written; exempting it would gut the check. Both directions are now tests: dropping the fence skip fails the two fence cases, and extending the exemption to inline code fails the inline case. 21/21.
+
+*An unclosed fence swallows the rest of the body*, which is the safe direction -- it under-reports rather than demanding footnotes for something the reader is already looking at.
+
+*Third amendment to this hook in one day*, after the all-digit id defect ([[id:28415ca8-a4ce-43a4-9af6-9ec0e7d5662a][28415ca8]] is a different heading; the digit fix was =60f311b=). All three were found the same way: by the hook firing, in front of the user, on a case it was wrong about.
 
 
 * Review and planning

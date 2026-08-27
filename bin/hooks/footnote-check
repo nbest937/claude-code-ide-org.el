@@ -61,7 +61,40 @@ done
 # Split at the LAST line that is exactly `---': everything after it is
 # the footnote block. A response with no such line has no footnotes, so
 # every citation in it is unfootnoted.
-body="$(awk 'BEGIN{n=0} {l[NR]=$0; if ($0=="---") n=NR} END{if(n==0)n=NR+1; for(i=1;i<n;i++) print l[i]}' <<<"$message")"
+#
+# FENCED CODE BLOCKS ARE NOT PROSE, and are dropped from the body before
+# the scan. An id inside ``` or ~~~ is a *transcript* -- tool output, a
+# file excerpt, a rendered slice checklist -- not a citation, and the
+# footnote convention exists to keep prose scannable while staying
+# recoverable. A transcript is already in its own context.
+#
+# Found 2026-08-26 by this hook firing on a response that displayed a
+# slice's checklist: twelve ids, each demanding a footnote that restated
+# a keyword and title already visible three lines above it inside the
+# block. The convention was making the response worse, which is the
+# signal that the rule was over-applying rather than that the writer was
+# lazy. It got sharper the same hour: :ID: 8183fc7c made `[blocked]' name
+# its ids, so pasting a whole-file outline would now demand footnotes for
+# 44 ids across 17 headings.
+#
+# Inline code is deliberately still scanned. A backticked id in a
+# sentence IS a citation -- that is the normal way one gets written --
+# and exempting it would gut the check.
+#
+# An unclosed fence swallows the rest of the body. That is the safe
+# direction: it under-reports rather than demanding footnotes for
+# something the reader is looking at anyway.
+body="$(awk '
+  BEGIN { n = 0 }
+  { l[NR] = $0; if ($0 == "---") n = NR }
+  END {
+    if (n == 0) n = NR + 1
+    fence = 0
+    for (i = 1; i < n; i++) {
+      if (l[i] ~ /^[ \t]*(```|~~~)/) { fence = !fence; continue }
+      if (!fence) print l[i]
+    }
+  }' <<<"$message")"
 foot="$(awk 'BEGIN{n=0} {l[NR]=$0; if ($0=="---") n=NR} END{if(n>0) for(i=n+1;i<=NR;i++) print l[i]}' <<<"$message")"
 
 # Candidates: 8 hex chars, deduplicated. Deliberately NOT filtered by

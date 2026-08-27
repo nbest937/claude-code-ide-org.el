@@ -84,6 +84,40 @@ check "an 8-digit number that is not a tracked :ID: is ignored" allowed \
 check "a message citing nothing passes" allowed \
   "$(run s6 "No identifiers here at all.")"
 
+# Fenced code blocks are transcripts, not citations (TODO.org :ID: 2758f3a0,
+# amended 2026-08-26). A rendered slice checklist would otherwise demand a
+# footnote per member, each restating a title visible in the block itself.
+check "an id inside a fenced block is not a citation" allowed \
+  "$(run s12 "Here is the checklist:
+
+\`\`\`org
+- [X] ${REAL} DONE something
+\`\`\`
+")"
+
+check "an id inside a tilde fence is not a citation either" allowed \
+  "$(run s13 "Output:
+
+~~~
+${REAL}
+~~~
+")"
+
+# The exemption must be narrow: prose around a block is still scanned, and
+# an INLINE backticked id is still a citation -- that is the normal way one
+# gets written, and exempting it would gut the check.
+check "prose after a fenced block is still scanned" blocked \
+  "$(run s14 "Output:
+
+\`\`\`
+irrelevant
+\`\`\`
+
+See ${REAL} for the detail.")"
+
+check "an inline backticked id is still a citation" blocked \
+  "$(run s15 "See \`${REAL}\` for the detail.")"
+
 # An all-digit tracked id must be enforced like any other. This is the
 # defect the hook shipped with: it dropped all-digit tokens BEFORE the
 # lookup, so 5 of 267 real ids could never be required. Found 2026-08-26
