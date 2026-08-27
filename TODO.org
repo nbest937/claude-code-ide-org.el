@@ -106,7 +106,7 @@ Wherever this project declares something in prose and the code infers it some ot
 - [ ] [[id:a0813ae3-0c6d-43de-bae1-fb4414cdb519][a0813ae3]] TODO Task mitosis: a leaf that outgrows itself divides rather than becoming a parent
 - [ ] [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]] TODO Revisit the TODO keyword progression, starting with whether PLANNING earns its keep
 - [ ] [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]] TODO Generalise :KIND: to every declared heading class, so level stops meaning anything
-- [ ] [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] NEXT Adopt org-native mechanisms for the heading tiers
+- [-] [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] DOING Adopt org-native mechanisms for the heading tiers
 - [ ] [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] TODO Find a convention marking which children a container's plan actually covered
 - [X] [[id:8183fc7c-905e-40c8-81cb-10c56158c6ce][8183fc7c]] DONE org_outline is blind to a slice: scoped to one, it returns a single line
 - [ ] [[id:798bb7a1-d5a6-4c08-8cf0-cc91a82d08e6][798bb7a1]] TODO A slice member captured this session cannot be rendered or blocked on until apply
@@ -5287,11 +5287,20 @@ CLOCK: [2026-08-26 Wed 15:43]--[2026-08-26 Wed 15:44] =>  0:01
 *Consequence for the flattening question* ([[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]): none. This is orthogonal and was already noted there as independent.
 
 
-* NEXT Reserve NEXT for use within a container; nominate rather than promote :code:
+* DONE Reserve NEXT for use within a container; nominate rather than promote :code:
+CLOSED: [2026-08-26 Wed 19:02]
 :PROPERTIES:
 :CATEGORY: Clock lifecycle & visibility
 :ID:       62b65ad0-304b-4cf1-bd95-2f1ecb671d6b
 :CREATED:  [2026-08-26 Wed 18:50]
+:END:
+:LOGBOOK:
+- State "DOING"      from "NEXT"       [2026-08-26 Wed 18:50] \\
+  starting Step 0 of the approved plan
+CLOCK: [2026-08-26 Wed 18:51]--[2026-08-26 Wed 19:02] =>  0:11
+- [2026-08-26 Wed 18:51]--[2026-08-26 Wed 19:02] retire autonomous promotion; nominate in the report
+- State "DONE"       from "DOING"      [2026-08-26 Wed 19:02] \\
+  163 lines retired; advisory replaces the trigger
 :END:
 
 *Step 0 of [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]'s plan, and it stands on its own* -- flattening only *exposed* this; the fix improves today's file unchanged.
@@ -8785,7 +8794,7 @@ more surprising, and no evidence has been gathered either way.
 *Verified by mutation, then live.* Removing the condition fails only the new container test. Applying it to *every* heading rather than containers only fails that test's discriminating partner -- the pre-existing sole-remaining-TODO promotion test -- which is the same over-application signal 62c6b1be relied on. In the running Emacs after =load-file=: a container sole survivor stays TODO with zero =Auto-promoted= lines, a leaf sole survivor comes out NEXT with one.
 
 
-* NEXT Adopt org-native mechanisms for the heading tiers :code:research:
+* DOING Adopt org-native mechanisms for the heading tiers :code:research:
 :PROPERTIES:
 :CATEGORY: Skill logic
 :ID:       29439196-bbb8-4b64-b8d5-3bf9d457bf6c
@@ -8810,6 +8819,8 @@ CLOCK: [2026-08-20 Thu 14:08]--[2026-08-20 Thu 14:18] =>  0:10
   promotion trigger met: org itself overloads level
 - State "NEXT"       from "TODO"       [2026-08-26 Wed 12:57] \\
   next Skill logic member; needs the user's decision
+- State "PLANNING"   from "NEXT"       [2026-08-26 Wed 15:57] \\
+  approved: :CATEGORY: plus flattening
 CLOCK: [2026-08-26 Wed 16:35]--[2026-08-26 Wed 16:39] =>  0:04
 - [2026-08-26 Wed 16:35]--[2026-08-26 Wed 16:39] plan CATEGORY plus flattening
 CLOCK: [2026-08-26 Wed 16:42]--[2026-08-26 Wed 16:43] =>  0:01
@@ -8822,6 +8833,9 @@ CLOCK: [2026-08-26 Wed 17:54]--[2026-08-26 Wed 17:56] =>  0:02
 - [2026-08-26 Wed 17:54]--[2026-08-26 Wed 17:56] plan CATEGORY plus flattening
 CLOCK: [2026-08-26 Wed 18:25]--[2026-08-26 Wed 18:27] =>  0:02
 - [2026-08-26 Wed 18:25]--[2026-08-26 Wed 18:27] plan CATEGORY plus flattening
+- State "DOING"      from "PLANNING"   [2026-08-26 Wed 18:48]
+- State "DOING"      from "DOING"      [2026-08-27 Thu 09:09] \\
+  starting Step 1, the mechanical migration
 :END:
 
 Parked 2026-08-19, *not accepted* — recorded so the research need not be
@@ -11638,7 +11652,6 @@ CLOSED: [2026-08-27 Thu 07:38]
 Meta-work: the review pass, planning, and the time that goes into deciding what to do rather than doing it. Time is clocked against the *day node*, which is why the day node carries an =:ID:= and the year and month nodes above it do not -- they are org-datetree's own scaffolding, and =bin/lint-org= knows the difference ([[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]]).
 
 
-
 ** 2026
 
 
@@ -11867,6 +11880,7 @@ CLOCK: [2026-08-26 Wed 13:05]--[2026-08-26 Wed 14:07] =>  1:02
 - <2026-08-26 Wed 13:05>--<2026-08-26 Wed 14:07> assigned at review
 CLOCK: [2026-08-26 Wed 14:31]--[2026-08-26 Wed 14:44] =>  0:13
 - <2026-08-26 Wed 14:31>--<2026-08-26 Wed 14:44> assigned at review
+- [2026-08-26 Wed 15:51]--[2026-08-26 Wed 15:57] assigned at review
 CLOCK: [2026-08-26 Wed 19:40]--[2026-08-26 Wed 19:41] =>  0:01
 - <2026-08-26 Wed 19:40>--<2026-08-26 Wed 19:41> assigned at review
 :END:
@@ -11878,8 +11892,18 @@ CLOCK: [2026-08-26 Wed 19:40]--[2026-08-26 Wed 19:41] =>  0:01
 :CREATED:  [2026-08-27 Thu 08:14]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-27 Thu 07:42]--[2026-08-27 Thu 07:43] =>  0:01
+- [2026-08-27 Thu 07:42]--[2026-08-27 Thu 07:43] assigned at review
 CLOCK: [2026-08-27 Thu 08:14]--[2026-08-27 Thu 08:30] =>  0:16
 - <2026-08-27 Thu 08:14>--<2026-08-27 Thu 08:30> assigned at review
+CLOCK: [2026-08-27 Thu 08:30]--[2026-08-27 Thu 08:32] =>  0:02
+- [2026-08-27 Thu 08:30]--[2026-08-27 Thu 08:32] assigned at review
+CLOCK: [2026-08-27 Thu 08:34]--[2026-08-27 Thu 08:35] =>  0:01
+- [2026-08-27 Thu 08:34]--[2026-08-27 Thu 08:35] assigned at review
+CLOCK: [2026-08-27 Thu 08:39]--[2026-08-27 Thu 08:41] =>  0:02
+- [2026-08-27 Thu 08:39]--[2026-08-27 Thu 08:41] assigned at review
+CLOCK: [2026-08-27 Thu 08:55]--[2026-08-27 Thu 08:58] =>  0:03
+- [2026-08-27 Thu 08:55]--[2026-08-27 Thu 08:58] assigned at review
 :END:
 
 
@@ -11890,6 +11914,7 @@ CLOCK: [2026-08-27 Thu 08:14]--[2026-08-27 Thu 08:30] =>  0:16
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-27 Thu 15:47]--[2026-08-27 Thu 15:55] =>  0:08
 CLOCK: [2026-08-27 Thu 08:32]--[2026-08-27 Thu 08:54] =>  0:22
 CLOCK: [2026-08-26 Wed 13:20]--[2026-08-26 Wed 13:21] =>  0:01
 CLOCK: [2026-08-26 Wed 12:27]--[2026-08-26 Wed 12:28] =>  0:01
