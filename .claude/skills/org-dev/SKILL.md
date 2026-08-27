@@ -87,6 +87,70 @@ and twice more on 2026-08-14.
 
 ---
 
+## 0b. Standing rule: check whether org already has it
+
+**Before writing a helper that walks org files, resolves ids, derives
+paths, or sorts a tree — look for org's own.** This repo has a measured
+habit of rebuilding org machinery *beside* org rather than on it, and the
+rebuilt version is where the gaps live: it is written against one
+project's file list, one id shape, one assumption, and it inherits none
+of org's twenty years of edge cases.
+
+**On 2026-08-27 this happened eight times in one session**, which is how
+the rule got written:
+
+| built or asserted | org already had |
+|---|---|
+| `--archive-files-of`, ~35 lines reading `#+ARCHIVE:` | `org-add-archive-files` |
+| `--known-id-table`, rebuilt per call | `org-id-locations` — 23,000x faster, archive-aware |
+| "DONE.org can't be reached" | `org-id-search-archives`, default `t` |
+| a re-sort pass for a newest-first datetree | `org-datetree-find-create-hierarchy` + `org-datetree-comparefun-from-regex` |
+| plans to hand-order the archive | `org-archive-reversed-order` |
+| ":CATEGORY: has a hard 12-char limit" | the manual says **10**, as *advice*; 12 is a `defcustom` default |
+| "12 columns is a constraint" | `org-agenda-prefix-format`, user-settable |
+| "finished work has no place in an agenda" | the manual says so, in "Archiving" |
+
+Three of those were *asserted as fact without checking* and happened to
+be right, which is worse than being wrong: it produces confident prose
+that no one re-examines.
+
+### Where to look, in order
+
+1. **The tracker first.** `:ID:` 0465c1d5 had named
+   `agenda-with-archives` and `file-with-archives` — and diagnosed the
+   missing DONE.org symlink — *a month before* the same ground was
+   re-covered from scratch. `org_query` and a scoped `org_outline` cost
+   seconds. A past session may have already done the reading.
+2. **The running Emacs**, which is authoritative over any documentation:
+   ```
+   emacsclient -e '(apropos-internal "org-.*archive.*file" (quote fboundp))'
+   emacsclient -e '(documentation (quote org-add-archive-files))'
+   emacsclient -e '(find-library-name "org-id")'
+   ```
+3. **The straight checkout**, for source and manual:
+   ```
+   ~/.config/emacs/.local/straight/repos/org/lisp/       # org-id.el, org-archive.el, org-datetree.el …
+   ~/.config/emacs/.local/straight/repos/org/doc/org-manual.org
+   ~/.config/emacs/.local/straight/repos/org/etc/ORG-NEWS # when a feature landed, and why
+   ```
+   `ORG-NEWS` earns its place: it answered "is this coming in a future
+   release?" with "it shipped in 9.8, for a different reason."
+
+### The test that decides it
+
+**Does org track this already?** Org indexes ids, file locations, archive
+targets, agenda files, clock sums. It does *not* index a heading's
+keyword-and-title by id, which is why
+`claude-code-ide-org--slice-referent-index` legitimately scans files and
+`--known-id-table` did not.
+
+When you do keep a local version, **say in its docstring which org
+facility it duplicates and why** — the way
+`claude-code-ide-org--id-scannable-files` records that it wraps
+`org-add-archive-files` purely to undo that function's buffer side
+effects. A divergence with a stated reason is a decision; one without is
+an accident waiting to be re-made.
+
 ## 1. Live reload procedure
 
 For a change confined to function bodies inside
