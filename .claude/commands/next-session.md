@@ -69,18 +69,24 @@ Both were hit while composing `b36e6369`, and neither is obvious.
 
 The checklist is already in dependency order, in five phases.
 
-1. **Clear blockers and dead wood** — `915378ac`, `46d225c7`, `c31b6c76`.
-   `915378ac` is the last open child of `478d6ec9`, which is blocking the
-   *previous* slice, so it closes two things.
+1. **Clear blockers and dead wood** — `915378ac`, `46d225c7`, `c31b6c76`,
+   `5a5e87c9`. `915378ac` is the last open child of `478d6ec9`, which is
+   blocking the *previous* slice. **Closing that container is its own step** —
+   a container at `[10/10]` does not close itself — and the previous slice
+   *still* will not close, because `9651d4c8` gates it and needs the user.
+   `c31b6c76` and `5a5e87c9` are twins: both are time-of-day test flakes.
 2. **Stop fighting the tools** — `c8a97d9d`, `2b2db914`, `c74f8663`.
    `c8a97d9d` is the largest felt win and the smallest change: its own child
    already bound `inhibit-read-only` in the apply path and the other write
    tools never followed. Measured: the clear/restore dance ran about twelve
    times in one session.
 3. **The review buffer says what it means** — `6cc71c36`, `98c302e0`,
-   `44cef181`, `46e4ce2b`, `05c71d99`, `8d0716fe`, `b6e229c7`. Do the audit
-   *with* the wording fixes, not before: a one-word repair beside an unchanged
-   line three rows down is worse than uniform terseness.
+   `9e627dc0`, `44cef181`, `46e4ce2b`, `05c71d99`, `8d0716fe`, `b6e229c7`.
+   Do the audit *with* the wording fixes, not before: a one-word repair beside
+   an unchanged line three rows down is worse than uniform terseness. And
+   `9e627dc0` is here because both its body and `98c302e0`'s say the readout
+   rework and the turn-count surfacing must be **one pass** — only its
+   review-buffer half is in scope.
 4. **The files stay orderly** — `0086614a`, `5f1068f9`, `8c662dfb`.
 5. **The checks learn** — `542924c1`, `d2a0f54c`.
 
@@ -98,6 +104,8 @@ wait for a session with less momentum.
   (move the datetree to its own file) is a real question about where meta-work
   lives and must not be settled as a side effect of a sort.
 - **`8c662dfb`** — condensing ten bodies is ten judgements.
+- **`ff1352b3`** — not a member, but the same kind: whether a body-returning
+  read is a mode on `org_outline` or its own tool.
 
 Everything else in the list is buildable unattended.
 
