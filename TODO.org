@@ -9111,6 +9111,21 @@ Second, =org_outline= and its consumers. Today the grouping *is* the tree, so fl
 
 *The corpus survey, which the taxonomy step rests on.* Counting every descendant in both files, 273 headings: =Clock lifecycle & visibility= holds *138, or 51%*, while four categories hold twelve between them and have never had a single item archived. The user's own tell is the sharpest summary -- only two category names contain a conjunction, and both are the ones the survey independently flagged as compound.
 
+*Step 2 classified 2026-08-28, on a scratch copy; the real files are untouched.* All 190 headings carrying =:CATEGORY:= were assigned a value from the proposed taxonomy. Mechanics: 188 lines changed (2 were already =Slices=), *zero non-=:CATEGORY:= lines touched*, heading / =:ID:= / =CLOCK:= counts identical in both files, and =bin/lint-org= on the scratch copies returns 0 errors and 68 warnings — the same figures as the live files.
+
+*The compound label was three layers, as the plan claimed.* =Clock lifecycle & visibility= (76) split 30 =Review=, 24 =Clock=, 15 =Queue=, with 7 leaving the cluster entirely. Close enough to thirds that the split is doing real work rather than renaming a drawer.
+
+*The finding the conjunction tell missed: =Skill logic= is exactly as compound.* Its 50 headings split *21 =Skill= / 21 =Tools=*, plus 4 =Slices=, 2 =Queue=, 1 =Clock=, 1 =Docs=. The user's heuristic — only two names contain a conjunction, and both are the compound ones — is sound in the direction it points but silent in the other: a label can hold two unrelated things without saying so in its name. =Skill logic= held the org-conventions work and the MCP-tool work under one word.
+
+*=Docs= ends with one member, which is a result rather than a shortfall.* Both headings under =Documentation= turned out to be about slices (=7c4d6ef6= is the slice-proposal procedure, =28415ca8= the missing statistics cookie), and every CLAUDE.md / skill heading landed in =Skill= under the plan's own seam — "=Skill= is what an agent must follow, =Docs= is what a person reads". Only =d7849119= (README.md) survives. So =Docs= is currently a category with one occupant, exactly the vestige the plan wanted it to stop being. Two honest options: keep it as a declared growth area with one member, or fold the README into =Skill= and reintroduce =Docs= when a second heading earns it. *Not decided here* — it is the user's call.
+
+*Concentration is reduced, not eliminated.* The largest label goes from 76/190 (40%) to =Tools= at 54/190 (28%). =Tools= absorbed 26 of =Tooling=, 21 of =Skill logic=, and 3 of =Bigger swings=; whether it wants a further split (MCP surface versus repo scripts and CI) is a question for a later pass, not this one.
+
+*=Bigger swings= dissolved 3 =Skill= / 3 =Tools= and =Observability= scattered across six values*, both as expected — neither named a subject.
+
+*Not yet applied.* The diff, the mapping and a per-heading review table are in the session scratchpad pending the user's read.
+
+
 
 * DONE Compose slices by reference: a checkbox list of id links, blocked on its members :code:research:
 CLOSED: [2026-08-25 Tue 12:56]
