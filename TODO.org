@@ -221,7 +221,7 @@ CLOSED: [2026-08-26 Wed 11:42]
 :ID:       c44c2119-dbf8-4510-99e2-6aaa7f259d94
 :CREATED:  [2026-08-25 Tue 11:06]
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(edd47f32-e6c9-4ab3-8e8a-46a37ea29605 7ae6562d-25c8-453e-b78b-920e036c5665 e1284bdb-0a18-402a-81cb-1ac8d09fb8a2 aa1ba915-ee68-48df-afea-197ae60aac63 806ff394-3ede-4d67-82aa-9c44fe1cf86e 601c885c-7d8c-46d4-af14-0d8d3ea69ba8 a0abf97d-0f98-42df-9749-e1647b723596 3063c3e5-0dd0-4354-8985-271b0313c5d1 f421c5c3-f81f-4ebf-99c9-42c53cc00558 961f15b6-d782-40b8-8ceb-ba086d188a3b 2758f3a0-3c47-405e-9662-a7669dcb60cc 5787bfc6-3ba5-4d94-802c-f8a7879de68d 82df2a6c-881d-4117-a752-5b3b04c9656d 21c91613-76e0-4590-affe-e2af9f1321ca 8ca6541d-0fc7-45a2-a4d3-76e1608f658d 43201e64-3fe8-4fa6-81f5-d2ab5b65d191 f4b07fc0-187a-4975-aa3b-b9bd4b1c0799 b7b46a26-2fd6-4784-bed3-d0112a917c0a 31c6ac39-1a06-4b17-8d89-b91fd2628874 111ca40a-3fdb-4106-ad52-991e30737ece 7fbab3b3-7843-4290-94a5-d421413f2be4 ff92700e-1713-4862-a3fe-8fd972ad96fa 2b050e7a-b0c4-45d3-835e-68befcebb7bb 7148cddc-aca3-416e-8bcb-f164d4d2bba0 df1cf43c-749f-435c-9f45-3d8df1d725ad 49557477-e50c-496f-85df-82c65109832b 0acc1df2-6916-4180-867a-99bfa551806b 97b030a4-50df-4b8b-a781-bd4acd2931d0)
+:BLOCKER:  ids(b7b46a26-2fd6-4784-bed3-d0112a917c0a)
 :END:
 :LOGBOOK:
 - State "DOING"      from              [2026-08-25 Tue 11:06] \\
@@ -293,7 +293,7 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 :CREATED:  [2026-08-25 Tue 15:29]
 :COOKIE_DATA: checkbox recursive
 :KIND:     slice
-:BLOCKER:  ids(6a21e08b-4880-4d2b-9b0f-12c35558fe08 4f6a6bb1-7773-4657-949e-1fe1ba9484be 95c27fca-136c-46f6-b454-fe94261e0e5d 3964c575-50bc-4cc9-abeb-bdd1c0162c2c a0813ae3-0c6d-43de-bae1-fb4414cdb519 c954f650-b92f-4920-9967-ab6c44577b30 2e660571-26df-41e4-bb64-b9d74a3d7efe 29439196-bbb8-4b64-b8d5-3bf9d457bf6c 9651d4c8-6887-4b0a-91d9-562c3bc49a75 8183fc7c-905e-40c8-81cb-10c56158c6ce 798bb7a1-d5a6-4c08-8cf0-cc91a82d08e6 e10071b9-88f0-4dc3-af8e-692965c65868)
+:BLOCKER:  ids(a0813ae3-0c6d-43de-bae1-fb4414cdb519 c954f650-b92f-4920-9967-ab6c44577b30 2e660571-26df-41e4-bb64-b9d74a3d7efe 9651d4c8-6887-4b0a-91d9-562c3bc49a75)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 15:29] \\

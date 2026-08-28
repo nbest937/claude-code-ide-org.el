@@ -296,13 +296,24 @@ is invisible is the wrong declaration. `:KIND:` was not coined for this:
 listing four heading classes each detected by a different bespoke
 mechanism.
 
-**A slice carries a `:BLOCKER:` naming exactly its cookie-carrying
-members**, so it cannot reach `DONE` before they do. Derived, never
-authored — `M-x claude-code-ide-org-refresh-slice-blocker` writes it from
-the checklist, and `bin/lint-org` reports an **error** if the two
-disagree in either direction. The checkbox list is the human half and the
-blocker the machine-readable one; redundancy without a check is just two
-things that can disagree.
+**A slice carries a `:BLOCKER:` naming exactly its members that are
+cookie-carrying and not yet done**, so it cannot reach `DONE` before they
+do. Derived, never authored — `M-x claude-code-ide-org-refresh-slice-blocker`
+writes it from the checklist, and `bin/lint-org` reports an **error** if
+the two disagree in either direction. The checkbox list is the human half
+and the blocker the machine-readable one; redundancy without a check is
+just two things that can disagree.
+
+**So the property shrinks as the slice progresses**, and is gone entirely
+once every member has landed. Narrowed 2026-08-28 (`:ID:` 0086614a) from
+"every cookie-carrying member". That was harmless while a slice held only
+its planned members, but a slice also lists the *incidental* work that
+closed during its life, and every one of those is done on arrival — they
+would enter the blocker at birth and never leave, making a
+machine-readable property long enough to stop being readable while
+changing nothing, since `org-depend` does not block on finished work.
+Nothing is lost: membership is recorded by the checkbox list, and the
+blocker only ever answered "what still has to finish".
 
 A member whose cookie was **deleted** is deliberately *not* in the
 blocker set. Cancelled is harmless either way, but a **deferred** member

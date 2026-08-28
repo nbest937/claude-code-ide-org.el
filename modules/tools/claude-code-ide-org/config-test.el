@@ -6636,15 +6636,27 @@ an MCP call that throws is worse than one that explains."
                        (< seen n)))
       (forward-line 1))))
 
-(ert-deftest claude-code-ide-org-test-review-assign-advances-to-next-item ()
-  "Assigning answers the question a line poses, so point moves on -- the
-same reasoning behind the mark commands' ADVANCE.  Re-rendering erases
-the buffer and left point at the top, so assigning a run of spans meant
-scrolling back to find your place after every one.
+(ert-deftest claude-code-ide-org-test-review-assign-keeps-point-on-the-item ()
+  "Assigning leaves point on the line it just assigned, because the next
+thing a human does is mark it (TODO.org :ID: a2509a61).  It advanced
+until 2026-08-28, under a rule generalised from `m'/`u' -- \"advance when
+the command answers the line question\" -- which put `a' in the advancing
+set even though assigning makes a line *markable* rather than finishing
+it.
 
 Restoring by identity rather than line number is load-bearing here:
 assigning removes the evidence lines an unassigned span carries, so the
-buffer is shorter afterwards and the old line number points elsewhere."
+buffer is shorter afterwards and the old line number points elsewhere.
+
+Assigns the *middle of three* deliberately, and both parts of that
+matter.  Asserting on the first item would also pass against the older
+bug where re-rendering dumped point at the top (:ID: 9e80a32d), since
+for the first item those outcomes are the same line.  Asserting on the
+*last* item would pass against the advancing code too, because advancing
+from the last item has nowhere to go and stays put -- measured, not
+assumed: with the advance restored, a two-item version of this test went
+green.  From the middle of three, staying, advancing and jumping to the
+top are three distinct lines."
   (claude-code-ide-org-test--with-heading
     (let ((review (get-buffer-create "*org-review-assign-test*"))
           (first (list :type 'clock :id nil :unassigned t :suggested t
@@ -6652,14 +6664,17 @@ buffer is shorter afterwards and the old line number points elsewhere."
                        :end (claude-code-ide-org-test--t "09:30") :events nil))
           (second (list :type 'clock :id nil :unassigned t :suggested t
                         :start (claude-code-ide-org-test--t "11:00")
-                        :end (claude-code-ide-org-test--t "11:30") :events nil)))
+                        :end (claude-code-ide-org-test--t "11:30") :events nil))
+          (third (list :type 'clock :id nil :unassigned t :suggested t
+                       :start (claude-code-ide-org-test--t "13:00")
+                       :end (claude-code-ide-org-test--t "13:30") :events nil)))
       (org-id-update-id-locations (list file))
       (unwind-protect
           (with-current-buffer review
             (claude-code-ide-org-review-mode)
-            (setq claude-code-ide-org--review-items (list first second))
+            (setq claude-code-ide-org--review-items (list first second third))
             (claude-code-ide-org--review-render)
-            (claude-code-ide-org-test--goto-nth-item 0)
+            (claude-code-ide-org-test--goto-nth-item 1)
             (let ((claude-code-ide-org-query-files (list file)))
               ;; Take the first candidate from the collection `assign'
               ;; actually builds, rather than recomputing it: this asserts
@@ -6678,7 +6693,8 @@ buffer is shorter afterwards and the old line number points elsewhere."
                            (should collection)
                            (car (all-completions "" collection nil)))))
                 (claude-code-ide-org-review-assign)))
-            ;; Point is on the *second* span, not back at the top.
+            ;; Still on the span just assigned: not advanced past it, and
+            ;; not thrown to the top of the buffer either.
             (should (eq (claude-code-ide-org--review-item-at-point) second)))
         (kill-buffer review)))))
 
@@ -9783,7 +9799,7 @@ indented under another is still a member of the slice."
         (should (equal '("X" " " "-" nil) (mapcar #'cdr members)))))))
 
 (ert-deftest claude-code-ide-org-test-slice-blocker-ids-exclude-deleted-cookies ()
-  "A member whose cookie was deleted must not block the slice.
+  "A member that cannot block must not be in the blocker.
 
 This is the whole reason the two sets are defined as \"members that
 still carry a cookie\" rather than \"all members\". A deferred member is
@@ -9797,10 +9813,14 @@ org-depend would never see it finish."
       (goto-char (point-min))
       (search-forward "** DOING")
       (let ((ids (claude-code-ide-org--slice-blocker-ids)))
-        (should (= 3 (length ids)))
-        (should (equal '("11111111" "22222222" "33333333")
+        (should (= 2 (length ids)))
+        (should (equal '("22222222" "33333333")
                        (mapcar (lambda (i) (substring i 0 8)) ids)))
-        (should-not (seq-find (lambda (i) (string-prefix-p "44444444" i)) ids))))))
+        ;; Two exclusions with different reasons, asserted separately so a
+        ;; regression says which rule broke: 44444444 has no cookie
+        ;; (cancelled or deferred), 11111111 has an `X' one (done).
+        (should-not (seq-find (lambda (i) (string-prefix-p "44444444" i)) ids))
+        (should-not (seq-find (lambda (i) (string-prefix-p "11111111" i)) ids))))))
 
 (ert-deftest claude-code-ide-org-test-slice-declaration-is-not-inherited ()
   "A subheading of a slice is not itself a slice.
@@ -9931,8 +9951,9 @@ producing a diff every time it is run."
       (should (claude-code-ide-org--refresh-slice-blocker-at-point))
       (let ((blocker (org-entry-get nil "BLOCKER")))
         (should (string-prefix-p "ids(" blocker))
-        (should (= 3 (length (claude-code-ide-org--lint-blocker-ids blocker))))
-        (should-not (string-match-p "44444444" blocker)))
+        (should (= 2 (length (claude-code-ide-org--lint-blocker-ids blocker))))
+        (should-not (string-match-p "44444444" blocker))
+        (should-not (string-match-p "11111111" blocker)))
       ;; idempotent
       (should-not (claude-code-ide-org--refresh-slice-blocker-at-point)))))
 
@@ -9962,20 +9983,38 @@ heading carrying an identical checkbox list must NOT be linted as a
 slice, since an ordinary body may hold a list of id links for reference
 -- which is precisely why a slice has to be declared rather than
 derived."
-  (let ((cat "* Slices\n:PROPERTIES:\n:ARCHIVE:  DONE.org::* Slices\n:END:\n")
-        (member "- [X] [[id:11111111-0000-0000-0000-000000000000][11111111]] DONE one\n"))
+  (let* ((cat "* Slices\n:PROPERTIES:\n:ARCHIVE:  DONE.org::* Slices\n:END:\n")
+         ;; Unfinished deliberately: since 2026-08-28 a done member is not
+         ;; in the blocker, so an `[X]' member here would make every case
+         ;; below vacuous rather than failing loudly.
+         (member "- [ ] [[id:11111111-0000-0000-0000-000000000000][11111111]] TODO one\n")
+         (done "- [X] [[id:88888888-0000-0000-0000-000000000000][88888888]] DONE two\n"))
     ;; blocker missing entirely
     (should (claude-code-ide-org-test--lint-matches
              (claude-code-ide-org-test--lint
               (concat cat "** DOING A slice\n:PROPERTIES:\n:KIND:     slice\n:END:\n" "\n" member))
-             'error "omits 1 checked member"))
+             'error "omits 1 unfinished member"))
     ;; blocker names something that is not a checked member
     (should (claude-code-ide-org-test--lint-matches
              (claude-code-ide-org-test--lint
               (concat cat "** DOING A slice\n:PROPERTIES:\n:KIND:     slice\n"
                       ":BLOCKER:  ids(11111111-0000-0000-0000-000000000000 "
                       "99999999-0000-0000-0000-000000000000)\n:END:\n\n" member))
-             'error "not a checked member"))
+             'error "not an unfinished member"))
+    ;; a *done* member is not in the blocker, and its absence is not drift
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint
+                  (concat cat "** DOING A slice\n:PROPERTIES:\n:KIND:     slice\n"
+                          ":BLOCKER:  ids(11111111-0000-0000-0000-000000000000)\n:END:\n\n"
+                          member done))
+                 'error "omits"))
+    ;; and naming it *is* drift, in the other direction
+    (should (claude-code-ide-org-test--lint-matches
+             (claude-code-ide-org-test--lint
+              (concat cat "** DOING A slice\n:PROPERTIES:\n:KIND:     slice\n"
+                      ":BLOCKER:  ids(11111111-0000-0000-0000-000000000000 "
+                      "88888888-0000-0000-0000-000000000000)\n:END:\n\n" member done))
+             'error "not an unfinished member"))
     ;; matching: silent
     (should-not (claude-code-ide-org-test--lint-matches
                  (claude-code-ide-org-test--lint

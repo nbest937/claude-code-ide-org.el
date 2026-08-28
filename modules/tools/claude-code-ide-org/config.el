@@ -3417,15 +3417,29 @@ subheading."
 (defun claude-code-ide-org--slice-blocker-ids ()
   "Return the ids the slice at point should block on.
 
-Exactly the members that still carry a checkbox cookie.  A member whose
-cookie was deleted is cancelled or deferred, and deferral is the case
-that matters: a deferred member is *unfinished*, so blocking on it would
-hold the slice open forever for work it explicitly decided not to do.
-Cookie and blocker are therefore the same set by construction, which is
-what the lint assertion checks."
+The members that still carry a checkbox cookie *and are not yet done*,
+so the property shrinks as the slice progresses and is empty when every
+member has landed.
+
+Two exclusions, for different reasons.  A member whose cookie was
+deleted is cancelled or deferred, and deferral is the case that matters:
+a deferred member is *unfinished*, so blocking on it would hold the
+slice open forever for work it explicitly decided not to do.  A member
+whose cookie is `X\' is finished, and `org-depend\' does not block on
+finished work anyway -- carrying it would make a machine-readable
+property long enough to stop being readable while changing nothing.
+
+Narrowed 2026-08-28 (TODO.org :ID: 0086614a).  Before that the rule was
+\"every cookie-carrying member\", which was harmless while a slice held
+only its planned members; once a slice also lists the incidental work
+that closed during its life, every one of those is done on arrival and
+would enter the blocker at birth.  No information is lost: membership is
+recorded by the checkbox list, and the blocker only ever answered \"what
+still has to finish\"."
   (delete-dups
    (mapcar #'car
-           (seq-filter (lambda (m) (cdr m)) (claude-code-ide-org--slice-members)))))
+           (seq-filter (lambda (m) (and (cdr m) (not (equal (cdr m) "X"))))
+                       (claude-code-ide-org--slice-members)))))
 
 (defconst claude-code-ide-org--slice-checkbox-by-keyword
   '(("DONE"      . "X")
@@ -7724,11 +7738,16 @@ forget.  It was forgotten twice: `a' and `e' both dropped point at the
 top of the buffer, which meant assigning a run of spans required
 scrolling back to find your place after every one.
 
-ADVANCE encodes the rule the mark commands arrived at first: advance
-when the command *answers* the question the line posed -- marking,
-assigning, dismissing -- and stay when it does not.  `e' narrows an
-interval you are still deciding about and `N' annotates one, so both
-leave point where it was.
+ADVANCE means the command is *finished with this line*: `m', `u' and
+`d' leave nothing further to do to it.  Everything else stays -- `e'
+narrows an interval you are still deciding about, `N' annotates one, and
+`a' makes the line markable rather than done with it.
+
+The rule used to be \"advance when the command *answers* the question
+the line posed\", which put `a' in the advancing set. That was generalised
+from the mark commands, where answering and finishing coincide; for `a'
+they do not, and it advanced past exactly the line it had just made
+actionable (TODO.org :ID: a2509a61).
 
 Deliberately not used by `g'.  That command means \"rebuild from the
 queue\" and discards session state on purpose; restoring point into a
@@ -8283,8 +8302,13 @@ guideposts and still deserve `e' before they are trusted.  Only the
         (plist-put item :id id)
         (plist-put item :unassigned nil)
         (plist-put item :assigned t)
-        ;; Advance: assigning *answers* the question this line posed.
-        (claude-code-ide-org--review-redraw item t)))))
+        ;; No advance. Assigning does not finish the line -- it makes it
+        ;; markable, which is what the docstring above says and what the
+        ;; human does next (TODO.org :ID: a2509a61). The rule this used
+        ;; to follow, "advance when the command answers the line
+        ;; question", was generalised from `m'/`u', where answering and
+        ;; finishing coincide. For `a' they do not.
+        (claude-code-ide-org--review-redraw item)))))
 
 (defun claude-code-ide-org-review-dismiss ()
   "Retire the item at point permanently, so it stops being proposed.
@@ -9159,14 +9183,14 @@ prose to a rule file, a linked heading or a one-time task: %s"
                         (missing (seq-difference want have))
                         (extra (seq-difference have want)))
                    (when missing
-                     (report 'error line "slice :BLOCKER: omits %d checked member%s \
+                     (report 'error line "slice :BLOCKER: omits %d unfinished member%s \
 (%s) -- run claude-code-ide-org-refresh-slice-blocker: %s"
                              (length missing) (if (= 1 (length missing)) "" "s")
                              (mapconcat (lambda (i) (substring i 0 8)) missing " ")
                              title))
                    (when extra
-                     (report 'error line "slice :BLOCKER: names %d id%s that is not a \
-checked member (%s) -- a cancelled or deferred member must not block: %s"
+                     (report 'error line "slice :BLOCKER: names %d id%s that is not an \
+unfinished member (%s) -- a done, cancelled or deferred member must not block: %s"
                              (length extra) (if (= 1 (length extra)) "" "s")
                              (mapconcat (lambda (i) (substring i 0 8)) extra " ")
                              title))))
