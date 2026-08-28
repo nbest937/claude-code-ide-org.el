@@ -2,6 +2,21 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 #+STARTUP: logdrawer logdone content
+* Remove queue-append's synthetic-event overrides, dead since the ExitPlanMode hook went :code:
+:PROPERTIES:
+:ID:       46d225c7-7541-4867-af72-929a572df2a5
+:CREATED:  [2026-08-28 Fri 16:02]
+:CATEGORY: Queue
+:END:
+
+=QUEUE_APPEND_ID=, =QUEUE_APPEND_STATE= and =QUEUE_APPEND_FROM= in =bin/hooks/queue-append= let a caller supply a heading and states for a *synthetic* event — one with no tool call behind it, so nothing to read a =tool_input= or parse a =tool_response= from. Their only consumer was =bin/hooks/exitplanmode-promote-planning=, deleted 2026-08-28 when =PLANNING= was retired ([[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]). The branch has been dead since.
+
+*Left in place that day on purpose, and the reason still holds:* =queue-append= is on the path of *every* hook in the project, so an unrelated edit to the queue writer made while doing something else is a worse risk than a dead branch. This is that edit, done deliberately and on its own.
+
+*What it touches:* the three =override_*= variables, their use in the =jq= object below, and whichever assertions in =bin/queue-append-test= exercise them. The test currently passes, so removing the feature must break it — if it does not, the feature was never covered and that is the more interesting finding.
+
+*Filed 2026-08-28 to make a checked-in comment true.* When the branch was marked dead, the note ended "Removal is filed." It was not: no heading mentioned it, and the only other traces were a debrief paragraph and a commit message — both places CLAUDE.md explicitly says residue goes to die. The rule it broke is the one about closing a heading: *a sentence pointing at another heading is not a filing action*. Writing that sentence into source, where it reads as a promise to the next person, is the same error one layer worse.
+
 * Install orgparse for ad-hoc analysis, and stop reaching for regex over org text :code:
 :PROPERTIES:
 :ID:       2c5f7c50-40c9-4d06-b435-add41eb97643

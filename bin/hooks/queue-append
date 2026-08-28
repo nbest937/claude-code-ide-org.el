@@ -184,7 +184,8 @@ fi
 # states itself. Deliberately left in place in that commit rather than
 # removed alongside it: this script is on the path of every hook in the
 # project, and a dead branch is a smaller risk than an unrelated edit to
-# the queue writer made while doing something else. Removal is filed.
+# the queue writer made while doing something else. Removal is TODO.org
+# :ID: 46d225c7.
 override_id="${QUEUE_APPEND_ID:-}"
 override_state="${QUEUE_APPEND_STATE:-}"
 override_from="${QUEUE_APPEND_FROM:-}"

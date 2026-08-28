@@ -13,7 +13,11 @@ description: >
   take effect") and proactively whenever config.el, config-test.el, or
   the Doom config has just been edited in this session — don't wait to
   be asked before checking that a code change actually loaded.
-  Also trigger BEFORE writing any helper that touches org's own data —
+  Also trigger before *reading* org files to answer a question —
+counting headings, checking which carry a property, finding what changed
+— because a throwaway regex over org text gets entry boundaries wrong,
+and Emacs is already running with the parser of record. And BEFORE
+writing any helper that touches org's own data —
   resolving or expanding an :ID:, finding archive files, listing agenda
   files, summing clocks, walking or sorting a datetree, following
   links, deriving a file path from #+ARCHIVE: — because org very often
@@ -97,7 +101,33 @@ and twice more on 2026-08-14.
 ## 0b. Standing rule: check whether org already has it
 
 **Before writing a helper that walks org files, resolves ids, derives
-paths, or sorts a tree — look for org's own.** This repo has a measured
+paths, or sorts a tree — look for org's own.**
+
+**And before *reading* one to answer a question.** This half was added
+2026-08-28, because the rule above did not cover the case that actually
+kept happening. It triggers on *building*, and roughly forty reaches for
+`python3 -c` in one session were not building anything — they were
+answering "how many headings carry this property", "which of these is
+finished", "what changed". Two of them were wrong in the same way:
+extracting an `:ID:` by regex matched a line in the *previous* heading's
+body, and a scan for headings lacking `:CREATED:` walked into a datetree
+and reported 0 where the answer was 1. Both are entry-boundary errors,
+and both are impossible through `org-map-entries`, which bounds entries
+by construction.
+
+The test is not "am I writing a helper" but **"does org's own semantics
+decide this answer?"** — entry boundaries, property inheritance, keyword
+sets, clock arithmetic, agenda behaviour. If yes, ask Emacs: it is
+running, and it is the same parser that writes these files. A regex over
+org text is a second implementation of those semantics that can disagree
+with the one of record, and it will disagree silently, in the direction
+of looking right.
+
+`emacsclient -e` with `org-map-entries` or `org-ql-select` is the usual
+shape. Reach for text processing when Emacs is genuinely the wrong
+instrument — it is down, or you want a whole-corpus transformation you
+can diff on a scratch copy before it goes near the real file — and say
+which of those it is. This repo has a measured
 habit of rebuilding org machinery *beside* org rather than on it, and the
 rebuilt version is where the gaps live: it is written against one
 project's file list, one id shape, one assumption, and it inherits none
