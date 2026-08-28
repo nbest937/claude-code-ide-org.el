@@ -2,6 +2,28 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 #+STARTUP: logdrawer logdone content
+* Install orgparse for ad-hoc analysis, and stop reaching for regex over org text :code:
+:PROPERTIES:
+:ID:       2c5f7c50-40c9-4d06-b435-add41eb97643
+:CREATED:  [2026-08-28 Fri 15:58]
+:CATEGORY: Dev
+:END:
+
+*Offered by the user 2026-08-28:* [[https://github.com/karlicoss/orgparse][orgparse]] is available and could be installed system-wide for Claude to use from Python. Not installed as of that date; =python3= here is 3.14.6.
+
+*The evidence for it is two bugs from a single session, both the same shape.* Extracting a heading's =:ID:= by regex returned =\"...\"== — the pattern matched a line in the *previous* heading's body. And a scan for level-1 headings lacking =:CREATED:= walked *into* the datetree, so the anchor inherited a day node's timestamp; it reported *0* when the answer was *1*, and was caught only because the number contradicted something seen ten minutes earlier. Both are entry-boundary errors, which is precisely the class a real parser removes.
+
+*The sharper finding is about practice rather than the library, and it is the reason this is =MAYBE= rather than =TODO=.* Emacs was the better instrument in both cases and was under-used: =org-map-entries= bounds entries by construction, and it is the *authoritative* parser — the one that actually writes these files. A Python parser is a second implementation of org's semantics that can disagree with the implementation of record, which is the "second copy that can disagree" this slice exists to close. The org-dev skill's §0b rule already says to check what org has before reaching elsewhere, and =python3= was reached for roughly forty times in that session without the question being asked once.
+
+*So the split that would make it worth installing:*
+
+- *Emacs for anything semantic* — entry boundaries, property inheritance, keyword sets, clock arithmetic, agenda behaviour. It is running, and org's own answer is the answer.
+- *orgparse for where Emacs is not the right instrument*: when it is down (it was, that morning), whole-corpus counting without touching a live buffer, and transformations worth diffing on a scratch copy before they go near the real file — the [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] taxonomy pass was exactly that.
+
+*One boundary, cheap to state now and expensive to retrofit: nothing checked into =bin/= imports it without declaring it.* This repo has *zero* Python today — every script is bash, fish or elisp — so it would be a new dependency class, and [[id:1ed7b2b4-a809-4547-b04f-099a3111fc1e][1ed7b2b4]] is the standing scar about an undeclared one. Ad-hoc session analysis is free; a committed script would need a declaration and a check in =bin/check-org-dev-skill= beside the org-version one.
+
+*If it is installed*, the org-dev skill should record both halves — that orgparse exists, and that Emacs remains the answer wherever org's own semantics decide the result. Recording only the first half would turn a tool that fixes a bug class into a tool that introduces a worse one.
+
 * TODO Two keyword-set proposals and the review collision are still unadopted :code:
 :PROPERTIES:
 :ID:       dbf70459-bde4-4550-bd81-0d4f9ebc50e3
