@@ -296,6 +296,19 @@ silently until it was retired (`:ID:` 29439196). And note that a declared groupi
 is made of ids, which is why `:ID:` 478d6ec9 is load-bearing here rather
 than a convenience.
 
+**And a third case, which looks like the second and is not: the thing
+belongs to another system.** Org's datetree nodes are identified by
+matching org's own title shapes, and that is *correct* — not an
+inference standing in for a declaration we failed to make. We could not
+have made it: `org-datetree-find-date-create` builds year, month and day
+inside org, with no hook, and the DONE.org archive datetree would be
+built by `org-archive-subtree` outside this project entirely. A property
+we cannot write at creation is absent on arrival, and fails open and
+silently, where reading the owner's published shape does not. So the
+emergent/declared axis governs *our own* conventions; where another
+system owns the thing, read the contract it actually publishes
+(`:ID:` 2e660571, which proposed the opposite and measured its way out).
+
 **Rule**: work planned via Claude Code's own Plan Mode gets a single
 permanent link in its heading body — `[[file:~/.claude/plans/<slug>.md][Plan]]`
 — added as soon as the first round of planning finishes (right after

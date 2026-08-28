@@ -6607,6 +6607,33 @@ Six defects were found in a single afternoon, all in the review-and-apply surfac
 
 *What remains, concretely.* Give datetree nodes =:KIND: datetree-year= / =datetree-month= / =datetree-day=, keep =:DATE_TREE:= on the root (subtree-scoped, and no per-node kind expresses it), and express =bin/lint-org='s =:ID:=/=:CREATED:= exemption against the declaration instead of the title regex. The design is settled in the body above; what is left is the build and a migration of the existing nodes.
 
+*Investigated 2026-08-28, and the last remaining class closes as a deliberate non-change. The reason is worth more than the change would have been.*
+
+The plan above was to give datetree nodes =:KIND: datetree-year= / =-month= / =-day= and express =bin/lint-org='s exemption against that declaration instead of org's title regexes. Measured against the straight checkout and this repo before building any of it:
+
+- =org-datetree-find-date-create= calls =(org-datetree-find-create-entry '(year month day) ...)= — *org creates all three levels itself*, inside its own code.
+- =org-datetree.el= offers *no creation hook*. Its only =defcustom= is =org-datetree-add-timestamp=.
+- This repo has *one* call site (=config.el:9688=). It stamps =:ID:= and =:CREATED:= afterwards, on the *day node only*; year and month are never touched.
+- And [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]]'s planned DONE.org datetree would be built by =org-archive-subtree= through =org-archive-location=, entirely outside this project's code.
+
+*So a datetree node cannot declare itself, because nothing we control creates it.* We could walk up after our own call and stamp three properties, but every node created by any other path — an =org-capture= datetree template, a human's =M-x=, the DONE.org archive target that is already planned — would arrive without them. A declaration that is absent on arrival is worse than an inference: it fails *open*, and silently.
+
+*Which sharpens the slice's thesis rather than contradicting it.* Declared-versus-inferred is a rule about *our own* conventions — a slice, an epic, a story, a plan's coverage. Where the thing being identified is **another system's**, reading its shape is not inference-in-place-of-declaration; it is reading the contract its owner actually publishes. =--datetree-node-role='s title regexes are not a workaround for a missing property. They are the correct mechanism, because org owns both the creation and the titles, and org's titles are the stable public thing about them.
+
+*The heading's own framing had this backwards.* It listed the datetree node as "declared in fact and inferred in code", alongside the category tier. The category tier really was that — *we* built it, so we could declare it, and [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] did. The datetree node never was.
+
+*So all four classes are settled, three by change and one by refusing one:*
+
+| class | detected by | outcome |
+|-------+-------------+---------|
+| epic | =--container-heading-p= | unchanged — emergent, and declaring it would be the mirrored error |
+| category | was =(= level 1)= | *resolved* — now a =:CATEGORY:= value on the task ([[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]) |
+| slice | =--slice-p=, a =:KIND:= property | already declared, 2026-08-25 |
+| datetree node | =--datetree-node-role=, title shapes | *won't change* — org creates it, so we cannot declare it |
+
+*Nothing was built for this heading, and that is the outcome rather than a shortfall.* The one change it still proposed was measured to be less reliable than what it would have replaced.
+
+
 
 * TODO Task mitosis: a leaf that outgrows itself divides rather than becoming a parent :code:research:
 :PROPERTIES:
