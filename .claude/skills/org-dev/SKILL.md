@@ -356,8 +356,16 @@ every session needs in context.
 **Read the live file, not this summary, before acting on it.** The version
 CLAUDE.md carried had drifted — it showed `(add-hook 'kill-emacs-hook
 #'org-clock-out)` when the config actually uses a guarded wrapper. What
-follows was verified against `~/.config/doom/config.el` and the running
-Emacs on 2026-08-14.
+follows was re-verified against `~/.config/doom/config.el` on 2026-08-28.
+
+**And this copy had drifted too, which is the point of the warning above
+rather than an exception to it.** Between 2026-08-14 and 2026-08-28 it
+gained a keyword the config never had (`WAITING`, where the config still
+says `WAIT`) and lost two settings the config had gained
+(`find-file-visit-truename` and `claude-code-ide-org-capture-file`). None
+of it was noticed, because `bin/check-org-dev-skill` asserts ports, paths
+and function names but nothing about this block. A quoted config is the
+one kind of documentation that cannot be checked by reading it.
 
 ```elisp
 ;; server.el must be required explicitly: server-running-p isn't
@@ -367,9 +375,15 @@ Emacs on 2026-08-14.
 (require 'server)
 (unless (server-running-p) (server-start))
 
+;; Load-bearing, not decoration: ~/org/claude-code-ide-org/TODO.org is a
+;; symlink to the copy in the git repo. Doom already sets this, but it also
+;; sets `find-file-suppress-same-file-warnings', so if this ever flipped to
+;; nil you would get two buffers on one org file and no warning about it.
+(setq find-file-visit-truename t)
+
 (after! org
   (setq org-todo-keywords
-        '((sequence "TODO" "NEXT" "PLANNING" "DOING" "WAITING" "MAYBE" "|" "DONE" "CANCELLED")))
+        '((sequence "TODO" "NEXT" "PLANNING" "DOING" "WAIT" "MAYBE" "|" "DONE" "CANCELLED")))
   (setq org-clock-out-when-done t)
   (setq org-clock-persist 'history)
   (setq org-archive-location "DONE.org::* Done")
@@ -377,6 +391,14 @@ Emacs on 2026-08-14.
   ;; non-recursively, so a file one level down never resolves. One-time
   ;; scan at load: a newly symlinked .org needs a restart to be seen.
   (setq org-agenda-files (directory-files-recursively org-directory "\\.org$"))
+  ;; Where org_capture files a heading given no explicit target. Unset, it
+  ;; falls back to `org-default-notes-file' and captures land in
+  ;; ~/org/notes.org, outside this repo (TODO.org :ID: bd482c92). The
+  ;; *symlink* path deliberately, not ~/git/... -- `org-agenda-files' is
+  ;; built by scanning `org-directory', so everything else knows the file
+  ;; by that name, and the git path would give org-id two entries per id.
+  (setq claude-code-ide-org-capture-file
+        (expand-file-name "claude-code-ide-org/TODO.org" org-directory))
   (require 'org-depend))
 
 ;; org-clock-out has no guard and signals (user-error "No active clock"),
@@ -409,10 +431,14 @@ function blocks on a running clock; org-depend's blocks on unsatisfied
 `:BLOCKER:` IDs. Two different guards, both live — don't assume a refused
 `DONE` came from the project's one.
 
-**Known gap: `org-todo-keywords` has no `REVIEW`.** The sequence above
-predates it, so `REVIEW` resolves only in files carrying their own
-`#+TODO:` header line — TODO.org does, which is why it works there. A file
-without one will not accept it.
+**Known gap, and it is two gaps: `org-todo-keywords` has no `REVIEW`, and
+still says `WAIT` rather than `WAITING`.** The sequence predates `REVIEW`,
+and the `WAIT` → `WAITING` rename (`:ID:` a729c32a) was verified against
+the *buffer's* `#+TODO:` line rather than against this variable, so the
+global default never moved. Both keywords therefore resolve only in files
+carrying their own `#+TODO:` header — TODO.org and DONE.org do, which is
+why they work there. A new `.org` file without one accepts neither, and
+accepts `WAIT`, which nothing in this project uses any more.
 
 **vterm**: requires the `:term vterm` Doom module (in `init.el`). Its
 native module is compiled with cmake against homebrew `libvterm` — the
