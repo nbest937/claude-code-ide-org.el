@@ -2,11 +2,15 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 #+STARTUP: logdrawer logdone content
-* Two keyword-set proposals and the review collision are still unadopted :code:
+* TODO Two keyword-set proposals and the review collision are still unadopted :code:
 :PROPERTIES:
 :ID:       dbf70459-bde4-4550-bd81-0d4f9ebc50e3
 :CREATED:  [2026-08-28 Fri 13:39]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-28 Fri 13:40] \\
+  residue carried out of c954f650
 :END:
 
 *Filed 2026-08-28 as [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]] closed.* That heading asked whether the whole keyword progression earns its keep, answered the =PLANNING= half by retiring it, and left three questions open. They are carried out here rather than left in a closed heading's =:PLAN:= drawer, which readers are told to skip — the exact path to invisibility CLAUDE.md's filing rule exists to block.
@@ -19,11 +23,16 @@
 
 *Note what is no longer open, so this is not re-litigated.* Whether =DOING= should exist at all was *settled* in c954f650 and the reasoning is in its =:PLAN:= drawer: the org+GTD tradition argues against an in-progress keyword because the clock can say what is active, and that substitute is exactly what the event queue removes here. A future reader citing Bernt or GTD has a well-supported argument and is wrong for this system specifically. =REVIEW='s adoption and =PLANNING='s retirement are likewise decided.
 
-* Sort TODO.org by :CREATED: descending, after each archive pass :code:
+
+* TODO Sort TODO.org by :CREATED: descending, after each archive pass :code:
 :PROPERTIES:
 :ID:       5f1068f9-1452-45e4-9253-568edfce2053
 :CREATED:  [2026-08-28 Fri 13:39]
 :CATEGORY: Meta
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-28 Fri 13:40] \\
+  for the next slice
 :END:
 
 *Asked for by the user 2026-08-28, for the next slice.* After archiving the closed headings, sort what remains in TODO.org by =:CREATED:= descending, so the file reads newest-first.
@@ -39,11 +48,16 @@
 
 *Adjacent, and worth doing in the same pass rather than twice:* [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] reorders DONE.org as a datetree descending by =CLOSED:=. Both are "make the file read newest-first after archiving"; they differ only in the key and in whether the result is flat or nested.
 
-* Sweep the ten longest live bodies into :PLAN: drawers :code:
+
+* TODO Sweep the ten longest live bodies into :PLAN: drawers :code:
 :PROPERTIES:
 :ID:       8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8
 :CREATED:  [2026-08-28 Fri 13:39]
 :CATEGORY: Meta
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-28 Fri 13:40] \\
+  for the next slice
 :END:
 
 *Asked for by the user 2026-08-28*, on seeing [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]'s body: "absolutely monstrous... I guess it's because it predates the current task lifecycle and we never touched it." That diagnosis is right and it generalises — the =:PLAN:= lifecycle ([[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]]) applies at =DONE=, so a *live* heading that has been accumulating for weeks has never met it.
@@ -71,11 +85,25 @@
 
 *Not a backlog sweep.* [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] chose "wrap unedited" for the 30-heading archive pass deliberately, to keep it cheap. This is the opposite case by construction — ten headings, each one read and condensed, all of them live and therefore still being consulted, which is what makes the cost worth paying here and not there.
 
-* Assign advances past the line the human is about to mark :code:
+*Corrected by the user 2026-08-28, and the correction is narrower and better than what it replaces.* The paragraph above argued that compressing before wrapping may invert CLAUDE.md's order in general, on reviewability grounds. That overreaches. The order inverts *for this population specifically*, and the reason is a property of these ten bodies rather than of the rule:
+
+*They were never revised as they were worked — only appended to.* Which is exactly what [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] is about, and why that heading sits eighth on this list rather than merely adjacent to it. So what "compression" does here is not *paring considered prose*, which is the risky act CLAUDE.md's separate-commit rule guards against. It is *collapsing an append-only transcript*, where later entries routinely supersede earlier ones outright and the superseded text is not a judgement anyone made — it is a sentence nobody went back to delete.
+
+*So the rule stands unchanged for its own case.* A body that was drafted and revised should still be wrapped first and condensed separately, because a pare there discards someone's considered wording where no reader will see it. A body that is a transcript can be condensed first, because the diff is where the supersession becomes visible and there is no earlier judgement being overruled — only an earlier sentence that a later one already replaced.
+
+*Which gives whoever picks this up a test rather than a preference:* ask whether the body was ever *revised*. If it was only ever appended to, compress first. c954f650 was a clear case — five distinct dates of accretion, each opening with a bold lead that qualified or reversed one above it, and nothing ever deleted.
+
+
+
+* TODO Assign advances past the line the human is about to mark :code:
 :PROPERTIES:
 :ID:       a2509a61-4e21-4d8e-8f58-c87935753472
 :CREATED:  [2026-08-28 Fri 12:56]
 :CATEGORY: Apply
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-28 Fri 13:04] \\
+  filed from the user's review-buffer request
 :END:
 
 *Requested by the user 2026-08-28, from live review use:* after =a= assigns a span, point should *not* advance — "usually the next action is to mark it". And an alternative worth weighing rather than assuming: have =a= simply *mark and advance*, if that turns out simpler or more idiomatic.
@@ -92,7 +120,6 @@
 *Adjacent, and already closed:* [[id:9e80a32d-43e1-4647-a42c-cba10f6e79cc][9e80a32d]] fixed assign and interval-edit sending point to the *top* of the buffer. This is the residue of that — point is no longer thrown away, but it still moves one line further than the human wants.
 
 *Filed late, and the delay is the interesting part.* The capture *queued* rather than writing through, so the heading did not exist and =org_amend= refused it by name — "apply the queue, then amend", which is the guard working. The body was written to the session scratchpad in the meantime rather than promised, and landed unchanged once the pass ran.
-
 
 
 * TODO A slice should list incidental work separately from its planned members :code:
@@ -148,7 +175,6 @@
 - *Leave the rule alone* and let the blocker carry the closed ids too. Harmless — =org-depend= blocks only on unfinished work — but it makes a machine-readable property forty entries long to express eleven facts.
 
 Recommend the first. The blocker is not a record of membership; the checkbox list is.
-
 
 
 * DONE Assert the two load-bearing Doom settings in bin/check-org-dev-skill :code:
@@ -355,14 +381,14 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 *No residue.* Everything named as unfinished during its life was filed as a heading before the heading naming it closed -- a rule this slice produced by breaking it once ([[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]]) and then writing it into CLAUDE.md.
 
 
-* DOING [15/20] Close the gap between what we declare and what the code infers :code:
+* DOING [17/20] Close the gap between what we declare and what the code infers :code:
 :PROPERTIES:
 :CATEGORY: Slices
 :ID:       979e02b6-2a4c-4328-8b08-ffaec03bd02e
 :CREATED:  [2026-08-25 Tue 15:29]
 :COOKIE_DATA: checkbox recursive
 :KIND:     slice
-:BLOCKER:  ids(a0813ae3-0c6d-43de-bae1-fb4414cdb519 c954f650-b92f-4920-9967-ab6c44577b30 2e660571-26df-41e4-bb64-b9d74a3d7efe 9651d4c8-6887-4b0a-91d9-562c3bc49a75 478d6ec9-1b99-4c6c-88e9-c793ad4b2f22)
+:BLOCKER:  ids(a0813ae3-0c6d-43de-bae1-fb4414cdb519 9651d4c8-6887-4b0a-91d9-562c3bc49a75 478d6ec9-1b99-4c6c-88e9-c793ad4b2f22)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 15:29] \\
@@ -381,9 +407,9 @@ Wherever this project declares something in prose and the code infers it some ot
 - [X] [[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]] DONE Setting DOING retroactively opens a clock, which the looser sense makes wrong
 - [X] [[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]] DONE A slice gets clocked and auto-promoted, because its members are links not children
 - [X] [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]] DONE A container carries clocks it earned before it was one
-- [ ] [[id:a0813ae3-0c6d-43de-bae1-fb4414cdb519][a0813ae3]] TODO Task mitosis: a leaf that outgrows itself divides rather than becoming a parent
-- [-] [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]] DOING Revisit the TODO keyword progression, starting with whether PLANNING earns its keep
-- [ ] [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]] NEXT Generalise :KIND: to every declared heading class, so level stops meaning anything
+- [ ] [[id:a0813ae3-0c6d-43de-bae1-fb4414cdb519][a0813ae3]] NEXT Task mitosis: a leaf that outgrows itself divides rather than becoming a parent
+- [X] [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]] DONE Revisit the TODO keyword progression, starting with whether PLANNING earns its keep
+- [X] [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]] DONE Generalise :KIND: to every declared heading class, so level stops meaning anything
 - [X] [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] DONE Adopt org-native mechanisms for the heading tiers
 - [ ] [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] TODO Find a convention marking which children a container's plan actually covered
 - [X] [[id:8183fc7c-905e-40c8-81cb-10c56158c6ce][8183fc7c]] DONE org_outline is blind to a slice: scoped to one, it returns a single line
@@ -6617,7 +6643,8 @@ Six defects were found in a single afternoon, all in the review-and-apply surfac
 *Related:* [[id:b8e6007a-ae13-4b13-bb2e-a5df39435af0][b8e6007a]] and [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] are earlier members of the same family -- both are about a readout that could not distinguish two things a human needed told apart.
 
 
-* NEXT Generalise :KIND: to every declared heading class, so level stops meaning anything :code:research:
+* DONE Generalise :KIND: to every declared heading class, so level stops meaning anything :code:research:
+CLOSED: [2026-08-28 Fri 13:20]
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       2e660571-26df-41e4-bb64-b9d74a3d7efe
@@ -6628,6 +6655,12 @@ Six defects were found in a single afternoon, all in the review-and-apply surfac
   the honest form 29439196 named now exists
 - State "NEXT"       from "TODO"       [2026-08-28 Fri 11:06] \\
   narrowed to one class; most tractable member
+CLOCK: [2026-08-28 Fri 13:18]--[2026-08-28 Fri 13:20] =>  0:02
+- State "DOING"      from "NEXT"       [2026-08-28 Fri 13:18] \\
+  datetree nodes, the last inferred class
+- [2026-08-28 Fri 13:18]--[2026-08-28 Fri 13:20] declare datetree node roles
+- State "DONE"       from "DOING"      [2026-08-28 Fri 13:20] \\
+  all four classes settled, one by refusal
 :END:
 
 *[[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] named this and could not have it.* Of the datetree lint gate it says: "A =:DATETREE_ROLE:= property would be the honest form", and calls what shipped instead "a property-shaped answer smuggled in as a string match". =:KIND:= shipped 2026-08-25 for slices. It is that property, arrived at from a different direction and already in production.
@@ -6703,8 +6736,7 @@ The plan above was to give datetree nodes =:KIND: datetree-year= / =-month= / =-
 *Nothing was built for this heading, and that is the outcome rather than a shortfall.* The one change it still proposed was measured to be less reliable than what it would have replaced.
 
 
-
-* TODO Task mitosis: a leaf that outgrows itself divides rather than becoming a parent :code:research:
+* NEXT Task mitosis: a leaf that outgrows itself divides rather than becoming a parent :code:research:
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       a0813ae3-0c6d-43de-bae1-fb4414cdb519
@@ -6715,6 +6747,8 @@ The plan above was to give datetree nodes =:KIND: datetree-year= / =-month= / =-
   proposed by the user as the answer to container clocks
 CLOCK: [2026-08-25 Tue 14:41]--[2026-08-25 Tue 14:44] =>  0:03
 - [2026-08-25 Tue 14:41]--[2026-08-25 Tue 14:44] assigned at review
+- State "NEXT"       from "TODO"       [2026-08-28 Fri 13:20] \\
+  design settled; last buildable member
 :END:
 
 *The user's proposal 2026-08-25.* When a leaf inflates far enough that it is really a story, do not promote it in place. Create a *new* parent, move the original leaf underneath it carrying its clock, LOGBOOK, state history and identity, and derive one or more further leaves from the engorged body. Division rather than promotion.
@@ -7525,6 +7559,21 @@ likely reframes all of it.
 
 What it does settle is where the answer *cannot* live. If a body may be rewritten wholesale on closure, then prose in the body is not a durable marker — it is exactly the kind of content the policy exists to remove. The convention has to be structural: a property, a tag, or a drawer entry. That rules out the cheapest option and is worth knowing before the research starts.
 
+*The user's hot take, 2026-08-28: slices are the new convention.* Then: should a heading's body carry a link to the slice it was worked in — how, and when in the lifecycle?
+
+*The planned/incidental split already answers this heading's actual question, one level up.* What this asks for is "which children were in the original plan, and which accrued during execution". A slice now records exactly that distinction about its own members: planned members in the checklist, and everything that closed during the slice's life in an =Incidental:= section ([[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]], built 2026-08-28). Original-versus-accrued *is* planned-versus-incidental. If the slice is the planning unit rather than the container — which is the hot take — then the distinction this heading wants exists already and is generated rather than authored.
+
+*So the container version may not need building at all.* That turns on one question, and it is the user's: is a container still a planning unit? If planning happens by composing a slice, then a container's children were never "covered by its plan" in the first place, and there is nothing to mark.
+
+*On the back-link: recommend not writing one.* A slice already names its members by =:ID:=. A link in the member's body pointing back at the slice is a *second copy of a fact the slice already holds*, and this project's own rule is that a declared copy of something derivable is a copy that can disagree — the reason member lines are regenerated and never hand-set. Slice membership is derivable by scanning slices for a link to this heading's id, which is cheap and cannot go stale.
+
+*What is genuinely missing is not a link but a lookup.* Reading a heading, you cannot see which slices touched it without scanning for it. That is a *tool* gap, not a convention gap, and it belongs where the other structural reads live — =org_outline= reporting a heading's slice memberships, or a small predicate beside =--slice-members=. Note the asymmetry that makes this the right shape: a heading may belong to several slices over its life, and to none, so a single-valued property was never going to fit anyway.
+
+*If a link is written despite that, the lifecycle answer follows from the same rule:* it would have to be *generated*, at slice refresh — which already runs in apply's settle phase — and regenerated wholesale each time, exactly as member lines are. Never hand-added at any point, because a hand-added one is stale the moment the slice's membership changes, and slice membership changed twice today.
+
+*Unchanged: the two questions this heading says should not be settled by whoever picks it up first* — whether every follow-on child warrants its own plan, and whether a plan is a maintained document or a dated snapshot execution supersedes. Neither is touched by the above.
+
+
 
 * DONE A container entering DOING when a child does is nowhere written down :code:
 CLOSED: [2026-08-25 Tue 16:17]
@@ -8026,7 +8075,8 @@ planning whether they should be one task, sequenced, or just
 cross-referenced as they are now.
 
 
-* DOING Revisit the TODO keyword progression, starting with whether PLANNING earns its keep :code:
+* DONE Revisit the TODO keyword progression, starting with whether PLANNING earns its keep :code:
+CLOSED: [2026-08-28 Fri 13:40]
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       c954f650-b92f-4920-9967-ab6c44577b30
@@ -8058,6 +8108,12 @@ CLOCK: [2026-08-28 Fri 12:46]--[2026-08-28 Fri 12:51] =>  0:05
 - [2026-08-28 Fri 12:46]--[2026-08-28 Fri 12:51] measure PLANNING against real use
 CLOCK: [2026-08-28 Fri 12:55]--[2026-08-28 Fri 12:58] =>  0:03
 - [2026-08-28 Fri 12:55]--[2026-08-28 Fri 12:58] measure PLANNING against real use
+CLOCK: [2026-08-28 Fri 13:06]--[2026-08-28 Fri 13:07] =>  0:01
+- [2026-08-28 Fri 13:06]--[2026-08-28 Fri 13:07] measure PLANNING against real use
+CLOCK: [2026-08-28 Fri 13:28]--[2026-08-28 Fri 13:40] =>  0:12
+- [2026-08-28 Fri 13:28]--[2026-08-28 Fri 13:40] retire PLANNING
+- State "DONE"       from "DOING"      [2026-08-28 Fri 13:40] \\
+  PLANNING retired on measurement
 :END:
 :PLAN:
 
@@ -8107,6 +8163,7 @@ CLOCK: [2026-08-28 Fri 12:55]--[2026-08-28 Fri 12:58] =>  0:03
 *How it was verified:* 431/431 after deleting three tests, each a duplicate of a surviving =DOING= twin; the stale-state and queue-parsing tests were *retargeted* to =MAYBE= rather than dropped, since they are about staleness and parsing rather than about =PLANNING=. =bin/lint-org= 0 errors, =bin/check-org-dev-skill= and =bin/queue-append-test= clean, =settings.json= still valid JSON. Both org buffers reverted *without* =preserve-modes= and confirmed to report the new keyword set — the trap named above, hit live.
 
 *Left undone deliberately:* =QUEUE_APPEND_ID/STATE/FROM= in =bin/hooks/queue-append= are now dead, that hook having been their only consumer. Left with a note rather than removed in the same commit, because that script is on the path of every hook and an unrelated edit to the queue writer is a worse risk than a dead branch. Proposals 2 and 3 above, and the "review" collision, are unadopted and filed separately.
+
 
 * TODO Fall back to the queue when org_capture cannot reach Emacs :code:
 :PROPERTIES:
@@ -12219,6 +12276,7 @@ CLOCK: [2026-08-28 Fri 11:14]--[2026-08-28 Fri 11:16] =>  0:02
 - [2026-08-28 Fri 11:14]--[2026-08-28 Fri 11:16] assigned at review
 CLOCK: [2026-08-28 Fri 11:19]--[2026-08-28 Fri 11:20] =>  0:01
 - [2026-08-28 Fri 11:19]--[2026-08-28 Fri 11:20] assigned at review
+- [2026-08-28 Fri 13:21]--[2026-08-28 Fri 13:27] assigned at review
 :END:
 
 
@@ -12229,6 +12287,7 @@ CLOCK: [2026-08-28 Fri 11:19]--[2026-08-28 Fri 11:20] =>  0:01
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-28 Fri 13:51]--[2026-08-28 Fri 13:53] =>  0:02
 CLOCK: [2026-08-28 Fri 13:02]--[2026-08-28 Fri 13:03] =>  0:01
 CLOCK: [2026-08-28 Fri 12:53]--[2026-08-28 Fri 12:56] =>  0:03
 CLOCK: [2026-08-28 Fri 10:26]--[2026-08-28 Fri 10:29] =>  0:03
