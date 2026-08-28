@@ -9165,6 +9165,15 @@ Second, =org_outline= and its consumers. Today the grouping *is* the tree, so fl
 
 *Still not applied*, and the pre-apply items in the paragraph above are unchanged.
 
+*=Repo= becomes =Dev= (the user, 2026-08-28), and the reason is the one this project keeps rediscovering: the word already existed.* =org-dev= is the skill covering "the mechanics of getting a change to this repo's own Elisp (or its Doom wiring) actually live, and proving it" — which describes these 26 headings almost exactly, and =bin/check-org-dev-skill= is one of them, so the category contains the heading about the skill that names it. Neither a tag nor a keyword collides.
+
+It also repairs the stretch recorded against =Repo= above rather than leaving it as an accepted cost. The two or three members that are about the *machine* rather than the repository — persisting the capture file in the Doom config, =emacs= being a shell function that fakes a passing batch check — are development *environment*, which =Repo= could not hold and =Dev= holds without argument.
+
+One property worth stating so it is not mistaken for sloppiness: =Dev= names an audience where the other values name subjects, so read literally it could swallow the file. It does not, because the contrast it lives in is =Tools= versus =Dev=, and that contrast was always about audience — what Claude calls, versus what a developer runs. The axis is consistent; it is the sibling that supplies the bound.
+
+*Final distribution*, re-verified after the rename: Skill 34, Apply 33, Clock 26, Dev 26, Tools 26, Queue 23, Meta 10, Slices 9, Docs 2, Upstream 1. 190 rewritten, 0 unmapped, 188 lines changed, zero non-=:CATEGORY:= lines touched, heading / =:ID:= / =CLOCK:= counts identical in both files, =bin/lint-org= unchanged at 0 errors / 68 warnings.
+
+
 
 
 * DONE Compose slices by reference: a checkbox list of id links, blocked on its members :code:research:
