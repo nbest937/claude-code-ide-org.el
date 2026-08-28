@@ -295,6 +295,23 @@ The link target is the only part that cannot go stale; keeping the
 keyword and title as plain text alongside it makes the copy visible
 *as* a copy.
 
+**Two things about where a slice's list may live**, both found by
+breaking them 2026-08-28 while composing `:ID:` b36e6369.
+
+*The member list must sit in the slice's own body, above any subheading.*
+`--slice-members` scans the heading's own body and stops at the first
+subheading, so putting the list under a `** Members` section takes the
+whole thing out of reach. It fails **silently and in the worst
+direction**: the refresh finds zero members, writes an empty `:BLOCKER:`,
+and the slice reports `[0/0]` as though it were empty rather than broken.
+
+*Do not write `- [[id:...]]` bullets as prose inside a slice body.* A
+cookie-less list item carrying an id link is exactly the shape reserved
+for a cancelled or deferred member, so prose bullets naming ids are read
+as members with their cookies deleted. Name ids as `=c74f8663=` in prose
+instead. `orgit-rev:` links are safe, which is why the plan-revision
+list at the end of a slice body works.
+
 **A slice declares itself with a `:KIND: slice` property**, not by where
 it sits or what its body looks like. "Has a checkbox list of id links" is
 not a structural fact — an ordinary body may hold one for reference — so
