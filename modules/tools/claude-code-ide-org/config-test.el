@@ -10163,3 +10163,80 @@ defect 3964c575 could not enforce its way out of."
         (should (equal "TODO" (org-get-todo-state)))
         (let ((child (buffer-substring-no-properties (point) parent-end)))
           (should (string-match-p "CLOCK: \\[2026-08-01 Sat 09:00\\]" child)))))))
+
+(ert-deftest claude-code-ide-org-test-set-property-writes-and-refuses ()
+  "`org_set_property' fills the gap that made the discouraged form cheaper.
+
+TODO.org :ID: 36b811d9: no tool set a property, so every :BLOCKER: was an
+`emacsclient' call while a prose \"depends on ...\" sentence cost nothing
+-- and CLAUDE.md asks for the property precisely because it is
+machine-checkable and the sentence is not.
+
+:ID: and :CREATED: are refused rather than merely discouraged.  They are
+identity, written once at capture; rewriting an :ID: orphans every
+inbound link and every queued event naming it, silently."
+  (claude-code-ide-org-test--with-heading
+    (should (string-prefix-p "Set CATEGORY"
+                             (claude-code-ide-org-set-property id "CATEGORY" "Skill")))
+    (should (equal "Skill" (org-with-point-at (org-id-find id 'marker)
+                             (org-entry-get nil "CATEGORY"))))
+    ;; lower case is accepted; the property name is normalised
+    (should (string-prefix-p "Set ARCHIVE"
+                             (claude-code-ide-org-set-property id "archive" "X.org::* Done")))
+    (should (string-prefix-p "Error:" (claude-code-ide-org-set-property id "ID" "nope")))
+    (should (string-prefix-p "Error:" (claude-code-ide-org-set-property id "CREATED" "nope")))
+    (should (equal id (org-with-point-at (org-id-find id 'marker)
+                        (org-entry-get nil "ID"))))
+    (should (string-prefix-p "Error:" (claude-code-ide-org-set-property "no-such" "CATEGORY" "x")))))
+
+(ert-deftest claude-code-ide-org-test-set-property-validates-blocker-ids ()
+  "A :BLOCKER: naming an id that does not exist never blocks and never
+errors -- it does nothing, forever.  So the ids are resolved at the call
+site, 8-character prefixes expanded, and anything unresolvable refused.
+
+TODO.org :ID: 36b811d9 records three fabricated ids in one session, each
+caught only by a later link-resolution sweep.  Nothing downstream would
+have caught them, which is why validation belongs here rather than in a
+convention.
+
+APPEND unions rather than overwrites, because :BLOCKER: holds a *set* --
+the one thing a general property writer would get silently wrong."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--add-child
+     file "** TODO Blocking one\n:PROPERTIES:\n:ID:       aaaaaaaa-1111-2222-3333-444444444444\n:END:\n")
+    (claude-code-ide-org-test--add-child
+     file "** TODO Blocking two\n:PROPERTIES:\n:ID:       bbbbbbbb-1111-2222-3333-444444444444\n:END:\n")
+    (org-id-update-id-locations (list file))
+    ;; an unresolvable id is refused, and nothing is written
+    (should (string-match-p "cannot resolve"
+                            (claude-code-ide-org-set-property id "BLOCKER" "deadbeef")))
+    (should-not (org-with-point-at (org-id-find id 'marker) (org-entry-get nil "BLOCKER")))
+    ;; an 8-character prefix is expanded to the full id
+    (should (string-prefix-p "Set BLOCKER"
+                             (claude-code-ide-org-set-property id "BLOCKER" "aaaaaaaa")))
+    (let ((v (org-with-point-at (org-id-find id 'marker) (org-entry-get nil "BLOCKER"))))
+      (should (equal "ids(aaaaaaaa-1111-2222-3333-444444444444)" v)))
+    ;; append unions rather than replacing
+    (claude-code-ide-org-set-property id "BLOCKER" "bbbbbbbb" t)
+    (let ((v (org-with-point-at (org-id-find id 'marker) (org-entry-get nil "BLOCKER"))))
+      (should (string-match-p "aaaaaaaa" v))
+      (should (string-match-p "bbbbbbbb" v)))
+    ;; without append it replaces
+    (claude-code-ide-org-set-property id "BLOCKER" "bbbbbbbb")
+    (let ((v (org-with-point-at (org-id-find id 'marker) (org-entry-get nil "BLOCKER"))))
+      (should-not (string-match-p "aaaaaaaa" v)))))
+
+(ert-deftest claude-code-ide-org-test-set-property-warns-on-keywordless-blocker ()
+  "Warns, rather than refusing, when a :BLOCKER: names a keyword-less
+heading.  `org-depend' blocks only on unfinished work, so such a blocker
+is inert -- but a heading captured this session is keyword-less until a
+human applies the queue, so refusing would break the case the tool is
+most wanted for.  Same check `bin/lint-org' runs, moved to the call site."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--add-child
+     file "** Keywordless\n:PROPERTIES:\n:ID:       cccccccc-1111-2222-3333-444444444444\n:END:\n")
+    (org-id-update-id-locations (list file))
+    (let ((reply (claude-code-ide-org-set-property id "BLOCKER" "cccccccc")))
+      (should (string-prefix-p "Set BLOCKER" reply))
+      (should (string-match-p "WARNING" reply))
+      (should (string-match-p "cccccccc" reply)))))

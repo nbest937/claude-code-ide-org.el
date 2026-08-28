@@ -8764,6 +8764,23 @@ Worth noting the linter caught this and re-reading did not, which is the
 same lesson as the fabricated ID above and the same remedy: mechanical
 checks catch what looks correct.
 
+*Built 2026-08-28 as =org_set_property=.* The four design questions this heading left open are answered, three of them the way it leaned and one against.
+
+*General or specific: one general tool that special-cases =:BLOCKER:=.* The heading framed these as alternatives, and they are not. A single writer gets the flexibility — =:CATEGORY:= was set by hand ten times in the session that built this, which is the same evidence that produced the heading — while =:BLOCKER:= keeps the validation only a specific tool was thought to allow. Every token is resolved before writing, 8-character prefixes expanded, and anything unresolvable or ambiguous refused. =append= unions with the existing set rather than replacing it, which is the one thing a general writer would silently get wrong.
+
+*Write or queue: neither. It refuses while the file is busy*, and that is a knowing departure from =org_amend='s model rather than an oversight. Queueing needs a queue kind, a hook branch and a review-buffer rendering, none of which exist. Refusing loses nothing — the caller retries — where writing into a modified buffer could lose the human's edits.
+
+*Keyword-less blockers warn rather than refuse.* The heading's fourth constraint asked for a refusal-or-warning and the answer is warning, for a reason it half-anticipated: =org_capture= writes no keyword and =org_set_todo= queues, so *every heading captured this session is keyword-less until apply*. Refusing would make the tool unusable in the case it is most wanted. The warning is =bin/lint-org='s own check moved to the call site.
+
+*Refused outright: =:ID:= and =:CREATED:=.* Identity, written once at capture. Rewriting an =:ID:= orphans every inbound link and every queued event naming it, silently.
+
+*The test caught a real bug on its first run*, which is the argument for having written it rather than eyeballing the diff. The implementation took a shortcut — if =--id-find= resolves the token, use the token — and =--id-find= resolves a *prefix* too ([[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] built that). So =BLOCKER: aaaaaaaa= wrote =ids(aaaaaaaa)=, a malformed id that reads as unresolvable to everything downstream: exactly the silent-forever failure this heading exists to prevent, reintroduced by the tool built to prevent it. Now it always expands and never trusts the token.
+
+*Verification:* 435/435, three new tests covering the plain write, both refusals, prefix expansion, the unresolvable refusal, append-versus-replace, and the keyword-less warning. Registered on the MCP surface and =fboundp= confirmed after =load-file= — though the *schema* is negotiated at session start, so it is callable from the next session, not this one.
+
+*Not built, and worth its own heading if wanted:* the queue path, and =org_capture= accepting an initial state so a capture and its keyword do not arrive a review pass apart — the smaller companion question this heading raised at the end.
+
+
 
 ** TODO org_outline's active_only orphans children of finished headings :code:
 :PROPERTIES:

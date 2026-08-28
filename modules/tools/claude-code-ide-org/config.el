@@ -3038,6 +3038,121 @@ its id, clock and history stayed with the child"
                                         (org-get-heading t t t t))))))
         (error (format "Error: %s" (error-message-string err)))))))
 
+(defconst claude-code-ide-org--property-tool-refused '("ID" "CREATED")
+  "Properties `org_set_property' will not write.
+
+Both are written by `org_capture' at creation and are identity rather
+than annotation.  Rewriting an :ID: silently orphans every inbound link
+and every queued event naming it; rewriting :CREATED: falsifies the one
+timestamp nothing else can reconstruct.  Refused at the call site rather
+than trusted to a convention, because a convention has no way to say no.")
+
+(defun claude-code-ide-org--blocker-ids-from (value)
+  "Return VALUE's ids as full :ID:s, expanding 8-character prefixes.
+
+Answers (cons \\='ok IDS) or (cons \\='error MESSAGE).  A prefix that
+resolves to nothing, or to more than one heading, is an error rather
+than a guess -- which is the point of validating here at all.  TODO.org
+:ID: 36b811d9 records three fabricated ids in one session, each caught
+only by a later link-resolution sweep; a fabricated id in a :BLOCKER:
+never blocks and never errors, so nothing downstream would have caught
+it either."
+  (let ((table (claude-code-ide-org--id-index))
+        (out nil) (bad nil))
+    (dolist (tok (split-string (or value "") "[ \t,]+" t))
+      (let* ((tok (string-trim tok))
+             ;; Always expand, never trust the token. `--id-find' resolves a
+             ;; *prefix* too (:ID: 478d6ec9), so a shortcut through it would
+             ;; write the prefix into the property -- which then reads as a
+             ;; malformed id to everything downstream. Caught by the test on
+             ;; its first run, which is the argument for having written it.
+             (hit (claude-code-ide-org--expand-id-prefix tok table)))
+        (cond ((stringp hit) (push hit out))
+              ((eq hit 'none) (push (format "%s (matches no heading)" tok) bad))
+              (t (push (format "%s (ambiguous)" tok) bad)))))
+    (if bad
+        (cons 'error (format "cannot resolve: %s" (string-join (nreverse bad) ", ")))
+      (cons 'ok (nreverse out)))))
+
+(defun claude-code-ide-org-set-property (id property value &optional append)
+  "Set PROPERTY to VALUE on the heading with :ID: ID.  Writes immediately.
+
+Exists because none of the other tools sets a property, so every change
+was an `emacsclient' call or a hand-edit -- which made the *discouraged*
+form cheaper than the preferred one.  CLAUDE.md asks for a machine-
+checkable :BLOCKER: rather than a prose \"depends on ...\" sentence, and
+prose cost nothing while the property cost a shell call (TODO.org :ID:
+36b811d9).
+
+:BLOCKER: is special-cased rather than given its own tool, which settles
+that heading's first design question.  A general writer would get it
+silently wrong in two ways: the property holds a *set*, so plain
+assignment discards whatever was already there, and its members are ids,
+which nothing else would check.  Here every token is resolved first --
+8-character prefixes expanded, unresolvable or ambiguous ones refused --
+and APPEND unions with the existing set instead of replacing it.
+
+Warns, without refusing, when a :BLOCKER: names a heading carrying no
+TODO keyword.  That is inert rather than wrong: `org-depend' blocks only
+on unfinished work, and a heading captured this session is keyword-less
+until a human applies the queue, so refusing would make the tool unusable
+in the case it is most wanted.  The warning is the same check
+`bin/lint-org' already runs, moved from after-the-fact to the call site.
+
+Refuses while the target file has unsaved changes, rather than queueing.
+`org_amend' queues in that situation and that is the better end state;
+it needs a queue kind, a hook branch and a review-buffer rendering, none
+of which exist yet.  Refusing loses nothing -- the caller can retry --
+where writing into a busy buffer could lose the human's edits."
+  (require 'org-id)
+  (let* ((property (upcase (string-trim (or property ""))))
+         (marker (claude-code-ide-org--id-find id 'marker)))
+    (cond
+     ((string-empty-p property) "Error: no property named")
+     ((member property claude-code-ide-org--property-tool-refused)
+      (format "Error: %s is written at capture and is identity, not annotation; \
+this tool will not rewrite it" property))
+     ((not marker) (format "Error: no org heading found with :ID: \"%s\"" id))
+     ((claude-code-ide-org--file-busy-p (buffer-file-name (marker-buffer marker)))
+      (format "Error: %s has unsaved changes in Emacs; retry once it is saved"
+              (file-name-nondirectory (buffer-file-name (marker-buffer marker)))))
+     (t
+      (condition-case err
+          (org-with-point-at marker
+            (if (not (equal property "BLOCKER"))
+                (progn (org-entry-put (point) property value)
+                       (save-buffer)
+                       (format "Set %s on \"%s\"" property
+                               (org-get-heading t t t t)))
+              (let ((parsed (claude-code-ide-org--blocker-ids-from value)))
+                (if (eq (car parsed) 'error)
+                    (format "Error: %s" (cdr parsed))
+                  (let* ((new (cdr parsed))
+                         (old (and append
+                                   (claude-code-ide-org--lint-blocker-ids
+                                    (or (org-entry-get nil "BLOCKER") ""))))
+                         (all (delete-dups (append old new)))
+                         (inert (seq-filter
+                                 (lambda (b)
+                                   (let ((m (claude-code-ide-org--id-find b 'marker)))
+                                     (and m (not (org-with-point-at m
+                                                   (org-get-todo-state))))))
+                                 all)))
+                    (org-entry-put (point) "BLOCKER"
+                                   (format "ids(%s)" (string-join all " ")))
+                    (save-buffer)
+                    (concat
+                     (format "Set BLOCKER on \"%s\" to %d id%s"
+                             (org-get-heading t t t t) (length all)
+                             (if (= 1 (length all)) "" "s"))
+                     (when inert
+                       (format " -- WARNING: %s carr%s no TODO keyword, so \
+org-depend will not block on %s until the queue is applied"
+                               (mapconcat #'claude-code-ide-org--id-prefix inert " ")
+                               (if (= 1 (length inert)) "ies" "y")
+                               (if (= 1 (length inert)) "it" "them")))))))))
+        (error (format "Error: %s" (error-message-string err))))))))
+
 (defun claude-code-ide-org-sort-children (id sort-type)
   "Sort the children of the org heading whose :ID: property equals ID.
 SORT-TYPE is a friendly string, one of: alpha, todo-order, priority,
@@ -10253,6 +10368,40 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
            (:name "target_id"
             :type string
             :description "The :ID: property value of the heading to move it under (the new parent).")))
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-set-property
+   :name "org_set_property"
+   :description (concat
+                 "Set a property on a heading identified by its :ID:. Writes "
+                 "immediately. Use this instead of hand-editing a drawer -- "
+                 "notably for :BLOCKER:, which CLAUDE.md prefers over a prose "
+                 "'depends on ...' sentence because a property is "
+                 "machine-checkable. :BLOCKER: is special-cased: every id is "
+                 "RESOLVED before writing, 8-character prefixes are expanded "
+                 "to full ids, and anything unresolvable or ambiguous is "
+                 "refused -- a :BLOCKER: naming an id that does not exist "
+                 "never blocks and never errors, so nothing downstream would "
+                 "catch it. It also holds a SET, so pass append=true to add "
+                 "to the existing list rather than replacing it. Warns "
+                 "(without refusing) when a named heading carries no TODO "
+                 "keyword, since org-depend blocks only on unfinished work "
+                 "and a heading captured this session is keyword-less until "
+                 "the queue is applied. Refuses :ID: and :CREATED:, which are "
+                 "identity written at capture. Refuses while the file has "
+                 "unsaved changes in Emacs; retry once it is saved.")
+   :args '((:name "id"
+            :type string
+            :description "The :ID: property value of the heading to modify.")
+           (:name "property"
+            :type string
+            :description "Property name, e.g. BLOCKER, CATEGORY, ARCHIVE, TRIGGER. Case-insensitive.")
+           (:name "value"
+            :type string
+            :description "The value to write. For :BLOCKER:, a space- or comma-separated list of :ID:s or 8-character prefixes.")
+           (:name "append"
+            :type boolean
+            :description "For :BLOCKER: only: union with the existing set instead of replacing it.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-divide
