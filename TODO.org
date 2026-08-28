@@ -2,6 +2,37 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 #+STARTUP: logdrawer logdone content
+* Reorder DONE.org as a datetree, descending by CLOSED: :code:
+:PROPERTIES:
+:ID:       33864a0f-5e13-4235-85a6-0bd9d2fe5252
+:CREATED:  [2026-08-28 Fri 11:37]
+:CATEGORY: Meta
+:BLOCKER:  ids(b7b46a26-2fd6-4784-bed3-d0112a917c0a)
+:END:
+
+*Proposed by the user 2026-08-28, and no heading existed for it* — checked before filing. Three neighbours touch it and none is this:
+
+- [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]] judged the structure question 2026-08-17 as *"keep both"* — two files rather than one. That settles the *file* question and says nothing about DONE.org's internal order, which is what this is.
+- [[id:4c0044bf-1b6c-44ea-807a-8f9e3523e3fd][4c0044bf]] is =CANCELLED=, but it is where the org fact lives: =org-archive-location= supports a =datetree/= target (=org-archive.el:284=).
+- [[id:0c3f1319-67c0-4b29-a8e7-5ffa12948aaf][0c3f1319]] is this same problem for the *meta-work* datetree, and its measured finding should transfer: no custom sort function is needed, =(org-sort-entries nil ?A)= on the month node gives descending order directly.
+
+*The retcon the user anticipated is a hard prerequisite, not a tidiness item, and the mechanism says why.* =org-archive-subtree= dates its datetree entry from =(or (org-entry-get nil "CLOSED" t) time)= — measured and recorded in [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]. A heading with no =CLOSED:= therefore files under *today*, not under an unknown date, and nothing warns. Run against the file as it stands, that is 39 headings silently collapsing into one wrong day node.
+
+*Measured 2026-08-28: 39 of DONE.org's 97 finished headings carry no =CLOSED:=.* But the work is smaller than that implies, because a third of it was already done and audited:
+
+| population | n | source |
+|------------+---+--------|
+| already covered by [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]]'s completion-time manifest | 13 | =git log --reverse -S=, its T2 tier |
+| not covered — archived before the 2026-08-17 sweep | 26 | nothing yet |
+
+The 13 are exactly that manifest's git-derived rows; its other 28 rows were T1 (an in-file =State= line) and were consumed by [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]]'s backfill. The 26 are the earliest headings in the project — the five original tool headings (=org_query=, =org_clock_report=, =org_capture=, =org_refile=, =org_sort_children=), the hook and trigger batch, =Set git identity=. They predate the =!= cookies in =#+TODO:=, so no in-file evidence exists and =git log --reverse -S= is the only source.
+
+*One trap already found and fixed once, in the manifest's own body, worth not rediscovering:* the in-file scan must be scoped to a heading's *own* body. Scanning the subtree dates a parent from one of its children — =b5f7c5c7= came out two days early that way, and it would have mis-ordered the two largest entries with nothing downstream to notice.
+
+*Blocked on [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]], which is being reopened rather than duplicated.* It was =CANCELLED= 2026-08-24 with the note "nothing consumes =CLOSED:= on those headings" — and this heading is exactly that consumer, so the ground for cancelling it is void. Its body already holds the two questions that still have to be answered first: whether a commit-derived =CLOSED:= is worth having at all (a commit timestamp dates when a change was *recorded*, which in this project can be far from when work stopped, and [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the precedent for refusing a plausible guess), and if so how the approximation is marked so a reader can tell the 39 from the 58 that are exact.
+
+*A known consequence, not an objection.* A second datetree in DONE.org is something =bin/lint-org= does not currently cover — its datetree rule is written for the one in TODO.org. That was foreseen while shipping the rule; see the child heading "bin/lint-org will drown in datetree scaffolding it can never satisfy", which measured it hours after the rule landed.
+
 * TODO Apply logs a self-transition when a queued event's target already matches reality :code:
 :PROPERTIES:
 :ID:       05c71d99-2839-447b-a536-60eb4bf43b73
