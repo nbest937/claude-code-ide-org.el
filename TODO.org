@@ -9173,6 +9173,15 @@ One property worth stating so it is not mistaken for sloppiness: =Dev= names an 
 
 *Final distribution*, re-verified after the rename: Skill 34, Apply 33, Clock 26, Dev 26, Tools 26, Queue 23, Meta 10, Slices 9, Docs 2, Upstream 1. 190 rewritten, 0 unmapped, 188 lines changed, zero non-=:CATEGORY:= lines touched, heading / =:ID:= / =CLOCK:= counts identical in both files, =bin/lint-org= unchanged at 0 errors / 68 warnings.
 
+*Step 2 applied 2026-08-28* ([[orgit-rev:claude-code-ide-org::8209925][8209925]]). 188 values rewritten across both files, plus one insertion — =* Review and planning= now carries =:CATEGORY: Meta= on the anchor itself. That was the one place step 2 *added* a property rather than rewriting one, and it was necessary rather than tidy: org-datetree's day nodes have no drawer of their own, so without it every meta-work interval would file under the file name. Verified through org rather than by reading the file — the day node reports =Meta=.
+
+*Verification, all after the fact rather than predicted:* no non-=:CATEGORY:= line changed in either file, heading / =:ID:= / =CLOCK:= counts identical, =bin/lint-org= 0 errors and the same 68 warnings as before, =bin/test= 434/434, =bin/check-org-dev-skill= clean. Live distribution: Skill 34, Apply 33, Clock 26, Dev 26, Tools 26, Queue 23, Meta 11 (10 tasks and the anchor), Slices 9, Docs 2, Upstream 1.
+
+*=.claude/rules/org-conventions.md= carries the glossary the flattening owed it* — the ten values with what belongs in each, the =Tools=/=Dev= test, why =Review= was rejected, and where all nine old labels went. The verbatim prose from the dissolved category bodies stays below it as history rather than being replaced by the mapping.
+
+*Left open on purpose, neither of them blocking.* =Docs= has two members and only one of them live, so it remains a declared growth area rather than a populated category — the alternative, folding the README into =Skill=, was considered and rejected by the user. And =Tools= at 26 may eventually want its own split between the tool surface and tool *policy*; there is no seam visible at this size, so it is not being guessed at.
+
+
 
 
 
