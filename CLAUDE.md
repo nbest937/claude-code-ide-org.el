@@ -82,11 +82,21 @@ written weeks ago is not. TODO.org exists to inform planning, orchestration
 and coordination of *future* work — read it for what to do next, not for
 what the system currently is.
 
-*One caveat, latent rather than theoretical:* `active_only` also drops live
-children of a finished parent (`:ID:` 98908aff). Measured 2026-08-21 — zero
-headings are hidden that way today, so the reflex is safe now and will fail
-**silently** the first time a parent is closed with unfinished children
-under it.
+*A caveat that stood here until 2026-08-28, wrong in its detail and now
+fixed outright (`:ID:` 98908aff).* It said `active_only` *drops* live
+children of a finished parent. It did not drop them — it emitted them at
+their unchanged absolute indent with the parent gone, so a reader
+re-parented a live child onto whatever line above happened to have a
+smaller indent. Wrong structure rather than a visible gap, which is worse,
+and the difference matters because a missing line is noticed and a
+misparented one is not.
+
+`--outline-map` now keeps a filtered-out heading when it is an *ancestor*
+of something that survived, so the path stays intact. Two related things
+also stopped being true: the old note's reassurance rested on level-1
+headings being keywordless categories, which the flattening removed, and
+the corpus still has zero instances — so this was fixed while it was
+still latent rather than after it bit.
 
 **DONE.org is reference, never orientation.** Do not survey it to start a
 session; it will not tell you what to work on. Open it when something live

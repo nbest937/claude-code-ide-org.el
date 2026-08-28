@@ -10240,3 +10240,39 @@ most wanted for.  Same check `bin/lint-org' runs, moved to the call site."
       (should (string-prefix-p "Set BLOCKER" reply))
       (should (string-match-p "WARNING" reply))
       (should (string-match-p "cccccccc" reply)))))
+
+(ert-deftest claude-code-ide-org-test-outline-keeps-the-path-to-a-live-child ()
+  "`active_only' must not orphan a live child of a finished parent.
+
+Indentation is the *only* thing the outline says about parentage, so a
+filtered-out ancestor does not leave a gap -- it leaves the child at its
+unchanged absolute indent, and the reader silently re-parents it onto
+whatever line above happens to have a smaller indent.  Wrong structure,
+not a visible hole (TODO.org :ID: 98908aff).
+
+Asserts the *parent* is present and the sibling's indent is smaller,
+which is the property that makes the output readable as a tree.  Merely
+asserting the child appears would pass against the broken code, since it
+appeared there too -- just misparented."
+  (claude-code-ide-org-test--with-heading
+    ;; A fresh path, not `file\': the fixture already has a buffer visiting
+    ;; that one, and writing behind a visiting buffer leaves org mapping
+    ;; over the stale text -- which is how the first run of this test
+    ;; failed, reporting the parent absent when it was simply not read.
+    (let ((tree (expand-file-name "tree.org" dir)))
+      (with-temp-file tree
+        (insert "#+TODO: TODO NEXT DOING REVIEW WAITING MAYBE | DONE CANCELLED\n\n"
+                "* DONE Finished parent\n:PROPERTIES:\n:ID:       p-0001\n:END:\n"
+                "** TODO Active child\n:PROPERTIES:\n:ID:       c-0001\n:END:\n"
+                "* TODO Live sibling\n:PROPERTIES:\n:ID:       s-0001\n:END:\n"))
+    (let* ((claude-code-ide-org-query-files (list tree))
+           (out (claude-code-ide-org-outline nil nil "true"))
+           (lines (split-string out "\n" t)))
+      (cl-flet ((indent-of (needle)
+                  (let ((l (seq-find (lambda (s) (string-match-p (regexp-quote needle) s)) lines)))
+                    (and l (- (length l) (length (string-trim-left l)))))))
+        ;; the finished ancestor is emitted, so the path is intact
+        (should (indent-of "Finished parent"))
+        ;; and the child sits deeper than it, not level with a real sibling
+        (should (> (indent-of "Active child") (indent-of "Finished parent")))
+        (should (= (indent-of "Finished parent") (indent-of "Live sibling"))))))))

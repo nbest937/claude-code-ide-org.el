@@ -8932,6 +8932,21 @@ the label as a heading turns each file into one spurious root. Worth
 fixing in the same pass, since both are the same class of bug: the
 format asserting less structure than the reader needs.
 
+*Fixed 2026-08-28 by the first of the three options above — emit the elided ancestors — and two things had changed since the analysis was written.*
+
+*The safety argument had expired.* This body said the bug was "not currently observable in this project's own files" because "TODO.org's level-1 headings are categories carrying no TODO keyword, so nothing on the path from a category to a level-2 task can ever be filtered out". [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] removed that: level 1 is now where tasks live, and a closed story with live children is an ordinary shape. The structural protection was gone; only the absence of instances remained, measured at zero the same day.
+
+*And CLAUDE.md described the defect backwards.* It warned that =active_only= "drops live children of a finished parent". It did not drop them — it *emitted* them at their unchanged absolute indent with the parent missing, so a reader re-parents a live child onto whatever line above happens to have a smaller indent. Confirmed against a scratch file before touching anything: a =DONE= level-1 parent's live child came out at indent 4 while a genuine level-1 sibling sat at 2. Wrong structure rather than a visible gap, which is the worse failure — a missing line gets noticed and a misparented one does not.
+
+*The fix.* =--outline-map= now collects two renderings per heading, the filtered one and the unfiltered one, then walks the records in reverse keeping a heading when it survives the filter *or* when it is an ancestor of something already kept. =need-above= carries the level of the shallowest kept heading, so anything shallower encountered earlier in the document is on its path and is emitted.
+
+*Why option 1 and not the other two.* Re-indenting survivors to visible depth would contradict [[id:9f3c35c7-0229-4cd6-908b-779267ec9b97][9f3c35c7]]'s deliberate choice of absolute level, which is what makes =max_depth= mean the same thing for a file and for a subtree. Skipping the whole subtree is the simplest rule and the most surprising: an active child would vanish because its parent finished, which is the opposite of what =active_only= is asked for. Emitting the ancestor costs a line the caller filtered out, and that line carries its own =DONE= keyword, so it cannot be mistaken for a result.
+
+*Verified by mutation.* Removing the ancestor-keeping clause fails exactly one test and nothing else; 436/436 restored. The test asserts the *parent is present* and that the child sits deeper than it while a real sibling sits level with it — asserting only that the child appears would pass against the broken code, since it appeared there too, just in the wrong place. Real corpus output is unchanged, as expected at zero instances.
+
+*One incidental worth recording:* the test's first run failed because it wrote its fixture with =with-temp-file= onto the path the enclosing macro already had a buffer visiting, so =org-map-entries= mapped over stale text and reported the parent absent. A fresh path fixes it. That is the same buffer-versus-disk hazard the tools guard against in production and the tests do not.
+
+
 
 ** DONE DONE.org is not a tracked file, so no id in it resolves :code:
 CLOSED: [2026-08-26 Wed 20:22]

@@ -2826,18 +2826,42 @@ already carries the progress."
 With GROUPED, return (CATEGORY . LINE) pairs and indent every line one
 level further, leaving room for the synthetic category header the caller
 emits.  Without it, return plain lines exactly as before."
-  (let (lines)
+  (let (records)
+    ;; Two lines per heading: the filtered one, which decides whether it
+    ;; survives on its own, and the unfiltered one, which is what gets
+    ;; emitted if it turns out to be an ancestor of something that did.
     (org-map-entries
      (lambda ()
-       (let ((line (claude-code-ide-org--outline-line
-                    active-only max-depth (and grouped 1))))
-         (when line
-           (push (if grouped
-                     (cons (claude-code-ide-org--outline-category) line)
-                   line)
-                 lines))))
+       (push (list (org-current-level)
+                   (claude-code-ide-org--outline-line
+                    active-only max-depth (and grouped 1))
+                   (claude-code-ide-org--outline-line
+                    nil max-depth (and grouped 1))
+                   (and grouped (claude-code-ide-org--outline-category)))
+             records))
      nil scope)
-    (nreverse lines)))
+    ;; RECORDS is reverse document order, which is the order this walk
+    ;; wants. A heading is kept when it survives the filter, or when it is
+    ;; an *ancestor* of something already kept -- otherwise `active_only'
+    ;; emits a live child at its unchanged absolute indent with its parent
+    ;; missing, and the reader silently re-parents it onto whatever line
+    ;; happens to sit above at a smaller indent (TODO.org :ID: 98908aff).
+    ;;
+    ;; `need-above\' is the level of the shallowest kept heading seen so
+    ;; far. Anything shallower than that, encountered earlier in the
+    ;; document, is on its path and has to be emitted to keep the
+    ;; indentation readable as parentage.
+    (let ((need-above nil) (out nil))
+      (dolist (rec records)
+        (let ((level (nth 0 rec)) (own (nth 1 rec))
+              (full (nth 2 rec)) (cat (nth 3 rec)))
+          (cond
+           (own (setq need-above level)
+                (push (if grouped (cons cat own) own) out))
+           ((and need-above full (< level need-above))
+            (setq need-above level)
+            (push (if grouped (cons cat full) full) out)))))
+      out)))
 
 (defun claude-code-ide-org--outline-category ()
   "The `:CATEGORY:' governing the heading at point, inherited, or nil.
