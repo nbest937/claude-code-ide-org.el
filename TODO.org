@@ -6490,10 +6490,10 @@ The reason they do not is structural rather than lucky: you block on a *bounded,
 |---------+------------+---------------|
 | task    | a leaf, the unit of work        | written |
 | story   | a task with keyworded children  | *precipitated by mitosis* |
-| epic    | the grouping a task belongs to  | declared, as an =:EPIC:= label on the task |
+| epic    | the grouping a task belongs to  | declared, as a =:CATEGORY:= value on the task |
 | slice   | a sequenced set, by reference   | declared, cutting across everything |
 
-*Note the epic column, because it is the payoff for flattening.* Since the label sits on the *task*, a story's children may carry different =:EPIC:= values, so a story spans epics for free -- no refiling, and no arrangement of parents to work around. That was the constraint [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] existed to remove, and mitosis plus a per-task label removes it without either mechanism knowing about the other.
+*Note the epic column, because it is the payoff for flattening.* Since the label sits on the *task*, a story's children may carry different =:CATEGORY:= values, so a story spans epics for free -- no refiling, and no arrangement of parents to work around. That was the constraint [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] existed to remove, and mitosis plus a per-task label removes it without either mechanism knowing about the other.
 
 
 * MAYBE Decide what this module may change on a user's machine when installed :code:
