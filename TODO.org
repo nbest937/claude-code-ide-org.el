@@ -94,7 +94,6 @@
 *Which gives whoever picks this up a test rather than a preference:* ask whether the body was ever *revised*. If it was only ever appended to, compress first. c954f650 was a clear case — five distinct dates of accretion, each opening with a bold lead that qualified or reversed one above it, and nothing ever deleted.
 
 
-
 * TODO Assign advances past the line the human is about to mark :code:
 :PROPERTIES:
 :ID:       a2509a61-4e21-4d8e-8f58-c87935753472
@@ -182,6 +181,7 @@ CLOSED: [2026-08-28 Fri 12:49]
 :PROPERTIES:
 :ID:       e10071b9-88f0-4dc3-af8e-692965c65868
 :CREATED:  [2026-08-28 Fri 12:48]
+:CATEGORY: Dev
 :END:
 :LOGBOOK:
 - State "DONE"       from              [2026-08-28 Fri 12:49] \\
@@ -381,14 +381,14 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 *No residue.* Everything named as unfinished during its life was filed as a heading before the heading naming it closed -- a rule this slice produced by breaking it once ([[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]]) and then writing it into CLAUDE.md.
 
 
-* DOING [17/20] Close the gap between what we declare and what the code infers :code:
+* DOING [20/24] Close the gap between what we declare and what the code infers :code:
 :PROPERTIES:
 :CATEGORY: Slices
 :ID:       979e02b6-2a4c-4328-8b08-ffaec03bd02e
 :CREATED:  [2026-08-25 Tue 15:29]
 :COOKIE_DATA: checkbox recursive
 :KIND:     slice
-:BLOCKER:  ids(a0813ae3-0c6d-43de-bae1-fb4414cdb519 9651d4c8-6887-4b0a-91d9-562c3bc49a75 478d6ec9-1b99-4c6c-88e9-c793ad4b2f22)
+:BLOCKER:  ids(9651d4c8-6887-4b0a-91d9-562c3bc49a75 478d6ec9-1b99-4c6c-88e9-c793ad4b2f22 2d9eeebd-4375-4790-8485-92b244236a21 98908aff-63cc-4b71-b90b-817da361a23b)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 15:29] \\
@@ -407,13 +407,22 @@ Wherever this project declares something in prose and the code infers it some ot
 - [X] [[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]] DONE Setting DOING retroactively opens a clock, which the looser sense makes wrong
 - [X] [[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]] DONE A slice gets clocked and auto-promoted, because its members are links not children
 - [X] [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]] DONE A container carries clocks it earned before it was one
-- [ ] [[id:a0813ae3-0c6d-43de-bae1-fb4414cdb519][a0813ae3]] NEXT Task mitosis: a leaf that outgrows itself divides rather than becoming a parent
+- [X] [[id:a0813ae3-0c6d-43de-bae1-fb4414cdb519][a0813ae3]] DONE Task mitosis: a leaf that outgrows itself divides rather than becoming a parent
 - [X] [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]] DONE Revisit the TODO keyword progression, starting with whether PLANNING earns its keep
 - [X] [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]] DONE Generalise :KIND: to every declared heading class, so level stops meaning anything
 - [X] [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] DONE Adopt org-native mechanisms for the heading tiers
 - [ ] [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] TODO Find a convention marking which children a container's plan actually covered
 - [X] [[id:8183fc7c-905e-40c8-81cb-10c56158c6ce][8183fc7c]] DONE org_outline is blind to a slice: scoped to one, it returns a single line
 - [ ] [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] TODO Make the 8-character prefix resolve, for the model and the human alike
+  - [X] [[id:49557477-e50c-496f-85df-82c65109832b][49557477]] DONE Expand an 8-character prefix at both surfaces where a tail gets invented
+  - [ ] [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] NEXT Read a heading's front matter, and take a partial :ID:, without a whole-body read
+  - [X] [[id:36b811d9-8bd3-4a32-b67d-39ccfe0d66c1][36b811d9]] DONE Add a tool to set heading properties, starting with :BLOCKER:
+  - [ ] [[id:98908aff-63cc-4b71-b90b-817da361a23b][98908aff]] TODO org_outline's active_only orphans children of finished headings
+  - [X] [[id:020d3688-f08d-460f-a3e8-931a1677074a][020d3688]] DONE DONE.org is not a tracked file, so no id in it resolves
+  - [X] [[id:e6d1d810-5e88-4356-b002-bbb10cf19fc9][e6d1d810]] DONE Hand-rolled the archive derivation org already had
+  - [X] [[id:93f6c908-1c15-44e5-84f9-03f1ffb6d5db][93f6c908]] DONE Expand prefixes against org-id-locations rather than a table of our own
+  - [X] [[id:c69df700-dbba-4437-bb98-44cff81501f2][c69df700]] DONE Convert plain-text id workarounds left by the unresolvable-prefix era
+  - [X] [[id:6c48d5a6-1c78-4ce5-ac97-5e1091bdb25c][6c48d5a6]] DONE Short :ID: prefixes fell past the eight-character gate and rescanned the corpus
 - [X] [[id:798bb7a1-d5a6-4c08-8cf0-cc91a82d08e6][798bb7a1]] DONE A slice member captured this session cannot be rendered or blocked on until apply
 
 *The prompt that drove this slice, one link per revision of it:*
@@ -426,11 +435,6 @@ Incidental --- closed in the course of this slice, not planned into it. Hand-bui
 
 - [X] [[id:8bea4317-c8e7-4939-8224-834bb914d89c][8bea4317]] DONE The cookie inserter appends, but every cookie in the corpus leads
 - [X] [[id:62b65ad0-304b-4cf1-bd95-2f1ecb671d6b][62b65ad0]] DONE Reserve NEXT for use within a container; nominate rather than promote
-- [X] [[id:020d3688-f08d-460f-a3e8-931a1677074a][020d3688]] DONE DONE.org is not a tracked file, so no id in it resolves
-- [X] [[id:e6d1d810-5e88-4356-b002-bbb10cf19fc9][e6d1d810]] DONE Hand-rolled the archive derivation org already had
-- [X] [[id:93f6c908-1c15-44e5-84f9-03f1ffb6d5db][93f6c908]] DONE Expand prefixes against org-id-locations rather than a table of our own
-- [X] [[id:c69df700-dbba-4437-bb98-44cff81501f2][c69df700]] DONE Convert plain-text id workarounds left by the unresolvable-prefix era
-- [X] [[id:6c48d5a6-1c78-4ce5-ac97-5e1091bdb25c][6c48d5a6]] DONE Short :ID: prefixes fell past the eight-character gate and rescanned the corpus
 
 
 * DONE Setting DOING retroactively opens a clock, which the looser sense makes wrong :code:
@@ -6736,7 +6740,8 @@ The plan above was to give datetree nodes =:KIND: datetree-year= / =-month= / =-
 *Nothing was built for this heading, and that is the outcome rather than a shortfall.* The one change it still proposed was measured to be less reliable than what it would have replaced.
 
 
-* NEXT Task mitosis: a leaf that outgrows itself divides rather than becoming a parent :code:research:
+* DONE Task mitosis: a leaf that outgrows itself divides rather than becoming a parent :code:research:
+CLOSED: [2026-08-28 Fri 14:01]
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       a0813ae3-0c6d-43de-bae1-fb4414cdb519
@@ -6749,7 +6754,14 @@ CLOCK: [2026-08-25 Tue 14:41]--[2026-08-25 Tue 14:44] =>  0:03
 - [2026-08-25 Tue 14:41]--[2026-08-25 Tue 14:44] assigned at review
 - State "NEXT"       from "TODO"       [2026-08-28 Fri 13:20] \\
   design settled; last buildable member
+CLOCK: [2026-08-28 Fri 13:57]--[2026-08-28 Fri 14:01] =>  0:04
+- State "DOING"      from "NEXT"       [2026-08-28 Fri 13:57] \\
+  build the division tool
+- [2026-08-28 Fri 13:57]--[2026-08-28 Fri 14:01] measure PLANNING against real use
+- State "DONE"       from "DOING"      [2026-08-28 Fri 14:01] \\
+  org_divide shipped and proved by mutation
 :END:
+:PLAN:
 
 *The user's proposal 2026-08-25.* When a leaf inflates far enough that it is really a story, do not promote it in place. Create a *new* parent, move the original leaf underneath it carrying its clock, LOGBOOK, state history and identity, and derive one or more further leaves from the engorged body. Division rather than promotion.
 
@@ -6811,6 +6823,7 @@ The reason they do not is structural rather than lucky: you block on a *bounded,
 
 *Note the epic column, because it is the payoff for flattening.* Since the label sits on the *task*, a story's children may carry different =:CATEGORY:= values, so a story spans epics for free -- no refiling, and no arrangement of parents to work around. That was the constraint [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] existed to remove, and mitosis plus a per-task label removes it without either mechanism knowing about the other.
 
+:END:
 *Built 2026-08-28 as =org_divide= / =claude-code-ide-org-divide=.*
 
 *Scoped to the mechanical half deliberately.* The tool inserts a new parent above the heading and demotes it underneath, and does *nothing* with the child's engorged body. Splitting that into further sibling leaves is an editorial judgement, and a tool that guessed at it would be inventing headings. So =org_divide= guarantees the *record* survives a division; it does not guarantee the division was a good one.
@@ -6826,7 +6839,6 @@ The reason they do not is structural rather than lucky: you block on a *bounded,
 *One limit worth stating rather than discovering.* The MCP *schema* is negotiated at session start, so =org_divide= is not callable from this session even though the elisp is live — the next session gets it.
 
 *CLAUDE.md's mitosis section said "designed and **not built**".* That is now corrected, along with the tool table, and the paragraph records the manual/mechanical split above so nobody expects the tool to produce the sibling leaves.
-
 
 
 * MAYBE Decide what this module may change on a user's machine when installed :code:
@@ -7591,7 +7603,6 @@ What it does settle is where the answer *cannot* live. If a body may be rewritte
 *Unchanged: the two questions this heading says should not be settled by whoever picks it up first* — whether every follow-on child warrants its own plan, and whether a plan is a maintained document or a dated snapshot execution supersedes. Neither is touched by the above.
 
 
-
 * DONE A container entering DOING when a child does is nowhere written down :code:
 CLOSED: [2026-08-25 Tue 16:17]
 :PROPERTIES:
@@ -8131,6 +8142,10 @@ CLOCK: [2026-08-28 Fri 13:28]--[2026-08-28 Fri 13:40] =>  0:12
 - [2026-08-28 Fri 13:28]--[2026-08-28 Fri 13:40] retire PLANNING
 - State "DONE"       from "DOING"      [2026-08-28 Fri 13:40] \\
   PLANNING retired on measurement
+CLOCK: [2026-08-28 Fri 13:55]--[2026-08-28 Fri 13:57] =>  0:02
+- [2026-08-28 Fri 13:55]--[2026-08-28 Fri 13:57] measure PLANNING against real use
+CLOCK: [2026-08-28 Fri 14:01]--[2026-08-28 Fri 14:07] =>  0:06
+- [2026-08-28 Fri 14:01]--[2026-08-28 Fri 14:07] measure PLANNING against real use
 :END:
 :PLAN:
 
@@ -8351,7 +8366,7 @@ asserts the refusal instead, across nil, empty and whitespace; removing
 the guard fails it and nothing else.
 
 
-* TODO [6/10] Make the 8-character prefix resolve, for the model and the human alike :code:
+* TODO [7/10] Make the 8-character prefix resolve, for the model and the human alike :code:
 :PROPERTIES:
 :CATEGORY: Tools
 :ID:       478d6ec9-1b99-4c6c-88e9-c793ad4b2f22
@@ -8673,7 +8688,8 @@ the 8-character prefix the unit of reference in prose, commits and
 conversation, while every actual lookup still demands all 36.
 
 
-** TODO Add a tool to set heading properties, starting with :BLOCKER: :code:
+** DONE Add a tool to set heading properties, starting with :BLOCKER: :code:
+CLOSED: [2026-08-28 Fri 14:07]
 :PROPERTIES:
 :ID:       36b811d9-8bd3-4a32-b67d-39ccfe0d66c1
 :CREATED:  [2026-08-15 Sat 16:43]
@@ -8681,7 +8697,10 @@ conversation, while every actual lookup still demands all 36.
 :LOGBOOK:
 - State "TODO"       from              [2026-08-15 Sat 16:44] \\
   property tool gap, three incidents tonight
+- State "DONE"       from "TODO"       [2026-08-28 Fri 14:07] \\
+  org_set_property shipped with validation
 :END:
+:PLAN:
 
 None of the 14 registered tools sets a property. =org_capture= writes
 =:ID:= and =:CREATED:= at creation and that is the whole of it, so every
@@ -8764,6 +8783,7 @@ Worth noting the linter caught this and re-reading did not, which is the
 same lesson as the fabricated ID above and the same remedy: mechanical
 checks catch what looks correct.
 
+:END:
 *Built 2026-08-28 as =org_set_property=.* The four design questions this heading left open are answered, three of them the way it leaned and one against.
 
 *General or specific: one general tool that special-cases =:BLOCKER:=.* The heading framed these as alternatives, and they are not. A single writer gets the flexibility — =:CATEGORY:= was set by hand ten times in the session that built this, which is the same evidence that produced the heading — while =:BLOCKER:= keeps the validation only a specific tool was thought to allow. Every token is resolved before writing, 8-character prefixes expanded, and anything unresolvable or ambiguous refused. =append= unions with the existing set rather than replacing it, which is the one thing a general writer would silently get wrong.
@@ -8779,7 +8799,6 @@ checks catch what looks correct.
 *Verification:* 435/435, three new tests covering the plain write, both refusals, prefix expansion, the unresolvable refusal, append-versus-replace, and the keyword-less warning. Registered on the MCP surface and =fboundp= confirmed after =load-file= — though the *schema* is negotiated at session start, so it is callable from the next session, not this one.
 
 *Not built, and worth its own heading if wanted:* the queue path, and =org_capture= accepting an initial state so a capture and its keyword do not arrive a review pass apart — the smaller companion question this heading raised at the end.
-
 
 
 ** TODO org_outline's active_only orphans children of finished headings :code:
@@ -12321,6 +12340,7 @@ CLOCK: [2026-08-28 Fri 11:19]--[2026-08-28 Fri 11:20] =>  0:01
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-28 Fri 14:52]--[2026-08-28 Fri 14:54] =>  0:02
 CLOCK: [2026-08-28 Fri 13:51]--[2026-08-28 Fri 13:53] =>  0:02
 CLOCK: [2026-08-28 Fri 13:02]--[2026-08-28 Fri 13:03] =>  0:01
 CLOCK: [2026-08-28 Fri 12:53]--[2026-08-28 Fri 12:56] =>  0:03

@@ -260,8 +260,30 @@ and `:ID:` 979e02b6 ran most of its life uncookied. The lint rule is a
 count different things: children, versus checkbox members.
 
 **Members are `[[id:...]]` links in a checkbox list**, not child
-headings. The list may mirror the tree — a story's children indented
-under it — but it need not contain every child of a story it refers to.
+headings.
+
+**When a member is a story, its relevant children get indented member
+lines beneath it** — added 2026-08-28. Not *every* child: the ones that
+belong to this slice, and *especially* any child that blocks another
+member, since a cross-member dependency is invisible from either side
+otherwise. Which children belong is a judgement, so it is **declared**
+like any other membership; only the rendering is derived, and
+`refresh-slice` already regenerates indented lines exactly as it does
+top-level ones. A story whose children are all irrelevant to the slice
+appears as a single line, which is correct rather than incomplete.
+
+Two consequences. The nested lines count toward the cookie, because
+`:COOKIE_DATA: checkbox recursive` is what that property is for. And an
+unfinished child enters the `:BLOCKER:` on its own account, which is the
+point: a slice that names a story is not finished when the story's
+*relevant* parts are outstanding.
+
+Prefer nesting a child over listing it at top level or leaving it as
+*incidental*. A child promoted to a top-level member loses the fact that
+it belongs to something; one left incidental claims it was unrelated to
+the plan when it was the plan's own subject. `478d6ec9`'s children were
+five incidentals and four absentees before this rule; they are now nine
+indented lines under their parent.
 Write the link so it displays the 8-character prefix, and put the
 referent's keyword and title *outside* the brackets:
 
