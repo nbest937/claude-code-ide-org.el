@@ -230,6 +230,15 @@ headline carries `[n/m]` over its checkbox list, and
 is missing rather than only recomputing an existing one. `bin/lint-org`
 reports a cookie-less slice as an **error** as a backstop.
 
+**It goes at the end of the title, before any tags** — which is where
+`--ensure-statistics-cookie-at-point` puts it, because org requires tags
+to end the headline. Written down 2026-08-28 only because the two slices
+that exist disagree: `979e02b6` trails its cookie and `c44c2119` leads
+with one. The leading form was typed by hand before the inserter existed
+and is not being normalised — it is finished, and rewriting a closed
+slice's headline is churn. Placement is cosmetic to org, which is
+exactly why an unwritten answer drifts.
+
 Both halves were added 2026-08-26 (`:ID:` 28415ca8) because relying on
 the creator to type `[/]` failed on the second slice ever written.
 `org-update-statistics-cookies` updates a cookie and never inserts one,
