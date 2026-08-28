@@ -286,14 +286,14 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 *No residue.* Everything named as unfinished during its life was filed as a heading before the heading naming it closed -- a rule this slice produced by breaking it once ([[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]]) and then writing it into CLAUDE.md.
 
 
-* DOING [8/12] Close the gap between what we declare and what the code infers :code:
+* DOING [15/20] Close the gap between what we declare and what the code infers :code:
 :PROPERTIES:
 :CATEGORY: Slices
 :ID:       979e02b6-2a4c-4328-8b08-ffaec03bd02e
 :CREATED:  [2026-08-25 Tue 15:29]
 :COOKIE_DATA: checkbox recursive
 :KIND:     slice
-:BLOCKER:  ids(a0813ae3-0c6d-43de-bae1-fb4414cdb519 c954f650-b92f-4920-9967-ab6c44577b30 2e660571-26df-41e4-bb64-b9d74a3d7efe 9651d4c8-6887-4b0a-91d9-562c3bc49a75)
+:BLOCKER:  ids(a0813ae3-0c6d-43de-bae1-fb4414cdb519 c954f650-b92f-4920-9967-ab6c44577b30 2e660571-26df-41e4-bb64-b9d74a3d7efe 9651d4c8-6887-4b0a-91d9-562c3bc49a75 478d6ec9-1b99-4c6c-88e9-c793ad4b2f22)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 15:29] \\
@@ -318,6 +318,7 @@ Wherever this project declares something in prose and the code infers it some ot
 - [X] [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] DONE Adopt org-native mechanisms for the heading tiers
 - [ ] [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] TODO Find a convention marking which children a container's plan actually covered
 - [X] [[id:8183fc7c-905e-40c8-81cb-10c56158c6ce][8183fc7c]] DONE org_outline is blind to a slice: scoped to one, it returns a single line
+- [ ] [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] TODO Make the 8-character prefix resolve, for the model and the human alike
 - [X] [[id:798bb7a1-d5a6-4c08-8cf0-cc91a82d08e6][798bb7a1]] DONE A slice member captured this session cannot be rendered or blocked on until apply
 
 *The prompt that drove this slice, one link per revision of it:*
@@ -325,6 +326,16 @@ Wherever this project declares something in prose and the code infers it some ot
 - [[orgit-rev:claude-code-ide-org::7b9bd74][7b9bd74]] [2026-08-26 Wed 11:12] opened the slice, replacing c44c2119's prompt
 - [[orgit-rev:claude-code-ide-org::2301de9][2301de9]] [2026-08-26 Wed 11:24] named the decision and the design question it opens with
 - [X] [[id:e10071b9-88f0-4dc3-af8e-692965c65868][e10071b9]] DONE Assert the two load-bearing Doom settings in bin/check-org-dev-skill
+
+Incidental --- closed in the course of this slice, not planned into it. Hand-built 2026-08-28 and limited to what was actually read this session; the generated version is 0086614a.
+
+- [X] [[id:8bea4317-c8e7-4939-8224-834bb914d89c][8bea4317]] DONE The cookie inserter appends, but every cookie in the corpus leads
+- [X] [[id:62b65ad0-304b-4cf1-bd95-2f1ecb671d6b][62b65ad0]] DONE Reserve NEXT for use within a container; nominate rather than promote
+- [X] [[id:020d3688-f08d-460f-a3e8-931a1677074a][020d3688]] DONE DONE.org is not a tracked file, so no id in it resolves
+- [X] [[id:e6d1d810-5e88-4356-b002-bbb10cf19fc9][e6d1d810]] DONE Hand-rolled the archive derivation org already had
+- [X] [[id:93f6c908-1c15-44e5-84f9-03f1ffb6d5db][93f6c908]] DONE Expand prefixes against org-id-locations rather than a table of our own
+- [X] [[id:c69df700-dbba-4437-bb98-44cff81501f2][c69df700]] DONE Convert plain-text id workarounds left by the unresolvable-prefix era
+- [X] [[id:6c48d5a6-1c78-4ce5-ac97-5e1091bdb25c][6c48d5a6]] DONE Short :ID: prefixes fell past the eight-character gate and rescanned the corpus
 
 
 * DONE Setting DOING retroactively opens a clock, which the looser sense makes wrong :code:
