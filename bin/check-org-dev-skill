@@ -102,4 +102,27 @@ for fn in org-add-archive-files org-id-locations org-id-search-archives org-date
     end
 end
 
+# 7. Two Doom settings this project leans on that nothing else asserts.
+# Deliberately *behavioural*, not a text comparison against SKILL.md's
+# prose: §7 stopped quoting the config on 2026-08-28 precisely because a
+# transcription drifts twice and cannot be checked by reading it, so
+# re-introducing a diff here would rebuild the failure mode in a script.
+# These ask the running Emacs what is true.
+#
+# Not asserted, and the omission is deliberate: the org-todo-keywords
+# sequence. It disagrees with TODO.org's own `#+TODO:' today (WAIT vs
+# WAITING, and no REVIEW) and nothing is broken, because a buffer-local
+# header wins -- so a check would fail on a latent inconsistency, and a
+# check that fails while everything works is one people learn to ignore.
+
+set truename (emacsclient -e '(if find-file-visit-truename t nil)' 2>/dev/null; or echo unreachable)
+check "find-file-visit-truename is set (symlinked TODO.org opens once)" "$truename" "t"
+
+# Must resolve inside this repo. Unset it falls back to
+# `org-default-notes-file' and targetless captures land in ~/org/notes.org
+# (TODO.org :ID: bd482c92). Compared through `file-truename' on both sides,
+# since the config deliberately names the *symlink* path.
+set capture_file (emacsclient -e '(if (boundp (quote claude-code-ide-org-capture-file)) (file-truename claude-code-ide-org-capture-file) "unbound")' 2>/dev/null | string trim -c '"')
+check "claude-code-ide-org-capture-file resolves into this repo" "$capture_file" "$repo_root/TODO.org"
+
 exit $fail

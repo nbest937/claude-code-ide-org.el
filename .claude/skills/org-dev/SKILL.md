@@ -347,82 +347,44 @@ hasn't built yet), `bin/test` silently falls back to the bundled org
 again with no error — the symptom is tests behaving as if a newer
 org-mode feature doesn't exist. Check `ls ~/.config/emacs/.local/straight/build-*/org` if that happens.
 
-## 7. What is in the Doom config, and why
+## 7. What the Doom config does for this project, and why
 
 Moved here from CLAUDE.md 2026-08-14: it is setup reference consulted when
 changing these files, which is exactly this skill's trigger, not something
 every session needs in context.
 
-**Read the live file, not this summary, before acting on it.** The version
-CLAUDE.md carried had drifted — it showed `(add-hook 'kill-emacs-hook
-#'org-clock-out)` when the config actually uses a guarded wrapper. What
-follows was re-verified against `~/.config/doom/config.el` on 2026-08-28.
+**This section deliberately does not reproduce `~/.config/doom/config.el`,
+and that is the fix rather than an omission.** It used to, and the copy
+drifted twice. First in CLAUDE.md — it showed `(add-hook 'kill-emacs-hook
+#'org-clock-out)` when the config already used a guarded wrapper — which
+is why §7 was moved here on 2026-08-14. Then here: between 2026-08-14 and
+2026-08-28 it gained a keyword the config never had (`WAITING`, where the
+config says `WAIT`) and lost two settings the config had gained. Neither
+drift was noticed, and neither could have been: **a quoted config is the
+one kind of documentation that cannot be checked by reading it** — you
+have to open the other file, which is exactly the work the quote existed
+to save. Moving a drifting duplicate to a new home does not stop it
+drifting.
 
-**And this copy had drifted too, which is the point of the warning above
-rather than an exception to it.** Between 2026-08-14 and 2026-08-28 it
-gained a keyword the config never had (`WAITING`, where the config still
-says `WAIT`) and lost two settings the config had gained
-(`find-file-visit-truename` and `claude-code-ide-org-capture-file`). None
-of it was noticed, because `bin/check-org-dev-skill` asserts ports, paths
-and function names but nothing about this block. A quoted config is the
-one kind of documentation that cannot be checked by reading it.
+So what follows names each setting and says what breaks without it. Names
+change far more slowly than values, and an invariant can be checked where
+a transcription cannot.
 
-```elisp
-;; server.el must be required explicitly: server-running-p isn't
-;; autoloaded (server-start is), so a fresh startup errors void-function
-;; without this. The guard keeps a mid-session reload from hitting
-;; server-start's "already running" prompt.
-(require 'server)
-(unless (server-running-p) (server-start))
+**Where to look.** `~/.config/doom/config.el` for everything below;
+`~/.config/doom/packages.el` for the `claude-code-ide` recipe
+(`:host github :repo "manzaltu/claude-code-ide.el"`); `~/.config/doom/init.el`
+for the `:term vterm` and `:tools claude-code-ide-org` module lines.
 
-;; Load-bearing, not decoration: ~/org/claude-code-ide-org/TODO.org is a
-;; symlink to the copy in the git repo. Doom already sets this, but it also
-;; sets `find-file-suppress-same-file-warnings', so if this ever flipped to
-;; nil you would get two buffers on one org file and no warning about it.
-(setq find-file-visit-truename t)
-
-(after! org
-  (setq org-todo-keywords
-        '((sequence "TODO" "NEXT" "PLANNING" "DOING" "WAIT" "MAYBE" "|" "DONE" "CANCELLED")))
-  (setq org-clock-out-when-done t)
-  (setq org-clock-persist 'history)
-  (setq org-archive-location "DONE.org::* Done")
-  ;; Doom's default is (list org-directory) and org expands it
-  ;; non-recursively, so a file one level down never resolves. One-time
-  ;; scan at load: a newly symlinked .org needs a restart to be seen.
-  (setq org-agenda-files (directory-files-recursively org-directory "\\.org$"))
-  ;; Where org_capture files a heading given no explicit target. Unset, it
-  ;; falls back to `org-default-notes-file' and captures land in
-  ;; ~/org/notes.org, outside this repo (TODO.org :ID: bd482c92). The
-  ;; *symlink* path deliberately, not ~/git/... -- `org-agenda-files' is
-  ;; built by scanning `org-directory', so everything else knows the file
-  ;; by that name, and the git path would give org-id two entries per id.
-  (setq claude-code-ide-org-capture-file
-        (expand-file-name "claude-code-ide-org/TODO.org" org-directory))
-  (require 'org-depend))
-
-;; org-clock-out has no guard and signals (user-error "No active clock"),
-;; which these hooks would hit on every quit where nothing is clocked --
-;; the common case. Hence the wrapper.
-(defun claude-code-ide-org--clock-out-if-clocking ()
-  (when (org-clocking-p) (org-clock-out)))
-(add-hook 'kill-emacs-hook #'claude-code-ide-org--clock-out-if-clocking)
-(add-hook 'suspend-hook    #'claude-code-ide-org--clock-out-if-clocking)
-
-(use-package! claude-code-ide
-  :config
-  (setq claude-code-ide-mcp-server-port 45571)
-  (claude-code-ide-emacs-tools-setup)
-  (setq claude-code-ide-terminal-backend 'vterm)
-  (global-auto-revert-mode 1))
-```
-
-Declared in `~/.config/doom/packages.el`:
-
-```elisp
-(package! claude-code-ide
-  :recipe (:host github :repo "manzaltu/claude-code-ide.el"))
-```
+| setting | what it buys, and what breaks without it |
+|---|---|
+| `(require 'server)` before `server-start` | `server-running-p` is not autoloaded though `server-start` is, so a fresh startup errors `void-function`. The `unless` guard keeps a mid-session reload off the "already running" prompt |
+| `find-file-visit-truename` | `~/org/claude-code-ide-org/TODO.org` is a symlink into the repo. Without this you get two buffers on one file — and no warning, because Doom also sets `find-file-suppress-same-file-warnings`. Doom sets it already; it is pinned so a Doom change cannot flip it silently |
+| `org-agenda-files` scanned recursively | Doom's default is `(list org-directory)`, which org expands non-recursively, so a file one level down never resolves. It is a one-time scan at load: a newly symlinked `.org` needs a restart to be seen |
+| `claude-code-ide-org-capture-file` | unset, it falls back to `org-default-notes-file` and targetless captures land in `~/org/notes.org`, outside this repo (`:ID:` bd482c92). Set to the **symlink** path, not `~/git/…`: `org-agenda-files` is built by scanning `org-directory`, so everything else knows the file by that name, and the git path would give org-id two entries per id |
+| `org-clock-persist` set to `history` | not `t` and not `clock`, so a restart does **not** auto-resume a clock. That is why stale-interval detection scans file *text* for an unclosed `CLOCK:` rather than asking `org-clocking-p` |
+| `--clock-out-if-clocking` on `kill-emacs-hook` and `suspend-hook` | `org-clock-out` has no guard and signals `(user-error "No active clock")`, which those hooks would hit on every quit where nothing is clocked — the common case. Hence the wrapper rather than the bare function |
+| `claude-code-ide-mcp-server-port` | must match `.mcp.json`. This one **is** asserted, by `bin/check-org-dev-skill` |
+| `global-auto-revert-mode` | why an edit made on disk shows up in a live buffer without an explicit revert — but see §0, it is not a substitute for stating the precondition |
 
 **`org-depend` is required, so `:BLOCKER:` is actually enforced.** Verified
 live: `org-blocker-hook` holds `org-depend-block-todo` alongside this
