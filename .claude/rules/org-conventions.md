@@ -191,8 +191,10 @@ A **story** is not declared, it is emergent: a task that has acquired
 children carrying TODO keywords. Detectable via
 `claude-code-ide-org--container-heading-p` — "container" is the code's
 older word for a story. Don't classify a heading as one when writing it.
-An **epic** is the separate thing: the grouping a task belongs to, today
-a level-1 heading and proposed as an `:EPIC:` label (`:ID:` 29439196).
+An **epic** is the separate thing: the grouping a task belongs to,
+carried on the task as a `:CATEGORY:` value since 2026-08-28 (`:ID:`
+29439196). It is declared, where a story is emergent — which is why one
+is written down and the other must never be.
 
 **A heading with TODO-carrying children carries a statistics cookie.** Add
 `[/]` to the headline and let org fill it in

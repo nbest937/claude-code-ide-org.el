@@ -6405,6 +6405,22 @@ Six defects were found in a single afternoon, all in the review-and-apply surfac
 
 *The ambiguity is load-bearing rather than cosmetic.* "Flatten the top-level headings into categories (epics)" has two readings, and they differ where it matters: once level 1 is gone, does a task's label name the old *filing group* it lived in, or the *emergent parent task* it belongs to? Those disagree for a task with no parent, and for a task whose parent epic sits in a different filing group. Deciding which sense the label carries is a prerequisite for the flattening, not a detail of it.
 
+*Re-read 2026-08-28 against what shipped since, and half of it is done.* Of the four-class table above:
+
+- *slice* was already declared when this was written, and stays.
+- *category* is *resolved.* [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] landed 2026-08-28: the level-1 tier is gone and a task's grouping is a =:CATEGORY:= value carried on the task. The =(= level 1)= inference is retired, and the lint rule that encoded it was inverted rather than deleted — level 1 is now where =:ID:=, =:CREATED:=, a keyword and tags are *required*.
+- *epic* never needed changing and still does not. It is emergent; declaring it would be the mirrored error.
+- *datetree node* is untouched and is now the *only* remaining member. =--datetree-node-role= still infers year/month/day from org's title regexes.
+
+*So the heading's own title has outrun it.* "Generalise =:KIND:= to every declared heading class" described four classes; what is left is one, plus the depth rules that hang off it. The prediction in the body — that this "accelerates flattening rather than merely tidying" — was *not* borne out, and it is worth recording why rather than quietly dropping it. Flattening happened first, without any of this, because the three places level carried meaning turned out to be independently editable: the level-1 rule inverted, the depth rule shifted by one, and the datetree exception was already gated on title shape rather than depth and so needed no change at all. The coupling this heading predicted was not there.
+
+*The "category versus epic" ambiguity it flagged as a prerequisite is settled*, and settled the way this body's last paragraph framed it: the label names the *filing group*, not the emergent parent. CLAUDE.md now carries the three-word distinction — epic, story, slice — and =.claude/rules/org-conventions.md= carries the ten values.
+
+*Residue found while re-reading this, and fixed in the same commit.* CLAUDE.md and =org-conventions.md= still described the epic as "today a level-1 heading" and as a *proposed* =:EPIC:= label, in four places. Both claims were false as of 2026-08-28. Worth noting how they survived: the post-flattening sweep grepped for the nine category *values*, and =:EPIC:= is a different literal that no value-based grep would ever surface. A sweep scoped to what changed misses the prose describing what it changed *from*.
+
+*What remains, concretely.* Give datetree nodes =:KIND: datetree-year= / =datetree-month= / =datetree-day=, keep =:DATE_TREE:= on the root (subtree-scoped, and no per-node kind expresses it), and express =bin/lint-org='s =:ID:=/=:CREATED:= exemption against the declaration instead of the title regex. The design is settled in the body above; what is left is the build and a migration of the existing nodes.
+
+
 
 * TODO Task mitosis: a leaf that outgrows itself divides rather than becoming a parent :code:research:
 :PROPERTIES:

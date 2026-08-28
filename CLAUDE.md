@@ -208,11 +208,11 @@ be classified as one when it is written; see TODO.org `:ID:` b5f94b88,
 which says so about itself.
 
 **Three words, and they do not overlap.** An **epic** is the grouping a
-task belongs to — today a level-1 heading, and `:ID:` 29439196 proposes
-making it an `:EPIC:` label carried by the task instead. A **story** is a
-task that grew keyworded children. A **slice** names members by
-reference and sequences them. Earlier drafts of this file called a story
-an "epic", which is why `:ID:` 2e660571 exists.
+task belongs to — since 2026-08-28 a `:CATEGORY:` value carried by the
+task itself (`:ID:` 29439196). A **story** is a task that grew keyworded
+children. A **slice** names members by reference and sequences them.
+Earlier drafts of this file called a story an "epic", which is why
+`:ID:` 2e660571 exists.
 
 **The axis under both of those, and the one worth carrying:** a grouping
 is either **emergent** or **declared**, and which it is determines the
@@ -229,11 +229,19 @@ An **epic** and a **slice** are both declared, and they are not the same
 thing. Each asserts that particular tasks belong together for a reason
 the tree does not encode; they differ in what they do about it.
 
-An **epic** is a *label* on the task — `:ID:` 29439196's proposal, named
-`:EPIC:` rather than `:CATEGORY:` so it means one thing. Note what that
-buys once level-1 groupings are gone: a story spans epics for free,
-because its children simply carry different `:EPIC:` values. No refiling,
-and no arrangement of parents to work around.
+An **epic** is a *label* on the task — `:CATEGORY:`, shipped 2026-08-28.
+Note what that buys now that level-1 groupings are gone: a story spans
+epics for free, because its children simply carry different `:CATEGORY:`
+values. No refiling, and no arrangement of parents to work around.
+
+**It was very nearly `:EPIC:` instead**, on the argument that a
+purpose-built property means exactly one thing. `:CATEGORY:` won on
+three affordances org gives it and gives nothing else: it populates the
+agenda prefix column, it inherits with no configuration, and
+`org-agenda-filter-by-category` exists. The "means one thing" worry was
+answered from the other side — `:KIND:` took the what-is-this job, so
+`:CATEGORY:` only ever answers what-is-this-about. See
+`.claude/rules/org-conventions.md` for the ten values.
 
 A **slice** names its members *by reference* — a checkbox list of
 `[[id:...]]` links — and **sequences** them. Nothing moves, so a slice
@@ -283,8 +291,8 @@ construction rather than by rule*:
 Two consequences that are easy to get backwards. Declaring an emergent
 grouping is the error the epic paragraph guards against. Trying to
 *infer* a declared one — reading a story out of the tree's shape — is
-the same error mirrored, and it is what a top-level category tier
-silently does today (`:ID:` 29439196). And note that a declared grouping
+the same error mirrored, and it is what the top-level category tier did
+silently until it was retired (`:ID:` 29439196). And note that a declared grouping
 is made of ids, which is why `:ID:` 478d6ec9 is load-bearing here rather
 than a convenience.
 
