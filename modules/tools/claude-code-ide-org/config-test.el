@@ -10276,3 +10276,59 @@ appeared there too -- just misparented."
         ;; and the child sits deeper than it, not level with a real sibling
         (should (> (indent-of "Active child") (indent-of "Finished parent")))
         (should (= (indent-of "Finished parent") (indent-of "Live sibling"))))))))
+
+(ert-deftest claude-code-ide-org-test-outline-scope-root-carries-front-matter ()
+  "A scoped outline leads with the root's front matter (TODO.org :ID:
+2d9eeebd).  The request that opened that heading -- show me the front
+matter of a heading, sans body, and the tree below it -- had no answer:
+the tree line carries keyword, title, id and tags, and a bare `[blocked]'
+marker that says a blocker exists without saying which ids.
+
+Asserts the blocker is rendered with its ids AND their keywords, since
+`[blocked]' alone was already available and is what this replaces.
+
+Asserts root-only explicitly.  Per-heading front matter would multiply by
+heading count and destroy the property the tool sells -- being far
+smaller than reading the file -- so `only at the root' is the design, not
+an implementation detail."
+  (claude-code-ide-org-test--with-heading
+    (let ((tree (expand-file-name "fm.org" dir)))
+      (with-temp-file tree
+        (insert "#+TODO: TODO NEXT DOING REVIEW WAITING MAYBE | DONE CANCELLED\n\n"
+                "* TODO Root\n:PROPERTIES:\n:ID:       aaaaaaaa-0000-0000-0000-000000000001\n"
+                ":CREATED:  [2026-08-01 Sat 09:00]\n:CATEGORY: Queue\n"
+                ":BLOCKER:  ids(bbbbbbbb-0000-0000-0000-000000000002)\n:END:\n"
+                "Body prose with a [[file:~/.claude/plans/x.md][Plan]] link.\n"
+                "** TODO Child\n:PROPERTIES:\n:ID:       cccccccc-0000-0000-0000-000000000003\n"
+                ":CREATED:  [2026-08-02 Sun 09:00]\n:END:\n"
+                "* TODO Blocking\n:PROPERTIES:\n:ID:       bbbbbbbb-0000-0000-0000-000000000002\n:END:\n"))
+      (let ((claude-code-ide-org-query-files (list tree)))
+        (org-id-update-id-locations (list tree))
+        (let* ((out (claude-code-ide-org-outline "aaaaaaaa-0000-0000-0000-000000000001" nil nil))
+               (lines (split-string out "\n" t)))
+          (should (string-match-p ":CREATED: \\[2026-08-01" out))
+          (should (string-match-p ":CATEGORY: Queue" out))
+          (should (string-match-p ":PLAN-FILE: ~/.claude/plans/x.md" out))
+          ;; the blocker's ids and their states, not a bare marker
+          (should (string-match-p ":BLOCKER: bbbbbbbb TODO" out))
+          ;; root only: exactly one :CREATED: line, though the child has one
+          (should (= 1 (seq-count (lambda (l) (string-match-p ":CREATED:" l)) lines)))
+          ;; and the tree still follows
+          (should (string-match-p "TODO Child" out)))))))
+
+(ert-deftest claude-code-ide-org-test-outline-unresolved-id-is-not-a-missing-file ()
+  "An id-shaped scope that resolves to nothing must say so.
+
+It used to fall through to the file interpretation and answer `no
+readable file at .../f4e628ce', which reports the wrong failure: a
+missing file rather than an unresolvable heading.  TODO.org :ID: 2d9eeebd
+found this while asking for a heading by its 8-character prefix -- the
+form this project uses everywhere in prose, commits and conversation."
+  (claude-code-ide-org-test--with-heading
+    (let* ((claude-code-ide-org-query-files (list file))
+           (out (claude-code-ide-org-outline "zzzzzzzz" nil nil)))
+      (should (string-match-p "resolves to no heading" out))
+      (should-not (string-match-p "no readable file" out)))
+    ;; a real file name still reads as a file
+    (should-not (string-match-p "resolves to no heading"
+                                (claude-code-ide-org-outline file nil nil)))))

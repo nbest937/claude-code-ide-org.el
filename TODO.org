@@ -2,6 +2,25 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 #+STARTUP: logdrawer logdone content
+* Decide whether returning a heading's whole body is a mode on org_outline or its own tool :code:
+:PROPERTIES:
+:ID:       ff1352b3-2732-4422-9f0d-4b3cb6fd8ff3
+:CREATED:  [2026-08-28 Fri 17:24]
+:CATEGORY: Tools
+:END:
+
+*Filed 2026-08-28 as [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] closed.* That heading shipped *front matter without the body*; its complement — *the body, whole* — was raised in the same analysis and deliberately not built.
+
+*The request it comes from is concrete.* Asked to "show me 4f85", the only route was =grep -n ":ID: 4f8500e6"= to find the heading, =awk= to locate the next sibling at the right level and so compute the subtree's end, then =Read= with the resulting offset and line count. Three tools and hand-done line arithmetic to retrieve one heading — and the arithmetic is the fragile part, since the extent depends on finding the next sibling *at the right level*.
+
+*It is nearly all plumbing.* =claude-code-ide-org--subtree-text-at-point= (used on the clocktable path) already returns a subtree from its heading through its last child without modifying the buffer. And scope resolution — including 8-character prefixes, and the shape-based error for an id that resolves to nothing — is now shared, since [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] fixed it there.
+
+*So the only real question is the surface, and the arguments genuinely cut both ways.* CLAUDE.md's design note says the tool surface should stay small because each tool's schema costs tokens on *every* request — which argues for a mode argument on =org_outline=. But a mode argument is itself schema paid on every request, which is the reasoning that kept front matter from being a flag; and a tool whose modes return *structure*, *front matter* or *raw text* is three tools wearing one name, which is how a schema description becomes something a model has to reason about rather than read.
+
+*A third option worth weighing rather than dismissing:* leave it out entirely. =org_amend= can now *revise* a body wholesale, and a reader who needs the prose can be pointed at the heading with =RET= in Emacs. The measured cost was three tools and some awk in one session — real, but small, and the =grep= route is at least honest about what it is doing.
+
+*Do not build it before deciding*, which is why this is filed rather than done: the implementation is an hour and the surface decision outlives it.
+
 * Remove queue-append's synthetic-event overrides, dead since the ExitPlanMode hook went :code:
 :PROPERTIES:
 :ID:       46d225c7-7541-4867-af72-929a572df2a5
@@ -8655,6 +8674,32 @@ partial-=:ID:= failure above worth fixing once rather than twice.
 *Worth deciding together rather than separately,* since one tool with a
 mode argument may serve both: front matter only, body only, whole
 subtree, or structure — the last being =org_outline= as it stands.
+
+*Built 2026-08-28, and half of what this heading asked for had already shipped without it noticing.*
+
+*Part 1 was done.* =scope= accepts an 8-character =:ID:= prefix today — [[id:93f6c908-1c15-44e5-84f9-03f1ffb6d5db][93f6c908]] and [[id:6c48d5a6-1c78-4ce5-ac97-5e1091bdb25c][6c48d5a6]] landed that under [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] after this was written. Checked before building rather than assumed: =org_outline scope=f4e628ce= returns the heading.
+
+*But its second complaint was still live.* An id-shaped scope that resolves to nothing still fell through to the file interpretation and answered =Error: no readable file at .../zzzzzzzz=, which reports the wrong failure — a missing file rather than an unresolvable heading. Now decided on *shape*: a scope containing neither =/= nor =.= was meant as an id, so it says so and names the three forms it accepts. Both interpretations have already failed by that point, so nothing is guessed.
+
+*Part 2 is the new work: front matter at the scope root.* =:CREATED:=, =:CATEGORY:=, =:KIND:=, the =:BLOCKER:= *value* with each id's current keyword, and the plan file. The original request — "show me the front matter of =f4e628ce= sans body, and the tree of anything below it" — is now one call:
+
+: :CREATED: [2026-08-11 Tue 15:52]
+: :CATEGORY: Queue
+: :PLAN-FILE: ~/.claude/plans/cheerful-riding-robin.md
+: DONE pause/resume cannot see a turn blocked on a permission prompt  {f4e628ce-...}  :code:
+
+*Root only and not behind a flag*, exactly as this body argued, and the argument held up: per-heading front matter multiplies by heading count and would destroy the 40x-smaller property the tool sells, while a boolean is schema paid on every request whether or not anyone sets it.
+
+*One addition the heading did not name: =:CATEGORY:=.* It was not a property when this was written — [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] made it one, and post-flattening it is how a heading's grouping is expressed at all, so omitting it would have left the front matter missing the thing most likely to be asked for.
+
+*The blocker rendering is the part that pays immediately.* The tree line has always carried a bare =[blocked]= marker saying a blocker *exists*; the front matter now names the ids **with their current keywords**, so a satisfied blocker is visible as satisfied without a second call.
+
+*Verified by mutation, and one of the two attempts was itself a lesson.* Removing the front matter fails exactly one test. The first attempt at breaking the scope-error branch left the file unparseable, so =bin/test= exited 255 having run *nothing* — and a naive count of =FAILED= lines read that as "no failures", which is the same silence-is-not-a-pass trap this project has recorded before. Redone with valid syntax it fails the new test plus one pre-existing one, as it should. 438/438 restored.
+
+*Also corrected: the test fixture used ids like =b-0001=, which =--lint-blocker-ids= rejects because it filters on a UUID shape.* The code was right and the fixture was unrealistic — worth recording, because the first reading was that the blocker rendering was broken.
+
+*Left for its own decision, as this body proposed:* returning a heading's *body*, whole. The primitive exists (=--subtree-text-at-point=) and the scoping is now shared, so it is plumbing — but whether it is a mode on this tool or a separate one is a design question, and this heading's own argument for a small surface cuts both ways.
+
 
 
 ** TODO Jump to a heading by title, not by pasting a UUID :code:

@@ -2820,6 +2820,60 @@ already carries the progress."
                          ""))))
            members))))))
 
+(defun claude-code-ide-org--outline-front-matter ()
+  "Return the heading-at-point's front matter as a list of lines.
+
+The three things TODO.org :ID: 2d9eeebd found unreachable -- a
+`:CREATED:' stamp, a `:BLOCKER:' *value* rather than the bare
+`[blocked]' marker the tree line carries, and a plan link -- plus
+`:CATEGORY:', which did not exist as a property when that heading was
+written and became load-bearing when :ID: 29439196 flattened the tier
+into one.
+
+Emitted only for the *scope root*, never per line.  Per-heading front
+matter would multiply by heading count and destroy the one property this
+tool sells: being roughly 40x smaller than reading the file.  At the root
+it costs a fixed handful of lines however large the subtree is.
+
+Blocker ids are rendered as 8-character prefixes, which is how this
+project writes them everywhere else, and are annotated with the referent
+keyword so a satisfied blocker is visible as such without a second call."
+  (let* ((created (org-entry-get nil "CREATED"))
+         ;; --outline-category, not --category-property-p: the latter is a
+         ;; *predicate* and answers t, which is what the first version of
+         ;; this printed. Inherited, so a story's child reports its
+         ;; parent's rather than nothing.
+         (category (claude-code-ide-org--outline-category))
+         (kind (org-entry-get nil "KIND"))
+         (blocker (org-entry-get nil "BLOCKER"))
+         (end (save-excursion (org-end-of-subtree t t) (point)))
+         (plan (save-excursion
+                 (and (re-search-forward
+                       "\\[\\[file:\\([^]]*plans/[^]]*\\)\\]\\[[^]]*\\]\\]" end t)
+                      (match-string-no-properties 1))))
+         (lines nil))
+    (when created (push (format "  :CREATED: %s" created) lines))
+    (when category (push (format "  :CATEGORY: %s" category) lines))
+    (when kind (push (format "  :KIND: %s" kind) lines))
+    (when blocker
+      (let ((ids (claude-code-ide-org--lint-blocker-ids blocker)))
+        (push (format "  :BLOCKER: %s"
+                      (if (not ids) blocker
+                        (mapconcat
+                         (lambda (b)
+                           (let* ((m (ignore-errors
+                                       (claude-code-ide-org--id-find b 'marker)))
+                                  (kw (and m (org-with-point-at m
+                                               (org-get-todo-state)))))
+                             (format "%s%s" (claude-code-ide-org--id-prefix b)
+                                     (cond ((not m) " (unresolved)")
+                                           ((not kw) " (keywordless)")
+                                           (t (format " %s" kw))))))
+                         ids " ")))
+              lines)))
+    (when plan (push (format "  :PLAN-FILE: %s" plan) lines))
+    (nreverse lines)))
+
 (defun claude-code-ide-org--outline-map (active-only max-depth scope &optional grouped)
   "Collect index lines over SCOPE, an `org-map-entries' scope value.
 
@@ -2944,13 +2998,25 @@ layer."
                           ;; a line where it lives, and the statistics
                           ;; cookie reports the size, so expanding there
                           ;; would print each member twice.
-                          (let ((members (claude-code-ide-org--outline-slice-members)))
-                            (append (claude-code-ide-org--outline-map
+                          (let ((members (claude-code-ide-org--outline-slice-members))
+                                (front (claude-code-ide-org--outline-front-matter)))
+                            (append front
+                                    (claude-code-ide-org--outline-map
                                      active depth 'tree)
                                     members))))))
             (if (stringp lines) lines      ; --at-id's "Error: ..." string
               (if lines (mapconcat #'identity lines "\n")
                 "No headings in scope."))))
+         ;; An unresolved scope that is not shaped like a file was meant as
+         ;; an :ID:, and saying "no readable file at .../f4e628ce" reports
+         ;; the wrong failure -- it reads as a missing file rather than an
+         ;; unresolvable heading, which is what TODO.org :ID: 2d9eeebd
+         ;; found. Decided on shape rather than on a resolution attempt,
+         ;; because both interpretations have already failed by here.
+         ((and scope
+               (not (string-match-p "[/.]" scope)))
+          (format "Error: scope %S resolves to no heading. It is not a file \
+name either; pass an :ID:, an 8-character :ID: prefix, or a file name." scope))
          (t
           (let* ((files (if scope
                             (list (expand-file-name scope))
@@ -10567,11 +10633,16 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
                  "org file to find something — the index is roughly 40x "
                  "smaller. Complements org_query: that one filters by "
                  "predicate and returns a flat list, this one shows structure. "
-                 "IDs are full and can be passed straight to the other tools.")
+                 "IDs are full and can be passed straight to the other tools. "
+                 "SCOPED TO ONE HEADING, the reply leads with that heading's "
+                 "front matter -- :CREATED:, :CATEGORY:, :KIND:, the :BLOCKER: "
+                 "*value* with each id's current keyword, and the plan file -- "
+                 "so 'what is this, what blocks it, what is under it' is one "
+                 "call and no body read. Root only, never per line.")
    :args '((:name "scope"
             :type string
             :optional t
-            :description "An :ID: to index only that subtree, or a file name for one file. Omit for every tracked file.")
+            :description "An :ID: or an 8-character :ID: prefix to index only that subtree, or a file name for one file. Omit for every tracked file. An id-shaped scope that resolves to nothing says so, rather than reporting a missing file.")
            (:name "max_depth"
             :type string
             :optional t

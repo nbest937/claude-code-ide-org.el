@@ -767,7 +767,7 @@ incident, and the reason the queue exists:
 
 | Tool                | Notes                                  |
 |---------------------|-----------------------------------------|
-| `org_outline`       | Compact structural index: level, keyword, title, `:ID:`, tags. Marks `[blocked]` when a `:BLOCKER:` names an unfinished heading. Use before creating a heading, to see what already exists |
+| `org_outline`       | Compact structural index: level, keyword, title, `:ID:`, tags. Marks `[blocked: id …]`. **Scoped to one heading it leads with that heading's front matter** — `:CREATED:`, `:CATEGORY:`, `:KIND:`, the `:BLOCKER:` *value* with each id's keyword, the plan file — so "what is this, what blocks it, what is under it" is one call and no body read. Accepts an 8-character prefix as scope. Use before creating a heading |
 | `org_pending_updates` | Summary of queued-but-unapplied updates, grouped by heading. Counts *proposals*, not queue lines. This is how you check a queued call landed |
 
 There is **no MCP tool that applies the queue**, by design. Apply is `M-x
