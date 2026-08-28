@@ -3313,7 +3313,7 @@ Shared by the inserter and by `bin/lint-org's cookie rules, so the two
 cannot disagree about what counts as a cookie already being present.")
 
 (defun claude-code-ide-org--ensure-statistics-cookie-at-point ()
-  "Append `[/]' to the headline at point when it carries no cookie.
+  "Insert `[/]' immediately after the keyword at point, when absent.
 Returns non-nil when one was inserted.
 
 `org-update-statistics-cookies' updates a cookie in place and will not
@@ -3322,12 +3322,22 @@ typed into it is inert to every later refresh. This closes that, and is
 deliberately separate from recomputing: it establishes the slot, org
 fills it.
 
-Inserted *before* the tags, since org requires tags to end the headline.
-A heading with no tags simply gets it at the end."
+*Position is the convention, read off the corpus rather than chosen.*
+Measured 2026-08-28: 13 of the 14 cookies in TODO.org and DONE.org sit
+immediately after the keyword, and the single trailing one was written
+by an earlier version of this function. A trailing cookie is also the
+part a narrow agenda window truncates away, which defeats the reason a
+container carries one -- that its progress is readable without
+unfolding it.
+
+`org-edit-headline' takes the headline text without keyword or tags and
+preserves both, so prefixing here cannot disturb either. That matters:
+org requires tags to end the headline, and appending to the raw line
+yields `... :code: [/]', which org does not read as a cookie at all."
   (let ((title (org-get-heading t t t t)))
     (unless (string-match-p claude-code-ide-org--statistics-cookie-regexp
                             (or title ""))
-      (org-edit-headline (concat title " [/]"))
+      (org-edit-headline (concat "[/] " title))
       t)))
 
 (defun claude-code-ide-org--category-property-p ()

@@ -2,6 +2,27 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 #+STARTUP: logdrawer logdone content
+* The cookie inserter appends, but every cookie in the corpus leads :code:
+:PROPERTIES:
+:ID:       8bea4317-c8e7-4939-8224-834bb914d89c
+:CREATED:  [2026-08-28 Fri 12:33]
+:CATEGORY: Slices
+:END:
+
+*Reported by the user 2026-08-28 as "the current slice is missing its statistics cookie at TODO.org:148".* It was not missing. It was at the *end* of the line, where they could not see it — they expected it immediately after the keyword, "that's our convention".
+
+*The corpus agrees with them 13 to 1, and the one exception is ours.* Measured across TODO.org and DONE.org: 13 cookies sit immediately after the TODO keyword, one trailed — [[id:979e02b6-2a4c-4328-8b08-ffaec03bd02e][979e02b6]], the only slice whose cookie was written by [[id:28415ca8-a4ce-43a4-9af6-9ec0e7d5662a][28415ca8]]'s =--ensure-statistics-cookie-at-point= rather than typed by a human. Every hand-written cookie in the project's history leads. The inserter was the sole source of the deviation.
+
+*It is not cosmetic, and the report itself is the demonstration.* A trailing cookie is the part a narrow agenda window or a folded outline truncates away — which defeats the one thing a cookie is for, that progress is readable *without* unfolding. The user looked at the line and concluded the cookie was absent. That is the failure mode, observed, not hypothesised.
+
+*How it survived two days.* =claude-code-ide-org-test-ensure-cookie-inserts-only-when-absent= asserted that a cookie was *present*, that it was inside the headline text, and that tags stayed terminal — but never *where* it was. The test now asserts =(string-prefix-p "[/] " h)=, and it discriminates: reverting the inserter to the appending form fails exactly that test and nothing else, 433 of 434.
+
+*The way this was got wrong is worth more than the bug.* [[orgit-rev:claude-code-ide-org::803e362][803e362]], four hours earlier, wrote the *opposite* convention into =.claude/rules/org-conventions.md= — "it goes at the end of the title, before any tags" — reasoning from =--ensure-statistics-cookie-at-point='s source, and dismissing the corpus's only other slice as a pre-inserter hand form not worth normalising. That is inferring a declared convention from the single mechanism that implements it, which is precisely the error [[id:979e02b6-2a4c-4328-8b08-ffaec03bd02e][979e02b6]] exists to close, committed inside the slice named after it. The corpus had the answer and was not asked.
+
+*Shipped:* the inserter now prefixes rather than appends (=org-edit-headline= takes the headline text without keyword or tags and preserves both, so prefixing cannot disturb either); the test asserts position; =org-conventions.md= records the corrected convention with the measurement and with why the earlier version was wrong; and [[id:979e02b6-2a4c-4328-8b08-ffaec03bd02e][979e02b6]]'s own headline was normalised through =org-edit-headline=. =bin/test= 434/434, =bin/lint-org= 0 errors.
+
+*Incidental, and already filed:* the capture for this heading was refused with =Buffer is read-only=, because =org_capture= does not bind =inhibit-read-only= — [[id:c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b][c8a97d9d]], still open. Cleared and restored around the write.
+
 * Reorder DONE.org as a datetree, descending by CLOSED: :code:
 :PROPERTIES:
 :ID:       33864a0f-5e13-4235-85a6-0bd9d2fe5252
@@ -145,7 +166,7 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 *No residue.* Everything named as unfinished during its life was filed as a heading before the heading naming it closed -- a rule this slice produced by breaking it once ([[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]]) and then writing it into CLAUDE.md.
 
 
-* DOING Close the gap between what we declare and what the code infers [6/11] :code:
+* DOING [6/11] Close the gap between what we declare and what the code infers :code:
 :PROPERTIES:
 :CATEGORY: Slices
 :ID:       979e02b6-2a4c-4328-8b08-ffaec03bd02e

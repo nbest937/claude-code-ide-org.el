@@ -230,14 +230,25 @@ headline carries `[n/m]` over its checkbox list, and
 is missing rather than only recomputing an existing one. `bin/lint-org`
 reports a cookie-less slice as an **error** as a backstop.
 
-**It goes at the end of the title, before any tags** — which is where
-`--ensure-statistics-cookie-at-point` puts it, because org requires tags
-to end the headline. Written down 2026-08-28 only because the two slices
-that exist disagree: `979e02b6` trails its cookie and `c44c2119` leads
-with one. The leading form was typed by hand before the inserter existed
-and is not being normalised — it is finished, and rewriting a closed
-slice's headline is churn. Placement is cosmetic to org, which is
-exactly why an unwritten answer drifts.
+**It goes immediately after the TODO keyword** — `* DOING [6/11] Close
+the gap …`, not at the end of the title. Measured across both files:
+**13 of 14 cookies sit there**, and the single trailing one had been
+written by `--ensure-statistics-cookie-at-point`, which is now fixed to
+match.
+
+Two reasons, and the second is why it is not merely cosmetic. A trailing
+cookie is the part a narrow agenda window or a folded outline truncates
+away — which defeats the one thing the cookie is for, that progress is
+readable *without* unfolding. The user reported the current slice as
+"missing its cookie" on exactly that basis; it was present, at the end
+of a line they could not see the end of.
+
+*Recorded because the way this was got wrong generalises.* An earlier
+version of this paragraph said the opposite, having read the convention
+off the inserter's source rather than off the corpus — inferring a
+declared thing from the one mechanism that happened to implement it,
+which is the error `:ID:` 979e02b6 exists to close. The corpus was 13:1
+against the code, and nobody had asked it.
 
 Both halves were added 2026-08-26 (`:ID:` 28415ca8) because relying on
 the creator to type `[/]` failed on the second slice ever written.

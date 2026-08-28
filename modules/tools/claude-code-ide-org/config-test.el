@@ -863,6 +863,11 @@ is not."
       (should (claude-code-ide-org--ensure-statistics-cookie-at-point))
       (let ((h (org-get-heading t t t t)))
         (should (string-match-p "\\[/\\]" h))
+        ;; Position, not just presence. 13 of the corpus's 14 cookies sit
+        ;; immediately after the keyword and the one exception was written
+        ;; by this function -- asserting presence alone is what let that
+        ;; through for two days.
+        (should (string-prefix-p "[/] " h))
         ;; Cookie inside the headline text, tags still terminal.
         (should (equal '("code") (org-get-tags nil t))))
       ;; Idempotent: a second call inserts nothing.
