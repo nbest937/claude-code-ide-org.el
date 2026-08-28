@@ -27,6 +27,15 @@ A self-transition is the one shape where the answer is emphatically no. =from= m
 *Worth deciding at the same time:* whether a skipped no-op is reported in the review buffer or silently dropped. Dropping is defensible — nothing was lost — but a queued event that vanishes without trace is the shape this project has repeatedly regretted.
 
 *Related:* [[id:2d100d0d-2d04-43b9-af1e-f4d6b52bbada][2d100d0d]] is the same class of gap one layer down — a check that has to run *across* items in a batch rather than within one item.
+
+*The queue-side half of this already shipped, and the dates say it does not cover this case.* [[id:cc0c17a7-a554-426d-afeb-09cbee7339f0][cc0c17a7]] — "A no-op TODO -> TODO transition should never be queued" — closed [2026-08-20 Thu 07:38], having taken the first of the two options its own body laid out: "=org_set_todo= could refuse to queue when =from= equals =to=", with the second, "apply could treat a no-op as satisfied rather than failed", left as defensible-but-not-done.
+
+The =420816ec= self-transition is stamped [2026-08-20 Thu 07:49] — *eleven minutes after that refusal shipped.* So this is not the same defect recurring; it is the half cc0c17a7 explicitly deferred, arriving within the hour.
+
+*Why the queue-side guard cannot reach it.* It compares =from= to =to= at *queue* time, against a snapshot of a file that then does not move until apply. The case here is a heading that arrives at =to= *in between* — because another event in the same batch lands it there, or a hand-edit does. At queue time the event is not a no-op by any test available then; it becomes one before it is applied. And org writes the state it *observes* as the =from= on the log line, not the one the event recorded, which is why the artifact reads =from "TODO"= even where the queued event said otherwise.
+
+So cc0c17a7 owns "do not queue an event that is already a no-op" and this owns "do not apply an event that has *become* one". Same defect, two clocks, and only the second needs the projection =--review-projected-staleness= already computes.
+
 * DONE [27/27] Harden the review pass: its cost, its correctness, and its record
 CLOSED: [2026-08-26 Wed 11:42]
 :PROPERTIES:
@@ -9124,6 +9133,16 @@ Second, =org_outline= and its consumers. Today the grouping *is* the tree, so fl
 *=Bigger swings= dissolved 3 =Skill= / 3 =Tools= and =Observability= scattered across six values*, both as expected — neither named a subject.
 
 *Not yet applied.* The diff, the mapping and a per-heading review table are in the session scratchpad pending the user's read.
+
+*What has to land in the apply commit, beyond the 188 property values.* The step-1 consumer table has no step-2 equivalent, so this is it — swept 2026-08-28 by grepping the nine old values across the repo.
+
+- *The datetree anchor carries no =:CATEGORY:= at all.* =* Review and planning= holds only =:DATE_TREE: t=, so it was never among the 190 and the day nodes beneath it inherit nothing — their category falls back to the file name, which is the exact defect [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] measured across the whole corpus. Stamp it =Meta=. This is the one place where step 2 *adds* a property rather than rewriting one.
+- *Nothing in the code or the test suites breaks*, verified rather than assumed. =config-test.el= and =bin/queue-append-test= reference =Tooling= and =Review and planning=, but every one is a *heading title* in a self-contained fixture, and step 2 rewrites property values only. =CLAUDE.md='s single =Tooling= mention is historical narrative about a retired trigger and reads correctly as past tense.
+- *=.claude/rules/org-conventions.md= needs an old-to-new mapping.* It deliberately preserves the nine old names and their body prose as the input to this step; once the values change, that section becomes a glossary of names nothing uses, and should say what each became.
+- *Plans under =plans/= are archive and stay untouched.*
+
+*A step-1 consumer the plan's table missed, found by the same sweep and fixed 2026-08-28.* =.claude/skills/org/SKILL.md= documented per-category =:ARCHIVE:= mirroring and asserted "this is what *this* project does; =claude-code-ide-org='s DONE.org mirrors TODO.org's categories rather than collecting one flat pile" — false since 2026-08-27, when routing collapsed to a single file-level target because there were no level-1 categories left to hang a property on. The generic org guidance around it is still correct and was kept; only the claim about current practice was rewritten. Worth noting *why* it was missed: the table enumerated consumers of =org_outline= and of =org_capture=, and this heading is a consumer of neither — it consumes the *file's shape*, which is a wider blast radius than the tool surface.
+
 
 
 

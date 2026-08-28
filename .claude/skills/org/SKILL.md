@@ -115,9 +115,15 @@ top-level category mirrors the source file's structure into the archive:
 
 Archived work then lands under a matching `* Skill logic` in `DONE.org`,
 created on demand, with `#+ARCHIVE:` still serving as the fallback for any
-category without a property — so adoption can be incremental. This is what
-*this* project does; `claude-code-ide-org`'s `DONE.org` mirrors TODO.org's
-categories rather than collecting one flat pile.
+category without a property — so adoption can be incremental.
+
+**This project no longer does that**, and the reason is worth carrying: it
+had no level-1 categories left to hang the properties on. Since 2026-08-27 a
+category here is a `:CATEGORY:` property on the task rather than a heading it
+sits under, so there is nothing to inherit an `:ARCHIVE:` from and routing
+collapsed to a single file-level `#+ARCHIVE: DONE.org::* Done`. Mirroring is
+still the right answer for a file that *does* group by heading; it just stops
+being available once the grouping is declared instead of structural.
 
 Three things to know before reaching for it:
 
