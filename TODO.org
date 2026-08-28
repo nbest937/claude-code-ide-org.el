@@ -2,6 +2,75 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 #+STARTUP: logdrawer logdone content
+* Two keyword-set proposals and the review collision are still unadopted :code:
+:PROPERTIES:
+:ID:       dbf70459-bde4-4550-bd81-0d4f9ebc50e3
+:CREATED:  [2026-08-28 Fri 13:39]
+:CATEGORY: Skill
+:END:
+
+*Filed 2026-08-28 as [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]] closed.* That heading asked whether the whole keyword progression earns its keep, answered the =PLANNING= half by retiring it, and left three questions open. They are carried out here rather than left in a closed heading's =:PLAN:= drawer, which readers are told to skip — the exact path to invisibility CLAUDE.md's filing rule exists to block.
+
+*1. Get =MAYBE= out of the default agenda without moving it after the =|=.* At the 2026-08-10 census it was 23 of 56 keyworded headings, the largest state — a healthy Someday/Maybe list rendered *actionable* by sitting before the separator. GTD is emphatic that Someday/Maybe lives outside the active system and is reviewed periodically. Moving it past the =|= would be semantically wrong, since these are not finished; Bernt Hansen's answer is to keep such states active and filter them from default agenda views. Worth re-counting before deciding — the corpus has roughly tripled since.
+
+*2. Narrow =WAITING= to "waiting on a person".* GTD separates *Waiting For* — delegated, needs chasing — from *blocked*, a dependency. Dependencies here are already structural, via =:BLOCKER:=, so the current gloss overlaps it. Recorded when the keyword had never been used once; that is no longer true, so the evidence has changed and should be re-read rather than reused.
+
+*3. The word "review" means three things.* The =:review:= tag (a kind of work), =claude-code-ide-org-review= (the command that applies the queue), and the =REVIEW= state. "The review buffer shows a REVIEW item tagged =:review:=" is a sentence someone will have to write. Either pick a different word for one of them or adopt the collision deliberately and say so in CLAUDE.md — the one thing not to do is leave it unremarked, which is where it stands.
+
+*Note what is no longer open, so this is not re-litigated.* Whether =DOING= should exist at all was *settled* in c954f650 and the reasoning is in its =:PLAN:= drawer: the org+GTD tradition argues against an in-progress keyword because the clock can say what is active, and that substitute is exactly what the event queue removes here. A future reader citing Bernt or GTD has a well-supported argument and is wrong for this system specifically. =REVIEW='s adoption and =PLANNING='s retirement are likewise decided.
+
+* Sort TODO.org by :CREATED: descending, after each archive pass :code:
+:PROPERTIES:
+:ID:       5f1068f9-1452-45e4-9253-568edfce2053
+:CREATED:  [2026-08-28 Fri 13:39]
+:CATEGORY: Meta
+:END:
+
+*Asked for by the user 2026-08-28, for the next slice.* After archiving the closed headings, sort what remains in TODO.org by =:CREATED:= descending, so the file reads newest-first.
+
+*It became a one-operation job when the category tier went.* [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]'s plan already named this and could not do it: sorting used to mean nine separate operations, one inside each level-1 category, with no ordering between them. Flattened, every task is a level-1 sibling and the whole file is one =org-sort-entries= call.
+
+*Where it belongs is the load-bearing part.* The ceremony order is fixed for a reason — apply the queue, consolidate drawers, normalise separation, *then* archive — and this goes *after* archiving, for the same reason archiving goes last: sorting before it would order rows that are about to be removed. It is also idempotent and cheap once the file is already sorted, so it can join the ceremony rather than being a thing to remember.
+
+*Two things to settle when building it, neither obvious:*
+
+- *What to do with headings that have no =:CREATED:=.* Every heading created since the convention has one and =bin/lint-org= errors without it, but archived-in and hand-written rows historically did not — the same gap [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] is about for =CLOSED:=. Sorting must not silently pile them at one end as though they were coeval.
+- *The datetree anchor must not move or be sorted into.* =* Review and planning= is the one structural level-1 heading left, and its year/month/day children have their own ordering question ([[id:0c3f1319-67c0-4b29-a8e7-5ffa12948aaf][0c3f1319]], newest-at-top). Whatever sorts the file has to skip it.
+
+*Adjacent, and worth doing in the same pass rather than twice:* [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] reorders DONE.org as a datetree descending by =CLOSED:=. Both are "make the file read newest-first after archiving"; they differ only in the key and in whether the result is flat or nested.
+
+* Sweep the ten longest live bodies into :PLAN: drawers :code:
+:PROPERTIES:
+:ID:       8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8
+:CREATED:  [2026-08-28 Fri 13:39]
+:CATEGORY: Meta
+:END:
+
+*Asked for by the user 2026-08-28*, on seeing [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]'s body: "absolutely monstrous... I guess it's because it predates the current task lifecycle and we never touched it." That diagnosis is right and it generalises — the =:PLAN:= lifecycle ([[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]]) applies at =DONE=, so a *live* heading that has been accumulating for weeks has never met it.
+
+*Measured 2026-08-28 across TODO.org: 90 live keyworded headings hold 4,027 body lines, and the ten longest hold 1,593 of them — 39%.* None carries a =:PLAN:= drawer.
+
+| lines | id | kw | created | title |
+|-------+----+----+---------+-------|
+| 383 | [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] | DOING | 2026-08-06 | [7/11] Update CLAUDE.md and the org skill for the new architecture |
+| 219 | [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] | TODO | 2026-08-15 | Record turns-per-interval as an attention signal |
+| 177 | [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] | NEXT | 2026-08-15 | Make the org skill and its discipline portable to other repos |
+| 145 | [[id:b5f94b88-76e3-4a3c-ac73-729f34d33691][b5f94b88]] | TODO | 2026-08-13 | Let a session interject without waiting |
+| 141 | [[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]] | MAYBE | 2026-08-07 | Let the review command ask Claude to explain the ambiguous gaps |
+| 127 | [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]] | TODO | 2026-08-12 | Concurrent sessions share one git index |
+| 105 | [[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]] | TODO | 2026-08-10 | [3/5] Institute a catch-all heading for cross-cutting meta-work |
+| 99 | [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] | TODO | 2026-08-18 | Heading bodies grow into narratives no human will read |
+| 99 | [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] | NEXT | 2026-08-14 | Read a heading's front matter, and take a partial :ID: |
+| 98 | [[id:d1cf852a-696a-4195-a4a7-039439c1f4b7][d1cf852a]] | TODO | 2026-08-13 | Bracket queued spans with WAIT transitions |
+
+*The eighth row is the joke and also the point.* [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] — "Heading bodies grow into narratives no human will read; decide what to stop capturing" — is itself 99 lines. Whatever this heading does should be reconciled with that one rather than done past it: that one asks what to *stop capturing*, this one asks what to do with what already accumulated. They are the prospective and retrospective halves of the same complaint.
+
+*What worked on c954f650, for whoever picks this up.* Compress *first*, while the text is still body, then wrap. CLAUDE.md's rule says wrap first and condense in a separate commit, on the grounds that a bad pare inside =:PLAN:= is invisible because readers are told to skip the drawer. Compressing before wrapping inverts that: the pare shows up in the diff as ordinary body prose, where it is reviewable. The rule's *concern* is right and its *order* may be backwards — worth deciding here rather than assuming either way. 305 lines went to roughly 70 without losing an open question.
+
+*The three things the rule says stay untouched still stayed:* every open question kept verbatim, the debrief kept whole, and anything whose seam was uncertain wrapped rather than pared.
+
+*Not a backlog sweep.* [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] chose "wrap unedited" for the 30-heading archive pass deliberately, to keep it cheap. This is the opposite case by construction — ten headings, each one read and condensed, all of them live and therefore still being consulted, which is what makes the cost worth paying here and not there.
+
 * Assign advances past the line the human is about to mark :code:
 :PROPERTIES:
 :ID:       a2509a61-4e21-4d8e-8f58-c87935753472
@@ -7990,310 +8059,54 @@ CLOCK: [2026-08-28 Fri 12:46]--[2026-08-28 Fri 12:51] =>  0:05
 CLOCK: [2026-08-28 Fri 12:55]--[2026-08-28 Fri 12:58] =>  0:03
 - [2026-08-28 Fri 12:55]--[2026-08-28 Fri 12:58] measure PLANNING against real use
 :END:
+:PLAN:
 
-Raised in conversation 2026-08-06, after a day of live use: =PLANNING=
-sat unused or got hand-reverted more than once today —
-=4cda6bf7-441b-47b2-b3d5-b8c7e7a207a5= (promoted 2026-08-05, hand-
-demoted back to =TODO= today with no implementation ever attempted)
-and =7eb7dd8d-2d9b-4a63-afbd-5878298e42a4= (promoted mid-session
-today, whose own transition immediately produced a stray orphan
-=:SESSIONS:= entry that needed a manual fix). Open question,
-deliberately not resolved here: does =PLANNING= (its own clock-owning
-semantics, the =ExitPlanMode=-driven auto-promotion hook, the single
-global =claude-code-ide-org--planning-owner-session-id= constraint —
-see =b95b9fba-f78e-48fe-8546-988709cce309=, "Add a PLANNING TODO
-state, driven by the ExitPlanMode matcher") earn its complexity in
-practice, or is it an extra rung in the sequence that isn't pulling
-its weight?
+*Raised 2026-08-06, after =PLANNING= sat unused or was hand-reverted twice in one day.* The question: does it earn its complexity — clock-owning semantics, the =ExitPlanMode= auto-promotion hook, a global owner variable — or is it a rung nobody climbs? Deferred behind a list of ten items that later became unsatisfiable (four were =CANCELLED=), ungated 2026-08-13 and promoted =MAYBE= -> =TODO=; the list was only ever a proxy for accumulated experience, which arrived by another route.
 
-Deliberately deferred, not decided now: revisit after the currently
-bulk-planned =NEXT=/=TODO= items land — this batch (=087e73e9=,
-=3cb3f955=, =2b0988ed=, =53b0047d=, =582cc7f4=, =d150c02e=,
-=782cda6c=, =2e09adb7=, =84b7d8b3=) plus =7eb7dd8d= (already
-=PLANNING=) — so the assessment is grounded in real experience using
-the mechanism across implemented work, not just today's spot
-impressions.
+*Scope widened 2026-08-10 to the whole progression*, after checking the sequence against org+GTD practice.
 
-*Ungated 2026-08-13; the condition above is void and should not be
-reinstated.* Four of the ten items it names (=2b0988ed=, =582cc7f4=,
-=d150c02e=, =782cda6c=) were =CANCELLED= rather than landed by
-[[id:e51d6ba1-cc1d-4745-8aa7-e4b1183a230b][e51d6ba1]], so the gate
-became literally unsatisfiable — this heading would have drifted
-forever, which is the exact outcome =e51d6ba1= exists to prevent.
+*What the tradition says, and it cuts against =DOING=, not =PLANNING=.* Bernt Hansen's canonical org+GTD setup has *no in-progress keyword at all* — clocking signals what is active, and he switches tasks *to* =NEXT= on clock-in. GTD proper treats an in-progress state as a smell: anything needing one is usually a project wearing an action's clothes, and the fix is decomposition.
 
-The list was never the point, though, and that is why replacing it with
-a different list would be the wrong fix. Read the clause again: the aim
-was an assessment "grounded in real experience using the mechanism
-across implemented work." The list was a *proxy* for accumulated
-experience. That experience has since arrived by another route — the
-queue and review loop have been run daily through the whole cutover and
-several apply passes — so the gate's own success condition is met.
+*=DOING= survives that critique here, for the reason it usually fails it*, and this is worth keeping because a future reader citing Bernt or GTD would have a well-supported argument for deleting it and would be wrong *for this system specifically*. The standard substitute — let the clock say what is active — is exactly the affordance the event queue removes: clock accuracy is only ever as fresh as the last human apply, and a reviewed historical record cannot answer "what is being worked on right now". So the keyword has to.
 
-Sharper still: proposal 1 below (add a =VERIFY= keyword) was not merely
-survived by the refactor, it was *generated* by it. Human-triggered
-apply is a hard structural constraint, so every task now passes through
-a mandatory handoff that has no name in the keyword set. That is exactly
-the kind of finding the deferral was waiting for.
+*Three proposals, of which two are still open and unadopted:*
 
-Promoted =MAYBE= -> =TODO= with no replacement condition. If it stalls
-again, the reason should be recorded as a real blocker rather than a
-proxy for one.
+1. *=VERIFY= between =DOING= and =DONE=* — superseded. =REVIEW= shipped in that slot 2026-08-21. The argument was that verification is human-triggered by hard constraint, so every task passes through a mandatory handoff with no name; org's own manual uses the same slot (=TODO FEEDBACK VERIFY | DONE CANCELED=).
+2. *Get =MAYBE= out of the default agenda without moving it after the =|=* — *open.* At 23 of 56 keyworded headings it was the largest state, a healthy Someday/Maybe list rendered actionable by its position. Moving it past the =|= would be semantically wrong; filtering it from default views is Bernt's answer.
+3. *Narrow =WAITING= to "waiting on a person"* — *open.* GTD separates *Waiting For* (delegated, needs chasing) from *blocked* (a dependency), and dependencies here are already structural via =:BLOCKER:=. A keyword nobody reaches for is usually one whose meaning is unclear rather than one whose situation never arises.
 
+*=REVIEW= was argued for here and adopted 2026-08-21.* =WAITING= had quietly acquired a second meaning — the resting state at the end of a Claude increment — because the keyword field is *one slot serving two actors with different views of who owes what*. =WAITING= reads correctly from the session's side and oddly from the human's; =TODO= the reverse. =REVIEW= reads correctly from both, de-overloads =WAITING=, and is a *stage* rather than a parking place. Its exit asymmetry and its sharper definition ("finished, only judgement remains") are now in CLAUDE.md. *Still open:* whether the three-way collision on the word "review" — the =:review:= tag, the apply command, and the state — should be resolved or adopted deliberately.
+
+*Every place the keyword set is written down*, inventoried 2026-08-14 by grep. This list *proved itself* on 2026-08-28: retiring =PLANNING= touched every entry still standing.
+
+- both =#+TODO:= lines, with per-keyword cookies
+- =~/.config/doom/config.el= =org-todo-keywords= — the global default, for files with no =#+TODO:= line
+- CLAUDE.md's two tables, and the org skill's keyword list, per-keyword sections and transition table
+- =config.el=: =org_set_todo='s MCP registration, where the states are enumerated verbatim *twice*; =--review-suggest-heading='s active-keyword set; =--work-in-progress-keywords=; =--slice-checkbox-by-keyword=
+- =bin/lint-org=, once it asserts the convention
+
+*The trap worth naming, and it is still live.* =org_set_todo= validates against =org-todo-keywords-1=, which is *buffer-local* and read from the file's own =#+TODO:= line. A keyword in the Doom config but not in a file's header is accepted in one file and rejected in another. Worse, =#+TODO:= is parsed *only at mode init*, so editing the header does not change a buffer already open — a revert without =preserve-modes= is required, which is exactly what the 2026-08-28 retirement had to do.
+
+*Deliberately unchanged and checked:* =--outline-finished-keywords= and the two =("DONE" "CANCELLED")= assignment tests. =REVIEW= is an *active* state and belongs in none of them; a future reader will find them while grepping and should know they were considered.
+
+*=DOING= was recalibrated 2026-08-25* to mean *started and owed a return* — durable, plural, silent about whether anyone is at the keyboard — with the clock recording execution instead. GTD's one-thing-at-a-time is deliberately not followed: that rule is calibrated to human working memory, and an agent re-reading a checklist each turn has different limits. Enacted in CLAUDE.md; the conditional clock rules there are its consequence.
 
 -----
 
-*Scope widened 2026-08-10, and the heading retitled to match.* What
-started as "is =PLANNING= pulling its weight" became a review of the
-whole progression, after checking the sequence against org+GTD practice
-on the web. The original question is a sub-case and is answered in part
-below.
+:END:
+*Debrief.* =PLANNING= was retired 2026-08-28 on measurement, and the rest of the progression was left standing.
 
-*Census of TODO.org the same day, which is the most useful input here:*
+*What decided it, measured across the project's whole history rather than argued:* 7 =PLANNING= transitions in 432 state changes (1.6%), on 6 of the 24 days the keyword existed and absent from the three busiest days; an eight-day stretch holding 199 transitions and none. 43 headings carry a plan link and 7 ever wore it, so *84% of planned work skipped the keyword* while nothing wore it without producing a plan. All seven exited to =DOING=, so it never distinguished an outcome. And the premise it was built on — long spans of agent work in Plan Mode — held for *one of seven*: clocked minutes inside the seven windows were 0:00, 0:00, 0:00, 0:01, 0:03, 1:11, 0:12.
 
-: 23 MAYBE   14 TODO   14 DONE   2 NEXT   2 DOING   1 CANCELLED
-:  0 PLANNING   0 WAIT
+*One hypothesis of the user's was falsified in passing*, and it was offered tentatively so the correction is recorded rather than dropped: planning time does *not* mostly land as =Meta=. The datetree holds 8h52m against 67h57m on tasks — 12%. The smearing is real but it is across the *tasks themselves*, planning now happening inside a task's own clock over days, interleaved with revising and cross-referencing it. That is why no single interval looks like a planning session.
 
-Those 56 are the *keyworded* headings; the file holds 63, the
-difference being the seven top-level category headings, which carry no
-TODO keyword by convention.
+*What shipped:* the keyword removed from both =#+TODO:= lines; the =ExitPlanMode= promotion hook, its =settings.json= wiring and =bin/exitplanmode-promote-test= deleted; =PLANNING= removed from =--slice-checkbox-by-keyword=, the auto-clock-in trigger and =--work-in-progress-keywords=; four rows of CLAUDE.md's transition table plus its entering/leaving rules and cross-session guard paragraph; and in the org skill a keyword line, three transition rows and a parallel-planning paragraph that also still cited owner variables deleted at the 2026-08-11 cutover.
 
-*What the tradition says — both findings cut against having =DOING=:*
-- The canonical org+GTD reference (Bernt Hansen, https://doc.norang.ca/org-mode.html)
-  runs =TODO(t) NEXT(n) | DONE(d!)= plus =WAITING(w@/!) HOLD(h@/!) |
-  CANCELLED(c@)=. No in-progress keyword at all: *clocking* signals what
-  is active, and he goes as far as switching tasks *to* =NEXT= on
-  clock-in. =NEXT= means "available to work on now."
-- GTD proper treats an in-progress state as a smell. A next action is
-  "the next physical, visible activity"; anything needing an
-  in-progress marker is usually a project wearing an action's clothes,
-  and the prescribed fix is decomposition, not another keyword.
+*Nothing replaced it, and that was a decision.* A "plan approved" event was considered and declined: nothing would consume it, and the precedent ([[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]) is to delete a mechanism whose premise failed rather than reimplement it cheaply. Plan Mode now needs no state of its own — a heading is =DOING= while it is planned and implemented, which is what =DOING= already meant.
 
-*=DOING= survives that critique here, for the reason it usually fails
-it.* The standard substitute — let the clock say what is active — is
-exactly the affordance
-[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] removes. CLAUDE.md
-already commits to clock accuracy being "only ever as fresh as the last
-time a human ran the review pass, not live." A reviewed historical
-record cannot answer "what is being worked on right now," so the
-keyword has to. Worth recording explicitly, because a future reader
-citing Bernt or GTD would have a well-supported argument for deleting
-=DOING= and would be wrong *for this system specifically*.
+*How it was verified:* 431/431 after deleting three tests, each a duplicate of a surviving =DOING= twin; the stale-state and queue-parsing tests were *retargeted* to =MAYBE= rather than dropped, since they are about staleness and parsing rather than about =PLANNING=. =bin/lint-org= 0 errors, =bin/check-org-dev-skill= and =bin/queue-append-test= clean, =settings.json= still valid JSON. Both org buffers reverted *without* =preserve-modes= and confirmed to report the new keyword set — the trap named above, hit live.
 
-The user's own narrowing helps too: =DOING= means actively working on
-implementation and testing — a named phase, not an open-ended
-in-progress limbo, which is what GTD actually objects to.
-
-*Proposal 1, the substantive one: add =VERIFY= between =DOING= and
-=DONE=.* Headings here repeatedly sit in =DOING= carrying "*Still
-owed:* an interactive by-hand pass" — implementation and tests
-complete, verification outstanding. Under the definition above that is
-not =DOING=, and under this project's "verified, not just implemented"
-bar it is certainly not =DONE=. The state is *structural*, not
-incidental: verification is human-triggered by hard constraint (Claude
-cannot run the interactive apply), so every such task passes through a
-mandatory handoff that currently has no name and lives only as prose.
-org's own manual uses exactly this slot in its example sequence,
-=#+TODO: TODO FEEDBACK VERIFY | DONE CANCELED= (org-manual.org:4210).
-
-The payoff is a real queue: =VERIFY= becomes "what is waiting on *me*
-to confirm," which is a next-action list in the GTD sense and does not
-exist today in any queryable form.
-
-: #+TODO: TODO NEXT PLANNING DOING VERIFY WAIT MAYBE | DONE CANCELLED
-
-Clock rule if adopted: =DOING= → =VERIFY= closes the clock, since Claude
-has stopped; the human's verification time clocks against the same
-heading, which the convention recorded at
-[[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]] already permits.
-
-*Proposal 2: get =MAYBE= out of the default agenda without changing the
-keyword.* At 23 of the file's 56 keyworded headings it is the largest —
-a perfectly healthy Someday/Maybe list, except that sitting before the
-=|= renders it actionable. GTD is emphatic that Someday/Maybe lives
-outside the active system and is reviewed periodically. Bernt's answer
-is to keep such states active but filter them from default agenda views;
-moving =MAYBE= after the =|= would be semantically wrong, since these
-are not finished.
-
-*Proposal 3: narrow =WAIT= to "waiting on a person."* It has never
-been used once. GTD separates *Waiting For* (delegated, needs follow-up)
-from *blocked* (dependency), and dependencies here are already expressed
-structurally via =:BLOCKER:=. The current gloss, "blocked or waiting on
-someone," overlaps that — and a keyword nobody reaches for is usually
-one whose meaning is unclear rather than one whose situation never
-arises.
-
-*Bearing on this heading's original question.* The tradition supports a
-planning state on its merits: planning is first-class GTD activity (the
-Natural Planning Model), and =PLANNING= is on that basis *better*
-grounded than =DOING=. But that answers only half the complaint recorded
-above. Whether the *machinery* earns its complexity — the
-=ExitPlanMode=-driven auto-promotion, the single global
-=--planning-owner-session-id=, the hand-reversions logged above — is a
-separate question the tradition says nothing about, and it stays open.
-Do not read "GTD likes planning states" as "keep the hook."
-
-Still =MAYBE=, still deferred on the original terms. Nothing above is
-adopted; the sequence is unchanged pending a decision.
-
-*A second question arrived 2026-08-14, and it belongs here rather than in
-a heading of its own: should the set gain a =REVIEW= keyword?*
-
-It came out of a live problem. =WAIT= had quietly acquired a second
-meaning — the resting state at the end of a Claude work increment,
-meaning "the ball is in the human's court" — used twice on 2026-08-13
-before anyone noticed it was a pattern (see
-[[id:d1cf852a-696a-4195-a4a7-039439c1f4b7][d1cf852a]]). Asked whether
-=TODO= would serve the same end and be more idiomatic, the answer turned
-out to be neither: *the keyword field is one slot serving two actors with
-different views of who owes what.* =WAIT= is coherent from the session's
-side (I handed this to someone else and am blocked on them — which is
-=WAITING='s canonical GTD meaning) and odd from the human's, who does not
-wait on themselves. =TODO= is coherent from the human's side and discards
-both "work has happened here" and "this is owed back to you".
-
-=REVIEW= is the only candidate that reads correctly from *both* sides,
-and it does three things a rename would not:
-
-- *It de-overloads =WAIT=,* which goes back to meaning blocked on an
-  external party — someone you may have to chase. Those two states call
-  for opposite actions and are currently indistinguishable.
-- *It is a stage, not a parking state.* =WAIT= and =MAYBE= are places
-  work sits; =REVIEW= is a step work passes through, between =DOING= and
-  =DONE=. That gives it a principled position in the sequence.
-- *It makes the session-start report actionable.* That report already
-  surfaces every =WAIT= heading; "3 awaiting your review" is a list to
-  act on, "3 WAIT" is not, and the two could then be reported apart.
-
-*The objection to weigh against it is vocabulary collision.* The project
-would then carry three meanings of "review": the =:review:= tag (a kind
-of work), =claude-code-ide-org-review= (the command that applies the
-queue), and a state. "The review buffer shows a REVIEW item tagged
-:review:" is a sentence someone would have to write. Either choose a
-different word for the state or adopt the collision deliberately and say
-so in CLAUDE.md.
-
-*Why it lands here rather than in its own heading:* adding a keyword
-while this heading asks whether an existing one earns its keep should be
-one decision about the *set*, not two taken months apart. The same
-argument recorded above — that the assessment wants accumulated real use
-rather than spot impressions — applies to =REVIEW= unchanged.
-
-*Every place the keyword set is written down,* inventoried 2026-08-14 by
-grep rather than from memory, because the cost is spread wider than it
-looks and a half-applied keyword fails in confusing ways. Line numbers
-are as of that date; the names are the durable part.
-
-*Must change to add a keyword:*
-
-- =TODO.org= line 1 — =#+TODO:= with per-keyword logging cookies
-  (=TODO(t!) NEXT(n!) DOING(d!) WAIT(w@/!) MAYBE(m!) |
-  DONE(D!) CANCELLED(c@)=). A new keyword needs its cookie chosen too,
-  and =REVIEW= collides with =CANCELLED= on =c= and with nothing on =R=.
-- =clock-template.org= line 2 — the same directive *without* cookies, so
-  the two files already disagree about logging.
-- =~/.config/doom/config.el= =org-todo-keywords= (line 65) — the global
-  default, which is what files carrying no =#+TODO:= line inherit.
-- =CLAUDE.md= — *two* tables: "TODO keyword semantics" and "State
-  transition rules". The second needs two new rows, since =DOING ->
-  REVIEW= must close the clock and =REVIEW -> DOING= must reopen it.
-- =config.el= =org_set_todo='s MCP registration — the valid states are
-  enumerated verbatim *twice*, in the tool description and again in the
-  =state= argument description (lines 4694, 4708).
-- =config.el= =claude-code-ide-org--review-suggest-heading= (line 3097) —
-  the list of keywords whose arrival means a heading stops being the
-  active one. See [[id:d1cf852a-696a-4195-a4a7-039439c1f4b7][d1cf852a]]:
-  this is the span-attribution bracket, and it is a denylist of
-  everything except =DOING=/=PLANNING=. Inverting it to test for those
-  two would make it immune to this whole question.
-- =config.el= =claude-code-ide-org--attention-headings-context= (line
-  609; renamed from =--wait-headings-context= by
-  [[id:9d7531f5-11c5-4203-89e3-56c3fe399df5][9d7531f5]] on 2026-08-14,
-  when it stopped reporting only =WAIT=) — the session-start report now
-  matches =WAIT= and =DOING= as two literal string comparisons in a
-  =cond=. A =REVIEW= state that neither branch knows about is invisible
-  at session start, which is most of the reason to want it. Note the
-  =DOING= branch is the one a =REVIEW= keyword would most likely
-  *replace*, not join.
-- =.claude/skills/org/SKILL.md= — the keyword list at line 43, the
-  per-keyword sections (=WAIT= at 36) and the transition table (238-240).
-  *Note this list is already stale:* it reads
-  =TODO NEXT DOING WAIT MAYBE | DONE CANCELLED=, with =PLANNING= missing
-  — which is itself evidence for what this heading is asking.
-- [[id:3bd3402b-3ab6-4ace-b20b-3ff84caa3fb2][3bd3402b]]'s lint, once it
-  exists, since it will assert against the convention.
-
-*Checked and deliberately unchanged:*
-
-- =config.el= =claude-code-ide-org--outline-finished-keywords= (line
-  1627) and the two =("DONE" "CANCELLED")= tests in the assignment
-  candidate list (4452, 4462). =REVIEW= is an *active* state, so it
-  belongs in none of them — but a future reader will find them while
-  grepping and should know they were considered.
-
-*The trap worth naming.* =org_set_todo= validates against
-=org-todo-keywords-1=, which is *buffer-local* and derived from the
-file's own =#+TODO:= line when it has one. So a keyword added to the Doom
-config but not to =TODO.org='s header is accepted in =DONE.org= (no
-=#+TODO:= line, inherits the global) and rejected in =TODO.org= with
-"not a TODO keyword in this file". Same for
-=claude-code-ide-org--pending-capture-keywords=, which reads the target
-file's keywords for a capture that has not been written yet. Update the
-file headers and the Doom config in the same commit.
-
-*Sequencing.* The change touches =config.el= in four places, and as of
-2026-08-14 three unmerged feature branches all carry divergent
-=config.el=. Doing this before those are reconciled guarantees conflicts
-in a file where a conflict is expensive to resolve correctly.
-
-*=DOING= was recalibrated 2026-08-25*, which is this heading's subject arriving from a different direction than the =PLANNING= question it opens with.
-
-*The old sense, written in the org skill as "actively being worked on", was singular by construction* -- org runs one clock, so if =DOING= means "executing right now", at most one heading can hold it. The new sense is *started and owed a return*, the user's metaphor being **in the mail**: durable, plural, and silent about whether anyone is at the keyboard. What records execution is the *clock*, not the keyword.
-
-*On a container the same word reads one level up*: at least one member is in the mail. That sense takes no clock at all, which =--trigger-auto-clock-in= already implements for epics by exempting containers -- and does not for slices, whose members are links rather than children ([[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]]).
-
-*GTD's one-thing-at-a-time is deliberately not followed*, and the reason is worth keeping because it is not a concession. That rule is calibrated to human working memory. An agent re-reading a checklist each turn has different limits, and keeping several started items visible is what stops them being silently dropped.
-
-*What this settles that was previously open here.* A heading worked and set down stays =DOING= rather than being demoted to =NEXT=, so the record no longer loses the fact that it is owed. Two headings were sitting in exactly that wrong state when the question was asked -- [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]] at =NEXT= with a shipped normaliser, [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]] at =TODO= with a design written up in full -- and neither transition has been queued, because of the next paragraph.
-
-*Codified but not enacted, and the gap is a real one.* The prose lives in CLAUDE.md and the org skill; nothing in the code implements it, and one thing contradicts it. =(org-todo "DOING")= clocks in immediately, verified in batch, so *recording* that something was started earlier credits time to the present ([[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]]). Until that is settled the looser sense is only safe for transitions that coincide with actually starting.
-
-*One inconsistency was introduced and repaired the same day*, worth recording because it is the shape this heading exists to prevent. The recalibration was written into CLAUDE.md directly above two rules -- "any transition *to* =DOING= must open a clock", "any transition *from* =DOING= must close the clock" -- that the new sense contradicts. Both are now conditional: opening applies when work is starting now, closing applies only when this heading's clock is the one running, since a plural =DOING= means a heading can hold the keyword and no clock.
-
-*=REVIEW='s intended exit, stated by the user 2026-08-26*, and it settles one of the things this heading exists to decide: "In general REVIEW should only go to DOING if there is something missing or broken in the change. Usually it will go to DONE on review completion. That's the goal anyhow."
-
-*So the two outbound rows are not symmetric.* =REVIEW= -> =DONE= is the ordinary close and touches no clock. =REVIEW= -> =DOING= is *rework* -- it reopens a clock because work genuinely resumed, and most headings in =REVIEW= should never reach that row. Recorded in CLAUDE.md, where the state table previously listed both rows with no indication which was the expected path.
-
-*A consequence worth carrying into this heading's wider question.* If =REVIEW= means "finished, only judgement remains", then a heading parked in it to mean "not sure yet" is misusing it -- that is =WAITING=, or the work is still =DOING=. That gives =REVIEW= a sharper definition than "experimental" and is a point in favour of keeping it when this heading finally weighs the progression.
-
-*Live instance to test it against:* [[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]] sits in =REVIEW= right now, handed back because its operational defect was falsified and only the design question remains. Under the rule just stated it should close =DONE= unless the user finds something missing -- which is exactly the judgement =REVIEW= is for.
-
-*Measured 2026-08-28 across both files — the whole project history, 2026-07-28 to date: 272 headings created, 432 state transitions, and =PLANNING= accounts for 7 of them (1.6%).*
-
-*The keyword has been available for 24 days* — =PLANNING(p!)= entered the =#+TODO:= line 2026-08-05 ([[orgit-rev:claude-code-ide-org::8e1c5ed][8e1c5ed]]) — *and was used on 6 of them.* The seven: 08-11, 08-13, 08-14 (twice), 08-17, 08-18, 08-26.
-
-*The distribution is the finding, not the count.* The project's three heaviest days of state activity — 08-21 (50 transitions), 08-26 (57), 08-25 (47) — contain *one* =PLANNING= between them, and 08-24 (37) contains none. Between 08-18 and 08-26 there is an eight-day gap holding 199 transitions and no =PLANNING= at all. The keyword is not lightly used; it is absent precisely where the work is densest.
-
-*The founding premise is falsified directly.* The keyword was built for "long spans of time when the agent is busy in plan mode" (the user, 2026-08-28). Clocked minutes *inside* each =PLANNING= window, against the window's own length:
-
-| heading   | window | clocked inside |
-|-----------+--------+----------------|
-| f4e628ce  | 0:06   | 0:00           |
-| b5f94b88  | 0:08   | 0:00           |
-| f290161c  | 0:14   | 0:00           |
-| 406e9200  | 0:32   | 0:01           |
-| c556a9ed  | 0:39   | 0:03           |
-| 38b92521  | 1:22   | *1:11*         |
-| 29439196  | 2:51   | 0:12           |
-
-*One of seven* looks like the thing the keyword was designed for. Four clocked nothing at all — the heading sat in =PLANNING= while the work happened elsewhere or not yet.
-
-*And the keyword predicts nothing at its exit: all seven went to =DOING=, without exception.* That is the =ExitPlanMode= hook doing its job, but it means =PLANNING= never distinguishes an outcome — it is a transient marker inside one plan-mode session wearing the clothes of a state. Six of the seven were entered from =TODO=, one from =NEXT=.
-
-*The decisive number is the one about coverage.* *43 headings carry a Plan link; 7 of them ever wore =PLANNING=.* So *36 of 43 planned headings — 84% — were planned without the keyword*, and *zero* headings wore =PLANNING= without producing a plan. The keyword is a strict subset of planning, capturing a sixth of it. It marks not "this was planned" but "this happened to be planned in one sitting, recently enough that someone remembered the rule".
-
-*A partial correction to the user's own hypothesis, worth recording because it was offered tentatively ("maybe accurately, maybe not").* Planning effort does *not* mostly land as =Meta= time. The datetree carries *8h52m against 67h57m on tasks — 12%*. The smearing is real, but what it smears across is the *tasks themselves*, not the meta-work node: planning a task now happens inside that task's own clock, over days, interleaved with revising and cross-referencing it. That is why no single interval looks like a planning session.
-
+*Left undone deliberately:* =QUEUE_APPEND_ID/STATE/FROM= in =bin/hooks/queue-append= are now dead, that hook having been their only consumer. Left with a note rather than removed in the same commit, because that script is on the path of every hook and an unrelated edit to the queue writer is a worse risk than a dead branch. Proposals 2 and 3 above, and the "review" collision, are unadopted and filed separately.
 
 * TODO Fall back to the queue when org_capture cannot reach Emacs :code:
 :PROPERTIES:
