@@ -48,6 +48,31 @@
 
 *Adjacent, and worth doing in the same pass rather than twice:* [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] reorders DONE.org as a datetree descending by =CLOSED:=. Both are "make the file read newest-first after archiving"; they differ only in the key and in whether the result is flat or nested.
 
+*Measured 2026-08-28, and two of the three anticipated exceptions do not exist.*
+
+- *Recurring ceremonies are not an exception.* All three =SCHEDULED= headings — =96a51c2f=, =2aff1e6d=, =cbe282ec= — carry a =:CREATED:= as well. The worry that they would have "no CREATED, rather SCHEDULED" does not hold against this corpus.
+- *The datetree anchor is the only level-1 heading without =:CREATED:=.* Exactly one, not a class.
+- *And it needs no special handling at all.* Verified in batch org 9.8.7: =(org-sort-entries nil ?R nil nil "CREATED")= with point before the first heading sorts the level-1 entries descending and places the *undated* heading last, on its own. Subtrees travel intact.
+
+*So the whole operation is one call, and org owns the comparator.* =?R= is "by the value of a property, reversed", and the =PROPERTY= argument takes =CREATED= directly — no =getkey-func=, no custom compare. Two preconditions worth knowing rather than discovering: point must be *before* the first heading (org signals ="Nothing to sort"= otherwise, which is how a fixture without a =#+= preamble failed here), and TODO.org satisfies that only because of its header lines.
+
+*The "mostly sorted, so a light operation" premise is right eventually and wrong now.* Measured: of 135 dated level-1 headings, *85 of 134 adjacent pairs are already descending — 63%*, and the longest already-descending run is *17*. The first sort is a large reordering and should be its own commit. Afterwards the premise holds, because =org_capture= prepends and a promotion inserts one heading, so each later sort moves one or two entries.
+
+*Approaches, with what each costs:*
+
+| # | approach | for | against |
+|---+----------+-----+---------|
+| A | the single =?R= call, anchor last by absence | one line; org owns the comparator; the exception handles itself; idempotent | the anchor's position is *implicit* — it is last because a property is missing, not because anyone said so, and an anchor that ever gained a =:CREATED:= would migrate into the middle silently |
+| B | A, plus a sentinel =:CREATED:= on the anchor so it sorts last deliberately | the invariant is declared rather than emergent; the lint's "level-1 task has no =:CREATED:=" rule would then apply uniformly | a fabricated timestamp in a file whose entire value is that timestamps are trustworthy — the shape [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] retired rather than kept |
+| C | move the datetree to its own file | TODO.org becomes homogeneous, every heading a dated task; no exception anywhere; =--datetree-node-role= stops sharing a file with real tasks | a third tracked file for =org-agenda-files=, =--tracked-files=, id resolution and the archive target; every doc saying "two files" becomes wrong; and A already handles the anchor for free, so this buys tidiness rather than function |
+| D | insert in place on capture/promotion, never sort | no bulk reorder ever; minimal diffs forever | =org_capture= already prepends, which is correct for a newest-first file, so this is only needed for *promotions*, which are rare — and it spreads ordering logic across every writer instead of one call |
+| E | sort the view, not the file | zero churn | the stated goal is that the *file* reads newest-first, and capture's prepend already assumes file order carries meaning |
+
+*Recommend A, with B's concern answered by a lint assertion rather than by a fake timestamp:* assert that the =:DATE_TREE:= anchor is the last level-1 heading. That makes the invariant checked without inventing data, which is the same move [[id:8bea4317-c8e7-4939-8224-834bb914d89c][8bea4317]] made for the cookie's position — read the corpus, assert the result, do not encode it as data.
+
+*C stays open on its own merits*, and is worth deciding separately rather than as a side effect of sorting: it is really the question of whether meta-work belongs in the same file as the work, which nothing here has asked yet.
+
+
 
 * TODO Sweep the ten longest live bodies into :PLAN: drawers :code:
 :PROPERTIES:
