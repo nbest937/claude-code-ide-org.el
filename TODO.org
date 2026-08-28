@@ -2,8 +2,31 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 #+STARTUP: logdrawer logdone content
+* Apply logs a self-transition when a queued event's target already matches reality :code:
+:PROPERTIES:
+:ID:       05c71d99-2839-447b-a536-60eb4bf43b73
+:CREATED:  [2026-08-28 Fri 07:56]
+:CATEGORY: Review and planning
+:END:
 
+*Measured across both files 2026-08-28:* 4 of 463 =State= lines record a transition to the keyword the heading already held — 0.9%. Both =DONE -> DONE= cases are dated [2026-08-11 Tue], the day the staleness guard shipped, and they sit on =Build the interactive review-and-apply Emacs command= and — pointedly — on =Apply must not replay a state event that reality has moved past=, the guard's own heading. Since the guard: *2 in 17 days* — =TODO -> TODO= on 420816ec [2026-08-20], =DOING -> DOING= on 29439196 [2026-08-27].
 
+*The staleness guard is blind to this by construction, not by oversight.* =--review-state-stale-p= asks whether reality moved *away* from what the event expected:
+
+#+begin_src elisp
+(and (not (eq current 'unresolved))
+     (not (equal (claude-code-ide-org--review-normalize-from from) current)))
+#+end_src
+
+A self-transition is the one shape where the answer is emphatically no. =from= matches reality perfectly, which is exactly why it sails through — the event is a *correctly-non-stale no-op*.
+
+*Cause.* Two events assert the same target. Post-cutover nothing moves an org file until apply moves it, so every =org_set_todo= in a batch reads =from= off an unmoved file; =--review-projected-staleness= then projects the batch forward and the second event sees =from= = projected current = =to=. On 29439196 the pair was almost certainly the =ExitPlanMode= hook's queued =todo DOING= plus an explicit =org_set_todo DOING= for the same heading.
+
+*The fix is not in the staleness guard and should not be called one.* Stale means the event is *dangerous* — it would regress the record. This means the event is *redundant* — it would change nothing but still writes a log line. Conflating them would either let real staleness through or teach the reader that the flag means "harmless". Separate test, comparing =to= against the projected current state, skipping the item rather than refusing it.
+
+*Worth deciding at the same time:* whether a skipped no-op is reported in the review buffer or silently dropped. Dropping is defensible — nothing was lost — but a queued event that vanishes without trace is the shape this project has repeatedly regretted.
+
+*Related:* [[id:2d100d0d-2d04-43b9-af1e-f4d6b52bbada][2d100d0d]] is the same class of gap one layer down — a check that has to run *across* items in a batch rather than within one item.
 * DONE [27/27] Harden the review pass: its cost, its correctness, and its record
 CLOSED: [2026-08-26 Wed 11:42]
 :PROPERTIES:
@@ -77,7 +100,7 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 *No residue.* Everything named as unfinished during its life was filed as a heading before the heading naming it closed -- a rule this slice produced by breaking it once ([[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]]) and then writing it into CLAUDE.md.
 
 
-* DOING Close the gap between what we declare and what the code infers [5/11] :code:
+* DOING Close the gap between what we declare and what the code infers [6/11] :code:
 :PROPERTIES:
 :CATEGORY: Slices
 :ID:       979e02b6-2a4c-4328-8b08-ffaec03bd02e
@@ -109,7 +132,7 @@ Wherever this project declares something in prose and the code infers it some ot
 - [-] [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] DOING Adopt org-native mechanisms for the heading tiers
 - [ ] [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] TODO Find a convention marking which children a container's plan actually covered
 - [X] [[id:8183fc7c-905e-40c8-81cb-10c56158c6ce][8183fc7c]] DONE org_outline is blind to a slice: scoped to one, it returns a single line
-- [ ] [[id:798bb7a1-d5a6-4c08-8cf0-cc91a82d08e6][798bb7a1]] TODO A slice member captured this session cannot be rendered or blocked on until apply
+- [X] [[id:798bb7a1-d5a6-4c08-8cf0-cc91a82d08e6][798bb7a1]] DONE A slice member captured this session cannot be rendered or blocked on until apply
 
 *The prompt that drove this slice, one link per revision of it:*
 
@@ -4482,7 +4505,7 @@ End to end over the real 2026-08-21 queue, read-only: all twelve pairs produce i
 *The record it now contradicts.* The hour of 2026-08-21 implementation work is already applied to [[id:a279216c-38db-478c-ba52-ad31c87fbfd9][a279216c]], and the day node already carries its 0:09. The correct items are pending over an already-wrong record, so reconciling the two is a human decision in the review buffer, not something apply should be taught to do. [[id:2d100d0d-2d04-43b9-af1e-f4d6b52bbada][2d100d0d]]'s cross-item overlap check remains a separate heading and is now much cheaper: a span partitioned by the brackets it contains cannot overlap them.
 
 
-* TODO A span and an explicit clock interval can both apply, double-counting the minutes :code:
+* TODO Intervals on two different headings can overlap, and subtraction reaches only one :code:
 :PROPERTIES:
 :CATEGORY: Clock lifecycle & visibility
 :ID:       2d100d0d-2d04-43b9-af1e-f4d6b52bbada
@@ -4502,6 +4525,11 @@ Both items were offered in the same review buffer and both were correct in isola
 *Not a rounding concern.* The second co-equal goal of this project is a trustworthy record of where attention went, and a clocktable that sums to more than the elapsed day is the plainest possible violation of it. A remainder-style guard already exists for editing one item's interval; the missing check is across items in one batch.
 
 *Related and distinct:* [[id:eaeeb4ee-ceee-4094-8598-bbcdc8214b66][eaeeb4ee]] would make explicit pairs authoritative, which shrinks this problem by construction -- a partitioned span cannot overlap the pair that partitioned it -- but does not remove the need for the check.
+
+*Retitled 2026-08-28, because the old title had been overtaken.* It read "A span and an explicit clock interval can both apply, double-counting the minutes", which names the general phenomenon — and the same-heading instance of it was fixed by =--subtract-intervals=. The index was therefore advertising a solved problem, and the natural reading of the title was the fixed one.
+
+What survives is the case this body already documents and subtraction structurally cannot reach: the two overlapping intervals live in *different* =:LOGBOOK:= drawers. =--subtract-intervals= reads the target heading's own drawer, so an interval on 82df2a6c and one on the day node are each correct in their own drawer and invisible to each other. The check that is missing is across items in one batch, not within one heading — which is what the body said before the fix and still says.
+
 
 
 * TODO An unassigned span's readout omits the evidence that would make its heading obvious :code:
@@ -5070,6 +5098,17 @@ So this is a *scanning* consistency, not a functional gap, and that changes what
 *Another instance of [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]]*, filed the previous evening: the code knows the second number counts runs, and the message does not say it. That heading proposed an audit of exactly this -- every place the review buffer reports a value, ask whether it distinguishes something the wording does not. This is the first case the audit would have caught, found by a human the next morning instead.
 
 *Worth doing in the same pass as that audit* rather than alone, since a one-word fix here and an unchanged wording three lines below would leave the buffer inconsistent in a way that is worse than uniformly terse.
+
+*Decided 2026-08-28, and the decision is larger than the wording.* Every candidate above is a better label for the same claim — a prediction of what apply will write. That claim is the actual defect, and it turned up independently while judging a second, apparently unrelated bug: the figure is computed *before* =--subtract-intervals= runs, so the buffer can promise 0:11 and apply write less. The obvious repairs were to recompute per refresh (a file read per span item) or to flag items whose target already holds overlapping intervals. Both are features. The cheap answer is to stop making the claim.
+
+*State the evidence, not the outcome.* The span envelope, the runs inside it, and the turn count are all in hand at render time and none of them can disagree with apply, because none of them asserts what apply will do. A readout that reports what was observed needs no recomputation and no staleness flag; the render/apply gap does not get fixed so much as it stops existing.
+
+*This also repairs a misreading the current wording invites.* The user, who reads this buffer daily, took the span to be what lands in the =:LOGBOOK:=. It is not — the span is the envelope, and what lands are the =resume -> pause= runs inside it. The live pending item at the moment of this decision reads =writes 0:01 in 1= over the span 07:44--07:51: seven minutes of wall clock, one minute claimed. Nothing in the line says the other six were not lost, or ignored, or a bug. Reporting the envelope alongside the runs answers that without arithmetic.
+
+*And it is the position [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] already argued to*, from the other direction: "never present a total that looks complete", and "report the exceptions, not the measurements". That heading also supplies what the gap between envelope and runs *means* rather than leaving it as unexplained shrinkage — a dense run of turns is joint attention, the human reading and typing while the agent works, and the inter-turn gaps are not idle. Its recall-cue framing ("a number they must weigh is heavier than a word they can recognise") is the shape this readout should take, so the two should be built together rather than reworded twice.
+
+*Unchanged:* this still belongs in the [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] audit pass rather than alone, for the same reason as before.
+
 
 
 * TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key :code:
@@ -5990,6 +6029,15 @@ org sense and were rewritten to say "active timestamps" and
 Rule of thumb: say *timestamp* when discussing the mechanism, and
 *interval* when discussing the thing being recorded. If a sentence needs
 both words, it is probably conflating them.
+
+*Re-raised by the user 2026-08-28, and the framing sharpened.* "A series of rapid turns indicates joint attention and continuous reading-thinking-typing on my part while you are working" — so the gaps between turns inside a dense span are *not* idle time that the record correctly declines to claim. They are the human attending. Often two or more topics are interleaved across those turns, belonging to more than one task, which is the allocation problem this heading already names.
+
+*The bloat worry the user attached to it is answered by the body above, which predates it:* turns-per-span is a view of =resume= events already written, not a new datum. Nothing is collected, so nothing can bloat at collection. The only place bloat is a live question is the *surface*, and the surface question is the one this heading's title says is undecided.
+
+*Now coupled to [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]], which settled part of it from the other side.* That heading decided the readout should state the evidence in hand — span envelope, runs, turn count — rather than predict what apply will write. Turn count is therefore no longer an addition to the review buffer being weighed on its merits; it is one of the three things the readout is now supposed to say. The recall-cue requirement recorded above ("a number they must weigh is heavier than a word they can recognise") governs how it is rendered there, and the two should be built in one pass rather than reworded twice.
+
+*Still undecided, and unaffected:* the =:LOGBOOK:= annotation and the clocktable column.
+
 
 
 * TODO Record the originating project in queue events :code:
@@ -8764,7 +8812,6 @@ CLOSED: [2026-08-27 Thu 16:29]
 *A truthful illustration needs three characters*, where this corpus does collide: =b5f=, =c8a= and =2b0= each match two headings.
 
 
-
 * DONE Auto-promote makes a container the next action :code:
 CLOSED: [2026-08-21 Fri 13:16]
 :PROPERTIES:
@@ -9847,7 +9894,8 @@ CLOCK: [2026-08-26 Wed 19:35]--[2026-08-26 Wed 19:40] =>  0:05
 *What this does not do*, from the body's own list: it does not answer whether the three blind lenses want one general mechanism rather than three bespoke fixes. That question stands and belongs to [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]].
 
 
-* TODO A slice member captured this session cannot be rendered or blocked on until apply :code:
+* DONE A slice member captured this session cannot be rendered or blocked on until apply :code:
+CLOSED: [2026-08-27 Thu 17:26]
 :PROPERTIES:
 :CATEGORY: Skill logic
 :ID:       798bb7a1-d5a6-4c08-8cf0-cc91a82d08e6
@@ -9856,6 +9904,12 @@ CLOCK: [2026-08-26 Wed 19:35]--[2026-08-26 Wed 19:40] =>  0:05
 :LOGBOOK:
 - State "TODO"       from              [2026-08-26 Wed 08:52] \\
   captured keywordless, setting initial state
+CLOCK: [2026-08-27 Thu 17:19]--[2026-08-27 Thu 17:26] =>  0:07
+- State "DOING"      from "TODO"       [2026-08-27 Thu 17:19] \\
+  starting; hit this live twice today
+- [2026-08-27 Thu 17:19]--[2026-08-27 Thu 17:26] queued capture invisible to render and blocker
+- State "DONE"       from "DOING"      [2026-08-27 Thu 17:26] \\
+  refuse loudly on both surfaces; 434/434
 :END:
 
 *Hit 2026-08-26 while adding [[id:806ff394-3ede-4d67-82aa-9c44fe1cf86e][806ff394]] to [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] minutes after capturing it.* A heading captured this session is *keywordless on disk* until a human applies its queued =todo= event, and two separate mechanisms quietly depend on that keyword.
@@ -9888,7 +9942,6 @@ CLOCK: [2026-08-26 Wed 19:35]--[2026-08-26 Wed 19:40] =>  0:05
 *Hit live twice on 2026-08-27*: once refreshing a slice, and once amending [[id:6c48d5a6-1c78-4ce5-ac97-5e1091bdb25c][6c48d5a6]] -- a heading being filed *because* work had gone unfiled. The queue was busy with the user's own unsaved edits, which is exactly the condition that makes a capture defer.
 
 *Verified*: 434/434, and each surface fails a named test when its guard is removed. The narrowness is asserted too -- a genuinely unknown id still reports plainly, with no mention of a pending capture, because =bin/hooks/queue-append= drops any reply beginning =Error:= and that drop is what stands between a typo and an unexplainable queue entry.
-
 
 
 * DONE Reuse org's own facilities instead of rebuilding them beside it :code:
