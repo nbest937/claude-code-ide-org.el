@@ -8041,6 +8041,33 @@ in a file where a conflict is expensive to resolve correctly.
 
 *Live instance to test it against:* [[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]] sits in =REVIEW= right now, handed back because its operational defect was falsified and only the design question remains. Under the rule just stated it should close =DONE= unless the user finds something missing -- which is exactly the judgement =REVIEW= is for.
 
+*Measured 2026-08-28 across both files — the whole project history, 2026-07-28 to date: 272 headings created, 432 state transitions, and =PLANNING= accounts for 7 of them (1.6%).*
+
+*The keyword has been available for 24 days* — =PLANNING(p!)= entered the =#+TODO:= line 2026-08-05 ([[orgit-rev:claude-code-ide-org::8e1c5ed][8e1c5ed]]) — *and was used on 6 of them.* The seven: 08-11, 08-13, 08-14 (twice), 08-17, 08-18, 08-26.
+
+*The distribution is the finding, not the count.* The project's three heaviest days of state activity — 08-21 (50 transitions), 08-26 (57), 08-25 (47) — contain *one* =PLANNING= between them, and 08-24 (37) contains none. Between 08-18 and 08-26 there is an eight-day gap holding 199 transitions and no =PLANNING= at all. The keyword is not lightly used; it is absent precisely where the work is densest.
+
+*The founding premise is falsified directly.* The keyword was built for "long spans of time when the agent is busy in plan mode" (the user, 2026-08-28). Clocked minutes *inside* each =PLANNING= window, against the window's own length:
+
+| heading   | window | clocked inside |
+|-----------+--------+----------------|
+| f4e628ce  | 0:06   | 0:00           |
+| b5f94b88  | 0:08   | 0:00           |
+| f290161c  | 0:14   | 0:00           |
+| 406e9200  | 0:32   | 0:01           |
+| c556a9ed  | 0:39   | 0:03           |
+| 38b92521  | 1:22   | *1:11*         |
+| 29439196  | 2:51   | 0:12           |
+
+*One of seven* looks like the thing the keyword was designed for. Four clocked nothing at all — the heading sat in =PLANNING= while the work happened elsewhere or not yet.
+
+*And the keyword predicts nothing at its exit: all seven went to =DOING=, without exception.* That is the =ExitPlanMode= hook doing its job, but it means =PLANNING= never distinguishes an outcome — it is a transient marker inside one plan-mode session wearing the clothes of a state. Six of the seven were entered from =TODO=, one from =NEXT=.
+
+*The decisive number is the one about coverage.* *43 headings carry a Plan link; 7 of them ever wore =PLANNING=.* So *36 of 43 planned headings — 84% — were planned without the keyword*, and *zero* headings wore =PLANNING= without producing a plan. The keyword is a strict subset of planning, capturing a sixth of it. It marks not "this was planned" but "this happened to be planned in one sitting, recently enough that someone remembered the rule".
+
+*A partial correction to the user's own hypothesis, worth recording because it was offered tentatively ("maybe accurately, maybe not").* Planning effort does *not* mostly land as =Meta= time. The datetree carries *8h52m against 67h57m on tasks — 12%*. The smearing is real, but what it smears across is the *tasks themselves*, not the meta-work node: planning a task now happens inside that task's own clock, over days, interleaved with revising and cross-referencing it. That is why no single interval looks like a planning session.
+
+
 
 * TODO Fall back to the queue when org_capture cannot reach Emacs :code:
 :PROPERTIES:
