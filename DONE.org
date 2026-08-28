@@ -1,4 +1,4 @@
-#+TODO: TODO(t!) NEXT(n!) PLANNING(p!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
+#+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
 #+STARTUP: logdrawer logdone content
 
 Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
@@ -741,7 +741,7 @@ CLOSED: [2026-08-11 Tue 16:18]
 TODO.org line 1 carried logging markers on every keyword *except* the
 first:
 
-: #+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
+: #+TODO: TODO NEXT(n!) DOING(d!) WAIT(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
 
 So entering =TODO= was the one transition org logged nothing for. Almost
 certainly deliberate and correct when the markers were adopted: every

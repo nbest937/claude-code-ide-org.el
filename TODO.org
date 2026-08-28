@@ -1,4 +1,4 @@
-#+TODO: TODO(t!) NEXT(n!) PLANNING(p!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
+#+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 #+STARTUP: logdrawer logdone content
@@ -1573,7 +1573,7 @@ repository layout omitting 7 of 10 =bin/= scripts and all 7 of
 *The =#+TODO:= line is the one with teeth.* CLAUDE.md's template omits
 =REVIEW= — which =org_set_todo= accepts, and which appears nowhere in
 CLAUDE.md at all — and omits every logging cookie. The real line is
-=TODO(t!) NEXT(n!) PLANNING(p!) DOING(d!) REVIEW(r!) WAIT(w@/!) MAYBE(m!)
+=TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAIT(w@/!) MAYBE(m!)
 | DONE(D!) CANCELLED(c@)=. The =@= means *prompt for a note*, so =WAIT=
 and =CANCELLED= prompt while every other transition only timestamps: a
 transition driven non-interactively through =emacsclient -e= hangs for
@@ -8187,7 +8187,7 @@ are as of that date; the names are the durable part.
 *Must change to add a keyword:*
 
 - =TODO.org= line 1 — =#+TODO:= with per-keyword logging cookies
-  (=TODO(t!) NEXT(n!) PLANNING(p!) DOING(d!) WAIT(w@/!) MAYBE(m!) |
+  (=TODO(t!) NEXT(n!) DOING(d!) WAIT(w@/!) MAYBE(m!) |
   DONE(D!) CANCELLED(c@)=). A new keyword needs its cookie chosen too,
   and =REVIEW= collides with =CANCELLED= on =c= and with nothing on =R=.
 - =clock-template.org= line 2 — the same directive *without* cookies, so

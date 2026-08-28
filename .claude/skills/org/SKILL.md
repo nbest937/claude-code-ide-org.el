@@ -32,7 +32,6 @@ This skill helps Claude work expertly with Emacs Org-Mode files. The focus areas
 ** Heading level 2
 *** TODO Task not yet started
 *** NEXT Up next / prioritised
-*** PLANNING In Plan Mode, plan not yet approved
 *** DOING Started and owed a return — "in the mail", not necessarily executing now; several headings may be DOING at once
 *** REVIEW Finished, handed back for human judgement
 *** WAITING Blocked or waiting on someone
@@ -42,7 +41,7 @@ This skill helps Claude work expertly with Emacs Org-Mode files. The focus areas
 ```
 
 Default keyword set used by this skill:
-`TODO NEXT PLANNING DOING REVIEW WAITING MAYBE | DONE CANCELLED`
+`TODO NEXT DOING REVIEW WAITING MAYBE | DONE CANCELLED`
 
 The `|` separates active (incomplete) states on the left from terminal (done) states on
 the right. `DONE` and `CANCELLED` trigger Org's "task complete" behaviour (closing
@@ -281,9 +280,6 @@ When helping the user move a task between states, follow these conventions:
 | `TODO` → `NEXT`         | Decided to do it soon                | None                         |
 | `TODO` → `DOING`        | Starting work immediately            | Open a CLOCK                 |
 | `NEXT` → `DOING`        | Starting work                        | Open a CLOCK                 |
-| `NEXT` → `PLANNING`     | Entering Plan Mode on it             | Open a CLOCK                 |
-| `PLANNING` → `DOING`    | Plan approved, implementing          | None — same clock continues |
-| `PLANNING` → `DONE`/`WAITING`/`CANCELLED` | Stopping out of planning | Close the CLOCK       |
 | `DOING` → `DONE`        | Finished                             | Close the CLOCK              |
 | `DOING` → `WAITING`     | Blocked mid-task                     | Close the CLOCK              |
 | `DOING` → `REVIEW`      | Finished, awaiting human judgement   | Close the CLOCK              |
@@ -316,7 +312,7 @@ transition has to be recorded some other way.
   authoritative copy for that project; this one mirrors it.
 - **In a plain org setup with no such tooling**, the side effect is a
   literal edit: open a CLOCK line (start timestamp, no end) on entering
-  `DOING`/`PLANNING`, close it (end timestamp, computed duration) on
+  `DOING`, close it (end timestamp, computed duration) on
   leaving, and append the LOGBOOK state-change note
   `- State "NEW"  from "OLD"  [timestamp]` if the file logs states.
 
@@ -330,7 +326,7 @@ checkpoints — never treat plan approval alone as license to proceed
 straight into implementation, even under an auto-accept mode that
 otherwise biases toward not stopping. After a plan is approved, stop and
 get the user's explicit confirmation before either of: transitioning the
-heading to `DOING` (or `PLANNING` → `DOING`), or making any code/file
+heading to `DOING`, or making any code/file
 edits the plan describes. This holds regardless of whether the heading
 the plan is for already existed or is newly created as part of the plan.
 
@@ -588,12 +584,16 @@ accordingly.
 
 When asked to kick off planning for several open `NEXT`/`TODO` headings at
 once (rather than one heading at a time, interactively), parallelize the
-*research* but keep the *write-back* serialized. This project's org clock
-and PLANNING ownership are single global in-memory variables — there is
-exactly one clock, shared across every session touching the file — so N
-simultaneous `PLANNING` owners is structurally impossible, not merely
-risky. Only read-only research that writes solely to its own plan file
-(`~/.claude/plans/<slug>.md`) is safe to genuinely run in parallel.
+*research* but keep the *write-back* serialized. There is exactly one org
+clock, shared across every session touching the file, so N sessions
+cannot each hold one. Only read-only research that writes solely to its
+own plan file (`~/.claude/plans/<slug>.md`) is safe to genuinely run in
+parallel.
+
+(This paragraph used to argue the point via `PLANNING` ownership and a
+pair of global owner variables. Both are gone — the variables at the
+2026-08-11 queue cutover, the keyword on 2026-08-28 — and the clock
+argument was the load-bearing half anyway.)
 
 1. Use `org_query` to list open `NEXT`/`TODO` candidates.
 2. Pick up to **3** headings per batch (matches this project's own
@@ -613,7 +613,7 @@ risky. Only read-only research that writes solely to its own plan file
    orchestrating session's real id, so unattended background research time
    is never misattributed as that session's own interactive work.
 5. Leave TODO state as-is (still `NEXT`/`TODO`). Promoting a heading to
-   `PLANNING`/`DOING` on the strength of a background plan is a separate,
+   `DOING` on the strength of a background plan is a separate,
    later, interactive decision — not part of this batch.
 6. Don't auto-commit the resulting diff. Leave it for explicit review.
 

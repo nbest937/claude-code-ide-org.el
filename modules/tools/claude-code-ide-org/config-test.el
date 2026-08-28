@@ -54,7 +54,7 @@ stray clock-status.json into the real module directory."
      (unwind-protect
          (progn
            (with-temp-file file
-             (insert "#+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
+             (insert "#+TODO: TODO NEXT(n!) DOING(d!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
                      "#+TAGS: code comms research review\n"
                      "#+ARCHIVE: DONE.org::* Done\n"
                      "\n"
@@ -532,7 +532,7 @@ BOTH buffers, not just the one org-refile happens to leave point in."
   (claude-code-ide-org-test--with-heading
     (let ((target-file (expand-file-name "target.org" dir)))
       (with-temp-file target-file
-        (insert (concat "#+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
+        (insert (concat "#+TODO: TODO NEXT(n!) DOING(d!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
                          "#+TAGS: code comms research review\n"
                          "\n"
                          "* TODO Target heading                                              :code:\n"
@@ -794,19 +794,6 @@ never on transitions to any other state."
     (org-with-point-at (org-id-find id 'marker) (org-todo "WAITING"))
     (should (not (org-clocking-p)))))
 
-(ert-deftest claude-code-ide-org-test-trigger-hook-auto-clocks-in-on-planning ()
-  "org-trigger-hook must also auto-clock-in the moment PLANNING is set
--- TODO.org :ID: b95b9fba-f78e-48fe-8546-988709cce309 -- mirroring the
-existing DOING coverage above."
-  (claude-code-ide-org-test--with-heading
-    (let ((claude-code-ide-org-auto-clock-in-on-doing t))
-      (should (not (org-clocking-p)))
-      (org-with-point-at (org-id-find id 'marker)
-        (org-todo "PLANNING"))
-      (should (org-clocking-p))
-      (should (equal id (org-with-point-at org-clock-marker
-                          (org-entry-get nil "ID")))))))
-
 ;; Container exemption -- TODO.org :ID: ab75d6d2-0e59-405d-92c6-2c67488db133.
 ;; Each of these binds `org-trigger-hook' down to the auto-clock-in
 ;; function alone, the same way the DONE-blocker test above does: adding
@@ -1021,30 +1008,6 @@ an explicit `org-clock-in' on a container must still work -- a blanket
       (should (org-clocking-p))
       (should (equal id (org-with-point-at org-clock-marker
                           (org-entry-get nil "ID")))))))
-
-(ert-deftest claude-code-ide-org-test-trigger-hook-skips-container-on-planning ()
-  "The exemption must cover PLANNING as well as DOING -- both states
-open a clock via the same trigger, so both must skip it for a
-container."
-  (claude-code-ide-org-test--with-heading
-    (let ((claude-code-ide-org-auto-clock-in-on-doing t)
-          (org-trigger-hook (list #'claude-code-ide-org--trigger-auto-clock-in)))
-      (claude-code-ide-org-test--add-child file "** TODO A real child\n")
-      (org-with-point-at (org-id-find id 'marker) (org-todo "PLANNING"))
-      (should (not (org-clocking-p))))))
-
-(ert-deftest claude-code-ide-org-test-trigger-hook-skips-clock-in-when-already-clocked-on-planning ()
-  "No duplicate CLOCK line when a clock is already running on the
-heading being set to PLANNING."
-  (claude-code-ide-org-test--with-heading
-    (claude-code-ide-org-test--clock-in-for-real id)
-    (org-with-point-at (org-id-find id 'marker) (org-todo "PLANNING"))
-    (should (org-clocking-p))
-    (let ((disk (with-current-buffer (get-file-buffer file) (buffer-string)))
-          (count 0) (start 0))
-      (while (string-match "CLOCK: \\[" disk start)
-        (setq count (1+ count) start (match-end 0)))
-      (should (= 1 count)))))
 
 ;; The PLANNING -> DOING promotion tests stood here until the 2026-08-11
 ;; cutover (TODO.org :ID: feba67eb-35b3-48bd-a892-8ecd47ca52e0). They
@@ -1696,7 +1659,7 @@ corrupting the file header."
     (let ((disk (claude-code-ide-org-test--disk-contents file)))
       ;; The file header must be completely untouched.
       (should (string-prefix-p
-               "#+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n#+TAGS:"
+               "#+TODO: TODO NEXT(n!) DOING(d!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n#+TAGS:"
                disk))
       ;; CLOCK line correctly closed with the right duration (3:45).
       (should (string-match-p
@@ -2078,7 +2041,7 @@ not itself linted."
           ;; recognise MAYBE/DOING at all and a fixture using them reads
           ;; as a plain heading whose title happens to start with a word.
           (with-temp-file file
-            (insert "#+TODO: TODO NEXT PLANNING DOING WAITING MAYBE | DONE CANCELLED\n")
+            (insert "#+TODO: TODO NEXT DOING WAITING MAYBE | DONE CANCELLED\n")
             (insert text))
           (when ref-text (with-temp-file ref (insert ref-text)))
           (claude-code-ide-org-lint (list file) (and ref-text (list ref))))
@@ -2482,7 +2445,7 @@ the temp directory afterwards."
      (unwind-protect
          (progn
            (with-temp-file capture-file
-             (insert "#+TODO: TODO NEXT(n!) PLANNING(p!) DOING(d!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
+             (insert "#+TODO: TODO NEXT(n!) DOING(d!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
                      "#+TAGS: code comms research review\n"
                      "#+ARCHIVE: DONE.org::* Done\n"
                      "\n"
@@ -5467,7 +5430,7 @@ unusable: 316 of them, 14.6 hours, against 3.6 hours actually recorded."
   "An unassigned span suggests the heading most recently set DOING.
 
 The suggestion prefers an active state over any other: a DOING or
-PLANNING transition asserts work is happening there in a way TODO or
+DOING transition asserts work is happening there in a way TODO or
 DONE does not."
   (claude-code-ide-org-test--with-queue
     (apply #'claude-code-ide-org-test--queue-write "sess-a"
@@ -5898,7 +5861,7 @@ with the note as its continuation."
   "The literal 2026-08-07 shape: a `todo' event queued while the heading
 was NEXT, applied after it had moved on to DOING. Apply must refuse and
 change nothing, rather than faithfully regressing the heading and
-writing a `State \"PLANNING\" from \"DOING\"' line that looks correct
+writing a `State \"MAYBE\" from \"DOING\"' line that looks correct
 (TODO.org :ID: f9f61c04-150b-4ee7-96c9-582cf2bda95a)."
   (claude-code-ide-org-test--with-heading
     ;; Reality has moved on to DOING; the queued event still says NEXT.
@@ -5906,26 +5869,26 @@ writing a `State \"PLANNING\" from \"DOING\"' line that looks correct
     (let* ((before (claude-code-ide-org-test--disk-contents file))
            (item (list :type 'state :id id
                        :ts (date-to-time "2026-08-07T11:51:00-0500")
-                       :from "NEXT" :to "PLANNING" :events nil))
+                       :from "NEXT" :to "MAYBE" :events nil))
            (result (claude-code-ide-org--review-apply-item item)))
       (should (stringp result))
-      (should (string-match-p "refused stale NEXT -> PLANNING" result))
+      (should (string-match-p "refused stale NEXT -> MAYBE" result))
       (should (string-match-p "heading is now DOING" result))
       ;; Nothing reached the file: same keyword, no new log line.
       (should (equal "DOING" (org-with-point-at (org-id-find id 'marker)
                                (org-get-todo-state))))
       (should (equal before (claude-code-ide-org-test--disk-contents file)))
-      (should-not (string-match-p "State \"PLANNING\""
+      (should-not (string-match-p "State \"MAYBE\""
                                   (claude-code-ide-org-test--disk-contents file)))
       ;; And it is visibly flagged, so a human sees it before deciding.
       (should (string-prefix-p "! " (claude-code-ide-org--review-describe item)))
-      (should (string-match-p "NEXT -> PLANNING"
+      (should (string-match-p "NEXT -> MAYBE"
                               (claude-code-ide-org--review-describe item)))
       ;; Explicitly confirmed, the same item applies -- the human is the
       ;; validation step, so an override must exist and must be deliberate.
       (plist-put item :stale-confirmed t)
       (should-not (claude-code-ide-org--review-apply-item item))
-      (should (equal "PLANNING" (org-with-point-at (org-id-find id 'marker)
+      (should (equal "MAYBE" (org-with-point-at (org-id-find id 'marker)
                                   (org-get-todo-state)))))))
 
 (ert-deftest claude-code-ide-org-test-review-applies-when-from-state-matches ()
@@ -6095,9 +6058,9 @@ on nearly every chain trains the reader to confirm without reading."
   "The reader carries `from' through from the JSONL, and tolerates its
 absence on older events."
   (let ((with-from (claude-code-ide-org--queue-parse-line
-                    "{\"ts\":\"2026-08-07T11:51:00-0500\",\"kind\":\"todo\",\"id\":\"x\",\"state\":\"PLANNING\",\"from\":\"NEXT\"}"))
+                    "{\"ts\":\"2026-08-07T11:51:00-0500\",\"kind\":\"todo\",\"id\":\"x\",\"state\":\"MAYBE\",\"from\":\"NEXT\"}"))
         (without (claude-code-ide-org--queue-parse-line
-                  "{\"ts\":\"2026-08-07T11:51:00-0500\",\"kind\":\"todo\",\"id\":\"x\",\"state\":\"PLANNING\"}")))
+                  "{\"ts\":\"2026-08-07T11:51:00-0500\",\"kind\":\"todo\",\"id\":\"x\",\"state\":\"MAYBE\"}")))
     (should (equal "NEXT" (plist-get with-from :from)))
     (should-not (plist-get without :from))))
 
@@ -7344,7 +7307,7 @@ done."
                            (time-add base 30) events)))
     ;; Once it reaches REVIEW -- a keyword this code has never heard of --
     ;; it stops being the answer, and id-b's plain TODO does not become
-    ;; one: only DOING/PLANNING assert that work is happening.
+    ;; one: only DOING asserts that work is happening.
     (should (null (claude-code-ide-org--review-suggest-heading
                    (time-add base 180) events)))))
 

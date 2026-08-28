@@ -16,7 +16,7 @@ failure is silent.
 Every `.org` file in this project should start with:
 
 ```org
-#+TODO: TODO(t!) NEXT(n!) PLANNING(p!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
+#+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 ```
@@ -328,7 +328,7 @@ referent is simply stale:
 | referent keyword     | checkbox    |
 |----------------------|-------------|
 | `DONE`               | `[X]`       |
-| `DOING` `REVIEW` `PLANNING` `WAITING` | `[-]` |
+| `DOING` `REVIEW` `WAITING` | `[-]` |
 | `TODO` `NEXT`        | `[ ]`       |
 | `CANCELLED` `MAYBE`  | *no cookie* |
 

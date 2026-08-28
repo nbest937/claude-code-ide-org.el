@@ -430,11 +430,6 @@ edits an org file at the moment you act.
 | `TODO`     → `NEXT`       | None                                |
 | `TODO`     → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
 | `NEXT`     → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
-| `NEXT`     → `PLANNING`   | Open a CLOCK (call `org_clock_in`)  |
-| `PLANNING` → `DOING`      | None — same clock interval continues, no close/reopen |
-| `PLANNING` → `DONE`       | Close the CLOCK (call `org_clock_out`) |
-| `PLANNING` → `WAITING`       | Close the CLOCK (call `org_clock_out`) |
-| `PLANNING` → `CANCELLED`  | Close the CLOCK (call `org_clock_out`) |
 | `DOING`    → `DONE`       | Close the CLOCK (call `org_clock_out`) |
 | `DOING`    → `WAITING`       | Close the CLOCK (call `org_clock_out`) |
 | `DOING`    → `REVIEW`     | Close the CLOCK (call `org_clock_out`) |
@@ -531,11 +526,9 @@ Consequences, each of which has been got wrong in practice:
   recording that something *was* started is a queue action rather than a
   keystroke. See `:ID:` 4f6a6bb1.
 
-**Rule**: a transition *to* `DOING` or `PLANNING` opens a clock **when you
-are starting work now** — the ordinary case, and what the table above
-describes. Two exceptions. `PLANNING` → `DOING` reuses the already-running
-interval rather than closing and reopening it. And a **retroactive**
-`DOING` — recording that a heading was started earlier — opens nothing,
+**Rule**: a transition *to* `DOING` opens a clock **when you are starting
+work now** — the ordinary case, and what the table above describes. One
+exception: a **retroactive** `DOING` — recording that a heading was started earlier — opens nothing,
 because the work did not happen now. **The queue honours that exception,
 so such a transition may be queued freely.** This said the opposite until
 2026-08-26 and was wrong the whole time (`:ID:` 4f6a6bb1): `org_set_todo`
@@ -543,11 +536,10 @@ and `org_clock_in` are separate calls precisely so state and clock are
 decided separately, and apply suppresses the trigger outright. The one
 path that does *not* honour it is a hand `C-c C-t` in Emacs — where a
 human is present to know which act they are performing.
-**Rule**: a transition *from* `DOING` or `PLANNING` closes the clock **if
-this heading's clock is the one running**. Because `DOING` is plural, a
+**Rule**: a transition *from* `DOING` closes the clock **if this
+heading's clock is the one running**. Because `DOING` is plural, a
 heading can be `DOING` with no clock — another heading holds it — and
-there is then nothing to close. The `PLANNING` → `DOING` handoff above
-closes nothing either.
+there is then nothing to close.
 **Rule**: always use the MCP tools for state changes and clocking — do not
 edit CLOCK entries or TODO keywords by hand when the tools are available.
 If the `emacs-tools` MCP server is *not* connected, prefer stopping and
@@ -577,34 +569,24 @@ blocks on a prompt for **those two keywords and only those two**. That
 asymmetry is one of the reasons state changes go through the queue rather
 than being applied live: apply runs inside a genuinely interactive command,
 where the prompt is answerable.
-**Rule**: entering `PLANNING` is a model judgment call made *before* calling
-`EnterPlanMode`, never during — Plan Mode itself forbids non-readonly tool
-calls, so `org_set_todo` cannot run once inside it. Leaving `PLANNING` is
-*not* a model decision: a `PostToolUse` hook matched on `ExitPlanMode`
-(`bin/hooks/exitplanmode-promote-planning`) promotes `PLANNING` → `DOING`
-automatically the instant a plan is approved and execution begins. A "plan
-and implement" prompt must still produce both transitions at their correct,
-separate times, never a premature jump to `DOING`. When the user enters
-Plan Mode directly (shift-tab, not a model-initiated `EnterPlanMode` call),
-there is no window to set `PLANNING` first — the hook's "clocked heading
-isn't PLANNING → no-op" branch is the **common** case then, not a bug.
-**Known gap, accepted**: the `ExitPlanMode` hook fires whether the plan was
-approved or rejected, with no reliable signal to distinguish the two (see
-TODO.org :ID: b95b9fba-f78e-48fe-8546-988709cce309). A stray promotion after
-a rejected plan is low-cost and self-corrects the next time the heading's
-real state is set explicitly — not fixed.
-**Cross-session guard**: the `ExitPlanMode` promotion only fires for the
-session that set `PLANNING`. It no longer needs a variable to do that.
-`claude-code-ide-org--planning-owner-session-id` and
-`claude-code-ide-org--clock-owner-session-id` were deleted at the
-2026-08-11 cutover (TODO.org `:ID:` feba67eb, reconciled by `:ID:`
-e51d6ba1): the promotion moved into
-`bin/hooks/exitplanmode-promote-planning`, which reads *the session's own
-queue file* for the heading it most recently queued `PLANNING` on. The
-guard comes free from the file being per-session — another session's
-`PLANNING` is simply not in it to be found — which is why there is
-nothing left to track. Note this also means the guard no longer depends
-on a clock running, since none does.
+**`PLANNING` was retired 2026-08-28** (`:ID:` c954f650), and with it the
+`ExitPlanMode` promotion hook, the cross-session owner guard, and four
+rows of the table above. Measured across the project's whole history
+before removing it: 7 `PLANNING` transitions in 432 state changes, on 6
+of the 24 days the keyword existed and absent from the three busiest;
+43 headings carried a plan link and 7 of them ever wore it; and the
+premise it was built on — long spans of agent work in Plan Mode — held
+for one of the seven, four having clocked nothing at all inside the
+window. All seven exited to `DOING`, so it never distinguished an
+outcome.
+
+Nothing replaced it, deliberately. A "plan approved" event was
+considered and declined: nothing would consume it, and this project's
+precedent (`:ID:` 7771fc63) is to delete a mechanism whose premise
+failed rather than reimplement it more cheaply. **Plan Mode now needs no
+state change of its own** — a heading is `DOING` while it is being
+planned and implemented, which is what `DOING` already meant.
+
 **Rule**: when asked to start work on a task tracked as an org heading with
 a `:ID:`, transition it to `DOING` via `org_set_todo` *before* beginning,
 unless it's already `DOING`. This has to be a standing instruction, not a
@@ -616,7 +598,7 @@ after it was). On `org-blocker-hook`: `org-depend-block-todo` (refuses
 DONE while a `:BLOCKER:` names unfinished work) and
 `claude-code-ide-org--blocker-clock-running-p` (refuses DONE while the
 heading's own clock is running). On `org-trigger-hook`:
-`--trigger-auto-clock-in` (opens the clock the moment DOING/PLANNING is
+`--trigger-auto-clock-in` (opens the clock the moment DOING is
 set by hand — gated by `claude-code-ide-org-auto-clock-in-on-doing`,
 default `t`), plus `--trigger-demote-conflicting-next`, live and
 ungated **inside a container**.
@@ -716,9 +698,9 @@ approved Plan Mode plan, write only that heading (title, tags, properties,
 any Plan-file link, intro body) and stop — show it and get explicit
 approval before transitioning it to `DOING` or touching anything else the
 plan describes. Approving a Plan is not approval of the heading's exact
-wording. The `ExitPlanMode` auto-promotion hook does not affect this rule:
-it only ever promotes an *already-clocked, already-`PLANNING`* heading, and
-never touches a newly created heading the plan describes creating. The
+wording. (This used to note that the `ExitPlanMode` auto-promotion hook
+could not affect the rule; the hook was deleted with `PLANNING` on
+2026-08-28, so nothing promotes anything automatically now.) The
 more general form of this rule — `ExitPlanMode` approval and "start
 implementing" are always two separate checkpoints, not just for newly
 created headings — lives in the org skill (`.claude/skills/org/SKILL.md`,
@@ -825,7 +807,6 @@ queue file and exits:
 | `PermissionRequest` | `bin/hooks/block-start`       | `block_start` |
 | `PostToolUse` (unscoped) | `bin/hooks/block-end`    | `block_end`, if a block is open |
 | `PermissionDenied`  | `bin/hooks/block-end`         | `block_end`, if a block is open |
-| `ExitPlanMode`      | `bin/hooks/exitplanmode-promote-planning` | `todo` DOING, if this session queued PLANNING |
 
 `session-pause` and `session-resume` are one line each — `exec
 queue-append pause` / `resume`. They are *guideposts*: timestamps marking

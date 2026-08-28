@@ -3127,9 +3127,9 @@ BLOCK).  Never signals an error to the MCP layer."
 ;; would clobber whatever is already there.
 
 (defcustom claude-code-ide-org-auto-clock-in-on-doing t
-  "Whether a heading becoming DOING or PLANNING opens a clock by itself.
+  "Whether a heading becoming DOING opens a clock by itself.
 
-On.  A heading set to DOING or PLANNING by hand -- `C-c C-t', `S-right',
+On.  A heading set to DOING by hand -- `C-c C-t', `S-right',
 the agenda's `t' -- opens a clock on it, so work done at the keyboard is
 timed without having to remember `C-c C-x C-i'.
 
@@ -3187,9 +3187,9 @@ is a no-op instead of recursing.")
   "For `org-blocker-hook': deny a transition to DONE on the heading at
 point when that heading's :ID: matches whichever heading
 `org-clock-marker' currently points at -- i.e. its own clock is still
-running. Identity-based, not source-state-based, so this already
-covers a clocked PLANNING heading exactly as it does a clocked DOING
-one, with no separate PLANNING-specific logic needed. Return non-nil
+running. Identity-based, not source-state-based, so it needs no
+per-keyword logic and did not change when PLANNING was retired
+(TODO.org :ID: c954f650). Return non-nil
 (permit the change) for every requested state
 other than DONE, whenever nothing is currently clocking, or whenever
 either heading lacks an :ID:. CHANGE-PLIST is the plist `org-todo'
@@ -3445,7 +3445,6 @@ still has to finish\"."
   '(("DONE"      . "X")
     ("DOING"     . "-")
     ("REVIEW"    . "-")
-    ("PLANNING"  . "-")
     ("WAITING"   . "-")
     ("TODO"      . " ")
     ("NEXT"      . " ")
@@ -3455,8 +3454,8 @@ still has to finish\"."
 
 Total, and derived rather than chosen -- there is no judgement in a
 slice's checkbox.  `DONE'/`CANCELLED'/`DOING'/`REVIEW' were given by the
-user; the rest follow the same logic.  `PLANNING' and `WAITING' are `-'
-because work started and a clock opened; `MAYBE' has no cookie because
+user; the rest follow the same logic.  `WAITING' is `-' because work
+started and a clock opened; `MAYBE' has no cookie because
 deferral is treated exactly as cancellation -- the member keeps its line
 and stops counting, in either direction.
 
@@ -3690,7 +3689,7 @@ Returns a human-readable summary."
 
 (defun claude-code-ide-org--trigger-auto-clock-in (change-plist)
   "For `org-trigger-hook': the moment any heading's TODO state becomes
-DOING or PLANNING, automatically open a clock on it via `org-clock-in',
+DOING, automatically open a clock on it via `org-clock-in',
 unless a clock is already running on that exact heading, or the heading
 is a container \(`claude-code-ide-org--container-heading-p'). Guarded
 against re-entrancy by `claude-code-ide-org--auto-clock-in-active'.
@@ -3738,7 +3737,7 @@ scenario that raised it (TODO.org :ID: ab75d6d2).  The exemption's
 *rationale* is unaffected by any of this and still holds -- see that
 heading for the measurement."
   (when (and claude-code-ide-org-auto-clock-in-on-doing
-             (member (plist-get change-plist :to) '("DOING" "PLANNING"))
+             (equal (plist-get change-plist :to) "DOING")
              (not claude-code-ide-org--auto-clock-in-active)
              (not (claude-code-ide-org--grouping-heading-p)))
     (let* ((target-id (org-entry-get nil "ID"))
@@ -3752,20 +3751,20 @@ heading for the measurement."
         (let ((claude-code-ide-org--auto-clock-in-active t))
           (org-clock-in))))))
 
-;; `--maybe-record-planning-owner' and `--promote-planning-to-doing'
-;; stood here until the 2026-08-11 cutover (TODO.org :ID:
-;; feba67eb-35b3-48bd-a892-8ecd47ca52e0). Between them they implemented
-;; the PLANNING -> DOING auto-promotion on ExitPlanMode: one recorded
-;; which session had set PLANNING, the other promoted the heading that
-;; owned the running clock if that session matched.
+;; A PLANNING -> DOING auto-promotion stood here, and then in
+;; bin/hooks/exitplanmode-promote-planning, until the keyword was retired
+;; on 2026-08-28 (TODO.org :ID: c954f650). Measured over the project's
+;; whole history first: 7 PLANNING transitions in 432, on 6 of the 24
+;; days the keyword existed, absent from the three busiest days; 43
+;; headings carried a plan link and 7 of them ever wore it; and the
+;; premise it was built on -- long spans of agent work in plan mode --
+;; held for one of the seven, four having clocked nothing at all inside
+;; the window.
 ;;
-;; Both inputs are gone -- no clock runs, and no MCP tool sets a state --
-;; so the promotion moved into bin/hooks/exitplanmode-promote-planning,
-;; which reads the session's own queue file for the heading it most
-;; recently queued PLANNING on and appends a DOING event beside it. The
-;; cross-session guard the owner variable provided comes free there: the
-;; file is per-session, so another session's PLANNING is not in it to be
-;; found.
+;; Nothing replaced it. A "plan approved" event was considered and
+;; declined: nothing would consume it, and this project's precedent
+;; (:ID: 7771fc63) is to delete a mechanism whose premise failed rather
+;; than to reimplement it in a cheaper form.
 
 ;;; Single NEXT action per level ----------------------------------------------
 ;;
@@ -5427,7 +5426,7 @@ from a skipped one."
              (events (cdr group)))
         (when id
           ;; State transitions replay one per todo event, in order --
-          ;; never collapsed. A TODO->PLANNING->DOING run is three real
+          ;; never collapsed. A TODO->NEXT->DOING run is three real
           ;; transitions and org's own log wants a line for each; it is
           ;; the *clock interval* that must not be broken up by them.
           (dolist (event events)
@@ -5622,7 +5621,7 @@ from a skipped one."
             (time-less-p (or (plist-get a :ts) (plist-get a :start))
                          (or (plist-get b :ts) (plist-get b :start)))))))
 
-(defconst claude-code-ide-org--work-in-progress-keywords '("DOING" "PLANNING")
+(defconst claude-code-ide-org--work-in-progress-keywords '("DOING")
   "Keywords asserting that work is happening on a heading right now.
 
 The positive half of the keyword set, and the only half worth naming:
@@ -5641,7 +5640,7 @@ and NEXT all sit on org's not-done side while meaning nobody is working.")
   "Return the :ID: most plausibly being worked on at TIME, from EVENTS.
 
 A heading is the answer only while it is *in* a work-in-progress state
-at TIME: something entered it into DOING or PLANNING before TIME and
+at TIME: something entered it into DOING before TIME and
 nothing has taken it out since.  Otherwise nil, and the span is offered
 unattributed for a human to assign (TODO.org :ID: 3d0487f4 built that
 path precisely so nil is workable).
@@ -5755,9 +5754,10 @@ names nothing, so a caller can tell \"heading has no keyword\" from
   "Non-nil when ITEM's queued transition disagrees with reality.
 
 The hazard this exists for, observed live 2026-08-07: a queued
-`todo -> PLANNING' was applied long after the heading had moved on to
+`todo -> NEXT' was applied long after the heading had moved on to
 DOING, and apply faithfully regressed it, writing a
-`State \"PLANNING\" from \"DOING\"' line to prove it.  Nothing errored;
+`State \"NEXT\" from \"DOING\"' line to prove it.  (The real 2026-08-07
+case used PLANNING, retired 2026-08-28; the shape is unchanged.)  Nothing errored;
 the record simply became wrong in a plausible-looking way.  A queue is
 reviewed at a moment of the human's choosing, so *any* out-of-band
 change in between -- a hand-edit, another session, an agenda bulk
@@ -6232,7 +6232,7 @@ Binds `claude-code-ide-org--auto-clock-in-active' for the duration.
 That is this module's own re-entrancy guard for
 `claude-code-ide-org--trigger-auto-clock-in', reused here rather than
 inventing a second suppression flag: without it the trigger fires on any
--> DOING/PLANNING transition, opens a clock at *now* rather than the
+-> DOING transition, opens a clock at *now* rather than the
 backdated time, and -- confirmed live during TODO.org :ID: 3d576d29's
 verification -- destroys the pending state-change note so it never
 lands at all."
@@ -10134,7 +10134,7 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
    :name "org_set_todo"
    :description (concat
                  "Record a TODO keyword change on an org-mode heading by its "
-                 ":ID: property. Valid states: TODO NEXT PLANNING DOING "
+                 ":ID: property. Valid states: TODO NEXT DOING "
                  "REVIEW WAITING MAYBE DONE CANCELLED. REVIEW is EXPERIMENTAL "
                  "(TODO.org :ID: c954f650): it means work is finished and "
                  "handed back to the human for judgement, as distinct from "
@@ -10145,15 +10145,13 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
                  "keyword until a person applies the queued event, so a later "
                  "read showing the old state is expected, not a failure. "
                  "When setting DOING, also call org_clock_in. "
-                 "When leaving DOING, call org_clock_out first. "
-                 "PLANNING auto-promotes to DOING when ExitPlanMode fires -- "
-                 "no separate org_set_todo call needed.")
+                 "When leaving DOING, call org_clock_out first.")
    :args '((:name "id"
             :type string
             :description "The :ID: property value of the target org heading.")
            (:name "state"
             :type string
-            :description "TODO keyword to set: TODO NEXT PLANNING DOING REVIEW WAITING MAYBE DONE CANCELLED.")
+            :description "TODO keyword to set: TODO NEXT DOING REVIEW WAITING MAYBE DONE CANCELLED.")
            (:name "note"
             :type string
             :optional t
