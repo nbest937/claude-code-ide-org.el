@@ -6811,6 +6811,23 @@ The reason they do not is structural rather than lucky: you block on a *bounded,
 
 *Note the epic column, because it is the payoff for flattening.* Since the label sits on the *task*, a story's children may carry different =:CATEGORY:= values, so a story spans epics for free -- no refiling, and no arrangement of parents to work around. That was the constraint [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] existed to remove, and mitosis plus a per-task label removes it without either mechanism knowing about the other.
 
+*Built 2026-08-28 as =org_divide= / =claude-code-ide-org-divide=.*
+
+*Scoped to the mechanical half deliberately.* The tool inserts a new parent above the heading and demotes it underneath, and does *nothing* with the child's engorged body. Splitting that into further sibling leaves is an editorial judgement, and a tool that guessed at it would be inventing headings. So =org_divide= guarantees the *record* survives a division; it does not guarantee the division was a good one.
+
+*Composed from org's own primitives rather than region arithmetic*, which was the one implementation risk this heading named: =org-demote-subtree= plus a single whole-line insertion at beginning-of-heading. Nothing is deleted and no range is computed, so it cannot repeat the two body corruptions on record — the ones =org_wrap_plan= exists because of.
+
+*The child is not touched, and that is the whole mechanism.* Its =:ID:=, =:LOGBOOK:=, CLOCK lines, state history and body all move because =org-demote-subtree= moves the *text*. Nothing had to be migrated, which is why the "migrate on promotion" hazard [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]] recorded never arises here.
+
+*The new parent is born empty*, as the design required: an =:ID:=, a =:CREATED:= stamp, the child's =:CATEGORY:=, a =[/]= cookie, and no clock and no history at all. Its TODO keyword defaults to the child's, so the group inherits the claim the task was already making rather than resetting it.
+
+*Verified by breaking it, not by watching it pass.* The test asserts what *stayed* as well as what moved, and both load-bearing claims were falsified deliberately: removing the demote fails exactly one test, and stealing the child's =:ID:= onto the parent fails exactly one test. Restored, 432/432. Registered on the MCP surface, and =(fboundp 'claude-code-ide-org-divide)= confirmed in the running Emacs after =load-file=.
+
+*One limit worth stating rather than discovering.* The MCP *schema* is negotiated at session start, so =org_divide= is not callable from this session even though the elisp is live — the next session gets it.
+
+*CLAUDE.md's mitosis section said "designed and **not built**".* That is now corrected, along with the tool table, and the paragraph records the manual/mechanical split above so nobody expects the tool to produce the sibling leaves.
+
+
 
 * MAYBE Decide what this module may change on a user's machine when installed :code:
 :PROPERTIES:

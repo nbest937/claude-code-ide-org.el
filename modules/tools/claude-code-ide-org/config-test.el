@@ -10119,3 +10119,47 @@ read-only afterwards."
 (provide 'claude-code-ide-org-config-test)
 
 ;;; config-test.el ends here
+
+(ert-deftest claude-code-ide-org-test-divide-carries-everything-to-the-child ()
+  "Mitosis: a new parent appears above the leaf and the leaf moves under
+it, keeping its :ID:, its clock and its history (TODO.org :ID: a0813ae3).
+
+Asserts what *stayed* as well as what moved, because the id question was
+the one thing the heading had to settle and it settled on the leaf: a
+queued clock event names a heading by id, so an id that migrated to the
+new parent would make a pending clock_in open a clock on a container --
+the exact outcome mitosis exists to prevent.
+
+The parent is asserted to be born *empty* -- no CLOCK, no :LOGBOOK: --
+rather than merely to exist, since a story that inherited a clock is the
+defect 3964c575 could not enforce its way out of."
+  (claude-code-ide-org-test--with-heading
+    (org-with-point-at (org-id-find id 'marker)
+      (org-entry-put nil "CATEGORY" "Skill")
+      (org-end-of-meta-data t)
+      (insert ":LOGBOOK:\nCLOCK: [2026-08-01 Sat 09:00]--[2026-08-01 Sat 10:00] =>  1:00\n:END:\n")
+      (save-buffer))
+    (let ((reply (claude-code-ide-org-divide id "A story now")))
+      (should (string-prefix-p "Divided:" reply)))
+    (with-current-buffer (find-file-noselect file)
+      (revert-buffer t t)
+      (goto-char (point-min))
+      ;; The parent sits where the child used to, at level 1.
+      (should (re-search-forward "^\\* TODO A story now \\[0/1\\]$" nil t))
+      (let ((parent-end (save-excursion (org-end-of-subtree t t))))
+        (org-back-to-heading t)
+        (should (org-entry-get nil "ID"))
+        (should (org-entry-get nil "CREATED"))
+        (should (equal "Skill" (org-entry-get nil "CATEGORY")))
+        ;; Born empty: the parent's own body holds no clock or logbook.
+        (let ((own (buffer-substring-no-properties
+                    (point) (save-excursion (org-goto-first-child) (point)))))
+          (should-not (string-match-p "CLOCK:" own))
+          (should-not (string-match-p ":LOGBOOK:" own)))
+        ;; The child is now one level deeper, and kept everything.
+        (org-goto-first-child)
+        (should (= 2 (org-current-level)))
+        (should (equal id (org-entry-get nil "ID")))
+        (should (equal "TODO" (org-get-todo-state)))
+        (let ((child (buffer-substring-no-properties (point) parent-end)))
+          (should (string-match-p "CLOCK: \\[2026-08-01 Sat 09:00\\]" child)))))))

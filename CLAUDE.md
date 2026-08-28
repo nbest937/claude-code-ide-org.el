@@ -257,13 +257,20 @@ checkbox that disagrees with its referent means the slice is stale or
 the referent's keyword is under-reporting; it never means someone
 formed a second opinion worth recording.
 
-**Where a story comes from — the direction, not current practice.** A
-task that outgrows itself **divides** rather than being promoted: a new
-parent appears, the original leaf moves under it *carrying its `:ID:`,
-clock and `:LOGBOOK:`*, and the undone parts of its swollen body become
-new sibling leaves. `:ID:` a0813ae3, designed and **not built** — today
-stories arise by growth or refiling, so what follows is what the model
-buys, not what the files currently guarantee.
+**Where a story comes from.** A task that outgrows itself **divides**
+rather than being promoted: a new parent appears, the original leaf
+moves under it *carrying its `:ID:`, clock and `:LOGBOOK:`*, and the
+undone parts of its swollen body become new sibling leaves. `:ID:`
+a0813ae3, **built 2026-08-28** as `org_divide`.
+
+Two halves, split on whether judgement is involved. The tool does the
+*structural* move and nothing else — new parent, demote, carry
+everything — because that part is mechanical and this repo has two body
+corruptions on record from hand-rolled region edits. Splitting the
+child's engorged body into further leaves stays manual: a tool that
+guessed at it would be inventing headings. So `org_divide` guarantees
+the record survives; it does not guarantee the division was a good
+one.
 
 The payoff is that **a story is precipitated, never authored.** The new
 parent *is* a story the instant it has keyworded children, so there is
@@ -734,6 +741,7 @@ incident, and the reason the queue exists:
 | `org_query`         | `org-ql-select`          | Cross-file search; not :ID:-scoped     |
 | `org_capture`       | `org-capture`            | Quick-add a new TODO heading           |
 | `org_refile`        | `org-refile`             | Move a subtree under a different parent |
+| `org_divide`        | custom (`org-demote-subtree`) | Task mitosis: insert a new parent above a heading and demote it under. The id, clock and history stay with the **child** |
 | `org_move_sibling`  | `org-move-subtree-up/down` | Move a heading up/down among siblings |
 | `org_sort_children` | `org-sort-entries`       | Sort a heading's direct children       |
 | `org_log_background_plan` | custom (insert-plan-link) | Write-back for background-planned headings: inserts the Plan link. Still accepts `session_id`, but no longer records it — that went with `:SESSIONS:`; never touches TODO state or the clock |

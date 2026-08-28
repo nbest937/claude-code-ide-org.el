@@ -2969,6 +2969,75 @@ numeric, by-creation-time, by-property, and custom-function sorts,
 plus capitalized variants for a reversed order) — these six cover
 the sorts a model is actually likely to ask for by name.")
 
+(defun claude-code-ide-org-divide (id parent-title &optional parent-state)
+  "Insert a new parent titled PARENT-TITLE above the heading with :ID: ID,
+and demote that heading to become its first child.  This is *task
+mitosis* (TODO.org :ID: a0813ae3): a leaf that has outgrown itself
+divides rather than being promoted in place.
+
+PARENT-STATE is the new parent's TODO keyword, defaulting to the
+child's own, so the group inherits the claim the task was already
+making rather than resetting it.
+
+Everything the child owns travels with it, because the child is not
+touched: its :ID:, :LOGBOOK:, CLOCK lines, state history and body all
+move because `org-demote-subtree' moves the *text*.  That is the whole
+point of dividing rather than promoting -- the record stays with the
+task that earned it.
+
+The id in particular stays with the child, which the heading settled
+against two plausible objections.  Prose cross-references land on the
+elder child and reach the story in one keystroke.  And a queued
+`clock_in' names a heading by id, so if the id moved to the new parent,
+applying a pending clock event would open a clock *on a container* --
+the exact outcome mitosis exists to prevent.
+
+The new parent is born empty: no clock, no :LOGBOOK:, no body.  It gets
+an :ID:, a :CREATED: stamp, the child's :CATEGORY:, and a `[/]'
+statistics cookie, which it needs the moment it has a keyworded child.
+Splitting the child's engorged body into further sibling leaves is
+deliberately *not* done here -- that is an editorial judgement, and a
+tool that guessed at it would be inventing headings.
+
+Composed from org's own `org-demote-subtree' plus one whole-line
+insertion at beginning-of-heading.  No range arithmetic: this repo has
+two body corruptions on record from hand-rolled region edits, which is
+why `org_wrap_plan' exists, and an insertion that deletes nothing
+cannot repeat them."
+  (require 'org-id)
+  (let ((marker (claude-code-ide-org--id-find id 'marker)))
+    (if (not marker)
+        (format "Error: no org heading found with :ID: \"%s\"" id)
+      (condition-case err
+          (org-with-point-at marker
+            (org-back-to-heading t)
+            (let* ((level (org-current-level))
+                   (state (or parent-state (org-get-todo-state)))
+                   (category (claude-code-ide-org--outline-category))
+                   (line (concat (make-string level ?*) " "
+                                 (if state (concat state " ") "")
+                                 parent-title " [/]\n")))
+              (beginning-of-line)
+              (insert line)
+              ;; Point is now on the child's heading; demote it under the
+              ;; parent just inserted.
+              (org-demote-subtree)
+              ;; Back up to the new parent and give it its identity.
+              (org-back-to-heading t)
+              (org-up-heading-safe)
+              (let ((parent-id (org-id-get-create)))
+                (org-entry-put (point) "CREATED"
+                               (format-time-string "[%Y-%m-%d %a %H:%M]"))
+                (when category (org-entry-put (point) "CATEGORY" category))
+                (org-update-statistics-cookies nil)
+                (save-buffer)
+                (format "Divided: new parent \"%s\" (:ID: %s) now holds \"%s\"; \
+its id, clock and history stayed with the child"
+                        parent-title parent-id
+                        (save-excursion (org-goto-first-child)
+                                        (org-get-heading t t t t))))))
+        (error (format "Error: %s" (error-message-string err)))))))
+
 (defun claude-code-ide-org-sort-children (id sort-type)
   "Sort the children of the org heading whose :ID: property equals ID.
 SORT-TYPE is a friendly string, one of: alpha, todo-order, priority,
@@ -10184,6 +10253,35 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
            (:name "target_id"
             :type string
             :description "The :ID: property value of the heading to move it under (the new parent).")))
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-divide
+   :name "org_divide"
+   :description (concat
+                 "Task mitosis: insert a NEW PARENT above an existing heading "
+                 "and demote that heading to become its first child. Use when "
+                 "a leaf has outgrown itself and is really a story -- divide "
+                 "it rather than promoting it in place. Writes immediately. "
+                 "Everything the child owns travels with it because the child "
+                 "is not touched: its :ID:, :LOGBOOK:, CLOCK lines, state "
+                 "history and body all move with the text. The id stays with "
+                 "the CHILD deliberately -- a queued clock event names a "
+                 "heading by id, so an id that moved to the parent would make "
+                 "a pending clock_in open a clock on a container. The new "
+                 "parent is born empty: it gets an :ID:, a :CREATED: stamp, "
+                 "the child's :CATEGORY: and a [/] cookie, and no clock or "
+                 "history at all. Splitting the child's body into further "
+                 "sibling leaves is deliberately NOT done -- that is an "
+                 "editorial judgement; use org_capture and org_amend for it.")
+   :args '((:name "id"
+            :type string
+            :description "The :ID: of the heading to divide. It becomes the first child.")
+           (:name "parent_title"
+            :type string
+            :description "Title for the new parent heading.")
+           (:name "parent_state"
+            :type string
+            :description "Optional TODO keyword for the new parent. Defaults to the child's own, so the group inherits the claim the task was already making.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-capture
