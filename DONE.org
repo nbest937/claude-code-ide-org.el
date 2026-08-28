@@ -7,7 +7,7 @@ Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 * DONE org_outline's scoped mode reports satisfied blockers as [blocked], because org-map-entries narrows :code:
 CLOSED: [2026-08-15 Sat 18:59]
 :PROPERTIES:
-:CATEGORY: Skill logic
+:CATEGORY: Tools
 :ID:       f765d782-822d-454b-85eb-68e792cc514c
 :CREATED:  [2026-08-15 Sat 18:55]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -118,7 +118,7 @@ sweep belongs in its own pass rather than smuggled into a one-form fix.
 
 * DONE Implement the ten pending MCP-tool tasks in parallel worktrees :code:
 :PROPERTIES:
-:CATEGORY: Skill logic
+:CATEGORY: Tools
 :ID:       3d862c6c-6d03-4fe9-9923-067966ef943a
 :CREATED:  [2026-08-12 Wed 12:33]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -175,7 +175,7 @@ discipline around it does not.
 * DONE Rework org_capture: bare heading, :CREATED:, and a placement target :code:
 CLOSED: [2026-08-11 Tue 21:03]
 :PROPERTIES:
-:CATEGORY: Skill logic
+:CATEGORY: Tools
 :ID:       47c027d2-7b5a-4de0-baf4-f992f3b814bd
 :CREATED:  [2026-08-11 Tue 15:52]
 :BLOCKER:  ids(9f3c35c7-0229-4cd6-908b-779267ec9b97)
@@ -377,7 +377,7 @@ way headings get made.
 * DONE Add org_outline, a compact structural index of an org file :code:
 CLOSED: [2026-08-11 Tue 18:26]
 :PROPERTIES:
-:CATEGORY: Skill logic
+:CATEGORY: Tools
 :ID:       9f3c35c7-0229-4cd6-908b-779267ec9b97
 :CREATED:  [2026-08-11 Tue 16:58]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -563,7 +563,7 @@ Live, the real TODO.org went from 10 =[blocked]= markers to 0.
 * CANCELLED org_capture omits the :CREATED: property its own convention requires :code:
 CLOSED: [2026-08-11 Tue 18:19]
 :PROPERTIES:
-:CATEGORY: Skill logic
+:CATEGORY: Tools
 :ID:       cdcc065c-628d-4350-b1ba-fcf686e9c4c1
 :CREATED:  [2026-08-11 Tue 07:31]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -627,7 +627,7 @@ and how to verify it, and =47c027d2= carries the work.
 * DONE Check for a modified Emacs buffer before text-editing a tracked org file :code:
 CLOSED: [2026-08-11 Tue 16:47]
 :PROPERTIES:
-:CATEGORY: Skill logic
+:CATEGORY: Tools
 :ID:       0308e7d7-06ea-48fb-8579-6a5a43277674
 :CREATED:  [2026-08-11 Tue 16:22]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -724,7 +724,7 @@ is correct when read.
 * DONE Add the (t!) logging marker to TODO in the #+TODO: line :code:
 CLOSED: [2026-08-11 Tue 16:18]
 :PROPERTIES:
-:CATEGORY: Skill logic
+:CATEGORY: Skill
 :ID:       90a5a0cf-a81d-45dc-a453-0bfe61e3ef93
 :CREATED:  [2026-08-11 Tue 15:52]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -761,7 +761,7 @@ line, which is the point.
 
 * DONE Org skill: parallelize background planning across the NEXT/TODO backlog, without touching the shared clock :code:
 :PROPERTIES:
-:CATEGORY: Skill logic
+:CATEGORY: Skill
 :ID:       d8444673-b047-4755-b62c-d03df738f16a
 :CREATED:  [2026-08-05 Wed 16:12]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -882,7 +882,7 @@ plan-file path does not duplicate the Plan link.
 
 * DONE Add a PLANNING TODO state, driven by the ExitPlanMode matcher :code:
 :PROPERTIES:
-:CATEGORY: Skill logic
+:CATEGORY: Skill
 :ID:       b95b9fba-f78e-48fe-8546-988709cce309
 :CREATED:  [2026-08-04 Tue 14:19]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -975,7 +975,7 @@ rejection to trigger, neither of which this pass attempted.
 
 * DONE Enforce a single NEXT action per level of the task tree :code:
 :PROPERTIES:
-:CATEGORY: Skill logic
+:CATEGORY: Skill
 :ID:       05da96ad-37de-41d4-b918-692644749394
 :CREATED:  [2026-08-03 Mon 19:17]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -1070,7 +1070,7 @@ outcome notes, not logged transitions.
 
 * DONE Adopt org's native !/@ state-change logging, guarded by org-inhibit-logging :code:
 :PROPERTIES:
-:CATEGORY: Skill logic
+:CATEGORY: Skill
 :ID:       04d0e7d5-ab6b-4972-925d-d517484c7595
 :CREATED:  [2026-08-04 Tue 13:10]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -1141,7 +1141,7 @@ buffer ever created.
 
 * DONE org_query :code:
 :PROPERTIES:
-:CATEGORY: Skill logic
+:CATEGORY: Tools
 :ID:       4ae3cdef-98b5-4361-818e-aef3491f2fb8
 :ARCHIVE_TIME: 2026-07-29 Wed 08:12
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
@@ -1192,7 +1192,7 @@ tool never exposes that path.
 
 * DONE org_clock_report :code:
 :PROPERTIES:
-:CATEGORY: Skill logic
+:CATEGORY: Tools
 :ID:       26215a14-6ec9-43a7-981b-5c8e888e65fd
 :BLOCKER:  4ae3cdef-98b5-4361-818e-aef3491f2fb8
 :ARCHIVE_TIME: 2026-07-29 Wed 07:49
@@ -1235,7 +1235,7 @@ unrestricted case). =bin/test= 40/40 at merge.
 
 * DONE org_capture :code:
 :PROPERTIES:
-:CATEGORY: Skill logic
+:CATEGORY: Tools
 :ID:       405e05b6-dc0c-42c1-99ce-7a94d266ca6d
 :ARCHIVE_TIME: 2026-07-29 Wed 02:07
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
@@ -1272,7 +1272,7 @@ resolve. 4 ERT tests added in total; =bin/test= 37/37 at merge.
 
 * DONE org_refile :code:
 :PROPERTIES:
-:CATEGORY: Skill logic
+:CATEGORY: Tools
 :ID:       f8f5cc3a-01ba-4523-b6e0-3b93ae656504
 :ARCHIVE_TIME: 2026-07-29 Wed 02:00
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
@@ -1309,7 +1309,7 @@ error). =bin/test= 44/44 at merge.
 
 * DONE org_sort_children / org_move_sibling :code:
 :PROPERTIES:
-:CATEGORY: Skill logic
+:CATEGORY: Tools
 :ID:       aa6ee083-0bb8-4345-b6ef-f10402cc2c78
 :ARCHIVE_TIME: 2026-07-29 Wed 01:57
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
@@ -1335,7 +1335,7 @@ keywords that disagree. =bin/test= 39/39 at merge.
 * DONE [3/3] Stop treating an =:ID:= as guaranteed to resolve :code:
 CLOSED: [2026-08-17 Mon 15:01]
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Tools
 :ID:       23a75720-d1d3-496f-8dad-41571ad30440
 :CREATED:  [2026-08-17 Mon 12:40]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:14
@@ -1643,7 +1643,7 @@ its speed.
 * DONE Lead review buffer group headings with the =:ID:= prefix :code:
 CLOSED: [2026-08-17 Mon 14:19]
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Apply
 :ID:       c2132d3f-dd78-4498-ba87-0ca814dc2f77
 :CREATED:  [2026-08-17 Mon 12:21]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -1711,7 +1711,7 @@ error-string sniffing and cannot fall into
 * DONE The assignment dialog's proximity ranking is discarded by Vertico :code:
 CLOSED: [2026-08-17 Mon 14:17]
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Apply
 :ID:       85702dba-8d15-4924-84bd-2bb7efac093a
 :CREATED:  [2026-08-17 Mon 12:21]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -1755,7 +1755,7 @@ stays reachable by typing.
 * DONE Apply discards decisions on the items it did not apply :code:
 CLOSED: [2026-08-17 Mon 09:32]
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Apply
 :ID:       c02d11c8-cd29-40ca-a0f4-dc1c878dfa7d
 :CREATED:  [2026-08-17 Mon 09:29]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -1819,7 +1819,7 @@ rhythm the backlog actually invites — and nothing accumulates risk.
 * DONE Dismissing an item discards every unapplied assignment in the review session :code:
 CLOSED: [2026-08-17 Mon 09:11]
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Apply
 :ID:       73cd5a1b-9b4f-409d-9aab-ffc6ea736ae5
 :CREATED:  [2026-08-17 Mon 09:03]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -1919,7 +1919,7 @@ make that trade.
 * DONE Route review-buffer commands through one mutate-render-restore path :code:
 CLOSED: [2026-08-17 Mon 09:11]
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Apply
 :ID:       2d032000-bf04-47f5-b5e6-ef4299078d15
 :CREATED:  [2026-08-17 Mon 09:07]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -1977,7 +1977,7 @@ fixed blind.
 * DONE Assign and interval-edit send point to the top of the review buffer :code:
 CLOSED: [2026-08-17 Mon 09:04]
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Apply
 :ID:       9e80a32d-43e1-4647-a42c-cba10f6e79cc
 :CREATED:  [2026-08-17 Mon 08:53]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -2033,7 +2033,7 @@ nothing out" — that the code did not honour. Neither was found by review.
 * DONE Assign excludes headings created after the span, which is the normal case not an impossibility :code:
 CLOSED: [2026-08-17 Mon 08:41]
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Apply
 :ID:       0d055205-a670-45c6-b4af-980961603a7c
 :CREATED:  [2026-08-15 Sat 17:17]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -2175,7 +2175,7 @@ batch.
 * DONE Rank assignment candidates by time correlation with the unassigned span :code:
 CLOSED: [2026-08-17 Mon 08:41]
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Apply
 :ID:       49cbe319-f7db-413a-ade8-c4850c1fab8c
 :CREATED:  [2026-08-15 Sat 17:45]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -2295,7 +2295,7 @@ this matters; recorded rather than guessed at.
 * DONE [31/31] Refactor clock/TODO-state driving to an append-only event queue + interactive batch-apply review :code:
 CLOSED: [2026-08-15 Sat 19:02]
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Queue
 :ID:       b5f7c5c7-7ad6-4c68-9cce-3479db1f1644
 :CREATED:  [2026-08-06 Thu 10:47]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:14
@@ -6825,7 +6825,7 @@ explicitly out of scope for v1.
 
 * DONE pause/resume cannot see a turn blocked on a permission prompt :code:
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Queue
 :ID:       f4e628ce-e653-429a-8f3c-0f5d4241b139
 :CREATED:  [2026-08-11 Tue 15:52]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -7202,7 +7202,7 @@ is waiting on this one closing.
 * DONE Container headings should change state without opening a clock :code:
 CLOSED: [2026-08-14 Fri 12:35]
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Clock
 :ID:       ab75d6d2-0e59-405d-92c6-2c67488db133
 :CREATED:  [2026-08-12 Wed 11:25]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -7401,7 +7401,7 @@ definition of "container" rather than two.
 * DONE Show commits and heading creations inside an unassigned span's window :code:
 CLOSED: [2026-08-14 Fri 11:56]
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Apply
 :ID:       5ff5a4b8-2fee-472a-b5e1-c9de8cf96704
 :CREATED:  [2026-08-13 Thu 16:28]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -7567,7 +7567,7 @@ honest test is to ask again afterwards rather than to assume.
 * CANCELLED Reorder :SESSIONS: entries to match :LOGBOOK: ordering :code:
 CLOSED: [2026-08-12 Wed 17:37]
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Queue
 :ID:       2b0988ed-eb92-4fa7-904a-cb2d10941bfd
 :CREATED:  [2026-08-04 Tue 17:58]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -7633,7 +7633,7 @@ opposite of the newest-first convention this heading proposed matching.
 * CANCELLED session-resume blindly inherits any session's last-clocked heading :code:
 CLOSED: [2026-08-12 Wed 17:37]
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Queue
 :ID:       582cc7f4-41a2-4666-ad3f-1b76b459147e
 :CREATED:  [2026-08-04 Tue 18:27]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -7716,7 +7716,7 @@ clearest statement of why that cutover was worth doing.
 * CANCELLED org_clock_in doesn't record clock ownership, unlike session-resume :code:
 CLOSED: [2026-08-12 Wed 17:37]
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Queue
 :ID:       d150c02e-06fe-4514-bf69-e2cc5d8df4c7
 :CREATED:  [2026-08-05 Wed 14:28]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -7810,7 +7810,7 @@ populated in 347 events, so that half is designed but unexercised.
 * CANCELLED Audit for clock/session bookkeeping noise before committing during a clocking-suppressed session :code:
 CLOSED: [2026-08-12 Wed 17:37]
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Clock
 :ID:       782cda6c-111c-454e-93eb-b2b27012078b
 :CREATED:  [2026-08-05 Wed 14:28]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -7939,7 +7939,7 @@ drawer deltas: a different mechanism from the one hypothesised here.
 
 * DONE consolidate-history's :LOGBOOK: rewrite silently deletes non-CLOCK lines :code:
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Clock
 :ID:       ba8249c1-28cd-4ff1-918b-4b8439345d9a
 :CREATED:  [2026-08-06 Thu 21:47]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -7997,7 +7997,7 @@ and regression-tested in the same pass.
 
 * DONE Concurrent Claude Code sessions share one global org-clock with no session identity :code:
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Clock
 :ID:       337f7fb2-b9e9-4c02-82dd-d88e60df364b
 :CREATED:  [2026-07-30 Thu 12:39]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -8064,7 +8064,7 @@ afterward.
 
 * DONE org-clock-out-remove-zero-time-clocks silently erases short CLOCK intervals :code:
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Clock
 :ID:       293ac49e-3324-421c-8495-de1a46fc04ac
 :CREATED:  [2026-07-30 Thu 14:50]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -8113,7 +8113,7 @@ premature deletion.
 
 * DONE Enforce the transition rules :code:
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Clock
 :ID:       39b08ecd-6350-48a2-b169-98535b626ac7
 :CREATED:  [2026-07-30 Thu 15:56]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -8150,7 +8150,7 @@ call) to prove the enforcement lives in org itself. =bin/test= passes
 
 * DONE session-resume can reopen a clock on an already-DONE heading :code:
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Clock
 :ID:       2e34162a-4720-4d23-bf29-10eb295cd087
 :CREATED:  [2026-07-29 Wed 14:17]
 :ARCHIVE_TIME: 2026-07-30 Thu 15:48
@@ -8192,7 +8192,7 @@ off as its own heading below rather than folded into this fix.
 
 * DONE Auto-consolidate SESSIONS/LOGBOOK on the fly :code:
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Clock
 :CREATED:  [2026-07-28 Tue 13:13]
 :ID:       a36d2436-7601-4bf5-a2e7-a4613755156d
 :ARCHIVE_TIME: 2026-07-29 Wed 08:12
@@ -8244,7 +8244,7 @@ the heading that was just clocked out of.
 
 * DONE Consolidate historical SESSIONS/LOGBOOK entries :code:
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Clock
 :CREATED:  [2026-07-28 Tue 13:01]
 :ID:       ccdff985-b206-4a8d-a6d2-9bc01cfdda3a
 :ARCHIVE_TIME: 2026-07-29 Wed 08:11
@@ -8273,7 +8273,7 @@ under Clock lifecycle & visibility.
 
 * DONE PreToolUse transition guard :code:
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Clock
 :ID:       135033ff-9581-4df3-ba16-34442586ee15
 :ARCHIVE_TIME: 2026-07-29 Wed 05:53
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
@@ -8308,7 +8308,7 @@ event).
 
 * DONE Clock-change notifications :code:
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Clock
 :ID:       7e4c3c1d-8c0e-434c-bbdc-e728b13e4483
 :ARCHIVE_TIME: 2026-07-29 Wed 05:53
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
@@ -8352,7 +8352,7 @@ deliberately scan file *text* instead.)
 
 * DONE Surface current clock state :code:
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Clock
 :ID:       1a2963ac-ea60-441d-a348-7db3b9e894e8
 :ARCHIVE_TIME: 2026-07-29 Wed 02:11
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
@@ -8378,7 +8378,7 @@ merge, no deviations from the plan.
 
 * DONE org-trigger-hook / org-blocker-hook :code:
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Clock
 :ID:       e47ac400-dd17-4e6a-91aa-bcd837151610
 :ARCHIVE_TIME: 2026-07-29 Wed 02:06
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
@@ -8420,7 +8420,7 @@ a redundant clock-in, trigger doesn't fire for non-DOING states).
 
 * DONE Extend config-test.el :code:
 :PROPERTIES:
-:CATEGORY: Clock lifecycle & visibility
+:CATEGORY: Dev
 :ID:       799b14be-6849-4e22-8a76-4e214d8a25fe
 :BLOCKER:  e47ac400-dd17-4e6a-91aa-bcd837151610
 :ARCHIVE_TIME: 2026-07-29 Wed 02:06
@@ -8449,7 +8449,7 @@ its own separate test vehicle, scoped as a sibling deliverable.
 * DONE Retire the 55 active annotations apply wrote before the agenda-visibility fix :code:
 CLOSED: [2026-08-15 Sat 16:57]
 :PROPERTIES:
-:CATEGORY: Observability
+:CATEGORY: Queue
 :ID:       df5afbbd-0eac-4032-be91-17cc22ef0cd7
 :CREATED:  [2026-08-15 Sat 16:35]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -8584,7 +8584,7 @@ was the point.
 
 * DONE The agenda is for human attention; the queue records agent activity :code:
 :PROPERTIES:
-:CATEGORY: Observability
+:CATEGORY: Queue
 :ID:       b8e6007a-ae13-4b13-bb2e-a5df39435af0
 :CREATED:  [2026-08-14 Fri 16:46]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -8661,7 +8661,7 @@ is a defect in the precise layer and this decision does not touch it.
 * DONE Report abandoned DOING leaves at session start, not only WAIT :code:
 CLOSED: [2026-08-14 Fri 13:31]
 :PROPERTIES:
-:CATEGORY: Observability
+:CATEGORY: Meta
 :ID:       9d7531f5-11c5-4203-89e3-56c3fe399df5
 :CREATED:  [2026-08-14 Fri 13:28]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -8756,7 +8756,7 @@ honest check is to look at the first session-start report that carries a
 
 * DONE Tool-call audit log :code:
 :PROPERTIES:
-:CATEGORY: Observability
+:CATEGORY: Tools
 :ID:       008e7504-e9df-4573-875c-4d6ec653b72f
 :ARCHIVE_TIME: 2026-07-29 Wed 05:56
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
@@ -8808,7 +8808,7 @@ own additional test).
 
 * DONE SessionStart context hook :code:
 :PROPERTIES:
-:CATEGORY: Observability
+:CATEGORY: Meta
 :ID:       f2b003af-b91c-4764-ae86-b5564429c92d
 :ARCHIVE_TIME: 2026-07-29 Wed 05:53
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
@@ -8844,7 +8844,7 @@ from the isolated worktree. =bin/test= 68/68 at merge.
 * CANCELLED Show the TODO keyword, not just clocked in/out, in the statusline :code:
 CLOSED: [2026-08-14 Fri 14:51]
 :PROPERTIES:
-:CATEGORY: Tooling
+:CATEGORY: Dev
 :ID:       4cda6bf7-441b-47b2-b3d5-b8c7e7a207a5
 :CREATED:  [2026-08-05 Wed 14:04]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -8942,7 +8942,7 @@ this would have rewritten get rewritten once, there, instead of twice.
 * DONE Lint TODO.org's structural conventions with a script :code:
 CLOSED: [2026-08-14 Fri 14:41]
 :PROPERTIES:
-:CATEGORY: Tooling
+:CATEGORY: Dev
 :ID:       3bd3402b-3ab6-4ace-b20b-3ff84caa3fb2
 :CREATED:  [2026-08-13 Thu 17:02]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -9122,7 +9122,7 @@ diagnosed — filed as
 * DONE emacs is a shell function that silently breaks inline batch verification :code:
 CLOSED: [2026-08-14 Fri 12:17]
 :PROPERTIES:
-:CATEGORY: Tooling
+:CATEGORY: Dev
 :ID:       4f9e552a-e1a9-48dd-8801-3f23a31b9e32
 :CREATED:  [2026-08-11 Tue 15:52]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -9245,7 +9245,7 @@ like it was the narrowing.
 * DONE Link or retire the four plans no heading references :code:
 CLOSED: [2026-08-12 Wed 12:38]
 :PROPERTIES:
-:CATEGORY: Tooling
+:CATEGORY: Dev
 :ID:       cce72644-7d5e-4def-a165-0a3b815f482b
 :CREATED:  [2026-08-11 Tue 11:21]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -9378,7 +9378,7 @@ finding.
 
 * DONE Move the statusline script into the repo :code:
 :PROPERTIES:
-:CATEGORY: Tooling
+:CATEGORY: Dev
 :ID:       caf598a1-2770-4836-a069-3890597b1665
 :CREATED:  [2026-07-31 Fri 17:27]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -9432,7 +9432,7 @@ there's no reason it has to stay a personal, undiscoverable setup step.
 
 * DONE Case study: apply "maximum Emacs" to the statusline script :code:
 :PROPERTIES:
-:CATEGORY: Tooling
+:CATEGORY: Dev
 :ID:       e202e93d-cfa7-4d0a-8721-8f06428bc1e4
 :CREATED:  [2026-07-31 Fri 17:51]
 :ARCHIVE_TIME: 2026-08-17 Mon 17:13
@@ -9475,7 +9475,7 @@ both present, no fish, no =jq= anywhere in the pipeline.
 
 * DONE Fix org-agenda-files/tracked-files resolving to nothing (agenda + org_query/org_clock_report) :code:
 :PROPERTIES:
-:CATEGORY: Tooling
+:CATEGORY: Tools
 :ID:       74f24402-978e-4c66-ac97-996f387c0ddb
 :CREATED:  [2026-07-29 Wed 12:25]
 :ARCHIVE_TIME: 2026-07-30 Thu 15:48
@@ -9521,7 +9521,7 @@ returns real clocked time instead of an empty table.
 
 * DONE Bridge Warp's own MCP client to the Emacs tools server :code:
 :PROPERTIES:
-:CATEGORY: Tooling
+:CATEGORY: Dev
 :ID:       6a6d5b4e-0327-4578-a44a-356576870ceb
 :CREATED:  [2026-07-30 Thu 09:36]
 :ARCHIVE_TIME: 2026-07-30 Thu 15:47
@@ -9562,7 +9562,7 @@ diverge later.
 
 * DONE Discard the Plan-checklist convention; migrate skills to plain-text format :code:
 :PROPERTIES:
-:CATEGORY: Tooling
+:CATEGORY: Skill
 :ID:       5f4d407b-4db9-4139-aabc-79fb5ade7be9
 :CREATED:  [2026-07-29 Wed 18:32]
 :ARCHIVE_TIME: 2026-07-29 Wed 18:54
@@ -9613,7 +9613,7 @@ only this heading while it was active.
 
 * DONE Revisit: does org.skill's checkbox discipline apply to TODO.org itself? :research:code:
 :PROPERTIES:
-:CATEGORY: Tooling
+:CATEGORY: Skill
 :ID:       6a448345-016c-495f-b26b-ee81b30cd95c
 :CREATED:  [2026-07-29 Wed 07:42]
 :ARCHIVE_TIME: 2026-07-29 Wed 18:47
@@ -9681,7 +9681,7 @@ linked plan for the full resolution.
 
 * DONE Set git identity :code:
 :PROPERTIES:
-:CATEGORY: Tooling
+:CATEGORY: Dev
 :ID:       51591672-95b9-4092-a037-af7b3fe45fbc
 :ARCHIVE_TIME: 2026-07-29 Wed 08:11
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
@@ -9699,7 +9699,7 @@ Then ask Claude to finish the commit it already staged.
 
 * DONE org-dev skill :code:
 :PROPERTIES:
-:CATEGORY: Tooling
+:CATEGORY: Skill
 :ID:       e1e60e00-e7b7-4e62-88c3-55a936fdece7
 :CREATED:  [2026-07-28 Tue 10:18]
 :ARCHIVE_TIME: 2026-07-29 Wed 08:11
@@ -9756,7 +9756,7 @@ everything.
 
 * DONE Make check-org-dev-skill line-number checks robust to config.el drift :code:
 :PROPERTIES:
-:CATEGORY: Tooling
+:CATEGORY: Dev
 :ID:       9be21b6b-5219-4acd-950a-e04b60d8fe1e
 :CREATED:  [2026-07-28 Tue 13:56]
 :ARCHIVE_TIME: 2026-07-29 Wed 08:11

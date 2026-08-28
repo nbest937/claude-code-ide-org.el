@@ -66,12 +66,70 @@ year/month/day scaffolding is an irreducible tree. Real tasks that used to
 sit beside that scaffolding were moved out to level 1; level 2 beneath the
 anchor now holds nothing but org's own nodes.
 
-### What each category meant
+### The ten values
+
+Settled 2026-08-28 (`:ID:` 29439196, step 2). Single words, capitalised, so a
+value is distinguishable at a glance from a TODO keyword and from a tag:
+
+| value | what belongs here |
+|---|---|
+| `Queue` | the event queue itself — events, guideposts, spans, attribution |
+| `Apply` | the review buffer and the apply pass over that queue |
+| `Clock` | clock correctness proper — intervals, CLOCK lines, org-clock state |
+| `Skill` | what an agent must follow: CLAUDE.md, the skills, these conventions, keyword semantics |
+| `Tools` | the `org_*` MCP surface and its behaviour |
+| `Dev` | the repo's own machinery: `bin/`, lint, tests, hooks, packaging, the Doom and shell environment |
+| `Meta` | the meta-work datetree and the daily ceremony — the day node, archiving |
+| `Slices` | slice machinery: composition, refresh, the blocker and the cookie |
+| `Docs` | prose written for a human reader — README, procedures |
+| `Upstream` | defects belonging to `claude-code-ide.el`, not to this repo |
+
+**`Tools` versus `Dev` is one test: `Tools` is what Claude calls, `Dev` is
+what a developer runs.** They split 26/26 without being forced, which is why
+the seam is trusted. Note `Dev` names an *audience* where the others name
+subjects — read alone it would swallow the file, and the bound comes entirely
+from its sibling.
+
+**Not `Review`, deliberately.** `REVIEW` is also a TODO keyword, so
+`:CATEGORY: Review` would render an agenda line as `Review  REVIEW  Some
+task` — the one value that defeats the reason these are capitalised. It also
+read to its daily reader as naming the ceremony rather than the apply
+subsystem. `apply` is the project's own word for it by a wide margin.
+
+### Where the nine old labels went
+
+None mapped one-to-one but `Slices` and `Upstream`; the point of the exercise
+was that the big labels were compound.
+
+| was | became |
+|---|---|
+| Clock lifecycle & visibility (76) | Apply 30, Clock 24, Queue 15, Skill 2, Meta 2, Docs 1, Tools 1, Dev 1 |
+| Skill logic (50) | Skill 23, Tools 21, Queue 2, Slices 2, Clock 1, Docs 1 |
+| Tooling (32) | Dev 23, Skill 4, Slices 2, Tools 2, Meta 1 |
+| Observability (15) | Queue 6, Skill 2, Apply 2, Meta 2, Slices 1, Clock 1, Tools 1 |
+| Review and planning (6) | Meta 5, Apply 1 |
+| Bigger swings (6) | Skill 3, Dev 2, Tools 1 |
+| Slices (2) | Slices 2 |
+| Documentation (2) | Slices 2 |
+| Upstream (claude-code-ide.el) (1) | Upstream 1 |
+
+Two findings worth keeping, because they generalise past this file. The
+compound label really was three subsystems — 76 splits close to evenly across
+`Apply`, `Clock` and `Queue`. And **`Skill logic` was exactly as compound
+while containing no conjunction to give it away**, splitting 23/21 between
+`Skill` and `Tools`: the "only two names contain an `&`" heuristic points true
+where it fires but is silent on a label that hides two subjects behind one
+word.
+
+`* Review and planning` carries `:CATEGORY: Meta` on the anchor itself, since
+org-datetree's day nodes have no drawer of their own and would otherwise
+inherit the file name.
+
+### What each old category meant
 
 A `:CATEGORY:` value is a bare string, so the prose that used to live in a
-category heading's body has nowhere to go in the file. Preserved here
-verbatim, as the input to the taxonomy work (`:ID:` 29439196, step 2), which
-is expected to rename and regroup several of these:
+category heading's body had nowhere to go in the file. Preserved here
+verbatim; it was the input to the taxonomy work above:
 
 - **Clock lifecycle & visibility** — "Everything here is specifically about
   the clock subsystem's correctness and observability, as opposed to the
