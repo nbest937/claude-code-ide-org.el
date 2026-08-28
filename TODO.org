@@ -2,11 +2,15 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 #+STARTUP: logdrawer logdone content
-* Apply logs a self-transition when a queued event's target already matches reality :code:
+* TODO Apply logs a self-transition when a queued event's target already matches reality :code:
 :PROPERTIES:
 :ID:       05c71d99-2839-447b-a536-60eb4bf43b73
 :CREATED:  [2026-08-28 Fri 07:56]
 :CATEGORY: Review and planning
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-28 Fri 07:57] \\
+  filed from the decisions pass
 :END:
 
 *Measured across both files 2026-08-28:* 4 of 463 =State= lines record a transition to the keyword the heading already held — 0.9%. Both =DONE -> DONE= cases are dated [2026-08-11 Tue], the day the staleness guard shipped, and they sit on =Build the interactive review-and-apply Emacs command= and — pointedly — on =Apply must not replay a state event that reality has moved past=, the guard's own heading. Since the guard: *2 in 17 days* — =TODO -> TODO= on 420816ec [2026-08-20], =DOING -> DOING= on 29439196 [2026-08-27].
@@ -35,6 +39,7 @@ The =420816ec= self-transition is stamped [2026-08-20 Thu 07:49] — *eleven min
 *Why the queue-side guard cannot reach it.* It compares =from= to =to= at *queue* time, against a snapshot of a file that then does not move until apply. The case here is a heading that arrives at =to= *in between* — because another event in the same batch lands it there, or a hand-edit does. At queue time the event is not a no-op by any test available then; it becomes one before it is applied. And org writes the state it *observes* as the =from= on the log line, not the one the event recorded, which is why the artifact reads =from "TODO"= even where the queued event said otherwise.
 
 So cc0c17a7 owns "do not queue an event that is already a no-op" and this owns "do not apply an event that has *become* one". Same defect, two clocks, and only the second needs the projection =--review-projected-staleness= already computes.
+
 
 * DONE [27/27] Harden the review pass: its cost, its correctness, and its record
 CLOSED: [2026-08-26 Wed 11:42]
@@ -2240,7 +2245,7 @@ That paragraph says in one breath that org's variable is wired, and then that "C
 *Verified on org 9.6.15* (the batch Emacs =bin/test= runs). The live Emacs is on *9.8.7*; both carry =org-datetree--find-create-group= and the =:DATE_TREE:= lookup, but the split is [[id:1ed7b2b4-a809-4547-b04f-099a3111fc1e][1ed7b2b4]]'s undeclared-dependency gap showing up in practice, and a datetree test will run against the older one.
 
 
-** TODO Point org-clock-default-task at the day node, and re-point it daily :code:
+** MAYBE Point org-clock-default-task at the day node, and re-point it daily :code:
 :PROPERTIES:
 :ID:       6ae83993-906c-4d8b-b11e-c91be8996962
 :CREATED:  [2026-08-21 Fri 09:51]
@@ -2248,6 +2253,8 @@ That paragraph says in one breath that org's variable is wired, and then that "C
 :LOGBOOK:
 - State "TODO"       from              [2026-08-21 Fri 09:52] \\
   wire and re-point the default task
+- State "MAYBE"      from "TODO"       [2026-08-28 Fri 07:55] \\
+  buys only human convenience now
 :END:
 
 =org-clock-default-task= is org's own answer to "somewhere to clock cross-cutting time", which is why [[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]] pointed at it under c084553c's check-org-first rule. Chosen by the user 2026-08-21, alongside the datetree.
@@ -4540,7 +4547,6 @@ Both items were offered in the same review buffer and both were correct in isola
 What survives is the case this body already documents and subtraction structurally cannot reach: the two overlapping intervals live in *different* =:LOGBOOK:= drawers. =--subtract-intervals= reads the target heading's own drawer, so an interval on 82df2a6c and one on the day node are each correct in their own drawer and invisible to each other. The check that is missing is across items in one batch, not within one heading — which is what the body said before the fix and still says.
 
 
-
 * TODO An unassigned span's readout omits the evidence that would make its heading obvious :code:
 :PROPERTIES:
 :CATEGORY: Clock lifecycle & visibility
@@ -5117,7 +5123,6 @@ So this is a *scanning* consistency, not a functional gap, and that changes what
 *And it is the position [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] already argued to*, from the other direction: "never present a total that looks complete", and "report the exceptions, not the measurements". That heading also supplies what the gap between envelope and runs *means* rather than leaving it as unexplained shrinkage — a dense run of turns is joint attention, the human reading and typing while the agent works, and the inter-turn gaps are not idle. Its recall-cue framing ("a number they must weigh is heavier than a word they can recognise") is the shape this readout should take, so the two should be built together rather than reworded twice.
 
 *Unchanged:* this still belongs in the [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] audit pass rather than alone, for the same reason as before.
-
 
 
 * TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key :code:
@@ -6046,7 +6051,6 @@ both words, it is probably conflating them.
 *Now coupled to [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]], which settled part of it from the other side.* That heading decided the readout should state the evidence in hand — span envelope, runs, turn count — rather than predict what apply will write. Turn count is therefore no longer an addition to the review buffer being weighed on its merits; it is one of the three things the readout is now supposed to say. The recall-cue requirement recorded above ("a number they must weigh is heavier than a word they can recognise") governs how it is rendered there, and the two should be built in one pass rather than reworded twice.
 
 *Still undecided, and unaffected:* the =:LOGBOOK:= annotation and the clocktable column.
-
 
 
 * TODO Record the originating project in queue events :code:
@@ -8944,6 +8948,10 @@ CLOCK: [2026-08-27 Thu 16:10]--[2026-08-27 Thu 16:11] =>  0:01
 - [2026-08-27 Thu 16:10]--[2026-08-27 Thu 16:11] plan CATEGORY plus flattening
 CLOCK: [2026-08-27 Thu 16:14]--[2026-08-27 Thu 16:20] =>  0:06
 - [2026-08-27 Thu 16:14]--[2026-08-27 Thu 16:20] plan CATEGORY plus flattening
+CLOCK: [2026-08-28 Fri 07:44]--[2026-08-28 Fri 07:45] =>  0:01
+- [2026-08-28 Fri 07:44]--[2026-08-28 Fri 07:45] plan CATEGORY plus flattening
+CLOCK: [2026-08-28 Fri 10:14]--[2026-08-28 Fri 10:15] =>  0:01
+- [2026-08-28 Fri 10:14]--[2026-08-28 Fri 10:15] plan CATEGORY plus flattening
 :END:
 
 Parked 2026-08-19, *not accepted* — recorded so the research need not be
@@ -9143,6 +9151,19 @@ Second, =org_outline= and its consumers. Today the grouping *is* the tree, so fl
 
 *A step-1 consumer the plan's table missed, found by the same sweep and fixed 2026-08-28.* =.claude/skills/org/SKILL.md= documented per-category =:ARCHIVE:= mirroring and asserted "this is what *this* project does; =claude-code-ide-org='s DONE.org mirrors TODO.org's categories rather than collecting one flat pile" — false since 2026-08-27, when routing collapsed to a single file-level target because there were no level-1 categories left to hang a property on. The generic org guidance around it is still correct and was kept; only the claim about current practice was rewritten. Worth noting *why* it was missed: the table enumerated consumers of =org_outline= and of =org_capture=, and this heading is a consumer of neither — it consumes the *file's shape*, which is a wider blast radius than the tool surface.
 
+*Taxonomy revised 2026-08-28 after the user read the first cut. Ten values, not nine.*
+
+*=Review= is renamed =Apply=, and the reason is not a preference.* The user read =Review= as naming the daily ceremony rather than the review-buffer-and-apply subsystem — and they are the person who will read the agenda prefix column every day, which is the measurement that decides it, exactly as it did on [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]]. Underneath that sits a harder objection nobody had raised: *=REVIEW= is also a TODO keyword.* An agenda line would read =Review  REVIEW  Some task=, and the user's stated reason for capitalising category values was stylistic distinctiveness *against keywords*. =Review= was the single value that defeated its own naming rule.
+
+=apply= is also the project's own word by a wide margin — 475 uses across the two org files, 10 in CLAUDE.md, 6 in the rules, against 83 for "review buffer". And =Queue -> Apply -> Clock= reads as three stages of one pipeline, where =Review= was always the odd member: a buffer's name rather than a stage. [[id:2d100d0d-2d04-43b9-af1e-f4d6b52bbada][2d100d0d]] then sits unambiguously where it already was, since a missing cross-item check *at apply time* is what it is.
+
+*Four misfilings folded in*, all found by publishing the low-confidence calls rather than by re-reading the table: =8707de36= and =c10bfb15= (the next-session prompt is a convention, not slice machinery) and =2758f3a0= and =a7f4b40c= move to =Skill=; =4c0044bf= moves to =Docs=, a changelog being human prose. Note =a7f4b40c= was misfiled by looking at where the *code* lives rather than what the heading is about — "a derived fact stored is one that can go stale" is this slice's thesis verbatim.
+
+*=Tools= splits into =Tools= and =Repo=, 26 and 26.* One test separates them and anyone can apply it: *=Tools= is what Claude calls; =Repo= is what a developer runs.* =Tools= keeps the =org_*= MCP surface and its behaviour — capture, outline, query, amend, prefix resolution, id resolution, tool advertising. =Repo= takes the scaffolding that keeps the repository honest and runnable: =bin/lint-org=, =bin/test=, =check-org-dev-skill=, the footnote hook, the statusline, packaging, the Doom and shell environment, git configuration. The seam fell out almost exactly even without being forced toward it, which is the evidence that it was a seam rather than a cut.
+
+*The distribution is now flat, which was the point.* Skill 34, Apply 33, Clock 26, Tools 26, Repo 26, Queue 23, Meta 10, Slices 9, Docs 2, Upstream 1 — the top six between 12% and 18%, against a single label holding 40% before. Re-verified end to end after the revision: 190 rewritten, 0 unmapped, 188 lines changed, *zero non-=:CATEGORY:= lines touched*, heading and CLOCK counts identical, =bin/lint-org= unchanged at 0 errors / 68 warnings.
+
+*Still not applied*, and the pre-apply items in the paragraph above are unchanged.
 
 
 
@@ -12071,6 +12092,17 @@ CLOCK: [2026-08-27 Thu 17:13]--[2026-08-27 Thu 17:14] =>  0:01
 :END:
 
 
+**** 2026-08-28 Friday
+:PROPERTIES:
+:ID:       acd32ca0-23f8-403b-8842-7a67245f260e
+:CREATED:  [2026-08-28 Fri 10:14]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-28 Fri 10:14]--[2026-08-28 Fri 10:26] =>  0:12
+- <2026-08-28 Fri 10:14>--<2026-08-28 Fri 10:26> settle five parked decisions, file two
+:END:
+
+
 * Review attention
 :PROPERTIES:
 :CATEGORY: Review and planning
@@ -12078,6 +12110,7 @@ CLOCK: [2026-08-27 Thu 17:13]--[2026-08-27 Thu 17:14] =>  0:01
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-28 Fri 10:26]--[2026-08-28 Fri 10:29] =>  0:03
 CLOCK: [2026-08-27 Thu 17:16]--[2026-08-27 Thu 17:17] =>  0:01
 CLOCK: [2026-08-27 Thu 16:26]--[2026-08-27 Thu 16:32] =>  0:06
 CLOCK: [2026-08-27 Thu 15:47]--[2026-08-27 Thu 15:55] =>  0:08
