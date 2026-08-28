@@ -2,11 +2,125 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 #+STARTUP: logdrawer logdone content
-* The cookie inserter appends, but every cookie in the corpus leads :code:
+* Assign advances past the line the human is about to mark :code:
+:PROPERTIES:
+:ID:       a2509a61-4e21-4d8e-8f58-c87935753472
+:CREATED:  [2026-08-28 Fri 12:56]
+:CATEGORY: Apply
+:END:
+
+*Requested by the user 2026-08-28, from live review use:* after =a= assigns a span, point should *not* advance — "usually the next action is to mark it". And an alternative worth weighing rather than assuming: have =a= simply *mark and advance*, if that turns out simpler or more idiomatic.
+
+*This contests a deliberate decision, not an oversight, which is why the reasoning matters.* =claude-code-ide-org-review-assign= ends with =(claude-code-ide-org--review-redraw item t)= under the comment *"Advance: assigning **answers** the question this line posed."* That is a coherent model — an unassigned span is a question, answering it retires the line — and it is the wrong model for what the human does next. Assigning does not finish the item; it makes it *markable*. The command's own docstring says so two paragraphs earlier: "Assigning clears =:unassigned=, so the line stops reading as a question and the item becomes markable like any other." The code advances past exactly the line it has just made actionable, and the docstring and the comment have disagreed all along.
+
+*The dired vocabulary the buffer deliberately borrows is the argument for the second option.* The keymap's own comment records that =m=/=u= advance "because that is the muscle memory a person arrives with". In dired the keys that advance are the ones that *record a decision about this line* — and under the corrected model, assigning is a decision about the line rather than a completion of it. So either:
+
+- *=a= stops advancing*, leaving point on the now-markable line, and =m= advances as it always has. Two keystrokes, matching dired exactly. Smallest change.
+- *=a= marks and advances*, collapsing the pair. One keystroke, but it makes assignment imply approval — and a human who wanted to assign, look at the interval, and *then* decide has lost the ability to.
+
+*Recommend the first, weakly.* The second is fewer keystrokes for the common path but silently couples two decisions the buffer keeps separate everywhere else, and the review pass exists precisely so a human judges each item. Worth deciding against real use rather than from here.
+
+*Adjacent, and already closed:* [[id:9e80a32d-43e1-4647-a42c-cba10f6e79cc][9e80a32d]] fixed assign and interval-edit sending point to the *top* of the buffer. This is the residue of that — point is no longer thrown away, but it still moves one line further than the human wants.
+
+*Filed late, and the delay is the interesting part.* The capture *queued* rather than writing through, so the heading did not exist and =org_amend= refused it by name — "apply the queue, then amend", which is the guard working. The body was written to the session scratchpad in the meantime rather than promised, and landed unchanged once the pass ran.
+
+
+
+* TODO A slice should list incidental work separately from its planned members :code:
+:PROPERTIES:
+:ID:       0086614a-c95c-4618-bba0-c821589dd7f2
+:CREATED:  [2026-08-28 Fri 12:52]
+:CATEGORY: Slices
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-28 Fri 12:53] \\
+  filed from the user's proposal
+:END:
+
+*Proposed by the user 2026-08-28*, after a scan of [[id:979e02b6-2a4c-4328-8b08-ffaec03bd02e][979e02b6]] found 36 headings closed since it opened, of which only 6 were members. Their correction, and it stands: *work that arose in the course of the slice is slice business* — listing it separately as *incidental* keeps that true without pretending it was planned.
+
+*What this fixes is the denominator.* [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] closed at =[27/27]=, and its own body records that its members were "mostly small defects found while doing other work". So the slice absorbed its incidentals *as members*, and 27-of-27 reads as a plan executed exactly when it was a much smaller plan plus nineteen things that fell out of doing it. Those are different facts and the single number hides the more interesting one — how much unplanned work a plan generates.
+
+*Mechanics, following the rules a slice already has:*
+
+- *A second list, under an =Incidental:= lead*, below the member list.
+- *Plain =- = items with no checkbox*, exactly as a cancelled or deferred member is written. Incidentals are closed by definition, so a checkbox could only ever be =[X]= and would inflate both halves of the cookie. The cookie keeps meaning *plan completion*, which is the only thing it can mean and stay useful.
+- *Not in the =:BLOCKER:=*, which names cookie-carrying members and must not gate a slice on work already finished.
+- *Same link form as a member* — full-UUID target, 8-character description — with keyword and title as derived text alongside.
+
+*The open choice, and it is the whole design.* How the set is picked:
+
+| | rule | cost |
+|--+------+------|
+| *strict window* | every heading closed between the slice's =:CREATED:= and its close that is not a member | none to compute, zero judgement, cannot drift — but sweeps in genuinely unrelated workstreams |
+| *curated* | the subset someone judges related | needs a judgement per heading, and a judgement that is re-made differently each time is the thing this project keeps getting wrong |
+
+*Recommend the strict window*, and the recommendation is not about which list is prettier. An incidental list is *emergent*, not declared: it is derivable from the closing timestamps, so by this project's own axis it should be *detected* rather than written down, and a derived thing must have a rule that needs no opinion. The curated version reintroduces exactly the hand-maintained second copy that [[id:979e02b6-2a4c-4328-8b08-ffaec03bd02e][979e02b6]] exists to eliminate. That the strict window sweeps in the ceremony and footnote stories is a feature: it says truthfully what else was going on, which is the question the list answers.
+
+*Which makes this generated, not maintained.* =claude-code-ide-org-refresh-slice= should compute the incidental list the same way it already regenerates member lines — on every refresh, from the corpus, discarding whatever was there. A hand-kept incidental list would go stale by the second day.
+
+*Measured on the live slice 2026-08-28:* 36 closed in the window, 6 members, *30 incidental*. Five of the thirty are children of [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]], which the [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] plan named as one of its two prerequisites — its sibling prerequisite [[id:8183fc7c-905e-40c8-81cb-10c56158c6ce][8183fc7c]] *is* a member, so identical work is tracked one way and invisible the other. That asymmetry is what prompted the scan.
+
+*Decided by the user 2026-08-28, and it overrules the recommendation above on one point.*
+
+*Strict window: yes*, for the reason given — the rule needs no opinion, so the list cannot drift.
+
+*Checkbox cookies: kept on incidental items too, and the denominator grows.* The "keeps the denominator honest" argument above is overruled as splitting hairs, and on reflection it was arguing for a distinction nobody asked the cookie to make. The user's reading is the simpler and more defensible one: *=[n/m]= says what was closed between =:CREATED:= and =CLOSED:=*, which is a clear statement about a bounded window rather than a claim about plan fidelity. A separate "plan completion" number would be a second statistic to keep true, and the whole point of the strict window is to avoid maintaining anything.
+
+*The user's assumption — that splitting the list in two has no effect on the aggregate cookie — was verified rather than accepted.* Batch org 9.8.7, a heading with two sibling lists separated by a prose line, 3 planned (2 done) and 2 incidental (2 done):
+
+: * TODO [4/5] A slice
+
+*And =:COOKIE_DATA:= is not what makes that work*, which matters because the slice convention mandates it and a reader would credit it. The same shape with *no* =:COOKIE_DATA:= at all also yields =[4/5]=: org counts every checkbox in the entry regardless, and =checkbox recursive= governs *nested* lists and subheadings, not sibling ones. So the two-list layout needs nothing added.
+
+*One consequence that still needs deciding, because it is an invariant rather than a preference.* =.claude/rules/org-conventions.md= says a slice "carries a =:BLOCKER:= naming exactly its cookie-carrying members", and =bin/lint-org= reports a disagreement in *either* direction as an error. If incidentals now carry cookies, that rule pulls them into the blocker — roughly forty ids on this slice, every one of them already closed and therefore inert. Two ways out:
+
+- *Narrow the rule to planned members*: "naming exactly its cookie-carrying **planned** members". The blocker keeps meaning "what still has to finish", which is its only job.
+- *Leave the rule alone* and let the blocker carry the closed ids too. Harmless — =org-depend= blocks only on unfinished work — but it makes a machine-readable property forty entries long to express eleven facts.
+
+Recommend the first. The blocker is not a record of membership; the checkbox list is.
+
+
+
+* DONE Assert the two load-bearing Doom settings in bin/check-org-dev-skill :code:
+CLOSED: [2026-08-28 Fri 12:49]
+:PROPERTIES:
+:ID:       e10071b9-88f0-4dc3-af8e-692965c65868
+:CREATED:  [2026-08-28 Fri 12:48]
+:END:
+:LOGBOOK:
+- State "DONE"       from              [2026-08-28 Fri 12:49] \\
+  two checks shipped and proved to discriminate
+:END:
+
+*Context: §7 of the org-dev skill stopped quoting =~/.config/doom/config.el= on 2026-08-28.* It had reproduced the config verbatim, and the copy drifted twice — first in CLAUDE.md (which is why §7 was moved into the skill on 2026-08-14), then in the skill itself, gaining a keyword the config never had and losing two settings the config had gained. Neither drift was noticed, and neither could have been: a quoted config is the one kind of documentation that cannot be checked by reading it, since checking means opening the other file, which is the work the quote existed to save. The section now names each setting and what breaks without it.
+
+*So the check is behavioural, not a text diff, and that distinction is the whole design.* Re-introducing a comparison between the skill's prose and the config would rebuild the failure mode inside a script. These two ask the running Emacs what is *true*:
+
+| check | what it catches |
+|-------+-----------------|
+| =find-file-visit-truename= is =t= | the symlinked =~/org/claude-code-ide-org/TODO.org= opening as two buffers on one file — silently, since Doom also sets =find-file-suppress-same-file-warnings= |
+| =claude-code-ide-org-capture-file= resolves into this repo | a targetless =org_capture= landing in =~/org/notes.org= ([[id:bd482c92-a71a-4d7d-88df-47678ee94c79][bd482c92]]). Compared through =file-truename= on both sides, since the config names the *symlink* path deliberately |
+
+*Both were proved to discriminate rather than merely observed to pass* — a check that has never been seen to fail proves nothing. Setting =find-file-visit-truename= to nil in the live Emacs produces =FAIL ... expected 't', got 'nil'= and exit 1; rebinding the capture file to =~/org/notes.org= produces =FAIL ... got '/Users/neil.best/org/notes.org'= and exit 1. Both restored, and the script returns to exit 0.
+
+*One check deliberately not built, recorded so it is not proposed again as an oversight.* The =org-todo-keywords= sequence. It disagrees with TODO.org's own =#+TODO:= line today — the config says =WAIT= where the project uses =WAITING=, and has no =REVIEW= — and *nothing is broken*, because a buffer-local header wins and both org files carry one. A check there would fail on a latent inconsistency while everything works, and a check that fails while everything works is one people learn to ignore. It is documented in §7's known-gap paragraph instead, which is where a latent fact belongs.
+
+*Also corrected in passing:* §7's title said "What is in the Doom config, and why", which stopped being true the moment it stopped containing it. Now "What the Doom config does for this project, and why".
+
+=bin/check-org-dev-skill= is 20 checks, exit 0.
+
+
+* DONE The cookie inserter appends, but every cookie in the corpus leads :code:
+CLOSED: [2026-08-28 Fri 12:33]
 :PROPERTIES:
 :ID:       8bea4317-c8e7-4939-8224-834bb914d89c
 :CREATED:  [2026-08-28 Fri 12:33]
 :CATEGORY: Slices
+:END:
+:LOGBOOK:
+- State "DONE"       from              [2026-08-28 Fri 12:33] \\
+  inserter, test, convention and heading fixed
 :END:
 
 *Reported by the user 2026-08-28 as "the current slice is missing its statistics cookie at TODO.org:148".* It was not missing. It was at the *end* of the line, where they could not see it — they expected it immediately after the keyword, "that's our convention".
@@ -23,12 +137,17 @@
 
 *Incidental, and already filed:* the capture for this heading was refused with =Buffer is read-only=, because =org_capture= does not bind =inhibit-read-only= — [[id:c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b][c8a97d9d]], still open. Cleared and restored around the write.
 
-* Reorder DONE.org as a datetree, descending by CLOSED: :code:
+
+* TODO Reorder DONE.org as a datetree, descending by CLOSED: :code:
 :PROPERTIES:
 :ID:       33864a0f-5e13-4235-85a6-0bd9d2fe5252
 :CREATED:  [2026-08-28 Fri 11:37]
 :CATEGORY: Meta
 :BLOCKER:  ids(b7b46a26-2fd6-4784-bed3-d0112a917c0a)
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-28 Fri 11:38] \\
+  filed from the user's question
 :END:
 
 *Proposed by the user 2026-08-28, and no heading existed for it* — checked before filing. Three neighbours touch it and none is this:
@@ -53,6 +172,7 @@ The 13 are exactly that manifest's git-derived rows; its other 28 rows were T1 (
 *Blocked on [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]], which is being reopened rather than duplicated.* It was =CANCELLED= 2026-08-24 with the note "nothing consumes =CLOSED:= on those headings" — and this heading is exactly that consumer, so the ground for cancelling it is void. Its body already holds the two questions that still have to be answered first: whether a commit-derived =CLOSED:= is worth having at all (a commit timestamp dates when a change was *recorded*, which in this project can be far from when work stopped, and [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the precedent for refusing a plausible guess), and if so how the approximation is marked so a reader can tell the 39 from the 58 that are exact.
 
 *A known consequence, not an objection.* A second datetree in DONE.org is something =bin/lint-org= does not currently cover — its datetree rule is written for the one in TODO.org. That was foreseen while shipping the rule; see the child heading "bin/lint-org will drown in datetree scaffolding it can never satisfy", which measured it hours after the rule landed.
+
 
 * TODO Apply logs a self-transition when a queued event's target already matches reality :code:
 :PROPERTIES:
@@ -93,7 +213,7 @@ The =420816ec= self-transition is stamped [2026-08-20 Thu 07:49] — *eleven min
 So cc0c17a7 owns "do not queue an event that is already a no-op" and this owns "do not apply an event that has *become* one". Same defect, two clocks, and only the second needs the projection =--review-projected-staleness= already computes.
 
 
-* DONE [27/27] Harden the review pass: its cost, its correctness, and its record
+* DONE [27/28] Harden the review pass: its cost, its correctness, and its record
 CLOSED: [2026-08-26 Wed 11:42]
 :PROPERTIES:
 :CATEGORY: Slices
@@ -101,7 +221,7 @@ CLOSED: [2026-08-26 Wed 11:42]
 :ID:       c44c2119-dbf8-4510-99e2-6aaa7f259d94
 :CREATED:  [2026-08-25 Tue 11:06]
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(edd47f32-e6c9-4ab3-8e8a-46a37ea29605 7ae6562d-25c8-453e-b78b-920e036c5665 e1284bdb-0a18-402a-81cb-1ac8d09fb8a2 aa1ba915-ee68-48df-afea-197ae60aac63 806ff394-3ede-4d67-82aa-9c44fe1cf86e 601c885c-7d8c-46d4-af14-0d8d3ea69ba8 a0abf97d-0f98-42df-9749-e1647b723596 3063c3e5-0dd0-4354-8985-271b0313c5d1 f421c5c3-f81f-4ebf-99c9-42c53cc00558 961f15b6-d782-40b8-8ceb-ba086d188a3b 2758f3a0-3c47-405e-9662-a7669dcb60cc 5787bfc6-3ba5-4d94-802c-f8a7879de68d 82df2a6c-881d-4117-a752-5b3b04c9656d 21c91613-76e0-4590-affe-e2af9f1321ca 8ca6541d-0fc7-45a2-a4d3-76e1608f658d 43201e64-3fe8-4fa6-81f5-d2ab5b65d191 f4b07fc0-187a-4975-aa3b-b9bd4b1c0799 31c6ac39-1a06-4b17-8d89-b91fd2628874 111ca40a-3fdb-4106-ad52-991e30737ece 7fbab3b3-7843-4290-94a5-d421413f2be4 ff92700e-1713-4862-a3fe-8fd972ad96fa 2b050e7a-b0c4-45d3-835e-68befcebb7bb 7148cddc-aca3-416e-8bcb-f164d4d2bba0 df1cf43c-749f-435c-9f45-3d8df1d725ad 49557477-e50c-496f-85df-82c65109832b 0acc1df2-6916-4180-867a-99bfa551806b 97b030a4-50df-4b8b-a781-bd4acd2931d0)
+:BLOCKER:  ids(edd47f32-e6c9-4ab3-8e8a-46a37ea29605 7ae6562d-25c8-453e-b78b-920e036c5665 e1284bdb-0a18-402a-81cb-1ac8d09fb8a2 aa1ba915-ee68-48df-afea-197ae60aac63 806ff394-3ede-4d67-82aa-9c44fe1cf86e 601c885c-7d8c-46d4-af14-0d8d3ea69ba8 a0abf97d-0f98-42df-9749-e1647b723596 3063c3e5-0dd0-4354-8985-271b0313c5d1 f421c5c3-f81f-4ebf-99c9-42c53cc00558 961f15b6-d782-40b8-8ceb-ba086d188a3b 2758f3a0-3c47-405e-9662-a7669dcb60cc 5787bfc6-3ba5-4d94-802c-f8a7879de68d 82df2a6c-881d-4117-a752-5b3b04c9656d 21c91613-76e0-4590-affe-e2af9f1321ca 8ca6541d-0fc7-45a2-a4d3-76e1608f658d 43201e64-3fe8-4fa6-81f5-d2ab5b65d191 f4b07fc0-187a-4975-aa3b-b9bd4b1c0799 b7b46a26-2fd6-4784-bed3-d0112a917c0a 31c6ac39-1a06-4b17-8d89-b91fd2628874 111ca40a-3fdb-4106-ad52-991e30737ece 7fbab3b3-7843-4290-94a5-d421413f2be4 ff92700e-1713-4862-a3fe-8fd972ad96fa 2b050e7a-b0c4-45d3-835e-68befcebb7bb 7148cddc-aca3-416e-8bcb-f164d4d2bba0 df1cf43c-749f-435c-9f45-3d8df1d725ad 49557477-e50c-496f-85df-82c65109832b 0acc1df2-6916-4180-867a-99bfa551806b 97b030a4-50df-4b8b-a781-bd4acd2931d0)
 :END:
 :LOGBOOK:
 - State "DOING"      from              [2026-08-25 Tue 11:06] \\
@@ -129,7 +249,7 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 - [X] [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]] DONE Compose slices by reference: a checkbox list of id links, blocked on its members
 - [X] [[id:43201e64-3fe8-4fa6-81f5-d2ab5b65d191][43201e64]] DONE Every orgit link a body adds costs a permanent lint warning
 - [X] [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]] DONE Backfill CLOSED: from the LOGBOOK where the evidence is already in the file
-- [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] CANCELLED Recover a close time from git for the headings with no in-file evidence
+- [ ] [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] TODO Recover a close time from git for the headings with no in-file evidence
 - [X] [[id:31c6ac39-1a06-4b17-8d89-b91fd2628874][31c6ac39]] DONE A sub-minute run is observed work; round it up rather than drop it
 - [X] [[id:111ca40a-3fdb-4106-ad52-991e30737ece][111ca40a]] DONE The review buffer truncated lines the human had to read
 - [X] [[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]] DONE Clear the 36-heading archive backlog, sweeping bodies into :PLAN: unedited
@@ -166,14 +286,14 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 *No residue.* Everything named as unfinished during its life was filed as a heading before the heading naming it closed -- a rule this slice produced by breaking it once ([[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]]) and then writing it into CLAUDE.md.
 
 
-* DOING [6/11] Close the gap between what we declare and what the code infers :code:
+* DOING [8/12] Close the gap between what we declare and what the code infers :code:
 :PROPERTIES:
 :CATEGORY: Slices
 :ID:       979e02b6-2a4c-4328-8b08-ffaec03bd02e
 :CREATED:  [2026-08-25 Tue 15:29]
 :COOKIE_DATA: checkbox recursive
 :KIND:     slice
-:BLOCKER:  ids(6a21e08b-4880-4d2b-9b0f-12c35558fe08 4f6a6bb1-7773-4657-949e-1fe1ba9484be 95c27fca-136c-46f6-b454-fe94261e0e5d 3964c575-50bc-4cc9-abeb-bdd1c0162c2c a0813ae3-0c6d-43de-bae1-fb4414cdb519 c954f650-b92f-4920-9967-ab6c44577b30 2e660571-26df-41e4-bb64-b9d74a3d7efe 29439196-bbb8-4b64-b8d5-3bf9d457bf6c 9651d4c8-6887-4b0a-91d9-562c3bc49a75 8183fc7c-905e-40c8-81cb-10c56158c6ce 798bb7a1-d5a6-4c08-8cf0-cc91a82d08e6)
+:BLOCKER:  ids(6a21e08b-4880-4d2b-9b0f-12c35558fe08 4f6a6bb1-7773-4657-949e-1fe1ba9484be 95c27fca-136c-46f6-b454-fe94261e0e5d 3964c575-50bc-4cc9-abeb-bdd1c0162c2c a0813ae3-0c6d-43de-bae1-fb4414cdb519 c954f650-b92f-4920-9967-ab6c44577b30 2e660571-26df-41e4-bb64-b9d74a3d7efe 29439196-bbb8-4b64-b8d5-3bf9d457bf6c 9651d4c8-6887-4b0a-91d9-562c3bc49a75 8183fc7c-905e-40c8-81cb-10c56158c6ce 798bb7a1-d5a6-4c08-8cf0-cc91a82d08e6 e10071b9-88f0-4dc3-af8e-692965c65868)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 15:29] \\
@@ -193,9 +313,9 @@ Wherever this project declares something in prose and the code infers it some ot
 - [X] [[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]] DONE A slice gets clocked and auto-promoted, because its members are links not children
 - [X] [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]] DONE A container carries clocks it earned before it was one
 - [ ] [[id:a0813ae3-0c6d-43de-bae1-fb4414cdb519][a0813ae3]] TODO Task mitosis: a leaf that outgrows itself divides rather than becoming a parent
-- [ ] [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]] TODO Revisit the TODO keyword progression, starting with whether PLANNING earns its keep
-- [ ] [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]] TODO Generalise :KIND: to every declared heading class, so level stops meaning anything
-- [-] [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] DOING Adopt org-native mechanisms for the heading tiers
+- [-] [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]] DOING Revisit the TODO keyword progression, starting with whether PLANNING earns its keep
+- [ ] [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]] NEXT Generalise :KIND: to every declared heading class, so level stops meaning anything
+- [X] [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] DONE Adopt org-native mechanisms for the heading tiers
 - [ ] [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] TODO Find a convention marking which children a container's plan actually covered
 - [X] [[id:8183fc7c-905e-40c8-81cb-10c56158c6ce][8183fc7c]] DONE org_outline is blind to a slice: scoped to one, it returns a single line
 - [X] [[id:798bb7a1-d5a6-4c08-8cf0-cc91a82d08e6][798bb7a1]] DONE A slice member captured this session cannot be rendered or blocked on until apply
@@ -204,6 +324,7 @@ Wherever this project declares something in prose and the code infers it some ot
 
 - [[orgit-rev:claude-code-ide-org::7b9bd74][7b9bd74]] [2026-08-26 Wed 11:12] opened the slice, replacing c44c2119's prompt
 - [[orgit-rev:claude-code-ide-org::2301de9][2301de9]] [2026-08-26 Wed 11:24] named the decision and the design question it opens with
+- [X] [[id:e10071b9-88f0-4dc3-af8e-692965c65868][e10071b9]] DONE Assert the two load-bearing Doom settings in bin/check-org-dev-skill
 
 
 * DONE Setting DOING retroactively opens a clock, which the looser sense makes wrong :code:
@@ -4819,8 +4940,7 @@ CLOCK: [2026-08-24 Mon 10:14]--[2026-08-24 Mon 10:20] =>  0:06
 *One correction worth keeping, because it changed the answer.* The estimate quoted before the tool existed was "59 of 97", produced by scanning each heading's whole body for a =State= line. The real figure is *58*. [[id:3d93021d-1d8a-4657-bc5c-77734f91fb9d][3d93021d]] has no =:LOGBOOK:= at all, but quotes =- State "DONE" from "NEXT" [2026-08-07 Fri 08:19]= *in prose*, while diagnosing the bug that produced that very line. A body-wide scan reads it as evidence and dates the heading from a sentence about a bug. The shipped code bounds its search to the drawer, so it does not -- and the discrepancy between the two counts is the only reason the difference was noticed at all. Worth reading twice, because the prose that fooled the estimate is *correctly quoted org*, not malformed text, and nothing structural would ever flag it.
 
 
-* CANCELLED Recover a close time from git for the headings with no in-file evidence :code:research:
-CLOSED: [2026-08-24 Mon 15:59]
+* TODO Recover a close time from git for the headings with no in-file evidence :code:research:
 :PROPERTIES:
 :CATEGORY: Clock
 :ID:       b7b46a26-2fd6-4784-bed3-d0112a917c0a
@@ -4831,6 +4951,8 @@ CLOSED: [2026-08-24 Mon 15:59]
   captured keywordless, setting initial state
 - State "CANCELLED"  from "TODO"       [2026-08-24 Mon 15:59] \\
   nothing consumes CLOSED: on those headings
+- State "TODO"       from "CANCELLED"  [2026-08-28 Fri 11:38] \\
+  cancellation ground void: a consumer exists
 :END:
 
 *Filed 2026-08-24, the residue of* [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]]. That pass filled 58 of DONE.org's 97 finished headings from their own =:LOGBOOK:=. *39 have no in-file evidence at all* -- mostly early headings from before the =!= cookies in =#+TODO:= were adopted, e.g. "Implement the ten pending MCP-tool tasks in parallel worktrees", "Add a PLANNING TODO state, driven by the ExitPlanMode matcher", and the original =org_query= / =org_clock_report= / =org_capture= tool headings.
@@ -6415,7 +6537,7 @@ Six defects were found in a single afternoon, all in the review-and-apply surfac
 *Related:* [[id:b8e6007a-ae13-4b13-bb2e-a5df39435af0][b8e6007a]] and [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] are earlier members of the same family -- both are about a readout that could not distinguish two things a human needed told apart.
 
 
-* TODO Generalise :KIND: to every declared heading class, so level stops meaning anything :code:research:
+* NEXT Generalise :KIND: to every declared heading class, so level stops meaning anything :code:research:
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       2e660571-26df-41e4-bb64-b9d74a3d7efe
@@ -6424,6 +6546,8 @@ Six defects were found in a single afternoon, all in the review-and-apply surfac
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 16:16] \\
   the honest form 29439196 named now exists
+- State "NEXT"       from "TODO"       [2026-08-28 Fri 11:06] \\
+  narrowed to one class; most tractable member
 :END:
 
 *[[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] named this and could not have it.* Of the datetree lint gate it says: "A =:DATETREE_ROLE:= property would be the honest form", and calls what shipped instead "a property-shaped answer smuggled in as a string match". =:KIND:= shipped 2026-08-25 for slices. It is that property, arrived at from a different direction and already in production.
@@ -6471,7 +6595,6 @@ Six defects were found in a single afternoon, all in the review-and-apply surfac
 *Residue found while re-reading this, and fixed in the same commit.* CLAUDE.md and =org-conventions.md= still described the epic as "today a level-1 heading" and as a *proposed* =:EPIC:= label, in four places. Both claims were false as of 2026-08-28. Worth noting how they survived: the post-flattening sweep grepped for the nine category *values*, and =:EPIC:= is a different literal that no value-based grep would ever surface. A sweep scoped to what changed misses the prose describing what it changed *from*.
 
 *What remains, concretely.* Give datetree nodes =:KIND: datetree-year= / =datetree-month= / =datetree-day=, keep =:DATE_TREE:= on the root (subtree-scoped, and no per-node kind expresses it), and express =bin/lint-org='s =:ID:=/=:CREATED:= exemption against the declaration instead of the title regex. The design is settled in the body above; what is left is the build and a migration of the existing nodes.
-
 
 
 * TODO Task mitosis: a leaf that outgrows itself divides rather than becoming a parent :code:research:
@@ -7796,13 +7919,17 @@ planning whether they should be one task, sequenced, or just
 cross-referenced as they are now.
 
 
-* TODO Revisit the TODO keyword progression, starting with whether PLANNING earns its keep :code:
+* DOING Revisit the TODO keyword progression, starting with whether PLANNING earns its keep :code:
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       c954f650-b92f-4920-9967-ab6c44577b30
 :CREATED:  [2026-08-06 Thu 10:02]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-10 Mon 20:48]--[2026-08-10 Mon 20:49] =>  0:01
+- State "TODO"       from "MAYBE"      [2026-08-13 Thu 12:21] \\
+  ungated; gate was unsatisfiable and a proxy
+- [2026-08-13 Thu 12:24]--[2026-08-13 Thu 13:09]
 CLOCK: [2026-08-13 Thu 12:28]--[2026-08-13 Thu 12:30] =>  0:02
 CLOCK: [2026-08-13 Thu 12:35]--[2026-08-13 Thu 12:40] =>  0:05
 CLOCK: [2026-08-13 Thu 12:42]--[2026-08-13 Thu 12:45] =>  0:03
@@ -7810,10 +7937,20 @@ CLOCK: [2026-08-13 Thu 12:48]--[2026-08-13 Thu 12:49] =>  0:01
 CLOCK: [2026-08-13 Thu 12:53]--[2026-08-13 Thu 13:01] =>  0:08
 CLOCK: [2026-08-13 Thu 13:03]--[2026-08-13 Thu 13:04] =>  0:01
 CLOCK: [2026-08-13 Thu 13:07]--[2026-08-13 Thu 13:09] =>  0:02
-- State "TODO"       from "MAYBE"      [2026-08-13 Thu 12:21] \\
-  ungated; gate was unsatisfiable and a proxy
-CLOCK: [2026-08-10 Mon 20:48]--[2026-08-10 Mon 20:49] =>  0:01
-- [2026-08-13 Thu 12:24]--[2026-08-13 Thu 13:09]
+- State "DOING"      from "TODO"       [2026-08-28 Fri 11:28] \\
+  gathering PLANNING evidence
+CLOCK: [2026-08-28 Fri 11:35]--[2026-08-28 Fri 11:39] =>  0:04
+- [2026-08-28 Fri 11:35]--[2026-08-28 Fri 11:39] measure PLANNING against real use
+CLOCK: [2026-08-28 Fri 12:19]--[2026-08-28 Fri 12:24] =>  0:05
+- [2026-08-28 Fri 12:19]--[2026-08-28 Fri 12:24] measure PLANNING against real use
+CLOCK: [2026-08-28 Fri 12:28]--[2026-08-28 Fri 12:35] =>  0:07
+- [2026-08-28 Fri 12:28]--[2026-08-28 Fri 12:35] measure PLANNING against real use
+CLOCK: [2026-08-28 Fri 12:39]--[2026-08-28 Fri 12:40] =>  0:01
+- [2026-08-28 Fri 12:39]--[2026-08-28 Fri 12:40] measure PLANNING against real use
+CLOCK: [2026-08-28 Fri 12:46]--[2026-08-28 Fri 12:51] =>  0:05
+- [2026-08-28 Fri 12:46]--[2026-08-28 Fri 12:51] measure PLANNING against real use
+CLOCK: [2026-08-28 Fri 12:55]--[2026-08-28 Fri 12:58] =>  0:03
+- [2026-08-28 Fri 12:55]--[2026-08-28 Fri 12:58] measure PLANNING against real use
 :END:
 
 Raised in conversation 2026-08-06, after a day of live use: =PLANNING=
@@ -8118,7 +8255,6 @@ in a file where a conflict is expensive to resolve correctly.
 *The decisive number is the one about coverage.* *43 headings carry a Plan link; 7 of them ever wore =PLANNING=.* So *36 of 43 planned headings — 84% — were planned without the keyword*, and *zero* headings wore =PLANNING= without producing a plan. The keyword is a strict subset of planning, capturing a sixth of it. It marks not "this was planned" but "this happened to be planned in one sitting, recently enough that someone remembered the rule".
 
 *A partial correction to the user's own hypothesis, worth recording because it was offered tentatively ("maybe accurately, maybe not").* Planning effort does *not* mostly land as =Meta= time. The datetree carries *8h52m against 67h57m on tasks — 12%*. The smearing is real, but what it smears across is the *tasks themselves*, not the meta-work node: planning a task now happens inside that task's own clock, over days, interleaved with revising and cross-referencing it. That is why no single interval looks like a planning session.
-
 
 
 * TODO Fall back to the queue when org_capture cannot reach Emacs :code:
@@ -8992,7 +9128,8 @@ more surprising, and no evidence has been gathered either way.
 *Verified by mutation, then live.* Removing the condition fails only the new container test. Applying it to *every* heading rather than containers only fails that test's discriminating partner -- the pre-existing sole-remaining-TODO promotion test -- which is the same over-application signal 62c6b1be relied on. In the running Emacs after =load-file=: a container sole survivor stays TODO with zero =Auto-promoted= lines, a leaf sole survivor comes out NEXT with one.
 
 
-* DOING Adopt org-native mechanisms for the heading tiers :code:research:
+* DONE Adopt org-native mechanisms for the heading tiers :code:research:
+CLOSED: [2026-08-28 Fri 11:15]
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       29439196-bbb8-4b64-b8d5-3bf9d457bf6c
@@ -9045,8 +9182,22 @@ CLOCK: [2026-08-27 Thu 16:14]--[2026-08-27 Thu 16:20] =>  0:06
 - [2026-08-27 Thu 16:14]--[2026-08-27 Thu 16:20] plan CATEGORY plus flattening
 CLOCK: [2026-08-28 Fri 07:44]--[2026-08-28 Fri 07:45] =>  0:01
 - [2026-08-28 Fri 07:44]--[2026-08-28 Fri 07:45] plan CATEGORY plus flattening
+CLOCK: [2026-08-28 Fri 08:35]--[2026-08-28 Fri 08:45] =>  0:10
+- [2026-08-28 Fri 08:35]--[2026-08-28 Fri 08:45] step 2 taxonomy classification pass
 CLOCK: [2026-08-28 Fri 10:14]--[2026-08-28 Fri 10:15] =>  0:01
 - [2026-08-28 Fri 10:14]--[2026-08-28 Fri 10:15] plan CATEGORY plus flattening
+CLOCK: [2026-08-28 Fri 10:15]--[2026-08-28 Fri 10:16] =>  0:01
+- [2026-08-28 Fri 10:15]--[2026-08-28 Fri 10:16] step 2 taxonomy classification pass
+CLOCK: [2026-08-28 Fri 10:26]--[2026-08-28 Fri 10:28] =>  0:02
+- [2026-08-28 Fri 10:26]--[2026-08-28 Fri 10:28] step 2 taxonomy classification pass
+CLOCK: [2026-08-28 Fri 10:33]--[2026-08-28 Fri 10:35] =>  0:02
+- [2026-08-28 Fri 10:33]--[2026-08-28 Fri 10:35] step 2 taxonomy classification pass
+CLOCK: [2026-08-28 Fri 10:52]--[2026-08-28 Fri 10:57] =>  0:05
+- [2026-08-28 Fri 10:52]--[2026-08-28 Fri 10:57] step 2 taxonomy classification pass
+- State "REVIEW"     from "DOING"      [2026-08-28 Fri 10:57] \\
+  all four steps shipped, handed back
+- State "DONE"       from "REVIEW"     [2026-08-28 Fri 11:15] \\
+  user satisfied, agenda views checked
 :END:
 
 Parked 2026-08-19, *not accepted* — recorded so the research need not be
@@ -9275,9 +9426,6 @@ One property worth stating so it is not mistaken for sloppiness: =Dev= names an 
 *=.claude/rules/org-conventions.md= carries the glossary the flattening owed it* — the ten values with what belongs in each, the =Tools=/=Dev= test, why =Review= was rejected, and where all nine old labels went. The verbatim prose from the dissolved category bodies stays below it as history rather than being replaced by the mapping.
 
 *Left open on purpose, neither of them blocking.* =Docs= has two members and only one of them live, so it remains a declared growth area rather than a populated category — the alternative, folding the README into =Skill=, was considered and rejected by the user. And =Tools= at 26 may eventually want its own split between the tool surface and tool *policy*; there is no seam visible at this size, so it is not being guessed at.
-
-
-
 
 
 * DONE Compose slices by reference: a checkbox list of id links, blocked on its members :code:research:
@@ -12214,6 +12362,12 @@ CLOCK: [2026-08-27 Thu 17:13]--[2026-08-27 Thu 17:14] =>  0:01
 :LOGBOOK:
 CLOCK: [2026-08-28 Fri 10:14]--[2026-08-28 Fri 10:26] =>  0:12
 - <2026-08-28 Fri 10:14>--<2026-08-28 Fri 10:26> settle five parked decisions, file two
+CLOCK: [2026-08-28 Fri 11:03]--[2026-08-28 Fri 11:06] =>  0:03
+- [2026-08-28 Fri 11:03]--[2026-08-28 Fri 11:06] assigned at review
+CLOCK: [2026-08-28 Fri 11:14]--[2026-08-28 Fri 11:16] =>  0:02
+- [2026-08-28 Fri 11:14]--[2026-08-28 Fri 11:16] assigned at review
+CLOCK: [2026-08-28 Fri 11:19]--[2026-08-28 Fri 11:20] =>  0:01
+- [2026-08-28 Fri 11:19]--[2026-08-28 Fri 11:20] assigned at review
 :END:
 
 
@@ -12224,6 +12378,8 @@ CLOCK: [2026-08-28 Fri 10:14]--[2026-08-28 Fri 10:26] =>  0:12
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-28 Fri 13:02]--[2026-08-28 Fri 13:03] =>  0:01
+CLOCK: [2026-08-28 Fri 12:53]--[2026-08-28 Fri 12:56] =>  0:03
 CLOCK: [2026-08-28 Fri 10:26]--[2026-08-28 Fri 10:29] =>  0:03
 CLOCK: [2026-08-27 Thu 17:16]--[2026-08-27 Thu 17:17] =>  0:01
 CLOCK: [2026-08-27 Thu 16:26]--[2026-08-27 Thu 16:32] =>  0:06
