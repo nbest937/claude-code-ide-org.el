@@ -2,11 +2,189 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 #+STARTUP: logdrawer logdone content
-* Decide whether returning a heading's whole body is a mode on org_outline or its own tool :code:
+* TODO [0/20] The code knows more than it says, and asks more than it should :code:
+:PROPERTIES:
+:ID:       b36e6369-a210-4540-adc7-0c0c188e9791
+:CREATED:  [2026-08-28 Fri 17:37]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:BLOCKER:  ids(915378ac-3bd4-461d-b0f0-83f67fbb3dac 46d225c7-7541-4867-af72-929a572df2a5 c31b6c76-8ad8-45d4-a87b-39e085e31368 5a5e87c9-f432-44c6-a5a6-f6f3755e4347 c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b 2b2db914-c96e-416a-a80a-e31028308de0 c74f8663-b14e-4ab9-ad65-d99cb655b3fa 6cc71c36-0fa6-4773-9b35-c0582f4cee82 98c302e0-ab1b-40bf-92d0-d2f2e16ac05d 9e627dc0-d31b-42cc-857a-b1e5a77f44a5 44cef181-8dac-4735-8860-f123e132fdbc 46e4ce2b-fdc8-447b-ad09-b4845602540f 05c71d99-2839-447b-a536-60eb4bf43b73 8d0716fe-ca88-429d-b46b-e2f880f5b2cc b6e229c7-3035-4c0e-943b-710a12bfd7d1 0086614a-c95c-4618-bba0-c821589dd7f2 5f1068f9-1452-45e4-9253-568edfce2053 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-28 Fri 17:38] \\
+  next slice, composed and awaiting review
+:END:
+*Composed 2026-08-28 from a single long session plus the backlog.* The
+previous slice ([[id:979e02b6][979e02b6]]) closed the gap between what
+this project *declares* and what its code *infers*. This one is about a
+different gap, and the title is borrowed from a member that named it
+first: [[id:6cc71c36][6cc71c36]], "the code knew more than it said".
+
+*Two halves, and they are the same complaint from opposite sides.* The
+tools *know* things they do not report — a span's real interval, which
+ids a blocker names, whether an event will change anything — so a human
+reads a number that is not the number. And they *ask* for things they
+should not — clearing a read-only flag by hand a dozen times a session,
+setting a keyword in a second call, retyping what the tool already
+resolved. Neither is a defect anyone would file on its own; together
+they are most of the friction and most of the inaccuracy.
+
+*Evidence from the session that produced it*, all measured rather than
+recalled: the read-only clear/restore dance ran about twelve times;
+=writes 0:01 in 1= was rendered over a nineteen-minute span with no way
+to tell which number meant what; a =:BLOCKER:= error cleared itself only
+when the queue was applied; and three separate verification traps were
+hit twice each, every one of them a *silence* read as a pass.
+
+*Sequence.*
+
+*Phase 1 — clear blockers and dead wood.* Small, mechanical, and the
+first one closes a container: [[id:915378ac][915378ac]] is the last open
+child of [[id:478d6ec9][478d6ec9]], which is itself blocking the
+previous slice. Closing that container is its own step — a container at
+=[10/10]= does not close itself — and note the previous slice *still*
+will not close, because [[id:9651d4c8][9651d4c8]] gates it and needs the
+user.
+
+=c31b6c76= and =5a5e87c9= are twins and are here together: both are
+time-of-day test flakes, one whose fixture spills past midnight and one
+that compares a duration against the clocktable's own timestamp. Fixing
+one and leaving the other would read as an oversight.
+
+*Phase 2 — stop fighting the tools.* [[id:c8a97d9d][c8a97d9d]] is the
+largest felt win in the list and the smallest change in it: its own
+child already bound =inhibit-read-only= in the apply path, and the other
+write tools simply never followed.
+
+*Phase 3 — the review buffer says what it means.*
+[[id:6cc71c36][6cc71c36]] is the umbrella and should be done *with* the
+wording fixes rather than before them, because a one-word repair beside
+an unchanged line three rows down is worse than uniform terseness.
+[[id:98c302e0][98c302e0]] is already decided: state the evidence in
+hand, do not predict what apply will write.
+
+*[[id:9e627dc0][9e627dc0]] is in this phase because both bodies say so.*
+Its own body and 98c302e0's were amended the same day to record that the
+readout rework and the turn-count surfacing should be built in *one*
+pass — turn count is one of the three things the readout is now supposed
+to say, so building 98c302e0 alone recreates exactly the reworded-twice
+cost both warn against. Only its *review-buffer* half is in scope; the
+=:LOGBOOK:= annotation and the clocktable column stay open.
+
+*Phase 4 — the files stay orderly.* [[id:0086614a][0086614a]] and
+[[id:5f1068f9][5f1068f9]] are both decided in substance and want only
+building; [[id:8c662dfb][8c662dfb]] is per-heading judgement and is the
+one item here that genuinely wants a human nearby.
+
+*Phase 5 — the checks learn.* [[id:542924c1][542924c1]] records three
+traps that no check catches, and [[id:d2a0f54c][d2a0f54c]] is the
+vehicle: it already proposes generalising =check-org-dev-skill= into a
+=check-conventions= wired into =pre-commit=.
+
+*Three that need a nod before building.*
+
+=c74f8663= — whether =org_capture= takes an initial state is a
+*decision* about the queue's one exception, not a build.
+=5f1068f9= — approach A is recommended and measured, but the
+alternative (move the datetree to its own file) is a real question about
+where meta-work lives and should not be settled as a side effect of a
+sort.
+=8c662dfb= — condensing ten bodies is ten judgements.
+
+=ff1352b3= — not a member, and listed here because it is the fourth of
+the same kind: whether returning a heading's body whole is a mode on
+=org_outline= or its own tool is a pure surface decision, filed the same
+day the front-matter half shipped. The implementation is an hour; the
+decision outlives it.
+
+Everything else in the list is buildable unattended.
+
+*Members.*
+
+- [ ] [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]] TODO Jump to a heading by title, not by pasting a UUID
+- [ ] [[id:46d225c7-7541-4867-af72-929a572df2a5][46d225c7]] TODO Remove queue-append's synthetic-event overrides, dead since the ExitPlanMode hook went
+- [ ] [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]] TODO A clock-report test fails every evening, because its fixture spills past midnight
+- [ ] [[id:5a5e87c9-f432-44c6-a5a6-f6f3755e4347][5a5e87c9]] TODO A duration assertion matches the clocktable's own timestamp, three minutes a day
+- [ ] [[id:c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b][c8a97d9d]] TODO Clearing a buffer's read-only flag for an MCP tool leaves it cleared
+- [ ] [[id:2b2db914-c96e-416a-a80a-e31028308de0][2b2db914]] TODO org_capture swallows a title beginning with a TODO keyword
+- [ ] [[id:c74f8663-b14e-4ab9-ad65-d99cb655b3fa][c74f8663]] TODO org_capture should accept an initial TODO state, so a heading is not keywordless until apply
+- [ ] [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] TODO Six defects in one day, all the same: the code knew more than it said
+- [ ] [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]] TODO "writes 0:09 in 1" reads as two swappable numbers; "in 1" has no unit
+- [ ] [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] TODO Record turns-per-interval as an attention signal, and decide where it surfaces
+- [ ] [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] TODO A span's headline interval is not the interval it writes
+- [ ] [[id:46e4ce2b-fdc8-447b-ad09-b4845602540f][46e4ce2b]] TODO Lead every review-buffer rendering with the :ID: prefix, rather than trailing it
+- [ ] [[id:05c71d99-2839-447b-a536-60eb4bf43b73][05c71d99]] TODO Apply logs a self-transition when a queued event's target already matches reality
+- [ ] [[id:8d0716fe-ca88-429d-b46b-e2f880f5b2cc][8d0716fe]] TODO g in the review buffer discards unapplied judgement without asking
+- [ ] [[id:b6e229c7-3035-4c0e-943b-710a12bfd7d1][b6e229c7]] TODO Auto-mark the state items that carry no judgement
+- [ ] [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]] TODO A slice should list incidental work separately from its planned members
+- [ ] [[id:5f1068f9-1452-45e4-9253-568edfce2053][5f1068f9]] TODO Sort TODO.org by :CREATED: descending, after each archive pass
+- [ ] [[id:8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8][8c662dfb]] TODO Sweep the ten longest live bodies into :PLAN: drawers
+- [ ] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] TODO Three verification traps hit repeatedly in one session, none of them caught by a check
+- [ ] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] NEXT Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
+
+- [[orgit-rev:claude-code-ide-org::1581403][1581403]] [2026-08-28 Fri 17:40] defined the slice
+
+
+* TODO org_capture should accept an initial TODO state, so a heading is not keywordless until apply :code:
+:PROPERTIES:
+:ID:       c74f8663-b14e-4ab9-ad65-d99cb655b3fa
+:CREATED:  [2026-08-28 Fri 17:36]
+:CATEGORY: Tools
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-28 Fri 17:37] \\
+  companion question, filed on its own
+:END:
+
+*Raised as a companion question by [[id:36b811d9-8bd3-4a32-b67d-39ccfe0d66c1][36b811d9]] and filed on its own 2026-08-28.* =org_capture= deliberately writes *no* TODO keyword — its description says to set the state afterwards with =org_set_todo=, which *queues*. So **every heading captured in a session is keywordless on disk until a human applies the queue**, and a capture-then-set is two operations that land a review pass apart.
+
+*The cost is not hypothetical and is not only cosmetic.* A =:BLOCKER:= naming a heading captured in the same session is *inert*: =org-depend= blocks only on an unfinished TODO keyword, and a keywordless heading has none. =bin/lint-org= reports it, [[id:36b811d9-8bd3-4a32-b67d-39ccfe0d66c1][36b811d9]] hit it within a minute of being written, and [[id:798bb7a1-d5a6-4c08-8cf0-cc91a82d08e6][798bb7a1]] is the same gap seen from the slice side — a member captured this session cannot be rendered or blocked on. Measured this session: roughly a dozen captures, every one of them keywordless for as long as it took to ask for an apply, and one =:BLOCKER:= error that cleared itself only when the queue was run.
+
+*The tension, which is why this is a question rather than an obvious fix.* The queue exists because state transitions are the thing that caused every incident, and it is load-bearing that org's *native* state logging runs inside a genuinely interactive command. A capture that writes a keyword directly would write one state change without a =State= log line and outside the review pass — a small, silent exception to the rule the architecture is built on.
+
+*Three shapes, none chosen:*
+
+1. *An =initial_state= argument that writes the keyword with the heading.* Simplest and most useful; the exception above is real but bounded — a *creation* has no prior state to log a transition from, so nothing is lost that a log line would have carried.
+2. *Capture queues a =todo= event alongside itself*, so the keyword arrives through the normal path. Keeps one rule, but does not fix anything: the heading is still keywordless until apply, which is the actual complaint.
+3. *Leave it, and make the inertness visible instead.* =org_set_property= already warns when a =:BLOCKER:= names a keywordless heading ([[id:36b811d9-8bd3-4a32-b67d-39ccfe0d66c1][36b811d9]]); the lint already errors. This is the do-nothing option and it is not obviously wrong.
+
+*Option 1 is the one worth arguing about*, and the argument turns on whether "a heading is created *with* a state" is a transition at all. If it is not — and a =State \"TODO\" from \"\"= line is arguably noise rather than history — then there is no exception, only a capture that finishes the job.
+
+
+* TODO Three verification traps hit repeatedly in one session, none of them caught by a check :code:
+:PROPERTIES:
+:ID:       542924c1-9152-4414-8da8-d530d3423611
+:CREATED:  [2026-08-28 Fri 17:36]
+:CATEGORY: Dev
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-28 Fri 17:36] \\
+  session learnings, filed
+:END:
+
+*Observed across one long session, 2026-08-28.* Each was hit more than once, each looked like success at the moment it happened, and none is covered by anything in =bin/=.
+
+*1. An unescaped =\"= inside an elisp docstring, and =check-parens= says nothing.* Writing a docstring through a shell heredoc or a Python string puts a bare quote in, which *terminates the string early* and turns the rest of the body into code. Parens stay balanced, so =check-parens= reports the file fine. Hit twice — once in =config.el=, once in =config-test.el= — and the second time cost nine spurious test failures before the cause was found. The reliable check is not =check-parens= but *reading forms*: =(while t (forward-sexp))= from =point-min= reports the line where the reader actually gives up. Sibling of [[id:4f9e552a-e1a9-48dd-8801-3f23a31b9e32][4f9e552a]], where a bare =emacs= silently did not run a batch check at all.
+
+*2. A count of =FAILED= lines is not a test result.* =bin/test= writes to *stderr*, so =bin/test | tail= shows nothing while exiting 0, and =grep -c FAILED= over a run that *never started* answers zero — which reads exactly like success. Hit twice: once piping without =2>&1=, once when a deliberately broken file made the suite exit *255* having run no tests, and the failure count was read as "no failures". The check that works is the *=Ran N tests=* line and the exit code, never the absence of a word.
+
+*3. A mutation test whose mutation does not parse proves nothing.* This project's discipline is to break the code and confirm the test fails. That is only evidence if the broken version *runs*. Twice a break was made by deleting a clause, which unbalanced the file, so the suite did not execute and the run was scored as "the test still passes". A break must be *semantic*, not structural — invert a predicate, return nil, drop a value — and the run count must be checked before the failure count.
+
+*What they share, and why it is one heading.* All three are cases where *the absence of a signal was read as a positive result* — no parse error, no FAILED line, no test failure. The project already has this lesson recorded twice ([[id:4f9e552a-e1a9-48dd-8801-3f23a31b9e32][4f9e552a]], and the =set -g= bug in =bin/check-org-dev-skill= where FAIL printed and the script exited 0), which is the argument that it is a class rather than three incidents.
+
+*Proposed, not yet decided:* a =bin/check-elisp= that reads forms rather than counting parens, wired into =pre-commit= alongside =bin/lint-org=; and a note in the org-dev skill that the two verification commands whose output is *silence* — =check-parens= and a piped =bin/test= — are the two that have lied. [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] is the natural home for the first, since it already proposes generalising =check-org-dev-skill= into a =check-conventions= wired into =pre-commit=.
+
+
+* TODO Decide whether returning a heading's whole body is a mode on org_outline or its own tool :code:
 :PROPERTIES:
 :ID:       ff1352b3-2732-4422-9f0d-4b3cb6fd8ff3
 :CREATED:  [2026-08-28 Fri 17:24]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-28 Fri 17:24] \\
+  surface decision, deliberately not built
 :END:
 
 *Filed 2026-08-28 as [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] closed.* That heading shipped *front matter without the body*; its complement — *the body, whole* — was raised in the same analysis and deliberately not built.
@@ -21,11 +199,16 @@
 
 *Do not build it before deciding*, which is why this is filed rather than done: the implementation is an hour and the surface decision outlives it.
 
-* Remove queue-append's synthetic-event overrides, dead since the ExitPlanMode hook went :code:
+
+* TODO Remove queue-append's synthetic-event overrides, dead since the ExitPlanMode hook went :code:
 :PROPERTIES:
 :ID:       46d225c7-7541-4867-af72-929a572df2a5
 :CREATED:  [2026-08-28 Fri 16:02]
 :CATEGORY: Queue
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-28 Fri 16:02] \\
+  dead branch, filed on its own
 :END:
 
 =QUEUE_APPEND_ID=, =QUEUE_APPEND_STATE= and =QUEUE_APPEND_FROM= in =bin/hooks/queue-append= let a caller supply a heading and states for a *synthetic* event — one with no tool call behind it, so nothing to read a =tool_input= or parse a =tool_response= from. Their only consumer was =bin/hooks/exitplanmode-promote-planning=, deleted 2026-08-28 when =PLANNING= was retired ([[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]). The branch has been dead since.
@@ -36,11 +219,16 @@
 
 *Filed 2026-08-28 to make a checked-in comment true.* When the branch was marked dead, the note ended "Removal is filed." It was not: no heading mentioned it, and the only other traces were a debrief paragraph and a commit message — both places CLAUDE.md explicitly says residue goes to die. The rule it broke is the one about closing a heading: *a sentence pointing at another heading is not a filing action*. Writing that sentence into source, where it reads as a promise to the next person, is the same error one layer worse.
 
-* Install orgparse for ad-hoc analysis, and stop reaching for regex over org text :code:
+
+* MAYBE Install orgparse for ad-hoc analysis, and stop reaching for regex over org text :code:
 :PROPERTIES:
 :ID:       2c5f7c50-40c9-4d06-b435-add41eb97643
 :CREATED:  [2026-08-28 Fri 15:58]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+- State "MAYBE"      from              [2026-08-28 Fri 15:58] \\
+  offered; not yet installed or decided
 :END:
 
 *Offered by the user 2026-08-28:* [[https://github.com/karlicoss/orgparse][orgparse]] is available and could be installed system-wide for Claude to use from Python. Not installed as of that date; =python3= here is 3.14.6.
@@ -57,6 +245,7 @@
 *One boundary, cheap to state now and expensive to retrofit: nothing checked into =bin/= imports it without declaring it.* This repo has *zero* Python today — every script is bash, fish or elisp — so it would be a new dependency class, and [[id:1ed7b2b4-a809-4547-b04f-099a3111fc1e][1ed7b2b4]] is the standing scar about an undeclared one. Ad-hoc session analysis is free; a committed script would need a declaration and a check in =bin/check-org-dev-skill= beside the org-version one.
 
 *If it is installed*, the org-dev skill should record both halves — that orgparse exists, and that Emacs remains the answer wherever org's own semantics decide the result. Recording only the first half would turn a tool that fixes a bug class into a tool that introduces a worse one.
+
 
 * TODO Two keyword-set proposals and the review collision are still unadopted :code:
 :PROPERTIES:
@@ -127,7 +316,6 @@
 *Recommend A, with B's concern answered by a lint assertion rather than by a fake timestamp:* assert that the =:DATE_TREE:= anchor is the last level-1 heading. That makes the invariant checked without inventing data, which is the same move [[id:8bea4317-c8e7-4939-8224-834bb914d89c][8bea4317]] made for the cookie's position — read the corpus, assert the result, do not encode it as data.
 
 *C stays open on its own merits*, and is worth deciding separately rather than as a side effect of sorting: it is really the question of whether meta-work belongs in the same file as the work, which nothing here has asked yet.
-
 
 
 * TODO Sweep the ten longest live bodies into :PLAN: drawers :code:
@@ -462,14 +650,14 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 *No residue.* Everything named as unfinished during its life was filed as a heading before the heading naming it closed -- a rule this slice produced by breaking it once ([[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]]) and then writing it into CLAUDE.md.
 
 
-* DOING [20/24] Close the gap between what we declare and what the code infers :code:
+* DOING [22/24] Close the gap between what we declare and what the code infers :code:
 :PROPERTIES:
 :CATEGORY: Slices
 :ID:       979e02b6-2a4c-4328-8b08-ffaec03bd02e
 :CREATED:  [2026-08-25 Tue 15:29]
 :COOKIE_DATA: checkbox recursive
 :KIND:     slice
-:BLOCKER:  ids(9651d4c8-6887-4b0a-91d9-562c3bc49a75 478d6ec9-1b99-4c6c-88e9-c793ad4b2f22 2d9eeebd-4375-4790-8485-92b244236a21 98908aff-63cc-4b71-b90b-817da361a23b)
+:BLOCKER:  ids(9651d4c8-6887-4b0a-91d9-562c3bc49a75 478d6ec9-1b99-4c6c-88e9-c793ad4b2f22)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 15:29] \\
@@ -496,9 +684,9 @@ Wherever this project declares something in prose and the code infers it some ot
 - [X] [[id:8183fc7c-905e-40c8-81cb-10c56158c6ce][8183fc7c]] DONE org_outline is blind to a slice: scoped to one, it returns a single line
 - [ ] [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] TODO Make the 8-character prefix resolve, for the model and the human alike
   - [X] [[id:49557477-e50c-496f-85df-82c65109832b][49557477]] DONE Expand an 8-character prefix at both surfaces where a tail gets invented
-  - [ ] [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] NEXT Read a heading's front matter, and take a partial :ID:, without a whole-body read
+  - [X] [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] DONE Read a heading's front matter, and take a partial :ID:, without a whole-body read
   - [X] [[id:36b811d9-8bd3-4a32-b67d-39ccfe0d66c1][36b811d9]] DONE Add a tool to set heading properties, starting with :BLOCKER:
-  - [ ] [[id:98908aff-63cc-4b71-b90b-817da361a23b][98908aff]] TODO org_outline's active_only orphans children of finished headings
+  - [X] [[id:98908aff-63cc-4b71-b90b-817da361a23b][98908aff]] DONE org_outline's active_only orphans children of finished headings
   - [X] [[id:020d3688-f08d-460f-a3e8-931a1677074a][020d3688]] DONE DONE.org is not a tracked file, so no id in it resolves
   - [X] [[id:e6d1d810-5e88-4356-b002-bbb10cf19fc9][e6d1d810]] DONE Hand-rolled the archive derivation org already had
   - [X] [[id:93f6c908-1c15-44e5-84f9-03f1ffb6d5db][93f6c908]] DONE Expand prefixes against org-id-locations rather than a table of our own
@@ -8227,6 +8415,16 @@ CLOCK: [2026-08-28 Fri 13:55]--[2026-08-28 Fri 13:57] =>  0:02
 - [2026-08-28 Fri 13:55]--[2026-08-28 Fri 13:57] measure PLANNING against real use
 CLOCK: [2026-08-28 Fri 14:01]--[2026-08-28 Fri 14:07] =>  0:06
 - [2026-08-28 Fri 14:01]--[2026-08-28 Fri 14:07] measure PLANNING against real use
+CLOCK: [2026-08-28 Fri 14:56]--[2026-08-28 Fri 15:09] =>  0:13
+- [2026-08-28 Fri 14:56]--[2026-08-28 Fri 15:09] measure PLANNING against real use
+CLOCK: [2026-08-28 Fri 15:36]--[2026-08-28 Fri 15:42] =>  0:06
+- [2026-08-28 Fri 15:36]--[2026-08-28 Fri 15:42] measure PLANNING against real use
+CLOCK: [2026-08-28 Fri 15:58]--[2026-08-28 Fri 15:59] =>  0:01
+- [2026-08-28 Fri 15:58]--[2026-08-28 Fri 15:59] measure PLANNING against real use
+CLOCK: [2026-08-28 Fri 16:01]--[2026-08-28 Fri 16:03] =>  0:02
+- [2026-08-28 Fri 16:01]--[2026-08-28 Fri 16:03] measure PLANNING against real use
+CLOCK: [2026-08-28 Fri 16:06]--[2026-08-28 Fri 16:11] =>  0:05
+- [2026-08-28 Fri 16:06]--[2026-08-28 Fri 16:11] measure PLANNING against real use
 :END:
 :PLAN:
 
@@ -8447,7 +8645,7 @@ asserts the refusal instead, across nil, empty and whitespace; removing
 the guard fails it and nothing else.
 
 
-* TODO [7/10] Make the 8-character prefix resolve, for the model and the human alike :code:
+* TODO [9/10] Make the 8-character prefix resolve, for the model and the human alike :code:
 :PROPERTIES:
 :CATEGORY: Tools
 :ID:       478d6ec9-1b99-4c6c-88e9-c793ad4b2f22
@@ -8552,7 +8750,8 @@ backstop and the expansion is a convenience on one path -- worth
 deciding rather than assuming the first fix closed it.
 
 
-** NEXT Read a heading's front matter, and take a partial :ID:, without a whole-body read :code:
+** DONE Read a heading's front matter, and take a partial :ID:, without a whole-body read :code:
+CLOSED: [2026-08-28 Fri 17:24]
 :PROPERTIES:
 :ID:       2d9eeebd-4375-4790-8485-92b244236a21
 :CREATED:  [2026-08-14 Fri 17:27]
@@ -8560,6 +8759,12 @@ deciding rather than assuming the first fix closed it.
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-08-25 Tue 09:53] \\
   read half remains after the write-boundary fix
+CLOCK: [2026-08-28 Fri 17:19]--[2026-08-28 Fri 17:24] =>  0:05
+- State "DOING"      from "NEXT"       [2026-08-28 Fri 17:19] \\
+  build the front-matter read
+- [2026-08-28 Fri 17:19]--[2026-08-28 Fri 17:24] front-matter read tool
+- State "DONE"       from "DOING"      [2026-08-28 Fri 17:24] \\
+  front matter at scope root; body read left open
 :END:
 
 *Raised by the user 2026-08-14, from a concrete request the tools cannot
@@ -8699,7 +8904,6 @@ subtree, or structure — the last being =org_outline= as it stands.
 *Also corrected: the test fixture used ids like =b-0001=, which =--lint-blocker-ids= rejects because it filters on a UUID shape.* The code was right and the fixture was unrealistic — worth recording, because the first reading was that the blocker rendering was broken.
 
 *Left for its own decision, as this body proposed:* returning a heading's *body*, whole. The primitive exists (=--subtree-text-at-point=) and the scoping is now shared, so it is plumbing — but whether it is a mode on this tool or a separate one is a design question, and this heading's own argument for a small surface cuts both ways.
-
 
 
 ** TODO Jump to a heading by title, not by pasting a UUID :code:
@@ -8908,7 +9112,8 @@ checks catch what looks correct.
 *Not built, and worth its own heading if wanted:* the queue path, and =org_capture= accepting an initial state so a capture and its keyword do not arrive a review pass apart — the smaller companion question this heading raised at the end.
 
 
-** TODO org_outline's active_only orphans children of finished headings :code:
+** DONE org_outline's active_only orphans children of finished headings :code:
+CLOSED: [2026-08-28 Fri 16:10]
 :PROPERTIES:
 :ID:       98908aff-63cc-4b71-b90b-817da361a23b
 :CREATED:  [2026-08-12 Wed 16:06]
@@ -8916,6 +9121,10 @@ checks catch what looks correct.
 :LOGBOOK:
 - State "TODO"       from              [2026-08-12 Wed 16:07] \\
   found while documenting the tool's own response format
+- State "DOING"      from "TODO"       [2026-08-28 Fri 16:06] \\
+  fix the active_only orphan case
+- State "DONE"       from "DOING"      [2026-08-28 Fri 16:10] \\
+  ancestor paths kept; CLAUDE.md corrected
 :END:
 
 Indentation is the *only* thing =org_outline='s output says about
@@ -8990,7 +9199,6 @@ format asserting less structure than the reader needs.
 *Verified by mutation.* Removing the ancestor-keeping clause fails exactly one test and nothing else; 436/436 restored. The test asserts the *parent is present* and that the child sits deeper than it while a real sibling sits level with it — asserting only that the child appears would pass against the broken code, since it appeared there too, just in the wrong place. Real corpus output is unchanged, as expected at zero instances.
 
 *One incidental worth recording:* the test's first run failed because it wrote its fixture with =with-temp-file= onto the path the enclosing macro already had a buffer visiting, so =org-map-entries= mapped over stale text and reported the parent absent. A fresh path fixes it. That is the same buffer-versus-disk hazard the tools guard against in production and the tests do not.
-
 
 
 ** DONE DONE.org is not a tracked file, so no id in it resolves :code:
@@ -12452,6 +12660,8 @@ CLOCK: [2026-08-28 Fri 11:14]--[2026-08-28 Fri 11:16] =>  0:02
 CLOCK: [2026-08-28 Fri 11:19]--[2026-08-28 Fri 11:20] =>  0:01
 - [2026-08-28 Fri 11:19]--[2026-08-28 Fri 11:20] assigned at review
 - [2026-08-28 Fri 13:21]--[2026-08-28 Fri 13:27] assigned at review
+CLOCK: [2026-08-28 Fri 17:34]--[2026-08-28 Fri 17:44] =>  0:10
+- [2026-08-28 Fri 17:34]--[2026-08-28 Fri 17:44] assigned at review
 :END:
 
 
@@ -12462,6 +12672,7 @@ CLOCK: [2026-08-28 Fri 11:19]--[2026-08-28 Fri 11:20] =>  0:01
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-29 Sat 13:38]--[2026-08-29 Sat 13:39] =>  0:01
 CLOCK: [2026-08-28 Fri 14:52]--[2026-08-28 Fri 14:54] =>  0:02
 CLOCK: [2026-08-28 Fri 13:51]--[2026-08-28 Fri 13:53] =>  0:02
 CLOCK: [2026-08-28 Fri 13:02]--[2026-08-28 Fri 13:03] =>  0:01
