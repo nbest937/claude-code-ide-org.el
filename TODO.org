@@ -656,7 +656,7 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 *No residue.* Everything named as unfinished during its life was filed as a heading before the heading naming it closed -- a rule this slice produced by breaking it once ([[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]]) and then writing it into CLAUDE.md.
 
 
-* DOING [51/51] Close the gap between what we declare and what the code infers :code:
+* DOING [48/48] Close the gap between what we declare and what the code infers :code:
 :PROPERTIES:
 :CATEGORY: Slices
 :ID:       979e02b6-2a4c-4328-8b08-ffaec03bd02e
@@ -701,8 +701,6 @@ Wherever this project declares something in prose and the code infers it some ot
 
 *The prompt that drove this slice, one link per revision of it:*
 
-- [[orgit-rev:claude-code-ide-org::7b9bd74][7b9bd74]] [2026-08-26 Wed 11:12] opened the slice, replacing c44c2119's prompt
-- [[orgit-rev:claude-code-ide-org::2301de9][2301de9]] [2026-08-26 Wed 11:24] named the decision and the design question it opens with
 - [X] [[id:e10071b9-88f0-4dc3-af8e-692965c65868][e10071b9]] DONE Assert the two load-bearing Doom settings in bin/check-org-dev-skill
 
 Incidental --- closed between this slice's =:CREATED:= and its close, and
@@ -743,12 +741,6 @@ answers is what *else* was going on.
 
 - [[orgit-rev:claude-code-ide-org::7b9bd74][7b9bd74]] [2026-08-26 Wed 11:12] opened the slice, replacing c44c2119's prompt
 - [[orgit-rev:claude-code-ide-org::2301de9][2301de9]] [2026-08-26 Wed 11:24] named the decision and the design question it opens with
-- [X] [[id:e10071b9-88f0-4dc3-af8e-692965c65868][e10071b9]] DONE Assert the two load-bearing Doom settings in bin/check-org-dev-skill
-
-Incidental --- closed in the course of this slice, not planned into it. Hand-built 2026-08-28 and limited to what was actually read this session; the generated version is 0086614a.
-
-- [X] [[id:8bea4317-c8e7-4939-8224-834bb914d89c][8bea4317]] DONE The cookie inserter appends, but every cookie in the corpus leads
-- [X] [[id:62b65ad0-304b-4cf1-bd95-2f1ecb671d6b][62b65ad0]] DONE Reserve NEXT for use within a container; nominate rather than promote
 
 -----
 
