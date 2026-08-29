@@ -8697,6 +8697,19 @@ most frequently *felt* friction of the three: every =org_amend= and
 =org_refile= in this session cost an extra round trip to clear it. Worth
 its own decision about grouping rather than being absorbed here.
 
+*Closed 2026-08-29 at 10 of 10.* The title's promise — "for the model and the human alike" — is met on both sides, and the two halves turned out to need different things.
+
+*For the model*, the work was resolution: expand a prefix at every surface that could invent a tail ([[id:49557477-e50c-496f-85df-82c65109832b][49557477]]), against =org-id-locations= rather than a table of our own ([[id:93f6c908-1c15-44e5-84f9-03f1ffb6d5db][93f6c908]]), reaching DONE.org ([[id:020d3688-f08d-460f-a3e8-931a1677074a][020d3688]]) through org's own archive derivation rather than a hand-rolled one ([[id:e6d1d810-5e88-4356-b002-bbb10cf19fc9][e6d1d810]]), without a corpus rescan on every short prefix ([[id:6c48d5a6-1c78-4ce5-ac97-5e1091bdb25c][6c48d5a6]]), and with the plain-text workarounds of the unresolvable era converted back to links ([[id:c69df700-dbba-4437-bb98-44cff81501f2][c69df700]]).
+
+*For the human*, it was reach: a =completing-read= that makes an abbreviation typeable ([[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]]), a tool that sets a property instead of an =emacsclient= call ([[id:36b811d9-8bd3-4a32-b67d-39ccfe0d66c1][36b811d9]]), and =org_outline= answering "what is this, what blocks it, what is under it" in one call ([[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]]) without orphaning a live child of a finished parent ([[id:98908aff-63cc-4b71-b90b-817da361a23b][98908aff]]).
+
+*The recurring lesson across the ten, and it is not about ids.* Four of them were cases where **the absence of a signal read as a positive result**: a fabricated id that never blocks and never errors; a scoped outline reporting a missing *file* for an unresolvable heading; a filtered ancestor leaving its child misparented rather than absent; a prefix falling past a gate and silently rescanning the corpus. Each was found by something mechanical — a resolve-check, a lint rule, a scratch file — and none by reading the code, which is [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]]'s thesis arriving from a different direction.
+
+*What this unblocks:* [[id:979e02b6-2a4c-4328-8b08-ffaec03bd02e][979e02b6]], which has been blocked on this container and on [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] alone.
+
+*No residue.* Every child closed; nothing was named as unfinished and left unfiled. The one adjacent question raised during the work — whether a body-returning read is a mode on =org_outline= or its own tool — is filed as [[id:ff1352b3-2732-4422-9f0d-4b3cb6fd8ff3][ff1352b3]] rather than left in this body.
+
+
 
 ** DONE Expand an 8-character prefix at both surfaces where a tail gets invented :code:
 CLOSED: [2026-08-25 Tue 09:52]
@@ -8997,6 +9010,25 @@ interactive command. They share one premise, worth stating once rather
 than in both: this project made every heading id-addressed and then made
 the 8-character prefix the unit of reference in prose, commits and
 conversation, while every actual lookup still demands all 36.
+
+*Built 2026-08-29 as =claude-code-ide-org-goto=, an interactive command with no MCP registration* — this one is for the human at Emacs, so it costs nothing on the tool surface.
+
+*The design detail this body called "most of the value" is the one that decided the implementation.* The prefix goes *in the candidate string*, not in an annotation. An annotation supplied through =completion-extra-properties= is displayed but not matched by several completion styles, so typing =720b2dcf= would narrow nothing — and making this project's abbreviations directly typeable is the whole point.
+
+*And it leads rather than trails*, which this body did not specify. That is [[id:46e4ce2b-fdc8-447b-ad09-b4845602540f][46e4ce2b]]'s argument for the review buffer applied here: the prefix is what a reader arrives with, so it should be the first thing both the eye and the completion pattern meet. The test asserts *both* claims separately, since only the first is obvious.
+
+*Reused rather than rebuilt:* =--ordered-collection=, which declares =display-sort-function= as =identity= so Vertico does not re-sort the list by title length ([[id:85702dba-8d15-4924-84bd-2bb7efac093a][85702dba]]). Document order, not relevance — unlike the assignment dialog there is no time axis to rank against, and file order already puts recent captures near the top because =org_capture= prepends.
+
+*Keywordless headings are candidates*, rendered with =-=. Excluding them would lose exactly the headings captured in the current session, which are the ones most likely to be jumped to.
+
+*Verified:* 439/439, and by mutation — moving the prefix to the end of the string fails exactly one test, with the run count checked before the failure count. Live on the real corpus: 203 candidates, first line =b36e6369  TODO      [0/20] The code knows more than it says...=.
+
+*Semantic matching stays out*, as this body asked. A fuzzy resolver that returns the wrong heading confidently is the failure [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] measured; prefix and substring matching are decidable and similarity is not.
+
+*Not bound to a key.* The command exists and is =M-x=-reachable; choosing a binding is the user's, not something to decide on their behalf in a module they load.
+
+*One incidental worth recording because it bit while verifying this.* The form-reading syntax check written into the previous session prompt — =(while t (forward-sexp))= — only terminates when the file is *broken*, so on a clean file it spins until killed. Corrected there to a bounded =(while (not (eobp)) ...)=. A verification recipe that hangs on success is the same family as the ones [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] collects.
+
 
 
 ** DONE Add a tool to set heading properties, starting with :BLOCKER: :code:

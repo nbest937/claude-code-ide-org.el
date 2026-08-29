@@ -3921,6 +3921,69 @@ disk -- a queued capture or `todo' event, not yet applied: %s"
                (if (= 1 (length unrendered)) "it is" "they are")
                (mapconcat #'claude-code-ide-org--id-prefix unrendered " "))))))
 
+(defun claude-code-ide-org--goto-candidates ()
+  "Return (DISPLAY . ID) for every heading in the tracked files.
+
+DISPLAY leads with the id's 8-character prefix, then the keyword, then
+the title.  Leading rather than trailing is deliberate and is the same
+argument TODO.org :ID: 46e4ce2b makes for the review buffer: the prefix
+is what a reader arrives with, so it should be the first thing the eye
+and the completion pattern both meet.
+
+The prefix is part of the candidate *string*, not an annotation.
+Completion styles match against the candidate; an annotation supplied
+through `completion-extra-properties' is displayed but not matched by
+several of them, so typing `720b2dcf' would narrow nothing.  Putting it
+in the string is what makes every abbreviation this project writes --
+in prose, in commit messages, in conversation -- directly typeable,
+which TODO.org :ID: 915378ac calls most of the value.
+
+Document order, not relevance: unlike the assignment dialog there is no
+time to rank against, and file order already puts recent captures near
+the top because `org_capture' prepends."
+  (let (out)
+    (dolist (file (claude-code-ide-org--tracked-files))
+      (when (file-readable-p file)
+        (with-current-buffer (find-file-noselect file)
+          (org-with-wide-buffer
+           (goto-char (point-min))
+           (while (re-search-forward org-heading-regexp nil t)
+             (let ((id (org-entry-get nil "ID")))
+               (when id
+                 (push (cons (format "%s  %-9s %s"
+                                     (claude-code-ide-org--id-prefix id)
+                                     (or (org-get-todo-state) "-")
+                                     (org-get-heading t t t t))
+                             id)
+                       out))))))))
+    (nreverse out)))
+
+(defun claude-code-ide-org-goto ()
+  "Jump to a heading chosen by title, without pasting a UUID.
+
+`org-id-goto' wants the *entire* id, exactly, and offers no help getting
+one: it is `(interactive \"sID: \")', a plain string prompt with no
+completion, and every resolution path beneath it is exact by
+construction.  Meanwhile this project names headings by their first
+eight characters everywhere -- prose, commits, conversation -- which
+makes those references readable and, until now, completely unactionable
+(TODO.org :ID: 915378ac).
+
+Deliberately not semantic matching.  A fuzzy resolver that returns the
+wrong heading confidently is the failure this project has measured twice
+\(:ID: 7771fc63, and the suggestion fallback removed the same day\).
+Prefix and substring matching are decidable; similarity is not."
+  (interactive)
+  (require 'org-id)
+  (let* ((candidates (claude-code-ide-org--goto-candidates))
+         (choice (completing-read
+                  "Heading: "
+                  (claude-code-ide-org--ordered-collection candidates)
+                  nil t)))
+    (let ((id (cdr (assoc choice candidates))))
+      (unless id (user-error "No heading chosen"))
+      (org-id-goto id))))
+
 (defun claude-code-ide-org-refresh-slice-blocker (&optional id)
   "Write the `:BLOCKER:' of the slice with :ID: ID from its checkbox list.
 

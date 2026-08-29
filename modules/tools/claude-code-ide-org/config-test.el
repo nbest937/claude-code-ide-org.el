@@ -10332,3 +10332,40 @@ form this project uses everywhere in prose, commits and conversation."
     ;; a real file name still reads as a file
     (should-not (string-match-p "resolves to no heading"
                                 (claude-code-ide-org-outline file nil nil)))))
+
+(ert-deftest claude-code-ide-org-test-goto-candidates-lead-with-the-prefix ()
+  "Candidates carry the 8-character prefix IN THE STRING, at the front.
+
+Two separate claims, and the test asserts both because only one of them
+is obvious.  The prefix must be *present* -- an annotation supplied
+through `completion-extra-properties' is displayed but not matched by
+several completion styles, so typing 720b2dcf would narrow nothing, and
+making this project's abbreviations typeable is most of the point
+(TODO.org :ID: 915378ac).  And it must be *first*, which is the same
+argument :ID: 46e4ce2b makes for the review buffer: the prefix is what a
+reader arrives with.
+
+Also asserts a keywordless heading still appears.  Excluding one would
+lose exactly the headings captured this session, which are the ones most
+likely to be jumped to."
+  (claude-code-ide-org-test--with-heading
+    (let ((tree (expand-file-name "goto.org" dir)))
+      (with-temp-file tree
+        (insert "#+TODO: TODO NEXT DOING REVIEW WAITING MAYBE | DONE CANCELLED\n\n"
+                "* TODO First heading\n:PROPERTIES:\n"
+                ":ID:       12345678-0000-0000-0000-000000000001\n:END:\n"
+                "* Keywordless one\n:PROPERTIES:\n"
+                ":ID:       abcdef01-0000-0000-0000-000000000002\n:END:\n"
+                "* A heading with no id at all\n"))
+      (let* ((claude-code-ide-org-query-files (list tree))
+             (cands (claude-code-ide-org--goto-candidates)))
+        (should (= 2 (length cands)))
+        ;; present, and leading
+        (should (string-prefix-p "12345678" (car (nth 0 cands))))
+        (should (string-match-p "First heading" (car (nth 0 cands))))
+        (should (equal "12345678-0000-0000-0000-000000000001" (cdr (nth 0 cands))))
+        ;; a keywordless heading is a candidate, marked as such
+        (should (string-prefix-p "abcdef01" (car (nth 1 cands))))
+        (should (string-match-p "-" (car (nth 1 cands))))
+        ;; document order is preserved
+        (should (string-match-p "First heading" (car (nth 0 cands))))))))

@@ -127,8 +127,16 @@ Everything else in the list is buildable unattended.
 - **`check-parens` is not a syntax check.** An unescaped `"` inside a
   docstring terminates the string and turns the rest into code while parens
   stay balanced. It happened twice, and cost nine spurious failures the second
-  time. Read forms instead: `(while t (forward-sexp))` from `point-min`
-  reports the line the reader actually gives up on.
+  time. Read forms instead — but **bound the loop**, because
+  `(while t (forward-sexp))` only terminates when the file is *broken*
+  and spins forever on a clean one (found by running it, 2026-08-29):
+
+  ```elisp
+  (while (not (eobp)) (forward-sexp) (skip-chars-forward " \t\n"))
+  ```
+
+  wrapped in `condition-case`, which reports the line the reader actually
+  gives up on and terminates either way.
 - **A mutation that does not parse proves nothing.** Break semantically —
   invert a predicate, return nil — and confirm the run count before the
   failure count.
