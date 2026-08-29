@@ -2,14 +2,14 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 #+STARTUP: logdrawer logdone content
-* TODO [0/20] The code knows more than it says, and asks more than it should :code:
+* TODO [1/20] The code knows more than it says, and asks more than it should :code:
 :PROPERTIES:
 :ID:       b36e6369-a210-4540-adc7-0c0c188e9791
 :CREATED:  [2026-08-28 Fri 17:37]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(915378ac-3bd4-461d-b0f0-83f67fbb3dac 46d225c7-7541-4867-af72-929a572df2a5 c31b6c76-8ad8-45d4-a87b-39e085e31368 5a5e87c9-f432-44c6-a5a6-f6f3755e4347 c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b 2b2db914-c96e-416a-a80a-e31028308de0 c74f8663-b14e-4ab9-ad65-d99cb655b3fa 6cc71c36-0fa6-4773-9b35-c0582f4cee82 98c302e0-ab1b-40bf-92d0-d2f2e16ac05d 9e627dc0-d31b-42cc-857a-b1e5a77f44a5 44cef181-8dac-4735-8860-f123e132fdbc 46e4ce2b-fdc8-447b-ad09-b4845602540f 05c71d99-2839-447b-a536-60eb4bf43b73 8d0716fe-ca88-429d-b46b-e2f880f5b2cc b6e229c7-3035-4c0e-943b-710a12bfd7d1 0086614a-c95c-4618-bba0-c821589dd7f2 5f1068f9-1452-45e4-9253-568edfce2053 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
+:BLOCKER:  ids(46d225c7-7541-4867-af72-929a572df2a5 c31b6c76-8ad8-45d4-a87b-39e085e31368 5a5e87c9-f432-44c6-a5a6-f6f3755e4347 c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b 2b2db914-c96e-416a-a80a-e31028308de0 c74f8663-b14e-4ab9-ad65-d99cb655b3fa 6cc71c36-0fa6-4773-9b35-c0582f4cee82 98c302e0-ab1b-40bf-92d0-d2f2e16ac05d 9e627dc0-d31b-42cc-857a-b1e5a77f44a5 44cef181-8dac-4735-8860-f123e132fdbc 46e4ce2b-fdc8-447b-ad09-b4845602540f 05c71d99-2839-447b-a536-60eb4bf43b73 8d0716fe-ca88-429d-b46b-e2f880f5b2cc b6e229c7-3035-4c0e-943b-710a12bfd7d1 0086614a-c95c-4618-bba0-c821589dd7f2 5f1068f9-1452-45e4-9253-568edfce2053 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 17:38] \\
@@ -102,7 +102,7 @@ Everything else in the list is buildable unattended.
 
 *Members.*
 
-- [ ] [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]] TODO Jump to a heading by title, not by pasting a UUID
+- [X] [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]] DONE Jump to a heading by title, not by pasting a UUID
 - [ ] [[id:46d225c7-7541-4867-af72-929a572df2a5][46d225c7]] TODO Remove queue-append's synthetic-event overrides, dead since the ExitPlanMode hook went
 - [ ] [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]] TODO A clock-report test fails every evening, because its fixture spills past midnight
 - [ ] [[id:5a5e87c9-f432-44c6-a5a6-f6f3755e4347][5a5e87c9]] TODO A duration assertion matches the clocktable's own timestamp, three minutes a day
@@ -451,7 +451,6 @@ Recommend the first. The blocker is not a record of membership; the checkbox lis
 *The case study travels with it.* [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] was planned with five children and had ten two days later, and its plan file still opens "Covers all five children" — true when written, false since, recorded once in a document nobody revises. Any convention that requires editing the container each time a child is added will drift exactly as that plan file did, which is the argument for the strict window: it is *derived* from closing timestamps and so cannot go stale.
 
 
-
 * DONE Assert the two load-bearing Doom settings in bin/check-org-dev-skill :code:
 CLOSED: [2026-08-28 Fri 12:49]
 :PROPERTIES:
@@ -657,14 +656,13 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 *No residue.* Everything named as unfinished during its life was filed as a heading before the heading naming it closed -- a rule this slice produced by breaking it once ([[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]]) and then writing it into CLAUDE.md.
 
 
-* DOING [22/24] Close the gap between what we declare and what the code infers :code:
+* DOING [51/51] Close the gap between what we declare and what the code infers :code:
 :PROPERTIES:
 :CATEGORY: Slices
 :ID:       979e02b6-2a4c-4328-8b08-ffaec03bd02e
 :CREATED:  [2026-08-25 Tue 15:29]
 :COOKIE_DATA: checkbox recursive
 :KIND:     slice
-:BLOCKER:  ids(9651d4c8-6887-4b0a-91d9-562c3bc49a75 478d6ec9-1b99-4c6c-88e9-c793ad4b2f22)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 15:29] \\
@@ -687,9 +685,9 @@ Wherever this project declares something in prose and the code infers it some ot
 - [X] [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]] DONE Revisit the TODO keyword progression, starting with whether PLANNING earns its keep
 - [X] [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]] DONE Generalise :KIND: to every declared heading class, so level stops meaning anything
 - [X] [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] DONE Adopt org-native mechanisms for the heading tiers
-- [ ] [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] TODO Find a convention marking which children a container's plan actually covered
+- [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] CANCELLED Find a convention marking which children a container's plan actually covered
 - [X] [[id:8183fc7c-905e-40c8-81cb-10c56158c6ce][8183fc7c]] DONE org_outline is blind to a slice: scoped to one, it returns a single line
-- [ ] [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] TODO Make the 8-character prefix resolve, for the model and the human alike
+- [X] [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] DONE Make the 8-character prefix resolve, for the model and the human alike
   - [X] [[id:49557477-e50c-496f-85df-82c65109832b][49557477]] DONE Expand an 8-character prefix at both surfaces where a tail gets invented
   - [X] [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] DONE Read a heading's front matter, and take a partial :ID:, without a whole-body read
   - [X] [[id:36b811d9-8bd3-4a32-b67d-39ccfe0d66c1][36b811d9]] DONE Add a tool to set heading properties, starting with :BLOCKER:
@@ -707,10 +705,73 @@ Wherever this project declares something in prose and the code infers it some ot
 - [[orgit-rev:claude-code-ide-org::2301de9][2301de9]] [2026-08-26 Wed 11:24] named the decision and the design question it opens with
 - [X] [[id:e10071b9-88f0-4dc3-af8e-692965c65868][e10071b9]] DONE Assert the two load-bearing Doom settings in bin/check-org-dev-skill
 
+Incidental --- closed between this slice's =:CREATED:= and its close, and
+not planned into it. Strict window ([[id:0086614a][0086614a]]): derived from
+closing timestamps, so no judgement enters and nothing here can go stale.
+Regenerated 2026-08-29 by mapping entries rather than by hand; it sweeps in
+unrelated workstreams -- the ceremony story, the footnote story, the whole
+of the previous slice -- and that is the feature, since the question it
+answers is what *else* was going on.
+
+- [X] [[id:0acc1df2-6916-4180-867a-99bfa551806b][0acc1df2]] DONE Regenerate a slice's depiction from its referents; only membership and order are declared
+- [X] [[id:21c91613-76e0-4590-affe-e2af9f1321ca][21c91613]] DONE Apply consumes queue events with no way to roll one back
+- [X] [[id:241a4c54-ed59-4780-b602-2a86efee978a][241a4c54]] DONE A container entering DOING when a child does is nowhere written down
+- [X] [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] DONE Footnote discipline decays on re-mention; enforce it at Stop
+- [X] [[id:28415ca8-a4ce-43a4-9af6-9ec0e7d5662a][28415ca8]] DONE A slice created without a statistics cookie never gets one, and nothing says so
+- [X] [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] DONE org_amend can only append, so every correction lands furthest from the reader
+- [X] [[id:36481e67-d460-45a4-80b1-d23f209042e4][36481e67]] DONE bin/check-org-dev-skill printed FAIL but exited 0, so no caller could see it
+- [X] [[id:4eb2492e-1791-44c0-8e2b-635dc094b0cf][4eb2492e]] DONE Reuse org's own facilities instead of rebuilding them beside it
+- [X] [[id:5787bfc6-3ba5-4d94-802c-f8a7879de68d][5787bfc6]] DONE The footnote hook's stopReason never reaches the model; the block is opaque
+- [X] [[id:601c885c-7d8c-46d4-af14-0d8d3ea69ba8][601c885c]] DONE bin/lint-org does not assert the two-blank-line separation it now documents
+- [X] [[id:62b65ad0-304b-4cf1-bd95-2f1ecb671d6b][62b65ad0]] DONE Reserve NEXT for use within a container; nominate rather than promote
+- [X] [[id:762b7836-52db-4619-a664-25a09f84da46][762b7836]] DONE Footnote check treats a code fence as prose, so pasted output demands footnotes
+- [X] [[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]] DONE Consolidation only reaches drawers an apply pass happens to touch
+- [X] [[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]] DONE Clear the 36-heading archive backlog, sweeping bodies into :PLAN: unedited
+- [X] [[id:806ff394-3ede-4d67-82aa-9c44fe1cf86e][806ff394]] DONE Nothing stamps the ceremony done, so the prompt relies on a model remembering
+- [X] [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] DONE Evaluate Org's own agenda, sparse-tree and column views against this corpus
+- [X] [[id:8bea4317-c8e7-4939-8224-834bb914d89c][8bea4317]] DONE The cookie inserter appends, but every cookie in the corpus leads
+- [X] [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]] DONE Jump to a heading by title, not by pasting a UUID
+- [X] [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]] DONE Track the human's review attention, clocked by the review command itself
+- [X] [[id:97b030a4-50df-4b8b-a781-bd4acd2931d0][97b030a4]] DONE Bind inhibit-read-only in the apply path, where the human asked for the write
+- [X] [[id:a0abf97d-0f98-42df-9749-e1647b723596][a0abf97d]] DONE Nothing refreshes a slice after apply, so its lines are stale by default
+- [X] [[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]] DONE Prompt the daily ceremony automatically, within what a scheduler can reach
+- [X] [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] DONE Harden the review pass: its cost, its correctness, and its record
+- [X] [[id:daca2a7d-5a7f-4714-96dd-ad10d114db4f][daca2a7d]] DONE All-digit :ID: prefixes were invisible to footnote-check
+- [X] [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]] DONE End every heading with two blank lines, so folded trees are separated
+- [X] [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]] DONE Make the daily ceremony cheap enough that it actually runs
+- [X] [[id:f421c5c3-f81f-4ebf-99c9-42c53cc00558][f421c5c3]] DONE The :PLAN: lint will demand a drawer from a debrief-only heading
+
+- [[orgit-rev:claude-code-ide-org::7b9bd74][7b9bd74]] [2026-08-26 Wed 11:12] opened the slice, replacing c44c2119's prompt
+- [[orgit-rev:claude-code-ide-org::2301de9][2301de9]] [2026-08-26 Wed 11:24] named the decision and the design question it opens with
+- [X] [[id:e10071b9-88f0-4dc3-af8e-692965c65868][e10071b9]] DONE Assert the two load-bearing Doom settings in bin/check-org-dev-skill
+
 Incidental --- closed in the course of this slice, not planned into it. Hand-built 2026-08-28 and limited to what was actually read this session; the generated version is 0086614a.
 
 - [X] [[id:8bea4317-c8e7-4939-8224-834bb914d89c][8bea4317]] DONE The cookie inserter appends, but every cookie in the corpus leads
 - [X] [[id:62b65ad0-304b-4cf1-bd95-2f1ecb671d6b][62b65ad0]] DONE Reserve NEXT for use within a container; nominate rather than promote
+
+-----
+
+*Debrief, drafted 2026-08-29.* Opened [2026-08-25 Tue 15:29] with eleven members and closed with 24 planned and 27 incidental.
+
+*The thesis held and got sharper.* The slice asked where this project *declares* something and its code *infers* it some other way. Four heading classes were named at the outset; three were settled and one was settled by refusing it. The category tier became a =:CATEGORY:= property on the task ([[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]), the slice already declared itself with =:KIND:=, the epic stayed *derived* because declaring an emergent grouping is the error the axis exists to name — and the datetree node turned out to be a case the axis does not cover at all.
+
+*That refusal is the most useful thing the slice produced.* [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]] proposed giving datetree nodes a =:KIND:=. Measured before building: =org-datetree-find-date-create= builds year, month and day inside org, there is no creation hook, and the planned DONE.org datetree would be built by =org-archive-subtree= outside this project entirely. *A datetree node cannot declare itself, because nothing we control creates it.* So the axis governs *our own* conventions; where another system owns the thing, reading the shape it publishes is correct rather than a workaround. CLAUDE.md carries that as a third case now.
+
+*The largest single change was structural.* [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] flattened 190 headings out of a nine-category tier, and the taxonomy that replaced it was chosen from a survey rather than from taste: one label had held 40% of the corpus, and the top six now sit between 12% and 18%. Two findings from that pass generalise — the label with a conjunction in its name was compound, *and so was one without* (=Skill logic= split 21/21), so the conjunction tell points true where it fires and is silent otherwise.
+
+*A keyword was retired on evidence.* [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]] measured =PLANNING= across the project's whole history: 7 transitions in 432, absent from the three busiest days, and 84% of planned work never wore it. The premise it was built on — long spans of agent work in Plan Mode — held for one of seven. Nothing replaced it, deliberately.
+
+*Six tools changed and two were built.* =org_divide= (task mitosis) and =org_set_property= are new; =org_outline= gained front matter at a scoped root, an honest error for an unresolvable id, and stopped orphaning a live child of a finished parent. =claude-code-ide-org-goto= makes an 8-character abbreviation typeable, which closed [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] at ten of ten.
+
+*What the slice taught about itself*, and this is the part worth carrying into the next one. Three conventions were written *because composing this slice broke them*: a member list under a subheading is invisible to the parser and fails to =[0/0]= rather than to an error; a =- [[id:...]]= prose bullet is indistinguishable from a deferred member; and a statistics cookie belongs after the keyword, which the corpus said 13-to-1 while the inserter said otherwise. Each was found by a mechanical check or by a user reading the file — none by re-reading the code.
+
+*One member was cancelled rather than done.* [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] was superseded by [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]]: its gating condition, "an unstated task lifecycle", had become stated, and both questions it deferred were answered by prose written after it.
+
+*Residue: none unfiled.* Everything named as unfinished during the slice's life became a heading — [[id:ff1352b3-2732-4422-9f0d-4b3cb6fd8ff3][ff1352b3]], [[id:c74f8663-b14e-4ab9-ad65-d99cb655b3fa][c74f8663]], [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]], [[id:46d225c7-7541-4867-af72-929a572df2a5][46d225c7]], [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]], [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]], [[id:5f1068f9-1452-45e4-9253-568edfce2053][5f1068f9]], [[id:8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8][8c662dfb]], [[id:dbf70459-bde4-4550-bd81-0d4f9ebc50e3][dbf70459]] — and the successor slice [[id:b36e6369-a210-4540-adc7-0c0c188e9791][b36e6369]] sequences most of them.
+
+*Still to do before this heading is actually closed:* wrap the prospective half into =:PLAN:= with =org_wrap_plan=, seam at this debrief, following [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]]'s precedent.
+
 
 
 * DONE Setting DOING retroactively opens a clock, which the looser sense makes wrong :code:
@@ -7815,11 +7876,16 @@ Ask for it before picking this up.
 *Note this heading is not ungated on the \"task lifecycle\" the user has twice mentioned.* The retention policy is one part of that lifecycle, not the whole of it; the transition rules discussed the same day (a clock starting only at a leaf, a container leaving DOING when all children are terminal) are another part and are recorded against [[id:241a4c54-ed59-4780-b602-2a86efee978a][241a4c54]].
 
 
-* TODO Find a convention marking which children a container's plan actually covered :code:research:
+* CANCELLED Find a convention marking which children a container's plan actually covered :code:research:
+CLOSED: [2026-08-29 Sat 14:15]
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       9651d4c8-6887-4b0a-91d9-562c3bc49a75
 :CREATED:  [2026-08-19 Wed 11:00]
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "TODO"       [2026-08-29 Sat 14:15] \\
+  superseded by 0086614a
 :END:
 
 Wanted: a markup or convention showing which of a container's children
@@ -7889,7 +7955,6 @@ What it does settle is where the answer *cannot* live. If a body may be rewritte
 *Cancelled as superseded, not as unnecessary, and the distinction is load-bearing.* [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]] is still =TODO= and unbuilt, so the capability this heading wanted has a *home* but not yet an implementation. Cancelling this without naming that would leave original-versus-accrued with nowhere to live at all.
 
 *What it leaves behind:* the case study is still good. [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] was planned with five children and had ten two days later, its plan file still opening "Covers all five children" — a fact recorded once in a document nobody revises. That is the shape 0086614a has to beat, and it inherits it.
-
 
 
 * DONE A container entering DOING when a child does is nowhere written down :code:
@@ -8665,11 +8730,22 @@ asserts the refusal instead, across nil, empty and whitespace; removing
 the guard fails it and nothing else.
 
 
-* TODO [9/10] Make the 8-character prefix resolve, for the model and the human alike :code:
+* DONE [10/10] Make the 8-character prefix resolve, for the model and the human alike :code:
+CLOSED: [2026-08-29 Sat 13:55]
 :PROPERTIES:
 :CATEGORY: Tools
 :ID:       478d6ec9-1b99-4c6c-88e9-c793ad4b2f22
 :CREATED:  [2026-08-18 Tue 08:18]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-29 Sat 13:41]--[2026-08-29 Sat 13:42] =>  0:01
+- [2026-08-29 Sat 13:41]--[2026-08-29 Sat 13:42] measure PLANNING against real use
+CLOCK: [2026-08-29 Sat 13:49]--[2026-08-29 Sat 13:56] =>  0:07
+- [2026-08-29 Sat 13:49]--[2026-08-29 Sat 13:56] measure PLANNING against real use
+- State "DONE"       from "TODO"       [2026-08-29 Sat 13:55] \\
+  all ten children closed
+CLOCK: [2026-08-29 Sat 14:14]--[2026-08-29 Sat 14:16] =>  0:02
+- [2026-08-29 Sat 14:14]--[2026-08-29 Sat 14:16] measure PLANNING against real use
 :END:
 
 This project made every heading =:ID:=-addressed, then made *the first
@@ -8728,7 +8804,6 @@ its own decision about grouping rather than being absorbed here.
 *What this unblocks:* [[id:979e02b6-2a4c-4328-8b08-ffaec03bd02e][979e02b6]], which has been blocked on this container and on [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] alone.
 
 *No residue.* Every child closed; nothing was named as unfinished and left unfiled. The one adjacent question raised during the work — whether a body-returning read is a mode on =org_outline= or its own tool — is filed as [[id:ff1352b3-2732-4422-9f0d-4b3cb6fd8ff3][ff1352b3]] rather than left in this body.
-
 
 
 ** DONE Expand an 8-character prefix at both surfaces where a tail gets invented :code:
@@ -8939,7 +9014,8 @@ subtree, or structure — the last being =org_outline= as it stands.
 *Left for its own decision, as this body proposed:* returning a heading's *body*, whole. The primitive exists (=--subtree-text-at-point=) and the scoping is now shared, so it is plumbing — but whether it is a mode on this tool or a separate one is a design question, and this heading's own argument for a small surface cuts both ways.
 
 
-** TODO Jump to a heading by title, not by pasting a UUID :code:
+** DONE Jump to a heading by title, not by pasting a UUID :code:
+CLOSED: [2026-08-29 Sat 13:55]
 :PROPERTIES:
 :ID:       915378ac-3bd4-461d-b0f0-83f67fbb3dac
 :CREATED:  [2026-08-11 Tue 12:02]
@@ -8949,6 +9025,8 @@ CLOCK: [2026-08-18 Tue 08:02]--[2026-08-18 Tue 08:04] =>  0:02
 - [2026-08-18 Tue 08:02]--[2026-08-18 Tue 08:04] assigned at review
 CLOCK: [2026-08-18 Tue 08:08]--[2026-08-18 Tue 08:10] =>  0:02
 - [2026-08-18 Tue 08:08]--[2026-08-18 Tue 08:10] assigned at review
+- State "DONE"       from "TODO"       [2026-08-29 Sat 13:55] \\
+  goto command shipped and proved
 :END:
 
 =org-id-goto= wants the *entire* ID, exactly, and offers no help getting
@@ -9048,7 +9126,6 @@ conversation, while every actual lookup still demands all 36.
 *Not bound to a key.* The command exists and is =M-x=-reachable; choosing a binding is the user's, not something to decide on their behalf in a module they load.
 
 *One incidental worth recording because it bit while verifying this.* The form-reading syntax check written into the previous session prompt — =(while t (forward-sexp))= — only terminates when the file is *broken*, so on a clean file it spins until killed. Corrected there to a bounded =(while (not (eobp)) ...)=. A verification recipe that hangs on success is the same family as the ones [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] collects.
-
 
 
 ** DONE Add a tool to set heading properties, starting with :BLOCKER: :code:
@@ -12724,6 +12801,7 @@ CLOCK: [2026-08-28 Fri 17:34]--[2026-08-28 Fri 17:44] =>  0:10
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-29 Sat 14:19]--[2026-08-29 Sat 14:21] =>  0:02
 CLOCK: [2026-08-29 Sat 13:38]--[2026-08-29 Sat 13:39] =>  0:01
 CLOCK: [2026-08-28 Fri 14:52]--[2026-08-28 Fri 14:54] =>  0:02
 CLOCK: [2026-08-28 Fri 13:51]--[2026-08-28 Fri 13:53] =>  0:02
