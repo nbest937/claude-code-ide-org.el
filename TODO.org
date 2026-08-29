@@ -444,6 +444,13 @@ Everything else in the list is buildable unattended.
 
 Recommend the first. The blocker is not a record of membership; the checkbox list is.
 
+*Inherits [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]], cancelled 2026-08-29 as superseded by this heading.* That one asked for a convention marking which of a *container's* children were in its original plan and which accrued during execution. The planned/incidental split answers the same question one level up — if the slice is the planning unit rather than the container, a container's children were never covered by its plan in the first place.
+
+*So this heading now carries a capability that exists nowhere else*, which raises its stakes: until it is built, original-versus-accrued has no home in the files at all. That is why 9651d4c8 was cancelled as *superseded* rather than as unnecessary.
+
+*The case study travels with it.* [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] was planned with five children and had ten two days later, and its plan file still opens "Covers all five children" — true when written, false since, recorded once in a document nobody revises. Any convention that requires editing the container each time a child is added will drift exactly as that plan file did, which is the argument for the strict window: it is *derived* from closing timestamps and so cannot go stale.
+
+
 
 * DONE Assert the two load-bearing Doom settings in bin/check-org-dev-skill :code:
 CLOSED: [2026-08-28 Fri 12:49]
@@ -7870,6 +7877,19 @@ What it does settle is where the answer *cannot* live. If a body may be rewritte
 *If a link is written despite that, the lifecycle answer follows from the same rule:* it would have to be *generated*, at slice refresh — which already runs in apply's settle phase — and regenerated wholesale each time, exactly as member lines are. Never hand-added at any point, because a hand-added one is stale the moment the slice's membership changes, and slice membership changed twice today.
 
 *Unchanged: the two questions this heading says should not be settled by whoever picks it up first* — whether every follow-on child warrants its own plan, and whether a plan is a maintained document or a dated snapshot execution supersedes. Neither is touched by the above.
+
+*Cancelled 2026-08-29 as superseded by [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]].* The user's reading, checked and confirmed: the "unstated task lifecycle" this heading gated itself on is not unstated any more, and this predates the slice concept that answers it.
+
+*The dates settle the first half.* This was created [2026-08-19 Wed], and every component of that lifecycle postdates it — the =:PLAN:= drawer lifecycle ([[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]], created 08-22), composing slices by reference ([[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]], 08-21), the first slice ([[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]], 08-25), and =org_amend= gaining the ability to *revise* rather than only append ([[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]], closed 08-26). The append-only-to-revision move and the prospective/retrospective split are exactly what "reframes all of it" meant.
+
+*The substance is the stronger argument, though, and it is not about dates.* This heading deferred two questions as unsettleable by whoever picked it up first, and *both are now answered* in CLAUDE.md prose written after it. Whether a plan is a maintained document or a dated snapshot: settled — readers are told to treat =:PLAN:= as an intention that may not have survived contact, which is a snapshot. Whether every follow-on child warrants its own plan: settled — "a task with no separate Plan Mode session simply carries no link, that's expected, not a gap to fill in." Its own gating conditions were met without anyone noticing.
+
+*And the question itself moved up a level.* What this asked for — which children were in the *original plan* versus accrued during execution — is exactly the planned-versus-incidental distinction a *slice* now draws. If the slice is the planning unit rather than the container, a container's children were never "covered by its plan" in the first place, and there is nothing here to mark.
+
+*Cancelled as superseded, not as unnecessary, and the distinction is load-bearing.* [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]] is still =TODO= and unbuilt, so the capability this heading wanted has a *home* but not yet an implementation. Cancelling this without naming that would leave original-versus-accrued with nowhere to live at all.
+
+*What it leaves behind:* the case study is still good. [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] was planned with five children and had ten two days later, its plan file still opening "Covers all five children" — a fact recorded once in a document nobody revises. That is the shape 0086614a has to beat, and it inherits it.
+
 
 
 * DONE A container entering DOING when a child does is nowhere written down :code:
