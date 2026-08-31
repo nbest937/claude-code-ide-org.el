@@ -2,11 +2,43 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 #+STARTUP: logdrawer logdone content
-* An :ID: used as vocabulary stops reading as an :ID:, and the footnote is missed every time :code:
+* TODO Add a body read: return a heading whole, drawers included, and let the caller extract :code:
+:PROPERTIES:
+:ID:       a0028a4e-39cb-4653-83cc-446b810234ac
+:CREATED:  [2026-08-31 Mon 09:48]
+:CATEGORY: Tools
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-31 Mon 09:49] \\
+  the build ff1352b3 decided
+:END:
+
+*The build [[id:ff1352b3-2732-4422-9f0d-4b3cb6fd8ff3][ff1352b3]] decided 2026-08-31*, filed separately because the decision is complete and the implementation is not.
+
+*What it replaces.* Retrieving one heading currently takes three tools and hand-done arithmetic: =grep -n ":ID: 4f8500e6"= to find it, =awk= to locate the next sibling *at the right level* and so compute the subtree's end, then =Read= with the resulting offset and line count. The arithmetic is the fragile part, because the extent depends on finding the next heading at the right depth — which is exactly what org already knows.
+
+*Nearly all plumbing.* =claude-code-ide-org--subtree-text-at-point= already returns a subtree from its heading through its last child without modifying the buffer; it is used on the clocktable path. Scope resolution — full ids, 8-character prefixes, and the shape-based error for an id that resolves to nothing — is shared with =org_outline= since [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]].
+
+*Returns the heading whole, drawers included, and does not filter.* That is the design rather than laziness: the property schema splits two ways, not three ([[id:ff1352b3-2732-4422-9f0d-4b3cb6fd8ff3][ff1352b3]] measured it), so there is no third surface for "metadata". =:CREATED:=, the plan link and the =ARCHIVE_*= provenance all describe *this* heading and travel with it; the caller extracts what it needs.
+
+*Two things to decide while building, neither obvious:*
+
+- *Whether it returns the subtree or only the heading's own body.* The primitive returns the subtree through the last child. For a leaf they are the same, and 92% of level-1 headings are leaves — but for a story the subtree can be hundreds of lines, and "show me this heading" usually means the heading. An argument, or two verbs, or default-to-own-body with an explicit opt-in.
+- *What it does about =:PLAN:=.* Readers are told to skip that drawer. Returning it whole is honest and consistent with the above; suppressing it by default would be the first filtering decision the tool makes, which is the thing this design avoids.
+
+*Deliberately out of scope:* shrinking =org_outline='s front matter. Build this first — at that point the front matter's remaining unique content is about one line, and the question answers itself.
+
+
+* DONE An :ID: used as vocabulary stops reading as an :ID:, and the footnote is missed every time :code:
+CLOSED: [2026-08-31 Mon 08:56]
 :PROPERTIES:
 :ID:       d5490814-d174-480a-a9e7-b809f94d71f2
 :CREATED:  [2026-08-31 Mon 08:50]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+- State "DONE"       from              [2026-08-31 Mon 08:56] \\
+  lesson named in CLAUDE.md
 :END:
 
 *Observed four times in one session, twice on the same pair, for the same reason.* Responses cited =c31b6c76=/=5a5e87c9= as shorthand for *the twin asymmetry* — the pattern where two headings describe the same defect and only one gets scheduled — and the footnote hook refused every one of them.
@@ -26,7 +58,6 @@
 *The name was adopted, not coined.* =twin= is already this project's word for it — four uses, three of them in exactly this sense, and unlike =sibling= (164 uses, and org's own =org-get-next-sibling=) it carries no other meaning here. The user had also already adopted "the twin asymmetry" in conversation. That is [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]]'s lesson applied: it searched for a name, found the term already in the file, and recorded that the session had drifted from it.
 
 *Where it lives:* CLAUDE.md, beside the epic/story/slice vocabulary, not =.claude/rules/org-conventions.md=. The asymmetry bites while *composing* a slice or a session prompt, which is not always with an =.org= file open, and a path-scoped rule that does not load is a rule that does not apply.
-
 
 
 * DONE Reopening a cancelled member retroactively un-completes every closed slice naming it :code:
@@ -113,14 +144,14 @@ CLOSED: [2026-08-31 Mon 08:40]
 *The reasoning, restated in one line for whoever meets this next:* the =:PLAN:= lifecycle protects a reader from a closed *task's* design claims, and a slice makes none — so wrapping one would file true, retrospective prose into a drawer readers are told to skip, which is the inverse of what the lifecycle is for.
 
 
-* TODO [1/24] The code knows more than it says, and asks more than it should :code:
+* TODO [1/25] The code knows more than it says, and asks more than it should :code:
 :PROPERTIES:
 :ID:       b36e6369-a210-4540-adc7-0c0c188e9791
 :CREATED:  [2026-08-28 Fri 17:37]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8 33864a0f-5e13-4235-85a6-0bd9d2fe5252 b7b46a26-2fd6-4784-bed3-d0112a917c0a 46d225c7-7541-4867-af72-929a572df2a5 c31b6c76-8ad8-45d4-a87b-39e085e31368 5a5e87c9-f432-44c6-a5a6-f6f3755e4347 c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b 2b2db914-c96e-416a-a80a-e31028308de0 c74f8663-b14e-4ab9-ad65-d99cb655b3fa 6cc71c36-0fa6-4773-9b35-c0582f4cee82 98c302e0-ab1b-40bf-92d0-d2f2e16ac05d 9e627dc0-d31b-42cc-857a-b1e5a77f44a5 44cef181-8dac-4735-8860-f123e132fdbc 46e4ce2b-fdc8-447b-ad09-b4845602540f 05c71d99-2839-447b-a536-60eb4bf43b73 8d0716fe-ca88-429d-b46b-e2f880f5b2cc b6e229c7-3035-4c0e-943b-710a12bfd7d1 0086614a-c95c-4618-bba0-c821589dd7f2 5f1068f9-1452-45e4-9253-568edfce2053 7c4d6ef6-c914-4d33-b267-cc9158a9f359 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
+:BLOCKER:  ids(c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8 33864a0f-5e13-4235-85a6-0bd9d2fe5252 b7b46a26-2fd6-4784-bed3-d0112a917c0a 46d225c7-7541-4867-af72-929a572df2a5 c31b6c76-8ad8-45d4-a87b-39e085e31368 5a5e87c9-f432-44c6-a5a6-f6f3755e4347 c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b 2b2db914-c96e-416a-a80a-e31028308de0 c74f8663-b14e-4ab9-ad65-d99cb655b3fa a0028a4e-39cb-4653-83cc-446b810234ac 6cc71c36-0fa6-4773-9b35-c0582f4cee82 98c302e0-ab1b-40bf-92d0-d2f2e16ac05d 9e627dc0-d31b-42cc-857a-b1e5a77f44a5 44cef181-8dac-4735-8860-f123e132fdbc 46e4ce2b-fdc8-447b-ad09-b4845602540f 05c71d99-2839-447b-a536-60eb4bf43b73 8d0716fe-ca88-429d-b46b-e2f880f5b2cc b6e229c7-3035-4c0e-943b-710a12bfd7d1 0086614a-c95c-4618-bba0-c821589dd7f2 5f1068f9-1452-45e4-9253-568edfce2053 7c4d6ef6-c914-4d33-b267-cc9158a9f359 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 17:38] \\
@@ -148,6 +179,7 @@ and the open decisions live in the prompt below rather than here.
 - [ ] [[id:c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b][c8a97d9d]] TODO Clearing a buffer's read-only flag for an MCP tool leaves it cleared
 - [ ] [[id:2b2db914-c96e-416a-a80a-e31028308de0][2b2db914]] TODO org_capture swallows a title beginning with a TODO keyword
 - [ ] [[id:c74f8663-b14e-4ab9-ad65-d99cb655b3fa][c74f8663]] TODO org_capture should accept an initial TODO state, so a heading is not keywordless until apply
+- [ ] [[id:a0028a4e-39cb-4653-83cc-446b810234ac][a0028a4e]] TODO Add a body read: return a heading whole, drawers included, and let the caller extract
 - [ ] [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] TODO Six defects in one day, all the same: the code knew more than it said
 - [ ] [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]] TODO "writes 0:09 in 1" reads as two swappable numbers; "in 1" has no unit
 - [ ] [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] TODO Record turns-per-interval as an attention signal, and decide where it surfaces
@@ -162,6 +194,7 @@ and the open decisions live in the prompt below rather than here.
 - [ ] [[id:8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8][8c662dfb]] TODO Sweep the ten longest live bodies into :PLAN: drawers
 - [ ] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] TODO Three verification traps hit repeatedly in one session, none of them caught by a check
 - [ ] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] NEXT Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
+
 
 * TODO org_capture should accept an initial TODO state, so a heading is not keywordless until apply :code:
 :PROPERTIES:
@@ -197,7 +230,6 @@ and the open decisions live in the prompt below rather than here.
 *Still queue-routed:* every *subsequent* transition. This is a creation-time argument only, and =org_set_todo= keeps its behaviour unchanged.
 
 *Note for whoever builds it:* the argument should be optional and default to nothing, so a capture with no state still produces a keywordless heading. That is the current behaviour and some callers want it — a heading captured as a note rather than a task.
-
 
 
 * TODO Three verification traps hit repeatedly in one session, none of them caught by a check :code:
@@ -238,7 +270,8 @@ The trailing =t= is the last form of the =save-excursion=, so the whole expressi
 *And a fifth of the same shape, from the same day, worth recording because it was a write rather than a read.* A splice replaced a region using =body.index(start)= and =body.index(end)= where the end marker sat *earlier* in the string than the start — so =body[:start] + new + body[end:]= silently re-appended everything between them, duplicating a slice's revision links and part of its member list. The cookie went up rather than erroring, which read as plausible on a slice that had just grown. A splice whose markers can be mis-ordered should assert their order; nothing did.
 
 
-* TODO Decide whether returning a heading's whole body is a mode on org_outline or its own tool :code:
+* DONE Decide whether returning a heading's whole body is a mode on org_outline or its own tool :code:
+CLOSED: [2026-08-31 Mon 09:48]
 :PROPERTIES:
 :ID:       ff1352b3-2732-4422-9f0d-4b3cb6fd8ff3
 :CREATED:  [2026-08-28 Fri 17:24]
@@ -247,6 +280,8 @@ The trailing =t= is the last form of the =save-excursion=, so the whole expressi
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 17:24] \\
   surface decision, deliberately not built
+- State "DONE"       from "TODO"       [2026-08-31 Mon 09:48] \\
+  decided: two tools; build filed separately
 :END:
 
 *Filed 2026-08-28 as [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] closed.* That heading shipped *front matter without the body*; its complement — *the body, whole* — was raised in the same analysis and deliberately not built.
@@ -260,6 +295,32 @@ The trailing =t= is the last form of the =save-excursion=, so the whole expressi
 *A third option worth weighing rather than dismissing:* leave it out entirely. =org_amend= can now *revise* a body wholesale, and a reader who needs the prose can be pointed at the heading with =RET= in Emacs. The measured cost was three tools and some awk in one session — real, but small, and the =grep= route is at least honest about what it is doing.
 
 *Do not build it before deciding*, which is why this is filed rather than done: the implementation is an hour and the surface decision outlives it.
+
+*Decided 2026-08-31: two tools, not three, and not a mode.* Add a body read that returns the heading with its drawers; add no front-matter tool; add no mode argument.
+
+*The user's framing is what settled it:* treat the metadata as part of the body and let the agent reason about what to extract — with the counter-argument that the *outline* must carry blockers, since dependency linkage is structure. Both halves are right, and together they decide it.
+
+*The property schema tips the scales, measured across both files:*
+
+| property | n | nature |
+|----------+---+--------|
+| =ID= | 305 | identity; already on every outline line |
+| =CREATED= | 290 | a fact about one heading |
+| =CATEGORY= | 208 | grouping — already expressed as the outline's *grouping*, not as text |
+| =ARCHIVE_TIME/FILE/CATEGORY/TODO/OLPATH= | 63 each | provenance, DONE.org only |
+| =BLOCKER= | 23 | *the only property that names another heading* |
+| =KIND= | 3 | class — already expressed as the outline's *behaviour*: a slice expands its members |
+| =COOKIE_DATA= / =DATE_TREE= / =ARCHIVE= | 3/2/1 | org-facing machinery |
+
+*Exactly one property is relational.* Everything else describes a single heading in isolation or is machinery. So there is no third *kind* of metadata needing its own surface — the split is two-way: **the outline carries relationships, the body carries everything about one heading.**
+
+*Which turns the counter-argument around.* Because blockers belong in the outline and blockers are the only relational property, the outline needs nothing *else* — so the front-matter block added by [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] is the thing that should shrink, not the body read that should be split out of it. Of its five lines, =:CATEGORY:= and =:KIND:= are already implicit in the rendering, =:CREATED:= and the plan link are per-heading facts, and the =:BLOCKER:= value is nearly what =[blocked: ...]= already says — that marker filters to *unfinished*, which is the useful set.
+
+*Not a contradiction of 2d9eeebd's schema-cost argument.* That argued a *mode or flag* is schema paid on every request, which is true and still true. A second tool with its own narrow schema is a different cost, and it is the one this buys.
+
+*Sequenced rather than decided: whether =org_outline='s front matter then shrinks.* Build the body read first; at that point its remaining unique content is about one line, and the question answers itself instead of needing an argument.
+
+*One observation from the same measurement, recorded because it bears on what the tool is for.* Of 145 level-1 headings, *134 are leaves* — 92% — with 11 carrying children. So beneath the ten synthetic =:CATEGORY:= headers the outline is a grouped *list* with eleven small branches, not a tree, and its only grouping is derived from a property rather than from the file. That is the flattening working as designed ("the rendered shape stays identical, only the source changes"), but it means the outline's value is now index, grouping and relationships rather than depth — which is the same conclusion the two-tool split reaches from the other side.
 
 
 * TODO Remove queue-append's synthetic-event overrides, dead since the ExitPlanMode hook went :code:
@@ -388,7 +449,6 @@ The trailing =t= is the last form of the =save-excursion=, so the whole expressi
 *Sequencing reminder from the measurement above:* the *first* sort is a large reordering — 63% of adjacent pairs are already descending, longest run 17 of 135 — so it wants its own commit. Every later run moves one or two entries, because =org_capture= prepends.
 
 
-
 * TODO Sweep the ten longest live bodies into :PLAN: drawers :code:
 :PROPERTIES:
 :ID:       8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8
@@ -455,7 +515,6 @@ This heading's own test is "ask whether the body was ever *revised*; if it was o
 *=02aaae22= is the exception and should be done last, or by a human.* It is also the only container in the list, so its single shrink may be a child moving rather than prose being pared — which is exactly the ambiguity that makes it the one to treat carefully rather than the one to skip.
 
 *The first version of this measurement was wrong in two ways and is recorded because both are the same mistake.* It sampled only the most recent 40 commits — 2026-08-27 onward, five days of a five-week history — and it bounded each body with =find("\\n* ")=, which for a heading *with children* runs past them, so =02aaae22= came out as 5 lines against a true 178. Both errors flattered the answer: a shorter window and a truncated body both hide shrinks. A measurement whose errors all point the same way is worth re-running before it is quoted.
-
 
 
 * TODO Assign advances past the line the human is about to mark :code:
@@ -12905,6 +12964,18 @@ CLOCK: [2026-08-31 Mon 08:38]--[2026-08-31 Mon 08:43] =>  0:05
 - [2026-08-31 Mon 08:38]--[2026-08-31 Mon 08:43] measure PLANNING against real use
 CLOCK: [2026-08-31 Mon 08:52]--[2026-08-31 Mon 08:53] =>  0:01
 - [2026-08-31 Mon 08:52]--[2026-08-31 Mon 08:53] measure PLANNING against real use
+CLOCK: [2026-08-31 Mon 08:54]--[2026-08-31 Mon 09:02] =>  0:08
+- [2026-08-31 Mon 08:54]--[2026-08-31 Mon 09:02] measure PLANNING against real use
+CLOCK: [2026-08-31 Mon 09:05]--[2026-08-31 Mon 09:07] =>  0:02
+- [2026-08-31 Mon 09:05]--[2026-08-31 Mon 09:07] measure PLANNING against real use
+CLOCK: [2026-08-31 Mon 09:10]--[2026-08-31 Mon 09:13] =>  0:03
+- [2026-08-31 Mon 09:10]--[2026-08-31 Mon 09:13] measure PLANNING against real use
+CLOCK: [2026-08-31 Mon 09:21]--[2026-08-31 Mon 09:22] =>  0:01
+- [2026-08-31 Mon 09:21]--[2026-08-31 Mon 09:22] measure PLANNING against real use
+CLOCK: [2026-08-31 Mon 09:27]--[2026-08-31 Mon 09:28] =>  0:01
+- [2026-08-31 Mon 09:27]--[2026-08-31 Mon 09:28] measure PLANNING against real use
+CLOCK: [2026-08-31 Mon 09:46]--[2026-08-31 Mon 09:50] =>  0:04
+- [2026-08-31 Mon 09:46]--[2026-08-31 Mon 09:50] measure PLANNING against real use
 :END:
 
 
@@ -12915,6 +12986,7 @@ CLOCK: [2026-08-31 Mon 08:52]--[2026-08-31 Mon 08:53] =>  0:01
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-31 Mon 10:13]--[2026-08-31 Mon 10:14] =>  0:01
 CLOCK: [2026-08-31 Mon 08:53]--[2026-08-31 Mon 08:54] =>  0:01
 CLOCK: [2026-08-31 Mon 08:50]--[2026-08-31 Mon 08:51] =>  0:01
 CLOCK: [2026-08-29 Sat 14:19]--[2026-08-29 Sat 14:21] =>  0:02

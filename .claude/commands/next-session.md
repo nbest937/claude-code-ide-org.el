@@ -103,7 +103,10 @@ The checklist is already in dependency order, in five phases.
    was consumed by that slice's endgame while listed in this one. Nothing is
    wrong — the checkbox is honest — but it is the reason this phase is
    shorter than the list suggests.
-2. **Stop fighting the tools** — `c8a97d9d`, `2b2db914`, `c74f8663`.
+2. **Stop fighting the tools** — `c8a97d9d`, `2b2db914`, `c74f8663`,
+   `a0028a4e`. The last is the body read `ff1352b3` decided: return a heading
+   whole, drawers included, and let the caller extract. It replaces
+   grep-plus-awk-plus-Read with one call.
    `c8a97d9d` is the largest felt win and the smallest change: its own child
    already bound `inhibit-read-only` in the apply path and the other write
    tools never followed. Measured: the clear/restore dance ran about twelve
@@ -130,8 +133,15 @@ wait for a session with less momentum.
 
 ---
 
-## Two that still need a nod before building
+## One that still needs a nod before building
 
+- ~~`ff1352b3`~~ — **decided 2026-08-31: two tools, not three, and not a
+  mode.** The property schema splits two ways: `BLOCKER` (23) is the only
+  property naming another heading, `CATEGORY` and `KIND` are already expressed
+  as the outline's grouping and behaviour, and everything else describes one
+  heading. So the outline carries relationships and the body carries the rest.
+  Filed as `a0028a4e`. Whether `org_outline`'s front matter then shrinks is
+  sequenced after it, not decided now.
 - ~~`c74f8663`~~ — **decided 2026-08-31: option 1.** `org_capture` gains an
   optional `initial_state` and writes the keyword with the heading. A creation
   has no prior state, so nothing is hidden from the review pass; every
@@ -145,7 +155,7 @@ wait for a session with less momentum.
   timestamp. Moving the datetree to its own file stays open and is not
   foreclosed. The first sort is a large reordering and wants its own commit.
   Buildable unattended.
-- **`8c662dfb`** — *mostly settled 2026-08-31.* Measured across all 472
+- ~~`8c662dfb`~~ — **settled 2026-08-31 by measurement.** Measured across all 472
   commits: **nine of the ten bodies have never lost a line**, so this
   heading's own test ("was it ever revised, or only appended to?") answers
   itself for nine, and compress-then-wrap applies with no per-heading call.
@@ -156,8 +166,6 @@ wait for a session with less momentum.
   the 58 measured. `7771fc63` is the precedent for refusing a plausible guess;
   the new evidence is that `38b92521`'s manifest already computed git-derived
   times for 13 of them and ordered an archive sweep by them.
-- **`ff1352b3`** — not a member, but the same kind: whether a body-returning
-  read is a mode on `org_outline` or its own tool.
 
 Everything else in the list is buildable unattended.
 
