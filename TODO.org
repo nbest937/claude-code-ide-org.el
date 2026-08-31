@@ -5725,7 +5725,7 @@ The children divide by *where the signal has to appear* and *what has to be true
 
 *Born 2026-08-31 by dividing [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]]*, which had grown a shipped half and four open ones inside a single body.
 
-** TODO [0/4] Record turns-per-interval as an attention signal, and decide where it surfaces :code:
+** TODO Show turn count on the span line, where the attention call is made :code:
 :PROPERTIES:
 :CATEGORY: Queue
 :ID:       9e627dc0-d31b-42cc-857a-b1e5a77f44a5
@@ -5748,289 +5748,29 @@ CLOCK: [2026-08-15 Sat 15:17]--[2026-08-15 Sat 15:31] =>  0:14
 - [2026-08-15 Sat 15:17]--[2026-08-15 Sat 15:31] assigned at review
 :END:
 
-Raised by the user 2026-08-15: turns per interval would reflect human
-attention in a way clock duration cannot. Sixty minutes holding 2 turns
-and sixty holding 40 are identical on the clock and entirely different in
-attention — which is this project's second stated goal, not its first.
+Put the turn count on the review buffer's span line, so a human judging an interval can see what the stretch *felt* like without doing arithmetic.
 
-*It is not another set of data points, and that is the strongest argument
-for it.* =resume= events already exist, one per =UserPromptSubmit=. The
-metric is a *view* of data already recorded: no new hook, no new payload
-field, no new failure mode, nothing to keep in sync. That is a materially
-cheaper proposition than anything requiring collection.
+*Why the review line and not the durable record.* The first recommendation was the opposite — annotation only, keep it out of the review buffer — on the reasoning that =:LOGBOOK:= is what a human reads weeks later. That reversed once it was settled that attention intervals are constructed *at review*: if the judgement happens there, that is where the information has to be. The annotation keeps a narrower job and is [[id:95755305-0499-4022-bd75-f325fd6828c7][95755305]].
 
-*Count =resume=, not =pause=.* An interrupted turn emits no =pause= but
-always had a =resume=, so the resume is the robust anchor.
+*Count =resume=, not =pause=.* An interrupted turn emits no =pause= but always had a =resume=, so the resume is the robust anchor.
 
-*Measured 2026-08-15 against this session, because the foundation is worth
-checking before building on it:* 22 =resume= events against ~25
-string-content user messages in the transcript. Close but not equal, and
-the discrepancy is systematic rather than random — harness-injected
-user-role turns (=ToolSearch= "Tool loaded" replies, =/plan= output) and
-mid-turn interjections. Also worth recording so nobody repeats it: the
-transcript holds *276* =type:"user"= entries, almost all tool results. A
-naive count of user messages is off by an order of magnitude.
+*A recall cue, not a metric.* The value of turn density is that it tells the human what a stretch felt like — at the keyboard, or set running and left — quickly enough that they recognise it and move on. A number they must weigh is heavier than a word they can recognise, and lightness wins.
 
-*Three candidate surfaces, in the order they were judged useful:*
+---
 
-1. *The =:LOGBOOK:= annotation line*
-   (=claude-code-ide-org--review-format-annotation=, config.el:3559).
-   This is the answer for genuinely *post hoc* review: queue files are
-   drained and archived, and =:LOGBOOK:= is what a human reads weeks
-   later. Not writing it there means re-deriving it from archives. Costs
-   one token on a line that already exists.
-2. *The review buffer's span-evidence block*
-   (=claude-code-ide-org--span-evidence=, config.el:4525) — available but
-   *partially redundant*. That block already reports absences ("nothing
-   for 12m, 14:03-14:15"), and a gap list is the same signal as a
-   distribution where turns-per-interval is its scalar summary. Judging a
-   single span, the distribution is strictly more informative.
-3. *A clocktable column via =org_clock_report=* — where aggregate
-   post-hoc analysis actually happens, and the one place the scalar wins
-   outright: turns/hour can be averaged across a week, and gap lists
-   cannot be summed at all.
+*Shipped 2026-08-31.* The span line reads =0:11 span, 0:01 in 1 run, 6 turns=. Turn count is the third of three observed quantities, built in one pass with [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]] and [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] because all three bodies asked for that rather than three rewordings of one line.
 
-*Recommendation, not yet decided: annotation only.* Keep it out of the
-review buffer initially, since gaps already serve the review-time
-judgement better and that buffer is already carrying interval, label,
-staleness flags, evidence rows, gap rows and overflow counts. Defer the
-clocktable column until a real report wants it.
+*No new data, exactly as predicted.* =claude-code-ide-org--span-turn-seconds= already returned =(SECONDS . TURNS)=; the count was computed and discarded. The "a view of data already recorded" argument held with nothing to add — no hook, no payload field, no failure mode.
 
-*Cons worth carrying into the decision rather than discovering later.*
+*The foundation was checked before building on it, and the check produced a trap worth keeping.* Measured 2026-08-15: 22 =resume= events against ~25 string-content user messages in that session's transcript. Close but not equal, and the discrepancy is systematic rather than random — harness-injected user-role turns (=ToolSearch= "Tool loaded" replies, =/plan= output) and mid-turn interjections. *And the transcript holds 276 =type:"user"= entries, almost all tool results*: a naive count of user messages is off by an order of magnitude.
 
-- *The count is measured; the inference is the guess.* A turn may be
-  "continue" or three paragraphs of design, and the difference is
-  invisible. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the
-  precedent for retiring a plausible-but-wrong number on exactly this
-  reasoning, and that argument applies here with less force but not zero.
-- *It inverts under autonomy.* A 40-minute agent turn counts 1, the same
-  as "yes". Turns/hour therefore *drops* precisely when the agent is
-  working hardest — correct as a measure of human attention, badly
-  misleading if anyone reads it as productivity. Whatever surface carries
-  the number has to carry that caveat too.
-- *It reads 0 for background and subagent sessions*, which means "not
-  applicable" rather than "no attention", and a bare 0 does not say which.
+*The classifier was deliberately not built.* A dense/sparse label would have satisfied the recall-cue requirement more literally, but it needs a threshold, and a threshold is an invented number laid on a measured one — against which this story's own objection stands. Juxtaposition carries it: =6 turns= beside =0:11 span= reads as "at the keyboard" with nothing invented. The interpretive word is deferred, not rejected, and is a one-line addition if wanted.
 
-*Reframed by the user 2026-08-15, and it inverts one of the cons above.*
-Attention is the *primary* measure for assigning attention intervals post
-hoc — not a supplement to clock duration. Long agent-work intervals do
-reflect agent productivity, but they are precisely the intervals in which
-the human attends to something else: email, post hoc review, or another
-Claude Code session in another project. Intense back-and-forth means the
-human was at the keyboard interpreting responses, often alternating
-between tasks and meta-tasks inside one session. Stated goal: better
-attention-time allocation *at hourly resolution*. Imperfect by
-construction, and that is accepted.
+*Verified:* the suite went 465 to 468 tests, 0 unexpected, exit 0, with the readout rework. Fixing the turn count to a constant fails three tests and nothing else.
 
-*So "it inverts under autonomy" is not a caveat, it is the signal.* The
-con recorded above — that turns/hour drops exactly when the agent works
-hardest — describes the metric working, not failing. A low-turn hour is
-evidence the human's attention was elsewhere, which is the thing being
-measured. The caveat that survives is narrower and worth keeping: the
-number must never be labelled or read as productivity, because it is the
-inverse of it.
+*Left to siblings rather than done here, and each is now a heading rather than a bullet:* the =:LOGBOOK:= annotation ([[id:95755305-0499-4022-bd75-f325fd6828c7][95755305]]), the clocktable column ([[id:97503194-5ef3-4a1e-b25d-676c3cb39eb0][97503194]]), the cross-session allocation problem ([[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]]), where the not-productivity caveat lives ([[id:c4bc5c70-861a-4ce0-80da-c79b6b1600f3][c4bc5c70]]), and the zero-turns ambiguity for background and subagent sessions ([[id:9b5eb830-8825-4d6c-b701-c167c2d71fdf][9b5eb830]]).
 
-*The larger consequence: attention is zero-sum across concurrent
-sessions, so this is an allocation problem, not an annotation problem.*
-If the human was driving session B while session A's agent ground away,
-A's forty minutes should not be credited to A's heading at all — the
-attention belongs to B. Annotating each span with its own turn count is
-the easy half; apportioning an hour among the sessions that were live in
-it is the half that answers the question.
-
-*The data mostly exists, with one specific hole.* Queue files are
-per-session and all land in =~/.claude/org-updates/=, which is
-*user-global*, not per-project — so the directory is already the right
-shape for cross-session comparison. Two things stand in the way:
-
-- *Hooks are project-scoped.* Only sessions in this repo write queue
-  files at all, so today the directory sees one project and cross-project
-  allocation has nothing to compare. Moving hooks to
-  =~/.claude/settings.json= fixes this, which makes
-  [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] a *precondition*
-  for this heading rather than merely a neighbour. Worth noticing that
-  the portability work was motivated for an entirely different reason and
-  turns out to be load-bearing here.
-- *Queue events do not record which project they came from.*
-  =bin/hooks/queue-append= writes ts, kind, id, state, from, note, title,
-  target, tags, text, tool_use_id, session_id, agent_id, agent_type and
-  source — no =cwd=. The hook payload *does* carry =cwd= (verified in a
-  captured =PermissionRequest=, 2026-08-14), so this is one line in the
-  =jq= object rather than new instrumentation. Project is also derivable
-  indirectly, since =~/.claude/projects/<slug>/<session>.jsonl= encodes
-  it, but that is a fragile join where a recorded field is free.
-
-*Hourly resolution is a real simplification, not a hedge.* It means no
-per-minute precision is needed: bucket resume events by hour, per
-session, and compare. An hour with 30 turns in session A and 2 in session
-B allocates to A without needing to decide what happened minute by
-minute.
-
-*Corrected by the user 2026-08-15, on a misreading of "hourly
-resolution" in the entry above.* Hourly buckets are not a bucketing
-scheme. The *attention intervals are constructed manually*, by the human,
-on review of the gathered data. "Hourly" is a rule of thumb for the
-granularity of the answer to "what did I attend to today, roughly" — it
-does not mean splitting anything on the hour for presentation. The
-preceding paragraph proposing to "bucket resume events by hour, per
-session, and compare" describes an automated allocation this project is
-not trying to build.
-
-*Explicit non-goal:* measuring how productive the human was using Claude
-versus not using Claude. Nothing here should be shaped to support that
-comparison.
-
-*So the tool's job is to inform a judgment, not to compute an
-allocation.* Constructing intervals depends on reflection about meatspace
-events this tool cannot capture and never will. What it can capture
-should be as informative and insightful as possible — *moderated by the
-necessity of keeping those judgment calls a lightweight exercise*. That
-moderation is a first-class requirement, not a nicety: a presentation
-that is more accurate but heavier to read is a worse presentation, and
-the tradeoff should be resolved in favour of lightness every time.
-
-*This reverses the "annotation only, keep it out of the review buffer"
-recommendation above.* That recommendation assumed the durable record was
-the point. If the human constructs intervals *at review*, then review is
-where the judgment happens and where the information has to be. The
-annotation's job is narrower: record enough of the outcome and its
-evidence that the call can be revisited without redoing it.
-
-*Two design consequences worth fixing now, before anything is built.*
-
-- *Never present a total that looks complete.* The tool sees Claude
-  sessions and nothing else. Any figure implying a full accounting of the
-  day is wrong in a way that invites trust — and the gaps are precisely
-  where meatspace went, which is the part the human alone can fill.
-- *Report the exceptions, not the measurements.* A dense stretch needs no
-  explanation; the human remembers being at the keyboard. A long sparse
-  stretch is the one that prompts "where was I?", which is the judgment
-  call they have to make anyway. This is not a new principle —
-  =claude-code-ide-org--span-evidence= already reports absences as gaps
-  for exactly this reason, and its docstring says why: "an absence is the
-  more useful half." Turn density should follow the precedent already set
-  in this file rather than adding a parallel one.
-
-*Which suggests the useful form is a recall cue, not a metric.* The value
-of turn density is that it tells the human what a stretch *felt* like —
-at the keyboard, or set running and left — quickly enough that they
-recognise it and move on. A number they must weigh is heavier than a word
-they can recognise, and the requirement above says prefer the lighter one.
-
-*Vocabulary settled 2026-08-15, and the finding is that it was already
-settled and this session drifted from it.* The user observed that "review"
-names two different phases and asked for distinct signifiers. Searching
-for a name turned up one already in the file:
-[[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]], written 2026-08-14,
-is phase 2 — and it quotes the user's own term, "I expect my *attention
-intervals* to be coarser and just a bulk representation of what did I do
-that day." That heading also records that doing it through the review
-buffer does not work, so the two-phase separation had been found; only
-the naming was missing.
-
-Meanwhile "active intervals" appeared exactly twice in the whole repo,
-both in text written *by this session earlier today*. That was a fresh
-coinage competing with an existing term, and it has been corrected to
-"attention intervals" in both places.
-
-*The settled vocabulary, named by artifact rather than by ritual:*
-
-| phase | produces            | lives in    | status    | the act            |
-| 1     | clock intervals     | =:LOGBOOK:= | measured  | apply              |
-| 2     | attention intervals | the agenda  | attested  | the attention pass |
-
-The adjectives carry the distinction that matters: a *clock* interval is
-measured by the agent; an *attention* interval is attested by the human.
-That is exactly the difference between confirming what was observed and
-saying what one was actually doing.
-
-*Rejected: "logbook entry" / "agenda entry",* which was the user's own
-first proposal and closer than anything this session had produced.
-Rejected on three counts: =interval= is the established noun (334 uses
-against zero for =entry=); "agenda entry" collides with org's own meaning,
-where an agenda entry is a TODO appearing in the agenda view rather than a
-span of time, and that collision would be silent; and "logbook entry" is
-literally correct but too narrow, since the drawer also carries state
-lines and annotations while the meaningful product is the interval. The
-instinct to name by artifact was right — the artifacts simply already had
-names.
-
-*Explicitly out of scope, recorded so it is not mistaken for an
-oversight:* predicting or constructing attention intervals automatically,
-given more history, external signals, and practice. That may become
-possible and is not being attempted now. The present goal is only to make
-the human's manual construction better informed and lighter.
-
-*Clarification added 2026-08-15 during a consistency review, because the
-settled vocabulary collided with an org term and produced two ambiguous
-sentences within hours.* "Active" is doing two unrelated jobs:
-
-- *=active= vs =inactive= is a property of an org *timestamp*.*
-  =<2026-08-15 Sat 10:00>= reaches the agenda; =[2026-08-15 Sat 10:00]=
-  does not. This is org's own vocabulary and is not ours to redefine.
-- *=clock= vs =attention= is a property of an *interval*.* A clock
-  interval is measured by the agent; an attention interval is attested by
-  the human.
-
-The two axes are *orthogonal*, and the second is implemented using the
-first: an attention interval is written with active timestamps precisely
-so it reaches the agenda, and clock intervals use inactive ones so they
-do not. That is the mechanism, not a synonym.
-
-So "active interval" is ambiguous in both directions and should not be
-written at all — it was the rejected coinage, and it also reads as "an
-interval whose timestamps are active", which is a true statement about
-attention intervals that says nothing useful. Two sentences in
-[[id:df5afbbd-0eac-4032-be91-17cc22ef0cd7][df5afbbd]] used it in the
-org sense and were rewritten to say "active timestamps" and
-"active-timestamp annotation" instead.
-
-Rule of thumb: say *timestamp* when discussing the mechanism, and
-*interval* when discussing the thing being recorded. If a sentence needs
-both words, it is probably conflating them.
-
-*Re-raised by the user 2026-08-28, and the framing sharpened.* "A series of rapid turns indicates joint attention and continuous reading-thinking-typing on my part while you are working" — so the gaps between turns inside a dense span are *not* idle time that the record correctly declines to claim. They are the human attending. Often two or more topics are interleaved across those turns, belonging to more than one task, which is the allocation problem this heading already names.
-
-*The bloat worry the user attached to it is answered by the body above, which predates it:* turns-per-span is a view of =resume= events already written, not a new datum. Nothing is collected, so nothing can bloat at collection. The only place bloat is a live question is the *surface*, and the surface question is the one this heading's title says is undecided.
-
-*Now coupled to [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]], which settled part of it from the other side.* That heading decided the readout should state the evidence in hand — span envelope, runs, turn count — rather than predict what apply will write. Turn count is therefore no longer an addition to the review buffer being weighed on its merits; it is one of the three things the readout is now supposed to say. The recall-cue requirement recorded above ("a number they must weigh is heavier than a word they can recognise") governs how it is rendered there, and the two should be built in one pass rather than reworded twice.
-
-*Still undecided, and unaffected:* the =:LOGBOOK:= annotation and the clocktable column.
-
-*Partially shipped 2026-08-31 — the review-buffer surface only. This heading stays open.*
-
-Turn count now appears on every suggested span line, as the third of three observed quantities: =0:11 span, 0:01 in 1 run, 6 turns=. Built in one pass with [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]] and [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]], which is what all three bodies asked for.
-
-*Counted from =resume=, as this body specified*, since an interrupted turn emits no =pause= but always had a =resume=. No new datum: =--span-turn-seconds= already returned =(SECONDS . TURNS)= and the count was simply not being surfaced — the "view of data already recorded" argument held up exactly as written.
-
-*The recall-cue requirement is met by juxtaposition, and the classifier was deliberately not built.* This body asks for "a word they can recognise" rather than "a number they must weigh", which argues for labelling a stretch dense or sparse. That needs a threshold, and a threshold is an invented number — against which this body's own objection stands: the count is measured, the inference is the guess, and [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the precedent that a plausible guess is worse than none. =6 turns= beside =0:11 span= already reads as "at the keyboard" without one. *The interpretive word is deferred pending the user's own threshold judgement*, and is a one-line addition if wanted.
-
-*Never presents a total that looks complete*, which this body required: three quantities side by side, none summing to a claim about the day.
-
-*Still open, and unaffected by this:*
-
-- the =:LOGBOOK:= annotation, so the count survives into the durable record once queue files are archived;
-- the clocktable column, where turns/hour could be averaged across a week;
-- and the allocation problem, which is the substantial half — attention is zero-sum across concurrent sessions, and [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] plus a =cwd= field on queue events remain its preconditions.
-
-*One caveat this body demanded, not yet carried anywhere in the UI:* the number must never be read as productivity, because under autonomy it is the inverse of it. Nothing on the review line says so. Worth deciding where that warning lives before the count reaches a second surface.
-
-*The open half is now filed, 2026-08-31, and this heading is a story.* The user asked whether a heading with halves should undergo mitosis. It qualifies — this is a task that outgrew itself, with its undone parts sitting in a swollen body — but the filing is the part that was *owed* regardless: residue named in prose inside a long body is on a path to becoming invisible, which is the rule that makes it a heading rather than a sentence. Having acquired keyworded children it is now a story by definition, precipitated rather than authored.
-
-The four bullets above under "Still open" are superseded by these; read the headings, not the list:
-
-- [[id:95755305-0499-4022-bd75-f325fd6828c7][95755305]] carry the count into the =:LOGBOOK:= annotation
-- [[id:97503194-5ef3-4a1e-b25d-676c3cb39eb0][97503194]] whether =org_clock_report= grows a turns-per-hour column
-- [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] cross-session attention allocation, the substantial half
-- [[id:c4bc5c70-861a-4ce0-80da-c79b6b1600f3][c4bc5c70]] where the not-productivity caveat lives
-
-*Two things deliberately left undone, and they are the judgement half of mitosis rather than an oversight.* The structural move is mechanical and =org_divide= guarantees it; splitting *this* body is not, and CLAUDE.md is explicit that a tool guessing at it would be inventing headings. So:
-
-- *This body is not consumed.* It carries the vocabulary settlement (clock versus attention intervals), the org-timestamp-versus-interval disambiguation, and several of the user's own corrections — including one recording that a coinage made in a single session was competing with an existing term. Which of those belong to a parent, which to a child, and which are project-wide rulings that belong in neither is a call for a human reading them, not for a session tidying up.
-- *The title is not changed*, though it now over-claims: "decide where it surfaces" is answered for one surface and delegated for three.
-
-So this heading is currently a story wearing a leaf's title, which is the inverse of the "epic wearing a child's clothes" case in [[id:b5f94b88-76e3-4a3c-ac73-729f34d33691][b5f94b88]] and worth the same suspicion.
-
+*One thing this heading shipped without:* nothing on the line says the number must never be read as productivity, which under autonomy it inverts. That is [[id:c4bc5c70-861a-4ce0-80da-c79b6b1600f3][c4bc5c70]], and it is a real gap rather than a deferral — the argument that juxtaposition carries the meaning covers a reader building an impression, not one importing a reading from elsewhere.
 
 ** TODO Carry the turn count into the :LOGBOOK: annotation, so it survives queue archiving :code:
 :PROPERTIES:
