@@ -2,11 +2,45 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 #+STARTUP: logdrawer logdone content
-* Reopening a cancelled member retroactively un-completes every closed slice naming it :code:
+* An :ID: used as vocabulary stops reading as an :ID:, and the footnote is missed every time :code:
+:PROPERTIES:
+:ID:       d5490814-d174-480a-a9e7-b809f94d71f2
+:CREATED:  [2026-08-31 Mon 08:50]
+:CATEGORY: Skill
+:END:
+
+*Observed four times in one session, twice on the same pair, for the same reason.* Responses cited =c31b6c76=/=5a5e87c9= as shorthand for *the twin asymmetry* — the pattern where two headings describe the same defect and only one gets scheduled — and the footnote hook refused every one of them.
+
+*The failure is compositional, not one of discipline, which is why "be more careful" is not the fix.* The hook catches it every time, so enforcement is not the gap. What happens is that an id stops being a *reference to a heading* and becomes a *name for a lesson*: "the c31b6c76/5a5e87c9 asymmetry" is one idea, and the two ids are its spelling. Once a token is a name, the writer stops reading it as a citation. It still is one to a reader who does not have the earlier response on screen, which is exactly what the footnote rule protects.
+
+*Distinct from [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]], and the difference is the interesting part.* That heading found footnote discipline decaying on *re-mention*, where "every offender was correct the first time" — the id was cited properly and then abbreviated. Here it is never cited properly, because it was never being used as a citation at all.
+
+*A testable claim, and it held on inspection:* every lesson in this project that has acquired a **name** stops being cited by id. "Declared versus inferred", "in the mail", "silence is not a pass", "a story is precipitated, never authored" — none of these are ever spelled with ids, because they do not need to be. The ones without names are spelled with ids every time, and every spelling is a footnote the writer did not intend to owe.
+
+*It happened a third time in the response that filed this heading*, which is the strongest evidence in it. That response cited the pair as a spelling while arguing that citing them as a spelling is what trips the hook. So *the failure survives knowing about it* — the writer had the mechanism in mind, described it in the same paragraph, and still did not see two ids as two citations.
+
+*And a fourth, of a different kind, in the same exchange.* The reply announcing the third occurrence said "I've added that observation to the body saved in the scratchpad". It had not been; the sentence stood in for the act. That is the shape [[id:46d225c7-7541-4867-af72-929a572df2a5][46d225c7]] was filed for — a source comment reading "Removal is filed" when nothing was — and it belongs here because both happened while writing *about* the discipline they broke.
+
+*Resolved 2026-08-31 by naming the lesson*, which was the first of the two directions and the one the evidence favours: the second makes the citation cheaper, the first makes it unnecessary, and a named pattern can be taught where a footnote can only be looked up.
+
+*The name was adopted, not coined.* =twin= is already this project's word for it — four uses, three of them in exactly this sense, and unlike =sibling= (164 uses, and org's own =org-get-next-sibling=) it carries no other meaning here. The user had also already adopted "the twin asymmetry" in conversation. That is [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]]'s lesson applied: it searched for a name, found the term already in the file, and recorded that the session had drifted from it.
+
+*Where it lives:* CLAUDE.md, beside the epic/story/slice vocabulary, not =.claude/rules/org-conventions.md=. The asymmetry bites while *composing* a slice or a session prompt, which is not always with an =.org= file open, and a path-scoped rule that does not load is a rule that does not apply.
+
+
+
+* DONE Reopening a cancelled member retroactively un-completes every closed slice naming it :code:
+CLOSED: [2026-08-31 Mon 08:32]
 :PROPERTIES:
 :ID:       30a340fd-c216-4231-a8d9-fff83c54b9f8
 :CREATED:  [2026-08-31 Mon 08:26]
 :CATEGORY: Slices
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-31 Mon 08:27] \\
+  closed slices should not be refreshed
+- State "DONE"       from "TODO"       [2026-08-31 Mon 08:32] \\
+  guard shipped, c44c2119 repaired
 :END:
 
 *Observed 2026-08-31, and the user found it by reading the file:* [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] is closed, and one of its members carries an empty checkbox — =[27/28]= on a =DONE= slice.
@@ -38,11 +72,18 @@
 *Note the ordering that made the repair durable.* The guard had to ship *first*: without it the next apply's settle phase would have regenerated both the cookie and the blocker and undone the repair silently. Fixing the record before fixing the mechanism would have looked like it worked.
 
 
-* The :PLAN: lint asks a slice for a drawer it has no prospective half to fill :code:
+* DONE The :PLAN: lint asks a slice for a drawer it has no prospective half to fill :code:
+CLOSED: [2026-08-31 Mon 08:40]
 :PROPERTIES:
 :ID:       f89c912a-2ce5-4f77-b6be-67ae35901e7a
 :CREATED:  [2026-08-31 Mon 08:26]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-31 Mon 08:27] \\
+  lint rule scoped to tasks, not slices
+- State "DONE"       from "TODO"       [2026-08-31 Mon 08:40] \\
+  slices exempt from the PLAN lint
 :END:
 
 *Raised by the user 2026-08-31:* what is the justification for wrapping a slice's pre-closure content into =:PLAN:= and writing a debrief? We did not do it for [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]], and it reads fine as it is.
@@ -277,7 +318,6 @@ The trailing =t= is the last form of the =save-excursion=, so the whole expressi
 *Which is also the argument for =bin/check-elisp=* proposed above: a check that reads forms cannot answer =t= by accident.
 
 *And a fifth of the same shape, from the same day, worth recording because it was a write rather than a read.* A splice replaced a region using =body.index(start)= and =body.index(end)= where the end marker sat *earlier* in the string than the start — so =body[:start] + new + body[end:]= silently re-appended everything between them, duplicating a slice's revision links and part of its member list. The cookie went up rather than erroring, which read as plausible on a slice that had just grown. A splice whose markers can be mis-ordered should assert their order; nothing did.
-
 
 
 * TODO Decide whether returning a heading's whole body is a mode on org_outline or its own tool :code:
@@ -687,7 +727,7 @@ The =420816ec= self-transition is stamped [2026-08-20 Thu 07:49] — *eleven min
 So cc0c17a7 owns "do not queue an event that is already a no-op" and this owns "do not apply an event that has *become* one". Same defect, two clocks, and only the second needs the projection =--review-projected-staleness= already computes.
 
 
-* DONE [27/27] Harden the review pass: its cost, its correctness, and its record
+* DONE [27/28] Harden the review pass: its cost, its correctness, and its record
 CLOSED: [2026-08-26 Wed 11:42]
 :PROPERTIES:
 :CATEGORY: Slices
@@ -695,6 +735,7 @@ CLOSED: [2026-08-26 Wed 11:42]
 :ID:       c44c2119-dbf8-4510-99e2-6aaa7f259d94
 :CREATED:  [2026-08-25 Tue 11:06]
 :COOKIE_DATA: checkbox recursive
+:BLOCKER:  ids(b7b46a26-2fd6-4784-bed3-d0112a917c0a)
 :END:
 :LOGBOOK:
 - State "DOING"      from              [2026-08-25 Tue 11:06] \\
@@ -722,7 +763,7 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 - [X] [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]] DONE Compose slices by reference: a checkbox list of id links, blocked on its members
 - [X] [[id:43201e64-3fe8-4fa6-81f5-d2ab5b65d191][43201e64]] DONE Every orgit link a body adds costs a permanent lint warning
 - [X] [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]] DONE Backfill CLOSED: from the LOGBOOK where the evidence is already in the file
-- [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] TODO Recover a close time from git for the headings with no in-file evidence
+- [ ] [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] TODO Recover a close time from git for the headings with no in-file evidence
 - [X] [[id:31c6ac39-1a06-4b17-8d89-b91fd2628874][31c6ac39]] DONE A sub-minute run is observed work; round it up rather than drop it
 - [X] [[id:111ca40a-3fdb-4106-ad52-991e30737ece][111ca40a]] DONE The review buffer truncated lines the human had to read
 - [X] [[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]] DONE Clear the 36-heading archive backlog, sweeping bodies into :PLAN: unedited
@@ -759,7 +800,8 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 *No residue.* Everything named as unfinished during its life was filed as a heading before the heading naming it closed -- a rule this slice produced by breaking it once ([[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]]) and then writing it into CLAUDE.md.
 
 
-* DOING [48/48] Close the gap between what we declare and what the code infers :code:
+* DONE [48/48] Close the gap between what we declare and what the code infers :code:
+CLOSED: [2026-08-31 Mon 08:40]
 :PROPERTIES:
 :CATEGORY: Slices
 :ID:       979e02b6-2a4c-4328-8b08-ffaec03bd02e
@@ -774,6 +816,8 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
   Auto-promoted: sole remaining TODO in its sibling group.
 - State "DOING"      from "NEXT"       [2026-08-26 Wed 13:03] \\
   members in the mail; grouping now takes no clock
+- State "DONE"       from "DOING"      [2026-08-31 Mon 08:40] \\
+  48 of 48; successor slice composed
 :END:
 
 Wherever this project declares something in prose and the code infers it some other way, make the code read the declaration.
@@ -870,7 +914,6 @@ answers is what *else* was going on.
 *Closed 2026-08-31 without a =:PLAN:= wrap*, reversing the "still to do" line above. The user asked what justified wrapping a slice at all, and the answer turned out to be nothing: [[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]] argued that lifecycle for *tasks*, on the hazard that a closed task's design claims outlive their truth. A slice designs nothing. Wrapping this body would have filed true, retrospective prose into a drawer readers are told to skip — the inverse of what the lifecycle is for. =bin/lint-org= now exempts slices ([[id:f89c912a-2ce5-4f77-b6be-67ae35901e7a][f89c912a]]), so the convention and the check agree.
 
 *Worth recording that the precedent I cited for wrapping did not exist.* I said [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] had a =:PLAN:= drawer. It has none — the claim came from a probe that answered =t= whether or not its search matched, which is now the fourth entry in [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]]. The user caught it by reading the file and saying it read fine as it was.
-
 
 
 * DONE Setting DOING retroactively opens a clock, which the looser sense makes wrong :code:
@@ -12895,6 +12938,25 @@ CLOCK: [2026-08-28 Fri 17:34]--[2026-08-28 Fri 17:44] =>  0:10
 :END:
 
 
+**** 2026-08-31 Monday
+:PROPERTIES:
+:ID:       7fc69994-e8dd-49f2-a88e-481a87ab44e3
+:CREATED:  [2026-08-31 Mon 08:15]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-31 Mon 08:15]--[2026-08-31 Mon 08:17] =>  0:02
+- [2026-08-31 Mon 08:15]--[2026-08-31 Mon 08:17] measure PLANNING against real use
+CLOCK: [2026-08-31 Mon 08:22]--[2026-08-31 Mon 08:23] =>  0:01
+- [2026-08-31 Mon 08:22]--[2026-08-31 Mon 08:23] measure PLANNING against real use
+CLOCK: [2026-08-31 Mon 08:25]--[2026-08-31 Mon 08:34] =>  0:09
+- [2026-08-31 Mon 08:25]--[2026-08-31 Mon 08:34] measure PLANNING against real use
+CLOCK: [2026-08-31 Mon 08:38]--[2026-08-31 Mon 08:43] =>  0:05
+- [2026-08-31 Mon 08:38]--[2026-08-31 Mon 08:43] measure PLANNING against real use
+CLOCK: [2026-08-31 Mon 08:52]--[2026-08-31 Mon 08:53] =>  0:01
+- [2026-08-31 Mon 08:52]--[2026-08-31 Mon 08:53] measure PLANNING against real use
+:END:
+
+
 * Review attention
 :PROPERTIES:
 :CATEGORY: Meta
@@ -12902,6 +12964,8 @@ CLOCK: [2026-08-28 Fri 17:34]--[2026-08-28 Fri 17:44] =>  0:10
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-31 Mon 08:53]--[2026-08-31 Mon 08:54] =>  0:01
+CLOCK: [2026-08-31 Mon 08:50]--[2026-08-31 Mon 08:51] =>  0:01
 CLOCK: [2026-08-29 Sat 14:19]--[2026-08-29 Sat 14:21] =>  0:02
 CLOCK: [2026-08-29 Sat 13:38]--[2026-08-29 Sat 13:39] =>  0:01
 CLOCK: [2026-08-28 Fri 14:52]--[2026-08-28 Fri 14:54] =>  0:02

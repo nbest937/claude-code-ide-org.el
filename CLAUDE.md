@@ -224,6 +224,24 @@ children. A **slice** names members by reference and sequences them.
 Earlier drafts of this file called a story an "epic", which is why
 `:ID:` 2e660571 exists.
 
+**A fourth word, and it names a failure rather than a thing: a
+_twin_.** Two headings that describe the same defect, or the same class
+of work, closely enough that fixing one and not the other is arbitrary.
+**The _twin asymmetry_ is scheduling one and forgetting the other**, and
+it has happened twice in composition: `:ID:` c31b6c76 and `:ID:`
+5a5e87c9 are both time-of-day test flakes and only one reached a slice;
+`:ID:` 5f1068f9 and `:ID:` 33864a0f are "make the file read newest-first
+after archiving" differing only in key, and again only one did — after
+the first case had already been caught and fixed.
+
+**Both were caught by a reader, never by the composer**, which is the
+part worth acting on: a twin asymmetry is invisible from inside the act
+that creates it. So it is a *review* question — "does anything in this
+list have a twin that is not in it?" — rather than a rule composition
+can follow. Note the second escape happened in prose that had *just
+named* the first, so knowing about it is not protection (`:ID:`
+d5490814).
+
 **The axis under both of those, and the one worth carrying:** a grouping
 is either **emergent** or **declared**, and which it is determines the
 mechanism it needs.
