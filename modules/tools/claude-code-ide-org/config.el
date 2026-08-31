@@ -7207,7 +7207,20 @@ content-idempotent; see `claude-code-ide-org--append-to-drawer'."
          (jsonl (expand-file-name (concat session-id ".jsonl") archive))
          (applied (expand-file-name (concat session-id ".applied") archive)))
     (unless (file-exists-p jsonl)
-      (user-error "No archived queue for %s" session-id))
+      ;; The interactive form already builds this list to complete
+      ;; against; a non-interactive caller was told only that its guess
+      ;; was wrong (TODO.org :ID: 6cc71c36).
+      (let ((available (ignore-errors
+                         (mapcar #'file-name-base
+                                 (directory-files archive nil "\\.jsonl\\'")))))
+        (user-error "No archived queue for %s%s" session-id
+                    (if available
+                        (format "; %d archived: %s" (length available)
+                                (string-join
+                                 (mapcar #'claude-code-ide-org--short-id
+                                         (seq-take available 5))
+                                 " "))
+                      "; none are archived"))))
     (rename-file jsonl (claude-code-ide-org--queue-file session-id) t)
     (when (and (file-exists-p applied) (not ignore-watermark))
       (rename-file applied (claude-code-ide-org--queue-watermark-file session-id) t))
@@ -7491,6 +7504,26 @@ all still pending.
 (defun claude-code-ide-org--review-item-at-point ()
   "Return the review item on the current line, or nil."
   (get-text-property (line-beginning-position) 'claude-code-ide-org-item))
+
+(defun claude-code-ide-org--review-no-item-message ()
+  "Why there is no review item on this line, in the reader's terms.
+
+Every command here used to answer \"No review item on this line\" and
+stop, which is true of a group heading, an evidence line, the key
+legend and a blank line alike -- four situations with four different
+next moves.  The buffer already distinguishes them to *draw* them, and
+discarded that on the way out, which is TODO.org :ID: 6cc71c36's whole
+shape."
+  (cond
+   ((eq (get-text-property (line-beginning-position)
+                           'claude-code-ide-org-line)
+        'group)
+    "That is a heading, not an item -- its items are the lines below it")
+   ((save-excursion
+      (beginning-of-line)
+      (looking-at-p "[ \t]*$"))
+    "Blank line -- move onto an item line (`n' steps to the next one)")
+   (t "No review item on this line")))
 
 (defun claude-code-ide-org--review-written-summary (item)
   "Return a short phrase naming what apply will really write for ITEM,
@@ -8222,7 +8255,8 @@ rest from lighting up."
                              (ignore-errors
                                (org-with-point-at marker
                                  (org-no-properties (org-get-heading t t t t)))))))
-            (insert (format "\n%s\n"
+            (insert (propertize
+                     (format "\n%s\n"
                             (cond
                              ;; A span nobody has assigned yet belongs to no
                              ;; heading, so it gets its own group rather than
@@ -8242,7 +8276,12 @@ rest from lighting up."
                                             (claude-code-ide-org--short-id last-id)
                                             title))
                              (t (format "%s  (unresolved)"
-                                        (claude-code-ide-org--short-id last-id))))))))
+                                        (claude-code-ide-org--short-id last-id)))))
+                     ;; Not decoration: it is what lets a refusal say
+                     ;; "that is a heading" instead of the same five
+                     ;; words every other blank line gets. TODO.org
+                     ;; :ID: 6cc71c36.
+                     'claude-code-ide-org-line 'group))))
         (insert (propertize
                  (format "  [%s] %s\n"
                          (if (plist-get item :marked) "x" " ")
@@ -8279,7 +8318,7 @@ in a way it is not elsewhere in this module: this is a genuinely
 interactive command with a human at the keyboard, not an
 `emacsclient -e' call with nobody present to answer."
   (let ((item (claude-code-ide-org--review-item-at-point)))
-    (unless item (user-error "No review item on this line"))
+    (unless item (user-error "%s" (claude-code-ide-org--review-no-item-message)))
     (when (and marked (claude-code-ide-org--review-state-stale-p item))
       (if (y-or-n-p
            (format "Stale: queued %s -> %s, but heading is now %s.  Apply anyway? "
@@ -8460,7 +8499,7 @@ out to be.  This is the last moment it can be corrected before it
 becomes history."
   (interactive)
   (let ((item (claude-code-ide-org--review-item-at-point)))
-    (unless item (user-error "No review item on this line"))
+    (unless item (user-error "%s" (claude-code-ide-org--review-no-item-message)))
     (plist-put item :note
                (read-string "Note: " (or (plist-get item :note) "")))
     ;; No advance: annotating an item does not decide it.
@@ -8491,7 +8530,7 @@ window means that position would otherwise just be lost, and it is
 usually the place the human was reading when they ran the review."
   (interactive)
   (let ((item (claude-code-ide-org--review-item-at-point)))
-    (unless item (user-error "No review item on this line"))
+    (unless item (user-error "%s" (claude-code-ide-org--review-no-item-message)))
     (let ((id (plist-get item :id)))
       ;; An unassigned span names no heading at all, and a capture names
       ;; one that apply has not written yet.  Both are ordinary states
@@ -8547,16 +8586,25 @@ Reads both back as org timestamp strings, so a suggested span can be
 corrected to what actually happened before anything is written."
   (interactive)
   (let ((item (claude-code-ide-org--review-item-at-point)))
-    (unless item (user-error "No review item on this line"))
+    (unless item (user-error "%s" (claude-code-ide-org--review-no-item-message)))
     (unless (eq (plist-get item :type) 'clock)
-      (user-error "Only clock items have an interval to edit"))
+      (user-error "Only a span has an interval to edit; this is a %s item"
+                  (plist-get item :type)))
     (let* ((fmt "[%Y-%m-%d %a %H:%M]")
            (start (read-string "Start: " (format-time-string fmt (plist-get item :start))))
            (end (read-string "End: " (format-time-string fmt (plist-get item :end))))
            (start-time (claude-code-ide-org--parse-org-timestamp start))
            (end-time (claude-code-ide-org--parse-org-timestamp end)))
+      ;; Name the field that failed and echo what was typed. Reporting
+      ;; both as one failure makes a human re-guess which half was
+      ;; wrong, when the parse already knew (TODO.org :ID: 6cc71c36).
       (unless (and start-time end-time)
-        (user-error "Could not parse those timestamps"))
+        (user-error "Could not parse %s"
+                    (string-join
+                     (delq nil
+                           (list (and (not start-time) (format "start %S" start))
+                                 (and (not end-time) (format "end %S" end))))
+                     " or ")))
       ;; Honour the bracket style. `--parse-org-timestamp' is
       ;; `org-time-string-to-time', which reads <...> and [...]
       ;; identically and returns a bare time -- so the one signal a human
@@ -8578,7 +8626,9 @@ corrected to what actually happened before anything is written."
       (plist-put item :active (and (string-prefix-p "<" (string-trim start))
                                    (string-prefix-p "<" (string-trim end))))
       (when (time-less-p end-time start-time)
-        (user-error "End is before start"))
+        (user-error "End %s is before start %s"
+                    (format-time-string fmt end-time)
+                    (format-time-string fmt start-time)))
       ;; Re-scope the backing events to the new endpoints, and offer
       ;; whatever falls outside as fresh items *immediately*.
       ;;
@@ -8854,9 +8904,10 @@ guideposts and still deserve `e' before they are trusted.  Only the
 *heading* was decided here, not the times."
   (interactive)
   (let ((item (claude-code-ide-org--review-item-at-point)))
-    (unless item (user-error "No review item on this line"))
+    (unless item (user-error "%s" (claude-code-ide-org--review-no-item-message)))
     (unless (eq (plist-get item :type) 'clock)
-      (user-error "Only a span can be assigned to a heading"))
+      (user-error "Only a span can be assigned to a heading; this is a %s item"
+                  (plist-get item :type)))
     (let* ((candidates (claude-code-ide-org--assign-candidates
                         (plist-get item :start) (plist-get item :end)))
            (default (and (plist-get item :id)
@@ -8869,7 +8920,8 @@ guideposts and still deserve `e' before they are trusted.  Only the
       (unless (and choice (not (string-empty-p choice)))
         (user-error "No heading chosen; span left unassigned"))
       (let ((id (cdr (assoc choice candidates))))
-        (unless id (user-error "That heading has no :ID:"))
+        (unless id (user-error "%S has no :ID:; it cannot be a span's target"
+                               choice))
         (plist-put item :id id)
         (plist-put item :unassigned nil)
         (plist-put item :assigned t)
@@ -8901,7 +8953,7 @@ Dismisses the events the item was built from, per owning session, and
 touches no org file at all."
   (interactive)
   (let ((item (claude-code-ide-org--review-item-at-point)))
-    (unless item (user-error "No review item on this line"))
+    (unless item (user-error "%s" (claude-code-ide-org--review-no-item-message)))
     (let ((events (plist-get item :events)))
       ;; Nothing to record against means the next refresh would rebuild
       ;; this line unchanged -- better to say so than to appear to work.
@@ -9039,7 +9091,15 @@ that re-evaluates staleness against the file as it now stands."
   (interactive)
   (let ((marked (seq-filter (lambda (i) (plist-get i :marked))
                             claude-code-ide-org--review-items)))
-    (unless marked (user-error "Nothing marked"))
+    (unless marked
+      (user-error "%s"
+                  (let ((n (length claude-code-ide-org--review-items)))
+                    (cond
+                     ((zerop n) "Nothing pending; nothing to apply")
+                     (t (format (concat "Nothing marked, though %d item(s) are "
+                                        "pending -- `m' marks one, `M' marks "
+                                        "all that are markable")
+                                n))))))
     ;; Cleared *outside* the `unwind-protect', because declining signals
     ;; and nothing was cleared to put back.
     (let ((cleared (claude-code-ide-org--review-ensure-writable marked)))

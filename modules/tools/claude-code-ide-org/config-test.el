@@ -6882,6 +6882,61 @@ an MCP call that throws is worse than one that explains."
                        (< seen n)))
       (forward-line 1))))
 
+(ert-deftest claude-code-ide-org-test-review-refusal-names-what-the-line-is ()
+  "A refusal must distinguish the four ways a line can carry no item.
+
+\"No review item on this line\" is true of a group heading, an evidence
+line, the key legend and a blank line alike -- four situations with four
+different next moves. The buffer already tells them apart to draw them,
+and threw that away on the way out, which is the shape TODO.org
+:ID: 6cc71c36 names."
+  (claude-code-ide-org-test--with-review-buffer
+      (list (list :type 'state :id "test-0001" :from "TODO" :to "DOING"
+                  :ts (date-to-time "2026-08-31T09:00:00-0500") :events nil))
+    ;; The group heading sits directly above the first item line.
+    (claude-code-ide-org-test--goto-nth-item 0)
+    (forward-line -1)
+    (should-not (claude-code-ide-org--review-item-at-point))
+    (should (string-match-p "\\`That is a heading"
+                            (claude-code-ide-org--review-no-item-message)))
+    ;; A blank line is a different answer, not the same one.
+    (goto-char (point-min))
+    (forward-line 2)
+    (should (string-match-p "\\`Blank line"
+                            (claude-code-ide-org--review-no-item-message)))))
+
+(ert-deftest claude-code-ide-org-test-review-wrong-type-refusal-names-the-type ()
+  "Refusing `e' or `a' must say what the item IS, not only what it isn't.
+The plist carries the type; the message dropped it."
+  (claude-code-ide-org-test--with-review-buffer
+      (list (list :type 'state :id "test-0001" :from "TODO" :to "DOING"
+                  :ts (date-to-time "2026-08-31T09:00:00-0500") :events nil))
+    (claude-code-ide-org-test--goto-nth-item 0)
+    (dolist (probe (list #'claude-code-ide-org-review-edit-interval
+                         #'claude-code-ide-org-review-assign))
+      (let ((msg (condition-case err (progn (funcall probe) nil)
+                   (user-error (error-message-string err)))))
+        (should msg)
+        (should (string-match-p "this is a state item" msg))))))
+
+(ert-deftest claude-code-ide-org-test-review-apply-with-nothing-marked-says-how-many-pend ()
+  "\"Nothing marked\" is the same sentence whether the buffer is empty or
+full, and the two want opposite next moves. The count is already known."
+  (claude-code-ide-org-test--with-review-buffer
+      (list (list :type 'state :id "test-0001" :from "TODO" :to "DOING"
+                  :ts (date-to-time "2026-08-31T09:00:00-0500") :events nil))
+    (let ((msg (condition-case err
+                   (progn (claude-code-ide-org-review-apply) nil)
+                 (user-error (error-message-string err)))))
+      (should msg)
+      (should (string-match-p "1 item(s) are pending" msg))))
+  (claude-code-ide-org-test--with-review-buffer nil
+    (let ((msg (condition-case err
+                   (progn (claude-code-ide-org-review-apply) nil)
+                 (user-error (error-message-string err)))))
+      (should msg)
+      (should (string-match-p "Nothing pending" msg)))))
+
 (ert-deftest claude-code-ide-org-test-review-assign-keeps-point-on-the-item ()
   "Assigning leaves point on the line it just assigned, because the next
 thing a human does is mark it (TODO.org :ID: a2509a61).  It advanced
