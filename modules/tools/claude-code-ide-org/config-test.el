@@ -6957,6 +6957,80 @@ full, and the two want opposite next moves. The count is already known."
       (should msg)
       (should (string-match-p "Nothing pending" msg)))))
 
+(defmacro claude-code-ide-org-test--with-slice-window (&rest body)
+  "A slice created mid-window, one member and two non-members closed in it.
+One further heading is closed *before* the window opens, so a test can
+tell a window bound from a blanket scan."
+  (declare (indent 0))
+  `(let* ((dir (file-name-as-directory (make-temp-file "ccio-slicewin" t)))
+          (file (expand-file-name "TODO.org" dir))
+          (claude-code-ide-org-query-files (list file))
+          (org-id-locations-file (expand-file-name ".org-id-locations" dir))
+          (org-id-locations (make-hash-table :test 'equal))
+          (org-id-files nil))
+     (unwind-protect
+         (progn
+           (with-temp-file file
+             (insert
+              "#+TODO: TODO NEXT DOING | DONE CANCELLED\n"
+              "* TODO [1/1] A slice\n:PROPERTIES:\n"
+              ":ID:       slice-001\n:KIND:     slice\n"
+              ":CREATED:  [2026-08-20 Thu 09:00]\n:END:\n\n"
+              "- [X] [[id:member-01][member-01]] DONE A planned member\n\n"
+              "* DONE A planned member\nCLOSED: [2026-08-21 Fri 10:00]\n"
+              ":PROPERTIES:\n:ID:       member-01\n:END:\n"
+              "* DONE Incidental one\nCLOSED: [2026-08-21 Fri 11:00]\n"
+              ":PROPERTIES:\n:ID:       incid-001\n:END:\n"
+              "* DONE Incidental two\nCLOSED: [2026-08-22 Sat 12:00]\n"
+              ":PROPERTIES:\n:ID:       incid-002\n:END:\n"
+              "* DONE Closed before the slice existed\nCLOSED: [2026-08-19 Wed 08:00]\n"
+              ":PROPERTIES:\n:ID:       before-01\n:END:\n"))
+           ,@body)
+       (let ((buf (get-file-buffer file)))
+         (when buf (with-current-buffer buf (set-buffer-modified-p nil))
+               (kill-buffer buf)))
+       (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-slice-incidentals-are-the-strict-window ()
+  "Everything closed in the slice's window that it does not already name.
+
+The rule needs no opinion, which is the point: a curated list would take
+a judgement per heading, and a judgement re-made differently each time is
+what this project keeps getting wrong. Derived, so it cannot drift
+(TODO.org :ID: 0086614a)."
+  (claude-code-ide-org-test--with-slice-window
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO \\[1/1\\] A slice")
+      (let ((ids (claude-code-ide-org--slice-incidental-ids)))
+        (should (member "incid-001" ids))
+        (should (member "incid-002" ids))
+        ;; A declared member is not incidental -- that is the whole split.
+        (should-not (member "member-01" ids))
+        ;; Nor is the slice itself, which closes inside its own window.
+        (should-not (member "slice-001" ids))
+        ;; And the window has a lower bound: this one closed the day before.
+        (should-not (member "before-01" ids))))))
+
+(ert-deftest claude-code-ide-org-test-slice-incidental-window-is-bounded-by-close ()
+  "A closed slice's window ends at its own CLOSED:, not at today.
+Otherwise a finished slice would keep absorbing later work as incidental
+-- the same reason `refresh-slice' refuses to touch a closed slice at
+all: a record must not be rewritten by things that happened after it."
+  (claude-code-ide-org-test--with-slice-window
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO \\[1/1\\] A slice")
+      (org-back-to-heading t)
+      ;; `org-entry-put' refuses CLOSED outright -- it is a planning
+      ;; line, not a property -- so it goes in through org's own API.
+      (org-add-planning-info
+       'closed (org-time-string-to-time "[2026-08-21 Fri 23:00]"))
+      (let ((ids (claude-code-ide-org--slice-incidental-ids)))
+        (should (member "incid-001" ids))
+        ;; Closed the day after the slice: outside the window.
+        (should-not (member "incid-002" ids))))))
+
 (ert-deftest claude-code-ide-org-test-stranded-single-point-span-is-dropped ()
   "A lone guidepost with later events behind it must not become an item.
 

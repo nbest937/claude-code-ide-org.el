@@ -3996,6 +3996,65 @@ heading."
                   (setq pending nil)))
                 (forward-line 1)))))))))
 
+(defun claude-code-ide-org--closed-in-window (start end)
+  "Ids of headings whose `CLOSED:\' falls between START and END, inclusive.
+
+Read through `org-map-entries\', which bounds entries by construction --
+a regex over org text gets them wrong, and this scan is the input to a
+list a human reads as fact.
+
+END nil means \"up to now\", which is the case for an open slice.
+Archives are included: work closed during a slice is very often archived
+before the slice is, and a scan blind to DONE.org would report the
+window shrinking as the ceremony ran."
+  (let (ids)
+    (dolist (file (claude-code-ide-org--id-scannable-files) (nreverse ids))
+      (when (file-exists-p file)
+        (org-map-entries
+         (lambda ()
+           (let* ((raw (org-entry-get nil "CLOSED"))
+                  (ts (and raw (ignore-errors
+                                 (claude-code-ide-org--parse-org-timestamp raw))))
+                  (id (org-entry-get nil "ID")))
+             (when (and ts id
+                        (not (time-less-p ts start))
+                        (or (null end) (not (time-less-p end ts))))
+               (push (downcase id) ids))))
+         nil (list file))))))
+
+(defun claude-code-ide-org--slice-incidental-ids ()
+  "Ids closed during the slice-at-point\'s window that it does not name.
+
+*The strict window, and the rule needs no opinion* -- every heading
+closed between the slice\'s `:CREATED:\' and its close, minus its declared
+members and itself. A curated list would need a judgement per heading,
+and a judgement re-made differently each time is the thing this project
+keeps getting wrong; a derived list cannot drift (TODO.org
+:ID: 0086614a).
+
+That this sweeps in genuinely unrelated workstreams is a *feature*: the
+list answers \"what else was going on\", which is the question worth
+asking of a plan. It is also why the list is regenerated rather than
+maintained -- a hand-kept one would be stale by the second day.
+
+Excludes the slice itself, which is closed inside its own window by
+definition, and every id it already names as a member, planned or
+incidental."
+  (save-excursion
+    (org-back-to-heading t)
+    (let* ((created (org-entry-get nil "CREATED"))
+           (start (and created (ignore-errors
+                                 (claude-code-ide-org--parse-org-timestamp created))))
+           (closed (org-entry-get nil "CLOSED"))
+           (end (and closed (ignore-errors
+                              (claude-code-ide-org--parse-org-timestamp closed))))
+           (self (downcase (or (org-entry-get nil "ID") "")))
+           (named (mapcar (lambda (m) (downcase (car m)))
+                          (claude-code-ide-org--slice-members))))
+      (when start
+        (seq-remove (lambda (id) (or (equal id self) (member id named)))
+                    (claude-code-ide-org--closed-in-window start end))))))
+
 (defun claude-code-ide-org--refresh-slice-members-at-point (index)
   "Rewrite the slice-at-point's member lines from INDEX.  Returns a count.
 
