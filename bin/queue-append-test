@@ -247,6 +247,31 @@ line="$(queue_lines sess-a)"
 check "no override leaves id from payload" "id-a" "$(jq -r '.id' <<<"$line")"
 check "no override recovers from from reply" "NEXT" "$(jq -r '.from' <<<"$line")"
 
+# --- a capture carries its initial_state -------------------------------
+# The state field is shared with `todo', but read from a different key:
+# a todo event names it `state', a capture names it `initial_state'. Both
+# land in the same column so the apply path has one place to look.
+# TODO.org :ID: c74f8663.
+reset_queue
+run capture '{"session_id":"sess-a","tool_input":{"title":"H","initial_state":"NEXT"},"tool_response":"Queued capture: \"H\" (ID: id-new) top of file; pending review."}'
+check "capture records initial_state" "NEXT" \
+  "$(jq -r '.state' <<<"$(queue_lines sess-a)")"
+
+# A capture with no initial_state must record null, not the empty string:
+# "no keyword wanted" and "keyword unknown" must not collapse, for the
+# same reason `from' keeps "none" distinct from null.
+reset_queue
+run capture '{"session_id":"sess-a","tool_input":{"title":"H"},"tool_response":"Queued capture: \"H\" (ID: id-new) top of file; pending review."}'
+check "capture without initial_state records null" "null" \
+  "$(jq -r '.state' <<<"$(queue_lines sess-a)")"
+
+# A todo event must not start reading initial_state, and a capture must
+# not start reading state -- the keys are deliberately distinct.
+reset_queue
+run capture '{"session_id":"sess-a","tool_input":{"title":"H","state":"DOING"},"tool_response":"Queued capture: \"H\" (ID: id-new) top of file; pending review."}'
+check "capture ignores a todo-shaped state key" "null" \
+  "$(jq -r '.state' <<<"$(queue_lines sess-a)")"
+
 # --- the post-cutover reply shapes still parse -------------------------
 # The wrappers stopped mutating on 2026-08-11 and their replies changed
 # wording with them. queue-append recovers `from` by sed from that

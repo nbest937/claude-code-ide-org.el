@@ -402,6 +402,25 @@ and the open decisions live in the prompt below rather than here.
 
 *Note for whoever builds it:* the argument should be optional and default to nothing, so a capture with no state still produces a keywordless heading. That is the current behaviour and some callers want it — a heading captured as a note rather than a task.
 
+*Shipped 2026-08-31 as option 1, the decision recorded above.* =org_capture= takes an optional =initial_state= and writes the keyword with the heading. Omitting it still produces a keywordless heading, which the body asked for explicitly — a heading captured as a note rather than a task — and the empty string is treated as omitted rather than writing a bare =* =.
+
+*Validated against the target file's own =#+TODO:= line*, the same gate =org_set_todo= applies and for the same reason: =queue-append= drops any reply starting with =Error:=, so this is the only thing between a bad call and a heading carrying a keyword org does not recognise — which org then reads as *part of the title*, invisibly and permanently. The error names the file's keyword set so the caller can correct itself. A shared =--file-todo-keywords= now reads that set per file, and the leading-keyword guard from [[id:2b2db914-c96e-416a-a80a-e31028308de0][2b2db914]] was refactored onto it rather than keeping a second copy.
+
+*The deferred path carries the keyword too, which is the half that is easy to miss.* A capture whose target file is busy is queued instead of written, and =--capture-write= is deliberately shared by the immediate and apply paths so a deferred capture produces the heading it *would* have produced. That is only true if the state travels with the queued item, so: =bin/hooks/queue-append= records =initial_state= into the event's =state= column, the item parser carries it as =:to=, and =--review-apply-capture= passes it through. The review buffer now renders a pending capture as =capture "NEXT Title"= rather than hiding the keyword until it lands.
+
+*Two keys, deliberately distinct.* A =todo= event names it =state=, a capture names it =initial_state=; they share the queue column so apply has one place to look, but a capture must not pick up a todo-shaped =state= key. Pinned by a =queue-append-test= check, alongside one asserting that a capture with no =initial_state= records =null= rather than the empty string — "no keyword wanted" and "keyword unknown" must not collapse, for the same reason =from= keeps ="none"= distinct from null.
+
+*Verified:* =bin/test= 456 before, 460 after, 0 unexpected, exit 0; =bin/queue-append-test= 76 to 79 =ok=, exit 0.
+
+*Proved to discriminate, once per moving part*, because the three pieces fail independently and a single test would have covered only the first: making =--capture-write= ignore the argument fails the immediate *and* deferred tests (2 unexpected); dropping the state in =--review-apply-capture= fails only the deferred one; disabling the validation fails only the refusal test. All three were full 460-test runs with the run count checked before the failure count.
+
+*The error message from [[id:2b2db914-c96e-416a-a80a-e31028308de0][2b2db914]] now points here* — a title beginning with a keyword says "Reword the title, and pass initial_state if a keyword is what you wanted", which turns a refusal into a redirection.
+
+*CLAUDE.md updated in the same commit.* Its caveat that a =:BLOCKER:= naming a same-session capture is inert was written as unconditional and is now conditional: true when the capture was keywordless, avoidable by passing =initial_state=.
+
+*A last illustration of the cost, from this session.* [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] was captured about twenty minutes before this shipped, and is keywordless on disk with its =TODO= sitting in the queue — the last heading here that will need a round-trip through a human to acquire a keyword.
+
+
 
 * TODO Three verification traps hit repeatedly in one session, none of them caught by a check :code:
 :PROPERTIES:

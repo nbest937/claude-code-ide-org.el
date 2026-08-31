@@ -2467,6 +2467,75 @@ the temp directory afterwards."
            (kill-buffer buf)))
        (delete-directory dir t))))
 
+(ert-deftest claude-code-ide-org-test-capture-writes-initial-state ()
+  "`initial_state' must put the keyword on the heading at creation.
+
+Without it a captured heading is keywordless on disk until a human
+applies the queue, which makes a :BLOCKER: naming it inert -- org-depend
+blocks only on an unfinished TODO keyword -- and makes bin/lint-org
+error, which .githooks/pre-commit refuses. That cost the slice b36e6369
+a commit on 2026-08-28 (TODO.org :ID: c74f8663).
+
+A creation has no prior state, so writing the keyword directly hides no
+transition from the review pass: `State \"TODO\" from \"\"' is noise
+rather than history. Every *subsequent* transition still queues."
+  (claude-code-ide-org-test--with-capture-file
+    (should (string-match-p "\\`Captured: "
+                            (claude-code-ide-org-capture "Task with a state" nil nil nil "NEXT")))
+    (should (string-match-p "^\\* NEXT Task with a state"
+                            (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-capture-without-initial-state-stays-keywordless ()
+  "Omitting it must keep the old behaviour, which some callers want.
+A heading captured as a note rather than a task has no state, and that
+is the default the argument was specified to preserve."
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-capture "Just a note")
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p "^\\* Just a note" disk))
+      ;; Explicitly not any keyword the file declares.
+      (should-not (string-match-p "^\\* [A-Z]+ Just a note" disk))))
+  ;; The empty string must behave as omitted rather than writing "* ".
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-capture "Empty state" nil nil nil "")
+    (should (string-match-p "^\\* Empty state"
+                            (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-capture-refuses-an-unknown-initial-state ()
+  "Validated against the target file's own #+TODO: line, like org_set_todo.
+
+`bin/hooks/queue-append' drops any reply starting with \"Error:\", so
+this is the only gate between a bad call and a heading carrying a
+keyword org does not recognise -- which org then reads as part of the
+title, invisibly and permanently."
+  (claude-code-ide-org-test--with-capture-file
+    (let ((result (claude-code-ide-org-capture "Task" nil nil nil "NOPE")))
+      (should (string-match-p "\\`Error: \"NOPE\" is not a TODO keyword" result))
+      ;; The keyword set is named, so the caller can correct itself.
+      (should (string-match-p "WAITING" result)))
+    (should-not (string-match-p
+                 "Task" (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-deferred-capture-replays-initial-state ()
+  "A capture that deferred must land with the keyword it was given.
+
+The immediate path and the apply path share
+`claude-code-ide-org--capture-write' precisely so a deferred capture
+produces the heading it would have produced had it written through. The
+keyword has to travel with the queued item to make that true, so this
+drives the apply path directly rather than the tool."
+  (claude-code-ide-org-test--with-capture-file
+    (let ((item (list :type 'capture
+                      :id "test-deferred-0001"
+                      :ts (date-to-time "2026-08-31T15:00:00-0500")
+                      :title "Deferred with a state"
+                      :target nil
+                      :tags nil
+                      :to "DOING")))
+      (should-not (claude-code-ide-org--review-apply-capture item))
+      (should (string-match-p "^\\* DOING Deferred with a state"
+                              (claude-code-ide-org-test--disk-contents capture-file))))))
+
 (ert-deftest claude-code-ide-org-test-capture-refuses-a-leading-todo-keyword ()
   "A title starting with a TODO keyword must be refused, not written.
 

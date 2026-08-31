@@ -2318,17 +2318,29 @@ can carry a list at all."
                                 (split-string tags "[ ,:]+" t)))))
     (if names (format " :%s:" (string-join names ":")) "")))
 
-(defun claude-code-ide-org--capture-write (title new-id created spec tags)
+(defun claude-code-ide-org--capture-write (title new-id created spec tags
+                                                 &optional initial-state)
   "Insert TITLE as a heading at SPEC, carrying NEW-ID, CREATED and TAGS.
 Factored out of `claude-code-ide-org-capture' so the immediate path and
 the apply path insert headings through exactly one code path -- a
 deferred capture must produce the same heading it would have produced
-had it written through, and two similar templates would drift."
+had it written through, and two similar templates would drift.
+
+INITIAL-STATE, when given, is written as the heading's TODO keyword.
+Validated by the caller, never here: this function is also the apply
+path, and an event already on the queue must land as recorded rather
+than being re-judged against a keyword set that may have changed since.
+Omitted, the heading is keywordless, which stays the default
+(TODO.org :ID: c74f8663)."
   (let ((org-capture-templates
          (list (list "z" "Claude quick-capture (org_capture MCP tool)"
                      'entry
                      spec
-                     (format "* %%i%s\n:PROPERTIES:\n:ID:       %s\n:CREATED:  %s\n:END:\n"
+                     (format "* %s%%i%s\n:PROPERTIES:\n:ID:       %s\n:CREATED:  %s\n:END:\n"
+                             (if (and initial-state
+                                      (not (string-empty-p initial-state)))
+                                 (concat initial-state " ")
+                               "")
                              (claude-code-ide-org--format-tags tags)
                              new-id created)
                      :immediate-finish t
@@ -2342,6 +2354,21 @@ had it written through, and two similar templates would drift."
                      ;; a different decision nobody has taken.
                      :prepend (eq (car-safe spec) 'file)))))
     (org-capture-string title "z")))
+
+(defun claude-code-ide-org--file-todo-keywords (file)
+  "The TODO keywords FILE's own `#+TODO:' line declares, or nil.
+`org-todo-keywords-1' is buffer-local and derived from that line, and
+capture can target a file other than the capture file when given an
+:ID:, so this must be read per file rather than from a global.
+
+Returns nil for a file that does not exist or cannot be visited, which
+callers must treat as \"unknown\" rather than \"empty\" -- refusing a
+capture on the strength of a keyword set we could not read would be
+worse than the defects these checks guard."
+  (when (and (stringp file) (file-exists-p file))
+    (ignore-errors
+      (with-current-buffer (find-file-noselect file)
+        (append org-todo-keywords-1 nil)))))
 
 (defun claude-code-ide-org--leading-todo-keyword (title file)
   "The TODO keyword TITLE begins with, per FILE's own `#+TODO:' line.
@@ -2359,13 +2386,11 @@ Matched against the whole first *word*, so a title beginning
 \"next\" is not either -- org only reads an exact uppercase keyword as
 a state, and anything stricter would refuse titles org handles fine."
   (let ((first (car (split-string (string-trim (or title "")) "[ \t]+" t))))
-    (when (and first (stringp file) (file-exists-p file))
-      (let ((keywords (ignore-errors
-                        (with-current-buffer (find-file-noselect file)
-                          (append org-todo-keywords-1 nil)))))
-        (car (member first keywords))))))
+    (when first
+      (car (member first (claude-code-ide-org--file-todo-keywords file))))))
 
-(cl-defun claude-code-ide-org-capture (title &optional target tags note)
+(cl-defun claude-code-ide-org-capture (title &optional target tags note
+                                             initial-state)
   "Quick-add TITLE as a new heading via `org-capture'.
 
 Writes a *keyword-less* heading carrying a freshly-generated :ID: and a
@@ -2428,9 +2453,25 @@ else."
              (resolved (claude-code-ide-org--capture-target-spec target))
              (file (plist-get resolved :file))
              (leading (claude-code-ide-org--leading-todo-keyword title file))
+             (initial-state (and initial-state
+                                 (not (string-empty-p initial-state))
+                                 initial-state))
+             (known (and initial-state
+                         (claude-code-ide-org--file-todo-keywords file)))
              (new-id (org-id-new))
              (created (format-time-string "[%Y-%m-%d %a %H:%M]")))
         (cond
+         ;; Validated against the *target file's* own #+TODO: line, the
+         ;; same gate org_set_todo applies, and for the same reason:
+         ;; bin/hooks/queue-append drops any reply starting with
+         ;; "Error:", so this is the only thing standing between a bad
+         ;; call and a heading carrying a keyword org does not recognise
+         ;; -- which reads as part of the title and is invisible after
+         ;; the fact.
+         ((and initial-state known (not (member initial-state known)))
+          (format "Error: \"%s\" is not a TODO keyword in %s; expected one of: %s"
+                  initial-state (file-name-nondirectory file)
+                  (string-join known " ")))
          ;; Refuse rather than escape or silently rename. org parses a
          ;; leading keyword as the heading's *state*, so the heading
          ;; acquires a state nobody gave it and the title quietly loses
@@ -2444,7 +2485,8 @@ else."
                           "which org would read as the heading's state -- the "
                           "title would lose its first word and the heading "
                           "would acquire a state it was never given. "
-                          "Reword the title.")
+                          "Reword the title, and pass initial_state if a "
+                          "keyword is what you wanted.")
                   leading))
          ((claude-code-ide-org--file-busy-p file)
           (format "%s\"%s\" (ID: %s) %s; pending review."
@@ -2452,7 +2494,7 @@ else."
                   title new-id (plist-get resolved :where)))
          (t
           (claude-code-ide-org--capture-write
-           title new-id created (plist-get resolved :spec) tags)
+           title new-id created (plist-get resolved :spec) tags initial-state)
           ;; Registered against the file the target actually resolved to,
           ;; which is not necessarily the capture file: an :ID: target can
           ;; live anywhere org-id knows about.
@@ -5907,6 +5949,7 @@ from a skipped one."
                            :title (plist-get event :title)
                            :target (plist-get event :target)
                            :tags (plist-get event :tags)
+                           :to (plist-get event :state)
                            :note (plist-get event :note)
                            :events (list event))
                      items))
@@ -6808,7 +6851,8 @@ exists to prevent (TODO.org :ID: b5f94b88)."
          id
          (format-time-string "[%Y-%m-%d %a %H:%M]" (plist-get item :ts))
          (plist-get resolved :spec)
-         (plist-get item :tags))
+         (plist-get item :tags)
+         (plist-get item :to))
         (org-id-add-location id (expand-file-name file))
         (with-current-buffer (find-file-noselect file) (save-buffer))
         nil)
@@ -7560,7 +7604,11 @@ a wrong log line."
                                  :where))))
          (format "%scapture %-30s -> %-22s %s   %s"
                  (if where "  " "! ")
-                 (format "\"%s\"" (or (plist-get item :title) "(untitled)"))
+                 (format "%s\"%s\""
+                         (if (plist-get item :to)
+                             (concat (plist-get item :to) " ")
+                           "")
+                         (or (plist-get item :title) "(untitled)"))
                  (or where (format "%s (UNRESOLVED)" (plist-get item :target)))
                  (format-time-string "%m-%d %H:%M" (plist-get item :ts))
                  note)))
@@ -10964,9 +11012,11 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
                  "Quick-add a new heading from TITLE via org-capture, in one "
                  "call instead of hand-writing a heading and then calling "
                  "org-id-get-create separately. The heading is written with "
-                 "an :ID: and a :CREATED: stamp but NO TODO keyword — set "
-                 "its state afterwards with org_set_todo, which queues the "
-                 "transition for review so org logs it natively. "
+                 "an :ID: and a :CREATED: stamp. Pass initial_state to give "
+                 "it a TODO keyword at creation; omit it for a keywordless "
+                 "heading, e.g. a note rather than a task. Every SUBSEQUENT "
+                 "transition still goes through org_set_todo, which queues it "
+                 "for review so org logs it natively. "
                  "Omit it to prepend at the top of the capture file. "
                  "Category is a :CATEGORY: property now, not a heading, so there is "
                  "nothing to file under by that name. "
@@ -10991,7 +11041,11 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
            (:name "note"
             :type string
             :optional t
-            :description "Short 3-10 word reason for capturing this, recorded on the queued event when the write defers.")))
+            :description "Short 3-10 word reason for capturing this, recorded on the queued event when the write defers.")
+           (:name "initial_state"
+            :type string
+            :optional t
+            :description "Optional TODO keyword to write with the heading, e.g. \"TODO\" or \"NEXT\". A creation has no prior state, so there is no transition to log and nothing is hidden from the review pass -- but every later transition must still go through org_set_todo. Without this the heading is keywordless until a human applies the queue, which makes a :BLOCKER: naming it inert and bin/lint-org error. Must be a keyword the target file's own #+TODO: line declares.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-amend

@@ -715,10 +715,13 @@ closing this leave behind", which may belong to no group yet.
 subtree. Name the blocking heading and where it is; a `:BLOCKER:` property
 is the machine-checkable form. A dependency inside the same sibling group
 needs no announcement — anyone reading that group can already see it — but
-a cross-subtree one is invisible from either side. Note that a `:BLOCKER:`
-naming a heading captured in the same session is **inert** until a human
-applies the queue, since `org-depend` blocks only on an unfinished TODO
-keyword and a fresh capture is keywordless on disk.
+a cross-subtree one is invisible from either side. Note that a `:BLOCKER:` naming a
+heading captured in the same session is **inert** until a human applies
+the queue *if that capture was keywordless* — `org-depend` blocks only on
+an unfinished TODO keyword. Since 2026-08-31 `org_capture` takes an
+`initial_state`, so pass one and the blocker bites immediately (`:ID:`
+c74f8663). Omitting it is still right for a note rather than a task, and
+then the old caveat applies unchanged.
 **Rule**: any time a new task is described in conversation, create an org
 heading for it (with a `:ID:`) and set its initial TODO state, rather than
 only tracking it in conversation memory. Same reasoning as above — this is

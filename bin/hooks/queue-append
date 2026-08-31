@@ -210,6 +210,8 @@ line="$(jq -n -c \
                 // (if $recovered_id == "" then null else $recovered_id end))
           end),
      state: (if $kind == "todo" then ($payload.tool_input.state // null)
+             elif $kind == "capture" then
+               ($payload.tool_input.initial_state // null)
              else null end),
      from: (if $kind == "todo" and $recovered_from != "" then $recovered_from
             else null end),
