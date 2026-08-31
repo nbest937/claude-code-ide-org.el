@@ -2,6 +2,23 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
+* TODO org_capture's target refuses an 8-character :ID: prefix that every other tool accepts :code:
+:PROPERTIES:
+:ID:       25e7b083-360b-4282-8fd0-bb768e2a0f13
+:CREATED:  [2026-08-31 Mon 15:45]
+:CATEGORY: Tools
+:END:
+
+*Found 2026-08-31 by using it.* Filing four children under [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] with =(claude-code-ide-org-capture TITLE "9e627dc0" ...)= returned =Error: Cannot find target ID "9e627dc0"= four times. The same prefix resolves fine everywhere else — =org_body=, =org_amend=, =org_set_todo=, =org_outline='s scope — and the capture succeeded immediately when handed the full UUID.
+
+*This is the exact defect =--id-find='s own docstring is a monument to*, recurring at a call site that predates or bypasses it. That docstring records the first version of the fix expanding prefixes inside =--at-id= only, a commit message claiming that therefore covered every tool taking an =id=, and it not being true — =claude-code-ide-org-amend= did its own =org-id-find= first. *Fourteen such call sites existed.* This is a fifteenth, in the *target* argument rather than the =id= argument, which is presumably why the sweep missed it.
+
+*Why it matters more than the keystrokes.* The whole point of prefix expansion is that a caller never has to produce a full UUID, and this project's memory rule is to never type one from recall because nine were fabricated across two sessions with correct prefixes and wrong tails. A tool that demands the full id pushes the caller straight back into the failure mode the expansion exists to remove — and the natural workaround is to type it from memory.
+
+*Where to look:* =claude-code-ide-org--capture-target-spec=. It appears to consult =--id-find= already, so the failure may be a fallback path or an ordering issue rather than a missing call; the error string it produced is not =--id-find='s own wording, which is the thread to pull. Worth checking =org_refile='s =target_id= and =org_divide= for the same shape while there — the twin question this project asks of any list.
+
+*Cheap verification when fixed:* the four captures above, re-run with the prefix, plus a test asserting a prefix target resolves. Note the fixture trap found the same day: =--with-known-ids= leaves its ids unknown to org, so it is the wrong fixture for anything walking =org-id-locations=.
+
 * A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus :code:research:
 :PROPERTIES:
 :ID:       445ec1f1-095a-462b-abbd-7a3a00925ddb
@@ -5547,7 +5564,7 @@ that is almost entirely mislabelled agent activity, which makes the
 cleanup a precondition rather than tidying. Tracked separately.
 
 
-* TODO Record turns-per-interval as an attention signal, and decide where it surfaces :code:
+* TODO [0/4] Record turns-per-interval as an attention signal, and decide where it surfaces :code:
 :PROPERTIES:
 :CATEGORY: Queue
 :ID:       9e627dc0-d31b-42cc-857a-b1e5a77f44a5
@@ -5837,7 +5854,92 @@ Turn count now appears on every suggested span line, as the third of three obser
 
 *One caveat this body demanded, not yet carried anywhere in the UI:* the number must never be read as productivity, because under autonomy it is the inverse of it. Nothing on the review line says so. Worth deciding where that warning lives before the count reaches a second surface.
 
+*The open half is now filed, 2026-08-31, and this heading is a story.* The user asked whether a heading with halves should undergo mitosis. It qualifies — this is a task that outgrew itself, with its undone parts sitting in a swollen body — but the filing is the part that was *owed* regardless: residue named in prose inside a long body is on a path to becoming invisible, which is the rule that makes it a heading rather than a sentence. Having acquired keyworded children it is now a story by definition, precipitated rather than authored.
 
+The four bullets above under "Still open" are superseded by these; read the headings, not the list:
+
+- [[id:95755305-0499-4022-bd75-f325fd6828c7][95755305]] carry the count into the =:LOGBOOK:= annotation
+- [[id:97503194-5ef3-4a1e-b25d-676c3cb39eb0][97503194]] whether =org_clock_report= grows a turns-per-hour column
+- [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] cross-session attention allocation, the substantial half
+- [[id:c4bc5c70-861a-4ce0-80da-c79b6b1600f3][c4bc5c70]] where the not-productivity caveat lives
+
+*Two things deliberately left undone, and they are the judgement half of mitosis rather than an oversight.* The structural move is mechanical and =org_divide= guarantees it; splitting *this* body is not, and CLAUDE.md is explicit that a tool guessing at it would be inventing headings. So:
+
+- *This body is not consumed.* It carries the vocabulary settlement (clock versus attention intervals), the org-timestamp-versus-interval disambiguation, and several of the user's own corrections — including one recording that a coinage made in a single session was competing with an existing term. Which of those belong to a parent, which to a child, and which are project-wide rulings that belong in neither is a call for a human reading them, not for a session tidying up.
+- *The title is not changed*, though it now over-claims: "decide where it surfaces" is answered for one surface and delegated for three.
+
+So this heading is currently a story wearing a leaf's title, which is the inverse of the "epic wearing a child's clothes" case in [[id:b5f94b88-76e3-4a3c-ac73-729f34d33691][b5f94b88]] and worth the same suspicion.
+
+** TODO Carry the turn count into the :LOGBOOK: annotation, so it survives queue archiving :code:
+:PROPERTIES:
+:ID:       95755305-0499-4022-bd75-f325fd6828c7
+:CREATED:  [2026-08-31 Mon 15:44]
+:CATEGORY: Queue
+:END:
+
+Split out of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] 2026-08-31, which shipped the review-buffer surface and named this as still open.
+
+The turn count now appears on the review line, but queue files are drained and archived, and =:LOGBOOK:= is what a human reads weeks later. Not writing it there means re-deriving it from archives — which is possible and is exactly the friction the count exists to remove.
+
+=claude-code-ide-org--review-format-annotation= is the site. The parent's original judgement was "costs one token on a line that already exists", which still looks right.
+
+*Open question inherited rather than settled:* whether the annotation should carry the *envelope* too, now that the review line reports envelope, runs and turns together. An annotation recording only the runs loses the same distinction [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] was filed about, one layer down and where nobody is watching.
+
+** TODO Decide whether org_clock_report grows a turns-per-hour column :code:
+:PROPERTIES:
+:ID:       97503194-5ef3-4a1e-b25d-676c3cb39eb0
+:CREATED:  [2026-08-31 Mon 15:44]
+:CATEGORY: Queue
+:END:
+
+Split out of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] 2026-08-31.
+
+The one place the scalar wins outright, per the parent's own analysis: turns/hour can be averaged across a week, and the gap lists that serve review-time judgement better cannot be summed at all.
+
+*Deliberately still a question, not a task.* The parent deferred it "until a real report wants it", and no report does yet. Filed so the deferral is visible rather than buried in a long body; closing it as =CANCELLED= is a perfectly good outcome if the aggregate never gets asked for.
+
+*Carries the parent's caveat*, which is sharper here than anywhere: turns/hour *drops* precisely when the agent works hardest, so a column labelled anything productivity-adjacent would invert its own meaning. See [[id:c4bc5c70-861a-4ce0-80da-c79b6b1600f3][c4bc5c70]].
+
+** TODO Allocate attention across concurrent sessions, which is zero-sum :code:
+:PROPERTIES:
+:ID:       b862fbf4-53b8-48b5-b773-1c7c0332dfb4
+:CREATED:  [2026-08-31 Mon 15:44]
+:CATEGORY: Queue
+:END:
+
+Split out of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] 2026-08-31. *The substantial half, and the one that actually answers the question the parent was asked.*
+
+Attention is zero-sum across concurrent sessions. If the human was driving session B while session A's agent ground away, A's forty minutes should not be credited to A's heading at all — the attention belongs to B. Annotating each span with its own turn count is the easy half; apportioning an hour among the sessions live in it is the half that answers "what did I attend to".
+
+*Two preconditions, both recorded in the parent and neither met:*
+
+- *Hooks are project-scoped*, so only sessions in this repo write queue files and the directory sees one project. [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] is therefore a *precondition* rather than a neighbour — portability work motivated for an entirely different reason that turns out to be load-bearing here.
+- *Queue events record no =cwd=.* The hook payload carries one (verified 2026-08-14), so this is one line in the =jq= object rather than new instrumentation. Deriving project from =~/.claude/projects/<slug>/<session>.jsonl= is a fragile join where a recorded field is free.
+
+*The shape of the answer is constrained, and the constraint is the parent's:* the tool informs a judgement, it does not compute an allocation. Attention intervals are constructed manually by the human on review; "hourly resolution" is a rule of thumb for how coarse the answer needs to be, *not* a bucketing scheme, and an earlier paragraph proposing to bucket resume events by hour was corrected as describing an automation this project is not trying to build.
+
+*Whatever is built must not present a total that looks complete* — the tool sees Claude sessions and nothing else, and the gaps are exactly where meatspace went.
+
+*Newly relevant:* [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]], where the user concluded much of the logged activity is bogus. Cross-session allocation is one of the few things that could make a span's attribution *verifiable* rather than merely plausible, so this heading may be more load-bearing for that A/B than it looked when the parent filed it.
+
+** TODO Decide where the caveat lives that turn count is not productivity :code:
+:PROPERTIES:
+:ID:       c4bc5c70-861a-4ce0-80da-c79b6b1600f3
+:CREATED:  [2026-08-31 Mon 15:44]
+:CATEGORY: Queue
+:END:
+
+Split out of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] 2026-08-31, where it is a demand the parent makes and nothing yet satisfies.
+
+*The claim:* turn count must never be labelled or read as productivity, because under autonomy it is the *inverse* of it. A forty-minute agent turn counts 1, the same as "yes", so turns/hour drops precisely when the agent is working hardest. The parent settled that this is the metric *working* rather than failing — a low-turn hour is evidence the human's attention was elsewhere, which is the thing being measured — but that reading is not self-evident from a bare number.
+
+*Nothing on the review line says any of this.* =0:11 span, 0:01 in 1 run, 6 turns= shipped 2026-08-31 with no caveat attached, on the argument that juxtaposition carries the meaning and that a classifier would need an invented threshold. That argument covers the *recall-cue* reading; it does not cover a reader who imports a productivity reading from elsewhere.
+
+*Worth deciding before the count reaches a second surface*, since a =:LOGBOOK:= annotation ([[id:95755305-0499-4022-bd75-f325fd6828c7][95755305]]) or a clocktable column ([[id:97503194-5ef3-4a1e-b25d-676c3cb39eb0][97503194]]) is read further from context than a review line is, and a column heading is exactly where a productivity reading would attach.
+
+*Candidate answers, none chosen:* the review buffer's key legend; the tool descriptions; a line in CLAUDE.md's session-tracking section; or nowhere, on the grounds that the only reader is the person who set the convention. The last is a real option — this project has one user — and it should be rejected on evidence rather than reflex.
+
+*Related:* [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the standing precedent that a plausible-but-wrong number is worse than no number, which is the same worry one step earlier: here the number is right and the *reading* is what goes wrong.
 
 * TODO Record the originating project in queue events :code:
 :PROPERTIES:
