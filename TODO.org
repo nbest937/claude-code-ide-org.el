@@ -2,11 +2,31 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
-* Adding a just-captured heading to a slice cannot be made lint-clean :code:
+* Nothing watches a REVIEW heading, and it is the state most easily forgotten :code:
+:PROPERTIES:
+:ID:       43aa25b2-1e21-4117-bf15-b92f3081b60d
+:CREATED:  [2026-08-31 Mon 12:35]
+:CATEGORY: Meta
+:END:
+
+=REVIEW= means finished work handed back for human judgement. Nothing in this project surfaces one, and it is structurally the state most likely to be forgotten: nothing is owed from our side, no clock runs, and no next action is missing -- so every existing nag looks straight past it.
+
+*Measured 2026-08-31, on the day the corpus got its first.* The three =SessionStart= reports cover stale open intervals, the daily ceremony, and containers whose live members include no =NEXT=. A top-level =REVIEW= heading trips none of them. Before today the corpus held *zero* live =REVIEW= headings, which is why the gap has never been felt -- the keyword has been in use since 2026-08-21 and every heading that wore it passed straight through.
+
+*What made it visible.* [[id:29734f79-e698-43dd-abf8-14bc86b8b0ae][29734f79]] went to =REVIEW= because its code shipped but its trigger has never fired on its own, and the only thing that closes it is a human noticing whether it does. Asked what would watch it, the answer turned out to be *slice membership and nothing else* -- and that is incidental, since a heading only lands in a slice if someone puts it there. It was added to [[id:b36e6369-a210-4540-adc7-0c0c188e9791][b36e6369]] for exactly that reason.
+
+*The obvious shape*, if it survives scrutiny: a fourth =SessionStart= line naming =REVIEW= headings and how long they have sat, on the same contract as the others -- state the fact, ask, propose nothing. Note the existing reports all answer "something is owed"; this one answers "something is finished and unjudged", which is a different question and may deserve different wording rather than a fourth bullet in the same breath.
+
+Worth deciding at the same time: whether =REVIEW= aging past some span is itself worth saying, since the keyword is still marked experimental ([[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]) and this is the first evidence about how it behaves in practice.
+
+* TODO Adding a just-captured heading to a slice cannot be made lint-clean :code:
 :PROPERTIES:
 :ID:       2d2211d5-97c3-4f69-8175-40df90d1db8a
 :CREATED:  [2026-08-31 Mon 12:14]
 :CATEGORY: Slices
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-31 Mon 12:14]
 :END:
 
 Adding a heading to a slice in the same session that captured it cannot be made lint-clean, and the workflow that would avoid it was never chosen.
@@ -19,11 +39,15 @@ Hit again 2026-08-31 while composing, costing a full revert and a wait on the hu
 
 The cheapest candidate is procedural and costs nothing to write: state in the slice convention (=.claude/rules/org-conventions.md=) that a member is applied before it is added. The alternative is mechanical -- let a slice carry a member it cannot yet block on, and have the lint say so as a warning rather than an error -- which is more work and weakens a rule that is otherwise exactly right.
 
-* An archive pass wrote one subtree twice, and the mechanism is still unknown :code:
+
+* TODO An archive pass wrote one subtree twice, and the mechanism is still unknown :code:
 :PROPERTIES:
 :ID:       381ea07d-633f-4640-abbb-89472a07acba
 :CREATED:  [2026-08-31 Mon 12:14]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-31 Mon 12:14]
 :END:
 
 On 2026-08-31 a live archive pass reported 65 and wrote 66. One story and its six children landed twice in DONE.org, ids and all. It is guarded but not understood.
@@ -35,6 +59,7 @@ On 2026-08-31 a live archive pass reported 65 and wrote 66. One story and its si
 *What stands in for a fix.* =claude-code-ide-org-archive-finished= now checks the result rather than the method: after a sweep, no =:ID:= may appear twice in the archive target, or it signals -- which the ceremony turns into a held repeater and a reported failure. Every other signal looked right at the time, the count and the levels included; only counting ids found it.
 
 Worth attempting first: re-run the sweep against a buffer put through the same sequence -- revert, consolidate, normalise, then archive -- to see whether the combination is what does it.
+
 
 * TODO [0/2] Make an archived day hold that day's record :code:
 :PROPERTIES:
@@ -129,7 +154,7 @@ Move every =Review and planning= datetree node dated the previous day or older i
 Once the sibling heading refiles =* Review attention='s old LOGBOOK entries into dated clones, those clones are placed by this same pass.
 
 
-* TODO The ceremony prompt goes quiet on evidence of its first step, and never reports its own completion :code:
+* REVIEW The ceremony prompt goes quiet on evidence of its first step, and never reports its own completion :code:
 :PROPERTIES:
 :ID:       29734f79-e698-43dd-abf8-14bc86b8b0ae
 :CREATED:  [2026-08-31 Mon 10:28]
@@ -142,6 +167,8 @@ CLOCK: [2026-08-31 Mon 10:27]--[2026-08-31 Mon 10:29] =>  0:02
 - [2026-08-31 Mon 10:27]--[2026-08-31 Mon 10:29] measure PLANNING against real use
 - State "TODO"       from              [2026-08-31 Mon 10:28] \\
   quiet test and completion report
+- State "REVIEW"     from "DOING"      [2026-08-31 Mon 12:20]
+- State "DOING"      from "TODO"       [2026-08-31 Mon 12:20]
 :END:
 
 *Found 2026-08-31 by the user asking whether the ceremonies would run at the next session start.* They will not, and the reason is a seam rather than a bug.
@@ -183,7 +210,6 @@ Apply is human-only because org's native state-change logging completes only ins
 *Why =REVIEW= and not =DONE=.* Every ceremony run this session was invoked by hand. The =quit-window= advice has never fired on its own, and it cannot be made to before [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] next comes due, because apply is human-only by design. Nothing is owed from this side; what is left is the user seeing it fire, or not, and saying so.
 
 
-
 * TODO Add a body read: return a heading whole, drawers included, and let the caller extract :code:
 :PROPERTIES:
 :ID:       a0028a4e-39cb-4653-83cc-446b810234ac
@@ -211,14 +237,14 @@ Apply is human-only because org's native state-change logging completes only ins
 *Deliberately out of scope:* shrinking =org_outline='s front matter. Build this first — at that point the front matter's remaining unique content is about one line, and the question answers itself.
 
 
-* TODO [1/27] The code knows more than it says, and asks more than it should :code:
+* TODO [1/28] The code knows more than it says, and asks more than it should :code:
 :PROPERTIES:
 :ID:       b36e6369-a210-4540-adc7-0c0c188e9791
 :CREATED:  [2026-08-28 Fri 17:37]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8 33864a0f-5e13-4235-85a6-0bd9d2fe5252 b7b46a26-2fd6-4784-bed3-d0112a917c0a 46d225c7-7541-4867-af72-929a572df2a5 c31b6c76-8ad8-45d4-a87b-39e085e31368 5a5e87c9-f432-44c6-a5a6-f6f3755e4347 c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b 2b2db914-c96e-416a-a80a-e31028308de0 c74f8663-b14e-4ab9-ad65-d99cb655b3fa 72463b68-9f08-44b2-8213-87f71298138d a0028a4e-39cb-4653-83cc-446b810234ac 6cc71c36-0fa6-4773-9b35-c0582f4cee82 98c302e0-ab1b-40bf-92d0-d2f2e16ac05d 9e627dc0-d31b-42cc-857a-b1e5a77f44a5 44cef181-8dac-4735-8860-f123e132fdbc 46e4ce2b-fdc8-447b-ad09-b4845602540f 05c71d99-2839-447b-a536-60eb4bf43b73 8d0716fe-ca88-429d-b46b-e2f880f5b2cc b6e229c7-3035-4c0e-943b-710a12bfd7d1 a2509a61-4e21-4d8e-8f58-c87935753472 0086614a-c95c-4618-bba0-c821589dd7f2 5f1068f9-1452-45e4-9253-568edfce2053 7c4d6ef6-c914-4d33-b267-cc9158a9f359 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
+:BLOCKER:  ids(c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8 33864a0f-5e13-4235-85a6-0bd9d2fe5252 b7b46a26-2fd6-4784-bed3-d0112a917c0a 46d225c7-7541-4867-af72-929a572df2a5 c31b6c76-8ad8-45d4-a87b-39e085e31368 5a5e87c9-f432-44c6-a5a6-f6f3755e4347 c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b 2b2db914-c96e-416a-a80a-e31028308de0 c74f8663-b14e-4ab9-ad65-d99cb655b3fa 72463b68-9f08-44b2-8213-87f71298138d a0028a4e-39cb-4653-83cc-446b810234ac 6cc71c36-0fa6-4773-9b35-c0582f4cee82 29734f79-e698-43dd-abf8-14bc86b8b0ae 98c302e0-ab1b-40bf-92d0-d2f2e16ac05d 9e627dc0-d31b-42cc-857a-b1e5a77f44a5 44cef181-8dac-4735-8860-f123e132fdbc 46e4ce2b-fdc8-447b-ad09-b4845602540f 05c71d99-2839-447b-a536-60eb4bf43b73 8d0716fe-ca88-429d-b46b-e2f880f5b2cc b6e229c7-3035-4c0e-943b-710a12bfd7d1 a2509a61-4e21-4d8e-8f58-c87935753472 0086614a-c95c-4618-bba0-c821589dd7f2 5f1068f9-1452-45e4-9253-568edfce2053 7c4d6ef6-c914-4d33-b267-cc9158a9f359 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 17:38] \\
@@ -249,6 +275,7 @@ and the open decisions live in the prompt below rather than here.
 - [ ] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] TODO MCP tools that write an org file time out; one reports success and persists nothing
 - [ ] [[id:a0028a4e-39cb-4653-83cc-446b810234ac][a0028a4e]] TODO Add a body read: return a heading whole, drawers included, and let the caller extract
 - [ ] [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] TODO Six defects in one day, all the same: the code knew more than it said
+- [-] [[id:29734f79-e698-43dd-abf8-14bc86b8b0ae][29734f79]] REVIEW The ceremony prompt goes quiet on evidence of its first step, and never reports its own completion
 - [ ] [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]] TODO "writes 0:09 in 1" reads as two swappable numbers; "in 1" has no unit
 - [ ] [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] TODO Record turns-per-interval as an attention signal, and decide where it surfaces
 - [ ] [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] TODO A span's headline interval is not the interval it writes
@@ -7723,6 +7750,10 @@ CLOCK: [2026-08-31 Mon 12:02]--[2026-08-31 Mon 12:03] =>  0:01
 - [2026-08-31 Mon 12:02]--[2026-08-31 Mon 12:03] measure PLANNING against real use
 CLOCK: [2026-08-31 Mon 12:05]--[2026-08-31 Mon 12:10] =>  0:05
 - [2026-08-31 Mon 12:05]--[2026-08-31 Mon 12:10] measure PLANNING against real use
+CLOCK: [2026-08-31 Mon 12:13]--[2026-08-31 Mon 12:15] =>  0:02
+- [2026-08-31 Mon 12:13]--[2026-08-31 Mon 12:15] measure PLANNING against real use
+CLOCK: [2026-08-31 Mon 12:19]--[2026-08-31 Mon 12:21] =>  0:02
+- [2026-08-31 Mon 12:19]--[2026-08-31 Mon 12:21] measure PLANNING against real use
 :END:
 
 
