@@ -3880,6 +3880,20 @@ With ID, refreshes that slice only.  Returns a human-readable summary."
            (goto-char (point-min))
            (while (re-search-forward org-heading-regexp nil t)
              (when (and (claude-code-ide-org--slice-p)
+                        ;; A *closed* slice is a record, not a projection.
+                        ;; Its member lines are derived from referents'
+                        ;; keywords, and referents keep changing after the
+                        ;; slice is done -- so refreshing one lets unrelated
+                        ;; later work reach back and rewrite finished
+                        ;; history. Observed on :ID: c44c2119: a member
+                        ;; cancelled when the slice closed was reopened two
+                        ;; days later, its cookie came back, and a DONE
+                        ;; slice silently became [27/28] (TODO.org :ID:
+                        ;; 30a340fd). The member's own :LOGBOOK: answers any
+                        ;; question about what it is doing now; the slice
+                        ;; does not have to, and should not try.
+                        (not (member (org-get-todo-state)
+                                     claude-code-ide-org--outline-finished-keywords))
                         (or (null id)
                             (equal (downcase (or (org-entry-get nil "ID") ""))
                                    (downcase id))))

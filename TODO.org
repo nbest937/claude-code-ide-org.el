@@ -23,6 +23,21 @@
 
 *Worth deciding alongside:* whether c44c2119 should be repaired to =[27/27]= by deleting that member's cookie, or left as evidence. Deleting it would assert the member was cancelled, which is no longer true; leaving it asserts the slice is unfinished, which is also not true. A third option — the honest one — is that a *reopened* member of a closed slice should keep its line and lose its cookie, exactly as a deferred member does, because the slice is done with it either way.
 
+*Decided and shipped 2026-08-31.* The user's ruling: *an un-cancelled task in a closed slice should not have its cookie restored — the task's own state transition history is there to answer any questions that arise.*
+
+*That settles the objection recorded above.* The worry was that a cookie-less line asserts "this was cancelled", which stopped being true when the member reopened. It does not have to assert that: a closed slice's line is a statement about *the slice's* relationship to the member — done with it — and the member's own =:LOGBOOK:= carries what it is doing now. The slice was never the right place to ask.
+
+*Shipped:* =claude-code-ide-org-refresh-slice= skips a slice whose own keyword is terminal. One predicate, using =--outline-finished-keywords= rather than =org-done-keywords=, which is buffer-local and nil outside a visited org buffer.
+
+*Verified by mutation:* removing the guard fails exactly one test and nothing else, with the run count checked first. The test asserts a *live* slice in the same file is still refreshed — a guard that skipped everything would satisfy an assertion about the closed one while breaking the feature. 440/440.
+
+*The damage turned out to be two-part, which strengthens the finding.* Repairing the cookie exposed a second symptom: =c44c2119= was also carrying a =:BLOCKER:= naming the reopened member. It cannot have had one when it closed — a cancelled member contributes no blocker id, so the property would have been deleted — so the same regeneration that restored the checkbox also *re-blocked a finished slice*. =bin/lint-org= caught it the moment the cookie was fixed, which is the lint doing exactly its job: the checkbox list and the blocker are two copies of one set, and it checks they agree.
+
+*Repaired:* =c44c2119='s member line lost its cookie, its headline recomputed to =[27/27]=, and its =:BLOCKER:= removed outright. A closed slice blocks on nothing.
+
+*Note the ordering that made the repair durable.* The guard had to ship *first*: without it the next apply's settle phase would have regenerated both the cookie and the blocker and undone the repair silently. Fixing the record before fixing the mechanism would have looked like it worked.
+
+
 * The :PLAN: lint asks a slice for a drawer it has no prospective half to fill :code:
 :PROPERTIES:
 :ID:       f89c912a-2ce5-4f77-b6be-67ae35901e7a
@@ -642,7 +657,7 @@ The =420816ec= self-transition is stamped [2026-08-20 Thu 07:49] — *eleven min
 So cc0c17a7 owns "do not queue an event that is already a no-op" and this owns "do not apply an event that has *become* one". Same defect, two clocks, and only the second needs the projection =--review-projected-staleness= already computes.
 
 
-* DONE [27/28] Harden the review pass: its cost, its correctness, and its record
+* DONE [27/27] Harden the review pass: its cost, its correctness, and its record
 CLOSED: [2026-08-26 Wed 11:42]
 :PROPERTIES:
 :CATEGORY: Slices
@@ -650,7 +665,6 @@ CLOSED: [2026-08-26 Wed 11:42]
 :ID:       c44c2119-dbf8-4510-99e2-6aaa7f259d94
 :CREATED:  [2026-08-25 Tue 11:06]
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(b7b46a26-2fd6-4784-bed3-d0112a917c0a)
 :END:
 :LOGBOOK:
 - State "DOING"      from              [2026-08-25 Tue 11:06] \\
@@ -678,7 +692,7 @@ Work that makes a review pass cheaper to run, more accurate in what it reports, 
 - [X] [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]] DONE Compose slices by reference: a checkbox list of id links, blocked on its members
 - [X] [[id:43201e64-3fe8-4fa6-81f5-d2ab5b65d191][43201e64]] DONE Every orgit link a body adds costs a permanent lint warning
 - [X] [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]] DONE Backfill CLOSED: from the LOGBOOK where the evidence is already in the file
-- [ ] [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] TODO Recover a close time from git for the headings with no in-file evidence
+- [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] TODO Recover a close time from git for the headings with no in-file evidence
 - [X] [[id:31c6ac39-1a06-4b17-8d89-b91fd2628874][31c6ac39]] DONE A sub-minute run is observed work; round it up rather than drop it
 - [X] [[id:111ca40a-3fdb-4106-ad52-991e30737ece][111ca40a]] DONE The review buffer truncated lines the human had to read
 - [X] [[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]] DONE Clear the 36-heading archive backlog, sweeping bodies into :PLAN: unedited

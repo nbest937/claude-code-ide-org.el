@@ -377,6 +377,21 @@ the numerator nor inflates the denominator. The line stays, because the
 record of having considered and dropped something is what a bare list
 loses.
 
+**A closed slice stops being derived, and is left alone.**
+`claude-code-ide-org-refresh-slice` skips a slice whose own keyword is
+terminal. Member lines are copies of referents' keywords, and referents
+keep changing after a slice is done — so refreshing a closed one lets
+unrelated later work rewrite finished history. Observed on `:ID:`
+c44c2119: a member that was `CANCELLED` when the slice closed was
+reopened two days later, its cookie and its `:BLOCKER:` entry both came
+back, and a `DONE` slice silently became `[27/28]` and blocked again
+(`:ID:` 30a340fd).
+
+So a cookie-less line in a *closed* slice does not mean "this was
+cancelled" — it means the slice is **done with** this member. Anything
+you want to know about what the member is doing now is in its own
+`:LOGBOOK:`, which is where that question belongs.
+
 Because every field is derived, **the only things a slice declares are
 membership and order** — which headings belong and in what sequence. If
 a checkbox looks wrong, either the slice needs regenerating or the

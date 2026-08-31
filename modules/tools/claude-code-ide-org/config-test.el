@@ -10369,3 +10369,42 @@ likely to be jumped to."
         (should (string-match-p "-" (car (nth 1 cands))))
         ;; document order is preserved
         (should (string-match-p "First heading" (car (nth 0 cands))))))))
+
+(ert-deftest claude-code-ide-org-test-refresh-leaves-a-closed-slice-alone ()
+  "A closed slice is a record, not a projection, and the refresh skips it.
+
+Member lines are derived from referents' keywords, and referents keep
+changing after a slice is done -- so refreshing a closed one lets
+unrelated later work rewrite finished history.  Observed on :ID:
+c44c2119: a member cancelled when the slice closed was reopened two days
+later, its checkbox came back, and a DONE slice silently became [27/28]
+\(TODO.org :ID: 30a340fd\).
+
+Asserts a LIVE slice in the same file is still refreshed, because a
+guard that skipped everything would pass an assertion about the closed
+one and break the feature."
+  (claude-code-ide-org-test--with-heading
+    (let ((f (expand-file-name "slices.org" dir)))
+      (with-temp-file f
+        (insert "#+TODO: TODO NEXT DOING REVIEW WAITING MAYBE | DONE CANCELLED\n\n"
+                "* DONE A closed slice\n:PROPERTIES:\n:KIND:     slice\n"
+                ":ID:       cccccccc-0000-0000-0000-000000000001\n"
+                ":COOKIE_DATA: checkbox recursive\n:END:\n\n"
+                ;; stale on purpose: the referent below is TODO, not DONE
+                "- [X] [[id:11111111-0000-0000-0000-000000000009][11111111]] DONE stale copy\n\n"
+                "* DOING A live slice\n:PROPERTIES:\n:KIND:     slice\n"
+                ":ID:       dddddddd-0000-0000-0000-000000000002\n"
+                ":COOKIE_DATA: checkbox recursive\n:END:\n\n"
+                "- [X] [[id:11111111-0000-0000-0000-000000000009][11111111]] DONE stale copy\n\n"
+                "* TODO The referent\n:PROPERTIES:\n"
+                ":ID:       11111111-0000-0000-0000-000000000009\n:END:\n"))
+      (let ((claude-code-ide-org-query-files (list f)))
+        (org-id-update-id-locations (list f))
+        (claude-code-ide-org-refresh-slice)
+        (with-current-buffer (find-file-noselect f)
+          (revert-buffer t t)
+          (let ((text (buffer-string)))
+            ;; the live slice was corrected to the referent's real keyword
+            (should (string-match-p "- \\[ \\] \\[\\[id:11111111[^\n]*TODO The referent" text))
+            ;; and the closed one still carries its stale copy, untouched
+            (should (string-match-p "- \\[X\\] \\[\\[id:11111111[^\n]*DONE stale copy" text))))))))
