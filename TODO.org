@@ -997,6 +997,23 @@ Recommend the first. The blocker is not a record of membership; the checkbox lis
 
 *The case study travels with it.* [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] was planned with five children and had ten two days later, and its plan file still opens "Covers all five children" — true when written, false since, recorded once in a document nobody revises. Any convention that requires editing the container each time a child is added will drift exactly as that plan file did, which is the argument for the strict window: it is *derived* from closing timestamps and so cannot go stale.
 
+*Half built 2026-08-31, and deliberately left at the seam. Detection is shipped; rendering is not.*
+
+*What exists.* =claude-code-ide-org--closed-in-window= returns the ids whose =CLOSED:= falls in a range, read through =org-map-entries= rather than a regex — entries are bounded by construction and this scan is the input to a list a human reads as fact. =--slice-incidental-ids= applies it between the slice's =:CREATED:= and its =CLOSED:= (or now), minus the members it already names and itself. Archives are included, because work closed during a slice is often archived before the slice is, and a scan blind to DONE.org would report the window *shrinking* as the ceremony ran.
+
+*Verified:* 485 tests, 0 unexpected. Each of the three bounds was mutated separately and each fails its own test — dropping the lower bound or the member exclusion fails the strict-window test, dropping the upper bound fails the bounded-by-close test.
+
+*Measured against the live corpus:* [[id:b36e6369-a210-4540-adc7-0c0c188e9791][b36e6369]] currently shows 28 members and *7* incidental. Lower than the 30 this body measured on its predecessor, and for a reason worth knowing: most headings created during a slice are still *open*, and a strict window keyed on =CLOSED:= counts only what finished inside it.
+
+*The "one consequence that still needs deciding" does not need deciding — it was already handled, and measurement says so.* This body worried that giving incidentals cookies would pull roughly forty ids into the =:BLOCKER:=. It does not: =--slice-blocker-ids= filters on *cookie-carrying and not yet done*, and an incidental is closed by definition. Tested directly — a slice with an =Incidental:= section of three =[X]= lines yields =--slice-members= of three and =--slice-blocker-ids= of *nil*. So neither =.claude/rules/org-conventions.md= nor =bin/lint-org= needs changing, and the recommendation to narrow the rule to "planned members" is unnecessary rather than wrong.
+
+*One edge case that survives, recorded rather than built:* an incidental whose referent is later *reopened* would regain a live cookie on the next refresh and enter the blocker — holding the slice open on work it never planned. Rare, and it needs the member parser to know which section a line sits in, which is the only reason that distinction would be worth adding.
+
+*Why the rendering half was not attempted in the same session.* It is a body-region rewrite of a format =.githooks/pre-commit= validates, which is the exact class of edit this repo has two body corruptions on record from — the reason =org_wrap_plan= and =org_divide= exist as tools rather than as hand-rolled edits. Doing it unattended at the end of a very long session, with nobody able to react if the slice format came out wrong, is the wrong trade. The detection half stands alone, is useful on its own, and changes nothing a reader sees.
+
+*What is left, concretely:* render an =Incidental:= lead below the member list, regenerate the lines beneath it on every refresh exactly as member lines are regenerated, and delete whatever was there before. The line form is settled by this body — same link shape as a member, checkbox kept, keyword and title as derived text.
+
+
 
 * TODO Reorder DONE.org as a datetree, descending by CLOSED: :code:
 :PROPERTIES:
