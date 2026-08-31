@@ -2,6 +2,50 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 #+STARTUP: logdrawer logdone content
+* Reopening a cancelled member retroactively un-completes every closed slice naming it :code:
+:PROPERTIES:
+:ID:       30a340fd-c216-4231-a8d9-fff83c54b9f8
+:CREATED:  [2026-08-31 Mon 08:26]
+:CATEGORY: Slices
+:END:
+
+*Observed 2026-08-31, and the user found it by reading the file:* [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] is closed, and one of its members carries an empty checkbox — =[27/28]= on a =DONE= slice.
+
+*The mechanism is the convention working exactly as designed, in a case nobody considered.* A slice member's checkbox is *derived* from the referent's keyword: =CANCELLED= means the cookie is deleted, so the member neither counts nor inflates the denominator; =TODO= means =[ ]=. [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] was =CANCELLED= when c44c2119 closed, so it had no cookie and the slice read =[27/27]=. On 2026-08-28 it was reopened to =TODO= — legitimately, because its cancellation ground had become void once [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] gave it a consumer. Apply's settle phase then regenerated *every* slice's member lines, including a closed one, and restored the cookie.
+
+*Traced to the commit.* c44c2119 reads =[27/27]= through [[orgit-rev:claude-code-ide-org::7ba5ddf][7ba5ddf]] (08-28 10:35) and =[27/28]= from [[orgit-rev:claude-code-ide-org::1f8719c][1f8719c]] (08-28 13:04) onward — the commit after the apply that carried the reopening. The cookie itself is arithmetically *correct* at every point; it is the membership that changed.
+
+*What is wrong is not the arithmetic but the mutation.* A closed slice is a *record* of a bounded piece of work. Regenerating its lines forever means unrelated later work can reach back and alter it — here, a heading reopened two days after the slice closed silently un-finished it. Nobody decided that; it falls out of "member lines are derived" being stated without a scope.
+
+*The conventions' own wording is where the gap is.* "A checkbox that disagrees with its referent means the slice is stale" was written for *live* slices, where the referent's current keyword is the thing worth reflecting. For a closed slice the referent's *later* keyword is not a fact about the slice at all.
+
+*Proposed fix, one predicate:* =claude-code-ide-org-refresh-slice= skips a slice whose own keyword is terminal. That matches how =--slice-blocker-ids= already treats finished *members* differently from live ones, and it costs nothing else — a closed slice is not refreshed because there is nothing about it left to keep current.
+
+*Worth deciding alongside:* whether c44c2119 should be repaired to =[27/27]= by deleting that member's cookie, or left as evidence. Deleting it would assert the member was cancelled, which is no longer true; leaving it asserts the slice is unfinished, which is also not true. A third option — the honest one — is that a *reopened* member of a closed slice should keep its line and lose its cookie, exactly as a deferred member does, because the slice is done with it either way.
+
+* The :PLAN: lint asks a slice for a drawer it has no prospective half to fill :code:
+:PROPERTIES:
+:ID:       f89c912a-2ce5-4f77-b6be-67ae35901e7a
+:CREATED:  [2026-08-31 Mon 08:26]
+:CATEGORY: Tools
+:END:
+
+*Raised by the user 2026-08-31:* what is the justification for wrapping a slice's pre-closure content into =:PLAN:= and writing a debrief? We did not do it for [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]], and it reads fine as it is.
+
+*They are right on the facts, and I had asserted the opposite.* c44c2119 has *no* =:PLAN:= drawer — zero drawer lines; the =:PLAN:= strings in its body are prose mentions. My claim that it set a precedent came from a probe shaped =(save-excursion (re-search-forward ...) t)=, which returns =t= whether or not the search matched. A probe that can only answer yes. Fourth instance of the family [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] collects.
+
+*And the justification really is weaker for a slice.* [[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]] argued the =:PLAN:= lifecycle for *tasks*, on a specific hazard: a closed task's body holds design claims — "here is how this will work" — that the implementation may contradict, and a later reader consulting it for background repeats a superseded claim as current. The evidence was three headings whose design claims went wrong in one day against zero journal claims needing correction. *Design is the perishable half.*
+
+*A slice has no design half.* Its body holds the argument for why these things belong together, a sequence, a *derived* member list and revision links. Once closed, nearly all of that is already retrospective — a true statement about what was grouped and why. The only prospective part is phase prose, which is a small fraction and carries no falsifiable claim, because a slice does not design anything. There is nothing waiting to be contradicted.
+
+*So the pressure to wrap comes entirely from the lint*, which is applying a task rule to a heading class that is not a task. That is not a new shape: [[id:f421c5c3-f81f-4ebf-99c9-42c53cc00558][f421c5c3]] hit the same rule from the other side — it demanded a drawer from a *debrief-only* heading, and the answer was to invent the empty drawer rather than distort the body. A slice is a third case: a body that is prospective in *form* and retrospective in *fact*.
+
+*Proposed fix, one predicate:* exempt =:KIND: slice= from the "finished heading with a substantial body and no =:PLAN:= drawer" warning. It stops the rule nagging about c44c2119 forever, and it is the same shape as =--slice-blocker-ids= already treating finished members differently from live ones.
+
+*The alternative, if uniformity is preferred:* wrap slices with an *empty* =:PLAN:=, which is f421c5c3's answer and records that the question was asked. Worse here, in my view — an empty drawer on a heading whose body was never prospective states nothing, where an exemption states something true about the class.
+
+*Not decided.* The user asked the question; this records the argument rather than settling it.
+
 * TODO [1/20] The code knows more than it says, and asks more than it should :code:
 :PROPERTIES:
 :ID:       b36e6369-a210-4540-adc7-0c0c188e9791
@@ -174,6 +218,21 @@ Everything else in the list is buildable unattended.
 *What they share, and why it is one heading.* All three are cases where *the absence of a signal was read as a positive result* — no parse error, no FAILED line, no test failure. The project already has this lesson recorded twice ([[id:4f9e552a-e1a9-48dd-8801-3f23a31b9e32][4f9e552a]], and the =set -g= bug in =bin/check-org-dev-skill= where FAIL printed and the script exited 0), which is the argument that it is a class rather than three incidents.
 
 *Proposed, not yet decided:* a =bin/check-elisp= that reads forms rather than counting parens, wired into =pre-commit= alongside =bin/lint-org=; and a note in the org-dev skill that the two verification commands whose output is *silence* — =check-parens= and a piped =bin/test= — are the two that have lied. [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] is the natural home for the first, since it already proposes generalising =check-org-dev-skill= into a =check-conventions= wired into =pre-commit=.
+
+*A fourth, 2026-08-31, and it is the purest form of the class.* A hand-written probe asked whether a heading carried a =:PLAN:= drawer:
+
+: (save-excursion (re-search-forward "^:PLAN:" end t) t)
+
+The trailing =t= is the last form of the =save-excursion=, so the whole expression answers =t= *whether or not the search matched*. **A probe that can only say yes.** It reported a =:PLAN:= drawer on [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]], which has none, and that false reading was then used to argue a precedent for wrapping slice bodies — a design decision resting on a probe with no failure mode.
+
+*Caught by a human reading the file*, not by anything mechanical: the user said "we didn't do it as such for c44c21 and it reads just fine". Every one of the four in this heading was caught that way or by a lint rule; none by re-reading the code.
+
+*The generalisation, now that there are four:* the failures are not "the check was wrong" but "**the check had no way to fail**". A silent parse, an absent =FAILED= line, a mutation that never ran, a probe whose value is constant. The question that catches all four is the same one — *what would this have printed if the thing I am testing were false?* — and it is cheaper to ask than any of the fixes.
+
+*Which is also the argument for =bin/check-elisp=* proposed above: a check that reads forms cannot answer =t= by accident.
+
+*And a fifth of the same shape, from the same day, worth recording because it was a write rather than a read.* A splice replaced a region using =body.index(start)= and =body.index(end)= where the end marker sat *earlier* in the string than the start — so =body[:start] + new + body[end:]= silently re-appended everything between them, duplicating a slice's revision links and part of its member list. The cookie went up rather than erroring, which read as plausible on a slice that had just grown. A splice whose markers can be mis-ordered should assert their order; nothing did.
+
 
 
 * TODO Decide whether returning a heading's whole body is a mode on org_outline or its own tool :code:
@@ -763,7 +822,6 @@ answers is what *else* was going on.
 *Residue: none unfiled.* Everything named as unfinished during the slice's life became a heading — [[id:ff1352b3-2732-4422-9f0d-4b3cb6fd8ff3][ff1352b3]], [[id:c74f8663-b14e-4ab9-ad65-d99cb655b3fa][c74f8663]], [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]], [[id:46d225c7-7541-4867-af72-929a572df2a5][46d225c7]], [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]], [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]], [[id:5f1068f9-1452-45e4-9253-568edfce2053][5f1068f9]], [[id:8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8][8c662dfb]], [[id:dbf70459-bde4-4550-bd81-0d4f9ebc50e3][dbf70459]] — and the successor slice [[id:b36e6369-a210-4540-adc7-0c0c188e9791][b36e6369]] sequences most of them.
 
 *Still to do before this heading is actually closed:* wrap the prospective half into =:PLAN:= with =org_wrap_plan=, seam at this debrief, following [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]]'s precedent.
-
 
 
 * DONE Setting DOING retroactively opens a clock, which the looser sense makes wrong :code:
@@ -8502,6 +8560,8 @@ CLOCK: [2026-08-28 Fri 16:01]--[2026-08-28 Fri 16:03] =>  0:02
 - [2026-08-28 Fri 16:01]--[2026-08-28 Fri 16:03] measure PLANNING against real use
 CLOCK: [2026-08-28 Fri 16:06]--[2026-08-28 Fri 16:11] =>  0:05
 - [2026-08-28 Fri 16:06]--[2026-08-28 Fri 16:11] measure PLANNING against real use
+CLOCK: [2026-08-29 Sat 14:22]--[2026-08-29 Sat 14:28] =>  0:06
+- [2026-08-29 Sat 14:22]--[2026-08-29 Sat 14:28] measure PLANNING against real use
 :END:
 :PLAN:
 
