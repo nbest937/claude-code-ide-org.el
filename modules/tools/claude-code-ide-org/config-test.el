@@ -4914,13 +4914,18 @@ lands, so the span does not silently vanish from the drawer."
         (should-not (string-match-p "CLOCK:" disk))
         (should (string-match-p "09:00\\]--\\[2026-08-06 [A-Za-z]+ 09:04\\] unpaired" disk))))))
 
-(ert-deftest claude-code-ide-org-test-review-line-shows-what-will-be-written ()
-  "The review line names the total apply will really write.
+(ert-deftest claude-code-ide-org-test-review-line-states-evidence-not-a-prediction ()
+  "The review line states three observed quantities and predicts nothing.
 
-The median span writes about 46% of what it displays, so confirming the
-displayed figure means confirming a number that is recorded nowhere.
-An item with no backing kinds says nothing extra -- there is no
-divergence to report."
+Envelope, runs, turns. It used to say `writes 0:21 in 2\', a claim about
+what apply would do that this code cannot keep: the figure is computed
+before `--subtract-intervals\' runs (TODO.org :ID: 98c302e0). It also
+had to name the envelope, because the displayed range reads as the
+record and is not -- the median span writes about 46% of what it shows
+(:ID: 44cef181) -- and to give every count a unit, since `in 2\' alone
+let the two numbers look interchangeable.
+
+An item with no backing kinds still says nothing extra."
   (claude-code-ide-org-test--with-heading
     (let* ((claude-code-ide-org-span-idle-floor 120)
            (events (claude-code-ide-org-test--two-run-events))
@@ -4936,12 +4941,14 @@ divergence to report."
       ;; 09:00--09:31 displayed, 21 minutes over two lines written.
       (should (string-match-p "09:00\\]--\\[2026-08-06 [A-Za-z]+ 09:31\\]"
                               (claude-code-ide-org--review-describe split)))
-      (should (string-match-p "writes 0:21 in 2"
+      (should (string-match-p "0:31 span, 0:21 in 2 runs, 3 turns"
                               (claude-code-ide-org--review-describe split)))
-      (should-not (string-match-p "writes" (claude-code-ide-org--review-describe bare)))
-      ;; The confirmed case writes what it displays, and says nothing.
+      ;; No prediction verb anywhere on the line -- that is the decision,
+      ;; not an incidental wording change.
+      (should-not (string-match-p "writes" (claude-code-ide-org--review-describe split)))
+      (should-not (string-match-p "span," (claude-code-ide-org--review-describe bare)))
       (should-not (string-match-p
-                   "writes"
+                   "span,"
                    (claude-code-ide-org--review-describe
                     (plist-put (copy-sequence split) :suggested nil)))))))
 
@@ -4958,7 +4965,11 @@ Measured over the corpus, per session: 4 such items in 57 spans, evenly
 split between the first two kinds."
   (let ((claude-code-ide-org-span-idle-floor 120))
     ;; A real short turn no longer reads as a no-op at all: since the
-    ;; one-minute floor (:ID: 31c6ac39) it writes 0:01. This used to
+    ;; one-minute floor (:ID: 31c6ac39) it yields one run of 0:01 -- and
+    ;; the line reads "0:00 span, 0:01 in 1 run, 1 turn", which looks
+    ;; contradictory and is not: the envelope is 11 seconds and rounds to
+    ;; zero, while the floor lifts the run to a minute. That the floor is
+    ;; now visible is a gain, not a wart. This used to
     ;; assert "writes nothing (11s of turns, none crossing a minute)",
     ;; and that reason is now unreachable by construction -- the branch
     ;; survives only as a guard that says so.
@@ -4967,14 +4978,14 @@ split between the first two kinds."
            (item (list :type 'clock :id "id-a" :suggested t :events events
                        :start (plist-get (car events) :ts)
                        :end (plist-get (cadr events) :ts))))
-      (should-not (string-match-p "writes nothing"
+      (should-not (string-match-p "no runs"
                                   (claude-code-ide-org--review-written-summary item))))
     ;; The trailing in-flight span: one guidepost, start = end.
     (let* ((events (list (claude-code-ide-org-test--guidepost "09:00:14" "resume")))
            (item (list :type 'clock :id "id-a" :suggested t :events events
                        :start (plist-get (car events) :ts)
                        :end (plist-get (car events) :ts))))
-      (should (equal "writes nothing (a single point, not an interval)"
+      (should (equal "0:00 span, no runs, 0 turns (a single point, not an interval)"
                      (claude-code-ide-org--review-written-summary item))))
     ;; Guideposts spanning real time, but never a resume then a pause.
     (let* ((events (list (claude-code-ide-org-test--guidepost "09:00:00" "resume")
@@ -4982,7 +4993,7 @@ split between the first two kinds."
            (item (list :type 'clock :id "id-a" :suggested t :events events
                        :start (plist-get (car events) :ts)
                        :end (plist-get (cadr events) :ts))))
-      (should (equal "writes nothing (no completed turn in it)"
+      (should (equal "0:08 span, no runs, 0 turns (no completed turn in it)"
                      (claude-code-ide-org--review-written-summary item))))
     ;; And a span that DOES write keeps saying so -- the reason must not
     ;; leak onto items that are not no-ops.
@@ -4990,7 +5001,7 @@ split between the first two kinds."
                       :events (claude-code-ide-org-test--two-run-events)
                       :start (date-to-time "2026-08-06T09:00:00-0500")
                       :end (date-to-time "2026-08-06T09:31:00-0500"))))
-      (should (equal "writes 0:21 in 2"
+      (should (equal "0:31 span, 0:21 in 2 runs, 3 turns"
                      (claude-code-ide-org--review-written-summary item))))))
 
 (ert-deftest claude-code-ide-org-test-historical-guideposts-span-the-archive ()
@@ -5279,7 +5290,7 @@ this."
             (date-to-time "2026-08-20T10:22:18-0500")))))
 
 (ert-deftest claude-code-ide-org-test-preview-matches-what-org-will-write ()
-  "The review buffer's `writes H:MM' must be what apply really writes.
+  "The run total the line reports must be what apply really writes.
 
 Apply goes through native `org-clock-in'/`org-clock-out', so org computes
 each duration from minute-truncated stamps.  The preview summed raw
@@ -5294,8 +5305,12 @@ to 5, while org writes 3 + 3 = 6."
                        (claude-code-ide-org-test--guidepost "10:22:18" "pause")
                        (claude-code-ide-org-test--guidepost "10:30:49" "resume")
                        (claude-code-ide-org-test--guidepost "10:33:18" "pause")))
-         (item (list :suggested t :events events)))
-    (should (equal "writes 0:06 in 2"
+         ;; Carries :start/:end as a real item does; the envelope clause
+         ;; is omitted only for a malformed one.
+         (item (list :suggested t :events events
+                     :start (plist-get (car events) :ts)
+                     :end (plist-get (car (last events)) :ts))))
+    (should (equal "0:14 span, 0:06 in 2 runs, 2 turns"
                    (claude-code-ide-org--review-written-summary item)))))
 
 

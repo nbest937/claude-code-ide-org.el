@@ -4931,6 +4931,23 @@ So this is a *scanning* consistency, not a functional gap, and that changes what
 
 *Unchanged:* this still belongs in the [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] audit pass rather than alone, for the same reason as before.
 
+*Shipped 2026-08-31, as the 2026-08-28 decision specified: the readout states the evidence and predicts nothing.* =--review-written-summary= now renders =0:11 span, 0:01 in 1 run, 6 turns= — envelope, runs, turns, all observed at render time, none asserting what apply will do. Done in the [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] audit pass and in one pass with [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] and the review-buffer half of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]], as all three bodies required.
+
+*The unit defect is gone by construction.* Every count carries its noun — =in 2 runs=, =6 turns= — so the two numbers can no longer be read as interchangeable. That was the original report, and it was never a reversed-arguments bug; it was a line that required the convention to already be known.
+
+*The prediction is gone, which is the larger half.* =writes 0:21 in 2= was a claim this code could not keep: the figure is computed before =--subtract-intervals= runs, so the buffer could promise a duration apply then declined to write. Neither available repair was cheap — recompute per refresh is a file read per item, flagging overlapped targets is a feature — and stating the evidence needs neither. The render/apply gap is not fixed so much as it stops existing.
+
+*One wrinkle worth naming before someone reads it as a bug.* A very short turn now renders =0:00 span, 0:01 in 1 run, 1 turn=, which looks self-contradictory and is not: the envelope is eleven seconds and rounds to zero, while the one-minute floor ([[id:31c6ac39-1a06-4b17-8d89-b91fd2628874][31c6ac39]]) lifts the run to a minute. The floor became *visible*, which is a gain — it was previously doing that work silently.
+
+*Verified:* 468 tests, 0 unexpected, exit 0. Three mutations, one per quantity: fixing the turn count, omitting the envelope clause, and dropping the run plural each fail the same three tests and nothing else.
+
+*A fourth mutation is recorded because it failed to be a mutation.* Omitting the envelope clause was first attempted with an unbalanced replacement; =bin/test= crashed on load and ran *zero* tests, and the log carried no =Ran= line at all. Caught by looking for that line rather than for the word =FAILED= — which is exactly the trap [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] is filed about, hit and caught inside the slice that is meant to fix it.
+
+*Three tests moved rather than being deleted*, since each still verifies something real: that the run total agrees with what org computes per line, that a no-op span says which kind of no-op it is, and that a non-suggested item says nothing extra. One assertion was *added* — that the word "writes" appears nowhere on the line — because the decision is the absence of the claim, not the presence of better wording.
+
+*This is also the instrumentation [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] needs.* The user's reading that much logged activity is bogus came from a line saying =writes 0:01 in 1= over eleven minutes of continuous work. The same item now reads =0:11 span, 0:01 in 1 run, N turns=, where the discrepancy is on the face of the line instead of requiring the reader to know that the headline is not the record. Whatever the A/B measures, this is what makes the B side legible.
+
+
 
 * TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key :code:
 :PROPERTIES:
@@ -5069,6 +5086,19 @@ The third is the important one: it is the known negative, confirmed independentl
 *Related but not the same*: [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]] proposes reclaiming a guidepost gap as the human's attention when an apply timestamp falls inside it. That is about *capturing* the missing 14 minutes; this is about not implying they are already captured. If 996fd2bd ships, this heading still stands -- a window and its payload would still be two quantities.
 
 *Filed with a finding attached.* Writing this body hit [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] live: =org_amend='s link checker expanded all four TODO.org prefixes above and refused =b8e6007a=, which is identical in form and differs only in living in DONE.org. So the expander is scoped to TODO.org, and a cross-file reference has to be written as plain text -- which is why one citation here is not a link.
+
+*Shipped 2026-08-31, presentationally, exactly as this body specified — the extraction is untouched.* The span line now names its envelope instead of leaving it as an unlabelled headline: =0:11 span, 0:01 in 1 run, 6 turns=. The window and the payload are still two quantities, and now they are two *labelled* quantities rather than one label over two claims.
+
+*The misreading this heading identified is answered directly.* "This 17-minute range is about to be written down" was false in both directions at once. It now takes no arithmetic and no prior knowledge to see that the range is the bracket and the runs are what lands: both appear, both named, on one line.
+
+*What it still does not do, and this heading was always clear about it.* The remaining minutes of the envelope — the human reading a session report — are still not recorded as anything. This change stops the line implying they are already captured; it does not capture them. That is [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]], and as this body predicted, that heading and this one do not collapse into each other: if 996fd2bd ships, a window and its payload are still two quantities and still both need naming.
+
+*Done in one pass with [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]] and the review-buffer half of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]]*, inside the [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] audit — all four bodies asked for that, and rewording this line twice was the specific thing they asked to avoid.
+
+*Verified:* 468 tests, 0 unexpected. Omitting the envelope clause fails three tests and nothing else; the mutation had to be run twice because the first attempt did not parse and so proved nothing.
+
+*The user's independent confirmation, the same day.* After applying a review pass they read the old rendering and concluded that much of the logged activity is bogus — from a line reading =writes 0:01 in 1= across eleven minutes of continuous, independently reconstructible work. That is this heading's thesis reached from the data rather than from the code, and it is filed as [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]].
+
 
 
 * NEXT A clocktable never shows a parent's own time, only own-plus-subtree :code:
@@ -5775,6 +5805,25 @@ both words, it is probably conflating them.
 *Now coupled to [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]], which settled part of it from the other side.* That heading decided the readout should state the evidence in hand — span envelope, runs, turn count — rather than predict what apply will write. Turn count is therefore no longer an addition to the review buffer being weighed on its merits; it is one of the three things the readout is now supposed to say. The recall-cue requirement recorded above ("a number they must weigh is heavier than a word they can recognise") governs how it is rendered there, and the two should be built in one pass rather than reworded twice.
 
 *Still undecided, and unaffected:* the =:LOGBOOK:= annotation and the clocktable column.
+
+*Partially shipped 2026-08-31 — the review-buffer surface only. This heading stays open.*
+
+Turn count now appears on every suggested span line, as the third of three observed quantities: =0:11 span, 0:01 in 1 run, 6 turns=. Built in one pass with [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]] and [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]], which is what all three bodies asked for.
+
+*Counted from =resume=, as this body specified*, since an interrupted turn emits no =pause= but always had a =resume=. No new datum: =--span-turn-seconds= already returned =(SECONDS . TURNS)= and the count was simply not being surfaced — the "view of data already recorded" argument held up exactly as written.
+
+*The recall-cue requirement is met by juxtaposition, and the classifier was deliberately not built.* This body asks for "a word they can recognise" rather than "a number they must weigh", which argues for labelling a stretch dense or sparse. That needs a threshold, and a threshold is an invented number — against which this body's own objection stands: the count is measured, the inference is the guess, and [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the precedent that a plausible guess is worse than none. =6 turns= beside =0:11 span= already reads as "at the keyboard" without one. *The interpretive word is deferred pending the user's own threshold judgement*, and is a one-line addition if wanted.
+
+*Never presents a total that looks complete*, which this body required: three quantities side by side, none summing to a claim about the day.
+
+*Still open, and unaffected by this:*
+
+- the =:LOGBOOK:= annotation, so the count survives into the durable record once queue files are archived;
+- the clocktable column, where turns/hour could be averaged across a week;
+- and the allocation problem, which is the substantial half — attention is zero-sum across concurrent sessions, and [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] plus a =cwd= field on queue events remain its preconditions.
+
+*One caveat this body demanded, not yet carried anywhere in the UI:* the number must never be read as productivity, because under autonomy it is the inverse of it. Nothing on the review line says so. Worth deciding where that warning lives before the count reaches a second surface.
+
 
 
 * TODO Record the originating project in queue events :code:

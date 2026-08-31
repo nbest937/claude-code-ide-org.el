@@ -7526,21 +7526,50 @@ shape."
    (t "No review item on this line")))
 
 (defun claude-code-ide-org--review-written-summary (item)
-  "Return a short phrase naming what apply will really write for ITEM,
-or nil when that is exactly the interval ITEM already displays.
+  "Return a phrase stating the evidence in hand for span ITEM, or nil.
 
-The review buffer shows a *span* -- the cluster of guideposts, idle
-included -- and apply writes only the runs of work inside it.  Over the
-corpus the median span writes about 46% of what it displays.  A human
-pressing `x' on a line reading `2:52' while `1:19' is what lands has
-confirmed a number that exists nowhere, which is a worse failure than
-the overcount it replaced: the overcount was at least visible in the
-drawer afterwards.
+Three quantities, all observed and none predicted: the *envelope* the
+item displays, the *runs* of work inside it, and the *turns*.  Reads
+like `0:11 span, 0:01 in 1 run, 6 turns\'.
 
-Says `writes nothing' rather than falling silent when no run survives.
-That is a real outcome -- a span of `resume' -> `resume' adjacencies, or
-of turns too short to render a minute -- and it is the one a human most
-needs to see before marking, since the item will otherwise look applied
+*It no longer says what apply will write, and that is the point*
+(TODO.org :ID: 98c302e0).  It used to -- `writes 0:01 in 1\' -- and the
+claim could be false, because this is computed before
+`claude-code-ide-org--subtract-intervals\' runs, so the buffer could
+promise a duration apply then declined to write.  The repairs available
+were to recompute per refresh (a file read per item) or to flag items
+whose target already holds overlapping intervals; both are features.
+Stating the evidence needs neither, because none of these three numbers
+can disagree with apply -- none of them asserts what apply will do.
+
+*Every count carries its unit.*  `in 1\' was the original defect: the
+two numbers looked interchangeable, and a person who reads this buffer
+daily read `writes 0:09 in 1\' as reversed arguments.  They were not
+reversed; nothing said which was which.
+
+*The envelope is named rather than left as the headline.*  The line
+already showed `[13:53]--[14:04]\' and the natural reading was that the
+range is what gets recorded.  It is not: the span is the outer bracket
+of a guidepost cluster and the runs are what lands, so the two were a
+window and a payload wearing one label (TODO.org :ID: 44cef181).
+
+*The turn count is a recall cue, not a metric* (TODO.org :ID: 9e627dc0).
+Sixty minutes holding 2 turns and sixty holding 40 are identical on the
+clock and entirely different in attention.  Beside the envelope it says
+what the stretch felt like -- at the keyboard, or set running and left
+-- without the reader doing arithmetic.  `resume\' is counted rather
+than `pause\', since an interrupted turn emits no `pause\' but always
+had a `resume\'.
+
+*Deliberately NOT classified as dense or sparse.*  That needs a
+threshold, a threshold is an invented number, and 9e627dc0\'s own
+objection is that the count is measured while the inference is the
+guess.  Juxtaposition carries it.
+
+Says the runs are absent rather than falling silent when none survives.
+That is a real outcome -- a span of `resume\' -> `resume\' adjacencies,
+or of turns too short to render a minute -- and it is the one a human
+most needs before marking, since the item will otherwise look applied
 and leave no CLOCK line behind."
   (when (and (plist-get item :suggested)
              (claude-code-ide-org--span-kinds-known-p (plist-get item :events)))
@@ -7555,10 +7584,27 @@ and leave no CLOCK line behind."
                                          (claude-code-ide-org--clock-minutes
                                           (car r) (cdr r)))
                                        runs))))
-      (if runs
-          (format "writes %d:%02d in %d" (/ minutes 60) (% minutes 60) (length runs))
-        (concat "writes nothing"
-                (claude-code-ide-org--review-nothing-reason item))))))
+      (let* ((turns (cdr (claude-code-ide-org--span-turn-seconds
+                          (plist-get item :events))))
+             ;; An item always carries both in the real buffer; guarded
+             ;; so a malformed one degrades to the two quantities it does
+             ;; have rather than breaking the whole render.
+             (envelope (and (plist-get item :start) (plist-get item :end)
+                            (claude-code-ide-org--clock-minutes
+                             (plist-get item :start) (plist-get item :end))))
+             (span-phrase (if envelope
+                              (format "%d:%02d span, " (/ envelope 60) (% envelope 60))
+                            ""))
+             (turn-phrase (format "%d turn%s" turns (if (= turns 1) "" "s"))))
+        (if runs
+            (format "%s%d:%02d in %d run%s, %s"
+                    span-phrase
+                    (/ minutes 60) (% minutes 60)
+                    (length runs) (if (= (length runs) 1) "" "s")
+                    turn-phrase)
+          (format "%sno runs, %s%s"
+                  span-phrase turn-phrase
+                  (claude-code-ide-org--review-nothing-reason item)))))))
 
 (defun claude-code-ide-org--span-turn-seconds (events)
   "Return (SECONDS . TURNS) for the raw `resume' -> `pause' adjacencies
