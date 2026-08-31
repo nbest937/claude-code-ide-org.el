@@ -2,6 +2,29 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
+* TODO org_capture with a done initial_state writes no CLOSED line :code:
+:PROPERTIES:
+:ID:       5d59dc77-38bf-470a-8d51-098c741fecbd
+:CREATED:  [2026-08-31 Mon 18:08]
+:CATEGORY: Tools
+:END:
+
+*Found and fixed 2026-08-31, four hours after [[id:c74f8663-b14e-4ab9-ad65-d99cb655b3fa][c74f8663]] shipped, and found by building something that depended on the invariant rather than by review.*
+
+*The defect.* =org_capture= with =initial_state= writes the TODO keyword straight into the capture template, which is the whole point — it bypasses =org-todo= so a creation needs no queued transition. But =org-todo= is also what writes the =CLOSED:= planning line, so a heading born =DONE= or =CANCELLED= carried a done keyword and *no close time*.
+
+*Why that is worse than cosmetic.* Every consumer of =CLOSED:= silently skips such a heading: =org-archive-subtree= uses it as the placement key, =bin/lint-org= as its archive threshold, and [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]]'s new strict-window scan as the entire basis for deciding what a slice absorbed. A heading with a done keyword and no close time is finished work that the machinery cannot see is finished.
+
+*And it fed a backlog that already has a heading.* [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] exists to recover close times for the headings with no in-file evidence, and measured *39*. The count today is *42* — so three have accrued since, one of them mine, captured =DONE= this afternoon.
+
+*The fix writes the line rather than refusing the state*, because capturing something already finished is legitimate: a decision recorded after the fact, which is exactly what the offending heading was. =CLOSED:= is stamped with the same timestamp as =:CREATED:=, which is honest — for a heading born finished, creation *is* the close.
+
+*Scoped to the done keywords by =--outline-finished-keywords=.* A live keyword must not get a close time; that would be a false close, and a fabricated one is the failure [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] rates worse than an absent one.
+
+*Verified:* 484 tests before, 485 after, 0 unexpected. One test covers both directions and both mutations fail it — writing no line at all, and writing one for any keyword.
+
+*The one heading affected was repaired rather than left for the backfill.* =6e43120d= now carries =CLOSED: [2026-08-31 Mon 16:38]=, added through =org-add-planning-info=. That is not a guess and so not [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]]'s business: the close time was known exactly, being the moment this session captured it.
+
 * TODO A stranded single-point span is offered forever; only the trailing one can still grow :code:
 :PROPERTIES:
 :ID:       355fa608-e311-4874-b2d3-bbc62172d09a
@@ -105,6 +128,7 @@ Residue from [[id:8d0716fe-ca88-429d-b46b-e2f880f5b2cc][8d0716fe]], filed 2026-0
 
 
 * DONE Three conventions read as permission to grow a story where mitosis was owed :code:
+CLOSED: [2026-08-31 Mon 16:38]
 :PROPERTIES:
 :ID:       6e43120d-b9ed-4595-8309-ccd0cde8da59
 :CREATED:  [2026-08-31 Mon 16:38]

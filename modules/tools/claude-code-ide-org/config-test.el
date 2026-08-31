@@ -2501,6 +2501,37 @@ is the default the argument was specified to preserve."
     (should (string-match-p "^\\* Empty state"
                             (claude-code-ide-org-test--disk-contents capture-file)))))
 
+(ert-deftest claude-code-ide-org-test-capture-done-state-writes-a-closed-line ()
+  "A heading born in a done state must carry CLOSED:, or it is invisible.
+
+`org-todo\' is what normally writes that line, and `initial_state\'
+deliberately bypasses it. Without this the heading is missed by every
+consumer that reads CLOSED -- archive placement, `bin/lint-org\''s
+threshold, and the slice incidental window -- and joins the backlog
+TODO.org :ID: b7b46a26 exists to clear. Found four hours after
+:ID: c74f8663 shipped, by building something that depended on the
+invariant (:ID: 5d59dc77).
+
+Capturing something already finished is legitimate -- a decision
+recorded after the fact -- so the fix writes the line rather than
+refusing the state."
+  (dolist (kw '("DONE" "CANCELLED"))
+    (claude-code-ide-org-test--with-capture-file
+      (claude-code-ide-org-capture (concat "Born " kw) nil nil nil kw)
+      (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+        (should (string-match-p (concat "^\\* " kw " Born " kw) disk))
+        (should (string-match-p "^CLOSED: \\[" disk)))))
+  ;; A live keyword must NOT get one -- that would be a false close.
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-capture "Still open" nil nil nil "NEXT")
+    (should-not (string-match-p
+                 "CLOSED:" (claude-code-ide-org-test--disk-contents capture-file))))
+  ;; Nor a keywordless capture.
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-capture "No keyword")
+    (should-not (string-match-p
+                 "CLOSED:" (claude-code-ide-org-test--disk-contents capture-file)))))
+
 (ert-deftest claude-code-ide-org-test-capture-refuses-an-unknown-initial-state ()
   "Validated against the target file's own #+TODO: line, like org_set_todo.
 

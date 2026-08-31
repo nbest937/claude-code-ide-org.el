@@ -2336,12 +2336,29 @@ Omitted, the heading is keywordless, which stays the default
          (list (list "z" "Claude quick-capture (org_capture MCP tool)"
                      'entry
                      spec
-                     (format "* %s%%i%s\n:PROPERTIES:\n:ID:       %s\n:CREATED:  %s\n:END:\n"
+                     (format "* %s%%i%s\n%s:PROPERTIES:\n:ID:       %s\n:CREATED:  %s\n:END:\n"
                              (if (and initial-state
                                       (not (string-empty-p initial-state)))
                                  (concat initial-state " ")
                                "")
                              (claude-code-ide-org--format-tags tags)
+                             ;; A heading born in a done state needs its
+                             ;; CLOSED: line written here, because nothing
+                             ;; else will: `org-todo' is what normally adds
+                             ;; one, and INITIAL-STATE deliberately bypasses
+                             ;; it. Without this the heading is invisible to
+                             ;; every consumer that reads CLOSED -- archive
+                             ;; placement, bin/lint-org's threshold, and the
+                             ;; slice incidental window -- and it silently
+                             ;; joins the backlog TODO.org :ID: b7b46a26
+                             ;; exists to clear. Found 2026-08-31, four
+                             ;; hours after :ID: c74f8663 shipped, by
+                             ;; building something that depends on the
+                             ;; invariant (:ID: 5d59dc77).
+                             (if (member initial-state
+                                         claude-code-ide-org--outline-finished-keywords)
+                                 (format "CLOSED: %s\n" created)
+                               "")
                              new-id created)
                      :immediate-finish t
                      ;; Prepend only for a bare file target. TODO.org
