@@ -8241,6 +8241,47 @@ away for the metadata."
                    (all-completions "" coll nil)))
     (should (equal '("z second") (all-completions "z" coll nil)))))
 
+(ert-deftest claude-code-ide-org-test-assign-candidates-lead-with-the-id-prefix ()
+  "Every candidate row starts with the 8-character :ID: prefix.
+
+Not reachability -- the id was perfectly reachable trailing in braces.
+It is that every other place the reader meets an id puts it first, so
+the eye arrives expecting a prefix and found a title (TODO.org
+:ID: 46e4ce2b; the convention is :ID: c2132d3f). `--short-id' is exactly
+eight characters for any real UUID, so leading with it puts every id in
+one column, which a trailing `{id}' cannot do because titles vary in
+length."
+  ;; Not the known-ids fixture: it leaves its ids unknown to org on
+  ;; purpose, so `--assign-candidates' -- which walks
+  ;; `org-id-locations' -- returns nothing there.
+  (claude-code-ide-org-test--with-heading
+    (let* ((start (date-to-time "2026-08-17T09:00:00-0500"))
+           (claude-code-ide-org-query-files (list file))
+           (cands (claude-code-ide-org--assign-candidates
+                   start (time-add start 600))))
+      (should cands)
+      (dolist (cand cands)
+        ;; Eight characters, then two spaces, before anything else.
+        (should (string-match-p "\\`[^ ]\\{8\\}  " (car cand))))
+      ;; And the id is no longer trailing in braces.
+      (should-not (string-match-p "{[^}]+}" (mapconcat #'car cands "\n"))))))
+
+(ert-deftest claude-code-ide-org-test-assign-candidates-day-node-row-keeps-its-column ()
+  "The one row with no :ID: must not put a truncated title in the id column.
+
+The meta-work category is offered by title, because a category carries
+no :ID: by convention. This heading's body was explicit that whatever
+prefix format is chosen has to leave that row readable rather than
+showing eight characters of title where every other row shows an id."
+  (claude-code-ide-org-test--with-datetree
+    (let* ((start (date-to-time "2026-08-17T09:00:00-0500"))
+           (row (car (car (claude-code-ide-org--assign-candidates
+                           start (time-add start 600))))))
+      (should (string-match-p "meta-work" row))
+      ;; A same-width placeholder, not the title's first eight characters.
+      (should (string-prefix-p "--------  " row))
+      (should-not (string-prefix-p "(the day" row)))))
+
 (ert-deftest claude-code-ide-org-test-assign-candidates-tolerates-unresolvable-id ()
   "An `org-id' entry whose heading no longer exists must not drag org
 calls into the caller's buffer.  `org-with-point-at' does not switch

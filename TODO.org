@@ -4897,6 +4897,19 @@ So this is a *scanning* consistency, not a functional gap, and that changes what
 
 *Note the one entry that has no id and must stay legible:* the meta-work category, offered first, whose "id" is the title =Review and planning= ([[id:9575e65b-b589-465a-830c-286541780f96][9575e65b]]). Whatever prefix format is chosen has to leave that row readable rather than showing a truncated title where a prefix belongs.
 
+*Shipped 2026-08-31.* =--assign-candidates= renders =8ca6541d  09:00-09:12  Heading title= — prefix, then range, then state marker, then title. The id no longer trails in braces.
+
+*Applied as a convention rather than a divergence, which this body required.* The group headings already led with the prefix ([[id:c2132d3f-dd78-4498-ba87-0ca814dc2f77][c2132d3f]]); the assign completion was the same problem at a call site the earlier change did not reach. Both now agree, so the reader meets one shape everywhere in the buffer — which is the actual reason, as the user corrected: not reachability, but that the eye arrives expecting eight characters of id and found a title.
+
+*The column argument is why the prefix leads rather than merely appearing.* =--short-id= is exactly eight characters for any real UUID, so leading with it puts every id in one column and every range in the next. A trailing =\{id\}= cannot line up, because title lengths vary — in a buffer whose whole job is scanning.
+
+*The id-less row was the constraint this body flagged, and it is handled.* The meta-work category is offered by title, since a category carries no =:ID:= by convention and =bin/lint-org= enforces that. It now renders a same-width =--------= placeholder in the prefix column rather than borrowing the first eight characters of its title — which would have put a truncated title exactly where every other row puts an id, the misreading this body was careful to rule out. Pinned by its own test.
+
+*Verified:* 468 tests before, 470 after, 0 unexpected, exit 0. Restoring the trailing-brace format fails only =assign-candidates-lead-with-the-id-prefix=, on a full 470-test run.
+
+*One fixture trap found on the way, recorded because it is not obvious.* The first draft used =--with-known-ids=, which returns *zero* candidates: that fixture deliberately leaves its ids unknown to org until something scans, and =--assign-candidates= walks =org-id-locations=. The failure looked like a formatting mismatch and was an empty list.
+
+
 
 * TODO "writes 0:09 in 1" reads as two swappable numbers; "in 1" has no unit :code:
 :PROPERTIES:

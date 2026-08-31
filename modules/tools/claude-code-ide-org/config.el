@@ -8855,12 +8855,22 @@ sorts last rather than vanishing: absence of evidence rules nothing out."
                 (state (plist-get info :state))
                 (bracket (claude-code-ide-org--heading-bracket range created)))
            (when title
-             (push (list (format "%s %s%s  {%s}"
+             ;; Prefix first, matching every other rendering the reader
+             ;; meets -- group headings, span lines, and this project's
+             ;; own footnote convention in prose. The eye arrives
+             ;; expecting eight characters of id; finding a title there
+             ;; is the whole complaint (TODO.org :ID: 46e4ce2b, and the
+             ;; convention is :ID: c2132d3f). `--short-id' is exactly
+             ;; eight characters for any real UUID, so every id lands in
+             ;; one column and every range in the next; a trailing
+             ;; `{id}' cannot line up, because title lengths vary.
+             (push (list (format "%s  %s %s%s"
+                                 (claude-code-ide-org--short-id id)
                                  (claude-code-ide-org--format-activity-range
                                   range created span-start)
                                  (if (member state '("DONE" "CANCELLED"))
                                      (format "[%s] " state) "")
-                                 title (claude-code-ide-org--short-id id))
+                                 title)
                          id
                          (if bracket
                              (claude-code-ide-org--interval-gap
@@ -8897,8 +8907,13 @@ sorts last rather than vanishing: absence of evidence rules nothing out."
       ;; last Monday. Nothing needs to know the day node's id, and
       ;; nothing stores it.
       (if category
-          (cons (cons (format "%-18s %s  {meta-work: files under that day's node}"
-                              "(the day it happened)" category)
+          ;; The one row with no :ID: to lead with. It keeps a
+          ;; same-width marker in the prefix column rather than borrowing
+          ;; the first eight characters of its title, which would put a
+          ;; truncated title exactly where every other row puts an id --
+          ;; the misreading :ID: 46e4ce2b was careful to rule out.
+          (cons (cons (format "%-8s  %-18s %s  {meta-work: files under that day's node}"
+                              "--------" "(the day it happened)" category)
                       category)
                 ranked)
         ranked))))
