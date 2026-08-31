@@ -127,13 +127,37 @@ The checklist is already in dependency order, in five phases.
    verdict.
 5. **The checks learn** — `542924c1`, `d2a0f54c`.
 
+### Where this will stop anyway
+
+Every decision is taken, but the slice **cannot** run wire to wire, and the
+reason is architectural rather than a gap:
+
+- **Apply is human-only, by design.** A heading captured during the slice is
+  keywordless until someone applies, so a `:BLOCKER:` naming it is inert,
+  `bin/lint-org` errors and `pre-commit` refuses. Every capture-to-commit
+  cycle therefore crosses a human. `c74f8663` narrows this — a capture that
+  passes `initial_state` is keyworded immediately — but it is *in* phase 2, so
+  everything before it still stops, and apply itself never becomes automatic.
+- **`c8a97d9d` until it ships.** Every write tool needs the read-only flag
+  cleared and restored by hand; it ran about twelve times in one session.
+- **Judgement inside the work, not before it.** `6cc71c36` is an audit — "does
+  this wording distinguish what the code knows?" is a call per site.
+  `b6e229c7` has to decide which state items carry no judgement. `c60a1c53`
+  needs a threshold for what counts as a forgotten member. `7c4d6ef6` is a
+  settling task by definition.
+- **`02aaae22`**, the one body in `8c662dfb` that was ever revised. Do it last
+  or leave it.
+
+Expect long unattended stretches in phases 1, 2 and 4, and frequent checkpoints
+in 3 and 5.
+
 **Cut line: stop after phase 3.** Phases 1–3 are one argument about the gap
 between what the tools know and what they say; 4 and 5 are hygiene and can
 wait for a session with less momentum.
 
 ---
 
-## One that still needs a nod before building
+## Decisions taken, all five — nothing waits on the user
 
 - ~~`ff1352b3`~~ — **decided 2026-08-31: two tools, not three, and not a
   mode.** The property schema splits two ways: `BLOCKER` (23) is the only
@@ -161,11 +185,15 @@ wait for a session with less momentum.
   itself for nine, and compress-then-wrap applies with no per-heading call.
   Only `02aaae22` shows a shrink, and it is the one container in the list, so
   do it last or leave it. The nine are unattended work.
-- **`b7b46a26`** — whether a commit-derived `CLOSED:` is worth having at all,
-  and how the approximation is marked so a reader can tell the 39 derived from
-  the 58 measured. `7771fc63` is the precedent for refusing a plausible guess;
-  the new evidence is that `38b92521`'s manifest already computed git-derived
-  times for 13 of them and ordered an archive sweep by them.
+- ~~`b7b46a26`~~ — **decided 2026-08-31: option B.** Write `CLOSED:` from git
+  for the 39 headings that lack one, and mark each `:CLOSED_SOURCE: git`. The
+  question turned on whether anything reads `CLOSED:` as a *measurement*:
+  nothing does — `org-archive-subtree` uses it as a placement key,
+  `bin/lint-org` as a threshold, `f4b07fc0`'s backfill as a presence test — so
+  the machine case for refusing an approximation does not exist, and the
+  marker exists for the human, which is `7771fc63`'s ground. 13 of the 39
+  already have git-derived times in `38b92521`'s manifest. Buildable
+  unattended.
 
 Everything else in the list is buildable unattended.
 

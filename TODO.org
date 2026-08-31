@@ -5581,6 +5581,19 @@ So the work would derive a date from a *different event*, write it into a field 
 
 *What would reopen this:* a consumer appearing. If archive filing ever moves to a datetree ([[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]'s question), =CLOSED:= becomes load-bearing for placement and these 39 become genuinely undatable rather than merely undated.
 
+*Decided by the user 2026-08-31: option B.* Write =CLOSED:= from git for the 39 headings that have none, and mark each one as derived.
+
+*Both of this heading's original questions are now answered, and by different means.* Whether a commit-derived =CLOSED:= is worth having: yes — every consumer uses it as a placement key, a threshold or a presence test, so nothing mechanical is misled, and the enumeration above is the evidence. How the approximation is marked: with a property, which keeps all three consumers untouched because none of them looks at it.
+
+*The property is =:CLOSED_SOURCE: git=*, absent on the 58 measured ones. Checked before coining: no derivation marker exists in either file today, and the asymmetry is the right way round — a measured =CLOSED:= needs no annotation, so only the 39 carry a line.
+
+*Implementation, mostly already done once.* [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]]'s completion-time manifest computed git-derived times for 13 of the 39 on 2026-08-17, via =git log --reverse -S= over the heading line, and used them to order the archive sweep. Those 13 can be lifted from that table rather than recomputed. The remaining 26 are the project's earliest headings — the five original tool headings, the hook and trigger batch, =Set git identity= — and predate the =!= cookies, so git is genuinely the only source.
+
+*One trap already found and paid for, recorded in that manifest and worth not rediscovering:* the in-file scan must be scoped to a heading's *own* body. Scanning the subtree dates a parent from one of its children — =b5f7c5c7= came out two days early that way, and it would have mis-ordered the two largest entries with nothing downstream to notice.
+
+*What this unblocks:* [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]], which is blocked on this alone. Without it, =org-archive-subtree= would date all 39 from =time= — today — and pile them into a single wrong day node, silently.
+
+
 
 * DONE A sub-minute run is observed work; round it up rather than drop it :code:
 CLOSED: [2026-08-24 Mon 12:16]
