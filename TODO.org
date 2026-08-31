@@ -113,14 +113,14 @@ CLOSED: [2026-08-31 Mon 08:40]
 *The reasoning, restated in one line for whoever meets this next:* the =:PLAN:= lifecycle protects a reader from a closed *task's* design claims, and a slice makes none — so wrapping one would file true, retrospective prose into a drawer readers are told to skip, which is the inverse of what the lifecycle is for.
 
 
-* TODO [1/22] The code knows more than it says, and asks more than it should :code:
+* TODO [1/23] The code knows more than it says, and asks more than it should :code:
 :PROPERTIES:
 :ID:       b36e6369-a210-4540-adc7-0c0c188e9791
 :CREATED:  [2026-08-28 Fri 17:37]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(33864a0f-5e13-4235-85a6-0bd9d2fe5252 b7b46a26-2fd6-4784-bed3-d0112a917c0a 46d225c7-7541-4867-af72-929a572df2a5 c31b6c76-8ad8-45d4-a87b-39e085e31368 5a5e87c9-f432-44c6-a5a6-f6f3755e4347 c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b 2b2db914-c96e-416a-a80a-e31028308de0 c74f8663-b14e-4ab9-ad65-d99cb655b3fa 6cc71c36-0fa6-4773-9b35-c0582f4cee82 98c302e0-ab1b-40bf-92d0-d2f2e16ac05d 9e627dc0-d31b-42cc-857a-b1e5a77f44a5 44cef181-8dac-4735-8860-f123e132fdbc 46e4ce2b-fdc8-447b-ad09-b4845602540f 05c71d99-2839-447b-a536-60eb4bf43b73 8d0716fe-ca88-429d-b46b-e2f880f5b2cc b6e229c7-3035-4c0e-943b-710a12bfd7d1 0086614a-c95c-4618-bba0-c821589dd7f2 5f1068f9-1452-45e4-9253-568edfce2053 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
+:BLOCKER:  ids(c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8 33864a0f-5e13-4235-85a6-0bd9d2fe5252 b7b46a26-2fd6-4784-bed3-d0112a917c0a 46d225c7-7541-4867-af72-929a572df2a5 c31b6c76-8ad8-45d4-a87b-39e085e31368 5a5e87c9-f432-44c6-a5a6-f6f3755e4347 c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b 2b2db914-c96e-416a-a80a-e31028308de0 c74f8663-b14e-4ab9-ad65-d99cb655b3fa 6cc71c36-0fa6-4773-9b35-c0582f4cee82 98c302e0-ab1b-40bf-92d0-d2f2e16ac05d 9e627dc0-d31b-42cc-857a-b1e5a77f44a5 44cef181-8dac-4735-8860-f123e132fdbc 46e4ce2b-fdc8-447b-ad09-b4845602540f 05c71d99-2839-447b-a536-60eb4bf43b73 8d0716fe-ca88-429d-b46b-e2f880f5b2cc b6e229c7-3035-4c0e-943b-710a12bfd7d1 0086614a-c95c-4618-bba0-c821589dd7f2 5f1068f9-1452-45e4-9253-568edfce2053 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 17:38] \\
@@ -184,11 +184,19 @@ cost both warn against. Only its *review-buffer* half is in scope; the
 =:LOGBOOK:= annotation and the clocktable column stay open.
 
 *Phase 4 — the files stay orderly.* [[id:0086614a][0086614a]] and
+- [ ] [[id:c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8][c60a1c53]] TODO Name the work a slice forgot: detect the omission, never fix it
 [[id:5f1068f9][5f1068f9]] are both decided in substance and want only
 - [ ] [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] TODO Reorder DONE.org as a datetree, descending by CLOSED:
 - [ ] [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] TODO Recover a close time from git for the headings with no in-file evidence
 building; [[id:8c662dfb][8c662dfb]] is per-heading judgement and is the
 one item here that genuinely wants a human nearby.
+
+*[[id:c60a1c53][c60a1c53]] joins [[id:0086614a][0086614a]] as its twin,
+found by asking the question CLAUDE.md now names:* one *lists* the work a
+slice did not plan, the other *flags* what should have been a member and
+was not. Same computation over the same window, different verdict — and
+c60a1c53 measured three candidate signals against a live test case and
+found none that caught it, which 0086614a's strict window does.
 
 *[[id:33864a0f][33864a0f]] and [[id:b7b46a26][b7b46a26]] join it, and
 5f1068f9's own body says why:* "worth doing in the same pass rather than

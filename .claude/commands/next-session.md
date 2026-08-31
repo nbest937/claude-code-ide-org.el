@@ -14,18 +14,17 @@ the `:BLOCKER:` names every member still carrying a cookie.
 1. **Confirm `emacs-tools` is reachable** by calling `org_pending_updates`.
    It is read-only, and a reply proves the server is up in a way that seeing
    the tools listed does not.
-2. **Apply the queue first, and note that the slice cannot be committed until
-   you do.** `b36e6369` was composed with three of its own members captured in
-   the same session, so its `:BLOCKER:` names three keywordless headings and
-   `bin/lint-org` reports three errors — which `.githooks/pre-commit` refuses.
-   That is not a defect to fix; it is `c74f8663`, a member of this slice,
-   demonstrating itself.
-3. **Two new tools exist as of 2026-08-28 and are callable from this session
-   for the first time**: `org_divide` (task mitosis — insert a parent above a
-   heading and demote it under, id and history staying with the child) and
-   `org_set_property` (set a property by `:ID:`; `:BLOCKER:` is validated,
-   prefixes expanded, `append` unions). Reach for the second instead of
-   `emacsclient` + `org-entry-put`.
+2. **Apply the queue before composing anything.** A heading captured this
+   session is keywordless until you do, so a `:BLOCKER:` naming one is inert
+   and `bin/lint-org` errors — which `.githooks/pre-commit` refuses. That is
+   not a defect to fix; it is `c74f8663`, a member of this slice, and it cost
+   this slice a commit on 2026-08-28.
+3. **Two tools added 2026-08-28 that predate no habit yet**: `org_divide`
+   (task mitosis — insert a parent above a heading and demote it under, id and
+   history staying with the child) and `org_set_property` (set a property by
+   `:ID:`; `:BLOCKER:` is validated, prefixes expanded, `append` unions).
+   Reach for the second instead of `emacsclient` + `org-entry-put`, which is
+   still the reflex.
 
 ---
 
@@ -47,6 +46,18 @@ the `:BLOCKER:` names every member still carrying a cookie.
   especially any that blocks another member.
 - **`a` in the review buffer no longer advances.** Assigning makes a line
   markable rather than finishing it.
+- **`M-x claude-code-ide-org-goto`** jumps to a heading by title, with the
+  8-character prefix leading each candidate so an abbreviation is typeable.
+  Interactive only — no MCP registration, no schema cost.
+- **A closed slice is a record, not a projection.** `refresh-slice` skips a
+  slice whose own keyword is terminal, so later work cannot rewrite finished
+  history. A cookie-less line in a closed slice means the slice is *done
+  with* that member, not that it was cancelled.
+- **Slices are exempt from the `:PLAN:` lint and are not wrapped at close.**
+  That lifecycle protects a reader from a closed *task's* design claims; a
+  slice designs nothing.
+- **The twin asymmetry has a name** (CLAUDE.md). Ask it as a review question
+  on any list: *does anything here have a twin that is not here?*
 
 ---
 
@@ -69,12 +80,15 @@ Both were hit while composing `b36e6369`, and neither is obvious.
 
 The checklist is already in dependency order, in five phases.
 
-1. **Clear blockers and dead wood** — `915378ac`, `46d225c7`, `c31b6c76`,
-   `5a5e87c9`. `915378ac` is the last open child of `478d6ec9`, which is
-   blocking the *previous* slice. **Closing that container is its own step** —
-   a container at `[10/10]` does not close itself — and the previous slice
-   *still* will not close, because `9651d4c8` gates it and needs the user.
-   `c31b6c76` and `5a5e87c9` are twins: both are time-of-day test flakes.
+1. **Clear dead wood** — `46d225c7`, `c31b6c76`, `5a5e87c9`. `c31b6c76` and
+   `5a5e87c9` are **twins** — both time-of-day test flakes — so do them
+   together or neither; see CLAUDE.md on the twin asymmetry.
+
+   `915378ac` was also a phase-1 member and is already **DONE**: it was built
+   on 2026-08-29 to close `478d6ec9` and unblock the *previous* slice, so it
+   was consumed by that slice's endgame while listed in this one. Nothing is
+   wrong — the checkbox is honest — but it is the reason this phase is
+   shorter than the list suggests.
 2. **Stop fighting the tools** — `c8a97d9d`, `2b2db914`, `c74f8663`.
    `c8a97d9d` is the largest felt win and the smallest change: its own child
    already bound `inhibit-read-only` in the apply path and the other write
@@ -87,10 +101,13 @@ The checklist is already in dependency order, in five phases.
    `9e627dc0` is here because both its body and `98c302e0`'s say the readout
    rework and the turn-count surfacing must be **one pass** — only its
    review-buffer half is in scope.
-4. **The files stay orderly** — `0086614a`, `5f1068f9`, `33864a0f`,
-   `b7b46a26`, `8c662dfb`. The middle three move together or not at all:
-   `5f1068f9`'s own body says its DONE.org twin is "worth doing in the same
-   pass rather than twice", and `b7b46a26` blocks `33864a0f`.
+4. **The files stay orderly** — `0086614a`, `c60a1c53`, `5f1068f9`,
+   `33864a0f`, `b7b46a26`, `8c662dfb`. Two twin pairs in here: `5f1068f9`'s
+   own body says its DONE.org counterpart `33864a0f` is "worth doing in the
+   same pass rather than twice" (and `b7b46a26` blocks it), while `c60a1c53`
+   is `0086614a`'s — one lists the work a slice did not plan, the other flags
+   what should have been a member and was not. Same computation, different
+   verdict.
 5. **The checks learn** — `542924c1`, `d2a0f54c`.
 
 **Cut line: stop after phase 3.** Phases 1–3 are one argument about the gap
@@ -99,7 +116,7 @@ wait for a session with less momentum.
 
 ---
 
-## Four that need a nod before building
+## Five that need a nod before building
 
 - **`c74f8663`** — whether `org_capture` takes an initial state is a decision
   about the queue's one exception, not a build.
@@ -148,6 +165,15 @@ Everything else in the list is buildable unattended.
 - **A mutation that does not parse proves nothing.** Break semantically —
   invert a predicate, return nil — and confirm the run count before the
   failure count.
+- **A splice whose two markers can be mis-ordered must assert their order.**
+  Replacing a region with `body[:start] + new + body[end:]` silently
+  *duplicates* everything between them when `end < start`. It happened to a
+  slice body on 2026-08-29: the revision links sat before the section being
+  replaced, and the cookie went *up*, which read as plausible on a slice that
+  had just grown.
+- **A sentence describing an action is not the action.** Twice: a source
+  comment reading "Removal is filed" when nothing was, and a reply announcing
+  an edit to a saved file that had not been made.
 - **Never type a UUID from memory.** Two were fabricated in one session; the
   tools refused both. Write the 8-character prefix and let the tool expand it.
 - **A sentence claiming something was filed is not a filing action.** One was
