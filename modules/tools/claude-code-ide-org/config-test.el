@@ -8721,14 +8721,23 @@ date, so a stamp backdated to yesterday must not silence today."
       (set-file-times f (time-subtract (current-time) (days-to-time 1)))
       (should-not (claude-code-ide-org--ceremony-done-today-p)))))
 
-(ert-deftest claude-code-ide-org-test-ceremony-quiets-on-a-real-pass ()
-  "Running a pass silences the prompt, with nobody remembering anything.
+(ert-deftest claude-code-ide-org-test-ceremony-a-pass-alone-no-longer-quiets ()
+  "A pass having run must not silence the prompt; only the stamp does.
 
-TODO.org :ID: 806ff394.  The prompt used to depend on a session calling
-`mark-ceremony-done' an hour and many turns after being told to -- the
-shape :ID: 2758f3a0 measured failing at 41 of 45, every miss on
-re-mention.  Since :ID: 961f15b6 the review command opens a real clock,
-so \"a pass ran today\" is *derived from the act itself*."
+*This reverses `...-quiets-on-a-real-pass\', deliberately* (TODO.org
+:ID: 29734f79).  That test was right for its world: the steps after
+apply needed a human, so asking twice in a day would have been asking
+for work only they could do, and :ID: 806ff394\'s point was that the
+clock derives \"a pass ran\" from the act rather than from anyone
+remembering.  Both still hold.  What changed is that the steps now run
+on leaving the review buffer and stamp the ceremony only if all of them
+succeed -- so a missing stamp means unfinished, and the case the old
+disjunct hid is the worst one: a pass that ran, failed a step, held the
+repeater, and was then silenced by its own apply clock.
+
+The clock is still read.  It now decides what the report *says* rather
+than whether it speaks, which is why `:reviewed-today\' is asserted here
+and not merely the absence of silence."
   (claude-code-ide-org-test--with-attention-target
     (let ((claude-code-ide-org-queue-directory
            (file-name-directory (claude-code-ide-org--capture-target-file))))
@@ -8737,6 +8746,16 @@ so \"a pass ran today\" is *derived from the act itself*."
       (claude-code-ide-org-review-attention-start)
       (claude-code-ide-org-review-attention-stop)
       (should (claude-code-ide-org--ceremony-reviewed-today-p))
+      ;; Still speaking -- and now able to say which case this is.
+      (let ((status (claude-code-ide-org--ceremony-status)))
+        (should status)
+        (should (plist-get status :reviewed-today))
+        (let ((text (claude-code-ide-org--format-ceremony-report
+                     (list :pending 1 :drifted 0 :archivable 0
+                           :reviewed-today t :last-done "never"))))
+          (should (string-match-p "did not complete" text))))
+      ;; The stamp, and only the stamp, quiets it.
+      (claude-code-ide-org-mark-ceremony-done)
       (should-not (claude-code-ide-org--ceremony-status)))))
 
 (ert-deftest claude-code-ide-org-test-ceremony-quiet-does-not-mean-complete ()
@@ -8771,7 +8790,13 @@ report, which asks the stop time and forbids guessing one."
     (should (string-match-p "7 finished heading" text))
     (should (string-match-p "Ask the user whether" text))
     (should (string-match-p "do not announce that you will" text))
-    (should (string-match-p "claude-code-ide-org-mark-ceremony-done" text))
+    ;; It no longer asks anyone to stamp the ceremony, because the pass
+    ;; stamps itself once its steps have all succeeded (:ID: 29734f79).
+    ;; Asserted as an absence *and* a presence: dropping the instruction
+    ;; without putting the new contract in its place would leave a report
+    ;; that says what not to do and never what happens instead.
+    (should-not (string-match-p "mark-ceremony-done" text))
+    (should (string-match-p "burying the review buffer" text))
     ;; Nothing waiting: no line at all, rather than a cheerful "0 items".
     (should-not (claude-code-ide-org--format-ceremony-report
                  '(:pending 0 :drifted 0 :archivable 0)))

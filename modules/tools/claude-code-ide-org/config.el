@@ -724,11 +724,21 @@ why this returns numbers and the formatter below asks a question."
   ;; ceremony was completed* -- a claim only a human can make, since it
   ;; spans steps nothing observes.  The clock says *a pass was run*,
   ;; which is derived from the act itself and cannot be forgotten.
-  ;; Either is reason enough not to ask again today; only the first is
-  ;; reason to believe the ceremony is done, which is why the report
-  ;; below states when that last happened rather than implying it.
-  (unless (or (claude-code-ide-org--ceremony-done-today-p)
-              (claude-code-ide-org--ceremony-reviewed-today-p))
+  ;; *Only the stamp quiets this now* (TODO.org :ID: 29734f79).  A pass
+  ;; having run used to be reason enough not to ask twice in a day,
+  ;; because the steps after apply needed a human, and asking again
+  ;; would have been asking for work only they could do.  That premise
+  ;; is gone: those steps run on leaving the review buffer, and the stamp
+  ;; is written only once all of them have succeeded.  A missing stamp
+  ;; therefore means the ceremony did not finish -- and the case the old
+  ;; disjunct hid is the one that matters most: a pass that ran, failed a
+  ;; step, held the repeater, and was then silenced by its own apply
+  ;; clock.
+  ;;
+  ;; The clock is still read, but to *say* something rather than to stay
+  ;; quiet.  It is what separates "nobody has been here today" from
+  ;; "someone was, and it did not complete".
+  (unless (claude-code-ide-org--ceremony-done-today-p)
     (let ((pending (length (claude-code-ide-org--review-items-from-queue)))
           (drifted (nth 1 (claude-code-ide-org--consolidate-drawers-1 t)))
           (archivable 0))
@@ -745,6 +755,7 @@ why this returns numbers and the formatter below asks a question."
                  (setq archivable (1+ archivable))))
              nil 'file))))
       (list :pending pending :drifted drifted :archivable archivable
+            :reviewed-today (claude-code-ide-org--ceremony-reviewed-today-p)
             :last-done (let ((f (claude-code-ide-org--ceremony-stamp-file)))
                          (when (file-exists-p f)
                            (format-time-string
@@ -768,29 +779,36 @@ before it was unwelcome."
   ;; with it.  Found by the test, not by reading.
   (let* ((pending (or (plist-get status :pending) 0))
          (drifted (or (plist-get status :drifted) 0))
-         (archivable (or (plist-get status :archivable) 0)))
+         (archivable (or (plist-get status :archivable) 0))
+         (reviewed (plist-get status :reviewed-today)))
     (when (and status (> (+ pending drifted archivable) 0))
       (concat
-       (format (concat "Today's review-and-planning pass has not been run yet. "
+       (format (concat (if reviewed
+                           (concat "A review pass ran today but the ceremony "
+                                   "did not complete -- a step after apply "
+                                   "failed, or the review buffer was never "
+                                   "buried. ")
+                         "Today's review-and-planning pass has not been run yet. ")
                        "Waiting: %d queued item(s) pending review, %d :LOGBOOK: "
                        "drawer(s) out of order, %d finished heading(s) not yet "
                        "archived. The ceremony was last marked complete %s. ")
                pending drifted archivable
-               ;; Stated, never implied.  This prompt goes quiet as soon
-               ;; as a pass is *run*, which is not the same as the
-               ;; ceremony being *finished* -- so the date it was last
-               ;; finished has to be visible or silence would read as
-               ;; completion (TODO.org :ID: 806ff394).
+               ;; Stated, never implied (TODO.org :ID: 806ff394).  This
+               ;; used to matter because the prompt went quiet on a pass
+               ;; having *run*, which is not the same as the ceremony
+               ;; being *finished*.  Silence now means finished, so the
+               ;; date has stopped being load-bearing -- but it still
+               ;; answers "how long has this been slipping", which earns
+               ;; a line when the report is firing anyway.
                (or (plist-get status :last-done) "never"))
        "Ask the user whether they want to run it now; do not announce that you "
        "will, and do not run any part of it unasked. Apply is theirs alone -- "
        "M-x claude-code-ide-org-review -- because org's state-change logging "
-       "only completes inside a genuinely interactive command. After they "
-       "apply, the remaining steps are yours if they ask: "
-       "claude-code-ide-org-consolidate-all-drawers, then "
-       "claude-code-ide-org-normalize-heading-separation, then archiving. "
-       "When the pass is finished, call claude-code-ide-org-mark-ceremony-done "
-       "so this stops asking until tomorrow."))))
+       "only completes inside a genuinely interactive command. The steps "
+       "after it are nobody's to remember: burying the review buffer runs "
+       "drawer consolidation, heading separation and archiving, and stamps "
+       "the ceremony done only if all three succeed. So the thing to ask for "
+       "is the apply; the rest follows from leaving the buffer."))))
 
 (defun claude-code-ide-org--session-start-hook-json ()
   "Return the SessionStart hook JSON payload: an empty object if there is
