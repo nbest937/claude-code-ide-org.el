@@ -188,6 +188,17 @@ and the open decisions live in the prompt below rather than here.
 
 *Option 1 is the one worth arguing about*, and the argument turns on whether "a heading is created *with* a state" is a transition at all. If it is not — and a =State \"TODO\" from \"\"= line is arguably noise rather than history — then there is no exception, only a capture that finishes the job.
 
+*Decided by the user 2026-08-31: option 1.* =org_capture= gains an =initial_state= argument and writes the keyword with the heading.
+
+*The objection it overrides, and why that is sound.* Writing a keyword directly puts one state change outside the queue, and the queue is load-bearing because org's native state logging only completes inside an interactive command. But a *creation* has no prior state, so there is no transition to log: =State "TODO" from ""= is noise rather than history. Nothing is hidden from the review pass that the review pass wanted.
+
+*What it fixes, measured:* every heading captured in a session is keywordless on disk until apply, so a =:BLOCKER:= naming one is inert, =bin/lint-org= errors, and =.githooks/pre-commit= refuses. That cost [[id:b36e6369-a210-4540-adc7-0c0c188e9791][b36e6369]] a commit on 2026-08-28 — the slice could not be committed until the queue was applied, because three of its own members were captured in the same session.
+
+*Still queue-routed:* every *subsequent* transition. This is a creation-time argument only, and =org_set_todo= keeps its behaviour unchanged.
+
+*Note for whoever builds it:* the argument should be optional and default to nothing, so a capture with no state still produces a keywordless heading. That is the current behaviour and some callers want it — a heading captured as a note rather than a task.
+
+
 
 * TODO Three verification traps hit repeatedly in one session, none of them caught by a check :code:
 :PROPERTIES:
@@ -367,6 +378,15 @@ The trailing =t= is the last form of the =save-excursion=, so the whole expressi
 *Recommend A, with B's concern answered by a lint assertion rather than by a fake timestamp:* assert that the =:DATE_TREE:= anchor is the last level-1 heading. That makes the invariant checked without inventing data, which is the same move [[id:8bea4317-c8e7-4939-8224-834bb914d89c][8bea4317]] made for the cookie's position — read the corpus, assert the result, do not encode it as data.
 
 *C stays open on its own merits*, and is worth deciding separately rather than as a side effect of sorting: it is really the question of whether meta-work belongs in the same file as the work, which nothing here has asked yet.
+
+*Decided by the user 2026-08-31: approach A.* One call — =(org-sort-entries nil ?R nil nil "CREATED")= with point before the first heading — and the datetree anchor sorts last on its own, because it carries no =:CREATED:=.
+
+*With A's one real objection answered by a check rather than by data.* The anchor is last by an *absence*, which nobody decided; so =bin/lint-org= asserts that the =:DATE_TREE:= anchor is the final level-1 heading. That makes the invariant checked without inventing a timestamp, which is the move [[id:8bea4317-c8e7-4939-8224-834bb914d89c][8bea4317]] made for the cookie's position: read the corpus, assert the result, do not encode it as data.
+
+*Approach C stays open and is not foreclosed.* Moving the datetree to its own file is a question about whether meta-work belongs in the same file as the work, and deciding it as a side effect of a sort would be deciding it by accident. Nothing in A makes C harder later.
+
+*Sequencing reminder from the measurement above:* the *first* sort is a large reordering — 63% of adjacent pairs are already descending, longest run 17 of 135 — so it wants its own commit. Every later run moves one or two entries, because =org_capture= prepends.
+
 
 
 * TODO Sweep the ten longest live bodies into :PLAN: drawers :code:

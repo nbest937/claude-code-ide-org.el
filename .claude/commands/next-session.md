@@ -130,13 +130,21 @@ wait for a session with less momentum.
 
 ---
 
-## Five that need a nod before building
+## Two that still need a nod before building
 
-- **`c74f8663`** — whether `org_capture` takes an initial state is a decision
-  about the queue's one exception, not a build.
-- **`5f1068f9`** — approach A is measured and recommended, but the alternative
-  (move the datetree to its own file) is a real question about where meta-work
-  lives and must not be settled as a side effect of a sort.
+- ~~`c74f8663`~~ — **decided 2026-08-31: option 1.** `org_capture` gains an
+  optional `initial_state` and writes the keyword with the heading. A creation
+  has no prior state, so nothing is hidden from the review pass; every
+  *subsequent* transition still routes through the queue. Buildable
+  unattended.
+- ~~`5f1068f9`~~ — **decided 2026-08-31: approach A.** One
+  `(org-sort-entries nil ?R nil nil "CREATED")` with point before the first
+  heading; the anchor sorts last on its own. Its one objection — that the
+  anchor is last by an *absence* — is answered by a lint assertion that the
+  `:DATE_TREE:` anchor is the final level-1 heading, not by a fabricated
+  timestamp. Moving the datetree to its own file stays open and is not
+  foreclosed. The first sort is a large reordering and wants its own commit.
+  Buildable unattended.
 - **`8c662dfb`** — *mostly settled 2026-08-31.* Measured across all 472
   commits: **nine of the ten bodies have never lost a line**, so this
   heading's own test ("was it ever revised, or only appended to?") answers
