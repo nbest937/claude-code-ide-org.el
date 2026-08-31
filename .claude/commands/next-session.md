@@ -4,7 +4,21 @@ Rewritten 2026-08-28, replacing the prompt that drove `979e02b6`. That slice
 closed the declared-versus-inferred gap; this one opens `b36e6369`.
 
 **The slice is the list.** Do not re-derive it — open `b36e6369` and read its
-checklist. Its predecessor `979e02b6` closed 2026-08-31 at 48/48. Each line carries the member's id, current keyword and title, and
+checklist. Its predecessor `979e02b6` closed 2026-08-31 at 48/48.
+
+**What the slice is about**, since its body deliberately does not repeat it:
+the tools *know* things they do not report — a span's real interval, which ids
+a blocker names, whether an event will change anything — so a human reads a
+number that is not the number. And they *ask* for things they should not:
+clearing a read-only flag by hand, setting a keyword in a second call,
+retyping what the tool already resolved. The title borrows `6cc71c36`, which
+named the first half: *the code knew more than it said*.
+
+Measured in the session that composed it: the read-only clear/restore dance
+ran about twelve times; `writes 0:01 in 1` was rendered over a nineteen-minute
+span with no way to tell which number meant what; a `:BLOCKER:` error cleared
+itself only on apply; and three verification traps fired twice each, every one
+a *silence* read as a pass. Each line carries the member's id, current keyword and title, and
 the `:BLOCKER:` names every member still carrying a cookie.
 
 ---

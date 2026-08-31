@@ -113,133 +113,34 @@ CLOSED: [2026-08-31 Mon 08:40]
 *The reasoning, restated in one line for whoever meets this next:* the =:PLAN:= lifecycle protects a reader from a closed *task's* design claims, and a slice makes none — so wrapping one would file true, retrospective prose into a drawer readers are told to skip, which is the inverse of what the lifecycle is for.
 
 
-* TODO [1/23] The code knows more than it says, and asks more than it should :code:
+* TODO [1/24] The code knows more than it says, and asks more than it should :code:
 :PROPERTIES:
 :ID:       b36e6369-a210-4540-adc7-0c0c188e9791
 :CREATED:  [2026-08-28 Fri 17:37]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8 33864a0f-5e13-4235-85a6-0bd9d2fe5252 b7b46a26-2fd6-4784-bed3-d0112a917c0a 46d225c7-7541-4867-af72-929a572df2a5 c31b6c76-8ad8-45d4-a87b-39e085e31368 5a5e87c9-f432-44c6-a5a6-f6f3755e4347 c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b 2b2db914-c96e-416a-a80a-e31028308de0 c74f8663-b14e-4ab9-ad65-d99cb655b3fa 6cc71c36-0fa6-4773-9b35-c0582f4cee82 98c302e0-ab1b-40bf-92d0-d2f2e16ac05d 9e627dc0-d31b-42cc-857a-b1e5a77f44a5 44cef181-8dac-4735-8860-f123e132fdbc 46e4ce2b-fdc8-447b-ad09-b4845602540f 05c71d99-2839-447b-a536-60eb4bf43b73 8d0716fe-ca88-429d-b46b-e2f880f5b2cc b6e229c7-3035-4c0e-943b-710a12bfd7d1 0086614a-c95c-4618-bba0-c821589dd7f2 5f1068f9-1452-45e4-9253-568edfce2053 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
+:BLOCKER:  ids(c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8 33864a0f-5e13-4235-85a6-0bd9d2fe5252 b7b46a26-2fd6-4784-bed3-d0112a917c0a 46d225c7-7541-4867-af72-929a572df2a5 c31b6c76-8ad8-45d4-a87b-39e085e31368 5a5e87c9-f432-44c6-a5a6-f6f3755e4347 c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b 2b2db914-c96e-416a-a80a-e31028308de0 c74f8663-b14e-4ab9-ad65-d99cb655b3fa 6cc71c36-0fa6-4773-9b35-c0582f4cee82 98c302e0-ab1b-40bf-92d0-d2f2e16ac05d 9e627dc0-d31b-42cc-857a-b1e5a77f44a5 44cef181-8dac-4735-8860-f123e132fdbc 46e4ce2b-fdc8-447b-ad09-b4845602540f 05c71d99-2839-447b-a536-60eb4bf43b73 8d0716fe-ca88-429d-b46b-e2f880f5b2cc b6e229c7-3035-4c0e-943b-710a12bfd7d1 0086614a-c95c-4618-bba0-c821589dd7f2 5f1068f9-1452-45e4-9253-568edfce2053 7c4d6ef6-c914-4d33-b267-cc9158a9f359 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 17:38] \\
   next slice, composed and awaiting review
 :END:
-*Composed 2026-08-28 from a single long session plus the backlog.* The
-previous slice ([[id:979e02b6][979e02b6]]) closed the gap between what
-this project *declares* and what its code *infers*. This one is about a
-different gap, and the title is borrowed from a member that named it
-first: [[id:6cc71c36][6cc71c36]], "the code knew more than it said".
+Work on the gap between what the tools know and what they say, and between
+what they do and what they make a human do by hand. The plan, the sequence
+and the open decisions live in the prompt below rather than here.
 
-*Two halves, and they are the same complaint from opposite sides.* The
-tools *know* things they do not report — a span's real interval, which
-ids a blocker names, whether an event will change anything — so a human
-reads a number that is not the number. And they *ask* for things they
-should not — clearing a read-only flag by hand a dozen times a session,
-setting a keyword in a second call, retyping what the tool already
-resolved. Neither is a defect anyone would file on its own; together
-they are most of the friction and most of the inaccuracy.
+*The prompt that drove this slice, one link per revision of it:*
 
-*Evidence from the session that produced it*, all measured rather than
-recalled: the read-only clear/restore dance ran about twelve times;
-=writes 0:01 in 1= was rendered over a nineteen-minute span with no way
-to tell which number meant what; a =:BLOCKER:= error cleared itself only
-when the queue was applied; and three separate verification traps were
-hit twice each, every one of them a *silence* read as a pass.
+- [[orgit-rev:claude-code-ide-org::1581403][1581403]] [2026-08-28 Fri 17:40] defined the slice
+- [[orgit-rev:claude-code-ide-org::0e5c779][0e5c779]] [2026-08-28 Fri 17:44] folded in advisor review: a coupling, a twin, a revision link
+- [[orgit-rev:claude-code-ide-org::c683da1][c683da1]] [2026-08-29 Sat 13:56] recorded org-goto and the tools that closed 478d6ec9
+- [[orgit-rev:claude-code-ide-org::711e0e2][711e0e2]] [2026-08-31 Mon 08:43] extended phase 4 after the previous slice closed
+- [[orgit-rev:claude-code-ide-org::bb7eae2][bb7eae2]] [2026-08-31 Mon 09:02] corrected six claims that went stale with that close
 
-*Sequence.*
-
-*Phase 1 — clear blockers and dead wood.* Small, mechanical, and the
-first one closes a container: [[id:915378ac][915378ac]] is the last open
-child of [[id:478d6ec9][478d6ec9]], which is itself blocking the
-previous slice. Closing that container is its own step — a container at
-=[10/10]= does not close itself — and note the previous slice *still*
-will not close, because [[id:9651d4c8][9651d4c8]] gates it and needs the
-user.
-
-=c31b6c76= and =5a5e87c9= are twins and are here together: both are
-time-of-day test flakes, one whose fixture spills past midnight and one
-that compares a duration against the clocktable's own timestamp. Fixing
-one and leaving the other would read as an oversight.
-
-*Phase 2 — stop fighting the tools.* [[id:c8a97d9d][c8a97d9d]] is the
-largest felt win in the list and the smallest change in it: its own
-child already bound =inhibit-read-only= in the apply path, and the other
-write tools simply never followed.
-
-*Phase 3 — the review buffer says what it means.*
-[[id:6cc71c36][6cc71c36]] is the umbrella and should be done *with* the
-wording fixes rather than before them, because a one-word repair beside
-an unchanged line three rows down is worse than uniform terseness.
-[[id:98c302e0][98c302e0]] is already decided: state the evidence in
-hand, do not predict what apply will write.
-
-*[[id:9e627dc0][9e627dc0]] is in this phase because both bodies say so.*
-Its own body and 98c302e0's were amended the same day to record that the
-readout rework and the turn-count surfacing should be built in *one*
-pass — turn count is one of the three things the readout is now supposed
-to say, so building 98c302e0 alone recreates exactly the reworded-twice
-cost both warn against. Only its *review-buffer* half is in scope; the
-=:LOGBOOK:= annotation and the clocktable column stay open.
-
-*Phase 4 — the files stay orderly.* [[id:0086614a][0086614a]] and
 - [ ] [[id:c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8][c60a1c53]] TODO Name the work a slice forgot: detect the omission, never fix it
-[[id:5f1068f9][5f1068f9]] are both decided in substance and want only
 - [ ] [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] TODO Reorder DONE.org as a datetree, descending by CLOSED:
 - [ ] [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] TODO Recover a close time from git for the headings with no in-file evidence
-building; [[id:8c662dfb][8c662dfb]] is per-heading judgement and is the
-one item here that genuinely wants a human nearby.
-
-*[[id:c60a1c53][c60a1c53]] joins [[id:0086614a][0086614a]] as its twin,
-found by asking the question CLAUDE.md now names:* one *lists* the work a
-slice did not plan, the other *flags* what should have been a member and
-was not. Same computation over the same window, different verdict — and
-c60a1c53 measured three candidate signals against a live test case and
-found none that caught it, which 0086614a's strict window does.
-
-*[[id:33864a0f][33864a0f]] and [[id:b7b46a26][b7b46a26]] join it, and
-5f1068f9's own body says why:* "worth doing in the same pass rather than
-twice — both are make the file read newest-first after archiving; they
-differ only in the key and in whether the result is flat or nested."
-Leaving one twin out was the same asymmetry the =c31b6c76=/=5a5e87c9=
-pair had, caught once and reintroduced here. b7b46a26 blocks 33864a0f,
-so all three move together or none do.
-
-*Phase 5 — the checks learn.* [[id:542924c1][542924c1]] records three
-traps that no check catches, and [[id:d2a0f54c][d2a0f54c]] is the
-vehicle: it already proposes generalising =check-org-dev-skill= into a
-=check-conventions= wired into =pre-commit=.
-
-*Three that need a nod before building.*
-
-=c74f8663= — whether =org_capture= takes an initial state is a
-*decision* about the queue's one exception, not a build.
-=5f1068f9= — approach A is recommended and measured, but the
-alternative (move the datetree to its own file) is a real question about
-where meta-work lives and should not be settled as a side effect of a
-sort.
-=8c662dfb= — condensing ten bodies is ten judgements.
-
-=b7b46a26= — whether a commit-derived =CLOSED:= is worth having at all,
-and if so how the approximation is marked so a reader can tell the 39
-derived from the 58 measured. [[id:7771fc63][7771fc63]] is the precedent
-for refusing a plausible guess. New evidence since it was written:
-[[id:38b92521][38b92521]]'s manifest already computed git-derived times
-for 13 of the 39 and used them to order an archive sweep, so the
-question narrows from "is this trustworthy" to "is it trustworthy
-*unlabelled*".
-
-=ff1352b3= — not a member, and listed here because it is the fourth of
-the same kind: whether returning a heading's body whole is a mode on
-=org_outline= or its own tool is a pure surface decision, filed the same
-day the front-matter half shipped. The implementation is an hour; the
-decision outlives it.
-
-Everything else in the list is buildable unattended.
-
-*Members.*
-
 - [X] [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]] DONE Jump to a heading by title, not by pasting a UUID
 - [ ] [[id:46d225c7-7541-4867-af72-929a572df2a5][46d225c7]] TODO Remove queue-append's synthetic-event overrides, dead since the ExitPlanMode hook went
 - [ ] [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]] TODO A clock-report test fails every evening, because its fixture spills past midnight
@@ -257,12 +158,10 @@ Everything else in the list is buildable unattended.
 - [ ] [[id:b6e229c7-3035-4c0e-943b-710a12bfd7d1][b6e229c7]] TODO Auto-mark the state items that carry no judgement
 - [ ] [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]] TODO A slice should list incidental work separately from its planned members
 - [ ] [[id:5f1068f9-1452-45e4-9253-568edfce2053][5f1068f9]] TODO Sort TODO.org by :CREATED: descending, after each archive pass
+- [ ] [[id:7c4d6ef6-c914-4d33-b267-cc9158a9f359][7c4d6ef6]] TODO Settle what a slice proposal is, and write the procedure down
 - [ ] [[id:8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8][8c662dfb]] TODO Sweep the ten longest live bodies into :PLAN: drawers
 - [ ] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] TODO Three verification traps hit repeatedly in one session, none of them caught by a check
 - [ ] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] NEXT Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
-
-- [[orgit-rev:claude-code-ide-org::1581403][1581403]] [2026-08-28 Fri 17:40] defined the slice
-
 
 * TODO org_capture should accept an initial TODO state, so a heading is not keywordless until apply :code:
 :PROPERTIES:
