@@ -2,6 +2,27 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
+* [0/2] Make an archived day hold that day's record :code:
+:PROPERTIES:
+:ID:       f9fe9fac-a423-4ede-bc42-1d201c2c3d82
+:CREATED:  [2026-08-31 Mon 12:07]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:BLOCKER:  ids(d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b)
+:END:
+
+Seeded 2026-08-31 from the proposal reviewed in conversation: DONE.org's datetree should gather what happened on a day, not only what was filed. Both members move *records* into it rather than changing what a task is.
+
+*Its work is blocked from outside this slice.* [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] builds the datetree and belongs to [[id:b36e6369-a210-4540-adc7-0c0c188e9791][b36e6369]], so nothing here starts until that lands. That is precisely why these two were kept *out* of b36e6369 rather than added to it: including them would have left a 27-member slice unable to close until its own downstream consumers were done too.
+
+*Use org's own datetree machinery, and note which entry point.* =org-datetree-find-create-hierarchy= takes a comparison function per level and =org-datetree-comparefun-from-regex= builds one; negating its result gives the descending order [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] asks for. Measured in batch 2026-08-31 -- entries inserted 08-10, 08-31, 07-05, 08-20 landed in strict descending order at year, month and day. Only =org-datetree-find-date-create= hard-codes ascending, which is what made a hand-rolled builder look necessary at first.
+
+*What a day node means, and does not.* It holds what org would allocate to that date. A task's *earlier* clock intervals stay where they were recorded, so a day node is not a substitute for a clocktable when the question is how much time went where.
+
+- [ ] [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] TODO Distribute Review and planning's past day nodes into DONE.org's datetree
+- [ ] [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones
+
 * TODO MCP tools that write an org file time out; one reports success and persists nothing :code:
 :PROPERTIES:
 :ID:       72463b68-9f08-44b2-8213-87f71298138d
@@ -139,14 +160,14 @@ Apply is human-only because org's native state-change logging completes only ins
 *Deliberately out of scope:* shrinking =org_outline='s front matter. Build this first — at that point the front matter's remaining unique content is about one line, and the question answers itself.
 
 
-* TODO [1/26] The code knows more than it says, and asks more than it should :code:
+* TODO [1/27] The code knows more than it says, and asks more than it should :code:
 :PROPERTIES:
 :ID:       b36e6369-a210-4540-adc7-0c0c188e9791
 :CREATED:  [2026-08-28 Fri 17:37]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8 33864a0f-5e13-4235-85a6-0bd9d2fe5252 b7b46a26-2fd6-4784-bed3-d0112a917c0a 46d225c7-7541-4867-af72-929a572df2a5 c31b6c76-8ad8-45d4-a87b-39e085e31368 5a5e87c9-f432-44c6-a5a6-f6f3755e4347 c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b 2b2db914-c96e-416a-a80a-e31028308de0 c74f8663-b14e-4ab9-ad65-d99cb655b3fa a0028a4e-39cb-4653-83cc-446b810234ac 6cc71c36-0fa6-4773-9b35-c0582f4cee82 98c302e0-ab1b-40bf-92d0-d2f2e16ac05d 9e627dc0-d31b-42cc-857a-b1e5a77f44a5 44cef181-8dac-4735-8860-f123e132fdbc 46e4ce2b-fdc8-447b-ad09-b4845602540f 05c71d99-2839-447b-a536-60eb4bf43b73 8d0716fe-ca88-429d-b46b-e2f880f5b2cc b6e229c7-3035-4c0e-943b-710a12bfd7d1 a2509a61-4e21-4d8e-8f58-c87935753472 0086614a-c95c-4618-bba0-c821589dd7f2 5f1068f9-1452-45e4-9253-568edfce2053 7c4d6ef6-c914-4d33-b267-cc9158a9f359 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
+:BLOCKER:  ids(c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8 33864a0f-5e13-4235-85a6-0bd9d2fe5252 b7b46a26-2fd6-4784-bed3-d0112a917c0a 46d225c7-7541-4867-af72-929a572df2a5 c31b6c76-8ad8-45d4-a87b-39e085e31368 5a5e87c9-f432-44c6-a5a6-f6f3755e4347 c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b 2b2db914-c96e-416a-a80a-e31028308de0 c74f8663-b14e-4ab9-ad65-d99cb655b3fa 72463b68-9f08-44b2-8213-87f71298138d a0028a4e-39cb-4653-83cc-446b810234ac 6cc71c36-0fa6-4773-9b35-c0582f4cee82 98c302e0-ab1b-40bf-92d0-d2f2e16ac05d 9e627dc0-d31b-42cc-857a-b1e5a77f44a5 44cef181-8dac-4735-8860-f123e132fdbc 46e4ce2b-fdc8-447b-ad09-b4845602540f 05c71d99-2839-447b-a536-60eb4bf43b73 8d0716fe-ca88-429d-b46b-e2f880f5b2cc b6e229c7-3035-4c0e-943b-710a12bfd7d1 a2509a61-4e21-4d8e-8f58-c87935753472 0086614a-c95c-4618-bba0-c821589dd7f2 5f1068f9-1452-45e4-9253-568edfce2053 7c4d6ef6-c914-4d33-b267-cc9158a9f359 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 17:38] \\
@@ -174,6 +195,7 @@ and the open decisions live in the prompt below rather than here.
 - [ ] [[id:c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b][c8a97d9d]] TODO Clearing a buffer's read-only flag for an MCP tool leaves it cleared
 - [ ] [[id:2b2db914-c96e-416a-a80a-e31028308de0][2b2db914]] TODO org_capture swallows a title beginning with a TODO keyword
 - [ ] [[id:c74f8663-b14e-4ab9-ad65-d99cb655b3fa][c74f8663]] TODO org_capture should accept an initial TODO state, so a heading is not keywordless until apply
+- [ ] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] TODO MCP tools that write an org file time out; one reports success and persists nothing
 - [ ] [[id:a0028a4e-39cb-4653-83cc-446b810234ac][a0028a4e]] TODO Add a body read: return a heading whole, drawers included, and let the caller extract
 - [ ] [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] TODO Six defects in one day, all the same: the code knew more than it said
 - [ ] [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]] TODO "writes 0:09 in 1" reads as two swappable numbers; "in 1" has no unit
