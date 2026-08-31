@@ -56,7 +56,7 @@ stray clock-status.json into the real module directory."
            (with-temp-file file
              (insert "#+TODO: TODO NEXT(n!) DOING(d!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
                      "#+TAGS: code comms research review\n"
-                     "#+ARCHIVE: DONE.org::* Done\n"
+                     "#+ARCHIVE: DONE.org::\n"
                      "\n"
                      "* TODO Test heading                                                 :code:\n"
                      ":PROPERTIES:\n"
@@ -338,11 +338,13 @@ largest calls move subtrees of 3 and 31 children, b5f7c5c7 alone being
 4,386 lines.  This asserts the behaviour the operation depends on before
 it depends on it.
 
-Note the level arithmetic, the part most likely to surprise: org pastes at
-`(org-get-valid-level 1 1)', so a level-1 source lands at level 2 under
-the target and its level-2 child at level 3.  Relative depth is preserved.
-Flattening happens only when a *child* is archived directly, which is why
-the sweep archives at level 2 only."
+Note the level arithmetic, the part most likely to surprise.  Where the
+archive target names a heading after `::', org pastes beneath it and a
+level-1 source lands at level 2.  This project's target has had an *empty*
+olpath since 2026-08-31, so a level-1 source stays at level 1 and its child
+at level 2 -- the archive mirrors the source file's shape instead of being
+nested one deeper inside a wrapper heading.  Relative depth is preserved
+either way.  Flattening happens only when a *child* is archived directly."
   (claude-code-ide-org-test--with-heading
     (claude-code-ide-org-test--add-child
      file (concat "** DONE Child heading\n"
@@ -361,8 +363,8 @@ the sweep archives at level 2 only."
       (should-not (string-match-p "Child heading" src))
       (should-not (string-match-p "Child body prose" src))
       ;; Both arrive, at the right levels, with the child still nested.
-      (should (string-match-p "^\\*\\* DONE Test heading" arch))
-      (should (string-match-p "^\\*\\*\\* DONE Child heading" arch))
+      (should (string-match-p "^\\* DONE Test heading" arch))
+      (should (string-match-p "^\\*\\* DONE Child heading" arch))
       (should (string-match-p "Child body prose" arch))
       ;; The child carries its own :ID: and must still resolve afterwards.
       (should (org-id-find "test-0002" 'marker)))))
@@ -2447,7 +2449,7 @@ the temp directory afterwards."
            (with-temp-file capture-file
              (insert "#+TODO: TODO NEXT(n!) DOING(d!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n"
                      "#+TAGS: code comms research review\n"
-                     "#+ARCHIVE: DONE.org::* Done\n"
+                     "#+ARCHIVE: DONE.org::\n"
                      "\n"
                      ;; A category to file into. `target' is required
                      ;; since 2026-08-20 (:ID: 97696fc2), so a fixture
@@ -2772,7 +2774,7 @@ nothing, which is precisely how the gap stayed silent."
     (with-temp-file archive-file
       (insert "* Done\n** DONE An archived heading\n"
               ":PROPERTIES:\n:ID:       aaaa0001-1111-4111-8111-111111111111\n:END:\n"))
-    ;; The fixture file already declares #+ARCHIVE: DONE.org::* Done.
+    ;; The fixture file already declares #+ARCHIVE: DONE.org::.
     (let ((claude-code-ide-org-query-files (list file)))
       (should (member (file-truename archive-file)
                       (mapcar #'file-truename
@@ -10440,3 +10442,111 @@ while removing the rule."
     (should (claude-code-ide-org-test--lint-matches
              (claude-code-ide-org-test--lint task)
              'warn "no :PLAN: drawer"))))
+
+
+;;; claude-code-ide-org-archive-finished ---------------------------------------
+
+(ert-deftest claude-code-ide-org-test-archive-finished-leaves-a-finished-child-of-a-live-parent ()
+  "The sweep must not archive a finished heading nested under a live one.
+
+*This is the whole safety rule, so it is the first test written.*
+`org-archive-subtree' lands a directly-archived child one level up in the
+target file -- a sibling of its former parent -- with only
+`:ARCHIVE_OLPATH:' recording where it came from.  A sweep that took every
+finished heading would therefore silently restructure live work.
+Measured on 2026-08-31: of 106 finished headings in TODO.org, 21 were
+children of a live parent, seven of them under one heading.
+
+Asserts the archive file was never *created*, not merely that it lacks
+the child: a check for absent text passes against a sweep that archived
+the wrong thing and then failed to write it."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--add-child
+     file (concat "** DONE Finished child\n"
+                  ":PROPERTIES:\n"
+                  ":ID:       test-0002\n"
+                  ":END:\n"
+                  "Child body prose.\n"))
+    ;; The fixture heading keeps its TODO keyword -- it is the live parent.
+    (should (= 0 (claude-code-ide-org-archive-finished file)))
+    (let ((src (claude-code-ide-org-test--disk-contents file)))
+      (should (string-match-p "^\\*\\* DONE Finished child" src))
+      (should (string-match-p "Child body prose" src)))
+    (should-not (file-exists-p archive-file))))
+
+(ert-deftest claude-code-ide-org-test-archive-finished-takes-children-with-the-parent ()
+  "A finished top-level heading is archived with its finished descendants.
+
+The counterpart to the test above: those 20 children travel rather than
+being swept in their own right, so the sweep's count is a count of
+*subtrees* and not of headings."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--add-child
+     file (concat "** DONE Finished child\n"
+                  ":PROPERTIES:\n"
+                  ":ID:       test-0002\n"
+                  ":END:\n"
+                  "Child body prose.\n"))
+    (claude-code-ide-org-test--set-todo-for-real id "DONE")
+    (should (= 1 (claude-code-ide-org-archive-finished file)))
+    (let ((src (claude-code-ide-org-test--disk-contents file))
+          (arch (claude-code-ide-org-test--disk-contents archive-file)))
+      (should-not (string-match-p "Test heading" src))
+      (should-not (string-match-p "Finished child" src))
+      (should-not (string-match-p "Child body prose" src))
+      (should (string-match-p "Test heading" arch))
+      (should (string-match-p "Finished child" arch))
+      (should (string-match-p "Child body prose" arch)))))
+
+(ert-deftest claude-code-ide-org-test-archive-finished-refuses-a-parent-with-a-live-descendant ()
+  "A finished heading with a live descendant is skipped, not archived.
+
+Today\\'s corpus has none -- zero of 65, measured 2026-08-31 -- which is
+precisely why this is a test rather than a comment: the guard has no
+natural exercise, so nothing else would notice it being removed.  A
+finished parent over unfinished work is itself a defect, but archiving it
+would bury the live child where no `org_outline' or `org_query' run
+looks."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--add-child
+     file (concat "** TODO Unfinished child\n"
+                  ":PROPERTIES:\n"
+                  ":ID:       test-0002\n"
+                  ":END:\n"))
+    (claude-code-ide-org-test--set-todo-for-real id "DONE")
+    (should (= 0 (claude-code-ide-org-archive-finished file)))
+    (let ((src (claude-code-ide-org-test--disk-contents file)))
+      (should (string-match-p "Test heading" src))
+      (should (string-match-p "Unfinished child" src)))
+    (should-not (file-exists-p archive-file))))
+
+(ert-deftest claude-code-ide-org-test-archive-finished-sweeps-every-top-level-heading ()
+  "Several finished top-level headings are all archived, and counted.
+
+*What this pins is that the sweep reaches every heading, not the order it
+reaches them in.*  Reversing the marker list was measured on 2026-08-31 to
+change nothing -- markers track deletions, so the order genuinely does not
+matter, and an earlier docstring here claimed otherwise.  What can still
+break is the walk stopping early or losing its place, so three headings is
+the smallest number that distinguishes \"processed one and stopped\" from
+\"processed all\", and the interleaved live heading checks the sweep skips
+rather than halts."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--add-child
+     file (concat "* DONE Second finished\n"
+                  ":PROPERTIES:\n:ID:       test-0002\n:END:\n"
+                  "* TODO Still live\n"
+                  ":PROPERTIES:\n:ID:       test-0003\n:END:\n"
+                  "* CANCELLED Third finished\n"
+                  ":PROPERTIES:\n:ID:       test-0004\n:END:\n"))
+    (claude-code-ide-org-test--set-todo-for-real id "DONE")
+    (should (= 3 (claude-code-ide-org-archive-finished file)))
+    (let ((src (claude-code-ide-org-test--disk-contents file))
+          (arch (claude-code-ide-org-test--disk-contents archive-file)))
+      (should-not (string-match-p "Test heading" src))
+      (should-not (string-match-p "Second finished" src))
+      (should-not (string-match-p "Third finished" src))
+      (should (string-match-p "Still live" src))
+      (dolist (title '("Test heading" "Second finished" "Third finished"))
+        (should (string-match-p title arch)))
+      (should-not (string-match-p "Still live" arch)))))

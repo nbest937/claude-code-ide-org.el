@@ -1,6 +1,6 @@
 #+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
 #+TAGS: code comms research review
-#+ARCHIVE: DONE.org::* Done
+#+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
 * TODO The ceremony prompt goes quiet on evidence of its first step, and never reports its own completion :code:
 :PROPERTIES:

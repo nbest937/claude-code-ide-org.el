@@ -94,14 +94,21 @@ any file that tracks code work:
 
 ```org
 #+TAGS: code comms research review
-#+ARCHIVE: DONE.org::* Done
+#+ARCHIVE: DONE.org::
 ```
 
-With this in place, `C-c C-x C-a` on a `DONE :code:` heading moves it into the
-`* Done` section of `DONE.org`, preserving the full subtree including
-LOGBOOK and CLOCK drawers.
+With this in place, `C-c C-x C-a` on a `DONE :code:` heading moves it to the
+**top level** of `DONE.org`, preserving the full subtree including LOGBOOK and
+CLOCK drawers.
 
-**A single `* Done` pile is the default, not the only option.** An `:ARCHIVE:`
+*Note the empty olpath.* Naming a heading after `::` nests every archived
+entry one level below it, so a level-1 task lands at level 2 and the archive
+stops mirroring the source file's shape. This project archived under a
+`* Done` heading until 2026-08-31 and dropped it for exactly that reason —
+once TODO.org was flat, a wrapper heading was the only thing making DONE.org
+not flat.
+
+**A single flat pile is the default, not the only option.** An `:ARCHIVE:`
 property is inherited "anywhere up the hierarchy", so putting one on each
 top-level category mirrors the source file's structure into the archive:
 
@@ -120,7 +127,7 @@ category without a property — so adoption can be incremental.
 had no level-1 categories left to hang the properties on. Since 2026-08-27 a
 category here is a `:CATEGORY:` property on the task rather than a heading it
 sits under, so there is nothing to inherit an `:ARCHIVE:` from and routing
-collapsed to a single file-level `#+ARCHIVE: DONE.org::* Done`. Mirroring is
+collapsed to a single file-level `#+ARCHIVE: DONE.org::`. Mirroring is
 still the right answer for a file that *does* group by heading; it just stops
 being available once the grouping is declared instead of structural.
 
@@ -144,7 +151,7 @@ they can set a per-heading override:
 ```org
 * DONE Write project proposal                                   :comms:
   :PROPERTIES:
-  :ARCHIVE: archive.org::* Done
+  :ARCHIVE: archive.org::
   :END:
 ```
 

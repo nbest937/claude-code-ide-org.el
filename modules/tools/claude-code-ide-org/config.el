@@ -2018,7 +2018,7 @@ unresolved."
   "Archive the org heading whose :ID: property equals ID.
 Uses the #+ARCHIVE: directive in effect at the heading (file-level
 or per-heading :ARCHIVE: property).  For :code: tasks this should
-resolve to DONE.org::* Done per your project file headers."
+resolve to DONE.org's top level per your project file headers."
   (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "org_archive")))
     (claude-code-ide-org--at-id
      id
@@ -9010,6 +9010,120 @@ logs themselves)."
             (save-buffer))))
       t)))
 
+(defun claude-code-ide-org--subtree-has-live-heading-p ()
+  "Non-nil if any descendant of the heading at point carries a live keyword.
+
+Guards `claude-code-ide-org-archive-finished\' against burying live work.
+A finished parent normally has only finished children -- measured
+2026-08-31, zero of TODO.org\'s 65 finished top-level headings had a live
+descendant -- but that is a fact about today\'s corpus, not an invariant,
+and `org-archive-subtree\' would take the whole subtree without comment.
+The heading itself is excluded: it is the one already known to be
+finished."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((end (save-excursion (org-end-of-subtree t t)))
+          (found nil))
+      (forward-line 1)
+      (while (and (not found) (re-search-forward org-heading-regexp end t))
+        (let ((kw (org-get-todo-state)))
+          (when (and kw (not (member kw claude-code-ide-org--outline-finished-keywords)))
+            (setq found t))))
+      found)))
+
+(defun claude-code-ide-org-archive-finished (&optional file)
+  "Archive every *top-level* finished heading in FILE.  Returns a count.
+
+Top-level only, and that is the safety rule rather than a simplification.
+A finished heading nested under a *live* one must not be archived on its
+own: `org-archive-subtree' lands it one level up in the target file, a
+sibling of its former parent, with only `:ARCHIVE_OLPATH:' recording
+where it came from -- so a sweep that took every finished heading would
+silently restructure live work.  Measured on 2026-08-31: of 106 finished
+headings in TODO.org, 65 were top-level, 20 were children of a finished
+parent and travel with it, and 21 were children of a *live* parent and
+must stay.
+
+Collects markers before archiving anything.  *Markers* are what makes
+that safe, not the order: `org-archive-subtree' deletes text, so a plain
+buffer position recorded ahead of the walk is stale by the time it is
+reached, while a marker tracks the edit.  The list comes out in reverse
+document order only because `push' builds it that way -- reversing it was
+measured on 2026-08-31 to change nothing, so the order is not
+load-bearing and a reader should not infer that it is.
+
+Binds `org-archive-reversed-order' rather than relying on the global,
+unset as of 2026-08-31.  DONE.org reads newest-first, and appending to
+its end would bury a fresh entry under two hundred older ones."
+  (let ((file (or file (car (claude-code-ide-org--tracked-files))))
+        (org-archive-reversed-order t)
+        (markers nil) (skipped nil) (n 0))
+    (with-current-buffer (find-file-noselect file)
+      (org-with-wide-buffer
+       (goto-char (point-min))
+       (while (re-search-forward "^\\* " nil t)
+         (beginning-of-line)
+         (when (member (org-get-todo-state)
+                       claude-code-ide-org--outline-finished-keywords)
+           (if (claude-code-ide-org--subtree-has-live-heading-p)
+               (push (org-get-heading t t t t) skipped)
+             (push (point-marker) markers)))
+         (end-of-line)))
+      (dolist (m markers)                ; already reverse document order
+        (when (marker-position m)
+          (org-with-point-at m
+            (org-archive-subtree)
+            (setq n (1+ n))))
+          (set-marker m nil))
+      (when (buffer-modified-p) (save-buffer)))
+    (when skipped
+      (message "archive-finished: skipped %d finished heading(s) with live descendants: %s"
+               (length skipped) (string-join (nreverse skipped) "; ")))
+    n))
+
+(defun claude-code-ide-org--ceremony-due-p ()
+  "Non-nil when the daily archive task is overdue.
+
+Reads the SCHEDULED stamp of TODO.org :ID: cbe282ec rather than a stamp
+file of our own: it is a repeater, so org already advances it when it is
+marked done, and a second record of the same fact could disagree with
+the first."
+  (let ((m (ignore-errors
+             (claude-code-ide-org--id-find
+              "cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8" 'marker))))
+    (when m
+      (org-with-point-at m
+        (let ((s (org-entry-get nil "SCHEDULED")))
+          (and s (time-less-p (org-time-string-to-time s) (current-time))))))))
+
+(defun claude-code-ide-org-ceremony-finish ()
+  "Run the ceremony steps that follow apply, and return a summary line.
+
+Apply is human-only -- org's native state logging completes only inside
+an interactive command, and `WAITING'/`CANCELLED' carry `@' cookies that
+prompt -- but the three steps *after* it are not, and this project's own
+convention already ordered them: consolidate the drawers, normalise
+heading separation, then archive (TODO.org :ID: 29734f79).
+
+Each step is reported, success or failure, because a step that silently
+did not run is the failure this project keeps finding.  A step that
+signals does not stop the ones after it: they are independent, and
+losing two because the first broke would be worse than a partial pass."
+  (interactive)
+  (let (parts)
+    (dolist (step (list
+                   (cons "drawers"  (lambda () (claude-code-ide-org-consolidate-all-drawers)))
+                   (cons "spacing"  (lambda () (claude-code-ide-org-normalize-heading-separation)))
+                   (cons "archived" (lambda () (claude-code-ide-org-archive-finished)))))
+      (push (condition-case err
+                (let ((r (funcall (cdr step))))
+                  (format "%s: %s" (car step)
+                          (if (numberp r) (format "%d" r) "ok")))
+              (error (format "%s: FAILED (%s)" (car step)
+                             (error-message-string err))))
+            parts))
+    (string-join (nreverse parts) "; ")))
+
 (defun claude-code-ide-org--review-attention-on-quit (&rest _)
   "Stop the attention clock when the review buffer stops being visible.
 
@@ -10525,7 +10639,7 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
    :description (concat
                  "Archive an org-mode heading by its :ID: property, "
                  "respecting the #+ARCHIVE: directive in effect. "
-                 "Use for DONE tasks tagged :code:, which archive to DONE.org::* Done.")
+                 "Use for DONE tasks tagged :code:, which archive to DONE.org.")
    :args '((:name "id"
             :type string
             :description "The :ID: property value of the heading to archive.")))

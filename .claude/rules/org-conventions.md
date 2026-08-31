@@ -18,7 +18,7 @@ Every `.org` file in this project should start with:
 ```org
 #+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
 #+TAGS: code comms research review
-#+ARCHIVE: DONE.org::* Done
+#+ARCHIVE: DONE.org::
 ```
 
 The per-keyword cookies matter: `!` records a timestamp on entry, `@`
