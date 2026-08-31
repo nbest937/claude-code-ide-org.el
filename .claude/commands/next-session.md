@@ -25,21 +25,30 @@ the `:BLOCKER:` names every member still carrying a cookie.
 
 ## Before anything else
 
-1. **Confirm `emacs-tools` is reachable** by calling `org_pending_updates`.
+1. **Cut a branch from `main` before the first commit.** The branch you will
+   have checked out is `feature/declared-vs-inferred`, which merged as PR #7 —
+   committing onto an already-merged branch is the easy mistake, and nothing
+   stops you. `git switch main && git pull && git switch -c feature/<short-name>`.
+   CLAUDE.md's rule is that what earns a branch is wanting a separate
+   *integration point*, not a taxonomy; a slice is exactly that, so this one
+   does. Note the rule is in CLAUDE.md and was **not** in this prompt until
+   2026-08-31 — the previous session finished on a merged branch and only
+   noticed when asked.
+2. **Confirm `emacs-tools` is reachable** by calling `org_pending_updates`.
    It is read-only, and a reply proves the server is up in a way that seeing
    the tools listed does not.
-2. **Apply the queue before composing anything.** A heading captured this
+3. **Apply the queue before composing anything.** A heading captured this
    session is keywordless until you do, so a `:BLOCKER:` naming one is inert
    and `bin/lint-org` errors — which `.githooks/pre-commit` refuses. That is
    not a defect to fix; it is `c74f8663`, a member of this slice, and it cost
    this slice a commit on 2026-08-28.
-3. **Two tools added 2026-08-28 that predate no habit yet**: `org_divide`
+4. **Two tools added 2026-08-28 that predate no habit yet**: `org_divide`
    (task mitosis — insert a parent above a heading and demote it under, id and
    history staying with the child) and `org_set_property` (set a property by
    `:ID:`; `:BLOCKER:` is validated, prefixes expanded, `append` unions).
    Reach for the second instead of `emacsclient` + `org-entry-put`, which is
    still the reflex.
-4. **`org_capture` and `org_set_property` currently hang over MCP** — they
+5. **`org_capture` and `org_set_property` currently hang over MCP** — they
    time out and write nothing, while `org_outline`, `org_pending_updates`,
    `org_set_todo` and `org_amend` all answer normally. It is not the payload
    and not the buffer's state: both were retried with long and short
@@ -52,7 +61,7 @@ the `:BLOCKER:` names every member still carrying a cookie.
    pending review"` and persists **nothing anywhere**. Save the buffer first
    and check the heading reached disk. All of it is `72463b68`, a member of
    this slice.
-5. **Do not offer to run the post-apply ceremony steps.** They are no longer
+6. **Do not offer to run the post-apply ceremony steps.** They are no longer
    anyone's to remember: burying the review buffer runs drawer consolidation,
    heading separation and archiving, and stamps the ceremony only if all three
    succeed. Apply is still the human's alone. If the SessionStart report says a
