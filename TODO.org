@@ -2,6 +2,48 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::* Done
 #+STARTUP: logdrawer logdone content
+* TODO The ceremony prompt goes quiet on evidence of its first step, and never reports its own completion :code:
+:PROPERTIES:
+:ID:       29734f79-e698-43dd-abf8-14bc86b8b0ae
+:CREATED:  [2026-08-31 Mon 10:28]
+:CATEGORY: Meta
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-31 Mon 10:19]--[2026-08-31 Mon 10:20] =>  0:01
+- [2026-08-31 Mon 10:19]--[2026-08-31 Mon 10:20] measure PLANNING against real use
+CLOCK: [2026-08-31 Mon 10:27]--[2026-08-31 Mon 10:29] =>  0:02
+- [2026-08-31 Mon 10:27]--[2026-08-31 Mon 10:29] measure PLANNING against real use
+- State "TODO"       from              [2026-08-31 Mon 10:28] \\
+  quiet test and completion report
+:END:
+
+*Found 2026-08-31 by the user asking whether the ceremonies would run at the next session start.* They will not, and the reason is a seam rather than a bug.
+
+*The report names three things it is waiting on and goes quiet on evidence of one.* Its text is "Waiting: N queued item(s) pending review, N :LOGBOOK: drawer(s) out of order, N finished heading(s) not yet archived". Its quiet test is =--ceremony-reviewed-today-p=, which looks for a =CLOCK:= line dated today on the =Review attention= heading — created by running the *apply* command and nothing else. On 2026-08-31 four applies produced four such lines, the report went silent, and *106 finished headings sat unarchived*, drawers unconsolidated, separation un-normalised.
+
+*This is [[id:806ff394-3ede-4d67-82aa-9c44fe1cf86e][806ff394]] working and reaching slightly short.* That heading replaced "a model remembers to stamp it" with "the act leaves its own evidence", which is strictly more reliable and removed the model from the nag guard. But the act it chose is *apply* — the one step a human always performs, being the one they came to do — while the three that follow are precisely the ones that get skipped. The signal is derived from the step least in need of a reminder.
+
+*Can the ceremony be automated? One quarter of it cannot; three quarters already can.* Mapped rather than assumed:
+
+| step | surface | automatable |
+|------+---------+-------------|
+| apply the queue | =M-x claude-code-ide-org-review=, no MCP tool | *no, by design* |
+| =consolidate-all-drawers= | elisp; from Lisp defaults to writing | yes, via =emacsclient= |
+| =normalize-heading-separation= | elisp; same | yes, via =emacsclient= |
+| archive | =org_archive= | yes, already a tool |
+
+Apply is human-only because org's native state-change logging completes only inside a genuinely interactive command, and =WAITING(w@/!)= and =CANCELLED(c@)= carry =@= cookies that *prompt* — a non-interactive call hangs on exactly the two keywords. That is the constraint the whole queue exists to route around, not a gap to close.
+
+*So the honest shape is: the human applies, the agent finishes, and the finish is reported.* CLAUDE.md already says the last three steps are "yours if they ask" — and on 2026-08-31 nobody asked, four times, which is how 106 accumulated. "If they ask" is the same remembering-dependency 806ff394 removed from the other half.
+
+*Two changes, and they are separable:*
+
+1. *The quiet test should attest to what the report claims to be waiting on* — pending items, drawer order, unarchived count — rather than to the apply alone. Cheapest form: go quiet when all three counters are zero, which is derived and needs no new signal.
+2. *There is no completion report at all.* The ceremony prompts at =SessionStart= and never says what happened, so success and failure look identical from the outside — and a step that silently did not run is the failure mode this project keeps finding. A line per step, success or failure, said in-session when the agent runs them.
+
+*Not proposed: automating apply.* And not proposed: the agent running the last three *unasked* — that is a policy question about the user's attention rather than a defect, and it should be decided rather than assumed.
+
+
 * TODO Add a body read: return a heading whole, drawers included, and let the caller extract :code:
 :PROPERTIES:
 :ID:       a0028a4e-39cb-4653-83cc-446b810234ac
@@ -5593,6 +5635,23 @@ So the work would derive a date from a *different event*, write it into a field 
 
 *What this unblocks:* [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]], which is blocked on this alone. Without it, =org-archive-subtree= would date all 39 from =time= — today — and pile them into a single wrong day node, silently.
 
+*Every consumer of =CLOSED:= enumerated 2026-08-31, because the decision hinges on whether any of them reads it as a measurement.* Three, and none does:
+
+| consumer | how it uses the value |
+|----------+-----------------------|
+| =org-archive-subtree= (org-archive.el:294) | =(or (org-entry-get nil "CLOSED" t) time)= — the datetree *placement key* |
+| =bin/lint-org='s =:PLAN:= rule (config.el:9491) | compared against =claude-code-ide-org-plan-drawer-since= — a *threshold* |
+| [[id:f4b07fc0][f4b07fc0]]'s backfill (config.el:9953) | tests *presence*; never reads the value |
+
+*So a value wrong by hours or a day breaks nothing mechanical.* It lands in the right day node or occasionally the adjacent one; it falls on the correct side of a threshold set weeks earlier; it satisfies a presence test. The machine case for refusing an approximation does not exist.
+
+*Which narrows the question to the human, and that is exactly [[id:7771fc63][7771fc63]]'s ground.* That heading retired a guess because "a plausible suggestion is harder to reject than no suggestion at all". The 39 approximations would be indistinguishable from the 58 measurements, permanently, for any reader.
+
+*And the marker costs almost nothing.* Option B — write =CLOSED:= plus a property recording the derivation — leaves all three machine consumers untouched, since none of them looks at the extra property, and gives the human the one thing 7771fc63 says matters. Thirty-nine extra lines, all of them in DONE.org.
+
+*This heading's own second question already assumed marking* — "how the approximation is marked so a reader can tell the 39 from the 58 that are exact" — so B is not a new option, it is the one the heading was already reaching for before it knew the consumers were indifferent.
+
+*What is left to decide is therefore one thing only:* whether the human-facing marker is wanted, given that nothing mechanical needs it. Everything else about this heading is now measured.
 
 
 * DONE A sub-minute run is observed work; round it up rather than drop it :code:
@@ -12989,6 +13048,8 @@ CLOCK: [2026-08-31 Mon 09:27]--[2026-08-31 Mon 09:28] =>  0:01
 - [2026-08-31 Mon 09:27]--[2026-08-31 Mon 09:28] measure PLANNING against real use
 CLOCK: [2026-08-31 Mon 09:46]--[2026-08-31 Mon 09:50] =>  0:04
 - [2026-08-31 Mon 09:46]--[2026-08-31 Mon 09:50] measure PLANNING against real use
+CLOCK: [2026-08-31 Mon 10:13]--[2026-08-31 Mon 10:14] =>  0:01
+- [2026-08-31 Mon 10:13]--[2026-08-31 Mon 10:14] measure PLANNING against real use
 :END:
 
 
@@ -12999,6 +13060,7 @@ CLOCK: [2026-08-31 Mon 09:46]--[2026-08-31 Mon 09:50] =>  0:04
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-31 Mon 10:17]--[2026-08-31 Mon 10:18] =>  0:01
 CLOCK: [2026-08-31 Mon 10:13]--[2026-08-31 Mon 10:14] =>  0:01
 CLOCK: [2026-08-31 Mon 08:53]--[2026-08-31 Mon 08:54] =>  0:01
 CLOCK: [2026-08-31 Mon 08:50]--[2026-08-31 Mon 08:51] =>  0:01
