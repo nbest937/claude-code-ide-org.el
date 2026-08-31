@@ -2,7 +2,41 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
-* [0/2] Make an archived day hold that day's record :code:
+* Adding a just-captured heading to a slice cannot be made lint-clean :code:
+:PROPERTIES:
+:ID:       2d2211d5-97c3-4f69-8175-40df90d1db8a
+:CREATED:  [2026-08-31 Mon 12:14]
+:CATEGORY: Slices
+:END:
+
+Adding a heading to a slice in the same session that captured it cannot be made lint-clean, and the workflow that would avoid it was never chosen.
+
+*Both lint rules are right, which is why this is not a lint bug.* Naming a keyword-less heading in a slice's =:BLOCKER:= is an error, because =org-depend= acts only on an unfinished TODO keyword. Omitting an unfinished member from that =:BLOCKER:= is also an error. A heading captured this session is keyword-less on disk until a human applies the queue, so both fire at once and =.githooks/pre-commit= refuses the commit.
+
+*This is the residue of a closed heading.* [[id:798bb7a1-d5a6-4c08-8cf0-cc91a82d08e6][798bb7a1]] closed 2026-08-27 as "refuse loudly on both surfaces" and listed candidate answers with *none chosen*, the first being: capture, apply, then add to the slice. It now sits in DONE.org, which readers are told to treat as history -- so its open question is on the path to becoming invisible, which is why this is a heading rather than a sentence.
+
+Hit again 2026-08-31 while composing, costing a full revert and a wait on the human. Twice is enough to pick one.
+
+The cheapest candidate is procedural and costs nothing to write: state in the slice convention (=.claude/rules/org-conventions.md=) that a member is applied before it is added. The alternative is mechanical -- let a slice carry a member it cannot yet block on, and have the lint say so as a warning rather than an error -- which is more work and weakens a rule that is otherwise exactly right.
+
+* An archive pass wrote one subtree twice, and the mechanism is still unknown :code:
+:PROPERTIES:
+:ID:       381ea07d-633f-4640-abbb-89472a07acba
+:CREATED:  [2026-08-31 Mon 12:14]
+:CATEGORY: Tools
+:END:
+
+On 2026-08-31 a live archive pass reported 65 and wrote 66. One story and its six children landed twice in DONE.org, ids and all. It is guarded but not understood.
+
+*The arithmetic says where it is not.* =n= increments once per =org-archive-subtree= call and the pass reported 65, so exactly 65 calls ran and one pasted its subtree twice -- inside the call, on org's own paste path. Double-consumption of a marker would have reported 66. The heading it duplicated was also the last in the file and therefore the *first* consumed under reverse-order iteration, so no earlier deletion existed to disturb its marker. The marker-collapse explanation is excluded.
+
+*It did not reproduce.* Same file, same code, fresh buffer: 65 archived, no duplicates. So it is a property of the live buffer's state rather than of the data. That buffer had been reverted, had its read-only flag cleared, and had just been rewritten by drawer consolidation and separation normalisation in the same ceremony.
+
+*What stands in for a fix.* =claude-code-ide-org-archive-finished= now checks the result rather than the method: after a sweep, no =:ID:= may appear twice in the archive target, or it signals -- which the ceremony turns into a held repeater and a reported failure. Every other signal looked right at the time, the count and the levels included; only counting ids found it.
+
+Worth attempting first: re-run the sweep against a buffer put through the same sequence -- revert, consolidate, normalise, then archive -- to see whether the combination is what does it.
+
+* TODO [0/2] Make an archived day hold that day's record :code:
 :PROPERTIES:
 :ID:       f9fe9fac-a423-4ede-bc42-1d201c2c3d82
 :CREATED:  [2026-08-31 Mon 12:07]
@@ -10,6 +44,9 @@
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
 :BLOCKER:  ids(d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b)
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-31 Mon 12:07]
 :END:
 
 Seeded 2026-08-31 from the proposal reviewed in conversation: DONE.org's datetree should gather what happened on a day, not only what was filed. Both members move *records* into it rather than changing what a task is.
@@ -22,6 +59,7 @@ Seeded 2026-08-31 from the proposal reviewed in conversation: DONE.org's datetre
 
 - [ ] [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] TODO Distribute Review and planning's past day nodes into DONE.org's datetree
 - [ ] [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones
+
 
 * TODO MCP tools that write an org file time out; one reports success and persists nothing :code:
 :PROPERTIES:
@@ -7670,6 +7708,8 @@ CLOCK: [2026-08-31 Mon 11:47]--[2026-08-31 Mon 11:56] =>  0:09
 - [2026-08-31 Mon 11:47]--[2026-08-31 Mon 11:56] measure PLANNING against real use
 CLOCK: [2026-08-31 Mon 12:02]--[2026-08-31 Mon 12:03] =>  0:01
 - [2026-08-31 Mon 12:02]--[2026-08-31 Mon 12:03] measure PLANNING against real use
+CLOCK: [2026-08-31 Mon 12:05]--[2026-08-31 Mon 12:10] =>  0:05
+- [2026-08-31 Mon 12:05]--[2026-08-31 Mon 12:10] measure PLANNING against real use
 :END:
 
 
@@ -7680,6 +7720,7 @@ CLOCK: [2026-08-31 Mon 12:02]--[2026-08-31 Mon 12:03] =>  0:01
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-31 Mon 12:12]--[2026-08-31 Mon 12:13] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
