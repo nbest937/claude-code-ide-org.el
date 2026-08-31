@@ -6957,6 +6957,59 @@ full, and the two want opposite next moves. The count is already known."
       (should msg)
       (should (string-match-p "Nothing pending" msg)))))
 
+(ert-deftest claude-code-ide-org-test-stranded-single-point-span-is-dropped ()
+  "A lone guidepost with later events behind it must not become an item.
+
+It renders `[13:03]--[13:03]\', writes nothing, and can only ever be
+answered `d\' -- and because a later event exists it can never grow, so
+the question has exactly one possible answer and is asked on every pass
+forever. Measured 2026-08-31: four such items, three of them permanent,
+re-offered across every apply that day (TODO.org :ID: 355fa608)."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--queue-write
+     "sess-a"
+     ;; A lone resume, then a bracketed pair well after it. The lone one
+     ;; is stranded: events exist later, so its cluster can never grow.
+     (claude-code-ide-org-test--queue-event "2026-08-11T09:00:00-0500" "resume")
+     (claude-code-ide-org-test--queue-event "2026-08-11T13:00:00-0500" "resume")
+     (claude-code-ide-org-test--queue-event "2026-08-11T13:10:00-0500" "pause"))
+    (let* ((items (claude-code-ide-org--review-items-from-queue "sess-a"))
+           (points (seq-filter
+                    (lambda (i)
+                      (and (eq (plist-get i :type) 'clock)
+                           (time-equal-p (plist-get i :start)
+                                         (plist-get i :end))))
+                    items)))
+      (should-not points)
+      ;; The real span is untouched -- this drops degenerate items, not
+      ;; the guideposts around them.
+      (should (seq-find (lambda (i) (eq (plist-get i :type) 'clock)) items)))))
+
+(ert-deftest claude-code-ide-org-test-trailing-single-point-span-is-kept ()
+  "The newest single point is still offered, and that is the whole split.
+
+:ID: 31f766ab rejected suppression because hiding an in-flight span
+needs a liveness signal -- queue mtime plus an idle threshold -- so a
+crashed session's last span would vanish for an hour. That objection is
+real and applies only to the *trailing* span. \"Is there a later
+event\" is an exact property of the stream, so the trailing case keeps
+being asked about while the stranded case stops."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--queue-write
+     "sess-a"
+     (claude-code-ide-org-test--queue-event "2026-08-11T09:00:00-0500" "resume")
+     (claude-code-ide-org-test--queue-event "2026-08-11T09:10:00-0500" "pause")
+     ;; Newest event in the queue, alone: still in flight.
+     (claude-code-ide-org-test--queue-event "2026-08-11T13:00:00-0500" "resume"))
+    (let* ((items (claude-code-ide-org--review-items-from-queue "sess-a"))
+           (points (seq-filter
+                    (lambda (i)
+                      (and (eq (plist-get i :type) 'clock)
+                           (time-equal-p (plist-get i :start)
+                                         (plist-get i :end))))
+                    items)))
+      (should (= 1 (length points))))))
+
 (ert-deftest claude-code-ide-org-test-state-items-arrive-auto-marked ()
   "A non-stale state item carries no judgement, so it arrives selected.
 

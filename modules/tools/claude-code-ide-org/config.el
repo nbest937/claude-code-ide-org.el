@@ -6162,10 +6162,42 @@ from a skipped one."
            ;; would straddle all four brackets by construction and offer
            ;; their fifteen minutes a second time.
            (bracketed all-brackets)
-           (guideposts (claude-code-ide-org--span-events orphans nil)))
+           (guideposts (claude-code-ide-org--span-events orphans nil))
+           ;; The newest timestamp anywhere in the queue, which is what
+           ;; separates a *trailing* single-point span from a *stranded*
+           ;; one.  See the `unless' below.
+           (latest (car (last (sort (delq nil
+                                         (mapcar (lambda (e) (plist-get e :ts))
+                                                 history))
+                                    #'time-less-p)))))
       (dolist (span (claude-code-ide-org--aggregate-guideposts
                      guideposts nil bracketed))
-        (push (list :type 'clock
+        ;; Drop a stranded single point.  A lone guidepost renders
+        ;; `[13:03]--[13:03]', writes nothing, and can only ever be
+        ;; answered `d' -- and when a *later* event exists it can never
+        ;; grow, so the question has exactly one possible answer and is
+        ;; asked on every pass forever.  Measured 2026-08-31: four such
+        ;; items, three of them permanent, re-offered across every apply
+        ;; that day (TODO.org :ID: 355fa608).
+        ;;
+        ;; The *trailing* one is kept, and that distinction is the whole
+        ;; fix.  :ID: 31f766ab rejected suppression because hiding an
+        ;; in-flight span needs a liveness signal -- queue-file mtime
+        ;; with an idle threshold -- so a crashed session's last span
+        ;; would vanish for an hour.  That objection is real and applies
+        ;; only to the trailing span; "is there a later event" is an
+        ;; exact property of the stream and needs no heuristic at all.
+        ;;
+        ;; Nothing is lost: the guidepost itself stays in the queue
+        ;; file, which is the durable record.  Only the *proposal* is
+        ;; dropped.  And it repairs a second thing --
+        ;; `claude-code-ide-org--queue-drained-p' is "yields no items",
+        ;; so a queue whose only leftovers were stranded points never
+        ;; drained and so never archived.
+        (unless (and (time-equal-p (car span) (cdr span))
+                     latest
+                     (time-less-p (cdr span) latest))
+          (push (list :type 'clock
                     :id (claude-code-ide-org--review-suggest-heading (car span) all)
                     :start (car span) :end (cdr span)
                     ;; :unassigned is transient -- `a' clears it once a
@@ -6181,7 +6213,7 @@ from a skipped one."
                                  (and (not (time-less-p ts (car span)))
                                       (not (time-less-p (cdr span) ts)))))
                              guideposts))
-              items)))
+                items))))
     (sort (nreverse items)
           (lambda (a b)
             (time-less-p (or (plist-get a :ts) (plist-get a :start))

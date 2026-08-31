@@ -32,6 +32,23 @@
 
 *Related but distinct:* [[id:31f766ab-90ed-4950-bc5b-787528c8fe84][31f766ab]] (DONE, 2026-08-18) made these items *explain themselves* rather than being silently degenerate, which is why the line says which kind of no-op it is. This heading is the next question — that an item which explains itself is still an item, and one that can never change still asks for a decision every pass.
 
+*Shipped 2026-08-31 on the user's decision — "drop the stranded ones silently, if that's your recommendation" — and it was, for four reasons rather than one.*
+
+*Nothing is lost.* The guidepost itself stays in the queue file, which is the durable record; only the *proposal* is dropped. This is not the shape this project regrets, where a queued event vanishes without trace — the event is still there, it simply stops being rendered as a question.
+
+*The question had exactly one possible answer.* A stranded single point writes nothing and can never grow, so =d= was the only move; asking every pass is not a decision, it is a chore.
+
+*The test is exact, not a heuristic.* [[id:31f766ab-90ed-4950-bc5b-787528c8fe84][31f766ab]] rejected suppression because hiding an in-flight span needs a liveness signal — queue-file mtime with an idle threshold — so a crashed session's last span would vanish for an hour. That objection is real and applies *only* to the trailing span. "Does any later event exist in the queue" is a property of the stream itself, needs no threshold, and cannot be wrong.
+
+*And it repairs a second thing that was never diagnosed.* =--queue-drained-p= is "yields no review items" *and* idle — so a queue whose only remaining items were stranded points **never drained and therefore never archived**. That was a slow leak nobody had connected to this.
+
+*Verified live, after reloading the module.* Pending went from 9 items to 1. The three stranded points — 13:03, 14:05, 16:45 — are gone, and the fourth demonstrated the other half of the split by *growing*: the 17:37 trailing point is now =[17:37]--[17:57] 0:20 span, 0:10 in 2 runs, 3 turns=, exactly the self-resolution =--review-nothing-reason='s docstring predicted for the in-flight case.
+
+*Verified in batch and proved to discriminate on both halves*, which matters because they are opposite failures and one test would miss one: 480 tests before, 482 after, 0 unexpected. Dropping nothing fails only the stranded test; dropping the trailing one too fails only the trailing test.
+
+*The other two candidates were not taken.* Rendering without the =!= leaves the item on screen, which does not fix the chore. Auto-dismissing writes to the queue unasked, and the drop achieves the same visible result without that — the events stay unconsumed, which is the more conservative record.
+
+
 * TODO The running Emacs can be running a stale config.el and nothing says so :code:
 :PROPERTIES:
 :ID:       f12f9da4-2870-45b7-8c50-ea54415c7bc6
@@ -77,6 +94,15 @@ Residue from [[id:8d0716fe-ca88-429d-b46b-e2f880f5b2cc][8d0716fe]], filed 2026-0
 *The obvious candidates are all taken or wrong.* =u= and =U= are unmark and unmark-all; =r= reads as "refresh"; =C-/= is undo, which is close enough to be tempting and wrong, since this restores a *list* rather than editing text and binding it would train a reflex that fails everywhere else in the buffer.
 
 *Worth weighing before binding anything: whether the prompt makes a key unnecessary.* =g= now asks before discarding, so the undo exists for the case where a human confirms and immediately regrets it — which is rarer than the slip that prompted [[id:8d0716fe-ca88-429d-b46b-e2f880f5b2cc][8d0716fe]] in the first place. If that case is rare enough, =M-x= is the honest home and the legend line stays short. Leaving it as is, deliberately, is a perfectly good outcome for this heading.
+
+*Decided by the user 2026-08-31: leave it unbound.* =M-x claude-code-ide-org-review-undo-refresh= is the whole interface, and that is the answer rather than a deferral.
+
+*The reasoning that supported it, offered before the decision.* The =g= confirmation is a =yes-or-no-p=, which requires typing =yes= and so is hard to answer reflexively — it already catches the slip this all started from ("I hit =g= when I mean =x="). What the undo covers is narrower: the prompt names *counts*, not *items* — "Discard 3 marked, 1 assigned, 1 edited interval?" — so a human can confirm on an incomplete mental model, having forgotten an interval they edited twenty minutes earlier. Real, but rare enough that a key on a map borrowing dired's vocabulary is not worth spending.
+
+*No code change.* The command exists, the prompt names it, and the legend line stays short — which was the point.
+
+*What would reopen this:* evidence that the narrow case actually happens. If a =g= is ever confirmed and regretted, that is the datum this decision lacked, and it is worth saying so at the time rather than quietly reaching for =M-x=.
+
 
 * DONE Three conventions read as permission to grow a story where mitosis was owed :code:
 :PROPERTIES:
