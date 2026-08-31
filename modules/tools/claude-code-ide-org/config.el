@@ -665,10 +665,14 @@ single item.  An explicit stamp means only what it says."
 (defun claude-code-ide-org-mark-ceremony-done ()
   "Record that today's ceremony has been performed, silencing the prompt.
 
-Interactive and explicit.  It is deliberately *not* called from the
-apply path: apply is one step of the ceremony, not the whole of it, and
+Called from `claude-code-ide-org-ceremony-finish', and from nowhere
+else automatic.  It is still deliberately *not* called from the apply
+path: apply is one step of the ceremony, not the whole of it, and
 stamping there would silence the prompt for the days when someone
-applies a couple of items and archives nothing."
+applies a couple of items and archives nothing.  That objection is
+answered rather than abandoned -- `ceremony-finish' stamps only after
+the drawer, spacing and archive steps have all run clean, which is the
+whole ceremony and not one step of it."
   (interactive)
   (let ((file (claude-code-ide-org--ceremony-stamp-file)))
     (make-directory (file-name-directory file) t)
@@ -9059,6 +9063,17 @@ its end would bury a fresh entry under two hundred older ones."
         (org-archive-reversed-order t)
         (markers nil) (skipped nil) (n 0))
     (with-current-buffer (find-file-noselect file)
+      ;; Re-read the file's own `#+' settings before archiving anything.
+      ;; `#+ARCHIVE:' is parsed into a buffer-local when the buffer first
+      ;; enters `org-mode', and nothing re-parses it afterwards -- not
+      ;; even `auto-revert-mode', which replaces the text and leaves the
+      ;; variable.  A buffer open since before the directive changed
+      ;; therefore archives to the *old* target while the line on screen
+      ;; reads the new one.  That is not hypothetical: on 2026-08-31 this
+      ;; sweep archived 65 subtrees under a retired `* Done' heading for
+      ;; exactly this reason, having been verified by reading the
+      ;; directive text rather than the value parsed from it.
+      (org-set-regexps-and-options)
       (org-with-wide-buffer
        (goto-char (point-min))
        (while (re-search-forward "^\\* " nil t)
@@ -9069,12 +9084,33 @@ its end would bury a fresh entry under two hundred older ones."
                (push (org-get-heading t t t t) skipped)
              (push (point-marker) markers)))
          (end-of-line)))
-      (dolist (m markers)                ; already reverse document order
-        (when (marker-position m)
-          (org-with-point-at m
-            (org-archive-subtree)
-            (setq n (1+ n))))
-          (set-marker m nil))
+      ;; Re-validate at the moment of archiving rather than trusting what
+      ;; the scan saw.  A marker survives the deletion of the text it
+      ;; points into -- it collapses to the deletion point -- so a marker
+      ;; can end up addressing a *different* heading than the one it was
+      ;; taken at, and archiving then runs twice on one subtree.  That is
+      ;; not theoretical: on 2026-08-31 a live pass reported 65 while
+      ;; writing 66, duplicating one story and its six children, ids and
+      ;; all.  It did not reproduce against the same file in a fresh
+      ;; buffer, so the guard is written against the invariant rather
+      ;; than against the mechanism: archive only what is, right now,
+      ;; still a top-level finished heading whose id this pass has not
+      ;; already consumed.
+      (org-with-wide-buffer
+       (let ((seen (make-hash-table :test 'equal)))
+         (dolist (m markers)
+           (when (marker-position m)
+             (org-with-point-at m
+               (let ((id (org-entry-get nil "ID")))
+                 (when (and (org-at-heading-p)
+                            (eq 1 (org-current-level))
+                            (member (org-get-todo-state)
+                                    claude-code-ide-org--outline-finished-keywords)
+                            (not (and id (gethash id seen))))
+                   (when id (puthash id t seen))
+                   (org-archive-subtree)
+                   (setq n (1+ n))))))
+           (set-marker m nil))))
       (when (buffer-modified-p) (save-buffer)))
     (when skipped
       (message "archive-finished: skipped %d finished heading(s) with live descendants: %s"
@@ -9096,6 +9132,28 @@ the first."
         (let ((s (org-entry-get nil "SCHEDULED")))
           (and s (time-less-p (org-time-string-to-time s) (current-time))))))))
 
+(defun claude-code-ide-org--ceremony-advance-repeater ()
+  "Mark TODO.org :ID: cbe282ec DONE so org advances its own repeater.
+
+This is what stops the ceremony running again on the next `q' of the
+day.  It records the fact in the one place that already holds it -- the
+heading whose whole purpose is to say when the pass is next owed --
+rather than in a second stamp of our own that could disagree.  Org does
+the arithmetic: the `++1d\' repeater shifts SCHEDULED forward past now
+and returns the keyword to TODO, so nothing here computes a date.
+
+Safe to run non-interactively, which is not true of state changes
+generally: the transition is TODO -> DONE, and this project\'s `#+TODO:\'
+line gives DONE a `!\' cookie, not an `@\'.  Only WAITING and CANCELLED
+prompt for a note, and neither is reachable from here."
+  (let ((m (claude-code-ide-org--id-find
+            "cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8" 'marker)))
+    (unless m (error "Ceremony heading cbe282ec not found"))
+    (org-with-point-at m
+      (org-todo "DONE")
+      (save-buffer))
+    t))
+
 (defun claude-code-ide-org-ceremony-finish ()
   "Run the ceremony steps that follow apply, and return a summary line.
 
@@ -9110,7 +9168,7 @@ did not run is the failure this project keeps finding.  A step that
 signals does not stop the ones after it: they are independent, and
 losing two because the first broke would be worse than a partial pass."
   (interactive)
-  (let (parts)
+  (let ((parts nil) (failed nil))
     (dolist (step (list
                    (cons "drawers"  (lambda () (claude-code-ide-org-consolidate-all-drawers)))
                    (cons "spacing"  (lambda () (claude-code-ide-org-normalize-heading-separation)))
@@ -9119,10 +9177,26 @@ losing two because the first broke would be worse than a partial pass."
                 (let ((r (funcall (cdr step))))
                   (format "%s: %s" (car step)
                           (if (numberp r) (format "%d" r) "ok")))
-              (error (format "%s: FAILED (%s)" (car step)
+              (error (setq failed t)
+                     (format "%s: FAILED (%s)" (car step)
                              (error-message-string err))))
             parts))
-    (string-join (nreverse parts) "; ")))
+    ;; Only a clean pass advances the repeater.  A ceremony that half ran
+    ;; and then told the file it was done would be the one failure mode
+    ;; worth guarding: the next day would open with the prompt silent and
+    ;; the work still waiting.
+    (push (if failed
+              "repeater: held (a step failed)"
+            (condition-case err
+                (progn (claude-code-ide-org-mark-ceremony-done)
+                       (claude-code-ide-org--ceremony-advance-repeater)
+                       "repeater: advanced")
+              (error (format "repeater: FAILED (%s)"
+                             (error-message-string err)))))
+          parts)
+    (let ((summary (string-join (nreverse parts) "; ")))
+      (message "ceremony: %s" summary)
+      summary)))
 
 (defun claude-code-ide-org--review-attention-on-quit (&rest _)
   "Stop the attention clock when the review buffer stops being visible.
@@ -9131,10 +9205,21 @@ Advice on `quit-window' rather than a rebinding of `q'.  `q' here is
 `special-mode's `quit-window', which *buries*; rebinding it to kill
 would change a key every `special-mode' buffer in Emacs shares, to serve
 a clock.  And burying is not a lesser form of closing -- it is how a
-person actually leaves this buffer, so it is the event to watch."
+person actually leaves this buffer, so it is the event to watch.
+
+Also the trigger for the rest of the ceremony, when it is due.  Apply is
+human-only by design and always will be, but the three steps that follow
+it are not, and leaving them to a person to remember is what left 106
+finished headings unarchived through four applies on 2026-08-31 (TODO.org
+:ID: 29734f79).  Burying the review buffer is the moment apply has just
+finished, which makes it the only point where the remaining steps are
+both due and safe -- and it is a real interactive command, so org's own
+logging completes normally."
   (when (and claude-code-ide-org--review-attention-marker
              (derived-mode-p 'claude-code-ide-org-review-mode))
-    (claude-code-ide-org-review-attention-stop "review pass (buffer buried)")))
+    (claude-code-ide-org-review-attention-stop "review pass (buffer buried)")
+    (when (claude-code-ide-org--ceremony-due-p)
+      (claude-code-ide-org-ceremony-finish))))
 
 (advice-add 'quit-window :before #'claude-code-ide-org--review-attention-on-quit)
 

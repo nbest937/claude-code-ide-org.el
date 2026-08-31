@@ -10549,4 +10549,53 @@ rather than halts."
       (should (string-match-p "Still live" src))
       (dolist (title '("Test heading" "Second finished" "Third finished"))
         (should (string-match-p title arch)))
-      (should-not (string-match-p "Still live" arch)))))
+      (should-not (string-match-p "Still live" arch))
+      ;; No id may appear twice across source and target.  This is the
+      ;; assertion that would have caught the 2026-08-31 live pass, which
+      ;; reported 65 and wrote 66 -- one story and its six children
+      ;; duplicated, ids and all, into DONE.org.  Every other check there
+      ;; passed: the count was right, the levels were right, and nothing
+      ;; had gone missing.  Only counting the ids found it.
+      (let ((ids nil) (dupes nil))
+        (dolist (text (list src arch))
+          (let ((start 0))
+            (while (string-match ":ID: +\\([^\n]+\\)" text start)
+              (let ((id (string-trim (match-string 1 text))))
+                (if (member id ids) (push id dupes) (push id ids)))
+              (setq start (match-end 0)))))
+        ;; Positive evidence first: an id scan that matched nothing would
+        ;; satisfy the duplicate check vacuously, which is the shape of
+        ;; passing test this project keeps catching itself writing.
+        (should (= 4 (length ids)))
+        (should-not dupes)))))
+
+(ert-deftest claude-code-ide-org-test-archive-finished-honours-a-changed-archive-directive ()
+  "The sweep must read the archive target the file *currently* declares.
+
+*The regression this exists for.*  `#+ARCHIVE:' is parsed into a
+buffer-local the first time a buffer enters `org-mode', and nothing
+re-parses it after that -- `auto-revert-mode' replaces the text and
+leaves the variable behind.  So a long-open buffer archives to the target
+the file declared when it was opened, while the directive on screen says
+something else.  On 2026-08-31 that sent 65 subtrees under a retired
+`* Done' heading, and the pre-flight check had confirmed the *text* of
+the directive in that very buffer.
+
+The fixture opens FILE with one target and this test rewrites the
+directive in the live buffer without restarting the mode, which is the
+stale state exactly.  A sweep that trusts the cached parse puts the entry
+under `* Wrong' instead."
+  (claude-code-ide-org-test--with-heading
+    (with-current-buffer (get-file-buffer file)
+      (goto-char (point-min))
+      (should (re-search-forward "^#\\+ARCHIVE:.*$" nil t))
+      (replace-match "#+ARCHIVE: DONE.org::* Right")
+      (save-buffer))
+    ;; Poison the cached value the way a pre-change buffer would hold it.
+    (with-current-buffer (get-file-buffer file)
+      (setq-local org-archive-location "DONE.org::* Wrong"))
+    (claude-code-ide-org-test--set-todo-for-real id "DONE")
+    (should (= 1 (claude-code-ide-org-archive-finished file)))
+    (let ((arch (claude-code-ide-org-test--disk-contents archive-file)))
+      (should (string-match-p "^\\* Right" arch))
+      (should-not (string-match-p "Wrong" arch)))))
