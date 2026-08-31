@@ -2,6 +2,34 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
+* DONE Three conventions read as permission to grow a story where mitosis was owed :code:
+:PROPERTIES:
+:ID:       6e43120d-b9ed-4595-8309-ccd0cde8da59
+:CREATED:  [2026-08-31 Mon 16:38]
+:CATEGORY: Skill
+:END:
+
+*Asked by the user 2026-08-31, immediately after the mistake:* "does the language of one or more conventions need to be revised to guard against this pitfall?" Yes — three passages, and between them they did not merely fail to forbid the error, they read as licence for it.
+
+*The pitfall.* [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] was a level-1 leaf that had done real work — six CLOCK lines, a long body, and a shipped half. Its undone parts were filed as *children*, which made it a story. That is a legitimate shape for a heading that never did work of its own; it is the wrong shape here, because a container with live children can never close, so a heading whose own work is finished is held open by its group indefinitely. Mitosis exists precisely to avoid that: the original becomes the *child*, keeps its record, and closes.
+
+*The three sentences, and what each contributed:*
+
+1. =A task becomes one by acquiring keyworded children — however they arrived, whether grown or refiled.= This is the one that did the damage. It is a statement about *detection* and reads as one about *permission*, and "grown" names the wrong act as an ordinary route.
+2. =Where a story comes from= describes mitosis correctly but never states the *direction* plainly, so nothing in it contradicts a reader who has already concluded that growing children is fine. The user's own question — "would it not now be a leaf, and the parent a new ID?" — is the sentence that was missing.
+3. =The nine groupings carrying their own CLOCK lines today are history, not debt ... Nothing is to be migrated.= Written as amnesty for accidents; reads as a general blessing on the shape. It was the third thing I checked before deciding, and it said what I wanted to hear.
+
+*What was added, 2026-08-31:*
+
+- A *test* rather than a taxonomy: a heading that already owns work — a clock, a =:LOGBOOK:=, a body recording what it did — must not simply be given children, because that strands the record in something that cannot close. Only a heading with nothing of its own to strand may grow children in place.
+- The *direction*, stated outright: after dividing, the original is the child and the new parent carries a new =:ID:=. "If the heading you started from is still the parent afterwards, you did not divide."
+- The *ordering*, which cost a step in practice: divide first, then file the new leaves as siblings. Dividing afterwards carries already-added children down with it, since =org-demote-subtree= moves the whole subtree, and they arrive as grandchildren needing a refile.
+- An explicit boundary on the amnesty: it covers what already happened, not a deliberate choice made today.
+
+*Why this is worth a convention change rather than a note.* The error was not carelessness — three separate passages were consulted and each appeared to permit it. A rule that has to be *inferred* from a mechanism's description is a rule that will be got wrong again, and this one fails silently: the tree stays valid, =bin/lint-org= is content, and the only symptom is a heading that quietly never closes.
+
+*Not claimed:* that the new wording is machine-checkable. A lint could plausibly flag "container with a clock and a body acquiring its first child", but that is exactly the shape the amnesty says to leave alone in the nine existing cases, so the check would need history it does not have. Left as prose deliberately.
+
 * TODO org_capture's target refuses an 8-character :ID: prefix that every other tool accepts :code:
 :PROPERTIES:
 :ID:       25e7b083-360b-4282-8fd0-bb768e2a0f13
@@ -19,11 +47,15 @@
 
 *Cheap verification when fixed:* the four captures above, re-run with the prefix, plus a test asserting a prefix target resolves. Note the fixture trap found the same day: =--with-known-ids= leaves its ids unknown to org, so it is the wrong fixture for anything walking =org-id-locations=.
 
-* A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus :code:research:
+
+* TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus :code:research:
 :PROPERTIES:
 :ID:       445ec1f1-095a-462b-abbd-7a3a00925ddb
 :CREATED:  [2026-08-31 Mon 15:10]
 :CATEGORY: Clock
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-31 Mon 15:11]
 :END:
 
 *Raised by the user 2026-08-31, immediately after applying a review pass:* "this tells that much of our logged activity is bogus data. we should do an A/B comparison with B starting after this slice or whatever to check for a qualitative difference."
@@ -43,6 +75,7 @@ The same pass carried =[13:13]--[13:48]  writes 0:14 in 3= on [[id:c31b6c76-8ad8
 *A boundary marker exists, so B has a defined start.* A ends at commit =b34a12f= (2026-08-31T14:05:07-05:00), the last apply before this was raised. Recording it here because "after this slice" is not measurable later and a commit is.
 
 *One caution worth stating now, while it is cheap.* If A really is largely bogus, that is a claim about data already written to =TODO.org= and =DONE.org=, and the tempting follow-up — correcting or discarding it — should not be reached for casually. The record's value is partly that it is what actually happened, mistakes included; [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is this project's precedent that a plausible fabricated number is worse than an absent one, and a retroactively "corrected" span is exactly that. Deciding what, if anything, to do about A is part of this heading and should not be assumed.
+
 
 * TODO An Emacs outage strands every org write, because the tools are Emacs :code:
 :PROPERTIES:
@@ -302,7 +335,8 @@ Apply is human-only because org's native state-change logging completes only ins
 *Why =REVIEW= and not =DONE=.* Every ceremony run this session was invoked by hand. The =quit-window= advice has never fired on its own, and it cannot be made to before [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] next comes due, because apply is human-only by design. Nothing is owed from this side; what is left is the user seeing it fire, or not, and saying so.
 
 
-* TODO Add a body read: return a heading whole, drawers included, and let the caller extract :code:
+* DONE Add a body read: return a heading whole, drawers included, and let the caller extract :code:
+CLOSED: [2026-08-31 Mon 15:26]
 :PROPERTIES:
 :ID:       a0028a4e-39cb-4653-83cc-446b810234ac
 :CREATED:  [2026-08-31 Mon 09:48]
@@ -311,6 +345,10 @@ Apply is human-only because org's native state-change logging completes only ins
 :LOGBOOK:
 - State "TODO"       from              [2026-08-31 Mon 09:49] \\
   the build ff1352b3 decided
+CLOCK: [2026-08-31 Mon 15:20]--[2026-08-31 Mon 15:26] =>  0:06
+- State "DOING"      from "TODO"       [2026-08-31 Mon 15:20]
+- [2026-08-31 Mon 15:20]--[2026-08-31 Mon 15:26] add a whole-heading body read
+- State "DONE"       from "DOING"      [2026-08-31 Mon 15:26]
 :END:
 
 *The build [[id:ff1352b3-2732-4422-9f0d-4b3cb6fd8ff3][ff1352b3]] decided 2026-08-31*, filed separately because the decision is complete and the implementation is not.
@@ -351,15 +389,14 @@ Apply is human-only because org's native state-change logging completes only ins
 *CLAUDE.md's read-only tools table gained an =org_body= row in the same commit* — the table is read as the whole read surface, so omitting it would have made the document wrong.
 
 
-
-* TODO [5/28] The code knows more than it says, and asks more than it should :code:
+* TODO [16/28] The code knows more than it says, and asks more than it should :code:
 :PROPERTIES:
 :ID:       b36e6369-a210-4540-adc7-0c0c188e9791
 :CREATED:  [2026-08-28 Fri 17:37]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8 33864a0f-5e13-4235-85a6-0bd9d2fe5252 b7b46a26-2fd6-4784-bed3-d0112a917c0a 2b2db914-c96e-416a-a80a-e31028308de0 c74f8663-b14e-4ab9-ad65-d99cb655b3fa 72463b68-9f08-44b2-8213-87f71298138d a0028a4e-39cb-4653-83cc-446b810234ac 6cc71c36-0fa6-4773-9b35-c0582f4cee82 29734f79-e698-43dd-abf8-14bc86b8b0ae 98c302e0-ab1b-40bf-92d0-d2f2e16ac05d 9e627dc0-d31b-42cc-857a-b1e5a77f44a5 44cef181-8dac-4735-8860-f123e132fdbc 46e4ce2b-fdc8-447b-ad09-b4845602540f 05c71d99-2839-447b-a536-60eb4bf43b73 8d0716fe-ca88-429d-b46b-e2f880f5b2cc b6e229c7-3035-4c0e-943b-710a12bfd7d1 a2509a61-4e21-4d8e-8f58-c87935753472 0086614a-c95c-4618-bba0-c821589dd7f2 5f1068f9-1452-45e4-9253-568edfce2053 7c4d6ef6-c914-4d33-b267-cc9158a9f359 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
+:BLOCKER:  ids(c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8 33864a0f-5e13-4235-85a6-0bd9d2fe5252 b7b46a26-2fd6-4784-bed3-d0112a917c0a 72463b68-9f08-44b2-8213-87f71298138d 29734f79-e698-43dd-abf8-14bc86b8b0ae 9e627dc0-d31b-42cc-857a-b1e5a77f44a5 0086614a-c95c-4618-bba0-c821589dd7f2 5f1068f9-1452-45e4-9253-568edfce2053 7c4d6ef6-c914-4d33-b267-cc9158a9f359 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 17:38] \\
@@ -385,20 +422,20 @@ and the open decisions live in the prompt below rather than here.
 - [X] [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]] DONE A clock-report test fails every evening, because its fixture spills past midnight
 - [X] [[id:5a5e87c9-f432-44c6-a5a6-f6f3755e4347][5a5e87c9]] DONE A duration assertion matches the clocktable's own timestamp, three minutes a day
 - [X] [[id:c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b][c8a97d9d]] DONE Clearing a buffer's read-only flag for an MCP tool leaves it cleared
-- [ ] [[id:2b2db914-c96e-416a-a80a-e31028308de0][2b2db914]] TODO org_capture swallows a title beginning with a TODO keyword
-- [ ] [[id:c74f8663-b14e-4ab9-ad65-d99cb655b3fa][c74f8663]] TODO org_capture should accept an initial TODO state, so a heading is not keywordless until apply
+- [X] [[id:2b2db914-c96e-416a-a80a-e31028308de0][2b2db914]] DONE org_capture swallows a title beginning with a TODO keyword
+- [X] [[id:c74f8663-b14e-4ab9-ad65-d99cb655b3fa][c74f8663]] DONE org_capture should accept an initial TODO state, so a heading is not keywordless until apply
 - [ ] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] TODO MCP tools that write an org file time out; one reports success and persists nothing
-- [ ] [[id:a0028a4e-39cb-4653-83cc-446b810234ac][a0028a4e]] TODO Add a body read: return a heading whole, drawers included, and let the caller extract
-- [ ] [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] TODO Six defects in one day, all the same: the code knew more than it said
+- [X] [[id:a0028a4e-39cb-4653-83cc-446b810234ac][a0028a4e]] DONE Add a body read: return a heading whole, drawers included, and let the caller extract
+- [X] [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] DONE Six defects in one day, all the same: the code knew more than it said
 - [-] [[id:29734f79-e698-43dd-abf8-14bc86b8b0ae][29734f79]] REVIEW The ceremony prompt goes quiet on evidence of its first step, and never reports its own completion
-- [ ] [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]] TODO "writes 0:09 in 1" reads as two swappable numbers; "in 1" has no unit
+- [X] [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]] DONE "writes 0:09 in 1" reads as two swappable numbers; "in 1" has no unit
 - [ ] [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] TODO Record turns-per-interval as an attention signal, and decide where it surfaces
-- [ ] [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] TODO A span's headline interval is not the interval it writes
-- [ ] [[id:46e4ce2b-fdc8-447b-ad09-b4845602540f][46e4ce2b]] TODO Lead every review-buffer rendering with the :ID: prefix, rather than trailing it
-- [ ] [[id:05c71d99-2839-447b-a536-60eb4bf43b73][05c71d99]] TODO Apply logs a self-transition when a queued event's target already matches reality
-- [ ] [[id:8d0716fe-ca88-429d-b46b-e2f880f5b2cc][8d0716fe]] TODO g in the review buffer discards unapplied judgement without asking
-- [ ] [[id:b6e229c7-3035-4c0e-943b-710a12bfd7d1][b6e229c7]] TODO Auto-mark the state items that carry no judgement
-- [ ] [[id:a2509a61-4e21-4d8e-8f58-c87935753472][a2509a61]] TODO Assign advances past the line the human is about to mark
+- [X] [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] DONE A span's headline interval is not the interval it writes
+- [X] [[id:46e4ce2b-fdc8-447b-ad09-b4845602540f][46e4ce2b]] DONE Lead every review-buffer rendering with the :ID: prefix, rather than trailing it
+- [X] [[id:05c71d99-2839-447b-a536-60eb4bf43b73][05c71d99]] DONE Apply logs a self-transition when a queued event's target already matches reality
+- [X] [[id:8d0716fe-ca88-429d-b46b-e2f880f5b2cc][8d0716fe]] DONE g in the review buffer discards unapplied judgement without asking
+- [X] [[id:b6e229c7-3035-4c0e-943b-710a12bfd7d1][b6e229c7]] DONE Auto-mark the state items that carry no judgement
+- [X] [[id:a2509a61-4e21-4d8e-8f58-c87935753472][a2509a61]] DONE Assign advances past the line the human is about to mark
 - [ ] [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]] TODO A slice should list incidental work separately from its planned members
 - [ ] [[id:5f1068f9-1452-45e4-9253-568edfce2053][5f1068f9]] TODO Sort TODO.org by :CREATED: descending, after each archive pass
 - [ ] [[id:7c4d6ef6-c914-4d33-b267-cc9158a9f359][7c4d6ef6]] TODO Settle what a slice proposal is, and write the procedure down
@@ -407,7 +444,8 @@ and the open decisions live in the prompt below rather than here.
 - [ ] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] NEXT Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
 
 
-* TODO org_capture should accept an initial TODO state, so a heading is not keywordless until apply :code:
+* DONE org_capture should accept an initial TODO state, so a heading is not keywordless until apply :code:
+CLOSED: [2026-08-31 Mon 15:20]
 :PROPERTIES:
 :ID:       c74f8663-b14e-4ab9-ad65-d99cb655b3fa
 :CREATED:  [2026-08-28 Fri 17:36]
@@ -416,6 +454,10 @@ and the open decisions live in the prompt below rather than here.
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 17:37] \\
   companion question, filed on its own
+CLOCK: [2026-08-31 Mon 15:15]--[2026-08-31 Mon 15:19] =>  0:04
+- State "DOING"      from "TODO"       [2026-08-31 Mon 15:15]
+- [2026-08-31 Mon 15:15]--[2026-08-31 Mon 15:19] org_capture gains initial_state
+- State "DONE"       from "DOING"      [2026-08-31 Mon 15:20]
 :END:
 
 *Raised as a companion question by [[id:36b811d9-8bd3-4a32-b67d-39ccfe0d66c1][36b811d9]] and filed on its own 2026-08-28.* =org_capture= deliberately writes *no* TODO keyword — its description says to set the state afterwards with =org_set_todo=, which *queues*. So **every heading captured in a session is keywordless on disk until a human applies the queue**, and a capture-then-set is two operations that land a review pass apart.
@@ -459,7 +501,6 @@ and the open decisions live in the prompt below rather than here.
 *CLAUDE.md updated in the same commit.* Its caveat that a =:BLOCKER:= naming a same-session capture is inert was written as unconditional and is now conditional: true when the capture was keywordless, avoidable by passing =initial_state=.
 
 *A last illustration of the cost, from this session.* [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] was captured about twenty minutes before this shipped, and is keywordless on disk with its =TODO= sitting in the queue — the last heading here that will need a round-trip through a human to acquire a keyword.
-
 
 
 * TODO Three verification traps hit repeatedly in one session, none of them caught by a check :code:
@@ -705,7 +746,8 @@ This heading's own test is "ask whether the body was ever *revised*; if it was o
 *The first version of this measurement was wrong in two ways and is recorded because both are the same mistake.* It sampled only the most recent 40 commits — 2026-08-27 onward, five days of a five-week history — and it bounded each body with =find("\\n* ")=, which for a heading *with children* runs past them, so =02aaae22= came out as 5 lines against a true 178. Both errors flattered the answer: a shorter window and a truncated body both hide shrinks. A measurement whose errors all point the same way is worth re-running before it is quoted.
 
 
-* TODO Assign advances past the line the human is about to mark :code:
+* DONE Assign advances past the line the human is about to mark :code:
+CLOSED: [2026-08-31 Mon 15:47]
 :PROPERTIES:
 :ID:       a2509a61-4e21-4d8e-8f58-c87935753472
 :CREATED:  [2026-08-28 Fri 12:56]
@@ -714,6 +756,7 @@ This heading's own test is "ask whether the body was ever *revised*; if it was o
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 13:04] \\
   filed from the user's review-buffer request
+- State "DONE"       from "TODO"       [2026-08-31 Mon 15:47]
 :END:
 
 *Requested by the user 2026-08-28, from live review use:* after =a= assigns a span, point should *not* advance — "usually the next action is to mark it". And an alternative worth weighing rather than assuming: have =a= simply *mark and advance*, if that turns out simpler or more idiomatic.
@@ -738,7 +781,6 @@ This heading's own test is "ask whether the body was ever *revised*; if it was o
 *The disagreement this body identified is resolved in the docstring's favour.* The code advanced past exactly the line it had just made actionable, while the docstring two paragraphs earlier said assigning "makes the item markable like any other". They had disagreed all along; the comment asserting that assigning *answers* the line's question is gone.
 
 *Recorded because it is the second heading in this slice found already complete* — [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]] was the first, consumed by the previous slice's endgame while listed in this one. Neither is a bookkeeping error so much as evidence that a slice composed over several days will contain members that other work finishes on its way past. Worth a glance at the rest of the list before assuming anything in it is outstanding.
-
 
 
 * TODO A slice should list incidental work separately from its planned members :code:
@@ -838,7 +880,8 @@ The 13 are exactly that manifest's git-derived rows; its other 28 rows were T1 (
 *A known consequence, not an objection.* A second datetree in DONE.org is something =bin/lint-org= does not currently cover — its datetree rule is written for the one in TODO.org. That was foreseen while shipping the rule; see the child heading "bin/lint-org will drown in datetree scaffolding it can never satisfy", which measured it hours after the rule landed.
 
 
-* TODO Apply logs a self-transition when a queued event's target already matches reality :code:
+* DONE Apply logs a self-transition when a queued event's target already matches reality :code:
+CLOSED: [2026-08-31 Mon 15:51]
 :PROPERTIES:
 :ID:       05c71d99-2839-447b-a536-60eb4bf43b73
 :CREATED:  [2026-08-28 Fri 07:56]
@@ -847,6 +890,10 @@ The 13 are exactly that manifest's git-derived rows; its other 28 rows were T1 (
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 07:57] \\
   filed from the decisions pass
+CLOCK: [2026-08-31 Mon 15:48]--[2026-08-31 Mon 15:51] =>  0:03
+- State "DOING"      from "TODO"       [2026-08-31 Mon 15:48]
+- [2026-08-31 Mon 15:48]--[2026-08-31 Mon 15:51] skip a state event that has become a no-op
+- State "DONE"       from "DOING"      [2026-08-31 Mon 15:51]
 :END:
 
 *Measured across both files 2026-08-28:* 4 of 463 =State= lines record a transition to the keyword the heading already held — 0.9%. Both =DONE -> DONE= cases are dated [2026-08-11 Tue], the day the staleness guard shipped, and they sit on =Build the interactive review-and-apply Emacs command= and — pointedly — on =Apply must not replay a state event that reality has moved past=, the guard's own heading. Since the guard: *2 in 17 days* — =TODO -> TODO= on 420816ec [2026-08-20], =DOING -> DOING= on 29439196 [2026-08-27].
@@ -887,7 +934,6 @@ So cc0c17a7 owns "do not queue an event that is already a no-op" and this owns "
 *The open question in this body is answered: reported, not dropped.* The line reads =state DOING 08-31 09:05 no-op, heading is already there --=, and carries *no* =!=, because nothing is wrong. Dropping it silently was defensible on the grounds that nothing is lost, but this body's own objection stands — a queued event that vanishes without trace is the shape this project has repeatedly regretted — and the reader is owed the difference between "applied" and "there was nothing to do".
 
 *Verified:* 470 tests before, 472 after, 0 unexpected, exit 0. Two mutations, each a full 472-test run: never detecting redundancy fails both new tests, and detecting it but not skipping fails only the apply test — which is the pair that shows the annotation and the action are independently covered. The end state is asserted directly: the heading holds =DOING= with *exactly one* =State= line, not two.
-
 
 
 * TODO Direct file writes to a live org buffer can desync org-clock-marker :code:
@@ -4883,7 +4929,8 @@ So the work would derive a date from a *different event*, write it into a field 
 *What is left to decide is therefore one thing only:* whether the human-facing marker is wanted, given that nothing mechanical needs it. Everything else about this heading is now measured.
 
 
-* TODO Auto-mark the state items that carry no judgement :code:
+* DONE Auto-mark the state items that carry no judgement :code:
+CLOSED: [2026-08-31 Mon 16:01]
 :PROPERTIES:
 :CATEGORY: Apply
 :ID:       b6e229c7-3035-4c0e-943b-710a12bfd7d1
@@ -4892,6 +4939,7 @@ So the work would derive a date from a *different event*, write it into a field 
 :LOGBOOK:
 - State "TODO"       from              [2026-08-24 Mon 19:08] \\
   measure staleness rate before building
+- State "DONE"       from "TODO"       [2026-08-31 Mon 16:01]
 :END:
 
 *Proposed by the user 2026-08-24, after a long review pass:* "it seems like state transitions never require any judgment anymore. could those be applied invisibly or at least marked automatically?"
@@ -4938,8 +4986,8 @@ So the rule is clean, and the predicate for it already exists: =--review-markabl
 *Verified:* 477 tests before, 480 after, 0 unexpected, exit 0. Three mutations, each a full 480-test run: removing auto-marking fails the three new tests; ignoring staleness fails the auto-mark test *and* the pre-existing bulk-mark test; counting auto-marks as judgement fails the =g= tests.
 
 
-
-* TODO Lead every review-buffer rendering with the :ID: prefix, rather than trailing it :code:
+* DONE Lead every review-buffer rendering with the :ID: prefix, rather than trailing it :code:
+CLOSED: [2026-08-31 Mon 15:42]
 :PROPERTIES:
 :CATEGORY: Apply
 :ID:       46e4ce2b-fdc8-447b-ad09-b4845602540f
@@ -4948,6 +4996,10 @@ So the rule is clean, and the predicate for it already exists: =--review-markabl
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 08:34] \\
   captured keywordless, setting initial state
+CLOCK: [2026-08-31 Mon 15:39]--[2026-08-31 Mon 15:42] =>  0:03
+- State "DOING"      from "TODO"       [2026-08-31 Mon 15:39]
+- [2026-08-31 Mon 15:39]--[2026-08-31 Mon 15:42] lead assign candidates with the id prefix
+- State "DONE"       from "DOING"      [2026-08-31 Mon 15:42]
 :END:
 
 *Reported by the user 2026-08-25*, using =a= in the review buffer: the completion list should carry the =:ID:= prefix the way other renderings do.
@@ -4977,8 +5029,8 @@ So this is a *scanning* consistency, not a functional gap, and that changes what
 *One fixture trap found on the way, recorded because it is not obvious.* The first draft used =--with-known-ids=, which returns *zero* candidates: that fixture deliberately leaves its ids unknown to org until something scans, and =--assign-candidates= walks =org-id-locations=. The failure looked like a formatting mismatch and was an empty list.
 
 
-
-* TODO "writes 0:09 in 1" reads as two swappable numbers; "in 1" has no unit :code:
+* DONE "writes 0:09 in 1" reads as two swappable numbers; "in 1" has no unit :code:
+CLOSED: [2026-08-31 Mon 15:39]
 :PROPERTIES:
 :CATEGORY: Apply
 :ID:       98c302e0-ab1b-40bf-92d0-d2f2e16ac05d
@@ -4987,6 +5039,7 @@ So this is a *scanning* consistency, not a functional gap, and that changes what
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 08:34] \\
   captured keywordless, setting initial state
+- State "DONE"       from "TODO"       [2026-08-31 Mon 15:39]
 :END:
 
 *Reported by the user 2026-08-25* as "it looks like the arguments are reversed in the string interpolation".
@@ -5026,7 +5079,6 @@ So this is a *scanning* consistency, not a functional gap, and that changes what
 *Three tests moved rather than being deleted*, since each still verifies something real: that the run total agrees with what org computes per line, that a no-op span says which kind of no-op it is, and that a non-suggested item says nothing extra. One assertion was *added* — that the word "writes" appears nowhere on the line — because the decision is the absence of the claim, not the presence of better wording.
 
 *This is also the instrumentation [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] needs.* The user's reading that much logged activity is bogus came from a line saying =writes 0:01 in 1= over eleven minutes of continuous work. The same item now reads =0:11 span, 0:01 in 1 run, N turns=, where the discrepancy is on the face of the line instead of requiring the reader to know that the headline is not the record. Whatever the A/B measures, this is what makes the B side legible.
-
 
 
 * TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key :code:
@@ -5102,7 +5154,8 @@ The third is the important one: it is the known negative, confirmed independentl
 *Worth applying to the backlog once*, since the ledger reaches back to 2026-08-18 and the gaps are all still there to be scored.
 
 
-* TODO g in the review buffer discards unapplied judgement without asking :code:
+* DONE g in the review buffer discards unapplied judgement without asking :code:
+CLOSED: [2026-08-31 Mon 15:54]
 :PROPERTIES:
 :CATEGORY: Apply
 :ID:       8d0716fe-ca88-429d-b46b-e2f880f5b2cc
@@ -5111,6 +5164,10 @@ The third is the important one: it is the known negative, confirmed independentl
 :LOGBOOK:
 - State "TODO"       from              [2026-08-26 Wed 11:13] \\
   captured keywordless, setting initial state
+CLOCK: [2026-08-31 Mon 15:52]--[2026-08-31 Mon 15:54] =>  0:02
+- State "DOING"      from "TODO"       [2026-08-31 Mon 15:52]
+- [2026-08-31 Mon 15:52]--[2026-08-31 Mon 15:54] guard g against discarding review judgement
+- State "DONE"       from "DOING"      [2026-08-31 Mon 15:54]
 :END:
 
 *Reported by the user 2026-08-26:* "I have a tendency to hit =g= when I mean =x= and I lose all of my review work." =g= and =x= are adjacent intentions -- refresh and apply -- and one of them is destructive.
@@ -5153,8 +5210,8 @@ The third is the important one: it is the known negative, confirmed independentl
 *Not done, and not needed:* [[id:7148cddc-aca3-416e-8bcb-f164d4d2bba0][7148cddc]]'s 2026-08-24 loss is the same shape and was paid for once already. Nothing here retroactively recovers that; this stops the next one.
 
 
-
-* TODO A span's headline interval is not the interval it writes :code:
+* DONE A span's headline interval is not the interval it writes :code:
+CLOSED: [2026-08-31 Mon 15:38]
 :PROPERTIES:
 :CATEGORY: Apply
 :ID:       44cef181-8dac-4735-8860-f123e132fdbc
@@ -5163,6 +5220,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :LOGBOOK:
 - State "TODO"       from              [2026-08-26 Wed 13:42] \\
   captured keywordless, setting initial state
+- State "DONE"       from "TODO"       [2026-08-31 Mon 15:38]
 :END:
 
 *Found by the user 2026-08-26, from a readout they correctly refused to believe:* "I sense a contradiction. you just confirmed that [2026-08-26 Wed 13:05]--[2026-08-26 Wed 13:20] is my attention but something else says otherwise? who wins?"
@@ -5195,7 +5253,6 @@ The third is the important one: it is the known negative, confirmed independentl
 *Verified:* 468 tests, 0 unexpected. Omitting the envelope clause fails three tests and nothing else; the mutation had to be run twice because the first attempt did not parse and so proved nothing.
 
 *The user's independent confirmation, the same day.* After applying a review pass they read the old rendering and concluded that much of the logged activity is bogus — from a line reading =writes 0:01 in 1= across eleven minutes of continuous, independently reconstructible work. That is this heading's thesis reached from the data rather than from the code, and it is filed as [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]].
-
 
 
 * NEXT A clocktable never shows a parent's own time, only own-plus-subtree :code:
@@ -5937,6 +5994,7 @@ The four bullets above under "Still open" are superseded by these; read the head
 
 So this heading is currently a story wearing a leaf's title, which is the inverse of the "epic wearing a child's clothes" case in [[id:b5f94b88-76e3-4a3c-ac73-729f34d33691][b5f94b88]] and worth the same suspicion.
 
+
 ** TODO Carry the turn count into the :LOGBOOK: annotation, so it survives queue archiving :code:
 :PROPERTIES:
 :ID:       95755305-0499-4022-bd75-f325fd6828c7
@@ -5952,6 +6010,7 @@ The turn count now appears on the review line, but queue files are drained and a
 
 *Open question inherited rather than settled:* whether the annotation should carry the *envelope* too, now that the review line reports envelope, runs and turns together. An annotation recording only the runs loses the same distinction [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] was filed about, one layer down and where nobody is watching.
 
+
 ** TODO Decide whether org_clock_report grows a turns-per-hour column :code:
 :PROPERTIES:
 :ID:       97503194-5ef3-4a1e-b25d-676c3cb39eb0
@@ -5966,6 +6025,7 @@ The one place the scalar wins outright, per the parent's own analysis: turns/hou
 *Deliberately still a question, not a task.* The parent deferred it "until a real report wants it", and no report does yet. Filed so the deferral is visible rather than buried in a long body; closing it as =CANCELLED= is a perfectly good outcome if the aggregate never gets asked for.
 
 *Carries the parent's caveat*, which is sharper here than anywhere: turns/hour *drops* precisely when the agent works hardest, so a column labelled anything productivity-adjacent would invert its own meaning. See [[id:c4bc5c70-861a-4ce0-80da-c79b6b1600f3][c4bc5c70]].
+
 
 ** TODO Allocate attention across concurrent sessions, which is zero-sum :code:
 :PROPERTIES:
@@ -5989,6 +6049,7 @@ Attention is zero-sum across concurrent sessions. If the human was driving sessi
 
 *Newly relevant:* [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]], where the user concluded much of the logged activity is bogus. Cross-session allocation is one of the few things that could make a span's attribution *verifiable* rather than merely plausible, so this heading may be more load-bearing for that A/B than it looked when the parent filed it.
 
+
 ** TODO Decide where the caveat lives that turn count is not productivity :code:
 :PROPERTIES:
 :ID:       c4bc5c70-861a-4ce0-80da-c79b6b1600f3
@@ -6007,6 +6068,7 @@ Split out of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] 2026-08-31, w
 *Candidate answers, none chosen:* the review buffer's key legend; the tool descriptions; a line in CLAUDE.md's session-tracking section; or nowhere, on the grounds that the only reader is the person who set the convention. The last is a real option — this project has one user — and it should be rejected on evidence rather than reflex.
 
 *Related:* [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the standing precedent that a plausible-but-wrong number is worse than no number, which is the same worry one step earlier: here the number is right and the *reading* is what goes wrong.
+
 
 * TODO Record the originating project in queue events :code:
 :PROPERTIES:
@@ -6059,7 +6121,8 @@ worktrees — this repo already uses git worktrees for parallel work
 would need a normalisation rule, which is a decision rather than a field.
 
 
-* TODO Six defects in one day, all the same: the code knew more than it said :code:research:
+* DONE Six defects in one day, all the same: the code knew more than it said :code:research:
+CLOSED: [2026-08-31 Mon 15:31]
 :PROPERTIES:
 :CATEGORY: Apply
 :ID:       6cc71c36-0fa6-4773-9b35-c0582f4cee82
@@ -6070,6 +6133,10 @@ would need a normalisation rule, which is a decision rather than a field.
   audit the review buffer's readouts
 - State "TODO"       from "NEXT"       [2026-08-26 Wed 09:15] \\
   Auto-demoted: superseded by sibling [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][Track the human's review attention, clocked by the review command itself]] becoming NEXT.
+CLOCK: [2026-08-31 Mon 15:27]--[2026-08-31 Mon 15:31] =>  0:04
+- State "DOING"      from "TODO"       [2026-08-31 Mon 15:27]
+- [2026-08-31 Mon 15:27]--[2026-08-31 Mon 15:31] audit the review buffer wording
+- State "DONE"       from "DOING"      [2026-08-31 Mon 15:31]
 :END:
 
 *Noticed 2026-08-24 when the user asked whether the day's new headings formed a group.* They do, and the grouping is not the one the categories suggest.
@@ -6121,7 +6188,6 @@ Six defects were found in a single afternoon, all in the review-and-apply surfac
 *Verified:* 465 tests before, 468 after, 0 unexpected, exit 0. Three mutations, each a full 468-test run with the run count checked first: disabling the group-line branch fails only the line-kind test, dropping the type from =e='s refusal fails only the type test, and collapsing the pending-count branch fails only the count test.
 
 *What this heading does not claim to have finished.* The audit covers the *review buffer's own* messages. The span readout — a headline interval that is not what gets written — is [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] and [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]], and those two are a different question: not a message that discards a distinction, but a number that is honestly rendered and still misleads. The user's own reading on 2026-08-31, after applying a pass, was that much of the logged activity is bogus; that is filed as [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] and is about the data rather than the wording.
-
 
 
 * MAYBE Decide what this module may change on a user's machine when installed :code:
@@ -7277,7 +7343,8 @@ There is a second dispatch path, =claude-code-ide-mcp.el= line 352, which hands 
 *One measured consequence beyond the lost bodies:* an =org_outline= call passing =file= and =max_level= returned the *unrestricted default* rather than the scoped view it appeared to return, and was reported as scoped. A dropped argument does not merely fail to apply -- it silently substitutes a different answer to a different question.
 
 
-* TODO org_capture swallows a title beginning with a TODO keyword :code:
+* DONE org_capture swallows a title beginning with a TODO keyword :code:
+CLOSED: [2026-08-31 Mon 15:14]
 :PROPERTIES:
 :CATEGORY: Tools
 :ID:       2b2db914-c96e-416a-a80a-e31028308de0
@@ -7286,6 +7353,10 @@ There is a second dispatch path, =claude-code-ide-mcp.el= line 352, which hands 
 :LOGBOOK:
 - State "TODO"       from              [2026-08-26 Wed 18:50] \\
   still open; guard not yet written
+CLOCK: [2026-08-31 Mon 15:11]--[2026-08-31 Mon 15:14] =>  0:03
+- State "DOING"      from "TODO"       [2026-08-31 Mon 15:11]
+- [2026-08-31 Mon 15:11]--[2026-08-31 Mon 15:14] stop capture swallowing a leading TODO keyword
+- State "DONE"       from "DOING"      [2026-08-31 Mon 15:14]
 :END:
 
 *Open. Promised during 2026-08-26's session and not filed until the next morning* -- which is itself the pattern that produced the other six retcons.
@@ -7307,7 +7378,6 @@ There is a second dispatch path, =claude-code-ide-mcp.el= line 352, which hands 
 *Verified, and proved to discriminate in both directions* — which matters here because the two failure modes are opposites and a single test would miss one. 454 tests before, 456 after, 0 unexpected, exit 0. Disabling the guard (returning nil always) fails exactly =capture-refuses-a-leading-todo-keyword= and nothing else; making it over-eager (case-insensitive prefix match) fails exactly =capture-allows-titles-that-merely-look-keyword-ish= and nothing else. Both were full 456-test runs, run count checked before failure count. The refusal case covers every keyword the fixture's =#+TODO:= line declares, both sides of the bar, since a done-state keyword parses identically.
 
 *Incidental fix, since writing the test surfaced it.* The capture fixture's comment claimed =target= is required, citing 2026-08-20 (=97696fc2=). That stopped being true on 2026-08-27 when a category became a =:CATEGORY:= property rather than a heading: passing ="Scratch"= as a target now errors with "there is nothing to file *under* by name". The comment was describing a requirement the code had already dropped, and it cost this session a red test run before the reply was read. Corrected in place rather than filed — it is a comment in the file already being edited, not work.
-
 
 
 * MAYBE Evaluate choice of shell and standardize all project scripts :code:
@@ -8215,6 +8285,8 @@ CLOCK: [2026-08-31 Mon 12:52]--[2026-08-31 Mon 12:55] =>  0:03
 - [2026-08-31 Mon 12:52]--[2026-08-31 Mon 12:55] measure PLANNING against real use
 CLOCK: [2026-08-31 Mon 12:58]--[2026-08-31 Mon 12:59] =>  0:01
 - [2026-08-31 Mon 12:58]--[2026-08-31 Mon 12:59] measure PLANNING against real use
+CLOCK: [2026-08-31 Mon 15:01]--[2026-08-31 Mon 15:02] =>  0:01
+- [2026-08-31 Mon 15:01]--[2026-08-31 Mon 15:02] assigned at review
 :END:
 
 
@@ -8225,6 +8297,7 @@ CLOCK: [2026-08-31 Mon 12:58]--[2026-08-31 Mon 12:59] =>  0:01
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-31 Mon 16:14]--[2026-08-31 Mon 16:17] =>  0:03
 CLOCK: [2026-08-31 Mon 15:02]--[2026-08-31 Mon 15:03] =>  0:01
 CLOCK: [2026-08-31 Mon 12:12]--[2026-08-31 Mon 12:13] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02

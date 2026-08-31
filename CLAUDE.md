@@ -253,6 +253,17 @@ That is the whole reason the paragraph above says not to classify one: a
 declaration of something already derivable is a second copy that can
 disagree with the first.
 
+**But "however they arrived" describes detection, not permission**, and
+reading it as permission is a live trap — it was walked into on
+2026-08-31 (`:ID:` 9e627dc0). The test is what the heading *already
+owns*: **a task that has done work of its own — a clock, a `:LOGBOOK:`,
+a body recording what it did — must not simply be given children.**
+Doing so traps that record in a container, and a container with live
+children can never close, so a heading whose own work is finished is
+held open by its group indefinitely. Divide it instead; see "Where a
+story comes from" below. Only a heading with nothing of its own to
+strand may grow children in place.
+
 An **epic** and a **slice** are both declared, and they are not the same
 thing. Each asserts that particular tasks belong together for a reason
 the tree does not encode; they differ in what they do about it.
@@ -290,6 +301,16 @@ rather than being promoted: a new parent appears, the original leaf
 moves under it *carrying its `:ID:`, clock and `:LOGBOOK:`*, and the
 undone parts of its swollen body become new sibling leaves. `:ID:`
 a0813ae3, **built 2026-08-28** as `org_divide`.
+
+**Note the direction, because getting it backwards is the whole trap:
+after dividing, the original heading is the _child_.** The new parent
+carries a new `:ID:` that did not exist before. If the heading you
+started from is still the parent afterwards, you did not divide — you
+added children, and the paragraph above says when that is wrong.
+**Order matters too:** divide *first*, then file the new leaves as
+siblings. Dividing afterwards carries any children you already added
+down with it, since `org-demote-subtree` moves the whole subtree, and
+they arrive as grandchildren needing a refile.
 
 Two halves, split on whether judgement is involved. The tool does the
 *structural* move and nothing else — new parent, demote, carry
@@ -521,7 +542,9 @@ Two consequences worth stating, since both have been read backwards. The
 nine groupings carrying their own CLOCK lines today are **history, not
 debt** — each was clocked honestly while it was still a leaf, and became
 a grouping later by acquiring children or by a refile. Nothing is to be
-migrated. And the resulting ambiguity is a **reporting** problem, not a
+migrated. **That is amnesty for what already happened, not a licence to
+make more**: each of those arose by accident, and choosing the shape
+deliberately today is the error the story paragraph above now names. And the resulting ambiguity is a **reporting** problem, not a
 data one: measured 2026-08-26, a clocktable row for a parent shows own
 plus subtree as one number and its own share appears nowhere, recoverable
 only by subtracting every child (`:ID:` 64d34a64). Both triggers
