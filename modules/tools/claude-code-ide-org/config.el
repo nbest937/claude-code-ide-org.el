@@ -9473,8 +9473,19 @@ cookie -- add [/] and run `org-update-statistics-cookies': %s" title))
                ;; on the standing rule above -- it is a convention a new
                ;; heading must satisfy, and wrapping a body is a judgement
                ;; about where the seam falls, not a mechanical repair.
+               ;; A slice is exempt, because it has no prospective half to
+               ;; wrap (TODO.org :ID: f89c912a). The :PLAN: lifecycle was
+               ;; argued for *tasks*, on the hazard that a closed task's
+               ;; design claims outlive their truth and a later reader
+               ;; repeats one as current. A slice designs nothing: its body
+               ;; is an argument for a grouping, a sequence, a derived
+               ;; member list and revision links, nearly all of which is
+               ;; already retrospective once it closes. Same over-reach
+               ;; :ID: f421c5c3 found from the other side, where the rule
+               ;; demanded a drawer from a debrief-only heading.
                (when (and todo
                           (member todo claude-code-ide-org--outline-finished-keywords)
+                          (not (claude-code-ide-org--slice-p))
                           (claude-code-ide-org--lint-substantial-body-p)
                           (not (claude-code-ide-org--find-drawer "PLAN")))
                  (let ((closed (org-entry-get nil "CLOSED")))

@@ -4,7 +4,7 @@ Rewritten 2026-08-28, replacing the prompt that drove `979e02b6`. That slice
 closed the declared-versus-inferred gap; this one opens `b36e6369`.
 
 **The slice is the list.** Do not re-derive it — open `b36e6369` and read its
-checklist. Each line carries the member's id, current keyword and title, and
+checklist. Its predecessor `979e02b6` closed 2026-08-31 at 48/48. Each line carries the member's id, current keyword and title, and
 the `:BLOCKER:` names every member still carrying a cookie.
 
 ---
@@ -87,7 +87,10 @@ The checklist is already in dependency order, in five phases.
    `9e627dc0` is here because both its body and `98c302e0`'s say the readout
    rework and the turn-count surfacing must be **one pass** — only its
    review-buffer half is in scope.
-4. **The files stay orderly** — `0086614a`, `5f1068f9`, `8c662dfb`.
+4. **The files stay orderly** — `0086614a`, `5f1068f9`, `33864a0f`,
+   `b7b46a26`, `8c662dfb`. The middle three move together or not at all:
+   `5f1068f9`'s own body says its DONE.org twin is "worth doing in the same
+   pass rather than twice", and `b7b46a26` blocks `33864a0f`.
 5. **The checks learn** — `542924c1`, `d2a0f54c`.
 
 **Cut line: stop after phase 3.** Phases 1–3 are one argument about the gap
@@ -96,7 +99,7 @@ wait for a session with less momentum.
 
 ---
 
-## Three that need a nod before building
+## Four that need a nod before building
 
 - **`c74f8663`** — whether `org_capture` takes an initial state is a decision
   about the queue's one exception, not a build.
@@ -104,6 +107,11 @@ wait for a session with less momentum.
   (move the datetree to its own file) is a real question about where meta-work
   lives and must not be settled as a side effect of a sort.
 - **`8c662dfb`** — condensing ten bodies is ten judgements.
+- **`b7b46a26`** — whether a commit-derived `CLOSED:` is worth having at all,
+  and how the approximation is marked so a reader can tell the 39 derived from
+  the 58 measured. `7771fc63` is the precedent for refusing a plausible guess;
+  the new evidence is that `38b92521`'s manifest already computed git-derived
+  times for 13 of them and ordered an archive sweep by them.
 - **`ff1352b3`** — not a member, but the same kind: whether a body-returning
   read is a mode on `org_outline` or its own tool.
 

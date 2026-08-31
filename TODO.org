@@ -61,14 +61,25 @@
 
 *Not decided.* The user asked the question; this records the argument rather than settling it.
 
-* TODO [1/20] The code knows more than it says, and asks more than it should :code:
+*Decided and shipped 2026-08-31.* The user's ruling: drop the =:PLAN:= wrap from the slice-closing steps.
+
+*Shipped as the exemption rather than the empty drawer*, which was the choice this body laid out. =bin/lint-org= no longer asks a =:KIND: slice= heading for a =:PLAN:= drawer. One predicate, beside the existing finished-keyword test.
+
+*Verified by mutation, both directions.* The test asserts a finished slice is *not* reported and that a finished *task* with an identical body and =CLOSED:= still is — an exemption that silenced everything would satisfy the first assertion while deleting the rule. Removing the predicate fails exactly that test and nothing else; 441/441 restored.
+
+*What it clears immediately:* [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]], which the rule had been nagging about since it closed, and [[id:979e02b6-2a4c-4328-8b08-ffaec03bd02e][979e02b6]], which now closes without one.
+
+*The reasoning, restated in one line for whoever meets this next:* the =:PLAN:= lifecycle protects a reader from a closed *task's* design claims, and a slice makes none — so wrapping one would file true, retrospective prose into a drawer readers are told to skip, which is the inverse of what the lifecycle is for.
+
+
+* TODO [1/22] The code knows more than it says, and asks more than it should :code:
 :PROPERTIES:
 :ID:       b36e6369-a210-4540-adc7-0c0c188e9791
 :CREATED:  [2026-08-28 Fri 17:37]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(46d225c7-7541-4867-af72-929a572df2a5 c31b6c76-8ad8-45d4-a87b-39e085e31368 5a5e87c9-f432-44c6-a5a6-f6f3755e4347 c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b 2b2db914-c96e-416a-a80a-e31028308de0 c74f8663-b14e-4ab9-ad65-d99cb655b3fa 6cc71c36-0fa6-4773-9b35-c0582f4cee82 98c302e0-ab1b-40bf-92d0-d2f2e16ac05d 9e627dc0-d31b-42cc-857a-b1e5a77f44a5 44cef181-8dac-4735-8860-f123e132fdbc 46e4ce2b-fdc8-447b-ad09-b4845602540f 05c71d99-2839-447b-a536-60eb4bf43b73 8d0716fe-ca88-429d-b46b-e2f880f5b2cc b6e229c7-3035-4c0e-943b-710a12bfd7d1 0086614a-c95c-4618-bba0-c821589dd7f2 5f1068f9-1452-45e4-9253-568edfce2053 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
+:BLOCKER:  ids(33864a0f-5e13-4235-85a6-0bd9d2fe5252 b7b46a26-2fd6-4784-bed3-d0112a917c0a 46d225c7-7541-4867-af72-929a572df2a5 c31b6c76-8ad8-45d4-a87b-39e085e31368 5a5e87c9-f432-44c6-a5a6-f6f3755e4347 c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b 2b2db914-c96e-416a-a80a-e31028308de0 c74f8663-b14e-4ab9-ad65-d99cb655b3fa 6cc71c36-0fa6-4773-9b35-c0582f4cee82 98c302e0-ab1b-40bf-92d0-d2f2e16ac05d 9e627dc0-d31b-42cc-857a-b1e5a77f44a5 44cef181-8dac-4735-8860-f123e132fdbc 46e4ce2b-fdc8-447b-ad09-b4845602540f 05c71d99-2839-447b-a536-60eb4bf43b73 8d0716fe-ca88-429d-b46b-e2f880f5b2cc b6e229c7-3035-4c0e-943b-710a12bfd7d1 0086614a-c95c-4618-bba0-c821589dd7f2 5f1068f9-1452-45e4-9253-568edfce2053 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 17:38] \\
@@ -133,8 +144,18 @@ cost both warn against. Only its *review-buffer* half is in scope; the
 
 *Phase 4 — the files stay orderly.* [[id:0086614a][0086614a]] and
 [[id:5f1068f9][5f1068f9]] are both decided in substance and want only
+- [ ] [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] TODO Reorder DONE.org as a datetree, descending by CLOSED:
+- [ ] [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] TODO Recover a close time from git for the headings with no in-file evidence
 building; [[id:8c662dfb][8c662dfb]] is per-heading judgement and is the
 one item here that genuinely wants a human nearby.
+
+*[[id:33864a0f][33864a0f]] and [[id:b7b46a26][b7b46a26]] join it, and
+5f1068f9's own body says why:* "worth doing in the same pass rather than
+twice — both are make the file read newest-first after archiving; they
+differ only in the key and in whether the result is flat or nested."
+Leaving one twin out was the same asymmetry the =c31b6c76=/=5a5e87c9=
+pair had, caught once and reintroduced here. b7b46a26 blocks 33864a0f,
+so all three move together or none do.
 
 *Phase 5 — the checks learn.* [[id:542924c1][542924c1]] records three
 traps that no check catches, and [[id:d2a0f54c][d2a0f54c]] is the
@@ -150,6 +171,15 @@ alternative (move the datetree to its own file) is a real question about
 where meta-work lives and should not be settled as a side effect of a
 sort.
 =8c662dfb= — condensing ten bodies is ten judgements.
+
+=b7b46a26= — whether a commit-derived =CLOSED:= is worth having at all,
+and if so how the approximation is marked so a reader can tell the 39
+derived from the 58 measured. [[id:7771fc63][7771fc63]] is the precedent
+for refusing a plausible guess. New evidence since it was written:
+[[id:38b92521][38b92521]]'s manifest already computed git-derived times
+for 13 of the 39 and used them to order an archive sweep, so the
+question narrows from "is this trustworthy" to "is it trustworthy
+*unlabelled*".
 
 =ff1352b3= — not a member, and listed here because it is the fourth of
 the same kind: whether returning a heading's body whole is a mode on
@@ -836,6 +866,11 @@ answers is what *else* was going on.
 *Residue: none unfiled.* Everything named as unfinished during the slice's life became a heading — [[id:ff1352b3-2732-4422-9f0d-4b3cb6fd8ff3][ff1352b3]], [[id:c74f8663-b14e-4ab9-ad65-d99cb655b3fa][c74f8663]], [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]], [[id:46d225c7-7541-4867-af72-929a572df2a5][46d225c7]], [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]], [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]], [[id:5f1068f9-1452-45e4-9253-568edfce2053][5f1068f9]], [[id:8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8][8c662dfb]], [[id:dbf70459-bde4-4550-bd81-0d4f9ebc50e3][dbf70459]] — and the successor slice [[id:b36e6369-a210-4540-adc7-0c0c188e9791][b36e6369]] sequences most of them.
 
 *Still to do before this heading is actually closed:* wrap the prospective half into =:PLAN:= with =org_wrap_plan=, seam at this debrief, following [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]]'s precedent.
+
+*Closed 2026-08-31 without a =:PLAN:= wrap*, reversing the "still to do" line above. The user asked what justified wrapping a slice at all, and the answer turned out to be nothing: [[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]] argued that lifecycle for *tasks*, on the hazard that a closed task's design claims outlive their truth. A slice designs nothing. Wrapping this body would have filed true, retrospective prose into a drawer readers are told to skip — the inverse of what the lifecycle is for. =bin/lint-org= now exempts slices ([[id:f89c912a-2ce5-4f77-b6be-67ae35901e7a][f89c912a]]), so the convention and the check agree.
+
+*Worth recording that the precedent I cited for wrapping did not exist.* I said [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] had a =:PLAN:= drawer. It has none — the claim came from a probe that answered =t= whether or not its search matched, which is now the fourth entry in [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]]. The user caught it by reading the file and saying it read fine as it was.
+
 
 
 * DONE Setting DOING retroactively opens a clock, which the looser sense makes wrong :code:

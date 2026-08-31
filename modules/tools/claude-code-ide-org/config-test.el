@@ -10408,3 +10408,35 @@ one and break the feature."
             (should (string-match-p "- \\[ \\] \\[\\[id:11111111[^\n]*TODO The referent" text))
             ;; and the closed one still carries its stale copy, untouched
             (should (string-match-p "- \\[X\\] \\[\\[id:11111111[^\n]*DONE stale copy" text))))))))
+
+(ert-deftest claude-code-ide-org-test-plan-lint-exempts-a-slice ()
+  "A finished slice is not asked for a :PLAN: drawer.
+
+The :PLAN: lifecycle was argued for *tasks* (:ID: 8bcd56f4), on the
+hazard that a closed task's design claims outlive their truth and a
+later reader repeats one as current.  A slice designs nothing: its body
+is an argument for a grouping, a sequence, a derived member list and
+revision links, nearly all of it retrospective once it closes.  TODO.org
+:ID: f89c912a.
+
+Asserts a finished *task* with the same shape is still reported, because
+an exemption that silenced everything would satisfy the slice assertion
+while removing the rule."
+  (let* ((cat "")
+         (body (concat "\n" (mapconcat (lambda (n) (format "Line %d of a substantial body." n))
+                                       (number-sequence 1 40) "\n") "\n"))
+         (closed "CLOSED: [2026-08-30 Sun 10:00]\n")
+         (slice (concat cat "* DONE A finished slice\n" closed
+                        ":PROPERTIES:\n:KIND:     slice\n"
+                        ":ID:       aaaaaaaa-0000-0000-0000-00000000000a\n:END:\n" body))
+         (task (concat cat "* DONE A finished task\n" closed
+                       ":PROPERTIES:\n"
+                       ":ID:       bbbbbbbb-0000-0000-0000-00000000000b\n:END:\n" body)))
+    ;; the slice is exempt
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint slice)
+                 'warn "no :PLAN: drawer"))
+    ;; the task, identical but for :KIND:, is still reported
+    (should (claude-code-ide-org-test--lint-matches
+             (claude-code-ide-org-test--lint task)
+             'warn "no :PLAN: drawer"))))
