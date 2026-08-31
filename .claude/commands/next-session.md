@@ -137,7 +137,12 @@ wait for a session with less momentum.
 - **`5f1068f9`** — approach A is measured and recommended, but the alternative
   (move the datetree to its own file) is a real question about where meta-work
   lives and must not be settled as a side effect of a sort.
-- **`8c662dfb`** — condensing ten bodies is ten judgements.
+- **`8c662dfb`** — *mostly settled 2026-08-31.* Measured across all 472
+  commits: **nine of the ten bodies have never lost a line**, so this
+  heading's own test ("was it ever revised, or only appended to?") answers
+  itself for nine, and compress-then-wrap applies with no per-heading call.
+  Only `02aaae22` shows a shrink, and it is the one container in the list, so
+  do it last or leave it. The nine are unattended work.
 - **`b7b46a26`** — whether a commit-derived `CLOSED:` is worth having at all,
   and how the approximation is marked so a reader can tell the 39 derived from
   the 58 measured. `7771fc63` is the precedent for refusing a plausible guess;

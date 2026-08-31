@@ -413,6 +413,30 @@ The trailing =t= is the last form of the =save-excursion=, so the whole expressi
 
 *Which gives whoever picks this up a test rather than a preference:* ask whether the body was ever *revised*. If it was only ever appended to, compress first. c954f650 was a clear case — five distinct dates of accretion, each opening with a bold lead that qualified or reversed one above it, and nothing ever deleted.
 
+*Measured 2026-08-31, and it converts this from ten judgements into nine mechanical compressions and one that needs care.*
+
+This heading's own test is "ask whether the body was ever *revised*; if it was only ever appended to, compress first". That is answerable from git rather than by reading. Sampling 28 points across all 472 commits that touched TODO.org, with each heading's body bounded at the *next heading of any level*, and counting any drop of more than three lines as a revision:
+
+| id | samples | max | now | shrinks | verdict |
+|----+---------+-----+-----+---------+---------|
+| 02aaae22 | 25 | 154 | 147 | 1 | *revised* |
+| 9e627dc0 | 16 | 211 | 211 | 0 | append-only |
+| 9ae4b17e | 17 | 169 | 169 | 0 | append-only |
+| b5f94b88 | 20 | 128 | 128 | 0 | append-only |
+| 0c8644ff | 25 | 141 | 141 | 0 | append-only |
+| 2aeb65d6 | 21 | 123 | 123 | 0 | append-only |
+| a1d63f52 | 24 | 94 | 94 | 0 | append-only |
+| b07df584 | 13 | 95 | 95 | 0 | append-only |
+| 2d9eeebd | 17 | 111 | 111 | 0 | append-only |
+| d1cf852a | 19 | 90 | 90 | 0 | append-only |
+
+*Nine of ten have never lost a line.* So for nine, the risky question — am I discarding someone's considered wording? — is answered *no* before any reading begins, and compress-then-wrap applies without a per-heading call. Writing each compression is still work; deciding whether it is safe is not.
+
+*=02aaae22= is the exception and should be done last, or by a human.* It is also the only container in the list, so its single shrink may be a child moving rather than prose being pared — which is exactly the ambiguity that makes it the one to treat carefully rather than the one to skip.
+
+*The first version of this measurement was wrong in two ways and is recorded because both are the same mistake.* It sampled only the most recent 40 commits — 2026-08-27 onward, five days of a five-week history — and it bounded each body with =find("\\n* ")=, which for a heading *with children* runs past them, so =02aaae22= came out as 5 lines against a true 178. Both errors flattered the answer: a shorter window and a truncated body both hide shrinks. A measurement whose errors all point the same way is worth re-running before it is quoted.
+
+
 
 * TODO Assign advances past the line the human is about to mark :code:
 :PROPERTIES:
