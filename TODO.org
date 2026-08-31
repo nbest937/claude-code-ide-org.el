@@ -170,6 +170,19 @@ Apply is human-only because org's native state-change logging completes only ins
 
 *Not proposed: automating apply.* And not proposed: the agent running the last three *unasked* — that is a policy question about the user's attention rather than a defect, and it should be decided rather than assumed.
 
+*Shipped 2026-08-31.* Both halves the title names are addressed, and the heading is in =REVIEW= rather than =DONE= for one reason given at the end.
+
+*The completion report.* =claude-code-ide-org-ceremony-finish= runs the three post-apply steps -- consolidate drawers, normalise separation, archive -- reports each one success or failure, and returns a summary line. A clean pass advances [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]]'s own =++1d= repeater and stamps the ceremony done; a pass where any step failed holds both. The summary is written into the stamp file's body, so it survives the =message= that displayed it.
+
+*The quiet test.* It keyed on *either* the stamp or a CLOCK line dated today on the attention heading -- and the second only attests that apply ran. That was right while the later steps needed a human. It is wrong now they run automatically, and it hid the case that matters most: a pass that ran, failed a step, correctly held the repeater and wrote no stamp, then was silenced by its own apply clock. Silence now requires the stamp. The clock is still read, but to *say* something: =:reviewed-today= separates "nobody has been here today" from "someone was, and it did not complete", and the report leads with the latter.
+
+*Verified, not just implemented.* The sweep was rehearsed on scratch copies before touching anything, then run live against the backlog this heading was filed about: 65 finished top-level subtrees archived, with headings 308 -> 308, =:ID:= 307 -> 307 and CLOCK 696 -> 696 across both files, no duplicate ids, and the 21 finished headings that are children of *live* parents correctly left alone. 447 tests pass. Restoring the old disjunct fails the new test, so it discriminates.
+
+*Two defects surfaced by running it*, both fixed here: =#+ARCHIVE:= is parsed once at buffer creation and never re-parsed, so the first live pass archived under the retired =* Done= while the directive on screen read the new one; and a pass reported 65 while writing 66, which is guarded by a post-condition and filed unexplained as [[id:381ea07d-633f-4640-abbb-89472a07acba][381ea07d]].
+
+*Why =REVIEW= and not =DONE=.* Every ceremony run this session was invoked by hand. The =quit-window= advice has never fired on its own, and it cannot be made to before [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] next comes due, because apply is human-only by design. Nothing is owed from this side; what is left is the user seeing it fire, or not, and saying so.
+
+
 
 * TODO Add a body read: return a heading whole, drawers included, and let the caller extract :code:
 :PROPERTIES:
