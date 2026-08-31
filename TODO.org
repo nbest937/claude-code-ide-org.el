@@ -2,11 +2,39 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
-* An Emacs outage strands every org write, because the tools are Emacs :code:
+* A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus :code:research:
+:PROPERTIES:
+:ID:       445ec1f1-095a-462b-abbd-7a3a00925ddb
+:CREATED:  [2026-08-31 Mon 15:10]
+:CATEGORY: Clock
+:END:
+
+*Raised by the user 2026-08-31, immediately after applying a review pass:* "this tells that much of our logged activity is bogus data. we should do an A/B comparison with B starting after this slice or whatever to check for a qualitative difference."
+
+*The evidence that prompted it, which is unusually good evidence.* The apply pass that had just been accepted contained a span on [[id:c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b][c8a97d9d]] rendered as =[13:53]--[14:04]  writes 0:01 in 1= — eleven minutes of headline interval crediting one minute — for a stretch that was *continuous* work with no idle gap and no permission block. That heading's work is fully reconstructible from four commits and a test suite that went 448 to 454, so this is not a case of guessing whether the number is wrong. It is wrong, and by roughly an order of magnitude, on a stretch we can independently account for.
+
+The same pass carried =[13:13]--[13:48]  writes 0:14 in 3= on [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]], which spans an Emacs crash and an AFK stretch and so is wrong in the *other* direction. Both were applied before the discrepancy was noticed, so the file now contains them.
+
+*Why this is not simply [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] or [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]].* Those two are about the review buffer *saying* what it means — a headline interval that is not the interval written, and a readout whose two numbers cannot be told apart. Fixing them makes the human able to *see* the discrepancy at review time. Neither claims the underlying attribution is right, and this heading is the question of whether it is. A perfectly legible rendering of a bogus number is still a bogus number.
+
+*The design question, and it is the whole task:* what is the B in an A/B where the thing being measured is accuracy, and there is no ground truth? Some candidates, none settled:
+
+- *Reconstructible stretches as the yardstick.* Work with commits, test-count deltas and a debrief can be bounded from outside the clock system entirely. Both spans above were caught precisely because such a record existed. That suggests sampling stretches with strong external evidence rather than comparing aggregates.
+- *Turns per interval*, which [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] proposes recording anyway, is an independent signal: a span crediting one minute across many turns is self-evidently suspect without needing to know the true number.
+- *Aggregate shape* — total logged hours per day before and after — is the easiest comparison and the weakest, since a change in total does not say which direction is right.
+
+*A boundary marker exists, so B has a defined start.* A ends at commit =b34a12f= (2026-08-31T14:05:07-05:00), the last apply before this was raised. Recording it here because "after this slice" is not measurable later and a commit is.
+
+*One caution worth stating now, while it is cheap.* If A really is largely bogus, that is a claim about data already written to =TODO.org= and =DONE.org=, and the tempting follow-up — correcting or discarding it — should not be reached for casually. The record's value is partly that it is what actually happened, mistakes included; [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is this project's precedent that a plausible fabricated number is worse than an absent one, and a retroactively "corrected" span is exactly that. Deciding what, if anything, to do about A is part of this heading and should not be assumed.
+
+* TODO An Emacs outage strands every org write, because the tools are Emacs :code:
 :PROPERTIES:
 :ID:       3ad389be-2797-46c3-a51d-9f603053955a
 :CREATED:  [2026-08-31 Mon 13:50]
 :CATEGORY: Queue
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-31 Mon 13:52]
 :END:
 
 The queue's premise is that a session can record work without a running Emacs: =bin/hooks/queue-append= is plain shell and jq, and CLAUDE.md says so outright — "this script must stay runnable with no Emacs at all, which is the premise the whole queue rests on."
@@ -28,6 +56,7 @@ The queue's premise is that a session can record work without a running Emacs: =
 Whatever is chosen, the shape to avoid is the current one, where the failure is silent per call and only a human noticing a timeout keeps the work attached to its heading.
 
 *Related but distinct:* [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] is about =org_capture= and =org_set_property= hanging over MCP *while Emacs is healthy and other tools answer*. This one is about every tool failing because Emacs is not there at all. They were confirmed separate on 2026-08-31: after the restart, =org_capture= over MCP timed out again and persisted nothing — buffer unmodified, not read-only, no prompt open, =recursion-depth= 0 — while the same function through =emacsclient= completed in under a second.
+
 
 * TODO Nothing watches a REVIEW heading, and it is the state most easily forgotten :code:
 :PROPERTIES:
@@ -153,7 +182,6 @@ Conditions at the moment of that timeout, all measured rather than assumed:
 =org_set_property= behaved identically in the same window: timed out over MCP, completed over =emacsclient=. So the split is exactly the pair already named here, it is per-tool rather than per-session, and it is not the payload, the buffer state, an open prompt, or a degraded process. Whatever distinguishes these two from =org_amend= is in the MCP dispatch path for those specific tools.
 
 *Distinct from* [[id:3ad389be-2797-46c3-a51d-9f603053955a][3ad389be]], filed the same day: that one is every tool failing because Emacs is absent. This one is two tools failing while Emacs is present and answering.
-
 
 
 * TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones :code:
@@ -284,14 +312,14 @@ Apply is human-only because org's native state-change logging completes only ins
 *Deliberately out of scope:* shrinking =org_outline='s front matter. Build this first — at that point the front matter's remaining unique content is about one line, and the question answers itself.
 
 
-* TODO [1/28] The code knows more than it says, and asks more than it should :code:
+* TODO [5/28] The code knows more than it says, and asks more than it should :code:
 :PROPERTIES:
 :ID:       b36e6369-a210-4540-adc7-0c0c188e9791
 :CREATED:  [2026-08-28 Fri 17:37]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8 33864a0f-5e13-4235-85a6-0bd9d2fe5252 b7b46a26-2fd6-4784-bed3-d0112a917c0a 46d225c7-7541-4867-af72-929a572df2a5 c31b6c76-8ad8-45d4-a87b-39e085e31368 5a5e87c9-f432-44c6-a5a6-f6f3755e4347 c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b 2b2db914-c96e-416a-a80a-e31028308de0 c74f8663-b14e-4ab9-ad65-d99cb655b3fa 72463b68-9f08-44b2-8213-87f71298138d a0028a4e-39cb-4653-83cc-446b810234ac 6cc71c36-0fa6-4773-9b35-c0582f4cee82 29734f79-e698-43dd-abf8-14bc86b8b0ae 98c302e0-ab1b-40bf-92d0-d2f2e16ac05d 9e627dc0-d31b-42cc-857a-b1e5a77f44a5 44cef181-8dac-4735-8860-f123e132fdbc 46e4ce2b-fdc8-447b-ad09-b4845602540f 05c71d99-2839-447b-a536-60eb4bf43b73 8d0716fe-ca88-429d-b46b-e2f880f5b2cc b6e229c7-3035-4c0e-943b-710a12bfd7d1 a2509a61-4e21-4d8e-8f58-c87935753472 0086614a-c95c-4618-bba0-c821589dd7f2 5f1068f9-1452-45e4-9253-568edfce2053 7c4d6ef6-c914-4d33-b267-cc9158a9f359 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
+:BLOCKER:  ids(c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8 33864a0f-5e13-4235-85a6-0bd9d2fe5252 b7b46a26-2fd6-4784-bed3-d0112a917c0a 2b2db914-c96e-416a-a80a-e31028308de0 c74f8663-b14e-4ab9-ad65-d99cb655b3fa 72463b68-9f08-44b2-8213-87f71298138d a0028a4e-39cb-4653-83cc-446b810234ac 6cc71c36-0fa6-4773-9b35-c0582f4cee82 29734f79-e698-43dd-abf8-14bc86b8b0ae 98c302e0-ab1b-40bf-92d0-d2f2e16ac05d 9e627dc0-d31b-42cc-857a-b1e5a77f44a5 44cef181-8dac-4735-8860-f123e132fdbc 46e4ce2b-fdc8-447b-ad09-b4845602540f 05c71d99-2839-447b-a536-60eb4bf43b73 8d0716fe-ca88-429d-b46b-e2f880f5b2cc b6e229c7-3035-4c0e-943b-710a12bfd7d1 a2509a61-4e21-4d8e-8f58-c87935753472 0086614a-c95c-4618-bba0-c821589dd7f2 5f1068f9-1452-45e4-9253-568edfce2053 7c4d6ef6-c914-4d33-b267-cc9158a9f359 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 17:38] \\
@@ -313,10 +341,10 @@ and the open decisions live in the prompt below rather than here.
 - [ ] [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] TODO Reorder DONE.org as a datetree, descending by CLOSED:
 - [ ] [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] TODO Recover a close time from git for the headings with no in-file evidence
 - [X] [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]] DONE Jump to a heading by title, not by pasting a UUID
-- [ ] [[id:46d225c7-7541-4867-af72-929a572df2a5][46d225c7]] TODO Remove queue-append's synthetic-event overrides, dead since the ExitPlanMode hook went
-- [ ] [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]] TODO A clock-report test fails every evening, because its fixture spills past midnight
-- [ ] [[id:5a5e87c9-f432-44c6-a5a6-f6f3755e4347][5a5e87c9]] TODO A duration assertion matches the clocktable's own timestamp, three minutes a day
-- [ ] [[id:c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b][c8a97d9d]] TODO Clearing a buffer's read-only flag for an MCP tool leaves it cleared
+- [X] [[id:46d225c7-7541-4867-af72-929a572df2a5][46d225c7]] DONE Remove queue-append's synthetic-event overrides, dead since the ExitPlanMode hook went
+- [X] [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]] DONE A clock-report test fails every evening, because its fixture spills past midnight
+- [X] [[id:5a5e87c9-f432-44c6-a5a6-f6f3755e4347][5a5e87c9]] DONE A duration assertion matches the clocktable's own timestamp, three minutes a day
+- [X] [[id:c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b][c8a97d9d]] DONE Clearing a buffer's read-only flag for an MCP tool leaves it cleared
 - [ ] [[id:2b2db914-c96e-416a-a80a-e31028308de0][2b2db914]] TODO org_capture swallows a title beginning with a TODO keyword
 - [ ] [[id:c74f8663-b14e-4ab9-ad65-d99cb655b3fa][c74f8663]] TODO org_capture should accept an initial TODO state, so a heading is not keywordless until apply
 - [ ] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] TODO MCP tools that write an org file time out; one reports success and persists nothing
@@ -413,7 +441,8 @@ The trailing =t= is the last form of the =save-excursion=, so the whole expressi
 *And a fifth of the same shape, from the same day, worth recording because it was a write rather than a read.* A splice replaced a region using =body.index(start)= and =body.index(end)= where the end marker sat *earlier* in the string than the start — so =body[:start] + new + body[end:]= silently re-appended everything between them, duplicating a slice's revision links and part of its member list. The cookie went up rather than erroring, which read as plausible on a slice that had just grown. A splice whose markers can be mis-ordered should assert their order; nothing did.
 
 
-* TODO Remove queue-append's synthetic-event overrides, dead since the ExitPlanMode hook went :code:
+* DONE Remove queue-append's synthetic-event overrides, dead since the ExitPlanMode hook went :code:
+CLOSED: [2026-08-31 Mon 13:11]
 :PROPERTIES:
 :ID:       46d225c7-7541-4867-af72-929a572df2a5
 :CREATED:  [2026-08-28 Fri 16:02]
@@ -422,6 +451,10 @@ The trailing =t= is the last form of the =save-excursion=, so the whole expressi
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 16:02] \\
   dead branch, filed on its own
+CLOCK: [2026-08-31 Mon 13:09]--[2026-08-31 Mon 13:11] =>  0:02
+- State "DOING"      from "TODO"       [2026-08-31 Mon 13:09]
+- [2026-08-31 Mon 13:09]--[2026-08-31 Mon 13:11] remove dead synthetic-event overrides
+- State "DONE"       from "DOING"      [2026-08-31 Mon 13:11]
 :END:
 
 =QUEUE_APPEND_ID=, =QUEUE_APPEND_STATE= and =QUEUE_APPEND_FROM= in =bin/hooks/queue-append= let a caller supply a heading and states for a *synthetic* event — one with no tool call behind it, so nothing to read a =tool_input= or parse a =tool_response= from. Their only consumer was =bin/hooks/exitplanmode-promote-planning=, deleted 2026-08-28 when =PLANNING= was retired ([[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]). The branch has been dead since.
@@ -437,7 +470,6 @@ The trailing =t= is the last form of the =save-excursion=, so the whole expressi
 *The coverage question the body asked, answered:* removing the feature with the tests still in place broke 4 of the 5 override checks — =override sets id=, =sets state=, =sets from= and =beats tool_input= all went =null=/payload-valued, taking the suite from 81 =ok= lines and exit 0 to 77 and exit 1. So the feature *was* covered, and the more interesting finding is the fifth: =override keeps real source= passed unchanged, because =source= resolves from =tool_name= and never touched the override path at all. It asserted nothing about the feature it was filed under.
 
 *Verified:* =bash -n= on both files, then =bin/queue-append-test= at 76 =ok= and exit 0 — 81 minus exactly the 5 removed checks. The "unset overrides must not disturb the ordinary path" block is kept as the plain payload-reads-its-own-fields test, its comment rewritten to record where the overrides went rather than to describe a mechanism that is no longer there.
-
 
 
 * MAYBE Install orgparse for ad-hoc analysis, and stop reaching for regex over org text :code:
@@ -6969,6 +7001,17 @@ There is a second dispatch path, =claude-code-ide-mcp.el= line 352, which hands 
 
 *Cheap guard, since the tool already knows the keyword set.* Refuse, or escape, a title whose first word is one. Refusing is probably right: such a title is nearly always a mistake, and a silently renamed heading is worse than an error. Note =bin/lint-org= cannot catch it either -- the result is a well-formed heading.
 
+*Shipped 2026-08-31. Refuses, as this body proposed, rather than escaping or silently renaming.* =org_capture= now returns =Error: title begins with the TODO keyword "NEXT", which org would read as the heading's state -- the title would lose its first word and the heading would acquire a state it was never given. Reword the title.= Because the reply starts with =Error:=, =bin/hooks/queue-append= drops it and nothing reaches the queue either.
+
+*The keyword set is read from the target file, not from a global.* =org-todo-keywords-1= is buffer-local and derived from the file's own =#+TODO:= line, and capture can target a file other than the capture file when given an =:ID:=. A new =claude-code-ide-org--leading-todo-keyword= reads it there and *fails open* — a file that does not exist or cannot be visited yields nil, because refusing a capture on the strength of a keyword set we could not read would be worse than the defect being guarded.
+
+*Deliberately narrow, and tested from both sides.* The match is against the whole first *word*, case-sensitively, because that is exactly what org treats as a state. So =NEXTGEN parser rewrite=, a lowercase =next steps for the parser=, =Decide what NEXT means for a container= and =TODOs are not TODO= are all ordinary titles and are captured unchanged. Anything stricter would refuse titles org handles perfectly well.
+
+*Verified, and proved to discriminate in both directions* — which matters here because the two failure modes are opposites and a single test would miss one. 454 tests before, 456 after, 0 unexpected, exit 0. Disabling the guard (returning nil always) fails exactly =capture-refuses-a-leading-todo-keyword= and nothing else; making it over-eager (case-insensitive prefix match) fails exactly =capture-allows-titles-that-merely-look-keyword-ish= and nothing else. Both were full 456-test runs, run count checked before failure count. The refusal case covers every keyword the fixture's =#+TODO:= line declares, both sides of the bar, since a done-state keyword parses identically.
+
+*Incidental fix, since writing the test surfaced it.* The capture fixture's comment claimed =target= is required, citing 2026-08-20 (=97696fc2=). That stopped being true on 2026-08-27 when a category became a =:CATEGORY:= property rather than a heading: passing ="Scratch"= as a target now errors with "there is nothing to file *under* by name". The comment was describing a requirement the code had already dropped, and it cost this session a red test run before the reply was read. Corrected in place rather than filed — it is a comment in the file already being edited, not work.
+
+
 
 * MAYBE Evaluate choice of shell and standardize all project scripts :code:
 :PROPERTIES:
@@ -7055,7 +7098,8 @@ a project convention (e.g. in CLAUDE.md's "Repository layout" or a new
 re-litigated per script.
 
 
-* TODO [1/1] Clearing a buffer's read-only flag for an MCP tool leaves it cleared :code:
+* DONE [1/1] Clearing a buffer's read-only flag for an MCP tool leaves it cleared :code:
+CLOSED: [2026-08-31 Mon 14:04]
 :PROPERTIES:
 :CATEGORY: Tools
 :ID:       c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b
@@ -7064,6 +7108,10 @@ re-litigated per script.
 :LOGBOOK:
 CLOCK: [2026-08-10 Mon 12:36]--[2026-08-10 Mon 12:59] =>  0:23
 - [2026-08-10 Mon 12:36]--[2026-08-10 Mon 12:59] assigned at review
+CLOCK: [2026-08-31 Mon 13:53]--[2026-08-31 Mon 13:54] =>  0:01
+- State "DOING"      from "TODO"       [2026-08-31 Mon 13:53]
+- [2026-08-31 Mon 13:53]--[2026-08-31 Mon 13:54] bind inhibit-read-only in the write tools
+- State "DONE"       from "DOING"      [2026-08-31 Mon 14:04]
 :END:
 
 Raised by the user 2026-08-10. None of the MCP tools bind
@@ -7170,8 +7218,6 @@ regress that.
 *Both documents moved in the same commit*, as this heading required: CLAUDE.md's "Read-only buffers" paragraph now says there is nothing to do, and the =feedback-todo-org-read-only= memory was rewritten — it had itself said it should be revised once this landed. Both record that a =Buffer is read-only= error from an org tool is now a *defect to report*, not a flag to clear.
 
 *Test scope, stated rather than left to inference:* five tools have their own read-only case — =amend=, =set-property=, =divide=, =move-sibling=, =refile=. The remaining write tools (=archive=, =capture=, =sort-children=, =log-background-plan=, =wrap-plan=) are not separately tested and this is deliberate, not residue: each reaches its buffer by one of the two paths already proven here, and the =--at-id-writable= asymmetry test pins the dispatcher itself. Not worth a heading. If a sixth path ever appears, that is what would need one.
-
-
 
 
 ** DONE Bind inhibit-read-only in the apply path, where the human asked for the write
@@ -7408,7 +7454,8 @@ second concurrent session until a mechanism is in place, so this gates
 concurrent work generally rather than being one more backlog item.
 
 
-* TODO A duration assertion matches the clocktable's own timestamp, three minutes a day :code:
+* DONE A duration assertion matches the clocktable's own timestamp, three minutes a day :code:
+CLOSED: [2026-08-31 Mon 13:48]
 :PROPERTIES:
 :CATEGORY: Dev
 :ID:       5a5e87c9-f432-44c6-a5a6-f6f3755e4347
@@ -7419,6 +7466,10 @@ CLOCK: [2026-08-20 Thu 10:50]--[2026-08-20 Thu 11:09] =>  0:19
 - [2026-08-20 Thu 10:50]--[2026-08-20 Thu 11:09] assigned at review
 - State "TODO"       from              [2026-08-20 Thu 16:44] \\
   captured keywordless; state never set
+CLOCK: [2026-08-31 Mon 13:11]--[2026-08-31 Mon 13:13] =>  0:02
+- State "DOING"      from "TODO"       [2026-08-31 Mon 13:11]
+- [2026-08-31 Mon 13:11]--[2026-08-31 Mon 13:13] anchor duration assertions to the table row
+- State "DONE"       from "DOING"      [2026-08-31 Mon 13:48]
 :END:
 
 =claude-code-ide-org-clock-report= prefixes its table with =#+CAPTION: Clock summary at [2026-08-20 Thu 11:00], ...=. Two tests assert on durations with =(string-match-p "1:00" result)= against that whole string, so the caption's own clock satisfies the match.
@@ -7440,7 +7491,6 @@ Approach: assert against the table row, =| *Total time* | *0:00* |=, rather than
 *Done in one pass with its twin* [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]], committed together in =811d180=.
 
 
-
 * NEXT Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit :code:
 :PROPERTIES:
 :CATEGORY: Dev
@@ -7457,7 +7507,8 @@ Approach: assert against the table row, =| *Total time* | *0:00* |=, rather than
 *Filed 2026-08-21, not built.* The 2026-08-21 cross-artifact audit found that prose conventions recur (UUID-from-memory, clock-in-at-drift) while mechanically checked ones fail loudly and get fixed -- and that duplicated conventions drift into contradiction (four found in CLAUDE.md, one in a memory, one in the next-session prompt). =bin/check-org-dev-skill= already embodies the fix for one file; generalize it: the CLAUDE.md and org-skill transition tables agree; every cited =:ID:=, defcustom, and function name resolves (=git grep= the symbol); every "is live"/"not built" claim carries a greppable anchor (e.g. =config.el:2792=) that still matches. Wire into =bin/hooks/pre-commit= beside the existing lint. Not a prose rule about keeping prose fresh -- that is the anti-pattern recursing.
 
 
-* TODO A clock-report test fails every evening, because its fixture spills past midnight :code:
+* DONE A clock-report test fails every evening, because its fixture spills past midnight :code:
+CLOSED: [2026-08-31 Mon 13:48]
 :PROPERTIES:
 :CATEGORY: Dev
 :ID:       c31b6c76-8ad8-45d4-a87b-39e085e31368
@@ -7466,6 +7517,14 @@ Approach: assert against the table row, =| *Total time* | *0:00* |=, rather than
 :LOGBOOK:
 - State "TODO"       from              [2026-08-22 Sat 23:16] \\
   captured keywordless, setting initial state
+- State "DOING"      from "TODO"       [2026-08-31 Mon 13:13]
+CLOCK: [2026-08-31 Mon 13:28]--[2026-08-31 Mon 13:38] =>  0:10
+- [2026-08-31 Mon 13:28]--[2026-08-31 Mon 13:38] stop the block-today fixture crossing midnight
+CLOCK: [2026-08-31 Mon 13:44]--[2026-08-31 Mon 13:45] =>  0:01
+- [2026-08-31 Mon 13:44]--[2026-08-31 Mon 13:45] stop the block-today fixture crossing midnight
+CLOCK: [2026-08-31 Mon 13:45]--[2026-08-31 Mon 13:48] =>  0:03
+- [2026-08-31 Mon 13:45]--[2026-08-31 Mon 13:48] stop the block-today fixture crossing midnight
+- State "DONE"       from "DOING"      [2026-08-31 Mon 13:48]
 :END:
 
 *Measured 2026-08-22 at 23:16.* =claude-code-ide-org-test-clock-report-block-today= builds its fixture as "now, seconds zeroed" plus one hour, then asserts the report contains =1:00=. Run after 23:00 the interval crosses midnight, so =:block "today"= sees only the part before it and the table reads =*0:44*=:
@@ -7490,7 +7549,6 @@ Approach: anchor the fixture to a fixed date rather than to now, which removes t
 *Done in one pass with its twin* [[id:5a5e87c9-f432-44c6-a5a6-f6f3755e4347][5a5e87c9]], committed together in =811d180= — as this heading's body asked, and as CLAUDE.md's twin-asymmetry rule requires.
 
 *Clock caveat for the review pass.* Emacs crashed at ~13:27 partway through closing this heading out, and the suggested spans that resulted cover crash diagnosis and an AFK stretch rather than work on the fixture. The last moment work here demonstrably happened is *13:28:56*, the final green =bin/test=.
-
 
 
 * MAYBE Render a session transcript to readable org, so scrollback stops being the index :code:
@@ -7870,6 +7928,7 @@ CLOCK: [2026-08-31 Mon 12:58]--[2026-08-31 Mon 12:59] =>  0:01
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-31 Mon 15:02]--[2026-08-31 Mon 15:03] =>  0:01
 CLOCK: [2026-08-31 Mon 12:12]--[2026-08-31 Mon 12:13] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04

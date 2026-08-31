@@ -2451,10 +2451,13 @@ the temp directory afterwards."
                      "#+TAGS: code comms research review\n"
                      "#+ARCHIVE: DONE.org::\n"
                      "\n"
-                     ;; A category to file into. `target' is required
-                     ;; since 2026-08-20 (:ID: 97696fc2), so a fixture
-                     ;; with nowhere to put a heading cannot exercise
-                     ;; capture at all.
+                     ;; Kept as somewhere for a heading to land beside,
+                     ;; not as a capture target. `target' was required
+                     ;; from 2026-08-20 (:ID: 97696fc2), but a category
+                     ;; stopped being a heading on 2026-08-27, so passing
+                     ;; "Scratch" as one now errors: there is nothing to
+                     ;; file *under* by name. Omit the target and the
+                     ;; heading is prepended to the file.
                      "* Scratch\n"))
            ,@body)
        (when (org-clocking-p) (org-clock-out))
@@ -2463,6 +2466,53 @@ the temp directory afterwards."
            (with-current-buffer buf (set-buffer-modified-p nil))
            (kill-buffer buf)))
        (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-capture-refuses-a-leading-todo-keyword ()
+  "A title starting with a TODO keyword must be refused, not written.
+
+org parses the leading word as the heading's *state*, so the heading
+silently acquires a state nobody gave it and the title loses its first
+word. The result is a well-formed heading, so nothing downstream can
+detect it -- the one real occurrence surfaced only because
+`org_set_todo' echoed the truncated title back (TODO.org :ID: 2b2db914).
+
+Checked for every keyword the fixture's own `#+TODO:' line declares,
+both sides of the bar, since a done-state keyword parses exactly the
+same way."
+  (claude-code-ide-org-test--with-capture-file
+    (dolist (kw '("TODO" "NEXT" "DOING" "WAITING" "MAYBE" "DONE" "CANCELLED"))
+      (let ((result (claude-code-ide-org-capture
+                     (concat kw " belongs to containers"))))
+        (should (string-match-p "\\`Error: title begins with the TODO keyword"
+                                result))
+        (should (string-match-p (regexp-quote kw) result))))
+    ;; Nothing may have reached the file -- a refusal that still wrote
+    ;; would be the defect with an error message attached.
+    (should-not (string-match-p
+                 "belongs to containers"
+                 (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-capture-allows-titles-that-merely-look-keyword-ish ()
+  "The guard matches the whole first word, case-sensitively, and nothing else.
+
+Anything stricter would refuse titles org handles perfectly well. org
+only reads an exact uppercase keyword as a state, so `NEXTGEN', a
+lowercase `next', and a keyword appearing later in the title are all
+ordinary titles and must be captured unchanged."
+  (claude-code-ide-org-test--with-capture-file
+    (dolist (title '("NEXTGEN parser rewrite"
+                     "next steps for the parser"
+                     "Decide what NEXT means for a container"
+                     "TODOs are not TODO"))
+      (let ((result (claude-code-ide-org-capture title)))
+        (should (string-match-p "\\`Captured: " result))))
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p "NEXTGEN parser rewrite" disk))
+      (should (string-match-p "next steps for the parser" disk))
+      (should (string-match-p "Decide what NEXT means for a container" disk))
+      ;; The heading org would have mangled is the one to check landed
+      ;; whole: its first word is a superset of a keyword, not one.
+      (should (string-match-p "TODOs are not TODO" disk)))))
 
 (ert-deftest claude-code-ide-org-test-capture-creates-heading-with-id ()
   (claude-code-ide-org-test--with-capture-file

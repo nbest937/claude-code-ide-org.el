@@ -2343,6 +2343,28 @@ had it written through, and two similar templates would drift."
                      :prepend (eq (car-safe spec) 'file)))))
     (org-capture-string title "z")))
 
+(defun claude-code-ide-org--leading-todo-keyword (title file)
+  "The TODO keyword TITLE begins with, per FILE's own `#+TODO:' line.
+nil when it begins with none, which is the ordinary case.
+
+Read from FILE rather than from a global: `org-todo-keywords-1' is
+buffer-local and derived from the file's own header, and capture can
+target a file other than the capture file when given an :ID:.  A file
+that does not exist yet, or that cannot be visited, yields nil --
+failing open, because refusing a capture on the strength of a keyword
+set we could not read would be worse than the defect this guards.
+
+Matched against the whole first *word*, so a title beginning
+\"NEXTGEN\" is not refused, and case-sensitively, so a lowercase
+\"next\" is not either -- org only reads an exact uppercase keyword as
+a state, and anything stricter would refuse titles org handles fine."
+  (let ((first (car (split-string (string-trim (or title "")) "[ \t]+" t))))
+    (when (and first (stringp file) (file-exists-p file))
+      (let ((keywords (ignore-errors
+                        (with-current-buffer (find-file-noselect file)
+                          (append org-todo-keywords-1 nil)))))
+        (car (member first keywords))))))
+
 (cl-defun claude-code-ide-org-capture (title &optional target tags note)
   "Quick-add TITLE as a new heading via `org-capture'.
 
@@ -2405,12 +2427,30 @@ else."
       (let* ((inhibit-read-only t)                ; see --at-id-writable
              (resolved (claude-code-ide-org--capture-target-spec target))
              (file (plist-get resolved :file))
+             (leading (claude-code-ide-org--leading-todo-keyword title file))
              (new-id (org-id-new))
              (created (format-time-string "[%Y-%m-%d %a %H:%M]")))
-        (if (claude-code-ide-org--file-busy-p file)
-            (format "%s\"%s\" (ID: %s) %s; pending review."
-                    claude-code-ide-org--reply-queued-capture
-                    title new-id (plist-get resolved :where))
+        (cond
+         ;; Refuse rather than escape or silently rename. org parses a
+         ;; leading keyword as the heading's *state*, so the heading
+         ;; acquires a state nobody gave it and the title quietly loses
+         ;; its first word -- and the result is a well-formed heading, so
+         ;; neither bin/lint-org nor a later read can tell. The one time
+         ;; it happened it surfaced only because org_set_todo echoed the
+         ;; truncated title back. A silently renamed heading is worse
+         ;; than an error. TODO.org :ID: 2b2db914.
+         (leading
+          (format (concat "Error: title begins with the TODO keyword \"%s\", "
+                          "which org would read as the heading's state -- the "
+                          "title would lose its first word and the heading "
+                          "would acquire a state it was never given. "
+                          "Reword the title.")
+                  leading))
+         ((claude-code-ide-org--file-busy-p file)
+          (format "%s\"%s\" (ID: %s) %s; pending review."
+                  claude-code-ide-org--reply-queued-capture
+                  title new-id (plist-get resolved :where)))
+         (t
           (claude-code-ide-org--capture-write
            title new-id created (plist-get resolved :spec) tags)
           ;; Registered against the file the target actually resolved to,
@@ -2419,7 +2459,7 @@ else."
           (org-id-add-location new-id (expand-file-name file))
           (format "%s\"%s\" (ID: %s) %s"
                   claude-code-ide-org--reply-captured
-                  title new-id (plist-get resolved :where))))
+                  title new-id (plist-get resolved :where)))))
     (error (format "Error: %s" (error-message-string err)))))
 
 (defun claude-code-ide-org--end-of-body ()
