@@ -8326,6 +8326,18 @@ rest from lighting up."
         (last-id nil))
     (claude-code-ide-org--review-projected-staleness
      items (lambda (item) (plist-get item :marked)))
+    ;; After the projection, because markability depends on staleness and
+    ;; staleness is judged against the batch. Before drawing, so the
+    ;; marks the reader sees are the ones apply would act on.
+    (claude-code-ide-org--review-auto-mark items)
+    ;; Re-projected, because auto-marking changed which items advance it:
+    ;; the first pass ran with those items unmarked, so a chain's later
+    ;; links were judged against a projection that stopped short. Cheap
+    ;; -- the heading states are already cached for the batch -- and
+    ;; skipping it would light up a `STALE' flag on exactly the items
+    ;; just marked (TODO.org :ID: b6e229c7).
+    (claude-code-ide-org--review-projected-staleness
+     items (lambda (item) (plist-get item :marked)))
     (erase-buffer)
     (insert "Pending org updates.  m/u mark, M/U all, t invert, "
             "a assign, e interval, N note,\n"
@@ -8424,6 +8436,10 @@ interactive command with a human at the keyboard, not an
                        "unset")))
           (plist-put item :stale-confirmed t)
         (setq marked nil)))
+    ;; A hand mark or unmark makes the line the human's, so it stops
+    ;; being an auto-mark and starts counting as judgement `g' must ask
+    ;; about (:ID: b6e229c7).
+    (plist-put item :auto-marked nil)
     (plist-put item :marked marked)
     (claude-code-ide-org--review-redraw item advance)))
 
@@ -8511,6 +8527,56 @@ fail later with a confusing error."
                  (null (plist-get item :id))))
        (or (not (claude-code-ide-org--review-state-stale-p item))
            (plist-get item :stale-confirmed))))
+
+(defun claude-code-ide-org--review-auto-mark (items)
+  "Pre-mark the state items in ITEMS that carry no judgement.
+
+A `state\' item carries exactly one judgement -- *staleness*.
+`claude-code-ide-org--review-state-stale-p\' exists because on 2026-08-07
+applying a transition whose premise no longer held wrote plausible,
+correctly-formatted, wrong history, which is the failure this project
+exists to prevent.  Everything else about a state item is mechanical, so
+arriving unmarked costs a keystroke and buys nothing (TODO.org
+:ID: b6e229c7).
+
+Scoped to `state\' deliberately.  A span is not mechanical: it carries an
+interval a human may want to edit and, when unassigned, a heading only
+they can choose.
+
+*Does not auto-apply, and that line is load-bearing rather than
+cautious.*  Apply must stay human-triggered: org\'s native state-change
+logging only completes inside a genuinely interactive command, which is
+the constraint the whole queue architecture was built around.
+Auto-*marking* removes keystrokes without touching that; auto-*applying*
+would dismantle it.
+
+Marks are tagged `:auto-marked\' as well as `:marked\', and that
+distinction is not bookkeeping -- see
+`claude-code-ide-org--review-judgement-summary\', which must not count a
+mark the human did not make.  Without it, `g\' would prompt on every
+refresh and the guard :ID: 8d0716fe just added would become the
+decoration it was written to avoid.
+
+Measured 2026-08-31 across 18 completed sessions and 450 queued state
+events: 435 applied, 15 dismissed, *zero left unapplied*.  So a state
+item that reaches review is almost always one the human intends to
+apply, and the 2026-08-24 observation that prompted this heading --
+`markable 0\' after two partial applies -- was an artefact of that day
+rather than the normal case."
+  (dolist (item items)
+    ;; Once per item, never once per render. Marks are re-drawn on every
+    ;; keystroke, so re-deciding here would make `u' impossible: the mark
+    ;; would come straight back on the redraw that follows it. Found by
+    ;; the mark-advances and bulk-mark tests, which is what those tests
+    ;; are for.
+    (unless (plist-get item :auto-mark-considered)
+      (plist-put item :auto-mark-considered t)
+      (when (and (eq (plist-get item :type) 'state)
+                 (not (plist-get item :marked))
+                 (claude-code-ide-org--review-markable-p item))
+        (plist-put item :marked t)
+        (plist-put item :auto-marked t))))
+  items)
 
 (defun claude-code-ide-org--review-set-all (fn)
   "Set every item's :marked to (funcall FN ITEM), then re-render.
@@ -9122,7 +9188,12 @@ tells a human whether to care and a bare \"are you sure?\" does not
 (TODO.org :ID: 8d0716fe)."
   (let ((marked 0) (assigned 0) (notes 0) (edited 0))
     (dolist (item items)
-      (when (plist-get item :marked) (setq marked (1+ marked)))
+      ;; An auto-mark is not judgement -- nobody decided it, and
+      ;; counting it would make `g' prompt on every refresh, turning the
+      ;; guard into the decoration it was written to avoid (:ID: b6e229c7).
+      (when (and (plist-get item :marked)
+                 (not (plist-get item :auto-marked)))
+        (setq marked (1+ marked)))
       (when (plist-get item :assigned) (setq assigned (1+ assigned)))
       (when (plist-get item :note) (setq notes (1+ notes)))
       (when (plist-get item :edited) (setq edited (1+ edited))))

@@ -6937,9 +6937,14 @@ The plist carries the type; the message dropped it."
 (ert-deftest claude-code-ide-org-test-review-apply-with-nothing-marked-says-how-many-pend ()
   "\"Nothing marked\" is the same sentence whether the buffer is empty or
 full, and the two want opposite next moves. The count is already known."
+  ;; A *clock* item: state items arrive auto-marked since :ID: b6e229c7,
+  ;; so they cannot demonstrate an unmarked buffer. A span is not
+  ;; auto-marked, deliberately -- it is not mechanical.
   (claude-code-ide-org-test--with-review-buffer
-      (list (list :type 'state :id "test-0001" :from "TODO" :to "DOING"
-                  :ts (date-to-time "2026-08-31T09:00:00-0500") :events nil))
+      (list (list :type 'clock :id "test-0001"
+                  :start (date-to-time "2026-08-31T09:00:00-0500")
+                  :end (date-to-time "2026-08-31T09:15:00-0500")
+                  :suggested t :agent nil :events nil))
     (let ((msg (condition-case err
                    (progn (claude-code-ide-org-review-apply) nil)
                  (user-error (error-message-string err)))))
@@ -6951,6 +6956,68 @@ full, and the two want opposite next moves. The count is already known."
                  (user-error (error-message-string err)))))
       (should msg)
       (should (string-match-p "Nothing pending" msg)))))
+
+(ert-deftest claude-code-ide-org-test-state-items-arrive-auto-marked ()
+  "A non-stale state item carries no judgement, so it arrives selected.
+
+Staleness is the *only* judgement a state item carries; everything else
+about it is mechanical, so arriving unmarked costs a keystroke and buys
+nothing. A stale one stays unmarked, exactly as `M\' already refuses it.
+A span is not auto-marked at all -- it carries an interval a human may
+want to edit and, when unassigned, a heading only they can choose
+(TODO.org :ID: b6e229c7)."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--set-todo-for-real id "DOING")
+    (let ((fresh (list :type 'state :id id :from "DOING" :to "DONE"
+                       :ts (current-time) :events nil))
+          (stale (list :type 'state :id id :from "TODO" :to "WAITING"
+                       :ts (current-time) :events nil))
+          (span (list :type 'clock :id id :suggested t :agent nil :events nil
+                      :start (current-time) :end (current-time))))
+      (claude-code-ide-org-test--with-review-buffer (list fresh stale span)
+        (should (plist-get fresh :marked))
+        (should (plist-get fresh :auto-marked))
+        (should-not (plist-get stale :marked))
+        (should-not (plist-get span :marked))))))
+
+(ert-deftest claude-code-ide-org-test-auto-mark-does-not-fight-an-unmark ()
+  "Auto-marking happens once per item, never once per render.
+
+Marks redraw on every keystroke, so re-deciding at render time would
+make `u\' impossible -- the mark would return on the redraw that follows
+it. Found by the existing mark tests when this shipped, which is what
+they are for."
+  (claude-code-ide-org-test--with-heading
+    (let ((item (list :type 'state :id id :from "TODO" :to "DOING"
+                      :ts (current-time) :events nil)))
+      (claude-code-ide-org-test--with-review-buffer (list item)
+        (should (plist-get item :marked))
+        (claude-code-ide-org-test--goto-nth-item 0)
+        (claude-code-ide-org-review-unmark)
+        (should-not (plist-get item :marked))
+        ;; Still unmarked after a further redraw.
+        (claude-code-ide-org--review-render)
+        (should-not (plist-get item :marked))))))
+
+(ert-deftest claude-code-ide-org-test-an-auto-mark-is-not-judgement-g-must-ask-about ()
+  "`g\' must not prompt merely because items arrived pre-marked.
+
+Counting an auto-mark as judgement would make the confirmation fire on
+every refresh, turning :ID: 8d0716fe's guard into the decoration it was
+written to avoid. A mark the human actually made still counts, and
+touching the line by hand converts it."
+  (claude-code-ide-org-test--with-heading
+    (let ((item (list :type 'state :id id :from "TODO" :to "DOING"
+                      :ts (current-time) :events nil)))
+      (claude-code-ide-org-test--with-review-buffer (list item)
+        (should (plist-get item :marked))
+        (should-not (claude-code-ide-org--review-judgement-summary (list item)))
+        ;; A hand mark makes the line the human's.
+        (claude-code-ide-org-test--goto-nth-item 0)
+        (claude-code-ide-org-review-mark)
+        (should (string-match-p
+                 "1 marked"
+                 (claude-code-ide-org--review-judgement-summary (list item))))))))
 
 (ert-deftest claude-code-ide-org-test-refresh-asks-before-discarding-judgement ()
   "`g\' must not silently discard unapplied decisions.

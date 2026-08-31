@@ -4910,6 +4910,34 @@ So the rule is clean, and the predicate for it already exists: =--review-markabl
 
 *Worth measuring before building:* how often a state item is stale in practice. On 2026-08-24 after two partial applies it was *every* item -- =markable 0= -- because the applies had already moved those headings to the states their events described. If that is typical rather than an artefact of a bad day, auto-marking buys less than it appears to and the honest answer is that the staleness check is doing most of the work.
 
+*Measured first, as this body required, and the measurement changes the verdict.* Across the queue archive — 18 completed sessions, 450 queued =state= events:
+
+| outcome | count | share |
+|---------------+-------+-------|
+| applied | 435 | 96.7% |
+| dismissed | 15 | 3.3% |
+| left unapplied | *0* | 0% |
+
+*Zero.* Every state event that reached a review pass was either applied or explicitly dismissed; none was queued, refused as stale and abandoned. So a state item that reaches review is almost always one the human intends to apply, and the 2026-08-24 observation that prompted the caution — =markable 0= after two partial applies — was an artefact of that afternoon rather than the normal case. Auto-marking buys real keystrokes.
+
+*(Limits, stated: the ledger records applied and dismissed, so "dismissed" may include items discarded precisely because they were stale, and staleness at the moment of an old review is not recoverable after the fact. The claim is about outcomes, not about how often the guard fired.)*
+
+*Shipped 2026-08-31, exactly the three rules this body specified:* non-stale =state= items arrive marked; stale ones do not, as =M= already refused them; nothing is auto-applied. The last is load-bearing rather than cautious — org's native state logging only completes inside a genuinely interactive command, and auto-applying would dismantle the constraint the whole queue exists to honour.
+
+*Scoped to =state= alone.* A span is not mechanical: it carries an interval a human may want to edit and, when unassigned, a heading only they can choose.
+
+*Two things the build found that the proposal did not, both real:*
+
+- *Auto-marking must happen once per item, never once per render.* Marks redraw on every keystroke, so re-deciding at render time makes =u= impossible — the mark returns on the redraw that follows it. Caught by the existing mark-advances and bulk-mark tests, which is what they are for. Guarded by an =:auto-mark-considered= flag.
+- *An auto-mark is not judgement, and conflating them would have broken the guard shipped an hour earlier.* [[id:8d0716fe-ca88-429d-b46b-e2f880f5b2cc][8d0716fe]] makes =g= ask before discarding marks, assignments, notes and edited intervals. If a pre-mark counted, =g= would prompt on *every* refresh — turning that guard into exactly the decoration it was written to avoid. So marks carry =:auto-marked=, the judgement summary ignores them, and a hand =m= or =u= clears the flag because the line is then the human's. A mutation confirms it: counting auto-marks fails the instant-refresh test.
+
+*The projection is re-run after auto-marking*, because the first pass judged staleness with those items unmarked, so a chain's later links were measured against a projection that stopped short. Skipping it would light a =STALE= flag on the very items just marked.
+
+*The second benefit this body predicted is now available:* pre-marked items give the human an independent expectation to compare against, so "Applied 0 item(s); 5 failed" reads as a mismatch instead of an unanchored number.
+
+*Verified:* 477 tests before, 480 after, 0 unexpected, exit 0. Three mutations, each a full 480-test run: removing auto-marking fails the three new tests; ignoring staleness fails the auto-mark test *and* the pre-existing bulk-mark test; counting auto-marks as judgement fails the =g= tests.
+
+
 
 * TODO Lead every review-buffer rendering with the :ID: prefix, rather than trailing it :code:
 :PROPERTIES:
