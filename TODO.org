@@ -2,6 +2,36 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
+* TODO A stranded single-point span is offered forever; only the trailing one can still grow :code:
+:PROPERTIES:
+:ID:       355fa608-e311-4874-b2d3-bbc62172d09a
+:CREATED:  [2026-08-31 Mon 17:51]
+:CATEGORY: Apply
+:END:
+
+*Raised by the user 2026-08-31: "I have been ignoring the zero-minute spans. do we understand their origin and have a remedy in mind?"* The origin is understood and was measured rather than recalled; the remedy turns on a distinction [[id:31f766ab-90ed-4950-bc5b-787528c8fe84][31f766ab]] came within one sentence of making and did not.
+
+*Origin, from this session's own queue.* Each zero-minute item is a *lone guidepost* — a =resume= or =pause= with no partner inside the clustering window — so start equals end and the item renders =0:00 span, no runs, 0 turns (a single point, not an interval)=. The four live today:
+
+| ts | event | why it is alone |
+|----------+---------+-------------------------------------------|
+| 13:03:51 | resume | the session's first event; nothing precedes it |
+| 14:05:43 | pause | stranded after a =clock_out=/=todo= pair consumed its neighbours into a clock-bounded span |
+| 16:45:04 | pause | same shape |
+| 17:37:56 | resume | genuinely in flight — the newest event in the queue |
+
+*So there are two populations wearing one appearance, and only one of them is self-resolving.* =--review-nothing-reason='s docstring already says suppression was considered and rejected, on the grounds that "hiding the trailing in-flight span needs a liveness signal, whose only available form is queue-file mtime with an hour's idle threshold — so a crashed session's last span would vanish for an hour", and adds that "the in-flight case is self-resolving anyway: the next =pause= grows the cluster and the item stops being degenerate."
+
+*That last claim is true of the trailing span and false of the other three.* 13:03, 14:05 and 16:45 have hundreds of later events behind them. They can never grow. They are *permanently* degenerate, and they have been re-offered on every review pass today — which is why ignoring them is the rational response and why they read as noise rather than as a question.
+
+*The remedy is a test the earlier reasoning did not need and now does: does any later event exist in the queue?* If yes, the span is *stranded* and can never grow, so nothing is lost by not asking about it. If no, it is *trailing* and the liveness objection applies in full — keep offering it. This needs no mtime, no idle threshold and no guess about whether a session is alive; it is an exact property of the event stream, which is the kind of signal [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] says to prefer over a plausible heuristic.
+
+*Scale, measured so this is not over-sold.* Across every queue file: 1563 guideposts, 1501 consumed into applied spans, 46 dismissed, 16 unresolved. So ~96% are absorbed and this is a small residue — but it is the residue that is *always on screen*, and today it was 4 of 9 pending items, which is why it feels larger than it is.
+
+*Open: what to do with a stranded one.* Candidates, none chosen — drop it from the buffer entirely; render it without the =!= so it stops reading as a question needing a decision; or auto-dismiss it, which consumes the events and stops it returning. The last is the only one that also stops the queue file growing a permanent tail, but it writes without being asked, so it wants a deliberate decision rather than a default.
+
+*Related but distinct:* [[id:31f766ab-90ed-4950-bc5b-787528c8fe84][31f766ab]] (DONE, 2026-08-18) made these items *explain themselves* rather than being silently degenerate, which is why the line says which kind of no-op it is. This heading is the next question — that an item which explains itself is still an item, and one that can never change still asks for a decision every pass.
+
 * TODO The running Emacs can be running a stale config.el and nothing says so :code:
 :PROPERTIES:
 :ID:       f12f9da4-2870-45b7-8c50-ea54415c7bc6
