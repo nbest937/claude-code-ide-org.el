@@ -6952,6 +6952,63 @@ full, and the two want opposite next moves. The count is already known."
       (should msg)
       (should (string-match-p "Nothing pending" msg)))))
 
+(ert-deftest claude-code-ide-org-test-apply-skips-a-state-event-that-became-a-no-op ()
+  "Two events asserting the same target: the second must write nothing.
+
+Post-cutover nothing moves an org file until apply moves it, so every
+`org_set_todo\' in a batch reads `from\' off an unmoved file. The second
+event then finds the projection already at its own target -- it is not a
+no-op at queue time and becomes one before it is applied, which is why
+:ID: cc0c17a7\'s queue-side refusal cannot reach it. Measured 2026-08-28:
+4 of 463 State lines in the corpus are self-transitions
+(TODO.org :ID: 05c71d99).
+
+The heading must end at DOING with exactly one State line, not two."
+  (claude-code-ide-org-test--with-heading
+    (let ((items (list (list :type 'state :id id :from "TODO" :to "DOING"
+                             :ts (date-to-time "2026-08-31T09:00:00-0500")
+                             :events nil)
+                       (list :type 'state :id id :from "TODO" :to "DOING"
+                             :ts (date-to-time "2026-08-31T09:05:00-0500")
+                             :events nil))))
+      (claude-code-ide-org--review-projected-staleness items)
+      ;; The first is neither stale nor redundant; the second is
+      ;; redundant and emphatically NOT stale -- its `from\' matches
+      ;; reality perfectly, which is exactly why it sails through the
+      ;; staleness guard.
+      (should-not (plist-get (nth 0 items) :redundant))
+      (should (plist-get (nth 1 items) :redundant))
+      (should-not (claude-code-ide-org--review-state-stale-p (nth 1 items)))
+      (should-not (claude-code-ide-org--review-apply-item (nth 0 items)))
+      ;; Skipped, and reported as success so the events are consumed and
+      ;; the item does not return every pass.
+      (should-not (claude-code-ide-org--review-apply-item (nth 1 items)))
+      (let ((disk (claude-code-ide-org-test--disk-contents file)))
+        (should (string-match-p "^\\* DOING Test heading" disk))
+        (should (= 1 (length (seq-filter
+                              (lambda (l) (string-match-p "State .*DOING" l))
+                              (split-string disk "\n")))))))))
+
+(ert-deftest claude-code-ide-org-test-review-line-says-a-no-op-is-a-no-op ()
+  "A skipped event must say so rather than vanishing.
+
+Dropping it silently is defensible -- nothing was lost -- but a queued
+event that disappears without trace is the shape this project has
+repeatedly regretted. It carries no `!\': nothing is wrong, which is the
+whole difference from a stale item."
+  (claude-code-ide-org-test--with-heading
+    (let ((items (list (list :type 'state :id id :from "TODO" :to "DOING"
+                             :ts (date-to-time "2026-08-31T09:00:00-0500")
+                             :events nil)
+                       (list :type 'state :id id :from "TODO" :to "DOING"
+                             :ts (date-to-time "2026-08-31T09:05:00-0500")
+                             :events nil))))
+      (claude-code-ide-org--review-projected-staleness items)
+      (let ((line (claude-code-ide-org--review-describe (nth 1 items))))
+        (should (string-match-p "no-op, heading is already there" line))
+        (should-not (string-match-p "STALE" line))
+        (should-not (string-prefix-p "! " line))))))
+
 (ert-deftest claude-code-ide-org-test-review-assign-keeps-point-on-the-item ()
   "Assigning leaves point on the line it just assigned, because the next
 thing a human does is mark it (TODO.org :ID: a2509a61).  It advanced

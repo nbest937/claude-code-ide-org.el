@@ -731,6 +731,15 @@ This heading's own test is "ask whether the body was ever *revised*; if it was o
 
 *Filed late, and the delay is the interesting part.* The capture *queued* rather than writing through, so the heading did not exist and =org_amend= refused it by name — "apply the queue, then amend", which is the guard working. The body was written to the session scratchpad in the meantime rather than promised, and landed unchanged once the pass ran.
 
+*Already shipped when this was reviewed 2026-08-31 — the work landed 2026-08-28 and the heading was simply never closed.* Confirmed in the code and in the suite rather than assumed: =claude-code-ide-org-review-assign= ends with the comment "No advance. Assigning does not finish the line -- it makes it markable, which is what the docstring above says and what the human does next", and =claude-code-ide-org-test-review-assign-keeps-point-on-the-item= passes, its own docstring recording that =a= advanced until 2026-08-28.
+
+*Option one was taken*, as this body weakly recommended: =a= stops advancing and =m= advances as it always has. Two keystrokes, matching dired exactly. The second option — =a= marks and advances — was not taken, and the reason stands: it couples assignment to approval, and a human who wants to assign, look at the interval, and *then* decide would have lost the ability to.
+
+*The disagreement this body identified is resolved in the docstring's favour.* The code advanced past exactly the line it had just made actionable, while the docstring two paragraphs earlier said assigning "makes the item markable like any other". They had disagreed all along; the comment asserting that assigning *answers* the line's question is gone.
+
+*Recorded because it is the second heading in this slice found already complete* — [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]] was the first, consumed by the previous slice's endgame while listed in this one. Neither is a bookkeeping error so much as evidence that a slice composed over several days will contain members that other work finishes on its way past. Worth a glance at the rest of the list before assuming anything in it is outstanding.
+
+
 
 * TODO A slice should list incidental work separately from its planned members :code:
 :PROPERTIES:
@@ -866,6 +875,19 @@ The =420816ec= self-transition is stamped [2026-08-20 Thu 07:49] — *eleven min
 *Why the queue-side guard cannot reach it.* It compares =from= to =to= at *queue* time, against a snapshot of a file that then does not move until apply. The case here is a heading that arrives at =to= *in between* — because another event in the same batch lands it there, or a hand-edit does. At queue time the event is not a no-op by any test available then; it becomes one before it is applied. And org writes the state it *observes* as the =from= on the log line, not the one the event recorded, which is why the artifact reads =from "TODO"= even where the queued event said otherwise.
 
 So cc0c17a7 owns "do not queue an event that is already a no-op" and this owns "do not apply an event that has *become* one". Same defect, two clocks, and only the second needs the projection =--review-projected-staleness= already computes.
+
+*Shipped 2026-08-31, as a separate test rather than a change to the staleness guard — which this body was emphatic about and which the mutation testing confirms was the right call.*
+
+=--review-projected-staleness= now annotates each state item with =:redundant= alongside =:stale=, comparing =to= against the *projection* rather than the file. That is why it can be computed here and nowhere earlier: the usual cause is two events in one batch asserting the same target, so at queue time the second is not a no-op by any test then available — it becomes one before it is applied. [[id:cc0c17a7-a554-426d-afeb-09cbee7339f0][cc0c17a7]] owns "do not queue an event that is already a no-op"; this owns "do not apply one that has become one", exactly as this body divided them.
+
+*The two flags stay opposite, and the code says so at the site.* Stale means applying would *regress* the record; redundant means it would change nothing and still write a =State= line claiming the heading moved to where it already was. A test asserts the redundant item is *not* stale — its =from= matches reality perfectly, which is precisely why it sails through the staleness guard.
+
+*Apply skips it and returns nil*, i.e. success, so the backing events are consumed and the item does not return every pass. The alternative — reporting a failure — would leave a permanently unapplyable item in the queue.
+
+*The open question in this body is answered: reported, not dropped.* The line reads =state DOING 08-31 09:05 no-op, heading is already there --=, and carries *no* =!=, because nothing is wrong. Dropping it silently was defensible on the grounds that nothing is lost, but this body's own objection stands — a queued event that vanishes without trace is the shape this project has repeatedly regretted — and the reader is owed the difference between "applied" and "there was nothing to do".
+
+*Verified:* 470 tests before, 472 after, 0 unexpected, exit 0. Two mutations, each a full 472-test run: never detecting redundancy fails both new tests, and detecting it but not skipping fails only the apply test — which is the pair that shows the annotation and the action are independently covered. The end state is asserted directly: the heading holds =DOING= with *exactly one* =State= line, not two.
+
 
 
 * TODO Direct file writes to a live org buffer can desync org-clock-marker :code:

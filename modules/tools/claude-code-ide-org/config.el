@@ -6416,6 +6416,27 @@ a real divergence at that point, not this bug returning."
                             (let ((nf (claude-code-ide-org--review-normalize-from from)))
                               (and (not (equal nf base))
                                    (not (equal nf proj))))))
+            ;; Redundant is NOT stale, and conflating them would break
+            ;; both. Stale means the event is *dangerous* -- it would
+            ;; regress the record. Redundant means it is *harmless* --
+            ;; it would change nothing and still write a `State' line
+            ;; saying the heading moved to where it already was. Folding
+            ;; one into the other would either let real staleness
+            ;; through or teach the reader that the flag means
+            ;; "harmless" (TODO.org :ID: 05c71d99).
+            ;;
+            ;; Judged against the *projection*, not the file, which is
+            ;; the whole reason this can be computed here and nowhere
+            ;; earlier: the usual cause is two events in one batch
+            ;; asserting the same target, so at queue time the second is
+            ;; not a no-op by any test available then -- it becomes one
+            ;; before it is applied. :ID: cc0c17a7 owns "do not queue an
+            ;; event that is already a no-op"; this owns "do not apply
+            ;; one that has become one".
+            (plist-put item :redundant
+                       (and (not (eq base 'unresolved))
+                            (not (eq proj 'unresolved))
+                            (equal (plist-get item :to) proj)))
             ;; Only an item that will actually run moves the projection.
             (when (or (null advances-p) (funcall advances-p item))
               (puthash id (list (plist-get item :to)) projected)))))))
@@ -6802,8 +6823,18 @@ inventing a second suppression flag: without it the trigger fires on any
 backdated time, and -- confirmed live during TODO.org :ID: 3d576d29's
 verification -- destroys the pending state-change note so it never
 lands at all."
-  (if (and (claude-code-ide-org--review-state-stale-p item)
-           (not (plist-get item :stale-confirmed)))
+  (cond
+   ;; Skipped, not failed, and not refused either: nothing is wrong, the
+   ;; event simply has nothing left to do. Returning nil reports success
+   ;; so the events are consumed and the item does not come back every
+   ;; pass; what is avoided is org writing `State "DOING" from "DOING"'.
+   ;; Measured 2026-08-28: 4 of 463 State lines in the corpus are
+   ;; self-transitions (TODO.org :ID: 05c71d99).
+   ((and (eq (plist-get item :type) 'state)
+         (plist-get item :redundant))
+    nil)
+   ((and (claude-code-ide-org--review-state-stale-p item)
+         (not (plist-get item :stale-confirmed)))
       ;; Refused, not applied. Checked here as well as at mark time
       ;; because the mark is a UI gesture and this is the gate: an item
       ;; can reach apply through a refreshed buffer, a future bulk
@@ -6816,7 +6847,8 @@ lands at all."
               (plist-get item :to)
               (plist-get item :id)
               (or (claude-code-ide-org--review-current-state (plist-get item :id))
-                  "unset"))
+                  "unset")))
+   (t
     (let ((claude-code-ide-org--auto-clock-in-active t)
           ;; Apply is the one path where a read-only buffer must not
           ;; stop the write, and the reason is about *authorisation*
@@ -6876,7 +6908,7 @@ lands at all."
                 (save-buffer)
                 nil))))
         ;; --at-id returns an "Error: ..." string rather than throwing.
-        (and (stringp result) result))))))
+        (and (stringp result) result)))))))
 
 (defun claude-code-ide-org--review-apply-amend (item)
   "Append ITEM's text to the end of the target heading's own body.
@@ -7685,7 +7717,15 @@ its destination, so the reader can see what the event assumed.  When
 that assumption no longer holds, the line is prefixed `!' and names the
 state the heading actually holds now -- making the stale-replay hazard
 visible at the moment of decision rather than discoverable afterwards in
-a wrong log line."
+a wrong log line.
+
+A *redundant* item -- one whose target the heading already holds -- says
+so too, but carries no `!'.  Stale and redundant are opposite
+conditions: stale means applying would regress the record, redundant
+means it would do nothing at all.  Apply skips the second and writes no
+`State' line, and the buffer says which it was, because an event that
+vanishes silently is worse than one that explains itself
+(TODO.org :ID: 05c71d99)."
   (let ((note (or (plist-get item :note) "")))
     (pcase (plist-get item :type)
       ('state
@@ -7698,12 +7738,22 @@ a wrong log line."
                  (if stale "! " "  ")
                  transition
                  (format-time-string "%m-%d %H:%M" (plist-get item :ts))
-                 (if stale
-                     (format "STALE, heading is now %s -- "
-                             (or (claude-code-ide-org--review-current-state
-                                  (plist-get item :id))
-                                 "unset"))
-                   "")
+                 (cond
+                  (stale
+                   (format "STALE, heading is now %s -- "
+                           (or (claude-code-ide-org--review-current-state
+                                (plist-get item :id))
+                               "unset")))
+                  ;; Said out loud rather than dropped in silence. Apply
+                  ;; skips this item and writes nothing, which is
+                  ;; correct -- but a queued event that vanishes without
+                  ;; trace is the shape this project has repeatedly
+                  ;; regretted, and the reader is owed the difference
+                  ;; between "applied" and "there was nothing to do".
+                  ;; Not marked `!': nothing is wrong (:ID: 05c71d99).
+                  ((plist-get item :redundant)
+                   "no-op, heading is already there -- ")
+                  (t ""))
                  note)))
       ;; Two leading spaces so clock lines stay aligned with the `! '
       ;; column state lines reserve.  The note is deliberately *not*
