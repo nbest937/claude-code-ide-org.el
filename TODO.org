@@ -2,6 +2,35 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
+* TODO The running Emacs can be running a stale config.el and nothing says so :code:
+:PROPERTIES:
+:ID:       f12f9da4-2870-45b7-8c50-ea54415c7bc6
+:CREATED:  [2026-08-31 Mon 17:47]
+:CATEGORY: Dev
+:END:
+
+*Raised by the user 2026-08-31 after the live Emacs was found serving a =config.el= roughly two hours out of date.* Their question was whether the SOP needs invoking explicitly from the next-session prompt. It does not, and the reason is the interesting part.
+
+*The SOP exists, is thorough, and is in the right place.* The org-dev skill's own description already says to trigger "proactively whenever =config.el=, =config-test.el=, or the Doom config has just been edited in this session — don't wait to be asked before checking that a code change actually loaded", and §1 gives the =load-file= procedure, §2 the cases needing a full restart, §4 a sanity-check pattern. *Nothing about the guidance failed. It was simply not invoked*, across roughly fifteen edits to =config.el= in one session.
+
+*So the gap is not documentation, and adding it to the next-session prompt would be the wrong shape twice over.* That prompt is a *plan* — consumed and rewritten once acted on — so a standing need placed there evaporates by construction. And the instruction already sits where Claude Code actually matches it. Writing it a second time creates a copy that can disagree with the first, which is the objection this project raises against declaring anything already derivable.
+
+*The measured part, because "this has not been a problem in recent sessions" was the user's own framing and deserved testing rather than agreement.* =config.el= churn per day over the preceding fortnight: 2026-08-24 was 16 commits and +1035 lines, 08-26 was 12 and +853, 08-25 was 11 and +849. This session was 16 commits and +959 — *entirely typical*. So "recent sessions edited it less" is dead as an explanation.
+
+*Which leaves the uncomfortable hypothesis, and it is the one this heading is really about: it has been happening and going unnoticed.* The failure is silent by construction — a stale module produces no error, and the review pass simply behaves as it did yesterday. Today it was caught by *luck of the change's shape*: the edit happened to be to visible *wording* in a tool reply, and =writes 0:05 in 1= was recognisable as a string that should no longer exist. The behavioural changes shipped the same afternoon — auto-marking, the =g= confirmation, the no-op skip — would all have been *invisible*, and an apply pass using the old code would have looked entirely normal. Absence of reports is therefore not evidence of absence.
+
+*Precedent that it is a real failure mode rather than a worry:* the org-dev skill records 2026-08-11, when the =:SESSIONS:= drawer was retired, every writer deleted, all 49 drawers removed, suite green — and minutes later a clock-out recreated one, because =config.el= had been edited on disk and never reloaded.
+
+*Proposed fix: make the failure loud rather than the discipline stronger.* A trigger that depends on model judgement has now failed silently for a whole session, and the answer this project reaches for is a mechanism that reports rather than a rule to remember. Sketch, and it is cheap:
+
+- =config.el= sets a =claude-code-ide-org--loaded-at= timestamp at load time. Confirmed absent today, so this is a new =defvar= plus one =setq= at top level.
+- Anything already round-tripping to Emacs compares it against =(file-attribute-modification-time (file-attributes config-path))= and says so when the file is newer.
+- The natural home is the =SessionStart= report, which already carries the stale-interval and ceremony prompts and already follows the *ask, never act* contract. A second line there costs nothing.
+
+*Deliberately not proposed: auto-reloading on edit.* It looks tidier and is worse — §2 of the skill lists changes a live reload cannot cover, so an automatic =load-file= would sometimes produce a *confident* wrong answer, which is the failure mode this project consistently rates as worse than an absent one.
+
+*Note the check has a real limit worth writing into it:* file mtime is newer than load time is not the same as "the running Emacs is wrong", since an edit may not have touched anything loaded. The report should say what it knows — the file is newer than the load — and let the reader decide, exactly as the stale-interval report states a timestamp and asks rather than guessing.
+
 * TODO Decide a key binding for review-undo-refresh, or leave it M-x only :code:
 :PROPERTIES:
 :ID:       b488dd2a-db73-49a3-a4b5-5f4cc9b52e06
