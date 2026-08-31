@@ -10188,6 +10188,93 @@ defect c8a97d9d is named for."
       (should (string-match-p "=>  0:15" (claude-code-ide-org-test--logbook file)))
       (should (with-current-buffer (find-file-noselect file) buffer-read-only)))))
 
+(ert-deftest claude-code-ide-org-test-at-id-writable-binds-and-at-id-does-not ()
+  "The write dispatcher binds `inhibit-read-only'; the plain one must not.
+
+`claude-code-ide-org--at-id' serves the read-only tools too, so binding
+there would grant write permission to code that should never write --
+turning a bug in a query tool into a silent edit of a buffer the user
+deliberately guarded. The second assertion is the one that would catch
+someone \"simplifying\" the two into one."
+  (claude-code-ide-org-test--with-heading
+    (should (claude-code-ide-org--at-id-writable
+             id (lambda () inhibit-read-only)))
+    (should-not (claude-code-ide-org--at-id
+                 id (lambda () inhibit-read-only)))))
+
+(defmacro claude-code-ide-org-test--with-read-only-heading (&rest body)
+  "Fixture with a second sibling, the buffer read-only, and BODY run there.
+Asserts afterwards that the guard survived: `inhibit-read-only' is
+*bound*, never set, so an implementation that cleared
+`buffer-read-only' instead would satisfy every write assertion and
+silently disarm the user\'s guard -- which is the defect TODO.org
+:ID: c8a97d9d is named for, reintroduced by its own fix."
+  (declare (indent 0))
+  `(claude-code-ide-org-test--with-heading
+     (goto-char (point-max))
+     (insert "* TODO Second heading\n:PROPERTIES:\n:ID:       test-0002\n:END:\n")
+     (save-buffer)
+     (org-id-update-id-locations (list file))
+     (with-current-buffer (find-file-noselect file) (setq buffer-read-only t))
+     ,@body
+     (should (with-current-buffer (find-file-noselect file) buffer-read-only))))
+
+;; Each write tool gets its own case rather than a shared table, so a
+;; failure names the tool. Between them they cover both code paths: amend,
+;; move-sibling and refile route through `--at-id-writable', while
+;; set-property and divide reach their buffer directly and bind in their
+;; own `let'. A fix applied to only one path passes a single-tool test,
+;; which is why both are represented (TODO.org :ID: c8a97d9d).
+;;
+;; Measured 2026-08-31, before the fix: amend, divide and move-sibling all
+;; returned "Error: Buffer is read-only" and wrote nothing. set-property
+;; did *not* -- `org-entry-put' binds `inhibit-read-only' itself, so that
+;; one passed before the change and passes after it. Its binding is
+;; therefore defence in depth rather than load-bearing, and mutating it
+;; away will not fail anything here. That is recorded rather than tidied
+;; away, because a reader who greps for the binding is owed the
+;; difference.
+
+(ert-deftest claude-code-ide-org-test-amend-survives-a-read-only-buffer ()
+  (claude-code-ide-org-test--with-read-only-heading
+    (should (equal "Amended: \"Test heading\""
+                   (claude-code-ide-org-amend id "read-only probe")))
+    (should (string-match-p "read-only probe"
+                            (claude-code-ide-org-test--disk-contents file)))))
+
+(ert-deftest claude-code-ide-org-test-set-property-survives-a-read-only-buffer ()
+  (claude-code-ide-org-test--with-read-only-heading
+    (should-not (string-match-p
+                 "read-only" (claude-code-ide-org-set-property id "PROBE" "yes")))
+    (should (string-match-p ":PROBE:\\s-+yes"
+                            (claude-code-ide-org-test--disk-contents file)))))
+
+(ert-deftest claude-code-ide-org-test-divide-survives-a-read-only-buffer ()
+  (claude-code-ide-org-test--with-read-only-heading
+    (should-not (string-match-p
+                 "read-only" (claude-code-ide-org-divide id "Probe parent")))
+    (should (string-match-p "^\\* TODO Probe parent"
+                            (claude-code-ide-org-test--disk-contents file)))))
+
+(ert-deftest claude-code-ide-org-test-move-sibling-survives-a-read-only-buffer ()
+  "Asserts the resulting *order*, not that the heading is present.
+Presence is true before the move as well, so it would pass against a
+tool that failed outright -- which is exactly what an earlier draft of
+this test did on 2026-08-31, caught by the reply assertion alone."
+  (claude-code-ide-org-test--with-read-only-heading
+    (should-not (string-match-p
+                 "read-only" (claude-code-ide-org-move-sibling "test-0002" "up")))
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      (should (< (string-match-p "Second heading" disk)
+                 (string-match-p "Test heading" disk))))))
+
+(ert-deftest claude-code-ide-org-test-refile-survives-a-read-only-buffer ()
+  (claude-code-ide-org-test--with-read-only-heading
+    (should-not (string-match-p
+                 "read-only" (claude-code-ide-org-refile id "test-0002")))
+    (should (string-match-p "^\\*\\* TODO Test heading"
+                            (claude-code-ide-org-test--disk-contents file)))))
+
 (ert-deftest claude-code-ide-org-test-refresh-slice-survives-a-read-only-buffer ()
   "The ceremony step after apply must not fail where apply now succeeds.
 

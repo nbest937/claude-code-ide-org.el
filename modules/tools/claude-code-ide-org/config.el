@@ -97,6 +97,38 @@ cannot be resolved or FN signals an error."
                                   (backtrace-to-string (backtrace-get-frames)))))
          (format "Error: %s" (error-message-string err)))))))
 
+(defun claude-code-ide-org--at-id-writable (id fn)
+  "Like `claude-code-ide-org--at-id', but with `inhibit-read-only' bound.
+
+For the tools that *write*.  `--at-id' itself must not bind it: it
+serves the read-only tools too, and granting write permission to code
+that should never write turns a bug in a query tool into a silent edit
+of a buffer the user deliberately guarded.
+
+A binding, never a `setq' — which is the whole safety property, and the
+same one `claude-code-ide-org--review-apply-item' turns on.  The flag
+returns when the scope exits, including on a non-local exit, so a tool
+erroring part-way through cannot leave the buffer writable.  Clearing
+`buffer-read-only' instead would pass every write assertion and quietly
+disarm the user's guard, which is the defect TODO.org :ID: c8a97d9d is
+named for — reintroduced by its own fix.
+
+Why bind at all, given that a tool call arrives unannounced where a
+human keystroke does not: the alternative in practice was never \"the
+write fails\", it was a documented convention telling Claude to clear
+the flag by hand and put it back.  That has a failure window the
+binding does not, races between concurrent sessions, and was measured
+running about twelve times in a single session on 2026-08-31.  The
+guard exists against the user's own stray keystrokes; it was never
+aimed at this.
+
+Interactive commands are deliberately *not* covered and keep asking:
+`claude-code-ide-org--review-ensure-writable' prompts before apply, for
+the recorded reason that clearing a human's flag is the human's call
+when a human is present to make it."
+  (let ((inhibit-read-only t))
+    (claude-code-ide-org--at-id id fn)))
+
 ;;; Tool-call audit log ------------------------------------------------------
 ;;
 ;; Every org_* wrapper below has, until now, been trust-the-return-string:
@@ -1298,7 +1330,7 @@ Two things it used to do and no longer does: append a
 rewriting a whole drawer as a side effect of repairing one line is the
 shape behind :ID: ba8249c1 and :ID: b74e0f19, and consolidation has
 nothing left to contribute here anyway."
-  (claude-code-ide-org--at-id
+  (claude-code-ide-org--at-id-writable
    id
    (lambda ()
      (let ((end (save-excursion (outline-next-heading) (point)))
@@ -2047,7 +2079,7 @@ Uses the #+ARCHIVE: directive in effect at the heading (file-level
 or per-heading :ARCHIVE: property).  For :code: tasks this should
 resolve to DONE.org's top level per your project file headers."
   (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "org_archive")))
-    (claude-code-ide-org--at-id
+    (claude-code-ide-org--at-id-writable
      id
      (lambda ()
        (let ((heading (org-get-heading t t t t)))
@@ -2100,7 +2132,8 @@ note interactively, which would hang or error under the MCP layer's
 non-interactive call — the same never-block guarantee every other
 tool here gives."
   (require 'org-id)
-  (let ((marker (claude-code-ide-org--id-find id 'marker))
+  (let ((inhibit-read-only t)                     ; see --at-id-writable
+        (marker (claude-code-ide-org--id-find id 'marker))
         (target-marker (claude-code-ide-org--id-find target-id 'marker)))
     (cond
      ((not marker)
@@ -2369,7 +2402,8 @@ under by that name — and accepting one would mean filing a heading under
 another task, addressed by title, which this project forbids everywhere
 else."
   (condition-case err
-      (let* ((resolved (claude-code-ide-org--capture-target-spec target))
+      (let* ((inhibit-read-only t)                ; see --at-id-writable
+             (resolved (claude-code-ide-org--capture-target-spec target))
              (file (plist-get resolved :file))
              (new-id (org-id-new))
              (created (format-time-string "[%Y-%m-%d %a %H:%M]")))
@@ -2529,7 +2563,7 @@ yet applied, so it has no body to amend. Apply the queue, then amend."
                     (if replace ", replacing the body" ""))
           (let* ((replaced nil)
                  (result
-                  (claude-code-ide-org--at-id
+                  (claude-code-ide-org--at-id-writable
                    id
                    (lambda ()
                      (if replace
@@ -3122,7 +3156,8 @@ two body corruptions on record from hand-rolled region edits, which is
 why `org_wrap_plan' exists, and an insertion that deletes nothing
 cannot repeat them."
   (require 'org-id)
-  (let ((marker (claude-code-ide-org--id-find id 'marker)))
+  (let ((inhibit-read-only t)                     ; see --at-id-writable
+        (marker (claude-code-ide-org--id-find id 'marker)))
     (if (not marker)
         (format "Error: no org heading found with :ID: \"%s\"" id)
       (condition-case err
@@ -3222,7 +3257,13 @@ it needs a queue kind, a hook branch and a review-buffer rendering, none
 of which exist yet.  Refusing loses nothing -- the caller can retry --
 where writing into a busy buffer could lose the human's edits."
   (require 'org-id)
-  (let* ((property (upcase (string-trim (or property ""))))
+  ;; Defence in depth, not load-bearing: measured 2026-08-31, this tool
+  ;; already wrote through a read-only buffer without it, because
+  ;; `org-entry-put' binds `inhibit-read-only' itself. Kept so the tool
+  ;; does not depend on an org internal it does not control; mutating it
+  ;; away fails nothing. See --at-id-writable.
+  (let* ((inhibit-read-only t)
+         (property (upcase (string-trim (or property ""))))
          (marker (claude-code-ide-org--id-find id 'marker)))
     (cond
      ((string-empty-p property) "Error: no property named")
@@ -3279,7 +3320,7 @@ scheduled, deadline, clock-time — see
 non-interactively with point at ID's heading, so it is the heading's
 children (not the heading itself or its siblings) that get sorted.
 Saves the buffer afterwards."
-  (claude-code-ide-org--at-id
+  (claude-code-ide-org--at-id-writable
    id
    (lambda ()
      (let ((code (cdr (assoc sort-type claude-code-ide-org--sort-type-codes)))
@@ -3303,7 +3344,7 @@ org itself (\"Cannot move past superior level or buffer limit\");
 this relies on the shared `claude-code-ide-org--at-id' dispatcher's
 `condition-case' to turn that into a clean \"Error: ...\" string
 rather than adding separate boundary handling here."
-  (claude-code-ide-org--at-id
+  (claude-code-ide-org--at-id-writable
    id
    (lambda ()
      (let ((heading (org-get-heading t t t t)))
@@ -4411,7 +4452,7 @@ than either clean outcome, and the queue is where per-session
 attribution belongs now.  The parameter stays in the signature so the
 MCP tool schema and its callers are unaffected; wire it to a queued
 event if that attribution is ever wanted back."
-  (claude-code-ide-org--at-id
+  (claude-code-ide-org--at-id-writable
    id
    (lambda ()
      (claude-code-ide-org--insert-plan-link plan-file)
@@ -10059,7 +10100,7 @@ to prevent.
 Refuses when a :PLAN: drawer already exists, so a repeat is a no-op with
 an explanation rather than a nested drawer.  Lossless by construction:
 two insertions, no deletion, no reflow.  Returns a summary string."
-  (claude-code-ide-org--at-id
+  (claude-code-ide-org--at-id-writable
    id
    (lambda ()
      (if (claude-code-ide-org--find-drawer "PLAN")

@@ -798,18 +798,30 @@ generating new headings, and time reporting. `org_query` now covers
 structured cross-file reads (e.g. "what's blocked," "everything :research:
 and not DONE") that used to mean Claude reading whole files by hand.
 
-**Read-only buffers:** none of the file-touching tools bind `inhibit-read-only`,
-so if the user has toggled a buffer read-only (`C-x C-q`) it fails
-outright with a `buffer-read-only` error. The user only does this to
-guard against their own stray keystrokes while viewing the file, not to
-block Claude — clear it (`(setq buffer-read-only nil)` via
-`emacsclient`) and proceed, no need to ask first. **Restore it when the
-work is done, and say so** — clearing is permitted, leaving it cleared
-is not: each unrestored clear silently switches the user's guard off
-until they happen to notice (their request, 2026-08-10; the proper fix —
-tools binding `inhibit-read-only` themselves — is TODO.org `:ID:`
-c8a97d9d). If they ever want a specific buffer left alone, they'll say
-so explicitly; that overrides this default for that instance only.
+**Read-only buffers: nothing to do.** The file-touching tools bind
+`inhibit-read-only` themselves, so a buffer the user has toggled
+read-only (`C-x C-q`) is written normally and the flag is still set
+afterwards. **The clear-and-restore convention that stood here until
+2026-08-31 is retired** (`:ID:` c8a97d9d) — do not clear
+`buffer-read-only` by hand, and do not report having done so.
+
+It is a *binding*, never a `setq`, and that is the whole safety
+property: the flag comes back when the scope exits, including on a
+non-local exit, so a tool erroring part-way through cannot leave the
+buffer writable. The old convention could, and the failure window was
+not theoretical — restoring the flag *correctly* after an `org_amend`
+is what broke a human's own apply pass on 2026-08-25.
+
+Two things this deliberately does not cover. **Interactive commands
+still ask**: `M-x claude-code-ide-org-review` prompts before apply
+(`--review-ensure-writable`), because clearing a human's guard is the
+human's call when a human is present to make it. And a **hand-written
+`emacsclient` call** is not a tool and binds nothing — if you find
+yourself reaching for one against a read-only buffer, that is a signal
+the tool surface is missing something, not a licence to clear the flag.
+
+If the user ever wants a specific buffer left alone, they'll say so
+explicitly; that overrides this for that instance only.
 
 ---
 

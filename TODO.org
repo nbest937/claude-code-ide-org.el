@@ -7151,6 +7151,28 @@ regress that.
 
 *Narrow fix available and worth taking before the general one:* bind =inhibit-read-only= around the apply write only. The general case this heading describes -- every file-touching tool binding it -- is a larger change with a real argument against it, since a tool call is not a human keystroke. The apply path has no such ambiguity.
 
+*Shipped 2026-08-31 — the general case this heading was filed for, four months after its narrow child.* The write tools now bind =inhibit-read-only= themselves, so the flag is never touched and the clear/restore convention is retired.
+
+*Two mechanisms, split on how a tool reaches its buffer.* A new =claude-code-ide-org--at-id-writable= binds and delegates to =--at-id=, and the six write tools that route through the dispatcher now call it: =archive=, =amend=, =sort-children=, =move-sibling=, =log-background-plan=, =wrap-plan=, plus =close-open-interval=. The four that reach their buffer directly — =refile=, =set-property=, =divide=, =capture= — bind in their own outermost =let=.
+
+*=--at-id= itself deliberately does not bind, which is the design decision here.* It serves the read-only tools too, so binding there would grant write permission to code that should never write, turning a bug in a query tool into a silent edit of a buffer the user deliberately guarded. A test asserts the asymmetry directly, so a later "simplify these two into one" fails.
+
+*Measured before and after, per tool, rather than assumed.* Against the pre-change =config.el=: =amend=, =divide=, =move-sibling= and =refile= all returned =Error: Buffer is read-only= and wrote nothing; all four pass now. =set-property= passed *both* ways — =org-entry-put= binds =inhibit-read-only= itself. Its binding is therefore defence in depth rather than load-bearing, and mutating it away fails nothing; that is recorded in a comment at the site rather than tidied away, because a reader who greps for the binding is owed the difference.
+
+*A test defect caught by that same measurement.* The first draft asserted =move-sibling='s effect by looking for "Second heading" on disk — present before the move as well, so it passed against a tool that failed outright. Only the reply assertion caught it. Rewritten to assert the resulting *order*, and the whole thing restructured from one table into five independent tests so a failure names the tool.
+
+*Verified:* 448 tests before, 454 after, 0 unexpected, exit 0. Run against the pre-fix =config.el=, the new tests give 4 unexpected — exactly =amend=, =divide=, =move-sibling= and =refile= — while every pre-existing read-only test still passes. Each case also asserts the buffer is *still read-only afterwards*, which is the assertion that would catch an implementation clearing =buffer-read-only= instead of binding: it would satisfy every write assertion and reintroduce the defect this heading is named for, by way of its own fix.
+
+*Verified live, not only in batch.* This very amendment was written to a =TODO.org= whose buffer had just been deliberately set read-only, after =load-file='ing the module into the running Emacs — without that reload the check would have exercised the old code and passed for the wrong reason.
+
+*Left alone on purpose:* =claude-code-ide-org--review-ensure-writable= still prompts rather than binding. That is a recorded decision with its own reasoning — apply is a human keystroke, and clearing a human's guard is the human's call when a human is present to make it — and this heading's own body agrees, calling the apply path the one place with no ambiguity. Not steamrolled.
+
+*Both documents moved in the same commit*, as this heading required: CLAUDE.md's "Read-only buffers" paragraph now says there is nothing to do, and the =feedback-todo-org-read-only= memory was rewritten — it had itself said it should be revised once this landed. Both record that a =Buffer is read-only= error from an org tool is now a *defect to report*, not a flag to clear.
+
+*Test scope, stated rather than left to inference:* five tools have their own read-only case — =amend=, =set-property=, =divide=, =move-sibling=, =refile=. The remaining write tools (=archive=, =capture=, =sort-children=, =log-background-plan=, =wrap-plan=) are not separately tested and this is deliberate, not residue: each reaches its buffer by one of the two paths already proven here, and the =--at-id-writable= asymmetry test pins the dispatcher itself. Not worth a heading. If a sixth path ever appears, that is what would need one.
+
+
+
 
 ** DONE Bind inhibit-read-only in the apply path, where the human asked for the write
 CLOSED: [2026-08-25 Tue 16:09]
