@@ -2,6 +2,33 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
+* An Emacs outage strands every org write, because the tools are Emacs :code:
+:PROPERTIES:
+:ID:       3ad389be-2797-46c3-a51d-9f603053955a
+:CREATED:  [2026-08-31 Mon 13:50]
+:CATEGORY: Queue
+:END:
+
+The queue's premise is that a session can record work without a running Emacs: =bin/hooks/queue-append= is plain shell and jq, and CLAUDE.md says so outright — "this script must stay runnable with no Emacs at all, which is the premise the whole queue rests on."
+
+*That premise holds for hooks and fails for tools.* =org_set_todo=, =org_clock_out= and =org_amend= do not write the queue directly; they are served by the MCP server running *inside* Emacs, so when Emacs is gone they time out and record nothing. Meanwhile the guidepost stream keeps flowing, because hooks are shell — which makes a total failure look partial: =org_pending_updates= still reports events accumulating while nothing a session actually *decides* can be written.
+
+*Measured 2026-08-31.* Emacs wedged at ~13:27. The GUI thread took a SIGSEGV inside =NSAutoFillHeuristicController= calling =-[EmacsMainView selectedRange]=, which recursed into itself; the Lisp thread then blocked in =mac_select= waiting on a thread already parked in =deliver_fatal_thread_signal=. Neither could proceed, so =debug-on-event= was no help either — it needs the Lisp thread to reach a safe point, and the Lisp thread was the one waiting. Symptom was a beachball at 99% CPU and =emacsclient= getting *connection refused* from a live process. Two finished headings could not be closed and two debriefs could not be written for roughly twenty minutes.
+
+*What it actually cost, stated honestly:* nothing was lost. The debriefs went to a session scratchpad and were written to org once Emacs came back. But they survived because a human was present to be told — and a scratchpad file is exactly the "path to becoming invisible" CLAUDE.md warns about for residue named only in prose.
+
+*The uncomfortable part, recorded rather than acted on.* Four hours earlier this same session removed =QUEUE_APPEND_ID/STATE/FROM= from =queue-append= ([[id:46d225c7-7541-4867-af72-929a572df2a5][46d225c7]]) — the one mechanism in the repo that could write a todo or clock event for a named heading with no Emacs involved. That removal was correct on its own terms: its consumer had been dead since the =PLANNING= retirement, and its own tests proved the branch was live only in the sense of being covered. But the use case that would have wanted it did not exist when it was written, and does now.
+
+*This heading is a question, not a design.* Restoring the overrides is the obvious move and probably the wrong one: a synthetic event has no =tool_response= to recover =from= from, so the staleness check =recovered_from= feeds would go blind on exactly the events written when the system is least healthy. Worth deciding among at least:
+
+1. Tools fail *loudly and durably* rather than silently — a timed-out MCP write leaves a marker that the next =SessionStart= reports, so the record of what could not be recorded is itself in the system. This is the option that composes with the existing recovery report rather than adding a second path.
+2. A narrow, non-hook CLI writer for todo/clock on a known =:ID:=, with =from= honestly null rather than fabricated.
+3. Nothing, on the grounds that an Emacs crash is rare and a human was present. This is a real option and may well be the right one — today's cost was two debriefs delayed, not lost.
+
+Whatever is chosen, the shape to avoid is the current one, where the failure is silent per call and only a human noticing a timeout keeps the work attached to its heading.
+
+*Related but distinct:* [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] is about =org_capture= and =org_set_property= hanging over MCP *while Emacs is healthy and other tools answer*. This one is about every tool failing because Emacs is not there at all. They were confirmed separate on 2026-08-31: after the restart, =org_capture= over MCP timed out again and persisted nothing — buffer unmodified, not read-only, no prompt open, =recursion-depth= 0 — while the same function through =emacsclient= completed in under a second.
+
 * TODO Nothing watches a REVIEW heading, and it is the state most easily forgotten :code:
 :PROPERTIES:
 :ID:       43aa25b2-1e21-4117-bf15-b92f3081b60d
@@ -111,6 +138,22 @@ Two MCP tools that write an org file time out and persist nothing, and =org_capt
 *The dangerous one is a success message with no record.* Calling =claude-code-ide-org-capture= directly over =emacsclient=, outside the MCP wrapper, returned "Queued capture: ... (ID: ...) pending review" for two headings and wrote *nothing* -- not to the session queue file, whose mtime never moved, not to any other file under =~/.claude/org-updates/=, and not to any org file. The ids it reported existed nowhere. Presumably the queue path needs a session context the wrapper supplies and a bare =emacsclient= call lacks, in which case the failure is silent by construction: the caller is told the work is recorded.
 
 Three fixes, and the last matters most. Find why those two tools hang. Make =note= either work or be rejected. And make the capture path refuse, loudly, when it cannot determine where to queue -- a tool that cannot persist must not report that it did.
+
+*Reproduced 2026-08-31 on a brand-new Emacs process, which rules out instance staleness.* The prior day's evidence was all gathered on one long-lived Emacs (PID 16643, up since 12:03) that later crashed outright — so "the instance had degraded" was a live hypothesis for why these two tools hung. It is now dead: after that process was killed and Emacs restarted as PID 37051, =org_capture= over MCP timed out *again* on the first attempt.
+
+Conditions at the moment of that timeout, all measured rather than assumed:
+
+- =org_pending_updates=, =org_amend=, =org_set_todo= and =org_clock_out= all answered normally over MCP, before and after.
+- The TODO.org buffer was =:modified nil= and =:read-only nil=, so neither the busy-buffer path nor the read-only refusal applies.
+- =(minibufferp)= nil and =(recursion-depth)= 0 immediately afterwards — no prompt was open, and the hang left none behind.
+- Emacs stayed fully responsive through and after the timeout; the call hangs, the process does not.
+- Nothing was persisted: the title appeared neither on disk nor in the buffer. Not even the =Queued capture … pending review= reply this heading records — a silent nothing, not a false success.
+- The same function called directly, =(claude-code-ide-org-capture TITLE nil "code")= over =emacsclient=, returned a captured heading with a fresh =:ID:= in well under a second.
+
+=org_set_property= behaved identically in the same window: timed out over MCP, completed over =emacsclient=. So the split is exactly the pair already named here, it is per-tool rather than per-session, and it is not the payload, the buffer state, an open prompt, or a degraded process. Whatever distinguishes these two from =org_amend= is in the MCP dispatch path for those specific tools.
+
+*Distinct from* [[id:3ad389be-2797-46c3-a51d-9f603053955a][3ad389be]], filed the same day: that one is every tool failing because Emacs is absent. This one is two tools failing while Emacs is present and answering.
+
 
 
 * TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones :code:
@@ -7366,6 +7409,15 @@ Approach: assert against the table row, =| *Total time* | *0:00* |=, rather than
 
 /Body restored 2026-08-20 by =org_amend=; the original capture silently discarded it -- see/ [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]].
 
+*Fixed 2026-08-31, as the whole class rather than the two named tests.* Every duration assertion in the =clock-report= section matched a substring against the entire report; all five tests are now routed through two new helpers in =config-test.el=. =claude-code-ide-org-test--report-total= pulls the =*Total time*= cell out and the assertion becomes =equal= on it — strictly stronger than the substring match it replaces, and it covers both table shapes (=| *Total time* |= and the file-list =| ALL *Total time* |=). It *signals* rather than returning nil when no such row exists, so a report that never built cannot pass as an ordinary duration mismatch. =--report-body= strips the =#+CAPTION:= line, and every negative assertion runs against that.
+
+*The caption cannot be stubbed, which decided how this is pinned.* org builds it in =org-dblock-write:clocktable= with =(format-time-string (org-time-stamp-format t t))= and *no TIME argument* (=org-clock.el:2836=), so the timestamp is read in C and =cl-letf= on =current-time= never moves it. Confirmed by measurement, not inspection: with time pinned to [2026-07-27 Mon 23:16] the caption still read the real wall clock. So the regression pin is =claude-code-ide-org-test-clock-report-assertions-ignore-the-caption=, which asserts against a *crafted* report whose caption reads =[2026-08-31 Mon 11:00]= — deterministic, and no clock games. It asserts that the naive match is fooled and that neither helper is, so it documents the defect as well as guarding it.
+
+*Verified, and proved to discriminate:* 447 tests before, 448 after, 0 unexpected, exit 0. Mutating =--report-body= to a no-op — semantic, still parses — gave =Ran 448 tests … 1 unexpected=, that one being the new pin and nothing else. Run count checked before failure count.
+
+*Done in one pass with its twin* [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]], committed together in =811d180=.
+
+
 
 * NEXT Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit :code:
 :PROPERTIES:
@@ -7404,6 +7456,19 @@ So the test is red for the last hour of every day, and green the other 23. Confi
 *Distinct from* [[id:5a5e87c9-f432-44c6-a5a6-f6f3755e4347][5a5e87c9]], which names this same test and is easy to mistake for it. That one is the =#+CAPTION:='s own timestamp satisfying a duration match for three minutes a day; this one is the fixture's *interval* leaving the queried window, and the assertion that fails is the positive one rather than the negative. Both are the same underlying habit -- a test whose fixture is pinned to =(current-time)= and whose assertion is a substring match over the whole report -- so they are worth fixing together even though neither is the other.
 
 Approach: anchor the fixture to a fixed date rather than to now, which removes the dependence on when the suite runs instead of narrowing the window in which it breaks.
+
+*Fixed 2026-08-31 by the recorded approach — a fixed date — which needed one thing established first.* =:block "today"= reaches the clock as =(decode-time nil)= inside =org-clock-special-range=, so pinning =current-time= alone does not move it; both have to be rebound together. A new =claude-code-ide-org-test--at-time= macro does that, and with it the fixture becomes two literal timestamps rather than arithmetic on the wall clock: =[2026-07-27 Mon 09:00]--[2026-07-27 Mon 10:00]= for the today case, =[2026-07-26 Sun 09:00]--[2026-07-26 Sun 10:00]= for the excluded one.
+
+*"Now" is pinned to [2026-07-27 Mon 23:16]* — the hour, and the very minute, at which the defect was measured — so the test permanently runs at the time that used to break it rather than merely avoiding that time.
+
+*The old failure was reproduced deterministically before the fix, not merely described.* Under the pinned clock at 23:16 the old fixture construction produced =*0:44*=, matching the =0:44= recorded in this heading on 2026-08-22 exactly.
+
+*Verified, and proved to discriminate:* 448 tests, 0 unexpected, exit 0. Restoring the midnight-spilling fixture — a semantic mutation that still parses — gave =Ran 448 tests … 1 unexpected=, that one being =claude-code-ide-org-test-clock-report-block-today= and nothing else.
+
+*Done in one pass with its twin* [[id:5a5e87c9-f432-44c6-a5a6-f6f3755e4347][5a5e87c9]], committed together in =811d180= — as this heading's body asked, and as CLAUDE.md's twin-asymmetry rule requires.
+
+*Clock caveat for the review pass.* Emacs crashed at ~13:27 partway through closing this heading out, and the suggested spans that resulted cover crash diagnosis and an AFK stretch rather than work on the fixture. The last moment work here demonstrably happened is *13:28:56*, the final green =bin/test=.
+
 
 
 * MAYBE Render a session transcript to readable org, so scrollback stops being the index :code:
