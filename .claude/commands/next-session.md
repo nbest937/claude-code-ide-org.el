@@ -39,6 +39,26 @@ the `:BLOCKER:` names every member still carrying a cookie.
    `:ID:`; `:BLOCKER:` is validated, prefixes expanded, `append` unions).
    Reach for the second instead of `emacsclient` + `org-entry-put`, which is
    still the reflex.
+4. **`org_capture` and `org_set_property` currently hang over MCP** — they
+   time out and write nothing, while `org_outline`, `org_pending_updates`,
+   `org_set_todo` and `org_amend` all answer normally. It is not the payload
+   and not the buffer's state: both were retried with long and short
+   arguments, read-only and writable, no prompt open. Calling the same
+   functions directly through `emacsclient` completes in ~0.2s, which is how
+   five headings were filed on 2026-08-31. Two traps while it lasts —
+   `claude-code-ide-org-capture` names a `note` argument and **silently
+   discards it**, so add bodies with `org_amend` afterwards; and calling it
+   over `emacsclient` when the buffer is *modified* returns `"Queued capture …
+   pending review"` and persists **nothing anywhere**. Save the buffer first
+   and check the heading reached disk. All of it is `72463b68`, a member of
+   this slice.
+5. **Do not offer to run the post-apply ceremony steps.** They are no longer
+   anyone's to remember: burying the review buffer runs drawer consolidation,
+   heading separation and archiving, and stamps the ceremony only if all three
+   succeed. Apply is still the human's alone. If the SessionStart report says a
+   pass ran but the ceremony did not complete, that is a real failure worth
+   surfacing, not a nag to dismiss — see `29734f79`, which is in `REVIEW`
+   precisely because that trigger has never fired on its own.
 
 ---
 
