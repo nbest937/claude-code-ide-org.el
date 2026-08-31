@@ -93,8 +93,19 @@ end
 # 6. Section 0b names org facilities this repo deliberately leans on rather
 # than reimplementing. Renamed upstream, the table becomes advice to call
 # something that is not there.
+#
+# The libraries are required first, and that is load-bearing rather than
+# tidy. Most of these names are *not* autoloaded --- org-datetree only
+# autoloads find-date-create, find-month-create and find-iso-week-create ---
+# so a bare fboundp answers "does this session happen to have loaded the
+# file", not "does this Emacs have the function". Measured 2026-08-31: the
+# same check passed at 11:23 and failed at 12:08 against the same org
+# 9.8.7, the only difference being that the earlier Emacs had archived
+# something and pulled org-datetree in. A check whose answer depends on
+# what the session did before it is worse than no check, because it fails
+# loudly and wrongly.
 for fn in org-add-archive-files org-id-locations org-id-search-archives org-datetree-find-create-hierarchy org-datetree-comparefun-from-regex org-archive-reversed-order org-agenda-prefix-format
-    if emacsclient -e "(or (fboundp '$fn) (boundp '$fn))" 2>/dev/null | grep -q '^t'
+    if emacsclient -e "(progn (require 'org) (ignore-errors (require 'org-id)) (ignore-errors (require 'org-archive)) (ignore-errors (require 'org-datetree)) (or (fboundp '$fn) (boundp '$fn)))" 2>/dev/null | grep -q '^t'
         echo "ok   - org facility still exists ($fn)"
     else
         echo "FAIL - org-dev 0b names $fn, which this Emacs does not have"
