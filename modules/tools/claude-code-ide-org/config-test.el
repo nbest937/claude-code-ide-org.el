@@ -3195,6 +3195,70 @@ own `user-error') rather than crashing."
 
 ;;; claude-code-ide-org-clock-report -----------------------------------------
 
+;; A clocktable's own #+CAPTION: carries a wall-clock timestamp, so
+;; (string-match-p "1:00" report) also matches the caption at 01:00,
+;; 11:00 and 21:00 -- three minutes a day, on an assertion that means to
+;; be about a duration in the table (TODO.org :ID: 5a5e87c9). Every
+;; duration assertion below goes through one of these two rather than
+;; matching the whole report.
+
+(defun claude-code-ide-org-test--report-total (report)
+  "The *Total time* cell of REPORT, as a string like \"1:00\".
+Covers both table shapes: the id-scoped `| *Total time* |' and the
+file-list `| ALL *Total time* |'. Signals rather than returning nil
+when there is no such row, so a report that never built cannot be
+read as a mere duration mismatch."
+  (if (string-match "\\*Total time\\*[^|]*|[^*|]*\\*\\([0-9]+:[0-9][0-9]\\)\\*" report)
+      (match-string 1 report)
+    (error "No *Total time* row in report: %S" report)))
+
+(defun claude-code-ide-org-test--report-body (report)
+  "REPORT with its #+CAPTION: line removed, for negative matches."
+  (replace-regexp-in-string "^#\\+CAPTION:.*\n?" "" report))
+
+(defmacro claude-code-ide-org-test--at-time (time &rest body)
+  "Run BODY with the current time pinned to TIME.
+Rebinding `current-time' alone is not enough: `:block \"today\"'
+resolves through `org-clock-special-range', which reaches the clock as
+`(decode-time nil)', so both have to move together. Lets a
+today/yesterday fixture be written as fixed dates rather than as
+arithmetic on the wall clock (TODO.org :ID: c31b6c76).
+
+The clocktable's own #+CAPTION: is *not* pinned by this -- org builds it
+with `format-time-string' and no TIME argument, so it is read in C.
+Assert on durations through `claude-code-ide-org-test--report-total'
+rather than against the whole report."
+  (declare (indent 1) (debug (form body)))
+  `(let ((claude-code-ide-org-test--now ,time)
+         (claude-code-ide-org-test--real-decode (symbol-function 'decode-time)))
+     (cl-letf (((symbol-function 'current-time)
+                (lambda () claude-code-ide-org-test--now))
+               ((symbol-function 'decode-time)
+                (lambda (&optional tm &rest rest)
+                  (apply claude-code-ide-org-test--real-decode
+                         (or tm claude-code-ide-org-test--now) rest))))
+       ,@body)))
+
+(ert-deftest claude-code-ide-org-test-clock-report-assertions-ignore-the-caption ()
+  "The caption's own timestamp must not satisfy a duration assertion.
+Pinned against a crafted report rather than the real clock: org
+builds the caption with `format-time-string' and no TIME argument
+\(org-clock.el, `org-dblock-write:clocktable'), so the timestamp is
+read in C and cannot be stubbed from Lisp."
+  (let ((report (concat
+                 "#+CAPTION: Clock summary at [2026-08-31 Mon 11:00]\n"
+                 "| Headline     | Time   |\n"
+                 "|--------------+--------|\n"
+                 "| *Total time* | *0:00* |\n")))
+    ;; The shape the assertions used to have. It is fooled, which is the
+    ;; whole defect -- a green suite could not catch it because the
+    ;; failing assertion was the negative one.
+    (should (string-match-p "1:00" report))
+    ;; The shape they have now. Neither helper can see the caption.
+    (should (equal "0:00" (claude-code-ide-org-test--report-total report)))
+    (should (not (string-match-p
+                  "1:00" (claude-code-ide-org-test--report-body report))))))
+
 (ert-deftest claude-code-ide-org-test-clock-report-id-scoped-shows-own-time-only ()
   "id-scoped reports must cover only that heading's own subtree —
 proven by adding a second heading with its own CLOCK entry and
@@ -3216,9 +3280,10 @@ other heading's."
     (save-buffer)
     (let ((result (claude-code-ide-org-clock-report id)))
       (should (string-match-p "Test heading" result))
-      (should (string-match-p "1:00" result))
+      (should (equal "1:00" (claude-code-ide-org-test--report-total result)))
       (should (not (string-match-p "Other heading" result)))
-      (should (not (string-match-p "2:00" result))))
+      (should (not (string-match-p
+                    "2:00" (claude-code-ide-org-test--report-body result)))))
     ;; The source buffer must never be narrowed, modified, or saved —
     ;; the report is computed from an in-memory copy of the subtree.
     (should (not (buffer-modified-p (get-file-buffer file))))
@@ -3247,7 +3312,7 @@ those files, same file-list mechanism org_query already uses."
            (result (claude-code-ide-org-clock-report)))
       (should (string-match-p "Test heading" result))
       (should (string-match-p "Other heading" result))
-      (should (string-match-p "3:00" result)))))
+      (should (equal "3:00" (claude-code-ide-org-test--report-total result))))))
 
 (ert-deftest claude-code-ide-org-test-clock-report-explicit-tstart-tend ()
   (claude-code-ide-org-test--with-heading
@@ -3260,44 +3325,52 @@ those files, same file-list mechanism org_query already uses."
     (let* ((claude-code-ide-org-query-files (list file))
            (result (claude-code-ide-org-clock-report
                     nil nil "[2026-07-27 Mon 00:00]" "[2026-07-28 Tue 00:00]")))
-      (should (string-match-p "1:00" result)))
+      (should (equal "1:00" (claude-code-ide-org-test--report-total result))))
     ;; A range that excludes the entry entirely must report zero time.
     (let* ((claude-code-ide-org-query-files (list file))
            (result (claude-code-ide-org-clock-report
                     nil nil "[2026-08-01 Sat 00:00]" "[2026-08-02 Sun 00:00]")))
-      (should (string-match-p "0:00" result))
-      (should (not (string-match-p "1:00" result))))))
+      (should (equal "0:00" (claude-code-ide-org-test--report-total result)))
+      (should (not (string-match-p
+                    "1:00" (claude-code-ide-org-test--report-body result)))))))
 
 (ert-deftest claude-code-ide-org-test-clock-report-block-today ()
   "The :block param must reach `org-clock-special-range' correctly —
 proven with a same-day CLOCK entry pinned to whole-minute boundaries
-(so duration arithmetic can't be thrown off by stray seconds) and
+(so duration arithmetic can\'t be thrown off by stray seconds) and
 :block \"today\", vs. a CLOCK entry from an earlier day, which
-:block \"today\" must exclude."
+:block \"today\" must exclude.
+
+Both the fixture and \"today\" are pinned to 2026-07-27, and \"now\" is
+pinned to 23:16 on that date — the hour, and the very minute, at which
+this test used to fail. The fixture was previously built as \"now, seconds
+zeroed\" plus one hour, so after 23:00 it crossed midnight and `today\'
+saw only the part before it: the table read *0:44* and the positive
+assertion failed, every day, for the last hour of the day (TODO.org
+:ID: c31b6c76). A fixed date removes the dependence on when the suite
+runs rather than narrowing the window in which it breaks."
   (claude-code-ide-org-test--with-heading
-    (let* ((decoded (decode-time (current-time)))
-           (today-start (encode-time 0 (nth 1 decoded) (nth 2 decoded)
-                                      (nth 3 decoded) (nth 4 decoded) (nth 5 decoded)))
-           (today-end (time-add today-start 3600))
-           (yesterday-start (time-subtract today-start 86400))
-           (yesterday-end (time-add yesterday-start 3600)))
-      (goto-char (point-max))
-      (insert (format ":LOGBOOK:\nCLOCK: %s--%s =>  1:00\n:END:\n"
-                       (format-time-string "[%Y-%m-%d %a %H:%M]" today-start)
-                       (format-time-string "[%Y-%m-%d %a %H:%M]" today-end)))
-      (save-buffer)
+    (goto-char (point-max))
+    (insert (concat
+             ":LOGBOOK:\n"
+             "CLOCK: [2026-07-27 Mon 09:00]--[2026-07-27 Mon 10:00] =>  1:00\n"
+             ":END:\n"))
+    (save-buffer)
+    (claude-code-ide-org-test--at-time (encode-time 0 16 23 27 7 2026)
       (let ((result (claude-code-ide-org-clock-report id "today")))
-        (should (string-match-p "1:00" result)))
-      (with-current-buffer (get-file-buffer file)
-        (goto-char (point-min))
-        (re-search-forward "CLOCK: \\[[^]]+\\]--\\[[^]]+\\] =>  1:00")
-        (replace-match (format "CLOCK: %s--%s =>  1:00"
-                                (format-time-string "[%Y-%m-%d %a %H:%M]" yesterday-start)
-                                (format-time-string "[%Y-%m-%d %a %H:%M]" yesterday-end)))
-        (save-buffer))
+        (should (equal "1:00" (claude-code-ide-org-test--report-total result)))))
+    ;; Same entry moved to the day before: `today\' must now exclude it.
+    (with-current-buffer (get-file-buffer file)
+      (goto-char (point-min))
+      (re-search-forward "CLOCK: \\[[^]]+\\]--\\[[^]]+\\] =>  1:00")
+      (replace-match
+       "CLOCK: [2026-07-26 Sun 09:00]--[2026-07-26 Sun 10:00] =>  1:00")
+      (save-buffer))
+    (claude-code-ide-org-test--at-time (encode-time 0 16 23 27 7 2026)
       (let ((result (claude-code-ide-org-clock-report id "today")))
-        (should (string-match-p "0:00" result))
-        (should (not (string-match-p "1:00" result)))))))
+        (should (equal "0:00" (claude-code-ide-org-test--report-total result)))
+        (should (not (string-match-p
+                      "1:00" (claude-code-ide-org-test--report-body result))))))))
 
 (ert-deftest claude-code-ide-org-test-clock-report-unrecognized-block-returns-error ()
   (claude-code-ide-org-test--with-heading
@@ -3321,7 +3394,7 @@ empty range."
     (save-buffer)
     (let* ((claude-code-ide-org-query-files (list file))
            (result (claude-code-ide-org-clock-report)))
-      (should (string-match-p "1:00" result)))))
+      (should (equal "1:00" (claude-code-ide-org-test--report-total result))))))
 
 ;;; claude-code-ide-org-log-background-plan --------------------------------
 
