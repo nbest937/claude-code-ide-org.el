@@ -2,11 +2,34 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
+* TODO Decide a key binding for review-undo-refresh, or leave it M-x only :code:
+:PROPERTIES:
+:ID:       b488dd2a-db73-49a3-a4b5-5f4cc9b52e06
+:CREATED:  [2026-08-31 Mon 17:39]
+:CATEGORY: Apply
+:END:
+
+Residue from [[id:8d0716fe-ca88-429d-b46b-e2f880f5b2cc][8d0716fe]], filed 2026-08-31 rather than left in that heading's debrief — a decision named in a closed body is on the path to invisibility, which is the rule this heading exists to honour rather than an abundance of caution.
+
+*What shipped.* =claude-code-ide-org-review-undo-refresh= restores the item list =g= last discarded, and the confirmation prompt names it. It is reachable by =M-x= only.
+
+*Why it was left unbound*, and this is a real reason rather than a deferral: the review keymap's vocabulary is borrowed from dired on purpose — =m=/=u= per line and advancing, =t= to invert, =U= to clear — because that is the muscle memory a person arrives with. Adding a key to that map is a decision about which borrowed vocabulary to break, and it is worth making at the keyboard by the person with the muscle memory, not by a session composing a commit message.
+
+*The obvious candidates are all taken or wrong.* =u= and =U= are unmark and unmark-all; =r= reads as "refresh"; =C-/= is undo, which is close enough to be tempting and wrong, since this restores a *list* rather than editing text and binding it would train a reflex that fails everywhere else in the buffer.
+
+*Worth weighing before binding anything: whether the prompt makes a key unnecessary.* =g= now asks before discarding, so the undo exists for the case where a human confirms and immediately regrets it — which is rarer than the slip that prompted [[id:8d0716fe-ca88-429d-b46b-e2f880f5b2cc][8d0716fe]] in the first place. If that case is rare enough, =M-x= is the honest home and the legend line stays short. Leaving it as is, deliberately, is a perfectly good outcome for this heading.
+
 * DONE Three conventions read as permission to grow a story where mitosis was owed :code:
 :PROPERTIES:
 :ID:       6e43120d-b9ed-4595-8309-ccd0cde8da59
 :CREATED:  [2026-08-31 Mon 16:38]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-31 Mon 16:18]--[2026-08-31 Mon 16:19] =>  0:01
+- [2026-08-31 Mon 16:18]--[2026-08-31 Mon 16:19] assigned at review
+CLOCK: [2026-08-31 Mon 16:24]--[2026-08-31 Mon 16:25] =>  0:01
+- [2026-08-31 Mon 16:24]--[2026-08-31 Mon 16:25] assigned at review
 :END:
 
 *Asked by the user 2026-08-31, immediately after the mistake:* "does the language of one or more conventions need to be revised to guard against this pitfall?" Yes — three passages, and between them they did not merely fail to forbid the error, they read as licence for it.
@@ -29,6 +52,7 @@
 *Why this is worth a convention change rather than a note.* The error was not carelessness — three separate passages were consulted and each appeared to permit it. A rule that has to be *inferred* from a mechanism's description is a rule that will be got wrong again, and this one fails silently: the tree stays valid, =bin/lint-org= is content, and the only symptom is a heading that quietly never closes.
 
 *Not claimed:* that the new wording is machine-checkable. A lint could plausibly flag "container with a clock and a body acquiring its first child", but that is exactly the shape the amnesty says to leave alone in the nine existing cases, so the check would need history it does not have. Left as prose deliberately.
+
 
 * TODO org_capture's target refuses an 8-character :ID: prefix that every other tool accepts :code:
 :PROPERTIES:
@@ -233,6 +257,16 @@ Conditions at the moment of that timeout, all measured rather than assumed:
 
 *Distinct from* [[id:3ad389be-2797-46c3-a51d-9f603053955a][3ad389be]], filed the same day: that one is every tool failing because Emacs is absent. This one is two tools failing while Emacs is present and answering.
 
+*A cheap experiment for the next session to run, recorded here so it is not lost with the session that thought of it.* [[id:a0028a4e-39cb-4653-83cc-446b810234ac][a0028a4e]] added =org_body= on 2026-08-31 — a *new* read tool registered after this session's client had already fetched its tool list, so it could not be called over MCP at all from here and was exercised through =emacsclient= instead.
+
+That makes it an unusually clean probe. The two tools that hang are both *writers*, and the two hypotheses left standing — that the hang is about writing, or about something in the dispatch of particular tools — predict different answers for a brand-new *reader*. Whichever way it comes out is worth a line here:
+
+- =org_body= answers normally → the split is not "new tool" and probably not registration; look harder at what =org_capture= and =org_set_property= do that =org_amend= does not, given all three write.
+- =org_body= hangs too → the correlate is recency of registration rather than writing, which would be a very different and much more tractable bug.
+
+*Also unexplained and worth keeping in view:* =org_amend= writes and answers reliably, which is what makes the writer hypothesis uncomfortable rather than obvious. It was called dozens of times across 2026-08-31 without a single timeout, including against a read-only buffer, while =org_capture= timed out on its first attempt on a freshly started Emacs.
+
+
 
 * TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones :code:
 :PROPERTIES:
@@ -389,14 +423,14 @@ CLOCK: [2026-08-31 Mon 15:20]--[2026-08-31 Mon 15:26] =>  0:06
 *CLAUDE.md's read-only tools table gained an =org_body= row in the same commit* — the table is read as the whole read surface, so omitting it would have made the document wrong.
 
 
-* TODO [16/28] The code knows more than it says, and asks more than it should :code:
+* TODO [17/28] The code knows more than it says, and asks more than it should :code:
 :PROPERTIES:
 :ID:       b36e6369-a210-4540-adc7-0c0c188e9791
 :CREATED:  [2026-08-28 Fri 17:37]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8 33864a0f-5e13-4235-85a6-0bd9d2fe5252 b7b46a26-2fd6-4784-bed3-d0112a917c0a 72463b68-9f08-44b2-8213-87f71298138d 29734f79-e698-43dd-abf8-14bc86b8b0ae 9e627dc0-d31b-42cc-857a-b1e5a77f44a5 0086614a-c95c-4618-bba0-c821589dd7f2 5f1068f9-1452-45e4-9253-568edfce2053 7c4d6ef6-c914-4d33-b267-cc9158a9f359 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
+:BLOCKER:  ids(c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8 33864a0f-5e13-4235-85a6-0bd9d2fe5252 b7b46a26-2fd6-4784-bed3-d0112a917c0a 72463b68-9f08-44b2-8213-87f71298138d 29734f79-e698-43dd-abf8-14bc86b8b0ae 0086614a-c95c-4618-bba0-c821589dd7f2 5f1068f9-1452-45e4-9253-568edfce2053 7c4d6ef6-c914-4d33-b267-cc9158a9f359 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 17:38] \\
@@ -429,7 +463,7 @@ and the open decisions live in the prompt below rather than here.
 - [X] [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] DONE Six defects in one day, all the same: the code knew more than it said
 - [-] [[id:29734f79-e698-43dd-abf8-14bc86b8b0ae][29734f79]] REVIEW The ceremony prompt goes quiet on evidence of its first step, and never reports its own completion
 - [X] [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]] DONE "writes 0:09 in 1" reads as two swappable numbers; "in 1" has no unit
-- [ ] [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] TODO Record turns-per-interval as an attention signal, and decide where it surfaces
+- [X] [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] DONE Show turn count on the span line, where the attention call is made
 - [X] [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] DONE A span's headline interval is not the interval it writes
 - [X] [[id:46e4ce2b-fdc8-447b-ad09-b4845602540f][46e4ce2b]] DONE Lead every review-buffer rendering with the :ID: prefix, rather than trailing it
 - [X] [[id:05c71d99-2839-447b-a536-60eb4bf43b73][05c71d99]] DONE Apply logs a self-transition when a queued event's target already matches reality
@@ -539,6 +573,17 @@ The trailing =t= is the last form of the =save-excursion=, so the whole expressi
 *Which is also the argument for =bin/check-elisp=* proposed above: a check that reads forms cannot answer =t= by accident.
 
 *And a fifth of the same shape, from the same day, worth recording because it was a write rather than a read.* A splice replaced a region using =body.index(start)= and =body.index(end)= where the end marker sat *earlier* in the string than the start — so =body[:start] + new + body[end:]= silently re-appended everything between them, duplicating a slice's revision links and part of its member list. The cookie went up rather than erroring, which read as plausible on a slice that had just grown. A splice whose markers can be mis-ordered should assert their order; nothing did.
+
+*Fresh evidence 2026-08-31, from the session that was working through this slice: one of the three traps fired again, and it fired on the session that had just read this heading.*
+
+*"A mutation that does not parse proves nothing" — hit, and caught only by looking for the right line.* While proving the span-readout rework discriminating, one of four mutations replaced a =let= binding with an unbalanced form. =bin/test= crashed on load, ran *zero* tests, and its log carried **no =Ran= line at all**. The check that caught it was looking for =Ran N tests= rather than for the word =FAILED= — which is precisely what this heading says to do. Had the pass been judged by "no FAILED lines appeared", the mutation would have been recorded as *not discriminating*, and the conclusion drawn would have been the exact opposite of the truth: that the code under test did not matter.
+
+*So the trap is worse than "you learn nothing".* A non-parsing mutation does not merely fail to prove the test discriminates — read carelessly, it actively argues that it does not. That asymmetry was not recorded here before and is the strongest argument for a mechanical check.
+
+*A fourth trap, of a different kind, found the same day and offered for this heading's consideration:* choosing the wrong *fixture* produces a failure that reads as the defect under test. =claude-code-ide-org-test--with-known-ids= deliberately leaves its ids unknown to org until something scans, so =--assign-candidates=, which walks =org-id-locations=, returns *zero* candidates there. A new test using it failed in a way that looked exactly like a formatting mismatch and was an empty list. Same shape as the other three — a silence, or a wrong-looking answer, that a reader interprets as the thing they were testing for.
+
+*What a check might actually assert*, since this heading is about mechanising rather than remembering: a mutation run should require the =Ran N tests= line to be present *and* N to equal the baseline count. Both halves are needed — the crash above produced no line, while a mutation that merely skipped tests would produce a smaller N with no error.
+
 
 
 * DONE Remove queue-append's synthetic-event overrides, dead since the ExitPlanMode hook went :code:
@@ -5711,8 +5756,7 @@ The two axes are *orthogonal*, and the second is implemented using the first: an
 *Rule of thumb: say **timestamp** when discussing the mechanism and **interval** when discussing the thing being recorded. A sentence needing both words is probably conflating them.*
 
 
-
-* TODO Sixty minutes holding 2 turns is not sixty holding 40 [0/7]
+* TODO Sixty minutes holding 2 turns is not sixty holding 40 [1/7]
 :PROPERTIES:
 :ID:       f90d745e-ccf9-49d6-a92e-df25c17b4dfb
 :CREATED:  [2026-08-31 Mon 16:39]
@@ -5725,7 +5769,9 @@ The children divide by *where the signal has to appear* and *what has to be true
 
 *Born 2026-08-31 by dividing [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]]*, which had grown a shipped half and four open ones inside a single body.
 
-** TODO Show turn count on the span line, where the attention call is made :code:
+
+** DONE Show turn count on the span line, where the attention call is made :code:
+CLOSED: [2026-08-31 Mon 16:43]
 :PROPERTIES:
 :CATEGORY: Queue
 :ID:       9e627dc0-d31b-42cc-857a-b1e5a77f44a5
@@ -5746,6 +5792,10 @@ CLOCK: [2026-08-15 Sat 15:01]--[2026-08-15 Sat 15:03] =>  0:02
 - [2026-08-15 Sat 15:01]--[2026-08-15 Sat 15:03] assigned at review
 CLOCK: [2026-08-15 Sat 15:17]--[2026-08-15 Sat 15:31] =>  0:14
 - [2026-08-15 Sat 15:17]--[2026-08-15 Sat 15:31] assigned at review
+CLOCK: [2026-08-31 Mon 16:38]--[2026-08-31 Mon 16:43] =>  0:05
+- State "DOING"      from "TODO"       [2026-08-31 Mon 16:38]
+- [2026-08-31 Mon 16:38]--[2026-08-31 Mon 16:43] mitosis and prose redistribution
+- State "DONE"       from "DOING"      [2026-08-31 Mon 16:43]
 :END:
 :PLAN:
 
@@ -5774,6 +5824,7 @@ Put the turn count on the review buffer's span line, so a human judging an inter
 
 *One thing this heading shipped without:* nothing on the line says the number must never be read as productivity, which under autonomy it inverts. That is [[id:c4bc5c70-861a-4ce0-80da-c79b6b1600f3][c4bc5c70]], and it is a real gap rather than a deferral — the argument that juxtaposition carries the meaning covers a reader building an impression, not one importing a reading from elsewhere.
 
+
 ** TODO Carry the turn count into the :LOGBOOK: annotation, so it survives queue archiving :code:
 :PROPERTIES:
 :ID:       95755305-0499-4022-bd75-f325fd6828c7
@@ -5798,7 +5849,6 @@ That was reversed once it was settled that the human constructs attention interv
 *Cost is one token on a line that already exists* — =claude-code-ide-org--review-format-annotation=.
 
 *Open question this heading now owns.* The review line reports *three* quantities — envelope, runs, turns — because a span's outer bracket is not what it writes. An annotation recording only the runs loses exactly that distinction, one layer down and where nobody is watching, which is [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] recurring in the durable record instead of the buffer. So: does the annotation carry the envelope and the turn count too, and at what cost to a line that has to stay readable inside a drawer?
-
 
 
 ** TODO Decide whether org_clock_report grows a turns-per-hour column :code:
@@ -5826,7 +5876,6 @@ The one place the scalar wins outright, per the parent's own analysis: turns/hou
 
 - *Never label it in a way that invites a productivity reading*, because a column heading is exactly where such a reading attaches, and the number is the *inverse* of productivity under autonomy. See [[id:c4bc5c70-861a-4ce0-80da-c79b6b1600f3][c4bc5c70]], which owns that question.
 - *Never present a total that looks complete.* The tool sees Claude sessions and nothing else, and an aggregate table is the most convincing possible way to imply a full accounting of a day. The gaps are precisely where meatspace went.
-
 
 
 ** TODO Allocate attention across concurrent sessions, which is zero-sum :code:
@@ -5867,7 +5916,6 @@ Attention is zero-sum across concurrent sessions. If the human was driving sessi
 *The remaining precondition is [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]].* Hooks are project-scoped, so only sessions in this repo write queue files at all and the directory sees one project. Moving hooks to =~/.claude/settings.json= is what gives cross-project allocation anything to compare — portability work motivated for an entirely different reason that turns out to be load-bearing here.
 
 
-
 ** TODO Decide where the caveat lives that turn count is not productivity :code:
 :PROPERTIES:
 :ID:       c4bc5c70-861a-4ce0-80da-c79b6b1600f3
@@ -5901,6 +5949,7 @@ Split out of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] 2026-08-31, w
 
 *Candidates, none chosen:* the review buffer's key legend; the tool descriptions; a line in CLAUDE.md's session-tracking section; or nowhere, on the grounds that the only reader is the person who set the convention. The last is a real option — this project has one user — and should be rejected on evidence rather than reflex.
 
+
 ** TODO Turn count reads 0 for a background or subagent session, which is not no attention :code:
 :PROPERTIES:
 :ID:       9b5eb830-8825-4d6c-b701-c167c2d71fdf
@@ -5917,10 +5966,27 @@ Split out of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] 2026-08-31, w
 
 *Open, and the smaller half of the question:* what to render. Candidates, none chosen — omit the clause entirely for a session that cannot have turns; print =n/a= rather than =0=; or name the agent type, which says why. The parent's standing requirement applies: prefer the lighter presentation, and never present a figure that invites a reading it cannot support.
 
-** TODO Record cwd on queue events, so a span can be attributed to a project :code:
+*A live instance the same day this was filed, and it widens the heading past subagents.* With the new readout loaded, a real pending item rendered:
+
+: 0:05 span, 0:05 in 1 run, 0 turns
+
+*One run of five minutes, zero turns* — which reads as contradictory and is not. The run comes from an explicit =clock_in=/=clock_out= pair, while turns count completed =resume= -> =pause= adjacencies; that stretch was a single long agent turn with no completed turn inside the window, so zero is literally correct.
+
+*But it is exactly the wrong impression.* Zero turns beside five clocked minutes reads as "set running and left" when the truth was continuous agent work on one instruction — which is the metric's advertised inversion under autonomy showing up as an apparent inconsistency on the line rather than as a caveat somewhere.
+
+*So this heading is not only about background and subagent sessions.* Any span whose window holds no completed turn reads =0 turns=, and the three causes — no human present, a subagent, and one long turn still in flight — are indistinguishable on the line while wanting different conclusions. The rendering question is therefore broader than "omit the clause for a session that cannot have turns": it has to separate *cannot have turns* from *had none complete in this window*.
+
+*Related:* [[id:c4bc5c70-861a-4ce0-80da-c79b6b1600f3][c4bc5c70]] owns the productivity caveat, and this is where the caveat becomes concrete rather than abstract — the reader does not need to import a wrong reading, the line offers one.
+
+
+
+** NEXT Record cwd on queue events, so a span can be attributed to a project :code:
 :PROPERTIES:
 :ID:       5461c349-fd22-4b75-a508-50efbe4b87f8
 :CREATED:  [2026-08-31 Mon 16:39]
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-08-31 Mon 16:44]
 :END:
 
 Split out of [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] 2026-08-31, because it is a concrete one-line change sitting inside a much larger judgement and does not need to wait for it.
@@ -5934,6 +6000,7 @@ Split out of [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] 2026-08-31, b
 *What it unblocks.* Queue files are per-session and all land in =~/.claude/org-updates/=, which is *user-global* rather than per-project — so the directory is already the right shape for cross-session comparison, and this is the field that makes the comparison meaningful. It is one of the two preconditions [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] names; the other is [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]], without which only this repo writes queue files at all and there is nothing to compare across.
 
 *Do it before the allocation work, not during it.* The field is only useful on events written *after* it ships, so every day it is not recorded is a day the eventual analysis cannot see. That argues for landing it early even though nothing consumes it yet — the opposite of the usual rule against building unused machinery, and the reason is that this datum cannot be backfilled.
+
 
 * TODO Record the originating project in queue events :code:
 :PROPERTIES:
@@ -8162,6 +8229,7 @@ CLOCK: [2026-08-31 Mon 15:01]--[2026-08-31 Mon 15:02] =>  0:01
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-08-31 Mon 17:38]--[2026-08-31 Mon 17:39] =>  0:01
 CLOCK: [2026-08-31 Mon 16:14]--[2026-08-31 Mon 16:17] =>  0:03
 CLOCK: [2026-08-31 Mon 15:02]--[2026-08-31 Mon 15:03] =>  0:01
 CLOCK: [2026-08-31 Mon 12:12]--[2026-08-31 Mon 12:13] =>  0:01
