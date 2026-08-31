@@ -662,17 +662,26 @@ single item.  An explicit stamp means only what it says."
          (claude-code-ide-org--today-p
           (file-attribute-modification-time (file-attributes file))))))
 
-(defun claude-code-ide-org-mark-ceremony-done ()
+(defun claude-code-ide-org-mark-ceremony-done (&optional summary)
   "Record that today's ceremony has been performed, silencing the prompt.
 
-Interactive and explicit.  It is deliberately *not* called from the
-apply path: apply is one step of the ceremony, not the whole of it, and
+Called from `claude-code-ide-org-ceremony-finish', and from nowhere
+else automatic.  It is still deliberately *not* called from the apply
+path: apply is one step of the ceremony, not the whole of it, and
 stamping there would silence the prompt for the days when someone
-applies a couple of items and archives nothing."
+applies a couple of items and archives nothing.  That objection is
+answered rather than abandoned -- `ceremony-finish' stamps only after
+the drawer, spacing and archive steps have all run clean, which is the
+whole ceremony and not one step of it."
   (interactive)
   (let ((file (claude-code-ide-org--ceremony-stamp-file)))
     (make-directory (file-name-directory file) t)
-    (write-region "" nil file nil 'quiet)
+    ;; The stamp's *mtime* carries the date and always did; SUMMARY goes
+    ;; in the body so the pass leaves a durable account of itself rather
+    ;; than only a transient `message' that the next redisplay eats.
+    ;; Empty when a human stamps it by hand, which is the honest value --
+    ;; they performed the ceremony, not this code.
+    (write-region (or summary "") nil file nil 'quiet)
     (when (called-interactively-p 'any)
       (message "Ceremony marked done for today."))
     file))
@@ -715,11 +724,21 @@ why this returns numbers and the formatter below asks a question."
   ;; ceremony was completed* -- a claim only a human can make, since it
   ;; spans steps nothing observes.  The clock says *a pass was run*,
   ;; which is derived from the act itself and cannot be forgotten.
-  ;; Either is reason enough not to ask again today; only the first is
-  ;; reason to believe the ceremony is done, which is why the report
-  ;; below states when that last happened rather than implying it.
-  (unless (or (claude-code-ide-org--ceremony-done-today-p)
-              (claude-code-ide-org--ceremony-reviewed-today-p))
+  ;; *Only the stamp quiets this now* (TODO.org :ID: 29734f79).  A pass
+  ;; having run used to be reason enough not to ask twice in a day,
+  ;; because the steps after apply needed a human, and asking again
+  ;; would have been asking for work only they could do.  That premise
+  ;; is gone: those steps run on leaving the review buffer, and the stamp
+  ;; is written only once all of them have succeeded.  A missing stamp
+  ;; therefore means the ceremony did not finish -- and the case the old
+  ;; disjunct hid is the one that matters most: a pass that ran, failed a
+  ;; step, held the repeater, and was then silenced by its own apply
+  ;; clock.
+  ;;
+  ;; The clock is still read, but to *say* something rather than to stay
+  ;; quiet.  It is what separates "nobody has been here today" from
+  ;; "someone was, and it did not complete".
+  (unless (claude-code-ide-org--ceremony-done-today-p)
     (let ((pending (length (claude-code-ide-org--review-items-from-queue)))
           (drifted (nth 1 (claude-code-ide-org--consolidate-drawers-1 t)))
           (archivable 0))
@@ -736,6 +755,7 @@ why this returns numbers and the formatter below asks a question."
                  (setq archivable (1+ archivable))))
              nil 'file))))
       (list :pending pending :drifted drifted :archivable archivable
+            :reviewed-today (claude-code-ide-org--ceremony-reviewed-today-p)
             :last-done (let ((f (claude-code-ide-org--ceremony-stamp-file)))
                          (when (file-exists-p f)
                            (format-time-string
@@ -759,29 +779,36 @@ before it was unwelcome."
   ;; with it.  Found by the test, not by reading.
   (let* ((pending (or (plist-get status :pending) 0))
          (drifted (or (plist-get status :drifted) 0))
-         (archivable (or (plist-get status :archivable) 0)))
+         (archivable (or (plist-get status :archivable) 0))
+         (reviewed (plist-get status :reviewed-today)))
     (when (and status (> (+ pending drifted archivable) 0))
       (concat
-       (format (concat "Today's review-and-planning pass has not been run yet. "
+       (format (concat (if reviewed
+                           (concat "A review pass ran today but the ceremony "
+                                   "did not complete -- a step after apply "
+                                   "failed, or the review buffer was never "
+                                   "buried. ")
+                         "Today's review-and-planning pass has not been run yet. ")
                        "Waiting: %d queued item(s) pending review, %d :LOGBOOK: "
                        "drawer(s) out of order, %d finished heading(s) not yet "
                        "archived. The ceremony was last marked complete %s. ")
                pending drifted archivable
-               ;; Stated, never implied.  This prompt goes quiet as soon
-               ;; as a pass is *run*, which is not the same as the
-               ;; ceremony being *finished* -- so the date it was last
-               ;; finished has to be visible or silence would read as
-               ;; completion (TODO.org :ID: 806ff394).
+               ;; Stated, never implied (TODO.org :ID: 806ff394).  This
+               ;; used to matter because the prompt went quiet on a pass
+               ;; having *run*, which is not the same as the ceremony
+               ;; being *finished*.  Silence now means finished, so the
+               ;; date has stopped being load-bearing -- but it still
+               ;; answers "how long has this been slipping", which earns
+               ;; a line when the report is firing anyway.
                (or (plist-get status :last-done) "never"))
        "Ask the user whether they want to run it now; do not announce that you "
        "will, and do not run any part of it unasked. Apply is theirs alone -- "
        "M-x claude-code-ide-org-review -- because org's state-change logging "
-       "only completes inside a genuinely interactive command. After they "
-       "apply, the remaining steps are yours if they ask: "
-       "claude-code-ide-org-consolidate-all-drawers, then "
-       "claude-code-ide-org-normalize-heading-separation, then archiving. "
-       "When the pass is finished, call claude-code-ide-org-mark-ceremony-done "
-       "so this stops asking until tomorrow."))))
+       "only completes inside a genuinely interactive command. The steps "
+       "after it are nobody's to remember: burying the review buffer runs "
+       "drawer consolidation, heading separation and archiving, and stamps "
+       "the ceremony done only if all three succeed. So the thing to ask for "
+       "is the apply; the rest follows from leaving the buffer."))))
 
 (defun claude-code-ide-org--session-start-hook-json ()
   "Return the SessionStart hook JSON payload: an empty object if there is
@@ -938,7 +965,7 @@ would silently eat this hook's whole timeout."
                        (cond
                         ((equal state "WAITING") "WAITING")
                         ((and (equal state "DOING")
-                              (not (claude-code-ide-org--container-heading-p)))
+                              (not (claude-code-ide-org--grouping-heading-p)))
                          (cond
                           ((and queued-state (not (equal queued-state "DOING")))
                            (format "DOING in file, queued -> %s, not yet applied"
@@ -975,6 +1002,109 @@ would silently eat this hook's whole timeout."
             (kill-buffer buffer)))))
     (nreverse results)))
 
+(defun claude-code-ide-org--nomination-candidates-context ()
+  "One line per container that has live members and no NEXT among them.
+
+*Nominating, not promoting* (TODO.org :ID: 62b65ad0).  A trigger used to
+set NEXT on a container's sole remaining TODO by itself.  It was retired
+because a `NEXT' it wrote could be wrong and was invisible: three of
+roughly eight top-level promotions ended up parked as MAYBE.  Choosing
+the next action is judgement, so this states the fact and leaves the
+choice -- the same contract the stale-interval and ceremony reports
+already follow, and the reason they are trusted.
+
+Reports a *container* only, which is the whole point: GTD's invariant is
+that a live project always has a next action, and a project here is a
+story or a slice, never a filing category.  Handles both, since their
+members differ in kind: a story's are child headings, a slice's are
+`[[id:...]]' links resolved through the referent index.
+
+Says how many candidates there are but never picks one.  A sole
+candidate is named, because there naming it costs nothing and no
+judgement is being pre-empted; several are counted, because that is
+exactly the case no rule can decide."
+  (let ((index (claude-code-ide-org--slice-referent-index))
+        (results nil))
+    (dolist (file (claude-code-ide-org--tracked-files))
+      (when (file-exists-p file)
+        (let* ((already-open (find-buffer-visiting file))
+               (buffer (or already-open (find-file-noselect file))))
+          (with-current-buffer buffer
+            (org-with-wide-buffer
+             (goto-char (point-min))
+             (while (re-search-forward org-heading-regexp nil t)
+               (let ((kw (org-get-todo-state)))
+                 (when (and kw
+                            (not (member kw claude-code-ide-org--outline-finished-keywords)))
+                   ;; No `--grouping-heading-p' guard, deliberately.
+                   ;; Having live members IS being a container: the
+                   ;; children scan below returns nil for a leaf and
+                   ;; `--slice-members' returns nil for a non-slice, so
+                   ;; the `states' test already excludes everything the
+                   ;; predicate would have. Measured 2026-08-26 --
+                   ;; removing the guard changed no test, which is what
+                   ;; a redundant guard looks like. Keeping it would have
+                   ;; doubled the descendant scan and implied a coverage
+                   ;; the suite could not actually demonstrate.
+                   (let ((states (claude-code-ide-org--member-keywords index)))
+                     (when (and states
+                                (not (member "NEXT" (mapcar #'car states)))
+                                (assoc "TODO" states))
+                       (let ((todos (seq-filter (lambda (s) (equal (car s) "TODO")) states)))
+                         ;; Stripped over the assembled line. Every
+                         ;; component read from the buffer carries text
+                         ;; properties -- `org-get-heading' most visibly --
+                         ;; and `format' propagates them, so an MCP client
+                         ;; would be handed a `#("..." 0 11 (...))'
+                         ;; literal. Same trap `--outline-line' documents;
+                         ;; caught here by reading the live output rather
+                         ;; than by a test, since batch Emacs runs no
+                         ;; font-lock and the fixtures come back clean.
+                         (push (substring-no-properties
+                                (format "no next action in \"%s\" (:ID: %s): %s"
+                                       (org-get-heading t t t t)
+                                       (or (org-entry-get nil "ID") "none")
+                                       (if (= 1 (length todos))
+                                           (format "one candidate, \"%s\"" (cdr (car todos)))
+                                         (format "%d candidates" (length todos)))))
+                               results)))))))))
+          (unless already-open
+            (with-current-buffer buffer (set-buffer-modified-p nil))
+            (kill-buffer buffer)))))
+    (nreverse results)))
+
+(defun claude-code-ide-org--member-keywords (index)
+  "Return (KEYWORD . TITLE) for each live member of the container at point.
+
+A slice's members are links and a story's are child headings, so this
+resolves the two differently and returns the same shape either way.
+INDEX is a `claude-code-ide-org--slice-referent-index' hash, used only
+for the slice case.
+
+Returns *every* keyworded member, finished ones included, and leaves
+liveness to the caller. A filter stood here and was removed 2026-08-26
+after breaking it changed no test: the caller selects TODO members
+anyway, so a DONE member could never reach the output. Three redundant
+guards were written into this function on the first pass and all three
+were found the same way -- by breaking them and watching the suite stay
+green."
+  (let ((raw
+         (if (claude-code-ide-org--slice-p)
+             (delq nil
+                   (mapcar (lambda (member)
+                             (gethash (downcase (car member)) index))
+                           (claude-code-ide-org--slice-members)))
+           (let ((end (save-excursion (org-end-of-subtree t t)))
+                 (acc nil))
+             (save-excursion
+               (org-back-to-heading t)
+               (forward-line 1)
+               (while (re-search-forward org-heading-regexp end t)
+                 (let ((kw (org-get-todo-state)))
+                   (when kw (push (cons kw (org-get-heading t t t t)) acc)))))
+             (nreverse acc)))))
+    raw))
+
 (defun claude-code-ide-org-session-context ()
   "Return a plain-text summary of \"what was I last doing\": the
 currently clocked-in heading, if any, followed by one line per heading
@@ -985,7 +1115,8 @@ Returns the empty string when there is nothing to report, so callers
 can treat an empty result as \"nothing worth injecting\"."
   (let* ((clocked (claude-code-ide-org--clocked-heading-context))
          (waits (claude-code-ide-org--attention-headings-context))
-         (lines (append (when clocked (list clocked)) waits)))
+         (nominations (claude-code-ide-org--nomination-candidates-context))
+         (lines (append (when clocked (list clocked)) waits nominations)))
     (mapconcat #'identity lines "\n")))
 
 (defun claude-code-ide-org--session-context-hook-json ()
@@ -1914,7 +2045,7 @@ unresolved."
   "Archive the org heading whose :ID: property equals ID.
 Uses the #+ARCHIVE: directive in effect at the heading (file-level
 or per-heading :ARCHIVE: property).  For :code: tasks this should
-resolve to DONE.org::* Done per your project file headers."
+resolve to DONE.org's top level per your project file headers."
   (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "org_archive")))
     (claude-code-ide-org--at-id
      id
@@ -2036,14 +2167,26 @@ effect immediately."
   (or claude-code-ide-org-capture-file org-default-notes-file))
 
 (defun claude-code-ide-org--capture-level-1-headings (file)
-  "Titles of FILE's level-1 headings — this project's categories.
-They carry no :ID: by convention, so a title is the only handle there
-is; see `claude-code-ide-org--capture-target-spec' for why that is
-acceptable here and nowhere else."
+  "The distinct :CATEGORY: values in use across FILE.
+
+*Was the titles of FILE's level-1 headings* until 2026-08-27, when
+TODO.org :ID: 29439196 dissolved that tier. A level-1 heading is now a
+task, so offering those titles as capture targets would invite filing a
+heading *under another task* by name -- both a nesting nobody asked for
+and an address-by-title, which this project forbids everywhere else.
+
+Kept as the answer to \"what categories exist?\", which is what
+`org_capture's schema sends a reader here for. Read from the drawer
+rather than `org-entry-get', which computes a fallback and would report
+the file name as a category on every uncategorised heading."
   (with-current-buffer (find-file-noselect file)
-    (org-map-entries (lambda () (substring-no-properties
-                                 (org-get-heading t t t t)))
-                     "LEVEL=1" 'file)))
+    (let (cats)
+      (org-with-wide-buffer
+       (goto-char (point-min))
+       (while (re-search-forward "^[ \t]*:CATEGORY:[ \t]+\\(\\S-.*?\\)[ \t]*$" nil t)
+         (let ((c (substring-no-properties (match-string 1))))
+           (unless (member c cats) (push c cats)))))
+      (nreverse cats))))
 
 (defun claude-code-ide-org--capture-target-spec (target)
   "Resolve TARGET to a plist (:spec SPEC :file FILE :where DESC).
@@ -2068,17 +2211,20 @@ different one is worse off than a caller that got an error."
                      (not (string-empty-p (string-trim target)))
                      (string-trim target))))
     (cond
+     ;; No target: the top of the capture file. *Prepend*, not append --
+     ;; TODO.org :ID: 29439196 flattened the category tier, and with no
+     ;; heading to file under, recency is the ordering that remains. It
+     ;; is also what the user asked for: newest first.
      ((null target)
-      (list :spec (list 'file default) :file default :where "end of file"))
+      (list :spec (list 'file default) :file default :where "top of file"))
      ((claude-code-ide-org--id-find target)
       (list :spec (list 'id target)
             :file (car (claude-code-ide-org--id-find target))
             :where (format "under :ID: %s" target)))
-     ((member target (claude-code-ide-org--capture-level-1-headings default))
-      (list :spec (list 'file+olp default target)
-            :file default
-            :where (format "under \"%s\"" target)))
-     (t (error "target %S is neither a known :ID: nor a top-level heading in %s"
+     (t (error "target %S is not a known :ID:. Since 2026-08-27 a category \
+is a :CATEGORY: property rather than a heading, so there is nothing to file \
+*under* by name -- omit the target to prepend at the top of %s and pass \
+category instead"
                target (file-name-nondirectory default))))))
 
 ;;; Write-through gate for capture and amend ---------------------------------
@@ -2152,7 +2298,16 @@ had it written through, and two similar templates would drift."
                      (format "* %%i%s\n:PROPERTIES:\n:ID:       %s\n:CREATED:  %s\n:END:\n"
                              (claude-code-ide-org--format-tags tags)
                              new-id created)
-                     :immediate-finish t))))
+                     :immediate-finish t
+                     ;; Prepend only for a bare file target. TODO.org
+                     ;; :ID: 29439196 flattened the categories, so a
+                     ;; targetless capture lands at file level and
+                     ;; recency is the ordering that remains -- newest
+                     ;; first, which is what the user asked for. An
+                     ;; `(id ...)' target is untouched: prepending there
+                     ;; would make a new child the FIRST child, which is
+                     ;; a different decision nobody has taken.
+                     :prepend (eq (car-safe spec) 'file)))))
     (org-capture-string title "z")))
 
 (cl-defun claude-code-ide-org-capture (title &optional target tags note)
@@ -2195,28 +2350,24 @@ Returns \"Captured: \\=\"TITLE\\=\" (ID: ...) <where>\" when it wrote,
 Those prefixes are a contract with `bin/hooks/queue-append' — see
 `claude-code-ide-org--reply-captured'.  Never signals to the MCP layer.
 
-TARGET is required.  It was optional until 2026-08-20, falling back to
-appending at the end of the capture file — reasoned as \"the honest
-answer for placement unknown\", which it is in general and is not here:
-the capture file is TODO.org, so appending means a *level-1* heading,
-and this project reserves those for categories carrying no keyword, no
-tags and no properties.  Such a capture produced a heading violating the
-convention on three counts, to be refiled by hand — the manual step this
-tool exists to remove (TODO.org :ID: 97696fc2).
+TARGET is optional again as of 2026-08-27, and the reason it was ever
+required has been deleted rather than overridden.
 
-Refusing rather than guessing costs the one case the fallback existed
-for: a passing mention whose home is genuinely unknown.  That case turned
-out not to be real — the call that finally hit this had a category in
-mind and omitted the argument out of habit.
+It was required from 2026-08-20 because appending at the end of the
+capture file meant a *level-1* heading, and level 1 was the category
+tier: such a capture violated the convention on three counts and had to
+be refiled by hand — the manual step this tool exists to remove
+(TODO.org :ID: 97696fc2).  TODO.org :ID: 29439196 dissolved that tier.
+Level 1 is now exactly where a task belongs, so the shape the guard
+existed to prevent is the shape a capture should produce.
 
-`cl-defun' for the early return only; the body is one `condition-case'
-form and wrapping it in a conditional would mean re-indenting all of it
-to add a guard that belongs at the top."
-  (when (string-empty-p (string-trim (or target "")))
-    (cl-return-from claude-code-ide-org-capture
-      (concat "Error: target is required — name an :ID: or a category title. "
-              "Appending at the end of the file would create a level-1 heading, "
-              "which is reserved for categories. Run org_outline to see what exists.")))
+Omitting TARGET therefore prepends at the top of the capture file, and
+`:CATEGORY:' is set afterwards or not at all.  Naming an :ID: still
+files underneath it.  What is no longer accepted is a category *title*:
+those are property values now, not headings, so there is nothing to file
+under by that name — and accepting one would mean filing a heading under
+another task, addressed by title, which this project forbids everywhere
+else."
   (condition-case err
       (let* ((resolved (claude-code-ide-org--capture-target-spec target))
              (file (plist-get resolved :file))
@@ -2341,7 +2492,27 @@ Returns \"Amended: ...\", \"Queued amend: ...\", or \"Error: ...\"."
     (if (null id) (cdr resolved)
   (let ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker))))
     (if (not marker)
-        (format "Error: no org heading found with :ID: \"%s\"" id)
+        ;; A capture queued this session has an :ID: but no heading yet,
+        ;; so this resolution fails -- truthfully and uselessly: "no org
+        ;; heading found" reads as a typo when `org_capture' returned
+        ;; that id seconds earlier. `org_set_todo' and `org_clock_in'
+        ;; have tolerated the state since the silent-drop regression;
+        ;; amend never did (TODO.org :ID: 798bb7a1), hit on 2026-08-27
+        ;; while filing a heading about it.
+        ;;
+        ;; Amend genuinely cannot proceed -- there is no body to write
+        ;; into -- so this stays a refusal, and says which refusal it is.
+        ;; The check belongs HERE and not around the `--at-id' below:
+        ;; amend resolves the id early to choose write-through versus
+        ;; queue, so a guard further down is unreachable. `--id-find's
+        ;; own docstring says exactly that, and a first attempt put it
+        ;; there anyway.
+        (let ((pending (claude-code-ide-org--pending-capture id)))
+          (if pending
+              (format "Error: \"%s\" is a capture queued this session and not \
+yet applied, so it has no body to amend. Apply the queue, then amend."
+                      (plist-get pending :title))
+            (format "Error: no org heading found with :ID: \"%s\"" id)))
       (let* ((file (buffer-file-name (marker-buffer marker)))
              (title (org-with-point-at marker
                       (org-no-properties (org-get-heading t t t t)))))
@@ -2516,21 +2687,74 @@ heading that ever had one read as blocked forever.  Measured on
 TODO.org the day it shipped: all 10 markers were false, because all four
 referenced headings were DONE.
 
-  [blocked]   at least one named blocker is not in a finished state
-  [blocked?]  a dependency exists that cannot be resolved -- an id that
-              no longer points anywhere, or a form naming no ids at all.
-              Deliberately not silent: unresolvable is not the same as
-              satisfied, and collapsing them is how the first version
-              went wrong in the other direction."
+  [blocked: a1b2c3d4 ...]   the named blockers that are not finished
+  [blocked?: a1b2c3d4 ...]  a dependency exists that cannot be resolved --
+              an id that no longer points anywhere; bare `[blocked?]' for a
+              form naming no ids at all (`previous-sibling'). Deliberately
+              not silent: unresolvable is not the same as satisfied, and
+              collapsing them is how the first version went wrong in the
+              other direction.
+
+*The ids are named rather than merely flagged since 2026-08-26* (TODO.org
+:ID: 8183fc7c, the user's proposal).  A bare `[blocked]' says *something*
+unfinished blocks this and sends the reader off to find out what, which
+defeats an index whose whole job is answering structural questions
+without opening the file.  Naming them makes every dependency traversable
+in the index itself, and it is what makes `[blocked?]' actionable at all:
+it used to say a dependency could not be resolved without saying which.
+
+Only the *offending* ids are listed -- the unfinished ones for
+`[blocked]', the unresolvable ones for `[blocked?]' -- not the whole
+declaration.  A satisfied blocker is not news, and a slice with 24
+members would otherwise print all 24 forever.
+
+Prefixes, not full ids, at this project's 8 characters.  Measured before
+committing to it: 17 headings carry a `:BLOCKER:' across both files, 44
+ids in total, so the whole-corpus outline grows by roughly 440 characters
+against 20,264 -- *+2.2%*, against an index some 65x smaller than the
+files it stands in for."
   (let ((raw (org-entry-get nil "BLOCKER")))
     (when raw
       (let* ((ids (claude-code-ide-org--outline-blocker-ids raw))
-             (states (mapcar #'claude-code-ide-org--outline-id-finished-p ids)))
-        (cond ((memq 'open states) "  [blocked]")
-              ((or (null ids) (memq nil states)) "  [blocked?]")
+             (pairs (mapcar (lambda (id)
+                              (cons id (claude-code-ide-org--outline-id-finished-p id)))
+                            ids))
+             (open (mapcar #'car (seq-filter (lambda (p) (eq (cdr p) 'open)) pairs)))
+             (unresolved (mapcar #'car (seq-filter (lambda (p) (null (cdr p))) pairs))))
+        (cond (open (format "  [blocked: %s]"
+                            (mapconcat #'claude-code-ide-org--id-prefix open " ")))
+              (unresolved (format "  [blocked?: %s]"
+                                  (mapconcat #'claude-code-ide-org--id-prefix
+                                             unresolved " ")))
+              ((null ids) "  [blocked?]")
               (t nil))))))
 
-(defun claude-code-ide-org--outline-line (active-only max-depth)
+(defconst claude-code-ide-org--id-prefix-minimum 4
+  "Shortest :ID: prefix a tool will try to expand.
+
+Uniqueness, not length, is what makes a prefix safe:
+`claude-code-ide-org--expand-id-prefix' refuses an ambiguous one rather
+than guessing.  So this is a floor on *effort*, not on correctness --
+below it a prefix is so likely to collide that expanding is a waste.
+
+Measured over this corpus 2026-08-27, 282 ids: two characters collide in
+73 groups, three in 4, and **four in none** -- the same as eight. Raised
+from a hard-coded 8 because the user reports using short prefixes
+constantly, and there was never a reason beyond the convention's own
+citation width.")
+
+(defconst claude-code-ide-org--id-prefix-length 8
+  "How many characters of an :ID: this project cites.
+One constant so the outline, the review buffer and anything else that
+abbreviates an id cannot drift apart about it.")
+
+(defun claude-code-ide-org--id-prefix (id)
+  "Return the first `claude-code-ide-org--id-prefix-length' chars of ID."
+  (if (and (stringp id) (> (length id) claude-code-ide-org--id-prefix-length))
+      (substring id 0 claude-code-ide-org--id-prefix-length)
+    id))
+
+(defun claude-code-ide-org--outline-line (active-only max-depth &optional indent-offset)
   "Format the heading at point as one index line, or nil to omit it.
 Omits finished headings when ACTIVE-ONLY, and anything deeper than
 MAX-DEPTH when that is non-nil.  Levels are absolute, so a MAX-DEPTH
@@ -2554,7 +2778,7 @@ subtree."
         ;; rewritten to propertize the fixture by hand, since batch Emacs
         ;; runs no font-lock and a scratch org file is clean either way.
         (substring-no-properties
-         (concat (make-string (* 2 (1- level)) ?\s)
+         (concat (make-string (* 2 (+ (1- level) (or indent-offset 0))) ?\s)
                 (and keyword (concat keyword " "))
                 ;; All four flags on: no TODO keyword (added above, so it
                 ;; is not doubled), no priority cookie, no tags, no
@@ -2575,15 +2799,189 @@ subtree."
                 (and tags (format "  :%s:" (string-join tags ":")))
                 (claude-code-ide-org--outline-blocked-marker)))))))
 
-(defun claude-code-ide-org--outline-map (active-only max-depth scope)
-  "Collect index lines over SCOPE, an `org-map-entries' scope value."
-  (let (lines)
+(defun claude-code-ide-org--outline-slice-members ()
+  "Reference lines for the slice at point, or nil when it is not one.
+
+TODO.org :ID: 8183fc7c.  Scoped to a slice, `org_outline' used to return
+a single line for two dozen members -- a *wrong answer*, not a missing
+feature, since a slice is structure and the tool is advertised as the way
+to see structure without reading the file.
+
+*Members render as references, never as children.*  A slice may name one
+task inside another story, so indenting them under it would assert a
+containment that does not exist.  The `->' marker and the referent's own
+file are what say \"look over there\" rather than \"contained here\".
+
+*Every member is listed, including dropped ones*, and that is the whole
+reason this is not simply the blocker list one screen up.  A member whose
+checkbox cookie was deleted is deliberately absent from `:BLOCKER:' --
+blocking on a deferred member would hold the slice open forever for work
+it explicitly decided not to do -- so a blocker-derived view silently
+loses the record of having considered and dropped something, which the
+conventions say a list must not lose.  Here it reads `(dropped)'.
+
+Likewise unfiltered by ACTIVE-ONLY, which is why this takes no such
+argument: a slice's member list *is* its definition, and hiding the
+finished half would misreport what the slice is.  The statistics cookie
+already carries the progress."
+  (when (claude-code-ide-org--slice-p)
+    (let ((members (claude-code-ide-org--slice-members)))
+      (when members
+        ;; Built only for a slice, and only once: it scans every tracked
+        ;; file, so paying for it on ordinary scoped calls would tax the
+        ;; common case for the rare one.
+        (let ((index (claude-code-ide-org--slice-referent-index)))
+          (mapcar
+           (lambda (member)
+             (let* ((id (car member))
+                    (mark (cdr member))
+                    (ref (gethash (downcase id) index))
+                    (loc (claude-code-ide-org--id-find id)))
+               (concat "  -> "
+                       (if mark (format "[%s] " mark) "(dropped) ")
+                       (if (car ref) (concat (car ref) " ") "")
+                       (or (cdr ref) "(unresolved referent)")
+                       (format "  {%s}" id)
+                       (if loc
+                           (format "  (%s)" (file-name-nondirectory (car loc)))
+                         ""))))
+           members))))))
+
+(defun claude-code-ide-org--outline-front-matter ()
+  "Return the heading-at-point's front matter as a list of lines.
+
+The three things TODO.org :ID: 2d9eeebd found unreachable -- a
+`:CREATED:' stamp, a `:BLOCKER:' *value* rather than the bare
+`[blocked]' marker the tree line carries, and a plan link -- plus
+`:CATEGORY:', which did not exist as a property when that heading was
+written and became load-bearing when :ID: 29439196 flattened the tier
+into one.
+
+Emitted only for the *scope root*, never per line.  Per-heading front
+matter would multiply by heading count and destroy the one property this
+tool sells: being roughly 40x smaller than reading the file.  At the root
+it costs a fixed handful of lines however large the subtree is.
+
+Blocker ids are rendered as 8-character prefixes, which is how this
+project writes them everywhere else, and are annotated with the referent
+keyword so a satisfied blocker is visible as such without a second call."
+  (let* ((created (org-entry-get nil "CREATED"))
+         ;; --outline-category, not --category-property-p: the latter is a
+         ;; *predicate* and answers t, which is what the first version of
+         ;; this printed. Inherited, so a story's child reports its
+         ;; parent's rather than nothing.
+         (category (claude-code-ide-org--outline-category))
+         (kind (org-entry-get nil "KIND"))
+         (blocker (org-entry-get nil "BLOCKER"))
+         (end (save-excursion (org-end-of-subtree t t) (point)))
+         (plan (save-excursion
+                 (and (re-search-forward
+                       "\\[\\[file:\\([^]]*plans/[^]]*\\)\\]\\[[^]]*\\]\\]" end t)
+                      (match-string-no-properties 1))))
+         (lines nil))
+    (when created (push (format "  :CREATED: %s" created) lines))
+    (when category (push (format "  :CATEGORY: %s" category) lines))
+    (when kind (push (format "  :KIND: %s" kind) lines))
+    (when blocker
+      (let ((ids (claude-code-ide-org--lint-blocker-ids blocker)))
+        (push (format "  :BLOCKER: %s"
+                      (if (not ids) blocker
+                        (mapconcat
+                         (lambda (b)
+                           (let* ((m (ignore-errors
+                                       (claude-code-ide-org--id-find b 'marker)))
+                                  (kw (and m (org-with-point-at m
+                                               (org-get-todo-state)))))
+                             (format "%s%s" (claude-code-ide-org--id-prefix b)
+                                     (cond ((not m) " (unresolved)")
+                                           ((not kw) " (keywordless)")
+                                           (t (format " %s" kw))))))
+                         ids " ")))
+              lines)))
+    (when plan (push (format "  :PLAN-FILE: %s" plan) lines))
+    (nreverse lines)))
+
+(defun claude-code-ide-org--outline-map (active-only max-depth scope &optional grouped)
+  "Collect index lines over SCOPE, an `org-map-entries' scope value.
+
+With GROUPED, return (CATEGORY . LINE) pairs and indent every line one
+level further, leaving room for the synthetic category header the caller
+emits.  Without it, return plain lines exactly as before."
+  (let (records)
+    ;; Two lines per heading: the filtered one, which decides whether it
+    ;; survives on its own, and the unfiltered one, which is what gets
+    ;; emitted if it turns out to be an ancestor of something that did.
     (org-map-entries
      (lambda ()
-       (let ((line (claude-code-ide-org--outline-line active-only max-depth)))
-         (when line (push line lines))))
+       (push (list (org-current-level)
+                   (claude-code-ide-org--outline-line
+                    active-only max-depth (and grouped 1))
+                   (claude-code-ide-org--outline-line
+                    nil max-depth (and grouped 1))
+                   (and grouped (claude-code-ide-org--outline-category)))
+             records))
      nil scope)
-    (nreverse lines)))
+    ;; RECORDS is reverse document order, which is the order this walk
+    ;; wants. A heading is kept when it survives the filter, or when it is
+    ;; an *ancestor* of something already kept -- otherwise `active_only'
+    ;; emits a live child at its unchanged absolute indent with its parent
+    ;; missing, and the reader silently re-parents it onto whatever line
+    ;; happens to sit above at a smaller indent (TODO.org :ID: 98908aff).
+    ;;
+    ;; `need-above\' is the level of the shallowest kept heading seen so
+    ;; far. Anything shallower than that, encountered earlier in the
+    ;; document, is on its path and has to be emitted to keep the
+    ;; indentation readable as parentage.
+    (let ((need-above nil) (out nil))
+      (dolist (rec records)
+        (let ((level (nth 0 rec)) (own (nth 1 rec))
+              (full (nth 2 rec)) (cat (nth 3 rec)))
+          (cond
+           (own (setq need-above level)
+                (push (if grouped (cons cat own) own) out))
+           ((and need-above full (< level need-above))
+            (setq need-above level)
+            (push (if grouped (cons cat full) full) out)))))
+      out)))
+
+(defun claude-code-ide-org--outline-category ()
+  "The `:CATEGORY:' governing the heading at point, inherited, or nil.
+
+Inherited on purpose: a story stamps its children, and a child of a
+story should group with its parent rather than appear uncategorised.
+Uses `org-entry-get' WITH inheritance and then rejects org's computed
+fallback -- absent any property org answers the file name, or a literal
+question-mark triple, so a bare presence test always succeeds
+(TODO.org :ID: 29439196)."
+  (let ((v (org-entry-get nil "CATEGORY" t))
+        (file (and (buffer-file-name)
+                   (file-name-base (buffer-file-name)))))
+    (and v (not (equal v "???")) (not (equal v file)) v)))
+
+(defun claude-code-ide-org--outline-group (pairs)
+  "Render (CATEGORY . LINE) PAIRS as category headers with members under.
+
+*The rendered shape is deliberately identical to the pre-2026-08-27
+outline*, where a category was a real heading: a bare unindented line
+with its tasks indented beneath.  Only the source changed, from position
+in the tree to a declared property -- which is TODO.org :ID: 979e02b6's
+whole thesis applied to the tool itself.
+
+Groups appear in first-seen order, so the outline still reflects the
+file rather than imposing an alphabetical order the file does not have.
+Uncategorised headings collect under a final `(no :CATEGORY:)' group
+rather than being dropped or silently attached to the previous one."
+  (let (order table out)
+    (dolist (pair pairs)
+      (let ((cat (or (car pair) "(no :CATEGORY:)")))
+        (unless (assoc cat table)
+          (push cat order)
+          (push (cons cat nil) table))
+        (push (cdr pair) (cdr (assoc cat table)))))
+    (dolist (cat (nreverse order) (nreverse out))
+      (push cat out)
+      (dolist (line (nreverse (cdr (assoc cat table))))
+        (push line out)))))
 
 (defun claude-code-ide-org-outline (&optional scope max-depth active-only)
   "Return a compact one-line-per-heading index.
@@ -2620,11 +3018,32 @@ layer."
           (let ((lines (claude-code-ide-org--at-id
                         scope
                         (lambda ()
-                          (claude-code-ide-org--outline-map
-                           active depth 'tree)))))
+                          ;; Members first, while the buffer is still
+                          ;; wide: `--outline-map' narrows to the tree.
+                          ;; Only the *scoped* call expands them -- in a
+                          ;; whole-file outline every member already has
+                          ;; a line where it lives, and the statistics
+                          ;; cookie reports the size, so expanding there
+                          ;; would print each member twice.
+                          (let ((members (claude-code-ide-org--outline-slice-members))
+                                (front (claude-code-ide-org--outline-front-matter)))
+                            (append front
+                                    (claude-code-ide-org--outline-map
+                                     active depth 'tree)
+                                    members))))))
             (if (stringp lines) lines      ; --at-id's "Error: ..." string
               (if lines (mapconcat #'identity lines "\n")
                 "No headings in scope."))))
+         ;; An unresolved scope that is not shaped like a file was meant as
+         ;; an :ID:, and saying "no readable file at .../f4e628ce" reports
+         ;; the wrong failure -- it reads as a missing file rather than an
+         ;; unresolvable heading, which is what TODO.org :ID: 2d9eeebd
+         ;; found. Decided on shape rather than on a resolution attempt,
+         ;; because both interpretations have already failed by here.
+         ((and scope
+               (not (string-match-p "[/.]" scope)))
+          (format "Error: scope %S resolves to no heading. It is not a file \
+name either; pass an :ID:, an 8-character :ID: prefix, or a file name." scope))
          (t
           (let* ((files (if scope
                             (list (expand-file-name scope))
@@ -2634,8 +3053,9 @@ layer."
             (dolist (file files)
               (unless (file-readable-p file)
                 (error "no readable file at %s" file))
-              (let ((lines (claude-code-ide-org--outline-map
-                            active depth (list file))))
+              (let ((lines (claude-code-ide-org--outline-group
+                            (claude-code-ide-org--outline-map
+                             active depth (list file) 'grouped))))
                 (when lines
                   (push (if multiple
                             ;; Only label files when there is more than
@@ -2665,6 +3085,190 @@ what `org-sort-entries' itself accepts (e.g. it also supports
 numeric, by-creation-time, by-property, and custom-function sorts,
 plus capitalized variants for a reversed order) — these six cover
 the sorts a model is actually likely to ask for by name.")
+
+(defun claude-code-ide-org-divide (id parent-title &optional parent-state)
+  "Insert a new parent titled PARENT-TITLE above the heading with :ID: ID,
+and demote that heading to become its first child.  This is *task
+mitosis* (TODO.org :ID: a0813ae3): a leaf that has outgrown itself
+divides rather than being promoted in place.
+
+PARENT-STATE is the new parent's TODO keyword, defaulting to the
+child's own, so the group inherits the claim the task was already
+making rather than resetting it.
+
+Everything the child owns travels with it, because the child is not
+touched: its :ID:, :LOGBOOK:, CLOCK lines, state history and body all
+move because `org-demote-subtree' moves the *text*.  That is the whole
+point of dividing rather than promoting -- the record stays with the
+task that earned it.
+
+The id in particular stays with the child, which the heading settled
+against two plausible objections.  Prose cross-references land on the
+elder child and reach the story in one keystroke.  And a queued
+`clock_in' names a heading by id, so if the id moved to the new parent,
+applying a pending clock event would open a clock *on a container* --
+the exact outcome mitosis exists to prevent.
+
+The new parent is born empty: no clock, no :LOGBOOK:, no body.  It gets
+an :ID:, a :CREATED: stamp, the child's :CATEGORY:, and a `[/]'
+statistics cookie, which it needs the moment it has a keyworded child.
+Splitting the child's engorged body into further sibling leaves is
+deliberately *not* done here -- that is an editorial judgement, and a
+tool that guessed at it would be inventing headings.
+
+Composed from org's own `org-demote-subtree' plus one whole-line
+insertion at beginning-of-heading.  No range arithmetic: this repo has
+two body corruptions on record from hand-rolled region edits, which is
+why `org_wrap_plan' exists, and an insertion that deletes nothing
+cannot repeat them."
+  (require 'org-id)
+  (let ((marker (claude-code-ide-org--id-find id 'marker)))
+    (if (not marker)
+        (format "Error: no org heading found with :ID: \"%s\"" id)
+      (condition-case err
+          (org-with-point-at marker
+            (org-back-to-heading t)
+            (let* ((level (org-current-level))
+                   (state (or parent-state (org-get-todo-state)))
+                   (category (claude-code-ide-org--outline-category))
+                   (line (concat (make-string level ?*) " "
+                                 (if state (concat state " ") "")
+                                 parent-title " [/]\n")))
+              (beginning-of-line)
+              (insert line)
+              ;; Point is now on the child's heading; demote it under the
+              ;; parent just inserted.
+              (org-demote-subtree)
+              ;; Back up to the new parent and give it its identity.
+              (org-back-to-heading t)
+              (org-up-heading-safe)
+              (let ((parent-id (org-id-get-create)))
+                (org-entry-put (point) "CREATED"
+                               (format-time-string "[%Y-%m-%d %a %H:%M]"))
+                (when category (org-entry-put (point) "CATEGORY" category))
+                (org-update-statistics-cookies nil)
+                (save-buffer)
+                (format "Divided: new parent \"%s\" (:ID: %s) now holds \"%s\"; \
+its id, clock and history stayed with the child"
+                        parent-title parent-id
+                        (save-excursion (org-goto-first-child)
+                                        (org-get-heading t t t t))))))
+        (error (format "Error: %s" (error-message-string err)))))))
+
+(defconst claude-code-ide-org--property-tool-refused '("ID" "CREATED")
+  "Properties `org_set_property' will not write.
+
+Both are written by `org_capture' at creation and are identity rather
+than annotation.  Rewriting an :ID: silently orphans every inbound link
+and every queued event naming it; rewriting :CREATED: falsifies the one
+timestamp nothing else can reconstruct.  Refused at the call site rather
+than trusted to a convention, because a convention has no way to say no.")
+
+(defun claude-code-ide-org--blocker-ids-from (value)
+  "Return VALUE's ids as full :ID:s, expanding 8-character prefixes.
+
+Answers (cons \\='ok IDS) or (cons \\='error MESSAGE).  A prefix that
+resolves to nothing, or to more than one heading, is an error rather
+than a guess -- which is the point of validating here at all.  TODO.org
+:ID: 36b811d9 records three fabricated ids in one session, each caught
+only by a later link-resolution sweep; a fabricated id in a :BLOCKER:
+never blocks and never errors, so nothing downstream would have caught
+it either."
+  (let ((table (claude-code-ide-org--id-index))
+        (out nil) (bad nil))
+    (dolist (tok (split-string (or value "") "[ \t,]+" t))
+      (let* ((tok (string-trim tok))
+             ;; Always expand, never trust the token. `--id-find' resolves a
+             ;; *prefix* too (:ID: 478d6ec9), so a shortcut through it would
+             ;; write the prefix into the property -- which then reads as a
+             ;; malformed id to everything downstream. Caught by the test on
+             ;; its first run, which is the argument for having written it.
+             (hit (claude-code-ide-org--expand-id-prefix tok table)))
+        (cond ((stringp hit) (push hit out))
+              ((eq hit 'none) (push (format "%s (matches no heading)" tok) bad))
+              (t (push (format "%s (ambiguous)" tok) bad)))))
+    (if bad
+        (cons 'error (format "cannot resolve: %s" (string-join (nreverse bad) ", ")))
+      (cons 'ok (nreverse out)))))
+
+(defun claude-code-ide-org-set-property (id property value &optional append)
+  "Set PROPERTY to VALUE on the heading with :ID: ID.  Writes immediately.
+
+Exists because none of the other tools sets a property, so every change
+was an `emacsclient' call or a hand-edit -- which made the *discouraged*
+form cheaper than the preferred one.  CLAUDE.md asks for a machine-
+checkable :BLOCKER: rather than a prose \"depends on ...\" sentence, and
+prose cost nothing while the property cost a shell call (TODO.org :ID:
+36b811d9).
+
+:BLOCKER: is special-cased rather than given its own tool, which settles
+that heading's first design question.  A general writer would get it
+silently wrong in two ways: the property holds a *set*, so plain
+assignment discards whatever was already there, and its members are ids,
+which nothing else would check.  Here every token is resolved first --
+8-character prefixes expanded, unresolvable or ambiguous ones refused --
+and APPEND unions with the existing set instead of replacing it.
+
+Warns, without refusing, when a :BLOCKER: names a heading carrying no
+TODO keyword.  That is inert rather than wrong: `org-depend' blocks only
+on unfinished work, and a heading captured this session is keyword-less
+until a human applies the queue, so refusing would make the tool unusable
+in the case it is most wanted.  The warning is the same check
+`bin/lint-org' already runs, moved from after-the-fact to the call site.
+
+Refuses while the target file has unsaved changes, rather than queueing.
+`org_amend' queues in that situation and that is the better end state;
+it needs a queue kind, a hook branch and a review-buffer rendering, none
+of which exist yet.  Refusing loses nothing -- the caller can retry --
+where writing into a busy buffer could lose the human's edits."
+  (require 'org-id)
+  (let* ((property (upcase (string-trim (or property ""))))
+         (marker (claude-code-ide-org--id-find id 'marker)))
+    (cond
+     ((string-empty-p property) "Error: no property named")
+     ((member property claude-code-ide-org--property-tool-refused)
+      (format "Error: %s is written at capture and is identity, not annotation; \
+this tool will not rewrite it" property))
+     ((not marker) (format "Error: no org heading found with :ID: \"%s\"" id))
+     ((claude-code-ide-org--file-busy-p (buffer-file-name (marker-buffer marker)))
+      (format "Error: %s has unsaved changes in Emacs; retry once it is saved"
+              (file-name-nondirectory (buffer-file-name (marker-buffer marker)))))
+     (t
+      (condition-case err
+          (org-with-point-at marker
+            (if (not (equal property "BLOCKER"))
+                (progn (org-entry-put (point) property value)
+                       (save-buffer)
+                       (format "Set %s on \"%s\"" property
+                               (org-get-heading t t t t)))
+              (let ((parsed (claude-code-ide-org--blocker-ids-from value)))
+                (if (eq (car parsed) 'error)
+                    (format "Error: %s" (cdr parsed))
+                  (let* ((new (cdr parsed))
+                         (old (and append
+                                   (claude-code-ide-org--lint-blocker-ids
+                                    (or (org-entry-get nil "BLOCKER") ""))))
+                         (all (delete-dups (append old new)))
+                         (inert (seq-filter
+                                 (lambda (b)
+                                   (let ((m (claude-code-ide-org--id-find b 'marker)))
+                                     (and m (not (org-with-point-at m
+                                                   (org-get-todo-state))))))
+                                 all)))
+                    (org-entry-put (point) "BLOCKER"
+                                   (format "ids(%s)" (string-join all " ")))
+                    (save-buffer)
+                    (concat
+                     (format "Set BLOCKER on \"%s\" to %d id%s"
+                             (org-get-heading t t t t) (length all)
+                             (if (= 1 (length all)) "" "s"))
+                     (when inert
+                       (format " -- WARNING: %s carr%s no TODO keyword, so \
+org-depend will not block on %s until the queue is applied"
+                               (mapconcat #'claude-code-ide-org--id-prefix inert " ")
+                               (if (= 1 (length inert)) "ies" "y")
+                               (if (= 1 (length inert)) "it" "them")))))))))
+        (error (format "Error: %s" (error-message-string err))))))))
 
 (defun claude-code-ide-org-sort-children (id sort-type)
   "Sort the children of the org heading whose :ID: property equals ID.
@@ -2824,9 +3428,9 @@ BLOCK).  Never signals an error to the MCP layer."
 ;; would clobber whatever is already there.
 
 (defcustom claude-code-ide-org-auto-clock-in-on-doing t
-  "Whether a heading becoming DOING or PLANNING opens a clock by itself.
+  "Whether a heading becoming DOING opens a clock by itself.
 
-On.  A heading set to DOING or PLANNING by hand -- `C-c C-t', `S-right',
+On.  A heading set to DOING by hand -- `C-c C-t', `S-right',
 the agenda's `t' -- opens a clock on it, so work done at the keyboard is
 timed without having to remember `C-c C-x C-i'.
 
@@ -2842,37 +3446,33 @@ them non-overlapping, so it did not help.  What fixed it is
 subtracts whatever this trigger already recorded before writing, so the
 two mechanisms compose instead of summing.
 
-*This reverses a decision, and does so knowingly.*  The 2026-08-11
-cutover considered retiring this trigger and explicitly kept it, on the
-grounds that \"a human's own `C-c C-t' still opens a clock\" (DONE.org's
-deviation table).  That was right while the trigger was the only live
-clock producer worth having.  It is wrong now, and TODO.org :ID:
-226ed53b is why: a clock opened by the trigger is not in any queue, so
-no review pass can see it, confirm it, or correct it -- the same
-divergence CLAUDE.md warns about for a state change driven through
-`emacsclient'.  Two mechanisms recording the same thing by different
-rules is the defect that heading names, and this is the mechanism that
-predates the cutover.
+*The argument that took it away, kept because it is the argument that
+could take it away again.*  The 2026-08-11 cutover considered retiring
+this trigger and explicitly kept it, on the grounds that \"a human's own
+`C-c C-t' still opens a clock\" (DONE.org's deviation table).  TODO.org
+:ID: 226ed53b then objected that a clock opened by the trigger is in no
+queue, so no review pass can see it, confirm it, or correct it -- the
+same divergence CLAUDE.md warns about for a state change driven through
+`emacsclient'.  The paragraph above is where that objection was
+answered rather than merely overruled: invisibility to review was never
+the defect, double counting was, and `--subtract-intervals' removes the
+double counting without removing the trigger.
 
-*What a human gives up*, stated plainly because the reversal takes it
-away: `C-c C-t' to DOING no longer starts timing.  Attention on a
-hand-edited heading has to be claimed deliberately with `C-c C-x C-i',
-which still works and still writes a bare CLOCK line with no annotation
--- the shape that marks an interval as the user's own rather than the
-agent's (TODO.org :ID: 4f8500e6, :ID: b8e6007a).
+*What setting this to nil would cost*, since off is now the road not
+taken: `C-c C-t' to DOING would stop starting timing, and attention on a
+hand-edited heading would have to be claimed deliberately with `C-c C-x
+C-i' -- which works either way, and writes a bare CLOCK line with no
+annotation, the shape that marks an interval as the user's own rather
+than the agent's (TODO.org :ID: 4f8500e6, :ID: b8e6007a).
 
-Set this to t to have the old behaviour back.  It is a `defcustom' and
-not a deletion for exactly that reason: the capability is months old and
-the reversal is a judgement about which record to trust, not a claim
-that anyone wanting the trigger is confused.
-
-Note what turns quiet along with it, none of which is a break:
-`claude-code-ide-org--blocker-clock-running-p' now only ever fires for a
-clock the user opened by hand or the brief one apply opens;
-`claude-code-ide-org--clocked-heading-context' returns nil, so
-`SessionStart' loses its \"Currently clocked in\" line; and the
-clock-status file rests at idle between review passes.  The statusline
-was already moved off the live clock in preparation (:ID: 290b6fc5)."
+Three things go quiet when it is nil, none of them a break:
+`claude-code-ide-org--blocker-clock-running-p' would only ever fire for
+a clock the user opened by hand or the brief one apply opens;
+`claude-code-ide-org--clocked-heading-context' would return nil, so
+`SessionStart' would lose its \"Currently clocked in\" line; and the
+clock-status file would rest at idle between review passes.  The
+statusline was already moved off the live clock (:ID: 290b6fc5), so that
+last one costs nothing either way."
   :type 'boolean
   :group 'claude-code-ide-org)
 
@@ -2888,9 +3488,9 @@ is a no-op instead of recursing.")
   "For `org-blocker-hook': deny a transition to DONE on the heading at
 point when that heading's :ID: matches whichever heading
 `org-clock-marker' currently points at -- i.e. its own clock is still
-running. Identity-based, not source-state-based, so this already
-covers a clocked PLANNING heading exactly as it does a clocked DOING
-one, with no separate PLANNING-specific logic needed. Return non-nil
+running. Identity-based, not source-state-based, so it needs no
+per-keyword logic and did not change when PLANNING was retired
+(TODO.org :ID: c954f650). Return non-nil
 (permit the change) for every requested state
 other than DONE, whenever nothing is currently clocking, or whenever
 either heading lacks an :ID:. CHANGE-PLIST is the plist `org-todo'
@@ -2899,14 +3499,23 @@ docstring for its shape. Never reads `org-clock-marker' or calls any
 other org-clock.el function except from inside this hook -- i.e.
 never at load or registration time.
 
-*Rarely reached since 2026-08-18*, and kept regardless.  With
-`claude-code-ide-org-auto-clock-in-on-doing' off, the only running
-clocks left are one the user opened by hand and the brief one apply
-opens and closes around each interval it writes -- so the common case
-this was built for, a trigger-opened clock still running when DONE was
-requested, no longer arises.  It is not dead: a hand clock-in followed
-by `C-c C-t' to DONE still reaches it, which is a real sequence and
-exactly the one a human is most likely to get wrong unaided.
+*Routinely reached, and it was briefly not.*  Between 2026-08-18 and
+2026-08-19, with `claude-code-ide-org-auto-clock-in-on-doing' nil, the
+only running clocks left were one the user opened by hand and the brief
+one apply opens and closes around each interval it writes -- so the
+common case this was built for, a trigger-opened clock still running
+when DONE was requested, did not arise.  With the trigger on by default
+again it is the ordinary case.
+
+*Measured in batch 2026-08-26* (TODO.org :ID: 6a21e08b), because the
+consequence is easy to state backwards: `C-c C-t' to DOING opens a clock
+via the trigger, and `C-c C-t' to DONE on that same heading is then
+*refused here* -- the keyword stays DOING and `org-block-entry-blocking'
+names the heading.  `org-clock-out-when-done' does not rescue it, since
+`org-blocker-hook' runs before any after-state-change hook.  So the
+hand-edit path is close the clock, then set DONE, in that order.  A hand
+`C-c C-x C-i' followed by DONE reaches this the same way, and is the
+sequence a human is most likely to get wrong unaided.
 
 The epic's plan said this \"goes quiet: nothing opens a clock outside
 apply\".  That is too strong and is corrected here rather than in the
@@ -2998,6 +3607,94 @@ Not inherited -- `org-entry-get' without the inherit flag -- so a
 subheading of a slice is not one."
   (equal "slice" (org-entry-get nil "KIND")))
 
+(defconst claude-code-ide-org--statistics-cookie-regexp
+  "\\[[0-9]*\\(?:%\\|/[0-9]*\\)\\]"
+  "Matches an org statistics cookie: `[/]', `[2/5]', `[%]' or `[40%]'.
+Shared by the inserter and by `bin/lint-org's cookie rules, so the two
+cannot disagree about what counts as a cookie already being present.")
+
+(defun claude-code-ide-org--ensure-statistics-cookie-at-point ()
+  "Insert `[/]' immediately after the keyword at point, when absent.
+Returns non-nil when one was inserted.
+
+`org-update-statistics-cookies' updates a cookie in place and will not
+create one -- verified 2026-08-26 -- so a headline that never got `[/]'
+typed into it is inert to every later refresh. This closes that, and is
+deliberately separate from recomputing: it establishes the slot, org
+fills it.
+
+*Position is the convention, read off the corpus rather than chosen.*
+Measured 2026-08-28: 13 of the 14 cookies in TODO.org and DONE.org sit
+immediately after the keyword, and the single trailing one was written
+by an earlier version of this function. A trailing cookie is also the
+part a narrow agenda window truncates away, which defeats the reason a
+container carries one -- that its progress is readable without
+unfolding it.
+
+`org-edit-headline' takes the headline text without keyword or tags and
+preserves both, so prefixing here cannot disturb either. That matters:
+org requires tags to end the headline, and appending to the raw line
+yields `... :code: [/]', which org does not read as a cookie at all."
+  (let ((title (org-get-heading t t t t)))
+    (unless (string-match-p claude-code-ide-org--statistics-cookie-regexp
+                            (or title ""))
+      (org-edit-headline (concat "[/] " title))
+      t)))
+
+(defun claude-code-ide-org--category-property-p ()
+  "Non-nil when the heading at point literally carries a `:CATEGORY:'.
+
+Distinct from `(org-entry-get nil \"CATEGORY\")', which *computes* a
+category: absent a property it returns the file name, or `\"???\"' in a
+buffer visiting no file. So the obvious presence test can never fail,
+and a lint rule written on it is inert.
+
+That fallback is not incidental to this project -- it is the whole
+finding behind TODO.org :ID: 29439196. Across 274 headings the agenda's
+category column held exactly two distinct values, `TODO' and `DONE',
+because it was showing file names."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((end (save-excursion (outline-next-heading) (point))))
+      (and (re-search-forward "^[ \t]*:CATEGORY:[ \t]+\\S-" end t) t))))
+
+(defun claude-code-ide-org--grouping-heading-p ()
+  "Non-nil when the heading at point is a grouping -- a container or a
+slice -- rather than a unit of work in its own right.
+
+*The union exists because two callers were asking the wrong question.*
+`claude-code-ide-org--trigger-auto-clock-in' and the since-retired
+sole-TODO promotion trigger both consulted
+`claude-code-ide-org--container-heading-p', whose argument is about
+*meaning* -- a grouping's time and its next action live in its members,
+not in it -- while the predicate itself tests a *mechanism*, namely
+whether keyworded headings sit underneath.  Those were the same thing
+until a slice existed.  A slice's members are `[[id:...]]' links in a
+checkbox list rather than descendants, so the mechanism answers nil
+while the argument applies with full force: every referent carries its
+own clock, and every referent is a better next action than the slice.
+TODO.org :ID: 95c27fca measured it -- `(:container-p nil :auto-clock-in
+t :would-clock t)' against the first real slice.
+
+*Why a third predicate rather than teaching one of the two.*
+`--container-heading-p' documents itself as derived from structure
+\"rather than declared in a property someone has to remember to
+maintain\", and `--slice-p' documents itself as reading a declaration
+because a slice cannot be derived.  Both are right about themselves.
+Widening either would make it contradict its own docstring, which is the
+failure mode this repo spent 2026-08-26 cleaning up (:ID: 6a21e08b).  So
+the union goes in a third name, and \"grouping\" is not a coinage: it is
+already CLAUDE.md's word for exactly this union, in the sentence \"a
+grouping is either emergent or declared\".
+
+*Not every `--container-heading-p' caller should become this one.*
+`bin/lint-org's statistics-cookie rule deliberately still asks the
+narrow question, because there the subject really is TODO *children* --
+a slice carries a checkbox cookie over links instead, which is a
+different convention and not this one's business."
+  (or (claude-code-ide-org--container-heading-p)
+      (claude-code-ide-org--slice-p)))
+
 (defun claude-code-ide-org--slice-members ()
   "Return the slice-at-point's members as a list of (ID . MARK).
 
@@ -3021,21 +3718,34 @@ subheading."
 (defun claude-code-ide-org--slice-blocker-ids ()
   "Return the ids the slice at point should block on.
 
-Exactly the members that still carry a checkbox cookie.  A member whose
-cookie was deleted is cancelled or deferred, and deferral is the case
-that matters: a deferred member is *unfinished*, so blocking on it would
-hold the slice open forever for work it explicitly decided not to do.
-Cookie and blocker are therefore the same set by construction, which is
-what the lint assertion checks."
+The members that still carry a checkbox cookie *and are not yet done*,
+so the property shrinks as the slice progresses and is empty when every
+member has landed.
+
+Two exclusions, for different reasons.  A member whose cookie was
+deleted is cancelled or deferred, and deferral is the case that matters:
+a deferred member is *unfinished*, so blocking on it would hold the
+slice open forever for work it explicitly decided not to do.  A member
+whose cookie is `X\' is finished, and `org-depend\' does not block on
+finished work anyway -- carrying it would make a machine-readable
+property long enough to stop being readable while changing nothing.
+
+Narrowed 2026-08-28 (TODO.org :ID: 0086614a).  Before that the rule was
+\"every cookie-carrying member\", which was harmless while a slice held
+only its planned members; once a slice also lists the incidental work
+that closed during its life, every one of those is done on arrival and
+would enter the blocker at birth.  No information is lost: membership is
+recorded by the checkbox list, and the blocker only ever answered \"what
+still has to finish\"."
   (delete-dups
    (mapcar #'car
-           (seq-filter (lambda (m) (cdr m)) (claude-code-ide-org--slice-members)))))
+           (seq-filter (lambda (m) (and (cdr m) (not (equal (cdr m) "X"))))
+                       (claude-code-ide-org--slice-members)))))
 
 (defconst claude-code-ide-org--slice-checkbox-by-keyword
   '(("DONE"      . "X")
     ("DOING"     . "-")
     ("REVIEW"    . "-")
-    ("PLANNING"  . "-")
     ("WAITING"   . "-")
     ("TODO"      . " ")
     ("NEXT"      . " ")
@@ -3045,8 +3755,8 @@ what the lint assertion checks."
 
 Total, and derived rather than chosen -- there is no judgement in a
 slice's checkbox.  `DONE'/`CANCELLED'/`DOING'/`REVIEW' were given by the
-user; the rest follow the same logic.  `PLANNING' and `WAITING' are `-'
-because work started and a clock opened; `MAYBE' has no cookie because
+user; the rest follow the same logic.  `WAITING' is `-' because work
+started and a clock opened; `MAYBE' has no cookie because
 deferral is treated exactly as cancellation -- the member keeps its line
 and stops counting, in either direction.
 
@@ -3063,7 +3773,10 @@ heading."
                                            (mapcar #'car claude-code-ide-org--slice-checkbox-by-keyword)
                                            "\\|")
                        "\\)\\_>")))
-    (dolist (file (claude-code-ide-org--tracked-files) table)
+    ;; Archives included: a slice keeps naming its members after they are
+    ;; archived, so a referent index blind to DONE.org would render them
+    ;; "(unresolved referent)" (TODO.org :ID: 020d3688).
+    (dolist (file (claude-code-ide-org--id-scannable-files) table)
       (when (file-exists-p file)
         (with-temp-buffer
           (let ((org-inhibit-startup t))
@@ -3120,7 +3833,8 @@ it would be destroyed at the next apply anyway."
     ;; longer than what it replaced, which pushed the second member line
     ;; past the bound and left it silently unrefreshed.
     (let ((end (copy-marker (save-excursion (outline-next-heading) (or (point) (point-max)))))
-          (changed 0))
+          (changed 0)
+          (skipped nil))
       (while (re-search-forward
               "^\\([ \t]*\\)- \\(\\[[ Xx-]\\] \\)?\\(\\[\\[id:\\([^]]+\\)\\]\\[[^]]*\\]\\]\\)\\(.*\\)$"
               end t)
@@ -3130,6 +3844,18 @@ it would be destroyed at the next apply anyway."
                (entry (gethash id index))
                (kw (car entry))
                (title (cdr entry)))
+          ;; A member with no entry, or an entry carrying no keyword, is
+          ;; skipped -- and used to be skipped *silently*, leaving the
+          ;; placeholder text standing as though it were the referent's
+          ;; real title. That is the "a slice line disagrees with its
+          ;; referent" failure the conventions exist to prevent, arriving
+          ;; through a door they do not describe (TODO.org :ID: 798bb7a1).
+          ;;
+          ;; Counted rather than repaired: the honest rendering of a
+          ;; heading whose `todo' event is still queued is not something
+          ;; this function can invent, so it reports instead.
+          (unless (and entry kw)
+            (push id skipped))
           (when (and entry kw)
             (let* ((box (cdr (assoc kw claude-code-ide-org--slice-checkbox-by-keyword)))
                    (new (concat indent "- " (if box (format "[%s] " box) "")
@@ -3143,7 +3869,7 @@ it would be destroyed at the next apply anyway."
                 (replace-match new t t)
                 (setq changed (1+ changed)))))))
       (set-marker end nil)
-      changed)))
+      (cons changed (nreverse skipped)))))
 
 (defun claude-code-ide-org-refresh-slice (&optional id)
   "Regenerate every slice's checklist from its referents.
@@ -3173,7 +3899,7 @@ With ID, refreshes that slice only.  Returns a human-readable summary."
         ;; read-only buffer failing it would reproduce the exact incident
         ;; the apply-path binding was added for, one command later.
         (inhibit-read-only t)
-        (slices 0) (lines 0) (blockers 0))
+        (slices 0) (lines 0) (blockers 0) (unrendered nil))
     (dolist (file (claude-code-ide-org--tracked-files))
       (when (file-exists-p file)
         (with-current-buffer (find-file-noselect file)
@@ -3181,19 +3907,123 @@ With ID, refreshes that slice only.  Returns a human-readable summary."
            (goto-char (point-min))
            (while (re-search-forward org-heading-regexp nil t)
              (when (and (claude-code-ide-org--slice-p)
+                        ;; A *closed* slice is a record, not a projection.
+                        ;; Its member lines are derived from referents'
+                        ;; keywords, and referents keep changing after the
+                        ;; slice is done -- so refreshing one lets unrelated
+                        ;; later work reach back and rewrite finished
+                        ;; history. Observed on :ID: c44c2119: a member
+                        ;; cancelled when the slice closed was reopened two
+                        ;; days later, its cookie came back, and a DONE
+                        ;; slice silently became [27/28] (TODO.org :ID:
+                        ;; 30a340fd). The member's own :LOGBOOK: answers any
+                        ;; question about what it is doing now; the slice
+                        ;; does not have to, and should not try.
+                        (not (member (org-get-todo-state)
+                                     claude-code-ide-org--outline-finished-keywords))
                         (or (null id)
                             (equal (downcase (or (org-entry-get nil "ID") ""))
                                    (downcase id))))
                (setq slices (1+ slices))
-               (setq lines (+ lines (claude-code-ide-org--refresh-slice-members-at-point index)))
+               (let ((result (claude-code-ide-org--refresh-slice-members-at-point index)))
+                 (setq lines (+ lines (car result)))
+                 (setq unrendered (append unrendered (cdr result))))
+               ;; Insert the cookie before updating it, because
+               ;; `org-update-statistics-cookies' only ever *updates* one
+               ;; that is already in the headline -- measured 2026-08-26,
+               ;; TODO.org :ID: 28415ca8. A slice whose creator did not
+               ;; type `[/]' by hand was therefore refreshed on every
+               ;; apply, silently, forever: this call found nothing to
+               ;; recompute and said so to nobody. Found on :ID: 979e02b6
+               ;; by the user, six days and one whole slice after
+               ;; :ID: c44c2119 got one only because somebody remembered.
+               ;;
+               ;; Self-healing rather than a creation-time rule, which is
+               ;; the point: a discipline that depends on remembering is
+               ;; the thing this repo keeps discovering it cannot have.
+               (claude-code-ide-org--ensure-statistics-cookie-at-point)
                (org-update-statistics-cookies nil)
                (when (claude-code-ide-org--refresh-slice-blocker-at-point)
                  (setq blockers (1+ blockers))))))
           (when (buffer-modified-p) (save-buffer)))))
-    (format "%d slice%s refreshed, %d member line%s rewritten, %d blocker%s updated"
-            slices (if (= slices 1) "" "s")
-            lines (if (= lines 1) "" "s")
-            blockers (if (= blockers 1) "" "s"))))
+    (concat
+     (format "%d slice%s refreshed, %d member line%s rewritten, %d blocker%s updated"
+             slices (if (= slices 1) "" "s")
+             lines (if (= lines 1) "" "s")
+             blockers (if (= blockers 1) "" "s"))
+     ;; Named, not merely counted. "1 skipped" sends the reader hunting
+     ;; through a 27-member list; the id says which line is still showing
+     ;; its placeholder, and the reason says what will fix it.
+     (when unrendered
+       (format ".  %d member%s left unrendered because %s keywordless on \
+disk -- a queued capture or `todo' event, not yet applied: %s"
+               (length unrendered)
+               (if (= 1 (length unrendered)) "" "s")
+               (if (= 1 (length unrendered)) "it is" "they are")
+               (mapconcat #'claude-code-ide-org--id-prefix unrendered " "))))))
+
+(defun claude-code-ide-org--goto-candidates ()
+  "Return (DISPLAY . ID) for every heading in the tracked files.
+
+DISPLAY leads with the id's 8-character prefix, then the keyword, then
+the title.  Leading rather than trailing is deliberate and is the same
+argument TODO.org :ID: 46e4ce2b makes for the review buffer: the prefix
+is what a reader arrives with, so it should be the first thing the eye
+and the completion pattern both meet.
+
+The prefix is part of the candidate *string*, not an annotation.
+Completion styles match against the candidate; an annotation supplied
+through `completion-extra-properties' is displayed but not matched by
+several of them, so typing `720b2dcf' would narrow nothing.  Putting it
+in the string is what makes every abbreviation this project writes --
+in prose, in commit messages, in conversation -- directly typeable,
+which TODO.org :ID: 915378ac calls most of the value.
+
+Document order, not relevance: unlike the assignment dialog there is no
+time to rank against, and file order already puts recent captures near
+the top because `org_capture' prepends."
+  (let (out)
+    (dolist (file (claude-code-ide-org--tracked-files))
+      (when (file-readable-p file)
+        (with-current-buffer (find-file-noselect file)
+          (org-with-wide-buffer
+           (goto-char (point-min))
+           (while (re-search-forward org-heading-regexp nil t)
+             (let ((id (org-entry-get nil "ID")))
+               (when id
+                 (push (cons (format "%s  %-9s %s"
+                                     (claude-code-ide-org--id-prefix id)
+                                     (or (org-get-todo-state) "-")
+                                     (org-get-heading t t t t))
+                             id)
+                       out))))))))
+    (nreverse out)))
+
+(defun claude-code-ide-org-goto ()
+  "Jump to a heading chosen by title, without pasting a UUID.
+
+`org-id-goto' wants the *entire* id, exactly, and offers no help getting
+one: it is `(interactive \"sID: \")', a plain string prompt with no
+completion, and every resolution path beneath it is exact by
+construction.  Meanwhile this project names headings by their first
+eight characters everywhere -- prose, commits, conversation -- which
+makes those references readable and, until now, completely unactionable
+(TODO.org :ID: 915378ac).
+
+Deliberately not semantic matching.  A fuzzy resolver that returns the
+wrong heading confidently is the failure this project has measured twice
+\(:ID: 7771fc63, and the suggestion fallback removed the same day\).
+Prefix and substring matching are decidable; similarity is not."
+  (interactive)
+  (require 'org-id)
+  (let* ((candidates (claude-code-ide-org--goto-candidates))
+         (choice (completing-read
+                  "Heading: "
+                  (claude-code-ide-org--ordered-collection candidates)
+                  nil t)))
+    (let ((id (cdr (assoc choice candidates))))
+      (unless id (user-error "No heading chosen"))
+      (org-id-goto id))))
 
 (defun claude-code-ide-org-refresh-slice-blocker (&optional id)
   "Write the `:BLOCKER:' of the slice with :ID: ID from its checkbox list.
@@ -3237,23 +4067,29 @@ Returns a human-readable summary."
 
 (defun claude-code-ide-org--trigger-auto-clock-in (change-plist)
   "For `org-trigger-hook': the moment any heading's TODO state becomes
-DOING or PLANNING, automatically open a clock on it via `org-clock-in',
+DOING, automatically open a clock on it via `org-clock-in',
 unless a clock is already running on that exact heading, or the heading
 is a container \(`claude-code-ide-org--container-heading-p'). Guarded
 against re-entrancy by `claude-code-ide-org--auto-clock-in-active'.
 
-*Off by default since 2026-08-18* (TODO.org :ID: 226ed53b, step 2(c)):
-the first thing tested is `claude-code-ide-org-auto-clock-in-on-doing',
-which is nil, so in normal operation this function does nothing at all.
-Read that variable's docstring for the reversal and what it costs -- it
-is the one place the decision is argued, and everything below describes
-the behaviour a user gets by opting back in.
+*On by default.*  The first thing tested is
+`claude-code-ide-org-auto-clock-in-on-doing', whose standard value is t
+and whose live value is t, so in normal operation this function does
+fire.  Read that variable's docstring for the argument on both sides --
+it is the one place the decision is made.
 
-The hook registration is deliberately left in place rather than removed.
-Unregistering would leave a function that is dead in production and live
-only in its own tests, which is precisely the shape this epic's plan
-flags as a finding worth avoiding rather than creating.  Gated, the
-tests exercise a real configuration a user can select.
+*This paragraph said the opposite for a week* (TODO.org :ID: 6a21e08b,
+fixed 2026-08-26).  The variable was nil between 2026-08-18 and
+2026-08-19 (:ID: 226ed53b, step 2(c)); `eca3a77' put it back and updated
+the `defcustom' but not its readers, leaving this docstring asserting
+inertness of a live function -- the most misleading available way to be
+stale, and one no test and no lint can see.
+
+The hook registration is unconditional and the gate is inside the
+function, so setting the variable nil leaves a registered no-op rather
+than unregistering anything.  That is deliberate: it keeps the tests
+exercising a real configuration a user can select, whichever way the
+variable is set.
 CHANGE-PLIST is the plist `org-todo' passes to every
 `org-trigger-hook' function; see `org-trigger-hook's own docstring for
 its shape. Never calls `org-clock-in' or reads `org-clock-marker'
@@ -3279,9 +4115,9 @@ scenario that raised it (TODO.org :ID: ab75d6d2).  The exemption's
 *rationale* is unaffected by any of this and still holds -- see that
 heading for the measurement."
   (when (and claude-code-ide-org-auto-clock-in-on-doing
-             (member (plist-get change-plist :to) '("DOING" "PLANNING"))
+             (equal (plist-get change-plist :to) "DOING")
              (not claude-code-ide-org--auto-clock-in-active)
-             (not (claude-code-ide-org--container-heading-p)))
+             (not (claude-code-ide-org--grouping-heading-p)))
     (let* ((target-id (org-entry-get nil "ID"))
            (already-clocked-here
             (and (org-clocking-p)
@@ -3293,20 +4129,20 @@ heading for the measurement."
         (let ((claude-code-ide-org--auto-clock-in-active t))
           (org-clock-in))))))
 
-;; `--maybe-record-planning-owner' and `--promote-planning-to-doing'
-;; stood here until the 2026-08-11 cutover (TODO.org :ID:
-;; feba67eb-35b3-48bd-a892-8ecd47ca52e0). Between them they implemented
-;; the PLANNING -> DOING auto-promotion on ExitPlanMode: one recorded
-;; which session had set PLANNING, the other promoted the heading that
-;; owned the running clock if that session matched.
+;; A PLANNING -> DOING auto-promotion stood here, and then in
+;; bin/hooks/exitplanmode-promote-planning, until the keyword was retired
+;; on 2026-08-28 (TODO.org :ID: c954f650). Measured over the project's
+;; whole history first: 7 PLANNING transitions in 432, on 6 of the 24
+;; days the keyword existed, absent from the three busiest days; 43
+;; headings carried a plan link and 7 of them ever wore it; and the
+;; premise it was built on -- long spans of agent work in plan mode --
+;; held for one of the seven, four having clocked nothing at all inside
+;; the window.
 ;;
-;; Both inputs are gone -- no clock runs, and no MCP tool sets a state --
-;; so the promotion moved into bin/hooks/exitplanmode-promote-planning,
-;; which reads the session's own queue file for the heading it most
-;; recently queued PLANNING on and appends a DOING event beside it. The
-;; cross-session guard the owner variable provided comes free there: the
-;; file is per-session, so another session's PLANNING is not in it to be
-;; found.
+;; Nothing replaced it. A "plan approved" event was considered and
+;; declined: nothing would consume it, and this project's precedent
+;; (:ID: 7771fc63) is to delete a mechanism whose premise failed rather
+;; than to reimplement it in a cheaper form.
 
 ;;; Single NEXT action per level ----------------------------------------------
 ;;
@@ -3372,14 +4208,26 @@ moment any heading's TODO state becomes NEXT, demote every OTHER
 heading in the same sibling group that is currently NEXT back to TODO,
 with an explanatory :LOGBOOK: note. No-op unless CHANGE-PLIST's :to is
 \"NEXT\". Demoting a sibling re-enters `org-todo' (hence this hook)
-for that sibling -- safe by construction, see
-`claude-code-ide-org--trigger-auto-promote-sole-todo's docstring. The
+for that sibling -- safe by construction, because the nested call's
+:to is \"TODO\" and this function no-ops on anything but \"NEXT\". The
 nested `org-todo' call is wrapped in `org-inhibit-logging' so org's own
 native logging (an interactive note-prompt, if TODO or NEXT is ever
 marked `@' in the future) never fires for this programmatic
 transition; `claude-code-ide-org--format-log-state-line' supplies an
 equivalent line by hand instead."
-  (when (equal (plist-get change-plist :to) "NEXT")
+  (when (and (equal (plist-get change-plist :to) "NEXT")
+             ;; Only inside a container. A top-level heading has no
+             ;; sibling group worth the name: its "siblings" are every
+             ;; other task in the file, so demoting among them asserts
+             ;; one next action for the whole corpus. TODO.org :ID:
+             ;; 62b65ad0 decided that `NEXT' belongs to a container's
+             ;; *members* -- the children of a story, the referents of a
+             ;; slice -- and never to a container itself, because that is
+             ;; what GTD means by the next action of a project.
+             ;; Having a parent IS the test: a keyworded heading with a
+             ;; parent makes that parent a container by
+             ;; `--container-heading-p''s own definition.
+             (save-excursion (org-back-to-heading t) (org-up-heading-safe)))
     ;; Name the superseding sibling by an [[id:...]] link rather than a
     ;; bare title. Titles are not stable here -- headings get retitled as
     ;; their scope becomes clearer, which is exactly why every tool in
@@ -3404,136 +4252,13 @@ equivalent line by hand instead."
              (format "Auto-demoted: superseded by sibling %s becoming NEXT."
                      reference)))))))))
 
-(defvar claude-code-ide-org--auto-promote-active nil
-  "Re-entrancy guard for `claude-code-ide-org--trigger-auto-promote-sole-todo'.
 
-Bound to t around that function's own `org-todo' call.  `org-todo' fires
-`org-trigger-hook', which is that function, so without this the
-promotion re-enters itself on the group it has just changed.
 
-Distinct from `claude-code-ide-org--review-applying', which suppresses
-the promotion for a whole apply batch so it can be settled once
-afterwards.  That one is deliberately *unbound* during the settle phase,
-which is precisely when this one is needed -- the two are not
-substitutes and the absence of this one is what let a single apply make
-1201 mutations across 114 headings (TODO.org :ID: filed 2026-08-24).
-
-Modelled on `claude-code-ide-org--auto-clock-in-active', which guards
-the sibling trigger against the same shape.")
-
-(defvar claude-code-ide-org--review-applying nil
-  "Non-nil while `claude-code-ide-org--review-apply' is working through a
-batch, and read only by `claude-code-ide-org--trigger-auto-promote-sole-todo'.
-
-Distinct from `claude-code-ide-org--auto-clock-in-active', which is bound
-per *item* by `claude-code-ide-org--review-apply-item' as a re-entrancy
-guard for one function's own `org-clock-in'.  This one is bound around
-the *whole* loop, because what the promote trigger must not see is the
-half-applied intermediate state between items -- a property of the batch,
-not of any item in it (TODO.org :ID: c8a6c5d2).
-
-Deliberately not reused for the demote trigger, which is order-independent:
-whichever order a batch's NEXT transitions land in, the last one wins and
-the end state is the same.")
-
-(defun claude-code-ide-org--trigger-auto-promote-sole-todo (_change-plist)
-  "For `org-trigger-hook': whenever this heading's sibling group (self
-included, group size >= 2) has exactly one member in TODO and none in
-NEXT, promote that lone TODO to NEXT, with an explanatory :LOGBOOK:
-note. Deliberately unconditional on CHANGE-PLIST's :to -- a transition
-to DONE/CANCELLED/WAITING/MAYBE/DOING on ANY sibling can be what drops
-the group to one TODO survivor, not just a transition into/out of
-NEXT. Always re-derives group state fresh from the live buffer, never
-from CHANGE-PLIST -- this is what keeps this safe against re-promoting
-a heading that `claude-code-ide-org--trigger-demote-conflicting-next'
-just demoted: by the time this function evaluates, any sibling still
-NEXT already shows as NEXT in the buffer, so the next-p guard below
-correctly refuses to create a second simultaneous NEXT. A group of
-size 1 (no siblings) is never eligible -- auto-promotion only resolves
-conflicts among competing candidates, it is not a rule that a solitary
-heading must always be NEXT.
-
-Two guards sit in front of that rule, added 2026-08-21, both instances
-of one shape: the counting above reads sibling *state* without asking
-whether the state it is reading, or the heading it would promote, is the
-kind of thing the answer should apply to.
-
-*Mid-batch suppression* (TODO.org :ID: c8a6c5d2). Re-deriving from the
-live buffer is right for a hand-edit and wrong during a review apply,
-which lands one event at a time: the moment the first of five captured
-children gets its keyword it is momentarily the only keyworded sibling
-of five, the group-size guard passes because size counts all siblings,
-and the promotion records queue order rather than judgement.  Observed
-live 2026-08-21 on this repo's own file.  So the trigger declines while
-`claude-code-ide-org--review-applying' is bound, and
-`claude-code-ide-org--review-settle-auto-promote' runs it once per
-touched heading afterwards, against the batch's finished state.  Note
-what this is *not*: suppressing without that settle pass would leave the
-function dead in production and live only in its tests, since under the
-queue architecture nearly every transition arrives through apply.
-
-*Container exclusion* (TODO.org :ID: 42808717). Promoting a container
-declares a project to be an action, inverting the one thing NEXT means:
-reproduced 2026-08-19 with an epic going NEXT while its own child action
-stayed TODO.  `claude-code-ide-org--container-heading-p' is the same
-predicate `claude-code-ide-org--trigger-auto-clock-in' consults one
-screen up, on an argument that applies verbatim.  Checked at the
-*promotion site* rather than while collecting candidates, which is the
-narrower of the two readings: a group of {container TODO, leaf TODO}
-still promotes nothing, exactly as before.  Excluding containers from
-the count instead would newly promote the leaf there -- more useful,
-possibly right, and a behaviour change the defect did not ask for.
-42808717 leaves open whether a refused promotion should instead descend
-into the container's own sole remaining child; no evidence has been
-gathered either way, so this promotes nothing, matching the honest-nil
-argument `claude-code-ide-org--review-suggest-heading' makes for the
-same class of refusal."
-  (unless (or claude-code-ide-org--review-applying
-              claude-code-ide-org--auto-promote-active)
-    (let (todo-markers next-p (group-size 0))
-      (claude-code-ide-org--map-siblings
-       (lambda ()
-         (setq group-size (1+ group-size))
-         (let ((state (org-get-todo-state)))
-           (cond ((equal state "NEXT") (setq next-p t))
-                 ((equal state "TODO") (push (point-marker) todo-markers)))))
-       'include-self)
-      (when (and (> group-size 1) (not next-p) (= (length todo-markers) 1))
-        (org-with-point-at (car todo-markers)
-          (unless (claude-code-ide-org--container-heading-p)
-            ;; Bound around this call and nothing else. `org-todo' fires
-            ;; `org-trigger-hook', which is this function -- so without
-            ;; the binding the promotion re-enters itself, promotes in
-            ;; the newly-promoted heading's group, and repeats.
-            ;;
-            ;; `--review-applying' does NOT cover this. It is bound only
-            ;; around the apply loop and deliberately unbound during
-            ;; `--review-settle-auto-promote', which is the whole point
-            ;; of suppress-then-settle -- so the settle phase ran with
-            ;; no re-entrancy protection at all. Measured 2026-08-24 on
-            ;; one real apply: 1201 mutations across 114 headings in
-            ;; nine seconds, against twelve queued state changes,
-            ;; sustained at ~240 writes per second. 50 of them landed on
-            ;; level-1 categories, because once the cascade writes a
-            ;; keyword onto one, the level-1 sibling group satisfies the
-            ;; promotion's own condition and feeds it.
-            ;;
-            ;; Exactly the shape `claude-code-ide-org--auto-clock-in-active'
-            ;; already guards for `--trigger-auto-clock-in'. That one had
-            ;; it from the start; this one never got the equivalent.
-            (let ((claude-code-ide-org--auto-promote-active t)
-                  (org-inhibit-logging t))
-              (org-todo "NEXT"))
-            (claude-code-ide-org--append-to-drawer
-             "LOGBOOK"
-             (claude-code-ide-org--format-log-state-line
-              "NEXT" "TODO" "Auto-promoted: sole remaining TODO in its sibling group."))))))))
 
 (with-eval-after-load 'org
   (add-hook 'org-blocker-hook #'claude-code-ide-org--blocker-clock-running-p)
   (add-hook 'org-trigger-hook #'claude-code-ide-org--trigger-auto-clock-in)
-  (add-hook 'org-trigger-hook #'claude-code-ide-org--trigger-demote-conflicting-next)
-  (add-hook 'org-trigger-hook #'claude-code-ide-org--trigger-auto-promote-sole-todo))
+  (add-hook 'org-trigger-hook #'claude-code-ide-org--trigger-demote-conflicting-next))
 
 ;;; Clock status file -------------------------------------------------------
 ;;
@@ -5079,7 +5804,7 @@ from a skipped one."
              (events (cdr group)))
         (when id
           ;; State transitions replay one per todo event, in order --
-          ;; never collapsed. A TODO->PLANNING->DOING run is three real
+          ;; never collapsed. A TODO->NEXT->DOING run is three real
           ;; transitions and org's own log wants a line for each; it is
           ;; the *clock interval* that must not be broken up by them.
           (dolist (event events)
@@ -5274,7 +5999,7 @@ from a skipped one."
             (time-less-p (or (plist-get a :ts) (plist-get a :start))
                          (or (plist-get b :ts) (plist-get b :start)))))))
 
-(defconst claude-code-ide-org--work-in-progress-keywords '("DOING" "PLANNING")
+(defconst claude-code-ide-org--work-in-progress-keywords '("DOING")
   "Keywords asserting that work is happening on a heading right now.
 
 The positive half of the keyword set, and the only half worth naming:
@@ -5293,7 +6018,7 @@ and NEXT all sit on org's not-done side while meaning nobody is working.")
   "Return the :ID: most plausibly being worked on at TIME, from EVENTS.
 
 A heading is the answer only while it is *in* a work-in-progress state
-at TIME: something entered it into DOING or PLANNING before TIME and
+at TIME: something entered it into DOING before TIME and
 nothing has taken it out since.  Otherwise nil, and the span is offered
 unattributed for a human to assign (TODO.org :ID: 3d0487f4 built that
 path precisely so nil is workable).
@@ -5367,11 +6092,17 @@ every answer this function could return was wrong by construction."
            ((equal id active) (setq active nil))))))
     ;; Resolved once, at the end, rather than per event: the loop runs
     ;; over every queued `todo' and this reads a file.
-    (unless (claude-code-ide-org--container-id-p active)
+    (unless (claude-code-ide-org--grouping-id-p active)
       active)))
 
-(defun claude-code-ide-org--container-id-p (id)
-  "Non-nil when ID resolves to a container heading.
+(defun claude-code-ide-org--grouping-id-p (id)
+  "Non-nil when ID resolves to a grouping heading -- a container or a
+slice (`claude-code-ide-org--grouping-heading-p').
+
+Renamed from `--container-id-p' 2026-08-26 (TODO.org :ID: 95c27fca)
+along with the question it asks: a slice is no more suggestible as the
+owner of an unassigned span than a container is, and for the same
+reason -- the time belongs to a member.
 
 Resolves through `org-id-find' the way
 `claude-code-ide-org--review-heading-title' does, and releases the
@@ -5382,7 +6113,7 @@ suggestion on the strength of a lookup failure."
     (let ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker))))
       (when marker
         (prog1 (org-with-point-at marker
-                 (claude-code-ide-org--container-heading-p))
+                 (claude-code-ide-org--grouping-heading-p))
           (set-marker marker nil))))))
 
 (defun claude-code-ide-org--review-current-state (id)
@@ -5401,9 +6132,10 @@ names nothing, so a caller can tell \"heading has no keyword\" from
   "Non-nil when ITEM's queued transition disagrees with reality.
 
 The hazard this exists for, observed live 2026-08-07: a queued
-`todo -> PLANNING' was applied long after the heading had moved on to
+`todo -> NEXT' was applied long after the heading had moved on to
 DOING, and apply faithfully regressed it, writing a
-`State \"PLANNING\" from \"DOING\"' line to prove it.  Nothing errored;
+`State \"NEXT\" from \"DOING\"' line to prove it.  (The real 2026-08-07
+case used PLANNING, retired 2026-08-28; the shape is unchanged.)  Nothing errored;
 the record simply became wrong in a plausible-looking way.  A queue is
 reviewed at a moment of the human's choosing, so *any* out-of-band
 change in between -- a hand-edit, another session, an agenda bulk
@@ -5878,7 +6610,7 @@ Binds `claude-code-ide-org--auto-clock-in-active' for the duration.
 That is this module's own re-entrancy guard for
 `claude-code-ide-org--trigger-auto-clock-in', reused here rather than
 inventing a second suppression flag: without it the trigger fires on any
--> DOING/PLANNING transition, opens a clock at *now* rather than the
+-> DOING transition, opens a clock at *now* rather than the
 backdated time, and -- confirmed live during TODO.org :ID: 3d576d29's
 verification -- destroys the pending state-change note so it never
 lands at all."
@@ -6099,8 +6831,7 @@ compares the `:BLOCKER:' against the checkbox list, and
 `refresh-slice' regenerates both, so the two agree with each other while
 disagreeing with the tree.
 
-*After the batch, not per item*, for the same reason
-`--review-settle-auto-promote' is: a mid-batch refresh sees
+*After the batch, not per item*: a mid-batch refresh sees
 half-applied state.  Worse here than there -- a member whose `todo'
 event has not landed yet is *keywordless on disk*, which leaves its line
 unrewritten AND manufactures a `:BLOCKER:' lint error naming a
@@ -6121,47 +6852,6 @@ ante rather than new damage."
       (error (message "Slice refresh after apply failed: %s"
                       (error-message-string err))))))
 
-(defun claude-code-ide-org--review-settle-auto-promote (applied-items)
-  "Run the sole-TODO promotion once per heading APPLIED-ITEMS touched,
-after `claude-code-ide-org--review-apply\'s loop has finished and
-`claude-code-ide-org--review-applying\' is no longer bound.
-
-This is the half that keeps the mid-batch suppression from amounting to
-deleting the trigger (TODO.org :ID: c8a6c5d2).  Under the queue
-architecture nearly every real transition arrives through apply, so a
-trigger that only declines there would be live in its tests and dead in
-production -- the shape `claude-code-ide-org--trigger-auto-clock-in\'s
-docstring already flags as worth avoiding.  Suppress-then-settle keeps
-the rule and changes only *when* it is evaluated: once, against the
-batch\'s finished state, instead of once per half-applied intermediate.
-
-Only `state\' items are considered.  They are the only kind that changes
-a TODO keyword, and keyword composition is the entire input to the
-promotion -- a clock or amend cannot move a group toward or away from
-having one sole TODO survivor, and a capture writes its heading without
-a keyword at all.
-
-Deduplicated by :ID:, so a chain of transitions applied to one heading in
-one batch settles once.  The trigger is idempotent by construction (it
-re-derives group state fresh and refuses when any sibling is already
-NEXT), so a second call would be harmless -- the dedup is about not doing
-one file visit per event.
-
-An id that no longer resolves is skipped silently: `claude-code-ide-org--at-id\'
-returns its error string rather than signalling, and a heading that has
-gone away since it was applied has no sibling group left to settle."
-  (let ((seen (make-hash-table :test 'equal)))
-    (dolist (item applied-items)
-      (let ((id (plist-get item :id)))
-        (when (and (eq (plist-get item :type) 'state)
-                   id
-                   (not (gethash id seen)))
-          (puthash id t seen)
-          (claude-code-ide-org--at-id
-           id
-           (lambda ()
-             (claude-code-ide-org--trigger-auto-promote-sole-todo nil)
-             (save-buffer))))))))
 
 (defun claude-code-ide-org--review-apply (items)
   "Apply ITEMS in order. Returns a plist (:applied N :errors ERRORS).
@@ -6178,15 +6868,19 @@ re-read now, so a heading changed out of band since the buffer was drawn
 is still caught, and only this batch's own effects are projected over
 it.
 
-Binds `claude-code-ide-org--review-applying' around the loop and calls
-`claude-code-ide-org--review-settle-auto-promote' after it, so the
-sole-TODO promotion sees the batch's finished state rather than each
-half-applied intermediate one.  See that variable for why the flag is
-batch-scoped where `claude-code-ide-org--auto-clock-in-active' is
-item-scoped."
+Settles slices and heading separation after the loop rather than per
+item, so each sees the batch's finished state rather than a
+half-applied intermediate one.
+
+*A batch-scoped suppression flag stood here until 2026-08-26* (TODO.org
+:ID: 62b65ad0).  It existed only to hold the sole-TODO promotion back
+until the batch finished; retiring that promotion left nothing to
+suppress, and the flag, its re-entrancy companion and the settle pass
+that re-ran what it skipped all went with it -- 163 lines whose whole
+purpose was guarding a trigger that wrote to the file on its own."
   (claude-code-ide-org--review-projected-staleness items)
   (let (applied errors)
-    (let ((claude-code-ide-org--review-applying t))
+    (progn
       (dolist (item items)
         (setq claude-code-ide-org--last-error-backtrace nil)
         (let ((error (claude-code-ide-org--review-apply-item item)))
@@ -6199,7 +6893,6 @@ item-scoped."
               (push (claude-code-ide-org--review-describe-failure item error)
                     errors)
             (push item applied)))))
-    (claude-code-ide-org--review-settle-auto-promote applied)
     (claude-code-ide-org--review-settle-slices applied)
     (claude-code-ide-org--review-settle-separation applied)
     (claude-code-ide-org--review-record-applied applied)
@@ -7423,11 +8116,16 @@ forget.  It was forgotten twice: `a' and `e' both dropped point at the
 top of the buffer, which meant assigning a run of spans required
 scrolling back to find your place after every one.
 
-ADVANCE encodes the rule the mark commands arrived at first: advance
-when the command *answers* the question the line posed -- marking,
-assigning, dismissing -- and stay when it does not.  `e' narrows an
-interval you are still deciding about and `N' annotates one, so both
-leave point where it was.
+ADVANCE means the command is *finished with this line*: `m', `u' and
+`d' leave nothing further to do to it.  Everything else stays -- `e'
+narrows an interval you are still deciding about, `N' annotates one, and
+`a' makes the line markable rather than done with it.
+
+The rule used to be \"advance when the command *answers* the question
+the line posed\", which put `a' in the advancing set. That was generalised
+from the mark commands, where answering and finishing coincide; for `a'
+they do not, and it advanced past exactly the line it had just made
+actionable (TODO.org :ID: a2509a61).
 
 Deliberately not used by `g'.  That command means \"rebuild from the
 queue\" and discards session state on purpose; restoring point into a
@@ -7982,8 +8680,13 @@ guideposts and still deserve `e' before they are trusted.  Only the
         (plist-put item :id id)
         (plist-put item :unassigned nil)
         (plist-put item :assigned t)
-        ;; Advance: assigning *answers* the question this line posed.
-        (claude-code-ide-org--review-redraw item t)))))
+        ;; No advance. Assigning does not finish the line -- it makes it
+        ;; markable, which is what the docstring above says and what the
+        ;; human does next (TODO.org :ID: a2509a61). The rule this used
+        ;; to follow, "advance when the command answers the line
+        ;; question", was generalised from `m'/`u', where answering and
+        ;; finishing coincide. For `a' they do not.
+        (claude-code-ide-org--review-redraw item)))))
 
 (defun claude-code-ide-org-review-dismiss ()
   "Retire the item at point permanently, so it stops being proposed.
@@ -8334,6 +9037,234 @@ logs themselves)."
             (save-buffer))))
       t)))
 
+(defun claude-code-ide-org--duplicate-ids-in-file (file)
+  "Return the :ID: values appearing more than once in FILE.
+
+Reads text rather than using org, so it costs one pass and can run as a
+post-condition on a file the caller has just written."
+  (let ((seen (make-hash-table :test 'equal)) (dupes nil))
+    (with-temp-buffer
+      (insert-file-contents file)
+      (goto-char (point-min))
+      (while (re-search-forward "^[ \t]*:ID:[ \t]+\\(.+?\\)[ \t]*$" nil t)
+        (let ((id (match-string 1)))
+          (if (gethash id seen)
+              (cl-pushnew id dupes :test #'equal)
+            (puthash id t seen)))))
+    (nreverse dupes)))
+
+(defun claude-code-ide-org--archive-target-file (source)
+  "Return the file `org-archive-location\' sends SOURCE\'s entries to."
+  (let* ((loc (with-current-buffer (find-file-noselect source)
+                org-archive-location))
+         (spec (car (split-string loc "::"))))
+    (expand-file-name
+     (if (string-match-p "%s" spec)
+         (format spec (file-name-sans-extension (file-name-nondirectory source)))
+       spec)
+     (file-name-directory (file-truename source)))))
+
+(defun claude-code-ide-org--subtree-has-live-heading-p ()
+  "Non-nil if any descendant of the heading at point carries a live keyword.
+
+Guards `claude-code-ide-org-archive-finished\' against burying live work.
+A finished parent normally has only finished children -- measured
+2026-08-31, zero of TODO.org\'s 65 finished top-level headings had a live
+descendant -- but that is a fact about today\'s corpus, not an invariant,
+and `org-archive-subtree\' would take the whole subtree without comment.
+The heading itself is excluded: it is the one already known to be
+finished."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((end (save-excursion (org-end-of-subtree t t)))
+          (found nil))
+      (forward-line 1)
+      (while (and (not found) (re-search-forward org-heading-regexp end t))
+        (let ((kw (org-get-todo-state)))
+          (when (and kw (not (member kw claude-code-ide-org--outline-finished-keywords)))
+            (setq found t))))
+      found)))
+
+(defun claude-code-ide-org-archive-finished (&optional file)
+  "Archive every *top-level* finished heading in FILE.  Returns a count.
+
+Top-level only, and that is the safety rule rather than a simplification.
+A finished heading nested under a *live* one must not be archived on its
+own: `org-archive-subtree' lands it one level up in the target file, a
+sibling of its former parent, with only `:ARCHIVE_OLPATH:' recording
+where it came from -- so a sweep that took every finished heading would
+silently restructure live work.  Measured on 2026-08-31: of 106 finished
+headings in TODO.org, 65 were top-level, 20 were children of a finished
+parent and travel with it, and 21 were children of a *live* parent and
+must stay.
+
+Collects markers before archiving anything.  *Markers* are what makes
+that safe, not the order: `org-archive-subtree' deletes text, so a plain
+buffer position recorded ahead of the walk is stale by the time it is
+reached, while a marker tracks the edit.  The list comes out in reverse
+document order only because `push' builds it that way -- reversing it was
+measured on 2026-08-31 to change nothing, so the order is not
+load-bearing and a reader should not infer that it is.
+
+Binds `org-archive-reversed-order' rather than relying on the global,
+unset as of 2026-08-31.  DONE.org reads newest-first, and appending to
+its end would bury a fresh entry under two hundred older ones."
+  (let ((file (or file (car (claude-code-ide-org--tracked-files))))
+        (org-archive-reversed-order t)
+        (markers nil) (skipped nil) (n 0))
+    (with-current-buffer (find-file-noselect file)
+      ;; Re-read the file's own `#+' settings before archiving anything.
+      ;; `#+ARCHIVE:' is parsed into a buffer-local when the buffer first
+      ;; enters `org-mode', and nothing re-parses it afterwards -- not
+      ;; even `auto-revert-mode', which replaces the text and leaves the
+      ;; variable.  A buffer open since before the directive changed
+      ;; therefore archives to the *old* target while the line on screen
+      ;; reads the new one.  That is not hypothetical: on 2026-08-31 this
+      ;; sweep archived 65 subtrees under a retired `* Done' heading for
+      ;; exactly this reason, having been verified by reading the
+      ;; directive text rather than the value parsed from it.
+      (org-set-regexps-and-options)
+      (org-with-wide-buffer
+       (goto-char (point-min))
+       (while (re-search-forward "^\\* " nil t)
+         (beginning-of-line)
+         (when (member (org-get-todo-state)
+                       claude-code-ide-org--outline-finished-keywords)
+           (if (claude-code-ide-org--subtree-has-live-heading-p)
+               (push (org-get-heading t t t t) skipped)
+             (push (point-marker) markers)))
+         (end-of-line)))
+      ;; Re-validate at the moment of archiving rather than trusting what
+      ;; the scan saw: still a heading, still level 1, still finished,
+      ;; its id not already consumed by this pass.  Cheap, and it makes
+      ;; the loop's precondition explicit instead of implied.
+      ;;
+      ;; It is *not* the fix for the 2026-08-31 duplication, and should
+      ;; not be read as one.  That pass reported 65 -- `n' counts calls,
+      ;; so exactly 65 `org-archive-subtree' calls ran -- while 66
+      ;; subtrees landed, which puts the second copy *inside a single
+      ;; call*, on org's paste path, where nothing here reaches.  The
+      ;; heading it duplicated was also the last in the file and so the
+      ;; first consumed, with no earlier deletion to disturb it.  The
+      ;; mechanism is unidentified and did not reproduce against the same
+      ;; file in a fresh buffer; what guards it is the post-condition
+      ;; below, which checks the result rather than the method.
+      (org-with-wide-buffer
+       (let ((seen (make-hash-table :test 'equal)))
+         (dolist (m markers)
+           (when (marker-position m)
+             (org-with-point-at m
+               (let ((id (org-entry-get nil "ID")))
+                 (when (and (org-at-heading-p)
+                            (eq 1 (org-current-level))
+                            (member (org-get-todo-state)
+                                    claude-code-ide-org--outline-finished-keywords)
+                            (not (and id (gethash id seen))))
+                   (when id (puthash id t seen))
+                   (org-archive-subtree)
+                   (setq n (1+ n))))))
+           (set-marker m nil))))
+      (when (buffer-modified-p) (save-buffer)))
+    ;; Reconcile the result, because the method is not trusted.  A sweep
+    ;; that ran unattended and quietly wrote a subtree twice is the exact
+    ;; failure of 2026-08-31, and every other signal there looked right --
+    ;; the count, the levels, nothing missing.  Only counting ids found
+    ;; it, and that count lived in a shell, not in the mechanism.
+    (when (> n 0)
+      (let* ((target (claude-code-ide-org--archive-target-file file))
+             (dupes (and (file-readable-p target)
+                         (claude-code-ide-org--duplicate-ids-in-file target))))
+        (when dupes
+          (error "Archived %d, but %d id(s) now appear twice in %s: %s"
+                 n (length dupes) (file-name-nondirectory target)
+                 (string-join (seq-take dupes 3) " ")))))
+    (when skipped
+      (message "archive-finished: skipped %d finished heading(s) with live descendants: %s"
+               (length skipped) (string-join (nreverse skipped) "; ")))
+    n))
+
+(defun claude-code-ide-org--ceremony-due-p ()
+  "Non-nil when the daily archive task is overdue.
+
+Reads the SCHEDULED stamp of TODO.org :ID: cbe282ec rather than a stamp
+file of our own: it is a repeater, so org already advances it when it is
+marked done, and a second record of the same fact could disagree with
+the first."
+  (let ((m (ignore-errors
+             (claude-code-ide-org--id-find
+              "cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8" 'marker))))
+    (when m
+      (org-with-point-at m
+        (let ((s (org-entry-get nil "SCHEDULED")))
+          (and s (time-less-p (org-time-string-to-time s) (current-time))))))))
+
+(defun claude-code-ide-org--ceremony-advance-repeater ()
+  "Mark TODO.org :ID: cbe282ec DONE so org advances its own repeater.
+
+This is what stops the ceremony running again on the next `q' of the
+day.  It records the fact in the one place that already holds it -- the
+heading whose whole purpose is to say when the pass is next owed --
+rather than in a second stamp of our own that could disagree.  Org does
+the arithmetic: the `++1d\' repeater shifts SCHEDULED forward past now
+and returns the keyword to TODO, so nothing here computes a date.
+
+Safe to run non-interactively, which is not true of state changes
+generally: the transition is TODO -> DONE, and this project\'s `#+TODO:\'
+line gives DONE a `!\' cookie, not an `@\'.  Only WAITING and CANCELLED
+prompt for a note, and neither is reachable from here."
+  (let ((m (claude-code-ide-org--id-find
+            "cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8" 'marker)))
+    (unless m (error "Ceremony heading cbe282ec not found"))
+    (org-with-point-at m
+      (org-todo "DONE")
+      (save-buffer))
+    t))
+
+(defun claude-code-ide-org-ceremony-finish ()
+  "Run the ceremony steps that follow apply, and return a summary line.
+
+Apply is human-only -- org's native state logging completes only inside
+an interactive command, and `WAITING'/`CANCELLED' carry `@' cookies that
+prompt -- but the three steps *after* it are not, and this project's own
+convention already ordered them: consolidate the drawers, normalise
+heading separation, then archive (TODO.org :ID: 29734f79).
+
+Each step is reported, success or failure, because a step that silently
+did not run is the failure this project keeps finding.  A step that
+signals does not stop the ones after it: they are independent, and
+losing two because the first broke would be worse than a partial pass."
+  (interactive)
+  (let ((parts nil) (failed nil))
+    (dolist (step (list
+                   (cons "drawers"  (lambda () (claude-code-ide-org-consolidate-all-drawers)))
+                   (cons "spacing"  (lambda () (claude-code-ide-org-normalize-heading-separation)))
+                   (cons "archived" (lambda () (claude-code-ide-org-archive-finished)))))
+      (push (condition-case err
+                (let ((r (funcall (cdr step))))
+                  (format "%s: %s" (car step)
+                          (if (numberp r) (format "%d" r) "ok")))
+              (error (setq failed t)
+                     (format "%s: FAILED (%s)" (car step)
+                             (error-message-string err))))
+            parts))
+    ;; Only a clean pass advances the repeater.  A ceremony that half ran
+    ;; and then told the file it was done would be the one failure mode
+    ;; worth guarding: the next day would open with the prompt silent and
+    ;; the work still waiting.
+    (push (if failed
+              "repeater: held (a step failed)"
+            (condition-case err
+                (progn (claude-code-ide-org-mark-ceremony-done
+                        (concat (string-join (reverse parts) "; ") "\n"))
+                       (claude-code-ide-org--ceremony-advance-repeater)
+                       "repeater: advanced")
+              (error (format "repeater: FAILED (%s)"
+                             (error-message-string err)))))
+          parts)
+    (let ((summary (string-join (nreverse parts) "; ")))
+      (message "ceremony: %s" summary)
+      summary)))
+
 (defun claude-code-ide-org--review-attention-on-quit (&rest _)
   "Stop the attention clock when the review buffer stops being visible.
 
@@ -8341,10 +9272,21 @@ Advice on `quit-window' rather than a rebinding of `q'.  `q' here is
 `special-mode's `quit-window', which *buries*; rebinding it to kill
 would change a key every `special-mode' buffer in Emacs shares, to serve
 a clock.  And burying is not a lesser form of closing -- it is how a
-person actually leaves this buffer, so it is the event to watch."
+person actually leaves this buffer, so it is the event to watch.
+
+Also the trigger for the rest of the ceremony, when it is due.  Apply is
+human-only by design and always will be, but the three steps that follow
+it are not, and leaving them to a person to remember is what left 106
+finished headings unarchived through four applies on 2026-08-31 (TODO.org
+:ID: 29734f79).  Burying the review buffer is the moment apply has just
+finished, which makes it the only point where the remaining steps are
+both due and safe -- and it is a real interactive command, so org's own
+logging completes normally."
   (when (and claude-code-ide-org--review-attention-marker
              (derived-mode-p 'claude-code-ide-org-review-mode))
-    (claude-code-ide-org-review-attention-stop "review pass (buffer buried)")))
+    (claude-code-ide-org-review-attention-stop "review pass (buffer buried)")
+    (when (claude-code-ide-org--ceremony-due-p)
+      (claude-code-ide-org-ceremony-finish))))
 
 (advice-add 'quit-window :before #'claude-code-ide-org--review-attention-on-quit)
 
@@ -8551,9 +9493,9 @@ whole point of the function.  A `:DATE_TREE:\' category holds real tasks
 beside its tree -- the ritual repeater TODO.org :ID: cd1e974e institutes
 sits at depth 1, exactly where the year node does -- so a depth-only test
 would waive :ID: and :CREATED: for every one of them.  That is the same
-over-application shape guarded against at
-`claude-code-ide-org--trigger-auto-promote-sole-todo\': a predicate
-reading position without asking what kind of heading it is looking at.
+over-application shape the retired sole-TODO promotion kept running
+into: a predicate reading position without asking what kind of heading
+it is looking at.
 
 The patterns are org\'s own, lifted from the `comparefun\' regexes
 `org-datetree-find-date-create\' passes for the year/month/day grouping
@@ -8650,33 +9592,57 @@ from `claude-code-ide-org--lint-routing-categories'."
 (category, task, epic-child) outside a :DATE_TREE: subtree, and inside one only \
 year/month scaffolding and its day node: %s" level title))
                 ((= level 1)
-                 ;; A level-1 heading is a category, and a category
-                 ;; routes to an archive target. One that neither routes
-                 ;; nor mirrors something that does is almost certainly
-                 ;; not a heading anyone wrote deliberately -- TODO.org
-                 ;; :ID: 95087d8f, where `* *' typed as a markdown
-                 ;; horizontal rule became a level-1 category and
-                 ;; swallowed 6462 lines while every lint run stayed
-                 ;; clean.
+                 ;; *Inverted 2026-08-27* (TODO.org :ID: 29439196). Level 1
+                 ;; used to be the category tier -- structure, forbidden to
+                 ;; carry :ID:, :CREATED:, a keyword or tags. Flattening
+                 ;; moved the grouping onto the task as :CATEGORY:, so
+                 ;; level 1 is now where the *work* lives and must carry
+                 ;; exactly what every other task does. The old rule is
+                 ;; preserved in `.claude/rules/org-conventions.md', since
+                 ;; a reader of older commits will meet it.
                  ;;
-                 ;; Skipped when CATEGORIES is empty: with no routing
-                 ;; level-1 anywhere in the linted set there is nothing
-                 ;; to infer the convention from, and a fixture of one
-                 ;; bare `* Category' must stay legal.
-                 (when (and categories
-                            (not (org-entry-get nil "ARCHIVE"))
-                            (not (member title categories)))
-                   (report 'error line "level-1 heading is neither a category \
-(no :ARCHIVE:) nor a mirror of one: %s" title))
-                 (when id (report 'error line "level-1 category carries :ID: -- \
-categories are structure, not tasks: %s" title))
-                 (when created
-                   (report 'error line "level-1 category carries :CREATED:: %s" title))
-                 (when todo
-                   (report 'error line "level-1 category carries TODO keyword %s: %s"
-                           todo title))
-                 (when (org-get-tags nil t)
-                   (report 'error line "level-1 category carries tags: %s" title)))
+                 ;; The `:DATE_TREE:' anchor is the one structural level-1
+                 ;; heading left: org-datetree's year/month/day nodes are
+                 ;; an irreducible tree and need a container to nest in.
+                 ;; It is exempted by carrying the property, not by title,
+                 ;; so a rename cannot silently un-exempt it.
+                 (if (org-entry-get nil "DATE_TREE")
+                     (progn
+                       (when todo
+                         (report 'error line
+                                 "the :DATE_TREE: anchor carries TODO keyword %s: %s"
+                                 todo title))
+                       (when id
+                         (report 'error line
+                                 "the :DATE_TREE: anchor carries :ID:: %s" title)))
+                   ;; An ordinary level-1 task.
+                   (unless id
+                     (report 'error line "level-1 task has no :ID:: %s" title))
+                   ;; `warn', matching what a deeper heading gets. A
+                   ;; missing :CREATED: is not retrofittable -- nobody
+                   ;; knows when a 2026-07 heading was written -- and
+                   ;; erroring would have turned 13 pre-convention
+                   ;; DONE.org headings into blockers overnight purely
+                   ;; because flattening moved them to level 1. An :ID:
+                   ;; IS retrofittable, so that one stays an error.
+                   (unless created
+                     (report 'warn line "level-1 task has no :CREATED:: %s" title))
+                   ;; A task without a category is unfiled: nothing in the
+                   ;; tree says where it belongs any more, which is exactly
+                   ;; what the flattening traded away. Warn rather than
+                   ;; error -- a freshly captured heading may legitimately
+                   ;; not have one yet.
+                   ;; Read the drawer, not `org-entry-get'. Org
+                   ;; *computes* CATEGORY -- falling back to the file
+                   ;; name, or "???" in a buffer with no file -- so it
+                   ;; is never nil and a presence test through it always
+                   ;; passes. That fallback is the same one that made the
+                   ;; agenda's category column carry two distinct values
+                   ;; across 274 headings, which is what prompted
+                   ;; :ID: 29439196 in the first place. Measured, not
+                   ;; assumed: a bare heading answers "???".
+                   (unless (claude-code-ide-org--category-property-p)
+                     (report 'warn line "level-1 task has no :CATEGORY:: %s" title))))
                 (t
                  (unless id (report 'error line "heading has no :ID:: %s" title))
                  (unless created
@@ -8722,10 +9688,30 @@ probably punctuation read as structure: %S" title))
                ;; when the convention needs stating.
                (when (and todo
                           (claude-code-ide-org--container-heading-p)
-                          (not (string-match-p "\\[[0-9]*\\(?:%\\|/[0-9]*\\)\\]"
-                                               (or title ""))))
+                          (not (string-match-p
+                                claude-code-ide-org--statistics-cookie-regexp
+                                (or title ""))))
                  (report 'error line "heading has TODO children but no statistics \
 cookie -- add [/] and run `org-update-statistics-cookies': %s" title))
+               ;; A slice states its progress the same way, over its
+               ;; checkbox list of members rather than over children --
+               ;; so it needs its own clause, not a widened predicate.
+               ;; The rule above asks `--container-heading-p' and a slice
+               ;; has no children to satisfy it with, which is why
+               ;; :ID: 979e02b6 sat cookie-less through a whole slice's
+               ;; life with three separate mechanisms declining to
+               ;; mention it (TODO.org :ID: 28415ca8).
+               ;;
+               ;; Kept as a second clause rather than folded into the
+               ;; first: `--grouping-heading-p' is the right predicate
+               ;; where the question is about *meaning*, and here the two
+               ;; rules genuinely differ in what they count.
+               (when (and (claude-code-ide-org--slice-p)
+                          (not (string-match-p
+                                claude-code-ide-org--statistics-cookie-regexp
+                                (or title ""))))
+                 (report 'error line "slice has no statistics cookie -- add [/]; \
+`M-x claude-code-ide-org-refresh-slice' now does this itself: %s" title))
                ;; A finished heading with a substantial body carries a
                ;; :PLAN: drawer (TODO.org :ID: 8bcd56f4): the prospective
                ;; half wrapped away, the debrief left as the body.
@@ -8753,8 +9739,19 @@ cookie -- add [/] and run `org-update-statistics-cookies': %s" title))
                ;; on the standing rule above -- it is a convention a new
                ;; heading must satisfy, and wrapping a body is a judgement
                ;; about where the seam falls, not a mechanical repair.
+               ;; A slice is exempt, because it has no prospective half to
+               ;; wrap (TODO.org :ID: f89c912a). The :PLAN: lifecycle was
+               ;; argued for *tasks*, on the hazard that a closed task's
+               ;; design claims outlive their truth and a later reader
+               ;; repeats one as current. A slice designs nothing: its body
+               ;; is an argument for a grouping, a sequence, a derived
+               ;; member list and revision links, nearly all of which is
+               ;; already retrospective once it closes. Same over-reach
+               ;; :ID: f421c5c3 found from the other side, where the rule
+               ;; demanded a drawer from a debrief-only heading.
                (when (and todo
                           (member todo claude-code-ide-org--outline-finished-keywords)
+                          (not (claude-code-ide-org--slice-p))
                           (claude-code-ide-org--lint-substantial-body-p)
                           (not (claude-code-ide-org--find-drawer "PLAN")))
                  (let ((closed (org-entry-get nil "CLOSED")))
@@ -8814,14 +9811,14 @@ prose to a rule file, a linked heading or a one-time task: %s"
                         (missing (seq-difference want have))
                         (extra (seq-difference have want)))
                    (when missing
-                     (report 'error line "slice :BLOCKER: omits %d checked member%s \
+                     (report 'error line "slice :BLOCKER: omits %d unfinished member%s \
 (%s) -- run claude-code-ide-org-refresh-slice-blocker: %s"
                              (length missing) (if (= 1 (length missing)) "" "s")
                              (mapconcat (lambda (i) (substring i 0 8)) missing " ")
                              title))
                    (when extra
-                     (report 'error line "slice :BLOCKER: names %d id%s that is not a \
-checked member (%s) -- a cancelled or deferred member must not block: %s"
+                     (report 'error line "slice :BLOCKER: names %d id%s that is not an \
+unfinished member (%s) -- a done, cancelled or deferred member must not block: %s"
                              (length extra) (if (= 1 (length extra)) "" "s")
                              (mapconcat (lambda (i) (substring i 0 8)) extra " ")
                              title))))
@@ -9485,17 +10482,50 @@ Returns a summary string."
   "\\[\\[id:\\([0-9a-fA-F][0-9a-fA-F-]*\\)\\]"
   "Matches the target of an `[[id:...]]' link, full or prefix.")
 
-(defun claude-code-ide-org--known-id-table ()
-  "Hash of every :ID: across the tracked files, mapped to t."
-  (let ((table (make-hash-table :test 'equal)))
-    (dolist (file (claude-code-ide-org--tracked-files) table)
-      (when (file-exists-p file)
-        (with-temp-buffer
-          (let ((org-inhibit-startup t))
-            (insert-file-contents file)
-            (goto-char (point-min))
-            (while (re-search-forward "^[ \t]*:ID:[ \t]+\\([0-9a-fA-F-]+\\)[ \t]*$" nil t)
-              (puthash (downcase (match-string 1)) t table))))))))
+
+(defun claude-code-ide-org--id-scannable-files ()
+  "Tracked files plus the archives they declare.
+
+*An id is an id wherever it lives*, and `claude-code-ide-org--tracked-files'
+answers a different question -- which files the agenda and the clock
+reports cover. Those two were the same list until it mattered, and then
+they were not.
+
+TODO.org :ID: 020d3688: `org-agenda-files' is computed by scanning
+`org-directory', and `~/org/claude-code-ide-org/' holds a symlink to
+TODO.org *and nothing else* -- DONE.org was never linked. So the archive
+was invisible to every consumer of `--tracked-files', and no id in it
+resolved. Hit twice on 2026-08-26 by `org_amend' refusing a perfectly
+good `[[id:b8e6007a]]' prefix, in a session that was documenting the
+prefix convention at the time.
+
+*Org's own `org-add-archive-files' does the derivation*, following each
+file's `#+ARCHIVE:' and `:ARCHIVE:' declarations. This wrapper exists
+only to undo its one side effect: it visits each file with
+`org-get-agenda-file-buffer', which leaves real buffers behind, and this
+runs on every `org_amend'. Buffers that were not already open are killed
+again, matching what `--attention-headings-context' does and for the
+same reason -- a tool call must not quietly populate the user's buffer
+list.
+
+A first version of this hand-rolled the derivation in about 35 lines,
+before checking whether org had it. :ID: 0465c1d5 had named the right
+family of mechanisms a month earlier -- `agenda-with-archives' and
+`file-with-archives' -- and had even recorded the missing symlink as the
+reason the archive was out of scope. Searching the tracker first would
+have produced both the diagnosis and the tool."
+  (require 'org-archive)
+  (let* ((before (delq nil (mapcar #'buffer-file-name (buffer-list))))
+         (files (org-add-archive-files (claude-code-ide-org--tracked-files))))
+    (dolist (buf (buffer-list))
+      (let ((name (buffer-file-name buf)))
+        (when (and name (not (member name before))
+                   (member (file-truename name)
+                           (mapcar #'file-truename files)))
+          (with-current-buffer buf (set-buffer-modified-p nil))
+          (kill-buffer buf))))
+    files))
+
 
 (defun claude-code-ide-org--id-find (id &optional markerp)
   "Like `org-id-find\', but ID may be an 8-character prefix.
@@ -9512,11 +10542,71 @@ Fourteen such call sites existed.
 
 The length-and-hex guard runs before the table is built, so the common
 case of a full uuid costs one `length\' call and no file scanning."
-  (when (and (stringp id) (= (length id) 8) (string-match-p "\\`[0-9a-fA-F]+\\'" id))
+  (let ((prefix-unresolved nil))
+   (when (and (stringp id)
+              (<= claude-code-ide-org--id-prefix-minimum
+                  (length id)
+                  claude-code-ide-org--id-prefix-length)
+              (string-match-p "\\`[0-9a-fA-F]+\\'" id))
     (let ((full (claude-code-ide-org--expand-id-prefix
-                 id (claude-code-ide-org--known-id-table))))
-      (when (stringp full) (setq id full))))
-  (org-id-find id markerp))
+                 id (claude-code-ide-org--id-index))))
+      ;; Rescan once before giving up, naming our tracked files: an id
+      ;; that arrived by hand edit or `git pull' is not in org's index
+      ;; until something looks (TODO.org :ID: 020d3688).
+      ;;
+      ;; Only for `none'. An `ambiguous' prefix is not stale data --
+      ;; rescanning can only ever find MORE matches, so it cannot help
+      ;; and the scan is not cheap: it reads every tracked file and its
+      ;; archives. Missing that distinction is what let a short prefix
+      ;; spin the whole Emacs on 2026-08-27.
+      (when (eq full 'none)
+        (org-id-update-id-locations
+         (claude-code-ide-org--id-scannable-files) t)
+        (setq full (claude-code-ide-org--expand-id-prefix
+                    id (claude-code-ide-org--id-index))))
+      (if (stringp full)
+          (setq id full)
+        ;; Expansion was attempted and failed, so stop here rather than
+        ;; handing `org-id-find' a bare prefix. It cannot match a full
+        ;; uuid, and org's own miss path rescans every agenda file and
+        ;; archive before returning nil -- a second full scan after the
+        ;; one above, or a first one for an ambiguous prefix that no
+        ;; amount of scanning can resolve.
+        (setq prefix-unresolved t))))
+   (unless prefix-unresolved
+     (org-id-find id markerp))))
+
+(defun claude-code-ide-org--id-index ()
+  "Org's own id-to-file index, loaded if it is not already.
+
+*This replaced a table of our own* (TODO.org :ID: 020d3688, 2026-08-27).
+A `--known-id-table' re-read every tracked file from disk on *every*
+`org_amend' to build a hash org already maintains in memory: 17.5 ms
+against 0.57 us for a lookup, some 23,000x, to produce a strictly worse
+answer.
+
+Worse in three ways, each of which had cost something. It was built from
+`--tracked-files', which is derived from `org-agenda-files' and so
+silently omitted DONE.org -- the defect that made every id in the archive
+unresolvable. Org's index has no such gap: `org-id-search-archives'
+defaults to t, so archives are indexed as a matter of course. It knew
+only ids matching a hex-shaped regexp. And it learned about a new heading
+only on the next full re-read, where org's is updated by
+`org-id-add-location' at the moment `org-id-get-create' runs.
+
+Measured before switching: org's index is a strict *superset* -- nothing
+in the hand-built table was missing from it, and it carried one id ours
+did not (a fixture in `clock-template.org'). All 276 keys are lowercase,
+so prefix matching needs no normalisation.
+
+*The lesson is the one 0465c1d5 had already recorded and nobody read*:
+this project keeps rebuilding org machinery beside org rather than on
+it, and the rebuilt version is where the gaps live."
+  (require 'org-id)
+  (unless (and (bound-and-true-p org-id-locations)
+               (hash-table-p org-id-locations))
+    (org-id-locations-load))
+  (and (hash-table-p org-id-locations) org-id-locations))
 
 (defun claude-code-ide-org--expand-id-prefix (prefix table)
   "Return the single full :ID: in TABLE beginning with PREFIX, or a symbol.
@@ -9525,11 +10615,18 @@ case of a full uuid costs one `length\' call and no file scanning."
 Both are errors rather than guesses: an id chosen from two candidates is
 the confidently-wrong record this project exists to avoid."
   (let (hits)
-    (maphash (lambda (id _) (when (string-prefix-p (downcase prefix) id)
-                              (push id hits)))
-             table)
+    (when table
+      (maphash (lambda (id _) (when (string-prefix-p (downcase prefix) id)
+                                (push id hits)))
+               table))
     (cond ((null hits) 'none)
-          ((cdr hits) 'ambiguous)
+          ;; The candidates travel with the verdict. A short prefix is
+          ;; ambiguous often enough that "try again" is a poor answer
+          ;; when the tool is holding the very list you need to pick
+          ;; from -- and lengthening a prefix blind is how a wrong tail
+          ;; gets invented, which is the failure :ID: 478d6ec9 exists to
+          ;; stop.
+          ((cdr hits) (cons 'ambiguous (sort hits #'string<)))
           (t (car hits)))))
 
 (defun claude-code-ide-org-resolve-id-links (text)
@@ -9540,7 +10637,8 @@ verified and left alone.  Either way an unresolvable target is refused,
 naming it, rather than written and caught later by `bin/lint-org'.
 
 Returns a cons (t . EXPANDED) on success, or (nil . MESSAGE)."
-  (let ((table (claude-code-ide-org--known-id-table))
+  (let ((table (claude-code-ide-org--id-index))
+        (rescanned nil)
         (case-fold-search t)
         (bad nil)
         (start 0)
@@ -9548,11 +10646,18 @@ Returns a cons (t . EXPANDED) on success, or (nil . MESSAGE)."
     (while (string-match claude-code-ide-org--id-link-regexp out start)
       (let* ((target (match-string 1 out))
              (mb (match-beginning 1))
-             (me (match-end 1)))
+             (me (match-end 1))
+             ;; The WHOLE match, not group 1. Restarting the scan at
+             ;; `mb' would resume *inside* `[[id:', where the regexp
+             ;; cannot match again -- so the loop would end early with
+             ;; no error and an unresolvable link would be accepted
+             ;; silently. Caught by the refuses-rather-than-guesses
+             ;; test, which is exactly the failure it was written for.
+             (m0 (match-beginning 0)))
         (setq start me)
         (cond
          ;; Already a full id that resolves: leave it.
-         ((gethash (downcase target) table) nil)
+         ((and table (gethash (downcase target) table)) nil)
          ;; A bare prefix: expand it.
          ((not (string-match-p "-" target))
           (let ((full (claude-code-ide-org--expand-id-prefix target table)))
@@ -9560,8 +10665,31 @@ Returns a cons (t . EXPANDED) on success, or (nil . MESSAGE)."
              ((stringp full)
               (setq out (concat (substring out 0 mb) full (substring out me)))
               (setq start (+ mb (length full))))
-             ((eq full 'ambiguous)
-              (push (format "%s (matches more than one heading)" target) bad))
+             ((eq (car-safe full) 'ambiguous)
+              (push (format "%s (matches %d headings: %s)"
+                            target (length (cdr full))
+                            (mapconcat #'claude-code-ide-org--id-prefix
+                                       (cdr full) " "))
+                    bad))
+             ;; Rescan once before refusing, exactly as `org-id-find'
+             ;; does: org's index is updated in memory when a heading is
+             ;; created *here*, but an id that arrived by `git pull' or
+             ;; from another Emacs is unknown until something rescans.
+             ;; Refusing a real id teaches the writer to stop using the
+             ;; convention, which is how the last gap went unreported for
+             ;; weeks (TODO.org :ID: 020d3688).
+             ((not rescanned)
+              (setq rescanned t)
+              ;; Pass our own file list explicitly. Org rescans agenda
+              ;; files, their archives and open buffers; this project's
+              ;; tracked set is `claude-code-ide-org-query-files' when
+              ;; that is set, which need not be any of those. Naming
+              ;; them makes org's index a superset of ours by
+              ;; construction rather than by coincidence.
+              (org-id-update-id-locations
+               (claude-code-ide-org--id-scannable-files) t)
+              (setq table (claude-code-ide-org--id-index))
+              (setq start m0))
              (t (push (format "%s (matches no heading)" target) bad)))))
          ;; A full-looking id that resolves to nothing: refuse.
          (t (push (format "%s (resolves to no heading)" target) bad)))))
@@ -9634,7 +10762,7 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
    :name "org_set_todo"
    :description (concat
                  "Record a TODO keyword change on an org-mode heading by its "
-                 ":ID: property. Valid states: TODO NEXT PLANNING DOING "
+                 ":ID: property. Valid states: TODO NEXT DOING "
                  "REVIEW WAITING MAYBE DONE CANCELLED. REVIEW is EXPERIMENTAL "
                  "(TODO.org :ID: c954f650): it means work is finished and "
                  "handed back to the human for judgement, as distinct from "
@@ -9645,15 +10773,13 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
                  "keyword until a person applies the queued event, so a later "
                  "read showing the old state is expected, not a failure. "
                  "When setting DOING, also call org_clock_in. "
-                 "When leaving DOING, call org_clock_out first. "
-                 "PLANNING auto-promotes to DOING when ExitPlanMode fires -- "
-                 "no separate org_set_todo call needed.")
+                 "When leaving DOING, call org_clock_out first.")
    :args '((:name "id"
             :type string
             :description "The :ID: property value of the target org heading.")
            (:name "state"
             :type string
-            :description "TODO keyword to set: TODO NEXT PLANNING DOING REVIEW WAITING MAYBE DONE CANCELLED.")
+            :description "TODO keyword to set: TODO NEXT DOING REVIEW WAITING MAYBE DONE CANCELLED.")
            (:name "note"
             :type string
             :optional t
@@ -9665,7 +10791,7 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
    :description (concat
                  "Archive an org-mode heading by its :ID: property, "
                  "respecting the #+ARCHIVE: directive in effect. "
-                 "Use for DONE tasks tagged :code:, which archive to DONE.org::* Done.")
+                 "Use for DONE tasks tagged :code:, which archive to DONE.org.")
    :args '((:name "id"
             :type string
             :description "The :ID: property value of the heading to archive.")))
@@ -9688,19 +10814,81 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
             :description "The :ID: property value of the heading to move it under (the new parent).")))
 
   (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-set-property
+   :name "org_set_property"
+   :description (concat
+                 "Set a property on a heading identified by its :ID:. Writes "
+                 "immediately. Use this instead of hand-editing a drawer -- "
+                 "notably for :BLOCKER:, which CLAUDE.md prefers over a prose "
+                 "'depends on ...' sentence because a property is "
+                 "machine-checkable. :BLOCKER: is special-cased: every id is "
+                 "RESOLVED before writing, 8-character prefixes are expanded "
+                 "to full ids, and anything unresolvable or ambiguous is "
+                 "refused -- a :BLOCKER: naming an id that does not exist "
+                 "never blocks and never errors, so nothing downstream would "
+                 "catch it. It also holds a SET, so pass append=true to add "
+                 "to the existing list rather than replacing it. Warns "
+                 "(without refusing) when a named heading carries no TODO "
+                 "keyword, since org-depend blocks only on unfinished work "
+                 "and a heading captured this session is keyword-less until "
+                 "the queue is applied. Refuses :ID: and :CREATED:, which are "
+                 "identity written at capture. Refuses while the file has "
+                 "unsaved changes in Emacs; retry once it is saved.")
+   :args '((:name "id"
+            :type string
+            :description "The :ID: property value of the heading to modify.")
+           (:name "property"
+            :type string
+            :description "Property name, e.g. BLOCKER, CATEGORY, ARCHIVE, TRIGGER. Case-insensitive.")
+           (:name "value"
+            :type string
+            :description "The value to write. For :BLOCKER:, a space- or comma-separated list of :ID:s or 8-character prefixes.")
+           (:name "append"
+            :type boolean
+            :description "For :BLOCKER: only: union with the existing set instead of replacing it.")))
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-divide
+   :name "org_divide"
+   :description (concat
+                 "Task mitosis: insert a NEW PARENT above an existing heading "
+                 "and demote that heading to become its first child. Use when "
+                 "a leaf has outgrown itself and is really a story -- divide "
+                 "it rather than promoting it in place. Writes immediately. "
+                 "Everything the child owns travels with it because the child "
+                 "is not touched: its :ID:, :LOGBOOK:, CLOCK lines, state "
+                 "history and body all move with the text. The id stays with "
+                 "the CHILD deliberately -- a queued clock event names a "
+                 "heading by id, so an id that moved to the parent would make "
+                 "a pending clock_in open a clock on a container. The new "
+                 "parent is born empty: it gets an :ID:, a :CREATED: stamp, "
+                 "the child's :CATEGORY: and a [/] cookie, and no clock or "
+                 "history at all. Splitting the child's body into further "
+                 "sibling leaves is deliberately NOT done -- that is an "
+                 "editorial judgement; use org_capture and org_amend for it.")
+   :args '((:name "id"
+            :type string
+            :description "The :ID: of the heading to divide. It becomes the first child.")
+           (:name "parent_title"
+            :type string
+            :description "Title for the new parent heading.")
+           (:name "parent_state"
+            :type string
+            :description "Optional TODO keyword for the new parent. Defaults to the child's own, so the group inherits the claim the task was already making.")))
+
+  (claude-code-ide-make-tool
    :function #'claude-code-ide-org-capture
    :name "org_capture"
    :description (concat
                  "Quick-add a new heading from TITLE via org-capture, in one "
                  "call instead of hand-writing a heading and then calling "
-                 "org-id-get-create separately. TARGET is required — a "
-                 "heading has to belong somewhere, and there is no sensible "
-                 "default. The heading is written with "
+                 "org-id-get-create separately. The heading is written with "
                  "an :ID: and a :CREATED: stamp but NO TODO keyword — set "
                  "its state afterwards with org_set_todo, which queues the "
                  "transition for review so org logs it natively. "
-                 "Run org_outline first if you need to see what "
-                 "categories exist. "
+                 "Omit it to prepend at the top of the capture file. "
+                 "Category is a :CATEGORY: property now, not a heading, so there is "
+                 "nothing to file under by that name. "
                  "Returns a confirmation containing the "
                  "new heading's real :ID: and where it landed. Writes "
                  "immediately when the target file is free; when the human "
@@ -9714,7 +10902,7 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
             :description "The heading text for the new heading.")
            (:name "target"
             :type string
-            :description "REQUIRED. Where to put it: an :ID: to file it under that heading, or the exact title of a top-level category. Run org_outline first if you need to see what categories exist. There is deliberately no default: appending at the end of the file would create a level-1 heading, which this project reserves for categories.")
+            :description "Optional. An :ID: to file the new heading under that one. Omit it to prepend at the top of the capture file, which is where a task belongs since the level-1 category tier was retired. A category TITLE is no longer accepted -- categories are :CATEGORY: property values, not headings.")
            (:name "tags"
             :type string
             :optional t
@@ -9788,19 +10976,27 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
    :description (concat
                  "Compact structural index of tracked org files: one line per "
                  "heading with its level (by indent), TODO keyword, title, "
-                 ":ID:, and tags. Marks [blocked] when a :BLOCKER: names a "
-                 "heading that is not finished, and [blocked?] when a "
-                 "dependency exists but cannot be resolved. Read-only. "
+                 ":ID:, and tags. A whole-file listing is grouped under its "
+                 ":CATEGORY: values, each a bare header line with its tasks "
+                 "indented beneath. Marks [blocked: id ...] naming the "
+                 "unfinished blockers, and [blocked?: id ...] naming ones "
+                 "that cannot be resolved. Scoped to a slice, it also lists "
+                 "the slice's members as -> references. Read-only. "
                  "Use this before creating a heading, to see what already "
                  "exists and where it belongs, and instead of reading a whole "
                  "org file to find something — the index is roughly 40x "
                  "smaller. Complements org_query: that one filters by "
                  "predicate and returns a flat list, this one shows structure. "
-                 "IDs are full and can be passed straight to the other tools.")
+                 "IDs are full and can be passed straight to the other tools. "
+                 "SCOPED TO ONE HEADING, the reply leads with that heading's "
+                 "front matter -- :CREATED:, :CATEGORY:, :KIND:, the :BLOCKER: "
+                 "*value* with each id's current keyword, and the plan file -- "
+                 "so 'what is this, what blocks it, what is under it' is one "
+                 "call and no body read. Root only, never per line.")
    :args '((:name "scope"
             :type string
             :optional t
-            :description "An :ID: to index only that subtree, or a file name for one file. Omit for every tracked file.")
+            :description "An :ID: or an 8-character :ID: prefix to index only that subtree, or a file name for one file. Omit for every tracked file. An id-shaped scope that resolves to nothing says so, rather than reporting a missing file.")
            (:name "max_depth"
             :type string
             :optional t

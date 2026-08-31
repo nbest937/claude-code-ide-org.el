@@ -1,7 +1,7 @@
 #+title: Clock Template
-#+TODO: TODO NEXT PLANNING DOING WAITING MAYBE | DONE CANCELLED
+#+TODO: TODO NEXT DOING WAITING MAYBE | DONE CANCELLED
 #+TAGS: code comms research review
-#+ARCHIVE: DONE.org::* Done
+#+ARCHIVE: DONE.org::
 
 * DONE Implement user authentication feature :code:
   :PROPERTIES:

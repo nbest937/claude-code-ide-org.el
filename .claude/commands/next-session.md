@@ -1,164 +1,276 @@
 # Next session
 
-Rewritten 2026-08-26, replacing the prompt that drove `c44c2119`. That slice
-closed at 27 of 27; this one opens `979e02b6`.
+Rewritten 2026-08-28, replacing the prompt that drove `979e02b6`. That slice
+closed the declared-versus-inferred gap; this one opens `b36e6369`.
 
-**The slice is the list.** Do not re-derive it here — open `979e02b6` and read
-its checklist. Each line carries the member's id, current keyword and title,
-and the `:BLOCKER:` names every member still carrying a cookie.
+**The slice is the list.** Do not re-derive it — open `b36e6369` and read its
+checklist. Its predecessor `979e02b6` closed 2026-08-31 at 48/48.
+
+**What the slice is about**, since its body deliberately does not repeat it:
+the tools *know* things they do not report — a span's real interval, which ids
+a blocker names, whether an event will change anything — so a human reads a
+number that is not the number. And they *ask* for things they should not:
+clearing a read-only flag by hand, setting a keyword in a second call,
+retyping what the tool already resolved. The title borrows `6cc71c36`, which
+named the first half: *the code knew more than it said*.
+
+Measured in the session that composed it: the read-only clear/restore dance
+ran about twelve times; `writes 0:01 in 1` was rendered over a nineteen-minute
+span with no way to tell which number meant what; a `:BLOCKER:` error cleared
+itself only on apply; and three verification traps fired twice each, every one
+a *silence* read as a pass. Each line carries the member's id, current keyword and title, and
+the `:BLOCKER:` names every member still carrying a cookie.
 
 ---
 
 ## Before anything else
 
-1. **Confirm `emacs-tools` is reachable** by calling `org_pending_updates`. It
-   is read-only, and a reply proves the server is up in a way that seeing the
-   tools listed does not.
-2. **Apply the queue.** You no longer need to refresh the slice or normalise
-   separation afterwards — apply's settle phase does both now (`a0abf97d`,
-   `601c885c`). Consolidating drawers and archiving are still yours to ask for.
-3. **Use `org_outline` with `scope`, not `sed`/`awk`.** Three separate times
-   in the last session a shell pipeline reproduced, worse, what one scoped
-   `org_outline` call returns — truncated titles and no ids. It is the
-   structural tool; `org_query` is the predicate tool and returns a flat list
-   with no parent/child relation at all.
+1. **Cut a branch from `main` before the first commit.** The branch you will
+   have checked out is `feature/declared-vs-inferred`, which merged as PR #7 —
+   committing onto an already-merged branch is the easy mistake, and nothing
+   stops you. `git switch main && git pull && git switch -c feature/<short-name>`.
+   CLAUDE.md's rule is that what earns a branch is wanting a separate
+   *integration point*, not a taxonomy; a slice is exactly that, so this one
+   does. Note the rule is in CLAUDE.md and was **not** in this prompt until
+   2026-08-31 — the previous session finished on a merged branch and only
+   noticed when asked.
+2. **Confirm `emacs-tools` is reachable** by calling `org_pending_updates`.
+   It is read-only, and a reply proves the server is up in a way that seeing
+   the tools listed does not.
+3. **Apply the queue before composing anything.** A heading captured this
+   session is keywordless until you do, so a `:BLOCKER:` naming one is inert
+   and `bin/lint-org` errors — which `.githooks/pre-commit` refuses. That is
+   not a defect to fix; it is `c74f8663`, a member of this slice, and it cost
+   this slice a commit on 2026-08-28.
+4. **Two tools added 2026-08-28 that predate no habit yet**: `org_divide`
+   (task mitosis — insert a parent above a heading and demote it under, id and
+   history staying with the child) and `org_set_property` (set a property by
+   `:ID:`; `:BLOCKER:` is validated, prefixes expanded, `append` unions).
+   Reach for the second instead of `emacsclient` + `org-entry-put`, which is
+   still the reflex.
+5. **`org_capture` and `org_set_property` currently hang over MCP** — they
+   time out and write nothing, while `org_outline`, `org_pending_updates`,
+   `org_set_todo` and `org_amend` all answer normally. It is not the payload
+   and not the buffer's state: both were retried with long and short
+   arguments, read-only and writable, no prompt open. Calling the same
+   functions directly through `emacsclient` completes in ~0.2s, which is how
+   five headings were filed on 2026-08-31. Two traps while it lasts —
+   `claude-code-ide-org-capture` names a `note` argument and **silently
+   discards it**, so add bodies with `org_amend` afterwards; and calling it
+   over `emacsclient` when the buffer is *modified* returns `"Queued capture …
+   pending review"` and persists **nothing anywhere**. Save the buffer first
+   and check the heading reached disk. All of it is `72463b68`, a member of
+   this slice.
+6. **Do not offer to run the post-apply ceremony steps.** They are no longer
+   anyone's to remember: burying the review buffer runs drawer consolidation,
+   heading separation and archiving, and stamps the ceremony only if all three
+   succeed. Apply is still the human's alone. If the SessionStart report says a
+   pass ran but the ceremony did not complete, that is a real failure worth
+   surfacing, not a nag to dismiss — see `29734f79`, which is in `REVIEW`
+   precisely because that trigger has never fired on its own.
 
 ---
 
 ## What is already true, so it is not re-derived
 
-- **Apply settles three things**: the sole-TODO promotion, a slice refresh, and
-  heading separation — all after the batch, never per item, because a member
-  whose `todo` event has not landed is keywordless on disk.
-- **The apply ledger records *when*.** Each consumed event carries the
-  timestamp of the pass that consumed it. That is what makes "un-apply the pass
-  of 17:17" a filter, and it is how a zero-width span was identified as
-  *widowed by a partial apply* rather than split by a clock pair.
-- **`org_amend` can revise**, not only append: `replace=true` rewrites the
-  body's prose wholesale. It cannot reach a drawer — the writable region starts
-  below all of them — so revising a finished heading cannot destroy its
-  `:PLAN:`. Commit first; git is the only undo.
-- **The human's review pass is clocked**, natively, on a `Review attention`
-  heading. The command *is* the event. Burying the buffer ends it.
-- **The ceremony prompts itself** at `SessionStart`, once a day, and goes quiet
-  when a pass has actually run — derived from that clock, not from anyone
-  remembering to stamp anything.
-- **A Stop hook that exits 0 cannot speak.** Its stderr goes to the debug log
-  and Claude never sees it. Blocking hooks use `exit 2` with the reason on
-  stderr (`5787bfc6`).
-- **A slice is declared by `:KIND: slice`**, carries a `:BLOCKER:` naming
-  exactly its cookie-carrying members, and its member lines are *derived* —
-  never hand-set.
+- **`org_outline` scoped to one heading now leads with that heading's front
+  matter** — `:CREATED:`, `:CATEGORY:`, `:KIND:`, the `:BLOCKER:` *value* with
+  each id's current keyword, and the plan file. "What is this, what blocks it,
+  what is under it" is one call and no body read.
+- **`scope` accepts an 8-character `:ID:` prefix**, and an id-shaped scope that
+  resolves to nothing says so rather than reporting a missing file.
+- **`PLANNING` is retired** (`c954f650`). The sequence is
+  `TODO → NEXT → DOING → {WAITING, REVIEW} → DONE`. The `ExitPlanMode`
+  promotion hook is gone; Plan Mode needs no state change of its own.
+- **A slice's blocker culls finished members**, so it shrinks as the slice
+  progresses and is empty when every member lands.
+- **A story member's relevant children are nested under it** as indented
+  member lines — not every child, the ones that belong to this slice, and
+  especially any that blocks another member.
+- **`a` in the review buffer no longer advances.** Assigning makes a line
+  markable rather than finishing it.
+- **`M-x claude-code-ide-org-goto`** jumps to a heading by title, with the
+  8-character prefix leading each candidate so an abbreviation is typeable.
+  Interactive only — no MCP registration, no schema cost.
+- **A closed slice is a record, not a projection.** `refresh-slice` skips a
+  slice whose own keyword is terminal, so later work cannot rewrite finished
+  history. A cookie-less line in a closed slice means the slice is *done
+  with* that member, not that it was cancelled.
+- **Slices are exempt from the `:PLAN:` lint and are not wrapped at close.**
+  That lifecycle protects a reader from a closed *task's* design claims; a
+  slice designs nothing.
+- **The twin asymmetry has a name** (CLAUDE.md). Ask it as a review question
+  on any list: *does anything here have a twin that is not here?*
 
 ---
 
-## The trap, and it is live
+## Two traps that are specific to editing a slice body
 
-**Do not set `DOING` on this slice by hand.** `95c27fca` measured that doing so
-opens a clock *on the slice itself*, because `--container-heading-p` does not
-recognise one. It is a member of this very slice, and until it is fixed the
-slice's own keyword should stay `TODO`.
+Both were hit while composing `b36e6369`, and neither is obvious.
 
-The retroactive-`DOING` trap (`4f6a6bb1`) is unchanged and is also a member:
-`(org-todo "DOING")` clocks in immediately, so recording that something *was*
-started credits time to the present.
+- **A slice's member list must sit in the slice's own body, above any
+  subheading.** `--slice-members` stops at the first subheading, so a `**
+  Members` section puts the whole list out of reach — the refresh silently
+  found zero members and wrote an empty blocker.
+- **Do not write `- [[id:...]]` bullets as prose inside a slice body.** A
+  cookie-less list item carrying an id link is exactly the shape reserved for
+  a *cancelled or deferred member*, so prose bullets are read as members. Name
+  ids as `=c74f8663=` in prose instead; `orgit-rev:` links are safe.
 
 ---
-
-## Settle these before building the middle
-
-Two things are pending that are **not** builds, and they are different kinds
-of thing. Do not treat them as one.
-
-**A decision, and it needs the user.** `29439196` — `:EPIC:` versus
-`:CATEGORY:` for the heading tier — has been open since 2026-08-19, parked on
-"decide it against a report someone actually wants". That report now exists
-(`82df2a6c`), so the evidence is quantified rather than argued:
-
-- `:CATEGORY:` populates the agenda prefix column, inherits with no
-  configuration, and enables `org-agenda-filter-by-category`. Today that
-  column carries **two** distinct values across 274 headings — the file name.
-- `:EPIC:` gets none of that and costs one `org-use-property-inheritance`
-  entry to match on the property alone.
-- **Neither side had this before:** flattening the tier into a label destroys
-  the grouped clock report, because `:maxlevel 2` groups by the level-1
-  headings *being headings*.
-
-Put it to the user early. It is answerable in a conversation and it gates how
-`2e660571` and `9651d4c8` are built.
-
-**A design question, and it may collapse three members into one.**
-`2e660571` (generalise `:KIND:`), `29439196` (heading tiers) and `8183fc7c`
-(a slice invisible to `org_outline`) are all "a declared thing the code infers
-some other way". The user's proposal on `8183fc7c` — carry blocker *ids* in
-the general schema rather than a bare `[blocked]` flag — is arguably the
-general mechanism `2e660571` is asking for.
-
-Work that out **before** building any of the three. Discovering it halfway
-through the second one is the expensive path, and this is the corner worth
-looking around. Whether that warrants Plan Mode is a judgement to make at the
-time, not a step to follow.
 
 ## Suggested order
 
-The checklist is already in dependency order and the first four are one
-argument, not four errands.
+The checklist is already in dependency order, in five phases.
 
-1. **`6a21e08b`** — the docstring says the feature is off; it is on. Smallest,
-   and the next three read the variable it lies about.
-2. **`4f6a6bb1`** — the retroactive-`DOING` clock. Unblocks two transitions
-   that have been deliberately unqueued for days.
-3. **`95c27fca`** — a slice gets clocked and auto-promoted because its members
-   are links, not children. Fixing it is what lets this slice carry an honest
-   keyword.
-4. **`3964c575`** — a container carries clocks it earned before it was one.
+1. **Clear dead wood** — `46d225c7`, `c31b6c76`, `5a5e87c9`. `c31b6c76` and
+   `5a5e87c9` are **twins** — both time-of-day test flakes — so do them
+   together or neither; see CLAUDE.md on the twin asymmetry.
 
-**Then the declared-versus-inferred core**, which is where the slice's title
-actually lives: `2e660571` (generalise `:KIND:`), `29439196` (heading tiers),
-`a0813ae3` (mitosis), `9651d4c8` (plan coverage), `c954f650` (keyword
-progression).
+   `915378ac` was also a phase-1 member and is already **DONE**: it was built
+   on 2026-08-29 to close `478d6ec9` and unblock the *previous* slice, so it
+   was consumed by that slice's endgame while listed in this one. Nothing is
+   wrong — the checkbox is honest — but it is the reason this phase is
+   shorter than the list suggests.
+2. **Stop fighting the tools** — `c8a97d9d`, `2b2db914`, `c74f8663`,
+   `a0028a4e`. The last is the body read `ff1352b3` decided: return a heading
+   whole, drawers included, and let the caller extract. It replaces
+   grep-plus-awk-plus-Read with one call.
+   `c8a97d9d` is the largest felt win and the smallest change: its own child
+   already bound `inhibit-read-only` in the apply path and the other write
+   tools never followed. Measured: the clear/restore dance ran about twelve
+   times in one session.
+3. **The review buffer says what it means** — `6cc71c36`, `98c302e0`,
+   `9e627dc0`, `44cef181`, `46e4ce2b`, `05c71d99`, `8d0716fe`, `b6e229c7`.
+   Do the audit *with* the wording fixes, not before: a one-word repair beside
+   an unchanged line three rows down is worse than uniform terseness. And
+   `9e627dc0` is here because both its body and `98c302e0`'s say the readout
+   rework and the turn-count surfacing must be **one pass** — only its
+   review-buffer half is in scope.
+4. **The files stay orderly** — `0086614a`, `c60a1c53`, `5f1068f9`,
+   `33864a0f`, `b7b46a26`, `8c662dfb`. Two twin pairs in here: `5f1068f9`'s
+   own body says its DONE.org counterpart `33864a0f` is "worth doing in the
+   same pass rather than twice" (and `b7b46a26` blocks it), while `c60a1c53`
+   is `0086614a`'s — one lists the work a slice did not plan, the other flags
+   what should have been a member and was not. Same computation, different
+   verdict.
+5. **The checks learn** — `542924c1`, `d2a0f54c`.
 
-**`8183fc7c` and `798bb7a1` last.** Both are the same root seen from the tool
-surface: a *declared* grouping is invisible to anything that walks the tree.
-`8183fc7c` carries the user's own proposal — expand the general schema to
-carry blocker *ids* rather than a bare `[blocked]` flag — measured at +2.2% on
-the outline, and it would have answered three questions in the last session
-that fell back to shell.
+### Where this will stop anyway
 
-**Cut line: stop after 4.** Those four are one coherent argument about the
-clock's relationship to structure, and finishing them lets the slice hold a
-keyword it currently cannot.
+Every decision is taken, but the slice **cannot** run wire to wire, and the
+reason is architectural rather than a gap:
+
+- **Apply is human-only, by design.** A heading captured during the slice is
+  keywordless until someone applies, so a `:BLOCKER:` naming it is inert,
+  `bin/lint-org` errors and `pre-commit` refuses. Every capture-to-commit
+  cycle therefore crosses a human. `c74f8663` narrows this — a capture that
+  passes `initial_state` is keyworded immediately — but it is *in* phase 2, so
+  everything before it still stops, and apply itself never becomes automatic.
+- **`c8a97d9d` until it ships.** Every write tool needs the read-only flag
+  cleared and restored by hand; it ran about twelve times in one session.
+- **Judgement inside the work, not before it.** `6cc71c36` is an audit — "does
+  this wording distinguish what the code knows?" is a call per site.
+  `b6e229c7` has to decide which state items carry no judgement. `c60a1c53`
+  needs a threshold for what counts as a forgotten member. `7c4d6ef6` is a
+  settling task by definition.
+- **`02aaae22`**, the one body in `8c662dfb` that was ever revised. Do it last
+  or leave it.
+
+Expect long unattended stretches in phases 1, 2 and 4, and frequent checkpoints
+in 3 and 5.
+
+**Cut line: stop after phase 3.** Phases 1–3 are one argument about the gap
+between what the tools know and what they say; 4 and 5 are hygiene and can
+wait for a session with less momentum.
 
 ---
 
-## A reservation to carry, not to ignore
+## Decisions taken, all five — nothing waits on the user
 
-**This slice may be too big.** Eleven members, and unlike `c44c2119` — whose
-members were mostly small defects found while doing other work — most of these
-are *large design questions* with no obvious end state. `29439196` alone has
-been open since 2026-08-19 and is parked on evidence that now exists.
+- ~~`ff1352b3`~~ — **decided 2026-08-31: two tools, not three, and not a
+  mode.** The property schema splits two ways: `BLOCKER` (23) is the only
+  property naming another heading, `CATEGORY` and `KIND` are already expressed
+  as the outline's grouping and behaviour, and everything else describes one
+  heading. So the outline carries relationships and the body carries the rest.
+  Filed as `a0028a4e`. Whether `org_outline`'s front matter then shrinks is
+  sequenced after it, not decided now.
+- ~~`c74f8663`~~ — **decided 2026-08-31: option 1.** `org_capture` gains an
+  optional `initial_state` and writes the keyword with the heading. A creation
+  has no prior state, so nothing is hidden from the review pass; every
+  *subsequent* transition still routes through the queue. Buildable
+  unattended.
+- ~~`5f1068f9`~~ — **decided 2026-08-31: approach A.** One
+  `(org-sort-entries nil ?R nil nil "CREATED")` with point before the first
+  heading; the anchor sorts last on its own. Its one objection — that the
+  anchor is last by an *absence* — is answered by a lint assertion that the
+  `:DATE_TREE:` anchor is the final level-1 heading, not by a fabricated
+  timestamp. Moving the datetree to its own file stays open and is not
+  foreclosed. The first sort is a large reordering and wants its own commit.
+  Buildable unattended.
+- ~~`8c662dfb`~~ — **settled 2026-08-31 by measurement.** Measured across all 472
+  commits: **nine of the ten bodies have never lost a line**, so this
+  heading's own test ("was it ever revised, or only appended to?") answers
+  itself for nine, and compress-then-wrap applies with no per-heading call.
+  Only `02aaae22` shows a shrink, and it is the one container in the list, so
+  do it last or leave it. The nine are unattended work.
+- ~~`b7b46a26`~~ — **decided 2026-08-31: option B.** Write `CLOSED:` from git
+  for the 39 headings that lack one, and mark each `:CLOSED_SOURCE: git`. The
+  question turned on whether anything reads `CLOSED:` as a *measurement*:
+  nothing does — `org-archive-subtree` uses it as a placement key,
+  `bin/lint-org` as a threshold, `f4b07fc0`'s backfill as a presence test — so
+  the machine case for refusing an approximation does not exist, and the
+  marker exists for the human, which is `7771fc63`'s ground. 13 of the 39
+  already have git-derived times in `38b92521`'s manifest. Buildable
+  unattended.
 
-If it stalls, the honest move is to split it rather than let it run: the first
-four are mechanical and the rest are research, and those are different kinds of
-work wearing one title.
+Everything else in the list is buildable unattended.
 
 ---
 
 ## Standing rules, with what actually happened
 
-- **Footnote every tracked `:ID:` in every response.** Measured over one real
-  transcript: 41 of 45 footnoted. Three of the four misses were one-line
-  narrations before a tool call, which the hook never sees — it reads
-  `last_assistant_message`, so only the final response of a turn is guarded.
-- **Break it on a copy before believing a test.** Six assertions written last
-  session passed against deliberately broken code. Two checked presence where
-  order was what mattered; one asserted its own call ordering rather than the
-  call site's; one used `should-not` on a return value that was never nil.
-- **State the reload precondition before verifying.** Scripts are read per
-  invocation; MCP *tool schemas* are negotiated at session start; hook *wiring*
-  is read at session start but hook *scripts* are not.
-- **A negative from a hand-written probe is worth re-checking.** One reported a
-  missing call that was present; the probe had named a function that does not
-  exist.
+- **Ask Emacs, not a regex.** `org-map-entries` bounds entries by
+  construction and is the parser of record. Two scans by regex were wrong the
+  same way in one session: an `:ID:` extraction matched a line in the
+  *previous* heading's body, and a scan for headings lacking `:CREATED:`
+  walked into a datetree and answered 0 where the answer was 1. The org-dev
+  skill's §0b now covers reading, not just building.
+- **Silence is not a pass, and it lied three ways in one session.**
+  `bin/test` writes to **stderr**, so a bare pipe shows nothing while exiting
+  0. A deliberately broken file made the suite exit **255** having run no
+  tests, and a count of `FAILED` lines read that as success. Check the
+  `Ran N tests` line and the exit code, never the absence of a word.
+- **`check-parens` is not a syntax check.** An unescaped `"` inside a
+  docstring terminates the string and turns the rest into code while parens
+  stay balanced. It happened twice, and cost nine spurious failures the second
+  time. Read forms instead — but **bound the loop**, because
+  `(while t (forward-sexp))` only terminates when the file is *broken*
+  and spins forever on a clean one (found by running it, 2026-08-29):
+
+  ```elisp
+  (while (not (eobp)) (forward-sexp) (skip-chars-forward " \t\n"))
+  ```
+
+  wrapped in `condition-case`, which reports the line the reader actually
+  gives up on and terminates either way.
+- **A mutation that does not parse proves nothing.** Break semantically —
+  invert a predicate, return nil — and confirm the run count before the
+  failure count.
+- **A splice whose two markers can be mis-ordered must assert their order.**
+  Replacing a region with `body[:start] + new + body[end:]` silently
+  *duplicates* everything between them when `end < start`. It happened to a
+  slice body on 2026-08-29: the revision links sat before the section being
+  replaced, and the cookie went *up*, which read as plausible on a slice that
+  had just grown.
+- **A sentence describing an action is not the action.** Twice: a source
+  comment reading "Removal is filed" when nothing was, and a reply announcing
+  an edit to a saved file that had not been made.
+- **Never type a UUID from memory.** Two were fabricated in one session; the
+  tools refused both. Write the 8-character prefix and let the tool expand it.
+- **A sentence claiming something was filed is not a filing action.** One was
+  written into a source comment and was false for hours.
+- **Footnote every tracked `:ID:` in every response**, with its exact title
+  looked up rather than recalled.
 - **Never `git stash` to compare.** Copy the file aside.
 - **Never pass `--no-verify`.**

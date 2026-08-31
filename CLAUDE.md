@@ -82,11 +82,21 @@ written weeks ago is not. TODO.org exists to inform planning, orchestration
 and coordination of *future* work — read it for what to do next, not for
 what the system currently is.
 
-*One caveat, latent rather than theoretical:* `active_only` also drops live
-children of a finished parent (`:ID:` 98908aff). Measured 2026-08-21 — zero
-headings are hidden that way today, so the reflex is safe now and will fail
-**silently** the first time a parent is closed with unfinished children
-under it.
+*A caveat that stood here until 2026-08-28, wrong in its detail and now
+fixed outright (`:ID:` 98908aff).* It said `active_only` *drops* live
+children of a finished parent. It did not drop them — it emitted them at
+their unchanged absolute indent with the parent gone, so a reader
+re-parented a live child onto whatever line above happened to have a
+smaller indent. Wrong structure rather than a visible gap, which is worse,
+and the difference matters because a missing line is noticed and a
+misparented one is not.
+
+`--outline-map` now keeps a filtered-out heading when it is an *ancestor*
+of something that survived, so the path stays intact. Two related things
+also stopped being true: the old note's reassurance rested on level-1
+headings being keywordless categories, which the flattening removed, and
+the corpus still has zero instances — so this was fixed while it was
+still latent rather than after it bit.
 
 **DONE.org is reference, never orientation.** Do not survey it to start a
 session; it will not tell you what to work on. Open it when something live
@@ -208,11 +218,29 @@ be classified as one when it is written; see TODO.org `:ID:` b5f94b88,
 which says so about itself.
 
 **Three words, and they do not overlap.** An **epic** is the grouping a
-task belongs to — today a level-1 heading, and `:ID:` 29439196 proposes
-making it an `:EPIC:` label carried by the task instead. A **story** is a
-task that grew keyworded children. A **slice** names members by
-reference and sequences them. Earlier drafts of this file called a story
-an "epic", which is why `:ID:` 2e660571 exists.
+task belongs to — since 2026-08-28 a `:CATEGORY:` value carried by the
+task itself (`:ID:` 29439196). A **story** is a task that grew keyworded
+children. A **slice** names members by reference and sequences them.
+Earlier drafts of this file called a story an "epic", which is why
+`:ID:` 2e660571 exists.
+
+**A fourth word, and it names a failure rather than a thing: a
+_twin_.** Two headings that describe the same defect, or the same class
+of work, closely enough that fixing one and not the other is arbitrary.
+**The _twin asymmetry_ is scheduling one and forgetting the other**, and
+it has happened twice in composition: `:ID:` c31b6c76 and `:ID:`
+5a5e87c9 are both time-of-day test flakes and only one reached a slice;
+`:ID:` 5f1068f9 and `:ID:` 33864a0f are "make the file read newest-first
+after archiving" differing only in key, and again only one did — after
+the first case had already been caught and fixed.
+
+**Both were caught by a reader, never by the composer**, which is the
+part worth acting on: a twin asymmetry is invisible from inside the act
+that creates it. So it is a *review* question — "does anything in this
+list have a twin that is not in it?" — rather than a rule composition
+can follow. Note the second escape happened in prose that had *just
+named* the first, so knowing about it is not protection (`:ID:`
+d5490814).
 
 **The axis under both of those, and the one worth carrying:** a grouping
 is either **emergent** or **declared**, and which it is determines the
@@ -229,11 +257,19 @@ An **epic** and a **slice** are both declared, and they are not the same
 thing. Each asserts that particular tasks belong together for a reason
 the tree does not encode; they differ in what they do about it.
 
-An **epic** is a *label* on the task — `:ID:` 29439196's proposal, named
-`:EPIC:` rather than `:CATEGORY:` so it means one thing. Note what that
-buys once level-1 groupings are gone: a story spans epics for free,
-because its children simply carry different `:EPIC:` values. No refiling,
-and no arrangement of parents to work around.
+An **epic** is a *label* on the task — `:CATEGORY:`, shipped 2026-08-28.
+Note what that buys now that level-1 groupings are gone: a story spans
+epics for free, because its children simply carry different `:CATEGORY:`
+values. No refiling, and no arrangement of parents to work around.
+
+**It was very nearly `:EPIC:` instead**, on the argument that a
+purpose-built property means exactly one thing. `:CATEGORY:` won on
+three affordances org gives it and gives nothing else: it populates the
+agenda prefix column, it inherits with no configuration, and
+`org-agenda-filter-by-category` exists. The "means one thing" worry was
+answered from the other side — `:KIND:` took the what-is-this job, so
+`:CATEGORY:` only ever answers what-is-this-about. See
+`.claude/rules/org-conventions.md` for the ten values.
 
 A **slice** names its members *by reference* — a checkbox list of
 `[[id:...]]` links — and **sequences** them. Nothing moves, so a slice
@@ -249,13 +285,20 @@ checkbox that disagrees with its referent means the slice is stale or
 the referent's keyword is under-reporting; it never means someone
 formed a second opinion worth recording.
 
-**Where a story comes from — the direction, not current practice.** A
-task that outgrows itself **divides** rather than being promoted: a new
-parent appears, the original leaf moves under it *carrying its `:ID:`,
-clock and `:LOGBOOK:`*, and the undone parts of its swollen body become
-new sibling leaves. `:ID:` a0813ae3, designed and **not built** — today
-stories arise by growth or refiling, so what follows is what the model
-buys, not what the files currently guarantee.
+**Where a story comes from.** A task that outgrows itself **divides**
+rather than being promoted: a new parent appears, the original leaf
+moves under it *carrying its `:ID:`, clock and `:LOGBOOK:`*, and the
+undone parts of its swollen body become new sibling leaves. `:ID:`
+a0813ae3, **built 2026-08-28** as `org_divide`.
+
+Two halves, split on whether judgement is involved. The tool does the
+*structural* move and nothing else — new parent, demote, carry
+everything — because that part is mechanical and this repo has two body
+corruptions on record from hand-rolled region edits. Splitting the
+child's engorged body into further leaves stays manual: a tool that
+guessed at it would be inventing headings. So `org_divide` guarantees
+the record survives; it does not guarantee the division was a good
+one.
 
 The payoff is that **a story is precipitated, never authored.** The new
 parent *is* a story the instant it has keyworded children, so there is
@@ -266,10 +309,13 @@ one the emergent definition exists to avoid.
 And it is **born empty**, which settles three open things *by
 construction rather than by rule*:
 
-- **No clock.** `:ID:` 3964c575 wants containers to carry none and
-  cannot enforce it, because a heading clocked honestly as a leaf
-  becomes a container retroactively. A story born by division has never
-  been worked, so it has no clock it could have earned.
+- **No clock, and this bullet is narrower than it was.** A story born by
+  division has never been worked, so it starts with no clock. That is a
+  statement about its *birth*, not a rule that groupings stay clockless
+  — `:ID:` 3964c575 asked for the latter and was **declined** 2026-08-26
+  (see the clock rules below). Mitosis never needed that argument: its
+  case is that the record stays with the task that earned it, which is
+  the next bullet.
 - **No history.** The `:ID:`, `:LOGBOOK:` and state transitions travel
   with the elder child, which is the task that actually did the work.
 - **No body of actions.** The engorged body is *consumed* producing the
@@ -280,10 +326,23 @@ construction rather than by rule*:
 Two consequences that are easy to get backwards. Declaring an emergent
 grouping is the error the epic paragraph guards against. Trying to
 *infer* a declared one — reading a story out of the tree's shape — is
-the same error mirrored, and it is what a top-level category tier
-silently does today (`:ID:` 29439196). And note that a declared grouping
+the same error mirrored, and it is what the top-level category tier did
+silently until it was retired (`:ID:` 29439196). And note that a declared grouping
 is made of ids, which is why `:ID:` 478d6ec9 is load-bearing here rather
 than a convenience.
+
+**And a third case, which looks like the second and is not: the thing
+belongs to another system.** Org's datetree nodes are identified by
+matching org's own title shapes, and that is *correct* — not an
+inference standing in for a declaration we failed to make. We could not
+have made it: `org-datetree-find-date-create` builds year, month and day
+inside org, with no hook, and the DONE.org archive datetree would be
+built by `org-archive-subtree` outside this project entirely. A property
+we cannot write at creation is absent on arrival, and fails open and
+silently, where reading the owner's published shape does not. So the
+emergent/declared axis governs *our own* conventions; where another
+system owns the thing, read the contract it actually publishes
+(`:ID:` 2e660571, which proposed the opposite and measured its way out).
 
 **Rule**: work planned via Claude Code's own Plan Mode gets a single
 permanent link in its heading body — `[[file:~/.claude/plans/<slug>.md][Plan]]`
@@ -406,11 +465,6 @@ edits an org file at the moment you act.
 | `TODO`     → `NEXT`       | None                                |
 | `TODO`     → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
 | `NEXT`     → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
-| `NEXT`     → `PLANNING`   | Open a CLOCK (call `org_clock_in`)  |
-| `PLANNING` → `DOING`      | None — same clock interval continues, no close/reopen |
-| `PLANNING` → `DONE`       | Close the CLOCK (call `org_clock_out`) |
-| `PLANNING` → `WAITING`       | Close the CLOCK (call `org_clock_out`) |
-| `PLANNING` → `CANCELLED`  | Close the CLOCK (call `org_clock_out`) |
 | `DOING`    → `DONE`       | Close the CLOCK (call `org_clock_out`) |
 | `DOING`    → `WAITING`       | Close the CLOCK (call `org_clock_out`) |
 | `DOING`    → `REVIEW`     | Close the CLOCK (call `org_clock_out`) |
@@ -432,6 +486,18 @@ and `REVIEW` → `DONE` touches nothing because no clock is running. These
 rows were added 2026-08-21; until then the keyword was in live use with
 its clock semantics written down nowhere.
 
+**`REVIEW` → `DONE` is the expected exit; `REVIEW` → `DOING` is the
+exception** (the user, 2026-08-26). Going back to `DOING` means the review
+found something *missing or broken* — it is rework, not the normal close.
+Read the two rows above in that light: the clock reopens only because
+work resumed, and most `REVIEW` headings should never reach that row at
+all.
+
+Which makes the keyword a claim worth being careful with. Setting
+`REVIEW` asserts the work is finished and only judgement remains, so a
+heading parked there to mean "not sure yet" is misusing it — that is
+`WAITING`, or it is still `DOING`.
+
 **`DOING` means started and owed a return — not executing right now.**
 The useful metaphor is *in the mail*: we have begun and need to circle
 back as soon as possible. It is durable and **plural**; several headings
@@ -439,11 +505,38 @@ may be `DOING` at once. What records actual execution is the *clock*,
 not the keyword, and at most one heading carries a running clock because
 org runs one.
 
-On a container (a story, or a slice) the same word reads one level up: at
-least one member is in the mail. That sense takes no clock at all, and
-`--trigger-auto-clock-in` already exempts containers. The gap is that a
-*slice* is not recognised as one, because its members are links rather
-than children — `:ID:` 95c27fca.
+On a **grouping** — a story or a slice — the same word reads one level
+up: at least one member is in the mail. That sense opens *no automatic*
+clock, and takes no `NEXT` either, since both belong to a member.
+
+**A grouping may still be clocked deliberately, and that is not a
+defect.** `:ID:` 3964c575 proposed that groupings carry no clock at all;
+declined 2026-08-26. A parent's own coordination and planning time is
+real work, and a blanket "only leaves may be clocked" rule discards it —
+which is what `--container-heading-p`'s docstring has said all along. So
+the exemption is deliberately narrow: it suppresses the *automatic*
+clock a state change would open, never a deliberate `C-c C-x C-i`.
+
+Two consequences worth stating, since both have been read backwards. The
+nine groupings carrying their own CLOCK lines today are **history, not
+debt** — each was clocked honestly while it was still a leaf, and became
+a grouping later by acquiring children or by a refile. Nothing is to be
+migrated. And the resulting ambiguity is a **reporting** problem, not a
+data one: measured 2026-08-26, a clocktable row for a parent shows own
+plus subtree as one number and its own share appears nowhere, recoverable
+only by subtracting every child (`:ID:` 64d34a64). Both triggers
+now ask `claude-code-ide-org--grouping-heading-p`, which is the union of
+the two ways a heading can be one: a container is *emergent* (it acquired
+keyworded children) and a slice is *declared* (`:KIND: slice`). Until
+2026-08-26 they asked the container predicate alone, so a slice was
+clocked and auto-promoted like an action, its members being links rather
+than children (`:ID:` 95c27fca).
+
+Note which predicate goes where. `--grouping-heading-p` is right wherever
+the question is about *meaning* — whose clock, whose next action. Where
+the question really is "does this have TODO children", as in
+`bin/lint-org`'s statistics-cookie rule, the narrow container predicate
+stays.
 
 GTD's one-thing-at-a-time is not being followed here, deliberately. That
 rule is calibrated to human working memory; an agent re-reading a
@@ -459,26 +552,29 @@ Consequences, each of which has been got wrong in practice:
   earlier draft of this section, which claimed the keyword tracks
   attention rather than progress and that no "started but resting" state
   should exist; that is exactly the state `DOING` is for.
-- **Setting `DOING` retroactively still opens a clock**, which under this
-  looser sense is a misattribution rather than a nicety: `org-todo
-  "DOING"` fires `--trigger-auto-clock-in` immediately, verified in
-  batch. Recording that something *was* started is not the same act as
-  starting it. See `:ID:` 4f6a6bb1.
+- **Setting `DOING` retroactively is safe through the queue, and only
+  through the queue.** `org_set_todo` opens no clock by itself, and apply
+  binds `--trigger-auto-clock-in` off for every item it lands — measured
+  2026-08-26, and pinned by
+  `claude-code-ide-org-test-review-suppresses-the-auto-clock-in-trigger`.
+  A hand `C-c C-t` to `DOING` in Emacs *does* clock in at once, so
+  recording that something *was* started is a queue action rather than a
+  keystroke. See `:ID:` 4f6a6bb1.
 
-**Rule**: a transition *to* `DOING` or `PLANNING` opens a clock **when you
-are starting work now** — the ordinary case, and what the table above
-describes. Two exceptions. `PLANNING` → `DOING` reuses the already-running
-interval rather than closing and reopening it. And a **retroactive**
-`DOING` — recording that a heading was started earlier — opens nothing,
-because the work did not happen now. The mechanism does not yet honour
-that second exception: `org-todo "DOING"` clocks in regardless (`:ID:`
-4f6a6bb1), which is why such a transition should not be queued until it
-is settled.
-**Rule**: a transition *from* `DOING` or `PLANNING` closes the clock **if
-this heading's clock is the one running**. Because `DOING` is plural, a
+**Rule**: a transition *to* `DOING` opens a clock **when you are starting
+work now** — the ordinary case, and what the table above describes. One
+exception: a **retroactive** `DOING` — recording that a heading was started earlier — opens nothing,
+because the work did not happen now. **The queue honours that exception,
+so such a transition may be queued freely.** This said the opposite until
+2026-08-26 and was wrong the whole time (`:ID:` 4f6a6bb1): `org_set_todo`
+and `org_clock_in` are separate calls precisely so state and clock are
+decided separately, and apply suppresses the trigger outright. The one
+path that does *not* honour it is a hand `C-c C-t` in Emacs — where a
+human is present to know which act they are performing.
+**Rule**: a transition *from* `DOING` closes the clock **if this
+heading's clock is the one running**. Because `DOING` is plural, a
 heading can be `DOING` with no clock — another heading holds it — and
-there is then nothing to close. The `PLANNING` → `DOING` handoff above
-closes nothing either.
+there is then nothing to close.
 **Rule**: always use the MCP tools for state changes and clocking — do not
 edit CLOCK entries or TODO keywords by hand when the tools are available.
 If the `emacs-tools` MCP server is *not* connected, prefer stopping and
@@ -508,34 +604,24 @@ blocks on a prompt for **those two keywords and only those two**. That
 asymmetry is one of the reasons state changes go through the queue rather
 than being applied live: apply runs inside a genuinely interactive command,
 where the prompt is answerable.
-**Rule**: entering `PLANNING` is a model judgment call made *before* calling
-`EnterPlanMode`, never during — Plan Mode itself forbids non-readonly tool
-calls, so `org_set_todo` cannot run once inside it. Leaving `PLANNING` is
-*not* a model decision: a `PostToolUse` hook matched on `ExitPlanMode`
-(`bin/hooks/exitplanmode-promote-planning`) promotes `PLANNING` → `DOING`
-automatically the instant a plan is approved and execution begins. A "plan
-and implement" prompt must still produce both transitions at their correct,
-separate times, never a premature jump to `DOING`. When the user enters
-Plan Mode directly (shift-tab, not a model-initiated `EnterPlanMode` call),
-there is no window to set `PLANNING` first — the hook's "clocked heading
-isn't PLANNING → no-op" branch is the **common** case then, not a bug.
-**Known gap, accepted**: the `ExitPlanMode` hook fires whether the plan was
-approved or rejected, with no reliable signal to distinguish the two (see
-TODO.org :ID: b95b9fba-f78e-48fe-8546-988709cce309). A stray promotion after
-a rejected plan is low-cost and self-corrects the next time the heading's
-real state is set explicitly — not fixed.
-**Cross-session guard**: the `ExitPlanMode` promotion only fires for the
-session that set `PLANNING`. It no longer needs a variable to do that.
-`claude-code-ide-org--planning-owner-session-id` and
-`claude-code-ide-org--clock-owner-session-id` were deleted at the
-2026-08-11 cutover (TODO.org `:ID:` feba67eb, reconciled by `:ID:`
-e51d6ba1): the promotion moved into
-`bin/hooks/exitplanmode-promote-planning`, which reads *the session's own
-queue file* for the heading it most recently queued `PLANNING` on. The
-guard comes free from the file being per-session — another session's
-`PLANNING` is simply not in it to be found — which is why there is
-nothing left to track. Note this also means the guard no longer depends
-on a clock running, since none does.
+**`PLANNING` was retired 2026-08-28** (`:ID:` c954f650), and with it the
+`ExitPlanMode` promotion hook, the cross-session owner guard, and four
+rows of the table above. Measured across the project's whole history
+before removing it: 7 `PLANNING` transitions in 432 state changes, on 6
+of the 24 days the keyword existed and absent from the three busiest;
+43 headings carried a plan link and 7 of them ever wore it; and the
+premise it was built on — long spans of agent work in Plan Mode — held
+for one of the seven, four having clocked nothing at all inside the
+window. All seven exited to `DOING`, so it never distinguished an
+outcome.
+
+Nothing replaced it, deliberately. A "plan approved" event was
+considered and declined: nothing would consume it, and this project's
+precedent (`:ID:` 7771fc63) is to delete a mechanism whose premise
+failed rather than reimplement it more cheaply. **Plan Mode now needs no
+state change of its own** — a heading is `DOING` while it is being
+planned and implemented, which is what `DOING` already meant.
+
 **Rule**: when asked to start work on a task tracked as an org heading with
 a `:ID:`, transition it to `DOING` via `org_set_todo` *before* beginning,
 unless it's already `DOING`. This has to be a standing instruction, not a
@@ -547,30 +633,59 @@ after it was). On `org-blocker-hook`: `org-depend-block-todo` (refuses
 DONE while a `:BLOCKER:` names unfinished work) and
 `claude-code-ide-org--blocker-clock-running-p` (refuses DONE while the
 heading's own clock is running). On `org-trigger-hook`:
-`--trigger-auto-clock-in` (opens the clock the moment DOING/PLANNING is
+`--trigger-auto-clock-in` (opens the clock the moment DOING is
 set by hand — gated by `claude-code-ide-org-auto-clock-in-on-doing`,
-default `t`), plus `--trigger-demote-conflicting-next` and
-`--trigger-auto-promote-sole-todo`, both live and ungated.
+default `t`), plus `--trigger-demote-conflicting-next`, live and
+ungated **inside a container**.
 
-`--trigger-auto-promote-sole-todo` carries two guards, both added
-2026-08-21 (TODO.org `:ID:` 42808717 and `:ID:` c8a6c5d2, which this file
-listed as open defects until they shipped). It refuses to promote a
-*container*, since that would declare a project to be an action; and it
-declines entirely while a review pass is mid-batch, because apply lands
-one event at a time and the first of several captured children is
-transiently the only keyworded sibling of its group. The promotion is not
-lost, only deferred — `--review-settle-auto-promote` runs it once after
-the batch, against the finished state.
+**`NEXT` belongs to a container's *members*, and nothing sets it by
+itself** (`:ID:` 62b65ad0, 2026-08-26). Read that carefully: `NEXT` is
+meaningful *within* a story or a slice, and a container itself must
+never carry it — promoting one declares a project to be an action, which
+is `:ID:` 42808717. "Belongs to containers" was the original phrasing
+here and read as the opposite of what it meant. A `--trigger-auto-promote-sole-todo`
+stood here and set `NEXT` on a container's sole remaining `TODO`
+autonomously. It is gone, along with its three guards — a re-entrancy
+flag, a mid-batch suppression flag, and the settle pass that re-ran what
+the suppression skipped. 163 lines, every one of which existed *because*
+the trigger wrote to the file on its own.
 
-**Rule**: every transition *to* `DONE` nominates the next action — set
-`NEXT` on whichever remaining sibling should be picked up next, or say in
-a sentence that no clear candidate exists. Leaving the group silently
-un-nominated is the thing to avoid. This completes an invariant the
-triggers only half-enforce: `--trigger-demote-conflicting-next` gives *at
-most* one `NEXT` per sibling group, and `--trigger-auto-promote-sole-todo`
-gives *at least* one only in the sole-survivor case. Everything between —
-several live candidates needing judgement — is what no trigger can decide,
-and it is the common case. GTD's actual invariant is that a live project
+Two things went wrong with it, and only the second is obvious in
+hindsight. It nominated badly: three of roughly eight top-level
+promotions ended up parked as `MAYBE`. And its sibling group was a
+*category* — `--map-siblings` walks with `org-get-next-sibling`, which at
+top level stops only at the file's boundary — so "the sole remaining
+`TODO` in Tooling" was a claim about a filing drawer, not a project. That
+is `:ID:` 42808717 one tier up: it taught the trigger to refuse a
+container because promoting one declares a project to be an action; this
+retires the case where the *group* is the wrong kind of thing.
+
+`--trigger-demote-conflicting-next` survives, scoped the same way: it
+declines at top level, where there is no sibling group worth the name.
+Having a parent is the test, since a keyworded heading with a parent
+makes that parent a container by definition.
+
+**What replaced the promotion is a report, not a rule.**
+`--nomination-candidates-context` names every container whose live
+members include no `NEXT`, at `SessionStart`, alongside the
+stale-interval and ceremony reports — and it *asks* rather than acting,
+which is the contract those reports already keep. It names a sole
+candidate and merely counts several, because that is the case no rule
+can decide. Measured on this corpus the day it shipped: five containers,
+each a real un-nominated project.
+
+**Rule**: every transition *to* `DONE` **inside a container** nominates
+the next action — set `NEXT` on whichever remaining member should be
+picked up next, or say in a sentence that no clear candidate exists.
+Leaving the group silently un-nominated is the thing to avoid. Closing a
+*top-level* task nominates nothing, because it has no group; several
+top-level `NEXT`s at once are expected and correct, one per live
+workstream.
+
+Since 2026-08-26 this is the *whole* invariant rather than half of it.
+`--trigger-demote-conflicting-next` still gives at most one `NEXT` per
+container, but nothing gives you one automatically any more — setting
+`NEXT` is strictly intentional, and the report only points. GTD's actual invariant is that a live project
 always has a next action; a project without one is the canonical defect a
 weekly review exists to catch.
 
@@ -618,9 +733,9 @@ approved Plan Mode plan, write only that heading (title, tags, properties,
 any Plan-file link, intro body) and stop — show it and get explicit
 approval before transitioning it to `DOING` or touching anything else the
 plan describes. Approving a Plan is not approval of the heading's exact
-wording. The `ExitPlanMode` auto-promotion hook does not affect this rule:
-it only ever promotes an *already-clocked, already-`PLANNING`* heading, and
-never touches a newly created heading the plan describes creating. The
+wording. (This used to note that the `ExitPlanMode` auto-promotion hook
+could not affect the rule; the hook was deleted with `PLANNING` on
+2026-08-28, so nothing promotes anything automatically now.) The
 more general form of this rule — `ExitPlanMode` approval and "start
 implementing" are always two separate checkpoints, not just for newly
 created headings — lives in the org skill (`.claude/skills/org/SKILL.md`,
@@ -654,6 +769,8 @@ incident, and the reason the queue exists:
 | `org_query`         | `org-ql-select`          | Cross-file search; not :ID:-scoped     |
 | `org_capture`       | `org-capture`            | Quick-add a new TODO heading           |
 | `org_refile`        | `org-refile`             | Move a subtree under a different parent |
+| `org_divide`        | custom (`org-demote-subtree`) | Task mitosis: insert a new parent above a heading and demote it under. The id, clock and history stay with the **child** |
+| `org_set_property`  | `org-entry-put`          | Set a property by `:ID:`. `:BLOCKER:` is validated — ids resolved, prefixes expanded, unresolvable refused — and `append` unions rather than replaces. Refuses `:ID:`/`:CREATED:` |
 | `org_move_sibling`  | `org-move-subtree-up/down` | Move a heading up/down among siblings |
 | `org_sort_children` | `org-sort-entries`       | Sort a heading's direct children       |
 | `org_log_background_plan` | custom (insert-plan-link) | Write-back for background-planned headings: inserts the Plan link. Still accepts `session_id`, but no longer records it — that went with `:SESSIONS:`; never touches TODO state or the clock |
@@ -668,7 +785,7 @@ incident, and the reason the queue exists:
 
 | Tool                | Notes                                  |
 |---------------------|-----------------------------------------|
-| `org_outline`       | Compact structural index: level, keyword, title, `:ID:`, tags. Marks `[blocked]` when a `:BLOCKER:` names an unfinished heading. Use before creating a heading, to see what already exists |
+| `org_outline`       | Compact structural index: level, keyword, title, `:ID:`, tags. Marks `[blocked: id …]`. **Scoped to one heading it leads with that heading's front matter** — `:CREATED:`, `:CATEGORY:`, `:KIND:`, the `:BLOCKER:` *value* with each id's keyword, the plan file — so "what is this, what blocks it, what is under it" is one call and no body read. Accepts an 8-character prefix as scope. Use before creating a heading |
 | `org_pending_updates` | Summary of queued-but-unapplied updates, grouped by heading. Counts *proposals*, not queue lines. This is how you check a queued call landed |
 
 There is **no MCP tool that applies the queue**, by design. Apply is `M-x
@@ -727,7 +844,6 @@ queue file and exits:
 | `PermissionRequest` | `bin/hooks/block-start`       | `block_start` |
 | `PostToolUse` (unscoped) | `bin/hooks/block-end`    | `block_end`, if a block is open |
 | `PermissionDenied`  | `bin/hooks/block-end`         | `block_end`, if a block is open |
-| `ExitPlanMode`      | `bin/hooks/exitplanmode-promote-planning` | `todo` DOING, if this session queued PLANNING |
 
 `session-pause` and `session-resume` are one line each — `exec
 queue-append pause` / `resume`. They are *guideposts*: timestamps marking

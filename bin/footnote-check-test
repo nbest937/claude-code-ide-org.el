@@ -18,6 +18,11 @@ pass=0; fail=0
 # A real tracked id, and a real one used as the "already footnoted" case.
 REAL="$(grep -ohE '^:ID: +[0-9a-f]{8}' "$repo/TODO.org" | head -1 | awk '{print $2}')"
 REAL2="$(grep -ohE '^:ID: +[0-9a-f]{8}' "$repo/TODO.org" | sed -n '2p' | awk '{print $2}')"
+# A tracked id whose 8-char prefix is ALL DIGITS. Derived rather than
+# written down so it cannot rot, and the tests using it skip loudly if
+# the corpus ever has none -- a vacuous pass here would hide exactly the
+# defect these cases exist for.
+REALNUM="$(grep -ohE '^:ID: +[0-9]{8}' "$repo/TODO.org" "$repo/DONE.org" | head -1 | awk '{print $2}')"
 
 # Blocking is signalled by EXIT CODE 2 with the message on stderr, not
 # by JSON (TODO.org :ID: 5787bfc6). A hook that exits 0 has its stderr
@@ -68,11 +73,82 @@ check "one footnoted, one not, still blocks" blocked \
 check "an 8-hex token that is not a tracked :ID: is ignored" allowed \
   "$(run s4 "Commit deadbeef fixed it.")"
 
-check "an 8-digit number is not an id" allowed \
+# Renamed 2026-08-26. This used to be called "an 8-digit number is not
+# an id", which is what the hook's own all-digit filter asserted -- and
+# that filter was the defect (5 tracked ids are all digits). The case
+# still passes and is still worth keeping, but for the opposite reason:
+# the :ID: LOOKUP rejects it, exactly as it rejects a git short hash.
+check "an 8-digit number that is not a tracked :ID: is ignored" allowed \
   "$(run s5 "There were 20260824 events.")"
 
 check "a message citing nothing passes" allowed \
   "$(run s6 "No identifiers here at all.")"
+
+# Fenced code blocks are transcripts, not citations (TODO.org :ID: 2758f3a0,
+# amended 2026-08-26). A rendered slice checklist would otherwise demand a
+# footnote per member, each restating a title visible in the block itself.
+check "an id inside a fenced block is not a citation" allowed \
+  "$(run s12 "Here is the checklist:
+
+\`\`\`org
+- [X] ${REAL} DONE something
+\`\`\`
+")"
+
+check "an id inside a tilde fence is not a citation either" allowed \
+  "$(run s13 "Output:
+
+~~~
+${REAL}
+~~~
+")"
+
+# The exemption must be narrow: prose around a block is still scanned, and
+# an INLINE backticked id is still a citation -- that is the normal way one
+# gets written, and exempting it would gut the check.
+check "prose after a fenced block is still scanned" blocked \
+  "$(run s14 "Output:
+
+\`\`\`
+irrelevant
+\`\`\`
+
+See ${REAL} for the detail.")"
+
+check "an inline backticked id is still a citation" blocked \
+  "$(run s15 "See \`${REAL}\` for the detail.")"
+
+# An all-digit tracked id must be enforced like any other. This is the
+# defect the hook shipped with: it dropped all-digit tokens BEFORE the
+# lookup, so 5 of 267 real ids could never be required. Found 2026-08-26
+# when an unfootnoted 29439196 passed.
+if [[ -n "$REALNUM" ]]; then
+  check "an all-digit tracked :ID: with no footnote blocks" blocked \
+    "$(run s9 "The ${REALNUM} decision is yours.")"
+
+  check "an all-digit tracked :ID: with a footnote passes" allowed \
+    "$(run s10 "The ${REALNUM}¹ decision is yours.
+
+---
+
+¹ \`${REALNUM}\` — TODO *Some exact title*")"
+
+  # The worst shape, and the one that actually happened: a block that
+  # reports a STRICT SUBSET of what is missing. It reads as
+  # authoritative, so complying with it exactly still leaves the
+  # response wrong -- the hook teaches the wrong lesson.
+  out_mixed="$(run s11 "Both ${REALNUM} and ${REAL} matter.")"
+  check "a mixed digit/hex citation blocks" blocked "$out_mixed"
+  for want in "$REALNUM" "$REAL"; do
+    if grep -q "$want" <<<"$(msg_of "$out_mixed")"; then
+      printf 'ok   - the message names %s (yes)\n' "$want"; pass=$((pass+1))
+    else
+      printf 'FAIL - the message omits %s\n' "$want"; fail=$((fail+1))
+    fi
+  done
+else
+  printf 'SKIP - no all-digit tracked :ID: in the corpus; 4 cases not run\n'
+fi
 
 # The loop guard: the same session blocking twice must not block again.
 out1="$(run s7 "See ${REAL} for the detail.")"

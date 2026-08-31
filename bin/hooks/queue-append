@@ -175,13 +175,17 @@ fi
 
 # Explicit field overrides, for a *synthetic* event that does not
 # originate in an MCP tool call and so has no tool_input to read or
-# tool_response to parse. Only bin/hooks/exitplanmode-promote-planning
-# uses them: ExitPlanMode's payload says nothing about org, so the
-# heading and states have to be supplied by the caller that worked them
-# out. Kept as named variables rather than having that hook synthesise a
-# fake tool_response for the sed above to recover -- a caller faking the
-# shape of a tool reply it never received is exactly the kind of clever
-# that stops being readable the second time someone touches it.
+# tool_response to parse.
+#
+# NOTE: these have no consumer as of 2026-08-28. Their only user was
+# bin/hooks/exitplanmode-promote-planning, deleted when the PLANNING
+# keyword was retired (TODO.org :ID: c954f650) -- ExitPlanMode's payload
+# says nothing about org, so that hook had to supply the heading and
+# states itself. Deliberately left in place in that commit rather than
+# removed alongside it: this script is on the path of every hook in the
+# project, and a dead branch is a smaller risk than an unrelated edit to
+# the queue writer made while doing something else. Removal is TODO.org
+# :ID: 46d225c7.
 override_id="${QUEUE_APPEND_ID:-}"
 override_state="${QUEUE_APPEND_STATE:-}"
 override_from="${QUEUE_APPEND_FROM:-}"

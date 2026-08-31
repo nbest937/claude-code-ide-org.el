@@ -9,7 +9,14 @@
 # by spot-checking fresh sessions, not scriptable — see TODO.org).
 
 set repo_root (cd (dirname (status --current-filename))/.. && pwd)
-set fail 0
+# `set -g' at every assignment below, never a bare `set'. In fish a bare
+# `set' inside an `if' or `for' block creates a BLOCK-LOCAL variable, so
+# the outer `fail' stays 0 and the script exits 0 while printing FAIL --
+# which is what it did from its first version until 2026-08-27, making
+# every failure it ever reported invisible to any caller. Found by
+# deliberately breaking a claim and checking the exit code rather than
+# the output.
+set -g fail 0
 
 function check
     set desc $argv[1]
@@ -50,7 +57,7 @@ if test -n "$org_build_dir" -a -d "$org_build_dir/org"
     echo "ok   - bin/test build-* glob resolves ($org_build_dir/org)"
 else
     echo "FAIL - bin/test build-* glob did not resolve to a directory containing org/"
-    set fail 1
+    set -g fail 1
 end
 
 # 4. org-dev/SKILL.md describes the tool-registration block by anchor
@@ -63,10 +70,70 @@ set config_el "$repo_root/modules/tools/claude-code-ide-org/config.el"
 set tool_block_line (grep -n "with-eval-after-load 'claude-code-ide" "$config_el" | head -1 | cut -d: -f1)
 if test -z "$tool_block_line"
     echo "FAIL - config.el: with-eval-after-load 'claude-code-ide anchor not found"
-    set fail 1
+    set -g fail 1
 else
     set last_toplevel_line (grep -n '^(' "$config_el" | tail -1 | cut -d: -f1)
     check "config.el tool-registration block is the last top-level form" "$last_toplevel_line" "$tool_block_line"
 end
+
+# 5. Section 0b ("check whether org already has it") points at three paths
+# inside the straight org checkout. Those paths ARE the section -- a reader
+# who cannot find the source falls back to guessing, which is the habit the
+# section exists to break -- and they rot when straight relayouts.
+set -g org_repo "$HOME/.config/emacs/.local/straight/repos/org"
+for rel in lisp/org-id.el lisp/org-archive.el lisp/org-datetree.el doc/org-manual.org etc/ORG-NEWS
+    if test -e "$org_repo/$rel"
+        echo "ok   - org-dev 0b path exists ($rel)"
+    else
+        echo "FAIL - org-dev 0b cites $rel under $org_repo, which does not exist"
+        set -g fail 1
+    end
+end
+
+# 6. Section 0b names org facilities this repo deliberately leans on rather
+# than reimplementing. Renamed upstream, the table becomes advice to call
+# something that is not there.
+#
+# The libraries are required first, and that is load-bearing rather than
+# tidy. Most of these names are *not* autoloaded --- org-datetree only
+# autoloads find-date-create, find-month-create and find-iso-week-create ---
+# so a bare fboundp answers "does this session happen to have loaded the
+# file", not "does this Emacs have the function". Measured 2026-08-31: the
+# same check passed at 11:23 and failed at 12:08 against the same org
+# 9.8.7, the only difference being that the earlier Emacs had archived
+# something and pulled org-datetree in. A check whose answer depends on
+# what the session did before it is worse than no check, because it fails
+# loudly and wrongly.
+for fn in org-add-archive-files org-id-locations org-id-search-archives org-datetree-find-create-hierarchy org-datetree-comparefun-from-regex org-archive-reversed-order org-agenda-prefix-format
+    if emacsclient -e "(progn (require 'org) (ignore-errors (require 'org-id)) (ignore-errors (require 'org-archive)) (ignore-errors (require 'org-datetree)) (or (fboundp '$fn) (boundp '$fn)))" 2>/dev/null | grep -q '^t'
+        echo "ok   - org facility still exists ($fn)"
+    else
+        echo "FAIL - org-dev 0b names $fn, which this Emacs does not have"
+        set -g fail 1
+    end
+end
+
+# 7. Two Doom settings this project leans on that nothing else asserts.
+# Deliberately *behavioural*, not a text comparison against SKILL.md's
+# prose: §7 stopped quoting the config on 2026-08-28 precisely because a
+# transcription drifts twice and cannot be checked by reading it, so
+# re-introducing a diff here would rebuild the failure mode in a script.
+# These ask the running Emacs what is true.
+#
+# Not asserted, and the omission is deliberate: the org-todo-keywords
+# sequence. It disagrees with TODO.org's own `#+TODO:' today (WAIT vs
+# WAITING, and no REVIEW) and nothing is broken, because a buffer-local
+# header wins -- so a check would fail on a latent inconsistency, and a
+# check that fails while everything works is one people learn to ignore.
+
+set truename (emacsclient -e '(if find-file-visit-truename t nil)' 2>/dev/null; or echo unreachable)
+check "find-file-visit-truename is set (symlinked TODO.org opens once)" "$truename" "t"
+
+# Must resolve inside this repo. Unset it falls back to
+# `org-default-notes-file' and targetless captures land in ~/org/notes.org
+# (TODO.org :ID: bd482c92). Compared through `file-truename' on both sides,
+# since the config deliberately names the *symlink* path.
+set capture_file (emacsclient -e '(if (boundp (quote claude-code-ide-org-capture-file)) (file-truename claude-code-ide-org-capture-file) "unbound")' 2>/dev/null | string trim -c '"')
+check "claude-code-ide-org-capture-file resolves into this repo" "$capture_file" "$repo_root/TODO.org"
 
 exit $fail

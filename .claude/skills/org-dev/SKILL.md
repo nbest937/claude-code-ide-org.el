@@ -13,6 +13,17 @@ description: >
   take effect") and proactively whenever config.el, config-test.el, or
   the Doom config has just been edited in this session — don't wait to
   be asked before checking that a code change actually loaded.
+  Also trigger before *reading* org files to answer a question —
+counting headings, checking which carry a property, finding what changed
+— because a throwaway regex over org text gets entry boundaries wrong,
+and Emacs is already running with the parser of record. And BEFORE
+writing any helper that touches org's own data —
+  resolving or expanding an :ID:, finding archive files, listing agenda
+  files, summing clocks, walking or sorting a datetree, following
+  links, deriving a file path from #+ARCHIVE: — because org very often
+  already provides it and the hand-rolled version is where the gaps
+  live. Section 0b names where to look and what it cost the eight times
+  this was skipped in one day.
 ---
 
 # org-dev — Reload & Verify Skill
@@ -86,6 +97,96 @@ is logged as having been hit three times in a row before anyone noticed,
 and twice more on 2026-08-14.
 
 ---
+
+## 0b. Standing rule: check whether org already has it
+
+**Before writing a helper that walks org files, resolves ids, derives
+paths, or sorts a tree — look for org's own.**
+
+**And before *reading* one to answer a question.** This half was added
+2026-08-28, because the rule above did not cover the case that actually
+kept happening. It triggers on *building*, and roughly forty reaches for
+`python3 -c` in one session were not building anything — they were
+answering "how many headings carry this property", "which of these is
+finished", "what changed". Two of them were wrong in the same way:
+extracting an `:ID:` by regex matched a line in the *previous* heading's
+body, and a scan for headings lacking `:CREATED:` walked into a datetree
+and reported 0 where the answer was 1. Both are entry-boundary errors,
+and both are impossible through `org-map-entries`, which bounds entries
+by construction.
+
+The test is not "am I writing a helper" but **"does org's own semantics
+decide this answer?"** — entry boundaries, property inheritance, keyword
+sets, clock arithmetic, agenda behaviour. If yes, ask Emacs: it is
+running, and it is the same parser that writes these files. A regex over
+org text is a second implementation of those semantics that can disagree
+with the one of record, and it will disagree silently, in the direction
+of looking right.
+
+`emacsclient -e` with `org-map-entries` or `org-ql-select` is the usual
+shape. Reach for text processing when Emacs is genuinely the wrong
+instrument — it is down, or you want a whole-corpus transformation you
+can diff on a scratch copy before it goes near the real file — and say
+which of those it is. This repo has a measured
+habit of rebuilding org machinery *beside* org rather than on it, and the
+rebuilt version is where the gaps live: it is written against one
+project's file list, one id shape, one assumption, and it inherits none
+of org's twenty years of edge cases.
+
+**On 2026-08-27 this happened eight times in one session**, which is how
+the rule got written:
+
+| built or asserted | org already had |
+|---|---|
+| `--archive-files-of`, ~35 lines reading `#+ARCHIVE:` | `org-add-archive-files` |
+| `--known-id-table`, rebuilt per call | `org-id-locations` — 23,000x faster, archive-aware |
+| "DONE.org can't be reached" | `org-id-search-archives`, default `t` |
+| a re-sort pass for a newest-first datetree | `org-datetree-find-create-hierarchy` + `org-datetree-comparefun-from-regex` |
+| plans to hand-order the archive | `org-archive-reversed-order` |
+| ":CATEGORY: has a hard 12-char limit" | the manual says **10**, as *advice*; 12 is a `defcustom` default |
+| "12 columns is a constraint" | `org-agenda-prefix-format`, user-settable |
+| "finished work has no place in an agenda" | the manual says so, in "Archiving" |
+
+Three of those were *asserted as fact without checking* and happened to
+be right, which is worse than being wrong: it produces confident prose
+that no one re-examines.
+
+### Where to look, in order
+
+1. **The tracker first.** `:ID:` 0465c1d5 had named
+   `agenda-with-archives` and `file-with-archives` — and diagnosed the
+   missing DONE.org symlink — *a month before* the same ground was
+   re-covered from scratch. `org_query` and a scoped `org_outline` cost
+   seconds. A past session may have already done the reading.
+2. **The running Emacs**, which is authoritative over any documentation:
+   ```
+   emacsclient -e '(apropos-internal "org-.*archive.*file" (quote fboundp))'
+   emacsclient -e '(documentation (quote org-add-archive-files))'
+   emacsclient -e '(find-library-name "org-id")'
+   ```
+3. **The straight checkout**, for source and manual:
+   ```
+   ~/.config/emacs/.local/straight/repos/org/lisp/       # org-id.el, org-archive.el, org-datetree.el …
+   ~/.config/emacs/.local/straight/repos/org/doc/org-manual.org
+   ~/.config/emacs/.local/straight/repos/org/etc/ORG-NEWS # when a feature landed, and why
+   ```
+   `ORG-NEWS` earns its place: it answered "is this coming in a future
+   release?" with "it shipped in 9.8, for a different reason."
+
+### The test that decides it
+
+**Does org track this already?** Org indexes ids, file locations, archive
+targets, agenda files, clock sums. It does *not* index a heading's
+keyword-and-title by id, which is why
+`claude-code-ide-org--slice-referent-index` legitimately scans files and
+`--known-id-table` did not.
+
+When you do keep a local version, **say in its docstring which org
+facility it duplicates and why** — the way
+`claude-code-ide-org--id-scannable-files` records that it wraps
+`org-add-archive-files` purely to undo that function's buffer side
+effects. A divergence with a stated reason is a decision; one without is
+an accident waiting to be re-made.
 
 ## 1. Live reload procedure
 
@@ -207,6 +308,29 @@ for `bin/test` — `bin/test` verifies wrapper-function *behavior* (see
 not just in-memory results); `fboundp` only tells you the symbol exists
 in the running session.
 
+### `buffer-size` is characters; file size is bytes
+
+Never compare `(buffer-size)` against `(nth 7 (file-attributes ...))` to
+decide whether a buffer diverges from disk. `buffer-size` counts
+*characters*; the file size is *bytes*, and every non-ASCII character is
+2–3 bytes. On 2026-08-31 that read as 1.2 KB of content missing from
+`TODO.org` when the buffer and the file were byte-identical: 580 em-dashes
+at 2 extra bytes each, plus a handful of `→`, `…`, `§` and `−`, came to
+exactly the 1,189 the comparison reported. This repo's prose is full of
+em-dashes, so the gap scales with the file and looks alarming rather than
+constant.
+
+The signal that actually answers the question is `(buffer-modified-p)`,
+and if you want the difference itself, dump the buffer somewhere harmless
+and diff it — this reads the buffer without saving it, so an unsaved human
+edit is neither committed nor destroyed:
+
+```
+emacsclient -e '(with-current-buffer (get-file-buffer "…/TODO.org")
+  (write-region (point-min) (point-max) "/tmp/buf.org" nil (quote quiet)))'
+diff TODO.org /tmp/buf.org
+```
+
 ### Deleting a function needs more than a reload
 
 `load-file` evaluates what is *in* a file. It does not unbind what you
@@ -276,60 +400,44 @@ hasn't built yet), `bin/test` silently falls back to the bundled org
 again with no error — the symptom is tests behaving as if a newer
 org-mode feature doesn't exist. Check `ls ~/.config/emacs/.local/straight/build-*/org` if that happens.
 
-## 7. What is in the Doom config, and why
+## 7. What the Doom config does for this project, and why
 
 Moved here from CLAUDE.md 2026-08-14: it is setup reference consulted when
 changing these files, which is exactly this skill's trigger, not something
 every session needs in context.
 
-**Read the live file, not this summary, before acting on it.** The version
-CLAUDE.md carried had drifted — it showed `(add-hook 'kill-emacs-hook
-#'org-clock-out)` when the config actually uses a guarded wrapper. What
-follows was verified against `~/.config/doom/config.el` and the running
-Emacs on 2026-08-14.
+**This section deliberately does not reproduce `~/.config/doom/config.el`,
+and that is the fix rather than an omission.** It used to, and the copy
+drifted twice. First in CLAUDE.md — it showed `(add-hook 'kill-emacs-hook
+#'org-clock-out)` when the config already used a guarded wrapper — which
+is why §7 was moved here on 2026-08-14. Then here: between 2026-08-14 and
+2026-08-28 it gained a keyword the config never had (`WAITING`, where the
+config says `WAIT`) and lost two settings the config had gained. Neither
+drift was noticed, and neither could have been: **a quoted config is the
+one kind of documentation that cannot be checked by reading it** — you
+have to open the other file, which is exactly the work the quote existed
+to save. Moving a drifting duplicate to a new home does not stop it
+drifting.
 
-```elisp
-;; server.el must be required explicitly: server-running-p isn't
-;; autoloaded (server-start is), so a fresh startup errors void-function
-;; without this. The guard keeps a mid-session reload from hitting
-;; server-start's "already running" prompt.
-(require 'server)
-(unless (server-running-p) (server-start))
+So what follows names each setting and says what breaks without it. Names
+change far more slowly than values, and an invariant can be checked where
+a transcription cannot.
 
-(after! org
-  (setq org-todo-keywords
-        '((sequence "TODO" "NEXT" "PLANNING" "DOING" "WAITING" "MAYBE" "|" "DONE" "CANCELLED")))
-  (setq org-clock-out-when-done t)
-  (setq org-clock-persist 'history)
-  (setq org-archive-location "DONE.org::* Done")
-  ;; Doom's default is (list org-directory) and org expands it
-  ;; non-recursively, so a file one level down never resolves. One-time
-  ;; scan at load: a newly symlinked .org needs a restart to be seen.
-  (setq org-agenda-files (directory-files-recursively org-directory "\\.org$"))
-  (require 'org-depend))
+**Where to look.** `~/.config/doom/config.el` for everything below;
+`~/.config/doom/packages.el` for the `claude-code-ide` recipe
+(`:host github :repo "manzaltu/claude-code-ide.el"`); `~/.config/doom/init.el`
+for the `:term vterm` and `:tools claude-code-ide-org` module lines.
 
-;; org-clock-out has no guard and signals (user-error "No active clock"),
-;; which these hooks would hit on every quit where nothing is clocked --
-;; the common case. Hence the wrapper.
-(defun claude-code-ide-org--clock-out-if-clocking ()
-  (when (org-clocking-p) (org-clock-out)))
-(add-hook 'kill-emacs-hook #'claude-code-ide-org--clock-out-if-clocking)
-(add-hook 'suspend-hook    #'claude-code-ide-org--clock-out-if-clocking)
-
-(use-package! claude-code-ide
-  :config
-  (setq claude-code-ide-mcp-server-port 45571)
-  (claude-code-ide-emacs-tools-setup)
-  (setq claude-code-ide-terminal-backend 'vterm)
-  (global-auto-revert-mode 1))
-```
-
-Declared in `~/.config/doom/packages.el`:
-
-```elisp
-(package! claude-code-ide
-  :recipe (:host github :repo "manzaltu/claude-code-ide.el"))
-```
+| setting | what it buys, and what breaks without it |
+|---|---|
+| `(require 'server)` before `server-start` | `server-running-p` is not autoloaded though `server-start` is, so a fresh startup errors `void-function`. The `unless` guard keeps a mid-session reload off the "already running" prompt |
+| `find-file-visit-truename` | `~/org/claude-code-ide-org/TODO.org` is a symlink into the repo. Without this you get two buffers on one file — and no warning, because Doom also sets `find-file-suppress-same-file-warnings`. Doom sets it already; it is pinned so a Doom change cannot flip it silently |
+| `org-agenda-files` scanned recursively | Doom's default is `(list org-directory)`, which org expands non-recursively, so a file one level down never resolves. It is a one-time scan at load: a newly symlinked `.org` needs a restart to be seen |
+| `claude-code-ide-org-capture-file` | unset, it falls back to `org-default-notes-file` and targetless captures land in `~/org/notes.org`, outside this repo (`:ID:` bd482c92). Set to the **symlink** path, not `~/git/…`: `org-agenda-files` is built by scanning `org-directory`, so everything else knows the file by that name, and the git path would give org-id two entries per id |
+| `org-clock-persist` set to `history` | not `t` and not `clock`, so a restart does **not** auto-resume a clock. That is why stale-interval detection scans file *text* for an unclosed `CLOCK:` rather than asking `org-clocking-p` |
+| `--clock-out-if-clocking` on `kill-emacs-hook` and `suspend-hook` | `org-clock-out` has no guard and signals `(user-error "No active clock")`, which those hooks would hit on every quit where nothing is clocked — the common case. Hence the wrapper rather than the bare function |
+| `claude-code-ide-mcp-server-port` | must match `.mcp.json`. This one **is** asserted, by `bin/check-org-dev-skill` |
+| `global-auto-revert-mode` | why an edit made on disk shows up in a live buffer without an explicit revert — but see §0, it is not a substitute for stating the precondition |
 
 **`org-depend` is required, so `:BLOCKER:` is actually enforced.** Verified
 live: `org-blocker-hook` holds `org-depend-block-todo` alongside this
@@ -338,10 +446,14 @@ function blocks on a running clock; org-depend's blocks on unsatisfied
 `:BLOCKER:` IDs. Two different guards, both live — don't assume a refused
 `DONE` came from the project's one.
 
-**Known gap: `org-todo-keywords` has no `REVIEW`.** The sequence above
-predates it, so `REVIEW` resolves only in files carrying their own
-`#+TODO:` header line — TODO.org does, which is why it works there. A file
-without one will not accept it.
+**Known gap, and it is two gaps: `org-todo-keywords` has no `REVIEW`, and
+still says `WAIT` rather than `WAITING`.** The sequence predates `REVIEW`,
+and the `WAIT` → `WAITING` rename (`:ID:` a729c32a) was verified against
+the *buffer's* `#+TODO:` line rather than against this variable, so the
+global default never moved. Both keywords therefore resolve only in files
+carrying their own `#+TODO:` header — TODO.org and DONE.org do, which is
+why they work there. A new `.org` file without one accepts neither, and
+accepts `WAIT`, which nothing in this project uses any more.
 
 **vterm**: requires the `:term vterm` Doom module (in `init.el`). Its
 native module is compiled with cmake against homebrew `libvterm` — the

@@ -16,9 +16,9 @@ failure is silent.
 Every `.org` file in this project should start with:
 
 ```org
-#+TODO: TODO(t!) NEXT(n!) PLANNING(p!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
+#+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
 #+TAGS: code comms research review
-#+ARCHIVE: DONE.org::* Done
+#+ARCHIVE: DONE.org::
 ```
 
 The per-keyword cookies matter: `!` records a timestamp on entry, `@`
@@ -51,10 +51,105 @@ deduplicate, so `:code:code:` survives untouched and org-lint says nothing;
 `bin/lint-org` reports it as an error. It happens when a tag is appended to
 a headline by hand without checking what is already there.
 
-## Top-level headings
+## Top-level headings, and the category they used to be
 
-Top-level (`*`) headings in `TODO.org` are epics — pure
-structure, grouping related tasks — not tasks in their own right. They carry
+**Since 2026-08-27 (`:ID:` 29439196) a top-level heading is a *task*.** The
+level-1 category tier is gone: a task's grouping is declared on the task
+itself, as `:CATEGORY:`, rather than inferred from its position in the tree.
+Level 1 is therefore where `:ID:`, `:CREATED:`, a TODO keyword and tags all
+belong — the exact inverse of the rule that stood here before, which is
+quoted below because a reader of older commits will meet it.
+
+One exception, and it is structural rather than a carve-out: **`* Review and
+planning` remains a level-1 container**, because org-datetree's
+year/month/day scaffolding is an irreducible tree. Real tasks that used to
+sit beside that scaffolding were moved out to level 1; level 2 beneath the
+anchor now holds nothing but org's own nodes.
+
+### The ten values
+
+Settled 2026-08-28 (`:ID:` 29439196, step 2). Single words, capitalised, so a
+value is distinguishable at a glance from a TODO keyword and from a tag:
+
+| value | what belongs here |
+|---|---|
+| `Queue` | the event queue itself — events, guideposts, spans, attribution |
+| `Apply` | the review buffer and the apply pass over that queue |
+| `Clock` | clock correctness proper — intervals, CLOCK lines, org-clock state |
+| `Skill` | what an agent must follow: CLAUDE.md, the skills, these conventions, keyword semantics |
+| `Tools` | the `org_*` MCP surface and its behaviour |
+| `Dev` | the repo's own machinery: `bin/`, lint, tests, hooks, packaging, the Doom and shell environment |
+| `Meta` | the meta-work datetree and the daily ceremony — the day node, archiving |
+| `Slices` | slice machinery: composition, refresh, the blocker and the cookie |
+| `Docs` | prose written for a human reader — README, procedures |
+| `Upstream` | defects belonging to `claude-code-ide.el`, not to this repo |
+
+**`Tools` versus `Dev` is one test: `Tools` is what Claude calls, `Dev` is
+what a developer runs.** They split 26/26 without being forced, which is why
+the seam is trusted. Note `Dev` names an *audience* where the others name
+subjects — read alone it would swallow the file, and the bound comes entirely
+from its sibling.
+
+**Not `Review`, deliberately.** `REVIEW` is also a TODO keyword, so
+`:CATEGORY: Review` would render an agenda line as `Review  REVIEW  Some
+task` — the one value that defeats the reason these are capitalised. It also
+read to its daily reader as naming the ceremony rather than the apply
+subsystem. `apply` is the project's own word for it by a wide margin.
+
+### Where the nine old labels went
+
+None mapped one-to-one but `Slices` and `Upstream`; the point of the exercise
+was that the big labels were compound.
+
+| was | became |
+|---|---|
+| Clock lifecycle & visibility (76) | Apply 30, Clock 24, Queue 15, Skill 2, Meta 2, Docs 1, Tools 1, Dev 1 |
+| Skill logic (50) | Skill 23, Tools 21, Queue 2, Slices 2, Clock 1, Docs 1 |
+| Tooling (32) | Dev 23, Skill 4, Slices 2, Tools 2, Meta 1 |
+| Observability (15) | Queue 6, Skill 2, Apply 2, Meta 2, Slices 1, Clock 1, Tools 1 |
+| Review and planning (6) | Meta 5, Apply 1 |
+| Bigger swings (6) | Skill 3, Dev 2, Tools 1 |
+| Slices (2) | Slices 2 |
+| Documentation (2) | Slices 2 |
+| Upstream (claude-code-ide.el) (1) | Upstream 1 |
+
+Two findings worth keeping, because they generalise past this file. The
+compound label really was three subsystems — 76 splits close to evenly across
+`Apply`, `Clock` and `Queue`. And **`Skill logic` was exactly as compound
+while containing no conjunction to give it away**, splitting 23/21 between
+`Skill` and `Tools`: the "only two names contain an `&`" heuristic points true
+where it fires but is silent on a label that hides two subjects behind one
+word.
+
+`* Review and planning` carries `:CATEGORY: Meta` on the anchor itself, since
+org-datetree's day nodes have no drawer of their own and would otherwise
+inherit the file name.
+
+### What each old category meant
+
+A `:CATEGORY:` value is a bare string, so the prose that used to live in a
+category heading's body had nowhere to go in the file. Preserved here
+verbatim; it was the input to the taxonomy work above:
+
+- **Clock lifecycle & visibility** — "Everything here is specifically about
+  the clock subsystem's correctness and observability, as opposed to the
+  general TODO-state machine above — three different angles on 'make sure the
+  clock is never silently wrong.'"
+- **Observability** — "Broader than clocking — visibility into what every
+  tool call actually did, both after the fact and at the start of a session."
+- **Bigger swings** — "Significant directions this project has not committed
+  to. Think hard before building any of them."
+- **Upstream (claude-code-ide.el)** — "Issues found against the third-party
+  `claude-code-ide.el` (manzaltu/claude-code-ide.el) package itself, not this
+  repo's own code — worth reporting upstream but not this repo's work to fix."
+
+`Slices`, `Documentation`, `Skill logic` and `Tooling` carried no body prose
+and lost nothing.
+
+### The rule that stood until 2026-08-27
+
+Top-level (`*`) headings in `TODO.org` were epics — pure
+structure, grouping related tasks — not tasks in their own right. They carried
 no `TODO` keyword, no tags, and **no task metadata**: no `:ID:` and no
 `:CREATED:`, overriding the general "every heading creation" rule for this
 one case.
@@ -96,8 +191,10 @@ A **story** is not declared, it is emergent: a task that has acquired
 children carrying TODO keywords. Detectable via
 `claude-code-ide-org--container-heading-p` — "container" is the code's
 older word for a story. Don't classify a heading as one when writing it.
-An **epic** is the separate thing: the grouping a task belongs to, today
-a level-1 heading and proposed as an `:EPIC:` label (`:ID:` 29439196).
+An **epic** is the separate thing: the grouping a task belongs to,
+carried on the task as a `:CATEGORY:` value since 2026-08-28 (`:ID:`
+29439196). It is declared, where a story is emergent — which is why one
+is written down and the other must never be.
 
 **A heading with TODO-carrying children carries a statistics cookie.** Add
 `[/]` to the headline and let org fill it in
@@ -127,9 +224,66 @@ headings. Each carries an `:ID:`, a `:CREATED:`, and a
 `:COOKIE_DATA: checkbox recursive` property so its statistics cookie
 counts nested members as well as top-level ones.
 
+**The statistics cookie itself is not yours to remember.** A slice's
+headline carries `[n/m]` over its checkbox list, and
+`M-x claude-code-ide-org-refresh-slice` now *inserts* the `[/]` when it
+is missing rather than only recomputing an existing one. `bin/lint-org`
+reports a cookie-less slice as an **error** as a backstop.
+
+**It goes immediately after the TODO keyword** — `* DOING [6/11] Close
+the gap …`, not at the end of the title. Measured across both files:
+**13 of 14 cookies sit there**, and the single trailing one had been
+written by `--ensure-statistics-cookie-at-point`, which is now fixed to
+match.
+
+Two reasons, and the second is why it is not merely cosmetic. A trailing
+cookie is the part a narrow agenda window or a folded outline truncates
+away — which defeats the one thing the cookie is for, that progress is
+readable *without* unfolding. The user reported the current slice as
+"missing its cookie" on exactly that basis; it was present, at the end
+of a line they could not see the end of.
+
+*Recorded because the way this was got wrong generalises.* An earlier
+version of this paragraph said the opposite, having read the convention
+off the inserter's source rather than off the corpus — inferring a
+declared thing from the one mechanism that happened to implement it,
+which is the error `:ID:` 979e02b6 exists to close. The corpus was 13:1
+against the code, and nobody had asked it.
+
+Both halves were added 2026-08-26 (`:ID:` 28415ca8) because relying on
+the creator to type `[/]` failed on the second slice ever written.
+`org-update-statistics-cookies` updates a cookie and never inserts one,
+and the container cookie rule asks "has TODO-carrying children", which a
+slice never does — so three separate mechanisms declined to mention it
+and `:ID:` 979e02b6 ran most of its life uncookied. The lint rule is a
+*second* clause rather than a widened predicate, since the two rules
+count different things: children, versus checkbox members.
+
 **Members are `[[id:...]]` links in a checkbox list**, not child
-headings. The list may mirror the tree — a story's children indented
-under it — but it need not contain every child of a story it refers to.
+headings.
+
+**When a member is a story, its relevant children get indented member
+lines beneath it** — added 2026-08-28. Not *every* child: the ones that
+belong to this slice, and *especially* any child that blocks another
+member, since a cross-member dependency is invisible from either side
+otherwise. Which children belong is a judgement, so it is **declared**
+like any other membership; only the rendering is derived, and
+`refresh-slice` already regenerates indented lines exactly as it does
+top-level ones. A story whose children are all irrelevant to the slice
+appears as a single line, which is correct rather than incomplete.
+
+Two consequences. The nested lines count toward the cookie, because
+`:COOKIE_DATA: checkbox recursive` is what that property is for. And an
+unfinished child enters the `:BLOCKER:` on its own account, which is the
+point: a slice that names a story is not finished when the story's
+*relevant* parts are outstanding.
+
+Prefer nesting a child over listing it at top level or leaving it as
+*incidental*. A child promoted to a top-level member loses the fact that
+it belongs to something; one left incidental claims it was unrelated to
+the plan when it was the plan's own subject. `478d6ec9`'s children were
+five incidentals and four absentees before this rule; they are now nine
+indented lines under their parent.
 Write the link so it displays the 8-character prefix, and put the
 referent's keyword and title *outside* the brackets:
 
@@ -140,6 +294,23 @@ referent's keyword and title *outside* the brackets:
 The link target is the only part that cannot go stale; keeping the
 keyword and title as plain text alongside it makes the copy visible
 *as* a copy.
+
+**Two things about where a slice's list may live**, both found by
+breaking them 2026-08-28 while composing `:ID:` b36e6369.
+
+*The member list must sit in the slice's own body, above any subheading.*
+`--slice-members` scans the heading's own body and stops at the first
+subheading, so putting the list under a `** Members` section takes the
+whole thing out of reach. It fails **silently and in the worst
+direction**: the refresh finds zero members, writes an empty `:BLOCKER:`,
+and the slice reports `[0/0]` as though it were empty rather than broken.
+
+*Do not write `- [[id:...]]` bullets as prose inside a slice body.* A
+cookie-less list item carrying an id link is exactly the shape reserved
+for a cancelled or deferred member, so prose bullets naming ids are read
+as members with their cookies deleted. Name ids as `=c74f8663=` in prose
+instead. `orgit-rev:` links are safe, which is why the plan-revision
+list at the end of a slice body works.
 
 **A slice declares itself with a `:KIND: slice` property**, not by where
 it sits or what its body looks like. "Has a checkbox list of id links" is
@@ -164,13 +335,24 @@ is invisible is the wrong declaration. `:KIND:` was not coined for this:
 listing four heading classes each detected by a different bespoke
 mechanism.
 
-**A slice carries a `:BLOCKER:` naming exactly its cookie-carrying
-members**, so it cannot reach `DONE` before they do. Derived, never
-authored — `M-x claude-code-ide-org-refresh-slice-blocker` writes it from
-the checklist, and `bin/lint-org` reports an **error** if the two
-disagree in either direction. The checkbox list is the human half and the
-blocker the machine-readable one; redundancy without a check is just two
-things that can disagree.
+**A slice carries a `:BLOCKER:` naming exactly its members that are
+cookie-carrying and not yet done**, so it cannot reach `DONE` before they
+do. Derived, never authored — `M-x claude-code-ide-org-refresh-slice-blocker`
+writes it from the checklist, and `bin/lint-org` reports an **error** if
+the two disagree in either direction. The checkbox list is the human half
+and the blocker the machine-readable one; redundancy without a check is
+just two things that can disagree.
+
+**So the property shrinks as the slice progresses**, and is gone entirely
+once every member has landed. Narrowed 2026-08-28 (`:ID:` 0086614a) from
+"every cookie-carrying member". That was harmless while a slice held only
+its planned members, but a slice also lists the *incidental* work that
+closed during its life, and every one of those is done on arrival — they
+would enter the blocker at birth and never leave, making a
+machine-readable property long enough to stop being readable while
+changing nothing, since `org-depend` does not block on finished work.
+Nothing is lost: membership is recorded by the checkbox list, and the
+blocker only ever answered "what still has to finish".
 
 A member whose cookie was **deleted** is deliberately *not* in the
 blocker set. Cancelled is harmless either way, but a **deferred** member
@@ -185,7 +367,7 @@ referent is simply stale:
 | referent keyword     | checkbox    |
 |----------------------|-------------|
 | `DONE`               | `[X]`       |
-| `DOING` `REVIEW` `PLANNING` `WAITING` | `[-]` |
+| `DOING` `REVIEW` `WAITING` | `[-]` |
 | `TODO` `NEXT`        | `[ ]`       |
 | `CANCELLED` `MAYBE`  | *no cookie* |
 
@@ -194,6 +376,21 @@ entirely**, leaving a plain `- ` list item, so it neither counts against
 the numerator nor inflates the denominator. The line stays, because the
 record of having considered and dropped something is what a bare list
 loses.
+
+**A closed slice stops being derived, and is left alone.**
+`claude-code-ide-org-refresh-slice` skips a slice whose own keyword is
+terminal. Member lines are copies of referents' keywords, and referents
+keep changing after a slice is done — so refreshing a closed one lets
+unrelated later work rewrite finished history. Observed on `:ID:`
+c44c2119: a member that was `CANCELLED` when the slice closed was
+reopened two days later, its cookie and its `:BLOCKER:` entry both came
+back, and a `DONE` slice silently became `[27/28]` and blocked again
+(`:ID:` 30a340fd).
+
+So a cookie-less line in a *closed* slice does not mean "this was
+cancelled" — it means the slice is **done with** this member. Anything
+you want to know about what the member is doing now is in its own
+`:LOGBOOK:`, which is where that question belongs.
 
 Because every field is derived, **the only things a slice declares are
 membership and order** — which headings belong and in what sequence. If
@@ -205,10 +402,18 @@ apply.
 **A slice carries state but never a clock.** Its `:LOGBOOK:` records
 state transitions only; every referent already carries its own clock, so
 clocking the slice would add a second quantity inside the one that
-already exists and could not be told apart from the sum. Note this is
-not yet enforced — `--container-heading-p` does not recognise a slice,
-so hand-setting `DOING` on one *does* open a clock today (`:ID:`
-95c27fca).
+already exists and could not be told apart from the sum. **Enforced
+since 2026-08-26** (`:ID:` 95c27fca): both triggers now consult
+`claude-code-ide-org--grouping-heading-p`, which recognises a slice by
+its `:KIND:` declaration as well as a container by its children, so
+hand-setting `DOING` on a slice opens nothing.
+
+Note this is stricter than the rule for a *story*, and deliberately.
+A story may be clocked deliberately, because a parent's own coordination
+time is real (`:ID:` 3964c575, decided 2026-08-26). A slice may not,
+because it is a sequencing declaration rather than a place work happens
+— there is no coordination to record that is not already one of its
+members'.
 
 **The plan that drove the slice is linked at the end of the body, as one
 `orgit-rev:` link per revision of it.** `.claude/commands/next-session.md`
