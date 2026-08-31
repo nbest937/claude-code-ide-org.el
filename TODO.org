@@ -8,12 +8,36 @@
 :CREATED:  [2026-08-31 Mon 11:23]
 :CATEGORY: Tools
 :END:
-* Structure Review attention by day, so a pass clocks the day not the heading :code:
+
+Two MCP tools that write an org file time out and persist nothing, and =org_capture= additionally accepts a body it silently discards. All observed 2026-08-31, while filing three headings.
+
+*The failing set is narrow, which is what makes it worth filing rather than retrying.* =org_outline=, =org_pending_updates=, =org_set_todo= and =org_amend= all answered normally over the same server, within seconds, during the same minutes that =org_capture= and =org_set_property= timed out. =org_amend= is the useful control: it is a buffer-touching write and it works, so "MCP writes are broken" is too broad -- it is those two tools.
+
+*It is not the payload and not the buffer's state.* =org_capture= timed out with a long body and again with a two-line one; with =TODO.org= read-only and again with it writable and unmodified; with no minibuffer prompt open and =recursion-depth= 0 throughout. The same functions called directly through =emacsclient= completed in ~0.24s and wrote correctly, which is how all three headings actually landed.
+
+*=org_capture= drops its body.* =(cl-defun claude-code-ide-org-capture (title &optional target tags note))= names =note= in its argument list and never references it again -- checked across the whole 47-line definition. Three headings were captured with substantial bodies and all three arrived empty; the text had to be added afterwards with =org_amend=. This is [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]]'s "accepts arguments it does not have, and says nothing" in its own implementation.
+
+*The dangerous one is a success message with no record.* Calling =claude-code-ide-org-capture= directly over =emacsclient=, outside the MCP wrapper, returned "Queued capture: ... (ID: ...) pending review" for two headings and wrote *nothing* -- not to the session queue file, whose mtime never moved, not to any other file under =~/.claude/org-updates/=, and not to any org file. The ids it reported existed nowhere. Presumably the queue path needs a session context the wrapper supplies and a bare =emacsclient= call lacks, in which case the failure is silent by construction: the caller is told the work is recorded.
+
+Three fixes, and the last matters most. Find why those two tools hang. Make =note= either work or be rejected. And make the capture path refuse, loudly, when it cannot determine where to queue -- a tool that cannot persist must not report that it did.
+
+* Bound Review attention's LOGBOOK by refiling old entries into dated clones :code:
 :PROPERTIES:
 :ID:       591e7af3-4f37-4f90-86ba-62400c6e649b
 :CREATED:  [2026-08-31 Mon 11:21]
 :CATEGORY: Meta
 :END:
+
+Keep =* Review attention= ([[id:335dfa97-c1b0-4e98-804f-81495eb63f20][335dfa97]]) exactly as it is, and stop its =:LOGBOOK:= growing without bound by *refiling old entries into clones*. For each day at or before yesterday, clone the heading into that day's node in DONE.org's datetree and move that day's CLOCK lines into the clone. The clones are archival records, not tasks, and carry no =:ID:=.
+
+*What this deliberately does not do, since an earlier reading of the proposal got it backwards.* It does not restructure the live heading into day nodes. So the clock target is unchanged: =claude-code-ide-org-review-attention-heading= still resolves to this heading by title, =--review-attention-start= still opens the clock on it, and neither needs touching. =--ceremony-reviewed-today-p= is likewise unaffected, because it looks for a CLOCK line dated *today* and only previous-day-or-older lines ever move.
+
+*The cost, which is the trade and should be written down rather than discovered.* A clocktable scoped to this heading stops seeing the moved intervals -- they live in the clones from then on. Any report of review attention *over time* has to sum the clones too. That is the price of a bounded =:LOGBOOK:=, and it is worth paying, but a report built later against this heading alone will quietly under-count.
+
+*Two things to check before writing it.* Clones with no =:ID:= and no =:CREATED:= are a deliberate exception to the every-heading rule, so confirm =bin/lint-org= does not demand either at that depth. And splitting a =:LOGBOOK:= by day is the highest-risk edit shape in this repo's history -- two body corruptions on record from hand-rolled region edits -- so it wants a tested function rather than a step inside a sweep.
+
+Idempotence is the same requirement as the sibling heading: a re-run must merge into the day's existing clone, never append a second.
+
 * Distribute Review and planning's past day nodes into DONE.org's datetree :code:
 :PROPERTIES:
 :ID:       d6fc47a5-b84d-4287-b973-aa5b37410270
@@ -21,6 +45,19 @@
 :CATEGORY: Meta
 :BLOCKER:  ids(33864a0f-5e13-4235-85a6-0bd9d2fe5252)
 :END:
+
+Move every =Review and planning= datetree node dated the previous day or older into the matching datetree leaf in DONE.org, as part of the archiving procedure. Today's node stays; it is still accumulating.
+
+*Use org's own machinery -- it does support a descending tree.* =org-datetree-find-create-hierarchy= takes a comparison function per level, and =org-datetree-comparefun-from-regex= builds one from a regex; negating its result gives descending order. Measured in batch on 2026-08-31: entries inserted 08-10, 08-31, 07-05, 08-20 landed in strict descending order at year, month and day. Use that rather than =org-datetree-find-date-create=, which hard-codes ascending comparators and is the reason a hand-rolled builder looked necessary at first.
+
+*What a day node means, read against org's own allocation conventions* -- it holds what org would file to that date: entries whose =CLOSED:= falls that day, and clock activity recorded that day. The only caveat worth writing down is small: a task's *earlier* clock intervals stay where they were recorded, so a day node is not a substitute for a clocktable when the question is how much time went where.
+
+*Merge, do not append.* Running twice must find the existing day and merge into it -- the same problem drawer consolidation already solved.
+
+*Retire the broken =:ARCHIVE:= property on the way past.* =* Review and planning= carries =:ARCHIVE: DONE.org::* Review and planning= and no such heading exists in DONE.org, measured 2026-08-31. Archiving it today would silently append a second near-identical heading at end of file, the documented failure of a literal-string target. This work replaces that route, so it should remove the property rather than leave a live trap behind.
+
+Once the sibling heading refiles =* Review attention='s old LOGBOOK entries into dated clones, those clones are placed by this same pass.
+
 * TODO The ceremony prompt goes quiet on evidence of its first step, and never reports its own completion :code:
 :PROPERTIES:
 :ID:       29734f79-e698-43dd-abf8-14bc86b8b0ae
