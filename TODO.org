@@ -2,11 +2,14 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
-* MCP tools that write an org file time out; one reports success and persists nothing :code:
+* TODO MCP tools that write an org file time out; one reports success and persists nothing :code:
 :PROPERTIES:
 :ID:       72463b68-9f08-44b2-8213-87f71298138d
 :CREATED:  [2026-08-31 Mon 11:23]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-31 Mon 11:23]
 :END:
 
 Two MCP tools that write an org file time out and persist nothing, and =org_capture= additionally accepts a body it silently discards. All observed 2026-08-31, while filing three headings.
@@ -21,11 +24,15 @@ Two MCP tools that write an org file time out and persist nothing, and =org_capt
 
 Three fixes, and the last matters most. Find why those two tools hang. Make =note= either work or be rejected. And make the capture path refuse, loudly, when it cannot determine where to queue -- a tool that cannot persist must not report that it did.
 
-* Bound Review attention's LOGBOOK by refiling old entries into dated clones :code:
+
+* TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones :code:
 :PROPERTIES:
 :ID:       591e7af3-4f37-4f90-86ba-62400c6e649b
 :CREATED:  [2026-08-31 Mon 11:21]
 :CATEGORY: Meta
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-31 Mon 11:22]
 :END:
 
 Keep =* Review attention= ([[id:335dfa97-c1b0-4e98-804f-81495eb63f20][335dfa97]]) exactly as it is, and stop its =:LOGBOOK:= growing without bound by *refiling old entries into clones*. For each day at or before yesterday, clone the heading into that day's node in DONE.org's datetree and move that day's CLOCK lines into the clone. The clones are archival records, not tasks, and carry no =:ID:=.
@@ -38,12 +45,16 @@ Keep =* Review attention= ([[id:335dfa97-c1b0-4e98-804f-81495eb63f20][335dfa97]]
 
 Idempotence is the same requirement as the sibling heading: a re-run must merge into the day's existing clone, never append a second.
 
-* Distribute Review and planning's past day nodes into DONE.org's datetree :code:
+
+* TODO Distribute Review and planning's past day nodes into DONE.org's datetree :code:
 :PROPERTIES:
 :ID:       d6fc47a5-b84d-4287-b973-aa5b37410270
 :CREATED:  [2026-08-31 Mon 11:21]
 :CATEGORY: Meta
 :BLOCKER:  ids(33864a0f-5e13-4235-85a6-0bd9d2fe5252)
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-31 Mon 11:22]
 :END:
 
 Move every =Review and planning= datetree node dated the previous day or older into the matching datetree leaf in DONE.org, as part of the archiving procedure. Today's node stays; it is still accumulating.
@@ -57,6 +68,7 @@ Move every =Review and planning= datetree node dated the previous day or older i
 *Retire the broken =:ARCHIVE:= property on the way past.* =* Review and planning= carries =:ARCHIVE: DONE.org::* Review and planning= and no such heading exists in DONE.org, measured 2026-08-31. Archiving it today would silently append a second near-identical heading at end of file, the documented failure of a literal-string target. This work replaces that route, so it should remove the property rather than leave a live trap behind.
 
 Once the sibling heading refiles =* Review attention='s old LOGBOOK entries into dated clones, those clones are placed by this same pass.
+
 
 * TODO The ceremony prompt goes quiet on evidence of its first step, and never reports its own completion :code:
 :PROPERTIES:
@@ -7630,6 +7642,12 @@ CLOCK: [2026-08-31 Mon 09:46]--[2026-08-31 Mon 09:50] =>  0:04
 - [2026-08-31 Mon 09:46]--[2026-08-31 Mon 09:50] measure PLANNING against real use
 CLOCK: [2026-08-31 Mon 10:13]--[2026-08-31 Mon 10:14] =>  0:01
 - [2026-08-31 Mon 10:13]--[2026-08-31 Mon 10:14] measure PLANNING against real use
+CLOCK: [2026-08-31 Mon 10:41]--[2026-08-31 Mon 11:38] =>  0:57
+- [2026-08-31 Mon 10:41]--[2026-08-31 Mon 11:38] measure PLANNING against real use
+CLOCK: [2026-08-31 Mon 11:47]--[2026-08-31 Mon 11:56] =>  0:09
+- [2026-08-31 Mon 11:47]--[2026-08-31 Mon 11:56] measure PLANNING against real use
+CLOCK: [2026-08-31 Mon 12:02]--[2026-08-31 Mon 12:03] =>  0:01
+- [2026-08-31 Mon 12:02]--[2026-08-31 Mon 12:03] measure PLANNING against real use
 :END:
 
 
