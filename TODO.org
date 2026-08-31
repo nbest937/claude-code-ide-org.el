@@ -311,6 +311,29 @@ Apply is human-only because org's native state-change logging completes only ins
 
 *Deliberately out of scope:* shrinking =org_outline='s front matter. Build this first — at that point the front matter's remaining unique content is about one line, and the question answers itself.
 
+*Shipped 2026-08-31 as =org_body=.* Both open questions decided the way this body leaned.
+
+*Question one — own body, with =include_children= to opt in.* The heading's own text by default, stopping before the first child; pass =include_children= for the subtree. For a leaf the two are the same and most level-1 headings are leaves, but a story's subtree runs to hundreds of lines while "show me this heading" almost always means the heading — and a caller who wants a child can read it by its own id, which =org_outline= has already told them exists.
+
+*Question two — =:PLAN:= comes back.* Suppressing it would have been the first filtering decision the tool makes, which is precisely what this design avoids. The tool *description* carries the warning instead: =:PLAN:= holds superseded design reasoning a reader is normally meant to skip, returned rather than hidden so that stays the caller's judgement. Same for =:PROPERTIES:= and =:LOGBOOK:=.
+
+*Mostly plumbing, as predicted, with one correction to the premise.* This body said prefix expansion is shared "since 2d9eeebd" — true, but not where I first assumed. =--id-find= is the shared resolver and it expands prefixes itself, over an index of *tracked* files; =org_outline= gets the behaviour by calling it. Found by a red test: a temp fixture is not a tracked file, so a prefix minted inside one cannot resolve, and the prefix test had to move to the =--with-known-ids= fixture. What it now pins is the thing that actually matters — that =org_body= routes through =--id-find= rather than =org-id-find=, the same distinction that once left fourteen call sites accepting a prefix and one not.
+
+*Read-only, and dispatched as one.* It goes through =--at-id=, never =--at-id-writable=; granting write permission to a query tool is exactly what that split exists to prevent ([[id:c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b][c8a97d9d]]). A test asserts the buffer is neither modified nor narrowed after both paths run.
+
+*One measured asymmetry worth knowing before it is mistaken for a bug.* On a *leaf*, own-body and subtree are not byte-identical: =--end-of-body= skips back over trailing blank lines and =org-end-of-subtree= keeps them, so =a0028a4e= itself returned 24 lines against 27. The content is the same; only trailing whitespace differs. Left as is — trimming is what makes repeated amendments not accumulate a gap, and it is the more useful answer.
+
+*Verified:* 460 tests before, 465 after, 0 unexpected, exit 0. Proved to discriminate at the two points that can regress silently: making the own-body path return the subtree fails only =body-stops-before-the-first-child=, and swapping =--id-find= for =org-id-find= fails only =body-accepts-an-id-prefix=. Both full 465-test runs.
+
+*Verified live too, against real headings* — after =load-file='ing the module, which is the precondition for the check to mean anything. =c8a97d9d= returned 119 lines own against 142 for the subtree, the difference being its one child.
+
+*One thing this session could not check, stated rather than glossed:* whether =org_body= answers or hangs over MCP, which would be evidence for [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]]. A newly registered tool is not in a client's tool list until the client reconnects, so the first session to start after this lands is the one that can test it. Worth doing deliberately then.
+
+*Still deliberately out of scope:* shrinking =org_outline='s front matter, which this body defers and [[id:ff1352b3-2732-4422-9f0d-4b3cb6fd8ff3][ff1352b3]] sequences after this.
+
+*CLAUDE.md's read-only tools table gained an =org_body= row in the same commit* — the table is read as the whole read surface, so omitting it would have made the document wrong.
+
+
 
 * TODO [5/28] The code knows more than it says, and asks more than it should :code:
 :PROPERTIES:

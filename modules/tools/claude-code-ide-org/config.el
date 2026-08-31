@@ -3099,6 +3099,70 @@ rather than being dropped or silently attached to the previous one."
       (dolist (line (nreverse (cdr (assoc cat table))))
         (push line out)))))
 
+(defun claude-code-ide-org-body (id &optional include-children)
+  "Return heading ID whole -- its heading line, drawers and body -- as text.
+
+Replaces a three-tool dance: `grep' for the :ID:, `awk' to find the
+next heading *at the right level* and so compute the subtree's extent,
+then `Read' with the resulting offset and count.  The arithmetic was
+the fragile part, and org already knows the answer (TODO.org
+:ID: a0028a4e).
+
+ID accepts a full :ID: or an 8-character prefix, resolved by
+`claude-code-ide-org--id-find' exactly as `org_outline' scopes.
+
+INCLUDE-CHILDREN, when truthy, returns the whole subtree.  It defaults
+off, and the asymmetry is deliberate: for a leaf the two are identical
+and 92% of level-1 headings are leaves, but for a story the subtree runs
+to hundreds of lines while \"show me this heading\" almost always means
+the heading.  A caller who wants a child can read it by its own id --
+`org_outline' has already told them it exists.
+
+*Returns the heading whole and filters nothing*, drawers included.  That
+is the design, not laziness: the property schema splits two ways rather
+than three, so there is no separate \"metadata\" surface to strain out
+-- :CREATED:, the plan link and the ARCHIVE_* provenance all describe
+*this* heading and travel with it.  :PLAN: is returned too.  Suppressing
+it would be the first filtering decision this tool makes, which is the
+thing the design avoids; that readers usually skip that drawer is the
+caller's business, and the tool description says so.
+
+Read-only.  Dispatches through `claude-code-ide-org--at-id', never the
+writable variant: granting write permission to a query tool is exactly
+what that split exists to prevent.  Never signals to the MCP layer."
+  (condition-case err
+      (let ((id (and (stringp id)
+                     (not (string-empty-p (string-trim id)))
+                     (string-trim id)))
+            (children (and include-children
+                           (member (downcase (format "%s" include-children))
+                                   '("t" "true" "yes" "1"))
+                           t)))
+        (cond
+         ((null id) "Error: no :ID: given.")
+         ((claude-code-ide-org--id-find id)
+          (let ((text (claude-code-ide-org--at-id
+                       id
+                       (lambda ()
+                         (if children
+                             (claude-code-ide-org--subtree-text-at-point)
+                           (org-back-to-heading t)
+                           (buffer-substring-no-properties
+                            (point)
+                            (save-excursion
+                              (claude-code-ide-org--end-of-body)
+                              (point))))))))
+            (if (and (stringp text) (string-empty-p (string-trim text)))
+                "Error: heading resolved but its text is empty."
+              text)))
+         ;; Same shape-based error org_outline gives, and for the reason
+         ;; TODO.org :ID: 2d9eeebd found: reporting a missing file for an
+         ;; id-shaped argument names the wrong failure.
+         (t
+          (format "Error: :ID: %S resolves to no heading. Pass a full :ID: \
+or an 8-character :ID: prefix." id))))
+    (error (format "Error: %s" (error-message-string err)))))
+
 (defun claude-code-ide-org-outline (&optional scope max-depth active-only)
   "Return a compact one-line-per-heading index.
 
@@ -11104,6 +11168,31 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
    :args '((:name "query"
             :type string
             :description "org-ql plain-string query, e.g. \"todo:WAITING\", \"tags:research,code\", \"priority:A\", \"!todo:DONE\".")))
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-body
+   :name "org_body"
+   :description (concat
+                 "Return one heading whole -- its heading line, drawers and "
+                 "body -- as text, in one call instead of grepping for the "
+                 ":ID:, computing the subtree's extent by hand and then "
+                 "reading at an offset. Filters nothing: :PROPERTIES:, "
+                 ":LOGBOOK: and :PLAN: all come back, and the caller extracts "
+                 "what it needs. Note :PLAN: holds superseded design "
+                 "reasoning that a reader is normally meant to skip -- it is "
+                 "returned rather than hidden so that is your judgement, not "
+                 "this tool's. Returns the heading's OWN body by default, "
+                 "stopping before its first child; pass include_children to "
+                 "get the whole subtree, which for a story can be hundreds of "
+                 "lines. Reach for org_outline first: it answers most "
+                 "orientation questions and costs far less.")
+   :args '((:name "id"
+            :type string
+            :description "The heading's :ID:, or an 8-character :ID: prefix.")
+           (:name "include_children"
+            :type string
+            :optional t
+            :description "Optional. \"true\" to return the whole subtree instead of just this heading's own body. Omit it and you get this heading alone: for a leaf the two are identical, but for a story the subtree can run to hundreds of lines, and a child is readable by its own :ID: anyway.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-outline

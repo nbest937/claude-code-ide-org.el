@@ -3312,6 +3312,95 @@ own `user-error') rather than crashing."
     (should (string-match-p "\\`Error: Unknown direction \"sideways\""
                             (claude-code-ide-org-move-sibling id "sideways")))))
 
+;;; claude-code-ide-org-body ------------------------------------------------
+
+(defmacro claude-code-ide-org-test--with-story (&rest body)
+  "Fixture whose heading has a :PLAN: drawer, a body, and one child."
+  (declare (indent 0))
+  `(claude-code-ide-org-test--with-heading
+     (goto-char (point-max))
+     (insert (concat
+              ":PLAN:\n"
+              "Superseded design reasoning a reader is told to skip.\n"
+              ":END:\n"
+              "Own body prose.\n"
+              "\n"
+              "** TODO Child heading\n"
+              ":PROPERTIES:\n:ID:       test-0002\n:END:\n"
+              "Child body prose.\n"))
+     (save-buffer)
+     (org-id-update-id-locations (list file))
+     ,@body))
+
+(ert-deftest claude-code-ide-org-test-body-returns-the-heading-whole ()
+  "The heading line, its drawers and its body — filtering nothing.
+
+Including :PLAN:. Suppressing it would be the first filtering decision
+this tool makes, which is the thing the design avoids: that a reader
+normally skips that drawer is the caller's judgement, not the tool's
+(TODO.org :ID: a0028a4e)."
+  (claude-code-ide-org-test--with-story
+    (let ((text (claude-code-ide-org-body id)))
+      (should (string-match-p "\\`\\* TODO Test heading" text))
+      (should (string-match-p ":PROPERTIES:" text))
+      (should (string-match-p ":PLAN:" text))
+      (should (string-match-p "Superseded design reasoning" text))
+      (should (string-match-p "Own body prose" text)))))
+
+(ert-deftest claude-code-ide-org-test-body-stops-before-the-first-child ()
+  "Own body by default; the whole subtree only when asked.
+
+For a leaf the two are identical, so a fixture with a child is the only
+one that can tell them apart — and this boundary is the part that can
+regress silently."
+  (claude-code-ide-org-test--with-story
+    (let ((own (claude-code-ide-org-body id))
+          (all (claude-code-ide-org-body id "true")))
+      (should-not (string-match-p "Child heading" own))
+      (should-not (string-match-p "Child body prose" own))
+      (should (string-match-p "Child heading" all))
+      (should (string-match-p "Child body prose" all))
+      ;; The subtree is a superset, not a different rendering.
+      (should (string-match-p "Own body prose" all)))))
+
+(ert-deftest claude-code-ide-org-test-body-accepts-an-id-prefix ()
+  "Scoping matches org_outline's: a full :ID: or an 8-character prefix.
+
+Uses the known-ids fixture rather than the story one, because prefix
+expansion runs over an index of *tracked* files and a bare temp file is
+not one. What this pins is that org_body routes through
+`claude-code-ide-org--id-find' rather than calling `org-id-find'
+directly -- the distinction that once left fourteen call sites accepting
+a prefix and one not."
+  (claude-code-ide-org-test--with-known-ids
+    (let ((text (claude-code-ide-org-body "29439196")))
+      (should (string-match-p "\\* TODO Second" text))
+      (should-not (string-match-p "TODO First" text)))))
+
+(ert-deftest claude-code-ide-org-test-body-unresolvable-id-names-the-right-failure ()
+  "An id that resolves to nothing must say so, not report a missing file.
+Same reasoning as org_outline's scope error (TODO.org :ID: 2d9eeebd):
+naming the wrong failure sent a reader looking for a file."
+  (claude-code-ide-org-test--with-story
+    (let ((result (claude-code-ide-org-body "99999999")))
+      (should (string-match-p "\\`Error: :ID: .* resolves to no heading" result))
+      (should-not (string-match-p "file" (downcase result)))))
+  (claude-code-ide-org-test--with-story
+    (should (string-match-p "\\`Error: no :ID: given"
+                            (claude-code-ide-org-body "")))))
+
+(ert-deftest claude-code-ide-org-test-body-does-not-touch-the-buffer ()
+  "A read tool must leave the buffer unmodified and unnarrowed.
+`--subtree-text-at-point' promises this and the own-body path must keep
+the promise too, since it moves point to the heading to measure."
+  (claude-code-ide-org-test--with-story
+    (with-current-buffer (find-file-noselect file) (set-buffer-modified-p nil))
+    (claude-code-ide-org-body id)
+    (claude-code-ide-org-body id "true")
+    (with-current-buffer (find-file-noselect file)
+      (should-not (buffer-modified-p))
+      (should-not (buffer-narrowed-p)))))
+
 ;;; claude-code-ide-org-clock-report -----------------------------------------
 
 ;; A clocktable's own #+CAPTION: carries a wall-clock timestamp, so
