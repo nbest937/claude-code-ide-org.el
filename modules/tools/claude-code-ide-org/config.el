@@ -662,7 +662,7 @@ single item.  An explicit stamp means only what it says."
          (claude-code-ide-org--today-p
           (file-attribute-modification-time (file-attributes file))))))
 
-(defun claude-code-ide-org-mark-ceremony-done ()
+(defun claude-code-ide-org-mark-ceremony-done (&optional summary)
   "Record that today's ceremony has been performed, silencing the prompt.
 
 Called from `claude-code-ide-org-ceremony-finish', and from nowhere
@@ -676,7 +676,12 @@ whole ceremony and not one step of it."
   (interactive)
   (let ((file (claude-code-ide-org--ceremony-stamp-file)))
     (make-directory (file-name-directory file) t)
-    (write-region "" nil file nil 'quiet)
+    ;; The stamp's *mtime* carries the date and always did; SUMMARY goes
+    ;; in the body so the pass leaves a durable account of itself rather
+    ;; than only a transient `message' that the next redisplay eats.
+    ;; Empty when a human stamps it by hand, which is the honest value --
+    ;; they performed the ceremony, not this code.
+    (write-region (or summary "") nil file nil 'quiet)
     (when (called-interactively-p 'any)
       (message "Ceremony marked done for today."))
     file))
@@ -9014,6 +9019,33 @@ logs themselves)."
             (save-buffer))))
       t)))
 
+(defun claude-code-ide-org--duplicate-ids-in-file (file)
+  "Return the :ID: values appearing more than once in FILE.
+
+Reads text rather than using org, so it costs one pass and can run as a
+post-condition on a file the caller has just written."
+  (let ((seen (make-hash-table :test 'equal)) (dupes nil))
+    (with-temp-buffer
+      (insert-file-contents file)
+      (goto-char (point-min))
+      (while (re-search-forward "^[ \t]*:ID:[ \t]+\\(.+?\\)[ \t]*$" nil t)
+        (let ((id (match-string 1)))
+          (if (gethash id seen)
+              (cl-pushnew id dupes :test #'equal)
+            (puthash id t seen)))))
+    (nreverse dupes)))
+
+(defun claude-code-ide-org--archive-target-file (source)
+  "Return the file `org-archive-location\' sends SOURCE\'s entries to."
+  (let* ((loc (with-current-buffer (find-file-noselect source)
+                org-archive-location))
+         (spec (car (split-string loc "::"))))
+    (expand-file-name
+     (if (string-match-p "%s" spec)
+         (format spec (file-name-sans-extension (file-name-nondirectory source)))
+       spec)
+     (file-name-directory (file-truename source)))))
+
 (defun claude-code-ide-org--subtree-has-live-heading-p ()
   "Non-nil if any descendant of the heading at point carries a live keyword.
 
@@ -9085,17 +9117,20 @@ its end would bury a fresh entry under two hundred older ones."
              (push (point-marker) markers)))
          (end-of-line)))
       ;; Re-validate at the moment of archiving rather than trusting what
-      ;; the scan saw.  A marker survives the deletion of the text it
-      ;; points into -- it collapses to the deletion point -- so a marker
-      ;; can end up addressing a *different* heading than the one it was
-      ;; taken at, and archiving then runs twice on one subtree.  That is
-      ;; not theoretical: on 2026-08-31 a live pass reported 65 while
-      ;; writing 66, duplicating one story and its six children, ids and
-      ;; all.  It did not reproduce against the same file in a fresh
-      ;; buffer, so the guard is written against the invariant rather
-      ;; than against the mechanism: archive only what is, right now,
-      ;; still a top-level finished heading whose id this pass has not
-      ;; already consumed.
+      ;; the scan saw: still a heading, still level 1, still finished,
+      ;; its id not already consumed by this pass.  Cheap, and it makes
+      ;; the loop's precondition explicit instead of implied.
+      ;;
+      ;; It is *not* the fix for the 2026-08-31 duplication, and should
+      ;; not be read as one.  That pass reported 65 -- `n' counts calls,
+      ;; so exactly 65 `org-archive-subtree' calls ran -- while 66
+      ;; subtrees landed, which puts the second copy *inside a single
+      ;; call*, on org's paste path, where nothing here reaches.  The
+      ;; heading it duplicated was also the last in the file and so the
+      ;; first consumed, with no earlier deletion to disturb it.  The
+      ;; mechanism is unidentified and did not reproduce against the same
+      ;; file in a fresh buffer; what guards it is the post-condition
+      ;; below, which checks the result rather than the method.
       (org-with-wide-buffer
        (let ((seen (make-hash-table :test 'equal)))
          (dolist (m markers)
@@ -9112,6 +9147,19 @@ its end would bury a fresh entry under two hundred older ones."
                    (setq n (1+ n))))))
            (set-marker m nil))))
       (when (buffer-modified-p) (save-buffer)))
+    ;; Reconcile the result, because the method is not trusted.  A sweep
+    ;; that ran unattended and quietly wrote a subtree twice is the exact
+    ;; failure of 2026-08-31, and every other signal there looked right --
+    ;; the count, the levels, nothing missing.  Only counting ids found
+    ;; it, and that count lived in a shell, not in the mechanism.
+    (when (> n 0)
+      (let* ((target (claude-code-ide-org--archive-target-file file))
+             (dupes (and (file-readable-p target)
+                         (claude-code-ide-org--duplicate-ids-in-file target))))
+        (when dupes
+          (error "Archived %d, but %d id(s) now appear twice in %s: %s"
+                 n (length dupes) (file-name-nondirectory target)
+                 (string-join (seq-take dupes 3) " ")))))
     (when skipped
       (message "archive-finished: skipped %d finished heading(s) with live descendants: %s"
                (length skipped) (string-join (nreverse skipped) "; ")))
@@ -9188,7 +9236,8 @@ losing two because the first broke would be worse than a partial pass."
     (push (if failed
               "repeater: held (a step failed)"
             (condition-case err
-                (progn (claude-code-ide-org-mark-ceremony-done)
+                (progn (claude-code-ide-org-mark-ceremony-done
+                        (concat (string-join (reverse parts) "; ") "\n"))
                        (claude-code-ide-org--ceremony-advance-repeater)
                        "repeater: advanced")
               (error (format "repeater: FAILED (%s)"

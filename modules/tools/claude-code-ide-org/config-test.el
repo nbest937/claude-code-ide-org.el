@@ -10599,3 +10599,24 @@ under `* Wrong' instead."
     (let ((arch (claude-code-ide-org-test--disk-contents archive-file)))
       (should (string-match-p "^\\* Right" arch))
       (should-not (string-match-p "Wrong" arch)))))
+
+(ert-deftest claude-code-ide-org-test-duplicate-ids-in-file-detects-a-repeat ()
+  "The archive post-condition's detector must actually find a repeated id.
+
+*Tested directly, because the failure it guards cannot be provoked.* On
+2026-08-31 a sweep reported 65 while writing 66, duplicating one story
+and its six children into the archive; the second copy landed inside a
+single `org-archive-subtree' call and the mechanism was never
+identified, so there is no input that reproduces it on demand. What can
+be pinned is that the check would have seen it -- and that it stays
+quiet on a clean file, which is the half that would otherwise rot into a
+detector matching nothing at all."
+  (claude-code-ide-org-test--with-heading
+    (should-not (claude-code-ide-org--duplicate-ids-in-file file))
+    (claude-code-ide-org-test--add-child
+     file (concat "** DONE Impostor\n"
+                  ":PROPERTIES:\n"
+                  ":ID:       " id "\n"
+                  ":END:\n"))
+    (let ((dupes (claude-code-ide-org--duplicate-ids-in-file file)))
+      (should (equal (list id) dupes)))))
