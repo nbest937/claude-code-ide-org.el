@@ -308,6 +308,29 @@ for `bin/test` — `bin/test` verifies wrapper-function *behavior* (see
 not just in-memory results); `fboundp` only tells you the symbol exists
 in the running session.
 
+### `buffer-size` is characters; file size is bytes
+
+Never compare `(buffer-size)` against `(nth 7 (file-attributes ...))` to
+decide whether a buffer diverges from disk. `buffer-size` counts
+*characters*; the file size is *bytes*, and every non-ASCII character is
+2–3 bytes. On 2026-08-31 that read as 1.2 KB of content missing from
+`TODO.org` when the buffer and the file were byte-identical: 580 em-dashes
+at 2 extra bytes each, plus a handful of `→`, `…`, `§` and `−`, came to
+exactly the 1,189 the comparison reported. This repo's prose is full of
+em-dashes, so the gap scales with the file and looks alarming rather than
+constant.
+
+The signal that actually answers the question is `(buffer-modified-p)`,
+and if you want the difference itself, dump the buffer somewhere harmless
+and diff it — this reads the buffer without saving it, so an unsaved human
+edit is neither committed nor destroyed:
+
+```
+emacsclient -e '(with-current-buffer (get-file-buffer "…/TODO.org")
+  (write-region (point-min) (point-max) "/tmp/buf.org" nil (quote quiet)))'
+diff TODO.org /tmp/buf.org
+```
+
 ### Deleting a function needs more than a reload
 
 `load-file` evaluates what is *in* a file. It does not unbind what you
