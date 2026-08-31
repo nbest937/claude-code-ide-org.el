@@ -6952,6 +6952,100 @@ full, and the two want opposite next moves. The count is already known."
       (should msg)
       (should (string-match-p "Nothing pending" msg)))))
 
+(ert-deftest claude-code-ide-org-test-refresh-asks-before-discarding-judgement ()
+  "`g\' must not silently discard unapplied decisions.
+
+Reported from live use: \"I have a tendency to hit `g\' when I mean `x\'
+and I lose all of my review work.\" The two are adjacent in intent and on
+the keyboard, and one is destructive. Declining must leave the items
+exactly as they were (TODO.org :ID: 8d0716fe)."
+  (claude-code-ide-org-test--with-review-buffer
+      (list (list :type 'state :id "test-0001" :from "TODO" :to "DOING"
+                  :ts (date-to-time "2026-08-31T09:00:00-0500")
+                  :marked t :events nil))
+    (let ((asked nil))
+      (cl-letf (((symbol-function 'yes-or-no-p)
+                 (lambda (prompt) (setq asked prompt) nil)))
+        (should-error (claude-code-ide-org-review-refresh) :type 'user-error))
+      (should asked)
+      ;; Names what is at stake -- a bare "are you sure?" does not tell a
+      ;; human whether to care.
+      (should (string-match-p "1 marked" asked))
+      ;; Declining changes nothing.
+      (should (= 1 (length claude-code-ide-org--review-items)))
+      (should (plist-get (car claude-code-ide-org--review-items) :marked)))))
+
+(ert-deftest claude-code-ide-org-test-refresh-stays-instant-with-nothing-to-lose ()
+  "No prompt when there is no judgement to discard.
+A confirmation on every `g\' trains the reflex that dismisses it, which
+is how a guard becomes decoration."
+  (claude-code-ide-org-test--with-review-buffer
+      (list (list :type 'state :id "test-0001" :from "TODO" :to "DOING"
+                  :ts (date-to-time "2026-08-31T09:00:00-0500") :events nil))
+    (let ((asked nil))
+      (cl-letf (((symbol-function 'yes-or-no-p)
+                 (lambda (_) (setq asked t) t))
+                ((symbol-function 'claude-code-ide-org--review-items-from-queue)
+                 (lambda () nil)))
+        (claude-code-ide-org-review-refresh))
+      (should-not asked))))
+
+(ert-deftest claude-code-ide-org-test-refresh-counts-all-four-kinds-of-judgement ()
+  "Marks, assignments, notes and edited intervals all count.
+
+The fourth is the one that needed a flag adding: :start and :end exist
+on every span straight from the queue, so their presence proves nothing
+about whether a human touched them."
+  (should-not (claude-code-ide-org--review-judgement-summary
+               (list (list :type 'clock :id "a"))))
+  (let ((summary (claude-code-ide-org--review-judgement-summary
+                  (list (list :type 'clock :id "a" :marked t)
+                        (list :type 'clock :id "b" :assigned t)
+                        (list :type 'clock :id "c" :note "why")
+                        (list :type 'clock :id "d" :edited t)))))
+    (should (string-match-p "1 marked" summary))
+    (should (string-match-p "1 assigned" summary))
+    (should (string-match-p "1 note" summary))
+    (should (string-match-p "1 edited interval" summary))))
+
+(ert-deftest claude-code-ide-org-test-edit-interval-flags-the-item-as-edited ()
+  "`e\' must leave a flag `g\' can see, or the fourth kind is invisible."
+  (claude-code-ide-org-test--with-review-buffer
+      (list (list :type 'clock :id "test-0001"
+                  :start (date-to-time "2026-08-31T09:00:00-0500")
+                  :end (date-to-time "2026-08-31T09:15:00-0500")
+                  :suggested t :agent nil :events nil))
+    (claude-code-ide-org-test--goto-nth-item 0)
+    (cl-letf (((symbol-function 'read-string)
+               (lambda (prompt &optional initial &rest _)
+                 (if (string-prefix-p "Start" prompt)
+                     "[2026-08-31 Sun 09:00]"
+                   "[2026-08-31 Sun 09:20]"))))
+      (claude-code-ide-org-review-edit-interval))
+    (should (plist-get (car claude-code-ide-org--review-items) :edited))))
+
+(ert-deftest claude-code-ide-org-test-undo-refresh-restores-the-discarded-list ()
+  "The slip costs a decision, not a keystroke, so it must be recoverable.
+An assignment or an edited interval has to be *made* again; stashing the
+list is strictly better than only asking, and the two compose."
+  (claude-code-ide-org-test--with-review-buffer
+      (list (list :type 'state :id "test-0001" :from "TODO" :to "DOING"
+                  :ts (date-to-time "2026-08-31T09:00:00-0500")
+                  :marked t :events nil))
+    (let ((claude-code-ide-org--review-stash nil))
+      (cl-letf (((symbol-function 'yes-or-no-p) (lambda (_) t))
+                ((symbol-function 'claude-code-ide-org--review-items-from-queue)
+                 (lambda () nil)))
+        (claude-code-ide-org-review-refresh))
+      (should-not claude-code-ide-org--review-items)
+      (claude-code-ide-org-review-undo-refresh)
+      (should (= 1 (length claude-code-ide-org--review-items)))
+      (should (plist-get (car claude-code-ide-org--review-items) :marked))
+      ;; And a second undo has nothing left to give, rather than
+      ;; restoring the same list twice.
+      (should-error (claude-code-ide-org-review-undo-refresh)
+                    :type 'user-error))))
+
 (ert-deftest claude-code-ide-org-test-apply-skips-a-state-event-that-became-a-no-op ()
   "Two events asserting the same target: the second must write nothing.
 

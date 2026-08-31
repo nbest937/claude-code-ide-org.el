@@ -8721,6 +8721,13 @@ corrected to what actually happened before anything is written."
       ;; reaches org-agenda.
       (plist-put item :active (and (string-prefix-p "<" (string-trim start))
                                    (string-prefix-p "<" (string-trim end))))
+      ;; A flag of its own, because :start and :end exist on every span
+      ;; straight from the queue, so their presence proves nothing about
+      ;; whether a human touched them. `:suggested nil' is set just
+      ;; below and is close to this signal but not the same claim -- an
+      ;; accepted-as-suggested span is also confirmed. `g' needs to know
+      ;; whether there is judgement here to lose (TODO.org :ID: 8d0716fe).
+      (plist-put item :edited t)
       (when (time-less-p end-time start-time)
         (user-error "End %s is before start %s"
                     (format-time-string fmt end-time)
@@ -9100,6 +9107,50 @@ touches no org file at all."
                 (claude-code-ide-org--review-redraw next)
               (claude-code-ide-org--review-render))))))))
 
+(defvar claude-code-ide-org--review-stash nil
+  "The item list `g' last discarded, for `claude-code-ide-org-review-undo-refresh'.")
+
+(defun claude-code-ide-org--review-judgement-summary (items)
+  "Return a phrase counting the unapplied judgement in ITEMS, or nil.
+
+Four kinds, and each leaves an unambiguous flag: `:marked' from `m'/`M',
+`:assigned' from `a', `:note' from `N', and `:edited' from `e'.  The
+fourth needed a flag adding -- see `claude-code-ide-org-review-edit-interval'.
+
+Counted rather than merely detected, because \"3 marked, 1 assigned\"
+tells a human whether to care and a bare \"are you sure?\" does not
+(TODO.org :ID: 8d0716fe)."
+  (let ((marked 0) (assigned 0) (notes 0) (edited 0))
+    (dolist (item items)
+      (when (plist-get item :marked) (setq marked (1+ marked)))
+      (when (plist-get item :assigned) (setq assigned (1+ assigned)))
+      (when (plist-get item :note) (setq notes (1+ notes)))
+      (when (plist-get item :edited) (setq edited (1+ edited))))
+    (let ((parts (delq nil
+                       (list (and (> marked 0) (format "%d marked" marked))
+                             (and (> assigned 0) (format "%d assigned" assigned))
+                             (and (> notes 0) (format "%d note%s" notes
+                                                      (if (= notes 1) "" "s")))
+                             (and (> edited 0) (format "%d edited interval%s" edited
+                                                       (if (= edited 1) "" "s")))))))
+      (and parts (string-join parts ", ")))))
+
+(defun claude-code-ide-org-review-undo-refresh ()
+  "Restore the item list `g' last discarded.
+
+The slip this exists for costs a decision, not a keystroke: an
+assignment or an edited interval has to be *made* again.  Stashing the
+list is strictly better than only asking, and the two are not exclusive
+-- the prompt stops the common case, this recovers the one that gets
+through (TODO.org :ID: 8d0716fe)."
+  (interactive)
+  (unless claude-code-ide-org--review-stash
+    (user-error "Nothing to restore; `g' has not discarded anything this session"))
+  (setq claude-code-ide-org--review-items claude-code-ide-org--review-stash)
+  (setq claude-code-ide-org--review-stash nil)
+  (claude-code-ide-org--review-render)
+  (message "Restored the discarded review state"))
+
 (defun claude-code-ide-org-review-refresh ()
   "Rebuild the review buffer from the queue, discarding session state.
 
@@ -9108,13 +9159,31 @@ edited intervals, notes and stale confirmations all live in
 `claude-code-ide-org--review-items' until `x' applies them, and a
 rebuild replaces that list wholesale.  The old wording said \"discarding
 marks\", which undersold it -- marks are selection and cheap to redo,
-whereas an assignment is judgement that has to be made again.  `g' is
-typed deliberately, so discarding here is correct; it just has to say so.
+whereas an assignment is judgement that has to be made again.
+
+*It used to conclude that `g' is typed deliberately and so discarding is
+correct, provided it says so.  That is what TODO.org :ID: 8d0716fe
+falsifies*: it is typed deliberately AND sometimes typed instead of `x',
+which is adjacent on the keyboard and in intent, and one of the two is
+destructive.  So it now asks -- naming what is at stake -- and stashes
+what it discarded for `claude-code-ide-org-review-undo-refresh'.
+
+*Asks only when there is something to lose.* A confirmation on every `g'
+trains the reflex that dismisses it, which is how a guard becomes
+decoration; with nothing pending, `g' stays instant.
 
 Also drops the span-evidence cache.  `g' is the command that means \"go
 and look again\", and a commit made since the buffer was drawn is exactly
 the kind of thing a human presses it for."
   (interactive)
+  (let ((at-stake (claude-code-ide-org--review-judgement-summary
+                   claude-code-ide-org--review-items)))
+    (when at-stake
+      (unless (yes-or-no-p
+               (format "Discard %s?  (M-x claude-code-ide-org-review-undo-refresh restores it)  "
+                       at-stake))
+        (user-error "Refresh cancelled; nothing discarded"))
+      (setq claude-code-ide-org--review-stash claude-code-ide-org--review-items)))
   (setq claude-code-ide-org--span-evidence-cache nil)
   ;; Recomputed here and only here, so the scan runs when the buffer is
   ;; built and when `g' is typed -- not on the redraw every mark triggers.

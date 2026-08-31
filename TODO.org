@@ -5108,6 +5108,23 @@ The third is the important one: it is the known negative, confirmed independentl
 
 *Worth considering instead of, or alongside, the prompt:* make the discard recoverable. The items are a list in memory; stashing the pre-refresh copy in a buffer-local variable and offering =C-/= or an =undo-refresh= command would make the slip cost a keystroke rather than a decision. That is strictly better than asking, and the two are not exclusive.
 
+*Shipped 2026-08-31, taking both options this body offered rather than choosing between them — it said so itself: "strictly better than asking, and the two are not exclusive."*
+
+*=g= asks, and names what is at stake.* =Discard 3 marked, 1 assigned, 1 note?= rather than a bare "are you sure?", because the answer depends on the amount. Declining signals a =user-error= and leaves the item list untouched.
+
+*It asks only when there is something to lose*, which this body required and which is the difference between a guard and decoration: with no judgement pending, =g= stays instant. A confirmation on every refresh trains the reflex that dismisses it.
+
+*The fourth flag was added, as diagnosed.* =:marked=, =:assigned= and =:note= already existed; an edited interval had none of its own, because =:start= and =:end= are on every span straight from the queue so their presence proves nothing. =review-edit-interval= now sets =:edited t= beside the =:suggested nil= it already set — the two are close but not the same claim, since an accepted-as-suggested span is also confirmed.
+
+*And the discard is recoverable.* =claude-code-ide-org-review-undo-refresh= restores the stashed list; the prompt names it, so a human who confirms and immediately regrets it has a way back. The prompt stops the common case and the stash recovers the one that gets through. Deliberately left unbound: adding a key to a map whose vocabulary is borrowed from dired is a decision worth making at the keyboard rather than while the user is away.
+
+*The conclusion in =review-refresh='s own docstring is now reversed rather than merely elaborated.* It said "=g= is typed deliberately, so discarding here is correct; it just has to say so" — and the docstring now records that this heading falsified it: it is typed deliberately *and* sometimes typed instead of =x=. Worth keeping visible, because that sentence was written by someone who had thought about the loss and still got the conclusion wrong.
+
+*Verified:* 472 tests before, 477 after, 0 unexpected, exit 0. Three mutations, each a full 477-test run: never prompting fails the ask test and the undo test; dropping =:edited= fails only the flag test; never taking the stash fails only the undo test. The undo test also asserts a *second* undo errors rather than restoring the same list twice.
+
+*Not done, and not needed:* [[id:7148cddc-aca3-416e-8bcb-f164d4d2bba0][7148cddc]]'s 2026-08-24 loss is the same shape and was paid for once already. Nothing here retroactively recovers that; this stops the next one.
+
+
 
 * TODO A span's headline interval is not the interval it writes :code:
 :PROPERTIES:
