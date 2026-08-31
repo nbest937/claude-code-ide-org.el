@@ -2,6 +2,25 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
+* MCP tools that write an org file time out; one reports success and persists nothing :code:
+:PROPERTIES:
+:ID:       72463b68-9f08-44b2-8213-87f71298138d
+:CREATED:  [2026-08-31 Mon 11:23]
+:CATEGORY: Tools
+:END:
+* Structure Review attention by day, so a pass clocks the day not the heading :code:
+:PROPERTIES:
+:ID:       591e7af3-4f37-4f90-86ba-62400c6e649b
+:CREATED:  [2026-08-31 Mon 11:21]
+:CATEGORY: Meta
+:END:
+* Distribute Review and planning's past day nodes into DONE.org's datetree :code:
+:PROPERTIES:
+:ID:       d6fc47a5-b84d-4287-b973-aa5b37410270
+:CREATED:  [2026-08-31 Mon 11:21]
+:CATEGORY: Meta
+:BLOCKER:  ids(33864a0f-5e13-4235-85a6-0bd9d2fe5252)
+:END:
 * TODO The ceremony prompt goes quiet on evidence of its first step, and never reports its own completion :code:
 :PROPERTIES:
 :ID:       29734f79-e698-43dd-abf8-14bc86b8b0ae
