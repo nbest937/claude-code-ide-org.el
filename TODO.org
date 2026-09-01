@@ -6321,480 +6321,90 @@ CLOCK: [2026-08-17 Mon 15:22]--[2026-08-17 Mon 15:28] =>  0:06
 
 [[file:~/.claude/plans/nested-gathering-wozniak.md][Plan]]
 
-Once implemented: rewrite CLAUDE.md's "State transition rules",
-"Session tracking", and "MCP tools" sections, and the org skill's
-state-transition table, to describe the queue+review model rather
-than the live-driving model they currently document. Large enough
-that it should not be a drive-by edit tacked onto another task.
+*Rewrite CLAUDE.md, =.claude/rules/org-conventions.md= and the two
+skills to describe the queue+review model rather than the live-driving
+model they were written for.* Large enough that it is not a drive-by
+edit tacked onto another task, and consumed in pieces: individual edits
+land under it as they come up.
 
+*The body was redistributed into children 2026-09-01,* at the user's
+instruction, after growing to 369 lines of accumulated scope written
+between 2026-08-10 and -08-17. It had become a backlog in prose — a
+document nobody could act on, in a heading whose whole purpose is to
+make documents actionable. Every scope item now has a child or a
+recorded reason for having none. This body holds only what the group is
+*for*.
 
-*Vocabulary settled 2026-08-10, ahead of the rewrite.* Prompted by
-noticing that "per-turn clocking" describes something that stops
-existing at the cutover, so the docs cannot simply be updated around it.
+*Twelve of the seventeen scope items were already done, and none of them
+said so.* That is the finding worth keeping from the pass, and it is the
+same one the [[id:b36e6369-a210-4540-adc7-0c0c188e9791][b36e6369]] slice is named for: the artifacts
+had moved and the prose describing them had not. Verified against the
+live files rather than recalled — culled as landed:
 
-The current phrase conflates two things that separate cleanly, and the
-right words for both are already in this codebase — they just are not yet
-accurate, because the =Stop=/=UserPromptSubmit= hooks presently do two
-jobs at once: drive a live clock *and* append an event.
-[[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]] deletes the first.
+- *The four 2026-08-11 drifts,* all four fixed. The session hooks no
+  longer claim to call =emacsclient=; power assertions are cross-linked
+  to [[id:1a5a5254-f62d-46e7-9a6c-3d84f2f52873][1a5a5254]] as an
+  attribution signal rather than dismissed as noise; a =DOING= heading
+  with no running clock is documented as the expected steady state; and
+  the =#+TODO:= template now matches TODO.org's line 1 byte for byte,
+  with DONE.org carrying a =#+TODO:= line where it had none.
+- *The =kill-emacs-hook= drift,* which went when the "Emacs integration"
+  section was replaced by a pointer to the live Doom config — the fix
+  being to stop duplicating it rather than to correct the copy.
+- *The two hook directories,* now documented in the repository layout,
+  including that =.claude/hooks/session-context.sh= sits apart "for no
+  recorded reason" and that consolidation is open.
+- *The =org-blocker-hook= sentence,* which now names both guards and
+  what each blocks on, retiring the reading that "nothing enforces
+  =:BLOCKER:= in this repo."
+- *The =NEXT=-nomination rule,* shipped into CLAUDE.md by
+  [[id:dd2399c0-52e2-463d-9423-e7d7a08f3b12][dd2399c0]] — and
+  deliberately *not* into the org skill, which
+  [[id:befaed0a-18ed-445e-b997-8b9c2965ad45][befaed0a]] settled the same
+  day: path-scoped rules hold org-*file* conventions, CLAUDE.md holds
+  ways of working.
+- *The post-cutover vocabulary* — per-turn *guideposts* rather than
+  per-turn *clocking*, and the point that churn relocates to the queue
+  rather than disappearing. Landed with
+  [[id:43d317e8-f2b6-4ce2-9634-64e9bda83efe][43d317e8]].
 
-| today                    | after the cutover                        |
-|--------------------------+------------------------------------------|
-| per-turn *clocking* —    | per-turn *guideposts* — hooks append     |
-| hooks open/close real    | bare timestamps; nothing clocks          |
-| CLOCK intervals every    |                                          |
-| turn boundary            |                                          |
-|--------------------------+------------------------------------------|
-| CLOCK lines land         | *confirmed intervals* land per review    |
-| continuously, one per    | pass, one per cluster of guideposts      |
-| turn                     |                                          |
+*One item was culled as a duplicate rather than as done:* "mechanically
+check the checkable claims", scoped 2026-08-11, is
+[[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] — already =NEXT=,
+already carrying the same list (every cited =:ID:=, defcustom and
+function name resolves; every is-live claim has a greppable anchor), and
+already naming =pre-commit= as its home. Its stated overlap with
+[[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]] stands there too.
+Nothing is filed here for it; the work exists, one heading, in the
+current slice.
 
-So the *emission* stays per-turn; the *record* stops being per-turn.
-Replacement wording should name the emission ("turn-boundary
-guideposts") and say nothing about intervals, since intervals become
-per-decision.
+*Six children were filed for what actually survived,* all of them
+documentation gaps confirmed by grep on 2026-09-01 rather than assumed:
+the file-header template's missing =#+STARTUP:=, the dormant
+=:BLOCKER:= on a =MAYBE= heading, drawer-scoped timestamp reading, the
+sibling-survey idiom, =load-file= not picking up a changed =defcustom=
+default, and saying outright that CLAUDE.md is a starting point while
+the artifact is the authority.
 
-*Retire the word "clocking" rather than qualify it.* By feba67eb's own
-reckoning a clock is only ever live for the microseconds between the
-paired =org-clock-in=/=org-clock-out= calls inside apply. There is no
-background clock state left to name, so "clocking" as an ongoing
-condition is not a thing that happens any more.
-
-*Churn relocates; it does not disappear.* Guideposts still accumulate
-every turn, into the queue file — cheap, disposable, no Emacs required.
-What ends is churn in the *org record*. Worth stating explicitly in
-CLAUDE.md, since the obvious reading of "the cutover stops per-turn
-churn" is wrong in a way that would mislead the next reader.
-
-*Concretely wrong at the cutover, in CLAUDE.md's "Session tracking"
-section:* it describes =:LOGBOOK:= CLOCK entries as tracking "active
-Claude work time only," paused the moment Claude stops and resumed on
-the next prompt. After the cutover no hook writes a CLOCK entry at all —
-that section describes the mechanism this refactor removes.
-
-
-*Additional scope, requested 2026-08-11: a NEXT-nomination rule for the
-org skill.* Two halves, proposed by the user:
-
-1. Every transition *to* =DONE= should nominate a =NEXT=, when clear
-   candidates exist.
-2. When there is an obvious =NEXT= whose blockers live in a *different
-   subtree*, call those blockers out.
-
-*Why it is coherent rather than just tidy.* This repo already enforces
-*at most* one =NEXT= per level, mechanically:
-=--trigger-auto-promote-sole-todo= promotes the last remaining =TODO= in
-a sibling group. Part 1 supplies *at least* one, for the case a trigger
-cannot decide — several candidates, requiring judgement. Together they
-give exactly one, which is the GTD invariant proper: a live project
-always has a next action, and a project without one is the canonical
-defect a weekly review exists to catch.
-
-*The evidence is the session that produced this note.* It opened with the
-user asking "what's next?", and the answer had to be reconstructed by
-walking states and =:BLOCKER:= properties, because the epic had stretches
-with *zero* =NEXT= while carrying two =DOING=. The rule would have
-pre-answered the question that took the first twenty minutes to rebuild.
-
-*Part 2 is the more valuable half.* =:BLOCKER:= is machine-checkable but
-only visible to someone already looking at the blocked heading.
-Same-subtree blockers are cheap to notice — =feba67eb= being blocked by
-=720b2dcf= was obvious all along. Cross-subtree ones are not:
-[[id:d9132c57-9dcf-47e9-ba74-7f5a1ced3ae5][d9132c57]] under Observability
-depends on [[id:cdcc065c-628d-4350-b1ba-fcf686e9c4c1][cdcc065c]] under
-Skill logic, and that is discoverable today only because it happens to be
-written in prose. Those are exactly the dependencies that rot unnoticed.
-
-*Two failure modes to write into the rule, not discover later:*
-- *NEXT-churn.* "When clear candidates exist" is load-bearing. Without
-  it the rule degrades =NEXT= from "decided, up next" into "whatever
-  was adjacent." The rule must explicitly bless *declining* to nominate,
-  and saying so, over promoting a placeholder.
-- *It can silently demote.* Nominating a =NEXT= may trigger
-  =--trigger-demote-conflicting-next= against an existing one. Acceptable,
-  but the nomination should read as a deliberate choice between
-  candidates rather than a surprise reshuffle.
-
-*Placement: the org skill, not CLAUDE.md.* The skill already carries the
-transition table and =TODO -> NEXT= semantics, and the precedent is
-established — the Plan Mode checkpoint rule lives there "since it's a
-way-of-working for Claude Code's Plan Mode generally, not an org-file
-convention specific to this repo." This is the same shape: behaviour at a
-transition, generalising to any org+GTD project. CLAUDE.md keeps the
-repo-specific parts it already has, the keyword set and the
-single-NEXT-per-level enforcement.
-
-*Fix the drift in the same edit.* The skill currently documents
-=TODO NEXT DOING WAIT MAYBE | DONE CANCELLED= (SKILL.md:43) and is
-missing =PLANNING=, which CLAUDE.md has carried since the state was
-added. Adding a rule to a table that is already wrong would bake the
-error in.
-
-*Four concrete drifts found 2026-08-11, post-cutover.* Recorded here
-rather than fixed piecemeal, since this heading owns the rewrite. Each
-was found the same way — a claim in CLAUDE.md taken as current and acted
-on, then contradicted by the artifact:
-
-1. *The session hooks.* Documented as calling =emacsclient -e=, with
-   =session-pause= "a thin alias for =org_clock_out=" and
-   =session-resume= calling =org-clock-in-last=. Both are now one-line
-   =exec=s to =bin/hooks/queue-append= with no =emacsclient= at all.
-   This drift actively misled: three symbol names taken from these
-   sections (=claude-code-ide-org-session-pause=, =--review-queue=,
-   =--clock-owner-session-id=) all came back unbound, which read as
-   "the module is not loaded" when in fact 102 of its functions were
-   and the names were simply retired.
-2. *Power assertions framed as noise.* See
-   [[id:1a5a5254-f62d-46e7-9a6c-3d84f2f52873][1a5a5254]] — the framing
-   is backwards for attribution.
-3. *=DOING= with no running clock.* Still implied to be an
-   inconsistency. Post-cutover it is the expected steady state: live
-   =CLOCK:= lines are only ever written by the review pass, so every
-   =DOING= heading sits clockless between passes.
-4. *The =#+TODO:= header* (CLAUDE.md line 188) matches neither file.
-   TODO.org carries =!=/=@= logging markers on every keyword; DONE.org
-   has no =#+TODO:= line at all, despite the same section saying every
-   =.org= file in the project should start with one. The documented
-   version — bare keywords, no markers — was used as a test fixture on
-   2026-08-11 and manufactured a false "org logs nothing" finding.
-
-*The same header block gained a fourth line, 2026-08-12:*
-=#+STARTUP: logdrawer=, added to both =TODO.org= and =DONE.org= at the
-time of writing. CLAUDE.md's "File header" section must document it
-alongside the three it already lists — same block, same files, so it
-belongs with drift #4 above rather than as a separate edit.
-
-*Why a file header and not a =setq=.* =org-log-into-drawer= defaults to
-nil, so org's *native* state-change logging writes notes bare, just
-after the property drawer, while this module's apply path lands them in
-=:LOGBOOK:= — it =let=-binds the variable at =config.el:2708=,
-deliberately and locally, so the user's own interactive =org-todo= keeps
-their configured behavior. The result was two paths disagreeing, visible
-on [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]], whose =DOING=
-note sits above the drawer while older entries sit inside it.
-
-Verified 2026-08-12 that =#+STARTUP: logdrawer= sets the variable
-*buffer-locally* — effective value ="LOGBOOK"= inside the file, global
-still nil — which is why it is the right instrument: it claims exactly
-the scope this project owns, and changes nothing for a user's other org
-files. The alternatives were weighed and rejected: a global =setq=
-reconfigures org for everyone who installs the module (see
-[[id:1caed585-3209-4108-8501-eba16baf6a01][1caed585]]), and a
-=:LOG_INTO_DRAWER:= property — which does work, and does inherit —
-would have to sit on the top-level category headings, which this same
-CLAUDE.md section forbids from carrying a =:PROPERTIES:= drawer at all.
-
-*Note the verification precondition for anyone re-checking this:*
-=#+STARTUP:= is read when org initializes a buffer, so a file already
-open in Emacs keeps the old value until it is reverted. Saving is not
-enough, and neither is =global-auto-revert-mode= noticing the change if
-the buffer is unmodified — the mode has to re-run.
-
-The pattern is worth naming in the rewrite, not just the four
-instances: CLAUDE.md is loaded into every session by default while the
+*The pattern under all of it, which the rewrite should state in its own
+voice:* CLAUDE.md is loaded into every session by default while the
 artifacts it describes are not, so a stale claim in it outranks the
-truth until someone deliberately checks. Sections describing mechanisms
-that have been cut over are the highest-risk kind.
+truth until someone deliberately checks. That is filed as its own child
+because it is the one item that does not get fixed by fixing anything
+else.
 
-*Added to scope 2026-08-13, for the org-dev skill specifically:
-=load-file= does not pick up a changed =defcustom= default.* Measured
-that day — the guidepost threshold was committed as 1200, =load-file=
-returned =t=, and the live value stayed 900, because =defcustom= only
-sets a default when the symbol is unbound. It needed an explicit
-=setq=. Anyone changing a default and then "verifying" it against the
-running Emacs measures the old value while every signal says success,
-which is exactly the failure the user's own reload-precondition rule
-exists to prevent. The org-dev skill is where this belongs, since it
-owns reload-and-verify for this project's code.
+*Not blocked.* All three =:BLOCKER:= ids — 7771fc63, e51d6ba1,
+c084553c — reached =DONE= on 2026-08-14. This is unfinished because it
+is a multi-part rewrite being consumed in pieces, not because anything
+is waiting.
 
-*Added to scope 2026-08-13: CLAUDE.md's "Dependencies between tasks"
-misleads about enforcement.* It says this project's =org-blocker-hook=
-function "only blocks on a running clock today, not on =:BLOCKER:=".
-True of *that function* and false as a statement about the file: measured
-2026-08-13, =org-blocker-hook= also carries =org-depend-block-todo= and
-=org-enforce-todo-dependencies= is =t=. Claude read that sentence and
-told the user "nothing enforces =:BLOCKER:= in this repo" — the
-sentence is accurate and its natural reading is not, which is the
-hardest kind of doc bug to catch. It also underpins
-[[id:087e73e9-bb24-43b6-a972-b7f103d04017][087e73e9]], whose premise is
-now falsified. The rewrite should say what is on the hook and what each
-part blocks on.
-
-Also worth documenting there: a =:BLOCKER:= on a =MAYBE= heading is
-dormant, because blocking is evaluated against the blocked heading's own
-state.
-
-*Added to scope 2026-08-11: mechanically check the checkable claims.*
-Rewriting the prose fixes those four and leaves nothing preventing the
-next four — CLAUDE.md is a hand-maintained description of a system that
-keeps moving, so drift is the steady state, not an incident. But all
-four were *decidable by a script*: does =claude-code-ide-org-session-pause=
-exist as a function; does the documented =#+TODO:= line match TODO.org's
-line 1; does every =.org= file carry the header the doc says every
-=.org= file carries. None needed judgement.
-
-The precedent is already in this repo. =bin/sync-plans --check= plus the
-=.githooks/pre-push= guard exist for exactly this shape of problem — a
-document that silently stops matching what it describes — and refuse a
-push while the two disagree. A =bin/check-claude-md= in the same shape
-would catch the class rather than the instance. Start with the cheapest
-assertions: symbols named in prose are =fboundp=, the =#+TODO:= block
-matches the files, documented file paths exist.
-
-Worth doing *with* the rewrite rather than after it, since writing the
-checks is what forces the prose into checkable claims — and a claim too
-vague to check is usually the kind that goes stale unnoticed.
-
-*And a caution to write into the rewrite itself.* An accurate CLAUDE.md
-makes answering from it more often correct, which makes the habit of
-answering from it instead of from the artifact harder to notice — the
-same behaviour with better odds. On 2026-08-11 only four of roughly a
-dozen wrong claims traced to this file; the rest came from unchecked
-inference, from a session's own earlier summaries, and three times from
-reading a silently-failing command's empty output as a result. The
-rewrite should say plainly that the file is a starting point and the
-artifact is the authority, rather than implying that accuracy here makes
-checking unnecessary.
-
-*Added to scope 2026-08-12: reading a timestamp out of these files must
-be drawer-scoped.* This repo's =.org= files quote =CLOCK:= and
-=- State "..."= lines constantly in *prose* — as worked examples, as
-recorded experiment output, as evidence in an outcome summary. A pattern
-match over the raw file therefore returns real-looking timestamps that
-were never real, and the wrong answers are indistinguishable from the
-right one by inspection.
-
-*Cost, measured 2026-08-12* while estimating when work on
-[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]'s children began.
-Three attempts, two wrong:
-
-1. =[2026-08-06 Thu 17:41]= — matched a =- State "DOING"= line inside
-   [[id:3d576d29-747f-40b9-a5b3-ecc76679daad][3d576d29]]'s *body*, part
-   of the write-up of the backdating experiment itself.
-2. =[2026-08-06 Thu 22:35]=, verified by grepping the file for that
-   =CLOCK:= line — which returned line 1538, *also* example prose, and
-   in a different heading outside the subtree entirely. The extraction
-   was right by then; the *verification* repeated the original mistake.
-3. Correct only when both scoped to the subtree *and* restricted to
-   lines between =:LOGBOOK:= and =:END:=.
-
-*The rule to write:* timestamps and clock data come from inside a
-=:LOGBOOK:= drawer, or from =org_clock_report=/=org_outline=, never from
-a bare pattern match. This is the same failure as the anchored-drawer
-caution — =grep -c ':SESSIONS:'= counting prose mentions — generalised
-from "does this drawer exist" to "what does it contain."
-
-*Placement: the org skill.* Same reasoning the NEXT-nomination rule
-above uses — it is a way of reading any org file whose prose discusses
-org, not a convention specific to this repo. Note that *neither* the
-skill nor CLAUDE.md currently says anything about this; verified
-2026-08-12, both contain no guidance on pattern-matching org files at
-all. A session handoff asserted the skill already covered it, which was
-itself an unchecked claim of exactly the kind the section above warns
-about.
-
-*Drift found 2026-08-14 by
-[[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]], not fixed there:*
-CLAUDE.md's "Emacs integration" block shows
-=(add-hook 'kill-emacs-hook #'org-clock-out)= and the same for
-=suspend-hook=, but the live Doom config installs
-=claude-code-ide-org--clock-out-if-clocking= on both. Load-bearing rather
-than cosmetic — whether a clean exit closes a hand-opened clock is
-exactly what decides how much the stale-interval detector still has to
-catch.
-
-*Also for the rewrite:*
-[[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]] adds an exception
-to CLAUDE.md's "any transition *to* =DOING= or =PLANNING= must open a
-clock" — container headings change state without clocking. Recorded
-there in full; noted here so the rewrite does not have to be reminded by
-the other heading.
-
-Overlaps the enforcement half of
-[[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]], which wants
-README/CLAUDE.md consistency guarded by the same machinery. Whichever
-lands first should build the harness so the other only adds assertions.
-
-*Added to scope 2026-08-13: document the sibling-survey idiom, in the
-org skill.* Pairs directly with the "it can silently demote" warning
-above — that warning says a =NEXT= nomination may demote a sibling, but
-never says how to find out *which* sibling before committing to it.
-
-The idiom: *to survey a heading's siblings, call =org_outline= scoped
-to the _parent's_ =:ID:=*, with =active_only= and a =max_depth=. One
-call, one screen:
-
-: org_outline scope=<parent id> active_only=true max_depth=3
-
-*Why it needs writing down rather than being obvious.* Twice on
-2026-08-13 this check was done with a hand-rolled Python scan of
-=TODO.org= instead, by someone who had used =org_outline= correctly an
-hour earlier. The tool's =scope= parameter already documents "an =:ID:=
-to index only that subtree" — the capability was never missing, only the
-reflex. That is exactly the pattern
-[[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]] exists to catch,
-and it recurred *inside* a session that had already invoked the tool.
-
-*The one real limitation to document alongside it, so the idiom is not
-mistaken for a full answer:* =org_outline= navigates *down* only.
-Scoped to a leaf it returns that leaf and its descendants, never its
-ancestors — so the caller must already know the parent's =:ID:=. There
-is no upward navigation from a child. Adding a =relation: siblings=
-parameter was considered on 2026-08-13 and *rejected in favour of this
-documentation*: a new parameter would only shorten an idiom that already
-works, on a tool whose value is being cheap to call.
-
-*A second reason the survey matters, beyond demotion.* Scanning the file
-with =grep= reads what is *on disk*, which post-cutover is not the same
-as what has been *decided* — queued transitions have not landed yet.
-=org_outline= reports the applied state, so the difference between "I set
-this to NEXT" and "this is NEXT" stays visible. The Python scan on
-2026-08-13 silently reported =TODO= for a heading whose promotion was
-sitting in the queue; the answer was right, but only by luck of what was
-being asked.
-
-*The buffer-side half of the same idiom, added 2026-08-13.* =org_outline=
-is a thin wrapper: the work is done by org's own =org-map-entries=, with
-=org-id-find= to resolve a scope and about ten lines of ours to format
-each line. Everything it does is therefore available directly from an
-org buffer, and *more* is — which resolves the upward-navigation
-limitation recorded above rather than leaving it open.
-
-Two things =org-map-entries= offers that the MCP tool does not expose:
-
-1. *Positional scopes.* =tree= (the subtree at point), =region=,
-   =file=, =agenda=, or an explicit file list. So the sibling survey has
-   a buffer-side form that needs no parent =:ID:= at all:
-
-   : (save-excursion (org-up-heading-safe)
-   :   (org-map-entries #'org-get-heading "/NEXT" 'tree))
-
-   That is exactly the "navigate up from a child" case the tool cannot
-   do, available for free from point. It is the reason a
-   =relation: siblings= parameter stays rejected: the capability is not
-   missing, only ID-addressed access to it.
-
-2. *org's full MATCH query syntax* — the =/NEXT= above, and tags/property
-   queries generally. =org_outline= has no MATCH argument and filters
-   after the fact with =active_only=, so anything more selective than
-   "drop DONE and CANCELLED" is easier from a buffer than through the
-   tool.
-
-*Two caveats to write down with it, both quiet failures.*
-=org-map-entries= respects narrowing, so a narrowed buffer silently maps
-only the visible portion and reports a confidently short answer. And
-with a *file list* scope it visits those files; =org_outline='s docstring
-records that this was verified not to move point or mark buffers
-modified, which is what makes it safe against files the user has open —
-worth preserving in the rewrite rather than rediscovering.
-
-*Added to scope 2026-08-14: document =.claude/hooks/=.* Tracing where the
-session-start report is defined turned up a directory CLAUDE.md does not
-mention at all. There are *two* hook directories —
-
-- =bin/hooks/= (documented in the repository layout): =queue-append=,
-  =session-pause=, =session-resume=, =session-start-recovery-check=,
-  =exitplanmode-promote-planning=
-- =.claude/hooks/= (undocumented): =session-context.sh=
-
-— and no stated rule for which a new hook belongs in. Both are wired
-from =.claude/settings.json=; both are shell scripts calling
-=emacsclient=; nothing distinguishes them but history.
-
-The omission is not incidental. =session-context.sh= produces the
-"what was I last doing" context injected at every session start, and the
-user had never seen its output — the file that generates the least
-visible artifact in the project is also the one the docs do not mention.
-Worth either consolidating the two directories or writing down why they
-differ.
-
-*Promoted to =**= and split into children 2026-08-14,* out of
-[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]], on the reasoning
-that epic's body already records twice: an epic that absorbs everything
-downstream of the code it produced can never close. This was its last
-non-=MAYBE= child, so promoting it leaves only the two =MAYBE=s and the
-epic becomes closeable — which is what
-[[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]] has been waiting
-on. The split itself is for a plainer reason: this is three passes with
-three plans, and a heading carries one plan link.
-
-*Still owed, audited 2026-08-17.* Recorded here because
-[[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]] named this heading
-as where its consequence lands, and the consequence has not landed.
-Every item below was checked against the live files, not recalled.
-
-1. *The container exception is undocumented.* ab75d6d2 concluded that
-   "any transition to =DOING= or =PLANNING= must open a clock" needs a
-   stated exception for container headings, and said it belonged with
-   this rewrite rather than as a separate edit. CLAUDE.md still lists
-   exactly one exception there, =PLANNING= -> =DOING=.
-
-2. *The passage this body already called "concretely wrong" is still
-   there, verbatim.* "Session tracking" still describes =:LOGBOOK:= CLOCK
-   entries as tracking active Claude work time, paused when Claude stops
-   and resumed on the next prompt. No hook has written a CLOCK entry
-   since the cutover. This was predicted here on 2026-08-10 and survived
-   the rewrite anyway — worth noting as evidence that naming a defect in
-   a heading body does not by itself get it fixed.
-
-3. *The org skill's state-transition table still describes the
-   live-driving model.* Its rules say a transition to =DOING= "always
-   opens a new CLOCK entry", with no mention of queueing — where
-   CLAUDE.md's equivalent table now carries a preamble stating that the
-   side effect is the call you must make, not something that happens to
-   the file.
-
-4. *The NEXT-nomination rule taken on as scope 2026-08-11 is absent from
-   the org skill*, both halves of it.
-
-*Not blocked.* All three =:BLOCKER:= IDs — 7771fc63, e51d6ba1, c084553c
-— reached =DONE= on 2026-08-14. This heading is unfinished because it is
-a multi-part rewrite being consumed in pieces, with individual edits
-landing under it as they come up (today's "confirm emacs-tools is
-reachable" rule among them), not because it is waiting on anything.
-
-*Re-audited 2026-09-01, two weeks on. Two of the four have closed; two
-stand.* Checked against the live files, not recalled — and item 2 was
-nearly missed by a single-line =grep=, since the sentence wraps.
-
-1. *Closed.* The container exception is documented. CLAUDE.md now
-   carries "A grouping may still be clocked deliberately, and that is
-   not a defect", with the exemption stated narrowly — it suppresses the
-   *automatic* clock a state change would open, never a deliberate =C-c
-   C-x C-i=. The original wording of this item is moot besides:
-   =PLANNING= was retired 2026-08-28 and the exception it named no
-   longer exists.
-2. *Still there, verbatim,* at CLAUDE.md:859. "Session tracking" still
-   describes =:LOGBOOK:= CLOCK entries as tracking active Claude work
-   time, paused when Claude Code stops and resumed on the next prompt —
-   immediately above a table stating that none of those hooks reaches
-   Emacs any more. Predicted wrong here on 2026-08-10, audited on
-   2026-08-17, unchanged on 2026-09-01. Three weeks of a named defect
-   surviving in the file that names it.
-3. *Closed.* The org skill no longer describes the live-driving model.
-   =SKILL.md= now distinguishes a queue-backed repo explicitly —
-   "*nothing edits the file when you call it*", events queue for human
-   apply — and covers the retroactive-=DOING= case that opens no clock.
-4. *Still absent.* The =NEXT=-nomination rule taken on as scope
-   2026-08-11 appears nowhere in the org skill: zero matches for
-   "nominat" in =SKILL.md=. CLAUDE.md carries the rule at length, so
-   this is a placement gap rather than an undecided question — and this
-   heading's own reasoning was that the skill is where it belongs.
-
-*Note what the two survivors have in common.* Both are the =:LOGBOOK:=
-half of the cutover — what a CLOCK entry means, and who nominates the
-next action — and both were *predicted here before they were audited*.
-Item 2's own note already draws the moral: naming a defect in a heading
-body does not by itself get it fixed. It is now the second piece of
-evidence for its own claim.
-
-*Not wrapped into =:PLAN:=, deliberately* — see
-[[id:8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8][8c662dfb]]'s debrief. This
-body is an accumulating scope list plus this audit, not a superseded
-plan, so drawering it would hide outstanding work rather than tidy
-finished thinking. The recommendation there is division instead: each
-"Added to scope" paragraph is a candidate leaf.
-
+*Split out of
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] on 2026-08-14,* on
+the reasoning that epic's body records twice: an epic that absorbs
+everything downstream of the code it produced can never close. This was
+its last non-=MAYBE= child, which is what
+[[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]] had been waiting
+on.
 
 ** DONE Correct CLAUDE.md's account of the queue architecture :code:
 CLOSED: [2026-08-15 Sat 17:18]
@@ -7093,6 +6703,42 @@ hand in Emacs.
 *Verify:* =grep -n -i container CLAUDE.md= finds it in the transition
 rules, not only in the epic definition.
 
+*Verify run 2026-09-01, and it is close but this heading owns the call.*
+=grep -n -i container CLAUDE.md= returns 17 hits. Two bear on the
+Done-when directly:
+
+- *The exception is stated.* "On a *grouping* — a story or a slice — the
+  same word reads one level up… That sense opens *no automatic* clock,
+  and takes no =NEXT= either." Plus the narrower statement added
+  2026-08-26: the exemption "suppresses the *automatic* clock a state
+  change would open, never a deliberate =C-c C-x C-i=."
+- *The hand-edit scope is stated, but under a different heading* — the
+  retroactive-=DOING= rule, not the container one: "apply binds
+  =--trigger-auto-clock-in= off for every item it lands… A hand =C-c
+  C-t= to =DOING= in Emacs *does* clock in at once."
+
+*So both facts are in the file and they are not in the same place*,
+which is the thing to judge. This heading's scope correction says the
+wording "must not just say containers are exempt" because the exemption
+does its work in exactly one place — a TODO state changed by hand in
+Emacs. A reader of the grouping paragraph alone does not learn that; a
+reader of the retroactive paragraph alone does not learn it is what
+makes the container exemption narrow.
+
+*Also note the wording the Done-when was written against has expired.*
+It asks for an exception to "any transition to =DOING= or =PLANNING=
+must open a clock". =PLANNING= was retired 2026-08-28 and that sentence
+no longer exists, so the edit is now "join two true paragraphs" rather
+than "add a missing exception".
+
+*Correction to a claim made about this heading earlier today.* A
+re-audit written onto the parent called this item *closed* on the
+strength of the grouping paragraph alone, without running the Verify
+line here or reading the scope correction. Wrong on both counts: the
+Done-when is sharper than what was checked, and it is this heading's
+call to make. Left open.
+
+
 
 ** DONE The NEXT-nomination rule was taken on as scope and never written :code:
 CLOSED: [2026-08-21 Fri 13:22]
@@ -7326,21 +6972,251 @@ with what =bin/lint-org= actually warns.
 :ID:       8e124867-323d-4332-9f4e-a391e59123e7
 :CREATED:  [2026-09-01 Tue 16:11]
 :END:
+
+*Moved down from the parent 2026-09-01,* where it was scoped on
+2026-08-12 and never written.
+
+*The problem is specific to this repo's files.* They quote =CLOCK:= and
+=- State "..."= lines constantly in *prose* — as worked examples, as
+recorded experiment output, as evidence in an outcome summary. A pattern
+match over the raw file therefore returns real-looking timestamps that
+were never real, and the wrong answers are indistinguishable from the
+right one by inspection.
+
+*Cost, measured 2026-08-12* while estimating when work on
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]'s children began.
+Three attempts, two wrong:
+
+1. =[2026-08-06 Thu 17:41]= — matched a =- State "DOING"= line inside
+   [[id:3d576d29-747f-40b9-a5b3-ecc76679daad][3d576d29]]'s *body*, part
+   of the write-up of the backdating experiment itself.
+2. =[2026-08-06 Thu 22:35]=, verified by grepping the file for that
+   =CLOCK:= line — which returned line 1538, *also* example prose, and in
+   a different heading outside the subtree entirely. The extraction was
+   right by then; the *verification* repeated the original mistake.
+3. Correct only when both scoped to the subtree *and* restricted to
+   lines between =:LOGBOOK:= and =:END:=.
+
+Attempt 2 is the part worth keeping: a check that re-uses the failing
+method confirms the failure rather than catching it.
+
+*The rule to write:* timestamps and clock data come from inside a
+=:LOGBOOK:= drawer, or from =org_clock_report= / =org_outline= / =org_body=,
+never from a bare pattern match. It generalises the anchored-drawer
+caution — =grep -c ':SESSIONS:'= counting prose mentions — from "does
+this drawer exist" to "what does it contain."
+
+*Placement: the org skill.* It is a way of reading any org file whose
+prose discusses org, not a convention specific to this repo. Verified
+2026-08-12 that neither the skill nor CLAUDE.md said anything about
+pattern-matching org files; re-verified 2026-09-01, =grep -ci 'bare
+pattern match' .claude/skills/org/SKILL.md= still returns 0. A session
+handoff once asserted the skill already covered it, which was itself an
+unchecked claim of exactly this kind.
+
+*Note the sharper modern form.* =org-map-entries= bounds entries by
+construction and is the parser of record — the org-dev skill's §0b now
+says so for *reading*, not just building. This heading is the
+timestamp-specific case of that rule and should cross-reference it
+rather than restate it.
+
+*Done when* the org skill states it, with the three-attempt cost as the
+evidence.
+
+*Verify:* =grep -ci 'LOGBOOK' .claude/skills/org/SKILL.md= finds the
+rule, and it names =org_body=/=org_clock_report= as the sanctioned
+readers.
+
 ** TODO The sibling-survey idiom is undocumented, and org_outline cannot navigate up :code:
 :PROPERTIES:
 :ID:       6e59c0f9-8af4-43d5-99c1-637ea360c3d0
 :CREATED:  [2026-09-01 Tue 16:11]
 :END:
+
+*Moved down from the parent 2026-09-01,* where it was scoped on
+2026-08-13. Re-verified the same day: =grep -i sibling
+.claude/skills/org/SKILL.md= returns one hit and it is about refile
+levels, not this; =org-map-entries= appears once, inside an unrelated
+code example. Still unwritten.
+
+*Pairs with the nomination rule.* CLAUDE.md warns that setting =NEXT=
+may demote a sibling via =--trigger-demote-conflicting-next=, and never
+says how to find out *which* sibling before committing to it.
+
+*The idiom: to survey a heading's siblings, call =org_outline= scoped to
+the _parent's_ =:ID:=*, with =active_only= and a =max_depth=. One call,
+one screen:
+
+: org_outline scope=<parent id> active_only=true max_depth=3
+
+*Why it needs writing down rather than being obvious.* Twice on
+2026-08-13 this check was done with a hand-rolled Python scan of
+=TODO.org= instead, by someone who had used =org_outline= correctly an
+hour earlier. The tool's =scope= parameter already documented "an =:ID:=
+to index only that subtree" — the capability was never missing, only the
+reflex. That is the pattern
+[[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]] exists to catch,
+and it recurred *inside* a session that had already invoked the tool.
+
+*The limitation to document alongside it, so the idiom is not mistaken
+for a full answer:* =org_outline= navigates *down* only. Scoped to a leaf
+it returns that leaf and its descendants, never its ancestors — so the
+caller must already know the parent's =:ID:=. A =relation: siblings=
+parameter was considered on 2026-08-13 and *rejected in favour of this
+documentation*: it would only shorten an idiom that already works, on a
+tool whose value is being cheap to call.
+
+*A second reason the survey matters, beyond demotion.* =grep= reads what
+is *on disk*, which post-cutover is not what has been *decided* — queued
+transitions have not landed. =org_outline= reports applied state, so the
+difference between "I set this to NEXT" and "this is NEXT" stays
+visible. The Python scan on 2026-08-13 silently reported =TODO= for a
+heading whose promotion was sitting in the queue; the answer was right,
+but only by luck of what was being asked.
+
+*The buffer-side half, which resolves the upward-navigation limitation
+rather than leaving it open.* =org_outline= is a thin wrapper —
+=org-map-entries=, =org-id-find= for the scope, about ten lines of
+formatting — so everything it does is available directly from a buffer,
+and more is. Two things =org-map-entries= offers that the tool does not
+expose:
+
+1. *Positional scopes* — =tree=, =region=, =file=, =agenda=, or an
+   explicit file list. So the sibling survey has a buffer-side form
+   needing no parent =:ID:= at all:
+
+   : (save-excursion (org-up-heading-safe)
+   :   (org-map-entries #\x27org-get-heading "/NEXT" \x27tree))
+
+   That is exactly the navigate-up case the tool cannot do, free from
+   point. It is why =relation: siblings= stays rejected: the capability
+   is not missing, only ID-addressed access to it.
+2. *org's full MATCH syntax* — the =/NEXT= above, and tag/property
+   queries generally. =org_outline= has no MATCH argument and filters
+   after the fact with =active_only=, so anything more selective than
+   "drop DONE and CANCELLED" is easier from a buffer.
+
+*Two caveats to write down with it, both quiet failures.*
+=org-map-entries= respects narrowing, so a narrowed buffer silently maps
+only the visible portion and reports a confidently short answer. And
+with a file-list scope it visits those files; =org_outline='s docstring
+records that this was verified not to move point or mark buffers
+modified, which is what makes it safe against files the user has open —
+worth preserving rather than rediscovering.
+
+*Done when* the org skill carries the idiom, the downward-only
+limitation, and both caveats.
+
+*Verify:* =grep -ci sibling .claude/skills/org/SKILL.md= finds the
+survey, not only the refile-level sentence at line 140.
+
 ** TODO load-file does not pick up a changed defcustom default :code:
 :PROPERTIES:
 :ID:       e5fef4c4-5c42-48c2-a5d7-577dc199c22a
 :CREATED:  [2026-09-01 Tue 16:11]
 :END:
+
+*Moved down from the parent 2026-09-01,* where it was scoped on
+2026-08-13 for the org-dev skill specifically. Re-verified the same day:
+=grep -c defcustom .claude/skills/org-dev/SKILL.md= returns 1, and that
+hit is about =:CATEGORY:='s character limit. The trap is unwritten.
+
+*Measured 2026-08-13.* The guidepost threshold was committed as 1200,
+=load-file= returned =t=, and the live value stayed 900 — because
+=defcustom= only sets a default when the symbol is *unbound*. Reloading
+a file whose =defcustom= default changed leaves the old value in place.
+It needed an explicit =setq=.
+
+*Why it is worth a rule rather than a note.* Every signal says success:
+the commit is right, =load-file= returns =t=, no error is raised. Anyone
+who then "verifies" the change against the running Emacs measures the
+old value and reads a passing check. That is precisely the failure the
+user's standing reload-precondition rule exists to prevent — state what
+must be reloaded *before* running the command whose purpose is to see
+whether the change took effect — and this is the case where naming the
+precondition is not enough, because the obvious precondition
+(=load-file=) is the one that does not work.
+
+*Placement: the org-dev skill,* which owns reload-and-verify for this
+project's code. It already carries §2's =org-clock-persist-load= trap
+and §7's config guidance; this is the same shape of "the reload you
+would reach for is insufficient".
+
+*Note the narrower sibling already documented elsewhere:* =#+STARTUP:=
+is read at buffer initialisation, so a file open in Emacs keeps the old
+value until reverted — recorded on
+[[id:4072b6ec-2785-40ba-81e8-aa559508501c][4072b6ec]]. Same class,
+different mechanism, and the skill should name the class: *a reload that
+succeeds is not evidence the new value is live.*
+
+*Done when* the org-dev skill states the =defcustom= case and the
+=setq= remedy, and =bin/check-org-dev-skill= asserts whatever part of it
+is mechanically checkable.
+
+*Verify:* =grep -ci 'defcustom' .claude/skills/org-dev/SKILL.md= finds
+the reload trap, and the claim about unbound symbols is demonstrated
+rather than asserted.
+
 ** TODO Say in CLAUDE.md that it is a starting point and the artifact is the authority :code:
 :PROPERTIES:
 :ID:       5f89f872-6c0d-4805-88da-a182971c7ad9
 :CREATED:  [2026-09-01 Tue 16:11]
 :END:
+
+*Moved down from the parent 2026-09-01,* where it accumulated across
+2026-08-11 and -08-12 as two related cautions. Re-verified the same day:
+=grep -ci 'starting point' CLAUDE.md= returns 0.
+
+*The mechanism, worth naming rather than leaving as four instances.*
+CLAUDE.md is loaded into every session by default while the artifacts it
+describes are not, so a stale claim in it *outranks the truth* until
+someone deliberately checks. Sections describing mechanisms that have
+been cut over are the highest-risk kind, because the prose survives the
+code that justified it.
+
+*And the counter-intuitive half, which is the reason this is a rule and
+not just an accuracy push.* An accurate CLAUDE.md makes answering *from*
+it more often correct, which makes the habit of answering from it
+instead of from the artifact *harder to notice* — the same behaviour
+with better odds. Accuracy therefore does not retire the risk; it
+disguises it.
+
+*The evidence is that most wrong claims did not come from this file at
+all.* On 2026-08-11 only four of roughly a dozen wrong claims traced to
+CLAUDE.md. The rest came from unchecked inference, from a session's own
+earlier summaries, and three times from reading a silently-failing
+command's empty output as a result. A rewrite that only fixes the file
+addresses a third of the problem and quietly encourages the other
+two-thirds.
+
+*What to write:* that the file is a starting point and the artifact is
+the authority — plainly, in its own voice, rather than implied. It
+should say which artifact wins for which question: the code and tests
+for what the system does, the org files for what is planned, the live
+Doom config for how Emacs is set up. CLAUDE.md already does this
+locally, twice ("Read the live =~/.config/doom/config.el= rather than
+any summary of it"; "the current state of the implementation is in the
+code, the tests and the config"), so the work is generalising a habit
+the file already has rather than inventing one.
+
+*Note the tension to resolve rather than paper over.* The file also
+argues, correctly, that the load-bearing *reasons* live only in a body
+and are worth quoting inline. So "the artifact is the authority" is
+about *state*, not about rationale — a distinction the wording has to
+carry, or it will read as an instruction to distrust the file's own
+explanations.
+
+*Related but distinct:*
+[[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] makes the checkable claims checkable. This
+one is about the claims that are not — and about the reading habit,
+which no check can enforce.
+
+*Done when* CLAUDE.md says it, near the top where it is read before the
+claims it qualifies.
+
+*Verify:* =grep -ci 'authority\|starting point' CLAUDE.md= finds it
+outside the tracker-reading section.
+
 * TODO Direct file writes to a live org buffer can desync org-clock-marker :code:
 :PROPERTIES:
 :CATEGORY: Clock
