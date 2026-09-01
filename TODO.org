@@ -104,6 +104,25 @@ The CLOCK line carries the weighted *share* as a literal interval org can sum; t
 
 *And the aggregation level buys a check the per-turn version could not have:* the weighted minutes attributed across a day should sum to that day's agent time. That is a real invariant, cheap to assert, and a much stronger test of plausibility than eyeballing any single turn's split.
 
+*Corrected by the user 2026-09-01, and the correction sharpens rather than blurs:* not "apportion at the aggregation level", but *"the result of aggregating the apportioned intervals should be plausible and representative."*
+
+*The difference is that the aggregate is the acceptance test, not the unit of production.* Apportioning stays at the turn or window level; the day or slice is where the answer is *judged*. The previous entry conflated the two — it moved the mechanism to match the criterion, which threw away two things:
+
+- *Turn-level attribution is itself the finer record, and it re-aggregates.* Apportion per window and you can still ask per-day, per-slice, per-week. Apportion per day and the question "what was this turn about" has no answer any more. Aggregating early is lossy and irreversible.
+- *It discarded the reason for windowing at all.* The user's own point — successive turns concern *intersecting sets of referents* — is an argument for a window larger than a turn and smaller than a day. "Day level" was just the far end of that spectrum with the motivation removed.
+
+*So fewer of the four dissolve than the previous entry claimed, and the honest accounting is:*
+
+- *Resolution floor: mitigated, not removed*, and now visibly a *function of the window parameter*. A window of an hour makes a 2% share about a minute — borderline. Window width trades directly against how fine a share can be expressed. That is input to the parameterisation question, which the user has deferred; it is not an answer to it.
+- *Rounding: dissolves as a correctness worry but not as a mechanism.* Largest-remainder is unbiased, so per-window residues average out at the aggregate — which is exactly what an aggregate-level criterion licenses.
+- *Idempotency: unchanged.* Still one annotation per window; the fix is still to key replay detection on span and label and treat the weight as payload.
+- *Cost: per window rather than per day.* Between the two.
+
+*And the correction promotes one concern rather than dissolving it.* "Representative" is a stronger word than "plausible": it asks that the *distribution across tasks* reflect what happened, not merely that no single number look absurd. Dropping sub-minute shares is exactly a failure of that kind — every individual figure stays plausible while a task that received a small slice of every turn aggregates to near zero. *Plausible per turn can aggregate to unrepresentative*, and the criterion the user has stated is the one that catches it.
+
+*Which also names the test.* Aggregate plausibility is checkable against the reconstructible-stretch yardstick [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] settled on — a day whose commits, test deltas and debriefs bound what actually happened.
+
+
 
 
 
