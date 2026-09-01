@@ -4708,6 +4708,7 @@ CLOCK: [2026-08-13 Thu 17:57]--[2026-08-13 Thu 18:09] =>  0:12
   v1 built, awaiting your review
 - State "TODO"       from "WAIT"       [2026-08-14 Fri 11:56]
 :END:
+:PLAN:
 
 *The ask, in the user's words:* so many times they want to ask a question
 or make a proposal while something else is in flight, which often leads
@@ -4807,6 +4808,7 @@ too, and a fail-fast lock alone is the answer.
 Steps 2 and 3 overlap: if 3 lands, 2 may be unnecessary, since there
 would be nothing left that needs to write immediately.
 
+:END:
 *Provenance and standing, which are not design.*
 
 *Promoted out of
