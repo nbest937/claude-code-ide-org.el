@@ -7022,6 +7022,123 @@ tell a window bound from a blanket scan."
                (kill-buffer buf)))
        (delete-directory dir t))))
 
+(defun claude-code-ide-org-test--slice-body (file)
+  "The slice heading's own body text in FILE."
+  (with-temp-buffer
+    (insert-file-contents file)
+    (org-mode)
+    (goto-char (point-min))
+    (re-search-forward "^\\* TODO .*A slice")
+    (buffer-substring-no-properties
+     (line-beginning-position)
+     (save-excursion (outline-next-heading) (point)))))
+
+(ert-deftest claude-code-ide-org-test-slice-renders-an-incidental-section ()
+  "The incidental list is generated below the members, with cookies.
+
+Cookies kept on incidental items and the denominator grows: `[n/m]'
+says what closed between :CREATED: and :CLOSED:, a claim about a bounded
+window rather than about plan fidelity (TODO.org :ID: 0086614a)."
+  (claude-code-ide-org-test--with-slice-window
+    (claude-code-ide-org-refresh-slice "slice-001")
+    (let ((body (claude-code-ide-org-test--slice-body file)))
+      (should (string-match-p "^Incidental:$" body))
+      ;; `--short-id' truncates to eight characters -- meaningful for a
+      ;; real UUID, and it clips this fixture's nine-character ids.
+      (should (string-match-p "\\[X\\] \\[\\[id:incid-001\\]\\[incid-00\\]\\] DONE Incidental one" body))
+      (should (string-match-p "\\[X\\] \\[\\[id:incid-002\\]\\[incid-00\\]\\] DONE Incidental two" body))
+      ;; The planned member is untouched and still above the lead.
+      (should (< (string-match "A planned member" body)
+                 (string-match "Incidental:" body)))
+      ;; Closed before the window opened: absent.
+      (should-not (string-match-p "before-01" body))
+      ;; Denominator grew to cover all three checkboxes.
+      (should (string-match-p "\\[3/3\\]" body)))))
+
+(ert-deftest claude-code-ide-org-test-cancelled-incidental-gets-no-checkbox ()
+  "A CANCELLED incidental must render without a box, as a member does.
+
+Caught on the first live run. Defaulting to `[ ]' is wrong twice over:
+an unchecked box inflates the denominator forever, and it reads as a
+live cookie -- so `--slice-blocker-ids' pulls the incidental into the
+:BLOCKER:, which is exactly the failure TODO.org :ID: 0086614a feared,
+arriving through CANCELLED rather than DONE."
+  (claude-code-ide-org-test--with-slice-window
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-min))
+      (re-search-forward "^\\* DONE Incidental two")
+      (org-back-to-heading t)
+      (org-todo "CANCELLED")
+      (save-buffer))
+    (claude-code-ide-org-refresh-slice "slice-001")
+    (let ((body (claude-code-ide-org-test--slice-body file)))
+      (should (string-match-p "- \\[\\[id:incid-002" body))
+      (should-not (string-match-p "\\[ \\] \\[\\[id:incid-002" body))
+      ;; Denominator counts only the two that carry cookies.
+      (should (string-match-p "\\[2/2\\]" body))
+      ;; And it stays out of the blocker.
+      (with-current-buffer (find-file-noselect file)
+        (goto-char (point-min))
+        (re-search-forward "^\\* TODO .*A slice")
+        (should-not (string-match-p
+                     "incid-002" (or (org-entry-get nil "BLOCKER") "")))))))
+
+(ert-deftest claude-code-ide-org-test-slice-incidental-section-is-regenerated-not-appended ()
+  "Refreshing twice must not stack two sections, since the list is derived."
+  (claude-code-ide-org-test--with-slice-window
+    (claude-code-ide-org-refresh-slice "slice-001")
+    (claude-code-ide-org-refresh-slice "slice-001")
+    (let* ((body (claude-code-ide-org-test--slice-body file))
+           (n 0) (pos 0))
+      (while (string-match "^Incidental:$" body pos)
+        (setq n (1+ n) pos (match-end 0)))
+      (should (= 1 n))
+      ;; And exactly one line per incidental, not two.
+      (setq n 0 pos 0)
+      (while (string-match "incid-001" body pos)
+        (setq n (1+ n) pos (match-end 0)))
+      (should (= 1 n)))))
+
+(ert-deftest claude-code-ide-org-test-slice-incidental-rewrite-spares-trailing-prose ()
+  "The region is bounded: prose written below the list survives a refresh.
+
+This is the assertion that matters most here. A body-region rewrite is
+the class of edit this repo has two corruptions on record from, which is
+why `org_wrap_plan' and `org_divide' exist as tools rather than as
+hand-rolled edits."
+  (claude-code-ide-org-test--with-slice-window
+    (claude-code-ide-org-refresh-slice "slice-001")
+    ;; Add prose after the generated list, then refresh again.
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO .*A slice")
+      (goto-char (save-excursion (outline-next-heading) (point)))
+      (forward-line -1)
+      (insert "\nA sentence a human wrote below the list.\n")
+      (save-buffer))
+    (claude-code-ide-org-refresh-slice "slice-001")
+    (let ((body (claude-code-ide-org-test--slice-body file)))
+      (should (string-match-p "A sentence a human wrote below the list." body))
+      ;; And the list is still there, once.
+      (should (string-match-p "^Incidental:$" body))
+      (should (string-match-p "incid-001" body)))))
+
+(ert-deftest claude-code-ide-org-test-slice-with-no-incidentals-writes-no-lead ()
+  "An empty `Incidental:' lead states nothing and must not be written.
+And an existing one is removed when the window empties, or it would be
+regenerated forever."
+  (claude-code-ide-org-test--with-slice-window
+    ;; Narrow the window to before anything closed.
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO .*A slice")
+      (org-back-to-heading t)
+      (org-entry-put nil "CREATED" "[2026-08-25 Mon 09:00]")
+      (save-buffer))
+    (claude-code-ide-org-refresh-slice "slice-001")
+    (should-not (string-match-p "^Incidental:$"
+                                (claude-code-ide-org-test--slice-body file)))))
+
 (ert-deftest claude-code-ide-org-test-slice-incidentals-are-the-strict-window ()
   "Everything closed in the slice's window that it does not already name.
 

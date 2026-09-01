@@ -3919,6 +3919,37 @@ subheading."
               members))
       (nreverse members))))
 
+(defun claude-code-ide-org--slice-planned-member-ids ()
+  "Ids the slice-at-point names *above* its `Incidental:\' lead.
+
+The planned members, in other words -- the ones somebody declared.
+`claude-code-ide-org--slice-members\' deliberately does not make this
+distinction, because for its purposes an incidental line is a member
+like any other: it carries a checkbox, the cookie counts it, and the
+blocker excludes it for being done.
+
+This exists because the incidental list is *derived from what it does
+not already name*, so without it the second refresh sees the first
+refresh's own output, calls every incidental \"already named\", and
+deletes the section it just wrote.  Found by the idempotency test rather
+than by reading, which is what that test is for."
+  (save-excursion
+    (org-back-to-heading t)
+    (let* ((body-end (save-excursion (outline-next-heading)
+                                     (or (point) (point-max))))
+           (lead (save-excursion
+                   (and (re-search-forward
+                         (concat "^" (regexp-quote
+                                      claude-code-ide-org--slice-incidental-lead)
+                                 "[ \t]*$")
+                         body-end t)
+                        (match-beginning 0))))
+           (end (or lead body-end))
+           ids)
+      (while (re-search-forward claude-code-ide-org--slice-member-regexp end t)
+        (push (downcase (match-string-no-properties 2)) ids))
+      (nreverse ids))))
+
 (defun claude-code-ide-org--slice-blocker-ids ()
   "Return the ids the slice at point should block on.
 
@@ -4014,7 +4045,8 @@ heading."
                 (forward-line 1)))))))))
 
 (defun claude-code-ide-org--closed-in-window (start end)
-  "Ids of headings whose `CLOSED:\' falls between START and END, inclusive.
+  "(ID . CLOSED-TIME) for headings closed between START and END, inclusive.
+Sorted by closing time, oldest first.
 
 Read through `org-map-entries\', which bounds entries by construction --
 a regex over org text gets them wrong, and this scan is the input to a
@@ -4025,7 +4057,13 @@ Archives are included: work closed during a slice is very often archived
 before the slice is, and a scan blind to DONE.org would report the
 window shrinking as the ceremony ran."
   (let (ids)
-    (dolist (file (claude-code-ide-org--id-scannable-files) (nreverse ids))
+    (dolist (file (claude-code-ide-org--id-scannable-files)
+                  ;; Chronological, so the list reads as what happened in
+                  ;; the window rather than as whichever file was scanned
+                  ;; first. File order is an artefact; closing order is the
+                  ;; fact the list is about.
+                  (sort (nreverse ids)
+                        (lambda (a b) (time-less-p (cdr a) (cdr b)))))
       (when (file-exists-p file)
         (org-map-entries
          (lambda ()
@@ -4036,7 +4074,7 @@ window shrinking as the ceremony ran."
              (when (and ts id
                         (not (time-less-p ts start))
                         (or (null end) (not (time-less-p end ts))))
-               (push (downcase id) ids))))
+               (push (cons (downcase id) ts) ids))))
          nil (list file))))))
 
 (defun claude-code-ide-org--slice-incidental-ids ()
@@ -4066,11 +4104,14 @@ incidental."
            (end (and closed (ignore-errors
                               (claude-code-ide-org--parse-org-timestamp closed))))
            (self (downcase (or (org-entry-get nil "ID") "")))
-           (named (mapcar (lambda (m) (downcase (car m)))
-                          (claude-code-ide-org--slice-members))))
+           ;; Planned members only. Using every member would make the
+           ;; list see its own previous output and erase itself on the
+           ;; second refresh.
+           (named (claude-code-ide-org--slice-planned-member-ids)))
       (when start
         (seq-remove (lambda (id) (or (equal id self) (member id named)))
-                    (claude-code-ide-org--closed-in-window start end))))))
+                    (mapcar #'car
+                            (claude-code-ide-org--closed-in-window start end)))))))
 
 (defun claude-code-ide-org--refresh-slice-members-at-point (index)
   "Rewrite the slice-at-point's member lines from INDEX.  Returns a count.
@@ -4134,6 +4175,95 @@ it would be destroyed at the next apply anyway."
       (set-marker end nil)
       (cons changed (nreverse skipped)))))
 
+(defconst claude-code-ide-org--slice-incidental-lead "Incidental:"
+  "The line introducing a slice's generated incidental list.
+Matched at column zero on a line of its own, which is what separates it
+from the same word occurring in prose.")
+
+(defun claude-code-ide-org--refresh-slice-incidentals-at-point (index)
+  "Regenerate the slice-at-point's incidental section from INDEX.
+
+The list is *derived*, so it is rewritten wholesale on every refresh
+rather than maintained -- a hand-kept one would be stale by the second
+day (TODO.org :ID: 0086614a).
+
+Bounded on both sides before anything is deleted.  The region runs from
+the `Incidental:\' lead to the end of the run of list items and blank
+lines beneath it, and never past the slice's own body: trailing prose
+below the list is left alone, and a subheading is never crossed.  That
+caution is not decorative -- this repo has two body corruptions on
+record from hand-rolled region edits, which is why `org_wrap_plan\' and
+`org_divide\' exist as tools.
+
+With no incidentals, an existing section is removed and none is
+written: an empty `Incidental:\' lead states nothing and would still be
+regenerated forever.
+
+Returns the number of lines written."
+  (save-excursion
+    (org-back-to-heading t)
+    (let* ((body-end (copy-marker
+                      (save-excursion (outline-next-heading)
+                                      (or (point) (point-max)))))
+           (ids (claude-code-ide-org--slice-incidental-ids))
+           (lines
+            (delq nil
+                  (mapcar
+                   (lambda (id)
+                     (let* ((entry (gethash id index))
+                            (kw (car entry))
+                            (title (cdr entry)))
+                       ;; Skipped rather than guessed at, exactly as a
+                       ;; member with no entry is: a rendering that
+                       ;; invented a state would paper over what
+                       ;; `bin/lint-org' exists to surface.
+                       (when (and entry kw)
+                         ;; No box for a keyword that has none -- CANCELLED
+                         ;; and MAYBE map to nil deliberately. Defaulting
+                         ;; to "[ ]" was wrong twice over, caught on the
+                         ;; first live run: an unchecked box inflates the
+                         ;; denominator forever, and it reads as a live
+                         ;; cookie, so --slice-blocker-ids pulled a
+                         ;; CANCELLED incidental into the :BLOCKER: --
+                         ;; precisely the failure :ID: 0086614a feared,
+                         ;; arriving through CANCELLED rather than DONE.
+                         (let ((box (cdr (assoc kw claude-code-ide-org--slice-checkbox-by-keyword))))
+                           (format "- %s[[id:%s][%s]] %s %s"
+                                   (if box (format "[%s] " box) "")
+                                   id (claude-code-ide-org--short-id id) kw title)))))
+                   ids)))
+           (start nil) (end nil))
+      ;; Locate an existing section, if any.
+      (goto-char (point-at-bol))
+      (when (re-search-forward
+             (concat "^" (regexp-quote claude-code-ide-org--slice-incidental-lead) "[ \t]*$")
+             body-end t)
+        (setq start (match-beginning 0))
+        (goto-char (match-end 0))
+        (forward-line 1)
+        ;; Consume only list items and blank lines -- the generated
+        ;; shape. Anything else ends the region, so prose written after
+        ;; the list survives a refresh.
+        (while (and (< (point) body-end)
+                    (looking-at "^\\([ \t]*-\\|[ \t]*$\\)"))
+          (forward-line 1))
+        (setq end (point)))
+      (cond
+       ((and lines start)
+        (delete-region start end)
+        (goto-char start)
+        (insert claude-code-ide-org--slice-incidental-lead "\n\n"
+                (string-join lines "\n") "\n\n"))
+       (lines
+        (goto-char body-end)
+        ;; Land inside the body, not on the next heading's line.
+        (skip-chars-backward " \t\n")
+        (insert "\n\n" claude-code-ide-org--slice-incidental-lead "\n\n"
+                (string-join lines "\n") "\n"))
+       (start (delete-region start end)))
+      (set-marker body-end nil)
+      (length lines))))
+
 (defun claude-code-ide-org-refresh-slice (&optional id)
   "Regenerate every slice's checklist from its referents.
 
@@ -4162,7 +4292,7 @@ With ID, refreshes that slice only.  Returns a human-readable summary."
         ;; read-only buffer failing it would reproduce the exact incident
         ;; the apply-path binding was added for, one command later.
         (inhibit-read-only t)
-        (slices 0) (lines 0) (blockers 0) (unrendered nil))
+        (slices 0) (lines 0) (blockers 0) (incidentals 0) (unrendered nil))
     (dolist (file (claude-code-ide-org--tracked-files))
       (when (file-exists-p file)
         (with-current-buffer (find-file-noselect file)
@@ -4191,6 +4321,17 @@ With ID, refreshes that slice only.  Returns a human-readable summary."
                (let ((result (claude-code-ide-org--refresh-slice-members-at-point index)))
                  (setq lines (+ lines (car result)))
                  (setq unrendered (append unrendered (cdr result))))
+               ;; After the member lines and *before* the cookie, because
+               ;; incidental lines carry checkboxes and the cookie counts
+               ;; every checkbox in the entry. The user settled that the
+               ;; denominator grows: `[n/m]' says what closed between
+               ;; :CREATED: and :CLOSED:, which is a claim about a bounded
+               ;; window rather than about plan fidelity, and a separate
+               ;; plan-completion number would be a second statistic to
+               ;; keep true (TODO.org :ID: 0086614a).
+               (setq incidentals
+                     (+ incidentals
+                        (claude-code-ide-org--refresh-slice-incidentals-at-point index)))
                ;; Insert the cookie before updating it, because
                ;; `org-update-statistics-cookies' only ever *updates* one
                ;; that is already in the headline -- measured 2026-08-26,
@@ -4210,10 +4351,11 @@ With ID, refreshes that slice only.  Returns a human-readable summary."
                  (setq blockers (1+ blockers))))))
           (when (buffer-modified-p) (save-buffer)))))
     (concat
-     (format "%d slice%s refreshed, %d member line%s rewritten, %d blocker%s updated"
+     (format "%d slice%s refreshed, %d member line%s rewritten, %d blocker%s updated, %d incidental%s listed"
              slices (if (= slices 1) "" "s")
              lines (if (= lines 1) "" "s")
-             blockers (if (= blockers 1) "" "s"))
+             blockers (if (= blockers 1) "" "s")
+             incidentals (if (= incidentals 1) "" "s"))
      ;; Named, not merely counted. "1 skipped" sends the reader hunting
      ;; through a 27-member list; the id says which line is still showing
      ;; its placeholder, and the reason says what will fix it.
