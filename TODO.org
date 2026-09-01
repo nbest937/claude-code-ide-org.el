@@ -5865,6 +5865,7 @@ children are 29 =DONE= and 2 =CANCELLED=, and it can close.
 :BLOCKER:  ids(5ff5a4b8-2fee-472a-b5e1-c9de8cf96704 406e9200-c3e7-49ac-a8d0-d6ff8e061ce4)
 :CREATED:  [2026-08-07 Fri 08:05]
 :END:
+:PLAN:
 
 Captured 2026-08-07 from conversation. The idea as posed: while
 reviewing a heading in
@@ -5930,6 +5931,7 @@ Sequence well after 720b2dcf ships and real queue data exists — there is
 no way to judge whether the plain threshold is good enough until it has
 been used in anger.
 
+:END:
 *That condition is now met, 2026-08-13, and the answer is no — but the remedy is smaller than this heading assumes.*
 
 The threshold has been used in anger: 23 unattributed spans assigned by
