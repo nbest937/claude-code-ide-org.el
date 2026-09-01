@@ -4484,110 +4484,66 @@ CLOCK: [2026-08-14 Fri 09:02]--[2026-08-14 Fri 09:04] =>  0:02
 - [2026-08-14 Fri 09:02]--[2026-08-14 Fri 09:04] suggested span, accepted at review
 :END:
 
-*Noticed 2026-08-13, in conversation, after the pattern had already been
-used twice without anyone naming it.* =WAIT= has quietly acquired a
-second, narrower meaning here: the resting state at the end of a Claude
-work increment, meaning "the ball is in the human's court". That is not
-what the =#+TODO:= table says it means (generic "Blocked or waiting on
-someone"), and the difference is load-bearing.
+*Noticed 2026-08-13.* =WAIT= had quietly acquired a second, narrower
+meaning here — the resting state at the end of a Claude work increment,
+"the ball is in the human's court" — which is not what the =#+TODO:=
+table says it means. The proposal was to read a =DOING -> WAIT=
+transition as a *bracket*: a hard right edge after which guideposts
+provably do not belong to that heading, killing the span guess's known
+latching defect. It needed no new event kind — =todo= events already
+carry state and timestamp whether or not anyone has applied them.
 
-*Why it matters for the queue.* The suggestion machinery's known defect
-is that the guess *latches*: measured live 2026-08-13, three spans
-covering eight hours all suggested a heading that had long gone quiet.
-It latches because a =clock_in= sets a lane's current heading and
-*nothing ever unsets it* — there is no event meaning "Claude stopped
-working on this."
-
-A =DOING -> WAIT= transition is exactly that event, and it has three
-properties a heading guess does not:
-
-1. *A hard right edge.* Guideposts after it provably do not belong to
-   that heading. That alone kills the latch.
-2. *The =WAIT -> DOING= gap is human time, not attention.* By
-   construction that interval is "the human had not answered yet" — it
-   is not work on the task, yet today it is clustered into a span and
-   offered for assignment like any other.
-3. *It is already in the queue.* =todo= events carry state and timestamp
-   whether or not anyone has applied them, so a reader can bracket spans
-   without the file having moved. No new event kind, no schema change.
+Two caveats came with it. The keyword is ambiguous: a =WAIT= meaning
+"waiting on a vendor to email back" carries none of this, and the real
+discriminator is probably the event's =source=/=session_id=. And the
+bracket is only as reliable as its consistency — a session that ends
+leaving a heading =DOING= emits nothing at all.
 
 Composes with [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]]:
-commits and =:CREATED:= stamps inside a span's window are the evidence,
-and =WAIT= edges are the bounds on which windows are worth looking at.
-It is also a cheaper, mechanical partial answer to
+commits and =:CREATED:= stamps inside a window are the evidence,
+brackets are the bounds on which windows are worth looking at. A
+cheaper, mechanical partial answer to
 [[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]], which proposes
-asking Claude to narrate the same gaps.
+asking Claude to narrate the same gaps; and it bounds the damage from
+[[id:f4e628ce-e653-429a-8f3c-0f5d4241b139][f4e628ce]] and
+[[id:09c134c4-31eb-4f6c-aa10-f836d1d28f16][09c134c4]], since a bracket
+constrains what a stray guidepost can be attributed to even when the
+guidepost itself is wrong.
 
-*Two things to settle before this becomes a rule.*
-
-- *The keyword is ambiguous.* A =WAIT= meaning "waiting on a vendor to
-  email back" carries none of this. The discriminator is probably not
-  the keyword at all but the event's =source=/=session_id=: a =WAIT= a
-  *session* queued is a Claude/human handoff, one a human set by hand is
-  not. That distinction already exists in every queue line and is
-  currently unused.
-- *It is only as reliable as its consistency.* A session that ends
-  leaving a heading =DOING= has a silently missing bracket, and reading
-  absence as "still working" is the wrong default in exactly the case
-  that matters. Worth deciding whether that is a lint
-  ([[id:3bd3402b-3ab6-4ace-b20b-3ff84caa3fb2][3bd3402b]]) or a hook.
-
-*Provenance, recorded because it bears on how much weight to put on
-this:* the pattern came from the user's own correction, not from design.
-[[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] was set to =WAIT=
-at their explicit instruction on 2026-08-13, and the same call was then
-applied to [[id:b5f94b88-76e3-4a3c-ac73-729f34d33691][b5f94b88]] by
-imitation. Two instances, one person, one afternoon — an observed habit
+*Provenance:* the pattern came from the user's own correction, not from
+design — two instances, one person, one afternoon. An observed habit
 worth testing, not a measured regularity.
 
-May also bound the damage from
-[[id:f4e628ce-e653-429a-8f3c-0f5d4241b139][f4e628ce]] and
-[[id:09c134c4-31eb-4f6c-aa10-f836d1d28f16][09c134c4]], both of which are
-about guideposts that are missing or phantom: a bracket constrains what
-a stray guidepost can be attributed to, even when the guidepost itself
-is wrong.
+*Twice overtaken by the code, and only one thing is left.*
 
-*Correction, 2026-08-14: the claim above that "nothing ever unsets it" is
-wrong, and was already wrong when this heading was written.*
+*First, 2026-08-14.* The claim above that "nothing ever unsets it" was
+wrong, and was already wrong when this heading was written.
+=claude-code-ide-org--review-suggest-heading= already cleared the active
+heading on every keyword except =DOING= and =PLANNING=, and had done
+since =3c6b3f2= on 2026-08-13 — *hours before* this heading was
+captured, with the latching-guess comment sitting directly above it.
+Found by grep while inventorying keyword touch points; it was never
+verified when the heading was written, which is the actual lesson.
 
-=claude-code-ide-org--review-suggest-heading= (=config.el= line 3097 as
-of today) already clears the active heading on any =todo= event carrying
-=DONE=, =CANCELLED=, =WAIT=, =TODO=, =NEXT= or =MAYBE= — that is, on
-every keyword except =DOING= and =PLANNING=. It arrived in =3c6b3f2=
-("Implement 3d0487f4: unassigned spans, with a suggested heading") on
-2026-08-13, hours *before* this heading was captured, and the
-latching-guess comment sits directly above it. Found by grep on
-2026-08-14 while inventorying keyword touch points for
-[[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]; it was not
-verified when this heading was written, which is the actual lesson.
+*Second, and it closes one of the two survivors that correction left.*
+The "denylist should be an allowlist" half shipped in =6a81822=
+("Bracket the span guess on any keyword that is not work in progress").
+The six named keywords are gone;
+=claude-code-ide-org--work-in-progress-keywords= is =("DOING")= and
+every other keyword brackets by construction — so adding =REVIEW=
+needed no edit here, and neither did retiring =PLANNING=. Confirmed by
+reading =config.el= on 2026-09-01.
 
-So the mechanism this heading proposes building *exists*, and it is
-already keyed the way the design conclusion below recommends — on any
-transition out of =DOING=/=PLANNING=, not on =WAIT= specifically. Two
-things survive the correction, and they are what is left of the idea:
+*What is left is one thing, and it is data rather than logic.* The
+bracket fires only when a =todo= event exists to fire it. A session that
+ends leaving a heading =DOING= emits nothing, so the guess still latches
+across exactly that case. Whether that is answered by a lint
+([[id:3bd3402b-3ab6-4ace-b20b-3ff84caa3fb2][3bd3402b]]), a =Stop=-hook
+transition, or a bracket inferred at review time is undecided.
 
-1. *The gap is data, not logic.* The bracket only fires when a =todo=
-   event exists to fire it. A session that ends leaving a heading =DOING=
-   emits nothing, so the guess keeps latching — which is exactly the
-   "only as reliable as its consistency" caveat recorded above, now
-   promoted from a caveat to the whole remaining problem. Whether that is
-   answered by a lint
-   ([[id:3bd3402b-3ab6-4ace-b20b-3ff84caa3fb2][3bd3402b]]), a =Stop=-hook
-   transition, or an inferred bracket at review time is undecided.
-2. *The denylist should be an allowlist.* Testing for "not =DOING= and
-   not =PLANNING=" instead of naming six keywords would make it immune to
-   any future change to the keyword set — including the =REVIEW=
-   proposal now recorded on
-   [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]], which would
-   otherwise need remembering to add a seventh string here. A keyword
-   forgotten in that list fails silently, by latching.
-
-*What this heading is now about,* therefore: not "build a bracket" but
-"make sure a bracket event always gets emitted, and make the test
-robust to the keyword set changing." The =WAIT= framing in the title is
-vestigial — the keyword was never the load-bearing part, and the title
-should be retitled if this heading is picked up.
-
+The =WAIT= framing in the title is vestigial — the keyword was never the
+load-bearing part — and the title should be rewritten if this is picked
+up.
 
 * TODO Re-measure the guidepost gap threshold against a month of queue data :code:research:
 SCHEDULED: <2026-09-13 Sun +1m>
