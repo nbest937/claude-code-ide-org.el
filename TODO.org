@@ -2,6 +2,38 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
+* TODO The human half of the ratio is already recorded, and thrown away :code:research:
+:PROPERTIES:
+:ID:       20cecd53-2338-4237-ab06-f8129e10a2c8
+:CREATED:  [2026-09-01 Tue 12:17]
+:CATEGORY: Clock
+:END:
+
+*Raised by the user 2026-09-01, considering turning clocking off altogether:* the metric they actually want is *the ratio of their own time — thinking, prompting, reading — to the time the agent is working*, and their expectation is that any automated approximation of their attention "is a dramatic underestimate of what is happening in reality".
+
+*The underestimate is real, and it is on the other side of the ledger.* What undercounts is the *agent* attribution, not the human: a span reading =0:11= writes =0:01=, measured repeatedly on 2026-08-31. The human's time is not undercounted — it is *uncollected by choice*.
+
+*Because the numerator is already recorded, on every turn, and then discarded.* =resume= fires on =UserPromptSubmit=; =pause= fires when the turn ends. So a =pause= -> =resume= gap is *exactly* reading the response, thinking, and typing the next prompt. =--span-work-runs= extracts only the =resume= -> =pause= runs and treats the gaps as idle. [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] already says so in as many words: "the human reading a session report -- real attention, discarded by the extraction rather than recorded as anything."
+
+*Measured on this session's own queue, 2026-09-01:* 44 guideposts, 19 agent runs and 19 human gaps.
+
+| quantity | value |
+|----------+-------|
+| agent working (=resume= -> =pause=) | 2.75 h across 19 runs, median 353 s |
+| human gaps (=pause= -> =resume=) | 19.81 h across 19 gaps, median 393 s, max 760 min |
+| human gaps under 10 minutes | 1.08 h across 13 gaps |
+| turns (=resume= events) | 22 |
+
+*The raw ratio of 7.19 : 1 is meaningless* — it is dominated by six AFK gaps, one of them 12.7 hours. Capped at ten minutes it is *0.39 : 1*. The true figure is between them and only a human knows where.
+
+*Which is the actual finding: the judgement needed is far smaller than the one currently being asked for.* The review pass asks the human to attribute spans *to headings*. This ratio needs no heading at all — it is session-global. The only judgement is "were you at the keyboard", on *six* gaps today rather than nineteen, and only for the raw total; the capped figure and the turn count need none.
+
+*So collection and attribution can be decoupled, and that is the proposal.* Guideposts are written by hooks, cost nothing, and need no Emacs. Attribution to headings is the expensive half and the one the user says they value least. Turning off *attribution* while continuing to *collect* would preserve this metric entirely and remove the clerical burden that prompted the question.
+
+*What that would give up, stated so the trade is visible:* per-heading clock intervals, and with them any answer to "how long did this task take". [[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] is the heading that says constructing attention intervals is manual by nature; this does not change that, it only observes that the *ratio* does not require it.
+
+*Open, and genuinely undecided:* whether the gap-versus-AFK threshold should ever be automated. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the standing precedent against an invented number, and a ten-minute cap is exactly that. Reporting both bounds and letting the human place the line is the alternative — and unlike the current review pass, it is six questions a day rather than nineteen.
+
 * TODO [0/12] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
