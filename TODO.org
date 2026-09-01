@@ -4875,6 +4875,7 @@ would be nothing left that needs to write immediately.
 - State "TODO"       from "NEXT"       [2026-08-17 Mon 12:11] \\
   Auto-demoted: superseded by sibling [[id:95087d8f-e16d-45d3-bdea-9b179dc672b4][Lint for headings that are valid org but structurally unintended]] becoming NEXT.
 :END:
+:PLAN:
 
 *This one actually happened, deliberately, as a resilience test.* On
 2026-08-12 two sessions ran against this same checkout. This session
@@ -4988,6 +4989,7 @@ clone via =core.hooksPath=, inheriting =pre-push='s setup caveat.
 *Testing* would follow the existing =bin/*-test= pattern: a scratch
 repo, each of the four command forms, asserting exit status and message.
 
+:END:
 *Where this stands, 2026-09-01.*
 
 Nothing here has been built, and one premise has moved:
