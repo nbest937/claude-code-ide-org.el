@@ -206,6 +206,19 @@ A response footnoted [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] as "F
 
 *So the honest scope: two of five modes become impossible, one becomes loud, and two stay.* Enumeration and borrowed prose are already caught by the existing check; the marker collision stays a hand error; the paraphrased title stops being possible. That is a good return on adding one field to a message the hook already prints.
 
+*Refined 2026-09-01: not done by a subagent — assisted by one?* The distinction is real, so the question is what a model could add that a script cannot.
+
+*Almost nothing, on inspection.* Detection, lookup, presence-checking, ordering by first appearance and comparing a written footnote against the true title are all exact operations, and =footnote-check= already performs the first three. A model would be slower, non-deterministic, and able to paraphrase — the failure being fixed.
+
+*One candidate is genuinely model-shaped, and it is the inverse of the rule the hook enforces.* The hook asks "is every id present also footnoted". It cannot ask "was every heading *discussed* also cited" — a response can describe a heading at length, by subject rather than by id, and owe a footnote nobody can detect by scanning for tokens. That is a judgement about aboutness, which is exactly what a regex cannot do.
+
+*Measured before proposing it, and the result is a clean negative.* Across *314 assistant responses* in this session, scanning for a heading whose four-word title phrase appears while its id does not: *zero*. The failure this assist would catch did not occur once.
+
+*But the measurement cannot see the case the model would be best at, and that limit is the finding.* The test requires a *verbatim* title fragment. Discussion that paraphrases — "the ceremony trigger", "the read-only guard" — matches nothing and is invisible to it. So the zero rules out verbatim uncited discussion and says nothing about the paraphrased kind, which is precisely where a model would earn its place. *Measuring that needs a different instrument, and the obvious one is the model itself* — which makes the evidence circular unless a human adjudicates a sample.
+
+*So the ordering is clear even though the question is not settled.* Extend the hook first: it is cheap, exact, and closes the only mode that currently produces a wrong answer rather than a refusal. Revisit assistance only if an uncited-by-paraphrase instance is ever *observed*, rather than building for a failure with no recorded occurrence — which is [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s standing argument, and applies to a check as much as to a guess.
+
+
 
 
 
