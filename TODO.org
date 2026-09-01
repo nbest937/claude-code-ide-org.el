@@ -2,6 +2,16 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
+* TODO A slice claims another slice's declared members as its own incidental work :code:
+:PROPERTIES:
+:ID:       5bfc1d38-e758-4ed7-bb32-f976031ff3da
+:CREATED:  [2026-09-01 Tue 15:54]
+:END:
+* TODO An unstarted slice accrues every heading closed since it was written down :code:
+:PROPERTIES:
+:ID:       42ba0a80-61c5-49bd-b6a2-9da76a53ff64
+:CREATED:  [2026-09-01 Tue 15:54]
+:END:
 * TODO Classify gaps by markers at either end, not by tracking an AFK state :code:
 :PROPERTIES:
 :ID:       409a69ff-d57e-4c1c-ab6c-28f7e85fa391
@@ -26,6 +36,7 @@ Split out of [[id:e75d660f-5c0d-4707-a645-b5dea7d7ebc0][e75d660f]] 2026-09-01 at
 *One consequence for whatever reports this:* a labelled gap and an inferred one must not be presented as the same thing. The honest output says which gaps carry human testimony and which rest on the 1200s heuristic, rather than one number covering both.
 
 *Deferred, and named so it is not mistaken for an oversight:* the *retrospective correction* channel — a prompt that labels a gap already past, like "afk since 13:30" does. The gap rule above does not need it, but it is a richer signal than a binary marker and would let a human correct the record in passing.
+
 
 * TODO Attribute a turn to several tasks by weight, judged from the transcript with lag :code:research:
 :PROPERTIES:
@@ -148,11 +159,6 @@ The CLOCK line carries the weighted *share* as a literal interval org can sum; t
 *Which also names the test.* Aggregate plausibility is checkable against the reconstructible-stretch yardstick [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] settled on — a day whose commits, test deltas and debriefs bound what actually happened.
 
 
-
-
-
-
-
 * TODO AFK markers are ground truth for the one judgement we cannot automate, and we discard them :code:
 :PROPERTIES:
 :ID:       e75d660f-5c0d-4707-a645-b5dea7d7ebc0
@@ -231,13 +237,17 @@ The CLOCK line carries the weighted *share* as a literal interval org can sum; t
 *So: markers as evidence, threshold as fallback, and the residue stated rather than hidden* — roughly half of long gaps carry no marker today, and the honest report says which are labelled and which are inferred rather than presenting one number for both.
 
 
-
-
 * TODO The human half of the ratio is already recorded, and thrown away :code:research:
 :PROPERTIES:
 :ID:       20cecd53-2338-4237-ab06-f8129e10a2c8
 :CREATED:  [2026-09-01 Tue 12:17]
 :CATEGORY: Clock
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-01 Tue 12:15]--[2026-09-01 Tue 12:18] =>  0:03
+- [2026-09-01 Tue 12:15]--[2026-09-01 Tue 12:18] assigned at review
+CLOCK: [2026-09-01 Tue 12:26]--[2026-09-01 Tue 12:27] =>  0:01
+- [2026-09-01 Tue 12:26]--[2026-09-01 Tue 12:27] assigned at review
 :END:
 
 *Raised by the user 2026-09-01, considering turning clocking off altogether:* the metric they actually want is *the ratio of their own time — thinking, prompting, reading — to the time the agent is working*, and their expectation is that any automated approximation of their attention "is a dramatic underestimate of what is happening in reality".
@@ -264,6 +274,7 @@ The CLOCK line carries the weighted *share* as a literal interval org can sum; t
 *What that would give up, stated so the trade is visible:* per-heading clock intervals, and with them any answer to "how long did this task take". [[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] is the heading that says constructing attention intervals is manual by nature; this does not change that, it only observes that the *ratio* does not require it.
 
 *Open, and genuinely undecided:* whether the gap-versus-AFK threshold should ever be automated. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the standing precedent against an invented number, and a ten-minute cap is exactly that. Reporting both bounds and letting the human place the line is the alternative — and unlike the current review pass, it is six questions a day rather than nineteen.
+
 
 * TODO [0/12] Everything passed and the file was still wrong :code:
 :PROPERTIES:
@@ -303,6 +314,9 @@ To which add the standing friction: the two MCP tools that time out are worked a
 :ID:       2a6a1355-615f-4c2c-a8af-c9ae8dcda09b
 :CREATED:  [2026-09-01 Tue 08:43]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+- [2026-09-01 Tue 08:39]--[2026-09-01 Tue 08:42] assigned at review
 :END:
 
 *Asked by the user 2026-09-01 after a third stop-hook refusal in one session:* "check for others this session (same or different?)". *Different — all three.*
@@ -372,9 +386,6 @@ A response footnoted [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] as "F
 *So the ordering is clear even though the question is not settled.* Extend the hook first: it is cheap, exact, and closes the only mode that currently produces a wrong answer rather than a refusal. Revisit assistance only if an uncited-by-paraphrase instance is ever *observed*, rather than building for a failure with no recorded occurrence — which is [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s standing argument, and applies to a check as much as to a guess.
 
 
-
-
-
 * TODO Report worked headings that carry no clock interval that day :code:
 :PROPERTIES:
 :ID:       37147e9e-468b-43ee-91f9-45d9647c6164
@@ -396,6 +407,7 @@ Split out of [[id:c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8][c60a1c53]] 2026-09-01, w
 
 *Related:* [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] is the A/B on whether the logged record means anything; this is one of the concrete gaps that A/B would be measuring.
 
+
 * TODO bin/lint-org does not detect a duplicate :ID: across TODO.org and DONE.org :code:
 :PROPERTIES:
 :ID:       39039bb6-c70a-4ba9-8b37-edd8dd6921f6
@@ -415,10 +427,19 @@ Split out of [[id:c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8][c60a1c53]] 2026-09-01, w
 
 *One question to settle while building it:* whether an =:ID:= appearing in an =:ARCHIVE_OLPATH:=-style property or in body prose should count. It should not — only heading =:ID:= properties are keys — but the scan must be written to distinguish them, and a naive =grep '^:ID:'= over file text would already be right for the wrong reason.
 
-* TODO The ceremony steps do not bind inhibit-read-only, so the sweep dies on the guard :code:
+
+* DONE The ceremony steps do not bind inhibit-read-only, so the sweep dies on the guard :code:
+CLOSED: [2026-09-01 Tue 08:19]
 :PROPERTIES:
 :ID:       13ea6770-88ba-484d-87bd-2d20c44dc610
 :CREATED:  [2026-09-01 Tue 07:08]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-01 Tue 07:07]--[2026-09-01 Tue 07:14] =>  0:07
+- [2026-09-01 Tue 07:07]--[2026-09-01 Tue 07:14] assigned at review
+CLOCK: [2026-09-01 Tue 08:12]--[2026-09-01 Tue 08:20] =>  0:08
+- [2026-09-01 Tue 08:12]--[2026-09-01 Tue 08:20] assigned at review
+- State "DONE"       from "TODO"       [2026-09-01 Tue 08:19]
 :END:
 
 *Two distinct failures, one ceremony, and the second only appeared once the first was fixed. Both shipped 2026-09-01.*
@@ -436,7 +457,6 @@ Split out of [[id:c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8][c60a1c53]] 2026-09-01, w
 *And =bin/test= cannot discriminate it.* The suite passed identically before and after, because the batch environment's load order differs from the live one. The verification of record here is the live run, which is the case [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] should probably absorb: a green suite that is *structurally incapable* of seeing the defect.
 
 *Verified end to end.* The duplicate was repaired first — the archived copy confirmed byte-identical apart from its =ARCHIVE_*= properties, then the TODO.org copy removed, 98 to 97 top-level headings, 44 lines out and none in. The ceremony then reported =drawers: ok; spacing: ok; archived: 19; repeater: advanced=. TODO.org went 97 to 78 top-level with *zero* finished headings remaining, and =:ID:= totals were conserved at *328* across both files — 20 ids moved as 19 subtrees, one carrying a child. 491 tests, lint 0 errors.
-
 
 
 * TODO The running Emacs can be running a stale config.el and nothing says so :code:
@@ -800,8 +820,6 @@ The same pass carried =[13:13]--[13:48]  writes 0:14 in 3= on [[id:c31b6c76-8ad8
 *Same conclusion by a second route:* the question is "were these minutes real", and only an instrument outside the clock system answers it.
 
 
-
-
 * TODO An Emacs outage strands every org write, because the tools are Emacs :code:
 :PROPERTIES:
 :ID:       3ad389be-2797-46c3-a51d-9f603053955a
@@ -896,7 +914,7 @@ On 2026-08-31 a live archive pass reported 65 and wrote 66. One story and its si
 Worth attempting first: re-run the sweep against a buffer put through the same sequence -- revert, consolidate, normalise, then archive -- to see whether the combination is what does it.
 
 
-* TODO [21/23] Make an archived day hold that day's record :code:
+* TODO [26/28] Make an archived day hold that day's record :code:
 :PROPERTIES:
 :ID:       f9fe9fac-a423-4ede-bc42-1d201c2c3d82
 :CREATED:  [2026-08-31 Mon 12:07]
@@ -943,6 +961,11 @@ Incidental:
 - [X] [[id:b488dd2a-db73-49a3-a4b5-5f4cc9b52e06][b488dd2a]] DONE Decide a key binding for review-undo-refresh, or leave it M-x only
 - [X] [[id:5d59dc77-38bf-470a-8d51-098c741fecbd][5d59dc77]] DONE org_capture with a done initial_state writes no CLOSED line
 - [X] [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]] DONE A slice should list incidental work separately from its planned members
+- [X] [[id:13ea6770-88ba-484d-87bd-2d20c44dc610][13ea6770]] DONE The ceremony steps do not bind inhibit-read-only, so the sweep dies on the guard
+- [X] [[id:29734f79-e698-43dd-abf8-14bc86b8b0ae][29734f79]] DONE The ceremony prompt goes quiet on evidence of its first step, and never reports its own completion
+- [X] [[id:c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8][c60a1c53]] DONE Name the work a slice forgot: detect the omission, never fix it
+- [X] [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] DONE Recover a close time from git for the headings with no in-file evidence
+- [X] [[id:5f1068f9-1452-45e4-9253-568edfce2053][5f1068f9]] DONE Sort TODO.org by :CREATED: descending, after each archive pass
 
 
 * TODO MCP tools that write an org file time out; one reports success and persists nothing :code:
@@ -1037,7 +1060,8 @@ Move every =Review and planning= datetree node dated the previous day or older i
 Once the sibling heading refiles =* Review attention='s old LOGBOOK entries into dated clones, those clones are placed by this same pass.
 
 
-* REVIEW The ceremony prompt goes quiet on evidence of its first step, and never reports its own completion :code:
+* DONE The ceremony prompt goes quiet on evidence of its first step, and never reports its own completion :code:
+CLOSED: [2026-09-01 Tue 08:19]
 :PROPERTIES:
 :ID:       29734f79-e698-43dd-abf8-14bc86b8b0ae
 :CREATED:  [2026-08-31 Mon 10:28]
@@ -1052,6 +1076,7 @@ CLOCK: [2026-08-31 Mon 10:27]--[2026-08-31 Mon 10:29] =>  0:02
   quiet test and completion report
 - State "REVIEW"     from "DOING"      [2026-08-31 Mon 12:20]
 - State "DOING"      from "TODO"       [2026-08-31 Mon 12:20]
+- State "DONE"       from "REVIEW"     [2026-09-01 Tue 08:19]
 :END:
 
 *Found 2026-08-31 by the user asking whether the ceremonies would run at the next session start.* They will not, and the reason is a seam rather than a bug.
@@ -1103,19 +1128,19 @@ Apply is human-only because org's native state-change logging completes only ins
 *So the mechanism is confirmed working under exactly the conditions it was built for* — an unattended run, a genuine failure, an honest report, and a stamp correctly withheld. Closing.
 
 
-
-* TODO [28/38] The code knows more than it says, and asks more than it should :code:
+* DOING [33/39] The code knows more than it says, and asks more than it should :code:
 :PROPERTIES:
 :ID:       b36e6369-a210-4540-adc7-0c0c188e9791
 :CREATED:  [2026-08-28 Fri 17:37]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8 33864a0f-5e13-4235-85a6-0bd9d2fe5252 b7b46a26-2fd6-4784-bed3-d0112a917c0a 72463b68-9f08-44b2-8213-87f71298138d 29734f79-e698-43dd-abf8-14bc86b8b0ae 5f1068f9-1452-45e4-9253-568edfce2053 7c4d6ef6-c914-4d33-b267-cc9158a9f359 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
+:BLOCKER:  ids(33864a0f-5e13-4235-85a6-0bd9d2fe5252 72463b68-9f08-44b2-8213-87f71298138d 7c4d6ef6-c914-4d33-b267-cc9158a9f359 8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 17:38] \\
   next slice, composed and awaiting review
+- State "DOING"      from "TODO"       [2026-09-01 Tue 13:19]
 :END:
 Work on the gap between what the tools know and what they say, and between
 what they do and what they make a human do by hand. The plan, the sequence
@@ -1129,9 +1154,9 @@ and the open decisions live in the prompt below rather than here.
 - [[orgit-rev:claude-code-ide-org::711e0e2][711e0e2]] [2026-08-31 Mon 08:43] extended phase 4 after the previous slice closed
 - [[orgit-rev:claude-code-ide-org::bb7eae2][bb7eae2]] [2026-08-31 Mon 09:02] corrected six claims that went stale with that close
 
-- [ ] [[id:c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8][c60a1c53]] TODO Name the work a slice forgot: detect the omission, never fix it
+- [X] [[id:c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8][c60a1c53]] DONE Name the work a slice forgot: detect the omission, never fix it
 - [ ] [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] TODO Reorder DONE.org as a datetree, descending by CLOSED:
-- [ ] [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] TODO Recover a close time from git for the headings with no in-file evidence
+- [X] [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] DONE Recover a close time from git for the headings with no in-file evidence
 - [X] [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]] DONE Jump to a heading by title, not by pasting a UUID
 - [X] [[id:46d225c7-7541-4867-af72-929a572df2a5][46d225c7]] DONE Remove queue-append's synthetic-event overrides, dead since the ExitPlanMode hook went
 - [X] [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]] DONE A clock-report test fails every evening, because its fixture spills past midnight
@@ -1142,7 +1167,7 @@ and the open decisions live in the prompt below rather than here.
 - [ ] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] TODO MCP tools that write an org file time out; one reports success and persists nothing
 - [X] [[id:a0028a4e-39cb-4653-83cc-446b810234ac][a0028a4e]] DONE Add a body read: return a heading whole, drawers included, and let the caller extract
 - [X] [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] DONE Six defects in one day, all the same: the code knew more than it said
-- [-] [[id:29734f79-e698-43dd-abf8-14bc86b8b0ae][29734f79]] REVIEW The ceremony prompt goes quiet on evidence of its first step, and never reports its own completion
+- [X] [[id:29734f79-e698-43dd-abf8-14bc86b8b0ae][29734f79]] DONE The ceremony prompt goes quiet on evidence of its first step, and never reports its own completion
 - [X] [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]] DONE "writes 0:09 in 1" reads as two swappable numbers; "in 1" has no unit
 - [X] [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] DONE Show turn count on the span line, where the attention call is made
 - [X] [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] DONE A span's headline interval is not the interval it writes
@@ -1152,9 +1177,9 @@ and the open decisions live in the prompt below rather than here.
 - [X] [[id:b6e229c7-3035-4c0e-943b-710a12bfd7d1][b6e229c7]] DONE Auto-mark the state items that carry no judgement
 - [X] [[id:a2509a61-4e21-4d8e-8f58-c87935753472][a2509a61]] DONE Assign advances past the line the human is about to mark
 - [X] [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]] DONE A slice should list incidental work separately from its planned members
-- [ ] [[id:5f1068f9-1452-45e4-9253-568edfce2053][5f1068f9]] TODO Sort TODO.org by :CREATED: descending, after each archive pass
+- [X] [[id:5f1068f9-1452-45e4-9253-568edfce2053][5f1068f9]] DONE Sort TODO.org by :CREATED: descending, after each archive pass
 - [ ] [[id:7c4d6ef6-c914-4d33-b267-cc9158a9f359][7c4d6ef6]] TODO Settle what a slice proposal is, and write the procedure down
-- [ ] [[id:8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8][8c662dfb]] TODO Sweep the ten longest live bodies into :PLAN: drawers
+- [-] [[id:8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8][8c662dfb]] DOING Sweep the ten longest live bodies into :PLAN: drawers
 - [ ] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] TODO Three verification traps hit repeatedly in one session, none of them caught by a check
 - [ ] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] NEXT Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
 
@@ -1171,6 +1196,7 @@ Incidental:
 - [X] [[id:355fa608-e311-4874-b2d3-bbc62172d09a][355fa608]] DONE A stranded single-point span is offered forever; only the trailing one can still grow
 - [X] [[id:b488dd2a-db73-49a3-a4b5-5f4cc9b52e06][b488dd2a]] DONE Decide a key binding for review-undo-refresh, or leave it M-x only
 - [X] [[id:5d59dc77-38bf-470a-8d51-098c741fecbd][5d59dc77]] DONE org_capture with a done initial_state writes no CLOSED line
+- [X] [[id:13ea6770-88ba-484d-87bd-2d20c44dc610][13ea6770]] DONE The ceremony steps do not bind inhibit-read-only, so the sweep dies on the guard
 
 
 * TODO Three verification traps hit repeatedly in one session, none of them caught by a check :code:
@@ -1270,7 +1296,8 @@ The trailing =t= is the last form of the =save-excursion=, so the whole expressi
 *Note what is no longer open, so this is not re-litigated.* Whether =DOING= should exist at all was *settled* in c954f650 and the reasoning is in its =:PLAN:= drawer: the org+GTD tradition argues against an in-progress keyword because the clock can say what is active, and that substitute is exactly what the event queue removes here. A future reader citing Bernt or GTD has a well-supported argument and is wrong for this system specifically. =REVIEW='s adoption and =PLANNING='s retirement are likewise decided.
 
 
-* TODO Sort TODO.org by :CREATED: descending, after each archive pass :code:
+* DONE Sort TODO.org by :CREATED: descending, after each archive pass :code:
+CLOSED: [2026-09-01 Tue 09:10]
 :PROPERTIES:
 :ID:       5f1068f9-1452-45e4-9253-568edfce2053
 :CREATED:  [2026-08-28 Fri 13:39]
@@ -1279,6 +1306,10 @@ The trailing =t= is the last form of the =save-excursion=, so the whole expressi
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 13:40] \\
   for the next slice
+CLOCK: [2026-09-01 Tue 09:03]--[2026-09-01 Tue 09:10] =>  0:07
+- State "DOING"      from "TODO"       [2026-09-01 Tue 09:03]
+- [2026-09-01 Tue 09:03]--[2026-09-01 Tue 09:10] sort TODO.org newest-first
+- State "DONE"       from "DOING"      [2026-09-01 Tue 09:10]
 :END:
 
 *Asked for by the user 2026-08-28, for the next slice.* After archiving the closed headings, sort what remains in TODO.org by =:CREATED:= descending, so the file reads newest-first.
@@ -1345,8 +1376,7 @@ The trailing =t= is the last form of the =save-excursion=, so the whole expressi
 *What is left of the twin:* [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] is now unblocked, [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] having filled every missing =CLOSED:=. It is the larger of the two — restructuring DONE.org into a datetree rather than sorting a flat list — so it did not fit "the same pass" as literally as this body expected.
 
 
-
-* TODO Sweep the ten longest live bodies into :PLAN: drawers :code:
+* DOING Sweep the ten longest live bodies into :PLAN: drawers :code:
 :PROPERTIES:
 :ID:       8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8
 :CREATED:  [2026-08-28 Fri 13:39]
@@ -1355,6 +1385,7 @@ The trailing =t= is the last form of the =save-excursion=, so the whole expressi
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 13:40] \\
   for the next slice
+- State "DOING"      from "TODO"       [2026-09-01 Tue 14:34]
 :END:
 
 *Asked for by the user 2026-08-28*, on seeing [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]'s body: "absolutely monstrous... I guess it's because it predates the current task lifecycle and we never touched it." That diagnosis is right and it generalises — the =:PLAN:= lifecycle ([[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]]) applies at =DONE=, so a *live* heading that has been accumulating for weeks has never met it.
@@ -1503,7 +1534,6 @@ happens to an engorged body. That is a judgement call about eleven
 headings, so it is left for a human rather than taken here. If wrapping
 is wanted anyway, the seam is *Promoted to =**= and split into children
 2026-08-14* — but it buries the scope, which is the objection above.
-
 
 
 * TODO Reorder DONE.org as a datetree, descending by CLOSED: :code:
@@ -1671,6 +1701,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-01 Tue 15:42]--[2026-09-01 Tue 15:47] =>  0:05
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -1792,7 +1823,8 @@ CLOCK: [2026-09-01 Tue 07:05]--[2026-09-01 Tue 07:06] =>  0:01
 *Genuinely open.* Where proposals live -- under =* Slices= beside real ones, as they are now, or somewhere that cannot be mistaken for a live slice at a glance. What keyword a proposal carries: =TODO= today, though =MAYBE= would read more honestly and would also stop [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]]'s promotion trigger from ever nominating one as a next action. And what becomes of a rejected proposal -- =CANCELLED= keeps the argument, which is usually the part worth keeping.
 
 
-* TODO Name the work a slice forgot: detect the omission, never fix it :code:
+* DONE Name the work a slice forgot: detect the omission, never fix it :code:
+CLOSED: [2026-09-01 Tue 08:38]
 :PROPERTIES:
 :CATEGORY: Slices
 :ID:       c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8
@@ -1801,6 +1833,10 @@ CLOCK: [2026-09-01 Tue 07:05]--[2026-09-01 Tue 07:06] =>  0:01
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 15:35] \\
   the user had to remind me; a mechanism should
+CLOCK: [2026-09-01 Tue 08:27]--[2026-09-01 Tue 08:38] =>  0:11
+- State "DOING"      from "TODO"       [2026-09-01 Tue 08:27]
+- [2026-09-01 Tue 08:27]--[2026-09-01 Tue 08:38] detect work a slice forgot
+- State "DONE"       from "DOING"      [2026-09-01 Tue 08:38]
 :END:
 
 *Prompted 2026-08-25 by the user asking whether they have to remind me to add a worked heading to the open slice.* They did. [[id:0acc1df2-6916-4180-867a-99bfa551806b][0acc1df2]] was built, committed, and left out of [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] -- against a membership rule written earlier the same day, by me, saying a member is anything the slice *committed to or actually worked*.
@@ -1861,8 +1897,8 @@ CLOCK: [2026-09-01 Tue 07:05]--[2026-09-01 Tue 07:06] =>  0:01
 *Not built: the second question this body proposed* — which worked headings carry no clock interval that day. It shares the scan and this body rates it the more valuable of the two. It is a different report with a different audience and it should not be smuggled in beside this one; filed separately rather than left in prose.
 
 
-
-* TODO Recover a close time from git for the headings with no in-file evidence :code:research:
+* DONE Recover a close time from git for the headings with no in-file evidence :code:research:
+CLOSED: [2026-09-01 Tue 08:52]
 :PROPERTIES:
 :CATEGORY: Clock
 :ID:       b7b46a26-2fd6-4784-bed3-d0112a917c0a
@@ -1875,6 +1911,10 @@ CLOCK: [2026-09-01 Tue 07:05]--[2026-09-01 Tue 07:06] =>  0:01
   nothing consumes CLOSED: on those headings
 - State "TODO"       from "CANCELLED"  [2026-08-28 Fri 11:38] \\
   cancellation ground void: a consumer exists
+CLOCK: [2026-09-01 Tue 08:44]--[2026-09-01 Tue 08:52] =>  0:08
+- State "DOING"      from "TODO"       [2026-09-01 Tue 08:44]
+- [2026-09-01 Tue 08:44]--[2026-09-01 Tue 08:52] backfill CLOSED from git
+- State "DONE"       from "DOING"      [2026-09-01 Tue 08:52]
 :END:
 
 *Filed 2026-08-24, the residue of* [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]]. That pass filled 58 of DONE.org's 97 finished headings from their own =:LOGBOOK:=. *39 have no in-file evidence at all* -- mostly early headings from before the =!= cookies in =#+TODO:= were adopted, e.g. "Implement the ten pending MCP-tool tasks in parallel worktrees", "Add a PLANNING TODO state, driven by the ExitPlanMode matcher", and the original =org_query= / =org_clock_report= / =org_capture= tool headings.
@@ -1951,7 +1991,6 @@ So the work would derive a date from a *different event*, write it into a field 
 *One weakness of my own found by that third mutation, and worth recording because it is a shape rather than a slip.* The dry-run test originally checked only *disk*, and the save is separately guarded — so a dry run that edited the buffer without saving passed it. A dry run that leaves a dirty buffer is not harmless: a human can save it by accident, and =--file-busy-p= then reads the file as busy. The test now asserts =buffer-modified-p= is nil.
 
 *What this unblocks:* [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]], which was blocked on this alone. Without it =org-archive-subtree= would have dated all 41 from =time= — today — and piled them into a single wrong day node, silently.
-
 
 
 * TODO Intervals on two different headings can overlap, and subtraction reaches only one :code:
@@ -2585,6 +2624,7 @@ settle. It would say whether the policy is *right*, not merely accepted.
 lifecycle the user has twice mentioned, not the whole of it; the
 transition rules discussed the same day are recorded against
 [[id:241a4c54-ed59-4780-b602-2a86efee978a][241a4c54]].
+
 
 * DOING [10/13] Make the guidepost pipeline produce durations that mean what they say :code:
 :PROPERTIES:
@@ -4220,6 +4260,7 @@ probably be decided together.
   another repo reading instructions for a system that is not running.
   Landing them together is what remains.
 
+
 * TODO The org 9.7+ dependency is real, undeclared, and unenforced :code:
 :PROPERTIES:
 :CATEGORY: Dev
@@ -4638,6 +4679,7 @@ The =WAIT= framing in the title is vestigial — the keyword was never the
 load-bearing part — and the title should be rewritten if this is picked
 up.
 
+
 * TODO Re-measure the guidepost gap threshold against a month of queue data :code:research:
 SCHEDULED: <2026-09-13 Sun +1m>
 :PROPERTIES:
@@ -4778,7 +4820,6 @@ So the band was an artifact of four days, exactly as this body allowed for — /
 *Explicitly not the scheduled run.* This is a histogram check on one statistic. It is not the sweep: no span-count-versus-threshold curve, no re-derivation for =span-idle-floor=, no percentage-of-recorded-time figure for the floors. The occurrence on =<2026-09-13 Sun>= should still do all of that, and should now expect to *move* 1200 rather than confirm it.
 
 *A third question the September run should absorb, from the user's framing 2026-09-01.* The floors are tuned to keep the human's idle *out* of the agent's clock, which is right for per-heading attribution and backwards for the ratio of human time to agent time that the user is actually curious about ([[id:20cecd53-2338-4237-ab06-f8129e10a2c8][20cecd53]]). Measured on one session that day: of ~90 minutes of plausible at-keyboard gap time, 3 minutes were credited to the agent and 87 recorded nowhere. The same histogram answers both questions; only the threshold's *purpose* differs. Re-deriving without asking what the gaps say about the human would waste the pass.
-
 
 
 * TODO Let a session interject without waiting: advisory locks, or extend the queue to capture/amend :code:
@@ -4973,6 +5014,7 @@ tidying away, since the paragraph above says explicitly that none should
 be inferred. What is left of the heading is step 1 and the standing
 invitation to challenge the reframe.
 
+
 * TODO Concurrent sessions share one git index, and explicit staging protects nothing :code:
 :PROPERTIES:
 :CATEGORY: Dev
@@ -5115,6 +5157,7 @@ session's standing instructions say.
 *Blocked on this in practice:* the user has stated they will not run a
 second concurrent session until a mechanism is in place, so this gates
 concurrent work generally rather than being one more backlog item.
+
 
 * MAYBE Decide what this module may change on a user's machine when installed :code:
 :PROPERTIES:
@@ -5569,6 +5612,7 @@ wrong.
 
 - The never-reaches-DONE risk above named =--trigger-auto-promote-sole-todo= as one of the triggers it would sit among. That trigger was *retired* — 163 lines removed, along with its three guards — and only test comments still mention it. =--trigger-demote-conflicting-next= survives and is the only one left that a permanently open sibling could interact with.
 - *The rule this heading asked for was never written.* It called for a line in CLAUDE.md under "State transition rules" stating that a clock may run on a heading in any state, and that grooming attaches to the task being groomed. Neither CLAUDE.md nor =.claude/rules/org-conventions.md= says so today. The convention is in force and undocumented, which is the condition this heading was raised to end.
+
 
 ** TODO Teach org_capture to target a datetree, with an addressable day node :code:
 :PROPERTIES:
@@ -6119,6 +6163,7 @@ but =claude -p= asynchronously.
   id travelled with the child, which is now a narrow DONE leaf rather
   than the conclusion being cited. The story is f90d745e.
 
+
 * DOING [7/11] Update CLAUDE.md and the org skill for the new architecture :code:
 :PROPERTIES:
 :CATEGORY: Skill
@@ -6632,7 +6677,6 @@ body is an accumulating scope list plus this audit, not a superseded
 plan, so drawering it would hide outstanding work rather than tidy
 finished thinking. The recommendation there is division instead: each
 "Added to scope" paragraph is a candidate leaf.
-
 
 
 ** DONE Correct CLAUDE.md's account of the queue architecture :code:
@@ -8081,4 +8125,38 @@ CLOCK: [2026-08-31 Mon 12:58]--[2026-08-31 Mon 12:59] =>  0:01
 - [2026-08-31 Mon 12:58]--[2026-08-31 Mon 12:59] measure PLANNING against real use
 CLOCK: [2026-08-31 Mon 15:01]--[2026-08-31 Mon 15:02] =>  0:01
 - [2026-08-31 Mon 15:01]--[2026-08-31 Mon 15:02] assigned at review
+:END:
+
+
+*** 2026-09 September
+
+
+**** 2026-09-01 Tuesday
+:PROPERTIES:
+:ID:       f7c308db-05a7-40a1-bbba-fd1b75567243
+:CREATED:  [2026-09-01 Tue 12:52]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-01 Tue 12:52]--[2026-09-01 Tue 12:54] =>  0:02
+- [2026-09-01 Tue 12:52]--[2026-09-01 Tue 12:54] assigned at review
+CLOCK: [2026-09-01 Tue 12:58]--[2026-09-01 Tue 13:00] =>  0:02
+- [2026-09-01 Tue 12:58]--[2026-09-01 Tue 13:00] assigned at review
+CLOCK: [2026-09-01 Tue 13:06]--[2026-09-01 Tue 13:08] =>  0:02
+- [2026-09-01 Tue 13:06]--[2026-09-01 Tue 13:08] assigned at review
+CLOCK: [2026-09-01 Tue 13:11]--[2026-09-01 Tue 13:12] =>  0:01
+- [2026-09-01 Tue 13:11]--[2026-09-01 Tue 13:12] assigned at review
+CLOCK: [2026-09-01 Tue 13:18]--[2026-09-01 Tue 13:23] =>  0:05
+- [2026-09-01 Tue 13:18]--[2026-09-01 Tue 13:23] assigned at review
+CLOCK: [2026-09-01 Tue 13:26]--[2026-09-01 Tue 13:31] =>  0:05
+- [2026-09-01 Tue 13:26]--[2026-09-01 Tue 13:31] assigned at review
+CLOCK: [2026-09-01 Tue 13:55]--[2026-09-01 Tue 14:04] =>  0:09
+- [2026-09-01 Tue 13:55]--[2026-09-01 Tue 14:04] assigned at review
+CLOCK: [2026-09-01 Tue 14:08]--[2026-09-01 Tue 14:10] =>  0:02
+- [2026-09-01 Tue 14:08]--[2026-09-01 Tue 14:10] assigned at review
+CLOCK: [2026-09-01 Tue 14:19]--[2026-09-01 Tue 14:20] =>  0:01
+- [2026-09-01 Tue 14:19]--[2026-09-01 Tue 14:20] assigned at review
+CLOCK: [2026-09-01 Tue 14:23]--[2026-09-01 Tue 14:25] =>  0:02
+- [2026-09-01 Tue 14:23]--[2026-09-01 Tue 14:25] assigned at review
+CLOCK: [2026-09-01 Tue 14:29]--[2026-09-01 Tue 14:31] =>  0:02
+- [2026-09-01 Tue 14:29]--[2026-09-01 Tue 14:31] assigned at review
 :END:
