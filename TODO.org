@@ -65,6 +65,19 @@ The CLOCK line carries the weighted *share* as a literal interval org can sum; t
 
 *One design refinement follows, and it usefully shrinks the problem.* The *candidate set* need not be model-judged at all: extracting the ids a turn mentions is a regex plus a corpus lookup, and is exact. Only the *weighting over that fixed set* needs judgement. Splitting the pipeline that way bounds the non-determinism to the numbers rather than the membership — so two runs disagree about proportions, never about which tasks were in play, which is the half a reader is most likely to check.
 
+*Decided by the user 2026-09-01: shares laid end to end, not overlapping.* So a 12-minute window split 0.25/0.35/0.40 writes three consecutive CLOCK lines of 3, 4 and 5 minutes, each annotated with the true window and its weight. Boundaries are fiction; durations are the claim.
+
+*Five specific things "careful handling" means, so they are not rediscovered:*
+
+1. *Rounding must conserve the window.* 0.25/0.35/0.40 of 12 minutes is 3 / 4.2 / 4.8, and org writes whole minutes — so naive rounding gives 3+4+5=12 by luck and 2+4+5=11 or 3+4+6=13 just as easily. Largest-remainder apportionment, asserted to sum to the window. This project has already lost an interval to rounding once: [[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]], which =--apply-idle-floor='s docstring is careful to say "is not coming back through here."
+2. *There is a resolution floor, and it bites hardest exactly where splitting is most wanted.* A share is only representable if weight × window ≥ 1 minute. On a 12-minute window that excludes weights below ~0.08; on a *3-minute* window nothing below 0.33 survives, so a three-way split is already at the limit and a four-way split cannot be written at all. Short windows — which are the common case, median run 353s — can carry two shares, maybe three. The representation is coarser than the judgement it is recording.
+3. *The order of shares inside the window is arbitrary and will be read as meaningful.* Someone will infer that the first share happened first. It needs a stated rule — weight descending is the obvious one — and the annotation has to say the order is not chronological.
+4. *A window is either weighted or clocked, never both.* End-to-end shares do not overlap each other, but they do occupy time a conventional span would also claim; attributing the same window twice double-counts. Whatever writes these must consume the window.
+5. *A zero or sub-minute share must write nothing rather than a =0:00= line.* =--apply-idle-floor= already drops intervals that render as zero, for the reason its docstring gives — "an interval that was never observed" — and a weighted share of zero is the same thing arriving by a different route.
+
+*Note that 2 is the one that constrains the design rather than the implementation.* The others are care; that one says the mechanism cannot express fine-grained splits on short turns, which is precisely where a turn is most likely to touch several tasks. Worth knowing before building, because it may argue for aggregating a *window of turns* before apportioning — which is what the original proposal's "lag" was for.
+
+
 
 
 * TODO AFK markers are ground truth for the one judgement we cannot automate, and we discard them :code:
