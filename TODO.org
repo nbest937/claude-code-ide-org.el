@@ -2,6 +2,35 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
+* TODO Three new ways to owe a footnote and not see it: marker, list, quotation :code:
+:PROPERTIES:
+:ID:       2a6a1355-615f-4c2c-a8af-c9ae8dcda09b
+:CREATED:  [2026-09-01 Tue 08:43]
+:CATEGORY: Skill
+:END:
+
+*Asked by the user 2026-09-01 after a third stop-hook refusal in one session:* "check for others this session (same or different?)". *Different — all three.*
+
+| # | id refused | what the id was doing |
+|---+------------+-----------------------|
+| 1 | =72463b68= | superscript ⁴ was reused for two ids; the marker existed, the footnote line was another heading's |
+| 2 | eleven at once | enumerated in prose lists and a table — "phase 4 has =c60a1c53=, then =5f1068f9=/=33864a0f=" |
+| 3 | =b36e6369= | inside a *quoted example* — ="add X to b36e6369"=, illustrating what a commit subject looks like |
+
+*None of these is either recorded mode.* [[id:d5490814-d174-480a-a9e7-b809f94d71f2][d5490814]] is *id-as-vocabulary*: the token has become the name of a lesson, so it stops reading as a citation. [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] is *decay on re-mention*: cited correctly the first time, abbreviated after. In all three cases here the id was neither a name nor a re-mention.
+
+*The unifying observation, and it is sharper than "be careful".* The hook's test is *does the response contain this token*. The writer's test is *am I referring to a heading here*. Those agree only while an id appears **because** it refers. They diverge whenever it appears for some other reason:
+
+- *bookkeeping* — the id was cited, and the failure is in the numbering rather than the recognition (case 1). This is the one where the intent was entirely correct;
+- *enumeration* — the id is an item in a list of work, where the eye reads a row rather than a reference (case 2);
+- *quotation* — the id belongs to a string being *shown*, not to a sentence being *written* (case 3).
+
+*So the three recorded modes now cover recognition, decay, and reference-versus-appearance*, and only the last has a mechanical smell to it: the hook already knows every id in the response and every footnote marker, so it could say *which* marker is duplicated or missing rather than only which id is unfootnoted. Case 1 would have been a one-line fix at the moment it happened.
+
+*Worth noting what did not fail.* Every response carrying ids in *ordinary prose* passed. The rule is not hard to follow when the id is doing the job the rule was written for.
+
+*Open: whether any of this is worth mechanising.* Against — the hook already catches every instance, so nothing reaches the user, and three refusals in a session of roughly forty responses is a low rate for a check whose whole purpose is to be the backstop. For — case 1 is a *numbering* error the hook could diagnose precisely, and cases 2 and 3 suggest the writer's attention is on the sentence rather than the token, which no amount of care fixes. Deciding that is this heading's job; it should not be assumed either way.
+
 * TODO Report worked headings that carry no clock interval that day :code:
 :PROPERTIES:
 :ID:       37147e9e-468b-43ee-91f9-45d9647c6164
