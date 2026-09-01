@@ -118,6 +118,47 @@ running concurrently with another would still absorb the other's
 declared checklist. Fixing either alone leaves f9fe9fac wrong, which is
 why both are filed rather than one.
 
+*Shipped 2026-09-01, same day, as =d577751=. Candidate 1 was taken:* the
+window opens at the later of =:CREATED:= and first work, where first
+work is =claude-code-ide-org--first-work-time= — the earliest CLOCK
+start across the slice and its planned members. A slice with no clock
+anywhere gets no window and therefore no incidentals.
+
+*Why that signal rather than the slice's own =DOING=.* A slice may be
+clocked while its members are not, and far more often the reverse: the
+members carry all the time and the slice itself never gets clocked at
+all. Scanning both subtrees costs one pass and needs no decision about
+which is authoritative. The open question the body raised — "which
+signal" — is answered by taking the union rather than choosing.
+
+*Measured after loading into the live Emacs:* f9fe9fac 26 → 0
+incidentals, and its cookie =[26/28]= → =[0/2]=, which is two real
+members and no work. [[id:b36e6369-a210-4540-adc7-0c0c188e9791][b36e6369]] unchanged at 12, since it
+was worked — the fix is inert for a slice actually being run, which is
+what it should be.
+
+*The five existing incidental tests failed, and they were right to.*
+Their shared fixture built a slice with =:CREATED:= and no CLOCK, which
+under the new rule is a slice nobody worked. The fixture now carries a
+clock opening at its =:CREATED:=, which leaves every window bound in
+those tests exactly where it was — the assertions did not move, only the
+premise they rest on became explicit.
+
+*Mutation-tested, since a fixture change that makes tests pass again is
+exactly where a vacuous assertion hides.* Making the window ignore
+=worked= — restoring the old behaviour in one line — fails
+=claude-code-ide-org-test-slice-never-worked-has-no-incidentals= and
+nothing else (503 ran, 1 unexpected), and restoring passes 503/503. The
+new test also puts the clock *back* and asserts the window returns, so
+it cannot pass by the fixture simply having become inert.
+
+*The twin survives and is not closed by this.*
+[[id:5bfc1d38-e758-4ed7-bb32-f976031ff3da][5bfc1d38]] is about the exclusion set rather than the
+window: two slices worked concurrently, or one worked during another's
+long tail, would still absorb each other's declared members. f9fe9fac
+only stopped being wrong because it had done no work at all.
+
+
 * TODO Classify gaps by markers at either end, not by tracking an AFK state :code:
 :PROPERTIES:
 :ID:       409a69ff-d57e-4c1c-ab6c-28f7e85fa391
