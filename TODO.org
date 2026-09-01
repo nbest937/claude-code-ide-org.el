@@ -192,6 +192,20 @@ The CLOCK line carries the weighted *share* as a literal interval org can sum; t
 
 *So the mechanism is now viable end to end:* transcript join (28 of 28 exact) supplies the prompts, sentence-boundedness supplies the markers, and the imputation rule supplies the state transitions without depending on the user remembering anything.
 
+*The user pushed back 2026-09-01, correctly:* "afk since 13:30" followed by a long gap could equally mean /"I forgot to say AFK and I'm still AFK for now"/ — so classifying it as a return is not airtight. It is not, and the data agrees: that prompt was followed by a *77-minute* gap.
+
+*Two corrections to the entry above, both from measurement.*
+
+- *A contaminated denominator.* The "5 of 8" was measured over raw =type:"user"= transcript entries — which include *stop-hook feedback*, injected in the user role. Using the queue's =resume= events as the spine instead gives *36 real prompts* against 45 raw entries; nine were not prompts at all. This is [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]]'s recorded trap ("276 =type:"user"= entries, almost all tool results") walked into again, and the fix is to let the queue define what a prompt is rather than the transcript.
+- *The disambiguation comes from the other end.* The gap after "afk since 13:30" *is* labelled — not by its opener but by its *closer*, an explicit "BAK". So classifying **gaps** using markers at *either* end is strictly better than tracking an AFK *state* from openers alone, and it is what makes an ambiguous opener harmless.
+
+*But coverage is partial, and that is the honest bound.* Of this session's seven longest inter-prompt gaps, markers label *three*: 193m by its opener, 74m by its closer, 68m by its opener. Four are unlabelled, including one of 776m and two around an hour. So markers do not replace the threshold; they *override* it where present.
+
+*Which is the right shape anyway, given the stated bar.* The threshold treats every gap over 1200s identically. A marker adds discrimination exactly where the threshold is guessing — and can contradict it in both directions, marking a short gap as absence or a long one as presence. Aiming for airtight would mean asking the user to annotate every gap, which is the clerical burden this whole line of work exists to avoid.
+
+*So: markers as evidence, threshold as fallback, and the residue stated rather than hidden* — roughly half of long gaps carry no marker today, and the honest report says which are labelled and which are inferred rather than presenting one number for both.
+
+
 
 
 * TODO The human half of the ratio is already recorded, and thrown away :code:research:
