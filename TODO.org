@@ -2,6 +2,35 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
+* TODO AFK markers are ground truth for the one judgement we cannot automate, and we discard them :code:
+:PROPERTIES:
+:ID:       e75d660f-5c0d-4707-a645-b5dea7d7ebc0
+:CREATED:  [2026-09-01 Tue 13:11]
+:CATEGORY: Queue
+:END:
+
+*Asked by the user 2026-09-01: "how are we currently using my AFK/BAK markers?" Nowhere mechanically. They exist only in the conversation.*
+
+*Verified rather than recalled.* A =resume= event carries four fields — =ts=, =kind=, =session_id=, =source=. Across *1868* =resume=/=pause= events in every queue file including the archive, no other field is ever non-null. =bin/hooks/session-resume= is one line, =exec queue-append resume=, and =queue-append= nulls =id=, =state=, =from= and =note= for the session-global kinds by design. *The prompt text is never captured.*
+
+*What the markers have actually been used for, in-session only:* deciding whether to keep working unattended; writing an AFK boundary into prose by hand — [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]]'s body records "the user reports being AFK from 13:30" because a session put it there deliberately; and reasoning about which spans not to trust. None of that reaches the queue, and the review pass has no idea any of it was said.
+
+*Which is the finding, and it is sharper than a missing feature.* The markers are *precisely the ground truth for the one judgement the system cannot make*. [[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]] measured that gap *length* separates presence from absence while clock hour does not — 11 of 19 long gaps began inside working hours — so the system has no way to tell an AFK gap from a thinking gap. And [[id:20cecd53-2338-4237-ab06-f8129e10a2c8][20cecd53]] found that the only judgement the human-to-agent ratio needs is "were you at the keyboard", on five or six gaps a day.
+
+*The user has been answering that question unprompted, in band, at the moment of highest confidence — and it is thrown away every time.* On 2026-09-01 there were 5 gaps of 1200s or more and the boundaries of most were stated in the conversation as they happened. That is a labelled dataset arriving free.
+
+*Why this is worth more than the retrospective alternative.* Every other path to the same label asks the human to reconstruct, hours later, whether they were present during a gap they no longer remember. A marker typed at the boundary is contemporaneous and costs nothing, because the user is already typing it for their own reasons.
+
+*Options, unranked and undecided:*
+
+1. *Capture the whole prompt on =resume=.* Maximal information, and the wrong default: the queue is a durable, unencrypted log that outlives the session, and putting every prompt in it is a privacy and size decision far larger than this question.
+2. *Capture a marker only* — detect an AFK/BAK-shaped token and record a boolean, or a distinct =kind=. Narrow, cheap, and leaves the queue's contents as bounded as they are today.
+3. *Ask at review instead*, listing the long gaps and taking an answer per gap. No hook change, but it asks the human to remember rather than to have said.
+
+*A precondition for any of them, unverified:* whether the =UserPromptSubmit= payload reaching =queue-append= actually carries the prompt text. Everything above assumes it does. That is one =jq= away and should be checked before any of this is designed, not after.
+
+*Related but distinct:* [[id:1a5a5254-f62d-46e7-9a6c-3d84f2f52873][1a5a5254]] proposes reading power assertions as an attribution signal — machine evidence for the same question. This is the human's own testimony, which is cheaper and probably more accurate, and the two are not exclusive.
+
 * TODO The human half of the ratio is already recorded, and thrown away :code:research:
 :PROPERTIES:
 :ID:       20cecd53-2338-4237-ab06-f8129e10a2c8
