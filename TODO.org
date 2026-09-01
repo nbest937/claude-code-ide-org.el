@@ -4709,80 +4709,34 @@ CLOCK: [2026-08-13 Thu 17:57]--[2026-08-13 Thu 18:09] =>  0:12
 - State "TODO"       from "WAIT"       [2026-08-14 Fri 11:56]
 :END:
 
-*Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] on 2026-08-13.*
+*The ask, in the user's words:* so many times they want to ask a question
+or make a proposal while something else is in flight, which often leads
+to something new to capture or amend. The literal proposal was a file or
+Emacs buffer lock/semaphore on =TODO.org= and friends, causing
+concurrent sessions to wait their turn while another holds it.
 
-It arose from that epic's work but is not required for it to complete: the queue
-can be finished and correct without ever gaining capture/amend events. It also
-has its own plan file, its own scope decisions and its own deferred phases — a
-child with a plan file of its own is usually an epic wearing a child's clothes.
-Left as a level-2 task rather than declared an epic, since it has no children
-yet; it will become one naturally if capture and amend split.
+*What actually collides.* The queue already removed most of the
+contention: =todo= and clock events are append-only, per-session,
+written blind with =O_APPEND=, so two sessions cannot corrupt each other
+there by construction. What remains is *direct writes to the file* —
+=org_capture=, =org_refile=, =org_archive=, =org_move_sibling= and
+=org_sort_children=, which all =save-buffer= immediately; the org
+skill's prose edits via Claude Code's =Edit= tool, which bypass Emacs
+entirely; the user's own hand-edits in the live buffer; and =.git/index=,
+a separate incident owned by
+[[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]]. Not hypothetical:
+on 2026-08-13 two edits in one session hit "the file had been modified
+on disk since you last read it". The ad-hoc mitigation in use — checking
+=buffer-modified-p= first — is a hand-rolled version of what this
+heading proposes.
 
-[[file:~/.claude/plans/capture-amend-queue.md][Plan]]
-
-*Plan approved 2026-08-13, scoped by two decisions the user made during
-planning:* v1 covers *capture and amend* only — the structural writers
-(=org_refile=, =org_archive=, =org_move_sibling=, =org_sort_children=)
-stay immediate — and capture *writes through when the file is free*,
-queueing only when it is busy, so today's immediacy survives and only
-contended writes defer. That is the user's original lock idea made
-non-blocking, and it supersedes the "always queue" reading of step 3
-below.
-
-Note the plan lives in its own file rather than this conversation's
-=hazy-moseying-sky.md=: that path is already the permanent link for [[id:6b1e73c4-25da-4f0e-8a51-9c0d3f7ab214][6b1e73c4]] and
-[[id:f290161c-f9e7-4bfb-9adf-4c5630d4c5ae][f290161c]], and Claude Code reuses one plan file per conversation, so planning
-here overwrote it. Restored from =plans/= and the new plan given its own name,
-so both older links still resolve to the plan they were written for.
-
-*Read by the user 2026-08-13* — both the original draft below and the
-=create-lockfiles= research appended to step 1. The "study this before
-signing off" reminder it was captured under is discharged.
-
-*No verdict was recorded, and none should be inferred.* The user said
-only that they had reviewed it and that the heading could be amended
-accordingly; they did not approve the recommendation, reject it, or
-choose between its three steps. So this remains a proposal Claude
-drafted, not an agreed design, and the three load-bearing claims are
-still open to challenge: that a *blocking* lock is the wrong primitive,
-that the underlying need is a missing queue rather than a missing lock,
-and that the ordering below is the right one. Anyone acting on this
-should get an explicit decision first.
-
-*The ask, in the user's words:* so many times they want to ask a
-question or make a proposal while something else is in flight, which
-often leads to something new to capture or amend. The literal proposal
-was a file or Emacs buffer lock/semaphore on =TODO.org= and friends,
-causing concurrent sessions to wait their turn while another holds it.
-
-*What actually collides today.*
-
-The queue already removed most of the contention: =todo= and clock
-events are append-only, per-session, written blind with =O_APPEND=, so
-two sessions cannot corrupt each other there by construction. What
-remains is *direct writes to the file*:
-
-- =org_capture=, =org_refile=, =org_archive=, =org_move_sibling= and
-  =org_sort_children=, which all still =save-buffer= immediately
-- the org skill's prose edits via Claude Code's =Edit= tool, which
-  bypass Emacs entirely and write to disk
-- the user's own hand-edits in the live buffer
-- =.git/index=, a separate incident already owned by
-  [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]]
-
-Not hypothetical: on 2026-08-13 two edits in one session hit "the file
-had been modified on disk since you last read it". The ad-hoc
-mitigation in use — checking =buffer-modified-p= before touching the
-file — is a hand-rolled version of what this heading proposes.
-
-*Why a blocking lock looks like the wrong primitive.*
-
-Recorded as the argument against, because "why not just take a lock" is
-the obvious question a future reader will ask.
+*Why a blocking lock looks like the wrong primitive,* recorded as the
+argument against because "why not just take a lock" is the obvious
+question a future reader will ask.
 
 1. *Waiting reintroduces the failure this architecture exists to avoid.*
    A session blocked on a lock burns wall-clock with no way to report
-   why, and waits forever if the holder crashed. Same shape as the
+   why, and waits forever if the holder crashed — the same shape as the
    non-interactive =emacsclient= hang that pushed this project to
    append-only.
 2. *The contention is asymmetric.* The human is the authoritative
@@ -4793,62 +4747,53 @@ the obvious question a future reader will ask.
    exactly the writer most likely to be mid-flight. A mechanism that
    looks like mutual exclusion but is not is worse than an honest
    advisory one.
-4. *Stale locks are stale clocks again.* An owner, a TTL and a recovery
-   path — the subsystem
-   [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is currently
-   deciding whether to retire, rebuilt for a new resource.
+4. *Stale locks are stale clocks again* — an owner, a TTL and a recovery
+   path, rebuilt for a new resource.
 
-*The reframe this rests on — the part most worth challenging.*
-
-The ask may not be mutual exclusion at all. Note where the user's own
+*The reframe this rests on, and the part most worth challenging.* The
+ask may not be mutual exclusion at all. Note where the user's own
 sentence ends: the interruption *leads to something new to capture or
 amend*. That is a missing queue, not a missing lock — state changes
-already work that way; capture and amend do not.
-
-If that reframe is wrong — if the real need is genuinely "stop the
-other writer" rather than "do not lose my thought" — then the
-recommendation below is wrong too, and a fail-fast lock alone is the
-answer.
+already work that way; capture and amend did not. If the reframe is
+wrong — if the real need is genuinely "stop the other writer" rather
+than "do not lose my thought" — then the recommendation below is wrong
+too, and a fail-fast lock alone is the answer.
 
 *Proposed, cheapest first.*
 
-1. *Turn on =create-lockfiles=.* Measured 2026-08-13: it is =nil=, Doom's
-   default, so Emacs's own mechanism is currently off entirely. One
-   line. It will not stop the =Edit= tool, but it makes Emacs-mediated
+1. *Turn on =create-lockfiles=.* Measured 2026-08-13: it is =nil=,
+   Doom's default, so Emacs's own mechanism is off entirely. One line.
+   It will not stop the =Edit= tool, but it makes Emacs-mediated
    collisions visible rather than silent. Checked before proposing
    anything bespoke, per
-   [[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]]'s standing
-   instruction.
+   [[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]].
 
    *Why Doom disables it, checked 2026-08-13 at the user's request.*
    =lisp/doom-emacs.el:462= sets it under a =Backup & autosave files=
    heading, sharing one comment with =make-backup-files=: "Don't
-   generate backups or lockfiles. ... This is better suited to version
+   generate backups or lockfiles. … This is better suited to version
    control, and I don't want world-readable copies of potentially
-   sensitive material floating around our filesystem." Older Doom
-   (=core/core-editor.el=) worded it the same way.
+   sensitive material floating around our filesystem."
 
-   That rationale is about *backups*, and does not actually describe a
-   lock file. Per the Emacs Lisp manual, a lock file is a symlink named
-   =.#FILE= whose *target* is the string =user@host.pid:boot=; it holds
-   no contents of the edited file at all. So the "copies of sensitive
-   material" argument does not apply to the thing it is being used to
-   justify — lockfiles were bundled in with backups under one heading
-   and inherited a comment written for backups. A residual privacy point
-   survives (the target leaks username, host and PID), but that is a
-   much smaller claim than the one made.
+   That rationale is about *backups* and does not describe a lock file.
+   Per the Emacs Lisp manual a lock file is a symlink named =.#FILE=
+   whose *target* is the string =user@host.pid:boot=; it holds no
+   contents of the edited file at all. So the "copies of sensitive
+   material" argument does not apply to the thing it justifies —
+   lockfiles were bundled in with backups under one heading and
+   inherited a comment written for backups. A residual privacy point
+   survives (the target leaks username, host and PID), but it is a much
+   smaller claim.
 
    The real-world objection in the wider community is *tooling*, not
-   privacy: =.#FILE= is a dangling symlink, and file watchers and build
-   tools choke on it (e.g. =ember-cli= issue #6527, "=(setq
-   create-lockfiles nil)= shouldn't be necessary for Emacs usage"). That
-   risk is low for this repo — nothing here watches the tree — but it is
-   the reason to check before flipping it globally rather than
-   per-directory.
+   privacy: =.#FILE= is a dangling symlink and file watchers choke on it
+   (e.g. =ember-cli= issue #6527). Low risk here — nothing watches this
+   tree — but it is the reason to check before flipping it globally
+   rather than per-directory.
 
-   *And one point actively in favor, which is why this step is listed at
-   all:* on detecting a lock, Emacs calls =ask-user-about-lock=, which
-   offers grab / ignore / abort. It *asks*; it does not wait. That is
+   *And one point actively in favour, which is why this step is listed
+   at all:* on detecting a lock, Emacs calls =ask-user-about-lock=,
+   which offers grab / ignore / abort. It *asks*; it does not wait —
    precisely the fail-fast shape argued for in step 2, already
    implemented upstream.
 2. *A fail-fast advisory lock in the MCP write tools* — a refusal, not a
@@ -4862,6 +4807,67 @@ answer.
 Steps 2 and 3 overlap: if 3 lands, 2 may be unnecessary, since there
 would be nothing left that needs to write immediately.
 
+*Provenance and standing, which are not design.*
+
+*Promoted out of
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] on 2026-08-13.* It
+arose from that epic's work but is not required for it to complete: the
+queue can be finished and correct without ever gaining capture/amend
+events. It also has its own plan file, its own scope decisions and its
+own deferred phases — *a child with a plan file of its own is usually an
+epic wearing a child's clothes.* Left as a level-2 task rather than
+declared an epic, since it has no children yet; it will become one
+naturally if capture and amend split.
+
+[[file:~/.claude/plans/capture-amend-queue.md][Plan]]
+
+*The plan lives in its own file rather than this conversation's
+=hazy-moseying-sky.md=:* that path is already the permanent link for
+[[id:6b1e73c4-25da-4f0e-8a51-9c0d3f7ab214][6b1e73c4]] and
+[[id:f290161c-f9e7-4bfb-9adf-4c5630d4c5ae][f290161c]], and Claude Code
+reuses one plan file per conversation, so planning here overwrote it.
+Restored from =plans/= and the new plan given its own name, so both
+older links still resolve to the plan they were written for.
+
+*Plan approved 2026-08-13, scoped by two decisions the user made during
+planning:* v1 covers *capture and amend* only — the structural writers
+stay immediate — and capture *writes through when the file is free*,
+queueing only when it is busy, so today's immediacy survives and only
+contended writes defer. That is the user's original lock idea made
+non-blocking, and it supersedes the "always queue" reading of step 3.
+
+*Read by the user 2026-08-13* — both the original draft and the
+=create-lockfiles= research. *No verdict was recorded, and none should
+be inferred.* They said only that they had reviewed it and that the
+heading could be amended accordingly; they did not approve the
+recommendation, reject it, or choose between the three steps. So the
+three load-bearing claims are still open to challenge: that a *blocking*
+lock is the wrong primitive, that the underlying need is a missing queue
+rather than a missing lock, and that the ordering is the right one.
+
+*What shipped, checked in the code 2026-09-01.*
+
+- *Step 3 is built, for both capture and amend.* =config.el= defines the
+  four reply constants =--reply-captured=, =--reply-queued-capture=,
+  =--reply-amended= and =--reply-queued-amend=, and =bin/hooks/queue-append=
+  gates on exactly two of them, appending only when the tool deferred.
+  That is the write-through-when-free design above, in force.
+- *Step 2 was therefore never needed,* as this heading predicted: with
+  capture and amend deferring, nothing is left that must write
+  immediately and also contends.
+- *Step 1 never shipped.* =create-lockfiles= is set nowhere in
+  =~/.config/doom/config.el=, so it is still Doom's =nil= — unchanged
+  since the 2026-08-13 measurement, and the research above is still
+  unspent. It is independent of the other two and remains the cheapest
+  thing here.
+- The =7771fc63= reference in the stale-lock argument said that heading
+  was "currently deciding whether to retire"; it decided, and is DONE.
+
+So the recommendation this heading drafted was carried out without a
+verdict ever being recorded — which is worth noticing rather than
+tidying away, since the paragraph above says explicitly that none should
+be inferred. What is left of the heading is step 1 and the standing
+invitation to challenge the reframe.
 
 * TODO Concurrent sessions share one git index, and explicit staging protects nothing :code:
 :PROPERTIES:
