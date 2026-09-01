@@ -7291,6 +7291,120 @@ landed pass into a failed one."
       (error (message "Heading separation after apply failed: %s"
                       (error-message-string err))))))
 
+(defun claude-code-ide-org--commit-subject-ids (start known)
+  "8-character id prefixes named in a commit *subject* since START.
+
+KNOWN is a hash whose keys are full heading ids; a token is kept only
+when it prefixes one of them.  That filter is what makes the signal
+usable rather than merely available -- a bare hex scan also matches
+abbreviated commit SHAs, and this project's subjects carry those.
+
+*Subjects, not bodies, and the difference was measured* (TODO.org
+:ID: c60a1c53).  An id in a commit *body* is a cross-reference, and this
+project's prose cites ids constantly: on the day this was designed, the
+body scan returned 27 candidates and the subject scan returned 3.  A
+report that lists 27 things stops being read.  A subject line is a claim
+that the commit *is about* that heading.
+
+Never signals.  A missing git, a directory that stopped being a
+repository, an unreadable line -- each degrades to \"no commits\", which
+leaves the human exactly where they are today."
+  (let ((seen (make-hash-table :test 'equal))
+        (prefixes (make-hash-table :test 'equal))
+        out)
+    (maphash (lambda (id _v)
+               (puthash (substring id 0 (min 8 (length id))) id prefixes))
+             known)
+    (dolist (root (claude-code-ide-org--git-roots))
+      (with-temp-buffer
+        (let ((status (ignore-errors
+                        (call-process
+                         "git" nil t nil "-C" root "log" "--all"
+                         (concat "--since="
+                                 (format-time-string "%Y-%m-%dT%H:%M:%S%z" start))
+                         "--format=%s"))))
+          (when (eql status 0)
+            (goto-char (point-min))
+            (while (re-search-forward "\\b[0-9a-f]\\{8\\}\\b" nil t)
+              (let ((tok (downcase (match-string-no-properties 0))))
+                (when (and (gethash tok prefixes) (not (gethash tok seen)))
+                  (puthash tok t seen)
+                  (push (gethash tok prefixes) out))))))))
+    (nreverse out)))
+
+(defun claude-code-ide-org--slice-forgotten-ids ()
+  "Ids a commit subject claims to be about that no open slice names.
+
+*Detects; never adds.*  Membership is what a slice *declares* -- it is
+the entire difference between a slice and a story, which is derived --
+so a mechanism that swept in every heading touched would produce a
+backlog wearing a slice's clothes.  The job is to make forgetting
+*loud*, not to make remembering unnecessary (TODO.org :ID: c60a1c53).
+
+Reports only while a slice is open.  With none, \"you did work and no
+slice claims it\" is simply true, and a report that fires on a true and
+unactionable fact is the prompt fatigue this project keeps designing
+against."
+  ;; No separate "is a slice open" flag: EARLIEST is set only inside the
+  ;; open-slice branch, so it already encodes the answer. A flag that
+  ;; cannot be made to change the result is untested by construction --
+  ;; a mutation removing it failed nothing, which is how it was found.
+  (let* ((index (claude-code-ide-org--slice-referent-index))
+         (named nil) (earliest nil))
+    (dolist (file (claude-code-ide-org--tracked-files))
+      (when (file-exists-p file)
+        (with-current-buffer (find-file-noselect file)
+          (org-with-wide-buffer
+           (goto-char (point-min))
+           (while (re-search-forward org-heading-regexp nil t)
+             (when (and (claude-code-ide-org--slice-p)
+                        (not (member (org-get-todo-state)
+                                     claude-code-ide-org--outline-finished-keywords)))
+               (let* ((created (org-entry-get nil "CREATED"))
+                      (ts (and created
+                               (ignore-errors
+                                 (claude-code-ide-org--parse-org-timestamp created)))))
+                 (when (and ts (or (null earliest) (time-less-p ts earliest)))
+                   (setq earliest ts)))
+               ;; The slice's own id counts as named. Commit subjects
+               ;; cite it constantly -- "add X to b36e6369" is a claim
+               ;; about the slice, not about forgotten work -- and a
+               ;; slice never lists itself as a member, so without this
+               ;; every open slice reports itself forever. Found on the
+               ;; first live run, which returned exactly one id: the
+               ;; slice. `--slice-incidental-ids' excludes `self' for the
+               ;; same reason.
+               (let ((self (org-entry-get nil "ID")))
+                 (when self (push (downcase self) named)))
+               (setq named
+                     (append named
+                             (mapcar #'downcase
+                                     (mapcar #'car
+                                             (claude-code-ide-org--slice-members)))))))))))
+    (when earliest
+      (seq-remove (lambda (id) (member (downcase id) named))
+                  (claude-code-ide-org--commit-subject-ids earliest index)))))
+
+(defun claude-code-ide-org--review-settle-forgotten (applied-items)
+  "Name the worked headings no open slice claims.  Changes nothing.
+
+Runs after the batch for the same reason the other settle steps do, and
+because a human is already here making per-item decisions -- so asking
+costs nothing extra and the answer is actionable while they are looking.
+
+Swallows its own errors: this is bookkeeping *after* the work, and a
+report that cannot be produced must not turn a successful apply into a
+failed one."
+  (when applied-items
+    (condition-case err
+        (let ((forgotten (claude-code-ide-org--slice-forgotten-ids)))
+          (when forgotten
+            (message "Worked but not in any open slice: %s"
+                     (string-join
+                      (mapcar #'claude-code-ide-org--short-id forgotten) " "))))
+      (error (message "Forgotten-member check after apply failed: %s"
+                      (error-message-string err))))))
+
 (defun claude-code-ide-org--review-settle-slices (applied-items)
   "Regenerate every slice once APPLIED-ITEMS have all landed.
 
@@ -7366,6 +7480,7 @@ purpose was guarding a trigger that wrote to the file on its own."
             (push item applied)))))
     (claude-code-ide-org--review-settle-slices applied)
     (claude-code-ide-org--review-settle-separation applied)
+    (claude-code-ide-org--review-settle-forgotten applied)
     (claude-code-ide-org--review-record-applied applied)
     ;; :items alongside the count, so the caller can drop exactly what
     ;; applied rather than rebuilding the list from the queue.  The count

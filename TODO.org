@@ -2,6 +2,27 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
+* TODO Report worked headings that carry no clock interval that day :code:
+:PROPERTIES:
+:ID:       37147e9e-468b-43ee-91f9-45d9647c6164
+:CREATED:  [2026-09-01 Tue 08:38]
+:CATEGORY: Clock
+:END:
+
+Split out of [[id:c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8][c60a1c53]] 2026-09-01, which shipped the slice-omission half and left this one in prose. That body rates *this* the more valuable of the two, so leaving it as a paragraph inside a closed heading was the wrong place for it.
+
+*The signal already exists.* =claude-code-ide-org--commit-subject-ids= returns the headings a commit subject claims to be *about*. Crossing that against the day's clock intervals answers a second question from the same scan: which worked headings carry no clocked time at all.
+
+*Why it is the more valuable half, in that body's own words.* A forgotten slice member is a bookkeeping error someone notices at review. *Un-clocked work is invisible*: it lands on the meta-work day node as an unassigned span, indistinguishable at review from planning, and the human attributing it has no way to tell that three of those hours were implementation on a specific heading.
+
+*Measured when it was found, 2026-08-25:* 52 state changes queued that day and *zero* clock events, the last having been 2026-08-24 16:42. Every heading went =TODO= -> =DONE= in one step — not a listed transition, so no rule ever fired to open a clock. *The omission is structural rather than forgetful*: nothing asks for a clock on a transition that was never made.
+
+*And it is exactly the residue [[id:eaeeb4ee-ceee-4094-8598-bbcdc8214b66][eaeeb4ee]] shipped to eliminate*, which is the sharp part. That heading made explicit clock pairs authoritative so attribution would stop needing a human — and it was the first member of the slice during which the pairs stopped being produced at all. It closed the consumption half; the discipline half regressed behind it.
+
+*Open, and it is a different report with a different audience*, which is why it was not smuggled in beside the forgotten-member line: that one asks "should this be a slice member", this one asks "where did the day go". Worth deciding whether it belongs at the end of a review pass at all, or in the =SessionStart= report where the other attention questions live.
+
+*Related:* [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] is the A/B on whether the logged record means anything; this is one of the concrete gaps that A/B would be measuring.
+
 * TODO bin/lint-org does not detect a duplicate :ID: across TODO.org and DONE.org :code:
 :PROPERTIES:
 :ID:       39039bb6-c70a-4ba9-8b37-edd8dd6921f6
@@ -4960,6 +4981,29 @@ CLOCK: [2026-08-26 Wed 15:43]--[2026-08-26 Wed 15:44] =>  0:01
 *The second is the more valuable of the two, on the day's evidence.* A forgotten slice member is a bookkeeping error someone notices at review. Un-clocked work is invisible: it lands on the meta-work day node as an unassigned span, indistinguishable at review from planning, and the human attributing it has no way to tell that three of those hours were implementation on a specific heading.
 
 *And it is exactly the residue [[id:eaeeb4ee-ceee-4094-8598-bbcdc8214b66][eaeeb4ee]] shipped to eliminate*, which is the sharp part. That heading made explicit clock pairs authoritative so attribution would stop needing a human -- and it is the first member of the slice during which the pairs stopped being produced at all. It closed the consumption half; the discipline half regressed behind it.
+
+*Shipped 2026-09-01. Detects; adds nothing*, as this body required — the job was to make forgetting *loud*, not to make remembering unnecessary.
+
+*The signal is the one this body measured its way to.* =--commit-subject-ids= scans commit *subjects* only. An id in a commit body is a cross-reference and this project's prose cites ids constantly; a subject line is a claim that the commit *is about* that heading. A second filter does the rest: a token is kept only if it prefixes a *known heading id*, which removes abbreviated commit SHAs — the obvious false positive that a bare hex scan would produce, and which this project's subjects genuinely carry.
+
+*Runs at the end of a review pass* (=--review-settle-forgotten=), beside the slice and separation settle steps, and swallows its own errors: bookkeeping after the work must not turn a successful apply into a failed one.
+
+*The open question is answered: it reports only while a slice is open.* With none, "you did work and no slice claims it" is simply true, and a report firing on a true and unactionable fact is the prompt fatigue this project keeps designing against.
+
+*Two defects the tests and the live run caught, and one of them was mine twice over:*
+
+- *A dead flag.* An =open= boolean sat beside =earliest=, which is only ever set inside the open-slice branch — so it already encoded the answer and no mutation could change the result through it. Untested by construction, found by a mutation that failed nothing.
+- *A vacuous assertion.* The first test asserted a member is *not* reported, in a fixture where no commit named the member — so it passed whether or not the exclusion existed. Same shape as the =move-sibling= assertion caught on 2026-08-31, and caught the same way.
+- *And on the first live run: the slice reported itself.* Commit subjects cite the slice constantly ("add X to b36e6369"), and a slice never lists itself as a member, so without an explicit exclusion every open slice names itself forever. [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]] excludes =self= for exactly this reason; this did not.
+
+*Verified:* 491 tests before, 495 after, 0 unexpected. Five mutations, each failing only its own test — scanning bodies, dropping the known-id filter, treating closed slices as open, not excluding members, and not excluding the slice itself.
+
+*The live result is zero, and the reason is worth recording because it is not a null result.* Of 95 commit subjects since the slice opened, *34* carry an 8-hex token — but every one resolves to either a declared member or a heading now listed as *incidental* by [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]], and =--slice-members= reads incidental lines too. So the twins compose: one absorbs the work the slice did not plan, and this one is left reporting what neither accounts for.
+
+*Which narrows what this heading uniquely catches, and that should be said plainly rather than glossed.* Incidentals cover *closed* work. A heading named in a commit subject, still *open*, and not a member is the residue — genuinely "built and left out", which is the [[id:0acc1df2-6916-4180-867a-99bfa551806b][0acc1df2]] case this was filed for. For closed work, 0086614a now answers first.
+
+*Not built: the second question this body proposed* — which worked headings carry no clock interval that day. It shares the scan and this body rates it the more valuable of the two. It is a different report with a different audience and it should not be smuggled in beside this one; filed separately rather than left in prose.
+
 
 
 * TODO Make task lifecycle answerable from one timeline, starting at creation :code:

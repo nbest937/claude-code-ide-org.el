@@ -7139,6 +7139,97 @@ regenerated forever."
     (should-not (string-match-p "^Incidental:$"
                                 (claude-code-ide-org-test--slice-body file)))))
 
+(defmacro claude-code-ide-org-test--with-forgotten-fixture (&rest body)
+  "A git repo with an open slice naming one member, and a second heading."
+  (declare (indent 0))
+  `(claude-code-ide-org-test--with-git-repo
+     (with-temp-file org
+       (insert
+        "#+TODO: TODO NEXT DOING | DONE CANCELLED\n"
+        "* TODO [0/1] A slice\n:PROPERTIES:\n"
+        ":ID:       aaaaaaaa-0000-0000-0000-000000000000\n"
+        ":KIND:     slice\n:CREATED:  [2026-08-01 Sat 09:00]\n:END:\n\n"
+        "- [ ] [[id:bbbbbbbb-0000-0000-0000-000000000000][bbbbbbbb]] TODO A member\n\n"
+        "* TODO A member\n:PROPERTIES:\n"
+        ":ID:       bbbbbbbb-0000-0000-0000-000000000000\n:END:\n"
+        "* TODO Not in the slice\n:PROPERTIES:\n"
+        ":ID:       cccccccc-0000-0000-0000-000000000000\n:END:\n"))
+     (claude-code-ide-org-test--git-commit dir "seed" "2026-08-01T09:00:00-0500")
+     ,@body))
+
+(ert-deftest claude-code-ide-org-test-forgotten-detects-a-subject-id ()
+  "A commit whose *subject* names a non-member is reported.
+
+Detects; never adds. Membership is what a slice declares, so a mechanism
+that swept in every heading touched would produce a backlog wearing a
+slice's clothes (TODO.org :ID: c60a1c53)."
+  (skip-unless (executable-find "git"))
+  (claude-code-ide-org-test--with-forgotten-fixture
+    (with-temp-file (expand-file-name "f.txt" dir) (insert "x"))
+    ;; Both ids in subjects, so the member exclusion is actually
+    ;; exercised. Without a commit naming the member, `should-not' below
+    ;; passes whether or not the exclusion exists -- the vacuous shape a
+    ;; mutation caught here.
+    (claude-code-ide-org-test--git-commit
+     dir "Build the thing: cccccccc" "2026-08-05T09:00:00-0500")
+    (with-temp-file (expand-file-name "g.txt" dir) (insert "y"))
+    (claude-code-ide-org-test--git-commit
+     dir "Work the member: bbbbbbbb" "2026-08-06T09:00:00-0500")
+    (with-temp-file (expand-file-name "h.txt" dir) (insert "z"))
+    (claude-code-ide-org-test--git-commit
+     dir "Add something to aaaaaaaa" "2026-08-07T09:00:00-0500")
+    (let ((ids (claude-code-ide-org--slice-forgotten-ids)))
+      (should (member "cccccccc-0000-0000-0000-000000000000" ids))
+      ;; A declared member is not forgotten -- that is the whole point.
+      (should-not (member "bbbbbbbb-0000-0000-0000-000000000000" ids))
+      ;; Nor is the slice itself. Commit subjects cite it constantly,
+      ;; and a slice never lists itself as a member, so without this it
+      ;; reports itself forever -- which is exactly what the first live
+      ;; run returned.
+      (should-not (member "aaaaaaaa-0000-0000-0000-000000000000" ids)))))
+
+(ert-deftest claude-code-ide-org-test-forgotten-ignores-body-mentions ()
+  "An id in a commit *body* is a cross-reference, not a claim.
+
+Measured when this was designed: the body scan returned 27 candidates
+and the subject scan 3. A report that lists 27 things stops being read."
+  (skip-unless (executable-find "git"))
+  (claude-code-ide-org-test--with-forgotten-fixture
+    (with-temp-file (expand-file-name "f.txt" dir) (insert "x"))
+    (claude-code-ide-org-test--git-commit
+     dir "Unrelated subject\n\nCross-reference to cccccccc in the body."
+     "2026-08-05T09:00:00-0500")
+    (should-not (member "cccccccc-0000-0000-0000-000000000000"
+                        (claude-code-ide-org--slice-forgotten-ids)))))
+
+(ert-deftest claude-code-ide-org-test-forgotten-ignores-tokens-that-are-not-ids ()
+  "An 8-hex token that prefixes no heading is a commit SHA, not an id.
+Without this filter the scan reports abbreviated SHAs, which this
+project's subjects carry."
+  (skip-unless (executable-find "git"))
+  (claude-code-ide-org-test--with-forgotten-fixture
+    (with-temp-file (expand-file-name "f.txt" dir) (insert "x"))
+    (claude-code-ide-org-test--git-commit
+     dir "Revert deadbeef and move on" "2026-08-05T09:00:00-0500")
+    (should-not (claude-code-ide-org--slice-forgotten-ids))))
+
+(ert-deftest claude-code-ide-org-test-forgotten-is-silent-with-no-open-slice ()
+  "With no slice open, \"no slice claims it\" is simply true.
+A report that fires on a true and unactionable fact is the prompt
+fatigue this project keeps designing against."
+  (skip-unless (executable-find "git"))
+  (claude-code-ide-org-test--with-forgotten-fixture
+    (with-current-buffer (find-file-noselect org)
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO \\[0/1\\] A slice")
+      (org-back-to-heading t)
+      (org-todo "DONE")
+      (save-buffer))
+    (with-temp-file (expand-file-name "f.txt" dir) (insert "x"))
+    (claude-code-ide-org-test--git-commit
+     dir "Build the thing: cccccccc" "2026-08-05T09:00:00-0500")
+    (should-not (claude-code-ide-org--slice-forgotten-ids))))
+
 (ert-deftest claude-code-ide-org-test-slice-incidentals-are-the-strict-window ()
   "Everything closed in the slice's window that it does not already name.
 
