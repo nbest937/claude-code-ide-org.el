@@ -89,6 +89,22 @@ The CLOCK line carries the weighted *share* as a literal interval org can sum; t
 
 *Worth noting the invariant is cited to [[id:78f485a8-e808-43ce-af5f-277a5c97c471][78f485a8]]*, so this is not an incidental implementation detail but a property something was built to have.
 
+*Scoped by the user 2026-09-01, and it settles most of the above:* "provenance and non-determinism are not worth agonizing over. the goal is plausible, representative estimates in the aggregate, say at the per-day or per-slice level."
+
+*That is a design decision, not a relaxation of standards, and it makes the mechanism simpler in four places.* If the unit of interest is a day or a slice, then *apportion at that level rather than per turn* — one pass over the day's turns, one set of shares. Which dissolves:
+
+- *The resolution floor.* A day holds hundreds of minutes, so a 2% share is representable; a three-minute turn could not express one. The floor was an artefact of apportioning per turn.
+- *Rounding.* One largest-remainder apportionment over the day, conserved once, instead of one per turn with per-turn residues.
+- *The idempotency collision.* One annotation per task per day rather than per turn, and recomputation replaces a day's set wholesale instead of racing the replay check.
+- *Cost.* One subagent call per day, not one per turn — which is also what makes the "lag" in the original proposal pay for itself.
+
+*What survives, and it is small.* A weighted CLOCK line still sums into clocktables beside measured ones, so *something* must distinguish them — not for reproducibility, but so a reader does not take a derived minute for an observed one. One token in the annotation does it, exactly as =:CLOSED_SOURCE: git= did for [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]]. That is a marker, not a provenance system, and it should not grow into one.
+
+*One residual bias worth stating rather than agonising over.* Dropping sub-minute shares systematically under-attributes tasks that only ever receive small slices. At day level that is mostly moot — but a task that got 3% of every turn all day would land near zero, and that reads as "untouched" rather than "marginal". Whether that matters depends on what the aggregate is for; it is a known distortion, not a bug to fix in advance.
+
+*And the aggregation level buys a check the per-turn version could not have:* the weighted minutes attributed across a day should sum to that day's agent time. That is a real invariant, cheap to assert, and a much stronger test of plausibility than eyeballing any single turn's split.
+
+
 
 
 
