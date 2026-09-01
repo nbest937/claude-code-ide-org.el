@@ -4483,6 +4483,7 @@ CLOCK: [2026-08-14 Fri 08:49]--[2026-08-14 Fri 08:59] =>  0:10
 CLOCK: [2026-08-14 Fri 09:02]--[2026-08-14 Fri 09:04] =>  0:02
 - [2026-08-14 Fri 09:02]--[2026-08-14 Fri 09:04] suggested span, accepted at review
 :END:
+:PLAN:
 
 *Noticed 2026-08-13.* =WAIT= had quietly acquired a second, narrower
 meaning here — the resting state at the end of a Claude work increment,
@@ -4514,6 +4515,7 @@ guidepost itself is wrong.
 design — two instances, one person, one afternoon. An observed habit
 worth testing, not a measured regularity.
 
+:END:
 *Twice overtaken by the code, and only one thing is left.*
 
 *First, 2026-08-14.* The claim above that "nothing ever unsets it" was
