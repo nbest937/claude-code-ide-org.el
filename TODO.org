@@ -6270,7 +6270,7 @@ but =claude -p= asynchronously.
   than the conclusion being cited. The story is f90d745e.
 
 
-* DOING [7/11] Update CLAUDE.md and the org skill for the new architecture :code:
+* DOING [7/17] Update CLAUDE.md and the org skill for the new architecture :code:
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       02aaae22-0958-4c0f-b5bb-2cbea32416ae
@@ -7214,8 +7214,122 @@ CLOSED: [2026-08-21 Fri 12:45]
 :END:
 
 *Filed 2026-08-21, not done.* CLAUDE.md is ~5,500 words, loaded into every session, and a large share is dated narrative -- retirements, incident stories, won't-dos, measured-on-date facts -- the same disease [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] names in TODO.org bodies, in the one file no session can skip. The rules should stay; the archaeology should live in DONE.org bodies or the relevant heading, with a pointer where the rule needs its provenance. Judgment-heavy prune, so it needs the user in the loop, not a background pass.
+** TODO The file-header template omits #+STARTUP:, which both files carry :code:
+:PROPERTIES:
+:ID:       4072b6ec-2785-40ba-81e8-aa559508501c
+:CREATED:  [2026-09-01 Tue 16:10]
+:END:
 
+*Moved down from the parent 2026-09-01,* where it had sat since
+2026-08-12 as part of a four-drift list whose other three have all
+landed.
 
+*The gap, measured 2026-09-01.* Both =TODO.org= and =DONE.org= begin
+=#+STARTUP: logdrawer logdone content=. The documented file-header
+template — now in =.claude/rules/org-conventions.md=, lines 19–21 —
+lists =#+TODO:=, =#+TAGS:= and =#+ARCHIVE:= and stops. =grep -c
+logdrawer= returns 0 there and 0 in CLAUDE.md. So a header line both
+files carry, and which changes how org logs, is written down nowhere.
+
+Note what *has* been fixed, since this item was originally filed as one
+of four: the documented =#+TODO:= line now matches TODO.org's line 1
+byte for byte, and DONE.org now carries a =#+TODO:= line where it
+previously had none. Only the =#+STARTUP:= omission survives.
+
+*Why a file header and not a =setq=, which the rule should say rather
+than leave to be rediscovered.* =org-log-into-drawer= defaults to nil,
+so org's *native* state-change logging writes notes bare, just after the
+property drawer, while this module's apply path lands them in
+=:LOGBOOK:= — it =let=-binds the variable locally and deliberately, so a
+user's own interactive =org-todo= keeps their configured behaviour. The
+result was two paths disagreeing, visible on
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]], whose =DOING=
+note sits above the drawer while older entries sit inside it.
+
+Verified 2026-08-12 that =#+STARTUP: logdrawer= sets the variable
+*buffer-locally* — effective value ="LOGBOOK"= inside the file, global
+still nil — which is why it is the right instrument: it claims exactly
+the scope this project owns and changes nothing for a user's other org
+files. The alternatives were weighed and rejected. A global =setq=
+reconfigures org for everyone who installs the module (see
+[[id:1caed585-3209-4108-8501-eba16baf6a01][1caed585]]), and a
+=:LOG_INTO_DRAWER:= property — which does work, and does inherit — would
+have had to sit on the top-level category headings, which the same
+conventions forbade from carrying a =:PROPERTIES:= drawer at all. *That
+last objection has since expired*: the top-level category tier was
+retired, so the property route is no longer blocked by it. The
+buffer-local argument still stands on its own.
+
+*The verification precondition, which belongs beside the rule.*
+=#+STARTUP:= is read when org initialises a buffer, so a file already
+open in Emacs keeps the old value until it is reverted. Saving is not
+enough, and neither is =global-auto-revert-mode= noticing the change if
+the buffer is unmodified — the mode has to re-run.
+
+*Done when* the file-header template in =.claude/rules/org-conventions.md=
+lists =#+STARTUP:= alongside the other three, with the buffer-local
+reasoning and the revert precondition.
+
+*Verify:* =grep -c logdrawer .claude/rules/org-conventions.md= is
+non-zero, and the template block matches =head -4= of both org files.
+
+** TODO A :BLOCKER: on a MAYBE heading is dormant, and no convention says so :code:
+:PROPERTIES:
+:ID:       72e82469-3d4f-4ee1-b0c4-35b1c253901c
+:CREATED:  [2026-09-01 Tue 16:11]
+:END:
+
+*Moved down from the parent 2026-09-01,* where it was a one-line aside
+under a 2026-08-13 scope addition whose main claim has since been fixed.
+
+A =:BLOCKER:= on a =MAYBE= heading is *dormant*, because org evaluates
+blocking against the blocked heading's own state — nothing blocks a
+heading that is not trying to move. So the property looks like a live
+dependency and is not one.
+
+*It is caught but not documented,* which is the awkward half.
+=bin/lint-org= warns on it, and did three times on 2026-09-01 —
+=5798=, =5871=, =7192= in TODO.org. But =grep -ci dormant
+.claude/rules/org-conventions.md= returns 0, and the =:BLOCKER:=
+convention there says nothing about it. A reader who has not tripped the
+lint has no way to know, and a reader who has tripped it gets a warning
+with no rule behind it.
+
+*Why it matters more than a lint warning suggests.* The whole point of
+=:BLOCKER:= is that it is the machine-checkable form of a dependency
+that would otherwise rot in prose. A dormant one is the worst case: it
+reads as enforcement to a human and enforces nothing, so it is *less*
+honest than the prose it replaced.
+
+*Done when* the =:BLOCKER:= section of
+=.claude/rules/org-conventions.md= states the dormancy and what to do
+about it — whether that is "do not put one on a MAYBE", or "expect it to
+wake when the heading leaves MAYBE", which is a small decision this
+heading has to make rather than assume.
+
+*Verify:* the rule file mentions the MAYBE case, and the wording agrees
+with what =bin/lint-org= actually warns.
+
+** TODO Timestamps must come from a :LOGBOOK: drawer, never a bare pattern match :code:
+:PROPERTIES:
+:ID:       8e124867-323d-4332-9f4e-a391e59123e7
+:CREATED:  [2026-09-01 Tue 16:11]
+:END:
+** TODO The sibling-survey idiom is undocumented, and org_outline cannot navigate up :code:
+:PROPERTIES:
+:ID:       6e59c0f9-8af4-43d5-99c1-637ea360c3d0
+:CREATED:  [2026-09-01 Tue 16:11]
+:END:
+** TODO load-file does not pick up a changed defcustom default :code:
+:PROPERTIES:
+:ID:       e5fef4c4-5c42-48c2-a5d7-577dc199c22a
+:CREATED:  [2026-09-01 Tue 16:11]
+:END:
+** TODO Say in CLAUDE.md that it is a starting point and the artifact is the authority :code:
+:PROPERTIES:
+:ID:       5f89f872-6c0d-4805-88da-a182971c7ad9
+:CREATED:  [2026-09-01 Tue 16:11]
+:END:
 * TODO Direct file writes to a live org buffer can desync org-clock-marker :code:
 :PROPERTIES:
 :CATEGORY: Clock
