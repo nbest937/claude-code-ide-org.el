@@ -1020,7 +1020,7 @@ On 2026-08-31 a live archive pass reported 65 and wrote 66. One story and its si
 Worth attempting first: re-run the sweep against a buffer put through the same sequence -- revert, consolidate, normalise, then archive -- to see whether the combination is what does it.
 
 
-* TODO [26/28] Make an archived day hold that day's record :code:
+* TODO [0/2] Make an archived day hold that day's record :code:
 :PROPERTIES:
 :ID:       f9fe9fac-a423-4ede-bc42-1d201c2c3d82
 :CREATED:  [2026-08-31 Mon 12:07]
@@ -1043,36 +1043,6 @@ Seeded 2026-08-31 from the proposal reviewed in conversation: DONE.org's datetre
 
 - [ ] [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] TODO Distribute Review and planning's past day nodes into DONE.org's datetree
 - [ ] [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones
-
-Incidental:
-
-- [X] [[id:46d225c7-7541-4867-af72-929a572df2a5][46d225c7]] DONE Remove queue-append's synthetic-event overrides, dead since the ExitPlanMode hook went
-- [X] [[id:5a5e87c9-f432-44c6-a5a6-f6f3755e4347][5a5e87c9]] DONE A duration assertion matches the clocktable's own timestamp, three minutes a day
-- [X] [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]] DONE A clock-report test fails every evening, because its fixture spills past midnight
-- [X] [[id:c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b][c8a97d9d]] DONE Clearing a buffer's read-only flag for an MCP tool leaves it cleared
-- [X] [[id:2b2db914-c96e-416a-a80a-e31028308de0][2b2db914]] DONE org_capture swallows a title beginning with a TODO keyword
-- [X] [[id:c74f8663-b14e-4ab9-ad65-d99cb655b3fa][c74f8663]] DONE org_capture should accept an initial TODO state, so a heading is not keywordless until apply
-- [X] [[id:a0028a4e-39cb-4653-83cc-446b810234ac][a0028a4e]] DONE Add a body read: return a heading whole, drawers included, and let the caller extract
-- [X] [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] DONE Six defects in one day, all the same: the code knew more than it said
-- [X] [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] DONE A span's headline interval is not the interval it writes
-- [X] [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]] DONE "writes 0:09 in 1" reads as two swappable numbers; "in 1" has no unit
-- [X] [[id:46e4ce2b-fdc8-447b-ad09-b4845602540f][46e4ce2b]] DONE Lead every review-buffer rendering with the :ID: prefix, rather than trailing it
-- [X] [[id:a2509a61-4e21-4d8e-8f58-c87935753472][a2509a61]] DONE Assign advances past the line the human is about to mark
-- [X] [[id:05c71d99-2839-447b-a536-60eb4bf43b73][05c71d99]] DONE Apply logs a self-transition when a queued event's target already matches reality
-- [X] [[id:8d0716fe-ca88-429d-b46b-e2f880f5b2cc][8d0716fe]] DONE g in the review buffer discards unapplied judgement without asking
-- [X] [[id:b6e229c7-3035-4c0e-943b-710a12bfd7d1][b6e229c7]] DONE Auto-mark the state items that carry no judgement
-- [X] [[id:6e43120d-b9ed-4595-8309-ccd0cde8da59][6e43120d]] DONE Three conventions read as permission to grow a story where mitosis was owed
-- [X] [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] DONE Show turn count on the span line, where the attention call is made
-- [X] [[id:355fa608-e311-4874-b2d3-bbc62172d09a][355fa608]] DONE A stranded single-point span is offered forever; only the trailing one can still grow
-- [X] [[id:b488dd2a-db73-49a3-a4b5-5f4cc9b52e06][b488dd2a]] DONE Decide a key binding for review-undo-refresh, or leave it M-x only
-- [X] [[id:5d59dc77-38bf-470a-8d51-098c741fecbd][5d59dc77]] DONE org_capture with a done initial_state writes no CLOSED line
-- [X] [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]] DONE A slice should list incidental work separately from its planned members
-- [X] [[id:13ea6770-88ba-484d-87bd-2d20c44dc610][13ea6770]] DONE The ceremony steps do not bind inhibit-read-only, so the sweep dies on the guard
-- [X] [[id:29734f79-e698-43dd-abf8-14bc86b8b0ae][29734f79]] DONE The ceremony prompt goes quiet on evidence of its first step, and never reports its own completion
-- [X] [[id:c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8][c60a1c53]] DONE Name the work a slice forgot: detect the omission, never fix it
-- [X] [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] DONE Recover a close time from git for the headings with no in-file evidence
-- [X] [[id:5f1068f9-1452-45e4-9253-568edfce2053][5f1068f9]] DONE Sort TODO.org by :CREATED: descending, after each archive pass
-
 
 * TODO MCP tools that write an org file time out; one reports success and persists nothing :code:
 :PROPERTIES:

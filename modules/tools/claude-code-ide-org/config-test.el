@@ -7006,7 +7006,16 @@ tell a window bound from a blanket scan."
               "#+TODO: TODO NEXT DOING | DONE CANCELLED\n"
               "* TODO [1/1] A slice\n:PROPERTIES:\n"
               ":ID:       slice-001\n:KIND:     slice\n"
-              ":CREATED:  [2026-08-20 Thu 09:00]\n:END:\n\n"
+              ":CREATED:  [2026-08-20 Thu 09:00]\n:END:\n"
+              ;; A slice with no CLOCK anywhere has not been worked, and
+              ;; `--slice-incidental-ids' gives it no window at all
+              ;; (TODO.org :ID: 42ba0a80). These tests are about a slice
+              ;; that *was* worked, so it carries one, opening when it
+              ;; was created -- which leaves every window bound below
+              ;; exactly where it was.
+              ":LOGBOOK:\n"
+              "CLOCK: [2026-08-20 Thu 09:00]--[2026-08-20 Thu 09:30] =>  0:30\n"
+              ":END:\n\n"
               "- [X] [[id:member-01][member-01]] DONE A planned member\n\n"
               "* DONE A planned member\nCLOSED: [2026-08-21 Fri 10:00]\n"
               ":PROPERTIES:\n:ID:       member-01\n:END:\n"
@@ -7388,6 +7397,37 @@ what this project keeps getting wrong. Derived, so it cannot drift
         (should-not (member "slice-001" ids))
         ;; And the window has a lower bound: this one closed the day before.
         (should-not (member "before-01" ids))))))
+
+(ert-deftest claude-code-ide-org-test-slice-never-worked-has-no-incidentals ()
+  "A slice nobody has started accrues nothing, however long ago it was written.
+
+The left edge is first work, not `:CREATED:'.  Composing a slice while
+its predecessor still runs is normal here, and created-to-now then means
+\"everything anyone closed since I was written down\": measured
+2026-09-01, `f9fe9fac' had zero CLOCK lines and listed 26 incidentals,
+21 of them another slice's declared members, and its cookie read 26/28
+(TODO.org :ID: 42ba0a80)."
+  (claude-code-ide-org-test--with-slice-window
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO \\[1/1\\] A slice")
+      (org-back-to-heading t)
+      ;; Same fixture, minus the evidence of work. Everything closed in
+      ;; the window is still there; only the clock is gone.
+      (let ((lim (save-excursion (org-end-of-subtree t t))))
+        (save-excursion
+          (when (re-search-forward "^[ \t]*CLOCK:.*\n" lim t)
+            (replace-match ""))))
+      (should-not (claude-code-ide-org--slice-incidental-ids))
+      ;; And the guard is the clock, not some other property of the
+      ;; fixture: put one back and the window returns.
+      (save-excursion
+        (org-back-to-heading t)
+        (forward-line 1)
+        (re-search-forward "^:END:$")
+        (insert "\n:LOGBOOK:\nCLOCK: [2026-08-20 Thu 09:00]--"
+                "[2026-08-20 Thu 09:30] =>  0:30\n:END:"))
+      (should (member "incid-001" (claude-code-ide-org--slice-incidental-ids))))))
 
 (ert-deftest claude-code-ide-org-test-slice-incidental-window-is-bounded-by-close ()
   "A closed slice's window ends at its own CLOSED:, not at today.

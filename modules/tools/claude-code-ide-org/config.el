@@ -4077,6 +4077,41 @@ window shrinking as the ceremony ran."
                (push (cons (downcase id) ts) ids))))
          nil (list file))))))
 
+(defun claude-code-ide-org--first-work-time (ids)
+  "Earliest CLOCK start across IDS, or nil when none of them has one.
+
+The left edge of a slice's incidental window.  `:CREATED\\=' is the wrong
+edge: a slice is routinely composed while its predecessor is still
+running, and created-to-now then means \"everything anyone closed since
+I was written down\".  Measured 2026-09-01, `f9fe9fac\\=' had never been
+worked -- no `:CLOSED\\=', zero CLOCK lines -- and listed 26 incidentals,
+21 of them another slice\\='s declared members (TODO.org :ID: 42ba0a80).
+
+Nil is the honest answer for a slice nobody has started, and the caller
+turns it into an empty list rather than a window: work that happened
+before a slice was worked is not incidental *to* it, whatever else it
+may be.
+
+Scans each id\\='s own subtree, so a slice that was clocked itself counts,
+and so does one whose members carry all the time.  Reads CLOCK lines
+directly rather than through `org-clock-sum\\=', which totals durations and
+discards the starts this needs."
+  (let (best)
+    (dolist (id ids best)
+      (claude-code-ide-org--at-id
+       id
+       (lambda ()
+         (let ((lim (save-excursion (org-end-of-subtree t t))))
+           (save-excursion
+             (org-back-to-heading t)
+             (while (re-search-forward
+                     "^[ \t]*CLOCK:[ \t]+\\(\\[[^]]+\\]\\)" lim t)
+               (let ((ts (ignore-errors
+                           (claude-code-ide-org--parse-org-timestamp
+                            (match-string 1)))))
+                 (when (and ts (or (null best) (time-less-p ts best)))
+                   (setq best ts)))))))))))
+
 (defun claude-code-ide-org--slice-incidental-ids ()
   "Ids closed during the slice-at-point\'s window that it does not name.
 
@@ -4107,7 +4142,14 @@ incidental."
            ;; Planned members only. Using every member would make the
            ;; list see its own previous output and erase itself on the
            ;; second refresh.
-           (named (claude-code-ide-org--slice-planned-member-ids)))
+           (named (claude-code-ide-org--slice-planned-member-ids))
+           ;; The left edge is when the slice was *worked*, not when it
+           ;; was written down -- see `--first-work-time'. A slice with
+           ;; no work anywhere in it has no window and no incidentals,
+           ;; which is the whole fix for TODO.org :ID: 42ba0a80.
+           (worked (claude-code-ide-org--first-work-time
+                    (cons self named))))
+      (setq start (and start worked (if (time-less-p start worked) worked start)))
       (when start
         (seq-remove (lambda (id) (or (equal id self) (member id named)))
                     (mapcar #'car
