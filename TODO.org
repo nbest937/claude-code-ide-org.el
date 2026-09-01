@@ -6,12 +6,118 @@
 :PROPERTIES:
 :ID:       5bfc1d38-e758-4ed7-bb32-f976031ff3da
 :CREATED:  [2026-09-01 Tue 15:54]
+:CATEGORY: Slices
 :END:
+
+*Twin of [[id:42ba0a80-61c5-49bd-b6a2-9da76a53ff64][42ba0a80]], split from it because the fix is
+different and neither fix alone is sufficient.* That one is about the
+window's left edge; this is about what the window is allowed to sweep up
+once its bounds are right.
+
+*The rule as written.*
+=claude-code-ide-org--slice-incidental-ids= subtracts only two things
+from everything closed in the window: the slice itself, and the slice's
+own declared members. Its docstring defends the breadth explicitly —
+"that this sweeps in genuinely unrelated workstreams is a *feature*: the
+list answers 'what else was going on', which is the question worth
+asking of a plan."
+
+*That defence is sound for unowned work and says nothing about this
+case.* Work that no slice claims is genuinely incidental to whoever was
+running at the time, and deriving it beats curating it. But another
+slice's *declared checklist* is not unowned — it is planned work, merely
+planned elsewhere. Listing it as this slice's incidental work asserts
+something false about who planned it.
+
+*Measured 2026-09-01:* of [[id:f9fe9fac-a423-4ede-bc42-1d201c2c3d82][f9fe9fac]]'s 26 incidentals, 21
+are [[id:b36e6369-a210-4540-adc7-0c0c188e9791][b36e6369]]'s declared planned members. The remaining
+five are claimed by *both* slices' incidental lists at once, so any
+count that aggregates incidental work across slices double-counts them.
+
+*This is the declared-versus-inferred error, mirrored.* CLAUDE.md's rule
+is that inferring a declared grouping is the same mistake as declaring
+an emergent one — and this infers membership for work another slice
+explicitly declares. The previous slice closed that gap in one
+direction; this is the other.
+
+*Why it survives 42ba0a80's fix.* Bounding the window to actual work
+fixes f9fe9fac, which has none. It does not fix two slices worked
+*concurrently*, or one worked during another's long tail: the second
+would still absorb the first's declared members, and a closed slice's
+incidental list is exactly the artefact meant to be read as fact
+afterwards.
+
+*The likely fix, not chosen:* subtract the declared members of *every*
+slice, not just this one's — every =:KIND: slice= heading's member list
+is already enumerable by the same function that reads this slice's. Open
+questions that a fix has to answer rather than assume: whether a member
+of a *cancelled* slice counts as declared; whether an id declared by a
+slice that has not started should shield it from a slice that is
+actually working; and whether the exclusion should be reported rather
+than silent, since a slice's incidental list going quiet is the same
+class of failure as it going noisy.
+
 * TODO An unstarted slice accrues every heading closed since it was written down :code:
 :PROPERTIES:
 :ID:       42ba0a80-61c5-49bd-b6a2-9da76a53ff64
 :CREATED:  [2026-09-01 Tue 15:54]
+:CATEGORY: Slices
 :END:
+
+*Noticed by the user 2026-09-01, reading the session-start report:* why
+does [[id:f9fe9fac-a423-4ede-bc42-1d201c2c3d82][f9fe9fac]], a slice nobody has started, carry a list
+of =DONE= incidentals?
+
+*Measured, and the answer is that none of them are its incidentals.*
+f9fe9fac has =:CREATED: [2026-08-31 Mon 12:07]=, no =:CLOSED:=, state
+=TODO=, and *zero CLOCK lines* — it has never been worked. It lists *26*
+incidentals. Twenty-one are the *declared planned members* of
+[[id:b36e6369-a210-4540-adc7-0c0c188e9791][b36e6369]]; the remaining five are that slice's own
+incidental work. None of the 26 has anything to do with f9fe9fac.
+
+*The cause is the window's left edge.*
+=claude-code-ide-org--slice-incidental-ids= opens the window at the
+slice's =:CREATED:= and closes it at =:CLOSED:=, and
+=--closed-in-window= documents =END nil= as "up to now, which is the
+case for an open slice." For a slice being *worked*, created-to-now is a
+reasonable reading of "what else was going on". For a slice *composed in
+advance and not started*, it means "everything anyone closed since I was
+written down" — and composing a slice ahead of its turn is normal
+practice here: b36e6369 itself was composed while its predecessor was
+still running.
+
+So the window conflates two different moments — when the slice was
+*written* and when it was *worked* — and only the second bounds anything
+a reader would call incidental.
+
+*The visible damage is the statistics cookie.* f9fe9fac reads =[26/28]=,
+92% complete, with both of its two real members still =TODO= and no work
+done. A reader scanning the outline sees a nearly-finished slice. That
+is this project's own recurring failure — the code knowing more than it
+says — reproduced by a mechanism built during the slice named for it
+([[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]]).
+
+*Candidate fixes, none chosen.*
+
+- *Start the window at first work* rather than at =:CREATED:= — the
+  earliest CLOCK on any member, or the slice's own first =DOING=. A
+  slice with no work has an empty window and no incidentals, which is
+  the correct answer here. Needs a decision about which signal, since a
+  slice may be clocked without its members being, and vice versa.
+- *Refuse to compute incidentals at all until the slice has started.*
+  Cruder, and it answers this case exactly; it says nothing about a
+  slice worked in bursts with long gaps.
+- *Leave the window and fix the exclusion set* — see the twin below.
+  Insufficient alone: even excluding another slice's declared members,
+  f9fe9fac would still absorb that slice's five genuinely incidental
+  ids, because they fall in its window and nothing else claims them.
+
+*Its twin, filed separately because the fix is different:*
+[[id:5bfc1d38-e758-4ed7-bb32-f976031ff3da][5bfc1d38]]. That one survives this fix — a *closed* slice
+running concurrently with another would still absorb the other's
+declared checklist. Fixing either alone leaves f9fe9fac wrong, which is
+why both are filed rather than one.
+
 * TODO Classify gaps by markers at either end, not by tracking an AFK state :code:
 :PROPERTIES:
 :ID:       409a69ff-d57e-4c1c-ab6c-28f7e85fa391
