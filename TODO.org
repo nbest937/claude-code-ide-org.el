@@ -6591,6 +6591,49 @@ a multi-part rewrite being consumed in pieces, with individual edits
 landing under it as they come up (today's "confirm emacs-tools is
 reachable" rule among them), not because it is waiting on anything.
 
+*Re-audited 2026-09-01, two weeks on. Two of the four have closed; two
+stand.* Checked against the live files, not recalled — and item 2 was
+nearly missed by a single-line =grep=, since the sentence wraps.
+
+1. *Closed.* The container exception is documented. CLAUDE.md now
+   carries "A grouping may still be clocked deliberately, and that is
+   not a defect", with the exemption stated narrowly — it suppresses the
+   *automatic* clock a state change would open, never a deliberate =C-c
+   C-x C-i=. The original wording of this item is moot besides:
+   =PLANNING= was retired 2026-08-28 and the exception it named no
+   longer exists.
+2. *Still there, verbatim,* at CLAUDE.md:859. "Session tracking" still
+   describes =:LOGBOOK:= CLOCK entries as tracking active Claude work
+   time, paused when Claude Code stops and resumed on the next prompt —
+   immediately above a table stating that none of those hooks reaches
+   Emacs any more. Predicted wrong here on 2026-08-10, audited on
+   2026-08-17, unchanged on 2026-09-01. Three weeks of a named defect
+   surviving in the file that names it.
+3. *Closed.* The org skill no longer describes the live-driving model.
+   =SKILL.md= now distinguishes a queue-backed repo explicitly —
+   "*nothing edits the file when you call it*", events queue for human
+   apply — and covers the retroactive-=DOING= case that opens no clock.
+4. *Still absent.* The =NEXT=-nomination rule taken on as scope
+   2026-08-11 appears nowhere in the org skill: zero matches for
+   "nominat" in =SKILL.md=. CLAUDE.md carries the rule at length, so
+   this is a placement gap rather than an undecided question — and this
+   heading's own reasoning was that the skill is where it belongs.
+
+*Note what the two survivors have in common.* Both are the =:LOGBOOK:=
+half of the cutover — what a CLOCK entry means, and who nominates the
+next action — and both were *predicted here before they were audited*.
+Item 2's own note already draws the moral: naming a defect in a heading
+body does not by itself get it fixed. It is now the second piece of
+evidence for its own claim.
+
+*Not wrapped into =:PLAN:=, deliberately* — see
+[[id:8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8][8c662dfb]]'s debrief. This
+body is an accumulating scope list plus this audit, not a superseded
+plan, so drawering it would hide outstanding work rather than tidy
+finished thinking. The recommendation there is division instead: each
+"Added to scope" paragraph is a candidate leaf.
+
+
 
 ** DONE Correct CLAUDE.md's account of the queue architecture :code:
 CLOSED: [2026-08-15 Sat 17:18]
