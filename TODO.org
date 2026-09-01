@@ -2,6 +2,37 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
+* TODO Attribute a turn to several tasks by weight, judged from the transcript with lag :code:research:
+:PROPERTIES:
+:ID:       295cde3a-49a5-4960-a828-a4fc175d73c1
+:CREATED:  [2026-09-01 Tue 13:27]
+:CATEGORY: Clock
+:END:
+
+*Proposed by the user 2026-09-01:* enrich the guideposts with task ids drawn from the prompt and response payloads, multi-valued; let a subagent do it *with lag* so it can see several turns at once; and have it emit a *weight* per id per turn rather than chopping the interval into smaller intervals — "a sort of window function", explicitly not required to be exact or deterministic.
+
+*Possible: yes, and the enabling facts are already measured rather than assumed.*
+
+- The join is exact. Every user message in =~/.claude/projects/<slug>/<session>.jsonl= carries an ISO timestamp, and *28 of 28* of this session's =resume= events match one within two seconds ([[id:e75d660f-5c0d-4707-a645-b5dea7d7ebc0][e75d660f]]). So turn text is addressable from the queue with no hook change and no new field.
+- The signal is dense. Of 38 turns in this session's transcript, *32 (84%) name at least one known heading id*, mean *6.2* ids per turn, with a genuinely multi-valued distribution — many turns name three to eight.
+- The transport is settled and needs no protocol work: =claude -p= asynchronously, per [[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]]'s research. Not MCP sampling, because there is frequently no live session at review time.
+
+*And the naive version is measurably wrong in a way that argues **for** the subagent rather than against it.* The heaviest turns name 36, 21 and 18 ids — those are footnote-heavy *responses*, where an id is cited rather than worked on. *Mentions are not subjects.* A regex cannot tell them apart; distinguishing them and apportioning between the two or three tasks a turn actually advanced is exactly the judgement the proposal asks a model to make. The failure mode of the naive extractor is the strongest evidence the judged version is the right shape.
+
+*Helpful: yes, and for a sharper reason than "more data".* Attribution today guesses from *temporal adjacency* — =--review-suggest-heading= offers the nearest preceding =DOING=. Measured on real use ([[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]]): 18 of 23 spans, while latching onto a =CANCELLED= heading for eight hours and offering one heading for a 45-minute span that actually covered five. *Content is a far stronger signal than adjacency*, and it is the signal that has never been read.
+
+*Weights are the right output shape, and this is the part worth defending.* [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] records the user "often alternating between tasks and meta-tasks inside one session" — so a turn genuinely *is* split, and cutting it into sub-intervals invents boundaries that never existed. A weight admits what it is; a timestamp range does not.
+
+*Three hard problems, none fatal but none solved:*
+
+1. *Org cannot represent a weighted interval.* A =CLOCK:= line is an interval, and a clocktable sums intervals. Weights have no home in that model, so this cannot feed =org_clock_report= without inventing a parallel store.
+2. *Anchoring* — [[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]]'s central objection, and weights may be *worse* than prose for it: =0.35= reads as computed in a way "probably mostly this one" does not.
+3. *Non-determinism in a durable record.* Acceptable in a suggestion, corrosive in a record: a figure that changes when recomputed cannot be reasoned about later.
+
+*All three dissolve under one reframe, which is the version worth building.* Do not let this touch the clock. Emit the weighted table as *evidence for the attention pass* — phase 2, where [[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] says the human constructs intervals manually from evidence, and where [[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]] was already re-pointed. Then weights inform a judgement instead of impersonating a measurement, org's model is untouched, and re-running the subagent produces a *new opinion* rather than a mutated record.
+
+*Open, and genuinely undecided:* the window's width and cadence; whether weights are ever aggregated across turns or only shown per turn; and whether the output is stored at all or recomputed on demand. Storing it makes it a record with all of problem 3; recomputing it makes it slow and inconsistent between runs. That trade is the substance of this heading.
+
 * TODO AFK markers are ground truth for the one judgement we cannot automate, and we discard them :code:
 :PROPERTIES:
 :ID:       e75d660f-5c0d-4707-a645-b5dea7d7ebc0
@@ -162,6 +193,19 @@ A response footnoted [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] as "F
 *Which makes the pattern across all five statable, and it is sharper than any of them individually.* Every failure is an id the writer *did not choose to write*: marker bookkeeping, list enumeration, quoted example, a title paraphrased from a neighbour's body, and now a sentence adapted from one. The ids that are deliberately cited get footnoted every time — that half of the discipline has never failed.
 
 *So the rule the writer is actually following is "footnote what I decided to reference", and the hook's rule is "footnote every id present".* The gap between those two is exactly the set of ids that arrive by transcription. That is a more useful statement of the defect than five separate modes, and it suggests the check to want is not better discipline but a diff: the hook already knows every id in the response and every id in the footnote list.
+
+*Asked 2026-09-01: could footnoting be done by a subagent? It should not, and the reason is that most of it is already done by a script.*
+
+*=bin/hooks/footnote-check= already performs every step but the last.* It extracts the =\b[0-9a-f]{8}\b= candidates from the response, filters them by grepping =^:ID: +$id= across TODO.org and DONE.org — so it *has located the heading* — and checks which are missing from the footnote block. What it never does is read the *title* sitting a few lines above the =:ID:= line it just matched.
+
+*Which makes the fix small and the model unnecessary.* Emitting id, current keyword and exact title for each unfootnoted citation would make the fourth mode — a title reconstructed from a neighbour's paraphrase — *structurally impossible*, because the correct string would be on screen at the moment the footnote is written. That is the only one of the five modes the hook cannot currently catch, and it is the only one that produces a confidently wrong answer rather than a rejected response.
+
+*A subagent would be the wrong instrument for three reasons.* The task is a lookup, not a judgement — there is nothing to weigh. It would be non-deterministic where the answer is exact. And it could *paraphrase*, which is precisely the failure being fixed; a =grep= cannot.
+
+*The real constraint is what a hook may do, and it is worth stating because it bounds every version of this.* A =Stop= hook can refuse and inform; it cannot rewrite the response. So no mechanism here can *write* the footnotes — it can only hand over the exact lines. That still removes two of the three error classes: detection (the hook already sees every id) and lookup (it would now carry the title). What remains is *placement* — the superscript markers — which is where the marker-collision mode lives and which nothing but care can fix.
+
+*So the honest scope: two of five modes become impossible, one becomes loud, and two stay.* Enumeration and borrowed prose are already caught by the existing check; the marker collision stays a hand error; the paraphrased title stops being possible. That is a good return on adding one field to a message the hook already prints.
+
 
 
 
