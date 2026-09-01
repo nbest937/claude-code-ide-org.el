@@ -513,6 +513,21 @@ The same pass carried =[13:13]--[13:48]  writes 0:14 in 3= on [[id:c31b6c76-8ad8
 
 *One caution worth stating now, while it is cheap.* If A really is largely bogus, that is a claim about data already written to =TODO.org= and =DONE.org=, and the tempting follow-up — correcting or discarding it — should not be reached for casually. The record's value is partly that it is what actually happened, mistakes included; [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is this project's precedent that a plausible fabricated number is worse than an absent one, and a retroactively "corrected" span is exactly that. Deciding what, if anything, to do about A is part of this heading and should not be assumed.
 
+*Measured 2026-09-01, in answer to whether this and [[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]] complement each other. They share a corpus and a histogram; they do not share a design, and the measurement argues against the before/after framing.*
+
+*B is n=19.* Splitting every queue file at =b34a12f= gives *849* =pause= -> =resume= gaps before and *19* after — one session. No comparison is available now and none will be for weeks.
+
+*The bigger problem is a confound, and it was found by testing the obvious alternative rather than assuming it.* The August band (no gap between 1061s and 2070s) has closed, and the tempting explanation is undersampling: a 150-gap histogram is sparse, so holes appear by chance. *That is refuted.* Drawing 200 random 150-gap samples from the current corpus, *zero* produced an empty band. So the August distribution was genuinely different, not merely thinner.
+
+*Which means the gap distribution drifts substantially month to month — and all of that drift is inside regime A*, since 849 of the 868 gaps predate the boundary. A before/after comparison on a calendar boundary therefore cannot attribute a difference to the code: *when* and *what changed* are entangled, and the =when= term is demonstrably large.
+
+*And there is a second, independent reason to expect no signal.* Almost everything the slice shipped was *presentational*. [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] says so of itself — the fix "is presentational and deliberately does not touch what is extracted" — and the same is true of the readout rework, the wording audit, the prefix change and the marking behaviour. The extraction that produces recorded minutes is unchanged. The only causal path from the slice to the *numbers* runs through the human deciding differently at review, which is slow, mediated, and not separable from drift.
+
+*So the before/after framing should be dropped, and this body already contains the better instrument.* Its own candidate list opens with /"reconstructible stretches as the yardstick"/ — work bounded from outside the clock system by commits, test-count deltas and a debrief. That needs no regime boundary, is immune to drift, and answers the question actually asked: not "did the numbers change" but "were they ever right". The two spans that prompted this heading were caught exactly that way.
+
+*What [[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]] still contributes*, and it is real: the same histogram feeds both, and the September occurrence has to re-derive it anyway. The overlap is the *scan*, not the *comparison*.
+
+
 
 * TODO An Emacs outage strands every org write, because the tools are Emacs :code:
 :PROPERTIES:
