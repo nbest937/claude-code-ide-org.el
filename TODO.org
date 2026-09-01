@@ -3935,16 +3935,16 @@ repo at all, because the skill lives in this project's
 =.claude/skills/=.
 
 *What actually produced the discipline, and what travels.* The skill is
-the small part. Of six layers, exactly one is user-scoped today:
+the small part. Of six layers, exactly one is user-scoped:
 
-| layer                                        | lives in                  | travels |
-|----------------------------------------------+---------------------------+---------|
-| transition rules, "create a heading", journal | CLAUDE.md                 | no      |
-| keyword/tag/=:BLOCKER:= conventions           | =.claude/rules/=          | no      |
-| queue writing (pause/resume/blocks/todo)      | =.claude/settings.json=   | no      |
-| =org_*= tools                                 | =.mcp.json= + Doom elisp  | elisp only |
-| org skill                                     | =.claude/skills/=         | no      |
-| reload transparency, footnote discipline      | =~/.claude/CLAUDE.md=     | *yes*   |
+| layer                                         | lives in                 | travels    |
+|-----------------------------------------------+--------------------------+------------|
+| transition rules, "create a heading", journal | CLAUDE.md                | no         |
+| keyword/tag/=:BLOCKER:= conventions           | =.claude/rules/=         | no         |
+| queue writing (pause/resume/blocks/todo)      | =.claude/settings.json=  | no         |
+| =org_*= tools                                 | =.mcp.json= + Doom elisp | elisp only |
+| org skill                                     | =.claude/skills/=        | no         |
+| reload transparency, footnote discipline      | =~/.claude/CLAUDE.md=    | *yes*      |
 
 *The crux: the machinery is already global; only the activation is
 local.* The elisp module is in the Doom config, the queue writes to
@@ -3953,7 +3953,7 @@ local.* The elisp module is in the Doom config, the queue writes to
 *can* be user-scoped, so the queue could work anywhere without new
 machinery — what is repo-bound is wiring and prose.
 
-*Coupling in the skill itself is modest*, which is the good news: two
+*Coupling in the skill itself is modest,* which is the good news: two
 references to CLAUDE.md (which dangle in any other repo), seven to
 TODO.org/DONE.org, three to =org_*= tools, one to the queue. Roughly 16
 lines of a 504-line file; the rest is generic org syntax and editing
@@ -3962,15 +3962,15 @@ guidance that is already portable.
 *The file-location constraint the user added, and it is the deep one.*
 Other repos will have their own TODO.org/DONE.org, possibly at a
 different relative path (=./.org/= was the example). This is *not* a
-hardcoding problem — =claude-code-ide-org--tracked-files= is
-=(or claude-code-ide-org-query-files (org-agenda-files))=, and the only
+hardcoding problem — =claude-code-ide-org--tracked-files= is =(or
+claude-code-ide-org-query-files (org-agenda-files))=, and the only
 =TODO.org= strings in config.el are docstrings about the symlink truename
-issue. It is a *discovery* problem, and it has three teeth:
+issue. It is a *discovery* problem, with three teeth:
 
 - =org-agenda-files= is computed once at config load
   (=directory-files-recursively= over =org-directory=), so a newly added
-  project needs an Emacs restart to be seen. It currently yields *2
-  files* — that is the real scale of what this system tracks today.
+  project needs an Emacs restart to be seen. It yields *2 files* — the
+  real scale of what this system tracks.
 - =org-id= resolves =:ID:= from that same universe. A heading in a file
   outside it cannot be found by any tool here, so every =:ID:=-scoped
   operation fails silently-ish rather than obviously.
@@ -3979,23 +3979,21 @@ issue. It is a *discovery* problem, and it has three teeth:
 
 *Three candidate mechanisms, unevaluated:* keep the current symlink
 convention (each repo symlinks its org files into =~/org/<project>/= —
-works today, manual, restart-bound, and already carries recorded truename
-gotchas); per-project configuration via =.dir-locals.el= setting
+works today, manual, restart-bound, with recorded truename gotchas);
+per-project configuration via =.dir-locals.el= setting
 =claude-code-ide-org-query-files=; or make =--tracked-files=
 project-aware. The third is worth noting because *the hooks already
 receive =cwd= in their payload* — verified in a captured
 =PermissionRequest= on 2026-08-14 — so the queue could record which
 project an event came from and apply could resolve IDs within it.
 
-*The neat part, and the reason this is blocked rather than open:*
+*The neat part.*
 [[id:befaed0a-18ed-445e-b997-8b9c2965ad45][befaed0a]]'s path-scoped rule
 turns out to be the *portability* mechanism, not merely a context-saving
-one. A user-level =~/.claude/rules/org-conventions.md= with
-=paths: ["**/*.org"]= costs nothing in repos with no org files and applies
+one. A user-level =~/.claude/rules/org-conventions.md= with =paths:
+["**/*.org"]= costs nothing in repos with no org files and applies
 automatically in ones that have them. That decision was made for an
-unrelated reason and generalises exactly — but it rests on a mechanism
-nobody has yet confirmed loads, which is why befaed0a is =WAIT= and why
-this heading should not start before it clears.
+unrelated reason and generalises exactly.
 
 *Two risks to design against rather than discover.* First, correct here
 may be wrong there: "call =org_clock_in= when entering =DOING=" is sound
@@ -4007,24 +4005,18 @@ the queue. The rule added against that is project-scoped, so in another
 repo the tools would be *permanently* absent and the guardrail
 permanently missing.
 
-Closely related from the other end:
-[[id:1caed585-3209-4108-8501-eba16baf6a01][1caed585]], which asks what
-this module may change on a user's machine when installed — the same
-user-scope question, approached as an installation concern rather than a
-portability one. These two should probably be decided together.
-
 *Mechanism proposed by the user 2026-08-15, and it exists — with one
 correction.* The proposal was shared =.md= files referenced by both this
-repo's CLAUDE.md and the skill, so that loading the skill elsewhere brings
-its context with it. Two documented mechanisms do this, and =@path=
-imports — the obvious candidate — do *not*: they load eagerly at launch,
-and a path resolving outside the working directory additionally triggers
-an external-import approval dialog.
+repo's CLAUDE.md and the skill, so that loading the skill elsewhere
+brings its context with it. Two documented mechanisms do this, and
+=@path= imports — the obvious candidate — do *not*: they load eagerly at
+launch, and a path resolving outside the working directory additionally
+triggers an external-import approval dialog.
 
 - *Skills carry supporting files.* A skill directory may hold
   =references/*.md= that =SKILL.md= points at, read on demand with normal
-  file tools. They travel with the skill. Neither skill here uses this
-  today; both are single-file.
+  file tools. They travel with the skill. Neither skill here uses this;
+  both are single-file.
 - *=.claude/rules/= supports symlinks, explicitly.* Per Claude Code's
   memory docs: "you can maintain a shared set of rules and link them into
   multiple projects. Symlinks are resolved and loaded normally." And
@@ -4035,63 +4027,59 @@ an external-import approval dialog.
 naturally in the skill directory, since that is the unit that travels.
 =~/.claude/rules/org-conventions.md= becomes a symlink to it carrying
 =paths: ["**/*.org"]=, which applies in every repo but only when an org
-file is in play. This repo's CLAUDE.md keeps a one-line pointer instead of
-a copy. Nothing is duplicated, and the skill and the rules read the same
-bytes.
+file is in play. This repo's CLAUDE.md keeps a one-line pointer instead
+of a copy. Nothing is duplicated, and the skill and the rules read the
+same bytes.
 
 *Split the content by who must decide to load it,* because the two
 mechanisms differ in exactly that: a path-scoped rule fires
 automatically, while a skill reference is read only if the model chooses
-to. Conventions (keywords, tags, =:ARCHIVE:=, =:BLOCKER:=) want the rule —
-they must apply whether or not anyone thought to invoke the skill. Setup
-instructions ("here is what a repo must wire up") want the skill
+to. Conventions (keywords, tags, =:ARCHIVE:=, =:BLOCKER:=) want the rule
+— they must apply whether or not anyone thought to invoke the skill.
+Setup instructions ("here is what a repo must wire up") want the skill
 reference — they are consulted deliberately, once.
 
 *Two things this does not solve, and the second is the larger half.*
-
-First, a user-level rule applies to *every* project, including repos whose
-=.org= files follow different conventions. "Do not add priority cookies"
-is this project's policy, not a universal one. Project rules outrank user
-rules, so an override is possible, but the default is now assertive
-everywhere — the paths glob or the phrasing needs to carry that.
-
-Second, and this is the limit of the whole approach: *shared =.md= files
-reproduce the instructions, not the machinery.* A rule can say the queue
-exists; if the other repo's =.claude/settings.json= wires no hooks,
-nothing writes guideposts, no permission blocks are bracketed, and
-=org_set_todo= is not registered to be called. The instructions would then
-describe a system that is not running — which is precisely the failure
+First, a user-level rule applies to *every* project, including repos
+whose =.org= files follow different conventions. "Do not add priority
+cookies" is this project's policy, not a universal one. Project rules
+outrank user rules, so an override is possible, but the default is now
+assertive everywhere — the paths glob or the phrasing needs to carry
+that. Second, *shared =.md= files reproduce the instructions, not the
+machinery.* A rule can say the queue exists; if the other repo's
+=.claude/settings.json= wires no hooks, nothing writes guideposts, no
+permission blocks are bracketed, and =org_set_todo= is not registered to
+be called. The instructions would then describe a system that is not
+running — precisely the failure
 [[id:f4e628ce-e653-429a-8f3c-0f5d4241b139][f4e628ce]] took three sessions
 to catch, in the one repo where the machinery *was* present. Making the
-machinery travel is a separate move: hooks into =~/.claude/settings.json=
-and the MCP server into user-level config, both of which can be
-user-scoped. The =.md= plan and the machinery plan have to land together
-or the first is worse than nothing.
+machinery travel is a separate move: hooks into
+=~/.claude/settings.json= and the MCP server into user-level config,
+both of which can be user-scoped.
 
-*Merged in from =ae2d9b4a= 2026-08-15, which was the same task written
-first.* That heading lived in =~/org/notes.org= — a tracked file, but not
-one this session searched — and was created 2026-08-14 09:22, a day
-before this one. It was found only when the assignment prompt offered its
-title as a completion candidate. The duplication is recorded rather than
-quietly erased because it is the second half of a lesson: a search that
-covers =TODO.org= and =DONE.org= is not a search of the tracked set. Its
-content follows; the heading itself has been removed from =notes.org=,
-and everything about this belongs here, since it is about *this* set of
-artifacts rather than about notes in general.
+*Merged in from =ae2d9b4a= 2026-08-15, which was the same task written first.*
+
+That heading lived in =~/org/notes.org= — a tracked file, but not one
+this session searched — and was created 2026-08-14 09:22, a day before
+this one. It was found only when the assignment prompt offered its title
+as a completion candidate. The duplication is recorded rather than
+quietly erased because it is the second half of a lesson: *a search that
+covers =TODO.org= and =DONE.org= is not a search of the tracked set.* The
+heading itself has been removed from =notes.org=.
 
 *Its framing, which is better than the one this heading opened with.*
 Named on noticing that splitting
 [[id:52ede10e-5e6f-4392-b31d-b9ce9b450c3c][52ede10e]] out of
 =claude-code-ide-org= was the first time a heading had to leave the
 project's perimeter and still be tracked the same way. The conventions
-built here — =:ID:= on every heading, =:CREATED:= stamps, categories as
-keywordless top-level headings, =:BLOCKER:= dependencies, the
-state-transition and clocking rules, the org skill itself — were written
-as *this project's* conventions. They are not specific to it. That is the
-whole question, and it predates any of the measurement below.
+built here — =:ID:= on every heading, =:CREATED:= stamps, =:BLOCKER:=
+dependencies, the state-transition and clocking rules, the org skill
+itself — were written as *this project's* conventions. They are not
+specific to it. That is the whole question, and it predates any of the
+measurement above.
 
-*Four questions it raised, none answered yet, and only the first is
-addressed by the work above:*
+*Four questions it raised, none answered, and only the first addressed
+by the design above:*
 
 1. Does the org skill trigger correctly outside the repo that defines it?
    It lives in =claude-code-ide-org/.claude/skills/org/=, so a session
@@ -4102,11 +4090,11 @@ addressed by the work above:*
 2. *Do the state-transition rules make sense without a clock?* Much of
    this module's machinery exists to attribute *work time*. Notes that
    are not tasks may want the =:ID:=/=:CREATED:= discipline and none of
-   the clocking. Untouched by anything above.
+   the clocking.
 3. *What is the archive target for a file with no project?* =#+ARCHIVE:=
    in =notes.org= names =DONE.org=, which does not exist in =~/org/=.
 4. *Does one =notes.org= scale,* or does user-level work want the same
-   category/epic structure =TODO.org= grew into?
+   category structure =TODO.org= grew into?
 
 Questions 2--4 are about user-level org work generally rather than about
 this plugin, and may deserve to split back out once 1 is settled — but
@@ -4115,8 +4103,28 @@ no longer the place for them.
 
 Related from the other side:
 [[id:1caed585-3209-4108-8501-eba16baf6a01][1caed585]], on what this
-module may change on a user's machine when installed.
+module may change on a user's machine when installed. These two should
+probably be decided together.
 
+*Re-measured 2026-09-01, seventeen days on.*
+
+- *This heading is unblocked.* =befaed0a= is =DONE=: the path-scoped
+  rule mechanism is confirmed to load, which is the thing this heading
+  was told not to start before. It is the only id in the =:BLOCKER:=.
+- *Half the plan has quietly happened, project-scoped.* The conventions
+  did move out of CLAUDE.md into =.claude/rules/org-conventions.md=,
+  32 KB of it, with CLAUDE.md keeping a one-line pointer — exactly the
+  "one canonical copy, two consumers" shape, minus the symlink that
+  would make it travel. The remaining move is genuinely one =ln -s=.
+- *Nothing user-level has appeared.* =~/.claude/skills/= and
+  =~/.claude/rules/= are still absent, and =~/.claude/settings.json=
+  exists but declares no =hooks= and no =mcpServers=. =org-agenda-files=
+  still yields 2. Every measurement in the drawer above still holds.
+- So the ordering constraint is the live one: the =.md= half is now a
+  symlink away while the machinery half has not started, and this
+  heading's own conclusion is that shipping the first alone leaves
+  another repo reading instructions for a system that is not running.
+  Landing them together is what remains.
 
 * TODO The org 9.7+ dependency is real, undeclared, and unenforced :code:
 :PROPERTIES:
