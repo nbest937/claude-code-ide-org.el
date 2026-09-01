@@ -1413,6 +1413,98 @@ This heading's own test is "ask whether the body was ever *revised*; if it was o
 
 *The first version of this measurement was wrong in two ways and is recorded because both are the same mistake.* It sampled only the most recent 40 commits — 2026-08-27 onward, five days of a five-week history — and it bounded each body with =find("\\n* ")=, which for a heading *with children* runs past them, so =02aaae22= came out as 5 lines against a true 178. Both errors flattered the answer: a shorter window and a truncated body both hide shrinks. A measurement whose errors all point the same way is worth re-running before it is quoted.
 
+*Seven of the ten swept 2026-09-01. The population was never ten by the time it ran.*
+
+=2d9eeebd= closed and was archived into DONE.org; the table above still
+lists it =NEXT=, which is what a measurement kept as prose does. And
+=9e627dc0= was handled earlier the same day by =org_divide= rather than
+by this sweep — its body is now 15 lines and the design travelled into
+the story's children. So the work here was seven bodies, and =02aaae22=
+is the one left.
+
+| heading  | before | now visible | in =:PLAN:= |
+|----------+--------+-------------+-------------|
+| d1cf852a |    105 |          26 |          32 |
+| b07df584 |    115 |          34 |          63 |
+| a1d63f52 |    123 |          33 |          64 |
+| 2aeb65d6 |    139 |          13 |         114 |
+| b5f94b88 |    154 |          53 |         100 |
+| 0c8644ff |    163 |          74 |          66 |
+| 9ae4b17e |    195 |          60 |         136 |
+| *total*  |  *994* |       *293* |       *575* |
+
+*Read that honestly: this was mostly relocation, not deletion.* 994 lines
+became 868 — 126 lines actually gone, about an eighth — while 575 moved
+behind a drawer. The visible body is 70% smaller, which is the effect
+that was wanted, but nobody should cite this as evidence that the bodies
+were mostly waste. They were mostly *prospective*, which is a different
+claim and the one this heading actually makes.
+
+*The sweep's real yield was not shorter bodies. Six of the seven carried
+claims the code had already falsified,* and none of them announced it:
+
+- =d1cf852a= proposed a bracket mechanism that had shipped in =6a81822=;
+  its "denylist should be an allowlist" survivor is done, and
+  =--work-in-progress-keywords= is =("DOING")=.
+- =b07df584= said "no tool can rewrite a body today" — =org_amend
+  replace= and =org_wrap_plan= both exist — and cited a CLAUDE.md rule
+  against trimming old bodies that was reversed on 2026-08-24. Its
+  =:BLOCKER:= had been satisfied without the body noticing.
+- =a1d63f52= named =--trigger-auto-promote-sole-todo=, retired; and the
+  CLAUDE.md rule it asked for was never written, so its convention is in
+  force and undocumented — the exact condition it was raised to end.
+- =2aeb65d6='s =pre-commit= option is now "extend a hook" rather than
+  "add one", since =.githooks/pre-commit= exists.
+- =b5f94b88='s step 3 shipped, for both capture and amend, while the
+  body says in terms that no verdict was recorded and none should be
+  inferred. Step 1 — =create-lockfiles= — never shipped and is still
+  Doom's =nil=.
+- =9ae4b17e= is *unblocked*: =befaed0a= is =DONE=, and half its plan has
+  quietly happened project-scoped.
+
+Only =0c8644ff= had no falsified claim, and it had something worse: a
+link that still *resolved*. It cited =9e627dc0= for a conclusion, and
+that heading's division earlier the same day carried the =:ID:= to a
+child, so the link now landed on a narrow leaf rather than the argument.
+Re-pointed at the story =f90d745e=. *An id link cannot go stale by
+breaking; it goes stale by continuing to work,* which is why mitosis
+needs a referrer sweep and nothing does one.
+
+*One method correction, and it is a real amendment to this heading's
+plan.* "Compress, then wrap" assumes the seam falls in document order —
+prospective first, debrief last. It did for five. It did *not* for
+=2aeb65d6=, which is a live TODO nobody has started, so every line is
+prospective and wrapping the lot would have left the heading blank; the
+fix was to write a short "where this stands" close and seam on that. And
+it did not for =b5f94b88=, where CLAUDE.md explicitly names two passages
+— the "epic wearing a child's clothes" reasoning and the
+plan-file-overwrite incident — as *not design*, so the body had to be
+reordered before =org_wrap_plan= could take the right half. The tool
+takes everything above the seam; when the durable half was written
+first, reordering is part of the condense, not a separate liberty.
+
+*And a claim in this heading's own body is wrong:* =02aaae22= is not
+"the only container in the list". =a1d63f52= is =[3/5]=. It does not
+change the compress-then-wrap decision, which turned on append-only-ness
+rather than on shape, but the parenthetical should not be relied on.
+
+*=02aaae22= is left, and the recommendation is not to wrap it.*
+
+Its 369-line body is not a superseded plan. It is an accumulating
+*scope list* — "Added to scope 2026-08-11", "…-08-12", "…-08-13",
+"…-08-14" — plus an audit of what is still owed. Wrapping that puts
+eleven items of outstanding work into a drawer readers are told to skip,
+which is the residue-goes-invisible failure CLAUDE.md warns about, not
+the tidying this heading exists to do.
+
+The better move is division: each "Added to scope" item is a candidate
+leaf, and consuming the body into children is what CLAUDE.md says
+happens to an engorged body. That is a judgement call about eleven
+headings, so it is left for a human rather than taken here. If wrapping
+is wanted anyway, the seam is *Promoted to =**= and split into children
+2026-08-14* — but it buries the scope, which is the objection above.
+
+
 
 * TODO Reorder DONE.org as a datetree, descending by CLOSED: :code:
 :PROPERTIES:
