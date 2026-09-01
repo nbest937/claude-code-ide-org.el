@@ -7157,6 +7157,83 @@ regenerated forever."
      (claude-code-ide-org-test--git-commit dir "seed" "2026-08-01T09:00:00-0500")
      ,@body))
 
+(defmacro claude-code-ide-org-test--with-unsorted-file (&rest body)
+  "A file whose level-1 headings are out of :CREATED: order, plus an anchor.
+The `#+' header lines matter: without them point cannot sit before the
+first heading and `org-sort-entries' signals \"Nothing to sort\"."
+  (declare (indent 0))
+  `(let* ((dir (file-name-as-directory (make-temp-file "ccio-sort" t)))
+          (file (expand-file-name "TODO.org" dir))
+          (claude-code-ide-org-capture-file file))
+     (unwind-protect
+         (progn
+           (with-temp-file file
+             (insert "#+TITLE: t\n#+TODO: TODO | DONE\n\n"
+                     "* TODO Oldest\n:PROPERTIES:\n:ID: s-1\n"
+                     ":CREATED:  [2026-08-01 Sat 09:00]\n:END:\n"
+                     "* TODO Newest\n:PROPERTIES:\n:ID: s-3\n"
+                     ":CREATED:  [2026-08-20 Thu 09:00]\n:END:\n"
+                     "* Review and planning\n:PROPERTIES:\n:ID: s-anchor\n"
+                     ":DATE_TREE: t\n:END:\n"
+                     "* TODO Middle\n:PROPERTIES:\n:ID: s-2\n"
+                     ":CREATED:  [2026-08-10 Mon 09:00]\n:END:\n"))
+           ,@body)
+       (let ((buf (get-file-buffer file)))
+         (when buf (with-current-buffer buf (set-buffer-modified-p nil))
+               (kill-buffer buf)))
+       (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-sort-by-created-is-newest-first ()
+  "Level-1 headings end up newest-first, subtrees intact.
+One call, and org owns the comparator (TODO.org :ID: 5f1068f9)."
+  (claude-code-ide-org-test--with-unsorted-file
+    (claude-code-ide-org-sort-by-created file)
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      (should (< (string-match "Newest" disk) (string-match "Middle" disk)))
+      (should (< (string-match "Middle" disk) (string-match "Oldest" disk))))))
+
+(ert-deftest claude-code-ide-org-test-sort-puts-the-undated-anchor-last ()
+  "The datetree anchor sorts last because it carries no :CREATED:.
+
+Measured rather than assumed: org places an undated entry last under
+`?R'. That it is last by an *absence* is the approach's one real
+objection, which bin/lint-org answers with an assertion rather than a
+fabricated timestamp."
+  (claude-code-ide-org-test--with-unsorted-file
+    (claude-code-ide-org-sort-by-created file)
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      (should (< (string-match "Oldest" disk)
+                 (string-match "Review and planning" disk))))))
+
+(ert-deftest claude-code-ide-org-test-sort-by-created-is-idempotent ()
+  "A second sort moves nothing, which is what lets it join the ceremony.
+The count must say so too: it is reported by *position*, because a set
+difference is always empty after a sort and once read \"0 moved\" over a
+9290-line reordering."
+  (claude-code-ide-org-test--with-unsorted-file
+    (let ((first (claude-code-ide-org-sort-by-created file)))
+      ;; All four: Oldest/Newest/anchor/Middle becomes
+      ;; Newest/Middle/Oldest/anchor, so every position changes.
+      (should (string-match-p "4 moved" first)))
+    (let ((once (claude-code-ide-org-test--disk-contents file))
+          (second (claude-code-ide-org-sort-by-created file)))
+      (should (string-match-p "0 moved" second))
+      (should (equal once (claude-code-ide-org-test--disk-contents file))))))
+
+(ert-deftest claude-code-ide-org-test-sort-keeps-subtrees-with-their-parents ()
+  "A child must travel with its heading, or sorting silently reparents work."
+  (claude-code-ide-org-test--with-unsorted-file
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO Oldest$")
+      (end-of-line)
+      (insert "\n** TODO A child of Oldest\n")
+      (save-buffer))
+    (claude-code-ide-org-sort-by-created file)
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      ;; The child sits directly after its parent, not stranded elsewhere.
+      (should (string-match-p "\\* TODO Oldest\n\\*\\* TODO A child of Oldest" disk)))))
+
 (ert-deftest claude-code-ide-org-test-backfill-from-git-fills-and-marks ()
   "A heading with no logged close gets one from git, marked as derived.
 

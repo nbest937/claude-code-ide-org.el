@@ -10142,7 +10142,11 @@ losing two because the first broke would be worse than a partial pass."
     (dolist (step (list
                    (cons "drawers"  (lambda () (claude-code-ide-org-consolidate-all-drawers)))
                    (cons "spacing"  (lambda () (claude-code-ide-org-normalize-heading-separation)))
-                   (cons "archived" (lambda () (claude-code-ide-org-archive-finished)))))
+                   (cons "archived" (lambda () (claude-code-ide-org-archive-finished)))
+                   ;; After archiving, for the same reason archiving is
+                   ;; last: sorting first would order rows that are about
+                   ;; to be removed (TODO.org :ID: 5f1068f9).
+                   (cons "sorted"   (lambda () (claude-code-ide-org-sort-by-created)))))
       (push (condition-case err
                 (let ((r (funcall (cdr step))))
                   (format "%s: %s" (car step)
@@ -10419,6 +10423,16 @@ a rule nobody chose."
 from `claude-code-ide-org--lint-heading-ids'.  CATEGORIES is the list
 from `claude-code-ide-org--lint-routing-categories'."
   (let ((name (file-name-nondirectory file))
+        ;; Line of the :DATE_TREE: anchor once seen, and the first
+        ;; level-1 heading found *after* it. The anchor must be the final
+        ;; level-1 heading, and that assertion is what makes
+        ;; `claude-code-ide-org-sort-by-created' safe: the sort places it
+        ;; last because it carries no :CREATED:, which nobody decided --
+        ;; it is last by an *absence*. Asserting the result beats
+        ;; inventing a sentinel timestamp for it, which would put a
+        ;; fabricated fact in the file whose value is that its facts are
+        ;; not fabricated (TODO.org :ID: 5f1068f9).
+        (anchor-line nil) (after-anchor nil)
         ;; Level of the innermost enclosing :DATE_TREE: heading, or nil.
         ;; Tracked as state across the map because `org-map-entries'
         ;; walks in document order, so an anchor is always seen before
@@ -10512,6 +10526,7 @@ year/month scaffolding and its day node: %s" level title))
                  ;; so a rename cannot silently un-exempt it.
                  (if (org-entry-get nil "DATE_TREE")
                      (progn
+                       (setq anchor-line line)
                        (when todo
                          (report 'error line
                                  "the :DATE_TREE: anchor carries TODO keyword %s: %s"
@@ -10520,6 +10535,8 @@ year/month scaffolding and its day node: %s" level title))
                          (report 'error line
                                  "the :DATE_TREE: anchor carries :ID:: %s" title)))
                    ;; An ordinary level-1 task.
+                   (when (and anchor-line (null after-anchor))
+                     (setq after-anchor (cons line title)))
                    (unless id
                      (report 'error line "level-1 task has no :ID:: %s" title))
                    ;; `warn', matching what a deeper heading gets. A
@@ -10760,6 +10777,19 @@ unfinished member (%s) -- a done, cancelled or deferred member must not block: %
                 (report 'error (line-number-at-pos)
                         "plan link points at a missing file: %s"
                         (match-string 1))))))
+          ;; The anchor must be the file's final level-1 heading.
+          ;; `error' rather than `warn': the correct state is computable
+          ;; and `claude-code-ide-org-sort-by-created' restores it without
+          ;; asking, so a violation is never a judgement call. It fires
+          ;; when the file has not been sorted since a heading was added,
+          ;; and it is the whole guard on the anchor's position being
+          ;; implicit.
+          (when (and anchor-line after-anchor)
+            (report 'error (car after-anchor)
+                    (concat "level-1 heading after the :DATE_TREE: anchor "
+                            "(anchor is at line %d) -- run "
+                            "claude-code-ide-org-sort-by-created: %s")
+                    anchor-line (cdr after-anchor)))
           (setq findings
                 (append (reverse (claude-code-ide-org--lint-org-native name))
                         findings))))
@@ -11091,6 +11121,73 @@ back to anything -- see this section's header."
             (when (or (null latest) (time-less-p latest time))
               (setq latest time))))))
     latest))
+
+(defun claude-code-ide-org-sort-by-created (&optional file dry-run)
+  "Sort FILE's level-1 headings by :CREATED:, newest first.
+
+One call, and org owns the comparator: `?R\' is \"by the value of a
+property, reversed\", and PROPERTY takes CREATED directly -- no
+getkey-func, no custom compare.  It became a one-operation job when the
+level-1 category tier was retired; before that it would have meant nine
+separate sorts with no ordering between them (TODO.org :ID: 5f1068f9).
+
+*The datetree anchor needs no special handling, and that was measured
+rather than assumed.*  `* Review and planning\' is the only level-1
+heading in this corpus without a :CREATED:, and org places an undated
+entry *last* under `?R\', on its own, with subtrees travelling intact.
+So the anchor ends up where it belongs by absence.
+
+That it is last by an *absence* is the one real objection to this
+approach, and it is answered by a check rather than by data:
+`bin/lint-org\' asserts the :DATE_TREE: anchor is the final level-1
+heading.  Inventing a sentinel :CREATED: for it would put a fabricated
+timestamp in a file whose whole value is that its timestamps are
+trustworthy -- the shape :ID: 7771fc63 retired.
+
+*Point must be before the first heading* or org signals \"Nothing to
+sort\"; FILE satisfies that only because of its `#+\' header lines,
+which is worth knowing before writing a fixture without them.
+
+Belongs *after* archiving in the ceremony, for the same reason archiving
+goes last: sorting first would order rows that are about to be removed.
+Idempotent and cheap once sorted, so it can be a step rather than
+something to remember.  Returns a summary string."
+  (interactive)
+  (let* ((file (or file (claude-code-ide-org--capture-target-file)))
+         (before nil) (after nil))
+    (with-current-buffer (find-file-noselect file)
+      (let ((buffer-read-only nil))
+        (org-with-wide-buffer
+         (setq before (claude-code-ide-org--level-1-order))
+         (unless dry-run
+           (goto-char (point-min))
+           (org-sort-entries nil ?R nil nil "CREATED")
+           (setq after (claude-code-ide-org--level-1-order)))))
+      (when (and (not dry-run) (buffer-modified-p)) (save-buffer)))
+    ;; Counted by *position*, not by set difference. Sorting never
+    ;; changes which headings are present, so `seq-difference' is always
+    ;; empty and the report said "0 reordered" after a 9290-line
+    ;; reordering -- a number that looked like a successful no-op.
+    (let ((moved (unless dry-run
+                   (let ((n 0))
+                     (dotimes (i (length before))
+                       (unless (equal (nth i before) (nth i after))
+                         (setq n (1+ n))))
+                     n))))
+      (format "%s: %d level-1 heading(s)%s.%s"
+              (file-name-nondirectory file) (length before)
+              (if dry-run "" (format ", %d moved" moved))
+              (if dry-run "  [dry run -- nothing written]" "")))))
+
+(defun claude-code-ide-org--level-1-order ()
+  "The current buffer's level-1 heading titles, in file order."
+  (let (titles)
+    (org-map-entries
+     (lambda ()
+       (when (= (org-current-level) 1)
+         (push (org-no-properties (org-get-heading t t t t)) titles)))
+     nil nil)
+    (nreverse titles)))
 
 (defun claude-code-ide-org--git-close-time (heading-line)
   "The commit time that first introduced HEADING-LINE, or nil.
