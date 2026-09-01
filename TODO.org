@@ -2,11 +2,47 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
+* TODO bin/lint-org does not detect a duplicate :ID: across TODO.org and DONE.org :code:
+:PROPERTIES:
+:ID:       39039bb6-c70a-4ba9-8b37-edd8dd6921f6
+:CREATED:  [2026-09-01 Tue 08:19]
+:CATEGORY: Dev
+:END:
+
+*Found 2026-09-01, by a corruption surviving every commit-time check.* A partially-applied archive left [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]] as a heading in *both* TODO.org and DONE.org ([[id:13ea6770-88ba-484d-87bd-2d20c44dc610][13ea6770]]), and =bin/lint-org= reported *0 errors* throughout — across several runs and a =.githooks/pre-commit= gate.
+
+*Why this is a gap rather than an omission.* An =:ID:= is the primary key of this entire system: [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] made prefixes resolvable precisely so ids could be referenced everywhere, and =--id-find= resolves a prefix by scanning for a *unique* match. A duplicate id therefore does not merely offend tidiness — it makes resolution *ambiguous*, and every tool that takes an id can silently act on the wrong copy. The prefix expander already has an =ambiguous= answer for the case where two ids share a prefix; it has nothing for two headings sharing an id outright.
+
+*It was caught, but by the wrong thing and too late.* The archive's own post-condition reported =Archived 20, but 1 id(s) now appear twice in DONE.org=. That guard fires *after* writing and does not roll back, so it documents a corruption rather than preventing one. A lint rule runs before every commit and would have refused it.
+
+*Cheap, and the scan already exists.* =claude-code-ide-org--lint-heading-ids= already walks every heading in every file collecting ids — the duplicate check is a =seq-group-by= over what it has in hand rather than new traversal.
+
+*Error rather than warning, on this project's own test:* the correct state is computable and a duplicate is never a judgement call. Worth reporting *both* locations, since "id X is duplicated" without saying where sends the reader grepping — the failure [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] is about.
+
+*One question to settle while building it:* whether an =:ID:= appearing in an =:ARCHIVE_OLPATH:=-style property or in body prose should count. It should not — only heading =:ID:= properties are keys — but the scan must be written to distinguish them, and a naive =grep '^:ID:'= over file text would already be right for the wrong reason.
+
 * TODO The ceremony steps do not bind inhibit-read-only, so the sweep dies on the guard :code:
 :PROPERTIES:
 :ID:       13ea6770-88ba-484d-87bd-2d20c44dc610
 :CREATED:  [2026-09-01 Tue 07:08]
 :END:
+
+*Two distinct failures, one ceremony, and the second only appeared once the first was fixed. Both shipped 2026-09-01.*
+
+*First: the read-only guard.* =archive-finished= was the only one of the three steps with no binding — its siblings use =(let ((buffer-read-only nil)) ...)=, which an initial grep for =inhibit-read-only= missed, so the first reading that "two are latently broken" was wrong. It binds =inhibit-read-only= rather than the siblings' mechanism, and that difference is load-bearing: they touch one buffer, while =org-archive-subtree= writes the *target* file too, so a buffer-local binding on the source would leave DONE.org guarded and fail halfway.
+
+*The failure was not clean, which is the sharper finding.* =org-archive-subtree= copies to the target and *then* deletes from the source. A read-only source means the copy lands and the delete does not, so the 07:06 run left [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]] as a heading in *both files*. A partially-applied archive, not a refused one.
+
+*=bin/lint-org= does not detect a cross-file duplicate =:ID:=.* It reported *0 errors* the whole time the corpus held one. The archive's own post-condition caught it — reporting =Archived 20, but 1 id(s) now appear twice= — but only *after* writing, and it does not roll back. So the duplicate was found by a guard that fires too late, and missed entirely by the check that runs on every commit.
+
+*Second: a fresh-session-only load-order bug.* With the binding in place the step reported =Defining as dynamic an already lexical var: org-archive-reversed-order=. =archive-finished= =let=-binds that variable without requiring =org-archive= first; under lexical binding, binding a symbol org-archive has not yet =defvar='d makes it *lexical*, and loading org-archive afterwards signals. Two other call sites in this file already require it.
+
+*It hid because a long-running Emacs has org-archive loaded from any earlier archive.* It works there and fails on the first ceremony after a restart — which is exactly when the ceremony is most likely to run. Confirmed directly rather than inferred: =(featurep 'org-archive)= was =nil= immediately after the reload that fixed it.
+
+*And =bin/test= cannot discriminate it.* The suite passed identically before and after, because the batch environment's load order differs from the live one. The verification of record here is the live run, which is the case [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] should probably absorb: a green suite that is *structurally incapable* of seeing the defect.
+
+*Verified end to end.* The duplicate was repaired first — the archived copy confirmed byte-identical apart from its =ARCHIVE_*= properties, then the TODO.org copy removed, 98 to 97 top-level headings, 44 lines out and none in. The ceremony then reported =drawers: ok; spacing: ok; archived: 19; repeater: advanced=. TODO.org went 97 to 78 top-level with *zero* finished headings remaining, and =:ID:= totals were conserved at *328* across both files — 20 ids moved as 19 subtrees, one carrying a child. 491 tests, lint 0 errors.
+
 
 
 * TODO The running Emacs can be running a stale config.el and nothing says so :code:
@@ -385,6 +421,17 @@ Apply is human-only because org's native state-change logging completes only ins
 *Two defects surfaced by running it*, both fixed here: =#+ARCHIVE:= is parsed once at buffer creation and never re-parsed, so the first live pass archived under the retired =* Done= while the directive on screen read the new one; and a pass reported 65 while writing 66, which is guarded by a post-condition and filed unexplained as [[id:381ea07d-633f-4640-abbb-89472a07acba][381ea07d]].
 
 *Why =REVIEW= and not =DONE=.* Every ceremony run this session was invoked by hand. The =quit-window= advice has never fired on its own, and it cannot be made to before [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] next comes due, because apply is human-only by design. Nothing is owed from this side; what is left is the user seeing it fire, or not, and saying so.
+
+*Judged 2026-09-01: the trigger fires. This heading's open question is answered, and answered by observation rather than argument.*
+
+*It fired unattended.* The user applied, buried the review buffer, and the =quit-window= advice ran the ceremony with nobody asking it to — which is the one thing that could not be demonstrated before, because apply is human-only and [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] had not come due again. That was the entire reason this sat in =REVIEW= rather than =DONE=.
+
+*Both halves the title names did their job, and the second proved itself immediately by catching a real failure.* The completion report said =archive: FAILED (Buffer is read-only ...)= instead of going silent, and the quiet test correctly *withheld* the stamp and held the repeater, so the next session would be told rather than shown a clean slate. Before this heading, that pass would have looked identical to a successful one from the outside — which was precisely the complaint.
+
+*The failure it caught was real and was worth catching.* It exposed two defects in the sweep, one of them a *partially-applied archive* that left a heading in both files ([[id:13ea6770-88ba-484d-87bd-2d20c44dc610][13ea6770]]). The report is what surfaced it; the four applies that produced 106 unarchived headings on 2026-08-31 said nothing at all.
+
+*So the mechanism is confirmed working under exactly the conditions it was built for* — an unattended run, a genuine failure, an honest report, and a stamp correctly withheld. Closing.
+
 
 
 * TODO [28/38] The code knows more than it says, and asks more than it should :code:
