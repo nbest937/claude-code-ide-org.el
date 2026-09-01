@@ -527,6 +527,22 @@ The same pass carried =[13:13]--[13:48]  writes 0:14 in 3= on [[id:c31b6c76-8ad8
 
 *What [[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]] still contributes*, and it is real: the same histogram feeds both, and the September occurrence has to re-derive it anyway. The overlap is the *scan*, not the *comparison*.
 
+*Checked rather than asserted, 2026-09-01, after the claim "nothing changed how agent time is recorded" was questioned. It was too strong, and the correction sharpens the conclusion rather than softening it.*
+
+*The computation is byte-identical across the slice.* Every function turning guideposts into a duration is unchanged against =main=: =--span-work-runs=, =--apply-idle-floor=, =--aggregate-guideposts=, =--span-turn-seconds=, =--review-apply-clock=, =--format-clock-line=, =--clock-minutes=, =--subtract-intervals=.
+
+*Two things do change what lands, though:*
+
+- =--review-apply-item= gained the =inhibit-read-only= binding, so writes that previously *failed* now succeed. Not hypothetical — an apply on 2026-08-25 reported =Applied 0 item(s); 1 failed= for exactly this reason, and the ceremony hit it again on 2026-09-01.
+- *Auto-marking* ([[id:b6e229c7-3035-4c0e-943b-710a12bfd7d1][b6e229c7]]) means items arrive pre-marked, so one =x= applies more per pass — including items a human would previously have missed or never marked at all.
+
+\(=--review-items-from-queue= also changed, for the stranded-span drop, but those items write nothing by definition.)
+
+*Both push B toward more recorded time, which is precisely the wrong direction for this experiment.* More recorded minutes is not more accurate minutes. A B-over-A increase in totals would be fully explained by fewer failed writes and more items applied, with no bearing on whether any individual figure was ever right — so the one comparison a before/after design makes easy is the one that cannot be interpreted.
+
+*Same conclusion by a second route:* the question is "were these minutes real", and only an instrument outside the clock system answers it.
+
+
 
 
 * TODO An Emacs outage strands every org write, because the tools are Emacs :code:
