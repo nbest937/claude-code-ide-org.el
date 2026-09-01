@@ -5359,6 +5359,7 @@ CLOCK: [2026-08-21 Fri 11:02]--[2026-08-21 Fri 11:03] =>  0:01
 - [2026-08-24 Mon 12:17]--[2026-08-24 Mon 12:26] assigned at review
 - [2026-08-24 Mon 12:39]--[2026-08-24 Mon 12:46] assigned at review
 :END:
+:PLAN:
 
 Proposed by the user 2026-08-10: a standing pseudo-task to clock against
 for grooming, capturing, "what's next" review, and similar activity that
@@ -5422,6 +5423,7 @@ assignment, rather than requiring anyone to clock into a standing task
 in advance. If that lands, this stops being a mechanism to remember and
 becomes a convenient assignment target.
 
+:END:
 *Decided 2026-08-21, in conversation with the user, and scoped into five children.*
 
 The standing pseudo-task becomes a *datetree*: one node per day under a
