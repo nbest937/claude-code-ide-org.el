@@ -4411,6 +4411,29 @@ re-ran it."/ Same trap, one knob over.
 Keep the =+1m= repeater and the parentless placement — the reasoning
 recorded above still holds, and applies to the floors identically.
 
+*Interim observation 2026-09-01, twelve days before the scheduled occurrence and deliberately not one.* Prompted by the user asking whether the 1200s figure had drifted. It has, and the headline is the one this body said to look for.
+
+*The empty band has closed.* The August survey's central finding was that no gap anywhere in the corpus fell between *1061s and 2070s* — a hole that made every value inside it produce an identical reconstruction, which is what justified picking 1200. Against the corpus as it stands there are *43 gaps inside that band*.
+
+*The corpus is now large enough that this is not sampling noise.*
+
+| | Aug 2026 survey | 2026-09-01 |
+|--------------------------+-----------------+------------|
+| distinct days | 4 | *22* (2026-08-07 .. 09-01) |
+| queue events | 422 | *2735* |
+| =pause= -> =resume= gaps | 150 | *867* |
+| =resume= -> =pause= runs | 111 | *886* |
+| gap median | 181s | *232s* |
+
+So the band was an artifact of four days, exactly as this body allowed for — /"n=150 gaps, four days, one person, during an unusually intense stretch of work on this very project. The band may be an artifact of that."/ It was. The prediction and the refutation are both recorded here, which is the value of having written the caveat down.
+
+*What this does and does not change.* 1200s is no longer a round number inside a hole; it is an arbitrary point on a continuum. But since =226ed53b= the gap threshold governs only *grouping and display*, so an arbitrary value there costs legibility rather than accuracy — which is why the retarget note above still stands and the floors remain the live question.
+
+*Explicitly not the scheduled run.* This is a histogram check on one statistic. It is not the sweep: no span-count-versus-threshold curve, no re-derivation for =span-idle-floor=, no percentage-of-recorded-time figure for the floors. The occurrence on =<2026-09-13 Sun>= should still do all of that, and should now expect to *move* 1200 rather than confirm it.
+
+*A third question the September run should absorb, from the user's framing 2026-09-01.* The floors are tuned to keep the human's idle *out* of the agent's clock, which is right for per-heading attribution and backwards for the ratio of human time to agent time that the user is actually curious about ([[id:20cecd53-2338-4237-ab06-f8129e10a2c8][20cecd53]]). Measured on one session that day: of ~90 minutes of plausible at-keyboard gap time, 3 minutes were credited to the agent and 87 recorded nowhere. The same histogram answers both questions; only the threshold's *purpose* differs. Re-deriving without asking what the gaps say about the human would waste the pass.
+
+
 
 * TODO Let a session interject without waiting: advisory locks, or extend the queue to capture/amend :code:
 :PROPERTIES:
