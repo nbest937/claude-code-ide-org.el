@@ -5360,128 +5360,112 @@ CLOCK: [2026-08-21 Fri 11:02]--[2026-08-21 Fri 11:03] =>  0:01
 - [2026-08-24 Mon 12:39]--[2026-08-24 Mon 12:46] assigned at review
 :END:
 
-Proposed by the user 2026-08-10: a standing pseudo-task to clock
-against for grooming, capturing, "what's next" review, and similar
-activity that is real work but belongs to no single tracked task.
-Captured as TODO on a recommendation, not as a settled decision.
+Proposed by the user 2026-08-10: a standing pseudo-task to clock against
+for grooming, capturing, "what's next" review, and similar activity that
+is real work but belongs to no single tracked task. Captured as TODO on
+a recommendation, not as a settled decision.
 
-*The concrete argument for it, from this session's own data.* Of the
-first ten events in this session's queue, *eight* were =pause=/=resume=
-guideposts that reduced to nothing at review time. Guideposts carry no
-heading; they inherit whichever one the surrounding
-=clock_in=/=clock_out= last named, so guideposts recorded while no clock
-is open are unattributable and silently dropped. Meta-work is precisely
-when no clock is open. So today that time is not merely misattributed --
-it is invisible, which is in direct tension with this project's second
-stated goal of trustworthy tracking of where attention actually went.
-
-A standing task, clocked during that work, gives those guideposts a
-bracket to attach to. Nothing else has to change for it to work.
+*The concrete argument, from that session's own data.* Of the first ten
+events in its queue, *eight* were =pause=/=resume= guideposts that
+reduced to nothing at review. Guideposts carry no heading; they inherit
+whichever one the surrounding =clock_in=/=clock_out= last named, so
+guideposts recorded while no clock is open are unattributable and
+silently dropped. Meta-work is precisely when no clock is open — so that
+time is not merely misattributed, it is invisible, in direct tension
+with this project's second stated goal.
 
 *Check org's own mechanism first, per
 [[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]].* Org already has
-a name for this concept: =org-clock-default-task=, set with
-=org-clock-mark-default-task=, a designated fallback task you can clock
-into directly. This should almost certainly use that rather than invent
-a parallel convention -- exactly the reflex c084553c exists to enforce.
+a name for the concept: =org-clock-default-task=, set with
+=org-clock-mark-default-task=.
 
-*Two real risks, neither disqualifying:*
-- *The dumping-ground failure.* If ambiguous time drifts here by
-  default, the record gets *less* informative, not more -- a large
-  bucket labelled "misc" answers no question worth asking. Scope it to
-  genuinely cross-cutting work, and treat the review pass as the place
-  to re-attribute a span that turned out to be about one task.
-- *It never reaches DONE.* A permanent open task sits in a sibling group
-  alongside the single-NEXT-per-level triggers
-  (=--trigger-auto-promote-sole-todo=,
-  =--trigger-demote-conflicting-next=). Check how those behave with a
-  sibling that is deliberately never finished before relying on it. It
-  also never archives, so its =:LOGBOOK:= grows without bound -- probably
-  fine for a pure time record, but it is a decision, not an oversight.
+*Two risks were recorded, neither disqualifying.* The *dumping-ground*
+failure — a large bucket labelled "misc" answers no question worth
+asking, so it must be scoped to genuinely cross-cutting work. And it
+*never reaches DONE*: a permanently open task sits among siblings
+governed by the single-=NEXT= triggers, and it never archives, so its
+=:LOGBOOK:= grows without bound. Probably fine for a pure time record,
+but a decision rather than an oversight.
 
-Independent of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] and
-useful either way: attribution is resolved from queued
-=clock_in=/=clock_out= events both before and after the cutover, so the
-bracket does the same job in both worlds.
+*Refined 2026-08-10, and the refinement narrows what this is for.* The
+user proposed the general principle: grooming, defining, amending and
+adjusting a future task is *activity on that task*, and should be
+clocked against it, leaving its TODO state untouched. Never stated
+anywhere, though nothing forbade it — CLAUDE.md's rules say a transition
+*to* =DOING= opens a clock and one *from* it closes one, never the
+converse, so clocking a =TODO= heading was always legal by the letter
+and simply undescribed. Confirmed safe the same day:
+=org-clock-in-switch-to-state= is nil here, and this heading's own
+editorial session was clocked against
+[[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] while that heading
+stayed literally =TODO=.
 
+Attribution is then exact where it applies — time spent working out what
+a task should be lands on that task, next to the reasoning it produced.
+A catch-all could answer "how much meta-work happened" but never "which
+task was I circling." *So the two are complementary and this heading
+shrinks to the residue:* work belonging to no single task — backlog-wide
+"what's next?" surveys, cross-cutting review, triage before a task
+exists to attach to. Smaller than the original framing assumed, which
+also blunts the dumping-ground risk: anything reaching the catch-all is
+there because it truly has no home.
 
-*Refined 2026-08-10, and it narrows what this heading is for.* The user
-proposed the general principle: grooming, defining, amending and
-adjusting a future task is *activity on that task*, and should be clocked
-against it — leaving its TODO state untouched. Recorded here because it
-answers most of what a catch-all was being considered for.
+*Consequence accepted deliberately:* a =TODO= heading can accrue real
+clock time without ever having been =DOING=. Correct — deciding what a
+task is *is* work — but "time spent" and "was worked on" stop being the
+same question, and any future reporting must keep them apart.
 
-*This was never stated anywhere, though nothing forbade it.* CLAUDE.md's
-transition rules say a transition *to* =DOING= opens a clock and one
-*from* =DOING= closes it. They never say the converse — that a running
-clock implies =DOING= — so clocking a =TODO= heading has always been
-legal by the letter and simply undescribed. Confirmed safe in practice
-the same day: =org-clock-in-switch-to-state= is nil here, so clocking in
-does not touch the keyword, and this heading's own editorial session was
-clocked against =02aaae22= while it stayed literally =TODO=.
+*Alternative captured 2026-08-11, narrowing this further:*
+[[id:3d0487f4-b8f8-451c-88bf-ab537663cbd0][3d0487f4]] proposes that the
+review buffer surface unattributed guideposts for retrospective
+assignment, rather than requiring anyone to clock into a standing task
+in advance. If that lands, this stops being a mechanism to remember and
+becomes a convenient assignment target.
 
-*Why it is better than a bucket, where it applies.* Attribution is exact:
-time spent working out what a task should be lands on that task, next to
-the reasoning it produced, and shows up in any report scoped to it.
-A catch-all would answer "how much meta-work happened" but never "which
-task was I circling."
+*Decided 2026-08-21, in conversation with the user, and scoped into five children.*
 
-*So the two are complementary, and this heading shrinks to the residue:*
-work that genuinely belongs to no single task — "what's next?" surveys
-across the whole backlog, cross-cutting review, triage before a task
-exists to attach to. That residue is real but much smaller than the
-original framing assumed, which also blunts the dumping-ground risk noted
-above: with per-task grooming as the default, anything reaching the
-catch-all is there because it truly has no home.
+The standing pseudo-task becomes a *datetree*: one node per day under a
+=Review and planning= category, clocked against directly rather than
+captured beneath.
 
-*Consequence worth accepting deliberately:* a =TODO= heading can now
-accrue real clock time without ever having been =DOING=. That is correct
-— deciding what a task is *is* work — but it means "time spent" and
-"was worked on" stop being the same question, and any future reporting
-needs to keep them apart.
+*The day node answers this heading's own unbounded-=:LOGBOOK:= risk* by
+construction — it is bounded, and the year rolls into DONE.org on the
+existing =:ARCHIVE:= route, so the unbounded case never arises.
 
-*Needs a rule in CLAUDE.md* under "State transition rules", stating that
-a clock may run on a heading in any state, and that grooming attaches to
-the task being groomed. Distinct from
-[[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]], which is scoped to
-documenting the post-cutover architecture; this is a general convention
-that holds regardless of the refactor's fate.
+*The dumping-ground risk gets one concrete guard:* the day node carries
+*no TODO keyword*, so =claude-code-ide-org--review-suggest-heading= will
+never propose it, and after
+[[id:62c6b1be-4e3c-4ea1-9f0c-19ee70be0e1e][62c6b1be]] it would refuse a
+grouping anyway. Every span landing there costs a deliberate =a= at
+review: a place time is *assigned* to, not one it *falls* into.
 
+*Creation is on demand, not scheduled.* The user asked whether a cron
+job or a recurrence should create the node; measured against three
+consequences — empty nodes on non-working days, a stored id that can go
+stale, and a scheduler failure that announces nothing — the answer was
+neither. See [[id:9575e65b-b589-465a-830c-286541780f96][9575e65b]]. The
+daily =SCHEDULED: <... +1d>= repeater is kept for the *ritual*: it
+reminds, it does not create.
 
-*Alternative captured 2026-08-11, and it narrows this heading further:*
-[[id:3d0487f4-b8f8-451c-88bf-ab537663cbd0][3d0487f4]] proposes that the review buffer
-surface unattributed guideposts and let the human assign them to a
-heading retrospectively, rather than requiring anyone to clock into a
-standing task in advance. If that lands, this heading is no longer a
-mechanism to remember — it is just a convenient assignment target for
-spans that genuinely belong to no task.
+*One draft was falsified along the way*
+([[id:25ec37b0-460f-404d-be83-8a4b4d355cdc][25ec37b0]]): the outline
+path in =file+olp+datetree= does not nest the tree — nesting comes from
+a =:DATE_TREE:= property. Worth knowing before writing the capture
+template from the template name alone, which is how the first draft went
+wrong.
 
-*Decided 2026-08-21, in conversation with the user, and now scoped into five children.* The standing pseudo-task above becomes a *datetree*: one node per day under a =Review and planning= category, clocked against directly rather than captured beneath.
+*Correction [2026-08-27 Thu]: a paragraph claiming =org-clock-default-task= was "adopted … now wired rather than merely noted" was wrong,* and contradicted its own next sentence, which said Claude cannot use it at all because every clock call goes through =org_clock_in= with an =:ID:=. [[id:6ae83993-906c-4d8b-b11e-c91be8996962][6ae83993]] states the fact: *zero references to =clock-default-task= across =modules/= and the Doom config.* It has never been wired.
 
-*The daily node answers this heading's own recorded risk.* It warned that a permanent open task "never archives, so its =:LOGBOOK:= grows without bound -- probably fine for a pure time record, but it is a decision, not an oversight." A day node is bounded by construction and the year rolls into DONE.org on the existing =:ARCHIVE:= route, so the unbounded case never arises.
+*What actually shipped is ours, not org's:* =claude-code-ide-org--ensure-day-node= plus =org_clock_in= accepting the *category title* in place of an =:ID:=, resolving today's node on demand and filing the interval against it. That is why allocation works today and has for days — the user noticed exactly this and asked.
 
-*The dumping-ground risk is unchanged and gets one concrete guard:* the day node carries *no TODO keyword*, so =claude-code-ide-org--review-suggest-heading= will never propose it -- and after [[id:62c6b1be-4e3c-4ea1-9f0c-19ee70be0e1e][62c6b1be]] it would refuse a container anyway. Every span that lands there costs a deliberate =a= at review. That keeps this a place time is *assigned* to, not a place it *falls*.
+*So the check-org-first item was closed against the wrong evidence.* Org did have a name for the concept, which is what the item asked. It does not follow that we used it, and the body recorded the first as though it settled the second. Being right about the search and wrong about the outcome is the more dangerous shape, because it reads as diligence.
 
-*=org-clock-default-task= is adopted*, closing the check-org-first item this heading raised: org already had a name for the concept and it is now wired rather than merely noted. Its limit is worth stating plainly -- it is a live-Emacs convenience for the human, and Claude cannot use it at all, since every clock call here goes through =org_clock_in= with an =:ID:=.
+*What =org-clock-default-task= would still buy, narrowly:* the *human*, in Emacs, clocking meta-work with =C-u C-u C-c C-x C-i= without navigating to today's node. Nothing for Claude, nothing for the queue. 6ae83993 stays open on those terms. And the interval it would produce is inactive, necessarily — measured 2026-08-27, =org-clock-in= writes =CLOCK: [ts]--[ts]= and org has no active variant of a CLOCK line at all; the distinction this project cares about lives on the *annotation* line beneath, so what marks such an interval as the human's own is the annotation's *absence* ([[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]]).
 
-*Creation is on demand, not scheduled.* The user asked whether a cron job or a recurrence should create the node; measured against three consequences -- empty nodes on non-working days, a stored id that can go stale, and a scheduler failure that announces nothing -- the answer was neither. See [[id:9575e65b-b589-465a-830c-286541780f96][9575e65b]].
+*Two further corrections, 2026-09-01, both found by checking rather than recalling.*
 
-*The repeater is kept, for the ritual and not the mechanism.* A daily =SCHEDULED: <... +1d>= prompt to actually do review and planning, which is what the original scrum-ish framing was reaching for. It reminds; it does not create.
-
-*One draft was falsified along the way and the finding is in [[id:25ec37b0-460f-404d-be83-8a4b4d355cdc][25ec37b0]]:* the outline path in =file+olp+datetree= does not nest the tree. Nesting comes from a =:DATE_TREE:= property. Worth knowing before anyone writes the capture template from the template name alone, which is exactly how the first draft went wrong.
-
-*Correction [2026-08-27 Thu]: "=org-clock-default-task= is adopted … now wired rather than merely noted" is wrong, and contradicts its own next sentence.*
-
-That paragraph says in one breath that org's variable is wired, and then that "Claude cannot use it at all, since every clock call here goes through =org_clock_in= with an =:ID:=". Both cannot be true of a mechanism that is doing the work. [[id:6ae83993-906c-4d8b-b11e-c91be8996962][6ae83993]] states the fact plainly: *zero references to =clock-default-task= across =modules/= and the Doom config.* It has never been wired.
-
-*What actually shipped is ours, not org's.* Meta-work time is allocated by =claude-code-ide-org--ensure-day-node= plus =org_clock_in= accepting the *category title* in place of an =:ID:=, resolving today's day node on demand and filing the interval against it. That is why the allocation works today and has for days -- the user noticed exactly this and asked.
-
-*So the check-org-first item this heading raised was closed against the wrong evidence.* Org did have a name for the concept, which is what the item asked. It does not follow that we used it, and the body recorded the first as though it settled the second. Being right about the search and wrong about the outcome is the more dangerous shape, because it reads as diligence.
-
-*What =org-clock-default-task= would still buy, narrowly.* One thing: the *human*, in Emacs, clocking meta-work with =C-u C-u C-c C-x C-i= without navigating to today's node first. Nothing for Claude, nothing for the queue. [[id:6ae83993-906c-4d8b-b11e-c91be8996962][6ae83993]] remains open on those terms and should be judged on them rather than on "org has a name for it" -- a reason this session has now watched fail eight times in two days.
-
-*And the interval it would produce is inactive, necessarily.* Measured 2026-08-27: =org-clock-in= writes =CLOCK: [ts]--[ts]= and org has no active variant of a CLOCK line at all. The active/inactive distinction this project cares about lives on the *annotation* line beneath, never on the CLOCK line -- so what marks such an interval as the human's own is the *absence* of an annotation, which is what [[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] and =:ID:= b8e6007a (DONE.org) already say.
-
+- The never-reaches-DONE risk above named =--trigger-auto-promote-sole-todo= as one of the triggers it would sit among. That trigger was *retired* — 163 lines removed, along with its three guards — and only test comments still mention it. =--trigger-demote-conflicting-next= survives and is the only one left that a permanently open sibling could interact with.
+- *The rule this heading asked for was never written.* It called for a line in CLAUDE.md under "State transition rules" stating that a clock may run on a heading in any state, and that grooming attaches to the task being groomed. Neither CLAUDE.md nor =.claude/rules/org-conventions.md= says so today. The convention is in force and undocumented, which is the condition this heading was raised to end.
 
 ** TODO Teach org_capture to target a datetree, with an addressable day node :code:
 :PROPERTIES:
