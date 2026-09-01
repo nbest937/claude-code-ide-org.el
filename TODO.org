@@ -4878,142 +4878,131 @@ would be nothing left that needs to write immediately.
 
 *This one actually happened, deliberately, as a resilience test.* On
 2026-08-12 two sessions ran against this same checkout. This session
-wrote a heading to TODO.org, staged it with an explicit pathspec
-(=git add -- TODO.org=), and went to commit. The commit failed with
-=nothing to commit, working tree clean=: the other session had already
-committed, and its pathspec-less =git commit= took the whole index,
-sweeping this session's 69 staged lines into
-=a8dc693 "Review-buffer interaction fixes ..."= — a commit whose
-message describes unrelated work and names two unrelated heading
-=:ID:=s. Content survived; attribution did not. =36410e2= is an empty
-commit recording that, since =a8dc693= was already pushed and
-rewriting a pushed commit under a live concurrent session is worse
-than the mislabelling.
+wrote a heading to TODO.org, staged it with an explicit pathspec (=git
+add -- TODO.org=), and went to commit. The commit failed with =nothing
+to commit, working tree clean=: the other session had already committed,
+and its pathspec-less =git commit= took the whole index, sweeping this
+session's 69 staged lines into =a8dc693=, a commit whose message
+describes unrelated work and names two unrelated heading =:ID:=s.
+Content survived; attribution did not. =36410e2= is an empty commit
+recording that, since =a8dc693= was already pushed.
 
 *The mechanism is the index, not the files.* Every convention this
-project already has is about file contents — check for a modified
-buffer, stage explicitly, never =git add -A=. None of them touch the
-actual shared mutable state, which is =.git/index=: one per checkout,
-not one per session. Worse, following the convention *increased* the
-damage. Staging early loaded this session's work into the index
-*before* the other session committed; a pathspec-less =git commit= then
-picked it up automatically. Had this session not staged at all, its
-work would have been left alone.
+project had was about file contents — check for a modified buffer, stage
+explicitly, never =git add -A=. None touch the actual shared mutable
+state, which is =.git/index=: one per checkout, not one per session.
+Worse, following the convention *increased* the damage — staging early
+loaded this session's work into the index *before* the other session
+committed. Had this session not staged at all, its work would have been
+left alone.
 
-*Not covered by the existing worktree heading, and this is the load-
-bearing part.*
-[[id:2e09adb7-6e29-499c-a40e-98cd2b327cff][2e09adb7]] concludes that
-worktrees handle the *code* side — "one checkout + branch per session,
-no shared-file collisions" — and that only the org files need to stay a
-single canonical copy in the main checkout. Read against this incident
-those two halves collide: the file that got swept up *was* TODO.org,
-which by that heading's own =:ID:=-uniqueness and clock-fragmentation
-argument is exactly the file that *cannot* be partitioned into a
-worktree. So a worktree session must still write and commit TODO.org
-in the main checkout, through the main checkout's index, and hits this
-identically. *Worktrees do not fix this scenario; they fix everything
-around it.* That is new information for 2e09adb7, which assumed the
-code side was the whole problem.
+*Worktrees do not fix this; they fix everything around it.*
+[[id:2e09adb7-6e29-499c-a40e-98cd2b327cff][2e09adb7]] concludes that one
+checkout and branch per session handles the *code* side, and that only
+the org files need to stay a single canonical copy in the main checkout.
+Read against this incident the two halves collide: the file swept up
+*was* TODO.org, which by that heading's own =:ID:=-uniqueness and
+clock-fragmentation argument is exactly the file that cannot be
+partitioned into a worktree. So a worktree session still commits
+TODO.org through the main checkout's index and hits this identically.
+New information for 2e09adb7, which assumed the code side was the whole
+problem.
 
 *Related but distinct:*
-[[id:3cb3f955-f10a-47cd-84ab-e629d73ea59d][3cb3f955]] already asks
-whether =git commit -- TODO.org= is "safe," but scoped to a *single*
-session not sweeping up its own unrelated hunks in the same file. This
-heading is the cross-session case: another session's *staged* work, in
-any file. Same command, different failure. Worth answering together.
+[[id:3cb3f955-f10a-47cd-84ab-e629d73ea59d][3cb3f955]] asks whether =git
+commit -- TODO.org= is safe, scoped to a *single* session not sweeping
+up its own unrelated hunks in one file. This is the cross-session case:
+another session's *staged* work, in any file. Same command, different
+failure. Worth answering together.
 
-*One mitigation is already verified.* Tested 2026-08-12 in a scratch
-repo: with =A.txt= staged, =git commit -- B.txt= commits B only, leaves
-A staged, and does not commit A. So a pathspec-scoped commit is
-genuinely safe for the *other* session's work. The catch is that it
-constrains the wrong party — safety depends on the *committing* session
-complying, and the session at risk has no way to enforce it.
+*One mitigation is verified.* Tested 2026-08-12 in a scratch repo: with
+=A.txt= staged, =git commit -- B.txt= commits B only, leaves A staged,
+and does not commit A. So a pathspec-scoped commit is genuinely safe for
+the *other* session's work. The catch is that it constrains the wrong
+party — safety depends on the *committing* session complying, and the
+session at risk cannot enforce it.
 
-*Caveat found while defining the hook below:* =git commit -- <paths>=
-*fails on an untracked file* — =error: pathspec 'NEW.txt' did not match
-any file(s) known to git=. A new file must be =git add=-ed first, and
-only then can be committed by pathspec. So for brand-new content (a new
-plan, a new script) the staging window this mitigation exists to avoid
-is unavoidable, and exposure persists between the add and the commit.
-The mitigation is complete only for already-tracked files — which is
-where this incident happened, TODO.org being tracked.
+*Caveat found while defining the hook:* =git commit -- <paths>= *fails
+on an untracked file* (=pathspec 'NEW.txt' did not match any file(s)
+known to git=). A new file must be =git add=-ed first, so for brand-new
+content the staging window this mitigation exists to avoid is
+unavoidable. The mitigation is complete only for already-tracked files —
+which is where this incident happened, TODO.org being tracked.
 
-*Options for something robust, none chosen:*
-- *Convention only:* ban =git add= outright in favour of
-  =git commit -- <paths>=, in CLAUDE.md and the org skill. Cheapest,
-  verified to work, and binds only sessions that follow it. Given both
-  sessions here are Claude Code reading the same CLAUDE.md, this is
-  less hollow than it sounds — but it is guidance, not a mechanism, and
+*Options, none chosen:*
+- *Convention only:* ban =git add= in favour of =git commit -- <paths>=,
+  in CLAUDE.md and the org skill. Cheapest, verified, and binds only
+  sessions that follow it. Less hollow than it sounds when both sessions
+  are Claude Code reading the same CLAUDE.md — but it is guidance, and
   the user asked for a mechanism.
-- *A =pre-commit= hook* in =.githooks/=. Defined below — the only
-  option here that is a mechanism rather than guidance, and cheaper
-  than first assumed.
+- *A =pre-commit= hook*, defined below. The only option that is a
+  mechanism rather than guidance, and cheaper than first assumed.
 - *Route git writes through the event queue* of
-  [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]. That queue
-  already carries =session_id=/=agent_id= and already exists to stop
-  concurrent sessions from mutating shared state directly, with a human
-  applying batches later. Commits are the same shape of problem. The
-  heaviest option and the most consistent with where the project is
-  already going.
+  [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]], which already
+  carries =session_id=/=agent_id= and exists to stop concurrent sessions
+  mutating shared state directly. Heaviest, and most consistent with
+  where the project is going.
 
 *The =pre-commit= option, defined.* Measured 2026-08-12 in a scratch
 repo with a hook that printed its own environment. =GIT_INDEX_FILE=
 identifies which command form invoked the commit:
 
-| Command                  | =GIT_INDEX_FILE=            | Sweeps a staged file? |
-|--------------------------+-----------------------------+-----------------------|
-| =git commit=             | =.git/index=                | yes                   |
-| =git commit --amend=     | =.git/index=                | yes                   |
-| =git commit -a=          | =.git/index.lock=           | yes                   |
-| =git commit -- <paths>=  | =.git/next-index-<pid>.lock= | no                   |
+| Command                 | =GIT_INDEX_FILE=             | Sweeps a staged file? |
+|-------------------------+------------------------------+-----------------------|
+| =git commit=            | =.git/index=                 | yes                   |
+| =git commit --amend=    | =.git/index=                 | yes                   |
+| =git commit -a=         | =.git/index.lock=            | yes                   |
+| =git commit -- <paths>= | =.git/next-index-<pid>.lock= | no                    |
 
 The hook can read *both* views at once: what the commit will contain
 (=git diff --cached=) and what the real index holds
 (=GIT_INDEX_FILE=$(git rev-parse --git-dir)/index git diff --cached=).
-In the pathspec case those differ exactly as they should — commit
-=B.txt=, real index still =A.txt=. =CLAUDE_CODE_SESSION_ID= also
-propagates into the hook, confirmed by printing it.
+In the pathspec case those differ exactly as they should.
+=CLAUDE_CODE_SESSION_ID= also propagates into the hook, confirmed by
+printing it.
 
 *Proposed rule:* refuse when the form is a whole-index one (basename of
 =GIT_INDEX_FILE= is =index= or =index.lock=) *and* the real index is
 non-empty; fire only when =CLAUDE_CODE_SESSION_ID= is set. That is the
-sweep case and nothing else. =git commit -- <paths>= always passes;
-=git commit -a= against an empty index passes, since no one's work is at
-risk; a human committing from a plain terminal is never affected. The
-message should name the staged paths and print the pathspec form to use
-instead.
+sweep case and nothing else. =git commit -- <paths>= always passes; =git
+commit -a= against an empty index passes; a human committing from a
+plain terminal is never affected. The message should name the staged
+paths and print the pathspec form to use instead.
 
-*This retires the "needs ownership tracking" objection*, which the
-first version of this heading asserted and which is wrong: the command
-*form* is a sufficient discriminator and the safe form is
-self-identifying. Per-session ownership of staged paths would only be
-needed for a more permissive rule ("allow the sweep if everything
-staged is mine"), not worth building first. If it ever is, the
-precedent for where such state lives is
-=claude-code-ide-org-queue-directory= — per-session runtime files,
-deliberately outside the repo.
+*This retires the "needs ownership tracking" objection,* which the first
+version of this heading asserted and which is wrong: the command *form*
+is a sufficient discriminator and the safe form is self-identifying.
+Per-session ownership of staged paths would only be needed for a more
+permissive rule ("allow the sweep if everything staged is mine"). If it
+ever is, the precedent for where such state lives is
+=claude-code-ide-org-queue-directory=.
 
-*Known limitations, all of them accepted rather than solved:*
-- =--amend= is *indistinguishable* from a plain pathspec-less commit —
-  both report =.git/index= — so it gets refused too, absent an escape
-  hatch such as an =ALLOW_SWEEP= environment variable.
-- =--no-verify= bypasses the hook entirely. This makes the mistake loud
-  rather than silent; it does not make it impossible, and it still
-  constrains the committing party rather than protecting the session at
-  risk.
-- Merge/rebase/cherry-pick paths are *untested* — the scratch-repo run
-  errored before reaching them, and they need checking before shipping.
-- Opt-in per clone via =core.hooksPath=, inheriting the same setup
-  caveat =pre-push= already has.
+*Known limitations, accepted rather than solved:* =--amend= is
+indistinguishable from a plain pathspec-less commit — both report
+=.git/index= — so it gets refused too, absent an =ALLOW_SWEEP= escape
+hatch. =--no-verify= bypasses the hook entirely, making the mistake loud
+rather than impossible. Merge/rebase/cherry-pick paths are *untested*;
+the scratch-repo run errored before reaching them. And it is opt-in per
+clone via =core.hooksPath=, inheriting =pre-push='s setup caveat.
 
-*Testing* would follow the existing =bin/*-test= pattern
-(=sync-plans-test=, =queue-append-test=): a scratch repo, each of the
-four command forms, asserting exit status and message.
+*Testing* would follow the existing =bin/*-test= pattern: a scratch
+repo, each of the four command forms, asserting exit status and message.
+
+*Where this stands, 2026-09-01.*
+
+Nothing here has been built, and one premise has moved:
+=.githooks/pre-commit= now *exists* — it lints staged org files — so the
+second option is no longer "add a hook" but "extend one", which removes
+the setup cost it was costed with and puts the sweep guard beside a
+check that already reads the staged set. Checked the same day: neither
+=CLAUDE.md=, the skills, nor =.claude/rules/= mentions the pathspec
+convention, and =GIT_INDEX_FILE= appears nowhere in =.githooks/=. So the
+convention option has not shipped either, in this repo, whatever any
+session's standing instructions say.
 
 *Blocked on this in practice:* the user has stated they will not run a
 second concurrent session until a mechanism is in place, so this gates
 concurrent work generally rather than being one more backlog item.
-
 
 * MAYBE Decide what this module may change on a user's machine when installed :code:
 :PROPERTIES:
