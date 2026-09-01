@@ -33,6 +33,25 @@
 
 *Open, and genuinely undecided:* the window's width and cadence; whether weights are ever aggregated across turns or only shown per turn; and whether the output is stored at all or recomputed on demand. Storing it makes it a record with all of problem 3; recomputing it makes it slow and inconsistent between runs. That trade is the substance of this heading.
 
+*The user proposed a representation 2026-09-01, and it dissolves the objection this body called the biggest one:*
+
+: CLOCK: [12:00]--[12:03] =>  0:03
+: - [12:00]--[12:12] * 0.25
+
+The CLOCK line carries the weighted *share* as a literal interval org can sum; the annotation preserves the true window and the weight it was derived from. 12 minutes × 0.25 = 3.
+
+*Retraction: "org cannot represent a weighted interval" was wrong, and wrong in an interesting way.* It assumed a CLOCK line is a record of observation, so that writing a 3-minute line for a 12-minute window would be fabrication. *The CLOCK lines this project writes are already derived, not observed.* Apply writes one line per =resume= -> =pause= run rather than the span it came from; =--apply-idle-floor= merges across gaps, so a line already covers time when nothing ran; and =--recompute-logbook-text='s own docstring says *"endpoints are rewritten, not just the =>= total"*. The proposal therefore changes *which* derivation produces the endpoints, not whether they are derived. That is a much smaller step than it first appeared.
+
+*It also preserves an invariant it could easily have broken, which is worth noting because it was not obvious.* =--consolidate-logbook-text= sorts every drawer entry by its first timestamp, and a CLOCK line and its annotation stay adjacent *only because they share one*. The proposed pair both begin =[12:00]=, so consolidation keeps them together. The format is compatible as written.
+
+*Two real obstacles remain, and both are mechanical rather than conceptual.*
+
+1. *=--recompute-logbook-text= would destroy these lines.* It replaces each closed CLOCK line at or after =SINCE= with lines derived from *guideposts*, and a weighted share is not derivable from guideposts — so the next recompute silently reverts every weighted line to a busy-interval reconstruction. This needs an explicit opt-out the recompute honours, and the annotation is the obvious carrier.
+2. *Weighted lines overlap by design.* One window attributed 0.25/0.35/0.40 across three headings writes three lines covering the same wall clock. Under weights that is *correct* — the shares sum to 1 and nothing is double-counted — but it collides with machinery that assumes intervals do not overlap, which is [[id:2d100d0d-2d04-43b9-af1e-f4d6b52bbada][2d100d0d]] exactly. Laying the shares end to end instead (12:00-12:03, 12:03-12:09, 12:09-12:12) avoids the collision at the cost of boundaries that are pure fiction, and reintroduces the chopping the weights existed to avoid — as a rendering rather than a claim.
+
+*So the open question moves.* It is no longer "can org hold this" but "which of overlap or fictional boundaries is the lesser evil", and whether the recompute can be taught to leave a marked line alone. Both are answerable; neither is answered here.
+
+
 * TODO AFK markers are ground truth for the one judgement we cannot automate, and we discard them :code:
 :PROPERTIES:
 :ID:       e75d660f-5c0d-4707-a645-b5dea7d7ebc0
