@@ -9864,6 +9864,27 @@ Binds `org-archive-reversed-order' rather than relying on the global,
 unset as of 2026-08-31.  DONE.org reads newest-first, and appending to
 its end would bury a fresh entry under two hundred older ones."
   (let ((file (or file (car (claude-code-ide-org--tracked-files))))
+        ;; Bound for the same reason `claude-code-ide-org-refresh-slice'
+        ;; binds it, and the reason is the ceremony rather than
+        ;; convenience: this runs immediately after apply, triggered by
+        ;; burying the review buffer, so no keystroke is left to prompt
+        ;; on. The user's `buffer-read-only' guards against their own
+        ;; stray keystrokes; pressing `x' and then `q' is the opposite of
+        ;; one.
+        ;;
+        ;; `inhibit-read-only' rather than the `(let ((buffer-read-only
+        ;; nil)) ...)' its two sibling ceremony steps use, and the
+        ;; difference is load-bearing: those touch one buffer, while
+        ;; `org-archive-subtree' writes the *target* file too. A
+        ;; buffer-local binding on the source would leave DONE.org
+        ;; guarded, so the sweep would fail halfway with the source
+        ;; already cut.
+        ;;
+        ;; Hit for real 2026-09-01: the first unattended ceremony
+        ;; reported `archive: FAILED (Buffer is read-only ...)' against a
+        ;; read-only TODO.org, correctly withheld the stamp, and left 20
+        ;; finished headings in place (TODO.org :ID: 13ea6770).
+        (inhibit-read-only t)
         (org-archive-reversed-order t)
         (markers nil) (skipped nil) (n 0))
     (with-current-buffer (find-file-noselect file)

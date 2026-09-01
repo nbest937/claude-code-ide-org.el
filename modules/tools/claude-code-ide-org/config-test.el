@@ -11087,6 +11087,33 @@ this test did on 2026-08-31, caught by the reply assertion alone."
     (should (string-match-p "^\\*\\* TODO Test heading"
                             (claude-code-ide-org-test--disk-contents file)))))
 
+(ert-deftest claude-code-ide-org-test-archive-finished-survives-a-read-only-buffer ()
+  "The ceremony's archive step must not die on the user's own guard.
+
+Hit for real 2026-09-01, on the first ceremony to fire unattended: it
+reported `archive: FAILED (Buffer is read-only ...)\' against a read-only
+TODO.org, correctly withheld the stamp, and left 20 finished headings in
+place (TODO.org :ID: 13ea6770). This runs at the tail of an apply the
+human already authorised by pressing `x\' and then `q\', so there is no
+keystroke left to prompt on.
+
+As everywhere else, the flag is *bound*, so the buffer is still
+read-only afterwards -- an implementation that cleared it would pass the
+archive assertion and disarm the guard."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--set-todo-for-real id "DONE")
+    (let ((claude-code-ide-org-query-files (list file)))
+      (with-current-buffer (find-file-noselect file)
+        (setq buffer-read-only t))
+      (should (= 1 (claude-code-ide-org-archive-finished file)))
+      ;; It left the source, and it reached the archive target.
+      (should-not (string-match-p
+                   "Test heading" (claude-code-ide-org-test--disk-contents file)))
+      (should (string-match-p
+               "Test heading"
+               (claude-code-ide-org-test--disk-contents archive-file)))
+      (should (with-current-buffer (find-file-noselect file) buffer-read-only)))))
+
 (ert-deftest claude-code-ide-org-test-refresh-slice-survives-a-read-only-buffer ()
   "The ceremony step after apply must not fail where apply now succeeds.
 
