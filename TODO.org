@@ -51,6 +51,21 @@ The CLOCK line carries the weighted *share* as a literal interval org can sum; t
 
 *So the open question moves.* It is no longer "can org hold this" but "which of overlap or fictional boundaries is the lesser evil", and whether the recompute can be taught to leave a marked line alone. Both are answerable; neither is answered here.
 
+*The non-determinism question, checked against the API reference rather than answered from memory 2026-09-01.* The user proposed that model choice is the main source — same telemetry, same prompt, same response, same weight otherwise.
+
+*It is not, and the actual situation is less controllable than that.* On the current models — Fable 5, Opus 5, Opus 4.8/4.7, Sonnet 5 — the sampling parameters =temperature=, =top_p= and =top_k= are *removed and rejected with a 400*. They remain settable only on Opus 4.6 / Sonnet 4.6 and older. So on anything current there is *no knob at all* for pinning output, and no =seed= parameter appears anywhere in the API surface. Identical input does not imply identical output, and cannot be made to.
+
+*Two further sources the premise does not cover:*
+
+- *Adaptive thinking is on by default*, so the model decides per call how much to reason. That is variable by design, before any sampling enters.
+- *=output_config.effort=* changes depth and token spend, so a weight produced at =low= is not the same experiment as one at =high=. It is a knob, but a knob that must be *recorded* rather than assumed.
+- Model ids like =claude-opus-5= are *aliases without date suffixes*, so "the same model" is not a fixed artefact over months.
+
+*So determinism is unavailable, and chasing it is the wrong goal — which the user already allowed for ("doesn't have to be exact or deterministic").* What makes a non-deterministic figure defensible in a durable record is not reproducibility but *provenance*: record the model id, the effort, the window definition and the time, so a later reader knows the weight is one opinion from one configuration and can produce a *comparable* one rather than an identical one. That is exactly the move =:CLOSED_SOURCE: git= made for [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] — do not pretend a derived value is measured, mark how it was derived.
+
+*One design refinement follows, and it usefully shrinks the problem.* The *candidate set* need not be model-judged at all: extracting the ids a turn mentions is a regex plus a corpus lookup, and is exact. Only the *weighting over that fixed set* needs judgement. Splitting the pipeline that way bounds the non-determinism to the numbers rather than the membership — so two runs disagree about proportions, never about which tasks were in play, which is the half a reader is most likely to check.
+
+
 
 * TODO AFK markers are ground truth for the one judgement we cannot automate, and we discard them :code:
 :PROPERTIES:
