@@ -108,6 +108,15 @@ A response footnoted [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] as "F
 
 *So the mechanisable half moves.* The first three modes argue for better marker bookkeeping in the hook. This one argues for something different and cheaper: the hook already resolves every cited id to check it is tracked, so it *has* the real title and could compare it against the footnote line. That would turn the only silent mode of the four into a loud one.
 
+*A fifth mode, 2026-09-01: the id arrives inside borrowed prose.* A response compressed [[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]]'s own sentence — "Since =226ed53b= the gap threshold governs only grouping and display" — into its own words, and =226ed53b= came along as part of the transcription rather than as a citation anyone chose to make. The hook refused it, twice in one response.
+
+*Distinct from the quotation mode above, and worse.* That one was an id inside a *quoted example string*, visibly not the writer's own sentence. This one reads as the writer's prose, because it is — only a fragment of it was copied. Nothing on the surface marks the borrowed span, so there is no cue to check.
+
+*Which makes the pattern across all five statable, and it is sharper than any of them individually.* Every failure is an id the writer *did not choose to write*: marker bookkeeping, list enumeration, quoted example, a title paraphrased from a neighbour's body, and now a sentence adapted from one. The ids that are deliberately cited get footnoted every time — that half of the discipline has never failed.
+
+*So the rule the writer is actually following is "footnote what I decided to reference", and the hook's rule is "footnote every id present".* The gap between those two is exactly the set of ids that arrive by transcription. That is a more useful statement of the defect than five separate modes, and it suggests the check to want is not better discipline but a diff: the hook already knows every id in the response and every id in the footnote list.
+
+
 
 * TODO Report worked headings that carry no clock interval that day :code:
 :PROPERTIES:
