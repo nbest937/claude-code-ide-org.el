@@ -5869,27 +5869,27 @@ children are 29 =DONE= and 2 =CANCELLED=, and it can close.
 Captured 2026-08-07 from conversation. The idea as posed: while
 reviewing a heading in
 [[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]'s command, Emacs
-offers "Would you like some help with this one?" and, on approval,
-calls back to Claude for a recommended aggregation of that heading's
+offers "Would you like some help with this one?" and, on approval, calls
+back to Claude for a recommended aggregation of that heading's
 guideposts.
 
-*Transport, researched 2026-08-07 — the protocol answer is "yes, but
-not here."* MCP's =sampling/createMessage= is exactly this primitive:
-a *server* asks the *client* to run an LLM completion on its behalf,
-so no server-side API key is needed, and the spec's own message-flow
-diagram puts a human approval step on both the request and the
-response. It has existed since protocol version =2024-11-05=, which is
-what =claude-code-ide= declares. (Distinct from =elicitation/create=,
-added in =2025-06-18=, which asks the *user* for structured form input
-rather than the model — not relevant here, since Emacs already has its
-own UI and needs no protocol to prompt its own user.)
+*Transport, researched 2026-08-07 — the protocol answer is "yes, but not
+here."* MCP's =sampling/createMessage= is exactly this primitive: a
+*server* asks the *client* to run an LLM completion on its behalf, so no
+server-side API key is needed, and the spec's own message-flow diagram
+puts a human approval step on both the request and the response. It has
+existed since protocol version =2024-11-05=, which is what
+=claude-code-ide= declares. (Distinct from =elicitation/create=, added
+in =2025-06-18=, which asks the *user* for structured form input rather
+than the model.)
 
-Three independent blockers, in increasing order of severity:
+Three independent blockers, in increasing severity:
+
 - =claude-code-ide.el= implements none of it — zero matches for
-  =sampling=/=createMessage=/=elicit= across all ten of its =.el=
-  files, and nothing in its open issues or PRs upstream proposes it.
-- More fundamentally, it has no *outgoing request* machinery at all.
-  It can send fire-and-forget notifications
+  =sampling=/=createMessage=/=elicit= across all ten of its =.el= files,
+  and nothing upstream proposes it.
+- More fundamentally, it has no *outgoing request* machinery at all. It
+  can send fire-and-forget notifications
   (=claude-code-ide-mcp--send-notification=) but has no pending-request
   table and no id→callback correlation, so it cannot issue a JSON-RPC
   request and await a reply. (=--send-ping= is a websocket-level frame,
@@ -5902,43 +5902,38 @@ Three independent blockers, in increasing order of severity:
 *The architectural blocker that outranks all three:* sampling is
 server→client over a *live session*. This refactor exists precisely so
 the human can review whenever they choose — very often with no Claude
-Code session connected at all. There would frequently be no client to
-sample from. The practical transport, if this is ever built, is simply
-shelling out to =claude -p= asynchronously (the CLI is already on PATH
-and supports =--print=/=--output-format=); it needs no protocol work,
-no upstream change, and works with nothing connected.
+Code session connected at all. The practical transport, if this is ever
+built, is shelling out to =claude -p= asynchronously: no protocol work,
+no upstream change, works with nothing connected.
 
 *Design objection, and a reframe that answers it.* Recommending an
-aggregation is a more confident version of exactly what =720b2dcf=
+aggregation is a more confident version of exactly what 720b2dcf
 forbids. The danger is not that the model writes anything — it is
-*anchoring*: a fluent, plausible-sounding proposed decomposition is far
-harder to reject than a transparently mechanical 15-minute threshold,
-which degrades the very safety property the review step exists to
-provide. Worse, on the queue file alone the model would have *strictly
-less* information than the threshold algorithm — the same timestamps
-and heading IDs, minus any domain knowledge — so it cannot outperform
-the heuristic; it can only add variance and unearned authority.
+*anchoring*: a fluent, plausible-sounding decomposition is far harder to
+reject than a transparently mechanical threshold, which degrades the
+very safety property the review step exists to provide. Worse, on the
+queue file alone the model would have *strictly less* information than
+the threshold algorithm — the same timestamps and heading IDs, minus any
+domain knowledge — so it cannot outperform the heuristic; it can only
+add variance and unearned authority.
 
 The version worth building instead: don't ask Claude to *recommend
 intervals*, ask it to *explain the gaps*. Given the session transcript
-(=~/.claude/projects/<project>/*.jsonl=) as input, "what was happening
-between 10:02 and 10:35?" is a retrieval-and-summarization task that
-models are genuinely good at and no heuristic can do at all — and it
-leaves the interval decision entirely with the human, preserving
-=720b2dcf='s core principle rather than eroding it. That reframing also
-changes the dependency: the load-bearing question becomes whether the
-transcript is in scope as an input, not whether Emacs can reach a
-model.
+as input, "what was happening between 10:02 and 10:35?" is a
+retrieval-and-summarization task models are genuinely good at and no
+heuristic can do at all — and it leaves the interval decision entirely
+with the human. That reframing also changes the dependency: the
+load-bearing question becomes whether the transcript is in scope as an
+input, not whether Emacs can reach a model.
 
-Sequence well after =720b2dcf= ships and real queue data exists —
-there is no way to judge whether the plain threshold is already good
-enough until it has been used in anger.
+Sequence well after 720b2dcf ships and real queue data exists — there is
+no way to judge whether the plain threshold is good enough until it has
+been used in anger.
 
-*That condition is now met, 2026-08-13, and the answer is no — but the
-remedy is smaller than this heading assumes.*
+*That condition is now met, 2026-08-13, and the answer is no — but the remedy is smaller than this heading assumes.*
 
-The threshold has been used in anger: 23 unattributed spans were
-assigned by hand in one sitting. The mechanical suggestion built for
+The threshold has been used in anger: 23 unattributed spans assigned by
+hand in one sitting. The mechanical suggestion built for
 [[id:3d0487f4-b8f8-451c-88bf-ab537663cbd0][3d0487f4]] (nearest preceding
 =DOING=) managed 18 of 23 and was wrong in instructive ways — it latched
 onto a =CANCELLED= heading for eight hours until taught to release, and
@@ -5952,82 +5947,73 @@ commands resolved three of four spans unambiguously — the 15:30--15:34
 span brackets a heading created 15:33 and a commit at 15:34; the
 12:36--12:59 span contains three commits and three heading creations.
 
-*Why that beats both options this heading records.* It needs no
-sampling, so every blocker above is moot — no upstream request/response
-machinery, no client capability, no live session. It needs no transcript
-either, so the "is the transcript in scope as an input" question does
-not arise. And it answers the design objection outright: commits and
-=:CREATED:= stamps are *mechanical evidence*, not a fluent
-recommendation, so there is nothing to anchor on. The human still
-decides; they simply stop having to run =git log= by hand.
-
-*The version worth building first,* therefore, is not this heading:
-render each unassigned span alongside the commits and headings created
-in its window, in the review buffer. Small, proven by hand, no new
-infrastructure. Filed as
+*Why that beats both options above.* It needs no sampling, so every
+blocker is moot. It needs no transcript, so the "is the transcript in
+scope" question does not arise. And it answers the design objection
+outright: commits and =:CREATED:= stamps are *mechanical evidence*, not
+a fluent recommendation, so there is nothing to anchor on. The human
+still decides; they simply stop running =git log= by hand. Filed as
 [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] — a *sibling*,
-deliberately, not a child of this heading: it shares the goal but none
-of the mechanism, needs no sampling and no transcript, and is what
-narrows this heading rather than something this heading leads.
+deliberately, since it shares the goal but none of the mechanism.
 
-*What remains for this heading* is the residue that mechanical evidence
+*What remains for this heading* is the residue mechanical evidence
 cannot resolve: a span straddling two tasks, where commits exist on both
-sides and only the narrative says where the boundary fell. The
-54-minute 18:12--19:07 span was exactly that shape. So this stays
-=MAYBE=, but its scope narrows from "explain the gaps" to "explain the
-*ambiguous* gaps" — a much smaller and better-targeted feature, and one
-whose value can be judged only after the mechanical version exists.
-
-The heading title was narrowed to match on 2026-08-13. Until then the
+sides and only the narrative says where the boundary fell. The 54-minute
+18:12--19:07 span was exactly that shape. So this stays =MAYBE=, its
+scope narrowed from "explain the gaps" to "explain the *ambiguous*
+gaps". The title was narrowed to match on 2026-08-13; until then the
 narrowing lived only in this body, so =org_outline= and the agenda both
 still advertised the original scope — which is how a heading gets picked
 up later and built to the wrong size by someone reading the index rather
 than the prose.
 
-*Promoted to =**= 2026-08-15, and its home changed in the process.*
-Evaluated for cancellation, immediate implementation, or promotion.
-
-=5ff5a4b8= is =DONE= — the mechanical version shipped — so the
-=:BLOCKER:= is satisfied and the narrowing this body already performed is
-complete: what remains is the residue commits and =:CREATED:= stamps
-cannot resolve, a span straddling two tasks where only the narrative says
-where the boundary fell.
-
-*Not cancelled:* that residue is real and was identified concretely (the
-54-minute 18:12--19:07 span). Nothing since has made it go away.
-
-*Not built:* judging its value requires the mechanical version to have
-been used enough to show how often the residue actually occurs, and that
-has not happened. Six unassigned spans were sitting in the review buffer
-on 2026-08-15, but they are unassigned because of
+*Re-evaluated 2026-08-15* for cancellation, immediate implementation or
+promotion. *Not cancelled:* the residue is real, identified concretely,
+and nothing since has made it go away. *Not built:* judging its value
+requires the mechanical version to have been used enough to show how
+often the residue actually occurs. Six unassigned spans were sitting in
+the review buffer that day, but they were unassigned because of
 [[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]] — the assignment
 prompt excluding headings created after the span — not because anything
-was ambiguous. They are evidence about a defect, not about this feature.
+was ambiguous. Evidence about a defect, not about this feature.
 
 *The reframe, which matters more than the promotion.* This heading is
 scoped to the *review command* — phase 1, queue → =:LOGBOOK:=. But the
-question it answers, "what was happening between 10:02 and 10:35", is the
-*attention pass* question — phase 2, =:LOGBOOK:= → attention intervals,
-where the human reconstructs a day from evidence
+question it answers, "what was happening between 10:02 and 10:35", is
+the *attention pass* question — phase 2, =:LOGBOOK:= → attention
+intervals, where the human reconstructs a day from evidence
 ([[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]]). That is where a
 narrative explanation is wanted and where no heuristic can substitute.
-[[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] independently
-concluded that the useful form of assistance there is *a recall cue, not
-a metric* — which is exactly what this proposes. Re-point it at phase 2
-before building anything.
+The same conclusion was reached independently under
+[[id:f90d745e-ccf9-49d6-a92e-df25c17b4dfb][f90d745e]] — *a recall cue,
+not a metric* — which is exactly what this proposes. Re-point it at
+phase 2 before building anything.
 
-*One open question here got a partial answer on 2026-08-15:* "is the
-transcript in scope as an input?" The transcript is readable at
+*One open question got a partial answer on 2026-08-15:* "is the
+transcript in scope as an input?" It is readable at
 =~/.claude/projects/<slug>/<session>.jsonl= and its structure is
 countable — 276 =type:"user"= entries of which 25 were real prompts, in
-one session. So the input exists and is parseable. Whether it *should* be
-read remains a judgement, not a capability question.
+one session. So the input exists and is parseable. Whether it *should*
+be read remains a judgement, not a capability question.
 
-The transport conclusion recorded above still stands and is worth not
-re-researching: not MCP sampling — there is frequently no live session at
-review time — but =claude -p= asynchronously, which needs no protocol
-work and no upstream change.
+The transport conclusion still stands and is worth not re-researching:
+not MCP sampling — there is frequently no live session at review time —
+but =claude -p= asynchronously.
 
+*Three details checked 2026-09-01, none of which change the verdict.*
+
+- *0d055205 is DONE,* so the caveat that discounted the six unassigned
+  spans has been discharged: the review buffer's unassigned spans are
+  now evidence about ambiguity rather than about that defect. The "not
+  built" reasoning above asked for exactly this, so the count is worth
+  looking at the next time the buffer is open.
+- *The =:BLOCKER:= is half-satisfied.* 5ff5a4b8 is DONE; 406e9200 is
+  =DOING= and still open, so the heading remains blocked.
+- *The "promoted to =**=" note is moot.* Level-1 categories were
+  retired, and this sits at level 1 again. The link to =9e627dc0= above
+  was also re-pointed: that heading was divided on 2026-09-01 and its
+  id travelled with the child, which is now a narrow DONE leaf rather
+  than the conclusion being cited. The story is f90d745e.
 
 * DOING [7/11] Update CLAUDE.md and the org skill for the new architecture :code:
 :PROPERTIES:
