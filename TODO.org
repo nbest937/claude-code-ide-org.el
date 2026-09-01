@@ -2,6 +2,31 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
+* TODO Classify gaps by markers at either end, not by tracking an AFK state :code:
+:PROPERTIES:
+:ID:       409a69ff-d57e-4c1c-ab6c-28f7e85fa391
+:CREATED:  [2026-09-01 Tue 14:33]
+:CATEGORY: Queue
+:END:
+
+Split out of [[id:e75d660f-5c0d-4707-a645-b5dea7d7ebc0][e75d660f]] 2026-09-01 at the user's request, because it is a mechanism rather than the question of whether markers are worth capturing at all.
+
+*The refinement: classify each **gap**, using markers at either end, instead of tracking an AFK **state** forward from departure markers.*
+
+*Why the state model fails, and it failed twice before this was found.* An opener can be ambiguous. "afk since 13:30" reads equally as "I was away and am back" and as "I forgot to say AFK and still am" — the user made exactly that objection, and the data agreed: that prompt was followed by a *77-minute* gap. A state machine keyed on openers has to resolve that ambiguity to proceed, and cannot.
+
+*Classifying gaps sidesteps it entirely, because the closing prompt is also evidence.* That 77-minute gap is labelled by its *closer* — an explicit "BAK" — with no need to decide what its opener meant. A gap is an absence when its opening prompt carries a departure marker *or* its closing prompt carries a return marker. An ambiguous opener becomes harmless rather than blocking.
+
+*A prompt is defined by the queue, not the transcript.* Stop-hook feedback is injected into the transcript in the *user role*, so a naive scan counts it as a prompt: 45 raw =type:"user"= entries against *36* real prompts this session, and an earlier measurement here was computed over the contaminated set. The queue's =resume= events fire only on =UserPromptSubmit=, so they are the definition; the transcript supplies the text at those timestamps. This is [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]]'s recorded trap — /"276 =type:"user"= entries, almost all tool results"/ — met again from a different direction.
+
+*Marker detection is sentence-bounded, not substring.* =afk= must stand as its own sentence, optionally preceded by =still=. A substring test matches any conversation *about* the markers, which is the mention-versus-subject trap that also governs the footnote modes ([[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]]) and the weighted-attribution candidate set ([[id:295cde3a-49a5-4960-a828-a4fc175d73c1][295cde3a]]) — three appearances in one day, which is what makes it worth naming rather than fixing three times.
+
+*Coverage is partial and that is the design, not a shortfall.* Of this session's seven longest inter-prompt gaps, markers label three — one by its opener, one by its closer, one by its opener — and four carry nothing, including one of 776 minutes. So markers *override* the threshold where present and the threshold remains the fallback. Aiming for complete coverage would mean annotating every gap, which is the clerical burden this line of work exists to remove.
+
+*One consequence for whatever reports this:* a labelled gap and an inferred one must not be presented as the same thing. The honest output says which gaps carry human testimony and which rest on the 1200s heuristic, rather than one number covering both.
+
+*Deferred, and named so it is not mistaken for an oversight:* the *retrospective correction* channel — a prompt that labels a gap already past, like "afk since 13:30" does. The gap rule above does not need it, but it is a richer signal than a binary marker and would let a human correct the record in passing.
+
 * TODO Attribute a turn to several tasks by weight, judged from the transcript with lag :code:research:
 :PROPERTIES:
 :ID:       295cde3a-49a5-4960-a828-a4fc175d73c1
