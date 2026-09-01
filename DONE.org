@@ -7439,6 +7439,7 @@ sweep belongs in its own pass rather than smuggled into a one-form fix.
 
 
 * DONE Implement the ten pending MCP-tool tasks in parallel worktrees :code:
+CLOSED: [2026-08-12 Wed 12:38]
 :PROPERTIES:
 :CATEGORY: Tools
 :ID:       3d862c6c-6d03-4fe9-9923-067966ef943a
@@ -7448,6 +7449,7 @@ sweep belongs in its own pass rather than smuggled into a one-form fix.
 :ARCHIVE_OLPATH: Skill logic
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 
 [[file:~/.claude/plans/send-each-mcp-feature-zesty-bunny.md][Plan]]
@@ -8082,6 +8084,7 @@ line, which is the point.
 
 
 * DONE Org skill: parallelize background planning across the NEXT/TODO backlog, without touching the shared clock :code:
+CLOSED: [2026-08-06 Thu 13:33]
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       d8444673-b047-4755-b62c-d03df738f16a
@@ -8091,6 +8094,7 @@ line, which is the point.
 :ARCHIVE_OLPATH: Skill logic
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 :END:
@@ -8203,6 +8207,7 @@ plan-file path does not duplicate the Plan link.
 
 
 * DONE Add a PLANNING TODO state, driven by the ExitPlanMode matcher :code:
+CLOSED: [2026-08-05 Wed 14:00]
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       b95b9fba-f78e-48fe-8546-988709cce309
@@ -8212,6 +8217,7 @@ plan-file path does not duplicate the Plan link.
 :ARCHIVE_OLPATH: Skill logic
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-05 Wed 13:25]--[2026-08-05 Wed 13:30] =>  0:05
@@ -8296,6 +8302,7 @@ rejection to trigger, neither of which this pass attempted.
 
 
 * DONE Enforce a single NEXT action per level of the task tree :code:
+CLOSED: [2026-08-04 Tue 14:49]
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       05da96ad-37de-41d4-b918-692644749394
@@ -8305,6 +8312,7 @@ rejection to trigger, neither of which this pass attempted.
 :ARCHIVE_OLPATH: Skill logic
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-11 Tue 12:33]--[2026-08-11 Tue 12:35] =>  0:02
@@ -8391,6 +8399,7 @@ outcome notes, not logged transitions.
 
 
 * DONE Adopt org's native !/@ state-change logging, guarded by org-inhibit-logging :code:
+CLOSED: [2026-08-04 Tue 14:49]
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       04d0e7d5-ab6b-4972-925d-d517484c7595
@@ -8400,6 +8409,7 @@ outcome notes, not logged transitions.
 :ARCHIVE_OLPATH: Skill logic
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-04 Tue 13:10]--[2026-08-04 Tue 13:20] =>  0:10
@@ -8462,6 +8472,7 @@ buffer ever created.
 
 
 * DONE org_query :code:
+CLOSED: [2026-07-28 Tue 12:17]
 :PROPERTIES:
 :CATEGORY: Tools
 :ID:       4ae3cdef-98b5-4361-818e-aef3491f2fb8
@@ -8470,6 +8481,7 @@ buffer ever created.
 :ARCHIVE_OLPATH: Roadmap/New MCP tools
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 Structured search over headings. Biggest ROI item here: most of
 what's actually slow today is Claude reading whole files to answer
@@ -8513,6 +8525,7 @@ tool never exposes that path.
 
 
 * DONE org_clock_report :code:
+CLOSED: [2026-07-29 Wed 05:57]
 :PROPERTIES:
 :CATEGORY: Tools
 :ID:       26215a14-6ec9-43a7-981b-5c8e888e65fd
@@ -8522,6 +8535,7 @@ tool never exposes that path.
 :ARCHIVE_OLPATH: Roadmap/New MCP tools
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 :END:
@@ -8556,6 +8570,7 @@ unrestricted case). =bin/test= 40/40 at merge.
 
 
 * DONE org_capture :code:
+CLOSED: [2026-07-29 Wed 05:57]
 :PROPERTIES:
 :CATEGORY: Tools
 :ID:       405e05b6-dc0c-42c1-99ce-7a94d266ca6d
@@ -8564,6 +8579,7 @@ unrestricted case). =bin/test= 40/40 at merge.
 :ARCHIVE_OLPATH: Roadmap/New MCP tools
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 :END:
@@ -8593,6 +8609,7 @@ resolve. 4 ERT tests added in total; =bin/test= 37/37 at merge.
 
 
 * DONE org_refile :code:
+CLOSED: [2026-07-29 Wed 05:57]
 :PROPERTIES:
 :CATEGORY: Tools
 :ID:       f8f5cc3a-01ba-4523-b6e0-3b93ae656504
@@ -8601,6 +8618,7 @@ resolve. 4 ERT tests added in total; =bin/test= 37/37 at merge.
 :ARCHIVE_OLPATH: Roadmap/New MCP tools
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 :END:
@@ -8630,6 +8648,7 @@ error). =bin/test= 44/44 at merge.
 
 
 * DONE org_sort_children / org_move_sibling :code:
+CLOSED: [2026-07-29 Wed 05:57]
 :PROPERTIES:
 :CATEGORY: Tools
 :ID:       aa6ee083-0bb8-4345-b6ef-f10402cc2c78
@@ -8638,6 +8657,7 @@ error). =bin/test= 44/44 at merge.
 :ARCHIVE_OLPATH: Roadmap/New MCP tools
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 :END:
@@ -9901,9 +9921,11 @@ Unblocks [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]].
 
 
 ** DONE Design the append-only event-queue format and per-session file lifecycle :code:
+CLOSED: [2026-08-07 Fri 08:19]
 :PROPERTIES:
 :ID:       32272061-1d78-4726-b13b-90338edb2ba5
 :CREATED:  [2026-08-06 Thu 10:47]
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-06 Thu 22:55]--[2026-08-07 Fri 08:20] =>  9:25
@@ -10588,10 +10610,12 @@ this is, not a comfortable one.
 
 
 ** DONE Root-cause how apply wrote a DONE nobody queued, onto the wrong heading :code:
+CLOSED: [2026-08-07 Fri 21:06]
 :PROPERTIES:
 :ID:       3d93021d-1d8a-4657-bc5c-77734f91fb9d
 :CREATED:  [2026-08-07 Fri 19:40]
 :BLOCKER:  ids(720b2dcf-6af1-45f3-96a7-aa841e5651e1)
+:CLOSED_SOURCE: git
 :END:
 *The most serious thing the 2026-08-07 interactive apply did, and the
 mechanism is NOT yet understood.* Recorded with that uncertainty intact
@@ -11029,9 +11053,11 @@ which still owns the prose around it.
 
 
 ** CANCELLED Design a read-time overlay for org_query/org_clock_report against the pending queue :code:
+CLOSED: [2026-08-06 Thu 22:48]
 :PROPERTIES:
 :ID:       c9292ce8-8fb5-41c0-8de1-bbf74ffa7fce
 :CREATED:  [2026-08-06 Thu 11:59]
+:CLOSED_SOURCE: git
 :END:
 
 Captured 2026-08-06 from conversation. Motivating problem: once
@@ -11272,9 +11298,11 @@ recorded here so it is not lost when this heading is archived.
 
 
 ** DONE Verify org's clock/logging APIs actually support backdated timestamps for batch apply-time backfill :code:
+CLOSED: [2026-08-06 Thu 22:48]
 :PROPERTIES:
 :ID:       3d576d29-747f-40b9-a5b3-ecc76679daad
 :CREATED:  [2026-08-06 Thu 10:47]
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-06 Thu 22:35]--[2026-08-06 Thu 22:40] =>  0:05
@@ -14146,6 +14174,7 @@ explicitly out of scope for v1.
 
 
 * DONE pause/resume cannot see a turn blocked on a permission prompt :code:
+CLOSED: [2026-08-14 Fri 19:33]
 :PROPERTIES:
 :CATEGORY: Queue
 :ID:       f4e628ce-e653-429a-8f3c-0f5d4241b139
@@ -14155,6 +14184,7 @@ explicitly out of scope for v1.
 :ARCHIVE_OLPATH: Clock lifecycle & visibility
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-14 Fri 16:44]--[2026-08-14 Fri 16:48] =>  0:04
@@ -15260,6 +15290,7 @@ drawer deltas: a different mechanism from the one hypothesised here.
 
 
 * DONE consolidate-history's :LOGBOOK: rewrite silently deletes non-CLOCK lines :code:
+CLOSED: [2026-08-06 Thu 21:56]
 :PROPERTIES:
 :CATEGORY: Clock
 :ID:       ba8249c1-28cd-4ff1-918b-4b8439345d9a
@@ -15269,6 +15300,7 @@ drawer deltas: a different mechanism from the one hypothesised here.
 :ARCHIVE_OLPATH: Clock lifecycle & visibility
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-06 Thu 21:50]--[2026-08-06 Thu 21:55] =>  0:05
@@ -15318,6 +15350,7 @@ and regression-tested in the same pass.
 
 
 * DONE Concurrent Claude Code sessions share one global org-clock with no session identity :code:
+CLOSED: [2026-08-04 Tue 11:10]
 :PROPERTIES:
 :CATEGORY: Clock
 :ID:       337f7fb2-b9e9-4c02-82dd-d88e60df364b
@@ -15327,6 +15360,7 @@ and regression-tested in the same pass.
 :ARCHIVE_OLPATH: Clock lifecycle & visibility
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-30 Thu 17:30]--[2026-07-30 Thu 17:40] =>  0:10
@@ -15385,6 +15419,7 @@ afterward.
 
 
 * DONE org-clock-out-remove-zero-time-clocks silently erases short CLOCK intervals :code:
+CLOSED: [2026-08-04 Tue 11:10]
 :PROPERTIES:
 :CATEGORY: Clock
 :ID:       293ac49e-3324-421c-8495-de1a46fc04ac
@@ -15394,6 +15429,7 @@ afterward.
 :ARCHIVE_OLPATH: Clock lifecycle & visibility
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-30 Thu 17:25]--[2026-07-30 Thu 17:30] =>  0:05
@@ -15434,6 +15470,7 @@ premature deletion.
 
 
 * DONE Enforce the transition rules :code:
+CLOSED: [2026-08-04 Tue 11:10]
 :PROPERTIES:
 :CATEGORY: Clock
 :ID:       39b08ecd-6350-48a2-b169-98535b626ac7
@@ -15443,6 +15480,7 @@ premature deletion.
 :ARCHIVE_OLPATH: Clock lifecycle & visibility
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 CLAUDE.md's transition table (TODO→DOING opens a clock, etc.) was pure
 prose at one point, with nothing stopping a hand-edit in Emacs, or a
@@ -15471,6 +15509,7 @@ call) to prove the enforcement lives in org itself. =bin/test= passes
 
 
 * DONE session-resume can reopen a clock on an already-DONE heading :code:
+CLOSED: [2026-08-04 Tue 11:10]
 :PROPERTIES:
 :CATEGORY: Clock
 :ID:       2e34162a-4720-4d23-bf29-10eb295cd087
@@ -15480,6 +15519,7 @@ call) to prove the enforcement lives in org itself. =bin/test= passes
 :ARCHIVE_OLPATH: Clock lifecycle & visibility
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 Caught live in this session: =org-clock-in-last= (called by
 =session-resume= on =UserPromptSubmit=) resumes onto
@@ -15513,6 +15553,7 @@ off as its own heading below rather than folded into this fix.
 
 
 * DONE Auto-consolidate SESSIONS/LOGBOOK on the fly :code:
+CLOSED: [2026-07-28 Tue 17:37]
 :PROPERTIES:
 :CATEGORY: Clock
 :CREATED:  [2026-07-28 Tue 13:13]
@@ -15522,6 +15563,7 @@ off as its own heading below rather than folded into this fix.
 :ARCHIVE_OLPATH: Roadmap/Clock lifecycle & visibility
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-28 Tue 16:50]--[2026-07-28 Tue 17:00] =>  0:10
@@ -15565,6 +15607,7 @@ the heading that was just clocked out of.
 
 
 * DONE Consolidate historical SESSIONS/LOGBOOK entries :code:
+CLOSED: [2026-07-28 Tue 13:49]
 :PROPERTIES:
 :CATEGORY: Clock
 :CREATED:  [2026-07-28 Tue 13:01]
@@ -15573,6 +15616,7 @@ the heading that was just clocked out of.
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-28 Tue 16:29]--[2026-07-28 Tue 16:32] =>  0:03
@@ -15594,6 +15638,7 @@ under Clock lifecycle & visibility.
 
 
 * DONE PreToolUse transition guard :code:
+CLOSED: [2026-07-29 Wed 05:57]
 :PROPERTIES:
 :CATEGORY: Clock
 :ID:       135033ff-9581-4df3-ba16-34442586ee15
@@ -15602,6 +15647,7 @@ under Clock lifecycle & visibility.
 :ARCHIVE_OLPATH: Roadmap/Enforce the transition rules
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 A hook on org_set_todo that inspects the requested state against
 current clock state and rejects the call outright — e.g. DOING→DONE
@@ -15629,6 +15675,7 @@ event).
 
 
 * DONE Clock-change notifications :code:
+CLOSED: [2026-07-29 Wed 05:57]
 :PROPERTIES:
 :CATEGORY: Clock
 :ID:       7e4c3c1d-8c0e-434c-bbdc-e728b13e4483
@@ -15637,6 +15684,7 @@ event).
 :ARCHIVE_OLPATH: Roadmap/Clock lifecycle & visibility
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-29 Wed 02:08]--[2026-07-29 Wed 02:09] =>  0:01
@@ -15673,6 +15721,7 @@ deliberately scan file *text* instead.)
 
 
 * DONE Surface current clock state :code:
+CLOSED: [2026-07-29 Wed 05:57]
 :PROPERTIES:
 :CATEGORY: Clock
 :ID:       1a2963ac-ea60-441d-a348-7db3b9e894e8
@@ -15681,6 +15730,7 @@ deliberately scan file *text* instead.)
 :ARCHIVE_OLPATH: Roadmap/Clock lifecycle & visibility
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-29 Wed 01:57]--[2026-07-29 Wed 01:59] =>  0:02
@@ -15699,6 +15749,7 @@ merge, no deviations from the plan.
 
 
 * DONE org-trigger-hook / org-blocker-hook :code:
+CLOSED: [2026-07-29 Wed 05:57]
 :PROPERTIES:
 :CATEGORY: Clock
 :ID:       e47ac400-dd17-4e6a-91aa-bcd837151610
@@ -15707,6 +15758,7 @@ merge, no deviations from the plan.
 :ARCHIVE_OLPATH: Roadmap/Enforce the transition rules
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 Structural enforcement inside org itself. Block DONE while a clock
 is still running on that heading, or auto-open a clock the moment
@@ -15741,6 +15793,7 @@ a redundant clock-in, trigger doesn't fire for non-DOING states).
 
 
 * DONE Extend config-test.el :code:
+CLOSED: [2026-07-29 Wed 05:57]
 :PROPERTIES:
 :CATEGORY: Dev
 :ID:       799b14be-6849-4e22-8a76-4e214d8a25fe
@@ -15750,6 +15803,7 @@ a redundant clock-in, trigger doesn't fire for non-DOING states).
 :ARCHIVE_OLPATH: Roadmap/Enforce the transition rules
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 Once the two enforcement layers above exist, they need the same
 regression-test treatment the four wrappers already get — this
@@ -15905,6 +15959,7 @@ was the point.
 
 
 * DONE The agenda is for human attention; the queue records agent activity :code:
+CLOSED: [2026-08-14 Fri 16:48]
 :PROPERTIES:
 :CATEGORY: Queue
 :ID:       b8e6007a-ae13-4b13-bb2e-a5df39435af0
@@ -15914,6 +15969,7 @@ was the point.
 :ARCHIVE_OLPATH: Observability
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 
 *Decided 2026-08-14, from the user's correction, and it is a design
@@ -16077,6 +16133,7 @@ honest check is to look at the first session-start report that carries a
 
 
 * DONE Tool-call audit log :code:
+CLOSED: [2026-07-29 Wed 05:57]
 :PROPERTIES:
 :CATEGORY: Tools
 :ID:       008e7504-e9df-4573-875c-4d6ec653b72f
@@ -16085,6 +16142,7 @@ honest check is to look at the first session-start report that carries a
 :ARCHIVE_OLPATH: Roadmap/Observability
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-29 Wed 05:53]--[2026-07-29 Wed 05:55] =>  0:02
@@ -16129,6 +16187,7 @@ own additional test).
 
 
 * DONE SessionStart context hook :code:
+CLOSED: [2026-07-29 Wed 05:57]
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       f2b003af-b91c-4764-ae86-b5564429c92d
@@ -16137,6 +16196,7 @@ own additional test).
 :ARCHIVE_OLPATH: Roadmap/Observability
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 :END:
@@ -16699,6 +16759,7 @@ finding.
 
 
 * DONE Move the statusline script into the repo :code:
+CLOSED: [2026-08-04 Tue 11:10]
 :PROPERTIES:
 :CATEGORY: Dev
 :ID:       caf598a1-2770-4836-a069-3890597b1665
@@ -16708,6 +16769,7 @@ finding.
 :ARCHIVE_OLPATH: Tooling
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-31 Fri 17:25]--[2026-07-31 Fri 17:30] =>  0:05
@@ -16753,6 +16815,7 @@ there's no reason it has to stay a personal, undiscoverable setup step.
 
 
 * DONE Case study: apply "maximum Emacs" to the statusline script :code:
+CLOSED: [2026-08-04 Tue 11:10]
 :PROPERTIES:
 :CATEGORY: Dev
 :ID:       e202e93d-cfa7-4d0a-8721-8f06428bc1e4
@@ -16762,6 +16825,7 @@ there's no reason it has to stay a personal, undiscoverable setup step.
 :ARCHIVE_OLPATH: Tooling
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 :END:
@@ -16796,6 +16860,7 @@ both present, no fish, no =jq= anywhere in the pipeline.
 
 
 * DONE Fix org-agenda-files/tracked-files resolving to nothing (agenda + org_query/org_clock_report) :code:
+CLOSED: [2026-07-29 Wed 12:30]
 :PROPERTIES:
 :CATEGORY: Tools
 :ID:       74f24402-978e-4c66-ac97-996f387c0ddb
@@ -16804,6 +16869,7 @@ both present, no fish, no =jq= anywhere in the pipeline.
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-29 Wed 18:20]--[2026-07-29 Wed 18:30] =>  0:10
@@ -16842,6 +16908,7 @@ returns real clocked time instead of an empty table.
 
 
 * DONE Bridge Warp's own MCP client to the Emacs tools server :code:
+CLOSED: [2026-08-04 Tue 11:09]
 :PROPERTIES:
 :CATEGORY: Dev
 :ID:       6a6d5b4e-0327-4578-a44a-356576870ceb
@@ -16850,6 +16917,7 @@ returns real clocked time instead of an empty table.
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-30 Thu 12:20]--[2026-07-30 Thu 12:25] =>  0:05
@@ -16883,6 +16951,7 @@ diverge later.
 
 
 * DONE Discard the Plan-checklist convention; migrate skills to plain-text format :code:
+CLOSED: [2026-07-29 Wed 18:54]
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       5f4d407b-4db9-4139-aabc-79fb5ade7be9
@@ -16892,6 +16961,7 @@ diverge later.
 :ARCHIVE_OLPATH: Roadmap/Developer tooling
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-30 Thu 07:10]--[2026-07-30 Thu 07:20] =>  0:10
@@ -16934,6 +17004,7 @@ only this heading while it was active.
 
 
 * DONE Revisit: does org.skill's checkbox discipline apply to TODO.org itself? :research:code:
+CLOSED: [2026-07-29 Wed 18:53]
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       6a448345-016c-495f-b26b-ee81b30cd95c
@@ -16943,6 +17014,7 @@ only this heading while it was active.
 :ARCHIVE_OLPATH: Roadmap/Developer tooling
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-29 Wed 11:45]--[2026-07-29 Wed 12:05] =>  0:20
@@ -17002,6 +17074,7 @@ linked plan for the full resolution.
 
 
 * DONE Set git identity :code:
+CLOSED: [2026-07-28 Tue 08:02]
 :PROPERTIES:
 :CATEGORY: Dev
 :ID:       51591672-95b9-4092-a037-af7b3fe45fbc
@@ -17009,6 +17082,7 @@ linked plan for the full resolution.
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 Blocking the very first commit of this repo — everything is staged
 and ready, git just doesn't know who you are yet. Run, in the repo:
@@ -17020,6 +17094,7 @@ Then ask Claude to finish the commit it already staged.
 
 
 * DONE org-dev skill :code:
+CLOSED: [2026-07-28 Tue 11:30]
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       e1e60e00-e7b7-4e62-88c3-55a936fdece7
@@ -17029,6 +17104,7 @@ Then ask Claude to finish the commit it already staged.
 :ARCHIVE_OLPATH: Roadmap/Developer tooling
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 CLOCK: [2026-07-28 Tue 12:35]--[2026-07-28 Tue 13:00] =>  0:25
@@ -17077,6 +17153,7 @@ everything.
 
 
 * DONE Make check-org-dev-skill line-number checks robust to config.el drift :code:
+CLOSED: [2026-07-29 Wed 05:57]
 :PROPERTIES:
 :CATEGORY: Dev
 :ID:       9be21b6b-5219-4acd-950a-e04b60d8fe1e
@@ -17086,6 +17163,7 @@ everything.
 :ARCHIVE_OLPATH: Roadmap/Developer tooling
 :ARCHIVE_CATEGORY: TODO
 :ARCHIVE_TODO: DONE
+:CLOSED_SOURCE: git
 :END:
 =bin/check-org-dev-skill='s tool-registration-block-start and
 last-line checks hardcode absolute =config.el= line numbers (410/457,

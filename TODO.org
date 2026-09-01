@@ -1824,9 +1824,11 @@ reachable" rule among them), not because it is waiting on anything.
 
 
 ** DONE Correct CLAUDE.md's account of the queue architecture :code:
+CLOSED: [2026-08-15 Sat 17:18]
 :PROPERTIES:
 :ID:       43d317e8-f2b6-4ce2-9634-64e9bda83efe
 :CREATED:  [2026-08-14 Fri 19:59]
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 - [2026-08-14 Fri 20:10]--[2026-08-14 Fri 20:10] assigned at review
@@ -1884,9 +1886,11 @@ All ten defects the body enumerates were corrected in CLAUDE.md in a single pass
 
 
 ** DONE Remove CLAUDE.md content the org and org-dev skills already own :code:
+CLOSED: [2026-08-15 Sat 17:18]
 :PROPERTIES:
 :ID:       c556a9ed-8e37-4fc3-ab4b-63292837236d
 :CREATED:  [2026-08-14 Fri 19:59]
+:CLOSED_SOURCE: git
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-14 Fri 20:43]--[2026-08-14 Fri 20:45] =>  0:02
@@ -4802,6 +4806,25 @@ So the work would derive a date from a *different event*, write it into a field 
 *This heading's own second question already assumed marking* — "how the approximation is marked so a reader can tell the 39 from the 58 that are exact" — so B is not a new option, it is the one the heading was already reaching for before it knew the consumers were indifferent.
 
 *What is left to decide is therefore one thing only:* whether the human-facing marker is wanted, given that nothing mechanical needs it. Everything else about this heading is now measured.
+
+*Shipped 2026-09-01 as option B. Every finished heading in both files now carries a =CLOSED:=; the derived ones say so.*
+
+*The count matched this body exactly:* 39 in DONE.org, plus 2 in TODO.org that it could not have known about — finished children of *live* parents, which the archive sweep correctly leaves in place. 41 filled, *0 skipped*: git had evidence for every one.
+
+*The upper-bound claim was measured rather than assumed, and it holds without exception.* Against the 60 headings whose =CLOSED:= is known exactly, the git-derived time was later in *60 of 60* cases — never earlier. Median 72 minutes late; worst case about 49 hours. So the derivation cannot invent a close *before* the work, which is the property that makes it safe for all three consumers: it lands in the right day node or occasionally the adjacent one, falls on the correct side of a threshold set weeks earlier, and satisfies a presence test.
+
+*The pickaxe runs over both files at once, and that is load-bearing rather than convenient.* Archiving moves a heading line from TODO.org to DONE.org, and a move *inside one pathspec* nets zero occurrence change — so the archive commit does not match and the first hit is the commit that genuinely introduced the line. Scoping to one file would have dated 35 of these headings from their archive instead of their close.
+
+*=:CLOSED_SOURCE: git= on all 41, and nothing else touched.* DONE.org's diff is 78 lines *added and none removed* — two per heading. The asymmetry this body specified is preserved: a measured =CLOSED:= carries no annotation, so only the derived ones are marked, and the 164 exact ones in DONE.org are untouched.
+
+*Idempotent, and the test for that is the one that matters:* a heading which already has =CLOSED:= is skipped whatever its source, so a second run cannot overwrite a *measured* close with an upper bound. That is the single outcome that would make the file worse, and a mutation removing the guard fails that test alone.
+
+*Verified:* 495 tests before, 498 after, 0 unexpected. Three mutations, each failing only its own test — dropping the derivation marker, dropping idempotency, and letting the dry run write.
+
+*One weakness of my own found by that third mutation, and worth recording because it is a shape rather than a slip.* The dry-run test originally checked only *disk*, and the save is separately guarded — so a dry run that edited the buffer without saving passed it. A dry run that leaves a dirty buffer is not harmless: a human can save it by accident, and =--file-busy-p= then reads the file as busy. The test now asserts =buffer-modified-p= is nil.
+
+*What this unblocks:* [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]], which was blocked on this alone. Without it =org-archive-subtree= would have dated all 41 from =time= — today — and piled them into a single wrong day node, silently.
+
 
 
 * TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key :code:

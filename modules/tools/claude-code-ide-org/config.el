@@ -11092,6 +11092,94 @@ back to anything -- see this section's header."
               (setq latest time))))))
     latest))
 
+(defun claude-code-ide-org--git-close-time (heading-line)
+  "The commit time that first introduced HEADING-LINE, or nil.
+
+*An upper bound, never a measurement*, and the distinction is the whole
+of TODO.org :ID: b7b46a26.  A commit records when a change reached the
+file, and in this project a state change reaches the file only when a
+human runs the review pass -- so the two can be far apart.
+
+*Measured 2026-09-01 against the 60 headings whose CLOSED: is known
+exactly: 60 of 60 commit times were later than the recorded close, never
+earlier.*  Median 72 minutes late, worst case about 49 hours.  So the
+derived value is reliably an upper bound, which is what makes it safe
+for the three consumers that read CLOSED: as a placement key, a
+threshold or a presence test -- and unsafe to present as a measurement,
+which is why callers mark it.
+
+Pickaxed over *both* tracked files at once, deliberately.  Archiving
+moves a heading line from one file to the other, and a move inside one
+pathspec nets zero occurrence change -- so the archive commit does not
+match and the first hit is the commit that genuinely introduced the
+line.
+
+Never signals: no git, no repository, no match, all yield nil."
+  (let ((root (car (claude-code-ide-org--git-roots))))
+    (when (and root heading-line (not (string-empty-p heading-line)))
+      (with-temp-buffer
+        (let ((status (ignore-errors
+                        (call-process "git" nil t nil "-C" root "log" "--reverse"
+                                      (concat "-S" heading-line)
+                                      "--format=%ct" "--" "TODO.org" "DONE.org"))))
+          (when (eql status 0)
+            (goto-char (point-min))
+            (when (re-search-forward "^\\([0-9]+\\)$" nil t)
+              (seconds-to-time (string-to-number (match-string 1))))))))))
+
+(defun claude-code-ide-org-backfill-closed-from-git (&optional file dry-run)
+  "Fill CLOSED: from git for finished headings in FILE that have no evidence.
+
+The companion to `claude-code-ide-org-backfill-closed', for the headings
+that one leaves alone: those closed before the `!' cookies in `#+TODO:'
+were adopted, whose :LOGBOOK: records nothing.  39 of DONE.org's
+finished headings, plus any finished child of a live parent that the
+archive sweep correctly leaves in place.
+
+*Every filled heading is marked `:CLOSED_SOURCE: git'*, and that marker
+is the reason this is allowed to exist at all.  Nothing mechanical is
+misled by an approximate CLOSED: -- the three consumers use it as a
+datetree placement key, a lint threshold, and a presence test -- but a
+*human* reading DONE.org cannot otherwise tell a derived date from a
+measured one, and TODO.org :ID: 7771fc63 is this project's standing
+finding that a plausible value is harder to reject than an absent one.
+The asymmetry is the right way round: a measured CLOSED: needs no
+annotation, so only the derived ones carry a line.
+
+Idempotent.  A heading that already has CLOSED: is left alone whatever
+its source, so a second run fills nothing.  With DRY-RUN non-nil nothing
+is written and the report is identical, which is what makes the dry run
+worth trusting.  Returns a summary string."
+  (interactive)
+  (let ((file (or file (claude-code-ide-org--capture-target-file)))
+        (filled 0) (no-evidence 0) (already 0))
+    (with-current-buffer (find-file-noselect file)
+      (let ((buffer-read-only nil))
+        (org-with-wide-buffer
+         (goto-char (point-min))
+         (while (re-search-forward org-heading-regexp nil t)
+           (beginning-of-line)
+           (let ((keyword (org-get-todo-state)))
+             (when (member keyword org-done-keywords)
+               (cond
+                ((org-entry-get (point) "CLOSED") (setq already (1+ already)))
+                (t (let* ((line (buffer-substring-no-properties
+                                 (line-beginning-position) (line-end-position)))
+                          (time (claude-code-ide-org--git-close-time line)))
+                     (cond
+                      ((null time) (setq no-evidence (1+ no-evidence)))
+                      (t (setq filled (1+ filled))
+                         (unless dry-run
+                           (org-add-planning-info 'closed time)
+                           (org-entry-put (point) "CLOSED_SOURCE" "git")))))))))
+           (end-of-line)))
+        (when (and (not dry-run) (> filled 0))
+          (save-buffer))))
+    (format (concat "%s: %d filled from git, %d skipped (no commit found), "
+                    "%d already had CLOSED:.%s")
+            (file-name-nondirectory file) filled no-evidence already
+            (if dry-run "  [dry run -- nothing written]" ""))))
+
 (defun claude-code-ide-org-backfill-closed (&optional file dry-run)
   "Add a CLOSED: line to finished headings in FILE that can evidence one.
 

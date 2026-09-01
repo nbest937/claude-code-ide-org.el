@@ -7157,6 +7157,67 @@ regenerated forever."
      (claude-code-ide-org-test--git-commit dir "seed" "2026-08-01T09:00:00-0500")
      ,@body))
 
+(ert-deftest claude-code-ide-org-test-backfill-from-git-fills-and-marks ()
+  "A heading with no logged close gets one from git, marked as derived.
+
+The marker is why this is allowed to exist. Nothing mechanical is misled
+by an approximate CLOSED: -- the three consumers use it as a placement
+key, a threshold and a presence test -- but a human cannot otherwise
+tell a derived date from a measured one, and TODO.org :ID: 7771fc63 is
+the standing finding that a plausible value is harder to reject than an
+absent one (TODO.org :ID: b7b46a26)."
+  (skip-unless (executable-find "git"))
+  (claude-code-ide-org-test--with-git-repo
+    (with-temp-file org
+      (insert "#+TODO: TODO | DONE\n"
+              "* DONE Finished long ago\n:PROPERTIES:\n:ID:       zzzz-0001\n:END:\n"))
+    (claude-code-ide-org-test--git-commit dir "close it" "2026-08-05T09:00:00-0500")
+    (let ((summary (claude-code-ide-org-backfill-closed-from-git org)))
+      (should (string-match-p "1 filled from git" summary)))
+    (let ((disk (claude-code-ide-org-test--disk-contents org)))
+      (should (string-match-p "^CLOSED: \\[2026-08-05" disk))
+      (should (string-match-p ":CLOSED_SOURCE: git" disk)))))
+
+(ert-deftest claude-code-ide-org-test-backfill-from-git-is-idempotent ()
+  "A heading that already has CLOSED: is left alone, whatever its source.
+Otherwise a second run would overwrite a *measured* close with an
+upper bound -- the one outcome that would make the file worse."
+  (skip-unless (executable-find "git"))
+  (claude-code-ide-org-test--with-git-repo
+    (with-temp-file org
+      (insert "#+TODO: TODO | DONE\n"
+              "* DONE Already dated\nCLOSED: [2026-08-01 Sat 10:00]\n"
+              ":PROPERTIES:\n:ID:       zzzz-0002\n:END:\n"))
+    (claude-code-ide-org-test--git-commit dir "seed" "2026-08-05T09:00:00-0500")
+    (let ((summary (claude-code-ide-org-backfill-closed-from-git org)))
+      (should (string-match-p "0 filled from git" summary))
+      (should (string-match-p "1 already had CLOSED:" summary)))
+    (let ((disk (claude-code-ide-org-test--disk-contents org)))
+      ;; The measured value survives, and no marker is added to it.
+      (should (string-match-p "CLOSED: \\[2026-08-01 Sat 10:00\\]" disk))
+      (should-not (string-match-p "CLOSED_SOURCE" disk)))))
+
+(ert-deftest claude-code-ide-org-test-backfill-from-git-dry-run-writes-nothing ()
+  "The dry run reports what the real run would do and writes nothing.
+Identical reports are what make a dry run worth trusting."
+  (skip-unless (executable-find "git"))
+  (claude-code-ide-org-test--with-git-repo
+    (with-temp-file org
+      (insert "#+TODO: TODO | DONE\n"
+              "* DONE Finished long ago\n:PROPERTIES:\n:ID:       zzzz-0003\n:END:\n"))
+    (claude-code-ide-org-test--git-commit dir "close it" "2026-08-05T09:00:00-0500")
+    (let ((dry (claude-code-ide-org-backfill-closed-from-git org t)))
+      (should (string-match-p "1 filled from git" dry))
+      (should (string-match-p "dry run" dry)))
+    (should-not (string-match-p
+                 "CLOSED:" (claude-code-ide-org-test--disk-contents org)))
+    ;; And the *buffer* is untouched, not merely unsaved. A dry run that
+    ;; edits without saving leaves a dirty buffer a human can save by
+    ;; accident, and makes the file read as busy to
+    ;; `claude-code-ide-org--file-busy-p'. Checking disk alone passes
+    ;; against that, which a mutation showed.
+    (should-not (buffer-modified-p (find-file-noselect org)))))
+
 (ert-deftest claude-code-ide-org-test-forgotten-detects-a-subject-id ()
   "A commit whose *subject* names a non-member is reported.
 
