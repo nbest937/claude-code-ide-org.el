@@ -77,6 +77,19 @@ The CLOCK line carries the weighted *share* as a literal interval org can sum; t
 
 *Note that 2 is the one that constrains the design rather than the implementation.* The others are care; that one says the mechanism cannot express fine-grained splits on short turns, which is precisely where a turn is most likely to touch several tasks. Worth knowing before building, because it may argue for aggregating a *window of turns* before apportioning — which is what the original proposal's "lag" was for.
 
+*A consequence of putting the weight in the annotation, found 2026-09-01 while checking who consumes each :LOGBOOK: line shape.*
+
+*Org ignores the annotation entirely* — to org, =- [start]--[end] note= is a plain list item inside a drawer. Only =CLOCK:= lines are summed. That is exactly why this representation works: the annotation is a free provenance channel that no org tooling interprets.
+
+*But it is not free of consumers here, and one of them is load-bearing.* =claude-code-ide-org--drawer-contains-line-p= supports *content-based idempotency* — =--queue-file-drained-p= and reprocessing both rely on it — and its docstring states the invariant plainly: /"an annotation line is a pure function of its span and label, so an identical one is a replay rather than a second thing that happened."/
+
+*A model-judged weight breaks that invariant.* It is not a pure function of span and label; it is an opinion that varies between runs by construction — and on current models cannot be pinned, since sampling parameters are rejected outright. So two passes over the same window would emit two annotations differing only in the weight, and the replay check would read them as *two things that happened* rather than one thing recomputed.
+
+*Three ways out, none chosen:* exclude the weight from the comparison, so replay detection keys on span and label as it does now; make weighted annotations a distinct shape the idempotency check skips; or forbid recomputation of a window that already carries one, which makes the first weight permanent and the provenance a record rather than a current opinion. The third is the most conservative and the least useful.
+
+*Worth noting the invariant is cited to [[id:78f485a8-e808-43ce-af5f-277a5c97c471][78f485a8]]*, so this is not an incidental implementation detail but a property something was built to have.
+
+
 
 
 
