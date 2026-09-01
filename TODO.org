@@ -3922,6 +3922,7 @@ CLOCK: [2026-08-15 Sat 13:33]--[2026-08-15 Sat 13:35] =>  0:02
 - State "NEXT"       from "TODO"       [2026-08-15 Sat 17:11] \\
   Auto-promoted: sole remaining TODO in its sibling group.
 :END:
+:PLAN:
 
 Raised by the user 2026-08-15: the org skill is meant for use on other
 projects, and this repo's recursiveness — a tool for working on itself —
@@ -4057,6 +4058,7 @@ machinery travel is a separate move: hooks into
 =~/.claude/settings.json= and the MCP server into user-level config,
 both of which can be user-scoped.
 
+:END:
 *Merged in from =ae2d9b4a= 2026-08-15, which was the same task written first.*
 
 That heading lived in =~/org/notes.org= — a tracked file, but not one
