@@ -964,6 +964,25 @@ The trailing =t= is the last form of the =save-excursion=, so the whole expressi
 
 *Sequencing reminder from the measurement above:* the *first* sort is a large reordering — 63% of adjacent pairs are already descending, longest run 17 of 135 — so it wants its own commit. Every later run moves one or two entries, because =org_capture= prepends.
 
+*Shipped 2026-09-01 as approach A, in two commits as this body's own sequencing note required.*
+
+*One call, and every prediction in the measurement held.* =(org-sort-entries nil ?R nil nil "CREATED")= with point before the first heading. The datetree anchor was the only level-1 heading without a =:CREATED:= — exactly one, not a class — and org placed it last on its own, subtrees intact.
+
+*The one real objection is answered by a check rather than by data*, as decided: =bin/lint-org= now asserts the =:DATE_TREE:= anchor is the file's final level-1 heading. It is an =error= rather than a =warn= because the correct state is computable and the sort restores it without asking anything.
+
+*And the assertion earned its place immediately.* Added *before* the first sort ran, it fired against the file as it stood — =level-1 heading after the :DATE_TREE: anchor (anchor is at line 7185) ... Review attention= — and went quiet once the sort landed. So it was demonstrated failing and passing on real data rather than only in a fixture.
+
+*Wired into the ceremony after archiving*, for the reason this body gives: sorting first would order rows that are about to be removed.
+
+*The first sort was the large reordering the measurement promised:* 81 level-1 headings, *all 81* at a different position, ~9290 diff lines. Its own commit. The second run moved *0*, which is the property that lets it join the ceremony at all.
+
+*One defect of my own, and it is a reporting defect of exactly the kind this slice is about.* The summary counted movement with =seq-difference= over the before and after title lists — a *set* difference, which is empty by construction after a sort. The first real run therefore reported =0 reordered= immediately after rewriting 9290 lines: a number that reads as a successful no-op and is the opposite of the truth. Counted by *position* now, and the idempotency test asserts both the 4 and the 0 rather than only the file contents.
+
+*Approach C is untouched and not foreclosed*, as decided — whether the meta-work datetree belongs in its own file remains a question about whether meta-work belongs beside the work, and nothing here makes it harder.
+
+*What is left of the twin:* [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] is now unblocked, [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] having filled every missing =CLOSED:=. It is the larger of the two — restructuring DONE.org into a datetree rather than sorting a flat list — so it did not fit "the same pass" as literally as this body expected.
+
+
 
 * TODO Sweep the ten longest live bodies into :PLAN: drawers :code:
 :PROPERTIES:
