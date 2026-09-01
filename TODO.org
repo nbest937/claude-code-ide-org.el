@@ -1652,6 +1652,39 @@ headings, so it is left for a human rather than taken here. If wrapping
 is wanted anyway, the seam is *Promoted to =**= and split into children
 2026-08-14* — but it buries the scope, which is the objection above.
 
+*=02aaae22= is resolved, and not by wrapping. Closed 2026-09-01.*
+
+The user rejected both moves this heading had on the table: drawering
+was wrong because the heading is *in progress*, so its body is
+outstanding work rather than superseded planning; and mitosis was wrong
+because it is already a container, and division is what a leaf does when
+it outgrows itself. Both objections are correct and neither was in this
+heading's reasoning — the recommendation recorded here on the day was to
+divide, which would have been the second error.
+
+*What happened instead was redistribution:* 369 body lines allocated to
+children, twelve of the seventeen scope items culled as already done,
+one culled as a duplicate of a heading already =NEXT= in this slice, and
+six new children filed for what survived. The body ended at 77 lines and
+the cookie moved =[7/11]= → =[7/17]=.
+
+*That makes the sweep ten for ten, by three different means* — seven
+condensed-and-wrapped, one divided (=9e627dc0=, earlier the same day),
+one archived before the pass reached it (=2d9eeebd=), and one
+redistributed. Worth stating plainly because this heading's premise was
+that one method fits a long body, and it does not: what fits depends on
+whether the body is *finished thinking* (wrap), *one task that grew*
+(divide), or *a backlog in prose* (redistribute). Only the first is what
+=:PLAN:= is for.
+
+*The finding is the same in every case, which is the part that
+generalises.* Across the seven wrapped bodies, six carried claims the
+code had already falsified. Across =02aaae22='s seventeen scope items,
+twelve were already done. Nothing announced either. A long body is not
+mainly a readability problem — it is a *staleness* problem, and length
+is only the symptom that makes it survive unread.
+
+
 
 * TODO Reorder DONE.org as a datetree, descending by CLOSED: :code:
 :PROPERTIES:
