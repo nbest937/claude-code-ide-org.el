@@ -9863,6 +9863,20 @@ load-bearing and a reader should not infer that it is.
 Binds `org-archive-reversed-order' rather than relying on the global,
 unset as of 2026-08-31.  DONE.org reads newest-first, and appending to
 its end would bury a fresh entry under two hundred older ones."
+  ;; Before the `let' below, not merely before the archiving. Under
+  ;; lexical binding, `let'-binding a symbol org-archive has not yet
+  ;; defvar'd makes it *lexical*, and loading org-archive afterwards
+  ;; signals "Defining as dynamic an already lexical var:
+  ;; org-archive-reversed-order" -- so the binding silently stops being
+  ;; dynamic and then errors.
+  ;;
+  ;; A fresh-session-only failure, which is why it hid: a long-running
+  ;; Emacs has org-archive loaded from any earlier archive, so this works
+  ;; there and fails on the first ceremony after a restart. Found
+  ;; 2026-09-01 exactly that way, minutes after a restart
+  ;; (TODO.org :ID: 13ea6770). Two other call sites in this file already
+  ;; require it; this one did not.
+  (require 'org-archive)
   (let ((file (or file (car (claude-code-ide-org--tracked-files))))
         ;; Bound for the same reason `claude-code-ide-org-refresh-slice'
         ;; binds it, and the reason is the ceremony rather than
