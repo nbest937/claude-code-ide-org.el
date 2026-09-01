@@ -31,6 +31,24 @@
 
 *Related but distinct:* [[id:1a5a5254-f62d-46e7-9a6c-3d84f2f52873][1a5a5254]] proposes reading power assertions as an attribution signal — machine evidence for the same question. This is the human's own testimony, which is cheaper and probably more accurate, and the two are not exclusive.
 
+*Measured 2026-09-01, and it replaces all three options above with a fourth — plus one problem that is harder than expected.*
+
+*The precondition is moot, because the data is already joinable.* Claude Code's own transcripts live in =~/.claude/projects/<slug>/<session>.jsonl= — 48 of them for this project — and every user message carries an ISO timestamp. *Every one of this session's 28 =resume= events matches a transcript user message within two seconds; 28 of 28.* So the prompt text is already durably recorded beside a key that joins it to the queue exactly.
+
+*Option 4, which dominates 1-3: join queue to transcript on timestamp.* No hook change, no new field in a durable log, no privacy decision about what the queue should hold, and it works *retroactively* across every session ever recorded rather than only forwards.
+
+*The =UserPromptSubmit= payload question is therefore unanswered and no longer blocking.* It was not checked: verifying it means teeing a live hook that runs on every prompt, and the join removes the reason to. It matters only if a *live in-session* marker is ever wanted, which nothing yet needs.
+
+*The hard part is not access, it is the labelling rule — and two attempts at one both failed.* A gap should be labelled absent when the message opening the preceding turn says the user is leaving, or the message ending the gap says they are back. Both drafts over-labelled: the first treated any earlier AFK message as labelling every later gap, the second still marked gaps of *5 and 14 seconds* as absences. Two causes, and both are structural rather than sloppy:
+
+- *Mid-turn messages break the pairing.* The user can send "still AFK" while the agent is working, which writes a =resume= that does not correspond to the start of a wait. The pause/resume stream stops being an alternation.
+- *"Back" is ambiguous in ordinary prose* — "go back to the slice" is not a return announcement — while "BAK" is unambiguous and rarer.
+
+*So the honest state: the signal is real and the access is solved; the extraction is not.* Rates from the flawed rules are not reported here on purpose, since both are known wrong and a wrong number is worse than none ([[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]).
+
+*What would settle it is a handful of human judgements rather than a better regex.* Twenty-odd long gaps in this project's history plausibly carry a marker; the user can confirm or reject each in a few minutes, and that becomes the labelled set a rule is *validated against* rather than derived from. That is also the first ground truth the 1200s threshold has ever had, which is [[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]]'s September occurrence.
+
+
 * TODO The human half of the ratio is already recorded, and thrown away :code:research:
 :PROPERTIES:
 :ID:       20cecd53-2338-4237-ab06-f8129e10a2c8
