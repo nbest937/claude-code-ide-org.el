@@ -2,6 +2,39 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
+* TODO [0/12] Everything passed and the file was still wrong :code:
+:PROPERTIES:
+:ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
+:CREATED:  [2026-09-01 Tue 09:11]
+:CATEGORY: Slices
+:KIND:     slice
+:BLOCKER:  ids(39039bb6-c70a-4ba9-8b37-edd8dd6921f6 f12f9da4-2870-45b7-8c50-ea54415c7bc6 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177 72463b68-9f08-44b2-8213-87f71298138d 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 2aeb65d6-350e-4c75-811e-4a748044fe2c 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b)
+:END:
+
+*The theme, briefly, in place of a plan — the full prompt comes later.* The previous slice was about the gap between what the code *knows* and what it *says*. This one is about a gap one layer down: the record itself going wrong while every check reports success.
+
+Three things happened on 2026-08-31/09-01 that share a shape. =bin/lint-org= reported *0 errors* across several runs while a duplicate =:ID:= sat in the corpus — and an =:ID:= is the primary key, so a duplicate makes every id-taking tool ambiguous. The live Emacs served a =config.el= two hours stale, silently, and was caught only because the change happened to be to *visible wording*; a behavioural change would have been invisible. And the ceremony's archive step failed *after* copying and before deleting, leaving a heading in two files at once — a partially-applied write, not a refused one.
+
+To which add the standing friction: the two MCP tools that time out are worked around by =emacsclient= a dozen times a session, so the tool surface is bypassed rather than fixed; and two =id= arguments reject an 8-character prefix, one of them by *silently doing nothing* and reporting a clean no-op.
+
+*So the members divide roughly three ways:* checks that do not catch, writes that half-succeed, and one archive duplication whose mechanism is still unknown. What they have in common is that none of them is visible from a green suite.
+
+*Composition note:* the member list below is deliberately not sequenced yet, and the incidental list is generated.
+
+- [ ] [[id:39039bb6-c70a-4ba9-8b37-edd8dd6921f6][39039bb6]] TODO bin/lint-org does not detect a duplicate :ID: across TODO.org and DONE.org
+- [ ] [[id:f12f9da4-2870-45b7-8c50-ea54415c7bc6][f12f9da4]] TODO The running Emacs can be running a stale config.el and nothing says so
+- [ ] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] TODO Three verification traps hit repeatedly in one session, none of them caught by a check
+- [ ] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] NEXT Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
+- [ ] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] TODO MCP tools that write an org file time out; one reports success and persists nothing
+- [ ] [[id:25e7b083-360b-4282-8fd0-bb768e2a0f13][25e7b083]] TODO org_capture's target refuses an 8-character :ID: prefix that every other tool accepts
+- [ ] [[id:3ad389be-2797-46c3-a51d-9f603053955a][3ad389be]] TODO An Emacs outage strands every org write, because the tools are Emacs
+- [ ] [[id:7fa68d5c-b6c0-43df-85c6-764b1d56511f][7fa68d5c]] TODO Fall back to the queue when org_capture cannot reach Emacs
+- [ ] [[id:381ea07d-633f-4640-abbb-89472a07acba][381ea07d]] TODO An archive pass wrote one subtree twice, and the mechanism is still unknown
+- [ ] [[id:8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b][8ddd7fa8]] TODO Moving a heading between files by hand leaves org-id pointing at the old one
+- [ ] [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]] TODO Concurrent sessions share one git index, and explicit staging protects nothing
+- [ ] [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] TODO Three new ways to owe a footnote and not see it: marker, list, quotation
+
+
 * TODO Three new ways to owe a footnote and not see it: marker, list, quotation :code:
 :PROPERTIES:
 :ID:       2a6a1355-615f-4c2c-a8af-c9ae8dcda09b
