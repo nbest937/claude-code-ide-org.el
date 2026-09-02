@@ -146,6 +146,24 @@ Once plan and debrief move into drawers, =org_outline='s bodiless index withhold
 
 64 finished headings carry a mixed body that =bin/lint-org= reports and no mechanism can split automatically, since the seam is a fact about when a sentence was written. Proposed: read each one and cut it by tense, voice and markup; accept no drawer on the 29 short ones; and for any *debatably* ambiguous heading wrap the body whole with a =See the :PLAN: drawer for details= note — a bounded exception for this retroactive pass only, never for new headings.
 
+*Complete 2026-09-02. All 73 cut; =bin/lint-org= reports zero =:PLAN:= warnings, against 73 when the pass began.* Committed in batches of three or four so any single cut is revertable on its own.
+
+*Integrity checked rather than assumed*, since the pass touched almost every finished heading in the repo: DONE.org 213 keyworded and 213 ids, TODO.org 134 and 146, no duplicate ids in either. =org_wrap_plan= is lossless by construction — two insertions, nothing deleted or reflowed — and every call reported =Text preserved: yes=.
+
+*Four body shapes appeared, and only one needed the exception.*
+
+1. *The ordinary cut* (64). A clean tense flip. Usually a =*Shipped …*= paragraph, but the rule that actually held is sharper: **the debrief begins where the heading's own job produced its outcome.** [[id:ff1352b3-2732-4422-9f0d-4b3cb6fd8ff3][ff1352b3]] was a *decide* heading, so its seam is =*Decided …*=; [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] is =CANCELLED=, so its seam is =*Cancelled … as superseded by*=; [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] was an evaluation, so its seam is =*Run 2026-08-25.*=. A keyword-matching rule would have missed all three.
+2. *Debrief-only* (4). [[id:49557477-e50c-496f-85df-82c65109832b][49557477]], [[id:e10071b9-88f0-4dc3-af8e-692965c65868][e10071b9]], [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]] and [[id:594adec6-4855-470d-8ceb-5fe29bf0c935][594adec6]] open with their outcome and never propose — =e10071b9= was filed and closed a minute apart. These take an **empty** =:PLAN:= drawer with the body untouched, which is [[id:f421c5c3-f81f-4ebf-99c9-42c53cc00558][f421c5c3]]'s case, and =org_wrap_plan= says so in its reply rather than silently wrapping nothing.
+3. *Purely prospective* (1). [[id:0acc1df2-6916-4180-867a-99bfa551806b][0acc1df2]] closed with **no debrief at all** — 27 lines ending on "Manual repair until this is built". Whole body wrapped, which is the convention's ordinary completion transition rather than the exception. The missing debrief is a pre-existing gap and is now recorded on the heading.
+4. *The user's exception* (2). [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] and [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] interleave planning and execution across multiple phases — 29439196 over 70 paragraphs, 3063c3e5 across two ship events with re-scoping between them. No line is the seam. Wrapped whole with a pointer note.
+
+*Two of the four shapes were not anticipated when this was filed*, and the distinction between 2 and 4 is the one worth keeping: **an absent prospective half is not an unrecoverable seam.** The first keeps the debrief visible; only the second buries it. Conflating them would have hidden four debriefs for no reason.
+
+*A side effect worth recording because it was not the goal.* Total lint warnings fell from 140 to 68. Wrapping pushes many bodies under the ten-prose-line threshold, so rules unrelated to =:PLAN:= stop firing too — which is a fair measure of how much of each body was prospective.
+
+*The classification hypothesis is now fully falsified, and the record should say so.* [[id:f099379b-7f78-4c19-85be-abeea0bf3e71][f099379b]] proposed that a debrief marker on line 1 meant a debrief-only body, offering an escape from per-heading reading. Across the whole corpus it held for 4 of 73. Reading each body was the only honest route, exactly as that heading concluded.
+
+
 
 * TODO "Backlog = wrap unedited" would bury a debrief in 88 of 93 headings :code:
 :PROPERTIES:
@@ -7253,6 +7271,7 @@ CLOSED: [2026-09-02 Wed 09:47]
 - State "DONE"       from "TODO"       [2026-09-02 Wed 09:47] \\
   idiom, limitation and buffer-side half all documented
 :END:
+:PLAN:
 
 *Moved down from the parent 2026-09-01,* where it was scoped on
 2026-08-13. Re-verified the same day: =grep -i sibling
@@ -7331,6 +7350,7 @@ limitation, and both caveats.
 *Verify:* =grep -ci sibling .claude/skills/org/SKILL.md= finds the
 survey, not only the refile-level sentence at line 140.
 
+:END:
 *Shipped 2026-09-02* as its own "Surveying a heading's siblings"
 subsection under "Working with .org Files", beside the timestamp rule —
 both are about *reading* org, and a reader who needs one usually needs
@@ -7379,6 +7399,7 @@ CLOSED: [2026-09-02 Wed 09:48]
 - State "DONE"       from "TODO"       [2026-09-02 Wed 09:48] \\
   demonstrated in batch, filed inside the reload section
 :END:
+:PLAN:
 
 *Moved down from the parent 2026-09-01,* where it was scoped on
 2026-08-13 for the org-dev skill specifically. Re-verified the same day:
@@ -7421,6 +7442,7 @@ is mechanically checkable.
 the reload trap, and the claim about unbound symbols is demonstrated
 rather than asserted.
 
+:END:
 *Shipped 2026-09-02* as a subsection of the org-dev skill's §1, "Live
 reload procedure" — inside the section describing the reload it
 undermines, rather than filed near it.
@@ -7467,6 +7489,7 @@ CLOSED: [2026-09-02 Wed 09:43]
 - State "DONE"       from "TODO"       [2026-09-02 Wed 09:43] \\
   stated near the top, with state-vs-rationale resolved
 :END:
+:PLAN:
 
 *Moved down from the parent 2026-09-01,* where it accumulated across
 2026-08-11 and -08-12 as two related cautions. Re-verified the same day:
@@ -7522,6 +7545,7 @@ claims it qualifies.
 *Verify:* =grep -ci 'authority\|starting point' CLAUDE.md= finds it
 outside the tracker-reading section.
 
+:END:
 *Shipped 2026-09-02* as a section immediately after the opening goals
 and before "Architecture: the event queue" — near the top, where the
 Done-when asked, so it is read before the claims it qualifies.
