@@ -1176,14 +1176,14 @@ Move every =Review and planning= datetree node dated the previous day or older i
 Once the sibling heading refiles =* Review attention='s old LOGBOOK entries into dated clones, those clones are placed by this same pass.
 
 
-* DOING [35/43] The code knows more than it says, and asks more than it should :code:
+* DOING [35/52] The code knows more than it says, and asks more than it should :code:
 :PROPERTIES:
 :ID:       b36e6369-a210-4540-adc7-0c0c188e9791
 :CREATED:  [2026-08-28 Fri 17:37]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(33864a0f-5e13-4235-85a6-0bd9d2fe5252 72463b68-9f08-44b2-8213-87f71298138d 7c4d6ef6-c914-4d33-b267-cc9158a9f359 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177 d39f5f0d-bee3-4aa4-8494-0bddd07e9067 5fc7b934-28ec-4eeb-9f90-f1becec353f0 5bfc1d38-e758-4ed7-bb32-f976031ff3da)
+:BLOCKER:  ids(33864a0f-5e13-4235-85a6-0bd9d2fe5252 72463b68-9f08-44b2-8213-87f71298138d 7c4d6ef6-c914-4d33-b267-cc9158a9f359 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177 d39f5f0d-bee3-4aa4-8494-0bddd07e9067 5fc7b934-28ec-4eeb-9f90-f1becec353f0 5bfc1d38-e758-4ed7-bb32-f976031ff3da 517a4290-4c66-43e7-b42e-dad7167b9c41 594adec6-4855-470d-8ceb-5fe29bf0c935 9d009401-93dd-40e5-a243-7a30a8a5bd55 4072b6ec-2785-40ba-81e8-aa559508501c 72e82469-3d4f-4ee1-b0c4-35b1c253901c 8e124867-323d-4332-9f4e-a391e59123e7 6e59c0f9-8af4-43d5-99c1-637ea360c3d0 e5fef4c4-5c42-48c2-a5d7-577dc199c22a 5f89f872-6c0d-4805-88da-a182971c7ad9)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 17:38] \\
@@ -1234,6 +1234,16 @@ and the open decisions live in the prompt below rather than here.
 - [ ] [[id:d39f5f0d-bee3-4aa4-8494-0bddd07e9067][d39f5f0d]] TODO CLAUDE.md's "Session tracking" still describes the pre-cutover clock
 - [ ] [[id:5fc7b934-28ec-4eeb-9f90-f1becec353f0][5fc7b934]] TODO Line-number anchors in org bodies rot, and nothing checks them
 - [ ] [[id:5bfc1d38-e758-4ed7-bb32-f976031ff3da][5bfc1d38]] TODO A slice claims another slice's declared members as its own incidental work
+
+- [ ] [[id:517a4290-4c66-43e7-b42e-dad7167b9c41][517a4290]] TODO CLAUDE.md's open-a-clock rule is missing the container exception
+- [ ] [[id:594adec6-4855-470d-8ceb-5fe29bf0c935][594adec6]] TODO CLAUDE.md documents neither span floor, and mis-describes the gap threshold
+- [ ] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] TODO CLAUDE.md carries dated history that costs every session's context
+- [ ] [[id:4072b6ec-2785-40ba-81e8-aa559508501c][4072b6ec]] TODO The file-header template omits #+STARTUP:, which both files carry
+- [ ] [[id:72e82469-3d4f-4ee1-b0c4-35b1c253901c][72e82469]] TODO A :BLOCKER: on a MAYBE heading is dormant, and no convention says so
+- [ ] [[id:8e124867-323d-4332-9f4e-a391e59123e7][8e124867]] TODO Timestamps must come from a :LOGBOOK: drawer, never a bare pattern match
+- [ ] [[id:6e59c0f9-8af4-43d5-99c1-637ea360c3d0][6e59c0f9]] TODO The sibling-survey idiom is undocumented, and org_outline cannot navigate up
+- [ ] [[id:e5fef4c4-5c42-48c2-a5d7-577dc199c22a][e5fef4c4]] TODO load-file does not pick up a changed defcustom default
+- [ ] [[id:5f89f872-6c0d-4805-88da-a182971c7ad9][5f89f872]] TODO Say in CLAUDE.md that it is a starting point and the artifact is the authority
 
 Incidental:
 
@@ -6672,6 +6682,58 @@ CLOSED: [2026-08-21 Fri 12:45]
 :END:
 
 *Filed 2026-08-21, not done.* CLAUDE.md is ~5,500 words, loaded into every session, and a large share is dated narrative -- retirements, incident stories, won't-dos, measured-on-date facts -- the same disease [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] names in TODO.org bodies, in the one file no session can skip. The rules should stay; the archaeology should live in DONE.org bodies or the relevant heading, with a pointer where the rule needs its provenance. Judgment-heavy prune, so it needs the user in the loop, not a background pass.
+
+*Deliberately not done 2026-09-02, and the reason is this heading's own
+last sentence:* "Judgment-heavy prune, so it needs the user in the loop,
+not a background pass." Nine sibling doc edits landed that day
+unattended; this one stopped. Recording the stop so it does not read
+later as an oversight.
+
+*What did happen is that the file got bigger, which this heading has a
+claim on.* CLAUDE.md went from 1022 lines / 58,723 characters at session
+start to 1182 / 67,747 — *+160 lines, +15%* — in the same session, and
+in the same slice, as a heading asking that it shrink. The additions are
+rules rather than archaeology (the authority section, the three interval
+numbers, the grouping clock exception, the guidepost rewrite), but the
+tension is real and belongs on the record rather than in a commit
+message.
+
+*The premise is weaker at line level than the filing assumed, measured
+today.* Of 1183 lines, *38* carry an explicit date and *40* carry a
+historical marker (=retired=, =used to=, =until 20xx=, =no longer=,
+=measured=, =was wrong=). That is ~3%, not "a large share". Paragraph
+level would score higher — one date can carry a whole paragraph of
+archaeology — so the honest reading is that the *count* is small and the
+*mass* is unmeasured.
+
+*Where the mass is, since that is what a prune needs:*
+
+| section                  | lines | dated | historical |
+|--------------------------+-------+-------+------------|
+| State transition rules   |   315 |    14 |          9 |
+| Engineering practices    |   278 |     9 |          6 |
+| Session tracking         |   221 |     8 |         15 |
+| MCP tools                |    81 |     2 |          4 |
+| everything else combined |   288 |     5 |          6 |
+
+Three sections hold *69%* of the file. Any prune worth doing is a prune
+of those three, and a pass that trims evenly across the rest would move
+almost nothing.
+
+*A question for the decision, not settled here.* Several of the densest
+passages are load-bearing *because* they are dated — "this said the
+opposite until 2026-08-26 and was wrong the whole time" is what stops a
+reader trusting a remembered version of the rule. The prune's real
+question is not "how much history" but *which history is still doing
+work*, and that is exactly the judgement the heading reserved for a
+human.
+
+*Related:* [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] names the same disease in org
+bodies and now records the retention policy that answered it there. Its
+criterion — prose earns its place when it lets a future session pick the
+work up without re-deriving context — transfers directly, and is
+probably the sharpest test available for this file too.
+
 
 
 ** TODO The file-header template omits #+STARTUP:, which both files carry :code:
