@@ -12306,3 +12306,45 @@ over the wrong day, would each pass a narrower test."
                        "*** 2026-09-01 Tuesday"
                        "**** DONE A newer finished task :code:")))
       (should (member "** 2026-08 August" lines)))))
+
+(ert-deftest claude-code-ide-org-test-datetree-target-follows-the-archive-directive ()
+  "The datetree sort and the archive step must agree on which file they
+are working on (TODO.org :ID: 33864a0f).
+
+*This is a regression test for a defect the whole suite missed*, because
+every other test passes the path explicitly and only the ceremony calls
+with no argument.  The old implementation computed \"DONE.org beside the
+capture target\", and the capture target is a directory holding nothing
+but a *symlink* to the real TODO.org -- so it named a file that does not
+exist, `find-file-noselect' made an empty buffer for it, and
+`org-sort-entries' failed with \"Nothing to sort\" on every ceremony while
+every hand call succeeded.  Found by a human noticing 2026-09-02 filed
+below 2026-09-01.
+
+The fixture reproduces the real layout rather than a simplified one: the
+capture target is reached *through a symlink* and the archive lives
+beside the link's target, not beside the link."
+  (let* ((dir (file-name-as-directory (make-temp-file "cciorg-symlink" t)))
+         (real (file-name-as-directory (expand-file-name "real" dir)))
+         (link (file-name-as-directory (expand-file-name "link" dir))))
+    (unwind-protect
+        (progn
+          (make-directory real) (make-directory link)
+          (with-temp-file (expand-file-name "TODO.org" real)
+            (insert "#+ARCHIVE: DONE.org::datetree/\n\n* TODO Live\n"))
+          (with-temp-file (expand-file-name "DONE.org" real)
+            (insert "#+TITLE: Archive\n\n* 2026\n"))
+          (make-symbolic-link (expand-file-name "TODO.org" real)
+                              (expand-file-name "TODO.org" link))
+          (let ((claude-code-ide-org-capture-file
+                 (expand-file-name "TODO.org" link)))
+            ;; Resolves through the link, to the archive the directive
+            ;; names -- not to a sibling of the link that does not exist.
+            (should (file-equal-p (claude-code-ide-org--datetree-target-file)
+                                  (expand-file-name "DONE.org" real)))
+            ;; And agrees with the step that actually writes there.
+            (should (file-equal-p
+                     (claude-code-ide-org--datetree-target-file)
+                     (claude-code-ide-org--archive-target-file
+                      (claude-code-ide-org--capture-target-file))))))
+      (delete-directory dir t))))

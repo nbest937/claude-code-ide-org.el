@@ -11372,10 +11372,28 @@ something to remember.  Returns a summary string."
     (nreverse titles)))
 
 (defun claude-code-ide-org--datetree-target-file ()
-  "DONE.org, beside the capture target file."
-  (expand-file-name
-   "DONE.org"
-   (file-name-directory (claude-code-ide-org--capture-target-file))))
+  "The file `org-archive-location\' sends the capture target\'s entries to.
+
+Asks `claude-code-ide-org--archive-target-file\' rather than computing a
+path, so this and `claude-code-ide-org-archive-finished\' cannot disagree
+about which file they are working on -- which is the whole defect this
+replaced.
+
+*It used to guess* \"DONE.org beside the capture target\", and got a file
+that does not exist: the capture target is
+`~/org/claude-code-ide-org/TODO.org\', a directory holding nothing but a
+*symlink* to the real TODO.org, so DONE.org is not beside it. The
+ceremony then opened an empty buffer for a nonexistent path and
+`org-sort-entries\' failed with \"Nothing to sort\", every time, while a
+hand call passing the real path succeeded -- which is what hid it
+through testing (TODO.org :ID: 33864a0f, found 2026-09-02 by the user
+noticing 2026-09-02 filed below 2026-09-01).
+
+Two things the old version lacked and this inherits for free: it reads
+the `#+ARCHIVE:\' directive instead of assuming a filename, and it
+resolves the symlink with `file-truename\'."
+  (claude-code-ide-org--archive-target-file
+   (claude-code-ide-org--capture-target-file)))
 
 (defun claude-code-ide-org-sort-datetree-descending (&optional file dry-run)
   "Sort FILE\'s top-level datetree newest-first at every level.
@@ -11405,6 +11423,13 @@ Idempotent.  Returns a summary string."
   (interactive)
   (let* ((file (or file (claude-code-ide-org--datetree-target-file)))
          (years 0) (months 0) (days 0))
+    ;; Refuse a missing target rather than opening an empty buffer for it.
+    ;; `org-sort-entries' answers that with "Nothing to sort", which names
+    ;; neither the file nor the reason -- and the ceremony then reports a
+    ;; failed step that looks like a sorting problem when it is a pathing
+    ;; one. That is exactly how the symlink defect presented.
+    (unless (file-exists-p file)
+      (error "No archive file to sort at %s" file))
     (with-current-buffer (find-file-noselect file)
       (let ((buffer-read-only nil))
         (org-with-wide-buffer
