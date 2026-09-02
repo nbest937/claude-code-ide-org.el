@@ -5679,6 +5679,7 @@ CLOCK: [2026-08-25 Tue 17:51]--[2026-08-25 Tue 17:54] =>  0:03
 - State "DONE"       from "REVIEW"     [2026-08-25 Tue 19:16] \\
   evidence produced and approved
 :END:
+:PLAN:
 
 The missing half of [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]], which is entirely cost analysis and mechanism comparison with no statement of what the change would *buy*. That asymmetry is the likeliest reason it has sat parked since 2026-08-19 instead of resolving either way.
 
@@ -5699,6 +5700,7 @@ The missing half of [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]], which
 
 *And Claude is how they get evaluated without the chords*, which closes the loop: a view or column spec can be built, run and rendered on request, so muscle memory stops being a precondition for the judgement. That is the founding goal applied to org's own feature set rather than to task edits.
 
+:END:
 *Run 2026-08-25.* Every lens was pointed at the real corpus in batch Emacs (org 9.8.7, loaded from Doom's straight build so this is the same org the live session uses, not the bundled one). Reads are read-only; the two experiments that had to *write* properties ran against copies of TODO.org in a scratch directory, and the real files were never opened for writing.
 
 *The agenda works today, unmodified*
@@ -5867,6 +5869,7 @@ CLOCK: [2026-08-25 Tue 18:05]--[2026-08-25 Tue 18:12] =>  0:07
 - State "DONE"       from "DOING"      [2026-08-25 Tue 18:12] \\
   declared not inferred; 7 to 6 warnings
 :END:
+:PLAN:
 
 *Latent, not firing yet, and found 2026-08-24 by running the sweep rather than by reading the rule.*
 
@@ -5880,6 +5883,7 @@ Those six refused =org_wrap_plan= with =Seam marker is the first body line; noth
 
 *Not fixed now* because it fires on nothing today, and a rule changed while quiet cannot be seen to improve. Worth doing before the next long-bodied heading closes.
 
+:END:
 *Shipped 2026-08-25* ([[orgit-rev:claude-code-ide-org::5e6ab98][5e6ab98]]). A debrief-only heading can now answer the lint's question, by declaring that it has no prospective half: pass the debrief's first line as the seam and =org_wrap_plan= writes an *empty* =:PLAN:= drawer. The whole body stays visible.
 
 *Two of this heading's own claims were wrong by the time it was worked, and both were measured rather than reasoned about.*
