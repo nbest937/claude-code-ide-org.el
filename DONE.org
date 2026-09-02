@@ -32,6 +32,7 @@ CLOCK: [2026-09-02 Wed 12:15]--[2026-09-02 Wed 12:45] =>  0:30
 - State "DONE"       from "REVIEW"     [2026-09-02 Wed 13:22] \\
   datetree shipped and archiving fixed
 :END:
+:PLAN:
 
 *Proposed by the user 2026-08-28, and no heading existed for it* — checked before filing. Three neighbours touch it and none is this:
 
@@ -56,6 +57,7 @@ The 13 are exactly that manifest's git-derived rows; its other 28 rows were T1 (
 
 *A known consequence, not an objection.* A second datetree in DONE.org is something =bin/lint-org= does not currently cover — its datetree rule is written for the one in TODO.org. That was foreseen while shipping the rule; see the child heading "bin/lint-org will drown in datetree scaffolding it can never satisfy", which measured it hours after the rule landed.
 
+:END:
 *Shipped 2026-09-02* across four commits: =e4c60ce= (lint), =d0adb2f= (the functions and their tests), =ea762f3= (the file mutation), =b378b1f= (the ongoing half).
 
 *The prerequisite had already been met, and was checked rather than assumed.* All 210 keyworded headings in DONE.org carry =CLOSED:= — the 39 this body measured on 2026-08-28 were backfilled by [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] after it was reopened. That check was the one condition under which this heading should have stopped instead of building, so it ran first.
@@ -109,6 +111,7 @@ CLOCK: [2026-09-02 Wed 11:21]--[2026-09-02 Wed 11:22] =>  0:01
 CLOCK: [2026-09-02 Wed 11:52]--[2026-09-02 Wed 11:55] =>  0:03
 - [2026-09-02 Wed 11:52]--[2026-09-02 Wed 11:55] subtract other slices declared members
 :END:
+:PLAN:
 
 *Twin of [[id:42ba0a80-61c5-49bd-b6a2-9da76a53ff64][42ba0a80]], split from it because the fix is
 different and neither fix alone is sufficient.* That one is about the
@@ -158,6 +161,7 @@ actually working; and whether the exclusion should be reported rather
 than silent, since a slice's incidental list going quiet is the same
 class of failure as it going noisy.
 
+:END:
 *Shipped 2026-09-02 as =b6bcdc9=.*
 =claude-code-ide-org--other-slices-declared-ids= collects every slice's
 planned members across the tracked files, and
@@ -229,6 +233,7 @@ CLOSED: [2026-09-02 Wed 09:30]
   harness plus two assertion families; third split to 5fc7b934
 - [2026-09-02 Wed 09:32]--[2026-09-02 Wed 09:38] generalize the check into a harness
 :END:
+:PLAN:
 
 *Filed 2026-08-21, not built.* The 2026-08-21 cross-artifact audit found that prose conventions recur (UUID-from-memory, clock-in-at-drift) while mechanically checked ones fail loudly and get fixed -- and that duplicated conventions drift into contradiction (four found in CLAUDE.md, one in a memory, one in the next-session prompt). =bin/check-org-dev-skill= already embodies the fix for one file; generalize it: the CLAUDE.md and org-skill transition tables agree; every cited =:ID:=, defcustom, and function name resolves (=git grep= the symbol); every "is live"/"not built" claim carries a greppable anchor (e.g. =config.el:2792=) that still matches. Wire into =bin/hooks/pre-commit= beside the existing lint. Not a prose rule about keeping prose fresh -- that is the anti-pattern recursing.
 
@@ -284,6 +289,7 @@ org bodies as a separate check. Recorded here rather than silently
 dropped, because a heading that quietly loses a third of its scope reads
 afterwards as though it was always smaller.
 
+:END:
 *Shipped 2026-09-02 as =5d42fc5=. The harness is the deliverable; two of
 the three assertion families landed with it, and the third became a
 separate heading.*
@@ -370,6 +376,7 @@ CLOCK: [2026-09-01 Tue 15:55]--[2026-09-01 Tue 16:00] =>  0:05
 - State "DONE"       from "DOING"      [2026-09-01 Tue 16:20] \\
   ten for ten, by three different means
 :END:
+:PLAN:
 
 *Asked for by the user 2026-08-28*, on seeing [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]'s body: "absolutely monstrous... I guess it's because it predates the current task lifecycle and we never touched it." That diagnosis is right and it generalises — the =:PLAN:= lifecycle ([[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]]) applies at =DONE=, so a *live* heading that has been accumulating for weeks has never met it.
 
@@ -427,6 +434,7 @@ This heading's own test is "ask whether the body was ever *revised*; if it was o
 
 *The first version of this measurement was wrong in two ways and is recorded because both are the same mistake.* It sampled only the most recent 40 commits — 2026-08-27 onward, five days of a five-week history — and it bounded each body with =find("\\n* ")=, which for a heading *with children* runs past them, so =02aaae22= came out as 5 lines against a true 178. Both errors flattered the answer: a shorter window and a truncated body both hide shrinks. A measurement whose errors all point the same way is worth re-running before it is quoted.
 
+:END:
 *Seven of the ten swept 2026-09-01. The population was never ten by the time it ran.*
 
 =2d9eeebd= closed and was archived into DONE.org; the table above still
