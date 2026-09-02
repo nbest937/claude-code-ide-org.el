@@ -2371,6 +2371,7 @@ CLOSED: [2026-08-31 Mon 08:40]
 - State "DONE"       from "TODO"       [2026-08-31 Mon 08:40] \\
   slices exempt from the PLAN lint
 :END:
+:PLAN:
 
 *Raised by the user 2026-08-31:* what is the justification for wrapping a slice's pre-closure content into =:PLAN:= and writing a debrief? We did not do it for [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]], and it reads fine as it is.
 
@@ -2388,6 +2389,7 @@ CLOSED: [2026-08-31 Mon 08:40]
 
 *Not decided.* The user asked the question; this records the argument rather than settling it.
 
+:END:
 *Decided and shipped 2026-08-31.* The user's ruling: drop the =:PLAN:= wrap from the slice-closing steps.
 
 *Shipped as the exemption rather than the empty drawer*, which was the choice this body laid out. =bin/lint-org= no longer asks a =:KIND: slice= heading for a =:PLAN:= drawer. One predicate, beside the existing finished-keyword test.
@@ -2536,6 +2538,7 @@ CLOSED: [2026-08-31 Mon 08:32]
 - State "DONE"       from "TODO"       [2026-08-31 Mon 08:32] \\
   guard shipped, c44c2119 repaired
 :END:
+:PLAN:
 
 *Observed 2026-08-31, and the user found it by reading the file:* [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] is closed, and one of its members carries an empty checkbox — =[27/28]= on a =DONE= slice.
 
@@ -2551,6 +2554,7 @@ CLOSED: [2026-08-31 Mon 08:32]
 
 *Worth deciding alongside:* whether c44c2119 should be repaired to =[27/27]= by deleting that member's cookie, or left as evidence. Deleting it would assert the member was cancelled, which is no longer true; leaving it asserts the slice is unfinished, which is also not true. A third option — the honest one — is that a *reopened* member of a closed slice should keep its line and lose its cookie, exactly as a deferred member does, because the slice is done with it either way.
 
+:END:
 *Decided and shipped 2026-08-31.* The user's ruling: *an un-cancelled task in a closed slice should not have its cookie restored — the task's own state transition history is there to answer any questions that arise.*
 
 *That settles the objection recorded above.* The worry was that a cookie-less line asserts "this was cancelled", which stopped being true when the member reopened. It does not have to assert that: a closed slice's line is a statement about *the slice's* relationship to the member — done with it — and the member's own =:LOGBOOK:= carries what it is doing now. The slice was never the right place to ask.
@@ -2584,6 +2588,7 @@ CLOSED: [2026-08-29 Sat 14:15]
 - State "CANCELLED"  from "TODO"       [2026-08-29 Sat 14:15] \\
   superseded by 0086614a
 :END:
+:PLAN:
 
 Wanted: a markup or convention showing which of a container's children
 were in its *original* plan, and which accrued afterwards. Raised
@@ -2641,6 +2646,7 @@ What it does settle is where the answer *cannot* live. If a body may be rewritte
 
 *Unchanged: the two questions this heading says should not be settled by whoever picks it up first* — whether every follow-on child warrants its own plan, and whether a plan is a maintained document or a dated snapshot execution supersedes. Neither is touched by the above.
 
+:END:
 *Cancelled 2026-08-29 as superseded by [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]].* The user's reading, checked and confirmed: the "unstated task lifecycle" this heading gated itself on is not unstated any more, and this predates the slice concept that answers it.
 
 *The dates settle the first half.* This was created [2026-08-19 Wed], and every component of that lifecycle postdates it — the =:PLAN:= drawer lifecycle ([[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]], created 08-22), composing slices by reference ([[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]], 08-21), the first slice ([[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]], 08-25), and =org_amend= gaining the ability to *revise* rather than only append ([[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]], closed 08-26). The append-only-to-revision move and the prospective/retrospective split are exactly what "reframes all of it" meant.
