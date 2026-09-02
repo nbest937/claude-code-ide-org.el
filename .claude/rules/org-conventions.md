@@ -568,6 +568,34 @@ the last moment anyone knows where the seam is. Before the empty drawer
 existed, the only way to satisfy the warning on a debrief-only heading was to
 wrap the debrief into a drawer readers are told to skip. See `:ID:` f421c5c3.
 
+## Citing code from a body
+
+**Cite the symbol, never a line number.** `file.el:NNN` is deprecated in
+org bodies (`:ID:` 5fc7b934), extending the rule the skills already
+follow — `bin/check-org-dev-skill` exists partly because the org-dev
+skill describes the tool-registration block *structurally*, "specifically
+so a `config.el` edit that shifts line counts can't put the doc out of
+date."
+
+**The form rots upward, which is what makes it worse than a broken
+link.** The file grows, the cited line still exists, and it now holds
+something else plausible. It resolves, and it resolves to the wrong
+thing — a dangling reference at least announces itself.
+
+**The measurement that settled it:** every one of the eight live anchors
+in the corpus already named its symbol in the same sentence, so the line
+number was carrying nothing the symbol did not. Deleting it lost
+information in exactly zero cases.
+
+`bin/lint-org` reports one as an **error** on a live heading, because the
+correct form is mechanical. A *closed* heading's anchor is left alone: it
+is a historical statement — "this was true at `config.el:2792` on
+2026-08-21" — and rewriting it would falsify the record rather than
+repair it. 38 stand in the corpus and are not to be touched. A live
+heading that closes carries its anchor into `:PLAN:` with the rest of the
+prospective half, which is how the citation stops being a live pointer
+without anyone editing prose.
+
 ## The meta-work datetree
 
 `* Review and planning` carries `:DATE_TREE: t`, which is what makes org nest

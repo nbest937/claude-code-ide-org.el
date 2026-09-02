@@ -381,6 +381,7 @@ Note the near neighbour that is now *not* a defect: =org_capture= also once drop
 :CREATED:  [2026-09-02 Wed 09:29]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
 *Split out of [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] 2026-09-02,* which proposed
 asserting that "every /is live/ or /not built/ claim carries a greppable
@@ -447,6 +448,27 @@ is the only one whose check cannot itself go stale.
 *Not urgent.* No incident traces to a rotted body anchor yet; this is
 filed because =d2a0f54c='s measurement surfaced it and a finding that
 survives only in a commit message is one nobody acts on.
+
+:END:
+*Deprecated outright 2026-09-02, on the user's decision — the third candidate, which this body had already argued was the only one whose check cannot itself go stale.*
+
+*The measurement that made it easy, and it was not anticipated here.* Every one of the eight live anchors **already named its symbol in the same sentence**: the helper was named, and the line number merely repeated in parentheses beside it. So the line number was carrying nothing the symbol did not, and conversion was deletion of a redundant parenthetical rather than a rewrite. Information lost: zero, in all eight.
+
+*Live and closed split as this body proposed, and the numbers are the argument for splitting them.* 38 anchors stand in closed headings and are untouched — a closed heading's anchor is a historical statement, and rewriting it would falsify the record. Only live bodies are linted.
+
+*A live heading that closes needs no edit at all*, which is the part that makes the rule cheap to live with: its anchor travels into =:PLAN:= with the rest of the prospective half, and stops being a live pointer without anyone touching prose. This heading is the first instance — its own twelve-row table of anchors is exactly that, and wrapping it is what clears the error it was raising against itself.
+
+*Shipped:* =--lint-body-line-anchors= plus an =error= in =bin/lint-org=, the convention in =.claude/rules/org-conventions.md= under "Citing code from a body", and the eight live anchors converted.
+
+*Verified:* 522 tests, 0 unexpected. Both halves proved discriminating — dropping the live-only guard makes it fire on closed headings, and scanning the subtree instead of the body makes it fire on =:PLAN:= content. The second mutation had to be rewritten: the first attempt changed a bounds index that shifts by one newline and proved nothing, so the =:PLAN:= exclusion looked tested when it was not.
+
+*One trap re-hit and worth recording on [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]]:* a literal-string replacement missed the last anchor because the citation sat across a *line wrap*, and the context display had collapsed the newline into a space — so the text looked like it should match. Same shape as the grep-hides-a-wrap case from this morning.
+
+*The rule caught its own author, within minutes.* The debrief above originally illustrated the finding by *quoting two of the anchors* — so =bin/lint-org= reported an error against this very heading, and =.githooks/pre-commit= refused the commit that shipped the rule. The citation was removed and the commit went through.
+
+Worth recording rather than tidying away: the form is reflexive enough that writing *about* it reproduces it, which is a stronger argument for a mechanical check than anything in the plan above. It also means the gate is load-bearing rather than decorative — it fired on its first real commit, against the person who wrote it.
+
+
 
 
 * TODO claude-code-ide-org-review should return point and windows to where I entered from :code:
@@ -3717,7 +3739,7 @@ one stretch of elapsed time during which the agent was busy, not two
 separate stretches laid end to end.
 
 *The primitive already exists and is unwired.*
-=claude-code-ide-org--merge-time-intervals= (config.el:973) sorts
+=claude-code-ide-org--merge-time-intervals= sorts
 =(START . END)= conses and merges anything adjacent or overlapping into
 a min-to-max span -- exactly this operation. It has carried an
 "UNWIRED as of 2026-08-10" note ever since. So this is a wiring
@@ -3757,7 +3779,7 @@ Running it settles the matter the other way. Over the 844-guidepost corpus the d
 
 *The magnitude of this heading's own concern, measured for the first time.* Across the same 10-day corpus, per-session runs sum to 22.79 h and union to 22.68 h. The double-count this heading exists to prevent is *0.11 h -- 0.5%*. Real, reproducible, and small.
 
-That number is an argument about *where*, not *whether*. At 0.5% there is no case for paying for the union at write time, where the cost of being wrong is a CLOCK line that was refused and cannot be recovered. The report-time half is recomputable, reversible, and already written: =claude-code-ide-org--merge-time-intervals= (config.el:973) has carried an "UNWIRED as of 2026-08-10" note for eleven days and does precisely this operation.
+That number is an argument about *where*, not *whether*. At 0.5% there is no case for paying for the union at write time, where the cost of being wrong is a CLOCK line that was refused and cannot be recovered. The report-time half is recomputable, reversible, and already written: =claude-code-ide-org--merge-time-intervals= has carried an "UNWIRED as of 2026-08-10" note for eleven days and does precisely this operation.
 
 *The open question above is deliberately still open.* Its own words -- the CLOCK-line-versus-report-time call "should not be decided by whoever happens to touch this first" -- and the ratification that would have closed it was conditional on a verification that failed. What the measurement adds is a recommendation with a number behind it, not a decision: wire =--merge-time-intervals= wherever a total is taken *across* headings, leave per-heading CLOCK lines written as computed, and let the 0.5% decide whether even that is worth doing now.
 
@@ -5242,7 +5264,7 @@ depend on it.
 *The specific inventory, as of 2026-08-12:*
 
 1. *Four global hooks, installed unconditionally at load*
-   (=config.el:1869-1873=): one =org-blocker-hook= and three
+   (the =add-hook= forms in =config.el=): one =org-blocker-hook= and three
    =org-trigger-hook= functions. Anyone who enables =:tools
    claude-code-ide-org= gets auto-clock-in on every transition to
    =DOING=/=PLANNING=, =NEXT= demotion, and sole-=TODO= promotion
@@ -5250,7 +5272,7 @@ depend on it.
    These are opinionated GTD policies, and they are the bigger problem
    here, not the smaller one.
 2. *A hardcoded assumption about one user's config*
-   (=config.el:2702-2708=): the comment reads "With =org-log-into-drawer=
+   (a comment in =config.el=): the comment reads "With =org-log-into-drawer=
    nil (this user's setting)". The =let=-binding it justifies is
    correct and should stay — binding locally rather than globally is
    exactly the right instinct, and it is already documented as
@@ -5693,7 +5715,7 @@ wrong.
   Auto-demoted: superseded by sibling [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][bin/lint-org will drown in datetree scaffolding it can never satisfy]] becoming NEXT.
 :END:
 
-=claude-code-ide-org--capture-target-spec= (config.el:1747) resolves exactly three shapes: =(file F)=, =(id ID)= and =(file+olp F CATEGORY)=. A datetree needs a fourth.
+=claude-code-ide-org--capture-target-spec= resolves exactly three shapes: =(file F)=, =(id ID)= and =(file+olp F CATEGORY)=. A datetree needs a fourth.
 
 *The olp in =file+olp+datetree= does not nest the tree, which is the opposite of what the template's own name suggests.* Read from org-capture.el rather than assumed: the branch resolves the outline path to a marker, goes to it -- and then calls =(widen)= and hands =org-datetree-find-date-create= the date with *no* =keep-restriction= argument. The marker is discarded. Nesting comes from somewhere else entirely.
 
@@ -7737,13 +7759,13 @@ only tests.
 
 *What survives, and is the whole of this heading now.* Two surfaces,
 each only partly owned elsewhere:
-1. =--trigger-auto-clock-in= (config.el:1778, registered :1941) still
+1. =--trigger-auto-clock-in= still
    opens a real clock on *any* transition to =DOING=/=PLANNING=,
    including a human's own =C-c C-t=. Apply suppresses it via the
    re-entrancy guard; a hand-edit does not.
    [[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]] covers
    *container* headings only, so leaf hand-edits remain.
-2. =--statusline-task-string= (config.el:659) still reads
+2. =--statusline-task-string= still reads
    =org-clocking-p=/=org-clock-marker=/=org-clock-history= directly.
    [[id:290b6fc5-3ebb-4827-9a97-5a3542e354b6][290b6fc5]] is scoped to
    the statusline's *data source*, not to marker desync generally.
@@ -7756,8 +7778,7 @@ theoretical residue.
 *Newly established 2026-08-13, and it raises this heading's stakes.*
 Reading =org-clock.el= for
 [[id:803314aa-eda9-4d48-9e43-b3eb4802a4e8][803314aa]] found that
-=org-clock-out= signals =(error "Clock start time is gone")=
-(org-clock.el:1841) exactly when =org-clock-marker='s line is no longer
+=org-clock-out= signals =(error "Clock start time is gone")= exactly when =org-clock-marker='s line is no longer
 a =CLOCK:= line — i.e. precisely this heading's desync. That is the same
 error incident 1 above recorded. So this desync is not merely a display
 problem: it is the reachable trigger for apply's fabricated-interval

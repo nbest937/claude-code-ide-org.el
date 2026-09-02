@@ -10522,6 +10522,36 @@ about what a body line is."
         (forward-line 1))
       lines)))
 
+(defconst claude-code-ide-org--line-anchor-regexp
+  "[A-Za-z0-9_-]+\\.el:[0-9]+"
+  "A `file.el:NNN\' citation, the form deprecated in live org bodies.
+
+Deprecated because it rots silently and rots *upward*: `config.el\' grows,
+so an anchor written weeks ago points at whatever now occupies that line
+number -- which resolves, and resolves to something plausible, and is
+therefore worse than pointing at nothing (TODO.org :ID: 5fc7b934).
+
+The measurement that settled it: every one of the eight live anchors
+already named its *symbol* in the same sentence, so the line number was
+never carrying information the symbol did not. Deleting it lost nothing
+in all eight cases.")
+
+(defun claude-code-ide-org--lint-body-line-anchors ()
+  "Count `file.el:NNN\' citations in the body of the heading at point.
+
+Reads the heading\'s own body, so a citation inside `:PLAN:\' does not
+count -- which is deliberate rather than incidental: a *closed*
+heading\'s anchor is a historical statement, \"this was true at
+config.el:2792 on 2026-08-21\", and rewriting it would falsify the
+record rather than repair it."
+  (let ((bounds (claude-code-ide-org--heading-body-bounds))
+        (n 0) (start 0))
+    (when bounds
+      (let ((txt (buffer-substring-no-properties (nth 1 bounds) (nth 2 bounds))))
+        (while (string-match claude-code-ide-org--line-anchor-regexp txt start)
+          (setq n (1+ n) start (match-end 0)))))
+    n))
+
 (defun claude-code-ide-org--lint-substantial-body-p ()
   "Non-nil when the heading at point has a body worth wrapping.
 
@@ -10929,6 +10959,21 @@ cookie -- add [/] and run `org-update-statistics-cookies': %s" title))
                                     (claude-code-ide-org--parse-org-timestamp closed)
                                     claude-code-ide-org-plan-drawer-since)))
                      (report 'warn line "finished heading with a substantial body and no :PLAN: drawer -- wrap the prospective half with org_wrap_plan: %s" title))))
+               ;; A `file.el:NNN' citation in a LIVE body is a pointer
+               ;; someone is expected to follow, and it rots upward: the
+               ;; file grows, the line still exists, and it now holds
+               ;; something else plausible. A closed heading's anchor is
+               ;; a historical statement and is deliberately left alone
+               ;; -- 38 of them stand in the corpus (TODO.org
+               ;; :ID: 5fc7b934). An `error' rather than a `warn',
+               ;; because the correct form is mechanical: name the
+               ;; symbol. Measured when the rule shipped, all eight live
+               ;; anchors already named theirs in the same sentence.
+               (when (and todo
+                          (not (member todo claude-code-ide-org--outline-finished-keywords))
+                          (> (claude-code-ide-org--lint-body-line-anchors) 0))
+                 (report 'error line "live body cites a line number, which rots \
+silently -- cite the symbol instead: %s" title))
                ;; A repeater's body is never pruned, because every
                ;; pruning event in the :PLAN: lifecycle is tied to
                ;; reaching DONE and a repeater never does (TODO.org

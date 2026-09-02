@@ -12462,3 +12462,55 @@ is still live and still prospective."
     (should-not (string-match-p
                  "org_wrap_plan"
                  (claude-code-ide-org-set-todo id "DOING" "starting")))))
+
+(ert-deftest claude-code-ide-org-test-lint-refuses-a-line-anchor-in-a-live-body ()
+  "A live heading may not cite `file.el:NNN' (TODO.org :ID: 5fc7b934).
+
+The form rots *upward*, which is what makes it worse than a broken link:
+the file grows, the cited line still exists, and it now holds something
+else plausible. Measured when the rule shipped -- all eight live anchors
+already named their symbol in the same sentence, so deleting the line
+number lost nothing in every case."
+  (should (claude-code-ide-org-test--lint-matches
+           (claude-code-ide-org-test--lint
+            (concat "* TODO A live heading\n"
+                    ":PROPERTIES:\n"
+                    ":ID:       aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\n"
+                    ":CREATED:  [2026-09-02 Wed 09:00]\n:END:\n"
+                    "The helper =claude-code-ide-org--merge-time-intervals=\n"
+                    "(config.el:973) sorts conses and merges them.\n"))
+           'error "live body cites a line number")))
+
+(ert-deftest claude-code-ide-org-test-lint-leaves-a-closed-heading-s-line-anchor ()
+  "A finished heading's anchor is history and is deliberately left alone.
+
+\"This was true at config.el:2792 on 2026-08-21\" is a statement about
+the past; rewriting it would falsify the record rather than repair it.
+38 such anchors stand in the corpus, and the rule must not touch them --
+which is the half that keeps this from being a corpus-wide rewrite.
+
+Also asserts the `:PLAN:' case, because that is how a heading carrying an
+anchor legitimately closes: the citation travels into the drawer with the
+rest of the prospective half and stops being a live pointer."
+  (should-not
+   (claude-code-ide-org-test--lint-matches
+    (claude-code-ide-org-test--lint
+     (concat "* DONE A closed heading\n"
+             "CLOSED: [2026-08-21 Fri 13:20]\n"
+             ":PROPERTIES:\n"
+             ":ID:       bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb\n"
+             ":CREATED:  [2026-08-20 Thu 09:00]\n:END:\n"
+             "It was true at =config.el:2792= when this was written.\n"))
+    'error "live body cites a line number"))
+  (should-not
+   (claude-code-ide-org-test--lint-matches
+    (claude-code-ide-org-test--lint
+     (concat "* TODO A live heading whose anchor sits in :PLAN:\n"
+             ":PROPERTIES:\n"
+             ":ID:       cccccccc-cccc-cccc-cccc-cccccccccccc\n"
+             ":CREATED:  [2026-09-02 Wed 09:00]\n:END:\n"
+             ":PLAN:\n"
+             "The old note cited =config.el:973= here.\n"
+             ":END:\n"
+             "Body prose with no anchor.\n"))
+    'error "live body cites a line number")))
