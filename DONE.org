@@ -6199,6 +6199,7 @@ CLOCK: [2026-08-25 Tue 12:50]--[2026-08-25 Tue 13:00] =>  0:10
 - State "DONE"       from "TODO"       [2026-08-25 Tue 12:56] \\
   blocker half and lint assertion built
 :END:
+:PLAN:
 
 *Two words, deliberately, and they are not synonyms.* A *story* is a parent heading whose children are the work -- declared by refiling things under it, and able to span epics only once [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] makes categories a label rather than a place. A *slice* names its members *by reference* and sequences them, so it can pick a whole story or one task inside one, and needs nothing moved. This heading is about the slice; where "story" appears below it means the parent-heading sense.
 
@@ -6261,6 +6262,7 @@ Proposed by the user 2026-08-21, as what flattening the categories ([[id:2943919
 
 *Closely related and not a duplicate:* [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] asks which of a container's children were in its original plan. A declared slice answers that question by construction, since membership is written rather than inferred from what accumulated.
 
+:END:
 *Built 2026-08-25.* The two halves this heading still owed after the prototype -- a slice that refuses DONE until its members finish, and an assertion that its two member lists agree -- both shipped. 389 tests, 0 lint errors.
 
 *The declaration mechanism is the tag proposed above*, unchanged: =#+TAGS:= gains =slice=, and =claude-code-ide-org--slice-p= tests the heading's *own* tags via =(org-get-tags nil t)=. The inheritance caveat recorded above was checked rather than assumed -- =org-use-tag-inheritance= is =t= live -- and the local-only test is what neutralises it, with a test asserting a tagged grandchild does not make its parent a slice.
@@ -6460,6 +6462,7 @@ CLOCK: [2026-08-24 Mon 15:56]--[2026-08-24 Mon 15:59] =>  0:03
 - State "DONE"       from "DOING"      [2026-08-24 Mon 16:00] \\
   cap shipped; direction 1 chosen
 :END:
+:PLAN:
 
 *Found 2026-08-24 while paring [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]]*, whose body had reached 47 lines against a 35-line median.
 
@@ -6479,6 +6482,7 @@ CLOCK: [2026-08-24 Mon 15:56]--[2026-08-24 Mon 15:59] =>  0:03
 
 *The lint direction is the one worth measuring first,* since it is the project's usual answer to a convention that would otherwise recur and it needs no new concept -- just a length threshold on headings carrying a repeater.
 
+:END:
 *Decided and shipped 2026-08-24* (=6e0aef9=): the lint cap, direction 1 of the three recorded above. =bin/lint-org= warns when a heading carrying a repeater exceeds =claude-code-ide-org-repeater-body-max= body lines, default 25.
 
 *Direction 2 stays rejected on its own terms* -- treating each firing as a completion would wrap a ritual's standing instructions into =:PLAN:=, hiding the very text the ritual exists to state. Direction 3 is what had been happening, and it worked once because the user happened to ask.
