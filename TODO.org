@@ -1572,6 +1572,31 @@ The 13 are exactly that manifest's git-derived rows; its other 28 rows were T1 (
 
 *A known consequence, not an objection.* A second datetree in DONE.org is something =bin/lint-org= does not currently cover — its datetree rule is written for the one in TODO.org. That was foreseen while shipping the rule; see the child heading "bin/lint-org will drown in datetree scaffolding it can never satisfy", which measured it hours after the rule landed.
 
+*Shipped 2026-09-02* across four commits: =e4c60ce= (lint), =d0adb2f= (the functions and their tests), =ea762f3= (the file mutation), =b378b1f= (the ongoing half).
+
+*The prerequisite had already been met, and was checked rather than assumed.* All 210 keyworded headings in DONE.org carry =CLOSED:= — the 39 this body measured on 2026-08-28 were backfilled by [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] after it was reopened. That check was the one condition under which this heading should have stopped instead of building, so it ran first.
+
+*The lint had to be widened before the tree existed, which is [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]]'s own rule applied to the case it predicted.* Its closing note — measured hours after that rule shipped — said a =datetree/= archive location would produce four errors per archived item. Materialising it confirmed the shape exactly: year, month and day at levels *1-3* rather than 2-4, the task at level 4, and no =:DATE_TREE:= property anywhere.
+
+*It cannot be given one, which settled the design question without a judgement call.* =org-archive-subtree= calls =org-datetree-find-date-create= on the widened buffer with no restriction (=org-archive.el:343=), and that function never consults the property — so the tree is built at top level, outside this project. CLAUDE.md already names this exact case: where another system owns the thing, read the contract it publishes. Depth is now measured from the file root when there is no anchor, and the day-node =:ID:= exemption is *gated on the absence of an anchor*, because the two trees want opposite things — org writes the archive's day node bare, while the meta-work tree's day node is what time is assigned to.
+
+*The conversion ran clean, verified against invariants recorded before it rather than by reading a 24,554-line diff:* 210 keyworded and 210 =:ID:=s before and after, no duplicate ids, all 155 tasks under a day node matching their *own* =CLOSED:= with zero mismatches, and years, months and days each descending — 2026-09-01 first, 2026-07-28 last, across 1 year, 3 months, 22 days. =bin/lint-org=: 0 errors, 123 warnings against 124 before, the lost one being a =:CATEGORY:= check that only applies at level 1.
+
+*The ongoing half is where the real defect was, and it would have corrupted every future archive.* =claude-code-ide-org-archive-finished= binds =org-archive-reversed-order= to =t= — the mechanism that made the *flat* archive read newest-first, by inserting at the beginning of the target location. In a datetree the target location is the day node, so inserting at the beginning puts the entry **before** it: a level-4 heading parented to the month, and an empty day node left after it. The sort that follows then fails outright with "Region to sort contains a level above the first entry".
+
+Isolated to that single variable: plain =org-archive-subtree= into the same populated tree nests correctly with it =nil= and malforms with it =t=, nothing else changed. It is now off for a datetree target only, and nothing is lost — ordering is =claude-code-ide-org-sort-datetree-descending='s job, and it orders every tier rather than only the insertion point.
+
+*Worth recording that this was found by wiring the directive up rather than by reasoning.* The one-time conversion was correct and fully tested before the defect existed to be seen; it lives entirely in the *steady state*, which is the half that rots silently because each individual pass looks correct.
+
+*Three traps hit and worth not rediscovering.* A =.replace= that matched nothing looks exactly like a mutation the tests caught, so every mutation now asserts it applied — two "passing" mutations were non-events. The undated-heading refusal test was *structurally incapable* of failing for its own reason: with the guard deleted a nil =CLOSED:= still throws =wrong-type-argument= from inside =encode-time=, so a bare =should-error= passed either way; it now asserts the message. And a fixture written to disk under a buffer the test macro had already opened makes the next =find-file-noselect= ask whether to reread, which in batch is a *hang*, not an error.
+
+*One docstring claim was corrected rather than kept.* Reading =CLOSED:= without the inherit flag does not prevent a parent taking a child's date — property inheritance searches *upward*. What actually guarantees it is that only level-1 headings are filed, so a story moves whole. Mutation-tested both ways: adding the flag changes no test, filing every heading fails three.
+
+*Unblocks [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]]*, which names this heading in its =:BLOCKER:= and wants the meta-work tree's past day nodes distributed into the archive tree this creates.
+
+*Left at REVIEW rather than DONE deliberately.* Everything in scope is built, tested and verified, but the ongoing half has only ever run against fixtures — the next real ceremony is its first live exercise, and that is a human-triggered pass. Note the running Emacs was reloaded, so that ceremony will pick up the =reversed-order= fix; without the reload it would have archived through the malformed path.
+
+
 
 * TODO Orient the datetree newest-at-top, by re-sorting after day-node creation :code:
 :PROPERTIES:
