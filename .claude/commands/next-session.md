@@ -111,12 +111,15 @@ Omitting a boolean is correct; passing one explicitly is not. That is
 four that are left all need the user, which is the point of this section — a
 session starting here should expect to *ask*, not to build.
 
-**`33864a0f` — done, at `REVIEW`.** DONE.org's 155 tasks are filed under a
+**`33864a0f` — `DONE`, and retitled at close** to name the half the old
+title hid: archiving into a datetree did not work at all. DONE.org's 155 tasks are filed under a
 year/month/day datetree, newest first, and `#+ARCHIVE:` now points at
-`DONE.org::datetree/`. It is at `REVIEW` rather than `DONE` for one reason:
-**the next ceremony is the first live exercise of the archive path.** Wiring
+`DONE.org::datetree/`. Wiring
 it up surfaced a defect where `org-archive-reversed-order` inserted entries
-*before* their day node; that is fixed and tested, but only against fixtures.
+*before* their day node; that is fixed and tested, but **only against
+fixtures — the next ceremony is its first live exercise.** That is
+verification owed, not work owed, which is why it closed rather than staying
+open.
 
 **`72463b68` — done, at `REVIEW`.** See the section above. Two of its three
 named fixes were split out rather than done: `6495c8a0` and `8326a46f`.
@@ -142,9 +145,9 @@ and it is the one that would improve every future slice.
 ### Where this will stop
 
 Apply is still human-only, so every capture-to-commit cycle crosses a human.
-Beyond that: four of the six need a decision before any code is written. A
-session that starts here should expect to do `33864a0f` and `72463b68`
-unattended and then **ask**, rather than plan a wire-to-wire run.
+Beyond that: four of the six need a decision before any code is written. Both
+unattended members are now closed, so a session starting here should expect
+to **ask** rather than plan a wire-to-wire run.
 
 ---
 
