@@ -2146,6 +2146,7 @@ CLOCK: [2026-08-31 Mon 13:45]--[2026-08-31 Mon 13:48] =>  0:03
 - [2026-08-31 Mon 13:45]--[2026-08-31 Mon 13:48] stop the block-today fixture crossing midnight
 - State "DONE"       from "DOING"      [2026-08-31 Mon 13:48]
 :END:
+:PLAN:
 
 *Measured 2026-08-22 at 23:16.* =claude-code-ide-org-test-clock-report-block-today= builds its fixture as "now, seconds zeroed" plus one hour, then asserts the report contains =1:00=. Run after 23:00 the interval crosses midnight, so =:block "today"= sees only the part before it and the table reads =*0:44*=:
 
@@ -2158,6 +2159,7 @@ So the test is red for the last hour of every day, and green the other 23. Confi
 
 Approach: anchor the fixture to a fixed date rather than to now, which removes the dependence on when the suite runs instead of narrowing the window in which it breaks.
 
+:END:
 *Fixed 2026-08-31 by the recorded approach — a fixed date — which needed one thing established first.* =:block "today"= reaches the clock as =(decode-time nil)= inside =org-clock-special-range=, so pinning =current-time= alone does not move it; both have to be rebound together. A new =claude-code-ide-org-test--at-time= macro does that, and with it the fixture becomes two literal timestamps rather than arithmetic on the wall clock: =[2026-07-27 Mon 09:00]--[2026-07-27 Mon 10:00]= for the today case, =[2026-07-26 Sun 09:00]--[2026-07-26 Sun 10:00]= for the excluded one.
 
 *"Now" is pinned to [2026-07-27 Mon 23:16]* — the hour, and the very minute, at which the defect was measured — so the test permanently runs at the time that used to break it rather than merely avoiding that time.
