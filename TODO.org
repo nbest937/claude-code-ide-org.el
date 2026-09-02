@@ -32,6 +32,21 @@
 
 *Related but distinct:* [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] is about checks that cannot fail. This is a convention nothing checks *at the moment it applies* — the lint does fire, but only after archiving has already happened, by which time the drawer's absence is history rather than a prompt.
 
+*Shipped 2026-09-02, commit =c2ac288=. The user chose the third option — a check firing on a heading queued =DONE= rather than one already closed — with the rationale that the lint's job is to tell the agent "don't forget to wrap the pre-DONE text".*
+
+*Where it lives, and why not =bin/lint-org=.* The user's follow-up settled the scope: "the lint need only consider the subtree in question". That is decisive, because a check scoped to one heading belongs where the heading is known — =org_set_todo= — and needs no queue scan, no file walk, and no second surface. An earlier plan to also teach =bin/lint-org= to read the queue was dropped on that basis. The existing file-wide lint stays exactly as it was: it is the after-the-fact report, and this is the prompt.
+
+*It reminds rather than acts, and that is forced rather than cautious.* At the moment =DONE= is queued the body is prospective *followed by* debrief. Wrapping it whole would bury the debrief inside the drawer, which is the inversion =org_wrap_plan='s =until= exists to prevent. Only the caller knows which line the debrief begins at — so the reminder names =until= explicitly and says that after this moment the seam is unrecoverable.
+
+*The reply is a contract, and that was the real implementation risk.* =bin/hooks/queue-append= recovers the prior keyword from the reply with a *greedy* =sed=, and drops any reply beginning =Error:=. A second =(was ...)= anywhere in the string would win and the queued event would record the wrong =from= — silently, and =from= is what lets review notice reality has moved past a queued transition. The test runs the hook's exact expression against a reply carrying the nudge, rather than asserting a substring is absent.
+
+*Mutation-tested four ways, each verified to have applied.* Dropping the drawer guard **did not fail at first**, and the reason is worth keeping: =org_wrap_plan= moves the body into the drawer, so the prose count falls to zero and the *substantial-body* guard suppresses the nudge before the drawer guard is ever consulted. The fixture now reproduces the realistic post-wrap state — a drawer plus a substantial debrief below it — and all four guards discriminate. That is this session's third instance of a test passing for a reason other than the one it names; the others are on [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]].
+
+*Accepted limit, stated rather than left implicit.* Nothing enforces the wrap. If a session reads the reminder and ignores it, the heading is archived unwrapped and only the after-the-fact lint notices. This buys a prompt at the one moment the information exists; it does not buy a guarantee, and a guarantee is not available without someone deciding where the seam is.
+
+*The 93 existing unwrapped headings are untouched by this* — they are [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]]'s backlog, and CLAUDE.md's rule for them is *wrap unedited*, a mechanical pass rather than 93 judgements. This heading only stops the number growing.
+
+
 * TODO A boolean argument passed as false arrives as :false, which elisp reads as true :code:
 :PROPERTIES:
 :ID:       a8ccd6ac-3452-4926-b176-ff5951dcd5b2
