@@ -5184,6 +5184,7 @@ CLOCK: [2026-08-26 Wed 10:49]--[2026-08-26 Wed 10:53] =>  0:04
 - State "DONE"       from "DOING"      [2026-08-26 Wed 10:53] \\
   settle phase; every slice; errors swallowed
 :END:
+:PLAN:
 
 *Filed 2026-08-26 at the user's request*, after they asked whether they still have to refresh the slice by hand. They do.
 
@@ -5199,6 +5200,7 @@ CLOCK: [2026-08-26 Wed 10:49]--[2026-08-26 Wed 10:53] =>  0:04
 
 *Open:* whether to refresh *every* slice or only ones whose members the batch touched. Every slice is simpler and idempotent; touched-only is cheaper and needs the batch to report which ids it wrote. With one live slice the distinction does not yet matter, which argues for the simple version until it does.
 
+:END:
 *Shipped 2026-08-26* ([[orgit-rev:claude-code-ide-org::9761cdf][9761cdf]]). =--review-settle-slices= runs from the same seam as =--review-settle-auto-promote=, immediately after apply's loop and before the watermark is written.
 
 *The seam this heading identified was the right one, and both open questions resolved in the direction it guessed.* After the batch rather than per item, and every slice rather than only touched ones -- the latter because =refresh-slice= is idempotent and there is one live slice, so a touched-only variant would buy machinery before the distinction costs anything.
@@ -5237,6 +5239,7 @@ CLOCK: [2026-08-24 Mon 12:31]--[2026-08-24 Mon 12:38] =>  0:07
 - State "DONE"       from "REVIEW"     [2026-08-26 Wed 10:45] \\
   user judged it done; fires, accurate, reports
 :END:
+:PLAN:
 
 *Measured 2026-08-24 over this session's own transcript*, after the user observed the footnotes had gone spotty. 132 assistant messages, 32 of which cited an org =:ID:=.
 
@@ -5269,6 +5272,7 @@ Two findings, and the second is the actionable one.
 
 *Related but a different surface:* [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] generalises convention checking over *files* at pre-commit. This one checks *response prose* at turn end. Same instinct, no shared code.
 
+:END:
 *Shipped 2026-08-24* (=9fcc08b=): =bin/hooks/footnote-check=, wired to =Stop=, with =bin/footnote-check-test= covering it. 8 of 8 pass.
 
 *Reads =last_assistant_message=, not =transcript_path=.* The hook docs are explicit that the transcript is written asynchronously and may lag the in-memory conversation, so a hook needing the current turn's final text must use that field. Reading the transcript would have checked the *previous* response and blocked on the wrong thing -- a bug that would have looked like flakiness rather than like a mistake.
@@ -5306,6 +5310,7 @@ CLOCK: [2026-08-26 Wed 09:44]--[2026-08-26 Wed 09:48] =>  0:04
 - State "DONE"       from "REVIEW"     [2026-08-26 Wed 10:27] \\
   exit 2 + stderr; observed delivering
 :END:
+:PLAN:
 
 *Observed 2026-08-25, twice in one session.* The hook fired and the text that reached the model was exactly =Stop hook stopped continuation: Stop hook prevented continuation= -- no ids, no instruction, none of the =stopReason= the hook composes. The model continued without correcting anything, because it had nothing to correct *from*.
 
@@ -5317,6 +5322,7 @@ CLOCK: [2026-08-26 Wed 09:44]--[2026-08-26 Wed 09:48] =>  0:04
 
 *Blocks judgement on* the parent [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]], which is in =REVIEW= awaiting exactly this evidence: it fires, it is accurate, and it cannot yet tell anyone what it found.
 
+:END:
 *Cause found 2026-08-26, in the hook documentation as this heading advised, and it is not a delivery failure.* =stopReason= is an *enum*: the reference gives it as accepting =user_request=, =max_turns=, =model_stop_token= or =completion=, and describes it as replacing the stop reason rather than carrying a message. The hook was putting a paragraph of prose into a status code, so the prose was discarded and the harness default appeared verbatim. None of the three candidates guessed above was right -- the text was not surfaced to the user instead, nor misplaced within the payload, nor summarised. It was *type-rejected*.
 
 *The right channel is =systemMessage=*, documented as "text shown to Claude in the next turn as a system message, allowing you to provide feedback or corrections before Claude continues" -- exactly what this needs. =reason= is deliberately not used: it is documented as shown to the *user* only, and the user is not the one who has to fix the footnotes.
