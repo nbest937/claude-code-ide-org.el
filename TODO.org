@@ -2,6 +2,74 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Separate plan from debrief across the 64 warned headings, retroactively :code:
+:PROPERTIES:
+:ID:       35d25265-df52-45c0-8226-dfa24c3ed5bb
+:CREATED:  [2026-09-02 Wed 15:42]
+:CATEGORY: Meta
+:END:
+:PLAN:
+
+*Authorised by the user 2026-09-02*, after [[id:f099379b-7f78-4c19-85be-abeea0bf3e71][f099379b]] measured that the seams are not mechanically recoverable and classification opened no escape hatch.
+
+*The instruction, and its three parts.* Accept the absence of a drawer on the short headings — the 29 below =bin/lint-org='s ten-prose-line threshold are not a backlog item and never were. Separate plan from debrief on the remaining 64 by *reading*, using semantics, tense, voice and markup rather than a lexical marker. And where a heading is *even debatably* ambiguous, wrap the whole body and leave a =See the :PLAN: drawer for details= note in the body.
+
+*That last clause is a deliberate, bounded exception and must be recorded as one.* It inverts the convention — it puts a debrief inside a drawer readers are told to skip — and it is accepted here only because the alternative is a fabricated seam, which is worse: a wrong cut leaves prospective text standing as the outcome and buries the debrief's opening, and nothing downstream would ever notice. **It applies to this retroactive pass only.** No new heading may use it; [[id:b75d553a-3c77-4b98-9f58-022bfa295816][b75d553a]] is what makes it unnecessary going forward.
+
+*What "read it" actually means here*, since "do your best" needs an operational form: tense (=will= / =should= / =Approach:= versus =shipped= / =verified= / =measured ... and the result was=), voice (proposing versus reporting), and markup — this corpus marks prospective framing with =*Proposed by ...*=, =*The user's proposal*=, =*Decide whether ...*=, and retrospective with =*Shipped ...*=, =*Verified, not just implemented:*=, =*Implementation notes:*=. None of these is decisive alone, which is exactly what [[id:f099379b-7f78-4c19-85be-abeea0bf3e71][f099379b]] measured; together, on a heading being read rather than pattern-matched, they usually are.
+
+*Scope check before starting:* 64 warned in DONE.org and 9 in TODO.org. The TODO.org nine are *live* headings and are a different case — under the new convention their bodies are prospective and belong in the drawer whole, with no debrief to separate.
+
+*Ordering:* this precedes [[id:d5eb32a3-fcee-4a25-b39a-fcde597f6cee][d5eb32a3]], and that is the cheap order rather than an arbitrary one. Once the plan is extracted the remaining body *is* the debrief, so a later =:DEBRIEF:= wrap needs no second seam judgement.
+:END:
+
+64 finished headings carry a mixed body that =bin/lint-org= reports and no mechanism can split automatically, since the seam is a fact about when a sentence was written. Proposed: read each one and cut it by tense, voice and markup; accept no drawer on the 29 short ones; and for any *debatably* ambiguous heading wrap the body whole with a =See the :PLAN: drawer for details= note — a bounded exception for this retroactive pass only, never for new headings.
+
+
+* TODO Split the reads: org_outline carries the body, a second tool serves drawers on demand :code:
+:PROPERTIES:
+:ID:       2a399034-5267-47ed-a129-20e371a77146
+:CREATED:  [2026-09-02 Wed 15:42]
+:CATEGORY: Tools
+:END:
+:PLAN:
+
+*The user's proposal, 2026-09-02.* Once the plan and (per [[id:d5eb32a3-fcee-4a25-b39a-fcde597f6cee][d5eb32a3]]) the debrief live in drawers, a session reading for orientation should get the *body* by default and reach for drawer content deliberately, per item, when it needs depth. The user's sketch: =org_outline= keeps the body, and =org_body= is refactored — possibly renamed — to serve on demand what =org_outline= does not.
+
+*Why the current split stops fitting.* =org_outline= today returns one line per heading with no body at all, and =org_body= returns a heading whole, drawers included, leaving extraction to the caller. That division made sense when the body *was* the content: outline for structure, body for everything. Under the new shape the body becomes a fixed-size summary, so an outline that omitted it would be withholding the cheapest and most useful thing in the file, while a =org_body= that returns everything is the expensive call it was designed to avoid needing.
+
+*The economy argument is measurable rather than aesthetic.* CLAUDE.md records the median active heading body at 50 lines and TODO.org at ~118,000 tokens. If bodies become 2-5 sentences, an outline carrying them is affordable for the live set and answers most orientation questions outright — which is the job =org_outline= already claims.
+
+*Open, and genuinely undecided:* whether =org_outline= should carry bodies always, only when scoped, or behind a flag; whether the drawer read is a parameter on =org_body= (=drawer:PLAN=) or separate tools; and what =org_body= should be called if its job narrows to "give me the drawer I asked for". Renaming a tool has its own cost — every skill and rule naming it must move together, and [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]] is the standing heading about tool surfaces that lie about what they accept.
+
+*Depends on* [[id:b75d553a-3c77-4b98-9f58-022bfa295816][b75d553a]] and [[id:d5eb32a3-fcee-4a25-b39a-fcde597f6cee][d5eb32a3]]: until bodies are actually short, carrying them in the outline makes it *more* expensive, not less. Sequencing this first would measure the wrong thing.
+:END:
+
+Once plan and debrief move into drawers, =org_outline='s bodiless index withholds the cheapest useful content while =org_body='s whole-heading read returns far more than orientation needs. Proposed: =org_outline= carries the (now short) body, and the drawer read becomes an explicit per-item call — a refactored, possibly renamed =org_body=. Depends on [[id:b75d553a-3c77-4b98-9f58-022bfa295816][b75d553a]] and [[id:d5eb32a3-fcee-4a25-b39a-fcde597f6cee][d5eb32a3]]: until bodies are actually short, putting them in the outline makes it more expensive rather than less.
+
+
+* TODO Put the debrief in a :DEBRIEF: drawer, leaving a scannable TL;DR in the body :code:
+:PROPERTIES:
+:ID:       d5eb32a3-fcee-4a25-b39a-fcde597f6cee
+:CREATED:  [2026-09-02 Wed 15:42]
+:CATEGORY: Meta
+:END:
+:PLAN:
+
+*The user's proposal, 2026-09-02, alongside [[id:b75d553a-3c77-4b98-9f58-022bfa295816][b75d553a]].* Put the debrief in a =:DEBRIEF:= drawer placed *below* the body, after adding a brief statement of the resolution to the body. Folded, a heading then shows: title, a 2-5 sentence problem-and-proposed-solution, and a one-line resolution — a TL;DR in view while every drawer and property is collapsed.
+
+*What it completes.* [[id:b75d553a-3c77-4b98-9f58-022bfa295816][b75d553a]] moves the prospective half out of the body; this moves the retrospective half out too, leaving the body as *nothing but* the scannable summary. The two together make the body a fixed-size artifact regardless of how much reasoning or evidence a task accumulates — which is the property that makes orientation cheap, and the one neither change achieves alone.
+
+*Ordering, and it is the useful finding here:* this should follow the retroactive separation ([[id:35d25265-df52-45c0-8226-dfa24c3ed5bb][35d25265]]) rather than precede it. Once the plan is in =:PLAN:=, the remaining body *is* the debrief, so wrapping it into =:DEBRIEF:= needs no seam judgement at all. Doing it first would mean deciding two seams instead of one.
+
+*What it costs, stated because it is not free.* The resolution line is *authored*, not derived — a human or a session must write one per heading, and for the 64 retroactive headings that is 64 short summaries. Mechanical wrapping is cheap; the TL;DR is not.
+
+*Open:* whether =org_wrap_plan= generalises to a drawer parameter or a sibling =org_wrap_debrief= is written; whether the lint should require a resolution line once a =:DEBRIEF:= exists; and whether =:DEBRIEF:= should be exempt from the folding advice that tells readers to skip =:PLAN:=, since a debrief on a finished heading is the thing most worth reading.
+:END:
+
+A heading's body still grows without bound once the debrief lands in it, so orientation stays expensive even after [[id:b75d553a-3c77-4b98-9f58-022bfa295816][b75d553a]] moves the plan out. Proposed: a =:DEBRIEF:= drawer below the body, with a one-line resolution left in the body — so a folded heading shows problem, proposal and outcome and nothing else. Should follow [[id:35d25265-df52-45c0-8226-dfa24c3ed5bb][35d25265]] rather than precede it, since after the plan is extracted the remaining body *is* the debrief and needs no seam judgement.
+
+
 * TODO Write the plan into :PLAN: from the start, so no seam is ever created :code:
 :PROPERTIES:
 :ID:       b75d553a-3c77-4b98-9f58-022bfa295816
