@@ -39,6 +39,24 @@ Cutting there is *worse than either extreme*: it buries the debrief's opening an
 
 *Not proposing a decision here.* The three routes are: a human reads each body; reconstruct seams from git; or accept the backlog stays unwrapped and narrow the lint so it stops reporting what nobody intends to fix.
 
+*Classified the 28 on 2026-09-02, and the hypothesis they were debrief-only is **wrong** for the part that matters.*
+
+*First, the split that does help.* Of the 28, **16 carry fewer than ten prose lines**, so =bin/lint-org= never reports them — its =--lint-substantial-body-p= threshold. They are not a backlog item and never were; a =:PLAN:= drawer on a four-line body is ceremony rather than structure. That leaves **12** actually warned.
+
+*All twelve were read rather than inferred, and ten have a genuine prospective half.* The line-1 marker turns out to be the *case for the work* almost every time, not a debrief:
+
+- [[id:ff1352b3-2732-4422-9f0d-4b3cb6fd8ff3][ff1352b3]] is the clearest refutation — "the only real question is the surface, and the arguments genuinely cut both ways", "A third option worth weighing", and *"Do not build it before deciding"*. That is nothing but prospective deliberation.
+- [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]] states the defect and then "Approach: anchor the fixture to a fixed date rather than to now" — an explicit plan.
+- [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]] and [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]] both open "Proposed by the user", which is the prospective half by definition.
+- [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]], [[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]], [[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]], [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]], [[id:05c71d99-2839-447b-a536-60eb4bf43b73][05c71d99]] and [[id:355fa608-e311-4874-b2d3-bbc62172d09a][355fa608]] all open with a measurement *motivating* the work.
+
+*Two are genuinely ambiguous* and are the only candidates for "no drawer owed": [[id:49557477-e50c-496f-85df-82c65109832b][49557477]] and [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]], both of which open with a shipped-line and continue into retrospective *analysis* rather than design. Whether after-the-fact rationale counts as prospective is a judgement nobody has made, and it is the same question [[id:f421c5c3-f81f-4ebf-99c9-42c53cc00558][f421c5c3]] answered for slices.
+
+*So the classification does not open an escape hatch, and it is worth saying that plainly.* It was proposed here on the guess that a line-1 marker meant a debrief-only body. Measured, that guess holds for at most 2 of 12. The lexical marker is no more reliable at the *start* of a body than it was in the middle — which is the same finding as above, arriving from the other direction.
+
+*The one durable number to take away:* the actionable backlog is **64**, not 93 — the lint's own count for DONE.org. The other 29 sit below the threshold and will never be reported, so any route only has to answer for 64.
+
+
 * TODO The :PLAN: wrap never happens at close, so 93 finished headings carry an unwrapped body :code:
 :PROPERTIES:
 :ID:       79a3d89e-77be-4678-919e-637a65f87204
