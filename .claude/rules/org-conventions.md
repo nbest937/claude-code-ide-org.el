@@ -494,6 +494,15 @@ is exactly the fact.
 deferred, and moved. The line's absence of a cookie says only that the
 slice no longer counts it.
 
+**Known ambiguity, and it is not resolved** (`:ID:` 1b727475). `MAYBE`
+and `CANCELLED` map to *no checkbox* by design — an unchecked box would
+inflate the denominator forever — so a member that is cookie-less merely
+because of its keyword is indistinguishable from one dropped by hand.
+Worse, the refresh reads the absent cookie as a declaration and keeps it
+absent, so **a `MAYBE` member promoted to `TODO` will not regain its
+box**; check it by hand. Do not read a missing cookie as a deliberate
+drop without checking the referent's keyword.
+
 **When the work moves to another slice, it is copied there with its cookie
 intact** — the receiving slice counts it, the origin does not. Do not
 leave a cookie in both: a member counted twice makes two slices' cookies

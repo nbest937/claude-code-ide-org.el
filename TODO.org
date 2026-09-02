@@ -8,6 +8,7 @@
 :CREATED:  [2026-09-02 Wed 18:31]
 :CATEGORY: Slices
 :END:
+:PLAN:
 
 *Raised by the user 2026-09-02, after being refused a =NEXT= on a slice they had just declared.* Their suspicion was that the prohibition predates slices. Measured, it is half right, and the half that is wrong is the more damning one.
 
@@ -26,6 +27,16 @@ So the original rule predates slices by six days and never mentions them. Its re
 *Proposed, not decided: split the rule rather than keep or drop it whole.* Retain the prohibition for stories and containers, where it was argued. Decide slices on their own merits. =--grouping-heading-p= already distinguishes the two, so the split is expressible in code today rather than needing new machinery.
 
 *Open if slices are allowed =NEXT=:* whether at most one slice may carry it; how the un-nominated-container report tells "the slice is next" from "the slice has a next action"; and whether a member =NEXT= and a slice =NEXT= can coexist without reintroducing the confusion [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]] named one tier down.
+
+:END:
+*Split and written in 2026-09-02, on the user's decision.* CLAUDE.md's =NEXT= paragraph now says a **story** must never carry it — the case [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]] actually argued — and that a **slice may**, meaning "this is the slice to pick up next": a portfolio-level nomination rather than an action.
+
+Three constraints came with it, each answering one of the open questions above. At most one slice carries it, since two would say nothing. It does not substitute for a member's =NEXT=, because the two answer different questions and a slice marked =NEXT= whose members are all =TODO= is still un-nominated. And nothing sets it automatically, exactly as before — the retired promotion trigger is the standing evidence for what happens when that judgement is mechanised.
+
+*Applied immediately:* [[id:ff7ccb2d-2b13-421e-86e3-6b5e187850bf][ff7ccb2d]] is =NEXT=, checked first against the one-slice constraint — the other three slices carry =TODO=, =TODO= and =DONE=.
+
+*One splice defect caught by reading the result rather than by the checks.* The edit ran the new final bullet into the surviving text mid-sentence, so the paragraph read "…when that judgement is mechanised. A =--trigger-auto-promote-sole-todo= stood here and…". Both =bin/lint-org= and =bin/check-conventions= passed over it — neither reads prose for sense — which is [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]]'s class arriving in a document rather than in code.
+
 
 * TODO A MAYBE member and a dropped member render identically, and the drop is now sticky :code:
 :PROPERTIES:

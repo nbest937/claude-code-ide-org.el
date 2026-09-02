@@ -734,10 +734,42 @@ ungated **inside a container**.
 
 **`NEXT` belongs to a container's *members*, and nothing sets it by
 itself** (`:ID:` 62b65ad0, 2026-08-26). Read that carefully: `NEXT` is
-meaningful *within* a story or a slice, and a container itself must
-never carry it — promoting one declares a project to be an action, which
-is `:ID:` 42808717. "Belongs to containers" was the original phrasing
-here and read as the opposite of what it meant. A `--trigger-auto-promote-sole-todo`
+meaningful *within* a story, and **a story must never carry it** —
+promoting one declares a project to be an action, which is `:ID:`
+42808717. "Belongs to containers" was the original phrasing here and read
+as the opposite of what it meant.
+
+**A slice is the exception, and the rule was split on 2026-09-02 to say
+so** (`:ID:` abce1850). It previously read "within a story *or a slice*",
+which neither source heading argued: `:ID:` 42808717 was written six days
+before slices existed and never mentions them, and `:ID:` 62b65ad0
+mentions them once in 5,418 characters. The generalisation was
+editorial.
+
+And it does not hold, because the two groupings differ in the way that
+matters. A story is *emergent*; its next action is one of its children,
+so naming the parent names no action. A slice is *declared and
+sequenced*, and **several are open at once** — three on the day this was
+written — with nothing in the vocabulary saying which to pick up.
+`DOING` on a slice means at least one member is in the mail, which is
+state rather than priority.
+
+So **a slice may carry `NEXT`, and it means "this is the slice to pick up
+next"** — a portfolio-level nomination, not an action. Three constraints
+keep it from re-creating the confusion `:ID:` 42808717 named one tier
+down:
+
+- **At most one slice carries it.** Two would say nothing, which is the
+  failure mode of every priority marker.
+- **It does not substitute for a member's `NEXT`.** The two answer
+  different questions — which slice, and which action inside it — and a
+  slice marked `NEXT` whose members are all `TODO` is still
+  un-nominated.
+- **Nothing sets it automatically**, exactly as before. Sequencing
+  slices is a judgement, and the retired promotion trigger is the
+  standing evidence for what happens when that judgement is mechanised.
+
+A `--trigger-auto-promote-sole-todo`
 stood here and set `NEXT` on a container's sole remaining `TODO`
 autonomously. It is gone, along with its three guards — a re-entrancy
 flag, a mid-batch suppression flag, and the settle pass that re-ran what
