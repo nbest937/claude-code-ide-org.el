@@ -193,123 +193,6 @@ same window layout, and point in TODO.org where it started, or an
 explicit message saying why it could not be.
 
 
-* DONE A slice claims another slice's declared members as its own incidental work :code:
-CLOSED: [2026-09-02 Wed 10:35]
-:PROPERTIES:
-:ID:       5bfc1d38-e758-4ed7-bb32-f976031ff3da
-:CREATED:  [2026-09-01 Tue 15:54]
-:CATEGORY: Slices
-:END:
-:LOGBOOK:
-- State "DOING"      from "TODO"       [2026-09-02 Wed 10:30] \\
-  exclude every slice's declared members, not just this one's
-- State "DONE"       from "DOING"      [2026-09-02 Wed 10:35] \\
-  exclusion set bounded; twin closed
-- [2026-09-02 Wed 10:36]--[2026-09-02 Wed 10:36] subtract other slices declared members
-CLOCK: [2026-09-02 Wed 11:21]--[2026-09-02 Wed 11:22] =>  0:01
-- [2026-09-02 Wed 11:21]--[2026-09-02 Wed 11:22] subtract other slices declared members
-CLOCK: [2026-09-02 Wed 11:52]--[2026-09-02 Wed 11:55] =>  0:03
-- [2026-09-02 Wed 11:52]--[2026-09-02 Wed 11:55] subtract other slices declared members
-:END:
-
-*Twin of [[id:42ba0a80-61c5-49bd-b6a2-9da76a53ff64][42ba0a80]], split from it because the fix is
-different and neither fix alone is sufficient.* That one is about the
-window's left edge; this is about what the window is allowed to sweep up
-once its bounds are right.
-
-*The rule as written.*
-=claude-code-ide-org--slice-incidental-ids= subtracts only two things
-from everything closed in the window: the slice itself, and the slice's
-own declared members. Its docstring defends the breadth explicitly —
-"that this sweeps in genuinely unrelated workstreams is a *feature*: the
-list answers 'what else was going on', which is the question worth
-asking of a plan."
-
-*That defence is sound for unowned work and says nothing about this
-case.* Work that no slice claims is genuinely incidental to whoever was
-running at the time, and deriving it beats curating it. But another
-slice's *declared checklist* is not unowned — it is planned work, merely
-planned elsewhere. Listing it as this slice's incidental work asserts
-something false about who planned it.
-
-*Measured 2026-09-01:* of [[id:f9fe9fac-a423-4ede-bc42-1d201c2c3d82][f9fe9fac]]'s 26 incidentals, 21
-are [[id:b36e6369-a210-4540-adc7-0c0c188e9791][b36e6369]]'s declared planned members. The remaining
-five are claimed by *both* slices' incidental lists at once, so any
-count that aggregates incidental work across slices double-counts them.
-
-*This is the declared-versus-inferred error, mirrored.* CLAUDE.md's rule
-is that inferring a declared grouping is the same mistake as declaring
-an emergent one — and this infers membership for work another slice
-explicitly declares. The previous slice closed that gap in one
-direction; this is the other.
-
-*Why it survives 42ba0a80's fix.* Bounding the window to actual work
-fixes f9fe9fac, which has none. It does not fix two slices worked
-*concurrently*, or one worked during another's long tail: the second
-would still absorb the first's declared members, and a closed slice's
-incidental list is exactly the artefact meant to be read as fact
-afterwards.
-
-*The likely fix, not chosen:* subtract the declared members of *every*
-slice, not just this one's — every =:KIND: slice= heading's member list
-is already enumerable by the same function that reads this slice's. Open
-questions that a fix has to answer rather than assume: whether a member
-of a *cancelled* slice counts as declared; whether an id declared by a
-slice that has not started should shield it from a slice that is
-actually working; and whether the exclusion should be reported rather
-than silent, since a slice's incidental list going quiet is the same
-class of failure as it going noisy.
-
-*Shipped 2026-09-02 as =b6bcdc9=.*
-=claude-code-ide-org--other-slices-declared-ids= collects every slice's
-planned members across the tracked files, and
-=--slice-incidental-ids= subtracts them.
-
-*Only the planned half is read, never the generated incidental list* —
-otherwise two slices whose windows overlap would each shield the other's
-incidentals and both lists would empty out. That is the same
-self-reference trap =--slice-planned-member-ids= exists to avoid, one
-slice further out, and it was worth stating in the docstring because the
-obvious implementation reads all members.
-
-*The three open questions, decided:*
-
-- *CANCELLED slices are skipped, and it is the only real judgement here.*
-  A =DONE= slice's declaration stays true as a historical claim — that
-  slice did plan this work — so its members keep their owner. A
-  cancelled plan was abandoned, so its declarations no longer speak for
-  anything and work closed in someone else's window really is incidental
-  to them.
-- *An unstarted slice's declaration still shields.* The question the
-  list answers is *who planned the work*, not who got to it. A member
-  completed by someone else is still that slice's member, and its
-  checklist showing it done is correct rather than a false claim of
-  credit.
-- *The exclusion is reported.* A derived list that quietly *shrinks* is
-  as wrong as one that quietly grows, and only one of those is visible —
-  which is the whole reason this heading exists. Named rather than
-  counted, following the =unrendered= precedent in the same report: a
-  count sends the reader hunting, an id says which.
-
-*Live effect, measured:* =b36e6369='s incidentals went 13 → 11, dropping
-=478d6ec9= and =9651d4c8= — both declared by the *previous* slice
-=979e02b6=. Neither was ever incidental to the current slice; they were
-its predecessor's planned work, closed inside the current window.
-Refreshing twice reports identically, so the report variable does not
-accumulate across calls.
-
-*Verified by mutation, three ways.* Recording the exclusion without
-applying it, letting a cancelled slice claim, and dropping the report
-each fail *exactly* their own test — 506 ran, 1 unexpected, in every case
-— and the suite restores to 506/506. Each test also asserts a positive:
-=incid-002= must *stay* incidental, so none of them could pass on a
-function that returned nil.
-
-*Closes the twin.* [[id:42ba0a80-61c5-49bd-b6a2-9da76a53ff64][42ba0a80]] bounded the window;
-this bounds the exclusion set. Neither alone made =f9fe9fac= right, which
-is why both were filed rather than one.
-
-
 * TODO Classify gaps by markers at either end, not by tracking an AFK state :code:
 :PROPERTIES:
 :ID:       409a69ff-d57e-4c1c-ab6c-28f7e85fa391
@@ -1579,81 +1462,6 @@ the second data point, and only if Emacs is restarted before it.
 *Note what is no longer open, so this is not re-litigated.* Whether =DOING= should exist at all was *settled* in c954f650 and the reasoning is in its =:PLAN:= drawer: the org+GTD tradition argues against an in-progress keyword because the clock can say what is active, and that substitute is exactly what the event queue removes here. A future reader citing Bernt or GTD has a well-supported argument and is wrong for this system specifically. =REVIEW='s adoption and =PLANNING='s retirement are likewise decided.
 
 
-* DONE Reorder DONE.org as a datetree descending by CLOSED:, and fix archiving into one :code:
-CLOSED: [2026-09-02 Wed 13:22]
-:PROPERTIES:
-:ID:       33864a0f-5e13-4235-85a6-0bd9d2fe5252
-:CREATED:  [2026-08-28 Fri 11:37]
-:CATEGORY: Meta
-:BLOCKER:  ids(b7b46a26-2fd6-4784-bed3-d0112a917c0a)
-:END:
-:LOGBOOK:
-- State "TODO"       from              [2026-08-28 Fri 11:38] \\
-  filed from the user's question
-CLOCK: [2026-09-02 Wed 12:15]--[2026-09-02 Wed 12:45] =>  0:30
-- State "DOING"      from "TODO"       [2026-09-02 Wed 12:15] \\
-  measure the datetree shape before restructuring
-- [2026-09-02 Wed 12:15]--[2026-09-02 Wed 12:45] reorder DONE.org as a datetree
-- State "REVIEW"     from "DOING"      [2026-09-02 Wed 12:45] \\
-  built and verified; ceremony is first live run
-- State "DONE"       from "REVIEW"     [2026-09-02 Wed 13:22] \\
-  datetree shipped and archiving fixed
-:END:
-
-*Proposed by the user 2026-08-28, and no heading existed for it* — checked before filing. Three neighbours touch it and none is this:
-
-- [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]] judged the structure question 2026-08-17 as *"keep both"* — two files rather than one. That settles the *file* question and says nothing about DONE.org's internal order, which is what this is.
-- [[id:4c0044bf-1b6c-44ea-807a-8f9e3523e3fd][4c0044bf]] is =CANCELLED=, but it is where the org fact lives: =org-archive-location= supports a =datetree/= target (=org-archive.el:284=).
-- [[id:0c3f1319-67c0-4b29-a8e7-5ffa12948aaf][0c3f1319]] is this same problem for the *meta-work* datetree, and its measured finding should transfer: no custom sort function is needed, =(org-sort-entries nil ?A)= on the month node gives descending order directly.
-
-*The retcon the user anticipated is a hard prerequisite, not a tidiness item, and the mechanism says why.* =org-archive-subtree= dates its datetree entry from =(or (org-entry-get nil "CLOSED" t) time)= — measured and recorded in [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]. A heading with no =CLOSED:= therefore files under *today*, not under an unknown date, and nothing warns. Run against the file as it stands, that is 39 headings silently collapsing into one wrong day node.
-
-*Measured 2026-08-28: 39 of DONE.org's 97 finished headings carry no =CLOSED:=.* But the work is smaller than that implies, because a third of it was already done and audited:
-
-| population | n | source |
-|------------+---+--------|
-| already covered by [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]]'s completion-time manifest | 13 | =git log --reverse -S=, its T2 tier |
-| not covered — archived before the 2026-08-17 sweep | 26 | nothing yet |
-
-The 13 are exactly that manifest's git-derived rows; its other 28 rows were T1 (an in-file =State= line) and were consumed by [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]]'s backfill. The 26 are the earliest headings in the project — the five original tool headings (=org_query=, =org_clock_report=, =org_capture=, =org_refile=, =org_sort_children=), the hook and trigger batch, =Set git identity=. They predate the =!= cookies in =#+TODO:=, so no in-file evidence exists and =git log --reverse -S= is the only source.
-
-*One trap already found and fixed once, in the manifest's own body, worth not rediscovering:* the in-file scan must be scoped to a heading's *own* body. Scanning the subtree dates a parent from one of its children — =b5f7c5c7= came out two days early that way, and it would have mis-ordered the two largest entries with nothing downstream to notice.
-
-*Blocked on [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]], which is being reopened rather than duplicated.* It was =CANCELLED= 2026-08-24 with the note "nothing consumes =CLOSED:= on those headings" — and this heading is exactly that consumer, so the ground for cancelling it is void. Its body already holds the two questions that still have to be answered first: whether a commit-derived =CLOSED:= is worth having at all (a commit timestamp dates when a change was *recorded*, which in this project can be far from when work stopped, and [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the precedent for refusing a plausible guess), and if so how the approximation is marked so a reader can tell the 39 from the 58 that are exact.
-
-*A known consequence, not an objection.* A second datetree in DONE.org is something =bin/lint-org= does not currently cover — its datetree rule is written for the one in TODO.org. That was foreseen while shipping the rule; see the child heading "bin/lint-org will drown in datetree scaffolding it can never satisfy", which measured it hours after the rule landed.
-
-*Shipped 2026-09-02* across four commits: =e4c60ce= (lint), =d0adb2f= (the functions and their tests), =ea762f3= (the file mutation), =b378b1f= (the ongoing half).
-
-*The prerequisite had already been met, and was checked rather than assumed.* All 210 keyworded headings in DONE.org carry =CLOSED:= — the 39 this body measured on 2026-08-28 were backfilled by [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] after it was reopened. That check was the one condition under which this heading should have stopped instead of building, so it ran first.
-
-*The lint had to be widened before the tree existed, which is [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]]'s own rule applied to the case it predicted.* Its closing note — measured hours after that rule shipped — said a =datetree/= archive location would produce four errors per archived item. Materialising it confirmed the shape exactly: year, month and day at levels *1-3* rather than 2-4, the task at level 4, and no =:DATE_TREE:= property anywhere.
-
-*It cannot be given one, which settled the design question without a judgement call.* =org-archive-subtree= calls =org-datetree-find-date-create= on the widened buffer with no restriction (=org-archive.el:343=), and that function never consults the property — so the tree is built at top level, outside this project. CLAUDE.md already names this exact case: where another system owns the thing, read the contract it publishes. Depth is now measured from the file root when there is no anchor, and the day-node =:ID:= exemption is *gated on the absence of an anchor*, because the two trees want opposite things — org writes the archive's day node bare, while the meta-work tree's day node is what time is assigned to.
-
-*The conversion ran clean, verified against invariants recorded before it rather than by reading a 24,554-line diff:* 210 keyworded and 210 =:ID:=s before and after, no duplicate ids, all 155 tasks under a day node matching their *own* =CLOSED:= with zero mismatches, and years, months and days each descending — 2026-09-01 first, 2026-07-28 last, across 1 year, 3 months, 22 days. =bin/lint-org=: 0 errors, 123 warnings against 124 before, the lost one being a =:CATEGORY:= check that only applies at level 1.
-
-*The ongoing half is where the real defect was, and it would have corrupted every future archive.* =claude-code-ide-org-archive-finished= binds =org-archive-reversed-order= to =t= — the mechanism that made the *flat* archive read newest-first, by inserting at the beginning of the target location. In a datetree the target location is the day node, so inserting at the beginning puts the entry **before** it: a level-4 heading parented to the month, and an empty day node left after it. The sort that follows then fails outright with "Region to sort contains a level above the first entry".
-
-Isolated to that single variable: plain =org-archive-subtree= into the same populated tree nests correctly with it =nil= and malforms with it =t=, nothing else changed. It is now off for a datetree target only, and nothing is lost — ordering is =claude-code-ide-org-sort-datetree-descending='s job, and it orders every tier rather than only the insertion point.
-
-*Worth recording that this was found by wiring the directive up rather than by reasoning.* The one-time conversion was correct and fully tested before the defect existed to be seen; it lives entirely in the *steady state*, which is the half that rots silently because each individual pass looks correct.
-
-*Three traps hit and worth not rediscovering.* A =.replace= that matched nothing looks exactly like a mutation the tests caught, so every mutation now asserts it applied — two "passing" mutations were non-events. The undated-heading refusal test was *structurally incapable* of failing for its own reason: with the guard deleted a nil =CLOSED:= still throws =wrong-type-argument= from inside =encode-time=, so a bare =should-error= passed either way; it now asserts the message. And a fixture written to disk under a buffer the test macro had already opened makes the next =find-file-noselect= ask whether to reread, which in batch is a *hang*, not an error.
-
-*One docstring claim was corrected rather than kept.* Reading =CLOSED:= without the inherit flag does not prevent a parent taking a child's date — property inheritance searches *upward*. What actually guarantees it is that only level-1 headings are filed, so a story moves whole. Mutation-tested both ways: adding the flag changes no test, filing every heading fails three.
-
-*Unblocks [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]]*, which names this heading in its =:BLOCKER:= and wants the meta-work tree's past day nodes distributed into the archive tree this creates.
-
-*Left at REVIEW rather than DONE deliberately.* Everything in scope is built, tested and verified, but the ongoing half has only ever run against fixtures — the next real ceremony is its first live exercise, and that is a human-triggered pass. Note the running Emacs was reloaded, so that ceremony will pick up the =reversed-order= fix; without the reload it would have archived through the malformed path.
-
-*Retitled at close, 2026-09-02.* It was "Reorder DONE.org as a datetree, descending by CLOSED:", which described the request accurately and the outcome only partly. The reorder was the easy half and went exactly as planned; the consequential half was that *archiving into a datetree did not work at all*, and a reader asking why archiving behaves as it does would never have found this heading under the old title.
-
-*Nothing is left unfiled.* The one thing still owed is verification rather than work: the ongoing archive path has run against fixtures and not yet against the real files, and its first live exercise is the next ceremony — which is a human-triggered pass, not a task. Stating that explicitly rather than filing a heading for it, per the closing rule. If that pass misbehaves it is a new defect with new evidence, not this one reopening.
-
-*Unblocks [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]]*, which named this heading in its =:BLOCKER:= and wants the meta-work tree's past day nodes distributed into the archive tree this built. No nomination is owed beyond that: this heading is top-level and belongs to no container.
-
-
 * TODO Orient the datetree newest-at-top, by re-sorting after day-node creation :code:
 :PROPERTIES:
 :CATEGORY: Meta
@@ -1783,8 +1591,6 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
-CLOCK: [2026-09-02 Wed 13:28]--[2026-09-02 Wed 13:30] =>  0:02
-CLOCK: [2026-09-02 Wed 10:23]--[2026-09-02 Wed 10:24] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -1816,6 +1622,8 @@ CLOCK: [2026-08-31 Mon 17:38]--[2026-08-31 Mon 17:39] =>  0:01
 CLOCK: [2026-09-01 Tue 07:05]--[2026-09-01 Tue 07:06] =>  0:01
 CLOCK: [2026-09-01 Tue 15:42]--[2026-09-01 Tue 15:47] =>  0:05
 CLOCK: [2026-09-02 Wed 08:51]--[2026-09-02 Wed 08:56] =>  0:05
+CLOCK: [2026-09-02 Wed 10:23]--[2026-09-02 Wed 10:24] =>  0:01
+CLOCK: [2026-09-02 Wed 13:28]--[2026-09-02 Wed 13:30] =>  0:02
 :END:
 
 
@@ -1943,13 +1751,13 @@ SCHEDULED: <2026-09-03 Thu 07:00 ++1d>
 :LAST_REPEAT: [2026-09-02 Wed 08:56]
 :END:
 :LOGBOOK:
-- State "DONE"       from "TODO"       [2026-09-02 Wed 08:56]
 CLOCK: [2026-08-24 Mon 10:25]--[2026-08-24 Mon 10:28] =>  0:03
 - [2026-08-24 Mon 10:25]--[2026-08-24 Mon 10:28] align the ceremony repeaters to daily 07:00
 CLOCK: [2026-08-24 Mon 10:29]--[2026-08-24 Mon 10:30] =>  0:01
 - [2026-08-24 Mon 10:29]--[2026-08-24 Mon 10:30] suggested span, accepted at review
 CLOCK: [2026-08-24 Mon 10:52]--[2026-08-24 Mon 10:55] =>  0:03
 - [2026-08-24 Mon 10:52]--[2026-08-24 Mon 10:55] suggested span, accepted at review
+- State "DONE"       from "TODO"       [2026-09-02 Wed 08:56]
 :END:
 The recurring pass: archive what is closed, so the live file stops carrying it.
 
@@ -2007,143 +1815,6 @@ The ritual: a standing daily prompt to actually do review and planning.
 *It reminds; it does not create.* Creating today's node is [[id:9575e65b-b589-465a-830c-286541780f96][9575e65b]]'s job and happens when work happens. A repeater that created the node instead would manufacture one per calendar day whether or not anything occurred, and re-couple the node's id to a schedule -- both of the things the on-demand resolver exists to avoid.
 
 *A category is the one place in this repo a repeater is safe* ([[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]]): a repeater never reaches DONE, so it can never sit under a completable ancestor, and a category carries no keyword and completes nothing.
-
-
-* DONE Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit :code:
-CLOSED: [2026-09-02 Wed 09:30]
-:PROPERTIES:
-:CATEGORY: Dev
-:ID:       d2a0f54c-b59a-4855-ae3d-c93a6d3aa177
-:CREATED:  [2026-08-21 Fri 12:54]
-:END:
-:LOGBOOK:
-- State "TODO"       from              [2026-08-21 Fri 12:55] \\
-  filed from audit garden-weeding recommendation
-- State "NEXT"       from "TODO"       [2026-08-25 Tue 18:12] \\
-  two new conventions have no enforcement
-- State "DOING"      from "NEXT"       [2026-09-02 Wed 09:20] \\
-  build the harness the doc children need
-- State "DONE"       from "DOING"      [2026-09-02 Wed 09:30] \\
-  harness plus two assertion families; third split to 5fc7b934
-- [2026-09-02 Wed 09:32]--[2026-09-02 Wed 09:38] generalize the check into a harness
-:END:
-
-*Filed 2026-08-21, not built.* The 2026-08-21 cross-artifact audit found that prose conventions recur (UUID-from-memory, clock-in-at-drift) while mechanically checked ones fail loudly and get fixed -- and that duplicated conventions drift into contradiction (four found in CLAUDE.md, one in a memory, one in the next-session prompt). =bin/check-org-dev-skill= already embodies the fix for one file; generalize it: the CLAUDE.md and org-skill transition tables agree; every cited =:ID:=, defcustom, and function name resolves (=git grep= the symbol); every "is live"/"not built" claim carries a greppable anchor (e.g. =config.el:2792=) that still matches. Wire into =bin/hooks/pre-commit= beside the existing lint. Not a prose rule about keeping prose fresh -- that is the anti-pattern recursing.
-
-*Prototyped 2026-09-02 before writing anything, and one of the three
-proposed assertion families has nothing to check.*
-
-The three this heading names are: the CLAUDE.md and org-skill transition
-tables agree; every cited =:ID:=, defcustom and function name resolves;
-and every "is live"/"not built" claim carries a greppable anchor (e.g.
-=config.el:2792=) that still matches. Measured across the five documents
-a check would cover — CLAUDE.md, =.claude/rules/org-conventions.md=,
-both =SKILL.md=s, and =.claude/commands/next-session.md=, 3101 lines
-together:
-
-- *Ids: 73 distinct 8-character tokens, 0 unresolved.* Every one
-  resolves to an org heading or a git object. The assertion is true
-  today, so it can be wired into =pre-commit= without a backlog of
-  pre-existing failures — which is the property that decides whether a
-  check is adoptable at all.
-
-  *The extraction needs a tighter boundary than the obvious one.* A bare
-  =[0-9a-f]{8}= matches *inside* full UUIDs — the trailing segment of
-  =9d2fcdad-9bf7-47b6-8018-223b13ec4577= reads as the token =223b13ec=
-  — and produced five phantom failures. Requiring the run not be
-  adjacent to a hex digit or a dash removes all five. Git short SHAs are
-  seven characters here and pass by resolving as git objects, so the
-  same check covers both citation kinds without telling them apart.
-
-- *Anchors: zero, in any form.* No =file:line= references, and no "line
-  NNN" prose, anywhere in those 3101 lines. For contrast, TODO.org
-  bodies carry 12.
-
-  *And that is deliberate rather than an omission.*
-  =bin/check-org-dev-skill='s fourth check exists precisely because the
-  org-dev skill "describes the tool-registration block by anchor … not
-  by line number, specifically so a =config.el= edit that shifts line
-  counts can't put the doc out of date", and verifies the claim
-  *structurally* instead. So this heading proposed asserting a
-  convention the project had already decided against.
-
-  *The residue is real but it is somewhere else.* The 12 anchors live in
-  org bodies, which do rot and which nothing checks. Whether a check
-  should cover them is a decision this heading has to take rather than
-  inherit — and it is a different check, over different files, from the
-  one described here.
-
-- *Transition tables: not yet measured.*
-
-*What this changes about the work.* The harness plus the id assertion is
-small and demonstrably green. The anchor assertion is not work but a
-*decision*, and the honest options are to drop it, or to re-aim it at
-org bodies as a separate check. Recorded here rather than silently
-dropped, because a heading that quietly loses a third of its scope reads
-afterwards as though it was always smaller.
-
-*Shipped 2026-09-02 as =5d42fc5=. The harness is the deliverable; two of
-the three assertion families landed with it, and the third became a
-separate heading.*
-
-=bin/lib/check.fish= holds the failure accumulator, the report format
-and the exit-code discipline. Both =bin/check-conventions= and
-=bin/check-org-dev-skill= source it, so the second check family added
-*assertions* and nothing else — which is this heading's own argument
-made concrete rather than asserted. The plumbing is also where the bug
-was: the block-local =set= that made =check-org-dev-skill= exit 0 while
-printing FAIL lived there, and writing it twice would have meant
-debugging it twice.
-
-*What shipped:*
-
-- *Ids resolve.* Every 8-character token the docs cite resolves to an
-  org heading or a git object. 73 distinct, 0 unresolved.
-- *The keyword set agrees* across TODO.org's =#+TODO:= header, the rules
-  file, the org skill's transition table and the =org_set_todo= tool
-  description — compared as a *set*, since the orderings differ
-  legitimately and a string comparison would fail on a difference nobody
-  needs to fix.
-- *Anchors: split out as [[id:5fc7b934-28ec-4eeb-9f90-f1becec353f0][5fc7b934]].* The docs carry none
-  and deliberately so; the twelve that exist are in org bodies, which is
-  a different check over different files and a decision this heading
-  should not take on its way past.
-
-*Two things went wrong, and both were caught by testing rather than
-reading.*
-
-*The skill assertion false-positived on its first real run,* against
-"This paragraph used to argue the point via =PLANNING= ownership … Both
-are gone" — correct prose about a retired keyword, which a whole-file
-set comparison read as drift. Scoped to table rows instead: naming a
-dead keyword in history is legitimate, listing one as a live transition
-is not, and only the table makes that claim. *The assertion was wrong,
-not the prose*, which is the direction that is easy to get backwards
-when a check fires.
-
-*The wiring was worse, and is the more instructive one.*
-=.githooks/pre-commit= has an early =exit 0= when no org file is staged,
-and the block was appended *after* it — so it could never fire on a
-CLAUDE.md-only commit, which is the exact case its own comment said it
-existed for. It was found by staging a bogus citation and checking that
-the commit was *refused*; every reading of the code beforehand had
-looked right. A check wired where it cannot run is
-[[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]]'s class in its purest form — the check had no
-way to fail — and it was introduced by the very commit meant to address
-that class.
-
-*Verified:* =bin/check-conventions-test= runs 7 cases and asserts *exit
-codes*, never output, including a case where the fixture is correct so
-the rest cannot pass vacuously; both false-positive guards (a full UUID,
-a retired keyword in prose) are among them. End to end, a staged bogus
-citation refuses the commit and leaves HEAD unmoved. =bin/test= 503/503,
-=bin/lint-org= 0 errors.
-
-*Known gap, stated rather than discovered:* the check reads the
-*worktree* where the org lint beside it reads the *index*. Accepted for
-now — these files are hand-edited and rarely partially staged — and
-recorded in the script's own header. =pre-commit= passes =--docs-only=,
-so a machine with no Emacs running can still commit.
 
 
 * TODO Comma-escape headline lines when documenting org structure inside a body :code:
