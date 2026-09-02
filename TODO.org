@@ -29,6 +29,7 @@ Two live arguments, and the second is destructive:
 
 *Same family as [[id:6495c8a0-d971-4c77-8b30-9fde1bbf5f26][6495c8a0]]* — a tool accepting an argument and not honouring it — but with the failure inverted. There the value is silently discarded; here it is silently *negated*, which is worse, because discarding leaves the default in place while negating actively performs the operation the caller declined.
 
+
 * TODO claude-code-ide-org-capture reports a queued capture it never persists :code:
 :PROPERTIES:
 :ID:       8326a46f-e3f9-4ecc-8bc2-05d54907987b
@@ -46,6 +47,7 @@ Called directly over =emacsclient=, outside the MCP wrapper, =claude-code-ide-or
 
 *Why this outlived its parent's fix.* [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]]'s hang is now diagnosed and fixed — three tools declared a semantically optional argument required, and the resulting =json-rpc-error= escaped every handler. That fix removes the *reason* to reach for the =emacsclient= fallback, which is exactly why this one must not be quietly dropped with it: the trap is now rarer and no less silent, and rarity is what keeps a false success unnoticed.
 
+
 * TODO org_capture accepts a note argument it never records :code:
 :PROPERTIES:
 :ID:       6495c8a0-d971-4c77-8b30-9fde1bbf5f26
@@ -62,6 +64,7 @@ This is [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]]'s "accepts argumen
 *Two ways to close it, and the choice is the work.* Either record =note= on the deferred-capture event as the description already claims, or drop the parameter and the sentence together. What must not survive is the present state, where the schema advertises a parameter that is silently discarded.
 
 Note the near neighbour that is now *not* a defect: =org_capture= also once dropped a *body*, and three headings arrived empty because of it. That is the same shape but a different argument, and it is not what this heading is about.
+
 
 * TODO Line-number anchors in org bodies rot, and nothing checks them :code:
 :PROPERTIES:
@@ -205,6 +208,8 @@ CLOSED: [2026-09-02 Wed 10:35]
 - [2026-09-02 Wed 10:36]--[2026-09-02 Wed 10:36] subtract other slices declared members
 CLOCK: [2026-09-02 Wed 11:21]--[2026-09-02 Wed 11:22] =>  0:01
 - [2026-09-02 Wed 11:21]--[2026-09-02 Wed 11:22] subtract other slices declared members
+CLOCK: [2026-09-02 Wed 11:52]--[2026-09-02 Wed 11:55] =>  0:03
+- [2026-09-02 Wed 11:52]--[2026-09-02 Wed 11:55] subtract other slices declared members
 :END:
 
 *Twin of [[id:42ba0a80-61c5-49bd-b6a2-9da76a53ff64][42ba0a80]], split from it because the fix is
@@ -592,7 +597,7 @@ To which add the standing friction: the two MCP tools that time out are worked a
 - [ ] [[id:f12f9da4-2870-45b7-8c50-ea54415c7bc6][f12f9da4]] TODO The running Emacs can be running a stale config.el and nothing says so
 - [ ] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] TODO Three verification traps hit repeatedly in one session, none of them caught by a check
 - [X] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] DONE Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
-- [ ] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] TODO MCP tools that write an org file time out; one reports success and persists nothing
+- [-] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] REVIEW MCP tools that write an org file time out; one reports success and persists nothing
 - [ ] [[id:25e7b083-360b-4282-8fd0-bb768e2a0f13][25e7b083]] TODO org_capture's target refuses an 8-character :ID: prefix that every other tool accepts
 - [ ] [[id:3ad389be-2797-46c3-a51d-9f603053955a][3ad389be]] TODO An Emacs outage strands every org write, because the tools are Emacs
 - [ ] [[id:7fa68d5c-b6c0-43df-85c6-764b1d56511f][7fa68d5c]] TODO Fall back to the queue when org_capture cannot reach Emacs
@@ -1205,7 +1210,7 @@ Seeded 2026-08-31 from the proposal reviewed in conversation: DONE.org's datetre
 - [ ] [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones
 
 
-* TODO MCP tools that write an org file time out; one reports success and persists nothing :code:
+* REVIEW MCP tools that write an org file time out; one reports success and persists nothing :code:
 :PROPERTIES:
 :ID:       72463b68-9f08-44b2-8213-87f71298138d
 :CREATED:  [2026-08-31 Mon 11:23]
@@ -1213,6 +1218,12 @@ Seeded 2026-08-31 from the proposal reviewed in conversation: DONE.org's datetre
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-31 Mon 11:23]
+CLOCK: [2026-09-02 Wed 11:59]--[2026-09-02 Wed 12:11] =>  0:12
+- State "DOING"      from "TODO"       [2026-09-02 Wed 11:59] \\
+  diagnose the two hanging MCP writers
+- [2026-09-02 Wed 11:59]--[2026-09-02 Wed 12:11] diagnose MCP write-tool timeouts
+- State "REVIEW"     from "DOING"      [2026-09-02 Wed 12:11] \\
+  cause fixed and tested, residue filed
 :END:
 
 Two MCP tools that write an org file time out and persist nothing, and =org_capture= additionally accepts a body it silently discards. All observed 2026-08-31, while filing three headings.
@@ -1291,8 +1302,6 @@ That accounts for every symptom this heading recorded and could not explain: the
 *Note what the fix does and does not remove.* It removes the reason to reach for the =emacsclient= fallback, not the trap waiting there. [[id:8326a46f-e3f9-4ecc-8bc2-05d54907987b][8326a46f]] is now rarer and exactly as silent, and rarity is what keeps a false success unnoticed.
 
 
-
-
 * TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones :code:
 :PROPERTIES:
 :ID:       591e7af3-4f37-4f90-86ba-62400c6e649b
@@ -1365,7 +1374,7 @@ and the open decisions live in the prompt below rather than here.
 - [[orgit-rev:claude-code-ide-org::bb7eae2][bb7eae2]] [2026-08-31 Mon 09:02] corrected six claims that went stale with that close
 
 - [X] [[id:c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8][c60a1c53]] DONE Name the work a slice forgot: detect the omission, never fix it
-- [ ] [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] TODO Reorder DONE.org as a datetree, descending by CLOSED:
+- [-] [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] REVIEW Reorder DONE.org as a datetree, descending by CLOSED:
 - [X] [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] DONE Recover a close time from git for the headings with no in-file evidence
 - [X] [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]] DONE Jump to a heading by title, not by pasting a UUID
 - [X] [[id:46d225c7-7541-4867-af72-929a572df2a5][46d225c7]] DONE Remove queue-append's synthetic-event overrides, dead since the ExitPlanMode hook went
@@ -1374,7 +1383,7 @@ and the open decisions live in the prompt below rather than here.
 - [X] [[id:c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b][c8a97d9d]] DONE Clearing a buffer's read-only flag for an MCP tool leaves it cleared
 - [X] [[id:2b2db914-c96e-416a-a80a-e31028308de0][2b2db914]] DONE org_capture swallows a title beginning with a TODO keyword
 - [X] [[id:c74f8663-b14e-4ab9-ad65-d99cb655b3fa][c74f8663]] DONE org_capture should accept an initial TODO state, so a heading is not keywordless until apply
-- [ ] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] TODO MCP tools that write an org file time out; one reports success and persists nothing
+- [-] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] REVIEW MCP tools that write an org file time out; one reports success and persists nothing
 - [X] [[id:a0028a4e-39cb-4653-83cc-446b810234ac][a0028a4e]] DONE Add a body read: return a heading whole, drawers included, and let the caller extract
 - [X] [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] DONE Six defects in one day, all the same: the code knew more than it said
 - [X] [[id:29734f79-e698-43dd-abf8-14bc86b8b0ae][29734f79]] DONE The ceremony prompt goes quiet on evidence of its first step, and never reports its own completion
@@ -1566,7 +1575,7 @@ the second data point, and only if Emacs is restarted before it.
 *Note what is no longer open, so this is not re-litigated.* Whether =DOING= should exist at all was *settled* in c954f650 and the reasoning is in its =:PLAN:= drawer: the org+GTD tradition argues against an in-progress keyword because the clock can say what is active, and that substitute is exactly what the event queue removes here. A future reader citing Bernt or GTD has a well-supported argument and is wrong for this system specifically. =REVIEW='s adoption and =PLANNING='s retirement are likewise decided.
 
 
-* TODO Reorder DONE.org as a datetree, descending by CLOSED: :code:
+* REVIEW Reorder DONE.org as a datetree, descending by CLOSED: :code:
 :PROPERTIES:
 :ID:       33864a0f-5e13-4235-85a6-0bd9d2fe5252
 :CREATED:  [2026-08-28 Fri 11:37]
@@ -1576,6 +1585,12 @@ the second data point, and only if Emacs is restarted before it.
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 11:38] \\
   filed from the user's question
+CLOCK: [2026-09-02 Wed 12:15]--[2026-09-02 Wed 12:45] =>  0:30
+- State "DOING"      from "TODO"       [2026-09-02 Wed 12:15] \\
+  measure the datetree shape before restructuring
+- [2026-09-02 Wed 12:15]--[2026-09-02 Wed 12:45] reorder DONE.org as a datetree
+- State "REVIEW"     from "DOING"      [2026-09-02 Wed 12:45] \\
+  built and verified; ceremony is first live run
 :END:
 
 *Proposed by the user 2026-08-28, and no heading existed for it* — checked before filing. Three neighbours touch it and none is this:
@@ -1624,7 +1639,6 @@ Isolated to that single variable: plain =org-archive-subtree= into the same popu
 *Unblocks [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]]*, which names this heading in its =:BLOCKER:= and wants the meta-work tree's past day nodes distributed into the archive tree this creates.
 
 *Left at REVIEW rather than DONE deliberately.* Everything in scope is built, tested and verified, but the ongoing half has only ever run against fixtures — the next real ceremony is its first live exercise, and that is a human-triggered pass. Note the running Emacs was reloaded, so that ceremony will pick up the =reversed-order= fix; without the reload it would have archived through the malformed path.
-
 
 
 * TODO Orient the datetree newest-at-top, by re-sorting after day-node creation :code:
@@ -8153,6 +8167,8 @@ code to =202= (confirmed transiently via =emacsclient= before being
 persisted as a Doom config override) resolves both — a full
 =tools/list= round-trip succeeded afterward. Worked around locally in
 this project's Doom config pending an upstream report/PR.
+
+
 ** TODO json-rpc-error is signalled but never define-error'd, so a bad request hangs the connection :code:
 :PROPERTIES:
 :ID:       ce012ad4-87f7-435c-a2ee-25210c071865
@@ -8175,6 +8191,7 @@ So the =(error …)= handler in =--handle-post= does not catch it, and neither d
 *Worth reporting because the failure is maximally unhelpful.* The three conditions it covers are ordinary client mistakes — unknown method, unknown tool, missing argument — and each is the kind of thing a caller could correct instantly if told. Instead all three present identically as a hang with no diagnostic anywhere.
 
 Sibling of [[id:8f986c6f-7cab-42c5-9a21-01275f271c80][8f986c6f]] under this heading: both are the HTTP server answering wrongly rather than the tools misbehaving.
+
 
 * MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
 :PROPERTIES:
