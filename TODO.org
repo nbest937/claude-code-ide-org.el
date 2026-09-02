@@ -2,6 +2,29 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* MAYBE Make the org discipline travel: ship the machinery, relocate the rules :code:
+:PROPERTIES:
+:ID:       ff7ccb2d-2b13-421e-86e3-6b5e187850bf
+:CREATED:  [2026-09-02 Wed 18:17]
+:CATEGORY: Slices
+:END:
+
+*A proposal, not a slice* — the declaration is withheld deliberately, per the procedure settled 2026-09-02. No =:KIND: slice=, no prompt link, and =MAYBE= rather than =TODO=, because nothing here is committed to yet.
+
+*The theme.* This project is a testbed for a thing meant to manage *other* projects, and the discipline it developed does not currently leave the directory. Verified against the plugin documentation 2026-09-02: the machinery can travel — a plugin ships skills, commands, hooks and MCP servers, with =${CLAUDE_PLUGIN_ROOT}= for bundled scripts — while the *prose* cannot. =.claude/rules/= is not a plugin component, and no documented mechanism lets a plugin contribute always-loaded instructions to a consuming project's CLAUDE.md. So roughly 660 of CLAUDE.md's 1196 lines describe machinery that would ship and currently has no way to.
+
+*Why these three and nothing else.* Each is a different face of the same problem, and none of them is declared by another slice — checked rather than assumed, since duplicate membership across slices is what made two slices unreadable earlier today.
+
+- [ ] [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] NEXT Make the org skill and its discipline portable to other repos
+- [ ] [[id:1caed585-3209-4108-8501-eba16baf6a01][1caed585]] MAYBE Decide what this module may change on a user's machine when installed
+- [ ] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] TODO CLAUDE.md carries dated history that costs every session's context
+
+*Sequenced, not merely grouped.* The first classifies what must travel; the second decides what installation is allowed to touch; the third is downstream of both, because its prune is the same triage seen from the other end and pruning first risks deleting rules a consuming project needs.
+
+*[[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] arrives here from [[id:b36e6369-a210-4540-adc7-0c0c188e9791][b36e6369]]*, whose line for it kept its position and lost its cookie. It is the same work, re-sequenced rather than restarted, and its four settled decisions travel with it in its own body.
+
+*Deliberately excluded, though related:* the Emacs-outage and queue-fallback headings are declared members of [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]]. They bear on portability, but naming them here would recreate the duplicate membership this proposal was composed just after cleaning up.
+
 * DOING Make the heading body a scannable summary, with plan and debrief in drawers [2/5]
 :PROPERTIES:
 :ID:       4c834fdb-5314-4168-ab1d-09fe89ded517
@@ -795,7 +818,7 @@ CLOCK: [2026-09-01 Tue 12:26]--[2026-09-01 Tue 12:27] =>  0:01
 *Open, and genuinely undecided:* whether the gap-versus-AFK threshold should ever be automated. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the standing precedent against an invented number, and a ten-minute cap is exactly that. Reporting both bounds and letting the human place the line is the alternative — and unlike the current review pass, it is six questions a day rather than nineteen.
 
 
-* TODO [3/12] Everything passed and the file was still wrong :code:
+* TODO [0/9] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
@@ -816,9 +839,9 @@ To which add the standing friction: the two MCP tools that time out are worked a
 
 - [ ] [[id:39039bb6-c70a-4ba9-8b37-edd8dd6921f6][39039bb6]] TODO bin/lint-org does not detect a duplicate :ID: across TODO.org and DONE.org
 - [ ] [[id:f12f9da4-2870-45b7-8c50-ea54415c7bc6][f12f9da4]] TODO The running Emacs can be running a stale config.el and nothing says so
-- [X] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] DONE Verification traps: a check with no way to fail, and a fixture that never takes the real path
-- [X] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] DONE Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
-- [X] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] DONE MCP tools that write an org file time out; one reports success and persists nothing
+- [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] DONE Verification traps: a check with no way to fail, and a fixture that never takes the real path
+- [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] DONE Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
+- [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] DONE MCP tools that write an org file time out; one reports success and persists nothing
 - [ ] [[id:25e7b083-360b-4282-8fd0-bb768e2a0f13][25e7b083]] TODO org_capture's target refuses an 8-character :ID: prefix that every other tool accepts
 - [ ] [[id:3ad389be-2797-46c3-a51d-9f603053955a][3ad389be]] TODO An Emacs outage strands every org write, because the tools are Emacs
 - [ ] [[id:7fa68d5c-b6c0-43df-85c6-764b1d56511f][7fa68d5c]] TODO Fall back to the queue when org_capture cannot reach Emacs
@@ -1572,14 +1595,13 @@ Move every =Review and planning= datetree node dated the previous day or older i
 Once the sibling heading refiles =* Review attention='s old LOGBOOK entries into dated clones, those clones are placed by this same pass.
 
 
-* DOING [48/49] The code knows more than it says, and asks more than it should :code:
+* DOING [48/48] The code knows more than it says, and asks more than it should :code:
 :PROPERTIES:
 :ID:       b36e6369-a210-4540-adc7-0c0c188e9791
 :CREATED:  [2026-08-28 Fri 17:37]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(9d009401-93dd-40e5-a243-7a30a8a5bd55)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 17:38] \\
@@ -1633,7 +1655,7 @@ and the open decisions live in the prompt below rather than here.
 
 - [X] [[id:517a4290-4c66-43e7-b42e-dad7167b9c41][517a4290]] DONE CLAUDE.md's open-a-clock rule is missing the container exception
 - [X] [[id:594adec6-4855-470d-8ceb-5fe29bf0c935][594adec6]] DONE CLAUDE.md documents neither span floor, and mis-describes the gap threshold
-- [ ] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] TODO CLAUDE.md carries dated history that costs every session's context
+- [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] TODO CLAUDE.md carries dated history that costs every session's context
 - [X] [[id:4072b6ec-2785-40ba-81e8-aa559508501c][4072b6ec]] DONE The file-header template omits #+STARTUP:, which both files carry
 - [X] [[id:72e82469-3d4f-4ee1-b0c4-35b1c253901c][72e82469]] DONE A :BLOCKER: on a MAYBE heading is dormant, and no convention says so
 - [X] [[id:8e124867-323d-4332-9f4e-a391e59123e7][8e124867]] DONE Timestamps must come from a :LOGBOOK: drawer, never a bare pattern match
@@ -1652,6 +1674,14 @@ Incidental:
 - [X] [[id:79a3d89e-77be-4678-919e-637a65f87204][79a3d89e]] DONE The :PLAN: wrap never happens at close, so 93 finished headings carry an unwrapped body
 - [X] [[id:b75d553a-3c77-4b98-9f58-022bfa295816][b75d553a]] DONE Write the plan into :PLAN: from the start, so no seam is ever created
 - [X] [[id:35d25265-df52-45c0-8226-dfa24c3ed5bb][35d25265]] DONE Separate plan from debrief across the 73 warned headings, retroactively
+
+*[[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] was dropped from this slice 2026-09-02, not forgotten.* Its line keeps its position and has lost its cookie, which is how a slice records a member it no longer counts.
+
+The reason is a re-aim rather than a change of mind. That heading was scoped as a prune of dated history in CLAUDE.md. Verified against the plugin documentation the same day, the larger claim on the same file is that ~660 of its 1196 lines document machinery that would ship to a consuming project and currently has no way to — =.claude/rules/= is not a plugin component and nothing lets a plugin contribute always-loaded instructions. So the question is what must *relocate*, not what should be deleted, and answering it belongs to [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]], which is upstream of it.
+
+It is carried, with its cookie intact, into the proposal [[id:ff7ccb2d-2b13-421e-86e3-6b5e187850bf][ff7ccb2d]], where it sits third behind the two headings that must decide first.
+
+*Three members were also de-cookied from [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]] in the same pass* — [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]], [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] and [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] — because they were declared by both slices and worked here. A member counted twice makes two slices disagree about the same work, and it was also what let a shared member's clock open an unstarted slice's incidental window.
 
 
 * DONE Verification traps: a check with no way to fail, and a fixture that never takes the real path :code:

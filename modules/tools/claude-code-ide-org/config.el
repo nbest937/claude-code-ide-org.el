@@ -4317,6 +4317,17 @@ it would be destroyed at the next apply anyway."
               "^\\([ \t]*\\)- \\(\\[[ Xx-]\\] \\)?\\(\\[\\[id:\\([^]]+\\)\\]\\[[^]]*\\]\\]\\)\\(.*\\)$"
               end t)
         (let* ((indent (match-string-no-properties 1))
+               ;; A member whose cookie was DELETED stays cookie-less.
+               ;; The checkbox is otherwise derived from the referent and
+               ;; regenerated, but its *absence* is a declaration -- the
+               ;; slice no longer counts this member (cancelled, deferred
+               ;; or moved). Regenerating it silently undid that, so the
+               ;; documented mechanism was defeated by the very command
+               ;; that maintains slices: measured 2026-09-02, four lines
+               ;; de-cookied by hand came back checked on the next
+               ;; refresh, and `--slice-blocker-ids' had already been
+               ;; relying on the distinction in its own docstring.
+               (dropped (null (match-string-no-properties 2)))
                (link (match-string-no-properties 3))
                (id (downcase (match-string-no-properties 4)))
                (entry (gethash id index))
@@ -4335,7 +4346,8 @@ it would be destroyed at the next apply anyway."
           (unless (and entry kw)
             (push id skipped))
           (when (and entry kw)
-            (let* ((box (cdr (assoc kw claude-code-ide-org--slice-checkbox-by-keyword)))
+            (let* ((box (and (not dropped)
+                             (cdr (assoc kw claude-code-ide-org--slice-checkbox-by-keyword))))
                    (new (concat indent "- " (if box (format "[%s] " box) "")
                                 link " " kw " " title))
                    (old (match-string-no-properties 0)))

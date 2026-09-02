@@ -12562,3 +12562,35 @@ keeps the first one that happened after the slice existed."
         (re-search-forward "CLOCK: \\[2026-08-18 Mon 09:00\\]--\\[2026-08-18 Mon 09:30\\]")
         (replace-match "CLOCK: [2026-08-21 Fri 09:00]--[2026-08-21 Fri 09:30]" t t)
         (should (member "incid-002" (incidentals)))))))
+
+(ert-deftest claude-code-ide-org-test-refresh-preserves-a-deleted-cookie ()
+  "A member whose cookie was deleted stays cookie-less across a refresh.
+
+Deleting the checkbox is how a slice drops a member -- cancelled,
+deferred, or moved to another slice.  `--slice-member-regexp' documents
+the absent cookie, `--slice-members' returns nil for its mark, and
+`--slice-blocker-ids' excludes it deliberately so a deferred member
+cannot hold the slice open forever.
+
+But the rewriter derived the box from the referent's keyword and put it
+back, so the documented mechanism was defeated by the very command that
+maintains slices.  Measured 2026-09-02: four lines de-cookied by hand
+returned checked on the next refresh, and the two conventions had been
+contradicting each other in writing -- CLAUDE.md says the checkbox is
+derived and regenerated, the code says its absence is a declaration.
+Absence wins, because only it can express something the referent's
+keyword cannot."
+  (claude-code-ide-org-test--with-slice-window
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-min))
+      (re-search-forward "^- \\[X\\] \\(\\[\\[id:member-01\\)")
+      (replace-match "- \\1" t)
+      (let ((index (claude-code-ide-org--slice-referent-index)))
+        (goto-char (point-min))
+        (re-search-forward "^\\* TODO \\[1/1\\] A slice")
+        (org-back-to-heading t)
+        (claude-code-ide-org--refresh-slice-members-at-point index))
+      (goto-char (point-min))
+      (should (re-search-forward "^- \\[\\[id:member-01" nil t))
+      (goto-char (point-min))
+      (should-not (re-search-forward "^- \\[[ Xx-]\\] \\[\\[id:member-01" nil t)))))

@@ -473,6 +473,39 @@ Note the links cost nothing in `bin/lint-org` as of 2026-08-25 (`:ID:`
 warning, which would have made this convention degrade the report a
 little more with every slice.
 
+### Dropping a member from a slice
+
+**Delete the checkbox cookie; keep the line.** `- [X] [[id:…]] …` becomes
+`- [[id:…]] …`. That is the whole mechanism, and it was already in the
+code before it was written down here — `--slice-member-regexp` makes the
+cookie optional and names group 1 *"absent for a cancelled or deferred
+member"*, and `--slice-blocker-ids` excludes such a line deliberately: a
+deferred member is *unfinished*, so blocking on it would hold the slice
+open forever for work it explicitly decided not to do.
+
+**Keeping the line is the point.** The slice declared that member; deleting
+the line would make the slice read as though it never had, which is the
+same falsification `:ID:` 30a340fd refused for closed slices. A cookie-less
+line still parses as a member, so it is not re-listed as incidental
+either — it says *this was planned here and is no longer counted*, which
+is exactly the fact.
+
+**It covers three cases and does not distinguish them**: cancelled,
+deferred, and moved. The line's absence of a cookie says only that the
+slice no longer counts it.
+
+**When the work moves to another slice, it is copied there with its cookie
+intact** — the receiving slice counts it, the origin does not. Do not
+leave a cookie in both: a member counted twice makes two slices' cookies
+disagree about the same work, and measured 2026-09-02 that also let a
+*shared* member's clock open an unstarted slice's incidental window,
+which took two fixes to close.
+
+**Say why, in the slice's body.** The mechanism records that a member was
+dropped; only prose records why, and a slice that silently stops counting
+something reads as having forgotten it — which is the failure `:ID:`
+c60a1c53 exists to detect.
+
 ### Proposing a slice
 
 **A proposal is a slice with the declaration withheld.** It has the
