@@ -1544,6 +1544,7 @@ CLOSED: [2026-08-31 Mon 15:47]
   filed from the user's review-buffer request
 - State "DONE"       from "TODO"       [2026-08-31 Mon 15:47]
 :END:
+:PLAN:
 
 *Requested by the user 2026-08-28, from live review use:* after =a= assigns a span, point should *not* advance — "usually the next action is to mark it". And an alternative worth weighing rather than assuming: have =a= simply *mark and advance*, if that turns out simpler or more idiomatic.
 
@@ -1560,6 +1561,7 @@ CLOSED: [2026-08-31 Mon 15:47]
 
 *Filed late, and the delay is the interesting part.* The capture *queued* rather than writing through, so the heading did not exist and =org_amend= refused it by name — "apply the queue, then amend", which is the guard working. The body was written to the session scratchpad in the meantime rather than promised, and landed unchanged once the pass ran.
 
+:END:
 *Already shipped when this was reviewed 2026-08-31 — the work landed 2026-08-28 and the heading was simply never closed.* Confirmed in the code and in the suite rather than assumed: =claude-code-ide-org-review-assign= ends with the comment "No advance. Assigning does not finish the line -- it makes it markable, which is what the docstring above says and what the human does next", and =claude-code-ide-org-test-review-assign-keeps-point-on-the-item= passes, its own docstring recording that =a= advanced until 2026-08-28.
 
 *Option one was taken*, as this body weakly recommended: =a= stops advancing and =m= advances as it always has. Two keystrokes, matching dired exactly. The second option — =a= marks and advances — was not taken, and the reason stands: it couples assignment to approval, and a human who wants to assign, look at the interval, and *then* decide would have lost the ability to.
@@ -1589,6 +1591,7 @@ CLOCK: [2026-08-31 Mon 15:39]--[2026-08-31 Mon 15:42] =>  0:03
 - [2026-08-31 Mon 15:39]--[2026-08-31 Mon 15:42] lead assign candidates with the id prefix
 - State "DONE"       from "DOING"      [2026-08-31 Mon 15:42]
 :END:
+:PLAN:
 
 *Reported by the user 2026-08-25*, using =a= in the review buffer: the completion list should carry the =:ID:= prefix the way other renderings do.
 
@@ -1604,6 +1607,7 @@ So this is a *scanning* consistency, not a functional gap, and that changes what
 
 *Note the one entry that has no id and must stay legible:* the meta-work category, offered first, whose "id" is the title =Review and planning= ([[id:9575e65b-b589-465a-830c-286541780f96][9575e65b]]). Whatever prefix format is chosen has to leave that row readable rather than showing a truncated title where a prefix belongs.
 
+:END:
 *Shipped 2026-08-31.* =--assign-candidates= renders =8ca6541d  09:00-09:12  Heading title= — prefix, then range, then state marker, then title. The id no longer trails in braces.
 
 *Applied as a convention rather than a divergence, which this body required.* The group headings already led with the prefix ([[id:c2132d3f-dd78-4498-ba87-0ca814dc2f77][c2132d3f]]); the assign completion was the same problem at a call site the earlier change did not reach. Both now agree, so the reader meets one shape everywhere in the buffer — which is the actual reason, as the user corrected: not reachability, but that the eye arrives expecting eight characters of id and found a title.
@@ -1634,6 +1638,7 @@ CLOSED: [2026-08-31 Mon 15:39]
   captured keywordless, setting initial state
 - State "DONE"       from "TODO"       [2026-08-31 Mon 15:39]
 :END:
+:PLAN:
 
 *Reported by the user 2026-08-25* as "it looks like the arguments are reversed in the string interpolation".
 
@@ -1657,6 +1662,7 @@ CLOSED: [2026-08-31 Mon 15:39]
 
 *Unchanged:* this still belongs in the [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] audit pass rather than alone, for the same reason as before.
 
+:END:
 *Shipped 2026-08-31, as the 2026-08-28 decision specified: the readout states the evidence and predicts nothing.* =--review-written-summary= now renders =0:11 span, 0:01 in 1 run, 6 turns= — envelope, runs, turns, all observed at render time, none asserting what apply will do. Done in the [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] audit pass and in one pass with [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] and the review-buffer half of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]], as all three bodies required.
 
 *The unit defect is gone by construction.* Every count carries its noun — =in 2 runs=, =6 turns= — so the two numbers can no longer be read as interchangeable. That was the original report, and it was never a reversed-arguments bug; it was a line that required the convention to already be known.
@@ -1691,6 +1697,7 @@ CLOSED: [2026-08-31 Mon 15:38]
   captured keywordless, setting initial state
 - State "DONE"       from "TODO"       [2026-08-31 Mon 15:38]
 :END:
+:PLAN:
 
 *Found by the user 2026-08-26, from a readout they correctly refused to believe:* "I sense a contradiction. you just confirmed that [2026-08-26 Wed 13:05]--[2026-08-26 Wed 13:20] is my attention but something else says otherwise? who wins?"
 
@@ -1711,6 +1718,7 @@ CLOSED: [2026-08-31 Mon 15:38]
 
 *Filed with a finding attached.* Writing this body hit [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] live: =org_amend='s link checker expanded all four TODO.org prefixes above and refused =b8e6007a=, which is identical in form and differs only in living in DONE.org. So the expander is scoped to TODO.org, and a cross-file reference has to be written as plain text -- which is why one citation here is not a link.
 
+:END:
 *Shipped 2026-08-31, presentationally, exactly as this body specified — the extraction is untouched.* The span line now names its envelope instead of leaving it as an unlabelled headline: =0:11 span, 0:01 in 1 run, 6 turns=. The window and the payload are still two quantities, and now they are two *labelled* quantities rather than one label over two claims.
 
 *The misreading this heading identified is answered directly.* "This 17-minute range is about to be written down" was false in both directions at once. It now takes no arithmetic and no prior knowledge to see that the range is the bracket and the runs are what lands: both appear, both named, on one line.
