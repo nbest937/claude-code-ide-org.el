@@ -129,11 +129,21 @@ same window layout, and point in TODO.org where it started, or an
 explicit message saying why it could not be.
 
 
-* TODO A slice claims another slice's declared members as its own incidental work :code:
+* DONE A slice claims another slice's declared members as its own incidental work :code:
+CLOSED: [2026-09-02 Wed 10:35]
 :PROPERTIES:
 :ID:       5bfc1d38-e758-4ed7-bb32-f976031ff3da
 :CREATED:  [2026-09-01 Tue 15:54]
 :CATEGORY: Slices
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-09-02 Wed 10:30] \\
+  exclude every slice's declared members, not just this one's
+- State "DONE"       from "DOING"      [2026-09-02 Wed 10:35] \\
+  exclusion set bounded; twin closed
+- [2026-09-02 Wed 10:36]--[2026-09-02 Wed 10:36] subtract other slices declared members
+CLOCK: [2026-09-02 Wed 11:21]--[2026-09-02 Wed 11:22] =>  0:01
+- [2026-09-02 Wed 11:21]--[2026-09-02 Wed 11:22] subtract other slices declared members
 :END:
 
 *Twin of [[id:42ba0a80-61c5-49bd-b6a2-9da76a53ff64][42ba0a80]], split from it because the fix is
@@ -232,7 +242,6 @@ function that returned nil.
 *Closes the twin.* [[id:42ba0a80-61c5-49bd-b6a2-9da76a53ff64][42ba0a80]] bounded the window;
 this bounds the exclusion set. Neither alone made =f9fe9fac= right, which
 is why both were filed rather than one.
-
 
 
 * TODO Classify gaps by markers at either end, not by tracking an AFK state :code:
@@ -499,7 +508,7 @@ CLOCK: [2026-09-01 Tue 12:26]--[2026-09-01 Tue 12:27] =>  0:01
 *Open, and genuinely undecided:* whether the gap-versus-AFK threshold should ever be automated. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the standing precedent against an invented number, and a ten-minute cap is exactly that. Reporting both bounds and letting the human place the line is the alternative — and unlike the current review pass, it is six questions a day rather than nineteen.
 
 
-* TODO [12/23] Everything passed and the file was still wrong :code:
+* TODO [2/13] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
@@ -534,16 +543,6 @@ To which add the standing friction: the two MCP tools that time out are worked a
 Incidental:
 
 - [X] [[id:42ba0a80-61c5-49bd-b6a2-9da76a53ff64][42ba0a80]] DONE An unstarted slice accrues every heading closed since it was written down
-- [X] [[id:8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8][8c662dfb]] DONE Sweep the ten longest live bodies into :PLAN: drawers
-- [X] [[id:d39f5f0d-bee3-4aa4-8494-0bddd07e9067][d39f5f0d]] DONE CLAUDE.md's "Session tracking" still describes the pre-cutover clock
-- [X] [[id:517a4290-4c66-43e7-b42e-dad7167b9c41][517a4290]] DONE CLAUDE.md's open-a-clock rule is missing the container exception
-- [X] [[id:594adec6-4855-470d-8ceb-5fe29bf0c935][594adec6]] DONE CLAUDE.md documents neither span floor, and mis-describes the gap threshold
-- [X] [[id:5f89f872-6c0d-4805-88da-a182971c7ad9][5f89f872]] DONE Say in CLAUDE.md that it is a starting point and the artifact is the authority
-- [X] [[id:4072b6ec-2785-40ba-81e8-aa559508501c][4072b6ec]] DONE The file-header template omits #+STARTUP:, which both files carry
-- [X] [[id:72e82469-3d4f-4ee1-b0c4-35b1c253901c][72e82469]] DONE A :BLOCKER: on a MAYBE heading is dormant, and no convention says so
-- [X] [[id:8e124867-323d-4332-9f4e-a391e59123e7][8e124867]] DONE Timestamps must come from a :LOGBOOK: drawer, never a bare pattern match
-- [X] [[id:6e59c0f9-8af4-43d5-99c1-637ea360c3d0][6e59c0f9]] DONE The sibling-survey idiom is undocumented, and org_outline cannot navigate up
-- [X] [[id:e5fef4c4-5c42-48c2-a5d7-577dc199c22a][e5fef4c4]] DONE load-file does not pick up a changed defcustom default
 
 
 * TODO Three new ways to owe a footnote and not see it: marker, list, quotation :code:
@@ -1237,14 +1236,14 @@ Move every =Review and planning= datetree node dated the previous day or older i
 Once the sibling heading refiles =* Review attention='s old LOGBOOK entries into dated clones, those clones are placed by this same pass.
 
 
-* DOING [44/51] The code knows more than it says, and asks more than it should :code:
+* DOING [45/51] The code knows more than it says, and asks more than it should :code:
 :PROPERTIES:
 :ID:       b36e6369-a210-4540-adc7-0c0c188e9791
 :CREATED:  [2026-08-28 Fri 17:37]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(33864a0f-5e13-4235-85a6-0bd9d2fe5252 72463b68-9f08-44b2-8213-87f71298138d 7c4d6ef6-c914-4d33-b267-cc9158a9f359 542924c1-9152-4414-8da8-d530d3423611 5fc7b934-28ec-4eeb-9f90-f1becec353f0 5bfc1d38-e758-4ed7-bb32-f976031ff3da 9d009401-93dd-40e5-a243-7a30a8a5bd55)
+:BLOCKER:  ids(33864a0f-5e13-4235-85a6-0bd9d2fe5252 72463b68-9f08-44b2-8213-87f71298138d 7c4d6ef6-c914-4d33-b267-cc9158a9f359 542924c1-9152-4414-8da8-d530d3423611 5fc7b934-28ec-4eeb-9f90-f1becec353f0 9d009401-93dd-40e5-a243-7a30a8a5bd55)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 17:38] \\
@@ -1294,7 +1293,7 @@ and the open decisions live in the prompt below rather than here.
 
 - [X] [[id:d39f5f0d-bee3-4aa4-8494-0bddd07e9067][d39f5f0d]] DONE CLAUDE.md's "Session tracking" still describes the pre-cutover clock
 - [ ] [[id:5fc7b934-28ec-4eeb-9f90-f1becec353f0][5fc7b934]] TODO Line-number anchors in org bodies rot, and nothing checks them
-- [ ] [[id:5bfc1d38-e758-4ed7-bb32-f976031ff3da][5bfc1d38]] TODO A slice claims another slice's declared members as its own incidental work
+- [X] [[id:5bfc1d38-e758-4ed7-bb32-f976031ff3da][5bfc1d38]] DONE A slice claims another slice's declared members as its own incidental work
 
 - [X] [[id:517a4290-4c66-43e7-b42e-dad7167b9c41][517a4290]] DONE CLAUDE.md's open-a-clock rule is missing the container exception
 - [X] [[id:594adec6-4855-470d-8ceb-5fe29bf0c935][594adec6]] DONE CLAUDE.md documents neither span floor, and mis-describes the gap threshold
@@ -1319,6 +1318,7 @@ Incidental:
 - [X] [[id:5d59dc77-38bf-470a-8d51-098c741fecbd][5d59dc77]] DONE org_capture with a done initial_state writes no CLOSED line
 - [X] [[id:13ea6770-88ba-484d-87bd-2d20c44dc610][13ea6770]] DONE The ceremony steps do not bind inhibit-read-only, so the sweep dies on the guard
 - [X] [[id:42ba0a80-61c5-49bd-b6a2-9da76a53ff64][42ba0a80]] DONE An unstarted slice accrues every heading closed since it was written down
+
 
 * TODO Three verification traps hit repeatedly in one session, none of them caught by a check :code:
 :PROPERTIES:
@@ -6388,6 +6388,8 @@ CLOSED: [2026-09-02 Wed 09:40]
   correct the pre-cutover Session tracking passage
 - State "DONE"       from "DOING"      [2026-09-02 Wed 09:40] \\
   guidepost vocabulary shipped; 23 days from naming to fix
+CLOCK: [2026-09-02 Wed 10:26]--[2026-09-02 Wed 10:27] =>  0:01
+- [2026-09-02 Wed 10:26]--[2026-09-02 Wed 10:27] rewrite Session tracking for the queue model
 :END:
 
 "Session tracking" still describes =:LOGBOOK:= CLOCK entries as tracking
@@ -6884,7 +6886,6 @@ the conversation worth having.
 *Stated so it is not mistaken for progress:* 45 lines out against 160
 lines in today. A first pass would not undo this session's growth and
 should not be reported as fixing the problem.
-
 
 
 ** DONE The file-header template omits #+STARTUP:, which both files carry :code:
