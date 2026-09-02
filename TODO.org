@@ -2,6 +2,36 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The :PLAN: wrap never happens at close, so 93 finished headings carry an unwrapped body :code:
+:PROPERTIES:
+:ID:       79a3d89e-77be-4678-919e-637a65f87204
+:CREATED:  [2026-09-02 Wed 14:38]
+:CATEGORY: Meta
+:END:
+
+*Raised by the user 2026-09-02, who predicted the state from the mechanism and was half right in the informative direction.* The prediction was "DONE items in DONE.org without =:PLAN:= drawers and no debrief already". Measured:
+
+| DONE.org, =CLOSED:= on or after 2026-08-24 | n |
+|---|---|
+| with a =:PLAN:= drawer | 5 |
+| without | 93 |
+| of those 93, carrying a debrief | 88 |
+| of those 93, with no debrief marker | 5 |
+
+*So the debrief happens and the wrap does not.* Headings closed before 2026-08-24 are exempt by =claude-code-ide-org-plan-drawer-since= and are [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]]'s backlog, not this. =bin/lint-org= warns on 64 in DONE.org and 9 in TODO.org — fewer than 93 because it only fires at ten or more prose lines.
+
+*The reason no hook does it, which is the whole design question.* At =DONE= the body is *prospective, then debrief*. Wrapping it whole would bury the debrief inside the drawer — the exact inversion =org_wrap_plan='s =until= parameter exists to prevent. So the wrap needs to know **where the seam is**, and that is not recoverable later: it is a judgement about which sentences were written before the work and which after.
+
+*But it is not unknowable at the right moment.* The session that writes the debrief knows the seam exactly — it is the first line of what it just appended. Nobody downstream does. So this is a **closing discipline for the session, not a hook**: when queueing =DONE=, write the debrief and wrap everything above it in the same beat, passing =until=.
+
+*Note "upon =DONE=" is ambiguous in this architecture, and the ambiguity is why the naive automation fails.* =DONE= is *queued* by a session and *applied* by a human later, often in a batch. An apply-time hook would fire with the context already gone. The moment worth exploiting is the queue, not the apply.
+
+*Open, and the reason this is filed rather than fixed:* whether the rule belongs in CLAUDE.md's state-transition section, in the org skill, or as a lint that fires on a heading queued =DONE= rather than on one already closed. The third would catch it before archiving, which is where the existing rule already says it must happen; the first two rely on a session remembering, which is the shape TODO.org :ID: 2758f3a0 measured failing 41 times in 45.
+
+*Self-instance, recorded because it is the strongest evidence available:* the session that filed this closed [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] and [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] hours earlier, wrote full debriefs on both, and wrapped neither — while having read the convention. 33864a0f is one of the 93.
+
+*Related but distinct:* [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] is about checks that cannot fail. This is a convention nothing checks *at the moment it applies* — the lint does fire, but only after archiving has already happened, by which time the drawer's absence is history rather than a prompt.
+
 * TODO A boolean argument passed as false arrives as :false, which elisp reads as true :code:
 :PROPERTIES:
 :ID:       a8ccd6ac-3452-4926-b176-ff5951dcd5b2
