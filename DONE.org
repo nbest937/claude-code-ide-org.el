@@ -3664,6 +3664,7 @@ CLOCK: [2026-08-28 Fri 13:18]--[2026-08-28 Fri 13:20] =>  0:02
 - State "DONE"       from "DOING"      [2026-08-28 Fri 13:20] \\
   all four classes settled, one by refusal
 :END:
+:PLAN:
 
 *[[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] named this and could not have it.* Of the datetree lint gate it says: "A =:DATETREE_ROLE:= property would be the honest form", and calls what shipped instead "a property-shaped answer smuggled in as a string match". =:KIND:= shipped 2026-08-25 for slices. It is that property, arrived at from a different direction and already in production.
 
@@ -3696,6 +3697,7 @@ CLOCK: [2026-08-28 Fri 13:18]--[2026-08-28 Fri 13:20] =>  0:02
 
 *The ambiguity is load-bearing rather than cosmetic.* "Flatten the top-level headings into categories (epics)" has two readings, and they differ where it matters: once level 1 is gone, does a task's label name the old *filing group* it lived in, or the *emergent parent task* it belongs to? Those disagree for a task with no parent, and for a task whose parent epic sits in a different filing group. Deciding which sense the label carries is a prerequisite for the flattening, not a detail of it.
 
+:END:
 *Re-read 2026-08-28 against what shipped since, and half of it is done.* Of the four-class table above:
 
 - *slice* was already declared when this was written, and stays.
@@ -3754,7 +3756,9 @@ CLOSED: [2026-08-28 Fri 12:49]
 - State "DONE"       from              [2026-08-28 Fri 12:49] \\
   two checks shipped and proved to discriminate
 :END:
+:PLAN:
 
+:END:
 *Context: §7 of the org-dev skill stopped quoting =~/.config/doom/config.el= on 2026-08-28.* It had reproduced the config verbatim, and the copy drifted twice — first in CLAUDE.md (which is why §7 was moved into the skill on 2026-08-14), then in the skill itself, gaining a keyword the config never had and losing two settings the config had gained. Neither drift was noticed, and neither could have been: a quoted config is the one kind of documentation that cannot be checked by reading it, since checking means opening the other file, which is the work the quote existed to save. The section now names each setting and what breaks without it.
 
 *So the check is behavioural, not a text diff, and that distinction is the whole design.* Re-introducing a comparison between the skill's prose and the config would rebuild the failure mode inside a script. These two ask the running Emacs what is *true*:
@@ -3881,6 +3885,7 @@ CLOCK: [2026-08-28 Fri 10:52]--[2026-08-28 Fri 10:57] =>  0:05
 - State "DONE"       from "REVIEW"     [2026-08-28 Fri 11:15] \\
   user satisfied, agenda views checked
 :END:
+:PLAN:
 
 Parked 2026-08-19, *not accepted* — recorded so the research need not be
 redone, not because a case was made.
@@ -4108,6 +4113,10 @@ One property worth stating so it is not mistaken for sloppiness: =Dev= names an 
 *=.claude/rules/org-conventions.md= carries the glossary the flattening owed it* — the ten values with what belongs in each, the =Tools=/=Dev= test, why =Review= was rejected, and where all nine old labels went. The verbatim prose from the dissolved category bodies stays below it as history rather than being replaced by the mapping.
 
 *Left open on purpose, neither of them blocking.* =Docs= has two members and only one of them live, so it remains a declared growth area rather than a populated category — the alternative, folding the README into =Skill=, was considered and rejected by the user. And =Tools= at 26 may eventually want its own split between the tool surface and tool *policy*; there is no seam visible at this size, so it is not being guessed at.
+:END:
+
+See the =:PLAN:= drawer for details. Its 70 paragraphs interleave planning and execution across several phases — decide, plan, survey, classify, revise the taxonomy, apply — so no single line is the seam. Wrapped whole under [[id:35d25265-df52-45c0-8226-dfa24c3ed5bb][35d25265]]'s retroactive exception rather than cut at a fabricated one.
+
 
 
 *** 2026-08-27 Thursday
