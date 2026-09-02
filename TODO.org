@@ -7081,6 +7081,42 @@ is mechanically checkable.
 the reload trap, and the claim about unbound symbols is demonstrated
 rather than asserted.
 
+*Shipped 2026-09-02* as a subsection of the org-dev skill's §1, "Live
+reload procedure" — inside the section describing the reload it
+undermines, rather than filed near it.
+
+*Demonstrated rather than asserted, which the Done-when asked for.* Two
+one-line files declaring the same symbol with defaults 900 and 1200, run
+under =emacs -Q --batch=:
+
+: after first load: 900
+: after loading the changed default: 900
+: after explicit setq: 1200
+
+So the transcript is in the skill, not a claim about elisp semantics the
+reader has to take on trust. It also cost nothing to produce, which is
+the argument for doing it: the fact was already believed, and the
+demonstration is what makes it checkable by the next person.
+
+*The remedy is stated as a precondition, not as a fix,* because that is
+how the standing rule in §0 is phrased and this is its hardest case:
+*"this needs =load-file= **and** a =setq=, because =defcustom= will not
+overwrite a bound symbol."* Naming the obvious precondition is not
+enough here — the obvious precondition is the one that does not work,
+and a reader who says "this needs a reload" and reloads has satisfied
+their own stated check while measuring the old value.
+
+*Cross-linked to its narrower sibling,*
+[[id:4072b6ec-2785-40ba-81e8-aa559508501c][4072b6ec]]'s =#+STARTUP:= case — same class, different
+mechanism, and the pair is what makes the class visible: *a reload that
+succeeds is not evidence the new value is live.*
+
+*Verified:* =grep -c defcustom= on the org-dev skill returns 5, where it
+returned 1 this morning and that hit was about =:CATEGORY:='s character
+limit. =bin/check-org-dev-skill= still passes, so the new section did
+not break any claim the skill already made about itself.
+
+
 
 ** TODO Say in CLAUDE.md that it is a starting point and the artifact is the authority :code:
 :PROPERTIES:
