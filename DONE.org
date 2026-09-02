@@ -1077,6 +1077,7 @@ CLOCK: [2026-09-01 Tue 06:54]--[2026-09-01 Tue 07:01] =>  0:07
 - [2026-09-01 Tue 06:54]--[2026-09-01 Tue 07:01] render the incidental section
 - State "DONE"       from "DOING"      [2026-09-01 Tue 07:02]
 :END:
+:PLAN:
 
 *Proposed by the user 2026-08-28*, after a scan of [[id:979e02b6-2a4c-4328-8b08-ffaec03bd02e][979e02b6]] found 36 headings closed since it opened, of which only 6 were members. Their correction, and it stands: *work that arose in the course of the slice is slice business* — listing it separately as *incidental* keeps that true without pretending it was planned.
 
@@ -1127,6 +1128,7 @@ Recommend the first. The blocker is not a record of membership; the checkbox lis
 
 *The case study travels with it.* [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] was planned with five children and had ten two days later, and its plan file still opens "Covers all five children" — true when written, false since, recorded once in a document nobody revises. Any convention that requires editing the container each time a child is added will drift exactly as that plan file did, which is the argument for the strict window: it is *derived* from closing timestamps and so cannot go stale.
 
+:END:
 *Half built 2026-08-31, and deliberately left at the seam. Detection is shipped; rendering is not.*
 
 *What exists.* =claude-code-ide-org--closed-in-window= returns the ids whose =CLOSED:= falls in a range, read through =org-map-entries= rather than a regex — entries are bounded by construction and this scan is the input to a list a human reads as fact. =--slice-incidental-ids= applies it between the slice's =:CREATED:= and its =CLOSED:= (or now), minus the members it already names and itself. Archives are included, because work closed during a slice is often archived before the slice is, and a scan blind to DONE.org would report the window *shrinking* as the ceremony ran.
@@ -1214,6 +1216,7 @@ CLOSED: [2026-08-31 Mon 18:02]
 :LOGBOOK:
 - State "DONE"       from "TODO"       [2026-08-31 Mon 18:02]
 :END:
+:PLAN:
 
 *Raised by the user 2026-08-31: "I have been ignoring the zero-minute spans. do we understand their origin and have a remedy in mind?"* The origin is understood and was measured rather than recalled; the remedy turns on a distinction [[id:31f766ab-90ed-4950-bc5b-787528c8fe84][31f766ab]] came within one sentence of making and did not.
 
@@ -1238,6 +1241,7 @@ CLOSED: [2026-08-31 Mon 18:02]
 
 *Related but distinct:* [[id:31f766ab-90ed-4950-bc5b-787528c8fe84][31f766ab]] (DONE, 2026-08-18) made these items *explain themselves* rather than being silently degenerate, which is why the line says which kind of no-op it is. This heading is the next question — that an item which explains itself is still an item, and one that can never change still asks for a decision every pass.
 
+:END:
 *Shipped 2026-08-31 on the user's decision — "drop the stranded ones silently, if that's your recommendation" — and it was, for four reasons rather than one.*
 
 *Nothing is lost.* The guidepost itself stays in the queue file, which is the durable record; only the *proposal* is dropped. This is not the shape this project regrets, where a queued event vanishes without trace — the event is still there, it simply stops being rendered as a question.
