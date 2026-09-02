@@ -1667,6 +1667,7 @@ Incidental:
 - State "TODO"       from              [2026-08-28 Fri 17:36] \\
   session learnings, filed
 :END:
+:PLAN:
 
 *Observed across one long session, 2026-08-28.* Each was hit more than once, each looked like success at the moment it happened, and none is covered by anything in =bin/=.
 
@@ -1772,6 +1773,22 @@ the second data point, and only if Emacs is restarted before it.
 *What a check could assert here*, in the same spirit as the =Ran N tests= assertion above and cheaper than the alternatives: for each ceremony step, that its *no-argument* call resolves to the file the step beside it writes to. That is exactly the invariant case 10 violated, it is decidable without judgement, and it needs no new harness — the regression test written for it is four lines of =file-equal-p=.
 
 *The honest limit, restated because it now has two members.* Case 6 concluded that where the harness cannot reach the state, the verification of record is a live run under a stated precondition. Cases 10 and 11 are the same conclusion from the other side: the harness *could* have been built, nobody thought to, and the thing that found all three was a human running the ceremony and reading the output. Two of the three were surfaced by the user, not by the session that wrote them.
+
+:END:
+*Shipped 2026-09-02: the elisp form-reading check, as assertion 0 of =bin/check-conventions=* — an assertion rather than a script, which is what [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]]'s harness made possible.
+
+*The gap it closes is not the one this heading described, and that is worth stating plainly.* The filing argued =check-parens= stays silent on an unescaped docstring quote. **I could not reproduce that.** Every fixture built here — including the exact shape described, a docstring ending early and leaving bare code — was caught by =check-parens= too. So the check is not strictly stronger, and the body's premise for it does not hold as written.
+
+*What is true, and is a bigger gap than the one claimed:* **nothing checks elisp at commit time at all.** =.githooks/pre-commit= runs =bin/lint-org= over the org files and =check-conventions --docs-only= over the documents; =bin/test= is not wired in. A structurally broken =config.el= can be committed today and surfaces later as spurious test failures whose cause is nowhere near them — which is exactly the nine-failure incident this heading opens with. The check runs in =--docs-only=, so pre-commit gets it, and it uses *batch* Emacs, which needs no server — the same footing =bin/lint-org= already stands on.
+
+*A false positive measured before shipping, not after.* Read in =fundamental-mode=, =config.el= reports a scan error at line 8430 — against a file Emacs loads every day — because elisp comment and quote syntax do not apply. =(emacs-lisp-mode)= in the temp buffer is load-bearing, not tidiness. Had that not been checked, the first commit would have been blocked by the checker rather than by a defect.
+
+*Proved able to fail, two ways, in =bin/check-conventions-test=:* an elisp file that does not read exits 1, and a valid one exits 0 — the second so the first is not passing because the assertion refuses everything. 9 checks, all as expected.
+
+*It reports the line the reader gives up on*, which is the half that converts a confusing failure into a location.
+
+*Not built, and not claimed:* the two other assertions this body proposes — that a mutation run require the =Ran N tests= line *and* N equal to the baseline, and that each ceremony step's no-argument call resolve to the file the step beside it writes to. Both remain good ideas; neither is done, and saying so is cheaper than letting a reader infer from the heading's closure that all three shipped.
+
 
 
 * MAYBE Install orgparse for ad-hoc analysis, and stop reaching for regex over org text :code:

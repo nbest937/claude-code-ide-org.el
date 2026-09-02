@@ -62,6 +62,51 @@ for rel in TODO.org DONE.org
     end
 end
 
+# 0. Every elisp file reads as forms.
+#
+# The gap this closes is that NOTHING checks elisp at commit time.
+# pre-commit runs bin/lint-org over the org files and this script over
+# the documents; bin/test is not wired in, so a structurally broken
+# config.el can be committed and is only found on the next test run --
+# or, worse, by nine spurious test failures whose cause is a docstring
+# (TODO.org :ID: 542924c1).
+#
+# Reads forms rather than counting parens, and reports the LINE the
+# reader gives up on, which is the part that turns a confusing failure
+# into a location. `emacs-lisp-mode' is not optional: read in
+# fundamental-mode, config.el reports a scan error at line 8430 against
+# a file Emacs loads every day, because comment and quote syntax do not
+# apply. That false positive was measured before this shipped.
+#
+# Honest limit, stated rather than implied: every case reproduced here
+# was ALSO caught by `check-parens'. The heading's claim that
+# check-parens stays silent on an unescaped docstring quote could not be
+# reproduced. What this adds is that it runs at all, unattended, with a
+# line number -- not that it is strictly stronger.
+set -g elisp_files
+for rel in modules/tools/claude-code-ide-org/config.el modules/tools/claude-code-ide-org/config-test.el
+    if test -f "$root/$rel"
+        set -a elisp_files "$root/$rel"
+    end
+end
+
+for f in $elisp_files
+    set -l verdict (command emacs --batch -Q --eval "(with-temp-buffer
+        (insert-file-contents \"$f\")
+        (emacs-lisp-mode)
+        (goto-char (point-min))
+        (let ((res \"ok\"))
+          (condition-case err
+              (while (progn (skip-chars-forward \" \t\n\r\")
+                            (< (point) (point-max)))
+                (forward-sexp))
+            (error (setq res (format \"line %d: %s\"
+                                     (line-number-at-pos)
+                                     (error-message-string err)))))
+          (princ res)))" 2>/dev/null)
+    check "elisp reads as forms ("(basename $f)")" "$verdict" ok
+end
+
 # 1. Every :ID: the documents cite resolves.
 #
 # A citation that resolves to nothing is always a bug -- there is no

@@ -84,8 +84,27 @@ echo ':description "TODO keyword to set: TODO NEXT DOING WAITING MAYBE DONE CANC
 $repo_root/bin/check-conventions $d >/dev/null 2>&1
 expect_exit "a drifted org_set_todo description fails" 1
 
+# 7. An elisp file that does not read as forms fails.
+#
+#    The case that matters, since nothing else checks elisp at commit
+#    time: bin/lint-org reads org, this script reads documents, and
+#    bin/test is not wired into pre-commit at all. A docstring with an
+#    unescaped quote could be committed and would surface later as
+#    spurious test failures whose cause is nowhere near them.
+set d (make_fixture)
+printf '(defun a ()\n  "A docstring that ends early "here" and leaves this bare.\n  (+ 1 2))\n' > $d/modules/tools/claude-code-ide-org/config.el
+$repo_root/bin/check-conventions $d >/dev/null 2>&1
+expect_exit "an elisp file that does not read as forms fails" 1
+
+# 8. A valid elisp file does not fail, so case 7 is not passing because
+#    the assertion refuses everything.
+set d (make_fixture)
+printf '(defun a ()\n  "A well-formed docstring."\n  (+ 1 2))\n:description "TODO keyword to set: TODO NEXT DOING REVIEW WAITING MAYBE DONE CANCELLED."\n' > $d/modules/tools/claude-code-ide-org/config.el
+$repo_root/bin/check-conventions $d >/dev/null 2>&1
+expect_exit "a valid elisp file does not fail" 0
+
 if test $failures -eq 0
-    echo "Ran 7 checks, all as expected"
+    echo "Ran 9 checks, all as expected"
 else
     echo "check-conventions-test: FAILURES"
 end
