@@ -2,11 +2,34 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* MAYBE Make the org discipline travel: ship the machinery, relocate the rules :code:
+* TODO A MAYBE member and a dropped member render identically, and the drop is now sticky :code:
+:PROPERTIES:
+:ID:       1b727475-46c3-4967-8cdd-dfd9397d94ea
+:CREATED:  [2026-09-02 Wed 18:28]
+:CATEGORY: Slices
+:END:
+
+*Found 2026-09-02 by reading the result of declaring [[id:ff7ccb2d-2b13-421e-86e3-6b5e187850bf][ff7ccb2d]], minutes after shipping the convention that causes it.*
+
+Two different facts now render as the same line. =MAYBE= and =CANCELLED= map to *no checkbox* in =--slice-checkbox-by-keyword=, deliberately — an unchecked box inflates the denominator forever and reads as a live cookie. And the convention written the same day says a *deleted* cookie means the slice no longer counts that member. So =- [[id:...]] MAYBE Title= is ambiguous between "derived from the keyword" and "dropped by hand", and nothing distinguishes them.
+
+*Visible immediately:* ff7ccb2d reads =[0/2]= over three members, because its =MAYBE= member is uncounted. That number is arguably right — a =MAYBE= member should not be counted, and its exclusion from the =:BLOCKER:= agrees with [[id:72e82469-3d4f-4ee1-b0c4-35b1c253901c][72e82469]], where a =:BLOCKER:= on a =MAYBE= heading is dormant anyway. The rendering is not wrong today; it is *undecidable*.
+
+*The sharp part is that the drop is now sticky, and that is a regression I introduced.* The rewriter computes =dropped= from the *current line* — no cookie means dropped — and then suppresses the box. For a member that is cookie-less only because it is =MAYBE=, promoting it to =TODO= will therefore **never restore its checkbox**: the refresh reads the absent cookie as a declaration and keeps it absent. Before that change the box would have reappeared with the keyword.
+
+*Why it cannot be fixed by reading harder.* At refresh time the only evidence is the current keyword and the current line. A cookie-less line whose referent is now =TODO= is exactly what both cases look like — deliberately dropped, or promoted from =MAYBE= and awaiting its box. The information that distinguishes them was never written down.
+
+*So it needs a distinct marker for "dropped", not a cleverer inference.* Candidates, none chosen: a =[-]= mark, which the member regexp already admits and which org renders as in-progress; wrapping the link in =~...~=; or a property on the slice listing dropped ids. The last is the only one that survives a line being regenerated wholesale, and is also the most machinery.
+
+*Until then the safe operating rule is narrow:* do not promote a =MAYBE= slice member and expect its cookie back. Checked by hand, it returns.
+
+* MAYBE [0/2] Make the org discipline travel: ship the machinery, relocate the rules :code:
 :PROPERTIES:
 :ID:       ff7ccb2d-2b13-421e-86e3-6b5e187850bf
 :CREATED:  [2026-09-02 Wed 18:17]
 :CATEGORY: Slices
+:KIND:     slice
+:BLOCKER:  ids(9ae4b17e-278c-482f-9114-df28b2254806 9d009401-93dd-40e5-a243-7a30a8a5bd55)
 :END:
 
 *A proposal, not a slice* — the declaration is withheld deliberately, per the procedure settled 2026-09-02. No =:KIND: slice=, no prompt link, and =MAYBE= rather than =TODO=, because nothing here is committed to yet.
@@ -16,7 +39,7 @@
 *Why these three and nothing else.* Each is a different face of the same problem, and none of them is declared by another slice — checked rather than assumed, since duplicate membership across slices is what made two slices unreadable earlier today.
 
 - [ ] [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] NEXT Make the org skill and its discipline portable to other repos
-- [ ] [[id:1caed585-3209-4108-8501-eba16baf6a01][1caed585]] MAYBE Decide what this module may change on a user's machine when installed
+- [[id:1caed585-3209-4108-8501-eba16baf6a01][1caed585]] MAYBE Decide what this module may change on a user's machine when installed
 - [ ] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] TODO CLAUDE.md carries dated history that costs every session's context
 
 *Sequenced, not merely grouped.* The first classifies what must travel; the second decides what installation is allowed to touch; the third is downstream of both, because its prune is the same triage seen from the other end and pruning first risks deleting rules a consuming project needs.
