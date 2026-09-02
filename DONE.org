@@ -1754,6 +1754,7 @@ CLOCK: [2026-08-31 Mon 15:27]--[2026-08-31 Mon 15:31] =>  0:04
 - [2026-08-31 Mon 15:27]--[2026-08-31 Mon 15:31] audit the review buffer wording
 - State "DONE"       from "DOING"      [2026-08-31 Mon 15:31]
 :END:
+:PLAN:
 
 *Noticed 2026-08-24 when the user asked whether the day's new headings formed a group.* They do, and the grouping is not the one the categories suggest.
 
@@ -1782,6 +1783,7 @@ Six defects were found in a single afternoon, all in the review-and-apply surfac
 
 *Related:* [[id:b8e6007a-ae13-4b13-bb2e-a5df39435af0][b8e6007a]] and [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] are earlier members of the same family -- both are about a readout that could not distinguish two things a human needed told apart.
 
+:END:
 *Audit performed 2026-08-31, and the wording fixed in the same pass* — deliberately not as two commits, because a one-word repair beside an unchanged line three rows down reads worse than uniform terseness.
 
 *Method, as this body proposed:* for every place the review surface reports a refusal, a failure or an absence, ask whether the code distinguishes cases the message does not. Enumerated by scanning every =user-error= and =message= in the review-and-apply section — about two dozen sites. Four of the six original instances were already =DONE= and confirmed repaired in passing (=M='s stale-versus-unassigned split and =e='s bracket style both now carry their distinction). *Seven live sites remained*, every one repaired by widening the message and none by changing a computation, exactly as predicted:
@@ -1826,6 +1828,7 @@ CLOCK: [2026-08-31 Mon 15:20]--[2026-08-31 Mon 15:26] =>  0:06
 - [2026-08-31 Mon 15:20]--[2026-08-31 Mon 15:26] add a whole-heading body read
 - State "DONE"       from "DOING"      [2026-08-31 Mon 15:26]
 :END:
+:PLAN:
 
 *The build [[id:ff1352b3-2732-4422-9f0d-4b3cb6fd8ff3][ff1352b3]] decided 2026-08-31*, filed separately because the decision is complete and the implementation is not.
 
@@ -1842,6 +1845,7 @@ CLOCK: [2026-08-31 Mon 15:20]--[2026-08-31 Mon 15:26] =>  0:06
 
 *Deliberately out of scope:* shrinking =org_outline='s front matter. Build this first — at that point the front matter's remaining unique content is about one line, and the question answers itself.
 
+:END:
 *Shipped 2026-08-31 as =org_body=.* Both open questions decided the way this body leaned.
 
 *Question one — own body, with =include_children= to opt in.* The heading's own text by default, stopping before the first child; pass =include_children= for the subtree. For a leaf the two are the same and most level-1 headings are leaves, but a story's subtree runs to hundreds of lines while "show me this heading" almost always means the heading — and a caller who wants a child can read it by its own id, which =org_outline= has already told them exists.
@@ -1885,6 +1889,7 @@ CLOCK: [2026-08-31 Mon 15:15]--[2026-08-31 Mon 15:19] =>  0:04
 - [2026-08-31 Mon 15:15]--[2026-08-31 Mon 15:19] org_capture gains initial_state
 - State "DONE"       from "DOING"      [2026-08-31 Mon 15:20]
 :END:
+:PLAN:
 
 *Raised as a companion question by [[id:36b811d9-8bd3-4a32-b67d-39ccfe0d66c1][36b811d9]] and filed on its own 2026-08-28.* =org_capture= deliberately writes *no* TODO keyword — its description says to set the state afterwards with =org_set_todo=, which *queues*. So **every heading captured in a session is keywordless on disk until a human applies the queue**, and a capture-then-set is two operations that land a review pass apart.
 
@@ -1910,6 +1915,7 @@ CLOCK: [2026-08-31 Mon 15:15]--[2026-08-31 Mon 15:19] =>  0:04
 
 *Note for whoever builds it:* the argument should be optional and default to nothing, so a capture with no state still produces a keywordless heading. That is the current behaviour and some callers want it — a heading captured as a note rather than a task.
 
+:END:
 *Shipped 2026-08-31 as option 1, the decision recorded above.* =org_capture= takes an optional =initial_state= and writes the keyword with the heading. Omitting it still produces a keywordless heading, which the body asked for explicitly — a heading captured as a note rather than a task — and the empty string is treated as omitted rather than writing a bare =* =.
 
 *Validated against the target file's own =#+TODO:= line*, the same gate =org_set_todo= applies and for the same reason: =queue-append= drops any reply starting with =Error:=, so this is the only thing between a bad call and a heading carrying a keyword org does not recognise — which org then reads as *part of the title*, invisibly and permanently. The error names the file's keyword set so the caller can correct itself. A shared =--file-todo-keywords= now reads that set per file, and the leading-keyword guard from [[id:2b2db914-c96e-416a-a80a-e31028308de0][2b2db914]] was refactored onto it rather than keeping a second copy.
