@@ -4,6 +4,687 @@
 Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 
 
+* DONE An unstarted slice accrues every heading closed since it was written down :code:
+CLOSED: [2026-09-01 Tue 16:16]
+:PROPERTIES:
+:ID:       42ba0a80-61c5-49bd-b6a2-9da76a53ff64
+:CREATED:  [2026-09-01 Tue 15:54]
+:CATEGORY: Slices
+:ARCHIVE_TIME: 2026-09-02 Wed 08:56
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Slices
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-09-01 Tue 16:16] \\
+  window bounded by first work; f9fe9fac corrected
+:END:
+
+*Noticed by the user 2026-09-01, reading the session-start report:* why
+does [[id:f9fe9fac-a423-4ede-bc42-1d201c2c3d82][f9fe9fac]], a slice nobody has started, carry a list
+of =DONE= incidentals?
+
+*Measured, and the answer is that none of them are its incidentals.*
+f9fe9fac has =:CREATED: [2026-08-31 Mon 12:07]=, no =:CLOSED:=, state
+=TODO=, and *zero CLOCK lines* — it has never been worked. It lists *26*
+incidentals. Twenty-one are the *declared planned members* of
+[[id:b36e6369-a210-4540-adc7-0c0c188e9791][b36e6369]]; the remaining five are that slice's own
+incidental work. None of the 26 has anything to do with f9fe9fac.
+
+*The cause is the window's left edge.*
+=claude-code-ide-org--slice-incidental-ids= opens the window at the
+slice's =:CREATED:= and closes it at =:CLOSED:=, and
+=--closed-in-window= documents =END nil= as "up to now, which is the
+case for an open slice." For a slice being *worked*, created-to-now is a
+reasonable reading of "what else was going on". For a slice *composed in
+advance and not started*, it means "everything anyone closed since I was
+written down" — and composing a slice ahead of its turn is normal
+practice here: b36e6369 itself was composed while its predecessor was
+still running.
+
+So the window conflates two different moments — when the slice was
+*written* and when it was *worked* — and only the second bounds anything
+a reader would call incidental.
+
+*The visible damage is the statistics cookie.* f9fe9fac reads =[26/28]=,
+92% complete, with both of its two real members still =TODO= and no work
+done. A reader scanning the outline sees a nearly-finished slice. That
+is this project's own recurring failure — the code knowing more than it
+says — reproduced by a mechanism built during the slice named for it
+([[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]]).
+
+*Candidate fixes, none chosen.*
+
+- *Start the window at first work* rather than at =:CREATED:= — the
+  earliest CLOCK on any member, or the slice's own first =DOING=. A
+  slice with no work has an empty window and no incidentals, which is
+  the correct answer here. Needs a decision about which signal, since a
+  slice may be clocked without its members being, and vice versa.
+- *Refuse to compute incidentals at all until the slice has started.*
+  Cruder, and it answers this case exactly; it says nothing about a
+  slice worked in bursts with long gaps.
+- *Leave the window and fix the exclusion set* — see the twin below.
+  Insufficient alone: even excluding another slice's declared members,
+  f9fe9fac would still absorb that slice's five genuinely incidental
+  ids, because they fall in its window and nothing else claims them.
+
+*Its twin, filed separately because the fix is different:*
+[[id:5bfc1d38-e758-4ed7-bb32-f976031ff3da][5bfc1d38]]. That one survives this fix — a *closed* slice
+running concurrently with another would still absorb the other's
+declared checklist. Fixing either alone leaves f9fe9fac wrong, which is
+why both are filed rather than one.
+
+*Shipped 2026-09-01, same day, as =d577751=. Candidate 1 was taken:* the
+window opens at the later of =:CREATED:= and first work, where first
+work is =claude-code-ide-org--first-work-time= — the earliest CLOCK
+start across the slice and its planned members. A slice with no clock
+anywhere gets no window and therefore no incidentals.
+
+*Why that signal rather than the slice's own =DOING=.* A slice may be
+clocked while its members are not, and far more often the reverse: the
+members carry all the time and the slice itself never gets clocked at
+all. Scanning both subtrees costs one pass and needs no decision about
+which is authoritative. The open question the body raised — "which
+signal" — is answered by taking the union rather than choosing.
+
+*Measured after loading into the live Emacs:* f9fe9fac 26 → 0
+incidentals, and its cookie =[26/28]= → =[0/2]=, which is two real
+members and no work. [[id:b36e6369-a210-4540-adc7-0c0c188e9791][b36e6369]] unchanged at 12, since it
+was worked — the fix is inert for a slice actually being run, which is
+what it should be.
+
+*The five existing incidental tests failed, and they were right to.*
+Their shared fixture built a slice with =:CREATED:= and no CLOCK, which
+under the new rule is a slice nobody worked. The fixture now carries a
+clock opening at its =:CREATED:=, which leaves every window bound in
+those tests exactly where it was — the assertions did not move, only the
+premise they rest on became explicit.
+
+*Mutation-tested, since a fixture change that makes tests pass again is
+exactly where a vacuous assertion hides.* Making the window ignore
+=worked= — restoring the old behaviour in one line — fails
+=claude-code-ide-org-test-slice-never-worked-has-no-incidentals= and
+nothing else (503 ran, 1 unexpected), and restoring passes 503/503. The
+new test also puts the clock *back* and asserts the window returns, so
+it cannot pass by the fixture simply having become inert.
+
+*The twin survives and is not closed by this.*
+[[id:5bfc1d38-e758-4ed7-bb32-f976031ff3da][5bfc1d38]] is about the exclusion set rather than the
+window: two slices worked concurrently, or one worked during another's
+long tail, would still absorb each other's declared members. f9fe9fac
+only stopped being wrong because it had done no work at all.
+
+
+* DONE The ceremony steps do not bind inhibit-read-only, so the sweep dies on the guard :code:
+CLOSED: [2026-09-01 Tue 08:19]
+:PROPERTIES:
+:ID:       13ea6770-88ba-484d-87bd-2d20c44dc610
+:CREATED:  [2026-09-01 Tue 07:08]
+:ARCHIVE_TIME: 2026-09-02 Wed 08:56
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-01 Tue 07:07]--[2026-09-01 Tue 07:14] =>  0:07
+- [2026-09-01 Tue 07:07]--[2026-09-01 Tue 07:14] assigned at review
+CLOCK: [2026-09-01 Tue 08:12]--[2026-09-01 Tue 08:20] =>  0:08
+- [2026-09-01 Tue 08:12]--[2026-09-01 Tue 08:20] assigned at review
+- State "DONE"       from "TODO"       [2026-09-01 Tue 08:19]
+:END:
+
+*Two distinct failures, one ceremony, and the second only appeared once the first was fixed. Both shipped 2026-09-01.*
+
+*First: the read-only guard.* =archive-finished= was the only one of the three steps with no binding — its siblings use =(let ((buffer-read-only nil)) ...)=, which an initial grep for =inhibit-read-only= missed, so the first reading that "two are latently broken" was wrong. It binds =inhibit-read-only= rather than the siblings' mechanism, and that difference is load-bearing: they touch one buffer, while =org-archive-subtree= writes the *target* file too, so a buffer-local binding on the source would leave DONE.org guarded and fail halfway.
+
+*The failure was not clean, which is the sharper finding.* =org-archive-subtree= copies to the target and *then* deletes from the source. A read-only source means the copy lands and the delete does not, so the 07:06 run left [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]] as a heading in *both files*. A partially-applied archive, not a refused one.
+
+*=bin/lint-org= does not detect a cross-file duplicate =:ID:=.* It reported *0 errors* the whole time the corpus held one. The archive's own post-condition caught it — reporting =Archived 20, but 1 id(s) now appear twice= — but only *after* writing, and it does not roll back. So the duplicate was found by a guard that fires too late, and missed entirely by the check that runs on every commit.
+
+*Second: a fresh-session-only load-order bug.* With the binding in place the step reported =Defining as dynamic an already lexical var: org-archive-reversed-order=. =archive-finished= =let=-binds that variable without requiring =org-archive= first; under lexical binding, binding a symbol org-archive has not yet =defvar='d makes it *lexical*, and loading org-archive afterwards signals. Two other call sites in this file already require it.
+
+*It hid because a long-running Emacs has org-archive loaded from any earlier archive.* It works there and fails on the first ceremony after a restart — which is exactly when the ceremony is most likely to run. Confirmed directly rather than inferred: =(featurep 'org-archive)= was =nil= immediately after the reload that fixed it.
+
+*And =bin/test= cannot discriminate it.* The suite passed identically before and after, because the batch environment's load order differs from the live one. The verification of record here is the live run, which is the case [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] should probably absorb: a green suite that is *structurally incapable* of seeing the defect.
+
+*Verified end to end.* The duplicate was repaired first — the archived copy confirmed byte-identical apart from its =ARCHIVE_*= properties, then the TODO.org copy removed, 98 to 97 top-level headings, 44 lines out and none in. The ceremony then reported =drawers: ok; spacing: ok; archived: 19; repeater: advanced=. TODO.org went 97 to 78 top-level with *zero* finished headings remaining, and =:ID:= totals were conserved at *328* across both files — 20 ids moved as 19 subtrees, one carrying a child. 491 tests, lint 0 errors.
+
+
+* DONE The ceremony prompt goes quiet on evidence of its first step, and never reports its own completion :code:
+CLOSED: [2026-09-01 Tue 08:19]
+:PROPERTIES:
+:ID:       29734f79-e698-43dd-abf8-14bc86b8b0ae
+:CREATED:  [2026-08-31 Mon 10:28]
+:CATEGORY: Meta
+:ARCHIVE_TIME: 2026-09-02 Wed 08:56
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Meta
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-31 Mon 10:19]--[2026-08-31 Mon 10:20] =>  0:01
+- [2026-08-31 Mon 10:19]--[2026-08-31 Mon 10:20] measure PLANNING against real use
+CLOCK: [2026-08-31 Mon 10:27]--[2026-08-31 Mon 10:29] =>  0:02
+- [2026-08-31 Mon 10:27]--[2026-08-31 Mon 10:29] measure PLANNING against real use
+- State "TODO"       from              [2026-08-31 Mon 10:28] \\
+  quiet test and completion report
+- State "REVIEW"     from "DOING"      [2026-08-31 Mon 12:20]
+- State "DOING"      from "TODO"       [2026-08-31 Mon 12:20]
+- State "DONE"       from "REVIEW"     [2026-09-01 Tue 08:19]
+:END:
+
+*Found 2026-08-31 by the user asking whether the ceremonies would run at the next session start.* They will not, and the reason is a seam rather than a bug.
+
+*The report names three things it is waiting on and goes quiet on evidence of one.* Its text is "Waiting: N queued item(s) pending review, N :LOGBOOK: drawer(s) out of order, N finished heading(s) not yet archived". Its quiet test is =--ceremony-reviewed-today-p=, which looks for a =CLOCK:= line dated today on the =Review attention= heading — created by running the *apply* command and nothing else. On 2026-08-31 four applies produced four such lines, the report went silent, and *106 finished headings sat unarchived*, drawers unconsolidated, separation un-normalised.
+
+*This is [[id:806ff394-3ede-4d67-82aa-9c44fe1cf86e][806ff394]] working and reaching slightly short.* That heading replaced "a model remembers to stamp it" with "the act leaves its own evidence", which is strictly more reliable and removed the model from the nag guard. But the act it chose is *apply* — the one step a human always performs, being the one they came to do — while the three that follow are precisely the ones that get skipped. The signal is derived from the step least in need of a reminder.
+
+*Can the ceremony be automated? One quarter of it cannot; three quarters already can.* Mapped rather than assumed:
+
+| step | surface | automatable |
+|------+---------+-------------|
+| apply the queue | =M-x claude-code-ide-org-review=, no MCP tool | *no, by design* |
+| =consolidate-all-drawers= | elisp; from Lisp defaults to writing | yes, via =emacsclient= |
+| =normalize-heading-separation= | elisp; same | yes, via =emacsclient= |
+| archive | =org_archive= | yes, already a tool |
+
+Apply is human-only because org's native state-change logging completes only inside a genuinely interactive command, and =WAITING(w@/!)= and =CANCELLED(c@)= carry =@= cookies that *prompt* — a non-interactive call hangs on exactly the two keywords. That is the constraint the whole queue exists to route around, not a gap to close.
+
+*So the honest shape is: the human applies, the agent finishes, and the finish is reported.* CLAUDE.md already says the last three steps are "yours if they ask" — and on 2026-08-31 nobody asked, four times, which is how 106 accumulated. "If they ask" is the same remembering-dependency 806ff394 removed from the other half.
+
+*Two changes, and they are separable:*
+
+1. *The quiet test should attest to what the report claims to be waiting on* — pending items, drawer order, unarchived count — rather than to the apply alone. Cheapest form: go quiet when all three counters are zero, which is derived and needs no new signal.
+2. *There is no completion report at all.* The ceremony prompts at =SessionStart= and never says what happened, so success and failure look identical from the outside — and a step that silently did not run is the failure mode this project keeps finding. A line per step, success or failure, said in-session when the agent runs them.
+
+*Not proposed: automating apply.* And not proposed: the agent running the last three *unasked* — that is a policy question about the user's attention rather than a defect, and it should be decided rather than assumed.
+
+*Shipped 2026-08-31.* Both halves the title names are addressed, and the heading is in =REVIEW= rather than =DONE= for one reason given at the end.
+
+*The completion report.* =claude-code-ide-org-ceremony-finish= runs the three post-apply steps -- consolidate drawers, normalise separation, archive -- reports each one success or failure, and returns a summary line. A clean pass advances [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]]'s own =++1d= repeater and stamps the ceremony done; a pass where any step failed holds both. The summary is written into the stamp file's body, so it survives the =message= that displayed it.
+
+*The quiet test.* It keyed on *either* the stamp or a CLOCK line dated today on the attention heading -- and the second only attests that apply ran. That was right while the later steps needed a human. It is wrong now they run automatically, and it hid the case that matters most: a pass that ran, failed a step, correctly held the repeater and wrote no stamp, then was silenced by its own apply clock. Silence now requires the stamp. The clock is still read, but to *say* something: =:reviewed-today= separates "nobody has been here today" from "someone was, and it did not complete", and the report leads with the latter.
+
+*Verified, not just implemented.* The sweep was rehearsed on scratch copies before touching anything, then run live against the backlog this heading was filed about: 65 finished top-level subtrees archived, with headings 308 -> 308, =:ID:= 307 -> 307 and CLOCK 696 -> 696 across both files, no duplicate ids, and the 21 finished headings that are children of *live* parents correctly left alone. 447 tests pass. Restoring the old disjunct fails the new test, so it discriminates.
+
+*Two defects surfaced by running it*, both fixed here: =#+ARCHIVE:= is parsed once at buffer creation and never re-parsed, so the first live pass archived under the retired =* Done= while the directive on screen read the new one; and a pass reported 65 while writing 66, which is guarded by a post-condition and filed unexplained as [[id:381ea07d-633f-4640-abbb-89472a07acba][381ea07d]].
+
+*Why =REVIEW= and not =DONE=.* Every ceremony run this session was invoked by hand. The =quit-window= advice has never fired on its own, and it cannot be made to before [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] next comes due, because apply is human-only by design. Nothing is owed from this side; what is left is the user seeing it fire, or not, and saying so.
+
+*Judged 2026-09-01: the trigger fires. This heading's open question is answered, and answered by observation rather than argument.*
+
+*It fired unattended.* The user applied, buried the review buffer, and the =quit-window= advice ran the ceremony with nobody asking it to — which is the one thing that could not be demonstrated before, because apply is human-only and [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] had not come due again. That was the entire reason this sat in =REVIEW= rather than =DONE=.
+
+*Both halves the title names did their job, and the second proved itself immediately by catching a real failure.* The completion report said =archive: FAILED (Buffer is read-only ...)= instead of going silent, and the quiet test correctly *withheld* the stamp and held the repeater, so the next session would be told rather than shown a clean slate. Before this heading, that pass would have looked identical to a successful one from the outside — which was precisely the complaint.
+
+*The failure it caught was real and was worth catching.* It exposed two defects in the sweep, one of them a *partially-applied archive* that left a heading in both files ([[id:13ea6770-88ba-484d-87bd-2d20c44dc610][13ea6770]]). The report is what surfaced it; the four applies that produced 106 unarchived headings on 2026-08-31 said nothing at all.
+
+*So the mechanism is confirmed working under exactly the conditions it was built for* — an unattended run, a genuine failure, an honest report, and a stamp correctly withheld. Closing.
+
+
+* DONE Sort TODO.org by :CREATED: descending, after each archive pass :code:
+CLOSED: [2026-09-01 Tue 09:10]
+:PROPERTIES:
+:ID:       5f1068f9-1452-45e4-9253-568edfce2053
+:CREATED:  [2026-08-28 Fri 13:39]
+:CATEGORY: Meta
+:ARCHIVE_TIME: 2026-09-02 Wed 08:56
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Meta
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-28 Fri 13:40] \\
+  for the next slice
+CLOCK: [2026-09-01 Tue 09:03]--[2026-09-01 Tue 09:10] =>  0:07
+- State "DOING"      from "TODO"       [2026-09-01 Tue 09:03]
+- [2026-09-01 Tue 09:03]--[2026-09-01 Tue 09:10] sort TODO.org newest-first
+- State "DONE"       from "DOING"      [2026-09-01 Tue 09:10]
+:END:
+
+*Asked for by the user 2026-08-28, for the next slice.* After archiving the closed headings, sort what remains in TODO.org by =:CREATED:= descending, so the file reads newest-first.
+
+*It became a one-operation job when the category tier went.* [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]'s plan already named this and could not do it: sorting used to mean nine separate operations, one inside each level-1 category, with no ordering between them. Flattened, every task is a level-1 sibling and the whole file is one =org-sort-entries= call.
+
+*Where it belongs is the load-bearing part.* The ceremony order is fixed for a reason — apply the queue, consolidate drawers, normalise separation, *then* archive — and this goes *after* archiving, for the same reason archiving goes last: sorting before it would order rows that are about to be removed. It is also idempotent and cheap once the file is already sorted, so it can join the ceremony rather than being a thing to remember.
+
+*Two things to settle when building it, neither obvious:*
+
+- *What to do with headings that have no =:CREATED:=.* Every heading created since the convention has one and =bin/lint-org= errors without it, but archived-in and hand-written rows historically did not — the same gap [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] is about for =CLOSED:=. Sorting must not silently pile them at one end as though they were coeval.
+- *The datetree anchor must not move or be sorted into.* =* Review and planning= is the one structural level-1 heading left, and its year/month/day children have their own ordering question ([[id:0c3f1319-67c0-4b29-a8e7-5ffa12948aaf][0c3f1319]], newest-at-top). Whatever sorts the file has to skip it.
+
+*Adjacent, and worth doing in the same pass rather than twice:* [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] reorders DONE.org as a datetree descending by =CLOSED:=. Both are "make the file read newest-first after archiving"; they differ only in the key and in whether the result is flat or nested.
+
+*Measured 2026-08-28, and two of the three anticipated exceptions do not exist.*
+
+- *Recurring ceremonies are not an exception.* All three =SCHEDULED= headings — =96a51c2f=, =2aff1e6d=, =cbe282ec= — carry a =:CREATED:= as well. The worry that they would have "no CREATED, rather SCHEDULED" does not hold against this corpus.
+- *The datetree anchor is the only level-1 heading without =:CREATED:=.* Exactly one, not a class.
+- *And it needs no special handling at all.* Verified in batch org 9.8.7: =(org-sort-entries nil ?R nil nil "CREATED")= with point before the first heading sorts the level-1 entries descending and places the *undated* heading last, on its own. Subtrees travel intact.
+
+*So the whole operation is one call, and org owns the comparator.* =?R= is "by the value of a property, reversed", and the =PROPERTY= argument takes =CREATED= directly — no =getkey-func=, no custom compare. Two preconditions worth knowing rather than discovering: point must be *before* the first heading (org signals ="Nothing to sort"= otherwise, which is how a fixture without a =#+= preamble failed here), and TODO.org satisfies that only because of its header lines.
+
+*The "mostly sorted, so a light operation" premise is right eventually and wrong now.* Measured: of 135 dated level-1 headings, *85 of 134 adjacent pairs are already descending — 63%*, and the longest already-descending run is *17*. The first sort is a large reordering and should be its own commit. Afterwards the premise holds, because =org_capture= prepends and a promotion inserts one heading, so each later sort moves one or two entries.
+
+*Approaches, with what each costs:*
+
+| # | approach | for | against |
+|---+----------+-----+---------|
+| A | the single =?R= call, anchor last by absence | one line; org owns the comparator; the exception handles itself; idempotent | the anchor's position is *implicit* — it is last because a property is missing, not because anyone said so, and an anchor that ever gained a =:CREATED:= would migrate into the middle silently |
+| B | A, plus a sentinel =:CREATED:= on the anchor so it sorts last deliberately | the invariant is declared rather than emergent; the lint's "level-1 task has no =:CREATED:=" rule would then apply uniformly | a fabricated timestamp in a file whose entire value is that timestamps are trustworthy — the shape [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] retired rather than kept |
+| C | move the datetree to its own file | TODO.org becomes homogeneous, every heading a dated task; no exception anywhere; =--datetree-node-role= stops sharing a file with real tasks | a third tracked file for =org-agenda-files=, =--tracked-files=, id resolution and the archive target; every doc saying "two files" becomes wrong; and A already handles the anchor for free, so this buys tidiness rather than function |
+| D | insert in place on capture/promotion, never sort | no bulk reorder ever; minimal diffs forever | =org_capture= already prepends, which is correct for a newest-first file, so this is only needed for *promotions*, which are rare — and it spreads ordering logic across every writer instead of one call |
+| E | sort the view, not the file | zero churn | the stated goal is that the *file* reads newest-first, and capture's prepend already assumes file order carries meaning |
+
+*Recommend A, with B's concern answered by a lint assertion rather than by a fake timestamp:* assert that the =:DATE_TREE:= anchor is the last level-1 heading. That makes the invariant checked without inventing data, which is the same move [[id:8bea4317-c8e7-4939-8224-834bb914d89c][8bea4317]] made for the cookie's position — read the corpus, assert the result, do not encode it as data.
+
+*C stays open on its own merits*, and is worth deciding separately rather than as a side effect of sorting: it is really the question of whether meta-work belongs in the same file as the work, which nothing here has asked yet.
+
+*Decided by the user 2026-08-31: approach A.* One call — =(org-sort-entries nil ?R nil nil "CREATED")= with point before the first heading — and the datetree anchor sorts last on its own, because it carries no =:CREATED:=.
+
+*With A's one real objection answered by a check rather than by data.* The anchor is last by an *absence*, which nobody decided; so =bin/lint-org= asserts that the =:DATE_TREE:= anchor is the final level-1 heading. That makes the invariant checked without inventing a timestamp, which is the move [[id:8bea4317-c8e7-4939-8224-834bb914d89c][8bea4317]] made for the cookie's position: read the corpus, assert the result, do not encode it as data.
+
+*Approach C stays open and is not foreclosed.* Moving the datetree to its own file is a question about whether meta-work belongs in the same file as the work, and deciding it as a side effect of a sort would be deciding it by accident. Nothing in A makes C harder later.
+
+*Sequencing reminder from the measurement above:* the *first* sort is a large reordering — 63% of adjacent pairs are already descending, longest run 17 of 135 — so it wants its own commit. Every later run moves one or two entries, because =org_capture= prepends.
+
+*Shipped 2026-09-01 as approach A, in two commits as this body's own sequencing note required.*
+
+*One call, and every prediction in the measurement held.* =(org-sort-entries nil ?R nil nil "CREATED")= with point before the first heading. The datetree anchor was the only level-1 heading without a =:CREATED:= — exactly one, not a class — and org placed it last on its own, subtrees intact.
+
+*The one real objection is answered by a check rather than by data*, as decided: =bin/lint-org= now asserts the =:DATE_TREE:= anchor is the file's final level-1 heading. It is an =error= rather than a =warn= because the correct state is computable and the sort restores it without asking anything.
+
+*And the assertion earned its place immediately.* Added *before* the first sort ran, it fired against the file as it stood — =level-1 heading after the :DATE_TREE: anchor (anchor is at line 7185) ... Review attention= — and went quiet once the sort landed. So it was demonstrated failing and passing on real data rather than only in a fixture.
+
+*Wired into the ceremony after archiving*, for the reason this body gives: sorting first would order rows that are about to be removed.
+
+*The first sort was the large reordering the measurement promised:* 81 level-1 headings, *all 81* at a different position, ~9290 diff lines. Its own commit. The second run moved *0*, which is the property that lets it join the ceremony at all.
+
+*One defect of my own, and it is a reporting defect of exactly the kind this slice is about.* The summary counted movement with =seq-difference= over the before and after title lists — a *set* difference, which is empty by construction after a sort. The first real run therefore reported =0 reordered= immediately after rewriting 9290 lines: a number that reads as a successful no-op and is the opposite of the truth. Counted by *position* now, and the idempotency test asserts both the 4 and the 0 rather than only the file contents.
+
+*Approach C is untouched and not foreclosed*, as decided — whether the meta-work datetree belongs in its own file remains a question about whether meta-work belongs beside the work, and nothing here makes it harder.
+
+*What is left of the twin:* [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] is now unblocked, [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] having filled every missing =CLOSED:=. It is the larger of the two — restructuring DONE.org into a datetree rather than sorting a flat list — so it did not fit "the same pass" as literally as this body expected.
+
+
+* DONE Sweep the ten longest live bodies into :PLAN: drawers :code:
+CLOSED: [2026-09-01 Tue 16:20]
+:PROPERTIES:
+:ID:       8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8
+:CREATED:  [2026-08-28 Fri 13:39]
+:CATEGORY: Meta
+:ARCHIVE_TIME: 2026-09-02 Wed 08:56
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Meta
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-28 Fri 13:40] \\
+  for the next slice
+- State "DOING"      from "TODO"       [2026-09-01 Tue 14:34]
+CLOCK: [2026-09-01 Tue 15:55]--[2026-09-01 Tue 16:00] =>  0:05
+- [2026-09-01 Tue 15:55]--[2026-09-01 Tue 16:00] wrap the nine long bodies
+- State "DONE"       from "DOING"      [2026-09-01 Tue 16:20] \\
+  ten for ten, by three different means
+:END:
+
+*Asked for by the user 2026-08-28*, on seeing [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]'s body: "absolutely monstrous... I guess it's because it predates the current task lifecycle and we never touched it." That diagnosis is right and it generalises — the =:PLAN:= lifecycle ([[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]]) applies at =DONE=, so a *live* heading that has been accumulating for weeks has never met it.
+
+*Measured 2026-08-28 across TODO.org: 90 live keyworded headings hold 4,027 body lines, and the ten longest hold 1,593 of them — 39%.* None carries a =:PLAN:= drawer.
+
+| lines | id | kw | created | title |
+|-------+----+----+---------+-------|
+| 383 | [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] | DOING | 2026-08-06 | [7/11] Update CLAUDE.md and the org skill for the new architecture |
+| 219 | [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] | TODO | 2026-08-15 | Record turns-per-interval as an attention signal |
+| 177 | [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] | NEXT | 2026-08-15 | Make the org skill and its discipline portable to other repos |
+| 145 | [[id:b5f94b88-76e3-4a3c-ac73-729f34d33691][b5f94b88]] | TODO | 2026-08-13 | Let a session interject without waiting |
+| 141 | [[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]] | MAYBE | 2026-08-07 | Let the review command ask Claude to explain the ambiguous gaps |
+| 127 | [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]] | TODO | 2026-08-12 | Concurrent sessions share one git index |
+| 105 | [[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]] | TODO | 2026-08-10 | [3/5] Institute a catch-all heading for cross-cutting meta-work |
+| 99 | [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] | TODO | 2026-08-18 | Heading bodies grow into narratives no human will read |
+| 99 | [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] | NEXT | 2026-08-14 | Read a heading's front matter, and take a partial :ID: |
+| 98 | [[id:d1cf852a-696a-4195-a4a7-039439c1f4b7][d1cf852a]] | TODO | 2026-08-13 | Bracket queued spans with WAIT transitions |
+
+*The eighth row is the joke and also the point.* [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] — "Heading bodies grow into narratives no human will read; decide what to stop capturing" — is itself 99 lines. Whatever this heading does should be reconciled with that one rather than done past it: that one asks what to *stop capturing*, this one asks what to do with what already accumulated. They are the prospective and retrospective halves of the same complaint.
+
+*What worked on c954f650, for whoever picks this up.* Compress *first*, while the text is still body, then wrap. CLAUDE.md's rule says wrap first and condense in a separate commit, on the grounds that a bad pare inside =:PLAN:= is invisible because readers are told to skip the drawer. Compressing before wrapping inverts that: the pare shows up in the diff as ordinary body prose, where it is reviewable. The rule's *concern* is right and its *order* may be backwards — worth deciding here rather than assuming either way. 305 lines went to roughly 70 without losing an open question.
+
+*The three things the rule says stay untouched still stayed:* every open question kept verbatim, the debrief kept whole, and anything whose seam was uncertain wrapped rather than pared.
+
+*Not a backlog sweep.* [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] chose "wrap unedited" for the 30-heading archive pass deliberately, to keep it cheap. This is the opposite case by construction — ten headings, each one read and condensed, all of them live and therefore still being consulted, which is what makes the cost worth paying here and not there.
+
+*Corrected by the user 2026-08-28, and the correction is narrower and better than what it replaces.* The paragraph above argued that compressing before wrapping may invert CLAUDE.md's order in general, on reviewability grounds. That overreaches. The order inverts *for this population specifically*, and the reason is a property of these ten bodies rather than of the rule:
+
+*They were never revised as they were worked — only appended to.* Which is exactly what [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] is about, and why that heading sits eighth on this list rather than merely adjacent to it. So what "compression" does here is not *paring considered prose*, which is the risky act CLAUDE.md's separate-commit rule guards against. It is *collapsing an append-only transcript*, where later entries routinely supersede earlier ones outright and the superseded text is not a judgement anyone made — it is a sentence nobody went back to delete.
+
+*So the rule stands unchanged for its own case.* A body that was drafted and revised should still be wrapped first and condensed separately, because a pare there discards someone's considered wording where no reader will see it. A body that is a transcript can be condensed first, because the diff is where the supersession becomes visible and there is no earlier judgement being overruled — only an earlier sentence that a later one already replaced.
+
+*Which gives whoever picks this up a test rather than a preference:* ask whether the body was ever *revised*. If it was only ever appended to, compress first. c954f650 was a clear case — five distinct dates of accretion, each opening with a bold lead that qualified or reversed one above it, and nothing ever deleted.
+
+*Measured 2026-08-31, and it converts this from ten judgements into nine mechanical compressions and one that needs care.*
+
+This heading's own test is "ask whether the body was ever *revised*; if it was only ever appended to, compress first". That is answerable from git rather than by reading. Sampling 28 points across all 472 commits that touched TODO.org, with each heading's body bounded at the *next heading of any level*, and counting any drop of more than three lines as a revision:
+
+| id | samples | max | now | shrinks | verdict |
+|----+---------+-----+-----+---------+---------|
+| 02aaae22 | 25 | 154 | 147 | 1 | *revised* |
+| 9e627dc0 | 16 | 211 | 211 | 0 | append-only |
+| 9ae4b17e | 17 | 169 | 169 | 0 | append-only |
+| b5f94b88 | 20 | 128 | 128 | 0 | append-only |
+| 0c8644ff | 25 | 141 | 141 | 0 | append-only |
+| 2aeb65d6 | 21 | 123 | 123 | 0 | append-only |
+| a1d63f52 | 24 | 94 | 94 | 0 | append-only |
+| b07df584 | 13 | 95 | 95 | 0 | append-only |
+| 2d9eeebd | 17 | 111 | 111 | 0 | append-only |
+| d1cf852a | 19 | 90 | 90 | 0 | append-only |
+
+*Nine of ten have never lost a line.* So for nine, the risky question — am I discarding someone's considered wording? — is answered *no* before any reading begins, and compress-then-wrap applies without a per-heading call. Writing each compression is still work; deciding whether it is safe is not.
+
+*=02aaae22= is the exception and should be done last, or by a human.* It is also the only container in the list, so its single shrink may be a child moving rather than prose being pared — which is exactly the ambiguity that makes it the one to treat carefully rather than the one to skip.
+
+*The first version of this measurement was wrong in two ways and is recorded because both are the same mistake.* It sampled only the most recent 40 commits — 2026-08-27 onward, five days of a five-week history — and it bounded each body with =find("\\n* ")=, which for a heading *with children* runs past them, so =02aaae22= came out as 5 lines against a true 178. Both errors flattered the answer: a shorter window and a truncated body both hide shrinks. A measurement whose errors all point the same way is worth re-running before it is quoted.
+
+*Seven of the ten swept 2026-09-01. The population was never ten by the time it ran.*
+
+=2d9eeebd= closed and was archived into DONE.org; the table above still
+lists it =NEXT=, which is what a measurement kept as prose does. And
+=9e627dc0= was handled earlier the same day by =org_divide= rather than
+by this sweep — its body is now 15 lines and the design travelled into
+the story's children. So the work here was seven bodies, and =02aaae22=
+is the one left.
+
+| heading  | before | now visible | in =:PLAN:= |
+|----------+--------+-------------+-------------|
+| d1cf852a |    105 |          26 |          32 |
+| b07df584 |    115 |          34 |          63 |
+| a1d63f52 |    123 |          33 |          64 |
+| 2aeb65d6 |    139 |          13 |         114 |
+| b5f94b88 |    154 |          53 |         100 |
+| 0c8644ff |    163 |          74 |          66 |
+| 9ae4b17e |    195 |          60 |         136 |
+| *total*  |  *994* |       *293* |       *575* |
+
+*Read that honestly: this was mostly relocation, not deletion.* 994 lines
+became 868 — 126 lines actually gone, about an eighth — while 575 moved
+behind a drawer. The visible body is 70% smaller, which is the effect
+that was wanted, but nobody should cite this as evidence that the bodies
+were mostly waste. They were mostly *prospective*, which is a different
+claim and the one this heading actually makes.
+
+*The sweep's real yield was not shorter bodies. Six of the seven carried
+claims the code had already falsified,* and none of them announced it:
+
+- =d1cf852a= proposed a bracket mechanism that had shipped in =6a81822=;
+  its "denylist should be an allowlist" survivor is done, and
+  =--work-in-progress-keywords= is =("DOING")=.
+- =b07df584= said "no tool can rewrite a body today" — =org_amend
+  replace= and =org_wrap_plan= both exist — and cited a CLAUDE.md rule
+  against trimming old bodies that was reversed on 2026-08-24. Its
+  =:BLOCKER:= had been satisfied without the body noticing.
+- =a1d63f52= named =--trigger-auto-promote-sole-todo=, retired; and the
+  CLAUDE.md rule it asked for was never written, so its convention is in
+  force and undocumented — the exact condition it was raised to end.
+- =2aeb65d6='s =pre-commit= option is now "extend a hook" rather than
+  "add one", since =.githooks/pre-commit= exists.
+- =b5f94b88='s step 3 shipped, for both capture and amend, while the
+  body says in terms that no verdict was recorded and none should be
+  inferred. Step 1 — =create-lockfiles= — never shipped and is still
+  Doom's =nil=.
+- =9ae4b17e= is *unblocked*: =befaed0a= is =DONE=, and half its plan has
+  quietly happened project-scoped.
+
+Only =0c8644ff= had no falsified claim, and it had something worse: a
+link that still *resolved*. It cited =9e627dc0= for a conclusion, and
+that heading's division earlier the same day carried the =:ID:= to a
+child, so the link now landed on a narrow leaf rather than the argument.
+Re-pointed at the story =f90d745e=. *An id link cannot go stale by
+breaking; it goes stale by continuing to work,* which is why mitosis
+needs a referrer sweep and nothing does one.
+
+*One method correction, and it is a real amendment to this heading's
+plan.* "Compress, then wrap" assumes the seam falls in document order —
+prospective first, debrief last. It did for five. It did *not* for
+=2aeb65d6=, which is a live TODO nobody has started, so every line is
+prospective and wrapping the lot would have left the heading blank; the
+fix was to write a short "where this stands" close and seam on that. And
+it did not for =b5f94b88=, where CLAUDE.md explicitly names two passages
+— the "epic wearing a child's clothes" reasoning and the
+plan-file-overwrite incident — as *not design*, so the body had to be
+reordered before =org_wrap_plan= could take the right half. The tool
+takes everything above the seam; when the durable half was written
+first, reordering is part of the condense, not a separate liberty.
+
+*And a claim in this heading's own body is wrong:* =02aaae22= is not
+"the only container in the list". =a1d63f52= is =[3/5]=. It does not
+change the compress-then-wrap decision, which turned on append-only-ness
+rather than on shape, but the parenthetical should not be relied on.
+
+*=02aaae22= is left, and the recommendation is not to wrap it.*
+
+Its 369-line body is not a superseded plan. It is an accumulating
+*scope list* — "Added to scope 2026-08-11", "…-08-12", "…-08-13",
+"…-08-14" — plus an audit of what is still owed. Wrapping that puts
+eleven items of outstanding work into a drawer readers are told to skip,
+which is the residue-goes-invisible failure CLAUDE.md warns about, not
+the tidying this heading exists to do.
+
+The better move is division: each "Added to scope" item is a candidate
+leaf, and consuming the body into children is what CLAUDE.md says
+happens to an engorged body. That is a judgement call about eleven
+headings, so it is left for a human rather than taken here. If wrapping
+is wanted anyway, the seam is *Promoted to =**= and split into children
+2026-08-14* — but it buries the scope, which is the objection above.
+
+*=02aaae22= is resolved, and not by wrapping. Closed 2026-09-01.*
+
+The user rejected both moves this heading had on the table: drawering
+was wrong because the heading is *in progress*, so its body is
+outstanding work rather than superseded planning; and mitosis was wrong
+because it is already a container, and division is what a leaf does when
+it outgrows itself. Both objections are correct and neither was in this
+heading's reasoning — the recommendation recorded here on the day was to
+divide, which would have been the second error.
+
+*What happened instead was redistribution:* 369 body lines allocated to
+children, twelve of the seventeen scope items culled as already done,
+one culled as a duplicate of a heading already =NEXT= in this slice, and
+six new children filed for what survived. The body ended at 77 lines and
+the cookie moved =[7/11]= → =[7/17]=.
+
+*That makes the sweep ten for ten, by three different means* — seven
+condensed-and-wrapped, one divided (=9e627dc0=, earlier the same day),
+one archived before the pass reached it (=2d9eeebd=), and one
+redistributed. Worth stating plainly because this heading's premise was
+that one method fits a long body, and it does not: what fits depends on
+whether the body is *finished thinking* (wrap), *one task that grew*
+(divide), or *a backlog in prose* (redistribute). Only the first is what
+=:PLAN:= is for.
+
+*The finding is the same in every case, which is the part that
+generalises.* Across the seven wrapped bodies, six carried claims the
+code had already falsified. Across =02aaae22='s seventeen scope items,
+twelve were already done. Nothing announced either. A long body is not
+mainly a readability problem — it is a *staleness* problem, and length
+is only the symptom that makes it survive unread.
+
+
+* DONE Name the work a slice forgot: detect the omission, never fix it :code:
+CLOSED: [2026-09-01 Tue 08:38]
+:PROPERTIES:
+:CATEGORY: Slices
+:ID:       c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8
+:CREATED:  [2026-08-25 Tue 15:35]
+:ARCHIVE_TIME: 2026-09-02 Wed 08:56
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Slices
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-25 Tue 15:35] \\
+  the user had to remind me; a mechanism should
+CLOCK: [2026-09-01 Tue 08:27]--[2026-09-01 Tue 08:38] =>  0:11
+- State "DOING"      from "TODO"       [2026-09-01 Tue 08:27]
+- [2026-09-01 Tue 08:27]--[2026-09-01 Tue 08:38] detect work a slice forgot
+- State "DONE"       from "DOING"      [2026-09-01 Tue 08:38]
+:END:
+
+*Prompted 2026-08-25 by the user asking whether they have to remind me to add a worked heading to the open slice.* They did. [[id:0acc1df2-6916-4180-867a-99bfa551806b][0acc1df2]] was built, committed, and left out of [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] -- against a membership rule written earlier the same day, by me, saying a member is anything the slice *committed to or actually worked*.
+
+*It must not add anything, and that is the design rather than caution.* Membership is what a slice *declares*; it is the entire difference between a slice and an epic, which is derived. A mechanism that swept in every heading touched would produce a backlog wearing a slice's clothes, which is the specific thing the user asked to resist while this slice finishes. So the job is to make forgetting *loud*, not to make remembering unnecessary.
+
+*Choosing the signal is the whole problem, and it was measured rather than guessed.* Three candidates, against today as the test case:
+
+| signal                                   | candidates | catches today |
+|------------------------------------------+------------+---------------|
+| state changed during the apply            | --         | *no*          |
+| id appears anywhere in a commit since the slice opened | 27 | yes    |
+| id appears in a commit *subject*          | 3          | yes           |
+
+*The state-change signal fails on the case that prompted this*, which is what makes it worth recording. Nothing was queued for 0acc1df2 -- no keyword moved, no clock ran. It was built, and building leaves no trace the queue can see.
+
+*Commit-body mentions are useless at 27*, because this project's commit prose cites ids constantly as cross-references. A report that lists 27 things stops being read, which is [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]]'s finding arriving again.
+
+*A subject line is a claim that the commit is **about** that heading*, and it narrows to three. Today's own commit reads "Build the slice regenerator: 0acc1df2". Cross-references stay in the body where they belong and are excluded for free.
+
+*Where it runs: the end of a review pass.* Two reasons rather than one. A human is already there making per-item decisions, so asking costs nothing extra; and the =--review-settle-auto-promote= seam already exists for exactly this shape -- something that must run once, after the batch, against the settled state.
+
+*Open, and worth deciding before building:* whether the report should also fire when *no* slice is open, which would be a different and probably more annoying question -- "you did work and no slice claims it" is sometimes just true.
+
+*The same signal answers a second question, found 2026-08-25 when the user asked whether the session's work was attached to any task at all.* It was not: 52 state changes queued that day and *zero* clock events, the last having been 2026-08-24 16:42.
+
+*The mechanism is visible in those two numbers.* Every heading went =TODO= -> =DONE= in one step. That is not a listed transition -- the table has =DOING= -> =DONE=, =PLANNING= -> =DONE=, =REVIEW= -> =DONE= -- so skipping the clocked state means no rule was ever triggered to open a clock. The omission is structural rather than forgetful: nothing asks for a clock on a transition that was never made.
+
+*So the detector proposed here generalises for free.* An id in a commit subject is evidence that the commit was *about* that heading. Cross that against the day's clock intervals and two questions fall out of one scan:
+
+- *which worked headings no slice names* -- this heading's original subject; and
+- *which worked headings carry no clock interval that day* -- the attribution gap.
+
+*The second is the more valuable of the two, on the day's evidence.* A forgotten slice member is a bookkeeping error someone notices at review. Un-clocked work is invisible: it lands on the meta-work day node as an unassigned span, indistinguishable at review from planning, and the human attributing it has no way to tell that three of those hours were implementation on a specific heading.
+
+*And it is exactly the residue [[id:eaeeb4ee-ceee-4094-8598-bbcdc8214b66][eaeeb4ee]] shipped to eliminate*, which is the sharp part. That heading made explicit clock pairs authoritative so attribution would stop needing a human -- and it is the first member of the slice during which the pairs stopped being produced at all. It closed the consumption half; the discipline half regressed behind it.
+
+*Shipped 2026-09-01. Detects; adds nothing*, as this body required — the job was to make forgetting *loud*, not to make remembering unnecessary.
+
+*The signal is the one this body measured its way to.* =--commit-subject-ids= scans commit *subjects* only. An id in a commit body is a cross-reference and this project's prose cites ids constantly; a subject line is a claim that the commit *is about* that heading. A second filter does the rest: a token is kept only if it prefixes a *known heading id*, which removes abbreviated commit SHAs — the obvious false positive that a bare hex scan would produce, and which this project's subjects genuinely carry.
+
+*Runs at the end of a review pass* (=--review-settle-forgotten=), beside the slice and separation settle steps, and swallows its own errors: bookkeeping after the work must not turn a successful apply into a failed one.
+
+*The open question is answered: it reports only while a slice is open.* With none, "you did work and no slice claims it" is simply true, and a report firing on a true and unactionable fact is the prompt fatigue this project keeps designing against.
+
+*Two defects the tests and the live run caught, and one of them was mine twice over:*
+
+- *A dead flag.* An =open= boolean sat beside =earliest=, which is only ever set inside the open-slice branch — so it already encoded the answer and no mutation could change the result through it. Untested by construction, found by a mutation that failed nothing.
+- *A vacuous assertion.* The first test asserted a member is *not* reported, in a fixture where no commit named the member — so it passed whether or not the exclusion existed. Same shape as the =move-sibling= assertion caught on 2026-08-31, and caught the same way.
+- *And on the first live run: the slice reported itself.* Commit subjects cite the slice constantly ("add X to b36e6369"), and a slice never lists itself as a member, so without an explicit exclusion every open slice names itself forever. [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]] excludes =self= for exactly this reason; this did not.
+
+*Verified:* 491 tests before, 495 after, 0 unexpected. Five mutations, each failing only its own test — scanning bodies, dropping the known-id filter, treating closed slices as open, not excluding members, and not excluding the slice itself.
+
+*The live result is zero, and the reason is worth recording because it is not a null result.* Of 95 commit subjects since the slice opened, *34* carry an 8-hex token — but every one resolves to either a declared member or a heading now listed as *incidental* by [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]], and =--slice-members= reads incidental lines too. So the twins compose: one absorbs the work the slice did not plan, and this one is left reporting what neither accounts for.
+
+*Which narrows what this heading uniquely catches, and that should be said plainly rather than glossed.* Incidentals cover *closed* work. A heading named in a commit subject, still *open*, and not a member is the residue — genuinely "built and left out", which is the [[id:0acc1df2-6916-4180-867a-99bfa551806b][0acc1df2]] case this was filed for. For closed work, 0086614a now answers first.
+
+*Not built: the second question this body proposed* — which worked headings carry no clock interval that day. It shares the scan and this body rates it the more valuable of the two. It is a different report with a different audience and it should not be smuggled in beside this one; filed separately rather than left in prose.
+
+
+* DONE Recover a close time from git for the headings with no in-file evidence :code:research:
+CLOSED: [2026-09-01 Tue 08:52]
+:PROPERTIES:
+:CATEGORY: Clock
+:ID:       b7b46a26-2fd6-4784-bed3-d0112a917c0a
+:CREATED:  [2026-08-24 Mon 10:14]
+:ARCHIVE_TIME: 2026-09-02 Wed 08:56
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Clock
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-24 Mon 10:20] \\
+  captured keywordless, setting initial state
+- State "CANCELLED"  from "TODO"       [2026-08-24 Mon 15:59] \\
+  nothing consumes CLOSED: on those headings
+- State "TODO"       from "CANCELLED"  [2026-08-28 Fri 11:38] \\
+  cancellation ground void: a consumer exists
+CLOCK: [2026-09-01 Tue 08:44]--[2026-09-01 Tue 08:52] =>  0:08
+- State "DOING"      from "TODO"       [2026-09-01 Tue 08:44]
+- [2026-09-01 Tue 08:44]--[2026-09-01 Tue 08:52] backfill CLOSED from git
+- State "DONE"       from "DOING"      [2026-09-01 Tue 08:52]
+:END:
+
+*Filed 2026-08-24, the residue of* [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]]. That pass filled 58 of DONE.org's 97 finished headings from their own =:LOGBOOK:=. *39 have no in-file evidence at all* -- mostly early headings from before the =!= cookies in =#+TODO:= were adopted, e.g. "Implement the ten pending MCP-tool tasks in parallel worktrees", "Add a PLANNING TODO state, driven by the ExitPlanMode matcher", and the original =org_query= / =org_clock_report= / =org_capture= tool headings.
+
+*The one honest source left is git.* The commit that first shows the heading carrying a done keyword is real evidence, reachable with =git log -S= over the heading's =:ID:= line or its title. Nothing else in the tree knows.
+
+*Two things to settle before building, and they are the whole of this heading:*
+
+1. *It dates a different event, and the marker must not pretend otherwise.* A commit timestamp is when the change was *recorded*, not when the work stopped -- and in this project those can be far apart, since state changes reach the file only when a human runs the review pass. A =CLOSED:= written from a commit is therefore an upper bound, not a measurement. Whether that is worth having is the open question, not a detail: =7771fc63= retired an entire feature on the finding that a plausible guess is harder to reject than no guess at all, and this is the same shape of decision.
+2. *If it is worth having, the approximation has to be visible in the file*, or the next reader cannot tell these 39 from the 58 that are exact. A property recording the derivation -- or simply not using =CLOSED:= for them at all -- is the choice to make.
+
+*Note the third option, which does not require this to be built:* leave the 39 blank and record explicitly that no close time is recoverable, so the gap is a stated fact rather than an absence somebody tries to fill again in six months. That was offered alongside the git approach and deferred rather than rejected.
+
+*A hazard already measured, and it applies directly here.* f4b07fc0's pre-tool estimate said 59 rather than 58, because a body-wide scan matched a =- State "DONE" ...= line quoted *in prose* on [[id:3d93021d-1d8a-4657-bc5c-77734f91fb9d][3d93021d]], a heading that has no =:LOGBOOK:= and was diagnosing the bug that produced that line. Any git-side matching on heading text or on =State= lines in a diff faces the same trap, with no drawer boundary available to bound it.
+
+*Cancelled 2026-08-24 by the user's decision, and the reasoning is the point rather than the verdict.*
+
+The heading posed the question as "is a commit timestamp a good enough upper bound", and answering *that* would have taken the git archaeology to find out. It turns out not to be the deciding question.
+
+*Nothing mechanical consumes =CLOSED:= on these 39 headings, and nothing ever will.* [[id:8bcd56f4-22a8-4673-bad6-a99433027b81][8bcd56f4]]'s lint rule is scoped to headings closed on or after 2026-08-24, so these are exempt *permanently, by design* -- the scoping is what makes that rule usable at all. Archive routing is per-category =:ARCHIVE:=, not datetree, so nothing files by =CLOSED:=. No clocktable reads it. The only consumer left is a human reading DONE.org, and 35 of the 39 already carry an =:ARCHIVE_TIME:=.
+
+So the work would derive a date from a *different event*, write it into a field nothing reads, on headings in a file that CLAUDE.md says is reference and never orientation. That is the shape [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] settled against, arrived at from the other direction: not "the guess is unreliable" but "nothing is asking".
+
+*The measurement that was expected to decide it, recorded because it did not:* the 39 are not uniformly pre-cutover. By =:ARCHIVE_TIME:= they split 19 / 3 / 13 / 4 across 2026-07-29, 07-30, 08-17 and none. A pre-cutover close is tightly bounded by its commit, since =org-todo= applied live; a post-cutover one is bounded only by when a human next ran the review pass, which today reached back two weeks. So the bound would have been tight for some and arbitrarily loose for others, with nothing in the file to say which -- a worse outcome than a uniform absence.
+
+*Option (c) is also declined,* for the same reason rather than a different one: marking 39 headings as "no close time recoverable" costs 39 property writes to record an absence that is already visible as an absence. The absence is not ambiguous here -- there is no "nobody looked" reading to resolve, which is what made that distinction worth paying for on [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]].
+
+*What would reopen this:* a consumer appearing. If archive filing ever moves to a datetree ([[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]'s question), =CLOSED:= becomes load-bearing for placement and these 39 become genuinely undatable rather than merely undated.
+
+*Decided by the user 2026-08-31: option B.* Write =CLOSED:= from git for the 39 headings that have none, and mark each one as derived.
+
+*Both of this heading's original questions are now answered, and by different means.* Whether a commit-derived =CLOSED:= is worth having: yes — every consumer uses it as a placement key, a threshold or a presence test, so nothing mechanical is misled, and the enumeration above is the evidence. How the approximation is marked: with a property, which keeps all three consumers untouched because none of them looks at it.
+
+*The property is =:CLOSED_SOURCE: git=*, absent on the 58 measured ones. Checked before coining: no derivation marker exists in either file today, and the asymmetry is the right way round — a measured =CLOSED:= needs no annotation, so only the 39 carry a line.
+
+*Implementation, mostly already done once.* [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]]'s completion-time manifest computed git-derived times for 13 of the 39 on 2026-08-17, via =git log --reverse -S= over the heading line, and used them to order the archive sweep. Those 13 can be lifted from that table rather than recomputed. The remaining 26 are the project's earliest headings — the five original tool headings, the hook and trigger batch, =Set git identity= — and predate the =!= cookies, so git is genuinely the only source.
+
+*One trap already found and paid for, recorded in that manifest and worth not rediscovering:* the in-file scan must be scoped to a heading's *own* body. Scanning the subtree dates a parent from one of its children — =b5f7c5c7= came out two days early that way, and it would have mis-ordered the two largest entries with nothing downstream to notice.
+
+*What this unblocks:* [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]], which is blocked on this alone. Without it, =org-archive-subtree= would date all 39 from =time= — today — and pile them into a single wrong day node, silently.
+
+*Every consumer of =CLOSED:= enumerated 2026-08-31, because the decision hinges on whether any of them reads it as a measurement.* Three, and none does:
+
+| consumer | how it uses the value |
+|----------+-----------------------|
+| =org-archive-subtree= (org-archive.el:294) | =(or (org-entry-get nil "CLOSED" t) time)= — the datetree *placement key* |
+| =bin/lint-org='s =:PLAN:= rule (config.el:9491) | compared against =claude-code-ide-org-plan-drawer-since= — a *threshold* |
+| [[id:f4b07fc0][f4b07fc0]]'s backfill (config.el:9953) | tests *presence*; never reads the value |
+
+*So a value wrong by hours or a day breaks nothing mechanical.* It lands in the right day node or occasionally the adjacent one; it falls on the correct side of a threshold set weeks earlier; it satisfies a presence test. The machine case for refusing an approximation does not exist.
+
+*Which narrows the question to the human, and that is exactly [[id:7771fc63][7771fc63]]'s ground.* That heading retired a guess because "a plausible suggestion is harder to reject than no suggestion at all". The 39 approximations would be indistinguishable from the 58 measurements, permanently, for any reader.
+
+*And the marker costs almost nothing.* Option B — write =CLOSED:= plus a property recording the derivation — leaves all three machine consumers untouched, since none of them looks at the extra property, and gives the human the one thing 7771fc63 says matters. Thirty-nine extra lines, all of them in DONE.org.
+
+*This heading's own second question already assumed marking* — "how the approximation is marked so a reader can tell the 39 from the 58 that are exact" — so B is not a new option, it is the one the heading was already reaching for before it knew the consumers were indifferent.
+
+*What is left to decide is therefore one thing only:* whether the human-facing marker is wanted, given that nothing mechanical needs it. Everything else about this heading is now measured.
+
+*Shipped 2026-09-01 as option B. Every finished heading in both files now carries a =CLOSED:=; the derived ones say so.*
+
+*The count matched this body exactly:* 39 in DONE.org, plus 2 in TODO.org that it could not have known about — finished children of *live* parents, which the archive sweep correctly leaves in place. 41 filled, *0 skipped*: git had evidence for every one.
+
+*The upper-bound claim was measured rather than assumed, and it holds without exception.* Against the 60 headings whose =CLOSED:= is known exactly, the git-derived time was later in *60 of 60* cases — never earlier. Median 72 minutes late; worst case about 49 hours. So the derivation cannot invent a close *before* the work, which is the property that makes it safe for all three consumers: it lands in the right day node or occasionally the adjacent one, falls on the correct side of a threshold set weeks earlier, and satisfies a presence test.
+
+*The pickaxe runs over both files at once, and that is load-bearing rather than convenient.* Archiving moves a heading line from TODO.org to DONE.org, and a move *inside one pathspec* nets zero occurrence change — so the archive commit does not match and the first hit is the commit that genuinely introduced the line. Scoping to one file would have dated 35 of these headings from their archive instead of their close.
+
+*=:CLOSED_SOURCE: git= on all 41, and nothing else touched.* DONE.org's diff is 78 lines *added and none removed* — two per heading. The asymmetry this body specified is preserved: a measured =CLOSED:= carries no annotation, so only the derived ones are marked, and the 164 exact ones in DONE.org are untouched.
+
+*Idempotent, and the test for that is the one that matters:* a heading which already has =CLOSED:= is skipped whatever its source, so a second run cannot overwrite a *measured* close with an upper bound. That is the single outcome that would make the file worse, and a mutation removing the guard fails that test alone.
+
+*Verified:* 495 tests before, 498 after, 0 unexpected. Three mutations, each failing only its own test — dropping the derivation marker, dropping idempotency, and letting the dry run write.
+
+*One weakness of my own found by that third mutation, and worth recording because it is a shape rather than a slip.* The dry-run test originally checked only *disk*, and the save is separately guarded — so a dry run that edited the buffer without saving passed it. A dry run that leaves a dirty buffer is not harmless: a human can save it by accident, and =--file-busy-p= then reads the file as busy. The test now asserts =buffer-modified-p= is nil.
+
+*What this unblocks:* [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]], which was blocked on this alone. Without it =org-archive-subtree= would have dated all 41 from =time= — today — and piled them into a single wrong day node, silently.
+
+
 * DONE org_capture with a done initial_state writes no CLOSED line :code:
 CLOSED: [2026-08-31 Mon 18:10]
 :PROPERTIES:
