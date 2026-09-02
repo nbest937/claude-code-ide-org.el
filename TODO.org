@@ -2,6 +2,79 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
+* TODO Line-number anchors in org bodies rot, and nothing checks them :code:
+:PROPERTIES:
+:ID:       5fc7b934-28ec-4eeb-9f90-f1becec353f0
+:CREATED:  [2026-09-02 Wed 09:29]
+:CATEGORY: Dev
+:END:
+
+*Split out of [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] 2026-09-02,* which proposed
+asserting that "every /is live/ or /not built/ claim carries a greppable
+anchor that still matches" — and where measurement showed the assertion
+had nothing to check.
+
+*The documents carry no anchors at all.* Across CLAUDE.md, the rules
+file, both skills and the next-session prompt — 3101 lines — there are
+zero =file:line= references and zero "line NNN" mentions. That is
+deliberate: =bin/check-org-dev-skill='s fourth check exists because the
+org-dev skill describes the tool-registration block *structurally*
+rather than by line number, "specifically so a =config.el= edit that
+shifts line counts can't put the doc out of date."
+
+*The org bodies are the opposite, and nothing checks them.* Twelve
+anchors, eleven of them into files this repo controls:
+
+| anchor              | count |
+|---------------------+-------|
+| =config.el:2792=    |     3 |
+| =config.el:973=     |     2 |
+| =config.el:2454=    |     1 |
+| =config.el:2702=    |     1 |
+| =config.el:1747=    |     1 |
+| =config.el:1778=    |     1 |
+| =config.el:1869=    |     1 |
+| =config.el:659=     |     1 |
+| =org-clock.el:1841= |     1 |
+| =org-archive.el:284=|     1 |
+| =doom-emacs.el:462= |     1 |
+
+*They have certainly rotted already.* =config.el= has grown by hundreds
+of lines since most were written — this session alone added ~40 — so an
+anchor written weeks ago points at whatever now occupies that line
+number, which is worse than pointing at nothing: it resolves, and it
+resolves to something plausible.
+
+*The decision this heading has to take, and it is not obvious.* An
+anchor in a *closed* heading's body is a historical statement — "this
+was true at =config.el:2792= on 2026-08-21" — and rewriting it would
+falsify the record rather than repair it. An anchor in a *live* body is
+a pointer someone is expected to follow. Only the second is a defect, and
+telling them apart mechanically means asking whether the heading is
+terminal, which is cheap.
+
+*Candidates:*
+
+- *Check only live headings' anchors,* failing when the cited line no
+  longer contains what the surrounding prose claims. Requires deciding
+  what "claims" means, which is the hard part and may not be
+  mechanisable.
+- *Check only that the line still exists* — file has at least N lines.
+  Weak, but catches the worst case and costs nothing.
+- *Deprecate the form outright in org bodies too,* extending the rule the
+  skills already follow: cite a symbol or a structural anchor, never a
+  line number. Then the check is "no =file:line= in a live body", which
+  is trivially decidable and needs no judgement about content.
+- *Do nothing,* on the grounds that org bodies are journals and a stale
+  pointer in a journal is a known cost.
+
+The third is the one consistent with what the skills already do, and it
+is the only one whose check cannot itself go stale.
+
+*Not urgent.* No incident traces to a rotted body anchor yet; this is
+filed because =d2a0f54c='s measurement surfaced it and a finding that
+survives only in a commit message is one nobody acts on.
+
 * TODO claude-code-ide-org-review should return point and windows to where I entered from :code:
 :PROPERTIES:
 :ID:       6c64cc9c-33a9-4a20-af19-c188a690c755
@@ -1775,6 +1848,70 @@ small and demonstrably green. The anchor assertion is not work but a
 org bodies as a separate check. Recorded here rather than silently
 dropped, because a heading that quietly loses a third of its scope reads
 afterwards as though it was always smaller.
+
+*Shipped 2026-09-02 as =5d42fc5=. The harness is the deliverable; two of
+the three assertion families landed with it, and the third became a
+separate heading.*
+
+=bin/lib/check.fish= holds the failure accumulator, the report format
+and the exit-code discipline. Both =bin/check-conventions= and
+=bin/check-org-dev-skill= source it, so the second check family added
+*assertions* and nothing else — which is this heading's own argument
+made concrete rather than asserted. The plumbing is also where the bug
+was: the block-local =set= that made =check-org-dev-skill= exit 0 while
+printing FAIL lived there, and writing it twice would have meant
+debugging it twice.
+
+*What shipped:*
+
+- *Ids resolve.* Every 8-character token the docs cite resolves to an
+  org heading or a git object. 73 distinct, 0 unresolved.
+- *The keyword set agrees* across TODO.org's =#+TODO:= header, the rules
+  file, the org skill's transition table and the =org_set_todo= tool
+  description — compared as a *set*, since the orderings differ
+  legitimately and a string comparison would fail on a difference nobody
+  needs to fix.
+- *Anchors: split out as [[id:5fc7b934-28ec-4eeb-9f90-f1becec353f0][5fc7b934]].* The docs carry none
+  and deliberately so; the twelve that exist are in org bodies, which is
+  a different check over different files and a decision this heading
+  should not take on its way past.
+
+*Two things went wrong, and both were caught by testing rather than
+reading.*
+
+*The skill assertion false-positived on its first real run,* against
+"This paragraph used to argue the point via =PLANNING= ownership … Both
+are gone" — correct prose about a retired keyword, which a whole-file
+set comparison read as drift. Scoped to table rows instead: naming a
+dead keyword in history is legitimate, listing one as a live transition
+is not, and only the table makes that claim. *The assertion was wrong,
+not the prose*, which is the direction that is easy to get backwards
+when a check fires.
+
+*The wiring was worse, and is the more instructive one.*
+=.githooks/pre-commit= has an early =exit 0= when no org file is staged,
+and the block was appended *after* it — so it could never fire on a
+CLAUDE.md-only commit, which is the exact case its own comment said it
+existed for. It was found by staging a bogus citation and checking that
+the commit was *refused*; every reading of the code beforehand had
+looked right. A check wired where it cannot run is
+[[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]]'s class in its purest form — the check had no
+way to fail — and it was introduced by the very commit meant to address
+that class.
+
+*Verified:* =bin/check-conventions-test= runs 7 cases and asserts *exit
+codes*, never output, including a case where the fixture is correct so
+the rest cannot pass vacuously; both false-positive guards (a full UUID,
+a retired keyword in prose) are among them. End to end, a staged bogus
+citation refuses the commit and leaves HEAD unmoved. =bin/test= 503/503,
+=bin/lint-org= 0 errors.
+
+*Known gap, stated rather than discovered:* the check reads the
+*worktree* where the org lint beside it reads the *index*. Accepted for
+now — these files are hand-edited and rarely partially staged — and
+recorded in the script's own header. =pre-commit= passes =--docs-only=,
+so a machine with no Emacs running can still commit.
+
 
 
 
