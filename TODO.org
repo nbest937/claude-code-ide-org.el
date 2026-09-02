@@ -375,11 +375,20 @@ This is [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]]'s "accepts argumen
 Note the near neighbour that is now *not* a defect: =org_capture= also once dropped a *body*, and three headings arrived empty because of it. That is the same shape but a different argument, and it is not what this heading is about.
 
 
-* TODO Line-number anchors in org bodies rot, and nothing checks them :code:
+* DONE Line-number anchors in org bodies rot, and nothing checks them :code:
+CLOSED: [2026-09-02 Wed 16:59]
 :PROPERTIES:
 :ID:       5fc7b934-28ec-4eeb-9f90-f1becec353f0
 :CREATED:  [2026-09-02 Wed 09:29]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-02 Wed 16:53]--[2026-09-02 Wed 16:58] =>  0:05
+- State "DOING"      from "TODO"       [2026-09-02 Wed 16:53] \\
+  deprecate the line-number anchor form
+- [2026-09-02 Wed 16:53]--[2026-09-02 Wed 16:58] deprecate file:line anchors in org bodies
+- State "DONE"       from "DOING"      [2026-09-02 Wed 16:59] \\
+  form deprecated, linted, anchors converted
 :END:
 :PLAN:
 
@@ -467,8 +476,6 @@ survives only in a commit message is one nobody acts on.
 *The rule caught its own author, within minutes.* The debrief above originally illustrated the finding by *quoting two of the anchors* — so =bin/lint-org= reported an error against this very heading, and =.githooks/pre-commit= refused the commit that shipped the rule. The citation was removed and the commit went through.
 
 Worth recording rather than tidying away: the form is reflexive enough that writing *about* it reproduces it, which is a stronger argument for a mechanical check than anything in the plan above. It also means the gate is load-bearing rather than decorative — it fired on its first real commit, against the person who wrote it.
-
-
 
 
 * TODO claude-code-ide-org-review should return point and windows to where I entered from :code:
@@ -788,13 +795,13 @@ CLOCK: [2026-09-01 Tue 12:26]--[2026-09-01 Tue 12:27] =>  0:01
 *Open, and genuinely undecided:* whether the gap-versus-AFK threshold should ever be automated. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the standing precedent against an invented number, and a ten-minute cap is exactly that. Reporting both bounds and letting the human place the line is the alternative — and unlike the current review pass, it is six questions a day rather than nineteen.
 
 
-* TODO [5/16] Everything passed and the file was still wrong :code:
+* TODO [7/16] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
 :CATEGORY: Slices
 :KIND:     slice
-:BLOCKER:  ids(39039bb6-c70a-4ba9-8b37-edd8dd6921f6 f12f9da4-2870-45b7-8c50-ea54415c7bc6 542924c1-9152-4414-8da8-d530d3423611 72463b68-9f08-44b2-8213-87f71298138d 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 2aeb65d6-350e-4c75-811e-4a748044fe2c 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b)
+:BLOCKER:  ids(39039bb6-c70a-4ba9-8b37-edd8dd6921f6 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 2aeb65d6-350e-4c75-811e-4a748044fe2c 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b)
 :END:
 
 *The theme, briefly, in place of a plan — the full prompt comes later.* The previous slice was about the gap between what the code *knows* and what it *says*. This one is about a gap one layer down: the record itself going wrong while every check reports success.
@@ -809,9 +816,9 @@ To which add the standing friction: the two MCP tools that time out are worked a
 
 - [ ] [[id:39039bb6-c70a-4ba9-8b37-edd8dd6921f6][39039bb6]] TODO bin/lint-org does not detect a duplicate :ID: across TODO.org and DONE.org
 - [ ] [[id:f12f9da4-2870-45b7-8c50-ea54415c7bc6][f12f9da4]] TODO The running Emacs can be running a stale config.el and nothing says so
-- [ ] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] TODO Verification traps: a check with no way to fail, and a fixture that never takes the real path
+- [X] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] DONE Verification traps: a check with no way to fail, and a fixture that never takes the real path
 - [X] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] DONE Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
-- [-] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] REVIEW MCP tools that write an org file time out; one reports success and persists nothing
+- [X] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] DONE MCP tools that write an org file time out; one reports success and persists nothing
 - [ ] [[id:25e7b083-360b-4282-8fd0-bb768e2a0f13][25e7b083]] TODO org_capture's target refuses an 8-character :ID: prefix that every other tool accepts
 - [ ] [[id:3ad389be-2797-46c3-a51d-9f603053955a][3ad389be]] TODO An Emacs outage strands every org write, because the tools are Emacs
 - [ ] [[id:7fa68d5c-b6c0-43df-85c6-764b1d56511f][7fa68d5c]] TODO Fall back to the queue when org_capture cannot reach Emacs
@@ -1427,7 +1434,8 @@ Seeded 2026-08-31 from the proposal reviewed in conversation: DONE.org's datetre
 - [ ] [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones
 
 
-* REVIEW MCP tools that write an org file time out; one reports success and persists nothing :code:
+* DONE MCP tools that write an org file time out; one reports success and persists nothing :code:
+CLOSED: [2026-09-02 Wed 16:38]
 :PROPERTIES:
 :ID:       72463b68-9f08-44b2-8213-87f71298138d
 :CREATED:  [2026-08-31 Mon 11:23]
@@ -1445,6 +1453,8 @@ CLOCK: [2026-09-02 Wed 13:13]--[2026-09-02 Wed 13:14] =>  0:01
 - [2026-09-02 Wed 13:13]--[2026-09-02 Wed 13:14] assigned at review
 CLOCK: [2026-09-02 Wed 13:20]--[2026-09-02 Wed 13:23] =>  0:03
 - [2026-09-02 Wed 13:20]--[2026-09-02 Wed 13:23] assigned at review
+- State "DONE"       from "REVIEW"     [2026-09-02 Wed 16:38] \\
+  cause fixed, residue filed, coverage confirmed
 :END:
 :PLAN:
 
@@ -1570,14 +1580,14 @@ Move every =Review and planning= datetree node dated the previous day or older i
 Once the sibling heading refiles =* Review attention='s old LOGBOOK entries into dated clones, those clones are placed by this same pass.
 
 
-* DOING [49/54] The code knows more than it says, and asks more than it should :code:
+* DOING [53/54] The code knows more than it says, and asks more than it should :code:
 :PROPERTIES:
 :ID:       b36e6369-a210-4540-adc7-0c0c188e9791
 :CREATED:  [2026-08-28 Fri 17:37]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(72463b68-9f08-44b2-8213-87f71298138d 7c4d6ef6-c914-4d33-b267-cc9158a9f359 542924c1-9152-4414-8da8-d530d3423611 5fc7b934-28ec-4eeb-9f90-f1becec353f0 9d009401-93dd-40e5-a243-7a30a8a5bd55)
+:BLOCKER:  ids(9d009401-93dd-40e5-a243-7a30a8a5bd55)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 17:38] \\
@@ -1606,7 +1616,7 @@ and the open decisions live in the prompt below rather than here.
 - [X] [[id:c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b][c8a97d9d]] DONE Clearing a buffer's read-only flag for an MCP tool leaves it cleared
 - [X] [[id:2b2db914-c96e-416a-a80a-e31028308de0][2b2db914]] DONE org_capture swallows a title beginning with a TODO keyword
 - [X] [[id:c74f8663-b14e-4ab9-ad65-d99cb655b3fa][c74f8663]] DONE org_capture should accept an initial TODO state, so a heading is not keywordless until apply
-- [-] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] REVIEW MCP tools that write an org file time out; one reports success and persists nothing
+- [X] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] DONE MCP tools that write an org file time out; one reports success and persists nothing
 - [X] [[id:a0028a4e-39cb-4653-83cc-446b810234ac][a0028a4e]] DONE Add a body read: return a heading whole, drawers included, and let the caller extract
 - [X] [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] DONE Six defects in one day, all the same: the code knew more than it said
 - [X] [[id:29734f79-e698-43dd-abf8-14bc86b8b0ae][29734f79]] DONE The ceremony prompt goes quiet on evidence of its first step, and never reports its own completion
@@ -1620,13 +1630,13 @@ and the open decisions live in the prompt below rather than here.
 - [X] [[id:a2509a61-4e21-4d8e-8f58-c87935753472][a2509a61]] DONE Assign advances past the line the human is about to mark
 - [X] [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]] DONE A slice should list incidental work separately from its planned members
 - [X] [[id:5f1068f9-1452-45e4-9253-568edfce2053][5f1068f9]] DONE Sort TODO.org by :CREATED: descending, after each archive pass
-- [ ] [[id:7c4d6ef6-c914-4d33-b267-cc9158a9f359][7c4d6ef6]] TODO Settle what a slice proposal is, and write the procedure down
+- [X] [[id:7c4d6ef6-c914-4d33-b267-cc9158a9f359][7c4d6ef6]] DONE Settle what a slice proposal is, and write the procedure down
 - [X] [[id:8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8][8c662dfb]] DONE Sweep the ten longest live bodies into :PLAN: drawers
-- [ ] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] TODO Verification traps: a check with no way to fail, and a fixture that never takes the real path
+- [X] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] DONE Verification traps: a check with no way to fail, and a fixture that never takes the real path
 - [X] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] DONE Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
 
 - [X] [[id:d39f5f0d-bee3-4aa4-8494-0bddd07e9067][d39f5f0d]] DONE CLAUDE.md's "Session tracking" still describes the pre-cutover clock
-- [ ] [[id:5fc7b934-28ec-4eeb-9f90-f1becec353f0][5fc7b934]] TODO Line-number anchors in org bodies rot, and nothing checks them
+- [X] [[id:5fc7b934-28ec-4eeb-9f90-f1becec353f0][5fc7b934]] DONE Line-number anchors in org bodies rot, and nothing checks them
 - [X] [[id:5bfc1d38-e758-4ed7-bb32-f976031ff3da][5bfc1d38]] DONE A slice claims another slice's declared members as its own incidental work
 
 - [X] [[id:517a4290-4c66-43e7-b42e-dad7167b9c41][517a4290]] DONE CLAUDE.md's open-a-clock rule is missing the container exception
@@ -1657,7 +1667,8 @@ Incidental:
 - [X] [[id:35d25265-df52-45c0-8226-dfa24c3ed5bb][35d25265]] DONE Separate plan from debrief across the 73 warned headings, retroactively
 
 
-* TODO Verification traps: a check with no way to fail, and a fixture that never takes the real path :code:
+* DONE Verification traps: a check with no way to fail, and a fixture that never takes the real path :code:
+CLOSED: [2026-09-02 Wed 17:03]
 :PROPERTIES:
 :ID:       542924c1-9152-4414-8da8-d530d3423611
 :CREATED:  [2026-08-28 Fri 17:36]
@@ -1666,6 +1677,12 @@ Incidental:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 17:36] \\
   session learnings, filed
+CLOCK: [2026-09-02 Wed 17:00]--[2026-09-02 Wed 17:03] =>  0:03
+- State "DOING"      from "TODO"       [2026-09-02 Wed 17:00] \\
+  build the elisp form-reading assertion
+- [2026-09-02 Wed 17:00]--[2026-09-02 Wed 17:03] build bin/check-elisp as an assertion
+- State "DONE"       from "DOING"      [2026-09-02 Wed 17:03] \\
+  elisp assertion shipped, residue named
 :END:
 :PLAN:
 
@@ -1788,7 +1805,6 @@ the second data point, and only if Emacs is restarted before it.
 *It reports the line the reader gives up on*, which is the half that converts a confusing failure into a location.
 
 *Not built, and not claimed:* the two other assertions this body proposes — that a mutation run require the =Ran N tests= line *and* N equal to the baseline, and that each ceremony step's no-argument call resolve to the file the step beside it writes to. Both remain good ideas; neither is done, and saying so is cheaper than letting a reader infer from the heading's closure that all three shipped.
-
 
 
 * MAYBE Install orgparse for ad-hoc analysis, and stop reaching for regex over org text :code:
@@ -1969,6 +1985,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-02 Wed 17:42]--[2026-09-02 Wed 17:44] =>  0:02
 CLOCK: [2026-09-02 Wed 16:30]--[2026-09-02 Wed 16:33] =>  0:03
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
@@ -2071,7 +2088,8 @@ CLOCK: [2026-09-02 Wed 13:28]--[2026-09-02 Wed 13:30] =>  0:02
 *=MAYBE= deliberately.* The =/config= change may resolve the pain entirely, and this costs a script plus its tests. Worth building only if reading the transcript in Emacs turns out to be something the user actually does, rather than something that sounds useful.
 
 
-* TODO Settle what a slice proposal is, and write the procedure down :code:
+* DONE Settle what a slice proposal is, and write the procedure down :code:
+CLOSED: [2026-09-02 Wed 16:39]
 :PROPERTIES:
 :CATEGORY: Slices
 :ID:       7c4d6ef6-c914-4d33-b267-cc9158a9f359
@@ -2080,6 +2098,14 @@ CLOCK: [2026-09-02 Wed 13:28]--[2026-09-02 Wed 13:30] =>  0:02
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 15:49] \\
   extracted from the first proposal's body
+CLOCK: [2026-09-02 Wed 16:34]--[2026-09-02 Wed 16:35] =>  0:01
+- [2026-09-02 Wed 16:34]--[2026-09-02 Wed 16:35] assigned at review
+CLOCK: [2026-09-02 Wed 16:38]--[2026-09-02 Wed 16:39] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-02 Wed 16:38] \\
+  settle the three and write the procedure
+- [2026-09-02 Wed 16:38]--[2026-09-02 Wed 16:39] write the slice-proposal procedure
+- State "DONE"       from "DOING"      [2026-09-02 Wed 16:39] \\
+  procedure written into the rules file
 :END:
 :PLAN:
 
@@ -2109,7 +2135,6 @@ CLOCK: [2026-09-02 Wed 13:28]--[2026-09-02 Wed 13:30] =>  0:02
 *One stale claim fixed in passing, found because the procedure had to be written beside it.* The Slices section still read "Slices live under the level-1 =* Slices= category and are level-2 headings", which the flattening retired. Same defect class as the nine CLAUDE.md corrections earlier today: prose outliving the mechanism that justified it.
 
 *Not built:* the single command for accepting a proposal. Three calls is cheap and proposals are not yet routine — the body's own condition for building it.
-
 
 
 * TODO Intervals on two different headings can overlap, and subtraction reaches only one :code:
@@ -4377,6 +4402,14 @@ This body's last measurement said "the =.md= half is now a symlink away while th
 *What survives, and what needs re-deciding.* Skills ship, and a skill directory may carry =references/*.md= — so the conventions *can* travel, but only as on-demand reading. This body already drew the right distinction ("split the content by who must decide to load it"), and the docs remove one of its two options: the rule half, which was to apply automatically whether or not anyone invoked the skill, has no plugin mechanism. The remaining candidates are a manual install step, demotion to skill references, or a setup command that writes the rules file into the consuming repo — the last being undocumented but not obviously precluded.
 
 *Consequence for [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]]*, recorded because it is why this was looked at: that heading's prune assumes CLAUDE.md is the place these rules live. It is, and nothing ships it. Whether the state-transition rules and queue architecture should be *relocated* rather than pruned is a question this heading owns, not that one.
+
+*CLAUDE.md is this heading's source material, established 2026-09-02.* The prose a consuming project needs exists nowhere else, and this heading's own layer table already says so without drawing the consequence: transition rules, "create a heading", the journal rule — all in CLAUDE.md, all marked *travels: no*.
+
+Measured by section: roughly **660 of 1196 lines document machinery that would ship and does not** — the state transition rules (315), session tracking (221), the MCP tool surface (81) and the event-queue architecture (47). About 68 lines are purely testbed (repository layout: =plans/=, =.warp/=, the =core.hooksPath= setup). The 292-line Engineering practices section is the genuine mixed case: branch policy is local, while the story/epic/slice vocabulary and the =:PLAN:= lifecycle are conventions any consuming project would need.
+
+*And the reason those rules are in CLAUDE.md is the reason they are stranded.* The split to =.claude/rules/= kept them deliberately, on the test that "a rule that must hold when no =.org= file is open cannot live in a path-scoped rule". Correct for a testbed; it is exactly what leaves them in the one surface with no distribution mechanism.
+
+*So this heading and [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] are the same triage from opposite ends*, which is recorded on both. This one asks what must reach another project; that one asks what earns its place in an always-loaded file. A passage that must ship is load-bearing by definition, and a passage that is testbed-only is a prune candidate for a better reason than being dated — **audience rather than age**. The classification this heading has to make is the one that prune needs, which is why it runs first.
 
 
 
@@ -7130,6 +7163,17 @@ the conversation worth having.
 lines in today. A first pass would not undo this session's growth and
 should not be reported as fixing the problem.
 
+*Re-aimed 2026-09-02, before any pruning was done.* This heading's premise is that CLAUDE.md's cost is *dated history*. Verified against the Claude Code plugin docs that day, a larger claim on the same file holds: **roughly 660 of its 1196 lines document machinery that would ship to a consuming project and currently cannot.**
+
+=.claude/rules/= is not a plugin component and appears nowhere in the plugin documentation, and there is no documented mechanism for a plugin to contribute always-loaded instructions to a consuming project's CLAUDE.md. So the state-transition rules, the queue architecture and the tool surface are stranded in the one surface with no distribution path — and they are stranded *because* of the deliberate test that kept them here, that a rule which must hold with no =.org= file open cannot live in a path-scoped rule.
+
+*Which means this heading and [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] are the same triage from opposite ends.* This one asks what earns its place in an always-loaded file; that one asks what must reach another project. A passage that must ship is load-bearing by definition; a passage that is testbed-only is a prune candidate for a better reason than being dated — **audience rather than age**, which cuts first and cuts cleaner than the criterion this heading was going to use.
+
+*Consequence for sequencing, and it is the reason nothing was pruned:* [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] runs first, and its classification is most of the work this heading needs. Pruning before it risks deleting or burying exactly the rules a consuming project requires, after which they must be reconstructed from git.
+
+*Four decisions were settled by the user 2026-09-02 and stand, scoped to the archaeology rather than the relocation:* the criterion is [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]]'s — prose earns its place when it lets a future session pick the work up without re-deriving context. Removed archaeology is deleted outright, since this file is version-controlled with no bounded archive. Won't-dos belong on the heading that declined them, not here. The fourth — what becomes of decision records guarding a *live* convention — was left open, and the relocation question above changes it: a guard for a convention that ships should travel with the convention rather than being compressed into a file that does not.
+
+
 
 ** DONE The file-header template omits #+STARTUP:, which both files carry :code:
 CLOSED: [2026-09-02 Wed 09:45]
@@ -8811,4 +8855,13 @@ CLOCK: [2026-09-02 Wed 14:17]--[2026-09-02 Wed 14:21] =>  0:04
 - [2026-09-02 Wed 14:17]--[2026-09-02 Wed 14:21] assigned at review
 CLOCK: [2026-09-02 Wed 14:36]--[2026-09-02 Wed 14:39] =>  0:03
 - [2026-09-02 Wed 14:36]--[2026-09-02 Wed 14:39] assigned at review
+- [2026-09-02 Wed 16:40]--[2026-09-02 Wed 16:52] assigned at review
+CLOCK: [2026-09-02 Wed 17:16]--[2026-09-02 Wed 17:21] =>  0:05
+- [2026-09-02 Wed 17:16]--[2026-09-02 Wed 17:21] assigned at review
+CLOCK: [2026-09-02 Wed 17:25]--[2026-09-02 Wed 17:26] =>  0:01
+- [2026-09-02 Wed 17:25]--[2026-09-02 Wed 17:26] assigned at review
+CLOCK: [2026-09-02 Wed 17:27]--[2026-09-02 Wed 17:29] =>  0:02
+- [2026-09-02 Wed 17:27]--[2026-09-02 Wed 17:29] assigned at review
+CLOCK: [2026-09-02 Wed 17:35]--[2026-09-02 Wed 17:39] =>  0:04
+- [2026-09-02 Wed 17:35]--[2026-09-02 Wed 17:39] assigned at review
 :END:
