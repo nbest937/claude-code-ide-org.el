@@ -245,8 +245,10 @@ which is emergent and detected from its keyworded children, a slice
 cannot be derived — so it is written down as an explicit list, and being
 written down, it can go stale.
 
-Slices live under the level-1 `* Slices` category and are level-2
-headings. Each carries an `:ID:`, a `:CREATED:`, and a
+Slices carry `:CATEGORY: Slices`. They used to live under a level-1
+`* Slices` heading; the flattening retired that tier (`:ID:` 29439196),
+so a slice is an ordinary top-level heading whose category says what it
+is. Each carries an `:ID:`, a `:CREATED:`, and a
 `:COOKIE_DATA: checkbox recursive` property so its statistics cookie
 counts nested members as well as top-level ones.
 
@@ -470,6 +472,43 @@ Note the links cost nothing in `bin/lint-org` as of 2026-08-25 (`:ID:`
 43201e64) — before that each one added a permanent unresolvable-location
 warning, which would have made this convention degrade the report a
 little more with every slice.
+
+### Proposing a slice
+
+**A proposal is a slice with the declaration withheld.** It has the
+checklist, the theme and the ordering — everything a slice has — but no
+`:KIND: slice`. Withholding is not bookkeeping: *declaring is the act of
+committing*, so a heading without the declaration is precisely a
+proposal. It also keeps the checklist outside `bin/lint-org`'s slice
+rules until someone means it, which matters because the absent
+`:BLOCKER:` would otherwise be an error against a list nobody agreed to.
+
+**It carries no prompt link**, for the same reason — there is no
+`next-session.md` revision driving a proposal, and there will not be
+until it is picked up.
+
+**It lives exactly where a slice lives**, with `:CATEGORY: Slices`. The
+question of a separate location was open while slices sat under a level-1
+`* Slices` heading; the flattening dissolved it, and a distinct location
+would be a *second* copy of the fact the missing `:KIND:` already
+carries — the duplication this project rejects everywhere else.
+
+**Its keyword is `MAYBE`.** The original argument for this was that
+`MAYBE` would stop the sole-TODO promotion trigger nominating a proposal
+as a next action; **that argument has expired**, since the trigger was
+retired (`:ID:` 62b65ad0). The surviving one is better: `MAYBE` *means*
+not committed, which is exactly what a withheld declaration says, and it
+keeps the proposal out of the un-nominated-container report. Its
+`:BLOCKER:` being dormant on a `MAYBE` heading is correct here rather
+than a defect — the checklist is not agreed yet.
+
+**Accepting one is three mechanical steps**: add `:KIND: slice`, run
+`claude-code-ide-org-refresh-slice` so the blocker and cookie appear, and
+link the prompt revision that picks it up. Worth a single command if
+proposals become routine; three calls until then.
+
+**Rejecting one is `CANCELLED`, and the body stays.** The argument for a
+slice nobody ran is usually the part worth keeping.
 
 ## The `:PLAN:` drawer
 

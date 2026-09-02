@@ -2,7 +2,7 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* DOING Make the heading body a scannable summary, with plan and debrief in drawers [0/5]
+* DOING Make the heading body a scannable summary, with plan and debrief in drawers [2/5]
 :PROPERTIES:
 :ID:       4c834fdb-5314-4168-ab1d-09fe89ded517
 :CREATED:  [2026-09-02 Wed 16:00]
@@ -13,11 +13,25 @@ A heading's body grows without bound, so orientation costs more the longer a tas
 
 Precipitated by division 2026-09-02, out of [[id:b75d553a-3c77-4b98-9f58-022bfa295816][b75d553a]], once the fourth member was filed. Its origin findings stay outside the group: [[id:f099379b-7f78-4c19-85be-abeea0bf3e71][f099379b]] measured that the seams are not mechanically recoverable, and [[id:79a3d89e-77be-4678-919e-637a65f87204][79a3d89e]] shipped the nudge that stops new ones being created.
 
-** TODO Write the plan into :PLAN: from the start, so no seam is ever created :code:
+
+** DONE Write the plan into :PLAN: from the start, so no seam is ever created :code:
+CLOSED: [2026-09-02 Wed 16:02]
 :PROPERTIES:
 :ID:       b75d553a-3c77-4b98-9f58-022bfa295816
 :CREATED:  [2026-09-02 Wed 15:19]
 :CATEGORY: Meta
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-02 Wed 15:18]--[2026-09-02 Wed 15:20] =>  0:02
+- [2026-09-02 Wed 15:18]--[2026-09-02 Wed 15:20] assigned at review
+CLOCK: [2026-09-02 Wed 15:44]--[2026-09-02 Wed 15:49] =>  0:05
+- State "DOING"      from "TODO"       [2026-09-02 Wed 15:44] \\
+  document the drawer purpose shift
+- [2026-09-02 Wed 15:44]--[2026-09-02 Wed 15:49] adjust rules and tool descriptions
+CLOCK: [2026-09-02 Wed 15:59]--[2026-09-02 Wed 16:00] =>  0:01
+- [2026-09-02 Wed 15:59]--[2026-09-02 Wed 16:00] adjust rules and tool descriptions
+- State "DONE"       from "DOING"      [2026-09-02 Wed 16:02] \\
+  convention adopted and documented
 :END:
 :PLAN:
 
@@ -55,11 +69,14 @@ Prospective and retrospective prose accumulate in one body and have to be told a
 *Residue, filed rather than described:* the three-call workflow is clumsy and nothing can revise a drawer once written. Both are [[id:501a8422-9e93-4d2d-98bb-db0ab2c16e37][501a8422]], which would collapse this to one call.
 
 
-
-** TODO Give org_amend a drawer argument, so a plan can be revised and written in one call :code:
+** NEXT Give org_amend a drawer argument, so a plan can be revised and written in one call :code:
 :PROPERTIES:
 :ID:       501a8422-9e93-4d2d-98bb-db0ab2c16e37
 :CREATED:  [2026-09-02 Wed 15:59]
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-02 Wed 16:27] \\
+  unblocks the one-call plan-first workflow
 :END:
 :PLAN:
 
@@ -123,11 +140,20 @@ A heading's body still grows without bound once the debrief lands in it, so orie
 Once plan and debrief move into drawers, =org_outline='s bodiless index withholds the cheapest useful content while =org_body='s whole-heading read returns far more than orientation needs. Proposed: =org_outline= carries the (now short) body, and the drawer read becomes an explicit per-item call — a refactored, possibly renamed =org_body=. Depends on [[id:b75d553a-3c77-4b98-9f58-022bfa295816][b75d553a]] and [[id:d5eb32a3-fcee-4a25-b39a-fcde597f6cee][d5eb32a3]]: until bodies are actually short, putting them in the outline makes it more expensive rather than less.
 
 
-** TODO Separate plan from debrief across the 73 warned headings, retroactively :code:
+** DONE Separate plan from debrief across the 73 warned headings, retroactively :code:
+CLOSED: [2026-09-02 Wed 16:27]
 :PROPERTIES:
 :ID:       35d25265-df52-45c0-8226-dfa24c3ed5bb
 :CREATED:  [2026-09-02 Wed 15:42]
 :CATEGORY: Meta
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-02 Wed 16:02] \\
+  the retroactive pass is next
+CLOCK: [2026-09-02 Wed 16:08]--[2026-09-02 Wed 16:28] =>  0:20
+- [2026-09-02 Wed 16:08]--[2026-09-02 Wed 16:28] assigned at review
+- State "DONE"       from "NEXT"       [2026-09-02 Wed 16:27] \\
+  all 73 cut, zero warnings remain
 :END:
 :PLAN:
 
@@ -164,12 +190,21 @@ Once plan and debrief move into drawers, =org_outline='s bodiless index withhold
 *The classification hypothesis is now fully falsified, and the record should say so.* [[id:f099379b-7f78-4c19-85be-abeea0bf3e71][f099379b]] proposed that a debrief marker on line 1 meant a debrief-only body, offering an escape from per-heading reading. Across the whole corpus it held for 4 of 73. Reading each body was the only honest route, exactly as that heading concluded.
 
 
-
-* TODO "Backlog = wrap unedited" would bury a debrief in 88 of 93 headings :code:
+* REVIEW "Backlog = wrap unedited" would bury a debrief in 88 of 93 headings :code:
 :PROPERTIES:
 :ID:       f099379b-7f78-4c19-85be-abeea0bf3e71
 :CREATED:  [2026-09-02 Wed 15:05]
 :CATEGORY: Meta
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-02 Wed 15:04]--[2026-09-02 Wed 15:07] =>  0:03
+- [2026-09-02 Wed 15:04]--[2026-09-02 Wed 15:07] assigned at review
+CLOCK: [2026-09-02 Wed 15:10]--[2026-09-02 Wed 15:13] =>  0:03
+- State "DOING"      from "TODO"       [2026-09-02 Wed 15:10] \\
+  classify the debrief-first headings
+- [2026-09-02 Wed 15:10]--[2026-09-02 Wed 15:13] classify the 28 debrief-first bodies
+- State "REVIEW"     from "DOING"      [2026-09-02 Wed 15:13] \\
+  classified; three routes await your decision
 :END:
 
 *Found 2026-09-02 by starting the sweep the user asked for and measuring before writing.* The sweep was not run; nothing has been modified.
@@ -220,11 +255,20 @@ Cutting there is *worse than either extreme*: it buries the debrief's opening an
 *The one durable number to take away:* the actionable backlog is **64**, not 93 — the lint's own count for DONE.org. The other 29 sit below the threshold and will never be reported, so any route only has to answer for 64.
 
 
-* TODO The :PLAN: wrap never happens at close, so 93 finished headings carry an unwrapped body :code:
+* DONE The :PLAN: wrap never happens at close, so 93 finished headings carry an unwrapped body :code:
+CLOSED: [2026-09-02 Wed 15:01]
 :PROPERTIES:
 :ID:       79a3d89e-77be-4678-919e-637a65f87204
 :CREATED:  [2026-09-02 Wed 14:38]
 :CATEGORY: Meta
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-02 Wed 14:55]--[2026-09-02 Wed 15:00] =>  0:05
+- State "DOING"      from "TODO"       [2026-09-02 Wed 14:55] \\
+  build the queued-DONE wrap nudge
+- [2026-09-02 Wed 14:55]--[2026-09-02 Wed 15:00] lint on queued DONE for the PLAN wrap
+- State "DONE"       from "DOING"      [2026-09-02 Wed 15:01] \\
+  nudge shipped, tested and mutation-tested
 :END:
 :PLAN:
 
@@ -722,7 +766,7 @@ CLOCK: [2026-09-01 Tue 12:26]--[2026-09-01 Tue 12:27] =>  0:01
 *Open, and genuinely undecided:* whether the gap-versus-AFK threshold should ever be automated. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the standing precedent against an invented number, and a ten-minute cap is exactly that. Reporting both bounds and letting the human place the line is the alternative — and unlike the current review pass, it is six questions a day rather than nineteen.
 
 
-* TODO [2/13] Everything passed and the file was still wrong :code:
+* TODO [5/16] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
@@ -757,6 +801,10 @@ To which add the standing friction: the two MCP tools that time out are worked a
 Incidental:
 
 - [X] [[id:42ba0a80-61c5-49bd-b6a2-9da76a53ff64][42ba0a80]] DONE An unstarted slice accrues every heading closed since it was written down
+- [X] [[id:79a3d89e-77be-4678-919e-637a65f87204][79a3d89e]] DONE The :PLAN: wrap never happens at close, so 93 finished headings carry an unwrapped body
+- [X] [[id:b75d553a-3c77-4b98-9f58-022bfa295816][b75d553a]] DONE Write the plan into :PLAN: from the start, so no seam is ever created
+- [X] [[id:35d25265-df52-45c0-8226-dfa24c3ed5bb][35d25265]] DONE Separate plan from debrief across the 73 warned headings, retroactively
+
 
 * TODO Three new ways to owe a footnote and not see it: marker, list, quotation :code:
 :PROPERTIES:
@@ -1376,6 +1424,7 @@ CLOCK: [2026-09-02 Wed 13:13]--[2026-09-02 Wed 13:14] =>  0:01
 CLOCK: [2026-09-02 Wed 13:20]--[2026-09-02 Wed 13:23] =>  0:03
 - [2026-09-02 Wed 13:20]--[2026-09-02 Wed 13:23] assigned at review
 :END:
+:PLAN:
 
 Two MCP tools that write an org file time out and persist nothing, and =org_capture= additionally accepts a body it silently discards. All observed 2026-08-31, while filing three headings.
 
@@ -1419,6 +1468,7 @@ That kills the registration-recency hypothesis outright — a tool registered on
 
 Note the probe is weaker than it looks in one direction and stronger in another. Weaker: =org_body= is a *reader*, so it does not discriminate "writers hang" from "these two hang" — that was never its job. Stronger: it was chosen precisely because it was the one tool whose registration was known to postdate a client's fetch, and that confound is now closed rather than assumed away.
 
+:END:
 *Diagnosed and fixed 2026-09-02, commit =f73cf4b=. The cause was in our own tool declarations; the reason it presented as a hang is upstream.*
 
 *What was wrong.* Three tools declared an argument their own description told the caller to omit:
@@ -1498,7 +1548,7 @@ Move every =Review and planning= datetree node dated the previous day or older i
 Once the sibling heading refiles =* Review attention='s old LOGBOOK entries into dated clones, those clones are placed by this same pass.
 
 
-* DOING [46/51] The code knows more than it says, and asks more than it should :code:
+* DOING [49/54] The code knows more than it says, and asks more than it should :code:
 :PROPERTIES:
 :ID:       b36e6369-a210-4540-adc7-0c0c188e9791
 :CREATED:  [2026-08-28 Fri 17:37]
@@ -1580,6 +1630,10 @@ Incidental:
 - [X] [[id:5d59dc77-38bf-470a-8d51-098c741fecbd][5d59dc77]] DONE org_capture with a done initial_state writes no CLOSED line
 - [X] [[id:13ea6770-88ba-484d-87bd-2d20c44dc610][13ea6770]] DONE The ceremony steps do not bind inhibit-read-only, so the sweep dies on the guard
 - [X] [[id:42ba0a80-61c5-49bd-b6a2-9da76a53ff64][42ba0a80]] DONE An unstarted slice accrues every heading closed since it was written down
+- [X] [[id:79a3d89e-77be-4678-919e-637a65f87204][79a3d89e]] DONE The :PLAN: wrap never happens at close, so 93 finished headings carry an unwrapped body
+- [X] [[id:b75d553a-3c77-4b98-9f58-022bfa295816][b75d553a]] DONE Write the plan into :PLAN: from the start, so no seam is ever created
+- [X] [[id:35d25265-df52-45c0-8226-dfa24c3ed5bb][35d25265]] DONE Separate plan from debrief across the 73 warned headings, retroactively
+
 
 * TODO Verification traps: a check with no way to fail, and a fixture that never takes the real path :code:
 :PROPERTIES:
@@ -1696,7 +1750,6 @@ the second data point, and only if Emacs is restarted before it.
 *What a check could assert here*, in the same spirit as the =Ran N tests= assertion above and cheaper than the alternatives: for each ceremony step, that its *no-argument* call resolves to the file the step beside it writes to. That is exactly the invariant case 10 violated, it is decidable without judgement, and it needs no new harness — the regression test written for it is four lines of =file-equal-p=.
 
 *The honest limit, restated because it now has two members.* Case 6 concluded that where the harness cannot reach the state, the verification of record is a live run under a stated precondition. Cases 10 and 11 are the same conclusion from the other side: the harness *could* have been built, nobody thought to, and the thing that found all three was a human running the ceremony and reading the output. Two of the three were surfaced by the user, not by the session that wrote them.
-
 
 
 * MAYBE Install orgparse for ad-hoc analysis, and stop reaching for regex over org text :code:
@@ -1877,6 +1930,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-02 Wed 16:30]--[2026-09-02 Wed 16:33] =>  0:03
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -1988,6 +2042,7 @@ CLOCK: [2026-09-02 Wed 13:28]--[2026-09-02 Wed 13:30] =>  0:02
 - State "TODO"       from              [2026-08-25 Tue 15:49] \\
   extracted from the first proposal's body
 :END:
+:PLAN:
 
 *Extracted 2026-08-25 from the body of the first proposed slice*, where it had been written as though it were that proposal's own reasoning. It is not: it describes what *any* proposal is, which is the same error [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] was trimmed for hours earlier -- a slice's body carrying the convention rather than the instance. The user caught both.
 
@@ -2000,6 +2055,22 @@ CLOCK: [2026-09-02 Wed 13:28]--[2026-09-02 Wed 13:30] =>  0:02
 *What accepting one means, which follows but has not been exercised:* add =:KIND: slice=, run =claude-code-ide-org-refresh-slice= so the blocker and cookie appear, and link the prompt revision that picks it up. Three steps, all mechanical, and worth a single command if proposals become routine.
 
 *Genuinely open.* Where proposals live -- under =* Slices= beside real ones, as they are now, or somewhere that cannot be mistaken for a live slice at a glance. What keyword a proposal carries: =TODO= today, though =MAYBE= would read more honestly and would also stop [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]]'s promotion trigger from ever nominating one as a next action. And what becomes of a rejected proposal -- =CANCELLED= keeps the argument, which is usually the part worth keeping.
+
+:END:
+*Settled and written down 2026-09-02*, in =.claude/rules/org-conventions.md= beside the slice convention — which is where this heading's own Done-when put the bar, rather than agreement here.
+
+*Two of the three open questions had been dissolved by events, not decided*, and checking rather than answering them is what made this small.
+
+*Where proposals live* was open because slices sat under a level-1 =* Slices= heading and a proposal beside them could be mistaken for one. That heading no longer exists — measured: zero =^\* Slices= in TODO.org, five headings carrying =:CATEGORY: Slices=. The flattening ([[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]) dissolved the question. A proposal lives exactly where a slice lives, and the *absent* =:KIND:= is the mark; a separate location would be a second copy of the fact the missing declaration already carries.
+
+*The keyword argument had expired.* This body argued for =MAYBE= partly because it would stop [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]]'s promotion trigger nominating a proposal as a next action. That trigger is gone — measured, zero occurrences of =--trigger-auto-promote-sole-todo= in =config.el=, retired by [[id:62b65ad0-304b-4cf1-bd95-2f1ecb671d6b][62b65ad0]]. The conclusion survives on a better argument: =MAYBE= *means* not committed, which is what a withheld declaration says, and it keeps the proposal out of the un-nominated-container report. Its =:BLOCKER:= being dormant is correct here rather than a defect, since the checklist is not agreed — which is [[id:72e82469-3d4f-4ee1-b0c4-35b1c253901c][72e82469]]'s convention read in the direction that makes it useful.
+
+*The third was already answered in this body:* a rejected proposal is =CANCELLED= and keeps its argument.
+
+*One stale claim fixed in passing, found because the procedure had to be written beside it.* The Slices section still read "Slices live under the level-1 =* Slices= category and are level-2 headings", which the flattening retired. Same defect class as the nine CLAUDE.md corrections earlier today: prose outliving the mechanism that justified it.
+
+*Not built:* the single command for accepting a proposal. Three calls is cheap and proposals are not yet routine — the body's own condition for building it.
+
 
 
 * TODO Intervals on two different headings can overlap, and subtraction reaches only one :code:
@@ -8668,4 +8739,23 @@ CLOCK: [2026-09-01 Tue 14:23]--[2026-09-01 Tue 14:25] =>  0:02
 - [2026-09-01 Tue 14:23]--[2026-09-01 Tue 14:25] assigned at review
 CLOCK: [2026-09-01 Tue 14:29]--[2026-09-01 Tue 14:31] =>  0:02
 - [2026-09-01 Tue 14:29]--[2026-09-01 Tue 14:31] assigned at review
+:END:
+
+
+**** 2026-09-02 Wednesday
+:PROPERTIES:
+:ID:       a020fede-654b-4abf-85ea-e145cd162d5f
+:CREATED:  [2026-09-02 Wed 13:30]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-02 Wed 13:30]--[2026-09-02 Wed 13:35] =>  0:05
+- [2026-09-02 Wed 13:30]--[2026-09-02 Wed 13:35] assigned at review
+CLOCK: [2026-09-02 Wed 13:52]--[2026-09-02 Wed 13:59] =>  0:07
+- [2026-09-02 Wed 13:52]--[2026-09-02 Wed 13:59] assigned at review
+CLOCK: [2026-09-02 Wed 14:09]--[2026-09-02 Wed 14:14] =>  0:05
+- [2026-09-02 Wed 14:09]--[2026-09-02 Wed 14:14] assigned at review
+CLOCK: [2026-09-02 Wed 14:17]--[2026-09-02 Wed 14:21] =>  0:04
+- [2026-09-02 Wed 14:17]--[2026-09-02 Wed 14:21] assigned at review
+CLOCK: [2026-09-02 Wed 14:36]--[2026-09-02 Wed 14:39] =>  0:03
+- [2026-09-02 Wed 14:36]--[2026-09-02 Wed 14:39] assigned at review
 :END:
