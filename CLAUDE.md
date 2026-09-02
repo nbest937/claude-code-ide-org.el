@@ -955,6 +955,56 @@ to end up in an unstable relative order, since whichever drawer already
 existed was appended to in place while a fresh one landed right after the
 property drawer. With only `:LOGBOOK:` left there is nothing to order.
 
+### The three numbers that shape a recorded interval
+
+All three are `defcustom`s, all three run at their defaults, and none was
+written down here until 2026-09-02. They apply in order:
+
+| variable | default | decides |
+|---|---|---|
+| `claude-code-ide-org-guidepost-gap-threshold` | 1200 s | how guideposts group into spans for review |
+| `claude-code-ide-org-span-idle-floor` | 120 s | how much idle *inside* a span is absorbed rather than split on |
+| `claude-code-ide-org-span-minimum-interval` | 0 s | below which a run is dropped rather than written |
+
+**The threshold no longer defends any duration, and reading it as though
+it still does is the mistake this section exists to prevent.** A span
+used to be written as one CLOCK line end to end, so where the threshold
+fell decided how much idle became work — which is what made its
+derivation load-bearing. Since 2026-08-18 apply writes one line per run
+of `resume` → `pause` *inside* the span, so the threshold now governs
+**grouping and display only**: how many items a human is shown and how
+wide each reads. Moving it moves lines around the review buffer without
+moving a single recorded minute.
+
+Its value is still well founded, for what it now does. 1200 s sits inside
+a band containing *no observations at all* — measured over 422 events,
+the longest short gap was 1061 s and the shortest long gap 2070 s — and
+span count is flat across 1200–1800 s, so every value in the band yields
+an identical reconstruction. It was 900 s until 2026-08-13, just below
+the band, splitting five spans nothing justified splitting.
+
+**The idle floor is the consequential one — it is what decides how much
+idle the record claims as work.** Two runs separated by less than 120 s
+merge into one line. Strictly less, so a gap of exactly 120 s splits.
+The trade is deliberate and measured: splitting at every idle gap turns
+one span into 54 CLOCK lines against 39 at two minutes, while raising
+the floor to 300 s would write 30.89 h where 120 s writes 23.05 h —
+re-absorbing nearly eight hours of the idle the floor exists to keep
+out. Legibility is all a larger floor buys; accuracy is the point.
+
+**The minimum interval is a named no-op, deliberately.** Zero means
+exactly today's behaviour: what keeps sub-minute intervals out of the
+drawer is two *rendering* conditions, which are consequences of the clock
+format rather than a policy anyone chose. Naming it makes the policy
+settable without changing it — a knob that cannot be turned is not a
+knob — and the value it should take is a reporting decision, not an
+implementation one.
+
+**Do not infer any of these from a drawer.** They are the reason two
+CLOCK lines on the same heading can describe adjacent work and still be
+separate lines, and the reason a turn you remember taking thirty seconds
+may appear nowhere at all.
+
 ### Stale interval recovery
 
 A crash or system shutdown can kill Emacs (or the whole machine) before

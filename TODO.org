@@ -6583,6 +6583,43 @@ nothing.
 Blocked in practice on 1 only in the sense that 2 needs its name first;
 1 and 3 can be written today.
 
+*Shipped 2026-09-02, all three items, as a new "The three numbers that
+shape a recorded interval" subsection under "Session tracking".*
+
+*Item 2 was not blocked after all.*
+[[id:e0c55d26-706c-42b6-9405-54e9d5ed4750][e0c55d26]] is =DONE= — the
+write floor has been named =claude-code-ide-org-span-minimum-interval=
+since then — so the "1 and 3 can be written today, 2 needs its name
+first" split had already dissolved. Checked rather than assumed, which
+is the only reason all three landed in one pass instead of two.
+
+*What went in.* A table of the three defaults in the order they apply,
+then a paragraph each:
+
+- *The threshold governs grouping and display only,* stated as the
+  mistake the section exists to prevent. Its 1200s derivation is kept —
+  the empty band between 1061s and 2070s, the flat span count across
+  1200–1800s — but reframed as well-founded *for what it now does*
+  rather than as a defence of any duration.
+- *The idle floor is the consequential one,* with the measurement that
+  makes the trade legible: 54 CLOCK lines against 39 at two minutes, and
+  300s would write 30.89h where 120s writes 23.05h, re-absorbing nearly
+  eight hours of the idle the floor exists to exclude.
+- *The minimum interval is a named no-op,* zero meaning exactly today's
+  behaviour, with the reason naming it mattered — two rendering
+  conditions are a consequence of the clock format, not a policy anyone
+  chose, and a knob that cannot be turned is not a knob.
+
+*One line added that no source docstring says,* because it is the thing
+a reader of the drawer actually needs: do not infer these numbers from a
+drawer. They are why two CLOCK lines on one heading can describe
+adjacent work and still be separate, and why a turn you remember taking
+thirty seconds may appear nowhere at all.
+
+*Verified:* =grep= for the three variable names in CLAUDE.md returns 3,
+where it returned 0 on 2026-08-19 and still returned 0 this morning.
+
+
 
 ** DONE CLAUDE.md says nothing about how to read the tracker at session start :code:
 CLOSED: [2026-08-21 Fri 11:54]
