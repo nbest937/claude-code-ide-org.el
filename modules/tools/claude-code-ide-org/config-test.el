@@ -11979,3 +11979,45 @@ detector matching nothing at all."
                   ":END:\n"))
     (let ((dupes (claude-code-ide-org--duplicate-ids-in-file file)))
       (should (equal (list id) dupes)))))
+
+(ert-deftest claude-code-ide-org-test-no-tool-declares-an-optional-argument-required ()
+  "An argument the elisp function takes as `&optional' must carry
+`:optional t' in the tool's `:args' declaration.
+
+*This is TODO.org :ID: 72463b68, and its failure mode is a hang rather
+than an error, which is why nothing caught it for two days.*
+`claude-code-ide-mcp-http-server--validate-args' signals
+`json-rpc-error' when a required argument is absent -- a symbol the
+package signals in three places and never passes to `define-error', so
+it carries no `error-conditions' and no `(error ...)' handler matches
+it.  It escapes `--handle-post' entirely, so `--send-json-response' is
+never reached, the HTTP connection is neither answered nor closed, and
+the caller waits until it times out.  Emacs stays responsive throughout
+and nothing is persisted, which is exactly what the heading recorded
+and could not explain.
+
+Three tools shipped with a semantically optional argument marked
+required -- `org_capture's target, `org_set_property's append and
+`org_divide's parent_state -- and each one's own description told the
+caller to omit it.  So every call that followed the description hung.
+
+The registry is asserted non-empty first, deliberately.  `config.el'
+registers its tools inside `with-eval-after-load', and in batch
+`claude-code-ide' is not otherwise loaded, so without that guard this
+test would iterate an empty list and pass while checking nothing."
+  (require 'claude-code-ide)
+  (let ((specs claude-code-ide-mcp-server-tools)
+        (violations '()))
+    (should (> (length specs) 10))
+    (dolist (spec specs)
+      (let* ((norm (claude-code-ide--normalize-tool-spec spec))
+             (fn (plist-get norm :function))
+             (name (plist-get norm :name))
+             (mandatory (car (func-arity fn)))
+             (index 0))
+        (dolist (arg (plist-get norm :args))
+          (unless (plist-get arg :optional)
+            (when (>= index mandatory)
+              (push (format "%s/%s" name (plist-get arg :name)) violations)))
+          (setq index (1+ index)))))
+    (should (equal nil (nreverse violations)))))

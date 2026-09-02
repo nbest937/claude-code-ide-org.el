@@ -12046,6 +12046,7 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
             :description "The value to write. For :BLOCKER:, a space- or comma-separated list of :ID:s or 8-character prefixes.")
            (:name "append"
             :type boolean
+            :optional t
             :description "For :BLOCKER: only: union with the existing set instead of replacing it.")))
 
   (claude-code-ide-make-tool
@@ -12075,6 +12076,7 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
             :description "Title for the new parent heading.")
            (:name "parent_state"
             :type string
+            :optional t
             :description "Optional TODO keyword for the new parent. Defaults to the child's own, so the group inherits the claim the task was already making.")))
 
   (claude-code-ide-make-tool
@@ -12105,6 +12107,7 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
             :description "The heading text for the new heading.")
            (:name "target"
             :type string
+            :optional t
             :description "Optional. An :ID: to file the new heading under that one. Omit it to prepend at the top of the capture file, which is where a task belongs since the level-1 category tier was retired. A category TITLE is no longer accepted -- categories are :CATEGORY: property values, not headings.")
            (:name "tags"
             :type string
