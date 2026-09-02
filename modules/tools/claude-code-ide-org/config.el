@@ -4112,6 +4112,49 @@ discards the starts this needs."
                  (when (and ts (or (null best) (time-less-p ts best)))
                    (setq best ts)))))))))))
 
+(defvar claude-code-ide-org--incidentals-claimed-elsewhere nil
+  "Ids `claude-code-ide-org--slice-incidental-ids\=' dropped as another slice\='s.
+
+Bound to a list by `claude-code-ide-org-refresh-slice\=' so the exclusion
+can be *reported* rather than applied silently.  A slice\='s incidental
+list going quiet is the same class of failure as it going noisy -- both
+are the derived list disagreeing with what happened, and only one of them
+is visible (TODO.org :ID: 5bfc1d38).")
+
+(defun claude-code-ide-org--other-slices-declared-ids (self)
+  "Planned member ids declared by every slice except SELF.
+
+Another slice\='s declared checklist is *planned* work -- planned
+elsewhere, but planned -- so listing it as this slice\='s incidental work
+asserts something false about who planned it.  That is the
+declared-versus-inferred error mirrored: inferring membership for work
+another slice explicitly declares.
+
+Measured 2026-09-01, before the window fix: of `f9fe9fac\='s 26
+incidentals, 21 were `b36e6369\='s declared members.
+
+*CANCELLED slices are skipped, and that is the one judgement here.*  A
+DONE slice\='s declaration stays true as a historical claim -- that slice
+did plan this -- so its members keep their owner.  A cancelled slice\='s
+plan was abandoned, so its declarations no longer speak for anything and
+work closed in someone else\='s window really is incidental to them.
+
+Only the *planned* half is read, never the generated incidental list, or
+two slices whose windows overlap would each shield the other\='s
+incidentals and both lists would empty out."
+  (let (ids)
+    (dolist (file (claude-code-ide-org--id-scannable-files) ids)
+      (when (file-exists-p file)
+        (org-map-entries
+         (lambda ()
+           (when (and (claude-code-ide-org--slice-p)
+                      (not (equal (downcase (or (org-entry-get nil "ID") ""))
+                                  self))
+                      (not (equal (org-get-todo-state) "CANCELLED")))
+             (setq ids (append (claude-code-ide-org--slice-planned-member-ids)
+                               ids))))
+         nil (list file))))))
+
 (defun claude-code-ide-org--slice-incidental-ids ()
   "Ids closed during the slice-at-point\'s window that it does not name.
 
@@ -4151,9 +4194,22 @@ incidental."
                     (cons self named))))
       (setq start (and start worked (if (time-less-p start worked) worked start)))
       (when start
-        (seq-remove (lambda (id) (or (equal id self) (member id named)))
-                    (mapcar #'car
-                            (claude-code-ide-org--closed-in-window start end)))))))
+        (let* ((elsewhere (claude-code-ide-org--other-slices-declared-ids self))
+               (dropped nil)
+               (kept
+                (seq-remove
+                 (lambda (id)
+                   (cond
+                    ((or (equal id self) (member id named)) t)
+                    ((member id elsewhere) (push id dropped) t)))
+                 (mapcar #'car
+                         (claude-code-ide-org--closed-in-window start end)))))
+          (when (and dropped
+                     (boundp 'claude-code-ide-org--incidentals-claimed-elsewhere))
+            (setq claude-code-ide-org--incidentals-claimed-elsewhere
+                  (append (nreverse dropped)
+                          claude-code-ide-org--incidentals-claimed-elsewhere)))
+          kept)))))
 
 (defun claude-code-ide-org--refresh-slice-members-at-point (index)
   "Rewrite the slice-at-point's member lines from INDEX.  Returns a count.
@@ -4325,7 +4381,8 @@ blocker set.
 With ID, refreshes that slice only.  Returns a human-readable summary."
   (interactive)
   (require 'org-id)
-  (let ((index (claude-code-ide-org--slice-referent-index))
+  (let ((claude-code-ide-org--incidentals-claimed-elsewhere nil)
+        (index (claude-code-ide-org--slice-referent-index))
         ;; Same reasoning as the apply path (TODO.org :ID: 97b030a4): the
         ;; user's `buffer-read-only' guards against their own stray
         ;; keystrokes, and `M-x claude-code-ide-org-refresh-slice' is not
@@ -4398,6 +4455,19 @@ With ID, refreshes that slice only.  Returns a human-readable summary."
              lines (if (= lines 1) "" "s")
              blockers (if (= blockers 1) "" "s")
              incidentals (if (= incidentals 1) "" "s"))
+     ;; Reported, not merely applied. An id dropped for belonging to
+     ;; another slice is a *decision* about ownership, and a derived list
+     ;; that quietly shrinks is as wrong as one that quietly grows --
+     ;; only one of them is visible (TODO.org :ID: 5bfc1d38). Named for
+     ;; the same reason `unrendered' below is: a count sends the reader
+     ;; hunting, an id says which.
+     (when claude-code-ide-org--incidentals-claimed-elsewhere
+       (let ((n (delete-dups
+                 (copy-sequence
+                  claude-code-ide-org--incidentals-claimed-elsewhere))))
+         (format "; %d claimed by another slice (%s)"
+                 (length n)
+                 (mapconcat (lambda (i) (substring i 0 8)) n " "))))
      ;; Named, not merely counted. "1 skipped" sends the reader hunting
      ;; through a 27-member list; the id says which line is still showing
      ;; its placeholder, and the reason says what will fix it.

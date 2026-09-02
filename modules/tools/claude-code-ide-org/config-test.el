@@ -7398,6 +7398,72 @@ what this project keeps getting wrong. Derived, so it cannot drift
         ;; And the window has a lower bound: this one closed the day before.
         (should-not (member "before-01" ids))))))
 
+(ert-deftest claude-code-ide-org-test-another-slices-members-are-not-incidental ()
+  "Work another slice declares is planned, not incidental to this one.
+
+Another slice\='s checklist is planned work -- planned elsewhere, but
+planned -- so listing it here asserts something false about who planned
+it.  Measured 2026-09-01: 21 of `f9fe9fac\='s 26 incidentals were
+`b36e6369\='s declared members (TODO.org :ID: 5bfc1d38)."
+  (claude-code-ide-org-test--with-slice-window
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-max))
+      ;; A second slice, worked in the same window, declaring incid-001.
+      (insert "\n* TODO [0/1] Another slice\n:PROPERTIES:\n"
+              ":ID:       slice-002\n:KIND:     slice\n"
+              ":CREATED:  [2026-08-20 Thu 09:00]\n:END:\n"
+              ":LOGBOOK:\n"
+              "CLOCK: [2026-08-20 Thu 09:00]--[2026-08-20 Thu 09:30] =>  0:30\n"
+              ":END:\n\n"
+              "- [X] [[id:incid-001][incid-001]] DONE Claimed by the other slice\n")
+      (save-buffer)
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO \\[1/1\\] A slice")
+      (let ((ids (claude-code-ide-org--slice-incidental-ids)))
+        ;; Declared next door, so not incidental here.
+        (should-not (member "incid-001" ids))
+        ;; Declared by nobody, so still incidental here -- without this
+        ;; the test would pass on a function that returned nil.
+        (should (member "incid-002" ids))))))
+
+(ert-deftest claude-code-ide-org-test-a-cancelled-slices-claim-does-not-hold ()
+  "A CANCELLED slice\='s declarations stop speaking for anything.
+
+A DONE slice\='s claim stays true as history -- it did plan that work.  A
+cancelled plan was abandoned, so work closed in someone else\='s window
+really is incidental to them (TODO.org :ID: 5bfc1d38)."
+  (claude-code-ide-org-test--with-slice-window
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-max))
+      (insert "\n* CANCELLED [0/1] An abandoned slice\n:PROPERTIES:\n"
+              ":ID:       slice-003\n:KIND:     slice\n"
+              ":CREATED:  [2026-08-20 Thu 09:00]\n:END:\n\n"
+              "- [X] [[id:incid-001][incid-001]] DONE Claimed by a dead plan\n")
+      (save-buffer)
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO \\[1/1\\] A slice")
+      (should (member "incid-001" (claude-code-ide-org--slice-incidental-ids))))))
+
+(ert-deftest claude-code-ide-org-test-cross-slice-exclusion-is-reported ()
+  "The exclusion is named, not applied silently.
+
+A derived list that quietly shrinks is as wrong as one that quietly
+grows, and only one of them is visible."
+  (claude-code-ide-org-test--with-slice-window
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-max))
+      (insert "\n* TODO [0/1] Another slice\n:PROPERTIES:\n"
+              ":ID:       slice-002\n:KIND:     slice\n"
+              ":CREATED:  [2026-08-20 Thu 09:00]\n:END:\n\n"
+              "- [X] [[id:incid-001][incid-001]] DONE Claimed by the other slice\n")
+      (save-buffer)
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO \\[1/1\\] A slice")
+      (let ((claude-code-ide-org--incidentals-claimed-elsewhere nil))
+        (claude-code-ide-org--slice-incidental-ids)
+        (should (member "incid-001"
+                        claude-code-ide-org--incidentals-claimed-elsewhere))))))
+
 (ert-deftest claude-code-ide-org-test-slice-never-worked-has-no-incidentals ()
   "A slice nobody has started accrues nothing, however long ago it was written.
 

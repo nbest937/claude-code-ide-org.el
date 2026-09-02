@@ -1187,7 +1187,7 @@ Move every =Review and planning= datetree node dated the previous day or older i
 Once the sibling heading refiles =* Review attention='s old LOGBOOK entries into dated clones, those clones are placed by this same pass.
 
 
-* DOING [45/52] The code knows more than it says, and asks more than it should :code:
+* DOING [44/51] The code knows more than it says, and asks more than it should :code:
 :PROPERTIES:
 :ID:       b36e6369-a210-4540-adc7-0c0c188e9791
 :CREATED:  [2026-08-28 Fri 17:37]
@@ -1258,8 +1258,6 @@ and the open decisions live in the prompt below rather than here.
 
 Incidental:
 
-- [X] [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] DONE Make the 8-character prefix resolve, for the model and the human alike
-- [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] CANCELLED Find a convention marking which children a container's plan actually covered
 - [X] [[id:30a340fd-c216-4231-a8d9-fff83c54b9f8][30a340fd]] DONE Reopening a cancelled member retroactively un-completes every closed slice naming it
 - [X] [[id:f89c912a-2ce5-4f77-b6be-67ae35901e7a][f89c912a]] DONE The :PLAN: lint asks a slice for a drawer it has no prospective half to fill
 - [X] [[id:979e02b6-2a4c-4328-8b08-ffaec03bd02e][979e02b6]] DONE Close the gap between what we declare and what the code infers
@@ -1271,7 +1269,6 @@ Incidental:
 - [X] [[id:5d59dc77-38bf-470a-8d51-098c741fecbd][5d59dc77]] DONE org_capture with a done initial_state writes no CLOSED line
 - [X] [[id:13ea6770-88ba-484d-87bd-2d20c44dc610][13ea6770]] DONE The ceremony steps do not bind inhibit-read-only, so the sweep dies on the guard
 - [X] [[id:42ba0a80-61c5-49bd-b6a2-9da76a53ff64][42ba0a80]] DONE An unstarted slice accrues every heading closed since it was written down
-
 
 * TODO Three verification traps hit repeatedly in one session, none of them caught by a check :code:
 :PROPERTIES:
