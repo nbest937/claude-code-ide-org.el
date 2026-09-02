@@ -6892,6 +6892,25 @@ evidence.
 rule, and it names =org_body=/=org_clock_report= as the sanctioned
 readers.
 
+*Shipped 2026-09-02* into the org skill's "Reading & parsing" section, where a reader arrives before they have extracted anything.
+
+*The three-attempt cost went in as the evidence,* and attempt 2 is the part that earns its place: it was "verified" by grepping the file for the very =CLOCK:= line just extracted, which returned a different heading's example prose. A check that re-uses the failing method confirms the failure rather than catching it — which is the same shape as [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]]'s class, one level in.
+
+*Named the sanctioned readers rather than only the prohibition,* since "never pattern-match" without an alternative is an instruction people route around: =org_body=, =org_clock_report=, =org_outline=, or =org-map-entries= from a buffer.
+
+*Verified:* =grep -c ➺re pattern match'= on the skill returns 1, where it returned 0 this morning and on 2026-08-12 when the item was first scoped.
+
+*Correction to the line above, 2026-09-02:* it should read =grep -c
+'bare pattern match'=. The mangled character came from writing this
+debrief through =emacsclient= with =\x27= for an apostrophe — the hex
+escape greedily consumed the following characters, which happened to be
+hex digits. Recorded rather than silently fixed because it is a small
+instance of this project's own theme: the write succeeded, reported
+success, and produced something wrong that only reading the result
+caught.
+
+
+
 
 ** TODO The sibling-survey idiom is undocumented, and org_outline cannot navigate up :code:
 :PROPERTIES:
@@ -6975,6 +6994,44 @@ limitation, and both caveats.
 
 *Verify:* =grep -ci sibling .claude/skills/org/SKILL.md= finds the
 survey, not only the refile-level sentence at line 140.
+
+*Shipped 2026-09-02* as its own "Surveying a heading's siblings"
+subsection under "Working with .org Files", beside the timestamp rule —
+both are about *reading* org, and a reader who needs one usually needs
+the other.
+
+*Both halves went in, tool and buffer.* The =org_outline scope=<parent
+id>= idiom with =active_only= and =max_depth=; the downward-only
+limitation stated plainly, so the idiom is not mistaken for a full
+answer; and the =org-map-entries … 'tree= form that resolves it from
+point. Keeping the second is what makes the rejection of a
+=relation: siblings= parameter legible rather than arbitrary — *the
+capability is not missing, only ID-addressed access to it.*
+
+*The framing that earns the section its place* is that the reflex was
+missing rather than the capability: twice in one day the check was
+hand-rolled by someone who had used =org_outline= correctly an hour
+earlier, and the =scope= parameter had always documented what it does.
+A skill cannot install a capability that already exists; it can only
+make it the first thing that comes to mind.
+
+*Two reasons kept, not one.* Demotion is the obvious one — a =NEXT=
+nomination may silently demote a sibling and nothing else says which.
+The second is sharper and post-cutover: =grep= reads what is *on disk*,
+which is not what has been *decided*, since queued transitions have not
+landed. =org_outline= reports applied state, so "I set this to NEXT"
+stays distinguishable from "this is NEXT". That distinction did not
+exist before the queue and is the reason the idiom is worth more now
+than when it was first noticed.
+
+*Both quiet failures recorded:* narrowing silently truncates the answer,
+and a file-list scope visits files — verified not to move point or mark
+buffers modified, which is what makes it safe against files the user has
+open.
+
+*Verified:* =grep -ci sibling= on the skill returns 5, where the single
+prior hit was about refile levels and had nothing to do with this.
+
 
 
 ** TODO load-file does not pick up a changed defcustom default :code:
