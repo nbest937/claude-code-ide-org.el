@@ -883,6 +883,7 @@ CLOCK: [2026-09-01 Tue 08:27]--[2026-09-01 Tue 08:38] =>  0:11
 - [2026-09-01 Tue 08:27]--[2026-09-01 Tue 08:38] detect work a slice forgot
 - State "DONE"       from "DOING"      [2026-09-01 Tue 08:38]
 :END:
+:PLAN:
 
 *Prompted 2026-08-25 by the user asking whether they have to remind me to add a worked heading to the open slice.* They did. [[id:0acc1df2-6916-4180-867a-99bfa551806b][0acc1df2]] was built, committed, and left out of [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] -- against a membership rule written earlier the same day, by me, saying a member is anything the slice *committed to or actually worked*.
 
@@ -919,6 +920,7 @@ CLOCK: [2026-09-01 Tue 08:27]--[2026-09-01 Tue 08:38] =>  0:11
 
 *And it is exactly the residue [[id:eaeeb4ee-ceee-4094-8598-bbcdc8214b66][eaeeb4ee]] shipped to eliminate*, which is the sharp part. That heading made explicit clock pairs authoritative so attribution would stop needing a human -- and it is the first member of the slice during which the pairs stopped being produced at all. It closed the consumption half; the discipline half regressed behind it.
 
+:END:
 *Shipped 2026-09-01. Detects; adds nothing*, as this body required — the job was to make forgetting *loud*, not to make remembering unnecessary.
 
 *The signal is the one this body measured its way to.* =--commit-subject-ids= scans commit *subjects* only. An id in a commit body is a cross-reference and this project's prose cites ids constantly; a subject line is a claim that the commit *is about* that heading. A second filter does the rest: a token is kept only if it prefixes a *known heading id*, which removes abbreviated commit SHAs — the obvious false positive that a bare hex scan would produce, and which this project's subjects genuinely carry.
@@ -1001,6 +1003,7 @@ CLOCK: [2026-08-31 Mon 10:27]--[2026-08-31 Mon 10:29] =>  0:02
 - State "DOING"      from "TODO"       [2026-08-31 Mon 12:20]
 - State "DONE"       from "REVIEW"     [2026-09-01 Tue 08:19]
 :END:
+:PLAN:
 
 *Found 2026-08-31 by the user asking whether the ceremonies would run at the next session start.* They will not, and the reason is a seam rather than a bug.
 
@@ -1028,6 +1031,7 @@ Apply is human-only because org's native state-change logging completes only ins
 
 *Not proposed: automating apply.* And not proposed: the agent running the last three *unasked* — that is a policy question about the user's attention rather than a defect, and it should be decided rather than assumed.
 
+:END:
 *Shipped 2026-08-31.* Both halves the title names are addressed, and the heading is in =REVIEW= rather than =DONE= for one reason given at the end.
 
 *The completion report.* =claude-code-ide-org-ceremony-finish= runs the three post-apply steps -- consolidate drawers, normalise separation, archive -- reports each one success or failure, and returns a summary line. A clean pass advances [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]]'s own =++1d= repeater and stamps the ceremony done; a pass where any step failed holds both. The summary is written into the stamp file's body, so it survives the =message= that displayed it.
