@@ -1312,6 +1312,7 @@ CLOCK: [2026-08-31 Mon 16:18]--[2026-08-31 Mon 16:19] =>  0:01
 CLOCK: [2026-08-31 Mon 16:24]--[2026-08-31 Mon 16:25] =>  0:01
 - [2026-08-31 Mon 16:24]--[2026-08-31 Mon 16:25] assigned at review
 :END:
+:PLAN:
 
 *Asked by the user 2026-08-31, immediately after the mistake:* "does the language of one or more conventions need to be revised to guard against this pitfall?" Yes — three passages, and between them they did not merely fail to forbid the error, they read as licence for it.
 
@@ -1323,6 +1324,7 @@ CLOCK: [2026-08-31 Mon 16:24]--[2026-08-31 Mon 16:25] =>  0:01
 2. =Where a story comes from= describes mitosis correctly but never states the *direction* plainly, so nothing in it contradicts a reader who has already concluded that growing children is fine. The user's own question — "would it not now be a leaf, and the parent a new ID?" — is the sentence that was missing.
 3. =The nine groupings carrying their own CLOCK lines today are history, not debt ... Nothing is to be migrated.= Written as amnesty for accidents; reads as a general blessing on the shape. It was the third thing I checked before deciding, and it said what I wanted to hear.
 
+:END:
 *What was added, 2026-08-31:*
 
 - A *test* rather than a taxonomy: a heading that already owns work — a clock, a =:LOGBOOK:=, a body recording what it did — must not simply be given children, because that strands the record in something that cannot close. Only a heading with nothing of its own to strand may grow children in place.
@@ -1352,6 +1354,7 @@ CLOSED: [2026-08-31 Mon 16:01]
   measure staleness rate before building
 - State "DONE"       from "TODO"       [2026-08-31 Mon 16:01]
 :END:
+:PLAN:
 
 *Proposed by the user 2026-08-24, after a long review pass:* "it seems like state transitions never require any judgment anymore. could those be applied invisibly or at least marked automatically?"
 
@@ -1381,6 +1384,7 @@ So the rule is clean, and the predicate for it already exists: =--review-markabl
 
 *(Limits, stated: the ledger records applied and dismissed, so "dismissed" may include items discarded precisely because they were stale, and staleness at the moment of an old review is not recoverable after the fact. The claim is about outcomes, not about how often the guard fired.)*
 
+:END:
 *Shipped 2026-08-31, exactly the three rules this body specified:* non-stale =state= items arrive marked; stale ones do not, as =M= already refused them; nothing is auto-applied. The last is load-bearing rather than cautious — org's native state logging only completes inside a genuinely interactive command, and auto-applying would dismantle the constraint the whole queue exists to honour.
 
 *Scoped to =state= alone.* A span is not mechanical: it carries an interval a human may want to edit and, when unassigned, a heading only they can choose.
@@ -1417,6 +1421,7 @@ CLOCK: [2026-08-31 Mon 15:52]--[2026-08-31 Mon 15:54] =>  0:02
 - [2026-08-31 Mon 15:52]--[2026-08-31 Mon 15:54] guard g against discarding review judgement
 - State "DONE"       from "DOING"      [2026-08-31 Mon 15:54]
 :END:
+:PLAN:
 
 *Reported by the user 2026-08-26:* "I have a tendency to hit =g= when I mean =x= and I lose all of my review work." =g= and =x= are adjacent intentions -- refresh and apply -- and one of them is destructive.
 
@@ -1441,6 +1446,7 @@ CLOCK: [2026-08-31 Mon 15:52]--[2026-08-31 Mon 15:54] =>  0:02
 
 *Worth considering instead of, or alongside, the prompt:* make the discard recoverable. The items are a list in memory; stashing the pre-refresh copy in a buffer-local variable and offering =C-/= or an =undo-refresh= command would make the slip cost a keystroke rather than a decision. That is strictly better than asking, and the two are not exclusive.
 
+:END:
 *Shipped 2026-08-31, taking both options this body offered rather than choosing between them — it said so itself: "strictly better than asking, and the two are not exclusive."*
 
 *=g= asks, and names what is at stake.* =Discard 3 marked, 1 assigned, 1 note?= rather than a bare "are you sure?", because the answer depends on the amount. Declining signals a =user-error= and leaves the item list untouched.
@@ -1478,6 +1484,7 @@ CLOCK: [2026-08-31 Mon 15:48]--[2026-08-31 Mon 15:51] =>  0:03
 - [2026-08-31 Mon 15:48]--[2026-08-31 Mon 15:51] skip a state event that has become a no-op
 - State "DONE"       from "DOING"      [2026-08-31 Mon 15:51]
 :END:
+:PLAN:
 
 *Measured across both files 2026-08-28:* 4 of 463 =State= lines record a transition to the keyword the heading already held — 0.9%. Both =DONE -> DONE= cases are dated [2026-08-11 Tue], the day the staleness guard shipped, and they sit on =Build the interactive review-and-apply Emacs command= and — pointedly — on =Apply must not replay a state event that reality has moved past=, the guard's own heading. Since the guard: *2 in 17 days* — =TODO -> TODO= on 420816ec [2026-08-20], =DOING -> DOING= on 29439196 [2026-08-27].
 
@@ -1506,6 +1513,7 @@ The =420816ec= self-transition is stamped [2026-08-20 Thu 07:49] — *eleven min
 
 So cc0c17a7 owns "do not queue an event that is already a no-op" and this owns "do not apply an event that has *become* one". Same defect, two clocks, and only the second needs the projection =--review-projected-staleness= already computes.
 
+:END:
 *Shipped 2026-08-31, as a separate test rather than a change to the staleness guard — which this body was emphatic about and which the mutation testing confirms was the right call.*
 
 =--review-projected-staleness= now annotates each state item with =:redundant= alongside =:stale=, comparing =to= against the *projection* rather than the file. That is why it can be computed here and nowhere earlier: the usual cause is two events in one batch asserting the same target, so at queue time the second is not a no-op by any test then available — it becomes one before it is applied. [[id:cc0c17a7-a554-426d-afeb-09cbee7339f0][cc0c17a7]] owns "do not queue an event that is already a no-op"; this owns "do not apply one that has become one", exactly as this body divided them.
