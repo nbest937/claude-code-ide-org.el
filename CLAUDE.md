@@ -18,6 +18,46 @@ below for the current best guess at how these two goals combine.
 
 ---
 
+## This file is a starting point; the artifact is the authority
+
+**Read this before the claims below, because it qualifies all of them.**
+This file is loaded into every session by default while the things it
+describes are not. So a stale claim here *outranks the truth* until
+someone deliberately checks, and the sections describing mechanisms that
+have been cut over are the highest-risk kind — the prose outlives the
+code that justified it.
+
+Which artifact wins depends on the question:
+
+| question | authority |
+|---|---|
+| what the system does | the code and its tests |
+| how Emacs is configured | the live `~/.config/doom/config.el` |
+| what is planned, blocked, or next | `TODO.org`, via `org_outline`/`org_query` |
+| what a number means | the `defcustom`'s own docstring |
+
+**This is about *state*, not about *rationale*.** Why a decision went the
+way it did lives only in a heading body or in this file, and cannot be
+recovered from the code — which is why the load-bearing reasons are
+quoted here rather than left to a lookup. Distrust the file's account of
+what *is*; do not distrust its account of *why*.
+
+**And accuracy does not retire the risk — it disguises it.** An accurate
+CLAUDE.md makes answering from it more often correct, which makes the
+habit of answering from it instead of from the artifact harder to notice:
+the same behaviour with better odds. The evidence is that most wrong
+claims never came from this file. On 2026-08-11, of roughly a dozen wrong
+claims, only four traced here; the rest came from unchecked inference,
+from a session's own earlier summaries, and three times from reading a
+silently-failing command's empty output as a result.
+
+`bin/check-conventions` mechanises the part of this that can be
+mechanised — that cited `:ID:`s resolve and the keyword set agrees
+everywhere. It cannot check a claim that is merely out of date, which is
+most of them.
+
+---
+
 ## Architecture: the event queue
 
 **State and clock changes are queued, not applied.** This is the single

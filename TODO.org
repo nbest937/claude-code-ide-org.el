@@ -7025,6 +7025,50 @@ claims it qualifies.
 *Verify:* =grep -ci 'authority\|starting point' CLAUDE.md= finds it
 outside the tracker-reading section.
 
+*Shipped 2026-09-02* as a section immediately after the opening goals
+and before "Architecture: the event queue" — near the top, where the
+Done-when asked, so it is read before the claims it qualifies.
+
+*It says the mechanism, not just the instruction.* This file is loaded
+into every session by default while the artifacts it describes are not,
+so a stale claim outranks the truth until someone deliberately checks,
+and sections describing cut-over mechanisms are the highest-risk kind.
+Stating the *reason* matters more than stating the rule: "check the
+artifact" reads as generic caution, while "the prose outlives the code
+that justified it" says when to bother.
+
+*A table settles which artifact wins for which question* — code and
+tests for what the system does, the live Doom config for how Emacs is
+configured, TODO.org for what is planned, a =defcustom='s own docstring
+for what a number means. That last row is new today and pairs with
+[[id:594adec6-4855-470d-8ceb-5fe29bf0c935][594adec6]], which put three
+such numbers into this file: the summary here is now the thing most
+likely to go stale, and the docstring is named as the authority over it.
+
+*The tension the body flagged is resolved explicitly rather than papered
+over.* This file also argues that load-bearing *reasons* live only in a
+body and are worth quoting inline — so the section says the rule is
+about *state*, not *rationale*: distrust the file's account of what is,
+do not distrust its account of why. Without that sentence the section
+would read as an instruction to distrust the file's own explanations,
+which would undercut half of what it exists to carry.
+
+*And the counter-intuitive half is kept,* since it is the reason this is
+a rule rather than an accuracy push: an accurate CLAUDE.md makes
+answering from it more often correct, which makes the habit of answering
+from it *harder to notice*. The 2026-08-11 evidence went in with it —
+only four of roughly a dozen wrong claims traced to this file, the rest
+to unchecked inference, a session's own summaries, and three times to
+reading a silently-failing command's empty output as a result. A rewrite
+that only fixes the file addresses a third of the problem.
+
+*Closes with the boundary of the mechanical check,*
+=bin/check-conventions=, which verifies cited =:ID:=s resolve and the
+keyword set agrees, and cannot check a claim that is merely out of date
+— which is most of them. Naming what the check *cannot* do is what keeps
+a green check from being read as a green file.
+
+
 
 * TODO Direct file writes to a live org buffer can desync org-clock-marker :code:
 :PROPERTIES:
