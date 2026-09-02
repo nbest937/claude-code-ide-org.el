@@ -2,6 +2,31 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The NEXT prohibition was argued for containers and swept slices in unexamined :code:
+:PROPERTIES:
+:ID:       abce1850-4c3a-4ed4-a3da-cdb3c2045877
+:CREATED:  [2026-09-02 Wed 18:31]
+:CATEGORY: Slices
+:END:
+
+*Raised by the user 2026-09-02, after being refused a =NEXT= on a slice they had just declared.* Their suspicion was that the prohibition predates slices. Measured, it is half right, and the half that is wrong is the more damning one.
+
+| heading | created | closed | mentions "slice" |
+|---|---|---|---|
+| [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]] Auto-promote makes a container the next action | 2026-08-19 | 2026-08-21 | *0* |
+| slices built ([[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]]) | 2026-08-21 | 2026-08-25 | — |
+| [[id:62b65ad0-304b-4cf1-bd95-2f1ecb671d6b][62b65ad0]] Reserve NEXT for use within a container | 2026-08-26 | 2026-08-26 | *1 in 5418 chars* |
+
+So the original rule predates slices by six days and never mentions them. Its restatement postdates the first slice by a day and mentions them once, incidentally, in twelve minutes of work. **CLAUDE.md's "within a story or a slice" is a generalisation neither heading argued** — the same shape as the other prose-outruns-its-evidence findings this project keeps making.
+
+*And the generalisation does not obviously hold, because the two groupings differ in the relevant way.* For a story the argument is exact: a story is *emergent*, its next action is one of its children, and marking the parent =NEXT= names no action. For a slice it does not transfer. A slice is *declared* and *sequenced*, and several are open at once — three on the day this was filed. **Nothing in the vocabulary says which slice to pick up next.** =DOING= means at least one member is in the mail, which is state rather than priority; =TODO= says nothing at all.
+
+*The counter-argument, stated fairly.* Slice ordering does have a home: =.claude/commands/next-session.md= is "the sequenced slice of work queued for the next session". But that file is explicitly "a plan, not a convention: expect it to be rewritten or deleted once consumed", so the ordering lives somewhere disposable and unqueryable — which is a poor place for the one fact that says what to do next.
+
+*Proposed, not decided: split the rule rather than keep or drop it whole.* Retain the prohibition for stories and containers, where it was argued. Decide slices on their own merits. =--grouping-heading-p= already distinguishes the two, so the split is expressible in code today rather than needing new machinery.
+
+*Open if slices are allowed =NEXT=:* whether at most one slice may carry it; how the un-nominated-container report tells "the slice is next" from "the slice has a next action"; and whether a member =NEXT= and a slice =NEXT= can coexist without reintroducing the confusion [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]] named one tier down.
+
 * TODO A MAYBE member and a dropped member render identically, and the drop is now sticky :code:
 :PROPERTIES:
 :ID:       1b727475-46c3-4967-8cdd-dfd9397d94ea
@@ -23,13 +48,18 @@ Two different facts now render as the same line. =MAYBE= and =CANCELLED= map to 
 
 *Until then the safe operating rule is narrow:* do not promote a =MAYBE= slice member and expect its cookie back. Checked by hand, it returns.
 
-* MAYBE [0/2] Make the org discipline travel: ship the machinery, relocate the rules :code:
+
+* TODO [0/2] Make the org discipline travel: ship the machinery, relocate the rules :code:
 :PROPERTIES:
 :ID:       ff7ccb2d-2b13-421e-86e3-6b5e187850bf
 :CREATED:  [2026-09-02 Wed 18:17]
 :CATEGORY: Slices
 :KIND:     slice
 :BLOCKER:  ids(9ae4b17e-278c-482f-9114-df28b2254806 9d009401-93dd-40e5-a243-7a30a8a5bd55)
+:END:
+:LOGBOOK:
+- State "TODO"       from "MAYBE"      [2026-09-02 Wed 18:28] \\
+  proposal accepted, declared a slice
 :END:
 
 *A proposal, not a slice* — the declaration is withheld deliberately, per the procedure settled 2026-09-02. No =:KIND: slice=, no prompt link, and =MAYBE= rather than =TODO=, because nothing here is committed to yet.
@@ -47,6 +77,7 @@ Two different facts now render as the same line. =MAYBE= and =CANCELLED= map to 
 *[[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] arrives here from [[id:b36e6369-a210-4540-adc7-0c0c188e9791][b36e6369]]*, whose line for it kept its position and lost its cookie. It is the same work, re-sequenced rather than restarted, and its four settled decisions travel with it in its own body.
 
 *Deliberately excluded, though related:* the Emacs-outage and queue-fallback headings are declared members of [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]]. They bear on portability, but naming them here would recreate the duplicate membership this proposal was composed just after cleaning up.
+
 
 * DOING Make the heading body a scannable summary, with plan and debrief in drawers [2/5]
 :PROPERTIES:
@@ -873,6 +904,7 @@ To which add the standing friction: the two MCP tools that time out are worked a
 - [ ] [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]] TODO Concurrent sessions share one git index, and explicit staging protects nothing
 - [ ] [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] TODO Three new ways to owe a footnote and not see it: marker, list, quotation
 
+
 * TODO Three new ways to owe a footnote and not see it: marker, list, quotation :code:
 :PROPERTIES:
 :ID:       2a6a1355-615f-4c2c-a8af-c9ae8dcda09b
@@ -1618,7 +1650,8 @@ Move every =Review and planning= datetree node dated the previous day or older i
 Once the sibling heading refiles =* Review attention='s old LOGBOOK entries into dated clones, those clones are placed by this same pass.
 
 
-* DOING [48/48] The code knows more than it says, and asks more than it should :code:
+* DONE [48/48] The code knows more than it says, and asks more than it should :code:
+CLOSED: [2026-09-02 Wed 18:21]
 :PROPERTIES:
 :ID:       b36e6369-a210-4540-adc7-0c0c188e9791
 :CREATED:  [2026-08-28 Fri 17:37]
@@ -1630,6 +1663,8 @@ Once the sibling heading refiles =* Review attention='s old LOGBOOK entries into
 - State "TODO"       from              [2026-08-28 Fri 17:38] \\
   next slice, composed and awaiting review
 - State "DOING"      from "TODO"       [2026-09-01 Tue 13:19]
+- State "DONE"       from "DOING"      [2026-09-02 Wed 18:21] \\
+  all 48 declared members landed
 :END:
 Work on the gap between what the tools know and what they say, and between
 what they do and what they make a human do by hand. The plan, the sequence
@@ -2025,6 +2060,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-02 Wed 18:30]--[2026-09-02 Wed 18:31] =>  0:01
 CLOCK: [2026-09-02 Wed 17:42]--[2026-09-02 Wed 17:44] =>  0:02
 CLOCK: [2026-09-02 Wed 16:30]--[2026-09-02 Wed 16:33] =>  0:03
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
@@ -4450,7 +4486,6 @@ Measured by section: roughly **660 of 1196 lines document machinery that would s
 *And the reason those rules are in CLAUDE.md is the reason they are stranded.* The split to =.claude/rules/= kept them deliberately, on the test that "a rule that must hold when no =.org= file is open cannot live in a path-scoped rule". Correct for a testbed; it is exactly what leaves them in the one surface with no distribution mechanism.
 
 *So this heading and [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] are the same triage from opposite ends*, which is recorded on both. This one asks what must reach another project; that one asks what earns its place in an always-loaded file. A passage that must ship is load-bearing by definition, and a passage that is testbed-only is a prune candidate for a better reason than being dated — **audience rather than age**. The classification this heading has to make is the one that prune needs, which is why it runs first.
-
 
 
 * TODO The org 9.7+ dependency is real, undeclared, and unenforced :code:
@@ -7214,7 +7249,6 @@ should not be reported as fixing the problem.
 *Four decisions were settled by the user 2026-09-02 and stand, scoped to the archaeology rather than the relocation:* the criterion is [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]]'s — prose earns its place when it lets a future session pick the work up without re-deriving context. Removed archaeology is deleted outright, since this file is version-controlled with no bounded archive. Won't-dos belong on the heading that declined them, not here. The fourth — what becomes of decision records guarding a *live* convention — was left open, and the relocation question above changes it: a guard for a convention that ships should travel with the convention rather than being compressed into a file that does not.
 
 
-
 ** DONE The file-header template omits #+STARTUP:, which both files carry :code:
 CLOSED: [2026-09-02 Wed 09:45]
 :PROPERTIES:
@@ -8896,6 +8930,8 @@ CLOCK: [2026-09-02 Wed 14:17]--[2026-09-02 Wed 14:21] =>  0:04
 CLOCK: [2026-09-02 Wed 14:36]--[2026-09-02 Wed 14:39] =>  0:03
 - [2026-09-02 Wed 14:36]--[2026-09-02 Wed 14:39] assigned at review
 - [2026-09-02 Wed 16:40]--[2026-09-02 Wed 16:52] assigned at review
+CLOCK: [2026-09-02 Wed 17:14]--[2026-09-02 Wed 17:15] =>  0:01
+- [2026-09-02 Wed 17:14]--[2026-09-02 Wed 17:15] assigned at review
 CLOCK: [2026-09-02 Wed 17:16]--[2026-09-02 Wed 17:21] =>  0:05
 - [2026-09-02 Wed 17:16]--[2026-09-02 Wed 17:21] assigned at review
 CLOCK: [2026-09-02 Wed 17:25]--[2026-09-02 Wed 17:26] =>  0:01
@@ -8904,4 +8940,14 @@ CLOCK: [2026-09-02 Wed 17:27]--[2026-09-02 Wed 17:29] =>  0:02
 - [2026-09-02 Wed 17:27]--[2026-09-02 Wed 17:29] assigned at review
 CLOCK: [2026-09-02 Wed 17:35]--[2026-09-02 Wed 17:39] =>  0:04
 - [2026-09-02 Wed 17:35]--[2026-09-02 Wed 17:39] assigned at review
+CLOCK: [2026-09-02 Wed 17:47]--[2026-09-02 Wed 17:48] =>  0:01
+- [2026-09-02 Wed 17:47]--[2026-09-02 Wed 17:48] assigned at review
+CLOCK: [2026-09-02 Wed 17:51]--[2026-09-02 Wed 17:54] =>  0:03
+- [2026-09-02 Wed 17:51]--[2026-09-02 Wed 17:54] assigned at review
+CLOCK: [2026-09-02 Wed 17:59]--[2026-09-02 Wed 18:06] =>  0:07
+- [2026-09-02 Wed 17:59]--[2026-09-02 Wed 18:06] assigned at review
+CLOCK: [2026-09-02 Wed 18:15]--[2026-09-02 Wed 18:22] =>  0:07
+- [2026-09-02 Wed 18:15]--[2026-09-02 Wed 18:22] assigned at review
+CLOCK: [2026-09-02 Wed 18:27]--[2026-09-02 Wed 18:29] =>  0:02
+- [2026-09-02 Wed 18:27]--[2026-09-02 Wed 18:29] assigned at review
 :END:
