@@ -4364,6 +4364,21 @@ probably be decided together.
   another repo reading instructions for a system that is not running.
   Landing them together is what remains.
 
+*Verified against the Claude Code plugin docs 2026-09-02, and the difficulty is **inverted** from what this heading assumed.*
+
+This body's last measurement said "the =.md= half is now a symlink away while the machinery half has not started", treating prose as nearly solved and machinery as the remaining work. The docs say the opposite.
+
+*The machinery travels cleanly, and there is a manifest for it.* A plugin is =.claude-plugin/plugin.json= (only =name= required) and may ship **skills, slash commands, agents, hooks, MCP servers**, LSP servers, monitors, themes and output styles. Bundled executables go in a top-level =bin/=, which is added to =PATH= while the plugin is enabled, and =${CLAUDE_PLUGIN_ROOT}= resolves the install directory for hook and MCP config to reference. So the hooks, the =org_*= MCP server and =bin/hooks/*= — the half this heading called the separate, harder move — are a packaging exercise with documented support.
+
+*The prose does not travel at all, which is the new finding.* **=.claude/rules/= is not a plugin component.** It appears nowhere in the plugin documentation, and there is no documented mechanism for a plugin to contribute path-scoped rules. Nor is there any for a plugin to add always-loaded instructions to a consuming project's CLAUDE.md — the docs are silent rather than restrictive, which is weaker than a prohibition but no better to build on.
+
+*So the "one canonical copy, two consumers" design still works, but only per machine and only by hand.* The =~/.claude/rules/= symlink is a thing a *user* creates once on their own machine; it is not something plugin installation can do for them. That is a materially smaller claim than this heading's plan makes.
+
+*What survives, and what needs re-deciding.* Skills ship, and a skill directory may carry =references/*.md= — so the conventions *can* travel, but only as on-demand reading. This body already drew the right distinction ("split the content by who must decide to load it"), and the docs remove one of its two options: the rule half, which was to apply automatically whether or not anyone invoked the skill, has no plugin mechanism. The remaining candidates are a manual install step, demotion to skill references, or a setup command that writes the rules file into the consuming repo — the last being undocumented but not obviously precluded.
+
+*Consequence for [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]]*, recorded because it is why this was looked at: that heading's prune assumes CLAUDE.md is the place these rules live. It is, and nothing ships it. Whether the state-transition rules and queue architecture should be *relocated* rather than pruned is a question this heading owns, not that one.
+
+
 
 * TODO The org 9.7+ dependency is real, undeclared, and unenforced :code:
 :PROPERTIES:
