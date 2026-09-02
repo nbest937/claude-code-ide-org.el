@@ -6733,6 +6733,39 @@ reasoning and the revert precondition.
 *Verify:* =grep -c logdrawer .claude/rules/org-conventions.md= is
 non-zero, and the template block matches =head -4= of both org files.
 
+*Shipped 2026-09-02.* =#+STARTUP: logdrawer logdone content= is now the
+fourth line of the documented template in
+=.claude/rules/org-conventions.md=, and the template matches =head -4= of
+both TODO.org and DONE.org byte for byte.
+
+*The three things worth having beside it all went in:* that
+=org-log-into-drawer= defaults to nil, so without the header org's
+native logging and this project's apply path disagree — with
+=:ID:= b5f94b88 named as the visible instance, a =DOING= note sitting
+above its drawer while older entries sit inside it; that a header line
+is right rather than a =setq= because it binds *buffer-locally*,
+claiming exactly the scope this project owns; and the verification
+precondition, which is the one nobody would guess — =#+STARTUP:= is read
+when org initialises a buffer, so a file already open keeps the old value
+until reverted, and saving is not enough.
+
+*One objection in the source material had expired and was dropped
+rather than repeated.* The original reasoning rejected a
+=:LOG_INTO_DRAWER:= property because it "would have to sit on the
+top-level category headings, which this same CLAUDE.md section forbids
+from carrying a =:PROPERTIES:= drawer at all." The top-level category
+tier was retired, so that objection no longer holds. The buffer-local
+argument stands on its own and is the one kept — carrying the dead
+objection forward would have been the exact staleness this pass exists
+to remove.
+
+*Note what this closes that is larger than itself.* This was the
+surviving quarter of the parent's "four concrete drifts" from
+2026-08-11; the other three, including the =#+TODO:= line matching
+neither file, had all been fixed without the list being updated. The
+documented template and the real files now agree in full.
+
+
 
 ** TODO A :BLOCKER: on a MAYBE heading is dormant, and no convention says so :code:
 :PROPERTIES:
@@ -6770,6 +6803,33 @@ heading has to make rather than assume.
 
 *Verify:* the rule file mentions the MAYBE case, and the wording agrees
 with what =bin/lint-org= actually warns.
+
+*Shipped 2026-09-02,* into the "Dependencies between tasks" section of
+=.claude/rules/org-conventions.md=, directly after the paragraph that
+says =:BLOCKER:= *is* enforced — which is where the qualification has to
+sit to be read by anyone it applies to.
+
+*The decision the heading said it had to make.* It asked whether the rule
+should be "do not put one on a =MAYBE=" or "expect it to wake when the
+heading leaves =MAYBE=". *Keep it* — the second. A =:BLOCKER:= on a
+=MAYBE= records a real dependency that wakes by itself the moment the
+heading takes a live keyword, and deleting it to silence the lint would
+lose that record for nothing. So the rule reframes the warning rather
+than the property: read the lint line as "this is filed, not enforced",
+and if you are *relying* on the block to hold, the heading is not
+=MAYBE=.
+
+That last clause is the useful half. It turns a passive caveat into a
+test a reader can apply to their own heading, which is what distinguishes
+this from a footnote nobody acts on.
+
+*The framing kept from the body:* this is the worst shape a dependency
+can take, because the whole point of =:BLOCKER:= over a prose sentence is
+that it is machine-checkable — so one that reads as enforcement and
+enforces nothing is *less* honest than the sentence it replaced. Three
+instances stand in TODO.org today, and =bin/lint-org= has been warning
+on all three with no written rule behind the warning.
+
 
 
 ** TODO Timestamps must come from a :LOGBOOK: drawer, never a bare pattern match :code:

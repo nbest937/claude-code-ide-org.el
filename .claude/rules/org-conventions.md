@@ -19,11 +19,37 @@ Every `.org` file in this project should start with:
 #+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
+#+STARTUP: logdrawer logdone content
 ```
 
 The per-keyword cookies matter: `!` records a timestamp on entry, `@`
 *prompts for a note*. See CLAUDE.md's transition rules for why that
 asymmetry is load-bearing.
+
+**`#+STARTUP: logdrawer` is the fourth line and it is doing real work.**
+`org-log-into-drawer` defaults to nil, so org's *native* state-change
+logging writes notes bare, just after the property drawer, while this
+project's apply path lands them in `:LOGBOOK:` — it binds the variable
+locally and deliberately, so a user's own interactive `org-todo` keeps
+their configured behaviour. Without the header line the two paths
+disagree, and the result is visible in the wild: `:ID:` b5f94b88 has a
+`DOING` note sitting *above* its drawer while older entries sit inside
+it.
+
+**Why a header line rather than a `setq`.** Verified 2026-08-12 that
+`#+STARTUP: logdrawer` sets the variable *buffer-locally* — effective
+value `"LOGBOOK"` inside the file, global still nil — which claims
+exactly the scope this project owns and changes nothing for a user's
+other org files. A global `setq` would reconfigure org for everyone who
+installs the module.
+
+**Its verification precondition, which is not the obvious one.**
+`#+STARTUP:` is read when org *initialises a buffer*, so a file already
+open in Emacs keeps the old value until it is reverted. Saving is not
+enough, and neither is `global-auto-revert-mode` noticing the change if
+the buffer is unmodified — the mode has to re-run. A check made against
+an already-open buffer measures the old value while every signal says
+success.
 
 `org-todo-keywords` in the Doom config does **not** include `REVIEW`, so it
 resolves only in files carrying their own `#+TODO:` header. TODO.org does;
@@ -629,3 +655,22 @@ sentence isn't. The org skill has the full syntax, including the inverse
 `claude-code-ide-org--blocker-clock-running-p` sits on the same hook but
 blocks on a *running clock* instead — two different guards, so don't assume
 a refused transition came from the project's one.
+
+**But a `:BLOCKER:` on a `MAYBE` heading is dormant**, because org
+evaluates blocking against the *blocked* heading's own state: nothing
+blocks a heading that is not trying to move. The property looks like a
+live dependency and enforces nothing.
+
+That is the worst shape a dependency can take. The whole point of
+`:BLOCKER:` over a prose sentence is that it is machine-checkable, so one
+that reads as enforcement and enforces nothing is *less* honest than the
+sentence it replaced. `bin/lint-org` warns on it — three times in
+TODO.org as of 2026-09-02 — but a warning with no rule behind it is
+easy to dismiss.
+
+**What to do:** keep it. A `:BLOCKER:` on a `MAYBE` is a record of a real
+dependency that will wake by itself the moment the heading takes a live
+keyword, and deleting it to silence the warning would lose that. Read the
+lint line as "this is filed, not enforced" rather than as a defect to
+clear — and if you are relying on the block to hold, the heading is not
+`MAYBE`.
