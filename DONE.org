@@ -5933,6 +5933,7 @@ CLOCK: [2026-08-25 Tue 16:59]--[2026-08-25 Tue 17:06] =>  0:07
 - State "DONE"       from "DOING"      [2026-08-25 Tue 17:06] \\
   applied-at shipped, 397/397, breaks proved
 :END:
+:PLAN:
 
 *Found 2026-08-24 while recovering from [[id:7148cddc-aca3-416e-8bcb-f164d4d2bba0][7148cddc]]*, which is the only reason it was noticed: nothing had ever needed to undo an apply before.
 
@@ -5972,6 +5973,7 @@ The second is the one that would have made this recovery a single command instea
 
 *Sequenced first in the next session*, ahead of the ceremony work, on the grounds that it was carrying a decision and no longer is.
 
+:END:
 *Built 2026-08-25* ([[orgit-rev:claude-code-ide-org::4c18cc2][4c18cc2]]). =applied= is now a JSON object of =ts -> apply-time=, mirroring =dismissed= exactly, so both fields on this file share one serialization idiom rather than two that can drift. The stamp uses the queue's own =%Y-%m-%dT%H:%M:%S%z= format, so an apply time and an event =ts= compare without conversion.
 
 *The stamp is taken once per pass and pushed down*, as this heading specified. =--review-record-applied= computes it and passes it to =--queue-mark-applied=; a =now= taken inside the latter would differ across the sessions the former loops over, and would answer a subtly different question.
@@ -6005,6 +6007,7 @@ CLOSED: [2026-08-25 Tue 16:35]
 - State "DONE"       from "TODO"       [2026-08-25 Tue 16:35] \\
   regenerator built; ceremony wiring is edd47f32
 :END:
+:PLAN:
 
 *A slice line renders its referent and declares almost nothing.* =- [X] [[id:...][49557477]] DONE Expand an 8-character prefix ...= holds a link target, a keyword, a title and a checkbox -- and every one of the four is derivable from the referent. What the slice actually declares is *which* headings are members and *in what order*, which is exactly what a declared grouping should assert and nothing more.
 
@@ -6051,6 +6054,10 @@ against a referent that is now =DONE=. Three stored facts are wrong at once -- t
 *Manual repair until this is built:* tick the box, correct the copied keyword, and let =C-c C-c= recompute the cookie.
 
 *This strengthens the case for the trigger being apply rather than a schedule.* The staleness is not gradual; it is created in one step, by one command, at a known moment.
+:END:
+
+*This heading closed without a debrief*, noted 2026-09-02 during [[id:35d25265-df52-45c0-8226-dfa24c3ed5bb][35d25265]]'s pass rather than inferred: all 27 body lines are prospective, ending on \"Manual repair until this is built\". So the whole body wrapped — the ordinary completion transition for a purely prospective body, not the retroactive exception. What it proposed did ship, under [[id:a0abf97d-0f98-42df-9749-e1647b723596][a0abf97d]]; the account of it lives there.
+
 
 
 
@@ -6069,6 +6076,7 @@ CLOSED: [2026-08-25 Tue 16:17]
 - State "DONE"       from "TODO"       [2026-08-25 Tue 16:17] \\
   codified by the DOING recalibration
 :END:
+:PLAN:
 
 Asked by the user 2026-08-19 of
 [[id:aded703f-8110-439e-b470-5e0375121c95][aded703f]], which should have
@@ -6121,6 +6129,7 @@ So the full rule set, settled and ready to be written down:
 3. A container leaves DOING when all children are DONE or CANCELLED.
 4. A container is WAITING when every non-terminal child is WAITING.
 
+:END:
 *Codified 2026-08-25, and this heading was not consulted while it happened* -- which is the part worth recording.
 
 *The answer, now in CLAUDE.md beside the transition table.* =DOING= on a container means "at least one member is in the mail" -- one level up from the leaf sense of "started and owed a return". It takes no clock, is plural, and is derivable from the members rather than asserted. =--trigger-auto-clock-in= already implements the no-clock half by exempting containers; the gap is that a slice is not recognised as one ([[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]]).
