@@ -1955,6 +1955,7 @@ CLOCK: [2026-08-31 Mon 15:11]--[2026-08-31 Mon 15:14] =>  0:03
 - [2026-08-31 Mon 15:11]--[2026-08-31 Mon 15:14] stop capture swallowing a leading TODO keyword
 - State "DONE"       from "DOING"      [2026-08-31 Mon 15:14]
 :END:
+:PLAN:
 
 *Open. Promised during 2026-08-26's session and not filed until the next morning* -- which is itself the pattern that produced the other six retcons.
 
@@ -1966,6 +1967,7 @@ CLOCK: [2026-08-31 Mon 15:11]--[2026-08-31 Mon 15:14] =>  0:03
 
 *Cheap guard, since the tool already knows the keyword set.* Refuse, or escape, a title whose first word is one. Refusing is probably right: such a title is nearly always a mistake, and a silently renamed heading is worse than an error. Note =bin/lint-org= cannot catch it either -- the result is a well-formed heading.
 
+:END:
 *Shipped 2026-08-31. Refuses, as this body proposed, rather than escaping or silently renaming.* =org_capture= now returns =Error: title begins with the TODO keyword "NEXT", which org would read as the heading's state -- the title would lose its first word and the heading would acquire a state it was never given. Reword the title.= Because the reply starts with =Error:=, =bin/hooks/queue-append= drops it and nothing reaches the queue either.
 
 *The keyword set is read from the target file, not from a global.* =org-todo-keywords-1= is buffer-local and derived from the file's own =#+TODO:= line, and capture can target a file other than the capture file when given an =:ID:=. A new =claude-code-ide-org--leading-todo-keyword= reads it there and *fails open* — a file that does not exist or cannot be visited yields nil, because refusing a capture on the strength of a keyword set we could not read would be worse than the defect being guarded.
@@ -1997,6 +1999,7 @@ CLOCK: [2026-08-31 Mon 13:53]--[2026-08-31 Mon 13:54] =>  0:01
 - [2026-08-31 Mon 13:53]--[2026-08-31 Mon 13:54] bind inhibit-read-only in the write tools
 - State "DONE"       from "DOING"      [2026-08-31 Mon 14:04]
 :END:
+:PLAN:
 
 Raised by the user 2026-08-10. None of the MCP tools bind
 =inhibit-read-only=, so any of them fails outright with a
@@ -2083,6 +2086,7 @@ regress that.
 
 *Narrow fix available and worth taking before the general one:* bind =inhibit-read-only= around the apply write only. The general case this heading describes -- every file-touching tool binding it -- is a larger change with a real argument against it, since a tool call is not a human keystroke. The apply path has no such ambiguity.
 
+:END:
 *Shipped 2026-08-31 — the general case this heading was filed for, four months after its narrow child.* The write tools now bind =inhibit-read-only= themselves, so the flag is never touched and the clear/restore convention is retired.
 
 *Two mechanisms, split on how a tool reaches its buffer.* A new =claude-code-ide-org--at-id-writable= binds and delegates to =--at-id=, and the six write tools that route through the dispatcher now call it: =archive=, =amend=, =sort-children=, =move-sibling=, =log-background-plan=, =wrap-plan=, plus =close-open-interval=. The four that reach their buffer directly — =refile=, =set-property=, =divide=, =capture= — bind in their own outermost =let=.
@@ -2271,6 +2275,7 @@ CLOSED: [2026-08-31 Mon 09:48]
 - State "DONE"       from "TODO"       [2026-08-31 Mon 09:48] \\
   decided: two tools; build filed separately
 :END:
+:PLAN:
 
 *Filed 2026-08-28 as [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] closed.* That heading shipped *front matter without the body*; its complement — *the body, whole* — was raised in the same analysis and deliberately not built.
 
@@ -2284,6 +2289,7 @@ CLOSED: [2026-08-31 Mon 09:48]
 
 *Do not build it before deciding*, which is why this is filed rather than done: the implementation is an hour and the surface decision outlives it.
 
+:END:
 *Decided 2026-08-31: two tools, not three, and not a mode.* Add a body read that returns the heading with its drawers; add no front-matter tool; add no mode argument.
 
 *The user's framing is what settled it:* treat the metadata as part of the body and let the agent reason about what to extract — with the counter-argument that the *outline* must carry blockers, since dependency linkage is structure. Both halves are right, and together they decide it.
