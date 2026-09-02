@@ -2682,6 +2682,7 @@ CLOCK: [2026-08-29 Sat 13:49]--[2026-08-29 Sat 13:56] =>  0:07
 CLOCK: [2026-08-29 Sat 14:14]--[2026-08-29 Sat 14:16] =>  0:02
 - [2026-08-29 Sat 14:14]--[2026-08-29 Sat 14:16] measure PLANNING against real use
 :END:
+:PLAN:
 
 This project made every heading =:ID:=-addressed, then made *the first
 eight characters* the unit of reference — in prose, in commit messages, in
@@ -2728,6 +2729,7 @@ most frequently *felt* friction of the three: every =org_amend= and
 =org_refile= in this session cost an extra round trip to clear it. Worth
 its own decision about grouping rather than being absorbed here.
 
+:END:
 *Closed 2026-08-29 at 10 of 10.* The title's promise — "for the model and the human alike" — is met on both sides, and the two halves turned out to need different things.
 
 *For the model*, the work was resolution: expand a prefix at every surface that could invent a tail ([[id:49557477-e50c-496f-85df-82c65109832b][49557477]]), against =org-id-locations= rather than a table of our own ([[id:93f6c908-1c15-44e5-84f9-03f1ffb6d5db][93f6c908]]), reaching DONE.org ([[id:020d3688-f08d-460f-a3e8-931a1677074a][020d3688]]) through org's own archive derivation rather than a hand-rolled one ([[id:e6d1d810-5e88-4356-b002-bbb10cf19fc9][e6d1d810]]), without a corpus rescan on every short prefix ([[id:6c48d5a6-1c78-4ce5-ac97-5e1091bdb25c][6c48d5a6]]), and with the plain-text workarounds of the unresolvable era converted back to links ([[id:c69df700-dbba-4437-bb98-44cff81501f2][c69df700]]).
@@ -2747,7 +2749,9 @@ CLOSED: [2026-08-25 Tue 09:52]
 :ID:       49557477-e50c-496f-85df-82c65109832b
 :CREATED:  [2026-08-25 Tue 09:52]
 :END:
+:PLAN:
 
+:END:
 *Shipped 2026-08-25*, commit =3a569ac=, 382 tests green.
 
 *The rule was correct and did not work.* Nine uuids were fabricated
@@ -2809,6 +2813,7 @@ CLOCK: [2026-08-28 Fri 17:19]--[2026-08-28 Fri 17:24] =>  0:05
 - State "DONE"       from "DOING"      [2026-08-28 Fri 17:24] \\
   front matter at scope root; body read left open
 :END:
+:PLAN:
 
 *Raised by the user 2026-08-14, from a concrete request the tools cannot
 serve:* "show me the front matter of =f4e628ce= — sans body — and the
@@ -2923,6 +2928,7 @@ partial-=:ID:= failure above worth fixing once rather than twice.
 mode argument may serve both: front matter only, body only, whole
 subtree, or structure — the last being =org_outline= as it stands.
 
+:END:
 *Built 2026-08-28, and half of what this heading asked for had already shipped without it noticing.*
 
 *Part 1 was done.* =scope= accepts an 8-character =:ID:= prefix today — [[id:93f6c908-1c15-44e5-84f9-03f1ffb6d5db][93f6c908]] and [[id:6c48d5a6-1c78-4ce5-ac97-5e1091bdb25c][6c48d5a6]] landed that under [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] after this was written. Checked before building rather than assumed: =org_outline scope=f4e628ce= returns the heading.
