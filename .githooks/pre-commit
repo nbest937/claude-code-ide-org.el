@@ -55,6 +55,45 @@ lint="$repo_root/bin/lint-org"
 # it was refused with six errors that were all false (TODO.org
 # :ID: 7e9aa4ea). The hook must gate what the linter governs and no more,
 # or it blocks correct work and teaches --no-verify.
+# Documentation accuracy, when a document or the thing it describes is
+# staged. Separate from the org lint above because it guards a different
+# class: the lint asks whether the org files are structurally sound, this
+# asks whether the prose describing them is still true (TODO.org :ID:
+# d2a0f54c).
+#
+# Its own staged list, deliberately: `$staged' above is already filtered
+# to TODO.org/DONE.org, so reusing it would silently never fire on a
+# CLAUDE.md-only commit -- which is the commit this check most exists for.
+#
+# --docs-only because the full check delegates to bin/check-org-dev-skill,
+# which shells to emacsclient; a machine with no Emacs running would
+# otherwise be unable to commit at all. Run bin/check-conventions by hand
+# for the Emacs-dependent half.
+#
+# Reads the worktree, not the index -- the gap recorded in
+# bin/check-conventions' own header. Accepted because these files are
+# hand-edited and rarely partially staged.
+staged_all="$(git diff --cached --name-only --diff-filter=ACMR)"
+conv=""
+for f in $staged_all; do
+  case "$f" in
+    CLAUDE.md|.claude/rules/*.md|.claude/skills/*/SKILL.md|.claude/commands/*.md|TODO.org|DONE.org|modules/tools/claude-code-ide-org/config.el)
+      conv=1 ;;
+  esac
+done
+
+if [ -n "$conv" ] && [ -x "$repo_root/bin/check-conventions" ]; then
+  if ! conv_output="$("$repo_root/bin/check-conventions" --docs-only 2>&1)"; then
+    echo "pre-commit: documentation has drifted from what it describes." >&2
+    echo >&2
+    printf '%s\n' "$conv_output" | grep -E '^FAIL' | sed 's|^|  |' >&2
+    echo >&2
+    echo "  Check: bin/check-conventions" >&2
+    echo "  Skip:  git commit --no-verify" >&2
+    exit 1
+  fi
+fi
+
 staged="$(git diff --cached --name-only --diff-filter=ACMR | grep -E '(^|/)(TODO|DONE)\.org$')"
 [ -n "$staged" ] || exit 0
 

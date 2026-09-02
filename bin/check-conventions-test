@@ -1,0 +1,92 @@
+#!/usr/bin/env fish
+# Prove bin/check-conventions can fail, one assertion at a time.
+#
+# The point is not that the check passes against this repo -- it does,
+# and that says nothing. TODO.org :ID: 542924c1 collects five cases where
+# a check had no way to fail and its silence was read as a result, and
+# the question that catches all of them is "what would this have printed
+# if the thing I am testing were false?". So each case below builds a
+# fixture in which one claim is false and asserts a *non-zero exit*,
+# never the absence of a word in the output.
+#
+# Exit code rather than output, specifically: bin/check-org-dev-skill
+# printed FAIL while exiting 0 for its whole life because a bare `set'
+# inside an `if' block is block-local in fish. A test reading stdout
+# would have called that green.
+
+set repo_root (cd (dirname (status --current-filename))/.. && pwd)
+set -g failures 0
+
+function expect_exit -a desc want
+    set -l got $status
+    if test "$got" = "$want"
+        echo "ok   - $desc"
+    else
+        echo "FAIL - $desc: expected exit $want, got $got"
+        set -g failures 1
+    end
+end
+
+# A fixture holding just the files the assertions read.
+function make_fixture
+    set -l dir (mktemp -d)
+    mkdir -p $dir/.claude/rules $dir/.claude/skills/org $dir/modules/tools/claude-code-ide-org
+    echo '#+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)' > $dir/TODO.org
+    echo ':ID:       aaaaaaaa-1111-2222-3333-444444444444' >> $dir/TODO.org
+    touch $dir/DONE.org
+    echo '#+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)' > $dir/.claude/rules/org-conventions.md
+    printf '| `TODO` | x |\n| `NEXT` | x |\n| `DOING` | x |\n| `REVIEW` | x |\n| `WAITING` | x |\n| `MAYBE` | x |\n| `DONE` | x |\n| `CANCELLED` | x |\n' > $dir/.claude/skills/org/SKILL.md
+    echo ':description "TODO keyword to set: TODO NEXT DOING REVIEW WAITING MAYBE DONE CANCELLED."' > $dir/modules/tools/claude-code-ide-org/config.el
+    echo "This doc cites aaaaaaaa, which resolves." > $dir/CLAUDE.md
+    echo $dir
+end
+
+# 0. The fixture itself passes, or every case below proves nothing.
+set clean (make_fixture)
+$repo_root/bin/check-conventions $clean >/dev/null 2>&1
+expect_exit "a correct fixture passes" 0
+
+# 1. An unresolvable :ID: citation fails.
+set d (make_fixture)
+echo "And it also cites deadbeef, which does not exist." >> $d/CLAUDE.md
+$repo_root/bin/check-conventions $d >/dev/null 2>&1
+expect_exit "an unresolvable :ID: citation fails the check" 1
+
+# 2. An id *inside* a full UUID is not mistaken for a citation.
+#    This is the five phantom failures the tightened boundary removed.
+set d (make_fixture)
+echo "Mentions 9d2fcdad-9bf7-47b6-8018-223b13ec4577 in full." >> $d/CLAUDE.md
+$repo_root/bin/check-conventions $d >/dev/null 2>&1
+expect_exit "a full UUID does not read as an unresolved 8-char citation" 0
+
+# 3. A keyword the rules file has and TODO.org does not fails.
+set d (make_fixture)
+echo '#+TODO: TODO NEXT DOING REVIEW WAITING MAYBE PLANNING | DONE CANCELLED' > $d/.claude/rules/org-conventions.md
+$repo_root/bin/check-conventions $d >/dev/null 2>&1
+expect_exit "a drifted keyword set in the rules file fails" 1
+
+# 4. A keyword missing from the skill's transition table fails.
+set d (make_fixture)
+grep -v 'REVIEW' $d/.claude/skills/org/SKILL.md > $d/tmp; mv $d/tmp $d/.claude/skills/org/SKILL.md
+$repo_root/bin/check-conventions $d >/dev/null 2>&1
+expect_exit "a keyword missing from the skill table fails" 1
+
+# 5. A retired keyword named in the skill's *prose* does not fail --
+#    the false positive this check hit on its first real run.
+set d (make_fixture)
+echo 'This used to argue the point via `PLANNING` ownership. It is gone.' >> $d/.claude/skills/org/SKILL.md
+$repo_root/bin/check-conventions $d >/dev/null 2>&1
+expect_exit "a retired keyword in prose does not fail" 0
+
+# 6. A drifted tool description fails.
+set d (make_fixture)
+echo ':description "TODO keyword to set: TODO NEXT DOING WAITING MAYBE DONE CANCELLED."' > $d/modules/tools/claude-code-ide-org/config.el
+$repo_root/bin/check-conventions $d >/dev/null 2>&1
+expect_exit "a drifted org_set_todo description fails" 1
+
+if test $failures -eq 0
+    echo "Ran 7 checks, all as expected"
+else
+    echo "check-conventions-test: FAILURES"
+end
+exit $failures

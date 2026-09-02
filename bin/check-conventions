@@ -1,0 +1,152 @@
+#!/usr/bin/env fish
+# Cross-artifact accuracy check for this repo's *documentation*.
+#
+# bin/test verifies the elisp behaves. bin/lint-org verifies the org
+# files are structurally sound. This verifies the prose that describes
+# both -- CLAUDE.md, .claude/rules/, both SKILL.md files, and the
+# next-session prompt -- still matches what it describes.
+#
+# Generalized out of bin/check-org-dev-skill (TODO.org :ID: d2a0f54c),
+# which checks one file's claims. The harness now lives in
+# bin/lib/check.fish so a second check family adds assertions rather than
+# a second script; bin/check-org-dev-skill sources the same file and runs
+# last, so one command covers everything and .githooks/pre-commit wires
+# one thing.
+#
+# Takes an optional root, defaulting to the repository, so
+# bin/check-conventions-test can point it at a fixture and prove each
+# assertion is capable of failing.
+#
+# KNOWN GAP, stated rather than discovered: this reads the *worktree*,
+# where .githooks/pre-commit's org lint reads the *index*. A doc edited
+# but not staged is therefore checked, and a staged-only edit is not.
+# Accepted for now because these files are hand-edited and rarely
+# partially staged; the honest fix is a temp checkout of the staged tree.
+
+set -l script_dir (dirname (status --current-filename))
+set -g repo_root (cd $script_dir/.. && pwd)
+set -g root $repo_root
+set -g docs_only 0
+for a in $argv
+    switch $a
+        case --docs-only
+            # Everything under this flag reads plain files. The org-dev
+            # delegation below shells to `emacsclient', and a machine
+            # with no Emacs running would otherwise be unable to commit
+            # at all -- a check that blocks work when the thing it checks
+            # is merely asleep is worse than no check. .githooks/pre-commit
+            # passes this; a human running the script by hand does not.
+            set -g docs_only 1
+        case '*'
+            set -g root (cd $a && pwd)
+    end
+end
+
+source $script_dir/lib/check.fish
+
+# The documents whose claims this checks. A file that does not exist is
+# skipped rather than failed: the fixture used by the self-test carries
+# only some of them, and a missing CLAUDE.md is a different problem that
+# would announce itself long before this script ran.
+set -g docs
+for rel in CLAUDE.md .claude/rules/org-conventions.md .claude/skills/org/SKILL.md .claude/skills/org-dev/SKILL.md .claude/commands/next-session.md
+    if test -f "$root/$rel"
+        set -a docs "$root/$rel"
+    end
+end
+
+set -g org_files
+for rel in TODO.org DONE.org
+    if test -f "$root/$rel"
+        set -a org_files "$root/$rel"
+    end
+end
+
+# 1. Every :ID: the documents cite resolves.
+#
+# A citation that resolves to nothing is always a bug -- there is no
+# legitimate reason to name a heading that does not exist -- which is
+# what makes this safe to fail a commit on. Measured 2026-09-02 across
+# 3101 lines: 73 distinct tokens, 0 unresolved.
+#
+# The boundary is tighter than the obvious one on purpose. A bare
+# [0-9a-f]{8} matches *inside* a full UUID -- the trailing segment of
+# 9d2fcdad-9bf7-47b6-8018-223b13ec4577 reads as the token 223b13ec -- and
+# produced five phantom failures. Requiring the run not be adjacent to a
+# hex digit or a dash removes all five.
+#
+# Git short SHAs are seven characters here, so they fall outside the
+# pattern; anything eight characters that is nonetheless a git object
+# still passes, so the two citation kinds need not be told apart.
+if test (count $docs) -gt 0 -a (count $org_files) -gt 0
+    set -l unresolved
+    for tok in (cat $docs | perl -ne 'while(/(?<![0-9a-f-])([0-9a-f]{8})(?![0-9a-f-])/g){print "$1\n"}' | sort -u)
+        if grep -q -- ":ID:  *$tok" $org_files
+            continue
+        end
+        if git -C $repo_root cat-file -e $tok 2>/dev/null
+            continue
+        end
+        set -a unresolved $tok
+    end
+    if test (count $unresolved) -eq 0
+        check_ok "every :ID: cited in the docs resolves"
+    else
+        check_fail "docs cite "(count $unresolved)" unresolvable :ID:(s): $unresolved"
+    end
+end
+
+# 2. The TODO keyword set agrees everywhere it is written down.
+#
+# Four copies exist and TODO.org's own `#+TODO:' line is the only one
+# org reads, so the other three are documentation that can drift. It has
+# drifted before: the org skill carried `WAIT' after the keyword became
+# `WAITING', and was missing REVIEW entirely.
+#
+# Compared as a *set* rather than as a string. The orderings differ
+# legitimately -- the header is a sequence with a `|' separator, the tool
+# description is a sentence -- and a string comparison would fail on a
+# difference nobody needs to fix, which is the kind of check people learn
+# to ignore.
+set -l header_file "$root/TODO.org"
+if test -f "$header_file"
+    set -l truth (head -1 $header_file | grep -oE '[A-Z]{4,}' | sort -u | string join ' ')
+    check "keyword set: TODO.org header is non-empty" (test -n "$truth"; and echo yes; or echo no) "yes"
+
+    set -l rules "$root/.claude/rules/org-conventions.md"
+    if test -f "$rules"
+        set -l got (grep -m1 '^#+TODO:' $rules | grep -oE '[A-Z]{4,}' | sort -u | string join ' ')
+        check "keyword set: .claude/rules/org-conventions.md" "$got" "$truth"
+    end
+
+    set -l skill "$root/.claude/skills/org/SKILL.md"
+    if test -f "$skill"
+        # Scoped to the transition *table* rows, not the whole file.
+        # Whole-file matching failed on its first run against a sentence
+        # reading "This paragraph used to argue the point via `PLANNING'
+        # ownership ... Both are gone" -- correct prose about a retired
+        # keyword, which a set comparison read as drift. Naming a dead
+        # keyword in history is legitimate; listing one as a live
+        # transition is not, and only the table makes that claim.
+        set -l got (grep -E '^\|' $skill | grep -oE '`(TODO|NEXT|DOING|REVIEW|WAITING|MAYBE|DONE|CANCELLED|PLANNING|WAIT)`' | tr -d '`' | grep -oE '[A-Z]{4,}' | sort -u | string join ' ')
+        check "keyword set: .claude/skills/org/SKILL.md transition table" "$got" "$truth"
+    end
+
+    set -l cfg "$root/modules/tools/claude-code-ide-org/config.el"
+    if test -f "$cfg"
+        set -l got (grep -m1 'TODO keyword to set:' $cfg | grep -oE '[A-Z]{4,}' | sort -u | string join ' ')
+        check "keyword set: org_set_todo tool description" "$got" "$truth"
+    end
+end
+
+# 3. The single-file check runs last and folds its verdict in, so callers
+# need one command. Skipped against a fixture root, where it would be
+# asserting things about the real repo.
+if test "$root" = "$repo_root" -a "$docs_only" = "0"
+    echo "--- bin/check-org-dev-skill ---"
+    if not $repo_root/bin/check-org-dev-skill
+        set -g fail 1
+    end
+end
+
+exit $fail
