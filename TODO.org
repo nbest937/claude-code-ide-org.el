@@ -1176,14 +1176,14 @@ Move every =Review and planning= datetree node dated the previous day or older i
 Once the sibling heading refiles =* Review attention='s old LOGBOOK entries into dated clones, those clones are placed by this same pass.
 
 
-* DOING [35/40] The code knows more than it says, and asks more than it should :code:
+* DOING [35/43] The code knows more than it says, and asks more than it should :code:
 :PROPERTIES:
 :ID:       b36e6369-a210-4540-adc7-0c0c188e9791
 :CREATED:  [2026-08-28 Fri 17:37]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(33864a0f-5e13-4235-85a6-0bd9d2fe5252 72463b68-9f08-44b2-8213-87f71298138d 7c4d6ef6-c914-4d33-b267-cc9158a9f359 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177)
+:BLOCKER:  ids(33864a0f-5e13-4235-85a6-0bd9d2fe5252 72463b68-9f08-44b2-8213-87f71298138d 7c4d6ef6-c914-4d33-b267-cc9158a9f359 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177 d39f5f0d-bee3-4aa4-8494-0bddd07e9067 5fc7b934-28ec-4eeb-9f90-f1becec353f0 5bfc1d38-e758-4ed7-bb32-f976031ff3da)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 17:38] \\
@@ -1231,6 +1231,10 @@ and the open decisions live in the prompt below rather than here.
 - [ ] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] TODO Three verification traps hit repeatedly in one session, none of them caught by a check
 - [ ] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] NEXT Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
 
+- [ ] [[id:d39f5f0d-bee3-4aa4-8494-0bddd07e9067][d39f5f0d]] TODO CLAUDE.md's "Session tracking" still describes the pre-cutover clock
+- [ ] [[id:5fc7b934-28ec-4eeb-9f90-f1becec353f0][5fc7b934]] TODO Line-number anchors in org bodies rot, and nothing checks them
+- [ ] [[id:5bfc1d38-e758-4ed7-bb32-f976031ff3da][5bfc1d38]] TODO A slice claims another slice's declared members as its own incidental work
+
 Incidental:
 
 - [X] [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] DONE Make the 8-character prefix resolve, for the model and the human alike
@@ -1246,7 +1250,6 @@ Incidental:
 - [X] [[id:5d59dc77-38bf-470a-8d51-098c741fecbd][5d59dc77]] DONE org_capture with a done initial_state writes no CLOSED line
 - [X] [[id:13ea6770-88ba-484d-87bd-2d20c44dc610][13ea6770]] DONE The ceremony steps do not bind inhibit-read-only, so the sweep dies on the guard
 - [X] [[id:42ba0a80-61c5-49bd-b6a2-9da76a53ff64][42ba0a80]] DONE An unstarted slice accrues every heading closed since it was written down
-
 
 * TODO Three verification traps hit repeatedly in one session, none of them caught by a check :code:
 :PROPERTIES:
