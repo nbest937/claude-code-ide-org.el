@@ -5008,6 +5008,7 @@ CLOCK: [2026-08-25 Tue 20:47]--[2026-08-25 Tue 20:54] =>  0:07
 - State "DONE"       from "DOING"      [2026-08-25 Tue 20:54] \\
   stamp file settled; prompt asks, never proposes
 :END:
+:PLAN:
 
 Asked 2026-08-24: can the daily ceremony ([[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]], now =<... 07:00 ++1d>=) be scheduled in the agentic CLI so a prompt arrives at the first opportunity each day and the agent performs it?
 
@@ -5038,6 +5039,7 @@ It also already has the right manners for this: [[id:7771fc63-9374-4c8a-9e80-24c
 
 *Comment corrected in* =bin/hooks/session-start-recovery-check=. It still described injecting "an educated guess ... based on =claude-code-ide-org-working-hours=", retired 2026-08-14 with [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]], and still mentioned =:SESSIONS:=, retired 2026-08-11. The behaviour was right; only the comment lied. It now also says to *expect silence*, with the audit's reason -- so the next reader does not go looking for a bug in a feature that is working.
 
+:END:
 *Shipped 2026-08-25* ([[orgit-rev:claude-code-ide-org::3c2a72e][3c2a72e]], with CLAUDE.md corrected in [[orgit-rev:claude-code-ide-org::ae98b0e][ae98b0e]]). The prompt rides in the existing =SessionStart= payload, exactly where this heading's analysis said it should.
 
 *The open design question is settled: a stamp file*, and the reasoning is the one this heading recorded rather than a fresh preference. The test that decides it is whether the signal means *the ceremony was performed* or merely *something happened*. A day node is created by any meta-work clock-in; the pending count falls whenever anyone applies a single item. Both conflate the two. An explicit stamp means only what it says.
@@ -5079,6 +5081,7 @@ CLOCK: [2026-08-26 Wed 10:53]--[2026-08-26 Wed 10:56] =>  0:03
 - State "DONE"       from "DOING"      [2026-08-26 Wed 10:56] \\
   repair at source; assertion declined
 :END:
+:PLAN:
 
 *Split out of [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]] 2026-08-25*, which was closed having done the other half: the convention is now written down in both the org skill (the generic part -- two lines, why two, why every level) and =.claude/rules/org-conventions.md= (the normaliser, its defcustom, its safety property, where it sits in the ceremony). Nothing asserts it, so it holds only as long as =claude-code-ide-org-normalize-heading-separation= is actually run.
 
@@ -5093,6 +5096,7 @@ CLOCK: [2026-08-26 Wed 10:53]--[2026-08-26 Wed 10:56] =>  0:03
 
 *Do not reach for the count as a threshold.* The separator count is =claude-code-ide-org-heading-separator-lines= (default 2, matched to =org-cycle-separator-lines=); any check must read that variable rather than hard-coding 2, or it will disagree with the normaliser the moment either moves.
 
+:END:
 *Answered 2026-08-26 by rejecting the question* ([[orgit-rev:claude-code-ide-org::395d233][395d233]]). No lint assertion was added. Apply now repairs the drift it causes, in its settle phase, beside the slice refresh.
 
 *The three recorded options share a flaw this heading had already half-noticed.* An error, a warning that never escalates, and a pre-commit hook that runs the normaliser all *report* -- or at best prompt for -- a condition whose repair is one idempotent command. The body above says it plainly: "18 warnings telling a human to run one command is noise." The fourth option is to run the command.
@@ -5128,6 +5132,7 @@ CLOCK: [2026-08-26 Wed 10:29]--[2026-08-26 Wed 10:32] =>  0:03
 - State "DONE"       from "DOING"      [2026-08-26 Wed 10:32] \\
   derived from the pass clock, verified live
 :END:
+:PLAN:
 
 *Split out of [[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]] 2026-08-26, and it should have been filed when that heading closed rather than a day later.* The debrief named this gap in prose and said it "belongs to [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]]" -- but nothing was filed, so the only record sat in a finished heading's body, which readers are told to treat as history and which =org_wrap_plan= will eventually sweep into a drawer they are told to skip. The user caught it by asking whether the heading was really done.
 
@@ -5141,6 +5146,7 @@ CLOCK: [2026-08-26 Wed 10:29]--[2026-08-26 Wed 10:32] =>  0:03
 
 *Cheapest honest alternative, if the trigger question stays open:* have the prompt itself decay -- report at most once per day per *machine* by stamping when the report is *emitted* rather than when the ceremony completes. That is strictly worse as a record and strictly better as a nag guard, and it needs no new trigger at all.
 
+:END:
 *Shipped 2026-08-26* ([[orgit-rev:claude-code-ide-org::d56e1ac][d56e1ac]]), and the answer is neither of the two options recorded above -- because [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]] landed in between and changed what was available.
 
 *The trigger question dissolves once a pass leaves evidence.* The review command now opens a real clock on the attention heading, so "a pass ran today" is *derived from the act itself* rather than from anyone remembering to announce it. =--ceremony-reviewed-today-p= reads that clock, and either it or the stamp silences the prompt. Nothing has to be called at the end of a pass for the prompt to go quiet.
