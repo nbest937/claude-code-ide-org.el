@@ -84,36 +84,42 @@ refresh line, not applied silently.
 
 ---
 
-## Two tools that still do not work over MCP
+## Two tools that used to time out over MCP — fixed 2026-09-02
 
-**`org_capture` and `org_set_property` still time out over MCP.**
-`org_set_property` timed out again on 2026-09-02. Call the elisp directly
-through `emacsclient`. This is `72463b68`, a member of this slice.
+**`org_capture`, `org_set_property` and `org_divide` work over MCP now.**
+Do **not** reach for the `emacsclient` fallback this file used to prescribe;
+that path has a data-loss trap and is now filed as `8326a46f`.
 
-**And the `emacsclient` fallback has a trap that loses data.** When the
-target buffer is *modified*, `claude-code-ide-org-capture` returns
-`"Queued capture … pending review"` and **persists nothing anywhere** — the
-queue is written by a PostToolUse hook, which does not fire for a raw
-`emacsclient` call. Verified 2026-09-02 by losing a capture and grepping for
-it in both the file and every queue file. **Check `buffer-modified-p`
-immediately before each write, not once at the start of a batch.**
+The cause was ours, not org's: each of the three declared an argument its own
+description told you to omit (`target`, `append`, `parent_state`), so the
+published schema marked it required. The server then signals `json-rpc-error`,
+a symbol `claude-code-ide` never passes to `define-error` — so no handler
+catches it, the HTTP connection is never answered, and the caller waits until
+it times out. `72463b68` carries the full diagnosis; `ce012ad4` is the
+upstream half.
 
----
+**One trap remains, and it is live.** A boolean argument passed explicitly as
+`false` arrives as `:false`, which elisp reads as *true* — so `org_amend`
+with `replace: false` would replace a body instead of appending to it.
+Omitting a boolean is correct; passing one explicitly is not. That is
+`a8ccd6ac`, unfixed.
+
 
 ## The six that remain
 
-Two are buildable unattended. Four need the user, and saying so is the point
-of this section.
+**The two unattended ones were done on 2026-09-02 and sit at `REVIEW`.** The
+four that are left all need the user, which is the point of this section — a
+session starting here should expect to *ask*, not to build.
 
-**`33864a0f` — Reorder DONE.org as a datetree, descending by CLOSED:.**
-Decided; the approach is its twin `5f1068f9`'s, already shipped for TODO.org.
-Buildable unattended, and the largest single reordering left.
+**`33864a0f` — done, at `REVIEW`.** DONE.org's 155 tasks are filed under a
+year/month/day datetree, newest first, and `#+ARCHIVE:` now points at
+`DONE.org::datetree/`. It is at `REVIEW` rather than `DONE` for one reason:
+**the next ceremony is the first live exercise of the archive path.** Wiring
+it up surfaced a defect where `org-archive-reversed-order` inserted entries
+*before* their day node; that is fixed and tested, but only against fixtures.
 
-**`72463b68` — MCP tools that write an org file time out.** A diagnosis, not
-a fix, and it costs real time every session — it was hit twice on 2026-09-02.
-Buildable unattended, but **bound the investigation**: two tools fail while
-`org_outline`, `org_pending_updates`, `org_set_todo` and `org_amend` all
-answer normally, and it is not the payload and not the buffer state.
+**`72463b68` — done, at `REVIEW`.** See the section above. Two of its three
+named fixes were split out rather than done: `6495c8a0` and `8326a46f`.
 
 **`542924c1` — Three verification traps, none caught by a check.** Its
 proposed `bin/check-elisp` is now *cheap*, because the harness exists — it is

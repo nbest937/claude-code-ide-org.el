@@ -2,6 +2,33 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A boolean argument passed as false arrives as :false, which elisp reads as true :code:
+:PROPERTIES:
+:ID:       a8ccd6ac-3452-4926-b176-ff5951dcd5b2
+:CREATED:  [2026-09-02 Wed 12:50]
+:CATEGORY: Tools
+:END:
+
+*Found 2026-09-02 while fixing [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]], noticed in passing and measured rather than left as a suspicion.*
+
+The MCP server parses a request body with =(json-parse-string body :object-type 'alist)=, whose default =:false-object= is the keyword =:false=. So a JSON =false= arrives in elisp as the symbol =:false=, and *every non-nil value is true in elisp*. Measured:
+
+: (json-parse-string "{\"append\":false}" :object-type 'alist)
+: => ((append . :false))       ; and (if :false ...) takes the true branch
+
+**The caller gets the opposite of what they asked for**, and only when they are explicit. Omitting the argument yields =nil= and behaves correctly, so the bug is invisible to every call that leaves the default alone — which is why it has never been seen.
+
+Two live arguments, and the second is destructive:
+
+- =org_set_property='s =append=. Passing =false= unions with the existing =:BLOCKER:= set instead of replacing it. Wrong, recoverable.
+- =org_amend='s =replace=. Passing =false= **replaces the heading's entire prose** instead of appending to it. That tool's own description says "Destructive and irreversible except through git", and this reaches it by asking for the *safe* behaviour.
+
+*Not hypothetical about which tools are exposed:* those are the only two boolean =:type=s in the surface today, and both were touched on 2026-09-02.
+
+*The fix is one binding, not a per-tool audit.* Parsing with =:false-object nil= makes JSON =false= arrive as =nil= and read correctly everywhere at once. The alternative — teaching each handler to recognise =:false= — is the shape this repo keeps rejecting: a rule applied per site that a later site will forget. Note the change belongs *upstream* in =claude-code-ide-mcp-http-server.el= beside [[id:ce012ad4-87f7-435c-a2ee-25210c071865][ce012ad4]], since the parse is theirs; a local override would have to shadow their function.
+
+*Same family as [[id:6495c8a0-d971-4c77-8b30-9fde1bbf5f26][6495c8a0]]* — a tool accepting an argument and not honouring it — but with the failure inverted. There the value is silently discarded; here it is silently *negated*, which is worse, because discarding leaves the default in place while negating actively performs the operation the caller declined.
+
 * TODO claude-code-ide-org-capture reports a queued capture it never persists :code:
 :PROPERTIES:
 :ID:       8326a46f-e3f9-4ecc-8bc2-05d54907987b
