@@ -2,6 +2,38 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
+* TODO claude-code-ide-org-capture reports a queued capture it never persists :code:
+:PROPERTIES:
+:ID:       8326a46f-e3f9-4ecc-8bc2-05d54907987b
+:CREATED:  [2026-09-02 Wed 12:09]
+:END:
+
+*Split out of [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] on 2026-09-02*, which called this "the dangerous one" and "the last matters most". Its body holds the original observation; only the residue is restated here.
+
+Called directly over =emacsclient=, outside the MCP wrapper, =claude-code-ide-org-capture= returned ="Queued capture: … (ID: …) pending review"= and wrote *nothing* — not to the session queue file, whose mtime never moved, not elsewhere under =~/.claude/org-updates/=, and not to any org file. The ids it reported existed nowhere.
+
+*The presumed mechanism, still unverified:* the queue path needs a session context the MCP wrapper supplies and a bare =emacsclient= call lacks. If that is right the failure is silent by construction — the caller is told the work is recorded, which is the worst available outcome and strictly worse than an error.
+
+*The fix is a refusal, not a repair.* A capture that cannot determine where to queue must say so loudly rather than report success. Whether the =emacsclient= path should additionally be *made* to queue is a separate and smaller question; a tool that cannot persist must not claim it did, however it was invoked.
+
+*Why this outlived its parent's fix.* [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]]'s hang is now diagnosed and fixed — three tools declared a semantically optional argument required, and the resulting =json-rpc-error= escaped every handler. That fix removes the *reason* to reach for the =emacsclient= fallback, which is exactly why this one must not be quietly dropped with it: the trap is now rarer and no less silent, and rarity is what keeps a false success unnoticed.
+
+* TODO org_capture accepts a note argument it never records :code:
+:PROPERTIES:
+:ID:       6495c8a0-d971-4c77-8b30-9fde1bbf5f26
+:CREATED:  [2026-09-02 Wed 12:09]
+:END:
+
+*Split out of [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] on 2026-09-02*, which found and fixed the hang but left this untouched. It was the second of that heading's three named fixes.
+
+=(cl-defun claude-code-ide-org-capture (title &optional target tags note initial-state))= names =note= in its argument list and references it nowhere in the body — re-confirmed 2026-09-02, still true. The tool description promises more than the arglist does: it says the value is "recorded on the queued event when the write defers", so a caller who supplies one has been told it is kept.
+
+This is [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]]'s "accepts arguments it does not have, and says nothing" in this project's own implementation, which is what makes it worth fixing rather than documenting away.
+
+*Two ways to close it, and the choice is the work.* Either record =note= on the deferred-capture event as the description already claims, or drop the parameter and the sentence together. What must not survive is the present state, where the schema advertises a parameter that is silently discarded.
+
+Note the near neighbour that is now *not* a defect: =org_capture= also once dropped a *body*, and three headings arrived empty because of it. That is the same shape but a different argument, and it is not what this heading is about.
+
 * TODO Line-number anchors in org bodies rot, and nothing checks them :code:
 :PROPERTIES:
 :ID:       5fc7b934-28ec-4eeb-9f90-f1becec353f0
@@ -1189,6 +1221,47 @@ That makes it an unusually clean probe. The two tools that hang are both *writer
 - =org_body= hangs too → the correlate is recency of registration rather than writing, which would be a very different and much more tractable bug.
 
 *Also unexplained and worth keeping in view:* =org_amend= writes and answers reliably, which is what makes the writer hypothesis uncomfortable rather than obvious. It was called dozens of times across 2026-08-31 without a single timeout, including against a read-only buffer, while =org_capture= timed out on its first attempt on a freshly started Emacs.
+
+*The =org_body= probe came out the first way: it answers normally over MCP.* Run 2026-09-02, in a session whose client fetched its tool list after =org_body= was registered. Two calls, both returning a full heading within seconds, in the same minutes this session was otherwise working normally.
+
+That kills the registration-recency hypothesis outright — a tool registered on 2026-08-31 is callable over MCP from a later session, so nothing about "new tool" explains the pair. What is left is the branch the body predicted: *look harder at what =org_capture= and =org_set_property= do that =org_amend= does not, given all three write.*
+
+Note the probe is weaker than it looks in one direction and stronger in another. Weaker: =org_body= is a *reader*, so it does not discriminate "writers hang" from "these two hang" — that was never its job. Stronger: it was chosen precisely because it was the one tool whose registration was known to postdate a client's fetch, and that confound is now closed rather than assumed away.
+
+*Diagnosed and fixed 2026-09-02, commit =f73cf4b=. The cause was in our own tool declarations; the reason it presented as a hang is upstream.*
+
+*What was wrong.* Three tools declared an argument their own description told the caller to omit:
+
+| tool | argument | its description says |
+|---|---|---|
+| =org_capture= | =target= | "Omit it to prepend at the top of the capture file" |
+| =org_set_property= | =append= | "For :BLOCKER: only" |
+| =org_divide= | =parent_state= | "Defaults to the child's own" |
+
+All three are =&optional= in the elisp functions. None carried =:optional t= in its =:args=, and =--args-to-schema= derives =required= from exactly that keyword — so the published schema listed them required. =org_divide= is the third and was never reported, only because it is rarely called: it was latent, not benign.
+
+*Why a schema mismatch produced a hang rather than an error.*
+=claude-code-ide-mcp-http-server--validate-args= signals =json-rpc-error= for a missing required argument. That symbol is signalled in three places upstream and never passed to =define-error=, so it has no =error-conditions= and *no =(error …)= handler matches it* — measured directly, it comes back as Emacs's "peculiar error". It escapes =--handle-post=, =--send-json-response= is never reached, its =(throw 'close-connection nil)= never runs, and the connection is neither answered nor closed.
+
+That accounts for every symptom this heading recorded and could not explain: the call hangs, Emacs stays responsive, nothing is persisted, the buffer state and payload are irrelevant, and the same function over =emacsclient= works — because =emacsclient= never passes through MCP validation at all. It also explains the exact failing set. =org_amend=, =org_body=, =org_outline= and =org_set_todo= never hang because every argument they mark required genuinely is.
+
+*Verified four ways, not one.*
+- =--validate-args= returns for a =target=-less =org_capture= call with the fix and signals =-32602= without it, run side by side.
+- The published =required= array is now =[title]=, =[id property value]= and =[id parent_title]=.
+- =org_set_property= over MCP — which timed out earlier the same day — returned immediately once =append= was supplied, before any code changed. That isolated the cause to argument arity rather than the tool.
+- End-to-end after the fix: =org_capture= called *without* =target= over MCP, the precise call that hung on 2026-08-31 and again on 2026-09-02, returned instantly.
+
+*Reload precondition, since it nearly produced a false pass.* The running Emacs holds registrations in =claude-code-ide-mcp-server-tools=, populated when =config.el= loaded. Editing the file changes nothing live. =load-file= suffices because the block sits in =(with-eval-after-load 'claude-code-ide …)= and the package is loaded — but =claude-code-ide-make-tool= uses =add-to-list=, which compares with =equal=, so a spec whose =:args= changed is *added rather than replaced*: 23 tools became 26. De-duplicated by name keeping the newest, back to 23. Anyone reloading this file interactively will hit the same thing.
+
+*The regression test is an arity invariant, and it needed a vacuity guard.* An argument at index /i/ may be schema-required only if /i/ < the function's mandatory arity. Written naively it would have proved nothing: =config.el= registers inside =with-eval-after-load=, and in batch =claude-code-ide= is never loaded, so the registry is *empty* and the loop passes over nothing. The test requires the package and asserts the list is non-empty first. Mutation-tested — reverting one =:optional t= fails exactly this test and no other, 1 unexpected of 507.
+
+*The =org_body= probe this heading asked for was run first and is recorded above.* It came out the way that kills registration-recency, which is what sent the search into the dispatch path.
+
+*Residue, filed rather than described.* Two of this heading's three named fixes are untouched and are now their own headings: [[id:6495c8a0-d971-4c77-8b30-9fde1bbf5f26][6495c8a0]] for the discarded =note= argument, and [[id:8326a46f-e3f9-4ecc-8bc2-05d54907987b][8326a46f]] for the capture path that reports success and persists nothing — the one this body called the dangerous one. The upstream defect is [[id:ce012ad4-87f7-435c-a2ee-25210c071865][ce012ad4]], filed under [[id:9d6449c7-529f-49a0-b28f-015cce869715][9d6449c7]].
+
+*Note what the fix does and does not remove.* It removes the reason to reach for the =emacsclient= fallback, not the trap waiting there. [[id:8326a46f-e3f9-4ecc-8bc2-05d54907987b][8326a46f]] is now rarer and exactly as silent, and rarity is what keeps a false success unnoticed.
+
+
 
 
 * TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones :code:
@@ -7993,7 +8066,7 @@ lighter mechanism works.
 Writing =README.md= itself is untouched by any of that.
 
 
-* MAYBE [0/1] Accumulate issues to report upstream to claude-code-ide.el :code:
+* MAYBE [0/2] Accumulate issues to report upstream to claude-code-ide.el :code:
 :PROPERTIES:
 :CATEGORY: Upstream
 :ID:       9d6449c7-529f-49a0-b28f-015cce869715
@@ -8026,7 +8099,28 @@ code to =202= (confirmed transiently via =emacsclient= before being
 persisted as a Doom config override) resolves both — a full
 =tools/list= round-trip succeeded afterward. Worked around locally in
 this project's Doom config pending an upstream report/PR.
+** TODO json-rpc-error is signalled but never define-error'd, so a bad request hangs the connection :code:
+:PROPERTIES:
+:ID:       ce012ad4-87f7-435c-a2ee-25210c071865
+:CREATED:  [2026-09-02 Wed 12:10]
+:END:
 
+*Found 2026-09-02 while diagnosing [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]].* This is the upstream half: our three tool declarations were the trigger, but the reason a bad request *hangs* instead of erroring is in =claude-code-ide= itself, and it will bite any tool anyone registers.
+
+=claude-code-ide-mcp-http-server.el= signals =json-rpc-error= in three places — =--dispatch= for an unknown method (=-32601=), =--handle-tools-call= for an unknown tool (=-32602=), and =--validate-args= for a missing required argument (=-32602=) — and *never passes the symbol to =define-error=*.
+
+An error symbol with no =error-conditions= property matches no handler. Measured directly:
+
+: (condition-case e (signal 'json-rpc-error (list -32602 "x")) (error "caught"))
+: => *ERROR*: peculiar error: -32602, "x"
+
+So the =(error …)= handler in =--handle-post= does not catch it, and neither does the inner =condition-case= in =--handle-tools-call= — which the =--validate-args= call sits outside of anyway, being evaluated in the enclosing =let*=. The signal escapes the whole request handler, =--send-json-response= is never reached, its =(throw 'close-connection nil)= never runs, and the HTTP connection is neither answered nor closed. The client waits until it times out. Emacs stays fully responsive throughout, which is what makes the symptom so hard to place.
+
+*The fix upstream is one form:* =(define-error 'json-rpc-error "JSON-RPC error")=, plus a handler in =--handle-post= that renders it through =--send-json-error= with its own code and message. Every one of the three signal sites already carries the right JSON-RPC code, so they need no change — today those codes are simply never delivered to anyone.
+
+*Worth reporting because the failure is maximally unhelpful.* The three conditions it covers are ordinary client mistakes — unknown method, unknown tool, missing argument — and each is the kind of thing a caller could correct instantly if told. Instead all three present identically as a hang with no diagnostic anywhere.
+
+Sibling of [[id:8f986c6f-7cab-42c5-9a21-01275f271c80][8f986c6f]] under this heading: both are the HTTP server answering wrongly rather than the tools misbehaving.
 
 * MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
 :PROPERTIES:
