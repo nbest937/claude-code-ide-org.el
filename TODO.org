@@ -6,6 +6,7 @@
 :PROPERTIES:
 :ID:       8326a46f-e3f9-4ecc-8bc2-05d54907987b
 :CREATED:  [2026-09-02 Wed 12:09]
+:CATEGORY: Tools
 :END:
 
 *Split out of [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] on 2026-09-02*, which called this "the dangerous one" and "the last matters most". Its body holds the original observation; only the residue is restated here.
@@ -22,6 +23,7 @@ Called directly over =emacsclient=, outside the MCP wrapper, =claude-code-ide-or
 :PROPERTIES:
 :ID:       6495c8a0-d971-4c77-8b30-9fde1bbf5f26
 :CREATED:  [2026-09-02 Wed 12:09]
+:CATEGORY: Tools
 :END:
 
 *Split out of [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] on 2026-09-02*, which found and fixed the hang but left this untouched. It was the second of that heading's three named fixes.
