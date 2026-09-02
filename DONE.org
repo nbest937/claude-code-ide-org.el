@@ -4702,6 +4702,7 @@ CLOCK: [2026-08-26 Wed 12:52]--[2026-08-26 Wed 12:56] =>  0:04
 - State "DONE"       from "DOING"      [2026-08-26 Wed 12:56] \\
   three sites fixed, regression test proved discriminating
 :END:
+:PLAN:
 
 *The docstring of =claude-code-ide-org--trigger-auto-clock-in= reads* "Off by default since 2026-08-18 (TODO.org :ID: 226ed53b, step 2(c)): the first thing tested is =claude-code-ide-org-auto-clock-in-on-doing=, which is nil, so in normal operation this function does nothing at all."
 
@@ -4711,6 +4712,7 @@ CLOCK: [2026-08-26 Wed 12:52]--[2026-08-26 Wed 12:56] =>  0:04
 
 *Worth a sweep rather than a one-line fix.* A docstring that contradicts its own =defcustom= is invisible to every test and to =bin/lint-org=, so if this one drifted, the reversal that produced it may have left others. Check what else references =226ed53b='s step 2(c).
 
+:END:
 *Shipped [2026-08-26 Wed] as [[orgit-rev:claude-code-ide-org::24df841][24df841]].* Three docstrings re-described, two test comments corrected, one regression test added.
 
 *The sweep found exactly three falsified sites, and the test that bounded it was tense rather than topic.* =--trigger-auto-clock-in= (the tracked one), =--blocker-clock-running-p='s "Rarely reached since 2026-08-18" paragraph, and the =defcustom='s own tail -- "What a human gives up", "Set this to t to have the old behaviour back", and the list of what turns quiet. Every *other* =226ed53b= reference in both files is a historical claim about the double-counting repair, which was never reverted, so all of them stay. That distinction is what kept this from becoming a rewrite of eleven sites.
@@ -4828,6 +4830,7 @@ CLOSED: [2026-08-26 Wed 10:56]
 - State "DONE"       from "TODO"       [2026-08-26 Wed 10:56] \\
   all six children finished
 :END:
+:PLAN:
 
 *The story these three share, noticed 2026-08-24 while surveying what the session had captured.* They were filed separately, into three different categories, and each reads as a small independent defect. Together they are one thing: *the ceremony has four steps, two of them have a tool, and nothing composes them or reminds anyone.*
 
@@ -4847,6 +4850,7 @@ The sequence, from =.claude/rules/org-conventions.md=: *apply the queue, consoli
 
 *Done when* a human runs one command, answers the prompts apply asks, and the file comes out consolidated, separated and archived -- with the prompt to do so arriving on its own.
 
+:END:
 *This heading carried no TODO keyword until 2026-08-25*, and the user asked whether that was deliberate. It was not: there is no =:LOGBOOK:= on it at all, so no state was ever set. It was written directly as a parent in =4b115d8=, rather than captured and then given an initial state, which is how every other container heading here got one. Seven of eight carry a keyword; this was the only exception.
 
 *The exception falls exactly on the emergent/declared axis*, which is why the question was worth asking rather than just fixing. The other seven all *acquired* their children -- emergent epics, detectable and never declared. This one was created to bundle three headings that already existed, filed under three different categories; its opening line says so. So the corpus accidentally encoded "emergent gets a keyword, declared does not", in a sample of one, with nothing written down and no mechanism enforcing it.
@@ -4876,6 +4880,7 @@ CLOCK: [2026-08-25 Tue 20:39]--[2026-08-25 Tue 20:47] =>  0:08
 - State "DONE"       from "DOING"      [2026-08-25 Tue 20:47] \\
   38 of 221 reordered, 0 on re-run, lossless
 :END:
+:PLAN:
 
 *Measured 2026-08-24, over both files.* =claude-code-ide-org-consolidate-on-apply= is =t= and works -- but it only fires on a heading that an apply pass *writes to*. A drawer disturbed by anything else keeps its disorder, and archiving ends the only thing that would have repaired it.
 
@@ -4902,6 +4907,7 @@ Counting drawers with two or more timestamped entries, and asking whether their 
 
 *Shape:* a command that consolidates every drawer in the tracked files, reusing =--consolidate-logbook-text= unchanged -- already idempotent and pinned lossless. Worth running before an archive pass in particular, since that is the last moment a heading is ever touched; that makes it a natural companion to [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] rather than a separate ritual.
 
+:END:
 *Shipped 2026-08-25* ([[orgit-rev:claude-code-ide-org::8cd7c57][8cd7c57]]) as =claude-code-ide-org-consolidate-all-drawers=, built to the shape this heading specified: walk the tracked files, reuse =--consolidate-logbook-text= unchanged, and inherit that function's idempotence and lossless guarantee rather than restating either.
 
 *Modelled on =recompute-accumulated-clock-lines=*, its nearest sibling, which already had the whole pattern -- walk =--tracked-files=, find every =:LOGBOOK:=, transform the text, dry-run support, save only touched files, close a buffer this command opened and leave alone one the user already had. Copying that shape rather than inventing one is why this is 60 lines.
@@ -4939,7 +4945,9 @@ CLOCK: [2026-08-25 Tue 17:59]--[2026-08-25 Tue 18:02] =>  0:03
 - State "DONE"       from "REVIEW"     [2026-08-25 Tue 19:16] \\
   docs shipped; lint half split to 601c885c
 :END:
+:PLAN:
 
+:END:
 *Shipped 2026-08-24* (=b6619e5=). Every heading's content now ends with exactly two blank lines before the next heading.
 
 *Two, and the number is not a matter of taste.* Org hides the blank line between a collapsed subtree and the following headline unless there are at least =org-cycle-separator-lines= of them, and that variable is 2 by default here. Two in the file buys exactly one visible line of air when folded; one buys none. So the convention is calibrated to a setting that already existed, and needed no configuration change.
