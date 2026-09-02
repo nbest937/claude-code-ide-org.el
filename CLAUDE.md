@@ -856,11 +856,25 @@ explicitly; that overrides this for that instance only.
 
 Two separate timekeeping mechanisms, deliberately kept apart:
 
-- **`:LOGBOOK:` CLOCK entries** (org's own, native mechanism) track *active
-  Claude work time only*. A running clock is paused the moment Claude Code
-  stops and is waiting on the user, and resumed the moment the user sends
-  the next prompt. A DOING task can therefore accumulate many short CLOCK
-  intervals instead of one long one spanning idle waiting time.
+- **`:LOGBOOK:` CLOCK entries** (org's own, native mechanism) hold
+  *confirmed intervals* — work time a human accepted at a review pass.
+  **No hook writes one.** Since the 2026-08-11 cutover the `Stop` and
+  `UserPromptSubmit` hooks append **turn-boundary guideposts**: bare
+  timestamps, naming no heading and touching no clock. The review pass
+  clusters those into spans, and a human confirms or corrects each one
+  before it becomes a CLOCK line. So the *emission* is still per-turn;
+  the *record* is not, and intervals are per-decision rather than per-turn.
+
+  Two consequences that read as bugs and are not. A `DOING` heading
+  normally has **no running clock** — live CLOCK lines are only ever
+  written by the review pass, so every `DOING` heading sits clockless
+  between passes. And CLOCK lines arrive in **bursts when someone
+  applies**, not continuously as work happens, so their timestamps
+  describe when the work was, never when the line was written.
+
+  **Churn relocates; it does not disappear.** Guideposts still accumulate
+  every turn, into the queue file — cheap, disposable, no Emacs required.
+  What ended is churn in the *org record*.
 - **The `:SESSIONS:` drawer is retired** (2026-08-11, TODO.org
   `:ID: 9d2fcdad-9bf7-47b6-8018-223b13ec4577`). It used to hold the
   bracketing history — a timestamped log of every pause and resume, so

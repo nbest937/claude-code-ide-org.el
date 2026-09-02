@@ -6324,6 +6324,43 @@ emission stays per-turn, the record stops being per-turn.
 *Verify:* =grep -n -A8 '^## Session tracking' CLAUDE.md= shows no claim
 that any hook pauses or resumes a clock.
 
+*Shipped 2026-09-02.* The bullet now says CLOCK entries hold *confirmed
+intervals* — work time a human accepted at a review pass — and states
+plainly that **no hook writes one**. The =Stop= and =UserPromptSubmit=
+hooks append turn-boundary guideposts: bare timestamps, naming no
+heading and touching no clock. The vocabulary is the one this parent
+settled on 2026-08-10: the emission stays per-turn, the record stops
+being per-turn.
+
+*Two consequences were written in alongside it,* because both read as
+bugs and neither is. A =DOING= heading normally has no running clock,
+since live CLOCK lines are only ever written by the review pass — that
+is the parent's drift #3, which had no heading of its own and would
+otherwise have needed rediscovering. And CLOCK lines arrive in bursts
+when someone applies, so their timestamps describe when the work *was*,
+never when the line was written.
+
+*And "churn relocates; it does not disappear"* is stated, which the
+parent flagged on 2026-08-10 as worth saying explicitly: the obvious
+reading of "the cutover stops per-turn churn" is wrong in a way that
+would mislead the next reader. Guideposts still accumulate every turn,
+into the queue file.
+
+*Verified by this heading's own =Verify= line:* =grep -n -A10 '^##
+Session tracking' CLAUDE.md= now shows no claim that any hook pauses or
+resumes a clock. The passage below it — "None of them reaches Emacs any
+more" — was already correct and now agrees with the bullet above it
+rather than contradicting it, which was the whole defect.
+
+*Elapsed, since it is the point of the heading:* named as wrong in the
+parent's body on 2026-08-10, audited as still wrong on 2026-08-17,
+audited again 2026-09-01, fixed 2026-09-02. Twenty-three days, in the
+file loaded into every session by default. Splitting it out of the
+parent body is what made it fixable — a paragraph 400 lines into a
+container is invisible to =org_outline=, the agenda and every
+nomination.
+
+
 
 ** DONE The org skill's state-transition table still describes live clock driving :code:
 CLOSED: [2026-08-21 Fri 12:46]
