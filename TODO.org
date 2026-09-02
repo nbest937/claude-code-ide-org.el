@@ -184,6 +184,56 @@ actually working; and whether the exclusion should be reported rather
 than silent, since a slice's incidental list going quiet is the same
 class of failure as it going noisy.
 
+*Shipped 2026-09-02 as =b6bcdc9=.*
+=claude-code-ide-org--other-slices-declared-ids= collects every slice's
+planned members across the tracked files, and
+=--slice-incidental-ids= subtracts them.
+
+*Only the planned half is read, never the generated incidental list* —
+otherwise two slices whose windows overlap would each shield the other's
+incidentals and both lists would empty out. That is the same
+self-reference trap =--slice-planned-member-ids= exists to avoid, one
+slice further out, and it was worth stating in the docstring because the
+obvious implementation reads all members.
+
+*The three open questions, decided:*
+
+- *CANCELLED slices are skipped, and it is the only real judgement here.*
+  A =DONE= slice's declaration stays true as a historical claim — that
+  slice did plan this work — so its members keep their owner. A
+  cancelled plan was abandoned, so its declarations no longer speak for
+  anything and work closed in someone else's window really is incidental
+  to them.
+- *An unstarted slice's declaration still shields.* The question the
+  list answers is *who planned the work*, not who got to it. A member
+  completed by someone else is still that slice's member, and its
+  checklist showing it done is correct rather than a false claim of
+  credit.
+- *The exclusion is reported.* A derived list that quietly *shrinks* is
+  as wrong as one that quietly grows, and only one of those is visible —
+  which is the whole reason this heading exists. Named rather than
+  counted, following the =unrendered= precedent in the same report: a
+  count sends the reader hunting, an id says which.
+
+*Live effect, measured:* =b36e6369='s incidentals went 13 → 11, dropping
+=478d6ec9= and =9651d4c8= — both declared by the *previous* slice
+=979e02b6=. Neither was ever incidental to the current slice; they were
+its predecessor's planned work, closed inside the current window.
+Refreshing twice reports identically, so the report variable does not
+accumulate across calls.
+
+*Verified by mutation, three ways.* Recording the exclusion without
+applying it, letting a cancelled slice claim, and dropping the report
+each fail *exactly* their own test — 506 ran, 1 unexpected, in every case
+— and the suite restores to 506/506. Each test also asserts a positive:
+=incid-002= must *stay* incidental, so none of them could pass on a
+function that returned nil.
+
+*Closes the twin.* [[id:42ba0a80-61c5-49bd-b6a2-9da76a53ff64][42ba0a80]] bounded the window;
+this bounds the exclusion set. Neither alone made =f9fe9fac= right, which
+is why both were filed rather than one.
+
+
 
 * TODO Classify gaps by markers at either end, not by tracking an AFK state :code:
 :PROPERTIES:
