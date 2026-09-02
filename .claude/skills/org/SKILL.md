@@ -467,21 +467,33 @@ overwrite it.
 ### Body prose and the task lifecycle
 
 **A body has two lives, and since 2026-08-24 they live in different
-places.** While the task is open the body is *prospective* — motivation,
-observations, speculation, and the plan link if there is one — and is pared
-and revised as understanding changes. When the task is carried out,
-`org_wrap_plan` moves that whole half into a `:PLAN:` drawer beside
-`:PROPERTIES:` and `:LOGBOOK:`, and what remains as the body is the
-*debrief*: problem restated, what the solution turned out to be, how it was
-verified, what was falsified. A folded heading then shows the debrief and
-nothing else.
+places, from the moment each is written.** The prospective half —
+motivation, options, the reasoning behind an approach, and the plan link if
+there is one — goes into a `:PLAN:` drawer beside `:PROPERTIES:` and
+`:LOGBOOK:` *when it is composed*, not at `DONE`. The body carries a brief
+statement of the problem and the proposed solution, two to five sentences.
+At `DONE` the debrief is appended to the body: what the solution turned out
+to be, how it was verified, what was falsified.
 
-**Skip `:PLAN:` when reading.** Treat the drawer as absent unless the
-question is explicitly retrospective — "how did we get here", "why this
-way". The debrief and the source code describe present reality; the plan
-describes an intention that may not have survived contact. Reading it for
-current fact is how a superseded design claim gets repeated as though it
-still held, and it is the whole reason the two halves were separated.
+Compose it in three calls — `org_amend` the prospective prose,
+`org_wrap_plan` with no seam marker, then `org_amend` the short body.
+
+**So no seam is ever created**, which is the point. The seam is a fact about
+*when* a sentence was written; nothing in the prose records it and it is not
+recoverable afterwards. `org_wrap_plan`'s seam marker is therefore a
+*retroactive* tool, for bodies written before this convention.
+
+**How to read `:PLAN:` depends on the keyword.** On a **finished** heading
+treat it as absent unless the question is explicitly retrospective — "how
+did we get here", "why this way". The debrief and the source code describe
+present reality; the plan describes an intention that may not have survived
+contact, and reading it for current fact is how a superseded design claim
+gets repeated as though it still held.
+
+On a **live** heading the drawer holds the *current* plan — the fullest
+statement of what the task intends — so **read it**. The drawer's status
+follows the heading's keyword rather than being a property of the drawer,
+which is why nothing has to move when the heading closes.
 
 *This section used to open by saying `org_amend` appends and can do nothing
 else, so an outcome always lands furthest from the reader, and that the
@@ -539,9 +551,13 @@ Untouched: **open questions** (keep them verbatim — settling one now by
 inference is the only thing "relitigating" meant), **the debrief**, and
 **anything whose seam is unclear** (wrap it whole, condense nothing).
 Condense in a separate commit from the wrap: a bad pare inside `:PLAN:`
-is invisible by design, since readers skip the drawer. For the archive
-backlog the rule is wrap unedited (`cbe282ec`); split only when you are
-already reading the heading for another reason.
+is invisible by design, since readers skip the drawer on a finished
+heading.
+
+**"Wrap unedited" is retired as the backlog rule** (`f099379b`). It was
+chosen when the backlog was ~30 purely prospective bodies; measured
+2026-09-02, 88 of 93 unwrapped headings carry a debrief, so wrapping whole
+would bury it. The backlog pass is `35d25265`, which reads each body.
 
 ### Inserting content programmatically
 

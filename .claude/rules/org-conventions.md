@@ -473,21 +473,41 @@ little more with every slice.
 
 ## The `:PLAN:` drawer
 
-A finished heading's body has two halves, and they live in different places.
+**Write the plan into the drawer from the start.** A heading's prospective
+prose — motivation, options, the reasoning behind an approach, and the
+`[[file:~/.claude/plans/...][Plan]]` link if there is one — goes into `:PLAN:`
+at the moment it is composed, not at `DONE`. The body carries a brief
+statement of the problem and the proposed solution, two to five sentences. At
+`DONE` the debrief is appended to the body.
 
-- **`:PLAN:`** holds the *prospective* half — motivation, observations,
-  speculation, and the `[[file:~/.claude/plans/...][Plan]]` link if there is
-  one. It sits beside `:PROPERTIES:` and `:LOGBOOK:`, above the prose.
-- **The body** is the *debrief* alone: problem restated, what the solution
-  turned out to be, how it was verified, what was falsified.
+So the two halves are never mixed and **no seam is ever created**, which is
+the entire point. The seam is a fact about *when* a sentence was written;
+nothing in the prose records it, and it is not recoverable afterwards.
+Measured on `:ID:` f099379b: a lexical marker finds the prospective half as
+often as the retrospective one, and 88 of 93 finished headings carried a
+debrief that a blind wrap would have buried.
 
-So a folded heading shows the debrief and nothing else.
+Compose it in three calls — `org_amend` the prospective prose, `org_wrap_plan`
+with no seam marker to move it whole into the drawer, then `org_amend` the
+short body. `org_amend` appends *below* a `:PLAN:` drawer, so the debrief
+later needs no special handling.
 
-Create it with `org_wrap_plan`, never by hand — it takes an optional seam
-marker naming the first line that stays in the body, which is what a heading
-written before this convention needs, since such a body usually already holds
-both halves. `org_amend` appends *below* a `:PLAN:` drawer, so the debrief
-needs no special handling.
+The two-to-five-sentence limit governs the body **before** the debrief, not
+forever. A finished heading's body is that statement plus the debrief. Read as
+an absolute cap it would push the debrief into the drawer, which is the
+inversion this convention exists to prevent.
+
+**Which way to read the drawer depends on the keyword, and this reverses
+earlier advice.** On a **finished** heading, treat `:PLAN:` as absent unless
+the question is retrospective — "how did we get here", "why this way". The
+debrief and the source describe present reality; the plan describes an
+intention that may not have survived contact, and reading it for current fact
+is how superseded design claims get repeated as though they still held.
+
+On a **live** heading the drawer holds the *current* plan, and skipping it
+means skipping the only full statement of what the task intends. **Read it.**
+The drawer's status follows the heading's keyword rather than being a property
+of the drawer, which is why nothing has to move when the heading closes.
 
 **An empty `:PLAN:` drawer is a real answer, not an accident.** A heading
 written outcome-first has no prospective half at all, and that is the
@@ -495,24 +515,19 @@ convention working rather than a heading missing a step. Pass the debrief's
 first line as the seam and `org_wrap_plan` writes an empty drawer, recording
 that the question was asked and answered; the whole body stays visible.
 
-The point is that **whether a body has a prospective half is a judgement,
-not something derivable from its prose** — bodies of both kinds open with a
-bold lead, so nothing in the text distinguishes them. So it is *declared*,
-by running the wrap, exactly as a slice is declared rather than inferred.
+`org_wrap_plan`'s seam marker is now a **retroactive** tool. A heading written
+under this convention never needs one, because its body was never mixed. It is
+for bodies written before the convention existed, which usually hold both
+halves — see `:ID:` 35d25265 for the pass over those, and note that pass's
+one-off exception (wrap the whole body, leave a pointer note) is explicitly
+**not** available to new headings.
 
 This is also what makes the lint's question answerable. `bin/lint-org` warns
-when a finished heading has a substantial body and no `:PLAN:` drawer; before
-the empty drawer existed, the only way to satisfy that warning on a
-debrief-only heading was to wrap the debrief into a drawer readers are told
-to skip — the exact inversion the lifecycle exists to prevent. See `:ID:`
-f421c5c3.
-
-**Readers skip it.** Treat `:PLAN:` as absent unless the question you are
-answering is retrospective — "how did we get here", "why was it done this
-way". The debrief and the source code describe present reality; the plan
-describes an intention that may not have survived contact, and reading it
-for current fact is how superseded design claims get repeated as though
-they still held.
+when a finished heading has a substantial body and no `:PLAN:` drawer, and
+`org_set_todo` says the same thing at the moment `DONE` is queued — which is
+the last moment anyone knows where the seam is. Before the empty drawer
+existed, the only way to satisfy the warning on a debrief-only heading was to
+wrap the debrief into a drawer readers are told to skip. See `:ID:` f421c5c3.
 
 ## The meta-work datetree
 

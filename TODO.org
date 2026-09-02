@@ -18,7 +18,7 @@
 
 *What "read it" actually means here*, since "do your best" needs an operational form: tense (=will= / =should= / =Approach:= versus =shipped= / =verified= / =measured ... and the result was=), voice (proposing versus reporting), and markup — this corpus marks prospective framing with =*Proposed by ...*=, =*The user's proposal*=, =*Decide whether ...*=, and retrospective with =*Shipped ...*=, =*Verified, not just implemented:*=, =*Implementation notes:*=. None of these is decisive alone, which is exactly what [[id:f099379b-7f78-4c19-85be-abeea0bf3e71][f099379b]] measured; together, on a heading being read rather than pattern-matched, they usually are.
 
-*Scope check before starting:* 64 warned in DONE.org and 9 in TODO.org. The TODO.org nine are *live* headings and are a different case — under the new convention their bodies are prospective and belong in the drawer whole, with no debrief to separate.
+*Scope check before starting:* 64 warned in DONE.org and 9 in TODO.org. **73 in total.** Measured rather than assumed: all nine of the TODO.org ones are =DONE= and merely unarchived, so they are the same case as the 64. An earlier draft of this plan called them *live*, which the lint's own condition rules out — it fires only on a finished keyword.
 
 *Ordering:* this precedes [[id:d5eb32a3-fcee-4a25-b39a-fcde597f6cee][d5eb32a3]], and that is the cheap order rather than an arbitrary one. Once the plan is extracted the remaining body *is* the debrief, so a later =:DEBRIEF:= wrap needs no second seam judgement.
 :END:

@@ -441,6 +441,17 @@ happened: what shipped, how it was verified, what was measured, what was
 falsified, and why a decision went the way it did. It does not restate
 design the linked plan already holds.
 
+**Since 2026-09-02 the plan goes into `:PLAN:` when it is *composed*, not
+at `DONE`** (`:ID:` b75d553a). The body carries a two-to-five-sentence
+statement of the problem and proposed solution; the debrief is appended
+at `DONE`. So the two halves are never mixed and no seam is ever
+created — which matters because the seam is a fact about *when* a
+sentence was written, is recorded nowhere in the prose, and is not
+recoverable later (`:ID:` f099379b). `org_wrap_plan`'s seam marker is now
+a retroactive tool. **And how to read the drawer depends on the
+keyword**: skip it on a finished heading, *read* it on a live one, where
+it holds the current plan rather than superseded design.
+
 *Revision is expected, not forbidden* (reversed 2026-08-24; this rule
 previously read "Prospective only — bodies written before 2026-08-14 are
 not to be trimmed"). A finished heading's body may be split: the
@@ -467,11 +478,14 @@ body prose in the version-controlled `.org` files is recoverable from
 any commit, and only *plans* have bounded history, since
 `.githooks/pre-push` merely bounds how stale the archive can be.)
 
-*The backlog is not this rule.* `cbe282ec` chose "sweep old bodies in
-unedited" to keep 30 headings cheap, and that stands: **backlog = wrap
-unedited; opportunistic = split when you are already reading the heading
-anyway.** Letting the backlog pass acquire per-heading judgement is
-exactly the cost that decision was made to avoid.
+*The backlog rule was "wrap unedited" and is retired* (`:ID:` f099379b).
+`cbe282ec` chose it to keep 30 purely prospective bodies cheap. Measured
+2026-09-02, 88 of 93 unwrapped headings carry a debrief, so a blind wrap
+would bury it in a drawer readers are told to skip — and no lexical
+marker finds the seam, since the first match sits in the *prospective*
+half as often as not. The backlog pass is `:ID:` 35d25265, which reads
+each body; it costs the per-heading judgement `cbe282ec` was trying to
+avoid, and there is no cheaper honest option.
 
 *The evidence for the split, from a single day's drift:* three headings
 carried confident design claims that were later found wrong —
@@ -869,7 +883,7 @@ incident, and the reason the queue exists:
 | Tool                | Notes                                  |
 |---------------------|-----------------------------------------|
 | `org_outline`       | Compact structural index: level, keyword, title, `:ID:`, tags. Marks `[blocked: id …]`. **Scoped to one heading it leads with that heading's front matter** — `:CREATED:`, `:CATEGORY:`, `:KIND:`, the `:BLOCKER:` *value* with each id's keyword, the plan file — so "what is this, what blocks it, what is under it" is one call and no body read. Accepts an 8-character prefix as scope. Use before creating a heading |
-| `org_body`          | Returns one heading whole — heading line, drawers and body — by `:ID:` or 8-character prefix. Filters **nothing**, `:PLAN:` included; the caller extracts. This heading's own body by default, `include_children` for the subtree. Replaces grep-plus-awk-plus-`Read`; still reach for `org_outline` first |
+| `org_body`          | Returns one heading whole — heading line, drawers and body — by `:ID:` or 8-character prefix. Filters **nothing**, `:PLAN:` included; the caller extracts, and how to read that drawer depends on the heading's keyword (skip when finished, read when live). This heading's own body by default, `include_children` for the subtree. Replaces grep-plus-awk-plus-`Read`; still reach for `org_outline` first |
 | `org_pending_updates` | Summary of queued-but-unapplied updates, grouped by heading. Counts *proposals*, not queue lines. This is how you check a queued call landed |
 
 There is **no MCP tool that applies the queue**, by design. Apply is `M-x
