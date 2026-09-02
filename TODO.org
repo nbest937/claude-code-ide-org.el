@@ -6485,6 +6485,7 @@ CLOSED: [2026-09-02 Wed 09:40]
 CLOCK: [2026-09-02 Wed 10:26]--[2026-09-02 Wed 10:27] =>  0:01
 - [2026-09-02 Wed 10:26]--[2026-09-02 Wed 10:27] rewrite Session tracking for the queue model
 :END:
+:PLAN:
 
 "Session tracking" still describes =:LOGBOOK:= CLOCK entries as tracking
 "active Claude work time only", paused the moment Claude Code stops and
@@ -6508,6 +6509,7 @@ emission stays per-turn, the record stops being per-turn.
 *Verify:* =grep -n -A8 '^## Session tracking' CLAUDE.md= shows no claim
 that any hook pauses or resumes a clock.
 
+:END:
 *Shipped 2026-09-02.* The bullet now says CLOCK entries hold *confirmed
 intervals* — work time a human accepted at a review pass — and states
 plainly that **no hook writes one**. The =Stop= and =UserPromptSubmit=
@@ -6595,6 +6597,7 @@ CLOSED: [2026-09-02 Wed 09:41]
 - State "DONE"       from "TODO"       [2026-09-02 Wed 09:41] \\
   both halves now stated in one place
 :END:
+:PLAN:
 
 [[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]] shipped an
 exemption — =claude-code-ide-org--trigger-auto-clock-in= skips headings
@@ -6656,6 +6659,7 @@ line here or reading the scope correction. Wrong on both counts: the
 Done-when is sharper than what was checked, and it is this heading's
 call to make. Left open.
 
+:END:
 *Shipped 2026-09-02.* The open-a-clock rule now carries a second
 exception beside the retroactive one, and it states both halves in the
 same place, which is what the Done-when asked and what neither location
@@ -6753,6 +6757,7 @@ CLOSED: [2026-09-02 Wed 09:42]
 - State "DONE"       from "TODO"       [2026-09-02 Wed 09:42] \\
   all three documented; item 2's blocker was already clear
 :END:
+:PLAN:
 
 Three gaps, all in "Session tracking", all created by the 2026-08-18
 work and none yet written down:
@@ -6773,6 +6778,7 @@ nothing.
 Blocked in practice on 1 only in the sense that 2 needs its name first;
 1 and 3 can be written today.
 
+:END:
 *Shipped 2026-09-02, all three items, as a new "The three numbers that
 shape a recorded interval" subsection under "Session tracking".*
 

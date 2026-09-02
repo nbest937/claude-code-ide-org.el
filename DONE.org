@@ -6580,6 +6580,7 @@ CLOCK: [2026-08-21 Fri 13:07]--[2026-08-21 Fri 13:24] =>  0:17
 - State "DONE"       from "TODO"       [2026-08-24 Mon 14:51] \\
   whole-span gap line fixed and pinned
 :END:
+:PLAN:
 
 *Reported by the user 2026-08-21, reviewing a real batch:* a suggested span rendered =(nothing for 10m, 10:37-10:47)= beneath a header already reading =10:37--10:47=, and the first question it prompted was whether the line was a defect.
 
@@ -6593,6 +6594,7 @@ CLOCK: [2026-08-21 Fri 13:07]--[2026-08-21 Fri 13:24] =>  0:17
 
 *Do not raise =claude-code-ide-org-span-evidence-gap= to suppress it.* The threshold exists to filter *interior* gaps by significance; using it to hide the empty case would restore exactly the "nothing found is indistinguishable from nobody looked" defect 5ff5a4b8 fixed, and would do so silently for short spans only.
 
+:END:
 *Shipped 2026-08-24* (=078bf65=), as the body proposed and for the reason it gave: when the gap's interval equals the span's, the timestamps are dropped and the line says only =(no evidence found in this window)=.
 
 *The line still appears,* which is the load-bearing half. Suppressing it entirely would restore [[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]]'s "nothing found is indistinguishable from nobody looked" defect, and raising =claude-code-ide-org-span-evidence-gap= to hide it would do the same thing silently and for short spans only. Both were rejected here before the fix was written, and the fix took neither.
