@@ -478,7 +478,7 @@ To which add the standing friction: the two MCP tools that time out are worked a
 
 - [ ] [[id:39039bb6-c70a-4ba9-8b37-edd8dd6921f6][39039bb6]] TODO bin/lint-org does not detect a duplicate :ID: across TODO.org and DONE.org
 - [ ] [[id:f12f9da4-2870-45b7-8c50-ea54415c7bc6][f12f9da4]] TODO The running Emacs can be running a stale config.el and nothing says so
-- [ ] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] TODO Three verification traps hit repeatedly in one session, none of them caught by a check
+- [ ] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] TODO Verification traps: a check with no way to fail, and a fixture that never takes the real path
 - [X] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] DONE Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
 - [-] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] REVIEW MCP tools that write an org file time out; one reports success and persists nothing
 - [ ] [[id:25e7b083-360b-4282-8fd0-bb768e2a0f13][25e7b083]] TODO org_capture's target refuses an 8-character :ID: prefix that every other tool accepts
@@ -492,7 +492,6 @@ To which add the standing friction: the two MCP tools that time out are worked a
 Incidental:
 
 - [X] [[id:42ba0a80-61c5-49bd-b6a2-9da76a53ff64][42ba0a80]] DONE An unstarted slice accrues every heading closed since it was written down
-
 
 * TODO Three new ways to owe a footnote and not see it: marker, list, quotation :code:
 :PROPERTIES:
@@ -1286,7 +1285,7 @@ and the open decisions live in the prompt below rather than here.
 - [X] [[id:5f1068f9-1452-45e4-9253-568edfce2053][5f1068f9]] DONE Sort TODO.org by :CREATED: descending, after each archive pass
 - [ ] [[id:7c4d6ef6-c914-4d33-b267-cc9158a9f359][7c4d6ef6]] TODO Settle what a slice proposal is, and write the procedure down
 - [X] [[id:8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8][8c662dfb]] DONE Sweep the ten longest live bodies into :PLAN: drawers
-- [ ] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] TODO Three verification traps hit repeatedly in one session, none of them caught by a check
+- [ ] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] TODO Verification traps: a check with no way to fail, and a fixture that never takes the real path
 - [X] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] DONE Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
 
 - [X] [[id:d39f5f0d-bee3-4aa4-8494-0bddd07e9067][d39f5f0d]] DONE CLAUDE.md's "Session tracking" still describes the pre-cutover clock
@@ -1317,8 +1316,7 @@ Incidental:
 - [X] [[id:13ea6770-88ba-484d-87bd-2d20c44dc610][13ea6770]] DONE The ceremony steps do not bind inhibit-read-only, so the sweep dies on the guard
 - [X] [[id:42ba0a80-61c5-49bd-b6a2-9da76a53ff64][42ba0a80]] DONE An unstarted slice accrues every heading closed since it was written down
 
-
-* TODO Three verification traps hit repeatedly in one session, none of them caught by a check :code:
+* TODO Verification traps: a check with no way to fail, and a fixture that never takes the real path :code:
 :PROPERTIES:
 :ID:       542924c1-9152-4414-8da8-d530d3423611
 :CREATED:  [2026-08-28 Fri 17:36]
@@ -1411,6 +1409,29 @@ happens.* =(require 'org-archive)= is now unconditional in
 ceremony ran *warm* — the fresh-session path has been exercised exactly
 once, immediately after the reload that fixed it. The next cold run is
 the second data point, and only if Emacs is restarted before it.
+
+*Five more, 2026-09-02, from the session that shipped [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] and [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]]. Three are new shapes; two open a second class this heading did not previously cover, and which the proposed =bin/check-elisp= cannot reach.*
+
+*7. A mutation that does not **apply** is indistinguishable from one the tests caught.* Case 3 above is a mutation that does not *parse*. This is worse, because it leaves no wreckage: a Python =str.replace= whose pattern does not match returns the string unchanged and raises nothing, so the suite runs clean on *unmutated* code and the transcript reads "mutation applied; 0 unexpected" — which looks exactly like a test that failed to discriminate. It happened twice in one hour, and both times the conclusion drawn was the opposite of the truth. The fix is the same shape as this heading's other fixes: assert the substitution count before running anything. Every mutation in that session afterwards did =if s.count(old) != 1: sys.exit(...)=.
+
+*8. =should-error= passed for the wrong reason, with the guard deleted.* A test asserted that converting an archive refuses when a heading carries no =CLOSED:=. Delete the guard and it *still* raised — a nil =CLOSED:= reaches =org-date-to-gregorian=, yields =(nil nil nil)=, and =encode-time= throws =wrong-type-argument= three frames down. So the test passed both ways and proved nothing. This is distinct from case 6: the harness *could* reach the false state, and a *different* failure masked the absence of the one being asserted. **A bare =should-error= asserts only that something went wrong.** It now matches the message.
+
+*9. A control that no longer contained the subject.* To check whether a lint error was caused by a restructure, the same content was linted flat and as a datetree. The flat file came back clean — because =org-archive-subtree= had already *moved the heading out of it*. The comparison was against an empty file and read as exonerating. The user's standing rule about a =grep= being a hypothesis about what it hides generalises: so is a control.
+
+*The second class: the fixture takes a path the real caller does not.*
+
+*10. A default argument that only production supplies.* =--datetree-target-file= computed "DONE.org beside the capture target" and named a file that does not exist — the capture target is reached through a *symlink*, and the archive lives beside the link's target. Every test passed the path explicitly, so **the default was the one code path nothing exercised**, and the ceremony failed with "Nothing to sort" on every run while every hand call succeeded.
+
+*11. Real buffer flags and real schedule state.* The ceremony's repeater advance never bound =inhibit-read-only=, so it died on the user's read-only guard; and it advanced unconditionally, which given =++1d= shifts *from the stored date* would have pushed a not-yet-due schedule a further day out — silently cancelling the next ceremony. Neither was reachable from any fixture, because no fixture set the flag or the schedule.
+
+*The generalisation these two force, and it is not this heading's existing one.* Cases 1-9 are all "the check had no way to fail". These are different: the checks **could** fail, and did not, because they never ran the code production runs. Measured: **three defects in the ceremony path, none caught by 517 passing tests, all three found by running it.** Each lived in the gap between how a fixture invokes a function and how the real caller does — default arguments, buffer flags, schedule state, symlinks.
+
+*So the question that catches cases 1-9 does not catch these.* "What would this have printed if the thing I am testing were false?" is answerable and was answered; the code under test was simply not the code that runs. The second question is **"does anything call this the way production calls it?"** — and for a function with an =&optional file= that the ceremony always omits, the answer was no.
+
+*What a check could assert here*, in the same spirit as the =Ran N tests= assertion above and cheaper than the alternatives: for each ceremony step, that its *no-argument* call resolves to the file the step beside it writes to. That is exactly the invariant case 10 violated, it is decidable without judgement, and it needs no new harness — the regression test written for it is four lines of =file-equal-p=.
+
+*The honest limit, restated because it now has two members.* Case 6 concluded that where the harness cannot reach the state, the verification of record is a live run under a stated precondition. Cases 10 and 11 are the same conclusion from the other side: the harness *could* have been built, nobody thought to, and the thing that found all three was a human running the ceremony and reading the output. Two of the three were surfaced by the user, not by the session that wrote them.
+
 
 
 * MAYBE Install orgparse for ad-hoc analysis, and stop reaching for regex over org text :code:
