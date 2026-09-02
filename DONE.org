@@ -5384,6 +5384,7 @@ CLOCK: [2026-08-26 Wed 09:30]--[2026-08-26 Wed 09:35] =>  0:05
   own heading, no datetree; bury ends the pass
 - [2026-08-26 Wed 09:36]--[2026-08-26 Wed 09:44] assigned at review
 :END:
+:PLAN:
 
 *Proposed by the user 2026-08-24, reviewing a live queue.* The review pass is the one activity this project has never measured, and it is the one the project most depends on: nothing reaches an org file without it. Its cost is currently invisible, so "the review-apply cycle seems pretty straightforward lately" ([[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]]) is an impression rather than a number.
 
@@ -5482,6 +5483,7 @@ Inactive, and it is org's own grammar rather than a setting -- there is no confi
 
 *So the recommendation is: one dedicated heading, native =org-clock-in=, plus an active annotation line beside each interval.* Structural separation is what makes the two quantities separately reportable; the active annotation is what puts the human's own time in the agenda. The datetree question does not need answering to proceed, which was the only thing gating the build.
 
+:END:
 *Shipped 2026-08-26* ([[orgit-rev:claude-code-ide-org::82416ad][82416ad]]). =claude-code-ide-org-review= now opens a native clock on a dedicated heading, and three layers close it.
 
 *The datetree question is answered rather than deferred, and the answer is "neither".* It was gated on "a report someone actually wants", which [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] produced -- and the report made the case for *structural* separation, since inactive CLOCK lines cannot be told apart by style. But a second =:DATE_TREE:= turned out to be unnecessary: =:step day= reports per-day totals from one ordinary heading. So the recommendation above stands, the cost that made it hard is gone, and =29439196= is not prejudged either way.
@@ -5544,6 +5546,7 @@ CLOCK: [2026-08-26 Wed 09:03]--[2026-08-26 Wed 09:07] =>  0:04
 - State "DONE"       from "DOING"      [2026-08-26 Wed 09:07] \\
   replace mode shipped, drawers safe by construction
 :END:
+:PLAN:
 
 =org_amend= appends to the end of a heading's body and can do nothing
 else. Its description says so — "the text lands at the end of the
@@ -5642,6 +5645,10 @@ Two insertions at computable positions, never a range replacement, and no bounda
 *One precondition that a reload does not satisfy.* This adds an MCP *parameter*, and a client's tool schema is negotiated at session start -- so the session that shipped it still holds the three-argument form and cannot call =replace= itself. The elisp is live; the tool surface is not, until a new session. Worth knowing before anyone concludes the argument was ignored.
 
 *What this unblocks, stated because it was the reason to build it.* [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]]'s retention policy could not be applied to an existing body without a tool that can rewrite one; this heading was its dependency rather than its neighbour. The rules that follow from the decision -- an open heading's body is the problem, the latest intended approach and verified facts; a closed one is a concise debrief with the prospective half wrapped rather than deleted -- are now enforceable rather than aspirational.
+:END:
+
+See the =:PLAN:= drawer for details. Its body interleaves planning and execution across two ship events — the wrapping half 2026-08-24, then re-scoping, then the revision half 2026-08-26 — so no single line is the seam. Wrapped whole under [[id:35d25265-df52-45c0-8226-dfa24c3ed5bb][35d25265]]'s retroactive exception rather than cut at a fabricated one.
+
 
 
 
