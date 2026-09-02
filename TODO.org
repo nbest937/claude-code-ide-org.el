@@ -2,6 +2,38 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Write the plan into :PLAN: from the start, so no seam is ever created :code:
+:PROPERTIES:
+:ID:       b75d553a-3c77-4b98-9f58-022bfa295816
+:CREATED:  [2026-09-02 Wed 15:19]
+:CATEGORY: Meta
+:END:
+:PLAN:
+
+*The user's proposal, 2026-09-02, offered as a simplification after [[id:f099379b-7f78-4c19-85be-abeea0bf3e71][f099379b]] showed the backlog's seams are not mechanically recoverable:* write the prospective text into =:PLAN:= from the beginning; keep the task body to a brief problem-and-proposed-solution of 2-5 sentences; append the debrief at DONE-queued time.
+
+*It dissolves the seam rather than solving it.* Every mechanism tried so far — =org_wrap_plan='s =until=, the lexical marker, the queued-DONE nudge — exists because prospective and retrospective prose accumulate in one flat body and must be told apart *later*. Writing them to different places at the moment each is composed means there is never a mixture, so nothing has to be separated and no judgement is ever owed. The nudge shipped hours earlier ([[id:79a3d89e-77be-4678-919e-637a65f87204][79a3d89e]]) becomes a *backstop* for headings that did not follow the discipline, rather than the primary mechanism.
+
+*Verified adoptable with today's tools, before proposing anything be built.* Four existing calls produce the shape exactly, measured in a scratch file:
+
+: org_amend <design>  →  org_wrap_plan (no until)  →  org_amend <2-5 sentences>  →  [at DONE] org_amend <debrief>
+
+=org_wrap_plan= with no =until= wraps the whole body, which is precisely right when the body is *still purely prospective* — the case its docstring already names. =org_amend= then appends below the drawer, which =org_wrap_plan='s own tool description already promises. So this needs no new tool, and this heading was written that way.
+
+*The one real tension, and it must be written down or live plans go invisible.* =:PLAN:= currently means *superseded* design that a reader is told to skip — =org_body='s description says so explicitly. Under this convention a *live* heading's drawer holds its **current** plan, which the standing advice would have readers skip exactly when they most need it. The rule has to become: **skip =:PLAN:= on a finished heading, read it on a live one.** That is arguably cleaner than today's, since the drawer's status then follows the heading's keyword rather than being a property of the drawer, but it is a change and not a clarification.
+
+*A second, smaller consequence worth naming.* CLAUDE.md's [[id:b5f94b88-76e3-4a3c-ac73-729f34d33691][b5f94b88]] note says the convention "does not empty the body of a planned heading", citing reasoning and an incident record that live in that body. Those are retrospective, so they stay — but they mean the 2-5 sentence limit governs the body *before* the debrief, not the body forever. Worth stating, because read as an absolute cap it would push debriefs into the drawer, which is the original inversion again.
+
+*The payoff beyond the seam is context cost, and it is large.* CLAUDE.md records the median active heading body at 50 lines. A 2-5 sentence body means =org_outline= and =org_body= reads become cheap for the *live* set, which is the set sessions actually read for orientation. That is the same goal as [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] approaching from a different direction.
+
+*What is undecided and belongs to the user:* where the rule lives (CLAUDE.md's state-transition section, =.claude/rules/org-conventions.md=, or the org skill), and whether a lint should enforce the cap — a live heading with a body over some threshold and no =:PLAN:= drawer, which is the exact mirror of the finished-heading rule that already exists. Both are cheap; neither should be guessed at.
+
+*Explicitly out of scope:* the 64-heading backlog. This convention stops new seams being created and does nothing for existing ones, which remain [[id:f099379b-7f78-4c19-85be-abeea0bf3e71][f099379b]]'s three routes.
+:END:
+
+Prospective and retrospective prose accumulate in one body and have to be told apart later, which [[id:f099379b-7f78-4c19-85be-abeea0bf3e71][f099379b]] measured as not mechanically recoverable — the seam is a fact about when a sentence was written, and nothing in the prose records it. Proposed: write the plan into =:PLAN:= at the moment it is composed, keep the body to a 2-5 sentence problem-and-proposed-solution, and append the debrief when DONE is queued. Then no mixture is ever created and no separation is ever owed. Verified to need no new tools; the open questions are where the rule lives and whether a lint enforces the cap.
+
+
 * TODO "Backlog = wrap unedited" would bury a debrief in 88 of 93 headings :code:
 :PROPERTIES:
 :ID:       f099379b-7f78-4c19-85be-abeea0bf3e71
