@@ -795,7 +795,7 @@ CLOCK: [2026-09-01 Tue 12:26]--[2026-09-01 Tue 12:27] =>  0:01
 *Open, and genuinely undecided:* whether the gap-versus-AFK threshold should ever be automated. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the standing precedent against an invented number, and a ten-minute cap is exactly that. Reporting both bounds and letting the human place the line is the alternative — and unlike the current review pass, it is six questions a day rather than nineteen.
 
 
-* TODO [7/16] Everything passed and the file was still wrong :code:
+* TODO [3/12] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
@@ -826,14 +826,6 @@ To which add the standing friction: the two MCP tools that time out are worked a
 - [ ] [[id:8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b][8ddd7fa8]] TODO Moving a heading between files by hand leaves org-id pointing at the old one
 - [ ] [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]] TODO Concurrent sessions share one git index, and explicit staging protects nothing
 - [ ] [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] TODO Three new ways to owe a footnote and not see it: marker, list, quotation
-
-Incidental:
-
-- [X] [[id:42ba0a80-61c5-49bd-b6a2-9da76a53ff64][42ba0a80]] DONE An unstarted slice accrues every heading closed since it was written down
-- [X] [[id:79a3d89e-77be-4678-919e-637a65f87204][79a3d89e]] DONE The :PLAN: wrap never happens at close, so 93 finished headings carry an unwrapped body
-- [X] [[id:b75d553a-3c77-4b98-9f58-022bfa295816][b75d553a]] DONE Write the plan into :PLAN: from the start, so no seam is ever created
-- [X] [[id:35d25265-df52-45c0-8226-dfa24c3ed5bb][35d25265]] DONE Separate plan from debrief across the 73 warned headings, retroactively
-
 
 * TODO Three new ways to owe a footnote and not see it: marker, list, quotation :code:
 :PROPERTIES:
@@ -1580,7 +1572,7 @@ Move every =Review and planning= datetree node dated the previous day or older i
 Once the sibling heading refiles =* Review attention='s old LOGBOOK entries into dated clones, those clones are placed by this same pass.
 
 
-* DOING [53/54] The code knows more than it says, and asks more than it should :code:
+* DOING [48/49] The code knows more than it says, and asks more than it should :code:
 :PROPERTIES:
 :ID:       b36e6369-a210-4540-adc7-0c0c188e9791
 :CREATED:  [2026-08-28 Fri 17:37]
@@ -1651,11 +1643,6 @@ and the open decisions live in the prompt below rather than here.
 
 Incidental:
 
-- [X] [[id:30a340fd-c216-4231-a8d9-fff83c54b9f8][30a340fd]] DONE Reopening a cancelled member retroactively un-completes every closed slice naming it
-- [X] [[id:f89c912a-2ce5-4f77-b6be-67ae35901e7a][f89c912a]] DONE The :PLAN: lint asks a slice for a drawer it has no prospective half to fill
-- [X] [[id:979e02b6-2a4c-4328-8b08-ffaec03bd02e][979e02b6]] DONE Close the gap between what we declare and what the code infers
-- [X] [[id:d5490814-d174-480a-a9e7-b809f94d71f2][d5490814]] DONE An :ID: used as vocabulary stops reading as an :ID:, and the footnote is missed every time
-- [X] [[id:ff1352b3-2732-4422-9f0d-4b3cb6fd8ff3][ff1352b3]] DONE Decide whether returning a heading's whole body is a mode on org_outline or its own tool
 - [X] [[id:6e43120d-b9ed-4595-8309-ccd0cde8da59][6e43120d]] DONE Three conventions read as permission to grow a story where mitosis was owed
 - [X] [[id:355fa608-e311-4874-b2d3-bbc62172d09a][355fa608]] DONE A stranded single-point span is offered forever; only the trailing one can still grow
 - [X] [[id:b488dd2a-db73-49a3-a4b5-5f4cc9b52e06][b488dd2a]] DONE Decide a key binding for review-undo-refresh, or leave it M-x only

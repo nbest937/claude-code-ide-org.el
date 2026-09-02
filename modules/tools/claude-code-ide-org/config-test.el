@@ -12514,3 +12514,51 @@ rest of the prospective half and stops being a live pointer."
              ":END:\n"
              "Body prose with no anchor.\n"))
     'error "live body cites a line number")))
+
+(ert-deftest claude-code-ide-org-test-slice-window-ignores-work-predating-it ()
+  "A member's clock from before the slice existed does not open its window.
+
+TODO.org :ID: 42ba0a80 bounded the window to first work rather than
+`:CREATED:'.  That fix is defeated by a member with earlier history: the
+scan returns the earliest clock anywhere in the slice, and a heading
+refiled into a new slice routinely carries clocks from weeks before it
+was composed.  Measured 2026-09-02 -- `8a2eb687' was TODO, unstarted,
+and listed four incidentals because its member `8ddd7fa8' carried a
+CLOCK from 2026-08-19 against a slice created 2026-09-01.
+
+The floor is applied *inside* the scan rather than to its result, and
+that distinction is the test's real subject: rejecting the earliest
+clock afterwards zeroes every slice, because almost every slice has some
+member with older history.  Ignoring pre-creation clocks while scanning
+keeps the first one that happened after the slice existed."
+  (claude-code-ide-org-test--with-slice-window
+    (with-current-buffer (find-file-noselect file)
+      ;; Strip the slice's own clock; its members now carry all the time.
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO \\[1/1\\] A slice")
+      (org-back-to-heading t)
+      (let ((lim (save-excursion (org-end-of-subtree t t))))
+        (save-excursion
+          (when (re-search-forward "^[ \t]*CLOCK:.*\n" lim t) (replace-match ""))))
+      ;; Give the planned member a clock from BEFORE the slice was created.
+      (goto-char (point-min))
+      (re-search-forward "^:ID:       member-01$")
+      (re-search-forward "^:END:$")
+      (insert "\n:LOGBOOK:\nCLOCK: [2026-08-18 Mon 09:00]--"
+              "[2026-08-18 Mon 09:30] =>  0:30\n:END:")
+      ;; Point must be ON the slice for `--slice-incidental-ids'. Asserting
+      ;; from wherever the last edit left it returns nil for the wrong
+      ;; reason, which is a check with no way to fail -- caught here by the
+      ;; positive half failing while the negative half "passed".
+      (cl-flet ((incidentals ()
+                  (goto-char (point-min))
+                  (re-search-forward "^\\* TODO \\[1/1\\] A slice")
+                  (org-back-to-heading t)
+                  (claude-code-ide-org--slice-incidental-ids)))
+        (should-not (incidentals))
+        ;; Move the same clock to after creation and the window returns, so
+        ;; the guard is the date rather than the mere presence of a clock.
+        (goto-char (point-min))
+        (re-search-forward "CLOCK: \\[2026-08-18 Mon 09:00\\]--\\[2026-08-18 Mon 09:30\\]")
+        (replace-match "CLOCK: [2026-08-21 Fri 09:00]--[2026-08-21 Fri 09:30]" t t)
+        (should (member "incid-002" (incidentals)))))))

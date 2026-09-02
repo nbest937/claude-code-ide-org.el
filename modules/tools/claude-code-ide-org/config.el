@@ -4123,8 +4123,15 @@ window shrinking as the ceremony ran."
                (push (cons (downcase id) ts) ids))))
          nil (list file))))))
 
-(defun claude-code-ide-org--first-work-time (ids)
-  "Earliest CLOCK start across IDS, or nil when none of them has one.
+(defun claude-code-ide-org--first-work-time (ids &optional floor)
+  "Earliest CLOCK start across IDS at or after FLOOR, or nil if none.
+
+FLOOR is the slice\='s own `:CREATED\=', and applying it *inside* the scan
+rather than to the result is the whole of it: a member routinely carries
+clocks from long before the slice was composed, so the earliest clock
+overall is almost never evidence the slice has started. Rejecting that
+result afterwards zeroes every slice; ignoring those clocks while
+scanning keeps the first one that happened after the slice existed.
 
 The left edge of a slice's incidental window.  `:CREATED\\=' is the wrong
 edge: a slice is routinely composed while its predecessor is still
@@ -4155,7 +4162,9 @@ discards the starts this needs."
                (let ((ts (ignore-errors
                            (claude-code-ide-org--parse-org-timestamp
                             (match-string 1)))))
-                 (when (and ts (or (null best) (time-less-p ts best)))
+                 (when (and ts
+                            (or (null floor) (not (time-less-p ts floor)))
+                            (or (null best) (time-less-p ts best)))
                    (setq best ts)))))))))))
 
 (defvar claude-code-ide-org--incidentals-claimed-elsewhere nil
@@ -4236,12 +4245,33 @@ incidental."
            ;; was written down -- see `--first-work-time'. A slice with
            ;; no work anywhere in it has no window and no incidentals,
            ;; which is the whole fix for TODO.org :ID: 42ba0a80.
+           (elsewhere (claude-code-ide-org--other-slices-declared-ids self))
+           ;; Members another slice *also* declares are excluded from the
+           ;; window, not just from the output. A shared member carries
+           ;; the OTHER slice's work, so counting its clock here says this
+           ;; slice has started when it has not -- which is TODO.org
+           ;; :ID: 42ba0a80's defect surviving its own fix by a different
+           ;; route. Measured 2026-09-02: 8a2eb687 was TODO and unstarted
+           ;; and listed four incidentals, because three of its declared
+           ;; members are shared with b36e6369 and were clocked there.
+           ;; :ID: 5bfc1d38 already computes this exclusion and applied it
+           ;; to the incidental list alone; the window needed it too.
            (worked (claude-code-ide-org--first-work-time
-                    (cons self named))))
-      (setq start (and start worked (if (time-less-p start worked) worked start)))
+                    (cons self (seq-remove (lambda (id) (member id elsewhere))
+                                           named))
+                    start)))
+      ;; Work predating the slice's own :CREATED: is not evidence the
+      ;; slice started -- it is a member's earlier history. Measured
+      ;; 2026-09-02: 8a2eb687 was composed 09-01 and listed four
+      ;; incidentals because its member 8ddd7fa8 carried a CLOCK from
+      ;; 08-19, which opened the window at :CREATED: and swept up
+      ;; everything closed since. So the window begins at the first clock
+      ;; ON OR AFTER creation, and a slice with none has no window at all
+      ;; -- which is what :ID: 42ba0a80 meant by "a slice nobody has
+      ;; started", reached by a second route it did not anticipate.
+      (setq start (and start worked))
       (when start
-        (let* ((elsewhere (claude-code-ide-org--other-slices-declared-ids self))
-               (dropped nil)
+        (let* ((dropped nil)
                (kept
                 (seq-remove
                  (lambda (id)
