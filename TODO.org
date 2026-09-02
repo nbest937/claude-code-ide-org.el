@@ -2,6 +2,43 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO "Backlog = wrap unedited" would bury a debrief in 88 of 93 headings :code:
+:PROPERTIES:
+:ID:       f099379b-7f78-4c19-85be-abeea0bf3e71
+:CREATED:  [2026-09-02 Wed 15:05]
+:CATEGORY: Meta
+:END:
+
+*Found 2026-09-02 by starting the sweep the user asked for and measuring before writing.* The sweep was not run; nothing has been modified.
+
+*CLAUDE.md says* "backlog = wrap unedited; opportunistic = split when you are already reading the heading anyway", and that rule is quoted from [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]], which chose it "to keep 30 headings cheap". **Its premise no longer holds.** Wrapping unedited means =org_wrap_plan= with no =until=, which wraps the *whole* body — correct only where the body is purely prospective. Measured against DONE.org's 93 unwrapped post-convention headings:
+
+| body shape | n |
+|---|---|
+| debrief marker on the *first* line | 28 |
+| debrief marker *later* in the body | 60 |
+| no marker at all | 5 |
+
+So a blind sweep would wrap a debrief into a =:PLAN:= drawer in **88 of 93** headings — the exact inversion =until= exists to prevent, landing in a drawer readers are instructed to skip. Invisible by design, which is the hazard class CLAUDE.md already names about condensing.
+
+*And the seam is not lexically findable, which kills the obvious mechanical fix.* The natural idea is =until== the first line matching a debrief word. Sampled four of the 60, and in **all four** the first match is in the *prospective* half:
+
+- [[id:8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8][8c662dfb]], line 1 — "Measured 2026-08-28 across TODO.org: 90 live keyworded headings hold 4,027 body lines" — that is the *case for doing the work*.
+- [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]], line 6 — "Measured across the five documents", a prospective survey.
+- [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]], line 3 — "its measured finding should transfer", reasoning about a neighbour heading.
+
+Cutting there is *worse than either extreme*: it buries the debrief's opening and leaves prospective text standing as the body.
+
+*Why no wording can work.* The seam is not a property of the prose. It is a claim about *when a sentence was written relative to the work* — and the same sentence is prospective when it motivates the work and retrospective when it reports the outcome. "Measured 2026-08-28: 39 of 97 headings carry no =CLOSED:=" is both, in different headings.
+
+*Where the information actually lives.* At exactly one moment — the session appending the debrief knows the first line it appended — which is what [[id:79a3d89e-77be-4678-919e-637a65f87204][79a3d89e]] now exploits for *new* headings. For the backlog that moment is past, and the body is a flat sequence of paragraphs carrying no provenance.
+
+*But it is not lost, and there is a precedent in this repo.* Git holds it: the commit that appended the debrief shows exactly which lines arrived after the heading reached DONE, and the seam is the first line of that addition. That is the same shape as [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]], which recovered =CLOSED:= times from =git log --reverse -S= for headings with no in-file evidence. Feasible, and non-trivial: bodies were also *edited* after the fact, so the last addition is not always the debrief.
+
+*Two populations to separate before any of that.* The 28 whose marker is on line 1 may be **debrief-only** — no prospective half at all — in which case they need no drawer and the lint is over-reporting them, which is [[id:f421c5c3-f81f-4ebf-99c9-42c53cc00558][f421c5c3]]'s finding from the other side. Classifying those first would shrink the real problem from 93 to something smaller before any git archaeology begins.
+
+*Not proposing a decision here.* The three routes are: a human reads each body; reconstruct seams from git; or accept the backlog stays unwrapped and narrow the lint so it stops reporting what nobody intends to fix.
+
 * TODO The :PLAN: wrap never happens at close, so 93 finished headings carry an unwrapped body :code:
 :PROPERTIES:
 :ID:       79a3d89e-77be-4678-919e-637a65f87204
