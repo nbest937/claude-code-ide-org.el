@@ -10551,6 +10551,14 @@ from `claude-code-ide-org--lint-routing-categories'."
         ;; its descendants and a heading at or above the anchor's level
         ;; has left the subtree.
         (datetree-level nil)
+        ;; Level of the enclosing day node in an *unanchored* datetree --
+        ;; the archive tree org builds in DONE.org, which carries no
+        ;; :DATE_TREE: property because `org-archive-subtree' builds it
+        ;; outside this project entirely (CLAUDE.md; TODO.org :ID: 2e660571).
+        ;; Nil inside an anchored tree, which is what keeps :ID: e30d52d7's
+        ;; "nothing is filed under a day node" true of the meta-work tree
+        ;; while archived tasks are legitimately filed under one here.
+        (archive-day-level nil)
         findings)
     (cl-flet ((report (severity line fmt &rest args)
                 ;; Severity is what makes this usable as a gate. An
@@ -10586,12 +10594,28 @@ from `claude-code-ide-org--lint-routing-categories'."
                        ;; anything shallower, ends it.
                        (when (and datetree-level (<= level datetree-level))
                          (setq datetree-level nil))
-                       (and datetree-level
-                            (claude-code-ide-org--datetree-node-role
-                             (- level datetree-level) title)))))
+                       (when (and archive-day-level (<= level archive-day-level))
+                         (setq archive-day-level nil))
+                       ;; No anchor means depth is measured from the file
+                       ;; root. Org's archive datetree is built at top
+                       ;; level and *cannot* be nested under a :DATE_TREE:
+                       ;; heading: `org-archive-subtree' calls
+                       ;; `org-datetree-find-date-create' on the widened
+                       ;; buffer with no restriction (org-archive.el:343,
+                       ;; read 2026-09-02), and that function never
+                       ;; consults the property at all. Recognising the
+                       ;; tree by org's own title shapes is the
+                       ;; published-contract case CLAUDE.md settles, not
+                       ;; an inference standing in for a declaration we
+                       ;; failed to make.
+                       (claude-code-ide-org--datetree-node-role
+                        (- level (or datetree-level 0)) title))))
                ;; Non-inherited: an inherited lookup would make every
                ;; descendant of the anchor read as an anchor itself.
                (when (org-entry-get nil "DATE_TREE") (setq datetree-level level))
+               ;; Unanchored trees only -- see `archive-day-level' above.
+               (when (and (eq datetree-role 'day) (null datetree-level))
+                 (setq archive-day-level level))
                (cond
                 ;; Org writes year and month nodes bare -- no property
                 ;; drawer at all -- and they are scaffolding rather than
@@ -10601,12 +10625,32 @@ from `claude-code-ide-org--lint-routing-categories'."
                 ;; addresses headings by :ID:, and a day node without one
                 ;; exists and is unreachable (TODO.org :ID: e30d52d7).
                 ((memq datetree-role '(year month)) nil)
+                ;; In an *unanchored* archive tree the day node is
+                ;; scaffolding too: `org-archive-subtree' writes it bare
+                ;; and nothing is ever clocked against it. That is the
+                ;; opposite of the anchored meta-work tree, where the day
+                ;; node is precisely the heading time is assigned to and
+                ;; must keep its :ID: (TODO.org :ID: e30d52d7, :ID:
+                ;; 25ec37b0) -- so the exemption is gated on the absence
+                ;; of an anchor rather than on being a day node, and the
+                ;; anchored tree's day node still falls through below.
+                ((and (eq datetree-role 'day) (null datetree-level)) nil)
                 ;; `and'-ed rather than tested inside the branch: a day
                 ;; node must fall THROUGH to the :ID:/:CREATED: clause
                 ;; below, and a cond branch that matched and did nothing
                 ;; would silently exempt the one heading here that most
                 ;; needs linting.
-                ((and (> level 3) (not (eq datetree-role 'day)))
+                ((and (> level 3) (not (eq datetree-role 'day))
+                      ;; A task archived into the unanchored datetree is
+                      ;; filed *under* its day node -- level 4 for the
+                      ;; task itself, deeper for its own children. That is
+                      ;; org's shape and not ours to refuse. The allowance
+                      ;; is three levels of work below the day node, which
+                      ;; is the same three the file carried before the
+                      ;; tree existed rather than a new budget.
+                      (not (and archive-day-level
+                                (> level archive-day-level)
+                                (<= level (+ archive-day-level 3)))))
                  ;; Revised 2026-08-21 (TODO.org :ID: e30d52d7). The
                  ;; three-level claim recorded on :ID: 3bd3402b -- 624
                  ;; headings, zero at level 4 -- was true of a file with

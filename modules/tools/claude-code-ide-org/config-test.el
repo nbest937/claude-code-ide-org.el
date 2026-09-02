@@ -12021,3 +12021,89 @@ test would iterate an empty list and pass while checking nothing."
               (push (format "%s/%s" name (plist-get arg :name)) violations)))
           (setq index (1+ index)))))
     (should (equal nil (nreverse violations)))))
+
+(ert-deftest claude-code-ide-org-test-lint-accepts-an-unanchored-archive-datetree ()
+  "The datetree `org-archive-subtree' builds in DONE.org carries no
+:DATE_TREE: property and lints clean anyway (TODO.org :ID: 33864a0f).
+
+*It cannot be anchored, which is why the predicate had to widen.*
+`org-archive-subtree' calls `org-datetree-find-date-create' on the
+widened buffer with no restriction (org-archive.el:343), and that
+function never consults the property -- so the tree is built at file top
+level, outside this project entirely.  Recognising it by org's own title
+shapes is the published-contract case CLAUDE.md settles.
+
+Against the pre-2026-09-02 rule this fixture produced the four errors
+:ID: e30d52d7 predicted hours after that rule landed: no :ID: on the
+year, the month or the day, plus a level-4 heading that is not a day
+node.  Measured on a real archive rather than imagined -- the fixture is
+the exact shape `org-archive-subtree' wrote into a scratch file with
+`#+ARCHIVE: A.org::datetree/'.
+
+Note the year, month and day nodes sit at levels 1-3 here against 2-4 in
+the anchored tree, because there is no category heading above them.  That
+is precisely what the depth arithmetic had to stop assuming."
+  (should (null (claude-code-ide-org-test--lint
+                 (concat "* 2026\n"
+                         "** 2026-08 August\n"
+                         "*** 2026-08-21 Friday\n"
+                         ;; The cookie is not decoration: this story has a
+                         ;; keyworded child, and the container rule wants
+                         ;; one wherever it sits. It fires identically on
+                         ;; the same content flat, so it is not a datetree
+                         ;; consequence -- checked both ways rather than
+                         ;; assumed, after a first pass compared against a
+                         ;; file the archive had already emptied.
+                         "**** DONE [1/1] An archived task\n"
+                         "CLOSED: [2026-08-21 Fri 13:20]\n"
+                         ":PROPERTIES:\n"
+                         ":ID:       aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\n"
+                         ":CREATED:  [2026-08-20 Thu 09:00]\n:END:\n"
+                         "***** DONE A child that travelled with it\n"
+                         ":PROPERTIES:\n"
+                         ":ID:       bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb\n"
+                         ":CREATED:  [2026-08-20 Thu 09:01]\n:END:\n")))))
+
+(ert-deftest claude-code-ide-org-test-lint-exempts-the-day-node-only-when-unanchored ()
+  "The day node's :ID: requirement turns on which tree it is in, and the
+two trees want opposite things.
+
+In the *anchored* meta-work tree the day node is the heading time is
+assigned to, so it must carry :ID: -- asserted by
+`claude-code-ide-org-test-lint-still-requires-an-id-on-the-day-node'.  In
+the *unanchored* archive tree nothing is ever clocked against it and
+`org-archive-subtree' writes it bare, so requiring one would be demanding
+a property org will never write.
+
+This test is the second half of that pair and exists so the exemption
+cannot quietly widen into the anchored tree, which would silently drop
+the one datetree heading the project most needs addressable."
+  (should (null (claude-code-ide-org-test--lint
+                 (concat "* 2026\n"
+                         "** 2026-08 August\n"
+                         "*** 2026-08-21 Friday\n"))))
+  (should (claude-code-ide-org-test--lint-matches
+           (claude-code-ide-org-test--lint
+            (concat "* Review and planning\n"
+                    ":PROPERTIES:\n"
+                    ":DATE_TREE: t\n"
+                    ":ARCHIVE:  DONE.org::* Review and planning\n"
+                    ":END:\n"
+                    "** 2026\n"
+                    "*** 2026-08 August\n"
+                    "**** 2026-08-21 Friday\n"))
+           'error "heading has no :ID:")))
+
+(ert-deftest claude-code-ide-org-test-lint-does-not-exempt-a-task-beside-the-archive-tree ()
+  "Widening the predicate to an unanchored tree must not exempt ordinary
+level-1 work that merely shares the file with one.  A heading whose title
+is not org's own year shape is a task and is linted as one, which is the
+same over-application guard the anchored tree already carries -- the
+difference is only that there is no anchor to measure depth from."
+  (let ((findings (claude-code-ide-org-test--lint
+                   (concat "* 2026\n"
+                           "** 2026-08 August\n"
+                           "*** 2026-08-21 Friday\n"
+                           "* DONE A task filed beside the tree\n"))))
+    (should (claude-code-ide-org-test--lint-matches
+             findings 'error "level-1 task has no :ID:"))))
