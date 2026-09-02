@@ -12248,3 +12248,61 @@ unreadable."
       (let ((once (claude-code-ide-org-test--disk-contents f)))
         (claude-code-ide-org-sort-datetree-descending f)
         (should (equal once (claude-code-ide-org-test--disk-contents f)))))))
+
+(ert-deftest claude-code-ide-org-test-archiving-lands-in-the-existing-datetree ()
+  "An archive pass files into the datetree and the ceremony re-sorts it
+newest-first (TODO.org :ID: 33864a0f).
+
+This covers the *steady state* rather than the one-time conversion, and
+it is the half that rots silently: `org-datetree-find-date-create'
+inserts each node in ascending date order, so an archive left to itself
+drifts back to oldest-first one pass at a time, with every individual
+pass looking correct.
+
+Both halves are asserted together because each is useless alone -- an
+entry filed under the right day in the wrong order, or the right order
+over the wrong day, would each pass a narrower test."
+  (claude-code-ide-org-test--with-heading
+    ;; A pre-existing tree, exactly the shape DONE.org now carries.
+    (claude-code-ide-org-test--datetree-fixture
+     archive-file
+     (concat "* 2026\n"
+             "** 2026-08 August\n"
+             "*** 2026-08-21 Friday\n"
+             "**** DONE Already archived :code:\n"
+             "CLOSED: [2026-08-21 Fri 13:20]\n"
+             ":PROPERTIES:\n:ID:       aaaaaaaa-0001\n"
+             ":CREATED:  [2026-08-20 Thu 09:00]\n:END:\n"))
+    (with-temp-file file
+      (insert "#+TODO: TODO NEXT DOING REVIEW WAITING | DONE CANCELLED MAYBE\n"
+              "#+ARCHIVE: DONE.org::datetree/\n\n"
+              "* DONE A newer finished task :code:\n"
+              "CLOSED: [2026-09-01 Tue 10:00]\n"
+              ":PROPERTIES:\n:ID:       aaaaaaaa-0002\n"
+              ":CREATED:  [2026-08-30 Sun 09:00]\n:END:\n"))
+    ;; Both fixtures were written to disk under buffers the enclosing
+    ;; macro had already opened, so the next `find-file-noselect' would
+    ;; stop and ask whether to reread -- which in batch is a hang, not an
+    ;; error. Drop the stale buffers rather than answering the question.
+    (dolist (f (list file archive-file))
+      (let ((b (get-file-buffer f))) (when b (kill-buffer b))))
+    (claude-code-ide-org-archive-finished file)
+    (claude-code-ide-org-sort-datetree-descending archive-file)
+    (let ((lines (mapcar
+                  ;; Org right-aligns tags to a column, so the heading
+                  ;; line carries a run of spaces whose width depends on
+                  ;; the title. Collapse it -- this test is about where
+                  ;; the heading sits, not how org pads it.
+                  (lambda (l) (replace-regexp-in-string "[ \t]+" " " l))
+                  (seq-filter (lambda (l) (string-prefix-p "*" l))
+                              (split-string
+                               (claude-code-ide-org-test--disk-contents archive-file)
+                               "\n")))))
+      ;; September ahead of August: org appended the new month *after* the
+      ;; existing one, and the sort is what puts it first.
+      (should (equal (seq-take lines 4)
+                     '("* 2026"
+                       "** 2026-09 September"
+                       "*** 2026-09-01 Tuesday"
+                       "**** DONE A newer finished task :code:")))
+      (should (member "** 2026-08 August" lines)))))

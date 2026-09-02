@@ -1,6 +1,6 @@
 #+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
 #+TAGS: code comms research review
-#+ARCHIVE: DONE.org::
+#+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
 * TODO claude-code-ide-org-capture reports a queued capture it never persists :code:
 :PROPERTIES:

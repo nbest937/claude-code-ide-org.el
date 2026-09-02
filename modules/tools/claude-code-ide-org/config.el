@@ -10140,6 +10140,23 @@ its end would bury a fresh entry under two hundred older ones."
       ;; exactly this reason, having been verified by reading the
       ;; directive text rather than the value parsed from it.
       (org-set-regexps-and-options)
+      ;; `org-archive-reversed-order' must be OFF for a datetree target,
+      ;; and the two settings want opposite things for the same reason.
+      ;; Reversed order exists to make a *flat* archive read newest-first
+      ;; by inserting at the beginning of the target location. In a
+      ;; datetree the target location is the day node, so inserting at
+      ;; the beginning puts the entry *before* it -- leaving a level-4
+      ;; heading parented to the month and an empty day node after it.
+      ;;
+      ;; Isolated 2026-09-02 to this single variable: plain
+      ;; `org-archive-subtree' into the same populated tree nests
+      ;; correctly with it nil and malforms with it t, nothing else
+      ;; changed. Nothing is lost by turning it off, because ordering is
+      ;; now `claude-code-ide-org-sort-datetree-descending's job and it
+      ;; sorts every tier rather than only the insertion point
+      ;; (TODO.org :ID: 33864a0f).
+      (when (string-match-p "::datetree/" (or org-archive-location ""))
+        (setq org-archive-reversed-order nil))
       (org-with-wide-buffer
        (goto-char (point-min))
        (while (re-search-forward "^\\* " nil t)
@@ -10258,7 +10275,16 @@ losing two because the first broke would be worse than a partial pass."
                    ;; After archiving, for the same reason archiving is
                    ;; last: sorting first would order rows that are about
                    ;; to be removed (TODO.org :ID: 5f1068f9).
-                   (cons "sorted"   (lambda () (claude-code-ide-org-sort-by-created)))))
+                   (cons "sorted"   (lambda () (claude-code-ide-org-sort-by-created)))
+                   ;; DONE.org's own ordering, and it must follow
+                   ;; archiving rather than precede it: the entries this
+                   ;; puts back in order are the ones the archive step
+                   ;; just added. Org's datetree writer inserts each new
+                   ;; node in ascending date order, so without this the
+                   ;; archive reads oldest-first again after every pass
+                   ;; (TODO.org :ID: 33864a0f).
+                   (cons "datetree" (lambda ()
+                                      (claude-code-ide-org-sort-datetree-descending)))))
       (push (condition-case err
                 (let ((r (funcall (cdr step))))
                   (format "%s: %s" (car step)
