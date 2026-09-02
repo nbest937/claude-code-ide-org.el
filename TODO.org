@@ -1724,6 +1724,59 @@ The ritual: a standing daily prompt to actually do review and planning.
 
 *Filed 2026-08-21, not built.* The 2026-08-21 cross-artifact audit found that prose conventions recur (UUID-from-memory, clock-in-at-drift) while mechanically checked ones fail loudly and get fixed -- and that duplicated conventions drift into contradiction (four found in CLAUDE.md, one in a memory, one in the next-session prompt). =bin/check-org-dev-skill= already embodies the fix for one file; generalize it: the CLAUDE.md and org-skill transition tables agree; every cited =:ID:=, defcustom, and function name resolves (=git grep= the symbol); every "is live"/"not built" claim carries a greppable anchor (e.g. =config.el:2792=) that still matches. Wire into =bin/hooks/pre-commit= beside the existing lint. Not a prose rule about keeping prose fresh -- that is the anti-pattern recursing.
 
+*Prototyped 2026-09-02 before writing anything, and one of the three
+proposed assertion families has nothing to check.*
+
+The three this heading names are: the CLAUDE.md and org-skill transition
+tables agree; every cited =:ID:=, defcustom and function name resolves;
+and every "is live"/"not built" claim carries a greppable anchor (e.g.
+=config.el:2792=) that still matches. Measured across the five documents
+a check would cover — CLAUDE.md, =.claude/rules/org-conventions.md=,
+both =SKILL.md=s, and =.claude/commands/next-session.md=, 3101 lines
+together:
+
+- *Ids: 73 distinct 8-character tokens, 0 unresolved.* Every one
+  resolves to an org heading or a git object. The assertion is true
+  today, so it can be wired into =pre-commit= without a backlog of
+  pre-existing failures — which is the property that decides whether a
+  check is adoptable at all.
+
+  *The extraction needs a tighter boundary than the obvious one.* A bare
+  =[0-9a-f]{8}= matches *inside* full UUIDs — the trailing segment of
+  =9d2fcdad-9bf7-47b6-8018-223b13ec4577= reads as the token =223b13ec=
+  — and produced five phantom failures. Requiring the run not be
+  adjacent to a hex digit or a dash removes all five. Git short SHAs are
+  seven characters here and pass by resolving as git objects, so the
+  same check covers both citation kinds without telling them apart.
+
+- *Anchors: zero, in any form.* No =file:line= references, and no "line
+  NNN" prose, anywhere in those 3101 lines. For contrast, TODO.org
+  bodies carry 12.
+
+  *And that is deliberate rather than an omission.*
+  =bin/check-org-dev-skill='s fourth check exists precisely because the
+  org-dev skill "describes the tool-registration block by anchor … not
+  by line number, specifically so a =config.el= edit that shifts line
+  counts can't put the doc out of date", and verifies the claim
+  *structurally* instead. So this heading proposed asserting a
+  convention the project had already decided against.
+
+  *The residue is real but it is somewhere else.* The 12 anchors live in
+  org bodies, which do rot and which nothing checks. Whether a check
+  should cover them is a decision this heading has to take rather than
+  inherit — and it is a different check, over different files, from the
+  one described here.
+
+- *Transition tables: not yet measured.*
+
+*What this changes about the work.* The harness plus the id assertion is
+small and demonstrably green. The anchor assertion is not work but a
+*decision*, and the honest options are to drop it, or to re-aim it at
+org bodies as a separate check. Recorded here rather than silently
+dropped, because a heading that quietly loses a third of its scope reads
+afterwards as though it was always smaller.
+
+
 
 * TODO Comma-escape headline lines when documenting org structure inside a body :code:
 :PROPERTIES:
