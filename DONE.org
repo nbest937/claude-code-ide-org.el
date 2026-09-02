@@ -575,6 +575,7 @@ CLOSED: [2026-09-01 Tue 16:16]
 - State "DONE"       from "TODO"       [2026-09-01 Tue 16:16] \\
   window bounded by first work; f9fe9fac corrected
 :END:
+:PLAN:
 
 *Noticed by the user 2026-09-01, reading the session-start report:* why
 does [[id:f9fe9fac-a423-4ede-bc42-1d201c2c3d82][f9fe9fac]], a slice nobody has started, carry a list
@@ -630,6 +631,7 @@ running concurrently with another would still absorb the other's
 declared checklist. Fixing either alone leaves f9fe9fac wrong, which is
 why both are filed rather than one.
 
+:END:
 *Shipped 2026-09-01, same day, as =d577751=. Candidate 1 was taken:* the
 window opens at the later of =:CREATED:= and first work, where first
 work is =claude-code-ide-org--first-work-time= — the earliest CLOCK
@@ -691,6 +693,7 @@ CLOCK: [2026-09-01 Tue 09:03]--[2026-09-01 Tue 09:10] =>  0:07
 - [2026-09-01 Tue 09:03]--[2026-09-01 Tue 09:10] sort TODO.org newest-first
 - State "DONE"       from "DOING"      [2026-09-01 Tue 09:10]
 :END:
+:PLAN:
 
 *Asked for by the user 2026-08-28, for the next slice.* After archiving the closed headings, sort what remains in TODO.org by =:CREATED:= descending, so the file reads newest-first.
 
@@ -737,6 +740,7 @@ CLOCK: [2026-09-01 Tue 09:03]--[2026-09-01 Tue 09:10] =>  0:07
 
 *Sequencing reminder from the measurement above:* the *first* sort is a large reordering — 63% of adjacent pairs are already descending, longest run 17 of 135 — so it wants its own commit. Every later run moves one or two entries, because =org_capture= prepends.
 
+:END:
 *Shipped 2026-09-01 as approach A, in two commits as this body's own sequencing note required.*
 
 *One call, and every prediction in the measurement held.* =(org-sort-entries nil ?R nil nil "CREATED")= with point before the first heading. The datetree anchor was the only level-1 heading without a =:CREATED:= — exactly one, not a class — and org placed it last on its own, subtrees intact.
@@ -780,6 +784,7 @@ CLOCK: [2026-09-01 Tue 08:44]--[2026-09-01 Tue 08:52] =>  0:08
 - [2026-09-01 Tue 08:44]--[2026-09-01 Tue 08:52] backfill CLOSED from git
 - State "DONE"       from "DOING"      [2026-09-01 Tue 08:52]
 :END:
+:PLAN:
 
 *Filed 2026-08-24, the residue of* [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]]. That pass filled 58 of DONE.org's 97 finished headings from their own =:LOGBOOK:=. *39 have no in-file evidence at all* -- mostly early headings from before the =!= cookies in =#+TODO:= were adopted, e.g. "Implement the ten pending MCP-tool tasks in parallel worktrees", "Add a PLANNING TODO state, driven by the ExitPlanMode matcher", and the original =org_query= / =org_clock_report= / =org_capture= tool headings.
 
@@ -838,6 +843,7 @@ So the work would derive a date from a *different event*, write it into a field 
 
 *What is left to decide is therefore one thing only:* whether the human-facing marker is wanted, given that nothing mechanical needs it. Everything else about this heading is now measured.
 
+:END:
 *Shipped 2026-09-01 as option B. Every finished heading in both files now carries a =CLOSED:=; the derived ones say so.*
 
 *The count matched this body exactly:* 39 in DONE.org, plus 2 in TODO.org that it could not have known about — finished children of *live* parents, which the archive sweep correctly leaves in place. 41 filled, *0 skipped*: git had evidence for every one.
