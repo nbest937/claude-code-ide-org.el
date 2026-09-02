@@ -8,6 +8,7 @@
 :CREATED:  [2026-09-02 Wed 14:38]
 :CATEGORY: Meta
 :END:
+:PLAN:
 
 *Raised by the user 2026-09-02, who predicted the state from the mechanism and was half right in the informative direction.* The prediction was "DONE items in DONE.org without =:PLAN:= drawers and no debrief already". Measured:
 
@@ -32,6 +33,7 @@
 
 *Related but distinct:* [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] is about checks that cannot fail. This is a convention nothing checks *at the moment it applies* — the lint does fire, but only after archiving has already happened, by which time the drawer's absence is history rather than a prompt.
 
+:END:
 *Shipped 2026-09-02, commit =c2ac288=. The user chose the third option — a check firing on a heading queued =DONE= rather than one already closed — with the rationale that the lint's job is to tell the agent "don't forget to wrap the pre-DONE text".*
 
 *Where it lives, and why not =bin/lint-org=.* The user's follow-up settled the scope: "the lint need only consider the subtree in question". That is decisive, because a check scoped to one heading belongs where the heading is known — =org_set_todo= — and needs no queue scan, no file walk, and no second surface. An earlier plan to also teach =bin/lint-org= to read the queue was dropped on that basis. The existing file-wide lint stays exactly as it was: it is the after-the-fact report, and this is the prompt.
