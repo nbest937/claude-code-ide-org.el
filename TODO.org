@@ -6998,6 +6998,7 @@ CLOSED: [2026-09-02 Wed 09:45]
 - State "DONE"       from "TODO"       [2026-09-02 Wed 09:45] \\
   template now matches both files byte for byte
 :END:
+:PLAN:
 
 *Moved down from the parent 2026-09-01,* where it had sat since
 2026-08-12 as part of a four-drift list whose other three have all
@@ -7052,6 +7053,7 @@ reasoning and the revert precondition.
 *Verify:* =grep -c logdrawer .claude/rules/org-conventions.md= is
 non-zero, and the template block matches =head -4= of both org files.
 
+:END:
 *Shipped 2026-09-02.* =#+STARTUP: logdrawer logdone content= is now the
 fourth line of the documented template in
 =.claude/rules/org-conventions.md=, and the template matches =head -4= of
@@ -7095,6 +7097,7 @@ CLOSED: [2026-09-02 Wed 09:45]
 - State "DONE"       from "TODO"       [2026-09-02 Wed 09:45] \\
   keep the property; reframe the warning
 :END:
+:PLAN:
 
 *Moved down from the parent 2026-09-01,* where it was a one-line aside
 under a 2026-08-13 scope addition whose main claim has since been fixed.
@@ -7127,6 +7130,7 @@ heading has to make rather than assume.
 *Verify:* the rule file mentions the MAYBE case, and the wording agrees
 with what =bin/lint-org= actually warns.
 
+:END:
 *Shipped 2026-09-02,* into the "Dependencies between tasks" section of
 =.claude/rules/org-conventions.md=, directly after the paragraph that
 says =:BLOCKER:= *is* enforced — which is where the qualification has to
@@ -7164,6 +7168,7 @@ CLOSED: [2026-09-02 Wed 09:47]
 - State "DONE"       from "TODO"       [2026-09-02 Wed 09:47] \\
   drawer-scoped reading rule shipped
 :END:
+:PLAN:
 
 *Moved down from the parent 2026-09-01,* where it was scoped on
 2026-08-12 and never written.
@@ -7219,6 +7224,7 @@ evidence.
 rule, and it names =org_body=/=org_clock_report= as the sanctioned
 readers.
 
+:END:
 *Shipped 2026-09-02* into the org skill's "Reading & parsing" section, where a reader arrives before they have extracted anything.
 
 *The three-attempt cost went in as the evidence,* and attempt 2 is the part that earns its place: it was "verified" by grepping the file for the very =CLOCK:= line just extracted, which returned a different heading's example prose. A check that re-uses the failing method confirms the failure rather than catching it — which is the same shape as [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]]'s class, one level in.
