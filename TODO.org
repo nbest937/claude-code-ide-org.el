@@ -1222,6 +1222,54 @@ The trailing =t= is the last form of the =save-excursion=, so the whole expressi
 
 *What a check might actually assert*, since this heading is about mechanising rather than remembering: a mutation run should require the =Ran N tests= line to be present *and* N to equal the baseline count. Both halves are needed — the crash above produced no line, while a mutation that merely skipped tests would produce a smaller N with no error.
 
+*A sixth, absorbed 2026-09-02 from
+[[id:13ea6770-88ba-484d-87bd-2d20c44dc610][13ea6770]], which said it
+"should probably absorb" here and then did not file it.* Recorded as
+much for that as for the case itself: a sentence pointing at another
+heading is not a filing action, and this one sat unfiled for a day in a
+closed heading, which is where residue goes to become invisible.
+
+*The case.* =archive-finished= =let=-bound =org-archive-reversed-order=
+without requiring =org-archive= first. Under lexical binding, binding a
+symbol org-archive has not yet =defvar='d makes it *lexical*, so loading
+org-archive afterwards signals =Defining as dynamic an already lexical
+var=. It works in a long-running Emacs, which has org-archive loaded
+from any earlier archive, and fails on the first ceremony after a
+restart — which is exactly when the ceremony is most likely to run.
+
+*Why it belongs with the other five.* =bin/test= *passed identically
+before and after the fix*, because the batch environment's load order
+differs from the live one. Not a wrong assertion, and not a missing one:
+the suite is **structurally incapable** of reaching the state where the
+defect exists. That is this heading's own generalisation — "the check
+had no way to fail" — in its most literal form, since here the check
+could not even be *constructed* in the environment available to it.
+
+*And it sharpens the question this heading proposes.* "What would this
+have printed if the thing I am testing were false?" assumes the harness
+can put the system into the false state. When it cannot, a green suite
+is not weak evidence — it is *no* evidence, and the honest response is
+to say the verification of record is elsewhere rather than to write a
+batch test that will always pass. 13ea6770 named its verification of
+record as the live run, which is the right move and the one worth
+generalising.
+
+*So the residue is a category the proposed =bin/check-elisp= cannot
+cover:* claims whose truth depends on load order, session age, or
+anything else batch flattens. Those need a stated
+verification-of-record — which live run, under which precondition —
+rather than a check. The user's standing reload-precondition rule is the
+same instinct one level down.
+
+*Live status 2026-09-02, since it bears on when the next real test
+happens.* =(require 'org-archive)= is now unconditional in
+=archive-finished=, so the fix is structural. But Emacs uptime is 1 day
+0 hours and =(featurep 'org-archive)= is =t=, so this morning's 08:56
+ceremony ran *warm* — the fresh-session path has been exercised exactly
+once, immediately after the reload that fixed it. The next cold run is
+the second data point, and only if Emacs is restarted before it.
+
+
 
 * MAYBE Install orgparse for ad-hoc analysis, and stop reaching for regex over org text :code:
 :PROPERTIES:
