@@ -11345,6 +11345,175 @@ something to remember.  Returns a summary string."
      nil nil)
     (nreverse titles)))
 
+(defun claude-code-ide-org--datetree-target-file ()
+  "DONE.org, beside the capture target file."
+  (expand-file-name
+   "DONE.org"
+   (file-name-directory (claude-code-ide-org--capture-target-file))))
+
+(defun claude-code-ide-org-sort-datetree-descending (&optional file dry-run)
+  "Sort FILE\'s top-level datetree newest-first at every level.
+
+Org builds a datetree *ascending* -- `org-datetree-find-date-create\'
+inserts each node in date order -- so an archive file left alone reads
+oldest-first and gets worse with every pass.  This is the counterpart to
+`claude-code-ide-org-sort-by-created\' for TODO.org (TODO.org :ID:
+5f1068f9) and belongs in the same place in the ceremony: *after*
+archiving, since sorting first would order rows about to be added to.
+
+Four sorts rather than one, because the tree has four tiers and
+`org-sort-entries\' sorts one heading\'s children at a time.  Years,
+months and days all sort by `?A\' -- reverse alphabetical -- which is
+reverse *chronological* only because org writes those titles
+zero-padded and most-significant-first: `2026\', `2026-08 August\',
+`2026-08-21 Friday\'.  That is org\'s published title shape rather than a
+coincidence this code relies on quietly, and it is the same measured
+finding TODO.org :ID: 0c3f1319 recorded for the meta-work tree: no
+custom comparator is needed.
+
+Tasks *inside* a day node are the exception and sort by `?R\' on CLOSED:,
+because their titles carry no date at all.  Same comparator as the
+TODO.org sort, different property.
+
+Idempotent.  Returns a summary string."
+  (interactive)
+  (let* ((file (or file (claude-code-ide-org--datetree-target-file)))
+         (years 0) (months 0) (days 0))
+    (with-current-buffer (find-file-noselect file)
+      (let ((buffer-read-only nil))
+        (org-with-wide-buffer
+         (unless dry-run
+           ;; Years, from before the first heading -- org signals
+           ;; "Nothing to sort" anywhere else.
+           (goto-char (point-min))
+           (org-sort-entries nil ?A)
+           ;; Then each tier in turn. Re-scanned from point-min each
+           ;; time rather than held as markers: every sort moves the
+           ;; subtrees the next tier lives in.
+           (dolist (level '(1 2 3))
+             (goto-char (point-min))
+             (org-map-entries
+              (lambda ()
+                (when (and (= (org-current-level) level)
+                           (claude-code-ide-org--datetree-node-role
+                            level (org-get-heading t t t t)))
+                  (pcase level
+                    (1 (setq years (1+ years)))
+                    (2 (setq months (1+ months)))
+                    (3 (setq days (1+ days))))
+                  ;; A node with no children is not an error; org
+                  ;; signals rather than returning, so ask first.
+                  (when (save-excursion (org-goto-first-child))
+                    (if (= level 3)
+                        (org-sort-entries nil ?R nil nil "CLOSED")
+                      (org-sort-entries nil ?A)))))
+              nil nil)))))
+      (when (and (not dry-run) (buffer-modified-p)) (save-buffer)))
+    (format "%s: %d year(s), %d month(s), %d day(s) sorted newest-first.%s"
+            (file-name-nondirectory file) years months days
+            (if dry-run "  [dry run -- nothing written]" ""))))
+
+(defun claude-code-ide-org-datetree-file (&optional file dry-run)
+  "Re-file FILE\'s level-1 tasks under a year/month/day datetree by CLOSED:.
+
+The one-time conversion behind TODO.org :ID: 33864a0f.  Afterwards
+`org-archive-subtree\' maintains the tree itself, given an
+`#+ARCHIVE:\' location of the `datetree/\' form, so this runs once and
+`claude-code-ide-org-sort-datetree-descending\' runs per ceremony.
+
+*Refuses outright if any task lacks its own CLOSED:*, and that guard is
+the whole reason this task was blocked on TODO.org :ID: b7b46a26 rather
+than merely sequenced after it.  `org-archive-subtree\' dates a datetree
+entry from `(or (org-entry-get nil \"CLOSED\" t) time)\' -- measured on
+:ID: 29439196 -- so a heading with no CLOSED: files silently under
+*today* rather than failing.  Run against the file as it stood on
+2026-08-28 that would have collapsed 39 headings into one wrong day node
+with nothing to warn anyone.  A refusal is the only honest response: the
+date is not recoverable from the file, and inventing one is the shape
+:ID: 7771fc63 retired.
+
+*A story is filed whole, under its own close date.*  Only level-1
+headings are filed; a story\'s children travel with it because they are
+part of the subtree, not because they were looked at.  That is what keeps
+a parent off one of its children\'s dates -- the mistake that dated
+`b5f7c5c7\' two days early during :ID: 38b92521\'s manifest work, and
+which here would mis-order the largest entries with nothing downstream to
+notice.
+
+Note what does *not* provide that guarantee, since it reads as though it
+should: `org-entry-get\' is called without the inherit flag, but property
+inheritance searches *upward*, so it could never have pulled a child\'s
+date onto its parent anyway.  Mutation-tested 2026-09-02 -- adding the
+flag changes no test, while filing every heading rather than only
+level-1 ones fails three.
+
+*Moves subtrees with org\'s own cut and paste*, never by editing
+regions.  This repository has two body corruptions on record from
+hand-rolled region edits, and this pass touches every heading in the
+file.
+
+Returns a summary string."
+  (interactive)
+  (let* ((file (or file (claude-code-ide-org--datetree-target-file)))
+         (undated nil) (filed 0) (before 0))
+    (with-current-buffer (find-file-noselect file)
+      (let ((buffer-read-only nil))
+        (org-with-wide-buffer
+         (require 'org-datetree)
+         ;; Pre-flight over the whole file before anything moves: a
+         ;; refusal halfway through would leave the file half-converted.
+         (org-map-entries
+          (lambda ()
+            (when (and (= (org-current-level) 1)
+                       (not (claude-code-ide-org--datetree-node-role
+                             1 (org-get-heading t t t t))))
+              (setq before (1+ before))
+              (unless (org-entry-get nil "CLOSED")
+                (push (org-get-heading t t t t) undated))))
+          nil nil)
+         (when undated
+           (error "Refusing to convert %s: %d heading(s) carry no CLOSED: and \
+would file under today, silently: %s"
+                  (file-name-nondirectory file) (length undated)
+                  (string-join (nreverse undated) "; ")))
+         (unless dry-run
+           (catch 'done
+             (while t
+               ;; Always re-scan from the top. Each move rewrites the
+               ;; buffer around point, so a saved position is stale by
+               ;; construction.
+               (goto-char (point-min))
+               (let (target)
+                 (while (and (not target)
+                             (re-search-forward "^\\* " nil t))
+                   (unless (claude-code-ide-org--datetree-node-role
+                            1 (org-get-heading t t t t))
+                     (setq target (line-beginning-position))))
+                 (unless target (throw 'done nil))
+                 (goto-char target)
+                 ;; The raw CLOSED: string, exactly as `org-archive-subtree'
+                 ;; passes it (org-archive.el:293). Converting to a time
+                 ;; value first yields (nil nil nil) and then a
+                 ;; `wrong-type-argument' from deep inside `encode-time',
+                 ;; which names neither the date nor this caller.
+                 (let ((date (org-date-to-gregorian
+                              (org-entry-get nil "CLOSED"))))
+                   (org-cut-subtree)
+                   (org-datetree-find-date-create date)
+                   (let ((level (1+ (org-current-level))))
+                     (org-end-of-subtree t)
+                     (unless (bolp) (insert "\n"))
+                     (org-paste-subtree level))
+                   (setq filed (1+ filed)))))))))
+      (when (and (not dry-run) (buffer-modified-p)) (save-buffer)))
+    (unless dry-run
+      (claude-code-ide-org-sort-datetree-descending file))
+    (format "%s: %d task(s)%s.%s"
+            (file-name-nondirectory file) before
+            (if dry-run " would be filed by CLOSED:"
+              (format ", %d filed under a datetree and sorted newest-first" filed))
+            (if dry-run "  [dry run -- nothing written]" ""))))
+
 (defun claude-code-ide-org--git-close-time (heading-line)
   "The commit time that first introduced HEADING-LINE, or nil.
 

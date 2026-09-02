@@ -12107,3 +12107,144 @@ difference is only that there is no anchor to measure depth from."
                            "* DONE A task filed beside the tree\n"))))
     (should (claude-code-ide-org-test--lint-matches
              findings 'error "level-1 task has no :ID:"))))
+
+(defun claude-code-ide-org-test--datetree-fixture (path body)
+  "Write BODY to PATH under a minimal org header and return PATH.
+The header is not decoration: `org-sort-entries' signals \"Nothing to
+sort\" unless point can sit before the first heading, so a fixture
+without one cannot be sorted at all."
+  (with-temp-file path
+    (insert "#+TITLE: Archive\n\n" body))
+  path)
+
+(ert-deftest claude-code-ide-org-test-datetree-file-files-tasks-by-their-close-date ()
+  "A flat archive becomes a year/month/day tree, newest first
+(TODO.org :ID: 33864a0f).
+
+Asserts both halves at once, because they fail differently: the tasks
+must land under the day node their own CLOSED: names, and the tiers must
+read descending.  Org builds a datetree *ascending*, so a conversion that
+only filed would produce a correct tree in exactly the wrong order."
+  (claude-code-ide-org-test--with-heading
+    (let ((f (claude-code-ide-org-test--datetree-fixture
+              archive-file
+              (concat "* DONE Older task\n"
+                      "CLOSED: [2026-07-15 Wed 10:00]\n"
+                      ":PROPERTIES:\n:ID:       aaaaaaaa-0001\n"
+                      ":CREATED:  [2026-07-14 Tue 09:00]\n:END:\n"
+                      "* DONE Earlier that Friday\n"
+                      "CLOSED: [2026-08-21 Fri 09:00]\n"
+                      ":PROPERTIES:\n:ID:       aaaaaaaa-0002\n"
+                      ":CREATED:  [2026-08-20 Thu 09:00]\n:END:\n"
+                      "* DONE Later that Friday\n"
+                      "CLOSED: [2026-08-21 Fri 13:20]\n"
+                      ":PROPERTIES:\n:ID:       aaaaaaaa-0003\n"
+                      ":CREATED:  [2026-08-20 Thu 09:00]\n:END:\n"))))
+      (claude-code-ide-org-datetree-file f)
+      (let* ((text (claude-code-ide-org-test--disk-contents f))
+             (lines (seq-filter (lambda (l) (string-prefix-p "*" l))
+                                (split-string text "\n"))))
+        (should (equal lines
+                       '("* 2026"
+                         "** 2026-08 August"
+                         "*** 2026-08-21 Friday"
+                         "**** DONE Later that Friday"
+                         "**** DONE Earlier that Friday"
+                         "** 2026-07 July"
+                         "*** 2026-07-15 Wednesday"
+                         "**** DONE Older task")))))))
+
+(ert-deftest claude-code-ide-org-test-datetree-file-refuses-a-heading-with-no-closed ()
+  "The conversion refuses rather than filing an undated heading under today.
+
+This is the guard that made TODO.org :ID: 33864a0f block on :ID: b7b46a26
+instead of merely following it.  `org-archive-subtree' dates a datetree
+entry from `(or (org-entry-get nil \"CLOSED\" t) time)', so a heading with
+no CLOSED: files under *today* and nothing warns -- 39 headings would
+have collapsed into one wrong day node when this was measured.
+
+Asserts the file is untouched as well as the error, because a refusal
+raised halfway through a conversion would be worse than none."
+  (claude-code-ide-org-test--with-heading
+    (let* ((body (concat "* DONE Dated\n"
+                         "CLOSED: [2026-07-15 Wed 10:00]\n"
+                         ":PROPERTIES:\n:ID:       aaaaaaaa-0001\n"
+                         ":CREATED:  [2026-07-14 Tue 09:00]\n:END:\n"
+                         "* DONE Undated\n"
+                         ":PROPERTIES:\n:ID:       aaaaaaaa-0002\n"
+                         ":CREATED:  [2026-07-14 Tue 09:00]\n:END:\n"))
+           (f (claude-code-ide-org-test--datetree-fixture archive-file body))
+           (before (claude-code-ide-org-test--disk-contents f)))
+      ;; The *message* is asserted, not merely that something signalled.
+      ;; Without the pre-flight guard this still raises -- CLOSED: is nil,
+      ;; `org-date-to-gregorian' returns (nil nil nil) and `encode-time'
+      ;; throws `wrong-type-argument' from three frames down. A bare
+      ;; `should-error' therefore passes with the guard deleted, which is
+      ;; what a mutation run showed on 2026-09-02: the test was
+      ;; structurally incapable of failing for its own reason.
+      (should (string-match-p
+               "Refusing to convert"
+               (cadr (should-error (claude-code-ide-org-datetree-file f)))))
+      ;; And nothing moved -- checked in the buffer as well as on disk,
+      ;; since the write happens only at the end and an aborted half
+      ;; conversion would leave disk innocent and the buffer wrecked.
+      (should (equal before (claude-code-ide-org-test--disk-contents f)))
+      (should-not (buffer-modified-p (find-file-noselect f))))))
+
+(ert-deftest claude-code-ide-org-test-datetree-file-dates-a-story-from-its-own-closed ()
+  "A story files under *its own* close date, never a child's.
+
+`org-entry-get' is called without the inherit flag for exactly this
+reason.  Scoping a date scan to the subtree is what dated `b5f7c5c7' two
+days early during :ID: 38b92521's manifest work; here the same mistake
+would file a parent under a child's date and mis-order the largest
+entries, with nothing downstream to notice.
+
+The child is deliberately closed in a *different month*, so an inherited
+or subtree-scoped read lands in a visibly wrong place rather than one
+day off."
+  (claude-code-ide-org-test--with-heading
+    (let ((f (claude-code-ide-org-test--datetree-fixture
+              archive-file
+              (concat "* DONE [1/1] A story\n"
+                      "CLOSED: [2026-07-15 Wed 10:00]\n"
+                      ":PROPERTIES:\n:ID:       aaaaaaaa-0001\n"
+                      ":CREATED:  [2026-07-01 Wed 09:00]\n:END:\n"
+                      "** DONE A child closed much later\n"
+                      "CLOSED: [2026-08-21 Fri 13:20]\n"
+                      ":PROPERTIES:\n:ID:       aaaaaaaa-0002\n"
+                      ":CREATED:  [2026-07-02 Thu 09:00]\n:END:\n"))))
+      (claude-code-ide-org-datetree-file f)
+      (let ((lines (seq-filter (lambda (l) (string-prefix-p "*" l))
+                               (split-string
+                                (claude-code-ide-org-test--disk-contents f) "\n"))))
+        ;; July, from the parent's own CLOSED: -- and the child travelled
+        ;; with it rather than being filed separately under August.
+        (should (equal lines
+                       '("* 2026"
+                         "** 2026-07 July"
+                         "*** 2026-07-15 Wednesday"
+                         "**** DONE [1/1] A story"
+                         "***** DONE A child closed much later")))))))
+
+(ert-deftest claude-code-ide-org-test-sort-datetree-descending-is-idempotent ()
+  "Sorting an already-sorted tree changes nothing.
+
+It runs after every archive pass, so a sort that perturbed a settled file
+would produce a diff per ceremony and make the real reorderings
+unreadable."
+  (claude-code-ide-org-test--with-heading
+    (let ((f (claude-code-ide-org-test--datetree-fixture
+              archive-file
+              (concat "* DONE Older\n"
+                      "CLOSED: [2026-07-15 Wed 10:00]\n"
+                      ":PROPERTIES:\n:ID:       aaaaaaaa-0001\n"
+                      ":CREATED:  [2026-07-14 Tue 09:00]\n:END:\n"
+                      "* DONE Newer\n"
+                      "CLOSED: [2026-08-21 Fri 13:20]\n"
+                      ":PROPERTIES:\n:ID:       aaaaaaaa-0002\n"
+                      ":CREATED:  [2026-08-20 Thu 09:00]\n:END:\n"))))
+      (claude-code-ide-org-datetree-file f)
+      (let ((once (claude-code-ide-org-test--disk-contents f)))
+        (claude-code-ide-org-sort-datetree-descending f)
+        (should (equal once (claude-code-ide-org-test--disk-contents f)))))))
