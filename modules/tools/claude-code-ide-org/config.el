@@ -10248,9 +10248,17 @@ prompt for a note, and neither is reachable from here."
   (let ((m (claude-code-ide-org--id-find
             "cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8" 'marker)))
     (unless m (error "Ceremony heading cbe282ec not found"))
-    (org-with-point-at m
-      (org-todo "DONE")
-      (save-buffer))
+    ;; TODO.org is normally read-only -- the user's guard against their
+    ;; own stray keystrokes -- and this runs with no keystroke left to
+    ;; prompt on. Same reasoning as `claude-code-ide-org-archive-finished',
+    ;; and the same omission :ID: 13ea6770 fixed for the ceremony *steps*
+    ;; without reaching this one: it surfaced 2026-09-02 as
+    ;; "repeater: FAILED (Buffer is read-only)". A binding, never a setq,
+    ;; so the flag survives a non-local exit.
+    (let ((inhibit-read-only t))
+      (org-with-point-at m
+        (org-todo "DONE")
+        (save-buffer)))
     t))
 
 (defun claude-code-ide-org-ceremony-finish ()
@@ -10302,8 +10310,20 @@ losing two because the first broke would be worse than a partial pass."
             (condition-case err
                 (progn (claude-code-ide-org-mark-ceremony-done
                         (concat (string-join (reverse parts) "; ") "\n"))
-                       (claude-code-ide-org--ceremony-advance-repeater)
-                       "repeater: advanced")
+                       ;; Advance only when the pass was actually *owed*.
+                       ;; `++1d' shifts from the stored date, not from
+                       ;; today, so advancing a repeater that is already
+                       ;; in the future moves it a further day out --
+                       ;; measured 2026-09-02, <2026-09-03> became
+                       ;; <2026-09-04>. A ceremony run early would
+                       ;; therefore silently cancel the next one, which
+                       ;; is the opposite of what running it early means.
+                       ;; Running it early is legitimate and should leave
+                       ;; the schedule alone.
+                       (if (claude-code-ide-org--ceremony-due-p)
+                           (progn (claude-code-ide-org--ceremony-advance-repeater)
+                                  "repeater: advanced")
+                         "repeater: not due, left alone"))
               (error (format "repeater: FAILED (%s)"
                              (error-message-string err)))))
           parts)

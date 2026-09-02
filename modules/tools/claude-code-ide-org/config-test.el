@@ -12348,3 +12348,33 @@ beside the link's target, not beside the link."
                      (claude-code-ide-org--archive-target-file
                       (claude-code-ide-org--capture-target-file))))))
       (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-advance-repeater-survives-a-read-only-buffer ()
+  "Advancing the ceremony repeater works against a read-only TODO.org.
+
+TODO.org is normally read-only -- the user's guard against their own
+stray keystrokes -- and this step runs with no keystroke left to prompt
+on.  :ID: 13ea6770 bound `inhibit-read-only' for the ceremony *steps*
+and did not reach the repeater advance, which sits outside the step
+list; the omission surfaced 2026-09-02 as
+`repeater: FAILED (Buffer is read-only)' after every other step had run
+clean.
+
+Asserts the guard is still armed afterwards, which is the half that
+matters: an implementation clearing `buffer-read-only' instead of
+binding `inhibit-read-only' would satisfy the write assertion and
+silently disarm the user (TODO.org :ID: c8a97d9d)."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--add-child
+     file (concat "* TODO Archive closed tasks daily\n"
+                  "SCHEDULED: <2026-09-03 Thu 07:00 ++1d>\n"
+                  ":PROPERTIES:\n"
+                  ":ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8\n"
+                  ":CREATED:  [2026-08-01 Sat 09:00]\n:END:\n"))
+    (with-current-buffer (find-file-noselect file) (setq buffer-read-only t))
+    (should (claude-code-ide-org--ceremony-advance-repeater))
+    ;; Org advanced the date rather than leaving the heading DONE.
+    (let ((text (claude-code-ide-org-test--disk-contents file)))
+      (should (string-match-p "2026-09-04" text))
+      (should (string-match-p "^\\* TODO Archive closed tasks daily" text)))
+    (should (with-current-buffer (find-file-noselect file) buffer-read-only))))
