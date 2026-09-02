@@ -4142,6 +4142,7 @@ CLOCK: [2026-08-27 Thu 17:19]--[2026-08-27 Thu 17:26] =>  0:07
 - State "DONE"       from "DOING"      [2026-08-27 Thu 17:26] \\
   refuse loudly on both surfaces; 434/434
 :END:
+:PLAN:
 
 *Hit 2026-08-26 while adding [[id:806ff394-3ede-4d67-82aa-9c44fe1cf86e][806ff394]] to [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] minutes after capturing it.* A heading captured this session is *keywordless on disk* until a human applies its queued =todo= event, and two separate mechanisms quietly depend on that keyword.
 
@@ -4158,6 +4159,7 @@ CLOCK: [2026-08-27 Thu 17:19]--[2026-08-27 Thu 17:26] =>  0:07
 
 *The transient lint error resolved by itself* when the queue was applied a few minutes later, which is the expected behaviour and worth stating so nobody "fixes" it by deleting the blocker entry.
 
+:END:
 *Shipped [2026-08-27 Thu], taking the third candidate above -- "have it refuse loudly rather than skip silently ... probably the floor regardless of what else is done."* Both other candidates are left open on purpose: ordering the workflow costs a human round-trip, and teaching a rendering function about the queue is a layering decision this does not need to make.
 
 *Two surfaces, not one.* The body above found =refresh-slice=; the same root has a second face that only showed up by being hit. =org_amend= on a queued capture answered =Error: no org heading found with :ID: "..."= -- true, and useless: it reads as a typo when =org_capture= returned that id seconds earlier. =org_set_todo= and =org_clock_in= have tolerated that state since the silent-drop regression; amend never did.
@@ -4266,6 +4268,7 @@ CLOCK: [2026-08-26 Wed 20:01]--[2026-08-26 Wed 20:16] =>  0:15
 - State "DONE"       from "REVIEW"     [2026-08-26 Wed 20:17] \\
   review found nothing missing; ordinary close
 :END:
+:PLAN:
 
 *=DOING= was relaxed 2026-08-25* from "the agent is executing this right now" to "started and owed a return" -- *in the mail*. The looser sense is durable and plural, and it immediately collides with a trigger built for the stricter one.
 
@@ -4279,6 +4282,7 @@ CLOCK: [2026-08-26 Wed 20:01]--[2026-08-26 Wed 20:16] =>  0:15
 
 *Note the second candidate is close to what the queue architecture already believes.* =org_set_todo= and =org_clock_in= are separate calls precisely so that state and clock are decided separately; the trigger reintroduces the coupling at apply time, on the one path that is not going through those calls.
 
+:END:
 *The cascade above does not happen, measured [2026-08-26 Wed] against the real apply path* ([[orgit-rev:claude-code-ide-org::19a3873][19a3873]]). Three probes, batch, scratch org files:
 
 | probe | path                                | result                          |
@@ -4366,6 +4370,7 @@ CLOCK: [2026-08-26 Wed 19:35]--[2026-08-26 Wed 19:40] =>  0:05
 - State "DONE"       from "DOING"      [2026-08-26 Wed 19:40] \\
   one line becomes twelve; blocker ids named
 :END:
+:PLAN:
 
 *Observed 2026-08-25*, asked by the user as "does =org_outline= need an enhancement to represent slices in a helpful way, or does that deserve a new tool?" Scoping it to the 24-member slice returns exactly one line:
 
@@ -4401,6 +4406,7 @@ CLOCK: [2026-08-26 Wed 19:35]--[2026-08-26 Wed 19:40] =>  0:05
 
 *The framing is worth carrying to [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]] as well.* Three lenses have now been found blind to the same thing -- column view, =--container-heading-p=, and this -- and the shared cause is that a *declared* relation is invisible to anything that walks the tree. "Make the declaration visible in the general schema" is a better statement of the fix than three bespoke repairs, and it is the user's phrasing rather than a generalisation invented after the fact.
 
+:END:
 *Shipped [2026-08-26 Wed]*, both halves, because the body's own analysis showed they are complementary rather than alternatives -- and it was right: the general change fixes the whole-file reading and does nothing for the scoped one, which is the case this heading was filed for.
 
 *The general half, the user's proposal.* =[blocked]= now names the offending ids: =[blocked: 4f6a6bb1 a0813ae3 c954f650 ...]=. Only the *offending* ones -- unfinished for =[blocked]=, unresolvable for =[blocked?]= -- never the whole declaration, since a satisfied blocker is not news and this slice would otherwise print all eleven members forever. =[blocked?]= gains the most: it used to say a dependency could not be resolved without saying *which*, which is precisely the information needed to fix it.
