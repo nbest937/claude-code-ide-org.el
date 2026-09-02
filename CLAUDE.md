@@ -594,6 +594,23 @@ and `org_clock_in` are separate calls precisely so state and clock are
 decided separately, and apply suppresses the trigger outright. The one
 path that does *not* honour it is a hand `C-c C-t` in Emacs — where a
 human is present to know which act they are performing.
+
+**A second exception: a _grouping_.** A story or a slice entering
+`DOING` opens no automatic clock, because on a grouping the keyword
+means "at least one member is in the mail" rather than "work is
+happening here". `--trigger-auto-clock-in` declines when
+`--grouping-heading-p` is true.
+
+**Note where that exemption actually bites, because it is narrower than
+it reads.** The trigger tests `--auto-clock-in-active` *before* it tests
+for a grouping, and apply binds that variable around the whole pass — so
+on the apply path the trigger short-circuits for **every** heading,
+grouping or leaf, and the grouping test is never reached. The exemption
+therefore does its work in exactly one place: a TODO state changed *by
+hand* in Emacs (`C-c C-t`, `S-right`). And it suppresses only the
+*automatic* clock, never a deliberate `C-c C-x C-i` — a grouping's own
+coordination time is real work and may be clocked on purpose.
+
 **Rule**: a transition *from* `DOING` closes the clock **if this
 heading's clock is the one running**. Because `DOING` is plural, a
 heading can be `DOING` with no clock — another heading holds it — and

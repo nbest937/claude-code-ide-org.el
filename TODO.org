@@ -6468,6 +6468,41 @@ line here or reading the scope correction. Wrong on both counts: the
 Done-when is sharper than what was checked, and it is this heading's
 call to make. Left open.
 
+*Shipped 2026-09-02.* The open-a-clock rule now carries a second
+exception beside the retroactive one, and it states both halves in the
+same place, which is what the Done-when asked and what neither location
+did alone.
+
+*Both facts were already in CLAUDE.md yesterday, and that was the
+problem.* The exemption was stated in the grouping paragraph; the
+hand-edit scope was stated three sections away under the
+retroactive-=DOING= rule. A reader of either learned half the rule, and
+the half that matters — that the exemption only bites on a hand edit —
+was the one nobody would find while reading about clocks.
+
+*The ordering claim was verified in the code rather than restated from
+this body.* =--trigger-auto-clock-in='s =and= tests =(not
+--auto-clock-in-active)= *before* =(not (--grouping-heading-p))=, and
+=--review-apply-item= binds that variable around the whole pass
+(=config.el= line 7144). So on the apply path the trigger short-circuits
+for every heading, grouping or leaf, and the grouping test is never
+reached. Worth checking rather than trusting: the body asserting it was
+written 2026-08-17 and the guard order could have moved since.
+
+*The wording the Done-when was written against had expired,* which is
+recorded here because it changes what "done" meant. It asked for an
+exception to "any transition to =DOING= or =PLANNING= must open a
+clock"; =PLANNING= was retired 2026-08-28 and that sentence no longer
+exists. So the edit was not "add a missing exception" but "join two true
+paragraphs" — a smaller job than the heading described, and one that
+would have looked like scope creep to anyone matching the old text.
+
+*Also corrected here:* a re-audit written onto the parent on 2026-09-01
+called this item *closed* on the strength of the grouping paragraph
+alone, without running the =Verify= line or reading the scope
+correction. It was open, and this heading owned the judgement.
+
+
 
 ** DONE The NEXT-nomination rule was taken on as scope and never written :code:
 CLOSED: [2026-08-21 Fri 13:22]
