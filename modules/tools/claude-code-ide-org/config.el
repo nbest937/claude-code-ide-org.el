@@ -1967,6 +1967,50 @@ MCP tool — a deliberate maintenance operation via `emacsclient'."
            (format "Consolidated :LOGBOOK: on \"%s\"" heading)
          (format "Nothing to consolidate on \"%s\"" heading))))))
 
+(defun claude-code-ide-org--unwrapped-plan-nudge (state)
+  "Reminder to wrap this heading\'s prospective body, or nil.
+
+Point must be on the heading.  Fires when a heading is being sent to a
+*finished* keyword while it still carries a substantial body and no
+`:PLAN:\' drawer -- which is the moment the wrap is owed and the last
+moment anyone knows where the seam is.
+
+*Why here and not in `bin/lint-org\'.*  That lint already reports the
+same condition, but only over headings that are *already* closed, so it
+speaks after the fact -- and by the next ceremony the heading is
+archived and its absence of a drawer has become history rather than a
+prompt.  Measured 2026-09-02: 93 of DONE.org\'s 98 headings closed since
+the convention began carry no drawer, while 88 of those 93 *do* carry a
+debrief.  So the debrief happens at close and the wrap does not, and a
+check that fires later has not been changing that (TODO.org
+:ID: 79a3d89e).
+
+*Scoped to this heading alone*, deliberately: the question is about the
+subtree being transitioned, so it needs no queue scan and no file walk.
+
+*It cannot do the wrap itself.*  At this moment the body is prospective
+followed by debrief, and wrapping it whole would bury the debrief inside
+the drawer -- the inversion `org_wrap_plan\'s UNTIL exists to prevent.
+Only the caller knows which line the debrief starts at, which is why
+this is a reminder rather than an action.
+
+Slices are exempt for the same reason the lint exempts them: a slice has
+no prospective half to fill (TODO.org :ID: f89c912a).
+
+The text must never contain a `(was ...)\' parenthetical.
+`bin/hooks/queue-append\' recovers the prior state with a *greedy*
+`sed\' over the whole reply, so a second one would win and the queued
+event would record the wrong `from\'."
+  (when (and (member state claude-code-ide-org--outline-finished-keywords)
+             (not (claude-code-ide-org--slice-p))
+             (not (claude-code-ide-org--find-drawer "PLAN"))
+             (claude-code-ide-org--lint-substantial-body-p))
+    (format (concat "  Note: %d lines of body and no :PLAN: drawer. "
+                    "Wrap the prospective half now with org_wrap_plan, "
+                    "passing until= the first line of the debrief -- "
+                    "after this you will not know where the seam is.")
+            (claude-code-ide-org--lint-body-prose-lines))))
+
 (defun claude-code-ide-org-set-todo (id state &optional note)
   "Validate ID and STATE and report the transition as queued.
 Changes no TODO keyword.
@@ -2068,10 +2112,12 @@ unresolved."
        (format "Error: no change -- \"%s\" already holds %s, so nothing was queued"
                (org-get-heading t t t t) state))
       (t
-       (format "Queued todo -> %s (was %s): \"%s\"; pending review."
-               state
-               (or (org-get-todo-state) "none")
-               (org-get-heading t t t t)))))))))
+       (concat
+        (format "Queued todo -> %s (was %s): \"%s\"; pending review."
+                state
+                (or (org-get-todo-state) "none")
+                (org-get-heading t t t t))
+        (or (claude-code-ide-org--unwrapped-plan-nudge state) "")))))))))
 
 (defun claude-code-ide-org-archive (id)
   "Archive the org heading whose :ID: property equals ID.

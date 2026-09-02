@@ -12378,3 +12378,87 @@ silently disarm the user (TODO.org :ID: c8a97d9d)."
       (should (string-match-p "2026-09-04" text))
       (should (string-match-p "^\\* TODO Archive closed tasks daily" text)))
     (should (with-current-buffer (find-file-noselect file) buffer-read-only))))
+
+(defun claude-code-ide-org-test--prose-lines (id)
+  "Prose-line count the lint would see for heading ID."
+  (let ((m (claude-code-ide-org--id-find id 'marker)))
+    (org-with-point-at m (claude-code-ide-org--lint-body-prose-lines))))
+
+(defun claude-code-ide-org-test--give-body (file lines)
+  "Append LINES prose lines to the fixture heading's body in FILE and save."
+  (with-current-buffer (get-file-buffer file)
+    (goto-char (point-max))
+    (dotimes (i lines) (insert (format "Prospective design line %d.\n" i)))
+    (save-buffer)))
+
+(ert-deftest claude-code-ide-org-test-set-todo-nudges-the-plan-wrap-at-close ()
+  "Queueing a finished keyword on a heading with an unwrapped body says so.
+
+The reminder fires at the one moment it is actionable.  `bin/lint-org'
+reports the same condition, but only over headings *already* closed --
+by which time the next ceremony has archived them and the missing drawer
+is history rather than a prompt.  Measured 2026-09-02: 93 of DONE.org's
+98 post-convention headings carry no drawer while 88 of those carry a
+debrief, so the debrief happens at close and the wrap does not
+(TODO.org :ID: 79a3d89e)."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--give-body file 12)
+    (let ((reply (claude-code-ide-org-set-todo id "DONE" "finishing up")))
+      (should (string-match-p "no :PLAN: drawer" reply))
+      (should (string-match-p "org_wrap_plan" reply)))))
+
+(ert-deftest claude-code-ide-org-test-set-todo-nudge-preserves-the-queue-append-contract ()
+  "The reminder must not add a second `(was ...)' to the reply.
+
+`bin/hooks/queue-append' recovers the prior keyword with a *greedy* sed,
+`s/.*(was \\([^)]*\\)).*/\\1/p', so a second parenthetical anywhere in the
+reply would win and the queued event would record the wrong `from'.
+That field is what lets review notice reality has moved past a queued
+transition, so getting it wrong is silent and consequential.
+
+Asserts the recovery itself rather than the absence of a substring: this
+runs the exact expression the hook runs."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--give-body file 12)
+    (let ((reply (claude-code-ide-org-set-todo id "DONE" "finishing up")))
+      ;; The nudge is present, so this is not a vacuous assertion.
+      (should (string-match-p "org_wrap_plan" reply))
+      (should (string-match ".*(was \\([^)]*\\)).*" reply))
+      (should (equal "TODO" (match-string 1 reply)))
+      ;; And the reply still does not begin with `Error:', which the hook
+      ;; treats as "drop this event".
+      (should-not (string-prefix-p "Error:" reply)))))
+
+(ert-deftest claude-code-ide-org-test-set-todo-nudge-stays-quiet-when-it-should ()
+  "Three cases where the reminder must not fire, each for its own reason.
+
+A short body needs no drawer -- wrapping a one-liner is ceremony rather
+than structure.  A heading that already has one is done.  And a
+transition that is not to a finished keyword is not the moment: the body
+is still live and still prospective."
+  ;; Short body: nothing worth wrapping.
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--give-body file 3)
+    (should-not (string-match-p
+                 "org_wrap_plan"
+                 (claude-code-ide-org-set-todo id "DONE" "finishing up"))))
+  ;; A drawer already exists AND a substantial debrief sits below it --
+  ;; which is the realistic post-wrap state, and the only one that tests
+  ;; the drawer guard at all. Wrapping alone drops the prose count to
+  ;; zero, so the substantial-body guard suppresses the nudge and the
+  ;; drawer guard is never reached: a mutation run on 2026-09-02 removed
+  ;; that guard and this case still passed.
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--give-body file 12)
+    (claude-code-ide-org-wrap-plan id)
+    (claude-code-ide-org-test--give-body file 12)
+    (should (>= (claude-code-ide-org-test--prose-lines id) 10))
+    (should-not (string-match-p
+                 "org_wrap_plan"
+                 (claude-code-ide-org-set-todo id "DONE" "finishing up"))))
+  ;; Substantial body, no drawer, but not a finished keyword.
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--give-body file 12)
+    (should-not (string-match-p
+                 "org_wrap_plan"
+                 (claude-code-ide-org-set-todo id "DOING" "starting")))))
