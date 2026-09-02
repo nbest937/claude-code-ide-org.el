@@ -4447,6 +4447,7 @@ CLOCK: [2026-08-26 Wed 18:51]--[2026-08-26 Wed 19:02] =>  0:11
 - State "DONE"       from "DOING"      [2026-08-26 Wed 19:02] \\
   163 lines retired; advisory replaces the trigger
 :END:
+:PLAN:
 
 *Step 0 of [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]'s plan, and it stands on its own* -- flattening only *exposed* this; the fix improves today's file unchanged.
 
@@ -4460,6 +4461,7 @@ CLOCK: [2026-08-26 Wed 18:51]--[2026-08-26 Wed 19:02] =>  0:11
 
 *This is 42808717 one tier up.* That heading taught the trigger to refuse a *container*, because promoting one "declares a project to be an action, inverting the one thing =NEXT= means". It fixed the case where the promoted heading was the wrong kind of thing; this fixes the case where the *sibling group* is.
 
+:END:
 *What shipped.* =NEXT= is meaningful only inside a container. =--trigger-demote-conflicting-next= survives, scoped by "has a parent" -- which *is* the container test, since a keyworded heading with a parent makes that parent one by definition. Autonomous promotion is gone, replaced by =--nomination-candidates-context=: a =SessionStart= line naming every container whose live members include no =NEXT=. It names a sole candidate and merely *counts* several, because that is the case no rule can decide.
 
 *163 lines of code retired, and the shape of them is the point.*
@@ -4544,6 +4546,7 @@ CLOCK: [2026-08-26 Wed 14:45]--[2026-08-26 Wed 14:47] =>  0:02
 - State "DONE"       from "DOING"      [2026-08-26 Wed 14:47] \\
   declined with reasoning; research delivered its decision
 :END:
+:PLAN:
 
 *The user's proposal 2026-08-25:* slices carry no clock, so stories should not either. The argument is the one =--container-heading-p='s docstring already makes -- org rolls a subtree's time up natively, so clocking the parent adds a second quantity *inside* the one that already existed, where it can no longer be told apart. Measured there on [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]: parent row 14:52, ten children summing 13:44, the 1:08 difference indistinguishable from a rounding artefact.
 
@@ -4562,6 +4565,7 @@ CLOCK: [2026-08-26 Wed 14:45]--[2026-08-26 Wed 14:47] =>  0:02
 
 *Not the same question as whether a container has a body.* That inference was drawn alongside this one and does not follow; see the note on [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]], which has no clock and a substantial body.
 
+:END:
 *Decided [2026-08-26 Wed]: declined, and the corpus is not in debt.* The user's approved shape was A + B − C + D — record the convention, fix the report, do not migrate, keep mitosis.
 
 *What settled it was a decision already on record, which this heading did not consult.* =--container-heading-p='s docstring has said all along that the exemption is "deliberately narrow: it suppresses only the *automatic* clock, never a deliberate =org-clock-in= on a parent, since a parent's own coordination and planning time is real and a blanket \"only clock leaves\" rule would discard it." So the proposal here was not filling a gap; it was *reversing* a decision, and the reversal was never argued against that sentence.
@@ -4635,6 +4639,7 @@ CLOCK: [2026-08-26 Wed 13:01]--[2026-08-26 Wed 13:03] =>  0:02
 - State "DONE"       from "DOING"      [2026-08-26 Wed 13:03] \\
   grouping predicate; both triggers exempt a slice
 :END:
+:PLAN:
 
 *Measured 2026-08-25 against the first slice* ([[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]]), not reasoned about: =(:container-p nil :auto-clock-in t :would-clock t)=. Setting =DOING= on a slice by hand opens a clock on the slice itself.
 
@@ -4646,6 +4651,7 @@ CLOCK: [2026-08-26 Wed 13:01]--[2026-08-26 Wed 13:03] =>  0:02
 
 *The open question is what the predicate should ask.* "Has keyworded descendants" and "is a grouping whose time lives elsewhere" have been the same thing until now. A slice is the first case where they part, so either =--container-heading-p= learns about by-reference members, or the two callers stop sharing one predicate.
 
+:END:
 *Shipped [2026-08-26 Wed] as [[orgit-rev:claude-code-ide-org::2c4796e][2c4796e]].* =claude-code-ide-org--grouping-heading-p= is the new predicate; both triggers now ask it.
 
 *The open question above is answered by taking neither of its two options.* It offered "=--container-heading-p= learns about by-reference members" or "the two callers stop sharing one predicate". The third way is that they keep sharing a predicate, and it is a *new* one: the union. Widening =--container-heading-p= would have made it contradict its own docstring -- it says it is derived from structure "rather than declared in a property someone has to remember to maintain" -- and =--slice-p= says the mirror image about itself. Both are right, so neither could absorb the other. A docstring made to lie about what it reads is precisely what [[id:6a21e08b-4880-4d2b-9b0f-12c35558fe08][6a21e08b]] closed three hours earlier on this same branch.
