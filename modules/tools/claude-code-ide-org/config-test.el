@@ -2731,7 +2731,7 @@ predicate tests keywords."
       (save-buffer))
     (org-id-update-id-locations (list capture-file))
     (should (string-match-p
-             "\\`Error: target .* is a slice"
+             "\\`Error: capturing a keyworded heading here would give slice"
              (claude-code-ide-org-capture
               "A task" "77777777-7777-4777-8777-777777777777" nil nil "TODO")))
     (should (string-match-p
@@ -2750,10 +2750,86 @@ predicate tests keywords."
                     ":PROPERTIES:\n:ID:       test-0003\n:END:\n"))
     (save-buffer)
     (org-id-update-id-locations (list file))
-    (should (string-match-p "\\`Error: target .* is a slice"
+    (should (string-match-p "\\`Error: refiling .* would give slice"
                             (claude-code-ide-org-refile id "test-0002")))
     (should (string-match-p "\\`Refiled:"
                             (claude-code-ide-org-refile "test-0003" "test-0002")))))
+
+(ert-deftest claude-code-ide-org-test-refile-refuses-a-keyworded-descendant-under-a-slice ()
+  "The arrival side of the guard is the *subtree*, not the heading line.
+
+A keyword-less note is only harmless under a slice if it is also
+childless: one carrying a keyworded child mints exactly the hybrid
+`claude-code-ide-org--container-heading-p' scans descendants to catch
+(TODO.org :ID: 15847e0b)."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* DOING [0/0] A slice\n"
+                    ":PROPERTIES:\n:ID:       test-0002\n:KIND:     slice\n:END:\n"
+                    "* A note carrying a keyworded child\n"
+                    ":PROPERTIES:\n:ID:       test-0003\n:END:\n"
+                    "** TODO its keyworded child\n"
+                    ":PROPERTIES:\n:ID:       test-0004\n:END:\n"
+                    "* A childless note\n"
+                    ":PROPERTIES:\n:ID:       test-0005\n:END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (should (string-match-p "\\`Error: refiling .* would give slice"
+                            (claude-code-ide-org-refile "test-0003" "test-0002")))
+    ;; The original test's negative case, kept: a note with nothing
+    ;; under it carries no keyword anywhere and stays legal.
+    (should (string-match-p "\\`Refiled:"
+                            (claude-code-ide-org-refile "test-0005" "test-0002")))))
+
+(ert-deftest claude-code-ide-org-test-refile-refuses-an-arrival-inside-a-slice ()
+  "The target side is the *enclosing* slice, not the target heading.
+
+`claude-code-ide-org--container-heading-p' matches a keyworded
+descendant at any depth, so landing a keyworded heading under a slice's
+keyword-less child hybridises the slice just as surely as landing it
+directly (TODO.org :ID: 15847e0b)."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* DOING [0/0] A slice\n"
+                    ":PROPERTIES:\n:ID:       test-0002\n:KIND:     slice\n:END:\n"
+                    "** a note under the slice\n"
+                    ":PROPERTIES:\n:ID:       test-0003\n:END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (let ((reply (claude-code-ide-org-refile id "test-0003")))
+      (should (string-match-p "\\`Error: refiling .* would give slice" reply))
+      ;; It names the slice it would hybridise, not the heading that was
+      ;; passed as the target -- which is the whole of what the ancestor
+      ;; walk buys, and is invisible if the message is only checked for
+      ;; being an error.
+      (should (string-match-p "would give slice \"\\[0/0\\] A slice\"" reply))
+      (should-not (string-match-p "a note under the slice" reply)))))
+
+(ert-deftest claude-code-ide-org-test-capture-refuses-a-keyworded-capture-inside-a-slice ()
+  "The same target-side mismatch, reached through capture (TODO.org
+:ID: 32742646).
+
+A capture creates a leaf, so only the target side can be wrong here --
+there is no arriving subtree to scan."
+  (claude-code-ide-org-test--with-capture-file
+    (with-current-buffer (find-file-noselect capture-file)
+      (goto-char (point-max))
+      (insert "* DOING [0/0] A slice\n:PROPERTIES:\n"
+              ":ID:       77777777-7777-4777-8777-777777777777\n"
+              ":KIND:     slice\n:END:\n"
+              "** a note under the slice\n:PROPERTIES:\n"
+              ":ID:       88888888-8888-4888-8888-888888888888\n:END:\n")
+      (save-buffer))
+    (org-id-update-id-locations (list capture-file))
+    (should (string-match-p
+             "\\`Error: capturing a keyworded heading here would give slice \"\\[0/0\\] A slice\""
+             (claude-code-ide-org-capture
+              "A task" "88888888-8888-4888-8888-888888888888" nil nil "TODO")))
+    ;; A keyword-less capture is a note and adds no keyword anywhere.
+    (should (string-match-p
+             "\\`Captured:"
+             (claude-code-ide-org-capture
+              "A note" "88888888-8888-4888-8888-888888888888")))))
 
 (ert-deftest claude-code-ide-org-test-set-property-refuses-kind-slice-on-a-container ()
   "Declaring a container a slice mints a hybrid (:ID: dca940c1); a leaf

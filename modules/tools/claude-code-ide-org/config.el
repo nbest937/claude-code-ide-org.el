@@ -2215,9 +2215,12 @@ note interactively, which would hang or error under the MCP layer's
 non-interactive call — the same never-block guarantee every other
 tool here gives."
   (require 'org-id)
-  (let ((inhibit-read-only t)                     ; see --at-id-writable
-        (marker (claude-code-ide-org--id-find id 'marker))
-        (target-marker (claude-code-ide-org--id-find target-id 'marker)))
+  (let* ((inhibit-read-only t)                    ; see --at-id-writable
+         (marker (claude-code-ide-org--id-find id 'marker))
+         (target-marker (claude-code-ide-org--id-find target-id 'marker))
+         (target-slice (and target-marker
+                            (org-with-point-at target-marker
+                              (claude-code-ide-org--enclosing-slice-title)))))
     (cond
      ((not marker)
       (format "Error: no org heading found with :ID: \"%s\"" id))
@@ -2225,14 +2228,25 @@ tool here gives."
       (format "Error: no org heading found with target :ID: \"%s\"" target-id))
      ;; A keyworded arrival under a slice would mint a hybrid -- the
      ;; slice branch then hides the child from the nomination report and
-     ;; the derived :BLOCKER: (TODO.org :ID: dca940c1). A keyword-less
-     ;; heading (a note) stays legal, since
-     ;; `claude-code-ide-org--container-heading-p' tests keywords.
-     ((and (org-with-point-at target-marker (claude-code-ide-org--slice-p))
-           (org-with-point-at marker (org-get-todo-state)))
-      (format "Error: target \"%s\" is a slice -- a slice's members are \
-[[id:...]] references, never keyworded children. Add the heading to the \
-member list instead, or refile it elsewhere" target-id))
+     ;; the derived :BLOCKER: (TODO.org :ID: dca940c1).
+     ;;
+     ;; Both halves are asked the way the lint asks them, which is not
+     ;; the way this guard originally asked them (TODO.org :ID: 15847e0b).
+     ;; The keyword may sit anywhere in the *arriving subtree* rather than
+     ;; on its heading line, and the slice may be an *ancestor* of the
+     ;; target rather than the target itself -- because
+     ;; `claude-code-ide-org--container-heading-p' scans descendants at any
+     ;; depth, so a keyworded heading landing under a slice's keyword-less
+     ;; child hybridises the slice just as surely. A keyword-less heading
+     ;; that is also childless -- a note -- stays legal.
+     ((and target-slice
+           (org-with-point-at marker
+             (claude-code-ide-org--subtree-has-keyworded-heading-p)))
+      (format "Error: refiling \"%s\" here would give slice \"%s\" keyworded \
+children -- a slice's members are [[id:...]] references, never keyworded \
+children. Add the heading to the member list instead, or refile it elsewhere"
+              (org-with-point-at marker (org-get-heading t t t t))
+              target-slice))
      (t
       (condition-case err
           (let* ((source-buffer (marker-buffer marker))
@@ -2568,6 +2582,15 @@ else."
                                  initial-state))
              (known (and initial-state
                          (claude-code-ide-org--file-todo-keywords file)))
+             ;; The slice a keyworded capture would hybridise, if any --
+             ;; the target's own title when it is a slice, otherwise the
+             ;; nearest ancestor's. Computed once so the refusal can name
+             ;; it. See the guard clause below.
+             (target-slice
+              (and initial-state target
+                   (let ((tm (claude-code-ide-org--id-find target 'marker)))
+                     (and tm (org-with-point-at tm
+                               (claude-code-ide-org--enclosing-slice-title))))))
              (new-id (org-id-new))
              (created (format-time-string "[%Y-%m-%d %a %H:%M]")))
         (cond
@@ -2606,16 +2629,24 @@ else."
          ;; keyword-less capture (a note) stays legal. `resolved' has
          ;; already signalled for an unresolvable target, so a non-nil
          ;; TARGET resolves here.
-         ((and initial-state target
-               (let ((tm (claude-code-ide-org--id-find target 'marker)))
-                 (and tm (org-with-point-at tm
-                           (claude-code-ide-org--slice-p)))))
-          (format (concat "Error: target %s is a slice -- a slice's members "
-                          "are [[id:...]] references, never keyworded "
+         ;;
+         ;; The slice may be an *ancestor* of the target rather than the
+         ;; target itself: `claude-code-ide-org--container-heading-p'
+         ;; matches a keyworded descendant at any depth, so capturing
+         ;; under a slice's keyword-less child hybridises the slice too.
+         ;; Asking only whether the target *is* a slice let that through,
+         ;; which falsified the paragraph above -- the refusal did not in
+         ;; fact land before the heading existed (TODO.org :ID: 32742646).
+         ;; Only the target side needs widening here, unlike org_refile:
+         ;; a capture creates a leaf, so there is no arriving subtree.
+         (target-slice
+          (format (concat "Error: capturing a keyworded heading here would "
+                          "give slice \"%s\" keyworded children -- a slice's "
+                          "members are [[id:...]] references, never keyworded "
                           "children. Capture without initial_state for a "
                           "note, or capture elsewhere and add the heading "
                           "to the member list")
-                  target))
+                  target-slice))
          ((claude-code-ide-org--file-busy-p file)
           (format "%s\"%s\" (ID: %s) %s; pending review."
                   claude-code-ide-org--reply-queued-capture
@@ -3931,6 +3962,58 @@ property is deliberately general enough for the others.
 Not inherited -- `org-entry-get' without the inherit flag -- so a
 subheading of a slice is not one."
   (equal "slice" (org-entry-get nil "KIND")))
+
+(defun claude-code-ide-org--subtree-has-keyworded-heading-p ()
+  "Non-nil when the heading at point *or any descendant* carries a TODO
+keyword.
+
+The arrival-side counterpart to
+`claude-code-ide-org--container-heading-p', which deliberately excludes
+the heading itself.  That one asks \"is this already a story\"; this one
+asks \"would landing this subtree somewhere make its new parent one\",
+and those differ by exactly the root.
+
+The distinction is not academic: `claude-code-ide-org-refile' asked
+`org-get-todo-state' on the moved heading alone, so a keyword-less note
+carrying a keyworded child refiled under a slice and minted the hybrid
+`bin/lint-org' refuses.  A note is only harmless if it is also childless
+\(TODO.org :ID: 15847e0b)."
+  (save-excursion
+    (save-restriction
+      (widen)
+      (org-back-to-heading t)
+      (or (and (org-get-todo-state) t)
+          (claude-code-ide-org--container-heading-p)))))
+
+(defun claude-code-ide-org--enclosing-slice-title ()
+  "Title of the slice enclosing the heading at point, or nil.
+
+Returns this heading's own title when it is itself a slice; otherwise
+walks up with `org-up-heading-safe', the way `bin/lint-org's
+completable-ancestor rule does, and returns the nearest ancestor slice's.
+
+*This is not `:KIND:' inheritance, which
+`claude-code-ide-org--slice-p' refuses on purpose.*  The question is not
+\"is this heading a slice\" -- it is not, and nothing here says it is --
+but \"would a keyworded heading landing here give some ancestor slice
+keyworded children\".  Since
+`claude-code-ide-org--container-heading-p' matches a keyworded
+descendant at *any* depth, an ancestor at any depth is the honest scope,
+and asking only about the immediate target is what let two write paths
+mint the hybrid (TODO.org :ID: 15847e0b, :ID: 32742646).
+
+Returns the title rather than a marker because both callers want it only
+to name the slice in a refusal message."
+  (save-excursion
+    (save-restriction
+      (widen)
+      (org-back-to-heading t)
+      (catch 'found
+        (while t
+          (when (claude-code-ide-org--slice-p)
+            (throw 'found (org-get-heading t t t t)))
+          (unless (org-up-heading-safe)
+            (throw 'found nil)))))))
 
 (defconst claude-code-ide-org--statistics-cookie-regexp
   "\\[[0-9]*\\(?:%\\|/[0-9]*\\)\\]"
