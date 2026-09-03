@@ -2,6 +2,19 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO One NEXT per category, and the Slices category stays out of slice membership :code:
+:PROPERTIES:
+:ID:       758a8b78-8d85-4c8b-a7c5-796d75ae62aa
+:CREATED:  [2026-09-03 Thu 09:35]
+:CATEGORY: Slices
+:END:
+
+Proposed by the user 2026-09-03, three parts. (1) At most one NEXT per :CATEGORY:, the Slices category included — measured at proposal time, the five live NEXTs already sat in five distinct categories (Slices, Meta, Queue, Clock, Skill), so the rule lands with zero demotions. (2) A proposed slice is composed fully as a slice at inception — :KIND:, cookie, members, :BLOCKER: — never left half-formed. (3) Nothing in the Slices category may appear as a slice member; since slices themselves carry :CATEGORY: Slices, the same clause forbids slice-in-slice. The forcing function is deliberate: within Slices, mechanism work and actually starting a slice compete for the one NEXT, so picking one up is a decision rather than a drift — this heading is itself an example of a Slices-category task that is not a slice.
+
+Open question, deliberately not settled here: does a member-level NEXT inside a story count against its category's budget? Two of today's five are member-level and today satisfies the strict reading — but under strict, the nominate-on-DONE rule needs a caveat for a category whose NEXT already sits in a sibling story.
+
+Lint shape, when adopted: (i) at most one NEXT per category; (ii) no slice member resolves to :CATEGORY: Slices — which subsumes no-slice-in-slice. Adjacent but distinct: the structural hybrid prohibition (a slice with keyworded tree-children), which is about children, not members, and is not settled by this. :ID: c10bfb15's nomination-niche overlap gains the category budget as a third contender.
+
 * TODO org_query answers from a restricted or short file set without saying so :code:
 :PROPERTIES:
 :ID:       b79b6b78-0bb0-47f2-b84c-a5d969f65252
@@ -15,6 +28,9 @@ Found 2026-09-03 while re-checking whether org_query reaches DONE.org. The tool 
 :ID:       ccfd89ce-a55d-4ad4-bce7-707181deb510
 :CREATED:  [2026-09-03 Thu 09:10]
 :END:
+
+Three sessions on 2026-09-03 did tracked work — a CLAUDE.md review, then filings and a table-row edit — with no org_clock_in and no org_set_todo, so every span reached review UNASSIGNED. The standing rule triggered only on "asked to start work on a task with an :ID:", every mechanical backstop hung off state transitions, and the "Review and planning" target was advertised only in a schema docstring — the lever :ID: 420816ec measured as the one that does not move usage. Shipped same day (commit e28ea0c): a CLAUDE.md standing rule — before a session's first file-touching act, clock in to the owning heading or to "Review and planning", capturing first if none exists — and bin/hooks/clock-target-check, a Stop hook that blocks once per session when the transcript shows write-tool activity but the session queue holds no clock_in. Clock evidence reads the queue, where errored calls never land; write evidence reads the transcript, which the queue's write-through gate under-reports by design; Edit/Write count only inside the project. Six direct test cases pass. In REVIEW rather than DONE because hook config loads at session start: the first session started after the commit is the live verification.
+
 
 
 * TODO A MAYBE member and a dropped member render identically, and the drop is now sticky :code:
