@@ -31,6 +31,13 @@ precedent is to add such a rule while instances are still few.
 =orgit-rev:= prompt link at all. So two of three steps were skipped and nothing said so, which
 suggests the real fix may be that acceptance is one command rather than a list someone follows.
 
+*=ff7ccb2d='s two instances were repaired by hand the same day, which is evidence for this heading
+rather than against it.* Its stale proposal paragraph was rewritten (=d3f08b3=) and its missing
+=orgit-rev:= prompt link added (=bc198a0=) — but both took a human noticing, an hour apart, and
+neither would have been noticed by anything that runs. The heading stands: the question is not
+whether one slice can be fixed, it is that acceptance leaves every slice needing it.
+
+
 * TODO bin/pre-commit-test has three failures that predate the branch fixing them
 :PROPERTIES:
 :ID:       0fa403f4-f9b3-4217-8b0f-da1518957885
