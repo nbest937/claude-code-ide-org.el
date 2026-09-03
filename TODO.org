@@ -2,7 +2,25 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO One NEXT per category, and the Slices category stays out of slice membership :code:
+* TODO No tool edits a heading's title, so a rename goes behind Emacs or not at all :code:
+:PROPERTIES:
+:ID:       24c7b537-7fd1-4327-86af-3807ddf36ebe
+:CREATED:  [2026-09-03 Thu 12:24]
+:CATEGORY: Tools
+:END:
+
+Found 2026-09-03 when a design revision left :ID: 758a8b78's title stating the withdrawn half of its own proposal. org_amend is body-only, the Edit tool writes behind a live buffer, and the one honest path was a hand emacsclient form — which the read-only buffer then correctly refused, proving CLAUDE.md's point that reaching for emacsclient against a read-only buffer signals a missing tool. The rename went through as a one-off with inhibit-read-only bound, the tools' own pattern. Proposed: a small org_rename tool — :ID: plus new title, wrapping org-edit-headline, which preserves keyword, priority, cookie, and tags. Note the knock-on: slice member lines copy referent titles, so a rename leaves stale copies until refresh-slice runs; the tool's reply should say when the renamed heading appears in slice member lines, or the tool should nudge the refresh itself.
+
+* TODO A slice that grows keyworded children reads as both groupings :code:
+:PROPERTIES:
+:ID:       dca940c1-becd-4e37-ada6-3217070f32dc
+:CREATED:  [2026-09-03 Thu 12:24]
+:CATEGORY: Slices
+:END:
+
+Latent, zero instances (all eleven slices checked 2026-09-03). A :KIND: slice heading with keyworded tree-children satisfies --container-heading-p and --slice-p at once, and every `if slice-p` call site then takes the slice branch: the nomination report resolves declared members only, so the children go unreported; the derived :BLOCKER: names unfinished members only, so the heading can close over a live child; a child closing lands in the incidentals list as work the slice "did not name"; and the two cookie rules count different things through one cookie. Three parts, in order: (A) one sentence in .claude/rules/org-conventions.md — a slice has zero keyworded tree-children, and a heading with keyworded children is never declared :KIND: slice; keywordless children (notes) are legal, since --container-heading-p tests keywords. (B) a bin/lint-org error: :KIND: slice with any keyworded child. (C) tool guards, second step: org_capture and org_refile refuse a keyword-carrying arrival under a slice target; org_set_property refuses KIND=slice on a container. Distinct from the membership rules in :ID: 758a8b78 — this is about tree children; that is about [[id:]] references and the NEXT budget.
+
+* TODO One top-level NEXT per category, and nested slice listings :code:
 :PROPERTIES:
 :ID:       758a8b78-8d85-4c8b-a7c5-796d75ae62aa
 :CREATED:  [2026-09-03 Thu 09:35]
