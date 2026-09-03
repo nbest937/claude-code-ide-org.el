@@ -290,6 +290,18 @@ count different things: children, versus checkbox members.
 **Members are `[[id:...]]` links in a checkbox list**, not child
 headings.
 
+**And a slice never has keyworded children** (`:ID:` dca940c1). A
+heading carrying both the `:KIND: slice` declaration and keyworded
+children satisfies the slice and container predicates at once, and every
+mechanism then takes the slice branch: the nomination report goes blind
+to the children, and the derived `:BLOCKER:` names members only, so the
+heading can close over a live child. `bin/lint-org` reports the
+combination as an **error** — added while latent, zero instances
+existing. Keyword-less children (notes) are legal; the container
+predicate tests keywords. The same rule read backwards: a heading that
+already has keyworded children is a story, and is never declared
+`:KIND: slice`.
+
 **When a member is a story, its relevant children get indented member
 lines beneath it** — added 2026-08-28. Not *every* child: the ones that
 belong to this slice, and *especially* any child that blocks another

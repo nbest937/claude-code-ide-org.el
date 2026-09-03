@@ -11314,6 +11314,33 @@ slice whose blocker was never built."
       (should (claude-code-ide-org--refresh-slice-blocker-at-point))
       (should-not (org-entry-get nil "BLOCKER")))))
 
+(ert-deftest claude-code-ide-org-test-lint-catches-slice-with-keyworded-children ()
+  "A declared slice with a keyworded child is a hybrid and errors.
+
+The negative cases carry the rule's two deliberate edges: a keyword-less
+child under a slice is a note and legal, and an ordinary container with
+keyworded children is a story and none of this rule's business."
+  (let ((cat "* Slices\n:PROPERTIES:\n:ARCHIVE:  DONE.org::* Slices\n:END:\n")
+        (child-props ":PROPERTIES:\n:ID:       22222222-0000-0000-0000-000000000000\n:CREATED:  [2026-09-03 Thu 12:00]\n:END:\n"))
+    ;; hybrid: slice with a keyworded child
+    (should (claude-code-ide-org-test--lint-matches
+             (claude-code-ide-org-test--lint
+              (concat cat "** DOING [0/0] A slice\n:PROPERTIES:\n:KIND:     slice\n:END:\n\n"
+                      "*** TODO a keyworded child\n" child-props))
+             'error "slice has keyworded children"))
+    ;; a keyword-less child is a note, not a hybrid
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint
+                  (concat cat "** DOING [0/0] A slice\n:PROPERTIES:\n:KIND:     slice\n:END:\n\n"
+                          "*** a note child\n" child-props))
+                 'error "slice has keyworded children"))
+    ;; an ordinary container is a story, not this rule's business
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint
+                  (concat cat "** DOING [0/1] A story\n:PROPERTIES:\n:ID:       33333333-0000-0000-0000-000000000000\n:CREATED:  [2026-09-03 Thu 12:00]\n:END:\n\n"
+                          "*** TODO a keyworded child\n" child-props))
+                 'error "slice has keyworded children"))))
+
 (ert-deftest claude-code-ide-org-test-lint-catches-slice-blocker-drift ()
   "The lint reports a slice whose blocker and checklist disagree.
 

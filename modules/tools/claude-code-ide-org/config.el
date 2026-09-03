@@ -11076,6 +11076,23 @@ cookie -- add [/] and run `org-update-statistics-cookies': %s" title))
                                 (or title ""))))
                  (report 'error line "slice has no statistics cookie -- add [/]; \
 `M-x claude-code-ide-org-refresh-slice' now does this itself: %s" title))
+               ;; A hybrid: a declared slice that has also acquired
+               ;; keyworded children satisfies `--slice-p' and
+               ;; `--container-heading-p' at once, and every `if slice-p'
+               ;; caller then takes the slice branch -- the nomination
+               ;; report resolves declared members only, the derived
+               ;; :BLOCKER: names members only (so the heading can close
+               ;; over a live child), and the two cookie rules above
+               ;; count different things through one cookie. Zero
+               ;; instances when this rule landed (TODO.org :ID:
+               ;; dca940c1); an error while still latent is the
+               ;; outline-map move -- cheapest before anything violates
+               ;; it. Keyword-less children (notes) are legal, since
+               ;; `--container-heading-p' tests keywords.
+               (when (and (claude-code-ide-org--slice-p)
+                          (claude-code-ide-org--container-heading-p))
+                 (report 'error line "slice has keyworded children -- members are \
+[[id:...]] references, and a heading with keyworded children is a story: %s" title))
                ;; A finished heading with a substantial body carries a
                ;; :PLAN: drawer (TODO.org :ID: 8bcd56f4): the prospective
                ;; half wrapped away, the debrief left as the body.
