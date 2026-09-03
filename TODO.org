@@ -2,6 +2,21 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO org_query answers from a restricted or short file set without saying so :code:
+:PROPERTIES:
+:ID:       b79b6b78-0bb0-47f2-b84c-a5d969f65252
+:CREATED:  [2026-09-03 Thu 09:24]
+:END:
+
+Found 2026-09-03 while re-checking whether org_query reaches DONE.org. The tool honors its documented scope — claude-code-ide-org-query-files, falling back to the org-agenda-files function — but that function's answer is shaped by live Emacs state the caller cannot see: an agenda restriction lock (org-agenda-restrict, set by C-x C-< or the dispatcher's < key) silently collapses it to one file, and a dangling path in org-agenda-files (an entry whose symlink was never created) silently contributes nothing. Both produced "No matches" indistinguishable from a true empty result, across three diagnostic layers in one sitting. Proposed: org_query's reply (and ideally org_clock_report's and the recovery scan's) should name the file set it actually searched, and say when a restriction lock is active — "No matches (searched TODO.org; agenda restriction active)" turns a silent wrong answer into an inspectable one.
+
+* TODO Nothing prompts a session to name its clock target, so spans land unassigned :code:
+:PROPERTIES:
+:ID:       ccfd89ce-a55d-4ad4-bce7-707181deb510
+:CREATED:  [2026-09-03 Thu 09:10]
+:END:
+
+
 * TODO A MAYBE member and a dropped member render identically, and the drop is now sticky :code:
 :PROPERTIES:
 :ID:       1b727475-46c3-4967-8cdd-dfd9397d94ea
@@ -170,6 +185,9 @@ Nothing writes into a =:PLAN:= drawer — =org_amend= appends below it — so re
 :END:
 
 A heading's body still grows without bound once the debrief lands in it, so orientation stays expensive even after [[id:b75d553a-3c77-4b98-9f58-022bfa295816][b75d553a]] moves the plan out. Proposed: a =:DEBRIEF:= drawer below the body, with a one-line resolution left in the body — so a folded heading shows problem, proposal and outcome and nothing else. Should follow [[id:35d25265-df52-45c0-8226-dfa24c3ed5bb][35d25265]] rather than precede it, since after the plan is extracted the remaining body *is* the debrief and needs no seam judgement.
+
+In scope, added 2026-09-03: absorb the pre-archive outcome-summary rule (CLAUDE.md near line 505, the summary "next to that link"). Post-b75d553a the link that rule points at sits inside :PLAN:, a drawer readers are told to skip, and once this task splits outcome recording into a body resolution plus a :DEBRIEF: drawer, the :505 rule becomes a third description of the same act, phrased against a location neither artifact will occupy. Rewrite or delete it as part of landing this, rather than patching it now and rewording it twice.
+
 
 
 ** TODO Split the reads: org_outline carries the body, a second tool serves drawers on demand :code:
@@ -1545,6 +1563,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-03 Thu 09:07]--[2026-09-03 Thu 09:14] =>  0:07
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -1733,6 +1752,9 @@ The =/next-session= idiom is used but not codified. One line outside the file me
 *Home: a new user-scoped skill, not the org-dev skill.* org-dev's trigger is changing this repo's own code and verifying it took effect; writing a prompt at end-of-session is neither, so the rule would silently never load -- the same failure CLAUDE.md names for path-scoped rules. And the idiom is org-free, Emacs-free and repo-free, which makes it the most portable thing here. [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] measured that only =~/.claude/= travels; this is its easiest first instance, a skill with *zero* repo coupling against the org skill's measured 16 lines. The format can additionally self-host in the prompt file's own header, which needs no trigger at all.
 
 *Open:* there is no end-of-session trigger to hang the writing rule on. Candidate is firing on an explicit request to write or revise the prompt, with the self-hosted header as the backstop.
+
+Overlap to resolve, noted 2026-09-03: the slice NEXT (:ID: abce1850 — at most one slice carries it, meaning "this is the slice to pick up next") occupies the same portfolio-nomination niche as this prompt format, and neither artifact mentions the other. Whichever mechanism lands first decides whether they are one mechanism or two, and records the decision in the other's terms — the twin asymmetry at the portfolio tier is otherwise invisible from inside either. Related and deliberately deferred: one-NEXT-per-slice has no lint or report yet; observe the days-old rule before building machinery for it.
+
 
 
 * TODO Open today's node
@@ -7267,6 +7289,8 @@ that only fixes the file addresses a third of the problem.
 keyword set agrees, and cannot check a claim that is merely out of date
 — which is most of them. Naming what the check *cannot* do is what keeps
 a green check from being read as a green file.
+
+
 ** TODO Write the wrap-at-composition procedure into CLAUDE.md once the drawer argument settles it :code:
 :PROPERTIES:
 :ID:       16d7d39a-19f8-4e4e-95cc-e06034bd6f1f
@@ -7276,6 +7300,7 @@ a green check from being read as a green file.
 
 The three-step composition procedure — org_amend the prospective prose, org_wrap_plan with no until, org_amend the two-to-five-sentence statement — lives only in org_wrap_plan's schema docstring, and :ID: 420816ec measured that schema text does not move usage while a CLAUDE.md directive does. But :ID: 501a8422 would collapse the three steps into one org_amend drawer=PLAN call and partly subsume org_wrap_plan, so transcribing the procedure now would document a shape already nominated for replacement. Once that lands, write whichever procedure survives into CLAUDE.md next to the org_wrap_plan table row (which now points at the schema docstring as the procedure's home). The :BLOCKER: encodes the wait.
 
+
 ** TODO The plan-link lifecycle prose still describes the retired wrap-at-DONE flow :code:
 :PROPERTIES:
 :ID:       6fc9377b-468f-4c61-aada-548d329eb5d8
@@ -7284,6 +7309,7 @@ The three-step composition procedure — org_amend the prospective prose, org_wr
 
 CLAUDE.md still puts the Plan link "in its heading body" (the rule near line 408) and still says it is "relocated into the :PLAN: drawer" at DONE "when org_wrap_plan wraps it" (near line 425) — the flow :ID: b75d553a retired on 2026-09-02 when the wrap moved to composition time. Plan-then-compose needs only rewording: the link is planning content and rides in the prospective prose, so it belongs inside :PLAN: from the start. Compose-then-plan currently has no path at all — org_wrap_plan refuses a heading that already has a :PLAN: drawer and org_amend appends below it — and that half is :ID: 501a8422's open question (does drawer=PLAN create the drawer when absent?), so word it against whatever that builds rather than inventing a path here.
 
+
 ** TODO Three nomination paragraphs say container where the code means grouping :code:
 :PROPERTIES:
 :ID:       cc63742e-1f1a-4af1-8580-ecbd5e3f7190
@@ -7291,6 +7317,7 @@ CLAUDE.md still puts the Plan link "in its heading body" (the rule near line 408
 :END:
 
 The nomination-report paragraphs and the nomination Rule ("every transition to DONE inside a container", CLAUDE.md near lines 795–803) say "container" where the mechanism is broader: --nomination-candidates-context resolves slice members through the referent index, and its docstring says "a project here is a story or a slice, never a filing category". The file's own "note which predicate goes where" paragraph is what makes the loose word bite — a reader applying the vocabulary concludes slices go unreported. Substitute "grouping" at the three sites; a three-word fix, no growth.
+
 
 * TODO Direct file writes to a live org buffer can desync org-clock-marker :code:
 :PROPERTIES:
@@ -7484,6 +7511,9 @@ specifically looking for anything portable-but-undocumented-in-skill;
 the "MCP tools", "Session tracking", and "Emacs integration" sections
 are inherently project-specific (they name this project's actual tool
 names and files) and are out of scope.
+
+In scope, added 2026-09-03: the :CREATED: rule's remaining scope (CLAUDE.md near line 856, "applies to every heading creation"). Every MCP creation path already stamps it — org_capture and org_divide — and org_set_property refuses the property, a refusal :ID: 501a8422's plan now cites as precedent for its own allowlist. So the rule's live scope is precisely the text-editing creation path, and this audit decides its fate: either the rule moves to the skill with that path, or it is reworded in place to name its actual remaining scope.
+
 
 
 * MAYBE Make org-blocker-hook actually consult :BLOCKER: :code:
@@ -8409,4 +8439,25 @@ CLOCK: [2026-09-02 Wed 18:15]--[2026-09-02 Wed 18:22] =>  0:07
 - [2026-09-02 Wed 18:15]--[2026-09-02 Wed 18:22] assigned at review
 CLOCK: [2026-09-02 Wed 18:27]--[2026-09-02 Wed 18:29] =>  0:02
 - [2026-09-02 Wed 18:27]--[2026-09-02 Wed 18:29] assigned at review
+:END:
+
+
+**** 2026-09-03 Thursday
+:PROPERTIES:
+:ID:       a191b3e7-c13d-46bf-a8dc-5cb464ac711a
+:CREATED:  [2026-09-03 Thu 07:41]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-03 Thu 07:41]--[2026-09-03 Thu 07:48] =>  0:07
+- [2026-09-03 Thu 07:41]--[2026-09-03 Thu 07:48] assigned at review
+CLOCK: [2026-09-03 Thu 07:51]--[2026-09-03 Thu 07:52] =>  0:01
+- [2026-09-03 Thu 07:51]--[2026-09-03 Thu 07:52] assigned at review
+CLOCK: [2026-09-03 Thu 07:58]--[2026-09-03 Thu 08:04] =>  0:06
+- [2026-09-03 Thu 07:58]--[2026-09-03 Thu 08:04] assigned at review
+CLOCK: [2026-09-03 Thu 08:42]--[2026-09-03 Thu 08:44] =>  0:02
+- [2026-09-03 Thu 08:42]--[2026-09-03 Thu 08:44] assigned at review
+CLOCK: [2026-09-03 Thu 08:46]--[2026-09-03 Thu 08:49] =>  0:03
+- [2026-09-03 Thu 08:46]--[2026-09-03 Thu 08:49] assigned at review
+CLOCK: [2026-09-03 Thu 08:55]--[2026-09-03 Thu 09:02] =>  0:07
+- [2026-09-03 Thu 08:55]--[2026-09-03 Thu 09:02] assigned at review
 :END:
