@@ -729,22 +729,26 @@ Two different facts now render as the same line. =MAYBE= and =CANCELLED= map to 
   the slice to pick up next
 :END:
 
-*A proposal, not a slice* — the declaration is withheld deliberately, per the procedure settled 2026-09-02. No =:KIND: slice=, no prompt link, and =MAYBE= rather than =TODO=, because nothing here is committed to yet.
-
-*The theme.* This project is a testbed for a thing meant to manage *other* projects, and the discipline it developed does not currently leave the directory. Verified against the plugin documentation 2026-09-02: the machinery can travel — a plugin ships skills, commands, hooks and MCP servers, with =${CLAUDE_PLUGIN_ROOT}= for bundled scripts — while the *prose* cannot. =.claude/rules/= is not a plugin component, and no documented mechanism lets a plugin contribute always-loaded instructions to a consuming project's CLAUDE.md. So roughly 660 of CLAUDE.md's 1196 lines describe machinery that would ship and currently has no way to.
-
-*Why these three and nothing else.* Each is a different face of the same problem, and none of them is declared by another slice — checked rather than assumed, since duplicate membership across slices is what made two slices unreadable earlier today.
+This project is a testbed for a thing meant to manage *other* projects, and the discipline it has
+developed does not leave the directory. The machinery can travel — a plugin ships skills, commands,
+hooks and MCP servers — while the prose cannot, because =.claude/rules/= is not a plugin component.
+Each member is a different face of that. The argument, the plugin-manifest verification and the
+line-count measurement are all =9ae4b17e='s and are not repeated here.
 
 - [ ] [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] NEXT Make the org skill and its discipline portable to other repos
 - [[id:1caed585-3209-4108-8501-eba16baf6a01][1caed585]] MAYBE Decide what this module may change on a user's machine when installed
 - [ ] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] TODO CLAUDE.md carries dated history that costs every session's context
 
-*Sequenced, not merely grouped.* The first classifies what must travel; the second decides what installation is allowed to touch; the third is downstream of both, because its prune is the same triage seen from the other end and pruning first risks deleting rules a consuming project needs.
+*The order is the point.* =9ae4b17e= classifies what must travel; =9d009401= prunes, and prunes
+second, because pruning before that classification risks deleting rules a consuming project needs.
+Since 2026-09-03 that is a =:BLOCKER:= on =9d009401= rather than only this sentence.
 
-*[[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] arrives here from [[id:b36e6369-a210-4540-adc7-0c0c188e9791][b36e6369]]*, whose line for it kept its position and lost its cookie. It is the same work, re-sequenced rather than restarted, and its four settled decisions travel with it in its own body.
+*=1caed585= is dropped, not pending.* What installation may change on a user's machine is a decision
+this slice does not need, and a =MAYBE= in the blocker set would hold the slice open for work it
+declined to do.
 
-*Deliberately excluded, though related:* the Emacs-outage and queue-fallback headings are declared members of [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]]. They bear on portability, but naming them here would recreate the duplicate membership this proposal was composed just after cleaning up.
-
+Headings that bear on portability but are already declared by =8a2eb687= stay there; membership is
+not shared between slices.
 
 * DOING Make the heading body a scannable summary, with plan and debrief in drawers [2/5]
 :PROPERTIES:
