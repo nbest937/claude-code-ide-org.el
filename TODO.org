@@ -2,12 +2,42 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO bin/pre-commit-test has three failures that predate the branch fixing them
+:PROPERTIES:
+:ID:       0fa403f4-f9b3-4217-8b0f-da1518957885
+:CREATED:  [2026-09-03 Thu 15:00]
+:CATEGORY: Dev
+:END:
+
+Found while closing =ae4e4b04=, and filed rather than mentioned because residue named only in a
+closed heading's prose is on a path to becoming invisible. =bin/pre-commit-test= reports **5 passed,
+3 failed** — "clean staged org passes", "lints staged content, not the worktree" and "a non-task .org
+file is not gated", each expecting exit 0 and getting 1.
+
+*Confirmed pre-existing, not caused by the PR #9 branch:* the same three fail identically in a
+detached worktree at =8c52cd6=, which is PR #9's own base and the current =origin/main=. So `main` is
+shipping a red suite.
+
+The likely cause is the one the PR #9 review flagged as out of scope: =.githooks/pre-commit= now
+hard-depends on =fish=, its =[ -x ]= check passes, the run exits 127, and the commit is refused as
+"documentation has drifted" with an *empty* detail block — exit 1 where the test expects 0. That is
+the same misdiagnosis class as =3f2d5126= one layer up, and =bin/lint-org= is bash, so this is a new
+dependency rather than an existing one. **Unverified**: =bin/check-conventions= runs clean by hand in
+this session, so whatever the harness does differently is the thing to find first — do not assume the
+=fish= reading without reproducing it.
+
+Its twin, also on =origin/main= and also out of PR #9's scope: =bin/check-conventions= with a
+mistyped flag falls into =case '*'=, =cd= fails, =root= goes empty, **zero assertions run**, and it
+exits 0 silently — the failure mode =542924c1= collects. Worth fixing in the same pass; both are the
+gate lying about itself.
+
 * TODO [0/4] Close the four defects the PR #9 review found
 :PROPERTIES:
 :ID:       887eaba3-96c5-4821-88e0-7cf60859a9c4
 :CREATED:  [2026-09-03 Thu 14:42]
 :CATEGORY: Tools
 :END:
+:PLAN:
 
 A =/code-review --comment= pass over [[https://github.com/nbest937/claude-code-ide-org.el/pull/9][PR #9]] filed four inline comments, each a defect in
 code that PR introduced: two in the new slice guards on =claude-code-ide-org-refile= and
@@ -23,6 +53,39 @@ protect — =claude-code-ide-org--container-heading-p= as used by the hybrid lin
 descendant question in the declaring direction, so the inconsistency is internal to one branch.
 
 Each child names its comment permalink. The threads stay open until the fixes land.
+
+:END:
+*Verified, not just implemented:* all four fixed and committed on =feature/fix-claude-md-and-slice-conventions=,
+PR #9's own branch — the same integration point, so no new branch. Four commits:
+[[orgit-rev:claude-code-ide-org::0b99eaf][0b99eaf]] (both guards),
+[[orgit-rev:claude-code-ide-org::3eed7cc][3eed7cc]] (the jq slurp, plus the hook's missing test
+harness), [[orgit-rev:claude-code-ide-org::8906742][8906742]] (the sentinel). Closing battery:
+=bin/test= 541/541 (was 538), =bin/clock-target-check-test= 12/12 — a file that did not exist —
+=bin/lint-org= 0 errors, =bin/check-conventions= 27 ok, and every other shell suite green except
+=bin/pre-commit-test=, whose three failures are filed as =0fa403f4= and reproduce identically at
+=8c52cd6=.
+
+*Every fix was run red first*, and by copying the file aside and restoring =HEAD='s version in place
+rather than stashing. The guard tests failed with =Refiled: "Test heading" under "a note under the
+slice"= — the escape itself, not a proxy. The sentinel test was written a commit early and held back
+rather than committed red.
+
+*What the review found that the suites could not.* All three PR #9 guards were written in one pass,
+and the =org_set_property= one asked =--container-heading-p= while the other two asked direct
+questions — an inconsistency internal to a single branch, with 538 green tests over it. The reason it
+survived is that the refile guard's negative case was a **childless** keyword-less note, which is
+legal for two independent reasons at once; nothing distinguished them until a case was written where
+they came apart.
+
+*Left open, deliberately:* the four PR threads are unanswered and unresolved, and the branch is
+unpushed. Both are the user's call — replying to a thread publishes, and =.githooks/pre-push= is a
+separate gate.
+
+*One repair outside the repo, recorded because nothing else records it:*
+=~/.claude/plans/twinkling-meandering-graham.md= vanished mid-session, breaking a =DONE.org= plan link
+and blocking a commit through =bin/lint-org=. Restored byte-for-byte from =plans/=, which is exactly
+what that archive exists for. Nothing in this session deleted it, and what did is unknown.
+
 
 ** TODO A refile guard that asks about the moved heading cannot see the subtree it moves
 :PROPERTIES:
@@ -123,6 +186,7 @@ next reader stops checking.
 :CREATED:  [2026-09-03 Thu 14:43]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
 [[https://github.com/nbest937/claude-code-ide-org.el/pull/9#discussion_r3927964800][PR #9 comment]]. =bin/hooks/clock-target-check= tests for a queued =clock_in= with =jq -e -s=,
 which slurps the whole =.jsonl= and parses it as one document — so a single truncated or interleaved
@@ -138,12 +202,36 @@ What makes it look unintended rather than a trade is that the write-evidence sca
 already uses =fromjson?= precisely so malformed lines are skipped. The fix is the same tolerance,
 which costs nothing here.
 
+:END:
+*Verified, not just implemented:* measured on three fixtures before the edit and again after —
+a queue holding a real =clock_in= plus one truncated line exits **5** under =jq -e -s= and **0**
+under the replacement, while a queue with no =clock_in= exits **1** under both. So the fix restores
+the intended answer without widening what counts as a clock. Shipped in
+[[orgit-rev:claude-code-ide-org::3eed7cc][3eed7cc]] as =-n -R + inputs + fromjson?=, which is the
+tolerance the write-evidence scan thirty lines below already used deliberately.
+
+*The larger finding is that the hook shipped with no test at all*, which is how both of this
+story's hook defects reached a review pass instead of a suite. =bin/clock-target-check-test= now
+exists: eleven checks over the clock-evidence scan, the write-evidence scan's project scoping, the
+sentinel round trip and the blocking message.
+
+*The discrimination was proved, not assumed*, and by copying the fixed hook aside and restoring
+=HEAD='s version in place rather than stashing: the malformed-line check fails against the unfixed
+hook and passes against the fixed one. Two assertions were written knowing they would fail — the
+second belongs to =ae4e4b04= and was held back rather than committed red.
+
+*Carried along, because a comment is the only place it was recorded:* the suite now pins the reason
+the scan is =jq= and not =grep= — an amend body quoting the literal ="kind":"clock_in"= must not
+count as a clock. That was a header sentence with nothing enforcing it.
+
+
 ** TODO The once-per-session guard fires anyway when it cannot arm itself
 :PROPERTIES:
 :ID:       ae4e4b04-e4d0-4ce9-b37f-d1c5479e8735
 :CREATED:  [2026-09-03 Thu 14:43]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
 [[https://github.com/nbest937/claude-code-ide-org.el/pull/9#discussion_r3927964971][PR #9 comment]]. =bin/hooks/clock-target-check= writes a sentinel so its reminder fires at most
 once per session, but the write discards its own failure and the =exit 2= runs unconditionally — so
@@ -153,6 +241,28 @@ enforce, and nothing consults =stop_hook_active= as a second line of defence.
 
 The fix keeps the file's existing fail-open posture: a check that cannot arm its own guard should not
 fire.
+
+:END:
+*Verified, not just implemented:* the regression test was written alongside =b02191d6='s suite and
+deliberately **held back rather than committed red** — it fails against the unfixed hook *and*
+against the fix-1-only hook, and passes here, so it discriminates on this defect specifically rather
+than on the file having changed. It makes the queue directory unwritable, runs the hook, and asserts
+exit 0. Twelve checks green; =bin/test= 541/541; =bin/lint-org= 0 errors;
+=bin/check-conventions= 27 ok.
+
+Shipped in [[orgit-rev:claude-code-ide-org::8906742][8906742]] as =: > "$sentinel" 2>/dev/null || exit 0=
+— the same fail-open posture as the =command -v jq= and empty-=session_id= exits at the top of the
+file. A discipline reminder that cannot bound itself is worse than no reminder.
+
+*The header was corrected in the same commit, not left standing.* Both the LOOP GUARD paragraph and
+the "This check fires once per session." sentence shown to the user asserted a bound the code did not
+keep; a comment that overstates a guard is how the next reader stops checking. The paragraph now says
+the bound is enforced and points at the write.
+
+*Residue, filed rather than described:* =0fa403f4= — =bin/pre-commit-test= reports 5 passed, 3 failed,
+and the same three fail identically in a detached worktree at =8c52cd6=, so =origin/main= is shipping
+a red suite. Out of this story's scope; not left in prose.
+
 
 * TODO A slice closed by the same apply pass freezes with stale member lines :code:
 :PROPERTIES:
