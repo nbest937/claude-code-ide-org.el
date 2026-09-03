@@ -38,6 +38,9 @@ Revised by the user 2026-09-03, superseding the same-day first draft (git holds 
 (4) New composition rule for codification: a story's children appear in the slice list nested under their parent. When the slice does not undertake all open children of an open story, the parent line carries no checkbox, so the slice can reach DONE while the story stays open. Refinement to decide at codification: the parent line should probably be an [[id:]] reference without a checkbox rather than a bare title — a title goes stale on rename (declared groupings are made of ids, :ID: 478d6ec9), while a reference without a checkbox still stays out of the recursive checkbox cookie and, if the member parser reads only checkbox lines, out of the derived :BLOCKER:.
 
 Lint shape when adopted: top-level NEXT count per category <= 1, and the nesting/no-checkbox form above once codified. The nominate-on-DONE rule needs no caveat under this design — member NEXTs are exempt, so the collision the first draft raised does not arise.
+
+Codification note, 2026-09-03: the nested listing in (4) extends an existing convention — "when a member is a story, its relevant children get indented member lines beneath it" has been in .claude/rules/org-conventions.md since 2026-08-28. The delta is the checkbox-less parent line. Mechanically it rides the dropped-member rule (the refresh keeps an absent cookie absent), but it adds a fourth reading of a cookie-less line to the three that rule names (cancelled, deferred, moved) — and :ID: 1b727475 already tracks that ambiguity, so the codification must say explicitly: a cookie-less parent with nested member lines beneath it reads as a grouping label, never as a drop.
+
 * TODO org_query answers from a restricted or short file set without saying so :code:
 :PROPERTIES:
 :ID:       b79b6b78-0bb0-47f2-b84c-a5d969f65252
