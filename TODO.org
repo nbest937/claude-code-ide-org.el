@@ -2,33 +2,6 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO org_set_todo mints the slice hybrid the other two guards now refuse
-:PROPERTIES:
-:ID:       dc753eb2-afb5-41d1-b420-9344aac5b662
-:CREATED:  [2026-09-03 Thu 15:03]
-:CATEGORY: Tools
-:END:
-
-A keyword-less note under a slice is legal — the container predicate tests keywords. Queue
-=org_set_todo TODO= on that note, let a human apply, and the slice has a keyworded descendant: the
-same hybrid =dca940c1= forbids and =bin/lint-org= errors on, reached by a third path that neither
-=15847e0b= nor =32742646= touches. Both of those fixed *arrival* — refile and capture — and nothing
-checks at the moment a keyword is granted to a heading already in place.
-
-*This is the twin the composer could not see.* It was noticed while implementing the other two and
-then not filed, which is exactly the asymmetry CLAUDE.md names: scheduling one and forgetting the
-other, invisible from inside the act that creates it and caught only by a reader. Filed at close on
-the reader's prompt rather than the composer's.
-
-The fix is not obviously the same shape as the other two, which is why this is its own heading. The
-guard cannot sit where the others do: =org_set_todo= queues and changes nothing, so refusing at call
-time would refuse a keyword that may never be applied, while refusing at apply time means blocking a
-human mid-pass over a condition they can see. Deciding between those — or accepting that the lint is
-the right net for this one path, since apply is human-triggered and a human is present — is the work.
-
-Note =org_divide= is *not* a fourth path: dividing a note under a slice introduces no keyword, so it
-cannot mint the hybrid on its own.
-
 * TODO bin/pre-commit-test has three failures that predate the branch fixing them
 :PROPERTIES:
 :ID:       0fa403f4-f9b3-4217-8b0f-da1518957885
@@ -58,7 +31,7 @@ mistyped flag falls into =case '*'=, =cd= fails, =root= goes empty, **zero asser
 exits 0 silently — the failure mode =542924c1= collects. Worth fixing in the same pass; both are the
 gate lying about itself.
 
-* TODO [0/4] Close the four defects the PR #9 review found
+* TODO [0/5] Close the four defects the PR #9 review found, and the gap they shared
 :PROPERTIES:
 :ID:       887eaba3-96c5-4821-88e0-7cf60859a9c4
 :CREATED:  [2026-09-03 Thu 14:42]
@@ -120,6 +93,26 @@ both fixes here guard *arrival*, and nothing guards the grant. It was noticed wh
 =15847e0b= and then not filed, which is precisely the twin asymmetry CLAUDE.md describes — invisible
 from inside the act that creates it, caught by a reader. Its fix is a different shape (a queued tool
 has no call-time moment to refuse in), so it is its own heading rather than a fifth member.
+
+*Reopened and closed again, which is worth recording as a shape rather than an incident.* The
+paragraph above concluded that =dc753eb2= was "its own heading rather than a fifth member", on the
+premise that its fix was open design. The premise was wrong — =claude-code-ide-org-set-todo='s own
+docstring already named =org-blocker-hook= as where such a refusal belongs — so the heading was
+refiled in as the fifth member, the parent went =REVIEW= → =DOING=, and it shipped in
+[[orgit-rev:claude-code-ide-org::dbe2b09][dbe2b09]]. That is exactly what the =REVIEW= → =DOING= row
+is for: the review found something missing. The earlier paragraph is left standing, since a debrief
+that quietly agrees with itself afterwards is worth less than one that shows where it turned.
+
+**Membership was the question, and the test that settled it was the story's own title.** Three of the
+five are defects in code PR #9 introduced; =dc753eb2= is the same feature shipping two-thirds
+complete, which is a defect in what PR #9 introduced even though the file it touches is older. What
+stayed *out* is =0fa403f4=: it reproduces identically at =8c52cd6=, so it is =origin/main='s defect,
+and folding a main-branch fix into a feature PR would make this title false in the other direction.
+
+*Closing battery, all five members landed:* =bin/test= **542/542** (was 538 at the branch point),
+=bin/clock-target-check-test= **12/12** — a file that did not exist — =bin/lint-org= 0 errors,
+=bin/check-conventions= 27 ok. Five commits of code and fixes, each one red-first.
+
 
 
 
@@ -298,6 +291,66 @@ the bound is enforced and points at the write.
 *Residue, filed rather than described:* =0fa403f4= — =bin/pre-commit-test= reports 5 passed, 3 failed,
 and the same three fail identically in a detached worktree at =8c52cd6=, so =origin/main= is shipping
 a red suite. Out of this story's scope; not left in prose.
+
+
+** TODO org_set_todo mints the slice hybrid the other two guards now refuse
+:PROPERTIES:
+:ID:       dc753eb2-afb5-41d1-b420-9344aac5b662
+:CREATED:  [2026-09-03 Thu 15:03]
+:CATEGORY: Tools
+:END:
+:PLAN:
+
+A keyword-less note under a slice is legal — the container predicate tests keywords. Queue
+=org_set_todo TODO= on that note, let a human apply, and the slice has a keyworded descendant: the
+same hybrid =dca940c1= forbids and =bin/lint-org= errors on, reached by a third path that neither
+=15847e0b= nor =32742646= touches. Both of those fixed *arrival* — refile and capture — and nothing
+checks at the moment a keyword is granted to a heading already in place.
+
+*This is the twin the composer could not see.* It was noticed while implementing the other two and
+then not filed, which is exactly the asymmetry CLAUDE.md names: scheduling one and forgetting the
+other, invisible from inside the act that creates it and caught only by a reader. Filed at close on
+the reader's prompt rather than the composer's.
+
+The fix is not obviously the same shape as the other two, which is why this is its own heading. The
+guard cannot sit where the others do: =org_set_todo= queues and changes nothing, so refusing at call
+time would refuse a keyword that may never be applied, while refusing at apply time means blocking a
+human mid-pass over a condition they can see. Deciding between those — or accepting that the lint is
+the right net for this one path, since apply is human-triggered and a human is present — is the work.
+
+Note =org_divide= is *not* a fourth path: dividing a note under a slice introduces no keyword, so it
+cannot mint the hybrid on its own.
+
+:END:
+*Falsified, and by the docstring of the very function this was about.* The prospective half above
+reasons that the fix shape is open, listing "refusing at apply time means blocking a human mid-pass"
+as a *cost*. That has the valence backwards. =claude-code-ide-org-set-todo= already documents why it
+validates no legality — a queued answer is given against a file that has not moved yet, the
+disk-goes-stale problem that retired =bin/hooks/pretooluse-transition-guard= — and names
+=org-blocker-hook= as where such a refusal belongs precisely *because* apply runs =org-todo= in front
+of a human who can respond to it. A human present at the refusal is the design, not the objection.
+So the project had already answered this; the heading's premise that it was open design was wrong,
+and it is left standing above rather than edited because the record of the wrong turn is the useful
+part.
+
+*Verified, not just implemented:* the guard rests entirely on =org-blocker-hook= being reached for a
+keyword **grant** rather than only a transition, which is not obvious and would have failed silently.
+Measured in batch before a line was written: the hook is called with =(:from nil :to "TODO")=,
+returning nil leaves the keyword unset, returning t sets it. Four assertions then run red first —
+refused at child depth *and* at grandchild depth, permitted on the slice's own keyword, permitted on a
+note under an ordinary story. 542/542, and since the hook is registered globally every other test in
+the suite ran under it too.
+
+Shipped in [[orgit-rev:claude-code-ide-org::dbe2b09][dbe2b09]] as
+=claude-code-ide-org--blocker-keyword-inside-slice-p=, beside
+=claude-code-ide-org--blocker-clock-running-p= and making the same argument: one function on the hook
+covers every path — apply, a hand =C-c C-t=, anything later — without guessing at any of them.
+
+*It denies the grant only*, which is narrower than "no keyworded heading inside a slice" and is the
+one design decision made here rather than inherited. A heading that already carries a keyword is
+already a hybrid; refusing its later transitions would prevent no minting while wedging the repair,
+since it could then never be closed or cancelled on its way out. Clearing a keyword is permitted for
+the same reason — that *is* one of the two repairs, the other being a refile out of the slice.
 
 
 * TODO A slice closed by the same apply pass freezes with stale member lines :code:
