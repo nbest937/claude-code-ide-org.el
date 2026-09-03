@@ -783,8 +783,15 @@ next"** — a portfolio-level nomination, not an action. Three constraints
 keep it from re-creating the confusion `:ID:` 42808717 named one tier
 down:
 
-- **At most one slice carries it.** Two would say nothing, which is the
-  failure mode of every priority marker.
+- **At most one top-level `NEXT` per `:CATEGORY:`, slices included**
+  (`:ID:` 758a8b78, 2026-09-03 — generalising the original "at most one
+  slice carries it"). Within the Slices category, mechanism work and
+  starting a slice compete for the same nomination, which is a
+  deliberate forcing function. A story's *internal* `NEXT` is exempt —
+  it is a memoization of where to start upon entering the story, not a
+  portfolio nomination — and a slice's *members* may show several
+  `NEXT`s, since they are references reflecting other groups'
+  nominations.
 - **It does not substitute for a member's `NEXT`.** The two answer
   different questions — which slice, and which action inside it — and a
   slice marked `NEXT` whose members are all `TODO` is still
@@ -829,8 +836,8 @@ the next action — set `NEXT` on whichever remaining member should be
 picked up next, or say in a sentence that no clear candidate exists.
 Leaving the group silently un-nominated is the thing to avoid. Closing a
 *top-level* task nominates nothing, because it has no group; several
-top-level `NEXT`s at once are expected and correct, one per live
-workstream.
+top-level `NEXT`s at once are expected and correct — at most one per
+`:CATEGORY:` (`:ID:` 758a8b78), which is what a workstream now means.
 
 Since 2026-08-26 this is the *whole* invariant rather than half of it.
 `--trigger-demote-conflicting-next` still gives at most one `NEXT` per
