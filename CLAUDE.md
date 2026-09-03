@@ -716,6 +716,22 @@ failed rather than reimplement it more cheaply. **Plan Mode now needs no
 state change of its own** — a heading is `DOING` while it is being
 planned and implemented, which is what `DOING` already meant.
 
+**Rule**: before a session's first act that changes anything — a repo
+edit, a capture, an amend, any immediate org tool — name the heading the
+work belongs to and call `org_clock_in` on it, or on "Review and
+planning" (that exact title) for cross-cutting meta-work: review,
+planning, deciding what to do rather than doing it. No heading yet means
+capture one first, with an `initial_state`. The trigger is the *first
+write, not the ask*: a session that opens as a question drifts into
+tracked work, and the drift is invisible from inside the session doing
+it — on 2026-09-03 three sessions worked through the immediate tools
+alone and every span reached review UNASSIGNED (`:ID:` ccfd89ce). A
+purely read-only session owes nothing. `bin/hooks/clock-target-check`
+backstops this at turn end, once per session: write activity in the
+transcript with no `clock_in` in the queue blocks the stop with a
+reminder. It reports; it cannot name the heading — that judgement is
+this rule's alone.
+
 **Rule**: when asked to start work on a task tracked as an org heading with
 a `:ID:`, transition it to `DOING` via `org_set_todo` *before* beginning,
 unless it's already `DOING`. This has to be a standing instruction, not a
