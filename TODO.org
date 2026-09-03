@@ -22,6 +22,9 @@ Fix the record first: the CLAUDE.md defects found by this session's first-reader
 
 The =02aaae22= line is a checkbox-less grouping label per =758a8b78='s rule (4), exercised here for the first time: the slice takes two of the story's four open children, so the parent must not gate this slice's DONE. The story's other open children are deliberately out — =16d7d39a= is blocked on =501a8422=, and =9d009401= is sequenced behind =9ae4b17e='s triage by its own record.
 
+Debrief 2026-09-03: all four members closed the day the slice was composed, in sequence, on branch feature/fix-claude-md-and-slice-conventions — commits 791386a (cc63742e), 39aca76 (6fc9377b), d2bef8d and 982d65d (dca940c1: convention, lint, guards, all tests proved discriminating), 5485dcd (758a8b78: budget and label codified). Suite 529/529 throughout, bin/lint-org 0 errors, bin/check-conventions clean after every member. The checkbox-less 02aaae22 parent label worked as designed end to end: it never entered the blocker, never counted in the cookie, and its two nested members closed without the open story gating the slice. Run refresh-slice after applying the queue so the checkboxes catch up to the members' DONE keywords.
+
+
 * TODO No tool edits a heading's title, so a rename goes behind Emacs or not at all :code:
 :PROPERTIES:
 :ID:       24c7b537-7fd1-4327-86af-3807ddf36ebe
@@ -39,6 +42,9 @@ Found 2026-09-03 when a design revision left :ID: 758a8b78's title stating the w
 :END:
 
 Latent, zero instances (all eleven slices checked 2026-09-03). A :KIND: slice heading with keyworded tree-children satisfies --container-heading-p and --slice-p at once, and every `if slice-p` call site then takes the slice branch: the nomination report resolves declared members only, so the children go unreported; the derived :BLOCKER: names unfinished members only, so the heading can close over a live child; a child closing lands in the incidentals list as work the slice "did not name"; and the two cookie rules count different things through one cookie. Three parts, in order: (A) one sentence in .claude/rules/org-conventions.md — a slice has zero keyworded tree-children, and a heading with keyworded children is never declared :KIND: slice; keywordless children (notes) are legal, since --container-heading-p tests keywords. (B) a bin/lint-org error: :KIND: slice with any keyworded child. (C) tool guards, second step: org_capture and org_refile refuse a keyword-carrying arrival under a slice target; org_set_property refuses KIND=slice on a container. Distinct from the membership rules in :ID: 758a8b78 — this is about tree children; that is about [[id:]] references and the NEXT budget.
+
+Debrief 2026-09-03: all three parts shipped same day (commits d2bef8d, 982d65d). A: the prohibition paragraph in .claude/rules/org-conventions.md, stated in both directions. B: the lint error — the conjunction of the two predicates — with a test proved discriminating (exactly one failure with the clause removed). C: the three creation-path guards, each with the keyword-less case deliberately legal; removing the guards fails exactly the three new tests, 529/529 with them in. Landed latent: zero hybrids in the corpus throughout. bin/lint-org on the real corpus: 0 errors before and after.
+
 
 * TODO One top-level NEXT per category, and nested slice listings :code:
 :PROPERTIES:
@@ -60,6 +66,9 @@ Revised by the user 2026-09-03, superseding the same-day first draft (git holds 
 Lint shape when adopted: top-level NEXT count per category <= 1, and the nesting/no-checkbox form above once codified. The nominate-on-DONE rule needs no caveat under this design — member NEXTs are exempt, so the collision the first draft raised does not arise.
 
 Codification note, 2026-09-03: the nested listing in (4) extends an existing convention — "when a member is a story, its relevant children get indented member lines beneath it" has been in .claude/rules/org-conventions.md since 2026-08-28. The delta is the checkbox-less parent line. Mechanically it rides the dropped-member rule (the refresh keeps an absent cookie absent), but it adds a fourth reading of a cookie-less line to the three that rule names (cancelled, deferred, moved) — and :ID: 1b727475 already tracks that ambiguity, so the codification must say explicitly: a cookie-less parent with nested member lines beneath it reads as a grouping label, never as a drop.
+
+Debrief 2026-09-03: codified same day (commit 5485dcd). org-conventions.md gained the budget subsection — one top-level NEXT per category, the two exemptions (a story's internal NEXT as memoization; a slice's members showing several), and the deliberate deferral of enforcement, observation before machinery. The nesting rule gained the checkbox-less parent form, named as the fourth reading of a cookie-less line with its structural disambiguator (indented member lines beneath = grouping label, never a drop), cross-tied to :ID: 1b727475. CLAUDE.md's slice-NEXT constraint generalised from at-most-one-slice to the category budget, and the nominate rule's tail now defines a workstream as a category. Slice ec65b5d6's member list had already exercised the parent-label form, so the convention landed with a live example. Verified: bin/check-conventions exit 0.
+
 
 * TODO org_query answers from a restricted or short file set without saying so :code:
 :PROPERTIES:
@@ -7371,6 +7380,9 @@ The three-step composition procedure — org_amend the prospective prose, org_wr
 
 CLAUDE.md still puts the Plan link "in its heading body" (the rule near line 408) and still says it is "relocated into the :PLAN: drawer" at DONE "when org_wrap_plan wraps it" (near line 425) — the flow :ID: b75d553a retired on 2026-09-02 when the wrap moved to composition time. Plan-then-compose needs only rewording: the link is planning content and rides in the prospective prose, so it belongs inside :PLAN: from the start. Compose-then-plan currently has no path at all — org_wrap_plan refuses a heading that already has a :PLAN: drawer and org_amend appends below it — and that half is :ID: 501a8422's open question (does drawer=PLAN create the drawer when absent?), so word it against whatever that builds rather than inventing a path here.
 
+Debrief 2026-09-03: both rules rewritten (commit 39aca76). The link rule now writes the Plan link into :PLAN: at planning-finish — riding the normal three-call composition when planning comes first — and states the compose-then-plan case as :ID: 501a8422's nominated work with the body as interim location, rather than inventing a path. The DONE paragraph now says nothing moves, keeps both earlier forms as dated history, and preserves the retroactive-wrap path for pre-convention headings. Verified: bin/check-conventions exit 0 (both cited ids resolve).
+
+
 
 ** TODO Three nomination paragraphs say container where the code means grouping :code:
 :PROPERTIES:
@@ -7379,6 +7391,9 @@ CLAUDE.md still puts the Plan link "in its heading body" (the rule near line 408
 :END:
 
 The nomination-report paragraphs and the nomination Rule ("every transition to DONE inside a container", CLAUDE.md near lines 795–803) say "container" where the mechanism is broader: --nomination-candidates-context resolves slice members through the referent index, and its docstring says "a project here is a story or a slice, never a filing category". The file's own "note which predicate goes where" paragraph is what makes the loose word bite — a reader applying the vocabulary concludes slices go unreported. Substitute "grouping" at the three sites; a three-word fix, no growth.
+
+Debrief 2026-09-03: substituted at the three sites — the report description, its shipped-day measurement, and the DONE-nomination rule — in CLAUDE.md (commit 791386a, branch feature/fix-claude-md-and-slice-conventions), plus one adjacent fix: the report docstring's own first line in config.el said "container" while its body said "story or a slice". The demote-trigger paragraphs keep "container" deliberately, since having a parent is that trigger's actual test. Verified: bin/check-conventions exit 0, and no test or script asserts the old phrase.
+
 
 
 * TODO Direct file writes to a live org buffer can desync org-clock-marker :code:
