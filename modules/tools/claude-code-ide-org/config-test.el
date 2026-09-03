@@ -8064,6 +8064,50 @@ counted; unmarking is never refused, since it asks nothing."
         (should (plist-get ok :marked))
         (should (plist-get stale :marked))))))
 
+(ert-deftest claude-code-ide-org-test-bulk-marks-are-the-humans-not-automatic ()
+  "`M\', `U\' and `t\' must clear `:auto-marked\', as `m\'/`u\' do.
+
+A state item arrives pre-marked and flagged, so `g\' stays silent.  Once
+a human touches the mark -- in bulk or one at a time -- it is theirs, and
+the two paths must agree about that or a mark made with `M\' reads as
+auto-made and `--review-judgement-summary\' skips it."
+  (claude-code-ide-org-test--with-heading
+    (let ((item (list :type 'state :id id :from "TODO" :to "DOING"
+                      :ts (current-time) :events nil)))
+      (claude-code-ide-org-test--with-review-buffer (list item)
+        ;; Arrives auto-marked, so nothing to ask about.
+        (should (plist-get item :marked))
+        (should (plist-get item :auto-marked))
+        (should-not (claude-code-ide-org--review-judgement-summary (list item)))
+        ;; `U\' is a hand gesture even though it leaves no mark.
+        (claude-code-ide-org-review-unmark-all)
+        (should-not (plist-get item :auto-marked))
+        ;; `M\' now leaves a mark that counts.
+        (claude-code-ide-org-review-mark-all)
+        (should (plist-get item :marked))
+        (should-not (plist-get item :auto-marked))
+        (should (string-match-p
+                 "1 marked"
+                 (claude-code-ide-org--review-judgement-summary (list item))))))))
+
+(ert-deftest claude-code-ide-org-test-a-refused-bulk-mark-leaves-the-item-alone ()
+  "An item `M\' declines must keep the state it arrived with.
+
+The clearing belongs on the branch that sets `:marked\', not above the
+`if\': a stale item is skipped precisely because nobody has decided it,
+so recording a decision on it would be the opposite of what the refusal
+means."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--set-todo-for-real id "DOING")
+    (let ((stale (list :type 'state :id id :ts (current-time)
+                       :from "TODO" :to "WAITING" :events nil)))
+      (should (claude-code-ide-org--review-state-stale-p stale))
+      (claude-code-ide-org-test--with-review-buffer (list stale)
+        (plist-put stale :auto-marked 'untouched)
+        (claude-code-ide-org-review-mark-all)
+        (should-not (plist-get stale :marked))
+        (should (eq 'untouched (plist-get stale :auto-marked)))))))
+
 (ert-deftest claude-code-ide-org-test-review-edit-note-reaches-the-file ()
   "The note is the half a human is best placed to fix: Claude wrote it
 before doing the work. Editing it must change what actually lands, not

@@ -9166,7 +9166,17 @@ skipped rather than leaving the human to notice."
             (if (and (plist-get item :unassigned) (null (plist-get item :id)))
                 (setq unassigned (1+ unassigned))
               (setq stale (1+ stale)))
-          (plist-put item :marked want))))
+          ;; Cleared here for the same reason
+          ;; `claude-code-ide-org--review-set-mark' clears it: `M', `U'
+          ;; and `t' are hand gestures, so the mark they leave is the
+          ;; human's and must count as judgement `g' asks about.  Without
+          ;; this a bulk mark stayed `:auto-marked' and
+          ;; `claude-code-ide-org--review-judgement-summary' skipped it,
+          ;; so the two mark paths disagreed about what the flag means.
+          ;; On this branch only: an item refused above was never touched
+          ;; and keeps whatever state it arrived with.
+          (progn (plist-put item :auto-marked nil)
+                 (plist-put item :marked want)))))
     (claude-code-ide-org--review-render)
     (claude-code-ide-org--review-goto-line line)
     (when (> (+ stale unassigned) 0)
