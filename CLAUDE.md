@@ -808,15 +808,15 @@ Having a parent is the test, since a keyworded heading with a parent
 makes that parent a container by definition.
 
 **What replaced the promotion is a report, not a rule.**
-`--nomination-candidates-context` names every container whose live
+`--nomination-candidates-context` names every grouping whose live
 members include no `NEXT`, at `SessionStart`, alongside the
 stale-interval and ceremony reports — and it *asks* rather than acting,
 which is the contract those reports already keep. It names a sole
 candidate and merely counts several, because that is the case no rule
-can decide. Measured on this corpus the day it shipped: five containers,
+can decide. Measured on this corpus the day it shipped: five groupings,
 each a real un-nominated project.
 
-**Rule**: every transition *to* `DONE` **inside a container** nominates
+**Rule**: every transition *to* `DONE` **inside a grouping** nominates
 the next action — set `NEXT` on whichever remaining member should be
 picked up next, or say in a sentence that no clear candidate exists.
 Leaving the group silently un-nominated is the thing to avoid. Closing a

@@ -1035,7 +1035,7 @@ would silently eat this hook's whole timeout."
     (nreverse results)))
 
 (defun claude-code-ide-org--nomination-candidates-context ()
-  "One line per container that has live members and no NEXT among them.
+  "One line per grouping that has live members and no NEXT among them.
 
 *Nominating, not promoting* (TODO.org :ID: 62b65ad0).  A trigger used to
 set NEXT on a container's sole remaining TODO by itself.  It was retired
