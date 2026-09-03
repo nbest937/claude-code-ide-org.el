@@ -618,6 +618,56 @@ not a new interval)."
     (should (string-match-p "^\\* DOING Test heading"
                             (claude-code-ide-org-test--disk-contents file)))))
 
+(ert-deftest claude-code-ide-org-test-blocker-refuses-a-keyword-inside-a-slice ()
+  "Granting a keyword to a heading already sitting *inside* a slice mints
+the hybrid (:ID: dca940c1) by a third path -- the one org_refile's and
+org_capture's arrival guards structurally cannot see, because nothing
+arrives (TODO.org :ID: dc753eb2).
+
+org-blocker-hook is where it belongs, and that is a decision the project
+had already made rather than a new one: `claude-code-ide-org-set-todo'
+documents that it deliberately validates no legality, because a queued
+answer would be given against a file that has not moved yet, and apply
+runs `org-todo' in front of a human who can respond to a refusal.
+
+Verified in batch before this was written that the hook fires on a
+none->TODO *grant* and not only on a transition -- it is called with
+\(:from nil :to \"TODO\") -- since the whole guard rests on that."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* DOING [0/0] A slice\n"
+                    ":PROPERTIES:\n:ID:       test-0002\n:KIND:     slice\n:END:\n"
+                    "** a note under the slice\n"
+                    ":PROPERTIES:\n:ID:       test-0003\n:END:\n"
+                    "*** a deeper note\n"
+                    ":PROPERTIES:\n:ID:       test-0004\n:END:\n"
+                    "* TODO An ordinary story\n"
+                    ":PROPERTIES:\n:ID:       test-0005\n:END:\n"
+                    "** a note under the story\n"
+                    ":PROPERTIES:\n:ID:       test-0006\n:END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    ;; A blocked org-todo aborts silently when not called interactively,
+    ;; so the resulting keyword is the assertion -- the same shape the
+    ;; clock-running blocker's tests use.
+    (claude-code-ide-org-test--set-todo-for-real "test-0003" "TODO")
+    (should-not (org-with-point-at (org-id-find "test-0003" 'marker)
+                  (org-get-todo-state)))
+    ;; At any depth, because --container-heading-p scans at any depth: a
+    ;; grandchild keyword hybridises the slice exactly as a child's does.
+    (claude-code-ide-org-test--set-todo-for-real "test-0004" "TODO")
+    (should-not (org-with-point-at (org-id-find "test-0004" 'marker)
+                  (org-get-todo-state)))
+    ;; The slice's OWN keyword is its own business -- a slice carries
+    ;; state, and refusing it here would be the guard eating its subject.
+    (claude-code-ide-org-test--set-todo-for-real "test-0002" "NEXT")
+    (should (equal "NEXT" (org-with-point-at (org-id-find "test-0002" 'marker)
+                            (org-get-todo-state))))
+    ;; And a note under an ordinary story is exactly how a story grows.
+    (claude-code-ide-org-test--set-todo-for-real "test-0006" "TODO")
+    (should (equal "TODO" (org-with-point-at (org-id-find "test-0006" 'marker)
+                            (org-get-todo-state))))))
+
 (ert-deftest claude-code-ide-org-test-blocker-hook-permits-done-when-not-clocking ()
   "The DONE blocker must never fire when nothing is clocking at all --
 only the presence of a running clock on that heading is grounds to

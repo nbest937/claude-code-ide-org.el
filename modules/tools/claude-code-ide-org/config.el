@@ -4015,6 +4015,59 @@ to name the slice in a refusal message."
           (unless (org-up-heading-safe)
             (throw 'found nil)))))))
 
+(defun claude-code-ide-org--blocker-keyword-inside-slice-p (change-plist)
+  "For `org-blocker-hook': deny *granting* a TODO keyword to a
+keyword-less heading that sits strictly inside a slice.
+
+The third path to the hybrid `bin/lint-org' refuses (TODO.org
+:ID: dca940c1), and the one the arrival guards on
+`claude-code-ide-org-refile' and `claude-code-ide-org-capture'
+structurally cannot see: nothing arrives.  A keyword-less note under a
+slice is legal, so the heading is already in place and only the keyword
+is new (TODO.org :ID: dc753eb2).
+
+*Here rather than in `claude-code-ide-org-set-todo', and that was
+already decided.*  That function documents its refusal to validate
+legality: a queued answer would be given against a file that has not
+moved yet, which is the disk-goes-stale problem that retired
+`bin/hooks/pretooluse-transition-guard'.  `org-blocker-hook' runs
+inside `org-todo' -- at apply, in front of a human who can respond to a
+refusal, and on a hand `C-c C-t' too.  So this catches every path
+without guessing at any of them, which is the same argument
+`claude-code-ide-org--blocker-clock-running-p' makes.
+
+*It denies the grant only*, which is narrower than \"a keyworded
+heading may not sit inside a slice\" and deliberately so.  A heading
+that already carries a keyword is already a hybrid, and refusing its
+later transitions would prevent no minting while wedging the repair --
+the heading could never be closed or cancelled on its way out.
+Clearing a keyword is likewise permitted, since that *is* one of the two
+repairs (the other being a refile out of the slice).
+
+A slice's own keyword is its own business: a slice carries state, and
+`claude-code-ide-org--slice-p' at point exempts it before the ancestor
+walk runs.  Depth is not bounded, because
+`claude-code-ide-org--container-heading-p' matches a keyworded
+descendant at any depth -- a grandchild hybridises the slice exactly as
+a child does.
+
+Verified in batch before this was written that the hook is reached at
+all for a keyword *grant* rather than only a transition: it is called
+with (:from nil :to \"TODO\"), returning nil leaves the keyword unset,
+and returning t sets it.  The whole guard rests on that, so it was
+measured rather than assumed.
+
+CHANGE-PLIST is the plist `org-todo' passes to every
+`org-blocker-hook' function; see `org-trigger-hook's docstring for its
+shape.  Returns non-nil to permit, like every function on that hook."
+  (or (plist-get change-plist :from)
+      (not (plist-get change-plist :to))
+      (claude-code-ide-org--slice-p)
+      (let ((slice (claude-code-ide-org--enclosing-slice-title)))
+        (if slice
+            (progn (setq org-block-entry-blocking slice) nil)
+          t))))
+
 (defconst claude-code-ide-org--statistics-cookie-regexp
   "\\[[0-9]*\\(?:%\\|/[0-9]*\\)\\]"
   "Matches an org statistics cookie: `[/]', `[2/5]', `[%]' or `[40%]'.
@@ -5065,6 +5118,7 @@ equivalent line by hand instead."
 
 (with-eval-after-load 'org
   (add-hook 'org-blocker-hook #'claude-code-ide-org--blocker-clock-running-p)
+  (add-hook 'org-blocker-hook #'claude-code-ide-org--blocker-keyword-inside-slice-p)
   (add-hook 'org-trigger-hook #'claude-code-ide-org--trigger-auto-clock-in)
   (add-hook 'org-trigger-hook #'claude-code-ide-org--trigger-demote-conflicting-next))
 
