@@ -841,6 +841,8 @@ not shared between slices.
 The prompt that drives this slice, one link per revision, oldest first:
 
 - [[orgit-rev:claude-code-ide-org::1251ee3][1251ee3]] [2026-09-03 Thu 16:13] rewrote =next-session.md= for this slice, replacing =b36e6369='s prompt
+- [[orgit-rev:claude-code-ide-org::1d026ae][1d026ae]] [2026-09-03 Thu 17:22] restructured it as a plan: Step 0 for the preliminaries, one step per movement, and Step 6 reconsidering the =MAYBE=s
+
 
 * DOING Make the heading body a scannable summary, with plan and debrief in drawers [2/5]
 :PROPERTIES:
