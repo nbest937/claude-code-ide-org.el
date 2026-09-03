@@ -2,6 +2,26 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* NEXT [0/4] Fix CLAUDE.md and the slice conventions ahead of portability :code:
+:PROPERTIES:
+:ID:       ec65b5d6-bfae-40ee-9071-639985281b34
+:CREATED:  [2026-09-03 Thu 12:42]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:BLOCKER:  ids(cc63742e-1f1a-4af1-8580-ecbd5e3f7190 6fc9377b-468f-4c61-aada-548d329eb5d8 dca940c1-becd-4e37-ada6-3217070f32dc 758a8b78-8d85-4c8b-a7c5-796d75ae62aa)
+:END:
+
+Fix the record first: the CLAUDE.md defects found by this session's first-reader review, then the convention codification the same session converged on — ahead of portability (=ff7ccb2d=), tests, and archiving. Composed in-session 2026-09-03; no next-session.md revision drives it yet — add the orgit-rev link when one picks it up.
+
+- [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] DOING Update CLAUDE.md and the org skill for the new architecture
+  - [ ] [[id:cc63742e-1f1a-4af1-8580-ecbd5e3f7190][cc63742e]] TODO Three nomination paragraphs say container where the code means grouping
+  - [ ] [[id:6fc9377b-468f-4c61-aada-548d329eb5d8][6fc9377b]] TODO The plan-link lifecycle prose still describes the retired wrap-at-DONE flow
+- [ ] [[id:dca940c1-becd-4e37-ada6-3217070f32dc][dca940c1]] TODO A slice that grows keyworded children reads as both groupings
+- [ ] [[id:758a8b78-8d85-4c8b-a7c5-796d75ae62aa][758a8b78]] TODO One top-level NEXT per category, and nested slice listings
+
+The =02aaae22= line is a checkbox-less grouping label per =758a8b78='s rule (4), exercised here for the first time: the slice takes two of the story's four open children, so the parent must not gate this slice's DONE. The story's other open children are deliberately out — =16d7d39a= is blocked on =501a8422=, and =9d009401= is sequenced behind =9ae4b17e='s triage by its own record.
+
 * TODO No tool edits a heading's title, so a rename goes behind Emacs or not at all :code:
 :PROPERTIES:
 :ID:       24c7b537-7fd1-4327-86af-3807ddf36ebe
