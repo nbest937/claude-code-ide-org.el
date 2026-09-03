@@ -2718,6 +2718,60 @@ worked yesterday teaches nothing."
       (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
         (should (string-match-p "^\\*\\* Filed under an id" disk))))))
 
+(ert-deftest claude-code-ide-org-test-capture-refuses-a-keyworded-capture-under-a-slice ()
+  "A keyworded capture under a slice would mint a hybrid (:ID: dca940c1);
+a keyword-less capture -- a note -- stays legal, since the container
+predicate tests keywords."
+  (claude-code-ide-org-test--with-capture-file
+    (with-current-buffer (find-file-noselect capture-file)
+      (goto-char (point-max))
+      (insert "* DOING [0/0] A slice\n:PROPERTIES:\n"
+              ":ID:       77777777-7777-4777-8777-777777777777\n"
+              ":KIND:     slice\n:END:\n")
+      (save-buffer))
+    (org-id-update-id-locations (list capture-file))
+    (should (string-match-p
+             "\\`Error: target .* is a slice"
+             (claude-code-ide-org-capture
+              "A task" "77777777-7777-4777-8777-777777777777" nil nil "TODO")))
+    (should (string-match-p
+             "\\`Captured:"
+             (claude-code-ide-org-capture
+              "A note" "77777777-7777-4777-8777-777777777777")))))
+
+(ert-deftest claude-code-ide-org-test-refile-refuses-a-keyworded-arrival-under-a-slice ()
+  "Refiling a keyworded heading under a slice would mint a hybrid
+(:ID: dca940c1); a keyword-less note goes through."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* DOING [0/0] A slice\n"
+                    ":PROPERTIES:\n:ID:       test-0002\n:KIND:     slice\n:END:\n"
+                    "* A keyword-less note\n"
+                    ":PROPERTIES:\n:ID:       test-0003\n:END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (should (string-match-p "\\`Error: target .* is a slice"
+                            (claude-code-ide-org-refile id "test-0002")))
+    (should (string-match-p "\\`Refiled:"
+                            (claude-code-ide-org-refile "test-0003" "test-0002")))))
+
+(ert-deftest claude-code-ide-org-test-set-property-refuses-kind-slice-on-a-container ()
+  "Declaring a container a slice mints a hybrid (:ID: dca940c1); a leaf
+may still be declared one."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* TODO A story\n"
+                    ":PROPERTIES:\n:ID:       test-0002\n:END:\n"
+                    "** TODO its child\n"
+                    ":PROPERTIES:\n:ID:       test-0003\n:END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (should (string-match-p "\\`Error: this heading has keyworded children"
+                            (claude-code-ide-org-set-property "test-0002" "KIND" "slice")))
+    ;; a leaf (the macro's own heading) may be declared a slice
+    (should (string-match-p "\\`Set KIND on"
+                            (claude-code-ide-org-set-property id "KIND" "slice")))))
+
 (ert-deftest claude-code-ide-org-test-capture-unknown-target-refuses ()
   "Better to error than to file it somewhere the caller did not ask for:
 a caller that named a destination and silently got a different one is

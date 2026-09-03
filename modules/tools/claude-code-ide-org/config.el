@@ -2223,6 +2223,16 @@ tool here gives."
       (format "Error: no org heading found with :ID: \"%s\"" id))
      ((not target-marker)
       (format "Error: no org heading found with target :ID: \"%s\"" target-id))
+     ;; A keyworded arrival under a slice would mint a hybrid -- the
+     ;; slice branch then hides the child from the nomination report and
+     ;; the derived :BLOCKER: (TODO.org :ID: dca940c1). A keyword-less
+     ;; heading (a note) stays legal, since
+     ;; `claude-code-ide-org--container-heading-p' tests keywords.
+     ((and (org-with-point-at target-marker (claude-code-ide-org--slice-p))
+           (org-with-point-at marker (org-get-todo-state)))
+      (format "Error: target \"%s\" is a slice -- a slice's members are \
+[[id:...]] references, never keyworded children. Add the heading to the \
+member list instead, or refile it elsewhere" target-id))
      (t
       (condition-case err
           (let* ((source-buffer (marker-buffer marker))
@@ -2588,6 +2598,24 @@ else."
                           "Reword the title, and pass initial_state if a "
                           "keyword is what you wanted.")
                   leading))
+         ;; A keyworded capture under a slice would mint a hybrid -- the
+         ;; slice branch then hides the child from the nomination report
+         ;; and the derived :BLOCKER: (TODO.org :ID: dca940c1). Guarded
+         ;; at the call so the refusal lands before the heading exists;
+         ;; bin/lint-org's error is the backstop for every other path. A
+         ;; keyword-less capture (a note) stays legal. `resolved' has
+         ;; already signalled for an unresolvable target, so a non-nil
+         ;; TARGET resolves here.
+         ((and initial-state target
+               (let ((tm (claude-code-ide-org--id-find target 'marker)))
+                 (and tm (org-with-point-at tm
+                           (claude-code-ide-org--slice-p)))))
+          (format (concat "Error: target %s is a slice -- a slice's members "
+                          "are [[id:...]] references, never keyworded "
+                          "children. Capture without initial_state for a "
+                          "note, or capture elsewhere and add the heading "
+                          "to the member list")
+                  target))
          ((claude-code-ide-org--file-busy-p file)
           (format "%s\"%s\" (ID: %s) %s; pending review."
                   claude-code-ide-org--reply-queued-capture
@@ -3520,6 +3548,16 @@ this tool will not rewrite it" property))
      ((claude-code-ide-org--file-busy-p (buffer-file-name (marker-buffer marker)))
       (format "Error: %s has unsaved changes in Emacs; retry once it is saved"
               (file-name-nondirectory (buffer-file-name (marker-buffer marker)))))
+     ;; Declaring a container a slice mints a hybrid -- see the lint
+     ;; rule (TODO.org :ID: dca940c1). Refused here so the combination
+     ;; cannot be created by this path, not merely caught at commit; a
+     ;; slice acquiring children later is the lint's half of the guard.
+     ((and (equal property "KIND")
+           (equal (downcase (string-trim (or value ""))) "slice")
+           (org-with-point-at marker (claude-code-ide-org--container-heading-p)))
+      "Error: this heading has keyworded children, so it is a story -- \
+a slice's members are [[id:...]] references, never keyworded children; \
+declaring it :KIND: slice would make it both")
      (t
       (condition-case err
           (org-with-point-at marker
