@@ -2119,16 +2119,53 @@ unresolved."
                 (org-get-heading t t t t))
         (or (claude-code-ide-org--unwrapped-plan-nudge state) "")))))))))
 
+(defun claude-code-ide-org--archive-datetree-target-p (location)
+  "Non-nil when archive LOCATION names a datetree.
+
+`org-archive-reversed-order\' must be OFF for such a target, and the two
+settings want opposite things for the same reason.  Reversed order
+exists to make a *flat* archive read newest-first, by inserting at the
+beginning of the target location.  In a datetree the target location is
+the day node, so inserting at the beginning puts the entry *before* it
+-- leaving a level-4 heading parented to the month and an empty day node
+after it.  Isolated 2026-09-02 to this single variable (TODO.org
+:ID: 33864a0f).
+
+Named and shared rather than spelled out at each site, because there are
+two sites and only one had the guard: `claude-code-ide-org-archive-finished\'
+had it, `claude-code-ide-org-archive\' -- the `org_archive\' tool -- did
+not, and archived under whatever the global held.  Latent only because
+that global is unset (TODO.org :ID: eb3b8e84)."
+  (string-match-p "::datetree/" (or location "")))
+
 (defun claude-code-ide-org-archive (id)
   "Archive the org heading whose :ID: property equals ID.
 Uses the #+ARCHIVE: directive in effect at the heading (file-level
 or per-heading :ARCHIVE: property).  For :code: tasks this should
-resolve to DONE.org's top level per your project file headers."
+resolve to DONE.org's top level per your project file headers.
+
+Forces `org-archive-reversed-order\' off for a datetree target, exactly
+as the sweep does -- see `claude-code-ide-org--archive-datetree-target-p\'.
+The location is read the way org itself resolves it, per-heading
+`:ARCHIVE:\' before the file default, so a heading-level override is
+honoured."
   (let ((claude-code-ide-org--log-source (or claude-code-ide-org--log-source "org_archive")))
     (claude-code-ide-org--at-id-writable
      id
      (lambda ()
-       (let ((heading (org-get-heading t t t t)))
+       ;; Before the `let\'. Under lexical binding, `let\'-binding a symbol
+       ;; org-archive has not yet defvar\'d makes it *lexical*, and loading
+       ;; org-archive afterwards signals "Defining as dynamic an already
+       ;; lexical var" -- so the binding silently stops being dynamic and
+       ;; then errors. A fresh-session-only failure, which is why it hid
+       ;; at the sweep\'s call site until 2026-09-01 (:ID: 13ea6770).
+       (require 'org-archive)
+       (let* ((heading (org-get-heading t t t t))
+              (location (or (org-entry-get nil "ARCHIVE" 'inherit)
+                            org-archive-location))
+              (org-archive-reversed-order
+               (and org-archive-reversed-order
+                    (not (claude-code-ide-org--archive-datetree-target-p location)))))
          (org-archive-subtree)
          (save-buffer)
          (format "Archived: \"%s\"" heading))))))
@@ -10299,22 +10336,17 @@ its end would bury a fresh entry under two hundred older ones."
       ;; exactly this reason, having been verified by reading the
       ;; directive text rather than the value parsed from it.
       (org-set-regexps-and-options)
-      ;; `org-archive-reversed-order' must be OFF for a datetree target,
-      ;; and the two settings want opposite things for the same reason.
-      ;; Reversed order exists to make a *flat* archive read newest-first
-      ;; by inserting at the beginning of the target location. In a
-      ;; datetree the target location is the day node, so inserting at
-      ;; the beginning puts the entry *before* it -- leaving a level-4
-      ;; heading parented to the month and an empty day node after it.
+      ;; Why, and the measurement behind it, are in
+      ;; `claude-code-ide-org--archive-datetree-target-p'. Nothing is
+      ;; lost by turning it off, because ordering is now
+      ;; `claude-code-ide-org-sort-datetree-descending's job and it sorts
+      ;; every tier rather than only the insertion point.
       ;;
-      ;; Isolated 2026-09-02 to this single variable: plain
-      ;; `org-archive-subtree' into the same populated tree nests
-      ;; correctly with it nil and malforms with it t, nothing else
-      ;; changed. Nothing is lost by turning it off, because ordering is
-      ;; now `claude-code-ide-org-sort-datetree-descending's job and it
-      ;; sorts every tier rather than only the insertion point
-      ;; (TODO.org :ID: 33864a0f).
-      (when (string-match-p "::datetree/" (or org-archive-location ""))
+      ;; Read from `org-archive-location' rather than per-heading, which
+      ;; is the difference from the tool's call site: this runs before
+      ;; the walk, with point at neither heading, and the sweep's targets
+      ;; are level-1 headings under one file directive.
+      (when (claude-code-ide-org--archive-datetree-target-p org-archive-location)
         (setq org-archive-reversed-order nil))
       (org-with-wide-buffer
        (goto-char (point-min))

@@ -12437,6 +12437,95 @@ over the wrong day, would each pass a narrower test."
                        "**** DONE A newer finished task :code:")))
       (should (member "** 2026-08 August" lines)))))
 
+(ert-deftest claude-code-ide-org-test-archive-datetree-target-p-reads-the-location ()
+  "The predicate is the shared spelling of the rule, so it is asserted directly.
+Both archive call sites read it, and the whole defect was that only one
+of them read anything at all."
+  (should (claude-code-ide-org--archive-datetree-target-p "DONE.org::datetree/"))
+  (should-not (claude-code-ide-org--archive-datetree-target-p "DONE.org::"))
+  (should-not (claude-code-ide-org--archive-datetree-target-p "DONE.org::* Done"))
+  ;; Unset is not a datetree, and must not error.
+  (should-not (claude-code-ide-org--archive-datetree-target-p nil)))
+
+(ert-deftest claude-code-ide-org-test-org-archive-nests-under-the-day-node ()
+  "The `org_archive' tool must force reversed order off for a datetree.
+
+The guard shipped on `claude-code-ide-org-archive-finished' alone, while
+`claude-code-ide-org-archive' is this file's other `org-archive-subtree'
+call site and archived under whatever the global held.  Latent only
+because the global is unset, so this test sets it -- otherwise it would
+pass against the unguarded code and prove nothing (TODO.org
+:ID: eb3b8e84).
+
+With reversed order on and a day node already present, org inserts
+*before* that node: the entry lands at level 4 parented to the month,
+with an empty day node after it."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--datetree-fixture
+     archive-file
+     (concat "* 2026\n"
+             "** 2026-09 September\n"
+             "*** 2026-09-01 Tuesday\n"
+             "**** DONE Already archived :code:\n"
+             "CLOSED: [2026-09-01 Tue 13:20]\n"
+             ":PROPERTIES:\n:ID:       aaaaaaaa-0001\n"
+             ":CREATED:  [2026-08-30 Sun 09:00]\n:END:\n"))
+    (with-temp-file file
+      (insert "#+TODO: TODO NEXT DOING REVIEW WAITING | DONE CANCELLED MAYBE\n"
+              "#+ARCHIVE: DONE.org::datetree/\n\n"
+              "* DONE A finished task :code:\n"
+              "CLOSED: [2026-09-01 Tue 10:00]\n"
+              ":PROPERTIES:\n:ID:       " id "\n"
+              ":CREATED:  [2026-08-30 Sun 09:00]\n:END:\n"))
+    ;; Both fixtures were written under buffers already open, so the next
+    ;; `find-file-noselect' would stop and ask whether to reread -- a hang
+    ;; in batch, not an error.
+    (dolist (f (list file archive-file))
+      (let ((b (get-file-buffer f))) (when b (kill-buffer b))))
+    (org-id-update-id-locations (list file))
+    (let ((org-archive-reversed-order t))
+      (claude-code-ide-org-archive id))
+    (let ((lines (mapcar
+                  (lambda (l) (replace-regexp-in-string "[ \t]+" " " l))
+                  (seq-filter (lambda (l) (string-prefix-p "*" l))
+                              (split-string
+                               (claude-code-ide-org-test--disk-contents archive-file)
+                               "\n")))))
+      ;; The three scaffolding tiers come first, in order. Under the bug
+      ;; the entry is inserted BEFORE the day node, so a `****' line
+      ;; appears at index 2 and the day node is pushed down.
+      (should (equal (seq-take lines 3)
+                     '("* 2026"
+                       "** 2026-09 September"
+                       "*** 2026-09-01 Tuesday")))
+      ;; Everything after them is a task under that day node -- nothing
+      ;; is parented to the month, and the day node is not duplicated.
+      (should (seq-every-p (lambda (l) (string-prefix-p "**** " l))
+                           (seq-drop lines 3)))
+      (should (member "**** DONE A finished task :code:" lines))
+      (should (= 1 (seq-count (lambda (l) (equal l "*** 2026-09-01 Tuesday"))
+                              lines))))))
+
+(ert-deftest claude-code-ide-org-test-org-archive-leaves-a-flat-target-reversed ()
+  "The guard is scoped to a datetree and must not disarm reversed order generally.
+A flat archive reads newest-first *because* of that setting, so turning
+it off everywhere would trade one malformation for a buried entry."
+  (claude-code-ide-org-test--with-heading
+    (with-temp-file archive-file
+      (insert "* DONE An older entry :code:\n"
+              ":PROPERTIES:\n:ID:       aaaaaaaa-0001\n:END:\n"))
+    (claude-code-ide-org-test--set-todo-for-real id "DONE")
+    (dolist (f (list file archive-file))
+      (let ((b (get-file-buffer f))) (when b (kill-buffer b))))
+    (org-id-update-id-locations (list file))
+    (let ((org-archive-reversed-order t))
+      (claude-code-ide-org-archive id))
+    (let ((lines (seq-filter (lambda (l) (string-prefix-p "* " l))
+                             (split-string
+                              (claude-code-ide-org-test--disk-contents archive-file)
+                              "\n"))))
+      (should (string-match-p "Test heading" (car lines))))))
+
 (ert-deftest claude-code-ide-org-test-datetree-target-follows-the-archive-directive ()
   "The datetree sort and the archive step must agree on which file they
 are working on (TODO.org :ID: 33864a0f).
