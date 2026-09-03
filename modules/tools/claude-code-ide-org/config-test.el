@@ -12594,3 +12594,36 @@ keyword cannot."
       (should (re-search-forward "^- \\[\\[id:member-01" nil t))
       (goto-char (point-min))
       (should-not (re-search-forward "^- \\[[ Xx-]\\] \\[\\[id:member-01" nil t)))))
+
+(ert-deftest claude-code-ide-org-test-advance-repeater-leaves-no-deferred-note ()
+  "Advancing the repeater must register nothing on `post-command-hook'.
+
+`org-todo' with a `!' cookie calls `org-add-log-setup', which schedules
+`org-add-log-note' to run *after* the command -- by which time the
+`inhibit-read-only' binding has unwound.  Against the user's read-only
+TODO.org that surfaces as
+\"error in post-command-hook (org-add-log-note): (buffer read-only ...)\",
+observed live 2026-09-03.  Binding `inhibit-read-only' alone does not fix
+it; it moves the failure from `org-todo' into the deferred note.
+
+Asserts the absence of the hook rather than the absence of an error,
+because the error happens in a later command loop that a batch test does
+not have -- the thing this test can see is the registration."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--add-child
+     file (concat "* TODO Archive closed tasks daily\n"
+                  "SCHEDULED: <2026-09-03 Thu 07:00 ++1d>\n"
+                  ":PROPERTIES:\n"
+                  ":ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8\n"
+                  ":CREATED:  [2026-08-01 Sat 09:00]\n:END:\n"))
+    (with-current-buffer (find-file-noselect file) (setq buffer-read-only t))
+    (let ((post-command-hook nil)
+          (org-log-repeat 'time))
+      (should (claude-code-ide-org--ceremony-advance-repeater))
+      (should-not (memq 'org-add-log-note post-command-hook)))
+    ;; The advance still did its job, so the suppression is scoped to the
+    ;; note and not to the transition.
+    (let ((text (claude-code-ide-org-test--disk-contents file)))
+      (should (string-match-p "2026-09-04" text))
+      (should (string-match-p "^\\* TODO Archive closed tasks daily" text)))
+    (should (with-current-buffer (find-file-noselect file) buffer-read-only))))

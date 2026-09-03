@@ -10329,10 +10329,24 @@ rather than in a second stamp of our own that could disagree.  Org does
 the arithmetic: the `++1d\' repeater shifts SCHEDULED forward past now
 and returns the keyword to TODO, so nothing here computes a date.
 
-Safe to run non-interactively, which is not true of state changes
-generally: the transition is TODO -> DONE, and this project\'s `#+TODO:\'
-line gives DONE a `!\' cookie, not an `@\'.  Only WAITING and CANCELLED
-prompt for a note, and neither is reachable from here."
+Safe to run non-interactively, but *not* for the reason this docstring
+gave until 2026-09-03.  It said the transition is TODO -> DONE and DONE
+carries a `!\' cookie rather than an `@\', so nothing prompts.  True, and
+insufficient: a `!\' still calls `org-add-log-setup\', which registers
+`org-add-log-note\' on `post-command-hook\'.  That runs *after* this
+function returns, when the `inhibit-read-only\' binding below has already
+unwound, so against the user\'s read-only TODO.org it fails with
+\"error in post-command-hook (org-add-log-note): (buffer read-only ...)\"
+-- observed live, and the earlier fix that bound `inhibit-read-only\'
+merely moved the failure from `org-todo\' into the deferred note.
+
+`org-inhibit-logging\' is therefore bound too.  Measured rather than
+assumed: with it nil the hook is registered, with it t it is not, and the
+repeater advances either way.  Suppressing the note is also what this
+heading wants rather than a concession -- a daily repeater would
+otherwise accrue one `State \"DONE\"\' line per day forever in a body
+nothing ever prunes, which is TODO.org :ID: ff92700e.  The durable record
+is org\'s own `:LAST_REPEAT:\' plus the ceremony stamp file."
   (let ((m (claude-code-ide-org--id-find
             "cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8" 'marker)))
     (unless m (error "Ceremony heading cbe282ec not found"))
@@ -10343,10 +10357,16 @@ prompt for a note, and neither is reachable from here."
     ;; without reaching this one: it surfaced 2026-09-02 as
     ;; "repeater: FAILED (Buffer is read-only)". A binding, never a setq,
     ;; so the flag survives a non-local exit.
-    (let ((inhibit-read-only t))
+    (let ((inhibit-read-only t)
+          (org-inhibit-logging t))
       (org-with-point-at m
         (org-todo "DONE")
         (save-buffer)))
+    ;; Belt and braces: if some future org registers the hook anyway, it
+    ;; must not fire against a buffer whose writability ended with the
+    ;; binding above. The apply path removes it for the same reason.
+    (remove-hook 'post-command-hook 'org-add-log-note)
+    (setq org-log-setup nil)
     t))
 
 (defun claude-code-ide-org-ceremony-finish ()
