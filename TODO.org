@@ -2,6 +2,35 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Accepting a slice proposal leaves its body still calling itself a proposal
+:PROPERTIES:
+:ID:       198dd00e-0746-444a-ab25-2034a2a235c2
+:CREATED:  [2026-09-03 Thu 15:49]
+:CATEGORY: Slices
+:END:
+
+=.claude/rules/org-conventions.md= says accepting a proposal is three mechanical steps: add
+=:KIND: slice=, run =claude-code-ide-org-refresh-slice= so the blocker and cookie appear, and link
+the prompt revision that picks it up. **None of the three touches the body**, and a proposal's body
+is required to say it is a proposal — the withheld declaration is the whole of what a proposal *is*,
+so the composer writes that sentence on purpose.
+
+The result is a body that contradicts its own heading from the moment of acceptance. Found on
+=ff7ccb2d= 2026-09-03: it opened "*A proposal, not a slice* — the declaration is withheld
+deliberately … no =:KIND: slice=, no prompt link, and =MAYBE= rather than =TODO=", while carrying
+=:KIND: slice= and having been =NEXT= since **eleven minutes** after it was written. The user caught
+it by reading, not by any check.
+
+*Two things to decide, and they are separable.* Whether acceptance grows a fourth step that rewrites
+or deletes the proposal paragraph — cheap, but it is prose, so it is judgement rather than mechanism.
+And whether =bin/lint-org= can catch the residue instead: a heading with =:KIND: slice= whose body
+matches something like "a proposal, not a slice" is a mechanical contradiction, and this project's
+precedent is to add such a rule while instances are still few.
+
+*Note the third acceptance step also silently did not happen* on =ff7ccb2d= — it carries no
+=orgit-rev:= prompt link at all. So two of three steps were skipped and nothing said so, which
+suggests the real fix may be that acceptance is one command rather than a list someone follows.
+
 * TODO bin/pre-commit-test has three failures that predate the branch fixing them
 :PROPERTIES:
 :ID:       0fa403f4-f9b3-4217-8b0f-da1518957885
