@@ -30,6 +30,7 @@ Each child names its comment permalink. The threads stay open until the fixes la
 :CREATED:  [2026-09-03 Thu 14:42]
 :CATEGORY: Tools
 :END:
+:PLAN:
 
 [[https://github.com/nbest937/claude-code-ide-org.el/pull/9#discussion_r3927960099][PR #9 comment]]. =claude-code-ide-org-refile= refuses a keyworded arrival under a slice by
 testing =org-get-todo-state= on the *moved heading*, but the invariant it protects —
@@ -48,12 +49,45 @@ arriving subtree contains any keyworded heading *and* the target is a slice or l
 The accompanying test uses a childless note as its negative case, which is why the suite is green;
 that gap is part of this heading.
 
+:END:
+*Verified, not just implemented:* three new ERT tests, each **run red first** against the unfixed
+guards before the fix existed — the failing assertion printed
+=Refiled: "Test heading" under "a note under the slice"=, which is the escape itself rather than a
+proxy for it. 541/541 after, up from 538.
+
+Shipped in [[orgit-rev:claude-code-ide-org::0b99eaf][0b99eaf]] as two predicates rather than a patch
+to the guard, so the capture sibling and any later caller ask one question:
+
+- =claude-code-ide-org--subtree-has-keyworded-heading-p= — the arrival side. Differs from
+  =claude-code-ide-org--container-heading-p= by exactly the root, which is the difference that
+  mattered: the old guard read the heading line only.
+- =claude-code-ide-org--enclosing-slice-title= — the target side, walking up with
+  =org-up-heading-safe= as =bin/lint-org='s completable-ancestor rule does. It returns a *title*
+  because both callers want it only to name the slice in the refusal.
+
+*Not =:KIND:= inheritance, and the docstring says so at length* — =--slice-p= refuses inheritance on
+purpose, and the question here is not "is this heading a slice" but "would an ancestor slice acquire
+keyworded children". Since =--container-heading-p= scans descendants at any depth, an ancestor at any
+depth is the honest scope.
+
+*What differed from the plan:* the refusal messages had to change, not just the predicates. Both now
+name the slice they would hybridise rather than the id passed as =target= — which is the only
+externally visible evidence the ancestor walk ran, and is what the new arrival-inside test asserts,
+with a =should-not= on the target's own title beside it. The two pre-existing message assertions were
+updated to the new wording rather than relaxed.
+
+*The named test gap is closed the way it was named:* the old negative case was a *childless*
+keyword-less note, which is why the suite stayed green over both holes. That case is kept — it is
+still legal — now sitting beside a note that is keyword-less and *not* childless.
+
+
 ** TODO A capture guard that asks whether the target is a slice misses everything inside one
 :PROPERTIES:
 :ID:       32742646-391c-44e7-b902-d69e51589e59
 :CREATED:  [2026-09-03 Thu 14:42]
 :CATEGORY: Tools
 :END:
+:PLAN:
 
 [[https://github.com/nbest937/claude-code-ide-org.el/pull/9#discussion_r3927962113][PR #9 comment]]. The same predicate mismatch reached through =claude-code-ide-org-capture=: its
 clause fires only when =target= *is itself* a slice, while =claude-code-ide-org--container-heading-p=
@@ -63,6 +97,25 @@ matches a keyworded descendant at any depth. Capturing with an =initial_state= u
 
 Only the target side needs widening here, unlike the refile sibling: a capture creates a leaf, so
 there is no arriving subtree to scan. Depends on the predicate that heading extracts.
+
+:END:
+*Verified, not just implemented:* =claude-code-ide-org-test-capture-refuses-a-keyworded-capture-inside-a-slice=,
+run red first — the unfixed guard returned =Captured:= for a =TODO= capture under a slice's note
+child. It asserts the refusal names the enclosing slice by title, so a guard that merely errored for
+some other reason would not satisfy it. The keyword-less capture beside it still succeeds, which is
+the edge the convention keeps legal. 541/541.
+
+Shipped in the same commit as its sibling, [[orgit-rev:claude-code-ide-org::0b99eaf][0b99eaf]], and
+**carries no clock of its own**: the whole of the work was
+=claude-code-ide-org--enclosing-slice-title=, which =15847e0b= built, plus hoisting a =target-slice=
+binding into =claude-code-ide-org-capture='s existing =let*= so the refusal can name the slice
+without resolving the marker twice. Recording a separate interval for that would invent one.
+
+*What differed:* nothing about the diagnosis. The one thing worth writing down is that the guard's own
+comment had to be corrected rather than extended — it claimed "the refusal lands before the heading
+exists", which was true only for a direct child, and a comment that overstates a guard is how the
+next reader stops checking.
+
 
 ** TODO One malformed queue line makes clock-target-check nag a session that did clock in
 :PROPERTIES:
