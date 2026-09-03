@@ -44,6 +44,11 @@
 # never cleared, so the worst case is one extra continuation in the
 # session's whole life. Once per session is the right cadence for a
 # discipline reminder; per-turn would be noise after the first.
+#
+# That guarantee is now enforced rather than asserted: if the sentinel
+# cannot be written the hook exits 0 instead of blocking, so the bound
+# holds even when the queue directory does not cooperate. See the write
+# itself, below.
 
 set -uo pipefail
 
@@ -110,8 +115,18 @@ first_write="$(jq -r -n --arg repo "$repo" '
 # mkdir -p first -- see footnote-check on why the bare redirect is not
 # enough when the directory is missing, and why a missing sentinel here
 # would mean blocking forever.
+#
+# `|| exit 0', because "blocking forever" was not hypothetical: the
+# redirect discarded its own failure and the `exit 2' below ran
+# regardless, so an unwritable or full queue directory turned a one-shot
+# reminder into a Stop that blocked every turn -- contradicting both the
+# LOOP GUARD paragraph above and the "fires once per session" sentence
+# the user is shown, with nothing consulting stop_hook_active as a
+# second line of defence. A check that cannot arm its own guard must not
+# fire, which is the same fail-open posture as the `command -v jq' and
+# empty-session_id exits at the top (TODO.org :ID: ae4e4b04).
 mkdir -p "$queue_dir" 2>/dev/null
-: > "$sentinel" 2>/dev/null
+: > "$sentinel" 2>/dev/null || exit 0
 
 # Exit 2 with the message on stderr: the documented blocking path for
 # Stop, per footnote-check's hard-won header. Exit 0 would block with an

@@ -109,6 +109,17 @@ check "the sentinel was written" "yes" \
   "$([[ -e "$tmp/queue/sess-x.clock-target-nagged" ]] && echo yes || echo no)"
 check "the second Stop is silent" 0 "$(run_hook)"
 
+# REGRESSION (TODO.org :ID: ae4e4b04). The sentinel write discarded its
+# own failure while `exit 2' ran regardless, so an unwritable queue
+# directory turned a one-shot reminder into a Stop that blocked every
+# turn -- contradicting both the header and the message shown to the
+# user. Against the unfixed hook this returned 2, repeatedly.
+reset; write_transcript
+chmod a-w "$tmp/queue"
+sentinel_exit="$(run_hook)"
+chmod u+w "$tmp/queue"
+check "REGRESSION: a guard that cannot arm itself does not fire" 0 "$sentinel_exit"
+
 # --- the blocking message ---------------------------------------------
 
 reset; write_transcript
