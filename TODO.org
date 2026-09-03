@@ -742,14 +742,34 @@ Two different facts now render as the same line. =MAYBE= and =CANCELLED= map to 
 
 *Until then the safe operating rule is narrow:* do not promote a =MAYBE= slice member and expect its cookie back. Checked by hand, it returns.
 
+*A concrete instance, 2026-09-03, rather than the hypothetical this was filed on.* =ff7ccb2d= was
+expanded from 3 member lines to 20. **Six of them carry no cookie: five are carried =MAYBE=s and one
+is a real drop** (=1caed585=). Nothing structural distinguishes them — the drop was a deliberate
+decision and the five are ordinary members whose referents merely have not been committed to — and
+the only thing telling a reader which is which is a sentence in the slice body, which is exactly the
+failure mode this heading names.
 
-* NEXT [0/2] Make the org discipline travel: ship the machinery, relocate the rules :code:
+*Two things this instance settles that the original filing left open.* The ambiguity is not rare: it
+appeared the first time a slice was composed at any real size, at a ratio of 6 lines in 20. And the
+disambiguating prose does not scale — one sentence can name one drop among five carries, but it is a
+lookup table written in paragraph form, and it will go stale exactly the way the checkbox cannot,
+because nothing derives it.
+
+*It also sharpens what a fix would have to do.* Deleting the cookie means "the slice no longer counts
+this", and =MAYBE= means "the referent is not committed to". Those are different facts that happen to
+render the same, so a fix has to make the *drop* visible rather than make =MAYBE= carry a box — a
+box would inflate the denominator forever, which is the reason the mapping exists. A distinct marker
+on the dropped line, derived from nothing and set by the drop itself, is the shape that fits.
+
+
+
+* NEXT [0/12] Make the org discipline travel: ship the machinery, relocate the rules :code:
 :PROPERTIES:
 :ID:       ff7ccb2d-2b13-421e-86e3-6b5e187850bf
 :CREATED:  [2026-09-02 Wed 18:17]
 :CATEGORY: Slices
 :KIND:     slice
-:BLOCKER:  ids(9ae4b17e-278c-482f-9114-df28b2254806 9d009401-93dd-40e5-a243-7a30a8a5bd55)
+:BLOCKER:  ids(9ae4b17e-278c-482f-9114-df28b2254806 d5345abb-b451-4468-8f27-4bb2da983215 9d009401-93dd-40e5-a243-7a30a8a5bd55 1ed7b2b4-a809-4547-b04f-099a3111fc1e 84b7d8b3-5161-4146-9167-0e7e2100e365 f8c86914-0759-4e05-9292-6f7fa5593701 5461c349-fd22-4b75-a508-50efbe4b87f8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4 83b3cdd6-982a-4ae1-878c-79a8c941f638 d7849119-8224-4993-a8ab-83e1434df53c b07df584-3adc-433c-ab49-e104f88aecf7 c5b02503-1700-47fd-bf89-bd3296b24af2)
 :END:
 :LOGBOOK:
 - State "TODO"       from "MAYBE"      [2026-09-02 Wed 18:28] \\
@@ -766,19 +786,50 @@ line-count measurement are all =9ae4b17e='s and are not repeated here.
 
 - [ ] [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] NEXT Make the org skill and its discipline portable to other repos
 - [[id:1caed585-3209-4108-8501-eba16baf6a01][1caed585]] MAYBE Decide what this module may change on a user's machine when installed
-- [ ] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] TODO CLAUDE.md carries dated history that costs every session's context
+- [ ] [[id:d5345abb-b451-4468-8f27-4bb2da983215][d5345abb]] TODO Audit CLAUDE.md for directives that belong in the org skill instead
+- [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] DOING [18/20] Update CLAUDE.md and the org skill for the new architecture
+  - [ ] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] TODO CLAUDE.md carries dated history that costs every session's context
+- [ ] [[id:1ed7b2b4-a809-4547-b04f-099a3111fc1e][1ed7b2b4]] TODO The org 9.7+ dependency is real, undeclared, and unenforced
+- [ ] [[id:84b7d8b3-5161-4146-9167-0e7e2100e365][84b7d8b3]] TODO Evaluate choice of shell and standardize all project scripts
+- [ ] [[id:f8c86914-0759-4e05-9292-6f7fa5593701][f8c86914]] TODO The convention checks compare the live Emacs against whichever checkout invoked them
+- [[id:e396f94a-59db-4c6b-80b4-dc144146877b][e396f94a]] MAYBE Package the Warp wiring
+- [[id:f90d745e-ccf9-49d6-a92e-df25c17b4dfb][f90d745e]] TODO Sixty minutes holding 2 turns is not sixty holding 40 [1/7]
+  - [ ] [[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]] NEXT Record cwd on queue events, so a span can be attributed to a project
+  - [ ] [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
+- [ ] [[id:83b3cdd6-982a-4ae1-878c-79a8c941f638][83b3cdd6]] TODO Record the originating project in queue events
+- [[id:2e09adb7-6e29-499c-a40e-98cd2b327cff][2e09adb7]] MAYBE Worktree-based session partitioning, with a canonical-file caveat
+- [ ] [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]] TODO Add README.md and enforce its consistency with CLAUDE.md
+- [ ] [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] TODO Heading bodies grow into narratives no human will read; decide what to stop capturing
+- [ ] [[id:c5b02503-1700-47fd-bf89-bd3296b24af2][c5b02503]] TODO Hook-injected context is only as reliable as the model choosing to relay it
+- [[id:3cb3f955-f10a-47cd-84ab-e629d73ea59d][3cb3f955]] MAYBE Org skill: commit a newly-captured TODO immediately, when safe
+- [[id:7eb7dd8d-2d9b-4a63-afbd-5878298e42a4][7eb7dd8d]] MAYBE Org skill: auto-capture and dedupe modification requests against existing TODOs
+- [[id:2c5f7c50-40c9-4d06-b435-add41eb97643][2c5f7c50]] MAYBE Install orgparse for ad-hoc analysis, and stop reaching for regex over org text
 
-*The order is the point.* =9ae4b17e= classifies what must travel; =9d009401= prunes, and prunes
-second, because pruning before that classification risks deleting rules a consuming project needs.
-Since 2026-09-03 that is a =:BLOCKER:= on =9d009401= rather than only this sentence.
+*The order is the point.* =9ae4b17e= classifies what must travel, and every line below assumes its
+answer. =d5345abb= then relocates what belongs in the skill and =9d009401= prunes what is left, in
+that order, because pruning before the classification risks deleting rules a consuming project needs.
+=1ed7b2b4=, =84b7d8b3= and =f8c86914= are the machinery's undeclared assumptions — org version,
+interpreter, one-checkout-per-Emacs — each of which fails on a second machine and nowhere here. The
+=f90d745e= pair and =83b3cdd6= only mean anything *after* the hooks move, which is why they name
+=9ae4b17e= in a =:BLOCKER:= rather than in a sentence. The tail is reader-facing.
+
+*Five cookie-less lines are carried, not dropped* — =e396f94a=, =2e09adb7=, =3cb3f955=, =7eb7dd8d=
+and =2c5f7c50=, whose referents are =MAYBE= and so derive no checkbox. A sixth cookie-less line,
+=1caed585=, is a real drop. They render identically, which is =1b727475=; until that is settled this
+sentence is the only thing telling them apart, so do not read a missing cookie here as a decision.
 
 *=1caed585= is dropped, not pending.* What installation may change on a user's machine is a decision
 this slice does not need, and a =MAYBE= in the blocker set would hold the slice open for work it
 declined to do.
 
+*=84b7d8b3= was promoted =MAYBE= → =TODO= while this slice was composed*, on merit rather than to
+earn it a checkbox: fish stopped being one leaf script and became a prerequisite for committing, via
+=bin/check-conventions= and =.githooks/pre-commit=. The other five were considered and held, each
+recording on its own heading why — a stale design, a body that argues against its own proposal, an
+unresolved open question, or a defect already carried by a sibling member.
+
 Headings that bear on portability but are already declared by =8a2eb687= stay there; membership is
 not shared between slices.
-
 * DOING Make the heading body a scannable summary, with plan and debrief in drawers [2/5]
 :PROPERTIES:
 :ID:       4c834fdb-5314-4168-ab1d-09fe89ded517
@@ -2119,6 +2170,18 @@ Once the sibling heading refiles =* Review attention='s old LOGBOOK entries into
 *One boundary, cheap to state now and expensive to retrofit: nothing checked into =bin/= imports it without declaring it.* This repo has *zero* Python today — every script is bash, fish or elisp — so it would be a new dependency class, and [[id:1ed7b2b4-a809-4547-b04f-099a3111fc1e][1ed7b2b4]] is the standing scar about an undeclared one. Ad-hoc session analysis is free; a committed script would need a declaration and a check in =bin/check-org-dev-skill= beside the org-version one.
 
 *If it is installed*, the org-dev skill should record both halves — that orgparse exists, and that Emacs remains the answer wherever org's own semantics decide the result. Recording only the first half would turn a tool that fixes a bug class into a tool that introduces a worse one.
+
+*A third instance of the bug class, 2026-09-03, and it argues for the practice rather than the
+library — so this stays =MAYBE=.* Looking up eight headings' exact titles for a footnote list, a
+Python regex keyed on =:ID:= attributed three of them to the wrong heading, because the pattern
+matched an id quoted inside an *earlier* heading's body. Same entry-boundary error as the two above.
+The fix was not a parser: it was anchoring on the heading's own property drawer — which is what
+=org-map-entries= does by construction, in the process that actually writes these files.
+
+So the split this heading proposes holds, and the evidence keeps landing on the Emacs side of it.
+Considered for promotion while composing =ff7ccb2d= and deliberately not promoted: promoting it would
+adopt the option its own body argues against.
+
 
 
 * TODO Two keyword-set proposals and the review collision are still unadopted :code:
@@ -8366,6 +8429,18 @@ or whether the check also needs to search prose for informal
 cross-references that predate this convention, and exactly when in the
 org skill's flow this check should fire.
 
+*Considered for promotion 2026-09-03 while composing =ff7ccb2d=, and held at =MAYBE= for a reason
+the satisfied blocker hides.* The prerequisite landing is not the constraint any more; the *design
+is stale*. The behaviour specified above sets a new heading to =PLANNING= and reverts it to =TODO= if
+the user declines to plan — and =PLANNING= was **retired 2026-08-28** (=c954f650=), along with the
+=ExitPlanMode= promotion hook, after measuring 7 transitions in 432. Nothing replaced it, deliberately.
+
+So this heading cannot be implemented as written, and the part that survives — check a modification
+request against existing headings before creating a duplicate, and surface depends-on relationships
+in either direction — needs restating without the keyword it was built around. That is a rewrite, not
+a start, and it should happen before the heading is picked up rather than by whoever picks it up.
+
+
 
 * MAYBE Worktree-based session partitioning, with a canonical-file caveat :code:
 :PROPERTIES:
@@ -8423,6 +8498,19 @@ and
 Not reopening the conclusion here — just flagging that if/when this
 gets planned, it should be read against that fresh evidence, not just
 the original 2026-07-30 reasoning.
+
+*The practice arrived without the decision, 2026-09-03 — noted, but not grounds for promotion.* This
+body says worktrees-for-code is "not yet decided as worth building anything for; may just be a
+documentation note". Since then a worktree has become a normal way to review a PR here: one was used
+this session to establish that =bin/pre-commit-test='s failures reproduce at =8c52cd6=, and
+=f8c86914= exists precisely because reviewing PR 8 from =.claude/worktrees/pr8-review= made a
+convention check report the wrong cause.
+
+Held at =MAYBE= because =f8c86914= already carries the concrete defect and is =TODO=. Promoting this
+too would put the same work in the slice twice under two framings — the duplication this project
+rejects elsewhere. What is left here is the *documentation* half, and it is worth writing only once
+someone decides the pattern is sanctioned rather than merely happening.
+
 
 
 * MAYBE Evaluate choice of shell and standardize all project scripts :code:
@@ -8508,6 +8596,26 @@ Whatever's decided should also cover: should this be written down as
 a project convention (e.g. in CLAUDE.md's "Repository layout" or a new
 "Scripting conventions" note) so it doesn't have to be
 re-litigated per script.
+
+*Promoted =MAYBE= → =TODO= 2026-09-03, because the fact this heading rests on has inverted.* The
+body above says fish is "the only fish dependency anywhere in this project", carried by one
+peripheral statusline script — and the 2026-07-31 update records even that one moving to POSIX =sh=.
+Both were true. Neither is now.
+
+=bin/check-conventions= and =bin/check-conventions-test= are fish, and =.githooks/pre-commit= invokes
+=check-conventions= on every commit that touches a documentation file. So fish is no longer a
+deviation in a leaf script that a future user could ignore — **it is a prerequisite for committing to
+this repo at all**, and it arrived without the decision this heading exists to make ever being taken.
+
+That is what changes the merit rather than merely adding to it. A stylistic inconsistency in one
+peripheral script is a reasonable =MAYBE=; an undeclared interpreter dependency in the commit gate of
+a project whose stated goal is to travel to other machines is not.
+
+Found while fixing =0fa403f4=, whose own first hypothesis was that this dependency explained a red
+=bin/pre-commit-test=. It did not — the cause there was stale fixtures — but reproducing that
+hypothesis is what surfaced how far the dependency had spread. The five options below are unchanged
+and still need the decision they always needed.
+
 
 
 * TODO Add README.md and enforce its consistency with CLAUDE.md :code:comms:
