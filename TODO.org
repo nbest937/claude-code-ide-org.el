@@ -2,6 +2,105 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [0/4] Close the four defects the PR #9 review found
+:PROPERTIES:
+:ID:       887eaba3-96c5-4821-88e0-7cf60859a9c4
+:CREATED:  [2026-09-03 Thu 14:42]
+:CATEGORY: Tools
+:END:
+
+A =/code-review --comment= pass over [[https://github.com/nbest937/claude-code-ide-org.el/pull/9][PR #9]] filed four inline comments, each a defect in
+code that PR introduced: two in the new slice guards on =claude-code-ide-org-refile= and
+=claude-code-ide-org-capture=, two in =bin/hooks/clock-target-check=. They group because they
+arrived together against one unmerged branch and are being fixed on it, not because they share a
+mechanism — the two pairs are independent, and the children carry different =:CATEGORY:= values
+accordingly.
+
+The two guard defects do share a root cause worth naming once here: the guards ask a *direct*
+question (is this heading keyworded, is this target a slice) while the invariant they exist to
+protect — =claude-code-ide-org--container-heading-p= as used by the hybrid lint rule — is
+*descendant*-based. The same PR's =claude-code-ide-org-set-property= guard already asks the
+descendant question in the declaring direction, so the inconsistency is internal to one branch.
+
+Each child names its comment permalink. The threads stay open until the fixes land.
+
+** TODO A refile guard that asks about the moved heading cannot see the subtree it moves
+:PROPERTIES:
+:ID:       15847e0b-171a-4aa2-9f3e-e2373779b4c3
+:CREATED:  [2026-09-03 Thu 14:42]
+:CATEGORY: Tools
+:END:
+
+[[https://github.com/nbest937/claude-code-ide-org.el/pull/9#discussion_r3927960099][PR #9 comment]]. =claude-code-ide-org-refile= refuses a keyworded arrival under a slice by
+testing =org-get-todo-state= on the *moved heading*, but the invariant it protects —
+=claude-code-ide-org--container-heading-p=, which the hybrid lint rule uses — scans *descendants*.
+So a keyword-less note carrying a =TODO= child refiles straight through and mints the hybrid
+=dca940c1= exists to prevent. A second path through the same mismatch: the guard inspects only the
+immediate target, so refiling a keyworded heading under a keyword-less *child* of a slice is also
+let through.
+
+Reproduced in batch on this branch; both leave =SLICE-P: t CONTAINER-P: t= on the slice. The tool
+writes first and =.githooks/pre-commit= gates on the lint, so the refusal arrives at the *next*
+commit with the damage already on disk and no tool to undo it.
+
+The fix builds the shared predicate the sibling capture heading then reuses: refuse when the
+arriving subtree contains any keyworded heading *and* the target is a slice or lies within one.
+The accompanying test uses a childless note as its negative case, which is why the suite is green;
+that gap is part of this heading.
+
+** TODO A capture guard that asks whether the target is a slice misses everything inside one
+:PROPERTIES:
+:ID:       32742646-391c-44e7-b902-d69e51589e59
+:CREATED:  [2026-09-03 Thu 14:42]
+:CATEGORY: Tools
+:END:
+
+[[https://github.com/nbest937/claude-code-ide-org.el/pull/9#discussion_r3927962113][PR #9 comment]]. The same predicate mismatch reached through =claude-code-ide-org-capture=: its
+clause fires only when =target= *is itself* a slice, while =claude-code-ide-org--container-heading-p=
+matches a keyworded descendant at any depth. Capturing with an =initial_state= under a keyword-less
+*child* of a slice therefore mints the hybrid unrefused, which falsifies the guard's own comment —
+"guarded at the call so the refusal lands before the heading exists" holds only for a direct child.
+
+Only the target side needs widening here, unlike the refile sibling: a capture creates a leaf, so
+there is no arriving subtree to scan. Depends on the predicate that heading extracts.
+
+** TODO One malformed queue line makes clock-target-check nag a session that did clock in
+:PROPERTIES:
+:ID:       b02191d6-3154-4796-8e4b-a9494769fa5a
+:CREATED:  [2026-09-03 Thu 14:43]
+:CATEGORY: Dev
+:END:
+
+[[https://github.com/nbest937/claude-code-ide-org.el/pull/9#discussion_r3927964800][PR #9 comment]]. =bin/hooks/clock-target-check= tests for a queued =clock_in= with =jq -e -s=,
+which slurps the whole =.jsonl= and parses it as one document — so a single truncated or interleaved
+line makes jq exit non-zero, the =if= fails, and the script proceeds as though the session had *no*
+=clock_in= at all. It then blocks the Stop and tells a session that did clock in that its time will
+reach review UNASSIGNED.
+
+Reachable rather than theoretical: =bin/hooks/queue-append= embeds the entire hook payload per line
+via =--argjson=, so a line carrying a large =org_amend= text can exceed the atomic-append size while
+three hooks append to one file concurrently.
+
+What makes it look unintended rather than a trade is that the write-evidence scan in the same script
+already uses =fromjson?= precisely so malformed lines are skipped. The fix is the same tolerance,
+which costs nothing here.
+
+** TODO The once-per-session guard fires anyway when it cannot arm itself
+:PROPERTIES:
+:ID:       ae4e4b04-e4d0-4ce9-b37f-d1c5479e8735
+:CREATED:  [2026-09-03 Thu 14:43]
+:CATEGORY: Dev
+:END:
+
+[[https://github.com/nbest937/claude-code-ide-org.el/pull/9#discussion_r3927964971][PR #9 comment]]. =bin/hooks/clock-target-check= writes a sentinel so its reminder fires at most
+once per session, but the write discards its own failure and the =exit 2= runs unconditionally — so
+an unwritable or full queue directory turns a one-shot reminder into a Stop that blocks every turn.
+Both the script header and the message shown to the user assert the guarantee the code does not
+enforce, and nothing consults =stop_hook_active= as a second line of defence.
+
+The fix keeps the file's existing fail-open posture: a check that cannot arm its own guard should not
+fire.
+
 * TODO A slice closed by the same apply pass freezes with stale member lines :code:
 :PROPERTIES:
 :ID:       de687e4d-9384-46ae-a495-55b3ae46d1bb
