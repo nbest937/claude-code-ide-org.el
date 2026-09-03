@@ -2,42 +2,6 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO The NEXT prohibition was argued for containers and swept slices in unexamined :code:
-:PROPERTIES:
-:ID:       abce1850-4c3a-4ed4-a3da-cdb3c2045877
-:CREATED:  [2026-09-02 Wed 18:31]
-:CATEGORY: Slices
-:END:
-:PLAN:
-
-*Raised by the user 2026-09-02, after being refused a =NEXT= on a slice they had just declared.* Their suspicion was that the prohibition predates slices. Measured, it is half right, and the half that is wrong is the more damning one.
-
-| heading | created | closed | mentions "slice" |
-|---|---|---|---|
-| [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]] Auto-promote makes a container the next action | 2026-08-19 | 2026-08-21 | *0* |
-| slices built ([[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]]) | 2026-08-21 | 2026-08-25 | — |
-| [[id:62b65ad0-304b-4cf1-bd95-2f1ecb671d6b][62b65ad0]] Reserve NEXT for use within a container | 2026-08-26 | 2026-08-26 | *1 in 5418 chars* |
-
-So the original rule predates slices by six days and never mentions them. Its restatement postdates the first slice by a day and mentions them once, incidentally, in twelve minutes of work. **CLAUDE.md's "within a story or a slice" is a generalisation neither heading argued** — the same shape as the other prose-outruns-its-evidence findings this project keeps making.
-
-*And the generalisation does not obviously hold, because the two groupings differ in the relevant way.* For a story the argument is exact: a story is *emergent*, its next action is one of its children, and marking the parent =NEXT= names no action. For a slice it does not transfer. A slice is *declared* and *sequenced*, and several are open at once — three on the day this was filed. **Nothing in the vocabulary says which slice to pick up next.** =DOING= means at least one member is in the mail, which is state rather than priority; =TODO= says nothing at all.
-
-*The counter-argument, stated fairly.* Slice ordering does have a home: =.claude/commands/next-session.md= is "the sequenced slice of work queued for the next session". But that file is explicitly "a plan, not a convention: expect it to be rewritten or deleted once consumed", so the ordering lives somewhere disposable and unqueryable — which is a poor place for the one fact that says what to do next.
-
-*Proposed, not decided: split the rule rather than keep or drop it whole.* Retain the prohibition for stories and containers, where it was argued. Decide slices on their own merits. =--grouping-heading-p= already distinguishes the two, so the split is expressible in code today rather than needing new machinery.
-
-*Open if slices are allowed =NEXT=:* whether at most one slice may carry it; how the un-nominated-container report tells "the slice is next" from "the slice has a next action"; and whether a member =NEXT= and a slice =NEXT= can coexist without reintroducing the confusion [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]] named one tier down.
-
-:END:
-*Split and written in 2026-09-02, on the user's decision.* CLAUDE.md's =NEXT= paragraph now says a **story** must never carry it — the case [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]] actually argued — and that a **slice may**, meaning "this is the slice to pick up next": a portfolio-level nomination rather than an action.
-
-Three constraints came with it, each answering one of the open questions above. At most one slice carries it, since two would say nothing. It does not substitute for a member's =NEXT=, because the two answer different questions and a slice marked =NEXT= whose members are all =TODO= is still un-nominated. And nothing sets it automatically, exactly as before — the retired promotion trigger is the standing evidence for what happens when that judgement is mechanised.
-
-*Applied immediately:* [[id:ff7ccb2d-2b13-421e-86e3-6b5e187850bf][ff7ccb2d]] is =NEXT=, checked first against the one-slice constraint — the other three slices carry =TODO=, =TODO= and =DONE=.
-
-*One splice defect caught by reading the result rather than by the checks.* The edit ran the new final bullet into the surviving text mid-sentence, so the paragraph read "…when that judgement is mechanised. A =--trigger-auto-promote-sole-todo= stood here and…". Both =bin/lint-org= and =bin/check-conventions= passed over it — neither reads prose for sense — which is [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]]'s class arriving in a document rather than in code.
-
-
 * TODO A MAYBE member and a dropped member render identically, and the drop is now sticky :code:
 :PROPERTIES:
 :ID:       1b727475-46c3-4967-8cdd-dfd9397d94ea
@@ -60,7 +24,7 @@ Two different facts now render as the same line. =MAYBE= and =CANCELLED= map to 
 *Until then the safe operating rule is narrow:* do not promote a =MAYBE= slice member and expect its cookie back. Checked by hand, it returns.
 
 
-* TODO [0/2] Make the org discipline travel: ship the machinery, relocate the rules :code:
+* NEXT [0/2] Make the org discipline travel: ship the machinery, relocate the rules :code:
 :PROPERTIES:
 :ID:       ff7ccb2d-2b13-421e-86e3-6b5e187850bf
 :CREATED:  [2026-09-02 Wed 18:17]
@@ -71,6 +35,8 @@ Two different facts now render as the same line. =MAYBE= and =CANCELLED= map to 
 :LOGBOOK:
 - State "TODO"       from "MAYBE"      [2026-09-02 Wed 18:28] \\
   proposal accepted, declared a slice
+- State "NEXT"       from "TODO"       [2026-09-02 Wed 18:36] \\
+  the slice to pick up next
 :END:
 
 *A proposal, not a slice* — the declaration is withheld deliberately, per the procedure settled 2026-09-02. No =:KIND: slice=, no prompt link, and =MAYBE= rather than =TODO=, because nothing here is committed to yet.
@@ -343,62 +309,6 @@ Cutting there is *worse than either extreme*: it buries the debrief's opening an
 *The one durable number to take away:* the actionable backlog is **64**, not 93 — the lint's own count for DONE.org. The other 29 sit below the threshold and will never be reported, so any route only has to answer for 64.
 
 
-* DONE The :PLAN: wrap never happens at close, so 93 finished headings carry an unwrapped body :code:
-CLOSED: [2026-09-02 Wed 15:01]
-:PROPERTIES:
-:ID:       79a3d89e-77be-4678-919e-637a65f87204
-:CREATED:  [2026-09-02 Wed 14:38]
-:CATEGORY: Meta
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-02 Wed 14:55]--[2026-09-02 Wed 15:00] =>  0:05
-- State "DOING"      from "TODO"       [2026-09-02 Wed 14:55] \\
-  build the queued-DONE wrap nudge
-- [2026-09-02 Wed 14:55]--[2026-09-02 Wed 15:00] lint on queued DONE for the PLAN wrap
-- State "DONE"       from "DOING"      [2026-09-02 Wed 15:01] \\
-  nudge shipped, tested and mutation-tested
-:END:
-:PLAN:
-
-*Raised by the user 2026-09-02, who predicted the state from the mechanism and was half right in the informative direction.* The prediction was "DONE items in DONE.org without =:PLAN:= drawers and no debrief already". Measured:
-
-| DONE.org, =CLOSED:= on or after 2026-08-24 | n |
-|---|---|
-| with a =:PLAN:= drawer | 5 |
-| without | 93 |
-| of those 93, carrying a debrief | 88 |
-| of those 93, with no debrief marker | 5 |
-
-*So the debrief happens and the wrap does not.* Headings closed before 2026-08-24 are exempt by =claude-code-ide-org-plan-drawer-since= and are [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]]'s backlog, not this. =bin/lint-org= warns on 64 in DONE.org and 9 in TODO.org — fewer than 93 because it only fires at ten or more prose lines.
-
-*The reason no hook does it, which is the whole design question.* At =DONE= the body is *prospective, then debrief*. Wrapping it whole would bury the debrief inside the drawer — the exact inversion =org_wrap_plan='s =until= parameter exists to prevent. So the wrap needs to know **where the seam is**, and that is not recoverable later: it is a judgement about which sentences were written before the work and which after.
-
-*But it is not unknowable at the right moment.* The session that writes the debrief knows the seam exactly — it is the first line of what it just appended. Nobody downstream does. So this is a **closing discipline for the session, not a hook**: when queueing =DONE=, write the debrief and wrap everything above it in the same beat, passing =until=.
-
-*Note "upon =DONE=" is ambiguous in this architecture, and the ambiguity is why the naive automation fails.* =DONE= is *queued* by a session and *applied* by a human later, often in a batch. An apply-time hook would fire with the context already gone. The moment worth exploiting is the queue, not the apply.
-
-*Open, and the reason this is filed rather than fixed:* whether the rule belongs in CLAUDE.md's state-transition section, in the org skill, or as a lint that fires on a heading queued =DONE= rather than on one already closed. The third would catch it before archiving, which is where the existing rule already says it must happen; the first two rely on a session remembering, which is the shape TODO.org :ID: 2758f3a0 measured failing 41 times in 45.
-
-*Self-instance, recorded because it is the strongest evidence available:* the session that filed this closed [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] and [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] hours earlier, wrote full debriefs on both, and wrapped neither — while having read the convention. 33864a0f is one of the 93.
-
-*Related but distinct:* [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] is about checks that cannot fail. This is a convention nothing checks *at the moment it applies* — the lint does fire, but only after archiving has already happened, by which time the drawer's absence is history rather than a prompt.
-
-:END:
-*Shipped 2026-09-02, commit =c2ac288=. The user chose the third option — a check firing on a heading queued =DONE= rather than one already closed — with the rationale that the lint's job is to tell the agent "don't forget to wrap the pre-DONE text".*
-
-*Where it lives, and why not =bin/lint-org=.* The user's follow-up settled the scope: "the lint need only consider the subtree in question". That is decisive, because a check scoped to one heading belongs where the heading is known — =org_set_todo= — and needs no queue scan, no file walk, and no second surface. An earlier plan to also teach =bin/lint-org= to read the queue was dropped on that basis. The existing file-wide lint stays exactly as it was: it is the after-the-fact report, and this is the prompt.
-
-*It reminds rather than acts, and that is forced rather than cautious.* At the moment =DONE= is queued the body is prospective *followed by* debrief. Wrapping it whole would bury the debrief inside the drawer, which is the inversion =org_wrap_plan='s =until= exists to prevent. Only the caller knows which line the debrief begins at — so the reminder names =until= explicitly and says that after this moment the seam is unrecoverable.
-
-*The reply is a contract, and that was the real implementation risk.* =bin/hooks/queue-append= recovers the prior keyword from the reply with a *greedy* =sed=, and drops any reply beginning =Error:=. A second =(was ...)= anywhere in the string would win and the queued event would record the wrong =from= — silently, and =from= is what lets review notice reality has moved past a queued transition. The test runs the hook's exact expression against a reply carrying the nudge, rather than asserting a substring is absent.
-
-*Mutation-tested four ways, each verified to have applied.* Dropping the drawer guard **did not fail at first**, and the reason is worth keeping: =org_wrap_plan= moves the body into the drawer, so the prose count falls to zero and the *substantial-body* guard suppresses the nudge before the drawer guard is ever consulted. The fixture now reproduces the realistic post-wrap state — a drawer plus a substantial debrief below it — and all four guards discriminate. That is this session's third instance of a test passing for a reason other than the one it names; the others are on [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]].
-
-*Accepted limit, stated rather than left implicit.* Nothing enforces the wrap. If a session reads the reminder and ignores it, the heading is archived unwrapped and only the after-the-fact lint notices. This buys a prompt at the one moment the information exists; it does not buy a guarantee, and a guarantee is not available without someone deciding where the seam is.
-
-*The 93 existing unwrapped headings are untouched by this* — they are [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]]'s backlog, and CLAUDE.md's rule for them is *wrap unedited*, a mechanical pass rather than 93 judgements. This heading only stops the number growing.
-
-
 * TODO A boolean argument passed as false arrives as :false, which elisp reads as true :code:
 :PROPERTIES:
 :ID:       a8ccd6ac-3452-4926-b176-ff5951dcd5b2
@@ -461,109 +371,6 @@ This is [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]]'s "accepts argumen
 *Two ways to close it, and the choice is the work.* Either record =note= on the deferred-capture event as the description already claims, or drop the parameter and the sentence together. What must not survive is the present state, where the schema advertises a parameter that is silently discarded.
 
 Note the near neighbour that is now *not* a defect: =org_capture= also once dropped a *body*, and three headings arrived empty because of it. That is the same shape but a different argument, and it is not what this heading is about.
-
-
-* DONE Line-number anchors in org bodies rot, and nothing checks them :code:
-CLOSED: [2026-09-02 Wed 16:59]
-:PROPERTIES:
-:ID:       5fc7b934-28ec-4eeb-9f90-f1becec353f0
-:CREATED:  [2026-09-02 Wed 09:29]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-02 Wed 16:53]--[2026-09-02 Wed 16:58] =>  0:05
-- State "DOING"      from "TODO"       [2026-09-02 Wed 16:53] \\
-  deprecate the line-number anchor form
-- [2026-09-02 Wed 16:53]--[2026-09-02 Wed 16:58] deprecate file:line anchors in org bodies
-- State "DONE"       from "DOING"      [2026-09-02 Wed 16:59] \\
-  form deprecated, linted, anchors converted
-:END:
-:PLAN:
-
-*Split out of [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] 2026-09-02,* which proposed
-asserting that "every /is live/ or /not built/ claim carries a greppable
-anchor that still matches" — and where measurement showed the assertion
-had nothing to check.
-
-*The documents carry no anchors at all.* Across CLAUDE.md, the rules
-file, both skills and the next-session prompt — 3101 lines — there are
-zero =file:line= references and zero "line NNN" mentions. That is
-deliberate: =bin/check-org-dev-skill='s fourth check exists because the
-org-dev skill describes the tool-registration block *structurally*
-rather than by line number, "specifically so a =config.el= edit that
-shifts line counts can't put the doc out of date."
-
-*The org bodies are the opposite, and nothing checks them.* Twelve
-anchors, eleven of them into files this repo controls:
-
-| anchor              | count |
-|---------------------+-------|
-| =config.el:2792=    |     3 |
-| =config.el:973=     |     2 |
-| =config.el:2454=    |     1 |
-| =config.el:2702=    |     1 |
-| =config.el:1747=    |     1 |
-| =config.el:1778=    |     1 |
-| =config.el:1869=    |     1 |
-| =config.el:659=     |     1 |
-| =org-clock.el:1841= |     1 |
-| =org-archive.el:284=|     1 |
-| =doom-emacs.el:462= |     1 |
-
-*They have certainly rotted already.* =config.el= has grown by hundreds
-of lines since most were written — this session alone added ~40 — so an
-anchor written weeks ago points at whatever now occupies that line
-number, which is worse than pointing at nothing: it resolves, and it
-resolves to something plausible.
-
-*The decision this heading has to take, and it is not obvious.* An
-anchor in a *closed* heading's body is a historical statement — "this
-was true at =config.el:2792= on 2026-08-21" — and rewriting it would
-falsify the record rather than repair it. An anchor in a *live* body is
-a pointer someone is expected to follow. Only the second is a defect, and
-telling them apart mechanically means asking whether the heading is
-terminal, which is cheap.
-
-*Candidates:*
-
-- *Check only live headings' anchors,* failing when the cited line no
-  longer contains what the surrounding prose claims. Requires deciding
-  what "claims" means, which is the hard part and may not be
-  mechanisable.
-- *Check only that the line still exists* — file has at least N lines.
-  Weak, but catches the worst case and costs nothing.
-- *Deprecate the form outright in org bodies too,* extending the rule the
-  skills already follow: cite a symbol or a structural anchor, never a
-  line number. Then the check is "no =file:line= in a live body", which
-  is trivially decidable and needs no judgement about content.
-- *Do nothing,* on the grounds that org bodies are journals and a stale
-  pointer in a journal is a known cost.
-
-The third is the one consistent with what the skills already do, and it
-is the only one whose check cannot itself go stale.
-
-*Not urgent.* No incident traces to a rotted body anchor yet; this is
-filed because =d2a0f54c='s measurement surfaced it and a finding that
-survives only in a commit message is one nobody acts on.
-
-:END:
-*Deprecated outright 2026-09-02, on the user's decision — the third candidate, which this body had already argued was the only one whose check cannot itself go stale.*
-
-*The measurement that made it easy, and it was not anticipated here.* Every one of the eight live anchors **already named its symbol in the same sentence**: the helper was named, and the line number merely repeated in parentheses beside it. So the line number was carrying nothing the symbol did not, and conversion was deletion of a redundant parenthetical rather than a rewrite. Information lost: zero, in all eight.
-
-*Live and closed split as this body proposed, and the numbers are the argument for splitting them.* 38 anchors stand in closed headings and are untouched — a closed heading's anchor is a historical statement, and rewriting it would falsify the record. Only live bodies are linted.
-
-*A live heading that closes needs no edit at all*, which is the part that makes the rule cheap to live with: its anchor travels into =:PLAN:= with the rest of the prospective half, and stops being a live pointer without anyone touching prose. This heading is the first instance — its own twelve-row table of anchors is exactly that, and wrapping it is what clears the error it was raising against itself.
-
-*Shipped:* =--lint-body-line-anchors= plus an =error= in =bin/lint-org=, the convention in =.claude/rules/org-conventions.md= under "Citing code from a body", and the eight live anchors converted.
-
-*Verified:* 522 tests, 0 unexpected. Both halves proved discriminating — dropping the live-only guard makes it fire on closed headings, and scanning the subtree instead of the body makes it fire on =:PLAN:= content. The second mutation had to be rewritten: the first attempt changed a bounds index that shifts by one newline and proved nothing, so the =:PLAN:= exclusion looked tested when it was not.
-
-*One trap re-hit and worth recording on [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]]:* a literal-string replacement missed the last anchor because the citation sat across a *line wrap*, and the context display had collapsed the newline into a space — so the text looked like it should match. Same shape as the grep-hides-a-wrap case from this morning.
-
-*The rule caught its own author, within minutes.* The debrief above originally illustrated the finding by *quoting two of the anchors* — so =bin/lint-org= reported an error against this very heading, and =.githooks/pre-commit= refused the commit that shipped the rule. The citation was removed and the commit went through.
-
-Worth recording rather than tidying away: the form is reflexive enough that writing *about* it reproduces it, which is a stronger argument for a mechanical check than anything in the plan above. It also means the gate is load-bearing rather than decorative — it fired on its first real commit, against the person who wrote it.
 
 
 * TODO claude-code-ide-org-review should return point and windows to where I entered from :code:
@@ -1515,107 +1322,6 @@ Seeded 2026-08-31 from the proposal reviewed in conversation: DONE.org's datetre
 - [ ] [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones
 
 
-* DONE MCP tools that write an org file time out; one reports success and persists nothing :code:
-CLOSED: [2026-09-02 Wed 16:38]
-:PROPERTIES:
-:ID:       72463b68-9f08-44b2-8213-87f71298138d
-:CREATED:  [2026-08-31 Mon 11:23]
-:CATEGORY: Tools
-:END:
-:LOGBOOK:
-- State "TODO"       from              [2026-08-31 Mon 11:23]
-CLOCK: [2026-09-02 Wed 11:59]--[2026-09-02 Wed 12:11] =>  0:12
-- State "DOING"      from "TODO"       [2026-09-02 Wed 11:59] \\
-  diagnose the two hanging MCP writers
-- [2026-09-02 Wed 11:59]--[2026-09-02 Wed 12:11] diagnose MCP write-tool timeouts
-- State "REVIEW"     from "DOING"      [2026-09-02 Wed 12:11] \\
-  cause fixed and tested, residue filed
-CLOCK: [2026-09-02 Wed 13:13]--[2026-09-02 Wed 13:14] =>  0:01
-- [2026-09-02 Wed 13:13]--[2026-09-02 Wed 13:14] assigned at review
-CLOCK: [2026-09-02 Wed 13:20]--[2026-09-02 Wed 13:23] =>  0:03
-- [2026-09-02 Wed 13:20]--[2026-09-02 Wed 13:23] assigned at review
-- State "DONE"       from "REVIEW"     [2026-09-02 Wed 16:38] \\
-  cause fixed, residue filed, coverage confirmed
-:END:
-:PLAN:
-
-Two MCP tools that write an org file time out and persist nothing, and =org_capture= additionally accepts a body it silently discards. All observed 2026-08-31, while filing three headings.
-
-*The failing set is narrow, which is what makes it worth filing rather than retrying.* =org_outline=, =org_pending_updates=, =org_set_todo= and =org_amend= all answered normally over the same server, within seconds, during the same minutes that =org_capture= and =org_set_property= timed out. =org_amend= is the useful control: it is a buffer-touching write and it works, so "MCP writes are broken" is too broad -- it is those two tools.
-
-*It is not the payload and not the buffer's state.* =org_capture= timed out with a long body and again with a two-line one; with =TODO.org= read-only and again with it writable and unmodified; with no minibuffer prompt open and =recursion-depth= 0 throughout. The same functions called directly through =emacsclient= completed in ~0.24s and wrote correctly, which is how all three headings actually landed.
-
-*=org_capture= drops its body.* =(cl-defun claude-code-ide-org-capture (title &optional target tags note))= names =note= in its argument list and never references it again -- checked across the whole 47-line definition. Three headings were captured with substantial bodies and all three arrived empty; the text had to be added afterwards with =org_amend=. This is [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]]'s "accepts arguments it does not have, and says nothing" in its own implementation.
-
-*The dangerous one is a success message with no record.* Calling =claude-code-ide-org-capture= directly over =emacsclient=, outside the MCP wrapper, returned "Queued capture: ... (ID: ...) pending review" for two headings and wrote *nothing* -- not to the session queue file, whose mtime never moved, not to any other file under =~/.claude/org-updates/=, and not to any org file. The ids it reported existed nowhere. Presumably the queue path needs a session context the wrapper supplies and a bare =emacsclient= call lacks, in which case the failure is silent by construction: the caller is told the work is recorded.
-
-Three fixes, and the last matters most. Find why those two tools hang. Make =note= either work or be rejected. And make the capture path refuse, loudly, when it cannot determine where to queue -- a tool that cannot persist must not report that it did.
-
-*Reproduced 2026-08-31 on a brand-new Emacs process, which rules out instance staleness.* The prior day's evidence was all gathered on one long-lived Emacs (PID 16643, up since 12:03) that later crashed outright — so "the instance had degraded" was a live hypothesis for why these two tools hung. It is now dead: after that process was killed and Emacs restarted as PID 37051, =org_capture= over MCP timed out *again* on the first attempt.
-
-Conditions at the moment of that timeout, all measured rather than assumed:
-
-- =org_pending_updates=, =org_amend=, =org_set_todo= and =org_clock_out= all answered normally over MCP, before and after.
-- The TODO.org buffer was =:modified nil= and =:read-only nil=, so neither the busy-buffer path nor the read-only refusal applies.
-- =(minibufferp)= nil and =(recursion-depth)= 0 immediately afterwards — no prompt was open, and the hang left none behind.
-- Emacs stayed fully responsive through and after the timeout; the call hangs, the process does not.
-- Nothing was persisted: the title appeared neither on disk nor in the buffer. Not even the =Queued capture … pending review= reply this heading records — a silent nothing, not a false success.
-- The same function called directly, =(claude-code-ide-org-capture TITLE nil "code")= over =emacsclient=, returned a captured heading with a fresh =:ID:= in well under a second.
-
-=org_set_property= behaved identically in the same window: timed out over MCP, completed over =emacsclient=. So the split is exactly the pair already named here, it is per-tool rather than per-session, and it is not the payload, the buffer state, an open prompt, or a degraded process. Whatever distinguishes these two from =org_amend= is in the MCP dispatch path for those specific tools.
-
-*Distinct from* [[id:3ad389be-2797-46c3-a51d-9f603053955a][3ad389be]], filed the same day: that one is every tool failing because Emacs is absent. This one is two tools failing while Emacs is present and answering.
-
-*A cheap experiment for the next session to run, recorded here so it is not lost with the session that thought of it.* [[id:a0028a4e-39cb-4653-83cc-446b810234ac][a0028a4e]] added =org_body= on 2026-08-31 — a *new* read tool registered after this session's client had already fetched its tool list, so it could not be called over MCP at all from here and was exercised through =emacsclient= instead.
-
-That makes it an unusually clean probe. The two tools that hang are both *writers*, and the two hypotheses left standing — that the hang is about writing, or about something in the dispatch of particular tools — predict different answers for a brand-new *reader*. Whichever way it comes out is worth a line here:
-
-- =org_body= answers normally → the split is not "new tool" and probably not registration; look harder at what =org_capture= and =org_set_property= do that =org_amend= does not, given all three write.
-- =org_body= hangs too → the correlate is recency of registration rather than writing, which would be a very different and much more tractable bug.
-
-*Also unexplained and worth keeping in view:* =org_amend= writes and answers reliably, which is what makes the writer hypothesis uncomfortable rather than obvious. It was called dozens of times across 2026-08-31 without a single timeout, including against a read-only buffer, while =org_capture= timed out on its first attempt on a freshly started Emacs.
-
-*The =org_body= probe came out the first way: it answers normally over MCP.* Run 2026-09-02, in a session whose client fetched its tool list after =org_body= was registered. Two calls, both returning a full heading within seconds, in the same minutes this session was otherwise working normally.
-
-That kills the registration-recency hypothesis outright — a tool registered on 2026-08-31 is callable over MCP from a later session, so nothing about "new tool" explains the pair. What is left is the branch the body predicted: *look harder at what =org_capture= and =org_set_property= do that =org_amend= does not, given all three write.*
-
-Note the probe is weaker than it looks in one direction and stronger in another. Weaker: =org_body= is a *reader*, so it does not discriminate "writers hang" from "these two hang" — that was never its job. Stronger: it was chosen precisely because it was the one tool whose registration was known to postdate a client's fetch, and that confound is now closed rather than assumed away.
-
-:END:
-*Diagnosed and fixed 2026-09-02, commit =f73cf4b=. The cause was in our own tool declarations; the reason it presented as a hang is upstream.*
-
-*What was wrong.* Three tools declared an argument their own description told the caller to omit:
-
-| tool | argument | its description says |
-|---|---|---|
-| =org_capture= | =target= | "Omit it to prepend at the top of the capture file" |
-| =org_set_property= | =append= | "For :BLOCKER: only" |
-| =org_divide= | =parent_state= | "Defaults to the child's own" |
-
-All three are =&optional= in the elisp functions. None carried =:optional t= in its =:args=, and =--args-to-schema= derives =required= from exactly that keyword — so the published schema listed them required. =org_divide= is the third and was never reported, only because it is rarely called: it was latent, not benign.
-
-*Why a schema mismatch produced a hang rather than an error.*
-=claude-code-ide-mcp-http-server--validate-args= signals =json-rpc-error= for a missing required argument. That symbol is signalled in three places upstream and never passed to =define-error=, so it has no =error-conditions= and *no =(error …)= handler matches it* — measured directly, it comes back as Emacs's "peculiar error". It escapes =--handle-post=, =--send-json-response= is never reached, its =(throw 'close-connection nil)= never runs, and the connection is neither answered nor closed.
-
-That accounts for every symptom this heading recorded and could not explain: the call hangs, Emacs stays responsive, nothing is persisted, the buffer state and payload are irrelevant, and the same function over =emacsclient= works — because =emacsclient= never passes through MCP validation at all. It also explains the exact failing set. =org_amend=, =org_body=, =org_outline= and =org_set_todo= never hang because every argument they mark required genuinely is.
-
-*Verified four ways, not one.*
-- =--validate-args= returns for a =target=-less =org_capture= call with the fix and signals =-32602= without it, run side by side.
-- The published =required= array is now =[title]=, =[id property value]= and =[id parent_title]=.
-- =org_set_property= over MCP — which timed out earlier the same day — returned immediately once =append= was supplied, before any code changed. That isolated the cause to argument arity rather than the tool.
-- End-to-end after the fix: =org_capture= called *without* =target= over MCP, the precise call that hung on 2026-08-31 and again on 2026-09-02, returned instantly.
-
-*Reload precondition, since it nearly produced a false pass.* The running Emacs holds registrations in =claude-code-ide-mcp-server-tools=, populated when =config.el= loaded. Editing the file changes nothing live. =load-file= suffices because the block sits in =(with-eval-after-load 'claude-code-ide …)= and the package is loaded — but =claude-code-ide-make-tool= uses =add-to-list=, which compares with =equal=, so a spec whose =:args= changed is *added rather than replaced*: 23 tools became 26. De-duplicated by name keeping the newest, back to 23. Anyone reloading this file interactively will hit the same thing.
-
-*The regression test is an arity invariant, and it needed a vacuity guard.* An argument at index /i/ may be schema-required only if /i/ < the function's mandatory arity. Written naively it would have proved nothing: =config.el= registers inside =with-eval-after-load=, and in batch =claude-code-ide= is never loaded, so the registry is *empty* and the loop passes over nothing. The test requires the package and asserts the list is non-empty first. Mutation-tested — reverting one =:optional t= fails exactly this test and no other, 1 unexpected of 507.
-
-*The =org_body= probe this heading asked for was run first and is recorded above.* It came out the way that kills registration-recency, which is what sent the search into the dispatch path.
-
-*Residue, filed rather than described.* Two of this heading's three named fixes are untouched and are now their own headings: [[id:6495c8a0-d971-4c77-8b30-9fde1bbf5f26][6495c8a0]] for the discarded =note= argument, and [[id:8326a46f-e3f9-4ecc-8bc2-05d54907987b][8326a46f]] for the capture path that reports success and persists nothing — the one this body called the dangerous one. The upstream defect is [[id:ce012ad4-87f7-435c-a2ee-25210c071865][ce012ad4]], filed under [[id:9d6449c7-529f-49a0-b28f-015cce869715][9d6449c7]].
-
-*Note what the fix does and does not remove.* It removes the reason to reach for the =emacsclient= fallback, not the trap waiting there. [[id:8326a46f-e3f9-4ecc-8bc2-05d54907987b][8326a46f]] is now rarer and exactly as silent, and rarity is what keeps a false success unnoticed.
-
-
 * TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones :code:
 :PROPERTIES:
 :ID:       591e7af3-4f37-4f90-86ba-62400c6e649b
@@ -1659,238 +1365,6 @@ Move every =Review and planning= datetree node dated the previous day or older i
 *Retire the broken =:ARCHIVE:= property on the way past.* =* Review and planning= carries =:ARCHIVE: DONE.org::* Review and planning= and no such heading exists in DONE.org, measured 2026-08-31. Archiving it today would silently append a second near-identical heading at end of file, the documented failure of a literal-string target. This work replaces that route, so it should remove the property rather than leave a live trap behind.
 
 Once the sibling heading refiles =* Review attention='s old LOGBOOK entries into dated clones, those clones are placed by this same pass.
-
-
-* DONE [48/48] The code knows more than it says, and asks more than it should :code:
-CLOSED: [2026-09-02 Wed 18:21]
-:PROPERTIES:
-:ID:       b36e6369-a210-4540-adc7-0c0c188e9791
-:CREATED:  [2026-08-28 Fri 17:37]
-:CATEGORY: Slices
-:KIND:     slice
-:COOKIE_DATA: checkbox recursive
-:END:
-:LOGBOOK:
-- State "TODO"       from              [2026-08-28 Fri 17:38] \\
-  next slice, composed and awaiting review
-- State "DOING"      from "TODO"       [2026-09-01 Tue 13:19]
-- State "DONE"       from "DOING"      [2026-09-02 Wed 18:21] \\
-  all 48 declared members landed
-:END:
-Work on the gap between what the tools know and what they say, and between
-what they do and what they make a human do by hand. The plan, the sequence
-and the open decisions live in the prompt below rather than here.
-
-*The prompt that drove this slice, one link per revision of it:*
-
-- [[orgit-rev:claude-code-ide-org::1581403][1581403]] [2026-08-28 Fri 17:40] defined the slice
-- [[orgit-rev:claude-code-ide-org::0e5c779][0e5c779]] [2026-08-28 Fri 17:44] folded in advisor review: a coupling, a twin, a revision link
-- [[orgit-rev:claude-code-ide-org::c683da1][c683da1]] [2026-08-29 Sat 13:56] recorded org-goto and the tools that closed 478d6ec9
-- [[orgit-rev:claude-code-ide-org::711e0e2][711e0e2]] [2026-08-31 Mon 08:43] extended phase 4 after the previous slice closed
-- [[orgit-rev:claude-code-ide-org::bb7eae2][bb7eae2]] [2026-08-31 Mon 09:02] corrected six claims that went stale with that close
-
-- [X] [[id:c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8][c60a1c53]] DONE Name the work a slice forgot: detect the omission, never fix it
-- [X] [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] DONE Reorder DONE.org as a datetree descending by CLOSED:, and fix archiving into one
-- [X] [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] DONE Recover a close time from git for the headings with no in-file evidence
-- [X] [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]] DONE Jump to a heading by title, not by pasting a UUID
-- [X] [[id:46d225c7-7541-4867-af72-929a572df2a5][46d225c7]] DONE Remove queue-append's synthetic-event overrides, dead since the ExitPlanMode hook went
-- [X] [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]] DONE A clock-report test fails every evening, because its fixture spills past midnight
-- [X] [[id:5a5e87c9-f432-44c6-a5a6-f6f3755e4347][5a5e87c9]] DONE A duration assertion matches the clocktable's own timestamp, three minutes a day
-- [X] [[id:c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b][c8a97d9d]] DONE Clearing a buffer's read-only flag for an MCP tool leaves it cleared
-- [X] [[id:2b2db914-c96e-416a-a80a-e31028308de0][2b2db914]] DONE org_capture swallows a title beginning with a TODO keyword
-- [X] [[id:c74f8663-b14e-4ab9-ad65-d99cb655b3fa][c74f8663]] DONE org_capture should accept an initial TODO state, so a heading is not keywordless until apply
-- [X] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] DONE MCP tools that write an org file time out; one reports success and persists nothing
-- [X] [[id:a0028a4e-39cb-4653-83cc-446b810234ac][a0028a4e]] DONE Add a body read: return a heading whole, drawers included, and let the caller extract
-- [X] [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] DONE Six defects in one day, all the same: the code knew more than it said
-- [X] [[id:29734f79-e698-43dd-abf8-14bc86b8b0ae][29734f79]] DONE The ceremony prompt goes quiet on evidence of its first step, and never reports its own completion
-- [X] [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]] DONE "writes 0:09 in 1" reads as two swappable numbers; "in 1" has no unit
-- [X] [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] DONE Show turn count on the span line, where the attention call is made
-- [X] [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] DONE A span's headline interval is not the interval it writes
-- [X] [[id:46e4ce2b-fdc8-447b-ad09-b4845602540f][46e4ce2b]] DONE Lead every review-buffer rendering with the :ID: prefix, rather than trailing it
-- [X] [[id:05c71d99-2839-447b-a536-60eb4bf43b73][05c71d99]] DONE Apply logs a self-transition when a queued event's target already matches reality
-- [X] [[id:8d0716fe-ca88-429d-b46b-e2f880f5b2cc][8d0716fe]] DONE g in the review buffer discards unapplied judgement without asking
-- [X] [[id:b6e229c7-3035-4c0e-943b-710a12bfd7d1][b6e229c7]] DONE Auto-mark the state items that carry no judgement
-- [X] [[id:a2509a61-4e21-4d8e-8f58-c87935753472][a2509a61]] DONE Assign advances past the line the human is about to mark
-- [X] [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]] DONE A slice should list incidental work separately from its planned members
-- [X] [[id:5f1068f9-1452-45e4-9253-568edfce2053][5f1068f9]] DONE Sort TODO.org by :CREATED: descending, after each archive pass
-- [X] [[id:7c4d6ef6-c914-4d33-b267-cc9158a9f359][7c4d6ef6]] DONE Settle what a slice proposal is, and write the procedure down
-- [X] [[id:8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8][8c662dfb]] DONE Sweep the ten longest live bodies into :PLAN: drawers
-- [X] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] DONE Verification traps: a check with no way to fail, and a fixture that never takes the real path
-- [X] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] DONE Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
-
-- [X] [[id:d39f5f0d-bee3-4aa4-8494-0bddd07e9067][d39f5f0d]] DONE CLAUDE.md's "Session tracking" still describes the pre-cutover clock
-- [X] [[id:5fc7b934-28ec-4eeb-9f90-f1becec353f0][5fc7b934]] DONE Line-number anchors in org bodies rot, and nothing checks them
-- [X] [[id:5bfc1d38-e758-4ed7-bb32-f976031ff3da][5bfc1d38]] DONE A slice claims another slice's declared members as its own incidental work
-
-- [X] [[id:517a4290-4c66-43e7-b42e-dad7167b9c41][517a4290]] DONE CLAUDE.md's open-a-clock rule is missing the container exception
-- [X] [[id:594adec6-4855-470d-8ceb-5fe29bf0c935][594adec6]] DONE CLAUDE.md documents neither span floor, and mis-describes the gap threshold
-- [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] TODO CLAUDE.md carries dated history that costs every session's context
-- [X] [[id:4072b6ec-2785-40ba-81e8-aa559508501c][4072b6ec]] DONE The file-header template omits #+STARTUP:, which both files carry
-- [X] [[id:72e82469-3d4f-4ee1-b0c4-35b1c253901c][72e82469]] DONE A :BLOCKER: on a MAYBE heading is dormant, and no convention says so
-- [X] [[id:8e124867-323d-4332-9f4e-a391e59123e7][8e124867]] DONE Timestamps must come from a :LOGBOOK: drawer, never a bare pattern match
-- [X] [[id:6e59c0f9-8af4-43d5-99c1-637ea360c3d0][6e59c0f9]] DONE The sibling-survey idiom is undocumented, and org_outline cannot navigate up
-- [X] [[id:e5fef4c4-5c42-48c2-a5d7-577dc199c22a][e5fef4c4]] DONE load-file does not pick up a changed defcustom default
-- [X] [[id:5f89f872-6c0d-4805-88da-a182971c7ad9][5f89f872]] DONE Say in CLAUDE.md that it is a starting point and the artifact is the authority
-
-Incidental:
-
-- [X] [[id:6e43120d-b9ed-4595-8309-ccd0cde8da59][6e43120d]] DONE Three conventions read as permission to grow a story where mitosis was owed
-- [X] [[id:355fa608-e311-4874-b2d3-bbc62172d09a][355fa608]] DONE A stranded single-point span is offered forever; only the trailing one can still grow
-- [X] [[id:b488dd2a-db73-49a3-a4b5-5f4cc9b52e06][b488dd2a]] DONE Decide a key binding for review-undo-refresh, or leave it M-x only
-- [X] [[id:5d59dc77-38bf-470a-8d51-098c741fecbd][5d59dc77]] DONE org_capture with a done initial_state writes no CLOSED line
-- [X] [[id:13ea6770-88ba-484d-87bd-2d20c44dc610][13ea6770]] DONE The ceremony steps do not bind inhibit-read-only, so the sweep dies on the guard
-- [X] [[id:42ba0a80-61c5-49bd-b6a2-9da76a53ff64][42ba0a80]] DONE An unstarted slice accrues every heading closed since it was written down
-- [X] [[id:79a3d89e-77be-4678-919e-637a65f87204][79a3d89e]] DONE The :PLAN: wrap never happens at close, so 93 finished headings carry an unwrapped body
-- [X] [[id:b75d553a-3c77-4b98-9f58-022bfa295816][b75d553a]] DONE Write the plan into :PLAN: from the start, so no seam is ever created
-- [X] [[id:35d25265-df52-45c0-8226-dfa24c3ed5bb][35d25265]] DONE Separate plan from debrief across the 73 warned headings, retroactively
-
-*[[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] was dropped from this slice 2026-09-02, not forgotten.* Its line keeps its position and has lost its cookie, which is how a slice records a member it no longer counts.
-
-The reason is a re-aim rather than a change of mind. That heading was scoped as a prune of dated history in CLAUDE.md. Verified against the plugin documentation the same day, the larger claim on the same file is that ~660 of its 1196 lines document machinery that would ship to a consuming project and currently has no way to — =.claude/rules/= is not a plugin component and nothing lets a plugin contribute always-loaded instructions. So the question is what must *relocate*, not what should be deleted, and answering it belongs to [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]], which is upstream of it.
-
-It is carried, with its cookie intact, into the proposal [[id:ff7ccb2d-2b13-421e-86e3-6b5e187850bf][ff7ccb2d]], where it sits third behind the two headings that must decide first.
-
-*Three members were also de-cookied from [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]] in the same pass* — [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]], [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] and [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] — because they were declared by both slices and worked here. A member counted twice makes two slices disagree about the same work, and it was also what let a shared member's clock open an unstarted slice's incidental window.
-
-
-* DONE Verification traps: a check with no way to fail, and a fixture that never takes the real path :code:
-CLOSED: [2026-09-02 Wed 17:03]
-:PROPERTIES:
-:ID:       542924c1-9152-4414-8da8-d530d3423611
-:CREATED:  [2026-08-28 Fri 17:36]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-- State "TODO"       from              [2026-08-28 Fri 17:36] \\
-  session learnings, filed
-CLOCK: [2026-09-02 Wed 17:00]--[2026-09-02 Wed 17:03] =>  0:03
-- State "DOING"      from "TODO"       [2026-09-02 Wed 17:00] \\
-  build the elisp form-reading assertion
-- [2026-09-02 Wed 17:00]--[2026-09-02 Wed 17:03] build bin/check-elisp as an assertion
-- State "DONE"       from "DOING"      [2026-09-02 Wed 17:03] \\
-  elisp assertion shipped, residue named
-:END:
-:PLAN:
-
-*Observed across one long session, 2026-08-28.* Each was hit more than once, each looked like success at the moment it happened, and none is covered by anything in =bin/=.
-
-*1. An unescaped =\"= inside an elisp docstring, and =check-parens= says nothing.* Writing a docstring through a shell heredoc or a Python string puts a bare quote in, which *terminates the string early* and turns the rest of the body into code. Parens stay balanced, so =check-parens= reports the file fine. Hit twice — once in =config.el=, once in =config-test.el= — and the second time cost nine spurious test failures before the cause was found. The reliable check is not =check-parens= but *reading forms*: =(while t (forward-sexp))= from =point-min= reports the line where the reader actually gives up. Sibling of [[id:4f9e552a-e1a9-48dd-8801-3f23a31b9e32][4f9e552a]], where a bare =emacs= silently did not run a batch check at all.
-
-*2. A count of =FAILED= lines is not a test result.* =bin/test= writes to *stderr*, so =bin/test | tail= shows nothing while exiting 0, and =grep -c FAILED= over a run that *never started* answers zero — which reads exactly like success. Hit twice: once piping without =2>&1=, once when a deliberately broken file made the suite exit *255* having run no tests, and the failure count was read as "no failures". The check that works is the *=Ran N tests=* line and the exit code, never the absence of a word.
-
-*3. A mutation test whose mutation does not parse proves nothing.* This project's discipline is to break the code and confirm the test fails. That is only evidence if the broken version *runs*. Twice a break was made by deleting a clause, which unbalanced the file, so the suite did not execute and the run was scored as "the test still passes". A break must be *semantic*, not structural — invert a predicate, return nil, drop a value — and the run count must be checked before the failure count.
-
-*What they share, and why it is one heading.* All three are cases where *the absence of a signal was read as a positive result* — no parse error, no FAILED line, no test failure. The project already has this lesson recorded twice ([[id:4f9e552a-e1a9-48dd-8801-3f23a31b9e32][4f9e552a]], and the =set -g= bug in =bin/check-org-dev-skill= where FAIL printed and the script exited 0), which is the argument that it is a class rather than three incidents.
-
-*Proposed, not yet decided:* a =bin/check-elisp= that reads forms rather than counting parens, wired into =pre-commit= alongside =bin/lint-org=; and a note in the org-dev skill that the two verification commands whose output is *silence* — =check-parens= and a piped =bin/test= — are the two that have lied. [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] is the natural home for the first, since it already proposes generalising =check-org-dev-skill= into a =check-conventions= wired into =pre-commit=.
-
-*A fourth, 2026-08-31, and it is the purest form of the class.* A hand-written probe asked whether a heading carried a =:PLAN:= drawer:
-
-: (save-excursion (re-search-forward "^:PLAN:" end t) t)
-
-The trailing =t= is the last form of the =save-excursion=, so the whole expression answers =t= *whether or not the search matched*. **A probe that can only say yes.** It reported a =:PLAN:= drawer on [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]], which has none, and that false reading was then used to argue a precedent for wrapping slice bodies — a design decision resting on a probe with no failure mode.
-
-*Caught by a human reading the file*, not by anything mechanical: the user said "we didn't do it as such for c44c21 and it reads just fine". Every one of the four in this heading was caught that way or by a lint rule; none by re-reading the code.
-
-*The generalisation, now that there are four:* the failures are not "the check was wrong" but "**the check had no way to fail**". A silent parse, an absent =FAILED= line, a mutation that never ran, a probe whose value is constant. The question that catches all four is the same one — *what would this have printed if the thing I am testing were false?* — and it is cheaper to ask than any of the fixes.
-
-*Which is also the argument for =bin/check-elisp=* proposed above: a check that reads forms cannot answer =t= by accident.
-
-*And a fifth of the same shape, from the same day, worth recording because it was a write rather than a read.* A splice replaced a region using =body.index(start)= and =body.index(end)= where the end marker sat *earlier* in the string than the start — so =body[:start] + new + body[end:]= silently re-appended everything between them, duplicating a slice's revision links and part of its member list. The cookie went up rather than erroring, which read as plausible on a slice that had just grown. A splice whose markers can be mis-ordered should assert their order; nothing did.
-
-*Fresh evidence 2026-08-31, from the session that was working through this slice: one of the three traps fired again, and it fired on the session that had just read this heading.*
-
-*"A mutation that does not parse proves nothing" — hit, and caught only by looking for the right line.* While proving the span-readout rework discriminating, one of four mutations replaced a =let= binding with an unbalanced form. =bin/test= crashed on load, ran *zero* tests, and its log carried **no =Ran= line at all**. The check that caught it was looking for =Ran N tests= rather than for the word =FAILED= — which is precisely what this heading says to do. Had the pass been judged by "no FAILED lines appeared", the mutation would have been recorded as *not discriminating*, and the conclusion drawn would have been the exact opposite of the truth: that the code under test did not matter.
-
-*So the trap is worse than "you learn nothing".* A non-parsing mutation does not merely fail to prove the test discriminates — read carelessly, it actively argues that it does not. That asymmetry was not recorded here before and is the strongest argument for a mechanical check.
-
-*A fourth trap, of a different kind, found the same day and offered for this heading's consideration:* choosing the wrong *fixture* produces a failure that reads as the defect under test. =claude-code-ide-org-test--with-known-ids= deliberately leaves its ids unknown to org until something scans, so =--assign-candidates=, which walks =org-id-locations=, returns *zero* candidates there. A new test using it failed in a way that looked exactly like a formatting mismatch and was an empty list. Same shape as the other three — a silence, or a wrong-looking answer, that a reader interprets as the thing they were testing for.
-
-*What a check might actually assert*, since this heading is about mechanising rather than remembering: a mutation run should require the =Ran N tests= line to be present *and* N to equal the baseline count. Both halves are needed — the crash above produced no line, while a mutation that merely skipped tests would produce a smaller N with no error.
-
-*A sixth, absorbed 2026-09-02 from
-[[id:13ea6770-88ba-484d-87bd-2d20c44dc610][13ea6770]], which said it
-"should probably absorb" here and then did not file it.* Recorded as
-much for that as for the case itself: a sentence pointing at another
-heading is not a filing action, and this one sat unfiled for a day in a
-closed heading, which is where residue goes to become invisible.
-
-*The case.* =archive-finished= =let=-bound =org-archive-reversed-order=
-without requiring =org-archive= first. Under lexical binding, binding a
-symbol org-archive has not yet =defvar='d makes it *lexical*, so loading
-org-archive afterwards signals =Defining as dynamic an already lexical
-var=. It works in a long-running Emacs, which has org-archive loaded
-from any earlier archive, and fails on the first ceremony after a
-restart — which is exactly when the ceremony is most likely to run.
-
-*Why it belongs with the other five.* =bin/test= *passed identically
-before and after the fix*, because the batch environment's load order
-differs from the live one. Not a wrong assertion, and not a missing one:
-the suite is **structurally incapable** of reaching the state where the
-defect exists. That is this heading's own generalisation — "the check
-had no way to fail" — in its most literal form, since here the check
-could not even be *constructed* in the environment available to it.
-
-*And it sharpens the question this heading proposes.* "What would this
-have printed if the thing I am testing were false?" assumes the harness
-can put the system into the false state. When it cannot, a green suite
-is not weak evidence — it is *no* evidence, and the honest response is
-to say the verification of record is elsewhere rather than to write a
-batch test that will always pass. 13ea6770 named its verification of
-record as the live run, which is the right move and the one worth
-generalising.
-
-*So the residue is a category the proposed =bin/check-elisp= cannot
-cover:* claims whose truth depends on load order, session age, or
-anything else batch flattens. Those need a stated
-verification-of-record — which live run, under which precondition —
-rather than a check. The user's standing reload-precondition rule is the
-same instinct one level down.
-
-*Live status 2026-09-02, since it bears on when the next real test
-happens.* =(require 'org-archive)= is now unconditional in
-=archive-finished=, so the fix is structural. But Emacs uptime is 1 day
-0 hours and =(featurep 'org-archive)= is =t=, so this morning's 08:56
-ceremony ran *warm* — the fresh-session path has been exercised exactly
-once, immediately after the reload that fixed it. The next cold run is
-the second data point, and only if Emacs is restarted before it.
-
-*Five more, 2026-09-02, from the session that shipped [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] and [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]]. Three are new shapes; two open a second class this heading did not previously cover, and which the proposed =bin/check-elisp= cannot reach.*
-
-*7. A mutation that does not **apply** is indistinguishable from one the tests caught.* Case 3 above is a mutation that does not *parse*. This is worse, because it leaves no wreckage: a Python =str.replace= whose pattern does not match returns the string unchanged and raises nothing, so the suite runs clean on *unmutated* code and the transcript reads "mutation applied; 0 unexpected" — which looks exactly like a test that failed to discriminate. It happened twice in one hour, and both times the conclusion drawn was the opposite of the truth. The fix is the same shape as this heading's other fixes: assert the substitution count before running anything. Every mutation in that session afterwards did =if s.count(old) != 1: sys.exit(...)=.
-
-*8. =should-error= passed for the wrong reason, with the guard deleted.* A test asserted that converting an archive refuses when a heading carries no =CLOSED:=. Delete the guard and it *still* raised — a nil =CLOSED:= reaches =org-date-to-gregorian=, yields =(nil nil nil)=, and =encode-time= throws =wrong-type-argument= three frames down. So the test passed both ways and proved nothing. This is distinct from case 6: the harness *could* reach the false state, and a *different* failure masked the absence of the one being asserted. **A bare =should-error= asserts only that something went wrong.** It now matches the message.
-
-*9. A control that no longer contained the subject.* To check whether a lint error was caused by a restructure, the same content was linted flat and as a datetree. The flat file came back clean — because =org-archive-subtree= had already *moved the heading out of it*. The comparison was against an empty file and read as exonerating. The user's standing rule about a =grep= being a hypothesis about what it hides generalises: so is a control.
-
-*The second class: the fixture takes a path the real caller does not.*
-
-*10. A default argument that only production supplies.* =--datetree-target-file= computed "DONE.org beside the capture target" and named a file that does not exist — the capture target is reached through a *symlink*, and the archive lives beside the link's target. Every test passed the path explicitly, so **the default was the one code path nothing exercised**, and the ceremony failed with "Nothing to sort" on every run while every hand call succeeded.
-
-*11. Real buffer flags and real schedule state.* The ceremony's repeater advance never bound =inhibit-read-only=, so it died on the user's read-only guard; and it advanced unconditionally, which given =++1d= shifts *from the stored date* would have pushed a not-yet-due schedule a further day out — silently cancelling the next ceremony. Neither was reachable from any fixture, because no fixture set the flag or the schedule.
-
-*The generalisation these two force, and it is not this heading's existing one.* Cases 1-9 are all "the check had no way to fail". These are different: the checks **could** fail, and did not, because they never ran the code production runs. Measured: **three defects in the ceremony path, none caught by 517 passing tests, all three found by running it.** Each lived in the gap between how a fixture invokes a function and how the real caller does — default arguments, buffer flags, schedule state, symlinks.
-
-*So the question that catches cases 1-9 does not catch these.* "What would this have printed if the thing I am testing were false?" is answerable and was answered; the code under test was simply not the code that runs. The second question is **"does anything call this the way production calls it?"** — and for a function with an =&optional file= that the ceremony always omits, the answer was no.
-
-*What a check could assert here*, in the same spirit as the =Ran N tests= assertion above and cheaper than the alternatives: for each ceremony step, that its *no-argument* call resolves to the file the step beside it writes to. That is exactly the invariant case 10 violated, it is decidable without judgement, and it needs no new harness — the regression test written for it is four lines of =file-equal-p=.
-
-*The honest limit, restated because it now has two members.* Case 6 concluded that where the harness cannot reach the state, the verification of record is a live run under a stated precondition. Cases 10 and 11 are the same conclusion from the other side: the harness *could* have been built, nobody thought to, and the thing that found all three was a human running the ceremony and reading the output. Two of the three were surfaced by the user, not by the session that wrote them.
-
-:END:
-*Shipped 2026-09-02: the elisp form-reading check, as assertion 0 of =bin/check-conventions=* — an assertion rather than a script, which is what [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]]'s harness made possible.
-
-*The gap it closes is not the one this heading described, and that is worth stating plainly.* The filing argued =check-parens= stays silent on an unescaped docstring quote. **I could not reproduce that.** Every fixture built here — including the exact shape described, a docstring ending early and leaving bare code — was caught by =check-parens= too. So the check is not strictly stronger, and the body's premise for it does not hold as written.
-
-*What is true, and is a bigger gap than the one claimed:* **nothing checks elisp at commit time at all.** =.githooks/pre-commit= runs =bin/lint-org= over the org files and =check-conventions --docs-only= over the documents; =bin/test= is not wired in. A structurally broken =config.el= can be committed today and surfaces later as spurious test failures whose cause is nowhere near them — which is exactly the nine-failure incident this heading opens with. The check runs in =--docs-only=, so pre-commit gets it, and it uses *batch* Emacs, which needs no server — the same footing =bin/lint-org= already stands on.
-
-*A false positive measured before shipping, not after.* Read in =fundamental-mode=, =config.el= reports a scan error at line 8430 — against a file Emacs loads every day — because elisp comment and quote syntax do not apply. =(emacs-lisp-mode)= in the temp buffer is load-bearing, not tidiness. Had that not been checked, the first commit would have been blocked by the checker rather than by a defect.
-
-*Proved able to fail, two ways, in =bin/check-conventions-test=:* an elisp file that does not read exits 1, and a valid one exits 0 — the second so the first is not passing because the assertion refuses everything. 9 checks, all as expected.
-
-*It reports the line the reader gives up on*, which is the half that converts a confusing failure into a location.
-
-*Not built, and not claimed:* the two other assertions this body proposes — that a mutation run require the =Ran N tests= line *and* N equal to the baseline, and that each ceremony step's no-argument call resolve to the file the step beside it writes to. Both remain good ideas; neither is done, and saying so is cheaper than letting a reader infer from the heading's closure that all three shipped.
 
 
 * MAYBE Install orgparse for ad-hoc analysis, and stop reaching for regex over org text :code:
@@ -2071,9 +1545,6 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
-CLOCK: [2026-09-02 Wed 18:30]--[2026-09-02 Wed 18:31] =>  0:01
-CLOCK: [2026-09-02 Wed 17:42]--[2026-09-02 Wed 17:44] =>  0:02
-CLOCK: [2026-09-02 Wed 16:30]--[2026-09-02 Wed 16:33] =>  0:03
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -2107,6 +1578,9 @@ CLOCK: [2026-09-01 Tue 15:42]--[2026-09-01 Tue 15:47] =>  0:05
 CLOCK: [2026-09-02 Wed 08:51]--[2026-09-02 Wed 08:56] =>  0:05
 CLOCK: [2026-09-02 Wed 10:23]--[2026-09-02 Wed 10:24] =>  0:01
 CLOCK: [2026-09-02 Wed 13:28]--[2026-09-02 Wed 13:30] =>  0:02
+CLOCK: [2026-09-02 Wed 16:30]--[2026-09-02 Wed 16:33] =>  0:03
+CLOCK: [2026-09-02 Wed 17:42]--[2026-09-02 Wed 17:44] =>  0:02
+CLOCK: [2026-09-02 Wed 18:30]--[2026-09-02 Wed 18:31] =>  0:01
 :END:
 
 
@@ -2175,55 +1649,6 @@ CLOCK: [2026-09-02 Wed 13:28]--[2026-09-02 Wed 13:30] =>  0:02
 *=MAYBE= deliberately.* The =/config= change may resolve the pain entirely, and this costs a script plus its tests. Worth building only if reading the transcript in Emacs turns out to be something the user actually does, rather than something that sounds useful.
 
 
-* DONE Settle what a slice proposal is, and write the procedure down :code:
-CLOSED: [2026-09-02 Wed 16:39]
-:PROPERTIES:
-:CATEGORY: Slices
-:ID:       7c4d6ef6-c914-4d33-b267-cc9158a9f359
-:CREATED:  [2026-08-25 Tue 15:49]
-:END:
-:LOGBOOK:
-- State "TODO"       from              [2026-08-25 Tue 15:49] \\
-  extracted from the first proposal's body
-CLOCK: [2026-09-02 Wed 16:34]--[2026-09-02 Wed 16:35] =>  0:01
-- [2026-09-02 Wed 16:34]--[2026-09-02 Wed 16:35] assigned at review
-CLOCK: [2026-09-02 Wed 16:38]--[2026-09-02 Wed 16:39] =>  0:01
-- State "DOING"      from "TODO"       [2026-09-02 Wed 16:38] \\
-  settle the three and write the procedure
-- [2026-09-02 Wed 16:38]--[2026-09-02 Wed 16:39] write the slice-proposal procedure
-- State "DONE"       from "DOING"      [2026-09-02 Wed 16:39] \\
-  procedure written into the rules file
-:END:
-:PLAN:
-
-*Extracted 2026-08-25 from the body of the first proposed slice*, where it had been written as though it were that proposal's own reasoning. It is not: it describes what *any* proposal is, which is the same error [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] was trimmed for hours earlier -- a slice's body carrying the convention rather than the instance. The user caught both.
-
-*Done when the procedure is in* =.claude/rules/org-conventions.md= *beside the slice convention*, not when it is merely agreed here.
-
-*What is settled already, by having done it once.* A proposal is a slice-shaped heading with the *declaration withheld*: the checklist, the theme and the ordering, but no =:KIND: slice=. Withholding is not bookkeeping -- declaring is the act of committing, so a heading without the declaration is precisely a proposal. It also keeps the checklist out of =bin/lint-org='s slice rules until someone means it; otherwise the absent =:BLOCKER:= would be an error against a list nobody has agreed to.
-
-*And no prompt link*, for the same reason: there is no =next-session.md= revision driving a proposal, and there will not be until it is picked up.
-
-*What accepting one means, which follows but has not been exercised:* add =:KIND: slice=, run =claude-code-ide-org-refresh-slice= so the blocker and cookie appear, and link the prompt revision that picks it up. Three steps, all mechanical, and worth a single command if proposals become routine.
-
-*Genuinely open.* Where proposals live -- under =* Slices= beside real ones, as they are now, or somewhere that cannot be mistaken for a live slice at a glance. What keyword a proposal carries: =TODO= today, though =MAYBE= would read more honestly and would also stop [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]]'s promotion trigger from ever nominating one as a next action. And what becomes of a rejected proposal -- =CANCELLED= keeps the argument, which is usually the part worth keeping.
-
-:END:
-*Settled and written down 2026-09-02*, in =.claude/rules/org-conventions.md= beside the slice convention — which is where this heading's own Done-when put the bar, rather than agreement here.
-
-*Two of the three open questions had been dissolved by events, not decided*, and checking rather than answering them is what made this small.
-
-*Where proposals live* was open because slices sat under a level-1 =* Slices= heading and a proposal beside them could be mistaken for one. That heading no longer exists — measured: zero =^\* Slices= in TODO.org, five headings carrying =:CATEGORY: Slices=. The flattening ([[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]) dissolved the question. A proposal lives exactly where a slice lives, and the *absent* =:KIND:= is the mark; a separate location would be a second copy of the fact the missing declaration already carries.
-
-*The keyword argument had expired.* This body argued for =MAYBE= partly because it would stop [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]]'s promotion trigger nominating a proposal as a next action. That trigger is gone — measured, zero occurrences of =--trigger-auto-promote-sole-todo= in =config.el=, retired by [[id:62b65ad0-304b-4cf1-bd95-2f1ecb671d6b][62b65ad0]]. The conclusion survives on a better argument: =MAYBE= *means* not committed, which is what a withheld declaration says, and it keeps the proposal out of the un-nominated-container report. Its =:BLOCKER:= being dormant is correct here rather than a defect, since the checklist is not agreed — which is [[id:72e82469-3d4f-4ee1-b0c4-35b1c253901c][72e82469]]'s convention read in the direction that makes it useful.
-
-*The third was already answered in this body:* a rejected proposal is =CANCELLED= and keeps its argument.
-
-*One stale claim fixed in passing, found because the procedure had to be written beside it.* The Slices section still read "Slices live under the level-1 =* Slices= category and are level-2 headings", which the flattening retired. Same defect class as the nine CLAUDE.md corrections earlier today: prose outliving the mechanism that justified it.
-
-*Not built:* the single command for accepting a proposal. Three calls is cheap and proposals are not yet routine — the body's own condition for building it.
-
-
 * TODO Intervals on two different headings can overlap, and subtraction reaches only one :code:
 :PROPERTIES:
 :CATEGORY: Apply
@@ -2251,12 +1676,12 @@ What survives is the case this body already documents and subtraction structural
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-09-03 Thu 07:00 ++1d>
+SCHEDULED: <2026-09-04 Fri 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-09-02 Wed 08:56]
+:LAST_REPEAT: [2026-09-03 Thu 07:41]
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-24 Mon 10:25]--[2026-08-24 Mon 10:28] =>  0:03
