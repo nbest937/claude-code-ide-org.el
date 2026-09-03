@@ -5827,7 +5827,7 @@ but =claude -p= asynchronously.
   than the conclusion being cited. The story is f90d745e.
 
 
-* DOING [16/17] Update CLAUDE.md and the org skill for the new architecture :code:
+* DOING [16/20] Update CLAUDE.md and the org skill for the new architecture :code:
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       02aaae22-0958-4c0f-b5bb-2cbea32416ae
@@ -7267,7 +7267,30 @@ that only fixes the file addresses a third of the problem.
 keyword set agrees, and cannot check a claim that is merely out of date
 — which is most of them. Naming what the check *cannot* do is what keeps
 a green check from being read as a green file.
+** TODO Write the wrap-at-composition procedure into CLAUDE.md once the drawer argument settles it :code:
+:PROPERTIES:
+:ID:       16d7d39a-19f8-4e4e-95cc-e06034bd6f1f
+:CREATED:  [2026-09-03 Thu 08:56]
+:BLOCKER:  ids(501a8422-9e93-4d2d-98bb-db0ab2c16e37)
+:END:
 
+The three-step composition procedure — org_amend the prospective prose, org_wrap_plan with no until, org_amend the two-to-five-sentence statement — lives only in org_wrap_plan's schema docstring, and :ID: 420816ec measured that schema text does not move usage while a CLAUDE.md directive does. But :ID: 501a8422 would collapse the three steps into one org_amend drawer=PLAN call and partly subsume org_wrap_plan, so transcribing the procedure now would document a shape already nominated for replacement. Once that lands, write whichever procedure survives into CLAUDE.md next to the org_wrap_plan table row (which now points at the schema docstring as the procedure's home). The :BLOCKER: encodes the wait.
+
+** TODO The plan-link lifecycle prose still describes the retired wrap-at-DONE flow :code:
+:PROPERTIES:
+:ID:       6fc9377b-468f-4c61-aada-548d329eb5d8
+:CREATED:  [2026-09-03 Thu 08:56]
+:END:
+
+CLAUDE.md still puts the Plan link "in its heading body" (the rule near line 408) and still says it is "relocated into the :PLAN: drawer" at DONE "when org_wrap_plan wraps it" (near line 425) — the flow :ID: b75d553a retired on 2026-09-02 when the wrap moved to composition time. Plan-then-compose needs only rewording: the link is planning content and rides in the prospective prose, so it belongs inside :PLAN: from the start. Compose-then-plan currently has no path at all — org_wrap_plan refuses a heading that already has a :PLAN: drawer and org_amend appends below it — and that half is :ID: 501a8422's open question (does drawer=PLAN create the drawer when absent?), so word it against whatever that builds rather than inventing a path here.
+
+** TODO Three nomination paragraphs say container where the code means grouping :code:
+:PROPERTIES:
+:ID:       cc63742e-1f1a-4af1-8580-ecbd5e3f7190
+:CREATED:  [2026-09-03 Thu 08:56]
+:END:
+
+The nomination-report paragraphs and the nomination Rule ("every transition to DONE inside a container", CLAUDE.md near lines 795–803) say "container" where the mechanism is broader: --nomination-candidates-context resolves slice members through the referent index, and its docstring says "a project here is a story or a slice, never a filing category". The file's own "note which predicate goes where" paragraph is what makes the loose word bite — a reader applying the vocabulary concludes slices go unreported. Substitute "grouping" at the three sites; a three-word fix, no growth.
 
 * TODO Direct file writes to a live org buffer can desync org-clock-marker :code:
 :PROPERTIES:

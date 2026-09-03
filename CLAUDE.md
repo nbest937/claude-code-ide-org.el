@@ -899,6 +899,7 @@ incident, and the reason the queue exists:
 | `org_capture`       | `org-capture`            | Quick-add a new TODO heading           |
 | `org_refile`        | `org-refile`             | Move a subtree under a different parent |
 | `org_divide`        | custom (`org-demote-subtree`) | Task mitosis: insert a new parent above a heading and demote it under. The id, clock and history stay with the **child** |
+| `org_wrap_plan`     | custom (two insertions)  | Wrap the prospective part of a body in a `:PLAN:` drawer. No `until` wraps the whole body (the composition-time case); `until` marks where the debrief begins (the retroactive case). Lossless — nothing deleted or reflowed — and it refuses rather than guesses: an existing `:PLAN:` drawer, an empty body, or a missing/duplicated `until` are errors. The composition procedure lives in its schema docstring |
 | `org_set_property`  | `org-entry-put`          | Set a property by `:ID:`. `:BLOCKER:` is validated — ids resolved, prefixes expanded, unresolvable refused — and `append` unions rather than replaces. Refuses `:ID:`/`:CREATED:` |
 | `org_move_sibling`  | `org-move-subtree-up/down` | Move a heading up/down among siblings |
 | `org_sort_children` | `org-sort-entries`       | Sort a heading's direct children       |
