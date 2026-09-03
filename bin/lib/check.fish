@@ -41,3 +41,19 @@ function check_fail
     echo "FAIL - $argv[1]"
     set -g fail 1
 end
+
+# Report a check that could not run, naming why.
+#
+# Distinct from `check_ok' on purpose: a check that did not run has not
+# passed, and printing it as `ok' is the exact failure mode TODO.org
+# :ID: 542924c1 collects -- silence read as a result. Distinct from
+# `check_fail' too, because a prerequisite that is merely absent is not
+# the drift these scripts exist to catch, and blocking a commit with the
+# wrong cause is worse than not checking.
+#
+# Does not set `fail'. A caller that wants a missing prerequisite to be
+# fatal calls `check_fail' instead; the choice belongs to the assertion,
+# which knows whether the prerequisite is optional.
+function check_skip
+    echo "skip - $argv[1]: $argv[2]"
+end

@@ -30,12 +30,19 @@ set -g docs_only 0
 for a in $argv
     switch $a
         case --docs-only
-            # Everything under this flag reads plain files. The org-dev
+            # Drops the checks that need a RUNNING Emacs. The org-dev
             # delegation below shells to `emacsclient', and a machine
             # with no Emacs running would otherwise be unable to commit
             # at all -- a check that blocks work when the thing it checks
             # is merely asleep is worse than no check. .githooks/pre-commit
             # passes this; a human running the script by hand does not.
+            #
+            # It is NOT "everything under this flag reads plain files",
+            # which is what this said until 2026-09-03 and was false from
+            # the day check 0 was added: that one shells to `emacs
+            # --batch', which needs the binary but no server. The
+            # distinction is the whole reason check 0 stays ungated --
+            # see its own comment (TODO.org :ID: 3f2d5126).
             set -g docs_only 1
         case '*'
             set -g root (cd $a && pwd)
@@ -90,21 +97,63 @@ for rel in modules/tools/claude-code-ide-org/config.el modules/tools/claude-code
     end
 end
 
-for f in $elisp_files
-    set -l verdict (command emacs --batch -Q --eval "(with-temp-buffer
-        (insert-file-contents \"$f\")
-        (emacs-lisp-mode)
-        (goto-char (point-min))
-        (let ((res \"ok\"))
-          (condition-case err
-              (while (progn (skip-chars-forward \" \t\n\r\")
-                            (< (point) (point-max)))
-                (forward-sexp))
-            (error (setq res (format \"line %d: %s\"
-                                     (line-number-at-pos)
-                                     (error-message-string err)))))
-          (princ res)))" 2>/dev/null)
-    check "elisp reads as forms ("(basename $f)")" "$verdict" ok
+# Deliberately NOT gated on `--docs-only'. Gating it would remove the
+# only elisp check that runs at commit time, since .githooks/pre-commit
+# always passes that flag -- which is the gap this check was added to
+# close. `emacs --batch' needs the binary, not a running server, so the
+# flag's rationale does not reach it.
+#
+# The binary itself is a prerequisite, and a missing one is reported as
+# what it is. It used to fall through to an empty verdict -- `2>/dev/null'
+# discarded the reason -- so `check' reported drift and pre-commit
+# refused every commit touching CLAUDE.md, config.el or the org files
+# with "documentation has drifted from what it describes". The wrong
+# cause, and the most expensive kind: it points the reader at the files
+# they just edited (TODO.org :ID: 3f2d5126).
+#
+# Overridable so the self-test can reach the missing-binary path, which
+# is otherwise unreachable on any machine that can run these checks at
+# all -- and an assertion with no way to fail is what :ID: 542924c1
+# collects.
+set -q CHECK_CONVENTIONS_EMACS; or set -g CHECK_CONVENTIONS_EMACS emacs
+
+if not type -q $CHECK_CONVENTIONS_EMACS
+    # Skipped rather than failed under the flag, for the same reason the
+    # flag exists: a prerequisite that is merely absent must not block a
+    # commit. Fatal for a human running the script by hand, who asked for
+    # the whole check and would otherwise read a silent drop as a pass.
+    if test "$docs_only" = "1"
+        check_skip "elisp reads as forms" "no `$CHECK_CONVENTIONS_EMACS' on PATH"
+    else
+        check_fail "elisp reads as forms: no `$CHECK_CONVENTIONS_EMACS' on PATH (this check needs the binary, not a running server)"
+    end
+else
+    for f in $elisp_files
+        set -l errfile (mktemp)
+        set -l verdict (command $CHECK_CONVENTIONS_EMACS --batch -Q --eval "(with-temp-buffer
+            (insert-file-contents \"$f\")
+            (emacs-lisp-mode)
+            (goto-char (point-min))
+            (let ((res \"ok\"))
+              (condition-case err
+                  (while (progn (skip-chars-forward \" \t\n\r\")
+                                (< (point) (point-max)))
+                    (forward-sexp))
+                (error (setq res (format \"line %d: %s\"
+                                         (line-number-at-pos)
+                                         (error-message-string err)))))
+              (princ res)))" 2>$errfile)
+        if test -z "$verdict"
+            # An empty verdict is Emacs failing to run, never a file that
+            # reads cleanly -- the elisp above always `princ's something.
+            # Report what it actually said instead of comparing "" to "ok"
+            # and calling the document drifted.
+            check_fail "elisp reads as forms ("(basename $f)"): $CHECK_CONVENTIONS_EMACS produced no verdict -- "(head -1 $errfile)
+        else
+            check "elisp reads as forms ("(basename $f)")" "$verdict" ok
+        end
+        rm -f $errfile
+    end
 end
 
 # 1. Every :ID: the documents cite resolves.

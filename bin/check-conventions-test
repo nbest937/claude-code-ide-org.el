@@ -103,8 +103,63 @@ printf '(defun a ()\n  "A well-formed docstring."\n  (+ 1 2))\n:description "TOD
 $repo_root/bin/check-conventions $d >/dev/null 2>&1
 expect_exit "a valid elisp file does not fail" 0
 
+# 9. A missing emacs binary is reported as itself, not as drift.
+#
+#    The case this exists for is the one that hid: `2>/dev/null' turned a
+#    missing binary into an empty verdict, `check' compared "" against
+#    "ok", and .githooks/pre-commit refused the commit saying the
+#    documentation had drifted. The wrong cause, pointing the reader at
+#    the files they had just edited (TODO.org :ID: 3f2d5126).
+#
+#    Reachable only through CHECK_CONVENTIONS_EMACS: any machine that can
+#    run these checks has emacs, so without the seam the path could never
+#    be exercised and the assertion could never fail.
+set d (make_fixture)
+env CHECK_CONVENTIONS_EMACS=definitely-not-emacs $repo_root/bin/check-conventions $d >/dev/null 2>&1
+expect_exit "a missing emacs binary fails, not silently passes" 1
+
+#    Note this one passed against the OLD code too, and deliberately
+#    stays. The bug was never the exit code -- it was the reason given
+#    for it -- so this case guards the opposite mistake instead: a fix
+#    that made a missing prerequisite silently pass. The case below is
+#    the one that discriminates.
+
+set d (make_fixture)
+set out (env CHECK_CONVENTIONS_EMACS=definitely-not-emacs $repo_root/bin/check-conventions $d 2>&1)
+if string match -q '*no `definitely-not-emacs'"'"' on PATH*' "$out"
+    echo "ok   - the failure names the binary, not the documents"
+else
+    echo "FAIL - the failure names the binary, not the documents"
+    set -g failures 1
+end
+
+# 10. Under --docs-only it is skipped rather than fatal, and says so.
+#
+#     Same rationale as the flag itself: a prerequisite that is merely
+#     absent must not block a commit. But `skip', never `ok' -- a check
+#     that did not run has not passed.
+set d (make_fixture)
+env CHECK_CONVENTIONS_EMACS=definitely-not-emacs $repo_root/bin/check-conventions --docs-only $d >/dev/null 2>&1
+expect_exit "a missing emacs binary is not fatal under --docs-only" 0
+
+set d (make_fixture)
+set out (env CHECK_CONVENTIONS_EMACS=definitely-not-emacs $repo_root/bin/check-conventions --docs-only $d 2>&1)
+if string match -q '*skip - elisp reads as forms*' "$out"
+    echo "ok   - the skip is announced, not silent"
+else
+    echo "FAIL - the skip is announced, not silent"
+    set -g failures 1
+end
+
+# 11. --docs-only does not gate the check when emacs IS present, or the
+#     only elisp check running at commit time would be gone.
+set d (make_fixture)
+printf '(defun a ()\n  "A docstring that ends early "here" and leaves this bare.\n  (+ 1 2))\n' > $d/modules/tools/claude-code-ide-org/config.el
+$repo_root/bin/check-conventions --docs-only $d >/dev/null 2>&1
+expect_exit "broken elisp still fails under --docs-only" 1
+
 if test $failures -eq 0
-    echo "Ran 9 checks, all as expected"
+    echo "Ran 14 checks, all as expected"
 else
     echo "check-conventions-test: FAILURES"
 end
