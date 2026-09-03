@@ -9,12 +9,17 @@
 :CATEGORY: Slices
 :END:
 
-Proposed by the user 2026-09-03, three parts. (1) At most one NEXT per :CATEGORY:, the Slices category included — measured at proposal time, the five live NEXTs already sat in five distinct categories (Slices, Meta, Queue, Clock, Skill), so the rule lands with zero demotions. (2) A proposed slice is composed fully as a slice at inception — :KIND:, cookie, members, :BLOCKER: — never left half-formed. (3) Nothing in the Slices category may appear as a slice member; since slices themselves carry :CATEGORY: Slices, the same clause forbids slice-in-slice. The forcing function is deliberate: within Slices, mechanism work and actually starting a slice compete for the one NEXT, so picking one up is a decision rather than a drift — this heading is itself an example of a Slices-category task that is not a slice.
+Revised by the user 2026-09-03, superseding the same-day first draft (git holds it; the heading title still reflects the draft and wants renaming). Four parts.
 
-Open question, deliberately not settled here: does a member-level NEXT inside a story count against its category's budget? Two of today's five are member-level and today satisfies the strict reading — but under strict, the nominate-on-DONE rule needs a caveat for a category whose NEXT already sits in a sibling story.
+(1) At most one NEXT per :CATEGORY: at the top level only. A story's internal NEXT — at most one — does not count against the budget: it is a memoization of where it has been determined best to start upon entering the story, weighing its members against each other. Measured at draft time: the five live NEXTs sat in five distinct categories, so the rule lands with zero demotions.
 
-Lint shape, when adopted: (i) at most one NEXT per category; (ii) no slice member resolves to :CATEGORY: Slices — which subsumes no-slice-in-slice. Adjacent but distinct: the structural hybrid prohibition (a slice with keyworded tree-children), which is about children, not members, and is not settled by this. :ID: c10bfb15's nomination-niche overlap gains the category budget as a third contender.
+(2) Slices are exempt from any internal one-NEXT limit: members are references, several may be NEXT at once, and that plurality is a useful signal when formulating the slice's plan. Each referent's own group still bounds it — two members of the same story cannot both be NEXT without violating that story's internal limit, and the story rule presumably wins.
 
+(3) The draft's prohibition on Slices-category tasks appearing as slice members is withdrawn as over-regulation. Note this also withdraws the free no-slice-in-slice corollary; nesting returns to unregulated-until-observed.
+
+(4) New composition rule for codification: a story's children appear in the slice list nested under their parent. When the slice does not undertake all open children of an open story, the parent line carries no checkbox, so the slice can reach DONE while the story stays open. Refinement to decide at codification: the parent line should probably be an [[id:]] reference without a checkbox rather than a bare title — a title goes stale on rename (declared groupings are made of ids, :ID: 478d6ec9), while a reference without a checkbox still stays out of the recursive checkbox cookie and, if the member parser reads only checkbox lines, out of the derived :BLOCKER:.
+
+Lint shape when adopted: top-level NEXT count per category <= 1, and the nesting/no-checkbox form above once codified. The nominate-on-DONE rule needs no caveat under this design — member NEXTs are exempt, so the collision the first draft raised does not arise.
 * TODO org_query answers from a restricted or short file set without saying so :code:
 :PROPERTIES:
 :ID:       b79b6b78-0bb0-47f2-b84c-a5d969f65252
