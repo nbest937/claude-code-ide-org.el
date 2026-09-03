@@ -830,6 +830,11 @@ unresolved open question, or a defect already carried by a sibling member.
 
 Headings that bear on portability but are already declared by =8a2eb687= stay there; membership is
 not shared between slices.
+
+The prompt that drives this slice, one link per revision, oldest first:
+
+- [[orgit-rev:claude-code-ide-org::1251ee3][1251ee3]] [2026-09-03 Thu 16:13] rewrote =next-session.md= for this slice, replacing =b36e6369='s prompt
+
 * DOING Make the heading body a scannable summary, with plan and debrief in drawers [2/5]
 :PROPERTIES:
 :ID:       4c834fdb-5314-4168-ab1d-09fe89ded517
