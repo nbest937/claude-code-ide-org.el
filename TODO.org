@@ -2,6 +2,60 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO M and U leave :auto-marked standing, so a mark made by hand reads as automatic :code:
+:PROPERTIES:
+:ID:       686a53c4-1dd1-4281-93fe-0700313ec982
+:CREATED:  [2026-09-03 Thu 13:23]
+:CATEGORY: Apply
+:END:
+* TODO org_archive can still archive into a datetree with reversed order left on :code:
+:PROPERTIES:
+:ID:       eb3b8e84-4d64-4286-a8a0-928597f5ffc5
+:CREATED:  [2026-09-03 Thu 13:23]
+:CATEGORY: Tools
+:END:
+
+The guard that forces ~org-archive-reversed-order~ off for a ~::datetree/~ target was added to ~claude-code-ide-org-archive-finished~ only. ~claude-code-ide-org-archive~, which backs the ~org_archive~ tool, is this file's *other* ~org-archive-subtree~ call site (there are exactly two) and still archives under whatever the global holds. Latent while that global is unset, but it is the second read site of the variable whose misuse :ID: 33864a0f fixed — a twin asymmetry of the kind CLAUDE.md says only a reader ever catches.
+
+Fix: factor the datetree test into a shared predicate and apply it at both sites, consulting the inherited ~:ARCHIVE:~ property at the per-heading one so a heading-level override is honoured. ~(require 'org-archive)~ must precede the ~let~, for the already-documented lexical-binding reason.
+
+* TODO A slice's incidental refresh deletes any list a human writes beneath it :code:
+:PROPERTIES:
+:ID:       138d0f5f-fb1f-4baa-9016-7a42f777b050
+:CREATED:  [2026-09-03 Thu 13:23]
+:CATEGORY: Slices
+:END:
+
+~claude-code-ide-org--refresh-slice-incidentals-at-point~ bounds the region it deletes by matching a bare list bullet, so it consumes *any* list beneath the ~Incidental:~ lead rather than only the one it generated. The section is written at the end of the slice's body, so a hand-written reference list appended below it is silently deleted by the next refresh — and that refresh runs unattended, as ~--review-settle-slices~, after every apply.
+
+The docstring already claims the opposite ("trailing prose below the list is left alone"), which is true only for prose: a list is indistinguishable from the generated shape under the current match.
+
+Fix: match only the shape this function writes — a column-zero bullet, an optional checkbox, then an ~id:~ link — and leave trailing blank lines outside the deleted region so the separation before whatever follows survives.
+
+* TODO check-conventions reports documentation drift when the emacs binary is what is missing :code:
+:PROPERTIES:
+:ID:       3f2d5126-0771-4108-a18f-cee19832e778
+:CREATED:  [2026-09-03 Thu 13:23]
+:CATEGORY: Dev
+:END:
+
+Check 0 in ~bin/check-conventions~ shells to ~command emacs --batch~ and is not gated on ~$docs_only~, while that flag's own comment claims everything under it reads plain files. With ~2>/dev/null~ swallowing the cause, a missing ~emacs~ binary yields an empty verdict, the check fails, and ~.githooks/pre-commit~ refuses every commit touching CLAUDE.md, config.el or the org files with "documentation has drifted from what it describes" — the wrong cause entirely.
+
+Gating check 0 on the flag would be worse, and is the fix not to make: pre-commit always passes ~--docs-only~, so gating would remove the only elisp check that runs at commit time, which is the gap check 0 was written to close.
+
+Fix: pre-check for the binary and report its absence as itself, stop discarding stderr into an empty verdict, and correct the flag's comment — a batch invocation needs the binary but no *running* Emacs, a distinction the comment elides.
+
+* TODO A note that arrived from the queue counts as human judgement, so `g` prompts on a fresh buffer :code:
+:PROPERTIES:
+:ID:       442267b9-821b-44c8-84d9-5192b1cfe346
+:CREATED:  [2026-09-03 Thu 13:23]
+:CATEGORY: Apply
+:END:
+
+~claude-code-ide-org--review-judgement-summary~ counts any item carrying ~:note~ as unapplied human judgement, but ~:note~ is also filled straight from the queue: a clock span takes the ~clock_in~ event's own note as its label, and a capture item takes the event's note verbatim. Both are ordinary tool usage, so ~g~ prompts "Discard 1 note?" on a buffer nobody has touched — the reflex-training failure the guard from :ID: 8d0716fe exists to avoid, and the one ~:auto-marked~ already prevents for marks.
+
+Fix: give the ~N~ command its own ~:note-edited~ flag, exactly as ~e~ has ~:edited~, and count that instead of ~:note~.
+
 * NEXT [0/4] Fix CLAUDE.md and the slice conventions ahead of portability :code:
 :PROPERTIES:
 :ID:       ec65b5d6-bfae-40ee-9071-639985281b34
@@ -1204,6 +1258,9 @@ Split out of [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] 2026-08-31, b
 *What it unblocks.* Queue files are per-session and all land in =~/.claude/org-updates/=, which is *user-global* rather than per-project — so the directory is already the right shape for cross-session comparison, and this is the field that makes the comparison meaningful. It is one of the two preconditions [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] names; the other is [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]], without which only this repo writes queue files at all and there is nothing to compare across.
 
 *Do it before the allocation work, not during it.* The field is only useful on events written *after* it ships, so every day it is not recorded is a day the eventual analysis cannot see. That argues for landing it early even though nothing consumes it yet — the opposite of the usual rule against building unused machinery, and the reason is that this datum cannot be backfilled.
+
+Sharpened 2026-09-03 by the first concurrent worktree session: a session in .claude/worktrees/pr8-review writes queue events whose cwd (once recorded) will differ from the main checkout's while every id-addressed event still resolves through Emacs against the one live tracker. So cwd is necessary but not sufficient as project identity — the consumer must normalise a worktree path to its repository (git worktree list, or the common .git), or events from a worktree would read as a different project than the tracker they target. Same session also demonstrated the fragmentation argument against moving the queue into the repo: each worktree has its own working copy, so a repo-local queue would scatter events across directories the review pass never reads, while the shared user-global dir keeps every worktree's events visible to the one apply pass — which is correct, since they all target the same tracker.
+
 
 
 * TODO org_capture's target refuses an 8-character :ID: prefix that every other tool accepts :code:
