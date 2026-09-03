@@ -8,8 +8,13 @@
 :CREATED:  [2026-09-03 Thu 13:44]
 :CATEGORY: Apply
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-03 Thu 13:47]--[2026-09-03 Thu 13:49] =>  0:02
+- [2026-09-03 Thu 13:47]--[2026-09-03 Thu 13:49] assigned at review
+:END:
 
 Observed 2026-09-03 on :ID: ec65b5d6, the first slice composed and closed within one day. The apply pass landed the members' DONEs and the slice's own DONE in the same ceremony, and refresh-slice then skipped the slice as closed — so it froze at [0/4] with TODO member-line copies and a full :BLOCKER:, a record that was never true at close: every member was already DONE when the slice's transition applied. The skip's rationale (a closed slice is a record, and refreshing lets later work rewrite finished history — :ID: 30a340fd) does not cover same-pass closure, where the refresh would have written exactly the state the close happened under. Fix options: apply refreshes slices after landing member transitions and before landing a slice's own terminal one; or the refresher exempts slices closed by the pass just applied. This instance was hand-derived through Emacs the same day — [4/4], DONE copies, blocker removed.
+
 
 * TODO The convention checks compare the live Emacs against whichever checkout invoked them :code:
 :PROPERTIES:
@@ -25,6 +30,7 @@ Nothing is wrong with the code the assertion checks. What is wrong is the *cause
 Not urgent, and it does not block commits: the org-dev delegation is gated on ~$docs_only~, which ~.githooks/pre-commit~ always passes, so only a human running the script by hand meets it. Filed because a worktree is now a normal way to review a PR here, so this will recur.
 
 Open, and deliberately not settled here: whether the assertion should detect the worktree and skip with that reason (the ~check_skip~ added in ~590e41c~ is the shape), or whether it should compare against the *common* git directory rather than the invoking root, which would make it pass and keep checking something real.
+
 
 * DONE M and U leave :auto-marked standing, so a mark made by hand reads as automatic :code:
 CLOSED: [2026-09-03 Thu 13:30]
@@ -55,11 +61,20 @@ Fix: clear ~:auto-marked~ wherever ~--review-set-all~ sets ~:marked~, and only t
 Worth noting alongside :ID: 442267b9, closed minutes earlier: these are the same defect twice, one field apart. Both are "a field that arrives populated is read as evidence a human acted", and the project already had the answer written down for marks. Neither was found by the code that introduced them.
 
 
-* TODO org_archive can still archive into a datetree with reversed order left on :code:
+* DONE org_archive can still archive into a datetree with reversed order left on :code:
+CLOSED: [2026-09-03 Thu 13:37]
 :PROPERTIES:
 :ID:       eb3b8e84-4d64-4286-a8a0-928597f5ffc5
 :CREATED:  [2026-09-03 Thu 13:23]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-03 Thu 13:33]--[2026-09-03 Thu 13:37] =>  0:04
+- State "DOING"      from "TODO"       [2026-09-03 Thu 13:33] \\
+  share the datetree guard across both archive sites
+- [2026-09-03 Thu 13:33]--[2026-09-03 Thu 13:37] factor and apply the datetree predicate
+- State "DONE"       from "DOING"      [2026-09-03 Thu 13:37] \\
+  guard shared, both sites, mutation-tested
 :END:
 
 The guard that forces ~org-archive-reversed-order~ off for a ~::datetree/~ target was added to ~claude-code-ide-org-archive-finished~ only. ~claude-code-ide-org-archive~, which backs the ~org_archive~ tool, is this file's *other* ~org-archive-subtree~ call site (there are exactly two) and still archives under whatever the global holds. Latent while that global is unset, but it is the second read site of the variable whose misuse :ID: 33864a0f fixed — a twin asymmetry of the kind CLAUDE.md says only a reader ever catches.
@@ -77,16 +92,20 @@ A third test asserts the guard does **not** disarm reversed order for a flat tar
 All three mutation-tested. 534/534.
 
 
-
-* DOING A slice's incidental refresh deletes any list a human writes beneath it :code:
+* DONE A slice's incidental refresh deletes any list a human writes beneath it :code:
+CLOSED: [2026-09-03 Thu 13:33]
 :PROPERTIES:
 :ID:       138d0f5f-fb1f-4baa-9016-7a42f777b050
 :CREATED:  [2026-09-03 Thu 13:23]
 :CATEGORY: Slices
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-03 Thu 13:30]--[2026-09-03 Thu 13:32] =>  0:02
 - State "DOING"      from "TODO"       [2026-09-03 Thu 13:30] \\
   bound the region by the generated shape
+- [2026-09-03 Thu 13:30]--[2026-09-03 Thu 13:32] match only generated incidental lines
+- State "DONE"       from "DOING"      [2026-09-03 Thu 13:33] \\
+  region bounded by generated shape, both branches
 :END:
 
 ~claude-code-ide-org--refresh-slice-incidentals-at-point~ bounds the region it deletes by matching a bare list bullet, so it consumes *any* list beneath the ~Incidental:~ lead rather than only the one it generated. The section is written at the end of the slice's body, so a hand-written reference list appended below it is silently deleted by the next refresh — and that refresh runs unattended, as ~--review-settle-slices~, after every apply.
@@ -95,12 +114,29 @@ The docstring already claims the opposite ("trailing prose below the list is lef
 
 Fix: match only the shape this function writes — a column-zero bullet, an optional checkbox, then an ~id:~ link — and leave trailing blank lines outside the deleted region so the separation before whatever follows survives.
 
+*Verified, not just implemented:* fixed as proposed, in commit ~546bdf5~ on the PR 8 branch. The bound is now ~claude-code-ide-org--slice-incidental-item-re~, a named constant matching the shape the generator emits — column-zero bullet, optional checkbox drawn from ~--slice-checkbox-by-keyword~, then the ~id:~ link. A trailing blank line no longer extends the region, so the separation before whatever follows survives and the rewrite closes with one newline instead of restoring two.
 
-* TODO check-conventions reports documentation drift when the emacs binary is what is missing :code:
+*Both branches were affected*, which the finding did not say. The delete-only branch — taken when the incidental window empties — used the same bound, and is the worse of the two: it leaves nothing behind to make the loss visible.
+
+*Implementation notes, and the part worth keeping:* the existing test ~...-slice-incidental-rewrite-spares-trailing-prose~ passes under *both* bounds, because a sentence ends the run and a bullet does not. That is how the gap survived a test named for exactly this property — the docstring's "trailing prose below the list is left alone" was true, and every reader was left to infer the stronger claim it does not make. The docstring now names the constant instead of describing the shape in prose.
+
+Two tests added, one per branch; the old bound fails both. 531/531 with the fix.
+
+
+* DONE check-conventions reports documentation drift when the emacs binary is what is missing :code:
+CLOSED: [2026-09-03 Thu 13:41]
 :PROPERTIES:
 :ID:       3f2d5126-0771-4108-a18f-cee19832e778
 :CREATED:  [2026-09-03 Thu 13:23]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-03 Thu 13:37]--[2026-09-03 Thu 13:40] =>  0:03
+- State "DOING"      from "TODO"       [2026-09-03 Thu 13:37] \\
+  report the real cause of a missing emacs
+- [2026-09-03 Thu 13:37]--[2026-09-03 Thu 13:40] stop swallowing the emacs failure
+- State "DONE"       from "DOING"      [2026-09-03 Thu 13:41] \\
+  real cause reported, residue filed
 :END:
 
 Check 0 in ~bin/check-conventions~ shells to ~command emacs --batch~ and is not gated on ~$docs_only~, while that flag's own comment claims everything under it reads plain files. With ~2>/dev/null~ swallowing the cause, a missing ~emacs~ binary yields an empty verdict, the check fails, and ~.githooks/pre-commit~ refuses every commit touching CLAUDE.md, config.el or the org files with "documentation has drifted from what it describes" — the wrong cause entirely.
@@ -120,7 +156,6 @@ Fix: pre-check for the binary and report its absence as itself, stop discarding 
 *Verified:* 14 self-test cases, up from 9. Mutation-tested against the old check-0 body: three of the four new cases fail. The fourth passes either way and stays deliberately, guarding the opposite mistake — a fix that made a missing prerequisite silently pass — and its comment says so, since a non-discriminating case that does not admit it is worse than none. ~bin/test~ 534/534, ~bin/lint-org~ 0 errors.
 
 *Residue, filed rather than described:* [[id:f8c86914-0759-4e05-9292-6f7fa5593701][the convention checks compare the live Emacs against whichever checkout invoked them]] — the one assertion still failing here, and the same class of wrong-cause reporting one assertion over.
-
 
 
 * DONE A note that arrived from the queue counts as human judgement, so `g` prompts on a fresh buffer :code:
@@ -1815,6 +1850,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-03 Thu 13:57]--[2026-09-03 Thu 14:00] =>  0:03
 CLOCK: [2026-09-03 Thu 13:30]--[2026-09-03 Thu 13:35] =>  0:05
 CLOCK: [2026-09-03 Thu 09:07]--[2026-09-03 Thu 09:14] =>  0:07
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
@@ -8731,4 +8767,16 @@ CLOCK: [2026-09-03 Thu 08:55]--[2026-09-03 Thu 09:02] =>  0:07
 - [2026-09-03 Thu 08:55]--[2026-09-03 Thu 09:02] assigned at review
 CLOCK: [2026-09-03 Thu 09:15]--[2026-09-03 Thu 09:18] =>  0:03
 - [2026-09-03 Thu 09:15]--[2026-09-03 Thu 09:18] root-cause unattributed spans, file discipline fix
+- [2026-09-03 Thu 09:37]--[2026-09-03 Thu 09:37] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-03 Thu 11:42]--[2026-09-03 Thu 11:44] =>  0:02
+- [2026-09-03 Thu 11:42]--[2026-09-03 Thu 11:44] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-03 Thu 12:21]--[2026-09-03 Thu 12:26] =>  0:05
+- [2026-09-03 Thu 12:21]--[2026-09-03 Thu 12:26] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-03 Thu 12:41]--[2026-09-03 Thu 12:43] =>  0:02
+- [2026-09-03 Thu 12:41]--[2026-09-03 Thu 12:43] root-cause unattributed spans, file discipline fix
+- [2026-09-03 Thu 13:17]--[2026-09-03 Thu 13:23] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-03 Thu 13:43]--[2026-09-03 Thu 13:45] =>  0:02
+- [2026-09-03 Thu 13:43]--[2026-09-03 Thu 13:45] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-03 Thu 13:51]--[2026-09-03 Thu 13:53] =>  0:02
+- [2026-09-03 Thu 13:51]--[2026-09-03 Thu 13:53] root-cause unattributed spans, file discipline fix
 :END:
