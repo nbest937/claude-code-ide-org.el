@@ -7670,20 +7670,58 @@ is how a guard becomes decoration."
 (ert-deftest claude-code-ide-org-test-refresh-counts-all-four-kinds-of-judgement ()
   "Marks, assignments, notes and edited intervals all count.
 
-The fourth is the one that needed a flag adding: :start and :end exist
-on every span straight from the queue, so their presence proves nothing
-about whether a human touched them."
+Two of the four needed a flag adding, for the same reason: :start, :end
+and :note all exist on a span straight from the queue, so their presence
+proves nothing about whether a human touched them."
   (should-not (claude-code-ide-org--review-judgement-summary
                (list (list :type 'clock :id "a"))))
   (let ((summary (claude-code-ide-org--review-judgement-summary
                   (list (list :type 'clock :id "a" :marked t)
                         (list :type 'clock :id "b" :assigned t)
-                        (list :type 'clock :id "c" :note "why")
+                        (list :type 'clock :id "c" :note-edited t)
                         (list :type 'clock :id "d" :edited t)))))
     (should (string-match-p "1 marked" summary))
     (should (string-match-p "1 assigned" summary))
     (should (string-match-p "1 note" summary))
     (should (string-match-p "1 edited interval" summary))))
+
+(ert-deftest claude-code-ide-org-test-a-queued-note-is-not-judgement-g-must-ask-about ()
+  "A note that came from the queue must not make `g\' prompt.
+
+`:note\' is populated by `claude-code-ide-org--review-items-from-queue\':
+a clock span takes the `clock_in\' event\'s own note as its label, and a
+capture item takes the event\'s note verbatim.  Both are ordinary tool
+usage, so counting the field made the confirmation fire on a buffer
+nobody had touched -- the same failure `:auto-marked\' prevents one
+field over.  Typing `N\' is what turns a note into judgement."
+  (should-not (claude-code-ide-org--review-judgement-summary
+               (list (list :type 'clock :id "a" :note "root-cause the spans")
+                     (list :type 'capture :id "b" :note "PR8 review finding"))))
+  (should (string-match-p
+           "1 note"
+           (claude-code-ide-org--review-judgement-summary
+            (list (list :type 'clock :id "a" :note "root-cause the spans"
+                        :note-edited t))))))
+
+(ert-deftest claude-code-ide-org-test-edit-note-flags-the-item-as-edited ()
+  "`N\' must leave a flag `g\' can see, since the note field alone proves nothing."
+  (claude-code-ide-org-test--with-review-buffer
+      (list (list :type 'clock :id "test-0001"
+                  :start (date-to-time "2026-08-31T09:00:00-0500")
+                  :end (date-to-time "2026-08-31T09:15:00-0500")
+                  :note "queued label" :suggested t :agent nil :events nil))
+    (let ((item (car claude-code-ide-org--review-items)))
+      (should-not (plist-get item :note-edited))
+      (claude-code-ide-org-test--goto-nth-item 0)
+      (cl-letf (((symbol-function 'read-string)
+                 (lambda (&rest _) "what it actually turned out to be")))
+        (claude-code-ide-org-review-edit-note))
+      (should (equal "what it actually turned out to be" (plist-get item :note)))
+      (should (plist-get item :note-edited))
+      (should (string-match-p
+               "1 note"
+               (claude-code-ide-org--review-judgement-summary
+                claude-code-ide-org--review-items))))))
 
 (ert-deftest claude-code-ide-org-test-edit-interval-flags-the-item-as-edited ()
   "`e\' must leave a flag `g\' can see, or the fourth kind is invisible."

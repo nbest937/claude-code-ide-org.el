@@ -9229,6 +9229,16 @@ becomes history."
     (unless item (user-error "%s" (claude-code-ide-org--review-no-item-message)))
     (plist-put item :note
                (read-string "Note: " (or (plist-get item :note) "")))
+    ;; Flagged separately from the note itself, for the same reason `m'
+    ;; clears `:auto-marked': `:note' is NOT evidence a human typed
+    ;; anything.  It arrives pre-filled from the queue -- a span takes
+    ;; the `clock_in' event's own note as its label, a capture item
+    ;; takes the event's note verbatim -- so counting `:note' made `g'
+    ;; prompt "Discard 1 note?" on a buffer nobody had touched, which is
+    ;; the prompt-fatigue failure :ID: 8d0716fe's guard exists to
+    ;; prevent.  Only this command can set the flag, so only a note the
+    ;; human actually edited is judgement.
+    (plist-put item :note-edited t)
     ;; No advance: annotating an item does not decide it.
     (claude-code-ide-org--review-redraw item)))
 
@@ -9745,8 +9755,10 @@ touches no org file at all."
   "Return a phrase counting the unapplied judgement in ITEMS, or nil.
 
 Four kinds, and each leaves an unambiguous flag: `:marked' from `m'/`M',
-`:assigned' from `a', `:note' from `N', and `:edited' from `e'.  The
-fourth needed a flag adding -- see `claude-code-ide-org-review-edit-interval'.
+`:assigned' from `a', `:note-edited' from `N', and `:edited' from `e'.
+The last two needed a flag adding -- see
+`claude-code-ide-org-review-edit-interval' and
+`claude-code-ide-org-review-edit-note'.
 
 Counted rather than merely detected, because \"3 marked, 1 assigned\"
 tells a human whether to care and a bare \"are you sure?\" does not
@@ -9760,7 +9772,11 @@ tells a human whether to care and a bare \"are you sure?\" does not
                  (not (plist-get item :auto-marked)))
         (setq marked (1+ marked)))
       (when (plist-get item :assigned) (setq assigned (1+ assigned)))
-      (when (plist-get item :note) (setq notes (1+ notes)))
+      ;; `:note-edited', never `:note'. The note field is populated from
+      ;; the queue on items nobody has touched, so counting it would make
+      ;; `g' prompt on a freshly built buffer -- the same mistake
+      ;; `:auto-marked' exists to prevent one field over.
+      (when (plist-get item :note-edited) (setq notes (1+ notes)))
       (when (plist-get item :edited) (setq edited (1+ edited))))
     (let ((parts (delq nil
                        (list (and (> marked 0) (format "%d marked" marked))
