@@ -1,160 +1,184 @@
 # Next session
 
-Rewritten 2026-09-03, replacing the prompt that opened `b36e6369` — that
-slice closed **[48/48]** and is archived. The slice now is `ff7ccb2d`, **Make
-the org discipline travel: ship the machinery, relocate the rules**, at
-**[0/12]** across 20 member lines.
+A plan for `ff7ccb2d` — **Make the org discipline travel: ship the machinery,
+relocate the rules** — at **[0/12]** across 20 member lines.
 
-**The slice is the list.** Open `ff7ccb2d` and read its checklist. Do not
-re-derive it from this file. Note it is the first slice composed at real
-size: 20 lines, two grouping labels, and six lines with no cookie.
+**The slice is the list.** Open it and read its checklist; this file gives
+the plan, not the membership. The two disagree only if one is stale, and the
+slice wins.
 
 ---
 
-## Before anything else
+## Step 0 — preliminaries
 
-1. **Apply the queue before composing anything.** This is not boilerplate
-   this time — the session that wrote this file left an unusually large
-   queue: six `DONE`s, one `MAYBE`→`TODO` promotion, a slice reopened
-   `REVIEW`→`DOING` and closed again, and every clock event behind them.
-   Until it is applied, `TODO.org` shows `TODO` on headings whose work
-   shipped, and `ff7ccb2d`'s member checkboxes disagree with their referents.
-   That disagreement is *staleness*, not a defect to fix by hand.
+Not specific to this slice. Every item here is on the list because skipping
+it cost a past session real work.
+
+1. **Apply the queue before composing anything.** Larger than usual right
+   now: six `DONE`s, a `MAYBE`→`TODO` promotion, a slice reopened and closed
+   again, and every clock event behind them. Until it is applied, `TODO.org`
+   shows `TODO` on headings whose work shipped, and this slice's checkboxes
+   disagree with their referents. **That disagreement is staleness, not a
+   defect — do not fix it by hand.**
 2. **Confirm `emacs-tools` is reachable** by calling `org_pending_updates`.
    Read-only, and a reply proves the server is up in a way that seeing the
    tools listed does not.
-3. **PR #9 is open, pushed, and its review is closed out.** Branch
-   `feature/fix-claude-md-and-slice-conventions`, all four inline review
-   threads replied to and resolved on 2026-09-03. **Open question for the
-   user, not for you:** whether to merge before continuing.
-4. **The org-id catch-up step is no longer prescribed.** This file used to
-   say `org_capture` must be followed by
-   `(org-id-update-id-locations ...)` or the next `org_amend` fails. That did
-   not happen once on 2026-09-03 across **five** capture-then-amend pairs.
-   Do not run it prophylactically; if an amend fails with "no org heading
-   found", *then* it is the fix, and that recurrence is worth recording.
+3. **Clock in before the first thing that writes**, naming the heading, or
+   "Review and planning" for cross-cutting meta-work. The drift from question
+   to tracked work is invisible from inside the session doing it.
+4. **PR #9 is open, pushed, and its review is closed out.** Branch
+   `feature/fix-claude-md-and-slice-conventions`; all four inline threads
+   replied to and resolved. **Open question for the user, not for you:**
+   whether to merge before continuing.
+5. **Do not run `org-id-update-id-locations` prophylactically after
+   `org_capture`.** A previous revision of this file prescribed it. It did
+   not fire once across five capture-then-amend pairs on 2026-09-03. If an
+   amend fails with "no org heading found", *then* it is the fix — and that
+   recurrence is worth recording.
 
 ---
 
 ## What is already true, so it is not re-derived
 
-**Three write paths now refuse to mint a slice/container hybrid, and they ask
-one question between them.** `dca940c1` forbids a heading that is both; before
-2026-09-03 the guards asked direct questions while the lint asked a
-descendant-based one.
+**`.claude/rules/` is not a plugin component.** Verified against the plugin
+docs 2026-09-02 and recorded on the first member, along with the measurement
+that roughly **660 of CLAUDE.md's 1196 lines** describe machinery that would
+ship and currently has no way to. That asymmetry is this slice's whole
+premise. Do not re-measure it.
 
-- `--subtree-has-keyworded-heading-p` — the arrival side. Differs from
-  `--container-heading-p` by exactly the root, which is the difference that
-  mattered: a keyword-less note *carrying* a `TODO` child used to refile
-  straight through.
-- `--enclosing-slice-title` — the target side. This heading if it is a slice,
-  else the nearest ancestor that is. **Not `:KIND:` inheritance**; the
-  question is whether an *ancestor* would acquire keyworded children.
-- `--blocker-keyword-inside-slice-p` on `org-blocker-hook` — the third path,
-  where nothing arrives: granting a keyword to a note already under a slice.
-  It denies **the grant only**, so an existing hybrid can still be closed or
-  cancelled on its way out.
+**Three write paths now refuse to mint a slice/container hybrid**, asking one
+question between them: `--subtree-has-keyworded-heading-p` (arrival, differs
+from `--container-heading-p` by exactly the root),
+`--enclosing-slice-title` (target, an ancestor walk and *not* `:KIND:`
+inheritance), and `--blocker-keyword-inside-slice-p` on `org-blocker-hook`
+(the grant, where nothing arrives). The last denies the grant only, so an
+existing hybrid can still be closed on its way out.
 
-**The commit gate's own suite was red and is green.** `bin/pre-commit-test`
-ran 5/8 for days because its fixtures still built the level-1 `* Category`
-tier that `29439196` retired on 2026-08-27. It is 8/8. And
-`bin/check-conventions` with a mistyped flag used to run **zero assertions
-and exit 0**; unknown `--flags` and unreadable `ROOT`s are now exit 2,
-deliberately distinct from 1.
+**The commit gate's own suite is green again.** `bin/pre-commit-test` ran 5/8
+for days because its fixtures still built the level-1 `* Category` tier
+retired on 2026-08-27. And `bin/check-conventions` with a mistyped flag used
+to run **zero assertions and exit 0**; unknown flags and unreadable roots are
+now exit 2, distinct from 1.
 
-**`bin/clock-target-check` has a test harness** — `bin/clock-target-check-test`,
-12 checks. It shipped without one, which is how both of its defects reached a
-code review instead of a suite.
-
-**`fish` is a prerequisite for committing to this repo.** `.githooks/pre-commit`
-invokes `bin/check-conventions`, which is fish, as is its own test. This is
-why `84b7d8b3` was promoted out of `MAYBE` — it is no longer one peripheral
-script's inconsistency.
-
-**`.claude/rules/` is not a plugin component**, verified against the plugin
-docs on 2026-09-02 and recorded on `9ae4b17e` along with the measurement that
-roughly **660 of CLAUDE.md's 1196 lines** describe machinery that would ship
-and currently has no way to. That asymmetry is the slice's whole premise; do
-not re-measure it.
+**`bin/clock-target-check` has a test harness now** — 12 checks. It shipped
+without one, which is how both of its defects reached a code review instead
+of a suite.
 
 ---
 
-## The shape of the slice
+## Step 1 — Classify what must travel
 
-Four movements, and the first gates the rest.
+The `NEXT` member, and every step below assumes its answer. This is a
+classification, not typing: which rules are general org convention (portable,
+belong in the skill), which are this project's own (stay), and which are
+machinery whose prose has nowhere to go.
 
-**1 — Classify what travels.** `9ae4b17e` is `NEXT` and every other line
-assumes its answer. `1caed585` is the paired decision the slice **declined**
-and is a real drop, not a pending item.
+The paired decision — what installation may change on a user's machine — is
+**dropped, not pending**. The slice declined it deliberately; a `MAYBE` in
+the blocker set would hold the slice open for work it decided not to do.
 
-**2 — Relocate, then prune, in that order.** `d5345abb` moves what is
-general org convention into the skill; `9d009401` prunes what is left.
-Pruning first risks deleting rules a consuming project needs, which is now a
-`:BLOCKER:` rather than a sentence. **`9d009401` is explicitly reserved for
-the user** — do not run it as a background pass.
+## Step 2 — Relocate, then prune, in that order
 
-**3 — The machinery's undeclared assumptions**, each of which fails on a
-second machine and nowhere here: `1ed7b2b4` (org 9.7+), `84b7d8b3` (which
-interpreter), `f8c86914` (one checkout per running Emacs). All three carry
-recorded options and no decision.
+Two members, and the order is a declared `:BLOCKER:` rather than a
+suggestion. First move what is general org convention into the skill. Only
+then prune CLAUDE.md's dated history — pruning before the classification
+risks deleting rules a consuming project needs.
 
-**4 — Multi-project instrumentation**, meaningful only after the hooks move:
-the `f90d745e` pair (`5461c349`, `b862fbf4`) and `83b3cdd6`. They name
-`9ae4b17e` in a `:BLOCKER:` for that reason.
+**The prune is explicitly reserved for the user.** Four decisions are
+enumerated on its heading and ten retirement blocks sized. Do not run it as a
+background pass.
 
-The tail — `d7849119`, `b07df584`, `c5b02503` — is reader-facing and can
-proceed independently.
+## Step 3 — Close the machinery's undeclared assumptions
 
-**Six lines carry no cookie and only one is a drop.** Five are carried
-`MAYBE`s (`e396f94a`, `2e09adb7`, `3cb3f955`, `7eb7dd8d`, `2c5f7c50`); the
-drop is `1caed585`. They render identically, which is `1b727475`. **Read the
-slice body's sentence, not the cookies.** Two of the five carry a note saying
-why they were held rather than promoted — `7eb7dd8d`'s design is written
-around the retired `PLANNING` keyword, and `2c5f7c50`'s body argues against
-its own proposal.
+Three members, each of which fails on a second machine and nowhere here: the
+org 9.7+ dependency (real, undeclared, unenforced), which interpreter the
+scripts may assume, and the convention checks comparing the live Emacs
+against whichever checkout invoked them. All three carry recorded options and
+no decision.
+
+The interpreter one was promoted out of `MAYBE` while this slice was
+composed, on evidence: `fish` stopped being one leaf script's inconsistency
+and became a prerequisite for committing, via `bin/check-conventions` and
+`.githooks/pre-commit`.
+
+## Step 4 — Multi-project instrumentation
+
+Meaningful only *after* the hooks move, which is why all three name the first
+member in a `:BLOCKER:`. Record `cwd` on queue events; record the originating
+project; then allocate attention across concurrent sessions, which is the
+judgement the other two exist to make possible.
+
+Two of these are children of a story the slice does not undertake whole, so
+their parent appears as a cookie-less grouping label. That label is not a
+drop.
+
+## Step 5 — The reader-facing tail
+
+Three members that can proceed independently of everything above: a README
+separate from CLAUDE.md, what to stop capturing in heading bodies, and the
+fact that hook-injected context is only as reliable as the model choosing to
+relay it. This is where to go if the answer to Steps 1–3 is "not now."
+
+## Step 6 — Reconsider the five `MAYBE`s
+
+**They are members for serious reconsideration, not decoration.** Once Steps
+1–5 are `DONE`, take each one up again and decide whether the slice's own
+work has changed its merit — that is the point of carrying them rather than
+leaving them out.
+
+- Package the Warp wiring
+- Worktree-based session partitioning
+- Org skill: commit a newly-captured TODO immediately
+- Org skill: auto-capture and dedupe modification requests
+- Install orgparse for ad-hoc analysis
+
+**Promote earlier if evidence arrives along the way** — that is what happened
+to the interpreter member in Step 3, whose body's central factual claim had
+quietly become false. The test is the same one used there: the reason must be
+in the artifact, not in enthusiasm.
+
+Two of the five already carry a note saying what would have to change first.
+One is specified in terms of the retired `PLANNING` keyword, so it needs
+restating before it can be started at all. Another's body argues against its
+own proposal, and the evidence keeps landing on that side.
 
 ### Where this will stop
 
-Almost immediately, and by design. `9ae4b17e` is a classification —
-judgement, not typing — and three of movement 3's members carry enumerated
-options with nothing chosen. `9d009401` is reserved for the user outright. A
-session starting here should expect to **ask and record**, not to plan a
-wire-to-wire run. The tail is the only place to go if the answer is "not
-now."
+Almost immediately, and by design. Step 1 is judgement. Three of Step 3's
+members carry enumerated options with nothing chosen. Step 2's second half is
+reserved for the user outright. A session starting here should expect to
+**ask and record**, not to plan a wire-to-wire run. Step 5 is the only place
+to make unattended progress.
 
 ---
 
 ## Standing rules, with what actually happened
 
-- **Never type a UUID from memory.** On 2026-09-03 the slice's 20 member
-  lines were *generated from `TODO.org`* rather than typed, and the result
-  was diffed against what landed. One id — `3cb3f955`'s — was not what recall
-  offered. Generate, then diff; do not proofread.
-- **Anchor org parsing on the heading's own property drawer.** A regex that
-  scanned each heading's whole block attributed **three of eight** footnote
-  titles to the wrong heading, because ids get quoted in bodies. This is the
-  third instance of that class; `2c5f7c50` collects them, and the fix is
-  `org-map-entries`, not a second parser.
+- **Never type a UUID from memory.** On 2026-09-03 this slice's 20 member
+  lines were *generated from `TODO.org`* and the result diffed against what
+  landed. One full id was not what recall offered. Generate, then diff; do
+  not proofread.
+- **Anchor org parsing on the heading's own property drawer.** A regex
+  scanning each heading's whole block attributed **three of eight** footnote
+  titles to the wrong heading, because ids get quoted in bodies. Third
+  instance of that class; the fix is `org-map-entries`, not a second parser.
 - **Footnote every tracked `:ID:` in every response**, title looked up rather
-  than recalled. The hook fired three times on 2026-09-03 and every miss was
+  than recalled. The hook fired four times on 2026-09-03 and every miss was
   an id that arrived *inside* evidence rather than one chosen deliberately.
-- **Reproduce the hypothesis before fixing it.** `0fa403f4`'s stated likely
-  cause was a `fish` dependency. It was wrong — stale fixtures — and the
-  heading had flagged it unverified for exactly that reason. Reproducing took
-  one command.
+- **Reproduce the hypothesis before fixing it.** One heading's stated likely
+  cause was wrong, and its own body had flagged it unverified for exactly
+  that reason. Reproducing took one command and changed the fix entirely.
 - **Prove a test discriminates.** Copy the file aside and restore `HEAD`'s
   version in place; **never `git stash`**. Every fix on 2026-09-03 was run
   red first, and one regression test was written a commit early and *held
   back rather than committed red*.
 - **A comment that overstates a guard is how the next reader stops
   checking.** Three were corrected on 2026-09-03 in the same commits as their
-  code: a capture guard claiming the refusal "lands before the heading
-  exists", and a hook header asserting a once-per-session bound the code did
-  not enforce.
+  code.
 - **Silence is not a pass.** Check the `Ran N tests` line and the exit code,
   never the absence of `FAILED`. Beware `$?` after a pipeline.
-- **Never pass `--no-verify`.** When `bin/lint-org` blocked a commit because
-  a plan file had vanished from `~/.claude/plans`, the fix was restoring it
+- **Never pass `--no-verify`.** When the org lint blocked a commit because a
+  plan file had vanished from `~/.claude/plans`, the fix was restoring it
   byte-for-byte from `plans/` — which is what that archive exists for.
 - **`command` before a shell builtin is not a safety measure.** `command cd`
   skips fish's builtin for an external no-op, so `pwd` reported the wrong
