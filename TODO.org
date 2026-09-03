@@ -2,6 +2,33 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO org_set_todo mints the slice hybrid the other two guards now refuse
+:PROPERTIES:
+:ID:       dc753eb2-afb5-41d1-b420-9344aac5b662
+:CREATED:  [2026-09-03 Thu 15:03]
+:CATEGORY: Tools
+:END:
+
+A keyword-less note under a slice is legal — the container predicate tests keywords. Queue
+=org_set_todo TODO= on that note, let a human apply, and the slice has a keyworded descendant: the
+same hybrid =dca940c1= forbids and =bin/lint-org= errors on, reached by a third path that neither
+=15847e0b= nor =32742646= touches. Both of those fixed *arrival* — refile and capture — and nothing
+checks at the moment a keyword is granted to a heading already in place.
+
+*This is the twin the composer could not see.* It was noticed while implementing the other two and
+then not filed, which is exactly the asymmetry CLAUDE.md names: scheduling one and forgetting the
+other, invisible from inside the act that creates it and caught only by a reader. Filed at close on
+the reader's prompt rather than the composer's.
+
+The fix is not obviously the same shape as the other two, which is why this is its own heading. The
+guard cannot sit where the others do: =org_set_todo= queues and changes nothing, so refusing at call
+time would refuse a keyword that may never be applied, while refusing at apply time means blocking a
+human mid-pass over a condition they can see. Deciding between those — or accepting that the lint is
+the right net for this one path, since apply is human-triggered and a human is present — is the work.
+
+Note =org_divide= is *not* a fourth path: dividing a note under a slice introduces no keyword, so it
+cannot mint the hybrid on its own.
+
 * TODO bin/pre-commit-test has three failures that predate the branch fixing them
 :PROPERTIES:
 :ID:       0fa403f4-f9b3-4217-8b0f-da1518957885
@@ -85,6 +112,15 @@ separate gate.
 =~/.claude/plans/twinkling-meandering-graham.md= vanished mid-session, breaking a =DONE.org= plan link
 and blocking a commit through =bin/lint-org=. Restored byte-for-byte from =plans/=, which is exactly
 what that archive exists for. Nothing in this session deleted it, and what did is unknown.
+
+*A second piece of residue, filed after the close and worth recording as a miss rather than a
+tidy-up:* =dc753eb2= — =org_set_todo= reaches the same hybrid by a third path. Queue a keyword onto
+a keyword-less note that already sits under a slice, apply, and the slice has keyworded descendants;
+both fixes here guard *arrival*, and nothing guards the grant. It was noticed while implementing
+=15847e0b= and then not filed, which is precisely the twin asymmetry CLAUDE.md describes — invisible
+from inside the act that creates it, caught by a reader. Its fix is a different shape (a queued tool
+has no call-time moment to refuse in), so it is its own heading rather than a fifth member.
+
 
 
 ** TODO A refile guard that asks about the moved heading cannot see the subtree it moves
