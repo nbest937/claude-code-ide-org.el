@@ -4327,6 +4327,7 @@ The cause is fixed ([[id:c6fc6f46-4954-4fdf-9d7e-7c8bf3a1a952][c6fc6f46]]) and n
 :CATEGORY: Queue
 :ID:       83b3cdd6-982a-4ae1-878c-79a8c941f638
 :CREATED:  [2026-08-15 Sat 14:32]
+:BLOCKER:  ids(9ae4b17e-278c-482f-9114-df28b2254806)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-15 Sat 14:32] \\
@@ -7246,6 +7247,7 @@ CLOSED: [2026-08-21 Fri 12:45]
 :PROPERTIES:
 :ID:       9d009401-93dd-40e5-a243-7a30a8a5bd55
 :CREATED:  [2026-08-21 Fri 12:47]
+:BLOCKER:  ids(9ae4b17e-278c-482f-9114-df28b2254806)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-21 Fri 12:48] \\
