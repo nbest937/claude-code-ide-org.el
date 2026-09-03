@@ -7132,6 +7132,54 @@ hand-rolled edits."
       (should (string-match-p "^Incidental:$" body))
       (should (string-match-p "incid-001" body)))))
 
+(ert-deftest claude-code-ide-org-test-slice-incidental-rewrite-spares-a-trailing-list ()
+  "A LIST written below the section survives too, not only prose.
+
+The sibling test above passes on a bare bullet bound, because a sentence
+is not a list item.  This is the case that bound got wrong: the section
+is written at the END of the slice\'s body, so a hand-written list lands
+directly beneath it and inside the region -- and the refresh that
+deleted it runs unattended, as `claude-code-ide-org--review-settle-slices\'
+after every apply.  Nobody would have been present to see it go."
+  (claude-code-ide-org-test--with-slice-window
+    (claude-code-ide-org-refresh-slice "slice-001")
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO .*A slice")
+      (goto-char (save-excursion (outline-next-heading) (point)))
+      (forward-line -1)
+      (insert "\n- see also [[id:elsewhere-9][elsewhere]]\n- and a second bullet\n")
+      (save-buffer))
+    (claude-code-ide-org-refresh-slice "slice-001")
+    (let ((body (claude-code-ide-org-test--slice-body file)))
+      (should (string-match-p "see also \\[\\[id:elsewhere-9\\]" body))
+      (should (string-match-p "and a second bullet" body))
+      ;; The generated section is still correct and singular.
+      (should (string-match-p "^Incidental:$" body))
+      (should (string-match-p "incid-001" body)))))
+
+(ert-deftest claude-code-ide-org-test-slice-incidental-drop-spares-a-trailing-list ()
+  "Removing the section when the window empties must not take the list with it.
+
+The delete-only branch uses the same bound, so it had the same defect --
+and worse, since it leaves nothing behind to make the loss visible."
+  (claude-code-ide-org-test--with-slice-window
+    (claude-code-ide-org-refresh-slice "slice-001")
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO .*A slice")
+      (goto-char (save-excursion (outline-next-heading) (point)))
+      (forward-line -1)
+      (insert "\n- a bullet the human keeps\n")
+      ;; Narrow the window so the section is dropped rather than rewritten.
+      (org-back-to-heading t)
+      (org-entry-put nil "CREATED" "[2026-08-25 Mon 09:00]")
+      (save-buffer))
+    (claude-code-ide-org-refresh-slice "slice-001")
+    (let ((body (claude-code-ide-org-test--slice-body file)))
+      (should-not (string-match-p "^Incidental:$" body))
+      (should (string-match-p "a bullet the human keeps" body)))))
+
 (ert-deftest claude-code-ide-org-test-slice-with-no-incidentals-writes-no-lead ()
   "An empty `Incidental:' lead states nothing and must not be written.
 And an existing one is removed when the window empties, or it would be

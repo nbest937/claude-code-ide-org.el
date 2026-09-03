@@ -4366,6 +4366,22 @@ it would be destroyed at the next apply anyway."
 Matched at column zero on a line of its own, which is what separates it
 from the same word occurring in prose.")
 
+(defconst claude-code-ide-org--slice-incidental-item-re
+  "^- \\(\\[[-X ]\\] \\)?\\[\\[id:"
+  "A line `claude-code-ide-org--refresh-slice-incidentals-at-point\' wrote.
+
+The bound on what a refresh may delete, and it has to be this narrow.
+Matching a bare bullet instead swept up ANY list beneath the lead, and
+the section is written at the end of the slice\'s body -- so a
+hand-written list appended below it was deleted by the next refresh,
+which runs unattended as `claude-code-ide-org--review-settle-slices\'
+after every apply.
+
+Column zero, because the generator emits no indent; an optional checkbox
+whose three possible characters come from
+`claude-code-ide-org--slice-checkbox-by-keyword\'; then the `id:\' link
+that makes the line a reference rather than prose.")
+
 (defun claude-code-ide-org--refresh-slice-incidentals-at-point (index)
   "Regenerate the slice-at-point's incidental section from INDEX.
 
@@ -4374,12 +4390,17 @@ rather than maintained -- a hand-kept one would be stale by the second
 day (TODO.org :ID: 0086614a).
 
 Bounded on both sides before anything is deleted.  The region runs from
-the `Incidental:\' lead to the end of the run of list items and blank
-lines beneath it, and never past the slice's own body: trailing prose
-below the list is left alone, and a subheading is never crossed.  That
-caution is not decorative -- this repo has two body corruptions on
-record from hand-rolled region edits, which is why `org_wrap_plan\' and
-`org_divide\' exist as tools.
+the `Incidental:\' lead to the end of the last line matching
+`claude-code-ide-org--slice-incidental-item-re\' beneath it, and never
+past the slice's own body: anything below that is left alone, and a
+subheading is never crossed.  That caution is not decorative -- this
+repo has two body corruptions on record from hand-rolled region edits,
+which is why `org_wrap_plan\' and `org_divide\' exist as tools.
+
+*The bound used to be a bare list bullet, and that was a third such
+corruption waiting.* It said trailing prose survives, which was true,
+and left every reader to assume a trailing LIST did -- it did not, and
+the refresh that deleted one runs unattended after an apply.
 
 With no incidentals, an existing section is removed and none is
 written: an empty `Incidental:\' lead states nothing and would still be
@@ -4427,19 +4448,43 @@ Returns the number of lines written."
         (setq start (match-beginning 0))
         (goto-char (match-end 0))
         (forward-line 1)
-        ;; Consume only list items and blank lines -- the generated
-        ;; shape. Anything else ends the region, so prose written after
-        ;; the list survives a refresh.
-        (while (and (< (point) body-end)
-                    (looking-at "^\\([ \t]*-\\|[ \t]*$\\)"))
-          (forward-line 1))
-        (setq end (point)))
+        ;; Consume only the lines this function writes: generated items,
+        ;; and the blank lines BETWEEN them. Anything else ends the
+        ;; region.
+        ;;
+        ;; The old bound was a bare bullet, which is not the generated
+        ;; shape -- it is every list. Since the section is written at the
+        ;; end of the body, a hand-written `- see also [[id:...]]'
+        ;; appended beneath it was inside the region and silently
+        ;; deleted on the next refresh, unattended, by
+        ;; `claude-code-ide-org--review-settle-slices' after an apply.
+        ;; The docstring's promise that "trailing prose below the list is
+        ;; left alone" held only for prose.
+        ;;
+        ;; `last' rather than `point' is what keeps TRAILING blanks out
+        ;; of the region: a blank line advances but does not extend it,
+        ;; so only blanks followed by a further generated item are
+        ;; swallowed. The separation before whatever comes next therefore
+        ;; survives, and the insert below no longer has to restore it.
+        (let ((last (point)))
+          (while (and (< (point) body-end)
+                      (or (looking-at claude-code-ide-org--slice-incidental-item-re)
+                          (looking-at "^[ \t]*$")))
+            (forward-line 1)
+            (save-excursion
+              (forward-line -1)
+              (when (looking-at claude-code-ide-org--slice-incidental-item-re)
+                (setq last (line-beginning-position 2)))))
+          (setq end last)))
       (cond
        ((and lines start)
         (delete-region start end)
         (goto-char start)
+        ;; One trailing newline, not two. The region now stops after the
+        ;; last generated item, so whatever separated the section from
+        ;; the text below it was never deleted and is still there.
         (insert claude-code-ide-org--slice-incidental-lead "\n\n"
-                (string-join lines "\n") "\n\n"))
+                (string-join lines "\n") "\n"))
        (lines
         (goto-char body-end)
         ;; Land inside the body, not on the next heading's line.
