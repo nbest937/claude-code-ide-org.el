@@ -158,8 +158,38 @@ printf '(defun a ()\n  "A docstring that ends early "here" and leaves this bare.
 $repo_root/bin/check-conventions --docs-only $d >/dev/null 2>&1
 expect_exit "broken elisp still fails under --docs-only" 1
 
+# 12. A mistyped flag is refused, not read as a directory.
+#
+#     It used to fall into `case '*'', `cd --dcs-only' failed, $root went
+#     empty, every assertion found nothing, and the script exited 0 --
+#     the gate answering "all clear" having run zero assertions, which is
+#     the exact failure :ID: 542924c1 collects (TODO.org :ID: 0fa403f4).
+#     Asserted as exit 2, distinct from 1: a usage error is not a failed
+#     check, and a caller that cannot tell them apart would retry.
+$repo_root/bin/check-conventions --dcs-only >/dev/null 2>&1
+expect_exit "a mistyped flag is a usage error, not a silent no-op" 2
+
+set out ($repo_root/bin/check-conventions --dcs-only 2>&1)
+if string match -q '*unknown option: --dcs-only*' "$out"
+    echo "ok   - the usage error names the flag it did not recognise"
+else
+    echo "FAIL - the usage error names the flag it did not recognise"
+    set -g failures 1
+end
+
+# 13. And a ROOT that is not a directory, which is the same hole reached
+#     without a typo -- `cd' failing left $root empty rather than stopping.
+$repo_root/bin/check-conventions /no/such/directory >/dev/null 2>&1
+expect_exit "an unreadable ROOT is refused rather than silently empty" 2
+
+# 14. The converse, so 12 and 13 cannot pass by refusing everything: a
+#     real ROOT still runs, and --docs-only is still accepted.
+set d (make_fixture)
+$repo_root/bin/check-conventions --docs-only $d >/dev/null 2>&1
+expect_exit "a valid flag and ROOT still run" 0
+
 if test $failures -eq 0
-    echo "Ran 14 checks, all as expected"
+    echo "Ran 18 checks, all as expected"
 else
     echo "check-conventions-test: FAILURES"
 end

@@ -44,8 +44,32 @@ for a in $argv
             # distinction is the whole reason check 0 stays ungated --
             # see its own comment (TODO.org :ID: 3f2d5126).
             set -g docs_only 1
+        case '--*'
+            # A mistyped flag used to fall into `case '*'' below and be
+            # read as a directory: `cd --dcs-only' failed, $root became
+            # empty, every assertion silently found nothing to check, and
+            # the script exited 0 reporting nothing. A gate that answers
+            # "all clear" when it ran zero assertions is the failure
+            # TODO.org :ID: 542924c1 collects, and it was reachable by a
+            # single typo (TODO.org :ID: 0fa403f4).
+            echo "check-conventions: unknown option: $a" >&2
+            echo "usage: check-conventions [--docs-only] [ROOT]" >&2
+            exit 2
         case '*'
-            set -g root (cd $a && pwd)
+            # And a ROOT that is not a directory is an error too, for
+            # the same reason: `cd' failing here left $root empty rather
+            # than stopping.
+            #
+            # NOT `command cd'. That was tried and reverted in the same
+            # session: `cd' is a fish builtin, so `command' skips it for
+            # an external no-op, `pwd' then reports the CURRENT directory,
+            # and every check silently ran against this repo instead of
+            # the ROOT it was handed. Cases 8 and 11 caught it -- their
+            # fixtures stopped being read at all.
+            if not set -g root (cd $a 2>/dev/null; and pwd)
+                echo "check-conventions: not a directory: $a" >&2
+                exit 2
+            end
     end
 end
 
