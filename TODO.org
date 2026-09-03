@@ -2,12 +2,59 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO M and U leave :auto-marked standing, so a mark made by hand reads as automatic :code:
+* TODO A slice closed by the same apply pass freezes with stale member lines :code:
+:PROPERTIES:
+:ID:       de687e4d-9384-46ae-a495-55b3ae46d1bb
+:CREATED:  [2026-09-03 Thu 13:44]
+:CATEGORY: Apply
+:END:
+
+Observed 2026-09-03 on :ID: ec65b5d6, the first slice composed and closed within one day. The apply pass landed the members' DONEs and the slice's own DONE in the same ceremony, and refresh-slice then skipped the slice as closed — so it froze at [0/4] with TODO member-line copies and a full :BLOCKER:, a record that was never true at close: every member was already DONE when the slice's transition applied. The skip's rationale (a closed slice is a record, and refreshing lets later work rewrite finished history — :ID: 30a340fd) does not cover same-pass closure, where the refresh would have written exactly the state the close happened under. Fix options: apply refreshes slices after landing member transitions and before landing a slice's own terminal one; or the refresher exempts slices closed by the pass just applied. This instance was hand-derived through Emacs the same day — [4/4], DONE copies, blocker removed.
+
+* TODO The convention checks compare the live Emacs against whichever checkout invoked them :code:
+:PROPERTIES:
+:ID:       f8c86914-0759-4e05-9292-6f7fa5593701
+:CREATED:  [2026-09-03 Thu 13:40]
+:CATEGORY: Dev
+:END:
+
+Run from a git worktree, ~bin/check-conventions~ and ~bin/check-org-dev-skill~ both fail on "claude-code-ide-org-capture-file resolves into this repo". The assertion asks the *running* Emacs where its capture file is and compares that against the root the script was *invoked* from — and the running Emacs serves whichever checkout is symlinked into ~~/.config/doom~, which is never the worktree. Observed 2026-09-03 reviewing PR 8 from ~.claude/worktrees/pr8-review~.
+
+Nothing is wrong with the code the assertion checks. What is wrong is the *cause it reports*: a reader sees a capture-file misconfiguration where the real fact is "you are standing in a different checkout from the one Emacs has loaded" — the same class of defect as :ID: 3f2d5126, arriving one assertion over.
+
+Not urgent, and it does not block commits: the org-dev delegation is gated on ~$docs_only~, which ~.githooks/pre-commit~ always passes, so only a human running the script by hand meets it. Filed because a worktree is now a normal way to review a PR here, so this will recur.
+
+Open, and deliberately not settled here: whether the assertion should detect the worktree and skip with that reason (the ~check_skip~ added in ~590e41c~ is the shape), or whether it should compare against the *common* git directory rather than the invoking root, which would make it pass and keep checking something real.
+
+* DONE M and U leave :auto-marked standing, so a mark made by hand reads as automatic :code:
+CLOSED: [2026-09-03 Thu 13:30]
 :PROPERTIES:
 :ID:       686a53c4-1dd1-4281-93fe-0700313ec982
 :CREATED:  [2026-09-03 Thu 13:23]
 :CATEGORY: Apply
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-03 Thu 13:27]--[2026-09-03 Thu 13:30] =>  0:03
+- State "DOING"      from "TODO"       [2026-09-03 Thu 13:27] \\
+  make the bulk mark path clear auto-marked
+- [2026-09-03 Thu 13:27]--[2026-09-03 Thu 13:30] clear auto-marked in review-set-all
+- State "DONE"       from "DOING"      [2026-09-03 Thu 13:30] \\
+  bulk mark clears the flag, mutation-tested
+:END:
+
+~claude-code-ide-org--review-set-mark~ clears ~:auto-marked~ on any hand gesture, so the mark stops reading as automatic and starts counting as judgement ~g~ must ask about. ~claude-code-ide-org--review-set-all~, which backs ~M~, ~U~ and ~t~, does not, so a mark the human made in bulk still reads as auto-made and ~--review-judgement-summary~ skips it.
+
+Nothing is lost — auto-marking would recreate exactly those marks — but the two paths disagree about what the flag means, and the flag is what the refresh guard reads.
+
+Fix: clear ~:auto-marked~ wherever ~--review-set-all~ sets ~:marked~, and only there, so an item it declines to touch keeps its state.
+
+*Verified, not just implemented:* fixed as proposed, in commit ~55ac27a~ on the PR 8 branch. ~--review-set-all~ now clears ~:auto-marked~ on the branch that sets ~:marked~, and only there.
+
+*Implementation notes:* the placement is the whole content of the second test. Hoisting the clearing above the ~if~ would also make ~M~ work, and would additionally strip the flag from an item the command *refused* — a stale or unassigned one nobody decided — which is the opposite of what a refusal means. Both mutations were run: removing the clearing fails the first test, hoisting it fails the second. 529/529 with the fix.
+
+Worth noting alongside :ID: 442267b9, closed minutes earlier: these are the same defect twice, one field apart. Both are "a field that arrives populated is read as evidence a human acted", and the project already had the answer written down for marks. Neither was found by the code that introduced them.
+
+
 * TODO org_archive can still archive into a datetree with reversed order left on :code:
 :PROPERTIES:
 :ID:       eb3b8e84-4d64-4286-a8a0-928597f5ffc5
@@ -19,11 +66,27 @@ The guard that forces ~org-archive-reversed-order~ off for a ~::datetree/~ targe
 
 Fix: factor the datetree test into a shared predicate and apply it at both sites, consulting the inherited ~:ARCHIVE:~ property at the per-heading one so a heading-level override is honoured. ~(require 'org-archive)~ must precede the ~let~, for the already-documented lexical-binding reason.
 
-* TODO A slice's incidental refresh deletes any list a human writes beneath it :code:
+*Verified, not just implemented:* fixed as proposed, in commit ~de4de06~ on the PR 8 branch. The rule now lives in ~claude-code-ide-org--archive-datetree-target-p~ and both call sites read it. Confirmed there are exactly two: every other mention of ~org-archive-subtree~ in the file is a comment or the audit advice.
+
+*The two sites read the location differently, and that is deliberate.* The sweep runs before its walk with point at no heading, so it reads ~org-archive-location~. The tool is at a heading, so it reads ~:ARCHIVE:~ with inheritance first and falls back — which means a heading-level override is honoured, something the sweep does not need and could not do.
+
+*Implementation notes:* the test sets ~org-archive-reversed-order~ to ~t~ explicitly. That is not incidental — left at its unset default the test passes against the *unguarded* code and proves nothing, which is why the defect was latent rather than absent.
+
+A third test asserts the guard does **not** disarm reversed order for a flat target. It fails when the fix is written over-broadly, which is the plausible wrong version: a flat archive reads newest-first *because* of that setting, so a guard that over-reaches trades a malformed datetree for a buried entry.
+
+All three mutation-tested. 534/534.
+
+
+
+* DOING A slice's incidental refresh deletes any list a human writes beneath it :code:
 :PROPERTIES:
 :ID:       138d0f5f-fb1f-4baa-9016-7a42f777b050
 :CREATED:  [2026-09-03 Thu 13:23]
 :CATEGORY: Slices
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-09-03 Thu 13:30] \\
+  bound the region by the generated shape
 :END:
 
 ~claude-code-ide-org--refresh-slice-incidentals-at-point~ bounds the region it deletes by matching a bare list bullet, so it consumes *any* list beneath the ~Incidental:~ lead rather than only the one it generated. The section is written at the end of the slice's body, so a hand-written reference list appended below it is silently deleted by the next refresh — and that refresh runs unattended, as ~--review-settle-slices~, after every apply.
@@ -31,6 +94,7 @@ Fix: factor the datetree test into a shared predicate and apply it at both sites
 The docstring already claims the opposite ("trailing prose below the list is left alone"), which is true only for prose: a list is indistinguishable from the generated shape under the current match.
 
 Fix: match only the shape this function writes — a column-zero bullet, an optional checkbox, then an ~id:~ link — and leave trailing blank lines outside the deleted region so the separation before whatever follows survives.
+
 
 * TODO check-conventions reports documentation drift when the emacs binary is what is missing :code:
 :PROPERTIES:
@@ -45,34 +109,73 @@ Gating check 0 on the flag would be worse, and is the fix not to make: pre-commi
 
 Fix: pre-check for the binary and report its absence as itself, stop discarding stderr into an empty verdict, and correct the flag's comment — a batch invocation needs the binary but no *running* Emacs, a distinction the comment elides.
 
-* TODO A note that arrived from the queue counts as human judgement, so `g` prompts on a fresh buffer :code:
+*Verified, not just implemented:* fixed in commit ~590e41c~ on the PR 8 branch. Shell scripts are read fresh from disk on every run, so no reload precondition applies to any of the verification below.
+
+*What differed from the finding.* The finding's implied fix — gate check 0 on ~$docs_only~ — would have been actively harmful, and was not made. ~.githooks/pre-commit~ always passes that flag, so gating would remove the only elisp check running at commit time, which is the gap check 0 exists to close. ~emacs --batch~ needs the binary, not a running server, so the flag's rationale never reached it. That distinction is now written into the flag's own comment, which claimed "everything under this flag reads plain files" — false from the day check 0 landed.
+
+*What shipped:* the binary is probed first and its absence named — fatal by hand, an announced ~skip~ under ~--docs-only~; stderr goes to a file and its first line is quoted when the verdict comes back empty; and ~check_skip~ joins the shared harness in ~bin/lib/check.fish~, distinct from ~check_ok~ because a check that did not run has not passed.
+
+~CHECK_CONVENTIONS_EMACS~ is a documented test seam. Without it the missing-binary path is unreachable on any machine that can run these checks, and an assertion with no way to fail is exactly what :ID: 542924c1 collects.
+
+*Verified:* 14 self-test cases, up from 9. Mutation-tested against the old check-0 body: three of the four new cases fail. The fourth passes either way and stays deliberately, guarding the opposite mistake — a fix that made a missing prerequisite silently pass — and its comment says so, since a non-discriminating case that does not admit it is worse than none. ~bin/test~ 534/534, ~bin/lint-org~ 0 errors.
+
+*Residue, filed rather than described:* [[id:f8c86914-0759-4e05-9292-6f7fa5593701][the convention checks compare the live Emacs against whichever checkout invoked them]] — the one assertion still failing here, and the same class of wrong-cause reporting one assertion over.
+
+
+
+* DONE A note that arrived from the queue counts as human judgement, so `g` prompts on a fresh buffer :code:
+CLOSED: [2026-09-03 Thu 13:27]
 :PROPERTIES:
 :ID:       442267b9-821b-44c8-84d9-5192b1cfe346
 :CREATED:  [2026-09-03 Thu 13:23]
 :CATEGORY: Apply
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-03 Thu 13:25]--[2026-09-03 Thu 13:27] =>  0:02
+- State "DOING"      from "TODO"       [2026-09-03 Thu 13:25] \\
+  separate a hand-typed note from a queued one
+- [2026-09-03 Thu 13:25]--[2026-09-03 Thu 13:27] add a note-edited flag and count it
+- State "DONE"       from "DOING"      [2026-09-03 Thu 13:27] \\
+  note-edited flag shipped and mutation-tested
+- [2026-09-03 Thu 13:27]--[2026-09-03 Thu 13:27] root-cause unattributed spans, file discipline fix
 :END:
 
 ~claude-code-ide-org--review-judgement-summary~ counts any item carrying ~:note~ as unapplied human judgement, but ~:note~ is also filled straight from the queue: a clock span takes the ~clock_in~ event's own note as its label, and a capture item takes the event's note verbatim. Both are ordinary tool usage, so ~g~ prompts "Discard 1 note?" on a buffer nobody has touched — the reflex-training failure the guard from :ID: 8d0716fe exists to avoid, and the one ~:auto-marked~ already prevents for marks.
 
 Fix: give the ~N~ command its own ~:note-edited~ flag, exactly as ~e~ has ~:edited~, and count that instead of ~:note~.
 
-* NEXT [0/4] Fix CLAUDE.md and the slice conventions ahead of portability :code:
+*Verified, not just implemented:* fixed as proposed, in commit ~cc8c7a9~ on ~feature/code-knows-more-than-it-says~ — the PR 8 branch, *not* the branch the live Emacs serves, so the review buffer keeps the old behaviour here until this merges forward.
+
+~:note-edited~ is set only by ~claude-code-ide-org-review-edit-note~ and counted in place of ~:note~. The "1 note" phrasing is unchanged, since what it tells a reader is not.
+
+*Implementation notes:* the existing test ~...-refresh-counts-all-four-kinds-of-judgement~ was *asserting the bug* — it passed ~:note "why"~ with no human involved and expected a count — so it moved to ~:note-edited~, and its docstring now says two of the four kinds needed a flag rather than one. Two tests added: a queue-shaped note on a clock item and on a capture item counts nothing, and ~N~ sets the flag on an item whose note arrived pre-filled.
+
+Mutation-tested rather than merely run: with the counting line reverted to ~:note~ and the flag-setting left in place, both fail — 525 of 527. 527/527 with the fix.
+
+
+* DONE [4/4] Fix CLAUDE.md and the slice conventions ahead of portability :code:
+CLOSED: [2026-09-03 Thu 13:16]
 :PROPERTIES:
 :ID:       ec65b5d6-bfae-40ee-9071-639985281b34
 :CREATED:  [2026-09-03 Thu 12:42]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(cc63742e-1f1a-4af1-8580-ecbd5e3f7190 6fc9377b-468f-4c61-aada-548d329eb5d8 dca940c1-becd-4e37-ada6-3217070f32dc 758a8b78-8d85-4c8b-a7c5-796d75ae62aa)
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-03 Thu 12:52]--[2026-09-03 Thu 12:53] =>  0:01
+- [2026-09-03 Thu 12:52]--[2026-09-03 Thu 12:53] assigned at review
+- State "DOING"      from "NEXT"       [2026-09-03 Thu 13:03]
+- State "DONE"       from "DOING"      [2026-09-03 Thu 13:16]
 :END:
 
 Fix the record first: the CLAUDE.md defects found by this session's first-reader review, then the convention codification the same session converged on — ahead of portability (=ff7ccb2d=), tests, and archiving. Composed in-session 2026-09-03; no next-session.md revision drives it yet — add the orgit-rev link when one picks it up.
 
 - [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] DOING Update CLAUDE.md and the org skill for the new architecture
-  - [ ] [[id:cc63742e-1f1a-4af1-8580-ecbd5e3f7190][cc63742e]] TODO Three nomination paragraphs say container where the code means grouping
-  - [ ] [[id:6fc9377b-468f-4c61-aada-548d329eb5d8][6fc9377b]] TODO The plan-link lifecycle prose still describes the retired wrap-at-DONE flow
-- [ ] [[id:dca940c1-becd-4e37-ada6-3217070f32dc][dca940c1]] TODO A slice that grows keyworded children reads as both groupings
-- [ ] [[id:758a8b78-8d85-4c8b-a7c5-796d75ae62aa][758a8b78]] TODO One top-level NEXT per category, and nested slice listings
+  - [X] [[id:cc63742e-1f1a-4af1-8580-ecbd5e3f7190][cc63742e]] DONE Three nomination paragraphs say container where the code means grouping
+  - [X] [[id:6fc9377b-468f-4c61-aada-548d329eb5d8][6fc9377b]] DONE The plan-link lifecycle prose still describes the retired wrap-at-DONE flow
+- [X] [[id:dca940c1-becd-4e37-ada6-3217070f32dc][dca940c1]] DONE A slice that grows keyworded children reads as both groupings
+- [X] [[id:758a8b78-8d85-4c8b-a7c5-796d75ae62aa][758a8b78]] DONE One top-level NEXT per category, and nested slice listings
 
 The =02aaae22= line is a checkbox-less grouping label per =758a8b78='s rule (4), exercised here for the first time: the slice takes two of the story's four open children, so the parent must not gate this slice's DONE. The story's other open children are deliberately out — =16d7d39a= is blocked on =501a8422=, and =9d009401= is sequenced behind =9ae4b17e='s triage by its own record.
 
@@ -88,11 +191,19 @@ Debrief 2026-09-03: all four members closed the day the slice was composed, in s
 
 Found 2026-09-03 when a design revision left :ID: 758a8b78's title stating the withdrawn half of its own proposal. org_amend is body-only, the Edit tool writes behind a live buffer, and the one honest path was a hand emacsclient form — which the read-only buffer then correctly refused, proving CLAUDE.md's point that reaching for emacsclient against a read-only buffer signals a missing tool. The rename went through as a one-off with inhibit-read-only bound, the tools' own pattern. Proposed: a small org_rename tool — :ID: plus new title, wrapping org-edit-headline, which preserves keyword, priority, cookie, and tags. Note the knock-on: slice member lines copy referent titles, so a rename leaves stale copies until refresh-slice runs; the tool's reply should say when the renamed heading appears in slice member lines, or the tool should nudge the refresh itself.
 
-* TODO A slice that grows keyworded children reads as both groupings :code:
+
+* DONE A slice that grows keyworded children reads as both groupings :code:
+CLOSED: [2026-09-03 Thu 13:15]
 :PROPERTIES:
 :ID:       dca940c1-becd-4e37-ada6-3217070f32dc
 :CREATED:  [2026-09-03 Thu 12:24]
 :CATEGORY: Slices
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-03 Thu 13:07]--[2026-09-03 Thu 13:15] =>  0:08
+- State "DOING"      from "TODO"       [2026-09-03 Thu 13:07]
+- [2026-09-03 Thu 13:07]--[2026-09-03 Thu 13:15] convention sentence and hybrid lint rule
+- State "DONE"       from "DOING"      [2026-09-03 Thu 13:15]
 :END:
 
 Latent, zero instances (all eleven slices checked 2026-09-03). A :KIND: slice heading with keyworded tree-children satisfies --container-heading-p and --slice-p at once, and every `if slice-p` call site then takes the slice branch: the nomination report resolves declared members only, so the children go unreported; the derived :BLOCKER: names unfinished members only, so the heading can close over a live child; a child closing lands in the incidentals list as work the slice "did not name"; and the two cookie rules count different things through one cookie. Three parts, in order: (A) one sentence in .claude/rules/org-conventions.md — a slice has zero keyworded tree-children, and a heading with keyworded children is never declared :KIND: slice; keywordless children (notes) are legal, since --container-heading-p tests keywords. (B) a bin/lint-org error: :KIND: slice with any keyworded child. (C) tool guards, second step: org_capture and org_refile refuse a keyword-carrying arrival under a slice target; org_set_property refuses KIND=slice on a container. Distinct from the membership rules in :ID: 758a8b78 — this is about tree children; that is about [[id:]] references and the NEXT budget.
@@ -100,11 +211,18 @@ Latent, zero instances (all eleven slices checked 2026-09-03). A :KIND: slice he
 Debrief 2026-09-03: all three parts shipped same day (commits d2bef8d, 982d65d). A: the prohibition paragraph in .claude/rules/org-conventions.md, stated in both directions. B: the lint error — the conjunction of the two predicates — with a test proved discriminating (exactly one failure with the clause removed). C: the three creation-path guards, each with the keyword-less case deliberately legal; removing the guards fails exactly the three new tests, 529/529 with them in. Landed latent: zero hybrids in the corpus throughout. bin/lint-org on the real corpus: 0 errors before and after.
 
 
-* TODO One top-level NEXT per category, and nested slice listings :code:
+* DONE One top-level NEXT per category, and nested slice listings :code:
+CLOSED: [2026-09-03 Thu 13:16]
 :PROPERTIES:
 :ID:       758a8b78-8d85-4c8b-a7c5-796d75ae62aa
 :CREATED:  [2026-09-03 Thu 09:35]
 :CATEGORY: Slices
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-03 Thu 13:15]--[2026-09-03 Thu 13:16] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-03 Thu 13:15]
+- [2026-09-03 Thu 13:15]--[2026-09-03 Thu 13:16] codify budget and nested listing conventions
+- State "DONE"       from "DOING"      [2026-09-03 Thu 13:16]
 :END:
 
 Revised by the user 2026-09-03, superseding the same-day first draft (git holds it; the heading title still reflects the draft and wants renaming). Four parts.
@@ -132,14 +250,22 @@ Debrief 2026-09-03: codified same day (commit 5485dcd). org-conventions.md gaine
 
 Found 2026-09-03 while re-checking whether org_query reaches DONE.org. The tool honors its documented scope — claude-code-ide-org-query-files, falling back to the org-agenda-files function — but that function's answer is shaped by live Emacs state the caller cannot see: an agenda restriction lock (org-agenda-restrict, set by C-x C-< or the dispatcher's < key) silently collapses it to one file, and a dangling path in org-agenda-files (an entry whose symlink was never created) silently contributes nothing. Both produced "No matches" indistinguishable from a true empty result, across three diagnostic layers in one sitting. Proposed: org_query's reply (and ideally org_clock_report's and the recovery scan's) should name the file set it actually searched, and say when a restriction lock is active — "No matches (searched TODO.org; agenda restriction active)" turns a silent wrong answer into an inspectable one.
 
-* TODO Nothing prompts a session to name its clock target, so spans land unassigned :code:
+
+* REVIEW Nothing prompts a session to name its clock target, so spans land unassigned :code:
 :PROPERTIES:
 :ID:       ccfd89ce-a55d-4ad4-bce7-707181deb510
 :CREATED:  [2026-09-03 Thu 09:10]
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-03 Thu 09:24]--[2026-09-03 Thu 09:28] =>  0:04
+- State "DOING"      from "TODO"       [2026-09-03 Thu 09:24]
+- [2026-09-03 Thu 09:24]--[2026-09-03 Thu 09:28] draft standing rule and clock-target hook
+CLOCK: [2026-09-03 Thu 09:32]--[2026-09-03 Thu 09:34] =>  0:02
+- [2026-09-03 Thu 09:32]--[2026-09-03 Thu 09:34] draft standing rule and clock-target hook
+- State "REVIEW"     from "DOING"      [2026-09-03 Thu 09:34]
+:END:
 
 Three sessions on 2026-09-03 did tracked work — a CLAUDE.md review, then filings and a table-row edit — with no org_clock_in and no org_set_todo, so every span reached review UNASSIGNED. The standing rule triggered only on "asked to start work on a task with an :ID:", every mechanical backstop hung off state transitions, and the "Review and planning" target was advertised only in a schema docstring — the lever :ID: 420816ec measured as the one that does not move usage. Shipped same day (commit e28ea0c): a CLAUDE.md standing rule — before a session's first file-touching act, clock in to the owning heading or to "Review and planning", capturing first if none exists — and bin/hooks/clock-target-check, a Stop hook that blocks once per session when the transcript shows write-tool activity but the session queue holds no clock_in. Clock evidence reads the queue, where errored calls never land; write evidence reads the transcript, which the queue's write-through gate under-reports by design; Edit/Write count only inside the project. Six direct test cases pass. In REVIEW rather than DONE because hook config loads at session start: the first session started after the commit is the live verification.
-
 
 
 * TODO A MAYBE member and a dropped member render identically, and the drop is now sticky :code:
@@ -312,7 +438,6 @@ Nothing writes into a =:PLAN:= drawer — =org_amend= appends below it — so re
 A heading's body still grows without bound once the debrief lands in it, so orientation stays expensive even after [[id:b75d553a-3c77-4b98-9f58-022bfa295816][b75d553a]] moves the plan out. Proposed: a =:DEBRIEF:= drawer below the body, with a one-line resolution left in the body — so a folded heading shows problem, proposal and outcome and nothing else. Should follow [[id:35d25265-df52-45c0-8226-dfa24c3ed5bb][35d25265]] rather than precede it, since after the plan is extracted the remaining body *is* the debrief and needs no seam judgement.
 
 In scope, added 2026-09-03: absorb the pre-archive outcome-summary rule (CLAUDE.md near line 505, the summary "next to that link"). Post-b75d553a the link that rule points at sits inside :PLAN:, a drawer readers are told to skip, and once this task splits outcome recording into a body resolution plus a :DEBRIEF: drawer, the :505 rule becomes a third description of the same act, phrased against a location neither artifact will occupy. Rewrite or delete it as part of landing this, rather than patching it now and rewording it twice.
-
 
 
 ** TODO Split the reads: org_outline carries the body, a second tool serves drawers on demand :code:
@@ -1262,7 +1387,6 @@ Split out of [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] 2026-08-31, b
 Sharpened 2026-09-03 by the first concurrent worktree session: a session in .claude/worktrees/pr8-review writes queue events whose cwd (once recorded) will differ from the main checkout's while every id-addressed event still resolves through Emacs against the one live tracker. So cwd is necessary but not sufficient as project identity — the consumer must normalise a worktree path to its repository (git worktree list, or the common .git), or events from a worktree would read as a different project than the tracker they target. Same session also demonstrated the fragmentation argument against moving the queue into the repo: each worktree has its own working copy, so a repo-local queue would scatter events across directories the review pass never reads, while the shared user-global dir keeps every worktree's events visible to the one apply pass — which is correct, since they all target the same tracker.
 
 
-
 * TODO org_capture's target refuses an 8-character :ID: prefix that every other tool accepts :code:
 :PROPERTIES:
 :ID:       25e7b083-360b-4282-8fd0-bb768e2a0f13
@@ -1691,6 +1815,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-03 Thu 13:30]--[2026-09-03 Thu 13:35] =>  0:05
 CLOCK: [2026-09-03 Thu 09:07]--[2026-09-03 Thu 09:14] =>  0:07
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
@@ -1882,7 +2007,6 @@ The =/next-session= idiom is used but not codified. One line outside the file me
 *Open:* there is no end-of-session trigger to hang the writing rule on. Candidate is firing on an explicit request to write or revise the prompt, with the self-hosted header as the backstop.
 
 Overlap to resolve, noted 2026-09-03: the slice NEXT (:ID: abce1850 — at most one slice carries it, meaning "this is the slice to pick up next") occupies the same portfolio-nomination niche as this prompt format, and neither artifact mentions the other. Whichever mechanism lands first decides whether they are one mechanism or two, and records the decision in the other's terms — the twin asymmetry at the portfolio tier is otherwise invisible from inside either. Related and deliberately deferred: one-NEXT-per-slice has no lint or report yet; observe the days-old rule before building machinery for it.
-
 
 
 * TODO Open today's node
@@ -5977,7 +6101,7 @@ but =claude -p= asynchronously.
   than the conclusion being cited. The story is f90d745e.
 
 
-* DOING [16/20] Update CLAUDE.md and the org skill for the new architecture :code:
+* DOING [18/20] Update CLAUDE.md and the org skill for the new architecture :code:
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       02aaae22-0958-4c0f-b5bb-2cbea32416ae
@@ -7429,10 +7553,17 @@ a green check from being read as a green file.
 The three-step composition procedure — org_amend the prospective prose, org_wrap_plan with no until, org_amend the two-to-five-sentence statement — lives only in org_wrap_plan's schema docstring, and :ID: 420816ec measured that schema text does not move usage while a CLAUDE.md directive does. But :ID: 501a8422 would collapse the three steps into one org_amend drawer=PLAN call and partly subsume org_wrap_plan, so transcribing the procedure now would document a shape already nominated for replacement. Once that lands, write whichever procedure survives into CLAUDE.md next to the org_wrap_plan table row (which now points at the schema docstring as the procedure's home). The :BLOCKER: encodes the wait.
 
 
-** TODO The plan-link lifecycle prose still describes the retired wrap-at-DONE flow :code:
+** DONE The plan-link lifecycle prose still describes the retired wrap-at-DONE flow :code:
+CLOSED: [2026-09-03 Thu 13:07]
 :PROPERTIES:
 :ID:       6fc9377b-468f-4c61-aada-548d329eb5d8
 :CREATED:  [2026-09-03 Thu 08:56]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-03 Thu 13:06]--[2026-09-03 Thu 13:07] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-03 Thu 13:06]
+- [2026-09-03 Thu 13:06]--[2026-09-03 Thu 13:07] rewrite the two stale plan-link rules
+- State "DONE"       from "DOING"      [2026-09-03 Thu 13:07]
 :END:
 
 CLAUDE.md still puts the Plan link "in its heading body" (the rule near line 408) and still says it is "relocated into the :PLAN: drawer" at DONE "when org_wrap_plan wraps it" (near line 425) — the flow :ID: b75d553a retired on 2026-09-02 when the wrap moved to composition time. Plan-then-compose needs only rewording: the link is planning content and rides in the prospective prose, so it belongs inside :PLAN: from the start. Compose-then-plan currently has no path at all — org_wrap_plan refuses a heading that already has a :PLAN: drawer and org_amend appends below it — and that half is :ID: 501a8422's open question (does drawer=PLAN create the drawer when absent?), so word it against whatever that builds rather than inventing a path here.
@@ -7440,17 +7571,22 @@ CLAUDE.md still puts the Plan link "in its heading body" (the rule near line 408
 Debrief 2026-09-03: both rules rewritten (commit 39aca76). The link rule now writes the Plan link into :PLAN: at planning-finish — riding the normal three-call composition when planning comes first — and states the compose-then-plan case as :ID: 501a8422's nominated work with the body as interim location, rather than inventing a path. The DONE paragraph now says nothing moves, keeps both earlier forms as dated history, and preserves the retroactive-wrap path for pre-convention headings. Verified: bin/check-conventions exit 0 (both cited ids resolve).
 
 
-
-** TODO Three nomination paragraphs say container where the code means grouping :code:
+** DONE Three nomination paragraphs say container where the code means grouping :code:
+CLOSED: [2026-09-03 Thu 13:06]
 :PROPERTIES:
 :ID:       cc63742e-1f1a-4af1-8580-ecbd5e3f7190
 :CREATED:  [2026-09-03 Thu 08:56]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-03 Thu 13:03]--[2026-09-03 Thu 13:06] =>  0:03
+- State "DOING"      from "TODO"       [2026-09-03 Thu 13:03]
+- [2026-09-03 Thu 13:03]--[2026-09-03 Thu 13:06] substitute grouping at the three sites
+- State "DONE"       from "DOING"      [2026-09-03 Thu 13:06]
 :END:
 
 The nomination-report paragraphs and the nomination Rule ("every transition to DONE inside a container", CLAUDE.md near lines 795–803) say "container" where the mechanism is broader: --nomination-candidates-context resolves slice members through the referent index, and its docstring says "a project here is a story or a slice, never a filing category". The file's own "note which predicate goes where" paragraph is what makes the loose word bite — a reader applying the vocabulary concludes slices go unreported. Substitute "grouping" at the three sites; a three-word fix, no growth.
 
 Debrief 2026-09-03: substituted at the three sites — the report description, its shipped-day measurement, and the DONE-nomination rule — in CLAUDE.md (commit 791386a, branch feature/fix-claude-md-and-slice-conventions), plus one adjacent fix: the report docstring's own first line in config.el said "container" while its body said "story or a slice". The demote-trigger paragraphs keep "container" deliberately, since having a parent is that trigger's actual test. Verified: bin/check-conventions exit 0, and no test or script asserts the old phrase.
-
 
 
 * TODO Direct file writes to a live org buffer can desync org-clock-marker :code:
@@ -7647,7 +7783,6 @@ are inherently project-specific (they name this project's actual tool
 names and files) and are out of scope.
 
 In scope, added 2026-09-03: the :CREATED: rule's remaining scope (CLAUDE.md near line 856, "applies to every heading creation"). Every MCP creation path already stamps it — org_capture and org_divide — and org_set_property refuses the property, a refusal :ID: 501a8422's plan now cites as precedent for its own allowlist. So the rule's live scope is precisely the text-editing creation path, and this audit decides its fate: either the rule moves to the skill with that path, or it is reworded in place to name its actual remaining scope.
-
 
 
 * MAYBE Make org-blocker-hook actually consult :BLOCKER: :code:
@@ -8594,4 +8729,6 @@ CLOCK: [2026-09-03 Thu 08:46]--[2026-09-03 Thu 08:49] =>  0:03
 - [2026-09-03 Thu 08:46]--[2026-09-03 Thu 08:49] assigned at review
 CLOCK: [2026-09-03 Thu 08:55]--[2026-09-03 Thu 09:02] =>  0:07
 - [2026-09-03 Thu 08:55]--[2026-09-03 Thu 09:02] assigned at review
+CLOCK: [2026-09-03 Thu 09:15]--[2026-09-03 Thu 09:18] =>  0:03
+- [2026-09-03 Thu 09:15]--[2026-09-03 Thu 09:18] root-cause unattributed spans, file discipline fix
 :END:
