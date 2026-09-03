@@ -406,28 +406,36 @@ system owns the thing, read the contract it actually publishes
 (`:ID:` 2e660571, which proposed the opposite and measured its way out).
 
 **Rule**: work planned via Claude Code's own Plan Mode gets a single
-permanent link in its heading body — `[[file:~/.claude/plans/<slug>.md][Plan]]`
-— added as soon as the first round of planning finishes (right after
-`ExitPlanMode` is called and the plan file is finalized), not gated on the
-heading later transitioning to `DOING`. This matters because approval and
-the `DOING` transition don't always happen in the same beat as planning —
-e.g. the user may deliberately stop right after a plan is written, before
-deciding whether to implement it — and the link should exist the moment a
-real plan file does, independent of what happens next. Revisions (re-
-entering Plan Mode on the same task) edit that same plan file in place —
-Claude Code reuses the existing plan file path for a continuation of the
-same task — so the link is written once and never needs updating to point
-at a new file. No transcription of the plan into org, ever; the link is the
-record.
+permanent link — `[[file:~/.claude/plans/<slug>.md][Plan]]` — written
+into the heading's **`:PLAN:` drawer**, added as soon as the first round
+of planning finishes (right after `ExitPlanMode` is called and the plan
+file is finalized), not gated on the heading later transitioning to
+`DOING`. This matters because approval and the `DOING` transition don't
+always happen in the same beat as planning — e.g. the user may
+deliberately stop right after a plan is written, before deciding whether
+to implement it — and the link should exist the moment a real plan file
+does, independent of what happens next. A plan link *is* planning
+content, so it belongs with the rest of the prospective prose (`:ID:`
+b75d553a): planning before composition simply includes the link in the
+normal three-call composition. When the drawer already exists before a
+Plan Mode session, nothing writes into it yet — `org_amend` appends
+*below* a drawer, and `:ID:` 501a8422 is the nominated fix — so until
+that lands, put the link in the body and move it into the drawer at the
+next revision that can. Revisions (re-entering Plan Mode on the same
+task) edit that same plan file in place — Claude Code reuses the
+existing plan file path for a continuation of the same task — so the
+link is written once and never needs updating to point at a new file. No
+transcription of the plan into org, ever; the link is the record.
 
-At `DONE` the link is **relocated into the `:PLAN:` drawer, not deleted** —
-it travels with the rest of the prospective body when `org_wrap_plan` wraps
-it, because a plan link *is* planning content, and a forward-looking pointer
-sitting in a retrospective readout invites a reader to treat the plan as
-current. (Reworded 2026-08-24; this said "not removed at `DONE`", which was
-a rule against losing the link and got read as a rule against moving it.)
-A task with no separate Plan Mode session simply carries no link — that's
-expected, not a gap to fill in.
+Nothing moves at `DONE`: the link has lived in `:PLAN:` since
+composition (2026-09-02, `:ID:` b75d553a), which is what keeps a
+forward-looking pointer out of the retrospective readout a finished body
+becomes. (Two earlier forms of this rule — "not removed at `DONE`", then
+"relocated into `:PLAN:` at `DONE`, when `org_wrap_plan` wraps it" —
+described the wrap-at-`DONE` flow that convention retired; a
+pre-convention heading's link still travels into the drawer whenever its
+body is retroactively wrapped.) A task with no separate Plan Mode
+session simply carries no link — that's expected, not a gap to fill in.
 
 The link is also what makes the plan durable, which is why it is not
 gated on anything: `bin/sync-plans` copies only those plans some heading
