@@ -173,23 +173,6 @@ if [[ "$kind" == todo ]]; then
   recovered_from="$(sed -n 's/.*(was \([^)]*\)).*/\1/p' <<<"$response")"
 fi
 
-# Explicit field overrides, for a *synthetic* event that does not
-# originate in an MCP tool call and so has no tool_input to read or
-# tool_response to parse.
-#
-# NOTE: these have no consumer as of 2026-08-28. Their only user was
-# bin/hooks/exitplanmode-promote-planning, deleted when the PLANNING
-# keyword was retired (TODO.org :ID: c954f650) -- ExitPlanMode's payload
-# says nothing about org, so that hook had to supply the heading and
-# states itself. Deliberately left in place in that commit rather than
-# removed alongside it: this script is on the path of every hook in the
-# project, and a dead branch is a smaller risk than an unrelated edit to
-# the queue writer made while doing something else. Removal is TODO.org
-# :ID: 46d225c7.
-override_id="${QUEUE_APPEND_ID:-}"
-override_state="${QUEUE_APPEND_STATE:-}"
-override_from="${QUEUE_APPEND_FROM:-}"
-
 queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
 mkdir -p "$queue_dir" 2>/dev/null || exit 0
 
@@ -217,24 +200,20 @@ line="$(jq -n -c \
   --arg session_id "$session_id" \
   --arg recovered_id "$recovered_id" \
   --arg recovered_from "$recovered_from" \
-  --arg override_id "$override_id" \
-  --arg override_state "$override_state" \
-  --arg override_from "$override_from" \
   --argjson payload "$(jq -c '.' <<<"$input" 2>/dev/null || echo '{}')" \
   '{
      ts: $ts,
      kind: $kind,
-     id: (if $override_id != "" then $override_id
-          elif $kind == "pause" or $kind == "resume"
-               or $kind == "block_start" or $kind == "block_end" then null
+     id: (if $kind == "pause" or $kind == "resume"
+             or $kind == "block_start" or $kind == "block_end" then null
           else ($payload.tool_input.id
                 // (if $recovered_id == "" then null else $recovered_id end))
           end),
-     state: (if $override_state != "" then $override_state
-             elif $kind == "todo" then ($payload.tool_input.state // null)
+     state: (if $kind == "todo" then ($payload.tool_input.state // null)
+             elif $kind == "capture" then
+               ($payload.tool_input.initial_state // null)
              else null end),
-     from: (if $override_from != "" then $override_from
-            elif $kind == "todo" and $recovered_from != "" then $recovered_from
+     from: (if $kind == "todo" and $recovered_from != "" then $recovered_from
             else null end),
      note: (if $kind == "pause" or $kind == "resume"
                or $kind == "block_start" or $kind == "block_end" then null

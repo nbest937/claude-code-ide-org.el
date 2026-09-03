@@ -213,6 +213,41 @@ fires **immediately** when you re-evaluate the file — that's why a live
 reload is sufficient here, without needing to trigger `claude-code-ide`'s
 own load sequence again.
 
+### `load-file` does not pick up a changed `defcustom` default
+
+**A reload that succeeds is not evidence the new value is live.**
+`defcustom` sets its default only when the symbol is *unbound*, so
+re-loading a file whose default you just changed leaves the old value in
+place. Nothing errors, `load-file` returns `t`, and a check against the
+running Emacs measures the old number while every signal says success.
+
+Demonstrated rather than asserted, in batch:
+
+```
+$ emacs -Q --batch --eval '(load "demo1.el")' ...
+after first load: 900
+after loading the changed default: 900
+after explicit setq: 1200
+```
+
+where `demo1.el` declares `(defcustom demo-threshold 900 ...)` and the
+second file declares the same symbol with `1200`.
+
+It has cost real time here: the guidepost threshold was committed as
+1200, `load-file` returned `t`, and the live value stayed 900.
+
+**The remedy is an explicit `setq` after the reload**, and the
+precondition to state before checking is *"this needs `load-file` **and**
+a `setq`, because `defcustom` will not overwrite a bound symbol"* — not
+just "this needs a reload". That is the case §0's standing rule exists
+for and the one where naming the obvious precondition is not enough,
+because the obvious precondition is the one that does not work.
+
+A narrower sibling, same class and different mechanism: `#+STARTUP:` is
+read when org *initialises a buffer*, so a file already open keeps the
+old value until reverted — saving is not enough. See
+`.claude/rules/org-conventions.md` under "File header".
+
 ## 2. When live reload isn't enough — full restart required
 
 Live reload only re-runs code in an *already-running* Emacs. It cannot

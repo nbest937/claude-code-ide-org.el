@@ -9,26 +9,15 @@
 # by spot-checking fresh sessions, not scriptable — see TODO.org).
 
 set repo_root (cd (dirname (status --current-filename))/.. && pwd)
-# `set -g' at every assignment below, never a bare `set'. In fish a bare
-# `set' inside an `if' or `for' block creates a BLOCK-LOCAL variable, so
-# the outer `fail' stays 0 and the script exits 0 while printing FAIL --
-# which is what it did from its first version until 2026-08-27, making
-# every failure it ever reported invisible to any caller. Found by
-# deliberately breaking a claim and checking the exit code rather than
-# the output.
-set -g fail 0
 
-function check
-    set desc $argv[1]
-    set got $argv[2]
-    set want $argv[3]
-    if test "$got" = "$want"
-        echo "ok   - $desc"
-    else
-        echo "FAIL - $desc: expected '$want', got '$got'"
-        set -g fail 1
-    end
-end
+# `fail' and `check' now come from the shared harness, which also carries
+# the `set -g' reasoning that used to live here: a bare `set' inside an
+# `if' block is block-local in fish, so this script exited 0 while
+# printing FAIL from its first version until 2026-08-27. Moved out rather
+# than copied when bin/check-conventions needed the same plumbing --
+# TODO.org :ID: d2a0f54c, whose whole argument is that the harness is
+# written once and a second check family adds only assertions.
+source $repo_root/bin/lib/check.fish
 
 # 1. MCP server port pinned in the running Doom config, matching .mcp.json.
 set port (emacsclient -e '(claude-code-ide-mcp-server-get-port)' 2>/dev/null; or echo unreachable)

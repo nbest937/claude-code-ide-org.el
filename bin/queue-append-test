@@ -235,32 +235,42 @@ run pause '{"session_id":"sess-b"}'
 check "one file per session" "1 1" \
   "$(queue_lines sess-a | wc -l | tr -d ' ') $(queue_lines sess-b | wc -l | tr -d ' ')"
 
-# --- explicit field overrides, for synthetic events ---------------------
-# Added with the 2026-08-11 cutover: an event that did not come from an
-# MCP tool call has no tool_input to read, so the caller supplies the
-# fields. Only bin/hooks/exitplanmode-promote-planning uses this.
-reset_queue
-QUEUE_APPEND_ID="id-x" QUEUE_APPEND_STATE="DOING" QUEUE_APPEND_FROM="PLANNING" \
-  run todo '{"session_id":"sess-a","hook_event_name":"PostToolUse","tool_name":"ExitPlanMode"}'
-line="$(queue_lines sess-a)"
-check "override sets id" "id-x" "$(jq -r '.id' <<<"$line")"
-check "override sets state" "DOING" "$(jq -r '.state' <<<"$line")"
-check "override sets from" "PLANNING" "$(jq -r '.from' <<<"$line")"
-check "override keeps real source" "ExitPlanMode" "$(jq -r '.source' <<<"$line")"
-
-# An override must win over a tool_input that says otherwise, or the
-# precedence is decorative.
-reset_queue
-QUEUE_APPEND_ID="id-x" \
-  run todo '{"session_id":"sess-a","tool_input":{"id":"id-from-payload","state":"WAITING"}}'
-check "override beats tool_input" "id-x" "$(jq -r '.id' <<<"$(queue_lines sess-a)")"
-
-# Unset overrides must not disturb the ordinary path.
+# --- a todo event reads its fields from the payload ---------------------
+# There is no other source. QUEUE_APPEND_ID/STATE/FROM once let a caller
+# supply these for a *synthetic* event -- one with no tool call behind
+# it, so nothing to read a tool_input from -- and were removed 2026-08-31
+# (TODO.org :ID: 46d225c7) with their only consumer,
+# bin/hooks/exitplanmode-promote-planning, already gone.
 reset_queue
 run todo '{"session_id":"sess-a","tool_input":{"id":"id-a","state":"DOING"},"tool_response":"Queued todo -> DOING (was NEXT): \"H\"; pending review."}'
 line="$(queue_lines sess-a)"
 check "no override leaves id from payload" "id-a" "$(jq -r '.id' <<<"$line")"
 check "no override recovers from from reply" "NEXT" "$(jq -r '.from' <<<"$line")"
+
+# --- a capture carries its initial_state -------------------------------
+# The state field is shared with `todo', but read from a different key:
+# a todo event names it `state', a capture names it `initial_state'. Both
+# land in the same column so the apply path has one place to look.
+# TODO.org :ID: c74f8663.
+reset_queue
+run capture '{"session_id":"sess-a","tool_input":{"title":"H","initial_state":"NEXT"},"tool_response":"Queued capture: \"H\" (ID: id-new) top of file; pending review."}'
+check "capture records initial_state" "NEXT" \
+  "$(jq -r '.state' <<<"$(queue_lines sess-a)")"
+
+# A capture with no initial_state must record null, not the empty string:
+# "no keyword wanted" and "keyword unknown" must not collapse, for the
+# same reason `from' keeps "none" distinct from null.
+reset_queue
+run capture '{"session_id":"sess-a","tool_input":{"title":"H"},"tool_response":"Queued capture: \"H\" (ID: id-new) top of file; pending review."}'
+check "capture without initial_state records null" "null" \
+  "$(jq -r '.state' <<<"$(queue_lines sess-a)")"
+
+# A todo event must not start reading initial_state, and a capture must
+# not start reading state -- the keys are deliberately distinct.
+reset_queue
+run capture '{"session_id":"sess-a","tool_input":{"title":"H","state":"DOING"},"tool_response":"Queued capture: \"H\" (ID: id-new) top of file; pending review."}'
+check "capture ignores a todo-shaped state key" "null" \
+  "$(jq -r '.state' <<<"$(queue_lines sess-a)")"
 
 # --- the post-cutover reply shapes still parse -------------------------
 # The wrappers stopped mutating on 2026-08-11 and their replies changed

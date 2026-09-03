@@ -278,6 +278,71 @@ When the user shares an .org file or snippet:
 3. Collect CLOCK entries; parse durations (see Clock Arithmetic below).
 4. Summarize what you found before making any changes.
 
+**Timestamps and clock data come from inside a `:LOGBOOK:` drawer — never
+from a bare pattern match over the file.** Use `org_body`,
+`org_clock_report`, `org_outline`, or `org-map-entries` from a buffer.
+
+The reason is specific to files whose prose discusses org: they quote
+`CLOCK:` and `- State "..."` lines constantly, as worked examples, as
+recorded experiment output, as evidence in a debrief. A pattern match
+therefore returns real-looking timestamps that were never real, and the
+wrong answers are indistinguishable from the right one by inspection.
+
+Measured cost, three attempts and two wrong: one matched a `- State
+"DOING"` line inside a heading's *body*, part of a write-up of the
+experiment itself; the second was "verified" by grepping the file for
+that `CLOCK:` line, which returned a different heading's example prose
+entirely. **The verification repeated the original mistake** — a check
+that re-uses the failing method confirms the failure rather than
+catching it. Only scoping to the subtree *and* to lines between
+`:LOGBOOK:` and `:END:` was correct.
+
+This generalises the anchored-drawer caution — `grep -c ':SESSIONS:'`
+counting prose mentions — from "does this drawer exist" to "what does it
+contain".
+
+### Surveying a heading's siblings
+
+To see a heading's siblings, call `org_outline` scoped to the **parent's**
+`:ID:`, with `active_only` and a `max_depth`:
+
+```
+org_outline scope=<parent id> active_only=true max_depth=3
+```
+
+Worth stating because the reflex is missing rather than the capability.
+Twice in one day this check was done with a hand-rolled scan of the whole
+file by someone who had used `org_outline` correctly an hour earlier; the
+`scope` parameter had always documented "an `:ID:` to index only that
+subtree".
+
+Two reasons it matters. A `NEXT` nomination may silently demote a
+sibling, and nothing else tells you which one before you commit to it.
+And `grep` reads what is *on disk*, which is not what has been *decided*
+— queued transitions have not landed — while `org_outline` reports
+applied state, so "I set this to NEXT" stays distinguishable from "this
+is NEXT".
+
+**`org_outline` navigates down only.** Scoped to a leaf it returns that
+leaf and its descendants, never its ancestors, so you must already know
+the parent's `:ID:`. From a buffer there is no such limit, which is why a
+`relation: siblings` parameter was considered and rejected — the
+capability is not missing, only ID-addressed access to it:
+
+```elisp
+(save-excursion (org-up-heading-safe)
+  (org-map-entries #'org-get-heading "/NEXT" 'tree))
+```
+
+`org-map-entries` also takes org's full MATCH syntax, where `org_outline`
+filters after the fact with `active_only` alone.
+
+**Two quiet failures to know about it.** It respects narrowing, so a
+narrowed buffer silently maps only the visible portion and reports a
+confidently short answer. And with a file-list scope it visits those
+files — verified not to move point or mark buffers modified, which is
+what makes it safe against files the user has open.
+
 ### State transition conventions
 
 When helping the user move a task between states, follow these conventions:
@@ -402,21 +467,33 @@ overwrite it.
 ### Body prose and the task lifecycle
 
 **A body has two lives, and since 2026-08-24 they live in different
-places.** While the task is open the body is *prospective* — motivation,
-observations, speculation, and the plan link if there is one — and is pared
-and revised as understanding changes. When the task is carried out,
-`org_wrap_plan` moves that whole half into a `:PLAN:` drawer beside
-`:PROPERTIES:` and `:LOGBOOK:`, and what remains as the body is the
-*debrief*: problem restated, what the solution turned out to be, how it was
-verified, what was falsified. A folded heading then shows the debrief and
-nothing else.
+places, from the moment each is written.** The prospective half —
+motivation, options, the reasoning behind an approach, and the plan link if
+there is one — goes into a `:PLAN:` drawer beside `:PROPERTIES:` and
+`:LOGBOOK:` *when it is composed*, not at `DONE`. The body carries a brief
+statement of the problem and the proposed solution, two to five sentences.
+At `DONE` the debrief is appended to the body: what the solution turned out
+to be, how it was verified, what was falsified.
 
-**Skip `:PLAN:` when reading.** Treat the drawer as absent unless the
-question is explicitly retrospective — "how did we get here", "why this
-way". The debrief and the source code describe present reality; the plan
-describes an intention that may not have survived contact. Reading it for
-current fact is how a superseded design claim gets repeated as though it
-still held, and it is the whole reason the two halves were separated.
+Compose it in three calls — `org_amend` the prospective prose,
+`org_wrap_plan` with no seam marker, then `org_amend` the short body.
+
+**So no seam is ever created**, which is the point. The seam is a fact about
+*when* a sentence was written; nothing in the prose records it and it is not
+recoverable afterwards. `org_wrap_plan`'s seam marker is therefore a
+*retroactive* tool, for bodies written before this convention.
+
+**How to read `:PLAN:` depends on the keyword.** On a **finished** heading
+treat it as absent unless the question is explicitly retrospective — "how
+did we get here", "why this way". The debrief and the source code describe
+present reality; the plan describes an intention that may not have survived
+contact, and reading it for current fact is how a superseded design claim
+gets repeated as though it still held.
+
+On a **live** heading the drawer holds the *current* plan — the fullest
+statement of what the task intends — so **read it**. The drawer's status
+follows the heading's keyword rather than being a property of the drawer,
+which is why nothing has to move when the heading closes.
 
 *This section used to open by saying `org_amend` appends and can do nothing
 else, so an outcome always lands furthest from the reader, and that the
@@ -474,9 +551,13 @@ Untouched: **open questions** (keep them verbatim — settling one now by
 inference is the only thing "relitigating" meant), **the debrief**, and
 **anything whose seam is unclear** (wrap it whole, condense nothing).
 Condense in a separate commit from the wrap: a bad pare inside `:PLAN:`
-is invisible by design, since readers skip the drawer. For the archive
-backlog the rule is wrap unedited (`cbe282ec`); split only when you are
-already reading the heading for another reason.
+is invisible by design, since readers skip the drawer on a finished
+heading.
+
+**"Wrap unedited" is retired as the backlog rule** (`f099379b`). It was
+chosen when the backlog was ~30 purely prospective bodies; measured
+2026-09-02, 88 of 93 unwrapped headings carry a debrief, so wrapping whole
+would bury it. The backlog pass is `35d25265`, which reads each body.
 
 ### Inserting content programmatically
 

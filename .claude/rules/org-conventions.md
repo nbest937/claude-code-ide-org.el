@@ -19,11 +19,37 @@ Every `.org` file in this project should start with:
 #+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::
+#+STARTUP: logdrawer logdone content
 ```
 
 The per-keyword cookies matter: `!` records a timestamp on entry, `@`
 *prompts for a note*. See CLAUDE.md's transition rules for why that
 asymmetry is load-bearing.
+
+**`#+STARTUP: logdrawer` is the fourth line and it is doing real work.**
+`org-log-into-drawer` defaults to nil, so org's *native* state-change
+logging writes notes bare, just after the property drawer, while this
+project's apply path lands them in `:LOGBOOK:` — it binds the variable
+locally and deliberately, so a user's own interactive `org-todo` keeps
+their configured behaviour. Without the header line the two paths
+disagree, and the result is visible in the wild: `:ID:` b5f94b88 has a
+`DOING` note sitting *above* its drawer while older entries sit inside
+it.
+
+**Why a header line rather than a `setq`.** Verified 2026-08-12 that
+`#+STARTUP: logdrawer` sets the variable *buffer-locally* — effective
+value `"LOGBOOK"` inside the file, global still nil — which claims
+exactly the scope this project owns and changes nothing for a user's
+other org files. A global `setq` would reconfigure org for everyone who
+installs the module.
+
+**Its verification precondition, which is not the obvious one.**
+`#+STARTUP:` is read when org *initialises a buffer*, so a file already
+open in Emacs keeps the old value until it is reverted. Saving is not
+enough, and neither is `global-auto-revert-mode` noticing the change if
+the buffer is unmodified — the mode has to re-run. A check made against
+an already-open buffer measures the old value while every signal says
+success.
 
 `org-todo-keywords` in the Doom config does **not** include `REVIEW`, so it
 resolves only in files carrying their own `#+TODO:` header. TODO.org does;
@@ -219,8 +245,10 @@ which is emergent and detected from its keyworded children, a slice
 cannot be derived — so it is written down as an explicit list, and being
 written down, it can go stale.
 
-Slices live under the level-1 `* Slices` category and are level-2
-headings. Each carries an `:ID:`, a `:CREATED:`, and a
+Slices carry `:CATEGORY: Slices`. They used to live under a level-1
+`* Slices` heading; the flattening retired that tier (`:ID:` 29439196),
+so a slice is an ordinary top-level heading whose category says what it
+is. Each carries an `:ID:`, a `:CREATED:`, and a
 `:COOKIE_DATA: checkbox recursive` property so its statistics cookie
 counts nested members as well as top-level ones.
 
@@ -445,23 +473,122 @@ Note the links cost nothing in `bin/lint-org` as of 2026-08-25 (`:ID:`
 warning, which would have made this convention degrade the report a
 little more with every slice.
 
+### Dropping a member from a slice
+
+**Delete the checkbox cookie; keep the line.** `- [X] [[id:…]] …` becomes
+`- [[id:…]] …`. That is the whole mechanism, and it was already in the
+code before it was written down here — `--slice-member-regexp` makes the
+cookie optional and names group 1 *"absent for a cancelled or deferred
+member"*, and `--slice-blocker-ids` excludes such a line deliberately: a
+deferred member is *unfinished*, so blocking on it would hold the slice
+open forever for work it explicitly decided not to do.
+
+**Keeping the line is the point.** The slice declared that member; deleting
+the line would make the slice read as though it never had, which is the
+same falsification `:ID:` 30a340fd refused for closed slices. A cookie-less
+line still parses as a member, so it is not re-listed as incidental
+either — it says *this was planned here and is no longer counted*, which
+is exactly the fact.
+
+**It covers three cases and does not distinguish them**: cancelled,
+deferred, and moved. The line's absence of a cookie says only that the
+slice no longer counts it.
+
+**Known ambiguity, and it is not resolved** (`:ID:` 1b727475). `MAYBE`
+and `CANCELLED` map to *no checkbox* by design — an unchecked box would
+inflate the denominator forever — so a member that is cookie-less merely
+because of its keyword is indistinguishable from one dropped by hand.
+Worse, the refresh reads the absent cookie as a declaration and keeps it
+absent, so **a `MAYBE` member promoted to `TODO` will not regain its
+box**; check it by hand. Do not read a missing cookie as a deliberate
+drop without checking the referent's keyword.
+
+**When the work moves to another slice, it is copied there with its cookie
+intact** — the receiving slice counts it, the origin does not. Do not
+leave a cookie in both: a member counted twice makes two slices' cookies
+disagree about the same work, and measured 2026-09-02 that also let a
+*shared* member's clock open an unstarted slice's incidental window,
+which took two fixes to close.
+
+**Say why, in the slice's body.** The mechanism records that a member was
+dropped; only prose records why, and a slice that silently stops counting
+something reads as having forgotten it — which is the failure `:ID:`
+c60a1c53 exists to detect.
+
+### Proposing a slice
+
+**A proposal is a slice with the declaration withheld.** It has the
+checklist, the theme and the ordering — everything a slice has — but no
+`:KIND: slice`. Withholding is not bookkeeping: *declaring is the act of
+committing*, so a heading without the declaration is precisely a
+proposal. It also keeps the checklist outside `bin/lint-org`'s slice
+rules until someone means it, which matters because the absent
+`:BLOCKER:` would otherwise be an error against a list nobody agreed to.
+
+**It carries no prompt link**, for the same reason — there is no
+`next-session.md` revision driving a proposal, and there will not be
+until it is picked up.
+
+**It lives exactly where a slice lives**, with `:CATEGORY: Slices`. The
+question of a separate location was open while slices sat under a level-1
+`* Slices` heading; the flattening dissolved it, and a distinct location
+would be a *second* copy of the fact the missing `:KIND:` already
+carries — the duplication this project rejects everywhere else.
+
+**Its keyword is `MAYBE`.** The original argument for this was that
+`MAYBE` would stop the sole-TODO promotion trigger nominating a proposal
+as a next action; **that argument has expired**, since the trigger was
+retired (`:ID:` 62b65ad0). The surviving one is better: `MAYBE` *means*
+not committed, which is exactly what a withheld declaration says, and it
+keeps the proposal out of the un-nominated-container report. Its
+`:BLOCKER:` being dormant on a `MAYBE` heading is correct here rather
+than a defect — the checklist is not agreed yet.
+
+**Accepting one is three mechanical steps**: add `:KIND: slice`, run
+`claude-code-ide-org-refresh-slice` so the blocker and cookie appear, and
+link the prompt revision that picks it up. Worth a single command if
+proposals become routine; three calls until then.
+
+**Rejecting one is `CANCELLED`, and the body stays.** The argument for a
+slice nobody ran is usually the part worth keeping.
+
 ## The `:PLAN:` drawer
 
-A finished heading's body has two halves, and they live in different places.
+**Write the plan into the drawer from the start.** A heading's prospective
+prose — motivation, options, the reasoning behind an approach, and the
+`[[file:~/.claude/plans/...][Plan]]` link if there is one — goes into `:PLAN:`
+at the moment it is composed, not at `DONE`. The body carries a brief
+statement of the problem and the proposed solution, two to five sentences. At
+`DONE` the debrief is appended to the body.
 
-- **`:PLAN:`** holds the *prospective* half — motivation, observations,
-  speculation, and the `[[file:~/.claude/plans/...][Plan]]` link if there is
-  one. It sits beside `:PROPERTIES:` and `:LOGBOOK:`, above the prose.
-- **The body** is the *debrief* alone: problem restated, what the solution
-  turned out to be, how it was verified, what was falsified.
+So the two halves are never mixed and **no seam is ever created**, which is
+the entire point. The seam is a fact about *when* a sentence was written;
+nothing in the prose records it, and it is not recoverable afterwards.
+Measured on `:ID:` f099379b: a lexical marker finds the prospective half as
+often as the retrospective one, and 88 of 93 finished headings carried a
+debrief that a blind wrap would have buried.
 
-So a folded heading shows the debrief and nothing else.
+Compose it in three calls — `org_amend` the prospective prose, `org_wrap_plan`
+with no seam marker to move it whole into the drawer, then `org_amend` the
+short body. `org_amend` appends *below* a `:PLAN:` drawer, so the debrief
+later needs no special handling.
 
-Create it with `org_wrap_plan`, never by hand — it takes an optional seam
-marker naming the first line that stays in the body, which is what a heading
-written before this convention needs, since such a body usually already holds
-both halves. `org_amend` appends *below* a `:PLAN:` drawer, so the debrief
-needs no special handling.
+The two-to-five-sentence limit governs the body **before** the debrief, not
+forever. A finished heading's body is that statement plus the debrief. Read as
+an absolute cap it would push the debrief into the drawer, which is the
+inversion this convention exists to prevent.
+
+**Which way to read the drawer depends on the keyword, and this reverses
+earlier advice.** On a **finished** heading, treat `:PLAN:` as absent unless
+the question is retrospective — "how did we get here", "why this way". The
+debrief and the source describe present reality; the plan describes an
+intention that may not have survived contact, and reading it for current fact
+is how superseded design claims get repeated as though they still held.
+
+On a **live** heading the drawer holds the *current* plan, and skipping it
+means skipping the only full statement of what the task intends. **Read it.**
+The drawer's status follows the heading's keyword rather than being a property
+of the drawer, which is why nothing has to move when the heading closes.
 
 **An empty `:PLAN:` drawer is a real answer, not an accident.** A heading
 written outcome-first has no prospective half at all, and that is the
@@ -469,24 +596,47 @@ convention working rather than a heading missing a step. Pass the debrief's
 first line as the seam and `org_wrap_plan` writes an empty drawer, recording
 that the question was asked and answered; the whole body stays visible.
 
-The point is that **whether a body has a prospective half is a judgement,
-not something derivable from its prose** — bodies of both kinds open with a
-bold lead, so nothing in the text distinguishes them. So it is *declared*,
-by running the wrap, exactly as a slice is declared rather than inferred.
+`org_wrap_plan`'s seam marker is now a **retroactive** tool. A heading written
+under this convention never needs one, because its body was never mixed. It is
+for bodies written before the convention existed, which usually hold both
+halves — see `:ID:` 35d25265 for the pass over those, and note that pass's
+one-off exception (wrap the whole body, leave a pointer note) is explicitly
+**not** available to new headings.
 
 This is also what makes the lint's question answerable. `bin/lint-org` warns
-when a finished heading has a substantial body and no `:PLAN:` drawer; before
-the empty drawer existed, the only way to satisfy that warning on a
-debrief-only heading was to wrap the debrief into a drawer readers are told
-to skip — the exact inversion the lifecycle exists to prevent. See `:ID:`
-f421c5c3.
+when a finished heading has a substantial body and no `:PLAN:` drawer, and
+`org_set_todo` says the same thing at the moment `DONE` is queued — which is
+the last moment anyone knows where the seam is. Before the empty drawer
+existed, the only way to satisfy the warning on a debrief-only heading was to
+wrap the debrief into a drawer readers are told to skip. See `:ID:` f421c5c3.
 
-**Readers skip it.** Treat `:PLAN:` as absent unless the question you are
-answering is retrospective — "how did we get here", "why was it done this
-way". The debrief and the source code describe present reality; the plan
-describes an intention that may not have survived contact, and reading it
-for current fact is how superseded design claims get repeated as though
-they still held.
+## Citing code from a body
+
+**Cite the symbol, never a line number.** `file.el:NNN` is deprecated in
+org bodies (`:ID:` 5fc7b934), extending the rule the skills already
+follow — `bin/check-org-dev-skill` exists partly because the org-dev
+skill describes the tool-registration block *structurally*, "specifically
+so a `config.el` edit that shifts line counts can't put the doc out of
+date."
+
+**The form rots upward, which is what makes it worse than a broken
+link.** The file grows, the cited line still exists, and it now holds
+something else plausible. It resolves, and it resolves to the wrong
+thing — a dangling reference at least announces itself.
+
+**The measurement that settled it:** every one of the eight live anchors
+in the corpus already named its symbol in the same sentence, so the line
+number was carrying nothing the symbol did not. Deleting it lost
+information in exactly zero cases.
+
+`bin/lint-org` reports one as an **error** on a live heading, because the
+correct form is mechanical. A *closed* heading's anchor is left alone: it
+is a historical statement — "this was true at `config.el:2792` on
+2026-08-21" — and rewriting it would falsify the record rather than
+repair it. 38 stand in the corpus and are not to be touched. A live
+heading that closes carries its anchor into `:PLAN:` with the rest of the
+prospective half, which is how the citation stops being a live pointer
+without anyone editing prose.
 
 ## The meta-work datetree
 
@@ -629,3 +779,22 @@ sentence isn't. The org skill has the full syntax, including the inverse
 `claude-code-ide-org--blocker-clock-running-p` sits on the same hook but
 blocks on a *running clock* instead — two different guards, so don't assume
 a refused transition came from the project's one.
+
+**But a `:BLOCKER:` on a `MAYBE` heading is dormant**, because org
+evaluates blocking against the *blocked* heading's own state: nothing
+blocks a heading that is not trying to move. The property looks like a
+live dependency and enforces nothing.
+
+That is the worst shape a dependency can take. The whole point of
+`:BLOCKER:` over a prose sentence is that it is machine-checkable, so one
+that reads as enforcement and enforces nothing is *less* honest than the
+sentence it replaced. `bin/lint-org` warns on it — three times in
+TODO.org as of 2026-09-02 — but a warning with no rule behind it is
+easy to dismiss.
+
+**What to do:** keep it. A `:BLOCKER:` on a `MAYBE` is a record of a real
+dependency that will wake by itself the moment the heading takes a live
+keyword, and deleting it to silence the warning would lose that. Read the
+lint line as "this is filed, not enforced" rather than as a defect to
+clear — and if you are relying on the block to hold, the heading is not
+`MAYBE`.

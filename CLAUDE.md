@@ -18,6 +18,46 @@ below for the current best guess at how these two goals combine.
 
 ---
 
+## This file is a starting point; the artifact is the authority
+
+**Read this before the claims below, because it qualifies all of them.**
+This file is loaded into every session by default while the things it
+describes are not. So a stale claim here *outranks the truth* until
+someone deliberately checks, and the sections describing mechanisms that
+have been cut over are the highest-risk kind — the prose outlives the
+code that justified it.
+
+Which artifact wins depends on the question:
+
+| question | authority |
+|---|---|
+| what the system does | the code and its tests |
+| how Emacs is configured | the live `~/.config/doom/config.el` |
+| what is planned, blocked, or next | `TODO.org`, via `org_outline`/`org_query` |
+| what a number means | the `defcustom`'s own docstring |
+
+**This is about *state*, not about *rationale*.** Why a decision went the
+way it did lives only in a heading body or in this file, and cannot be
+recovered from the code — which is why the load-bearing reasons are
+quoted here rather than left to a lookup. Distrust the file's account of
+what *is*; do not distrust its account of *why*.
+
+**And accuracy does not retire the risk — it disguises it.** An accurate
+CLAUDE.md makes answering from it more often correct, which makes the
+habit of answering from it instead of from the artifact harder to notice:
+the same behaviour with better odds. The evidence is that most wrong
+claims never came from this file. On 2026-08-11, of roughly a dozen wrong
+claims, only four traced here; the rest came from unchecked inference,
+from a session's own earlier summaries, and three times from reading a
+silently-failing command's empty output as a result.
+
+`bin/check-conventions` mechanises the part of this that can be
+mechanised — that cited `:ID:`s resolve and the keyword set agrees
+everywhere. It cannot check a claim that is merely out of date, which is
+most of them.
+
+---
+
 ## Architecture: the event queue
 
 **State and clock changes are queued, not applied.** This is the single
@@ -253,6 +293,17 @@ That is the whole reason the paragraph above says not to classify one: a
 declaration of something already derivable is a second copy that can
 disagree with the first.
 
+**But "however they arrived" describes detection, not permission**, and
+reading it as permission is a live trap — it was walked into on
+2026-08-31 (`:ID:` 9e627dc0). The test is what the heading *already
+owns*: **a task that has done work of its own — a clock, a `:LOGBOOK:`,
+a body recording what it did — must not simply be given children.**
+Doing so traps that record in a container, and a container with live
+children can never close, so a heading whose own work is finished is
+held open by its group indefinitely. Divide it instead; see "Where a
+story comes from" below. Only a heading with nothing of its own to
+strand may grow children in place.
+
 An **epic** and a **slice** are both declared, and they are not the same
 thing. Each asserts that particular tasks belong together for a reason
 the tree does not encode; they differ in what they do about it.
@@ -290,6 +341,16 @@ rather than being promoted: a new parent appears, the original leaf
 moves under it *carrying its `:ID:`, clock and `:LOGBOOK:`*, and the
 undone parts of its swollen body become new sibling leaves. `:ID:`
 a0813ae3, **built 2026-08-28** as `org_divide`.
+
+**Note the direction, because getting it backwards is the whole trap:
+after dividing, the original heading is the _child_.** The new parent
+carries a new `:ID:` that did not exist before. If the heading you
+started from is still the parent afterwards, you did not divide — you
+added children, and the paragraph above says when that is wrong.
+**Order matters too:** divide *first*, then file the new leaves as
+siblings. Dividing afterwards carries any children you already added
+down with it, since `org-demote-subtree` moves the whole subtree, and
+they arrive as grandchildren needing a refile.
 
 Two halves, split on whether judgement is involved. The tool does the
 *structural* move and nothing else — new parent, demote, carry
@@ -380,6 +441,17 @@ happened: what shipped, how it was verified, what was measured, what was
 falsified, and why a decision went the way it did. It does not restate
 design the linked plan already holds.
 
+**Since 2026-09-02 the plan goes into `:PLAN:` when it is *composed*, not
+at `DONE`** (`:ID:` b75d553a). The body carries a two-to-five-sentence
+statement of the problem and proposed solution; the debrief is appended
+at `DONE`. So the two halves are never mixed and no seam is ever
+created — which matters because the seam is a fact about *when* a
+sentence was written, is recorded nowhere in the prose, and is not
+recoverable later (`:ID:` f099379b). `org_wrap_plan`'s seam marker is now
+a retroactive tool. **And how to read the drawer depends on the
+keyword**: skip it on a finished heading, *read* it on a live one, where
+it holds the current plan rather than superseded design.
+
 *Revision is expected, not forbidden* (reversed 2026-08-24; this rule
 previously read "Prospective only — bodies written before 2026-08-14 are
 not to be trimmed"). A finished heading's body may be split: the
@@ -406,11 +478,14 @@ body prose in the version-controlled `.org` files is recoverable from
 any commit, and only *plans* have bounded history, since
 `.githooks/pre-push` merely bounds how stale the archive can be.)
 
-*The backlog is not this rule.* `cbe282ec` chose "sweep old bodies in
-unedited" to keep 30 headings cheap, and that stands: **backlog = wrap
-unedited; opportunistic = split when you are already reading the heading
-anyway.** Letting the backlog pass acquire per-heading judgement is
-exactly the cost that decision was made to avoid.
+*The backlog rule was "wrap unedited" and is retired* (`:ID:` f099379b).
+`cbe282ec` chose it to keep 30 purely prospective bodies cheap. Measured
+2026-09-02, 88 of 93 unwrapped headings carry a debrief, so a blind wrap
+would bury it in a drawer readers are told to skip — and no lexical
+marker finds the seam, since the first match sits in the *prospective*
+half as often as not. The backlog pass is `:ID:` 35d25265, which reads
+each body; it costs the per-heading judgement `cbe282ec` was trying to
+avoid, and there is no cheaper honest option.
 
 *The evidence for the split, from a single day's drift:* three headings
 carried confident design claims that were later found wrong —
@@ -521,7 +596,9 @@ Two consequences worth stating, since both have been read backwards. The
 nine groupings carrying their own CLOCK lines today are **history, not
 debt** — each was clocked honestly while it was still a leaf, and became
 a grouping later by acquiring children or by a refile. Nothing is to be
-migrated. And the resulting ambiguity is a **reporting** problem, not a
+migrated. **That is amnesty for what already happened, not a licence to
+make more**: each of those arose by accident, and choosing the shape
+deliberately today is the error the story paragraph above now names. And the resulting ambiguity is a **reporting** problem, not a
 data one: measured 2026-08-26, a clocktable row for a parent shows own
 plus subtree as one number and its own share appears nowhere, recoverable
 only by subtracting every child (`:ID:` 64d34a64). Both triggers
@@ -571,6 +648,23 @@ and `org_clock_in` are separate calls precisely so state and clock are
 decided separately, and apply suppresses the trigger outright. The one
 path that does *not* honour it is a hand `C-c C-t` in Emacs — where a
 human is present to know which act they are performing.
+
+**A second exception: a _grouping_.** A story or a slice entering
+`DOING` opens no automatic clock, because on a grouping the keyword
+means "at least one member is in the mail" rather than "work is
+happening here". `--trigger-auto-clock-in` declines when
+`--grouping-heading-p` is true.
+
+**Note where that exemption actually bites, because it is narrower than
+it reads.** The trigger tests `--auto-clock-in-active` *before* it tests
+for a grouping, and apply binds that variable around the whole pass — so
+on the apply path the trigger short-circuits for **every** heading,
+grouping or leaf, and the grouping test is never reached. The exemption
+therefore does its work in exactly one place: a TODO state changed *by
+hand* in Emacs (`C-c C-t`, `S-right`). And it suppresses only the
+*automatic* clock, never a deliberate `C-c C-x C-i` — a grouping's own
+coordination time is real work and may be clocked on purpose.
+
 **Rule**: a transition *from* `DOING` closes the clock **if this
 heading's clock is the one running**. Because `DOING` is plural, a
 heading can be `DOING` with no clock — another heading holds it — and
@@ -640,10 +734,42 @@ ungated **inside a container**.
 
 **`NEXT` belongs to a container's *members*, and nothing sets it by
 itself** (`:ID:` 62b65ad0, 2026-08-26). Read that carefully: `NEXT` is
-meaningful *within* a story or a slice, and a container itself must
-never carry it — promoting one declares a project to be an action, which
-is `:ID:` 42808717. "Belongs to containers" was the original phrasing
-here and read as the opposite of what it meant. A `--trigger-auto-promote-sole-todo`
+meaningful *within* a story, and **a story must never carry it** —
+promoting one declares a project to be an action, which is `:ID:`
+42808717. "Belongs to containers" was the original phrasing here and read
+as the opposite of what it meant.
+
+**A slice is the exception, and the rule was split on 2026-09-02 to say
+so** (`:ID:` abce1850). It previously read "within a story *or a slice*",
+which neither source heading argued: `:ID:` 42808717 was written six days
+before slices existed and never mentions them, and `:ID:` 62b65ad0
+mentions them once in 5,418 characters. The generalisation was
+editorial.
+
+And it does not hold, because the two groupings differ in the way that
+matters. A story is *emergent*; its next action is one of its children,
+so naming the parent names no action. A slice is *declared and
+sequenced*, and **several are open at once** — three on the day this was
+written — with nothing in the vocabulary saying which to pick up.
+`DOING` on a slice means at least one member is in the mail, which is
+state rather than priority.
+
+So **a slice may carry `NEXT`, and it means "this is the slice to pick up
+next"** — a portfolio-level nomination, not an action. Three constraints
+keep it from re-creating the confusion `:ID:` 42808717 named one tier
+down:
+
+- **At most one slice carries it.** Two would say nothing, which is the
+  failure mode of every priority marker.
+- **It does not substitute for a member's `NEXT`.** The two answer
+  different questions — which slice, and which action inside it — and a
+  slice marked `NEXT` whose members are all `TODO` is still
+  un-nominated.
+- **Nothing sets it automatically**, exactly as before. Sequencing
+  slices is a judgement, and the retired promotion trigger is the
+  standing evidence for what happens when that judgement is mechanised.
+
+A `--trigger-auto-promote-sole-todo`
 stood here and set `NEXT` on a container's sole remaining `TODO`
 autonomously. It is gone, along with its three guards — a re-entrancy
 flag, a mid-batch suppression flag, and the settle pass that re-ran what
@@ -715,10 +841,13 @@ closing this leave behind", which may belong to no group yet.
 subtree. Name the blocking heading and where it is; a `:BLOCKER:` property
 is the machine-checkable form. A dependency inside the same sibling group
 needs no announcement — anyone reading that group can already see it — but
-a cross-subtree one is invisible from either side. Note that a `:BLOCKER:`
-naming a heading captured in the same session is **inert** until a human
-applies the queue, since `org-depend` blocks only on an unfinished TODO
-keyword and a fresh capture is keywordless on disk.
+a cross-subtree one is invisible from either side. Note that a `:BLOCKER:` naming a
+heading captured in the same session is **inert** until a human applies
+the queue *if that capture was keywordless* — `org-depend` blocks only on
+an unfinished TODO keyword. Since 2026-08-31 `org_capture` takes an
+`initial_state`, so pass one and the blocker bites immediately (`:ID:`
+c74f8663). Omitting it is still right for a note rather than a task, and
+then the old caveat applies unchanged.
 **Rule**: any time a new task is described in conversation, create an org
 heading for it (with a `:ID:`) and set its initial TODO state, rather than
 only tracking it in conversation memory. Same reasoning as above — this is
@@ -786,6 +915,7 @@ incident, and the reason the queue exists:
 | Tool                | Notes                                  |
 |---------------------|-----------------------------------------|
 | `org_outline`       | Compact structural index: level, keyword, title, `:ID:`, tags. Marks `[blocked: id …]`. **Scoped to one heading it leads with that heading's front matter** — `:CREATED:`, `:CATEGORY:`, `:KIND:`, the `:BLOCKER:` *value* with each id's keyword, the plan file — so "what is this, what blocks it, what is under it" is one call and no body read. Accepts an 8-character prefix as scope. Use before creating a heading |
+| `org_body`          | Returns one heading whole — heading line, drawers and body — by `:ID:` or 8-character prefix. Filters **nothing**, `:PLAN:` included; the caller extracts, and how to read that drawer depends on the heading's keyword (skip when finished, read when live). This heading's own body by default, `include_children` for the subtree. Replaces grep-plus-awk-plus-`Read`; still reach for `org_outline` first |
 | `org_pending_updates` | Summary of queued-but-unapplied updates, grouped by heading. Counts *proposals*, not queue lines. This is how you check a queued call landed |
 
 There is **no MCP tool that applies the queue**, by design. Apply is `M-x
@@ -798,18 +928,30 @@ generating new headings, and time reporting. `org_query` now covers
 structured cross-file reads (e.g. "what's blocked," "everything :research:
 and not DONE") that used to mean Claude reading whole files by hand.
 
-**Read-only buffers:** none of the file-touching tools bind `inhibit-read-only`,
-so if the user has toggled a buffer read-only (`C-x C-q`) it fails
-outright with a `buffer-read-only` error. The user only does this to
-guard against their own stray keystrokes while viewing the file, not to
-block Claude — clear it (`(setq buffer-read-only nil)` via
-`emacsclient`) and proceed, no need to ask first. **Restore it when the
-work is done, and say so** — clearing is permitted, leaving it cleared
-is not: each unrestored clear silently switches the user's guard off
-until they happen to notice (their request, 2026-08-10; the proper fix —
-tools binding `inhibit-read-only` themselves — is TODO.org `:ID:`
-c8a97d9d). If they ever want a specific buffer left alone, they'll say
-so explicitly; that overrides this default for that instance only.
+**Read-only buffers: nothing to do.** The file-touching tools bind
+`inhibit-read-only` themselves, so a buffer the user has toggled
+read-only (`C-x C-q`) is written normally and the flag is still set
+afterwards. **The clear-and-restore convention that stood here until
+2026-08-31 is retired** (`:ID:` c8a97d9d) — do not clear
+`buffer-read-only` by hand, and do not report having done so.
+
+It is a *binding*, never a `setq`, and that is the whole safety
+property: the flag comes back when the scope exits, including on a
+non-local exit, so a tool erroring part-way through cannot leave the
+buffer writable. The old convention could, and the failure window was
+not theoretical — restoring the flag *correctly* after an `org_amend`
+is what broke a human's own apply pass on 2026-08-25.
+
+Two things this deliberately does not cover. **Interactive commands
+still ask**: `M-x claude-code-ide-org-review` prompts before apply
+(`--review-ensure-writable`), because clearing a human's guard is the
+human's call when a human is present to make it. And a **hand-written
+`emacsclient` call** is not a tool and binds nothing — if you find
+yourself reaching for one against a read-only buffer, that is a signal
+the tool surface is missing something, not a licence to clear the flag.
+
+If the user ever wants a specific buffer left alone, they'll say so
+explicitly; that overrides this for that instance only.
 
 ---
 
@@ -817,11 +959,25 @@ so explicitly; that overrides this default for that instance only.
 
 Two separate timekeeping mechanisms, deliberately kept apart:
 
-- **`:LOGBOOK:` CLOCK entries** (org's own, native mechanism) track *active
-  Claude work time only*. A running clock is paused the moment Claude Code
-  stops and is waiting on the user, and resumed the moment the user sends
-  the next prompt. A DOING task can therefore accumulate many short CLOCK
-  intervals instead of one long one spanning idle waiting time.
+- **`:LOGBOOK:` CLOCK entries** (org's own, native mechanism) hold
+  *confirmed intervals* — work time a human accepted at a review pass.
+  **No hook writes one.** Since the 2026-08-11 cutover the `Stop` and
+  `UserPromptSubmit` hooks append **turn-boundary guideposts**: bare
+  timestamps, naming no heading and touching no clock. The review pass
+  clusters those into spans, and a human confirms or corrects each one
+  before it becomes a CLOCK line. So the *emission* is still per-turn;
+  the *record* is not, and intervals are per-decision rather than per-turn.
+
+  Two consequences that read as bugs and are not. A `DOING` heading
+  normally has **no running clock** — live CLOCK lines are only ever
+  written by the review pass, so every `DOING` heading sits clockless
+  between passes. And CLOCK lines arrive in **bursts when someone
+  applies**, not continuously as work happens, so their timestamps
+  describe when the work was, never when the line was written.
+
+  **Churn relocates; it does not disappear.** Guideposts still accumulate
+  every turn, into the queue file — cheap, disposable, no Emacs required.
+  What ended is churn in the *org record*.
 - **The `:SESSIONS:` drawer is retired** (2026-08-11, TODO.org
   `:ID: 9d2fcdad-9bf7-47b6-8018-223b13ec4577`). It used to hold the
   bracketing history — a timestamped log of every pause and resume, so
@@ -884,6 +1040,56 @@ CLOCK interval on the wrong heading, not lost time or a stuck state.
 to end up in an unstable relative order, since whichever drawer already
 existed was appended to in place while a fresh one landed right after the
 property drawer. With only `:LOGBOOK:` left there is nothing to order.
+
+### The three numbers that shape a recorded interval
+
+All three are `defcustom`s, all three run at their defaults, and none was
+written down here until 2026-09-02. They apply in order:
+
+| variable | default | decides |
+|---|---|---|
+| `claude-code-ide-org-guidepost-gap-threshold` | 1200 s | how guideposts group into spans for review |
+| `claude-code-ide-org-span-idle-floor` | 120 s | how much idle *inside* a span is absorbed rather than split on |
+| `claude-code-ide-org-span-minimum-interval` | 0 s | below which a run is dropped rather than written |
+
+**The threshold no longer defends any duration, and reading it as though
+it still does is the mistake this section exists to prevent.** A span
+used to be written as one CLOCK line end to end, so where the threshold
+fell decided how much idle became work — which is what made its
+derivation load-bearing. Since 2026-08-18 apply writes one line per run
+of `resume` → `pause` *inside* the span, so the threshold now governs
+**grouping and display only**: how many items a human is shown and how
+wide each reads. Moving it moves lines around the review buffer without
+moving a single recorded minute.
+
+Its value is still well founded, for what it now does. 1200 s sits inside
+a band containing *no observations at all* — measured over 422 events,
+the longest short gap was 1061 s and the shortest long gap 2070 s — and
+span count is flat across 1200–1800 s, so every value in the band yields
+an identical reconstruction. It was 900 s until 2026-08-13, just below
+the band, splitting five spans nothing justified splitting.
+
+**The idle floor is the consequential one — it is what decides how much
+idle the record claims as work.** Two runs separated by less than 120 s
+merge into one line. Strictly less, so a gap of exactly 120 s splits.
+The trade is deliberate and measured: splitting at every idle gap turns
+one span into 54 CLOCK lines against 39 at two minutes, while raising
+the floor to 300 s would write 30.89 h where 120 s writes 23.05 h —
+re-absorbing nearly eight hours of the idle the floor exists to keep
+out. Legibility is all a larger floor buys; accuracy is the point.
+
+**The minimum interval is a named no-op, deliberately.** Zero means
+exactly today's behaviour: what keeps sub-minute intervals out of the
+drawer is two *rendering* conditions, which are consequences of the clock
+format rather than a policy anyone chose. Naming it makes the policy
+settable without changing it — a knob that cannot be turned is not a
+knob — and the value it should take is a reporting decision, not an
+implementation one.
+
+**Do not infer any of these from a drawer.** They are the reason two
+CLOCK lines on the same heading can describe adjacent work and still be
+separate lines, and the reason a turn you remember taking thirty seconds
+may appear nowhere at all.
 
 ### Stale interval recovery
 
