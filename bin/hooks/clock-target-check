@@ -63,10 +63,22 @@ sentinel="$queue_dir/$session_id.clock-target-nagged"
 # Clock evidence: any clock_in this session. jq, not a raw grep -- the
 # amend events carry free text, and prose containing the literal
 # '"kind":"clock_in"' must not count as a clock.
+#
+# -n -R + inputs + `fromjson?', NOT -s. Slurping parses the file as one
+# document, so a single malformed line aborts jq, the `if' fails, and
+# this proceeds as though the session had never clocked in -- nagging a
+# session that did, and blocking its Stop. The failure direction is the
+# wrong one, and it is reachable: queue-append embeds the whole hook
+# payload per line via --argjson, so a line carrying a large org_amend
+# text can exceed the atomic-append size while Stop, UserPromptSubmit
+# and PostToolUse all append to this one file. The write-evidence scan
+# below already skips malformed lines for exactly this reason; the same
+# tolerance costs nothing here. Measured 2026-09-03 on a fixture holding
+# a real clock_in plus one truncated line: -s exits 5, this exits 0.
 queue_file="$queue_dir/$session_id.jsonl"
 if [[ -r "$queue_file" ]]; then
-  if jq -e -s 'map(select(.kind == "clock_in")) | length > 0' \
-      "$queue_file" >/dev/null 2>&1; then
+  if jq -e -n -R '[inputs | fromjson? | select(.kind == "clock_in")] | length > 0' \
+      < "$queue_file" >/dev/null 2>&1; then
     exit 0
   fi
 fi
