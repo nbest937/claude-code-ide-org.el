@@ -8,6 +8,7 @@
 :CREATED:  [2026-09-03 Thu 15:00]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
 Found while closing =ae4e4b04=, and filed rather than mentioned because residue named only in a
 closed heading's prose is on a path to becoming invisible. =bin/pre-commit-test= reports **5 passed,
@@ -30,6 +31,43 @@ Its twin, also on =origin/main= and also out of PR #9's scope: =bin/check-conven
 mistyped flag falls into =case '*'=, =cd= fails, =root= goes empty, **zero assertions run**, and it
 exits 0 silently — the failure mode =542924c1= collects. Worth fixing in the same pass; both are the
 gate lying about itself.
+
+:END:
+*The =fish= hypothesis above is falsified.* The prospective half names it as the likely cause and
+flags it unverified; reproducing it first is what saved the fix. The actual cause is that
+=bin/pre-commit-test='s fixtures still build the **level-1 `* Category' tier**, retired 2026-08-27
+(=29439196=), after which level 1 is a task carrying =:ID:= and =:CREATED:=. =bin/lint-org= was
+updated and the fixtures were not, so three cases asserted the superseded convention and the suite
+went red and stayed red. The hook's real output on the "clean staged org passes" case was
+=error: TODO.org:3: level-1 task has no :ID:: Category= — nothing to do with a shell.
+
+=PLANNING= went the same way on 2026-08-28 (=c954f650=), so the fixture's =#+TODO:= line is corrected
+too, and =REVIEW= added. **8/8, and the three refusal cases still refuse**, so both polarities are
+exercised rather than the suite having been made agreeable.
+
+*The twin is fixed in the same commit.* =bin/check-conventions --dcs-only= fell into =case '*'=,
+=cd= failed, =$root= went empty, every assertion found nothing, and it exited **0** — a gate
+answering "all clear" having run zero assertions, which is exactly what =542924c1= collects, reachable
+by one typo. Unknown =--flags= and unreadable =ROOT=s are now exit **2**, deliberately distinct from
+1: a usage error is not a failed check, and a caller that cannot tell them apart would retry.
+
+*Recorded because the suite earned it, and because it is the same defect class introduced while
+fixing it.* A first cut wrote =command cd $a=, on an instinct about shell functions that is wrong
+here: =cd= is a fish builtin, so =command= skips it for an external no-op, =pwd= then reports the
+*current* directory, and every check silently ran against this repo instead of the =ROOT= it was
+handed. Cases 8 and 11 went red within a minute — their fixtures had stopped being read at all. The
+lesson is not the mistake, it is that pre-existing assertions caught a silent-scope error the new ones
+were not aimed at.
+
+Shipped in [[orgit-rev:claude-code-ide-org::c4876c9][c4876c9]]. Four cases added to
+=bin/check-conventions-test= (18 now), including the converse — a valid flag and =ROOT= still run — so
+the two refusals cannot pass by refusing everything. Full battery: =bin/test= 542/542, every shell
+suite green, =bin/lint-org= 0 errors.
+
+*Still true and still not this heading's work:* =.githooks/pre-commit= does depend on =fish= through
+=bin/check-conventions=. That is real, it is a portability question rather than a defect, and
+=84b7d8b3= is where it belongs.
+
 
 * TODO [0/5] Close the four defects the PR #9 review found, and the gap they shared
 :PROPERTIES:
