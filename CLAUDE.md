@@ -122,21 +122,9 @@ written weeks ago is not. TODO.org exists to inform planning, orchestration
 and coordination of *future* work — read it for what to do next, not for
 what the system currently is.
 
-*A caveat that stood here until 2026-08-28, wrong in its detail and now
-fixed outright (`:ID:` 98908aff).* It said `active_only` *drops* live
-children of a finished parent. It did not drop them — it emitted them at
-their unchanged absolute indent with the parent gone, so a reader
-re-parented a live child onto whatever line above happened to have a
-smaller indent. Wrong structure rather than a visible gap, which is worse,
-and the difference matters because a missing line is noticed and a
-misparented one is not.
-
-`--outline-map` now keeps a filtered-out heading when it is an *ancestor*
-of something that survived, so the path stays intact. Two related things
-also stopped being true: the old note's reassurance rested on level-1
-headings being keywordless categories, which the flattening removed, and
-the corpus still has zero instances — so this was fixed while it was
-still latent rather than after it bit.
+(`--outline-map` keeps a filtered-out heading that is an *ancestor* of a
+surviving one, so `active_only` never re-parents a live child; `:ID:`
+98908aff has the history.)
 
 **DONE.org is reference, never orientation.** Do not survey it to start a
 session; it will not tell you what to work on. Open it when something live
@@ -823,12 +811,8 @@ down:
   slices is a judgement, and the retired promotion trigger is the
   standing evidence for what happens when that judgement is mechanised.
 
-A `--trigger-auto-promote-sole-todo`
-stood here and set `NEXT` on a container's sole remaining `TODO`
-autonomously. It is gone, along with its three guards — a re-entrancy
-flag, a mid-batch suppression flag, and the settle pass that re-ran what
-the suppression skipped. 163 lines, every one of which existed *because*
-the trigger wrote to the file on its own.
+An auto-promotion trigger (`--trigger-auto-promote-sole-todo`) stood
+here and is gone.
 
 Two things went wrong with it, and only the second is obvious in
 hindsight. It nominated badly: three of roughly eight top-level
@@ -1018,9 +1002,7 @@ explicitly; that overrides this for that instance only.
 
 ## Session tracking (`.claude/settings.json`, `bin/hooks/`)
 
-Two separate timekeeping mechanisms, deliberately kept apart:
-
-- **`:LOGBOOK:` CLOCK entries** (org's own, native mechanism) hold
+**`:LOGBOOK:` CLOCK entries** (org's own, native mechanism) hold
   *confirmed intervals* — work time a human accepted at a review pass.
   **No hook writes one.** Since the 2026-08-11 cutover the `Stop` and
   `UserPromptSubmit` hooks append **turn-boundary guideposts**: bare
@@ -1039,16 +1021,9 @@ Two separate timekeeping mechanisms, deliberately kept apart:
   **Churn relocates; it does not disappear.** Guideposts still accumulate
   every turn, into the queue file — cheap, disposable, no Emacs required.
   What ended is churn in the *org record*.
-- **The `:SESSIONS:` drawer is retired** (2026-08-11, TODO.org
-  `:ID: 9d2fcdad-9bf7-47b6-8018-223b13ec4577`). It used to hold the
-  bracketing history — a timestamped log of every pause and resume, so
-  the full wall-clock arc including the gaps stayed visible. All 49
-  existing drawers were deleted and nothing writes one now. The
-  per-session event queue holds the same pause/resume stream
-  undecimated, survives without a running Emacs, and carries
-  `session_id`/`agent_id`/`agent_type`/`source`, none of which the
-  drawer recorded. Historical drawers are recoverable from git if that
-  judgement turns out to be wrong.
+
+The `:SESSIONS:` drawer is retired (2026-08-11, `:ID:` 9d2fcdad); the
+queue holds the same stream undecimated.
 
 Driven by Claude Code hooks, configured in `.claude/settings.json`. None
 of them reaches Emacs any more — each appends a line to the session's
@@ -1097,10 +1072,6 @@ the new task and calls `org_clock_in` on it — `org-clock-in` always closes
 whatever clock is currently running first — so the cost is a short, stray
 CLOCK interval on the wrong heading, not lost time or a stuck state.
 
-**Resolved by the retirement above:** `:SESSIONS:` and `:LOGBOOK:` used
-to end up in an unstable relative order, since whichever drawer already
-existed was appended to in place while a fresh one landed right after the
-property drawer. With only `:LOGBOOK:` left there is nothing to order.
 
 ### The three numbers that shape a recorded interval
 
@@ -1199,12 +1170,9 @@ calling either from code.
 **The report asks; it never proposes.** It states the timestamp the
 interval opened at — a fact it has — and asks what time work actually
 stopped, explicitly instructing the relaying session not to invent one.
-`claude-code-ide-org-working-hours` and the educated guess it fed were
-retired 2026-08-14 (TODO.org `:ID:` 7771fc63): the premise that absence
-is predictable from the clock was measured and failed, with 11 of 19
-long gaps beginning *inside* working hours. A wrong guess is worse than
-none, because a plausible suggestion is harder to reject than no
-suggestion at all.
+A guess would be worse than none — a plausible suggestion is harder to
+reject than no suggestion at all (measured and retired 2026-08-14,
+`:ID:` 7771fc63).
 
 **Configuration** (`defcustom`s; neither is set in
 `~/.config/doom/config.el` today, so both run at their defaults):
@@ -1219,9 +1187,7 @@ suggestion at all.
 tool — this is a text-level fix for a stale interval, unrelated to
 whatever may currently be clocking) with the heading's `:ID:` and an org
 timestamp string. It closes the open CLOCK line, computes the duration,
-and saves the buffer. It does not touch the live clock, and it no longer
-writes a `:SESSIONS:` entry or triggers a history consolidation — both
-were dropped in the 2026-08-11 retirement.
+and saves the buffer. It does not touch the live clock.
 
 **Won't do** (closed out 2026-08-14 with the guess heuristic itself,
 TODO.org `:ID:` 7771fc63): using the system sleep/wake/shutdown log
