@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Make the commit's Claude attribution tell the truth (TODO.org :ID:
+# f1ff027e-5826-4812-8221-96eeba966333).
+#
+# The problem: the co-author trailer a session types into -m is static
+# text frozen at session start, so a mid-session /model switch (or a
+# stale prompt template) misattributes the work -- observed 2026-09-04,
+# ten commits crediting Opus for Fable's work. No model env var exists
+# (probed: CLAUDECODE, CLAUDE_CODE_BRIDGE_SESSION_ID, CLAUDE_EFFORT --
+# nothing names the model), but /model persists its choice to
+# ~/.claude/settings.json as {"model": "<alias>"}, which this hook reads
+# as the live source of truth.
+#
+# Behaviour, gated on CLAUDECODE=1 so a human's own commits are never
+# touched: an existing "Co-Authored-By: Claude ..." line is REWRITTEN to
+# the live model (fixing exactly the hand-typed staleness above); a
+# missing one is appended; a Claude-Session line is appended from
+# CLAUDE_CODE_BRIDGE_SESSION_ID when absent. Unknown model or unreadable
+# settings: leave the message alone -- a wrong guess is worse than none.
+#
+# Fire-and-forget like bin/hooks/queue-append: always exit 0, never
+# block a commit. Plain bash per the Emacs-boundary shell decision
+# (:ID: 84b7d8b3) -- a git hook must run with no Emacs at all.
+# CLAUDE_SETTINGS_FILE is a test seam (bin/prepare-commit-msg-test).
+
+set -uo pipefail
+
+msg_file="${1:-}"
+[[ -n "$msg_file" && -f "$msg_file" ]] || exit 0
+[[ "${CLAUDECODE:-}" == "1" ]] || exit 0
+command -v jq >/dev/null 2>&1 || exit 0
+
+settings="${CLAUDE_SETTINGS_FILE:-$HOME/.claude/settings.json}"
+alias_name="$(jq -r '.model // empty' "$settings" 2>/dev/null)"
+
+# Display names for the aliases /model documents; a full model id or an
+# unrecognised alias falls through verbatim rather than being guessed at.
+case "$alias_name" in
+  fable|claude-fable*)   model="Fable 5" ;;
+  opus|claude-opus*)     model="Opus 5" ;;
+  sonnet|claude-sonnet*) model="Sonnet 5" ;;
+  haiku|claude-haiku*)   model="Haiku 4.5" ;;
+  "")                    exit 0 ;;
+  *)                     model="$alias_name" ;;
+esac
+
+trailer="Co-Authored-By: Claude $model <noreply@anthropic.com>"
+
+if grep -q '^Co-Authored-By: Claude ' "$msg_file"; then
+  tmp="$(mktemp)" || exit 0
+  awk -v t="$trailer" \
+    '{ if ($0 ~ /^Co-Authored-By: Claude /) print t; else print }' \
+    "$msg_file" > "$tmp" 2>/dev/null && mv "$tmp" "$msg_file"
+  rm -f "$tmp" 2>/dev/null
+else
+  printf '\n%s\n' "$trailer" >> "$msg_file"
+fi
+
+if [[ -n "${CLAUDE_CODE_BRIDGE_SESSION_ID:-}" ]] \
+   && ! grep -q '^Claude-Session:' "$msg_file"; then
+  printf 'Claude-Session: https://claude.ai/code/%s\n' \
+    "$CLAUDE_CODE_BRIDGE_SESSION_ID" >> "$msg_file"
+fi
+
+exit 0
