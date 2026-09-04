@@ -2,6 +2,26 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Package the plugin: references, setup command, machinery prose :code:
+:PROPERTIES:
+:ID:       b0e478f7-e894-4ac7-b0b6-b3c890b5b32a
+:CREATED:  [2026-09-04 Fri 14:56]
+:BLOCKER:  ids(d5345abb-b451-4468-8f27-4bb2da983215)
+:CATEGORY: Dev
+:END:
+
+Where the three portability decisions recorded on
+[[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] (2026-09-04)
+execute. Build the plugin manifest (=.claude-plugin/plugin.json=), ship
+the conventions as skill =references/=, add the =bin/= setup command
+that promotes them into a consuming repo's =.claude/rules/= (per-repo;
+full strength, consent-by-install), and move CLAUDE.md's ~580 lines of
+machinery prose — queue architecture, queue-conditional transition
+rules, tool tables, session tracking — in this same change, so
+instructions and machinery land together. Blocked on the audit
+relocating the SKILL and RULE rows first, so prose moves once, not
+twice.
+
 * TODO session-context.sh reports which groupings lack a NEXT, never which headings hold one
 :PROPERTIES:
 :ID:       81eaf26f-97ae-4dbf-acf5-e457083ab9f9
