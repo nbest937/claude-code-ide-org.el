@@ -2,6 +2,51 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A DOING story is invisible to every report, and two have sat a fortnight
+:PROPERTIES:
+:ID:       4133772c-b81d-46e3-8cf7-98359f9a6526
+:CREATED:  [2026-09-04 Fri 12:51]
+:CATEGORY: Meta
+:END:
+
+=43aa25b2= one state over. =--attention-headings-context= reports a =DOING= *leaf* the file and the
+queue disagree about, and its clause opens
+=(and (equal state "DOING") (not (claude-code-ide-org--grouping-heading-p)))= — so a =DOING= **story**
+is excluded by construction. That exclusion is deliberate and right in its own terms: a story is
+=DOING= because a member is in the mail, and nagging about it every session would be wrong. The
+*effect* is that nothing surfaces one at all, ever.
+
+*Measured 2026-09-04. Every live =DOING= heading is a story, and two are old:*
+
+| heading                                            | own last stamp | |
+|----------------------------------------------------+----------------+------|
+| =4c834fdb= scannable summary                        | 2026-09-02     | 2 d  |
+| =02aaae22= update CLAUDE.md and the org skill       | 2026-09-02     | 2 d  |
+| =420816ec= how the emacs-tools are advertised       | **2026-08-21** | 14 d |
+| =406e9200= guidepost pipeline durations             | **2026-08-18** | 17 d |
+
+*Found the same way =43aa25b2= was — by a human noticing.* The user asked whether =420816ec= had been
+overlooked "just like the REVIEWs", and it had: fourteen days, three of its findings already measured,
+and no mechanism that would ever mention it. =406e9200= is older still and nobody has mentioned it
+today; it is =[10/13]=, three members from done, and it blocks =0c8644ff=.
+
+**Report-all is wrong here, unlike for =REVIEW=.** A =REVIEW= heading is by definition waiting and the
+population is tiny. A =DOING= story is by definition long-lived, so report-all names four every
+session including two touched this week — the noise that trains the eye to skim, which is the failure
+every report here is built to avoid. The signal is **staleness**, not existence.
+
+*And the metric is the open question, not the clause.* The table above uses each story's **own** block.
+A story whose *members* are moving while its body sits still would read stale wrongly, and =406e9200=
+at =[10/13]= is exactly the shape that might. The honest measure is latest activity across the story
+**and** its members, which is more than the existing clause computes — so decide that before writing
+the branch. Precedent for the shape: the =DOING=-leaf clause already uses quiet-since-before-today as
+its abandonment test; a story wants a longer window than a day.
+
+*Where it goes:* a fifth clause in =--attention-headings-context=, the same place =43aa25b2= landed,
+for the same reason — that function already answers "what should a starting session be told about",
+and a forgotten story is that question. **Not the org skill**: a skill loads on trigger match, possibly
+never, and a report that must fire at session start cannot depend on that.
+
 * TODO footnote-check resolves every id and discards the answer, then asks for it
 :PROPERTIES:
 :ID:       33c3eabc-00f2-4cf1-afb7-4071aa256d62
@@ -3333,6 +3378,32 @@ the question being asked. This removes the reason to reach rather than arguing a
 so delete most of the demand entirely. The two are complementary: that one removes ~19 of 20
 lookups, this one makes the remainder cheap — and multi-scope is useful wherever ids arrive in
 groups, which is how a slice's members, a =:BLOCKER:= list and a review buffer's items all arrive.
+
+*Narrowed the same day, and the narrowing matters because it removes the strongest-sounding case.*
+**For top-level headings the batch lookup already exists**: =org_outline= with =active_only= and
+=max_depth 1= returns the whole corpus's id → keyword → title map in one call. That is the shape the
+nineteen =grep='s should have been, and no new argument is required — the tool already wins, and I
+did not reach for it.
+
+*So the multi-scope proposal is not "n lookups cost n calls" in general.* It is three narrower cases,
+which the paragraph above overstated:
+
+- **Children.** A story's members do not appear at =max_depth 1=, and raising the depth returns the
+  whole tree rather than the ids asked about.
+- **Mixed depths.** A footnote list routinely names a top-level heading and someone else's child in
+  the same breath; no single =max_depth= serves both.
+- **=DONE= headings.** =active_only= excludes them, and finished work is cited constantly —
+  **six of one day's flagged footnote ids resolved out of =DONE.org=**. Dropping =active_only= to
+  reach them returns the entire archive.
+
+*The honest restatement:* the gap is not arity, it is that the two axes available for narrowing —
+depth and liveness — are the wrong axes when the question is "these particular ids". Multi-scope adds
+the axis that fits the question.
+
+*Which also means the ergonomic argument for it is weaker than filed and the correctness argument is
+unchanged.* A loop over the org files is still wrong for the reasons =2c5f7c50= collects; it is just
+that for the commonest case the alternative was already one call away.
+
 
 * TODO Moving a heading between files by hand leaves org-id pointing at the old one :code:
 :PROPERTIES:
