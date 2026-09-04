@@ -2,6 +2,53 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* MAYBE [0/7] Only membership and order are declared, and everything else still needs a hand
+:PROPERTIES:
+:ID:       52bfafdf-d313-48e1-9524-d8b539f165c9
+:CREATED:  [2026-09-04 Fri 09:26]
+:CATEGORY: Slices
+:COOKIE_DATA: checkbox recursive
+:END:
+
+*A proposal, not a slice* — no =:KIND: slice=, no prompt link, and =MAYBE= rather than =TODO=,
+because nothing here is committed to yet.
+
+*The theme.* =0acc1df2= states the intent: a slice's depiction is *regenerated from its referents*,
+and **only membership and order are declared**. Every member below is a place where that is not yet
+true — where a human hand is still required, and where forgetting is silent. Six of the seven were
+either filed or sharpened on 2026-09-03/04, which is why the theme only became visible now.
+
+- [ ] [[id:635d5abb-207d-445d-b268-bc031bdd592a][635d5abb]] TODO org_amend cannot continue a list, and the slice revision links are always one
+- [ ] [[id:501a8422-9e93-4d2d-98bb-db0ab2c16e37][501a8422]] NEXT Give org_amend a drawer argument, so a plan can be revised and written in one call
+- [ ] [[id:acf46449-422b-45d5-a223-83224ef71548][acf46449]] TODO Every slice needs :COOKIE_DATA: and no slice creates it; the lint only reports
+- [ ] [[id:198dd00e-0746-444a-ab25-2034a2a235c2][198dd00e]] TODO Accepting a slice proposal leaves its body still calling itself a proposal
+- [ ] [[id:2d2211d5-97c3-4f69-8175-40df90d1db8a][2d2211d5]] TODO Adding a just-captured heading to a slice cannot be made lint-clean
+- [ ] [[id:de687e4d-9384-46ae-a495-55b3ae46d1bb][de687e4d]] TODO A slice closed by the same apply pass freezes with stale member lines
+- [ ] [[id:1b727475-46c3-4967-8cdd-dfd9397d94ea][1b727475]] TODO A MAYBE member and a dropped member render identically, and the drop is now sticky
+
+*Sequenced, because the first three feed the fourth.* =635d5abb= and =501a8422= are one edit to one
+function — =org_amend= cannot target a list continuation or a drawer, and both are the same "cannot
+target" gap. =acf46449= makes the property rather than reporting it. Only then is =198dd00e=
+buildable: an acceptance *command* has to set =:KIND:=, set =:COOKIE_DATA:=, refresh, rewrite the
+proposal paragraph and append a revision link — three of those five are the members above it. The
+last three are independent of each other and of the first four.
+
+*The tell that this is one theme and not four adjacent ones:* each member fails **silently**, and in
+the same way. =bin/lint-org= reports zero errors for a revision list split in two, for a proposal
+whose body contradicts its heading, for a frozen closed slice, and for a dropped member that reads
+as a =MAYBE=. What breaks in every case is *meaning*, and the only detector is a human reading raw
+text. That is the same argument =979e02b6= closed at [48/48] one layer up, and this is its
+unfinished half.
+
+*=501a8422= is the one member whose subject is not a slice*, and it is included deliberately: it is
+the same function, the same defect class — its own body says a hand =emacsclient= edit "is a sign the
+tool surface is short", which is this proposal's sentence — and fixing =org_amend= once is cheaper
+than twice. Drop it if that reads as scope creep; nothing else depends on it.
+
+*Not claimed by another slice.* Checked against =ff7ccb2d=, =8a2eb687= and =f9fe9fac=: no overlap.
+=b6da3480= is deliberately absent, having closed today; its follow-on =acf46449= carries the work
+that remains.
+
 * TODO org_amend cannot continue a list, and the slice revision links are always one
 :PROPERTIES:
 :ID:       635d5abb-207d-445d-b268-bc031bdd592a
