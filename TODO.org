@@ -376,6 +376,26 @@ and folding a main-branch fix into a feature PR would make this title false in t
 =bin/clock-target-check-test= **12/12** — a file that did not exist — =bin/lint-org= 0 errors,
 =bin/check-conventions= 27 ok. Five commits of code and fixes, each one red-first.
 
+*Closed 2026-09-04.* The open question this was held at =REVIEW= for — whether to merge before
+continuing — was answered by merging: PR #9 landed as
+[[orgit-rev:claude-code-ide-org::7139458][7139458]], 54 commits, all four review threads replied to
+and resolved, zero unresolved. Full battery on =main= after the merge: 543/543 ERT, seven shell
+suites green, =bin/check-conventions= 27 ok, =bin/lint-org= 0 errors, 32 plans in sync.
+
+*It sat at =REVIEW= for an hour after becoming closable, and that is its last finding.* The merge
+answered its question; nothing announced that. The user asked after it by name, as they had for the
+other two — making this the **fourth** instance for =43aa25b2= inside the session that nominated it,
+and the only one where the heading became closable *during* the session rather than before it.
+
+*What it shipped, in one line each:* two slice guards taught to ask the descendant question the lint
+asks; a third path guarded on =org-blocker-hook=; two defects fixed in a =Stop= hook that had shipped
+with no test; and =bin/clock-target-check-test= built to cover it. Every fix run red first, each
+verified against the real corpus rather than a fixture alone.
+
+*Residue, all filed and none left in prose:* =0fa403f4= (closed the same day) and =dc753eb2= (taken
+in as the fifth member). Nothing outstanding at close.
+
+
 
 ** DONE A refile guard that asks about the moved heading cannot see the subtree it moves
 CLOSED: [2026-09-03 Thu 14:53]
