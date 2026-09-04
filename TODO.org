@@ -9490,6 +9490,7 @@ and still need the decision they always needed.
 :CATEGORY: Docs
 :ID:       d7849119-8224-4993-a8ab-83e1434df53c
 :CREATED:  [2026-07-30 Thu 22:45]
+:BLOCKER:  ids(c5b02503-1700-47fd-bf89-bd3296b24af2)
 :END:
 :LOGBOOK:
 - State "TODO"       from "NEXT"       [2026-08-14 Fri 10:32] \\
@@ -9556,6 +9557,28 @@ about *hard-blocking being too heavy*; it says nothing about whether the
 lighter mechanism works.
 
 Writing =README.md= itself is untouched by any of that.
+
+*Part 1 shipped 2026-09-04* (commit =247db50=, on
+=feature/org-discipline-travel=). README.md follows the decision above:
+human-facing intro/quickstart, no =@README.md= import, deliberate small
+overlap manually synced. It leads with the queue — the one design
+decision a newcomer must understand — then layout, install (including
+the =core.hooksPath= step a fresh clone silently lacks), tests, and the
+"Known limitations" section the 2026-08-05 note proposed.
+
+*That note's two examples were stale and were replaced, not used*: both
+described the =ExitPlanMode= promotion machinery, retired with
+=PLANNING= on 2026-08-28. The section instead surfaces four current
+accepted trade-offs: record-lags-by-design, the wrong-task resume edge
+case, restart-bound file discovery, and the undeclared org 9.7+
+dependency.
+
+*Part 2 remains unbuilt, deliberately* — contingent on
+[[id:c5b02503-1700-47fd-bf89-bd3296b24af2][c5b02503]] per the 2026-08-14
+note, now declared as a =:BLOCKER:= rather than prose. The README/
+CLAUDE.md overlap zone is small (intro framing, the install summary);
+until the hook exists, consistency is manual.
+
 
 
 * MAYBE [0/2] Accumulate issues to report upstream to claude-code-ide.el :code:
