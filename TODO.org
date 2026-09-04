@@ -8,6 +8,10 @@
 :CREATED:  [2026-09-04 Fri 15:22]
 :CATEGORY: Queue
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-04 Fri 15:21]--[2026-09-04 Fri 15:22] =>  0:01
+- [2026-09-04 Fri 15:21]--[2026-09-04 Fri 15:22] assigned at review
+:END:
 
 Decided 2026-09-04 on
 [[id:c5b02503-1700-47fd-bf89-bd3296b24af2][c5b02503]]'s measurement
@@ -21,6 +25,7 @@ question. First step is the residual check c5b02503 flagged: verify
 live that =SessionStart= honours =systemMessage= before depending on
 it. [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]] part 2, if
 built, specifies both channels.
+
 
 * TODO Package the plugin: references, setup command, machinery prose :code:
 :PROPERTIES:
@@ -940,7 +945,6 @@ something real, where detect-and-skip would go blind exactly where PR
 review now happens.
 
 
-
 * TODO No tool edits a heading's title, so a rename goes behind Emacs or not at all :code:
 :PROPERTIES:
 :ID:       24c7b537-7fd1-4327-86af-3807ddf36ebe
@@ -1046,13 +1050,13 @@ box would inflate the denominator forever, which is the reason the mapping exist
 on the dropped line, derived from nothing and set by the drop itself, is the shape that fits.
 
 
-* NEXT [0/13] Make the org discipline travel: ship the machinery, relocate the rules :code:
+* NEXT [4/13] Make the org discipline travel: ship the machinery, relocate the rules :code:
 :PROPERTIES:
 :ID:       ff7ccb2d-2b13-421e-86e3-6b5e187850bf
 :CREATED:  [2026-09-02 Wed 18:17]
 :CATEGORY: Slices
 :KIND:     slice
-:BLOCKER:  ids(9ae4b17e-278c-482f-9114-df28b2254806 d5345abb-b451-4468-8f27-4bb2da983215 9d009401-93dd-40e5-a243-7a30a8a5bd55 1ed7b2b4-a809-4547-b04f-099a3111fc1e 84b7d8b3-5161-4146-9167-0e7e2100e365 f8c86914-0759-4e05-9292-6f7fa5593701 5461c349-fd22-4b75-a508-50efbe4b87f8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4 83b3cdd6-982a-4ae1-878c-79a8c941f638 d7849119-8224-4993-a8ab-83e1434df53c b07df584-3adc-433c-ab49-e104f88aecf7 c5b02503-1700-47fd-bf89-bd3296b24af2 ecf66d45-18b3-477f-bca8-08bec90604e8)
+:BLOCKER:  ids(9d009401-93dd-40e5-a243-7a30a8a5bd55 1ed7b2b4-a809-4547-b04f-099a3111fc1e 84b7d8b3-5161-4146-9167-0e7e2100e365 f8c86914-0759-4e05-9292-6f7fa5593701 5461c349-fd22-4b75-a508-50efbe4b87f8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4 83b3cdd6-982a-4ae1-878c-79a8c941f638 d7849119-8224-4993-a8ab-83e1434df53c ecf66d45-18b3-477f-bca8-08bec90604e8)
 :COOKIE_DATA: checkbox recursive
 :END:
 :LOGBOOK:
@@ -1066,6 +1070,12 @@ CLOCK: [2026-09-04 Fri 13:41]--[2026-09-04 Fri 13:42] =>  0:01
 - [2026-09-04 Fri 13:41]--[2026-09-04 Fri 13:42] assigned at review
 CLOCK: [2026-09-04 Fri 13:45]--[2026-09-04 Fri 13:46] =>  0:01
 - [2026-09-04 Fri 13:45]--[2026-09-04 Fri 13:46] assigned at review
+CLOCK: [2026-09-04 Fri 15:45]--[2026-09-04 Fri 15:46] =>  0:01
+- [2026-09-04 Fri 15:45]--[2026-09-04 Fri 15:46] assigned at review
+CLOCK: [2026-09-04 Fri 15:51]--[2026-09-04 Fri 15:52] =>  0:01
+- [2026-09-04 Fri 15:51]--[2026-09-04 Fri 15:52] assigned at review
+CLOCK: [2026-09-04 Fri 15:57]--[2026-09-04 Fri 15:58] =>  0:01
+- [2026-09-04 Fri 15:57]--[2026-09-04 Fri 15:58] assigned at review
 :END:
 
 This project is a testbed for a thing meant to manage *other* projects, and the discipline it has
@@ -1074,11 +1084,11 @@ hooks and MCP servers — while the prose cannot, because =.claude/rules/= is no
 Each member is a different face of that. The argument, the plugin-manifest verification and the
 line-count measurement are all =9ae4b17e='s and are not repeated here.
 
-- [-] [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] REVIEW Make the org skill and its discipline portable to other repos
+- [X] [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] DONE Make the org skill and its discipline portable to other repos
 - [[id:1caed585-3209-4108-8501-eba16baf6a01][1caed585]] MAYBE Decide what this module may change on a user's machine when installed
-- [-] [[id:d5345abb-b451-4468-8f27-4bb2da983215][d5345abb]] REVIEW Audit CLAUDE.md for directives that belong in the org skill instead
+- [X] [[id:d5345abb-b451-4468-8f27-4bb2da983215][d5345abb]] DONE Audit CLAUDE.md for directives that belong in the org skill instead
 - [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] DOING Update CLAUDE.md and the org skill for the new architecture
-  - [ ] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] TODO CLAUDE.md carries dated history that costs every session's context
+  - [-] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] DOING CLAUDE.md carries dated history that costs every session's context
 - [ ] [[id:1ed7b2b4-a809-4547-b04f-099a3111fc1e][1ed7b2b4]] TODO The org 9.7+ dependency is real, undeclared, and unenforced
 - [ ] [[id:84b7d8b3-5161-4146-9167-0e7e2100e365][84b7d8b3]] TODO Evaluate choice of shell and standardize all project scripts
 - [ ] [[id:f8c86914-0759-4e05-9292-6f7fa5593701][f8c86914]] TODO The convention checks compare the live Emacs against whichever checkout invoked them
@@ -1088,9 +1098,9 @@ line-count measurement are all =9ae4b17e='s and are not repeated here.
   - [ ] [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
 - [ ] [[id:83b3cdd6-982a-4ae1-878c-79a8c941f638][83b3cdd6]] TODO Record the originating project in queue events
 - [[id:2e09adb7-6e29-499c-a40e-98cd2b327cff][2e09adb7]] MAYBE Worktree-based session partitioning, with a canonical-file caveat
-- [ ] [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]] TODO Add README.md and enforce its consistency with CLAUDE.md
-- [ ] [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] TODO Heading bodies grow into narratives no human will read; decide what to stop capturing
-- [ ] [[id:c5b02503-1700-47fd-bf89-bd3296b24af2][c5b02503]] TODO Hook-injected context is only as reliable as the model choosing to relay it
+- [-] [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]] WAITING Add README.md and enforce its consistency with CLAUDE.md
+- [X] [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] DONE Heading bodies grow into narratives no human will read; decide what to stop capturing
+- [X] [[id:c5b02503-1700-47fd-bf89-bd3296b24af2][c5b02503]] DONE Hook-injected context is only as reliable as the model choosing to relay it
 - [[id:3cb3f955-f10a-47cd-84ab-e629d73ea59d][3cb3f955]] MAYBE Org skill: commit a newly-captured TODO immediately, when safe
 - [[id:7eb7dd8d-2d9b-4a63-afbd-5878298e42a4][7eb7dd8d]] MAYBE Org skill: auto-capture and dedupe modification requests against existing TODOs
 - [[id:2c5f7c50-40c9-4d06-b435-add41eb97643][2c5f7c50]] MAYBE Install orgparse for ad-hoc analysis, and stop reaching for regex over org text
@@ -2817,6 +2827,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-04 Fri 16:05]--[2026-09-04 Fri 16:10] =>  0:05
 CLOCK: [2026-09-04 Fri 14:57]--[2026-09-04 Fri 15:01] =>  0:04
 CLOCK: [2026-09-04 Fri 12:53]--[2026-09-04 Fri 12:56] =>  0:03
 CLOCK: [2026-09-04 Fri 11:44]--[2026-09-04 Fri 11:47] =>  0:03
@@ -3641,7 +3652,8 @@ rule that refuses to discard =TODO.org=/=DONE.org= working-tree changes
 without showing the diff first.
 
 
-* TODO Heading bodies grow into narratives no human will read; decide what to stop capturing :code:
+* DONE Heading bodies grow into narratives no human will read; decide what to stop capturing :code:
+CLOSED: [2026-09-04 Fri 16:01]
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       b07df584-3adc-433c-ab49-e104f88aecf7
@@ -3655,6 +3667,8 @@ CLOCK: [2026-08-18 Tue 19:40]--[2026-08-18 Tue 19:47] =>  0:07
 - [2026-08-18 Tue 19:40]--[2026-08-18 Tue 19:47] assigned at review
 - State "TODO"       from              [2026-08-18 Tue 19:43] \\
   decide what is worth capturing at all
+- State "DONE"       from "TODO"       [2026-09-04 Fri 16:01] \\
+  citation measurement confirms the policy; closed
 :END:
 :PLAN:
 
@@ -3777,7 +3791,6 @@ policy recorded at
 [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] stands unchanged,
 now measured rather than merely agreed. Closing; the lifecycle remainder
 stays with [[id:241a4c54-ed59-4780-b602-2a86efee978a][241a4c54]].
-
 
 
 * DOING [10/13] Make the guidepost pipeline produce durations that mean what they say :code:
@@ -5188,7 +5201,8 @@ worktrees — this repo already uses git worktrees for parallel work
 would need a normalisation rule, which is a decision rather than a field.
 
 
-* REVIEW Make the org skill and its discipline portable to other repos :code:
+* DONE Make the org skill and its discipline portable to other repos :code:
+CLOSED: [2026-09-04 Fri 15:08]
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       9ae4b17e-278c-482f-9114-df28b2254806
@@ -5226,6 +5240,8 @@ CLOCK: [2026-09-04 Fri 14:56]--[2026-09-04 Fri 14:57] =>  0:01
 - [2026-09-04 Fri 14:56]--[2026-09-04 Fri 14:57] classify CLAUDE.md and skill rules for portability
 - State "REVIEW"     from "DOING"      [2026-09-04 Fri 14:57] \\
   classification and three decisions handed back for judgement
+- State "DONE"       from "REVIEW"     [2026-09-04 Fri 15:08] \\
+  review passed; residue filed as b0e478f7
 :END:
 :PLAN:
 
@@ -5574,7 +5590,6 @@ falling back to the bundled org, and the minimum stated in
 work.
 
 
-
 * TODO Type a span's annotation at review time, not by hand-editing it after :code:
 :PROPERTIES:
 :CATEGORY: Apply
@@ -5774,7 +5789,8 @@ The two axes are *orthogonal*, and the second is implemented using the first: an
 *Rule of thumb: say **timestamp** when discussing the mechanism and **interval** when discussing the thing being recorded. A sentence needing both words is probably conflating them.*
 
 
-* TODO Hook-injected context is only as reliable as the model choosing to relay it :code:
+* DONE Hook-injected context is only as reliable as the model choosing to relay it :code:
+CLOSED: [2026-09-04 Fri 15:23]
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       c5b02503-1700-47fd-bf89-bd3296b24af2
@@ -5783,6 +5799,17 @@ The two axes are *orthogonal*, and the second is implemented using the first: an
 :LOGBOOK:
 - State "TODO"       from              [2026-08-14 Fri 10:32] \\
   captured from conversation, unexamined assumption
+- [2026-09-04 Fri 15:11]--[2026-09-04 Fri 15:13] assigned at review
+CLOCK: [2026-09-04 Fri 15:13]--[2026-09-04 Fri 15:16] =>  0:03
+- State "DOING"      from "TODO"       [2026-09-04 Fri 15:13] \\
+  starting the hook-relay reliability measurement
+- [2026-09-04 Fri 15:13]--[2026-09-04 Fri 15:16] measure how often injected context is relayed
+- State "REVIEW"     from "DOING"      [2026-09-04 Fri 15:16] \\
+  measurement and recommendation handed back for judgement
+CLOCK: [2026-09-04 Fri 15:22]--[2026-09-04 Fri 15:24] =>  0:02
+- [2026-09-04 Fri 15:22]--[2026-09-04 Fri 15:24] assigned at review
+- State "DONE"       from "REVIEW"     [2026-09-04 Fri 15:23] \\
+  recommendation accepted; implementation filed as d585d33e
 :END:
 :PLAN:
 
@@ -5887,7 +5914,6 @@ question). Inject-and-hope stops being the house pattern;
 [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]] part 2 should
 specify both channels if built. The statusline option stays open for
 *standing* state; =systemMessage= fits one-shot reports better.
-
 
 
 * TODO Bracket queued spans with WAIT transitions, so the heading guess stops latching :code:
@@ -8255,7 +8281,7 @@ CLOSED: [2026-08-21 Fri 12:45]
 *Shipped 2026-08-21* (commit =0ca1363=). Four claims reconciled at source, each verified before writing: the hook safety net is live (five guards read out of =config.el:2792-2795=, gate default =t= at =config.el:2454=), not "not built yet"; deletion-irreversibility rescoped to =plans/= only, matching the org skill; the read-only rule regained its restore-when-done half, which had lived only in a memory file; and =REVIEW= got transition-table rows (clock-wise identical to =WAITING=) after a day in live use with no written semantics. The dangling pointer to a since-deleted "Enforce the transition rules" heading went with the rewrite. The falsified concurrent-session sentence in the =feedback_concurrent_editing= memory was corrected in the same pass (memory dir, outside this repo).
 
 
-** TODO CLAUDE.md carries dated history that costs every session's context :code:
+** DOING CLAUDE.md carries dated history that costs every session's context :code:
 :PROPERTIES:
 :ID:       9d009401-93dd-40e5-a243-7a30a8a5bd55
 :CREATED:  [2026-08-21 Fri 12:47]
@@ -8264,6 +8290,10 @@ CLOSED: [2026-08-21 Fri 12:45]
 :LOGBOOK:
 - State "TODO"       from              [2026-08-21 Fri 12:48] \\
   filed from audit, prune needs user in loop
+CLOCK: [2026-09-04 Fri 16:00]--[2026-09-04 Fri 16:01] =>  0:01
+- [2026-09-04 Fri 16:00]--[2026-09-04 Fri 16:01] execute the approved first-pass prune of CLAUDE.md
+- State "DOING"      from "TODO"       [2026-09-04 Fri 16:01] \\
+  first pass done; contested read-through still owed
 :END:
 
 *Filed 2026-08-21, not done.* CLAUDE.md is ~5,500 words, loaded into every session, and a large share is dated narrative -- retirements, incident stories, won't-dos, measured-on-date facts -- the same disease [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] names in TODO.org bodies, in the one file no session can skip. The rules should stay; the archaeology should live in DONE.org bodies or the relevant heading, with a pointer where the rule needs its provenance. Judgment-heavy prune, so it needs the user in the loop, not a background pass.
@@ -8415,7 +8445,6 @@ never touches them. And the contested ~70 lines are deliberately
 deferred until *after* packaging relocates its share — audience cuts
 first, so judgement is spent only on what remains. That dedicated
 read-through is this heading's remaining work.
-
 
 
 ** DONE The file-header template omits #+STARTUP:, which both files carry :code:
@@ -9214,7 +9243,8 @@ planning whether they should be one task, sequenced, or just
 cross-referenced as they are now.
 
 
-* REVIEW Audit CLAUDE.md for directives that belong in the org skill instead :code:
+* DONE Audit CLAUDE.md for directives that belong in the org skill instead :code:
+CLOSED: [2026-09-04 Fri 15:08]
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       d5345abb-b451-4468-8f27-4bb2da983215
@@ -9227,6 +9257,9 @@ CLOCK: [2026-09-04 Fri 14:57]--[2026-09-04 Fri 15:01] =>  0:04
 - [2026-09-04 Fri 14:57]--[2026-09-04 Fri 15:01] audit CLAUDE.md directives for skill and rules relocation
 - State "REVIEW"     from "DOING"      [2026-09-04 Fri 15:01] \\
   audit verdicts and relocations handed back for judgement
+- [2026-09-04 Fri 15:01]--[2026-09-04 Fri 15:08] assigned at review
+- State "DONE"       from "REVIEW"     [2026-09-04 Fri 15:08] \\
+  review passed; prune residue already filed as 9d009401
 :END:
 :PLAN:
 
@@ -9620,8 +9653,7 @@ thing with less indirection. The convention gets written down as part
 of implementation, so it is not re-litigated per script.
 
 
-
-* TODO Add README.md and enforce its consistency with CLAUDE.md :code:comms:
+* WAITING Add README.md and enforce its consistency with CLAUDE.md :code:comms:
 :PROPERTIES:
 :CATEGORY: Docs
 :ID:       d7849119-8224-4993-a8ab-83e1434df53c
@@ -9635,6 +9667,12 @@ CLOCK: [2026-08-14 Fri 11:18]--[2026-08-14 Fri 11:25] =>  0:07
 - [2026-08-14 Fri 11:18]--[2026-08-14 Fri 11:25] suggested span, accepted at review
 CLOCK: [2026-08-14 Fri 11:32]--[2026-08-14 Fri 11:37] =>  0:05
 - [2026-08-14 Fri 11:32]--[2026-08-14 Fri 11:37] suggested span, accepted at review
+CLOCK: [2026-09-04 Fri 15:09]--[2026-09-04 Fri 15:10] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-04 Fri 15:09] \\
+  starting the README, Step 5 of the slice
+- [2026-09-04 Fri 15:09]--[2026-09-04 Fri 15:10] draft README.md and its consistency enforcement
+- State "WAITING"    from "DOING"      [2026-09-04 Fri 15:10] \\
+  part 2 blocked on c5b02503; README awaits your read
 :END:
 No README.md exists in this repo today — CLAUDE.md is currently the
 *only* documentation file, doing double duty as both agent
@@ -9714,7 +9752,6 @@ dependency.
 note, now declared as a =:BLOCKER:= rather than prose. The README/
 CLAUDE.md overlap zone is small (intro framing, the install summary);
 until the hook exists, consistency is manual.
-
 
 
 * MAYBE [0/2] Accumulate issues to report upstream to claude-code-ide.el :code:
