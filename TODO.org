@@ -3132,7 +3132,7 @@ Remaining open: which drawer, if stored; and what generates it. A commit touchin
 /Body restored 2026-08-20 by =org_amend=; the original capture silently discarded it -- see/ [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]]. /This heading being empty is how the loss was noticed at all: the user asked where the concept was parked, and there was nothing there./
 
 
-* DOING [0/1] Review how the emacs-tools are advertised, against which ones get used :code:research:
+* DOING [0/2] Review how the emacs-tools are advertised, against which ones get used :code:research:
 :PROPERTIES:
 :CATEGORY: Tools
 :ID:       420816ec-677e-45a5-b898-fb5db70d214b
@@ -3227,6 +3227,33 @@ Set against it, on the same day: =org_capture='s description states in capital l
 
 *What not to conclude.* Low breadth is not obviously a defect. Sorting a heading's children is genuinely rare, and =org_sort_children='s zero calls may be honest rather than a discovery failure. Deciding which of the six under-used tools deserve a rule, and which are simply niche, is the remaining judgement and is not answered by any of the above.
 
+*A datum for finding 4, 2026-09-04, and it refines the finding rather than contradicting it.*
+=org_outline= is **well advertised** — its description names the alternative it beats and quotes the
+40x figure — **and covered by a standing rule**, CLAUDE.md's "Start with =org_outline=, not a file
+read". Both were in context all session. It was bypassed **about nineteen times** in favour of
+=grep '^:ID:'= piped into =awk=, and the hand-rolled version was wrong three times: it attributed
+three of eight footnote titles to the wrong heading, gave =758a8b78= a different heading's title
+entirely, and missed =96a51c2f= because a =SCHEDULED:= line sits between its headline and its
+property drawer.
+
+**The rule did not fail; it never fired.** It names the competitor it beats — *a file read* — and the
+reflex reached for a different one, a targeted =grep= for a single =:ID:= line. So finding 4 stands
+and gains a corollary: a standing rule moves usage **only for the situation it names**, and naming
+the wrong competitor is indistinguishable from having no rule. That is a sharper form of this
+heading's own open question, "naming the alternative it beats", answered by a case where the naming
+was done and was aimed one competitor over.
+
+*A second cause, which is ergonomic rather than rhetorical, and probably the larger one.*
+=org_outline= takes **one** scope. The dominant need all session was *n ids at once* — nineteen
+footnote lookups — so a shell loop was genuinely cheaper per answer, and paying three tool calls for
+three footnotes made the point out loud. A rule fights a habit; an ergonomic win removes it. Filed as
+a child.
+
+*What not to conclude:* that the description should be louder. This heading already measured that
+=org_capture='s capitalised instruction was ignored five times by a reader holding it in context.
+Today is the same result for a tool where the prose is good.
+
+
 
 ** TODO An MCP tool accepts arguments it does not have, and says nothing :code:
 :PROPERTIES:
@@ -3277,7 +3304,35 @@ There is a second dispatch path, =claude-code-ide-mcp.el= line 352, which hands 
 *The rest of the surface is clean, which is worth recording so it is not re-audited.* All fourteen tools were checked mechanically, comparing each advertised argument name against its handler's arglist: *zero mismatches* once snake_case is normalised to kebab-case. Every advertised parameter exists and every real parameter is advertised. The five failures on 2026-08-20 -- =todo_state=, =body=, =file=, =max_level=, and =body= again -- were invented wholesale, not misread from a bad schema. Fixing descriptions would not have prevented any of them.
 
 *One measured consequence beyond the lost bodies:* an =org_outline= call passing =file= and =max_level= returned the *unrestricted default* rather than the scoped view it appeared to return, and was reported as scoped. A dropped argument does not merely fail to apply -- it silently substitutes a different answer to a different question.
+** TODO org_outline takes one scope, so looking up n ids costs n calls and a loop wins
+:PROPERTIES:
+:ID:       2c3aadbe-4c65-42f1-80f4-860453dcf121
+:CREATED:  [2026-09-04 Fri 12:42]
+:END:
 
+=org_outline='s =scope= is a single =:ID:=, prefix or file name. Every question of the form "what are
+these *n* headings" therefore costs *n* round trips, and a shell loop over the org files costs one —
+which is why the loop keeps winning against a tool that is better in every other respect.
+
+*The dominant case is not hypothetical.* =bin/hooks/footnote-check= names **several** ids at once and
+demands each one's keyword and exact title. Measured 2026-09-03/04: **18 firings, 39 flagged ids, 27
+distinct**, and one response owed three at once — paid as three =org_outline= calls, which is the
+honest price and visibly worse ergonomics than the =grep= it replaced. Nineteen lookups in a session
+is where the reflex comes from.
+
+*Proposed:* =scope= accepts several prefixes — a comma- or space-separated list, or an array —
+returning one front-matter block and outline per scope in the order given. Nothing about the
+rendering changes; only the arity does. A single scope stays exactly as it is, so no caller breaks.
+
+*Why this rather than more prose.* =420816ec= measured that a good description does not move usage
+and a standing rule does, and today added the corollary that a rule fires only for the competitor it
+names. Neither lever touches the case where the tool is *genuinely more expensive* for the shape of
+the question being asked. This removes the reason to reach rather than arguing against reaching.
+
+*Note it does not subsume =33c3eabc=*, which would have the footnote hook answer its own lookup and
+so delete most of the demand entirely. The two are complementary: that one removes ~19 of 20
+lookups, this one makes the remainder cheap — and multi-scope is useful wherever ids arrive in
+groups, which is how a slice's members, a =:BLOCKER:= list and a review buffer's items all arrive.
 
 * TODO Moving a heading between files by hand leaves org-id pointing at the old one :code:
 :PROPERTIES:
