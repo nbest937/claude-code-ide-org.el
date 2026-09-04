@@ -1,141 +1,38 @@
-#!/usr/bin/env fish
+#!/bin/sh
 # Doctest-style content-accuracy check for .claude/skills/org-dev/SKILL.md.
 #
-# bin/test verifies the MCP wrapper functions behave correctly.
-# This script verifies the *documentation* in org-dev/SKILL.md hasn't
-# drifted from the environment it describes — the concrete facts and
-# code fences it asserts (port numbers, line references, skill-file
-# paths), not whether the skill's prose triggers correctly (that's judged
-# by spot-checking fresh sessions, not scriptable — see TODO.org).
-
-set repo_root (cd (dirname (status --current-filename))/.. && pwd)
-
-# `fail' and `check' now come from the shared harness, which also carries
-# the `set -g' reasoning that used to live here: a bare `set' inside an
-# `if' block is block-local in fish, so this script exited 0 while
-# printing FAIL from its first version until 2026-08-27. Moved out rather
-# than copied when bin/check-conventions needed the same plumbing --
-# TODO.org :ID: d2a0f54c, whose whole argument is that the harness is
-# written once and a second check family adds only assertions.
-source $repo_root/bin/lib/check.fish
-
-# 1. MCP server port pinned in the running Doom config, matching .mcp.json.
-set port (emacsclient -e '(claude-code-ide-mcp-server-get-port)' 2>/dev/null; or echo unreachable)
-check "emacsclient MCP port" "$port" "45571"
-
-set mcp_json_port (grep -o 'localhost:[0-9]*' "$repo_root/.mcp.json" | head -1 | cut -d: -f2)
-check ".mcp.json port matches" "$mcp_json_port" "45571"
-
-# 2. Each skill is a plain-text SKILL.md at its native-format path.
-function check_skill_file
-    set skill_path $argv[1]
-    set full_path "$repo_root/$skill_path"
-    if test -f "$full_path"
-        set magic (head -c2 "$full_path" | od -An -tx1 | string trim | string replace -a ' ' '')
-        check "$skill_path is plain text (not zip)" (test "$magic" = "504b"; and echo zip; or echo text) "text"
-    else
-        check "$skill_path exists" "missing" "$full_path"
-    end
-end
-check_skill_file ".claude/skills/org/SKILL.md"
-check_skill_file ".claude/skills/org-dev/SKILL.md"
-
-# 3. bin/test's build-* glob resolves to a real straight org checkout.
-set org_build_dir (find "$HOME/.config/emacs/.local/straight" -maxdepth 1 -name 'build-*' -type d 2>/dev/null | head -1)
-if test -n "$org_build_dir" -a -d "$org_build_dir/org"
-    echo "ok   - bin/test build-* glob resolves ($org_build_dir/org)"
-else
-    echo "FAIL - bin/test build-* glob did not resolve to a directory containing org/"
-    set -g fail 1
-end
-
-# 4. org-dev/SKILL.md describes the tool-registration block by anchor
-# ("the with-eval-after-load block, which is the last top-level form
-# in the file"), not by line number, specifically so a config.el edit
-# that shifts line counts can't put the doc out of date. Verify that
-# claim structurally instead: the block exists, and nothing else is
-# defined after it.
-set config_el "$repo_root/modules/tools/claude-code-ide-org/config.el"
-set tool_block_line (grep -n "with-eval-after-load 'claude-code-ide" "$config_el" | head -1 | cut -d: -f1)
-if test -z "$tool_block_line"
-    echo "FAIL - config.el: with-eval-after-load 'claude-code-ide anchor not found"
-    set -g fail 1
-else
-    set last_toplevel_line (grep -n '^(' "$config_el" | tail -1 | cut -d: -f1)
-    check "config.el tool-registration block is the last top-level form" "$last_toplevel_line" "$tool_block_line"
-end
-
-# 5. Section 0b ("check whether org already has it") points at three paths
-# inside the straight org checkout. Those paths ARE the section -- a reader
-# who cannot find the source falls back to guessing, which is the habit the
-# section exists to break -- and they rot when straight relayouts.
-set -g org_repo "$HOME/.config/emacs/.local/straight/repos/org"
-for rel in lisp/org-id.el lisp/org-archive.el lisp/org-datetree.el doc/org-manual.org etc/ORG-NEWS
-    if test -e "$org_repo/$rel"
-        echo "ok   - org-dev 0b path exists ($rel)"
-    else
-        echo "FAIL - org-dev 0b cites $rel under $org_repo, which does not exist"
-        set -g fail 1
-    end
-end
-
-# 6. Section 0b names org facilities this repo deliberately leans on rather
-# than reimplementing. Renamed upstream, the table becomes advice to call
-# something that is not there.
+# Thin stub since 2026-09-04 (TODO.org :ID: 84b7d8b3): this doctest
+# NEEDS the running Emacs -- the MCP port, loaded org facilities and
+# Doom settings are live state -- so per the Emacs-boundary split its
+# logic lives in bin/lib/check-org-dev-skill.el, loaded into that Emacs,
+# and this wrapper only moves bytes: invoke, cat the report, exit on the
+# returned verdict.  POSIX sh; nothing left here needs more.  The fish
+# original shelled out to emacsclient seven times for what is now one
+# round-trip.
 #
-# The libraries are required first, and that is load-bearing rather than
-# tidy. Most of these names are *not* autoloaded --- org-datetree only
-# autoloads find-date-create, find-month-create and find-iso-week-create ---
-# so a bare fboundp answers "does this session happen to have loaded the
-# file", not "does this Emacs have the function". Measured 2026-08-31: the
-# same check passed at 11:23 and failed at 12:08 against the same org
-# 9.8.7, the only difference being that the earlier Emacs had archived
-# something and pulled org-datetree in. A check whose answer depends on
-# what the session did before it is worse than no check, because it fails
-# loudly and wrongly.
-for fn in org-add-archive-files org-id-locations org-id-search-archives org-datetree-find-create-hierarchy org-datetree-comparefun-from-regex org-archive-reversed-order org-agenda-prefix-format
-    if emacsclient -e "(progn (require 'org) (ignore-errors (require 'org-id)) (ignore-errors (require 'org-archive)) (ignore-errors (require 'org-datetree)) (or (fboundp '$fn) (boundp '$fn)))" 2>/dev/null | grep -q '^t'
-        echo "ok   - org facility still exists ($fn)"
-    else
-        echo "FAIL - org-dev 0b names $fn, which this Emacs does not have"
-        set -g fail 1
-    end
-end
+# The load path is THIS checkout's copy, so a worktree checks its own
+# claims even though the serving Emacs loaded another checkout's module
+# (the same distinction TODO.org :ID: f8c86914 settled for the
+# capture-file comparison).
 
-# 7. Two Doom settings this project leans on that nothing else asserts.
-# Deliberately *behavioural*, not a text comparison against SKILL.md's
-# prose: §7 stopped quoting the config on 2026-08-28 precisely because a
-# transcription drifts twice and cannot be checked by reading it, so
-# re-introducing a diff here would rebuild the failure mode in a script.
-# These ask the running Emacs what is true.
-#
-# Not asserted, and the omission is deliberate: the org-todo-keywords
-# sequence. It disagrees with TODO.org's own `#+TODO:' today (WAIT vs
-# WAITING, and no REVIEW) and nothing is broken, because a buffer-local
-# header wins -- so a check would fail on a latent inconsistency, and a
-# check that fails while everything works is one people learn to ignore.
+script_dir=$(cd "$(dirname "$0")" && pwd)
+repo_root=$(cd "$script_dir/.." && pwd)
 
-set truename (emacsclient -e '(if find-file-visit-truename t nil)' 2>/dev/null; or echo unreachable)
-check "find-file-visit-truename is set (symlinked TODO.org opens once)" "$truename" "t"
+out=$(mktemp) || exit 1
+verdict=$(emacsclient -e "(progn (load \"$script_dir/lib/check-org-dev-skill.el\" nil t) (claude-code-ide-org-dev-skill-check \"$repo_root\" \"$out\"))" 2>/dev/null)
 
-# Must resolve inside this repo. Unset it falls back to
-# `org-default-notes-file' and targetless captures land in ~/org/notes.org
-# (TODO.org :ID: bd482c92). Compared through `file-truename' on both sides,
-# since the config deliberately names the *symlink* path.
-set capture_file (emacsclient -e '(if (boundp (quote claude-code-ide-org-capture-file)) (file-truename claude-code-ide-org-capture-file) "unbound")' 2>/dev/null | string trim -c '"')
-# A worktree invokes this script from a root the live Emacs has never
-# loaded -- Emacs serves the checkout symlinked into ~/.config/doom -- so
-# comparing against $repo_root misreports "you are standing in a
-# different checkout" as a capture-file misconfiguration (TODO.org :ID:
-# f8c86914). Compare against the COMMON git dir's parent instead: a
-# worktree of the same repository passes, and a genuinely foreign
-# checkout still fails, so the check keeps checking something real.
-set common_dir (git -C $repo_root rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
-if test -n "$common_dir"
-    set main_root (dirname $common_dir)
-else
-    set main_root $repo_root
-end
-check "claude-code-ide-org-capture-file resolves into this repo (via the common git dir)" "$capture_file" "$main_root/TODO.org"
+if [ -z "$verdict" ]; then
+  # Unreachable server is a FAIL, not a skip: a human running this by
+  # hand asked for checks that only a live Emacs can answer, and a
+  # silent drop would read as a pass.  The commit gate never reaches
+  # this -- .githooks/pre-commit passes --docs-only, which skips the
+  # delegation entirely.
+  echo "FAIL - check-org-dev-skill: emacsclient unreachable (every check here asks the running Emacs)"
+  rm -f "$out"
+  exit 1
+fi
 
-exit $fail
+cat "$out"
+rm -f "$out"
+
+[ "$verdict" = "0" ] && exit 0 || exit 1
