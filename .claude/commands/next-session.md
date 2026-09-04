@@ -30,7 +30,18 @@ it cost a past session real work.
    `feature/fix-claude-md-and-slice-conventions`; all four inline threads
    replied to and resolved. **Open question for the user, not for you:**
    whether to merge before continuing.
-5. **Do not run `org-id-update-id-locations` prophylactically after
+5. **Fast-forward local `main` before doing anything with branches:**
+   `git fetch origin main:main`. Not `git pull` — on a feature branch that
+   updates the feature branch and leaves `main` exactly as stale. Not
+   hypothetical: on 2026-09-03 local `main` was 165 commits behind while
+   `origin/main` was current, so `git diff main...HEAD` reported 18 files and
+   28k lines for a PR that was 7 files and 768. The branch was fine; only the
+   `main` *label* lied, and nothing announced it.
+6. **This slice's work does not belong on PR #9's branch.** That branch is a
+   different subject and is under review. Cut `feature/<short-name>` from an
+   up-to-date `main` once step 5 is done. What earns a branch is wanting a
+   separate integration point, which a new slice always is.
+7. **Do not run `org-id-update-id-locations` prophylactically after
    `org_capture`.** A previous revision of this file prescribed it. It did
    not fire once across five capture-then-amend pairs on 2026-09-03. If an
    amend fails with "no org heading found", *then* it is the fix — and that
@@ -41,7 +52,7 @@ it cost a past session real work.
 ## What is already true, so it is not re-derived
 
 **`.claude/rules/` is not a plugin component.** Verified against the plugin
-docs 2026-09-02 and recorded on the first member, along with the measurement
+docs 2026-09-02 and recorded on `9ae4b17e`, along with the measurement
 that roughly **660 of CLAUDE.md's 1196 lines** describe machinery that would
 ship and currently has no way to. That asymmetry is this slice's whole
 premise. Do not re-measure it.
@@ -68,56 +79,71 @@ of a suite.
 
 ## Step 1 — Classify what must travel
 
-The `NEXT` member, and every step below assumes its answer. This is a
+`9ae4b17e` — *Make the org skill and its discipline portable to other
+repos*. The `NEXT` member, and every step below assumes its answer. This is a
 classification, not typing: which rules are general org convention (portable,
 belong in the skill), which are this project's own (stay), and which are
 machinery whose prose has nowhere to go.
 
-The paired decision — what installation may change on a user's machine — is
-**dropped, not pending**. The slice declined it deliberately; a `MAYBE` in
+The paired decision, `1caed585` — *Decide what this module may change on a
+user's machine when installed* — is **dropped, not pending**. The slice declined it deliberately; a `MAYBE` in
 the blocker set would hold the slice open for work it decided not to do.
 
 ## Step 2 — Relocate, then prune, in that order
 
 Two members, and the order is a declared `:BLOCKER:` rather than a
-suggestion. First move what is general org convention into the skill. Only
-then prune CLAUDE.md's dated history — pruning before the classification
-risks deleting rules a consuming project needs.
+suggestion. First `d5345abb` — *Audit CLAUDE.md for directives that belong in
+the org skill instead*. Only then `9d009401` — *CLAUDE.md carries dated
+history that costs every session's context* — nested under `02aaae22`, whose
+line is a grouping label. Pruning before the classification risks deleting
+rules a consuming project needs.
 
-**The prune is explicitly reserved for the user.** Four decisions are
-enumerated on its heading and ten retirement blocks sized. Do not run it as a
+**The prune (`9d009401`) is explicitly reserved for the user.** Four
+decisions are enumerated on its heading and ten retirement blocks sized. Do not run it as a
 background pass.
 
 ## Step 3 — Close the machinery's undeclared assumptions
 
-Three members, each of which fails on a second machine and nowhere here: the
-org 9.7+ dependency (real, undeclared, unenforced), which interpreter the
-scripts may assume, and the convention checks comparing the live Emacs
-against whichever checkout invoked them. All three carry recorded options and
-no decision.
+Three members, each of which fails on a second machine and nowhere here:
 
-The interpreter one was promoted out of `MAYBE` while this slice was
-composed, on evidence: `fish` stopped being one leaf script's inconsistency
+- `1ed7b2b4` — *The org 9.7+ dependency is real, undeclared, and unenforced*
+- `84b7d8b3` — *Evaluate choice of shell and standardize all project scripts*
+- `f8c86914` — *The convention checks compare the live Emacs against whichever
+  checkout invoked them*
+
+All three carry recorded options and no decision.
+
+`84b7d8b3` was promoted out of `MAYBE` while this slice was composed, on
+evidence: `fish` stopped being one leaf script's inconsistency
 and became a prerequisite for committing, via `bin/check-conventions` and
 `.githooks/pre-commit`.
 
 ## Step 4 — Multi-project instrumentation
 
-Meaningful only *after* the hooks move, which is why all three name the first
-member in a `:BLOCKER:`. Record `cwd` on queue events; record the originating
-project; then allocate attention across concurrent sessions, which is the
-judgement the other two exist to make possible.
+Meaningful only *after* the hooks move, which is why all three name
+`9ae4b17e` in a `:BLOCKER:`:
 
-Two of these are children of a story the slice does not undertake whole, so
-their parent appears as a cookie-less grouping label. That label is not a
-drop.
+- `5461c349` — *Record cwd on queue events, so a span can be attributed to a
+  project*
+- `83b3cdd6` — *Record the originating project in queue events*
+- `b862fbf4` — *Allocate attention across concurrent sessions, which is
+  zero-sum*, the judgement the other two exist to make possible
+
+`5461c349` and `b862fbf4` are children of `f90d745e`, a story the slice does
+not undertake whole, so its line is a cookie-less grouping label. **That label
+is not a drop.**
 
 ## Step 5 — The reader-facing tail
 
-Three members that can proceed independently of everything above: a README
-separate from CLAUDE.md, what to stop capturing in heading bodies, and the
-fact that hook-injected context is only as reliable as the model choosing to
-relay it. This is where to go if the answer to Steps 1–3 is "not now."
+Three members that can proceed independently of everything above:
+
+- `d7849119` — *Add README.md and enforce its consistency with CLAUDE.md*
+- `b07df584` — *Heading bodies grow into narratives no human will read; decide
+  what to stop capturing*
+- `c5b02503` — *Hook-injected context is only as reliable as the model
+  choosing to relay it*
+
+This is where to go if the answer to Steps 1–3 is "not now."
 
 ## Step 6 — Reconsider the five `MAYBE`s
 
@@ -126,27 +152,31 @@ relay it. This is where to go if the answer to Steps 1–3 is "not now."
 work has changed its merit — that is the point of carrying them rather than
 leaving them out.
 
-- Package the Warp wiring
-- Worktree-based session partitioning
-- Org skill: commit a newly-captured TODO immediately
-- Org skill: auto-capture and dedupe modification requests
-- Install orgparse for ad-hoc analysis
+- `e396f94a` — *Package the Warp wiring*
+- `2e09adb7` — *Worktree-based session partitioning, with a canonical-file
+  caveat*
+- `3cb3f955` — *Org skill: commit a newly-captured TODO immediately, when
+  safe*
+- `7eb7dd8d` — *Org skill: auto-capture and dedupe modification requests
+  against existing TODOs*
+- `2c5f7c50` — *Install orgparse for ad-hoc analysis, and stop reaching for
+  regex over org text*
 
 **Promote earlier if evidence arrives along the way** — that is what happened
-to the interpreter member in Step 3, whose body's central factual claim had
+to `84b7d8b3` in Step 3, whose body's central factual claim had
 quietly become false. The test is the same one used there: the reason must be
 in the artifact, not in enthusiasm.
 
 Two of the five already carry a note saying what would have to change first.
-One is specified in terms of the retired `PLANNING` keyword, so it needs
-restating before it can be started at all. Another's body argues against its
-own proposal, and the evidence keeps landing on that side.
+`7eb7dd8d` is specified in terms of the retired `PLANNING` keyword, so it
+needs restating before it can be started at all. `2c5f7c50`'s body argues
+against its own proposal, and the evidence keeps landing on that side.
 
 ### Where this will stop
 
-Almost immediately, and by design. Step 1 is judgement. Three of Step 3's
-members carry enumerated options with nothing chosen. Step 2's second half is
-reserved for the user outright. A session starting here should expect to
+Almost immediately, and by design. Step 1 (`9ae4b17e`) is judgement. All
+three of Step 3's members carry enumerated options with nothing chosen. Step
+2's second half (`9d009401`) is reserved for the user outright. A session starting here should expect to
 **ask and record**, not to plan a wire-to-wire run. Step 5 is the only place
 to make unattended progress.
 
