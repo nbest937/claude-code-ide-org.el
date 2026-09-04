@@ -2,6 +2,39 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO org_amend cannot continue a list, and the slice revision links are always one
+:PROPERTIES:
+:ID:       635d5abb-207d-445d-b268-bc031bdd592a
+:CREATED:  [2026-09-04 Fri 09:21]
+:CATEGORY: Tools
+:END:
+
+=org_amend= is documented as positional — "it appends wherever the body now ends" — and it inserts a
+blank line before the text it appends. For prose that is right and is what makes paragraphs read.
+For a **list item** it is wrong: org reads the blank line as a terminator, so the appended item starts
+a *second* list rather than continuing the first.
+
+*The collision is not incidental, it is structural.* The one convention that says "append exactly one
+list item, repeatedly, over the life of a heading" is the slice's prompt-revision list —
+=.claude/rules/org-conventions.md=: "one =orgit-rev:= link per revision of it … oldest first". So the
+tool's only append idiom is guaranteed to break the one convention built on repeated appends.
+
+*Fixed by hand three times on =ff7ccb2d= in a single day* — after revisions 2, 3 and 4 — each time by
+deleting one blank line. Three identical repairs in one day is the threshold at which the repair
+becomes the defect. The first was even recorded in a commit message as a thing to know before the
+next revision, which is documentation standing in for a fix.
+
+*It is silent in the direction that matters.* =bin/lint-org= reports 0 errors either way; two adjacent
+one-item lists and one two-item list are both well-formed org. What breaks is *meaning* — the
+convention says the links form a list, and after an append they do not — and nothing can see it but a
+reader who happens to look at the raw text.
+
+*Shape of the fix, not settled here.* Either an argument (=list= or =continue=) that suppresses the
+blank line, or detection: if the body's last non-blank line matches an org list item and the appended
+text does too, do not separate them. Detection needs no caller change and would have fixed all three
+instances silently, which argues for it; an explicit argument is harder to get wrong and composes with
+=501a8422='s proposed drawer argument, which is the other thing =org_amend= cannot currently target.
+
 * TODO Every slice needs :COOKIE_DATA: and no slice creates it; the lint only reports
 :PROPERTIES:
 :ID:       acf46449-422b-45d5-a223-83224ef71548
@@ -731,8 +764,9 @@ The prompt that drives this slice, one link per revision, oldest first:
 
 - [[orgit-rev:claude-code-ide-org::1251ee3][1251ee3]] [2026-09-03 Thu 16:13] rewrote =next-session.md= for this slice, replacing =b36e6369='s prompt
 - [[orgit-rev:claude-code-ide-org::1d026ae][1d026ae]] [2026-09-03 Thu 17:22] restructured it as a plan: Step 0 for the preliminaries, one step per movement, and Step 6 reconsidering the =MAYBE=s
-
 - [[orgit-rev:claude-code-ide-org::93abc93][93abc93]] [2026-09-04 Fri 08:17] restored the member =:ID:=s beside their titles, and added the fast-forward-main and cut-a-branch steps
+- [[orgit-rev:claude-code-ide-org::ef5ecf8][ef5ecf8]] [2026-09-04 Fri 09:20] made Step 0's branch check generic — survey and ask, rather than a hard-coded PR that would need editing before the next slice could follow it
+
 
 
 * DOING Make the heading body a scannable summary, with plan and debrief in drawers [2/5]
