@@ -1,18 +1,32 @@
 # Next session
 
 A plan for `ff7ccb2d` — **Make the org discipline travel: ship the machinery,
-relocate the rules** — at **[0/12]** across 20 member lines.
+relocate the rules**.
 
 **The slice is the list.** Open it and read its checklist; this file gives
 the plan, not the membership. The two disagree only if one is stale, and the
-slice wins.
+slice wins — which is also why no cookie or member count appears here. A
+count in two places is a count that can disagree with itself, and this is
+the copy nothing regenerates.
+
+> **The line above is the only slice-specific text outside the middle
+> band.** Read the file as three parts: *Step 0* and *Standing rules* carry
+> forward verbatim between slices, everything from *What is already true* to
+> *Where this will stop* is replaced wholesale, and this heading names which
+> slice the middle is about.
 
 ---
 
 ## Step 0 — preliminaries
 
-Not specific to this slice. Every item here is on the list because skipping
-it cost a past session real work.
+> **CARRY FORWARD VERBATIM.** Nothing below is specific to a slice. When this
+> file is rewritten for the next one, this section and *Standing rules* at the
+> foot move across unchanged; everything between them is replaced. Amend these
+> two only when a session earns a new entry — never to describe the slice in
+> hand.
+
+Every item here is on the list because skipping it cost a past session real
+work.
 
 1. **Apply the queue before composing anything.** Until it is applied,
    `TODO.org` shows the old keyword on headings whose work shipped, and a
@@ -58,6 +72,11 @@ it cost a past session real work.
 ---
 
 ## What is already true, so it is not re-derived
+
+> **SLICE-SPECIFIC, and permanent as a *section*.** This heading always
+> appears and its contents never survive a rewrite: it exists so the next
+> session does not re-measure what this one already established. Keep it to
+> findings a session would otherwise spend real time rediscovering.
 
 **`.claude/rules/` is not a plugin component.** Verified against the plugin
 docs 2026-09-02 and recorded on `9ae4b17e`, along with the measurement
@@ -192,10 +211,18 @@ to make unattended progress.
 
 ## Standing rules, with what actually happened
 
-- **Never type a UUID from memory.** On 2026-09-03 this slice's 20 member
-  lines were *generated from `TODO.org`* and the result diffed against what
-  landed. One full id was not what recall offered. Generate, then diff; do
-  not proofread.
+> **CARRY FORWARD VERBATIM**, with Step 0. The dates are not staleness — they
+> are the evidence that turns a platitude into a rule, so keep them and add to
+> the list rather than refreshing it. A rule whose incident is forgotten is a
+> rule nobody follows.
+
+- **Never type a UUID from memory.** Write the 8-character prefix and let the
+  tool expand it; where a full id is unavoidable, `grep` the `:ID:` line. On
+  2026-09-04 a slice's twenty member lines were *generated from `TODO.org`*
+  and the result diffed against what landed — one full id was not what recall
+  offered. Generate, then diff; do not proofread. Two other full ids were
+  typed from memory the same day and both were refused by the tool, which is
+  the guard working and not a reason to lean on it.
 - **Anchor org parsing on the heading's own property drawer.** A regex
   scanning each heading's whole block attributed **three of eight** footnote
   titles to the wrong heading, because ids get quoted in bodies. Third
@@ -222,3 +249,17 @@ to make unattended progress.
   skips fish's builtin for an external no-op, so `pwd` reported the wrong
   directory and every check silently ran against the wrong tree. Two existing
   assertions caught it in under a minute.
+- **A mutation test must assert its own mutation.** Proving a new lint rule
+  reached the real corpus meant deleting a property from `TODO.org` and
+  watching it fire. The first attempt edited nothing — its anchor assumed a
+  property order `org-entry-put` does not use — so the lint reported no error
+  for the honest reason that the file was unchanged. Without the `assert` that
+  would have read as *"the rule does not reach the real path"*, a stronger and
+  entirely false conclusion than the one under test.
+- **`git commit -- FILE` commits the whole file's current diff**, not your
+  hunks. On 2026-09-04 that swept an apply pass the user had run between the
+  read and the write into a commit whose message described three unrelated
+  amendments. Explicit pathspecs protect other *files*, never other *changes*
+  — so check `git diff --stat` before committing a file someone else may have
+  touched, and if it happened, amend the message to name both authors rather
+  than letting the log misattribute the work.
