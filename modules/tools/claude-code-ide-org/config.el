@@ -16,6 +16,16 @@
 (require 'org-capture)
 (require 'json)
 
+;; Hard floor: org 9.7 (TODO.org :ID: 1ed7b2b4).  The drawer code calls
+;; `org-element-type-p' (three sites) and `org-element-contents-end'
+;; (two), both new in 9.7.  On an older org this file LOADS cleanly --
+;; verified against the bundled 9.6.15 -- and dies at first drawer use
+;; with a bare void-function, far from the cause.  Fail here instead:
+;; at load, on the machine where it matters, naming the fix.
+(when (version< (org-version) "9.7")
+  (error "claude-code-ide-org requires org 9.7+, this Emacs has org %s (likely the bundled copy); load the straight/package-managed org first"
+         (org-version)))
+
 ;;; Configuration -----------------------------------------------------------
 
 (defgroup claude-code-ide-org nil

@@ -56,6 +56,9 @@ tracked work). The wiring, as it runs today:
 
 2. A running Emacs server is a **hard prerequisite** — every MCP tool
    goes through `emacsclient`. The Doom config starts one automatically.
+   The module needs **org 9.7+** and says so loudly at load — the org
+   bundled with Emacs 29 (9.6.x) is not enough; Doom's straight-managed
+   org is.
 
 3. `.mcp.json` registers the `emacs-tools` MCP server for the `claude`
    CLI. (`.warp/.mcp.json` is a deliberate duplicate for Warp — see
@@ -96,8 +99,9 @@ These read as bugs and are not; each is a recorded trade-off.
 - **Tracked-file discovery is restart-bound.** `org-agenda-files` is
   computed once at config load, so a newly added org file needs an Emacs
   restart to be seen by the tools.
-- **The org 9.7+ dependency is real but undeclared** — tracked as open
-  work, along with making the whole thing portable to other repos.
+- **Portability to other repos is tracked, unfinished work** — the
+  conventions and machinery documented in CLAUDE.md do not yet ship
+  anywhere.
 
 CLAUDE.md documents all of this in depth — it is written for agent
 sessions, but it is also the honest reference for humans.
