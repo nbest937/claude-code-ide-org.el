@@ -2,6 +2,38 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The ceremony should refresh open slices, so incidentals and cookies stop waiting on memory :code:
+:PROPERTIES:
+:ID:       d749ebd5-ff2b-4794-941a-0af5c2df1356
+:CREATED:  [2026-09-04 Fri 16:52]
+:CATEGORY: Meta
+:END:
+
+Raised by the user 2026-09-04, catching the gap live: =f1ff027e= and
+=d585d33e= closed (to =REVIEW=) during
+[[id:ff7ccb2d-2b13-421e-86e3-6b5e187850bf][ff7ccb2d]]'s life and its
+incidental list will not show them until someone runs =M-x
+claude-code-ide-org-refresh-slice= — which nothing prompts. The
+derivation is sound (the window's left edge, the planned-member split,
+the idempotency guard); only the *trigger* is memory, and a session
+flagging "remember to refresh" in prose is the same reliance the
+ceremony exists to replace.
+
+Proposal: the ceremony's post-apply step — which already runs
+=consolidate-all-drawers= and =normalize-heading-separation=, both
+idempotent — gains a third idempotent pass: refresh every open slice
+(=:KIND: slice=, keyword not finished). Refresh is already
+write-by-default from Lisp like the other two. The ceremony prompt's
+"what is waiting" report could also count slices whose derived lines
+are stale, so the human sees the drift the same way they see pending
+queue items.
+
+Sizing note: refresh regenerates cookie, =:BLOCKER:=, member keywords
+and the incidental section, so a ceremony-driven run also retires the
+"checkbox disagrees with its referent" staleness the slice conventions
+warn about — the disagreement would then be bounded by ceremony
+cadence, like clock accuracy already is.
+
 * TODO Commit co-author trailer is frozen at session start, misattributes after /model :code:
 :PROPERTIES:
 :ID:       f1ff027e-5826-4812-8221-96eeba966333
