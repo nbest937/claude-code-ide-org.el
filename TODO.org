@@ -2129,6 +2129,7 @@ Whatever is chosen, the shape to avoid is the current one, where the failure is 
 :LOGBOOK:
 - State "TODO"       from              [2026-08-31 Mon 12:35]
 :END:
+:PLAN:
 
 =REVIEW= means finished work handed back for human judgement. Nothing in this project surfaces one, and it is structurally the state most likely to be forgotten: nothing is owed from our side, no clock runs, and no next action is missing -- so every existing nag looks straight past it.
 
@@ -2163,6 +2164,36 @@ adding it was considered:
 long they have sat, on the same ask-do-not-act contract the other three reports keep. Today supplies
 the missing calibration: three at once, aged two days, in a corpus that held zero live =REVIEW=
 headings before 2026-08-31.
+
+:END:
+*Shipped 2026-09-04 as [[orgit-rev:claude-code-ide-org::33feda6][33feda6]] — a fourth clause in
+=--attention-headings-context=, not a fourth report.* That function already answers "what should a
+starting session be told about", and a forgotten =REVIEW= is the same question. The three decisions
+were the user's: the attention walk rather than =--session-start-hook-json=; report **all**, no age
+threshold; and do **not** skip an undated one, which reports =REVIEW, no state note to date it=.
+
+=--recorded-review-time= mirrors =--recorded-close-time= — latest entry wins, because a heading sent
+back to =DOING= on rework and returned has been waiting since the second one, not the first.
+
+**A bug the fixtures could not have shown, and the reason to run against the corpus.** The first cut
+computed age as elapsed seconds over 86400, so a heading that entered =REVIEW= at 15:24 and was read
+at 11:02 the next morning printed =(today)= — 19h38m floors to zero. Every test passed.
+=--calendar-days-between= truncates both endpoints to midnight instead, the same decode-and-compare
+idiom =--today-p= already uses rather than a second notion of what a day is, and it takes **both**
+endpoints as arguments so its own test cannot flake on the hour it runs — the trap =c31b6c76= and
+=5a5e87c9= both name.
+
+*Verified against the real =TODO.org=, in batch:* all three =REVIEW= headings on disk are reported and
+dated 1, 1 and 2 days. 547/547 ERT, four tests run red first, every shell suite green.
+
+**=REVIEW= rather than =DONE=, on =ccfd89ce='s precedent and for the same reason.** The report reaches
+a session only through a running Emacs, and this one still holds the previous definitions — so the
+live verification is the first session started after the module is reloaded. Until then the code is
+right and the effect is unobserved.
+
+*Which makes this heading its own first customer:* it is now a =REVIEW= heading that something
+watches, and if the mechanism works it will surface itself.
+
 
 
 
