@@ -929,6 +929,72 @@ report a divergence at the exact moment it was resolved."
                    table))))
     table))
 
+(defun claude-code-ide-org--calendar-days-between (earlier later)
+  "Return the number of calendar days from EARLIER to LATER.
+
+Dates, not elapsed hours. 15:24 one day and 11:02 the next is 19h38m --
+which floor-divides to zero and would report yesterday as \"today\".
+Truncating both endpoints to midnight first asks the question a reader
+actually has, and is the same decode-and-compare idiom
+`claude-code-ide-org--today-p' already uses rather than a second notion
+of what a day is.
+
+Both endpoints are arguments so callers can be tested without depending
+on the hour the suite runs (TODO.org :ID: 43aa25b2)."
+  (let ((midnight
+         (lambda (tm)
+           (let ((d (decode-time tm)))
+             (encode-time 0 0 0 (nth 3 d) (nth 4 d) (nth 5 d))))))
+    (round (/ (float-time (time-subtract (funcall midnight later)
+                                         (funcall midnight earlier)))
+              86400))))
+
+(defun claude-code-ide-org--recorded-review-time ()
+  "Return the latest time the heading at point entered REVIEW, or nil.
+
+Reads `- State \"REVIEW\"' lines from the heading's own :LOGBOOK:. The
+*latest* wins, for the same reason
+`claude-code-ide-org--recorded-close-time' takes the latest close: a
+heading sent back to DOING on rework and returned to REVIEW has been
+waiting since the second entry, and the first records a moment the
+second superseded.
+
+Returns nil when no such line exists, and callers must NOT treat that as
+a reason to skip the heading. An undated REVIEW is precisely the one
+whose provenance nobody recorded, which is the silence this report
+exists to break (TODO.org :ID: 43aa25b2)."
+  (let ((bounds (claude-code-ide-org--drawer-content-bounds "LOGBOOK"))
+        latest)
+    (when bounds
+      (save-excursion
+        (goto-char (nth 0 bounds))
+        (while (re-search-forward
+                "^- State \"REVIEW\"[ \t]+from[ \t]+\"[^\"]*\"[ \t]+\\(\\[[^]]+\\]\\)"
+                (nth 1 bounds) t)
+          (let ((time (claude-code-ide-org--parse-org-timestamp (match-string 1))))
+            (when (or (null latest) (time-less-p latest time))
+              (setq latest time))))))
+    latest))
+
+(defun claude-code-ide-org--review-waiting-label ()
+  "Return the attention-report label for a REVIEW heading at point.
+
+Dates it from `claude-code-ide-org--recorded-review-time' and says so
+plainly when it cannot. The day count is rendered as text rather than
+left to the reader: the question the report answers is \"how long has
+this sat\", and a bare timestamp makes the reader do the arithmetic that
+made it invisible in the first place."
+  (let ((since (claude-code-ide-org--recorded-review-time)))
+    (if (null since)
+        "REVIEW, no state note to date it"
+      (let ((days (claude-code-ide-org--calendar-days-between
+                   since (current-time))))
+        (format "REVIEW since %s (%s)"
+                (format-time-string "%Y-%m-%d %H:%M" since)
+                (cond ((<= days 0) "today")
+                      ((= days 1) "1 day")
+                      (t (format "%d days" days))))))))
+
 (defun claude-code-ide-org--attention-headings-context ()
   "Return a list of one-line descriptions, one per heading across
 `claude-code-ide-org--tracked-files\' that a *starting* session should be
@@ -996,6 +1062,20 @@ would silently eat this hook's whole timeout."
                       (label
                        (cond
                         ((equal state "WAITING") "WAITING")
+                         ;; REVIEW: finished work handed back for
+                         ;; judgement. Nothing else surfaces it -- no
+                         ;; clock runs, nothing is owed from our side,
+                         ;; and no next action is missing, so every other
+                         ;; nag looks straight past it. Reported
+                         ;; unconditionally rather than above an age
+                         ;; threshold: the corpus held zero live REVIEW
+                         ;; headings before 2026-08-31 and four across
+                         ;; two days after, so a threshold would be
+                         ;; tuning against four observations, and the
+                         ;; report is silent by itself whenever there are
+                         ;; none (TODO.org :ID: 43aa25b2).
+                         ((equal state "REVIEW")
+                          (claude-code-ide-org--review-waiting-label))
                         ((and (equal state "DOING")
                               (not (claude-code-ide-org--grouping-heading-p)))
                          (cond
