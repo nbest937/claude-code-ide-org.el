@@ -813,6 +813,8 @@ The prompt that drives this slice, one link per revision, oldest first:
 - [[orgit-rev:claude-code-ide-org::1d026ae][1d026ae]] [2026-09-03 Thu 17:22] restructured it as a plan: Step 0 for the preliminaries, one step per movement, and Step 6 reconsidering the =MAYBE=s
 - [[orgit-rev:claude-code-ide-org::93abc93][93abc93]] [2026-09-04 Fri 08:17] restored the member =:ID:=s beside their titles, and added the fast-forward-main and cut-a-branch steps
 - [[orgit-rev:claude-code-ide-org::ef5ecf8][ef5ecf8]] [2026-09-04 Fri 09:20] made Step 0's branch check generic — survey and ask, rather than a hard-coded PR that would need editing before the next slice could follow it
+- [[orgit-rev:claude-code-ide-org::185f136][185f136]] [2026-09-04 Fri 09:31] banded the file — Step 0 and Standing rules carry forward verbatim, the middle is replaced wholesale — and added the two rules this session earned
+
 
 
 
