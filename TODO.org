@@ -32,6 +32,7 @@ it does not grow with the corpus.
 "the first thing", and it fell out. Recorded because the omission was an artefact of a precise
 instruction rather than a decision, which is the failure this whole sweep exists to catch.
 
+
 * TODO A DOING story is invisible to every report, and two have sat a fortnight
 :PROPERTIES:
 :ID:       4133772c-b81d-46e3-8cf7-98359f9a6526
@@ -1092,6 +1093,8 @@ The prompt that drives this slice, one link per revision, oldest first:
 - [[orgit-rev:claude-code-ide-org::93abc93][93abc93]] [2026-09-04 Fri 08:17] restored the member =:ID:=s beside their titles, and added the fast-forward-main and cut-a-branch steps
 - [[orgit-rev:claude-code-ide-org::ef5ecf8][ef5ecf8]] [2026-09-04 Fri 09:20] made Step 0's branch check generic — survey and ask, rather than a hard-coded PR that would need editing before the next slice could follow it
 - [[orgit-rev:claude-code-ide-org::185f136][185f136]] [2026-09-04 Fri 09:31] banded the file — Step 0 and Standing rules carry forward verbatim, the middle is replaced wholesale — and added the two rules this session earned
+
+
 * DOING Make the heading body a scannable summary, with plan and debrief in drawers [2/5]
 :PROPERTIES:
 :ID:       4c834fdb-5314-4168-ab1d-09fe89ded517
@@ -10118,4 +10121,10 @@ CLOCK: [2026-09-04 Fri 12:33]--[2026-09-04 Fri 12:34] =>  0:01
 - [2026-09-04 Fri 12:33]--[2026-09-04 Fri 12:34] add 60ed5b96 to 8a2eb687; nominate 33c3eabc
 CLOCK: [2026-09-04 Fri 12:44]--[2026-09-04 Fri 12:45] =>  0:01
 - [2026-09-04 Fri 12:44]--[2026-09-04 Fri 12:45] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-04 Fri 12:57]--[2026-09-04 Fri 12:58] =>  0:01
+- [2026-09-04 Fri 12:57]--[2026-09-04 Fri 12:58] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-04 Fri 13:01]--[2026-09-04 Fri 13:02] =>  0:01
+- [2026-09-04 Fri 13:01]--[2026-09-04 Fri 13:02] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-04 Fri 13:09]--[2026-09-04 Fri 13:11] =>  0:02
+- [2026-09-04 Fri 13:09]--[2026-09-04 Fri 13:11] sweep the dropped threads from the denouement
 :END:
