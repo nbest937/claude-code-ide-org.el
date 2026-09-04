@@ -206,6 +206,29 @@ and enabled in `~/.config/doom/init.el` under `:tools claude-code-ide-org`.
 Both skills live under `.claude/skills/` and are auto-discovered by Claude
 Code from there — no separate install step.
 
+## Scripting conventions
+
+**The boundary is Emacs, not audience** (decided 2026-09-04, `:ID:`
+84b7d8b3, which retired fish from the repo):
+
+- **A script that needs the running Emacs keeps its logic in elisp**,
+  behind a thin POSIX `sh` stub whose only job is moving bytes — write
+  stdin to a temp file, call `emacsclient`, cat the reply.
+  `bin/statusline.sh` and `bin/check-org-dev-skill` (core in
+  `bin/lib/check-org-dev-skill.el`) are the shape.
+- **A script that must survive an Emacs outage stays plain shell.** The
+  queue-append hook family exists precisely so a stopped Emacs costs
+  nothing; routing it through `emacsclient` would reintroduce the
+  dependency the queue escapes. `jq` is fine there — logic beyond field
+  mapping is not.
+- **Test harnesses and dev tooling are bash**, unremarkably.
+- **No fish.** It reached the commit gate (`bin/check-conventions`)
+  undeclared, which is what turned a style question into this decision.
+- **Python was considered and declined** for JSON handling: Emacs is
+  already the harder, always-present dependency — every such script
+  ends in `emacsclient` anyway — so elisp avoids adding a runtime
+  rather than trading one.
+
 ---
 
 ## Engineering practices

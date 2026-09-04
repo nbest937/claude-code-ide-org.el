@@ -9896,6 +9896,41 @@ Emacs, not an OS-invokable interpreter, so hooks would need
 thing with less indirection. The convention gets written down as part
 of implementation, so it is not re-litigated per script.
 
+*Shipped 2026-09-04 in three commits* (=8dc1628=, =26d14d5=, plus the
+convention/plan commit following), and *fish is now absent from the
+repo*.
+
+*One premise of the decision was corrected in the doing.* The decision
+text said =check-conventions= "queries the live Emacs"; reading it
+showed it never does — check 0 is =emacs --batch= (binary, no server),
+checks 1–2 are file reads, and only the *delegated* doctest touches the
+server. So the Emacs-boundary principle was applied with the tiers
+right: =check-conventions= is the commit gate, must survive an outage,
+and went *bash* (harness → =bin/lib/check.sh=; 18-check self-test
+green, 27 ok against the repo, =pre-commit-test= 8/8, ok-count
+unchanged across the migration). =check-org-dev-skill= genuinely needs
+the live Emacs and went *elisp core + POSIX sh stub*
+(=bin/lib/check-org-dev-skill.el=; one emacsclient round-trip where
+fish made seven; 20 checks green).
+
+*The translation caught one real bug of its own*: the elisp glob's
+=car= picked =build-29.4-cache.el= — a plain file the fish's =find
+-type d= had excluded — and failed against a healthy install on first
+run. Fixed with =seq-find #\\='file-directory-p=, commented in place.
+
+*The convention is written down* — CLAUDE.md "Scripting conventions",
+after Repository layout: elisp-behind-stub where Emacs is required,
+plain shell where an outage must be survivable, bash for dev tooling,
+no fish, Python declined with its reason. The plan file carries a
+supersession note (it predated the queue cutover; its inventory
+described deleted hooks) and the archive is synced.
+
+*Left as is, deliberately*: the queue-append hook family stays bash
+with =jq= — that is the surviving tier working as designed, not
+residue. =bin/test= keeps its =BASH_SOURCE=/array bash; it is dev
+tooling.
+
+
 
 * WAITING Add README.md and enforce its consistency with CLAUDE.md :code:comms:
 :PROPERTIES:
