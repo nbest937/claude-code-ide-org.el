@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+# Stop hook: refuse to end a turn in a session that has done
+# file-touching work but never named a clock target.
+#
+# TODO.org :ID: ccfd89ce. The gap it closes was measured on 2026-09-03:
+# three sessions did real tracked work -- a CLAUDE.md review, filings, a
+# table-row edit -- through the immediate tools alone, and every span
+# reached the review buffer UNASSIGNED. The standing rule fires on
+# "asked to start work on a task with an :ID:", and every mechanical
+# backstop hangs off state transitions; a session that opens as a
+# question and works through org_capture/org_amend/Edit crosses neither.
+# The drift moment is invisible from inside the session doing the
+# drifting, so the check has to live outside it.
+#
+# Two sources, deliberately different:
+#
+#   - CLOCK EVIDENCE comes from the session's queue file, not the
+#     transcript. bin/hooks/queue-append drops a clock_in whose tool
+#     reply was an error, so a queue line is evidence the call actually
+#     landed -- a transcript tool_use block is only evidence it was
+#     attempted.
+#   - WRITE EVIDENCE comes from the transcript, not the queue. The
+#     write-through gate in queue-append means an org_capture/org_amend
+#     that wrote immediately never reaches the queue at all, and Edit/
+#     Write never touch it -- so the queue under-reports exactly the
+#     common case this check exists for.
+#
+# The transcript may lag the in-memory turn (the footnote-check header
+# quotes the docs on this), which for THIS check is acceptable: it
+# detects "any write so far this session", so the worst case is firing
+# one turn late, never wrongly.
+#
+# Edit/Write/NotebookEdit count only when their file_path is inside the
+# project: a scratch file in a temp directory is not tracked work, and
+# nagging on it would teach sessions to ignore the nag.
+#
+# REPORTS, NEVER DECIDES: the message tells the session to name a
+# heading or say why there is none; it cannot know which heading. Same
+# contract as the nomination report -- ask, don't act.
+#
+# LOOP GUARD, same reasoning as footnote-check's: a blocking Stop hook
+# with no sentinel can block forever. This one fires at most once per
+# SESSION (not per turn) -- the sentinel is written when it blocks and
+# never cleared, so the worst case is one extra continuation in the
+# session's whole life. Once per session is the right cadence for a
+# discipline reminder; per-turn would be noise after the first.
+#
+# That guarantee is now enforced rather than asserted: if the sentinel
+# cannot be written the hook exits 0 instead of blocking, so the bound
+# holds even when the queue directory does not cooperate. See the write
+# itself, below.
+
+set -uo pipefail
+
+input="$(cat)"
+command -v jq >/dev/null 2>&1 || exit 0
+
+session_id="$(jq -r '.session_id // empty' <<<"$input" 2>/dev/null)"
+[[ -n "$session_id" ]] || exit 0
+case "$session_id" in
+  *[!A-Za-z0-9._-]*|''|.|..) exit 0 ;;
+esac
+
+queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
+sentinel="$queue_dir/$session_id.clock-target-nagged"
+[[ -e "$sentinel" ]] && exit 0
+
+# Clock evidence: any clock_in this session. jq, not a raw grep -- the
+# amend events carry free text, and prose containing the literal
+# '"kind":"clock_in"' must not count as a clock.
+#
+# -n -R + inputs + `fromjson?', NOT -s. Slurping parses the file as one
+# document, so a single malformed line aborts jq, the `if' fails, and
+# this proceeds as though the session had never clocked in -- nagging a
+# session that did, and blocking its Stop. The failure direction is the
+# wrong one, and it is reachable: queue-append embeds the whole hook
+# payload per line via --argjson, so a line carrying a large org_amend
+# text can exceed the atomic-append size while Stop, UserPromptSubmit
+# and PostToolUse all append to this one file. The write-evidence scan
+# below already skips malformed lines for exactly this reason; the same
+# tolerance costs nothing here. Measured 2026-09-03 on a fixture holding
+# a real clock_in plus one truncated line: -s exits 5, this exits 0.
+queue_file="$queue_dir/$session_id.jsonl"
+if [[ -r "$queue_file" ]]; then
+  if jq -e -n -R '[inputs | fromjson? | select(.kind == "clock_in")] | length > 0' \
+      < "$queue_file" >/dev/null 2>&1; then
+    exit 0
+  fi
+fi
+
+transcript_path="$(jq -r '.transcript_path // empty' <<<"$input" 2>/dev/null)"
+[[ -n "$transcript_path" && -r "$transcript_path" ]] || exit 0
+
+repo="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+
+# Write evidence: first matching tool_use in the transcript. Malformed
+# lines are skipped by `fromjson?'. -n + inputs streams line by line, so
+# a large transcript is one pass and no slurp.
+first_write="$(jq -r -n --arg repo "$repo" '
+  first(
+    inputs
+    | fromjson?
+    | select(.type == "assistant")
+    | .message.content[]?
+    | select(.type == "tool_use")
+    | select(
+        (.name | test("^mcp__emacs-tools__org_(capture|amend|set_property|refile|divide|archive|move_sibling|sort_children|wrap_plan|log_background_plan)$"))
+        or ((.name | test("^(Edit|Write|NotebookEdit)$"))
+            and ((.input.file_path // "") | startswith($repo)))
+      )
+    | .name
+  ) // empty' -R < "$transcript_path" 2>/dev/null)"
+[[ -n "$first_write" ]] || exit 0
+
+# mkdir -p first -- see footnote-check on why the bare redirect is not
+# enough when the directory is missing, and why a missing sentinel here
+# would mean blocking forever.
+#
+# `|| exit 0', because "blocking forever" was not hypothetical: the
+# redirect discarded its own failure and the `exit 2' below ran
+# regardless, so an unwritable or full queue directory turned a one-shot
+# reminder into a Stop that blocked every turn -- contradicting both the
+# LOOP GUARD paragraph above and the "fires once per session" sentence
+# the user is shown, with nothing consulting stop_hook_active as a
+# second line of defence. A check that cannot arm its own guard must not
+# fire, which is the same fail-open posture as the `command -v jq' and
+# empty-session_id exits at the top (TODO.org :ID: ae4e4b04).
+mkdir -p "$queue_dir" 2>/dev/null
+: > "$sentinel" 2>/dev/null || exit 0
+
+# Exit 2 with the message on stderr: the documented blocking path for
+# Stop, per footnote-check's hard-won header. Exit 0 would block with an
+# empty message or not at all.
+cat >&2 <<EOF
+This session has done file-touching work (first: $first_write) but has \
+queued no org_clock_in, so its time will reach review UNASSIGNED. Name the \
+heading this work belongs to and call org_clock_in on its :ID: -- or on \
+"Review and planning" for cross-cutting meta-work -- capturing a heading \
+first (org_capture, with an initial_state) if none exists. If the work is \
+genuinely not trackable, say so to the user in one sentence. This check \
+fires once per session.
+EOF
+exit 2

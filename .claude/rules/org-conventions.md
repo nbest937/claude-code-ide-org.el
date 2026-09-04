@@ -122,6 +122,30 @@ task` — the one value that defeats the reason these are capitalised. It also
 read to its daily reader as naming the ceremony rather than the apply
 subsystem. `apply` is the project's own word for it by a wide margin.
 
+### One top-level NEXT per category
+
+Settled 2026-09-03 (`:ID:` 758a8b78). **At most one level-1 heading per
+`:CATEGORY:` value carries `NEXT`**, the Slices category included — so
+within Slices, mechanism work and actually starting a slice compete for
+the one nomination. That competition is a deliberate forcing function,
+not a side effect: picking one up is a decision, never a drift. Measured
+at adoption, the five live NEXTs sat in five distinct categories, so the
+rule landed with zero demotions.
+
+Two exemptions, one per grouping kind. A story's **internal** `NEXT` —
+at most one, kept by `--trigger-demote-conflicting-next` — does not
+count against the budget: it is a memoization of where it has been
+determined best to start upon entering the story, weighing its members
+against each other. And a slice's member list may show **several**
+`NEXT`s: members are references, so those are other groups' nominations
+showing through — a useful signal when formulating the slice's plan, not
+a violation. Two members of the *same* story still cannot both be
+`NEXT`; the story's internal limit wins.
+
+Nothing enforces the budget yet, deliberately — the rule is days old,
+and the project's precedent is observation before machinery.
+`bin/lint-org` is the natural home when it earns a check.
+
 ### Where the nine old labels went
 
 None mapped one-to-one but `Slices` and `Upstream`; the point of the exercise
@@ -252,6 +276,24 @@ is. Each carries an `:ID:`, a `:CREATED:`, and a
 `:COOKIE_DATA: checkbox recursive` property so its statistics cookie
 counts nested members as well as top-level ones.
 
+**`bin/lint-org` reports a slice without it as an error, and checks the
+*value* rather than mere presence** (`:ID:` b6da3480). Both words are
+load-bearing: `checkbox` because a slice's members are list items rather
+than TODO children, of which it has none by definition, and `recursive`
+because a member that is a story carries indented child lines that org
+otherwise excludes from the count. `:COOKIE_DATA: todo` is well formed
+and would give a cookie that can only ever read `[0/0]`.
+
+*Added while the corpus was clean, after it had already bitten once.*
+The property is required by convention, defaulted by nothing and
+consulted only by org, so its absence is invisible until a slice nests a
+member — at which point the headline silently recomputes to exclude every
+indented line. On 2026-09-04 `:ID:` ff7ccb2d recomputed to `[0/9]`
+against twelve checkboxes; the hand-written `[0/12]` had been right and
+org's own recount made it wrong, which is the worst direction for a
+defect to arrive from. Two of seven slices lacked it, one bitten and one
+latent.
+
 **The statistics cookie itself is not yours to remember.** A slice's
 headline carries `[n/m]` over its checkbox list, and
 `M-x claude-code-ide-org-refresh-slice` now *inserts* the `[/]` when it
@@ -290,6 +332,18 @@ count different things: children, versus checkbox members.
 **Members are `[[id:...]]` links in a checkbox list**, not child
 headings.
 
+**And a slice never has keyworded children** (`:ID:` dca940c1). A
+heading carrying both the `:KIND: slice` declaration and keyworded
+children satisfies the slice and container predicates at once, and every
+mechanism then takes the slice branch: the nomination report goes blind
+to the children, and the derived `:BLOCKER:` names members only, so the
+heading can close over a live child. `bin/lint-org` reports the
+combination as an **error** — added while latent, zero instances
+existing. Keyword-less children (notes) are legal; the container
+predicate tests keywords. The same rule read backwards: a heading that
+already has keyworded children is a story, and is never declared
+`:KIND: slice`.
+
 **When a member is a story, its relevant children get indented member
 lines beneath it** — added 2026-08-28. Not *every* child: the ones that
 belong to this slice, and *especially* any child that blocks another
@@ -312,6 +366,18 @@ it belongs to something; one left incidental claims it was unrelated to
 the plan when it was the plan's own subject. `478d6ec9`'s children were
 five incidentals and four absentees before this rule; they are now nine
 indented lines under their parent.
+
+**When the slice does not undertake all of an open story's open
+children, the parent line carries no checkbox** (`:ID:` 758a8b78): write
+it as an `[[id:...]]` reference with keyword and title but no cookie,
+its member children indented beneath. A checkboxed parent over partial
+coverage could never check while the story stays open, which would wedge
+the slice short of `DONE` for work it never claimed. This is a fourth
+reading of a cookie-less line beyond the three the dropping section
+names, and the disambiguator is structural: **a cookie-less line with
+indented member lines beneath it is a grouping label, never a drop**
+(`:ID:` 1b727475 tracks the ambiguity this rides). A story the slice
+undertakes whole may stay a checkboxed member as before.
 Write the link so it displays the 8-character prefix, and put the
 referent's keyword and title *outside* the brackets:
 
@@ -492,7 +558,9 @@ is exactly the fact.
 
 **It covers three cases and does not distinguish them**: cancelled,
 deferred, and moved. The line's absence of a cookie says only that the
-slice no longer counts it.
+slice no longer counts it. (A cookie-less *parent* line with indented
+member lines beneath it is the distinct fourth reading — a grouping
+label, not a drop; see the nesting rule above.)
 
 **Known ambiguity, and it is not resolved** (`:ID:` 1b727475). `MAYBE`
 and `CANCELLED` map to *no checkbox* by design — an unchecked box would

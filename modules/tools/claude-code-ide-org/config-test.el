@@ -618,6 +618,56 @@ not a new interval)."
     (should (string-match-p "^\\* DOING Test heading"
                             (claude-code-ide-org-test--disk-contents file)))))
 
+(ert-deftest claude-code-ide-org-test-blocker-refuses-a-keyword-inside-a-slice ()
+  "Granting a keyword to a heading already sitting *inside* a slice mints
+the hybrid (:ID: dca940c1) by a third path -- the one org_refile's and
+org_capture's arrival guards structurally cannot see, because nothing
+arrives (TODO.org :ID: dc753eb2).
+
+org-blocker-hook is where it belongs, and that is a decision the project
+had already made rather than a new one: `claude-code-ide-org-set-todo'
+documents that it deliberately validates no legality, because a queued
+answer would be given against a file that has not moved yet, and apply
+runs `org-todo' in front of a human who can respond to a refusal.
+
+Verified in batch before this was written that the hook fires on a
+none->TODO *grant* and not only on a transition -- it is called with
+\(:from nil :to \"TODO\") -- since the whole guard rests on that."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* DOING [0/0] A slice\n"
+                    ":PROPERTIES:\n:ID:       test-0002\n:KIND:     slice\n:END:\n"
+                    "** a note under the slice\n"
+                    ":PROPERTIES:\n:ID:       test-0003\n:END:\n"
+                    "*** a deeper note\n"
+                    ":PROPERTIES:\n:ID:       test-0004\n:END:\n"
+                    "* TODO An ordinary story\n"
+                    ":PROPERTIES:\n:ID:       test-0005\n:END:\n"
+                    "** a note under the story\n"
+                    ":PROPERTIES:\n:ID:       test-0006\n:END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    ;; A blocked org-todo aborts silently when not called interactively,
+    ;; so the resulting keyword is the assertion -- the same shape the
+    ;; clock-running blocker's tests use.
+    (claude-code-ide-org-test--set-todo-for-real "test-0003" "TODO")
+    (should-not (org-with-point-at (org-id-find "test-0003" 'marker)
+                  (org-get-todo-state)))
+    ;; At any depth, because --container-heading-p scans at any depth: a
+    ;; grandchild keyword hybridises the slice exactly as a child's does.
+    (claude-code-ide-org-test--set-todo-for-real "test-0004" "TODO")
+    (should-not (org-with-point-at (org-id-find "test-0004" 'marker)
+                  (org-get-todo-state)))
+    ;; The slice's OWN keyword is its own business -- a slice carries
+    ;; state, and refusing it here would be the guard eating its subject.
+    (claude-code-ide-org-test--set-todo-for-real "test-0002" "NEXT")
+    (should (equal "NEXT" (org-with-point-at (org-id-find "test-0002" 'marker)
+                            (org-get-todo-state))))
+    ;; And a note under an ordinary story is exactly how a story grows.
+    (claude-code-ide-org-test--set-todo-for-real "test-0006" "TODO")
+    (should (equal "TODO" (org-with-point-at (org-id-find "test-0006" 'marker)
+                            (org-get-todo-state))))))
+
 (ert-deftest claude-code-ide-org-test-blocker-hook-permits-done-when-not-clocking ()
   "The DONE blocker must never fire when nothing is clocking at all --
 only the presence of a running clock on that heading is grounds to
@@ -2717,6 +2767,136 @@ worked yesterday teaches nothing."
       (should (string-match-p "under :ID: 66666666" result))
       (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
         (should (string-match-p "^\\*\\* Filed under an id" disk))))))
+
+(ert-deftest claude-code-ide-org-test-capture-refuses-a-keyworded-capture-under-a-slice ()
+  "A keyworded capture under a slice would mint a hybrid (:ID: dca940c1);
+a keyword-less capture -- a note -- stays legal, since the container
+predicate tests keywords."
+  (claude-code-ide-org-test--with-capture-file
+    (with-current-buffer (find-file-noselect capture-file)
+      (goto-char (point-max))
+      (insert "* DOING [0/0] A slice\n:PROPERTIES:\n"
+              ":ID:       77777777-7777-4777-8777-777777777777\n"
+              ":KIND:     slice\n:END:\n")
+      (save-buffer))
+    (org-id-update-id-locations (list capture-file))
+    (should (string-match-p
+             "\\`Error: capturing a keyworded heading here would give slice"
+             (claude-code-ide-org-capture
+              "A task" "77777777-7777-4777-8777-777777777777" nil nil "TODO")))
+    (should (string-match-p
+             "\\`Captured:"
+             (claude-code-ide-org-capture
+              "A note" "77777777-7777-4777-8777-777777777777")))))
+
+(ert-deftest claude-code-ide-org-test-refile-refuses-a-keyworded-arrival-under-a-slice ()
+  "Refiling a keyworded heading under a slice would mint a hybrid
+(:ID: dca940c1); a keyword-less note goes through."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* DOING [0/0] A slice\n"
+                    ":PROPERTIES:\n:ID:       test-0002\n:KIND:     slice\n:END:\n"
+                    "* A keyword-less note\n"
+                    ":PROPERTIES:\n:ID:       test-0003\n:END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (should (string-match-p "\\`Error: refiling .* would give slice"
+                            (claude-code-ide-org-refile id "test-0002")))
+    (should (string-match-p "\\`Refiled:"
+                            (claude-code-ide-org-refile "test-0003" "test-0002")))))
+
+(ert-deftest claude-code-ide-org-test-refile-refuses-a-keyworded-descendant-under-a-slice ()
+  "The arrival side of the guard is the *subtree*, not the heading line.
+
+A keyword-less note is only harmless under a slice if it is also
+childless: one carrying a keyworded child mints exactly the hybrid
+`claude-code-ide-org--container-heading-p' scans descendants to catch
+(TODO.org :ID: 15847e0b)."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* DOING [0/0] A slice\n"
+                    ":PROPERTIES:\n:ID:       test-0002\n:KIND:     slice\n:END:\n"
+                    "* A note carrying a keyworded child\n"
+                    ":PROPERTIES:\n:ID:       test-0003\n:END:\n"
+                    "** TODO its keyworded child\n"
+                    ":PROPERTIES:\n:ID:       test-0004\n:END:\n"
+                    "* A childless note\n"
+                    ":PROPERTIES:\n:ID:       test-0005\n:END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (should (string-match-p "\\`Error: refiling .* would give slice"
+                            (claude-code-ide-org-refile "test-0003" "test-0002")))
+    ;; The original test's negative case, kept: a note with nothing
+    ;; under it carries no keyword anywhere and stays legal.
+    (should (string-match-p "\\`Refiled:"
+                            (claude-code-ide-org-refile "test-0005" "test-0002")))))
+
+(ert-deftest claude-code-ide-org-test-refile-refuses-an-arrival-inside-a-slice ()
+  "The target side is the *enclosing* slice, not the target heading.
+
+`claude-code-ide-org--container-heading-p' matches a keyworded
+descendant at any depth, so landing a keyworded heading under a slice's
+keyword-less child hybridises the slice just as surely as landing it
+directly (TODO.org :ID: 15847e0b)."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* DOING [0/0] A slice\n"
+                    ":PROPERTIES:\n:ID:       test-0002\n:KIND:     slice\n:END:\n"
+                    "** a note under the slice\n"
+                    ":PROPERTIES:\n:ID:       test-0003\n:END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (let ((reply (claude-code-ide-org-refile id "test-0003")))
+      (should (string-match-p "\\`Error: refiling .* would give slice" reply))
+      ;; It names the slice it would hybridise, not the heading that was
+      ;; passed as the target -- which is the whole of what the ancestor
+      ;; walk buys, and is invisible if the message is only checked for
+      ;; being an error.
+      (should (string-match-p "would give slice \"\\[0/0\\] A slice\"" reply))
+      (should-not (string-match-p "a note under the slice" reply)))))
+
+(ert-deftest claude-code-ide-org-test-capture-refuses-a-keyworded-capture-inside-a-slice ()
+  "The same target-side mismatch, reached through capture (TODO.org
+:ID: 32742646).
+
+A capture creates a leaf, so only the target side can be wrong here --
+there is no arriving subtree to scan."
+  (claude-code-ide-org-test--with-capture-file
+    (with-current-buffer (find-file-noselect capture-file)
+      (goto-char (point-max))
+      (insert "* DOING [0/0] A slice\n:PROPERTIES:\n"
+              ":ID:       77777777-7777-4777-8777-777777777777\n"
+              ":KIND:     slice\n:END:\n"
+              "** a note under the slice\n:PROPERTIES:\n"
+              ":ID:       88888888-8888-4888-8888-888888888888\n:END:\n")
+      (save-buffer))
+    (org-id-update-id-locations (list capture-file))
+    (should (string-match-p
+             "\\`Error: capturing a keyworded heading here would give slice \"\\[0/0\\] A slice\""
+             (claude-code-ide-org-capture
+              "A task" "88888888-8888-4888-8888-888888888888" nil nil "TODO")))
+    ;; A keyword-less capture is a note and adds no keyword anywhere.
+    (should (string-match-p
+             "\\`Captured:"
+             (claude-code-ide-org-capture
+              "A note" "88888888-8888-4888-8888-888888888888")))))
+
+(ert-deftest claude-code-ide-org-test-set-property-refuses-kind-slice-on-a-container ()
+  "Declaring a container a slice mints a hybrid (:ID: dca940c1); a leaf
+may still be declared one."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert (concat "* TODO A story\n"
+                    ":PROPERTIES:\n:ID:       test-0002\n:END:\n"
+                    "** TODO its child\n"
+                    ":PROPERTIES:\n:ID:       test-0003\n:END:\n"))
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (should (string-match-p "\\`Error: this heading has keyworded children"
+                            (claude-code-ide-org-set-property "test-0002" "KIND" "slice")))
+    ;; a leaf (the macro's own heading) may be declared a slice
+    (should (string-match-p "\\`Set KIND on"
+                            (claude-code-ide-org-set-property id "KIND" "slice")))))
 
 (ert-deftest claude-code-ide-org-test-capture-unknown-target-refuses ()
   "Better to error than to file it somewhere the caller did not ask for:
@@ -11313,6 +11493,85 @@ slice whose blocker was never built."
       (search-forward "** DOING")
       (should (claude-code-ide-org--refresh-slice-blocker-at-point))
       (should-not (org-entry-get nil "BLOCKER")))))
+
+(ert-deftest claude-code-ide-org-test-lint-catches-slice-with-keyworded-children ()
+  "A declared slice with a keyworded child is a hybrid and errors.
+
+The negative cases carry the rule's two deliberate edges: a keyword-less
+child under a slice is a note and legal, and an ordinary container with
+keyworded children is a story and none of this rule's business."
+  (let ((cat "* Slices\n:PROPERTIES:\n:ARCHIVE:  DONE.org::* Slices\n:END:\n")
+        (child-props ":PROPERTIES:\n:ID:       22222222-0000-0000-0000-000000000000\n:CREATED:  [2026-09-03 Thu 12:00]\n:END:\n"))
+    ;; hybrid: slice with a keyworded child
+    (should (claude-code-ide-org-test--lint-matches
+             (claude-code-ide-org-test--lint
+              (concat cat "** DOING [0/0] A slice\n:PROPERTIES:\n:KIND:     slice\n:END:\n\n"
+                      "*** TODO a keyworded child\n" child-props))
+             'error "slice has keyworded children"))
+    ;; a keyword-less child is a note, not a hybrid
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint
+                  (concat cat "** DOING [0/0] A slice\n:PROPERTIES:\n:KIND:     slice\n:END:\n\n"
+                          "*** a note child\n" child-props))
+                 'error "slice has keyworded children"))
+    ;; an ordinary container is a story, not this rule's business
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint
+                  (concat cat "** DOING [0/1] A story\n:PROPERTIES:\n:ID:       33333333-0000-0000-0000-000000000000\n:CREATED:  [2026-09-03 Thu 12:00]\n:END:\n\n"
+                          "*** TODO a keyworded child\n" child-props))
+                 'error "slice has keyworded children"))))
+
+(ert-deftest claude-code-ide-org-test-lint-catches-slice-without-cookie-data ()
+  "A slice needs `:COOKIE_DATA: checkbox recursive' or its cookie counts
+the wrong things (TODO.org :ID: b6da3480).
+
+The property is required by convention, defaulted by nothing, and
+consulted only by org -- so its absence is invisible until a slice
+nests a member, at which point the headline silently recomputes to
+exclude every indented line. That is exactly how it was found: ff7ccb2d
+recomputed to [0/9] against twelve checkboxes.
+
+The VALUE is asserted, not merely presence. `:COOKIE_DATA: todo' is a
+well-formed property that counts TODO children -- of which a slice has
+none by definition -- so presence alone would accept a slice whose
+cookie can only ever read [0/0]."
+  (let ((cat "* Slices\n:PROPERTIES:\n:ARCHIVE:  DONE.org::* Slices\n:END:\n")
+        (props (lambda (extra)
+                 (concat ":PROPERTIES:\n:ID:       44444444-0000-0000-0000-000000000000\n"
+                         ":CREATED:  [2026-09-04 Fri 09:00]\n:KIND:     slice\n"
+                         extra ":END:\n"))))
+    ;; no :COOKIE_DATA: at all
+    (should (claude-code-ide-org-test--lint-matches
+             (claude-code-ide-org-test--lint
+              (concat cat "** NEXT [0/1] A slice\n" (funcall props "")))
+             'error "slice has no :COOKIE_DATA:"))
+    ;; the correct value passes
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint
+                  (concat cat "** NEXT [0/1] A slice\n"
+                          (funcall props ":COOKIE_DATA: checkbox recursive\n")))
+                 'error "slice has no :COOKIE_DATA:"))
+    ;; a well-formed but wrong value is still an error: `todo' counts
+    ;; children, and a slice has none
+    (should (claude-code-ide-org-test--lint-matches
+             (claude-code-ide-org-test--lint
+              (concat cat "** NEXT [0/1] A slice\n"
+                      (funcall props ":COOKIE_DATA: todo\n")))
+             'error "slice has no :COOKIE_DATA:"))
+    ;; `checkbox' without `recursive' is the case that bit: top-level
+    ;; members count, nested ones vanish
+    (should (claude-code-ide-org-test--lint-matches
+             (claude-code-ide-org-test--lint
+              (concat cat "** NEXT [0/1] A slice\n"
+                      (funcall props ":COOKIE_DATA: checkbox\n")))
+             'error "slice has no :COOKIE_DATA:"))
+    ;; and an ordinary heading is none of this rule's business
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint
+                  (concat cat "** TODO [0/1] Not a slice\n"
+                          ":PROPERTIES:\n:ID:       55555555-0000-0000-0000-000000000000\n"
+                          ":CREATED:  [2026-09-04 Fri 09:00]\n:END:\n"))
+                 'error "slice has no :COOKIE_DATA:"))))
 
 (ert-deftest claude-code-ide-org-test-lint-catches-slice-blocker-drift ()
   "The lint reports a slice whose blocker and checklist disagree.

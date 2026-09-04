@@ -406,28 +406,36 @@ system owns the thing, read the contract it actually publishes
 (`:ID:` 2e660571, which proposed the opposite and measured its way out).
 
 **Rule**: work planned via Claude Code's own Plan Mode gets a single
-permanent link in its heading body — `[[file:~/.claude/plans/<slug>.md][Plan]]`
-— added as soon as the first round of planning finishes (right after
-`ExitPlanMode` is called and the plan file is finalized), not gated on the
-heading later transitioning to `DOING`. This matters because approval and
-the `DOING` transition don't always happen in the same beat as planning —
-e.g. the user may deliberately stop right after a plan is written, before
-deciding whether to implement it — and the link should exist the moment a
-real plan file does, independent of what happens next. Revisions (re-
-entering Plan Mode on the same task) edit that same plan file in place —
-Claude Code reuses the existing plan file path for a continuation of the
-same task — so the link is written once and never needs updating to point
-at a new file. No transcription of the plan into org, ever; the link is the
-record.
+permanent link — `[[file:~/.claude/plans/<slug>.md][Plan]]` — written
+into the heading's **`:PLAN:` drawer**, added as soon as the first round
+of planning finishes (right after `ExitPlanMode` is called and the plan
+file is finalized), not gated on the heading later transitioning to
+`DOING`. This matters because approval and the `DOING` transition don't
+always happen in the same beat as planning — e.g. the user may
+deliberately stop right after a plan is written, before deciding whether
+to implement it — and the link should exist the moment a real plan file
+does, independent of what happens next. A plan link *is* planning
+content, so it belongs with the rest of the prospective prose (`:ID:`
+b75d553a): planning before composition simply includes the link in the
+normal three-call composition. When the drawer already exists before a
+Plan Mode session, nothing writes into it yet — `org_amend` appends
+*below* a drawer, and `:ID:` 501a8422 is the nominated fix — so until
+that lands, put the link in the body and move it into the drawer at the
+next revision that can. Revisions (re-entering Plan Mode on the same
+task) edit that same plan file in place — Claude Code reuses the
+existing plan file path for a continuation of the same task — so the
+link is written once and never needs updating to point at a new file. No
+transcription of the plan into org, ever; the link is the record.
 
-At `DONE` the link is **relocated into the `:PLAN:` drawer, not deleted** —
-it travels with the rest of the prospective body when `org_wrap_plan` wraps
-it, because a plan link *is* planning content, and a forward-looking pointer
-sitting in a retrospective readout invites a reader to treat the plan as
-current. (Reworded 2026-08-24; this said "not removed at `DONE`", which was
-a rule against losing the link and got read as a rule against moving it.)
-A task with no separate Plan Mode session simply carries no link — that's
-expected, not a gap to fill in.
+Nothing moves at `DONE`: the link has lived in `:PLAN:` since
+composition (2026-09-02, `:ID:` b75d553a), which is what keeps a
+forward-looking pointer out of the retrospective readout a finished body
+becomes. (Two earlier forms of this rule — "not removed at `DONE`", then
+"relocated into `:PLAN:` at `DONE`, when `org_wrap_plan` wraps it" —
+described the wrap-at-`DONE` flow that convention retired; a
+pre-convention heading's link still travels into the drawer whenever its
+body is retroactively wrapped.) A task with no separate Plan Mode
+session simply carries no link — that's expected, not a gap to fill in.
 
 The link is also what makes the plan durable, which is why it is not
 gated on anything: `bin/sync-plans` copies only those plans some heading
@@ -716,6 +724,22 @@ failed rather than reimplement it more cheaply. **Plan Mode now needs no
 state change of its own** — a heading is `DOING` while it is being
 planned and implemented, which is what `DOING` already meant.
 
+**Rule**: before a session's first act that changes anything — a repo
+edit, a capture, an amend, any immediate org tool — name the heading the
+work belongs to and call `org_clock_in` on it, or on "Review and
+planning" (that exact title) for cross-cutting meta-work: review,
+planning, deciding what to do rather than doing it. No heading yet means
+capture one first, with an `initial_state`. The trigger is the *first
+write, not the ask*: a session that opens as a question drifts into
+tracked work, and the drift is invisible from inside the session doing
+it — on 2026-09-03 three sessions worked through the immediate tools
+alone and every span reached review UNASSIGNED (`:ID:` ccfd89ce). A
+purely read-only session owes nothing. `bin/hooks/clock-target-check`
+backstops this at turn end, once per session: write activity in the
+transcript with no `clock_in` in the queue blocks the stop with a
+reminder. It reports; it cannot name the heading — that judgement is
+this rule's alone.
+
 **Rule**: when asked to start work on a task tracked as an org heading with
 a `:ID:`, transition it to `DOING` via `org_set_todo` *before* beginning,
 unless it's already `DOING`. This has to be a standing instruction, not a
@@ -759,8 +783,15 @@ next"** — a portfolio-level nomination, not an action. Three constraints
 keep it from re-creating the confusion `:ID:` 42808717 named one tier
 down:
 
-- **At most one slice carries it.** Two would say nothing, which is the
-  failure mode of every priority marker.
+- **At most one top-level `NEXT` per `:CATEGORY:`, slices included**
+  (`:ID:` 758a8b78, 2026-09-03 — generalising the original "at most one
+  slice carries it"). Within the Slices category, mechanism work and
+  starting a slice compete for the same nomination, which is a
+  deliberate forcing function. A story's *internal* `NEXT` is exempt —
+  it is a memoization of where to start upon entering the story, not a
+  portfolio nomination — and a slice's *members* may show several
+  `NEXT`s, since they are references reflecting other groups'
+  nominations.
 - **It does not substitute for a member's `NEXT`.** The two answer
   different questions — which slice, and which action inside it — and a
   slice marked `NEXT` whose members are all `TODO` is still
@@ -792,21 +823,21 @@ Having a parent is the test, since a keyworded heading with a parent
 makes that parent a container by definition.
 
 **What replaced the promotion is a report, not a rule.**
-`--nomination-candidates-context` names every container whose live
+`--nomination-candidates-context` names every grouping whose live
 members include no `NEXT`, at `SessionStart`, alongside the
 stale-interval and ceremony reports — and it *asks* rather than acting,
 which is the contract those reports already keep. It names a sole
 candidate and merely counts several, because that is the case no rule
-can decide. Measured on this corpus the day it shipped: five containers,
+can decide. Measured on this corpus the day it shipped: five groupings,
 each a real un-nominated project.
 
-**Rule**: every transition *to* `DONE` **inside a container** nominates
+**Rule**: every transition *to* `DONE` **inside a grouping** nominates
 the next action — set `NEXT` on whichever remaining member should be
 picked up next, or say in a sentence that no clear candidate exists.
 Leaving the group silently un-nominated is the thing to avoid. Closing a
 *top-level* task nominates nothing, because it has no group; several
-top-level `NEXT`s at once are expected and correct, one per live
-workstream.
+top-level `NEXT`s at once are expected and correct — at most one per
+`:CATEGORY:` (`:ID:` 758a8b78), which is what a workstream now means.
 
 Since 2026-08-26 this is the *whole* invariant rather than half of it.
 `--trigger-demote-conflicting-next` still gives at most one `NEXT` per
@@ -899,6 +930,7 @@ incident, and the reason the queue exists:
 | `org_capture`       | `org-capture`            | Quick-add a new TODO heading           |
 | `org_refile`        | `org-refile`             | Move a subtree under a different parent |
 | `org_divide`        | custom (`org-demote-subtree`) | Task mitosis: insert a new parent above a heading and demote it under. The id, clock and history stay with the **child** |
+| `org_wrap_plan`     | custom (two insertions)  | Wrap the prospective part of a body in a `:PLAN:` drawer. No `until` wraps the whole body (the composition-time case); `until` marks where the debrief begins (the retroactive case). Lossless — nothing deleted or reflowed — and it refuses rather than guesses: an existing `:PLAN:` drawer, an empty body, or a missing/duplicated `until` are errors. The composition procedure lives in its schema docstring |
 | `org_set_property`  | `org-entry-put`          | Set a property by `:ID:`. `:BLOCKER:` is validated — ids resolved, prefixes expanded, unresolvable refused — and `append` unions rather than replaces. Refuses `:ID:`/`:CREATED:` |
 | `org_move_sibling`  | `org-move-subtree-up/down` | Move a heading up/down among siblings |
 | `org_sort_children` | `org-sort-entries`       | Sort a heading's direct children       |

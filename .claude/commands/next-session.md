@@ -1,184 +1,265 @@
 # Next session
 
-Rewritten 2026-09-02, replacing the prompt that opened `b36e6369`. That
-slice is at **[45/51]** with six members left, and the shape of the
-remaining work is different from what this file described before: phases 1–3
-are long done, and what is left is mostly **decisions** rather than typing.
+A plan for `ff7ccb2d` — **Make the org discipline travel: ship the machinery,
+relocate the rules**.
 
-**The slice is the list.** Open `b36e6369` and read its checklist. Do not
-re-derive it from this file.
+**The slice is the list.** Open it and read its checklist; this file gives
+the plan, not the membership. The two disagree only if one is stale, and the
+slice wins — which is also why no cookie or member count appears here. A
+count in two places is a count that can disagree with itself, and this is
+the copy nothing regenerates.
+
+> **The line above is the only slice-specific text outside the middle
+> band.** Read the file as three parts: *Step 0* and *Standing rules* carry
+> forward verbatim between slices, everything from *What is already true* to
+> *Where this will stop* is replaced wholesale, and this heading names which
+> slice the middle is about.
 
 ---
 
-## Before anything else
+## Step 0 — preliminaries
 
-1. **The branch is pushed.** `feature/code-knows-more-than-it-says` is on the
-   remote with 94 commits as of 2026-09-02 — the first push of this slice's
-   work. Keep working on it; there is no branch to cut. **Open question for
-   the user, not for you:** whether to merge it to `main` before continuing,
-   since 94 commits is a large integration point and the slice is 88% done.
+> **CARRY FORWARD VERBATIM.** Nothing below is specific to a slice. When this
+> file is rewritten for the next one, this section and *Standing rules* at the
+> foot move across unchanged; everything between them is replaced. Amend these
+> two only when a session earns a new entry — never to describe the slice in
+> hand.
+
+Every item here is on the list because skipping it cost a past session real
+work.
+
+1. **Apply the queue before composing anything.** Until it is applied,
+   `TODO.org` shows the old keyword on headings whose work shipped, and a
+   slice's checkboxes disagree with their referents. **That disagreement is
+   staleness, not a defect — do not fix it by hand.** `org_pending_updates`
+   says what is waiting; it is also step 2.
 2. **Confirm `emacs-tools` is reachable** by calling `org_pending_updates`.
    Read-only, and a reply proves the server is up in a way that seeing the
    tools listed does not.
-3. **Apply the queue before composing anything.** Unchanged and still true.
-4. **A new heading is invisible to `org_amend` until org-id catches up.**
-   After `org_capture`, run
-   `emacsclient -e '(org-id-update-id-locations (claude-code-ide-org--tracked-files))'`
-   or the amend fails with "no org heading found". Hit twice on 2026-09-02.
+3. **Clock in before the first thing that writes**, naming the heading, or
+   "Review and planning" for cross-cutting meta-work. The drift from question
+   to tracked work is invisible from inside the session doing it.
+4. **Confirm the new branch will be cut at a commit that already contains
+   every piece of prior work you want in it.** Three parts, in order, and the
+   third is a question rather than a command:
+
+   - *Fast-forward the intended base*, usually `main`:
+     `git fetch origin main:main`. **Not `git pull`** — run from a feature
+     branch that updates the feature branch and leaves the base exactly as
+     stale as it found it. Not hypothetical: on 2026-09-03 local `main` was
+     165 commits behind while `origin/main` was current, so
+     `git diff main...HEAD` reported 18 files and 28k lines for a PR that was
+     7 files and 768. The branch was fine; only the `main` *label* lied, and
+     nothing announced it.
+   - *Survey what is not in that base yet* —
+     `git branch -a --no-merged main` for divergent branches, and
+     `gh pr list --state open` for review in flight. Either may hold work
+     that belongs underneath the new branch rather than beside it.
+   - *Report both lists to the user and ask what should land first.*
+     **Whether to merge anything is their decision, not yours** — a branch is
+     an integration point, and choosing where it starts is choosing what it
+     integrates. Say plainly if both lists are empty; that is an answer too.
+5. **Then cut `feature/<short-name>` from the settled base.** What earns a
+   branch is wanting a separate integration point, which a new slice always
+   is — so do not continue a slice on the branch of the one before it, even
+   when that branch is still open.
+6. **Do not run `org-id-update-id-locations` prophylactically after
+   `org_capture`.** A previous revision of this file prescribed it. It did
+   not fire once across five capture-then-amend pairs on 2026-09-03. If an
+   amend fails with "no org heading found", *then* it is the fix — and that
+   recurrence is worth recording.
 
 ---
 
 ## What is already true, so it is not re-derived
 
-**`bin/check-conventions` exists and is wired into `.githooks/pre-commit`.**
-This is the big one, and it changes how you add a check.
+> **SLICE-SPECIFIC, and permanent as a *section*.** This heading always
+> appears and its contents never survive a rewrite: it exists so the next
+> session does not re-measure what this one already established. Keep it to
+> findings a session would otherwise spend real time rediscovering.
 
-- The harness — failure accumulator, report format, exit-code discipline —
-  lives in **`bin/lib/check.fish`**, sourced by both `check-conventions` and
-  `check-org-dev-skill`. **Adding a check means adding an assertion to
-  `check-conventions`, not writing a second script.** That split is the whole
-  point of `d2a0f54c`; do not undo it.
-- Two assertion families today: every 8-character `:ID:` cited in the docs
-  resolves (to an org heading or a git object), and the TODO keyword set
-  agrees across `TODO.org`'s header, the rules file, the org skill's
-  transition table, and the `org_set_todo` tool description.
-- `pre-commit` passes `--docs-only`, because the full run delegates to
-  `check-org-dev-skill`, which shells to `emacsclient`. **A machine with no
-  Emacs running must still be able to commit.**
-- **`bin/check-conventions-test` asserts exit codes, never output**, and
-  includes a case where the fixture is *correct* so the rest cannot pass
-  vacuously. Match that shape.
-- Two traps it already hit, so you do not rediscover them: a bare
-  `[0-9a-f]{8}` matches *inside* a full UUID and produces phantom failures
-  (require the run not be adjacent to a hex digit or a dash); and matching
-  keywords across the whole skill file false-positives on correct prose about
-  a *retired* keyword, so the keyword assertion is scoped to table rows.
+**`.claude/rules/` is not a plugin component.** Verified against the plugin
+docs 2026-09-02 and recorded on `9ae4b17e`, along with the measurement
+that roughly **660 of CLAUDE.md's 1196 lines** describe machinery that would
+ship and currently has no way to. That asymmetry is this slice's whole
+premise. Do not re-measure it.
 
-**The documentation was corrected on 2026-09-02, nine headings' worth.** Do
-not re-report these as gaps:
+**Three write paths now refuse to mint a slice/container hybrid**, asking one
+question between them: `--subtree-has-keyworded-heading-p` (arrival, differs
+from `--container-heading-p` by exactly the root),
+`--enclosing-slice-title` (target, an ancestor walk and *not* `:KIND:`
+inheritance), and `--blocker-keyword-inside-slice-p` on `org-blocker-hook`
+(the grant, where nothing arrives). The last denies the grant only, so an
+existing hybrid can still be closed on its way out.
 
-- CLAUDE.md opens with **"This file is a starting point; the artifact is the
-  authority"**, including which artifact wins per question, and the
-  state-versus-rationale distinction.
-- **"Session tracking"** now describes confirmed intervals and turn-boundary
-  guideposts, says plainly that no hook writes a CLOCK entry, and states that
-  a `DOING` heading normally has no running clock.
-- **The three interval numbers are documented** — `guidepost-gap-threshold`
-  (grouping and display only), `span-idle-floor` (the consequential one),
-  `span-minimum-interval` (a named no-op).
-- **The open-a-clock rule carries the grouping exception** and its scope: the
-  exemption bites only on a hand `C-c C-t`, because apply short-circuits the
-  trigger for every heading.
-- The rules file's header template now includes `#+STARTUP:` and **matches
-  both org files byte for byte**; it also documents that a `:BLOCKER:` on a
-  `MAYBE` heading is dormant.
-- The org skill documents **drawer-scoped timestamp reading** and the
-  **sibling-survey idiom**; the org-dev skill documents that **`load-file`
-  does not pick up a changed `defcustom` default**.
+**The commit gate's own suite is green again.** `bin/pre-commit-test` ran 5/8
+for days because its fixtures still built the level-1 `* Category` tier
+retired on 2026-08-27. And `bin/check-conventions` with a mistyped flag used
+to run **zero assertions and exit 0**; unknown flags and unreadable roots are
+now exit 2, distinct from 1.
 
-**Slice incidentals were fixed twice on 2026-09-01/02.** The window now opens
-at **first work**, not `:CREATED:` — a slice nobody has started has no window
-and no incidentals. And a slice no longer claims **another slice's declared
-members**; the exclusion skips `CANCELLED` slices and is *reported* in the
-refresh line, not applied silently.
+**`bin/clock-target-check` has a test harness now** — 12 checks. It shipped
+without one, which is how both of its defects reached a code review instead
+of a suite.
 
 ---
 
-## Two tools that used to time out over MCP — fixed 2026-09-02
+## Step 1 — Classify what must travel
 
-**`org_capture`, `org_set_property` and `org_divide` work over MCP now.**
-Do **not** reach for the `emacsclient` fallback this file used to prescribe;
-that path has a data-loss trap and is now filed as `8326a46f`.
+`9ae4b17e` — *Make the org skill and its discipline portable to other
+repos*. The `NEXT` member, and every step below assumes its answer. This is a
+classification, not typing: which rules are general org convention (portable,
+belong in the skill), which are this project's own (stay), and which are
+machinery whose prose has nowhere to go.
 
-The cause was ours, not org's: each of the three declared an argument its own
-description told you to omit (`target`, `append`, `parent_state`), so the
-published schema marked it required. The server then signals `json-rpc-error`,
-a symbol `claude-code-ide` never passes to `define-error` — so no handler
-catches it, the HTTP connection is never answered, and the caller waits until
-it times out. `72463b68` carries the full diagnosis; `ce012ad4` is the
-upstream half.
+The paired decision, `1caed585` — *Decide what this module may change on a
+user's machine when installed* — is **dropped, not pending**. The slice declined it deliberately; a `MAYBE` in
+the blocker set would hold the slice open for work it decided not to do.
 
-**One trap remains, and it is live.** A boolean argument passed explicitly as
-`false` arrives as `:false`, which elisp reads as *true* — so `org_amend`
-with `replace: false` would replace a body instead of appending to it.
-Omitting a boolean is correct; passing one explicitly is not. That is
-`a8ccd6ac`, unfixed.
+## Step 2 — Relocate, then prune, in that order
 
+Two members, and the order is a declared `:BLOCKER:` rather than a
+suggestion. First `d5345abb` — *Audit CLAUDE.md for directives that belong in
+the org skill instead*. Only then `9d009401` — *CLAUDE.md carries dated
+history that costs every session's context* — nested under `02aaae22`, whose
+line is a grouping label. Pruning before the classification risks deleting
+rules a consuming project needs.
 
-## The six that remain
+**The prune (`9d009401`) is explicitly reserved for the user.** Four
+decisions are enumerated on its heading and ten retirement blocks sized. Do not run it as a
+background pass.
 
-**The two unattended ones were done on 2026-09-02 and sit at `REVIEW`.** The
-four that are left all need the user, which is the point of this section — a
-session starting here should expect to *ask*, not to build.
+## Step 3 — Close the machinery's undeclared assumptions
 
-**`33864a0f` — `DONE`, and retitled at close** to name the half the old
-title hid: archiving into a datetree did not work at all. DONE.org's 155 tasks are filed under a
-year/month/day datetree, newest first, and `#+ARCHIVE:` now points at
-`DONE.org::datetree/`. Wiring
-it up surfaced a defect where `org-archive-reversed-order` inserted entries
-*before* their day node; that is fixed and tested, but **only against
-fixtures — the next ceremony is its first live exercise.** That is
-verification owed, not work owed, which is why it closed rather than staying
-open.
+Three members, each of which fails on a second machine and nowhere here:
 
-**`72463b68` — done, at `REVIEW`.** See the section above. Two of its three
-named fixes were split out rather than done: `6495c8a0` and `8326a46f`.
+- `1ed7b2b4` — *The org 9.7+ dependency is real, undeclared, and unenforced*
+- `84b7d8b3` — *Evaluate choice of shell and standardize all project scripts*
+- `f8c86914` — *The convention checks compare the live Emacs against whichever
+  checkout invoked them*
 
-**`542924c1` — Three verification traps, none caught by a check.** Its
-proposed `bin/check-elisp` is now *cheap*, because the harness exists — it is
-an assertion, not a script. Note it absorbed a sixth case on 2026-09-02: a
-green suite that is **structurally incapable** of seeing the defect, where
-the honest answer is a stated verification-of-record rather than a test.
+All three carry recorded options and no decision.
 
-**`5fc7b934` — Line-number anchors in org bodies rot.** Four candidates
-recorded, none chosen. Needs a decision, and the body argues one of them is
-consistent with what the skills already do.
+`84b7d8b3` was promoted out of `MAYBE` while this slice was composed, on
+evidence: `fish` stopped being one leaf script's inconsistency
+and became a prerequisite for committing, via `bin/check-conventions` and
+`.githooks/pre-commit`.
 
-**`9d009401` — CLAUDE.md carries dated history.** Four decisions enumerated
-and ten retirement blocks sized (114 lines, ~10% of the file). **Explicitly
-reserved for the user**; do not run it as a background pass. The heading says
-so and this session stopped on it for that reason.
+## Step 4 — Multi-project instrumentation
 
-**`7c4d6ef6` — Settle what a slice proposal is.** Judgement by definition,
-and it is the one that would improve every future slice.
+Meaningful only *after* the hooks move, which is why all three name
+`9ae4b17e` in a `:BLOCKER:`:
+
+- `5461c349` — *Record cwd on queue events, so a span can be attributed to a
+  project*
+- `83b3cdd6` — *Record the originating project in queue events*
+- `b862fbf4` — *Allocate attention across concurrent sessions, which is
+  zero-sum*, the judgement the other two exist to make possible
+
+`5461c349` and `b862fbf4` are children of `f90d745e`, a story the slice does
+not undertake whole, so its line is a cookie-less grouping label. **That label
+is not a drop.**
+
+## Step 5 — The reader-facing tail
+
+Three members that can proceed independently of everything above:
+
+- `d7849119` — *Add README.md and enforce its consistency with CLAUDE.md*
+- `b07df584` — *Heading bodies grow into narratives no human will read; decide
+  what to stop capturing*
+- `c5b02503` — *Hook-injected context is only as reliable as the model
+  choosing to relay it*
+
+This is where to go if the answer to Steps 1–3 is "not now."
+
+## Step 6 — Reconsider the five `MAYBE`s
+
+**They are members for serious reconsideration, not decoration.** Once Steps
+1–5 are `DONE`, take each one up again and decide whether the slice's own
+work has changed its merit — that is the point of carrying them rather than
+leaving them out.
+
+- `e396f94a` — *Package the Warp wiring*
+- `2e09adb7` — *Worktree-based session partitioning, with a canonical-file
+  caveat*
+- `3cb3f955` — *Org skill: commit a newly-captured TODO immediately, when
+  safe*
+- `7eb7dd8d` — *Org skill: auto-capture and dedupe modification requests
+  against existing TODOs*
+- `2c5f7c50` — *Install orgparse for ad-hoc analysis, and stop reaching for
+  regex over org text*
+
+**Promote earlier if evidence arrives along the way** — that is what happened
+to `84b7d8b3` in Step 3, whose body's central factual claim had
+quietly become false. The test is the same one used there: the reason must be
+in the artifact, not in enthusiasm.
+
+Two of the five already carry a note saying what would have to change first.
+`7eb7dd8d` is specified in terms of the retired `PLANNING` keyword, so it
+needs restating before it can be started at all. `2c5f7c50`'s body argues
+against its own proposal, and the evidence keeps landing on that side.
 
 ### Where this will stop
 
-Apply is still human-only, so every capture-to-commit cycle crosses a human.
-Beyond that: four of the six need a decision before any code is written. Both
-unattended members are now closed, so a session starting here should expect
-to **ask** rather than plan a wire-to-wire run.
+Almost immediately, and by design. Step 1 (`9ae4b17e`) is judgement. All
+three of Step 3's members carry enumerated options with nothing chosen. Step
+2's second half (`9d009401`) is reserved for the user outright. A session starting here should expect to
+**ask and record**, not to plan a wire-to-wire run. Step 5 is the only place
+to make unattended progress.
 
 ---
 
 ## Standing rules, with what actually happened
 
-- **Never type a UUID from memory.** Three were fabricated on 2026-09-02
-  alone. The tools refused two; the third made `refresh-slice` report
-  `"0 slices refreshed"` and change nothing — a silent no-op, not an error.
-  Write the 8-character prefix and let the tool expand it. **`target` on
-  `org_capture` is the exception: it needs the full id**, so look it up.
+> **CARRY FORWARD VERBATIM**, with Step 0. The dates are not staleness — they
+> are the evidence that turns a platitude into a rule, so keep them and add to
+> the list rather than refreshing it. A rule whose incident is forgotten is a
+> rule nobody follows.
+
+- **Never type a UUID from memory.** Write the 8-character prefix and let the
+  tool expand it; where a full id is unavoidable, `grep` the `:ID:` line. On
+  2026-09-04 a slice's twenty member lines were *generated from `TODO.org`*
+  and the result diffed against what landed — one full id was not what recall
+  offered. Generate, then diff; do not proofread. Two other full ids were
+  typed from memory the same day and both were refused by the tool, which is
+  the guard working and not a reason to lean on it.
+- **Anchor org parsing on the heading's own property drawer.** A regex
+  scanning each heading's whole block attributed **three of eight** footnote
+  titles to the wrong heading, because ids get quoted in bodies. Third
+  instance of that class; the fix is `org-map-entries`, not a second parser.
 - **Footnote every tracked `:ID:` in every response**, title looked up rather
-  than recalled. The hook fired repeatedly on 2026-09-02, and every miss was
-  an id that arrived *inside* a finding being reported rather than one chosen
-  — ids handed to you by evidence are the ones that escape.
-- **Test that a check *refuses*, not that it passes.** The `pre-commit`
-  wiring added on 2026-09-02 sat below an early `exit 0` and could never fire
-  on a CLAUDE.md-only commit — the exact case its own comment named. Every
-  reading of the code looked right; staging a bogus citation caught it in one
-  command.
-- **When a check fires, ask whether the assertion or the artifact is wrong.**
-  The keyword check's first real failure was correct prose about a retired
-  keyword. The assertion was wrong.
-- **A `grep` is a hypothesis about what it hides.** A single-line pattern
-  missed the CLAUDE.md sentence it was looking for because the sentence
-  wraps; a bracket in the pattern made an archive count read 0 instead of 7.
-  Both were resolved against the primary artifact.
-- **Silence is not a pass.** `bin/test` writes to stderr; check the
-  `Ran N tests` line and the exit code, never the absence of `FAILED`.
-  Beware `$?` after a pipeline — it is the *last* command's status.
-- **Mutate semantically and confirm the run count.** Every fix this session
-  was mutation-tested to fail exactly its own test and no other.
-- **`byte-compile-file` writes a `.elc` that shadows the source.** Delete it.
-- **Never pass `--no-verify`. Never `git stash` to compare** — copy the file
-  aside.
+  than recalled. The hook fired four times on 2026-09-03 and every miss was
+  an id that arrived *inside* evidence rather than one chosen deliberately.
+- **Reproduce the hypothesis before fixing it.** One heading's stated likely
+  cause was wrong, and its own body had flagged it unverified for exactly
+  that reason. Reproducing took one command and changed the fix entirely.
+- **Prove a test discriminates.** Copy the file aside and restore `HEAD`'s
+  version in place; **never `git stash`**. Every fix on 2026-09-03 was run
+  red first, and one regression test was written a commit early and *held
+  back rather than committed red*.
+- **A comment that overstates a guard is how the next reader stops
+  checking.** Three were corrected on 2026-09-03 in the same commits as their
+  code.
+- **Silence is not a pass.** Check the `Ran N tests` line and the exit code,
+  never the absence of `FAILED`. Beware `$?` after a pipeline.
+- **Never pass `--no-verify`.** When the org lint blocked a commit because a
+  plan file had vanished from `~/.claude/plans`, the fix was restoring it
+  byte-for-byte from `plans/` — which is what that archive exists for.
+- **`command` before a shell builtin is not a safety measure.** `command cd`
+  skips fish's builtin for an external no-op, so `pwd` reported the wrong
+  directory and every check silently ran against the wrong tree. Two existing
+  assertions caught it in under a minute.
+- **A mutation test must assert its own mutation.** Proving a new lint rule
+  reached the real corpus meant deleting a property from `TODO.org` and
+  watching it fire. The first attempt edited nothing — its anchor assumed a
+  property order `org-entry-put` does not use — so the lint reported no error
+  for the honest reason that the file was unchanged. Without the `assert` that
+  would have read as *"the rule does not reach the real path"*, a stronger and
+  entirely false conclusion than the one under test.
+- **`git commit -- FILE` commits the whole file's current diff**, not your
+  hunks. On 2026-09-04 that swept an apply pass the user had run between the
+  read and the write into a commit whose message described three unrelated
+  amendments. Explicit pathspecs protect other *files*, never other *changes*
+  — so check `git diff --stat` before committing a file someone else may have
+  touched, and if it happened, amend the message to name both authors rather
+  than letting the log misattribute the work.

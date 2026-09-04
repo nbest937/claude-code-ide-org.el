@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+# Shell test harness for bin/hooks/clock-target-check, the Stop hook that
+# refuses to end a turn in a session that did file-touching work and
+# never named a clock target (TODO.org :ID: ccfd89ce).
+#
+# Same register as bin/block-hooks-test and bin/queue-append-test, and
+# the same honesty about limits.
+#
+# THE HOOK SHIPPED WITHOUT ONE, which is how both defects this suite now
+# pins reached review instead of the suite (TODO.org :ID: b02191d6,
+# :ID: ae4e4b04). Each assertion below was run against the unfixed hook
+# first; the two marked REGRESSION failed there and pass here, so the
+# suite is known to discriminate rather than assumed to.
+#
+# Covered: the clock-evidence scan, including its tolerance for a
+# malformed queue line and its refusal to count the literal string
+# '"kind":"clock_in"' appearing inside prose; the write-evidence scan's
+# project scoping; and the once-per-session sentinel, including what
+# happens when the sentinel cannot be written.
+#
+# NOT covered, and not claimed to be: that Claude Code's Stop event
+# delivers the payload shape assumed here. That is an assumption about
+# the harness, not about this code -- the fixtures below follow the
+# fields the hook reads, per its own header.
+
+set -uo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+hook="$repo_root/bin/hooks/clock-target-check"
+tmp="$(mktemp -d)"
+trap 'chmod -R u+w "$tmp" 2>/dev/null; rm -rf "$tmp"' EXIT
+
+export CLAUDE_ORG_QUEUE_DIR="$tmp/queue"
+export CLAUDE_PROJECT_DIR="$repo_root"
+
+failures=0
+
+check() {
+  local what="$1" want="$2" got="$3"
+  if [[ "$want" == "$got" ]]; then
+    echo "ok   - $what"
+  else
+    echo "FAIL - $what: wanted [$want], got [$got]"
+    failures=$((failures + 1))
+  fi
+}
+
+reset() { rm -rf "$tmp/queue"; mkdir -p "$tmp/queue"; }
+
+# A transcript holding one in-project Edit: the write evidence that makes
+# the hook fire at all. Written fresh per case so a test can drop it.
+write_transcript() {
+  printf '%s\n' \
+    '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Edit","input":{"file_path":"'"$repo_root"'/CLAUDE.md"}}]}}' \
+    > "$tmp/transcript.jsonl"
+}
+
+# Runs the hook and echoes its exit status. Stderr is kept so a case can
+# assert on the message, since exit 2 with an empty message is one of the
+# failure modes the hook's own header calls out.
+run_hook() {
+  printf '%s' '{"session_id":"sess-x","transcript_path":"'"$tmp/transcript.jsonl"'","hook_event_name":"Stop"}' \
+    | "$hook" 2>"$tmp/stderr"
+  echo $?
+}
+
+queue() { printf '%s\n' "$@" > "$tmp/queue/sess-x.jsonl"; }
+
+# --- clock evidence ---------------------------------------------------
+
+reset; write_transcript
+queue '{"kind":"resume"}' '{"kind":"clock_in","id":"abc"}'
+check "a queued clock_in is evidence; the hook stays silent" 0 "$(run_hook)"
+
+# REGRESSION (TODO.org :ID: b02191d6). `jq -s' slurps the file as one
+# document, so one truncated line aborted the parse and the hook nagged a
+# session that HAD clocked in. Against the unfixed hook this returned 2.
+reset; write_transcript
+queue '{"kind":"resume"}' '{"kind":"clock_in","id":"abc"}' '{"kind":"amend","text":"trunc'
+check "REGRESSION: a malformed line does not erase a real clock_in" 0 "$(run_hook)"
+
+# The reason the scan is jq and not grep, kept as an assertion rather
+# than only a comment: an amend body quoting the literal must not count.
+reset; write_transcript
+queue '{"kind":"resume"}' '{"kind":"amend","text":"we called \"kind\":\"clock_in\" earlier"}'
+check "prose quoting the literal is not a clock" 2 "$(run_hook)"
+
+reset; write_transcript
+check "no queue file at all, with writes, blocks" 2 "$(run_hook)"
+
+# --- write evidence ---------------------------------------------------
+
+reset
+printf '%s\n' \
+  '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Edit","input":{"file_path":"/tmp/scratch.el"}}]}}' \
+  > "$tmp/transcript.jsonl"
+check "an Edit outside the project is not tracked work" 0 "$(run_hook)"
+
+reset
+printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"text","text":"hello"}]}}' \
+  > "$tmp/transcript.jsonl"
+check "a read-only turn owes nothing" 0 "$(run_hook)"
+
+# --- the once-per-session sentinel ------------------------------------
+
+reset; write_transcript
+check "first Stop with writes and no clock blocks" 2 "$(run_hook)"
+check "the sentinel was written" "yes" \
+  "$([[ -e "$tmp/queue/sess-x.clock-target-nagged" ]] && echo yes || echo no)"
+check "the second Stop is silent" 0 "$(run_hook)"
+
+# REGRESSION (TODO.org :ID: ae4e4b04). The sentinel write discarded its
+# own failure while `exit 2' ran regardless, so an unwritable queue
+# directory turned a one-shot reminder into a Stop that blocked every
+# turn -- contradicting both the header and the message shown to the
+# user. Against the unfixed hook this returned 2, repeatedly.
+reset; write_transcript
+chmod a-w "$tmp/queue"
+sentinel_exit="$(run_hook)"
+chmod u+w "$tmp/queue"
+check "REGRESSION: a guard that cannot arm itself does not fire" 0 "$sentinel_exit"
+
+# --- the blocking message ---------------------------------------------
+
+reset; write_transcript
+run_hook >/dev/null
+check "the block carries a message, not an empty stderr" "yes" \
+  "$([[ -s "$tmp/stderr" ]] && echo yes || echo no)"
+check "the message names the tool that wrote" "yes" \
+  "$(grep -q 'first: Edit' "$tmp/stderr" && echo yes || echo no)"
+
+echo
+if [[ $failures -eq 0 ]]; then
+  echo "clock-target-check-test: all checks passed"
+else
+  echo "clock-target-check-test: $failures check(s) failed"
+fi
+exit $((failures > 0))

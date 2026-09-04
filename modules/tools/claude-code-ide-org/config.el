@@ -1035,7 +1035,7 @@ would silently eat this hook's whole timeout."
     (nreverse results)))
 
 (defun claude-code-ide-org--nomination-candidates-context ()
-  "One line per container that has live members and no NEXT among them.
+  "One line per grouping that has live members and no NEXT among them.
 
 *Nominating, not promoting* (TODO.org :ID: 62b65ad0).  A trigger used to
 set NEXT on a container's sole remaining TODO by itself.  It was retired
@@ -2215,14 +2215,38 @@ note interactively, which would hang or error under the MCP layer's
 non-interactive call — the same never-block guarantee every other
 tool here gives."
   (require 'org-id)
-  (let ((inhibit-read-only t)                     ; see --at-id-writable
-        (marker (claude-code-ide-org--id-find id 'marker))
-        (target-marker (claude-code-ide-org--id-find target-id 'marker)))
+  (let* ((inhibit-read-only t)                    ; see --at-id-writable
+         (marker (claude-code-ide-org--id-find id 'marker))
+         (target-marker (claude-code-ide-org--id-find target-id 'marker))
+         (target-slice (and target-marker
+                            (org-with-point-at target-marker
+                              (claude-code-ide-org--enclosing-slice-title)))))
     (cond
      ((not marker)
       (format "Error: no org heading found with :ID: \"%s\"" id))
      ((not target-marker)
       (format "Error: no org heading found with target :ID: \"%s\"" target-id))
+     ;; A keyworded arrival under a slice would mint a hybrid -- the
+     ;; slice branch then hides the child from the nomination report and
+     ;; the derived :BLOCKER: (TODO.org :ID: dca940c1).
+     ;;
+     ;; Both halves are asked the way the lint asks them, which is not
+     ;; the way this guard originally asked them (TODO.org :ID: 15847e0b).
+     ;; The keyword may sit anywhere in the *arriving subtree* rather than
+     ;; on its heading line, and the slice may be an *ancestor* of the
+     ;; target rather than the target itself -- because
+     ;; `claude-code-ide-org--container-heading-p' scans descendants at any
+     ;; depth, so a keyworded heading landing under a slice's keyword-less
+     ;; child hybridises the slice just as surely. A keyword-less heading
+     ;; that is also childless -- a note -- stays legal.
+     ((and target-slice
+           (org-with-point-at marker
+             (claude-code-ide-org--subtree-has-keyworded-heading-p)))
+      (format "Error: refiling \"%s\" here would give slice \"%s\" keyworded \
+children -- a slice's members are [[id:...]] references, never keyworded \
+children. Add the heading to the member list instead, or refile it elsewhere"
+              (org-with-point-at marker (org-get-heading t t t t))
+              target-slice))
      (t
       (condition-case err
           (let* ((source-buffer (marker-buffer marker))
@@ -2558,6 +2582,15 @@ else."
                                  initial-state))
              (known (and initial-state
                          (claude-code-ide-org--file-todo-keywords file)))
+             ;; The slice a keyworded capture would hybridise, if any --
+             ;; the target's own title when it is a slice, otherwise the
+             ;; nearest ancestor's. Computed once so the refusal can name
+             ;; it. See the guard clause below.
+             (target-slice
+              (and initial-state target
+                   (let ((tm (claude-code-ide-org--id-find target 'marker)))
+                     (and tm (org-with-point-at tm
+                               (claude-code-ide-org--enclosing-slice-title))))))
              (new-id (org-id-new))
              (created (format-time-string "[%Y-%m-%d %a %H:%M]")))
         (cond
@@ -2588,6 +2621,32 @@ else."
                           "Reword the title, and pass initial_state if a "
                           "keyword is what you wanted.")
                   leading))
+         ;; A keyworded capture under a slice would mint a hybrid -- the
+         ;; slice branch then hides the child from the nomination report
+         ;; and the derived :BLOCKER: (TODO.org :ID: dca940c1). Guarded
+         ;; at the call so the refusal lands before the heading exists;
+         ;; bin/lint-org's error is the backstop for every other path. A
+         ;; keyword-less capture (a note) stays legal. `resolved' has
+         ;; already signalled for an unresolvable target, so a non-nil
+         ;; TARGET resolves here.
+         ;;
+         ;; The slice may be an *ancestor* of the target rather than the
+         ;; target itself: `claude-code-ide-org--container-heading-p'
+         ;; matches a keyworded descendant at any depth, so capturing
+         ;; under a slice's keyword-less child hybridises the slice too.
+         ;; Asking only whether the target *is* a slice let that through,
+         ;; which falsified the paragraph above -- the refusal did not in
+         ;; fact land before the heading existed (TODO.org :ID: 32742646).
+         ;; Only the target side needs widening here, unlike org_refile:
+         ;; a capture creates a leaf, so there is no arriving subtree.
+         (target-slice
+          (format (concat "Error: capturing a keyworded heading here would "
+                          "give slice \"%s\" keyworded children -- a slice's "
+                          "members are [[id:...]] references, never keyworded "
+                          "children. Capture without initial_state for a "
+                          "note, or capture elsewhere and add the heading "
+                          "to the member list")
+                  target-slice))
          ((claude-code-ide-org--file-busy-p file)
           (format "%s\"%s\" (ID: %s) %s; pending review."
                   claude-code-ide-org--reply-queued-capture
@@ -3520,6 +3579,16 @@ this tool will not rewrite it" property))
      ((claude-code-ide-org--file-busy-p (buffer-file-name (marker-buffer marker)))
       (format "Error: %s has unsaved changes in Emacs; retry once it is saved"
               (file-name-nondirectory (buffer-file-name (marker-buffer marker)))))
+     ;; Declaring a container a slice mints a hybrid -- see the lint
+     ;; rule (TODO.org :ID: dca940c1). Refused here so the combination
+     ;; cannot be created by this path, not merely caught at commit; a
+     ;; slice acquiring children later is the lint's half of the guard.
+     ((and (equal property "KIND")
+           (equal (downcase (string-trim (or value ""))) "slice")
+           (org-with-point-at marker (claude-code-ide-org--container-heading-p)))
+      "Error: this heading has keyworded children, so it is a story -- \
+a slice's members are [[id:...]] references, never keyworded children; \
+declaring it :KIND: slice would make it both")
      (t
       (condition-case err
           (org-with-point-at marker
@@ -3893,6 +3962,111 @@ property is deliberately general enough for the others.
 Not inherited -- `org-entry-get' without the inherit flag -- so a
 subheading of a slice is not one."
   (equal "slice" (org-entry-get nil "KIND")))
+
+(defun claude-code-ide-org--subtree-has-keyworded-heading-p ()
+  "Non-nil when the heading at point *or any descendant* carries a TODO
+keyword.
+
+The arrival-side counterpart to
+`claude-code-ide-org--container-heading-p', which deliberately excludes
+the heading itself.  That one asks \"is this already a story\"; this one
+asks \"would landing this subtree somewhere make its new parent one\",
+and those differ by exactly the root.
+
+The distinction is not academic: `claude-code-ide-org-refile' asked
+`org-get-todo-state' on the moved heading alone, so a keyword-less note
+carrying a keyworded child refiled under a slice and minted the hybrid
+`bin/lint-org' refuses.  A note is only harmless if it is also childless
+\(TODO.org :ID: 15847e0b)."
+  (save-excursion
+    (save-restriction
+      (widen)
+      (org-back-to-heading t)
+      (or (and (org-get-todo-state) t)
+          (claude-code-ide-org--container-heading-p)))))
+
+(defun claude-code-ide-org--enclosing-slice-title ()
+  "Title of the slice enclosing the heading at point, or nil.
+
+Returns this heading's own title when it is itself a slice; otherwise
+walks up with `org-up-heading-safe', the way `bin/lint-org's
+completable-ancestor rule does, and returns the nearest ancestor slice's.
+
+*This is not `:KIND:' inheritance, which
+`claude-code-ide-org--slice-p' refuses on purpose.*  The question is not
+\"is this heading a slice\" -- it is not, and nothing here says it is --
+but \"would a keyworded heading landing here give some ancestor slice
+keyworded children\".  Since
+`claude-code-ide-org--container-heading-p' matches a keyworded
+descendant at *any* depth, an ancestor at any depth is the honest scope,
+and asking only about the immediate target is what let two write paths
+mint the hybrid (TODO.org :ID: 15847e0b, :ID: 32742646).
+
+Returns the title rather than a marker because both callers want it only
+to name the slice in a refusal message."
+  (save-excursion
+    (save-restriction
+      (widen)
+      (org-back-to-heading t)
+      (catch 'found
+        (while t
+          (when (claude-code-ide-org--slice-p)
+            (throw 'found (org-get-heading t t t t)))
+          (unless (org-up-heading-safe)
+            (throw 'found nil)))))))
+
+(defun claude-code-ide-org--blocker-keyword-inside-slice-p (change-plist)
+  "For `org-blocker-hook': deny *granting* a TODO keyword to a
+keyword-less heading that sits strictly inside a slice.
+
+The third path to the hybrid `bin/lint-org' refuses (TODO.org
+:ID: dca940c1), and the one the arrival guards on
+`claude-code-ide-org-refile' and `claude-code-ide-org-capture'
+structurally cannot see: nothing arrives.  A keyword-less note under a
+slice is legal, so the heading is already in place and only the keyword
+is new (TODO.org :ID: dc753eb2).
+
+*Here rather than in `claude-code-ide-org-set-todo', and that was
+already decided.*  That function documents its refusal to validate
+legality: a queued answer would be given against a file that has not
+moved yet, which is the disk-goes-stale problem that retired
+`bin/hooks/pretooluse-transition-guard'.  `org-blocker-hook' runs
+inside `org-todo' -- at apply, in front of a human who can respond to a
+refusal, and on a hand `C-c C-t' too.  So this catches every path
+without guessing at any of them, which is the same argument
+`claude-code-ide-org--blocker-clock-running-p' makes.
+
+*It denies the grant only*, which is narrower than \"a keyworded
+heading may not sit inside a slice\" and deliberately so.  A heading
+that already carries a keyword is already a hybrid, and refusing its
+later transitions would prevent no minting while wedging the repair --
+the heading could never be closed or cancelled on its way out.
+Clearing a keyword is likewise permitted, since that *is* one of the two
+repairs (the other being a refile out of the slice).
+
+A slice's own keyword is its own business: a slice carries state, and
+`claude-code-ide-org--slice-p' at point exempts it before the ancestor
+walk runs.  Depth is not bounded, because
+`claude-code-ide-org--container-heading-p' matches a keyworded
+descendant at any depth -- a grandchild hybridises the slice exactly as
+a child does.
+
+Verified in batch before this was written that the hook is reached at
+all for a keyword *grant* rather than only a transition: it is called
+with (:from nil :to \"TODO\"), returning nil leaves the keyword unset,
+and returning t sets it.  The whole guard rests on that, so it was
+measured rather than assumed.
+
+CHANGE-PLIST is the plist `org-todo' passes to every
+`org-blocker-hook' function; see `org-trigger-hook's docstring for its
+shape.  Returns non-nil to permit, like every function on that hook."
+  (or (plist-get change-plist :from)
+      (not (plist-get change-plist :to))
+      (claude-code-ide-org--slice-p)
+      (let ((slice (claude-code-ide-org--enclosing-slice-title)))
+        (if slice
+            (progn (setq org-block-entry-blocking slice) nil)
+          t))))
 
 (defconst claude-code-ide-org--statistics-cookie-regexp
   "\\[[0-9]*\\(?:%\\|/[0-9]*\\)\\]"
@@ -4944,6 +5118,7 @@ equivalent line by hand instead."
 
 (with-eval-after-load 'org
   (add-hook 'org-blocker-hook #'claude-code-ide-org--blocker-clock-running-p)
+  (add-hook 'org-blocker-hook #'claude-code-ide-org--blocker-keyword-inside-slice-p)
   (add-hook 'org-trigger-hook #'claude-code-ide-org--trigger-auto-clock-in)
   (add-hook 'org-trigger-hook #'claude-code-ide-org--trigger-demote-conflicting-next))
 
@@ -11076,6 +11251,55 @@ cookie -- add [/] and run `org-update-statistics-cookies': %s" title))
                                 (or title ""))))
                  (report 'error line "slice has no statistics cookie -- add [/]; \
 `M-x claude-code-ide-org-refresh-slice' now does this itself: %s" title))
+               ;; A hybrid: a declared slice that has also acquired
+               ;; keyworded children satisfies `--slice-p' and
+               ;; `--container-heading-p' at once, and every `if slice-p'
+               ;; caller then takes the slice branch -- the nomination
+               ;; report resolves declared members only, the derived
+               ;; :BLOCKER: names members only (so the heading can close
+               ;; over a live child), and the two cookie rules above
+               ;; count different things through one cookie. Zero
+               ;; instances when this rule landed (TODO.org :ID:
+               ;; dca940c1); an error while still latent is the
+               ;; outline-map move -- cheapest before anything violates
+               ;; it. Keyword-less children (notes) are legal, since
+               ;; `--container-heading-p' tests keywords.
+               (when (and (claude-code-ide-org--slice-p)
+                          (claude-code-ide-org--container-heading-p))
+                 (report 'error line "slice has keyworded children -- members are \
+[[id:...]] references, and a heading with keyworded children is a story: %s" title))
+               ;; The cookie above counts nothing useful without
+               ;; `:COOKIE_DATA: checkbox recursive'. `checkbox' because
+               ;; a slice's members are checkbox list items rather than
+               ;; TODO children, of which it has none by definition; and
+               ;; `recursive' because a member that is a story gets its
+               ;; relevant children as indented lines, which org excludes
+               ;; from a non-recursive count.
+               ;;
+               ;; The VALUE is asserted, not presence. `:COOKIE_DATA:
+               ;; todo' is well formed and counts children, so a
+               ;; presence-only rule would accept a slice whose cookie
+               ;; can only ever read [0/0].
+               ;;
+               ;; Required by convention since slices existed, defaulted
+               ;; by nothing, consulted only by org -- so its absence is
+               ;; invisible until a slice nests a member. Found 2026-09-04
+               ;; when ff7ccb2d recomputed to [0/9] against twelve
+               ;; checkboxes, the three indented ones silently excluded;
+               ;; a hand-written [0/12] had been right and org's own
+               ;; recount made it wrong. 2 of 7 slices lacked it, one
+               ;; bitten and one latent, both fixed before this landed --
+               ;; so this rule arrives at zero instances, which is
+               ;; :ID: dca940c1's argument for landing while it is
+               ;; cheapest (TODO.org :ID: b6da3480).
+               (when (claude-code-ide-org--slice-p)
+                 (let ((cookie-data (org-entry-get nil "COOKIE_DATA")))
+                   (unless (and cookie-data
+                                (string-match-p "\\bcheckbox\\b" cookie-data)
+                                (string-match-p "\\brecursive\\b" cookie-data))
+                     (report 'error line "slice has no :COOKIE_DATA: checkbox \
+recursive, so its cookie counts the wrong things (have: %s): %s"
+                             (or cookie-data "nothing") title))))
                ;; A finished heading with a substantial body carries a
                ;; :PLAN: drawer (TODO.org :ID: 8bcd56f4): the prospective
                ;; half wrapped away, the debrief left as the body.
