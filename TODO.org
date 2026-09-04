@@ -8,6 +8,11 @@
 :CREATED:  [2026-09-04 Fri 11:37]
 :CATEGORY: Apply
 :END:
+:LOGBOOK:
+- [2026-09-04 Fri 11:31]--[2026-09-04 Fri 11:35] assigned at review
+CLOCK: [2026-09-04 Fri 11:36]--[2026-09-04 Fri 11:37] =>  0:01
+- [2026-09-04 Fri 11:36]--[2026-09-04 Fri 11:37] correct two amendments; the toggle already exists
+:END:
 
 =claude-code-ide-org--review-format-annotation='s docstring says **"Always /inactive/ timestamps, so
 nothing written from the queue reaches =org-agenda="**, and closes with "there is no case in which a
@@ -34,6 +39,7 @@ attention exactly the way CLAUDE.md is. The repair is small — the docstring sh
 =:active= flag means, who sets it, and that inference from queue fields is what was rejected — but
 the class is worth a moment's thought, since =bin/check-conventions= checks documents against the
 code and nothing checks a docstring against the function under it.
+
 
 * TODO [0/7] Only membership and order are declared, and everything else still needs a hand
 :PROPERTIES:
@@ -2544,6 +2550,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-04 Fri 11:44]--[2026-09-04 Fri 11:47] =>  0:03
 CLOCK: [2026-09-04 Fri 11:28]--[2026-09-04 Fri 11:30] =>  0:02
 CLOCK: [2026-09-04 Fri 11:21]--[2026-09-04 Fri 11:28] =>  0:07
 CLOCK: [2026-09-04 Fri 10:05]--[2026-09-04 Fri 10:06] =>  0:01
@@ -2590,6 +2597,7 @@ CLOCK: [2026-09-03 Thu 13:30]--[2026-09-03 Thu 13:35] =>  0:05
 CLOCK: [2026-09-03 Thu 13:57]--[2026-09-03 Thu 14:00] =>  0:03
 CLOCK: [2026-09-04 Fri 08:17]--[2026-09-04 Fri 08:33] =>  0:16
 - <2026-09-04 Fri 11:28>--<2026-09-04 Fri 11:30> review pass (buffer buried)
+- <2026-09-04 Fri 11:48>--<2026-09-04 Fri 11:48> review pass (buffer buried)
 :END:
 
 
@@ -2717,8 +2725,6 @@ about the toggle.
 — =--recorded-intervals-at-point= genuinely returns nil for =CLOCK: <...>--<...>= — but that path is
 a human hand-editing a **CLOCK line in the file**, not the review flow, which writes an *annotation*
 and consults CLOCK lines for idempotency. Two different things, and I ran them together.
-
-
 
 
 * MAYBE Render a session transcript to readable org, so scrollback stops being the index :code:
@@ -5696,7 +5702,6 @@ project decided against. Half of it is already built.
 *Recorded as a lesson rather than only a correction:* the stale sentence misled a reading of that
 function **twice in one day**, in opposite directions, and both times the code four lines away said
 otherwise. Filed separately.
-
 
 
 * TODO Let a session interject without waiting: advisory locks, or extend the queue to capture/amend :code:
@@ -9796,8 +9801,14 @@ CLOCK: [2026-09-04 Fri 10:08]--[2026-09-04 Fri 10:12] =>  0:04
 - [2026-09-04 Fri 10:08]--[2026-09-04 Fri 10:12] assigned at review
 CLOCK: [2026-09-04 Fri 10:14]--[2026-09-04 Fri 10:16] =>  0:02
 - [2026-09-04 Fri 10:14]--[2026-09-04 Fri 10:16] archive the span specimen as test data
+CLOCK: [2026-09-04 Fri 10:16]--[2026-09-04 Fri 10:21] =>  0:05
+- <2026-09-04 Fri 10:16>--<2026-09-04 Fri 10:21> assigned at review
 CLOCK: [2026-09-04 Fri 10:23]--[2026-09-04 Fri 10:24] =>  0:01
 - [2026-09-04 Fri 10:23]--[2026-09-04 Fri 10:24] judge two REVIEW headings, nominate 43aa25b2
 CLOCK: [2026-09-04 Fri 10:54]--[2026-09-04 Fri 10:55] =>  0:01
 - [2026-09-04 Fri 10:54]--[2026-09-04 Fri 10:55] close 887eaba3 and scope 43aa25b2
+CLOCK: [2026-09-04 Fri 11:30]--[2026-09-04 Fri 11:31] =>  0:01
+- [2026-09-04 Fri 11:30]--[2026-09-04 Fri 11:31] file the active-CLOCK idempotency finding
+CLOCK: [2026-09-04 Fri 11:42]--[2026-09-04 Fri 11:43] =>  0:01
+- [2026-09-04 Fri 11:42]--[2026-09-04 Fri 11:43] assigned at review
 :END:
