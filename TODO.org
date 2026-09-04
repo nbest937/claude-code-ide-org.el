@@ -2,6 +2,39 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Commit co-author trailer is frozen at session start, misattributes after /model :code:
+:PROPERTIES:
+:ID:       f1ff027e-5826-4812-8221-96eeba966333
+:CREATED:  [2026-09-04 Fri 16:15]
+:CATEGORY: Dev
+:END:
+
+Raised by the user 2026-09-04. The =Co-Authored-By:= line on this
+session's commits named Opus while the work was done under Fable — the
+model had been switched with =/model= mid-session. Traced: the trailer
+is not git config, not a =prepare-commit-msg= hook (=.githooks/= holds
+only =pre-commit=/=pre-push=), and not =commit.template=. It is static
+text from the harness system prompt, stamped at session start and typed
+by hand into each =-m=. =/model='s own output said "saved as your
+default for *new sessions*", which is exactly why a mid-session switch
+did not propagate — a reload-precondition failure: the string is frozen
+at startup and nothing re-reads the live choice.
+
+*The only genuinely dynamic fix* is a =prepare-commit-msg= hook that
+appends the trailer from a live source of truth — *if* the harness
+exposes the current model to hook processes (an env var such as
+=$CLAUDE_MODEL=; unverified, and verifying it is step one). Git cannot
+know the running model otherwise: that identity lives only in the
+session's context. The alternative — the model hand-typing its own
+current identity — is the fragile copy that just failed and is not a
+fix.
+
+*Left undone deliberately:* the ten commits already on
+=feature/org-discipline-travel= carry the Opus trailer. They are
+unpushed, so a reword is safe (reflog is the undo), but rewriting ten
+messages is a history rewrite the user has not asked for — offered,
+not taken, pending their return.
+
 * TODO Adopt systemMessage on the recovery-and-ceremony hook payload :code:
 :PROPERTIES:
 :ID:       d585d33e-3804-45b3-8f96-65143d79363e
@@ -2298,6 +2331,43 @@ Split out of [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] 2026-08-31, b
 *Do it before the allocation work, not during it.* The field is only useful on events written *after* it ships, so every day it is not recorded is a day the eventual analysis cannot see. That argues for landing it early even though nothing consumes it yet — the opposite of the usual rule against building unused machinery, and the reason is that this datum cannot be backfilled.
 
 Sharpened 2026-09-03 by the first concurrent worktree session: a session in .claude/worktrees/pr8-review writes queue events whose cwd (once recorded) will differ from the main checkout's while every id-addressed event still resolves through Emacs against the one live tracker. So cwd is necessary but not sufficient as project identity — the consumer must normalise a worktree path to its repository (git worktree list, or the common .git), or events from a worktree would read as a different project than the tracker they target. Same session also demonstrated the fragmentation argument against moving the queue into the repo: each worktree has its own working copy, so a repo-local queue would scatter events across directories the review pass never reads, while the shared user-global dir keeps every worktree's events visible to the one apply pass — which is correct, since they all target the same tracker.
+
+*Merged in from [[id:83b3cdd6-982a-4ae1-878c-79a8c941f638][83b3cdd6]]
+2026-09-04, which was the same task written first* (2026-08-15, as
+"Record the originating project in queue events"). The two bodies quote
+the identical field list and the identical 2026-08-14 payload capture,
+and neither cited the other — a textbook twin, caught at review when
+both appeared as adjacent slice members. What it adds beyond this body:
+the *motivation* (attention allocation needs turn density per project
+per hour — an event can say a session was busy but not whose work it
+was), the note that the field is a constant today and stops being one
+the moment hooks go user-level, and the raw-cwd-versus-slug question —
+which this body's 2026-09-03 note already answers: record raw =cwd=,
+normalise at consumption (worktree → repository via =git worktree
+list= or the common git dir, the same resolution
+[[id:f8c86914-0759-4e05-9292-6f7fa5593701][f8c86914]] chose for the
+convention checks).
+
+*Shipped 2026-09-04* (commit =11140a4=, on
+=feature/org-discipline-travel=). One field — =cwd: ($payload.cwd //
+null)= — added to =queue-append='s jq object, between =session_id= and
+=agent_id=. Test-first per discipline: two assertions added to
+=bin/queue-append-test= (a fixture carrying =cwd= must record it; an
+absent =cwd= records =null=, not ""), run red against the unmodified
+script, then the field turned them green. Full suite passes.
+
+Scope held deliberately tight: the field lands on queue events, which
+is what cross-project attribution needs. Two things left for the
+consumer, both already argued in the plan above rather than reopened
+here — worktree-path normalisation (a worktree's =cwd= differs from its
+main checkout while every id-addressed event still resolves against the
+one tracker, so the consumer normalises via the common git dir, matching
+[[id:f8c86914-0759-4e05-9292-6f7fa5593701][f8c86914]]'s choice), and
+whether =claude-code-ide-org--log-event='s audit log should carry the
+same field for symmetry. Neither blocks recording the datum now, which
+is the point — it cannot be backfilled.
+
+
 
 
 * TODO org_capture's target refuses an 8-character :ID: prefix that every other tool accepts :code:
@@ -5160,6 +5230,7 @@ The cause is fixed ([[id:c6fc6f46-4954-4fdf-9d7e-7c8bf3a1a952][c6fc6f46]]) and n
 - State "TODO"       from              [2026-08-15 Sat 14:32] \\
   cheap now, load-bearing later
 :END:
+:PLAN:
 
 =bin/hooks/queue-append= writes ts, kind, id, state, from, note, title,
 target, tags, text, tool_use_id, session_id, agent_id, agent_type and
@@ -5199,6 +5270,15 @@ normalised project slug. Raw =cwd= is honest and free but varies with
 worktrees — this repo already uses git worktrees for parallel work
 (DONE.org's worktree entries), so two paths can mean one project. A slug
 would need a normalisation rule, which is a decision rather than a field.
+:END:
+
+Cancelled 2026-09-04 as a twin of
+[[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]] — the same change
+written sixteen days earlier under a different key ("project" for
+"cwd"), found when both sat as adjacent slice members. Its distinct
+content (the allocation motivation, the raw-vs-slug question) is merged
+there; nothing here is unaddressed.
+
 
 
 * DONE Make the org skill and its discipline portable to other repos :code:
