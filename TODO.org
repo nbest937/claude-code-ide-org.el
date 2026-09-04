@@ -22,6 +22,7 @@ instructions and machinery land together. Blocked on the audit
 relocating the SKILL and RULE rows first, so prose moves once, not
 twice.
 
+
 * TODO session-context.sh reports which groupings lack a NEXT, never which headings hold one
 :PROPERTIES:
 :ID:       81eaf26f-97ae-4dbf-acf5-e457083ab9f9
@@ -1031,6 +1032,12 @@ on the dropped line, derived from nothing and set by the drop itself, is the sha
   proposal accepted, declared a slice
 - State "NEXT"       from "TODO"       [2026-09-02 Wed 18:36] \\
   the slice to pick up next
+CLOCK: [2026-09-04 Fri 13:30]--[2026-09-04 Fri 13:33] =>  0:03
+- [2026-09-04 Fri 13:30]--[2026-09-04 Fri 13:33] assigned at review
+CLOCK: [2026-09-04 Fri 13:41]--[2026-09-04 Fri 13:42] =>  0:01
+- [2026-09-04 Fri 13:41]--[2026-09-04 Fri 13:42] assigned at review
+CLOCK: [2026-09-04 Fri 13:45]--[2026-09-04 Fri 13:46] =>  0:01
+- [2026-09-04 Fri 13:45]--[2026-09-04 Fri 13:46] assigned at review
 :END:
 
 This project is a testbed for a thing meant to manage *other* projects, and the discipline it has
@@ -1039,9 +1046,9 @@ hooks and MCP servers — while the prose cannot, because =.claude/rules/= is no
 Each member is a different face of that. The argument, the plugin-manifest verification and the
 line-count measurement are all =9ae4b17e='s and are not repeated here.
 
-- [ ] [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] NEXT Make the org skill and its discipline portable to other repos
+- [-] [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] REVIEW Make the org skill and its discipline portable to other repos
 - [[id:1caed585-3209-4108-8501-eba16baf6a01][1caed585]] MAYBE Decide what this module may change on a user's machine when installed
-- [ ] [[id:d5345abb-b451-4468-8f27-4bb2da983215][d5345abb]] TODO Audit CLAUDE.md for directives that belong in the org skill instead
+- [-] [[id:d5345abb-b451-4468-8f27-4bb2da983215][d5345abb]] REVIEW Audit CLAUDE.md for directives that belong in the org skill instead
 - [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] DOING Update CLAUDE.md and the org skill for the new architecture
   - [ ] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] TODO CLAUDE.md carries dated history that costs every session's context
 - [ ] [[id:1ed7b2b4-a809-4547-b04f-099a3111fc1e][1ed7b2b4]] TODO The org 9.7+ dependency is real, undeclared, and unenforced
@@ -2782,6 +2789,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-04 Fri 14:57]--[2026-09-04 Fri 15:01] =>  0:04
 CLOCK: [2026-09-04 Fri 12:53]--[2026-09-04 Fri 12:56] =>  0:03
 CLOCK: [2026-09-04 Fri 11:44]--[2026-09-04 Fri 11:47] =>  0:03
 CLOCK: [2026-09-04 Fri 11:28]--[2026-09-04 Fri 11:30] =>  0:02
@@ -5134,7 +5142,7 @@ worktrees — this repo already uses git worktrees for parallel work
 would need a normalisation rule, which is a decision rather than a field.
 
 
-* NEXT Make the org skill and its discipline portable to other repos :code:
+* REVIEW Make the org skill and its discipline portable to other repos :code:
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       9ae4b17e-278c-482f-9114-df28b2254806
@@ -5154,6 +5162,24 @@ CLOCK: [2026-08-15 Sat 13:33]--[2026-08-15 Sat 13:35] =>  0:02
 - [2026-08-15 Sat 13:33]--[2026-08-15 Sat 13:35] assigned at review
 - State "NEXT"       from "TODO"       [2026-08-15 Sat 17:11] \\
   Auto-promoted: sole remaining TODO in its sibling group.
+CLOCK: [2026-09-04 Fri 13:47]--[2026-09-04 Fri 13:48] =>  0:01
+- State "DOING"      from "NEXT"       [2026-09-04 Fri 13:47] \\
+  starting the portability classification draft
+- [2026-09-04 Fri 13:47]--[2026-09-04 Fri 13:48] classify CLAUDE.md and skill rules for portability
+CLOCK: [2026-09-04 Fri 14:13]--[2026-09-04 Fri 14:15] =>  0:02
+- [2026-09-04 Fri 14:13]--[2026-09-04 Fri 14:15] classify CLAUDE.md and skill rules for portability
+CLOCK: [2026-09-04 Fri 14:26]--[2026-09-04 Fri 14:27] =>  0:01
+- [2026-09-04 Fri 14:26]--[2026-09-04 Fri 14:27] classify CLAUDE.md and skill rules for portability
+CLOCK: [2026-09-04 Fri 14:35]--[2026-09-04 Fri 14:36] =>  0:01
+- [2026-09-04 Fri 14:35]--[2026-09-04 Fri 14:36] classify CLAUDE.md and skill rules for portability
+CLOCK: [2026-09-04 Fri 14:45]--[2026-09-04 Fri 14:46] =>  0:01
+- [2026-09-04 Fri 14:45]--[2026-09-04 Fri 14:46] classify CLAUDE.md and skill rules for portability
+CLOCK: [2026-09-04 Fri 14:48]--[2026-09-04 Fri 14:50] =>  0:02
+- [2026-09-04 Fri 14:48]--[2026-09-04 Fri 14:50] classify CLAUDE.md and skill rules for portability
+CLOCK: [2026-09-04 Fri 14:56]--[2026-09-04 Fri 14:57] =>  0:01
+- [2026-09-04 Fri 14:56]--[2026-09-04 Fri 14:57] classify CLAUDE.md and skill rules for portability
+- State "REVIEW"     from "DOING"      [2026-09-04 Fri 14:57] \\
+  classification and three decisions handed back for judgement
 :END:
 :PLAN:
 
@@ -5431,7 +5457,6 @@ The three decisions (the user, 2026-09-04):
 This is the input [[id:d5345abb-b451-4468-8f27-4bb2da983215][d5345abb]]
 needs: the audit relocates the SKILL and RULE rows; PLUGIN rows are
 tagged in place and move with the plugin.
-
 
 
 * TODO The org 9.7+ dependency is real, undeclared, and unenforced :code:
@@ -9070,12 +9095,21 @@ planning whether they should be one task, sequenced, or just
 cross-referenced as they are now.
 
 
-* TODO Audit CLAUDE.md for directives that belong in the org skill instead :code:
+* REVIEW Audit CLAUDE.md for directives that belong in the org skill instead :code:
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       d5345abb-b451-4468-8f27-4bb2da983215
 :CREATED:  [2026-08-04 Tue 17:52]
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-04 Fri 14:57]--[2026-09-04 Fri 15:01] =>  0:04
+- State "DOING"      from "TODO"       [2026-09-04 Fri 14:57] \\
+  starting the CLAUDE.md relocation audit
+- [2026-09-04 Fri 14:57]--[2026-09-04 Fri 15:01] audit CLAUDE.md directives for skill and rules relocation
+- State "REVIEW"     from "DOING"      [2026-09-04 Fri 15:01] \\
+  audit verdicts and relocations handed back for judgement
+:END:
+:PLAN:
 
 Captured 2026-08-04, following the same fix just applied for the
 =:BLOCKER:=/=:TRIGGER:= property convention: it was documented only in
@@ -9098,6 +9132,48 @@ are inherently project-specific (they name this project's actual tool
 names and files) and are out of scope.
 
 In scope, added 2026-09-03: the :CREATED: rule's remaining scope (CLAUDE.md near line 856, "applies to every heading creation"). Every MCP creation path already stamps it — org_capture and org_divide — and org_set_property refuses the property, a refusal :ID: 501a8422's plan now cites as precedent for its own allowlist. So the rule's live scope is precisely the text-editing creation path, and this audit decides its fate: either the rule moves to the skill with that path, or it is reworded in place to name its actual remaining scope.
+
+:END:
+*Audited 2026-09-04, against the four-bucket classification recorded on
+[[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] the same day.*
+Coverage was checked by grep before writing, so only real gaps were
+filled.
+
+*Already covered, no action*: the transition table and its
+queue/no-queue precondition split (skill), the keyword glosses, one
+top-level =NEXT= per category (rules file), =:BLOCKER:= dependencies
+(skill — this heading's founding example), and the slice conventions
+(rules file, extensively). The story/epic/slice vocabulary is adequately
+carried by the rules file; the skill need not duplicate it.
+
+*Four gaps found — portable directives living only in CLAUDE.md — and
+filled the same day*:
+
+1. *Mitosis*, in neither artifact (zero grep hits for divide/mitosis in
+   both): now the skill's "Dividing a heading that outgrew itself" —
+   worked-heading-must-not-grow-children, the child direction, the
+   divide-then-file order, born-empty; phrased with the
+   =org_divide=-or-by-hand precondition split.
+2. *:ID:/:CREATED: stamping on hand-generated headings*: the skill's
+   "Generating .org content" had zero =:CREATED:= property guidance
+   (every grep hit was the English word). Now its second bullet.
+3. *Nomination on close, and the residue rule*: rules file, new
+   "Closing a member nominates the next" section after the NEXT-budget
+   section, evidence retained (=e1284bdb=/=601c885c=, =aa1ba915=).
+4. *The twin review question*: rules file, in "Proposing a slice", with
+   both escape pairs cited.
+
+*The =:CREATED:= scope decision this body reserved*: both halves.
+CLAUDE.md's rule reworded in place to name its live scope — the
+text-editing creation path alone, since =org_capture=/=org_divide= stamp
+automatically and =org_set_property= refuses the property — and the
+skill bullet covers that path portably.
+
+*Deliberately not moved*: everything CLAUDE.md keeps under its own
+stay-test (rules that must hold when no =.org= file is open), and the
+PLUGIN-bucket prose, which moves at packaging time with
+[[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]].
+=bin/check-conventions= exit 0 after the edits.
 
 
 * MAYBE Make org-blocker-hook actually consult :BLOCKER: :code:
@@ -10197,4 +10273,6 @@ CLOCK: [2026-09-04 Fri 13:01]--[2026-09-04 Fri 13:02] =>  0:01
 - [2026-09-04 Fri 13:01]--[2026-09-04 Fri 13:02] root-cause unattributed spans, file discipline fix
 CLOCK: [2026-09-04 Fri 13:09]--[2026-09-04 Fri 13:11] =>  0:02
 - [2026-09-04 Fri 13:09]--[2026-09-04 Fri 13:11] sweep the dropped threads from the denouement
+CLOCK: [2026-09-04 Fri 13:17]--[2026-09-04 Fri 13:18] =>  0:01
+- [2026-09-04 Fri 13:17]--[2026-09-04 Fri 13:18] root-cause unattributed spans, file discipline fix
 :END:
