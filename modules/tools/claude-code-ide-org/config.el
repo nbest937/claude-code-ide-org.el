@@ -11268,6 +11268,38 @@ cookie -- add [/] and run `org-update-statistics-cookies': %s" title))
                           (claude-code-ide-org--container-heading-p))
                  (report 'error line "slice has keyworded children -- members are \
 [[id:...]] references, and a heading with keyworded children is a story: %s" title))
+               ;; The cookie above counts nothing useful without
+               ;; `:COOKIE_DATA: checkbox recursive'. `checkbox' because
+               ;; a slice's members are checkbox list items rather than
+               ;; TODO children, of which it has none by definition; and
+               ;; `recursive' because a member that is a story gets its
+               ;; relevant children as indented lines, which org excludes
+               ;; from a non-recursive count.
+               ;;
+               ;; The VALUE is asserted, not presence. `:COOKIE_DATA:
+               ;; todo' is well formed and counts children, so a
+               ;; presence-only rule would accept a slice whose cookie
+               ;; can only ever read [0/0].
+               ;;
+               ;; Required by convention since slices existed, defaulted
+               ;; by nothing, consulted only by org -- so its absence is
+               ;; invisible until a slice nests a member. Found 2026-09-04
+               ;; when ff7ccb2d recomputed to [0/9] against twelve
+               ;; checkboxes, the three indented ones silently excluded;
+               ;; a hand-written [0/12] had been right and org's own
+               ;; recount made it wrong. 2 of 7 slices lacked it, one
+               ;; bitten and one latent, both fixed before this landed --
+               ;; so this rule arrives at zero instances, which is
+               ;; :ID: dca940c1's argument for landing while it is
+               ;; cheapest (TODO.org :ID: b6da3480).
+               (when (claude-code-ide-org--slice-p)
+                 (let ((cookie-data (org-entry-get nil "COOKIE_DATA")))
+                   (unless (and cookie-data
+                                (string-match-p "\\bcheckbox\\b" cookie-data)
+                                (string-match-p "\\brecursive\\b" cookie-data))
+                     (report 'error line "slice has no :COOKIE_DATA: checkbox \
+recursive, so its cookie counts the wrong things (have: %s): %s"
+                             (or cookie-data "nothing") title))))
                ;; A finished heading with a substantial body carries a
                ;; :PLAN: drawer (TODO.org :ID: 8bcd56f4): the prospective
                ;; half wrapped away, the debrief left as the body.

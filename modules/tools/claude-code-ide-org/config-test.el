@@ -11521,6 +11521,58 @@ keyworded children is a story and none of this rule's business."
                           "*** TODO a keyworded child\n" child-props))
                  'error "slice has keyworded children"))))
 
+(ert-deftest claude-code-ide-org-test-lint-catches-slice-without-cookie-data ()
+  "A slice needs `:COOKIE_DATA: checkbox recursive' or its cookie counts
+the wrong things (TODO.org :ID: b6da3480).
+
+The property is required by convention, defaulted by nothing, and
+consulted only by org -- so its absence is invisible until a slice
+nests a member, at which point the headline silently recomputes to
+exclude every indented line. That is exactly how it was found: ff7ccb2d
+recomputed to [0/9] against twelve checkboxes.
+
+The VALUE is asserted, not merely presence. `:COOKIE_DATA: todo' is a
+well-formed property that counts TODO children -- of which a slice has
+none by definition -- so presence alone would accept a slice whose
+cookie can only ever read [0/0]."
+  (let ((cat "* Slices\n:PROPERTIES:\n:ARCHIVE:  DONE.org::* Slices\n:END:\n")
+        (props (lambda (extra)
+                 (concat ":PROPERTIES:\n:ID:       44444444-0000-0000-0000-000000000000\n"
+                         ":CREATED:  [2026-09-04 Fri 09:00]\n:KIND:     slice\n"
+                         extra ":END:\n"))))
+    ;; no :COOKIE_DATA: at all
+    (should (claude-code-ide-org-test--lint-matches
+             (claude-code-ide-org-test--lint
+              (concat cat "** NEXT [0/1] A slice\n" (funcall props "")))
+             'error "slice has no :COOKIE_DATA:"))
+    ;; the correct value passes
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint
+                  (concat cat "** NEXT [0/1] A slice\n"
+                          (funcall props ":COOKIE_DATA: checkbox recursive\n")))
+                 'error "slice has no :COOKIE_DATA:"))
+    ;; a well-formed but wrong value is still an error: `todo' counts
+    ;; children, and a slice has none
+    (should (claude-code-ide-org-test--lint-matches
+             (claude-code-ide-org-test--lint
+              (concat cat "** NEXT [0/1] A slice\n"
+                      (funcall props ":COOKIE_DATA: todo\n")))
+             'error "slice has no :COOKIE_DATA:"))
+    ;; `checkbox' without `recursive' is the case that bit: top-level
+    ;; members count, nested ones vanish
+    (should (claude-code-ide-org-test--lint-matches
+             (claude-code-ide-org-test--lint
+              (concat cat "** NEXT [0/1] A slice\n"
+                      (funcall props ":COOKIE_DATA: checkbox\n")))
+             'error "slice has no :COOKIE_DATA:"))
+    ;; and an ordinary heading is none of this rule's business
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint
+                  (concat cat "** TODO [0/1] Not a slice\n"
+                          ":PROPERTIES:\n:ID:       55555555-0000-0000-0000-000000000000\n"
+                          ":CREATED:  [2026-09-04 Fri 09:00]\n:END:\n"))
+                 'error "slice has no :COOKIE_DATA:"))))
+
 (ert-deftest claude-code-ide-org-test-lint-catches-slice-blocker-drift ()
   "The lint reports a slice whose blocker and checklist disagree.
 

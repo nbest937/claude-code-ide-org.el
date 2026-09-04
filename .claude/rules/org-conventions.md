@@ -276,6 +276,24 @@ is. Each carries an `:ID:`, a `:CREATED:`, and a
 `:COOKIE_DATA: checkbox recursive` property so its statistics cookie
 counts nested members as well as top-level ones.
 
+**`bin/lint-org` reports a slice without it as an error, and checks the
+*value* rather than mere presence** (`:ID:` b6da3480). Both words are
+load-bearing: `checkbox` because a slice's members are list items rather
+than TODO children, of which it has none by definition, and `recursive`
+because a member that is a story carries indented child lines that org
+otherwise excludes from the count. `:COOKIE_DATA: todo` is well formed
+and would give a cookie that can only ever read `[0/0]`.
+
+*Added while the corpus was clean, after it had already bitten once.*
+The property is required by convention, defaulted by nothing and
+consulted only by org, so its absence is invisible until a slice nests a
+member — at which point the headline silently recomputes to exclude every
+indented line. On 2026-09-04 `:ID:` ff7ccb2d recomputed to `[0/9]`
+against twelve checkboxes; the hand-written `[0/12]` had been right and
+org's own recount made it wrong, which is the worst direction for a
+defect to arrive from. Two of seven slices lacked it, one bitten and one
+latent.
+
 **The statistics cookie itself is not yours to remember.** A slice's
 headline carries `[n/m]` over its checkbox list, and
 `M-x claude-code-ide-org-refresh-slice` now *inserts* the `[/]` when it
