@@ -5363,6 +5363,56 @@ Measured by section: roughly **660 of 1196 lines document machinery that would s
 
 *So this heading and [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] are the same triage from opposite ends*, which is recorded on both. This one asks what must reach another project; that one asks what earns its place in an always-loaded file. A passage that must ship is load-bearing by definition, and a passage that is testbed-only is a prune candidate for a better reason than being dated — **audience rather than age**. The classification this heading has to make is the one that prune needs, which is why it runs first.
 
+*Classified 2026-09-04, and the three open calls decided.* Four buckets,
+refining the drawer's "split by who must decide to load it": *SKILL*
+(portable, consulted deliberately — skill body or =references/*.md=),
+*RULE* (portable, must apply automatically — a path-scoped rules file),
+*PLUGIN* (documents machinery; travels iff the machinery ships), *STAYS*
+(testbed-only).
+
+The sort, by source, approximate lines:
+
+- *CLAUDE.md (1196)* — STAYS ~240 (charter, authority table, repo
+  layout, branch/test policy). SKILL ~160 (story/slice/twin vocabulary,
+  emergent-vs-declared, mitosis). RULE ~215 (=:PLAN:= lifecycle, keyword
+  semantics, nomination invariants). PLUGIN ~580 (queue architecture,
+  queue-conditional transition rules, tool tables, session tracking,
+  Emacs integration).
+- *SKILL.md (744)* — already the portable artifact; only the
+  background-planning batch section (~120) is PLUGIN, riding on
+  =org_log_background_plan= and the queue. Its precondition phrasing
+  ("in a repo using the queue… / where there is no queue…") is the model
+  every RULE export must copy.
+- *org-conventions.md (868)* — RULE ~475 (header/keywords/tags, slice
+  semantics, =:PLAN:=, citing code and commits, heading separation,
+  archiving, dependencies). STAYS ~180 (the ten =:CATEGORY:= values and
+  their history; the category-as-epic mechanism itself, ~15 lines, is
+  RULE). PLUGIN ~235 (refresh-slice mechanics, the meta-work datetree,
+  normalizer and hook internals).
+
+The three decisions (the user, 2026-09-04):
+
+1. *Distribution is hybrid.* Conventions ship as skill =references/= in
+   every install, so delivery cannot be lost; a setup command in the
+   plugin's =bin/= promotes them into the *consuming repo's*
+   =.claude/rules/= for guaranteed application. Per-repo, not
+   user-level; a =--user= variant may exist later and is not the
+   default.
+2. *Full strength, consent-by-install.* Running the setup command is
+   the consent, so the rules keep their assertive phrasing, plus one
+   line noting the consuming project's own rules override. Splitting
+   law from policy was declined — needed only where rules land
+   uninvited, which per-repo landing prevents.
+3. *PLUGIN prose moves at packaging time*, in the same change that
+   creates the plugin, so instructions and machinery land together —
+   this heading's own recorded conclusion. Until then CLAUDE.md keeps
+   it.
+
+This is the input [[id:d5345abb-b451-4468-8f27-4bb2da983215][d5345abb]]
+needs: the audit relocates the SKILL and RULE rows; PLUGIN rows are
+tagged in place and move with the plugin.
+
+
 
 * TODO The org 9.7+ dependency is real, undeclared, and unenforced :code:
 :PROPERTIES:
