@@ -14,34 +14,42 @@ slice wins.
 Not specific to this slice. Every item here is on the list because skipping
 it cost a past session real work.
 
-1. **Apply the queue before composing anything.** Larger than usual right
-   now: six `DONE`s, a `MAYBE`→`TODO` promotion, a slice reopened and closed
-   again, and every clock event behind them. Until it is applied, `TODO.org`
-   shows `TODO` on headings whose work shipped, and this slice's checkboxes
-   disagree with their referents. **That disagreement is staleness, not a
-   defect — do not fix it by hand.**
+1. **Apply the queue before composing anything.** Until it is applied,
+   `TODO.org` shows the old keyword on headings whose work shipped, and a
+   slice's checkboxes disagree with their referents. **That disagreement is
+   staleness, not a defect — do not fix it by hand.** `org_pending_updates`
+   says what is waiting; it is also step 2.
 2. **Confirm `emacs-tools` is reachable** by calling `org_pending_updates`.
    Read-only, and a reply proves the server is up in a way that seeing the
    tools listed does not.
 3. **Clock in before the first thing that writes**, naming the heading, or
    "Review and planning" for cross-cutting meta-work. The drift from question
    to tracked work is invisible from inside the session doing it.
-4. **PR #9 is open, pushed, and its review is closed out.** Branch
-   `feature/fix-claude-md-and-slice-conventions`; all four inline threads
-   replied to and resolved. **Open question for the user, not for you:**
-   whether to merge before continuing.
-5. **Fast-forward local `main` before doing anything with branches:**
-   `git fetch origin main:main`. Not `git pull` — on a feature branch that
-   updates the feature branch and leaves `main` exactly as stale. Not
-   hypothetical: on 2026-09-03 local `main` was 165 commits behind while
-   `origin/main` was current, so `git diff main...HEAD` reported 18 files and
-   28k lines for a PR that was 7 files and 768. The branch was fine; only the
-   `main` *label* lied, and nothing announced it.
-6. **This slice's work does not belong on PR #9's branch.** That branch is a
-   different subject and is under review. Cut `feature/<short-name>` from an
-   up-to-date `main` once step 5 is done. What earns a branch is wanting a
-   separate integration point, which a new slice always is.
-7. **Do not run `org-id-update-id-locations` prophylactically after
+4. **Confirm the new branch will be cut at a commit that already contains
+   every piece of prior work you want in it.** Three parts, in order, and the
+   third is a question rather than a command:
+
+   - *Fast-forward the intended base*, usually `main`:
+     `git fetch origin main:main`. **Not `git pull`** — run from a feature
+     branch that updates the feature branch and leaves the base exactly as
+     stale as it found it. Not hypothetical: on 2026-09-03 local `main` was
+     165 commits behind while `origin/main` was current, so
+     `git diff main...HEAD` reported 18 files and 28k lines for a PR that was
+     7 files and 768. The branch was fine; only the `main` *label* lied, and
+     nothing announced it.
+   - *Survey what is not in that base yet* —
+     `git branch -a --no-merged main` for divergent branches, and
+     `gh pr list --state open` for review in flight. Either may hold work
+     that belongs underneath the new branch rather than beside it.
+   - *Report both lists to the user and ask what should land first.*
+     **Whether to merge anything is their decision, not yours** — a branch is
+     an integration point, and choosing where it starts is choosing what it
+     integrates. Say plainly if both lists are empty; that is an answer too.
+5. **Then cut `feature/<short-name>` from the settled base.** What earns a
+   branch is wanting a separate integration point, which a new slice always
+   is — so do not continue a slice on the branch of the one before it, even
+   when that branch is still open.
+6. **Do not run `org-id-update-id-locations` prophylactically after
    `org_capture`.** A previous revision of this file prescribed it. It did
    not fire once across five capture-then-amend pairs on 2026-09-03. If an
    amend fails with "no org heading found", *then* it is the fix — and that
