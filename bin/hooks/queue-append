@@ -225,6 +225,7 @@ line="$(jq -n -c \
      tool_use_id: (if $kind == "block_start" or $kind == "block_end"
                    then ($payload.tool_use_id // null) else null end),
      session_id: $session_id,
+     cwd: ($payload.cwd // null),
      agent_id: ($payload.agent_id // null),
      agent_type: ($payload.agent_type // null),
      source: ($payload.tool_name // $payload.hook_event_name // $kind)
