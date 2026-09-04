@@ -2,6 +2,48 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO footnote-check resolves every id and discards the answer, then asks for it
+:PROPERTIES:
+:ID:       33c3eabc-00f2-4cf1-afb7-4071aa256d62
+:CREATED:  [2026-09-04 Fri 12:24]
+:CATEGORY: Dev
+:END:
+
+=bin/hooks/footnote-check= validates a candidate by looking it up in the tracked org files:
+
+: grep -qE "^:ID: +$id" "${org_files[@]}" || continue   # not a tracked heading
+
+**It finds the line and throws it away.** =-q= reports existence and discards the location, which is
+one =awk= from the heading above it — the keyword and the exact title the block message then demands
+be "looked up rather than recalled". The hook performs the lookup, forgets it, and asks for it back.
+
+*Measured over one session, 2026-09-03/04:* **18 firings, 39 flagged ids, 27 distinct, 10 flagged more
+than once** — so roughly a third of the flags are re-flags of ids already footnoted earlier in the
+same conversation. The response arguing for this heading was itself blocked, on an id cited as
+vocabulary.
+
+*The fix is not to relax the rule, and that is the point.* Per-response footnoting is deliberate —
+=2758f3a0= is titled "Footnote discipline decays on re-mention" and the re-flag is the feature, since
+a reader does not have the earlier response on screen. **Per-response is expensive only because the
+lookup is manual.** Have the hook emit the footnote lines in its own message, or append them outright,
+and the rule costs nothing per re-mention while its guarantee is untouched.
+
+*Two shapes, not settled here.* Emitting the block for the model to paste keeps the hook advisory and
+the prose the model's own; appending it removes the failure mode entirely but has the hook writing
+user-visible text, which no other hook here does. The first is smaller and preserves the ask-do-not-act
+contract every other report keeps.
+
+*It also subsumes the softer option.* Relaxing to per-session re-mention was the obvious alternative
+and trades a reader guarantee for a cost that disappears once the hook does its own arithmetic.
+
+*Filed beside =2a6a1355= rather than instead of it.* That heading adds three more ways to owe a
+footnote and would fire *more* — correctly, and cheaply, once the response is a paste rather than a
+grep. =:CATEGORY: Dev= because the work is in =bin/hooks/=; =2a6a1355= is =Skill= because its subject
+is the discipline. Same problem, opposite ends.
+
+*The class this belongs to* is =acf46449='s, one layer over: an error is a report, and a report is not
+a mechanism. Here the mechanism already computed the answer.
+
 * TODO --review-format-annotation's docstring contradicts its own let*, four lines down
 :PROPERTIES:
 :ID:       60ed5b96-40e3-4676-a742-07a8ad6cc3b7

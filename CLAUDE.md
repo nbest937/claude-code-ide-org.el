@@ -232,12 +232,35 @@ own description, as opposed to the accuracy of its documented content)
 are inherently fuzzy and not worth forcing into a deterministic test;
 say so explicitly rather than skipping verification silently.
 
-**Rule**: work does not land directly on `main` — it lands on a
-`feature/short-name` branch and merges. What earns a branch is wanting a
-separate **integration point**, not a taxonomy: several commits that
-should arrive together, work you might abandon, or something you want to
-review as a unit. A one-helper fix committed straight onto the branch
-you are already on does not need its own.
+**Rule**: work that wants its own **integration point** lands on a
+`feature/short-name` branch and merges. What earns one is not a taxonomy:
+several commits that should arrive together, work you might abandon, or
+something you want to review as a unit — and a slice always is one.
+
+**Maintenance between such chunks may land on `main` directly.** Applying
+the review queue, debriefing and closing work that already merged, filing
+headings, correcting a stale cross-reference: none of these wants an
+integration point.
+
+*This clause was added 2026-09-04 because its absence produced three
+branches in one afternoon*, two existing solely to carry a single
+bookkeeping commit and one renamed mid-flight when it turned out to be
+doing real work after all. The rule before it opened "work does not land
+directly on `main`" and then explained that a branch is *earned* by
+wanting an integration point — two sentences that disagree, since work
+that has not earned one then has nowhere to go. The contradiction
+resolved toward the absolute clause every time. The cost is not the
+branch; it is that a merge is a decision, and manufacturing decisions
+devalues the ones that matter.
+
+**The test, when unsure: would you want to review this as a unit, or
+abandon it as a unit?** If neither, it is maintenance. Anything carrying
+code or tests answers yes almost by definition, so this exemption is
+narrower than it reads.
+
+A one-helper fix committed straight onto the branch you are already on
+still does not need its own — and note that assumed you *were* on one,
+which is exactly what stops being true the moment a slice merges.
 
 This is deliberately not "one branch per task." The repo's own history
 is the evidence: `feature/capture-amend-queue` earned one because it had

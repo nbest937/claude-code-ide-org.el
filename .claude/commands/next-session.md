@@ -62,7 +62,10 @@ work.
 5. **Then cut `feature/<short-name>` from the settled base.** What earns a
    branch is wanting a separate integration point, which a new slice always
    is — so do not continue a slice on the branch of the one before it, even
-   when that branch is still open.
+   when that branch is still open. **Maintenance between chunks of real work
+   may land on `main` directly** and should: applying the queue, debriefing
+   an already-merged heading, filing. A branch per bookkeeping commit is the
+   jitter CLAUDE.md's rule was relaxed to stop.
 6. **Do not run `org-id-update-id-locations` prophylactically after
    `org_capture`.** A previous revision of this file prescribed it. It did
    not fire once across five capture-then-amend pairs on 2026-09-03. If an
