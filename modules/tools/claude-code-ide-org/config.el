@@ -856,7 +856,8 @@ before it was unwelcome."
   "Return the SessionStart hook JSON payload: an empty object if there is
 nothing to report, otherwise one whose additionalContext carries every
 stale open interval and, if today's ceremony has not been run, what it
-has waiting.
+has waiting -- plus a systemMessage summarising both, which Claude Code
+displays to the user directly rather than via the model.
 
 *Two reports, one hook, one payload.*  They are independent questions --
 a stale clock is an unclean death, the ceremony is a routine -- but both
@@ -870,11 +871,30 @@ are."
                      (claude-code-ide-org--format-stale-interval-report findings)))
          (ceremony (claude-code-ide-org--format-ceremony-report
                     (claude-code-ide-org--ceremony-status)))
-         (parts (delq nil (list stale ceremony))))
+         (parts (delq nil (list stale ceremony)))
+         ;; The user's channel (TODO.org :ID: d585d33e).  Measured on
+         ;; this project's transcripts (:ID: c5b02503), additionalContext
+         ;; reached the user in 15 of 24 genuine session starts -- the
+         ;; model relays it or nobody sees it.  systemMessage is shown to
+         ;; the user by Claude Code itself, so both reports arrive
+         ;; unconditionally.  A compact summary only: the full report
+         ;; stays in additionalContext, which is the model's copy to act
+         ;; on.  The what-was-I-doing context hook stays model-only by
+         ;; decision -- orientation, not a question.
+         (summaries
+          (delq nil
+                (list (and findings
+                           (format "%d stale open CLOCK interval%s from before today"
+                                   (length findings)
+                                   (if (= 1 (length findings)) "" "s")))
+                      (and ceremony "the daily ceremony is waiting")))))
     (if (null parts)
         "{}"
       (json-encode
-       `((hookSpecificOutput
+       `((systemMessage
+          . ,(format "org: %s — details in Claude's context; apply is M-x claude-code-ide-org-review"
+                     (mapconcat #'identity summaries "; ")))
+         (hookSpecificOutput
           . ((hookEventName . "SessionStart")
              (additionalContext . ,(mapconcat #'identity parts "\n\n")))))))))
 
