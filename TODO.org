@@ -2,6 +2,36 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO session-context.sh reports which groupings lack a NEXT, never which headings hold one
+:PROPERTIES:
+:ID:       81eaf26f-97ae-4dbf-acf5-e457083ab9f9
+:CREATED:  [2026-09-04 Fri 13:09]
+:CATEGORY: Meta
+:END:
+
+=claude-code-ide-org-session-context= assembles three things: the clocked heading,
+=--attention-headings-context=, and =--nomination-candidates-context=. The last reports **absences** —
+groupings whose live members include no =NEXT=. Nothing reports the nominations that *exist*.
+
+*So a session starts knowing where a decision is missing and not knowing what was decided.* On
+2026-09-04 the corpus held four top-level =NEXT=s across four categories — one per category, which is
+what =758a8b78= caps them at — and none appeared at session start. That roster is the shortest honest
+answer to "what was I doing", and this hook's own charter is literally *"what was I last doing"*.
+
+**Not the same defect as =4133772c= or =43aa25b2=, and worth keeping apart.** Those two are *gaps*: a
+=REVIEW= heading or a stale =DOING= story is something wrong that nothing surfaces. A =NEXT= sitting
+there is **correct** — nothing is broken, and reporting it is orientation rather than a nag. Same
+hook, opposite purpose, and conflating them would put a warning register around a line that should
+read as a summary.
+
+*Which also settles the volume question the other two have to argue about.* One per category is a
+hard cap, so the roster is bounded at the number of live categories — four today, ten at most — and
+it does not grow with the corpus.
+
+*Filed 2026-09-04 after being dropped.* It was proposed alongside =4133772c=, the reply named only
+"the first thing", and it fell out. Recorded because the omission was an artefact of a precise
+instruction rather than a decision, which is the failure this whole sweep exists to catch.
+
 * TODO A DOING story is invisible to every report, and two have sat a fortnight
 :PROPERTIES:
 :ID:       4133772c-b81d-46e3-8cf7-98359f9a6526
@@ -966,13 +996,13 @@ box would inflate the denominator forever, which is the reason the mapping exist
 on the dropped line, derived from nothing and set by the drop itself, is the shape that fits.
 
 
-* NEXT [0/12] Make the org discipline travel: ship the machinery, relocate the rules :code:
+* NEXT [0/13] Make the org discipline travel: ship the machinery, relocate the rules :code:
 :PROPERTIES:
 :ID:       ff7ccb2d-2b13-421e-86e3-6b5e187850bf
 :CREATED:  [2026-09-02 Wed 18:17]
 :CATEGORY: Slices
 :KIND:     slice
-:BLOCKER:  ids(9ae4b17e-278c-482f-9114-df28b2254806 d5345abb-b451-4468-8f27-4bb2da983215 9d009401-93dd-40e5-a243-7a30a8a5bd55 1ed7b2b4-a809-4547-b04f-099a3111fc1e 84b7d8b3-5161-4146-9167-0e7e2100e365 f8c86914-0759-4e05-9292-6f7fa5593701 5461c349-fd22-4b75-a508-50efbe4b87f8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4 83b3cdd6-982a-4ae1-878c-79a8c941f638 d7849119-8224-4993-a8ab-83e1434df53c b07df584-3adc-433c-ab49-e104f88aecf7 c5b02503-1700-47fd-bf89-bd3296b24af2)
+:BLOCKER:  ids(9ae4b17e-278c-482f-9114-df28b2254806 d5345abb-b451-4468-8f27-4bb2da983215 9d009401-93dd-40e5-a243-7a30a8a5bd55 1ed7b2b4-a809-4547-b04f-099a3111fc1e 84b7d8b3-5161-4146-9167-0e7e2100e365 f8c86914-0759-4e05-9292-6f7fa5593701 5461c349-fd22-4b75-a508-50efbe4b87f8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4 83b3cdd6-982a-4ae1-878c-79a8c941f638 d7849119-8224-4993-a8ab-83e1434df53c b07df584-3adc-433c-ab49-e104f88aecf7 c5b02503-1700-47fd-bf89-bd3296b24af2 ecf66d45-18b3-477f-bca8-08bec90604e8)
 :COOKIE_DATA: checkbox recursive
 :END:
 :LOGBOOK:
@@ -1008,6 +1038,7 @@ line-count measurement are all =9ae4b17e='s and are not repeated here.
 - [[id:3cb3f955-f10a-47cd-84ab-e629d73ea59d][3cb3f955]] MAYBE Org skill: commit a newly-captured TODO immediately, when safe
 - [[id:7eb7dd8d-2d9b-4a63-afbd-5878298e42a4][7eb7dd8d]] MAYBE Org skill: auto-capture and dedupe modification requests against existing TODOs
 - [[id:2c5f7c50-40c9-4d06-b435-add41eb97643][2c5f7c50]] MAYBE Install orgparse for ad-hoc analysis, and stop reaching for regex over org text
+- [ ] [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out future work on a timeline the agenda can show
 
 *The order is the point.* =9ae4b17e= classifies what must travel, and every line below assumes its
 answer. =d5345abb= then relocates what belongs in the skill and =9d009401= prunes what is left, in
@@ -1035,6 +1066,25 @@ unresolved open question, or a defect already carried by a sibling member.
 Headings that bear on portability but are already declared by =8a2eb687= stay there; membership is
 not shared between slices.
 
+*=ecf66d45= added 2026-09-04, and its absence until now was a twin asymmetry — diagnosed, named, and
+then still not fixed.* It was filed the same morning with =:CATEGORY: Skill= and a body saying in as
+many words that it is "=9ae4b17e='s classification question arriving from a new direction", because
+the user framed the ask as *"in future projects I will want…"*. It was then recommended for this
+slice, the recommendation was never answered, and the thread fell out of the conversation.
+
+So the pattern CLAUDE.md describes held exactly: the composer cannot see the asymmetry, a reader
+catches it — and here the composer had already *written down* that the two belonged together and
+still let it drop. Knowing the failure mode is not protection; that is =d5490814='s lesson arriving
+in a different register.
+
+*Where it sits:* the reader-facing tail, with =d7849119=, =b07df584= and =c5b02503=. It is not blocked
+on the classification, unlike the members of movements 2 and 4 — a forward timeline is wanted whether
+or not the discipline travels, and the portability question only decides whether the *convention* is
+this repo's or the plugin's.
+
+
+
+
 The prompt that drives this slice, one link per revision, oldest first:
 
 - [[orgit-rev:claude-code-ide-org::1251ee3][1251ee3]] [2026-09-03 Thu 16:13] rewrote =next-session.md= for this slice, replacing =b36e6369='s prompt
@@ -1042,8 +1092,6 @@ The prompt that drives this slice, one link per revision, oldest first:
 - [[orgit-rev:claude-code-ide-org::93abc93][93abc93]] [2026-09-04 Fri 08:17] restored the member =:ID:=s beside their titles, and added the fast-forward-main and cut-a-branch steps
 - [[orgit-rev:claude-code-ide-org::ef5ecf8][ef5ecf8]] [2026-09-04 Fri 09:20] made Step 0's branch check generic — survey and ask, rather than a hard-coded PR that would need editing before the next slice could follow it
 - [[orgit-rev:claude-code-ide-org::185f136][185f136]] [2026-09-04 Fri 09:31] banded the file — Step 0 and Standing rules carry forward verbatim, the middle is replaced wholesale — and added the two rules this session earned
-
-
 * DOING Make the heading body a scannable summary, with plan and debrief in drawers [2/5]
 :PROPERTIES:
 :ID:       4c834fdb-5314-4168-ab1d-09fe89ded517
