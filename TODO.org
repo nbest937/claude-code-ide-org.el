@@ -100,6 +100,21 @@ than twice. Drop it if that reads as scope creep; nothing else depends on it.
 =b6da3480= is deliberately absent, having closed today; its follow-on =acf46449= carries the work
 that remains.
 
+*The nomination went to =ff7ccb2d=, 2026-09-04.* The user's call, and it is recorded here so it is
+not re-litigated every time this slice is next in view: portability keeps the one top-level =Slices=
+=NEXT= that =758a8b78= allows, and this slice waits at =TODO=.
+
+*The argument that lost is worth keeping too*, since it will be made again. Four of these seven
+members bit during a single session, the head is a small mechanical fix, and clearing them would
+reduce friction for every later slice including the one that won. That is the sharpen-the-axe case —
+and =758a8b78='s forcing function exists precisely because mechanism work always looks cheaper than
+starting the strategic thing, so being persuasive is not the same as being right.
+
+*What would change the answer:* a member of this slice blocking =ff7ccb2d='s progress rather than
+merely costing friction alongside it. =635d5abb= is the closest candidate — its hand fix was paid four
+times in two days — but a paid cost is not a block.
+
+
 
 * TODO org_amend cannot continue a list, and the slice revision links are always one
 :PROPERTIES:
@@ -2247,6 +2262,27 @@ right and the effect is unobserved.
 
 *Which makes this heading its own first customer:* it is now a =REVIEW= heading that something
 watches, and if the mechanism works it will surface itself.
+
+*Live verification done 2026-09-04, after =doom/reload=.* The running Emacs holds the new definitions
+and =--attention-headings-context= returns exactly one line:
+
+: REVIEW since 2026-09-04 11:06 (today): "Nothing watches a REVIEW heading, and it is the state most easily forgotten" (:ID: 43aa25b2-…, in TODO.org)
+
+**It names itself and nothing else**, which is the whole test: the three other =REVIEW= headings closed
+in the same apply pass, so a report that fired on anything more would be reporting noise, and one that
+fired on nothing would not be working. The silence-when-empty contract and the fires-when-there-is-one
+behaviour are both observed in a single reading.
+
+*=(today)= is correct rather than the bug it resembles* — this heading entered =REVIEW= at 11:06 the
+same day. The earlier calendar-day defect made *yesterday* read as today; that is fixed, and this is
+the case where today really is today.
+
+*One thing worth recording about how the check was nearly misread.* The first live query returned
+empty and I almost took that as "the report finds nothing". It was my own filter: the returned strings
+carry org text properties, so =mapconcat='s printed form is =#("..." 40 41 (...))= and the =grep=
+pipeline discarded it. Silence again standing in for a result, third time in this session and the one
+time it would have produced a false negative about a feature that works.
+
 
 
 * TODO Adding a just-captured heading to a slice cannot be made lint-clean :code:
@@ -9801,8 +9837,7 @@ CLOCK: [2026-09-04 Fri 10:08]--[2026-09-04 Fri 10:12] =>  0:04
 - [2026-09-04 Fri 10:08]--[2026-09-04 Fri 10:12] assigned at review
 CLOCK: [2026-09-04 Fri 10:14]--[2026-09-04 Fri 10:16] =>  0:02
 - [2026-09-04 Fri 10:14]--[2026-09-04 Fri 10:16] archive the span specimen as test data
-CLOCK: [2026-09-04 Fri 10:16]--[2026-09-04 Fri 10:21] =>  0:05
-- <2026-09-04 Fri 10:16>--<2026-09-04 Fri 10:21> assigned at review
+- <2026-09-04 Fri 10:16>--<2026-09-04 Fri 10:21> read the testdata report; planned the wrap-up sequence
 CLOCK: [2026-09-04 Fri 10:23]--[2026-09-04 Fri 10:24] =>  0:01
 - [2026-09-04 Fri 10:23]--[2026-09-04 Fri 10:24] judge two REVIEW headings, nominate 43aa25b2
 CLOCK: [2026-09-04 Fri 10:54]--[2026-09-04 Fri 10:55] =>  0:01
@@ -9811,4 +9846,8 @@ CLOCK: [2026-09-04 Fri 11:30]--[2026-09-04 Fri 11:31] =>  0:01
 - [2026-09-04 Fri 11:30]--[2026-09-04 Fri 11:31] file the active-CLOCK idempotency finding
 CLOCK: [2026-09-04 Fri 11:42]--[2026-09-04 Fri 11:43] =>  0:01
 - [2026-09-04 Fri 11:42]--[2026-09-04 Fri 11:43] assigned at review
+CLOCK: [2026-09-04 Fri 11:49]--[2026-09-04 Fri 11:50] =>  0:01
+- [2026-09-04 Fri 11:49]--[2026-09-04 Fri 11:50] assigned at review
+CLOCK: [2026-09-04 Fri 12:04]--[2026-09-04 Fri 12:05] =>  0:01
+- [2026-09-04 Fri 12:04]--[2026-09-04 Fri 12:05] assigned at review
 :END:
