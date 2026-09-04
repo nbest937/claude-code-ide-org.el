@@ -9635,6 +9635,95 @@ an answer that says what to do rather than a bare \"cannot find entry\"."
              "capture is still pending"
              (cadr (should-error (claude-code-ide-org-review-goto) :type 'user-error))))))
 
+(ert-deftest claude-code-ide-org-test-calendar-days-between-counts-dates-not-hours ()
+  "Age is a difference of DATES, not of elapsed hours.
+
+Found by running the REVIEW report against the real corpus rather than
+a fixture: a heading that entered REVIEW at 15:24 and was read at 11:02
+the next morning is 19h38m old, which floor-divides to zero and printed
+\"today\" for something that happened yesterday. Elapsed seconds answer
+a question nobody asked (TODO.org :ID: 43aa25b2).
+
+Deterministic by construction -- both endpoints are supplied, so this
+cannot flake on the hour it is run, which is the trap :ID: c31b6c76 and
+:ID: 5a5e87c9 both name."
+  (let ((mk (lambda (s) (claude-code-ide-org--parse-org-timestamp s))))
+    ;; 19h38m apart, but a day apart on the calendar.
+    (should (= 1 (claude-code-ide-org--calendar-days-between
+                  (funcall mk "[2026-09-03 Wed 15:24]")
+                  (funcall mk "[2026-09-04 Thu 11:02]"))))
+    ;; 23h58m apart and the SAME date -- the mirror of the case above.
+    (should (= 0 (claude-code-ide-org--calendar-days-between
+                  (funcall mk "[2026-09-04 Thu 00:01]")
+                  (funcall mk "[2026-09-04 Thu 23:59]"))))
+    ;; Across a month boundary, where naive arithmetic on day-of-month
+    ;; would go negative.
+    (should (= 2 (claude-code-ide-org--calendar-days-between
+                  (funcall mk "[2026-08-30 Sun 09:00]")
+                  (funcall mk "[2026-09-01 Tue 09:00]"))))))
+
+(ert-deftest claude-code-ide-org-test-recorded-review-time-takes-the-latest ()
+  "The age of a REVIEW heading dates from the LAST time it entered REVIEW.
+
+A heading that went REVIEW, back to DOING on rework, then REVIEW again
+has been waiting since the second one; the first records a moment the
+second superseded.  Same rule and same shape as
+`claude-code-ide-org--recorded-close-time' (TODO.org :ID: 43aa25b2)."
+  (with-temp-buffer
+    (org-mode)
+    (insert "* REVIEW Reworked once\n:PROPERTIES:\n:ID: r1\n:END:\n"
+            ":LOGBOOK:\n"
+            "- State \"REVIEW\"     from \"DOING\"      [2026-09-02 Wed 09:00] \\\\\n"
+            "  second time, and the one that counts\n"
+            "- State \"DOING\"      from \"REVIEW\"     [2026-09-01 Tue 12:00]\n"
+            "- State \"REVIEW\"     from \"DOING\"      [2026-08-30 Sun 08:00]\n"
+            ":END:\n")
+    (goto-char (point-min))
+    (should (equal (format-time-string
+                    "%Y-%m-%d %H:%M"
+                    (claude-code-ide-org--recorded-review-time))
+                   "2026-09-02 09:00"))))
+
+(ert-deftest claude-code-ide-org-test-recorded-review-time-is-nil-without-a-note ()
+  "No state note means no date, and nil rather than a fallback.
+
+The report must still name the heading -- an undated REVIEW is exactly
+the one nobody is watching -- so nil here is the *caller's* signal, not
+a reason to skip."
+  (with-temp-buffer
+    (org-mode)
+    (insert "* REVIEW Never logged\n:PROPERTIES:\n:ID: r2\n:END:\n")
+    (goto-char (point-min))
+    (should-not (claude-code-ide-org--recorded-review-time))))
+
+(ert-deftest claude-code-ide-org-test-attention-context-reports-review-headings ()
+  "Every REVIEW heading is reported, dated where the LOGBOOK dates it.
+
+Report ALL rather than only aged ones: the corpus held zero live REVIEW
+headings before 2026-08-31 and four across two days after, so a
+threshold would be tuning against four observations, and the report
+self-silences whenever there are none.
+
+Do NOT skip an undated one. Skipping would drop precisely the heading
+whose provenance nobody recorded, which is the silence being fixed."
+  (claude-code-ide-org-test--with-attention-file
+      (concat "#+TODO: TODO NEXT DOING REVIEW WAITING | DONE CANCELLED\n"
+              "* REVIEW Dated\n:PROPERTIES:\n:ID: id-dated\n:END:\n"
+              ":LOGBOOK:\n"
+              "- State \"REVIEW\"     from \"DOING\"      [2026-09-02 Wed 09:00]\n"
+              ":END:\n"
+              "* REVIEW Undated\n:PROPERTIES:\n:ID: id-undated\n:END:\n"
+              "* TODO Ordinary\n:PROPERTIES:\n:ID: id-todo\n:END:\n")
+    (let ((lines (claude-code-ide-org--attention-headings-context)))
+      (should (string-match-p
+               "REVIEW since 2026-09-02 09:00"
+               (or (claude-code-ide-org-test--attention-line "id-dated" lines) "")))
+      (should (string-match-p
+               "REVIEW, no state note to date it"
+               (or (claude-code-ide-org-test--attention-line "id-undated" lines) "")))
+      ;; The silence that makes the report worth reading.
+      (should-not (claude-code-ide-org-test--attention-line "id-todo" lines)))))
+
 (defmacro claude-code-ide-org-test--with-attention-file (text &rest body)
   "Write TEXT to a real temp .org file, point `claude-code-ide-org-query-files'
 at it, and run BODY.  A real file rather than a temp buffer because
