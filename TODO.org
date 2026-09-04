@@ -2306,6 +2306,32 @@ CLOCK: [2026-09-04 Fri 08:17]--[2026-09-04 Fri 08:33] =>  0:16
 
 *Still open and unchanged by any of this*: the three design questions above -- what the flip *means*, what it applies to, and which key.
 
+*The user added the purpose and the limit in one sentence, 2026-09-04:* "a keystroke to toggle
+active/inactive would be useful … and presenting certain spans as active when it's warranted would be
+an aid to interpretation. **I'm sure I will miss the signs too often.**"
+
+*The first clause is this heading and needs no change.* The second names a second mechanism, and the
+third is the argument that the second is not optional.
+
+**A keystroke only converts a judgement already made.** It removes the four bracket characters, not
+the noticing — and the noticing is the part that fails. The same person, in the same session, said of
+their =AFK= discipline that they "pop in, make a quick judgment or queue a prompt during a
+long-running turn, and then pop out again without mentioning 'still AFK'" (=409a69ff=). A reviewer
+who does not reliably emit the marker will not reliably spot its consequence twenty spans later
+either. So the manual half is *necessary and insufficient*, and shipping only it would look like
+progress while leaving the failure mode untouched.
+
+*What the second mechanism is, and why it is not this heading.* Presenting a span as already active
+where the evidence warrants it is a classification, and whether a class exists that is unambiguous
+enough to mark without asking is an empirical question with a scheduled answer: =96a51c2f=, monthly
+from 2026-09-13, now carries it. Deciding here would be guessing ahead of the data.
+
+*The interaction worth designing for either way:* if some spans arrive pre-marked, the keystroke stops
+being "assert attention" and becomes "correct the machine" — a different act, on a smaller number of
+items, with the default carrying most of the weight. Worth knowing before the key is bound, because
+it changes what the reviewer is being asked to do.
+
+
 
 * MAYBE Render a session transcript to readable org, so scrollback stops being the index :code:
 :PROPERTIES:
