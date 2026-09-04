@@ -1,4 +1,4 @@
-#!/usr/bin/env fish
+#!/usr/bin/env bash
 # Cross-artifact accuracy check for this repo's *documentation*.
 #
 # bin/test verifies the elisp behaves. bin/lint-org verifies the org
@@ -7,11 +7,17 @@
 # next-session prompt -- still matches what it describes.
 #
 # Generalized out of bin/check-org-dev-skill (TODO.org :ID: d2a0f54c),
-# which checks one file's claims. The harness now lives in
-# bin/lib/check.fish so a second check family adds assertions rather than
-# a second script; bin/check-org-dev-skill sources the same file and runs
-# last, so one command covers everything and .githooks/pre-commit wires
-# one thing.
+# which checks one file's claims. The harness lives in bin/lib/check.sh
+# so a second check family adds assertions rather than a second script;
+# bin/check-org-dev-skill runs last via delegation, so one command
+# covers everything and .githooks/pre-commit wires one thing.
+#
+# Bash, not fish, since 2026-09-04 (TODO.org :ID: 84b7d8b3): this is the
+# commit gate, so it sits on the survive-without-Emacs side of the
+# Emacs-boundary split -- it must run on a machine where Emacs is asleep
+# (--docs-only exists for exactly that) and on a contributor's machine
+# where fish was never installed. Check 0 needs the emacs *binary*, not
+# a server, which is a different prerequisite gated its own way below.
 #
 # Takes an optional root, defaulting to the repository, so
 # bin/check-conventions-test can point it at a fixture and prove each
@@ -23,79 +29,71 @@
 # Accepted for now because these files are hand-edited and rarely
 # partially staged; the honest fix is a temp checkout of the staged tree.
 
-set -l script_dir (dirname (status --current-filename))
-set -g repo_root (cd $script_dir/.. && pwd)
-set -g root $repo_root
-set -g docs_only 0
-for a in $argv
-    switch $a
-        case --docs-only
-            # Drops the checks that need a RUNNING Emacs. The org-dev
-            # delegation below shells to `emacsclient', and a machine
-            # with no Emacs running would otherwise be unable to commit
-            # at all -- a check that blocks work when the thing it checks
-            # is merely asleep is worse than no check. .githooks/pre-commit
-            # passes this; a human running the script by hand does not.
-            #
-            # It is NOT "everything under this flag reads plain files",
-            # which is what this said until 2026-09-03 and was false from
-            # the day check 0 was added: that one shells to `emacs
-            # --batch', which needs the binary but no server. The
-            # distinction is the whole reason check 0 stays ungated --
-            # see its own comment (TODO.org :ID: 3f2d5126).
-            set -g docs_only 1
-        case '--*'
-            # A mistyped flag used to fall into `case '*'' below and be
-            # read as a directory: `cd --dcs-only' failed, $root became
-            # empty, every assertion silently found nothing to check, and
-            # the script exited 0 reporting nothing. A gate that answers
-            # "all clear" when it ran zero assertions is the failure
-            # TODO.org :ID: 542924c1 collects, and it was reachable by a
-            # single typo (TODO.org :ID: 0fa403f4).
-            echo "check-conventions: unknown option: $a" >&2
-            echo "usage: check-conventions [--docs-only] [ROOT]" >&2
-            exit 2
-        case '*'
-            # And a ROOT that is not a directory is an error too, for
-            # the same reason: `cd' failing here left $root empty rather
-            # than stopping.
-            #
-            # NOT `command cd'. That was tried and reverted in the same
-            # session: `cd' is a fish builtin, so `command' skips it for
-            # an external no-op, `pwd' then reports the CURRENT directory,
-            # and every check silently ran against this repo instead of
-            # the ROOT it was handed. Cases 8 and 11 caught it -- their
-            # fixtures stopped being read at all.
-            if not set -g root (cd $a 2>/dev/null; and pwd)
-                echo "check-conventions: not a directory: $a" >&2
-                exit 2
-            end
-    end
-end
+set -uo pipefail
 
-source $script_dir/lib/check.fish
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "$script_dir/.." && pwd)"
+root="$repo_root"
+docs_only=0
+
+for a in "$@"; do
+  case "$a" in
+    --docs-only)
+      # Drops the checks that need a RUNNING Emacs. The org-dev
+      # delegation below shells to `emacsclient', and a machine with no
+      # Emacs running would otherwise be unable to commit at all -- a
+      # check that blocks work when the thing it checks is merely asleep
+      # is worse than no check. .githooks/pre-commit passes this; a
+      # human running the script by hand does not.
+      #
+      # It is NOT "everything under this flag reads plain files": check 0
+      # shells to `emacs --batch', which needs the binary but no server.
+      # The distinction is the whole reason check 0 stays ungated -- see
+      # its own comment (TODO.org :ID: 3f2d5126).
+      docs_only=1
+      ;;
+    --*)
+      # A mistyped flag used to fall through and be read as a directory:
+      # `cd --dcs-only' failed, $root became empty, every assertion
+      # silently found nothing to check, and the script exited 0
+      # reporting nothing. A gate that answers "all clear" when it ran
+      # zero assertions is the failure TODO.org :ID: 542924c1 collects,
+      # and it was reachable by a single typo (TODO.org :ID: 0fa403f4).
+      echo "check-conventions: unknown option: $a" >&2
+      echo "usage: check-conventions [--docs-only] [ROOT]" >&2
+      exit 2
+      ;;
+    *)
+      # And a ROOT that is not a directory is an error too, for the same
+      # reason: `cd' failing here left $root empty rather than stopping.
+      if ! root="$(cd "$a" 2>/dev/null && pwd)"; then
+        echo "check-conventions: not a directory: $a" >&2
+        exit 2
+      fi
+      ;;
+  esac
+done
+
+# shellcheck source=lib/check.sh
+. "$script_dir/lib/check.sh"
 
 # The documents whose claims this checks. A file that does not exist is
 # skipped rather than failed: the fixture used by the self-test carries
 # only some of them, and a missing CLAUDE.md is a different problem that
 # would announce itself long before this script ran.
-set -g docs
-for rel in CLAUDE.md .claude/rules/org-conventions.md .claude/skills/org/SKILL.md .claude/skills/org-dev/SKILL.md .claude/commands/next-session.md
-    if test -f "$root/$rel"
-        set -a docs "$root/$rel"
-    end
-end
+docs=()
+for rel in CLAUDE.md .claude/rules/org-conventions.md .claude/skills/org/SKILL.md .claude/skills/org-dev/SKILL.md .claude/commands/next-session.md; do
+  [ -f "$root/$rel" ] && docs+=("$root/$rel")
+done
 
-set -g org_files
-for rel in TODO.org DONE.org
-    if test -f "$root/$rel"
-        set -a org_files "$root/$rel"
-    end
-end
+org_files=()
+for rel in TODO.org DONE.org; do
+  [ -f "$root/$rel" ] && org_files+=("$root/$rel")
+done
 
 # 0. Every elisp file reads as forms.
 #
-# The gap this closes is that NOTHING checks elisp at commit time.
+# The gap this closes is that NOTHING else checks elisp at commit time.
 # pre-commit runs bin/lint-org over the org files and this script over
 # the documents; bin/test is not wired in, so a structurally broken
 # config.el can be committed and is only found on the next test run --
@@ -103,23 +101,19 @@ end
 # (TODO.org :ID: 542924c1).
 #
 # Reads forms rather than counting parens, and reports the LINE the
-# reader gives up on, which is the part that turns a confusing failure
-# into a location. `emacs-lisp-mode' is not optional: read in
+# reader gives up on. `emacs-lisp-mode' is not optional: read in
 # fundamental-mode, config.el reports a scan error at line 8430 against
 # a file Emacs loads every day, because comment and quote syntax do not
 # apply. That false positive was measured before this shipped.
 #
 # Honest limit, stated rather than implied: every case reproduced here
-# was ALSO caught by `check-parens'. The heading's claim that
-# check-parens stays silent on an unescaped docstring quote could not be
-# reproduced. What this adds is that it runs at all, unattended, with a
-# line number -- not that it is strictly stronger.
-set -g elisp_files
-for rel in modules/tools/claude-code-ide-org/config.el modules/tools/claude-code-ide-org/config-test.el
-    if test -f "$root/$rel"
-        set -a elisp_files "$root/$rel"
-    end
-end
+# was ALSO caught by `check-parens'. What this adds is that it runs at
+# all, unattended, with a line number -- not that it is strictly
+# stronger.
+elisp_files=()
+for rel in modules/tools/claude-code-ide-org/config.el modules/tools/claude-code-ide-org/config-test.el; do
+  [ -f "$root/$rel" ] && elisp_files+=("$root/$rel")
+done
 
 # Deliberately NOT gated on `--docs-only'. Gating it would remove the
 # only elisp check that runs at commit time, since .githooks/pre-commit
@@ -130,55 +124,54 @@ end
 # The binary itself is a prerequisite, and a missing one is reported as
 # what it is. It used to fall through to an empty verdict -- `2>/dev/null'
 # discarded the reason -- so `check' reported drift and pre-commit
-# refused every commit touching CLAUDE.md, config.el or the org files
-# with "documentation has drifted from what it describes". The wrong
-# cause, and the most expensive kind: it points the reader at the files
-# they just edited (TODO.org :ID: 3f2d5126).
+# refused every commit touching these files with "documentation has
+# drifted". The wrong cause, and the most expensive kind: it points the
+# reader at the files they just edited (TODO.org :ID: 3f2d5126).
 #
 # Overridable so the self-test can reach the missing-binary path, which
 # is otherwise unreachable on any machine that can run these checks at
 # all -- and an assertion with no way to fail is what :ID: 542924c1
 # collects.
-set -q CHECK_CONVENTIONS_EMACS; or set -g CHECK_CONVENTIONS_EMACS emacs
+CHECK_CONVENTIONS_EMACS="${CHECK_CONVENTIONS_EMACS:-emacs}"
 
-if not type -q $CHECK_CONVENTIONS_EMACS
-    # Skipped rather than failed under the flag, for the same reason the
-    # flag exists: a prerequisite that is merely absent must not block a
-    # commit. Fatal for a human running the script by hand, who asked for
-    # the whole check and would otherwise read a silent drop as a pass.
-    if test "$docs_only" = "1"
-        check_skip "elisp reads as forms" "no `$CHECK_CONVENTIONS_EMACS' on PATH"
-    else
-        check_fail "elisp reads as forms: no `$CHECK_CONVENTIONS_EMACS' on PATH (this check needs the binary, not a running server)"
-    end
+if ! command -v "$CHECK_CONVENTIONS_EMACS" >/dev/null 2>&1; then
+  # Skipped rather than failed under the flag, for the same reason the
+  # flag exists: a prerequisite that is merely absent must not block a
+  # commit. Fatal for a human running the script by hand, who asked for
+  # the whole check and would otherwise read a silent drop as a pass.
+  if [ "$docs_only" = "1" ]; then
+    check_skip "elisp reads as forms" "no \`$CHECK_CONVENTIONS_EMACS' on PATH"
+  else
+    check_fail "elisp reads as forms: no \`$CHECK_CONVENTIONS_EMACS' on PATH (this check needs the binary, not a running server)"
+  fi
 else
-    for f in $elisp_files
-        set -l errfile (mktemp)
-        set -l verdict (command $CHECK_CONVENTIONS_EMACS --batch -Q --eval "(with-temp-buffer
-            (insert-file-contents \"$f\")
-            (emacs-lisp-mode)
-            (goto-char (point-min))
-            (let ((res \"ok\"))
-              (condition-case err
-                  (while (progn (skip-chars-forward \" \t\n\r\")
-                                (< (point) (point-max)))
-                    (forward-sexp))
-                (error (setq res (format \"line %d: %s\"
-                                         (line-number-at-pos)
-                                         (error-message-string err)))))
-              (princ res)))" 2>$errfile)
-        if test -z "$verdict"
-            # An empty verdict is Emacs failing to run, never a file that
-            # reads cleanly -- the elisp above always `princ's something.
-            # Report what it actually said instead of comparing "" to "ok"
-            # and calling the document drifted.
-            check_fail "elisp reads as forms ("(basename $f)"): $CHECK_CONVENTIONS_EMACS produced no verdict -- "(head -1 $errfile)
-        else
-            check "elisp reads as forms ("(basename $f)")" "$verdict" ok
-        end
-        rm -f $errfile
-    end
-end
+  for f in ${elisp_files[@]+"${elisp_files[@]}"}; do
+    errfile="$(mktemp)"
+    verdict="$(command "$CHECK_CONVENTIONS_EMACS" --batch -Q --eval "(with-temp-buffer
+        (insert-file-contents \"$f\")
+        (emacs-lisp-mode)
+        (goto-char (point-min))
+        (let ((res \"ok\"))
+          (condition-case err
+              (while (progn (skip-chars-forward \" \t\n\r\")
+                            (< (point) (point-max)))
+                (forward-sexp))
+            (error (setq res (format \"line %d: %s\"
+                                     (line-number-at-pos)
+                                     (error-message-string err)))))
+          (princ res)))" 2>"$errfile")"
+    if [ -z "$verdict" ]; then
+      # An empty verdict is Emacs failing to run, never a file that
+      # reads cleanly -- the elisp above always `princ's something.
+      # Report what it actually said instead of comparing "" to "ok"
+      # and calling the document drifted.
+      check_fail "elisp reads as forms ($(basename "$f")): $CHECK_CONVENTIONS_EMACS produced no verdict -- $(head -1 "$errfile")"
+    else
+      check "elisp reads as forms ($(basename "$f"))" "$verdict" ok
+    fi
+    rm -f "$errfile"
+  done
+fi
 
 # 1. Every :ID: the documents cite resolves.
 #
@@ -189,30 +182,31 @@ end
 #
 # The boundary is tighter than the obvious one on purpose. A bare
 # [0-9a-f]{8} matches *inside* a full UUID -- the trailing segment of
-# 9d2fcdad-9bf7-47b6-8018-223b13ec4577 reads as the token 223b13ec -- and
-# produced five phantom failures. Requiring the run not be adjacent to a
-# hex digit or a dash removes all five.
+# 9d2fcdad-9bf7-47b6-8018-223b13ec4577 reads as the token 223b13ec --
+# and produced five phantom failures. Requiring the run not be adjacent
+# to a hex digit or a dash removes all five.
 #
 # Git short SHAs are seven characters here, so they fall outside the
 # pattern; anything eight characters that is nonetheless a git object
 # still passes, so the two citation kinds need not be told apart.
-if test (count $docs) -gt 0 -a (count $org_files) -gt 0
-    set -l unresolved
-    for tok in (cat $docs | perl -ne 'while(/(?<![0-9a-f-])([0-9a-f]{8})(?![0-9a-f-])/g){print "$1\n"}' | sort -u)
-        if grep -q -- ":ID:  *$tok" $org_files
-            continue
-        end
-        if git -C $repo_root cat-file -e $tok 2>/dev/null
-            continue
-        end
-        set -a unresolved $tok
-    end
-    if test (count $unresolved) -eq 0
-        check_ok "every :ID: cited in the docs resolves"
-    else
-        check_fail "docs cite "(count $unresolved)" unresolvable :ID:(s): $unresolved"
-    end
-end
+if [ "${#docs[@]}" -gt 0 ] && [ "${#org_files[@]}" -gt 0 ]; then
+  unresolved=()
+  while IFS= read -r tok; do
+    [ -n "$tok" ] || continue
+    if grep -q -- ":ID:  *$tok" "${org_files[@]}"; then
+      continue
+    fi
+    if git -C "$repo_root" cat-file -e "$tok" 2>/dev/null; then
+      continue
+    fi
+    unresolved+=("$tok")
+  done < <(cat "${docs[@]}" | perl -ne 'while(/(?<![0-9a-f-])([0-9a-f]{8})(?![0-9a-f-])/g){print "$1\n"}' | sort -u)
+  if [ "${#unresolved[@]}" -eq 0 ]; then
+    check_ok "every :ID: cited in the docs resolves"
+  else
+    check_fail "docs cite ${#unresolved[@]} unresolvable :ID:(s): ${unresolved[*]}"
+  fi
+fi
 
 # 2. The TODO keyword set agrees everywhere it is written down.
 #
@@ -222,49 +216,51 @@ end
 # `WAITING', and was missing REVIEW entirely.
 #
 # Compared as a *set* rather than as a string. The orderings differ
-# legitimately -- the header is a sequence with a `|' separator, the tool
-# description is a sentence -- and a string comparison would fail on a
-# difference nobody needs to fix, which is the kind of check people learn
-# to ignore.
-set -l header_file "$root/TODO.org"
-if test -f "$header_file"
-    set -l truth (head -1 $header_file | grep -oE '[A-Z]{4,}' | sort -u | string join ' ')
-    check "keyword set: TODO.org header is non-empty" (test -n "$truth"; and echo yes; or echo no) "yes"
+# legitimately -- the header is a sequence with a `|' separator, the
+# tool description is a sentence -- and a string comparison would fail
+# on a difference nobody needs to fix, which is the kind of check people
+# learn to ignore.
+keyword_set() { grep -oE '[A-Z]{4,}' | sort -u | paste -sd' ' -; }
 
-    set -l rules "$root/.claude/rules/org-conventions.md"
-    if test -f "$rules"
-        set -l got (grep -m1 '^#+TODO:' $rules | grep -oE '[A-Z]{4,}' | sort -u | string join ' ')
-        check "keyword set: .claude/rules/org-conventions.md" "$got" "$truth"
-    end
+header_file="$root/TODO.org"
+if [ -f "$header_file" ]; then
+  truth="$(head -1 "$header_file" | keyword_set)"
+  check "keyword set: TODO.org header is non-empty" "$([ -n "$truth" ] && echo yes || echo no)" "yes"
 
-    set -l skill "$root/.claude/skills/org/SKILL.md"
-    if test -f "$skill"
-        # Scoped to the transition *table* rows, not the whole file.
-        # Whole-file matching failed on its first run against a sentence
-        # reading "This paragraph used to argue the point via `PLANNING'
-        # ownership ... Both are gone" -- correct prose about a retired
-        # keyword, which a set comparison read as drift. Naming a dead
-        # keyword in history is legitimate; listing one as a live
-        # transition is not, and only the table makes that claim.
-        set -l got (grep -E '^\|' $skill | grep -oE '`(TODO|NEXT|DOING|REVIEW|WAITING|MAYBE|DONE|CANCELLED|PLANNING|WAIT)`' | tr -d '`' | grep -oE '[A-Z]{4,}' | sort -u | string join ' ')
-        check "keyword set: .claude/skills/org/SKILL.md transition table" "$got" "$truth"
-    end
+  rules="$root/.claude/rules/org-conventions.md"
+  if [ -f "$rules" ]; then
+    got="$(grep -m1 '^#+TODO:' "$rules" | keyword_set)"
+    check "keyword set: .claude/rules/org-conventions.md" "$got" "$truth"
+  fi
 
-    set -l cfg "$root/modules/tools/claude-code-ide-org/config.el"
-    if test -f "$cfg"
-        set -l got (grep -m1 'TODO keyword to set:' $cfg | grep -oE '[A-Z]{4,}' | sort -u | string join ' ')
-        check "keyword set: org_set_todo tool description" "$got" "$truth"
-    end
-end
+  skill="$root/.claude/skills/org/SKILL.md"
+  if [ -f "$skill" ]; then
+    # Scoped to the transition *table* rows, not the whole file.
+    # Whole-file matching failed on its first run against a sentence
+    # reading "This paragraph used to argue the point via `PLANNING'
+    # ownership ... Both are gone" -- correct prose about a retired
+    # keyword, which a set comparison read as drift. Naming a dead
+    # keyword in history is legitimate; listing one as a live transition
+    # is not, and only the table makes that claim.
+    got="$(grep -E '^\|' "$skill" | grep -oE '\`(TODO|NEXT|DOING|REVIEW|WAITING|MAYBE|DONE|CANCELLED|PLANNING|WAIT)\`' | tr -d '\`' | keyword_set)"
+    check "keyword set: .claude/skills/org/SKILL.md transition table" "$got" "$truth"
+  fi
 
-# 3. The single-file check runs last and folds its verdict in, so callers
-# need one command. Skipped against a fixture root, where it would be
-# asserting things about the real repo.
-if test "$root" = "$repo_root" -a "$docs_only" = "0"
-    echo "--- bin/check-org-dev-skill ---"
-    if not $repo_root/bin/check-org-dev-skill
-        set -g fail 1
-    end
-end
+  cfg="$root/modules/tools/claude-code-ide-org/config.el"
+  if [ -f "$cfg" ]; then
+    got="$(grep -m1 'TODO keyword to set:' "$cfg" | keyword_set)"
+    check "keyword set: org_set_todo tool description" "$got" "$truth"
+  fi
+fi
 
-exit $fail
+# 3. The single-file check runs last and folds its verdict in, so
+# callers need one command. Skipped against a fixture root, where it
+# would be asserting things about the real repo.
+if [ "$root" = "$repo_root" ] && [ "$docs_only" = "0" ]; then
+  echo "--- bin/check-org-dev-skill ---"
+  if ! "$repo_root/bin/check-org-dev-skill"; then
+    fail=1
+  fi
+fi
+
+exit "$fail"
