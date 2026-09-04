@@ -8,6 +8,12 @@
 :CREATED:  [2026-09-04 Fri 16:52]
 :CATEGORY: Meta
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-04 Fri 16:45]--[2026-09-04 Fri 16:46] =>  0:01
+- [2026-09-04 Fri 16:45]--[2026-09-04 Fri 16:46] assigned at review
+CLOCK: [2026-09-04 Fri 16:52]--[2026-09-04 Fri 16:53] =>  0:01
+- [2026-09-04 Fri 16:52]--[2026-09-04 Fri 16:53] assigned at review
+:END:
 
 Raised by the user 2026-09-04, catching the gap live: =f1ff027e= and
 =d585d33e= closed (to =REVIEW=) during
@@ -34,11 +40,20 @@ and the incidental section, so a ceremony-driven run also retires the
 warn about — the disagreement would then be bounded by ceremony
 cadence, like clock accuracy already is.
 
-* TODO Commit co-author trailer is frozen at session start, misattributes after /model :code:
+
+* REVIEW Commit co-author trailer is frozen at session start, misattributes after /model :code:
 :PROPERTIES:
 :ID:       f1ff027e-5826-4812-8221-96eeba966333
 :CREATED:  [2026-09-04 Fri 16:15]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-04 Fri 16:27]--[2026-09-04 Fri 16:29] =>  0:02
+- State "DOING"      from "TODO"       [2026-09-04 Fri 16:27] \\
+  building the prepare-commit-msg attribution hook
+- [2026-09-04 Fri 16:27]--[2026-09-04 Fri 16:29] verify model env var, wire the trailer hook
+- State "REVIEW"     from "DOING"      [2026-09-04 Fri 16:30] \\
+  hook shipped, nine tests, live-verified on its own commit
 :END:
 
 Raised by the user 2026-09-04. The =Co-Authored-By:= line on this
@@ -93,7 +108,7 @@ typing the prompt-template trailer; the hook rewrites it either way,
 which is what makes this a mechanism rather than vigilance.
 
 
-* TODO Adopt systemMessage on the recovery-and-ceremony hook payload :code:
+* REVIEW Adopt systemMessage on the recovery-and-ceremony hook payload :code:
 :PROPERTIES:
 :ID:       d585d33e-3804-45b3-8f96-65143d79363e
 :CREATED:  [2026-09-04 Fri 15:22]
@@ -102,6 +117,12 @@ which is what makes this a mechanism rather than vigilance.
 :LOGBOOK:
 CLOCK: [2026-09-04 Fri 15:21]--[2026-09-04 Fri 15:22] =>  0:01
 - [2026-09-04 Fri 15:21]--[2026-09-04 Fri 15:22] assigned at review
+CLOCK: [2026-09-04 Fri 16:33]--[2026-09-04 Fri 16:36] =>  0:03
+- State "DOING"      from "TODO"       [2026-09-04 Fri 16:33] \\
+  wiring systemMessage into the recovery-and-ceremony payload
+- [2026-09-04 Fri 16:33]--[2026-09-04 Fri 16:36] two channels for the session-start reports
+- State "REVIEW"     from "DOING"      [2026-09-04 Fri 16:36] \\
+  shipped and tested; display check pending a live firing
 :END:
 
 Decided 2026-09-04 on
@@ -141,7 +162,6 @@ module is reloaded — the exact gap
 next session start shows nothing new until a reload or Doom restart.
 [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]] part 2's spec
 should now say both channels, as decided.
-
 
 
 * TODO Package the plugin: references, setup command, machinery prose :code:
@@ -1039,11 +1059,19 @@ CLOCK: [2026-09-03 Thu 13:47]--[2026-09-03 Thu 13:49] =>  0:02
 Observed 2026-09-03 on :ID: ec65b5d6, the first slice composed and closed within one day. The apply pass landed the members' DONEs and the slice's own DONE in the same ceremony, and refresh-slice then skipped the slice as closed — so it froze at [0/4] with TODO member-line copies and a full :BLOCKER:, a record that was never true at close: every member was already DONE when the slice's transition applied. The skip's rationale (a closed slice is a record, and refreshing lets later work rewrite finished history — :ID: 30a340fd) does not cover same-pass closure, where the refresh would have written exactly the state the close happened under. Fix options: apply refreshes slices after landing member transitions and before landing a slice's own terminal one; or the refresher exempts slices closed by the pass just applied. This instance was hand-derived through Emacs the same day — [4/4], DONE copies, blocker removed.
 
 
-* TODO The convention checks compare the live Emacs against whichever checkout invoked them :code:
+* REVIEW The convention checks compare the live Emacs against whichever checkout invoked them :code:
 :PROPERTIES:
 :ID:       f8c86914-0759-4e05-9292-6f7fa5593701
 :CREATED:  [2026-09-03 Thu 13:40]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-04 Fri 16:30]--[2026-09-04 Fri 16:31] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-04 Fri 16:30] \\
+  implementing the common-git-dir comparison
+- [2026-09-04 Fri 16:30]--[2026-09-04 Fri 16:31] fix the capture-file assertion for worktrees
+- State "REVIEW"     from "DOING"      [2026-09-04 Fri 16:31] \\
+  fix shipped and proved from a real worktree
 :END:
 
 Run from a git worktree, ~bin/check-conventions~ and ~bin/check-org-dev-skill~ both fail on "claude-code-ide-org-capture-file resolves into this repo". The assertion asks the *running* Emacs where its capture file is and compares that against the root the script was *invoked* from — and the running Emacs serves whichever checkout is symlinked into ~~/.config/doom~, which is never the worktree. Observed 2026-09-03 reviewing PR 8 from ~.claude/worktrees/pr8-review~.
@@ -1072,7 +1100,6 @@ from the same worktree was green, and the main-checkout run stayed
 green. =bin/check-conventions= inherits the fix through its delegation.
 The check's label now says "via the common git dir" so a future reader
 of a failure knows what was compared.
-
 
 
 * TODO No tool edits a heading's title, so a rename goes behind Emacs or not at all :code:
@@ -1180,13 +1207,13 @@ box would inflate the denominator forever, which is the reason the mapping exist
 on the dropped line, derived from nothing and set by the drop itself, is the shape that fits.
 
 
-* NEXT [4/13] Make the org discipline travel: ship the machinery, relocate the rules :code:
+* NEXT [4/12] Make the org discipline travel: ship the machinery, relocate the rules :code:
 :PROPERTIES:
 :ID:       ff7ccb2d-2b13-421e-86e3-6b5e187850bf
 :CREATED:  [2026-09-02 Wed 18:17]
 :CATEGORY: Slices
 :KIND:     slice
-:BLOCKER:  ids(9d009401-93dd-40e5-a243-7a30a8a5bd55 1ed7b2b4-a809-4547-b04f-099a3111fc1e 84b7d8b3-5161-4146-9167-0e7e2100e365 f8c86914-0759-4e05-9292-6f7fa5593701 5461c349-fd22-4b75-a508-50efbe4b87f8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4 83b3cdd6-982a-4ae1-878c-79a8c941f638 d7849119-8224-4993-a8ab-83e1434df53c ecf66d45-18b3-477f-bca8-08bec90604e8)
+:BLOCKER:  ids(9d009401-93dd-40e5-a243-7a30a8a5bd55 1ed7b2b4-a809-4547-b04f-099a3111fc1e 84b7d8b3-5161-4146-9167-0e7e2100e365 f8c86914-0759-4e05-9292-6f7fa5593701 5461c349-fd22-4b75-a508-50efbe4b87f8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4 d7849119-8224-4993-a8ab-83e1434df53c ecf66d45-18b3-477f-bca8-08bec90604e8)
 :COOKIE_DATA: checkbox recursive
 :END:
 :LOGBOOK:
@@ -1219,14 +1246,14 @@ line-count measurement are all =9ae4b17e='s and are not repeated here.
 - [X] [[id:d5345abb-b451-4468-8f27-4bb2da983215][d5345abb]] DONE Audit CLAUDE.md for directives that belong in the org skill instead
 - [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] DOING Update CLAUDE.md and the org skill for the new architecture
   - [-] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] DOING CLAUDE.md carries dated history that costs every session's context
-- [ ] [[id:1ed7b2b4-a809-4547-b04f-099a3111fc1e][1ed7b2b4]] TODO The org 9.7+ dependency is real, undeclared, and unenforced
+- [-] [[id:1ed7b2b4-a809-4547-b04f-099a3111fc1e][1ed7b2b4]] REVIEW The org 9.7+ dependency is real, undeclared, and unenforced
 - [ ] [[id:84b7d8b3-5161-4146-9167-0e7e2100e365][84b7d8b3]] TODO Evaluate choice of shell and standardize all project scripts
-- [ ] [[id:f8c86914-0759-4e05-9292-6f7fa5593701][f8c86914]] TODO The convention checks compare the live Emacs against whichever checkout invoked them
+- [-] [[id:f8c86914-0759-4e05-9292-6f7fa5593701][f8c86914]] REVIEW The convention checks compare the live Emacs against whichever checkout invoked them
 - [[id:e396f94a-59db-4c6b-80b4-dc144146877b][e396f94a]] MAYBE Package the Warp wiring
 - [[id:f90d745e-ccf9-49d6-a92e-df25c17b4dfb][f90d745e]] TODO Sixty minutes holding 2 turns is not sixty holding 40 [0/2]
-  - [ ] [[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]] NEXT Record cwd on queue events, so a span can be attributed to a project
+  - [-] [[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]] REVIEW Record cwd on queue events, so a span can be attributed to a project
   - [ ] [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
-- [ ] [[id:83b3cdd6-982a-4ae1-878c-79a8c941f638][83b3cdd6]] TODO Record the originating project in queue events
+- [[id:83b3cdd6-982a-4ae1-878c-79a8c941f638][83b3cdd6]] CANCELLED Record the originating project in queue events
 - [[id:2e09adb7-6e29-499c-a40e-98cd2b327cff][2e09adb7]] MAYBE Worktree-based session partitioning, with a canonical-file caveat
 - [-] [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]] WAITING Add README.md and enforce its consistency with CLAUDE.md
 - [X] [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] DONE Heading bodies grow into narratives no human will read; decide what to stop capturing
@@ -2406,13 +2433,19 @@ Split out of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] 2026-08-31, w
 *Related:* [[id:c4bc5c70-861a-4ce0-80da-c79b6b1600f3][c4bc5c70]] owns the productivity caveat, and this is where the caveat becomes concrete rather than abstract — the reader does not need to import a wrong reading, the line offers one.
 
 
-** NEXT Record cwd on queue events, so a span can be attributed to a project :code:
+** REVIEW Record cwd on queue events, so a span can be attributed to a project :code:
 :PROPERTIES:
 :ID:       5461c349-fd22-4b75-a508-50efbe4b87f8
 :CREATED:  [2026-08-31 Mon 16:39]
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-08-31 Mon 16:44]
+CLOCK: [2026-09-04 Fri 16:12]--[2026-09-04 Fri 16:15] =>  0:03
+- State "DOING"      from "NEXT"       [2026-09-04 Fri 16:12] \\
+  merging its twin and implementing the cwd field
+- [2026-09-04 Fri 16:12]--[2026-09-04 Fri 16:15] record cwd on queue events, twin-merged
+- State "REVIEW"     from "DOING"      [2026-09-04 Fri 16:15] \\
+  cwd field code-complete and unit-tested; handed back
 :END:
 
 Split out of [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] 2026-08-31, because it is a concrete one-line change sitting inside a much larger judgement and does not need to wait for it.
@@ -2463,8 +2496,6 @@ one tracker, so the consumer normalises via the common git dir, matching
 whether =claude-code-ide-org--log-event='s audit log should carry the
 same field for symmetry. Neither blocks recording the datum now, which
 is the point — it cannot be backfilled.
-
-
 
 
 * TODO org_capture's target refuses an 8-character :ID: prefix that every other tool accepts :code:
@@ -2994,6 +3025,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-04 Fri 16:54]--[2026-09-04 Fri 16:58] =>  0:04
 CLOCK: [2026-09-04 Fri 16:05]--[2026-09-04 Fri 16:10] =>  0:05
 CLOCK: [2026-09-04 Fri 14:57]--[2026-09-04 Fri 15:01] =>  0:04
 CLOCK: [2026-09-04 Fri 12:53]--[2026-09-04 Fri 12:56] =>  0:03
@@ -5316,7 +5348,8 @@ The cause is fixed ([[id:c6fc6f46-4954-4fdf-9d7e-7c8bf3a1a952][c6fc6f46]]) and n
 *Fixture, recorded here so it survives dismissal.* Session =1ad547fe=, guideposts at =2026-08-25T18:36:39=, =19:36:14= and =20:54:33=. Dismissing them marks them consumed but *destroys nothing* -- =--queue-mark-dismissed= writes beside the queue and never touches the =.jsonl=, so undoing it is deleting one key from a small JSON file, and the events remain replayable.
 
 
-* TODO Record the originating project in queue events :code:
+* CANCELLED Record the originating project in queue events :code:
+CLOSED: [2026-09-04 Fri 16:12]
 :PROPERTIES:
 :CATEGORY: Queue
 :ID:       83b3cdd6-982a-4ae1-878c-79a8c941f638
@@ -5326,6 +5359,8 @@ The cause is fixed ([[id:c6fc6f46-4954-4fdf-9d7e-7c8bf3a1a952][c6fc6f46]]) and n
 :LOGBOOK:
 - State "TODO"       from              [2026-08-15 Sat 14:32] \\
   cheap now, load-bearing later
+- State "CANCELLED"  from "TODO"       [2026-09-04 Fri 16:12] \\
+  twin of 5461c349, merged there 2026-09-04
 :END:
 :PLAN:
 
@@ -5375,7 +5410,6 @@ written sixteen days earlier under a different key ("project" for
 "cwd"), found when both sat as adjacent slice members. Its distinct
 content (the allocation motivation, the raw-vs-slug question) is merged
 there; nothing here is unaddressed.
-
 
 
 * DONE Make the org skill and its discipline portable to other repos :code:
@@ -5698,11 +5732,19 @@ needs: the audit relocates the SKILL and RULE rows; PLUGIN rows are
 tagged in place and move with the plugin.
 
 
-* TODO The org 9.7+ dependency is real, undeclared, and unenforced :code:
+* REVIEW The org 9.7+ dependency is real, undeclared, and unenforced :code:
 :PROPERTIES:
 :CATEGORY: Dev
 :ID:       1ed7b2b4-a809-4547-b04f-099a3111fc1e
 :CREATED:  [2026-08-14 Fri 13:35]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-04 Fri 16:31]--[2026-09-04 Fri 16:33] =>  0:02
+- State "DOING"      from "TODO"       [2026-09-04 Fri 16:31] \\
+  implementing the three-layer org floor
+- [2026-09-04 Fri 16:31]--[2026-09-04 Fri 16:33] version guard, test refusal, documented minimum
+- State "REVIEW"     from "DOING"      [2026-09-04 Fri 16:33] \\
+  three layers shipped and verified; handed back
 :END:
 
 *Raised by the user 2026-08-14,* on reading
@@ -5789,7 +5831,6 @@ work.
 owed: =org-assert-version= was considered and =version<= chosen —
 the former pins against org's *compiled* version machinery and is
 aimed at mixed-compilation breakage, not a runtime floor.
-
 
 
 * TODO Type a span's annotation at review time, not by hand-editing it after :code:
@@ -8496,6 +8537,7 @@ CLOCK: [2026-09-04 Fri 16:00]--[2026-09-04 Fri 16:01] =>  0:01
 - [2026-09-04 Fri 16:00]--[2026-09-04 Fri 16:01] execute the approved first-pass prune of CLAUDE.md
 - State "DOING"      from "TODO"       [2026-09-04 Fri 16:01] \\
   first pass done; contested read-through still owed
+- [2026-09-04 Fri 16:02]--[2026-09-04 Fri 16:11] suggested span, accepted at review
 :END:
 
 *Filed 2026-08-21, not done.* CLAUDE.md is ~5,500 words, loaded into every session, and a large share is dated narrative -- retirements, incident stories, won't-dos, measured-on-date facts -- the same disease [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] names in TODO.org bodies, in the one file no session can skip. The rules should stay; the archaeology should live in DONE.org bodies or the relevant heading, with a pointer where the rule needs its provenance. Judgment-heavy prune, so it needs the user in the loop, not a background pass.
@@ -10673,4 +10715,6 @@ CLOCK: [2026-09-04 Fri 13:09]--[2026-09-04 Fri 13:11] =>  0:02
 - [2026-09-04 Fri 13:09]--[2026-09-04 Fri 13:11] sweep the dropped threads from the denouement
 CLOCK: [2026-09-04 Fri 13:17]--[2026-09-04 Fri 13:18] =>  0:01
 - [2026-09-04 Fri 13:17]--[2026-09-04 Fri 13:18] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-04 Fri 16:18]--[2026-09-04 Fri 16:23] =>  0:05
+- [2026-09-04 Fri 16:18]--[2026-09-04 Fri 16:23] assigned at review
 :END:
