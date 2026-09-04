@@ -719,8 +719,34 @@ CLOCK: [2026-09-03 Thu 09:32]--[2026-09-03 Thu 09:34] =>  0:02
 - [2026-09-03 Thu 09:32]--[2026-09-03 Thu 09:34] draft standing rule and clock-target hook
 - State "REVIEW"     from "DOING"      [2026-09-03 Thu 09:34]
 :END:
+:PLAN:
 
 Three sessions on 2026-09-03 did tracked work — a CLAUDE.md review, then filings and a table-row edit — with no org_clock_in and no org_set_todo, so every span reached review UNASSIGNED. The standing rule triggered only on "asked to start work on a task with an :ID:", every mechanical backstop hung off state transitions, and the "Review and planning" target was advertised only in a schema docstring — the lever :ID: 420816ec measured as the one that does not move usage. Shipped same day (commit e28ea0c): a CLAUDE.md standing rule — before a session's first file-touching act, clock in to the owning heading or to "Review and planning", capturing first if none exists — and bin/hooks/clock-target-check, a Stop hook that blocks once per session when the transcript shows write-tool activity but the session queue holds no clock_in. Clock evidence reads the queue, where errored calls never land; write evidence reads the transcript, which the queue's write-through gate under-reports by design; Edit/Write count only inside the project. Six direct test cases pass. In REVIEW rather than DONE because hook config loads at session start: the first session started after the commit is the live verification.
+
+:END:
+*The live verification this was held open for has happened, 2026-09-03/04.* The stated exit was "the
+first session started after the commit"; the session that closed it ran across two days and 22
+=clock_in= events, with the hook wired at =Stop= throughout and **never once blocking wrongly** — no
+=.clock-target-nagged= sentinel was ever written.
+
+*Exercised against its own real payload rather than inferred from silence.* Fed this session's actual
+=session_id= and =transcript_path=, the hook exits **0** — it finds the queued =clock_in= events and
+declines. That is the half a quiet session can otherwise only fail to disprove.
+
+*The blocking half was verified mechanically instead, and that is the honest split.* It never fired in
+anger here, because every write in the session was preceded by a =clock_in= — the discipline the hook
+exists to enforce, working. What covers that path is =bin/clock-target-check-test=, **which did not
+exist when this heading went to REVIEW**: 12 checks over the clock-evidence scan, the write-evidence
+scan's project scoping, the sentinel round trip and the blocking message.
+
+*And the review that built the suite found two defects in the hook, both fixed before this closed*
+(=b02191d6=, =ae4e4b04=): =jq -s= aborting on one malformed queue line and nagging a session that had
+clocked in, and the once-per-session sentinel firing anyway when it could not be written. So the
+version being closed on is not the version that was put into =REVIEW=.
+
+*Left standing deliberately:* the hook reports and cannot name the heading — that judgement is the
+CLAUDE.md rule's alone, as the original body says. Nothing here changes that.
+
 
 
 * TODO A MAYBE member and a dropped member render identically, and the drop is now sticky :code:
@@ -1048,6 +1074,7 @@ CLOCK: [2026-09-02 Wed 15:10]--[2026-09-02 Wed 15:13] =>  0:03
 - State "REVIEW"     from "DOING"      [2026-09-02 Wed 15:13] \\
   classified; three routes await your decision
 :END:
+:PLAN:
 
 *Found 2026-09-02 by starting the sweep the user asked for and measuring before writing.* The sweep was not run; nothing has been modified.
 
@@ -1095,6 +1122,32 @@ Cutting there is *worse than either extreme*: it buries the debrief's opening an
 *So the classification does not open an escape hatch, and it is worth saying that plainly.* It was proposed here on the guess that a line-1 marker meant a debrief-only body. Measured, that guess holds for at most 2 of 12. The lexical marker is no more reliable at the *start* of a body than it was in the middle — which is the same finding as above, arriving from the other direction.
 
 *The one durable number to take away:* the actionable backlog is **64**, not 93 — the lint's own count for DONE.org. The other 29 sit below the threshold and will never be reported, so any route only has to answer for 64.
+
+:END:
+*Closed 2026-09-04. Its finding was adopted and its successor finished; nothing is owed.*
+
+**What shipped is a retirement, not code.** CLAUDE.md now says so outright — "*The backlog rule was
+'wrap unedited' and is retired* (=:ID:= f099379b)" — with this heading's numbers as the reason: 88 of
+93 bodies would have had a debrief wrapped into a drawer readers are told to skip, and no lexical
+marker finds the seam because the first match sits in the prospective half as often as not.
+
+*The work it displaced is complete.* =35d25265= took the per-heading route this heading argued was the
+only honest one, and finished **73 of 73**. So the rule is retired, the replacement ran, and the
+sweep this heading was filed to prevent never happened — "the sweep was not run; nothing has been
+modified" is still true and is now permanent rather than pending.
+
+*Two things are left standing on purpose rather than resolved here.* The open question — whether
+after-the-fact rationale counts as prospective — is kept verbatim, being a question nobody has
+answered rather than one this heading owes; CLAUDE.md's condensing rule says a body that asks
+something unanswered keeps its question. And the durable number is recorded above: the actionable
+backlog is **64**, not 93, since the other 29 sit below the lint's threshold and will never be
+reported.
+
+*Why it sat at =REVIEW= rather than closing itself:* the finding was "do not do the thing you asked
+for", which is a judgement to hand back rather than an outcome to announce. That is exactly what
+=REVIEW= is for, and it worked — at the cost of sitting unwatched for two days, which is =43aa25b2='s
+subject and now one of its instances.
+
 
 
 * TODO A boolean argument passed as false arrives as :false, which elisp reads as true :code:
@@ -2066,6 +2119,31 @@ Whatever is chosen, the shape to avoid is the current one, where the failure is 
 *The obvious shape*, if it survives scrutiny: a fourth =SessionStart= line naming =REVIEW= headings and how long they have sat, on the same contract as the others -- state the fact, ask, propose nothing. Note the existing reports all answer "something is owed"; this one answers "something is finished and unjudged", which is a different question and may deserve different wording rather than a fourth bullet in the same breath.
 
 Worth deciding at the same time: whether =REVIEW= aging past some span is itself worth saying, since the keyword is still marked experimental ([[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]) and this is the first evidence about how it behaves in practice.
+
+*Three fresh instances on 2026-09-03/04, which is more evidence than this heading had when it was
+filed.* =887eaba3=, =ccfd89ce= and =f099379b= all reached =REVIEW= and all three sat unsurfaced until
+the user asked about them by name. Two closed on the spot once looked at — =ccfd89ce='s live
+verification had in fact happened, and =f099379b='s finding had already been adopted into CLAUDE.md
+with its successor finished 73/73. So the cost was not that the work was wrong; it was that finished
+work sat unclaimed for two days because nothing said it was there.
+
+*Nominated =NEXT= 2026-09-04 rather than added to a slice*, and the reasoning is worth keeping since
+adding it was considered:
+
+- No =Meta= heading held the category's one top-level nomination (=758a8b78=), so this takes it
+  without displacing anything.
+- =52bfafdf= was the closest fit and is the wrong home. Its coherence rests on a single tell — every
+  member fails silently in a way =bin/lint-org= reports zero errors for — and a =SessionStart= report
+  is not lint-shaped. Broadening it to "things that need a hand" generally would dissolve the
+  argument that made it one slice rather than four adjacent ones.
+- The body above already notes that slice membership is what incidentally watched the *first*
+  =REVIEW= heading, and calls that incidental. Repeating the accident is not a fix.
+
+*The shape it proposes is unchanged* — a fourth =SessionStart= line naming =REVIEW= headings and how
+long they have sat, on the same ask-do-not-act contract the other three reports keep. Today supplies
+the missing calibration: three at once, aged two days, in a corpus that held zero live =REVIEW=
+headings before 2026-08-31.
+
 
 
 * TODO Adding a just-captured heading to a slice cannot be made lint-clean :code:
