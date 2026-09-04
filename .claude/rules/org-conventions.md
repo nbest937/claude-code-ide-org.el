@@ -146,6 +146,31 @@ Nothing enforces the budget yet, deliberately — the rule is days old,
 and the project's precedent is observation before machinery.
 `bin/lint-org` is the natural home when it earns a check.
 
+### Closing a member nominates the next
+
+**Every transition to `DONE` inside a grouping nominates the next
+action**: set `NEXT` on whichever remaining member should be picked up
+next, or say in a sentence that no clear candidate exists. Leaving the
+group silently un-nominated is the thing to avoid — GTD's actual
+invariant is that a live project always has a next action, and a project
+without one is the canonical defect a weekly review exists to catch.
+Closing a *top-level* task nominates nothing: it has no group, and
+several top-level `NEXT`s at once are expected and correct — at most one
+per `:CATEGORY:` (above).
+
+**And the same moment files the residue.** Any work the closing debrief
+names as *not done* becomes a filed heading before the `DONE` is queued —
+or the debrief says explicitly that it is not worth filing. **A sentence
+pointing at another heading is not a filing action**, and neither is
+"belongs to X". Residue named in a closed heading's body sits in a
+document readers treat as history, and a later `:PLAN:` sweep can bury it
+in a drawer readers skip — it is on a path to invisibility from the
+moment it is written. Both halves happened in one session, hours apart
+(`e1284bdb` was closed correctly after its unfinished half was filed as
+`601c885c`; `aa1ba915` was closed with its gap described only in prose,
+caught by the user a day later), and nothing distinguished them at the
+time.
+
 ### Where the nine old labels went
 
 None mapped one-to-one but `Slices` and `Upstream`; the point of the exercise
@@ -596,6 +621,16 @@ rules until someone means it, which matters because the absent
 **It carries no prompt link**, for the same reason — there is no
 `next-session.md` revision driving a proposal, and there will not be
 until it is picked up.
+
+**Review a proposal's list for twins before declaring it.** A *twin* is
+two headings describing the same defect, or the same class of work,
+closely enough that scheduling one and forgetting the other is arbitrary
+— and that asymmetry is invisible from inside the act of composing: it
+has escaped twice (`c31b6c76`/`5a5e87c9`, then `5f1068f9`/`33864a0f` —
+the second escape in prose that had just named the first), caught both
+times by a reader and never by the composer. So it is a review question,
+asked of the finished list: *does anything in this list have a twin that
+is not in it?*
 
 **It lives exactly where a slice lives**, with `:CATEGORY: Slices`. The
 question of a separate location was open while slices sat under a level-1

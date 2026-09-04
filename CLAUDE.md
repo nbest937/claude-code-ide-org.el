@@ -911,6 +911,12 @@ instruction, not something a hook could infer.
 property drawer, stamped with an inactive timestamp (`[YYYY-MM-DD Dow
 HH:MM]`) at creation time, alongside its `:ID:`. Applies to every heading
 creation, not just the "new task described in conversation" case above.
+**Its live scope is the text-editing creation path alone** (audited
+2026-09-04, `:ID:` d5345abb): every MCP creation path — `org_capture`,
+`org_divide` — stamps both automatically, and `org_set_property` refuses
+the property outright, so only a hand-generated heading can miss it. The
+skill's "Generating .org content" section carries the same rule for that
+path.
 **Rule**: when a new org heading is created as the direct result of an
 approved Plan Mode plan, write only that heading (title, tags, properties,
 any Plan-file link, intro body) and stop — show it and get explicit
