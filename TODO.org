@@ -5790,6 +5790,49 @@ that cannot be held to it. That is the same shape as the reason apply is
 human-triggered — a mechanism whose correctness rests on the model doing
 something it was merely asked to do.
 
+*Measured 2026-09-04, and the assumption fails about one time in
+three.* Method: every =SessionStart= =hook_success= attachment with
+non-empty =additionalContext= across all 49 transcripts in this
+project's =~/.claude/projects/= directory (42 injection events, 31
+sessions), scored against the next two assistant text outputs, counting
+a relay if any distinctive token from the injection — an id prefix, a
+quoted title, or a kind-matched keyword — appears. The heuristic is
+deliberately generous, so these are *upper* bounds.
+
+- *Genuine startup injections: 15 of 24 relayed (62%).* One in three
+  payloads dropped silently, in the case the hooks were designed for.
+- *Re-injections after resume/compact/clear/fork relay at 29–50%* —
+  though relay is arguably not owed mid-task, so the startup number is
+  the honest headline.
+- *Repetition breeds silence.* One context line ("DOING, not clocked:
+  Decide whether CLAUDE.md needs a path-scoped rules split") recurred
+  across ~7 sessions and was almost never relayed. A standing report
+  repeated verbatim every session is the least-relayed shape in the
+  data.
+- The n=1 favourable case this body recorded was real but
+  unrepresentative: sessions opening with a narrow request are exactly
+  the ones that sit on the context, as predicted.
+
+*The second option is verified, and it dissolves the problem.* Current
+hook documentation: a hook's JSON output may carry a *=systemMessage=*
+field that is displayed **directly to the user**, distinct from
+=additionalContext=; =terminalSequence= can additionally raise a
+desktop notification. So the recovery question and the ceremony prompt
+can reach the human unconditionally while the model keeps its copy to
+act on — the same payload, two channels, no reliance on relay. One
+residual check at implementation time: confirm =SessionStart=
+specifically honours =systemMessage= (the docs note some events discard
+it) with a live hook before depending on it.
+
+*Recommendation.* Adopt =systemMessage= alongside =additionalContext=
+for the two load-bearing hooks (recovery check and ceremony; the
+what-was-I-doing context can stay model-only — it is orientation, not a
+question). Inject-and-hope stops being the house pattern;
+[[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]] part 2 should
+specify both channels if built. The statusline option stays open for
+*standing* state; =systemMessage= fits one-shot reports better.
+
+
 
 * TODO Bracket queued spans with WAIT transitions, so the heading guess stops latching :code:
 :PROPERTIES:
