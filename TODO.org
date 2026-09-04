@@ -35,6 +35,32 @@ unpushed, so a reword is safe (reflog is the undo), but rewriting ten
 messages is a history rewrite the user has not asked for — offered,
 not taken, pending their return.
 
+*Shipped 2026-09-04, verified live rather than only in the suite.*
+Step one's answer: *no model env var exists* — the probe found
+=CLAUDECODE=1=, =CLAUDE_CODE_BRIDGE_SESSION_ID= (exactly the id the
+=Claude-Session:= line carries) and =CLAUDE_EFFORT=, nothing naming the
+model. The live source of truth is =~/.claude/settings.json=, where
+=/model= persists ={"model": "<alias>"}=.
+
+=.githooks/prepare-commit-msg=: gated on =CLAUDECODE=1= so a human's
+own commits are never touched; rewrites an existing =Co-Authored-By:
+Claude ...= line to the live model (the exact staleness observed),
+appends a missing one, adds =Claude-Session:= from the env var when
+absent; unknown model or unreadable settings leaves the message alone —
+a wrong guess is worse than none. Always exits 0. Plain bash per the
+Emacs-boundary decision on
+[[id:84b7d8b3-5161-4146-9167-0e7e2100e365][84b7d8b3]].
+
+Verified three ways: =bin/prepare-commit-msg-test= (nine checks,
+written first and run red against the absent hook); the shipping commit
+itself carried *no* hand-typed trailer and the hook's output — "Claude
+Fable 5" — is in =git log=; and the ten misattributed commits were
+separately rewritten Opus→Fable via =filter-branch= with the three
+debrief SHA citations reconciled by subject match. Sessions may keep
+typing the prompt-template trailer; the hook rewrites it either way,
+which is what makes this a mechanism rather than vigilance.
+
+
 * TODO Adopt systemMessage on the recovery-and-ceremony hook payload :code:
 :PROPERTIES:
 :ID:       d585d33e-3804-45b3-8f96-65143d79363e
@@ -976,6 +1002,19 @@ assertion resolves the invoking root's common dir (=git rev-parse
 still catches a genuinely foreign checkout — it keeps checking
 something real, where detect-and-skip would go blind exactly where PR
 review now happens.
+
+*Shipped 2026-09-04* (commit =5f894a8=). The assertion now derives its
+expected root from =git rev-parse --path-format=absolute
+--git-common-dir= (parent thereof), falling back to =$repo_root= if git
+answers nothing. Proved in both directions with a real worktree rather
+than reasoning: the old script run *from* a throwaway worktree
+reproduced the exact misreport this heading filed (expected the
+worktree's =TODO.org=, got the main checkout's); the new script run
+from the same worktree was green, and the main-checkout run stayed
+green. =bin/check-conventions= inherits the fix through its delegation.
+The check's label now says "via the common git dir" so a future reader
+of a failure knows what was compared.
+
 
 
 * TODO No tool edits a heading's title, so a rename goes behind Emacs or not at all :code:
@@ -5668,6 +5707,31 @@ user's install), =bin/test= refusing to run rather than silently
 falling back to the bundled org, and the minimum stated in
 =packages.el= and README. Implementation is this heading's remaining
 work.
+
+*Shipped 2026-09-04* (commit =f187c3e=), all three layers as decided.
+
+- *Load-time guard* in config.el, right after the requires. The
+  baseline measurement sharpened the case: under the bundled 9.6.15,
+  =config.el= previously *loaded cleanly* and deferred the
+  void-function crash to first drawer use — worse than the body's
+  "does not degrade" put it. Now it dies at load, naming the running
+  org version and the fix. Verified live against the bundled org.
+- *=bin/test= refuses* rather than falling back when the straight
+  =build-*= glob misses (exit 2, two-line message). The first attempt
+  exited 1 with *no message*: under =set -e= the failing =find= killed
+  the script before the refusal ran — caught only because the check
+  asserted the specific exit code, and the fix (=|| true= on the
+  substitution) is commented in place. The silent death it replaces is
+  the same class as the fallback it guards against.
+- *Floor stated* in packages.el and README; the README's
+  known-limitations bullet claiming the dependency was undeclared is
+  updated, since it stopped being true in the same commit.
+
+547 ERT tests green under the straight org. Not done here, and not
+owed: =org-assert-version= was considered and =version<= chosen —
+the former pins against org's *compiled* version machinery and is
+aimed at mixed-compilation breakage, not a runtime floor.
+
 
 
 * TODO Type a span's annotation at review time, not by hand-editing it after :code:
