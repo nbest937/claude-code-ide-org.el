@@ -1675,13 +1675,13 @@ CLOCK: [2026-09-01 Tue 12:26]--[2026-09-01 Tue 12:27] =>  0:01
 *Open, and genuinely undecided:* whether the gap-versus-AFK threshold should ever be automated. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the standing precedent against an invented number, and a ten-minute cap is exactly that. Reporting both bounds and letting the human place the line is the alternative — and unlike the current review pass, it is six questions a day rather than nineteen.
 
 
-* TODO [0/9] Everything passed and the file was still wrong :code:
+* TODO [0/10] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
 :CATEGORY: Slices
 :KIND:     slice
-:BLOCKER:  ids(39039bb6-c70a-4ba9-8b37-edd8dd6921f6 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 2aeb65d6-350e-4c75-811e-4a748044fe2c 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b)
+:BLOCKER:  ids(39039bb6-c70a-4ba9-8b37-edd8dd6921f6 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 2aeb65d6-350e-4c75-811e-4a748044fe2c 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b 60ed5b96-40e3-4676-a742-07a8ad6cc3b7)
 :COOKIE_DATA: checkbox recursive
 :END:
 
@@ -1707,6 +1707,26 @@ To which add the standing friction: the two MCP tools that time out are worked a
 - [ ] [[id:8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b][8ddd7fa8]] TODO Moving a heading between files by hand leaves org-id pointing at the old one
 - [ ] [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]] TODO Concurrent sessions share one git index, and explicit staging protects nothing
 - [ ] [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] TODO Three new ways to owe a footnote and not see it: marker, list, quotation
+- [ ] [[id:60ed5b96-40e3-4676-a742-07a8ad6cc3b7][60ed5b96]] TODO --review-format-annotation's docstring contradicts its own let*, four lines down
+
+*=60ed5b96= added 2026-09-04, after composition.* It is the theme stated with the nouns changed:
+=--review-format-annotation='s docstring says "Always /inactive/ timestamps … and no branch to make"
+four lines above a =let*= that branches. When it misled two readings in opposite directions the same
+day, =bin/test= was 543/543, =bin/check-conventions= 27 ok and =bin/lint-org= 0 errors — the record
+wrong, every check green, which is this slice's sentence.
+
+It belongs to the *checks that do not catch* third of the division above, and for a reason worth
+keeping: =bin/check-conventions= compares the **documents** against the code, and nothing compares a
+**docstring** against the function beneath it. It also sits directly beside =f12f9da4=, which is the
+same shape one layer out — a stale thing, silently authoritative, caught only because the drift
+happened to be visible.
+
+*Its sibling was considered and left out.* =33c3eabc= (=footnote-check= discards the id it resolved)
+arrived the same hour and is **not** a member: that hook fails *loudly*, which is the opposite of "none
+of them is visible from a green suite". Note the two footnote headings therefore split across this
+boundary on purpose — =2a6a1355= is a member because *missing* a footnote is invisible, and
+=33c3eabc= is not because it is about the hook's response to catching one.
+
 
 
 * TODO Three new ways to owe a footnote and not see it: marker, list, quotation :code:
