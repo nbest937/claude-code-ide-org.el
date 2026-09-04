@@ -8,6 +8,7 @@
 :CREATED:  [2026-09-04 Fri 08:57]
 :CATEGORY: Slices
 :END:
+:PLAN:
 
 =.claude/rules/org-conventions.md= says each slice carries =:COOKIE_DATA: checkbox recursive= "so its
 statistics cookie counts nested members as well as top-level ones". **Nothing checks it.**
@@ -34,6 +35,39 @@ convention, defaulted by nothing, and consulted only by org. Every slice needs i
 creates it — =claude-code-ide-org-refresh-slice= already inserts a missing =[/]= cookie for exactly
 this reason (=28415ca8=, after relying on the creator to type it failed on the second slice ever
 written). The same argument applies here, and a lint error plus a hand fix is the weaker half of it.
+
+:END:
+*Verified, not just implemented:* shipped in [[orgit-rev:claude-code-ide-org::5547efe][5547efe]].
+Five assertions, run red first — no property at all, the correct value, =:COOKIE_DATA: todo=,
+=:COOKIE_DATA: checkbox= without =recursive=, and a non-slice heading that this rule must ignore.
+543/543, =bin/lint-org= 0 errors, =bin/check-conventions= 27 ok.
+
+*The value is asserted, not presence*, which was a decision rather than thoroughness. =todo= is a
+well-formed value that counts TODO children — of which a slice has none by definition — so a
+presence-only rule would accept a slice whose cookie can only ever read =[0/0]=. And =checkbox=
+without =recursive= is precisely the case that bit: top-level members count, nested ones vanish.
+
+*Proved to reach the real path, not only the fixture.* The property was deleted from =ff7ccb2d= in
+=TODO.org= itself and lint reported
+=TODO.org:588: slice has no :COOKIE_DATA: ... (have: nothing)=, after which the file was restored
+byte-identical from a copy taken first. That step exists because =542924c1= collects checks that pass
+without ever taking the path they claim to test.
+
+*And the first attempt at that step silently mutated nothing* — its anchor assumed =:COOKIE_DATA:=
+preceded =:BLOCKER:=, where =org-entry-put= appends after it — so lint found no error for the honest
+reason that the file was unchanged. The =assert= printed and the run was discarded. Without it the
+output would have read as "rule does not reach the real path", which is a *stronger* and entirely
+false conclusion. Worth recording as its own instance: a mutation test needs its mutation asserted,
+or it reports on a file it never touched.
+
+*Landed at zero violations.* Both instances were fixed an hour before, so this is =dca940c1='s move —
+a rule added while nothing violates it is cheapest and cannot be argued with.
+
+*Left undone, deliberately:* nothing yet *creates* the property. The body above argues that
+=refresh-slice= should insert it the way =28415ca8= taught it to insert a missing =[/]=, and this
+commit does not do that — a lint error plus a hand fix is the weaker half. Filed as the open question
+it was, not closed by implication.
+
 
 * TODO Nothing lays out future work on a timeline the agenda can show
 :PROPERTIES:
