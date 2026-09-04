@@ -8,6 +8,10 @@
 :CREATED:  [2026-09-04 Fri 12:51]
 :CATEGORY: Meta
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-04 Fri 12:51]--[2026-09-04 Fri 12:52] =>  0:01
+- [2026-09-04 Fri 12:51]--[2026-09-04 Fri 12:52] file the DOING-story gap; narrow 2c3aadbe
+:END:
 
 =43aa25b2= one state over. =--attention-headings-context= reports a =DOING= *leaf* the file and the
 queue disagree about, and its clause opens
@@ -47,11 +51,18 @@ for the same reason — that function already answers "what should a starting se
 and a forgotten story is that question. **Not the org skill**: a skill loads on trigger match, possibly
 never, and a report that must fire at session start cannot depend on that.
 
-* TODO footnote-check resolves every id and discards the answer, then asks for it
+
+* NEXT footnote-check resolves every id and discards the answer, then asks for it
 :PROPERTIES:
 :ID:       33c3eabc-00f2-4cf1-afb7-4071aa256d62
 :CREATED:  [2026-09-04 Fri 12:24]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-04 Fri 12:15]--[2026-09-04 Fri 12:19] =>  0:04
+- [2026-09-04 Fri 12:15]--[2026-09-04 Fri 12:19] assigned at review
+- State "NEXT"       from "TODO"       [2026-09-04 Fri 12:33] \\
+  Dev nomination; category held none
 :END:
 
 =bin/hooks/footnote-check= validates a candidate by looking it up in the tracked org files:
@@ -88,6 +99,7 @@ is the discipline. Same problem, opposite ends.
 
 *The class this belongs to* is =acf46449='s, one layer over: an error is a report, and a report is not
 a mechanism. Here the mechanism already computed the answer.
+
 
 * TODO --review-format-annotation's docstring contradicts its own let*, four lines down
 :PROPERTIES:
@@ -200,7 +212,6 @@ starting the strategic thing, so being persuasive is not the same as being right
 *What would change the answer:* a member of this slice blocking =ff7ccb2d='s progress rather than
 merely costing friction alongside it. =635d5abb= is the closest candidate — its hand fix was paid four
 times in two days — but a paid cost is not a block.
-
 
 
 * TODO org_amend cannot continue a list, and the slice revision links are always one
@@ -1720,7 +1731,7 @@ CLOCK: [2026-09-01 Tue 12:26]--[2026-09-01 Tue 12:27] =>  0:01
 *Open, and genuinely undecided:* whether the gap-versus-AFK threshold should ever be automated. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the standing precedent against an invented number, and a ten-minute cap is exactly that. Reporting both bounds and letting the human place the line is the alternative — and unlike the current review pass, it is six questions a day rather than nineteen.
 
 
-* TODO [0/10] Everything passed and the file was still wrong :code:
+* TODO [1/11] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
@@ -1772,6 +1783,9 @@ of them is visible from a green suite". Note the two footnote headings therefore
 boundary on purpose — =2a6a1355= is a member because *missing* a footnote is invisible, and
 =33c3eabc= is not because it is about the hook's response to catching one.
 
+Incidental:
+
+- [X] [[id:43aa25b2-1e21-4117-bf15-b92f3081b60d][43aa25b2]] DONE Nothing watches a REVIEW heading, and it is the state most easily forgotten
 
 
 * TODO Three new ways to owe a footnote and not see it: marker, list, quotation :code:
@@ -2287,7 +2301,8 @@ Whatever is chosen, the shape to avoid is the current one, where the failure is 
 *Related but distinct:* [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] is about =org_capture= and =org_set_property= hanging over MCP *while Emacs is healthy and other tools answer*. This one is about every tool failing because Emacs is not there at all. They were confirmed separate on 2026-08-31: after the restart, =org_capture= over MCP timed out again and persisted nothing — buffer unmodified, not read-only, no prompt open, =recursion-depth= 0 — while the same function through =emacsclient= completed in under a second.
 
 
-* REVIEW Nothing watches a REVIEW heading, and it is the state most easily forgotten :code:
+* DONE Nothing watches a REVIEW heading, and it is the state most easily forgotten :code:
+CLOSED: [2026-09-04 Fri 12:12]
 :PROPERTIES:
 :ID:       43aa25b2-1e21-4117-bf15-b92f3081b60d
 :CREATED:  [2026-08-31 Mon 12:35]
@@ -2304,6 +2319,10 @@ CLOCK: [2026-09-04 Fri 11:00]--[2026-09-04 Fri 11:06] =>  0:06
 - State "REVIEW"     from "DOING"      [2026-09-04 Fri 11:06] \\
   shipped; live verification needs a reloaded Emacs
 - [2026-09-04 Fri 11:07]--[2026-09-04 Fri 11:21] assigned at review
+- State "DONE"       from "REVIEW"     [2026-09-04 Fri 12:12] \\
+  live report names itself and nothing else
+CLOCK: [2026-09-04 Fri 12:12]--[2026-09-04 Fri 12:13] =>  0:01
+- [2026-09-04 Fri 12:12]--[2026-09-04 Fri 12:13] close 43aa25b2 on live verification
 :END:
 :PLAN:
 
@@ -2389,7 +2408,6 @@ empty and I almost took that as "the report finds nothing". It was my own filter
 carry org text properties, so =mapconcat='s printed form is =#("..." 40 41 (...))= and the =grep=
 pipeline discarded it. Silence again standing in for a result, third time in this session and the one
 time it would have produced a false negative about a feature that works.
-
 
 
 * TODO Adding a just-captured heading to a slice cannot be made lint-clean :code:
@@ -2693,6 +2711,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-04 Fri 12:53]--[2026-09-04 Fri 12:56] =>  0:03
 CLOCK: [2026-09-04 Fri 11:44]--[2026-09-04 Fri 11:47] =>  0:03
 CLOCK: [2026-09-04 Fri 11:28]--[2026-09-04 Fri 11:30] =>  0:02
 CLOCK: [2026-09-04 Fri 11:21]--[2026-09-04 Fri 11:28] =>  0:07
@@ -3299,7 +3318,6 @@ a child.
 Today is the same result for a tool where the prose is good.
 
 
-
 ** TODO An MCP tool accepts arguments it does not have, and says nothing :code:
 :PROPERTIES:
 :ID:       1cd2df62-35e9-47dc-bcce-dda7bae3c522
@@ -3349,10 +3367,16 @@ There is a second dispatch path, =claude-code-ide-mcp.el= line 352, which hands 
 *The rest of the surface is clean, which is worth recording so it is not re-audited.* All fourteen tools were checked mechanically, comparing each advertised argument name against its handler's arglist: *zero mismatches* once snake_case is normalised to kebab-case. Every advertised parameter exists and every real parameter is advertised. The five failures on 2026-08-20 -- =todo_state=, =body=, =file=, =max_level=, and =body= again -- were invented wholesale, not misread from a bad schema. Fixing descriptions would not have prevented any of them.
 
 *One measured consequence beyond the lost bodies:* an =org_outline= call passing =file= and =max_level= returned the *unrestricted default* rather than the scoped view it appeared to return, and was reported as scoped. A dropped argument does not merely fail to apply -- it silently substitutes a different answer to a different question.
+
+
 ** TODO org_outline takes one scope, so looking up n ids costs n calls and a loop wins
 :PROPERTIES:
 :ID:       2c3aadbe-4c65-42f1-80f4-860453dcf121
 :CREATED:  [2026-09-04 Fri 12:42]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-04 Fri 12:36]--[2026-09-04 Fri 12:37] =>  0:01
+- [2026-09-04 Fri 12:36]--[2026-09-04 Fri 12:37] assigned at review
 :END:
 
 =org_outline='s =scope= is a single =:ID:=, prefix or file name. Every question of the form "what are
@@ -10038,4 +10062,12 @@ CLOCK: [2026-09-04 Fri 11:49]--[2026-09-04 Fri 11:50] =>  0:01
 - [2026-09-04 Fri 11:49]--[2026-09-04 Fri 11:50] assigned at review
 CLOCK: [2026-09-04 Fri 12:04]--[2026-09-04 Fri 12:05] =>  0:01
 - [2026-09-04 Fri 12:04]--[2026-09-04 Fri 12:05] assigned at review
+CLOCK: [2026-09-04 Fri 12:23]--[2026-09-04 Fri 12:24] =>  0:01
+- [2026-09-04 Fri 12:23]--[2026-09-04 Fri 12:24] relax the branching rule; file the footnote hook gap
+CLOCK: [2026-09-04 Fri 12:28]--[2026-09-04 Fri 12:29] =>  0:01
+- [2026-09-04 Fri 12:28]--[2026-09-04 Fri 12:29] assigned at review
+CLOCK: [2026-09-04 Fri 12:33]--[2026-09-04 Fri 12:34] =>  0:01
+- [2026-09-04 Fri 12:33]--[2026-09-04 Fri 12:34] add 60ed5b96 to 8a2eb687; nominate 33c3eabc
+CLOCK: [2026-09-04 Fri 12:44]--[2026-09-04 Fri 12:45] =>  0:01
+- [2026-09-04 Fri 12:44]--[2026-09-04 Fri 12:45] root-cause unattributed spans, file discipline fix
 :END:
