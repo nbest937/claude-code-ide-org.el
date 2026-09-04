@@ -2348,7 +2348,7 @@ list= or the common git dir, the same resolution
 [[id:f8c86914-0759-4e05-9292-6f7fa5593701][f8c86914]] chose for the
 convention checks).
 
-*Shipped 2026-09-04* (commit =11140a4=, on
+*Shipped 2026-09-04* (commit =2d67b7e=, on
 =feature/org-discipline-travel=). One field — =cwd: ($payload.cwd //
 null)= — added to =queue-append='s jq object, between =session_id= and
 =agent_id=. Test-first per discipline: two assertions added to
@@ -8507,7 +8507,7 @@ should not be reported as fixing the problem.
 
 *Four decisions were settled by the user 2026-09-02 and stand, scoped to the archaeology rather than the relocation:* the criterion is [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]]'s — prose earns its place when it lets a future session pick the work up without re-deriving context. Removed archaeology is deleted outright, since this file is version-controlled with no bounded archive. Won't-dos belong on the heading that declined them, not here. The fourth — what becomes of decision records guarding a *live* convention — was left open, and the relocation question above changes it: a guard for a convention that ships should travel with the convention rather than being compressed into a file that does not.
 
-*First pass executed 2026-09-04* (commit =f6eedf4=, on
+*First pass executed 2026-09-04* (commit =89c3fd2=, on
 =feature/org-discipline-travel=), with the user approving block by
 block. The four mechanism-gone blocks went: the =:SESSIONS:= retirement
 story, the working-hours retirement mechanics, the auto-promote trigger
@@ -9812,7 +9812,7 @@ lighter mechanism works.
 
 Writing =README.md= itself is untouched by any of that.
 
-*Part 1 shipped 2026-09-04* (commit =247db50=, on
+*Part 1 shipped 2026-09-04* (commit =56f14e9=, on
 =feature/org-discipline-travel=). README.md follows the decision above:
 human-facing intro/quickstart, no =@README.md= import, deliberate small
 overlap manually synced. It leads with the queue — the one design
