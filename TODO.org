@@ -85,6 +85,32 @@ live that =SessionStart= honours =systemMessage= before depending on
 it. [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]] part 2, if
 built, specifies both channels.
 
+*Shipped 2026-09-04* (commit =3b08feb=). The change landed in the elisp
+(=--session-start-hook-json=) rather than the hook script — the logic
+was already inboard, per the Emacs-boundary decision. The payload now
+carries a top-level =systemMessage= beside =hookSpecificOutput=: a
+compact summary ("org: N stale open CLOCK intervals from before today;
+the daily ceremony is waiting — details in Claude's context; apply is
+M-x claude-code-ide-org-review"), while the full reports stay in
+=additionalContext= as the model's copy. An empty payload stays ={}=.
+Test written first and run red (548th test; asserts the summary exists,
+names the ceremony, excludes the instruction prose, and leaves the
+model's channel intact); 548/548 green.
+
+*Two residuals, stated rather than hidden.* First, the flagged
+display-side check is still pending: whether Claude Code *shows*
+=SessionStart='s =systemMessage= can only be observed at a real session
+start with a non-empty report, and the report is usually empty by
+design ("expect silence"). The JSON shape follows the documented
+contract; the observation happens whenever the report next fires.
+Second, the *running* Emacs still serves the old =config.el= until the
+module is reloaded — the exact gap
+[[id:f12f9da4-2870-45b7-8c50-ea54415c7bc6][f12f9da4]] names — so the
+next session start shows nothing new until a reload or Doom restart.
+[[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]] part 2's spec
+should now say both channels, as decided.
+
+
 
 * TODO Package the plugin: references, setup command, machinery prose :code:
 :PROPERTIES:
