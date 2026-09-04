@@ -123,6 +123,19 @@ check "find-file-visit-truename is set (symlinked TODO.org opens once)" "$truena
 # (TODO.org :ID: bd482c92). Compared through `file-truename' on both sides,
 # since the config deliberately names the *symlink* path.
 set capture_file (emacsclient -e '(if (boundp (quote claude-code-ide-org-capture-file)) (file-truename claude-code-ide-org-capture-file) "unbound")' 2>/dev/null | string trim -c '"')
-check "claude-code-ide-org-capture-file resolves into this repo" "$capture_file" "$repo_root/TODO.org"
+# A worktree invokes this script from a root the live Emacs has never
+# loaded -- Emacs serves the checkout symlinked into ~/.config/doom -- so
+# comparing against $repo_root misreports "you are standing in a
+# different checkout" as a capture-file misconfiguration (TODO.org :ID:
+# f8c86914). Compare against the COMMON git dir's parent instead: a
+# worktree of the same repository passes, and a genuinely foreign
+# checkout still fails, so the check keeps checking something real.
+set common_dir (git -C $repo_root rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+if test -n "$common_dir"
+    set main_root (dirname $common_dir)
+else
+    set main_root $repo_root
+end
+check "claude-code-ide-org-capture-file resolves into this repo (via the common git dir)" "$capture_file" "$main_root/TODO.org"
 
 exit $fail
