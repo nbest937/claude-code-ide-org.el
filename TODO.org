@@ -8,10 +8,18 @@
 :CREATED:  [2026-09-04 Fri 09:26]
 :CATEGORY: Slices
 :COOKIE_DATA: checkbox recursive
+:KIND:     slice
+:BLOCKER:  ids(635d5abb-207d-445d-b268-bc031bdd592a 501a8422-9e93-4d2d-98bb-db0ab2c16e37 acf46449-422b-45d5-a223-83224ef71548 198dd00e-0746-444a-ab25-2034a2a235c2 2d2211d5-97c3-4f69-8175-40df90d1db8a de687e4d-9384-46ae-a495-55b3ae46d1bb 1b727475-46c3-4967-8cdd-dfd9397d94ea)
 :END:
 
-*A proposal, not a slice* — no =:KIND: slice=, no prompt link, and =MAYBE= rather than =TODO=,
-because nothing here is committed to yet.
+*Accepted 2026-09-04*, on the user's judgement that these are "essential enhancements to tighten our
+workflow's discipline". =:KIND: slice= and the derived =:BLOCKER:= were added at acceptance; **the
+prompt link is deliberately absent** and stays so until this slice is actually picked up, since a
+=next-session.md= revision is what a slice is *worked* from, not what it is *accepted* into.
+
+*Accepted as =TODO=, not =NEXT=.* =ff7ccb2d= holds the one top-level nomination the =Slices= category
+allows (=758a8b78=), and choosing between them is a separate decision from agreeing this work is
+real.
 
 *The theme.* =0acc1df2= states the intent: a slice's depiction is *regenerated from its referents*,
 and **only membership and order are declared**. Every member below is a place where that is not yet
@@ -48,7 +56,6 @@ than twice. Drop it if that reads as scope creep; nothing else depends on it.
 *Not claimed by another slice.* Checked against =ff7ccb2d=, =8a2eb687= and =f9fe9fac=: no overlap.
 =b6da3480= is deliberately absent, having closed today; its follow-on =acf46449= carries the work
 that remains.
-
 * TODO org_amend cannot continue a list, and the slice revision links are always one
 :PROPERTIES:
 :ID:       635d5abb-207d-445d-b268-bc031bdd592a
