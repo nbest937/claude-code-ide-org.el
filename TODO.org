@@ -2,6 +2,45 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Every slice needs :COOKIE_DATA: and no slice creates it; the lint only reports
+:PROPERTIES:
+:ID:       acf46449-422b-45d5-a223-83224ef71548
+:CREATED:  [2026-09-04 Fri 09:14]
+:CATEGORY: Slices
+:BLOCKER:  ids(b6da3480-d3ae-4af9-8475-9f0e7c99bb17)
+:END:
+
+The follow-on =b6da3480= named and deliberately did not do. That heading made a missing
+=:COOKIE_DATA: checkbox recursive= an error; **an error is a report, and a report is not a
+mechanism.** Every slice needs the property, nothing creates it, and the hand fix has to be
+remembered by whoever reads the report.
+
+*This argument has already been had and lost once, over the cookie itself.* =28415ca8= taught
+=claude-code-ide-org-refresh-slice= to *insert* a missing =[/]= after relying on the creator to type
+it failed on the **second slice ever written** — with three separate mechanisms declining to mention
+it, so =979e02b6= ran most of its life uncookied. The property is the same shape one layer down, and
+it went unnoticed longer only because its absence is invisible until a slice nests a member.
+
+*Two candidate seams, and they are not the same fix.*
+
+- *Repair, at refresh.* =refresh-slice= inserts the property when missing, exactly as it now does for
+  =[/]=. Cheap and consistent. Note it **skips a slice whose keyword is terminal** (=30a340fd=), so a
+  closed slice missing the property is never repaired — which is almost certainly correct, since a
+  closed slice's cookie is frozen history and rewriting it is the falsification =30a340fd= exists to
+  prevent. Worth stating rather than discovering.
+- *Prevention, at declaration.* =org_set_property= already special-cases =:KIND: slice= — it is where
+  the hybrid guard lives — so it is the exact moment a heading *becomes* a slice, and could set
+  =:COOKIE_DATA:= there. This is the stronger seam: repair fixes slices that already went wrong,
+  prevention means none do.
+
+*Prefer prevention, but the two are complementary rather than alternatives*, because a slice can be
+declared by hand in Emacs without going through the tool. Repair is the backstop for that path, and
+the lint is the backstop for both.
+
+*It also feeds =198dd00e=*, which observes that accepting a slice proposal is a three-step list that
+gets partially skipped, and suggests the real fix is one command rather than a shorter list. Setting
+=:COOKIE_DATA:= at declaration is one of the steps such a command would take.
+
 * TODO Nothing asserts a slice carries :COOKIE_DATA:, and its absence only shows once members nest
 :PROPERTIES:
 :ID:       b6da3480-d3ae-4af9-8475-9f0e7c99bb17
