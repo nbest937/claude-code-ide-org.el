@@ -2,7 +2,7 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* MAYBE [0/7] Only membership and order are declared, and everything else still needs a hand
+* TODO [0/7] Only membership and order are declared, and everything else still needs a hand
 :PROPERTIES:
 :ID:       52bfafdf-d313-48e1-9524-d8b539f165c9
 :CREATED:  [2026-09-04 Fri 09:26]
@@ -10,6 +10,10 @@
 :COOKIE_DATA: checkbox recursive
 :KIND:     slice
 :BLOCKER:  ids(635d5abb-207d-445d-b268-bc031bdd592a 501a8422-9e93-4d2d-98bb-db0ab2c16e37 acf46449-422b-45d5-a223-83224ef71548 198dd00e-0746-444a-ab25-2034a2a235c2 2d2211d5-97c3-4f69-8175-40df90d1db8a de687e4d-9384-46ae-a495-55b3ae46d1bb 1b727475-46c3-4967-8cdd-dfd9397d94ea)
+:END:
+:LOGBOOK:
+- State "TODO"       from "MAYBE"      [2026-09-04 Fri 09:40] \\
+  proposal accepted, declared a slice
 :END:
 
 *Accepted 2026-09-04*, on the user's judgement that these are "essential enhancements to tighten our
@@ -45,7 +49,7 @@ last three are independent of each other and of the first four.
 the same way. =bin/lint-org= reports zero errors for a revision list split in two, for a proposal
 whose body contradicts its heading, for a frozen closed slice, and for a dropped member that reads
 as a =MAYBE=. What breaks in every case is *meaning*, and the only detector is a human reading raw
-text. That is the same argument =979e02b6= closed at [48/48] one layer up, and this is its
+text. That is the same argument =979e02b6= closed at [0/7] one layer up, and this is its
 unfinished half.
 
 *=501a8422= is the one member whose subject is not a slice*, and it is included deliberately: it is
@@ -56,6 +60,8 @@ than twice. Drop it if that reads as scope creep; nothing else depends on it.
 *Not claimed by another slice.* Checked against =ff7ccb2d=, =8a2eb687= and =f9fe9fac=: no overlap.
 =b6da3480= is deliberately absent, having closed today; its follow-on =acf46449= carries the work
 that remains.
+
+
 * TODO org_amend cannot continue a list, and the slice revision links are always one
 :PROPERTIES:
 :ID:       635d5abb-207d-445d-b268-bc031bdd592a
@@ -88,6 +94,7 @@ blank line, or detection: if the body's last non-blank line matches an org list 
 text does too, do not separate them. Detection needs no caller change and would have fixed all three
 instances silently, which argues for it; an explicit argument is harder to get wrong and composes with
 =501a8422='s proposed drawer argument, which is the other thing =org_amend= cannot currently target.
+
 
 * TODO Every slice needs :COOKIE_DATA: and no slice creates it; the lint only reports
 :PROPERTIES:
@@ -128,11 +135,22 @@ the lint is the backstop for both.
 gets partially skipped, and suggests the real fix is one command rather than a shorter list. Setting
 =:COOKIE_DATA:= at declaration is one of the steps such a command would take.
 
-* TODO Nothing asserts a slice carries :COOKIE_DATA:, and its absence only shows once members nest
+
+* DONE Nothing asserts a slice carries :COOKIE_DATA:, and its absence only shows once members nest
+CLOSED: [2026-09-04 Fri 09:11]
 :PROPERTIES:
 :ID:       b6da3480-d3ae-4af9-8475-9f0e7c99bb17
 :CREATED:  [2026-09-04 Fri 08:57]
 :CATEGORY: Slices
+:END:
+:LOGBOOK:
+- [2026-09-04 Fri 08:58]--[2026-09-04 Fri 09:07] assigned at review
+CLOCK: [2026-09-04 Fri 09:08]--[2026-09-04 Fri 09:11] =>  0:03
+- State "DOING"      from "TODO"       [2026-09-04 Fri 09:08] \\
+  add the lint rule while the corpus is clean
+- [2026-09-04 Fri 09:08]--[2026-09-04 Fri 09:11] lint rule for the slice cookie property
+- State "DONE"       from "DOING"      [2026-09-04 Fri 09:11] \\
+  rule landed at zero violations, five cases red first
 :END:
 :PLAN:
 
@@ -228,6 +246,7 @@ a slice sequences without committing to a calendar, and dating one may be the wr
 whether this is a convention for *this* repo or belongs in the portable half, since the ask was
 framed as "future projects": that is =9ae4b17e='s classification question arriving from a new
 direction, and it is why this carries =:CATEGORY: Skill= rather than =Meta=.
+
 
 * TODO Accepting a slice proposal leaves its body still calling itself a proposal
 :PROPERTIES:
@@ -823,8 +842,6 @@ The prompt that drives this slice, one link per revision, oldest first:
 - [[orgit-rev:claude-code-ide-org::185f136][185f136]] [2026-09-04 Fri 09:31] banded the file — Step 0 and Standing rules carry forward verbatim, the middle is replaced wholesale — and added the two rules this session earned
 
 
-
-
 * DOING Make the heading body a scannable summary, with plan and debrief in drawers [2/5]
 :PROPERTIES:
 :ID:       4c834fdb-5314-4168-ab1d-09fe89ded517
@@ -1243,7 +1260,6 @@ Both halves are true of one twelve-minute interval.
 errand."** This heading should not be read as promising one. What survives is weaker and still worth
 having: markers *raise or lower confidence* on a span a human is going to judge anyway, which is
 =5a6d2c75='s frame rather than an automatic classifier.
-
 
 
 * TODO Attribute a turn to several tasks by weight, judged from the transcript with lag :code:research:
@@ -2353,6 +2369,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-04 Fri 09:51]--[2026-09-04 Fri 10:01] =>  0:10
 CLOCK: [2026-09-04 Fri 08:34]--[2026-09-04 Fri 08:37] =>  0:03
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
@@ -2459,7 +2476,6 @@ from 2026-09-13, now carries it. Deciding here would be guessing ahead of the da
 being "assert attention" and becomes "correct the machine" — a different act, on a smaller number of
 items, with the default carrying most of the weight. Worth knowing before the key is bound, because
 it changes what the reviewer is being asked to do.
-
 
 
 * MAYBE Render a session transcript to readable org, so scrollback stops being the index :code:
@@ -5381,7 +5397,6 @@ than leaving it open indefinitely.
 
 The corpus for it is already larger than the threshold work needs: the queue, the transcripts, and
 the =AFK= interjections that =e75d660f= says are ground truth and are currently discarded.
-
 
 
 * TODO Let a session interject without waiting: advisory locks, or extend the queue to capture/amend :code:
@@ -9446,6 +9461,31 @@ CLOCK: [2026-09-04 Fri 08:15]--[2026-09-04 Fri 08:18] =>  0:03
 - [2026-09-04 Fri 08:15]--[2026-09-04 Fri 08:18] restore ids and add branch guidance to the prompt
 CLOCK: [2026-09-04 Fri 08:18]--[2026-09-04 Fri 08:19] =>  0:01
 - [2026-09-04 Fri 08:18]--[2026-09-04 Fri 08:19] assigned at review
+CLOCK: [2026-09-04 Fri 08:22]--[2026-09-04 Fri 08:23] =>  0:01
+- [2026-09-04 Fri 08:22]--[2026-09-04 Fri 08:23] record the transcript-summary refinement
 CLOCK: [2026-09-04 Fri 08:24]--[2026-09-04 Fri 08:26] =>  0:02
 - [2026-09-04 Fri 08:24]--[2026-09-04 Fri 08:26] assigned at review
+CLOCK: [2026-09-04 Fri 08:40]--[2026-09-04 Fri 08:41] =>  0:01
+- [2026-09-04 Fri 08:40]--[2026-09-04 Fri 08:41] assigned at review
+CLOCK: [2026-09-04 Fri 08:51]--[2026-09-04 Fri 08:57] =>  0:06
+- [2026-09-04 Fri 08:51]--[2026-09-04 Fri 08:57] record the AFK-discipline finding and the timeline want
+CLOCK: [2026-09-04 Fri 09:13]--[2026-09-04 Fri 09:14] =>  0:01
+- [2026-09-04 Fri 09:13]--[2026-09-04 Fri 09:14] record why the keystroke alone is insufficient
+CLOCK: [2026-09-04 Fri 09:14]--[2026-09-04 Fri 09:15] =>  0:01
+- [2026-09-04 Fri 09:14]--[2026-09-04 Fri 09:15] file the b6da3480 follow-on
+- [2026-09-04 Fri 09:15]--[2026-09-04 Fri 09:19] assigned at review
+CLOCK: [2026-09-04 Fri 09:19]--[2026-09-04 Fri 09:21] =>  0:02
+- [2026-09-04 Fri 09:19]--[2026-09-04 Fri 09:21] genericize step 0's branch-base check
+- [2026-09-04 Fri 09:22]--[2026-09-04 Fri 09:25] assigned at review
+CLOCK: [2026-09-04 Fri 09:26]--[2026-09-04 Fri 09:27] =>  0:01
+- [2026-09-04 Fri 09:26]--[2026-09-04 Fri 09:27] compose a slice proposal from today's filings
+- [2026-09-04 Fri 09:28]--[2026-09-04 Fri 09:29] assigned at review
+CLOCK: [2026-09-04 Fri 09:30]--[2026-09-04 Fri 09:31] =>  0:01
+- [2026-09-04 Fri 09:30]--[2026-09-04 Fri 09:31] mark the generic/slice-specific boundaries
+CLOCK: [2026-09-04 Fri 09:36]--[2026-09-04 Fri 09:37] =>  0:01
+- [2026-09-04 Fri 09:36]--[2026-09-04 Fri 09:37] assigned at review
+CLOCK: [2026-09-04 Fri 09:40]--[2026-09-04 Fri 09:42] =>  0:02
+- [2026-09-04 Fri 09:40]--[2026-09-04 Fri 09:42] accept 52bfafdf as a slice
+CLOCK: [2026-09-04 Fri 09:43]--[2026-09-04 Fri 09:47] =>  0:04
+- [2026-09-04 Fri 09:43]--[2026-09-04 Fri 09:47] assigned at review
 :END:
