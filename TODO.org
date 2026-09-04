@@ -2,6 +2,26 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Adopt systemMessage on the recovery-and-ceremony hook payload :code:
+:PROPERTIES:
+:ID:       d585d33e-3804-45b3-8f96-65143d79363e
+:CREATED:  [2026-09-04 Fri 15:22]
+:CATEGORY: Queue
+:END:
+
+Decided 2026-09-04 on
+[[id:c5b02503-1700-47fd-bf89-bd3296b24af2][c5b02503]]'s measurement
+(startup relay 15/24 under a generous heuristic). Both reports in
+=bin/hooks/session-start-recovery-check='s payload — the stale-interval
+question and the ceremony prompt — gain a =systemMessage= field
+alongside =additionalContext=, so they reach the human unconditionally
+while the model keeps its copy to act on. =.claude/hooks/session-context.sh=
+(what-was-I-doing) stays model-only by decision: orientation, not a
+question. First step is the residual check c5b02503 flagged: verify
+live that =SessionStart= honours =systemMessage= before depending on
+it. [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]] part 2, if
+built, specifies both channels.
+
 * TODO Package the plugin: references, setup command, machinery prose :code:
 :PROPERTIES:
 :ID:       b0e478f7-e894-4ac7-b0b6-b3c890b5b32a
@@ -911,6 +931,14 @@ Nothing is wrong with the code the assertion checks. What is wrong is the *cause
 Not urgent, and it does not block commits: the org-dev delegation is gated on ~$docs_only~, which ~.githooks/pre-commit~ always passes, so only a human running the script by hand meets it. Filed because a worktree is now a normal way to review a PR here, so this will recur.
 
 Open, and deliberately not settled here: whether the assertion should detect the worktree and skip with that reason (the ~check_skip~ added in ~590e41c~ is the shape), or whether it should compare against the *common* git directory rather than the invoking root, which would make it pass and keep checking something real.
+
+*Decided 2026-09-04: compare against the common git directory.* The
+assertion resolves the invoking root's common dir (=git rev-parse
+--git-common-dir=), so a worktree of the same repo passes and the check
+still catches a genuinely foreign checkout — it keeps checking
+something real, where detect-and-skip would go blind exactly where PR
+review now happens.
+
 
 
 * TODO No tool edits a heading's title, so a rename goes behind Emacs or not at all :code:
@@ -3733,6 +3761,24 @@ lifecycle the user has twice mentioned, not the whole of it; the
 transition rules discussed the same day are recorded against
 [[id:241a4c54-ed59-4780-b602-2a86efee978a][241a4c54]].
 
+*The citation count was gathered 2026-09-04, and the volume passes the
+heading's own test.* Method: every =[[id:...]]= link across TODO.org
+and DONE.org (401 headings with =:ID:=), counting distinct citing
+headings per cited id, bucketed by body line count. Citation rate rises
+*monotonically* with length: bodies over 120 lines are cited by later
+headings 100% of the time (mean 9.3 incoming citations); 61–120 lines,
+91%; 31–60, 73%; 11–30, 70%; under 10 lines, 65% (mean 1.1). Nor is it
+a handful of star paragraphs carrying the average — mid-size bodies are
+cited at 70–73%. Caveat stated rather than hidden: correlation, since
+important work earns both length and citations; but the criterion this
+body set was "if long bodies are cited and short ones are not, the
+volume earns its keep", and that is what the data shows. The retention
+policy recorded at
+[[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] stands unchanged,
+now measured rather than merely agreed. Closing; the lifecycle remainder
+stays with [[id:241a4c54-ed59-4780-b602-2a86efee978a][241a4c54]].
+
+
 
 * DOING [10/13] Make the guidepost pipeline produce durations that mean what they say :code:
 :PROPERTIES:
@@ -5520,6 +5566,14 @@ the narrower question of what it may *assume*. And
 [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]]'s README would be
 the natural place a stated minimum lands for a human reader.
 
+*Decided 2026-09-04: all three, since they are not exclusive.* A
+load-time version guard in =config.el= (the only layer protecting a
+user's install), =bin/test= refusing to run rather than silently
+falling back to the bundled org, and the minimum stated in
+=packages.el= and README. Implementation is this heading's remaining
+work.
+
+
 
 * TODO Type a span's annotation at review time, not by hand-editing it after :code:
 :PROPERTIES:
@@ -5730,6 +5784,7 @@ The two axes are *orthogonal*, and the second is implemented using the first: an
 - State "TODO"       from              [2026-08-14 Fri 10:32] \\
   captured from conversation, unexamined assumption
 :END:
+:PLAN:
 
 *Raised 2026-08-14, tracing where the session-start report is defined.*
 Both =SessionStart= hooks work by injecting =additionalContext=, and
@@ -5790,6 +5845,7 @@ that cannot be held to it. That is the same shape as the reason apply is
 human-triggered — a mechanism whose correctness rests on the model doing
 something it was merely asked to do.
 
+:END:
 *Measured 2026-09-04, and the assumption fails about one time in
 three.* Method: every =SessionStart= =hook_success= attachment with
 non-empty =additionalContext= across all 49 transcripts in this
@@ -8341,6 +8397,26 @@ should not be reported as fixing the problem.
 
 *Four decisions were settled by the user 2026-09-02 and stand, scoped to the archaeology rather than the relocation:* the criterion is [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]]'s — prose earns its place when it lets a future session pick the work up without re-deriving context. Removed archaeology is deleted outright, since this file is version-controlled with no bounded archive. Won't-dos belong on the heading that declined them, not here. The fourth — what becomes of decision records guarding a *live* convention — was left open, and the relocation question above changes it: a guard for a convention that ships should travel with the convention rather than being compressed into a file that does not.
 
+*First pass executed 2026-09-04* (commit =f6eedf4=, on
+=feature/org-discipline-travel=), with the user approving block by
+block. The four mechanism-gone blocks went: the =:SESSIONS:= retirement
+story, the working-hours retirement mechanics, the auto-promote trigger
+inventory, and the superseded =active_only= caveat — each replaced by a
+one-line live pointer where a guard or behavior note was still doing
+work, which is why the net is −34 lines rather than the table's 45.
+Every "this rule changed" note stays.
+
+*Decision 4 is settled: guards travel with their conventions.* A dated
+block guarding a convention that ships (epic-vs-=:EPIC:=, the mitosis
+trap) is left intact here and moves with its rule into the shipped
+references at packaging time
+([[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]]); the prune
+never touches them. And the contested ~70 lines are deliberately
+deferred until *after* packaging relocates its share — audience cuts
+first, so judgement is spent only on what remains. That dedicated
+read-through is this heading's remaining work.
+
+
 
 ** DONE The file-header template omits #+STARTUP:, which both files carry :code:
 CLOSED: [2026-09-02 Wed 09:45]
@@ -9526,6 +9602,23 @@ Found while fixing =0fa403f4=, whose own first hypothesis was that this dependen
 =bin/pre-commit-test=. It did not — the cause there was stale fixtures — but reproducing that
 hypothesis is what surfaced how far the dependency had spread. The five options below are unchanged
 and still need the decision they always needed.
+
+*Decided 2026-09-04: the Emacs-boundary split, a sharpened option 1.*
+The line is not ship-vs-dev but *needs-Emacs vs
+must-survive-without-Emacs*. Scripts that already require a live Emacs
+(=bin/check-conventions= queries it; the report generators) move their
+logic into elisp behind thin =sh= stubs — the statusline case study is
+the shape. Scripts that must run with Emacs down (the queue-append hook
+family: =session-pause=/=resume=, =block-*=) stay plain POSIX-lean
+shell, because appending durably without Emacs is the queue's whole
+point and an =emacsclient= round-trip there would reintroduce the
+dependency the design exists to escape. Fish exits both tiers.
+=eshell= was considered and declined: it is an interactive shell inside
+Emacs, not an OS-invokable interpreter, so hooks would need
+=emacsclient= to reach it — at which point plain elisp is the same
+thing with less indirection. The convention gets written down as part
+of implementation, so it is not re-litigated per script.
+
 
 
 * TODO Add README.md and enforce its consistency with CLAUDE.md :code:comms:
