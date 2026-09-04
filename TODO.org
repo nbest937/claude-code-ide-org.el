@@ -2,6 +2,39 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO --review-format-annotation's docstring contradicts its own let*, four lines down
+:PROPERTIES:
+:ID:       60ed5b96-40e3-4676-a742-07a8ad6cc3b7
+:CREATED:  [2026-09-04 Fri 11:37]
+:CATEGORY: Apply
+:END:
+
+=claude-code-ide-org--review-format-annotation='s docstring says **"Always /inactive/ timestamps, so
+nothing written from the queue reaches =org-agenda="**, and closes with "there is no case in which a
+queue-derived span is the user's own attention, and no branch to make". Its own =let*=, four lines
+below the docstring, is:
+
+: (fmt (if (plist-get item :active) "<%Y-%m-%d %a %H:%M>" "[%Y-%m-%d %a %H:%M]"))
+
+Both were true when written. The branch was removed for keying on =:agent= — a field that tested "is
+this a subagent" while claiming to test "is this a human" — and **re-added 2026-08-24** keyed on
+something else entirely: the bracket style a human types at =claude-code-ide-org-review-edit-interval='s
+prompt. The removal argument was about *inference*; the re-addition is *assertion*. The docstring
+never learned the difference.
+
+*Filed because of what it cost, not because it is untidy.* On 2026-09-04 this sentence misled a
+reading of that function **twice in one day, in opposite directions** — once into recording that
+active marking would "reverse a measured decision" (it would not; half of it is built), and once into
+telling the user the review buffer has no kind toggle (it has had one for eleven days). Both notes
+had to be corrected, on =96a51c2f= and =01849bef=. The code was four lines away both times.
+
+*This is CLAUDE.md's own thesis arriving inside the module rather than in prose:* "a stale claim here
+outranks the truth until someone deliberately checks", and the docstring is loaded into the reader's
+attention exactly the way CLAUDE.md is. The repair is small — the docstring should say what the
+=:active= flag means, who sets it, and that inference from queue fields is what was rejected — but
+the class is worth a moment's thought, since =bin/check-conventions= checks documents against the
+code and nothing checks a docstring against the function under it.
+
 * TODO [0/7] Only membership and order are declared, and everything else still needs a hand
 :PROPERTIES:
 :ID:       52bfafdf-d313-48e1-9524-d8b539f165c9
@@ -2655,6 +2688,36 @@ and writing it twice is wrong under either reading. That is a decision this head
 =11:28--11:30=, and both org buffers report unmodified — so where the edit was made is unknown and
 whether the re-offer came from *this* mechanism or simply from the review buffer having no toggle to
 persist is unsettled. The batch measurement above stands on its own either way.
+
+*Correction, 2026-09-04, and it retires most of this heading. **The kind toggle already exists.***
+
+The body above says the review buffer "has =e= for editing an interval's *times* but nothing for its
+*kind*". That stopped being true on **2026-08-24**, in response to the very incident it describes —
+=[16:00]--[16:00]= edited to =<16:00>--<16:31>=, times kept, assertion dropped.
+=claude-code-ide-org-review-edit-interval= now reads the bracket style back:
+
+: (plist-put item :active (and (string-prefix-p "<" ...) (string-prefix-p "<" ...)))
+
+and =--review-format-annotation= honours it, choosing =<%Y-%m-%d %a %H:%M>= over the inactive form.
+So typing active brackets at =e='s prompt *is* the toggle, and it reaches the file. What remains of
+this heading is a **keybinding** — one keystroke instead of retyping two timestamps — which is a
+convenience, not the missing capability the title claims.
+
+*Why the user's toggle nevertheless vanished, 2026-09-04.* =:active= lives on the in-memory item
+plist, and the review buffer rebuilds every item from the queue each time it opens. An edit that is
+not **applied** in the same sitting is gone — and that is true of an =e= time correction exactly as
+much as of a bracket kind, so it is not specific to active at all. The queue records agent events; a
+human's judgement *about* an event has nowhere to live until apply writes it. =8d0716fe='s =g= guard
+exists because that state is losable, but it only guards within a session.
+
+*So the answer to "is that expected" is yes*, for a reason that is about persistence rather than
+about the toggle.
+
+*And my previous note on this heading was wrong in its framing.* The active-CLOCK measurement stands
+— =--recorded-intervals-at-point= genuinely returns nil for =CLOCK: <...>--<...>= — but that path is
+a human hand-editing a **CLOCK line in the file**, not the review flow, which writes an *annotation*
+and consults CLOCK lines for idempotency. Two different things, and I ran them together.
+
 
 
 
@@ -5614,6 +5677,26 @@ pattern": evidence that distinguishes the human's attention **without inferring 
 means something else**, which is exactly how the removed branch failed. =AFK= markers, an apply
 timestamp inside the gap (=996fd2bd=) and the transcript are the candidates; =409a69ff= already
 records why the first of those is fuzzier than it looks.
+
+*Correction to the note above, same day.* It said the active branch in
+=--review-format-annotation= "existed and was removed", and quoted that function's own conclusion —
+"there is no case in which a queue-derived span is the user's own attention, and no branch to make".
+
+**That quote is from a stale docstring.** The function's =let*= four lines below it reads
+=(fmt (if (plist-get item :active) "<%Y-%m-%d %a %H:%M>" "[...]"))=. The branch was *re-added* on
+2026-08-24 — keyed on a human's typed bracket style through =e=, not on =:agent=, which is the
+distinction the removal argument actually turned on.
+
+So the removal argument stands and is narrower than the docstring now implies: what was removed is
+*inferring* human-ness from a queue field. What exists is a human *asserting* it. This occurrence
+still has to answer the first question — whether evidence can distinguish attention without inferring
+it from a field meaning something else — but it is no longer proposing to reinstate something the
+project decided against. Half of it is already built.
+
+*Recorded as a lesson rather than only a correction:* the stale sentence misled a reading of that
+function **twice in one day**, in opposite directions, and both times the code four lines away said
+otherwise. Filed separately.
+
 
 
 * TODO Let a session interject without waiting: advisory locks, or extend the queue to capture/amend :code:
