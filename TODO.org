@@ -2369,6 +2369,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-04 Fri 10:05]--[2026-09-04 Fri 10:06] =>  0:01
 CLOCK: [2026-09-04 Fri 09:51]--[2026-09-04 Fri 10:01] =>  0:10
 CLOCK: [2026-09-04 Fri 08:34]--[2026-09-04 Fri 08:37] =>  0:03
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
@@ -5253,6 +5254,8 @@ completable parent.
 :LOGBOOK:
 - State "TODO"       from              [2026-08-13 Thu 12:21] \\
   scheduled re-measure, one month out
+CLOCK: [2026-09-04 Fri 09:59]--[2026-09-04 Fri 10:00] =>  0:01
+- [2026-09-04 Fri 09:59]--[2026-09-04 Fri 10:00] record what active marking would reverse
 :END:
 
 Scheduled rather than left to memory: the finding below is real but
@@ -5397,6 +5400,41 @@ than leaving it open indefinitely.
 
 The corpus for it is already larger than the threshold work needs: the queue, the transcripts, and
 the =AFK= interjections that =e75d660f= says are ground truth and are currently discarded.
+
+*Checked 2026-09-04, prompted by the user asking what a no-run span actually writes — and the answer
+changes what "mark it active" costs.*
+
+**A span with no runs is not a no-op.** =--review-apply-clock= writes no CLOCK line for it, and does
+write a =:LOGBOOK:= annotation, gated on =(unless observed)=. Its docstring gives the reason: "the
+guideposts are real evidence that something happened, and the absent CLOCK line is the same refusal
+to claim a duration nobody observed." So the evidence is kept and the duration is deliberately not
+claimed. (An earlier statement in conversation that such a span "records nothing" was wrong.)
+
+**Which means the active-marking question is a policy reversal, not a formatting change**, and it
+must answer the measurement that produced the current policy rather than pass it by.
+=--review-format-annotation= says "Always *inactive* timestamps, so nothing written from the queue
+reaches =org-agenda=", and it says so because an active branch **existed and was removed**: it
+branched on =:agent=, testing "is this a subagent" while claiming to test "is this a human", and on
+2026-08-14 all 68 events of one session carried =agent_id= nil — so every span it produced was
+published to the agenda as though the user had been at the keyboard. Its conclusion is the sentence
+this proposal contradicts: *"there is no case in which a queue-derived span is the user's own
+attention, and no branch to make."*
+
+*The mechanism is not the obstacle.* =c084553c= established that an active timestamp inside
+=:LOGBOOK:= does reach the agenda, and the docstring confirms that remains the mechanism — "reserved
+for intervals a human logs themselves". So the edit is small; the argument is the expensive part.
+
+*The distinction that keeps =01849bef= clear of this.* A **keystroke** is a human logging their own
+interval, which the current design already sanctions — =4f8500e6= notes a human clocking in Emacs
+writes a bare CLOCK line with no annotation at all. Only the **automatic** half asks the queue to
+produce something the design says only a human may produce. So the manual half can ship without
+reopening any of this; this occurrence decides the other half.
+
+*What the September pass therefore has to establish*, and it is a higher bar than "is there a
+pattern": evidence that distinguishes the human's attention **without inferring it from a field that
+means something else**, which is exactly how the removed branch failed. =AFK= markers, an apply
+timestamp inside the gap (=996fd2bd=) and the transcript are the candidates; =409a69ff= already
+records why the first of those is fuzzier than it looks.
 
 
 * TODO Let a session interject without waiting: advisory locks, or extend the queue to capture/amend :code:
@@ -9488,4 +9526,8 @@ CLOCK: [2026-09-04 Fri 09:40]--[2026-09-04 Fri 09:42] =>  0:02
 - [2026-09-04 Fri 09:40]--[2026-09-04 Fri 09:42] accept 52bfafdf as a slice
 CLOCK: [2026-09-04 Fri 09:43]--[2026-09-04 Fri 09:47] =>  0:04
 - [2026-09-04 Fri 09:43]--[2026-09-04 Fri 09:47] assigned at review
+CLOCK: [2026-09-04 Fri 09:50]--[2026-09-04 Fri 09:52] =>  0:02
+- [2026-09-04 Fri 09:50]--[2026-09-04 Fri 09:52] add the KIND column to the agenda prefix
+CLOCK: [2026-09-04 Fri 10:03]--[2026-09-04 Fri 10:04] =>  0:01
+- [2026-09-04 Fri 10:03]--[2026-09-04 Fri 10:04] assigned at review
 :END:
