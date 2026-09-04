@@ -2,6 +2,39 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Nothing asserts a slice carries :COOKIE_DATA:, and its absence only shows once members nest
+:PROPERTIES:
+:ID:       b6da3480-d3ae-4af9-8475-9f0e7c99bb17
+:CREATED:  [2026-09-04 Fri 08:57]
+:CATEGORY: Slices
+:END:
+
+=.claude/rules/org-conventions.md= says each slice carries =:COOKIE_DATA: checkbox recursive= "so its
+statistics cookie counts nested members as well as top-level ones". **Nothing checks it.**
+=bin/lint-org= and =config.el= contain zero references to the property — the cookie rules assert a
+cookie is *present*, never that it counts the right things.
+
+*Caught 2026-09-04 by the cookie being wrong, not by a check.* =ff7ccb2d= lacked the property. It did
+not matter while every member was top-level, and the moment it acquired nested members the headline
+recomputed to =[0/9]= against **twelve** checkboxes — the three indented ones silently excluded. The
+hand-written =[0/12]= had been right; org's own recount made it wrong, which is the worst direction
+for a defect to arrive from, since the recount is what you would trust.
+
+*Surveyed on discovery: 2 of 7 slices lacked it.* =ff7ccb2d= (bitten) and =8a2eb687= (latent — no
+nested members yet, so identically broken and invisible). Both set by hand the same day; the survey
+is the reason to believe the remaining five are fine rather than merely unexamined.
+
+*The check is cheap and the shape is settled:* a heading with =:KIND: slice= and no
+=:COOKIE_DATA:= is an error, in the same clause family as the existing cookie-less-slice and
+hybrid rules. Worth adding **now** rather than after the next nesting, which is the argument
+=dca940c1= made for landing a rule while instances are still few.
+
+*The sharper question this raises, and it is not settled here:* the property is required by a
+convention, defaulted by nothing, and consulted only by org. Every slice needs it and no slice
+creates it — =claude-code-ide-org-refresh-slice= already inserts a missing =[/]= cookie for exactly
+this reason (=28415ca8=, after relying on the creator to type it failed on the second slice ever
+written). The same argument applies here, and a lint error plus a hand fix is the weaker half of it.
+
 * TODO Nothing lays out future work on a timeline the agenda can show
 :PROPERTIES:
 :ID:       ecf66d45-18b3-477f-bca8-08bec90604e8
@@ -552,13 +585,14 @@ box would inflate the denominator forever, which is the reason the mapping exist
 on the dropped line, derived from nothing and set by the drop itself, is the shape that fits.
 
 
-* NEXT [0/9] Make the org discipline travel: ship the machinery, relocate the rules :code:
+* NEXT [0/12] Make the org discipline travel: ship the machinery, relocate the rules :code:
 :PROPERTIES:
 :ID:       ff7ccb2d-2b13-421e-86e3-6b5e187850bf
 :CREATED:  [2026-09-02 Wed 18:17]
 :CATEGORY: Slices
 :KIND:     slice
 :BLOCKER:  ids(9ae4b17e-278c-482f-9114-df28b2254806 d5345abb-b451-4468-8f27-4bb2da983215 9d009401-93dd-40e5-a243-7a30a8a5bd55 1ed7b2b4-a809-4547-b04f-099a3111fc1e 84b7d8b3-5161-4146-9167-0e7e2100e365 f8c86914-0759-4e05-9292-6f7fa5593701 5461c349-fd22-4b75-a508-50efbe4b87f8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4 83b3cdd6-982a-4ae1-878c-79a8c941f638 d7849119-8224-4993-a8ab-83e1434df53c b07df584-3adc-433c-ab49-e104f88aecf7 c5b02503-1700-47fd-bf89-bd3296b24af2)
+:COOKIE_DATA: checkbox recursive
 :END:
 :LOGBOOK:
 - State "TODO"       from "MAYBE"      [2026-09-02 Wed 18:28] \\
@@ -1294,6 +1328,7 @@ CLOCK: [2026-09-01 Tue 12:26]--[2026-09-01 Tue 12:27] =>  0:01
 :CATEGORY: Slices
 :KIND:     slice
 :BLOCKER:  ids(39039bb6-c70a-4ba9-8b37-edd8dd6921f6 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 2aeb65d6-350e-4c75-811e-4a748044fe2c 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b)
+:COOKIE_DATA: checkbox recursive
 :END:
 
 *The theme, briefly, in place of a plan — the full prompt comes later.* The previous slice was about the gap between what the code *knows* and what it *says*. This one is about a gap one layer down: the record itself going wrong while every check reports success.
