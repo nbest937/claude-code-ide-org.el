@@ -284,7 +284,8 @@ neither would have been noticed by anything that runs. The heading stands: the q
 whether one slice can be fixed, it is that acceptance leaves every slice needing it.
 
 
-* REVIEW [5/5] Close the four defects the PR #9 review found, and the gap they shared
+* DONE [5/5] Close the four defects the PR #9 review found, and the gap they shared
+CLOSED: [2026-09-04 Fri 10:54]
 :PROPERTIES:
 :ID:       887eaba3-96c5-4821-88e0-7cf60859a9c4
 :CREATED:  [2026-09-03 Thu 14:42]
@@ -299,6 +300,8 @@ whether one slice can be fixed, it is that acceptance leaves every slice needing
   rework: the guard set was incomplete
 - State "REVIEW"     from "DOING"      [2026-09-03 Thu 15:24] \\
   five members shipped; push is the user's call
+- State "DONE"       from "REVIEW"     [2026-09-04 Fri 10:54] \\
+  PR #9 merged; all five members shipped
 :END:
 :PLAN:
 
@@ -394,7 +397,6 @@ verified against the real corpus rather than a fixture alone.
 
 *Residue, all filed and none left in prose:* =0fa403f4= (closed the same day) and =dc753eb2= (taken
 in as the fifth member). Nothing outstanding at close.
-
 
 
 ** DONE A refile guard that asks about the moved heading cannot see the subtree it moves
@@ -726,7 +728,8 @@ Found 2026-09-03 when a design revision left :ID: 758a8b78's title stating the w
 Found 2026-09-03 while re-checking whether org_query reaches DONE.org. The tool honors its documented scope — claude-code-ide-org-query-files, falling back to the org-agenda-files function — but that function's answer is shaped by live Emacs state the caller cannot see: an agenda restriction lock (org-agenda-restrict, set by C-x C-< or the dispatcher's < key) silently collapses it to one file, and a dangling path in org-agenda-files (an entry whose symlink was never created) silently contributes nothing. Both produced "No matches" indistinguishable from a true empty result, across three diagnostic layers in one sitting. Proposed: org_query's reply (and ideally org_clock_report's and the recovery scan's) should name the file set it actually searched, and say when a restriction lock is active — "No matches (searched TODO.org; agenda restriction active)" turns a silent wrong answer into an inspectable one.
 
 
-* REVIEW Nothing prompts a session to name its clock target, so spans land unassigned :code:
+* DONE Nothing prompts a session to name its clock target, so spans land unassigned :code:
+CLOSED: [2026-09-04 Fri 10:23]
 :PROPERTIES:
 :ID:       ccfd89ce-a55d-4ad4-bce7-707181deb510
 :CREATED:  [2026-09-03 Thu 09:10]
@@ -738,6 +741,8 @@ CLOCK: [2026-09-03 Thu 09:24]--[2026-09-03 Thu 09:28] =>  0:04
 CLOCK: [2026-09-03 Thu 09:32]--[2026-09-03 Thu 09:34] =>  0:02
 - [2026-09-03 Thu 09:32]--[2026-09-03 Thu 09:34] draft standing rule and clock-target hook
 - State "REVIEW"     from "DOING"      [2026-09-03 Thu 09:34]
+- State "DONE"       from "REVIEW"     [2026-09-04 Fri 10:23] \\
+  live session verified it; suite covers the blocking path
 :END:
 :PLAN:
 
@@ -766,7 +771,6 @@ version being closed on is not the version that was put into =REVIEW=.
 
 *Left standing deliberately:* the hook reports and cannot name the heading — that judgement is the
 CLAUDE.md rule's alone, as the original body says. Nothing here changes that.
-
 
 
 * TODO A MAYBE member and a dropped member render identically, and the drop is now sticky :code:
@@ -1078,7 +1082,8 @@ CLOCK: [2026-09-02 Wed 16:08]--[2026-09-02 Wed 16:28] =>  0:20
 *The classification hypothesis is now fully falsified, and the record should say so.* [[id:f099379b-7f78-4c19-85be-abeea0bf3e71][f099379b]] proposed that a debrief marker on line 1 meant a debrief-only body, offering an escape from per-heading reading. Across the whole corpus it held for 4 of 73. Reading each body was the only honest route, exactly as that heading concluded.
 
 
-* REVIEW "Backlog = wrap unedited" would bury a debrief in 88 of 93 headings :code:
+* DONE "Backlog = wrap unedited" would bury a debrief in 88 of 93 headings :code:
+CLOSED: [2026-09-04 Fri 10:24]
 :PROPERTIES:
 :ID:       f099379b-7f78-4c19-85be-abeea0bf3e71
 :CREATED:  [2026-09-02 Wed 15:05]
@@ -1093,6 +1098,8 @@ CLOCK: [2026-09-02 Wed 15:10]--[2026-09-02 Wed 15:13] =>  0:03
 - [2026-09-02 Wed 15:10]--[2026-09-02 Wed 15:13] classify the 28 debrief-first bodies
 - State "REVIEW"     from "DOING"      [2026-09-02 Wed 15:13] \\
   classified; three routes await your decision
+- State "DONE"       from "REVIEW"     [2026-09-04 Fri 10:24] \\
+  rule retired in CLAUDE.md, 35d25265 finished 73/73
 :END:
 :PLAN:
 
@@ -1167,7 +1174,6 @@ reported.
 for", which is a judgement to hand back rather than an outcome to announce. That is exactly what
 =REVIEW= is for, and it worked — at the cost of sitting unwatched for two days, which is =43aa25b2='s
 subject and now one of its instances.
-
 
 
 * TODO A boolean argument passed as false arrives as :false, which elisp reads as true :code:
@@ -2120,7 +2126,7 @@ Whatever is chosen, the shape to avoid is the current one, where the failure is 
 *Related but distinct:* [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] is about =org_capture= and =org_set_property= hanging over MCP *while Emacs is healthy and other tools answer*. This one is about every tool failing because Emacs is not there at all. They were confirmed separate on 2026-08-31: after the restart, =org_capture= over MCP timed out again and persisted nothing — buffer unmodified, not read-only, no prompt open, =recursion-depth= 0 — while the same function through =emacsclient= completed in under a second.
 
 
-* TODO Nothing watches a REVIEW heading, and it is the state most easily forgotten :code:
+* REVIEW Nothing watches a REVIEW heading, and it is the state most easily forgotten :code:
 :PROPERTIES:
 :ID:       43aa25b2-1e21-4117-bf15-b92f3081b60d
 :CREATED:  [2026-08-31 Mon 12:35]
@@ -2128,6 +2134,15 @@ Whatever is chosen, the shape to avoid is the current one, where the failure is 
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-31 Mon 12:35]
+- State "NEXT"       from "TODO"       [2026-09-04 Fri 10:24] \\
+  Meta nomination; three instances accrued today
+CLOCK: [2026-09-04 Fri 11:00]--[2026-09-04 Fri 11:06] =>  0:06
+- State "DOING"      from "NEXT"       [2026-09-04 Fri 11:00] \\
+  fourth clause in the attention report
+- [2026-09-04 Fri 11:00]--[2026-09-04 Fri 11:06] surface REVIEW headings at session start
+- State "REVIEW"     from "DOING"      [2026-09-04 Fri 11:06] \\
+  shipped; live verification needs a reloaded Emacs
+- [2026-09-04 Fri 11:07]--[2026-09-04 Fri 11:21] assigned at review
 :END:
 :PLAN:
 
@@ -2193,8 +2208,6 @@ right and the effect is unobserved.
 
 *Which makes this heading its own first customer:* it is now a =REVIEW= heading that something
 watches, and if the mechanism works it will surface itself.
-
-
 
 
 * TODO Adding a just-captured heading to a slice cannot be made lint-clean :code:
@@ -2498,6 +2511,8 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-04 Fri 11:28]--[2026-09-04 Fri 11:30] =>  0:02
+CLOCK: [2026-09-04 Fri 11:21]--[2026-09-04 Fri 11:28] =>  0:07
 CLOCK: [2026-09-04 Fri 10:05]--[2026-09-04 Fri 10:06] =>  0:01
 CLOCK: [2026-09-04 Fri 09:51]--[2026-09-04 Fri 10:01] =>  0:10
 CLOCK: [2026-09-04 Fri 08:34]--[2026-09-04 Fri 08:37] =>  0:03
@@ -2541,6 +2556,7 @@ CLOCK: [2026-09-03 Thu 09:07]--[2026-09-03 Thu 09:14] =>  0:07
 CLOCK: [2026-09-03 Thu 13:30]--[2026-09-03 Thu 13:35] =>  0:05
 CLOCK: [2026-09-03 Thu 13:57]--[2026-09-03 Thu 14:00] =>  0:03
 CLOCK: [2026-09-04 Fri 08:17]--[2026-09-04 Fri 08:33] =>  0:16
+- <2026-09-04 Fri 11:28>--<2026-09-04 Fri 11:30> review pass (buffer buried)
 :END:
 
 
@@ -2606,6 +2622,40 @@ from 2026-09-13, now carries it. Deciding here would be guessing ahead of the da
 being "assert attention" and becomes "correct the machine" — a different act, on a smaller number of
 items, with the default carrying most of the weight. Worth knowing before the key is bound, because
 it changes what the reviewer is being asked to do.
+
+*A defect this heading would ship on day one, found 2026-09-04 when the user flipped an interval by
+hand and the review offered it again as inactive.*
+
+**An active CLOCK line is invisible to the idempotency check.** =--recorded-intervals-at-point= is
+what keeps a replay from writing an interval twice, and it matches
+=claude-code-ide-org--clock-line-regexp=, which is hard-anchored on square brackets:
+
+: "\\`[ \t]*CLOCK: \\[\\([^]]+\\)\\]--\\[\\([^]]+\\)\\][ \t]*=>[ \t]*[0-9]+:[0-9][0-9][ \t]*\\'"
+
+Measured in batch, same drawer, same interval, one character different at each end:
+
+| line                                                       | recognised |
+|------------------------------------------------------------+------------|
+| =CLOCK: [2026-09-04 Fri 10:16]--[2026-09-04 Fri 10:21]=     | one interval |
+| =CLOCK: <2026-09-04 Fri 10:16>--<2026-09-04 Fri 10:21>=     | **nil**      |
+
+*So the flip this heading exists to automate un-records the interval it is applied to.* Nothing is
+subtracted, the span is offered again, and applying it writes a **second** line for the same
+minutes — which every clocktable then sums, the exact overcount
+=claude-code-ide-org--subtract-intervals= was written to prevent. A keystroke would reproduce this
+reliably rather than occasionally, since its whole purpose is to make the flip cheap.
+
+*Which sharpens the scope: the key is not the work.* Whatever recognises a recorded interval has to
+recognise both kinds — and then decide whether an *active* one still subtracts, which is a semantic
+question rather than a regexp one. It plausibly should: the interval happened, whoever it belongs to,
+and writing it twice is wrong under either reading. That is a decision this heading now owes.
+
+*Not yet reproduced end to end on the corpus.* The user's own =10:16--10:21= flip could not be located
+— no =2026-09-04= active range on disk beyond one =review pass (buffer buried)= annotation at
+=11:28--11:30=, and both org buffers report unmodified — so where the edit was made is unknown and
+whether the re-offer came from *this* mechanism or simply from the review buffer having no toggle to
+persist is unsettled. The batch measurement above stands on its own either way.
+
 
 
 * MAYBE Render a session transcript to readable org, so scrollback stops being the index :code:
@@ -9659,4 +9709,12 @@ CLOCK: [2026-09-04 Fri 09:50]--[2026-09-04 Fri 09:52] =>  0:02
 - [2026-09-04 Fri 09:50]--[2026-09-04 Fri 09:52] add the KIND column to the agenda prefix
 CLOCK: [2026-09-04 Fri 10:03]--[2026-09-04 Fri 10:04] =>  0:01
 - [2026-09-04 Fri 10:03]--[2026-09-04 Fri 10:04] assigned at review
+CLOCK: [2026-09-04 Fri 10:08]--[2026-09-04 Fri 10:12] =>  0:04
+- [2026-09-04 Fri 10:08]--[2026-09-04 Fri 10:12] assigned at review
+CLOCK: [2026-09-04 Fri 10:14]--[2026-09-04 Fri 10:16] =>  0:02
+- [2026-09-04 Fri 10:14]--[2026-09-04 Fri 10:16] archive the span specimen as test data
+CLOCK: [2026-09-04 Fri 10:23]--[2026-09-04 Fri 10:24] =>  0:01
+- [2026-09-04 Fri 10:23]--[2026-09-04 Fri 10:24] judge two REVIEW headings, nominate 43aa25b2
+CLOCK: [2026-09-04 Fri 10:54]--[2026-09-04 Fri 10:55] =>  0:01
+- [2026-09-04 Fri 10:54]--[2026-09-04 Fri 10:55] close 887eaba3 and scope 43aa25b2
 :END:
