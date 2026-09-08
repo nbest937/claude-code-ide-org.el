@@ -41,7 +41,8 @@ warn about — the disagreement would then be bounded by ceremony
 cadence, like clock accuracy already is.
 
 
-* REVIEW Commit co-author trailer is frozen at session start, misattributes after /model :code:
+* DONE Commit co-author trailer is frozen at session start, misattributes after /model :code:
+CLOSED: [2026-09-08 Tue 09:17]
 :PROPERTIES:
 :ID:       f1ff027e-5826-4812-8221-96eeba966333
 :CREATED:  [2026-09-04 Fri 16:15]
@@ -54,6 +55,8 @@ CLOCK: [2026-09-04 Fri 16:27]--[2026-09-04 Fri 16:29] =>  0:02
 - [2026-09-04 Fri 16:27]--[2026-09-04 Fri 16:29] verify model env var, wire the trailer hook
 - State "REVIEW"     from "DOING"      [2026-09-04 Fri 16:30] \\
   hook shipped, nine tests, live-verified on its own commit
+- State "DONE"       from "REVIEW"     [2026-09-08 Tue 09:17] \\
+  review passed; hook live-verified twice
 :END:
 :PLAN:
 
@@ -110,7 +113,8 @@ typing the prompt-template trailer; the hook rewrites it either way,
 which is what makes this a mechanism rather than vigilance.
 
 
-* REVIEW Adopt systemMessage on the recovery-and-ceremony hook payload :code:
+* DONE Adopt systemMessage on the recovery-and-ceremony hook payload :code:
+CLOSED: [2026-09-08 Tue 09:17]
 :PROPERTIES:
 :ID:       d585d33e-3804-45b3-8f96-65143d79363e
 :CREATED:  [2026-09-04 Fri 15:22]
@@ -125,6 +129,8 @@ CLOCK: [2026-09-04 Fri 16:33]--[2026-09-04 Fri 16:36] =>  0:03
 - [2026-09-04 Fri 16:33]--[2026-09-04 Fri 16:36] two channels for the session-start reports
 - State "REVIEW"     from "DOING"      [2026-09-04 Fri 16:36] \\
   shipped and tested; display check pending a live firing
+- State "DONE"       from "REVIEW"     [2026-09-08 Tue 09:17] \\
+  review passed; display observation stays a noted residual
 :END:
 :PLAN:
 
@@ -604,7 +610,8 @@ CLOCK: [2026-09-03 Thu 13:47]--[2026-09-03 Thu 13:49] =>  0:02
 Observed 2026-09-03 on :ID: ec65b5d6, the first slice composed and closed within one day. The apply pass landed the members' DONEs and the slice's own DONE in the same ceremony, and refresh-slice then skipped the slice as closed — so it froze at [0/4] with TODO member-line copies and a full :BLOCKER:, a record that was never true at close: every member was already DONE when the slice's transition applied. The skip's rationale (a closed slice is a record, and refreshing lets later work rewrite finished history — :ID: 30a340fd) does not cover same-pass closure, where the refresh would have written exactly the state the close happened under. Fix options: apply refreshes slices after landing member transitions and before landing a slice's own terminal one; or the refresher exempts slices closed by the pass just applied. This instance was hand-derived through Emacs the same day — [4/4], DONE copies, blocker removed.
 
 
-* REVIEW The convention checks compare the live Emacs against whichever checkout invoked them :code:
+* DONE The convention checks compare the live Emacs against whichever checkout invoked them :code:
+CLOSED: [2026-09-08 Tue 09:17]
 :PROPERTIES:
 :ID:       f8c86914-0759-4e05-9292-6f7fa5593701
 :CREATED:  [2026-09-03 Thu 13:40]
@@ -617,6 +624,8 @@ CLOCK: [2026-09-04 Fri 16:30]--[2026-09-04 Fri 16:31] =>  0:01
 - [2026-09-04 Fri 16:30]--[2026-09-04 Fri 16:31] fix the capture-file assertion for worktrees
 - State "REVIEW"     from "DOING"      [2026-09-04 Fri 16:31] \\
   fix shipped and proved from a real worktree
+- State "DONE"       from "REVIEW"     [2026-09-08 Tue 09:17] \\
+  review passed; proved from a real worktree
 :END:
 :PLAN:
 
@@ -709,13 +718,12 @@ box would inflate the denominator forever, which is the reason the mapping exist
 on the dropped line, derived from nothing and set by the drop itself, is the shape that fits.
 
 
-* NEXT [5/9] Make the org discipline travel: ship the machinery, relocate the rules :code:
+* NEXT [11/11] Make the org discipline travel: ship the machinery, relocate the rules :code:
 :PROPERTIES:
 :ID:       ff7ccb2d-2b13-421e-86e3-6b5e187850bf
 :CREATED:  [2026-09-02 Wed 18:17]
 :CATEGORY: Slices
 :KIND:     slice
-:BLOCKER:  ids(1ed7b2b4-a809-4547-b04f-099a3111fc1e f8c86914-0759-4e05-9292-6f7fa5593701 5461c349-fd22-4b75-a508-50efbe4b87f8 d7849119-8224-4993-a8ab-83e1434df53c)
 :COOKIE_DATA: checkbox recursive
 :END:
 :LOGBOOK:
@@ -748,16 +756,16 @@ line-count measurement are all =9ae4b17e='s and are not repeated here.
 - [X] [[id:d5345abb-b451-4468-8f27-4bb2da983215][d5345abb]] DONE Audit CLAUDE.md for directives that belong in the org skill instead
 - [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] DOING Update CLAUDE.md and the org skill for the new architecture
   - [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] DOING CLAUDE.md carries dated history that costs every session's context
-- [-] [[id:1ed7b2b4-a809-4547-b04f-099a3111fc1e][1ed7b2b4]] REVIEW The org 9.7+ dependency is real, undeclared, and unenforced
+- [X] [[id:1ed7b2b4-a809-4547-b04f-099a3111fc1e][1ed7b2b4]] DONE The org 9.7+ dependency is real, undeclared, and unenforced
 - [X] [[id:84b7d8b3-5161-4146-9167-0e7e2100e365][84b7d8b3]] DONE Evaluate choice of shell and standardize all project scripts
-- [-] [[id:f8c86914-0759-4e05-9292-6f7fa5593701][f8c86914]] REVIEW The convention checks compare the live Emacs against whichever checkout invoked them
+- [X] [[id:f8c86914-0759-4e05-9292-6f7fa5593701][f8c86914]] DONE The convention checks compare the live Emacs against whichever checkout invoked them
 - [[id:e396f94a-59db-4c6b-80b4-dc144146877b][e396f94a]] MAYBE Package the Warp wiring
-- [[id:f90d745e-ccf9-49d6-a92e-df25c17b4dfb][f90d745e]] TODO Sixty minutes holding 2 turns is not sixty holding 40 [0/1]
-  - [-] [[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]] REVIEW Record cwd on queue events, so a span can be attributed to a project
+- [[id:f90d745e-ccf9-49d6-a92e-df25c17b4dfb][f90d745e]] TODO Sixty minutes holding 2 turns is not sixty holding 40 [1/1]
+  - [X] [[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]] DONE Record cwd on queue events, so a span can be attributed to a project
   - [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
 - [[id:83b3cdd6-982a-4ae1-878c-79a8c941f638][83b3cdd6]] CANCELLED Record the originating project in queue events
 - [[id:2e09adb7-6e29-499c-a40e-98cd2b327cff][2e09adb7]] TODO Worktree-based session partitioning, with a canonical-file caveat
-- [-] [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]] REVIEW Add README.md and enforce its consistency with CLAUDE.md
+- [X] [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]] DONE Add README.md and enforce its consistency with CLAUDE.md
 - [X] [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] DONE Heading bodies grow into narratives no human will read; decide what to stop capturing
 - [X] [[id:c5b02503-1700-47fd-bf89-bd3296b24af2][c5b02503]] DONE Hook-injected context is only as reliable as the model choosing to relay it
 - [[id:3cb3f955-f10a-47cd-84ab-e629d73ea59d][3cb3f955]] TODO Org skill: commit a newly-captured TODO immediately, when safe
@@ -817,6 +825,11 @@ The prompt that drives this slice, one link per revision, oldest first:
 - [[orgit-rev:claude-code-ide-org::93abc93][93abc93]] [2026-09-04 Fri 08:17] restored the member =:ID:=s beside their titles, and added the fast-forward-main and cut-a-branch steps
 - [[orgit-rev:claude-code-ide-org::ef5ecf8][ef5ecf8]] [2026-09-04 Fri 09:20] made Step 0's branch check generic — survey and ask, rather than a hard-coded PR that would need editing before the next slice could follow it
 - [[orgit-rev:claude-code-ide-org::185f136][185f136]] [2026-09-04 Fri 09:31] banded the file — Step 0 and Standing rules carry forward verbatim, the middle is replaced wholesale — and added the two rules this session earned
+
+Incidental:
+
+- [X] [[id:f1ff027e-5826-4812-8221-96eeba966333][f1ff027e]] DONE Commit co-author trailer is frozen at session start, misattributes after /model
+- [X] [[id:d585d33e-3804-45b3-8f96-65143d79363e][d585d33e]] DONE Adopt systemMessage on the recovery-and-ceremony hook payload
 
 
 * DOING Make the heading body a scannable summary, with plan and debrief in drawers [2/5]
@@ -1412,7 +1425,7 @@ CLOCK: [2026-09-01 Tue 12:26]--[2026-09-01 Tue 12:27] =>  0:01
 *Open, and genuinely undecided:* whether the gap-versus-AFK threshold should ever be automated. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the standing precedent against an invented number, and a ten-minute cap is exactly that. Reporting both bounds and letting the human place the line is the alternative — and unlike the current review pass, it is six questions a day rather than nineteen.
 
 
-* TODO [1/11] Everything passed and the file was still wrong :code:
+* TODO [3/13] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
@@ -1467,6 +1480,8 @@ boundary on purpose — =2a6a1355= is a member because *missing* a footnote is i
 Incidental:
 
 - [X] [[id:43aa25b2-1e21-4117-bf15-b92f3081b60d][43aa25b2]] DONE Nothing watches a REVIEW heading, and it is the state most easily forgotten
+- [X] [[id:f1ff027e-5826-4812-8221-96eeba966333][f1ff027e]] DONE Commit co-author trailer is frozen at session start, misattributes after /model
+- [X] [[id:d585d33e-3804-45b3-8f96-65143d79363e][d585d33e]] DONE Adopt systemMessage on the recovery-and-ceremony hook payload
 
 
 * TODO Three new ways to owe a footnote and not see it: marker, list, quotation :code:
@@ -1618,7 +1633,7 @@ Split out of [[id:c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8][c60a1c53]] 2026-09-01, w
 *Note the check has a real limit worth writing into it:* file mtime is newer than load time is not the same as "the running Emacs is wrong", since an edit may not have touched anything loaded. The report should say what it knows — the file is newer than the load — and let the reader decide, exactly as the stale-interval report states a timestamp and asks rather than guessing.
 
 
-* TODO Sixty minutes holding 2 turns is not sixty holding 40 [1/7]
+* TODO Sixty minutes holding 2 turns is not sixty holding 40 [2/7]
 :PROPERTIES:
 :ID:       f90d745e-ccf9-49d6-a92e-df25c17b4dfb
 :CREATED:  [2026-08-31 Mon 16:39]
@@ -1851,7 +1866,8 @@ Split out of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] 2026-08-31, w
 *Related:* [[id:c4bc5c70-861a-4ce0-80da-c79b6b1600f3][c4bc5c70]] owns the productivity caveat, and this is where the caveat becomes concrete rather than abstract — the reader does not need to import a wrong reading, the line offers one.
 
 
-** REVIEW Record cwd on queue events, so a span can be attributed to a project :code:
+** DONE Record cwd on queue events, so a span can be attributed to a project :code:
+CLOSED: [2026-09-08 Tue 09:20]
 :PROPERTIES:
 :ID:       5461c349-fd22-4b75-a508-50efbe4b87f8
 :CREATED:  [2026-08-31 Mon 16:39]
@@ -1864,7 +1880,10 @@ CLOCK: [2026-09-04 Fri 16:12]--[2026-09-04 Fri 16:15] =>  0:03
 - [2026-09-04 Fri 16:12]--[2026-09-04 Fri 16:15] record cwd on queue events, twin-merged
 - State "REVIEW"     from "DOING"      [2026-09-04 Fri 16:15] \\
   cwd field code-complete and unit-tested; handed back
+- State "DONE"       from "REVIEW"     [2026-09-08 Tue 09:20] \\
+  review passed; cwd recording since 09-04
 :END:
+:PLAN:
 
 Split out of [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] 2026-08-31, because it is a concrete one-line change sitting inside a much larger judgement and does not need to wait for it.
 
@@ -1896,6 +1915,7 @@ list= or the common git dir, the same resolution
 [[id:f8c86914-0759-4e05-9292-6f7fa5593701][f8c86914]] chose for the
 convention checks).
 
+:END:
 *Shipped 2026-09-04* (commit =2d67b7e=, on
 =feature/org-discipline-travel=). One field — =cwd: ($payload.cwd //
 null)= — added to =queue-append='s jq object, between =session_id= and
@@ -2393,6 +2413,8 @@ CLOCK: [2026-09-04 Fri 16:05]--[2026-09-04 Fri 16:10] =>  0:05
 CLOCK: [2026-09-04 Fri 16:54]--[2026-09-04 Fri 16:58] =>  0:04
 CLOCK: [2026-09-08 Tue 08:31]--[2026-09-08 Tue 08:32] =>  0:01
 - <2026-09-08 Tue 09:14>--<2026-09-08 Tue 09:14> review pass (buffer buried)
+- <2026-09-08 Tue 09:18>--<2026-09-08 Tue 09:18> review pass (buffer buried)
+- <2026-09-08 Tue 09:20>--<2026-09-08 Tue 09:20> review pass (buffer buried)
 :END:
 
 
@@ -4523,7 +4545,8 @@ The cause is fixed ([[id:c6fc6f46-4954-4fdf-9d7e-7c8bf3a1a952][c6fc6f46]]) and n
 *Fixture, recorded here so it survives dismissal.* Session =1ad547fe=, guideposts at =2026-08-25T18:36:39=, =19:36:14= and =20:54:33=. Dismissing them marks them consumed but *destroys nothing* -- =--queue-mark-dismissed= writes beside the queue and never touches the =.jsonl=, so undoing it is deleting one key from a small JSON file, and the events remain replayable.
 
 
-* REVIEW The org 9.7+ dependency is real, undeclared, and unenforced :code:
+* DONE The org 9.7+ dependency is real, undeclared, and unenforced :code:
+CLOSED: [2026-09-08 Tue 09:17]
 :PROPERTIES:
 :CATEGORY: Dev
 :ID:       1ed7b2b4-a809-4547-b04f-099a3111fc1e
@@ -4536,6 +4559,8 @@ CLOCK: [2026-09-04 Fri 16:31]--[2026-09-04 Fri 16:33] =>  0:02
 - [2026-09-04 Fri 16:31]--[2026-09-04 Fri 16:33] version guard, test refusal, documented minimum
 - State "REVIEW"     from "DOING"      [2026-09-04 Fri 16:33] \\
   three layers shipped and verified; handed back
+- State "DONE"       from "REVIEW"     [2026-09-08 Tue 09:17] \\
+  review passed; three layers verified
 :END:
 :PLAN:
 
@@ -8553,7 +8578,8 @@ residue. =bin/test= keeps its =BASH_SOURCE=/array bash; it is dev
 tooling.
 
 
-* REVIEW Add README.md and enforce its consistency with CLAUDE.md :code:comms:
+* DONE Add README.md and enforce its consistency with CLAUDE.md :code:comms:
+CLOSED: [2026-09-08 Tue 09:17]
 :PROPERTIES:
 :CATEGORY: Docs
 :ID:       d7849119-8224-4993-a8ab-83e1434df53c
@@ -8579,6 +8605,8 @@ CLOCK: [2026-09-08 Tue 08:47]--[2026-09-08 Tue 08:48] =>  0:01
 - [2026-09-08 Tue 08:47]--[2026-09-08 Tue 08:48] build the two-channel doc-sync reminder hook
 - State "REVIEW"     from "DOING"      [2026-09-08 Tue 08:48] \\
   both parts delivered; handed back whole
+- State "DONE"       from "REVIEW"     [2026-09-08 Tue 09:17] \\
+  review passed; both parts delivered
 :END:
 :PLAN:
 No README.md exists in this repo today — CLAUDE.md is currently the
