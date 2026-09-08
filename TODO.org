@@ -2,6 +2,37 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO One incidental lands in every open slice's window, and the cookies double-count it :code:
+:PROPERTIES:
+:ID:       2c77f2cc-af07-4f4d-aa9d-1aa3bc8843f5
+:CREATED:  [2026-09-08 Tue 09:45]
+:CATEGORY: Slices
+:END:
+
+Observed 2026-09-08: =f1ff027e= and =d585d33e= — fast-tracked and
+closed as incidentals of [[id:ff7ccb2d-2b13-421e-86e3-6b5e187850bf][ff7ccb2d]]
+while it was in progress — appeared in
+[[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]]'s incidental list
+too, whose cookie then read [3/13] with every X borrowed. The
+derivation windows of concurrently-open worked slices overlap, and
+=claude-code-ide-org--refresh-slice-incidentals-at-point= has no
+ownership rule, so one closed heading is claimed by all of them.
+
+*The rule is decided, not open* (the user, same day): **an incidental
+completed during a slice in progress belongs to that slice alone, and
+is removed from every other open slice's derivation.** What remains is
+implementation judgement: how the derivation determines which slice was
+"in progress" when the work closed — the natural candidate is the slice
+whose own members' clocks interleave the incidental's close, falling
+back to most-recently-worked — plus a regression test with two open
+slices and one incidental.
+
+*Until this lands, hand-removal does not stick*: the derivation re-adds
+what it does not find named ("derived from what it does not already
+name"), so the 2026-09-08 hand-revision of =8a2eb687= survives only
+until that slice's next refresh. That is the reason this heading exists
+rather than the removal sufficing.
+
 * TODO The ceremony should refresh open slices, so incidentals and cookies stop waiting on memory :code:
 :PROPERTIES:
 :ID:       d749ebd5-ff2b-4794-941a-0af5c2df1356
