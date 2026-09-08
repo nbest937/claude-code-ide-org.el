@@ -1640,13 +1640,13 @@ CLOCK: [2026-09-01 Tue 12:26]--[2026-09-01 Tue 12:27] =>  0:01
 *Open, and genuinely undecided:* whether the gap-versus-AFK threshold should ever be automated. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the standing precedent against an invented number, and a ten-minute cap is exactly that. Reporting both bounds and letting the human place the line is the alternative — and unlike the current review pass, it is six questions a day rather than nineteen.
 
 
-* TODO [1/11] Everything passed and the file was still wrong :code:
+* TODO [1/12] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
 :CATEGORY: Slices
 :KIND:     slice
-:BLOCKER:  ids(39039bb6-c70a-4ba9-8b37-edd8dd6921f6 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 2aeb65d6-350e-4c75-811e-4a748044fe2c 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b 60ed5b96-40e3-4676-a742-07a8ad6cc3b7)
+:BLOCKER:  ids(39039bb6-c70a-4ba9-8b37-edd8dd6921f6 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 2aeb65d6-350e-4c75-811e-4a748044fe2c 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b 60ed5b96-40e3-4676-a742-07a8ad6cc3b7 53b0047d-c55c-486c-8eed-ba4994d97a1a)
 :COOKIE_DATA: checkbox recursive
 :END:
 
@@ -1670,6 +1670,7 @@ To which add the standing friction: the two MCP tools that time out are worked a
 - [ ] [[id:7fa68d5c-b6c0-43df-85c6-764b1d56511f][7fa68d5c]] TODO Fall back to the queue when org_capture cannot reach Emacs
 - [ ] [[id:381ea07d-633f-4640-abbb-89472a07acba][381ea07d]] TODO An archive pass wrote one subtree twice, and the mechanism is still unknown
 - [ ] [[id:8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b][8ddd7fa8]] TODO Moving a heading between files by hand leaves org-id pointing at the old one
+- [ ] [[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]] TODO Direct file writes to a live org buffer can desync org-clock-marker
 - [ ] [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]] TODO Concurrent sessions share one git index, and explicit staging protects nothing
 - [ ] [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] TODO Three new ways to owe a footnote and not see it: marker, list, quotation
 - [ ] [[id:60ed5b96-40e3-4676-a742-07a8ad6cc3b7][60ed5b96]] TODO --review-format-annotation's docstring contradicts its own let*, four lines down
@@ -1704,6 +1705,17 @@ incidentals — its work, interleaved with its members — and this slice's
 window claimed them too, reading [3/13] with all three X's borrowed.
 Until the derivation itself learns the rule, a refresh of this slice
 will re-add them; the implementation heading carries that warning.
+
+*=53b0047d= added 2026-09-08, after composition*, placed beside
+=2aeb65d6= because they are the same shape one layer apart: a second
+copy of the truth, written by an ordinary action, announcing nothing.
+=2aeb65d6= is two sessions sharing a git index; this is a file write
+and a live Emacs buffer each holding what the other lacks. It earned
+its place the same day by *happening* — a slice member line written to
+disk while a review pass sat unsaved in the buffer, each side unique,
+neither =revert-buffer= nor =C-x C-s= safe alone. Every check was
+green throughout, which is this slice's sentence.
+
 
 
 
