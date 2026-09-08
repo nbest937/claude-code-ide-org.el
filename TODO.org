@@ -507,6 +507,7 @@ gets partially skipped, and suggests the real fix is one command rather than a s
 :ID:       ecf66d45-18b3-477f-bca8-08bec90604e8
 :CREATED:  [2026-09-04 Fri 08:52]
 :CATEGORY: Skill
+:BLOCKER:  ids(b0e478f7-e894-4ac7-b0b6-b3c890b5b32a)
 :END:
 
 *Wanted by the user 2026-09-04, stated as a requirement for future projects rather than a gap in this
@@ -535,6 +536,15 @@ a slice sequences without committing to a calendar, and dating one may be the wr
 whether this is a convention for *this* repo or belongs in the portable half, since the ask was
 framed as "future projects": that is =9ae4b17e='s classification question arriving from a new
 direction, and it is why this carries =:CATEGORY: Skill= rather than =Meta=.
+
+*Deferred to packaging, 2026-09-08 (the user), and the nomination
+withdrawn* — a =NEXT= queued minutes earlier on closing =84b7d8b3= is
+to be declined at review. The heading's own last question ("this
+repo's convention or the portable half's?") is answered by the
+deferral: it is decided *with* the portable half, so
+[[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]] is now its
+=:BLOCKER:=. The forecast-vs-record boundary design happens there.
+
 
 
 * TODO Accepting a slice proposal leaves its body still calling itself a proposal
@@ -1726,7 +1736,7 @@ The one place the scalar wins outright, per the parent's own analysis: turns/hou
 :ID:       b862fbf4-53b8-48b5-b773-1c7c0332dfb4
 :CREATED:  [2026-08-31 Mon 15:44]
 :CATEGORY: Queue
-:BLOCKER:  ids(9ae4b17e-278c-482f-9114-df28b2254806 5461c349-fd22-4b75-a508-50efbe4b87f8)
+:BLOCKER:  ids(b0e478f7-e894-4ac7-b0b6-b3c890b5b32a)
 :END:
 
 Split out of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] 2026-08-31. *The substantial half, and the one that actually answers the question the parent was asked.*
@@ -1757,6 +1767,17 @@ Attention is zero-sum across concurrent sessions. If the human was driving sessi
 *Explicitly out of scope, so it is not mistaken for an oversight:* predicting or constructing attention intervals automatically, given more history, external signals and practice. That may become possible; it is not being attempted.
 
 *The remaining precondition is [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]].* Hooks are project-scoped, so only sessions in this repo write queue files at all and the directory sees one project. Moving hooks to =~/.claude/settings.json= is what gives cross-project allocation anything to compare — portability work motivated for an entirely different reason that turns out to be load-bearing here.
+
+*Deferred to packaging, 2026-09-08 (the user).* The named
+preconditions are satisfied in the letter — =9ae4b17e= classified,
+=5461c349= shipped — but not in the substance: hooks are still
+project-scoped until [[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]]
+ships them user-level, so the queue directory still sees one project
+and there is nothing to allocate *between*. =:BLOCKER:= re-pointed
+accordingly. Meanwhile the =cwd= field accumulates (recording since
+2026-09-04); the judgement design happens when there is real
+multi-project data to judge against, not before.
+
 
 
 ** TODO Decide where the caveat lives that turn count is not productivity :code:
