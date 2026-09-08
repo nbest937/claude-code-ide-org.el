@@ -615,6 +615,25 @@ the lint is the backstop for both.
 gets partially skipped, and suggests the real fix is one command rather than a shorter list. Setting
 =:COOKIE_DATA:= at declaration is one of the steps such a command would take.
 
+*Measured 2026-09-08, composing =c19fbbf5= declared from the start.*
+The cost was two extra =org_set_property= calls at composition —
+=:COOKIE_DATA:= and =:BLOCKER:= — plus a hand-typed =[0/4]=, all three
+being values =refresh-slice= derives. Lint came back 0 errors, so the
+friction is *not* that a declared slice trips the lint, as the
+proposal convention implies; it is that the composer must hand-write
+what a mechanism already knows how to compute, and be trusted to get
+them consistent with each other.
+
+That sharpens the prevention seam above. =org_set_property='s
+=:KIND: slice= branch is the moment a heading becomes a slice, and it
+could set =:COOKIE_DATA:=, insert the =[/]= cookie, and derive the
+=:BLOCKER:= from the checklist in one act — turning three
+hand-maintained values into zero. Note the ordering constraint the
+composition exposed: the checklist must exist *before* the blocker can
+be derived from it, so a declaration-time hook either runs after the
+body is written or leaves the blocker to the first refresh.
+
+
 
 * NEXT Nothing lays out future work on a timeline the agenda can show
 :PROPERTIES:
