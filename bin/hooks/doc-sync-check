@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# PostToolUse on Edit|Write: when the file just edited is this project's
+# CLAUDE.md or README.md, remind the session that the two deliberately
+# duplicate a small overlap zone synced by hand (TODO.org :ID: d7849119
+# part 2 -- built 2026-09-08, after :ID: c5b02503 measured the relay
+# problem and :ID: d585d33e shipped the answer).
+#
+# Two channels, per that decision: additionalContext is the model's copy
+# -- an instruction to check the sibling and act -- and systemMessage is
+# the human's, so the reminder is delivered even when the model sits on
+# its copy (measured: one silent drop in three). Inject-and-remind, not
+# block: hard-blocking an edit was rejected in d7849119's own body as
+# heavier than this warrants.
+#
+# Full-path match against CLAUDE_PROJECT_DIR, not basename: editing
+# ~/.claude/CLAUDE.md (the user-global instructions) must not trigger a
+# reminder about this repo's README.
+#
+# Survive-without-Emacs tier (CLAUDE.md "Scripting conventions"): plain
+# bash + jq, fire-and-forget, always exit 0.
+
+set -uo pipefail
+
+command -v jq >/dev/null 2>&1 || exit 0
+input="$(cat)"
+fp="$(jq -r '.tool_input.file_path // empty' <<<"$input" 2>/dev/null)"
+[ -n "$fp" ] || exit 0
+
+root="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+
+case "$fp" in
+  "$root/CLAUDE.md") edited="CLAUDE.md"; sibling="README.md" ;;
+  "$root/README.md") edited="README.md"; sibling="CLAUDE.md" ;;
+  *) exit 0 ;;
+esac
+
+jq -n -c --arg e "$edited" --arg s "$sibling" '{
+  systemMessage: ("docs: \($e) was edited — \($s) shares its hand-synced overlap (intro, install) and may need the same change"),
+  hookSpecificOutput: {
+    hookEventName: "PostToolUse",
+    additionalContext: ("\($e) was just edited. \($e) and \($s) deliberately duplicate a small overlap zone (intro framing, the install summary) that is synced by hand rather than imported — check whether \($s) needs the same change, and either make it or say briefly why it does not apply. TODO.org :ID: d7849119 is the convention.")
+  }
+}'
+exit 0
