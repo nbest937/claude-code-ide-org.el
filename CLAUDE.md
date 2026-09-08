@@ -970,6 +970,7 @@ incident, and the reason the queue exists:
 | `org_set_property`  | `org-entry-put`          | Set a property by `:ID:`. `:BLOCKER:` is validated — ids resolved, prefixes expanded, unresolvable refused — and `append` unions rather than replaces. Refuses `:ID:`/`:CREATED:` |
 | `org_move_sibling`  | `org-move-subtree-up/down` | Move a heading up/down among siblings |
 | `org_sort_children` | `org-sort-entries`       | Sort a heading's direct children       |
+| `org_slice_add_member` | custom (insert + refresh) | Add a heading to a slice's planned checklist, with `after` for ordering; the line, cookie and `:BLOCKER:` are derived by the refresh it runs. Refuses closed slices, duplicates and keyword-less members — never hand-edit a checklist while this exists |
 | `org_log_background_plan` | custom (insert-plan-link) | Write-back for background-planned headings: inserts the Plan link. Still accepts `session_id`, but no longer records it — that went with `:SESSIONS:`; never touches TODO state or the clock |
 
 **Conditional** — writes through Emacs when it can, queues when it can't:
