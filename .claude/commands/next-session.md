@@ -1,7 +1,7 @@
 # Next session
 
-A plan for `52bfafdf` — **Only membership and order are declared, and
-everything else still needs a hand**.
+A plan for `c19fbbf5` — **Ship the plugin: make the machinery and its
+prose travel together**.
 
 **The slice is the list.** Open it and read its checklist; this file gives
 the plan, not the membership. The two disagree only if one is stale, and the
@@ -97,157 +97,128 @@ work.
 > session does not re-measure what this one already established. Keep it to
 > findings a session would otherwise spend real time rediscovering.
 
-**The refresh undoes hand-repair, measured twice.** Members removed from a
-slice's incidental list by hand were restored by the next
-`claude-code-ide-org-refresh-slice`, because the derivation adds what it
-does not already find named. So a wrong incidental list is **not** to be
-tidied while waiting for the fix — read it as unreliable instead. This is
-the single most useful fact in this file.
+**The slice's first step is unblocked, verified 2026-09-08.** `b0e478f7`'s
+`:BLOCKER:` names `d5345abb` (the CLAUDE.md-vs-skill audit), which is
+`DONE` in DONE.org — the SKILL and RULE rows are relocated, so the prose
+moves once. `9d009401`'s blocker `9ae4b17e` (the portability
+classification) is likewise discharged; its four decisions stand and are
+recorded on that heading and quoted in `9d009401`'s body.
 
-**The scale of that wrongness, measured 2026-09-08.** Three closed headings
-(`f1ff027e`, `d585d33e` and the closed slice `ff7ccb2d`) appear as
-incidentals of *every* open slice. `c19fbbf5`, composed that day and never
-worked, lists three incidentals that closed before it existed — the window
-has no left edge for an unstarted slice, which is the failure `f9fe9fac`
-hit before at 26 incidentals. And a **slice appearing as another slice's
-incidental** is contemplated by no rule at all. Two predicates are needed,
-not one: ownership, and excluding `:KIND: slice`.
+**Three of the five members were deferred *into* the packaging step by
+the user on 2026-09-08, and their bodies say so.** `ecf66d45` is decided
+*with* the portable half (its forecast-vs-record boundary design happens
+at packaging); `b862fbf4` waits for hooks to ship user-level, and then
+for multi-project `cwd` data to accumulate — it likely cannot *finish* in
+the next session no matter what; `e396f94a` stays `MAYBE` with its
+promotion trigger being "packaging starts", so the manifest step names
+it. Do not re-litigate these deferrals; the bodies carry the reasoning.
 
-**No tool adds a member line to a slice.** Every membership edit this
-session went through a hand-written `emacsclient` call or a direct file
-write; the latter caused a buffer/disk divergence that took a manual merge
-to repair. `org_set_property` handles `:BLOCKER:` correctly, including
-against a read-only buffer; nothing handles the checklist line or the
-cookie. That is `635d5abb`'s subject, and the reason it is the Tools
-nomination.
+**The tool surface changed on 2026-09-08, and a fresh session has the new
+schemas.** `org_amend` continues a list (single newline when both sides
+are list items) and takes `drawer=` (PLAN/DEBRIEF, created when absent —
+plan-first composition is one call). `org_set_property` `KIND=slice`
+completes the declaration: `:COOKIE_DATA:`, the `[/]` cookie, and the
+`:BLOCKER:` derived from an existing checklist. A drop is declared in the
+slice's `:DROPPED:` property; cookie absence alone means nothing and is
+re-derived. The ceremony refreshes open slices itself and **reports a
+worked slice carrying no `orgit-rev:` prompt link** — expect it to name
+`c19fbbf5` at first work; add the link to this file's rewrite commit at
+pickup rather than waiting for the nag.
 
-**A long `emacsclient -e` form fails on shell quoting.** Write the elisp to
-a file in the scratchpad and `(load "…")` it instead — two attempts died on
-`End of file during parsing` before that. And a region-replacing edit must
-have its end anchor checked: the first rewrite of this slice's own prose
-clipped a sentence mid-clause, which was caught only by reading the result
-back.
+**The suite's baseline is exactly two expected failures** — the
+advance-repeater date flakes, filed as `a8811bf2` (they hardcode
+"2026-09-04"; the `++1d` semantics moved on). They fail identically on
+HEAD. A run reporting only those two is clean; a run reporting none means
+someone fixed `a8811bf2` — check before assuming.
 
-**Both `NEXT`s on the list are correct.** `635d5abb` holds Tools' top-level
-nomination and `501a8422` is the `4c834fdb` story's internal one. A slice's
-member list showing several `NEXT`s is the convention working — members are
-references, and those are other groups' nominations showing through.
+**CLAUDE.md's prune arithmetic is already measured; do not re-measure.**
+~660 of ~1200 lines are machinery that ships with the plugin; three
+sections (state transitions, engineering practices, session tracking)
+hold 69% of the file; the contested remainder after packaging relocates
+its share is ~70 lines, and the read-through of those is `9d009401`'s
+remaining work, reserved for the user in the loop. The file *grew* +15%
+during the slice that asked it to shrink; the packaging move is what
+actually reverses that, not further pruning.
 
----
+## Step 1 — Build the package
 
-## Step 1 — Make the derivation trustworthy
+`b0e478f7` — *Package the plugin: references, setup command, machinery
+prose*. Nearly the whole slice, and everything else in it is sequenced
+by this step's progress. Four deliverables, landing together so
+instructions and machinery travel in one change:
 
-`2c77f2cc` — *One incidental lands in every open slice's window, and the
-cookies double-count it*. First deliberately, and the ordering was changed
-to put it there: it is the only member producing visible garbage on every
-refresh rather than waiting to be noticed, and until it lands **no slice's
-cookie can be trusted, including those of the slices every other member is
-judged by**.
+- the plugin manifest (`.claude-plugin/plugin.json`);
+- the conventions shipped as skill `references/`;
+- the `bin/` setup command that promotes conventions into a consuming
+  repo's `.claude/rules/` — per-repo, full strength, consent-by-install,
+  per `9ae4b17e`'s recorded decisions;
+- CLAUDE.md's ~580 lines of machinery prose (queue architecture,
+  transition rules, tool tables, session tracking) moving into the
+  shipped references in the same change. Guards travel with their
+  conventions (`9d009401`'s settled decision 4): the dated blocks
+  protecting live rules move intact, never compressed.
 
-The rule is decided, not open: an incidental completed during a slice in
-progress belongs to that slice alone. What remains is implementation
-judgement — how the derivation decides which slice was in progress when the
-work closed (the natural candidate is the slice whose own members' clocks
-interleave the close, falling back to most-recently-worked), plus the
-second predicate excluding `:KIND: slice` outright, plus the left-edge fix
-so an unworked slice derives an empty list rather than an unbounded one.
+Two decisions surface *inside* this step and are the user's: what the
+setup command may touch on a consuming machine (`1caed585`, still
+`MAYBE`, is the standing question — the manifest may collapse it), and
+whether hooks ship user-level (`b862fbf4`'s precondition; shipping them
+is what gives cross-project allocation anything to compare).
 
-Wants a regression test with two open slices and one incidental. Expect the
-fix to change several slices' cookies the first time it runs; that is the
-point, not a regression.
+## Step 2 — Decide the Warp wiring at the manifest
 
-## Step 2 — Close the `org_amend` targeting gap
+`e396f94a` — *Package the Warp wiring*, `MAYBE` on purpose. Its own body
+names the trigger: packaging starting is the decision point, and the
+manifest is where "does the Warp wiring get packaged?" has an answer.
+The outcomes are: in the package (promote and generalise the snippet),
+or explicitly not (stays `MAYBE` for a future upstream PR, or
+`CANCELLED` with the body kept). **A user decision; expect to stop.**
 
-Two members, one edit to one function, and they are the reason Step 1's
-work is awkward to record while it is happening.
+## Step 3 — The contested read-through
 
-- `635d5abb` — *org_amend cannot continue a list, and the slice revision
-  links are always one*. **Tools' `NEXT`.**
-- `501a8422` — *Give org_amend a drawer argument, so a plan can be revised
-  and written in one call*. The `4c834fdb` story's internal `NEXT`; its
-  subject is not a slice, and it is carried here because it is the same
-  function and the same defect class. Drop it if that reads as scope creep;
-  nothing else depends on it.
+`9d009401` — *CLAUDE.md carries dated history that costs every session's
+context*, already `DOING`. After Step 1 relocates the shipped share,
+what remains is the genuinely contested ~70 lines of dated history —
+and this heading has said three times, correctly, that the read-through
+**needs the user in the loop, not a background pass**. The session's
+job is to prepare the diff view (what moved, what remains, per-block),
+then stop and read it *with* them.
 
-The argument for doing them together is on `635d5abb`: the workaround for a
-missing target is a direct file write, which leaves Emacs's own copy behind
-— the failure the queue exists to prevent everywhere else.
+## Step 4 — The timeline boundary, if reached
 
-## Step 3 — Make the property rather than reporting it
+`ecf66d45` — *Nothing lays out future work on a timeline the agenda can
+show*. Decided with the portable half by the user's deferral. The work
+is design before dates: forecasts (active timestamps) must stay apart
+from the record (inactive spans, CLOCK lines), and whether slices get
+dates at all is open. Both are judgement questions — treat this step as
+a conversation to have if Steps 1–3 leave room, not code to write.
 
-`acf46449` — *Every slice needs `:COOKIE_DATA:` and no slice creates it;
-the lint only reports*. The heading carries both seams: repair at refresh,
-prevention at declaration in `org_set_property`'s `:KIND: slice` branch,
-and its own conclusion that they are complementary rather than
-alternatives, since a slice can be declared by hand.
+## Step 5 — What b862fbf4 can and cannot do yet
 
-**Measured 2026-09-08 and recorded there:** composing a slice declared cost
-two extra `org_set_property` calls and a hand-typed cookie, all three being
-values a mechanism already knows how to derive — and the lint came back
-clean, so the friction is composition cost rather than a lint failure. Note
-the ordering constraint that measurement exposed: the checklist must exist
-before a `:BLOCKER:` can be derived from it.
-
-## Step 4 — Retire the proposal convention
-
-`7f0c9baa` — *The proposal convention's last argument is falsified; an open
-slice is its own proposal*. Independent of everything above, and a
-convention decision rather than code: edit `.claude/rules/org-conventions.md`,
-retire §"Proposing a slice", and **relocate the twin review question that
-currently lives inside it** — that paragraph is independent of proposals and
-must survive its host.
-
-It has already claimed one member: `198dd00e` was cancelled on this
-heading's arrival, since with no acceptance moment there is no body left
-calling itself a proposal. Its one surviving fragment — a worked slice
-carrying no `orgit-rev:` prompt link — moved to `d749ebd5`.
-
-Open on the heading, deliberately: whether anything replaces the `MAYBE`
-signal for an uncommitted slice. The candidate answer is that nothing need
-— an unstarted slice has no clocked members and no `DOING`.
-
-## Step 5 — The independent three
-
-Independent of each other and of everything above; take them in any order,
-or as the place to make progress when a decision above is not yours to
-make.
-
-- `2d2211d5` — *Adding a just-captured heading to a slice cannot be made
-  lint-clean*
-- `de687e4d` — *A slice closed by the same apply pass freezes with stale
-  member lines*
-- `1b727475` — *A MAYBE member and a dropped member render identically, and
-  the drop is now sticky*
-
-`1b727475` has recurred visibly: this slice's own body carries a sentence
-distinguishing its cookie-less lines by hand, because nothing else does.
-
-## Step 6 — Automate the refresh
-
-`d749ebd5` — *The ceremony should refresh open slices, so incidentals and
-cookies stop waiting on memory*. Last because it is the pass that makes
-everything above stop needing a human to remember it, and it should
-therefore run against a derivation that is already correct.
-
-Two things it now owes, the second inherited: refresh every open slice as a
-fourth idempotent step in the ceremony's post-apply flow, beside drawer
-consolidation and heading separation; and **report a worked slice carrying
-no `orgit-rev:` prompt link**, which it can detect even though only the
-composer knows which revision applies.
+`b862fbf4` — *Allocate attention across concurrent sessions, which is
+zero-sum*. If Step 1 ships hooks user-level, the only action here is
+verifying multi-project `cwd` data starts accruing; the judgement design
+explicitly waits for real data to judge against. **Do not attempt to
+close this member in the next session**; progress is "the precondition
+now holds and data is accumulating", stated plainly.
 
 ### Where this will stop
 
-Later than the last slice, because most of this is code with a decided
-rule behind it rather than a judgement waiting on the user. Step 1 is a
-contained fix in one function; Steps 2 and 3 are named seams; Step 5 is
-three independent defects. The one place to expect a stop is **Step 4**,
-which edits a convention file and relocates prose — and its `MAYBE`-signal
-question should be answered rather than assumed.
+Earlier than the last slice, and by design: the last slice was decided
+rules awaiting code, this one is code awaiting decisions. Step 1's build
+is the autonomous core, and even it contains two user calls (the install
+surface, the hooks' scope). Steps 2 and 3 are explicit stops — a
+manifest decision and a shoulder-to-shoulder read-through — and Steps 4
+and 5 are conversations and preconditions, not deliverables. A session
+that ships the manifest, references and setup command, then stops with
+the CLAUDE.md diff prepared for joint review, has done the slice's day
+well.
 
-**A caution particular to this slice:** it is *about* the machinery that
-maintains slices, so every member changes how this very list renders.
-Re-read the slice after each landing rather than trusting the copy you
-started from — and expect cookies to move for correct reasons.
+**A caution particular to this slice:** it moves prose that other
+sessions load as context. Between the packaging commit and the next
+session start, CLAUDE.md's description of the machinery and the shipped
+references' description are two copies; any interim session reads only
+the former. Land the move and its CLAUDE.md pointer stubs in one commit,
+never split across a session boundary.
 
 ---
 
@@ -275,6 +246,9 @@ started from — and expect cookies to move for correct reasons.
 - **Reproduce the hypothesis before fixing it.** One heading's stated likely
   cause was wrong, and its own body had flagged it unverified for exactly
   that reason. Reproducing took one command and changed the fix entirely.
+  Second instance 2026-09-08: `2c77f2cc`'s left-edge failure did not
+  reproduce against live data — the guard already worked — and the fix
+  narrowed to a pinning test instead of code.
 - **Prove a test discriminates.** Copy the file aside and restore `HEAD`'s
   version in place; **never `git stash`**. Every fix on 2026-09-03 was run
   red first, and one regression test was written a commit early and *held
@@ -286,7 +260,9 @@ started from — and expect cookies to move for correct reasons.
   never the absence of `FAILED`. Beware `$?` after a pipeline.
 - **Never pass `--no-verify`.** When the org lint blocked a commit because a
   plan file had vanished from `~/.claude/plans`, the fix was restoring it
-  byte-for-byte from `plans/` — which is what that archive exists for.
+  byte-for-byte from `plans/` — which is what that archive exists for. It
+  happened again on 2026-09-08 (two plan files, four lint errors) and the
+  same restoration cleared it.
 - **`command` before a shell builtin is not a safety measure.** `command cd`
   skips fish's builtin for an external no-op, so `pwd` reported the wrong
   directory and every check silently ran against the wrong tree. Two existing
@@ -305,3 +281,18 @@ started from — and expect cookies to move for correct reasons.
   — so check `git diff --stat` before committing a file someone else may have
   touched, and if it happened, amend the message to name both authors rather
   than letting the log misattribute the work.
+- **A branch switch rewrites `TODO.org` on disk, and auto-revert follows.**
+  On 2026-09-08 a branch cut from an older base reverted the file under
+  Emacs, and a debrief amend landed on a copy missing 143 lines — caught
+  only because the pre-commit `git diff --stat` showed deletions where an
+  append-only session should show none. Do org bookkeeping only from
+  `main` (or a branch whose `TODO.org` matches it); after any switch,
+  assume the buffer changed under you. Recovery: restore `main`'s copy,
+  diff the stale copy against its own base to extract what was added,
+  re-apply through the tools.
+- **GitHub closes a stacked PR when its base branch is deleted at merge**
+  — it does not retarget. On 2026-09-08, merging `#11` with
+  `--delete-branch` closed `#13` (stacked on it) unrecoverably: a closed
+  PR's base cannot be edited, so it was recreated as `#14`. Either
+  retarget the stacked PR to `main` *before* merging its base, or expect
+  to recreate it and say so in the new body.
