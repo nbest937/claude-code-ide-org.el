@@ -1148,8 +1148,24 @@ not.
 CLOCK: [2026-09-03 Thu 13:47]--[2026-09-03 Thu 13:49] =>  0:02
 - [2026-09-03 Thu 13:47]--[2026-09-03 Thu 13:49] assigned at review
 :END:
+:PLAN:
 
 Observed 2026-09-03 on :ID: ec65b5d6, the first slice composed and closed within one day. The apply pass landed the members' DONEs and the slice's own DONE in the same ceremony, and refresh-slice then skipped the slice as closed — so it froze at [0/4] with TODO member-line copies and a full :BLOCKER:, a record that was never true at close: every member was already DONE when the slice's transition applied. The skip's rationale (a closed slice is a record, and refreshing lets later work rewrite finished history — :ID: 30a340fd) does not cover same-pass closure, where the refresh would have written exactly the state the close happened under. Fix options: apply refreshes slices after landing member transitions and before landing a slice's own terminal one; or the refresher exempts slices closed by the pass just applied. This instance was hand-derived through Emacs the same day — [4/4], DONE copies, blocker removed.
+
+:END:
+*Debrief, 2026-09-08.* Shipped in PR #15 (=5b015e9=). Of the two fix
+options this body named, the second: the refresher exempts slices
+closed by the pass just applied. =claude-code-ide-org-refresh-slice=
+takes an =INCLUDE-CLOSED= list waiving the terminal-keyword skip, and
+=--review-settle-slices= computes it from the batch it just landed —
+every applied state item whose target keyword is terminal. So the
+just-closed slice freezes showing the state the close happened under,
+and is never refreshed again after that pass; =30a340fd='s protection
+is untouched for every later pass. Reordering apply (the first option)
+was declined as more intrusive for the same result. Two tests, both
+proven failing against the pre-change code; two existing stubs of
+=refresh-slice= widened to the new arity.
+
 
 
 * DONE The convention checks compare the live Emacs against whichever checkout invoked them :code:
@@ -1225,6 +1241,7 @@ Found 2026-09-03 while re-checking whether org_query reaches DONE.org. The tool 
 :CREATED:  [2026-09-02 Wed 18:28]
 :CATEGORY: Slices
 :END:
+:PLAN:
 
 *Found 2026-09-02 by reading the result of declaring [[id:ff7ccb2d-2b13-421e-86e3-6b5e187850bf][ff7ccb2d]], minutes after shipping the convention that causes it.*
 
@@ -1258,6 +1275,34 @@ this", and =MAYBE= means "the referent is not committed to". Those are different
 render the same, so a fix has to make the *drop* visible rather than make =MAYBE= carry a box — a
 box would inflate the denominator forever, which is the reason the mapping exists. A distinct marker
 on the dropped line, derived from nothing and set by the drop itself, is the shape that fits.
+
+:END:
+*Debrief, 2026-09-08.* Shipped in PR #15 (=cefd6ff=), taking the
+candidate this body's own analysis narrowed to: a =:DROPPED:= property
+on the slice, the only marker that survives a line being regenerated
+wholesale. The checkbox is now *fully* derived — referent keyword,
+minus =:DROPPED:= ids, minus grouping-label lines (cookie-less with an
+indented member beneath, =758a8b78='s partial-coverage reading, kept
+structural and guarded with =save-match-data= around the lookahead).
+The sticky half is healed: a =MAYBE= member promoted to =TODO= regains
+its box on the next refresh, pinned by a test that fails against the
+old rewriter. =org_outline='s "(dropped)" label follows the property
+too, instead of repeating the conflation in a second renderer — a
+keyword-derived cookie-less line now renders bare, its keyword telling
+the story.
+
+*Corpus migrated*: =8a2eb687='s three cookie-less DONE members
+(=542924c1= =d2a0f54c= =72463b68=) were written into its =:DROPPED:=,
+preserving the rendering a human left; removing an id from the
+property is now the visible, reversible way to reverse that judgement.
+The convention's dropping section and its known-ambiguity paragraph
+are rewritten as resolved.
+
+*Residue, deliberately unfiled*: =:DROPPED:= ids are not validated at
+write the way =:BLOCKER:='s are, and no lint checks they resolve — a
+typo fails open as a member regaining its box, which is at least
+visible. Worth folding into =org_set_property= if it ever bites.
+
 
 
 * DONE [11/11] Make the org discipline travel: ship the machinery, relocate the rules :code:
@@ -2696,6 +2741,7 @@ Whatever is chosen, the shape to avoid is the current one, where the failure is 
 :LOGBOOK:
 - State "TODO"       from              [2026-08-31 Mon 12:14]
 :END:
+:PLAN:
 
 Adding a heading to a slice in the same session that captured it cannot be made lint-clean, and the workflow that would avoid it was never chosen.
 
@@ -2706,6 +2752,20 @@ Adding a heading to a slice in the same session that captured it cannot be made 
 Hit again 2026-08-31 while composing, costing a full revert and a wait on the human. Twice is enough to pick one.
 
 The cheapest candidate is procedural and costs nothing to write: state in the slice convention (=.claude/rules/org-conventions.md=) that a member is applied before it is added. The alternative is mechanical -- let a slice carry a member it cannot yet block on, and have the lint say so as a warning rather than an error -- which is more work and weakens a rule that is otherwise exactly right.
+
+:END:
+*Debrief, 2026-09-08.* Shipped in PR #15 (=12d936f=), taking the
+cheapest candidate exactly as this body argued: a convention rule in
+=.claude/rules/org-conventions.md= — a heading joins a checklist only
+once it exists on disk with its keyword — rather than weakening either
+lint rule, both of which are right. The rule costs less than this body
+expected when filed, because =org_capture='s =initial_state=
+(=c74f8663=, shipped the same day this was filed) writes the keyword
+through immediately when the file is free: the reply's prefix says
+which case applies, "Captured:" meaning add-at-once is safe and
+"Queued capture:" meaning apply first. =798bb7a1='s open question is
+thereby answered where a reader will meet it, instead of in DONE.org.
+
 
 
 * TODO An archive pass wrote one subtree twice, and the mechanism is still unknown :code:
