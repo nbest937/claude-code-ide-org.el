@@ -3703,10 +3703,48 @@ declaring it :KIND: slice would make it both")
       (condition-case err
           (org-with-point-at marker
             (if (not (equal property "BLOCKER"))
-                (progn (org-entry-put (point) property value)
-                       (save-buffer)
-                       (format "Set %s on \"%s\"" property
-                               (org-get-heading t t t t)))
+                (if (and (equal property "KIND")
+                         (equal (downcase (string-trim (or value ""))) "slice"))
+                    ;; Declaring a slice is the one moment a heading
+                    ;; *becomes* one, so the declaration completes
+                    ;; itself: everything a slice must carry that a
+                    ;; mechanism can derive is written here rather than
+                    ;; left for the composer's hand (TODO.org :ID:
+                    ;; acf46449 -- measured, composing one declared cost
+                    ;; two property calls and a hand-typed cookie, all
+                    ;; three values refresh-slice already derives).
+                    (let (did)
+                      ;; Canonical lowercase: every slice predicate
+                      ;; tests (equal "slice" ...), so "Slice" would
+                      ;; declare something nothing recognises.
+                      (org-entry-put (point) "KIND" "slice")
+                      (unless (org-entry-get nil "COOKIE_DATA")
+                        ;; `checkbox' because members are list items;
+                        ;; `recursive' because a nested member's lines
+                        ;; are otherwise excluded (:ID: b6da3480).
+                        (org-entry-put (point) "COOKIE_DATA"
+                                       "checkbox recursive")
+                        (push ":COOKIE_DATA:" did))
+                      (when (claude-code-ide-org--ensure-statistics-cookie-at-point)
+                        (push "[/] cookie" did))
+                      ;; The blocker derives from the checklist, so a
+                      ;; declaration made before the body is written
+                      ;; leaves it to the first refresh rather than
+                      ;; deleting a hand-set value against no members.
+                      (when (and (claude-code-ide-org--slice-members)
+                                 (claude-code-ide-org--refresh-slice-blocker-at-point))
+                        (push ":BLOCKER:" did))
+                      (save-buffer)
+                      (format "Set KIND on \"%s\"%s"
+                              (org-get-heading t t t t)
+                              (if did
+                                  (format " (declared a slice; derived %s)"
+                                          (string-join (nreverse did) ", "))
+                                " (declared a slice; nothing to derive)")))
+                  (org-entry-put (point) property value)
+                  (save-buffer)
+                  (format "Set %s on \"%s\"" property
+                          (org-get-heading t t t t)))
               (let ((parsed (claude-code-ide-org--blocker-ids-from value)))
                 (if (eq (car parsed) 'error)
                     (format "Error: %s" (cdr parsed))
@@ -4983,7 +5021,8 @@ With ID, refreshes that slice only.  Returns a human-readable summary."
         ;; read-only buffer failing it would reproduce the exact incident
         ;; the apply-path binding was added for, one command later.
         (inhibit-read-only t)
-        (slices 0) (lines 0) (blockers 0) (incidentals 0) (unrendered nil))
+        (slices 0) (lines 0) (blockers 0) (incidentals 0) (cookie-data 0)
+        (unrendered nil))
     (dolist (file (claude-code-ide-org--tracked-files))
       (when (file-exists-p file)
         (with-current-buffer (find-file-noselect file)
@@ -5036,6 +5075,19 @@ With ID, refreshes that slice only.  Returns a human-readable summary."
                ;; Self-healing rather than a creation-time rule, which is
                ;; the point: a discipline that depends on remembering is
                ;; the thing this repo keeps discovering it cannot have.
+               ;;
+               ;; :COOKIE_DATA: joins the cookie on the same argument
+               ;; (TODO.org :ID: acf46449): every slice needs it, nothing
+               ;; created it, and the lint's error is a report a human
+               ;; had to remember to act on. Absent only -- a *wrong*
+               ;; value stays a lint error for a human, since repairing
+               ;; it would silently overwrite a hand-set divergence.
+               ;; org_set_property's :KIND: slice branch is the
+               ;; prevention half; this is the backstop for a slice
+               ;; declared by hand in Emacs.
+               (unless (org-entry-get nil "COOKIE_DATA")
+                 (org-entry-put nil "COOKIE_DATA" "checkbox recursive")
+                 (setq cookie-data (1+ cookie-data)))
                (claude-code-ide-org--ensure-statistics-cookie-at-point)
                (org-update-statistics-cookies nil)
                (when (claude-code-ide-org--refresh-slice-blocker-at-point)
@@ -5047,6 +5099,11 @@ With ID, refreshes that slice only.  Returns a human-readable summary."
              lines (if (= lines 1) "" "s")
              blockers (if (= blockers 1) "" "s")
              incidentals (if (= incidentals 1) "" "s"))
+     ;; A repair is a change to a declaration a human may believe they
+     ;; made differently; say it happened rather than folding it into
+     ;; the ambient counts.
+     (when (> cookie-data 0)
+       (format "; %d :COOKIE_DATA: repaired" cookie-data))
      ;; Reported, not merely applied. An id dropped for belonging to
      ;; another slice is a *decision* about ownership, and a derived list
      ;; that quietly shrinks is as wrong as one that quietly grows --
@@ -13066,7 +13123,14 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
                  "and a heading captured this session is keyword-less until "
                  "the queue is applied. Refuses :ID: and :CREATED:, which are "
                  "identity written at capture. Refuses while the file has "
-                 "unsaved changes in Emacs; retry once it is saved.")
+                 "unsaved changes in Emacs; retry once it is saved. "
+                 "KIND=slice COMPLETES THE DECLARATION: it also writes "
+                 ":COOKIE_DATA: checkbox recursive, inserts the [/] cookie, "
+                 "and derives the :BLOCKER: from the checklist when one "
+                 "already exists (a declaration made before the body is "
+                 "written leaves the blocker to the first refresh) -- so "
+                 "declare a slice with this one call rather than hand-writing "
+                 "the three derived values.")
    :args '((:name "id"
             :type string
             :description "The :ID: property value of the heading to modify.")
