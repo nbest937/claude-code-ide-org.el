@@ -8,6 +8,31 @@
 :CREATED:  [2026-09-08 Tue 16:41]
 :CATEGORY: Slices
 :END:
+:DEBRIEF:
+*Debrief, 2026-09-08.* Shipped in PR #20 (=4ef7ff5=). Two changes, and
+the second was forced by checking the first against the motivating
+case: inverting the keep condition to "owned here" was not enough,
+because ownership itself was window-based and =8a2eb687= — the only
+slice with an open worked window — would still have "owned" the
+evening's closes. So *in progress* was redefined as the keyword's own
+claim: =--slice-doing-spans= reads =DOING= intervals from the
+=:LOGBOOK:= state history (the record apply's native logging writes),
+a slice owns a close only inside one, the clock fallback decides only
+between concurrently-=DOING= slices, and a tie — or no =DOING= slice
+at all — assigns to nobody. Verified against the corpus both ways:
+=ff7ccb2d= still owns its morning fast-tracks (it was =DOING= with
+members clocked from 08:47), and the first live refresh emptied
+=8a2eb687= to [0/11], =43aa25b2= included, since that slice has no
+=DOING= span and owns nothing.
+
+*A bug worth its sentence*: the state-line parser's first draft read
+=match-string= *after* calling the timestamp parser, which runs its
+own =string-match= — every state came back as garbage, fourteen tests
+failed at once, and the fix (capture groups before parsing) is the
+third match-data incident in this file this week. 577/577 after; the
+two ruling tests proven failing against the window-based code.
+:END:
+:PLAN:
 
 Ruled by the user 2026-09-08, on =8a2eb687= reading [9/20] while
 =TODO= with no =:LOGBOOK:=: **an incidental must be positively owned —
@@ -21,6 +46,13 @@ unrelated closes. This inverts the keep condition from
 to *no slice* (ambiguous evidence claims nothing), and retires the
 "sweeping in unrelated workstreams is a feature" rationale the strict
 window carried from =0086614a=.
+
+:END:
+*Resolved 2026-09-08:* incidental ownership is now positive and read
+from state history — a slice owns a close only while a =DOING= span
+contains it, an unowned close belongs to no slice, and =8a2eb687=
+reconciled from [9/20] to [0/11] on the first refresh.
+
 
 * DONE The repeater tests hardcode tomorrow's date, and tomorrow moved :code:
 CLOSED: [2026-09-08 Tue 15:52]
