@@ -559,6 +559,41 @@ chosen when the backlog was ~30 purely prospective bodies; measured
 2026-09-02, 88 of 93 unwrapped headings carry a debrief, so wrapping whole
 would bury it. The backlog pass is `35d25265`, which reads each body.
 
+### Dividing a heading that outgrew itself
+
+**A task that has done work of its own — a clock, a `:LOGBOOK:`, a body
+recording what it did — must not simply be given children.** Doing so traps
+that record inside a container: a container with live children cannot
+close, so a heading whose own work is finished is held open indefinitely by
+its group. Only a heading with nothing of its own to strand may grow
+children in place.
+
+Divide it instead: insert a **new parent** above, demote the original under
+it, and let the undone parts of its swollen body become new sibling leaves.
+Note the direction, because reversing it is the whole trap — **after
+dividing, the original heading is the child**, keeping its `:ID:`, clock
+and `:LOGBOOK:`; the new parent carries a new `:ID:` that did not exist
+before. If the heading you started from is still the parent afterwards,
+you did not divide — you added children.
+
+Order matters too: **divide first, then file the new leaves as siblings.**
+Dividing after adding children carries them down with the subtree
+(`org-demote-subtree` moves the whole thing), and they arrive as
+grandchildren needing a refile.
+
+- **Where an `org_divide` tool exists** (a repo running
+  claude-code-ide-org), call it — it does the structural move atomically.
+- **By hand**, use org's own commands from Emacs (insert the parent
+  heading line, then `org-demote-subtree` on the original). Never
+  hand-roll the region edit as text: the record's survival is the whole
+  point, and hand-rolled versions have corrupted bodies.
+
+Either way, splitting the engorged body into new leaves stays manual
+judgement — a mechanical split would be inventing headings. The new parent
+is **born empty**: no clock, no history, no body of actions. What remains
+after the leaves are cut out is the reason the group exists, which is the
+one thing a grouping's body should hold.
+
 ### Inserting content programmatically
 
 Writing org text from Elisp (via `emacsclient`, which is how larger edits
@@ -601,6 +636,11 @@ When creating tasks or files from scratch, or when adding tasks to an existing f
 
 - Check for `#+TODO:` or `#+SEQ_TODO:` lines at the top of the file. Use those keyword
   sets rather than assuming `TODO`/`DONE`.
+- **Every generated heading gets an `:ID:` and a `:CREATED:`** (inactive
+  timestamp, stamped at creation) in its property drawer. Tool-assisted
+  creation paths stamp both automatically wherever the org tools exist;
+  hand-generated text is the one path where forgetting is possible, so
+  this bullet is the rule's last line of defence.
 - Use standard 2-space indentation for drawer content.
 - Follow the heading → PROPERTIES → LOGBOOK order (properties first, then logbook).
 - Use the Org date format exactly: `[YYYY-MM-DD Dow HH:MM]` for inactive,

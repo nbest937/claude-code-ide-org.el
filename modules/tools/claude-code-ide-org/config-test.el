@@ -10456,6 +10456,52 @@ round-trip.  The payload is `{}' only when both are silent."
         (should (string-match-p "unclosed CLOCK entry" json))
         (should-not (string-match-p "review-and-planning pass" json))))))
 
+(ert-deftest claude-code-ide-org-test-session-start-payload-carries-system-message ()
+  "The payload carries a user-facing systemMessage beside additionalContext.
+
+Measured on this project's transcripts (TODO.org :ID: c5b02503): context
+injected for the model to relay reached the user in 15 of 24 genuine
+session starts -- one silent drop in three.  systemMessage is displayed
+to the user by Claude Code itself, so the reports' delivery stops
+depending on the model choosing to relay them.  The message is a compact
+summary; the full report stays in additionalContext for the model to act
+on.  An empty payload stays `{}' -- no summary of nothing."
+  (claude-code-ide-org-test--with-queue
+    ;; Ceremony alone: summary names the ceremony, not the full prose.
+    (cl-letf (((symbol-function 'claude-code-ide-org-find-stale-open-intervals)
+               (lambda () nil))
+              ((symbol-function 'claude-code-ide-org--ceremony-status)
+               (lambda () '(:pending 2 :drifted 0 :archivable 0))))
+      (let* ((json (claude-code-ide-org--session-start-hook-json))
+             (parsed (json-parse-string json :object-type 'alist))
+             (msg (alist-get 'systemMessage parsed)))
+        (should msg)
+        (should (string-match-p "ceremony" msg))
+        ;; The instruction prose is the model's, not the popup's.
+        (should-not (string-match-p "Ask the user" msg))
+        ;; And the model's channel is intact beside it.
+        (should (string-match-p "2 queued item"
+                                (alist-get 'additionalContext
+                                           (alist-get 'hookSpecificOutput parsed))))))
+    ;; A stale interval alone: the summary counts it.
+    (cl-letf (((symbol-function 'claude-code-ide-org-find-stale-open-intervals)
+               (lambda () (list (list :id "deadbeef" :heading "H"
+                                      :file "/tmp/TODO.org"
+                                      :logbook-open (current-time)))))
+              ((symbol-function 'claude-code-ide-org--ceremony-status)
+               (lambda () nil)))
+      (let* ((json (claude-code-ide-org--session-start-hook-json))
+             (msg (alist-get 'systemMessage
+                             (json-parse-string json :object-type 'alist))))
+        (should msg)
+        (should (string-match-p "1 stale open CLOCK" msg))))
+    ;; Both silent: still exactly {}.
+    (cl-letf (((symbol-function 'claude-code-ide-org-find-stale-open-intervals)
+               (lambda () nil))
+              ((symbol-function 'claude-code-ide-org--ceremony-status)
+               (lambda () nil)))
+      (should (equal "{}" (claude-code-ide-org--session-start-hook-json))))))
+
 (ert-deftest claude-code-ide-org-test-consolidate-all-drawers-dry-run-spares-open-buffers ()
   "A dry run must not leave an already-open buffer modified.
 

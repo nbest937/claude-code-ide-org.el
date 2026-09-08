@@ -2,6 +2,15 @@
 
 `:ID: 84b7d8b3-5161-4146-9167-0e7e2100e365`
 
+> **Superseded in part, 2026-09-04.** Written before the event-queue
+> cutover: the inventory below describes hooks that no longer exist, and
+> the blanket "no JSON in shell" rule lost to the *Emacs-boundary split*
+> recorded on the heading — scripts that must survive an Emacs outage
+> (the queue-append family) deliberately stay shell, `jq` included. What
+> survives of this plan: the temp-file handoff shape, the fish exit, and
+> the Python refusal. The convention as adopted is in CLAUDE.md
+> ("Scripting conventions").
+
 ## Context
 
 `TODO.org`'s heading lists five options for standardizing this project's

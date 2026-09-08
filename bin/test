@@ -14,7 +14,21 @@ module_dir="$repo_root/modules/tools/claude-code-ide-org"
 # directory first on load-path — not just org's — so tests run against
 # the same packages (org, org-ql and its own deps, etc.) the real
 # environment uses.
-build_root="$(find "$HOME/.config/emacs/.local/straight" -maxdepth 1 -name 'build-*' -type d 2>/dev/null | head -1)"
+# `|| true' because under set -e a failing find (e.g. the directory does
+# not exist at all) would kill the script HERE, exit 1, with no message --
+# the refusal below must be the thing that fires, not a silent death.
+build_root="$(find "$HOME/.config/emacs/.local/straight" -maxdepth 1 -name 'build-*' -type d 2>/dev/null | head -1 || true)"
+
+# Refuse rather than fall back (TODO.org :ID: 1ed7b2b4).  Without the
+# straight build dir the suite would run against Emacs's bundled org --
+# where a missing 9.7+ feature is indistinguishable from a broken one.
+# That silent fallback is the exact failure the org-dev skill documents;
+# make it loud instead.
+if [[ -z "$build_root" ]]; then
+  echo "ERROR: no straight build-* dir under ~/.config/emacs/.local/straight" >&2
+  echo "Refusing to run against the bundled org (needs org 9.7+; :ID: 1ed7b2b4)" >&2
+  exit 2
+fi
 
 emacs_args=(--batch -Q)
 if [[ -n "$build_root" ]]; then

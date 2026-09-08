@@ -1,87 +1,91 @@
-#!/usr/bin/env fish
+#!/usr/bin/env bash
 # Prove bin/check-conventions can fail, one assertion at a time.
 #
 # The point is not that the check passes against this repo -- it does,
-# and that says nothing. TODO.org :ID: 542924c1 collects five cases where
-# a check had no way to fail and its silence was read as a result, and
-# the question that catches all of them is "what would this have printed
-# if the thing I am testing were false?". So each case below builds a
-# fixture in which one claim is false and asserts a *non-zero exit*,
-# never the absence of a word in the output.
+# and that says nothing. TODO.org :ID: 542924c1 collects five cases
+# where a check had no way to fail and its silence was read as a result,
+# and the question that catches all of them is "what would this have
+# printed if the thing I am testing were false?". So each case below
+# builds a fixture in which one claim is false and asserts a *non-zero
+# exit*, never the absence of a word in the output.
 #
 # Exit code rather than output, specifically: bin/check-org-dev-skill
-# printed FAIL while exiting 0 for its whole life because a bare `set'
-# inside an `if' block is block-local in fish. A test reading stdout
-# would have called that green.
+# printed FAIL while exiting 0 for its whole fish life because a bare
+# `set' inside an `if' block is block-local in fish. Bash has no such
+# trap, but the contract stays: a test reading stdout would have called
+# that green.
 
-set repo_root (cd (dirname (status --current-filename))/.. && pwd)
-set -g failures 0
+set -uo pipefail
 
-function expect_exit -a desc want
-    set -l got $status
-    if test "$got" = "$want"
-        echo "ok   - $desc"
-    else
-        echo "FAIL - $desc: expected exit $want, got $got"
-        set -g failures 1
-    end
-end
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+failures=0
+
+expect_exit() {
+  local got=$? desc="$1" want="$2"
+  if [ "$got" = "$want" ]; then
+    echo "ok   - $desc"
+  else
+    echo "FAIL - $desc: expected exit $want, got $got"
+    failures=1
+  fi
+}
 
 # A fixture holding just the files the assertions read.
-function make_fixture
-    set -l dir (mktemp -d)
-    mkdir -p $dir/.claude/rules $dir/.claude/skills/org $dir/modules/tools/claude-code-ide-org
-    echo '#+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)' > $dir/TODO.org
-    echo ':ID:       aaaaaaaa-1111-2222-3333-444444444444' >> $dir/TODO.org
-    touch $dir/DONE.org
-    echo '#+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)' > $dir/.claude/rules/org-conventions.md
-    printf '| `TODO` | x |\n| `NEXT` | x |\n| `DOING` | x |\n| `REVIEW` | x |\n| `WAITING` | x |\n| `MAYBE` | x |\n| `DONE` | x |\n| `CANCELLED` | x |\n' > $dir/.claude/skills/org/SKILL.md
-    echo ':description "TODO keyword to set: TODO NEXT DOING REVIEW WAITING MAYBE DONE CANCELLED."' > $dir/modules/tools/claude-code-ide-org/config.el
-    echo "This doc cites aaaaaaaa, which resolves." > $dir/CLAUDE.md
-    echo $dir
-end
+make_fixture() {
+  local dir
+  dir="$(mktemp -d)"
+  mkdir -p "$dir/.claude/rules" "$dir/.claude/skills/org" "$dir/modules/tools/claude-code-ide-org"
+  echo '#+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)' > "$dir/TODO.org"
+  echo ':ID:       aaaaaaaa-1111-2222-3333-444444444444' >> "$dir/TODO.org"
+  touch "$dir/DONE.org"
+  echo '#+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)' > "$dir/.claude/rules/org-conventions.md"
+  printf '| `TODO` | x |\n| `NEXT` | x |\n| `DOING` | x |\n| `REVIEW` | x |\n| `WAITING` | x |\n| `MAYBE` | x |\n| `DONE` | x |\n| `CANCELLED` | x |\n' > "$dir/.claude/skills/org/SKILL.md"
+  echo ':description "TODO keyword to set: TODO NEXT DOING REVIEW WAITING MAYBE DONE CANCELLED."' > "$dir/modules/tools/claude-code-ide-org/config.el"
+  echo "This doc cites aaaaaaaa, which resolves." > "$dir/CLAUDE.md"
+  echo "$dir"
+}
 
 # 0. The fixture itself passes, or every case below proves nothing.
-set clean (make_fixture)
-$repo_root/bin/check-conventions $clean >/dev/null 2>&1
+clean="$(make_fixture)"
+"$repo_root/bin/check-conventions" "$clean" >/dev/null 2>&1
 expect_exit "a correct fixture passes" 0
 
 # 1. An unresolvable :ID: citation fails.
-set d (make_fixture)
-echo "And it also cites deadbeef, which does not exist." >> $d/CLAUDE.md
-$repo_root/bin/check-conventions $d >/dev/null 2>&1
+d="$(make_fixture)"
+echo "And it also cites deadbeef, which does not exist." >> "$d/CLAUDE.md"
+"$repo_root/bin/check-conventions" "$d" >/dev/null 2>&1
 expect_exit "an unresolvable :ID: citation fails the check" 1
 
 # 2. An id *inside* a full UUID is not mistaken for a citation.
 #    This is the five phantom failures the tightened boundary removed.
-set d (make_fixture)
-echo "Mentions 9d2fcdad-9bf7-47b6-8018-223b13ec4577 in full." >> $d/CLAUDE.md
-$repo_root/bin/check-conventions $d >/dev/null 2>&1
+d="$(make_fixture)"
+echo "Mentions 9d2fcdad-9bf7-47b6-8018-223b13ec4577 in full." >> "$d/CLAUDE.md"
+"$repo_root/bin/check-conventions" "$d" >/dev/null 2>&1
 expect_exit "a full UUID does not read as an unresolved 8-char citation" 0
 
 # 3. A keyword the rules file has and TODO.org does not fails.
-set d (make_fixture)
-echo '#+TODO: TODO NEXT DOING REVIEW WAITING MAYBE PLANNING | DONE CANCELLED' > $d/.claude/rules/org-conventions.md
-$repo_root/bin/check-conventions $d >/dev/null 2>&1
+d="$(make_fixture)"
+echo '#+TODO: TODO NEXT DOING REVIEW WAITING MAYBE PLANNING | DONE CANCELLED' > "$d/.claude/rules/org-conventions.md"
+"$repo_root/bin/check-conventions" "$d" >/dev/null 2>&1
 expect_exit "a drifted keyword set in the rules file fails" 1
 
 # 4. A keyword missing from the skill's transition table fails.
-set d (make_fixture)
-grep -v 'REVIEW' $d/.claude/skills/org/SKILL.md > $d/tmp; mv $d/tmp $d/.claude/skills/org/SKILL.md
-$repo_root/bin/check-conventions $d >/dev/null 2>&1
+d="$(make_fixture)"
+grep -v 'REVIEW' "$d/.claude/skills/org/SKILL.md" > "$d/tmp" && mv "$d/tmp" "$d/.claude/skills/org/SKILL.md"
+"$repo_root/bin/check-conventions" "$d" >/dev/null 2>&1
 expect_exit "a keyword missing from the skill table fails" 1
 
 # 5. A retired keyword named in the skill's *prose* does not fail --
 #    the false positive this check hit on its first real run.
-set d (make_fixture)
-echo 'This used to argue the point via `PLANNING` ownership. It is gone.' >> $d/.claude/skills/org/SKILL.md
-$repo_root/bin/check-conventions $d >/dev/null 2>&1
+d="$(make_fixture)"
+echo 'This used to argue the point via `PLANNING` ownership. It is gone.' >> "$d/.claude/skills/org/SKILL.md"
+"$repo_root/bin/check-conventions" "$d" >/dev/null 2>&1
 expect_exit "a retired keyword in prose does not fail" 0
 
 # 6. A drifted tool description fails.
-set d (make_fixture)
-echo ':description "TODO keyword to set: TODO NEXT DOING WAITING MAYBE DONE CANCELLED."' > $d/modules/tools/claude-code-ide-org/config.el
-$repo_root/bin/check-conventions $d >/dev/null 2>&1
+d="$(make_fixture)"
+echo ':description "TODO keyword to set: TODO NEXT DOING WAITING MAYBE DONE CANCELLED."' > "$d/modules/tools/claude-code-ide-org/config.el"
+"$repo_root/bin/check-conventions" "$d" >/dev/null 2>&1
 expect_exit "a drifted org_set_todo description fails" 1
 
 # 7. An elisp file that does not read as forms fails.
@@ -91,31 +95,31 @@ expect_exit "a drifted org_set_todo description fails" 1
 #    bin/test is not wired into pre-commit at all. A docstring with an
 #    unescaped quote could be committed and would surface later as
 #    spurious test failures whose cause is nowhere near them.
-set d (make_fixture)
-printf '(defun a ()\n  "A docstring that ends early "here" and leaves this bare.\n  (+ 1 2))\n' > $d/modules/tools/claude-code-ide-org/config.el
-$repo_root/bin/check-conventions $d >/dev/null 2>&1
+d="$(make_fixture)"
+printf '(defun a ()\n  "A docstring that ends early "here" and leaves this bare.\n  (+ 1 2))\n' > "$d/modules/tools/claude-code-ide-org/config.el"
+"$repo_root/bin/check-conventions" "$d" >/dev/null 2>&1
 expect_exit "an elisp file that does not read as forms fails" 1
 
 # 8. A valid elisp file does not fail, so case 7 is not passing because
 #    the assertion refuses everything.
-set d (make_fixture)
-printf '(defun a ()\n  "A well-formed docstring."\n  (+ 1 2))\n:description "TODO keyword to set: TODO NEXT DOING REVIEW WAITING MAYBE DONE CANCELLED."\n' > $d/modules/tools/claude-code-ide-org/config.el
-$repo_root/bin/check-conventions $d >/dev/null 2>&1
+d="$(make_fixture)"
+printf '(defun a ()\n  "A well-formed docstring."\n  (+ 1 2))\n:description "TODO keyword to set: TODO NEXT DOING REVIEW WAITING MAYBE DONE CANCELLED."\n' > "$d/modules/tools/claude-code-ide-org/config.el"
+"$repo_root/bin/check-conventions" "$d" >/dev/null 2>&1
 expect_exit "a valid elisp file does not fail" 0
 
 # 9. A missing emacs binary is reported as itself, not as drift.
 #
-#    The case this exists for is the one that hid: `2>/dev/null' turned a
-#    missing binary into an empty verdict, `check' compared "" against
+#    The case this exists for is the one that hid: `2>/dev/null' turned
+#    a missing binary into an empty verdict, `check' compared "" against
 #    "ok", and .githooks/pre-commit refused the commit saying the
 #    documentation had drifted. The wrong cause, pointing the reader at
 #    the files they had just edited (TODO.org :ID: 3f2d5126).
 #
-#    Reachable only through CHECK_CONVENTIONS_EMACS: any machine that can
-#    run these checks has emacs, so without the seam the path could never
-#    be exercised and the assertion could never fail.
-set d (make_fixture)
-env CHECK_CONVENTIONS_EMACS=definitely-not-emacs $repo_root/bin/check-conventions $d >/dev/null 2>&1
+#    Reachable only through CHECK_CONVENTIONS_EMACS: any machine that
+#    can run these checks has emacs, so without the seam the path could
+#    never be exercised and the assertion could never fail.
+d="$(make_fixture)"
+env CHECK_CONVENTIONS_EMACS=definitely-not-emacs "$repo_root/bin/check-conventions" "$d" >/dev/null 2>&1
 expect_exit "a missing emacs binary fails, not silently passes" 1
 
 #    Note this one passed against the OLD code too, and deliberately
@@ -124,73 +128,77 @@ expect_exit "a missing emacs binary fails, not silently passes" 1
 #    that made a missing prerequisite silently pass. The case below is
 #    the one that discriminates.
 
-set d (make_fixture)
-set out (env CHECK_CONVENTIONS_EMACS=definitely-not-emacs $repo_root/bin/check-conventions $d 2>&1)
-if string match -q '*no `definitely-not-emacs'"'"' on PATH*' "$out"
-    echo "ok   - the failure names the binary, not the documents"
-else
+d="$(make_fixture)"
+out="$(env CHECK_CONVENTIONS_EMACS=definitely-not-emacs "$repo_root/bin/check-conventions" "$d" 2>&1)"
+case "$out" in
+  *"no \`definitely-not-emacs' on PATH"*)
+    echo "ok   - the failure names the binary, not the documents" ;;
+  *)
     echo "FAIL - the failure names the binary, not the documents"
-    set -g failures 1
-end
+    failures=1 ;;
+esac
 
 # 10. Under --docs-only it is skipped rather than fatal, and says so.
 #
 #     Same rationale as the flag itself: a prerequisite that is merely
 #     absent must not block a commit. But `skip', never `ok' -- a check
 #     that did not run has not passed.
-set d (make_fixture)
-env CHECK_CONVENTIONS_EMACS=definitely-not-emacs $repo_root/bin/check-conventions --docs-only $d >/dev/null 2>&1
+d="$(make_fixture)"
+env CHECK_CONVENTIONS_EMACS=definitely-not-emacs "$repo_root/bin/check-conventions" --docs-only "$d" >/dev/null 2>&1
 expect_exit "a missing emacs binary is not fatal under --docs-only" 0
 
-set d (make_fixture)
-set out (env CHECK_CONVENTIONS_EMACS=definitely-not-emacs $repo_root/bin/check-conventions --docs-only $d 2>&1)
-if string match -q '*skip - elisp reads as forms*' "$out"
-    echo "ok   - the skip is announced, not silent"
-else
+d="$(make_fixture)"
+out="$(env CHECK_CONVENTIONS_EMACS=definitely-not-emacs "$repo_root/bin/check-conventions" --docs-only "$d" 2>&1)"
+case "$out" in
+  *"skip - elisp reads as forms"*)
+    echo "ok   - the skip is announced, not silent" ;;
+  *)
     echo "FAIL - the skip is announced, not silent"
-    set -g failures 1
-end
+    failures=1 ;;
+esac
 
 # 11. --docs-only does not gate the check when emacs IS present, or the
 #     only elisp check running at commit time would be gone.
-set d (make_fixture)
-printf '(defun a ()\n  "A docstring that ends early "here" and leaves this bare.\n  (+ 1 2))\n' > $d/modules/tools/claude-code-ide-org/config.el
-$repo_root/bin/check-conventions --docs-only $d >/dev/null 2>&1
+d="$(make_fixture)"
+printf '(defun a ()\n  "A docstring that ends early "here" and leaves this bare.\n  (+ 1 2))\n' > "$d/modules/tools/claude-code-ide-org/config.el"
+"$repo_root/bin/check-conventions" --docs-only "$d" >/dev/null 2>&1
 expect_exit "broken elisp still fails under --docs-only" 1
 
 # 12. A mistyped flag is refused, not read as a directory.
 #
-#     It used to fall into `case '*'', `cd --dcs-only' failed, $root went
-#     empty, every assertion found nothing, and the script exited 0 --
-#     the gate answering "all clear" having run zero assertions, which is
-#     the exact failure :ID: 542924c1 collects (TODO.org :ID: 0fa403f4).
+#     It used to fall through, `cd --dcs-only' failed, $root went empty,
+#     every assertion found nothing, and the script exited 0 -- the gate
+#     answering "all clear" having run zero assertions, which is the
+#     exact failure :ID: 542924c1 collects (TODO.org :ID: 0fa403f4).
 #     Asserted as exit 2, distinct from 1: a usage error is not a failed
 #     check, and a caller that cannot tell them apart would retry.
-$repo_root/bin/check-conventions --dcs-only >/dev/null 2>&1
+"$repo_root/bin/check-conventions" --dcs-only >/dev/null 2>&1
 expect_exit "a mistyped flag is a usage error, not a silent no-op" 2
 
-set out ($repo_root/bin/check-conventions --dcs-only 2>&1)
-if string match -q '*unknown option: --dcs-only*' "$out"
-    echo "ok   - the usage error names the flag it did not recognise"
-else
+out="$("$repo_root/bin/check-conventions" --dcs-only 2>&1)"
+case "$out" in
+  *"unknown option: --dcs-only"*)
+    echo "ok   - the usage error names the flag it did not recognise" ;;
+  *)
     echo "FAIL - the usage error names the flag it did not recognise"
-    set -g failures 1
-end
+    failures=1 ;;
+esac
 
 # 13. And a ROOT that is not a directory, which is the same hole reached
-#     without a typo -- `cd' failing left $root empty rather than stopping.
-$repo_root/bin/check-conventions /no/such/directory >/dev/null 2>&1
+#     without a typo -- `cd' failing left $root empty rather than
+#     stopping.
+"$repo_root/bin/check-conventions" /no/such/directory >/dev/null 2>&1
 expect_exit "an unreadable ROOT is refused rather than silently empty" 2
 
 # 14. The converse, so 12 and 13 cannot pass by refusing everything: a
 #     real ROOT still runs, and --docs-only is still accepted.
-set d (make_fixture)
-$repo_root/bin/check-conventions --docs-only $d >/dev/null 2>&1
+d="$(make_fixture)"
+"$repo_root/bin/check-conventions" --docs-only "$d" >/dev/null 2>&1
 expect_exit "a valid flag and ROOT still run" 0
 
-if test $failures -eq 0
-    echo "Ran 18 checks, all as expected"
+if [ "$failures" -eq 0 ]; then
+  echo "Ran 18 checks, all as expected"
 else
-    echo "check-conventions-test: FAILURES"
-end
-exit $failures
+  echo "check-conventions-test: FAILURES"
+fi
+exit "$failures"

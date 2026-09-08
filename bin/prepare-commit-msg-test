@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Test harness for .githooks/prepare-commit-msg, same register as
+# bin/queue-append-test: fixtures, controlled env, positive assertions.
+# The hook's contract: touch NOTHING outside a Claude Code session
+# (CLAUDECODE=1); inside one, make the Co-Authored-By trailer tell the
+# truth (rewrite a stale one, append a missing one) from the model in
+# settings.json, and add the Claude-Session line from
+# CLAUDE_CODE_BRIDGE_SESSION_ID when absent. Never block a commit.
+set -uo pipefail
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+hook="$repo_root/.githooks/prepare-commit-msg"
+work="$(mktemp -d)"; trap 'rm -rf "$work"' EXIT
+fail=0
+check() {
+  local label="$1" want="$2" got="$3"
+  if [[ "$want" == "$got" ]]; then echo "ok   - $label"
+  else echo "FAIL - $label"; echo "       want: $want"; echo "       got:  $got"; fail=1; fi
+}
+
+echo '{"model":"fable"}' > "$work/settings.json"
+run() { # run <CLAUDECODE or -> <msgfile>
+  local cc="$1" msg="$2"
+  if [[ "$cc" == "-" ]]; then
+    env -u CLAUDECODE CLAUDE_SETTINGS_FILE="$work/settings.json" \
+      CLAUDE_CODE_BRIDGE_SESSION_ID="session_TEST" bash "$hook" "$msg" message
+  else
+    env CLAUDECODE="$cc" CLAUDE_SETTINGS_FILE="$work/settings.json" \
+      CLAUDE_CODE_BRIDGE_SESSION_ID="session_TEST" bash "$hook" "$msg" message
+  fi
+}
+
+# 1. outside a Claude session: byte-identical
+printf 'subject\n\nbody\n' > "$work/m1"; cp "$work/m1" "$work/m1.orig"
+run - "$work/m1"
+check "non-Claude commit untouched" "$(cat "$work/m1.orig")" "$(cat "$work/m1")"
+
+# 2. stale trailer rewritten to the live model
+printf 'subject\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_TEST\n' > "$work/m2"
+run 1 "$work/m2"
+check "stale Opus trailer rewritten to Fable" "1" "$(grep -c '^Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>$' "$work/m2")"
+check "no Opus remnant" "0" "$(grep -c 'Opus' "$work/m2")"
+check "session line not duplicated" "1" "$(grep -c '^Claude-Session:' "$work/m2")"
+
+# 3. bare message gains trailer and session line
+printf 'subject only\n' > "$work/m3"
+run 1 "$work/m3"
+check "missing trailer appended" "1" "$(grep -c '^Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>$' "$work/m3")"
+check "session line appended from env" "1" "$(grep -c '^Claude-Session: https://claude.ai/code/session_TEST$' "$work/m3")"
+
+# 4. model alias mapping: opus in settings
+echo '{"model":"opus"}' > "$work/settings.json"
+printf 'x\n' > "$work/m4"; run 1 "$work/m4"
+check "opus alias maps to display name" "1" "$(grep -c '^Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>$' "$work/m4")"
+echo '{"model":"fable"}' > "$work/settings.json"
+
+# 5. unknown/missing settings: message untouched, exit 0
+printf 'y\n' > "$work/m5"; cp "$work/m5" "$work/m5.orig"
+env CLAUDECODE=1 CLAUDE_SETTINGS_FILE="$work/nope.json" \
+  CLAUDE_CODE_BRIDGE_SESSION_ID="session_TEST" bash "$hook" "$work/m5" message
+check "missing settings leaves message alone" "$(cat "$work/m5.orig")" "$(cat "$work/m5")"
+check "missing settings still exits 0" "0" "$?"
+
+if [[ "$fail" == 0 ]]; then echo; echo "All prepare-commit-msg tests passed."
+else echo; echo "Some prepare-commit-msg tests FAILED."; fi
+exit "$fail"
