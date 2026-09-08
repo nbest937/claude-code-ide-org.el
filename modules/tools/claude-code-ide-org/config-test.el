@@ -940,6 +940,36 @@ which is what makes 1-of-2 rather than 2-of-2 the right answer here."
                      (and (string-match "\\[\\([0-9]+/[0-9]+\\)\\]" h)
                           (match-string 1 h)))))))
 
+(ert-deftest claude-code-ide-org-test-refresh-slice-repairs-missing-cookie-data ()
+  "A slice without :COOKIE_DATA: gains it through the ordinary refresh.
+
+TODO.org :ID: acf46449: the lint made the absence an error, and an
+error is a report, not a mechanism -- the hand fix had to be remembered
+by whoever read it.  Same argument as the cookie's self-heal one test
+up.  Absent only: a *wrong* value is left for a human, since repairing
+it would silently overwrite a hand-set divergence."
+  (claude-code-ide-org-test--with-heading
+    (org-with-point-at (org-id-find id 'marker)
+      (org-entry-put nil "KIND" "slice")
+      (org-end-of-meta-data t)
+      (insert "- [X] [[id:zzz-1][zzz-1]] DONE a finished member\n")
+      (save-buffer))
+    (let ((claude-code-ide-org-query-files (list file)))
+      ;; The repair is named in the summary, not folded into the counts.
+      (should (string-match-p "1 :COOKIE_DATA: repaired"
+                              (claude-code-ide-org-refresh-slice)))
+      (should (equal "checkbox recursive"
+                     (org-with-point-at (org-id-find id 'marker)
+                       (org-entry-get nil "COOKIE_DATA"))))
+      ;; A wrong value stays: a lint error for a human, not a repair.
+      (org-with-point-at (org-id-find id 'marker)
+        (org-entry-put nil "COOKIE_DATA" "todo")
+        (save-buffer))
+      (claude-code-ide-org-refresh-slice)
+      (should (equal "todo"
+                     (org-with-point-at (org-id-find id 'marker)
+                       (org-entry-get nil "COOKIE_DATA")))))))
+
 (ert-deftest claude-code-ide-org-test-grouping-heading-p-covers-both-kinds ()
   "The grouping predicate is the union of the two ways a heading can be a
 grouping, and is nil for a leaf.
@@ -12220,6 +12250,57 @@ the one thing a general property writer would get silently wrong."
     (claude-code-ide-org-set-property id "BLOCKER" "bbbbbbbb")
     (let ((v (org-with-point-at (org-id-find id 'marker) (org-entry-get nil "BLOCKER"))))
       (should-not (string-match-p "aaaaaaaa" v)))))
+
+(ert-deftest claude-code-ide-org-test-set-property-kind-slice-completes-the-declaration ()
+  "KIND=slice writes everything a slice must carry that a mechanism can
+derive: :COOKIE_DATA:, the [/] cookie, and the :BLOCKER: from the
+checklist.
+
+TODO.org :ID: acf46449, measured composing `c19fbbf5' declared: the
+cost was two extra property calls and a hand-typed cookie, all three
+values `refresh-slice' already derives -- and the composer trusted to
+keep them consistent.  This is the prevention seam; the refresh repair
+is the backstop for a slice declared by hand in Emacs."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO NEXT | DONE\n\n"
+              "* TODO Composed slice\n:PROPERTIES:\n:ID: slice-c1\n:END:\n\n"
+              "The theme, stated.\n\n"
+              "- [ ] [[id:memb-1][memb-1]] TODO A member\n\n"
+              "* TODO A member\n:PROPERTIES:\n:ID: memb-1\n:END:\n"))
+    (org-id-update-id-locations (list capture-file))
+    ;; "Slice" rather than "slice": the canonical lowercase is written,
+    ;; since every predicate tests (equal "slice" ...).
+    (let ((reply (claude-code-ide-org-set-property "slice-c1" "KIND" "Slice")))
+      (should (string-match-p "declared a slice" reply))
+      (should (string-match-p ":COOKIE_DATA:" reply))
+      (should (string-match-p ":BLOCKER:" reply)))
+    (org-with-point-at (org-id-find "slice-c1" 'marker)
+      (should (equal "slice" (org-entry-get nil "KIND")))
+      (should (equal "checkbox recursive" (org-entry-get nil "COOKIE_DATA")))
+      (should (equal "ids(memb-1)" (org-entry-get nil "BLOCKER")))
+      (should (string-prefix-p "[/] " (org-get-heading t t t t))))))
+
+(ert-deftest claude-code-ide-org-test-set-property-kind-slice-before-the-body ()
+  "A declaration made before the checklist exists leaves the blocker
+alone.  The blocker derives from members; against an empty checklist
+the derivation would DELETE a hand-set value, so it is left to the
+first refresh -- the ordering constraint acf46449's measurement
+exposed: the checklist must exist before a :BLOCKER: can be derived
+from it."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO NEXT | DONE\n\n"
+              "* TODO Bare proposal\n:PROPERTIES:\n:ID: slice-c2\n"
+              ":BLOCKER: ids(memb-9)\n:END:\n"))
+    (org-id-update-id-locations (list capture-file))
+    (let ((reply (claude-code-ide-org-set-property "slice-c2" "KIND" "slice")))
+      (should (string-match-p "declared a slice" reply))
+      (should-not (string-match-p ":BLOCKER:" reply)))
+    (org-with-point-at (org-id-find "slice-c2" 'marker)
+      (should (equal "checkbox recursive" (org-entry-get nil "COOKIE_DATA")))
+      ;; The hand-set blocker survives the declaration.
+      (should (equal "ids(memb-9)" (org-entry-get nil "BLOCKER"))))))
 
 (ert-deftest claude-code-ide-org-test-set-property-warns-on-keywordless-blocker ()
   "Warns, rather than refusing, when a :BLOCKER: names a keyword-less
