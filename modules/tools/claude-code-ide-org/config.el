@@ -3644,6 +3644,19 @@ are parsed leniently; anything unusable falls back to the permissive
 default rather than erroring, since a too-large index is recoverable and
 a failed call is not.
 
+SCOPE may also be *several* ids or prefixes, separated by spaces or
+commas, rendered as one block each in the order given (TODO.org
+:ID: 2c3aadbe).  The corpus map at `max_depth 1' already answers \"what
+are these n top-level headings\" in one call; what it cannot reach is a
+child, a mix of depths, or a `DONE' heading without dropping
+`active_only' over the whole archive -- the two axes available for
+narrowing, depth and liveness, are the wrong axes when the question is
+\"these particular ids\".  Multi-scope adds the axis that fits.
+A token that resolves to nothing renders an inline error in its slot
+rather than failing the call, so one typo does not cost the other
+answers.  File names stay single-scope; every token of a multi-scope
+call must be id-shaped.
+
 Read-only: verified that `org-map-entries' over an explicit file list
 neither moves point nor marks the buffer modified, so this is safe to
 run against files the user has open.  Never signals an error to the MCP
@@ -3660,30 +3673,46 @@ layer."
              (active (and active-only
                           (member (downcase (format "%s" active-only))
                                   '("t" "true" "yes" "1"))
-                          t)))
+                          t))
+             (tokens (and scope (split-string scope "[ ,]+" t)))
+             (render-id
+              (lambda (s)
+                (let ((lines (claude-code-ide-org--at-id
+                              s
+                              (lambda ()
+                                ;; Members first, while the buffer is still
+                                ;; wide: `--outline-map' narrows to the tree.
+                                ;; Only the *scoped* call expands them -- in a
+                                ;; whole-file outline every member already has
+                                ;; a line where it lives, and the statistics
+                                ;; cookie reports the size, so expanding there
+                                ;; would print each member twice.
+                                (let ((members (claude-code-ide-org--outline-slice-members))
+                                      (front (claude-code-ide-org--outline-front-matter)))
+                                  (append front
+                                          (claude-code-ide-org--outline-map
+                                           active depth 'tree)
+                                          members))))))
+                  (if (stringp lines) lines  ; --at-id's "Error: ..." string
+                    (if lines (mapconcat #'identity lines "\n")
+                      "No headings in scope."))))))
         (cond
+         ;; Several tokens: one block per token, in the order given.
+         ;; Each must be id-shaped -- a file name never needs company --
+         ;; and a token that resolves to nothing errors in its own slot
+         ;; rather than failing its neighbours.
+         ((and tokens (cdr tokens))
+          (mapconcat (lambda (tok)
+                       (if (claude-code-ide-org--id-find tok)
+                           (funcall render-id tok)
+                         (format "Error: scope %S resolves to no heading; \
+every token of a multi-scope call must be an :ID: or 8-character prefix."
+                                 tok)))
+                     tokens "\n\n"))
          ;; An :ID: that resolves wins over a file interpretation --
          ;; an :ID: can never also be a readable file name.
          ((and scope (claude-code-ide-org--id-find scope))
-          (let ((lines (claude-code-ide-org--at-id
-                        scope
-                        (lambda ()
-                          ;; Members first, while the buffer is still
-                          ;; wide: `--outline-map' narrows to the tree.
-                          ;; Only the *scoped* call expands them -- in a
-                          ;; whole-file outline every member already has
-                          ;; a line where it lives, and the statistics
-                          ;; cookie reports the size, so expanding there
-                          ;; would print each member twice.
-                          (let ((members (claude-code-ide-org--outline-slice-members))
-                                (front (claude-code-ide-org--outline-front-matter)))
-                            (append front
-                                    (claude-code-ide-org--outline-map
-                                     active depth 'tree)
-                                    members))))))
-            (if (stringp lines) lines      ; --at-id's "Error: ..." string
-              (if lines (mapconcat #'identity lines "\n")
-                "No headings in scope."))))
+          (funcall render-id scope))
          ;; An unresolved scope that is not shaped like a file was meant as
          ;; an :ID:, and saying "no readable file at .../f4e628ce" reports
          ;; the wrong failure -- it reads as a missing file rather than an
@@ -13849,7 +13878,7 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
    :args '((:name "scope"
             :type string
             :optional t
-            :description "An :ID: or an 8-character :ID: prefix to index only that subtree, or a file name for one file. Omit for every tracked file. An id-shaped scope that resolves to nothing says so, rather than reporting a missing file.")
+            :description "An :ID: or an 8-character :ID: prefix to index only that subtree, or a file name for one file. Omit for every tracked file. SEVERAL ids or prefixes, separated by spaces or commas, return one block each in the order given -- the call for \"what are these n headings\", which one max_depth or active_only setting cannot otherwise reach when the ids mix depths or include DONE work. An id-shaped scope that resolves to nothing says so, rather than reporting a missing file.")
            (:name "max_depth"
             :type string
             :optional t
