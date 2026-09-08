@@ -728,6 +728,45 @@ the last moment anyone knows where the seam is. Before the empty drawer
 existed, the only way to satisfy the warning on a debrief-only heading was to
 wrap the debrief into a drawer readers are told to skip. See `:ID:` f421c5c3.
 
+## The `:DEBRIEF:` drawer
+
+**At close, the debrief goes into a `:DEBRIEF:` drawer and the body gains a
+one-to-two-sentence resolution** (`:ID:` d5eb32a3, 2026-09-08). Two calls:
+`org_amend` the resolution onto the body, then `org_amend` with
+`drawer=DEBRIEF` for the full debrief — what shipped, how it was verified,
+what was falsified, what differed from the plan. The drawer is created when
+absent, below the body.
+
+This completes what `b75d553a` started: the plan out at composition, the
+debrief out at close, so the body is a *fixed-size* artifact however much
+reasoning a task accumulates. A folded heading then shows title,
+problem-and-proposal, and resolution — a TL;DR with every drawer collapsed.
+
+**The resolution line is authored, never derived.** It is the one part of
+closing that costs judgement, and it is the part that makes orientation
+cheap for every later reader. No lint requires it yet, deliberately —
+observation before machinery, the project's standing precedent.
+
+**Read `:DEBRIEF:` on a finished heading; it is exempt from the skip
+advice.** The skip rule exists because `:PLAN:` on a finished heading is
+*superseded* design. A debrief is the opposite — the record of what
+actually happened, and the thing most worth reading when a finished
+heading is consulted at all. Skip `:PLAN:`, read `:DEBRIEF:`.
+
+**This also carries the pre-archive outcome summary.** The older rule said
+to put the summary "next to the plan link" — a location that stopped
+existing when the link moved into `:PLAN:` at composition. The outcome
+summary *is* the debrief plus the resolution line; a heading closed under
+this convention owes archiving nothing further. Delegated-subagent work
+follows the same shape: ask the subagent for a one-paragraph outcome
+summary, and it lands as the `:DEBRIEF:` content.
+
+**The corpus written before this convention is a separate, judgement-heavy
+pass** — every finished heading whose debrief still sits in its body needs
+an authored resolution before the debrief can move, and that is a
+per-heading act nobody should do by sweep. It has its own heading under
+the `4c834fdb` story; new closes follow this convention now regardless.
+
 ## Citing code from a body
 
 **Cite the symbol, never a line number.** `file.el:NNN` is deprecated in

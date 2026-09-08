@@ -2158,14 +2158,27 @@ The text must never contain a `(was ...)\' parenthetical.
 `sed\' over the whole reply, so a second one would win and the queued
 event would record the wrong `from\'."
   (when (and (member state claude-code-ide-org--outline-finished-keywords)
-             (not (claude-code-ide-org--slice-p))
-             (not (claude-code-ide-org--find-drawer "PLAN"))
-             (claude-code-ide-org--lint-substantial-body-p))
-    (format (concat "  Note: %d lines of body and no :PLAN: drawer. "
-                    "Wrap the prospective half now with org_wrap_plan, "
-                    "passing until= the first line of the debrief -- "
-                    "after this you will not know where the seam is.")
-            (claude-code-ide-org--lint-body-prose-lines))))
+             (not (claude-code-ide-org--slice-p)))
+    (cond
+     ;; The retroactive case: a mixed body and no :PLAN:. The wrap is
+     ;; owed now, and only the caller knows the seam.
+     ((and (not (claude-code-ide-org--find-drawer "PLAN"))
+           (claude-code-ide-org--lint-substantial-body-p))
+      (format (concat "  Note: %d lines of body and no :PLAN: drawer. "
+                      "Wrap the prospective half now with org_wrap_plan, "
+                      "passing until= the first line of the debrief -- "
+                      "after this you will not know where the seam is.")
+              (claude-code-ide-org--lint-body-prose-lines)))
+     ;; The composed-correctly case: the plan is already drawered, so
+     ;; the close owes the other half -- a one-to-two-sentence
+     ;; resolution in the body and the full debrief in :DEBRIEF:
+     ;; (TODO.org :ID: d5eb32a3). Skipped when a :DEBRIEF: already
+     ;; exists, since the reminder would then be nagging done work.
+     ((and (claude-code-ide-org--find-drawer "PLAN")
+           (not (claude-code-ide-org--find-drawer "DEBRIEF")))
+      (concat "  Note: closing owes the outcome at two grains -- append "
+              "a one-to-two-sentence resolution to the body, and the "
+              "full debrief via org_amend drawer=DEBRIEF.")))))
 
 (defun claude-code-ide-org-set-todo (id state &optional note)
   "Validate ID and STATE and report the transition as queued.
