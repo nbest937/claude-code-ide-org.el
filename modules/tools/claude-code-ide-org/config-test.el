@@ -13685,6 +13685,31 @@ is still live and still prospective."
                  "org_wrap_plan"
                  (claude-code-ide-org-set-todo id "DOING" "starting")))))
 
+(ert-deftest claude-code-ide-org-test-set-todo-nudges-the-debrief-at-close ()
+  "A plan-first heading closing is reminded of the outcome's two grains.
+
+TODO.org :ID: d5eb32a3: the body keeps a one-to-two-sentence resolution
+and the full debrief goes into :DEBRIEF: via org_amend drawer=DEBRIEF.
+The nudge fires at the one moment the debrief is being written anyway;
+a :DEBRIEF: already present silences it, since the reminder would then
+be nagging done work.  The reply must also keep the queue-append
+contract: no second `(was ...)' parenthetical."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--give-body file 12)
+    (claude-code-ide-org-wrap-plan id)
+    (let ((reply (claude-code-ide-org-set-todo id "DONE" "finishing up")))
+      (should (string-match-p "drawer=DEBRIEF" reply))
+      (should (string-match-p "resolution" reply))
+      (should-not (string-match-p "org_wrap_plan" reply))
+      ;; The greedy-sed contract, run exactly as the hook runs it.
+      (should (string-match ".*(was \\([^)]*\\)).*" reply))
+      (should (equal "TODO" (match-string 1 reply))))
+    ;; With a :DEBRIEF: present, the close owes nothing and says nothing.
+    (claude-code-ide-org-amend id "The outcome, in full." nil nil "DEBRIEF")
+    (should-not (string-match-p
+                 "drawer=DEBRIEF"
+                 (claude-code-ide-org-set-todo id "DONE" "second close")))))
+
 (ert-deftest claude-code-ide-org-test-lint-refuses-a-line-anchor-in-a-live-body ()
   "A live heading may not cite `file.el:NNN' (TODO.org :ID: 5fc7b934).
 

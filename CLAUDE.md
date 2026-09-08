@@ -544,13 +544,20 @@ has both a plan and a substantial body, and the body is where the "epic
 wearing a child's clothes" reasoning and the plan-file-overwrite incident
 live. Neither is design, and neither belongs in a design doc.
 
-**Rule**: before a `DONE` heading is archived, add a concise prose outcome
-summary next to that link — what shipped, how it was verified, anything
-that differed from the plan. `DONE.org`'s existing `*Verified, not just
-implemented:*`/`*Implementation notes:*` style is the model to match.
-Applies to delegated-subagent work too: ask for a one-paragraph outcome
-summary in the subagent's final report, not per-checkbox status — there
-are no checkboxes to report on.
+**Rule**: closing a heading records the outcome twice, at two grains
+(`:ID:` d5eb32a3, 2026-09-08): a one-to-two-sentence **resolution**
+appended to the body, and the full **debrief** — what shipped, how it was
+verified, what was falsified, what differed from the plan — into a
+`:DEBRIEF:` drawer via `org_amend` with `drawer=DEBRIEF` (created when
+absent). Together with the `:PLAN:`-at-composition rule above, the body
+stays a fixed-size scannable summary: problem, proposal, resolution. Read
+`:DEBRIEF:` on a finished heading — unlike `:PLAN:`, which is superseded
+design there, the debrief is the part worth reading. This absorbs the
+older pre-archive outcome-summary rule, whose "next to that link" location
+stopped existing when the link moved into `:PLAN:`; a heading closed this
+way owes archiving nothing further. Applies to delegated-subagent work
+too: ask for a one-paragraph outcome summary in the subagent's final
+report, not per-checkbox status — there are no checkboxes to report on.
 
 ---
 

@@ -2,11 +2,16 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO The repeater tests hardcode tomorrow's date, and tomorrow moved :code:
+* DONE The repeater tests hardcode tomorrow's date, and tomorrow moved :code:
+CLOSED: [2026-09-08 Tue 15:52]
 :PROPERTIES:
 :ID:       a8811bf2-2178-4723-9188-37b75b1d7a8d
 :CREATED:  [2026-09-08 Tue 13:56]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-09-08 Tue 15:52] \\
+  merged in PR 17; suite fully green
 :END:
 :PLAN:
 
@@ -54,12 +59,20 @@ discriminating: a no-op mutation of =--ceremony-advance-repeater=
 the wall-clock fixture class closes the same day it was filed.
 
 
-
-* TODO No tool adds a member line to a slice's checklist :code:
+* DONE No tool adds a member line to a slice's checklist :code:
+CLOSED: [2026-09-08 Tue 15:52]
 :PROPERTIES:
 :ID:       9ae0e452-4dd5-4f62-9bd3-13b4cbf3bb71
 :CREATED:  [2026-09-08 Tue 12:38]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-08 Tue 15:44]--[2026-09-08 Tue 15:52] =>  0:08
+- State "DOING"      from "TODO"       [2026-09-08 Tue 15:44] \\
+  building org_slice_add_member
+- [2026-09-08 Tue 15:44]--[2026-09-08 Tue 15:52] member-add tool through the Emacs gate
+- State "DONE"       from "DOING"      [2026-09-08 Tue 15:52] \\
+  merged in PR 17
 :END:
 :PLAN:
 
@@ -98,12 +111,16 @@ function does not exist. Registered as an MCP tool; sessions started
 after the merge see the schema.
 
 
-
-* TODO The cookie updater rewrites bracketed n/m in slice body prose on every refresh :code:
+* DONE The cookie updater rewrites bracketed n/m in slice body prose on every refresh :code:
+CLOSED: [2026-09-08 Tue 15:52]
 :PROPERTIES:
 :ID:       0988541b-1248-4637-b754-ef25ddbc7988
 :CREATED:  [2026-09-08 Tue 12:27]
 :CATEGORY: Slices
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-09-08 Tue 15:52] \\
+  merged in PR 17
 :END:
 :PLAN:
 
@@ -142,7 +159,6 @@ corrupt. The lint-ban alternative was not needed. One test proven both
 ways: green with the scoped updater, red with org's entry-wide one
 swapped back; the existing self-heals test pins the count through the
 new path.
-
 
 
 * TODO Every merge to main went through a PR ten times, and nothing says so :code:
@@ -1680,7 +1696,7 @@ of its own execution while every member transitioned correctly, so
 its work starts" (=739737d=). The =DOING= here is that retcon.
 
 
-* DOING Make the heading body a scannable summary, with plan and debrief in drawers [3/5]
+* DOING [3/5] Make the heading body a scannable summary, with plan and debrief in drawers
 :PROPERTIES:
 :ID:       4c834fdb-5314-4168-ab1d-09fe89ded517
 :CREATED:  [2026-09-02 Wed 16:00]
@@ -1805,11 +1821,15 @@ before this landed has the old tool schema and cannot pass =drawer=
 until it reconnects; the apply path honours it immediately.
 
 
-** TODO Put the debrief in a :DEBRIEF: drawer, leaving a scannable TL;DR in the body :code:
+** NEXT Put the debrief in a :DEBRIEF: drawer, leaving a scannable TL;DR in the body :code:
 :PROPERTIES:
 :ID:       d5eb32a3-fcee-4a25-b39a-fcde597f6cee
 :CREATED:  [2026-09-02 Wed 15:42]
 :CATEGORY: Meta
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-08 Tue 15:59] \\
+  nomination owed since 501a8422 closed; drawer arg unblocks this
 :END:
 :PLAN:
 
@@ -2304,7 +2324,7 @@ CLOCK: [2026-09-01 Tue 12:26]--[2026-09-01 Tue 12:27] =>  0:01
 *Open, and genuinely undecided:* whether the gap-versus-AFK threshold should ever be automated. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the standing precedent against an invented number, and a ten-minute cap is exactly that. Reporting both bounds and letting the human place the line is the alternative — and unlike the current review pass, it is six questions a day rather than nineteen.
 
 
-* TODO [1/12] Everything passed and the file was still wrong :code:
+* TODO [4/15] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
@@ -2361,6 +2381,9 @@ boundary on purpose — =2a6a1355= is a member because *missing* a footnote is i
 Incidental:
 
 - [X] [[id:43aa25b2-1e21-4117-bf15-b92f3081b60d][43aa25b2]] DONE Nothing watches a REVIEW heading, and it is the state most easily forgotten
+- [X] [[id:a8811bf2-2178-4723-9188-37b75b1d7a8d][a8811bf2]] DONE The repeater tests hardcode tomorrow's date, and tomorrow moved
+- [X] [[id:9ae0e452-4dd5-4f62-9bd3-13b4cbf3bb71][9ae0e452]] DONE No tool adds a member line to a slice's checklist
+- [X] [[id:0988541b-1248-4637-b754-ef25ddbc7988][0988541b]] DONE The cookie updater rewrites bracketed n/m in slice body prose on every refresh
 
 *Two incidentals removed 2026-09-08, on a rule the user set the same
 day*: work fast-tracked and completed as an incidental of a slice *in
@@ -3275,6 +3298,8 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-08 Tue 16:04]--[2026-09-08 Tue 16:05] =>  0:01
+CLOCK: [2026-09-08 Tue 15:56]--[2026-09-08 Tue 15:57] =>  0:01
 CLOCK: [2026-09-08 Tue 15:33]--[2026-09-08 Tue 15:34] =>  0:01
 CLOCK: [2026-09-08 Tue 15:21]--[2026-09-08 Tue 15:24] =>  0:03
 CLOCK: [2026-09-08 Tue 11:43]--[2026-09-08 Tue 11:44] =>  0:01
@@ -3339,6 +3364,7 @@ CLOCK: [2026-09-08 Tue 08:31]--[2026-09-08 Tue 08:32] =>  0:01
 - <2026-09-08 Tue 09:18>--<2026-09-08 Tue 09:18> review pass (buffer buried)
 - <2026-09-08 Tue 09:20>--<2026-09-08 Tue 09:20> review pass (buffer buried)
 - <2026-09-08 Tue 10:04>--<2026-09-08 Tue 10:05> review pass (buffer buried)
+- <2026-09-08 Tue 16:04>--<2026-09-08 Tue 16:05> review pass (buffer buried)
 :END:
 
 
@@ -10423,4 +10449,8 @@ CLOCK: [2026-09-08 Tue 15:25]--[2026-09-08 Tue 15:26] =>  0:01
 - [2026-09-08 Tue 15:25]--[2026-09-08 Tue 15:26] assigned at review
 CLOCK: [2026-09-08 Tue 15:29]--[2026-09-08 Tue 15:31] =>  0:02
 - [2026-09-08 Tue 15:29]--[2026-09-08 Tue 15:31] plan c19fbbf5 and revise next-session.md
+CLOCK: [2026-09-08 Tue 15:33]--[2026-09-08 Tue 15:35] =>  0:02
+- [2026-09-08 Tue 15:33]--[2026-09-08 Tue 15:35] assigned at review
+CLOCK: [2026-09-08 Tue 15:38]--[2026-09-08 Tue 15:42] =>  0:04
+- [2026-09-08 Tue 15:38]--[2026-09-08 Tue 15:42] assigned at review
 :END:
