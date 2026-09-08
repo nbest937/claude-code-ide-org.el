@@ -2,6 +2,63 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Structure a slice body with section subheadings, if the machinery can follow :code:research:
+:PROPERTIES:
+:ID:       c5e58ea1-2576-4bc4-9574-88485aa3977f
+:CREATED:  [2026-09-08 Tue 16:53]
+:CATEGORY: Slices
+:END:
+
+*Measured 2026-09-08, on branch =experiment/slice-subheadings= (commit
+=2d6d8e3=, =c19fbbf5= restructured into =** Summary= / =** [/] Planned
+tasks= / =** [/] Incidental tasks= / =** Working notes=), sandboxed so
+the live corpus was never touched.*
+
+**The roll-up assumption is false, and that is the headline finding.**
+With =:COOKIE_DATA: checkbox recursive= unchanged, org's own
+=org-update-statistics-cookies= *zeroed* the slice headline —
+[0/4] became **[0/0]** — while the =Planned tasks= section got [0/4].
+A headline checkbox cookie counts its own section's boxes; checkboxes
+under child headings belong to those headings' cookies. So the stat
+the whole convention hangs visibility on (progress readable folded, in
+the agenda prefix width) moves *off* the slice line under this layout,
+and keeping it there would mean fighting org's counter with more
+custom machinery than the layout saves.
+
+**Every derivation went blind, exactly as the =b36e6369= incident
+predicted.** =--slice-planned-member-ids=, =--slice-members= and
+=--slice-blocker-ids= all returned nil — their bound is the slice's
+own body, stopping at the first child. A full refresh then reported
+"0 member lines rewritten" and **removed the =:BLOCKER:=** — the
+silent worst-direction failure the conventions' list-placement section
+documents. The lint caught the wreckage only indirectly (a blocker
+naming "non-members") plus four missing-:ID: errors for the sections;
+the snapshot could not even be committed until the blocker was
+deleted.
+
+**Also affected**: =--end-of-body= (an =org_amend= lands in the empty
+band above =** Summary=), =org_slice_add_member='s insertion
+targeting, the scoped =org_outline='s member expansion (returned
+empty), and =org_body= without =include_children= no longer reads the
+slice. Adoption would touch roughly eight functions, their ~40 test
+fixtures, and invert the conventions' list-placement rule.
+
+**What the proposal wants that is real, and cheaper routes to it**:
+navigation markers and folding. The =Incidental:= lead is already a
+column-zero marker; a symmetric =Planned:= lead would give both lists
+grep- and imenu-able anchors at zero machinery cost. Prose folding is
+what =:PLAN:=/=:DEBRIEF:= already provide — a slice's Summary is its
+short body and its Working notes are drawer content under the existing
+conventions. Sections *with* =:ID:=s would be =org_amend=-addressable,
+which is the one genuine affordance the flat layout lacks — but it
+buys a write target, not the stats.
+
+*Recommendation: decline the layout; if the navigation itch is real,
+add the =Planned:= lead line instead.* The branch stays for reference
+or a different decision.
+
+
+
 * TODO A task completed between slices belongs to no slice :code:
 :PROPERTIES:
 :ID:       58e6c6a0-f3c0-44dc-9e2e-ebd4203db841
