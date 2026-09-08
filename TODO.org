@@ -2,6 +2,45 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The repeater tests hardcode tomorrow's date, and tomorrow moved :code:
+:PROPERTIES:
+:ID:       a8811bf2-2178-4723-9188-37b75b1d7a8d
+:CREATED:  [2026-09-08 Tue 13:56]
+:CATEGORY: Dev
+:END:
+
+=claude-code-ide-org-test-advance-repeater-survives-a-read-only-buffer=
+and =...-leaves-no-deferred-note= share one fixture — =SCHEDULED:
+<2026-09-03 Thu 07:00 ++1d>= — and one assertion:
+=(string-match-p "2026-09-04" text)= after the advance. Written
+2026-09-03, when "the first future occurrence" was literally tomorrow.
+But =++1d= steps from the *stored* date to the first occurrence past
+*now*, so the expected date moves with the calendar: on 2026-09-08 the
+advance correctly writes =<2026-09-09>= and the literal fails. Both
+tests' actual subjects — no deferred =org-add-log-note= registered, and
+the read-only guard still armed after the write — still pass; only the
+hardcoded date check fails, every day since 2026-09-05.
+
+The sharp part: the production comment beside
+=--ceremony-advance-repeater= *documents this exact semantics*
+("measured 2026-09-02, <2026-09-03> became <2026-09-04>") — the
+behaviour was understood and the fixture hardcoded its consequence
+anyway.
+
+One heading for both tests deliberately: same fixture, same root
+cause, and splitting them would manufacture exactly the twin pair the
+review question exists to catch. This is the *third generation* of the
+wall-clock-dependent-fixture class — =c31b6c76= (a clock-report
+fixture spilling past midnight, failing every evening) and =5a5e87c9=
+(a duration assertion drifting three minutes a day) were the first
+two, fixed together in =811d180= and archived.
+
+Fix shape, not settled: assert the semantics rather than the literal —
+the =SCHEDULED= no longer reads =2026-09-03= and parses to a time in
+the future. Computing "tomorrow" in the test re-implements =++1d=
+including its before-07:00 edge (the first future occurrence can be
+*today*), which is a fourth wall-clock dependency wearing a fix.
+
 * TODO No tool adds a member line to a slice's checklist :code:
 :PROPERTIES:
 :ID:       9ae0e452-4dd5-4f62-9bd3-13b4cbf3bb71
