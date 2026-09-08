@@ -8337,6 +8337,7 @@ CLOCK: [2026-09-04 Fri 17:03]--[2026-09-04 Fri 17:09] =>  0:06
 - State "REVIEW"     from "DOING"      [2026-09-04 Fri 17:09] \\
   fish retired in three commits; handed back
 :END:
+:PLAN:
 [[file:~/.claude/plans/script-shell-standardization.md][Plan]]
 
 Surfaced 2026-07-31 while relocating the statusline script
@@ -8446,6 +8447,7 @@ Emacs, not an OS-invokable interpreter, so hooks would need
 thing with less indirection. The convention gets written down as part
 of implementation, so it is not re-litigated per script.
 
+:END:
 *Shipped 2026-09-04 in three commits* (=8dc1628=, =26d14d5=, plus the
 convention/plan commit following), and *fish is now absent from the
 repo*.
