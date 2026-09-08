@@ -13585,8 +13585,19 @@ silently disarm the user (TODO.org :ID: c8a97d9d)."
     (with-current-buffer (find-file-noselect file) (setq buffer-read-only t))
     (should (claude-code-ide-org--ceremony-advance-repeater))
     ;; Org advanced the date rather than leaving the heading DONE.
+    ;; Semantics, not a literal: ++1d lands on the first occurrence
+    ;; past NOW, so the expected date moves with the calendar -- the
+    ;; hardcoded "2026-09-04" this used to assert was true only on the
+    ;; day it was written, and failed every day after 2026-09-04
+    ;; (TODO.org :ID: a8811bf2, third generation of the wall-clock
+    ;; fixture class).
     (let ((text (claude-code-ide-org-test--disk-contents file)))
-      (should (string-match-p "2026-09-04" text))
+      (should (string-match "SCHEDULED: <\\([^>]+\\) 07:00 \\+\\+1d>" text))
+      (let ((stamp (match-string 1 text)))
+        (should-not (string-match-p "2026-09-03" stamp))
+        (should (time-less-p (current-time)
+                             (org-time-string-to-time
+                              (concat "<" stamp " 07:00>")))))
       (should (string-match-p "^\\* TODO Archive closed tasks daily" text)))
     (should (with-current-buffer (find-file-noselect file) buffer-read-only))))
 
@@ -13907,8 +13918,15 @@ not have -- the thing this test can see is the registration."
       (should (claude-code-ide-org--ceremony-advance-repeater))
       (should-not (memq 'org-add-log-note post-command-hook)))
     ;; The advance still did its job, so the suppression is scoped to the
-    ;; note and not to the transition.
+    ;; note and not to the transition.  Semantics rather than a literal
+    ;; date, for the reason the sibling test records (TODO.org :ID:
+    ;; a8811bf2).
     (let ((text (claude-code-ide-org-test--disk-contents file)))
-      (should (string-match-p "2026-09-04" text))
+      (should (string-match "SCHEDULED: <\\([^>]+\\) 07:00 \\+\\+1d>" text))
+      (let ((stamp (match-string 1 text)))
+        (should-not (string-match-p "2026-09-03" stamp))
+        (should (time-less-p (current-time)
+                             (org-time-string-to-time
+                              (concat "<" stamp " 07:00>")))))
       (should (string-match-p "^\\* TODO Archive closed tasks daily" text)))
     (should (with-current-buffer (find-file-noselect file) buffer-read-only))))
