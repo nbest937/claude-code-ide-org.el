@@ -4819,15 +4819,66 @@ ownership exclusion can be *reported* rather than applied silently,
 exactly as `claude-code-ide-org--incidentals-claimed-elsewhere\\=' is for
 the declared-member exclusion.  OWNER is the owning slice\\='s id.")
 
+(defun claude-code-ide-org--slice-doing-spans ()
+  "The heading-at-point's DOING intervals, oldest first, from state history.
+
+Each element is (START . END), END nil while the final DOING is still
+open on a live heading; a terminal heading's final open span ends at
+its `:CLOSED:'.  Read from the `:LOGBOOK:' drawer's own `- State' lines
+-- the record org's native logging writes at apply -- because for a
+grouping the keyword IS the in-progress claim: `DOING' on a slice means
+at least one member is in the mail, and a slice that never entered
+`DOING' was never in progress however many clocks its members carry
+(:ID: 58e6c6a0, where a TODO slice with no :LOGBOOK: had accreted an
+evening's unrelated closes on the strength of one review-assigned
+member clock)."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((drawer (claude-code-ide-org--find-drawer "LOGBOOK"))
+          (closed (let ((c (org-entry-get nil "CLOSED")))
+                    (and c (ignore-errors
+                             (claude-code-ide-org--parse-org-timestamp c)))))
+          entries)
+      (when drawer
+        (save-excursion
+          (goto-char (org-element-begin drawer))
+          (let ((end (org-element-end drawer)))
+            (while (re-search-forward
+                    "^[ \t]*- State[ \t]+\"\\([A-Z]+\\)\".*\\[\\([^]]+\\)\\]" end t)
+              ;; Both groups BEFORE the parse: `--parse-org-timestamp'
+              ;; runs its own string-match and clobbers the match data,
+              ;; which silently turned every state into garbage on the
+              ;; first draft of this loop.
+              (let* ((state (match-string-no-properties 1))
+                     (raw (match-string-no-properties 2))
+                     (ts (ignore-errors
+                           (claude-code-ide-org--parse-org-timestamp
+                            (concat "[" raw "]")))))
+                (when ts
+                  (push (cons ts state) entries)))))))
+      (setq entries (sort (nreverse entries)
+                          (lambda (a b) (time-less-p (car a) (car b)))))
+      (let (spans open)
+        (dolist (e entries)
+          (cond ((and (equal (cdr e) "DOING") (not open))
+                 (setq open (car e)))
+                ((and open (not (equal (cdr e) "DOING")))
+                 (push (cons open (car e)) spans)
+                 (setq open nil))))
+        (when open (push (cons open closed) spans))
+        (nreverse spans)))))
+
 (defun claude-code-ide-org--slice-work-profiles ()
   "One work profile per `:KIND: slice\\=' heading, across every scannable file.
 
-Each element is (ID CANCELLED-P END STARTS): END the parsed `:CLOSED:\\='
-or nil while the slice is open, STARTS every CLOCK start at or after its
-`:CREATED:\\=' across its own subtree and its planned members\\=' --
-minus members another live slice also declares, the same exclusion the
-incidental window applies, because a shared member\\='s clock is
-evidence about the other slice\\='s work as much as this one\\='s.
+Each element is (ID CANCELLED-P END STARTS DOING-SPANS): END the parsed
+`:CLOSED:\\=' or nil while the slice is open, STARTS every CLOCK start
+at or after its `:CREATED:\\=' across its own subtree and its planned
+members\\=' -- minus members another live slice also declares, the same
+exclusion the incidental window applies, because a shared member\\='s
+clock is evidence about the other slice\\='s work as much as this
+one\\='s -- and DOING-SPANS the slice\\='s own in-progress intervals
+from `claude-code-ide-org--slice-doing-spans\\='.
 
 The input to `claude-code-ide-org--incidental-owner\\=': which slice was
 in progress when a heading closed is a question about every slice at
@@ -4850,12 +4901,13 @@ makes -- yet the id must still be recognisable as a slice, so
                          (let ((c (org-entry-get nil "CLOSED")))
                            (and c (ignore-errors
                                     (claude-code-ide-org--parse-org-timestamp c))))
-                         (claude-code-ide-org--slice-planned-member-ids))
+                         (claude-code-ide-org--slice-planned-member-ids)
+                         (claude-code-ide-org--slice-doing-spans))
                    raw)))
          nil (list file))))
     (mapcar
      (lambda (p)
-       (pcase-let ((`(,id ,cancelled ,created ,closed ,named) p))
+       (pcase-let ((`(,id ,cancelled ,created ,closed ,named ,doing) p))
          (let ((elsewhere
                 (apply #'append
                        (mapcar (lambda (q)
@@ -4865,75 +4917,91 @@ makes -- yet the id must still be recognisable as a slice, so
            (list id cancelled closed
                  (claude-code-ide-org--clock-starts-after
                   (cons id (seq-remove (lambda (m) (member m elsewhere)) named))
-                  created)))))
+                  created)
+                 doing))))
      raw)))
 
 (defun claude-code-ide-org--incidental-owner (ts profiles)
   "The slice in progress at TS per PROFILES, as an id, or nil if none was.
 
-The rule (TODO.org :ID: 2c77f2cc): work completed during a slice in
-progress belongs to that slice alone.  \"In progress\" means TS falls
-inside the slice\\='s worked window -- first clock through `:CLOSED:\\=',
-or through now while it is open -- and among several such slices the
-owner is the one whose clocks put work nearest before the close: the
-latest CLOCK start at or before TS, which is \"most recently worked\"
-measured at the moment the candidate closed.  Two slices starting a
-clock in the same minute are indistinguishable on this evidence, so a
-tie names no owner at all and the candidate stays in every window that
-contains it -- the pre-rule behaviour, kept exactly where the evidence
-cannot pick a side.
+The rule (TODO.org :ID: 2c77f2cc, sharpened by :ID: 58e6c6a0): work
+completed during a slice in progress belongs to that slice alone, and
+work completed while no slice is in progress belongs to none.  \"In
+progress\" is the keyword\\='s own claim, read from state history: a
+slice owns TS only when one of its DOING spans contains it.  A worked
+window is not enough -- the case that forced this was a `TODO\\=' slice
+with no `:LOGBOOK:\\=' whose single review-assigned member clock had it
+\"owning\" an evening of unrelated closes four days later.
 
-Measured 2026-09-08 against the live corpus before this landed:
-`f1ff027e\\=' and `d585d33e\\=' closed at 09:17 while `ff7ccb2d\\='s
-members were clocked from 08:47 the same morning, so this rule assigns
-both to `ff7ccb2d\\=' -- the slice they were in fact fast-tracked under
--- where the bare window had fanned them out to three slices at once.
+When several slices were DOING at once -- `DOING\\=' is plural by
+design -- the owner is the one whose clocks put work nearest before
+the close: the latest CLOCK start at or before TS.  Two slices
+starting a clock in the same minute are indistinguishable on this
+evidence, so a tie names no owner, and the candidate stays out of
+every list: ambiguous evidence claims nothing, in either direction.
 
-A CANCELLED slice never owns anything, and a slice never worked has no
-window to be in progress inside."
-  (let (best best-start tied)
+Verified against the live corpus: `f1ff027e\\=' and `d585d33e\\='
+closed at 09:17 on 2026-09-08 while `ff7ccb2d\\=' was DOING with
+members clocked from 08:47, so both assign there -- the slice they
+were in fact fast-tracked under.
+
+A CANCELLED slice never owns anything."
+  (let (cands)
     (dolist (p profiles)
-      (pcase-let ((`(,id ,cancelled ,end ,starts) p))
-        (when (and (not cancelled) starts
-                   (not (time-less-p ts (car starts)))
-                   (or (null end) (not (time-less-p end ts))))
+      (pcase-let ((`(,id ,cancelled ,_end ,starts ,doing) p))
+        (when (and (not cancelled)
+                   (seq-some (lambda (span)
+                               (and (not (time-less-p ts (car span)))
+                                    (or (null (cdr span))
+                                        (not (time-less-p (cdr span) ts)))))
+                             doing))
+          (push (cons id starts) cands))))
+    (cond
+     ((null cands) nil)
+     ((null (cdr cands)) (car (car cands)))
+     (t
+      (let (best best-start tied)
+        (dolist (c cands)
           (let (latest)
-            (dolist (s starts)
+            (dolist (s (cdr c))
               (unless (time-less-p ts s) (setq latest s)))
             (when latest
               (cond
                ((or (null best-start) (time-less-p best-start latest))
-                (setq best id best-start latest tied nil))
+                (setq best (car c) best-start latest tied nil))
                ;; Neither earlier nor later: an exact tie.
                ((not (time-less-p latest best-start))
-                (setq tied t))))))))
-    (and (not tied) best)))
+                (setq tied t))))))
+        (and (not tied) best))))))
 
 (defun claude-code-ide-org--slice-incidental-ids ()
-  "Ids closed during the slice-at-point\'s window that it does not name.
+  "Ids of work completed while the slice-at-point was in progress, unnamed.
 
-*The strict window, and the rule needs no opinion* -- every heading
-closed between the slice\'s `:CREATED:\' and its close, minus its declared
-members and itself. A curated list would need a judgement per heading,
-and a judgement re-made differently each time is the thing this project
-keeps getting wrong; a derived list cannot drift (TODO.org
-:ID: 0086614a).
+*Positive ownership, since 2026-09-08* (TODO.org :ID: 58e6c6a0, the
+user\'s ruling): an incidental is a heading whose close this slice
+*owns* -- `claude-code-ide-org--incidental-owner\' says the slice was
+the one in progress when it closed -- minus its declared members and
+itself.  A close owned by another slice is dropped and *reported*
+through `claude-code-ide-org--incidentals-owned-elsewhere\'; **a close
+no slice owns belongs to no slice**, silently, and an ownership tie
+resolves the same way -- ambiguous evidence claims nothing.
 
-Two exclusions sharpened 2026-09-08 (TODO.org :ID: 2c77f2cc), after one
-morning\'s closes fanned out across every open slice at once.  A heading
-that is itself a `:KIND: slice\' is never incidental to another --
-a grouping\'s members are listed separately, so counting the container
-inflates the cookie by an item with no independent existence; the drop
-is definitional and silent, like the slice\'s own self-exclusion.  And
-work completed during a slice in progress belongs to that slice alone:
-`claude-code-ide-org--incidental-owner\' names the owner, and a close
-owned elsewhere is dropped here and *reported*, through
-`claude-code-ide-org--incidentals-owned-elsewhere\'.
+That inverted the original default.  The strict window (:ID: 0086614a)
+kept every in-window close not owned elsewhere, calling the sweep of
+unrelated workstreams a feature -- and a slice whose only claim to
+being worked was one review-assigned clock on one member then accreted
+an evening\'s unrelated closes while sitting `TODO\' with no
+`:LOGBOOK:\' of its own.  What survives from :ID: 0086614a is the part
+that was right: the list is *derived* and regenerated, never curated
+-- a judgement re-made differently each time is the thing this project
+keeps getting wrong, and a hand-kept list would be stale by the second
+day.
 
-That this sweeps in genuinely unrelated workstreams is a *feature*: the
-list answers \"what else was going on\", which is the question worth
-asking of a plan. It is also why the list is regenerated rather than
-maintained -- a hand-kept one would be stale by the second day.
+A `:KIND: slice\' heading is never incidental to another (:ID:
+2c77f2cc) -- a grouping\'s members are listed separately, so counting
+the container inflates the cookie by an item with no independent
+existence; that drop is definitional and silent, like the
+self-exclusion.
 
 Excludes the slice itself, which is closed inside its own window by
 definition, and every id it already names as a member, planned or
@@ -4997,9 +5065,15 @@ incidental."
                             ((member cid elsewhere) (push cid dropped) nil)
                             (t (let ((owner (claude-code-ide-org--incidental-owner
                                              cts profiles)))
-                                 (if (and owner (not (equal owner self)))
-                                     (progn (push (cons cid owner) owned) nil)
-                                   cid))))))
+                                 (cond
+                                  ;; Kept only when THIS slice was the
+                                  ;; one in progress at the close.
+                                  ((equal owner self) cid)
+                                  (owner (push (cons cid owner) owned) nil)
+                                  ;; No slice in progress at the close:
+                                  ;; it belongs to no slice (the user,
+                                  ;; 2026-09-08, :ID: 58e6c6a0).
+                                  (t nil)))))))
                        (claude-code-ide-org--closed-in-window start end)))))
           (when (and dropped
                      (boundp 'claude-code-ide-org--incidentals-claimed-elsewhere))
@@ -5338,12 +5412,11 @@ a record that was never true at any moment (observed on
                  (setq unrendered (append unrendered (cdr result))))
                ;; After the member lines and *before* the cookie, because
                ;; incidental lines carry checkboxes and the cookie counts
-               ;; every checkbox in the entry. The user settled that the
-               ;; denominator grows: `[n/m]' says what closed between
-               ;; :CREATED: and :CLOSED:, which is a claim about a bounded
-               ;; window rather than about plan fidelity, and a separate
-               ;; plan-completion number would be a second statistic to
-               ;; keep true (TODO.org :ID: 0086614a).
+               ;; every checkbox in the entry. The denominator grows with
+               ;; incidentals (:ID: 0086614a) -- since :ID: 58e6c6a0 those
+               ;; are the closes this slice positively OWNED, work done
+               ;; while it was DOING -- and a separate plan-completion
+               ;; number would be a second statistic to keep true.
                (setq incidentals
                      (+ incidentals
                         (claude-code-ide-org--refresh-slice-incidentals-at-point index)))

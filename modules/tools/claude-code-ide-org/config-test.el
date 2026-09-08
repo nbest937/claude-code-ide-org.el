@@ -7347,8 +7347,13 @@ tell a window bound from a blanket scan."
               ;; (TODO.org :ID: 42ba0a80). These tests are about a slice
               ;; that *was* worked, so it carries one, opening when it
               ;; was created -- which leaves every window bound below
-              ;; exactly where it was.
+              ;; exactly where it was. The State line is what makes it
+              ;; IN PROGRESS: since :ID: 58e6c6a0 ownership reads DOING
+              ;; spans from state history, and a slice that never
+              ;; entered DOING owns no close however its members were
+              ;; clocked.
               ":LOGBOOK:\n"
+              "- State \"DOING\"      from \"TODO\"       [2026-08-20 Thu 08:55]\n"
               "CLOCK: [2026-08-20 Thu 09:00]--[2026-08-20 Thu 09:30] =>  0:30\n"
               ":END:\n\n"
               "- [X] [[id:member-01][member-01]] DONE A planned member\n\n"
@@ -7791,12 +7796,16 @@ it.  Measured 2026-09-01: 21 of `f9fe9fac\='s 26 incidentals were
   (claude-code-ide-org-test--with-slice-window
     (with-current-buffer (find-file-noselect file)
       (goto-char (point-max))
-      ;; A second slice, worked in the same window, declaring incid-001.
+      ;; A second slice, worked earlier in the window, declaring
+      ;; incid-001. Its clock deliberately predates the fixture
+      ;; slice's 09:00 start: with positive ownership (:ID: 58e6c6a0)
+      ;; a tie would hand the close to nobody, and this test is about
+      ;; the declared-member exclusion, not about ties.
       (insert "\n* TODO [0/1] Another slice\n:PROPERTIES:\n"
               ":ID:       slice-002\n:KIND:     slice\n"
-              ":CREATED:  [2026-08-20 Thu 09:00]\n:END:\n"
+              ":CREATED:  [2026-08-20 Thu 08:00]\n:END:\n"
               ":LOGBOOK:\n"
-              "CLOCK: [2026-08-20 Thu 09:00]--[2026-08-20 Thu 09:30] =>  0:30\n"
+              "CLOCK: [2026-08-20 Thu 08:30]--[2026-08-20 Thu 08:45] =>  0:15\n"
               ":END:\n\n"
               "- [X] [[id:incid-001][incid-001]] DONE Claimed by the other slice\n")
       (save-buffer)
@@ -7805,8 +7814,9 @@ it.  Measured 2026-09-01: 21 of `f9fe9fac\='s 26 incidentals were
       (let ((ids (claude-code-ide-org--slice-incidental-ids)))
         ;; Declared next door, so not incidental here.
         (should-not (member "incid-001" ids))
-        ;; Declared by nobody, so still incidental here -- without this
-        ;; the test would pass on a function that returned nil.
+        ;; Declared by nobody and owned here -- the fixture slice was
+        ;; the one most recently worked at its close. Without this the
+        ;; test would pass on a function that returned nil.
         (should (member "incid-002" ids))))))
 
 (ert-deftest claude-code-ide-org-test-a-cancelled-slices-claim-does-not-hold ()
@@ -7862,12 +7872,13 @@ before it, among slices whose window contains it."
       (re-search-forward "^CLOCK: \\[2026-08-20 Thu 09:00\\]")
       (forward-line 1)
       (insert "CLOCK: [2026-08-22 Sat 11:55]--[2026-08-22 Sat 11:58] =>  0:03\n")
-      ;; A second slice, clocked just before incid-001 closes.
+      ;; A second slice, DOING and clocked just before incid-001 closes.
       (goto-char (point-max))
       (insert "\n* TODO [0/0] A concurrent slice\n:PROPERTIES:\n"
               ":ID:       slice-002\n:KIND:     slice\n"
               ":CREATED:  [2026-08-21 Fri 10:00]\n:END:\n"
               ":LOGBOOK:\n"
+              "- State \"DOING\"      from \"TODO\"       [2026-08-21 Fri 10:50]\n"
               "CLOCK: [2026-08-21 Fri 10:55]--[2026-08-21 Fri 10:58] =>  0:03\n"
               ":END:\n")
       (save-buffer)
@@ -7888,28 +7899,31 @@ before it, among slices whose window contains it."
 (ert-deftest claude-code-ide-org-test-an-ownership-tie-names-no-owner ()
   "Two slices clocked in the same minute are indistinguishable.
 
-A tie names no owner, and the candidate stays in every window that
-contains it -- the pre-rule behaviour, kept exactly where the evidence
-cannot pick a side.  First-scanned-wins was considered and declined:
-file order is an artefact, and an assignment that flips on a refile is
-worse than none."
+A tie names no owner, and since :ID: 58e6c6a0 an unowned close belongs
+to *no* slice -- so the candidate appears in neither list.  Ambiguous
+evidence claims nothing, in either direction.  First-scanned-wins was
+considered and declined when the owner function was built: file order
+is an artefact, and an assignment that flips on a refile is worse than
+none."
   (claude-code-ide-org-test--with-slice-window
     (with-current-buffer (find-file-noselect file)
       (goto-char (point-max))
-      ;; Same clock start, to the minute, as the fixture slice's.
+      ;; Same clock start, to the minute, as the fixture slice's, and
+      ;; DOING alongside it -- both in progress, indistinguishable.
       (insert "\n* TODO [0/0] A concurrent slice\n:PROPERTIES:\n"
               ":ID:       slice-002\n:KIND:     slice\n"
               ":CREATED:  [2026-08-20 Thu 08:00]\n:END:\n"
               ":LOGBOOK:\n"
+              "- State \"DOING\"      from \"TODO\"       [2026-08-20 Thu 08:55]\n"
               "CLOCK: [2026-08-20 Thu 09:00]--[2026-08-20 Thu 09:10] =>  0:10\n"
               ":END:\n")
       (save-buffer)
       (goto-char (point-min))
       (re-search-forward "^\\* TODO \\[1/1\\] A slice")
-      (should (member "incid-001" (claude-code-ide-org--slice-incidental-ids)))
+      (should-not (member "incid-001" (claude-code-ide-org--slice-incidental-ids)))
       (goto-char (point-min))
       (re-search-forward "^\\* TODO \\[0/0\\] A concurrent slice")
-      (should (member "incid-001" (claude-code-ide-org--slice-incidental-ids))))))
+      (should-not (member "incid-001" (claude-code-ide-org--slice-incidental-ids))))))
 
 (ert-deftest claude-code-ide-org-test-a-slice-is-never-another-slices-incidental ()
   "A grouping that closes is not work incidental to another slice.
@@ -7947,6 +7961,7 @@ lets the reader dispute the assignment rather than hunt for it."
               ":ID:       slice-002\n:KIND:     slice\n"
               ":CREATED:  [2026-08-21 Fri 10:00]\n:END:\n"
               ":LOGBOOK:\n"
+              "- State \"DOING\"      from \"TODO\"       [2026-08-21 Fri 10:50]\n"
               "CLOCK: [2026-08-21 Fri 10:55]--[2026-08-21 Fri 10:58] =>  0:03\n"
               ":END:\n")
       (save-buffer)
@@ -7956,6 +7971,28 @@ lets the reader dispute the assignment rather than hunt for it."
         (claude-code-ide-org--slice-incidental-ids)
         (should (member (cons "incid-001" "slice-002")
                         claude-code-ide-org--incidentals-owned-elsewhere))))))
+
+(ert-deftest claude-code-ide-org-test-a-slice-never-doing-collects-nothing ()
+  "A TODO slice owns no close, however its members were clocked.
+
+The case that forced positive ownership (:ID: 58e6c6a0): `8a2eb687'
+sat TODO with no :LOGBOOK: of its own, one member carried one
+review-assigned clock, and the derivation had it \"owning\" an
+evening's unrelated closes four days later.  In progress is the
+keyword's claim, read from state history -- a worked window is not
+enough -- and a close made while no slice is DOING belongs to no
+slice."
+  (claude-code-ide-org-test--with-slice-window
+    (with-current-buffer (find-file-noselect file)
+      ;; Remove the fixture's DOING state line: the slice keeps its
+      ;; clock (so its window is open) but was never in progress.
+      (goto-char (point-min))
+      (re-search-forward "^- State \"DOING\"[^\n]*\n")
+      (replace-match "" t t)
+      (save-buffer)
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO \\[1/1\\] A slice")
+      (should-not (claude-code-ide-org--slice-incidental-ids)))))
 
 (ert-deftest claude-code-ide-org-test-slice-never-worked-has-no-incidentals ()
   "A slice nobody has started accrues nothing, however long ago it was written.
@@ -7979,13 +8016,13 @@ its predecessor still runs is normal here, and created-to-now then means
             (replace-match ""))))
       (should-not (claude-code-ide-org--slice-incidental-ids))
       ;; And the guard is the clock, not some other property of the
-      ;; fixture: put one back and the window returns.
+      ;; fixture: put one back -- into the existing :LOGBOOK:, beside
+      ;; the DOING state line -- and the window returns.
       (save-excursion
         (org-back-to-heading t)
-        (forward-line 1)
-        (re-search-forward "^:END:$")
-        (insert "\n:LOGBOOK:\nCLOCK: [2026-08-20 Thu 09:00]--"
-                "[2026-08-20 Thu 09:30] =>  0:30\n:END:"))
+        (re-search-forward "^- State \"DOING\"[^\n]*\n")
+        (insert "CLOCK: [2026-08-20 Thu 09:00]--"
+                "[2026-08-20 Thu 09:30] =>  0:30\n"))
       (should (member "incid-001" (claude-code-ide-org--slice-incidental-ids))))))
 
 (ert-deftest claude-code-ide-org-test-slice-incidental-window-is-bounded-by-close ()
