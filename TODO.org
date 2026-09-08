@@ -2,6 +2,63 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Every merge to main went through a PR ten times, and nothing says so :code:
+:PROPERTIES:
+:ID:       c7bf2121-755c-4e52-8bf2-e21e56b1e0c2
+:CREATED:  [2026-09-08 Tue 11:56]
+:CATEGORY: Dev
+:END:
+
+Raised by the user 2026-09-08 on noticing that this session's merges to
+=main= bypassed the pull-request workflow every previous merge used.
+
+*Measured, and the practice is real:* the last **ten** merges to =main=
+(=#2= through =#10=, unbroken) are =Merge pull request …= commits. The
+two this session made — =8975409= (=feature/org-discipline-travel=) and
+=fee51fd= (=feature/doc-sync-hook=) — are local =--no-ff= merges, and
+they broke that streak without tripping anything.
+
+*Why nothing caught it:* the practice exists **only in git history**.
+Grepped 2026-09-08 across CLAUDE.md, =.claude/rules/org-conventions.md=
+and =.claude/commands/next-session.md=: no requirement anywhere. The
+single mention is Step 0's *survey* line (=gh pr list --state open=),
+which reads PRs in flight rather than requiring one. This is exactly the
+hazard CLAUDE.md opens with, inverted: usually the prose outlives the
+code, here the code has no prose at all, so a ten-time rule was
+invisible to a reader who had not looked at the log.
+
+*Proximate cause, recorded because it generalises.* A question battery
+offered "merge to main now" versus "hold"; the user chose merge and the
+*mechanism* was never asked about, so it defaulted to a local merge. The
+question decided timing and silently decided workflow too — a shape
+worth watching for in future batteries, since the unasked half is
+invisible to both parties.
+
+*Recommended approach, in order:*
+
+1. *Write it down first.* Step 0 of the next-session prompt (done
+   2026-09-08, beside the branch-base survey) and CLAUDE.md's
+   engineering practices, which is where branch policy already lives.
+   Prose alone would have prevented this instance, and costs nothing.
+2. *Then a =.githooks/pre-push= check, advisory with an override.* That
+   hook already exists and already refuses a stale =plans/= archive, and
+   a push is the last moment before local history becomes shared —
+   =pre-commit= cannot see the intent, =pre-push= can ask whether
+   =main= carries merge commits unreachable from any PR merge.
+   **Advisory, not blocking:** a hotfix or a deliberate solo merge must
+   not be refused by a workflow preference, and this project's
+   precedent (=62b65ad0=, the retired auto-promotion trigger) is that a
+   mechanism which acts on its own judgement gets it wrong often enough
+   to be worse than a report.
+3. *Do not rewrite the two existing merges.* They are already in the
+   history and a retrospective PR would reconstruct a review that never
+   happened, which is worse than an accurate log plus this heading.
+
+*Open:* whether the rule is "every merge to =main=" or "every merge
+that carries code", since the maintenance clause already lets
+bookkeeping land directly on =main=. The ten-merge record cannot
+distinguish them — no bookkeeping-only branch has ever existed.
+
 * TODO The proposal convention's last argument is falsified; an open slice is its own proposal :code:
 :PROPERTIES:
 :ID:       7f0c9baa-67ed-4008-8cbc-28f0ea898dd4
@@ -240,7 +297,6 @@ maintains — and belongs in the same pass: when the ceremony refreshes
 an open slice, a missing prompt link is a thing it can *report* even
 where it cannot supply the value, since only the composer knows which
 revision applies.
-
 
 
 * DONE Commit co-author trailer is frozen at session start, misattributes after /model :code:
@@ -566,14 +622,14 @@ the class is worth a moment's thought, since =bin/check-conventions= checks docu
 code and nothing checks a docstring against the function under it.
 
 
-* NEXT [3/13] Only membership and order are declared, and everything else still needs a hand
+* NEXT [3/12] Only membership and order are declared, and everything else still needs a hand
 :PROPERTIES:
 :ID:       52bfafdf-d313-48e1-9524-d8b539f165c9
 :CREATED:  [2026-09-04 Fri 09:26]
 :CATEGORY: Slices
 :COOKIE_DATA: checkbox recursive
 :KIND:     slice
-:BLOCKER:  ids(2c77f2cc-af07-4f4d-aa9d-1aa3bc8843f5 635d5abb-207d-445d-b268-bc031bdd592a 501a8422-9e93-4d2d-98bb-db0ab2c16e37 acf46449-422b-45d5-a223-83224ef71548 7f0c9baa-67ed-4008-8cbc-28f0ea898dd4 198dd00e-0746-444a-ab25-2034a2a235c2 2d2211d5-97c3-4f69-8175-40df90d1db8a de687e4d-9384-46ae-a495-55b3ae46d1bb 1b727475-46c3-4967-8cdd-dfd9397d94ea d749ebd5-ff2b-4794-941a-0af5c2df1356)
+:BLOCKER:  ids(2c77f2cc-af07-4f4d-aa9d-1aa3bc8843f5 635d5abb-207d-445d-b268-bc031bdd592a 501a8422-9e93-4d2d-98bb-db0ab2c16e37 acf46449-422b-45d5-a223-83224ef71548 7f0c9baa-67ed-4008-8cbc-28f0ea898dd4 2d2211d5-97c3-4f69-8175-40df90d1db8a de687e4d-9384-46ae-a495-55b3ae46d1bb 1b727475-46c3-4967-8cdd-dfd9397d94ea d749ebd5-ff2b-4794-941a-0af5c2df1356)
 :END:
 :LOGBOOK:
 - State "TODO"       from "MAYBE"      [2026-09-04 Fri 09:40] \\
@@ -597,11 +653,11 @@ true — where a human hand is still required, and where forgetting is silent. S
 either filed or sharpened on 2026-09-03/04, which is why the theme only became visible now.
 
 - [ ] [[id:2c77f2cc-af07-4f4d-aa9d-1aa3bc8843f5][2c77f2cc]] TODO One incidental lands in every open slice's window, and the cookies double-count it
-- [ ] [[id:635d5abb-207d-445d-b268-bc031bdd592a][635d5abb]] TODO org_amend cannot continue a list, and the slice revision links are always one
+- [ ] [[id:635d5abb-207d-445d-b268-bc031bdd592a][635d5abb]] NEXT org_amend cannot continue a list, and the slice revision links are always one
 - [ ] [[id:501a8422-9e93-4d2d-98bb-db0ab2c16e37][501a8422]] NEXT Give org_amend a drawer argument, so a plan can be revised and written in one call
 - [ ] [[id:acf46449-422b-45d5-a223-83224ef71548][acf46449]] TODO Every slice needs :COOKIE_DATA: and no slice creates it; the lint only reports
 - [ ] [[id:7f0c9baa-67ed-4008-8cbc-28f0ea898dd4][7f0c9baa]] TODO The proposal convention's last argument is falsified; an open slice is its own proposal
-- [ ] [[id:198dd00e-0746-444a-ab25-2034a2a235c2][198dd00e]] TODO Accepting a slice proposal leaves its body still calling itself a proposal
+- [[id:198dd00e-0746-444a-ab25-2034a2a235c2][198dd00e]] CANCELLED Accepting a slice proposal leaves its body still calling itself a proposal
 - [ ] [[id:2d2211d5-97c3-4f69-8175-40df90d1db8a][2d2211d5]] TODO Adding a just-captured heading to a slice cannot be made lint-clean
 - [ ] [[id:de687e4d-9384-46ae-a495-55b3ae46d1bb][de687e4d]] TODO A slice closed by the same apply pass freezes with stale member lines
 - [ ] [[id:1b727475-46c3-4967-8cdd-dfd9397d94ea][1b727475]] TODO A MAYBE member and a dropped member render identically, and the drop is now sticky
@@ -693,11 +749,15 @@ undone by the next refresh, so until this lands, incidental lists are
 to be read as unreliable rather than corrected.
 
 
-* TODO org_amend cannot continue a list, and the slice revision links are always one
+* NEXT org_amend cannot continue a list, and the slice revision links are always one
 :PROPERTIES:
 :ID:       635d5abb-207d-445d-b268-bc031bdd592a
 :CREATED:  [2026-09-04 Fri 09:21]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-08 Tue 11:36] \\
+  Tools nomination; the tool gap 52bfafdf keeps hitting
 :END:
 
 =org_amend= is documented as positional — "it appends wherever the body now ends" — and it inserts a
@@ -850,11 +910,16 @@ deferral: it is decided *with* the portable half, so
 =:BLOCKER:=. The forecast-vs-record boundary design happens there.
 
 
-* TODO Accepting a slice proposal leaves its body still calling itself a proposal
+* CANCELLED Accepting a slice proposal leaves its body still calling itself a proposal
+CLOSED: [2026-09-08 Tue 11:41]
 :PROPERTIES:
 :ID:       198dd00e-0746-444a-ab25-2034a2a235c2
 :CREATED:  [2026-09-03 Thu 15:49]
 :CATEGORY: Slices
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "TODO"       [2026-09-08 Tue 11:41] \\
+  premise nullified by 7f0c9baa; fragment moved to d749ebd5
 :END:
 :PLAN:
 
@@ -903,7 +968,6 @@ cancelled with the rest*: the third acceptance step, linking the
 =ff7ccb2d= went without one until a human noticed an hour later, and
 that gap recurs for any slice a prompt picks up, declared from birth or
 not.
-
 
 
 * TODO A slice closed by the same apply pass freezes with stale member lines :code:
@@ -2737,6 +2801,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-08 Tue 11:43]--[2026-09-08 Tue 11:44] =>  0:01
 CLOCK: [2026-09-08 Tue 11:31]--[2026-09-08 Tue 11:33] =>  0:02
 CLOCK: [2026-09-08 Tue 10:20]--[2026-09-08 Tue 10:21] =>  0:01
 CLOCK: [2026-09-08 Tue 10:04]--[2026-09-08 Tue 10:05] =>  0:01
@@ -9869,4 +9934,8 @@ CLOCK: [2026-09-08 Tue 09:20]--[2026-09-08 Tue 09:25] =>  0:05
 - [2026-09-08 Tue 09:20]--[2026-09-08 Tue 09:25] assigned at review
 CLOCK: [2026-09-08 Tue 09:27]--[2026-09-08 Tue 09:30] =>  0:03
 - [2026-09-08 Tue 09:27]--[2026-09-08 Tue 09:30] assigned at review
+CLOCK: [2026-09-08 Tue 11:36]--[2026-09-08 Tue 11:37] =>  0:01
+- [2026-09-08 Tue 11:36]--[2026-09-08 Tue 11:37] assigned at review
+CLOCK: [2026-09-08 Tue 11:40]--[2026-09-08 Tue 11:42] =>  0:02
+- [2026-09-08 Tue 11:40]--[2026-09-08 Tue 11:42] assigned at review
 :END:

@@ -68,14 +68,21 @@ work.
      **Whether to merge anything is their decision, not yours** — a branch is
      an integration point, and choosing where it starts is choosing what it
      integrates. Say plainly if both lists are empty; that is an answer too.
-6. **Then cut `feature/<short-name>` from the settled base.** What earns a
+6. **Merge back through a pull request, not a local merge.** Every merge
+   to `main` for ten consecutive integrations went through one (`#2`–`#10`)
+   and *nothing said so anywhere* — so on 2026-09-08 a session merged two
+   branches locally, breaking the streak without tripping a check (`:ID:`
+   c7bf2121). `gh pr create` when the branch is ready, and note the trap
+   that caused it: a question offering "merge now or hold" decides *timing*
+   and silently decides *mechanism* too. Ask which, or say which.
+7. **Then cut `feature/<short-name>` from the settled base.** What earns a
    branch is wanting a separate integration point, which a new slice always
    is — so do not continue a slice on the branch of the one before it, even
    when that branch is still open. **Maintenance between chunks of real work
    may land on `main` directly** and should: applying the queue, debriefing
    an already-merged heading, filing. A branch per bookkeeping commit is the
    jitter CLAUDE.md's rule was relaxed to stop.
-7. **Do not run `org-id-update-id-locations` prophylactically after
+8. **Do not run `org-id-update-id-locations` prophylactically after
    `org_capture`.** A previous revision of this file prescribed it. It did
    not fire once across five capture-then-amend pairs on 2026-09-03. If an
    amend fails with "no org heading found", *then* it is the fix — and that
