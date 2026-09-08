@@ -5332,7 +5332,11 @@ a record that was never true at any moment (observed on
                  (org-entry-put nil "COOKIE_DATA" "checkbox recursive")
                  (setq cookie-data (1+ cookie-data)))
                (claude-code-ide-org--ensure-statistics-cookie-at-point)
-               (org-update-statistics-cookies nil)
+               ;; Headline-scoped, never org's entry-wide updater: that
+               ;; one rewrites [n/m] in body PROSE too, and falsified a
+               ;; recorded observation the first time a cookie
+               ;; legitimately moved (TODO.org :ID: 0988541b).
+               (claude-code-ide-org--update-slice-cookie-at-point)
                (when (claude-code-ide-org--refresh-slice-blocker-at-point)
                  (setq blockers (1+ blockers))))))
           (when (buffer-modified-p) (save-buffer)))))
@@ -5476,6 +5480,45 @@ Returns a human-readable summary."
             (when (buffer-modified-p) (save-buffer)))))
       (format "%d slice%s scanned, %d updated" n (if (= n 1) "" "s") changed))))
 
+(defun claude-code-ide-org--update-slice-cookie-at-point ()
+  "Rewrite the slice-at-point's *headline* cookie from its member lines.
+
+Replaces `org-update-statistics-cookies' on the refresh path (TODO.org
+:ID: 0988541b): org's updater matches every `[n/m]' in the entry, body
+prose included, so the first refresh that legitimately moved a cookie
+also rewrote a historical sentence -- \"reading [4/15] with all three
+X's borrowed\" silently became \"[1/12]\", falsifying the observation
+it recorded.  Latent until a cookie actually changes, which is why two
+earlier refreshes of the same slice corrupted nothing.
+
+This counts the checkbox-bearing member and incidental lines the
+refresh itself just wrote -- `[X]' checked, `[ ]'/`[-]' not, cookie-less
+lines uncounted, at any indent, which is `:COOKIE_DATA: checkbox
+recursive' by construction -- and edits the headline alone through
+`org-edit-headline'.  A `[%]' cookie is honoured as a percentage.
+Nothing below the headline can be touched, which is the entire point."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((end (save-excursion (outline-next-heading) (or (point) (point-max))))
+          (n 0) (m 0))
+      (save-excursion
+        (while (re-search-forward claude-code-ide-org--slice-member-regexp end t)
+          (let ((mark (match-string-no-properties 1)))
+            (when mark
+              (setq m (1+ m))
+              (when (member mark '("X" "x")) (setq n (1+ n)))))))
+      (let ((title (org-get-heading t t t t)))
+        (when (and title
+                   (string-match claude-code-ide-org--statistics-cookie-regexp
+                                 title))
+          (let* ((cookie (if (string-match-p "%" (match-string 0 title))
+                             (format "[%d%%]"
+                                     (if (zerop m) 0 (/ (* 100 n) m)))
+                           (format "[%d/%d]" n m)))
+                 (new (replace-match cookie t t title)))
+            (unless (equal new title)
+              (org-edit-headline new))))))))
+
 (defun claude-code-ide-org--refresh-slice-blocker-at-point ()
   "Set or clear the slice-at-point's `:BLOCKER:'.  Non-nil if it changed."
   (let* ((ids (claude-code-ide-org--slice-blocker-ids))
@@ -5487,6 +5530,144 @@ Returns a human-readable summary."
       ;; which the lint would then have to tell apart from "not built yet".
       (if new (org-entry-put nil "BLOCKER" new) (org-entry-delete nil "BLOCKER"))
       t)))
+
+(defun claude-code-ide-org-slice-add-member (slice-id member-id &optional after)
+  "Add MEMBER-ID to SLICE-ID's planned checklist, then refresh that slice.
+
+The write path TODO.org :ID: 9ae0e452 was filed for: every membership
+edit used to be a hand `emacsclient' call or a direct file write, and
+the direct write is what caused the 2026-09-08 buffer/disk divergence
+-- the failure the queue and the write-through gate prevent everywhere
+else.  This goes through Emacs, refuses when the human has unsaved
+changes in the buffer, and lets `claude-code-ide-org-refresh-slice'
+derive the rendering, cookie and `:BLOCKER:' so the line lands exactly
+as a refresh would leave it.
+
+The line is inserted after the last planned member line -- or after
+AFTER's line, since a slice declares membership *and order* -- always
+above the `Incidental:' lead.  A slice with no checklist yet gets one
+started at the end of its body.
+
+Refusals, each naming its rule: a target that is not a `:KIND: slice'
+heading; a *closed* slice (its list is a record, :ID: 30a340fd); a
+member already on the list; the slice itself; and a member with no TODO
+keyword on disk -- the convention 2d2211d5 settled, because org-depend
+blocks only on an unfinished keyword and both lint rules fire at once
+on a keyword-less referent.  A deferred capture is applied before its
+heading joins a checklist."
+  (require 'org-id)
+  (let ((smarker (claude-code-ide-org--id-find slice-id 'marker))
+        (mmarker (claude-code-ide-org--id-find member-id 'marker)))
+    (cond
+     ((not smarker)
+      (format "Error: no org heading found with :ID: \"%s\"" slice-id))
+     ((not mmarker)
+      (let ((pending (claude-code-ide-org--pending-capture member-id)))
+        (if pending
+            (format "Error: \"%s\" is a capture queued this session and not \
+yet applied, so it has no keyword on disk to derive a checkbox from. Apply \
+the queue, then add it."
+                    (plist-get pending :title))
+          (format "Error: no org heading found with :ID: \"%s\"" member-id))))
+     ((claude-code-ide-org--file-busy-p
+       (buffer-file-name (marker-buffer smarker)))
+      (format "Error: %s has unsaved changes in Emacs; retry once it is saved"
+              (file-name-nondirectory (buffer-file-name (marker-buffer smarker)))))
+     (t
+      (condition-case err
+          (let* ((member-full (org-with-point-at mmarker
+                                (org-entry-get nil "ID")))
+                 (member-kw (org-with-point-at mmarker
+                              (org-get-todo-state)))
+                 (member-title (org-with-point-at mmarker
+                                 (org-no-properties
+                                  (org-get-heading t t t t)))))
+            (org-with-point-at smarker
+              (cond
+               ((not (claude-code-ide-org--slice-p))
+                (format "Error: \"%s\" is not a :KIND: slice heading; a \
+member line belongs only on a slice's checklist"
+                        (org-get-heading t t t t)))
+               ((member (org-get-todo-state)
+                        claude-code-ide-org--outline-finished-keywords)
+                (format "Error: \"%s\" is closed, and a closed slice's list \
+is a record -- membership does not change after the fact"
+                        (org-get-heading t t t t)))
+               ((equal (downcase member-full)
+                       (downcase (or (org-entry-get nil "ID") "")))
+                "Error: a slice never lists itself as a member")
+               ((member (downcase member-full)
+                        (claude-code-ide-org--slice-planned-member-ids))
+                (format "Error: %s is already a planned member of \"%s\""
+                        (claude-code-ide-org--id-prefix member-full)
+                        (org-get-heading t t t t)))
+               ((not member-kw)
+                (format "Error: \"%s\" carries no TODO keyword on disk, and \
+a heading joins a checklist only once it does (2d2211d5) -- org-depend \
+blocks only on an unfinished keyword, so both lint rules fire at once on \
+a keyword-less member. Give it a keyword (or apply its queued one) first."
+                        member-title))
+               (t
+                (let* ((slice-full (org-entry-get nil "ID"))
+                       (slice-title (org-no-properties
+                                     (org-get-heading t t t t)))
+                       (box (cdr (assoc member-kw
+                                        claude-code-ide-org--slice-checkbox-by-keyword)))
+                       (line (format "- %s[[id:%s][%s]] %s %s"
+                                     (if box (format "[%s] " box) "")
+                                     member-full
+                                     (claude-code-ide-org--short-id member-full)
+                                     member-kw member-title))
+                       (inhibit-read-only t))
+                  (org-back-to-heading t)
+                  (let* ((body-end (save-excursion
+                                     (outline-next-heading)
+                                     (or (point) (point-max))))
+                         (lead (save-excursion
+                                 (and (re-search-forward
+                                       (concat "^" (regexp-quote
+                                                    claude-code-ide-org--slice-incidental-lead)
+                                               "[ \t]*$")
+                                       body-end t)
+                                      (match-beginning 0))))
+                         (bound (or lead body-end))
+                         (anchor nil))
+                    ;; AFTER names the line to insert below; otherwise
+                    ;; the last planned member line wins.  Only the
+                    ;; planned region is scanned, so an incidental can
+                    ;; never anchor a planned member.
+                    (save-excursion
+                      (while (re-search-forward
+                              claude-code-ide-org--slice-member-regexp bound t)
+                        (when (or (null after)
+                                  (string-prefix-p
+                                   (downcase after)
+                                   (downcase (match-string-no-properties 2))))
+                          (setq anchor (line-end-position)))))
+                    (when (and after (null anchor))
+                      (error "after=%s names no planned member of this slice"
+                             after))
+                    (if anchor
+                        (progn (goto-char anchor) (insert "\n" line))
+                      ;; No checklist yet: start one at the body's end,
+                      ;; above any incidental section.
+                      (goto-char bound)
+                      (skip-chars-backward " \t\n")
+                      (insert "\n\n" line "\n")))
+                  ;; The refresh re-derives the rendering, cookie and
+                  ;; :BLOCKER: from the list that now includes the new
+                  ;; line -- so what lands is exactly what a refresh
+                  ;; would leave, not this function's opinion of it.
+                  (save-buffer)
+                  (claude-code-ide-org-refresh-slice slice-full)
+                  (format "Added %s to \"%s\"%s; cookie and :BLOCKER: refreshed"
+                          (claude-code-ide-org--id-prefix member-full)
+                          slice-title
+                          (if after
+                              (format " after %s"
+                                      (claude-code-ide-org--id-prefix after))
+                            "")))))))
+        (error (format "Error: %s" (error-message-string err))))))))
 
 (defun claude-code-ide-org--trigger-auto-clock-in (change-plist)
   "For `org-trigger-hook': the moment any heading's TODO state becomes
@@ -13425,6 +13606,35 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
             :type boolean
             :optional t
             :description "For :BLOCKER: only: union with the existing set instead of replacing it.")))
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-slice-add-member
+   :name "org_slice_add_member"
+   :description (concat
+                 "Add a heading to a slice's planned checklist by :ID:, "
+                 "through Emacs -- the write path that closes the gap where "
+                 "membership edits meant hand emacsclient calls or direct "
+                 "file writes behind Emacs's back. Inserts the member line "
+                 "after the last planned member (or after the member named "
+                 "by after=, since a slice declares membership AND order), "
+                 "always above the Incidental: section, then refreshes the "
+                 "slice so the rendering, cookie and :BLOCKER: are derived "
+                 "rather than hand-written. Refuses: a non-slice target; a "
+                 "CLOSED slice (its list is a record); a duplicate member; "
+                 "a member with no TODO keyword on disk (apply a queued "
+                 "capture first -- org-depend blocks only on an unfinished "
+                 "keyword); and a file with unsaved human edits (retry once "
+                 "saved). Both ids accept an 8-character prefix.")
+   :args '((:name "slice_id"
+            :type string
+            :description "The :ID: of the slice heading (or an 8-character prefix). Must carry :KIND: slice and an unfinished keyword.")
+           (:name "member_id"
+            :type string
+            :description "The :ID: of the heading to add (or an 8-character prefix). Must exist on disk with a TODO keyword.")
+           (:name "after"
+            :type string
+            :optional t
+            :description "Optional. An existing planned member's :ID: or 8-character prefix; the new line is inserted directly after that member's line. Omit to append at the end of the planned checklist.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-divide

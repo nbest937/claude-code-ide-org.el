@@ -940,6 +940,34 @@ which is what makes 1-of-2 rather than 2-of-2 the right answer here."
                      (and (string-match "\\[\\([0-9]+/[0-9]+\\)\\]" h)
                           (match-string 1 h)))))))
 
+(ert-deftest claude-code-ide-org-test-refresh-spares-bracketed-prose ()
+  "The refresh updates the headline cookie and nothing in the body.
+
+TODO.org :ID: 0988541b: org's entry-wide updater matches every [n/m]
+in the entry, prose included, so the first refresh that legitimately
+moved a cookie also rewrote a historical sentence -- \"reading [4/15]\"
+silently became \"[1/12]\", falsifying the observation it recorded.
+Latent until a cookie actually changes, which is why two earlier
+refreshes of the same slice corrupted nothing."
+  (claude-code-ide-org-test--with-heading
+    (org-with-point-at (org-id-find id 'marker)
+      (org-entry-put nil "KIND" "slice")
+      (org-entry-put nil "COOKIE_DATA" "checkbox recursive")
+      (org-end-of-meta-data t)
+      (insert "- [X] [[id:zzz-1][zzz-1]] DONE a finished member\n"
+              "- [ ] [[id:zzz-2][zzz-2]] TODO an open member\n\n"
+              "The record: this once read [4/15] with every X borrowed.\n")
+      (save-buffer))
+    (let ((claude-code-ide-org-query-files (list file)))
+      (claude-code-ide-org-refresh-slice))
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      ;; The headline cookie moved to the truth...
+      (should (string-match-p "\\[1/2\\]" disk))
+      ;; ...and the prose kept its history, brackets and all.
+      (should (string-match-p
+               "this once read \\[4/15\\] with every X borrowed"
+               disk)))))
+
 (ert-deftest claude-code-ide-org-test-refresh-slice-repairs-missing-cookie-data ()
   "A slice without :COOKIE_DATA: gains it through the ordinary refresh.
 
@@ -12591,6 +12619,96 @@ from it."
       ;; The hand-set blocker survives the declaration.
       (should (equal "ids(memb-9)" (org-entry-get nil "BLOCKER"))))))
 
+(defmacro claude-code-ide-org-test--with-add-member-fixture (&rest body)
+  "A slice with one member, plus referents to add, refuse and anchor on."
+  (declare (indent 0))
+  `(claude-code-ide-org-test--with-capture-file
+     (with-temp-file capture-file
+       (insert "#+TODO: TODO NEXT DOING | DONE CANCELLED\n\n"
+               "* TODO [0/1] A growing slice\n:PROPERTIES:\n"
+               ":ID:       slice-g1\n:KIND:     slice\n"
+               ":COOKIE_DATA: checkbox recursive\n"
+               ":CREATED:  [2026-09-08 Tue 09:00]\n:END:\n\n"
+               "The theme.\n\n"
+               "- [ ] [[id:mem-1][mem-1]] TODO First member\n\n"
+               "Trailing prose the insert must not disturb.\n\n"
+               "* TODO First member\n:PROPERTIES:\n:ID:       mem-1\n:END:\n"
+               "* TODO Second member\n:PROPERTIES:\n:ID:       mem-2\n:END:\n"
+               "* NEXT Third member\n:PROPERTIES:\n:ID:       mem-3\n:END:\n"
+               "* A keywordless note\n:PROPERTIES:\n:ID:       note-1\n:END:\n"
+               "* DONE [1/1] A closed slice\nCLOSED: [2026-09-07 Mon 12:00]\n"
+               ":PROPERTIES:\n:ID:       slice-z1\n:KIND:     slice\n:END:\n\n"
+               "- [X] [[id:mem-1][mem-1]] DONE First member\n"))
+     (org-id-update-id-locations (list capture-file))
+     (let ((claude-code-ide-org-query-files (list capture-file)))
+       ,@body)))
+
+(ert-deftest claude-code-ide-org-test-slice-add-member-appends-and-refreshes ()
+  "The member line lands derived, and the cookie and blocker follow.
+
+TODO.org :ID: 9ae0e452: every membership edit used to be a hand
+emacsclient call or a direct file write behind Emacs's back -- the
+latter caused the 2026-09-08 buffer/disk divergence.  This is the
+missing write path, and the refresh at its tail is what makes the line
+land exactly as a refresh would leave it rather than as this call's
+opinion."
+  (claude-code-ide-org-test--with-add-member-fixture
+    (let ((reply (claude-code-ide-org-slice-add-member "slice-g1" "mem-2")))
+      (should (string-prefix-p "Added mem-2 to" reply))
+      (should (string-match-p "refreshed" reply)))
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      ;; Appended after the last planned member, above the prose.
+      (should (string-match-p
+               "TODO First member\n- \\[ \\] \\[\\[id:mem-2\\]\\[mem-2\\]\\] TODO Second member\n"
+               disk))
+      (should (string-match-p "Trailing prose the insert must not disturb\\." disk))
+      ;; Cookie and blocker derived from the grown list.
+      (should (string-match-p "\\[0/2\\] A growing slice" disk))
+      (should (string-match-p "BLOCKER:.*mem-1 mem-2" disk)))))
+
+(ert-deftest claude-code-ide-org-test-slice-add-member-honours-after ()
+  "A slice declares membership AND order, so the caller can place a line."
+  (claude-code-ide-org-test--with-add-member-fixture
+    (claude-code-ide-org-slice-add-member "slice-g1" "mem-2")
+    (claude-code-ide-org-slice-add-member "slice-g1" "mem-3" "mem-1")
+    (should (string-match-p
+             "\\[\\[id:mem-1\\]\\[mem-1\\]\\] TODO First member\n- \\[ \\] \\[\\[id:mem-3\\]\\[mem-3\\]\\] NEXT Third member\n- \\[ \\] \\[\\[id:mem-2\\]"
+             (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-slice-add-member-refusals ()
+  "Every refusal names its rule, and none of them writes.
+
+The keywordless case is 2d2211d5's convention enforced at the call
+site: org-depend blocks only on an unfinished keyword, so both lint
+rules fire at once on a keyword-less member.  The closed case is
+30a340fd's: a finished slice's list is a record."
+  (claude-code-ide-org-test--with-add-member-fixture
+    (should (string-match-p "no TODO keyword"
+                            (claude-code-ide-org-slice-add-member "slice-g1" "note-1")))
+    (should (string-match-p "closed"
+                            (claude-code-ide-org-slice-add-member "slice-z1" "mem-2")))
+    (should (string-match-p "already a planned member"
+                            (claude-code-ide-org-slice-add-member "slice-g1" "mem-1")))
+    (should (string-match-p "not a :KIND: slice"
+                            (claude-code-ide-org-slice-add-member "mem-1" "mem-2")))
+    (should (string-match-p "never lists itself"
+                            (claude-code-ide-org-slice-add-member "slice-g1" "slice-g1")))
+    (should (string-match-p "names no planned member"
+                            (claude-code-ide-org-slice-add-member "slice-g1" "mem-2" "mem-3")))
+    ;; None of the refusals wrote anything.
+    (should-not (string-match-p "mem-2\\]\\[mem-2\\]\\] TODO"
+                                (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-slice-add-member-refuses-when-busy ()
+  "Unsaved human edits refuse the write, exactly as org_set_property does.
+Passing through Emacs and honouring the gate is the whole point of the
+tool existing; a version that wrote anyway would be the direct file
+write with extra steps."
+  (claude-code-ide-org-test--with-add-member-fixture
+    (claude-code-ide-org-test--make-busy capture-file)
+    (should (string-match-p "unsaved changes"
+                            (claude-code-ide-org-slice-add-member "slice-g1" "mem-2")))))
+
 (ert-deftest claude-code-ide-org-test-set-property-warns-on-keywordless-blocker ()
   "Warns, rather than refusing, when a :BLOCKER: names a keyword-less
 heading.  `org-depend' blocks only on unfinished work, so such a blocker
@@ -13467,8 +13585,19 @@ silently disarm the user (TODO.org :ID: c8a97d9d)."
     (with-current-buffer (find-file-noselect file) (setq buffer-read-only t))
     (should (claude-code-ide-org--ceremony-advance-repeater))
     ;; Org advanced the date rather than leaving the heading DONE.
+    ;; Semantics, not a literal: ++1d lands on the first occurrence
+    ;; past NOW, so the expected date moves with the calendar -- the
+    ;; hardcoded "2026-09-04" this used to assert was true only on the
+    ;; day it was written, and failed every day after 2026-09-04
+    ;; (TODO.org :ID: a8811bf2, third generation of the wall-clock
+    ;; fixture class).
     (let ((text (claude-code-ide-org-test--disk-contents file)))
-      (should (string-match-p "2026-09-04" text))
+      (should (string-match "SCHEDULED: <\\([^>]+\\) 07:00 \\+\\+1d>" text))
+      (let ((stamp (match-string 1 text)))
+        (should-not (string-match-p "2026-09-03" stamp))
+        (should (time-less-p (current-time)
+                             (org-time-string-to-time
+                              (concat "<" stamp " 07:00>")))))
       (should (string-match-p "^\\* TODO Archive closed tasks daily" text)))
     (should (with-current-buffer (find-file-noselect file) buffer-read-only))))
 
@@ -13789,8 +13918,15 @@ not have -- the thing this test can see is the registration."
       (should (claude-code-ide-org--ceremony-advance-repeater))
       (should-not (memq 'org-add-log-note post-command-hook)))
     ;; The advance still did its job, so the suppression is scoped to the
-    ;; note and not to the transition.
+    ;; note and not to the transition.  Semantics rather than a literal
+    ;; date, for the reason the sibling test records (TODO.org :ID:
+    ;; a8811bf2).
     (let ((text (claude-code-ide-org-test--disk-contents file)))
-      (should (string-match-p "2026-09-04" text))
+      (should (string-match "SCHEDULED: <\\([^>]+\\) 07:00 \\+\\+1d>" text))
+      (let ((stamp (match-string 1 text)))
+        (should-not (string-match-p "2026-09-03" stamp))
+        (should (time-less-p (current-time)
+                             (org-time-string-to-time
+                              (concat "<" stamp " 07:00>")))))
       (should (string-match-p "^\\* TODO Archive closed tasks daily" text)))
     (should (with-current-buffer (find-file-noselect file) buffer-read-only))))
