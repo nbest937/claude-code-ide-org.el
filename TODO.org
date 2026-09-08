@@ -2397,7 +2397,7 @@ CLOCK: [2026-09-01 Tue 12:26]--[2026-09-01 Tue 12:27] =>  0:01
 *Open, and genuinely undecided:* whether the gap-versus-AFK threshold should ever be automated. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the standing precedent against an invented number, and a ten-minute cap is exactly that. Reporting both bounds and letting the human place the line is the alternative — and unlike the current review pass, it is six questions a day rather than nineteen.
 
 
-* TODO [7/18] Everything passed and the file was still wrong :code:
+* TODO [9/20] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
@@ -2460,6 +2460,8 @@ Incidental:
 - [X] [[id:d5eb32a3-fcee-4a25-b39a-fcde597f6cee][d5eb32a3]] DONE Put the debrief in a :DEBRIEF: drawer, leaving a scannable TL;DR in the body
 - [X] [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]] DONE An MCP tool accepts arguments it does not have, and says nothing
 - [X] [[id:2c3aadbe-4c65-42f1-80f4-860453dcf121][2c3aadbe]] DONE org_outline takes one scope, so looking up n ids costs n calls and a loop wins
+- [X] [[id:420816ec-677e-45a5-b898-fb5db70d214b][420816ec]] DONE Review how the emacs-tools are advertised, against which ones get used
+- [X] [[id:16d7d39a-19f8-4e4e-95cc-e06034bd6f1f][16d7d39a]] DONE Write the wrap-at-composition procedure into CLAUDE.md once the drawer argument settles it
 
 *Two incidentals removed 2026-09-08, on a rule the user set the same
 day*: work fast-tracked and completed as an incidental of a slice *in
@@ -3374,6 +3376,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-08 Tue 16:33]--[2026-09-08 Tue 16:34] =>  0:01
 CLOCK: [2026-09-08 Tue 16:19]--[2026-09-08 Tue 16:22] =>  0:03
 CLOCK: [2026-09-08 Tue 16:04]--[2026-09-08 Tue 16:05] =>  0:01
 CLOCK: [2026-09-08 Tue 15:56]--[2026-09-08 Tue 15:57] =>  0:01
@@ -3878,7 +3881,8 @@ Remaining open: which drawer, if stored; and what generates it. A commit touchin
 /Body restored 2026-08-20 by =org_amend=; the original capture silently discarded it -- see/ [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]]. /This heading being empty is how the loss was noticed at all: the user asked where the concept was parked, and there was nothing there./
 
 
-* REVIEW [2/2] Review how the emacs-tools are advertised, against which ones get used :code:research:
+* DONE [2/2] Review how the emacs-tools are advertised, against which ones get used :code:research:
+CLOSED: [2026-09-08 Tue 16:31]
 :PROPERTIES:
 :CATEGORY: Tools
 :ID:       420816ec-677e-45a5-b898-fb5db70d214b
@@ -3921,6 +3925,10 @@ CLOCK: [2026-08-21 Fri 08:43]--[2026-08-21 Fri 08:45] =>  0:02
 - [2026-08-21 Fri 08:43]--[2026-08-21 Fri 08:45] assigned at review
 - State "REVIEW"     from "DOING"      [2026-09-08 Tue 16:17] \\
   children done; org_refile rule awaits your accept
+- State "DONE"       from "REVIEW"     [2026-09-08 Tue 16:31] \\
+  rule accepted and written; both children done
+CLOCK: [2026-09-08 Tue 16:31]--[2026-09-08 Tue 16:32] =>  0:01
+- [2026-09-08 Tue 16:31]--[2026-09-08 Tue 16:32] write the accepted org_refile rule
 :END:
 :PLAN:
 
@@ -4057,7 +4065,6 @@ edit; declining it leaves this heading's findings as the record.
 by the user; the =org_refile= rule is written into
 =.claude/rules/org-conventions.md= §"Moving a heading", naming the
 hand-elisp competitor it beats.
-
 
 
 ** DONE An MCP tool accepts arguments it does not have, and says nothing :code:
@@ -7641,7 +7648,7 @@ but =claude -p= asynchronously.
   than the conclusion being cited. The story is f90d745e.
 
 
-* DOING [18/20] Update CLAUDE.md and the org skill for the new architecture :code:
+* DOING [19/20] Update CLAUDE.md and the org skill for the new architecture :code:
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       02aaae22-0958-4c0f-b5bb-2cbea32416ae
@@ -9108,11 +9115,24 @@ keyword set agrees, and cannot check a claim that is merely out of date
 a green check from being read as a green file.
 
 
-** TODO Write the wrap-at-composition procedure into CLAUDE.md once the drawer argument settles it :code:
+** DONE Write the wrap-at-composition procedure into CLAUDE.md once the drawer argument settles it :code:
+CLOSED: [2026-09-08 Tue 16:33]
 :PROPERTIES:
 :ID:       16d7d39a-19f8-4e4e-95cc-e06034bd6f1f
 :CREATED:  [2026-09-03 Thu 08:56]
 :BLOCKER:  ids(501a8422-9e93-4d2d-98bb-db0ab2c16e37)
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-08 Tue 16:19]--[2026-09-08 Tue 16:20] =>  0:01
+- [2026-09-08 Tue 16:19]--[2026-09-08 Tue 16:20] assigned at review
+CLOCK: [2026-09-08 Tue 16:26]--[2026-09-08 Tue 16:27] =>  0:01
+- [2026-09-08 Tue 16:26]--[2026-09-08 Tue 16:27] assigned at review
+CLOCK: [2026-09-08 Tue 16:31]--[2026-09-08 Tue 16:33] =>  0:02
+- State "DOING"      from "TODO"       [2026-09-08 Tue 16:31] \\
+  drawer argument settled; writing the surviving procedure
+- [2026-09-08 Tue 16:31]--[2026-09-08 Tue 16:33] two-call composition into CLAUDE.md
+- State "DONE"       from "DOING"      [2026-09-08 Tue 16:33] \\
+  9d009401 already DOING carries the story's last work
 :END:
 :DEBRIEF:
 *Debrief, 2026-09-08.* The blocker discharged itself this morning when
@@ -9137,7 +9157,6 @@ CLAUDE.md's =:PLAN:= rule — compose in two calls (=org_amend
 drawer=PLAN=, then the short body), close in two (resolution, then
 =drawer=DEBRIEF=) — with the conventions' three-call text and
 =org_wrap_plan='s table row updated to match.
-
 
 
 ** DONE The plan-link lifecycle prose still describes the retired wrap-at-DONE flow :code:
