@@ -364,7 +364,7 @@ the class is worth a moment's thought, since =bin/check-conventions= checks docu
 code and nothing checks a docstring against the function under it.
 
 
-* TODO [0/8] Only membership and order are declared, and everything else still needs a hand
+* TODO [2/10] Only membership and order are declared, and everything else still needs a hand
 :PROPERTIES:
 :ID:       52bfafdf-d313-48e1-9524-d8b539f165c9
 :CREATED:  [2026-09-04 Fri 09:26]
@@ -412,7 +412,7 @@ last three are independent of each other and of the first four.
 the same way. =bin/lint-org= reports zero errors for a revision list split in two, for a proposal
 whose body contradicts its heading, for a frozen closed slice, and for a dropped member that reads
 as a =MAYBE=. What breaks in every case is *meaning*, and the only detector is a human reading raw
-text. That is the same argument =979e02b6= closed at [0/7] one layer up, and this is its
+text. That is the same argument =979e02b6= closed at [2/10] one layer up, and this is its
 unfinished half.
 
 *=501a8422= is the one member whose subject is not a slice*, and it is included deliberately: it is
@@ -446,6 +446,10 @@ claude-code-ide-org-refresh-slice= — the manual hand this slice exists
 to retire, caught live when two refreshes in one afternoon were each
 prompted by a person noticing rather than by anything in the loop.
 
+Incidental:
+
+- [X] [[id:f1ff027e-5826-4812-8221-96eeba966333][f1ff027e]] DONE Commit co-author trailer is frozen at session start, misattributes after /model
+- [X] [[id:d585d33e-3804-45b3-8f96-65143d79363e][d585d33e]] DONE Adopt systemMessage on the recovery-and-ceremony hook payload
 
 
 * TODO org_amend cannot continue a list, and the slice revision links are always one
@@ -728,7 +732,7 @@ box would inflate the denominator forever, which is the reason the mapping exist
 on the dropped line, derived from nothing and set by the drop itself, is the shape that fits.
 
 
-* NEXT [11/11] Make the org discipline travel: ship the machinery, relocate the rules :code:
+* DOING [11/11] Make the org discipline travel: ship the machinery, relocate the rules :code:
 :PROPERTIES:
 :ID:       ff7ccb2d-2b13-421e-86e3-6b5e187850bf
 :CREATED:  [2026-09-02 Wed 18:17]
@@ -753,6 +757,8 @@ CLOCK: [2026-09-04 Fri 15:51]--[2026-09-04 Fri 15:52] =>  0:01
 - [2026-09-04 Fri 15:51]--[2026-09-04 Fri 15:52] assigned at review
 CLOCK: [2026-09-04 Fri 15:57]--[2026-09-04 Fri 15:58] =>  0:01
 - [2026-09-04 Fri 15:57]--[2026-09-04 Fri 15:58] assigned at review
+- State "DOING"      from "NEXT"       [2026-09-08 Tue 09:28] \\
+  retroactive: in work since /next-session 2026-09-04
 :END:
 
 This project is a testbed for a thing meant to manage *other* projects, and the discipline it has
@@ -1435,7 +1441,7 @@ CLOCK: [2026-09-01 Tue 12:26]--[2026-09-01 Tue 12:27] =>  0:01
 *Open, and genuinely undecided:* whether the gap-versus-AFK threshold should ever be automated. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the standing precedent against an invented number, and a ten-minute cap is exactly that. Reporting both bounds and letting the human place the line is the alternative — and unlike the current review pass, it is six questions a day rather than nineteen.
 
 
-* TODO [3/13] Everything passed and the file was still wrong :code:
+* TODO [1/11] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
@@ -1490,8 +1496,16 @@ boundary on purpose — =2a6a1355= is a member because *missing* a footnote is i
 Incidental:
 
 - [X] [[id:43aa25b2-1e21-4117-bf15-b92f3081b60d][43aa25b2]] DONE Nothing watches a REVIEW heading, and it is the state most easily forgotten
-- [X] [[id:f1ff027e-5826-4812-8221-96eeba966333][f1ff027e]] DONE Commit co-author trailer is frozen at session start, misattributes after /model
-- [X] [[id:d585d33e-3804-45b3-8f96-65143d79363e][d585d33e]] DONE Adopt systemMessage on the recovery-and-ceremony hook payload
+
+*Two incidentals removed 2026-09-08, on a rule the user set the same
+day*: work fast-tracked and completed as an incidental of a slice *in
+progress* belongs to that slice alone, and is removed from every other
+open slice's list. =f1ff027e= and =d585d33e= were =ff7ccb2d='s
+incidentals — its work, interleaved with its members — and this slice's
+window claimed them too, reading [3/13] with all three X's borrowed.
+Until the derivation itself learns the rule, a refresh of this slice
+will re-add them; the implementation heading carries that warning.
+
 
 
 * TODO Three new ways to owe a footnote and not see it: marker, list, quotation :code:
@@ -9465,4 +9479,10 @@ CLOCK: [2026-09-08 Tue 08:54]--[2026-09-08 Tue 08:55] =>  0:01
 - [2026-09-08 Tue 08:54]--[2026-09-08 Tue 08:55] assigned at review
 CLOCK: [2026-09-08 Tue 09:00]--[2026-09-08 Tue 09:01] =>  0:01
 - [2026-09-08 Tue 09:00]--[2026-09-08 Tue 09:01] assigned at review
+CLOCK: [2026-09-08 Tue 09:16]--[2026-09-08 Tue 09:18] =>  0:02
+- [2026-09-08 Tue 09:16]--[2026-09-08 Tue 09:18] assigned at review
+CLOCK: [2026-09-08 Tue 09:20]--[2026-09-08 Tue 09:25] =>  0:05
+- [2026-09-08 Tue 09:20]--[2026-09-08 Tue 09:25] assigned at review
+CLOCK: [2026-09-08 Tue 09:27]--[2026-09-08 Tue 09:30] =>  0:03
+- [2026-09-08 Tue 09:27]--[2026-09-08 Tue 09:30] assigned at review
 :END:
