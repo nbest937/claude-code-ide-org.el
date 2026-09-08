@@ -39,7 +39,16 @@ work.
 3. **Clock in before the first thing that writes**, naming the heading, or
    "Review and planning" for cross-cutting meta-work. The drift from question
    to tracked work is invisible from inside the session doing it.
-4. **Confirm the new branch will be cut at a commit that already contains
+4. **Queue the slice itself → `DOING` the moment its work starts.** The
+   member-level rule ("set `DOING` before starting a task") got applied
+   to every member of `ff7ccb2d` while the slice sat at `NEXT` for four
+   days of its own execution — on a grouping, `DOING` means "at least
+   one member is in the mail", which was true from this file's first
+   step. It opens no clock (grouping exemption) and costs one queued
+   event; without it the slice's LOGBOOK shows a `NEXT`→`DONE` teleport
+   and every report that keys on `DOING` is blind to the work in flight
+   (the `4133772c` defect, one tier up).
+5. **Confirm the new branch will be cut at a commit that already contains
    every piece of prior work you want in it.** Three parts, in order, and the
    third is a question rather than a command:
 
@@ -59,14 +68,14 @@ work.
      **Whether to merge anything is their decision, not yours** — a branch is
      an integration point, and choosing where it starts is choosing what it
      integrates. Say plainly if both lists are empty; that is an answer too.
-5. **Then cut `feature/<short-name>` from the settled base.** What earns a
+6. **Then cut `feature/<short-name>` from the settled base.** What earns a
    branch is wanting a separate integration point, which a new slice always
    is — so do not continue a slice on the branch of the one before it, even
    when that branch is still open. **Maintenance between chunks of real work
    may land on `main` directly** and should: applying the queue, debriefing
    an already-merged heading, filing. A branch per bookkeeping commit is the
    jitter CLAUDE.md's rule was relaxed to stop.
-6. **Do not run `org-id-update-id-locations` prophylactically after
+7. **Do not run `org-id-update-id-locations` prophylactically after
    `org_capture`.** A previous revision of this file prescribed it. It did
    not fire once across five capture-then-amend pairs on 2026-09-03. If an
    amend fails with "no org heading found", *then* it is the fix — and that
