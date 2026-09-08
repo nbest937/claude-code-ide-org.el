@@ -2,6 +2,12 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Structure a slice body with section subheadings, if the machinery can follow :code:research:
+:PROPERTIES:
+:ID:       c5e58ea1-2576-4bc4-9574-88485aa3977f
+:CREATED:  [2026-09-08 Tue 16:53]
+:CATEGORY: Slices
+:END:
 * TODO A task completed between slices belongs to no slice :code:
 :PROPERTIES:
 :ID:       58e6c6a0-f3c0-44dc-9e2e-ebd4203db841
@@ -356,11 +362,16 @@ prose in heading bodies and the consumed plan file, left deliberately.
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(b0e478f7-e894-4ac7-b0b6-b3c890b5b32a 9d009401-93dd-40e5-a243-7a30a8a5bd55 ecf66d45-18b3-477f-bca8-08bec90604e8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4)
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-08 Tue 15:29] \\
   nominated as the slice to pick up next
+:END:
+
+** Summary
+:PROPERTIES:
+:ID:       5154fc4c-2dd4-42fe-bba1-4ba6b482cd56
+:CREATED:  [2026-09-08 Tue 16:58]
 :END:
 
 [[id:ff7ccb2d-2b13-421e-86e3-6b5e187850bf][ff7ccb2d]] classified what
@@ -385,11 +396,29 @@ they need hooks to be user-level, which only shipping makes true, and
 accumulated across more than one project — which cannot start before
 the hooks move.
 
+** [/] Planned tasks
+:PROPERTIES:
+:ID:       f7d548ea-69d3-48e8-9322-80c42dc60ad7
+:CREATED:  [2026-09-08 Tue 16:58]
+:END:
+
 - [ ] [[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]] TODO Package the plugin: references, setup command, machinery prose
 - [-] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] DOING CLAUDE.md carries dated history that costs every session's context
 - [[id:e396f94a-59db-4c6b-80b4-dc144146877b][e396f94a]] MAYBE Package the Warp wiring
 - [ ] [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out future work on a timeline the agenda can show
 - [ ] [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
+
+** [/] Incidental tasks
+:PROPERTIES:
+:ID:       1801e8bd-8e51-41af-b154-3cc6b8b9e7bf
+:CREATED:  [2026-09-08 Tue 16:58]
+:END:
+
+** Working notes
+:PROPERTIES:
+:ID:       db3063dd-ace9-4daf-8d00-5fd1f8c09c2d
+:CREATED:  [2026-09-08 Tue 16:58]
+:END:
 
 *Four of the five arrive with a =:BLOCKER:= already naming =b0e478f7=*,
 set when =ff7ccb2d= deferred them — so the sequencing above is declared
