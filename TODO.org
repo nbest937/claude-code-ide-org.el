@@ -2,6 +2,51 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The proposal convention's last argument is falsified; an open slice is its own proposal :code:
+:PROPERTIES:
+:ID:       7f0c9baa-67ed-4008-8cbc-28f0ea898dd4
+:CREATED:  [2026-09-08 Tue 10:03]
+:CATEGORY: Slices
+:END:
+
+Raised by the user 2026-09-08: /"any open slice is a proposal until
+work begins and can be CANCELLED like anything else."/
+
+=.claude/rules/org-conventions.md= §"Proposing a slice" says a proposal
+is a slice with =:KIND:= withheld, on three arguments. **All three are
+now spent.** The =MAYBE=-keyword rationale is *recorded on the
+convention itself* as expired, its trigger retired (=62b65ad0=). The
+"lives where a slice lives" clause only notes a question the
+level-1 flattening dissolved. The third — that a declared slice trips
+=bin/lint-org= before its =:COOKIE_DATA:= and =:BLOCKER:= exist — was
+*measured false* the same day: [[id:c19fbbf5-be1b-4c18-a38e-9b46d064abb8][c19fbbf5]]
+was composed declared and linted **0 errors**. What remains is not a
+lint failure but composition cost, recorded on
+[[id:acf46449-422b-45d5-a223-83224ef71548][acf46449]]: three derived
+values hand-written.
+
+*The convention also duplicates something derivable*, which is the
+project's standing objection to a declaration. Whether work has begun
+is readable from the slice's keyword and its members' clocks; a
+withheld =:KIND:= is a second copy of that fact and can disagree with
+it — the same error the epic/story axis names.
+
+*What retiring it touches, so the scope is not underestimated:* the
+rules-file section goes, along with its three-step acceptance
+procedure. [[id:198dd00e-0746-444a-ab25-2034a2a235c2][198dd00e]] is
+*downstream* — it exists to fix a body that still calls itself a
+proposal after acceptance, and with no acceptance step there is no such
+body; it likely becomes CANCELLED or narrows to "a slice's body should
+not describe its own status", which is a different claim. The twin
+review question currently housed in the proposal section is
+independent and must survive relocation rather than being deleted with
+its host.
+
+*Open, deliberately:* whether anything replaces the =MAYBE= signal for
+a slice nobody has committed to. The candidate answer is that no signal
+is needed — an unstarted slice has no clocked members and no =DOING=,
+which is the derivable form of the same fact.
+
 * TODO [0/4] Ship the plugin: make the machinery and its prose travel together :code:
 :PROPERTIES:
 :ID:       c19fbbf5-be1b-4c18-a38e-9b46d064abb8
@@ -454,14 +499,14 @@ the class is worth a moment's thought, since =bin/check-conventions= checks docu
 code and nothing checks a docstring against the function under it.
 
 
-* TODO [2/10] Only membership and order are declared, and everything else still needs a hand
+* TODO [2/11] Only membership and order are declared, and everything else still needs a hand
 :PROPERTIES:
 :ID:       52bfafdf-d313-48e1-9524-d8b539f165c9
 :CREATED:  [2026-09-04 Fri 09:26]
 :CATEGORY: Slices
 :COOKIE_DATA: checkbox recursive
 :KIND:     slice
-:BLOCKER:  ids(635d5abb-207d-445d-b268-bc031bdd592a 501a8422-9e93-4d2d-98bb-db0ab2c16e37 acf46449-422b-45d5-a223-83224ef71548 198dd00e-0746-444a-ab25-2034a2a235c2 2d2211d5-97c3-4f69-8175-40df90d1db8a de687e4d-9384-46ae-a495-55b3ae46d1bb 1b727475-46c3-4967-8cdd-dfd9397d94ea d749ebd5-ff2b-4794-941a-0af5c2df1356)
+:BLOCKER:  ids(635d5abb-207d-445d-b268-bc031bdd592a 501a8422-9e93-4d2d-98bb-db0ab2c16e37 acf46449-422b-45d5-a223-83224ef71548 198dd00e-0746-444a-ab25-2034a2a235c2 2d2211d5-97c3-4f69-8175-40df90d1db8a de687e4d-9384-46ae-a495-55b3ae46d1bb 1b727475-46c3-4967-8cdd-dfd9397d94ea d749ebd5-ff2b-4794-941a-0af5c2df1356 7f0c9baa-67ed-4008-8cbc-28f0ea898dd4)
 :END:
 :LOGBOOK:
 - State "TODO"       from "MAYBE"      [2026-09-04 Fri 09:40] \\
@@ -485,6 +530,7 @@ either filed or sharpened on 2026-09-03/04, which is why the theme only became v
 - [ ] [[id:635d5abb-207d-445d-b268-bc031bdd592a][635d5abb]] TODO org_amend cannot continue a list, and the slice revision links are always one
 - [ ] [[id:501a8422-9e93-4d2d-98bb-db0ab2c16e37][501a8422]] NEXT Give org_amend a drawer argument, so a plan can be revised and written in one call
 - [ ] [[id:acf46449-422b-45d5-a223-83224ef71548][acf46449]] TODO Every slice needs :COOKIE_DATA: and no slice creates it; the lint only reports
+- [ ] [[id:7f0c9baa-67ed-4008-8cbc-28f0ea898dd4][7f0c9baa]] TODO The proposal convention's last argument is falsified; an open slice is its own proposal
 - [ ] [[id:198dd00e-0746-444a-ab25-2034a2a235c2][198dd00e]] TODO Accepting a slice proposal leaves its body still calling itself a proposal
 - [ ] [[id:2d2211d5-97c3-4f69-8175-40df90d1db8a][2d2211d5]] TODO Adding a just-captured heading to a slice cannot be made lint-clean
 - [ ] [[id:de687e4d-9384-46ae-a495-55b3ae46d1bb][de687e4d]] TODO A slice closed by the same apply pass freezes with stale member lines
