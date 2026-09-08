@@ -5124,7 +5124,7 @@ Returns the number of lines written."
       (set-marker body-end nil)
       (length lines))))
 
-(defun claude-code-ide-org-refresh-slice (&optional id)
+(defun claude-code-ide-org-refresh-slice (&optional id include-closed)
   "Regenerate every slice's checklist from its referents.
 
 The counterpart to applying the queue, and the reason it exists: apply
@@ -5140,7 +5140,19 @@ Rewrites member lines, then the statistics cookie, then the `:BLOCKER:'
 `CANCELLED' loses its cookie, which changes both the count and the
 blocker set.
 
-With ID, refreshes that slice only.  Returns a human-readable summary."
+With ID, refreshes that slice only.  Returns a human-readable summary.
+
+INCLUDE-CLOSED is a list of slice ids for which the closed-slice skip
+is waived, for exactly one case: a slice whose *own* terminal
+transition landed in the apply pass that is now settling (TODO.org
+:ID: de687e4d).  The skip's rationale -- a closed slice is a record,
+and refreshing one lets later work rewrite finished history
+(:ID: 30a340fd) -- does not cover same-pass closure, where the refresh
+writes exactly the state the close happened under.  Without the
+waiver, a slice closed by the same pass that closed its members froze
+with TODO member-line copies, a stale cookie and a full `:BLOCKER:' --
+a record that was never true at any moment (observed on
+:ID: ec65b5d6, frozen at [0/4] with every member DONE)."
   (interactive)
   (require 'org-id)
   (let ((claude-code-ide-org--incidentals-claimed-elsewhere nil)
@@ -5175,8 +5187,13 @@ With ID, refreshes that slice only.  Returns a human-readable summary."
                         ;; 30a340fd). The member's own :LOGBOOK: answers any
                         ;; question about what it is doing now; the slice
                         ;; does not have to, and should not try.
-                        (not (member (org-get-todo-state)
-                                     claude-code-ide-org--outline-finished-keywords))
+                        ;;
+                        ;; INCLUDE-CLOSED waives the skip for a slice this
+                        ;; very apply pass closed -- see the docstring.
+                        (or (not (member (org-get-todo-state)
+                                         claude-code-ide-org--outline-finished-keywords))
+                            (member (downcase (or (org-entry-get nil "ID") ""))
+                                    include-closed))
                         (or (null id)
                             (equal (downcase (or (org-entry-get nil "ID") ""))
                                    (downcase id))))
@@ -8354,10 +8371,23 @@ work; a slice that cannot be regenerated must not turn a successful
 apply into a failed one, and the staleness it leaves is the status quo
 ante rather than new damage."
   (when applied-items
-    (condition-case err
-        (claude-code-ide-org-refresh-slice)
-      (error (message "Slice refresh after apply failed: %s"
-                      (error-message-string err))))))
+    ;; A slice whose own terminal transition landed in THIS batch gets
+    ;; one final refresh despite being closed, so it freezes showing the
+    ;; state the close happened under rather than the state before the
+    ;; batch (TODO.org :ID: de687e4d). Non-slice ids in the list are
+    ;; harmless -- the slice predicate filters them.
+    (let ((closed-this-pass
+           (delq nil
+                 (mapcar (lambda (item)
+                           (and (eq (plist-get item :type) 'state)
+                                (member (plist-get item :to)
+                                        claude-code-ide-org--outline-finished-keywords)
+                                (downcase (or (plist-get item :id) ""))))
+                         applied-items))))
+      (condition-case err
+          (claude-code-ide-org-refresh-slice nil closed-this-pass)
+        (error (message "Slice refresh after apply failed: %s"
+                        (error-message-string err)))))))
 
 
 (defun claude-code-ide-org--review-apply (items)

@@ -970,6 +970,58 @@ it would silently overwrite a hand-set divergence."
                      (org-with-point-at (org-id-find id 'marker)
                        (org-entry-get nil "COOKIE_DATA")))))))
 
+(ert-deftest claude-code-ide-org-test-refresh-slice-include-closed-waives-the-skip ()
+  "A closed slice named in INCLUDE-CLOSED is refreshed exactly once more.
+
+TODO.org :ID: de687e4d: the closed-slice skip (30a340fd) protects
+finished history from later work, but a slice closed by the same apply
+pass as its members froze showing state that was never true at any
+moment -- TODO member copies over DONE referents.  The waiver is the
+same-pass case only; a plain refresh still skips."
+  (claude-code-ide-org-test--with-heading
+    (org-with-point-at (org-id-find id 'marker)
+      (org-todo "DONE")
+      (org-entry-put nil "KIND" "slice")
+      (org-end-of-meta-data t)
+      (insert "- [ ] [[id:mm-1][mm-1]] TODO A member\n")
+      (save-buffer))
+    (claude-code-ide-org-test--add-child
+     file "* DONE A member\nCLOSED: [2026-09-03 Wed 10:00]\n:PROPERTIES:\n:ID:       mm-1\n:END:\n")
+    (org-id-update-id-locations (list file))
+    (let ((claude-code-ide-org-query-files (list file)))
+      ;; A plain refresh skips the closed slice: the stale line stands.
+      (claude-code-ide-org-refresh-slice)
+      (should (string-match-p "\\[ \\] \\[\\[id:mm-1\\]\\[mm-1\\]\\] TODO"
+                              (claude-code-ide-org-test--disk-contents file)))
+      ;; Waived, it freezes showing the state the close happened under.
+      (claude-code-ide-org-refresh-slice nil (list id))
+      (should (string-match-p "\\[X\\] \\[\\[id:mm-1\\]\\[mm-1\\]\\] DONE"
+                              (claude-code-ide-org-test--disk-contents file))))))
+
+(ert-deftest claude-code-ide-org-test-settle-slices-refreshes-a-slice-closed-by-the-pass ()
+  "The settle pass computes the waiver from the batch it just applied.
+
+An applied state item whose :to is terminal names its heading into the
+refresh's INCLUDE-CLOSED, so a slice and its members closed in one
+ceremony leave the slice reading [n/n] with DONE copies rather than
+frozen at [0/n] (TODO.org :ID: de687e4d, observed on ec65b5d6)."
+  (claude-code-ide-org-test--with-heading
+    (org-with-point-at (org-id-find id 'marker)
+      (org-todo "DONE")
+      (org-entry-put nil "KIND" "slice")
+      (org-end-of-meta-data t)
+      (insert "- [ ] [[id:mm-1][mm-1]] TODO A member\n")
+      (save-buffer))
+    (claude-code-ide-org-test--add-child
+     file "* DONE A member\nCLOSED: [2026-09-03 Wed 10:00]\n:PROPERTIES:\n:ID:       mm-1\n:END:\n")
+    (org-id-update-id-locations (list file))
+    (let ((claude-code-ide-org-query-files (list file)))
+      (claude-code-ide-org--review-settle-slices
+       (list (list :type 'state :id "mm-1" :to "DONE")
+             (list :type 'state :id id :to "DONE"))))
+    (should (string-match-p "\\[X\\] \\[\\[id:mm-1\\]\\[mm-1\\]\\] DONE"
+                            (claude-code-ide-org-test--disk-contents file)))))
+
 (ert-deftest claude-code-ide-org-test-grouping-heading-p-covers-both-kinds ()
   "The grouping predicate is the union of the two ways a heading can be a
 grouping, and is nil for a leaf.
@@ -11804,7 +11856,7 @@ covered by :ID: 0acc1df2's tests, and re-testing it here would pass
 whether or not anything called it."
   (let ((calls 0))
     (cl-letf (((symbol-function 'claude-code-ide-org-refresh-slice)
-               (lambda (&optional _id) (setq calls (1+ calls)))))
+               (lambda (&optional _id _include-closed) (setq calls (1+ calls)))))
       ;; Nothing applied -> nothing to restate.
       (claude-code-ide-org--review-settle-slices nil)
       (should (= 0 calls))
@@ -11869,7 +11921,7 @@ This is bookkeeping *after* the work.  The staleness left behind is the
 status quo ante rather than new damage, whereas an error escaping here
 would report a pass that genuinely landed as a failed one."
   (cl-letf (((symbol-function 'claude-code-ide-org-refresh-slice)
-             (lambda (&optional _id) (error "slice is on fire"))))
+             (lambda (&optional _id _include-closed) (error "slice is on fire"))))
     ;; Asserted on whether an error ESCAPES, not on the return value --
     ;; the function returns whatever `message' hands back, so
     ;; `should-not' on its result tests the wrong thing and fails
