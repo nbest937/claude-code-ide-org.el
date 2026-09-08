@@ -608,21 +608,31 @@ dropped; only prose records why, and a slice that silently stops counting
 something reads as having forgotten it — which is the failure `:ID:`
 c60a1c53 exists to detect.
 
-### Proposing a slice
+### Composing a slice
 
-**A proposal is a slice with the declaration withheld.** It has the
-checklist, the theme and the ordering — everything a slice has — but no
-`:KIND: slice`. Withholding is not bookkeeping: *declaring is the act of
-committing*, so a heading without the declaration is precisely a
-proposal. It also keeps the checklist outside `bin/lint-org`'s slice
-rules until someone means it, which matters because the absent
-`:BLOCKER:` would otherwise be an error against a list nobody agreed to.
+**A slice is composed declared — write `:KIND: slice` from the start.**
+The proposal convention that stood here until 2026-09-08 (a slice with
+the declaration withheld, parked at `MAYBE`, accepted by adding
+`:KIND:` later) is retired (`:ID:` 7f0c9baa): its three arguments all
+expired. The promotion-trigger argument died with the trigger
+(`:ID:` 62b65ad0); the location question dissolved with the level-1
+tier; and the lint-friction argument was measured false composing
+`c19fbbf5` declared, which linted clean — what friction remained was
+composition cost, and `org_set_property`'s `KIND=slice` branch now
+completes the declaration itself (`:ID:` acf46449), so withholding no
+longer buys anything. An open slice already *is* its own proposal until
+work begins, and rejection is `CANCELLED` either way, with the body
+kept — the argument for a slice nobody ran is usually the part worth
+keeping.
 
-**It carries no prompt link**, for the same reason — there is no
-`next-session.md` revision driving a proposal, and there will not be
-until it is picked up.
+**Nothing replaces the `MAYBE` signal, deliberately** (the user,
+2026-09-08). An unstarted slice is visibly uncommitted without a
+keyword saying so: it has no clocked members, nothing `DOING`, and no
+prompt link — the `next-session.md` revision link arrives only when a
+slice is actually picked up, since that is what a slice is *worked*
+from, not what it is composed into.
 
-**Review a proposal's list for twins before declaring it.** A *twin* is
+**Review the composed list for twins before work begins.** A *twin* is
 two headings describing the same defect, or the same class of work,
 closely enough that scheduling one and forgetting the other is arbitrary
 — and that asymmetry is invisible from inside the act of composing: it
@@ -631,29 +641,6 @@ the second escape in prose that had just named the first), caught both
 times by a reader and never by the composer. So it is a review question,
 asked of the finished list: *does anything in this list have a twin that
 is not in it?*
-
-**It lives exactly where a slice lives**, with `:CATEGORY: Slices`. The
-question of a separate location was open while slices sat under a level-1
-`* Slices` heading; the flattening dissolved it, and a distinct location
-would be a *second* copy of the fact the missing `:KIND:` already
-carries — the duplication this project rejects everywhere else.
-
-**Its keyword is `MAYBE`.** The original argument for this was that
-`MAYBE` would stop the sole-TODO promotion trigger nominating a proposal
-as a next action; **that argument has expired**, since the trigger was
-retired (`:ID:` 62b65ad0). The surviving one is better: `MAYBE` *means*
-not committed, which is exactly what a withheld declaration says, and it
-keeps the proposal out of the un-nominated-container report. Its
-`:BLOCKER:` being dormant on a `MAYBE` heading is correct here rather
-than a defect — the checklist is not agreed yet.
-
-**Accepting one is three mechanical steps**: add `:KIND: slice`, run
-`claude-code-ide-org-refresh-slice` so the blocker and cookie appear, and
-link the prompt revision that picks it up. Worth a single command if
-proposals become routine; three calls until then.
-
-**Rejecting one is `CANCELLED`, and the body stays.** The argument for a
-slice nobody ran is usually the part worth keeping.
 
 ## The `:PLAN:` drawer
 
