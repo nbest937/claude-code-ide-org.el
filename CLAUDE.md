@@ -451,11 +451,11 @@ to implement it — and the link should exist the moment a real plan file
 does, independent of what happens next. A plan link *is* planning
 content, so it belongs with the rest of the prospective prose (`:ID:`
 b75d553a): planning before composition simply includes the link in the
-normal three-call composition. When the drawer already exists before a
-Plan Mode session, nothing writes into it yet — `org_amend` appends
-*below* a drawer, and `:ID:` 501a8422 is the nominated fix — so until
-that lands, put the link in the body and move it into the drawer at the
-next revision that can. Revisions (re-entering Plan Mode on the same
+normal two-call composition below. When the drawer already exists before
+a Plan Mode session, `org_amend` with `drawer=PLAN` appends the link
+inside it directly (`:ID:` 501a8422, shipped 2026-09-08; this paragraph
+described a workaround for its absence until then). Revisions
+(re-entering Plan Mode on the same
 task) edit that same plan file in place — Claude Code reuses the
 existing plan file path for a continuation of the same task — so the
 link is written once and never needs updating to point at a new file. No
@@ -484,13 +484,21 @@ falsified, and why a decision went the way it did. It does not restate
 design the linked plan already holds.
 
 **Since 2026-09-02 the plan goes into `:PLAN:` when it is *composed*, not
-at `DONE`** (`:ID:` b75d553a). The body carries a two-to-five-sentence
-statement of the problem and proposed solution; the debrief is appended
-at `DONE`. So the two halves are never mixed and no seam is ever
-created — which matters because the seam is a fact about *when* a
-sentence was written, is recorded nowhere in the prose, and is not
-recoverable later (`:ID:` f099379b). `org_wrap_plan`'s seam marker is now
-a retroactive tool. **And how to read the drawer depends on the
+at `DONE`** (`:ID:` b75d553a). **The composition is two calls**
+(`:ID:` 16d7d39a, written here because a CLAUDE.md directive moves usage
+where a schema docstring does not — `:ID:` 420816ec measured it):
+`org_amend` with `drawer=PLAN` writes the prospective prose — motivation,
+options, reasoning, the plan link — creating the drawer when absent;
+then a plain `org_amend` writes the two-to-five-sentence
+problem-and-proposed-solution statement as the body. (This replaced the
+three-call form that routed through `org_wrap_plan`, retired when
+`:ID:` 501a8422 shipped the drawer argument.) At `DONE` the close is
+two calls again: the authored resolution onto the body, the debrief via
+`drawer=DEBRIEF` (`:ID:` d5eb32a3). So the two halves are never mixed
+and no seam is ever created — which matters because the seam is a fact
+about *when* a sentence was written, is recorded nowhere in the prose,
+and is not recoverable later (`:ID:` f099379b). `org_wrap_plan`'s seam
+marker is now a retroactive tool. **And how to read the drawer depends on the
 keyword**: skip it on a finished heading, *read* it on a live one, where
 it holds the current plan rather than superseded design.
 
@@ -973,7 +981,7 @@ incident, and the reason the queue exists:
 | `org_capture`       | `org-capture`            | Quick-add a new TODO heading           |
 | `org_refile`        | `org-refile`             | Move a subtree under a different parent |
 | `org_divide`        | custom (`org-demote-subtree`) | Task mitosis: insert a new parent above a heading and demote it under. The id, clock and history stay with the **child** |
-| `org_wrap_plan`     | custom (two insertions)  | Wrap the prospective part of a body in a `:PLAN:` drawer. No `until` wraps the whole body (the composition-time case); `until` marks where the debrief begins (the retroactive case). Lossless — nothing deleted or reflowed — and it refuses rather than guesses: an existing `:PLAN:` drawer, an empty body, or a missing/duplicated `until` are errors. The composition procedure lives in its schema docstring |
+| `org_wrap_plan`     | custom (two insertions)  | Wrap the prospective part of a body in a `:PLAN:` drawer. No `until` wraps the whole body (the composition-time case); `until` marks where the debrief begins (the retroactive case). Lossless — nothing deleted or reflowed — and it refuses rather than guesses: an existing `:PLAN:` drawer, an empty body, or a missing/duplicated `until` are errors. Retroactive only since `org_amend` gained `drawer=` — composition never needs it; the two-call procedure is under "Engineering practices" above |
 | `org_set_property`  | `org-entry-put`          | Set a property by `:ID:`. `:BLOCKER:` is validated — ids resolved, prefixes expanded, unresolvable refused — and `append` unions rather than replaces. Refuses `:ID:`/`:CREATED:` |
 | `org_move_sibling`  | `org-move-subtree-up/down` | Move a heading up/down among siblings |
 | `org_sort_children` | `org-sort-entries`       | Sort a heading's direct children       |

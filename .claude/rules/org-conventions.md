@@ -686,10 +686,12 @@ Measured on `:ID:` f099379b: a lexical marker finds the prospective half as
 often as the retrospective one, and 88 of 93 finished headings carried a
 debrief that a blind wrap would have buried.
 
-Compose it in three calls — `org_amend` the prospective prose, `org_wrap_plan`
-with no seam marker to move it whole into the drawer, then `org_amend` the
-short body. `org_amend` appends *below* a `:PLAN:` drawer, so the debrief
-later needs no special handling.
+Compose it in two calls — `org_amend` with `drawer=PLAN` for the
+prospective prose, which creates the drawer, then `org_amend` the short
+body. (Three calls routed through `org_wrap_plan` until `:ID:` 501a8422
+shipped the drawer argument, 2026-09-08; the wrap is retroactive-only
+now.) At close, two calls again: the resolution onto the body, the
+debrief via `drawer=DEBRIEF` — see "The `:DEBRIEF:` drawer" below.
 
 The two-to-five-sentence limit governs the body **before** the debrief, not
 forever. A finished heading's body is that statement plus the debrief. Read as
@@ -861,6 +863,17 @@ exempts.) The asymmetry is the mechanism
 showing itself. DONE.org is written by archiving, which moves whole
 subtrees; TODO.org is where applies and `org_amend` land, and both append
 without the trailing lines.
+
+## Moving a heading
+
+**Moving a heading between files or levels is `org_refile` — never a
+hand-rolled subtree move.** `org-cut-subtree`/`org-paste-subtree` through
+`emacsclient` leaves `org-id` pointing at the old location, which is
+exactly what stranded `8ddd7fa8`; the tool updates the locations index as
+part of the move. This rule exists because the competitor had to be
+named: `420816ec` measured that a good description does not move usage
+and a standing rule does — but only for the situation it names, and the
+reflex this one targets is the hand elisp, not a file read.
 
 ## Archiving
 
