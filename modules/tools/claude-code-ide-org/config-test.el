@@ -940,6 +940,34 @@ which is what makes 1-of-2 rather than 2-of-2 the right answer here."
                      (and (string-match "\\[\\([0-9]+/[0-9]+\\)\\]" h)
                           (match-string 1 h)))))))
 
+(ert-deftest claude-code-ide-org-test-refresh-spares-bracketed-prose ()
+  "The refresh updates the headline cookie and nothing in the body.
+
+TODO.org :ID: 0988541b: org's entry-wide updater matches every [n/m]
+in the entry, prose included, so the first refresh that legitimately
+moved a cookie also rewrote a historical sentence -- \"reading [4/15]\"
+silently became \"[1/12]\", falsifying the observation it recorded.
+Latent until a cookie actually changes, which is why two earlier
+refreshes of the same slice corrupted nothing."
+  (claude-code-ide-org-test--with-heading
+    (org-with-point-at (org-id-find id 'marker)
+      (org-entry-put nil "KIND" "slice")
+      (org-entry-put nil "COOKIE_DATA" "checkbox recursive")
+      (org-end-of-meta-data t)
+      (insert "- [X] [[id:zzz-1][zzz-1]] DONE a finished member\n"
+              "- [ ] [[id:zzz-2][zzz-2]] TODO an open member\n\n"
+              "The record: this once read [4/15] with every X borrowed.\n")
+      (save-buffer))
+    (let ((claude-code-ide-org-query-files (list file)))
+      (claude-code-ide-org-refresh-slice))
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      ;; The headline cookie moved to the truth...
+      (should (string-match-p "\\[1/2\\]" disk))
+      ;; ...and the prose kept its history, brackets and all.
+      (should (string-match-p
+               "this once read \\[4/15\\] with every X borrowed"
+               disk)))))
+
 (ert-deftest claude-code-ide-org-test-refresh-slice-repairs-missing-cookie-data ()
   "A slice without :COOKIE_DATA: gains it through the ordinary refresh.
 

@@ -5332,7 +5332,11 @@ a record that was never true at any moment (observed on
                  (org-entry-put nil "COOKIE_DATA" "checkbox recursive")
                  (setq cookie-data (1+ cookie-data)))
                (claude-code-ide-org--ensure-statistics-cookie-at-point)
-               (org-update-statistics-cookies nil)
+               ;; Headline-scoped, never org's entry-wide updater: that
+               ;; one rewrites [n/m] in body PROSE too, and falsified a
+               ;; recorded observation the first time a cookie
+               ;; legitimately moved (TODO.org :ID: 0988541b).
+               (claude-code-ide-org--update-slice-cookie-at-point)
                (when (claude-code-ide-org--refresh-slice-blocker-at-point)
                  (setq blockers (1+ blockers))))))
           (when (buffer-modified-p) (save-buffer)))))
@@ -5475,6 +5479,45 @@ Returns a human-readable summary."
                    (setq changed (1+ changed))))))
             (when (buffer-modified-p) (save-buffer)))))
       (format "%d slice%s scanned, %d updated" n (if (= n 1) "" "s") changed))))
+
+(defun claude-code-ide-org--update-slice-cookie-at-point ()
+  "Rewrite the slice-at-point's *headline* cookie from its member lines.
+
+Replaces `org-update-statistics-cookies' on the refresh path (TODO.org
+:ID: 0988541b): org's updater matches every `[n/m]' in the entry, body
+prose included, so the first refresh that legitimately moved a cookie
+also rewrote a historical sentence -- \"reading [4/15] with all three
+X's borrowed\" silently became \"[1/12]\", falsifying the observation
+it recorded.  Latent until a cookie actually changes, which is why two
+earlier refreshes of the same slice corrupted nothing.
+
+This counts the checkbox-bearing member and incidental lines the
+refresh itself just wrote -- `[X]' checked, `[ ]'/`[-]' not, cookie-less
+lines uncounted, at any indent, which is `:COOKIE_DATA: checkbox
+recursive' by construction -- and edits the headline alone through
+`org-edit-headline'.  A `[%]' cookie is honoured as a percentage.
+Nothing below the headline can be touched, which is the entire point."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((end (save-excursion (outline-next-heading) (or (point) (point-max))))
+          (n 0) (m 0))
+      (save-excursion
+        (while (re-search-forward claude-code-ide-org--slice-member-regexp end t)
+          (let ((mark (match-string-no-properties 1)))
+            (when mark
+              (setq m (1+ m))
+              (when (member mark '("X" "x")) (setq n (1+ n)))))))
+      (let ((title (org-get-heading t t t t)))
+        (when (and title
+                   (string-match claude-code-ide-org--statistics-cookie-regexp
+                                 title))
+          (let* ((cookie (if (string-match-p "%" (match-string 0 title))
+                             (format "[%d%%]"
+                                     (if (zerop m) 0 (/ (* 100 n) m)))
+                           (format "[%d/%d]" n m)))
+                 (new (replace-match cookie t t title)))
+            (unless (equal new title)
+              (org-edit-headline new))))))))
 
 (defun claude-code-ide-org--refresh-slice-blocker-at-point ()
   "Set or clear the slice-at-point's `:BLOCKER:'.  Non-nil if it changed."
