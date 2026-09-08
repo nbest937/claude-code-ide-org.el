@@ -969,6 +969,34 @@ composition exposed: the checklist must exist *before* the blocker can
 be derived from it, so a declaration-time hook either runs after the
 body is written or leaves the blocker to the first refresh.
 
+*Debrief, 2026-09-08.* Both seams shipped on
+=feature/cookie-data-at-declaration= (=4eadf17=, PR #13, stacked on
+step 1's branch since it edits the refresh loop beside those changes).
+
+*Prevention*, as this body preferred: =org_set_property='s
+=:KIND: slice= branch now completes the declaration — writes
+=:COOKIE_DATA: checkbox recursive=, inserts the =[/]= cookie, derives
+the =:BLOCKER:= from the checklist — so the three values the
+=c19fbbf5= measurement counted go from hand-maintained to zero. The
+ordering constraint that measurement exposed is honoured by the branch
+this body predicted: a declaration before the body exists leaves the
+blocker to the first refresh, because deriving against an empty
+checklist would *delete* a hand-set value (=--refresh-slice-blocker-at-point=
+removes rather than empties). The value is canonicalised to lowercase,
+since every predicate tests =(equal "slice" ...)=. The reply names
+what was derived.
+
+*Repair*, as the backstop for a hand declaration in Emacs:
+=refresh-slice= inserts a missing =:COOKIE_DATA:= exactly as =28415ca8=
+taught it to insert a missing cookie, and the summary names the repair.
+Absent only — a wrong value stays a lint error for a human. The
+closed-slice skip behaves as this body said it should: terminal
+keywords are never touched, so frozen history stays frozen.
+
+*Verified*: three ERT tests, all proven failing against the branch
+base; suite green but for the two pre-existing repeater date flakes.
+
+
 
 * TODO Nothing lays out future work on a timeline the agenda can show
 :PROPERTIES:
