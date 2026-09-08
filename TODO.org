@@ -2,6 +2,30 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO No tool adds a member line to a slice's checklist :code:
+:PROPERTIES:
+:ID:       9ae0e452-4dd5-4f62-9bd3-13b4cbf3bb71
+:CREATED:  [2026-09-08 Tue 12:38]
+:CATEGORY: Tools
+:END:
+
+Split from =635d5abb= when its fix landed 2026-09-08. That fix taught
+=org_amend= to continue a list *at the end of a body* — which serves
+the =orgit-rev:= revision list, the case repaired by hand three times —
+but a slice's member checklist sits mid-body, above the sequencing
+prose and the =Incidental:= section, where an append cannot reach. So
+the costliest half of the original observation stands: adding a member
+line still means a hand =emacsclient= edit or a direct file write, and
+the direct write is what caused the 2026-09-08 buffer/disk divergence
+(=53b0047d= carries the recovery procedure).
+
+Shape sketch, not settled: a dedicated =org_slice_add_member= that
+inserts the line before the checklist's end and lets the next refresh
+derive its rendering, or a general positional argument on =org_amend=
+(after-line / before-lead), which is a larger design. Whatever form,
+it must pass through Emacs so the write-through/queue gate applies —
+that gate existing and being bypassed is the whole cost.
+
 * TODO The cookie updater rewrites bracketed n/m in slice body prose on every refresh :code:
 :PROPERTIES:
 :ID:       0988541b-1248-4637-b754-ef25ddbc7988
@@ -866,6 +890,27 @@ prevent everywhere else. Whatever fixes the targeting should carry that
 argument — a member-add path through Emacs would have collided
 harmlessly and queued instead.
 
+*Debrief, 2026-09-08.* Shipped on =feature/org-amend-targets=
+(=b1c5541=), with =501a8422= in the same commit — one edit to one
+function, as the slice sequenced it. The fix is **detection**, the
+option this body leaned toward: =--amend-separator= emits a single
+newline when both the body's last line and the text's first line are
+plain-list items, and the paragraph blank line otherwise, so no caller
+changes and all three hand-repaired instances would have been fixed
+silently. Scoped deliberately — =[-+]= and numbered bullets only, no
+=*= bullets (heading-ambiguous and unused by the two conventions this
+serves). The deferred path makes the same judgement at apply, so a
+queued amend means what the immediate one would have.
+
+*Verified*: two ERT tests, both proven discriminating — the
+continuation test fails against HEAD, the scoping test (prose after a
+list keeps its blank line) fails against an always-continue mutation.
+
+*The member-add half is split out, not fixed*: an append reaches the
+end of a body, and the checklist sits mid-body. Filed as =9ae0e452=,
+carrying the buffer/disk-divergence cost this body recorded.
+
+
 
 * TODO Every slice needs :COOKIE_DATA: and no slice creates it; the lint only reports
 :PROPERTIES:
@@ -1411,6 +1456,31 @@ Prospective and retrospective prose accumulate in one body and have to be told a
 :END:
 
 Nothing writes into a =:PLAN:= drawer — =org_amend= appends below it — so revising a plan needs a hand =emacsclient= edit, which the conventions treat as a sign the tool surface is short. Proposed: =org_amend= takes a =drawer= argument, null meaning the body as today. That also collapses [[id:b75d553a-3c77-4b98-9f58-022bfa295816][b75d553a]]'s plan-first workflow from three calls to one and serves [[id:d5eb32a3-fcee-4a25-b39a-fcde597f6cee][d5eb32a3]]'s =:DEBRIEF:= drawer with no further work. It must refuse =:PROPERTIES:= and =:LOGBOOK:= by allowlist, since both are org-managed and a silent write there would corrupt the clock and state record.
+
+*Debrief, 2026-09-08.* Shipped with =635d5abb= (=b1c5541=), carried
+into slice =52bfafdf= as its one non-slice member exactly as proposed:
+same function, same defect class. =org_amend= takes =drawer=, PLAN or
+DEBRIEF by allowlist, refusing =:PROPERTIES:=/=:LOGBOOK:= by the
+argument this heading's plan made. The deferred path carries the
+target end to end — hook field, event parser, ingestion, review-buffer
+rendering (", into :PLAN:"), and =--amend-into-drawer= re-normalises
+and re-enforces the allowlist as the one choke point both paths cross,
+since a queued event arrives with the raw value.
+
+*The two open questions got provisional answers, decided on this
+body's own arguments rather than settled independently.* Create-when-
+absent: **yes** — it is what collapses the plan-first composition to
+one call, and the plan text itself named that as the point. =replace=
+against a drawer: **refused** — the most destructive write in the
+surface pointed at content readers skip is the one no later reader
+catches; refusing is reversible where allowing is not. Either can be
+revisited without breaking the other.
+
+*Verified*: five ERT tests plus two hook assertions, all proven
+discriminating against HEAD. Note for callers: a session connected
+before this landed has the old tool schema and cannot pass =drawer=
+until it reconnects; the apply path honours it immediately.
+
 
 
 ** TODO Put the debrief in a :DEBRIEF: drawer, leaving a scannable TL;DR in the body :code:
