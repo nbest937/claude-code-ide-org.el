@@ -4470,8 +4470,20 @@ Scans each id\\='s own subtree, so a slice that was clocked itself counts,
 and so does one whose members carry all the time.  Reads CLOCK lines
 directly rather than through `org-clock-sum\\=', which totals durations and
 discards the starts this needs."
-  (let (best)
-    (dolist (id ids best)
+  (car (claude-code-ide-org--clock-starts-after ids floor)))
+
+(defun claude-code-ide-org--clock-starts-after (ids floor)
+  "Every CLOCK start across IDS\\=' subtrees at or after FLOOR, ascending.
+FLOOR nil means unbounded below.
+
+The scan `claude-code-ide-org--first-work-time\\=' and
+`claude-code-ide-org--slice-work-profiles\\=' share.  An id that does not
+resolve contributes nothing rather than failing the batch --
+`claude-code-ide-org--at-id\\=' returns an error string without calling
+the function -- because one stale link in one historical slice must not
+take down every refresh."
+  (let (starts)
+    (dolist (id ids)
       (claude-code-ide-org--at-id
        id
        (lambda ()
@@ -4484,9 +4496,9 @@ discards the starts this needs."
                            (claude-code-ide-org--parse-org-timestamp
                             (match-string 1)))))
                  (when (and ts
-                            (or (null floor) (not (time-less-p ts floor)))
-                            (or (null best) (time-less-p ts best)))
-                   (setq best ts)))))))))))
+                            (or (null floor) (not (time-less-p ts floor))))
+                   (push ts starts)))))))))
+    (sort starts #'time-less-p)))
 
 (defvar claude-code-ide-org--incidentals-claimed-elsewhere nil
   "Ids `claude-code-ide-org--slice-incidental-ids\=' dropped as another slice\='s.
@@ -4531,6 +4543,104 @@ incidentals and both lists would empty out."
                                ids))))
          nil (list file))))))
 
+(defvar claude-code-ide-org--incidentals-owned-elsewhere nil
+  "(ID . OWNER) pairs dropped because another slice was in progress.
+
+Bound to a list by `claude-code-ide-org-refresh-slice\\=' so the
+ownership exclusion can be *reported* rather than applied silently,
+exactly as `claude-code-ide-org--incidentals-claimed-elsewhere\\=' is for
+the declared-member exclusion.  OWNER is the owning slice\\='s id.")
+
+(defun claude-code-ide-org--slice-work-profiles ()
+  "One work profile per `:KIND: slice\\=' heading, across every scannable file.
+
+Each element is (ID CANCELLED-P END STARTS): END the parsed `:CLOSED:\\='
+or nil while the slice is open, STARTS every CLOCK start at or after its
+`:CREATED:\\=' across its own subtree and its planned members\\=' --
+minus members another live slice also declares, the same exclusion the
+incidental window applies, because a shared member\\='s clock is
+evidence about the other slice\\='s work as much as this one\\='s.
+
+The input to `claude-code-ide-org--incidental-owner\\=': which slice was
+in progress when a heading closed is a question about every slice at
+once, which is why this walks all of them instead of reading the slice
+at point.  CANCELLED slices are carried but marked -- an abandoned plan
+owns nothing, the judgement `--other-slices-declared-ids\\=' already
+makes -- yet the id must still be recognisable as a slice, so
+`--slice-incidental-ids\\=' can refuse to list a grouping as work."
+  (let (raw)
+    (dolist (file (claude-code-ide-org--id-scannable-files))
+      (when (file-exists-p file)
+        (org-map-entries
+         (lambda ()
+           (when (claude-code-ide-org--slice-p)
+             (push (list (downcase (or (org-entry-get nil "ID") ""))
+                         (equal (org-get-todo-state) "CANCELLED")
+                         (ignore-errors
+                           (claude-code-ide-org--parse-org-timestamp
+                            (org-entry-get nil "CREATED")))
+                         (let ((c (org-entry-get nil "CLOSED")))
+                           (and c (ignore-errors
+                                    (claude-code-ide-org--parse-org-timestamp c))))
+                         (claude-code-ide-org--slice-planned-member-ids))
+                   raw)))
+         nil (list file))))
+    (mapcar
+     (lambda (p)
+       (pcase-let ((`(,id ,cancelled ,created ,closed ,named) p))
+         (let ((elsewhere
+                (apply #'append
+                       (mapcar (lambda (q)
+                                 (unless (or (equal (car q) id) (nth 1 q))
+                                   (nth 4 q)))
+                               raw))))
+           (list id cancelled closed
+                 (claude-code-ide-org--clock-starts-after
+                  (cons id (seq-remove (lambda (m) (member m elsewhere)) named))
+                  created)))))
+     raw)))
+
+(defun claude-code-ide-org--incidental-owner (ts profiles)
+  "The slice in progress at TS per PROFILES, as an id, or nil if none was.
+
+The rule (TODO.org :ID: 2c77f2cc): work completed during a slice in
+progress belongs to that slice alone.  \"In progress\" means TS falls
+inside the slice\\='s worked window -- first clock through `:CLOSED:\\=',
+or through now while it is open -- and among several such slices the
+owner is the one whose clocks put work nearest before the close: the
+latest CLOCK start at or before TS, which is \"most recently worked\"
+measured at the moment the candidate closed.  Two slices starting a
+clock in the same minute are indistinguishable on this evidence, so a
+tie names no owner at all and the candidate stays in every window that
+contains it -- the pre-rule behaviour, kept exactly where the evidence
+cannot pick a side.
+
+Measured 2026-09-08 against the live corpus before this landed:
+`f1ff027e\\=' and `d585d33e\\=' closed at 09:17 while `ff7ccb2d\\='s
+members were clocked from 08:47 the same morning, so this rule assigns
+both to `ff7ccb2d\\=' -- the slice they were in fact fast-tracked under
+-- where the bare window had fanned them out to three slices at once.
+
+A CANCELLED slice never owns anything, and a slice never worked has no
+window to be in progress inside."
+  (let (best best-start tied)
+    (dolist (p profiles)
+      (pcase-let ((`(,id ,cancelled ,end ,starts) p))
+        (when (and (not cancelled) starts
+                   (not (time-less-p ts (car starts)))
+                   (or (null end) (not (time-less-p end ts))))
+          (let (latest)
+            (dolist (s starts)
+              (unless (time-less-p ts s) (setq latest s)))
+            (when latest
+              (cond
+               ((or (null best-start) (time-less-p best-start latest))
+                (setq best id best-start latest tied nil))
+               ;; Neither earlier nor later: an exact tie.
+               ((not (time-less-p latest best-start))
+                (setq tied t))))))))
+    (and (not tied) best)))
+
 (defun claude-code-ide-org--slice-incidental-ids ()
   "Ids closed during the slice-at-point\'s window that it does not name.
 
@@ -4540,6 +4650,17 @@ members and itself. A curated list would need a judgement per heading,
 and a judgement re-made differently each time is the thing this project
 keeps getting wrong; a derived list cannot drift (TODO.org
 :ID: 0086614a).
+
+Two exclusions sharpened 2026-09-08 (TODO.org :ID: 2c77f2cc), after one
+morning\'s closes fanned out across every open slice at once.  A heading
+that is itself a `:KIND: slice\' is never incidental to another --
+a grouping\'s members are listed separately, so counting the container
+inflates the cookie by an item with no independent existence; the drop
+is definitional and silent, like the slice\'s own self-exclusion.  And
+work completed during a slice in progress belongs to that slice alone:
+`claude-code-ide-org--incidental-owner\' names the owner, and a close
+owned elsewhere is dropped here and *reported*, through
+`claude-code-ide-org--incidentals-owned-elsewhere\'.
 
 That this sweeps in genuinely unrelated workstreams is a *feature*: the
 list answers \"what else was going on\", which is the question worth
@@ -4592,20 +4713,36 @@ incidental."
       ;; started", reached by a second route it did not anticipate.
       (setq start (and start worked))
       (when start
-        (let* ((dropped nil)
+        (let* ((profiles (claude-code-ide-org--slice-work-profiles))
+               (slice-ids (mapcar #'car profiles))
+               (dropped nil) (owned nil)
                (kept
-                (seq-remove
-                 (lambda (id)
-                   (cond
-                    ((or (equal id self) (member id named)) t)
-                    ((member id elsewhere) (push id dropped) t)))
-                 (mapcar #'car
-                         (claude-code-ide-org--closed-in-window start end)))))
+                (delq nil
+                      (mapcar
+                       (lambda (pair)
+                         (let ((cid (car pair)) (cts (cdr pair)))
+                           (cond
+                            ((or (equal cid self) (member cid named)) nil)
+                            ;; A grouping, not work -- its members are
+                            ;; already listed on their own.
+                            ((member cid slice-ids) nil)
+                            ((member cid elsewhere) (push cid dropped) nil)
+                            (t (let ((owner (claude-code-ide-org--incidental-owner
+                                             cts profiles)))
+                                 (if (and owner (not (equal owner self)))
+                                     (progn (push (cons cid owner) owned) nil)
+                                   cid))))))
+                       (claude-code-ide-org--closed-in-window start end)))))
           (when (and dropped
                      (boundp 'claude-code-ide-org--incidentals-claimed-elsewhere))
             (setq claude-code-ide-org--incidentals-claimed-elsewhere
                   (append (nreverse dropped)
                           claude-code-ide-org--incidentals-claimed-elsewhere)))
+          (when (and owned
+                     (boundp 'claude-code-ide-org--incidentals-owned-elsewhere))
+            (setq claude-code-ide-org--incidentals-owned-elsewhere
+                  (append (nreverse owned)
+                          claude-code-ide-org--incidentals-owned-elsewhere)))
           kept)))))
 
 (defun claude-code-ide-org--refresh-slice-members-at-point (index)
@@ -4836,6 +4973,7 @@ With ID, refreshes that slice only.  Returns a human-readable summary."
   (interactive)
   (require 'org-id)
   (let ((claude-code-ide-org--incidentals-claimed-elsewhere nil)
+        (claude-code-ide-org--incidentals-owned-elsewhere nil)
         (index (claude-code-ide-org--slice-referent-index))
         ;; Same reasoning as the apply path (TODO.org :ID: 97b030a4): the
         ;; user's `buffer-read-only' guards against their own stray
@@ -4922,6 +5060,20 @@ With ID, refreshes that slice only.  Returns a human-readable summary."
          (format "; %d claimed by another slice (%s)"
                  (length n)
                  (mapconcat (lambda (i) (substring i 0 8)) n " "))))
+     ;; The ownership rule's drops, named for the same reason: the
+     ;; arrow says which slice was in progress at the close, so the
+     ;; reader can dispute the assignment rather than hunt for it.
+     (when claude-code-ide-org--incidentals-owned-elsewhere
+       (let ((n (delete-dups
+                 (copy-sequence
+                  claude-code-ide-org--incidentals-owned-elsewhere))))
+         (format "; %d owned by the slice in progress at their close (%s)"
+                 (length n)
+                 (mapconcat (lambda (p)
+                              (format "%s->%s"
+                                      (substring (car p) 0 8)
+                                      (substring (cdr p) 0 8)))
+                            n " "))))
      ;; Named, not merely counted. "1 skipped" sends the reader hunting
      ;; through a 27-member list; the id says which line is still showing
      ;; its placeholder, and the reason says what will fix it.
