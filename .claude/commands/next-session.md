@@ -125,11 +125,11 @@ worked slice carrying no `orgit-rev:` prompt link** — expect it to name
 `c19fbbf5` at first work; add the link to this file's rewrite commit at
 pickup rather than waiting for the nag.
 
-**The suite's baseline is exactly two expected failures** — the
-advance-repeater date flakes, filed as `a8811bf2` (they hardcode
-"2026-09-04"; the `++1d` semantics moved on). They fail identically on
-HEAD. A run reporting only those two is clean; a run reporting none means
-someone fixed `a8811bf2` — check before assuming.
+**The suite's baseline is zero failures** — 574/574 since PR #17
+(2026-09-08) fixed `a8811bf2`'s hardcoded dates. Any failure is real.
+The same PR shipped `org_slice_add_member` (membership edits no longer
+need a hand `emacsclient` call) and scoped the refresh's cookie update
+to the headline, so bracketed `[n/m]` in slice body prose is safe.
 
 **CLAUDE.md's prune arithmetic is already measured; do not re-measure.**
 ~660 of ~1200 lines are machinery that ships with the plugin; three

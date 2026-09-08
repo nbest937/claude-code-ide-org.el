@@ -8,6 +8,7 @@
 :CREATED:  [2026-09-08 Tue 13:56]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
 =claude-code-ide-org-test-advance-repeater-survives-a-read-only-buffer=
 and =...-leaves-no-deferred-note= share one fixture — =SCHEDULED:
@@ -41,6 +42,18 @@ the future. Computing "tomorrow" in the test re-implements =++1d=
 including its before-07:00 edge (the first future occurrence can be
 *today*), which is a fourth wall-clock dependency wearing a fix.
 
+:END:
+*Debrief, 2026-09-08.* Shipped in PR #17 (=4de80ca=), the fix shape
+this body proposed: both tests now assert the =SCHEDULED= moved off
+the fixture's 2026-09-03 and parses to a time in the future — what
+"advanced" means on any calendar day — and computing "tomorrow" in the
+test was declined for the recorded reason. **The suite is 574/574 with
+zero expected failures for the first time.** Both tests proven still
+discriminating: a no-op mutation of =--ceremony-advance-repeater=
+(returns t, advances nothing) fails them both. The third generation of
+the wall-clock fixture class closes the same day it was filed.
+
+
 
 * TODO No tool adds a member line to a slice's checklist :code:
 :PROPERTIES:
@@ -48,6 +61,7 @@ including its before-07:00 edge (the first future occurrence can be
 :CREATED:  [2026-09-08 Tue 12:38]
 :CATEGORY: Tools
 :END:
+:PLAN:
 
 Split from =635d5abb= when its fix landed 2026-09-08. That fix taught
 =org_amend= to continue a list *at the end of a body* — which serves
@@ -66,6 +80,24 @@ derive its rendering, or a general positional argument on =org_amend=
 it must pass through Emacs so the write-through/queue gate applies —
 that gate existing and being bypassed is the whole cost.
 
+:END:
+*Debrief, 2026-09-08.* Shipped in PR #17 (=82f93f8=) as
+=org_slice_add_member=, the dedicated tool this body sketched — the
+generalised positional =org_amend= was declined as a larger surface
+for the same payoff. It inserts the derived member line after the last
+planned member or after a named one (membership *and order*), always
+above the =Incidental:= lead, then runs =refresh-slice= so rendering,
+cookie and =:BLOCKER:= land exactly as a refresh would leave them.
+Refusals name their rules: non-slice, closed slice (=30a340fd=),
+duplicate, self, keyword-less member (=2d2211d5= enforced at the call
+site, with a queued capture given its own message), and unsaved human
+edits — v1 *refuses* when busy rather than queueing, which still keeps
+every write in front of Emacs; a queue kind remains unbuilt
+deliberately. Four tests, all failing against =main= where the
+function does not exist. Registered as an MCP tool; sessions started
+after the merge see the schema.
+
+
 
 * TODO The cookie updater rewrites bracketed n/m in slice body prose on every refresh :code:
 :PROPERTIES:
@@ -73,6 +105,7 @@ that gate existing and being bypassed is the whole cost.
 :CREATED:  [2026-09-08 Tue 12:27]
 :CATEGORY: Slices
 :END:
+:PLAN:
 
 Observed 2026-09-08, on the first refresh after =2c77f2cc='s fix landed
 and =8a2eb687='s cookie legitimately moved from 4/15 to 1/12. The
@@ -93,6 +126,23 @@ the headline cookie directly); or the convention bans bracketed n/m in
 slice body prose and =bin/lint-org= enforces it. Verbatim markup
 (~=[4/15]=~) does NOT protect — the updater is regex-based and reads
 through it.
+
+:END:
+*Debrief, 2026-09-08.* Shipped in PR #17 (=aadc74f=), taking the first
+candidate this body named: the refresh narrows the update to the
+headline. =--update-slice-cookie-at-point= counts the checkbox-bearing
+member and incidental lines the refresh itself just wrote — checkbox-
+recursive semantics by construction — and edits the headline alone via
+=org-edit-headline=, honouring =[%]= as a percentage. Nothing below
+the headline is reachable, so bracketed n/m in body prose is safe from
+the automated path; org's own =C-c #= on a slice would still rewrite
+it, which is org's native behaviour and out of scope. =org_divide=
+keeps org's updater — its freshly minted parent has no body to
+corrupt. The lint-ban alternative was not needed. One test proven both
+ways: green with the scoped updater, red with org's entry-wide one
+swapped back; the existing self-heals test pins the count through the
+new path.
+
 
 
 * TODO Every merge to main went through a PR ten times, and nothing says so :code:
