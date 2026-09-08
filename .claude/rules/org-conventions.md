@@ -357,6 +357,20 @@ count different things: children, versus checkbox members.
 **Members are `[[id:...]]` links in a checkbox list**, not child
 headings.
 
+**A heading joins a checklist only once it exists on disk with its
+keyword** (`:ID:` 2d2211d5, choosing the candidate `798bb7a1` closed
+without picking). Both lint rules are right and both fire at once on a
+keyword-less referent: naming it in the `:BLOCKER:` is an error because
+`org-depend` acts only on an unfinished keyword, and omitting an
+unfinished member from the `:BLOCKER:` is also an error — so
+`.githooks/pre-commit` refuses, and it did twice, once costing a full
+revert. In practice this costs nothing: `org_capture` with an
+`initial_state` writes the keyword through immediately when the file is
+free, and its reply says which happened — after "Captured:" the heading
+may be added to a slice at once, after "Queued capture:" the queue is
+applied first. A capture deliberately left keyword-less is a note, and
+a note is not a member.
+
 **And a slice never has keyworded children** (`:ID:` dca940c1). A
 heading carrying both the `:KIND: slice` declaration and keyworded
 children satisfies the slice and container predicates at once, and every
