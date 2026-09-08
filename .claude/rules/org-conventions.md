@@ -357,6 +357,20 @@ count different things: children, versus checkbox members.
 **Members are `[[id:...]]` links in a checkbox list**, not child
 headings.
 
+**A heading joins a checklist only once it exists on disk with its
+keyword** (`:ID:` 2d2211d5, choosing the candidate `798bb7a1` closed
+without picking). Both lint rules are right and both fire at once on a
+keyword-less referent: naming it in the `:BLOCKER:` is an error because
+`org-depend` acts only on an unfinished keyword, and omitting an
+unfinished member from the `:BLOCKER:` is also an error — so
+`.githooks/pre-commit` refuses, and it did twice, once costing a full
+revert. In practice this costs nothing: `org_capture` with an
+`initial_state` writes the keyword through immediately when the file is
+free, and its reply says which happened — after "Captured:" the heading
+may be added to a slice at once, after "Queued capture:" the queue is
+applied first. A capture deliberately left keyword-less is a note, and
+a note is not a member.
+
 **And a slice never has keyworded children** (`:ID:` dca940c1). A
 heading carrying both the `:KIND: slice` declaration and keyworded
 children satisfies the slice and container predicates at once, and every
@@ -566,13 +580,26 @@ little more with every slice.
 
 ### Dropping a member from a slice
 
-**Delete the checkbox cookie; keep the line.** `- [X] [[id:…]] …` becomes
-`- [[id:…]] …`. That is the whole mechanism, and it was already in the
-code before it was written down here — `--slice-member-regexp` makes the
-cookie optional and names group 1 *"absent for a cancelled or deferred
-member"*, and `--slice-blocker-ids` excludes such a line deliberately: a
-deferred member is *unfinished*, so blocking on it would hold the slice
-open forever for work it explicitly decided not to do.
+**Add the member's id to the slice's `:DROPPED:` property; the refresh
+renders the drop.** Its line loses the checkbox cookie (delete it by
+hand or let the next refresh do it), so it neither counts against the
+numerator nor inflates the denominator — and `--slice-blocker-ids`
+excludes such a line deliberately: a deferred member is *unfinished*,
+so blocking on it would hold the slice open forever for work it
+explicitly decided not to do.
+
+*The property replaced the bare cookie deletion on 2026-09-08*
+(`:ID:` 1b727475). Deleting the cookie *was* the whole mechanism, and
+it made two different facts render identically — a hand drop, and a
+member that is cookie-less merely because its keyword is `MAYBE` or
+`CANCELLED` — with nothing anywhere recording which was which. Worse,
+the refresh read the absence as the declaration and kept it, so the
+drop was sticky: a `MAYBE` member promoted to `TODO` never regained
+its box. Now the checkbox is *fully* derived — from the referent's
+keyword, minus `:DROPPED:` ids, minus grouping-label lines — so a
+promoted member's box returns by itself, and a drop is a visible,
+reversible, one-line declaration that survives the line being
+regenerated wholesale.
 
 **Keeping the line is the point.** The slice declared that member; deleting
 the line would make the slice read as though it never had, which is the
@@ -587,14 +614,15 @@ slice no longer counts it. (A cookie-less *parent* line with indented
 member lines beneath it is the distinct fourth reading — a grouping
 label, not a drop; see the nesting rule above.)
 
-**Known ambiguity, and it is not resolved** (`:ID:` 1b727475). `MAYBE`
-and `CANCELLED` map to *no checkbox* by design — an unchecked box would
-inflate the denominator forever — so a member that is cookie-less merely
-because of its keyword is indistinguishable from one dropped by hand.
-Worse, the refresh reads the absent cookie as a declaration and keeps it
-absent, so **a `MAYBE` member promoted to `TODO` will not regain its
-box**; check it by hand. Do not read a missing cookie as a deliberate
-drop without checking the referent's keyword.
+**The ambiguity this used to carry is resolved** (`:ID:` 1b727475,
+2026-09-08). A cookie-less line now has exactly three readings, each
+declared somewhere the regeneration cannot destroy: the id is in the
+slice's `:DROPPED:` (a drop), the referent's keyword is `MAYBE` or
+`CANCELLED` (derived — an unchecked box would inflate the denominator
+forever), or the line is a grouping label with indented member lines
+beneath (structural). A `MAYBE` member promoted to `TODO` regains its
+box on the next refresh; a dropped one does not, until someone removes
+its id from `:DROPPED:`.
 
 **When the work moves to another slice, it is copied there with its cookie
 intact** — the receiving slice counts it, the origin does not. Do not

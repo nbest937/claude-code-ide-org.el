@@ -3338,12 +3338,19 @@ it explicitly decided not to do -- so a blocker-derived view silently
 loses the record of having considered and dropped something, which the
 conventions say a list must not lose.  Here it reads `(dropped)'.
 
+`(dropped)' is said only of ids the slice's `:DROPPED:' property names
+(TODO.org :ID: 1b727475) -- a cookie-less line whose referent is merely
+`MAYBE' or `CANCELLED' is not a drop, and labelling it one was this
+same ambiguity surfacing in a second renderer.  Such a line renders
+with no mark at all; its keyword, printed beside it, tells the story.
+
 Likewise unfiltered by ACTIVE-ONLY, which is why this takes no such
 argument: a slice's member list *is* its definition, and hiding the
 finished half would misreport what the slice is.  The statistics cookie
 already carries the progress."
   (when (claude-code-ide-org--slice-p)
-    (let ((members (claude-code-ide-org--slice-members)))
+    (let ((members (claude-code-ide-org--slice-members))
+          (dropped-ids (claude-code-ide-org--slice-dropped-ids)))
       (when members
         ;; Built only for a slice, and only once: it scans every tracked
         ;; file, so paying for it on ordinary scoped calls would tax the
@@ -3356,7 +3363,9 @@ already carries the progress."
                     (ref (gethash (downcase id) index))
                     (loc (claude-code-ide-org--id-find id)))
                (concat "  -> "
-                       (if mark (format "[%s] " mark) "(dropped) ")
+                       (cond (mark (format "[%s] " mark))
+                             ((member (downcase id) dropped-ids) "(dropped) ")
+                             (t ""))
                        (if (car ref) (concat (car ref) " ") "")
                        (or (cdr ref) "(unresolved referent)")
                        (format "  {%s}" id)
@@ -4916,6 +4925,22 @@ incidental."
                           claude-code-ide-org--incidentals-owned-elsewhere)))
           kept)))))
 
+(defun claude-code-ide-org--slice-dropped-ids ()
+  "Ids the slice-at-point's `:DROPPED:' property names, downcased.
+
+The drop declaration (TODO.org :ID: 1b727475).  A dropped member used
+to be declared by the *absence* of its checkbox cookie, and that
+absence is exactly what a `MAYBE' or `CANCELLED' member's line also
+looks like -- two different facts rendering identically, undecidable
+at refresh time because the distinguishing information was never
+written down.  Worse, reading absence as declaration made the drop
+sticky: a `MAYBE' member promoted to `TODO' never regained its box,
+because the refresh kept the absence it found.  A property survives a
+line being regenerated wholesale, which is what disqualified every
+marker that lived on the line itself."
+  (let ((raw (org-entry-get nil "DROPPED")))
+    (and raw (mapcar #'downcase (split-string raw "[ \t,]+" t)))))
+
 (defun claude-code-ide-org--refresh-slice-members-at-point (index)
   "Rewrite the slice-at-point's member lines from INDEX.  Returns a count.
 
@@ -4923,6 +4948,14 @@ Each line is regenerated as `- [BOX] LINK KEYWORD TITLE': the checkbox
 from the referent's keyword, and the keyword and title copied fresh.  The
 link itself is left alone -- it is the one part that cannot go stale --
 and so is the ordering.
+
+The checkbox is *fully* derived: from the referent's keyword, minus the
+ids the slice's `:DROPPED:' property names, minus grouping-label lines
+(cookie-less with indented member lines beneath -- partial coverage of
+a story, :ID: 758a8b78).  Until 2026-09-08 the cookie's own absence was
+read as the drop declaration, which made a `MAYBE' member and a drop
+render identically *and* made the drop sticky -- a promoted member
+never regained its box (TODO.org :ID: 1b727475).
 
 A member whose id is not in INDEX, or whose referent carries no keyword,
 is skipped rather than guessed at.  Both are already errors in
@@ -4940,25 +4973,39 @@ it would be destroyed at the next apply anyway."
     ;; longer than what it replaced, which pushed the second member line
     ;; past the bound and left it silently unrefreshed.
     (let ((end (copy-marker (save-excursion (outline-next-heading) (or (point) (point-max)))))
+          (dropped-ids (claude-code-ide-org--slice-dropped-ids))
           (changed 0)
           (skipped nil))
       (while (re-search-forward
               "^\\([ \t]*\\)- \\(\\[[ Xx-]\\] \\)?\\(\\[\\[id:\\([^]]+\\)\\]\\[[^]]*\\]\\]\\)\\(.*\\)$"
               end t)
         (let* ((indent (match-string-no-properties 1))
-               ;; A member whose cookie was DELETED stays cookie-less.
-               ;; The checkbox is otherwise derived from the referent and
-               ;; regenerated, but its *absence* is a declaration -- the
-               ;; slice no longer counts this member (cancelled, deferred
-               ;; or moved). Regenerating it silently undid that, so the
-               ;; documented mechanism was defeated by the very command
-               ;; that maintains slices: measured 2026-09-02, four lines
-               ;; de-cookied by hand came back checked on the next
-               ;; refresh, and `--slice-blocker-ids' had already been
-               ;; relying on the distinction in its own docstring.
-               (dropped (null (match-string-no-properties 2)))
+               (had-cookie (match-string-no-properties 2))
                (link (match-string-no-properties 3))
                (id (downcase (match-string-no-properties 4)))
+               ;; The three reasons a line renders cookie-less, each
+               ;; declared somewhere the regeneration cannot destroy:
+               ;; the id is in :DROPPED: (the drop declaration); the
+               ;; referent's keyword maps to no box (MAYBE/CANCELLED,
+               ;; derived); or the line is a grouping label -- already
+               ;; cookie-less with an indented member line directly
+               ;; beneath, meaning the slice undertakes only part of a
+               ;; story (:ID: 758a8b78) -- which is structural and read
+               ;; from the lines themselves.
+               (grouping-label
+                (and (null had-cookie)
+                     ;; `save-match-data': the lookahead's `looking-at'
+                     ;; would otherwise clobber the outer search's match
+                     ;; data, which `replace-match' below still needs.
+                     (save-match-data
+                       (save-excursion
+                         (forward-line 1)
+                         (and (< (point) end)
+                              (looking-at
+                               "^\\([ \t]*\\)- \\(\\[[ Xx-]\\] \\)?\\[\\[id:")
+                              (> (length (match-string 1))
+                                 (length indent)))))))
+               (dropped (or (member id dropped-ids) grouping-label))
                (entry (gethash id index))
                (kw (car entry))
                (title (cdr entry)))
@@ -5124,7 +5171,7 @@ Returns the number of lines written."
       (set-marker body-end nil)
       (length lines))))
 
-(defun claude-code-ide-org-refresh-slice (&optional id)
+(defun claude-code-ide-org-refresh-slice (&optional id include-closed)
   "Regenerate every slice's checklist from its referents.
 
 The counterpart to applying the queue, and the reason it exists: apply
@@ -5140,7 +5187,19 @@ Rewrites member lines, then the statistics cookie, then the `:BLOCKER:'
 `CANCELLED' loses its cookie, which changes both the count and the
 blocker set.
 
-With ID, refreshes that slice only.  Returns a human-readable summary."
+With ID, refreshes that slice only.  Returns a human-readable summary.
+
+INCLUDE-CLOSED is a list of slice ids for which the closed-slice skip
+is waived, for exactly one case: a slice whose *own* terminal
+transition landed in the apply pass that is now settling (TODO.org
+:ID: de687e4d).  The skip's rationale -- a closed slice is a record,
+and refreshing one lets later work rewrite finished history
+(:ID: 30a340fd) -- does not cover same-pass closure, where the refresh
+writes exactly the state the close happened under.  Without the
+waiver, a slice closed by the same pass that closed its members froze
+with TODO member-line copies, a stale cookie and a full `:BLOCKER:' --
+a record that was never true at any moment (observed on
+:ID: ec65b5d6, frozen at [0/4] with every member DONE)."
   (interactive)
   (require 'org-id)
   (let ((claude-code-ide-org--incidentals-claimed-elsewhere nil)
@@ -5175,8 +5234,13 @@ With ID, refreshes that slice only.  Returns a human-readable summary."
                         ;; 30a340fd). The member's own :LOGBOOK: answers any
                         ;; question about what it is doing now; the slice
                         ;; does not have to, and should not try.
-                        (not (member (org-get-todo-state)
-                                     claude-code-ide-org--outline-finished-keywords))
+                        ;;
+                        ;; INCLUDE-CLOSED waives the skip for a slice this
+                        ;; very apply pass closed -- see the docstring.
+                        (or (not (member (org-get-todo-state)
+                                         claude-code-ide-org--outline-finished-keywords))
+                            (member (downcase (or (org-entry-get nil "ID") ""))
+                                    include-closed))
                         (or (null id)
                             (equal (downcase (or (org-entry-get nil "ID") ""))
                                    (downcase id))))
@@ -8354,10 +8418,23 @@ work; a slice that cannot be regenerated must not turn a successful
 apply into a failed one, and the staleness it leaves is the status quo
 ante rather than new damage."
   (when applied-items
-    (condition-case err
-        (claude-code-ide-org-refresh-slice)
-      (error (message "Slice refresh after apply failed: %s"
-                      (error-message-string err))))))
+    ;; A slice whose own terminal transition landed in THIS batch gets
+    ;; one final refresh despite being closed, so it freezes showing the
+    ;; state the close happened under rather than the state before the
+    ;; batch (TODO.org :ID: de687e4d). Non-slice ids in the list are
+    ;; harmless -- the slice predicate filters them.
+    (let ((closed-this-pass
+           (delq nil
+                 (mapcar (lambda (item)
+                           (and (eq (plist-get item :type) 'state)
+                                (member (plist-get item :to)
+                                        claude-code-ide-org--outline-finished-keywords)
+                                (downcase (or (plist-get item :id) ""))))
+                         applied-items))))
+      (condition-case err
+          (claude-code-ide-org-refresh-slice nil closed-this-pass)
+        (error (message "Slice refresh after apply failed: %s"
+                        (error-message-string err)))))))
 
 
 (defun claude-code-ide-org--review-apply (items)

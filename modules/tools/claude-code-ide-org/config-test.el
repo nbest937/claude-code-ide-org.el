@@ -970,6 +970,58 @@ it would silently overwrite a hand-set divergence."
                      (org-with-point-at (org-id-find id 'marker)
                        (org-entry-get nil "COOKIE_DATA")))))))
 
+(ert-deftest claude-code-ide-org-test-refresh-slice-include-closed-waives-the-skip ()
+  "A closed slice named in INCLUDE-CLOSED is refreshed exactly once more.
+
+TODO.org :ID: de687e4d: the closed-slice skip (30a340fd) protects
+finished history from later work, but a slice closed by the same apply
+pass as its members froze showing state that was never true at any
+moment -- TODO member copies over DONE referents.  The waiver is the
+same-pass case only; a plain refresh still skips."
+  (claude-code-ide-org-test--with-heading
+    (org-with-point-at (org-id-find id 'marker)
+      (org-todo "DONE")
+      (org-entry-put nil "KIND" "slice")
+      (org-end-of-meta-data t)
+      (insert "- [ ] [[id:mm-1][mm-1]] TODO A member\n")
+      (save-buffer))
+    (claude-code-ide-org-test--add-child
+     file "* DONE A member\nCLOSED: [2026-09-03 Wed 10:00]\n:PROPERTIES:\n:ID:       mm-1\n:END:\n")
+    (org-id-update-id-locations (list file))
+    (let ((claude-code-ide-org-query-files (list file)))
+      ;; A plain refresh skips the closed slice: the stale line stands.
+      (claude-code-ide-org-refresh-slice)
+      (should (string-match-p "\\[ \\] \\[\\[id:mm-1\\]\\[mm-1\\]\\] TODO"
+                              (claude-code-ide-org-test--disk-contents file)))
+      ;; Waived, it freezes showing the state the close happened under.
+      (claude-code-ide-org-refresh-slice nil (list id))
+      (should (string-match-p "\\[X\\] \\[\\[id:mm-1\\]\\[mm-1\\]\\] DONE"
+                              (claude-code-ide-org-test--disk-contents file))))))
+
+(ert-deftest claude-code-ide-org-test-settle-slices-refreshes-a-slice-closed-by-the-pass ()
+  "The settle pass computes the waiver from the batch it just applied.
+
+An applied state item whose :to is terminal names its heading into the
+refresh's INCLUDE-CLOSED, so a slice and its members closed in one
+ceremony leave the slice reading [n/n] with DONE copies rather than
+frozen at [0/n] (TODO.org :ID: de687e4d, observed on ec65b5d6)."
+  (claude-code-ide-org-test--with-heading
+    (org-with-point-at (org-id-find id 'marker)
+      (org-todo "DONE")
+      (org-entry-put nil "KIND" "slice")
+      (org-end-of-meta-data t)
+      (insert "- [ ] [[id:mm-1][mm-1]] TODO A member\n")
+      (save-buffer))
+    (claude-code-ide-org-test--add-child
+     file "* DONE A member\nCLOSED: [2026-09-03 Wed 10:00]\n:PROPERTIES:\n:ID:       mm-1\n:END:\n")
+    (org-id-update-id-locations (list file))
+    (let ((claude-code-ide-org-query-files (list file)))
+      (claude-code-ide-org--review-settle-slices
+       (list (list :type 'state :id "mm-1" :to "DONE")
+             (list :type 'state :id id :to "DONE"))))
+    (should (string-match-p "\\[X\\] \\[\\[id:mm-1\\]\\[mm-1\\]\\] DONE"
+                            (claude-code-ide-org-test--disk-contents file)))))
+
 (ert-deftest claude-code-ide-org-test-grouping-heading-p-covers-both-kinds ()
   "The grouping predicate is the union of the two ways a heading can be a
 grouping, and is nil for a leaf.
@@ -3227,29 +3279,42 @@ does not exist."
       (should-not (string-match-p "^  TODO A referent" result)))))
 
 (ert-deftest claude-code-ide-org-test-outline-slice-shows-dropped-members ()
-  "A member whose checkbox cookie was deleted still appears, as (dropped).
+  "A member the slice's :DROPPED: names still appears, as (dropped).
 
 This is why the expansion is not simply the `:BLOCKER:' list. The
-conventions deliberately exclude a cookie-less member from the blocker
+conventions deliberately exclude a dropped member from the blocker
 set -- blocking on a deferred member would hold the slice open forever
 for work it explicitly decided not to do -- so a blocker-derived view
 loses the record of having considered and dropped something. That record
-is the one thing the conventions say a list must not lose."
+is the one thing the conventions say a list must not lose.
+
+And `(dropped)' is said only of :DROPPED: ids (TODO.org :ID: 1b727475):
+a cookie-less line whose referent is merely CANCELLED or MAYBE is not a
+drop, and labelling it one was the same ambiguity this heading resolved
+in the refresh, surfacing in a second renderer."
   (claude-code-ide-org-test--with-heading
     (goto-char (point-max))
     (insert "* CANCELLED A dropped referent                                      :code:\n"
-            ":PROPERTIES:\n:ID:       test-0003\n:END:\n")
+            ":PROPERTIES:\n:ID:       test-0003\n:END:\n"
+            "* TODO A live dropped referent\n"
+            ":PROPERTIES:\n:ID:       test-0004\n:END:\n")
     (save-buffer)
     (org-id-update-id-locations (list file))
     (org-with-point-at (org-id-find id 'marker)
       (org-entry-put nil "KIND" "slice")
+      (org-entry-put nil "DROPPED" "test-0004")
       (org-end-of-meta-data t)
-      ;; No checkbox at all -- the cookie was deleted.
-      (insert "- [[id:test-0003][test-0003]] CANCELLED A dropped referent\n")
+      ;; Neither line carries a checkbox; only one is a drop.
+      (insert "- [[id:test-0003][test-0003]] CANCELLED A dropped referent\n"
+              "- [[id:test-0004][test-0004]] TODO A live dropped referent\n")
       (save-buffer))
     (let* ((claude-code-ide-org-query-files (list file))
            (result (claude-code-ide-org-outline id)))
-      (should (string-match-p "-> (dropped) CANCELLED A dropped referent" result)))))
+      (should (string-match-p "-> (dropped) TODO A live dropped referent" result))
+      ;; Keyword-derived cookie-lessness renders bare: the keyword,
+      ;; printed beside it, tells the story.
+      (should (string-match-p "-> CANCELLED A dropped referent" result))
+      (should-not (string-match-p "(dropped) CANCELLED" result)))))
 
 (ert-deftest claude-code-ide-org-test-outline-does-not-expand-slices-file-wide ()
   "Only the scoped call expands. In a whole-file outline every member
@@ -7213,7 +7278,7 @@ tell a window bound from a blanket scan."
          (progn
            (with-temp-file file
              (insert
-              "#+TODO: TODO NEXT DOING | DONE CANCELLED\n"
+              "#+TODO: TODO NEXT DOING MAYBE | DONE CANCELLED\n"
               "* TODO [1/1] A slice\n:PROPERTIES:\n"
               ":ID:       slice-001\n:KIND:     slice\n"
               ":CREATED:  [2026-08-20 Thu 09:00]\n:END:\n"
@@ -11804,7 +11869,7 @@ covered by :ID: 0acc1df2's tests, and re-testing it here would pass
 whether or not anything called it."
   (let ((calls 0))
     (cl-letf (((symbol-function 'claude-code-ide-org-refresh-slice)
-               (lambda (&optional _id) (setq calls (1+ calls)))))
+               (lambda (&optional _id _include-closed) (setq calls (1+ calls)))))
       ;; Nothing applied -> nothing to restate.
       (claude-code-ide-org--review-settle-slices nil)
       (should (= 0 calls))
@@ -11869,7 +11934,7 @@ This is bookkeeping *after* the work.  The staleness left behind is the
 status quo ante rather than new damage, whereas an error escaping here
 would report a pass that genuinely landed as a failed one."
   (cl-letf (((symbol-function 'claude-code-ide-org-refresh-slice)
-             (lambda (&optional _id) (error "slice is on fire"))))
+             (lambda (&optional _id _include-closed) (error "slice is on fire"))))
     ;; Asserted on whether an error ESCAPES, not on the return value --
     ;; the function returns whatever `message' hands back, so
     ;; `should-not' on its result tests the wrong thing and fails
@@ -13516,23 +13581,17 @@ keeps the first one that happened after the slice existed."
         (replace-match "CLOCK: [2026-08-21 Fri 09:00]--[2026-08-21 Fri 09:30]" t t)
         (should (member "incid-002" (incidentals)))))))
 
-(ert-deftest claude-code-ide-org-test-refresh-preserves-a-deleted-cookie ()
-  "A member whose cookie was deleted stays cookie-less across a refresh.
+(ert-deftest claude-code-ide-org-test-refresh-honours-the-dropped-property ()
+  "A drop is declared in :DROPPED:, and only there; the box is derived.
 
-Deleting the checkbox is how a slice drops a member -- cancelled,
-deferred, or moved to another slice.  `--slice-member-regexp' documents
-the absent cookie, `--slice-members' returns nil for its mark, and
-`--slice-blocker-ids' excludes it deliberately so a deferred member
-cannot hold the slice open forever.
-
-But the rewriter derived the box from the referent's keyword and put it
-back, so the documented mechanism was defeated by the very command that
-maintains slices.  Measured 2026-09-02: four lines de-cookied by hand
-returned checked on the next refresh, and the two conventions had been
-contradicting each other in writing -- CLAUDE.md says the checkbox is
-derived and regenerated, the code says its absence is a declaration.
-Absence wins, because only it can express something the referent's
-keyword cannot."
+This test's predecessor pinned the opposite: cookie *absence* was the
+declaration, and the rewriter preserved it.  That made a hand drop and
+a MAYBE member render identically with nothing recording which was
+which, and made the drop sticky -- a promoted member never regained its
+box (TODO.org :ID: 1b727475).  Now a de-cookied line whose id is not in
+:DROPPED: gets its box back from the referent's keyword, which is the
+regression healing itself, and a :DROPPED: id stays cookie-less through
+every refresh."
   (claude-code-ide-org-test--with-slice-window
     (with-current-buffer (find-file-noselect file)
       (goto-char (point-min))
@@ -13542,11 +13601,91 @@ keyword cannot."
         (goto-char (point-min))
         (re-search-forward "^\\* TODO \\[1/1\\] A slice")
         (org-back-to-heading t)
+        ;; Not declared dropped: the box comes back from the keyword.
+        (claude-code-ide-org--refresh-slice-members-at-point index)
+        (goto-char (point-min))
+        (should (re-search-forward "^- \\[X\\] \\[\\[id:member-01" nil t))
+        ;; Declared dropped: cookie-less, and stays so.
+        (goto-char (point-min))
+        (re-search-forward "^\\* TODO \\[1/1\\] A slice")
+        (org-back-to-heading t)
+        (org-entry-put nil "DROPPED" "member-01")
+        (claude-code-ide-org--refresh-slice-members-at-point index)
+        (goto-char (point-min))
+        (should (re-search-forward "^- \\[\\[id:member-01" nil t))
+        (goto-char (point-min))
+        (should-not (re-search-forward "^- \\[[ Xx-]\\] \\[\\[id:member-01" nil t))))))
+
+(ert-deftest claude-code-ide-org-test-maybe-member-promoted-regains-its-box ()
+  "The sticky half of 1b727475, healed: MAYBE off, box back.
+
+A MAYBE member is cookie-less by keyword derivation.  Under
+absence-as-declaration, promoting its referent to TODO never restored
+the box, because the refresh read the absence it found as a decision.
+With the drop moved to :DROPPED:, the box follows the keyword both
+ways."
+  (claude-code-ide-org-test--with-slice-window
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-max))
+      (insert "* MAYBE A wavering referent\n"
+              ":PROPERTIES:\n:ID:       wav-1\n:END:\n")
+      (goto-char (point-min))
+      (re-search-forward "^- \\[X\\] \\[\\[id:member-01[^\n]*\n")
+      (insert "- [[id:wav-1][wav-1]] MAYBE A wavering referent\n")
+      (save-buffer)
+      (org-id-update-id-locations (list file))
+      (let ((index (claude-code-ide-org--slice-referent-index)))
+        (goto-char (point-min))
+        (re-search-forward "^\\* TODO \\[1/1\\] A slice")
+        (org-back-to-heading t)
+        (claude-code-ide-org--refresh-slice-members-at-point index)
+        ;; MAYBE: cookie-less, derived.
+        (goto-char (point-min))
+        (should (re-search-forward "^- \\[\\[id:wav-1" nil t)))
+      ;; Promote the referent and refresh again.
+      (goto-char (point-min))
+      (re-search-forward "^\\* MAYBE \\(A wavering referent\\)")
+      (replace-match "* TODO \\1" t)
+      (save-buffer)
+      (let ((index (claude-code-ide-org--slice-referent-index)))
+        (goto-char (point-min))
+        (re-search-forward "^\\* TODO \\[1/1\\] A slice")
+        (org-back-to-heading t)
         (claude-code-ide-org--refresh-slice-members-at-point index))
       (goto-char (point-min))
-      (should (re-search-forward "^- \\[\\[id:member-01" nil t))
+      (should (re-search-forward "^- \\[ \\] \\[\\[id:wav-1" nil t)))))
+
+(ert-deftest claude-code-ide-org-test-grouping-label-line-stays-cookie-less ()
+  "A cookie-less parent with indented member lines is a label, not a drop.
+
+The fourth reading (:ID: 758a8b78): a slice undertaking part of a story
+writes the parent as a bare reference with member children indented
+beneath, and a checkbox there could never check while the story stays
+open.  Structural, so the rewriter reads it off the lines rather than
+off any declaration -- and must not repair it into a box."
+  (claude-code-ide-org-test--with-slice-window
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-max))
+      (insert "* TODO A story parent\n"
+              ":PROPERTIES:\n:ID:       story-1\n:END:\n")
       (goto-char (point-min))
-      (should-not (re-search-forward "^- \\[[ Xx-]\\] \\[\\[id:member-01" nil t)))))
+      (re-search-forward "^- \\[X\\] \\[\\[id:member-01[^\n]*\n")
+      (insert "- [[id:story-1][story-1]] TODO A story parent\n"
+              "  - [X] [[id:incid-001][incid-001]] DONE Incidental one\n")
+      (save-buffer)
+      (org-id-update-id-locations (list file))
+      (let ((index (claude-code-ide-org--slice-referent-index)))
+        (goto-char (point-min))
+        (re-search-forward "^\\* TODO \\[1/1\\] A slice")
+        (org-back-to-heading t)
+        (claude-code-ide-org--refresh-slice-members-at-point index))
+      (goto-char (point-min))
+      (should (re-search-forward "^- \\[\\[id:story-1" nil t))
+      (goto-char (point-min))
+      (should-not (re-search-forward "^- \\[[ Xx-]\\] \\[\\[id:story-1" nil t))
+      ;; The indented child beneath it keeps its own derived box.
+      (goto-char (point-min))
+      (should (re-search-forward "^  - \\[X\\] \\[\\[id:incid-001" nil t)))))
 
 (ert-deftest claude-code-ide-org-test-advance-repeater-leaves-no-deferred-note ()
   "Advancing the repeater must register nothing on `post-command-hook'.
