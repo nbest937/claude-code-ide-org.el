@@ -3344,6 +3344,38 @@ in the refresh, surfacing in a second renderer."
       (should (string-match-p "-> CANCELLED A dropped referent" result))
       (should-not (string-match-p "(dropped) CANCELLED" result)))))
 
+(ert-deftest claude-code-ide-org-test-outline-multi-scope ()
+  "Several ids return one block each, in order, whatever their shape.
+
+TODO.org :ID: 2c3aadbe: the corpus map at max_depth 1 already answers
+n top-level lookups in one call, but a child, a mix of depths, or a
+DONE heading forced n round trips -- depth and liveness are the wrong
+axes when the question is \"these particular ids\".  A token that
+resolves to nothing errors in its own slot rather than failing its
+neighbours: one typo must not cost the other answers."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* TODO A parent story\n:PROPERTIES:\n:ID:       par-1\n:END:\n"
+            "** TODO A nested child\n:PROPERTIES:\n:ID:       chi-1\n:END:\n"
+            "* DONE Finished work\nCLOSED: [2026-09-01 Tue 10:00]\n"
+            ":PROPERTIES:\n:ID:       don-1\n:END:\n")
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-outline "chi-1, don-1 nosuch99")))
+      ;; All three slots, in the order given: a child, a DONE heading
+      ;; (no active_only gymnastics), and the inline error.
+      (let ((a (string-match "TODO A nested child" result))
+            (b (string-match "DONE Finished work" result))
+            (c (string-match "resolves to no heading" result)))
+        (should a) (should b) (should c)
+        (should (< a b c))))
+    ;; A single scope renders exactly as before -- no separators, no
+    ;; multi-scope error text.
+    (let ((one (claude-code-ide-org-outline "chi-1")))
+      (should (string-match-p "TODO A nested child" one))
+      (should-not (string-match-p "multi-scope" one)))))
+
 (ert-deftest claude-code-ide-org-test-outline-does-not-expand-slices-file-wide ()
   "Only the scoped call expands. In a whole-file outline every member
 already has a line where it lives and the statistics cookie reports the
