@@ -127,6 +127,14 @@ CLOCK: [2026-09-08 Tue 10:03]--[2026-09-08 Tue 10:12] =>  0:09
 - [2026-09-08 Tue 10:03]--[2026-09-08 Tue 10:12] assigned at review
 CLOCK: [2026-09-08 Tue 10:17]--[2026-09-08 Tue 10:19] =>  0:02
 - [2026-09-08 Tue 10:17]--[2026-09-08 Tue 10:19] assigned at review
+CLOCK: [2026-09-08 Tue 10:30]--[2026-09-08 Tue 10:37] =>  0:07
+- [2026-09-08 Tue 10:30]--[2026-09-08 Tue 10:37] assigned at review
+CLOCK: [2026-09-08 Tue 11:18]--[2026-09-08 Tue 11:19] =>  0:01
+- [2026-09-08 Tue 11:18]--[2026-09-08 Tue 11:19] assigned at review
+CLOCK: [2026-09-08 Tue 11:21]--[2026-09-08 Tue 11:26] =>  0:05
+- [2026-09-08 Tue 11:21]--[2026-09-08 Tue 11:26] assigned at review
+CLOCK: [2026-09-08 Tue 11:30]--[2026-09-08 Tue 11:31] =>  0:01
+- [2026-09-08 Tue 11:30]--[2026-09-08 Tue 11:31] assigned at review
 :END:
 
 Observed 2026-09-08: =f1ff027e= and =d585d33e= — fast-tracked and
@@ -184,7 +192,6 @@ derivation outright**, alongside the ownership rule above — two
 predicates, not one.
 
 
-
 * TODO The ceremony should refresh open slices, so incidentals and cookies stop waiting on memory :code:
 :PROPERTIES:
 :ID:       d749ebd5-ff2b-4794-941a-0af5c2df1356
@@ -222,6 +229,18 @@ and the incidental section, so a ceremony-driven run also retires the
 "checkbox disagrees with its referent" staleness the slice conventions
 warn about — the disagreement would then be bounded by ceremony
 cadence, like clock accuracy already is.
+
+*Inherited from =198dd00e= 2026-09-08, when that heading was cancelled
+as nullified by [[id:7f0c9baa-67ed-4008-8cbc-28f0ea898dd4][7f0c9baa]]:*
+**a slice being worked should carry an =orgit-rev:= link to the prompt
+revision that picks it up, and nothing ensures it does.**
+=ff7ccb2d= went without one until a human noticed an hour later. This
+is the same shape as the rest of this heading — a derived line nobody
+maintains — and belongs in the same pass: when the ceremony refreshes
+an open slice, a missing prompt link is a thing it can *report* even
+where it cannot supply the value, since only the composer knows which
+revision applies.
+
 
 
 * DONE Commit co-author trailer is frozen at session start, misattributes after /model :code:
@@ -547,18 +566,20 @@ the class is worth a moment's thought, since =bin/check-conventions= checks docu
 code and nothing checks a docstring against the function under it.
 
 
-* TODO [3/13] Only membership and order are declared, and everything else still needs a hand
+* NEXT [3/13] Only membership and order are declared, and everything else still needs a hand
 :PROPERTIES:
 :ID:       52bfafdf-d313-48e1-9524-d8b539f165c9
 :CREATED:  [2026-09-04 Fri 09:26]
 :CATEGORY: Slices
 :COOKIE_DATA: checkbox recursive
 :KIND:     slice
-:BLOCKER:  ids(635d5abb-207d-445d-b268-bc031bdd592a 501a8422-9e93-4d2d-98bb-db0ab2c16e37 acf46449-422b-45d5-a223-83224ef71548 7f0c9baa-67ed-4008-8cbc-28f0ea898dd4 198dd00e-0746-444a-ab25-2034a2a235c2 2d2211d5-97c3-4f69-8175-40df90d1db8a de687e4d-9384-46ae-a495-55b3ae46d1bb 1b727475-46c3-4967-8cdd-dfd9397d94ea d749ebd5-ff2b-4794-941a-0af5c2df1356 2c77f2cc-af07-4f4d-aa9d-1aa3bc8843f5)
+:BLOCKER:  ids(2c77f2cc-af07-4f4d-aa9d-1aa3bc8843f5 635d5abb-207d-445d-b268-bc031bdd592a 501a8422-9e93-4d2d-98bb-db0ab2c16e37 acf46449-422b-45d5-a223-83224ef71548 7f0c9baa-67ed-4008-8cbc-28f0ea898dd4 198dd00e-0746-444a-ab25-2034a2a235c2 2d2211d5-97c3-4f69-8175-40df90d1db8a de687e4d-9384-46ae-a495-55b3ae46d1bb 1b727475-46c3-4967-8cdd-dfd9397d94ea d749ebd5-ff2b-4794-941a-0af5c2df1356)
 :END:
 :LOGBOOK:
 - State "TODO"       from "MAYBE"      [2026-09-04 Fri 09:40] \\
   proposal accepted, declared a slice
+- State "NEXT"       from "TODO"       [2026-09-08 Tue 11:31] \\
+  nominated as the slice to pick up next
 :END:
 
 *Accepted 2026-09-04*, on the user's judgement that these are "essential enhancements to tighten our
@@ -584,21 +605,25 @@ either filed or sharpened on 2026-09-03/04, which is why the theme only became v
 - [ ] [[id:2d2211d5-97c3-4f69-8175-40df90d1db8a][2d2211d5]] TODO Adding a just-captured heading to a slice cannot be made lint-clean
 - [ ] [[id:de687e4d-9384-46ae-a495-55b3ae46d1bb][de687e4d]] TODO A slice closed by the same apply pass freezes with stale member lines
 - [ ] [[id:1b727475-46c3-4967-8cdd-dfd9397d94ea][1b727475]] TODO A MAYBE member and a dropped member render identically, and the drop is now sticky
-- [ ] [[id:d749ebd5-ff2b-4794-941a-0af5c2df1356][d749ebd5]] TODO The ceremony should refresh open slices, so in. cidentals and cookies stop waiting on memory
+- [ ] [[id:d749ebd5-ff2b-4794-941a-0af5c2df1356][d749ebd5]] TODO The ceremony should refresh open slices, so incidentals and cookies stop waiting on memory
 
-*Sequenced, because the first three feed the fourth.* =635d5abb= and =501a8422= are one edit to one
-function — =org_amend= cannot target a list continuation or a drawer, and both are the same "cannot
-target" gap. =acf46449= makes the property rather than reporting it. Only then is =198dd00e=
-buildable: an acceptance *command* has to set =:KIND:=, set =:COOKIE_DATA:=, refresh, rewrite the
-proposal paragraph and append a revision link — three of those five are the members above it. The
-last three are independent of each other and of the first four.
+*Sequenced, and reordered 2026-09-08.* =2c77f2cc= is first: it is the only member producing visible
+garbage on every refresh rather than waiting to be noticed, and until it lands no slice's cookie or
+incidental list can be trusted — including the ones every other member is judged by. Then =635d5abb=
+and =501a8422=, one edit to one function: =org_amend= cannot target a list continuation or a drawer,
+and both are the same "cannot target" gap — the gap this session hit three times, once causing a
+buffer/disk divergence, because adding a member line has no tool at all. Then =acf46449=, which
+makes the =:COOKIE_DATA:= property rather than reporting it. =7f0c9baa= is independent of all of
+them and decides a convention rather than code; it cancelled =198dd00e= on arrival, which is why
+that member is gone rather than merely last. The remaining three are independent of each other and
+of everything above.
 
-*The tell that this is one theme and not four adjacent ones:* each member fails **silently**, and in
-the same way. =bin/lint-org= reports zero errors for a revision list split in two, for a proposal
-whose body contradicts its heading, for a frozen closed slice, and for a dropped member that reads
-as a =MAYBE=. What breaks in every case is *meaning*, and the only detector is a human reading raw
-text. That is the same argument =979e02b6= closed at [3/12] one layer up, and this is its
-unfinished half.
+*The tell that this is one theme and not several adjacent ones:* each member fails **silently**, and
+in the same way. =bin/lint-org= reports zero errors for a revision list split in two, for a cookie
+inflated by three of another slice's incidentals, for a frozen closed slice, and for a dropped
+member that reads as a =MAYBE=. What breaks in every case is *meaning*, and the only detector is a
+human reading raw text. That is the same argument =979e02b6= closed one layer up, and this is
+its unfinished half.
 
 *=501a8422= is the one member whose subject is not a slice*, and it is included deliberately: it is
 the same function, the same defect class — its own body says a hand =emacsclient= edit "is a sign the
@@ -666,7 +691,6 @@ across the board.
 Note it also *supersedes hand-repair*: removals from =8a2eb687= were
 undone by the next refresh, so until this lands, incidental lists are
 to be read as unreliable rather than corrected.
-
 
 
 * TODO org_amend cannot continue a list, and the slice revision links are always one
@@ -832,6 +856,7 @@ deferral: it is decided *with* the portable half, so
 :CREATED:  [2026-09-03 Thu 15:49]
 :CATEGORY: Slices
 :END:
+:PLAN:
 
 =.claude/rules/org-conventions.md= says accepting a proposal is three mechanical steps: add
 =:KIND: slice=, run =claude-code-ide-org-refresh-slice= so the blocker and cookie appear, and link
@@ -860,6 +885,25 @@ rather than against it.* Its stale proposal paragraph was rewritten (=d3f08b3=) 
 =orgit-rev:= prompt link added (=bc198a0=) — but both took a human noticing, an hour apart, and
 neither would have been noticed by anything that runs. The heading stands: the question is not
 whether one slice can be fixed, it is that acceptance leaves every slice needing it.
+
+:END:
+*Cancelled 2026-09-08: [[id:7f0c9baa-67ed-4008-8cbc-28f0ea898dd4][7f0c9baa]]
+nullifies its premise* (the user). This heading exists because
+accepting a proposal leaves the body's "a proposal, not a slice"
+paragraph contradicting the heading. Retire the withheld-declaration
+convention and there is no acceptance moment, no such paragraph, and
+nothing for a fourth step or a one-command acceptance to fix. The lint
+rule proposed here — flag =:KIND: slice= whose body calls itself a
+proposal — would be a check for a state that can no longer arise.
+
+*One fragment survives and was carried to
+[[id:d749ebd5-ff2b-4794-941a-0af5c2df1356][d749ebd5]] rather than
+cancelled with the rest*: the third acceptance step, linking the
+=orgit-rev:= prompt revision, has nothing to do with proposals.
+=ff7ccb2d= went without one until a human noticed an hour later, and
+that gap recurs for any slice a prompt picks up, declared from birth or
+not.
+
 
 
 * TODO A slice closed by the same apply pass freezes with stale member lines :code:
@@ -2693,6 +2737,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-08 Tue 11:31]--[2026-09-08 Tue 11:33] =>  0:02
 CLOCK: [2026-09-08 Tue 10:20]--[2026-09-08 Tue 10:21] =>  0:01
 CLOCK: [2026-09-08 Tue 10:04]--[2026-09-08 Tue 10:05] =>  0:01
 CLOCK: [2026-09-08 Tue 09:05]--[2026-09-08 Tue 09:07] =>  0:02
