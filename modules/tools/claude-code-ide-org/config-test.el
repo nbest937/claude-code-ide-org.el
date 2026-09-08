@@ -10776,6 +10776,81 @@ report, which asks the stop time and forbids guessing one."
     ;; And no status at all (already run today) is also silence.
     (should-not (claude-code-ide-org--format-ceremony-report nil))))
 
+(ert-deftest claude-code-ide-org-test-ceremony-report-names-unlinked-worked-slices ()
+  "A worked slice without its prompt link is named, not counted.
+
+The ceremony's automated steps cannot fix this one -- only the composer
+knows which next-session.md revision applies -- so the report says
+which slice and hands the line to the human (TODO.org :ID: d749ebd5,
+inherited from the cancelled 198dd00e; ff7ccb2d went without a link
+until a human noticed an hour later)."
+  (let ((text (claude-code-ide-org--format-ceremony-report
+               '(:pending 0 :drifted 0 :archivable 0
+                 :unlinked ("52bfafdf")))))
+    ;; It fires on the unlinked slice alone, with every count at zero.
+    (should text)
+    (should (string-match-p "52bfafdf" text))
+    (should (string-match-p "orgit-rev" text))
+    (should (string-match-p "by hand" text)))
+  ;; And its absence adds nothing.
+  (should-not (claude-code-ide-org--format-ceremony-report
+               '(:pending 0 :drifted 0 :archivable 0 :unlinked nil))))
+
+(ert-deftest claude-code-ide-org-test-worked-unlinked-slices-detector ()
+  "Only an open slice that is worked and unlinked is reported.
+
+Worked means its own subtree carries a CLOCK line; a slice never worked
+owes no link yet (the link arrives when it is picked up), a linked one
+owes nothing, and a closed one is history."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO NEXT DOING | DONE CANCELLED\n\n"
+              "* DOING Worked and unlinked\n:PROPERTIES:\n"
+              ":ID:       aaaa1111-0000-0000-0000-000000000000\n:KIND:     slice\n:END:\n"
+              ":LOGBOOK:\nCLOCK: [2026-09-08 Tue 09:00]--[2026-09-08 Tue 09:30] =>  0:30\n:END:\n\n"
+              "* DOING Worked and linked\n:PROPERTIES:\n"
+              ":ID:       bbbb2222-0000-0000-0000-000000000000\n:KIND:     slice\n:END:\n"
+              ":LOGBOOK:\nCLOCK: [2026-09-08 Tue 10:00]--[2026-09-08 Tue 10:30] =>  0:30\n:END:\n\n"
+              "- [[orgit-rev:repo::abc1234][abc1234]] [2026-09-08 Tue] defined the slice\n\n"
+              "* TODO Never worked\n:PROPERTIES:\n"
+              ":ID:       cccc3333-0000-0000-0000-000000000000\n:KIND:     slice\n:END:\n\n"
+              "* DONE Closed, worked, unlinked\n:PROPERTIES:\n"
+              ":ID:       dddd4444-0000-0000-0000-000000000000\n:KIND:     slice\n:END:\n"
+              ":LOGBOOK:\nCLOCK: [2026-09-07 Mon 09:00]--[2026-09-07 Mon 09:30] =>  0:30\n:END:\n"))
+    (org-id-update-id-locations (list capture-file))
+    (let ((claude-code-ide-org-query-files (list capture-file)))
+      (should (equal '("aaaa1111")
+                     (claude-code-ide-org--worked-unlinked-slices))))))
+
+(ert-deftest claude-code-ide-org-test-ceremony-finish-runs-the-slice-refresh ()
+  "Slice refresh is a ceremony step, not a memory.
+
+TODO.org :ID: d749ebd5: apply already settles slices per pass, so the
+ceremony's own pass catches drift that arose outside one -- a hand
+edit, an archived referent -- and bounds slice staleness by ceremony
+cadence the way clock accuracy already is.  Asserted as wiring: the
+finish pass calls the refresh alongside its siblings."
+  (let (called)
+    (cl-letf (((symbol-function 'claude-code-ide-org-refresh-slice)
+               (lambda (&optional _id _include-closed)
+                 (setq called t) "stubbed"))
+              ((symbol-function 'claude-code-ide-org-consolidate-all-drawers)
+               (lambda () 0))
+              ((symbol-function 'claude-code-ide-org-normalize-heading-separation)
+               (lambda () 0))
+              ((symbol-function 'claude-code-ide-org-archive-finished)
+               (lambda () 0))
+              ((symbol-function 'claude-code-ide-org-sort-by-created)
+               (lambda () 0))
+              ((symbol-function 'claude-code-ide-org-sort-datetree-descending)
+               (lambda () 0))
+              ((symbol-function 'claude-code-ide-org-mark-ceremony-done)
+               (lambda (&optional _s) nil))
+              ((symbol-function 'claude-code-ide-org--ceremony-due-p)
+               (lambda () nil)))
+      (claude-code-ide-org-ceremony-finish))
+    (should called)))
+
 (ert-deftest claude-code-ide-org-test-session-start-payload-carries-both-reports ()
   "One hook, one payload, either half optional.
 
