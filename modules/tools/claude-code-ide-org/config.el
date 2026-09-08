@@ -2817,7 +2817,89 @@ to replace and the caller should append instead."
       (insert (string-trim (or text "")))
       t)))
 
-(defun claude-code-ide-org-amend (id text &optional note replace)
+(defconst claude-code-ide-org--plain-list-item-lead "[ \t]*\\(?:[-+]\\|[0-9]+[.)]\\) "
+  "What a plain-list item line starts with, unanchored.
+Deliberately excludes `*' bullets, which are ambiguous with headings at
+column zero and unused in this project's conventions -- both list idioms
+the tools serve (a slice's member checklist and its `orgit-rev:'
+revision list) use `-'.")
+
+(defconst claude-code-ide-org--amend-drawer-allowlist '("PLAN" "DEBRIEF")
+  "Drawers `claude-code-ide-org-amend' may write into.
+An allowlist rather than a denylist of `:PROPERTIES:'/`:LOGBOOK:',
+because the next org-managed drawer someone adds is then refused by
+default rather than accepted by omission (TODO.org :ID: 501a8422) --
+the same shape as `org_set_property' refusing `:ID:' and `:CREATED:'.")
+
+(defun claude-code-ide-org--amend-separator (text)
+  "The separator to insert before appending TEXT at point.
+
+\"\\n\" when TEXT continues the list whose last item point sits after --
+both the line point is on and TEXT's first line are plain-list items --
+and \"\\n\\n\" otherwise, so prose keeps reading as its own paragraph.
+
+The single newline is the fix for TODO.org :ID: 635d5abb: the blank
+line the paragraph idiom inserts terminates a list, so appending one
+item to a slice's `orgit-rev:' revision list started a second list
+instead of continuing the first -- repaired by hand three times in one
+day before this landed.  Detection rather than an explicit argument,
+because it would have fixed all three instances with no caller change."
+  (if (and (string-match-p
+            (concat "\\`" claude-code-ide-org--plain-list-item-lead)
+            (or text ""))
+           (save-excursion
+             (skip-chars-backward " \t\n")
+             (beginning-of-line)
+             (looking-at-p claude-code-ide-org--plain-list-item-lead)))
+      "\n" "\n\n"))
+
+(defun claude-code-ide-org--amend-into-drawer (drawer text)
+  "Append TEXT inside the :DRAWER: drawer of the heading at point.
+Creates the drawer -- after the planning line and property drawer,
+where `claude-code-ide-org--append-to-drawer-1' puts one -- when the
+heading has none.  Returns the symbol `created' then, nil otherwise.
+
+Existing content is separated from TEXT by a blank line, unless TEXT
+continues a list the drawer already ends with -- the same
+`--amend-separator' judgement the body path makes.
+
+Normalises and enforces the allowlist itself, although the tool entry
+point already did: a *queued* amend arrives here with whatever raw
+value the hook recorded, so this is the one choke point both the
+immediate and the deferred write pass through.  A refused name signals,
+which the apply path's `--at-id' wrapper turns into an error string on
+the item rather than a write."
+  (setq drawer (upcase (string-trim (or drawer "") ":" ":")))
+  (unless (member drawer claude-code-ide-org--amend-drawer-allowlist)
+    (error "amend into :%s: is not offered; allowed: %s" drawer
+           (mapconcat #'identity
+                      claude-code-ide-org--amend-drawer-allowlist ", ")))
+  (org-back-to-heading t)
+  (let ((element (claude-code-ide-org--find-drawer drawer)))
+    (if (not element)
+        (progn
+          (org-end-of-meta-data)
+          (unless (bolp) (insert "\n"))
+          (insert ":" drawer ":\n" (string-trim (or text "")) "\n:END:\n")
+          'created)
+      (let ((contents-end (org-element-contents-end element)))
+        (goto-char (or contents-end
+                       (claude-code-ide-org--drawer-body-start element)))
+        ;; Point is at the :END: line's beginning. For a populated
+        ;; drawer, step back over the trailing newline run so the
+        ;; separator judgement sees the last content line, then rebuild
+        ;; exactly one newline before :END:.
+        (if (not contents-end)
+            (insert (string-trim (or text "")) "\n")
+          (let ((sep (claude-code-ide-org--amend-separator text)))
+            (skip-chars-backward " \t\n")
+            (delete-region (point) (save-excursion
+                                     (skip-chars-forward " \t\n")
+                                     (line-beginning-position)))
+            (insert sep (string-trim (or text "")) "\n")))
+        nil))))
+
+(defun claude-code-ide-org-amend (id text &optional note replace drawer)
   "Append TEXT to the body of the heading with :ID: ID.
 
 With REPLACE non-nil, *replace* the body's prose with TEXT instead of
@@ -2857,6 +2939,23 @@ conflict detection; a diff-style guard is a much larger design.  The
 review line names the target heading's title so a human can spot a body
 that has moved on.
 
+*A list item continues the list* (TODO.org :ID: 635d5abb): when the
+body's last line and TEXT's first line are both plain-list items, the
+separating blank line is omitted, since org reads it as a terminator
+and the appended item would start a second list.  That is what makes
+this tool able to extend a slice's `orgit-rev:' revision list.
+
+With DRAWER non-nil, TEXT is appended *inside* that drawer instead of
+to the body -- created after the property drawer when absent, which is
+what collapses the plan-first workflow from three calls to one
+(TODO.org :ID: 501a8422).  Only `:PLAN:' and `:DEBRIEF:' are accepted:
+`:PROPERTIES:' and `:LOGBOOK:' hold identity, clock lines and state
+history written by org's own machinery, and prose appended there would
+corrupt the record silently.  REPLACE with DRAWER is refused -- wholesale
+revision of content readers are told to skip on finished headings is
+the one write here no later reader would catch, so it is not offered
+until someone argues it should be.
+
 *Honest limit:* this helps only when Claude calls `org_amend' instead of
 the `Edit' tool.  `Edit' consults neither Emacs nor any lock and cannot
 be intercepted, so the mechanism is a practice plus a safety net, not
@@ -2864,6 +2963,24 @@ enforcement.
 
 Returns \"Amended: ...\", \"Queued amend: ...\", or \"Error: ...\"."
   (require 'org-id)
+  ;; Normalise DRAWER before anything else: bare name, no colons, and
+  ;; refusal happens here rather than after a partial write.
+  (when drawer
+    (setq drawer (upcase (string-trim drawer ":" ":")))
+    (when (string-empty-p drawer) (setq drawer nil)))
+  (cond
+   ((and drawer
+         (not (member drawer claude-code-ide-org--amend-drawer-allowlist)))
+    (format "Error: drawer must be one of %s. :PROPERTIES: and :LOGBOOK: \
+are org-managed -- identity, clock lines and state history -- and prose \
+appended there would corrupt the record silently."
+            (mapconcat #'identity
+                       claude-code-ide-org--amend-drawer-allowlist ", ")))
+   ((and drawer replace)
+    "Error: replace into a drawer is not offered -- wholesale revision of \
+drawer content is invisible to later readers, who are told to skip it on \
+finished headings. Append, or revise by hand and say so.")
+   (t
   ;; Resolve `[[id:...]]' links first, so a fabricated UUID is refused
   ;; rather than written and caught later by `bin/lint-org'. An
   ;; 8-character prefix is *expanded* here, which is the point: the
@@ -2911,20 +3028,31 @@ yet applied, so it has no body to amend. Apply the queue, then amend."
                     title
                     (length (split-string (or text "") "\n"))
                     (if (= 1 (length (split-string (or text "") "\n"))) "" "s")
-                    (if replace ", replacing the body" ""))
-          (let* ((replaced nil)
+                    (cond (replace ", replacing the body")
+                          (drawer (format ", into :%s:" drawer))
+                          (t "")))
+          (let* ((replaced nil) (created nil)
                  (result
                   (claude-code-ide-org--at-id-writable
                    id
                    (lambda ()
-                     (if replace
-                         (setq replaced
-                               (claude-code-ide-org--replace-body text))
+                     (cond
+                      (drawer
+                       (setq created
+                             (eq 'created
+                                 (claude-code-ide-org--amend-into-drawer
+                                  drawer text))))
+                      (replace
+                       (setq replaced
+                             (claude-code-ide-org--replace-body text)))
+                      (t
                        (claude-code-ide-org--end-of-body)
-                       ;; Blank line before, so the amendment reads as its own
-                       ;; paragraph rather than running into whatever the body
-                       ;; already ended with.
-                       (insert "\n\n" (string-trim (or text "")) "\n"))
+                       ;; Separator judged, not fixed: a blank line makes
+                       ;; prose read as its own paragraph, and a single
+                       ;; newline lets a list item continue the list --
+                       ;; see `--amend-separator'.
+                       (insert (claude-code-ide-org--amend-separator text)
+                               (string-trim (or text "")) "\n")))
                      ;; A heading with no body has nothing to replace, so
                      ;; the revision degrades to an append rather than
                      ;; silently doing nothing.
@@ -2937,8 +3065,13 @@ yet applied, so it has no body to amend. Apply the queue, then amend."
                 (format "%s\"%s\"%s"
                         (if replace "Revised: " claude-code-ide-org--reply-amended)
                         title
-                        (if (and replace (not replaced))
-                            " (had no body; appended instead)" "")))))))))))
+                        (cond
+                         ((and replace (not replaced))
+                          " (had no body; appended instead)")
+                         ((and drawer created)
+                          (format " (created :%s:)" drawer))
+                         (drawer (format " (into :%s:)" drawer))
+                         (t ""))))))))))))))
 
 ;;; Query -------------------------------------------------------------------
 ;;
@@ -5930,6 +6063,9 @@ whole file. This is the single place that judgement is made."
                 :target (alist-get 'target obj)
                 :tags (alist-get 'tags obj)
                 :text (alist-get 'text obj)
+                ;; amend only: which drawer the text targets. Null for a
+                ;; body amend, and on events written before it existed.
+                :drawer (alist-get 'drawer obj)
                 ;; Which tool call a permission block belongs to, so
                 ;; block_start/block_end pair by identity rather than by
                 ;; position -- tool calls interleave. Null on every other
@@ -7015,6 +7151,7 @@ from a skipped one."
                (push (list :type 'amend :id id
                            :ts (plist-get event :ts)
                            :text (plist-get event :text)
+                           :drawer (plist-get event :drawer)
                            :note (plist-get event :note)
                            :events (list event))
                      items))))
@@ -7943,9 +8080,18 @@ Called with point on the heading, inside
 
 Positional rather than contextual: the text lands at the body end
 regardless of whether the body changed since the amendment was queued.
-See `claude-code-ide-org-amend' for why v1 accepts that."
-  (claude-code-ide-org--end-of-body)
-  (insert "\n\n" (string-trim (or (plist-get item :text) "")) "\n"))
+See `claude-code-ide-org-amend' for why v1 accepts that.
+
+An item carrying a :drawer lands inside that drawer instead, and a
+list item continues a list rather than starting a second one -- the
+deferred write must mean what the immediate one would have."
+  (let ((drawer (plist-get item :drawer))
+        (text (plist-get item :text)))
+    (if drawer
+        (claude-code-ide-org--amend-into-drawer drawer text)
+      (claude-code-ide-org--end-of-body)
+      (insert (claude-code-ide-org--amend-separator text)
+              (string-trim (or text "")) "\n"))))
 
 (defun claude-code-ide-org--review-apply-capture (item)
   "Write ITEM's captured heading.  Nil on success, an error string otherwise.
@@ -8952,11 +9098,15 @@ vanishes silently is worse than one that explains itself
       ;; heading has moved on since the text was written.
       ('amend
        (let ((lines (length (split-string (or (plist-get item :text) "") "\n"))))
-         (format "  amend   %-30s    (%d line%s)%s %s   %s"
+         (format "  amend   %-30s    (%d line%s%s)%s %s   %s"
                  (format "\"%s\"" (or (claude-code-ide-org--review-heading-title
                                        (plist-get item :id))
                                       "(unknown heading)"))
                  lines (if (= lines 1) "" "s")
+                 ;; Into a drawer is a different write than into the
+                 ;; body; the reviewer approving it should see which.
+                 (let ((drawer (plist-get item :drawer)))
+                   (if drawer (format ", into :%s:" drawer) ""))
                  (make-string (max 1 (- 8 (length (number-to-string lines)))) ?\s)
                  (format-time-string "%m-%d %H:%M" (plist-get item :ts))
                  note))))))
@@ -13232,7 +13382,17 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
                  "lands at the end of the heading's own body, after any "
                  "drawers and before its first child. Positional, not "
                  "contextual: it appends wherever the body now ends, with no "
-                 "conflict detection. "
+                 "conflict detection. A list item continues a list: when the "
+                 "body's last line and the text's first line are both plain "
+                 "list items, no blank line separates them, so appending one "
+                 "item to a slice's revision list extends that list instead "
+                 "of starting a second one. "
+                 "With drawer=PLAN (or DEBRIEF) the text is appended INSIDE "
+                 "that drawer instead -- created when absent -- which is how "
+                 "a plan is revised, or written at composition in one call "
+                 "instead of three. Other drawers are refused: :PROPERTIES: "
+                 "and :LOGBOOK: are org-managed and prose appended there "
+                 "would corrupt the clock and state record silently. "
                  "With replace=true it REVISES instead: the body's prose is "
                  "replaced wholesale by the new text. Use that when a body "
                  "has become a transcript — when a correction, or the "
@@ -13255,7 +13415,11 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
            (:name "replace"
             :type boolean
             :optional t
-            :description "Replace the body's prose instead of appending to it. Destructive and irreversible except through git, so commit before using it. Drawers are never touched. On a heading with no body yet it simply appends, and says so.")))
+            :description "Replace the body's prose instead of appending to it. Destructive and irreversible except through git, so commit before using it. Drawers are never touched, and combining this with drawer is refused. On a heading with no body yet it simply appends, and says so.")
+           (:name "drawer"
+            :type string
+            :optional t
+            :description "Append inside this drawer instead of the body. PLAN or DEBRIEF only; the drawer is created after the property drawer when the heading has none. Omit for the body, as before.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-query

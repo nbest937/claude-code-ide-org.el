@@ -9051,11 +9051,11 @@ truename is what makes the query land in the right repository."
                  (session_id . "sess-a") (agent_id . nil) (agent_type . nil)
                  (source . "mcp__emacs-tools__org_capture"))))
 
-(defun claude-code-ide-org-test--amend-line (ts id text &optional note)
+(defun claude-code-ide-org-test--amend-line (ts id text &optional note drawer)
   "Return one encoded `amend' queue line, as bin/hooks/queue-append writes it."
   (json-encode `((ts . ,ts) (kind . "amend") (id . ,id) (state . nil)
                  (from . nil) (note . ,note) (title . nil) (target . nil)
-                 (tags . nil) (text . ,text)
+                 (tags . nil) (text . ,text) (drawer . ,drawer)
                  (session_id . "sess-a") (agent_id . nil) (agent_type . nil)
                  (source . "mcp__emacs-tools__org_amend"))))
 
@@ -9394,6 +9394,155 @@ written when it defers."
         (should-not (claude-code-ide-org--review-apply-item (car items))))
       (should (string-match-p "Body\\.\n+Queued prose\\."
                               (claude-code-ide-org-test--disk-contents capture-file))))))
+
+(ert-deftest claude-code-ide-org-test-amend-continues-a-list ()
+  "A list item appended after a list item continues the list.
+
+TODO.org :ID: 635d5abb: the paragraph idiom's blank line terminates a
+list, so appending one `orgit-rev:' link to a slice's revision list
+started a second list -- repaired by hand three times in one day.
+Detection, not an argument: both the body's last line and the text's
+first line must be plain-list items."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n"
+              "* Sliceish\n:PROPERTIES:\n:ID: list-1\n:END:\n\n"
+              "Prose above.\n\n"
+              "- [[orgit-rev:repo::aaa1111][aaa1111]] first revision\n"))
+    (org-id-update-id-locations (list capture-file))
+    (should (string-prefix-p
+             claude-code-ide-org--reply-amended
+             (claude-code-ide-org-amend
+              "list-1" "- [[orgit-rev:repo::bbb2222][bbb2222]] second revision")))
+    ;; Exactly one newline between the items: one list, not two.
+    (should (string-match-p
+             "first revision\n- \\[\\[orgit-rev:repo::bbb2222"
+             (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-amend-prose-after-a-list-keeps-its-blank-line ()
+  "The continuation is scoped to list-item-after-list-item.
+
+Prose appended after a list still reads as its own paragraph, and a
+list item appended after prose still starts its own list -- both get
+the blank line, or the fix for one idiom would quietly reflow every
+other amend."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n"
+              "* Sliceish\n:PROPERTIES:\n:ID: list-2\n:END:\n\n"
+              "- an existing item\n"))
+    (org-id-update-id-locations (list capture-file))
+    (claude-code-ide-org-amend "list-2" "A paragraph, not an item.")
+    (should (string-match-p
+             "- an existing item\n\nA paragraph, not an item\\."
+             (claude-code-ide-org-test--disk-contents capture-file)))
+    (claude-code-ide-org-amend "list-2" "- a fresh list")
+    (should (string-match-p
+             "A paragraph, not an item\\.\n\n- a fresh list"
+             (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-amend-into-plan-drawer ()
+  "drawer=PLAN lands the text inside the drawer, before :END:.
+
+TODO.org :ID: 501a8422: nothing could revise a plan without a hand
+emacsclient edit, which the conventions treat as a sign the tool
+surface is short."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n"
+              "* Planned\n:PROPERTIES:\n:ID: plan-1\n:END:\n"
+              ":PLAN:\nthe original plan\n:END:\n\n"
+              "The body stays untouched.\n"))
+    (org-id-update-id-locations (list capture-file))
+    (let ((reply (claude-code-ide-org-amend
+                  "plan-1" "A revision of the plan." nil nil "PLAN")))
+      (should (string-prefix-p claude-code-ide-org--reply-amended reply))
+      (should (string-match-p "into :PLAN:" reply)))
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      ;; Inside the drawer, as its own paragraph, before :END:.
+      (should (string-match-p
+               ":PLAN:\nthe original plan\n\nA revision of the plan\\.\n:END:"
+               disk))
+      ;; And the body did not grow.
+      (should (string-match-p ":END:\n\nThe body stays untouched\\.\n\\'" disk)))))
+
+(ert-deftest claude-code-ide-org-test-amend-creates-the-plan-drawer ()
+  "drawer=PLAN on a heading with none creates it, after the property
+drawer -- the one-call composition workflow 501a8422 argues for."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n"
+              "* Unplanned\n:PROPERTIES:\n:ID: plan-2\n:END:\n\n"
+              "Existing body.\n"))
+    (org-id-update-id-locations (list capture-file))
+    (let ((reply (claude-code-ide-org-amend
+                  "plan-2" "The plan, first draft." nil nil "PLAN")))
+      (should (string-match-p "created :PLAN:" reply)))
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p
+               ":ID: plan-2\n:END:\n:PLAN:\nThe plan, first draft\\.\n:END:"
+               disk))
+      (should (string-match-p "Existing body\\." disk)))))
+
+(ert-deftest claude-code-ide-org-test-amend-refuses-org-managed-drawers ()
+  "Only the allowlist is writable; :PROPERTIES: and :LOGBOOK: hold
+identity, clock lines and state history, and prose appended there would
+corrupt the record silently.  An allowlist, so the next org-managed
+drawer is refused by default rather than accepted by omission."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n"
+              "* Guarded\n:PROPERTIES:\n:ID: guard-1\n:END:\n\nBody.\n"))
+    (org-id-update-id-locations (list capture-file))
+    (dolist (bad '("LOGBOOK" "PROPERTIES" "logbook" ":LOGBOOK:" "RESULTS"))
+      (should (string-prefix-p
+               "Error: drawer must be one of"
+               (claude-code-ide-org-amend "guard-1" "poison" nil nil bad))))
+    ;; Nothing was written by any refusal.
+    (should-not (string-match-p
+                 "poison" (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-amend-refuses-replace-into-a-drawer ()
+  "replace with drawer is refused: wholesale revision of content readers
+are told to skip on finished headings is the one write no later reader
+would catch.  Refusal is reversible; allowing it now would not be."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n"
+              "* Guarded\n:PROPERTIES:\n:ID: guard-2\n:END:\n"
+              ":PLAN:\nthe plan\n:END:\n\nBody.\n"))
+    (org-id-update-id-locations (list capture-file))
+    (should (string-prefix-p
+             "Error: replace into a drawer"
+             (claude-code-ide-org-amend "guard-2" "new plan" nil t "PLAN")))
+    (should (string-match-p
+             ":PLAN:\nthe plan\n:END:"
+             (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-amend-drawer-applies-from-the-queue ()
+  "A deferred drawer amend lands where the immediate one would have.
+
+The queued event carries the raw drawer value, so the apply path
+normalises and enforces the allowlist itself -- lowercase in the event
+must still land as :PLAN:."
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-test--with-queue
+      (with-temp-file capture-file
+        (insert "#+TODO: TODO | DONE\n\n"
+                "* Planned\n:PROPERTIES:\n:ID: plan-3\n:END:\n"
+                ":PLAN:\nthe original plan\n:END:\n\nBody.\n"))
+      (org-id-update-id-locations (list capture-file))
+      (claude-code-ide-org-test--queue-write
+       "sess-a" (claude-code-ide-org-test--amend-line
+                 "2026-01-15T09:14:00-0500" "plan-3" "Queued revision."
+                 nil "plan"))
+      (let ((items (claude-code-ide-org--review-items-from-queue)))
+        (should (= 1 (length items)))
+        (should (equal "plan" (plist-get (car items) :drawer)))
+        (should-not (claude-code-ide-org--review-apply-item (car items))))
+      (should (string-match-p
+               ":PLAN:\nthe original plan\n\nQueued revision\\.\n:END:"
+               (claude-code-ide-org-test--disk-contents capture-file))))))
 
 (ert-deftest claude-code-ide-org-test-review-renders-capture-and-amend ()
   "Both need a line a human can decide from: a capture names where it

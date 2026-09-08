@@ -383,6 +383,15 @@ check "amend takes its id from tool_input" "id-a" "$(jq -r '.id' <<<"$line")"
 check "amend records text verbatim" "two
 lines" "$(jq -r '.text' <<<"$line")"
 check "amend has null title" "null" "$(jq -r '.title' <<<"$line")"
+check "amend without drawer records null drawer" "null" "$(jq -r '.drawer' <<<"$line")"
+
+# A deferred drawer amend must carry its target, or the apply pass
+# lands the text in the body -- a silent misplacement no reader of the
+# review buffer could catch, since the line would look identical.
+reset_queue
+run amend '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_amend","tool_input":{"id":"id-a","text":"revised plan","drawer":"PLAN"},"tool_response":[{"type":"text","text":"Queued amend: \"Some heading\" (1 line, into :PLAN:); pending review."}]}'
+line="$(queue_lines sess-a)"
+check "amend records its drawer target" "PLAN" "$(jq -r '.drawer' <<<"$line")"
 
 # An unrecognised reply drops the event rather than guessing. A drop
 # loses one proposal a human can restate; a wrong append writes the
