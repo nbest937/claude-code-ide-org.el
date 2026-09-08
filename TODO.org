@@ -2,6 +2,33 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The cookie updater rewrites bracketed n/m in slice body prose on every refresh :code:
+:PROPERTIES:
+:ID:       0988541b-1248-4637-b754-ef25ddbc7988
+:CREATED:  [2026-09-08 Tue 12:27]
+:CATEGORY: Slices
+:END:
+
+Observed 2026-09-08, on the first refresh after =2c77f2cc='s fix landed
+and =8a2eb687='s cookie legitimately moved from 4/15 to 1/12. The
+refresh calls =org-update-statistics-cookies= on the slice, and org's
+updater matches every =[n/m]= pattern in the entry — including one in
+*body prose*: the historical sentence "reading [4/15] with all three
+X's borrowed" was silently rewritten to "[1/12]", falsifying the very
+observation it recorded. Repaired by hand the same day, bracket-free
+("reading 4/15"), which is the workaround: the updater's regex needs
+the brackets.
+
+Latent until a cookie actually changes, which is why two earlier
+refreshes of the same slice corrupted nothing. Same silent-meaning
+class as the rest of =52bfafdf=: lint reports nothing, the diff is the
+only witness. Candidate fixes: the refresh narrows the update to the
+headline (org's updater takes no such scope, so it may mean updating
+the headline cookie directly); or the convention bans bracketed n/m in
+slice body prose and =bin/lint-org= enforces it. Verbatim markup
+(~=[4/15]=~) does NOT protect — the updater is regex-based and reads
+through it.
+
 * TODO Every merge to main went through a PR ten times, and nothing says so :code:
 :PROPERTIES:
 :ID:       c7bf2121-755c-4e52-8bf2-e21e56b1e0c2
@@ -58,6 +85,7 @@ invisible to both parties.
 that carries code", since the maintenance clause already lets
 bookkeeping land directly on =main=. The ten-merge record cannot
 distinguish them — no bookkeeping-only branch has ever existed.
+
 
 * TODO The proposal convention's last argument is falsified; an open slice is its own proposal :code:
 :PROPERTIES:
@@ -247,6 +275,42 @@ listed, so counting it inflates the cookie by an item that has no
 independent existence. **Exclude =:KIND: slice= from incidental
 derivation outright**, alongside the ownership rule above — two
 predicates, not one.
+
+*Debrief, 2026-09-08.* Shipped on =feature/incidental-ownership=
+(=0da950d=), PR to follow. Two predicates, as filed:
+=claude-code-ide-org--incidental-owner= assigns a close to the slice
+most recently worked at that moment — the latest CLOCK start at or
+before it, among non-CANCELLED slices whose worked window contains it,
+computed over =--slice-work-profiles= (self + planned members' clock
+starts, floored at =:CREATED:=, members shared with another live slice
+counted for nobody). A tie names no owner and the candidate stays in
+every window — first-scanned-wins was declined because file order is an
+artefact. And a =:KIND: slice= referent is excluded outright, silently,
+like the self-exclusion. Ownership drops are reported as id->owner
+through =--incidentals-owned-elsewhere=.
+
+*Measured before landing*: the proposed rule assigns =f1ff027e= and
+=d585d33e= (closed 09:17) to =ff7ccb2d= (members clocked from 08:47
+that morning), exactly the decided ownership.
+
+*One claim of this heading falsified*: the left-edge failure does not
+reproduce against current data — =c19fbbf5= derives worked=nil and an
+empty list. Whatever state produced the morning's observation
+(plausibly a span assigned at that review and since moved) is gone; the
+guard is pinned by the existing never-worked test rather than re-fixed.
+
+*Verified*: four new ERT tests, all proven discriminating — three fail
+against HEAD's =config.el=, the tie test fails against a
+first-scanned-wins mutation. Suite 552 tests, only the two pre-existing
+repeater date flakes failing (they fail identically on HEAD). Live
+reload, then =claude-code-ide-org-refresh-slice=: =52bfafdf= [3/12] ->
+[0/9], =8a2eb687= [4/15] -> [1/12] keeping only =43aa25b2=, report
+naming both ownership drops.
+
+*Residue filed*: =0988541b= — the refresh's cookie update rewrote
+"[4/15]" inside =8a2eb687='s body prose to "[1/12]", falsifying the
+recorded observation; repaired bracket-free the same day.
+
 
 
 * TODO The ceremony should refresh open slices, so incidentals and cookies stop waiting on memory :code:
@@ -622,7 +686,7 @@ the class is worth a moment's thought, since =bin/check-conventions= checks docu
 code and nothing checks a docstring against the function under it.
 
 
-* NEXT [3/12] Only membership and order are declared, and everything else still needs a hand
+* NEXT [0/9] Only membership and order are declared, and everything else still needs a hand
 :PROPERTIES:
 :ID:       52bfafdf-d313-48e1-9524-d8b539f165c9
 :CREATED:  [2026-09-04 Fri 09:26]
@@ -636,6 +700,12 @@ code and nothing checks a docstring against the function under it.
   proposal accepted, declared a slice
 - State "NEXT"       from "TODO"       [2026-09-08 Tue 11:31] \\
   nominated as the slice to pick up next
+CLOCK: [2026-09-08 Tue 11:44]--[2026-09-08 Tue 11:46] =>  0:02
+- [2026-09-08 Tue 11:44]--[2026-09-08 Tue 11:46] assigned at review
+CLOCK: [2026-09-08 Tue 11:52]--[2026-09-08 Tue 11:53] =>  0:01
+- [2026-09-08 Tue 11:52]--[2026-09-08 Tue 11:53] assigned at review
+CLOCK: [2026-09-08 Tue 11:56]--[2026-09-08 Tue 11:57] =>  0:01
+- [2026-09-08 Tue 11:56]--[2026-09-08 Tue 11:57] assigned at review
 :END:
 
 *Accepted 2026-09-04*, on the user's judgement that these are "essential enhancements to tighten our
@@ -712,11 +782,6 @@ claude-code-ide-org-refresh-slice= — the manual hand this slice exists
 to retire, caught live when two refreshes in one afternoon were each
 prompted by a person noticing rather than by anything in the loop.
 
-Incidental:
-
-- [X] [[id:f1ff027e-5826-4812-8221-96eeba966333][f1ff027e]] DONE Commit co-author trailer is frozen at session start, misattributes after /model
-- [X] [[id:d585d33e-3804-45b3-8f96-65143d79363e][d585d33e]] DONE Adopt systemMessage on the recovery-and-ceremony hook payload
-- [X] [[id:ff7ccb2d-2b13-421e-86e3-6b5e187850bf][ff7ccb2d]] DONE Make the org discipline travel: ship the machinery, relocate the rules
 
 *=7f0c9baa= added 2026-09-08, placed immediately before =198dd00e=
 because that member is downstream of it.* The proposal convention's
@@ -1847,7 +1912,7 @@ CLOCK: [2026-09-01 Tue 12:26]--[2026-09-01 Tue 12:27] =>  0:01
 *Open, and genuinely undecided:* whether the gap-versus-AFK threshold should ever be automated. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the standing precedent against an invented number, and a ten-minute cap is exactly that. Reporting both bounds and letting the human place the line is the alternative — and unlike the current review pass, it is six questions a day rather than nineteen.
 
 
-* TODO [4/15] Everything passed and the file was still wrong :code:
+* TODO [1/12] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
@@ -1903,16 +1968,13 @@ boundary on purpose — =2a6a1355= is a member because *missing* a footnote is i
 Incidental:
 
 - [X] [[id:43aa25b2-1e21-4117-bf15-b92f3081b60d][43aa25b2]] DONE Nothing watches a REVIEW heading, and it is the state most easily forgotten
-- [X] [[id:f1ff027e-5826-4812-8221-96eeba966333][f1ff027e]] DONE Commit co-author trailer is frozen at session start, misattributes after /model
-- [X] [[id:d585d33e-3804-45b3-8f96-65143d79363e][d585d33e]] DONE Adopt systemMessage on the recovery-and-ceremony hook payload
-- [X] [[id:ff7ccb2d-2b13-421e-86e3-6b5e187850bf][ff7ccb2d]] DONE Make the org discipline travel: ship the machinery, relocate the rules
 
 *Two incidentals removed 2026-09-08, on a rule the user set the same
 day*: work fast-tracked and completed as an incidental of a slice *in
 progress* belongs to that slice alone, and is removed from every other
 open slice's list. =f1ff027e= and =d585d33e= were =ff7ccb2d='s
 incidentals — its work, interleaved with its members — and this slice's
-window claimed them too, reading [4/15] with all three X's borrowed.
+window claimed them too, reading 4/15 with all three X's borrowed.
 Until the derivation itself learns the rule, a refresh of this slice
 will re-add them; the implementation heading carries that warning.
 
