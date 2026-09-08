@@ -1696,7 +1696,7 @@ of its own execution while every member transitioned correctly, so
 its work starts" (=739737d=). The =DOING= here is that retcon.
 
 
-* DOING [3/6] Make the heading body a scannable summary, with plan and debrief in drawers
+* DOING [4/6] Make the heading body a scannable summary, with plan and debrief in drawers
 :PROPERTIES:
 :ID:       4c834fdb-5314-4168-ab1d-09fe89ded517
 :CREATED:  [2026-09-02 Wed 16:00]
@@ -1821,7 +1821,8 @@ before this landed has the old tool schema and cannot pass =drawer=
 until it reconnects; the apply path honours it immediately.
 
 
-** NEXT Put the debrief in a :DEBRIEF: drawer, leaving a scannable TL;DR in the body :code:
+** DONE Put the debrief in a :DEBRIEF: drawer, leaving a scannable TL;DR in the body :code:
+CLOSED: [2026-09-08 Tue 16:12]
 :PROPERTIES:
 :ID:       d5eb32a3-fcee-4a25-b39a-fcde597f6cee
 :CREATED:  [2026-09-02 Wed 15:42]
@@ -1851,8 +1852,16 @@ body, the caveat about reconnecting held and the next session should
 relocate it.
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-08 Tue 15:56]--[2026-09-08 Tue 15:59] =>  0:03
+- [2026-09-08 Tue 15:56]--[2026-09-08 Tue 15:59] assigned at review
 - State "NEXT"       from "TODO"       [2026-09-08 Tue 15:59] \\
   nomination owed since 501a8422 closed; drawer arg unblocks this
+CLOCK: [2026-09-08 Tue 16:08]--[2026-09-08 Tue 16:12] =>  0:04
+- State "DOING"      from "NEXT"       [2026-09-08 Tue 16:08] \\
+  landing the DEBRIEF drawer convention
+- [2026-09-08 Tue 16:08]--[2026-09-08 Tue 16:12] DEBRIEF convention, resolution line, close procedure
+- State "DONE"       from "DOING"      [2026-09-08 Tue 16:12] \\
+  merged in PR 18; convention live
 :END:
 :PLAN:
 
@@ -1875,7 +1884,6 @@ In scope, added 2026-09-03: absorb the pre-archive outcome-summary rule (CLAUDE.
 =:DEBRIEF:= with an authored resolution left in the body, the close
 prompt teaches the two grains, and the pre-convention corpus is filed
 as its own pass.
-
 
 
 ** TODO Split the reads: org_outline carries the body, a second tool serves drawers on demand :code:
@@ -1907,7 +1915,6 @@ and this heading's own plan says sequencing the tool change before
 that "would measure the wrong thing". Deliberately left =TODO= behind
 =e128e4fa='s nomination; its three open design questions are
 unchanged.
-
 
 
 ** DONE Separate plan from debrief across the 73 warned headings, retroactively :code:
@@ -1958,10 +1965,16 @@ CLOCK: [2026-09-02 Wed 16:08]--[2026-09-02 Wed 16:28] =>  0:20
 *A side effect worth recording because it was not the goal.* Total lint warnings fell from 140 to 68. Wrapping pushes many bodies under the ten-prose-line threshold, so rules unrelated to =:PLAN:= stop firing too — which is a fair measure of how much of each body was prospective.
 
 *The classification hypothesis is now fully falsified, and the record should say so.* [[id:f099379b-7f78-4c19-85be-abeea0bf3e71][f099379b]] proposed that a debrief marker on line 1 meant a debrief-only body, offering an escape from per-heading reading. Across the whole corpus it held for 4 of 73. Reading each body was the only honest route, exactly as that heading concluded.
-** TODO Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution :code:
+
+
+** NEXT Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution :code:
 :PROPERTIES:
 :ID:       e128e4fa-b0d9-49f7-99eb-bae2d4b0676b
 :CREATED:  [2026-09-08 Tue 16:12]
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-08 Tue 16:12] \\
+  story nomination: it unblocks the remaining member
 :END:
 
 The analogue of =35d25265= one drawer over. After that pass extracted
@@ -1979,6 +1992,7 @@ serves the write; whether a dedicated seam-free wrapper is worth
 building can be decided when the pass starts). This is the
 precondition =2a399034= names: until bodies are short corpus-wide,
 carrying them in the outline makes it more expensive, not less.
+
 
 * TODO A boolean argument passed as false arrives as :false, which elisp reads as true :code:
 :PROPERTIES:
@@ -2383,7 +2397,7 @@ CLOCK: [2026-09-01 Tue 12:26]--[2026-09-01 Tue 12:27] =>  0:01
 *Open, and genuinely undecided:* whether the gap-versus-AFK threshold should ever be automated. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the standing precedent against an invented number, and a ten-minute cap is exactly that. Reporting both bounds and letting the human place the line is the alternative — and unlike the current review pass, it is six questions a day rather than nineteen.
 
 
-* TODO [4/15] Everything passed and the file was still wrong :code:
+* TODO [7/18] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
@@ -2443,6 +2457,9 @@ Incidental:
 - [X] [[id:a8811bf2-2178-4723-9188-37b75b1d7a8d][a8811bf2]] DONE The repeater tests hardcode tomorrow's date, and tomorrow moved
 - [X] [[id:9ae0e452-4dd5-4f62-9bd3-13b4cbf3bb71][9ae0e452]] DONE No tool adds a member line to a slice's checklist
 - [X] [[id:0988541b-1248-4637-b754-ef25ddbc7988][0988541b]] DONE The cookie updater rewrites bracketed n/m in slice body prose on every refresh
+- [X] [[id:d5eb32a3-fcee-4a25-b39a-fcde597f6cee][d5eb32a3]] DONE Put the debrief in a :DEBRIEF: drawer, leaving a scannable TL;DR in the body
+- [X] [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]] DONE An MCP tool accepts arguments it does not have, and says nothing
+- [X] [[id:2c3aadbe-4c65-42f1-80f4-860453dcf121][2c3aadbe]] DONE org_outline takes one scope, so looking up n ids costs n calls and a loop wins
 
 *Two incidentals removed 2026-09-08, on a rule the user set the same
 day*: work fast-tracked and completed as an incidental of a slice *in
@@ -3357,6 +3374,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-08 Tue 16:19]--[2026-09-08 Tue 16:22] =>  0:03
 CLOCK: [2026-09-08 Tue 16:04]--[2026-09-08 Tue 16:05] =>  0:01
 CLOCK: [2026-09-08 Tue 15:56]--[2026-09-08 Tue 15:57] =>  0:01
 CLOCK: [2026-09-08 Tue 15:33]--[2026-09-08 Tue 15:34] =>  0:01
@@ -3860,11 +3878,29 @@ Remaining open: which drawer, if stored; and what generates it. A commit touchin
 /Body restored 2026-08-20 by =org_amend=; the original capture silently discarded it -- see/ [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]]. /This heading being empty is how the loss was noticed at all: the user asked where the concept was parked, and there was nothing there./
 
 
-* DOING [0/2] Review how the emacs-tools are advertised, against which ones get used :code:research:
+* REVIEW [2/2] Review how the emacs-tools are advertised, against which ones get used :code:research:
 :PROPERTIES:
 :CATEGORY: Tools
 :ID:       420816ec-677e-45a5-b898-fb5db70d214b
 :CREATED:  [2026-08-20 Thu 07:41]
+:END:
+:DEBRIEF:
+*Debrief, 2026-09-08.* The review's findings, in the order they
+reframed the question: the original "seven of thirteen never called"
+held for one session and not the corpus (only =org_sort_children= was
+never called anywhere); per-session breadth is the real number
+(median 5 of 14); a good description does not move usage while a
+standing rule does (4-of-4 versus 3-of-34 on the pending-updates
+rule), refined by the corollary that a rule fires only for the
+competitor it names; and ergonomics beat both where the tool is
+genuinely more expensive for the question's shape. Both children
+executed that last finding: =2c3aadbe= gave =org_outline= multi-scope
+and =1cd2df62= established the unknown-argument silence is upstream on
+both dispatch paths, drafted as =bbf9fb77=. The concluding judgement —
+one standing rule for =org_refile= (whose competitor cost =8ddd7fa8=),
+five tools honestly niche — was proposed at =REVIEW= and accepted by
+the user the same day; the rule now lives in the conventions with the
+competitor named, per the review's own corollary.
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-20 Thu 07:41] \\
@@ -3883,8 +3919,12 @@ CLOCK: [2026-08-21 Fri 07:59]--[2026-08-21 Fri 08:02] =>  0:03
 - [2026-08-21 Fri 07:59]--[2026-08-21 Fri 08:02] assigned at review
 CLOCK: [2026-08-21 Fri 08:43]--[2026-08-21 Fri 08:45] =>  0:02
 - [2026-08-21 Fri 08:43]--[2026-08-21 Fri 08:45] assigned at review
+- State "REVIEW"     from "DOING"      [2026-09-08 Tue 16:17] \\
+  children done; org_refile rule awaits your accept
 :END:
+:PLAN:
 
+:END:
 Thirteen tools are advertised. Over a two-day session that did almost
 nothing *but* org work, *seven were never called once*: =org_query=,
 =org_refile=, =org_move_sibling=, =org_sort_children=,
@@ -4013,9 +4053,15 @@ under-used tools, **one deserves a standing rule and five are niche**:
 If the =org_refile= rule is accepted, it is a five-line conventions
 edit; declining it leaves this heading's findings as the record.
 
+*Resolved 2026-09-08:* the one-rule-five-niche judgement was accepted
+by the user; the =org_refile= rule is written into
+=.claude/rules/org-conventions.md= §"Moving a heading", naming the
+hand-elisp competitor it beats.
 
 
-** TODO An MCP tool accepts arguments it does not have, and says nothing :code:
+
+** DONE An MCP tool accepts arguments it does not have, and says nothing :code:
+CLOSED: [2026-09-08 Tue 16:16]
 :PROPERTIES:
 :ID:       1cd2df62-35e9-47dc-bcce-dda7bae3c522
 :CREATED:  [2026-08-20 Thu 16:45]
@@ -4043,6 +4089,10 @@ CLOCK: [2026-08-20 Thu 17:18]--[2026-08-20 Thu 17:22] =>  0:04
 - [2026-08-20 Thu 17:18]--[2026-08-20 Thu 17:22] assigned at review
 CLOCK: [2026-08-20 Thu 21:08]--[2026-08-20 Thu 21:11] =>  0:03
 - [2026-08-20 Thu 21:08]--[2026-08-20 Thu 21:11] assigned at review
+- State "DOING"      from "TODO"       [2026-09-08 Tue 16:15] \\
+  retroactive: second dispatch path examined today
+- State "DONE"       from "DOING"      [2026-09-08 Tue 16:16] \\
+  upstream report drafted as bbf9fb77
 :END:
 :PLAN:
 
@@ -4089,8 +4139,8 @@ is drafted as =bbf9fb77= under =9d6449c7=. The local surface was
 already audited clean; nothing left here but the upstream ask.
 
 
-
-** TODO org_outline takes one scope, so looking up n ids costs n calls and a loop wins
+** DONE org_outline takes one scope, so looking up n ids costs n calls and a loop wins
+CLOSED: [2026-09-08 Tue 16:16]
 :PROPERTIES:
 :ID:       2c3aadbe-4c65-42f1-80f4-860453dcf121
 :CREATED:  [2026-09-04 Fri 12:42]
@@ -4112,6 +4162,12 @@ scope as a plain string, which the server now accepts regardless.
 :LOGBOOK:
 CLOCK: [2026-09-04 Fri 12:36]--[2026-09-04 Fri 12:37] =>  0:01
 - [2026-09-04 Fri 12:36]--[2026-09-04 Fri 12:37] assigned at review
+CLOCK: [2026-09-08 Tue 16:13]--[2026-09-08 Tue 16:16] =>  0:03
+- State "DOING"      from "TODO"       [2026-09-08 Tue 16:13] \\
+  adding multi-scope to org_outline
+- [2026-09-08 Tue 16:13]--[2026-09-08 Tue 16:16] multi-scope outline, the missing axis
+- State "DONE"       from "DOING"      [2026-09-08 Tue 16:16] \\
+  multi-scope shipped and tested
 :END:
 :PLAN:
 
@@ -4168,7 +4224,6 @@ that for the commonest case the alternative was already one call away.
 *Resolved 2026-09-08:* =org_outline='s =scope= now takes several ids
 or prefixes, one block each in the order given — the axis that fits
 "these particular ids", which depth and liveness could not express.
-
 
 
 * TODO Moving a heading between files by hand leaves org-id pointing at the old one :code:
@@ -9059,8 +9114,30 @@ a green check from being read as a green file.
 :CREATED:  [2026-09-03 Thu 08:56]
 :BLOCKER:  ids(501a8422-9e93-4d2d-98bb-db0ab2c16e37)
 :END:
+:DEBRIEF:
+*Debrief, 2026-09-08.* The blocker discharged itself this morning when
+=501a8422= merged, and the procedure that survived is the collapsed
+one this body predicted: composition never touches =org_wrap_plan=
+now. Written into CLAUDE.md exactly where this heading argued it must
+go — next to the rule, because =420816ec= measured that a directive
+there moves usage while a schema docstring does not, and that finding
+is cited in the rule text itself so the placement survives its own
+future prune. The close half (=d5eb32a3='s resolution-plus-=DEBRIEF=,
+which did not exist when this was filed) is documented in the same
+paragraph, so the full lifecycle — compose two calls, close two calls
+— reads in one place. The stale three-call text in the conventions and
+the wrap tool's table row were corrected in the same commit
+(=8d4d053=) rather than left to disagree.
+:END:
 
 The three-step composition procedure — org_amend the prospective prose, org_wrap_plan with no until, org_amend the two-to-five-sentence statement — lives only in org_wrap_plan's schema docstring, and :ID: 420816ec measured that schema text does not move usage while a CLAUDE.md directive does. But :ID: 501a8422 would collapse the three steps into one org_amend drawer=PLAN call and partly subsume org_wrap_plan, so transcribing the procedure now would document a shape already nominated for replacement. Once that lands, write whichever procedure survives into CLAUDE.md next to the org_wrap_plan table row (which now points at the schema docstring as the procedure's home). The :BLOCKER: encodes the wait.
+
+*Resolved 2026-09-08:* the surviving procedure is written into
+CLAUDE.md's =:PLAN:= rule — compose in two calls (=org_amend
+drawer=PLAN=, then the short body), close in two (resolution, then
+=drawer=DEBRIEF=) — with the conventions' three-call text and
+=org_wrap_plan='s table row updated to match.
+
 
 
 ** DONE The plan-link lifecycle prose still describes the retired wrap-at-DONE flow :code:
@@ -9878,6 +9955,8 @@ So the =(error …)= handler in =--handle-post= does not catch it, and neither d
 *Worth reporting because the failure is maximally unhelpful.* The three conditions it covers are ordinary client mistakes — unknown method, unknown tool, missing argument — and each is the kind of thing a caller could correct instantly if told. Instead all three present identically as a hang with no diagnostic anywhere.
 
 Sibling of [[id:8f986c6f-7cab-42c5-9a21-01275f271c80][8f986c6f]] under this heading: both are the HTTP server answering wrongly rather than the tools misbehaving.
+
+
 ** TODO Unknown tool arguments are dropped silently by both dispatch paths :code:
 :PROPERTIES:
 :ID:       bbf9fb77-f081-48c5-bb01-1b4d4f201969
@@ -9911,6 +9990,7 @@ argument does not merely fail to apply — an =org_outline= call passing
 invented =file= and =max_level= returned the unrestricted default
 while appearing scoped, silently substituting a different answer to a
 different question.
+
 
 * MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
 :PROPERTIES:
