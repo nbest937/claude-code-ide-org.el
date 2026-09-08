@@ -2,6 +2,65 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [0/4] Ship the plugin: make the machinery and its prose travel together :code:
+:PROPERTIES:
+:ID:       c19fbbf5-be1b-4c18-a38e-9b46d064abb8
+:CREATED:  [2026-09-08 Tue 09:54]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:BLOCKER:  ids(b0e478f7-e894-4ac7-b0b6-b3c890b5b32a 9d009401-93dd-40e5-a243-7a30a8a5bd55 ecf66d45-18b3-477f-bca8-08bec90604e8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4)
+:END:
+
+[[id:ff7ccb2d-2b13-421e-86e3-6b5e187850bf][ff7ccb2d]] classified what
+must travel and shipped the machinery's own preconditions; it could not
+make anything actually leave the directory, because that needs a plugin
+and there was none. This slice builds it, and then spends the judgement
+that was deliberately deferred until packaging had moved its share.
+
+*The order is the point, and it is audience-first.*
+=b0e478f7= comes first and everything else assumes it: the manifest, the
+skill =references/=, the =bin/= setup command that promotes conventions
+into a consuming repo's =.claude/rules/=, and the ~580 lines of
+machinery prose moving out of CLAUDE.md in the same change — so
+instructions and machinery land together rather than one describing a
+system that is not running. Only then is =9d009401='s contested
+remainder worth reading, because packaging will have relocated a large
+part of what it was going to weigh. =e396f94a= is decided at the
+manifest, which is the moment its question ("does the Warp wiring get
+packaged?") has an answer. The two instrumentation members come last:
+they need hooks to be user-level, which only shipping makes true, and
+=b862fbf4= additionally needs =5461c349='s =cwd= data to have
+accumulated across more than one project — which cannot start before
+the hooks move.
+
+- [ ] [[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]] TODO Package the plugin: references, setup command, machinery prose
+- [ ] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] DOING CLAUDE.md carries dated history that costs every session's context
+- [[id:e396f94a-59db-4c6b-80b4-dc144146877b][e396f94a]] MAYBE Package the Warp wiring
+- [ ] [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out future work on a timeline the agenda can show
+- [ ] [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
+
+*Four of the five arrive with a =:BLOCKER:= already naming =b0e478f7=*,
+set when =ff7ccb2d= deferred them — so the sequencing above is declared
+in the file rather than only in this prose, and the slice's own blocker
+is derived from it.
+
+*=e396f94a= is cookie-less because it is =MAYBE=, not because it was
+dropped* — the ambiguity =1b727475= exists to fix. It is carried for
+decision at the manifest, and this sentence is the only thing telling
+the two cases apart until that lands.
+
+*Composed declared, not as a proposal* (the user, 2026-09-08). The
+=.claude/rules/= convention says a proposal is a slice with =:KIND:=
+withheld, but two of its three arguments have expired — the =MAYBE=
+rationale is recorded as expired on its own, and the location clause
+only notes a dissolved question. What is left is that =bin/lint-org=
+errors on a declared slice whose =:COOKIE_DATA:= and =:BLOCKER:= are
+not yet written, which is lint-appeasement wearing an argument about
+commitment. An open slice already *is* a proposal until work begins,
+and rejection is =CANCELLED= either way. Composing this one declared
+tests exactly the friction =acf46449= names.
+
 * TODO One incidental lands in every open slice's window, and the cookies double-count it :code:
 :PROPERTIES:
 :ID:       2c77f2cc-af07-4f4d-aa9d-1aa3bc8843f5
@@ -877,6 +936,50 @@ Incidental:
 
 - [X] [[id:f1ff027e-5826-4812-8221-96eeba966333][f1ff027e]] DONE Commit co-author trailer is frozen at session start, misattributes after /model
 - [X] [[id:d585d33e-3804-45b3-8f96-65143d79363e][d585d33e]] DONE Adopt systemMessage on the recovery-and-ceremony hook payload
+
+*Closed 2026-09-08, eleven members landed and nine dropped or
+deferred.* Merged as =8975409= (the implementation half) and =39508ec=
+(=d7849119= part 2), on =main=.
+
+*What shipped:* the classification the whole slice assumed
+(=9ae4b17e=, four buckets over CLAUDE.md/SKILL.md/org-conventions.md
+plus three distribution decisions); the audit that relocated four
+stranded directives (=d5345abb=); the machinery's three undeclared
+assumptions closed — org 9.7 floor enforced at load (=1ed7b2b4=), fish
+retired behind the Emacs-boundary split (=84b7d8b3=), the convention
+checks made worktree-proof (=f8c86914=); =cwd= on queue events
+(=5461c349=); README plus the doc-sync hook (=d7849119=); the body-prose
+retention policy measured rather than argued (=b07df584=, citation rate
+rising monotonically with body length); the relay assumption measured
+and answered on two channels (=c5b02503=, =d585d33e=); and CLAUDE.md's
+first-pass prune (=9d009401=, −34 lines).
+
+*What the slice proved about itself.* Its premise held: the machinery
+travels and the prose does not, and the classification is what let
+every later member proceed without re-deriving it. The order held too —
+=d5345abb= before =9d009401= meant no rule was pruned before it was
+known to be needed.
+
+*Deferred, not dropped, and each carries a =:BLOCKER:= naming
+[[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]]:*
+=9d009401='s contested ~70 lines, =b862fbf4='s allocation judgement,
+=ecf66d45='s forward timeline. The audience-cuts-first ordering is
+theirs: packaging relocates its share before judgement is spent on
+what remains. =e396f94a='s trigger is the same event.
+
+*Two defects the slice's own execution surfaced, both filed:*
+=d749ebd5= (nothing invokes =refresh-slice=; every derived line waited
+on memory, and two refreshes this week were prompted by a person
+noticing) and =2c77f2cc= (one incidental lands in every open slice's
+window and double-counts). Both belong to
+[[id:52bfafdf-d313-48e1-9524-d8b539f165c9][52bfafdf]]'s theme; the
+first is already a member of it.
+
+*And one discipline earned:* this slice sat at =NEXT= through four days
+of its own execution while every member transitioned correctly, so
+=/next-session='s Step 0 gained "queue the slice itself =DOING= when
+its work starts" (=739737d=). The =DOING= here is that retcon.
+
 
 
 * DOING Make the heading body a scannable summary, with plan and debrief in drawers [2/5]
