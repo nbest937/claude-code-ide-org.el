@@ -375,6 +375,7 @@ CLOCK: [2026-09-04 Fri 16:45]--[2026-09-04 Fri 16:46] =>  0:01
 CLOCK: [2026-09-04 Fri 16:52]--[2026-09-04 Fri 16:53] =>  0:01
 - [2026-09-04 Fri 16:52]--[2026-09-04 Fri 16:53] assigned at review
 :END:
+:PLAN:
 
 Raised by the user 2026-09-04, catching the gap live: =f1ff027e= and
 =d585d33e= closed (to =REVIEW=) during
@@ -411,6 +412,38 @@ maintains — and belongs in the same pass: when the ceremony refreshes
 an open slice, a missing prompt link is a thing it can *report* even
 where it cannot supply the value, since only the composer knows which
 revision applies.
+
+:END:
+*Debrief, 2026-09-08.* Shipped in PR #16 (=05f7dff=). Slice refresh is
+now =claude-code-ide-org-ceremony-finish='s *first* step, beside the
+drawer and spacing passes and idempotent like both — so it runs on
+burying the review buffer, which is where the post-apply steps moved
+when =29734f79= automated them (this heading's "third idempotent step"
+framing predated that; the seam it asked for had moved, not vanished).
+Apply already settles slices per pass; the ceremony's own pass catches
+drift arising outside one, so slice staleness is bounded by ceremony
+cadence exactly as the sizing note here predicted.
+
+*The inherited half*: the SessionStart ceremony report names worked
+open slices carrying no =orgit-rev:= prompt link — own-subtree CLOCK
+and no link — firing even with every other count at zero, and saying
+explicitly that the line is the human's to add since only the composer
+knows which revision applies. Verified live in one loop: on reload the
+detector named =52bfafdf= itself, the missing link
+(=14f6675=, the revision this very slice was worked from) was
+supplied, and the detector went quiet.
+
+*Declined, with reasoning recorded*: a stale-slice count in the
+report. With refresh automated in both seams, staleness self-heals at
+the next pass, so the count would ask a human about work no human
+needs to do — the prompt-fatigue test the ceremony's own reports
+already apply.
+
+*Verified*: three ERT tests, all proven failing against =main='s
+=config.el=. Note CLAUDE.md's "the two commands the ceremony runs
+after apply" sentence undercounts the finish pass's steps (now six);
+that file's accuracy is =9d009401='s subject, not re-fixed here.
+
 
 
 * DONE Commit co-author trailer is frozen at session start, misattributes after /model :code:
@@ -862,6 +895,35 @@ across the board.
 Note it also *supersedes hand-repair*: removals from =8a2eb687= were
 undone by the next refresh, so until this lands, incidental lists are
 to be read as unreliable rather than corrected.
+
+- [[orgit-rev:claude-code-ide-org::14f6675][14f6675]] [2026-09-08 Tue 11:46] defined the slice's working revision
+
+*Completed 2026-09-08, in a single session.* All nine live members
+shipped and merged: PRs #11 (ownership and grouping predicates in the
+incidental derivation), #12 (=org_amend= list continuation and drawer
+targeting), #14 (declaration completion and =:COOKIE_DATA:= repair,
+recreating #13 after GitHub closed it at its stacked base's deletion),
+#15 (same-pass closure refresh, =:DROPPED:= drop declarations,
+membership timing rule) and #16 (ceremony slice refresh and the
+unlinked-prompt-link report) — plus =7f0c9baa='s convention retirement
+directly on =main=, the user having closed its open question: nothing
+replaces the =MAYBE= signal.
+
+*The theme held to the end*: every member was a place a hand was still
+required, and the last PR is the pass that stops the rest needing
+memory. Two residue headings were filed rather than stretched into
+scope (=0988541b=, the cookie updater corrupting body prose;
+=9ae0e452=, member-add still having no tool path), and one incident of
+each new mechanism was caught live — the first ownership-aware refresh
+cleaned the fan-out this slice was composed under, and the unlinked
+report's first firing named this slice itself.
+
+*What closing this leaves open is the portfolio nomination*: the
+Slices category's =NEXT= is released, =c19fbbf5= is the standing
+candidate by its own acceptance note, and =next-session.md= is
+consumed — both are the user's call, not this record's.
+
+
 
 
 * NEXT org_amend cannot continue a list, and the slice revision links are always one
