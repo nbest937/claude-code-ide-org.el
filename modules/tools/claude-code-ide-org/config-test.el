@@ -7692,6 +7692,116 @@ grows, and only one of them is visible."
         (should (member "incid-001"
                         claude-code-ide-org--incidentals-claimed-elsewhere))))))
 
+(ert-deftest claude-code-ide-org-test-an-incidental-belongs-to-the-slice-in-progress ()
+  "Work closed during a slice in progress is that slice's alone.
+
+The rule was decided the day it was measured (TODO.org :ID: 2c77f2cc):
+one morning's closes fanned out across all three open slices, every
+cookie borrowing the same X's.  The owner is the slice most recently
+worked at the moment of the close -- the latest CLOCK start at or
+before it, among slices whose window contains it."
+  (claude-code-ide-org-test--with-slice-window
+    (with-current-buffer (find-file-noselect file)
+      ;; A second clock on the first slice, just before incid-002 closes.
+      (goto-char (point-min))
+      (re-search-forward "^CLOCK: \\[2026-08-20 Thu 09:00\\]")
+      (forward-line 1)
+      (insert "CLOCK: [2026-08-22 Sat 11:55]--[2026-08-22 Sat 11:58] =>  0:03\n")
+      ;; A second slice, clocked just before incid-001 closes.
+      (goto-char (point-max))
+      (insert "\n* TODO [0/0] A concurrent slice\n:PROPERTIES:\n"
+              ":ID:       slice-002\n:KIND:     slice\n"
+              ":CREATED:  [2026-08-21 Fri 10:00]\n:END:\n"
+              ":LOGBOOK:\n"
+              "CLOCK: [2026-08-21 Fri 10:55]--[2026-08-21 Fri 10:58] =>  0:03\n"
+              ":END:\n")
+      (save-buffer)
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO \\[1/1\\] A slice")
+      (let ((ids (claude-code-ide-org--slice-incidental-ids)))
+        ;; Closed while the other slice was the one at work.
+        (should-not (member "incid-001" ids))
+        ;; Closed while this slice was -- still here, so the exclusion
+        ;; is ownership, not a blanket second-slice rule.
+        (should (member "incid-002" ids)))
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO \\[0/0\\] A concurrent slice")
+      (let ((ids (claude-code-ide-org--slice-incidental-ids)))
+        (should (member "incid-001" ids))
+        (should-not (member "incid-002" ids))))))
+
+(ert-deftest claude-code-ide-org-test-an-ownership-tie-names-no-owner ()
+  "Two slices clocked in the same minute are indistinguishable.
+
+A tie names no owner, and the candidate stays in every window that
+contains it -- the pre-rule behaviour, kept exactly where the evidence
+cannot pick a side.  First-scanned-wins was considered and declined:
+file order is an artefact, and an assignment that flips on a refile is
+worse than none."
+  (claude-code-ide-org-test--with-slice-window
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-max))
+      ;; Same clock start, to the minute, as the fixture slice's.
+      (insert "\n* TODO [0/0] A concurrent slice\n:PROPERTIES:\n"
+              ":ID:       slice-002\n:KIND:     slice\n"
+              ":CREATED:  [2026-08-20 Thu 08:00]\n:END:\n"
+              ":LOGBOOK:\n"
+              "CLOCK: [2026-08-20 Thu 09:00]--[2026-08-20 Thu 09:10] =>  0:10\n"
+              ":END:\n")
+      (save-buffer)
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO \\[1/1\\] A slice")
+      (should (member "incid-001" (claude-code-ide-org--slice-incidental-ids)))
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO \\[0/0\\] A concurrent slice")
+      (should (member "incid-001" (claude-code-ide-org--slice-incidental-ids))))))
+
+(ert-deftest claude-code-ide-org-test-a-slice-is-never-another-slices-incidental ()
+  "A grouping that closes is not work incidental to another slice.
+
+A slice's members are already listed on their own, so counting the
+container inflates the cookie by an item with no independent existence.
+Measured 2026-09-08: `ff7ccb2d' closed and appeared under all three
+open slices at once (TODO.org :ID: 2c77f2cc)."
+  (claude-code-ide-org-test--with-slice-window
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-max))
+      (insert "\n* DONE An adjacent slice that closed in the window\n"
+              "CLOSED: [2026-08-21 Fri 11:30]\n"
+              ":PROPERTIES:\n:ID:       slice-004\n:KIND:     slice\n"
+              ":CREATED:  [2026-08-20 Thu 08:00]\n:END:\n")
+      (save-buffer)
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO \\[1/1\\] A slice")
+      (let ((ids (claude-code-ide-org--slice-incidental-ids)))
+        (should-not (member "slice-004" ids))
+        ;; The exclusion is the grouping alone, not the window around it.
+        (should (member "incid-001" ids))
+        (should (member "incid-002" ids))))))
+
+(ert-deftest claude-code-ide-org-test-ownership-exclusion-is-reported ()
+  "The ownership drop is named with its owner, never applied silently.
+
+Same contract as `--incidentals-claimed-elsewhere': a derived list that
+quietly shrinks is as wrong as one that quietly grows, and the arrow
+lets the reader dispute the assignment rather than hunt for it."
+  (claude-code-ide-org-test--with-slice-window
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-max))
+      (insert "\n* TODO [0/0] A concurrent slice\n:PROPERTIES:\n"
+              ":ID:       slice-002\n:KIND:     slice\n"
+              ":CREATED:  [2026-08-21 Fri 10:00]\n:END:\n"
+              ":LOGBOOK:\n"
+              "CLOCK: [2026-08-21 Fri 10:55]--[2026-08-21 Fri 10:58] =>  0:03\n"
+              ":END:\n")
+      (save-buffer)
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO \\[1/1\\] A slice")
+      (let ((claude-code-ide-org--incidentals-owned-elsewhere nil))
+        (claude-code-ide-org--slice-incidental-ids)
+        (should (member (cons "incid-001" "slice-002")
+                        claude-code-ide-org--incidentals-owned-elsewhere))))))
+
 (ert-deftest claude-code-ide-org-test-slice-never-worked-has-no-incidentals ()
   "A slice nobody has started accrues nothing, however long ago it was written.
 
