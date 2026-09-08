@@ -364,14 +364,14 @@ the class is worth a moment's thought, since =bin/check-conventions= checks docu
 code and nothing checks a docstring against the function under it.
 
 
-* TODO [0/7] Only membership and order are declared, and everything else still needs a hand
+* TODO [0/8] Only membership and order are declared, and everything else still needs a hand
 :PROPERTIES:
 :ID:       52bfafdf-d313-48e1-9524-d8b539f165c9
 :CREATED:  [2026-09-04 Fri 09:26]
 :CATEGORY: Slices
 :COOKIE_DATA: checkbox recursive
 :KIND:     slice
-:BLOCKER:  ids(635d5abb-207d-445d-b268-bc031bdd592a 501a8422-9e93-4d2d-98bb-db0ab2c16e37 acf46449-422b-45d5-a223-83224ef71548 198dd00e-0746-444a-ab25-2034a2a235c2 2d2211d5-97c3-4f69-8175-40df90d1db8a de687e4d-9384-46ae-a495-55b3ae46d1bb 1b727475-46c3-4967-8cdd-dfd9397d94ea)
+:BLOCKER:  ids(635d5abb-207d-445d-b268-bc031bdd592a 501a8422-9e93-4d2d-98bb-db0ab2c16e37 acf46449-422b-45d5-a223-83224ef71548 198dd00e-0746-444a-ab25-2034a2a235c2 2d2211d5-97c3-4f69-8175-40df90d1db8a de687e4d-9384-46ae-a495-55b3ae46d1bb 1b727475-46c3-4967-8cdd-dfd9397d94ea d749ebd5-ff2b-4794-941a-0af5c2df1356)
 :END:
 :LOGBOOK:
 - State "TODO"       from "MAYBE"      [2026-09-04 Fri 09:40] \\
@@ -399,6 +399,7 @@ either filed or sharpened on 2026-09-03/04, which is why the theme only became v
 - [ ] [[id:2d2211d5-97c3-4f69-8175-40df90d1db8a][2d2211d5]] TODO Adding a just-captured heading to a slice cannot be made lint-clean
 - [ ] [[id:de687e4d-9384-46ae-a495-55b3ae46d1bb][de687e4d]] TODO A slice closed by the same apply pass freezes with stale member lines
 - [ ] [[id:1b727475-46c3-4967-8cdd-dfd9397d94ea][1b727475]] TODO A MAYBE member and a dropped member render identically, and the drop is now sticky
+- [ ] [[id:d749ebd5-ff2b-4794-941a-0af5c2df1356][d749ebd5]] TODO The ceremony should refresh open slices, so incidentals and cookies stop waiting on memory
 
 *Sequenced, because the first three feed the fourth.* =635d5abb= and =501a8422= are one edit to one
 function — =org_amend= cannot target a list continuation or a drawer, and both are the same "cannot
@@ -436,6 +437,15 @@ starting the strategic thing, so being persuasive is not the same as being right
 *What would change the answer:* a member of this slice blocking =ff7ccb2d='s progress rather than
 merely costing friction alongside it. =635d5abb= is the closest candidate — its hand fix was paid four
 times in two days — but a paid cost is not a block.
+
+*=d749ebd5= added 2026-09-08, after composition* (the user). The
+ceremony-refresh automation is this slice's theme stated as its next
+instance: incidentals, cookies and member keywords are all *derived*,
+and every derivation currently waits on someone remembering =M-x
+claude-code-ide-org-refresh-slice= — the manual hand this slice exists
+to retire, caught live when two refreshes in one afternoon were each
+prompted by a person noticing rather than by anything in the loop.
+
 
 
 * TODO org_amend cannot continue a list, and the slice revision links are always one
