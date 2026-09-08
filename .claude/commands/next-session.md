@@ -280,7 +280,11 @@ never split across a session boundary.
   amendments. Explicit pathspecs protect other *files*, never other *changes*
   — so check `git diff --stat` before committing a file someone else may have
   touched, and if it happened, amend the message to name both authors rather
-  than letting the log misattribute the work.
+  than letting the log misattribute the work. Second instance 2026-09-08,
+  worse form: `git add -A` on a feature branch swept the user's apply pass
+  into a feature commit, discovered only from the merged PR's stat line —
+  by then unamendable. Stage by explicit path, always; `-A` is never worth
+  the keystrokes it saves.
 - **A branch switch rewrites `TODO.org` on disk, and auto-revert follows.**
   On 2026-09-08 a branch cut from an older base reverted the file under
   Emacs, and a debrief amend landed on a copy missing 143 lines — caught
