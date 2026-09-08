@@ -117,6 +117,7 @@ distinguish them — no bookkeeping-only branch has ever existed.
 :CREATED:  [2026-09-08 Tue 10:03]
 :CATEGORY: Slices
 :END:
+:PLAN:
 
 Raised by the user 2026-09-08: /"any open slice is a proposal until
 work begins and can be CANCELLED like anything else."/
@@ -155,6 +156,29 @@ its host.
 a slice nobody has committed to. The candidate answer is that no signal
 is needed — an unstarted slice has no clocked members and no =DOING=,
 which is the derivable form of the same fact.
+
+:END:
+*Debrief, 2026-09-08.* Retired on =main= directly (=79ee00a=) — a
+one-file prose edit executing a decision the user made, which is the
+maintenance case rather than a review unit. §"Proposing a slice" is
+replaced by §"Composing a slice": a slice is composed declared, and
+the section records why withholding stopped buying anything — the
+third argument's falsification by =c19fbbf5='s clean lint, plus
+=acf46449='s declaration completion removing the composition cost that
+measurement actually found. The twin-review question survives its host
+relocated as its own paragraph, escape history intact, retriggered
+from "before declaring" to "before work begins" since declaration is
+now the composition moment.
+
+*The open question is closed by the user, not by inference*: **nothing
+replaces the =MAYBE= signal.** An unstarted slice is visibly
+uncommitted already — no clocked members, nothing =DOING=, no prompt
+link — and the new section says so with attribution.
+
+*Verified*: =bin/check-conventions= exits 0 against the edited file,
+and the only remaining references to the old convention are historical
+prose in heading bodies and the consumed plan file, left deliberately.
+
 
 
 * TODO [0/4] Ship the plugin: make the machinery and its prose travel together :code:
@@ -245,6 +269,7 @@ CLOCK: [2026-09-08 Tue 11:21]--[2026-09-08 Tue 11:26] =>  0:05
 CLOCK: [2026-09-08 Tue 11:30]--[2026-09-08 Tue 11:31] =>  0:01
 - [2026-09-08 Tue 11:30]--[2026-09-08 Tue 11:31] assigned at review
 :END:
+:PLAN:
 
 Observed 2026-09-08: =f1ff027e= and =d585d33e= — fast-tracked and
 closed as incidentals of [[id:ff7ccb2d-2b13-421e-86e3-6b5e187850bf][ff7ccb2d]]
@@ -300,6 +325,7 @@ independent existence. **Exclude =:KIND: slice= from incidental
 derivation outright**, alongside the ownership rule above — two
 predicates, not one.
 
+:END:
 *Debrief, 2026-09-08.* Shipped on =feature/incidental-ownership=
 (=0da950d=), PR to follow. Two predicates, as filed:
 =claude-code-ide-org--incidental-owner= assigns a close to the slice
@@ -848,6 +874,7 @@ to be read as unreliable rather than corrected.
 - State "NEXT"       from "TODO"       [2026-09-08 Tue 11:36] \\
   Tools nomination; the tool gap 52bfafdf keeps hitting
 :END:
+:PLAN:
 
 =org_amend= is documented as positional — "it appends wherever the body now ends" — and it inserts a
 blank line before the text it appends. For prose that is right and is what makes paragraphs read.
@@ -890,6 +917,7 @@ prevent everywhere else. Whatever fixes the targeting should carry that
 argument — a member-add path through Emacs would have collided
 harmlessly and queued instead.
 
+:END:
 *Debrief, 2026-09-08.* Shipped on =feature/org-amend-targets=
 (=b1c5541=), with =501a8422= in the same commit — one edit to one
 function, as the slice sequenced it. The fix is **detection**, the
@@ -919,6 +947,7 @@ carrying the buffer/disk-divergence cost this body recorded.
 :CATEGORY: Slices
 :BLOCKER:  ids(b6da3480-d3ae-4af9-8475-9f0e7c99bb17)
 :END:
+:PLAN:
 
 The follow-on =b6da3480= named and deliberately did not do. That heading made a missing
 =:COOKIE_DATA: checkbox recursive= an error; **an error is a report, and a report is not a
@@ -969,6 +998,7 @@ composition exposed: the checklist must exist *before* the blocker can
 be derived from it, so a declaration-time hook either runs after the
 body is written or leaves the blocker to the first refresh.
 
+:END:
 *Debrief, 2026-09-08.* Both seams shipped on
 =feature/cookie-data-at-declaration= (=4eadf17=, PR #13, stacked on
 step 1's branch since it edits the refresh loop beside those changes).
