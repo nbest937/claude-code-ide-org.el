@@ -2174,6 +2174,11 @@ So the split this heading proposes holds, and the evidence keeps landing on the 
 Considered for promotion while composing =ff7ccb2d= and deliberately not promoted: promoting it would
 adopt the option its own body argues against.
 
+Reconsidered at =ff7ccb2d='s Step 6 (2026-09-08): the user chose to
+keep it =MAYBE= over the recommended cancel — parked, not dead, in case
+ad-hoc analysis outgrows what the tools and =org-map-entries= cover.
+
+
 
 * TODO Two keyword-set proposals and the review collision are still unadopted :code:
 :PROPERTIES:
@@ -8269,6 +8274,12 @@ request against existing headings before creating a duplicate, and surface depen
 in either direction — needs restating without the keyword it was built around. That is a rewrite, not
 a start, and it should happen before the heading is picked up rather than by whoever picks it up.
 
+Reconsidered at =ff7ccb2d='s Step 6 (2026-09-08, the user): stays
+=MAYBE=, still owed the restating its body names — it is specified in
+terms of the retired =PLANNING= keyword and cannot start as written.
+Its sibling =3cb3f955= was promoted the same pass.
+
+
 
 * MAYBE Worktree-based session partitioning, with a canonical-file caveat :code:
 :PROPERTIES:
@@ -8338,6 +8349,28 @@ Held at =MAYBE= because =f8c86914= already carries the concrete defect and is =T
 too would put the same work in the slice twice under two framings — the duplication this project
 rejects elsewhere. What is left here is the *documentation* half, and it is worth writing only once
 someone decides the pattern is sanctioned rather than merely happening.
+
+*Re-examined at =ff7ccb2d='s Step 6 (2026-09-08, at the user's ask) and
+promoted — as a documentation task, which is all that remains.* The
+user-global queue design was re-evaluated against a month of practice
+and vindicated on three grounds: worktree sessions were exercised for
+real (the PR-8 review) and their events landed in the one directory,
+resolving through the one live Emacs to the one canonical tracker; the
+=cwd= field (recording since 2026-09-04) answers the multi-project
+interleaving that user-level hooks will bring with recorded provenance
+rather than directory partitioning, normalising a worktree to its repo
+via the common git dir (=f8c86914='s move); and the clock-desync trio
+cited above is largely moot post-cutover, since state and clock writes
+no longer touch the live buffer from any checkout — only direct file
+writes (=53b0047d=) retain the risk. Per-worktree tracker copies stay
+ruled out by org-id's last-scan-wins, this body's original point.
+
+*The promoted scope is narrow*: write the worktrees-for-code pattern
+and the one-canonical-tracker constraint down for a reader — README's
+Known-limitations or CLAUDE.md — now that the pattern is sanctioned in
+code by the worktree-aware convention checks. No partitioning
+machinery; the design questions all have their own headings.
+
 
 
 * REVIEW Evaluate choice of shell and standardize all project scripts :code:
@@ -8786,6 +8819,19 @@ up would make it something worth handing to someone else.
 =mcp-start=) aren't really designed as public standalone-mode API
 today, so an upstream PR is a bigger lift than it looks. Start with
 the snippet, treat upstreaming as a separate future MAYBE.
+
+Reconsidered at =ff7ccb2d='s Step 6 (2026-09-08): stays =MAYBE=, with
+the reasoning made explicit at the user's ask. The promotion bar is a
+changed fact in the artifact (=84b7d8b3='s precedent: fish entering
+the commit gate), and none has changed here — packaging becoming real
+work moves this heading's *decision point* nearer without supplying
+evidence about the Warp wiring's worth, and every next action is owned
+by [[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]]'s manifest
+design. Promoting would mint a =TODO= that can only sit inert until
+another heading moves. The trigger is packaging starting; =b0e478f7=
+should name this heading when it does (a =:BLOCKER:= here would be
+dormant on a =MAYBE=, per the lint).
+
 
 
 * Review and planning
