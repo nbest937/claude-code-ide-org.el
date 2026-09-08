@@ -1696,7 +1696,7 @@ of its own execution while every member transitioned correctly, so
 its work starts" (=739737d=). The =DOING= here is that retcon.
 
 
-* DOING [3/5] Make the heading body a scannable summary, with plan and debrief in drawers
+* DOING [3/6] Make the heading body a scannable summary, with plan and debrief in drawers
 :PROPERTIES:
 :ID:       4c834fdb-5314-4168-ab1d-09fe89ded517
 :CREATED:  [2026-09-02 Wed 16:00]
@@ -1827,6 +1827,29 @@ until it reconnects; the apply path honours it immediately.
 :CREATED:  [2026-09-02 Wed 15:42]
 :CATEGORY: Meta
 :END:
+:DEBRIEF:
+*Debrief, 2026-09-08.* Shipped in PR #18 (=5171903=). The convention
+landed in =org-conventions.md= as its own section: at close, two
+=org_amend= calls — the authored resolution onto the body, the full
+debrief via =drawer=DEBRIEF= (the argument =501a8422= shipped, which
+answered this heading's first open question: no =org_wrap_debrief=
+sibling was needed for prospective use). The second open question was
+declined for now — no lint requires the resolution line, observation
+before machinery — and the third answered *yes*: =:DEBRIEF:= is exempt
+from the skip advice, since on a finished heading it is the thing most
+worth reading. =org_set_todo='s close note gained the second branch,
+firing for a plan-first heading without a =:DEBRIEF:= and silenced by
+one, with the queue-append =(was ...)= contract asserted on the new
+reply. CLAUDE.md's pre-archive outcome-summary rule is absorbed, as
+this body's in-scope note asked. The 88-heading retroactive corpus is
+filed as its own member of the story rather than swept — each needs an
+authored resolution, which is the cost this plan named. One regression
+test, proven failing against pre-change code. This very close is the
+convention's first use — if this text is inside =:DEBRIEF:=, the
+stale-schema client could pass =drawer= after all; if it sits in the
+body, the caveat about reconnecting held and the next session should
+relocate it.
+:END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-08 Tue 15:59] \\
   nomination owed since 501a8422 closed; drawer arg unblocks this
@@ -1847,6 +1870,12 @@ until it reconnects; the apply path honours it immediately.
 A heading's body still grows without bound once the debrief lands in it, so orientation stays expensive even after [[id:b75d553a-3c77-4b98-9f58-022bfa295816][b75d553a]] moves the plan out. Proposed: a =:DEBRIEF:= drawer below the body, with a one-line resolution left in the body — so a folded heading shows problem, proposal and outcome and nothing else. Should follow [[id:35d25265-df52-45c0-8226-dfa24c3ed5bb][35d25265]] rather than precede it, since after the plan is extracted the remaining body *is* the debrief and needs no seam judgement.
 
 In scope, added 2026-09-03: absorb the pre-archive outcome-summary rule (CLAUDE.md near line 505, the summary "next to that link"). Post-b75d553a the link that rule points at sits inside :PLAN:, a drawer readers are told to skip, and once this task splits outcome recording into a body resolution plus a :DEBRIEF: drawer, the :505 rule becomes a third description of the same act, phrased against a location neither artifact will occupy. Rewrite or delete it as part of landing this, rather than patching it now and rewording it twice.
+
+*Resolved 2026-09-08:* shipped in PR #18 — the debrief now closes into
+=:DEBRIEF:= with an authored resolution left in the body, the close
+prompt teaches the two grains, and the pre-convention corpus is filed
+as its own pass.
+
 
 
 ** TODO Split the reads: org_outline carries the body, a second tool serves drawers on demand :code:
@@ -1869,6 +1898,16 @@ In scope, added 2026-09-03: absorb the pre-archive outcome-summary rule (CLAUDE.
 :END:
 
 Once plan and debrief move into drawers, =org_outline='s bodiless index withholds the cheapest useful content while =org_body='s whole-heading read returns far more than orientation needs. Proposed: =org_outline= carries the (now short) body, and the drawer read becomes an explicit per-item call — a refactored, possibly renamed =org_body=. Depends on [[id:b75d553a-3c77-4b98-9f58-022bfa295816][b75d553a]] and [[id:d5eb32a3-fcee-4a25-b39a-fcde597f6cee][d5eb32a3]]: until bodies are actually short, putting them in the outline makes it more expensive rather than less.
+
+*Status 2026-09-08:* both named dependencies are now met in the letter
+— =b75d553a= and =d5eb32a3= are shipped conventions — but the
+precondition in substance is the corpus: bodies become short only as
+=e128e4fa= (the 88-heading retroactive pass, filed today) progresses,
+and this heading's own plan says sequencing the tool change before
+that "would measure the wrong thing". Deliberately left =TODO= behind
+=e128e4fa='s nomination; its three open design questions are
+unchanged.
+
 
 
 ** DONE Separate plan from debrief across the 73 warned headings, retroactively :code:
@@ -1919,7 +1958,27 @@ CLOCK: [2026-09-02 Wed 16:08]--[2026-09-02 Wed 16:28] =>  0:20
 *A side effect worth recording because it was not the goal.* Total lint warnings fell from 140 to 68. Wrapping pushes many bodies under the ten-prose-line threshold, so rules unrelated to =:PLAN:= stop firing too — which is a fair measure of how much of each body was prospective.
 
 *The classification hypothesis is now fully falsified, and the record should say so.* [[id:f099379b-7f78-4c19-85be-abeea0bf3e71][f099379b]] proposed that a debrief marker on line 1 meant a debrief-only body, offering an escape from per-heading reading. Across the whole corpus it held for 4 of 73. Reading each body was the only honest route, exactly as that heading concluded.
+** TODO Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution :code:
+:PROPERTIES:
+:ID:       e128e4fa-b0d9-49f7-99eb-bae2d4b0676b
+:CREATED:  [2026-09-08 Tue 16:12]
+:END:
 
+The analogue of =35d25265= one drawer over. After that pass extracted
+the plans, each finished heading's remaining body *is* its debrief —
+so the wrap itself needs no seam judgement, exactly as =d5eb32a3='s
+ordering finding predicted. What each heading still needs is an
+**authored resolution line**: one-to-two sentences left in the body
+before the debrief moves into =:DEBRIEF:=. Measured 2026-09-02, 88 of
+93 unwrapped headings carry a debrief, so this is ~88 short summaries
+— per-heading judgement, human in the loop or at minimum
+human-reviewed in batches, never a blind sweep. Mechanically: for each
+finished heading with prose below its drawers, author the resolution,
+then move the remainder into =:DEBRIEF:= (=org_amend drawer=DEBRIEF=
+serves the write; whether a dedicated seam-free wrapper is worth
+building can be decided when the pass starts). This is the
+precondition =2a399034= names: until bodies are short corpus-wide,
+carrying them in the outline makes it more expensive, not less.
 
 * TODO A boolean argument passed as false arrives as :false, which elisp reads as true :code:
 :PROPERTIES:
@@ -3922,11 +3981,60 @@ a child.
 =org_capture='s capitalised instruction was ignored five times by a reader holding it in context.
 Today is the same result for a tool where the prose is good.
 
+*Concluded 2026-09-08, and handed back for the one decision that is
+not mine.* Both children closed: =2c3aadbe= shipped multi-scope
+=org_outline= (the ergonomic lever — removing the reason to reach for
+the loop), and =1cd2df62= answered its gating question — both dispatch
+paths drop unknown keys, the WebSocket one with no validation at all —
+and drafted the upstream report as =bbf9fb77=.
+
+*The remaining judgement, proposed rather than enacted.* Of the six
+under-used tools, **one deserves a standing rule and five are niche**:
+
+- =org_refile= — the rule candidate, and the only one whose competitor
+  has a measured cost: hand-rolled =org-cut-subtree=/=org-paste-subtree=
+  is what left org-id stale in =8ddd7fa8=. Per finding 4's corollary,
+  the rule must name *that* competitor: "moving a heading between
+  files or levels is =org_refile=; a hand subtree move leaves org-id
+  pointing at the old location." Belongs in
+  =.claude/rules/org-conventions.md= (refiling only happens with an
+  org file in play).
+- =org_amend= (recall, not utility) — no rule needed *now*: the list
+  continuation and drawer argument shipped today are ergonomic fixes
+  for its two measured avoidance causes; re-measure before adding
+  prose.
+- =org_archive= — demand was automated away: the ceremony's finish
+  pass archives, so a session rarely should call it.
+- =org_clock_report=, =org_move_sibling=, =org_sort_children=,
+  =org_log_background_plan= — honestly rare. A rule for a situation
+  that arises monthly is prose that costs every session and fires in
+  none, which is the fatigue this heading's own findings warn against.
+
+If the =org_refile= rule is accepted, it is a five-line conventions
+edit; declining it leaves this heading's findings as the record.
+
+
 
 ** TODO An MCP tool accepts arguments it does not have, and says nothing :code:
 :PROPERTIES:
 :ID:       1cd2df62-35e9-47dc-bcce-dda7bae3c522
 :CREATED:  [2026-08-20 Thu 16:45]
+:END:
+:DEBRIEF:
+*Debrief, 2026-09-08.* The gating question ("where does the check
+belong?") was answered in two sittings: the HTTP path's silence was
+established 2026-08-20 as structural (=--validate-args= iterates
+=arg-specs=, never =args=), and today the second dispatch path —
+=claude-code-ide-mcp--handle-tools-call= in =claude-code-ide-mcp.el= —
+was read and found to hand the whole =arguments= alist to the handler
+with no validation of any kind, unknown-key or missing-required. So
+the drop is upstream on both paths, this is a report rather than a
+local fix, and the report is drafted as =bbf9fb77= under =9d6449c7=
+with the =-32602= asymmetry as its hook and the scoped-call
+substitution as its measured consequence. The local traps found along
+the way were fixed when found: the =sort-type=→=sort_type= rename and
+the truncated =org_capture= description, both 2026-08-20, and the
+fourteen-tool surface audit came back clean so it need not be re-run.
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-20 Thu 16:45] \\
@@ -3936,7 +4044,9 @@ CLOCK: [2026-08-20 Thu 17:18]--[2026-08-20 Thu 17:22] =>  0:04
 CLOCK: [2026-08-20 Thu 21:08]--[2026-08-20 Thu 21:11] =>  0:03
 - [2026-08-20 Thu 21:08]--[2026-08-20 Thu 21:11] assigned at review
 :END:
+:PLAN:
 
+:END:
 =org_capture= takes =(title target tags note)=. On 2026-08-20 it was called five times with two invented arguments, =todo_state= and =body=. Every call succeeded, returned /"Captured: ... (ID: ...)"/, and silently dropped both.
 
 *The measured damage, all in one session.* Three headings landed with no TODO keyword. *Four landed with no body at all* -- =41cf5830=, =c6fc6f46=, =5a5e87c9= and this one -- losing every word of analysis written into them. Only =a729c32a= survived, and only because =org_amend= was called on it later for an unrelated reason.
@@ -3973,16 +4083,37 @@ There is a second dispatch path, =claude-code-ide-mcp.el= line 352, which hands 
 
 *One measured consequence beyond the lost bodies:* an =org_outline= call passing =file= and =max_level= returned the *unrestricted default* rather than the scoped view it appeared to return, and was reported as scoped. A dropped argument does not merely fail to apply -- it silently substitutes a different answer to a different question.
 
+*Resolved 2026-09-08:* both dispatch paths examined — the WebSocket
+one has the same silence and less guarding — and the upstream report
+is drafted as =bbf9fb77= under =9d6449c7=. The local surface was
+already audited clean; nothing left here but the upstream ask.
+
+
 
 ** TODO org_outline takes one scope, so looking up n ids costs n calls and a loop wins
 :PROPERTIES:
 :ID:       2c3aadbe-4c65-42f1-80f4-860453dcf121
 :CREATED:  [2026-09-04 Fri 12:42]
 :END:
+:DEBRIEF:
+*Debrief, 2026-09-08.* Shipped on =feature/outline-multi-scope=
+(=59f3294=). =scope= splits on spaces and commas; two or more tokens
+render one front-matter block and outline per token, in the order
+given, and every token must be id-shaped — file names stay
+single-scope, and a lone scope renders byte-identically to before. A
+token resolving to nothing errors *in its own slot* rather than
+failing the call, so one typo does not cost the other answers — the
+narrowed cases from this body's own measurement (a child, mixed
+depths, =DONE= referents) are each exercised in the regression test,
+which was proven failing against =main=. The stale-schema caveat
+applies as usual: sessions connected before the merge send multi-token
+scope as a plain string, which the server now accepts regardless.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-04 Fri 12:36]--[2026-09-04 Fri 12:37] =>  0:01
 - [2026-09-04 Fri 12:36]--[2026-09-04 Fri 12:37] assigned at review
 :END:
+:PLAN:
 
 =org_outline='s =scope= is a single =:ID:=, prefix or file name. Every question of the form "what are
 these *n* headings" therefore costs *n* round trips, and a shell loop over the org files costs one —
@@ -4032,6 +4163,12 @@ the axis that fits the question.
 *Which also means the ergonomic argument for it is weaker than filed and the correctness argument is
 unchanged.* A loop over the org files is still wrong for the reasons =2c5f7c50= collects; it is just
 that for the commonest case the alternative was already one call away.
+
+:END:
+*Resolved 2026-09-08:* =org_outline='s =scope= now takes several ids
+or prefixes, one block each in the order given — the axis that fits
+"these particular ids", which depth and liveness could not express.
+
 
 
 * TODO Moving a heading between files by hand leaves org-id pointing at the old one :code:
@@ -9684,7 +9821,7 @@ contract either way. With part 1's README and this, the heading's whole
 scope is delivered.
 
 
-* MAYBE [0/2] Accumulate issues to report upstream to claude-code-ide.el :code:
+* MAYBE [0/3] Accumulate issues to report upstream to claude-code-ide.el :code:
 :PROPERTIES:
 :CATEGORY: Upstream
 :ID:       9d6449c7-529f-49a0-b28f-015cce869715
@@ -9741,7 +9878,39 @@ So the =(error …)= handler in =--handle-post= does not catch it, and neither d
 *Worth reporting because the failure is maximally unhelpful.* The three conditions it covers are ordinary client mistakes — unknown method, unknown tool, missing argument — and each is the kind of thing a caller could correct instantly if told. Instead all three present identically as a hang with no diagnostic anywhere.
 
 Sibling of [[id:8f986c6f-7cab-42c5-9a21-01275f271c80][8f986c6f]] under this heading: both are the HTTP server answering wrongly rather than the tools misbehaving.
+** TODO Unknown tool arguments are dropped silently by both dispatch paths :code:
+:PROPERTIES:
+:ID:       bbf9fb77-f081-48c5-bb01-1b4d4f201969
+:CREATED:  [2026-09-08 Tue 16:15]
+:END:
 
+The upstream half of [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]],
+ready to write up as an issue. Both dispatch paths drop a key the
+schema does not declare, silently, and the measured local cost was
+four heading bodies lost to invented =todo_state=/=body= arguments
+that every call accepted and discarded.
+
+*Path 1 — HTTP* (=claude-code-ide-mcp-http-server--validate-args=):
+iterates =arg-specs= and pulls each *declared* name out of =args=; it
+never iterates =args=, so an unknown key is never examined. The
+asymmetry is the report's hook: a *missing required* argument already
+signals =-32602=, so the refusal machinery exists — only the
+unknown-key direction is unguarded, and the fix is one pass over
+=args= for keys absent from =arg-specs=.
+
+*Path 2 — WebSocket* (=claude-code-ide-mcp--handle-tools-call=,
+examined 2026-09-08, answering the gating question 1cd2df62 left):
+hands the whole =arguments= alist to the handler with **no validation
+at all** — no unknown-key check *and* no missing-required check, so it
+is strictly less guarded than the HTTP path. Whatever fix upstream
+takes should cover both, and the HTTP path's =-32602= pattern is the
+shape to copy.
+
+*One measured consequence worth quoting in the issue:* a dropped
+argument does not merely fail to apply — an =org_outline= call passing
+invented =file= and =max_level= returned the unrestricted default
+while appearing scoped, silently substituting a different answer to a
+different question.
 
 * MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
 :PROPERTIES:
