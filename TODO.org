@@ -8604,6 +8604,26 @@ note, now declared as a =:BLOCKER:= rather than prose. The README/
 CLAUDE.md overlap zone is small (intro framing, the install summary);
 until the hook exists, consistency is manual.
 
+*Part 2 shipped 2026-09-08* (commit =05cf980=, branch
+=feature/doc-sync-hook=), four days after its blocker resolved the way
+the 2026-08-14 note demanded: the inject-and-relay pattern's
+reliability was *measured* first
+([[id:c5b02503-1700-47fd-bf89-bd3296b24af2][c5b02503]], one silent drop
+in three), so the hook was built on **both channels** rather than
+copying the unexamined assumption — =additionalContext= instructs the
+model to check the sibling file, =systemMessage= tells the human
+regardless. =bin/hooks/doc-sync-check=, PostToolUse on =Edit|Write=,
+full-path matched to *this project's* two files so the user-global
+=~/.claude/CLAUDE.md= never triggers it; survive-without-Emacs tier per
+the scripting convention. Nine-check suite (=bin/doc-sync-check-test=)
+written first and run red. Two residuals, stated: hook config loads at
+session start, so the first live firing is next session; and whether
+PostToolUse *displays* =systemMessage= is the same pending observation
+=d585d33e= carries for SessionStart — the JSON follows the documented
+contract either way. With part 1's README and this, the heading's whole
+scope is delivered.
+
+
 
 * MAYBE [0/2] Accumulate issues to report upstream to claude-code-ide.el :code:
 :PROPERTIES:
