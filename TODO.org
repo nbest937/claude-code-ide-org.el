@@ -41,6 +41,7 @@ the future. Computing "tomorrow" in the test re-implements =++1d=
 including its before-07:00 edge (the first future occurrence can be
 *today*), which is a fourth wall-clock dependency wearing a fix.
 
+
 * TODO No tool adds a member line to a slice's checklist :code:
 :PROPERTIES:
 :ID:       9ae0e452-4dd5-4f62-9bd3-13b4cbf3bb71
@@ -64,6 +65,7 @@ derive its rendering, or a general positional argument on =org_amend=
 (after-line / before-lead), which is a larger design. Whatever form,
 it must pass through Emacs so the write-through/queue gate applies —
 that gate existing and being bypassed is the whole cost.
+
 
 * TODO The cookie updater rewrites bracketed n/m in slice body prose on every refresh :code:
 :PROPERTIES:
@@ -91,6 +93,7 @@ the headline cookie directly); or the convention bans bracketed n/m in
 slice body prose and =bin/lint-org= enforces it. Verbatim markup
 (~=[4/15]=~) does NOT protect — the updater is regex-based and reads
 through it.
+
 
 * TODO Every merge to main went through a PR ten times, and nothing says so :code:
 :PROPERTIES:
@@ -150,11 +153,20 @@ bookkeeping land directly on =main=. The ten-merge record cannot
 distinguish them — no bookkeeping-only branch has ever existed.
 
 
-* TODO The proposal convention's last argument is falsified; an open slice is its own proposal :code:
+* DONE The proposal convention's last argument is falsified; an open slice is its own proposal :code:
+CLOSED: [2026-09-08 Tue 12:58]
 :PROPERTIES:
 :ID:       7f0c9baa-67ed-4008-8cbc-28f0ea898dd4
 :CREATED:  [2026-09-08 Tue 10:03]
 :CATEGORY: Slices
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-08 Tue 12:56]--[2026-09-08 Tue 12:57] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-08 Tue 12:56] \\
+  retiring proposal convention; user decided MAYBE question
+- [2026-09-08 Tue 12:56]--[2026-09-08 Tue 12:57] edit org-conventions, relocate twin review question
+- State "DONE"       from "DOING"      [2026-09-08 Tue 12:58] \\
+  retired; user closed the MAYBE question
 :END:
 :PLAN:
 
@@ -219,8 +231,7 @@ and the only remaining references to the old convention are historical
 prose in heading bodies and the consumed plan file, left deliberately.
 
 
-
-* TODO [0/4] Ship the plugin: make the machinery and its prose travel together :code:
+* NEXT [0/4] Ship the plugin: make the machinery and its prose travel together :code:
 :PROPERTIES:
 :ID:       c19fbbf5-be1b-4c18-a38e-9b46d064abb8
 :CREATED:  [2026-09-08 Tue 09:54]
@@ -228,6 +239,10 @@ prose in heading bodies and the consumed plan file, left deliberately.
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
 :BLOCKER:  ids(b0e478f7-e894-4ac7-b0b6-b3c890b5b32a 9d009401-93dd-40e5-a243-7a30a8a5bd55 ecf66d45-18b3-477f-bca8-08bec90604e8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4)
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-08 Tue 15:29] \\
+  nominated as the slice to pick up next
 :END:
 
 [[id:ff7ccb2d-2b13-421e-86e3-6b5e187850bf][ff7ccb2d]] classified what
@@ -280,7 +295,8 @@ and rejection is =CANCELLED= either way. Composing this one declared
 tests exactly the friction =acf46449= names.
 
 
-* TODO One incidental lands in every open slice's window, and the cookies double-count it :code:
+* DONE One incidental lands in every open slice's window, and the cookies double-count it :code:
+CLOSED: [2026-09-08 Tue 12:58]
 :PROPERTIES:
 :ID:       2c77f2cc-af07-4f4d-aa9d-1aa3bc8843f5
 :CREATED:  [2026-09-08 Tue 09:45]
@@ -307,6 +323,14 @@ CLOCK: [2026-09-08 Tue 11:21]--[2026-09-08 Tue 11:26] =>  0:05
 - [2026-09-08 Tue 11:21]--[2026-09-08 Tue 11:26] assigned at review
 CLOCK: [2026-09-08 Tue 11:30]--[2026-09-08 Tue 11:31] =>  0:01
 - [2026-09-08 Tue 11:30]--[2026-09-08 Tue 11:31] assigned at review
+CLOCK: [2026-09-08 Tue 12:09]--[2026-09-08 Tue 12:28] =>  0:19
+- State "DOING"      from "TODO"       [2026-09-08 Tue 12:09] \\
+  fixing incidental derivation ownership and window
+- [2026-09-08 Tue 12:09]--[2026-09-08 Tue 12:28] implement ownership rule and slice exclusion
+- State "REVIEW"     from "DOING"      [2026-09-08 Tue 12:28] \\
+  shipped and live; PR and apply pending
+- State "DONE"       from "REVIEW"     [2026-09-08 Tue 12:58] \\
+  PR 11 merged at user's direction
 :END:
 :PLAN:
 
@@ -401,8 +425,8 @@ naming both ownership drops.
 recorded observation; repaired bracket-free the same day.
 
 
-
-* TODO The ceremony should refresh open slices, so incidentals and cookies stop waiting on memory :code:
+* DONE The ceremony should refresh open slices, so incidentals and cookies stop waiting on memory :code:
+CLOSED: [2026-09-08 Tue 13:15]
 :PROPERTIES:
 :ID:       d749ebd5-ff2b-4794-941a-0af5c2df1356
 :CREATED:  [2026-09-04 Fri 16:52]
@@ -413,6 +437,12 @@ CLOCK: [2026-09-04 Fri 16:45]--[2026-09-04 Fri 16:46] =>  0:01
 - [2026-09-04 Fri 16:45]--[2026-09-04 Fri 16:46] assigned at review
 CLOCK: [2026-09-04 Fri 16:52]--[2026-09-04 Fri 16:53] =>  0:01
 - [2026-09-04 Fri 16:52]--[2026-09-04 Fri 16:53] assigned at review
+- State "DONE"       from "DOING"      [2026-09-08 Tue 13:15] \\
+  merged in PR 16; verified live
+CLOCK: [2026-09-08 Tue 13:15]--[2026-09-08 Tue 13:16] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-08 Tue 13:15] \\
+  ceremony refresh step and unlinked report built
+- [2026-09-08 Tue 13:15]--[2026-09-08 Tue 13:16] step 6 implementation and live verification
 :END:
 :PLAN:
 
@@ -482,7 +512,6 @@ already apply.
 =config.el=. Note CLAUDE.md's "the two commands the ceremony runs
 after apply" sentence undercounts the finish pass's steps (now six);
 that file's accuracy is =9d009401='s subject, not re-fixed here.
-
 
 
 * DONE Commit co-author trailer is frozen at session start, misattributes after /model :code:
@@ -808,14 +837,14 @@ the class is worth a moment's thought, since =bin/check-conventions= checks docu
 code and nothing checks a docstring against the function under it.
 
 
-* NEXT [0/9] Only membership and order are declared, and everything else still needs a hand
+* DONE [9/9] Only membership and order are declared, and everything else still needs a hand
+CLOSED: [2026-09-08 Tue 13:16]
 :PROPERTIES:
 :ID:       52bfafdf-d313-48e1-9524-d8b539f165c9
 :CREATED:  [2026-09-04 Fri 09:26]
 :CATEGORY: Slices
 :COOKIE_DATA: checkbox recursive
 :KIND:     slice
-:BLOCKER:  ids(2c77f2cc-af07-4f4d-aa9d-1aa3bc8843f5 635d5abb-207d-445d-b268-bc031bdd592a 501a8422-9e93-4d2d-98bb-db0ab2c16e37 acf46449-422b-45d5-a223-83224ef71548 7f0c9baa-67ed-4008-8cbc-28f0ea898dd4 2d2211d5-97c3-4f69-8175-40df90d1db8a de687e4d-9384-46ae-a495-55b3ae46d1bb 1b727475-46c3-4967-8cdd-dfd9397d94ea d749ebd5-ff2b-4794-941a-0af5c2df1356)
 :END:
 :LOGBOOK:
 - State "TODO"       from "MAYBE"      [2026-09-04 Fri 09:40] \\
@@ -828,6 +857,11 @@ CLOCK: [2026-09-08 Tue 11:52]--[2026-09-08 Tue 11:53] =>  0:01
 - [2026-09-08 Tue 11:52]--[2026-09-08 Tue 11:53] assigned at review
 CLOCK: [2026-09-08 Tue 11:56]--[2026-09-08 Tue 11:57] =>  0:01
 - [2026-09-08 Tue 11:56]--[2026-09-08 Tue 11:57] assigned at review
+- [2026-09-08 Tue 12:06]--[2026-09-08 Tue 12:08] assigned at review
+- State "DOING"      from "NEXT"       [2026-09-08 Tue 12:09] \\
+  slice execution begins with 2c77f2cc
+- State "DONE"       from "DOING"      [2026-09-08 Tue 13:16] \\
+  all nine members shipped and merged this session
 :END:
 
 *Accepted 2026-09-04*, on the user's judgement that these are "essential enhancements to tighten our
@@ -844,16 +878,16 @@ and **only membership and order are declared**. Every member below is a place wh
 true — where a human hand is still required, and where forgetting is silent. Six of the seven were
 either filed or sharpened on 2026-09-03/04, which is why the theme only became visible now.
 
-- [ ] [[id:2c77f2cc-af07-4f4d-aa9d-1aa3bc8843f5][2c77f2cc]] TODO One incidental lands in every open slice's window, and the cookies double-count it
-- [ ] [[id:635d5abb-207d-445d-b268-bc031bdd592a][635d5abb]] NEXT org_amend cannot continue a list, and the slice revision links are always one
-- [ ] [[id:501a8422-9e93-4d2d-98bb-db0ab2c16e37][501a8422]] NEXT Give org_amend a drawer argument, so a plan can be revised and written in one call
-- [ ] [[id:acf46449-422b-45d5-a223-83224ef71548][acf46449]] TODO Every slice needs :COOKIE_DATA: and no slice creates it; the lint only reports
-- [ ] [[id:7f0c9baa-67ed-4008-8cbc-28f0ea898dd4][7f0c9baa]] TODO The proposal convention's last argument is falsified; an open slice is its own proposal
+- [X] [[id:2c77f2cc-af07-4f4d-aa9d-1aa3bc8843f5][2c77f2cc]] DONE One incidental lands in every open slice's window, and the cookies double-count it
+- [X] [[id:635d5abb-207d-445d-b268-bc031bdd592a][635d5abb]] DONE org_amend cannot continue a list, and the slice revision links are always one
+- [X] [[id:501a8422-9e93-4d2d-98bb-db0ab2c16e37][501a8422]] DONE Give org_amend a drawer argument, so a plan can be revised and written in one call
+- [X] [[id:acf46449-422b-45d5-a223-83224ef71548][acf46449]] DONE Every slice needs :COOKIE_DATA: and no slice creates it; the lint only reports
+- [X] [[id:7f0c9baa-67ed-4008-8cbc-28f0ea898dd4][7f0c9baa]] DONE The proposal convention's last argument is falsified; an open slice is its own proposal
 - [[id:198dd00e-0746-444a-ab25-2034a2a235c2][198dd00e]] CANCELLED Accepting a slice proposal leaves its body still calling itself a proposal
-- [ ] [[id:2d2211d5-97c3-4f69-8175-40df90d1db8a][2d2211d5]] TODO Adding a just-captured heading to a slice cannot be made lint-clean
-- [ ] [[id:de687e4d-9384-46ae-a495-55b3ae46d1bb][de687e4d]] TODO A slice closed by the same apply pass freezes with stale member lines
-- [ ] [[id:1b727475-46c3-4967-8cdd-dfd9397d94ea][1b727475]] TODO A MAYBE member and a dropped member render identically, and the drop is now sticky
-- [ ] [[id:d749ebd5-ff2b-4794-941a-0af5c2df1356][d749ebd5]] TODO The ceremony should refresh open slices, so incidentals and cookies stop waiting on memory
+- [X] [[id:2d2211d5-97c3-4f69-8175-40df90d1db8a][2d2211d5]] DONE Adding a just-captured heading to a slice cannot be made lint-clean
+- [X] [[id:de687e4d-9384-46ae-a495-55b3ae46d1bb][de687e4d]] DONE A slice closed by the same apply pass freezes with stale member lines
+- [X] [[id:1b727475-46c3-4967-8cdd-dfd9397d94ea][1b727475]] DONE A MAYBE member and a dropped member render identically, and the drop is now sticky
+- [X] [[id:d749ebd5-ff2b-4794-941a-0af5c2df1356][d749ebd5]] DONE The ceremony should refresh open slices, so incidentals and cookies stop waiting on memory
 
 *Sequenced, and reordered 2026-09-08.* =2c77f2cc= is first: it is the only member producing visible
 garbage on every refresh rather than waiting to be noticed, and until it lands no slice's cookie or
@@ -963,9 +997,8 @@ candidate by its own acceptance note, and =next-session.md= is
 consumed — both are the user's call, not this record's.
 
 
-
-
-* NEXT org_amend cannot continue a list, and the slice revision links are always one
+* DONE org_amend cannot continue a list, and the slice revision links are always one
+CLOSED: [2026-09-08 Tue 12:58]
 :PROPERTIES:
 :ID:       635d5abb-207d-445d-b268-bc031bdd592a
 :CREATED:  [2026-09-04 Fri 09:21]
@@ -974,6 +1007,14 @@ consumed — both are the user's call, not this record's.
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-08 Tue 11:36] \\
   Tools nomination; the tool gap 52bfafdf keeps hitting
+- State "REVIEW"     from "DOING"      [2026-09-08 Tue 12:39] \\
+  shipped and live; PR pending
+CLOCK: [2026-09-08 Tue 12:39]--[2026-09-08 Tue 12:40] =>  0:01
+- State "DOING"      from "NEXT"       [2026-09-08 Tue 12:39] \\
+  retroactive: list-continuation work began mid-session
+- [2026-09-08 Tue 12:39]--[2026-09-08 Tue 12:40] org_amend list continuation and drawer argument
+- State "DONE"       from "REVIEW"     [2026-09-08 Tue 12:58] \\
+  PR 12 merged at user's direction
 :END:
 :PLAN:
 
@@ -1040,13 +1081,23 @@ end of a body, and the checklist sits mid-body. Filed as =9ae0e452=,
 carrying the buffer/disk-divergence cost this body recorded.
 
 
-
-* TODO Every slice needs :COOKIE_DATA: and no slice creates it; the lint only reports
+* DONE Every slice needs :COOKIE_DATA: and no slice creates it; the lint only reports
+CLOSED: [2026-09-08 Tue 12:58]
 :PROPERTIES:
 :ID:       acf46449-422b-45d5-a223-83224ef71548
 :CREATED:  [2026-09-04 Fri 09:14]
 :CATEGORY: Slices
 :BLOCKER:  ids(b6da3480-d3ae-4af9-8475-9f0e7c99bb17)
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-08 Tue 12:45]--[2026-09-08 Tue 12:46] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-08 Tue 12:45] \\
+  retroactive: both seams implemented this session
+- [2026-09-08 Tue 12:45]--[2026-09-08 Tue 12:46] cookie-data prevention and repair seams
+- State "REVIEW"     from "DOING"      [2026-09-08 Tue 12:46] \\
+  shipped and live; PR 13 pending
+- State "DONE"       from "REVIEW"     [2026-09-08 Tue 12:58] \\
+  PR 14 merged at user's direction
 :END:
 :PLAN:
 
@@ -1126,7 +1177,6 @@ keywords are never touched, so frozen history stays frozen.
 
 *Verified*: three ERT tests, all proven failing against the branch
 base; suite green but for the two pre-existing repeater date flakes.
-
 
 
 * TODO Nothing lays out future work on a timeline the agenda can show
@@ -1239,7 +1289,8 @@ that gap recurs for any slice a prompt picks up, declared from birth or
 not.
 
 
-* TODO A slice closed by the same apply pass freezes with stale member lines :code:
+* DONE A slice closed by the same apply pass freezes with stale member lines :code:
+CLOSED: [2026-09-08 Tue 13:10]
 :PROPERTIES:
 :ID:       de687e4d-9384-46ae-a495-55b3ae46d1bb
 :CREATED:  [2026-09-03 Thu 13:44]
@@ -1248,6 +1299,12 @@ not.
 :LOGBOOK:
 CLOCK: [2026-09-03 Thu 13:47]--[2026-09-03 Thu 13:49] =>  0:02
 - [2026-09-03 Thu 13:47]--[2026-09-03 Thu 13:49] assigned at review
+- State "DONE"       from "DOING"      [2026-09-08 Tue 13:10] \\
+  merged in PR 15
+CLOCK: [2026-09-08 Tue 13:10]--[2026-09-08 Tue 13:11] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-08 Tue 13:10] \\
+  retroactive: same-pass refresh waiver built
+- [2026-09-08 Tue 13:10]--[2026-09-08 Tue 13:11] retroactive bracket: step-5 implementation span
 :END:
 :PLAN:
 
@@ -1266,7 +1323,6 @@ is untouched for every later pass. Reordering apply (the first option)
 was declined as more intrusive for the same result. Two tests, both
 proven failing against the pre-change code; two existing stubs of
 =refresh-slice= widened to the new arity.
-
 
 
 * DONE The convention checks compare the live Emacs against whichever checkout invoked them :code:
@@ -1336,11 +1392,18 @@ Found 2026-09-03 when a design revision left :ID: 758a8b78's title stating the w
 Found 2026-09-03 while re-checking whether org_query reaches DONE.org. The tool honors its documented scope — claude-code-ide-org-query-files, falling back to the org-agenda-files function — but that function's answer is shaped by live Emacs state the caller cannot see: an agenda restriction lock (org-agenda-restrict, set by C-x C-< or the dispatcher's < key) silently collapses it to one file, and a dangling path in org-agenda-files (an entry whose symlink was never created) silently contributes nothing. Both produced "No matches" indistinguishable from a true empty result, across three diagnostic layers in one sitting. Proposed: org_query's reply (and ideally org_clock_report's and the recovery scan's) should name the file set it actually searched, and say when a restriction lock is active — "No matches (searched TODO.org; agenda restriction active)" turns a silent wrong answer into an inspectable one.
 
 
-* TODO A MAYBE member and a dropped member render identically, and the drop is now sticky :code:
+* DONE A MAYBE member and a dropped member render identically, and the drop is now sticky :code:
+CLOSED: [2026-09-08 Tue 13:10]
 :PROPERTIES:
 :ID:       1b727475-46c3-4967-8cdd-dfd9397d94ea
 :CREATED:  [2026-09-02 Wed 18:28]
 :CATEGORY: Slices
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-09-08 Tue 13:10] \\
+  merged in PR 15; corpus migrated
+- State "DOING"      from "TODO"       [2026-09-08 Tue 13:10] \\
+  retroactive: DROPPED declaration built
 :END:
 :PLAN:
 
@@ -1403,7 +1466,6 @@ are rewritten as resolved.
 write the way =:BLOCKER:='s are, and no lint checks they resolve — a
 typo fails open as a member regaining its box, which is at least
 visible. Worth folding into =org_set_property= if it ever bites.
-
 
 
 * DONE [11/11] Make the org discipline travel: ship the machinery, relocate the rules :code:
@@ -1568,7 +1630,7 @@ of its own execution while every member transitioned correctly, so
 its work starts" (=739737d=). The =DOING= here is that retcon.
 
 
-* DOING Make the heading body a scannable summary, with plan and debrief in drawers [2/5]
+* DOING Make the heading body a scannable summary, with plan and debrief in drawers [3/5]
 :PROPERTIES:
 :ID:       4c834fdb-5314-4168-ab1d-09fe89ded517
 :CREATED:  [2026-09-02 Wed 16:00]
@@ -1635,7 +1697,8 @@ Prospective and retrospective prose accumulate in one body and have to be told a
 *Residue, filed rather than described:* the three-call workflow is clumsy and nothing can revise a drawer once written. Both are [[id:501a8422-9e93-4d2d-98bb-db0ab2c16e37][501a8422]], which would collapse this to one call.
 
 
-** NEXT Give org_amend a drawer argument, so a plan can be revised and written in one call :code:
+** DONE Give org_amend a drawer argument, so a plan can be revised and written in one call :code:
+CLOSED: [2026-09-08 Tue 12:58]
 :PROPERTIES:
 :ID:       501a8422-9e93-4d2d-98bb-db0ab2c16e37
 :CREATED:  [2026-09-02 Wed 15:59]
@@ -1643,6 +1706,12 @@ Prospective and retrospective prose accumulate in one body and have to be told a
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-02 Wed 16:27] \\
   unblocks the one-call plan-first workflow
+- State "REVIEW"     from "DOING"      [2026-09-08 Tue 12:39] \\
+  shipped and live; open questions answered provisionally
+- State "DOING"      from "NEXT"       [2026-09-08 Tue 12:39] \\
+  same edit as 635d5abb, same commit
+- State "DONE"       from "REVIEW"     [2026-09-08 Tue 12:58] \\
+  PR 12 merged at user's direction
 :END:
 :PLAN:
 
@@ -1684,7 +1753,6 @@ revisited without breaking the other.
 discriminating against HEAD. Note for callers: a session connected
 before this landed has the old tool schema and cannot pass =drawer=
 until it reconnects; the apply path honours it immediately.
-
 
 
 ** TODO Put the debrief in a :DEBRIEF: drawer, leaving a scannable TL;DR in the body :code:
@@ -2833,7 +2901,8 @@ Whatever is chosen, the shape to avoid is the current one, where the failure is 
 *Related but distinct:* [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] is about =org_capture= and =org_set_property= hanging over MCP *while Emacs is healthy and other tools answer*. This one is about every tool failing because Emacs is not there at all. They were confirmed separate on 2026-08-31: after the restart, =org_capture= over MCP timed out again and persisted nothing — buffer unmodified, not read-only, no prompt open, =recursion-depth= 0 — while the same function through =emacsclient= completed in under a second.
 
 
-* TODO Adding a just-captured heading to a slice cannot be made lint-clean :code:
+* DONE Adding a just-captured heading to a slice cannot be made lint-clean :code:
+CLOSED: [2026-09-08 Tue 13:10]
 :PROPERTIES:
 :ID:       2d2211d5-97c3-4f69-8175-40df90d1db8a
 :CREATED:  [2026-08-31 Mon 12:14]
@@ -2841,6 +2910,10 @@ Whatever is chosen, the shape to avoid is the current one, where the failure is 
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-31 Mon 12:14]
+- State "DONE"       from "DOING"      [2026-09-08 Tue 13:10] \\
+  convention rule landed in PR 15
+- State "DOING"      from "TODO"       [2026-09-08 Tue 13:10] \\
+  retroactive: membership timing rule written
 :END:
 :PLAN:
 
@@ -2866,7 +2939,6 @@ through immediately when the file is free: the reply's prefix says
 which case applies, "Captured:" meaning add-at-once is safe and
 "Queued capture:" meaning apply first. =798bb7a1='s open question is
 thereby answered where a reader will meet it, instead of in DONE.org.
-
 
 
 * TODO An archive pass wrote one subtree twice, and the mechanism is still unknown :code:
@@ -3153,6 +3225,8 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-08 Tue 15:33]--[2026-09-08 Tue 15:34] =>  0:01
+CLOCK: [2026-09-08 Tue 15:21]--[2026-09-08 Tue 15:24] =>  0:03
 CLOCK: [2026-09-08 Tue 11:43]--[2026-09-08 Tue 11:44] =>  0:01
 CLOCK: [2026-09-08 Tue 11:31]--[2026-09-08 Tue 11:33] =>  0:02
 CLOCK: [2026-09-08 Tue 10:20]--[2026-09-08 Tue 10:21] =>  0:01
@@ -10290,4 +10364,13 @@ CLOCK: [2026-09-08 Tue 11:36]--[2026-09-08 Tue 11:37] =>  0:01
 - [2026-09-08 Tue 11:36]--[2026-09-08 Tue 11:37] assigned at review
 CLOCK: [2026-09-08 Tue 11:40]--[2026-09-08 Tue 11:42] =>  0:02
 - [2026-09-08 Tue 11:40]--[2026-09-08 Tue 11:42] assigned at review
+- [2026-09-08 Tue 12:48]--[2026-09-08 Tue 12:53] assigned at review
+CLOCK: [2026-09-08 Tue 13:41]--[2026-09-08 Tue 13:42] =>  0:01
+- [2026-09-08 Tue 13:41]--[2026-09-08 Tue 13:42] assigned at review
+CLOCK: [2026-09-08 Tue 13:55]--[2026-09-08 Tue 13:56] =>  0:01
+- [2026-09-08 Tue 13:55]--[2026-09-08 Tue 13:56] investigate repeater flakes and file the defect
+CLOCK: [2026-09-08 Tue 15:25]--[2026-09-08 Tue 15:26] =>  0:01
+- [2026-09-08 Tue 15:25]--[2026-09-08 Tue 15:26] assigned at review
+CLOCK: [2026-09-08 Tue 15:29]--[2026-09-08 Tue 15:31] =>  0:02
+- [2026-09-08 Tue 15:29]--[2026-09-08 Tue 15:31] plan c19fbbf5 and revise next-session.md
 :END:
