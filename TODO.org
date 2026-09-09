@@ -2,6 +2,39 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Survey all task history for a tag vocabulary worth searching on :research:
+:PROPERTIES:
+:ID:       e28933e9-f352-4ef9-8d53-8cd9a4318768
+:CREATED:  [2026-09-09 Wed 08:07]
+:CATEGORY: Skill
+:END:
+
+Captured 2026-09-09 at the user's ask, deliberately *not* started: the
+survey is expected to be expensive in time and tokens, so this heading
+parks it until it is worth spending.
+
+*The ask:* survey the whole task history — TODO.org and DONE.org, some
+four hundred headings — for the keyword clusters actually present, and
+derive from them a tag vocabulary on which tasks can usefully be
+searched and filtered. The current declared set (=code comms research
+review=) predates almost all of the corpus.
+
+*Two seed judgements from the user, to test against the data rather
+than assume:* =:org:= for Org syntax/structure/mark-up work, which
+recurs constantly and has no tag today; and the observation that
+=:code:= is close to universal — not useful as a positive filter — but
+may earn its place through its *negation*, "not code" being the rarer
+and more interesting query.
+
+*Shape notes for whoever picks it up:* the survey is a measurement
+first (title and body keyword clusters, existing tag usage counts,
+what queries were actually run via =org_query='s history if any
+survives) and a taxonomy second — the =:CATEGORY:= exercise
+(=29439196=) is the precedent, including its finding that compound
+labels hide behind single words. Any proposed set should state, per
+tag, the query it exists to answer, and the =#+TAGS:= line and
+=org-conventions.md= §Tags are where an adopted set lands.
+
 * TODO Structure a slice body with section subheadings, if the machinery can follow :code:research:
 :PROPERTIES:
 :ID:       c5e58ea1-2576-4bc4-9574-88485aa3977f
