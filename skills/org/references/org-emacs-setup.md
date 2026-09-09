@@ -12,14 +12,22 @@ starts one automatically; if tools fail, check that first.
 ## One-time machine setup: the Doom module
 
 The elisp half of the machinery is a Doom Emacs module, not something the
-plugin can install. From a clone of `claude-code-ide-org`:
+plugin can install — but the setup command prints exactly what your
+`init.el` needs (print-only; the file is yours):
 
 ```sh
-ln -s "$PWD/modules/tools/claude-code-ide-org" \
-      ~/.config/doom/modules/tools/claude-code-ide-org
-# then in ~/.config/doom/init.el, under :tools
-#   claude-code-ide-org
+bin/claude-org-setup --doom
 ```
+
+That emits an `(add-to-list 'doom-module-load-path ".../modules")` line
+for before the `doom!` block plus the `:tools claude-code-ide-org` flag,
+and refuses from an update-managed plugin copy (a load path into one
+breaks on every update — run it from a clone). No symlink is needed:
+Doom searches extra module-tree roots directly. (`doom-module-load-path`
+is marked deprecated-for-v3 in Doom's source; re-verify at a Doom
+upgrade. The old equivalent — symlinking
+`modules/tools/claude-code-ide-org` into `~/.config/doom/modules/tools/`
+— still works and is version-proof.)
 
 - The module needs **org 9.7+** and says so loudly at load — the org
   bundled with Emacs 29 (9.6.x) is not enough; Doom's straight-managed

@@ -29,14 +29,16 @@ promote=(org-conventions.md org-event-queue.md org-state-transitions.md
 
 force=0
 check=0
+doom=0
 target="$PWD"
 for a in "$@"; do
   case "$a" in
     --force) force=1 ;;
     --check) check=1 ;;
+    --doom) doom=1 ;;
     --*)
       echo "claude-org-setup: unknown option: $a" >&2
-      echo "usage: claude-org-setup [--force|--check] [TARGET_DIR]" >&2
+      echo "usage: claude-org-setup [--force|--check|--doom] [TARGET_DIR]" >&2
       exit 2
       ;;
     *)
@@ -47,6 +49,39 @@ for a in "$@"; do
       ;;
   esac
 done
+
+# --doom: print the two init.el lines that wire the Doom module from
+# this checkout (TODO.org :ID: 78a02667). Print-only, deliberately:
+# init.el is the user's file (1caed585's boundary), and since Doom's
+# `doom-module-load-path' accepts extra module-tree roots there is
+# nothing on disk to create -- no symlink, nothing to clean up.
+# (That variable is marked deprecated-for-v3 in Doom's own source;
+# re-verify this advice at a Doom upgrade.)
+if [ "$doom" = 1 ]; then
+  if [ ! -e "$plugin_root/.git" ]; then
+    # An update-managed plugin copy (marketplace/zip) is replaced on
+    # every update, so a load-path entry into it points at churn.
+    echo "claude-org-setup: this plugin directory is not a git checkout:" >&2
+    echo "  $plugin_root" >&2
+    echo "a module path into an update-managed copy breaks on every plugin" >&2
+    echo "update -- clone the repo and run bin/claude-org-setup --doom from" >&2
+    echo "the clone instead" >&2
+    exit 1
+  fi
+  cat <<EOF
+Add to ~/.config/doom/init.el, BEFORE the doom! block:
+
+  (add-to-list 'doom-module-load-path "$plugin_root/modules")
+
+and inside the doom! block, under :tools:
+
+  claude-code-ide-org
+
+then run 'doom sync' and restart Emacs. Nothing was written; both
+edits are yours to make.
+EOF
+  exit 0
+fi
 
 rules_dir="$target/.claude/rules"
 
