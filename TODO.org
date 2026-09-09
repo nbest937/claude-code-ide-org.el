@@ -2,11 +2,21 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO The Planned: lead becomes load-bearing: member anchor, insertion point, self-heal :code:
+* DONE The Planned: lead becomes load-bearing: member anchor, insertion point, self-heal :code:
+CLOSED: [2026-09-09 Wed 08:16]
 :PROPERTIES:
 :ID:       a43cfaa0-7e4a-4730-822d-628637ddc5b6
 :CREATED:  [2026-09-09 Wed 08:13]
 :CATEGORY: Slices
+:END:
+:LOGBOOK:
+- [2026-09-09 Wed 08:07]--[2026-09-09 Wed 08:12] assigned at review
+CLOCK: [2026-09-09 Wed 08:13]--[2026-09-09 Wed 08:16] =>  0:03
+- State "DOING"      from "TODO"       [2026-09-09 Wed 08:13] \\
+  building now at user's order
+- [2026-09-09 Wed 08:13]--[2026-09-09 Wed 08:16] anchor, insertion, self-heal
+- State "DONE"       from "DOING"      [2026-09-09 Wed 08:16] \\
+  merged in PR 21; live-verified
 :END:
 :DEBRIEF:
 *Debrief, 2026-09-09.* Shipped in PR #21 (=281ef04=), the three
@@ -62,6 +72,11 @@ zero repairs owed on a corpus whose leads were already hand-placed.
 :CREATED:  [2026-09-09 Wed 08:07]
 :CATEGORY: Skill
 :END:
+:LOGBOOK:
+- [2026-09-09 Wed 08:03]--[2026-09-09 Wed 08:07] assigned at review
+CLOCK: [2026-09-09 Wed 08:07]--[2026-09-09 Wed 08:08] =>  0:01
+- [2026-09-09 Wed 08:07]--[2026-09-09 Wed 08:08] file the tag-survey task
+:END:
 
 Captured 2026-09-09 at the user's ask, deliberately *not* started: the
 survey is expected to be expensive in time and tokens, so this heading
@@ -89,11 +104,27 @@ labels hide behind single words. Any proposed set should state, per
 tag, the query it exists to answer, and the =#+TAGS:= line and
 =org-conventions.md= §Tags are where an adopted set lands.
 
-* TODO Structure a slice body with section subheadings, if the machinery can follow :code:research:
+
+* DONE Structure a slice body with section subheadings, if the machinery can follow :code:research:
+CLOSED: [2026-09-09 Wed 08:03]
 :PROPERTIES:
 :ID:       c5e58ea1-2576-4bc4-9574-88485aa3977f
 :CREATED:  [2026-09-08 Tue 16:53]
 :CATEGORY: Slices
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-08 Tue 16:53]--[2026-09-08 Tue 16:57] =>  0:04
+- State "DOING"      from "TODO"       [2026-09-08 Tue 16:53] \\
+  running the restructure experiment in sandbox
+- [2026-09-08 Tue 16:53]--[2026-09-08 Tue 16:57] measure subheading layout against the machinery
+- State "REVIEW"     from "DOING"      [2026-09-08 Tue 16:57] \\
+  adopt-or-decline is the user's; recommendation is decline
+CLOCK: [2026-09-09 Wed 07:52]--[2026-09-09 Wed 07:57] =>  0:05
+- [2026-09-09 Wed 07:52]--[2026-09-09 Wed 07:57] assigned at review
+CLOCK: [2026-09-09 Wed 08:02]--[2026-09-09 Wed 08:03] =>  0:01
+- [2026-09-09 Wed 08:02]--[2026-09-09 Wed 08:03] adopt the Planned/Incidental marker convention
+- State "DONE"       from "REVIEW"     [2026-09-09 Wed 08:03] \\
+  declined layout, adopted markers, per user
 :END:
 :DEBRIEF:
 *Debrief, 2026-09-09.* The experiment ran 2026-09-08 on branch
@@ -218,15 +249,20 @@ symmetric with =Incidental:=, written into the conventions and onto
 the three open slices with both gates clean.
 
 
-
-
-
-
-* TODO A task completed between slices belongs to no slice :code:
+* DONE A task completed between slices belongs to no slice :code:
+CLOSED: [2026-09-08 Tue 16:52]
 :PROPERTIES:
 :ID:       58e6c6a0-f3c0-44dc-9e2e-ebd4203db841
 :CREATED:  [2026-09-08 Tue 16:41]
 :CATEGORY: Slices
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-08 Tue 16:41]--[2026-09-08 Tue 16:52] =>  0:11
+- State "DOING"      from "TODO"       [2026-09-08 Tue 16:41] \\
+  implementing the positive-ownership rule
+- [2026-09-08 Tue 16:41]--[2026-09-08 Tue 16:52] incidentals require positive ownership
+- State "DONE"       from "DOING"      [2026-09-08 Tue 16:52] \\
+  ruling implemented, verified both directions
 :END:
 :DEBRIEF:
 *Debrief, 2026-09-08.* Shipped in PR #20 (=4ef7ff5=). Two changes, and
@@ -3643,17 +3679,6 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
-CLOCK: [2026-09-08 Tue 16:33]--[2026-09-08 Tue 16:34] =>  0:01
-CLOCK: [2026-09-08 Tue 16:19]--[2026-09-08 Tue 16:22] =>  0:03
-CLOCK: [2026-09-08 Tue 16:04]--[2026-09-08 Tue 16:05] =>  0:01
-CLOCK: [2026-09-08 Tue 15:56]--[2026-09-08 Tue 15:57] =>  0:01
-CLOCK: [2026-09-08 Tue 15:33]--[2026-09-08 Tue 15:34] =>  0:01
-CLOCK: [2026-09-08 Tue 15:21]--[2026-09-08 Tue 15:24] =>  0:03
-CLOCK: [2026-09-08 Tue 11:43]--[2026-09-08 Tue 11:44] =>  0:01
-CLOCK: [2026-09-08 Tue 11:31]--[2026-09-08 Tue 11:33] =>  0:02
-CLOCK: [2026-09-08 Tue 10:20]--[2026-09-08 Tue 10:21] =>  0:01
-CLOCK: [2026-09-08 Tue 10:04]--[2026-09-08 Tue 10:05] =>  0:01
-CLOCK: [2026-09-08 Tue 09:05]--[2026-09-08 Tue 09:07] =>  0:02
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -3707,11 +3732,23 @@ CLOCK: [2026-09-04 Fri 14:57]--[2026-09-04 Fri 15:01] =>  0:04
 CLOCK: [2026-09-04 Fri 16:05]--[2026-09-04 Fri 16:10] =>  0:05
 CLOCK: [2026-09-04 Fri 16:54]--[2026-09-04 Fri 16:58] =>  0:04
 CLOCK: [2026-09-08 Tue 08:31]--[2026-09-08 Tue 08:32] =>  0:01
+CLOCK: [2026-09-08 Tue 09:05]--[2026-09-08 Tue 09:07] =>  0:02
 - <2026-09-08 Tue 09:14>--<2026-09-08 Tue 09:14> review pass (buffer buried)
 - <2026-09-08 Tue 09:18>--<2026-09-08 Tue 09:18> review pass (buffer buried)
 - <2026-09-08 Tue 09:20>--<2026-09-08 Tue 09:20> review pass (buffer buried)
+CLOCK: [2026-09-08 Tue 10:04]--[2026-09-08 Tue 10:05] =>  0:01
 - <2026-09-08 Tue 10:04>--<2026-09-08 Tue 10:05> review pass (buffer buried)
+CLOCK: [2026-09-08 Tue 10:20]--[2026-09-08 Tue 10:21] =>  0:01
+CLOCK: [2026-09-08 Tue 11:31]--[2026-09-08 Tue 11:33] =>  0:02
+CLOCK: [2026-09-08 Tue 11:43]--[2026-09-08 Tue 11:44] =>  0:01
+CLOCK: [2026-09-08 Tue 15:21]--[2026-09-08 Tue 15:24] =>  0:03
+CLOCK: [2026-09-08 Tue 15:33]--[2026-09-08 Tue 15:34] =>  0:01
+CLOCK: [2026-09-08 Tue 15:56]--[2026-09-08 Tue 15:57] =>  0:01
+CLOCK: [2026-09-08 Tue 16:04]--[2026-09-08 Tue 16:05] =>  0:01
 - <2026-09-08 Tue 16:04>--<2026-09-08 Tue 16:05> review pass (buffer buried)
+CLOCK: [2026-09-08 Tue 16:19]--[2026-09-08 Tue 16:22] =>  0:03
+CLOCK: [2026-09-08 Tue 16:33]--[2026-09-08 Tue 16:34] =>  0:01
+CLOCK: [2026-09-09 Wed 08:18]--[2026-09-09 Wed 08:20] =>  0:02
 :END:
 
 
@@ -3894,12 +3931,12 @@ What survives is the case this body already documents and subtraction structural
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-09-09 Wed 07:00 ++1d>
+SCHEDULED: <2026-09-10 Thu 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-09-08 Tue 08:32]
+:LAST_REPEAT: [2026-09-09 Wed 08:20]
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-24 Mon 10:25]--[2026-08-24 Mon 10:28] =>  0:03
@@ -10988,4 +11025,6 @@ CLOCK: [2026-09-08 Tue 15:33]--[2026-09-08 Tue 15:35] =>  0:02
 - [2026-09-08 Tue 15:33]--[2026-09-08 Tue 15:35] assigned at review
 CLOCK: [2026-09-08 Tue 15:38]--[2026-09-08 Tue 15:42] =>  0:04
 - [2026-09-08 Tue 15:38]--[2026-09-08 Tue 15:42] assigned at review
+CLOCK: [2026-09-08 Tue 16:35]--[2026-09-08 Tue 16:36] =>  0:01
+- [2026-09-08 Tue 16:35]--[2026-09-08 Tue 16:36] assigned at review
 :END:
