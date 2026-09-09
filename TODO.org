@@ -721,7 +721,8 @@ the hooks move.
 Planned:
 
 - [-] [[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]] REVIEW Package the plugin: references, setup command, machinery prose
-- [-] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] REVIEW CLAUDE.md carries dated history that costs every session's context
+- [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] DOING [19/20] Update CLAUDE.md and the org skill for the new architecture
+  - [-] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] REVIEW CLAUDE.md carries dated history that costs every session's context
 - [ ] [[id:e396f94a-59db-4c6b-80b4-dc144146877b][e396f94a]] TODO Package the Warp wiring
 - [ ] [[id:78a02667-c946-429e-af58-7330070c6e06][78a02667]] TODO claude-org-setup wires the Doom module
 - [ ] [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out future work on a timeline the agenda can show
