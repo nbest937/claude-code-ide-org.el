@@ -2,7 +2,7 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO claude-org-setup wires the Doom module symlink :code:
+* TODO claude-org-setup wires the Doom module :code:
 :PROPERTIES:
 :ID:       78a02667-c946-429e-af58-7330070c6e06
 :CREATED:  [2026-09-09 Wed 09:51]
