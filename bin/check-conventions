@@ -82,7 +82,16 @@ done
 # only some of them, and a missing CLAUDE.md is a different problem that
 # would announce itself long before this script ran.
 docs=()
-for rel in CLAUDE.md .claude/rules/org-conventions.md .claude/skills/org/SKILL.md .claude/skills/org-dev/SKILL.md .claude/commands/next-session.md; do
+for rel in CLAUDE.md .claude/rules/org-conventions.md \
+           .claude/rules/org-conventions-local.md \
+           .claude/skills/org/SKILL.md .claude/skills/org-dev/SKILL.md \
+           .claude/commands/next-session.md \
+           skills/org/references/org-conventions.md \
+           skills/org/references/org-event-queue.md \
+           skills/org/references/org-state-transitions.md \
+           skills/org/references/org-mcp-tools.md \
+           skills/org/references/org-session-tracking.md \
+           skills/org/references/org-emacs-setup.md; do
   [ -f "$root/$rel" ] && docs+=("$root/$rel")
 done
 
@@ -250,6 +259,15 @@ if [ -f "$header_file" ]; then
   if [ -f "$cfg" ]; then
     got="$(grep -m1 'TODO keyword to set:' "$cfg" | keyword_set)"
     check "keyword set: org_set_todo tool description" "$got" "$truth"
+  fi
+
+  # The shipped transition table (moved out of CLAUDE.md at packaging,
+  # :ID: b0e478f7) is a fifth copy of the keyword set. Same table-rows
+  # scoping as the skill check above, for the same prose-vs-claim reason.
+  ref="$root/skills/org/references/org-state-transitions.md"
+  if [ -f "$ref" ]; then
+    got="$(grep -E '^\|' "$ref" | grep -oE '\`(TODO|NEXT|DOING|REVIEW|WAITING|MAYBE|DONE|CANCELLED|PLANNING|WAIT)\`' | tr -d '\`' | keyword_set)"
+    check "keyword set: org-state-transitions reference table" "$got" "$truth"
   fi
 fi
 

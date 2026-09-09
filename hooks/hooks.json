@@ -1,0 +1,161 @@
+{
+  "description": "Session-tracking hooks for the org event queue. Every script appends to ~/.claude/org-updates/<session>.jsonl (or checks it) and survives a stopped Emacs; none writes to an org file. Mirrors this repo's own .claude/settings.json wiring — a repo that carries that wiring should NOT also enable this plugin's hooks, or every guidepost is appended twice.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "mcp__emacs-tools__org_clock_in",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/queue-append clock_in",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__emacs-tools__org_clock_out",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/queue-append clock_out",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__emacs-tools__org_set_todo",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/queue-append todo",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__emacs-tools__org_capture",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/queue-append capture",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__emacs-tools__org_amend",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/queue-append amend",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/doc-sync-check",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/block-end",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/session-pause",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/footnote-check",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/clock-target-check",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/session-resume",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/session-start-recovery-check",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/.claude/hooks/session-context.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/block-start",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PermissionDenied": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/block-end",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
