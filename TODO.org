@@ -10708,7 +10708,7 @@ contract either way. With part 1's README and this, the heading's whole
 scope is delivered.
 
 
-* MAYBE [0/3] Accumulate issues to report upstream to claude-code-ide.el :code:
+* MAYBE [0/4] Accumulate issues to report upstream to claude-code-ide.el :code:
 :PROPERTIES:
 :CATEGORY: Upstream
 :ID:       9d6449c7-529f-49a0-b28f-015cce869715
@@ -10800,7 +10800,39 @@ argument does not merely fail to apply — an =org_outline= call passing
 invented =file= and =max_level= returned the unrestricted default
 while appearing scoped, silently substituting a different answer to a
 different question.
+** TODO Unknown MCP methods signal an undefined error symbol and answer nothing :code:
+:PROPERTIES:
+:ID:       3f31b788-0204-40fb-a9c0-b2bea96f7f05
+:CREATED:  [2026-09-09 Wed 17:43]
+:END:
 
+The user saw =error in process filter: peculiar error: -32601, "Method
+not found"= in the minibuffer, 2026-09-09. Diagnosed in upstream
+=claude-code-ide-mcp-http-server.el= and reproduced by a controlled
+=curl= probe (=logging/setLevel= against the live server): the method
+dispatch handles exactly =initialize=, =tools/list= and =tools/call=,
+and anything else runs =(signal 'json-rpc-error (list -32601 "Method
+not found"))= — but ='json-rpc-error= is never =define-error='d, so
+the symbol carries no =error-conditions=, matches none of the
+surrounding =condition-case= handlers (=json-parse-error=, =quit=,
+=error=), escapes to the process filter as a "peculiar error", and
+*the client receives no response at all* (the probe returned an empty
+body where a compliant server answers with a proper -32601 error
+object). Same latent shape at the two other =signal= sites (-32602
+unknown tool, and line ~301).
+
+Not module staleness: the module registers *tools*, and an unknown
+tool takes the -32602 path; this is *method*-level, upstream-owned.
+The likely senders are ordinary modern MCP clients — the server's own
+=initialize= reply advertises a =logging= capability it does not
+implement, inviting =logging/setLevel=; =ping= and
+=resources/prompts= probes are also unanswered.
+
+Upstream fix, small: =(define-error 'json-rpc-error "JSON-RPC error")=
+plus a handler that turns it into the proper JSON-RPC error reply —
+and either implement or stop advertising =logging=. Until then the
+error is noisy but harmless: the probing client treats the silence as
+an unsupported feature and the tools themselves are unaffected.
 
 * MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
 :PROPERTIES:
