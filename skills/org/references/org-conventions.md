@@ -162,6 +162,14 @@ carried on the task as a `:CATEGORY:` value since 2026-08-28 (`:ID:`
 29439196). It is declared, where a story is emergent — which is why one
 is written down and the other must never be.
 
+**It was very nearly `:EPIC:` instead**, on the argument that a
+purpose-built property means exactly one thing. `:CATEGORY:` won on
+three affordances org gives it and gives nothing else: it populates the
+agenda prefix column, it inherits with no configuration, and
+`org-agenda-filter-by-category` exists. The "means one thing" worry was
+answered from the other side — `:KIND:` took the what-is-this job, so
+`:CATEGORY:` only ever answers what-is-this-about.
+
 **A heading with TODO-carrying children carries a statistics cookie.** Add
 `[/]` to the headline and let org fill it in
 (`org-update-statistics-cookies`, `C-c #`); `[%]` works too. The point is
@@ -644,6 +652,41 @@ the last moment anyone knows where the seam is. Before the empty drawer
 existed, the only way to satisfy the warning on a debrief-only heading was to
 wrap the debrief into a drawer readers are told to skip. See `:ID:` f421c5c3.
 
+### Revising a pre-convention body
+
+*Revision is expected, not forbidden* (reversed 2026-08-24; this rule
+previously read "Prospective only — bodies written before 2026-08-14 are
+not to be trimmed"). A finished heading's body may be split: the
+prospective half wrapped into a `:PLAN:` drawer via `org_wrap_plan`, the
+debrief left as the body. Relocation is lossless and needs no
+permission. *Condensing* the prospective half is wanted where the seam
+is confident — a body that contradicts itself pollutes the context of
+every later session that consults it for background, which is a cost
+paid repeatedly rather than once.
+
+Three things stay untouched. **Open questions**: a body that asks
+something nobody answered keeps its question verbatim — do not settle it
+now by inference, which is the only thing "relitigating" ever meant.
+**The debrief**: what happened, how it was verified, what was falsified.
+**Anything whose seam you are unsure of** — wrap it whole and condense
+nothing; uncertainty is a reason to relocate rather than to stop.
+
+*Condense in a separate commit from the wrap, never the same one.* A bad
+pare inside `:PLAN:` is invisible by design, since readers are told to
+skip the drawer — it is the one edit here that no later reader will
+catch. (Reversibility itself is not the concern: body prose in a
+version-controlled `.org` file is recoverable from any commit.)
+
+*The evidence for the split, from a single day's drift:* three headings
+carried confident design claims that were later found wrong —
+`:ID:` d1cf852a asserted "nothing ever unsets it" of a mechanism that
+already existed, `:ID:` 4cda6bf7 specified reading a keyword at the clock
+marker after the cutover had superseded that path, and `:ID:` 7771fc63
+declared a crash scenario unreachable while a hand-edit still reached it.
+Not one journal claim needed correcting in the same period. Design is the
+perishable half and belongs where it can be revised; the record of what
+happened accumulates.
+
 ## The `:DEBRIEF:` drawer
 
 **At close, the debrief goes into a `:DEBRIEF:` drawer and the body gains a
@@ -735,6 +778,18 @@ since every tool addresses headings by `:ID:` and time is clocked against
 that node.
 
 Year and month nodes carry neither `:ID:` nor `:CREATED:`; the day node
+carries both. `bin/lint-org` knows the difference.
+
+**Why the nodes are matched by shape rather than declared, and why that
+is correct:** the datetree belongs to another system. Org's
+`org-datetree-find-date-create` builds year, month and day inside org,
+with no hook, and an archive datetree is built by `org-archive-subtree`
+outside this project entirely. A property we cannot write at creation
+is absent on arrival, and fails open and silently, where reading the
+owner's published title shapes does not. So the emergent-vs-declared
+axis governs *our own* conventions; where another system owns the
+thing, read the contract it actually publishes (`:ID:` 2e660571, which
+proposed the opposite and measured its way out).
 
 `* Review and planning` carries `:CATEGORY: Meta` on the anchor itself, since
 org-datetree's day nodes have no drawer of their own and would otherwise

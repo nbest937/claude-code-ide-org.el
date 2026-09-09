@@ -193,14 +193,8 @@ whatever may currently be clocking) with the heading's `:ID:` and an org
 timestamp string. It closes the open CLOCK line, computes the duration,
 and saves the buffer. It does not touch the live clock.
 
-**Won't do** (closed out 2026-08-14 with the guess heuristic itself,
-TODO.org `:ID:` 7771fc63): using the system sleep/wake/shutdown log
-(`pmset -g log` on macOS) as a more precise guess signal than working
-hours. It was recorded as "not yet attempted" while a better guess still
-seemed worth having; the decision that the report should not guess at
-all removes the thing it was meant to improve. The original objection
-stands anyway — the log is dominated by per-app power assertions rather
-than clean sleep/wake transitions. Note this is *not* the same as
-`:ID:` 1a5a5254, which proposes power assertions as a **review-time
-attribution** signal; that one is about assigning a span to a heading,
-not about guessing when a stale clock stopped, and is unaffected.
+**Won't do**: the `pmset` sleep/wake log as a stale-clock guess signal
+— declined 2026-08-14 with the guess heuristic itself; the full story
+lives on the heading that declined it (`:ID:` 7771fc63). Distinct from
+`:ID:` 1a5a5254, which proposes power assertions as a review-time
+*attribution* signal and is unaffected.

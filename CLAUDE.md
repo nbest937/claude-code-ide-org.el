@@ -13,8 +13,7 @@ requires in practice (interval granularity, how much manual confirmation is
 acceptable, what reports actually need to come out the other end) is
 deliberately left open here, not pinned to whatever CLOCK-drawer mechanics
 happen to exist at a given point: it should be driven by concrete reporting
-needs, most of which haven't been fully articulated yet. See "Direction"
-below for the current best guess at how these two goals combine.
+needs, most of which haven't been fully articulated yet.
 
 ---
 
@@ -95,9 +94,7 @@ surviving one, so `active_only` never re-parents a live child; `:ID:`
 **DONE.org is reference, never orientation.** Do not survey it to start a
 session; it will not tell you what to work on. Open it when something live
 names an ID in it — a `:BLOCKER:`, a body cross-reference, a docstring, or
-this file. That is worth doing: on 2026-08-21 a review-buffer line was about
-to be filed as a defect until DONE.org showed it was `:ID:` 5ff5a4b8's
-deliberate design, along with the open question it had deferred.
+this file.
 
 The exception to "the code is authoritative" is *why* a decision went the
 way it did, which lives only in a body — which is why the load-bearing ones
@@ -136,7 +133,7 @@ Five things you would not guess:
   `bin/hooks/`**, for no recorded reason. It produces the "what was I last
   doing" context injected at `SessionStart`. Whether the two directories
   should be consolidated is open.
-- **`.claude/commands/` is new as of 2026-08-21** and holds prompt files
+- **`.claude/commands/`** holds prompt files
   Claude Code exposes as slash commands — `next-session.md` is `/next-session`,
   the sequenced slice of work queued for the next session. It is a *plan*, not
   a convention: expect it to be rewritten or deleted once consumed, unlike
@@ -231,16 +228,13 @@ the review queue, debriefing and closing work that already merged, filing
 headings, correcting a stale cross-reference: none of these wants an
 integration point.
 
-*This clause was added 2026-09-04 because its absence produced three
-branches in one afternoon*, two existing solely to carry a single
-bookkeeping commit and one renamed mid-flight when it turned out to be
-doing real work after all. The rule before it opened "work does not land
-directly on `main`" and then explained that a branch is *earned* by
-wanting an integration point — two sentences that disagree, since work
-that has not earned one then has nowhere to go. The contradiction
-resolved toward the absolute clause every time. The cost is not the
-branch; it is that a merge is a decision, and manufacturing decisions
-devalues the ones that matter.
+*The maintenance clause was added 2026-09-04 after its absence
+manufactured branches for single bookkeeping commits.* **Do not
+re-tighten the rule to "work does not land directly on `main`"** — that
+absolute wording contradicts the earned-integration-point test, the
+contradiction resolves toward the absolute clause every time, and the
+cost is that a merge is a decision, so manufacturing merges devalues
+the ones that matter.
 
 **The test, when unsure: would you want to review this as a unit, or
 abandon it as a unit?** If neither, it is maintenance. Anything carrying
@@ -251,171 +245,25 @@ A one-helper fix committed straight onto the branch you are already on
 still does not need its own — and note that assumed you *were* on one,
 which is exactly what stops being true the moment a slice merges.
 
-This is deliberately not "one branch per task." The repo's own history
-is the evidence: `feature/capture-amend-queue` earned one because it had
-phases and its own plan, and was branched off `feature/event-queue-format`
-and merged back into it; `feature/fix-tracked-files-resolution` earned
-one despite being a bug fix, which a feature-vs-bugfix reading would have
-exempted. The old wording said `feature/short-name-of-task` and so read
-as demanding a decision per heading — a decision that has never actually
-predicted the practice, and that costs momentum on every heading to
-answer.
+This is deliberately not "one branch per task": **do not demand a
+per-heading branch decision, and do not exempt bug fixes** —
+feature-vs-bugfix has never predicted the practice; wanting an
+integration point is the whole test.
 
-**Related, since it is the same instinct**: don't reach for a
-feature-vs-story classification either. **A task that has acquired
-children carrying TODO keywords is a story** — emergent, reversible, and
-machine-detectable via `claude-code-ide-org--container-heading-p`, whose
-"container" is simply the code's older word for it. No heading needs to
-be classified as one when it is written; see TODO.org `:ID:` b5f94b88,
-which says so about itself.
-
-**Three words, and they do not overlap.** An **epic** is the grouping a
-task belongs to — since 2026-08-28 a `:CATEGORY:` value carried by the
-task itself (`:ID:` 29439196). A **story** is a task that grew keyworded
-children. A **slice** names members by reference and sequences them.
-Earlier drafts of this file called a story an "epic", which is why
-`:ID:` 2e660571 exists.
-
-**A fourth word, and it names a failure rather than a thing: a
-_twin_.** Two headings that describe the same defect, or the same class
-of work, closely enough that fixing one and not the other is arbitrary.
-**The _twin asymmetry_ is scheduling one and forgetting the other**, and
-it has happened twice in composition: `:ID:` c31b6c76 and `:ID:`
-5a5e87c9 are both time-of-day test flakes and only one reached a slice;
-`:ID:` 5f1068f9 and `:ID:` 33864a0f are "make the file read newest-first
-after archiving" differing only in key, and again only one did — after
-the first case had already been caught and fixed.
-
-**Both were caught by a reader, never by the composer**, which is the
-part worth acting on: a twin asymmetry is invisible from inside the act
-that creates it. So it is a *review* question — "does anything in this
-list have a twin that is not in it?" — rather than a rule composition
-can follow. Note the second escape happened in prose that had *just
-named* the first, so knowing about it is not protection (`:ID:`
-d5490814).
-
-**The axis under both of those, and the one worth carrying:** a grouping
-is either **emergent** or **declared**, and which it is determines the
-mechanism it needs.
-
-A **story** is emergent. A task becomes one by acquiring keyworded
-children — however they arrived, whether grown or refiled — so it can be
-*detected*, nothing is written down, and therefore nothing can go stale.
-That is the whole reason the paragraph above says not to classify one: a
-declaration of something already derivable is a second copy that can
-disagree with the first.
-
-**But "however they arrived" describes detection, not permission**, and
-reading it as permission is a live trap — it was walked into on
-2026-08-31 (`:ID:` 9e627dc0). The test is what the heading *already
-owns*: **a task that has done work of its own — a clock, a `:LOGBOOK:`,
-a body recording what it did — must not simply be given children.**
-Doing so traps that record in a container, and a container with live
-children can never close, so a heading whose own work is finished is
-held open by its group indefinitely. Divide it instead; see "Where a
-story comes from" below. Only a heading with nothing of its own to
-strand may grow children in place.
-
-An **epic** and a **slice** are both declared, and they are not the same
-thing. Each asserts that particular tasks belong together for a reason
-the tree does not encode; they differ in what they do about it.
-
-An **epic** is a *label* on the task — `:CATEGORY:`, shipped 2026-08-28.
-Note what that buys now that level-1 groupings are gone: a story spans
-epics for free, because its children simply carry different `:CATEGORY:`
-values. No refiling, and no arrangement of parents to work around.
-
-**It was very nearly `:EPIC:` instead**, on the argument that a
-purpose-built property means exactly one thing. `:CATEGORY:` won on
-three affordances org gives it and gives nothing else: it populates the
-agenda prefix column, it inherits with no configuration, and
-`org-agenda-filter-by-category` exists. The "means one thing" worry was
-answered from the other side — `:KIND:` took the what-is-this job, so
-`:CATEGORY:` only ever answers what-is-this-about. See
-`.claude/rules/org-conventions-local.md` for the ten values.
-
-A **slice** names its members *by reference* — a checkbox list of
-`[[id:...]]` links — and **sequences** them. Nothing moves, so a slice
-can pick a whole story or one task inside one, and the same task can
-appear in one slice and not the next. `:ID:` c44c2119 is the working
-prototype and carries the composition rules inline; the convention
-extracted from it is in `.claude/rules/org-conventions.md`.
-
-What a slice declares is **membership and order, and nothing else**.
-Every other field on one of its lines — keyword, title, checkbox — is
-*derived* from the referent and gets regenerated, never hand-set. A
-checkbox that disagrees with its referent means the slice is stale or
-the referent's keyword is under-reporting; it never means someone
-formed a second opinion worth recording.
-
-**Where a story comes from.** A task that outgrows itself **divides**
-rather than being promoted: a new parent appears, the original leaf
-moves under it *carrying its `:ID:`, clock and `:LOGBOOK:`*, and the
-undone parts of its swollen body become new sibling leaves. `:ID:`
-a0813ae3, **built 2026-08-28** as `org_divide`.
-
-**Note the direction, because getting it backwards is the whole trap:
-after dividing, the original heading is the _child_.** The new parent
-carries a new `:ID:` that did not exist before. If the heading you
-started from is still the parent afterwards, you did not divide — you
-added children, and the paragraph above says when that is wrong.
-**Order matters too:** divide *first*, then file the new leaves as
-siblings. Dividing afterwards carries any children you already added
-down with it, since `org-demote-subtree` moves the whole subtree, and
-they arrive as grandchildren needing a refile.
-
-Two halves, split on whether judgement is involved. The tool does the
-*structural* move and nothing else — new parent, demote, carry
-everything — because that part is mechanical and this repo has two body
-corruptions on record from hand-rolled region edits. Splitting the
-child's engorged body into further leaves stays manual: a tool that
-guessed at it would be inventing headings. So `org_divide` guarantees
-the record survives; it does not guarantee the division was a good
-one.
-
-The payoff is that **a story is precipitated, never authored.** The new
-parent *is* a story the instant it has keyworded children, so there is
-no moment where anyone decides "this is now a story" and writes it down
-— which is the decision that was always going to be got wrong, and the
-one the emergent definition exists to avoid.
-
-And it is **born empty**, which settles three open things *by
-construction rather than by rule*:
-
-- **No clock, and this bullet is narrower than it was.** A story born by
-  division has never been worked, so it starts with no clock. That is a
-  statement about its *birth*, not a rule that groupings stay clockless
-  — `:ID:` 3964c575 asked for the latter and was **declined** 2026-08-26
-  (see the clock rules below). Mitosis never needed that argument: its
-  case is that the record stays with the task that earned it, which is
-  the next bullet.
-- **No history.** The `:ID:`, `:LOGBOOK:` and state transitions travel
-  with the elder child, which is the task that actually did the work.
-- **No body of actions.** The engorged body is *consumed* producing the
-  new leaves. What is left is the reason the group exists — which is the
-  one thing a story's body should hold, and why "a story has no body" is
-  a consequence here rather than an instruction to remember.
-
-Two consequences that are easy to get backwards. Declaring an emergent
-grouping is the error the epic paragraph guards against. Trying to
-*infer* a declared one — reading a story out of the tree's shape — is
-the same error mirrored, and it is what the top-level category tier did
-silently until it was retired (`:ID:` 29439196). And note that a declared grouping
-is made of ids, which is why `:ID:` 478d6ec9 is load-bearing here rather
-than a convenience.
-
-**And a third case, which looks like the second and is not: the thing
-belongs to another system.** Org's datetree nodes are identified by
-matching org's own title shapes, and that is *correct* — not an
-inference standing in for a declaration we failed to make. We could not
-have made it: `org-datetree-find-date-create` builds year, month and day
-inside org, with no hook, and the DONE.org archive datetree would be
-built by `org-archive-subtree` outside this project entirely. A property
-we cannot write at creation is absent on arrival, and fails open and
-silently, where reading the owner's published shape does not. So the
-emergent/declared axis governs *our own* conventions; where another
-system owns the thing, read the contract it actually publishes
-(`:ID:` 2e660571, which proposed the opposite and measured its way out).
+**The grouping vocabulary — story, epic, slice, twin — moved into the
+plugin with the conventions** (2026-09-09, the `:ID:` 9d009401
+read-through): the definitions, the emergent-vs-declared axis, the
+mitosis rules and their guards live in the org conventions
+(`.claude/rules/org-conventions.md`, promoted from the shipped
+reference) and in the org skill's "Dividing a heading that outgrew
+itself". The one-screen map, so the words used below parse: an *epic*
+is a `:CATEGORY:` label on the task; a *story* is emergent — a task
+that acquired keyworded children, detected and never declared; a
+*slice* is declared, and sequences members by reference; a *twin* is
+the failure mode — two headings for the same work, where scheduling one
+and forgetting the other is arbitrary, and it is caught by review,
+never by the composer. A worked heading is never simply given children:
+it *divides* (`org_divide`), and the original becomes the **child**.
 
 **Rule**: work planned via Claude Code's own Plan Mode gets a single
 permanent link — `[[file:~/.claude/plans/<slug>.md][Plan]]` — written
@@ -431,8 +279,7 @@ content, so it belongs with the rest of the prospective prose (`:ID:`
 b75d553a): planning before composition simply includes the link in the
 normal two-call composition below. When the drawer already exists before
 a Plan Mode session, `org_amend` with `drawer=PLAN` appends the link
-inside it directly (`:ID:` 501a8422, shipped 2026-09-08; this paragraph
-described a workaround for its absence until then). Revisions
+inside it directly (`:ID:` 501a8422). Revisions
 (re-entering Plan Mode on the same
 task) edit that same plan file in place — Claude Code reuses the
 existing plan file path for a continuation of the same task — so the
@@ -442,11 +289,8 @@ transcription of the plan into org, ever; the link is the record.
 Nothing moves at `DONE`: the link has lived in `:PLAN:` since
 composition (2026-09-02, `:ID:` b75d553a), which is what keeps a
 forward-looking pointer out of the retrospective readout a finished body
-becomes. (Two earlier forms of this rule — "not removed at `DONE`", then
-"relocated into `:PLAN:` at `DONE`, when `org_wrap_plan` wraps it" —
-described the wrap-at-`DONE` flow that convention retired; a
-pre-convention heading's link still travels into the drawer whenever its
-body is retroactively wrapped.) A task with no separate Plan Mode
+becomes. (A pre-convention heading's link still travels into the drawer
+whenever its body is retroactively wrapped.) A task with no separate Plan Mode
 session simply carries no link — that's expected, not a gap to fill in.
 
 The link is also what makes the plan durable, which is why it is not
@@ -461,89 +305,28 @@ happened: what shipped, how it was verified, what was measured, what was
 falsified, and why a decision went the way it did. It does not restate
 design the linked plan already holds.
 
-**Since 2026-09-02 the plan goes into `:PLAN:` when it is *composed*, not
-at `DONE`** (`:ID:` b75d553a). **The composition is two calls**
-(`:ID:` 16d7d39a, written here because a CLAUDE.md directive moves usage
-where a schema docstring does not — `:ID:` 420816ec measured it):
-`org_amend` with `drawer=PLAN` writes the prospective prose — motivation,
-options, reasoning, the plan link — creating the drawer when absent;
-then a plain `org_amend` writes the two-to-five-sentence
-problem-and-proposed-solution statement as the body. (This replaced the
-three-call form that routed through `org_wrap_plan`, retired when
-`:ID:` 501a8422 shipped the drawer argument.) At `DONE` the close is
-two calls again: the authored resolution onto the body, the debrief via
-`drawer=DEBRIEF` (`:ID:` d5eb32a3). So the two halves are never mixed
-and no seam is ever created — which matters because the seam is a fact
-about *when* a sentence was written, is recorded nowhere in the prose,
-and is not recoverable later (`:ID:` f099379b). `org_wrap_plan`'s seam
-marker is now a retroactive tool. **And how to read the drawer depends on the
-keyword**: skip it on a finished heading, *read* it on a live one, where
-it holds the current plan rather than superseded design.
+**Composition, close, revision: in the conventions.** The two-call
+composition (`org_amend` with `drawer=PLAN`, then the short body), the
+two-call close (the authored resolution, then `drawer=DEBRIEF`,
+`:ID:` d5eb32a3), the read-direction rule — skip `:PLAN:` on a finished
+heading, read it on a live one, read `:DEBRIEF:` always — and the
+policy for revising pre-convention bodies all ship in the org
+conventions' `:PLAN:`/`:DEBRIEF:` sections
+(`.claude/rules/org-conventions.md`), moved there 2026-09-09 with the
+evidence that settled them. A heading closed by the two-call close owes
+archiving nothing further, and delegated-subagent work follows the same
+shape: ask for a one-paragraph outcome summary in the final report, not
+per-checkbox status.
 
-*Revision is expected, not forbidden* (reversed 2026-08-24; this rule
-previously read "Prospective only — bodies written before 2026-08-14 are
-not to be trimmed"). A finished heading's body may be split: the
-prospective half wrapped into a `:PLAN:` drawer via `org_wrap_plan`, the
-debrief left as the body. Relocation is lossless and needs no
-permission. *Condensing* the prospective half is wanted where the seam
-is confident — a body that contradicts itself pollutes the context of
-every later session that consults it for background, which is a cost
-paid repeatedly rather than once.
-
-Three things stay untouched. **Open questions**: a body that asks
-something nobody answered keeps its question verbatim — do not settle it
-now by inference, which is the only thing "relitigating" ever meant.
-**The debrief**: what happened, how it was verified, what was falsified.
-**Anything whose seam you are unsure of** — wrap it whole and condense
-nothing; uncertainty is a reason to relocate rather than to stop.
-
-*Condense in a separate commit from the wrap, never the same one.* A bad
-pare inside `:PLAN:` is invisible by design, since readers are told to
-skip the drawer — it is the one edit here that no later reader will
-catch, which is a sharper hazard than the reversibility question the old
-rule turned on. (That question is settled and no longer load-bearing:
-body prose in the version-controlled `.org` files is recoverable from
-any commit, and only *plans* have bounded history, since
-`.githooks/pre-push` merely bounds how stale the archive can be.)
-
-*The backlog rule was "wrap unedited" and is retired* (`:ID:` f099379b).
-`cbe282ec` chose it to keep 30 purely prospective bodies cheap. Measured
-2026-09-02, 88 of 93 unwrapped headings carry a debrief, so a blind wrap
-would bury it in a drawer readers are told to skip — and no lexical
-marker finds the seam, since the first match sits in the *prospective*
-half as often as not. The backlog pass is `:ID:` 35d25265, which reads
-each body; it costs the per-heading judgement `cbe282ec` was trying to
-avoid, and there is no cheaper honest option.
-
-*The evidence for the split, from a single day's drift:* three headings
-carried confident design claims that were later found wrong —
-`:ID:` d1cf852a asserted "nothing ever unsets it" of a mechanism that
-already existed, `:ID:` 4cda6bf7 specified reading a keyword at the clock
-marker after the cutover had superseded that path, and `:ID:` 7771fc63
-declared a crash scenario unreachable while a hand-edit still reached it.
-Not one journal claim needed correcting in the same period. Design is the
-perishable half and belongs where it can be revised; the record of what
-happened accumulates and belongs here.
-
-*Note this does not empty the body of a planned heading.* `:ID:` b5f94b88
-has both a plan and a substantial body, and the body is where the "epic
-wearing a child's clothes" reasoning and the plan-file-overwrite incident
-live. Neither is design, and neither belongs in a design doc.
-
-**Rule**: closing a heading records the outcome twice, at two grains
-(`:ID:` d5eb32a3, 2026-09-08): a one-to-two-sentence **resolution**
-appended to the body, and the full **debrief** — what shipped, how it was
-verified, what was falsified, what differed from the plan — into a
-`:DEBRIEF:` drawer via `org_amend` with `drawer=DEBRIEF` (created when
-absent). Together with the `:PLAN:`-at-composition rule above, the body
-stays a fixed-size scannable summary: problem, proposal, resolution. Read
-`:DEBRIEF:` on a finished heading — unlike `:PLAN:`, which is superseded
-design there, the debrief is the part worth reading. This absorbs the
-older pre-archive outcome-summary rule, whose "next to that link" location
-stopped existing when the link moved into `:PLAN:`; a heading closed this
-way owes archiving nothing further. Applies to delegated-subagent work
-too: ask for a one-paragraph outcome summary in the subagent's final
-report, not per-checkbox status — there are no checkboxes to report on.
+What stays here is this repo's own. *The backlog pass*: its rule was
+"wrap unedited" and is retired (`:ID:` f099379b) — `cbe282ec` chose it
+to keep 30 purely prospective bodies cheap, but measured 2026-09-02, 88
+of 93 unwrapped headings carry a debrief a blind wrap would bury, and
+no lexical marker finds the seam. The pass is `:ID:` 35d25265, which
+reads each body; there is no cheaper honest option. *And the standing
+example*: `:ID:` b5f94b88 has both a plan and a substantial body — the
+"epic wearing a child's clothes" reasoning and the plan-file-overwrite
+incident are journal, not design, and belong in neither drawer.
 
 ---
 
