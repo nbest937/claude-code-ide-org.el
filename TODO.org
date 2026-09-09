@@ -2,6 +2,11 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO org_slice_add_member cannot declare a nested member :code:
+:PROPERTIES:
+:ID:       1206b5b0-765f-48f7-94a9-0b543cf76487
+:CREATED:  [2026-09-09 Wed 13:33]
+:END:
 * TODO claude-org-setup wires the Doom module :code:
 :PROPERTIES:
 :ID:       78a02667-c946-429e-af58-7330070c6e06
@@ -62,6 +67,25 @@ directory is update-managed rather than a clone. Scope and caveats in
 :ID:       85d24dba-27fb-4a41-adbb-c19617e82e7e
 :CREATED:  [2026-09-09 Wed 09:13]
 :END:
+:DEBRIEF:
+Shipped as =6a1467b= on =feature/plugin-package=. One render path
+serves both modes — the write loop and =--check= call the same
+function, so the comparison cannot diverge from the generation, which
+was the design risk. The gate assertion is scoped to the real repo
+root because the setup script resolves references relative to itself;
+a fixture root would compare fixture rules against the real
+references. Verified by mutation: appending one byte to a promoted
+copy failed =check-conventions= naming the file, and re-running
+=claude-org-setup= cleared it. Suites: setup-test 18/18 (five new
+=--check= cases, including writes-nothing), check-conventions-test
+19/19.
+:END:
+
+Resolved 2026-09-09, same day it was filed: =claude-org-setup --check=
+compares every promoted copy against a fresh render and
+=bin/check-conventions= runs it at the commit gate, so a drifted copy
+now refuses a commit by name instead of loading stale.
+
 
 
 * DONE README documents plugin installation :docs:
@@ -599,6 +623,13 @@ invisible to both parties.
 that carries code", since the maintenance clause already lets
 bookkeeping land directly on =main=. The ten-merge record cannot
 distinguish them — no bookkeeping-only branch has ever existed.
+
+Step 1 done 2026-09-09: the rule is written into CLAUDE.md's
+Engineering practices beside the branch policy, with the
+timing-decides-mechanism trap named and the bookkeeping-merge open
+question kept open. Step 2 — the advisory =pre-push= check — remains,
+and this heading stays =DOING= for it.
+
 
 
 * DONE The proposal convention's last argument is falsified; an open slice is its own proposal :code:
@@ -3850,6 +3881,7 @@ CLOCK: [2026-09-08 Tue 16:04]--[2026-09-08 Tue 16:05] =>  0:01
 CLOCK: [2026-09-08 Tue 16:19]--[2026-09-08 Tue 16:22] =>  0:03
 CLOCK: [2026-09-08 Tue 16:33]--[2026-09-08 Tue 16:34] =>  0:01
 CLOCK: [2026-09-09 Wed 08:18]--[2026-09-09 Wed 08:20] =>  0:02
+- <2026-09-09 Wed 13:34>--<2026-09-09 Wed 13:34> review pass (buffer buried)
 :END:
 
 

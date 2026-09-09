@@ -250,6 +250,17 @@ per-heading branch decision, and do not exempt bug fixes** —
 feature-vs-bugfix has never predicted the practice; wanting an
 integration point is the whole test.
 
+**Rule**: a branch merges to `main` through a **pull request**, never a
+local merge (`:ID:` c7bf2121). Ten consecutive integrations did so
+while the practice lived only in git history, and on 2026-09-08 two
+local `--no-ff` merges broke the streak without tripping anything —
+`gh pr create` when the branch is ready. The trap that broke it is
+worth naming: a question offering "merge now or hold" decides *timing*
+and silently decides *mechanism* too; ask which, or say which. (Whether
+this covers a merge carrying only bookkeeping is an open question on
+the heading — no bookkeeping-only branch has ever existed, since
+maintenance lands on `main` as direct commits.)
+
 **The grouping vocabulary — story, epic, slice, twin — moved into the
 plugin with the conventions** (2026-09-09, the `:ID:` 9d009401
 read-through): the definitions, the emergent-vs-declared axis, the
