@@ -10766,6 +10766,22 @@ So the =(error …)= handler in =--handle-post= does not catch it, and neither d
 
 Sibling of [[id:8f986c6f-7cab-42c5-9a21-01275f271c80][8f986c6f]] under this heading: both are the HTTP server answering wrongly rather than the tools misbehaving.
 
+*Second symptom observed live, 2026-09-09* (folded in from the
+cancelled twin =3f31b788=, captured before this heading was seen —
+the body-carrying =org_outline= surfaced the sibling minutes later):
+the *unknown-method* signal site (=-32601=) fired in production — the
+user saw =error in process filter: peculiar error: -32601, "Method
+not found"= in the minibuffer — and a controlled =curl= probe with
+=logging/setLevel= reproduced it: empty response body, no JSON-RPC
+error object. Two additions for the upstream report: the server's own
+=initialize= reply *advertises a =logging= capability it does not
+implement*, actively inviting the =logging/setLevel= request that
+lands on the unhandled path; and the observed failure at this site
+was silence-plus-minibuffer-noise rather than a client timeout, so
+the symptom varies by site while the cause is the one missing
+=define-error=.
+
+
 
 ** TODO Unknown tool arguments are dropped silently by both dispatch paths :code:
 :PROPERTIES:
@@ -10833,6 +10849,17 @@ plus a handler that turns it into the proper JSON-RPC error reply —
 and either implement or stop advertising =logging=. Until then the
 error is noisy but harmless: the probing client treats the silence as
 an unsupported feature and the tools themselves are unaffected.
+
+Cancelled as a twin of
+[[id:ce012ad4-87f7-435c-a2ee-25210c071865][ce012ad4]], which had the
+full diagnosis and fix sketch since 2026-09-02: same undefined
+=json-rpc-error= symbol, different signal site and symptom. The new
+observations (the =-32601= site firing live, the =logging=-capability
+invitation, the curl reproduction) are folded there. Composed without
+seeing the sibling; caught by the body-carrying outline the read
+split shipped today — the composer-cannot-see-the-twin rule holding
+exactly, and the new tooling doing the reader's catch.
+
 
 * MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
 :PROPERTIES:
