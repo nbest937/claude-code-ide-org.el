@@ -2,6 +2,39 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO claude-org-setup wires the Doom module symlink :code:
+:PROPERTIES:
+:ID:       78a02667-c946-429e-af58-7330070c6e06
+:CREATED:  [2026-09-09 Wed 09:51]
+:END:
+:PLAN:
+Raised by the user 2026-09-09, from the question "how does the plugin
+provide the elisp to a project that does not have this repo locally?"
+The answer is that it does not — the elisp is machine-level, one Emacs,
+reached over localhost — but the machine-level install is a hand step:
+clone, symlink the Doom module, edit init.el. The proposal is a
+=--doom= mode on =claude-org-setup= that creates the
+=~/.config/doom/modules/tools/claude-code-ide-org= symlink from
+=${CLAUDE_PLUGIN_ROOT}= (identical to the clone under =--plugin-dir=)
+and says what to add to =init.el= rather than editing it.
+
+Two constraints to design against rather than discover. Under a
+*managed* install (marketplace/zip, if that ever becomes possible —
+today it cannot, since marketplace plugins may not ship =bin/=) the
+plugin directory is replaced on update, so a symlink into it points at
+churn; the command should detect that case and refuse with the
+clone-based instruction instead of wiring something fragile. And
+editing =init.el= is the user's file, not this module's — print the
+line, never write it (=1caed585='s boundary).
+:END:
+
+The plugin delivers the elisp to the *machine* via the clone, and the
+clone-plus-Doom-symlink step is the one hand-performed part of the
+install. Teach =claude-org-setup= a =--doom= mode that performs it from
+=${CLAUDE_PLUGIN_ROOT}=, refusing (with instructions) where the plugin
+directory is update-managed rather than a clone. Scope and caveats in
+=:PLAN:=.
+
 * TODO Nothing checks promoted rules copies against the plugin references :code:
 :PROPERTIES:
 :ID:       85d24dba-27fb-4a41-adbb-c19617e82e7e
@@ -615,14 +648,14 @@ and the only remaining references to the old convention are historical
 prose in heading bodies and the consumed plan file, left deliberately.
 
 
-* NEXT [0/4] Ship the plugin: make the machinery and its prose travel together :code:
+* NEXT [0/5] Ship the plugin: make the machinery and its prose travel together :code:
 :PROPERTIES:
 :ID:       c19fbbf5-be1b-4c18-a38e-9b46d064abb8
 :CREATED:  [2026-09-08 Tue 09:54]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(b0e478f7-e894-4ac7-b0b6-b3c890b5b32a 9d009401-93dd-40e5-a243-7a30a8a5bd55 ecf66d45-18b3-477f-bca8-08bec90604e8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4)
+:BLOCKER:  ids(b0e478f7-e894-4ac7-b0b6-b3c890b5b32a 9d009401-93dd-40e5-a243-7a30a8a5bd55 78a02667-c946-429e-af58-7330070c6e06 ecf66d45-18b3-477f-bca8-08bec90604e8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4)
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-08 Tue 15:29] \\
@@ -656,6 +689,7 @@ Planned:
 - [ ] [[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]] TODO Package the plugin: references, setup command, machinery prose
 - [-] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] DOING CLAUDE.md carries dated history that costs every session's context
 - [[id:e396f94a-59db-4c6b-80b4-dc144146877b][e396f94a]] MAYBE Package the Warp wiring
+- [ ] [[id:78a02667-c946-429e-af58-7330070c6e06][78a02667]] TODO claude-org-setup wires the Doom module symlink
 - [ ] [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out future work on a timeline the agenda can show
 - [ ] [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
 
