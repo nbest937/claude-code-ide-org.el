@@ -14,6 +14,21 @@
 :ID:       78a02667-c946-429e-af58-7330070c6e06
 :CREATED:  [2026-09-09 Wed 09:51]
 :END:
+:DEBRIEF:
+Shipped as =c0d77e8=. What differed from the plan: the plan's original
+shape (create the symlink) was retired mid-flight by the user's
+question — Doom's =doom-module-load-path= accepts extra module-tree
+roots, verified in the live core, so the mode prints two =init.el=
+lines and touches nothing; the heading was retitled to match. Both
+constraints from the =:PLAN:= held: the managed-copy case refuses with
+the clone instruction (proved by running a copied script from a
+non-git temp tree), and =init.el= is never edited. The
+deprecated-for-v3 marking on the variable travels in the script
+comment, the reference, and this drawer, so a Doom upgrade re-opens
+the question deliberately rather than by breakage. Verified:
+setup-test 23/23 (five new =--doom= checks), the real invocation's
+output eyeballed correct, commit gate green.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-09 Wed 09:50]--[2026-09-09 Wed 09:54] =>  0:04
 - [2026-09-09 Wed 09:50]--[2026-09-09 Wed 09:54] assigned at review
@@ -62,6 +77,12 @@ install. Teach =claude-org-setup= a =--doom= mode that performs it from
 =${CLAUDE_PLUGIN_ROOT}=, refusing (with instructions) where the plugin
 directory is update-managed rather than a clone. Scope and caveats in
 =:PLAN:=.
+
+Resolved 2026-09-09: =claude-org-setup --doom= prints the
+=doom-module-load-path= line and the =:tools= flag for this checkout,
+refuses from an update-managed copy, and writes nothing — the symlink
+the title once named turned out unnecessary.
+
 
 
 * DONE Nothing checks promoted rules copies against the plugin references :code:
@@ -583,6 +604,22 @@ new path.
 :CREATED:  [2026-09-08 Tue 11:56]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+Both recommended steps landed 2026-09-09, in the recommended order:
+the rule into Engineering practices beside the branch policy
+(=f87274b=), with the timing-decides-mechanism trap named; then the
+advisory =pre-push= check (=f57d158=) — reads git's ref lines, scans
+the pushed =main= range with =git log --merges=, prints non-PR merges
+by hash and subject, exit 0 always on that path. Step 3 (do not
+rewrite the two local merges) held: history untouched.
+=bin/pre-push-test= proves discrimination against real history —
+=fee51fd=, one of the two streak-breakers, draws the advisory by
+name; PR #21's merge draws nothing; non-main refs and zero-sha
+remotes are silent; 6/6. What stays open, verbatim from filing:
+whether the rule is every merge to =main= or every code-carrying
+merge — the advisory cannot distinguish them and flags all, which is
+the conservative reading for a reminder.
+:END:
 :LOGBOOK:
 - State "DOING"      from "TODO"       [2026-09-09 Wed 13:36] \\
   writing the PR practice into CLAUDE.md, its step 1
@@ -643,6 +680,13 @@ Engineering practices beside the branch policy, with the
 timing-decides-mechanism trap named and the bookkeeping-merge open
 question kept open. Step 2 — the advisory =pre-push= check — remains,
 and this heading stays =DOING= for it.
+
+Resolved 2026-09-09: the practice is written (CLAUDE.md's Engineering
+practices) and mechanised advisorily — =.githooks/pre-push= names any
+merge on =main= whose subject is not a PR merge, and never blocks. The
+every-merge-vs-code-carrying question stays open; the advisory flags
+all, which errs toward the reminder.
+
 
 
 * DONE The proposal convention's last argument is falsified; an open slice is its own proposal :code:
@@ -723,14 +767,14 @@ and the only remaining references to the old convention are historical
 prose in heading bodies and the consumed plan file, left deliberately.
 
 
-* DOING [3/10] Ship the plugin: make the machinery and its prose travel together :code:
+* DOING [3/11] Ship the plugin: make the machinery and its prose travel together :code:
 :PROPERTIES:
 :ID:       c19fbbf5-be1b-4c18-a38e-9b46d064abb8
 :CREATED:  [2026-09-08 Tue 09:54]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(b0e478f7-e894-4ac7-b0b6-b3c890b5b32a e396f94a-59db-4c6b-80b4-dc144146877b 78a02667-c946-429e-af58-7330070c6e06 c7bf2121-755c-4e52-8bf2-e21e56b1e0c2 1206b5b0-765f-48f7-94a9-0b543cf76487 ecf66d45-18b3-477f-bca8-08bec90604e8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4)
+:BLOCKER:  ids(b0e478f7-e894-4ac7-b0b6-b3c890b5b32a e396f94a-59db-4c6b-80b4-dc144146877b 78a02667-c946-429e-af58-7330070c6e06 c7bf2121-755c-4e52-8bf2-e21e56b1e0c2 1206b5b0-765f-48f7-94a9-0b543cf76487 2a399034-5267-47ed-a129-20e371a77146 ecf66d45-18b3-477f-bca8-08bec90604e8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4)
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-08 Tue 15:29] \\
@@ -771,6 +815,7 @@ Planned:
 - [ ] [[id:78a02667-c946-429e-af58-7330070c6e06][78a02667]] TODO claude-org-setup wires the Doom module
 - [-] [[id:c7bf2121-755c-4e52-8bf2-e21e56b1e0c2][c7bf2121]] DOING Every merge to main went through a PR ten times, and nothing says so
 - [ ] [[id:1206b5b0-765f-48f7-94a9-0b543cf76487][1206b5b0]] TODO org_slice_add_member cannot declare a nested member
+- [ ] [[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]] TODO Split the reads: org_outline carries the body, a second tool serves drawers on demand
 - [ ] [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out future work on a timeline the agenda can show
 - [ ] [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
 
@@ -10735,6 +10780,16 @@ fact in the artifact (=84b7d8b3='s precedent) — is met by PR #22's
 manifest: the plugin's =.mcp.json= hardcodes the port that only the
 personal config block pins, so the plugin now depends on wiring it
 does not ship. The port stays pinned; the scope is in =:PLAN:=.
+
+Built 2026-09-09 as =claude-code-ide-org-standalone-wire= (=966bb0f=),
+to the =:PLAN:= scope exactly: port pinned via defcustom and checked
+loudly against the shipped =.mcp.json=, both refusal paths tested,
+sessions registered per project plus =warp= for the shipped URL, and
+nothing acting at load. Remaining before close: swap the personal
+config block for the two-line form the setup reference now shows, and
+verify live — which needs the module reloaded first; the running
+Emacs still carries only the old hand block.
+
 
 
 * Review and planning
