@@ -29,6 +29,16 @@ upgrade. The old equivalent — symlinking
 `modules/tools/claude-code-ide-org` into `~/.config/doom/modules/tools/`
 — still works and is version-proof.)
 
+- The module's `packages.el` declares `org-ql` itself, but
+  **`claude-code-ide` must be declared in your root `packages.el`**:
+
+  ```elisp
+  (package! claude-code-ide
+    :recipe (:host github :repo "manzaltu/claude-code-ide.el"))
+  ```
+
+  Without it `doom sync` builds nothing to register the tools against —
+  the module's config loads and waits on a package that never arrives.
 - The module needs **org 9.7+** and says so loudly at load — the org
   bundled with Emacs 29 (9.6.x) is not enough; Doom's straight-managed
   org is.
