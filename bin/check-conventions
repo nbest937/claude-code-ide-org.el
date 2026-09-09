@@ -271,6 +271,21 @@ if [ -f "$header_file" ]; then
   fi
 fi
 
+# 2b. The promoted rules copies match the plugin references
+# (TODO.org :ID: 85d24dba). claude-org-setup copies references into
+# .claude/rules/, and a copy is stale from the first reference edit
+# until someone re-runs it — staleness that lands in always-loaded
+# rules, silently. Gated to the real repo: the setup script resolves
+# references relative to ITSELF, so against a fixture root it would
+# compare the fixture's rules to the real references.
+if [ "$root" = "$repo_root" ]; then
+  if drift_out="$("$repo_root/bin/claude-org-setup" --check "$root" 2>&1)"; then
+    check_ok "promoted rules match the plugin references"
+  else
+    check_fail "promoted rules drifted from the plugin references (re-run bin/claude-org-setup): $(printf '%s' "$drift_out" | grep -v '^ok:' | tr '\n' ' ')"
+  fi
+fi
+
 # 3. The single-file check runs last and folds its verdict in, so
 # callers need one command. Skipped against a fixture root, where it
 # would be asserting things about the real repo.

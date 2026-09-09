@@ -28,13 +28,15 @@ promote=(org-conventions.md org-event-queue.md org-state-transitions.md
          org-mcp-tools.md org-session-tracking.md)
 
 force=0
+check=0
 target="$PWD"
 for a in "$@"; do
   case "$a" in
     --force) force=1 ;;
+    --check) check=1 ;;
     --*)
       echo "claude-org-setup: unknown option: $a" >&2
-      echo "usage: claude-org-setup [--force] [TARGET_DIR]" >&2
+      echo "usage: claude-org-setup [--force|--check] [TARGET_DIR]" >&2
       exit 2
       ;;
     *)
@@ -54,6 +56,61 @@ for f in "${promote[@]}"; do
 done
 [ "$missing" = 0 ] || exit 1
 
+provenance() {
+  cat <<EOF
+<!-- $marker from the claude-code-ide-org plugin.
+     Do not edit: changes belong in the plugin's
+     skills/org/references/$1 — re-run claude-org-setup to refresh.
+     This project's own rules take priority over these. -->
+EOF
+}
+
+# Render what promotion would write for reference $1 into file $2.
+render() {
+  if [ "$(head -1 "$refs/$1")" = "---" ]; then
+    # Keep YAML frontmatter first — path scoping only works when it
+    # opens the file — and slot the provenance comment just after it.
+    # (BSD awk refuses newlines in -v strings, hence head/tail.)
+    local fm_end
+    fm_end="$(awk 'NR>1 && /^---$/ {print NR; exit}' "$refs/$1")"
+    if [ -z "$fm_end" ]; then
+      echo "claude-org-setup: unterminated frontmatter in $refs/$1" >&2
+      exit 1
+    fi
+    { head -n "$fm_end" "$refs/$1"; echo; provenance "$1"
+      tail -n "+$((fm_end + 1))" "$refs/$1"; } > "$2"
+  else
+    { provenance "$1"; echo; cat "$refs/$1"; } > "$2"
+  fi
+}
+
+# --check: report drift between the promoted copies and what promotion
+# would write today (TODO.org :ID: 85d24dba — a copy goes stale until
+# this is re-run, and staleness lands in always-loaded rules). Compares
+# against the RENDERED form, so the provenance header never reads as
+# drift. Exit 1 on any drifted or missing copy; writes nothing.
+if [ "$check" = 1 ]; then
+  drifted=0
+  for f in "${promote[@]}"; do
+    dest="$rules_dir/$f"
+    if [ ! -f "$dest" ]; then
+      echo "missing: $dest (run claude-org-setup)"
+      drifted=1
+      continue
+    fi
+    tmp="$(mktemp)"
+    render "$f" "$tmp"
+    if cmp -s "$tmp" "$dest"; then
+      echo "ok:      $dest"
+    else
+      echo "drifted: $dest (re-run claude-org-setup to refresh)"
+      drifted=1
+    fi
+    rm -f "$tmp"
+  done
+  exit "$drifted"
+fi
+
 # Refuse to clobber a hand-maintained file: only files this script wrote
 # (identified by the marker) are overwritten without --force.
 blocked=()
@@ -72,33 +129,11 @@ fi
 
 mkdir -p "$rules_dir"
 
-provenance() {
-  cat <<EOF
-<!-- $marker from the claude-code-ide-org plugin.
-     Do not edit: changes belong in the plugin's
-     skills/org/references/$1 — re-run claude-org-setup to refresh.
-     This project's own rules take priority over these. -->
-EOF
-}
-
 wrote=0
 for f in "${promote[@]}"; do
   dest="$rules_dir/$f"
   tmp="$(mktemp)"
-  if [ "$(head -1 "$refs/$f")" = "---" ]; then
-    # Keep YAML frontmatter first — path scoping only works when it
-    # opens the file — and slot the provenance comment just after it.
-    # (BSD awk refuses newlines in -v strings, hence head/tail.)
-    fm_end="$(awk 'NR>1 && /^---$/ {print NR; exit}' "$refs/$f")"
-    if [ -z "$fm_end" ]; then
-      echo "claude-org-setup: unterminated frontmatter in $refs/$f" >&2
-      exit 1
-    fi
-    { head -n "$fm_end" "$refs/$f"; echo; provenance "$f"
-      tail -n "+$((fm_end + 1))" "$refs/$f"; } > "$tmp"
-  else
-    { provenance "$f"; echo; cat "$refs/$f"; } > "$tmp"
-  fi
+  render "$f" "$tmp"
   mv "$tmp" "$dest"
   chmod 644 "$dest"  # mktemp defaults to 600
   wrote=$((wrote + 1))
