@@ -7,6 +7,30 @@
 :ID:       1206b5b0-765f-48f7-94a9-0b543cf76487
 :CREATED:  [2026-09-09 Wed 13:33]
 :END:
+:DEBRIEF:
+Shipped as =cb520e7=. Design choice worth recording: nesting is taken
+to *declare partial coverage*, so the tool strips the parent's
+checkbox unconditionally — the refresh reads grouping labels
+structurally ("already cookie-less with an indented child") and never
+strips a box itself, so leaving a boxed parent would render
+whole-coverage semantics nobody declared. A story undertaken whole
+needs no nested lines at all, which is why no parameter exposes that
+case. Ancestry is validated against the real org tree
+(=org-up-heading-safe= chain), refusing a member outside the parent's
+subtree; =after== with =parent== is refused rather than given invented
+semantics. Verified end-to-end through the refresh: label stays
+cookie-less, children ordered and counted =[0/2]=, blocker
+=ids(kid-1 kid-2)=; refusals proved write-free. Suite 586/586, commit
+gate green. This morning's hand edit of =c19fbbf5='s list (nesting
+=9d009401= under =02aaae22=) is the incident that filed it.
+:END:
+
+Resolved 2026-09-09, same day it was filed: =org_slice_add_member=
+takes =parent== and lands the line indented under that member, strips
+the parent's checkbox into the grouping-label rendering, and validates
+real org ancestry — the declaration that needed a hand edit this
+morning needs one no longer.
+
 
 
 * TODO claude-org-setup wires the Doom module :code:
@@ -2436,6 +2460,29 @@ as its own pass.
 :CREATED:  [2026-09-02 Wed 15:42]
 :CATEGORY: Tools
 :END:
+:DEBRIEF:
+Shipped as =9075f8e=. The three open design questions closed as: bodies
+*always*, with =bodies=false= as the opt-out (the user: "build it all
+now"); the drawer read is a =drawer== parameter on =org_body=, any
+drawer name, missing drawers erroring with the drawers actually
+present; no rename (=1cd2df62='s churn caution — every doc naming
+=org_body= stays true). Body extraction rides
+=org-end-of-meta-data FULL=, so :PLAN:, :DEBRIEF:, :LOGBOOK: and
+:PROPERTIES: are all excluded from the index — verified by a fixture
+whose drawer content must never appear in the outline. One defect
+caught mid-build by the suite: an unescaped quote in a docstring
+truncated it and left a bare =false= symbol in code position, failing
+every outline test with =(void-variable false)= — the kind of break
+=check-conventions='s reads-as-forms assertion also guards. Suite
+588/588.
+
+*STANDING REMINDER, at the user's request ("tell me when to compact
+the context after the corpus pass"): when =e128e4fa= closes, the
+pre-convention bodies are short, and whichever session notices should
+tell the user it is time to re-measure the unscoped =org_outline= —
+and retire the interim =bodies=false= advice in CLAUDE.md's "Reading
+the tracker" if the numbers support it.*
+:END:
 :PLAN:
 
 *The user's proposal, 2026-09-02.* Once the plan and (per [[id:d5eb32a3-fcee-4a25-b39a-fcde597f6cee][d5eb32a3]]) the debrief live in drawers, a session reading for orientation should get the *body* by default and reach for drawer content deliberately, per item, when it needs depth. The user's sketch: =org_outline= keeps the body, and =org_body= is refactored — possibly renamed — to serve on demand what =org_outline= does not.
@@ -2459,6 +2506,14 @@ and this heading's own plan says sequencing the tool change before
 that "would measure the wrong thing". Deliberately left =TODO= behind
 =e128e4fa='s nomination; its three open design questions are
 unchanged.
+
+Resolved 2026-09-09: built all-now at the user's decision, overriding
+this heading's own wait-for-the-corpus sequencing with eyes open —
+=org_outline= carries each heading's body beneath its line (drawers
+excluded, =bodies=false= to opt out), and =org_body= serves one drawer
+on demand via =drawer==, unrenamed. The deferred half is a
+*measurement*, not code: see the reminder in =:DEBRIEF:=.
+
 
 
 ** DONE Separate plan from debrief across the 73 warned headings, retroactively :code:
@@ -2536,6 +2591,14 @@ serves the write; whether a dedicated seam-free wrapper is worth
 building can be decided when the pass starts). This is the
 precondition =2a399034= names: until bodies are short corpus-wide,
 carrying them in the outline makes it more expensive, not less.
+
+Cross-note 2026-09-09: =2a399034= shipped the read split *before* this
+pass, at the user's call — so when this heading closes, tell the user
+it is time to re-measure the unscoped =org_outline= (bodies now ride
+in the index) and retire the interim =bodies=false= advice in
+CLAUDE.md's "Reading the tracker" if the numbers support it. The full
+reminder lives in =2a399034='s =:DEBRIEF:=.
+
 
 
 * TODO A boolean argument passed as false arrives as :false, which elisp reads as true :code:
