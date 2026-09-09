@@ -7972,6 +7972,75 @@ lets the reader dispute the assignment rather than hunt for it."
         (should (member (cons "incid-001" "slice-002")
                         claude-code-ide-org--incidentals-owned-elsewhere))))))
 
+(ert-deftest claude-code-ide-org-test-planned-lead-anchors-the-member-region ()
+  "An id-link bullet above the Planned: lead is prose, not a member.
+
+TODO.org :ID: a43cfaa0: with the lead anchoring the region's start,
+the conventions' prose-bullet trap dissolves -- a `- [[id:...]]' line
+in the theme prose used to parse as a member with a deleted cookie.
+The fallback stays: with no lead (every closed slice), the scan starts
+at the body as before, which the rest of this suite already pins."
+  (claude-code-ide-org-test--with-slice-window
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-min))
+      (re-search-forward "^- \\[X\\] \\[\\[id:member-01")
+      (beginning-of-line)
+      ;; A decoy bullet in the prose above, then the lead.
+      (insert "- [[id:decoy-99x][decoy-99x]] see also, as prose\n\n"
+              "Planned:\n\n")
+      (save-buffer)
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO \\[1/1\\] A slice")
+      (let ((ids (claude-code-ide-org--slice-planned-member-ids)))
+        (should (member "member-01" ids))
+        (should-not (member "decoy-99x" ids))))))
+
+(ert-deftest claude-code-ide-org-test-refresh-self-heals-the-planned-lead ()
+  "A checklist without its lead gains one through the ordinary refresh.
+
+Same argument as the cookie (28415ca8) and :COOKIE_DATA: (acf46449):
+a marker maintained by a mechanism cannot depend on memory.  Inserted
+directly above the first member line, reported in the summary, and
+idempotent -- the second pass repairs nothing."
+  (claude-code-ide-org-test--with-heading
+    (org-with-point-at (org-id-find id 'marker)
+      (org-entry-put nil "KIND" "slice")
+      (org-end-of-meta-data t)
+      (insert "Theme prose above the list.\n\n"
+              "- [X] [[id:zzz-1][zzz-1]] DONE a finished member\n")
+      (save-buffer))
+    (let ((claude-code-ide-org-query-files (list file)))
+      (should (string-match-p "1 Planned: lead repaired"
+                              (claude-code-ide-org-refresh-slice)))
+      (should (string-match-p
+               "Theme prose above the list\\.\n\nPlanned:\n\n- \\[X\\]"
+               (claude-code-ide-org-test--disk-contents file)))
+      (should-not (string-match-p "lead repaired"
+                                  (claude-code-ide-org-refresh-slice))))))
+
+(ert-deftest claude-code-ide-org-test-add-member-starts-the-checklist-with-its-lead ()
+  "The first member of a bare slice arrives under a freshly written lead.
+
+The lead is load-bearing, so the moment a checklist is born is the
+moment it gets its anchor -- and a lead the composer already wrote is
+reused, with the new line landing one blank beneath it."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO NEXT | DONE\n\n"
+              "* TODO Bare slice\n:PROPERTIES:\n"
+              ":ID:       slice-b1\n:KIND:     slice\n"
+              ":CREATED:  [2026-09-09 Wed 08:00]\n:END:\n\n"
+              "Some theme prose.\n\n"
+              "* TODO A member\n:PROPERTIES:\n:ID:       memb-9\n:END:\n"))
+    (org-id-update-id-locations (list capture-file))
+    (let ((claude-code-ide-org-query-files (list capture-file)))
+      (should (string-prefix-p "Added memb-9"
+                               (claude-code-ide-org-slice-add-member
+                                "slice-b1" "memb-9"))))
+    (should (string-match-p
+             "Some theme prose\\.\n\nPlanned:\n\n- \\[ \\] \\[\\[id:memb-9\\]"
+             (claude-code-ide-org-test--disk-contents capture-file)))))
+
 (ert-deftest claude-code-ide-org-test-a-slice-never-doing-collects-nothing ()
   "A TODO slice owns no close, however its members were clocked.
 
