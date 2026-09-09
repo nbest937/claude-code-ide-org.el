@@ -113,23 +113,39 @@ the next session no matter what; `e396f94a` stays `MAYBE` with its
 promotion trigger being "packaging starts", so the manifest step names
 it. Do not re-litigate these deferrals; the bodies carry the reasoning.
 
-**The tool surface changed on 2026-09-08, and a fresh session has the new
-schemas.** `org_amend` continues a list (single newline when both sides
-are list items) and takes `drawer=` (PLAN/DEBRIEF, created when absent —
-plan-first composition is one call). `org_set_property` `KIND=slice`
+**The tool surface changed on 2026-09-08/09, and a fresh session has the
+new schemas.** `org_amend` continues a list (single newline when both
+sides are list items) and takes `drawer=` (PLAN/DEBRIEF, created when
+absent). **A heading's lifecycle is two calls at each end**: compose
+with `org_amend drawer=PLAN` then the short body; close with the
+authored resolution then the debrief via `drawer=DEBRIEF` — CLAUDE.md's
+`:PLAN:` rule carries the procedure. `org_set_property` `KIND=slice`
 completes the declaration: `:COOKIE_DATA:`, the `[/]` cookie, and the
-`:BLOCKER:` derived from an existing checklist. A drop is declared in the
-slice's `:DROPPED:` property; cookie absence alone means nothing and is
-re-derived. The ceremony refreshes open slices itself and **reports a
-worked slice carrying no `orgit-rev:` prompt link** — expect it to name
-`c19fbbf5` at first work; add the link to this file's rewrite commit at
-pickup rather than waiting for the nag.
+`:BLOCKER:` derived from an existing checklist. `org_slice_add_member`
+adds a member line (with `after=` for ordering) and writes the
+`Planned:` lead when a checklist is born — never hand-edit a checklist.
+A drop is declared in the slice's `:DROPPED:` property; cookie absence
+alone means nothing and is re-derived. `org_outline`'s `scope` takes
+several ids or prefixes at once, one block each. The `Planned:` lead is
+load-bearing (anchors the member region; self-healed by refresh), so
+prose bullets above it are safe. The ceremony refreshes open slices
+itself and **reports a worked slice carrying no `orgit-rev:` prompt
+link** — expect it to name `c19fbbf5` at first work; at pickup add one
+link per revision of this file since composition, oldest first
+(`git log --oneline --follow` on this file lists them, `db4e1bf`
+onward), rather than waiting for the nag.
 
-**The suite's baseline is zero failures** — 574/574 since PR #17
-(2026-09-08) fixed `a8811bf2`'s hardcoded dates. Any failure is real.
-The same PR shipped `org_slice_add_member` (membership edits no longer
-need a hand `emacsclient` call) and scoped the refresh's cookie update
-to the headline, so bracketed `[n/m]` in slice body prose is safe.
+**Incidental attribution now REQUIRES the slice to be `DOING`**
+(`:ID:` 58e6c6a0, the user's ruling): a slice owns a close only while a
+`DOING` span from its state history contains it, and a close made while
+no slice is `DOING` belongs to no slice. Step 0.4 — queue the slice
+`DOING` the moment its work starts — is therefore no longer bookkeeping
+hygiene but the precondition for any fast-tracked incidental being
+credited at all. Skip it and incidental work done during the session
+vanishes from every list, silently and correctly.
+
+**The suite's baseline is zero failures** — 580/580 as of PR #21
+(2026-09-09). Any failure is real.
 
 **CLAUDE.md's prune arithmetic is already measured; do not re-measure.**
 ~660 of ~1200 lines are machinery that ships with the plugin; three
