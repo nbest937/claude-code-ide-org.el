@@ -69,6 +69,31 @@ recommendation is unchanged — the cookie zeroing and blind derivations
 are the binding constraints, not navigation — but the trade should be
 weighed with this stated correctly.
 
+*Verified against the manual and org's source, 2026-09-09 (the user
+asked whether a supported roll-up was missed).* It was not, and the
+question is now closed at three levels. The manual's Checkboxes page
+says a cookie "covers checkboxes of direct children structurally below
+the headline/item", with footnote 50 offering
+=org-checkbox-hierarchical-statistics= to "count all checkboxes below
+the cookie" — wording that reads like subtree roll-up and is not. The
+source is decisive: in =org-list.el='s =org-update-checkbox-count=,
+a headline cookie's counting region runs from the headline to
+=(outline-next-heading)= — the *own section*, never past a child
+headline — and the =recursivep= flag (the variable, or =COOKIE_DATA=
+containing "recursive") is passed to =count-boxes= where it means
+"also count boxes in sub-*lists*". Measured to confirm, three
+variants: boxes under a =**= child count [0/0] on the parent under
+both the property and the variable set nil, and the identical boxes
+count [2/3] the moment they sit in the parent's own section. The
+=recursive= that *does* cross child headings is TODO-keyword
+statistics (=org.el=, =org-hierarchical-todo-statistics=) — a
+different counter, unusable here since a slice must not have keyworded
+children (=dca940c1=). So the experiment's "fighting org's counter"
+phrasing firms up: org offers no supported subtree roll-up for
+checkbox cookies, and adoption would mean owning that roll-up
+entirely.
+
+
 
 
 
