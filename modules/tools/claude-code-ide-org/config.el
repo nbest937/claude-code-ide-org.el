@@ -5721,8 +5721,20 @@ Nothing below the headline can be touched, which is the entire point."
       (if new (org-entry-put nil "BLOCKER" new) (org-entry-delete nil "BLOCKER"))
       t)))
 
-(defun claude-code-ide-org-slice-add-member (slice-id member-id &optional after)
+(defun claude-code-ide-org-slice-add-member (slice-id member-id &optional after parent)
   "Add MEMBER-ID to SLICE-ID's planned checklist, then refresh that slice.
+
+With PARENT -- the id of a planned member whose org subtree contains
+MEMBER-ID -- the line lands *indented under PARENT's line* instead: the
+nested-member declaration (TODO.org :ID: 1206b5b0) that previously
+needed a hand edit.  The parent's own checkbox is stripped, because
+nesting declares partial coverage of a story and a cookie-less line
+with indented member lines beneath it is the grouping-label rendering
+(:ID: 758a8b78); a story undertaken whole needs no nested lines at
+all.  MEMBER-ID must be a real descendant of PARENT in the org tree --
+nested lines render a story's own children, nothing else.  A nested
+member appends after the parent's existing indented block; AFTER
+cannot be combined with PARENT.
 
 The write path TODO.org :ID: 9ae0e452 was filed for: every membership
 edit used to be a hand `emacsclient' call or a direct file write, and
@@ -5771,9 +5783,20 @@ the queue, then add it."
                               (org-get-todo-state)))
                  (member-title (org-with-point-at mmarker
                                  (org-no-properties
-                                  (org-get-heading t t t t)))))
+                                  (org-get-heading t t t t))))
+                 (member-ancestors
+                  (org-with-point-at mmarker
+                    (save-excursion
+                      (let (acc)
+                        (while (org-up-heading-safe)
+                          (let ((aid (org-entry-get nil "ID")))
+                            (when aid (push (downcase aid) acc))))
+                        acc)))))
             (org-with-point-at smarker
               (cond
+               ((and after parent)
+                "Error: pass either after= or parent=, not both -- a nested \
+member always appends last under its parent")
                ((not (claude-code-ide-org--slice-p))
                 (format "Error: \"%s\" is not a :KIND: slice heading; a \
 member line belongs only on a slice's checklist"
@@ -5822,23 +5845,68 @@ a keyword-less member. Give it a keyword (or apply its queued one) first."
                                       (match-beginning 0))))
                          (bound (or lead body-end))
                          (anchor nil))
-                    ;; AFTER names the line to insert below; otherwise
-                    ;; the last planned member line wins.  Only the
-                    ;; planned region is scanned, so an incidental can
-                    ;; never anchor a planned member.
-                    (save-excursion
-                      (while (re-search-forward
-                              claude-code-ide-org--slice-member-regexp bound t)
-                        (when (or (null after)
-                                  (string-prefix-p
-                                   (downcase after)
-                                   (downcase (match-string-no-properties 2))))
-                          (setq anchor (line-end-position)))))
-                    (when (and after (null anchor))
-                      (error "after=%s names no planned member of this slice"
-                             after))
-                    (if anchor
-                        (progn (goto-char anchor) (insert "\n" line))
+                    (if parent
+                        ;; PARENT names the planned line to nest under.
+                        ;; Find it, walk past its existing indented
+                        ;; block, strip its checkbox (a grouping label
+                        ;; is cookie-less by definition, and the refresh
+                        ;; reads that structurally), and land the child
+                        ;; two spaces deeper.
+                        (let (pfull pindent pend pbox-beg pbox-end)
+                          (save-excursion
+                            (catch 'found
+                              (while (re-search-forward
+                                      claude-code-ide-org--slice-member-regexp bound t)
+                                (when (string-prefix-p
+                                       (downcase parent)
+                                       (downcase (match-string-no-properties 2)))
+                                  (setq pfull (downcase (match-string-no-properties 2)))
+                                  (beginning-of-line)
+                                  (looking-at "^\\([ \t]*\\)- \\(\\[[ Xx-]\\] \\)?")
+                                  (setq pindent (match-string-no-properties 1))
+                                  (when (match-beginning 2)
+                                    (setq pbox-beg (copy-marker (match-beginning 2))
+                                          pbox-end (copy-marker (match-end 2))))
+                                  (end-of-line)
+                                  (setq pend (copy-marker (point)))
+                                  (while (save-excursion
+                                           (forward-line 1)
+                                           (and (< (point) bound)
+                                                (looking-at
+                                                 (concat "^" pindent
+                                                         "[ \t]+- \\(\\[[ Xx-]\\] \\)?\\[\\[id:"))))
+                                    (forward-line 1)
+                                    (end-of-line)
+                                    (set-marker pend (point)))
+                                  (throw 'found t)))))
+                          (unless pend
+                            (error "parent=%s names no planned member of this slice"
+                                   parent))
+                          (unless (member pfull member-ancestors)
+                            (error "%s is not inside %s's subtree -- a nested member line renders a story's own child, nothing else"
+                                   (claude-code-ide-org--id-prefix member-full)
+                                   (claude-code-ide-org--id-prefix pfull)))
+                          (when pbox-beg
+                            (delete-region pbox-beg pbox-end))
+                          (goto-char pend)
+                          (insert "\n" pindent "  " line))
+                      ;; AFTER names the line to insert below; otherwise
+                      ;; the last planned member line wins.  Only the
+                      ;; planned region is scanned, so an incidental can
+                      ;; never anchor a planned member.
+                      (save-excursion
+                        (while (re-search-forward
+                                claude-code-ide-org--slice-member-regexp bound t)
+                          (when (or (null after)
+                                    (string-prefix-p
+                                     (downcase after)
+                                     (downcase (match-string-no-properties 2))))
+                            (setq anchor (line-end-position)))))
+                      (when (and after (null anchor))
+                        (error "after=%s names no planned member of this slice"
+                               after))
+                      (if anchor
+                          (progn (goto-char anchor) (insert "\n" line))
                       ;; No checklist yet: insert beneath an existing
                       ;; Planned: lead, or start one -- lead included,
                       ;; since the lead is load-bearing and this is the
@@ -5864,7 +5932,7 @@ a keyword-less member. Give it a keyword (or apply its queued one) first."
                           (skip-chars-backward " \t\n")
                           (insert "\n\n"
                                   claude-code-ide-org--slice-planned-lead
-                                  "\n\n" line "\n")))))
+                                  "\n\n" line "\n"))))))
                   ;; The refresh re-derives the rendering, cookie and
                   ;; :BLOCKER: from the list that now includes the new
                   ;; line -- so what lands is exactly what a refresh
@@ -5874,10 +5942,12 @@ a keyword-less member. Give it a keyword (or apply its queued one) first."
                   (format "Added %s to \"%s\"%s; cookie and :BLOCKER: refreshed"
                           (claude-code-ide-org--id-prefix member-full)
                           slice-title
-                          (if after
-                              (format " after %s"
-                                      (claude-code-ide-org--id-prefix after))
-                            "")))))))
+                          (cond
+                           (parent (format " nested under %s, whose line is now a grouping label"
+                                           (claude-code-ide-org--id-prefix parent)))
+                           (after (format " after %s"
+                                          (claude-code-ide-org--id-prefix after)))
+                           (t ""))))))))
         (error (format "Error: %s" (error-message-string err))))))))
 
 (defun claude-code-ide-org--trigger-auto-clock-in (change-plist)
@@ -13945,7 +14015,12 @@ the project list."
                  "a member with no TODO keyword on disk (apply a queued "
                  "capture first -- org-depend blocks only on an unfinished "
                  "keyword); and a file with unsaved human edits (retry once "
-                 "saved). Both ids accept an 8-character prefix.")
+                 "saved). With parent= the line lands INDENTED under that "
+                 "planned member instead -- the nested-member declaration for "
+                 "a story the slice covers only partially: the member must be "
+                 "inside the parent's org subtree, and the parent's line "
+                 "becomes a cookie-less grouping label. All ids accept an "
+                 "8-character prefix.")
    :args '((:name "slice_id"
             :type string
             :description "The :ID: of the slice heading (or an 8-character prefix). Must carry :KIND: slice and an unfinished keyword.")
@@ -13955,7 +14030,11 @@ the project list."
            (:name "after"
             :type string
             :optional t
-            :description "Optional. An existing planned member's :ID: or 8-character prefix; the new line is inserted directly after that member's line. Omit to append at the end of the planned checklist.")))
+            :description "Optional. An existing planned member's :ID: or 8-character prefix; the new line is inserted directly after that member's line. Omit to append at the end of the planned checklist. Not combinable with parent.")
+           (:name "parent"
+            :type string
+            :optional t
+            :description "Optional. A planned member's :ID: or 8-character prefix whose org subtree contains member_id; the new line lands indented under it, last in its nested block, and the parent's line becomes a cookie-less grouping label (partial coverage of a story). Not combinable with after.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-divide

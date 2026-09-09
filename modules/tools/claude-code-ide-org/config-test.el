@@ -14161,3 +14161,68 @@ lands in upstream's variable only on the success path."
                        ("warp" . "/tmp/repo-alpha"))))
       (should (equal (nreverse started) '("/tmp/repo-alpha" "/tmp/repo-beta")))
       (should (= claude-code-ide-mcp-server-port 45571)))))
+
+;;; Nested slice members (TODO.org :ID: 1206b5b0)
+
+(defmacro claude-code-ide-org-test--with-nesting-fixture (&rest body)
+  "A slice whose one planned member is a story with two children."
+  (declare (indent 0))
+  `(claude-code-ide-org-test--with-capture-file
+     (with-temp-file capture-file
+       (insert "#+TODO: TODO NEXT DOING | DONE CANCELLED\n\n"
+               "* TODO [0/1] A nesting slice\n:PROPERTIES:\n"
+               ":ID:       slice-n1\n:KIND:     slice\n"
+               ":COOKIE_DATA: checkbox recursive\n"
+               ":CREATED:  [2026-09-09 Wed 09:00]\n:END:\n\n"
+               "The theme.\n\n"
+               "- [ ] [[id:story-1][story-1]] TODO A story member\n\n"
+               "* TODO A story member\n:PROPERTIES:\n:ID:       story-1\n:END:\n"
+               "** TODO Story child\n:PROPERTIES:\n:ID:       kid-1\n:END:\n"
+               "** TODO Another child\n:PROPERTIES:\n:ID:       kid-2\n:END:\n"
+               "* TODO An outsider\n:PROPERTIES:\n:ID:       out-1\n:END:\n"))
+     (org-id-update-id-locations (list capture-file))
+     (let ((claude-code-ide-org-query-files (list capture-file)))
+       ,@body)))
+
+(ert-deftest claude-code-ide-org-test-slice-add-member-nests-under-a-parent ()
+  "parent= lands the line indented under the parent's line, strips the
+parent's checkbox (a grouping label is cookie-less by definition, and
+the refresh reads that structurally), and a second nested child appends
+last in the block.  Cookie and blocker count the children, never the
+label."
+  (claude-code-ide-org-test--with-nesting-fixture
+    (let ((reply (claude-code-ide-org-slice-add-member
+                  "slice-n1" "kid-1" nil "story-1")))
+      (should (string-match-p "nested under story-1" reply))
+      (should (string-match-p "grouping label" reply)))
+    (claude-code-ide-org-slice-add-member "slice-n1" "kid-2" nil "story-1")
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      ;; Parent line cookie-less, children indented beneath, in order.
+      (should (string-match-p
+               "- \\[\\[id:story-1\\]\\[story-1\\]\\] TODO A story member\n  - \\[ \\] \\[\\[id:kid-1\\]\\[kid-1\\]\\] TODO Story child\n  - \\[ \\] \\[\\[id:kid-2\\]\\[kid-2\\]\\] TODO Another child\n"
+               disk))
+      ;; The label is uncounted; both children are.
+      (should (string-match-p "\\[0/2\\] A nesting slice" disk))
+      ;; The children enter the blocker on their own account; the
+      ;; cookie-less label does not.
+      (should (string-match-p "BLOCKER:[ \t]*ids(kid-1 kid-2)" disk)))))
+
+(ert-deftest claude-code-ide-org-test-slice-add-member-parent-refusals ()
+  "Each parent refusal names its rule and none of them writes: a parent
+that is not a planned member, a member outside the parent's subtree,
+and after= combined with parent=."
+  (claude-code-ide-org-test--with-nesting-fixture
+    (should (string-match-p "names no planned member"
+                            (claude-code-ide-org-slice-add-member
+                             "slice-n1" "kid-1" nil "out-1")))
+    (should (string-match-p "not inside"
+                            (claude-code-ide-org-slice-add-member
+                             "slice-n1" "out-1" nil "story-1")))
+    (should (string-match-p "not both"
+                            (claude-code-ide-org-slice-add-member
+                             "slice-n1" "kid-1" "story-1" "story-1")))
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      (should-not (string-match-p "id:kid-1" disk))
+      (should-not (string-match-p "id:out-1" disk))
+      ;; The parent's checkbox survives every refusal.
+      (should (string-match-p "- \\[ \\] \\[\\[id:story-1\\]" disk)))))
