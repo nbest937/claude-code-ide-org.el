@@ -8741,6 +8741,42 @@ CLOSED: [2026-08-21 Fri 12:45]
 :CREATED:  [2026-08-21 Fri 12:47]
 :BLOCKER:  ids(9ae4b17e-278c-482f-9114-df28b2254806)
 :END:
+:DEBRIEF:
+What shipped (2026-09-09, commit =6b2279a= on =feature/plugin-package=,
+with the packaging commit =42a3221= doing the relocation half): the
+epic-vs-=:EPIC:= guard, the datetree belongs-to-another-system lesson,
+and the revision/condensing policy with its drift evidence moved into
+the shipped org-conventions reference; the vocabulary band (~155
+lines) and the composition/close band became pointer stubs keeping a
+one-screen map plus the genuinely local remainder (the backlog pass,
+=b5f94b88=, =plans/= durability); branch archaeology condensed to
+explicit anti-patterns at the user's instruction; the pmset won't-do
+shrank to a pointer at =7771fc63= per settled decision 3; the two
+=:PLAN:=-link retired-forms parentheticals, the tracker anecdote, the
+commands dating, and the preamble's dangling "Direction" pointer were
+deleted.
+
+How the sequencing was verified right: the audience-cuts-first
+forecast held exactly — the contested ~70-line estimate dissolved
+because most of those blocks travelled with their sections at
+packaging, and what the read-through actually adjudicated was the
+*duplication* the packaging exposed, which the estimate never named.
+
+What was falsified: my recommendation to keep the revision/condensing
+policy local rested on an unstated greenfield assumption about
+consuming repos; the user's challenge surfaced it and the policy
+travelled (brownfield adopters face the retroactive-wrap situation,
+and the policy belongs with =org_wrap_plan=).
+
+Incidental find, fixed in the same commit: the packaging extraction
+had dropped one line from the datetree section (an inclusive-bound
+off-by-one), caught by this pass's anchor asserts — the promoted
+copies in PR #22 briefly shipped without "carries both. =bin/lint-org=
+knows the difference."
+
+Verified: =bin/check-conventions= all ok after regenerating the
+promoted copies; no org-file changes, so no lint run owed.
+:END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-21 Fri 12:48] \\
   filed from audit, prune needs user in loop
@@ -8900,6 +8936,13 @@ never touches them. And the contested ~70 lines are deliberately
 deferred until *after* packaging relocates its share — audience cuts
 first, so judgement is spent only on what remains. That dedicated
 read-through is this heading's remaining work.
+
+Resolved 2026-09-09: packaging relocated the machinery's share and the
+contested read-through settled the remainder with the user block by
+block — the unique guards travelled into the shipped conventions,
+duplication became pointer stubs, and CLAUDE.md fell 1294 → 430 lines
+in one day without deleting a still-working guard.
+
 
 
 ** DONE The file-header template omits #+STARTUP:, which both files carry :code:
