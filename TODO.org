@@ -11578,26 +11578,10 @@ CLOCK: [2026-09-09 Wed 08:24]--[2026-09-09 Wed 08:25] =>  0:01
 - [2026-09-09 Wed 08:24]--[2026-09-09 Wed 08:25] retroactive bracket: next-session.md readiness pass
 CLOCK: [2026-09-09 Wed 08:30]--[2026-09-09 Wed 08:31] =>  0:01
 - [2026-09-09 Wed 08:30]--[2026-09-09 Wed 08:31] slice c19fbbf5 pickup, step 0 preliminaries
-CLOCK: [2026-09-09 Wed 08:31]--[2026-09-09 Wed 08:36] =>  0:05
-- [2026-09-09 Wed 08:31]--[2026-09-09 Wed 08:36] slice c19fbbf5 pickup, step 0 preliminaries
-CLOCK: [2026-09-09 Wed 08:56]--[2026-09-09 Wed 09:14] =>  0:18
-- [2026-09-09 Wed 08:56]--[2026-09-09 Wed 09:14] slice c19fbbf5 pickup, step 0 preliminaries
-CLOCK: [2026-09-09 Wed 09:24]--[2026-09-09 Wed 09:25] =>  0:01
-- [2026-09-09 Wed 09:24]--[2026-09-09 Wed 09:25] slice c19fbbf5 pickup, step 0 preliminaries
-CLOCK: [2026-09-09 Wed 09:27]--[2026-09-09 Wed 09:28] =>  0:01
-- [2026-09-09 Wed 09:27]--[2026-09-09 Wed 09:28] slice c19fbbf5 pickup, step 0 preliminaries
-CLOCK: [2026-09-09 Wed 09:50]--[2026-09-09 Wed 09:54] =>  0:04
-- [2026-09-09 Wed 09:50]--[2026-09-09 Wed 09:54] slice c19fbbf5 pickup, step 0 preliminaries
-CLOCK: [2026-09-09 Wed 09:59]--[2026-09-09 Wed 10:02] =>  0:03
-- [2026-09-09 Wed 09:59]--[2026-09-09 Wed 10:02] slice c19fbbf5 pickup, step 0 preliminaries
-CLOCK: [2026-09-09 Wed 11:34]--[2026-09-09 Wed 11:35] =>  0:01
-- [2026-09-09 Wed 11:34]--[2026-09-09 Wed 11:35] slice c19fbbf5 pickup, step 0 preliminaries
-CLOCK: [2026-09-09 Wed 11:35]--[2026-09-09 Wed 11:41] =>  0:06
-- [2026-09-09 Wed 11:35]--[2026-09-09 Wed 11:41] slice c19fbbf5 pickup, step 0 preliminaries
 CLOCK: [2026-09-09 Wed 13:18]--[2026-09-09 Wed 13:21] =>  0:03
 - [2026-09-09 Wed 13:18]--[2026-09-09 Wed 13:21] root-cause unattributed spans, file discipline fix
 CLOCK: [2026-09-09 Wed 13:21]--[2026-09-09 Wed 13:22] =>  0:01
 - [2026-09-09 Wed 13:21]--[2026-09-09 Wed 13:22] slice c19fbbf5 pickup, step 0 preliminaries
-CLOCK: [2026-09-09 Wed 13:25]--[2026-09-09 Wed 13:36] =>  0:11
-- [2026-09-09 Wed 13:25]--[2026-09-09 Wed 13:36] slice c19fbbf5 pickup, step 0 preliminaries
+CLOCK: [2026-09-09 Wed 13:25]--[2026-09-09 Wed 13:33] =>  0:08
+- [2026-09-09 Wed 13:25]--[2026-09-09 Wed 13:33] slice c19fbbf5 pickup, step 0 preliminaries
 :END:
