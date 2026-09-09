@@ -2,6 +2,11 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Nothing checks promoted rules copies against the plugin references :code:
+:PROPERTIES:
+:ID:       85d24dba-27fb-4a41-adbb-c19617e82e7e
+:CREATED:  [2026-09-09 Wed 09:13]
+:END:
 * TODO README documents plugin installation :docs:
 :PROPERTIES:
 :ID:       62bccf40-2f09-4ba3-a51a-908ec5c48f6a
