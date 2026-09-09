@@ -2,6 +2,11 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO README documents plugin installation :docs:
+:PROPERTIES:
+:ID:       62bccf40-2f09-4ba3-a51a-908ec5c48f6a
+:CREATED:  [2026-09-09 Wed 09:05]
+:END:
 * DONE The Planned: lead becomes load-bearing: member anchor, insertion point, self-heal :code:
 CLOSED: [2026-09-09 Wed 08:16]
 :PROPERTIES:
