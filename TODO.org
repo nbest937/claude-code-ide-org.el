@@ -7,6 +7,8 @@
 :ID:       1206b5b0-765f-48f7-94a9-0b543cf76487
 :CREATED:  [2026-09-09 Wed 13:33]
 :END:
+
+
 * TODO claude-org-setup wires the Doom module :code:
 :PROPERTIES:
 :ID:       78a02667-c946-429e-af58-7330070c6e06
@@ -62,10 +64,19 @@ directory is update-managed rather than a clone. Scope and caveats in
 =:PLAN:=.
 
 
-* TODO Nothing checks promoted rules copies against the plugin references :code:
+* DONE Nothing checks promoted rules copies against the plugin references :code:
+CLOSED: [2026-09-09 Wed 13:36]
 :PROPERTIES:
 :ID:       85d24dba-27fb-4a41-adbb-c19617e82e7e
 :CREATED:  [2026-09-09 Wed 09:13]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-09 Wed 13:33]--[2026-09-09 Wed 13:35] =>  0:02
+- State "DOING"      from "TODO"       [2026-09-09 Wed 13:33] \\
+  building the drift check as slice incidental
+- [2026-09-09 Wed 13:33]--[2026-09-09 Wed 13:35] claude-org-setup --check plus commit-gate wiring
+- State "DONE"       from "DOING"      [2026-09-09 Wed 13:36] \\
+  check built, gated, mutation-proved
 :END:
 :DEBRIEF:
 Shipped as =6a1467b= on =feature/plugin-package=. One render path
@@ -85,7 +96,6 @@ Resolved 2026-09-09, same day it was filed: =claude-org-setup --check=
 compares every promoted copy against a fresh render and
 =bin/check-conventions= runs it at the commit gate, so a drifted copy
 now refuses a commit by name instead of loading stale.
-
 
 
 * DONE README documents plugin installation :docs:
@@ -567,11 +577,15 @@ swapped back; the existing self-heals test pins the count through the
 new path.
 
 
-* TODO Every merge to main went through a PR ten times, and nothing says so :code:
+* DOING Every merge to main went through a PR ten times, and nothing says so :code:
 :PROPERTIES:
 :ID:       c7bf2121-755c-4e52-8bf2-e21e56b1e0c2
 :CREATED:  [2026-09-08 Tue 11:56]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-09-09 Wed 13:36] \\
+  writing the PR practice into CLAUDE.md, its step 1
 :END:
 
 Raised by the user 2026-09-08 on noticing that this session's merges to
@@ -629,7 +643,6 @@ Engineering practices beside the branch policy, with the
 timing-decides-mechanism trap named and the bookkeeping-merge open
 question kept open. Step 2 — the advisory =pre-push= check — remains,
 and this heading stays =DOING= for it.
-
 
 
 * DONE The proposal convention's last argument is falsified; an open slice is its own proposal :code:
@@ -710,14 +723,14 @@ and the only remaining references to the old convention are historical
 prose in heading bodies and the consumed plan file, left deliberately.
 
 
-* DOING [1/7] Ship the plugin: make the machinery and its prose travel together :code:
+* DOING [3/10] Ship the plugin: make the machinery and its prose travel together :code:
 :PROPERTIES:
 :ID:       c19fbbf5-be1b-4c18-a38e-9b46d064abb8
 :CREATED:  [2026-09-08 Tue 09:54]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(b0e478f7-e894-4ac7-b0b6-b3c890b5b32a 9d009401-93dd-40e5-a243-7a30a8a5bd55 e396f94a-59db-4c6b-80b4-dc144146877b 78a02667-c946-429e-af58-7330070c6e06 ecf66d45-18b3-477f-bca8-08bec90604e8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4)
+:BLOCKER:  ids(b0e478f7-e894-4ac7-b0b6-b3c890b5b32a e396f94a-59db-4c6b-80b4-dc144146877b 78a02667-c946-429e-af58-7330070c6e06 c7bf2121-755c-4e52-8bf2-e21e56b1e0c2 1206b5b0-765f-48f7-94a9-0b543cf76487 ecf66d45-18b3-477f-bca8-08bec90604e8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4)
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-08 Tue 15:29] \\
@@ -752,10 +765,12 @@ the hooks move.
 Planned:
 
 - [-] [[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]] REVIEW Package the plugin: references, setup command, machinery prose
-- [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] DOING [19/20] Update CLAUDE.md and the org skill for the new architecture
-  - [-] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] REVIEW CLAUDE.md carries dated history that costs every session's context
+- [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] DONE Update CLAUDE.md and the org skill for the new architecture
+  - [X] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] DONE CLAUDE.md carries dated history that costs every session's context
 - [ ] [[id:e396f94a-59db-4c6b-80b4-dc144146877b][e396f94a]] TODO Package the Warp wiring
 - [ ] [[id:78a02667-c946-429e-af58-7330070c6e06][78a02667]] TODO claude-org-setup wires the Doom module
+- [-] [[id:c7bf2121-755c-4e52-8bf2-e21e56b1e0c2][c7bf2121]] DOING Every merge to main went through a PR ten times, and nothing says so
+- [ ] [[id:1206b5b0-765f-48f7-94a9-0b543cf76487][1206b5b0]] TODO org_slice_add_member cannot declare a nested member
 - [ ] [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out future work on a timeline the agenda can show
 - [ ] [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
 
@@ -790,6 +805,7 @@ The prompt that drives this slice, one link per revision, oldest first:
 Incidental:
 
 - [X] [[id:62bccf40-2f09-4ba3-a51a-908ec5c48f6a][62bccf40]] DONE README documents plugin installation
+- [X] [[id:85d24dba-27fb-4a41-adbb-c19617e82e7e][85d24dba]] DONE Nothing checks promoted rules copies against the plugin references
 
 
 * DONE One incidental lands in every open slice's window, and the cookies double-count it :code:
@@ -1151,6 +1167,39 @@ should now say both channels, as decided.
 :BLOCKER:  ids(d5345abb-b451-4468-8f27-4bb2da983215)
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+What shipped (=42a3221=, plus =6a1467b= adding the drift check the
+close had filed as residue): =.claude-plugin/plugin.json= naming the
+plugin =claude-code-ide-org=; =hooks/hooks.json= carrying every hook
+via =${CLAUDE_PLUGIN_ROOT}= (the user's call: everything ships,
+footnote/doc-sync included); =skills/org/= as the skill's canonical
+home with =.claude/skills/org= a symlink back; six =references/=
+carrying the machinery prose moved verbatim plus install guidance;
+=bin/claude-org-setup= promoting conventions (path-scoped) and four
+machinery rules (always-loaded, full strength) into a consuming repo's
+=.claude/rules/= — this repo its own first consumer, its machinery
+rules now generated files.
+
+How verified: =bin/test= 580/580; =lint-org= 0 errors;
+=check-conventions= green with the six new files and a fifth
+keyword-set copy added, each new assertion given a discriminating
+fixture case; =claude-org-setup-test= built alongside the command;
+fresh-session checks in this repo (symlinked skill discovered,
+promoted rules load) and from a scratch consumer dir with
+=--plugin-dir= (plugin loads, skill namespaced, MCP server
+registered).
+
+What was falsified or found: the difficulty inversion held exactly as
+=9ae4b17e= re-measured it — machinery packaging was documented and
+smooth, prose delivery needed the setup command. Marketplace
+distribution is closed for now (plugins distributed that way may not
+ship =bin/=, and every hook lives there); local =--plugin-dir= is the
+supported path. One defect: the extraction dropped a line from the
+datetree section (inclusive-bound off-by-one), caught next session by
+the read-through's anchor asserts and fixed in =6b2279a=. Residue
+filed and since closed: =85d24dba= (drift check). Residue open:
+=1caed585='s elisp-global-hooks half, untouched by packaging.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-09 Wed 08:31]--[2026-09-09 Wed 08:36] =>  0:05
 - State "DOING"      from "TODO"       [2026-09-09 Wed 08:31] \\
@@ -1161,7 +1210,9 @@ CLOCK: [2026-09-09 Wed 08:56]--[2026-09-09 Wed 09:13] =>  0:17
 - State "REVIEW"     from "DOING"      [2026-09-09 Wed 09:13] \\
   four deliverables shipped on feature/plugin-package
 :END:
+:PLAN:
 
+:END:
 Where the three portability decisions recorded on
 [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] (2026-09-04)
 execute. Build the plugin manifest (=.claude-plugin/plugin.json=), ship
@@ -1173,6 +1224,13 @@ rules, tool tables, session tracking — in this same change, so
 instructions and machinery land together. Blocked on the audit
 relocating the SKILL and RULE rows first, so prose moves once, not
 twice.
+
+Resolved 2026-09-09: the repo is the plugin. Manifest, hooks,
+references, portable conventions and the =claude-org-setup= promotion
+command shipped together as PR #22's =42a3221=, and CLAUDE.md's
+machinery prose travels with the plugin instead of describing a system
+another repo cannot run.
+
 
 
 * TODO session-context.sh reports which groupings lack a NEXT, never which headings hold one
@@ -3810,6 +3868,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-09 Wed 13:37]--[2026-09-09 Wed 13:38] =>  0:01
 CLOCK: [2026-09-09 Wed 13:11]--[2026-09-09 Wed 13:14] =>  0:03
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
@@ -8085,7 +8144,8 @@ but =claude -p= asynchronously.
   than the conclusion being cited. The story is f90d745e.
 
 
-* DOING [19/20] Update CLAUDE.md and the org skill for the new architecture :code:
+* DONE [20/20] Update CLAUDE.md and the org skill for the new architecture :code:
+CLOSED: [2026-09-09 Wed 13:20]
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       02aaae22-0958-4c0f-b5bb-2cbea32416ae
@@ -8141,6 +8201,8 @@ CLOCK: [2026-09-02 Wed 08:57]--[2026-09-02 Wed 09:00] =>  0:03
 - [2026-09-02 Wed 08:57]--[2026-09-02 Wed 09:00] redistribute the body into children
 CLOCK: [2026-09-02 Wed 09:06]--[2026-09-02 Wed 09:14] =>  0:08
 - [2026-09-02 Wed 09:06]--[2026-09-02 Wed 09:14] redistribute the body into children
+- State "DONE"       from "DOING"      [2026-09-09 Wed 13:20] \\
+  twentieth child closed; story complete
 :END:
 :PLAN:
 
@@ -8237,7 +8299,6 @@ Resolved 2026-09-09: all twenty children are closed — the last,
 — so the story's subject no longer exists in the form it named:
 CLAUDE.md is 430 lines of this repo's own practices plus pointer
 stubs, and the machinery prose ships with the plugin.
-
 
 
 ** DONE Correct CLAUDE.md's account of the queue architecture :code:
@@ -8824,7 +8885,8 @@ CLOSED: [2026-08-21 Fri 12:45]
 *Shipped 2026-08-21* (commit =0ca1363=). Four claims reconciled at source, each verified before writing: the hook safety net is live (five guards read out of =config.el:2792-2795=, gate default =t= at =config.el:2454=), not "not built yet"; deletion-irreversibility rescoped to =plans/= only, matching the org skill; the read-only rule regained its restore-when-done half, which had lived only in a memory file; and =REVIEW= got transition-table rows (clock-wise identical to =WAITING=) after a day in live use with no written semantics. The dangling pointer to a since-deleted "Enforce the transition rules" heading went with the rewrite. The falsified concurrent-session sentence in the =feedback_concurrent_editing= memory was corrected in the same pass (memory dir, outside this repo).
 
 
-** REVIEW CLAUDE.md carries dated history that costs every session's context :code:
+** DONE CLAUDE.md carries dated history that costs every session's context :code:
+CLOSED: [2026-09-09 Wed 13:20]
 :PROPERTIES:
 :ID:       9d009401-93dd-40e5-a243-7a30a8a5bd55
 :CREATED:  [2026-08-21 Fri 12:47]
@@ -8882,6 +8944,8 @@ CLOCK: [2026-09-09 Wed 11:35]--[2026-09-09 Wed 11:41] =>  0:06
 - [2026-09-09 Wed 11:35]--[2026-09-09 Wed 11:41] the contested read-through, user in the loop
 - State "REVIEW"     from "DOING"      [2026-09-09 Wed 11:41] \\
   every block decided with the user; judgement on the result remains
+- State "DONE"       from "REVIEW"     [2026-09-09 Wed 13:20] \\
+  review passed: relocation and read-through accepted
 :END:
 :PLAN:
 
@@ -11282,4 +11346,6 @@ CLOCK: [2026-09-09 Wed 08:21]--[2026-09-09 Wed 08:22] =>  0:01
 - [2026-09-09 Wed 08:21]--[2026-09-09 Wed 08:22] assigned at review
 CLOCK: [2026-09-09 Wed 08:24]--[2026-09-09 Wed 08:25] =>  0:01
 - [2026-09-09 Wed 08:24]--[2026-09-09 Wed 08:25] retroactive bracket: next-session.md readiness pass
+CLOCK: [2026-09-09 Wed 13:18]--[2026-09-09 Wed 13:21] =>  0:03
+- [2026-09-09 Wed 13:18]--[2026-09-09 Wed 13:21] root-cause unattributed spans, file discipline fix
 :END:
