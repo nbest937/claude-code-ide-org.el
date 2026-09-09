@@ -2,15 +2,32 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO DOOM.md documents the sandbox review procedure :docs:
+* DONE DOOM.md documents the sandbox review procedure :docs:
+CLOSED: [2026-09-09 Wed 14:57]
 :PROPERTIES:
 :ID:       94d36eb7-3a91-4435-a8e0-69e5a3451cce
 :CREATED:  [2026-09-09 Wed 14:57]
 :END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-09-09 Wed 14:57] \\
+  DOOM.md written with the per-clone port answer
+:END:
+
+
 * TODO An unmatched clock_in grows an ever-wider span across review passes :code:
 :PROPERTIES:
 :ID:       58332dd1-fb49-4e98-a5e3-4b71ff62c995
 :CREATED:  [2026-09-09 Wed 14:36]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-09 Wed 14:32]--[2026-09-09 Wed 14:37] =>  0:05
+- [2026-09-09 Wed 14:32]--[2026-09-09 Wed 14:37] assigned at review
+CLOCK: [2026-09-09 Wed 14:43]--[2026-09-09 Wed 14:47] =>  0:04
+- [2026-09-09 Wed 14:43]--[2026-09-09 Wed 14:47] assigned at review
+CLOCK: [2026-09-09 Wed 14:49]--[2026-09-09 Wed 14:53] =>  0:04
+- [2026-09-09 Wed 14:49]--[2026-09-09 Wed 14:53] assigned at review
+CLOCK: [2026-09-09 Wed 14:56]--[2026-09-09 Wed 15:01] =>  0:05
+- [2026-09-09 Wed 14:56]--[2026-09-09 Wed 15:01] assigned at review
 :END:
 :PLAN:
 Caught by the user 2026-09-09, mid-review: a span [08:30]--[13:36]
@@ -46,6 +63,25 @@ the clock fine at apply, but the review re-derives the unmatched
 never consumable. Proposed: pairing treats a later same-lane
 =clock_in= as closing the open bracket, matching what apply actually
 does. Diagnosis in =:PLAN:=.
+
+*Worse than filed, measured 2026-09-09 15:0x when the user accepted
+the span:* apply wrote the envelope's runs onto the day node
+*including ~45 minutes already credited to headings* — 08:31–08:36
+and 08:56–09:14 (=b0e478f7=), 09:24–09:28 (=e396f94a=), 09:50–10:02
+(=78a02667=/=9d009401=), 11:34–11:41 (=9d009401=), and 13:25–13:36
+overlapping =85d24dba=. Permission blocks *were* subtracted; sibling
+clock brackets were not, and consumed guideposts were re-offered — so
+the =eaeeb4ee= guard covers the orphan span path but NOT this
+unmatched-clock_in residue path, which reads full history. The defect
+is therefore not only an unkillable growing item: accepting it
+double-writes. The session's earlier analysis asserted the opposite
+("runs subtract owned brackets", "emission is pending-only") and both
+claims are falsified for this path; the day-node record was hand
+-corrected by the user afterwards. Fix priority rises accordingly:
+the same-lane-close pairing fix in this =:PLAN:= would have made the
+item a normal bracket and prevented the whole class.
+
+
 
 * REVIEW org_slice_add_member cannot declare a nested member :code:
 :PROPERTIES:
@@ -853,7 +889,7 @@ and the only remaining references to the old convention are historical
 prose in heading bodies and the consumed plan file, left deliberately.
 
 
-* DOING [4/11] Ship the plugin: make the machinery and its prose travel together :code:
+* DOING [5/12] Ship the plugin: make the machinery and its prose travel together :code:
 :PROPERTIES:
 :ID:       c19fbbf5-be1b-4c18-a38e-9b46d064abb8
 :CREATED:  [2026-09-08 Tue 09:54]
@@ -937,6 +973,7 @@ Incidental:
 
 - [X] [[id:62bccf40-2f09-4ba3-a51a-908ec5c48f6a][62bccf40]] DONE README documents plugin installation
 - [X] [[id:85d24dba-27fb-4a41-adbb-c19617e82e7e][85d24dba]] DONE Nothing checks promoted rules copies against the plugin references
+- [X] [[id:94d36eb7-3a91-4435-a8e0-69e5a3451cce][94d36eb7]] DONE DOOM.md documents the sandbox review procedure
 
 
 * DONE One incidental lands in every open slice's window, and the cookies double-count it :code:
@@ -4044,6 +4081,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-09 Wed 15:02]--[2026-09-09 Wed 15:03] =>  0:01
 CLOCK: [2026-09-09 Wed 14:30]--[2026-09-09 Wed 14:35] =>  0:05
 CLOCK: [2026-09-09 Wed 13:37]--[2026-09-09 Wed 13:38] =>  0:01
 CLOCK: [2026-09-09 Wed 13:11]--[2026-09-09 Wed 13:14] =>  0:03
@@ -11538,6 +11576,28 @@ CLOCK: [2026-09-09 Wed 08:21]--[2026-09-09 Wed 08:22] =>  0:01
 - [2026-09-09 Wed 08:21]--[2026-09-09 Wed 08:22] assigned at review
 CLOCK: [2026-09-09 Wed 08:24]--[2026-09-09 Wed 08:25] =>  0:01
 - [2026-09-09 Wed 08:24]--[2026-09-09 Wed 08:25] retroactive bracket: next-session.md readiness pass
+CLOCK: [2026-09-09 Wed 08:30]--[2026-09-09 Wed 08:31] =>  0:01
+- [2026-09-09 Wed 08:30]--[2026-09-09 Wed 08:31] slice c19fbbf5 pickup, step 0 preliminaries
+CLOCK: [2026-09-09 Wed 08:31]--[2026-09-09 Wed 08:36] =>  0:05
+- [2026-09-09 Wed 08:31]--[2026-09-09 Wed 08:36] slice c19fbbf5 pickup, step 0 preliminaries
+CLOCK: [2026-09-09 Wed 08:56]--[2026-09-09 Wed 09:14] =>  0:18
+- [2026-09-09 Wed 08:56]--[2026-09-09 Wed 09:14] slice c19fbbf5 pickup, step 0 preliminaries
+CLOCK: [2026-09-09 Wed 09:24]--[2026-09-09 Wed 09:25] =>  0:01
+- [2026-09-09 Wed 09:24]--[2026-09-09 Wed 09:25] slice c19fbbf5 pickup, step 0 preliminaries
+CLOCK: [2026-09-09 Wed 09:27]--[2026-09-09 Wed 09:28] =>  0:01
+- [2026-09-09 Wed 09:27]--[2026-09-09 Wed 09:28] slice c19fbbf5 pickup, step 0 preliminaries
+CLOCK: [2026-09-09 Wed 09:50]--[2026-09-09 Wed 09:54] =>  0:04
+- [2026-09-09 Wed 09:50]--[2026-09-09 Wed 09:54] slice c19fbbf5 pickup, step 0 preliminaries
+CLOCK: [2026-09-09 Wed 09:59]--[2026-09-09 Wed 10:02] =>  0:03
+- [2026-09-09 Wed 09:59]--[2026-09-09 Wed 10:02] slice c19fbbf5 pickup, step 0 preliminaries
+CLOCK: [2026-09-09 Wed 11:34]--[2026-09-09 Wed 11:35] =>  0:01
+- [2026-09-09 Wed 11:34]--[2026-09-09 Wed 11:35] slice c19fbbf5 pickup, step 0 preliminaries
+CLOCK: [2026-09-09 Wed 11:35]--[2026-09-09 Wed 11:41] =>  0:06
+- [2026-09-09 Wed 11:35]--[2026-09-09 Wed 11:41] slice c19fbbf5 pickup, step 0 preliminaries
 CLOCK: [2026-09-09 Wed 13:18]--[2026-09-09 Wed 13:21] =>  0:03
 - [2026-09-09 Wed 13:18]--[2026-09-09 Wed 13:21] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-09 Wed 13:21]--[2026-09-09 Wed 13:22] =>  0:01
+- [2026-09-09 Wed 13:21]--[2026-09-09 Wed 13:22] slice c19fbbf5 pickup, step 0 preliminaries
+CLOCK: [2026-09-09 Wed 13:25]--[2026-09-09 Wed 13:36] =>  0:11
+- [2026-09-09 Wed 13:25]--[2026-09-09 Wed 13:36] slice c19fbbf5 pickup, step 0 preliminaries
 :END:
