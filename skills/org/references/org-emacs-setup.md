@@ -24,11 +24,23 @@ ln -s "$PWD/modules/tools/claude-code-ide-org" \
 - The module needs **org 9.7+** and says so loudly at load — the org
   bundled with Emacs 29 (9.6.x) is not enough; Doom's straight-managed
   org is.
-- The MCP server's port is pinned in the Doom config to `45571`,
-  matching the plugin's `.mcp.json`
-  (`http://localhost:45571/mcp/warp`). If tools cannot connect, verify
-  the pin is in place; the org-dev skill in the `claude-code-ide-org`
-  repo documents the wiring block and how to verify it.
+- **The module owns the standalone wiring** (since 2026-09-09,
+  `:ID:` e396f94a). In your Doom config, after the module loads:
+
+  ```elisp
+  (setq claude-code-ide-org-standalone-projects
+        '("~/git/claude-code-ide-org"))   ; the repos to serve
+  (claude-code-ide-org-standalone-wire)
+  ```
+
+  That pins the port (`claude-code-ide-org-standalone-port`, default
+  `45571`, checked **loudly** against what the shipped `.mcp.json`
+  actually names), starts the tools server, and registers a session
+  per listed project — each under its directory basename, the first
+  also as `warp`, the session id the shipped `/mcp/warp` URL names.
+  The port stays pinned by design: the static `.mcp.json` is the
+  contract every client reads, and a dynamic port would need
+  discovery machinery that standalone clients do not have.
 - Tracked-file discovery: the tools operate on
   `claude-code-ide-org-query-files`, falling back to
   `org-agenda-files`. A repo's org files must be inside that universe

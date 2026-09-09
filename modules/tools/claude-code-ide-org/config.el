@@ -13656,6 +13656,116 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
                           (string-join (nreverse bad) "; ")))
       (cons t out))))
 
+;;; Standalone wiring -- the MCP tools server for clients outside the
+;;; vterm launcher (Warp, or a `claude' CLI started in any terminal).
+;;
+;; The block this replaces lived in one user's personal Doom config
+;; (TODO.org :ID: e396f94a): a bare `setq' of upstream's port, a
+;; hardcoded project path, and three upstream calls.  Packaging turned
+;; that private coincidence into a contract -- the plugin's .mcp.json
+;; names http://localhost:45571/mcp/warp -- so the module owns it here,
+;; behind an explicitly *called* setup function rather than acting at
+;; load: a module configures its own behaviour and does not silently
+;; reconfigure the user's (TODO.org :ID: 1caed585).
+;;
+;; The port stays PINNED by design.  Upstream defaults to a random port
+;; per server start; the static .mcp.json contract is exactly why a pin
+;; exists, and dynamic discovery for standalone clients is upstream
+;; work, not this module's.
+
+(declare-function claude-code-ide-mcp-server-ensure-server "claude-code-ide-mcp-server")
+(declare-function claude-code-ide-mcp-server-get-port "claude-code-ide-mcp-server")
+(declare-function claude-code-ide-mcp-server-register-session "claude-code-ide-mcp-server")
+(declare-function claude-code-ide-mcp-start "claude-code-ide-mcp")
+(defvar claude-code-ide-mcp-server-port)
+
+(defconst claude-code-ide-org--repo-root
+  (file-name-directory
+   (directory-file-name
+    (file-name-directory
+     (directory-file-name
+      (file-name-directory
+       (directory-file-name
+        (file-name-directory
+         (file-truename
+          (or load-file-name buffer-file-name default-directory)))))))))
+  "Root of the checkout actually providing this module.
+`file-truename' first, because the module is loaded through a symlink
+under the Doom config and a naive walk up from `load-file-name' would
+land in ~/.config/doom instead of the repo.")
+
+(defcustom claude-code-ide-org-standalone-port 45571
+  "Port the standalone MCP tools server is pinned to.
+Must agree with the URL in the plugin's .mcp.json (and its .warp
+duplicate): those files are static, so the port cannot vary per
+session.  `claude-code-ide-org-standalone-wire' checks the agreement
+loudly rather than trusting it."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defcustom claude-code-ide-org-standalone-projects nil
+  "Directories to register standalone MCP sessions for.
+Each entry is registered under its directory basename as the session
+id, and the FIRST entry additionally as \"warp\" -- the id the shipped
+.mcp.json URL (/mcp/warp) names, kept because that seam is the one
+verified against Warp's own agent.  nil starts the tools server with
+no per-project session: the org tools still work (they scope by
+`org-agenda-files', not by project), but project-scoped tools have no
+context."
+  :type '(repeat directory)
+  :group 'claude-code-ide-org)
+
+(defun claude-code-ide-org--mcp-json-port (&optional file)
+  "Port named by FILE, defaulting to the repo's .mcp.json.
+Returns nil when the file is missing or carries no localhost URL --
+the caller decides how loud that should be."
+  (let ((f (or file (expand-file-name ".mcp.json" claude-code-ide-org--repo-root))))
+    (when (file-readable-p f)
+      (with-temp-buffer
+        (insert-file-contents f)
+        (when (re-search-forward "localhost:\\([0-9]+\\)" nil t)
+          (string-to-number (match-string 1)))))))
+
+(defun claude-code-ide-org-standalone-wire ()
+  "Wire the MCP tools server for standalone clients, loudly.
+Pins upstream's `claude-code-ide-mcp-server-port' to
+`claude-code-ide-org-standalone-port' -- refusing if a server is
+already alive on a different port, and refusing if the pin disagrees
+with what the repo's .mcp.json actually names, since that static file
+is the contract every client reads.  Then starts the server and
+registers a session per entry of
+`claude-code-ide-org-standalone-projects' (basename as session id;
+the first entry also as \"warp\").  Idempotent: call it from your
+config after claude-code-ide loads, or interactively after changing
+the project list."
+  (interactive)
+  (let ((pin claude-code-ide-org-standalone-port)
+        (json-port (claude-code-ide-org--mcp-json-port)))
+    (when (and json-port (/= json-port pin))
+      (user-error "claude-code-ide-org: standalone port %d disagrees with .mcp.json's %d; fix one -- the static file is the contract"
+                  pin json-port))
+    (unless json-port
+      (message "claude-code-ide-org: no port found in %s; wiring on %d unchecked"
+               (expand-file-name ".mcp.json" claude-code-ide-org--repo-root) pin))
+    (let ((live (and (fboundp 'claude-code-ide-mcp-server-get-port)
+                     (claude-code-ide-mcp-server-get-port))))
+      (when (and live (/= live pin))
+        (user-error "claude-code-ide-org: tools server already running on port %d, wanted %d; stop it (or restart Emacs) before re-wiring"
+                    live pin)))
+    (setq claude-code-ide-mcp-server-port pin)
+    (claude-code-ide-mcp-server-ensure-server)
+    (let ((projects (mapcar #'expand-file-name
+                            claude-code-ide-org-standalone-projects)))
+      (dolist (dir projects)
+        (claude-code-ide-mcp-server-register-session
+         (file-name-nondirectory (directory-file-name dir)) dir nil)
+        (claude-code-ide-mcp-start dir))
+      (when projects
+        (claude-code-ide-mcp-server-register-session "warp" (car projects) nil))
+      (message "claude-code-ide-org: standalone tools wired on port %d, %d project session(s)%s"
+               pin (length projects)
+               (if projects " plus \"warp\"" "")))))
+
 (with-eval-after-load 'claude-code-ide
 
   (claude-code-ide-make-tool

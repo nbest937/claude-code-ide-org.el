@@ -14093,3 +14093,71 @@ not have -- the thing this test can see is the registration."
                               (concat "<" stamp " 07:00>")))))
       (should (string-match-p "^\\* TODO Archive closed tasks daily" text)))
     (should (with-current-buffer (find-file-noselect file) buffer-read-only))))
+
+;;; Standalone wiring (TODO.org :ID: e396f94a)
+
+(ert-deftest claude-code-ide-org-test-mcp-json-port-reads-the-contract ()
+  "The port is parsed from a config file's localhost URL, and a
+missing file is nil rather than an error -- the caller owns the
+loudness."
+  (let ((f (make-temp-file "mcp-json" nil ".json"
+                           "{\"mcpServers\":{\"emacs-tools\":{\"type\":\"http\",\"url\":\"http://localhost:45571/mcp/warp\"}}}")))
+    (unwind-protect
+        (should (= 45571 (claude-code-ide-org--mcp-json-port f)))
+      (delete-file f)))
+  (should (null (claude-code-ide-org--mcp-json-port "/no/such/file.json"))))
+
+(ert-deftest claude-code-ide-org-test-standalone-wire-refuses-a-disagreeing-pin ()
+  "A pin that disagrees with .mcp.json refuses before touching the
+server: the static file is the contract every client reads, and wiring
+a different port would make the shipped URL silently wrong."
+  (let ((claude-code-ide-org-standalone-port 45571)
+        (touched nil))
+    (cl-letf (((symbol-function 'claude-code-ide-org--mcp-json-port)
+               (lambda (&optional _f) 40000))
+              ((symbol-function 'claude-code-ide-mcp-server-ensure-server)
+               (lambda () (setq touched t))))
+      (should-error (claude-code-ide-org-standalone-wire) :type 'user-error)
+      (should-not touched))))
+
+(ert-deftest claude-code-ide-org-test-standalone-wire-refuses-a-live-server-elsewhere ()
+  "A server already alive on another port refuses rather than
+re-pinning under it -- the running server, not the variable, is what
+clients are actually connected to."
+  (let ((claude-code-ide-org-standalone-port 45571))
+    (cl-letf (((symbol-function 'claude-code-ide-org--mcp-json-port)
+               (lambda (&optional _f) 45571))
+              ((symbol-function 'claude-code-ide-mcp-server-get-port)
+               (lambda () 40123))
+              ((symbol-function 'claude-code-ide-mcp-server-ensure-server)
+               (lambda () (ert-fail "ensure-server reached past the refusal"))))
+      (should-error (claude-code-ide-org-standalone-wire) :type 'user-error))))
+
+(ert-deftest claude-code-ide-org-test-standalone-wire-registers-per-repo-plus-warp ()
+  "Each project registers under its basename, and the first also as
+\"warp\" -- the session id the shipped /mcp/warp URL names.  The pin
+lands in upstream's variable only on the success path."
+  (let ((claude-code-ide-org-standalone-port 45571)
+        (claude-code-ide-org-standalone-projects
+         '("/tmp/repo-alpha" "/tmp/repo-beta"))
+        (claude-code-ide-mcp-server-port nil)
+        (registered nil)
+        (started nil))
+    (cl-letf (((symbol-function 'claude-code-ide-org--mcp-json-port)
+               (lambda (&optional _f) 45571))
+              ((symbol-function 'claude-code-ide-mcp-server-get-port)
+               (lambda () nil))
+              ((symbol-function 'claude-code-ide-mcp-server-ensure-server)
+               (lambda () 45571))
+              ((symbol-function 'claude-code-ide-mcp-server-register-session)
+               (lambda (id dir _buf) (push (cons id dir) registered)))
+              ((symbol-function 'claude-code-ide-mcp-start)
+               (lambda (&optional dir) (push dir started))))
+      (claude-code-ide-org-standalone-wire)
+      (setq registered (nreverse registered))
+      (should (equal registered
+                     '(("repo-alpha" . "/tmp/repo-alpha")
+                       ("repo-beta" . "/tmp/repo-beta")
+                       ("warp" . "/tmp/repo-alpha"))))
+      (should (equal (nreverse started) '("/tmp/repo-alpha" "/tmp/repo-beta")))
+      (should (= claude-code-ide-mcp-server-port 45571)))))
