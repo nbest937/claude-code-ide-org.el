@@ -2,6 +2,11 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO DOOM.md documents the sandbox review procedure :docs:
+:PROPERTIES:
+:ID:       94d36eb7-3a91-4435-a8e0-69e5a3451cce
+:CREATED:  [2026-09-09 Wed 14:57]
+:END:
 * TODO An unmatched clock_in grows an ever-wider span across review passes :code:
 :PROPERTIES:
 :ID:       58332dd1-fb49-4e98-a5e3-4b71ff62c995
