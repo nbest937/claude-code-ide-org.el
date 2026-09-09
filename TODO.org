@@ -2,6 +2,60 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The Planned: lead becomes load-bearing: member anchor, insertion point, self-heal :code:
+:PROPERTIES:
+:ID:       a43cfaa0-7e4a-4730-822d-628637ddc5b6
+:CREATED:  [2026-09-09 Wed 08:13]
+:CATEGORY: Slices
+:END:
+:DEBRIEF:
+*Debrief, 2026-09-09.* Shipped in PR #21 (=281ef04=), the three
+integrations in one change as scoped. The anchor is the one carrying
+safety value: =--slice-planned-member-ids= starts its scan at the lead
+when present, so the conventions' prose-bullet warning narrows to
+lead-less slices — which is only the closed corpus, since the refresh
+now inserts a missing lead above any existing checklist
+(=--ensure-planned-lead-at-point=, reported as "N Planned: lead(s)
+repaired", idempotent) and =org_slice_add_member= writes the lead the
+moment a checklist is born, reusing one the composer already placed.
+The permanent fallback matters and is documented in three places:
+closed slices predate the lead, are never refreshed, and their
+member lists feed the ownership profiles — so the body-start scan can
+never be retired. Three tests, each proven failing against =main=;
+suite 580/580; live verification showed five members read through
+=c19fbbf5='s hand-placed lead and a refresh owing zero repairs.
+:END:
+:PLAN:
+
+Successor to [[id:c5e58ea1-2576-4bc4-9574-88485aa3977f][c5e58ea1]],
+ordered by the user 2026-09-09 immediately after that heading's
+adoption landed the =Planned:= lead as purely navigational. This
+promotes it to load-bearing, three changes landing together:
+
+- =--slice-planned-member-ids= anchors the member region's *start* at
+  the lead (falling back to body start where none exists — closed
+  slices predate the lead and are never refreshed, so the fallback is
+  permanent). This dissolves the documented prose-bullet trap: a
+  =- [[id:...]]= bullet above the lead becomes ordinary prose instead
+  of a member with a deleted cookie.
+- =org_slice_add_member='s empty-checklist path inserts beneath an
+  existing lead, and writes the lead when starting a list.
+- =refresh-slice= self-heals a missing lead above an existing
+  checklist, reported in its summary — insert-when-absent, the same
+  move the cookie and =:COOKIE_DATA:= already got, so the marker is
+  maintained rather than remembered.
+
+The convention's "parsed by nothing" sentence is rewritten in the same
+change; the cost accepted is that the lead's absence becomes a repair
+rather than a cosmetic gap.
+
+:END:
+*Resolved 2026-09-09:* shipped in PR #21 — the lead anchors the member
+region, add-member writes it at checklist birth, the refresh
+self-heals it, and the conventions say all three; live-verified with
+zero repairs owed on a corpus whose leads were already hand-placed.
+
+
 * TODO Survey all task history for a tag vocabulary worth searching on :research:
 :PROPERTIES:
 :ID:       e28933e9-f352-4ef9-8d53-8cd9a4318768
