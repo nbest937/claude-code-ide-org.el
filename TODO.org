@@ -670,6 +670,14 @@ commitment. An open slice already *is* a proposal until work begins,
 and rejection is =CANCELLED= either way. Composing this one declared
 tests exactly the friction =acf46449= names.
 
+The prompt that drives this slice, one link per revision, oldest first:
+
+- [[orgit-rev:claude-code-ide-org::db4e1bf][db4e1bf]] [2026-09-08 Tue 15:31] rewrote =next-session.md= for this slice, replacing =ff7ccb2d='s prompt
+- [[orgit-rev:claude-code-ide-org::4dbb13c][4dbb13c]] [2026-09-08 Tue 15:52] updated the suite baseline in the what-is-already-true band after the residue sweep closed
+- [[orgit-rev:claude-code-ide-org::38ae2f0][38ae2f0]] [2026-09-08 Tue 16:11] recorded the =git add -A= second instance in the standing rules
+- [[orgit-rev:claude-code-ide-org::76ea9c5][76ea9c5]] [2026-09-09 Wed 08:24] brought the what-is-already-true band up to PR #21: the =DOING= precondition for incidental attribution, the two-call lifecycle, the 580/580 baseline
+
+
 
 * DONE One incidental lands in every open slice's window, and the cookies double-count it :code:
 CLOSED: [2026-09-08 Tue 12:58]
