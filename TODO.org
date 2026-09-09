@@ -26,6 +26,21 @@ churn; the command should detect that case and refuse with the
 clone-based instruction instead of wiring something fragile. And
 editing =init.el= is the user's file, not this module's — print the
 line, never write it (=1caed585='s boundary).
+
+*Doom has the facility, verified in the live core 2026-09-09* (the
+user's question): =doom-module-load-path= in
+=~/.config/emacs/lisp/doom.el= is a list of module-tree roots searched
+in priority order, each "a two-level nested directory structure" of
+group/name — exactly the shape this repo's =modules/= already has. So
+the symlink is unnecessary: =init.el= gains
+=(add-to-list 'doom-module-load-path ".../claude-code-ide-org/modules")=
+before the =doom!= block, plus the =:tools claude-code-ide-org= flag,
+and =--doom= reduces to *printing two lines* — nothing on disk to
+create, refuse, or clean up. The managed-install caveat applies to the
+path added, unchanged. One horizon to carry: the defvar is marked
+"DEPRECATED: Will be replaced in v3" in Doom's own source, so this is
+the current mechanism, not a forever one — re-verify at any Doom
+upgrade.
 :END:
 
 The plugin delivers the elisp to the *machine* via the clone, and the
