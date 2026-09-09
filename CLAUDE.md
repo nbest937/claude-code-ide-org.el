@@ -72,13 +72,17 @@ what waits.
 
 ## Reading the tracker
 
-**Start with `org_outline`, not a file read.** It is roughly 40x smaller
-than the file and answers most orientation questions on its own. TODO.org is
-~118,000 tokens and the median active heading body is 50 lines, so reading
-around to find something costs more than the answer is usually worth. Drop
-to `org_query` for a predicate ("what's blocked", "everything `:research:`
-and not DONE") and to a targeted read only once you have an `:ID:` and a
-reason.
+**Start with `org_outline`, not a file read.** Since 2026-09-09 it
+carries each heading's own body summary beneath its line (`:ID:`
+2a399034 — the read split), so it answers most orientation questions
+outright; drawers stay behind an explicit `org_body` call (`drawer=PLAN`
+/ `DEBRIEF` / `LOGBOOK` for one drawer, no argument for the heading
+whole). Pass `bodies=false` when only the tree matters — worth doing on
+full-file calls until the `e128e4fa` corpus pass shortens the
+pre-convention bodies, which are long enough to swamp an unscoped
+index. Drop to `org_query` for a predicate ("what's blocked",
+"everything `:research:` and not DONE") and to a targeted read only once
+you have an `:ID:` and a reason.
 
 **Pass `active_only`, and ignore DONE by reflex.** What a finished heading
 records is *history*; the current state of the implementation is in the

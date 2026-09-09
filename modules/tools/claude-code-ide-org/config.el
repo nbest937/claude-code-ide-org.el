@@ -3331,12 +3331,32 @@ abbreviates an id cannot drift apart about it.")
       (substring id 0 claude-code-ide-org--id-prefix-length)
     id))
 
-(defun claude-code-ide-org--outline-line (active-only max-depth &optional indent-offset)
+(defun claude-code-ide-org--outline-body-at-point ()
+  "The heading-at-point's own body prose, drawers excluded, or nil.
+
+The outline's half of the read split (TODO.org :ID: 2a399034): once
+plan and debrief live in drawers, the body is the summary a reader
+orients by, so the index carries it and the drawers stay behind an
+explicit `org_body' call.  `org-end-of-meta-data' with FULL skips
+planning, properties and every drawer -- :PLAN: and :DEBRIEF:
+included -- and the read stops at the first child heading."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((end (save-excursion (outline-next-heading) (or (point) (point-max)))))
+      (org-end-of-meta-data t)
+      (when (< (point) end)
+        (let ((text (string-trim
+                     (buffer-substring-no-properties (point) end))))
+          (and (not (string-empty-p text)) text))))))
+
+(defun claude-code-ide-org--outline-line (active-only max-depth &optional indent-offset bodies)
   "Format the heading at point as one index line, or nil to omit it.
 Omits finished headings when ACTIVE-ONLY, and anything deeper than
 MAX-DEPTH when that is non-nil.  Levels are absolute, so a MAX-DEPTH
 of 2 means the same thing whether the scope is a whole file or one
-subtree."
+subtree.  With BODIES, the heading's own body prose (drawers excluded)
+follows the line, indented two spaces past it -- the read split
+TODO.org :ID: 2a399034 decided."
   (let ((level (org-current-level))
         (keyword (org-get-todo-state)))
     (unless (or (and max-depth (> level max-depth))
@@ -3344,7 +3364,9 @@ subtree."
                      (member keyword
                              claude-code-ide-org--outline-finished-keywords)))
       (let ((id (org-entry-get nil "ID"))
-            (tags (org-get-tags nil t)))
+            (tags (org-get-tags nil t))
+            (body (and bodies (claude-code-ide-org--outline-body-at-point)))
+            (indent (make-string (* 2 (+ (1- level) (or indent-offset 0))) ?\s)))
         ;; Stripped once, over the assembled line, rather than per
         ;; component.  Every one of these reads from the buffer and so
         ;; carries its text properties -- `org-get-heading' most visibly,
@@ -3355,7 +3377,7 @@ subtree."
         ;; rewritten to propertize the fixture by hand, since batch Emacs
         ;; runs no font-lock and a scratch org file is clean either way.
         (substring-no-properties
-         (concat (make-string (* 2 (+ (1- level) (or indent-offset 0))) ?\s)
+         (concat indent
                 (and keyword (concat keyword " "))
                 ;; All four flags on: no TODO keyword (added above, so it
                 ;; is not doubled), no priority cookie, no tags, no
@@ -3374,7 +3396,12 @@ subtree."
                 (org-get-heading t t t t)
                 (and id (format "  {%s}" id))
                 (and tags (format "  :%s:" (string-join tags ":")))
-                (claude-code-ide-org--outline-blocked-marker)))))))
+                (claude-code-ide-org--outline-blocked-marker)
+                (and body
+                     (concat "\n"
+                             (mapconcat (lambda (l) (concat indent "  " l))
+                                        (split-string body "\n")
+                                        "\n")))))))))
 
 (defun claude-code-ide-org--outline-slice-members ()
   "Reference lines for the slice at point, or nil when it is not one.
@@ -3487,12 +3514,13 @@ keyword so a satisfied blocker is visible as such without a second call."
     (when plan (push (format "  :PLAN-FILE: %s" plan) lines))
     (nreverse lines)))
 
-(defun claude-code-ide-org--outline-map (active-only max-depth scope &optional grouped)
+(defun claude-code-ide-org--outline-map (active-only max-depth scope &optional grouped bodies)
   "Collect index lines over SCOPE, an `org-map-entries' scope value.
 
 With GROUPED, return (CATEGORY . LINE) pairs and indent every line one
 level further, leaving room for the synthetic category header the caller
-emits.  Without it, return plain lines exactly as before."
+emits.  Without it, return plain lines exactly as before.  BODIES is
+passed through to `claude-code-ide-org--outline-line'."
   (let (records)
     ;; Two lines per heading: the filtered one, which decides whether it
     ;; survives on its own, and the unfiltered one, which is what gets
@@ -3501,9 +3529,9 @@ emits.  Without it, return plain lines exactly as before."
      (lambda ()
        (push (list (org-current-level)
                    (claude-code-ide-org--outline-line
-                    active-only max-depth (and grouped 1))
+                    active-only max-depth (and grouped 1) bodies)
                    (claude-code-ide-org--outline-line
-                    nil max-depth (and grouped 1))
+                    nil max-depth (and grouped 1) bodies)
                    (and grouped (claude-code-ide-org--outline-category)))
              records))
      nil scope)
@@ -3569,7 +3597,39 @@ rather than being dropped or silently attached to the previous one."
       (dolist (line (nreverse (cdr (assoc cat table))))
         (push line out)))))
 
-(defun claude-code-ide-org-body (id &optional include-children)
+(defun claude-code-ide-org--drawer-text-at-point (name)
+  "Content of the heading-at-point's :NAME: drawer, or an error string.
+NAME is upcased already.  Scans only this heading's own region --
+drawers belong to the entry, so the read stops at the first child.  A
+missing drawer names the drawers the heading does have, so the caller's
+next call needs no guessing."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((end (save-excursion (outline-next-heading) (or (point) (point-max))))
+          (present nil)
+          (content nil))
+      (while (re-search-forward "^[ \t]*:\\([A-Za-z][A-Za-z0-9_-]*\\):[ \t]*$" end t)
+        (let ((this (upcase (match-string-no-properties 1))))
+          (unless (equal this "END")
+            (push this present)
+            (when (and (null content) (equal this name))
+              (let ((beg (1+ (line-end-position))))
+                (when (re-search-forward "^[ \t]*:END:[ \t]*$" end t)
+                  (setq content
+                        (buffer-substring-no-properties
+                         beg (line-beginning-position)))))))))
+      (cond
+       (content (if (string-empty-p (string-trim content))
+                    (format "(the :%s: drawer is empty)" name)
+                  content))
+       ((null present)
+        (format "Error: this heading has no :%s: drawer -- it has no drawers at all." name))
+       (t
+        (format "Error: this heading has no :%s: drawer. Drawers present: %s."
+                name (mapconcat (lambda (d) (concat ":" d ":"))
+                                (nreverse present) " ")))))))
+
+(defun claude-code-ide-org-body (id &optional include-children drawer)
   "Return heading ID whole -- its heading line, drawers and body -- as text.
 
 Replaces a three-tool dance: `grep' for the :ID:, `awk' to find the
@@ -3597,6 +3657,12 @@ it would be the first filtering decision this tool makes, which is the
 thing the design avoids; that readers usually skip that drawer is the
 caller's business, and the tool description says so.
 
+With DRAWER -- a drawer name like PLAN, DEBRIEF or LOGBOOK -- returns
+just that drawer's content from the heading itself: the on-demand half
+of the read split (TODO.org :ID: 2a399034), now that `org_outline'
+carries the body.  A missing drawer errors naming the drawers the
+heading does have; DRAWER cannot be combined with INCLUDE-CHILDREN.
+
 Read-only.  Dispatches through `claude-code-ide-org--at-id', never the
 writable variant: granting write permission to a query tool is exactly
 what that split exists to prevent.  Never signals to the MCP layer."
@@ -3607,21 +3673,31 @@ what that split exists to prevent.  Never signals to the MCP layer."
             (children (and include-children
                            (member (downcase (format "%s" include-children))
                                    '("t" "true" "yes" "1"))
-                           t)))
+                           t))
+            (drawer (and (stringp drawer)
+                         (not (string-empty-p (string-trim drawer)))
+                         (upcase (string-trim drawer)))))
         (cond
          ((null id) "Error: no :ID: given.")
+         ((and drawer children)
+          "Error: drawer= returns one drawer of the heading itself; it \
+cannot be combined with include_children.")
          ((claude-code-ide-org--id-find id)
           (let ((text (claude-code-ide-org--at-id
                        id
                        (lambda ()
-                         (if children
-                             (claude-code-ide-org--subtree-text-at-point)
+                         (cond
+                          (drawer
+                           (claude-code-ide-org--drawer-text-at-point drawer))
+                          (children
+                           (claude-code-ide-org--subtree-text-at-point))
+                          (t
                            (org-back-to-heading t)
                            (buffer-substring-no-properties
                             (point)
                             (save-excursion
                               (claude-code-ide-org--end-of-body)
-                              (point))))))))
+                              (point)))))))))
             (if (and (stringp text) (string-empty-p (string-trim text)))
                 "Error: heading resolved but its text is empty."
               text)))
@@ -3633,14 +3709,18 @@ what that split exists to prevent.  Never signals to the MCP layer."
 or an 8-character :ID: prefix." id))))
     (error (format "Error: %s" (error-message-string err)))))
 
-(defun claude-code-ide-org-outline (&optional scope max-depth active-only)
+(defun claude-code-ide-org-outline (&optional scope max-depth active-only bodies)
   "Return a compact one-line-per-heading index.
 
 SCOPE is an :ID: to index just that subtree, a file name to index one
 file, or empty for every file in `claude-code-ide-org--tracked-files'.
 MAX-DEPTH caps the outline level reported.  ACTIVE-ONLY drops DONE and
-CANCELLED headings.  All three arrive as strings from the MCP layer and
-are parsed leniently; anything unusable falls back to the permissive
+CANCELLED headings.  BODIES -- on unless passed \"false\" -- follows
+each surviving heading with its own body prose, drawers excluded: the
+read split TODO.org :ID: 2a399034 decided, affordable because a
+convention-following body is a short summary.  All of these arrive as
+strings from the MCP layer and are parsed leniently; anything unusable
+falls back to the permissive
 default rather than erroring, since a too-large index is recoverable and
 a failed call is not.
 
@@ -3674,6 +3754,11 @@ layer."
                           (member (downcase (format "%s" active-only))
                                   '("t" "true" "yes" "1"))
                           t))
+             ;; Default ON: nil (the MCP layer's omitted argument) reads
+             ;; as true, and only an explicit falsy string turns it off.
+             (with-bodies (not (and bodies
+                                    (member (downcase (format "%s" bodies))
+                                            '("nil" "false" "no" "0")))))
              (tokens (and scope (split-string scope "[ ,]+" t)))
              (render-id
               (lambda (s)
@@ -3691,7 +3776,7 @@ layer."
                                       (front (claude-code-ide-org--outline-front-matter)))
                                   (append front
                                           (claude-code-ide-org--outline-map
-                                           active depth 'tree)
+                                           active depth 'tree nil with-bodies)
                                           members))))))
                   (if (stringp lines) lines  ; --at-id's "Error: ..." string
                     (if lines (mapconcat #'identity lines "\n")
@@ -3734,7 +3819,7 @@ name either; pass an :ID:, an 8-character :ID: prefix, or a file name." scope))
                 (error "no readable file at %s" file))
               (let ((lines (claude-code-ide-org--outline-group
                             (claude-code-ide-org--outline-map
-                             active depth (list file) 'grouped))))
+                             active depth (list file) 'grouped with-bodies))))
                 (when lines
                   (push (if multiple
                             ;; Only label files when there is more than
@@ -14200,15 +14285,24 @@ the project list."
                  "tool's. Returns the heading's OWN body by default, "
                  "stopping before its first child; pass include_children to "
                  "get the whole subtree, which for a story can be hundreds of "
-                 "lines. Reach for org_outline first: it answers most "
-                 "orientation questions and costs far less.")
+                 "lines. With drawer= it returns just that ONE drawer's "
+                 "content instead -- the on-demand half of the read split, "
+                 "now that org_outline carries each heading's body: reach "
+                 "for the outline first, then this tool with drawer=PLAN, "
+                 "DEBRIEF or LOGBOOK for the depth the outline withheld. A "
+                 "missing drawer errors naming the drawers the heading does "
+                 "have.")
    :args '((:name "id"
             :type string
             :description "The heading's :ID:, or an 8-character :ID: prefix.")
            (:name "include_children"
             :type string
             :optional t
-            :description "Optional. \"true\" to return the whole subtree instead of just this heading's own body. Omit it and you get this heading alone: for a leaf the two are identical, but for a story the subtree can run to hundreds of lines, and a child is readable by its own :ID: anyway.")))
+            :description "Optional. \"true\" to return the whole subtree instead of just this heading's own body. Omit it and you get this heading alone: for a leaf the two are identical, but for a story the subtree can run to hundreds of lines, and a child is readable by its own :ID: anyway. Not combinable with drawer.")
+           (:name "drawer"
+            :type string
+            :optional t
+            :description "Optional. A drawer name -- PLAN, DEBRIEF, LOGBOOK -- to return just that drawer's content from this heading. Errors name the drawers actually present when the one asked for is missing. Not combinable with include_children.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-outline
@@ -14232,7 +14326,14 @@ the project list."
                  "front matter -- :CREATED:, :CATEGORY:, :KIND:, the :BLOCKER: "
                  "*value* with each id's current keyword, and the plan file -- "
                  "so 'what is this, what blocks it, what is under it' is one "
-                 "call and no body read. Root only, never per line.")
+                 "call and no read of the file. Front matter is root only, "
+                 "never per line. EVERY heading's own body prose follows its "
+                 "line (drawers excluded -- fetch those per heading via "
+                 "org_body drawer=): under the composition conventions a "
+                 "body is a short problem/proposal/resolution summary, so "
+                 "the index answers orientation outright; pass "
+                 "bodies=false for the old structure-only index when only "
+                 "the tree matters.")
    :args '((:name "scope"
             :type string
             :optional t
@@ -14244,7 +14345,11 @@ the project list."
            (:name "active_only"
             :type string
             :optional t
-            :description "\"true\" to omit DONE and CANCELLED headings. Omit to include everything.")))
+            :description "\"true\" to omit DONE and CANCELLED headings. Omit to include everything.")
+           (:name "bodies"
+            :type string
+            :optional t
+            :description "\"false\" for the structure-only index -- one line per heading, no body prose. Omit (the default) to carry each heading's body summary beneath its line.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-sort-children

@@ -14226,3 +14226,58 @@ and after= combined with parent=."
       (should-not (string-match-p "id:out-1" disk))
       ;; The parent's checkbox survives every refusal.
       (should (string-match-p "- \\[ \\] \\[\\[id:story-1\\]" disk)))))
+
+;;; The read split (TODO.org :ID: 2a399034)
+
+(defmacro claude-code-ide-org-test--with-read-split-fixture (&rest body)
+  "A heading with drawers, body prose, and a child with its own body."
+  (declare (indent 0))
+  `(claude-code-ide-org-test--with-capture-file
+     (with-temp-file capture-file
+       (insert "#+TODO: TODO NEXT | DONE\n\n"
+               "* TODO A summarized task\n:PROPERTIES:\n:ID: split-1\n:END:\n"
+               ":PLAN:\nSecret prospective reasoning.\n:END:\n"
+               ":DEBRIEF:\nWhat actually happened.\n:END:\n\n"
+               "The two-sentence summary. It is the body.\n\n"
+               "** TODO A child\n:PROPERTIES:\n:ID: split-kid\n:END:\n\n"
+               "The child's own line of prose.\n"))
+     (org-id-update-id-locations (list capture-file))
+     (let ((claude-code-ide-org-query-files (list capture-file)))
+       ,@body)))
+
+(ert-deftest claude-code-ide-org-test-outline-carries-bodies-by-default ()
+  "The index carries each heading's body prose, indented beneath its
+line, with every drawer excluded -- the outline half of the read
+split.  bodies=false restores the structure-only index."
+  (claude-code-ide-org-test--with-read-split-fixture
+    (let ((out (claude-code-ide-org-outline capture-file)))
+      (should (string-match-p "  The two-sentence summary\\. It is the body\\." out))
+      (should (string-match-p "    The child's own line of prose\\." out))
+      (should-not (string-match-p "Secret prospective reasoning" out))
+      (should-not (string-match-p "What actually happened" out))
+      (should-not (string-match-p ":PLAN:" out)))
+    (let ((out (claude-code-ide-org-outline capture-file nil nil "false")))
+      (should-not (string-match-p "two-sentence summary" out))
+      (should (string-match-p "A summarized task" out)))))
+
+(ert-deftest claude-code-ide-org-test-body-serves-one-drawer-on-demand ()
+  "drawer= returns just the named drawer's content; a missing drawer
+errors naming the drawers the heading does have; combining with
+include_children is refused."
+  (claude-code-ide-org-test--with-read-split-fixture
+    (should (string-match-p "^Secret prospective reasoning"
+                            (claude-code-ide-org-body "split-1" nil "PLAN")))
+    (should (string-match-p "What actually happened"
+                            (claude-code-ide-org-body "split-1" nil "debrief")))
+    (let ((miss (claude-code-ide-org-body "split-1" nil "LOGBOOK")))
+      (should (string-match-p "no :LOGBOOK: drawer" miss))
+      (should (string-match-p ":PLAN:" miss))
+      (should (string-match-p ":DEBRIEF:" miss)))
+    (should (string-match-p "cannot be combined"
+                            (claude-code-ide-org-body "split-1" "true" "PLAN")))
+    ;; The drawer read is scoped to the heading itself: the parent's
+    ;; :PLAN: never satisfies the child's request, and the error names
+    ;; what the child actually has -- its property drawer alone.
+    (let ((kid (claude-code-ide-org-body "split-kid" nil "PLAN")))
+      (should (string-match-p "no :PLAN: drawer" kid))
+      (should (string-match-p "Drawers present: :PROPERTIES:" kid)))))
