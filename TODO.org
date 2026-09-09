@@ -7,6 +7,12 @@
 :ID:       78a02667-c946-429e-af58-7330070c6e06
 :CREATED:  [2026-09-09 Wed 09:51]
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-09 Wed 09:50]--[2026-09-09 Wed 09:54] =>  0:04
+- [2026-09-09 Wed 09:50]--[2026-09-09 Wed 09:54] assigned at review
+CLOCK: [2026-09-09 Wed 09:59]--[2026-09-09 Wed 10:00] =>  0:01
+- [2026-09-09 Wed 09:59]--[2026-09-09 Wed 10:00] assigned at review
+:END:
 :PLAN:
 Raised by the user 2026-09-09, from the question "how does the plugin
 provide the elisp to a project that does not have this repo locally?"
@@ -50,16 +56,26 @@ install. Teach =claude-org-setup= a =--doom= mode that performs it from
 directory is update-managed rather than a clone. Scope and caveats in
 =:PLAN:=.
 
+
 * TODO Nothing checks promoted rules copies against the plugin references :code:
 :PROPERTIES:
 :ID:       85d24dba-27fb-4a41-adbb-c19617e82e7e
 :CREATED:  [2026-09-09 Wed 09:13]
 :END:
-* TODO README documents plugin installation :docs:
+
+
+* DONE README documents plugin installation :docs:
+CLOSED: [2026-09-09 Wed 09:13]
 :PROPERTIES:
 :ID:       62bccf40-2f09-4ba3-a51a-908ec5c48f6a
 :CREATED:  [2026-09-09 Wed 09:05]
 :END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-09-09 Wed 09:13] \\
+  README install section rewritten for the plugin
+:END:
+
+
 * DONE The Planned: lead becomes load-bearing: member anchor, insertion point, self-heal :code:
 CLOSED: [2026-09-09 Wed 08:16]
 :PROPERTIES:
@@ -663,18 +679,21 @@ and the only remaining references to the old convention are historical
 prose in heading bodies and the consumed plan file, left deliberately.
 
 
-* NEXT [0/5] Ship the plugin: make the machinery and its prose travel together :code:
+* DOING [1/7] Ship the plugin: make the machinery and its prose travel together :code:
 :PROPERTIES:
 :ID:       c19fbbf5-be1b-4c18-a38e-9b46d064abb8
 :CREATED:  [2026-09-08 Tue 09:54]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(b0e478f7-e894-4ac7-b0b6-b3c890b5b32a 9d009401-93dd-40e5-a243-7a30a8a5bd55 78a02667-c946-429e-af58-7330070c6e06 ecf66d45-18b3-477f-bca8-08bec90604e8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4)
+:BLOCKER:  ids(b0e478f7-e894-4ac7-b0b6-b3c890b5b32a 9d009401-93dd-40e5-a243-7a30a8a5bd55 e396f94a-59db-4c6b-80b4-dc144146877b 78a02667-c946-429e-af58-7330070c6e06 ecf66d45-18b3-477f-bca8-08bec90604e8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4)
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-08 Tue 15:29] \\
   nominated as the slice to pick up next
+- [2026-09-09 Wed 08:24]--[2026-09-09 Wed 08:28] assigned at review
+- State "DOING"      from "NEXT"       [2026-09-09 Wed 08:30] \\
+  slice work starts at pickup, per step 0.4
 :END:
 
 [[id:ff7ccb2d-2b13-421e-86e3-6b5e187850bf][ff7ccb2d]] classified what
@@ -701,10 +720,10 @@ the hooks move.
 
 Planned:
 
-- [ ] [[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]] TODO Package the plugin: references, setup command, machinery prose
-- [-] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] DOING CLAUDE.md carries dated history that costs every session's context
-- [[id:e396f94a-59db-4c6b-80b4-dc144146877b][e396f94a]] MAYBE Package the Warp wiring
-- [ ] [[id:78a02667-c946-429e-af58-7330070c6e06][78a02667]] TODO claude-org-setup wires the Doom module symlink
+- [-] [[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]] REVIEW Package the plugin: references, setup command, machinery prose
+- [-] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] REVIEW CLAUDE.md carries dated history that costs every session's context
+- [ ] [[id:e396f94a-59db-4c6b-80b4-dc144146877b][e396f94a]] TODO Package the Warp wiring
+- [ ] [[id:78a02667-c946-429e-af58-7330070c6e06][78a02667]] TODO claude-org-setup wires the Doom module
 - [ ] [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out future work on a timeline the agenda can show
 - [ ] [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
 
@@ -736,6 +755,9 @@ The prompt that drives this slice, one link per revision, oldest first:
 - [[orgit-rev:claude-code-ide-org::38ae2f0][38ae2f0]] [2026-09-08 Tue 16:11] recorded the =git add -A= second instance in the standing rules
 - [[orgit-rev:claude-code-ide-org::76ea9c5][76ea9c5]] [2026-09-09 Wed 08:24] brought the what-is-already-true band up to PR #21: the =DOING= precondition for incidental attribution, the two-call lifecycle, the 580/580 baseline
 
+Incidental:
+
+- [X] [[id:62bccf40-2f09-4ba3-a51a-908ec5c48f6a][62bccf40]] DONE README documents plugin installation
 
 
 * DONE One incidental lands in every open slice's window, and the cookies double-count it :code:
@@ -1090,12 +1112,22 @@ next session start shows nothing new until a reload or Doom restart.
 should now say both channels, as decided.
 
 
-* TODO Package the plugin: references, setup command, machinery prose :code:
+* REVIEW Package the plugin: references, setup command, machinery prose :code:
 :PROPERTIES:
 :ID:       b0e478f7-e894-4ac7-b0b6-b3c890b5b32a
 :CREATED:  [2026-09-04 Fri 14:56]
 :BLOCKER:  ids(d5345abb-b451-4468-8f27-4bb2da983215)
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-09 Wed 08:31]--[2026-09-09 Wed 08:36] =>  0:05
+- State "DOING"      from "TODO"       [2026-09-09 Wed 08:31] \\
+  packaging build starts on feature/plugin-package
+- [2026-09-09 Wed 08:31]--[2026-09-09 Wed 08:36] build manifest, references, setup command
+CLOCK: [2026-09-09 Wed 08:56]--[2026-09-09 Wed 09:13] =>  0:17
+- [2026-09-09 Wed 08:56]--[2026-09-09 Wed 09:13] build manifest, references, setup command
+- State "REVIEW"     from "DOING"      [2026-09-09 Wed 09:13] \\
+  four deliverables shipped on feature/plugin-package
 :END:
 
 Where the three portability decisions recorded on
@@ -3746,6 +3778,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-09 Wed 13:11]--[2026-09-09 Wed 13:14] =>  0:03
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -8026,6 +8059,20 @@ but =claude -p= asynchronously.
 :BLOCKER:  ids(7771fc63-9374-4c8a-9e80-24ceec21977c e51d6ba1-cc1d-4745-8aa7-e4b1183a230b c084553c-0621-4a96-9fa1-f32850aeec6a)
 :CREATED:  [2026-08-06 Thu 10:47]
 :END:
+:DEBRIEF:
+Twenty children over five weeks (2026-08-06 → 2026-09-09), every one
+closed on its own heading — this story only ever coordinated. The arc:
+correct the queue-architecture account, split the conventions into
+=.claude/rules/=, bring the transition and tracking prose current, add
+the authority framing, and finally (=9d009401=) relocate the machinery
+prose into the shipped plugin references and settle the dated-history
+remainder in a block-by-block read-through with the user. What differed
+from the plan: the ending was not a prune but a *move* — CLAUDE.md
+stopped being the machinery's home rather than being trimmed in place,
+which the story's own title ("for the new architecture") turned out to
+predict. Verified by each child's own record; the closing state of the
+file is 430 lines, =bin/check-conventions= green.
+:END:
 :LOGBOOK:
 CLOCK: [2026-08-10 Mon 19:07]--[2026-08-10 Mon 20:48] =>  1:41
 - [2026-08-10 Mon 19:10]--[2026-08-10 Mon 19:10] record post-cutover vocabulary
@@ -8062,9 +8109,11 @@ CLOCK: [2026-09-02 Wed 08:57]--[2026-09-02 Wed 09:00] =>  0:03
 CLOCK: [2026-09-02 Wed 09:06]--[2026-09-02 Wed 09:14] =>  0:08
 - [2026-09-02 Wed 09:06]--[2026-09-02 Wed 09:14] redistribute the body into children
 :END:
+:PLAN:
 
 [[file:~/.claude/plans/nested-gathering-wozniak.md][Plan]]
 
+:END:
 *Rewrite CLAUDE.md, =.claude/rules/org-conventions.md= and the two
 skills to describe the queue+review model rather than the live-driving
 model they were written for.* Large enough that it is not a drive-by
@@ -8149,6 +8198,13 @@ everything downstream of the code it produced can never close. This was
 its last non-=MAYBE= child, which is what
 [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]] had been waiting
 on.
+
+Resolved 2026-09-09: all twenty children are closed — the last,
+=9d009401=, by the packaging relocation and the contested read-through
+— so the story's subject no longer exists in the form it named:
+CLAUDE.md is 430 lines of this repo's own practices plus pointer
+stubs, and the machinery prose ships with the plugin.
+
 
 
 ** DONE Correct CLAUDE.md's account of the queue architecture :code:
@@ -8735,7 +8791,7 @@ CLOSED: [2026-08-21 Fri 12:45]
 *Shipped 2026-08-21* (commit =0ca1363=). Four claims reconciled at source, each verified before writing: the hook safety net is live (five guards read out of =config.el:2792-2795=, gate default =t= at =config.el:2454=), not "not built yet"; deletion-irreversibility rescoped to =plans/= only, matching the org skill; the read-only rule regained its restore-when-done half, which had lived only in a memory file; and =REVIEW= got transition-table rows (clock-wise identical to =WAITING=) after a day in live use with no written semantics. The dangling pointer to a since-deleted "Enforce the transition rules" heading went with the rewrite. The falsified concurrent-session sentence in the =feedback_concurrent_editing= memory was corrected in the same pass (memory dir, outside this repo).
 
 
-** DOING CLAUDE.md carries dated history that costs every session's context :code:
+** REVIEW CLAUDE.md carries dated history that costs every session's context :code:
 :PROPERTIES:
 :ID:       9d009401-93dd-40e5-a243-7a30a8a5bd55
 :CREATED:  [2026-08-21 Fri 12:47]
@@ -8785,7 +8841,16 @@ CLOCK: [2026-09-04 Fri 16:00]--[2026-09-04 Fri 16:01] =>  0:01
 - State "DOING"      from "TODO"       [2026-09-04 Fri 16:01] \\
   first pass done; contested read-through still owed
 - [2026-09-04 Fri 16:02]--[2026-09-04 Fri 16:11] suggested span, accepted at review
+CLOCK: [2026-09-09 Wed 10:00]--[2026-09-09 Wed 10:02] =>  0:02
+- [2026-09-09 Wed 10:00]--[2026-09-09 Wed 10:02] the contested read-through, user in the loop
+CLOCK: [2026-09-09 Wed 11:34]--[2026-09-09 Wed 11:35] =>  0:01
+- [2026-09-09 Wed 11:34]--[2026-09-09 Wed 11:35] the contested read-through, user in the loop
+CLOCK: [2026-09-09 Wed 11:35]--[2026-09-09 Wed 11:41] =>  0:06
+- [2026-09-09 Wed 11:35]--[2026-09-09 Wed 11:41] the contested read-through, user in the loop
+- State "REVIEW"     from "DOING"      [2026-09-09 Wed 11:41] \\
+  every block decided with the user; judgement on the result remains
 :END:
+:PLAN:
 
 *Filed 2026-08-21, not done.* CLAUDE.md is ~5,500 words, loaded into every session, and a large share is dated narrative -- retirements, incident stories, won't-dos, measured-on-date facts -- the same disease [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] names in TODO.org bodies, in the one file no session can skip. The rules should stay; the archaeology should live in DONE.org bodies or the relevant heading, with a pointer where the rule needs its provenance. Judgment-heavy prune, so it needs the user in the loop, not a background pass.
 
@@ -8918,6 +8983,7 @@ should not be reported as fixing the problem.
 
 *Four decisions were settled by the user 2026-09-02 and stand, scoped to the archaeology rather than the relocation:* the criterion is [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]]'s — prose earns its place when it lets a future session pick the work up without re-deriving context. Removed archaeology is deleted outright, since this file is version-controlled with no bounded archive. Won't-dos belong on the heading that declined them, not here. The fourth — what becomes of decision records guarding a *live* convention — was left open, and the relocation question above changes it: a guard for a convention that ships should travel with the convention rather than being compressed into a file that does not.
 
+:END:
 *First pass executed 2026-09-04* (commit =89c3fd2=, on
 =feature/org-discipline-travel=), with the user approving block by
 block. The four mechanism-gone blocks went: the =:SESSIONS:= retirement
@@ -8942,7 +9008,6 @@ contested read-through settled the remainder with the user block by
 block — the unique guards travelled into the shipped conventions,
 duplication became pointer stubs, and CLAUDE.md fell 1294 → 430 lines
 in one day without deleting a still-working guard.
-
 
 
 ** DONE The file-header template omits #+STARTUP:, which both files carry :code:
@@ -10509,11 +10574,19 @@ scoping, or rate limiting. Don't just flip the host to 0.0.0.0 and
 call it done.
 
 
-* MAYBE Package the Warp wiring :code:
+* TODO Package the Warp wiring :code:
 :PROPERTIES:
 :CATEGORY: Dev
 :ID:       e396f94a-59db-4c6b-80b4-dc144146877b
 :CREATED:  [2026-07-28 Tue 08:02]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-09 Wed 09:24]--[2026-09-09 Wed 09:25] =>  0:01
+- [2026-09-09 Wed 09:24]--[2026-09-09 Wed 09:25] assigned at review
+CLOCK: [2026-09-09 Wed 09:27]--[2026-09-09 Wed 09:28] =>  0:01
+- [2026-09-09 Wed 09:27]--[2026-09-09 Wed 09:28] assigned at review
+- State "TODO"       from "MAYBE"      [2026-09-09 Wed 09:28] \\
+  promoted at the manifest, port stays pinned
 :END:
 :PLAN:
 Scope as promoted (the user, 2026-09-09, at PR #22's manifest). *The
@@ -10565,7 +10638,6 @@ fact in the artifact (=84b7d8b3='s precedent) — is met by PR #22's
 manifest: the plugin's =.mcp.json= hardcodes the port that only the
 personal config block pins, so the plugin now depends on wiring it
 does not ship. The port stays pinned; the scope is in =:PLAN:=.
-
 
 
 * Review and planning
@@ -11164,4 +11236,17 @@ CLOCK: [2026-09-08 Tue 15:38]--[2026-09-08 Tue 15:42] =>  0:04
 - [2026-09-08 Tue 15:38]--[2026-09-08 Tue 15:42] assigned at review
 CLOCK: [2026-09-08 Tue 16:35]--[2026-09-08 Tue 16:36] =>  0:01
 - [2026-09-08 Tue 16:35]--[2026-09-08 Tue 16:36] assigned at review
+:END:
+
+
+**** 2026-09-09 Wednesday
+:PROPERTIES:
+:ID:       21608c35-6126-42d8-ad76-8b9f40d3ce85
+:CREATED:  [2026-09-09 Wed 08:17]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-09 Wed 08:21]--[2026-09-09 Wed 08:22] =>  0:01
+- [2026-09-09 Wed 08:21]--[2026-09-09 Wed 08:22] assigned at review
+CLOCK: [2026-09-09 Wed 08:24]--[2026-09-09 Wed 08:25] =>  0:01
+- [2026-09-09 Wed 08:24]--[2026-09-09 Wed 08:25] retroactive bracket: next-session.md readiness pass
 :END:
