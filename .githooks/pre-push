@@ -49,4 +49,28 @@ if ! "$sync" --check >/dev/null 2>&1; then
   exit 1
 fi
 
+# Advisory: a merge on main that did not come through a pull request
+# (TODO.org :ID: c7bf2121). Ten consecutive integrations used PRs while
+# the practice lived only in git history; then two local --no-ff merges
+# broke the streak without tripping anything. ADVISORY ONLY, never a
+# refusal: a hotfix or a deliberate solo merge must not be blocked by a
+# workflow preference -- the retired auto-promotion trigger is this
+# repo's precedent for mechanisms that act on their own judgement.
+#
+# Reads the ref lines git hands every pre-push hook on stdin:
+#   <local_ref> <local_sha> <remote_ref> <remote_sha>
+while read -r _local_ref local_sha remote_ref remote_sha; do
+  [[ "$remote_ref" == "refs/heads/main" ]] || continue
+  # A brand-new remote main has no baseline; nothing to compare.
+  [[ "$remote_sha" =~ ^0+$ ]] && continue
+  stray="$(git log --merges --format='%h %s' "$remote_sha..$local_sha" 2>/dev/null \
+             | grep -Ev '^[0-9a-f]+ Merge pull request' || true)"
+  if [[ -n "$stray" ]]; then
+    echo "pre-push: advisory -- merge commit(s) on main not from a pull request:" >&2
+    printf '%s\n' "$stray" | sed 's/^/    /' >&2
+    echo "  the practice is gh pr create, then merge via the PR (TODO.org :ID: c7bf2121)." >&2
+    echo "  Pushing anyway; this is a reminder, not a gate." >&2
+  fi
+done
+
 exit 0
