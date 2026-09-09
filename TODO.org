@@ -2,10 +2,59 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO org_slice_add_member cannot declare a nested member :code:
+* TODO An unmatched clock_in grows an ever-wider span across review passes :code:
+:PROPERTIES:
+:ID:       58332dd1-fb49-4e98-a5e3-4b71ff62c995
+:CREATED:  [2026-09-09 Wed 14:36]
+:END:
+:PLAN:
+Caught by the user 2026-09-09, mid-review: a span [08:30]--[13:36]
+kept reappearing, wider each pass, overlapping CLOCK lines already
+applied. Diagnosed from the queue files: session =5b42fc84='s stream
+opens =clock_in "Review and planning"= at 08:30:07 and the next clock
+event is =clock_in b0e478f7= 100 seconds later — no =clock_out= for
+the first ever exists, because at apply org's own =org-clock-in=
+closes the running clock, so the session had no reason to send one.
+The queue's bracket pairing is per heading, so on the queue side that
+=clock_in= is an *unmatched bracket*, which
+=--review-items-from-queue= deliberately reads as "work still
+running": its span re-derives to the newest guidepost on every pass,
+and nothing consumes the event — after four applies (62 events in the
+watermark) 08:30:07 was still absent from the applied set.
+
+The fix candidates, in preference order: (1) at pairing time, a later
+=clock_in= in the *same lane* closes an open bracket at its own
+timestamp — mirroring exactly what org does at apply, so the queue's
+model matches the record the apply will produce; (2) failing that,
+the unmatched-clock_in span should *end* at the lane's next
+=clock_in=, not at the newest guidepost, which stops the growth but
+still re-offers forever. The double-count guard held, for the
+record: the span's runs subtract owned brackets (=eaeeb4ee=), so the
+overlap was envelope-level; the defect is the unkillable, growing
+item, not double-written time.
+:END:
+
+A session that clocks into a new heading without closing the previous
+one leaves an eternally open bracket on the queue side — org closes
+the clock fine at apply, but the review re-derives the unmatched
+=clock_in='s span to the newest guidepost on every pass, growing and
+never consumable. Proposed: pairing treats a later same-lane
+=clock_in= as closing the open bracket, matching what apply actually
+does. Diagnosis in =:PLAN:=.
+
+* REVIEW org_slice_add_member cannot declare a nested member :code:
 :PROPERTIES:
 :ID:       1206b5b0-765f-48f7-94a9-0b543cf76487
 :CREATED:  [2026-09-09 Wed 13:33]
+:END:
+:LOGBOOK:
+- [2026-09-09 Wed 13:52]--[2026-09-09 Wed 13:54] assigned at review
+CLOCK: [2026-09-09 Wed 13:54]--[2026-09-09 Wed 13:58] =>  0:04
+- State "DOING"      from "TODO"       [2026-09-09 Wed 13:54] \\
+  parent-aware add-member, the nesting declaration
+- [2026-09-09 Wed 13:54]--[2026-09-09 Wed 13:58] teach org_slice_add_member a parent argument
+- State "REVIEW"     from "DOING"      [2026-09-09 Wed 13:58] \\
+  tool extension shipped; judgement remains
 :END:
 :DEBRIEF:
 Shipped as =cb520e7=. Design choice worth recording: nesting is taken
@@ -32,8 +81,7 @@ real org ancestry — the declaration that needed a hand edit this
 morning needs one no longer.
 
 
-
-* TODO claude-org-setup wires the Doom module :code:
+* REVIEW claude-org-setup wires the Doom module :code:
 :PROPERTIES:
 :ID:       78a02667-c946-429e-af58-7330070c6e06
 :CREATED:  [2026-09-09 Wed 09:51]
@@ -58,6 +106,12 @@ CLOCK: [2026-09-09 Wed 09:50]--[2026-09-09 Wed 09:54] =>  0:04
 - [2026-09-09 Wed 09:50]--[2026-09-09 Wed 09:54] assigned at review
 CLOCK: [2026-09-09 Wed 09:59]--[2026-09-09 Wed 10:00] =>  0:01
 - [2026-09-09 Wed 09:59]--[2026-09-09 Wed 10:00] assigned at review
+CLOCK: [2026-09-09 Wed 13:47]--[2026-09-09 Wed 13:49] =>  0:02
+- State "DOING"      from "TODO"       [2026-09-09 Wed 13:47] \\
+  building the --doom print-only mode
+- [2026-09-09 Wed 13:47]--[2026-09-09 Wed 13:49] claude-org-setup --doom prints the two init lines
+- State "REVIEW"     from "DOING"      [2026-09-09 Wed 13:49] \\
+  print-only mode shipped; try it when you like
 :END:
 :PLAN:
 Raised by the user 2026-09-09, from the question "how does the plugin
@@ -106,7 +160,6 @@ Resolved 2026-09-09: =claude-org-setup --doom= prints the
 =doom-module-load-path= line and the =:tools= flag for this checkout,
 refuses from an update-managed copy, and writes nothing — the symlink
 the title once named turned out unnecessary.
-
 
 
 * DONE Nothing checks promoted rules copies against the plugin references :code:
@@ -622,7 +675,7 @@ swapped back; the existing self-heals test pins the count through the
 new path.
 
 
-* DOING Every merge to main went through a PR ten times, and nothing says so :code:
+* REVIEW Every merge to main went through a PR ten times, and nothing says so :code:
 :PROPERTIES:
 :ID:       c7bf2121-755c-4e52-8bf2-e21e56b1e0c2
 :CREATED:  [2026-09-08 Tue 11:56]
@@ -647,6 +700,11 @@ the conservative reading for a reminder.
 :LOGBOOK:
 - State "DOING"      from "TODO"       [2026-09-09 Wed 13:36] \\
   writing the PR practice into CLAUDE.md, its step 1
+- [2026-09-09 Wed 13:37]--[2026-09-09 Wed 13:42] suggested span, accepted at review
+CLOCK: [2026-09-09 Wed 13:50]--[2026-09-09 Wed 13:51] =>  0:01
+- [2026-09-09 Wed 13:50]--[2026-09-09 Wed 13:51] the advisory pre-push merge check, its step 2
+- State "REVIEW"     from "DOING"      [2026-09-09 Wed 13:51] \\
+  rule written, advisory proved; judgement remains
 :END:
 
 Raised by the user 2026-09-08 on noticing that this session's merges to
@@ -710,7 +768,6 @@ practices) and mechanised advisorily — =.githooks/pre-push= names any
 merge on =main= whose subject is not a PR merge, and never blocks. The
 every-merge-vs-code-carrying question stays open; the advisory flags
 all, which errs toward the reminder.
-
 
 
 * DONE The proposal convention's last argument is falsified; an open slice is its own proposal :code:
@@ -791,14 +848,14 @@ and the only remaining references to the old convention are historical
 prose in heading bodies and the consumed plan file, left deliberately.
 
 
-* DOING [3/11] Ship the plugin: make the machinery and its prose travel together :code:
+* DOING [4/11] Ship the plugin: make the machinery and its prose travel together :code:
 :PROPERTIES:
 :ID:       c19fbbf5-be1b-4c18-a38e-9b46d064abb8
 :CREATED:  [2026-09-08 Tue 09:54]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(b0e478f7-e894-4ac7-b0b6-b3c890b5b32a e396f94a-59db-4c6b-80b4-dc144146877b 78a02667-c946-429e-af58-7330070c6e06 c7bf2121-755c-4e52-8bf2-e21e56b1e0c2 1206b5b0-765f-48f7-94a9-0b543cf76487 2a399034-5267-47ed-a129-20e371a77146 ecf66d45-18b3-477f-bca8-08bec90604e8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4)
+:BLOCKER:  ids(e396f94a-59db-4c6b-80b4-dc144146877b 78a02667-c946-429e-af58-7330070c6e06 c7bf2121-755c-4e52-8bf2-e21e56b1e0c2 1206b5b0-765f-48f7-94a9-0b543cf76487 2a399034-5267-47ed-a129-20e371a77146 ecf66d45-18b3-477f-bca8-08bec90604e8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4)
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-08 Tue 15:29] \\
@@ -832,14 +889,14 @@ the hooks move.
 
 Planned:
 
-- [-] [[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]] REVIEW Package the plugin: references, setup command, machinery prose
+- [X] [[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]] DONE Package the plugin: references, setup command, machinery prose
 - [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] DONE Update CLAUDE.md and the org skill for the new architecture
   - [X] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] DONE CLAUDE.md carries dated history that costs every session's context
-- [ ] [[id:e396f94a-59db-4c6b-80b4-dc144146877b][e396f94a]] TODO Package the Warp wiring
-- [ ] [[id:78a02667-c946-429e-af58-7330070c6e06][78a02667]] TODO claude-org-setup wires the Doom module
-- [-] [[id:c7bf2121-755c-4e52-8bf2-e21e56b1e0c2][c7bf2121]] DOING Every merge to main went through a PR ten times, and nothing says so
-- [ ] [[id:1206b5b0-765f-48f7-94a9-0b543cf76487][1206b5b0]] TODO org_slice_add_member cannot declare a nested member
-- [ ] [[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]] TODO Split the reads: org_outline carries the body, a second tool serves drawers on demand
+- [-] [[id:e396f94a-59db-4c6b-80b4-dc144146877b][e396f94a]] REVIEW Package the Warp wiring
+- [-] [[id:78a02667-c946-429e-af58-7330070c6e06][78a02667]] REVIEW claude-org-setup wires the Doom module
+- [-] [[id:c7bf2121-755c-4e52-8bf2-e21e56b1e0c2][c7bf2121]] REVIEW Every merge to main went through a PR ten times, and nothing says so
+- [-] [[id:1206b5b0-765f-48f7-94a9-0b543cf76487][1206b5b0]] REVIEW org_slice_add_member cannot declare a nested member
+- [-] [[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]] REVIEW Split the reads: org_outline carries the body, a second tool serves drawers on demand
 - [ ] [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out future work on a timeline the agenda can show
 - [ ] [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
 
@@ -1229,7 +1286,8 @@ next session start shows nothing new until a reload or Doom restart.
 should now say both channels, as decided.
 
 
-* REVIEW Package the plugin: references, setup command, machinery prose :code:
+* DONE Package the plugin: references, setup command, machinery prose :code:
+CLOSED: [2026-09-09 Wed 13:43]
 :PROPERTIES:
 :ID:       b0e478f7-e894-4ac7-b0b6-b3c890b5b32a
 :CREATED:  [2026-09-04 Fri 14:56]
@@ -1278,6 +1336,8 @@ CLOCK: [2026-09-09 Wed 08:56]--[2026-09-09 Wed 09:13] =>  0:17
 - [2026-09-09 Wed 08:56]--[2026-09-09 Wed 09:13] build manifest, references, setup command
 - State "REVIEW"     from "DOING"      [2026-09-09 Wed 09:13] \\
   four deliverables shipped on feature/plugin-package
+- State "DONE"       from "REVIEW"     [2026-09-09 Wed 13:43] \\
+  review passed on PR #22; next member e396f94a starts now
 :END:
 :PLAN:
 
@@ -1299,7 +1359,6 @@ references, portable conventions and the =claude-org-setup= promotion
 command shipped together as PR #22's =42a3221=, and CLAUDE.md's
 machinery prose travels with the plugin instead of describing a system
 another repo cannot run.
-
 
 
 * TODO session-context.sh reports which groupings lack a NEXT, never which headings hold one
@@ -2454,11 +2513,17 @@ prompt teaches the two grains, and the pre-convention corpus is filed
 as its own pass.
 
 
-** TODO Split the reads: org_outline carries the body, a second tool serves drawers on demand :code:
+** REVIEW Split the reads: org_outline carries the body, a second tool serves drawers on demand :code:
 :PROPERTIES:
 :ID:       2a399034-5267-47ed-a129-20e371a77146
 :CREATED:  [2026-09-02 Wed 15:42]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-09 Wed 14:03]--[2026-09-09 Wed 14:11] =>  0:08
+- [2026-09-09 Wed 14:03]--[2026-09-09 Wed 14:11] assigned at review
+- State "REVIEW"     from "TODO"       [2026-09-09 Wed 14:11] \\
+  read split shipped; needs module reload to go live
 :END:
 :DEBRIEF:
 Shipped as =9075f8e=. The three open design questions closed as: bodies
@@ -2513,7 +2578,6 @@ this heading's own wait-for-the-corpus sequencing with eyes open —
 excluded, =bodies=false= to opt out), and =org_body= serves one drawer
 on demand via =drawer==, unrenamed. The deferred half is a
 *measurement*, not code: see the reminder in =:DEBRIEF:=.
-
 
 
 ** DONE Separate plan from debrief across the 73 warned headings, retroactively :code:
@@ -2598,7 +2662,6 @@ it is time to re-measure the unscoped =org_outline= (bodies now ride
 in the index) and retire the interim =bodies=false= advice in
 CLAUDE.md's "Reading the tracker" if the numbers support it. The full
 reminder lives in =2a399034='s =:DEBRIEF:=.
-
 
 
 * TODO A boolean argument passed as false arrives as :false, which elisp reads as true :code:
@@ -3976,6 +4039,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-09 Wed 14:30]--[2026-09-09 Wed 14:35] =>  0:05
 CLOCK: [2026-09-09 Wed 13:37]--[2026-09-09 Wed 13:38] =>  0:01
 CLOCK: [2026-09-09 Wed 13:11]--[2026-09-09 Wed 13:14] =>  0:03
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
@@ -10779,7 +10843,7 @@ scoping, or rate limiting. Don't just flip the host to 0.0.0.0 and
 call it done.
 
 
-* TODO Package the Warp wiring :code:
+* REVIEW Package the Warp wiring :code:
 :PROPERTIES:
 :CATEGORY: Dev
 :ID:       e396f94a-59db-4c6b-80b4-dc144146877b
@@ -10792,6 +10856,12 @@ CLOCK: [2026-09-09 Wed 09:27]--[2026-09-09 Wed 09:28] =>  0:01
 - [2026-09-09 Wed 09:27]--[2026-09-09 Wed 09:28] assigned at review
 - State "TODO"       from "MAYBE"      [2026-09-09 Wed 09:28] \\
   promoted at the manifest, port stays pinned
+CLOCK: [2026-09-09 Wed 13:43]--[2026-09-09 Wed 13:47] =>  0:04
+- State "DOING"      from "TODO"       [2026-09-09 Wed 13:43] \\
+  building the guarded standalone wiring in the module
+- [2026-09-09 Wed 13:43]--[2026-09-09 Wed 13:47] guarded setup: port contract, per-repo sessions
+- State "REVIEW"     from "DOING"      [2026-09-09 Wed 13:47] \\
+  module half done; your config swap and live check remain
 :END:
 :PLAN:
 Scope as promoted (the user, 2026-09-09, at PR #22's manifest). *The
@@ -10852,7 +10922,6 @@ nothing acting at load. Remaining before close: swap the personal
 config block for the two-line form the setup reference now shows, and
 verify live — which needs the module reloaded first; the running
 Emacs still carries only the old hand block.
-
 
 
 * Review and planning
