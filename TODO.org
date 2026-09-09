@@ -8,7 +8,38 @@
 :CREATED:  [2026-09-08 Tue 16:53]
 :CATEGORY: Slices
 :END:
+:DEBRIEF:
+*Debrief, 2026-09-09.* The experiment ran 2026-09-08 on branch
+=experiment/slice-subheadings= (=2d6d8e3=, kept for reference):
+=c19fbbf5= restructured into the four proposed sections, measured in a
+sandbox. Declined on two findings, each verified past dispute: org
+offers no subtree roll-up for headline checkbox cookies — the manual's
+"all boxes below" wording means nested lists, confirmed at
+=org-list.el='s source (region ends at =outline-next-heading=) and by
+three-variant measurement ([2/3] flat vs [0/0] sectioned, under both
+the property and the variable) — and every member derivation stops at
+the first child heading, so the refresh reported zero members and
+deleted the =:BLOCKER:=, exactly the =b36e6369=-era failure the
+conventions had recorded. Adoption would have meant owning the roll-up
+plus reworking ~8 functions and ~40 fixtures.
 
+The user accepted the recommendation 2026-09-09: the navigation half
+was adopted as the =Planned:= lead — conventions updated (the lead is
+navigational and parsed by nothing, where =Incidental:= is
+load-bearing and machine-written; the imenu claim corrected along the
+way, since leads enter imenu only via customisation while real
+sections would have had it natively), and the three open slices
+marked, gates clean, member scan still seeing all five of
+=c19fbbf5='s members. Two process notes for the record: the capture
+rode into the experiment branch's commit and vanished from =main= on
+the switch back (third stale-branch variant, recovered from the
+branch commit), and the experiment snapshot could not even be
+committed until its =:BLOCKER:= was hand-deleted — the lint refusing a
+layout is itself a finding.
+:END:
+:PLAN:
+
+:END:
 *Measured 2026-09-08, on branch =experiment/slice-subheadings= (commit
 =2d6d8e3=, =c19fbbf5= restructured into =** Summary= / =** [/] Planned
 tasks= / =** [/] Incidental tasks= / =** Working notes=), sandboxed so
@@ -92,6 +123,13 @@ children (=dca940c1=). So the experiment's "fighting org's counter"
 phrasing firms up: org offers no supported subtree roll-up for
 checkbox cookies, and adoption would mean owning that roll-up
 entirely.
+
+*Resolved 2026-09-09:* the section-subheading layout is declined on
+the measurements above, and its surviving half is adopted — a
+=Planned:= lead line now introduces every open slice's checklist,
+symmetric with =Incidental:=, written into the conventions and onto
+the three open slices with both gates clean.
+
 
 
 
@@ -479,6 +517,8 @@ they need hooks to be user-level, which only shipping makes true, and
 =b862fbf4= additionally needs =5461c349='s =cwd= data to have
 accumulated across more than one project — which cannot start before
 the hooks move.
+
+Planned:
 
 - [ ] [[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]] TODO Package the plugin: references, setup command, machinery prose
 - [-] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] DOING CLAUDE.md carries dated history that costs every session's context
@@ -2565,6 +2605,8 @@ To which add the standing friction: the two MCP tools that time out are worked a
 
 *Composition note:* the member list below is deliberately not sequenced yet, and the incidental list is generated.
 
+Planned:
+
 - [ ] [[id:39039bb6-c70a-4ba9-8b37-edd8dd6921f6][39039bb6]] TODO bin/lint-org does not detect a duplicate :ID: across TODO.org and DONE.org
 - [ ] [[id:f12f9da4-2870-45b7-8c50-ea54415c7bc6][f12f9da4]] TODO The running Emacs can be running a stale config.el and nothing says so
 - [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] DONE Verification traps: a check with no way to fail, and a fixture that never takes the real path
@@ -3269,6 +3311,8 @@ Seeded 2026-08-31 from the proposal reviewed in conversation: DONE.org's datetre
 *Use org's own datetree machinery, and note which entry point.* =org-datetree-find-create-hierarchy= takes a comparison function per level and =org-datetree-comparefun-from-regex= builds one; negating its result gives the descending order [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] asks for. Measured in batch 2026-08-31 -- entries inserted 08-10, 08-31, 07-05, 08-20 landed in strict descending order at year, month and day. Only =org-datetree-find-date-create= hard-codes ascending, which is what made a hand-rolled builder look necessary at first.
 
 *What a day node means, and does not.* It holds what org would allocate to that date. A task's *earlier* clock intervals stay where they were recorded, so a day node is not a substitute for a clocktable when the question is how much time went where.
+
+Planned:
 
 - [ ] [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] TODO Distribute Review and planning's past day nodes into DONE.org's datetree
 - [ ] [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones

@@ -357,6 +357,22 @@ count different things: children, versus checkbox members.
 **Members are `[[id:...]]` links in a checkbox list**, not child
 headings.
 
+**The planned checklist is introduced by a `Planned:` lead line** —
+column zero, on a line of its own, directly above the first member —
+symmetric with the machine-written `Incidental:` lead below (adopted
+2026-09-09 from `:ID:` c5e58ea1, the surviving half of the
+section-subheadings proposal). The two leads give both lists navigable
+anchors (grep, occur, isearch; imenu with an
+`imenu-generic-expression` entry) at zero machinery cost. The
+asymmetry to know: `Incidental:` is load-bearing — the refresh locates
+and rewrites the section beneath it — while `Planned:` is purely
+navigational, parsed by nothing, and written by the composer. Actual
+subheadings were measured and declined (`c5e58ea1`): a headline
+checkbox cookie cannot count boxes past a child heading — org's
+"recursive" means nested lists, verified at source — and every member
+derivation stops at the first child, so sections would zero the cookie
+and blind the refresh.
+
 **A heading joins a checklist only once it exists on disk with its
 keyword** (`:ID:` 2d2211d5, choosing the candidate `798bb7a1` closed
 without picking). Both lint rules are right and both fire at once on a
