@@ -4567,7 +4567,15 @@ This exists because the incidental list is *derived from what it does
 not already name*, so without it the second refresh sees the first
 refresh's own output, calls every incidental \"already named\", and
 deletes the section it just wrote.  Found by the idempotency test rather
-than by reading, which is what that test is for."
+than by reading, which is what that test is for.
+
+*The region's start anchors at the `Planned:' lead when one exists*
+(:ID: a43cfaa0): membership is then positionally explicit, and an
+id-link bullet in the prose *above* the lead is ordinary prose rather
+than a member with a deleted cookie -- the trap the conventions used
+to have to warn about.  Where no lead exists the scan starts at the
+body as before; closed slices predate the lead and are never
+refreshed, so that fallback is permanent, not transitional."
   (save-excursion
     (org-back-to-heading t)
     (let* ((body-end (save-excursion (outline-next-heading)
@@ -4580,7 +4588,15 @@ than by reading, which is what that test is for."
                          body-end t)
                         (match-beginning 0))))
            (end (or lead body-end))
+           (planned (save-excursion
+                      (and (re-search-forward
+                            (concat "^" (regexp-quote
+                                         claude-code-ide-org--slice-planned-lead)
+                                    "[ \t]*$")
+                            end t)
+                           (match-end 0))))
            ids)
+      (when planned (goto-char planned))
       (while (re-search-forward claude-code-ide-org--slice-member-regexp end t)
         (push (downcase (match-string-no-properties 2)) ids))
       (nreverse ids))))
@@ -5199,6 +5215,16 @@ it would be destroyed at the next apply anyway."
       (set-marker end nil)
       (cons changed (nreverse skipped)))))
 
+(defconst claude-code-ide-org--slice-planned-lead "Planned:"
+  "The line introducing a slice's planned checklist.
+Column zero on a line of its own, like the incidental lead below.
+Adopted as navigation 2026-09-09 (:ID: c5e58ea1) and made load-bearing
+the same day (:ID: a43cfaa0): it anchors the start of the planned
+member region, `org_slice_add_member' writes it when starting a
+checklist, and the refresh inserts it when missing.  Closed slices
+predate it and are never refreshed, so every reader falls back to the
+body start when no lead exists.")
+
 (defconst claude-code-ide-org--slice-incidental-lead "Incidental:"
   "The line introducing a slice's generated incidental list.
 Matched at column zero on a line of its own, which is what separates it
@@ -5219,6 +5245,46 @@ Column zero, because the generator emits no indent; an optional checkbox
 whose three possible characters come from
 `claude-code-ide-org--slice-checkbox-by-keyword\'; then the `id:\' link
 that makes the line a reference rather than prose.")
+
+(defun claude-code-ide-org--ensure-planned-lead-at-point ()
+  "Insert the `Planned:' lead above the slice-at-point's first member line.
+Returns non-nil when one was inserted; nil when it is already there or
+the slice has no checklist yet (`org_slice_add_member' writes the lead
+when it starts one).
+
+The same insert-when-absent move the cookie (28415ca8) and
+`:COOKIE_DATA:' (acf46449) already got, for the same reason: a marker
+maintained by a mechanism cannot depend on anyone remembering it
+(:ID: a43cfaa0).  Bounded above the `Incidental:' lead, so an
+incidental list can never anchor the planned lead."
+  (save-excursion
+    (org-back-to-heading t)
+    (let* ((body-end (save-excursion (outline-next-heading)
+                                     (or (point) (point-max))))
+           (inc (save-excursion
+                  (and (re-search-forward
+                        (concat "^" (regexp-quote
+                                     claude-code-ide-org--slice-incidental-lead)
+                                "[ \t]*$")
+                        body-end t)
+                       (match-beginning 0))))
+           (bound (or inc body-end))
+           (first (save-excursion
+                    (and (re-search-forward
+                          claude-code-ide-org--slice-member-regexp bound t)
+                         (match-beginning 0))))
+           (lead (save-excursion
+                   (and (re-search-forward
+                         (concat "^" (regexp-quote
+                                      claude-code-ide-org--slice-planned-lead)
+                                 "[ \t]*$")
+                         bound t)
+                        (match-beginning 0)))))
+      (when (and first (or (null lead) (> lead first)))
+        (goto-char first)
+        (beginning-of-line)
+        (insert claude-code-ide-org--slice-planned-lead "\n\n")
+        t))))
 
 (defun claude-code-ide-org--refresh-slice-incidentals-at-point (index)
   "Regenerate the slice-at-point's incidental section from INDEX.
@@ -5376,7 +5442,7 @@ a record that was never true at any moment (observed on
         ;; the apply-path binding was added for, one command later.
         (inhibit-read-only t)
         (slices 0) (lines 0) (blockers 0) (incidentals 0) (cookie-data 0)
-        (unrendered nil))
+        (planned-leads 0) (unrendered nil))
     (dolist (file (claude-code-ide-org--tracked-files))
       (when (file-exists-p file)
         (with-current-buffer (find-file-noselect file)
@@ -5446,6 +5512,12 @@ a record that was never true at any moment (observed on
                (unless (org-entry-get nil "COOKIE_DATA")
                  (org-entry-put nil "COOKIE_DATA" "checkbox recursive")
                  (setq cookie-data (1+ cookie-data)))
+               ;; The Planned: lead joins the self-heal family
+               ;; (:ID: a43cfaa0): inserted above an existing checklist
+               ;; when absent, before the member rewrite so the anchor
+               ;; is in place for every later read.
+               (when (claude-code-ide-org--ensure-planned-lead-at-point)
+                 (setq planned-leads (1+ planned-leads)))
                (claude-code-ide-org--ensure-statistics-cookie-at-point)
                ;; Headline-scoped, never org's entry-wide updater: that
                ;; one rewrites [n/m] in body PROSE too, and falsified a
@@ -5466,6 +5538,9 @@ a record that was never true at any moment (observed on
      ;; the ambient counts.
      (when (> cookie-data 0)
        (format "; %d :COOKIE_DATA: repaired" cookie-data))
+     (when (> planned-leads 0)
+       (format "; %d Planned: lead%s repaired"
+               planned-leads (if (= planned-leads 1) "" "s")))
      ;; Reported, not merely applied. An id dropped for belonging to
      ;; another slice is a *decision* about ownership, and a derived list
      ;; that quietly shrinks is as wrong as one that quietly grows --
@@ -5764,11 +5839,32 @@ a keyword-less member. Give it a keyword (or apply its queued one) first."
                              after))
                     (if anchor
                         (progn (goto-char anchor) (insert "\n" line))
-                      ;; No checklist yet: start one at the body's end,
-                      ;; above any incidental section.
-                      (goto-char bound)
-                      (skip-chars-backward " \t\n")
-                      (insert "\n\n" line "\n")))
+                      ;; No checklist yet: insert beneath an existing
+                      ;; Planned: lead, or start one -- lead included,
+                      ;; since the lead is load-bearing and this is the
+                      ;; moment a checklist is born (:ID: a43cfaa0).
+                      (let ((lead-end
+                             (save-excursion
+                               (org-back-to-heading t)
+                               (and (re-search-forward
+                                     (concat "^" (regexp-quote
+                                                  claude-code-ide-org--slice-planned-lead)
+                                             "[ \t]*$")
+                                     bound t)
+                                    (match-end 0)))))
+                        (if lead-end
+                            (progn (goto-char lead-end)
+                                   (insert "\n\n" line)
+                                   ;; Absorb a blank the lead already had
+                                   ;; below it, so the list sits one
+                                   ;; blank line under the lead.
+                                   (when (looking-at "\n[ \t]*\n")
+                                     (replace-match "\n" t t)))
+                          (goto-char bound)
+                          (skip-chars-backward " \t\n")
+                          (insert "\n\n"
+                                  claude-code-ide-org--slice-planned-lead
+                                  "\n\n" line "\n")))))
                   ;; The refresh re-derives the rendering, cookie and
                   ;; :BLOCKER: from the list that now includes the new
                   ;; line -- so what lands is exactly what a refresh
