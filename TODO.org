@@ -57,6 +57,19 @@ buys a write target, not the stats.
 add the =Planned:= lead line instead.* The branch stays for reference
 or a different decision.
 
+*Correction, 2026-09-09 (the user asked what "imenu-able" meant, and
+the answer showed the word was wrong).* Stock org imenu indexes
+*headings* (=org-imenu-get-tree=), not text — a =Planned:= lead line is
+grep-, occur- and isearch-able but enters the imenu index only via an
+=imenu-generic-expression= customisation. So the cheaper-route sentence
+understated the layout's real advantage: actual =**= sections get
+imenu, =org-goto=, and native cycling/folding for free, which is
+exactly the navigation ask, and lead lines only approximate it. The
+recommendation is unchanged — the cookie zeroing and blind derivations
+are the binding constraints, not navigation — but the trade should be
+weighed with this stated correctly.
+
+
 
 
 * TODO A task completed between slices belongs to no slice :code:
