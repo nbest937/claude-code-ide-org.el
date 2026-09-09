@@ -10423,6 +10423,26 @@ call it done.
 :ID:       e396f94a-59db-4c6b-80b4-dc144146877b
 :CREATED:  [2026-07-28 Tue 08:02]
 :END:
+:PLAN:
+Scope as promoted (the user, 2026-09-09, at PR #22's manifest). *The
+port stays pinned by design*: upstream =claude-code-ide-mcp-server-port=
+defaults to nil — a random port per server start — and the static
+=.mcp.json= contract is exactly why the pin exists; a dynamic port makes
+the shipped URL wrong at every Emacs restart, and the standalone
+clients (Warp, =claude= reading =.mcp.json=) have no discovery
+protocol. True dynamic discovery is the upstream PR this heading always
+deferred. What ships instead:
+
+- a *guarded setup* in the module — never a bare =setq= of upstream's
+  global at load, which is the line =1caed585= draws — owning the port
+  contract as a defcustom defaulting to 45571 and checking it against
+  what the shipped =.mcp.json= names, loudly, at wiring time;
+- the hardcoded project dir (=claude-code-ide-org--warp-project-dir=)
+  unhardcoded;
+- =register-session= per consuming repo: =/mcp/warp= today is one
+  session registered against this repo's directory alone, which is
+  wrong the moment a second repo consumes the plugin.
+:END:
 As a reusable snippet, not a private hack. Per the earlier scope
 conversation: the port-pinning + session-registration +
 IDE-companion-autostart block currently lives in personal
@@ -10447,6 +10467,13 @@ design. Promoting would mint a =TODO= that can only sit inert until
 another heading moves. The trigger is packaging starting; =b0e478f7=
 should name this heading when it does (a =:BLOCKER:= here would be
 dormant on a =MAYBE=, per the lint).
+
+Promoted =MAYBE= → =TODO= 2026-09-09. The promotion bar — a changed
+fact in the artifact (=84b7d8b3='s precedent) — is met by PR #22's
+manifest: the plugin's =.mcp.json= hardcodes the port that only the
+personal config block pins, so the plugin now depends on wiring it
+does not ship. The port stays pinned; the scope is in =:PLAN:=.
+
 
 
 * Review and planning
