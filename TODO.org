@@ -286,6 +286,10 @@ first.
 :CREATED:  [2026-09-10 Thu 10:23]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+One research heading, four findings, each landing in the setup reference the same day: (1) the skills-directory symlink is the enable-once route — full plugin (hooks, MCP with one approval, skills), referenced in place, =bin/= permitted; the "marketplace forbids bin/" belief corrected to managed-settings distribution only. (2) *Project* scope works and is the recommended default — active only for sessions started at that project root, no user-level config, no double-fire guard needed; user scope keeps the =settings.local.json= guard for this repo's clone. (3) The skills directory is the *only* auto-discovery location and documented first-class; =~/.claude/plugins/= is auto-cleaned managed cache, the one place a symlink must not go. (4) The manifest's ="hooks"= declaration was a redundant duplicate of convention-path auto-loading — the euchre agent's diagnosis, the user's hand fix, and a this-repo session's misread-then-correction are the body's fourth finding, verified by a flag-less headless session appending single events. Exit evidence: the user's own flag-less euchre sessions, twice over.
+:END:
+:PLAN:
 
 After =7c86ab4c= and =e3caa21f=, the only remaining *per-session*
 hand step is =claude --plugin-dir /path/to/clone=. Investigate the
@@ -299,6 +303,7 @@ character. Deliverable: the enable-once procedure documented in
 =org-emacs-setup.md= and DOOM.md, or a finding that per-session flags
 remain the supported path, stated plainly.
 
+:END:
 Researched and documented 2026-09-10: the enable-once route is a symlink into =~/.claude/skills/= — auto-loaded user-wide as =claude-code-ide-org@skills-dir=, referenced in place so a =git pull= or local edit is live next session, =bin/= permitted, one-time trust prompt per project. The remembered "marketplace forbids =bin/=" is corrected: =bin/= is refused only for plugins force-distributed through managed organization settings. The one caveat the docs cannot know is mandatory and documented with the procedure: user-wide auto-load includes this repo itself, whose =.claude/settings.json= wires the same hooks, so the clone needs ={"enabledPlugins": {"claude-code-ide-org@skills-dir": false}}= in its =.claude/settings.local.json= or every queue event here appends twice. The local-marketplace alternative (=extraKnownMarketplaces= + =/plugin install=, per-project control) is noted but not recommended: the docs are ambiguous on reference-vs-cache-copy for local installs. Sandbox reviews keep =--plugin-dir= deliberately — they must load their own clone, not the user-enabled one. REVIEW exit: your symlink, the settings.local.json guard, then one flag-less session in euchre reaching the tools.
 
 Second finding, same day, at the user's question: a *project's* =.claude/skills/= hosts full skills-directory plugins too — hooks, MCP server (per-server approval), skills — scoped to sessions whose primary working directory is that project root (a subdirectory launch misses it), symlinked directory followed, still named =claude-code-ide-org@skills-dir=. Project scope is now the documented recommended default: it needs no user-level config and no double-fire guard, since this repo's clone never sees it. The user-scope route and its mandatory =settings.local.json= guard stay documented for all-projects enablement. REVIEW exit unchanged in spirit: the euchre symlink (=mkdir -p .claude/skills && ln -s ~/git/claude-code-ide-org .claude/skills/claude-code-ide-org=), one trust + MCP approval, then a flag-less session reaching the tools.
@@ -306,6 +311,9 @@ Second finding, same day, at the user's question: a *project's* =.claude/skills/
 Third finding, at the user's location question: the skills directory is the *only* auto-discovery location for local plugins and is documented first-class ("fully supported, not a side effect" — the name predates the generalization from plain skills to full plugins). =~/.claude/plugins/= is the managed marketplace cache, auto-cleaned after ~14 days and not user-writable — the one place a symlink must not go. No env var or settings key offers an alternative path. The setup reference now says so, preempting the question.
 
 Fourth finding, from the first symlink-era session's fallout: the manifest's ="hooks"= declaration was *redundant* — Claude Code auto-loads a plugin's =hooks/hooks.json= by convention, and the explicit manifest line pointed the loader at the same file twice, producing a duplicate-load error (the field exists for additional hook files at non-standard paths). The euchre agent diagnosed it correctly and the user removed the line by hand; a session in this repo then misread the deletion as disarming consumer hooks and briefly restored it, corrected by reading the euchre transcript — the queue had shown single appends all along, because the loader was rejecting the duplicate, not double-appending. Verified after removal with a flag-less headless euchre session: one =resume=, one =pause=, hooks alive by convention alone.
+
+Resolved 2026-09-10: enable-once is real and shipped in the docs — the skills-directory symlink at project scope (recommended) or user scope, first-class per the docs, with =~/.claude/plugins/= ruled out as managed cache. Verified live by the user's flag-less euchre sessions and a headless one appending single hook events; the manifest's redundant hooks line fell out of the same review.
+
 
 
 
@@ -1927,6 +1935,9 @@ prose in heading bodies and the consumed plan file, left deliberately.
 :BLOCKER:  ids(e3caa21f-462a-4689-8a9b-929fbf30cb9e 7dbb82e0-cbb2-481c-bb95-d0e4d9b42126)
 :DROPPED:  ecf66d45-18b3-477f-bca8-08bec90604e8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4
 :END:
+:DEBRIEF:
+Seventeen of nineteen members closed, two dropped by design (=ecf66d45= to its own timeline conversation, =b862fbf4= to wait for multi-project data — which this slice's own deployment finally started accruing). The arc: package (=b0e478f7=), relocate the prose with pointer stubs (=9d009401=, =02aaae22=), wire the Doom side (=78a02667=, =7c86ab4c=, glue + stub), package the Warp wiring and swap the real config (=e396f94a=), scaffold and route consumers (=9b171907=, =d718f6b6=), retire the symlink scan (=308bf4b4=), split the reads (=2a399034=), scope the hook policies (=67c3208f=), pin the dependency stack (=4f8b5d99=, =e3caa21f=), and land enable-once (=7dbb82e0=). Incidental catches along the way that only a real consumer surfaces: the unpinned-org tip, the uppercase uuidgen IDs, Doom's so-long stealing the archive, the redundant manifest hooks line, the custom.el agenda shadow. The slice's thesis held: every fresh-machine hand step it set out to kill is now two init.el lines, one config.el stub, and a symlink.
+:END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-08 Tue 15:29] \\
   nominated as the slice to pick up next
@@ -2030,6 +2041,9 @@ it re-enters wherever multi-project data finally accumulates. The
 same day the deployment arc joined: =308bf4b4=, =e3caa21f=,
 =7c86ab4c=, =7dbb82e0= — shipping is not done until a machine and a
 project onboard without repeating an amended paste procedure.
+
+Resolved 2026-09-10, three days end to end: the machinery and its prose travel together — the plugin ships the manifest, hooks, MCP registration, org skill with the conventions and machinery rules as references, and =claude-org-setup= delivers them per-repo in five modes (plain, =--check=, =--doom=, =--glue=, =--org=). The proof is a second project: agentic-euchre was onboarded restart-free off the agenda list file, runs flag-less via a project-scope skills symlink, and its sessions reach the tools and append tracking events through the packaged path alone. PR #22 carries the whole slice and awaits the merge decision.
+
 
 
 * DONE One incidental lands in every open slice's window, and the cookies double-count it :code:
