@@ -2,14 +2,14 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO [0/6] Make the notes org-native: links, drawers, tags, one corpus pass :code:
+* TODO [0/7] Make the notes org-native: links, drawers, tags, one corpus pass :code:
 :PROPERTIES:
 :ID:       6521dd56-8772-416b-9435-6da78bb86b06
 :CREATED:  [2026-09-10 Thu 08:57]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 e128e4fa-b0d9-49f7-99eb-bae2d4b0676b e28933e9-f352-4ef9-8d53-8cd9a4318768 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0)
+:BLOCKER:  ids(b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 e128e4fa-b0d9-49f7-99eb-bae2d4b0676b e28933e9-f352-4ef9-8d53-8cd9a4318768 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8)
 :END:
 :PLAN:
 Composed 2026-09-10 at the user's direction, absorbing the earlier
@@ -44,6 +44,12 @@ was checked deliberately — index-of-own-history vs citation practice,
 complementary rather than twins, cross-linked on both headings.
 Closing =4c834fdb= is a side effect worth naming: =e128e4fa= is its
 last live child once =2a399034= lands.
+
+*Revision 2026-09-10, same day:* the exclusion paragraph above is
+superseded for =ecf66d45= — the user moved it here (drop declared at
+the origin, cookie only on this side). It lands at the tail beside
+=01849bef=: the design conversation about forecast-vs-record
+timestamps next to the mechanism that flips them.
 :END:
 
 The notes cite commits, PRs and dates as inert text, narrate history
@@ -61,6 +67,7 @@ Planned:
 - [ ] [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]] TODO Index a heading's git history from a drawer, so the body never has to narrate it
 - [ ] [[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]] TODO Comma-escape headline lines when documenting org structure inside a body
 - [ ] [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key
+- [ ] [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out future work on a timeline the agenda can show
 
 
 * TODO The :PLAN: wrap nag fires only on queued DONE, so REVIEW exits skip it :code:
@@ -1030,6 +1037,7 @@ prose in heading bodies and the consumed plan file, left deliberately.
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
 :BLOCKER:  ids(e396f94a-59db-4c6b-80b4-dc144146877b 78a02667-c946-429e-af58-7330070c6e06 c7bf2121-755c-4e52-8bf2-e21e56b1e0c2 1206b5b0-765f-48f7-94a9-0b543cf76487 2a399034-5267-47ed-a129-20e371a77146 ecf66d45-18b3-477f-bca8-08bec90604e8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4)
+:DROPPED:  ecf66d45-18b3-477f-bca8-08bec90604e8
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-08 Tue 15:29] \\
@@ -1108,6 +1116,15 @@ Incidental:
 - [X] [[id:85d24dba-27fb-4a41-adbb-c19617e82e7e][85d24dba]] DONE Nothing checks promoted rules copies against the plugin references
 - [X] [[id:94d36eb7-3a91-4435-a8e0-69e5a3451cce][94d36eb7]] DONE DOOM.md documents the sandbox review procedure
 - [[id:3f31b788-0204-40fb-a9c0-b2bea96f7f05][3f31b788]] CANCELLED Unknown MCP methods signal an undefined error symbol and answer nothing
+
+=ecf66d45= moved to
+[[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]] 2026-09-10 (the
+user's call): the timeline question is org-native-notes territory and
+pairs there with the timestamp mechanics, while here it was always
+Step 4's "conversation if reached". Dropped via =:DROPPED:=, counted
+only by the receiving slice; its line here stays cookie-less as the
+record of having planned it.
+
 
 
 * DONE One incidental lands in every open slice's window, and the cookies double-count it :code:
