@@ -2,6 +2,11 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO claude-org-setup --org scaffolds or appends the consuming repo's .gitignore :code:
+:PROPERTIES:
+:ID:       784d80c5-8750-4ebe-b5e5-c213fc809d80
+:CREATED:  [2026-09-10 Thu 16:42]
+:END:
 * TODO Doom's so-long steals DONE.org past 20k lines, and the tools then operate in a non-org buffer :code:
 :PROPERTIES:
 :ID:       045459f6-a002-4c9e-921e-aeac652f10c9
