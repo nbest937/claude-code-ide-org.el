@@ -146,18 +146,22 @@ Five things you would not guess:
   hold — run it after editing that skill.
 - **`.warp/.mcp.json`** — see below; do not delete it.
 
-**`.warp/.mcp.json` is deliberate, not duplication — do not "clean it
-up."** It is currently byte-for-byte identical to the root `.mcp.json`,
-and Warp can read the root file directly, so a cleanup pass will reliably
-propose deleting it. Both are kept on purpose: the separate file is
-evidence this project has actually been verified working under Warp's own
-agent, and it is a seam for the two clients to diverge later if the
-`claude` CLI and Warp ever need different settings against the same tools
-server. The investigation behind it is archived in DONE.org
-(`:ID: 6a6d5b4e-0327-4578-a44a-356576870ceb`) — worth reading before
-touching either file, because the proxy the files were originally meant to
-support turned out to be unnecessary: the real bug was this project's HTTP
-server answering `200` where the MCP spec requires `202 Accepted`.
+**`.warp/.mcp.json` is Warp's own project-scope MCP config — do not
+"clean it up."** Verified against Warp's docs 2026-09-10 (correcting
+the account this paragraph carried before, which said Warp could read
+the root file directly — it cannot): Warp reads MCP config only from
+`~/.warp/.mcp.json` and the project's `.warp/.mcp.json`, so the file is
+Warp's *required* convention, not an optional duplicate. MCP
+standardises the `mcpServers` schema, not a config location, so two
+files is the correct minimum, and the divergence seam is real: Claude
+Code's `.mcp.json` supports `${VAR:-default}` expansion in `url`, which
+Warp does not document — a symlink would forbid the one improvement the
+Claude side can take. Warp's project-scoped servers are approval-gated
+and session-scoped (re-toggle after a Warp restart). The original
+investigation is archived in DONE.org
+(`:ID: 6a6d5b4e-0327-4578-a44a-356576870ceb`) — the proxy it chased was
+unnecessary; the real bug was this project's HTTP server answering
+`200` where the MCP spec requires `202 Accepted`.
 
 **One-time setup, required for `.githooks/` to do anything:**
 

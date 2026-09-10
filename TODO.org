@@ -2,6 +2,28 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Per-machine port via ${VAR:-45571} in .mcp.json, with the wire check env-aware :code:
+:PROPERTIES:
+:ID:       f6f0d6ef-7c5e-400a-bdf7-3b4a12042122
+:CREATED:  [2026-09-10 Thu 09:35]
+:CATEGORY: Dev
+:END:
+
+Claude Code's =.mcp.json= documents =${VAR:-default}= expansion in the
+=url= field, so the root file could carry
+=http://localhost:${CLAUDE_ORG_MCP_PORT:-45571}/mcp/warp= — per-machine
+and per-sandbox ports with no file edit (DOOM.md's sandbox would just
+export the variable). Three consequences to build together: the elisp
+wire check (=--mcp-json-port=) must read the same variable, since a
+=${...}= url carries no literal port and the check currently degrades
+to "wiring unchecked"; =.warp/.mcp.json= stays literal — Warp does not
+document url expansion, which is exactly the divergence seam the
+two-file arrangement preserves; and =org-emacs-setup.md= should record
+Warp's approval-gated, *session-scoped* project servers (re-toggle
+after a Warp restart) alongside the port story. Unset-variable
+behaviour is safe: Claude warns and loads the unexpanded text, and the
+default form never hits that path.
+
 * TODO org_capture leaves :CATEGORY: unset and nothing backstops it :code:
 :PROPERTIES:
 :ID:       0175f154-c7a2-44a3-9cb9-747ca988edd2
@@ -11400,6 +11422,38 @@ nothing acting at load. Remaining before close: swap the personal
 config block for the two-line form the setup reference now shows, and
 verify live — which needs the module reloaded first; the running
 Emacs still carries only the old hand block.
+
+*Review question answered from the vendors' docs, 2026-09-10.* The
+=.warp/.mcp.json= characterization was wrong, but in the *load-bearing*
+direction: Warp's own docs name =.warp/.mcp.json= as its project-scope
+MCP config (fixed locations only — =~/.warp/.mcp.json= global,
+=.warp/.mcp.json= project; no arbitrary path, so Warp **cannot** read
+the repo-root =.mcp.json=, contradicting the account CLAUDE.md carried
+from the =6a6d5b4e= era). The file is not an optional duplicate kept as
+evidence; it is Warp's required convention. Two behaviours worth
+knowing: project-scoped servers are approval-gated (never auto-spawn)
+and *session-scoped* — after a Warp restart they must be toggled on
+again.
+
+*No consolidation exists to do*: MCP standardises the =mcpServers=
+schema shape, not a config location; each client owns its own file, and
+these two are the correct minimum. The divergence seam is now *real*
+rather than speculative: Claude Code's =.mcp.json= documents
+=${VAR:-default}= expansion in the =url= field; Warp documents no such
+thing for =url= — so a symlink would forbid the one improvement the
+Claude side can take.
+
+*The port, restated for the review*: dynamic ports are unsupported *by
+design* — upstream defaults to a random port, the static configs are
+exactly why the pin exists, and true discovery is upstream work.
+Multiple local servers = per-clone contracts with distinct pins
+(DOOM.md's sandbox procedure). New option from the docs, filed
+separately: Claude's side could carry
+=http://localhost:${CLAUDE_ORG_MCP_PORT:-45571}/mcp/warp=, making the
+port per-machine without file edits — the wire check would then need to
+read the same variable to keep its loud contract, and Warp's copy stays
+literal.
+
 
 
 * Review and planning

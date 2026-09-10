@@ -107,8 +107,9 @@ controlled):
 git config core.hooksPath .githooks
 ```
 
-(`.warp/.mcp.json` is a deliberate duplicate of `.mcp.json` for Warp —
-see CLAUDE.md before "cleaning it up".)
+(`.warp/.mcp.json` is Warp's own project-scope MCP config — Warp reads
+only `~/.warp/.mcp.json` and the project's `.warp/.mcp.json`, never the
+root file — see CLAUDE.md before touching it.)
 
 ## Tests
 
