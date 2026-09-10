@@ -2,10 +2,32 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO org_capture leaves :CATEGORY: unset and nothing backstops it :code:
+:PROPERTIES:
+:ID:       0175f154-c7a2-44a3-9cb9-747ca988edd2
+:CREATED:  [2026-09-10 Thu 09:25]
+:CATEGORY: Tools
+:END:
+
+Measured 2026-09-10 when the user noticed two examples: 12 of 192
+headings carried no effective =:CATEGORY:= (via
+=--outline-category='s own predicate, so the file-name fallback could
+not fake coverage), and every one arrived through =org_capture= —
+eleven from the previous two days' sessions, one from 09-03. Legal by
+the letter (=bin/lint-org= has no category rule; the outline collects
+them under "(no :CATEGORY:)") and eroding at 100% of capture traffic.
+All twelve were hand-assigned the same day. Proposed, two halves: a
+=category= argument on =org_capture= so the filing decision happens
+at filing time, and a =bin/lint-org= *warning* on a live top-level
+heading without an explicit category — a warning not an error, since
+the ten values are this repo's local taxonomy and a fresh consuming
+repo has none yet.
+
 * TODO A recurring sweep offers new and amended tasks to the groupings they fit :code:
 :PROPERTIES:
 :ID:       527be4e3-d77a-487b-b309-ee677c109b13
 :CREATED:  [2026-09-10 Thu 09:18]
+:CATEGORY: Meta
 :END:
 :PLAN:
 Raised by the user 2026-09-10, generalising the morning's pattern:
@@ -51,10 +73,12 @@ conversation happens to be looking. Proposed: a recurring sweep that
 detection mechanised, judgement kept human, per every surviving
 report's contract. Shapes and constraints in =:PLAN:=.
 
+
 * TODO Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body :code:
 :PROPERTIES:
 :ID:       d350ff5b-3b1f-465e-800b-962264d2e841
 :CREATED:  [2026-09-10 Thu 09:10]
+:CATEGORY: Skill
 :END:
 :PLAN:
 Proposed by the user 2026-09-10, pushback invited and none owed — the
@@ -101,10 +125,12 @@ LOGBOOK, PLAN, DEBRIEF, body as canon: writers insert at the right
 place, the consolidator repairs the corpus, the conventions and the
 ceremony's order report say the same thing. Analysis in =:PLAN:=.
 
+
 * TODO Revisit the story definition: sanction clustering and speculative breakdown :code:
 :PROPERTIES:
 :ID:       63df67c7-de0d-43e7-9c6f-2b2979a40aba
 :CREATED:  [2026-09-10 Thu 09:06]
+:CATEGORY: Skill
 :END:
 :PLAN:
 Raised by the user 2026-09-10, after composing the org-native-notes
@@ -247,6 +273,7 @@ Planned:
 :PROPERTIES:
 :ID:       956404ac-1852-458f-99fe-fd74ea6c00d5
 :CREATED:  [2026-09-10 Thu 08:56]
+:CATEGORY: Tools
 :END:
 
 Found 2026-09-10 when the user asked why =c7bf2121= carries a
@@ -258,10 +285,12 @@ buffer, no tool call involved — is never nagged, and =REVIEW= is the
 last tool call the session makes), and/or a =bin/lint-org= warning so
 the gap is caught at commit time regardless of exit path.
 
+
 * TODO Commits cited in bodies and debriefs are orgit links, and nothing enforces it :code:
 :PROPERTIES:
 :ID:       b7259ee4-9aa1-4b55-8cf2-fbbacdea5310
 :CREATED:  [2026-09-10 Thu 08:52]
+:CATEGORY: Skill
 :END:
 :PLAN:
 
@@ -315,6 +344,7 @@ CLOSED: [2026-09-09 Wed 14:57]
 :PROPERTIES:
 :ID:       94d36eb7-3a91-4435-a8e0-69e5a3451cce
 :CREATED:  [2026-09-09 Wed 14:57]
+:CATEGORY: Docs
 :END:
 :LOGBOOK:
 - State "DONE"       from "TODO"       [2026-09-09 Wed 14:57] \\
@@ -326,6 +356,7 @@ CLOSED: [2026-09-09 Wed 14:57]
 :PROPERTIES:
 :ID:       58332dd1-fb49-4e98-a5e3-4b71ff62c995
 :CREATED:  [2026-09-09 Wed 14:36]
+:CATEGORY: Queue
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-09 Wed 14:32]--[2026-09-09 Wed 14:37] =>  0:05
@@ -396,6 +427,7 @@ item a normal bracket and prevented the whole class.
 :PROPERTIES:
 :ID:       1206b5b0-765f-48f7-94a9-0b543cf76487
 :CREATED:  [2026-09-09 Wed 13:33]
+:CATEGORY: Tools
 :END:
 :LOGBOOK:
 - [2026-09-09 Wed 13:52]--[2026-09-09 Wed 13:54] assigned at review
@@ -435,6 +467,7 @@ morning needs one no longer.
 :PROPERTIES:
 :ID:       78a02667-c946-429e-af58-7330070c6e06
 :CREATED:  [2026-09-09 Wed 09:51]
+:CATEGORY: Dev
 :END:
 :DEBRIEF:
 Shipped as =c0d77e8=. What differed from the plan: the plan's original
@@ -517,6 +550,7 @@ CLOSED: [2026-09-09 Wed 13:36]
 :PROPERTIES:
 :ID:       85d24dba-27fb-4a41-adbb-c19617e82e7e
 :CREATED:  [2026-09-09 Wed 09:13]
+:CATEGORY: Dev
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-09 Wed 13:33]--[2026-09-09 Wed 13:35] =>  0:02
@@ -553,6 +587,7 @@ CLOSED: [2026-09-09 Wed 09:13]
 :PROPERTIES:
 :ID:       62bccf40-2f09-4ba3-a51a-908ec5c48f6a
 :CREATED:  [2026-09-09 Wed 09:05]
+:CATEGORY: Docs
 :END:
 :LOGBOOK:
 - State "DONE"       from "TODO"       [2026-09-09 Wed 09:13] \\
@@ -1027,7 +1062,8 @@ swapped back; the existing self-heals test pins the count through the
 new path.
 
 
-* REVIEW Every merge to main went through a PR ten times, and nothing says so :code:
+* DONE Every merge to main went through a PR ten times, and nothing says so :code:
+CLOSED: [2026-09-10 Thu 08:56]
 :PROPERTIES:
 :ID:       c7bf2121-755c-4e52-8bf2-e21e56b1e0c2
 :CREATED:  [2026-09-08 Tue 11:56]
@@ -1057,6 +1093,8 @@ CLOCK: [2026-09-09 Wed 13:50]--[2026-09-09 Wed 13:51] =>  0:01
 - [2026-09-09 Wed 13:50]--[2026-09-09 Wed 13:51] the advisory pre-push merge check, its step 2
 - State "REVIEW"     from "DOING"      [2026-09-09 Wed 13:51] \\
   rule written, advisory proved; judgement remains
+- State "DONE"       from "REVIEW"     [2026-09-10 Thu 08:56] \\
+  review passed; groomed to the target shape at close
 :END:
 :PLAN:
 
@@ -1202,14 +1240,14 @@ and the only remaining references to the old convention are historical
 prose in heading bodies and the consumed plan file, left deliberately.
 
 
-* DOING [5/12] Ship the plugin: make the machinery and its prose travel together :code:
+* DOING [6/11] Ship the plugin: make the machinery and its prose travel together :code:
 :PROPERTIES:
 :ID:       c19fbbf5-be1b-4c18-a38e-9b46d064abb8
 :CREATED:  [2026-09-08 Tue 09:54]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(e396f94a-59db-4c6b-80b4-dc144146877b 78a02667-c946-429e-af58-7330070c6e06 c7bf2121-755c-4e52-8bf2-e21e56b1e0c2 1206b5b0-765f-48f7-94a9-0b543cf76487 2a399034-5267-47ed-a129-20e371a77146 ecf66d45-18b3-477f-bca8-08bec90604e8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4)
+:BLOCKER:  ids(e396f94a-59db-4c6b-80b4-dc144146877b 78a02667-c946-429e-af58-7330070c6e06 1206b5b0-765f-48f7-94a9-0b543cf76487 2a399034-5267-47ed-a129-20e371a77146 b862fbf4-53b8-48b5-b773-1c7c0332dfb4)
 :DROPPED:  ecf66d45-18b3-477f-bca8-08bec90604e8
 :END:
 :LOGBOOK:
@@ -1249,10 +1287,10 @@ Planned:
   - [X] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] DONE CLAUDE.md carries dated history that costs every session's context
 - [-] [[id:e396f94a-59db-4c6b-80b4-dc144146877b][e396f94a]] REVIEW Package the Warp wiring
 - [-] [[id:78a02667-c946-429e-af58-7330070c6e06][78a02667]] REVIEW claude-org-setup wires the Doom module
-- [-] [[id:c7bf2121-755c-4e52-8bf2-e21e56b1e0c2][c7bf2121]] REVIEW Every merge to main went through a PR ten times, and nothing says so
+- [X] [[id:c7bf2121-755c-4e52-8bf2-e21e56b1e0c2][c7bf2121]] DONE Every merge to main went through a PR ten times, and nothing says so
 - [-] [[id:1206b5b0-765f-48f7-94a9-0b543cf76487][1206b5b0]] REVIEW org_slice_add_member cannot declare a nested member
 - [-] [[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]] REVIEW Split the reads: org_outline carries the body, a second tool serves drawers on demand
-- [ ] [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out future work on a timeline the agenda can show
+- [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out future work on a timeline the agenda can show
 - [ ] [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
 
 *Four of the five arrive with a =:BLOCKER:= already naming =b0e478f7=*,
@@ -1297,7 +1335,6 @@ pairs there with the timestamp mechanics, while here it was always
 Step 4's "conversation if reached". Dropped via =:DROPPED:=, counted
 only by the receiving slice; its line here stays cookie-less as the
 record of having planned it.
-
 
 
 * DONE One incidental lands in every open slice's window, and the cookies double-count it :code:
@@ -2446,6 +2483,7 @@ Found 2026-09-03 when a design revision left :ID: 758a8b78's title stating the w
 :PROPERTIES:
 :ID:       b79b6b78-0bb0-47f2-b84c-a5d969f65252
 :CREATED:  [2026-09-03 Thu 09:24]
+:CATEGORY: Tools
 :END:
 
 Found 2026-09-03 while re-checking whether org_query reaches DONE.org. The tool honors its documented scope — claude-code-ide-org-query-files, falling back to the org-agenda-files function — but that function's answer is shaped by live Emacs state the caller cannot see: an agenda restriction lock (org-agenda-restrict, set by C-x C-< or the dispatcher's < key) silently collapses it to one file, and a dangling path in org-agenda-files (an entry whose symlink was never created) silently contributes nothing. Both produced "No matches" indistinguishable from a true empty result, across three diagnostic layers in one sitting. Proposed: org_query's reply (and ideally org_clock_report's and the recovery scan's) should name the file set it actually searched, and say when a restriction lock is active — "No matches (searched TODO.org; agenda restriction active)" turns a silent wrong answer into an inspectable one.
@@ -4405,6 +4443,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-10 Thu 09:20]--[2026-09-10 Thu 09:21] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -11982,4 +12021,21 @@ CLOCK: [2026-09-09 Wed 13:25]--[2026-09-09 Wed 13:33] =>  0:08
 - [2026-09-09 Wed 13:25]--[2026-09-09 Wed 13:33] slice c19fbbf5 pickup, step 0 preliminaries
 CLOCK: [2026-09-09 Wed 16:14]--[2026-09-09 Wed 16:15] =>  0:01
 - [2026-09-09 Wed 16:14]--[2026-09-09 Wed 16:15] assigned at review
+:END:
+
+
+**** 2026-09-10 Thursday
+:PROPERTIES:
+:ID:       94a4a726-8c6a-4aad-926a-3b4d09313348
+:CREATED:  [2026-09-10 Thu 08:53]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-10 Thu 08:54]--[2026-09-10 Thu 08:59] =>  0:05
+- [2026-09-10 Thu 08:54]--[2026-09-10 Thu 08:59] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-10 Thu 09:05]--[2026-09-10 Thu 09:07] =>  0:02
+- [2026-09-10 Thu 09:05]--[2026-09-10 Thu 09:07] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-10 Thu 09:09]--[2026-09-10 Thu 09:11] =>  0:02
+- [2026-09-10 Thu 09:09]--[2026-09-10 Thu 09:11] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-10 Thu 09:17]--[2026-09-10 Thu 09:19] =>  0:02
+- [2026-09-10 Thu 09:17]--[2026-09-10 Thu 09:19] root-cause unattributed spans, file discipline fix
 :END:
