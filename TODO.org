@@ -8,6 +8,10 @@
 :CREATED:  [2026-09-10 Thu 12:03]
 :CATEGORY: Dev
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-10 Thu 12:01]--[2026-09-10 Thu 12:04] =>  0:03
+- [2026-09-10 Thu 12:01]--[2026-09-10 Thu 12:04] assigned at review
+:END:
 :PLAN:
 The user asked why plans keep disappearing from =~/.claude/plans=
 despite never touching them. Diagnosed from the ages (all casualties
@@ -184,11 +188,19 @@ in the same pass: the module declaring the dependency also means the
 module owns which fork/branch is expected.
 
 
-* TODO Promote generated elisp into $DOOMDIR: one stable stub, drift-checked glue :code:
+* REVIEW Promote generated elisp into $DOOMDIR: one stable stub, drift-checked glue :code:
 :PROPERTIES:
 :ID:       7c86ab4c-3157-4817-9fcc-d2e60c8fc160
 :CREATED:  [2026-09-10 Thu 10:23]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-10 Thu 11:57]--[2026-09-10 Thu 12:00] =>  0:03
+- State "DOING"      from "TODO"       [2026-09-10 Thu 11:57] \\
+  v1 now at the user's ask: derived projects, one stub
+- [2026-09-10 Thu 11:57]--[2026-09-10 Thu 12:00] glue file, derive-projects, setup --glue, docs
+- State "REVIEW"     from "DOING"      [2026-09-10 Thu 12:00] \\
+  glue and derive live; try the swap when ready
 :END:
 :DEBRIEF:
 Shipped in the commit preceding this close, live-reloaded. The
@@ -266,7 +278,6 @@ wire call from the tracked files — the post-=308bf4b4= design turned
 out buildable immediately, since derivation reads whatever feeds the
 tracked set. Onboarding a project is now discoverability plus
 =M-x claude-code-ide-org-standalone-wire=, zero elisp.
-
 
 
 * TODO Adopt org's agenda list file, retiring the symlink scan and the restart :code:
@@ -1771,7 +1782,7 @@ Planned:
 - [ ] [[id:308bf4b4-3816-4e34-b031-2bcd58102c4d][308bf4b4]] TODO Adopt org's agenda list file, retiring the symlink scan and the restart
 - [-] [[id:67c3208f-a155-486a-beba-1763d3c86137][67c3208f]] REVIEW Scope the four hook policies to tracked files, per the consent decision
 - [ ] [[id:e3caa21f-462a-4689-8a9b-929fbf30cb9e][e3caa21f]] TODO The module's own packages.el declares claude-code-ide
-- [ ] [[id:7c86ab4c-3157-4817-9fcc-d2e60c8fc160][7c86ab4c]] TODO Promote generated elisp into $DOOMDIR: one stable stub, drift-checked glue
+- [-] [[id:7c86ab4c-3157-4817-9fcc-d2e60c8fc160][7c86ab4c]] REVIEW Promote generated elisp into $DOOMDIR: one stable stub, drift-checked glue
 - [ ] [[id:7dbb82e0-cbb2-481c-bb95-d0e4d9b42126][7dbb82e0]] TODO Persistent plugin enablement: stop passing --plugin-dir every session
 
 *Four of the five arrive with a =:BLOCKER:= already naming =b0e478f7=*,
@@ -4935,6 +4946,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-10 Thu 12:26]--[2026-09-10 Thu 12:36] =>  0:10
 CLOCK: [2026-09-10 Thu 11:43]--[2026-09-10 Thu 11:49] =>  0:06
 CLOCK: [2026-09-10 Thu 09:20]--[2026-09-10 Thu 09:21] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
@@ -12638,4 +12650,14 @@ CLOCK: [2026-09-10 Thu 09:09]--[2026-09-10 Thu 09:11] =>  0:02
 - [2026-09-10 Thu 09:09]--[2026-09-10 Thu 09:11] root-cause unattributed spans, file discipline fix
 CLOCK: [2026-09-10 Thu 09:17]--[2026-09-10 Thu 09:19] =>  0:02
 - [2026-09-10 Thu 09:17]--[2026-09-10 Thu 09:19] root-cause unattributed spans, file discipline fix
+- [2026-09-10 Thu 10:59]--[2026-09-10 Thu 10:59] root-cause unattributed spans, file discipline fix
+- [2026-09-10 Thu 11:23]--[2026-09-10 Thu 11:23] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-10 Thu 11:46]--[2026-09-10 Thu 11:47] =>  0:01
+- [2026-09-10 Thu 11:46]--[2026-09-10 Thu 11:47] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-10 Thu 11:51]--[2026-09-10 Thu 11:52] =>  0:01
+- [2026-09-10 Thu 11:51]--[2026-09-10 Thu 11:52] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-10 Thu 12:07]--[2026-09-10 Thu 12:18] =>  0:11
+- [2026-09-10 Thu 12:07]--[2026-09-10 Thu 12:18] headless sandbox run against agentic-euchre for the reviews
+CLOCK: [2026-09-10 Thu 12:24]--[2026-09-10 Thu 12:25] =>  0:01
+- [2026-09-10 Thu 12:24]--[2026-09-10 Thu 12:25] assigned at review
 :END:
