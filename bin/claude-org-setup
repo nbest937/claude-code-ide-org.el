@@ -81,6 +81,10 @@ if [ "$glue" = 1 ]; then
 ;; Loaded by one stable stub in config.el; defers itself until
 ;; claude-code-ide loads, so the stub's position never matters.
 (with-eval-after-load 'claude-code-ide
+  ;; Upstream's server enable defaults to nil and its tool
+  ;; registration lives behind this call -- the machinery's own
+  ;; enablement, so the glue owns it.
+  (claude-code-ide-emacs-tools-setup)
   ;; Projects derive from the tracked files at every wire call:
   ;; onboarding a repo is making its org files discoverable, nothing
   ;; more (TODO.org :ID: 7c86ab4c).

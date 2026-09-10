@@ -14448,3 +14448,20 @@ the next one, with no configuration edit."
                               (directory-file-name (file-truename proj)))
                              (car (car (last registered))))))))
       (delete-directory proj t))))
+
+(ert-deftest claude-code-ide-org-test-wire-refuses-a-dead-server ()
+  "ensure-server returning nil (its enable flag defaults off) is a
+refusal, not a success to report over -- the headless sandbox found
+the wire claiming 'wired' with no server listening."
+  (let ((claude-code-ide-org-standalone-port 45571)
+        (claude-code-ide-org-standalone-projects nil)
+        (claude-code-ide-mcp-server-port nil))
+    (cl-letf (((symbol-function 'claude-code-ide-org--mcp-json-port)
+               (lambda (&optional _f) 45571))
+              ((symbol-function 'claude-code-ide-mcp-server-get-port)
+               (lambda () nil))
+              ((symbol-function 'claude-code-ide-mcp-server-ensure-server)
+               (lambda () nil))
+              ((symbol-function 'claude-code-ide-mcp-server-register-session)
+               (lambda (&rest _) (ert-fail "registered against a dead server"))))
+      (should-error (claude-code-ide-org-standalone-wire) :type 'user-error))))

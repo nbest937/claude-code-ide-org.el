@@ -13998,7 +13998,12 @@ the project list."
         (user-error "claude-code-ide-org: tools server already running on port %d, wanted %d; stop it (or restart Emacs) before re-wiring"
                     live pin)))
     (setq claude-code-ide-mcp-server-port pin)
-    (claude-code-ide-mcp-server-ensure-server)
+    ;; ensure-server returns the port on success and nil when it
+    ;; declined -- notably when `claude-code-ide-enable-mcp-server' is
+    ;; nil, its default.  Reporting "wired" over a dead server is how
+    ;; the headless sandbox run found this (:ID: 7c86ab4c debrief).
+    (unless (claude-code-ide-mcp-server-ensure-server)
+      (user-error "claude-code-ide-org: tools server did not start -- is `claude-code-ide-enable-mcp-server' t? (`claude-code-ide-emacs-tools-setup' enables it)"))
     (let ((projects (mapcar #'expand-file-name
                             (if (eq claude-code-ide-org-standalone-projects
                                     'derive)
