@@ -2,6 +2,54 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Adopt org's agenda list file, retiring the symlink scan and the restart :code:
+:PROPERTIES:
+:ID:       308bf4b4-3816-4e34-b031-2bcd58102c4d
+:CREATED:  [2026-09-10 Thu 10:08]
+:CATEGORY: Dev
+:END:
+:PLAN:
+Raised by the user 2026-09-10, unprompted dissatisfaction with the
+symlink convention, and org's own source answers it (verified, not
+recalled): =org-agenda-files= set to a *single file name* stores the
+agenda list in that file, one path per line, tilde-expanded — and the
+=org-agenda-files= function re-reads it on **every call**
+(=(stringp org-agenda-files) → (org-read-agenda-file-list)=). Org even
+ships the management commands (=org-agenda-file-to-front=,
+=org-remove-file=).
+
+What adopting it buys, each a standing pain retired: discovery becomes
+*dynamic* (append a line, the next tool call sees it — every
+restart-bound caveat dies); the =~/org= symlink shadow filesystem
+becomes unnecessary (real repo paths listed directly); =--org= appends
+the new project's files itself, completing the automation
+(=9b171907='s printed follow-up #1 becomes a write); and the
+"CHANGED outside Customize" noise resolves, since the variable holds
+one stable string while churn lives in the text file.
+
+Migration, deliberate rather than by mood: (1) create the list file
+from the current scan's output (the same paths, so nothing changes on
+day one); (2) the Doom config's =org-agenda-files= scan becomes
+=(setq org-agenda-files "<list-file>")= — or a proper Customize save,
+which then stays truthful; (3) decide whether existing entries migrate
+from symlink paths to real paths — if yes, one
+=org-id-update-id-locations= pass re-learns ids and
+=claude-code-ide-org-capture-file='s symlink-path rationale
+(=bd482c92=) is updated in the same move, since session-routed
+captures return tracked names and the two must agree; (4) DOOM.md,
+=org-emacs-setup.md= and =--org='s printed follow-ups lose the
+restart language. The sandbox keeps working unchanged — its own
+=org-directory= can hold its own list file.
+:END:
+
+The =~/org= symlink convention exists only to feed the Doom
+config's one-time recursive =directory-files-recursively= scan, which
+freezes =org-agenda-files= at load — the source of every restart-bound caveat and the "CHANGED
+outside Customize" flag. Org natively supports the variable naming a
+*list file* re-read on every access. Adopt it: dynamic discovery, no
+symlinks, =--org= completes its own follow-up. Migration steps in
+=:PLAN:=.
+
 * TODO A second project's targetless captures land in the wrong tracker :code:
 :PROPERTIES:
 :ID:       d718f6b6-5a33-4889-8b5a-8ea82553ccea
