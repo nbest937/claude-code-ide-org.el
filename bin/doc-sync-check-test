@@ -30,6 +30,13 @@ check "systemMessage present for the human" "0" "$(jq -e '.systemMessage | lengt
 out="$(run /proj/README.md)"
 check "README.md edit names CLAUDE.md" "CLAUDE.md" "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$out" | grep -o 'CLAUDE.md' | head -1)"
 
+# 2b. The second pair: DOOM.md and the shipped setup reference walk
+#     the same install story (TODO.org :ID: 3348266b).
+out="$(run /proj/DOOM.md)"
+check "DOOM.md edit names the setup reference" "org-emacs-setup.md" "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$out" | grep -o 'org-emacs-setup.md' | head -1)"
+out="$(run /proj/skills/org/references/org-emacs-setup.md)"
+check "setup reference edit names DOOM.md" "DOOM.md" "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$out" | grep -o 'DOOM.md' | head -1)"
+
 # 3. Any other file: silence.
 check "another file emits nothing" "" "$(run /proj/TODO.org)"
 

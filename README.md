@@ -53,17 +53,27 @@ skill with its references, and the setup command).
 ### 1. The Doom module — once per machine
 
 ```sh
-ln -s "$PWD/modules/tools/claude-code-ide-org" \
-      ~/.config/doom/modules/tools/claude-code-ide-org
-# then in ~/.config/doom/init.el, under :tools
-#   claude-code-ide-org
+bin/claude-org-setup --doom    # prints the two init.el lines (writes nothing)
+bin/claude-org-setup --glue    # writes $DOOMDIR glue; prints one config.el stub
 ```
 
-A running Emacs server is a **hard prerequisite** — every MCP tool goes
-through `emacsclient`. The Doom config starts one automatically. The
-module needs **org 9.7+** and says so loudly at load — the org bundled
-with Emacs 29 (9.6.x) is not enough; Doom's straight-managed org is.
-The MCP server's port must be pinned (`45571`, matching `.mcp.json`).
+Paste the printed lines — a `doom-module-load-path` entry plus the
+`:tools claude-code-ide-org` flag for `init.el`, and one stable
+`load!` stub for `config.el` — then declare the one dependency in your
+`packages.el`:
+
+```elisp
+(package! claude-code-ide
+  :recipe (:host github :repo "manzaltu/claude-code-ide.el"))
+```
+
+and `doom sync`. The generated glue owns the rest: it enables the
+tools server, pins the port (`45571`, checked loudly against
+`.mcp.json`), and registers a session per tracked project, re-derived
+on every wire call. A running Emacs server is a **hard prerequisite**
+— every MCP tool goes through `emacsclient` — and the module needs
+**org 9.7+**, refusing loudly otherwise (Emacs 29's bundled 9.6.x is
+not enough; Doom's straight-managed org is).
 
 ### 2. The plugin — per machine, from a clone
 
@@ -80,20 +90,22 @@ scope — user-wide or per-project — is chosen when you enable it.
 the same scripts through `.claude/settings.json`, and running both
 appends every queue event twice.
 
-### 3. Each consuming repo — promote the rules
+### 3. Each consuming repo — rules and org files
 
 ```sh
-cd /path/to/your-repo && claude-org-setup
+cd /path/to/your-repo && claude-org-setup && claude-org-setup --org
 ```
 
-Copies the org conventions (path-scoped to `**/*.org`) and the always-on
-machinery rules — event queue, state transitions, tool tables, session
-tracking — from the plugin's skill references into the repo's
-`.claude/rules/`, so they load in every session. Re-run it after a
-plugin update to refresh; it refuses to overwrite files it did not
-generate. Then make the repo's org files discoverable
-(`org-agenda-files` / `claude-code-ide-org-query-files` — computed at
-config load, so a new file needs an Emacs restart).
+The first copies the org conventions (path-scoped to `**/*.org`) and
+the always-on machinery rules — event queue, state transitions, tool
+tables, session tracking — into the repo's `.claude/rules/`; re-run
+after a plugin update, and it refuses files it did not generate. The
+second scaffolds `TODO.org`/`DONE.org` from the shipped templates
+(collision-checked) and prints the discoverability follow-ups,
+including a live `add-to-list` one-liner that avoids the Emacs
+restart. Once discoverable, the project registers its own MCP session
+at the next wire call and targetless `org_capture`s land in its own
+tracker.
 
 `skills/org/references/org-emacs-setup.md` is the full version of this
 section.
@@ -133,13 +145,17 @@ These read as bugs and are not; each is a recorded trade-off.
   prompt is about a different task than the one that paused, the resume
   guidepost still points at the last-paused one. It self-corrects at the
   next real `org_clock_in`; the cost is a short stray interval.
-- **Tracked-file discovery is restart-bound.** `org-agenda-files` is
-  computed once at config load, so a newly added org file needs an Emacs
-  restart to be seen by the tools.
+- **Tracked-file discovery is load-time.** `org-agenda-files` is
+  computed once at config load; `claude-org-setup --org` prints a live
+  `add-to-list` one-liner that spares the restart, but a file added by
+  any other route waits for one. (Adopting org's agenda list file,
+  which would make discovery fully dynamic, is tracked work.)
 - **Rules delivery is copy-based.** Claude Code plugins cannot
   contribute `.claude/rules/` files, so `claude-org-setup` copies them
-  into each consuming repo; the copies go stale until it is re-run, and
-  no check yet compares them against the plugin's references.
+  into each consuming repo and they go stale until it is re-run.
+  `claude-org-setup --check` compares every copy against a fresh
+  render, and this repo runs it at its commit gate; consuming repos
+  re-run setup after plugin updates.
 
 CLAUDE.md documents all of this in depth — it is written for agent
 sessions, but it is also the honest reference for humans.

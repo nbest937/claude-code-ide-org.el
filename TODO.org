@@ -2,6 +2,11 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* DOING doc-sync-check learns the DOOM.md pair; README catches up to the tooling :code:
+:PROPERTIES:
+:ID:       3348266b-aa28-45fa-ae7b-3f4ad4cb6e81
+:CREATED:  [2026-09-10 Thu 12:40]
+:END:
 * TODO Plans die at cleanupPeriodDays; decide plansDirectory or keep restoring :code:
 :PROPERTIES:
 :ID:       ff1bec00-1b18-4aea-9968-09c99818565e
