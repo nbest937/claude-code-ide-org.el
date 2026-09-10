@@ -2,6 +2,17 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Doom's so-long steals DONE.org past 20k lines, and the tools then operate in a non-org buffer :code:
+:PROPERTIES:
+:ID:       045459f6-a002-4c9e-921e-aeac652f10c9
+:CREATED:  [2026-09-10 Thu 16:18]
+:END:
+:DEBRIEF:
+The report itself was a misdirection worth recording: the warnings surfaced during the first flag-less euchre session, but the so-long'd buffer was *this* repo's DONE.org — euchre's pair was open invisibly (=find-file-noselect= from tool scans, uniquified as =<2>=) and healthy. The trigger is Doom-specific: =doom-so-long-p= adds a line-*count* rule (=doom-file-lines-threshold-alist=, 20k default) to stock so-long's line-width test, and a long-lived archive crosses it through ordinary growth; the takeover landed as major-mode =so-long-mode=, under which org-element warns and =org_archive= would write into a non-org buffer. The guard: =--revert-so-long-takeover= on =find-file-hook= (which =find-file-noselect= runs, covering the invisible visits), calling =so-long-revert= only when the major mode is =so-long-mode= *and* the buffer is tracked — so-long's minor mode keeps the major mode and is left alone, untracked files stay Doom's business, same boundary as =67c3208f=. Three-case ERT plus a wiring assertion (598/598); the live buffer was healed by hand first, then the fix proven on the real path by kill-and-reopen. The underlying pressure — the archive growing without bound — is =f9fe9fac='s rotation conversation, deliberately not solved here.
+:END:
+
+Resolved 2026-09-10, hours after filing: a =find-file-hook= guard scoped by =--tracked-buffer-p= reverts a so-long *major-mode* takeover on the machinery's own files — proven live by killing and reopening the 20,988-line archive, which now lands in =org-mode= on the same path that produced =so-long-mode=.
+
 * TODO The review buffer should name each item's tracker, now that two projects share the queue :code:
 :PROPERTIES:
 :ID:       fbaf8009-b3dc-48ed-b099-63b74fc156a8
