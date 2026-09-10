@@ -2,6 +2,38 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Commits cited in bodies and debriefs are orgit links, and nothing enforces it :code:
+:PROPERTIES:
+:ID:       b7259ee4-9aa1-4b55-8cf2-fbbacdea5310
+:CREATED:  [2026-09-10 Thu 08:52]
+:END:
+
+Raised by the user 2026-09-10, on reading the previous day's debriefs:
+the commit citations there (=f87274b=, =f57d158=, …) are exactly what
+the standing convention ("Referring to a commit",
+=skills/org/references/org-conventions.md=) says to write as
+=orgit-rev:= links — the convention exists, the practice ignored it,
+and nothing catches the miss. *PR references belong to the same
+family*: "PR #22" in a body should be a live link to the PR's URL
+(=gh pr view N --json url= is the lookup), for the same reason the
+commit gets one — the reference should open the thing it names.
+
+Scope, three parts. *Practice*: new bodies and debriefs write
+=orgit-rev:= links for commits and URL links for PRs — a rules-file
+sentence extending the existing convention to name debriefs and PRs
+explicitly. *Retrofit*: the 2026-09-09 debriefs (the author and the
+requester agree, so the "prospective only" grandfather clause does not
+protect them) get their citations converted. *Enforcement candidate*:
+=bin/lint-org= warning on a bare 7-hex sha or bare "PR #N" in a live
+heading's body or =:DEBRIEF:= — mechanical to detect, and the closed
+-heading exemption mirrors the existing symbol-citation rule.
+
+Distinct from [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]],
+which indexes a heading's *own* git history one hop away; this is
+about the citations prose makes deliberately. The two touch the same
+seam (bodies pointing into git) and belong in any future org-native
+-notes grouping together.
+
 * DONE DOOM.md documents the sandbox review procedure :docs:
 CLOSED: [2026-09-09 Wed 14:57]
 :PROPERTIES:
@@ -28,6 +60,8 @@ CLOCK: [2026-09-09 Wed 14:49]--[2026-09-09 Wed 14:53] =>  0:04
 - [2026-09-09 Wed 14:49]--[2026-09-09 Wed 14:53] assigned at review
 CLOCK: [2026-09-09 Wed 14:56]--[2026-09-09 Wed 15:01] =>  0:05
 - [2026-09-09 Wed 14:56]--[2026-09-09 Wed 15:01] assigned at review
+CLOCK: [2026-09-09 Wed 15:04]--[2026-09-09 Wed 15:06] =>  0:02
+- [2026-09-09 Wed 15:04]--[2026-09-09 Wed 15:06] assigned at review
 :END:
 :PLAN:
 Caught by the user 2026-09-09, mid-review: a span [08:30]--[13:36]
@@ -80,7 +114,6 @@ claims are falsified for this path; the day-node record was hand
 -corrected by the user afterwards. Fix priority rises accordingly:
 the same-lane-close pairing fix in this =:PLAN:= would have made the
 item a normal bracket and prevented the whole class.
-
 
 
 * REVIEW org_slice_add_member cannot declare a nested member :code:
@@ -974,6 +1007,7 @@ Incidental:
 - [X] [[id:62bccf40-2f09-4ba3-a51a-908ec5c48f6a][62bccf40]] DONE README documents plugin installation
 - [X] [[id:85d24dba-27fb-4a41-adbb-c19617e82e7e][85d24dba]] DONE Nothing checks promoted rules copies against the plugin references
 - [X] [[id:94d36eb7-3a91-4435-a8e0-69e5a3451cce][94d36eb7]] DONE DOOM.md documents the sandbox review procedure
+- [[id:3f31b788-0204-40fb-a9c0-b2bea96f7f05][3f31b788]] CANCELLED Unknown MCP methods signal an undefined error symbol and answer nothing
 
 
 * DONE One incidental lands in every open slice's window, and the cookies double-count it :code:
@@ -4081,10 +4115,6 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
-CLOCK: [2026-09-09 Wed 15:02]--[2026-09-09 Wed 15:03] =>  0:01
-CLOCK: [2026-09-09 Wed 14:30]--[2026-09-09 Wed 14:35] =>  0:05
-CLOCK: [2026-09-09 Wed 13:37]--[2026-09-09 Wed 13:38] =>  0:01
-CLOCK: [2026-09-09 Wed 13:11]--[2026-09-09 Wed 13:14] =>  0:03
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -4155,7 +4185,12 @@ CLOCK: [2026-09-08 Tue 16:04]--[2026-09-08 Tue 16:05] =>  0:01
 CLOCK: [2026-09-08 Tue 16:19]--[2026-09-08 Tue 16:22] =>  0:03
 CLOCK: [2026-09-08 Tue 16:33]--[2026-09-08 Tue 16:34] =>  0:01
 CLOCK: [2026-09-09 Wed 08:18]--[2026-09-09 Wed 08:20] =>  0:02
+CLOCK: [2026-09-09 Wed 13:11]--[2026-09-09 Wed 13:14] =>  0:03
 - <2026-09-09 Wed 13:34>--<2026-09-09 Wed 13:34> review pass (buffer buried)
+CLOCK: [2026-09-09 Wed 13:37]--[2026-09-09 Wed 13:38] =>  0:01
+CLOCK: [2026-09-09 Wed 14:30]--[2026-09-09 Wed 14:35] =>  0:05
+CLOCK: [2026-09-09 Wed 15:02]--[2026-09-09 Wed 15:03] =>  0:01
+CLOCK: [2026-09-10 Thu 08:39]--[2026-09-10 Thu 08:42] =>  0:03
 :END:
 
 
@@ -4338,12 +4373,12 @@ What survives is the case this body already documents and subtraction structural
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-09-10 Thu 07:00 ++1d>
+SCHEDULED: <2026-09-11 Fri 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-09-09 Wed 08:20]
+:LAST_REPEAT: [2026-09-10 Thu 08:42]
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-24 Mon 10:25]--[2026-08-24 Mon 10:28] =>  0:03
@@ -10708,7 +10743,7 @@ contract either way. With part 1's README and this, the heading's whole
 scope is delivered.
 
 
-* MAYBE [0/4] Accumulate issues to report upstream to claude-code-ide.el :code:
+* MAYBE [1/4] Accumulate issues to report upstream to claude-code-ide.el :code:
 :PROPERTIES:
 :CATEGORY: Upstream
 :ID:       9d6449c7-529f-49a0-b28f-015cce869715
@@ -10748,6 +10783,12 @@ this project's Doom config pending an upstream report/PR.
 :ID:       ce012ad4-87f7-435c-a2ee-25210c071865
 :CREATED:  [2026-09-02 Wed 12:10]
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-09 Wed 16:45]--[2026-09-09 Wed 16:46] =>  0:01
+- [2026-09-09 Wed 16:45]--[2026-09-09 Wed 16:46] assigned at review
+CLOCK: [2026-09-09 Wed 17:38]--[2026-09-09 Wed 17:45] =>  0:07
+- [2026-09-09 Wed 17:38]--[2026-09-09 Wed 17:45] assigned at review
+:END:
 
 *Found 2026-09-02 while diagnosing [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]].* This is the upstream half: our three tool declarations were the trigger, but the reason a bad request *hangs* instead of erroring is in =claude-code-ide= itself, and it will bite any tool anyone registers.
 
@@ -10780,7 +10821,6 @@ lands on the unhandled path; and the observed failure at this site
 was silence-plus-minibuffer-noise rather than a client timeout, so
 the symptom varies by site while the cause is the one missing
 =define-error=.
-
 
 
 ** TODO Unknown tool arguments are dropped silently by both dispatch paths :code:
@@ -10816,10 +10856,17 @@ argument does not merely fail to apply — an =org_outline= call passing
 invented =file= and =max_level= returned the unrestricted default
 while appearing scoped, silently substituting a different answer to a
 different question.
-** TODO Unknown MCP methods signal an undefined error symbol and answer nothing :code:
+
+
+** CANCELLED Unknown MCP methods signal an undefined error symbol and answer nothing :code:
+CLOSED: [2026-09-09 Wed 17:44]
 :PROPERTIES:
 :ID:       3f31b788-0204-40fb-a9c0-b2bea96f7f05
 :CREATED:  [2026-09-09 Wed 17:43]
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "TODO"       [2026-09-09 Wed 17:44] \\
+  twin of ce012ad4; observations folded there
 :END:
 
 The user saw =error in process filter: peculiar error: -32601, "Method
@@ -11643,4 +11690,6 @@ CLOCK: [2026-09-09 Wed 13:21]--[2026-09-09 Wed 13:22] =>  0:01
 - [2026-09-09 Wed 13:21]--[2026-09-09 Wed 13:22] slice c19fbbf5 pickup, step 0 preliminaries
 CLOCK: [2026-09-09 Wed 13:25]--[2026-09-09 Wed 13:33] =>  0:08
 - [2026-09-09 Wed 13:25]--[2026-09-09 Wed 13:33] slice c19fbbf5 pickup, step 0 preliminaries
+CLOCK: [2026-09-09 Wed 16:14]--[2026-09-09 Wed 16:15] =>  0:01
+- [2026-09-09 Wed 16:14]--[2026-09-09 Wed 16:15] assigned at review
 :END:
