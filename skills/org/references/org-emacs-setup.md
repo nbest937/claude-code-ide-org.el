@@ -43,15 +43,26 @@ upgrade. The old equivalent — symlinking
   bundled with Emacs 29 (9.6.x) is not enough; Doom's straight-managed
   org is.
 - **The module owns the standalone wiring** (since 2026-09-09,
-  `:ID:` e396f94a). In your Doom config, after the module loads:
+  `:ID:` e396f94a), and since 2026-09-10 the config lives in a
+  *generated* file (`:ID:` 7c86ab4c):
 
-  ```elisp
-  (setq claude-code-ide-org-standalone-projects
-        '("~/git/claude-code-ide-org"))   ; the repos to serve
-  (claude-code-ide-org-standalone-wire)
+  ```sh
+  claude-org-setup --glue
   ```
 
-  That pins the port (`claude-code-ide-org-standalone-port`, default
+  writes `$DOOMDIR/claude-code-ide-org-glue.el` (marker-headed,
+  refreshed by re-run, never yours to edit) and prints the one stable
+  stub for your `config.el`:
+
+  ```elisp
+  (load! "claude-code-ide-org-glue" doom-user-dir t)
+  ```
+
+  The glue defers itself until `claude-code-ide` loads and derives the
+  project list from the tracked files at every wire call — onboarding
+  a repo is making its org files discoverable plus
+  `M-x claude-code-ide-org-standalone-wire`, no elisp edit anywhere.
+  The wire pins the port (`claude-code-ide-org-standalone-port`, default
   `45571`, checked **loudly** against what the shipped `.mcp.json`
   actually names), starts the tools server, and registers a session
   per listed project — each under its directory basename, the first

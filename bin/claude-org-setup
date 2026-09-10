@@ -31,6 +31,7 @@ force=0
 check=0
 doom=0
 org=0
+glue=0
 target="$PWD"
 for a in "$@"; do
   case "$a" in
@@ -38,9 +39,10 @@ for a in "$@"; do
     --check) check=1 ;;
     --doom) doom=1 ;;
     --org) org=1 ;;
+    --glue) glue=1 ;;
     --*)
       echo "claude-org-setup: unknown option: $a" >&2
-      echo "usage: claude-org-setup [--force|--check|--doom|--org] [TARGET_DIR]" >&2
+      echo "usage: claude-org-setup [--force|--check|--doom|--org|--glue] [TARGET_DIR]" >&2
       exit 2
       ;;
     *)
@@ -51,6 +53,53 @@ for a in "$@"; do
       ;;
   esac
 done
+
+# --glue: write the generated elisp glue into the user's Doom config
+# tree (TODO.org :ID: 7c86ab4c), resolved the way doom.el resolves it
+# ($DOOMDIR, else ~/.config/doom). The glue self-defers via
+# with-eval-after-load and derives its project list at wire time, so
+# the one printed load! stub is order-independent and never needs a
+# second edit. Same clobber contract as the rules promotion: files
+# this script wrote (marker) are refreshed; anything else refuses
+# without --force.
+if [ "$glue" = 1 ]; then
+  doomdir="${DOOMDIR:-$HOME/.config/doom}"
+  if [ ! -d "$doomdir" ]; then
+    echo "claude-org-setup: no Doom config dir at $doomdir (set DOOMDIR?)" >&2
+    exit 1
+  fi
+  dest="$doomdir/claude-code-ide-org-glue.el"
+  if [ -f "$dest" ] && ! grep -q "$marker" "$dest" && [ "$force" = 0 ]; then
+    echo "claude-org-setup: refusing to overwrite hand-maintained file: $dest" >&2
+    echo "re-run with --force to replace it" >&2
+    exit 1
+  fi
+  cat > "$dest" <<EOF
+;;; claude-code-ide-org-glue.el -*- lexical-binding: t; -*-
+;; $marker from the claude-code-ide-org plugin.
+;; Do not edit: re-run claude-org-setup --glue to refresh.
+;; Loaded by one stable stub in config.el; defers itself until
+;; claude-code-ide loads, so the stub's position never matters.
+(with-eval-after-load 'claude-code-ide
+  ;; Projects derive from the tracked files at every wire call:
+  ;; onboarding a repo is making its org files discoverable, nothing
+  ;; more (TODO.org :ID: 7c86ab4c).
+  (setq claude-code-ide-org-standalone-projects 'derive)
+  (claude-code-ide-org-standalone-wire))
+EOF
+  echo "wrote $dest"
+  cat <<EOF
+
+One stable line for your config.el (anywhere; it never changes again):
+
+  (load! "claude-code-ide-org-glue" doom-user-dir t)
+
+Then delete any hand-rolled wiring block (port setq, register-session,
+mcp-start) -- the glue owns all of it, and re-running --glue refreshes
+this file without touching yours.
+EOF
+  exit 0
+fi
 
 # --org: scaffold the consuming project's org files from the shipped
 # templates (TODO.org :ID: 9b171907), collision-checked -- an existing

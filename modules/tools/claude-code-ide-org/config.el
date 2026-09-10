@@ -13933,9 +13933,32 @@ id, and the FIRST entry additionally as \"warp\" -- the id the shipped
 verified against Warp's own agent.  nil starts the tools server with
 no per-project session: the org tools still work (they scope by
 `org-agenda-files', not by project), but project-scoped tools have no
-context."
-  :type '(repeat directory)
+context.
+
+The symbol `derive' -- what the generated $DOOMDIR glue sets
+(TODO.org :ID: 7c86ab4c) -- resolves the list fresh on every wire
+call from `claude-code-ide-org--standalone-derive-projects': every
+directory holding a tracked TODO.org is a project, so onboarding a
+repo is making its files discoverable plus re-running the wire, with
+no elisp edit anywhere."
+  :type '(choice (const :tag "Derive from tracked files" derive)
+                 (const :tag "No project sessions" nil)
+                 (repeat directory))
   :group 'claude-code-ide-org)
+
+(defun claude-code-ide-org--standalone-derive-projects ()
+  "Project directories derived from the tracked files.
+The directory (by truename) of every tracked file named TODO.org, in
+tracked-set order, deduplicated.  The derivation runs at wire time,
+never at load, so a project added to the tracked set is picked up by
+the next `claude-code-ide-org-standalone-wire' call with no
+configuration edit (TODO.org :ID: 7c86ab4c)."
+  (let (dirs)
+    (dolist (f (claude-code-ide-org--tracked-files))
+      (when (equal (file-name-nondirectory f) "TODO.org")
+        (let ((dir (file-name-directory (file-truename f))))
+          (unless (member dir dirs) (push dir dirs)))))
+    (nreverse dirs)))
 
 (defun claude-code-ide-org--mcp-json-port (&optional file)
   "Port named by FILE, defaulting to the repo's .mcp.json.
@@ -13977,7 +14000,10 @@ the project list."
     (setq claude-code-ide-mcp-server-port pin)
     (claude-code-ide-mcp-server-ensure-server)
     (let ((projects (mapcar #'expand-file-name
-                            claude-code-ide-org-standalone-projects)))
+                            (if (eq claude-code-ide-org-standalone-projects
+                                    'derive)
+                                (claude-code-ide-org--standalone-derive-projects)
+                              claude-code-ide-org-standalone-projects))))
       (dolist (dir projects)
         (claude-code-ide-mcp-server-register-session
          (file-name-nondirectory (directory-file-name dir)) dir nil)

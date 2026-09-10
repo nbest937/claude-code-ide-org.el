@@ -14389,3 +14389,62 @@ the real file matches a tracked set naming it through a symlink."
       (let ((claude-code-ide-org-query-files (list archive-file)))
         (with-current-buffer (get-file-buffer file)
           (should-not (claude-code-ide-org--tracked-buffer-p)))))))
+
+;;; Derived standalone projects (TODO.org :ID: 7c86ab4c)
+
+(ert-deftest claude-code-ide-org-test-derive-projects-from-tracked-files ()
+  "Every directory holding a tracked TODO.org is a project, by
+truename, deduplicated; DONE.org and stray names contribute nothing."
+  (let* ((a (make-temp-file "proj-a" t))
+         (b (make-temp-file "proj-b" t)))
+    (unwind-protect
+        (progn
+          (dolist (d (list a b))
+            (with-temp-file (expand-file-name "TODO.org" d) (insert "x\n")))
+          (with-temp-file (expand-file-name "DONE.org" a) (insert "x\n"))
+          (let ((claude-code-ide-org-query-files
+                 (list (expand-file-name "TODO.org" a)
+                       (expand-file-name "DONE.org" a)
+                       (expand-file-name "TODO.org" b)
+                       ;; duplicate entry: must not double the dir
+                       (expand-file-name "TODO.org" a))))
+            (let ((dirs (claude-code-ide-org--standalone-derive-projects)))
+              (should (= 2 (length dirs)))
+              (should (equal (file-truename (file-name-as-directory a))
+                             (car dirs))))))
+      (delete-directory a t)
+      (delete-directory b t))))
+
+(ert-deftest claude-code-ide-org-test-wire-resolves-derive-fresh-per-call ()
+  "With the symbol `derive', the wire derives the project list at call
+time -- a project tracked after the previous wire call is registered by
+the next one, with no configuration edit."
+  (let ((claude-code-ide-org-standalone-port 45571)
+        (claude-code-ide-org-standalone-projects 'derive)
+        (claude-code-ide-mcp-server-port nil)
+        (registered nil)
+        (proj (make-temp-file "late-proj" t)))
+    (unwind-protect
+        (progn
+          (with-temp-file (expand-file-name "TODO.org" proj) (insert "x\n"))
+          (cl-letf (((symbol-function 'claude-code-ide-org--mcp-json-port)
+                     (lambda (&optional _f) 45571))
+                    ((symbol-function 'claude-code-ide-mcp-server-get-port)
+                     (lambda () nil))
+                    ((symbol-function 'claude-code-ide-mcp-server-ensure-server)
+                     (lambda () 45571))
+                    ((symbol-function 'claude-code-ide-mcp-server-register-session)
+                     (lambda (id dir _buf) (push (cons id dir) registered)))
+                    ((symbol-function 'claude-code-ide-mcp-start)
+                     (lambda (&optional _dir) nil)))
+            (let ((claude-code-ide-org-query-files nil)
+                  (org-agenda-files nil))
+              (claude-code-ide-org-standalone-wire)
+              (should (null registered)))
+            (let ((claude-code-ide-org-query-files
+                   (list (expand-file-name "TODO.org" proj))))
+              (claude-code-ide-org-standalone-wire)
+              (should (equal (file-name-nondirectory
+                              (directory-file-name (file-truename proj)))
+                             (car (car (last registered))))))))
+      (delete-directory proj t))))

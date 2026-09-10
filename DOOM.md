@@ -80,14 +80,25 @@ did not.)
 
 ## 4. Wire the sandbox's config.el
 
+From the sandbox shell (its `DOOMDIR` is already exported), let the
+setup command generate the wiring glue:
+
+```sh
+~/doom-sandbox/claude-code-ide-org/bin/claude-org-setup --glue
+```
+
+then the sandbox `config.el` needs only the port pin (the sandbox's
+own contract from step 2) plus the printed stub:
+
 ```elisp
 (use-package! claude-code-ide
   :config
   (setq claude-code-ide-org-standalone-port 45572)  ; match step 2's edit
-  (setq claude-code-ide-org-standalone-projects
-        '("~/doom-sandbox/testbed"))                ; the consuming repo(s)
-  (claude-code-ide-org-standalone-wire))
+  (load! "claude-code-ide-org-glue" doom-user-dir t))
 ```
+
+The glue derives its project list from the sandbox's tracked files, so
+the testbed registers itself once step 6 makes it discoverable.
 
 Also give the sandbox Emacs a distinct server identity so
 `emacsclient` calls cannot cross wires with your real session, and its
