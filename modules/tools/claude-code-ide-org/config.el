@@ -10,6 +10,13 @@
 
 (require 'cl-lib)
 (require 'seq)
+;; The machinery's own host package, loaded eagerly when present: a
+;; fresh profile whose only config is the module plus the generated
+;; glue has no other loader, and the glue's with-eval-after-load
+;; would otherwise wait forever (found booting the headless Doom
+;; sandbox, :ID: 7c86ab4c). Soft, so environments without the built
+;; package (bare batch runs) degrade to the deferral guards.
+(require 'claude-code-ide nil t)
 (require 'org-element)
 (require 'org-clock)
 (require 'org-id)
