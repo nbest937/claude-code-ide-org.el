@@ -10,6 +10,13 @@
 
 Root cause traced 2026-09-10, and it widens the heading: the sandbox runs org tip because its minimal init — exactly what =claude-org-setup --doom= prints — never enables =:lang org=, so Doom's pinned org recipe (=lang/org/packages.el=, 9.8.7 release commit =cdc1689=) never participates in the sync and org arrives as an unpinned transitive dependency of =org-ql=, cloned at main's tip (=7b9d6dbe0=, 2026-09-09). Every consumer on the shipped minimal path therefore gets a moving pre-release org that no =:lang org= user runs; the uuid case change is just its first surfaced difference. The decision is now two-layered: (a) whether the module's =packages.el= should pin org or the docs should require =:lang org= — the org 9.7 floor check catches *old* org but nothing bounds *new*; (b) the original case normalization, which matters under any answer to (a) since org 10 will land stable eventually.
 
+*The title's claim is falsified 2026-09-10, same day it was filed.* org never downcased uuidgen output at any version: 9.8.7's =org-id-new= accepts the uppercase verbatim (=org-uuidgen-p= matches it), proven by the restarted sandbox daemon generating uppercase IDs *on 9.8.7*. The lowercase corpus comes from **Doom's =:lang org=**, whose =+org--fix-inconsistent-uuidgen-case-a= (=filter-return= on =org-id-new=, citing the 2019-07 orgmode-list thread on cross-system uuidgen case) downcases when =org-id-method= is =uuid=. The sandbox lacks =:lang org=, hence uppercase — at any org version. The org-10 attribution was a coincidence of which profile was asked first.
+
+The pin half shipped and verified regardless, since bounding a moving pre-release stands on its own: =packages.el= declares =(package! org :pin cdc16898…)= (Doom's own release_9.8.7 pin; straight's default recipe already targets the same emacs-straight mirror, so pin alone suffices); a scrubbed sandbox sync cloned org at the pin, and the restarted daemon reports 9.8.7. Two false trails cost the verification an hour: the pin edit tested twice against the wrong tree (the sandbox reads its own clone, not the working tree), and one sync hung to a 10-minute timeout, likely GitHub throttling repeated org clones.
+
+Remaining decision, now correctly framed: consumers without =:lang org= get uppercase IDs. For case consistency the module can carry the same one-line =filter-return= advice (double-downcase is idempotent, so coexistence with Doom's is harmless). Held for the user's call.
+
+
 * TODO [0/1] Exercise: 1206b5b0 nesting demo — inspect visually, then cancel me :code:
 :PROPERTIES:
 :ID:       9fd61462-46ec-490d-8514-ab8b23f3bb22
