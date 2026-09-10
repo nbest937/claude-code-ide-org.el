@@ -2,6 +2,11 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO org 10.0-pre stops downcasing uuidgen IDs; decide whether the module normalizes case :code:
+:PROPERTIES:
+:ID:       4f8b5d99-90ac-4742-aba5-4688762172dc
+:CREATED:  [2026-09-10 Thu 13:23]
+:END:
 * TODO [0/1] Exercise: 1206b5b0 nesting demo — inspect visually, then cancel me :code:
 :PROPERTIES:
 :ID:       9fd61462-46ec-490d-8514-ab8b23f3bb22
