@@ -2,6 +2,56 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body :code:
+:PROPERTIES:
+:ID:       d350ff5b-3b1f-465e-800b-962264d2e841
+:CREATED:  [2026-09-10 Thu 09:10]
+:END:
+:PLAN:
+Proposed by the user 2026-09-10, pushback invited and none owed — the
+order is the org-stable one. =:PROPERTIES:= first is org's own hard
+requirement, and =:LOGBOOK:= second matches where org's native
+logging *creates* the drawer when absent (right after the property
+drawer — verify against the live =org-log-beginning= before building,
+rather than trusting this sentence); any order putting =:PLAN:= ahead
+of =:LOGBOOK:= would have the normalizer fighting org's writer
+forever. =:PLAN:= then =:DEBRIEF:= reads as lifecycle order, and
+drawers-then-body makes the body one contiguous region at the entry's
+tail, which simplifies every positional tool at once: =org_amend='s
+body append, =org_wrap_plan='s seam arithmetic, and
+=--outline-body-at-point= (whose =org-end-of-meta-data FULL= skip is
+only correct when the drawers are contiguous at the top — a
+below-body drawer would leak into the outline's body carriage).
+
+*The corpus is already self-inconsistent, measured 2026-09-10:*
+=c7bf2121= renders PROPERTIES, DEBRIEF, LOGBOOK, body while
+=85d24dba= renders PROPERTIES, LOGBOOK, DEBRIEF, body — same
+convention, same day, two orders — likely because =org_amend= creates
+a missing drawer right after the property drawer regardless of an
+existing =:LOGBOOK:=, and consolidate-on-apply then reorders only
+what it knows. And the =:DEBRIEF:= convention *documents* "created
+when absent, below the body", which neither heading exhibits and this
+canon reverses — that sentence dies in the same change.
+
+*The work, four parts:* (1) =org_amend='s drawer creation inserts at
+the canonical position (PLAN after LOGBOOK when present, DEBRIEF
+after PLAN/LOGBOOK); (2)
+=claude-code-ide-org-consolidate-all-drawers= learns the full
+four-drawer order, which gives corpus normalization for free at the
+ceremony; (3) the shipped conventions state the canon and drop the
+below-body sentence; (4) the ceremony's drawers-out-of-order report
+checks against the same canon, so drift is named where it is already
+looked for. Check what the consolidator currently enforces before
+extending it.
+:END:
+
+Headings render their drawers in whatever order their writers
+happened to produce — two same-day closes already disagree — and the
+documented =:DEBRIEF:= position contradicts both. Adopt PROPERTIES,
+LOGBOOK, PLAN, DEBRIEF, body as canon: writers insert at the right
+place, the consolidator repairs the corpus, the conventions and the
+ceremony's order report say the same thing. Analysis in =:PLAN:=.
+
 * TODO Revisit the story definition: sanction clustering and speculative breakdown :code:
 :PROPERTIES:
 :ID:       63df67c7-de0d-43e7-9c6f-2b2979a40aba
@@ -65,14 +115,14 @@ will-it-close discriminator for clustering, keep the record-stranding
 and no-declaration rules, and do not merge stories with slices.
 Analysis in =:PLAN:=; the decision is the user's.
 
-* TODO [0/7] Make the notes org-native: links, drawers, tags, one corpus pass :code:
+* TODO [0/8] Make the notes org-native: links, drawers, tags, one corpus pass :code:
 :PROPERTIES:
 :ID:       6521dd56-8772-416b-9435-6da78bb86b06
 :CREATED:  [2026-09-10 Thu 08:57]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 e128e4fa-b0d9-49f7-99eb-bae2d4b0676b e28933e9-f352-4ef9-8d53-8cd9a4318768 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8)
+:BLOCKER:  ids(b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 d350ff5b-3b1f-465e-800b-962264d2e841 e128e4fa-b0d9-49f7-99eb-bae2d4b0676b e28933e9-f352-4ef9-8d53-8cd9a4318768 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8)
 :END:
 :PLAN:
 Composed 2026-09-10 at the user's direction, absorbing the earlier
@@ -125,6 +175,7 @@ members.
 Planned:
 
 - [ ] [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]] TODO Commits cited in bodies and debriefs are orgit links, and nothing enforces it
+- [ ] [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] TODO Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body
 - [ ] [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] NEXT Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution
 - [ ] [[id:e28933e9-f352-4ef9-8d53-8cd9a4318768][e28933e9]] TODO Survey all task history for a tag vocabulary worth searching on
 - [ ] [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]] TODO Index a heading's git history from a drawer, so the body never has to narrate it
