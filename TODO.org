@@ -2,6 +2,27 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Archived :ARCHIVE_FILE: paths are machine-absolute; audit their portability :code:
+:PROPERTIES:
+:ID:       ea1df60b-1e28-448e-bb62-a6fc2b6b62f8
+:CREATED:  [2026-09-10 Thu 10:36]
+:CATEGORY: Meta
+:END:
+
+The user, unable to grok =9ae4b17e= during a decision, noticed its
+=:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org= — org-archive's
+own provenance stamp, written as a machine-absolute path. Inert for
+reading, but =org-archive= uses it for *unarchiving*, so on another
+machine (or after a repo move) the round-trip breaks silently. Audit
+question for a housekeeping sweep: how many archived entries carry
+machine-absolute =ARCHIVE_*= paths, whether unarchive is a workflow
+this project actually uses, and whether a relative or symlink-stable
+form is achievable (org writes the stamp itself — shaping it likely
+means =org-archive-location= or a post-archive normalizer, not a hand
+edit). Related: =9ae4b17e='s own body is also on =e128e4fa='s
+pre-convention sweep list, which is the cleanup the user reached for
+first.
+
 * TODO Persistent plugin enablement: stop passing --plugin-dir every session :research:
 :PROPERTIES:
 :ID:       7dbb82e0-cbb2-481c-bb95-d0e4d9b42126
@@ -1481,15 +1502,15 @@ and the only remaining references to the old convention are historical
 prose in heading bodies and the consumed plan file, left deliberately.
 
 
-* DOING [6/11] Ship the plugin: make the machinery and its prose travel together :code:
+* DOING [6/14] Ship the plugin: make the machinery and its prose travel together :code:
 :PROPERTIES:
 :ID:       c19fbbf5-be1b-4c18-a38e-9b46d064abb8
 :CREATED:  [2026-09-08 Tue 09:54]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(e396f94a-59db-4c6b-80b4-dc144146877b 78a02667-c946-429e-af58-7330070c6e06 1206b5b0-765f-48f7-94a9-0b543cf76487 2a399034-5267-47ed-a129-20e371a77146 b862fbf4-53b8-48b5-b773-1c7c0332dfb4)
-:DROPPED:  ecf66d45-18b3-477f-bca8-08bec90604e8
+:BLOCKER:  ids(e396f94a-59db-4c6b-80b4-dc144146877b 78a02667-c946-429e-af58-7330070c6e06 1206b5b0-765f-48f7-94a9-0b543cf76487 2a399034-5267-47ed-a129-20e371a77146 308bf4b4-3816-4e34-b031-2bcd58102c4d e3caa21f-462a-4689-8a9b-929fbf30cb9e 7c86ab4c-3157-4817-9fcc-d2e60c8fc160 7dbb82e0-cbb2-481c-bb95-d0e4d9b42126)
+:DROPPED:  ecf66d45-18b3-477f-bca8-08bec90604e8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-08 Tue 15:29] \\
@@ -1532,7 +1553,11 @@ Planned:
 - [-] [[id:1206b5b0-765f-48f7-94a9-0b543cf76487][1206b5b0]] REVIEW org_slice_add_member cannot declare a nested member
 - [-] [[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]] REVIEW Split the reads: org_outline carries the body, a second tool serves drawers on demand
 - [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out future work on a timeline the agenda can show
-- [ ] [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
+- [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
+- [ ] [[id:308bf4b4-3816-4e34-b031-2bcd58102c4d][308bf4b4]] TODO Adopt org's agenda list file, retiring the symlink scan and the restart
+- [ ] [[id:e3caa21f-462a-4689-8a9b-929fbf30cb9e][e3caa21f]] TODO The module's own packages.el declares claude-code-ide
+- [ ] [[id:7c86ab4c-3157-4817-9fcc-d2e60c8fc160][7c86ab4c]] TODO Promote generated elisp into $DOOMDIR: one stable stub, drift-checked glue
+- [ ] [[id:7dbb82e0-cbb2-481c-bb95-d0e4d9b42126][7dbb82e0]] TODO Persistent plugin enablement: stop passing --plugin-dir every session
 
 *Four of the five arrive with a =:BLOCKER:= already naming =b0e478f7=*,
 set when =ff7ccb2d= deferred them — so the sequencing above is declared
@@ -1576,6 +1601,16 @@ pairs there with the timestamp mechanics, while here it was always
 Step 4's "conversation if reached". Dropped via =:DROPPED:=, counted
 only by the receiving slice; its line here stays cookie-less as the
 record of having planned it.
+
+=b862fbf4= deferred out 2026-09-10 (the user, on reviewing how it
+landed): it was composed in from =ff7ccb2d='s deferrals with its own
+body already saying it likely could not finish here — it waits on
+deployment realities the new members now build. Dropped, not moved;
+it re-enters wherever multi-project data finally accumulates. The
+same day the deployment arc joined: =308bf4b4=, =e3caa21f=,
+=7c86ab4c=, =7dbb82e0= — shipping is not done until a machine and a
+project onboard without repeating an amended paste procedure.
+
 
 
 * DONE One incidental lands in every open slice's window, and the cookies double-count it :code:
