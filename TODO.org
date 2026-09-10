@@ -2,11 +2,33 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* DOING doc-sync-check learns the DOOM.md pair; README catches up to the tooling :code:
+* TODO [0/1] Exercise: 1206b5b0 nesting demo — inspect visually, then cancel me :code:
+:PROPERTIES:
+:ID:       9fd61462-46ec-490d-8514-ab8b23f3bb22
+:CREATED:  [2026-09-10 Thu 12:51]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:BLOCKER:  ids(b862fbf4-53b8-48b5-b773-1c7c0332dfb4)
+:END:
+
+Planned:
+
+- [[id:f90d745e-ccf9-49d6-a92e-df25c17b4dfb][f90d745e]] TODO Sixty minutes holding 2 turns is not sixty holding 40 [2/7]
+  - [ ] [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
+
+* DONE doc-sync-check learns the DOOM.md pair; README catches up to the tooling :code:
+CLOSED: [2026-09-10 Thu 12:42]
 :PROPERTIES:
 :ID:       3348266b-aa28-45fa-ae7b-3f4ad4cb6e81
 :CREATED:  [2026-09-10 Thu 12:40]
 :CATEGORY: Docs
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-10 Thu 12:40]--[2026-09-10 Thu 12:42] =>  0:02
+- [2026-09-10 Thu 12:40]--[2026-09-10 Thu 12:42] second sync pair plus the README catch-up
+- State "DONE"       from "DOING"      [2026-09-10 Thu 12:42] \\
+  pair guarded, README current, 11/11
 :END:
 
 Resolved 2026-09-10, same sitting: =doc-sync-check= guards a second
@@ -18,6 +40,7 @@ limitation now stating the shipped check). The mechanism's honest
 scope is recorded: it reminds on *edits to the pair*, and drift
 arriving via code-without-doc-edits still needs a reader — which is
 how this very drift was found.
+
 
 * TODO Plans die at cleanupPeriodDays; decide plansDirectory or keep restoring :code:
 :PROPERTIES:
@@ -205,7 +228,8 @@ in the same pass: the module declaring the dependency also means the
 module owns which fork/branch is expected.
 
 
-* REVIEW Promote generated elisp into $DOOMDIR: one stable stub, drift-checked glue :code:
+* DONE Promote generated elisp into $DOOMDIR: one stable stub, drift-checked glue :code:
+CLOSED: [2026-09-10 Thu 12:38]
 :PROPERTIES:
 :ID:       7c86ab4c-3157-4817-9fcc-d2e60c8fc160
 :CREATED:  [2026-09-10 Thu 10:23]
@@ -218,6 +242,8 @@ CLOCK: [2026-09-10 Thu 11:57]--[2026-09-10 Thu 12:00] =>  0:03
 - [2026-09-10 Thu 11:57]--[2026-09-10 Thu 12:00] glue file, derive-projects, setup --glue, docs
 - State "REVIEW"     from "DOING"      [2026-09-10 Thu 12:00] \\
   glue and derive live; try the swap when ready
+- State "DONE"       from "REVIEW"     [2026-09-10 Thu 12:38] \\
+  clean Doom boot, glue-wired, capture through the stack
 :END:
 :DEBRIEF:
 Shipped in the commit preceding this close, live-reloaded. The
@@ -960,7 +986,8 @@ real org ancestry — the declaration that needed a hand edit this
 morning needs one no longer.
 
 
-* REVIEW claude-org-setup wires the Doom module :code:
+* DONE claude-org-setup wires the Doom module :code:
+CLOSED: [2026-09-10 Thu 12:38]
 :PROPERTIES:
 :ID:       78a02667-c946-429e-af58-7330070c6e06
 :CREATED:  [2026-09-09 Wed 09:51]
@@ -999,6 +1026,8 @@ CLOCK: [2026-09-09 Wed 13:47]--[2026-09-09 Wed 13:49] =>  0:02
 - [2026-09-09 Wed 13:47]--[2026-09-09 Wed 13:49] claude-org-setup --doom prints the two init lines
 - State "REVIEW"     from "DOING"      [2026-09-09 Wed 13:49] \\
   print-only mode shipped; try it when you like
+- State "DONE"       from "REVIEW"     [2026-09-10 Thu 12:38] \\
+  doom-half proven by the sandbox sync and boot
 :END:
 :PLAN:
 Raised by the user 2026-09-09, from the question "how does the plugin
@@ -1744,14 +1773,14 @@ and the only remaining references to the old convention are historical
 prose in heading bodies and the consumed plan file, left deliberately.
 
 
-* DOING [8/17] Ship the plugin: make the machinery and its prose travel together :code:
+* DOING [12/18] Ship the plugin: make the machinery and its prose travel together :code:
 :PROPERTIES:
 :ID:       c19fbbf5-be1b-4c18-a38e-9b46d064abb8
 :CREATED:  [2026-09-08 Tue 09:54]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(e396f94a-59db-4c6b-80b4-dc144146877b 78a02667-c946-429e-af58-7330070c6e06 1206b5b0-765f-48f7-94a9-0b543cf76487 2a399034-5267-47ed-a129-20e371a77146 308bf4b4-3816-4e34-b031-2bcd58102c4d 67c3208f-a155-486a-beba-1763d3c86137 e3caa21f-462a-4689-8a9b-929fbf30cb9e 7c86ab4c-3157-4817-9fcc-d2e60c8fc160 7dbb82e0-cbb2-481c-bb95-d0e4d9b42126)
+:BLOCKER:  ids(e396f94a-59db-4c6b-80b4-dc144146877b 1206b5b0-765f-48f7-94a9-0b543cf76487 308bf4b4-3816-4e34-b031-2bcd58102c4d 67c3208f-a155-486a-beba-1763d3c86137 e3caa21f-462a-4689-8a9b-929fbf30cb9e 7dbb82e0-cbb2-481c-bb95-d0e4d9b42126)
 :DROPPED:  ecf66d45-18b3-477f-bca8-08bec90604e8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4
 :END:
 :LOGBOOK:
@@ -1790,16 +1819,16 @@ Planned:
 - [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] DONE Update CLAUDE.md and the org skill for the new architecture
   - [X] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] DONE CLAUDE.md carries dated history that costs every session's context
 - [-] [[id:e396f94a-59db-4c6b-80b4-dc144146877b][e396f94a]] REVIEW Package the Warp wiring
-- [-] [[id:78a02667-c946-429e-af58-7330070c6e06][78a02667]] REVIEW claude-org-setup wires the Doom module
+- [X] [[id:78a02667-c946-429e-af58-7330070c6e06][78a02667]] DONE claude-org-setup wires the Doom module
 - [X] [[id:c7bf2121-755c-4e52-8bf2-e21e56b1e0c2][c7bf2121]] DONE Every merge to main went through a PR ten times, and nothing says so
 - [-] [[id:1206b5b0-765f-48f7-94a9-0b543cf76487][1206b5b0]] REVIEW org_slice_add_member cannot declare a nested member
-- [-] [[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]] REVIEW Split the reads: org_outline carries the body, a second tool serves drawers on demand
+- [X] [[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]] DONE Split the reads: org_outline carries the body, a second tool serves drawers on demand
 - [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out future work on a timeline the agenda can show
 - [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
 - [ ] [[id:308bf4b4-3816-4e34-b031-2bcd58102c4d][308bf4b4]] TODO Adopt org's agenda list file, retiring the symlink scan and the restart
 - [-] [[id:67c3208f-a155-486a-beba-1763d3c86137][67c3208f]] REVIEW Scope the four hook policies to tracked files, per the consent decision
 - [ ] [[id:e3caa21f-462a-4689-8a9b-929fbf30cb9e][e3caa21f]] TODO The module's own packages.el declares claude-code-ide
-- [-] [[id:7c86ab4c-3157-4817-9fcc-d2e60c8fc160][7c86ab4c]] REVIEW Promote generated elisp into $DOOMDIR: one stable stub, drift-checked glue
+- [X] [[id:7c86ab4c-3157-4817-9fcc-d2e60c8fc160][7c86ab4c]] DONE Promote generated elisp into $DOOMDIR: one stable stub, drift-checked glue
 - [ ] [[id:7dbb82e0-cbb2-481c-bb95-d0e4d9b42126][7dbb82e0]] TODO Persistent plugin enablement: stop passing --plugin-dir every session
 
 *Four of the five arrive with a =:BLOCKER:= already naming =b0e478f7=*,
@@ -1838,6 +1867,7 @@ Incidental:
 - [[id:3f31b788-0204-40fb-a9c0-b2bea96f7f05][3f31b788]] CANCELLED Unknown MCP methods signal an undefined error symbol and answer nothing
 - [X] [[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]] DONE A second project's targetless captures land in the wrong tracker
 - [X] [[id:9b171907-ac4d-4afb-ade9-c90571835209][9b171907]] DONE claude-org-setup --org scaffolds a consuming project's org files
+- [X] [[id:3348266b-aa28-45fa-ae7b-3f4ad4cb6e81][3348266b]] DONE doc-sync-check learns the DOOM.md pair; README catches up to the tooling
 
 =ecf66d45= moved to
 [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]] 2026-09-10 (the
@@ -3247,7 +3277,7 @@ of its own execution while every member transitioned correctly, so
 its work starts" (=739737d=). The =DOING= here is that retcon.
 
 
-* DOING [4/6] Make the heading body a scannable summary, with plan and debrief in drawers
+* DOING [5/6] Make the heading body a scannable summary, with plan and debrief in drawers
 :PROPERTIES:
 :ID:       4c834fdb-5314-4168-ab1d-09fe89ded517
 :CREATED:  [2026-09-02 Wed 16:00]
@@ -3437,7 +3467,8 @@ prompt teaches the two grains, and the pre-convention corpus is filed
 as its own pass.
 
 
-** REVIEW Split the reads: org_outline carries the body, a second tool serves drawers on demand :code:
+** DONE Split the reads: org_outline carries the body, a second tool serves drawers on demand :code:
+CLOSED: [2026-09-10 Thu 12:38]
 :PROPERTIES:
 :ID:       2a399034-5267-47ed-a129-20e371a77146
 :CREATED:  [2026-09-02 Wed 15:42]
@@ -3448,6 +3479,8 @@ CLOCK: [2026-09-09 Wed 14:03]--[2026-09-09 Wed 14:11] =>  0:08
 - [2026-09-09 Wed 14:03]--[2026-09-09 Wed 14:11] assigned at review
 - State "REVIEW"     from "TODO"       [2026-09-09 Wed 14:11] \\
   read split shipped; needs module reload to go live
+- State "DONE"       from "REVIEW"     [2026-09-10 Thu 12:38] \\
+  read split proven in daily use and the euchre session
 :END:
 :DEBRIEF:
 Shipped as =9075f8e=. The three open design questions closed as: bodies
@@ -4963,6 +4996,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-10 Thu 12:46]--[2026-09-10 Thu 12:47] =>  0:01
 CLOCK: [2026-09-10 Thu 12:26]--[2026-09-10 Thu 12:36] =>  0:10
 CLOCK: [2026-09-10 Thu 11:43]--[2026-09-10 Thu 11:49] =>  0:06
 CLOCK: [2026-09-10 Thu 09:20]--[2026-09-10 Thu 09:21] =>  0:01
@@ -12677,4 +12711,6 @@ CLOCK: [2026-09-10 Thu 12:07]--[2026-09-10 Thu 12:18] =>  0:11
 - [2026-09-10 Thu 12:07]--[2026-09-10 Thu 12:18] headless sandbox run against agentic-euchre for the reviews
 CLOCK: [2026-09-10 Thu 12:24]--[2026-09-10 Thu 12:25] =>  0:01
 - [2026-09-10 Thu 12:24]--[2026-09-10 Thu 12:25] assigned at review
+CLOCK: [2026-09-10 Thu 12:34]--[2026-09-10 Thu 12:38] =>  0:04
+- [2026-09-10 Thu 12:34]--[2026-09-10 Thu 12:38] root-cause unattributed spans, file discipline fix
 :END:
