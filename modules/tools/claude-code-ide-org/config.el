@@ -14016,10 +14016,19 @@ the project list."
                                     'derive)
                                 (claude-code-ide-org--standalone-derive-projects)
                               claude-code-ide-org-standalone-projects))))
+      ;; The IDE-companion (WebSocket server + lockfile) lives in
+      ;; claude-code-ide-mcp.el, which loading claude-code-ide does
+      ;; not pull in -- found when the headless Doom sandbox's glue
+      ;; boot threw void-function here (:ID: 7c86ab4c). Optional by
+      ;; construction: the MCP tools need only the HTTP server, so a
+      ;; missing companion degrades with a message, never an error.
+      (require 'claude-code-ide-mcp nil t)
       (dolist (dir projects)
         (claude-code-ide-mcp-server-register-session
          (file-name-nondirectory (directory-file-name dir)) dir nil)
-        (claude-code-ide-mcp-start dir))
+        (if (fboundp 'claude-code-ide-mcp-start)
+            (claude-code-ide-mcp-start dir)
+          (message "claude-code-ide-org: IDE companion unavailable; tools server only")))
       (when projects
         (claude-code-ide-mcp-server-register-session "warp" (car projects) nil))
       (message "claude-code-ide-org: standalone tools wired on port %d, %d project session(s)%s"
