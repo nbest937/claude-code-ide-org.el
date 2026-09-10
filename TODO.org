@@ -7,6 +7,9 @@
 :ID:       784d80c5-8750-4ebe-b5e5-c213fc809d80
 :CREATED:  [2026-09-10 Thu 16:42]
 :END:
+
+Amended same day, at the provenance conversation: the symlink-ignore advice inverts when the symlink is *relative* — a committed =../../../claude-code-ide-org= is provenance and enablement in one artifact, working wherever the clones are siblings and dangling harmlessly where they are not. So the ignore line is for *absolute* symlinks only; =--org= (or its docs) should prefer creating the relative form and committing it. A submodule was considered and declined: a vendored second clone breaks the per-clone port contract and forks the plugin revision per consumer.
+
 * TODO Doom's so-long steals DONE.org past 20k lines, and the tools then operate in a non-org buffer :code:
 :PROPERTIES:
 :ID:       045459f6-a002-4c9e-921e-aeac652f10c9
