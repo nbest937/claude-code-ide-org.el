@@ -2,6 +2,55 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A recurring sweep offers new and amended tasks to the groupings they fit :code:
+:PROPERTIES:
+:ID:       527be4e3-d77a-487b-b309-ee677c109b13
+:CREATED:  [2026-09-10 Thu 09:18]
+:END:
+:PLAN:
+Raised by the user 2026-09-10, generalising the morning's pattern:
+three captures in one sitting each found their grouping only because
+a conversation happened to be looking (=d350ff5b= and =63df67c7= into
+=6521dd56=, =ecf66d45= moved there) — membership assignment currently
+rides on attention, and attention is exactly what a sweep exists to
+replace. "Perhaps a repeating scheduled sweep is the answer."
+
+*Design constraints from precedent, before any mechanism:* the sweep
+*offers*, never acts — the retired auto-promotion trigger
+(=62b65ad0=) is the standing evidence for what happens when
+membership-shaped judgement is mechanised, and every surviving report
+(nomination candidates, ceremony, stale intervals) asks. Membership
+is a declaration; the sweep's whole job is surfacing candidates for a
+human-plus-session decision.
+
+*Candidate shapes, undecided:* (1) a ceremony extension — the
+=SessionStart= report already names groupings lacking a =NEXT=; a
+sibling report names recent captures and amendments (say, since the
+last ceremony stamp) that belong to *no* grouping, beside the open
+slices whose themes they might fit — cheap, daily, zero new
+scheduling machinery. (2) an org repeater task under the meta-work
+datetree — a weekly ritual heading whose body is the checklist,
+worked like any task; heavier but visible on the agenda (and once
+=ecf66d45= lands, scheduled forward like anything else). (3)
+composition-time only — the twin-review question already asked of
+slice lists, extended to "does anything recently filed belong here?"
+— cheapest, but fires only when someone composes. The likely answer
+is (1) for detection plus (3) as discipline; (2) only if the agenda
+timeline work makes scheduled rituals first-class. What "amended"
+means for the sweep — a heading whose body changed since it was last
+considered for membership — needs a cheap signal; the queue's amend
+events may already carry it.
+
+Related, not duplicates: =c60a1c53= detects a slice *forgetting* a
+member it counted; this detects work no grouping ever counted.
+:END:
+
+New and amended tasks find their stories and slices only when a
+conversation happens to be looking. Proposed: a recurring sweep that
+*offers* recent unattached work to the groupings it plausibly fits —
+detection mechanised, judgement kept human, per every surviving
+report's contract. Shapes and constraints in =:PLAN:=.
+
 * TODO Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body :code:
 :PROPERTIES:
 :ID:       d350ff5b-3b1f-465e-800b-962264d2e841
@@ -115,14 +164,23 @@ will-it-close discriminator for clustering, keep the record-stranding
 and no-declaration rules, and do not merge stories with slices.
 Analysis in =:PLAN:=; the decision is the user's.
 
-* TODO [0/8] Make the notes org-native: links, drawers, tags, one corpus pass :code:
+The user accepted the analysis 2026-09-10, same day: both scenarios
+sanctioned, the will-it-close discriminator adopted, no merge. What
+remains is the documentation rewrite the =:PLAN:= specifies —
+positive permissions in the shipped conventions' story paragraphs,
+the test, the collector exception — executed when this member comes
+up in [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]]'s
+sequence.
+
+
+* TODO [0/9] Make the notes org-native: links, drawers, tags, one corpus pass :code:
 :PROPERTIES:
 :ID:       6521dd56-8772-416b-9435-6da78bb86b06
 :CREATED:  [2026-09-10 Thu 08:57]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 d350ff5b-3b1f-465e-800b-962264d2e841 e128e4fa-b0d9-49f7-99eb-bae2d4b0676b e28933e9-f352-4ef9-8d53-8cd9a4318768 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8)
+:BLOCKER:  ids(b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b e28933e9-f352-4ef9-8d53-8cd9a4318768 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8)
 :END:
 :PLAN:
 Composed 2026-09-10 at the user's direction, absorbing the earlier
@@ -176,6 +234,7 @@ Planned:
 
 - [ ] [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]] TODO Commits cited in bodies and debriefs are orgit links, and nothing enforces it
 - [ ] [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] TODO Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body
+- [ ] [[id:63df67c7-de0d-43e7-9c6f-2b2979a40aba][63df67c7]] TODO Revisit the story definition: sanction clustering and speculative breakdown
 - [ ] [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] NEXT Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution
 - [ ] [[id:e28933e9-f352-4ef9-8d53-8cd9a4318768][e28933e9]] TODO Survey all task history for a tag vocabulary worth searching on
 - [ ] [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]] TODO Index a heading's git history from a drawer, so the body never has to narrate it
