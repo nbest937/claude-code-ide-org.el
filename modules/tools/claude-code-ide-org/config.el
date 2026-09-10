@@ -623,6 +623,27 @@ kind of quiet."
     (seq-some (lambda (f) (equal true (file-truename f)))
               (claude-code-ide-org--tracked-files))))
 
+(defun claude-code-ide-org--revert-so-long-takeover ()
+  "Restore the real major mode when so-long has replaced it in a
+tracked file.  Doom's `doom-so-long-p' triggers on line *count*
+\(`doom-file-lines-threshold-alist', 20k default), which a long-lived
+archive crosses through ordinary growth -- measured 2026-09-10 at
+20,988 lines, when the first tool scan after a restart landed
+DONE.org in `so-long-mode' and every org-element call against it
+warned (TODO.org :ID: 045459f6).  The tools parse and *write* these
+files (org_archive's target is exactly this buffer), so on the
+machinery's own files correctness outranks the speedup; untracked
+files stay so-long's business -- the same consent boundary as the
+hook policies above.  On `find-file-hook', which `find-file-noselect'
+also runs, so invisible tool-scan visits are covered.  so-long's
+*minor* mode is left alone: it keeps the major mode, and org still
+parses correctly under it."
+  (when (and (eq major-mode 'so-long-mode)
+             (fboundp 'so-long-revert)
+             (claude-code-ide-org--tracked-buffer-p))
+    (so-long-revert)))
+(add-hook 'find-file-hook #'claude-code-ide-org--revert-so-long-takeover)
+
 (defun claude-code-ide-org--parse-org-timestamp (ts-string)
   "Parse an org timestamp string like \"[2026-07-27 Mon 17:45]\"
 into an Emacs time value."

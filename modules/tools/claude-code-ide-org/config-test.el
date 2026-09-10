@@ -14512,3 +14512,40 @@ call -- discovery without symlinks or restarts."
                   (insert todo "\n" done "\n" third "\n"))
                 (should (member third (claude-code-ide-org--tracked-files)))))))
       (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-so-long-takeover-reverted-on-tracked-files ()
+  "The find-file-hook guard calls `so-long-revert' exactly when a
+tracked buffer's major mode was replaced by `so-long-mode', and
+leaves untracked buffers to so-long (TODO.org :ID: 045459f6)."
+  (let* ((dir (make-temp-file "ccio-sl" t))
+         (tracked (expand-file-name "TODO.org" dir))
+         (untracked (expand-file-name "other.org" dir))
+         (reverted 0))
+    (unwind-protect
+        (progn
+          (with-temp-file tracked (insert "* TODO x\n"))
+          (with-temp-file untracked (insert "* TODO y\n"))
+          (let ((claude-code-ide-org-query-files (list tracked)))
+            (cl-letf (((symbol-function 'so-long-revert)
+                       (lambda () (setq reverted (1+ reverted)))))
+              ;; Tracked + so-long major: reverts.
+              (with-current-buffer (find-file-noselect tracked)
+                (setq-local major-mode 'so-long-mode)
+                (claude-code-ide-org--revert-so-long-takeover))
+              (should (= reverted 1))
+              ;; Tracked + healthy org-mode: untouched.
+              (with-current-buffer (find-file-noselect tracked)
+                (setq-local major-mode 'org-mode)
+                (claude-code-ide-org--revert-so-long-takeover))
+              (should (= reverted 1))
+              ;; Untracked + so-long major: so-long's business.
+              (with-current-buffer (find-file-noselect untracked)
+                (setq-local major-mode 'so-long-mode)
+                (claude-code-ide-org--revert-so-long-takeover))
+              (should (= reverted 1))))
+          ;; And the guard is actually wired.
+          (should (memq #'claude-code-ide-org--revert-so-long-takeover
+                        find-file-hook)))
+      (dolist (f (list tracked untracked))
+        (when-let ((b (get-file-buffer f))) (kill-buffer b)))
+      (delete-directory dir t))))
