@@ -51,6 +51,25 @@ relocate storage via the documented =plansDirectory= setting (with a
 corpus link rewrite or tested symlink), raise the retention, or
 accept restore-on-demand. Findings and recommendation in =:PLAN:=.
 
+*Decided by the user 2026-09-10, and it is none of the three options
+as drafted:* plan mortality is *accepted* — "I have never once
+consulted one"; 30 days or even sooner is fine — and the fix goes to
+the *checks*, not the storage: when a linked plan file is found
+missing, **replace the heading's live =file:= link with the best
+=orgit= link** (the archive copy's last commit in =plans/=), so the
+record self-heals as files roll off and the gates stop refusing over
+mortality. =plansDirectory= declined; retention stays default. The
+implementation: an elisp rewriter (find headings whose plan link
+targets a missing =~/.claude/plans= file, resolve the archived copy's
+last commit via =git log -1 -- plans/<slug>=, substitute
+=[[orgit-rev:claude-code-ide-org::<sha>][Plan (archived)]]=,
+file-busy-aware), invoked from =sync-plans --check='s missing branch
+when Emacs is reachable and reported plainly when not; =bin/lint-org=
+stays the backstop and passes once no dead live-link remains. The
+restore-from-archive procedure remains for the rare plan someone
+actually wants live again.
+
+
 * REVIEW Scope the four hook policies to tracked files, per the consent decision :code:
 :PROPERTIES:
 :ID:       67c3208f-a155-486a-beba-1763d3c86137
@@ -190,6 +209,27 @@ pre-push gate refused the push over three plan files missing from
 doing the one job it exists for. Suites: setup 41/41, ERT 594/594,
 docs gate clean. The =e396f94a= review action is now
 delete-block → =--glue= → paste one stub.
+
+*Headless-Doom acceptance run, 2026-09-10, at the user's insistence
+that the sandbox be real Doom — and the insistence paid three times.*
+A fresh profile (=DOOMDIR=/=DOOMLOCALDIR=, init.el carrying exactly
+the =--doom= lines, packages.el the one documented declaration,
+config.el the stub plus port pin) went =doom sync= (1m12s) → headless
+daemon → *clean boot with the glue wiring the server during Doom
+init* → a raw =tools/call= capture landing in agentic-euchre's
+tracker. Three fresh-user bugs the real profile had masked, each
+found by a failed boot and fixed same-hour: (1) the wire reported
+"wired" over a dead server — upstream's
+=claude-code-ide-enable-mcp-server= defaults nil and ensure-server's
+nil return went unchecked; now a loud refusal, and the glue owns
+=claude-code-ide-emacs-tools-setup=; (2) nothing loaded
+=claude-code-ide= at all in a profile with no use-package block — the
+module now soft-requires its host; (3) =claude-code-ide-mcp= (the IDE
+companion) is a separate feature the wire called unloaded — now
+require-or-skip with a message, optional by construction. Suite
+595/595 throughout; the earlier plain-Emacs pass also proved capture
+routing end-to-end (euchre's targetless capture in euchre's tracker,
+absent from this repo's).
 :END:
 :PLAN:
 The user's motion 2026-09-10, taking up =1caed585=: deployment drops
@@ -912,6 +952,13 @@ comment, the reference, and this drawer, so a Doom upgrade re-opens
 the question deliberately rather than by breakage. Verified:
 setup-test 23/23 (five new =--doom= checks), the real invocation's
 output eyeballed correct, commit gate green.
+
+*Doom-half evidence landed 2026-09-10*: the headless sandbox
+profile's =init.el= carried exactly the two lines =--doom= prints,
+and =doom sync= plus the daemon boot proved them — module discovered
+through =doom-module-load-path=, loaded among "4 modules", its
+packages built. The printed-lines path is no longer only
+eyeball-verified.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-09 Wed 09:50]--[2026-09-09 Wed 09:54] =>  0:04
