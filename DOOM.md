@@ -66,17 +66,12 @@ It prints (never writes) the two `init.el` lines: the
 *before* the `doom!` block, and the `claude-code-ide-org` flag under
 `:tools`. Paste them into `$DOOMDIR/init.el`.
 
-The sandbox `packages.el` needs the dependency the module cannot
-declare for you:
-
-```elisp
-(package! claude-code-ide
-  :recipe (:host github :repo "manzaltu/claude-code-ide.el"))
-```
-
-(The module's own `packages.el` brings `org-ql`; org 9.7+ arrives via
-Doom's straight-managed org and the module refuses loudly at load if it
-did not.)
+The sandbox `packages.el` needs nothing: the module's own
+`packages.el` declares `claude-code-ide` and org (both pinned) plus
+`org-ql`, and Doom merges duplicate declarations key-by-key with the
+private config's winning — so a leftover root declaration is harmless
+(`:ID:` e3caa21f). org 9.7+ arrives via the module's pin and the
+module refuses loudly at load if it did not.
 
 ## 4. Wire the sandbox's config.el
 

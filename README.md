@@ -59,15 +59,11 @@ bin/claude-org-setup --glue    # writes $DOOMDIR glue; prints one config.el stub
 
 Paste the printed lines — a `doom-module-load-path` entry plus the
 `:tools claude-code-ide-org` flag for `init.el`, and one stable
-`load!` stub for `config.el` — then declare the one dependency in your
-`packages.el`:
-
-```elisp
-(package! claude-code-ide
-  :recipe (:host github :repo "manzaltu/claude-code-ide.el"))
-```
-
-and `doom sync`. The generated glue owns the rest: it enables the
+`load!` stub for `config.el` — then `doom sync`. Your `packages.el`
+needs nothing: the module declares its own dependencies
+(`claude-code-ide` and org, both pinned; `org-ql`), and Doom merges
+duplicate declarations key-by-key with yours winning, so an existing
+root declaration is harmless. The generated glue owns the rest: it enables the
 tools server, pins the port (`45571`, checked loudly against
 `.mcp.json`), and registers a session per tracked project, re-derived
 on every wire call. A running Emacs server is a **hard prerequisite**

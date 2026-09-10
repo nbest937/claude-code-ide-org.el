@@ -5,11 +5,17 @@
 ;; config.el enforces this at load.  Doom's straight-managed org
 ;; satisfies it; the org bundled with Emacs 29 (9.6.x) does not.
 ;;
-;; org-ql (for org_query) is the only additional package required.
-;; Depends on claude-code-ide, which must be declared in your root packages.el:
-;;
-;;   (package! claude-code-ide
-;;     :recipe (:host github :repo "manzaltu/claude-code-ide.el"))
+;; The module declares its own host dependency (TODO.org :ID: e3caa21f):
+;; Doom's package! merges duplicate declarations key-by-key with the
+;; user's private packages.el processed last, so a root declaration --
+;; the old hand-paste this replaces -- simply overrides per key and is
+;; no longer required.  Pinned to the commit the module is developed
+;; against; the module owning the dependency means owning which
+;; revision is expected.  Re-verify the pin when deliberately upgrading
+;; claude-code-ide.
+(package! claude-code-ide
+  :recipe (:host github :repo "manzaltu/claude-code-ide.el")
+  :pin "1de17bbadc650962a05fd68463fdff71697ec649")  ; 2026-07-21
 
 ;; Pin org to the same commit Doom's :lang org pins (lang/org/packages.el,
 ;; Doom v2.2.0).  Without this, an init that enables only this module gets
