@@ -2,11 +2,19 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO Scope the four hook policies to tracked files, per the consent decision :code:
+* REVIEW Scope the four hook policies to tracked files, per the consent decision :code:
 :PROPERTIES:
 :ID:       67c3208f-a155-486a-beba-1763d3c86137
 :CREATED:  [2026-09-10 Thu 10:55]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-10 Thu 11:23]--[2026-09-10 Thu 11:26] =>  0:03
+- State "DOING"      from "TODO"       [2026-09-10 Thu 11:23] \\
+  building the tracked-buffer scope gate
+- [2026-09-10 Thu 11:23]--[2026-09-10 Thu 11:26] predicate plus gates plus inertness tests
+- State "REVIEW"     from "DOING"      [2026-09-10 Thu 11:26] \\
+  gate shipped, inertness proven; judgement remains
 :END:
 :DEBRIEF:
 Shipped and live-reloaded in the commit preceding this close. The
@@ -68,6 +76,7 @@ edit). Related: =9ae4b17e='s own body is also on =e128e4fa='s
 pre-convention sweep list, which is the cleanup the user reached for
 first.
 
+
 * TODO Persistent plugin enablement: stop passing --plugin-dir every session :research:
 :PROPERTIES:
 :ID:       7dbb82e0-cbb2-481c-bb95-d0e4d9b42126
@@ -87,6 +96,7 @@ character. Deliverable: the enable-once procedure documented in
 =org-emacs-setup.md= and DOOM.md, or a finding that per-session flags
 remain the supported path, stated plainly.
 
+
 * TODO The module's own packages.el declares claude-code-ide :code:
 :PROPERTIES:
 :ID:       e3caa21f-462a-4689-8a9b-929fbf30cb9e
@@ -105,11 +115,32 @@ hand-paste steps for a fresh machine. Check the recipe pin question
 in the same pass: the module declaring the dependency also means the
 module owns which fork/branch is expected.
 
+
 * TODO Promote generated elisp into $DOOMDIR: one stable stub, drift-checked glue :code:
 :PROPERTIES:
 :ID:       7c86ab4c-3157-4817-9fcc-d2e60c8fc160
 :CREATED:  [2026-09-10 Thu 10:23]
 :CATEGORY: Dev
+:END:
+:DEBRIEF:
+Shipped in the commit preceding this close, live-reloaded. The
+sequencing assumption in this heading's own =:PLAN:= ("after
+=308bf4b4=") was falsified constructively: deriving projects from
+=--tracked-files= works against today's symlink scan and upgrades for
+free when the agenda list file replaces it — the derivation reads the
+*function*, not the mechanism behind it. The glue self-defers
+(=with-eval-after-load 'claude-code-ide=), so the stub's position in
+=config.el= never matters; =derive= resolves *per wire call*, proven
+by the ERT test that tracks a project between two wire calls and
+sees it registered only by the second. One process catch worth
+keeping: the first test append landed *after* the suite script's
+=exit= and ran zero times — the unchanged "Ran 32" count is what
+exposed it, the silence-is-not-a-pass rule in miniature. And the
+pre-push gate refused the push over three plan files missing from
+=~/.claude/plans=, restored byte-for-byte from =plans/= — the archive
+doing the one job it exists for. Suites: setup 41/41, ERT 594/594,
+docs gate clean. The =e396f94a= review action is now
+delete-block → =--glue= → paste one stub.
 :END:
 :PLAN:
 The user's motion 2026-09-10, taking up =1caed585=: deployment drops
@@ -138,11 +169,26 @@ alongside =e3caa21f= (the packages.el declaration), which together
 reduce the per-machine hand steps to exactly two lines ever — the
 =doom-module-load-path= entry and the stub.
 :END:
+
+Resolved 2026-09-10, v1 same day at the user's ask: =claude-org-setup
+--glue= writes the self-deferring glue into =$DOOMDIR= behind one
+stable printed =load!= stub, and the project list *derives* at every
+wire call from the tracked files — the post-=308bf4b4= design turned
+out buildable immediately, since derivation reads whatever feeds the
+tracked set. Onboarding a project is now discoverability plus
+=M-x claude-code-ide-org-standalone-wire=, zero elisp.
+
+
+
 * TODO Adopt org's agenda list file, retiring the symlink scan and the restart :code:
 :PROPERTIES:
 :ID:       308bf4b4-3816-4e34-b031-2bcd58102c4d
 :CREATED:  [2026-09-10 Thu 10:08]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-10 Thu 10:06]--[2026-09-10 Thu 10:09] =>  0:03
+- [2026-09-10 Thu 10:06]--[2026-09-10 Thu 10:09] assigned at review
 :END:
 :PLAN:
 Raised by the user 2026-09-10, unprompted dissatisfaction with the
@@ -186,11 +232,21 @@ outside Customize" flag. Org natively supports the variable naming a
 symlinks, =--org= completes its own follow-up. Migration steps in
 =:PLAN:=.
 
-* TODO A second project's targetless captures land in the wrong tracker :code:
+
+* DONE A second project's targetless captures land in the wrong tracker :code:
+CLOSED: [2026-09-10 Thu 10:01]
 :PROPERTIES:
 :ID:       d718f6b6-5a33-4889-8b5a-8ea82553ccea
 :CREATED:  [2026-09-10 Thu 09:46]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-10 Thu 09:59]--[2026-09-10 Thu 10:01] =>  0:02
+- State "DOING"      from "TODO"       [2026-09-10 Thu 09:59] \\
+  building cwd-routed capture as an incidental
+- [2026-09-10 Thu 09:59]--[2026-09-10 Thu 10:01] route targetless captures by the session's project-dir
+- State "DONE"       from "DOING"      [2026-09-10 Thu 10:01] \\
+  routed, transparent, fallback-safe, live
 :END:
 :DEBRIEF:
 Shipped and live-reloaded 2026-09-10 (the commit preceding this
@@ -236,11 +292,20 @@ naming the file that received the heading. Global-defcustom and
 notes-file fallbacks unchanged.
 
 
-* TODO claude-org-setup --org scaffolds a consuming project's org files :code:
+* DONE claude-org-setup --org scaffolds a consuming project's org files :code:
+CLOSED: [2026-09-10 Thu 10:03]
 :PROPERTIES:
 :ID:       9b171907-ac4d-4afb-ade9-c90571835209
 :CREATED:  [2026-09-10 Thu 09:46]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-10 Thu 10:02]--[2026-09-10 Thu 10:03] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-10 Thu 10:02] \\
+  building --org scaffolding with shipped templates
+- [2026-09-10 Thu 10:02]--[2026-09-10 Thu 10:03] templates, collision checks, printed follow-ups
+- State "DONE"       from "DOING"      [2026-09-10 Thu 10:03] \\
+  scaffold, follow-ups, docs routed; 32/32
 :END:
 :DEBRIEF:
 Shipped in the commit preceding this close. =templates/= carries the
@@ -309,6 +374,7 @@ after a Warp restart) alongside the port story. Unset-variable
 behaviour is safe: Claude warns and loads the unexpanded text, and the
 default form never hits that path.
 
+
 * TODO org_capture leaves :CATEGORY: unset and nothing backstops it :code:
 :PROPERTIES:
 :ID:       0175f154-c7a2-44a3-9cb9-747ca988edd2
@@ -329,6 +395,7 @@ at filing time, and a =bin/lint-org= *warning* on a live top-level
 heading without an explicit category — a warning not an error, since
 the ten values are this repo's local taxonomy and a fresh consuming
 repo has none yet.
+
 
 * TODO A recurring sweep offers new and amended tasks to the groupings they fit :code:
 :PROPERTIES:
@@ -598,6 +665,12 @@ the gap is caught at commit time regardless of exit path.
 :ID:       b7259ee4-9aa1-4b55-8cf2-fbbacdea5310
 :CREATED:  [2026-09-10 Thu 08:52]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-10 Thu 08:39]--[2026-09-10 Thu 08:41] =>  0:02
+- [2026-09-10 Thu 08:39]--[2026-09-10 Thu 08:41] assigned at review
+CLOCK: [2026-09-10 Thu 08:45]--[2026-09-10 Thu 08:46] =>  0:01
+- [2026-09-10 Thu 08:45]--[2026-09-10 Thu 08:46] assigned at review
 :END:
 :PLAN:
 
@@ -1547,7 +1620,7 @@ and the only remaining references to the old convention are historical
 prose in heading bodies and the consumed plan file, left deliberately.
 
 
-* DOING [6/15] Ship the plugin: make the machinery and its prose travel together :code:
+* DOING [8/17] Ship the plugin: make the machinery and its prose travel together :code:
 :PROPERTIES:
 :ID:       c19fbbf5-be1b-4c18-a38e-9b46d064abb8
 :CREATED:  [2026-09-08 Tue 09:54]
@@ -1600,7 +1673,7 @@ Planned:
 - [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out future work on a timeline the agenda can show
 - [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
 - [ ] [[id:308bf4b4-3816-4e34-b031-2bcd58102c4d][308bf4b4]] TODO Adopt org's agenda list file, retiring the symlink scan and the restart
-- [ ] [[id:67c3208f-a155-486a-beba-1763d3c86137][67c3208f]] TODO Scope the four hook policies to tracked files, per the consent decision
+- [-] [[id:67c3208f-a155-486a-beba-1763d3c86137][67c3208f]] REVIEW Scope the four hook policies to tracked files, per the consent decision
 - [ ] [[id:e3caa21f-462a-4689-8a9b-929fbf30cb9e][e3caa21f]] TODO The module's own packages.el declares claude-code-ide
 - [ ] [[id:7c86ab4c-3157-4817-9fcc-d2e60c8fc160][7c86ab4c]] TODO Promote generated elisp into $DOOMDIR: one stable stub, drift-checked glue
 - [ ] [[id:7dbb82e0-cbb2-481c-bb95-d0e4d9b42126][7dbb82e0]] TODO Persistent plugin enablement: stop passing --plugin-dir every session
@@ -1639,6 +1712,8 @@ Incidental:
 - [X] [[id:85d24dba-27fb-4a41-adbb-c19617e82e7e][85d24dba]] DONE Nothing checks promoted rules copies against the plugin references
 - [X] [[id:94d36eb7-3a91-4435-a8e0-69e5a3451cce][94d36eb7]] DONE DOOM.md documents the sandbox review procedure
 - [[id:3f31b788-0204-40fb-a9c0-b2bea96f7f05][3f31b788]] CANCELLED Unknown MCP methods signal an undefined error symbol and answer nothing
+- [X] [[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]] DONE A second project's targetless captures land in the wrong tracker
+- [X] [[id:9b171907-ac4d-4afb-ade9-c90571835209][9b171907]] DONE claude-org-setup --org scaffolds a consuming project's org files
 
 =ecf66d45= moved to
 [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]] 2026-09-10 (the
@@ -1656,7 +1731,6 @@ it re-enters wherever multi-project data finally accumulates. The
 same day the deployment arc joined: =308bf4b4=, =e3caa21f=,
 =7c86ab4c=, =7dbb82e0= — shipping is not done until a machine and a
 project onboard without repeating an amended paste procedure.
-
 
 
 * DONE One incidental lands in every open slice's window, and the cookies double-count it :code:
@@ -4765,6 +4839,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-10 Thu 11:43]--[2026-09-10 Thu 11:49] =>  0:06
 CLOCK: [2026-09-10 Thu 09:20]--[2026-09-10 Thu 09:21] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
@@ -8040,11 +8115,24 @@ second concurrent session until a mechanism is in place, so this gates
 concurrent work generally rather than being one more backlog item.
 
 
-* MAYBE Decide what this module may change on a user's machine when installed :code:
+* DONE Decide what this module may change on a user's machine when installed :code:
+CLOSED: [2026-09-10 Thu 10:58]
 :PROPERTIES:
 :CATEGORY: Dev
 :ID:       1caed585-3209-4108-8501-eba16baf6a01
 :CREATED:  [2026-08-12 Wed 11:54]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-10 Thu 10:23]--[2026-09-10 Thu 10:24] =>  0:01
+- State "DOING"      from "MAYBE"      [2026-09-10 Thu 10:23] \\
+  taken up incidentally at the user's motion
+- [2026-09-10 Thu 10:23]--[2026-09-10 Thu 10:24] settle the install-surface decisions, file the pieces
+CLOCK: [2026-09-10 Thu 10:34]--[2026-09-10 Thu 10:36] =>  0:02
+- [2026-09-10 Thu 10:34]--[2026-09-10 Thu 10:36] settle the install-surface decisions, file the pieces
+CLOCK: [2026-09-10 Thu 10:55]--[2026-09-10 Thu 10:57] =>  0:02
+- [2026-09-10 Thu 10:55]--[2026-09-10 Thu 10:57] settle the install-surface decisions, file the pieces
+- State "DONE"       from "DOING"      [2026-09-10 Thu 10:58] \\
+  decided: generated-vs-authored boundary, scoped hooks
 :END:
 :DEBRIEF:
 A decide-heading, closed by deciding. What settled it was a boundary
@@ -8160,8 +8248,6 @@ entry point), implemented by =67c3208f=. The Doom-vs-MELPA latitude
 question this heading kept open is thereby dissolved rather than
 answered: scoping makes the latitude question moot, since the
 policies no longer reach files the machinery does not own.
-
-
 
 
 * TODO Read power assertions as a review-time attribution signal :code:research:
@@ -11721,6 +11807,12 @@ CLOCK: [2026-09-09 Wed 13:43]--[2026-09-09 Wed 13:47] =>  0:04
 - [2026-09-09 Wed 13:43]--[2026-09-09 Wed 13:47] guarded setup: port contract, per-repo sessions
 - State "REVIEW"     from "DOING"      [2026-09-09 Wed 13:47] \\
   module half done; your config swap and live check remain
+CLOCK: [2026-09-10 Thu 09:23]--[2026-09-10 Thu 09:26] =>  0:03
+- [2026-09-10 Thu 09:23]--[2026-09-10 Thu 09:26] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-10 Thu 09:33]--[2026-09-10 Thu 09:36] =>  0:03
+- [2026-09-10 Thu 09:33]--[2026-09-10 Thu 09:36] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-10 Thu 09:45]--[2026-09-10 Thu 09:47] =>  0:02
+- [2026-09-10 Thu 09:45]--[2026-09-10 Thu 09:47] root-cause unattributed spans, file discipline fix
 :END:
 :PLAN:
 Scope as promoted (the user, 2026-09-09, at PR #22's manifest). *The
@@ -11812,7 +11904,6 @@ separately: Claude's side could carry
 port per-machine without file edits — the wire check would then need to
 read the same variable to keep its loud contract, and Warp's copy stays
 literal.
-
 
 
 * Review and planning
