@@ -977,6 +977,8 @@ cookie-less, children ordered and counted =[0/2]=, blocker
 =ids(kid-1 kid-2)=; refusals proved write-free. Suite 586/586, commit
 gate green. This morning's hand edit of =c19fbbf5='s list (nesting
 =9d009401= under =02aaae22=) is the incident that filed it.
+
+Exercised live 2026-09-10, closing the review: demo slice =9fd61462= (contrived, CANCELLED after inspection) added =f90d745e= as a boxed member, then =b862fbf4= with =parent==. All five behaviours held on real material — box stripped to grouping label, child indented and derived, =:BLOCKER:= swapped from label to child, cookie counting only the box — and the user inspected the result visually.
 :END:
 
 Resolved 2026-09-09, same day it was filed: =org_slice_add_member=
