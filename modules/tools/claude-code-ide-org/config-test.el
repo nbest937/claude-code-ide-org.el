@@ -9788,7 +9788,11 @@ will land and flags a target that no longer resolves, an amend names the
               (list :type 'amend :id "nope" :ts (current-time)
                     :text "a\nb\nc" :note "why" :events nil))
       (let ((text (buffer-substring-no-properties (point-min) (point-max))))
-        (should (string-match-p "capture \"New thing\" +-> top of file" text))
+        ;; The where names the receiving file since captures route by
+        ;; session project (:ID: d718f6b6) -- "top of file" said nothing.
+        (should (string-match-p (format "capture \"New thing\" +-> top of %s"
+                                        (regexp-quote (file-name-nondirectory capture-file)))
+                                text))
         (should (string-match-p "! capture \"Orphan\" +-> No Such Category (UNRESOLVED)" text))
         (should (string-match-p "amend +\"(unknown heading)\" +(3 lines)" text))))))
 
@@ -14281,3 +14285,51 @@ include_children is refused."
     (let ((kid (claude-code-ide-org-body "split-kid" nil "PLAN")))
       (should (string-match-p "no :PLAN: drawer" kid))
       (should (string-match-p "Drawers present: :PROPERTIES:" kid)))))
+
+;;; Session-routed captures (TODO.org :ID: d718f6b6)
+
+(ert-deftest claude-code-ide-org-test-capture-routes-to-the-sessions-project ()
+  "A targetless capture from a session registered to a project lands in
+that project's tracked TODO.org, not the global capture file — and the
+reply names the file it wrote."
+  (claude-code-ide-org-test--with-capture-file
+    (let* ((proj (make-temp-file "proj" t))
+           (proj-todo (expand-file-name "TODO.org" proj)))
+      (unwind-protect
+          (progn
+            (with-temp-file proj-todo
+              (insert "#+TODO: TODO NEXT | DONE\n"))
+            (with-temp-file capture-file
+              (insert "#+TODO: TODO NEXT | DONE\n"))
+            (let ((claude-code-ide-org-query-files (list capture-file proj-todo)))
+              (cl-letf (((symbol-function 'claude-code-ide-mcp-server-get-session-context)
+                         (lambda (&optional _id) (list :project-dir proj))))
+                (let ((reply (claude-code-ide-org-capture "Routed heading" nil nil nil "TODO")))
+                  (should (string-match-p "top of TODO\\.org" reply))
+                  (should (string-match-p "Routed heading"
+                                          (claude-code-ide-org-test--disk-contents proj-todo)))
+                  (should-not (string-match-p "Routed heading"
+                                              (claude-code-ide-org-test--disk-contents capture-file)))))))
+        (delete-directory proj t)))))
+
+(ert-deftest claude-code-ide-org-test-capture-falls-back-without-a-project ()
+  "No session context, or a project with no tracked TODO.org, falls back
+to the global capture file exactly as before."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO NEXT | DONE\n"))
+    (let ((claude-code-ide-org-query-files (list capture-file)))
+      ;; No context at all.
+      (cl-letf (((symbol-function 'claude-code-ide-mcp-server-get-session-context)
+                 (lambda (&optional _id) nil)))
+        (claude-code-ide-org-capture "No context" nil nil nil "TODO"))
+      ;; A project-dir whose TODO.org is not tracked.
+      (let ((stranger (make-temp-file "stranger" t)))
+        (unwind-protect
+            (cl-letf (((symbol-function 'claude-code-ide-mcp-server-get-session-context)
+                       (lambda (&optional _id) (list :project-dir stranger))))
+              (claude-code-ide-org-capture "Untracked project" nil nil nil "TODO"))
+          (delete-directory stranger t)))
+      (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+        (should (string-match-p "No context" disk))
+        (should (string-match-p "Untracked project" disk))))))

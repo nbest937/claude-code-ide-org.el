@@ -2467,13 +2467,43 @@ children. Add the heading to the member list instead, or refile it elsewhere"
 ;; immediately usable, as the tool's contract promises, regardless of
 ;; agenda-file configuration.
 
+(defun claude-code-ide-org--session-project-capture-file ()
+  "The tracked TODO.org belonging to the calling session's project, or nil.
+
+The MCP request handler binds the session id around every tool call,
+and the session carries the :project-dir it was registered with — so a
+targetless capture can be routed to the *caller's* tracker instead of
+the single global default, which filed a second project's captures
+into the wrong repo (TODO.org :ID: d718f6b6; the cwd signal
+`5461c349' put on queue events, applied to the write itself).
+
+A tracked file is the project's when its truename lives under the
+project-dir's truename and it is named TODO.org.  The file is returned
+under its *tracked* name (the `org-agenda-files' entry, typically the
+~/org symlink), never re-derived from the repo path, so org-id and the
+agenda keep exactly one name per file.  nil when the session has no
+project-dir or the project has no tracked TODO.org — the caller falls
+back to the global default, unchanged."
+  (when-let* ((ctx (and (fboundp 'claude-code-ide-mcp-server-get-session-context)
+                        (claude-code-ide-mcp-server-get-session-context)))
+              (dir (plist-get ctx :project-dir))
+              (dir-true (file-truename (file-name-as-directory dir))))
+    (seq-find (lambda (f)
+                (and (equal (file-name-nondirectory f) "TODO.org")
+                     (string-prefix-p dir-true (file-truename f))))
+              (claude-code-ide-org--tracked-files))))
+
 (defun claude-code-ide-org--capture-target-file ()
-  "File `org_capture' targets: `claude-code-ide-org-capture-file' if
-set, else `org-default-notes-file'.  Used as the (file ...) target
-spec's function in the dynamically-built capture template — resolved
-fresh on every capture, so changing the defcustom at runtime takes
-effect immediately."
-  (or claude-code-ide-org-capture-file org-default-notes-file))
+  "File `org_capture' targets, in priority order: the calling session's
+own tracked TODO.org (`claude-code-ide-org--session-project-capture-file',
+so a second project's captures land in *its* tracker),
+`claude-code-ide-org-capture-file', else `org-default-notes-file'.
+Used as the (file ...) target spec's function in the dynamically-built
+capture template — resolved fresh on every capture, so a changed
+defcustom or a different calling session takes effect immediately."
+  (or (claude-code-ide-org--session-project-capture-file)
+      claude-code-ide-org-capture-file
+      org-default-notes-file))
 
 (defun claude-code-ide-org--capture-level-1-headings (file)
   "The distinct :CATEGORY: values in use across FILE.
@@ -2524,8 +2554,12 @@ different one is worse off than a caller that got an error."
      ;; TODO.org :ID: 29439196 flattened the category tier, and with no
      ;; heading to file under, recency is the ordering that remains. It
      ;; is also what the user asked for: newest first.
+     ;; The :where names the file, not just "top of file": with captures
+     ;; routed by the calling session's project (:ID: d718f6b6), which
+     ;; tracker received the heading is the fact the reply must carry.
      ((null target)
-      (list :spec (list 'file default) :file default :where "top of file"))
+      (list :spec (list 'file default) :file default
+            :where (format "top of %s" (file-name-nondirectory default))))
      ((claude-code-ide-org--id-find target)
       (list :spec (list 'id target)
             :file (car (claude-code-ide-org--id-find target))
