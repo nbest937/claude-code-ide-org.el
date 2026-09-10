@@ -300,6 +300,9 @@ Second finding, same day, at the user's question: a *project's* =.claude/skills/
 
 Third finding, at the user's location question: the skills directory is the *only* auto-discovery location for local plugins and is documented first-class ("fully supported, not a side effect" — the name predates the generalization from plain skills to full plugins). =~/.claude/plugins/= is the managed marketplace cache, auto-cleaned after ~14 days and not user-writable — the one place a symlink must not go. No env var or settings key offers an alternative path. The setup reference now says so, preempting the question.
 
+Fourth finding, from the first symlink-era session's fallout: the manifest's ="hooks"= declaration was *redundant* — Claude Code auto-loads a plugin's =hooks/hooks.json= by convention, and the explicit manifest line pointed the loader at the same file twice, producing a duplicate-load error (the field exists for additional hook files at non-standard paths). The euchre agent diagnosed it correctly and the user removed the line by hand; a session in this repo then misread the deletion as disarming consumer hooks and briefly restored it, corrected by reading the euchre transcript — the queue had shown single appends all along, because the loader was rejecting the duplicate, not double-appending. Verified after removal with a flag-less headless euchre session: one =resume=, one =pause=, hooks alive by convention alone.
+
+
 
 
 
