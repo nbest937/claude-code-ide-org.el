@@ -123,6 +123,11 @@ mkdir -p ~/doom-sandbox/testbed && cd ~/doom-sandbox/testbed
 claude --plugin-dir ~/doom-sandbox/claude-code-ide-org
 ```
 
+(`--plugin-dir` is deliberate here even where standing enablement
+exists — the setup reference's skills-dir symlink, `:ID:` 7dbb82e0:
+the sandbox reviews *its own clone*, and a user-wide enablement would
+point every session at the real one.)
+
 Inside that session the plugin's hooks, MCP server (port 45572, via
 the sandbox clone's `.mcp.json`) and skill are live. Then, in the repo:
 

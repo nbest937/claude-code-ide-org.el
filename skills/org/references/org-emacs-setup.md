@@ -81,9 +81,40 @@ upgrade. The old equivalent — symlinking
 
 ## Per-repo setup: a consuming repo
 
-1. **Enable the plugin** (`claude --plugin-dir /path/to/claude-code-ide-org`,
-   or an installed copy). Enabling it is the consent that brings the
-   hooks, the MCP server, the org skill and `bin/` onto `PATH`.
+1. **Enable the plugin.** Per session: `claude --plugin-dir
+   /path/to/claude-code-ide-org`. **Enable once instead** (`:ID:`
+   7dbb82e0, against Claude Code's docs 2026-09-10): symlink the clone
+   into the skills directory —
+
+   ```sh
+   ln -s /path/to/claude-code-ide-org ~/.claude/skills/claude-code-ide-org
+   ```
+
+   — and every session in every project auto-loads it as
+   `claude-code-ide-org@skills-dir`: referenced in place (a `git pull`
+   or local edit is live next session), `bin/` permitted, one-time
+   trust prompt per project. Either way, enabling is the consent that
+   brings the hooks, the MCP server, the org skill and `bin/` onto
+   `PATH`.
+
+   **Mandatory companion step for the plugin's own repo**: user-wide
+   auto-load includes the `claude-code-ide-org` clone itself, whose
+   `.claude/settings.json` wires the same hooks — both active means
+   every queue event appended twice. Disable the plugin there, in the
+   clone's `.claude/settings.local.json`:
+
+   ```json
+   { "enabledPlugins": { "claude-code-ide-org@skills-dir": false } }
+   ```
+
+   (A local marketplace via `extraKnownMarketplaces` +
+   `/plugin install` is the per-project-controlled alternative; the
+   docs are ambiguous on whether a local-marketplace install
+   references the clone or copies it to a cache, so the skills-dir
+   route is the one this project recommends. The old belief that
+   "marketplace forbids `bin/`" is false in general — `bin/` is
+   refused only for plugins force-distributed through managed
+   organization settings.)
 2. **Run `claude-org-setup` in the repo root.** It copies the convention
    and machinery rules from the plugin's skill references into the
    repo's `.claude/rules/`, so they load in every session rather than

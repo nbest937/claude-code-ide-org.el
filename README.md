@@ -74,13 +74,17 @@ not enough; Doom's straight-managed org is).
 ### 2. The plugin — per machine, from a clone
 
 ```sh
-claude --plugin-dir /path/to/claude-code-ide-org
+claude --plugin-dir /path/to/claude-code-ide-org   # per session
+ln -s /path/to/claude-code-ide-org ~/.claude/skills/claude-code-ide-org   # enable once
 ```
 
-Enabling the plugin is the consent that wires its session-tracking hooks
-(they write to `~/.claude/org-updates/`), registers the `emacs-tools`
-MCP server, puts `bin/` on `PATH`, and exposes the org skill. Enablement
-scope — user-wide or per-project — is chosen when you enable it.
+The symlink route auto-loads the plugin in every session, referenced
+in place — a `git pull` is live next session; the flag route scopes it
+to one invocation. Either way, enabling is the consent that wires the
+session-tracking hooks (they write to `~/.claude/org-updates/`),
+registers the `emacs-tools` MCP server, puts `bin/` on `PATH`, and
+exposes the org skill. The setup reference carries the details,
+including the one mandatory companion step for this repo itself.
 
 **Do not enable the plugin's hooks inside this repo itself**: it wires
 the same scripts through `.claude/settings.json`, and running both
