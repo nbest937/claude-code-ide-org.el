@@ -83,29 +83,39 @@ upgrade. The old equivalent — symlinking
 
 1. **Enable the plugin.** Per session: `claude --plugin-dir
    /path/to/claude-code-ide-org`. **Enable once instead** (`:ID:`
-   7dbb82e0, against Claude Code's docs 2026-09-10): symlink the clone
-   into the skills directory —
+   7dbb82e0, against Claude Code's docs 2026-09-10), at either scope —
+   both load the full plugin (hooks, MCP server with a one-time
+   per-server approval, skills) from the clone in place, so a
+   `git pull` or local edit is live next session:
 
-   ```sh
-   ln -s /path/to/claude-code-ide-org ~/.claude/skills/claude-code-ide-org
-   ```
+   - **Project scope, the recommended default** — in the consuming
+     repo:
 
-   — and every session in every project auto-loads it as
-   `claude-code-ide-org@skills-dir`: referenced in place (a `git pull`
-   or local edit is live next session), `bin/` permitted, one-time
-   trust prompt per project. Either way, enabling is the consent that
-   brings the hooks, the MCP server, the org skill and `bin/` onto
-   `PATH`.
+     ```sh
+     mkdir -p .claude/skills
+     ln -s /path/to/claude-code-ide-org .claude/skills/claude-code-ide-org
+     ```
 
-   **Mandatory companion step for the plugin's own repo**: user-wide
-   auto-load includes the `claude-code-ide-org` clone itself, whose
-   `.claude/settings.json` wires the same hooks — both active means
-   every queue event appended twice. Disable the plugin there, in the
-   clone's `.claude/settings.local.json`:
+     Active only for sessions whose *primary working directory* is
+     that project root — a session launched in a subdirectory misses
+     it — and invisible everywhere else. Commit the symlink to share
+     it, or `.gitignore` it to keep it local.
 
-   ```json
-   { "enabledPlugins": { "claude-code-ide-org@skills-dir": false } }
-   ```
+   - **User scope** — `ln -s /path/to/claude-code-ide-org
+     ~/.claude/skills/claude-code-ide-org` — every session in every
+     project, one trust prompt per project. **Mandatory companion
+     step at this scope**: auto-load then includes the
+     `claude-code-ide-org` clone itself, whose
+     `.claude/settings.json` wires the same hooks — both active means
+     every queue event appended twice. Disable the plugin there, in
+     the clone's `.claude/settings.local.json`:
+
+     ```json
+     { "enabledPlugins": { "claude-code-ide-org@skills-dir": false } }
+     ```
+
+   Either way, enabling is the consent that brings the hooks, the MCP
+   server, the org skill and `bin/` onto `PATH`.
 
    (A local marketplace via `extraKnownMarketplaces` +
    `/plugin install` is the per-project-controlled alternative; the
