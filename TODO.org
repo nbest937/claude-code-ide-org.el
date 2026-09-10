@@ -2,6 +2,55 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Plans die at cleanupPeriodDays; decide plansDirectory or keep restoring :code:
+:PROPERTIES:
+:ID:       ff1bec00-1b18-4aea-9968-09c99818565e
+:CREATED:  [2026-09-10 Thu 12:03]
+:CATEGORY: Dev
+:END:
+:PLAN:
+The user asked why plans keep disappearing from =~/.claude/plans=
+despite never touching them. Diagnosed from the ages (all casualties
+were created on or before 2026-08-11; the oldest survivors are
+2026-08-13; deaths landed 09-08..09-10 ≈ creation + 30 days) and
+confirmed against the docs: *plan files are on Claude Code's
+"Cleaned up automatically" list*, swept with transcripts once older
+than =cleanupPeriodDays= (default 30) —
+https://code.claude.com/docs/en/claude-directory.md and the
+settings reference. Deliberately ephemeral by design; the =plans/=
+archive plus the pre-push gate is this repo's standing defense and
+has fired correctly three times (09-08 twice-restored, 09-10
+thrice). Standing prediction that confirms the mechanism if it
+holds: =hazy-moseying-sky.md= and =capture-amend-queue.md= (both
+08-13) die ~09-12/13.
+
+The decision, with a documented lever the earlier analysis lacked:
+=plansDirectory= (settings.json, any scope) relocates plan storage
+outside the cleanup path entirely. Options: (1) *set
+plansDirectory to a durable location* — kills the mortality at the
+root, but every existing org link names
+=file:~/.claude/plans/<slug>.md=, so it needs either a one-time link
+rewrite across the corpus (=e128e4fa='s pass touches every heading
+anyway) or a compatibility symlink at the old path, whose
+interaction with the cleanup sweep is undocumented and must be
+tested before trusting; also decide whether =sync-plans= still earns
+its keep once the working copies are durable (probably yes —
+version control is what the archive adds, not just durability).
+(2) *raise cleanupPeriodDays* — delays every death, solves nothing,
+and inflates transcript retention as a side effect. (3) *status
+quo* — restore-on-demand at the gate, friction forever but zero
+migration. Recommendation: (1), sequenced with the corpus pass so
+the link rewrite rides a read that is happening anyway.
+:END:
+
+Plan files vanish because =~/.claude/plans= is on Claude Code's
+documented auto-cleanup list: swept with transcripts past
+=cleanupPeriodDays= (default 30). The archive-and-restore machinery
+defends correctly but fights a rising tide forever. Decide:
+relocate storage via the documented =plansDirectory= setting (with a
+corpus link rewrite or tested symlink), raise the retention, or
+accept restore-on-demand. Findings and recommendation in =:PLAN:=.
+
 * REVIEW Scope the four hook policies to tracked files, per the consent decision :code:
 :PROPERTIES:
 :ID:       67c3208f-a155-486a-beba-1763d3c86137
