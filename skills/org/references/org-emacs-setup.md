@@ -114,6 +114,13 @@ upgrade. The old equivalent — symlinking
      { "enabledPlugins": { "claude-code-ide-org@skills-dir": false } }
      ```
 
+   The skills directory is the *only* auto-discovery location and is
+   documented as first-class for full plugins (the name predates the
+   generalization: a directory there with a `.claude-plugin/` manifest
+   loads as a plugin, without one as a plain skill). Do **not** symlink
+   into `~/.claude/plugins/` — that is Claude Code's managed
+   marketplace cache, auto-cleaned and not user-writable.
+
    Either way, enabling is the consent that brings the hooks, the MCP
    server, the org skill and `bin/` onto `PATH`.
 

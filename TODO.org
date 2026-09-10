@@ -298,6 +298,9 @@ Researched and documented 2026-09-10: the enable-once route is a symlink into =~
 
 Second finding, same day, at the user's question: a *project's* =.claude/skills/= hosts full skills-directory plugins too — hooks, MCP server (per-server approval), skills — scoped to sessions whose primary working directory is that project root (a subdirectory launch misses it), symlinked directory followed, still named =claude-code-ide-org@skills-dir=. Project scope is now the documented recommended default: it needs no user-level config and no double-fire guard, since this repo's clone never sees it. The user-scope route and its mandatory =settings.local.json= guard stay documented for all-projects enablement. REVIEW exit unchanged in spirit: the euchre symlink (=mkdir -p .claude/skills && ln -s ~/git/claude-code-ide-org .claude/skills/claude-code-ide-org=), one trust + MCP approval, then a flag-less session reaching the tools.
 
+Third finding, at the user's location question: the skills directory is the *only* auto-discovery location for local plugins and is documented first-class ("fully supported, not a side effect" — the name predates the generalization from plain skills to full plugins). =~/.claude/plugins/= is the managed marketplace cache, auto-cleaned after ~14 days and not user-writable — the one place a symlink must not go. No env var or settings key offers an alternative path. The setup reference now says so, preempting the question.
+
+
 
 
 
