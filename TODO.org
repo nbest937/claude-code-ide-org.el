@@ -6,7 +6,19 @@
 :PROPERTIES:
 :ID:       3348266b-aa28-45fa-ae7b-3f4ad4cb6e81
 :CREATED:  [2026-09-10 Thu 12:40]
+:CATEGORY: Docs
 :END:
+
+Resolved 2026-09-10, same sitting: =doc-sync-check= guards a second
+hand-synced pair — DOOM.md ↔ the shipped setup reference, with
+per-pair zone wording — and README's four drifted zones caught up to
+the tooling (=--doom=/=--glue= replacing the retired symlink method,
+=--org= and the live =add-to-list=, the falsified no-drift-check
+limitation now stating the shipped check). The mechanism's honest
+scope is recorded: it reminds on *edits to the pair*, and drift
+arriving via code-without-doc-edits still needs a reader — which is
+how this very drift was found.
+
 * TODO Plans die at cleanupPeriodDays; decide plansDirectory or keep restoring :code:
 :PROPERTIES:
 :ID:       ff1bec00-1b18-4aea-9968-09c99818565e
