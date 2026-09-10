@@ -2,10 +2,21 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The review buffer should name each item's tracker, now that two projects share the queue :code:
+:PROPERTIES:
+:ID:       fbaf8009-b3dc-48ed-b099-63b74fc156a8
+:CREATED:  [2026-09-10 Thu 14:49]
+:END:
+
+
 * TODO The glue claims ownership of the whole wiring block, but the 202 override ships nowhere :code:
 :PROPERTIES:
 :ID:       af2f345e-b7db-4025-9f63-c5fce09fdd8a
 :CREATED:  [2026-09-10 Thu 14:11]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-10 Thu 14:11]--[2026-09-10 Thu 14:12] =>  0:01
+- [2026-09-10 Thu 14:11]--[2026-09-10 Thu 14:12] preparing the e396f94a swap walk-through; filing the glue-ownership gap
 :END:
 
 
@@ -387,15 +398,28 @@ tracked set. Onboarding a project is now discoverability plus
 =M-x claude-code-ide-org-standalone-wire=, zero elisp.
 
 
-* TODO Adopt org's agenda list file, retiring the symlink scan and the restart :code:
+* DOING Adopt org's agenda list file, retiring the symlink scan and the restart :code:
 :PROPERTIES:
 :ID:       308bf4b4-3816-4e34-b031-2bcd58102c4d
 :CREATED:  [2026-09-10 Thu 10:08]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+Shipped and adopted in one day. The module needed no change — =--tracked-files= already calls the =org-agenda-files= *function*, pinned by a new ERT test including the dynamic half (a line appended after the first read is seen on the next call; 597/597). =--org= appends the scaffolded paths to the list file (=CLAUDE_ORG_AGENDA_LIST= overrides; dedup against absolute and tilde spellings; 51/51, tests pinned away from the real file), keeping the legacy symlink follow-ups for configs without one; README, DOOM.md and the setup reference lost the restart language together. The migration surfaced the answer to the old "CHANGED outside Customize" puzzle from the other side: =custom.el= carried a Customize-*saved* =org-agenda-files= that loads after =config.el= and silently overwrote the new setq — deleted by the user; a live =setq= bridged the running session. Adoption evidence: the list file names five real paths, the wire derives 2 project sessions plus =warp=, and euchre reached the null test with no symlink and no restart. One deterministic check remains open by nature: the next cold boot, with =custom.el= now silent, should land on the list file unaided — if it does not, look for another late setter, not at this design.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-10 Thu 10:06]--[2026-09-10 Thu 10:09] =>  0:03
 - [2026-09-10 Thu 10:06]--[2026-09-10 Thu 10:09] assigned at review
+CLOCK: [2026-09-10 Thu 14:25]--[2026-09-10 Thu 14:29] =>  0:04
+- State "DOING"      from "TODO"       [2026-09-10 Thu 14:25] \\
+  building the agenda list file ahead of the user's config swap
+- [2026-09-10 Thu 14:25]--[2026-09-10 Thu 14:29] list-file build shipped; user's config swap verified; their restart pending
+CLOCK: [2026-09-10 Thu 14:36]--[2026-09-10 Thu 14:37] =>  0:01
+- [2026-09-10 Thu 14:36]--[2026-09-10 Thu 14:37] suggested span, accepted at review
+CLOCK: [2026-09-10 Thu 14:39]--[2026-09-10 Thu 14:40] =>  0:01
+- [2026-09-10 Thu 14:39]--[2026-09-10 Thu 14:40] suggested span, accepted at review
+CLOCK: [2026-09-10 Thu 14:43]--[2026-09-10 Thu 14:44] =>  0:01
+- [2026-09-10 Thu 14:43]--[2026-09-10 Thu 14:44] suggested span, accepted at review
 :END:
 :PLAN:
 Raised by the user 2026-09-10, unprompted dissatisfaction with the
@@ -438,6 +462,9 @@ outside Customize" flag. Org natively supports the variable naming a
 *list file* re-read on every access. Adopt it: dynamic discovery, no
 symlinks, =--org= completes its own follow-up. Migration steps in
 =:PLAN:=.
+
+Resolved 2026-09-10, same day filed: =org-agenda-files= is the list file (=~/org/agenda-files=, real repo paths), =--org= appends a new project's paths itself, and euchre onboarded restart-free as the proof — the =~/org= symlinks now feed nothing.
+
 
 
 * DONE A second project's targetless captures land in the wrong tracker :code:
@@ -1898,7 +1925,7 @@ Planned:
 - [X] [[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]] DONE Split the reads: org_outline carries the body, a second tool serves drawers on demand
 - [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out future work on a timeline the agenda can show
 - [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
-- [ ] [[id:308bf4b4-3816-4e34-b031-2bcd58102c4d][308bf4b4]] TODO Adopt org's agenda list file, retiring the symlink scan and the restart
+- [-] [[id:308bf4b4-3816-4e34-b031-2bcd58102c4d][308bf4b4]] DOING Adopt org's agenda list file, retiring the symlink scan and the restart
 - [X] [[id:67c3208f-a155-486a-beba-1763d3c86137][67c3208f]] DONE Scope the four hook policies to tracked files, per the consent decision
 - [ ] [[id:e3caa21f-462a-4689-8a9b-929fbf30cb9e][e3caa21f]] TODO The module's own packages.el declares claude-code-ide
 - [X] [[id:7c86ab4c-3157-4817-9fcc-d2e60c8fc160][7c86ab4c]] DONE Promote generated elisp into $DOOMDIR: one stable stub, drift-checked glue
@@ -5070,6 +5097,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-10 Thu 14:45]--[2026-09-10 Thu 14:57] =>  0:12
 CLOCK: [2026-09-10 Thu 14:10]--[2026-09-10 Thu 14:14] =>  0:04
 CLOCK: [2026-09-10 Thu 12:46]--[2026-09-10 Thu 12:47] =>  0:01
 CLOCK: [2026-09-10 Thu 12:26]--[2026-09-10 Thu 12:36] =>  0:10
@@ -12029,6 +12057,9 @@ call it done.
 :ID:       e396f94a-59db-4c6b-80b4-dc144146877b
 :CREATED:  [2026-07-28 Tue 08:02]
 :END:
+:DEBRIEF:
+Closed on the real-config swap, 2026-09-10. The user deleted the hand block's glue-owned parts (port setq, =emacs-tools-setup=, the warp defvar/defun/call), kept what an audit proved the glue does *not* own — =terminal-backend=, =global-auto-revert-mode=, and the 202 override, which ships nowhere and is now =af2f345e= — and pasted the one =load!= stub. After restart: port 45571, wire reporting 2 project sessions plus =warp= (euchre via ='derive= off the new agenda list file), and the =/next-session= null test in agentic-euchre answering =org_pending_updates= through the plugin-registered server — the packaged path end to end, no hand wiring anywhere. The walk-through also caught the swap instruction's sharp edge in time: the glue's printed "owns all of it" overstates, filed as =af2f345e=.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-09 Wed 09:24]--[2026-09-09 Wed 09:25] =>  0:01
 - [2026-09-09 Wed 09:24]--[2026-09-09 Wed 09:25] assigned at review
@@ -12139,6 +12170,9 @@ separately: Claude's side could carry
 port per-machine without file edits — the wire check would then need to
 read the same variable to keep its loud contract, and Warp's copy stays
 literal.
+
+Resolved 2026-09-10: the packaged wiring replaced the hand-rolled block in the real config and held — glue deployed by =--glue=, the block slimmed to what the glue does not own, one restart, and the euchre null test passing through the plugin's own =.mcp.json= as the live proof.
+
 
 
 * Review and planning
@@ -12790,4 +12824,10 @@ CLOCK: [2026-09-10 Thu 12:24]--[2026-09-10 Thu 12:25] =>  0:01
 CLOCK: [2026-09-10 Thu 12:34]--[2026-09-10 Thu 12:38] =>  0:04
 - [2026-09-10 Thu 12:34]--[2026-09-10 Thu 12:38] root-cause unattributed spans, file discipline fix
 - [2026-09-10 Thu 12:42]--[2026-09-10 Thu 12:50] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-10 Thu 14:16]--[2026-09-10 Thu 14:17] =>  0:01
+- [2026-09-10 Thu 14:16]--[2026-09-10 Thu 14:17] assigned at review
+CLOCK: [2026-09-10 Thu 14:22]--[2026-09-10 Thu 14:23] =>  0:01
+- [2026-09-10 Thu 14:22]--[2026-09-10 Thu 14:23] assigned at review
+CLOCK: [2026-09-10 Thu 14:49]--[2026-09-10 Thu 14:50] =>  0:01
+- [2026-09-10 Thu 14:49]--[2026-09-10 Thu 14:50] post-restart verification; filing the review-buffer tracker-legibility gap
 :END:
