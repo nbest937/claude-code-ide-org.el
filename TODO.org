@@ -2,6 +2,69 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Revisit the story definition: sanction clustering and speculative breakdown :code:
+:PROPERTIES:
+:ID:       63df67c7-de0d-43e7-9c6f-2b2979a40aba
+:CREATED:  [2026-09-10 Thu 09:06]
+:END:
+:PLAN:
+Raised by the user 2026-09-10, after composing the org-native-notes
+slice surfaced the question: two scenarios — (A) clustering related
+open tasks under a common parent, (B) breaking a weighty task into
+subtasks as tentative, speculative planning — and if neither is
+realistic, stories and slices are doing double duty and should merge.
+
+*The session's first-pass analysis, for the conversation to test:*
+
+Both scenarios are real, and both are *already mostly legal* — what
+prohibits them is the prose's tone, not the mechanics. The actual
+rules are narrower than they read: "a story is precipitated, never
+authored" governs the *classification moment* (no =:STORY:= property,
+no second copy of a derivable fact), not the filing; and "must not be
+given children" applies only to a heading *with work of its own to
+strand* — an unworked parent may grow children in place today, and
+=org_capture target== plus =org_refile= are the existing affordances.
+So (B) needs a sentence of encouragement, not a rule change; the
+record-stranding rule (=9e627dc0=, divide instead) must survive any
+relaxation untouched.
+
+(A) needs one *discriminator* added rather than a relaxation: **will
+this parent ever close?** A cluster that is completion-shaped — the
+children finishing finishes the parent — is a story and clustering is
+right. A cluster that is thematic affinity with no end state is a
+filing drawer, and parking tasks under one recreates precisely what
+the flattening (=29439196=) removed and what killed the auto-promotion
+trigger: groups that are not projects being treated as projects. Those
+belong to =:CATEGORY:=, tags, or a slice. The corpus already carries
+the honest exception: =9d6449c7=, a running collector that
+deliberately never closes, correctly parked =MAYBE=.
+
+*Against the merge:* stories and slices differ on the two axes that
+matter — containment vs reference (a child has one parent; a member
+lives anywhere, and a slice reaches *into* stories, as =c19fbbf5=
+nesting =9d009401= under =02aaae22= shows), and tentative vs committed
+(a story costs nothing and asserts nothing but grouping; a slice
+carries sequence, prompt links, derived blockers, and attribution
+windows). The user's own light-vs-detailed-planning framing *is* the
+current design; merging would recreate the sequencing-without-moving
+problem slices were built to solve.
+
+*If accepted, the change is documentation:* rewrite the story
+paragraphs in the shipped conventions to state the permissions
+positively (unworked parents may be born broken-down; refile-clusters
+are sanctioned when completion-shaped), add the will-it-close test,
+name the collector exception, and keep emergent detection, the divide
+rule, and no-declaration exactly as they are.
+:END:
+
+The story conventions read as prohibitions while the user's two
+scenarios — clustering open tasks under a parent, and speculatively
+breaking a weighty task into subtasks — are realistic and already
+mostly legal. Proposed: restate the permissions positively, add the
+will-it-close discriminator for clustering, keep the record-stranding
+and no-declaration rules, and do not merge stories with slices.
+Analysis in =:PLAN:=; the decision is the user's.
+
 * TODO [0/7] Make the notes org-native: links, drawers, tags, one corpus pass :code:
 :PROPERTIES:
 :ID:       6521dd56-8772-416b-9435-6da78bb86b06
