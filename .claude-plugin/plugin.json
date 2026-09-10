@@ -6,9 +6,8 @@
   "author": {
     "name": "Neil Best"
   },
-  "repository": "https://github.com/nbest937/claude-code-ide-org",
+  "repository": "https://github.com/nbest937/claude-code-ide-org.el",
   "license": "MIT",
   "keywords": ["org-mode", "emacs", "gtd", "time-tracking", "mcp"],
-  "hooks": "./hooks/hooks.json",
   "mcpServers": "./.mcp.json"
 }
