@@ -76,8 +76,19 @@ upgrade. The old equivalent — symlinking
    repo's `.claude/rules/`, so they load in every session rather than
    only when someone thinks to read a reference. Re-run it after a
    plugin update to refresh the copies.
-3. **Make the repo's org files discoverable** (previous section) and
-   give each one the file header the conventions specify.
+3. **Scaffold and discover the repo's org files**:
+
+   ```sh
+   claude-org-setup --org
+   ```
+
+   creates `TODO.org` and `DONE.org` from the shipped templates
+   (collision-checked; an existing file is reported, never touched)
+   and prints the three follow-ups only you can do — the `~/org`
+   symlinks, the Emacs restart (or the live `add-to-list` one-liner it
+   offers instead), and the `standalone-projects` registration. Once
+   discoverable, targetless `org_capture` calls from this project's
+   sessions land in its own tracker automatically.
 
 Two behaviours worth knowing before they surprise you:
 

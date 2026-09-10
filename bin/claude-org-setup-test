@@ -102,5 +102,23 @@ check "--doom refuses a non-git plugin copy" "$([ $rc -eq 1 ] && echo ok || echo
 check "the refusal says to clone" "$(printf '%s' "$out" | grep -q 'clone the repo' && echo ok || echo "output: $out")"
 rm -rf "$managed"
 
+# 10. --org: scaffolds both files from the templates, reports and
+#     never touches an existing file, prints the three follow-ups.
+orgdir="$(mktemp -d)"
+out="$("$setup" --org "$orgdir" 2>&1)"; rc=$?
+check "--org exits 0 in an empty dir" "$([ $rc -eq 0 ] && echo ok || echo "rc=$rc: $out")"
+check "--org created TODO.org with the header" "$(head -1 "$orgdir/TODO.org" 2>/dev/null | grep -q '^#+TODO:' && echo ok || echo missing)"
+check "--org created DONE.org" "$([ -f "$orgdir/DONE.org" ] && echo ok || echo missing)"
+check "--org prints the symlink follow-up" "$(printf '%s' "$out" | grep -q 'ln -s' && echo ok || echo missing)"
+check "--org prints the restart note" "$(printf '%s' "$out" | grep -qi 'RESTART' && echo ok || echo missing)"
+check "--org prints the standalone-projects addition" "$(printf '%s' "$out" | grep -q 'standalone-projects' && echo ok || echo missing)"
+
+echo "custom content" > "$orgdir/TODO.org"
+out="$("$setup" --org "$orgdir" 2>&1)"; rc=$?
+check "--org leaves an existing file untouched" "$([ "$(cat "$orgdir/TODO.org")" = "custom content" ] && echo ok || echo clobbered)"
+check "--org reports the collision" "$(printf '%s' "$out" | grep -q 'exists:.*TODO.org' && echo ok || echo "output: $out")"
+check "--org still exits 0 on collision" "$([ $rc -eq 0 ] && echo ok || echo "rc=$rc")"
+rm -rf "$orgdir"
+
 echo "Ran $checks checks, $fails failure(s)"
 exit "$([ "$fails" -eq 0 ] && echo 0 || echo 1)"

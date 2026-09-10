@@ -30,15 +30,17 @@ promote=(org-conventions.md org-event-queue.md org-state-transitions.md
 force=0
 check=0
 doom=0
+org=0
 target="$PWD"
 for a in "$@"; do
   case "$a" in
     --force) force=1 ;;
     --check) check=1 ;;
     --doom) doom=1 ;;
+    --org) org=1 ;;
     --*)
       echo "claude-org-setup: unknown option: $a" >&2
-      echo "usage: claude-org-setup [--force|--check|--doom] [TARGET_DIR]" >&2
+      echo "usage: claude-org-setup [--force|--check|--doom|--org] [TARGET_DIR]" >&2
       exit 2
       ;;
     *)
@@ -49,6 +51,65 @@ for a in "$@"; do
       ;;
   esac
 done
+
+# --org: scaffold the consuming project's org files from the shipped
+# templates (TODO.org :ID: 9b171907), collision-checked -- an existing
+# file is never touched, only reported. The follow-up acts that leave
+# this repo (the ~/org symlink, the Emacs restart, the
+# standalone-projects addition) are PRINTED, same boundary as --doom:
+# they touch the user's world, so the user performs them.
+if [ "$org" = 1 ]; then
+  tdir="$plugin_root/templates"
+  wrote=0
+  for f in TODO.org DONE.org; do
+    if [ ! -f "$tdir/$f" ]; then
+      echo "claude-org-setup: missing template: $tdir/$f" >&2
+      exit 1
+    fi
+    if [ -e "$target/$f" ]; then
+      echo "exists:  $target/$f (left untouched)"
+    else
+      cp "$tdir/$f" "$target/$f"
+      echo "created: $target/$f"
+      wrote=$((wrote + 1))
+    fi
+  done
+  name="$(basename "$target")"
+  cat <<EOF
+
+Scaffolded $wrote file(s). The header lines are load-bearing: the
+#+TODO: cookies drive state logging and #+STARTUP: logdrawer keeps
+notes in :LOGBOOK:.
+
+Three follow-ups only you can do:
+
+1. Make the files discoverable (org-agenda-files scans ~/org once at
+   config load):
+
+     mkdir -p ~/org/$name
+     ln -s "$target/TODO.org" ~/org/$name/TODO.org
+     ln -s "$target/DONE.org" ~/org/$name/DONE.org
+
+   then RESTART Emacs -- or add them to the running one now:
+
+     emacsclient -e '(dolist (f (list "~/org/$name/TODO.org" "~/org/$name/DONE.org")) (add-to-list (quote org-agenda-files) (expand-file-name f)))'
+
+2. Register the project for standalone MCP sessions, in your Doom
+   config.el's claude-code-ide block:
+
+     (add-to-list 'claude-code-ide-org-standalone-projects "$target")
+
+   then M-x claude-code-ide-org-standalone-wire (idempotent).
+
+3. If the machinery rules are not promoted here yet, also run:
+
+     claude-org-setup
+
+Targetless org_capture calls from sessions in this project will land
+in its own TODO.org once step 1 makes it discoverable.
+EOF
+  exit 0
+fi
 
 # --doom: print the two init.el lines that wire the Doom module from
 # this checkout (TODO.org :ID: 78a02667). Print-only, deliberately:

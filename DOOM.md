@@ -90,10 +90,12 @@ did not.)
 ```
 
 Also give the sandbox Emacs a distinct server identity so
-`emacsclient` calls cannot cross wires with your real session:
+`emacsclient` calls cannot cross wires with your real session, and its
+own org universe so testbed files never enter your real agenda:
 
 ```elisp
 (setq server-name "doom-sandbox")
+(setq org-directory "~/doom-sandbox/org")
 ```
 
 ## 5. Sync and launch — this is the fresh-machine experience
@@ -120,14 +122,18 @@ the sandbox clone's `.mcp.json`) and skill are live. Then, in the repo:
 
 ```sh
 claude-org-setup            # promotes conventions + machinery rules
+claude-org-setup --org      # scaffolds TODO.org/DONE.org from the templates
 ```
 
-Give the testbed its own org files and make them discoverable to the
-*sandbox* Emacs (`org-agenda-files` /
-`claude-code-ide-org-query-files` — computed at config load, so a new
-file needs a restart). What the earlier scratch-consumer check never
-exercised — and this does — is the promoted rules actually governing a
-session in a repo with real org files of its own.
+`--org` creates the org files (collision-checked — an existing file is
+reported, never touched) and prints the discoverability follow-ups.
+For the sandbox, point them at the *sandbox* universe: symlinks under
+`~/doom-sandbox/org/testbed/` (the `org-directory` from step 4), and
+the restart-or-`add-to-list` against the *sandbox* Emacs. Targetless
+`org_capture` calls from testbed sessions then land in the testbed's
+own TODO.org — the session-routed capture path, which is itself part
+of what this review exercises, alongside the promoted rules governing
+a repo with real org files of its own.
 
 ## Collisions and cautions, collected
 
