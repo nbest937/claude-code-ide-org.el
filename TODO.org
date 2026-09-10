@@ -2,6 +2,48 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A second project's targetless captures land in the wrong tracker :code:
+:PROPERTIES:
+:ID:       d718f6b6-5a33-4889-8b5a-8ea82553ccea
+:CREATED:  [2026-09-10 Thu 09:46]
+:CATEGORY: Tools
+:END:
+
+=claude-code-ide-org-capture-file= is a single global defcustom
+pointing at this repo's TODO.org, so the moment a second project
+exists, its targetless =org_capture= files headings into the *wrong
+project's* tracker — the "single global defcustom" limitation
+=9ae4b17e= recorded, arriving as a user-facing bug. The queue already
+records =cwd= on every event (=5461c349=), so the routing signal
+exists: candidates are a per-project capture file resolved from the
+session's =cwd= (a =.dir-locals.el= value, or a convention like
+=<repo>/TODO.org= when discoverable), falling back to the global for
+non-project sessions. Same family as =b862fbf4='s multi-project
+world; whichever lands first should not re-litigate the other's
+design.
+
+* TODO claude-org-setup --org scaffolds a consuming project's org files :code:
+:PROPERTIES:
+:ID:       9b171907-ac4d-4afb-ade9-c90571835209
+:CREATED:  [2026-09-10 Thu 09:46]
+:CATEGORY: Dev
+:END:
+
+Found 2026-09-10 when the user, planning a real new project, read
+DOOM.md's step 6 closely: "give the testbed its own org files and
+make them discoverable" is one sentence hiding three unscaffolded
+acts. Proposed: an =--org= mode on =claude-org-setup= that (1) writes
+=TODO.org= (and =DONE.org=) with the conventions' file header — the
+=#+TODO:= cookies and =#+STARTUP: logdrawer= are load-bearing, and a
+file without them silently accepts the wrong keyword set; (2) prints
+the =~/org/<project>/= symlink command and says plainly that
+discoverability is restart-bound (=org-agenda-files= scans once at
+config load); (3) prints the =standalone-projects= addition and the
+re-wire call. Print-only where it leaves the repo, exactly like
+=--doom=. Update DOOM.md step 6 and =org-emacs-setup.md='s per-repo
+section to route through it. Candidate member for =c19fbbf5= — a
+plugin a new project cannot onboard onto is not fully shipped.
+
 * TODO Per-machine port via ${VAR:-45571} in .mcp.json, with the wire check env-aware :code:
 :PROPERTIES:
 :ID:       f6f0d6ef-7c5e-400a-bdf7-3b4a12042122
