@@ -8,6 +8,28 @@
 :CREATED:  [2026-09-10 Thu 09:46]
 :CATEGORY: Tools
 :END:
+:DEBRIEF:
+Shipped and live-reloaded 2026-09-10 (the commit preceding this
+close). The seam was exactly where the code wanted it:
+=--capture-target-file= was already resolved fresh on every capture,
+so routing is one =or=-clause ahead of the defcustom — the session
+context (=claude-code-ide-mcp-server-get-session-context='s
+=:project-dir=) picks the tracked file whose truename lives under the
+project's truename, returned under its *tracked* name so org-id and
+the agenda keep one name per file. Backward-compatible by
+construction: this repo's own sessions resolve to the same file the
+defcustom names. Transparency rode along — the =:where= and reply now
+name the receiving file, and the review renderer inherited it (one
+existing render test updated to expect the named file, a stronger
+assertion than the "top of file" it replaced). Verified: two routing
+tests (lands in the project file, absent from the global; falls back
+without context or without a tracked TODO.org), suite 590/590,
+=fboundp= after live reload. What remains for the multi-project
+story is discovery itself — a *new* project's TODO.org still needs
+the symlink and restart before this routing can see it, which is
+=9b171907='s scaffolding half.
+:END:
+:PLAN:
 
 =claude-code-ide-org-capture-file= is a single global defcustom
 pointing at this repo's TODO.org, so the moment a second project
@@ -22,12 +44,40 @@ non-project sessions. Same family as =b862fbf4='s multi-project
 world; whichever lands first should not re-litigate the other's
 design.
 
+:END:
+Resolved 2026-09-10, hours after filing: targetless captures route to
+the calling session's own tracked TODO.org, resolved fresh per
+capture from the MCP session's registered project-dir, with the reply
+naming the file that received the heading. Global-defcustom and
+notes-file fallbacks unchanged.
+
+
 * TODO claude-org-setup --org scaffolds a consuming project's org files :code:
 :PROPERTIES:
 :ID:       9b171907-ac4d-4afb-ade9-c90571835209
 :CREATED:  [2026-09-10 Thu 09:46]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+Shipped in the commit preceding this close. =templates/= carries the
+two files verbatim from the live headers rather than a rewritten
+copy, so the template cannot drift from what the corpus actually uses
+without the diff showing it. =--org= keeps =--doom='s boundary
+exactly: writes only inside the target repo, prints everything that
+touches the user's world. The collision check reports-and-continues
+(exit 0) rather than refusing — an existing file is a fact, not an
+error, and the common re-run case is "created what was missing".
+Verified: nine new suite checks (creation with header, both
+collision behaviours, all three printed follow-ups), 32/32, commit
+gate green. Bonus find while routing DOOM.md through it: the sandbox
+config never set =org-directory=, so testbed symlinks would have
+landed in the *shared* =~/org= and entered the real agenda — step 4
+now sandboxes it. What --org does not do, recorded deliberately: it
+neither runs =emacsclient= nor edits =config.el= — the printed
+one-liner for live discovery keeps the survive-without-Emacs tier
+clean.
+:END:
+:PLAN:
 
 Found 2026-09-10 when the user, planning a real new project, read
 DOOM.md's step 6 closely: "give the testbed its own org files and
@@ -43,6 +93,15 @@ re-wire call. Print-only where it leaves the repo, exactly like
 =--doom=. Update DOOM.md step 6 and =org-emacs-setup.md='s per-repo
 section to route through it. Candidate member for =c19fbbf5= — a
 plugin a new project cannot onboard onto is not fully shipped.
+
+:END:
+Resolved 2026-09-10, same day: =claude-org-setup --org= scaffolds
+=TODO.org= and =DONE.org= from shipped templates, collision-checked,
+and prints the three follow-ups only the user can do — symlinks with
+the restart note (or the live =add-to-list= one-liner), the
+=standalone-projects= registration, the rules run. DOOM.md and the
+setup reference route through it.
+
 
 * TODO Per-machine port via ${VAR:-45571} in .mcp.json, with the wire check env-aware :code:
 :PROPERTIES:
