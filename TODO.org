@@ -2,11 +2,88 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [0/6] Make the notes org-native: links, drawers, tags, one corpus pass :code:
+:PROPERTIES:
+:ID:       6521dd56-8772-416b-9435-6da78bb86b06
+:CREATED:  [2026-09-10 Thu 08:57]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:BLOCKER:  ids(b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 e128e4fa-b0d9-49f7-99eb-bae2d4b0676b e28933e9-f352-4ef9-8d53-8cd9a4318768 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0)
+:END:
+:PLAN:
+Composed 2026-09-10 at the user's direction, absorbing the earlier
+=e128e4fa=-plus-tag-survey pairing idea into the wider theme it
+belongs to: the notes should *use org* — live links instead of inert
+citations, drawers instead of narration, tags worth querying — and
+every member either adopts an org feature or crawls the corpus to
+apply one. The reason they slice together is economic as much as
+thematic: =e128e4fa= reads every pre-convention heading to author
+resolutions, =e28933e9= reads every heading for tag vocabulary, and
+=b7259ee4='s retrofit walks the same drawers — one full-corpus read
+amortized across three members that would each pay it alone.
+
+*The order is conventions-first, so the mass pass follows them:*
+=b7259ee4= (the link practice, retrofit and lint) lands before
+=e128e4fa= (the 88-heading resolution pass) so every resolution
+authored writes live links from the start; =e28933e9= rides adjacent
+to the same read; =41cf5830= (the git-history index) builds on the
+link vocabulary; =8a23d6ec= and =01849bef= are small independents at
+the tail.
+
+*Deliberate exclusions.* =ecf66d45= belongs to the theme but is
+already sequenced in =c19fbbf5=, and a cookie in two slices
+double-counts (the rule the dropping section carries). Two candidate
+members exist only as proposals, unfiled pending the user's filter:
+inactive timestamps on measured claims ("measured [2026-08-26 Wed]"
+as parseable dates), and search-anchored =file:= links for symbol
+citations. File them and they join.
+
+*Twin review, per composition convention:* =41cf5830= vs =b7259ee4=
+was checked deliberately — index-of-own-history vs citation practice,
+complementary rather than twins, cross-linked on both headings.
+Closing =4c834fdb= is a side effect worth naming: =e128e4fa= is its
+last live child once =2a399034= lands.
+:END:
+
+The notes cite commits, PRs and dates as inert text, narrate history
+the drawers could index, and carry tags nobody surveyed — while the
+conventions to fix each already half-exist. This slice sequences the
+adoption: link practice first, then the corpus passes that follow it,
+then the small independents. One full-corpus read serves three
+members.
+
+Planned:
+
+- [ ] [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]] TODO Commits cited in bodies and debriefs are orgit links, and nothing enforces it
+- [ ] [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] NEXT Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution
+- [ ] [[id:e28933e9-f352-4ef9-8d53-8cd9a4318768][e28933e9]] TODO Survey all task history for a tag vocabulary worth searching on
+- [ ] [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]] TODO Index a heading's git history from a drawer, so the body never has to narrate it
+- [ ] [[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]] TODO Comma-escape headline lines when documenting org structure inside a body
+- [ ] [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key
+
+
+* TODO The :PLAN: wrap nag fires only on queued DONE, so REVIEW exits skip it :code:
+:PROPERTIES:
+:ID:       956404ac-1852-458f-99fe-fd74ea6c00d5
+:CREATED:  [2026-09-10 Thu 08:56]
+:END:
+
+Found 2026-09-10 when the user asked why =c7bf2121= carries a
+=:DEBRIEF:= but no =:PLAN:=. The wrap reminder lives on
+=org_set_todo='s queued-=DONE= path, so a heading that exits through
+=REVIEW= — where the human flips =REVIEW= → =DONE= in the review
+buffer, no tool call involved — is never nagged, and =REVIEW= is the
+*expected* exit. Candidates: nag on queued =REVIEW= too (that is the
+last tool call the session makes), and/or a =bin/lint-org= warning so
+the gap is caught at commit time regardless of exit path.
+
 * TODO Commits cited in bodies and debriefs are orgit links, and nothing enforces it :code:
 :PROPERTIES:
 :ID:       b7259ee4-9aa1-4b55-8cf2-fbbacdea5310
 :CREATED:  [2026-09-10 Thu 08:52]
 :END:
+:PLAN:
 
 Raised by the user 2026-09-10, on reading the previous day's debriefs:
 the commit citations there (=f87274b=, =f57d158=, …) are exactly what
@@ -33,6 +110,25 @@ which indexes a heading's *own* git history one hop away; this is
 about the citations prose makes deliberately. The two touch the same
 seam (bodies pointing into git) and belong in any future org-native
 -notes grouping together.
+
+*The worked example is
+[[id:c7bf2121-755c-4e52-8bf2-e21e56b1e0c2][c7bf2121]], closed
+2026-09-10 groomed to exactly this heading's target shape*: =:PLAN:=
+wrapped at the true seam, a fixed-size body of journal plus
+resolution, and a =:DEBRIEF:= whose citations are live —
+=orgit-rev:= links for the two shipping commits and the
+streak-breaker it discriminates against, and a URL link for PR #21.
+Point the retrofit and the lint at that heading to see what passing
+looks like.
+:END:
+
+Prose in bodies and debriefs cites commits as bare =sha= text and PRs
+as bare "PR #N", though the convention already mandates =orgit-rev:=
+links for commits. Proposed: extend the convention to debriefs and PR
+URLs explicitly, retrofit the 2026-09-09 debriefs, and add a lint
+warning for bare citations on live headings. Scope and reasoning in
+=:PLAN:=.
+
 
 * DONE DOOM.md documents the sandbox review procedure :docs:
 CLOSED: [2026-09-09 Wed 14:57]
@@ -263,7 +359,9 @@ copy failed =check-conventions= naming the file, and re-running
 =--check= cases, including writes-nothing), check-conventions-test
 19/19.
 :END:
+:PLAN:
 
+:END:
 Resolved 2026-09-09, same day it was filed: =claude-org-setup --check=
 compares every promoted copy against a fresh render and
 =bin/check-conventions= runs it at the commit gate, so a drifted copy
@@ -758,14 +856,14 @@ new path.
 :DEBRIEF:
 Both recommended steps landed 2026-09-09, in the recommended order:
 the rule into Engineering practices beside the branch policy
-(=f87274b=), with the timing-decides-mechanism trap named; then the
-advisory =pre-push= check (=f57d158=) — reads git's ref lines, scans
+([[orgit-rev:claude-code-ide-org::f87274b][f87274b]]), with the timing-decides-mechanism trap named; then the
+advisory =pre-push= check ([[orgit-rev:claude-code-ide-org::f57d158][f57d158]]) — reads git's ref lines, scans
 the pushed =main= range with =git log --merges=, prints non-PR merges
 by hash and subject, exit 0 always on that path. Step 3 (do not
 rewrite the two local merges) held: history untouched.
 =bin/pre-push-test= proves discrimination against real history —
-=fee51fd=, one of the two streak-breakers, draws the advisory by
-name; PR #21's merge draws nothing; non-main refs and zero-sha
+[[orgit-rev:claude-code-ide-org::fee51fd][fee51fd]], one of the two
+streak-breakers, draws the advisory by name; [[https://github.com/nbest937/claude-code-ide-org.el/pull/21][PR #21]]'s merge draws nothing; non-main refs and zero-sha
 remotes are silent; 6/6. What stays open, verbatim from filing:
 whether the rule is every merge to =main= or every code-carrying
 merge — the advisory cannot distinguish them and flags all, which is
@@ -780,6 +878,7 @@ CLOCK: [2026-09-09 Wed 13:50]--[2026-09-09 Wed 13:51] =>  0:01
 - State "REVIEW"     from "DOING"      [2026-09-09 Wed 13:51] \\
   rule written, advisory proved; judgement remains
 :END:
+:PLAN:
 
 Raised by the user 2026-09-08 on noticing that this session's merges to
 =main= bypassed the pull-request workflow every previous merge used.
@@ -831,6 +930,7 @@ that carries code", since the maintenance clause already lets
 bookkeeping land directly on =main=. The ten-merge record cannot
 distinguish them — no bookkeeping-only branch has ever existed.
 
+:END:
 Step 1 done 2026-09-09: the rule is written into CLAUDE.md's
 Engineering practices beside the branch policy, with the
 timing-decides-mechanism trap named and the bookkeeping-merge open
