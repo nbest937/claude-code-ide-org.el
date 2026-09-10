@@ -2,10 +2,37 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO org 10.0-pre stops downcasing uuidgen IDs; decide whether the module normalizes case :code:
+* TODO The glue claims ownership of the whole wiring block, but the 202 override ships nowhere :code:
+:PROPERTIES:
+:ID:       af2f345e-b7db-4025-9f63-c5fce09fdd8a
+:CREATED:  [2026-09-10 Thu 14:11]
+:END:
+
+
+* DONE org 10.0-pre stops downcasing uuidgen IDs; decide whether the module normalizes case :code:
+CLOSED: [2026-09-10 Thu 14:08]
 :PROPERTIES:
 :ID:       4f8b5d99-90ac-4742-aba5-4688762172dc
 :CREATED:  [2026-09-10 Thu 13:23]
+:END:
+:LOGBOOK:
+- [2026-09-10 Thu 13:23]--[2026-09-10 Thu 13:29] assigned at review
+CLOCK: [2026-09-10 Thu 13:30]--[2026-09-10 Thu 13:31] =>  0:01
+- [2026-09-10 Thu 13:30]--[2026-09-10 Thu 13:31] tracing where the sandbox org 10.0-pre came from
+CLOCK: [2026-09-10 Thu 13:35]--[2026-09-10 Thu 13:53] =>  0:18
+- State "DOING"      from "TODO"       [2026-09-10 Thu 13:35] \\
+  pinning org in the module's packages.el per the user's decision
+- [2026-09-10 Thu 13:35]--[2026-09-10 Thu 13:53] pin verified end to end; case mechanism corrected to Doom advice
+- State "WAITING"    from "DOING"      [2026-09-10 Thu 13:53] \\
+  pin shipped and verified; the advice-port decision is the user's
+CLOCK: [2026-09-10 Thu 14:05]--[2026-09-10 Thu 14:06] =>  0:01
+- [2026-09-10 Thu 14:05]--[2026-09-10 Thu 14:06] assigned at review
+CLOCK: [2026-09-10 Thu 14:06]--[2026-09-10 Thu 14:08] =>  0:02
+- State "DOING"      from "WAITING"    [2026-09-10 Thu 14:06] \\
+  porting the downcase advice per the user's decision
+- [2026-09-10 Thu 14:06]--[2026-09-10 Thu 14:08] 4f8b5d99 closed
+- State "DONE"       from "DOING"      [2026-09-10 Thu 14:08] \\
+  pin and advice both shipped and verified live
 :END:
 :DEBRIEF:
 Shipped in two commits on =feature/plugin-package= (PR #22): the =packages.el= pin (fresh sandbox sync clones org at =cdc16898=, restarted daemon reports 9.8.7) and the ported advice (=596/596=, proven red against HEAD, sandbox daemon generating lowercase after live reload — the profile with no =:lang org=, where the advice does its only real work). The residual watch — re-verify the pin against Doom's at a Doom upgrade, and note org 10's arrival at that moment — lives in the =packages.el= comment rather than in a heading, since a pin bump is the only event that can surface it.
@@ -22,8 +49,8 @@ Remaining decision, now correctly framed: consumers without =:lang org= get uppe
 Resolved 2026-09-10, both layers: org is pinned in the module's =packages.el= to Doom's release_9.8.7 commit, and the module now carries Doom's downcase advice (=--downcase-new-id=, =filter-return= on =org-id-new=, uuid method only) — so a minimal install gets the same org and the same lowercase IDs as a =:lang org= user, verified live in the sandbox daemon and pinned by a discriminating ERT test.
 
 
-
-* TODO [0/1] Exercise: 1206b5b0 nesting demo — inspect visually, then cancel me :code:
+* CANCELLED [0/1] Exercise: 1206b5b0 nesting demo — inspect visually, then cancel me :code:
+CLOSED: [2026-09-10 Thu 12:52]
 :PROPERTIES:
 :ID:       9fd61462-46ec-490d-8514-ab8b23f3bb22
 :CREATED:  [2026-09-10 Thu 12:51]
@@ -32,11 +59,16 @@ Resolved 2026-09-10, both layers: org is pinned in the module's =packages.el= to
 :COOKIE_DATA: checkbox recursive
 :BLOCKER:  ids(b862fbf4-53b8-48b5-b773-1c7c0332dfb4)
 :END:
+:LOGBOOK:
+- State "CANCELLED"  from "TODO"       [2026-09-10 Thu 12:52] \\
+  demo served its inspection; the record keeps the exercise
+:END:
 
 Planned:
 
 - [[id:f90d745e-ccf9-49d6-a92e-df25c17b4dfb][f90d745e]] TODO Sixty minutes holding 2 turns is not sixty holding 40 [2/7]
   - [ ] [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
+
 
 * DONE doc-sync-check learns the DOOM.md pair; README catches up to the tooling :code:
 CLOSED: [2026-09-10 Thu 12:42]
@@ -135,7 +167,8 @@ restore-from-archive procedure remains for the rare plan someone
 actually wants live again.
 
 
-* REVIEW Scope the four hook policies to tracked files, per the consent decision :code:
+* DONE Scope the four hook policies to tracked files, per the consent decision :code:
+CLOSED: [2026-09-10 Thu 13:07]
 :PROPERTIES:
 :ID:       67c3208f-a155-486a-beba-1763d3c86137
 :CREATED:  [2026-09-10 Thu 10:55]
@@ -148,6 +181,12 @@ CLOCK: [2026-09-10 Thu 11:23]--[2026-09-10 Thu 11:26] =>  0:03
 - [2026-09-10 Thu 11:23]--[2026-09-10 Thu 11:26] predicate plus gates plus inertness tests
 - State "REVIEW"     from "DOING"      [2026-09-10 Thu 11:26] \\
   gate shipped, inertness proven; judgement remains
+CLOCK: [2026-09-10 Thu 13:04]--[2026-09-10 Thu 13:06] =>  0:02
+- [2026-09-10 Thu 13:04]--[2026-09-10 Thu 13:06] assigned at review
+- State "DONE"       from "REVIEW"     [2026-09-10 Thu 13:07] \\
+  review passed: untracked-file hand toggle opened no clock
+CLOCK: [2026-09-10 Thu 13:07]--[2026-09-10 Thu 13:08] =>  0:01
+- [2026-09-10 Thu 13:07]--[2026-09-10 Thu 13:08] closing 67c3208f on the user's untracked-file exercise
 :END:
 :DEBRIEF:
 Shipped and live-reloaded in the commit preceding this close. The
@@ -971,7 +1010,8 @@ the same-lane-close pairing fix in this =:PLAN:= would have made the
 item a normal bracket and prevented the whole class.
 
 
-* REVIEW org_slice_add_member cannot declare a nested member :code:
+* DONE org_slice_add_member cannot declare a nested member :code:
+CLOSED: [2026-09-10 Thu 12:58]
 :PROPERTIES:
 :ID:       1206b5b0-765f-48f7-94a9-0b543cf76487
 :CREATED:  [2026-09-09 Wed 13:33]
@@ -985,6 +1025,12 @@ CLOCK: [2026-09-09 Wed 13:54]--[2026-09-09 Wed 13:58] =>  0:04
 - [2026-09-09 Wed 13:54]--[2026-09-09 Wed 13:58] teach org_slice_add_member a parent argument
 - State "REVIEW"     from "DOING"      [2026-09-09 Wed 13:58] \\
   tool extension shipped; judgement remains
+CLOCK: [2026-09-10 Thu 12:51]--[2026-09-10 Thu 12:52] =>  0:01
+- [2026-09-10 Thu 12:51]--[2026-09-10 Thu 12:52] live exercise of 1206b5b0 for its review
+CLOCK: [2026-09-10 Thu 12:57]--[2026-09-10 Thu 12:58] =>  0:01
+- [2026-09-10 Thu 12:57]--[2026-09-10 Thu 12:58] closing 1206b5b0 out of REVIEW after the inspected demo
+- State "DONE"       from "REVIEW"     [2026-09-10 Thu 12:58] \\
+  review passed: live nesting exercise inspected by the user
 :END:
 :DEBRIEF:
 Shipped as =cb520e7=. Design choice worth recording: nesting is taken
@@ -1800,14 +1846,14 @@ and the only remaining references to the old convention are historical
 prose in heading bodies and the consumed plan file, left deliberately.
 
 
-* DOING [12/18] Ship the plugin: make the machinery and its prose travel together :code:
+* DOING [15/19] Ship the plugin: make the machinery and its prose travel together :code:
 :PROPERTIES:
 :ID:       c19fbbf5-be1b-4c18-a38e-9b46d064abb8
 :CREATED:  [2026-09-08 Tue 09:54]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(e396f94a-59db-4c6b-80b4-dc144146877b 1206b5b0-765f-48f7-94a9-0b543cf76487 308bf4b4-3816-4e34-b031-2bcd58102c4d 67c3208f-a155-486a-beba-1763d3c86137 e3caa21f-462a-4689-8a9b-929fbf30cb9e 7dbb82e0-cbb2-481c-bb95-d0e4d9b42126)
+:BLOCKER:  ids(e396f94a-59db-4c6b-80b4-dc144146877b 308bf4b4-3816-4e34-b031-2bcd58102c4d e3caa21f-462a-4689-8a9b-929fbf30cb9e 7dbb82e0-cbb2-481c-bb95-d0e4d9b42126)
 :DROPPED:  ecf66d45-18b3-477f-bca8-08bec90604e8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4
 :END:
 :LOGBOOK:
@@ -1848,12 +1894,12 @@ Planned:
 - [-] [[id:e396f94a-59db-4c6b-80b4-dc144146877b][e396f94a]] REVIEW Package the Warp wiring
 - [X] [[id:78a02667-c946-429e-af58-7330070c6e06][78a02667]] DONE claude-org-setup wires the Doom module
 - [X] [[id:c7bf2121-755c-4e52-8bf2-e21e56b1e0c2][c7bf2121]] DONE Every merge to main went through a PR ten times, and nothing says so
-- [-] [[id:1206b5b0-765f-48f7-94a9-0b543cf76487][1206b5b0]] REVIEW org_slice_add_member cannot declare a nested member
+- [X] [[id:1206b5b0-765f-48f7-94a9-0b543cf76487][1206b5b0]] DONE org_slice_add_member cannot declare a nested member
 - [X] [[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]] DONE Split the reads: org_outline carries the body, a second tool serves drawers on demand
 - [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out future work on a timeline the agenda can show
 - [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
 - [ ] [[id:308bf4b4-3816-4e34-b031-2bcd58102c4d][308bf4b4]] TODO Adopt org's agenda list file, retiring the symlink scan and the restart
-- [-] [[id:67c3208f-a155-486a-beba-1763d3c86137][67c3208f]] REVIEW Scope the four hook policies to tracked files, per the consent decision
+- [X] [[id:67c3208f-a155-486a-beba-1763d3c86137][67c3208f]] DONE Scope the four hook policies to tracked files, per the consent decision
 - [ ] [[id:e3caa21f-462a-4689-8a9b-929fbf30cb9e][e3caa21f]] TODO The module's own packages.el declares claude-code-ide
 - [X] [[id:7c86ab4c-3157-4817-9fcc-d2e60c8fc160][7c86ab4c]] DONE Promote generated elisp into $DOOMDIR: one stable stub, drift-checked glue
 - [ ] [[id:7dbb82e0-cbb2-481c-bb95-d0e4d9b42126][7dbb82e0]] TODO Persistent plugin enablement: stop passing --plugin-dir every session
@@ -1895,6 +1941,7 @@ Incidental:
 - [X] [[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]] DONE A second project's targetless captures land in the wrong tracker
 - [X] [[id:9b171907-ac4d-4afb-ade9-c90571835209][9b171907]] DONE claude-org-setup --org scaffolds a consuming project's org files
 - [X] [[id:3348266b-aa28-45fa-ae7b-3f4ad4cb6e81][3348266b]] DONE doc-sync-check learns the DOOM.md pair; README catches up to the tooling
+- [X] [[id:4f8b5d99-90ac-4742-aba5-4688762172dc][4f8b5d99]] DONE org 10.0-pre stops downcasing uuidgen IDs; decide whether the module normalizes case
 
 =ecf66d45= moved to
 [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]] 2026-09-10 (the
@@ -5023,6 +5070,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-10 Thu 14:10]--[2026-09-10 Thu 14:14] =>  0:04
 CLOCK: [2026-09-10 Thu 12:46]--[2026-09-10 Thu 12:47] =>  0:01
 CLOCK: [2026-09-10 Thu 12:26]--[2026-09-10 Thu 12:36] =>  0:10
 CLOCK: [2026-09-10 Thu 11:43]--[2026-09-10 Thu 11:49] =>  0:06
@@ -5103,6 +5151,7 @@ CLOCK: [2026-09-09 Wed 13:37]--[2026-09-09 Wed 13:38] =>  0:01
 CLOCK: [2026-09-09 Wed 14:30]--[2026-09-09 Wed 14:35] =>  0:05
 CLOCK: [2026-09-09 Wed 15:02]--[2026-09-09 Wed 15:03] =>  0:01
 CLOCK: [2026-09-10 Thu 08:39]--[2026-09-10 Thu 08:42] =>  0:03
+- <2026-09-10 Thu 14:15>--<2026-09-10 Thu 14:15> review pass (buffer buried)
 :END:
 
 
@@ -12740,4 +12789,5 @@ CLOCK: [2026-09-10 Thu 12:24]--[2026-09-10 Thu 12:25] =>  0:01
 - [2026-09-10 Thu 12:24]--[2026-09-10 Thu 12:25] assigned at review
 CLOCK: [2026-09-10 Thu 12:34]--[2026-09-10 Thu 12:38] =>  0:04
 - [2026-09-10 Thu 12:34]--[2026-09-10 Thu 12:38] root-cause unattributed spans, file discipline fix
+- [2026-09-10 Thu 12:42]--[2026-09-10 Thu 12:50] root-cause unattributed spans, file discipline fix
 :END:
