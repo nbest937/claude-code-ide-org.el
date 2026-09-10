@@ -283,13 +283,24 @@ character. Deliverable: the enable-once procedure documented in
 =org-emacs-setup.md= and DOOM.md, or a finding that per-session flags
 remain the supported path, stated plainly.
 
+Researched and documented 2026-09-10: the enable-once route is a symlink into =~/.claude/skills/= — auto-loaded user-wide as =claude-code-ide-org@skills-dir=, referenced in place so a =git pull= or local edit is live next session, =bin/= permitted, one-time trust prompt per project. The remembered "marketplace forbids =bin/=" is corrected: =bin/= is refused only for plugins force-distributed through managed organization settings. The one caveat the docs cannot know is mandatory and documented with the procedure: user-wide auto-load includes this repo itself, whose =.claude/settings.json= wires the same hooks, so the clone needs ={"enabledPlugins": {"claude-code-ide-org@skills-dir": false}}= in its =.claude/settings.local.json= or every queue event here appends twice. The local-marketplace alternative (=extraKnownMarketplaces= + =/plugin install=, per-project control) is noted but not recommended: the docs are ambiguous on reference-vs-cache-copy for local installs. Sandbox reviews keep =--plugin-dir= deliberately — they must load their own clone, not the user-enabled one. REVIEW exit: your symlink, the settings.local.json guard, then one flag-less session in euchre reaching the tools.
 
-* TODO The module's own packages.el declares claude-code-ide :code:
+
+
+* NEXT The module's own packages.el declares claude-code-ide :code:
 :PROPERTIES:
 :ID:       e3caa21f-462a-4689-8a9b-929fbf30cb9e
 :CREATED:  [2026-09-10 Thu 10:23]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+The merge question was answered in Doom's source before building, as the body asked: =package!= fetches the existing plist for the name and folds new keys in (=doom-packages.el=, the =cl-loop= over the plist), modules in =doom!= order and the user's private =packages.el= last — so precedence is per *key*, the user wins wherever they speak, and the module fills the rest. The pin question resolved to pinning (=1de17bb=, the commit the real profile runs), consistent with the org pin's philosophy: the module owning the dependency owns which revision is expected. Verified in the sandbox both ways: duplicate declarations sync clean, and after removing the root entry and scrubbing the package, the module's declaration alone fresh-installed at the pin — the second GitHub-throttled sync timeout of the day landed mid-run, and the retry completed in four seconds on the already-fetched state. One hand-paste step remains on a fresh machine after this: none in packages.el — init.el's two lines and config.el's stub are the whole install.
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-10 Thu 15:03] \\
+  nominated at the double close: today's pin work half-answered its merge question
+:END:
+:PLAN:
 
 The module's =packages.el= already declares =org-ql= yet tells the
 user to declare =claude-code-ide= in their root =packages.el= by hand
@@ -301,6 +312,10 @@ decide whether an existing root entry conflicts), moving the
 hand-paste steps for a fresh machine. Check the recipe pin question
 in the same pass: the module declaring the dependency also means the
 module owns which fork/branch is expected.
+
+:END:
+Resolved 2026-09-10, same day nominated: the module's =packages.el= declares =claude-code-ide= with recipe and pin — Doom's =package!= merges duplicates key-by-key with the private config last, so an existing root declaration is harmless and the hand-paste step is retired from all three documents.
+
 
 
 * DONE Promote generated elisp into $DOOMDIR: one stable stub, drift-checked glue :code:
@@ -398,7 +413,8 @@ tracked set. Onboarding a project is now discoverability plus
 =M-x claude-code-ide-org-standalone-wire=, zero elisp.
 
 
-* DOING Adopt org's agenda list file, retiring the symlink scan and the restart :code:
+* DONE Adopt org's agenda list file, retiring the symlink scan and the restart :code:
+CLOSED: [2026-09-10 Thu 15:03]
 :PROPERTIES:
 :ID:       308bf4b4-3816-4e34-b031-2bcd58102c4d
 :CREATED:  [2026-09-10 Thu 10:08]
@@ -420,6 +436,10 @@ CLOCK: [2026-09-10 Thu 14:39]--[2026-09-10 Thu 14:40] =>  0:01
 - [2026-09-10 Thu 14:39]--[2026-09-10 Thu 14:40] suggested span, accepted at review
 CLOCK: [2026-09-10 Thu 14:43]--[2026-09-10 Thu 14:44] =>  0:01
 - [2026-09-10 Thu 14:43]--[2026-09-10 Thu 14:44] suggested span, accepted at review
+CLOCK: [2026-09-10 Thu 14:59]--[2026-09-10 Thu 15:00] =>  0:01
+- [2026-09-10 Thu 14:59]--[2026-09-10 Thu 15:00] suggested span, accepted at review
+- State "DONE"       from "DOING"      [2026-09-10 Thu 15:03] \\
+  adopted live; euchre onboarded restart-free as proof
 :END:
 :PLAN:
 Raised by the user 2026-09-10, unprompted dissatisfaction with the
@@ -464,7 +484,6 @@ symlinks, =--org= completes its own follow-up. Migration steps in
 =:PLAN:=.
 
 Resolved 2026-09-10, same day filed: =org-agenda-files= is the list file (=~/org/agenda-files=, real repo paths), =--org= appends a new project's paths itself, and euchre onboarded restart-free as the proof — the =~/org= symlinks now feed nothing.
-
 
 
 * DONE A second project's targetless captures land in the wrong tracker :code:
@@ -1873,14 +1892,14 @@ and the only remaining references to the old convention are historical
 prose in heading bodies and the consumed plan file, left deliberately.
 
 
-* DOING [15/19] Ship the plugin: make the machinery and its prose travel together :code:
+* DOING [17/19] Ship the plugin: make the machinery and its prose travel together :code:
 :PROPERTIES:
 :ID:       c19fbbf5-be1b-4c18-a38e-9b46d064abb8
 :CREATED:  [2026-09-08 Tue 09:54]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(e396f94a-59db-4c6b-80b4-dc144146877b 308bf4b4-3816-4e34-b031-2bcd58102c4d e3caa21f-462a-4689-8a9b-929fbf30cb9e 7dbb82e0-cbb2-481c-bb95-d0e4d9b42126)
+:BLOCKER:  ids(e3caa21f-462a-4689-8a9b-929fbf30cb9e 7dbb82e0-cbb2-481c-bb95-d0e4d9b42126)
 :DROPPED:  ecf66d45-18b3-477f-bca8-08bec90604e8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4
 :END:
 :LOGBOOK:
@@ -1918,16 +1937,16 @@ Planned:
 - [X] [[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]] DONE Package the plugin: references, setup command, machinery prose
 - [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] DONE Update CLAUDE.md and the org skill for the new architecture
   - [X] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] DONE CLAUDE.md carries dated history that costs every session's context
-- [-] [[id:e396f94a-59db-4c6b-80b4-dc144146877b][e396f94a]] REVIEW Package the Warp wiring
+- [X] [[id:e396f94a-59db-4c6b-80b4-dc144146877b][e396f94a]] DONE Package the Warp wiring
 - [X] [[id:78a02667-c946-429e-af58-7330070c6e06][78a02667]] DONE claude-org-setup wires the Doom module
 - [X] [[id:c7bf2121-755c-4e52-8bf2-e21e56b1e0c2][c7bf2121]] DONE Every merge to main went through a PR ten times, and nothing says so
 - [X] [[id:1206b5b0-765f-48f7-94a9-0b543cf76487][1206b5b0]] DONE org_slice_add_member cannot declare a nested member
 - [X] [[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]] DONE Split the reads: org_outline carries the body, a second tool serves drawers on demand
 - [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out future work on a timeline the agenda can show
 - [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
-- [-] [[id:308bf4b4-3816-4e34-b031-2bcd58102c4d][308bf4b4]] DOING Adopt org's agenda list file, retiring the symlink scan and the restart
+- [X] [[id:308bf4b4-3816-4e34-b031-2bcd58102c4d][308bf4b4]] DONE Adopt org's agenda list file, retiring the symlink scan and the restart
 - [X] [[id:67c3208f-a155-486a-beba-1763d3c86137][67c3208f]] DONE Scope the four hook policies to tracked files, per the consent decision
-- [ ] [[id:e3caa21f-462a-4689-8a9b-929fbf30cb9e][e3caa21f]] TODO The module's own packages.el declares claude-code-ide
+- [ ] [[id:e3caa21f-462a-4689-8a9b-929fbf30cb9e][e3caa21f]] NEXT The module's own packages.el declares claude-code-ide
 - [X] [[id:7c86ab4c-3157-4817-9fcc-d2e60c8fc160][7c86ab4c]] DONE Promote generated elisp into $DOOMDIR: one stable stub, drift-checked glue
 - [ ] [[id:7dbb82e0-cbb2-481c-bb95-d0e4d9b42126][7dbb82e0]] TODO Persistent plugin enablement: stop passing --plugin-dir every session
 
@@ -12051,7 +12070,8 @@ scoping, or rate limiting. Don't just flip the host to 0.0.0.0 and
 call it done.
 
 
-* REVIEW Package the Warp wiring :code:
+* DONE Package the Warp wiring :code:
+CLOSED: [2026-09-10 Thu 15:03]
 :PROPERTIES:
 :CATEGORY: Dev
 :ID:       e396f94a-59db-4c6b-80b4-dc144146877b
@@ -12079,6 +12099,8 @@ CLOCK: [2026-09-10 Thu 09:33]--[2026-09-10 Thu 09:36] =>  0:03
 - [2026-09-10 Thu 09:33]--[2026-09-10 Thu 09:36] root-cause unattributed spans, file discipline fix
 CLOCK: [2026-09-10 Thu 09:45]--[2026-09-10 Thu 09:47] =>  0:02
 - [2026-09-10 Thu 09:45]--[2026-09-10 Thu 09:47] root-cause unattributed spans, file discipline fix
+- State "DONE"       from "REVIEW"     [2026-09-10 Thu 15:03] \\
+  review passed: real-config swap and euchre null test
 :END:
 :PLAN:
 Scope as promoted (the user, 2026-09-09, at PR #22's manifest). *The
@@ -12172,7 +12194,6 @@ read the same variable to keep its loud contract, and Warp's copy stays
 literal.
 
 Resolved 2026-09-10: the packaged wiring replaced the hand-rolled block in the real config and held — glue deployed by =--glue=, the block slimmed to what the glue does not own, one restart, and the euchre null test passing through the plugin's own =.mcp.json= as the live proof.
-
 
 
 * Review and planning
@@ -12830,4 +12851,6 @@ CLOCK: [2026-09-10 Thu 14:22]--[2026-09-10 Thu 14:23] =>  0:01
 - [2026-09-10 Thu 14:22]--[2026-09-10 Thu 14:23] assigned at review
 CLOCK: [2026-09-10 Thu 14:49]--[2026-09-10 Thu 14:50] =>  0:01
 - [2026-09-10 Thu 14:49]--[2026-09-10 Thu 14:50] post-restart verification; filing the review-buffer tracker-legibility gap
+CLOCK: [2026-09-10 Thu 15:02]--[2026-09-10 Thu 15:03] =>  0:01
+- [2026-09-10 Thu 15:02]--[2026-09-10 Thu 15:03] closing e396f94a and 308bf4b4 on the null-test evidence
 :END:
