@@ -73,9 +73,15 @@ upgrade. The old equivalent — symlinking
 - Tracked-file discovery: the tools operate on
   `claude-code-ide-org-query-files`, falling back to
   `org-agenda-files`. A repo's org files must be inside that universe
-  or every `:ID:`-scoped operation fails to find them — and
-  `org-agenda-files` is computed once at config load, so a newly added
-  file needs an Emacs restart to be seen.
+  or every `:ID:`-scoped operation fails to find them. **Keep
+  `org-agenda-files` as org's agenda list file** — set the variable to
+  a single file *name* (e.g. `~/org/agenda-files`, one tracked path
+  per line, `~` fine) and org re-reads it on every access, so
+  discovery is dynamic: append a line and the next tool call sees it,
+  no symlink, no restart, and `claude-org-setup --org` appends the
+  lines itself. A config that instead computes a list at load (a
+  directory scan, a hand-kept `list`) freezes discovery at that
+  moment, and every newly added file then waits for a restart.
 
 ## Per-repo setup: a consuming repo
 
@@ -94,10 +100,12 @@ upgrade. The old equivalent — symlinking
    ```
 
    creates `TODO.org` and `DONE.org` from the shipped templates
-   (collision-checked; an existing file is reported, never touched)
-   and prints the three follow-ups only you can do — the `~/org`
-   symlinks, the Emacs restart (or the live `add-to-list` one-liner it
-   offers instead), and the `standalone-projects` registration. Once
+   (collision-checked; an existing file is reported, never touched).
+   With an agenda list file in place (`~/org/agenda-files`, or
+   `CLAUDE_ORG_AGENDA_LIST`) it **appends the new paths itself** —
+   discovery is immediate, and the only follow-up is a wire call (or
+   the next Emacs start). Without one it prints the legacy follow-ups
+   — `~/org` symlinks and a restart or `add-to-list`. Once
    discoverable, targetless `org_capture` calls from this project's
    sessions land in its own tracker automatically.
 

@@ -107,10 +107,12 @@ fi
 
 # --org: scaffold the consuming project's org files from the shipped
 # templates (TODO.org :ID: 9b171907), collision-checked -- an existing
-# file is never touched, only reported. The follow-up acts that leave
-# this repo (the ~/org symlink, the Emacs restart, the
-# standalone-projects addition) are PRINTED, same boundary as --doom:
-# they touch the user's world, so the user performs them.
+# file is never touched, only reported. When the user keeps org's
+# agenda list file (~/org/agenda-files, TODO.org :ID: 308bf4b4) the
+# scaffolded paths are APPENDED to it -- org re-reads that file on
+# every access, so discovery is immediate: no symlink, no restart.
+# Without a list file the follow-up acts are PRINTED, same boundary as
+# --doom: they touch the user's world, so the user performs them.
 if [ "$org" = 1 ]; then
   tdir="$plugin_root/templates"
   wrote=0
@@ -128,13 +130,50 @@ if [ "$org" = 1 ]; then
     fi
   done
   name="$(basename "$target")"
-  cat <<EOF
+  listfile="${CLAUDE_ORG_AGENDA_LIST:-$HOME/org/agenda-files}"
+  if [ -f "$listfile" ]; then
+    appended=0
+    for f in TODO.org DONE.org; do
+      path="$target/$f"
+      tilde="~${path#"$HOME"}"
+      # Dedup against both spellings a hand-kept file may use.
+      if ! grep -qxF "$path" "$listfile" && ! grep -qxF "$tilde" "$listfile"; then
+        printf '%s\n' "$path" >> "$listfile"
+        appended=$((appended + 1))
+      fi
+    done
+    cat <<EOF
+
+Scaffolded $wrote file(s); appended $appended path(s) to $listfile.
+org re-reads that file on every access: discoverable NOW, no symlink,
+no restart. The header lines are load-bearing: the #+TODO: cookies
+drive state logging and #+STARTUP: logdrawer keeps notes in :LOGBOOK:.
+
+Two follow-ups only you can do:
+
+1. Register the project's MCP session (or let the next Emacs start
+   do it):
+
+     emacsclient -e '(claude-code-ide-org-standalone-wire)'
+
+2. If the machinery rules are not promoted here yet, also run:
+
+     claude-org-setup
+
+Targetless org_capture calls from sessions in this project land in
+its own TODO.org immediately.
+EOF
+  else
+    cat <<EOF
 
 Scaffolded $wrote file(s). The header lines are load-bearing: the
 #+TODO: cookies drive state logging and #+STARTUP: logdrawer keeps
 notes in :LOGBOOK:.
 
-Three follow-ups only you can do:
+No agenda list file at $listfile -- printing the follow-ups
+only you can do. (Adopting the list file makes this step automatic:
+point org-agenda-files at that file name and re-run; see the
+org-emacs-setup reference.)
 
 1. Make the files discoverable (org-agenda-files scans ~/org once at
    config load):
@@ -147,12 +186,13 @@ Three follow-ups only you can do:
 
      emacsclient -e '(dolist (f (list "~/org/$name/TODO.org" "~/org/$name/DONE.org")) (add-to-list (quote org-agenda-files) (expand-file-name f)))'
 
-2. Register the project for standalone MCP sessions, in your Doom
-   config.el's claude-code-ide block:
+2. Register the project's MCP session:
 
-     (add-to-list 'claude-code-ide-org-standalone-projects "$target")
+     M-x claude-code-ide-org-standalone-wire
 
-   then M-x claude-code-ide-org-standalone-wire (idempotent).
+   (with the glue's 'derive setting it picks up every tracked
+   project; a hand-kept claude-code-ide-org-standalone-projects list
+   needs this project added first.)
 
 3. If the machinery rules are not promoted here yet, also run:
 
@@ -161,6 +201,7 @@ Three follow-ups only you can do:
 Targetless org_capture calls from sessions in this project will land
 in its own TODO.org once step 1 makes it discoverable.
 EOF
+  fi
   exit 0
 fi
 

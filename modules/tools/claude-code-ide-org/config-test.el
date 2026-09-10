@@ -14483,3 +14483,32 @@ without :lang org nothing else normalizes it."
          (org-id-prefix nil)
          (id (org-id-new)))
     (should (equal id (downcase id)))))
+
+(ert-deftest claude-code-ide-org-test-tracked-files-resolve-an-agenda-list-file ()
+  "Pin the property 308bf4b4 relies on: `org-agenda-files' set to a
+single file NAME (org's agenda list file) still yields the listed
+files through `--tracked-files', because that helper calls the
+`org-agenda-files' FUNCTION, which re-reads the list file on every
+call -- discovery without symlinks or restarts."
+  (let* ((dir (make-temp-file "ccio-lf" t))
+         (todo (expand-file-name "TODO.org" dir))
+         (done (expand-file-name "DONE.org" dir))
+         (listf (expand-file-name "agenda-files" dir)))
+    (unwind-protect
+        (progn
+          (with-temp-file todo (insert "* TODO x\n"))
+          (with-temp-file done (insert "\n"))
+          (with-temp-file listf (insert todo "\n" done "\n"))
+          (let ((claude-code-ide-org-query-files nil)
+                (org-agenda-files listf))
+            (let ((files (claude-code-ide-org--tracked-files)))
+              (should (member todo files))
+              (should (member done files))
+              ;; A line appended after the first read is seen on the
+              ;; next call -- the dynamic half, the whole point.
+              (let ((third (expand-file-name "MORE.org" dir)))
+                (with-temp-file third (insert "\n"))
+                (with-temp-file listf
+                  (insert todo "\n" done "\n" third "\n"))
+                (should (member third (claude-code-ide-org--tracked-files)))))))
+      (delete-directory dir t))))

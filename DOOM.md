@@ -137,10 +137,13 @@ claude-org-setup --org      # scaffolds TODO.org/DONE.org from the templates
 ```
 
 `--org` creates the org files (collision-checked — an existing file is
-reported, never touched) and prints the discoverability follow-ups.
-For the sandbox, point them at the *sandbox* universe: symlinks under
-`~/doom-sandbox/org/testbed/` (the `org-directory` from step 4), and
-the restart-or-`add-to-list` against the *sandbox* Emacs. Targetless
+reported, never touched) and handles discoverability: with an agenda
+list file (`~/org/agenda-files`, or `CLAUDE_ORG_AGENDA_LIST`) it
+appends the new paths itself and discovery is immediate; without one
+it prints the legacy symlink-and-restart follow-ups. For the sandbox,
+keep the *sandbox* universe separate either way — a list file or
+symlinks under `~/doom-sandbox/org/` (the `org-directory` from step
+4), never the real one. Targetless
 `org_capture` calls from testbed sessions then land in the testbed's
 own TODO.org — the session-routed capture path, which is itself part
 of what this review exercises, alongside the promoted rules governing

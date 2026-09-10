@@ -104,8 +104,12 @@ rm -rf "$managed"
 
 # 10. --org: scaffolds both files from the templates, reports and
 #     never touches an existing file, prints the three follow-ups.
+#     CLAUDE_ORG_AGENDA_LIST is pinned to a missing path so these
+#     tests exercise the printed-follow-ups branch regardless of
+#     whether the machine keeps a real ~/org/agenda-files -- and so
+#     they can never append temp paths to it.
 orgdir="$(mktemp -d)"
-out="$("$setup" --org "$orgdir" 2>&1)"; rc=$?
+out="$(env CLAUDE_ORG_AGENDA_LIST="$orgdir/no-such-list" "$setup" --org "$orgdir" 2>&1)"; rc=$?
 check "--org exits 0 in an empty dir" "$([ $rc -eq 0 ] && echo ok || echo "rc=$rc: $out")"
 check "--org created TODO.org with the header" "$(head -1 "$orgdir/TODO.org" 2>/dev/null | grep -q '^#+TODO:' && echo ok || echo missing)"
 check "--org created DONE.org" "$([ -f "$orgdir/DONE.org" ] && echo ok || echo missing)"
@@ -114,10 +118,31 @@ check "--org prints the restart note" "$(printf '%s' "$out" | grep -qi 'RESTART'
 check "--org prints the standalone-projects addition" "$(printf '%s' "$out" | grep -q 'standalone-projects' && echo ok || echo missing)"
 
 echo "custom content" > "$orgdir/TODO.org"
-out="$("$setup" --org "$orgdir" 2>&1)"; rc=$?
+out="$(env CLAUDE_ORG_AGENDA_LIST="$orgdir/no-such-list" "$setup" --org "$orgdir" 2>&1)"; rc=$?
 check "--org leaves an existing file untouched" "$([ "$(cat "$orgdir/TODO.org")" = "custom content" ] && echo ok || echo clobbered)"
 check "--org reports the collision" "$(printf '%s' "$out" | grep -q 'exists:.*TODO.org' && echo ok || echo "output: $out")"
 check "--org still exits 0 on collision" "$([ $rc -eq 0 ] && echo ok || echo "rc=$rc")"
+rm -rf "$orgdir"
+
+# 10b. --org with an agenda list file (TODO.org :ID: 308bf4b4): the
+#      scaffolded paths are appended -- discovery without symlink or
+#      restart -- deduplicated against both spellings on a re-run.
+orgdir="$(mktemp -d)"
+listf="$orgdir/agenda-files"
+printf '%s\n' "~/somewhere/else/TODO.org" > "$listf"
+out="$(env CLAUDE_ORG_AGENDA_LIST="$listf" "$setup" --org "$orgdir" 2>&1)"; rc=$?
+check "--org (list) exits 0" "$([ $rc -eq 0 ] && echo ok || echo "rc=$rc: $out")"
+check "--org (list) appended TODO.org" "$(grep -qxF "$orgdir/TODO.org" "$listf" && echo ok || echo missing)"
+check "--org (list) appended DONE.org" "$(grep -qxF "$orgdir/DONE.org" "$listf" && echo ok || echo missing)"
+check "--org (list) kept the prior entry" "$(grep -qxF "~/somewhere/else/TODO.org" "$listf" && echo ok || echo lost)"
+check "--org (list) prints no symlink follow-up" "$(printf '%s' "$out" | grep -q 'ln -s' && echo leaked || echo ok)"
+check "--org (list) says discovery is immediate" "$(printf '%s' "$out" | grep -q 'discoverable NOW' && echo ok || echo missing)"
+check "--org (list) prints the wire follow-up" "$(printf '%s' "$out" | grep -q 'standalone-wire' && echo ok || echo missing)"
+before="$(wc -l < "$listf")"
+out="$(env CLAUDE_ORG_AGENDA_LIST="$listf" "$setup" --org "$orgdir" 2>&1)"
+after="$(wc -l < "$listf")"
+check "--org (list) re-run appends nothing" "$([ "$before" = "$after" ] && echo ok || echo "grew $before -> $after")"
+check "--org (list) re-run reports 0 appended" "$(printf '%s' "$out" | grep -q 'appended 0 path' && echo ok || echo "output: $out")"
 rm -rf "$orgdir"
 
 # 11. --glue: writes the deferring glue into $DOOMDIR, prints the one

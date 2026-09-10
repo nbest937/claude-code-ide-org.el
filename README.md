@@ -101,11 +101,11 @@ the always-on machinery rules — event queue, state transitions, tool
 tables, session tracking — into the repo's `.claude/rules/`; re-run
 after a plugin update, and it refuses files it did not generate. The
 second scaffolds `TODO.org`/`DONE.org` from the shipped templates
-(collision-checked) and prints the discoverability follow-ups,
-including a live `add-to-list` one-liner that avoids the Emacs
-restart. Once discoverable, the project registers its own MCP session
-at the next wire call and targetless `org_capture`s land in its own
-tracker.
+(collision-checked) and makes them discoverable: with an agenda list
+file (`~/org/agenda-files`) it appends the paths itself, immediately;
+without one it prints the legacy symlink-and-restart follow-ups. Once
+discoverable, the project registers its own MCP session at the next
+wire call and targetless `org_capture`s land in its own tracker.
 
 `skills/org/references/org-emacs-setup.md` is the full version of this
 section.
@@ -145,11 +145,13 @@ These read as bugs and are not; each is a recorded trade-off.
   prompt is about a different task than the one that paused, the resume
   guidepost still points at the last-paused one. It self-corrects at the
   next real `org_clock_in`; the cost is a short stray interval.
-- **Tracked-file discovery is load-time.** `org-agenda-files` is
-  computed once at config load; `claude-org-setup --org` prints a live
-  `add-to-list` one-liner that spares the restart, but a file added by
-  any other route waits for one. (Adopting org's agenda list file,
-  which would make discovery fully dynamic, is tracked work.)
+- **Tracked-file discovery follows org's agenda list file.** With
+  `org-agenda-files` set to a list-file name (`~/org/agenda-files`),
+  org re-reads it on every access — `claude-org-setup --org` appends a
+  new project's paths itself, and discovery is immediate: no symlink,
+  no restart. A config that instead computes the list at load freezes
+  discovery at that moment; the setup command then falls back to
+  printing the legacy follow-ups.
 - **Rules delivery is copy-based.** Claude Code plugins cannot
   contribute `.claude/rules/` files, so `claude-org-setup` copies them
   into each consuming repo and they go stale until it is re-run.
