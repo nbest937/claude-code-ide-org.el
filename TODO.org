@@ -7,6 +7,9 @@
 :ID:       4f8b5d99-90ac-4742-aba5-4688762172dc
 :CREATED:  [2026-09-10 Thu 13:23]
 :END:
+:DEBRIEF:
+Shipped in two commits on =feature/plugin-package= (PR #22): the =packages.el= pin (fresh sandbox sync clones org at =cdc16898=, restarted daemon reports 9.8.7) and the ported advice (=596/596=, proven red against HEAD, sandbox daemon generating lowercase after live reload — the profile with no =:lang org=, where the advice does its only real work). The residual watch — re-verify the pin against Doom's at a Doom upgrade, and note org 10's arrival at that moment — lives in the =packages.el= comment rather than in a heading, since a pin bump is the only event that can surface it.
+:END:
 
 Root cause traced 2026-09-10, and it widens the heading: the sandbox runs org tip because its minimal init — exactly what =claude-org-setup --doom= prints — never enables =:lang org=, so Doom's pinned org recipe (=lang/org/packages.el=, 9.8.7 release commit =cdc1689=) never participates in the sync and org arrives as an unpinned transitive dependency of =org-ql=, cloned at main's tip (=7b9d6dbe0=, 2026-09-09). Every consumer on the shipped minimal path therefore gets a moving pre-release org that no =:lang org= user runs; the uuid case change is just its first surfaced difference. The decision is now two-layered: (a) whether the module's =packages.el= should pin org or the docs should require =:lang org= — the org 9.7 floor check catches *old* org but nothing bounds *new*; (b) the original case normalization, which matters under any answer to (a) since org 10 will land stable eventually.
 
@@ -15,6 +18,9 @@ Root cause traced 2026-09-10, and it widens the heading: the sandbox runs org ti
 The pin half shipped and verified regardless, since bounding a moving pre-release stands on its own: =packages.el= declares =(package! org :pin cdc16898…)= (Doom's own release_9.8.7 pin; straight's default recipe already targets the same emacs-straight mirror, so pin alone suffices); a scrubbed sandbox sync cloned org at the pin, and the restarted daemon reports 9.8.7. Two false trails cost the verification an hour: the pin edit tested twice against the wrong tree (the sandbox reads its own clone, not the working tree), and one sync hung to a 10-minute timeout, likely GitHub throttling repeated org clones.
 
 Remaining decision, now correctly framed: consumers without =:lang org= get uppercase IDs. For case consistency the module can carry the same one-line =filter-return= advice (double-downcase is idempotent, so coexistence with Doom's is harmless). Held for the user's call.
+
+Resolved 2026-09-10, both layers: org is pinned in the module's =packages.el= to Doom's release_9.8.7 commit, and the module now carries Doom's downcase advice (=--downcase-new-id=, =filter-return= on =org-id-new=, uuid method only) — so a minimal install gets the same org and the same lowercase IDs as a =:lang org= user, verified live in the sandbox daemon and pinned by a discriminating ERT test.
+
 
 
 * TODO [0/1] Exercise: 1206b5b0 nesting demo — inspect visually, then cancel me :code:
