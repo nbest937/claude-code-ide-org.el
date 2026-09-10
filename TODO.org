@@ -8,6 +8,23 @@
 :CREATED:  [2026-09-10 Thu 10:55]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+Shipped and live-reloaded in the commit preceding this close. The
+gate sits after each policy's cheap tests and before its heading
+reads; the predicate is base-buffer aware (indirect buffers resolve
+to their file) and treats file-less buffers as untracked, since every
+gated policy concerns durable state on disk. The suite fallout was
+itself the proof the gate bites: twelve trigger/guard tests went
+inert until the shared fixture declared its files tracked — which is
+also the honest arrangement, since the tests exercise the policies.
+The two new tests carry the decision's meaning: all three policies
+proven inert in an untracked buffer (auto-clock-in opens nothing,
+NEXT demotes nothing, DONE permitted over a running own-clock), and
+the predicate proven symlink-transparent both directions. 592/592.
+For the user's live Emacs nothing changes: the real files are
+tracked, so the policies keep firing exactly where they always did —
+the change is entirely at the boundary where they used to leak.
+:END:
 
 Implements =1caed585='s consent decision (the user, 2026-09-10):
 the hook policies act only in buffers whose file is in the tracked
@@ -22,6 +39,13 @@ wrote deliberately would be the wrong kind of quiet. The defcustom
 gates remain the per-policy opt-outs. Tests: each policy fires in a
 tracked fixture and stays inert in an untracked one — the untracked
 half is the assertion that did not exist before and the whole point.
+
+Resolved 2026-09-10, same day as the decision it implements: the
+three opinionated policies act only in tracked buffers
+(=--tracked-buffer-p=, truename-compared, live-reloaded), proven
+inert in untracked files by the assertions that never existed
+before; =org-depend= stays global by recorded exception.
+
 
 * TODO Archived :ARCHIVE_FILE: paths are machine-absolute; audit their portability :code:
 :PROPERTIES:
