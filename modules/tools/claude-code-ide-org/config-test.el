@@ -14465,3 +14465,21 @@ the wire claiming 'wired' with no server listening."
               ((symbol-function 'claude-code-ide-mcp-server-register-session)
                (lambda (&rest _) (ert-fail "registered against a dead server"))))
       (should-error (claude-code-ide-org-standalone-wire) :type 'user-error))))
+
+(ert-deftest claude-code-ide-org-test-new-ids-are-downcased-for-uuid-method ()
+  "The ported Doom advice lowercases org-id-new's UUIDs and leaves
+other methods' IDs alone -- macOS uuidgen emits uppercase, and
+without :lang org nothing else normalizes it."
+  ;; The advice function's own contract, deterministically.
+  (let ((org-id-method 'uuid))
+    (should (equal "abc-def" (claude-code-ide-org--downcase-new-id "ABC-DEF"))))
+  (let ((org-id-method 'org))
+    (should (equal "ABC-DEF" (claude-code-ide-org--downcase-new-id "ABC-DEF"))))
+  ;; It is actually attached to org-id-new.
+  (should (advice-member-p #'claude-code-ide-org--downcase-new-id 'org-id-new))
+  ;; End to end: whatever uuidgen emits, the returned ID is lowercase.
+  ;; Discriminates on platforms whose uuidgen emits uppercase (macOS).
+  (let* ((org-id-method 'uuid)
+         (org-id-prefix nil)
+         (id (org-id-new)))
+    (should (equal id (downcase id)))))

@@ -329,6 +329,21 @@ removes the heading from the source buffer entirely (via
 (add-hook 'org-after-todo-state-change-hook #'claude-code-ide-org--audit-todo-hook)
 (advice-add 'org-archive-subtree :around #'claude-code-ide-org--audit-around-archive)
 
+(defun claude-code-ide-org--downcase-new-id (id)
+  "Downcase ID when `org-id-method' is `uuid', else return it unchanged.
+`:filter-return' advice on `org-id-new', ported from Doom's
+`+org--fix-inconsistent-uuidgen-case-a' (lang/org) so installs
+without Doom's :lang org module get the same lowercase IDs: org
+itself uses `org-id-uuid-program' output verbatim, and macOS
+uuidgen emits uppercase where Linux's emits lowercase.  Scoped to
+the `uuid' method because the other methods' IDs are not UUIDs and
+their case may be significant.  Coexists with Doom's advice —
+downcasing twice is a no-op (TODO.org :ID: 4f8b5d99)."
+  (if (eq org-id-method 'uuid)
+      (downcase id)
+    id))
+(advice-add 'org-id-new :filter-return #'claude-code-ide-org--downcase-new-id)
+
 ;;; Session tracking --------------------------------------------------------
 ;;
 ;; Two separate timekeeping mechanisms, deliberately kept apart:
