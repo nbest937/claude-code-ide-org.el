@@ -2,6 +2,76 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Persistent plugin enablement: stop passing --plugin-dir every session :research:
+:PROPERTIES:
+:ID:       7dbb82e0-cbb2-481c-bb95-d0e4d9b42126
+:CREATED:  [2026-09-10 Thu 10:23]
+:CATEGORY: Dev
+:END:
+
+After =7c86ab4c= and =e3caa21f=, the only remaining *per-session*
+hand step is =claude --plugin-dir /path/to/clone=. Investigate the
+standing-enablement options against current Claude Code: a local
+marketplace entry pointing at the clone (=/plugin marketplace add= a
+directory), the skills-dir plugin mechanism, or a settings-level
+enablement — and note the constraint that marketplace-distributed
+plugins may not ship =bin/=, which this plugin's hooks and setup
+command require, so whichever route must preserve the local-directory
+character. Deliverable: the enable-once procedure documented in
+=org-emacs-setup.md= and DOOM.md, or a finding that per-session flags
+remain the supported path, stated plainly.
+
+* TODO The module's own packages.el declares claude-code-ide :code:
+:PROPERTIES:
+:ID:       e3caa21f-462a-4689-8a9b-929fbf30cb9e
+:CREATED:  [2026-09-10 Thu 10:23]
+:CATEGORY: Dev
+:END:
+
+The module's =packages.el= already declares =org-ql= yet tells the
+user to declare =claude-code-ide= in their root =packages.el= by hand
+— a comment where a declaration could be. If Doom merges module
+package declarations with the root's (verify against Doom's package
+machinery before building; a duplicate declaration's precedence rules
+decide whether an existing root entry conflicts), moving the
+=package!= form into the module kills one of the three remaining
+hand-paste steps for a fresh machine. Check the recipe pin question
+in the same pass: the module declaring the dependency also means the
+module owns which fork/branch is expected.
+
+* TODO Promote generated elisp into $DOOMDIR: one stable stub, drift-checked glue :code:
+:PROPERTIES:
+:ID:       7c86ab4c-3157-4817-9fcc-d2e60c8fc160
+:CREATED:  [2026-09-10 Thu 10:23]
+:CATEGORY: Dev
+:END:
+:PLAN:
+The user's motion 2026-09-10, taking up =1caed585=: deployment drops
+the elisp *as a discrete generated file* inside the user's Doom tree,
+located by the same resolution =doom.el= uses (=$DOOMDIR=, falling
+back to =~/.config/doom=). The pattern is =.claude/rules/= promotion
+transposed to elisp, keeping its whole contract: the file carries the
+generated-by marker, =claude-org-setup --check= covers it against a
+fresh render, re-running refreshes it, and *user-authored files are
+never edited* — =config.el= gains one stable stub line, printed once,
+forever:
+
+:  (load! "claude-code-ide-org-glue" doom-user-dir t)
+
+What the generated glue carries, so redeployments stop repeating an
+amended paste procedure: the standalone wiring call with its
+configuration — and =claude-code-ide-org-standalone-projects= should
+*derive* rather than enumerate, once =308bf4b4='s agenda list file
+lands: every directory containing a tracked TODO.org is a standalone
+project, so onboarding a project (=--org= appending to the list file)
+registers its session with no elisp edit at all. Until then the glue
+carries the explicit list and regeneration updates it.
+
+Sequencing: after =308bf4b4= (the derivation wants the list file);
+alongside =e3caa21f= (the packages.el declaration), which together
+reduce the per-machine hand steps to exactly two lines ever — the
+=doom-module-load-path= entry and the stub.
+:END:
 * TODO Adopt org's agenda list file, retiring the symlink scan and the restart :code:
 :PROPERTIES:
 :ID:       308bf4b4-3816-4e34-b031-2bcd58102c4d
@@ -7952,6 +8022,30 @@ one of these very hooks, so whichever lands second should not re-litigate
 the other's decision.
 [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] owns the file-header
 convention the =#+STARTUP:= line was added to.
+
+*Taken up 2026-09-10 at the user's motion*, with the deployment
+question that reopened it: may setup drop elisp as discrete files in
+the user's Doom tree? The answer generalises into the boundary that
+settles most of this heading: **installation may write *generated,
+marker-headed, drift-checked* files (the =.claude/rules/= promotion
+contract, now extended to =$DOOMDIR= glue per =7c86ab4c=), and never
+edits user-authored files** — =init.el=, =config.el=, =packages.el=
+receive printed stubs only, each stable across redeployments so the
+paste happens once per machine, ever. The surface inventory under
+that boundary: =.claude/rules/= (settled at =9ae4b17e=), repo org
+scaffolding (=9b171907=, collision-checked), =$DOOMDIR= glue
+(=7c86ab4c=, the motion), the agenda list file once =308bf4b4= lands
+(append-only, dedup-checked). The =org-log-into-drawer= item from the
+2026-08-12 inventory is long since settled by the =#+STARTUP:= header
+precedent this body records.
+
+*What remains is exactly one decision, the one this heading was filed
+for*: the four global hooks installed at module load — consent by
+Doom-module enablement (the =9ae4b17e= "full strength,
+consent-by-install" precedent, with the existing defcustom gates as
+the opt-outs), or a guarded =setup= entry point that installs nothing
+until called. Put to the user 2026-09-10.
+
 
 
 * TODO Read power assertions as a review-time attribution signal :code:research:
