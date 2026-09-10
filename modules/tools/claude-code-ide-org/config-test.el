@@ -50,6 +50,11 @@ stray clock-status.json into the real module directory."
           (claude-code-ide-org-clock-status-file (expand-file-name "clock-status.json" dir))
           (claude-code-ide-org--audit-pending nil)
           (claude-code-ide-org--log-source nil)
+          ;; The fixture files are TRACKED: the hook policies act only
+          ;; in tracked buffers since the 1caed585 consent scope
+          ;; (:ID: 67c3208f), and these tests exercise the policies.
+          ;; The dedicated inertness tests bind this differently.
+          (claude-code-ide-org-query-files (list file archive-file))
           (id "test-0001"))
      (unwind-protect
          (progn
@@ -14333,3 +14338,54 @@ to the global capture file exactly as before."
       (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
         (should (string-match-p "No context" disk))
         (should (string-match-p "Untracked project" disk))))))
+
+;;; Hook policies scoped to tracked files (TODO.org :ID: 67c3208f)
+
+(ert-deftest claude-code-ide-org-test-policies-inert-in-untracked-files ()
+  "In a buffer whose file is NOT tracked, all three scoped policies are
+inert: DOING opens no clock, NEXT demotes no sibling, and DONE is
+permitted even while the heading's own clock runs.  This is the
+1caed585 consent decision -- enabling the Doom module must not change
+behaviour in a user's unrelated org files -- and the assertion did not
+exist before the scope did."
+  (claude-code-ide-org-test--with-heading
+    ;; Rebind the tracked set to EXCLUDE this fixture's file.
+    (let ((claude-code-ide-org-query-files (list archive-file))
+          (claude-code-ide-org-auto-clock-in-on-doing t))
+      ;; 1. Auto-clock-in: inert.
+      (org-with-point-at (org-id-find id 'marker)
+        (org-todo "DOING"))
+      (should-not (org-clocking-p))
+      ;; 2. NEXT demotion: a sibling pair under a parent, both NEXT-able.
+      (with-current-buffer (get-file-buffer file)
+        (goto-char (point-max))
+        (insert "\n* Parent\n** NEXT Child one\n:PROPERTIES:\n:ID: kid-a\n:END:\n"
+                "** TODO Child two\n:PROPERTIES:\n:ID: kid-b\n:END:\n")
+        (save-buffer))
+      (org-id-update-id-locations (list file))
+      (org-with-point-at (org-id-find "kid-b" 'marker)
+        (org-todo "NEXT"))
+      (should (equal "NEXT" (org-with-point-at (org-id-find "kid-a" 'marker)
+                              (org-get-todo-state))))
+      ;; 3. Own-clock DONE guard: clock the heading by hand, then DONE
+      ;; -- permitted, because the guard is scoped out here.
+      (org-with-point-at (org-id-find id 'marker)
+        (org-clock-in))
+      (should (org-clocking-p))
+      (org-with-point-at (org-id-find id 'marker)
+        (org-todo "DONE"))
+      (should (equal "DONE" (org-with-point-at (org-id-find id 'marker)
+                              (org-get-todo-state)))))))
+
+(ert-deftest claude-code-ide-org-test-tracked-buffer-p-resolves-symlinks ()
+  "The predicate compares truenames on both sides, so a buffer visiting
+the real file matches a tracked set naming it through a symlink."
+  (claude-code-ide-org-test--with-heading
+    (let* ((link (expand-file-name "link.org" dir)))
+      (make-symbolic-link file link)
+      (let ((claude-code-ide-org-query-files (list link)))
+        (with-current-buffer (get-file-buffer file)
+          (should (claude-code-ide-org--tracked-buffer-p))))
+      (let ((claude-code-ide-org-query-files (list archive-file)))
+        (with-current-buffer (get-file-buffer file)
+          (should-not (claude-code-ide-org--tracked-buffer-p)))))))

@@ -578,6 +578,29 @@ variable of the same name, so directory entries (e.g. a bare
 passed through as an unusable directory string."
   (or claude-code-ide-org-query-files (org-agenda-files)))
 
+(defun claude-code-ide-org--tracked-buffer-p (&optional buffer)
+  "Non-nil when BUFFER (default current) visits a tracked org file.
+
+The consent boundary 1caed585 decided (TODO.org :ID: 67c3208f): the
+module's opinionated hook policies -- auto-clock-in, NEXT demotion,
+the own-clock DONE guard -- act only in files the machinery owns,
+`claude-code-ide-org--tracked-files', so enabling the Doom module
+never changes behaviour in a user's unrelated org files.  Compared by
+`file-truename' on both sides, since the tracked set is typically
+symlinks and a buffer may visit either name.  A buffer visiting no
+file (capture buffers, temp buffers) is NOT tracked: every policy
+this gates concerns durable task state on disk.
+
+`org-depend-block-todo' is deliberately NOT behind this gate: a
+:BLOCKER: property is written by hand, per file, and refusing to
+enforce a declaration the user made deliberately would be the wrong
+kind of quiet."
+  (when-let* ((file (buffer-file-name
+                     (buffer-base-buffer (or buffer (current-buffer)))))
+              (true (file-truename file)))
+    (seq-some (lambda (f) (equal true (file-truename f)))
+              (claude-code-ide-org--tracked-files))))
+
 (defun claude-code-ide-org--parse-org-timestamp (ts-string)
   "Parse an org timestamp string like \"[2026-07-27 Mon 17:45]\"
 into an Emacs time value."
@@ -4375,6 +4398,9 @@ apply\".  That is too strong and is corrected here rather than in the
 plan, because this is where someone will read it: `org-clock-in' is a
 user-facing command and no part of this change takes it away."
   (or (not (equal (plist-get change-plist :to) "DONE"))
+      ;; Untracked buffer: permit -- the policy is scoped to the
+      ;; machinery's own files (:ID: 67c3208f).
+      (not (claude-code-ide-org--tracked-buffer-p))
       (not (org-clocking-p))
       (let ((target-id (org-entry-get nil "ID"))
             (clocked-id (org-with-point-at org-clock-marker
@@ -6120,6 +6146,10 @@ scenario that raised it (TODO.org :ID: ab75d6d2).  The exemption's
 heading for the measurement."
   (when (and claude-code-ide-org-auto-clock-in-on-doing
              (equal (plist-get change-plist :to) "DOING")
+             ;; Tracked files only -- the 1caed585 consent scope
+             ;; (:ID: 67c3208f).  After the cheap tests, before the
+             ;; heading reads.
+             (claude-code-ide-org--tracked-buffer-p)
              (not claude-code-ide-org--auto-clock-in-active)
              (not (claude-code-ide-org--grouping-heading-p)))
     (let* ((target-id (org-entry-get nil "ID"))
@@ -6220,6 +6250,9 @@ marked `@' in the future) never fires for this programmatic
 transition; `claude-code-ide-org--format-log-state-line' supplies an
 equivalent line by hand instead."
   (when (and (equal (plist-get change-plist :to) "NEXT")
+             ;; Tracked files only (:ID: 67c3208f), same scope as the
+             ;; auto-clock-in trigger.
+             (claude-code-ide-org--tracked-buffer-p)
              ;; Only inside a container. A top-level heading has no
              ;; sibling group worth the name: its "siblings" are every
              ;; other task in the file, so demoting among them asserts
