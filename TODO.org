@@ -7,6 +7,9 @@
 :ID:       4f8b5d99-90ac-4742-aba5-4688762172dc
 :CREATED:  [2026-09-10 Thu 13:23]
 :END:
+
+Root cause traced 2026-09-10, and it widens the heading: the sandbox runs org tip because its minimal init — exactly what =claude-org-setup --doom= prints — never enables =:lang org=, so Doom's pinned org recipe (=lang/org/packages.el=, 9.8.7 release commit =cdc1689=) never participates in the sync and org arrives as an unpinned transitive dependency of =org-ql=, cloned at main's tip (=7b9d6dbe0=, 2026-09-09). Every consumer on the shipped minimal path therefore gets a moving pre-release org that no =:lang org= user runs; the uuid case change is just its first surfaced difference. The decision is now two-layered: (a) whether the module's =packages.el= should pin org or the docs should require =:lang org= — the org 9.7 floor check catches *old* org but nothing bounds *new*; (b) the original case normalization, which matters under any answer to (a) since org 10 will land stable eventually.
+
 * TODO [0/1] Exercise: 1206b5b0 nesting demo — inspect visually, then cancel me :code:
 :PROPERTIES:
 :ID:       9fd61462-46ec-490d-8514-ab8b23f3bb22
