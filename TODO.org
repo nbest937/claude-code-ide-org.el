@@ -144,7 +144,10 @@ the predicate proven symlink-transparent both directions. 592/592.
 For the user's live Emacs nothing changes: the real files are
 tracked, so the policies keep firing exactly where they always did —
 the change is entirely at the boundary where they used to leak.
+
+Exercised live 2026-09-10, closing the review: the user hand-toggled =7172F021= (a smoke heading in the untracked =~/git/agentic-euchre/TODO.org=) to DOING via =C-c C-t= in the real Emacs. The state line logged, no CLOCK line appeared, and =(org-clocking-p)= stayed nil — the auto-clock-in policy declining outside the tracked set, on the hand-edit path where the gate does its only live work. Untrackedness was verified first (=query-files= nil; =org-agenda-files= holds only this repo's pair plus =notes.org=), and all three gated policies were confirmed resident in the running image before the keystroke.
 :END:
+:PLAN:
 
 Implements =1caed585='s consent decision (the user, 2026-09-10):
 the hook policies act only in buffers whose file is in the tracked
@@ -160,6 +163,7 @@ gates remain the per-policy opt-outs. Tests: each policy fires in a
 tracked fixture and stays inert in an untracked one — the untracked
 half is the assertion that did not exist before and the whole point.
 
+:END:
 Resolved 2026-09-10, same day as the decision it implements: the
 three opinionated policies act only in tracked buffers
 (=--tracked-buffer-p=, truename-compared, live-reloaded), proven
