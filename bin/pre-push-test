@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Prove .githooks/pre-push's advisory merge check discriminates
+# (TODO.org :ID: c7bf2121): a local merge on main draws the advisory by
+# name, a PR merge draws nothing, a non-main ref and a fresh remote are
+# silent — and every case exits 0, because the check is a reminder and
+# never a gate. Runs against real history: fee51fd is one of the two
+# local merges that broke the ten-PR streak, 101287f is PR #21's merge.
+#
+# The hook also runs bin/sync-plans --check first, so this test fails
+# honestly (in case 0) if the plans archive is stale — that is the
+# blocking half doing its job, not a defect here.
+
+set -uo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+hook="$script_dir/../.githooks/pre-push"
+
+checks=0
+fails=0
+check() { # label verdict
+  checks=$((checks + 1))
+  if [ "$2" = ok ]; then
+    echo "ok   $1"
+  else
+    fails=$((fails + 1))
+    echo "FAIL $1: $2"
+  fi
+}
+
+run_hook() { # stdin-line...
+  printf '%s\n' "$@" | "$hook" origin https://example.invalid/repo.git 2>&1
+}
+
+pr_merge="101287f"     # Merge pull request #21
+local_merge="fee51fd"  # Merge feature/doc-sync-hook — the streak-breaker
+
+# 0. A PR-merge-only range over main is silent and exits 0.
+out="$(run_hook "refs/heads/main $pr_merge refs/heads/main $pr_merge~1")"; rc=$?
+check "PR merge range passes silently" "$([ $rc -eq 0 ] && [ -z "$out" ] && echo ok || echo "rc=$rc out: $out")"
+
+# 1. A local merge in the pushed range draws the advisory, by name,
+#    and still exits 0 — advisory, never a gate.
+out="$(run_hook "refs/heads/main $local_merge refs/heads/main $local_merge~1")"; rc=$?
+check "local merge still exits 0" "$([ $rc -eq 0 ] && echo ok || echo "rc=$rc")"
+check "advisory names the merge" "$(printf '%s' "$out" | grep -q "$local_merge" && echo ok || echo "output: $out")"
+check "advisory says it is not a gate" "$(printf '%s' "$out" | grep -q 'not a gate' && echo ok || echo missing)"
+
+# 2. The same range pushed to a non-main ref is silent.
+out="$(run_hook "refs/heads/feature/x $local_merge refs/heads/feature/x $local_merge~1")"; rc=$?
+check "non-main ref is silent" "$([ $rc -eq 0 ] && [ -z "$out" ] && echo ok || echo "rc=$rc out: $out")"
+
+# 3. A brand-new remote main (zero sha) is silent — no baseline.
+zeros="0000000000000000000000000000000000000000"
+out="$(run_hook "refs/heads/main $local_merge refs/heads/main $zeros")"; rc=$?
+check "zero remote sha is silent" "$([ $rc -eq 0 ] && [ -z "$out" ] && echo ok || echo "rc=$rc out: $out")"
+
+# 4. A PR merge whose branch contains its own merges is still silent
+#    (TODO.org :ID: e0094245). PR #2's range carries two in-branch
+#    merges — a `Merge branch 'main' into feature/x' catch-up (32f5c2a)
+#    and a branch-into-branch merge (7f6e6d6) — neither of which is on
+#    main's first-parent chain. Without --first-parent the advisory named
+#    both, having arrived through a pull request.
+pr_with_inner_merges="01da949"  # Merge pull request #2
+out="$(run_hook "refs/heads/main $pr_with_inner_merges refs/heads/main $pr_with_inner_merges~1")"; rc=$?
+check "a PR branch's own merges draw no advisory" "$([ $rc -eq 0 ] && [ -z "$out" ] && echo ok || echo "rc=$rc out: $out")"
+check "the catch-up merge is not named" "$(printf '%s' "$out" | grep -q '32f5c2a' && echo "named it: $out" || echo ok)"
+
+echo "Ran $checks checks, $fails failure(s)"
+exit "$([ "$fails" -eq 0 ] && echo 0 || echo 1)"

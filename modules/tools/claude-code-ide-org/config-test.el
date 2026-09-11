@@ -50,6 +50,11 @@ stray clock-status.json into the real module directory."
           (claude-code-ide-org-clock-status-file (expand-file-name "clock-status.json" dir))
           (claude-code-ide-org--audit-pending nil)
           (claude-code-ide-org--log-source nil)
+          ;; The fixture files are TRACKED: the hook policies act only
+          ;; in tracked buffers since the 1caed585 consent scope
+          ;; (:ID: 67c3208f), and these tests exercise the policies.
+          ;; The dedicated inertness tests bind this differently.
+          (claude-code-ide-org-query-files (list file archive-file))
           (id "test-0001"))
      (unwind-protect
          (progn
@@ -9788,7 +9793,13 @@ will land and flags a target that no longer resolves, an amend names the
               (list :type 'amend :id "nope" :ts (current-time)
                     :text "a\nb\nc" :note "why" :events nil))
       (let ((text (buffer-substring-no-properties (point-min) (point-max))))
-        (should (string-match-p "capture \"New thing\" +-> top of file" text))
+        ;; The where names the receiving file since captures route by
+        ;; session project (:ID: d718f6b6) -- "top of file" said nothing.
+        ;; Its full path, since every candidate shares the basename
+        ;; (:ID: 86c11795).
+        (should (string-match-p (format "capture \"New thing\" +-> top of %s"
+                                        (regexp-quote (abbreviate-file-name capture-file)))
+                                text))
         (should (string-match-p "! capture \"Orphan\" +-> No Such Category (UNRESOLVED)" text))
         (should (string-match-p "amend +\"(unknown heading)\" +(3 lines)" text))))))
 
@@ -14093,3 +14104,551 @@ not have -- the thing this test can see is the registration."
                               (concat "<" stamp " 07:00>")))))
       (should (string-match-p "^\\* TODO Archive closed tasks daily" text)))
     (should (with-current-buffer (find-file-noselect file) buffer-read-only))))
+
+;;; Standalone wiring (TODO.org :ID: e396f94a)
+
+(ert-deftest claude-code-ide-org-test-mcp-json-port-reads-the-contract ()
+  "The port is parsed from a config file's localhost URL, and a
+missing file is nil rather than an error -- the caller owns the
+loudness."
+  (let ((f (make-temp-file "mcp-json" nil ".json"
+                           "{\"mcpServers\":{\"emacs-tools\":{\"type\":\"http\",\"url\":\"http://localhost:45571/mcp/warp\"}}}")))
+    (unwind-protect
+        (should (= 45571 (claude-code-ide-org--mcp-json-port f)))
+      (delete-file f)))
+  (should (null (claude-code-ide-org--mcp-json-port "/no/such/file.json"))))
+
+(ert-deftest claude-code-ide-org-test-standalone-wire-refuses-a-disagreeing-pin ()
+  "A pin that disagrees with .mcp.json refuses before touching the
+server: the static file is the contract every client reads, and wiring
+a different port would make the shipped URL silently wrong."
+  (let ((claude-code-ide-org-standalone-port 45571)
+        (touched nil))
+    (cl-letf (((symbol-function 'claude-code-ide-org--mcp-json-port)
+               (lambda (&optional _f) 40000))
+              ((symbol-function 'claude-code-ide-mcp-server-ensure-server)
+               (lambda () (setq touched t))))
+      (should-error (claude-code-ide-org-standalone-wire) :type 'user-error)
+      (should-not touched))))
+
+(ert-deftest claude-code-ide-org-test-standalone-wire-refuses-a-live-server-elsewhere ()
+  "A server already alive on another port refuses rather than
+re-pinning under it -- the running server, not the variable, is what
+clients are actually connected to."
+  (let ((claude-code-ide-org-standalone-port 45571))
+    (cl-letf (((symbol-function 'claude-code-ide-org--mcp-json-port)
+               (lambda (&optional _f) 45571))
+              ((symbol-function 'claude-code-ide-mcp-server-get-port)
+               (lambda () 40123))
+              ((symbol-function 'claude-code-ide-mcp-server-ensure-server)
+               (lambda () (ert-fail "ensure-server reached past the refusal"))))
+      (should-error (claude-code-ide-org-standalone-wire) :type 'user-error))))
+
+(ert-deftest claude-code-ide-org-test-standalone-wire-registers-per-repo-plus-warp ()
+  "Each project registers under its basename, and the first also as
+\"warp\" -- the session id the shipped /mcp/warp URL names.  The pin
+lands in upstream's variable only on the success path."
+  (let ((claude-code-ide-org-standalone-port 45571)
+        (claude-code-ide-org-standalone-projects
+         '("/tmp/repo-alpha" "/tmp/repo-beta"))
+        (claude-code-ide-mcp-server-port nil)
+        (registered nil)
+        (started nil))
+    (cl-letf (((symbol-function 'claude-code-ide-org--mcp-json-port)
+               (lambda (&optional _f) 45571))
+              ((symbol-function 'claude-code-ide-mcp-server-get-port)
+               (lambda () nil))
+              ((symbol-function 'claude-code-ide-mcp-server-ensure-server)
+               (lambda () 45571))
+              ((symbol-function 'claude-code-ide-mcp-server-register-session)
+               (lambda (id dir _buf) (push (cons id dir) registered)))
+              ((symbol-function 'claude-code-ide-mcp-start)
+               (lambda (&optional dir) (push dir started))))
+      (claude-code-ide-org-standalone-wire)
+      (setq registered (nreverse registered))
+      (should (equal registered
+                     '(("repo-alpha" . "/tmp/repo-alpha")
+                       ("repo-beta" . "/tmp/repo-beta")
+                       ("warp" . "/tmp/repo-alpha"))))
+      (should (equal (nreverse started) '("/tmp/repo-alpha" "/tmp/repo-beta")))
+      (should (= claude-code-ide-mcp-server-port 45571)))))
+
+;;; Nested slice members (TODO.org :ID: 1206b5b0)
+
+(defmacro claude-code-ide-org-test--with-nesting-fixture (&rest body)
+  "A slice whose one planned member is a story with two children."
+  (declare (indent 0))
+  `(claude-code-ide-org-test--with-capture-file
+     (with-temp-file capture-file
+       (insert "#+TODO: TODO NEXT DOING | DONE CANCELLED\n\n"
+               "* TODO [0/1] A nesting slice\n:PROPERTIES:\n"
+               ":ID:       slice-n1\n:KIND:     slice\n"
+               ":COOKIE_DATA: checkbox recursive\n"
+               ":CREATED:  [2026-09-09 Wed 09:00]\n:END:\n\n"
+               "The theme.\n\n"
+               "- [ ] [[id:story-1][story-1]] TODO A story member\n\n"
+               "* TODO A story member\n:PROPERTIES:\n:ID:       story-1\n:END:\n"
+               "** TODO Story child\n:PROPERTIES:\n:ID:       kid-1\n:END:\n"
+               "** TODO Another child\n:PROPERTIES:\n:ID:       kid-2\n:END:\n"
+               "* TODO An outsider\n:PROPERTIES:\n:ID:       out-1\n:END:\n"))
+     (org-id-update-id-locations (list capture-file))
+     (let ((claude-code-ide-org-query-files (list capture-file)))
+       ,@body)))
+
+(ert-deftest claude-code-ide-org-test-slice-add-member-nests-under-a-parent ()
+  "parent= lands the line indented under the parent's line, strips the
+parent's checkbox (a grouping label is cookie-less by definition, and
+the refresh reads that structurally), and a second nested child appends
+last in the block.  Cookie and blocker count the children, never the
+label."
+  (claude-code-ide-org-test--with-nesting-fixture
+    (let ((reply (claude-code-ide-org-slice-add-member
+                  "slice-n1" "kid-1" nil "story-1")))
+      (should (string-match-p "nested under story-1" reply))
+      (should (string-match-p "grouping label" reply)))
+    (claude-code-ide-org-slice-add-member "slice-n1" "kid-2" nil "story-1")
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      ;; Parent line cookie-less, children indented beneath, in order.
+      (should (string-match-p
+               "- \\[\\[id:story-1\\]\\[story-1\\]\\] TODO A story member\n  - \\[ \\] \\[\\[id:kid-1\\]\\[kid-1\\]\\] TODO Story child\n  - \\[ \\] \\[\\[id:kid-2\\]\\[kid-2\\]\\] TODO Another child\n"
+               disk))
+      ;; The label is uncounted; both children are.
+      (should (string-match-p "\\[0/2\\] A nesting slice" disk))
+      ;; The children enter the blocker on their own account; the
+      ;; cookie-less label does not.
+      (should (string-match-p "BLOCKER:[ \t]*ids(kid-1 kid-2)" disk)))))
+
+(ert-deftest claude-code-ide-org-test-slice-add-member-parent-refusals ()
+  "Each parent refusal names its rule and none of them writes: a parent
+that is not a planned member, a member outside the parent's subtree,
+and after= combined with parent=."
+  (claude-code-ide-org-test--with-nesting-fixture
+    (should (string-match-p "names no planned member"
+                            (claude-code-ide-org-slice-add-member
+                             "slice-n1" "kid-1" nil "out-1")))
+    (should (string-match-p "not inside"
+                            (claude-code-ide-org-slice-add-member
+                             "slice-n1" "out-1" nil "story-1")))
+    (should (string-match-p "not both"
+                            (claude-code-ide-org-slice-add-member
+                             "slice-n1" "kid-1" "story-1" "story-1")))
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      (should-not (string-match-p "id:kid-1" disk))
+      (should-not (string-match-p "id:out-1" disk))
+      ;; The parent's checkbox survives every refusal.
+      (should (string-match-p "- \\[ \\] \\[\\[id:story-1\\]" disk)))))
+
+;;; The read split (TODO.org :ID: 2a399034)
+
+(defmacro claude-code-ide-org-test--with-read-split-fixture (&rest body)
+  "A heading with drawers, body prose, and a child with its own body."
+  (declare (indent 0))
+  `(claude-code-ide-org-test--with-capture-file
+     (with-temp-file capture-file
+       (insert "#+TODO: TODO NEXT | DONE\n\n"
+               "* TODO A summarized task\n:PROPERTIES:\n:ID: split-1\n:END:\n"
+               ":PLAN:\nSecret prospective reasoning.\n:END:\n"
+               ":DEBRIEF:\nWhat actually happened.\n:END:\n\n"
+               "The two-sentence summary. It is the body.\n\n"
+               "** TODO A child\n:PROPERTIES:\n:ID: split-kid\n:END:\n\n"
+               "The child's own line of prose.\n"))
+     (org-id-update-id-locations (list capture-file))
+     (let ((claude-code-ide-org-query-files (list capture-file)))
+       ,@body)))
+
+(ert-deftest claude-code-ide-org-test-outline-carries-bodies-by-default ()
+  "The index carries each heading's body prose, indented beneath its
+line, with every drawer excluded -- the outline half of the read
+split.  bodies=false restores the structure-only index."
+  (claude-code-ide-org-test--with-read-split-fixture
+    (let ((out (claude-code-ide-org-outline capture-file)))
+      (should (string-match-p "  The two-sentence summary\\. It is the body\\." out))
+      (should (string-match-p "    The child's own line of prose\\." out))
+      (should-not (string-match-p "Secret prospective reasoning" out))
+      (should-not (string-match-p "What actually happened" out))
+      (should-not (string-match-p ":PLAN:" out)))
+    (let ((out (claude-code-ide-org-outline capture-file nil nil "false")))
+      (should-not (string-match-p "two-sentence summary" out))
+      (should (string-match-p "A summarized task" out)))))
+
+(ert-deftest claude-code-ide-org-test-body-serves-one-drawer-on-demand ()
+  "drawer= returns just the named drawer's content; a missing drawer
+errors naming the drawers the heading does have; combining with
+include_children is refused."
+  (claude-code-ide-org-test--with-read-split-fixture
+    (should (string-match-p "^Secret prospective reasoning"
+                            (claude-code-ide-org-body "split-1" nil "PLAN")))
+    (should (string-match-p "What actually happened"
+                            (claude-code-ide-org-body "split-1" nil "debrief")))
+    (let ((miss (claude-code-ide-org-body "split-1" nil "LOGBOOK")))
+      (should (string-match-p "no :LOGBOOK: drawer" miss))
+      (should (string-match-p ":PLAN:" miss))
+      (should (string-match-p ":DEBRIEF:" miss)))
+    (should (string-match-p "cannot be combined"
+                            (claude-code-ide-org-body "split-1" "true" "PLAN")))
+    ;; The drawer read is scoped to the heading itself: the parent's
+    ;; :PLAN: never satisfies the child's request, and the error names
+    ;; what the child actually has -- its property drawer alone.
+    (let ((kid (claude-code-ide-org-body "split-kid" nil "PLAN")))
+      (should (string-match-p "no :PLAN: drawer" kid))
+      (should (string-match-p "Drawers present: :PROPERTIES:" kid)))))
+
+(ert-deftest claude-code-ide-org-test-body-names-an-unterminated-drawer-malformed ()
+  "A drawer whose opening line exists but never closes with :END: before
+the next heading is reported as malformed, not as missing -- the
+missing-drawer error would list that very drawer as present, telling
+the caller it does not exist while showing that it does."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO NEXT | DONE\n\n"
+              "* TODO A task with a broken drawer\n"
+              ":PROPERTIES:\n:ID: broken-1\n:END:\n"
+              ":PLAN:\nProse left dangling by a hand edit.\n\n"
+              "* TODO The next heading\n"
+              ":PROPERTIES:\n:ID: after-1\n:END:\n"))
+    (org-id-update-id-locations (list capture-file))
+    (let ((claude-code-ide-org-query-files (list capture-file)))
+      (let ((result (claude-code-ide-org-body "broken-1" nil "PLAN")))
+        (should (string-match-p "malformed" result))
+        (should-not (string-match-p "no :PLAN: drawer" result))))))
+
+(ert-deftest claude-code-ide-org-test-body-drawer-read-skips-a-decoy ()
+  "A drawer marker that is not a drawer -- one quoted inside another
+drawer's prose, one inside #+begin_example -- is neither served as
+content nor listed as present.  Serving it was the bug: the read
+returned the text between the decoy and the *enclosing* drawer's :END:,
+confidently wrong where an error was owed (TODO.org :ID: f42641ab)."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO NEXT | DONE\n\n"
+              "* TODO A heading whose PLAN discusses drawers\n"
+              ":PROPERTIES:\n:ID: decoy-2\n:END:\n"
+              ":PLAN:\nWe will move the retrospective prose into\n"
+              ":DEBRIEF:\nand the line above is prose, not a drawer.\n"
+              ":END:\n"
+              "#+begin_example\n:LOGBOOK:\n#+end_example\n\n"
+              "The body.\n"))
+    (org-id-update-id-locations (list capture-file))
+    (let ((claude-code-ide-org-query-files (list capture-file)))
+      ;; Neither decoy is served as content...
+      (dolist (name '("DEBRIEF" "LOGBOOK"))
+        (let ((result (claude-code-ide-org-body "decoy-2" nil name)))
+          (should (string-match-p (format "no :%s: drawer" name) result))
+          (should-not (string-match-p "prose, not a drawer" result))
+          ;; ...nor listed among what the heading has.
+          (should-not (string-match-p (format ":%s:" name)
+                                      (car (last (split-string result "present: ")))))))
+      ;; The real drawers are unaffected, the property drawer included --
+      ;; a reader asking for :PROPERTIES: gets it rather than a denial.
+      (should (string-match-p "retrospective prose"
+                              (claude-code-ide-org-body "decoy-2" nil "PLAN")))
+      (should (string-match-p ":ID: decoy-2"
+                              (claude-code-ide-org-body "decoy-2" nil "PROPERTIES"))))))
+
+;;; Session-routed captures (TODO.org :ID: d718f6b6)
+
+(ert-deftest claude-code-ide-org-test-capture-routes-to-the-sessions-project ()
+  "A targetless capture from a session registered to a project lands in
+that project's tracked TODO.org, not the global capture file — and the
+reply names the file it wrote."
+  (claude-code-ide-org-test--with-capture-file
+    (let* ((proj (make-temp-file "proj" t))
+           (proj-todo (expand-file-name "TODO.org" proj)))
+      (unwind-protect
+          (progn
+            (with-temp-file proj-todo
+              (insert "#+TODO: TODO NEXT | DONE\n"))
+            (with-temp-file capture-file
+              (insert "#+TODO: TODO NEXT | DONE\n"))
+            (let ((claude-code-ide-org-query-files (list capture-file proj-todo)))
+              (cl-letf (((symbol-function 'claude-code-ide-mcp-server-get-session-context)
+                         (lambda (&optional _id) (list :project-dir proj))))
+                (let ((reply (claude-code-ide-org-capture "Routed heading" nil nil nil "TODO")))
+                  ;; The reply must name the tracker it wrote, which means
+                  ;; the PATH (:ID: 86c11795). The old assertion matched
+                  ;; the basename "TODO.org" and did discriminate *here*,
+                  ;; but only because this fixture's fallback file is
+                  ;; named capture.org. In production both candidates are
+                  ;; a repo's TODO.org, where the basename separates
+                  ;; nothing -- so the fixture was proving a weaker claim
+                  ;; than the docstring above makes. Asserting the path
+                  ;; closes that gap, and the negative assertion is what
+                  ;; makes a silent fallback fail rather than pass.
+                  (should (string-match-p (regexp-quote (abbreviate-file-name proj-todo))
+                                          reply))
+                  (should-not (string-match-p (regexp-quote (abbreviate-file-name capture-file))
+                                              reply))
+                  (should (string-match-p "Routed heading"
+                                          (claude-code-ide-org-test--disk-contents proj-todo)))
+                  (should-not (string-match-p "Routed heading"
+                                              (claude-code-ide-org-test--disk-contents capture-file)))))))
+        (delete-directory proj t)))))
+
+(ert-deftest claude-code-ide-org-test-capture-falls-back-without-a-project ()
+  "No session context, or a project with no tracked TODO.org, falls back
+to the global capture file exactly as before."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO NEXT | DONE\n"))
+    (let ((claude-code-ide-org-query-files (list capture-file)))
+      ;; No context at all.
+      (cl-letf (((symbol-function 'claude-code-ide-mcp-server-get-session-context)
+                 (lambda (&optional _id) nil)))
+        (claude-code-ide-org-capture "No context" nil nil nil "TODO"))
+      ;; A project-dir whose TODO.org is not tracked.
+      (let ((stranger (make-temp-file "stranger" t)))
+        (unwind-protect
+            (cl-letf (((symbol-function 'claude-code-ide-mcp-server-get-session-context)
+                       (lambda (&optional _id) (list :project-dir stranger))))
+              (claude-code-ide-org-capture "Untracked project" nil nil nil "TODO"))
+          (delete-directory stranger t)))
+      (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+        (should (string-match-p "No context" disk))
+        (should (string-match-p "Untracked project" disk))))))
+
+;;; Hook policies scoped to tracked files (TODO.org :ID: 67c3208f)
+
+(ert-deftest claude-code-ide-org-test-policies-inert-in-untracked-files ()
+  "In a buffer whose file is NOT tracked, all three scoped policies are
+inert: DOING opens no clock, NEXT demotes no sibling, and DONE is
+permitted even while the heading's own clock runs.  This is the
+1caed585 consent decision -- enabling the Doom module must not change
+behaviour in a user's unrelated org files -- and the assertion did not
+exist before the scope did."
+  (claude-code-ide-org-test--with-heading
+    ;; Rebind the tracked set to EXCLUDE this fixture's file.
+    (let ((claude-code-ide-org-query-files (list archive-file))
+          (claude-code-ide-org-auto-clock-in-on-doing t))
+      ;; 1. Auto-clock-in: inert.
+      (org-with-point-at (org-id-find id 'marker)
+        (org-todo "DOING"))
+      (should-not (org-clocking-p))
+      ;; 2. NEXT demotion: a sibling pair under a parent, both NEXT-able.
+      (with-current-buffer (get-file-buffer file)
+        (goto-char (point-max))
+        (insert "\n* Parent\n** NEXT Child one\n:PROPERTIES:\n:ID: kid-a\n:END:\n"
+                "** TODO Child two\n:PROPERTIES:\n:ID: kid-b\n:END:\n")
+        (save-buffer))
+      (org-id-update-id-locations (list file))
+      (org-with-point-at (org-id-find "kid-b" 'marker)
+        (org-todo "NEXT"))
+      (should (equal "NEXT" (org-with-point-at (org-id-find "kid-a" 'marker)
+                              (org-get-todo-state))))
+      ;; 3. Own-clock DONE guard: clock the heading by hand, then DONE
+      ;; -- permitted, because the guard is scoped out here.
+      (org-with-point-at (org-id-find id 'marker)
+        (org-clock-in))
+      (should (org-clocking-p))
+      (org-with-point-at (org-id-find id 'marker)
+        (org-todo "DONE"))
+      (should (equal "DONE" (org-with-point-at (org-id-find id 'marker)
+                              (org-get-todo-state)))))))
+
+(ert-deftest claude-code-ide-org-test-tracked-buffer-p-resolves-symlinks ()
+  "The predicate compares truenames on both sides, so a buffer visiting
+the real file matches a tracked set naming it through a symlink."
+  (claude-code-ide-org-test--with-heading
+    (let* ((link (expand-file-name "link.org" dir)))
+      (make-symbolic-link file link)
+      (let ((claude-code-ide-org-query-files (list link)))
+        (with-current-buffer (get-file-buffer file)
+          (should (claude-code-ide-org--tracked-buffer-p))))
+      (let ((claude-code-ide-org-query-files (list archive-file)))
+        (with-current-buffer (get-file-buffer file)
+          (should-not (claude-code-ide-org--tracked-buffer-p)))))))
+
+;;; Derived standalone projects (TODO.org :ID: 7c86ab4c)
+
+(ert-deftest claude-code-ide-org-test-derive-projects-from-tracked-files ()
+  "Every directory holding a tracked TODO.org is a project, by
+truename, deduplicated; DONE.org and stray names contribute nothing."
+  (let* ((a (make-temp-file "proj-a" t))
+         (b (make-temp-file "proj-b" t)))
+    (unwind-protect
+        (progn
+          (dolist (d (list a b))
+            (with-temp-file (expand-file-name "TODO.org" d) (insert "x\n")))
+          (with-temp-file (expand-file-name "DONE.org" a) (insert "x\n"))
+          (let ((claude-code-ide-org-query-files
+                 (list (expand-file-name "TODO.org" a)
+                       (expand-file-name "DONE.org" a)
+                       (expand-file-name "TODO.org" b)
+                       ;; duplicate entry: must not double the dir
+                       (expand-file-name "TODO.org" a))))
+            (let ((dirs (claude-code-ide-org--standalone-derive-projects)))
+              (should (= 2 (length dirs)))
+              (should (equal (file-truename (file-name-as-directory a))
+                             (car dirs))))))
+      (delete-directory a t)
+      (delete-directory b t))))
+
+(ert-deftest claude-code-ide-org-test-wire-resolves-derive-fresh-per-call ()
+  "With the symbol `derive', the wire derives the project list at call
+time -- a project tracked after the previous wire call is registered by
+the next one, with no configuration edit."
+  (let ((claude-code-ide-org-standalone-port 45571)
+        (claude-code-ide-org-standalone-projects 'derive)
+        (claude-code-ide-mcp-server-port nil)
+        (registered nil)
+        (proj (make-temp-file "late-proj" t)))
+    (unwind-protect
+        (progn
+          (with-temp-file (expand-file-name "TODO.org" proj) (insert "x\n"))
+          (cl-letf (((symbol-function 'claude-code-ide-org--mcp-json-port)
+                     (lambda (&optional _f) 45571))
+                    ((symbol-function 'claude-code-ide-mcp-server-get-port)
+                     (lambda () nil))
+                    ((symbol-function 'claude-code-ide-mcp-server-ensure-server)
+                     (lambda () 45571))
+                    ((symbol-function 'claude-code-ide-mcp-server-register-session)
+                     (lambda (id dir _buf) (push (cons id dir) registered)))
+                    ((symbol-function 'claude-code-ide-mcp-start)
+                     (lambda (&optional _dir) nil)))
+            (let ((claude-code-ide-org-query-files nil)
+                  (org-agenda-files nil))
+              (claude-code-ide-org-standalone-wire)
+              (should (null registered)))
+            (let ((claude-code-ide-org-query-files
+                   (list (expand-file-name "TODO.org" proj))))
+              (claude-code-ide-org-standalone-wire)
+              (should (equal (file-name-nondirectory
+                              (directory-file-name (file-truename proj)))
+                             (car (car (last registered))))))))
+      (delete-directory proj t))))
+
+(ert-deftest claude-code-ide-org-test-wire-refuses-a-dead-server ()
+  "ensure-server returning nil (its enable flag defaults off) is a
+refusal, not a success to report over -- the headless sandbox found
+the wire claiming 'wired' with no server listening."
+  (let ((claude-code-ide-org-standalone-port 45571)
+        (claude-code-ide-org-standalone-projects nil)
+        (claude-code-ide-mcp-server-port nil))
+    (cl-letf (((symbol-function 'claude-code-ide-org--mcp-json-port)
+               (lambda (&optional _f) 45571))
+              ((symbol-function 'claude-code-ide-mcp-server-get-port)
+               (lambda () nil))
+              ((symbol-function 'claude-code-ide-mcp-server-ensure-server)
+               (lambda () nil))
+              ((symbol-function 'claude-code-ide-mcp-server-register-session)
+               (lambda (&rest _) (ert-fail "registered against a dead server"))))
+      (should-error (claude-code-ide-org-standalone-wire) :type 'user-error))))
+
+(ert-deftest claude-code-ide-org-test-new-ids-are-downcased-for-uuid-method ()
+  "The ported Doom advice lowercases org-id-new's UUIDs and leaves
+other methods' IDs alone -- macOS uuidgen emits uppercase, and
+without :lang org nothing else normalizes it."
+  ;; The advice function's own contract, deterministically.
+  (let ((org-id-method 'uuid))
+    (should (equal "abc-def" (claude-code-ide-org--downcase-new-id "ABC-DEF"))))
+  (let ((org-id-method 'org))
+    (should (equal "ABC-DEF" (claude-code-ide-org--downcase-new-id "ABC-DEF"))))
+  ;; It is actually attached to org-id-new.
+  (should (advice-member-p #'claude-code-ide-org--downcase-new-id 'org-id-new))
+  ;; End to end: whatever uuidgen emits, the returned ID is lowercase.
+  ;; Discriminates on platforms whose uuidgen emits uppercase (macOS).
+  (let* ((org-id-method 'uuid)
+         (org-id-prefix nil)
+         (id (org-id-new)))
+    (should (equal id (downcase id)))))
+
+(ert-deftest claude-code-ide-org-test-tracked-files-resolve-an-agenda-list-file ()
+  "Pin the property 308bf4b4 relies on: `org-agenda-files' set to a
+single file NAME (org's agenda list file) still yields the listed
+files through `--tracked-files', because that helper calls the
+`org-agenda-files' FUNCTION, which re-reads the list file on every
+call -- discovery without symlinks or restarts."
+  (let* ((dir (make-temp-file "ccio-lf" t))
+         (todo (expand-file-name "TODO.org" dir))
+         (done (expand-file-name "DONE.org" dir))
+         (listf (expand-file-name "agenda-files" dir)))
+    (unwind-protect
+        (progn
+          (with-temp-file todo (insert "* TODO x\n"))
+          (with-temp-file done (insert "\n"))
+          (with-temp-file listf (insert todo "\n" done "\n"))
+          (let ((claude-code-ide-org-query-files nil)
+                (org-agenda-files listf))
+            (let ((files (claude-code-ide-org--tracked-files)))
+              (should (member todo files))
+              (should (member done files))
+              ;; A line appended after the first read is seen on the
+              ;; next call -- the dynamic half, the whole point.
+              (let ((third (expand-file-name "MORE.org" dir)))
+                (with-temp-file third (insert "\n"))
+                (with-temp-file listf
+                  (insert todo "\n" done "\n" third "\n"))
+                (should (member third (claude-code-ide-org--tracked-files)))))))
+      (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-so-long-takeover-reverted-on-tracked-files ()
+  "The find-file-hook guard calls `so-long-revert' exactly when a
+tracked buffer's major mode was replaced by `so-long-mode', and
+leaves untracked buffers to so-long (TODO.org :ID: 045459f6)."
+  (let* ((dir (make-temp-file "ccio-sl" t))
+         (tracked (expand-file-name "TODO.org" dir))
+         (untracked (expand-file-name "other.org" dir))
+         (reverted 0))
+    (unwind-protect
+        (progn
+          (with-temp-file tracked (insert "* TODO x\n"))
+          (with-temp-file untracked (insert "* TODO y\n"))
+          (let ((claude-code-ide-org-query-files (list tracked)))
+            (cl-letf (((symbol-function 'so-long-revert)
+                       (lambda () (setq reverted (1+ reverted)))))
+              ;; Tracked + so-long major: reverts.
+              (with-current-buffer (find-file-noselect tracked)
+                (setq-local major-mode 'so-long-mode)
+                (claude-code-ide-org--revert-so-long-takeover))
+              (should (= reverted 1))
+              ;; Tracked + healthy org-mode: untouched.
+              (with-current-buffer (find-file-noselect tracked)
+                (setq-local major-mode 'org-mode)
+                (claude-code-ide-org--revert-so-long-takeover))
+              (should (= reverted 1))
+              ;; Untracked + so-long major: so-long's business.
+              (with-current-buffer (find-file-noselect untracked)
+                (setq-local major-mode 'so-long-mode)
+                (claude-code-ide-org--revert-so-long-takeover))
+              (should (= reverted 1))))
+          ;; And the guard is actually wired.
+          (should (memq #'claude-code-ide-org--revert-so-long-takeover
+                        find-file-hook)))
+      (dolist (f (list tracked untracked))
+        (when-let ((b (get-file-buffer f))) (kill-buffer b)))
+      (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-capture-note-becomes-the-initial-body ()
+  "A capture's note must land as the heading's body on BOTH paths.
+Until 2026-09-11 it was accepted and silently discarded -- six filings
+shipped bodiless before a reader noticed (TODO.org :ID: 204d1b0a). The
+note is inserted after org-capture finalizes, never via the template,
+so %-escapes in user prose land verbatim."
+  (claude-code-ide-org-test--with-capture-file
+    ;; Immediate path.
+    (claude-code-ide-org-capture
+     "Task with prose" nil nil
+     "The filing reason, with a literal %U that must not expand." "TODO")
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p "The filing reason, with a literal %U" disk))
+      ;; Body sits under the heading, after its drawer, not inside it.
+      (should (string-match-p ":END:\n+The filing reason" disk)))
+    ;; Apply path, driven directly like the deferred-state test above.
+    (let ((item (list :type 'capture
+                      :id "test-deferred-note-1"
+                      :ts (date-to-time "2026-09-11T12:00:00-0500")
+                      :title "Deferred with prose"
+                      :target nil
+                      :tags nil
+                      :to "TODO"
+                      :note "Deferred reason, also with %i intact.")))
+      (should-not (claude-code-ide-org--review-apply-capture item))
+      (should (string-match-p "Deferred reason, also with %i intact\\."
+                              (claude-code-ide-org-test--disk-contents
+                               capture-file))))
+    ;; And an omitted note still yields a bare heading, not a stray line.
+    (claude-code-ide-org-capture "Task without prose" nil nil nil "TODO")
+    (should-not (string-match-p "nil"
+                                (car (last (split-string
+                                            (claude-code-ide-org-test--disk-contents
+                                             capture-file)
+                                            "^\\* " t)))))))

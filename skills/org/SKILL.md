@@ -380,8 +380,8 @@ transition has to be recorded some other way.
   review and org performs the clock edits and LOGBOOK logging natively at
   apply time. Never hand-write CLOCK lines, keywords, or `- State` notes
   there, and never expect a read-back to show the new state before a
-  human applies the queue. CLAUDE.md's transition table is the
-  authoritative copy for that project; this one mirrors it.
+  human applies the queue. The plugin's `references/org-state-transitions.md`
+  is the authoritative copy of the transition table; this one mirrors it.
 - **In a plain org setup with no such tooling**, the side effect is a
   literal edit: open a CLOCK line (start timestamp, no end) on entering
   `DOING`, close it (end timestamp, computed duration) on
@@ -403,9 +403,9 @@ edits the plan describes. This holds regardless of whether the heading
 the plan is for already existed or is newly created as part of the plan.
 
 **The Plan link is not gated by this checkpoint** — add it as soon as the
-plan file is finalized, per CLAUDE.md's rule. This wording used to gate
+plan file is finalized, per the project's `:PLAN:` rule. This wording used to gate
 it alongside the two above, contradicting that rule; the contradiction
-was resolved in CLAUDE.md's favour on 2026-08-14 for a mechanical reason,
+was resolved in that rule's favour on 2026-08-14 for a mechanical reason,
 not a stylistic one. `bin/sync-plans` archives only those plans some
 heading links, so an unlinked plan is never copied into `plans/` and has
 no history at all — waiting for confirmation costs the plan its archive

@@ -1,7 +1,7 @@
 # Next session
 
-A plan for `c19fbbf5` — **Ship the plugin: make the machinery and its
-prose travel together**.
+A plan for `afea7e4f` — **Join the transcript to the record: span
+synopses, readable sessions, weighted attribution**.
 
 **The slice is the list.** Open it and read its checklist; this file gives
 the plan, not the membership. The two disagree only if one is stale, and the
@@ -97,144 +97,102 @@ work.
 > session does not re-measure what this one already established. Keep it to
 > findings a session would otherwise spend real time rediscovering.
 
-**The slice's first step is unblocked, verified 2026-09-08.** `b0e478f7`'s
-`:BLOCKER:` names `d5345abb` (the CLAUDE.md-vs-skill audit), which is
-`DONE` in DONE.org — the SKILL and RULE rows are relocated, so the prose
-moves once. `9d009401`'s blocker `9ae4b17e` (the portability
-classification) is likewise discharged; its four decisions stand and are
-recorded on that heading and quoted in `9d009401`'s body.
+**PR #22 is the standing preliminary.** The whole plugin slice
+(`c19fbbf5`, ~95 commits on `feature/plugin-package`) is OPEN and
+unmerged. Step 0.5's survey will find it; the merge is the user's
+decision, and this slice's branch should be cut *after* it lands —
+GitHub closes a stacked PR when its base is deleted at merge (Standing
+rules, last entry but one).
 
-**Three of the five members were deferred *into* the packaging step by
-the user on 2026-09-08, and their bodies say so.** `ecf66d45` is decided
-*with* the portable half (its forecast-vs-record boundary design happens
-at packaging); `b862fbf4` waits for hooks to ship user-level, and then
-for multi-project `cwd` data to accumulate — it likely cannot *finish* in
-the next session no matter what; `e396f94a` stays `MAYBE` with its
-promotion trigger being "packaging starts", so the manifest step names
-it. Do not re-litigate these deferrals; the bodies carry the reasoning.
+**The join is measured, not hypothesized.** Every queue `resume` event
+in the measured session matched a transcript user message on timestamp —
+**28 of 28 within two seconds** (`295cde3a`, 2026-09-01). Transcripts
+live at `~/.claude/projects/<project-slug>/<session-id>.jsonl`, one JSON
+object per line, every user message ISO-timestamped. The join is
+retroactive over every session ever recorded; no hook change and no new
+durable field is needed anywhere in this slice.
 
-**The tool surface changed on 2026-09-08/09, and a fresh session has the
-new schemas.** `org_amend` continues a list (single newline when both
-sides are list items) and takes `drawer=` (PLAN/DEBRIEF, created when
-absent). **A heading's lifecycle is two calls at each end**: compose
-with `org_amend drawer=PLAN` then the short body; close with the
-authored resolution then the debrief via `drawer=DEBRIEF` — CLAUDE.md's
-`:PLAN:` rule carries the procedure. `org_set_property` `KIND=slice`
-completes the declaration: `:COOKIE_DATA:`, the `[/]` cookie, and the
-`:BLOCKER:` derived from an existing checklist. `org_slice_add_member`
-adds a member line (with `after=` for ordering) and writes the
-`Planned:` lead when a checklist is born — never hand-edit a checklist.
-A drop is declared in the slice's `:DROPPED:` property; cookie absence
-alone means nothing and is re-derived. `org_outline`'s `scope` takes
-several ids or prefixes at once, one block each. The `Planned:` lead is
-load-bearing (anchors the member region; self-healed by refresh), so
-prose bullets above it are safe. The ceremony refreshes open slices
-itself and **reports a worked slice carrying no `orgit-rev:` prompt
-link** — expect it to name `c19fbbf5` at first work; at pickup add one
-link per revision of this file since composition, oldest first
-(`git log --oneline --follow` on this file lists them, `db4e1bf`
-onward), rather than waiting for the nag.
+**The queue defines what a prompt is.** Raw `type:"user"` transcript
+entries are contaminated — stop-hook feedback and tool results are
+injected in the user role (45 raw against 36 real prompts in one
+session; 276 against ~25 in another). Filter to the queue's `resume`
+timestamps; this is `9e627dc0`'s trap, walked into twice already.
 
-**Incidental attribution now REQUIRES the slice to be `DOING`**
-(`:ID:` 58e6c6a0, the user's ruling): a slice owns a close only while a
-`DOING` span from its state history contains it, and a close made while
-no slice is `DOING` belongs to no slice. Step 0.4 — queue the slice
-`DOING` the moment its work starts — is therefore no longer bookkeeping
-hygiene but the precondition for any fast-tracked incidental being
-credited at all. Skip it and incidental work done during the session
-vanishes from every list, silently and correctly.
+**Why spans lack synopses today** (`--review-annotation-label`): an
+item's label is the note its *enclosing clock event* carried, authored
+at `org_clock_in`/`out` time. A span reconstructed from unbracketed
+guideposts has no enclosing event — that is what made it unattributed —
+so it gets only the synthesized provenance label. `325679af` fills
+exactly that hole with joined prompt text.
 
-**The suite's baseline is zero failures** — 580/580 as of PR #21
-(2026-09-09). Any failure is real.
+**`fbaf8009` executes FIRST despite sitting last on the checklist.**
+`org_slice_add_member` is append-only (`b112878e`, filed at
+composition), so the declared order could not be repaired; the slice's
+`:PLAN:` says so. It is pure rendering: the `cwd` is already on every
+queue event (`5461c349`) and the destination tracker falls out of where
+the `:ID:` resolves. No join, no transcript, cheapest first.
 
-**CLAUDE.md's prune arithmetic is already measured; do not re-measure.**
-~660 of ~1200 lines are machinery that ships with the plugin; three
-sections (state transitions, engineering practices, session tracking)
-hold 69% of the file; the contested remainder after packaging relocates
-its share is ~70 lines, and the read-through of those is `9d009401`'s
-remaining work, reserved for the user in the loop. The file *grew* +15%
-during the slice that asked it to shrink; the packaging move is what
-actually reverses that, not further pruning.
+**The review buffer code to start from**: `--review-render`,
+`--review-annotation-label`, `--review-insert-remainders` in
+`config.el`. Multi-project data is live — euchre sessions append real
+events now — so `fbaf8009` can be verified against genuine two-project
+queues, not fixtures alone.
 
-## Step 1 — Build the package
+**`96ddf1ef`'s promotion (MAYBE → TODO) may still be queued at pickup.**
+Step 0.1's staleness rule applies: the file shows MAYBE until the apply
+lands; do not fix it by hand.
 
-`b0e478f7` — *Package the plugin: references, setup command, machinery
-prose*. Nearly the whole slice, and everything else in it is sequenced
-by this step's progress. Four deliverables, landing together so
-instructions and machinery travel in one change:
+**The suite's baseline is 598/598** (as of the so-long guard,
+2026-09-10). Any failure is real. And if Emacs beachballs at a ceremony
+again, `sample <pid>` *before* killing it — `489d6f61` holds the one
+existing stack and is promoted by a second occurrence.
 
-- the plugin manifest (`.claude-plugin/plugin.json`);
-- the conventions shipped as skill `references/`;
-- the `bin/` setup command that promotes conventions into a consuming
-  repo's `.claude/rules/` — per-repo, full strength, consent-by-install,
-  per `9ae4b17e`'s recorded decisions;
-- CLAUDE.md's ~580 lines of machinery prose (queue architecture,
-  transition rules, tool tables, session tracking) moving into the
-  shipped references in the same change. Guards travel with their
-  conventions (`9d009401`'s settled decision 4): the dated blocks
-  protecting live rules move intact, never compressed.
+## Step 1 — Where: the tracker and cwd rendering
 
-Two decisions surface *inside* this step and are the user's: what the
-setup command may touch on a consuming machine (`1caed585`, still
-`MAYBE`, is the standing question — the manifest may collapse it), and
-whether hooks ship user-level (`b862fbf4`'s precondition; shipping them
-is what gives cross-project allocation anything to compare).
+`fbaf8009` — group headings gain the destination tracker (the project
+directory name of the file the `:ID:` resolves in), and unassigned-span
+groups say which session `cwd` produced them. Rendering only; the
+column-alignment rationale in the group-heading code (`c2132d3f`) is
+the style to match, not fight. Verify against the real two-project
+queue.
 
-## Step 2 — Decide the Warp wiring at the manifest
+## Step 2 — What: the prompt join in the review buffer
 
-`e396f94a` — *Package the Warp wiring*, `MAYBE` on purpose. Its own body
-names the trigger: packaging starting is the decision point, and the
-manifest is where "does the Warp wiring get packaged?" has an answer.
-The outcomes are: in the package (promote and generalise the snippet),
-or explicitly not (stays `MAYBE` for a future upstream PR, or
-`CANCELLED` with the body kept). **A user decision; expect to stop.**
+`325679af` — the slice's namesake. Each run renders its opening
+prompt's first line; a lone-timestamp span renders the abutting prompts
+either side, truncated. Elisp reads the session's transcript file,
+filters to `resume` timestamps (±2s tolerance, measured), truncates
+hard. Decide at build time: how much text, where it renders (same line
+or a detail on demand), and what happens when the transcript file has
+been cleaned up (30-day mortality — degrade to today's behavior,
+loudly).
 
-## Step 3 — The contested read-through
+## Step 3 — Pages: the readable session render
 
-`9d009401` — *CLAUDE.md carries dated history that costs every session's
-context*, already `DOING`. After Step 1 relocates the shipped share,
-what remains is the genuinely contested ~70 lines of dated history —
-and this heading has said three times, correctly, that the read-through
-**needs the user in the loop, not a background pass**. The session's
-job is to prepare the diff view (what moved, what remains, per-block),
-then stop and read it *with* them.
+`96ddf1ef` — a transcript rendered to org for paging in Emacs. Its body
+carries the original observation; the design questions are where
+rendered files live (never in the repo), whether rendering is on-demand
+or cached, and how a review-buffer span links to its session's page.
+Buildable if Steps 1–2 leave room; otherwise its design conversation is
+a fine stopping point.
 
-## Step 4 — The timeline boundary, if reached
+## Step 4 — Meaning: weighted attribution, a conversation
 
-`ecf66d45` — *Nothing lays out future work on a timeline the agenda can
-show*. Decided with the portable half by the user's deferral. The work
-is design before dates: forecasts (active timestamps) must stay apart
-from the record (inactive spans, CLOCK lines), and whether slices get
-dates at all is open. Both are judgement questions — treat this step as
-a conversation to have if Steps 1–3 leave room, not code to write.
-
-## Step 5 — What b862fbf4 can and cannot do yet
-
-`b862fbf4` — *Allocate attention across concurrent sessions, which is
-zero-sum*. If Step 1 ships hooks user-level, the only action here is
-verifying multi-project `cwd` data starts accruing; the judgement design
-explicitly waits for real data to judge against. **Do not attempt to
-close this member in the next session**; progress is "the precondition
-now holds and data is accumulating", stated plainly.
+`295cde3a` — research, explicitly. 84% of turns name at least one known
+heading id (mean 6.2), so a turn can be attributed to several tasks by
+weight, with lag. **Expect this step to end in a design or a refined
+question, not code**; it is the member that trusts the join furthest,
+and it waits on Steps 1–2 giving the user lived experience of the
+joined data.
 
 ### Where this will stop
 
-Earlier than the last slice, and by design: the last slice was decided
-rules awaiting code, this one is code awaiting decisions. Step 1's build
-is the autonomous core, and even it contains two user calls (the install
-surface, the hooks' scope). Steps 2 and 3 are explicit stops — a
-manifest decision and a shoulder-to-shoulder read-through — and Steps 4
-and 5 are conversations and preconditions, not deliverables. A session
-that ships the manifest, references and setup command, then stops with
-the CLAUDE.md diff prepared for joint review, has done the slice's day
-well.
-
-**A caution particular to this slice:** it moves prose that other
-sessions load as context. Between the packaging commit and the next
-session start, CLAUDE.md's description of the machinery and the shipped
-references' description are two copies; any interim session reads only
-the former. Land the move and its CLAUDE.md pointer stubs in one commit,
-never split across a session boundary.
+Steps 1 and 2 are the deliverable core — after them the review buffer
+answers *where* and *what* for every span, which is the concrete need
+that declared this slice. Step 3 is a bonus build; Step 4 is a
+conversation. A session that ships Steps 1–2 verified against the real
+queue, then stops with Step 3's design questions posed, has done the
+slice's day well.
 
 ---
 
@@ -316,3 +274,10 @@ never split across a session boundary.
   PR's base cannot be edited, so it was recreated as `#14`. Either
   retarget the stacked PR to `main` *before* merging its base, or expect
   to recreate it and say so in the new body.
+- **Verify against the tree the system actually reads.** On 2026-09-10 the
+  org pin was "tested" twice by editing the working tree while the sandbox
+  synced *its own clone* — two scrubbed re-clones proved only that the edit
+  never reached the sync. The wasted cycle ended the moment the reading
+  tree was named out loud, which is §0's reload rule wearing a different
+  coat: before a verification run, say which copy of the artifact the
+  system under test reads, and check the edit landed there.

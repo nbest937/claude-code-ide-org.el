@@ -1,0 +1,13 @@
+{
+  "name": "claude-code-ide-org",
+  "displayName": "claude-code-ide-org",
+  "description": "Org-mode task tracking for Claude Code: org_* MCP tools via a Doom Emacs module, a queued state/clock event architecture reviewed by a human, session-tracking hooks, and the org skill with its conventions as references.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Neil Best"
+  },
+  "repository": "https://github.com/nbest937/claude-code-ide-org.el",
+  "license": "MIT",
+  "keywords": ["org-mode", "emacs", "gtd", "time-tracking", "mcp"],
+  "mcpServers": "./.mcp.json"
+}

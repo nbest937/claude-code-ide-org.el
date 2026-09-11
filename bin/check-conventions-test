@@ -75,6 +75,13 @@ grep -v 'REVIEW' "$d/.claude/skills/org/SKILL.md" > "$d/tmp" && mv "$d/tmp" "$d/
 "$repo_root/bin/check-conventions" "$d" >/dev/null 2>&1
 expect_exit "a keyword missing from the skill table fails" 1
 
+# 4b. The same drift in the shipped transition-table reference fails.
+d="$(make_fixture)"
+mkdir -p "$d/skills/org/references"
+grep -v 'REVIEW' "$d/.claude/skills/org/SKILL.md" > "$d/skills/org/references/org-state-transitions.md"
+"$repo_root/bin/check-conventions" "$d" >/dev/null 2>&1
+expect_exit "a keyword missing from the transitions reference fails" 1
+
 # 5. A retired keyword named in the skill's *prose* does not fail --
 #    the false positive this check hit on its first real run.
 d="$(make_fixture)"
@@ -197,7 +204,7 @@ d="$(make_fixture)"
 expect_exit "a valid flag and ROOT still run" 0
 
 if [ "$failures" -eq 0 ]; then
-  echo "Ran 18 checks, all as expected"
+  echo "Ran 19 checks, all as expected"
 else
   echo "check-conventions-test: FAILURES"
 fi

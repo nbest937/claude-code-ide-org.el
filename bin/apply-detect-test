@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# Prove bin/hooks/apply-detect announces an apply exactly once, stays
+# silent everywhere else, and never blocks a prompt. Same register as
+# bin/doc-sync-check-test: fixtures in, positive assertions out.
+set -uo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+hook="$repo_root/bin/hooks/apply-detect"
+fail=0
+
+check() {
+  local desc="$1" want="$2" got="$3"
+  if [ "$got" = "$want" ]; then echo "ok   - $desc"
+  else echo "FAIL - $desc"; echo "       want: $want"; echo "       got:  $got"; fail=1; fi
+}
+
+qdir="$(mktemp -d)"
+trap 'rm -rf "$qdir"' EXIT
+
+run() { # run <session_id>
+  printf '{"session_id":"%s"}' "$1" \
+    | env CLAUDE_ORG_QUEUE_DIR="$qdir" bash "$hook"
+}
+
+# 1. First prompt of a session: silent, but the stamp is initialized.
+out="$(run sess-a)"; rc=$?
+check "first prompt is silent" "" "$out"
+check "first prompt exits 0" "0" "$rc"
+check "first prompt creates the stamp" "yes" "$([ -e "$qdir/sess-a.apply-seen" ] && echo yes || echo no)"
+
+# 2. No watermark newer than the stamp: silent.
+out="$(run sess-a)"
+check "quiet turn is silent" "" "$out"
+
+# 3. A watermark newer than the stamp: announced, on the right channel.
+sleep 1
+touch "$qdir/other-session.applied"
+out="$(run sess-a)"
+check "apply is announced" "0" "$(printf '%s' "$out" | jq -e '.hookSpecificOutput.additionalContext | test("applied since")' >/dev/null 2>&1; echo $?)"
+check "event name is UserPromptSubmit" "UserPromptSubmit" "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.hookEventName')"
+check "announcement counts the watermark" "0" "$(printf '%s' "$out" | jq -e '.hookSpecificOutput.additionalContext | test("1 watermark")' >/dev/null 2>&1; echo $?)"
+
+# 4. Announced once: the stamp advanced, so the next turn is quiet.
+out="$(run sess-a)"
+check "announcement does not repeat" "" "$out"
+
+# 5. Two sessions are independent: sess-b's first prompt initializes
+#    silently even though a watermark exists.
+out="$(run sess-b)"
+check "a second session initializes silently" "" "$out"
+
+# 6. Garbage stdin: silent, exit 0.
+out="$(printf 'not json' | env CLAUDE_ORG_QUEUE_DIR="$qdir" bash "$hook")"; rc=$?
+check "garbage stdin is silent" "" "$out"
+check "garbage stdin exits 0" "0" "$rc"
+
+# 7. Missing queue directory: silent, exit 0 -- never the reason a
+#    prompt fails.
+out="$(printf '{"session_id":"x"}' | env CLAUDE_ORG_QUEUE_DIR="$qdir/no-such-dir" bash "$hook")"; rc=$?
+check "missing dir is silent" "" "$out"
+check "missing dir exits 0" "0" "$rc"
+
+# 8. A jq that fails on the REPORT (not on parsing, which the absence
+#    check at the top already covers) must not become the hook's exit
+#    status, and must not advance the stamp -- otherwise a real apply is
+#    announced to nobody and never mentioned again (TODO.org :ID:
+#    31453a5e). The shim passes the parse call through to the real jq and
+#    fails only the `-cn' report call, which is the only way to reach the
+#    final jq at all.
+shimdir="$(mktemp -d)"
+real_jq="$(command -v jq)"
+cat >"$shimdir/jq" <<EOF
+#!/usr/bin/env bash
+[ "\$1" = "-cn" ] && exit 1
+exec "$real_jq" "\$@"
+EOF
+chmod +x "$shimdir/jq"
+
+qdir2="$(mktemp -d)"
+run2() { printf '{"session_id":"%s"}' "$1" \
+           | env CLAUDE_ORG_QUEUE_DIR="$qdir2" PATH="$shimdir:$PATH" bash "$hook"; }
+
+run2 sess-c >/dev/null                       # initialize the stamp
+sleep 1
+touch "$qdir2/some-session.applied"          # an apply to report
+out="$(run2 sess-c)"; rc=$?
+check "a failing report does not fail the hook" "0" "$rc"
+check "a failing report emits nothing" "" "$out"
+
+# The stamp stayed put, so the apply is still owed -- with a working jq
+# the very next turn announces it.
+out="$(printf '{"session_id":"sess-c"}' | env CLAUDE_ORG_QUEUE_DIR="$qdir2" bash "$hook")"
+check "an unreported apply is announced on the next turn" "0" \
+  "$(printf '%s' "$out" | jq -e '.hookSpecificOutput.additionalContext | test("applied since")' >/dev/null 2>&1; echo $?)"
+
+rm -rf "$shimdir" "$qdir2"
+
+if [ "$fail" -eq 0 ]; then echo; echo "All apply-detect tests passed."
+else echo; echo "Some apply-detect tests FAILED."; fi
+exit "$fail"

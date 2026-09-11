@@ -10,6 +10,13 @@
 
 (require 'cl-lib)
 (require 'seq)
+;; The machinery's own host package, loaded eagerly when present: a
+;; fresh profile whose only config is the module plus the generated
+;; glue has no other loader, and the glue's with-eval-after-load
+;; would otherwise wait forever (found booting the headless Doom
+;; sandbox, :ID: 7c86ab4c). Soft, so environments without the built
+;; package (bare batch runs) degrade to the deferral guards.
+(require 'claude-code-ide nil t)
 (require 'org-element)
 (require 'org-clock)
 (require 'org-id)
@@ -322,6 +329,21 @@ removes the heading from the source buffer entirely (via
 (add-hook 'org-after-todo-state-change-hook #'claude-code-ide-org--audit-todo-hook)
 (advice-add 'org-archive-subtree :around #'claude-code-ide-org--audit-around-archive)
 
+(defun claude-code-ide-org--downcase-new-id (id)
+  "Downcase ID when `org-id-method' is `uuid', else return it unchanged.
+`:filter-return' advice on `org-id-new', ported from Doom's
+`+org--fix-inconsistent-uuidgen-case-a' (lang/org) so installs
+without Doom's :lang org module get the same lowercase IDs: org
+itself uses `org-id-uuid-program' output verbatim, and macOS
+uuidgen emits uppercase where Linux's emits lowercase.  Scoped to
+the `uuid' method because the other methods' IDs are not UUIDs and
+their case may be significant.  Coexists with Doom's advice —
+downcasing twice is a no-op (TODO.org :ID: 4f8b5d99)."
+  (if (eq org-id-method 'uuid)
+      (downcase id)
+    id))
+(advice-add 'org-id-new :filter-return #'claude-code-ide-org--downcase-new-id)
+
 ;;; Session tracking --------------------------------------------------------
 ;;
 ;; Two separate timekeeping mechanisms, deliberately kept apart:
@@ -577,6 +599,50 @@ variable of the same name, so directory entries (e.g. a bare
 \"~/org\") are actually expanded to their contained files rather than
 passed through as an unusable directory string."
   (or claude-code-ide-org-query-files (org-agenda-files)))
+
+(defun claude-code-ide-org--tracked-buffer-p (&optional buffer)
+  "Non-nil when BUFFER (default current) visits a tracked org file.
+
+The consent boundary 1caed585 decided (TODO.org :ID: 67c3208f): the
+module's opinionated hook policies -- auto-clock-in, NEXT demotion,
+the own-clock DONE guard -- act only in files the machinery owns,
+`claude-code-ide-org--tracked-files', so enabling the Doom module
+never changes behaviour in a user's unrelated org files.  Compared by
+`file-truename' on both sides, since the tracked set is typically
+symlinks and a buffer may visit either name.  A buffer visiting no
+file (capture buffers, temp buffers) is NOT tracked: every policy
+this gates concerns durable task state on disk.
+
+`org-depend-block-todo' is deliberately NOT behind this gate: a
+:BLOCKER: property is written by hand, per file, and refusing to
+enforce a declaration the user made deliberately would be the wrong
+kind of quiet."
+  (when-let* ((file (buffer-file-name
+                     (buffer-base-buffer (or buffer (current-buffer)))))
+              (true (file-truename file)))
+    (seq-some (lambda (f) (equal true (file-truename f)))
+              (claude-code-ide-org--tracked-files))))
+
+(defun claude-code-ide-org--revert-so-long-takeover ()
+  "Restore the real major mode when so-long has replaced it in a
+tracked file.  Doom's `doom-so-long-p' triggers on line *count*
+\(`doom-file-lines-threshold-alist', 20k default), which a long-lived
+archive crosses through ordinary growth -- measured 2026-09-10 at
+20,988 lines, when the first tool scan after a restart landed
+DONE.org in `so-long-mode' and every org-element call against it
+warned (TODO.org :ID: 045459f6).  The tools parse and *write* these
+files (org_archive's target is exactly this buffer), so on the
+machinery's own files correctness outranks the speedup; untracked
+files stay so-long's business -- the same consent boundary as the
+hook policies above.  On `find-file-hook', which `find-file-noselect'
+also runs, so invisible tool-scan visits are covered.  so-long's
+*minor* mode is left alone: it keeps the major mode, and org still
+parses correctly under it."
+  (when (and (eq major-mode 'so-long-mode)
+             (fboundp 'so-long-revert)
+             (claude-code-ide-org--tracked-buffer-p))
+    (so-long-revert)))
+(add-hook 'find-file-hook #'claude-code-ide-org--revert-so-long-takeover)
 
 (defun claude-code-ide-org--parse-org-timestamp (ts-string)
   "Parse an org timestamp string like \"[2026-07-27 Mon 17:45]\"
@@ -2467,13 +2533,43 @@ children. Add the heading to the member list instead, or refile it elsewhere"
 ;; immediately usable, as the tool's contract promises, regardless of
 ;; agenda-file configuration.
 
+(defun claude-code-ide-org--session-project-capture-file ()
+  "The tracked TODO.org belonging to the calling session's project, or nil.
+
+The MCP request handler binds the session id around every tool call,
+and the session carries the :project-dir it was registered with — so a
+targetless capture can be routed to the *caller's* tracker instead of
+the single global default, which filed a second project's captures
+into the wrong repo (TODO.org :ID: d718f6b6; the cwd signal
+`5461c349' put on queue events, applied to the write itself).
+
+A tracked file is the project's when its truename lives under the
+project-dir's truename and it is named TODO.org.  The file is returned
+under its *tracked* name (the `org-agenda-files' entry, typically the
+~/org symlink), never re-derived from the repo path, so org-id and the
+agenda keep exactly one name per file.  nil when the session has no
+project-dir or the project has no tracked TODO.org — the caller falls
+back to the global default, unchanged."
+  (when-let* ((ctx (and (fboundp 'claude-code-ide-mcp-server-get-session-context)
+                        (claude-code-ide-mcp-server-get-session-context)))
+              (dir (plist-get ctx :project-dir))
+              (dir-true (file-truename (file-name-as-directory dir))))
+    (seq-find (lambda (f)
+                (and (equal (file-name-nondirectory f) "TODO.org")
+                     (string-prefix-p dir-true (file-truename f))))
+              (claude-code-ide-org--tracked-files))))
+
 (defun claude-code-ide-org--capture-target-file ()
-  "File `org_capture' targets: `claude-code-ide-org-capture-file' if
-set, else `org-default-notes-file'.  Used as the (file ...) target
-spec's function in the dynamically-built capture template — resolved
-fresh on every capture, so changing the defcustom at runtime takes
-effect immediately."
-  (or claude-code-ide-org-capture-file org-default-notes-file))
+  "File `org_capture' targets, in priority order: the calling session's
+own tracked TODO.org (`claude-code-ide-org--session-project-capture-file',
+so a second project's captures land in *its* tracker),
+`claude-code-ide-org-capture-file', else `org-default-notes-file'.
+Used as the (file ...) target spec's function in the dynamically-built
+capture template — resolved fresh on every capture, so a changed
+defcustom or a different calling session takes effect immediately."
+  (or (claude-code-ide-org--session-project-capture-file)
+      claude-code-ide-org-capture-file
+      org-default-notes-file))
 
 (defun claude-code-ide-org--capture-level-1-headings (file)
   "The distinct :CATEGORY: values in use across FILE.
@@ -2524,8 +2620,20 @@ different one is worse off than a caller that got an error."
      ;; TODO.org :ID: 29439196 flattened the category tier, and with no
      ;; heading to file under, recency is the ordering that remains. It
      ;; is also what the user asked for: newest first.
+     ;; The :where names the file, not just "top of file": with captures
+     ;; routed by the calling session's project (:ID: d718f6b6), which
+     ;; tracker received the heading is the fact the reply must carry.
+     ;;
+     ;; The *path*, not the basename, and that distinction is the whole
+     ;; point (:ID: 86c11795): routing only ever selects files named
+     ;; TODO.org, so a basename rendered "top of TODO.org" for every
+     ;; project and discriminated nothing -- the reply looked correct
+     ;; whichever tracker was written, which is what made a misroute
+     ;; invisible from inside a session. `abbreviate-file-name' keeps it
+     ;; to ~/... so the review buffer's line stays readable.
      ((null target)
-      (list :spec (list 'file default) :file default :where "top of file"))
+      (list :spec (list 'file default) :file default
+            :where (format "top of %s" (abbreviate-file-name default))))
      ((claude-code-ide-org--id-find target)
       (list :spec (list 'id target)
             :file (car (claude-code-ide-org--id-find target))
@@ -2534,7 +2642,7 @@ different one is worse off than a caller that got an error."
 is a :CATEGORY: property rather than a heading, so there is nothing to file \
 *under* by name -- omit the target to prepend at the top of %s and pass \
 category instead"
-               target (file-name-nondirectory default))))))
+               target (abbreviate-file-name default))))))
 
 ;;; Write-through gate for capture and amend ---------------------------------
 ;;
@@ -2595,7 +2703,7 @@ can carry a list at all."
     (if names (format " :%s:" (string-join names ":")) "")))
 
 (defun claude-code-ide-org--capture-write (title new-id created spec tags
-                                                 &optional initial-state)
+                                                 &optional initial-state note)
   "Insert TITLE as a heading at SPEC, carrying NEW-ID, CREATED and TAGS.
 Factored out of `claude-code-ide-org-capture' so the immediate path and
 the apply path insert headings through exactly one code path -- a
@@ -2607,7 +2715,14 @@ Validated by the caller, never here: this function is also the apply
 path, and an event already on the queue must land as recorded rather
 than being re-judged against a keyword set that may have changed since.
 Omitted, the heading is keywordless, which stays the default
-(TODO.org :ID: c74f8663)."
+(TODO.org :ID: c74f8663).
+
+NOTE, when given, becomes the heading's initial *body* -- both paths,
+since 2026-09-11 (TODO.org :ID: 204d1b0a; before that it was accepted
+and silently discarded, and six filings shipped bodiless).  Inserted
+after `org-capture' finalizes rather than embedded in the template,
+because template text is scanned for %-escapes and user prose
+containing `%U' or `%i' would expand instead of landing verbatim."
   (let ((org-capture-templates
          (list (list "z" "Claude quick-capture (org_capture MCP tool)"
                      'entry
@@ -2646,7 +2761,15 @@ Omitted, the heading is keywordless, which stays the default
                      ;; would make a new child the FIRST child, which is
                      ;; a different decision nobody has taken.
                      :prepend (eq (car-safe spec) 'file)))))
-    (org-capture-string title "z")))
+    (org-capture-string title "z")
+    (when (and note (not (string-empty-p (string-trim note))))
+      (let ((m org-capture-last-stored-marker))
+        (when (and (markerp m) (marker-buffer m))
+          (org-with-point-at m
+            (claude-code-ide-org--end-of-body)
+            (insert (claude-code-ide-org--amend-separator note)
+                    (string-trim note) "\n")
+            (save-buffer)))))))
 
 (defun claude-code-ide-org--file-todo-keywords (file)
   "The TODO keywords FILE's own `#+TODO:' line declares, or nil.
@@ -2702,8 +2825,12 @@ formatting it in elisp cannot fail that way.
 TARGET places the heading — an :ID:, a top-level category title, or
 omitted for the end of the capture file.  See
 `claude-code-ide-org--capture-target-spec'.  TAGS is a comma-separated
-tag string.  NOTE is a short reason, carried for the queue and unused on
-the immediate path.
+tag string.  NOTE becomes the heading's initial body, on the immediate
+path and at apply alike (since 2026-09-11, TODO.org :ID: 204d1b0a --
+before that it was \"carried for the queue and unused on the immediate
+path\", i.e. accepted and silently discarded, and six filings shipped
+bodiless before a reader noticed).  It still rides the queue event, so
+the review buffer shows it before apply.
 
 *Writes through when the target file is free, and queues when it is
 not* (TODO.org :ID: b5f94b88).  In the common case the heading appears at
@@ -2822,7 +2949,8 @@ else."
                   title new-id (plist-get resolved :where)))
          (t
           (claude-code-ide-org--capture-write
-           title new-id created (plist-get resolved :spec) tags initial-state)
+           title new-id created (plist-get resolved :spec) tags initial-state
+           note)
           ;; Registered against the file the target actually resolved to,
           ;; which is not necessarily the capture file: an :ID: target can
           ;; live anywhere org-id knows about.
@@ -3331,12 +3459,40 @@ abbreviates an id cannot drift apart about it.")
       (substring id 0 claude-code-ide-org--id-prefix-length)
     id))
 
-(defun claude-code-ide-org--outline-line (active-only max-depth &optional indent-offset)
+(defun claude-code-ide-org--outline-body-at-point ()
+  "The heading-at-point's own body prose, drawers excluded, or nil.
+
+The outline's half of the read split (TODO.org :ID: 2a399034): once
+plan and debrief live in drawers, the body is the summary a reader
+orients by, so the index carries it and the drawers stay behind an
+explicit `org_body' call.  `org-end-of-meta-data' with FULL skips
+planning, properties and every drawer -- :PLAN: and :DEBRIEF:
+included -- and the read stops at the first child heading."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((end (save-excursion (outline-next-heading) (or (point) (point-max)))))
+      (org-end-of-meta-data t)
+      (when (< (point) end)
+        (let ((text (string-trim
+                     (buffer-substring-no-properties (point) end))))
+          (and (not (string-empty-p text)) text))))))
+
+(defun claude-code-ide-org--outline-line (active-only max-depth &optional indent-offset body)
   "Format the heading at point as one index line, or nil to omit it.
 Omits finished headings when ACTIVE-ONLY, and anything deeper than
 MAX-DEPTH when that is non-nil.  Levels are absolute, so a MAX-DEPTH
 of 2 means the same thing whether the scope is a whole file or one
-subtree."
+subtree.  BODY, when given, is the heading's own body prose and follows
+the line, indented two spaces past it -- the read split
+TODO.org :ID: 2a399034 decided.
+
+BODY is passed in rather than extracted here, which is a performance
+contract and not a style choice (TODO.org :ID: 64f649f3):
+`claude-code-ide-org--outline-map' calls this twice per heading, so
+extracting it here ran `claude-code-ide-org--outline-body-at-point'
+-- an `org-end-of-meta-data' walk plus a `buffer-substring' -- twice
+for every heading of every default-on whole-file call, and discarded
+one of the two results."
   (let ((level (org-current-level))
         (keyword (org-get-todo-state)))
     (unless (or (and max-depth (> level max-depth))
@@ -3344,7 +3500,8 @@ subtree."
                      (member keyword
                              claude-code-ide-org--outline-finished-keywords)))
       (let ((id (org-entry-get nil "ID"))
-            (tags (org-get-tags nil t)))
+            (tags (org-get-tags nil t))
+            (indent (make-string (* 2 (+ (1- level) (or indent-offset 0))) ?\s)))
         ;; Stripped once, over the assembled line, rather than per
         ;; component.  Every one of these reads from the buffer and so
         ;; carries its text properties -- `org-get-heading' most visibly,
@@ -3355,7 +3512,7 @@ subtree."
         ;; rewritten to propertize the fixture by hand, since batch Emacs
         ;; runs no font-lock and a scratch org file is clean either way.
         (substring-no-properties
-         (concat (make-string (* 2 (+ (1- level) (or indent-offset 0))) ?\s)
+         (concat indent
                 (and keyword (concat keyword " "))
                 ;; All four flags on: no TODO keyword (added above, so it
                 ;; is not doubled), no priority cookie, no tags, no
@@ -3374,7 +3531,12 @@ subtree."
                 (org-get-heading t t t t)
                 (and id (format "  {%s}" id))
                 (and tags (format "  :%s:" (string-join tags ":")))
-                (claude-code-ide-org--outline-blocked-marker)))))))
+                (claude-code-ide-org--outline-blocked-marker)
+                (and body
+                     (concat "\n"
+                             (mapconcat (lambda (l) (concat indent "  " l))
+                                        (split-string body "\n")
+                                        "\n")))))))))
 
 (defun claude-code-ide-org--outline-slice-members ()
   "Reference lines for the slice at point, or nil when it is not one.
@@ -3487,25 +3649,35 @@ keyword so a satisfied blocker is visible as such without a second call."
     (when plan (push (format "  :PLAN-FILE: %s" plan) lines))
     (nreverse lines)))
 
-(defun claude-code-ide-org--outline-map (active-only max-depth scope &optional grouped)
+(defun claude-code-ide-org--outline-map (active-only max-depth scope &optional grouped bodies)
   "Collect index lines over SCOPE, an `org-map-entries' scope value.
 
 With GROUPED, return (CATEGORY . LINE) pairs and indent every line one
 level further, leaving room for the synthetic category header the caller
-emits.  Without it, return plain lines exactly as before."
+emits.  Without it, return plain lines exactly as before.  BODIES asks
+for each heading's body prose: it is extracted here, once per heading,
+and the text handed to both `claude-code-ide-org--outline-line' calls."
   (let (records)
     ;; Two lines per heading: the filtered one, which decides whether it
     ;; survives on its own, and the unfiltered one, which is what gets
     ;; emitted if it turns out to be an ancestor of something that did.
+    ;;
+    ;; The body is extracted ONCE here and handed to both, because the two
+    ;; calls differ only in their filter and a heading's body is the same
+    ;; either way (TODO.org :ID: 64f649f3). Extracting it inside
+    ;; `--outline-line' meant two `org-end-of-meta-data' walks and two
+    ;; `buffer-substring's per heading, one of them always discarded, on a
+    ;; path that is default-on over whole files.
     (org-map-entries
      (lambda ()
-       (push (list (org-current-level)
-                   (claude-code-ide-org--outline-line
-                    active-only max-depth (and grouped 1))
-                   (claude-code-ide-org--outline-line
-                    nil max-depth (and grouped 1))
-                   (and grouped (claude-code-ide-org--outline-category)))
-             records))
+       (let ((body (and bodies (claude-code-ide-org--outline-body-at-point))))
+         (push (list (org-current-level)
+                     (claude-code-ide-org--outline-line
+                      active-only max-depth (and grouped 1) body)
+                     (claude-code-ide-org--outline-line
+                      nil max-depth (and grouped 1) body)
+                     (and grouped (claude-code-ide-org--outline-category)))
+               records)))
      nil scope)
     ;; RECORDS is reverse document order, which is the order this walk
     ;; wants. A heading is kept when it survives the filter, or when it is
@@ -3569,7 +3741,103 @@ rather than being dropped or silently attached to the previous one."
       (dolist (line (nreverse (cdr (assoc cat table))))
         (push line out)))))
 
-(defun claude-code-ide-org-body (id &optional include-children)
+(defun claude-code-ide-org--drawers-at-point ()
+  "Alist of (NAME . ELEMENT) for the real drawers in the heading's own body.
+NAMEs are upcased; order is the order they appear.  Stops at the first
+child, because drawers belong to the entry.
+
+`org-element' decides what is a drawer, never the regexp that finds
+candidate lines -- the regexp only says where to look.  That is the
+lesson of TODO.org :ID: f42641ab, and two shapes make it concrete: a
+drawer marker inside `#+begin_example' is not a drawer, and a bare
+`:DEBRIEF:' line *quoted inside* another drawer's prose is not one
+either.  The second is why the element must also *begin* on the
+candidate line: `org-element-at-point' answers with the enclosing
+drawer there, which would otherwise pass the type check and hand back
+the wrong drawer entirely.
+
+Includes the property drawer, which `claude-code-ide-org--find-drawer'
+deliberately excludes -- hence the separate scan rather than a call to
+it.  The callers differ in kind: that one is asked for *a* drawer to
+write into, this one reports what a heading has, and a reader asking
+for :PROPERTIES: should get it rather than be told it is absent."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((end (save-excursion (outline-next-heading) (point)))
+          (found nil))
+      (while (re-search-forward "^[ \t]*:\\([A-Za-z][A-Za-z0-9_-]*\\):[ \t]*$" end t)
+        (let ((name (upcase (match-string-no-properties 1))))
+          (unless (or (equal name "END") (assoc name found))
+            (let ((element (org-element-at-point)))
+              (when (and (org-element-type-p element '(drawer property-drawer))
+                         (= (org-element-begin element) (line-beginning-position)))
+                (push (cons name element) found))))))
+      (nreverse found))))
+
+(defun claude-code-ide-org--unterminated-drawer-p (name)
+  "Non-nil when a :NAME: line in this heading's body opens a drawer nothing closes.
+Scans the heading's own region only, as `claude-code-ide-org--drawers-at-point'
+does.
+
+This exists because `org-element' declines an unterminated drawer and a
+decoy alike, and the caller owes the two different answers: malformed
+text a human must fix, versus a drawer that genuinely is not there.
+
+Three conditions, and the last two are what keep it from calling
+well-formed files malformed -- both were found by the decoy test rather
+than reasoned out.  No :END: follows the line.  The element there is a
+`paragraph', so a marker inside `#+begin_example' (an `example-block',
+and nothing it contains needs closing) is not mistaken for a drawer
+anyone opened.  And that paragraph *begins* on the line, so a bare
+marker sitting mid-prose is read as the prose it is, not as a drawer
+someone forgot to close."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((end (save-excursion (outline-next-heading) (point)))
+          (marker-re (concat "^[ \t]*:" (regexp-quote name) ":[ \t]*$"))
+          (unterminated nil))
+      (while (and (not unterminated) (re-search-forward marker-re end t))
+        (let ((element (org-element-at-point)))
+          (when (and (not (save-excursion
+                            (re-search-forward "^[ \t]*:END:[ \t]*$" end t)))
+                     (org-element-type-p element 'paragraph)
+                     (= (org-element-begin element) (line-beginning-position)))
+            (setq unterminated t))))
+      unterminated)))
+
+(defun claude-code-ide-org--drawer-text-at-point (name)
+  "Content of the heading-at-point's :NAME: drawer, or an error string.
+NAME is upcased already.  Scans only this heading's own region --
+drawers belong to the entry, so the read stops at the first child.  A
+missing drawer names the drawers the heading does have, so the caller's
+next call needs no guessing.
+
+Which lines are really drawers is
+`claude-code-ide-org--drawers-at-point''s call; see there for why a
+regexp alone got this wrong.  An unterminated drawer is reported as
+malformed rather than missing, because the missing-drawer error would
+otherwise list the very drawer it was denying."
+  (let* ((drawers (claude-code-ide-org--drawers-at-point))
+         (element (cdr (assoc name drawers))))
+    (cond
+     (element
+      (let* ((beg (claude-code-ide-org--drawer-body-start element))
+             (content (buffer-substring-no-properties
+                       beg (or (org-element-contents-end element) beg))))
+        (if (string-empty-p (string-trim content))
+            (format "(the :%s: drawer is empty)" name)
+          content)))
+     ((claude-code-ide-org--unterminated-drawer-p name)
+      (format "Error: the :%s: drawer is malformed -- its opening line \
+exists but no :END: closes it before the next heading." name))
+     ((null drawers)
+      (format "Error: this heading has no :%s: drawer -- it has no drawers at all." name))
+     (t
+      (format "Error: this heading has no :%s: drawer. Drawers present: %s."
+              name (mapconcat (lambda (d) (concat ":" (car d) ":"))
+                              drawers " "))))))
+
+(defun claude-code-ide-org-body (id &optional include-children drawer)
   "Return heading ID whole -- its heading line, drawers and body -- as text.
 
 Replaces a three-tool dance: `grep' for the :ID:, `awk' to find the
@@ -3597,6 +3865,12 @@ it would be the first filtering decision this tool makes, which is the
 thing the design avoids; that readers usually skip that drawer is the
 caller's business, and the tool description says so.
 
+With DRAWER -- a drawer name like PLAN, DEBRIEF or LOGBOOK -- returns
+just that drawer's content from the heading itself: the on-demand half
+of the read split (TODO.org :ID: 2a399034), now that `org_outline'
+carries the body.  A missing drawer errors naming the drawers the
+heading does have; DRAWER cannot be combined with INCLUDE-CHILDREN.
+
 Read-only.  Dispatches through `claude-code-ide-org--at-id', never the
 writable variant: granting write permission to a query tool is exactly
 what that split exists to prevent.  Never signals to the MCP layer."
@@ -3607,21 +3881,31 @@ what that split exists to prevent.  Never signals to the MCP layer."
             (children (and include-children
                            (member (downcase (format "%s" include-children))
                                    '("t" "true" "yes" "1"))
-                           t)))
+                           t))
+            (drawer (and (stringp drawer)
+                         (not (string-empty-p (string-trim drawer)))
+                         (upcase (string-trim drawer)))))
         (cond
          ((null id) "Error: no :ID: given.")
+         ((and drawer children)
+          "Error: drawer= returns one drawer of the heading itself; it \
+cannot be combined with include_children.")
          ((claude-code-ide-org--id-find id)
           (let ((text (claude-code-ide-org--at-id
                        id
                        (lambda ()
-                         (if children
-                             (claude-code-ide-org--subtree-text-at-point)
+                         (cond
+                          (drawer
+                           (claude-code-ide-org--drawer-text-at-point drawer))
+                          (children
+                           (claude-code-ide-org--subtree-text-at-point))
+                          (t
                            (org-back-to-heading t)
                            (buffer-substring-no-properties
                             (point)
                             (save-excursion
                               (claude-code-ide-org--end-of-body)
-                              (point))))))))
+                              (point)))))))))
             (if (and (stringp text) (string-empty-p (string-trim text)))
                 "Error: heading resolved but its text is empty."
               text)))
@@ -3633,14 +3917,18 @@ what that split exists to prevent.  Never signals to the MCP layer."
 or an 8-character :ID: prefix." id))))
     (error (format "Error: %s" (error-message-string err)))))
 
-(defun claude-code-ide-org-outline (&optional scope max-depth active-only)
+(defun claude-code-ide-org-outline (&optional scope max-depth active-only bodies)
   "Return a compact one-line-per-heading index.
 
 SCOPE is an :ID: to index just that subtree, a file name to index one
 file, or empty for every file in `claude-code-ide-org--tracked-files'.
 MAX-DEPTH caps the outline level reported.  ACTIVE-ONLY drops DONE and
-CANCELLED headings.  All three arrive as strings from the MCP layer and
-are parsed leniently; anything unusable falls back to the permissive
+CANCELLED headings.  BODIES -- on unless passed \"false\" -- follows
+each surviving heading with its own body prose, drawers excluded: the
+read split TODO.org :ID: 2a399034 decided, affordable because a
+convention-following body is a short summary.  All of these arrive as
+strings from the MCP layer and are parsed leniently; anything unusable
+falls back to the permissive
 default rather than erroring, since a too-large index is recoverable and
 a failed call is not.
 
@@ -3674,6 +3962,11 @@ layer."
                           (member (downcase (format "%s" active-only))
                                   '("t" "true" "yes" "1"))
                           t))
+             ;; Default ON: nil (the MCP layer's omitted argument) reads
+             ;; as true, and only an explicit falsy string turns it off.
+             (with-bodies (not (and bodies
+                                    (member (downcase (format "%s" bodies))
+                                            '("nil" "false" "no" "0")))))
              (tokens (and scope (split-string scope "[ ,]+" t)))
              (render-id
               (lambda (s)
@@ -3691,7 +3984,7 @@ layer."
                                       (front (claude-code-ide-org--outline-front-matter)))
                                   (append front
                                           (claude-code-ide-org--outline-map
-                                           active depth 'tree)
+                                           active depth 'tree nil with-bodies)
                                           members))))))
                   (if (stringp lines) lines  ; --at-id's "Error: ..." string
                     (if lines (mapconcat #'identity lines "\n")
@@ -3734,7 +4027,7 @@ name either; pass an :ID:, an 8-character :ID: prefix, or a file name." scope))
                 (error "no readable file at %s" file))
               (let ((lines (claude-code-ide-org--outline-group
                             (claude-code-ide-org--outline-map
-                             active depth (list file) 'grouped))))
+                             active depth (list file) 'grouped with-bodies))))
                 (when lines
                   (push (if multiple
                             ;; Only label files when there is more than
@@ -4256,6 +4549,9 @@ apply\".  That is too strong and is corrected here rather than in the
 plan, because this is where someone will read it: `org-clock-in' is a
 user-facing command and no part of this change takes it away."
   (or (not (equal (plist-get change-plist :to) "DONE"))
+      ;; Untracked buffer: permit -- the policy is scoped to the
+      ;; machinery's own files (:ID: 67c3208f).
+      (not (claude-code-ide-org--tracked-buffer-p))
       (not (org-clocking-p))
       (let ((target-id (org-entry-get nil "ID"))
             (clocked-id (org-with-point-at org-clock-marker
@@ -5721,8 +6017,20 @@ Nothing below the headline can be touched, which is the entire point."
       (if new (org-entry-put nil "BLOCKER" new) (org-entry-delete nil "BLOCKER"))
       t)))
 
-(defun claude-code-ide-org-slice-add-member (slice-id member-id &optional after)
+(defun claude-code-ide-org-slice-add-member (slice-id member-id &optional after parent)
   "Add MEMBER-ID to SLICE-ID's planned checklist, then refresh that slice.
+
+With PARENT -- the id of a planned member whose org subtree contains
+MEMBER-ID -- the line lands *indented under PARENT's line* instead: the
+nested-member declaration (TODO.org :ID: 1206b5b0) that previously
+needed a hand edit.  The parent's own checkbox is stripped, because
+nesting declares partial coverage of a story and a cookie-less line
+with indented member lines beneath it is the grouping-label rendering
+(:ID: 758a8b78); a story undertaken whole needs no nested lines at
+all.  MEMBER-ID must be a real descendant of PARENT in the org tree --
+nested lines render a story's own children, nothing else.  A nested
+member appends after the parent's existing indented block; AFTER
+cannot be combined with PARENT.
 
 The write path TODO.org :ID: 9ae0e452 was filed for: every membership
 edit used to be a hand `emacsclient' call or a direct file write, and
@@ -5771,9 +6079,20 @@ the queue, then add it."
                               (org-get-todo-state)))
                  (member-title (org-with-point-at mmarker
                                  (org-no-properties
-                                  (org-get-heading t t t t)))))
+                                  (org-get-heading t t t t))))
+                 (member-ancestors
+                  (org-with-point-at mmarker
+                    (save-excursion
+                      (let (acc)
+                        (while (org-up-heading-safe)
+                          (let ((aid (org-entry-get nil "ID")))
+                            (when aid (push (downcase aid) acc))))
+                        acc)))))
             (org-with-point-at smarker
               (cond
+               ((and after parent)
+                "Error: pass either after= or parent=, not both -- a nested \
+member always appends last under its parent")
                ((not (claude-code-ide-org--slice-p))
                 (format "Error: \"%s\" is not a :KIND: slice heading; a \
 member line belongs only on a slice's checklist"
@@ -5822,23 +6141,68 @@ a keyword-less member. Give it a keyword (or apply its queued one) first."
                                       (match-beginning 0))))
                          (bound (or lead body-end))
                          (anchor nil))
-                    ;; AFTER names the line to insert below; otherwise
-                    ;; the last planned member line wins.  Only the
-                    ;; planned region is scanned, so an incidental can
-                    ;; never anchor a planned member.
-                    (save-excursion
-                      (while (re-search-forward
-                              claude-code-ide-org--slice-member-regexp bound t)
-                        (when (or (null after)
-                                  (string-prefix-p
-                                   (downcase after)
-                                   (downcase (match-string-no-properties 2))))
-                          (setq anchor (line-end-position)))))
-                    (when (and after (null anchor))
-                      (error "after=%s names no planned member of this slice"
-                             after))
-                    (if anchor
-                        (progn (goto-char anchor) (insert "\n" line))
+                    (if parent
+                        ;; PARENT names the planned line to nest under.
+                        ;; Find it, walk past its existing indented
+                        ;; block, strip its checkbox (a grouping label
+                        ;; is cookie-less by definition, and the refresh
+                        ;; reads that structurally), and land the child
+                        ;; two spaces deeper.
+                        (let (pfull pindent pend pbox-beg pbox-end)
+                          (save-excursion
+                            (catch 'found
+                              (while (re-search-forward
+                                      claude-code-ide-org--slice-member-regexp bound t)
+                                (when (string-prefix-p
+                                       (downcase parent)
+                                       (downcase (match-string-no-properties 2)))
+                                  (setq pfull (downcase (match-string-no-properties 2)))
+                                  (beginning-of-line)
+                                  (looking-at "^\\([ \t]*\\)- \\(\\[[ Xx-]\\] \\)?")
+                                  (setq pindent (match-string-no-properties 1))
+                                  (when (match-beginning 2)
+                                    (setq pbox-beg (copy-marker (match-beginning 2))
+                                          pbox-end (copy-marker (match-end 2))))
+                                  (end-of-line)
+                                  (setq pend (copy-marker (point)))
+                                  (while (save-excursion
+                                           (forward-line 1)
+                                           (and (< (point) bound)
+                                                (looking-at
+                                                 (concat "^" pindent
+                                                         "[ \t]+- \\(\\[[ Xx-]\\] \\)?\\[\\[id:"))))
+                                    (forward-line 1)
+                                    (end-of-line)
+                                    (set-marker pend (point)))
+                                  (throw 'found t)))))
+                          (unless pend
+                            (error "parent=%s names no planned member of this slice"
+                                   parent))
+                          (unless (member pfull member-ancestors)
+                            (error "%s is not inside %s's subtree -- a nested member line renders a story's own child, nothing else"
+                                   (claude-code-ide-org--id-prefix member-full)
+                                   (claude-code-ide-org--id-prefix pfull)))
+                          (when pbox-beg
+                            (delete-region pbox-beg pbox-end))
+                          (goto-char pend)
+                          (insert "\n" pindent "  " line))
+                      ;; AFTER names the line to insert below; otherwise
+                      ;; the last planned member line wins.  Only the
+                      ;; planned region is scanned, so an incidental can
+                      ;; never anchor a planned member.
+                      (save-excursion
+                        (while (re-search-forward
+                                claude-code-ide-org--slice-member-regexp bound t)
+                          (when (or (null after)
+                                    (string-prefix-p
+                                     (downcase after)
+                                     (downcase (match-string-no-properties 2))))
+                            (setq anchor (line-end-position)))))
+                      (when (and after (null anchor))
+                        (error "after=%s names no planned member of this slice"
+                               after))
+                      (if anchor
+                          (progn (goto-char anchor) (insert "\n" line))
                       ;; No checklist yet: insert beneath an existing
                       ;; Planned: lead, or start one -- lead included,
                       ;; since the lead is load-bearing and this is the
@@ -5864,7 +6228,7 @@ a keyword-less member. Give it a keyword (or apply its queued one) first."
                           (skip-chars-backward " \t\n")
                           (insert "\n\n"
                                   claude-code-ide-org--slice-planned-lead
-                                  "\n\n" line "\n")))))
+                                  "\n\n" line "\n"))))))
                   ;; The refresh re-derives the rendering, cookie and
                   ;; :BLOCKER: from the list that now includes the new
                   ;; line -- so what lands is exactly what a refresh
@@ -5874,10 +6238,12 @@ a keyword-less member. Give it a keyword (or apply its queued one) first."
                   (format "Added %s to \"%s\"%s; cookie and :BLOCKER: refreshed"
                           (claude-code-ide-org--id-prefix member-full)
                           slice-title
-                          (if after
-                              (format " after %s"
-                                      (claude-code-ide-org--id-prefix after))
-                            "")))))))
+                          (cond
+                           (parent (format " nested under %s, whose line is now a grouping label"
+                                           (claude-code-ide-org--id-prefix parent)))
+                           (after (format " after %s"
+                                          (claude-code-ide-org--id-prefix after)))
+                           (t ""))))))))
         (error (format "Error: %s" (error-message-string err))))))))
 
 (defun claude-code-ide-org--trigger-auto-clock-in (change-plist)
@@ -5931,6 +6297,10 @@ scenario that raised it (TODO.org :ID: ab75d6d2).  The exemption's
 heading for the measurement."
   (when (and claude-code-ide-org-auto-clock-in-on-doing
              (equal (plist-get change-plist :to) "DOING")
+             ;; Tracked files only -- the 1caed585 consent scope
+             ;; (:ID: 67c3208f).  After the cheap tests, before the
+             ;; heading reads.
+             (claude-code-ide-org--tracked-buffer-p)
              (not claude-code-ide-org--auto-clock-in-active)
              (not (claude-code-ide-org--grouping-heading-p)))
     (let* ((target-id (org-entry-get nil "ID"))
@@ -6031,6 +6401,9 @@ marked `@' in the future) never fires for this programmatic
 transition; `claude-code-ide-org--format-log-state-line' supplies an
 equivalent line by hand instead."
   (when (and (equal (plist-get change-plist :to) "NEXT")
+             ;; Tracked files only (:ID: 67c3208f), same scope as the
+             ;; auto-clock-in trigger.
+             (claude-code-ide-org--tracked-buffer-p)
              ;; Only inside a container. A top-level heading has no
              ;; sibling group worth the name: its "siblings" are every
              ;; other task in the file, so demoting among them asserts
@@ -8622,7 +8995,8 @@ exists to prevent (TODO.org :ID: b5f94b88)."
          (format-time-string "[%Y-%m-%d %a %H:%M]" (plist-get item :ts))
          (plist-get resolved :spec)
          (plist-get item :tags)
-         (plist-get item :to))
+         (plist-get item :to)
+         (plist-get item :note))
         (org-id-add-location id (expand-file-name file))
         (with-current-buffer (find-file-noselect file) (save-buffer))
         nil)
@@ -13656,6 +14030,156 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
                           (string-join (nreverse bad) "; ")))
       (cons t out))))
 
+;;; Standalone wiring -- the MCP tools server for clients outside the
+;;; vterm launcher (Warp, or a `claude' CLI started in any terminal).
+;;
+;; The block this replaces lived in one user's personal Doom config
+;; (TODO.org :ID: e396f94a): a bare `setq' of upstream's port, a
+;; hardcoded project path, and three upstream calls.  Packaging turned
+;; that private coincidence into a contract -- the plugin's .mcp.json
+;; names http://localhost:45571/mcp/warp -- so the module owns it here,
+;; behind an explicitly *called* setup function rather than acting at
+;; load: a module configures its own behaviour and does not silently
+;; reconfigure the user's (TODO.org :ID: 1caed585).
+;;
+;; The port stays PINNED by design.  Upstream defaults to a random port
+;; per server start; the static .mcp.json contract is exactly why a pin
+;; exists, and dynamic discovery for standalone clients is upstream
+;; work, not this module's.
+
+(declare-function claude-code-ide-mcp-server-ensure-server "claude-code-ide-mcp-server")
+(declare-function claude-code-ide-mcp-server-get-port "claude-code-ide-mcp-server")
+(declare-function claude-code-ide-mcp-server-register-session "claude-code-ide-mcp-server")
+(declare-function claude-code-ide-mcp-start "claude-code-ide-mcp")
+(defvar claude-code-ide-mcp-server-port)
+
+(defconst claude-code-ide-org--repo-root
+  (file-name-directory
+   (directory-file-name
+    (file-name-directory
+     (directory-file-name
+      (file-name-directory
+       (directory-file-name
+        (file-name-directory
+         (file-truename
+          (or load-file-name buffer-file-name default-directory)))))))))
+  "Root of the checkout actually providing this module.
+`file-truename' first, because the module is loaded through a symlink
+under the Doom config and a naive walk up from `load-file-name' would
+land in ~/.config/doom instead of the repo.")
+
+(defcustom claude-code-ide-org-standalone-port 45571
+  "Port the standalone MCP tools server is pinned to.
+Must agree with the URL in the plugin's .mcp.json (and its .warp
+duplicate): those files are static, so the port cannot vary per
+session.  `claude-code-ide-org-standalone-wire' checks the agreement
+loudly rather than trusting it."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defcustom claude-code-ide-org-standalone-projects nil
+  "Directories to register standalone MCP sessions for.
+Each entry is registered under its directory basename as the session
+id, and the FIRST entry additionally as \"warp\" -- the id the shipped
+.mcp.json URL (/mcp/warp) names, kept because that seam is the one
+verified against Warp's own agent.  nil starts the tools server with
+no per-project session: the org tools still work (they scope by
+`org-agenda-files', not by project), but project-scoped tools have no
+context.
+
+The symbol `derive' -- what the generated $DOOMDIR glue sets
+(TODO.org :ID: 7c86ab4c) -- resolves the list fresh on every wire
+call from `claude-code-ide-org--standalone-derive-projects': every
+directory holding a tracked TODO.org is a project, so onboarding a
+repo is making its files discoverable plus re-running the wire, with
+no elisp edit anywhere."
+  :type '(choice (const :tag "Derive from tracked files" derive)
+                 (const :tag "No project sessions" nil)
+                 (repeat directory))
+  :group 'claude-code-ide-org)
+
+(defun claude-code-ide-org--standalone-derive-projects ()
+  "Project directories derived from the tracked files.
+The directory (by truename) of every tracked file named TODO.org, in
+tracked-set order, deduplicated.  The derivation runs at wire time,
+never at load, so a project added to the tracked set is picked up by
+the next `claude-code-ide-org-standalone-wire' call with no
+configuration edit (TODO.org :ID: 7c86ab4c)."
+  (let (dirs)
+    (dolist (f (claude-code-ide-org--tracked-files))
+      (when (equal (file-name-nondirectory f) "TODO.org")
+        (let ((dir (file-name-directory (file-truename f))))
+          (unless (member dir dirs) (push dir dirs)))))
+    (nreverse dirs)))
+
+(defun claude-code-ide-org--mcp-json-port (&optional file)
+  "Port named by FILE, defaulting to the repo's .mcp.json.
+Returns nil when the file is missing or carries no localhost URL --
+the caller decides how loud that should be."
+  (let ((f (or file (expand-file-name ".mcp.json" claude-code-ide-org--repo-root))))
+    (when (file-readable-p f)
+      (with-temp-buffer
+        (insert-file-contents f)
+        (when (re-search-forward "localhost:\\([0-9]+\\)" nil t)
+          (string-to-number (match-string 1)))))))
+
+(defun claude-code-ide-org-standalone-wire ()
+  "Wire the MCP tools server for standalone clients, loudly.
+Pins upstream's `claude-code-ide-mcp-server-port' to
+`claude-code-ide-org-standalone-port' -- refusing if a server is
+already alive on a different port, and refusing if the pin disagrees
+with what the repo's .mcp.json actually names, since that static file
+is the contract every client reads.  Then starts the server and
+registers a session per entry of
+`claude-code-ide-org-standalone-projects' (basename as session id;
+the first entry also as \"warp\").  Idempotent: call it from your
+config after claude-code-ide loads, or interactively after changing
+the project list."
+  (interactive)
+  (let ((pin claude-code-ide-org-standalone-port)
+        (json-port (claude-code-ide-org--mcp-json-port)))
+    (when (and json-port (/= json-port pin))
+      (user-error "claude-code-ide-org: standalone port %d disagrees with .mcp.json's %d; fix one -- the static file is the contract"
+                  pin json-port))
+    (unless json-port
+      (message "claude-code-ide-org: no port found in %s; wiring on %d unchecked"
+               (expand-file-name ".mcp.json" claude-code-ide-org--repo-root) pin))
+    (let ((live (and (fboundp 'claude-code-ide-mcp-server-get-port)
+                     (claude-code-ide-mcp-server-get-port))))
+      (when (and live (/= live pin))
+        (user-error "claude-code-ide-org: tools server already running on port %d, wanted %d; stop it (or restart Emacs) before re-wiring"
+                    live pin)))
+    (setq claude-code-ide-mcp-server-port pin)
+    ;; ensure-server returns the port on success and nil when it
+    ;; declined -- notably when `claude-code-ide-enable-mcp-server' is
+    ;; nil, its default.  Reporting "wired" over a dead server is how
+    ;; the headless sandbox run found this (:ID: 7c86ab4c debrief).
+    (unless (claude-code-ide-mcp-server-ensure-server)
+      (user-error "claude-code-ide-org: tools server did not start -- is `claude-code-ide-enable-mcp-server' t? (`claude-code-ide-emacs-tools-setup' enables it)"))
+    (let ((projects (mapcar #'expand-file-name
+                            (if (eq claude-code-ide-org-standalone-projects
+                                    'derive)
+                                (claude-code-ide-org--standalone-derive-projects)
+                              claude-code-ide-org-standalone-projects))))
+      ;; The IDE-companion (WebSocket server + lockfile) lives in
+      ;; claude-code-ide-mcp.el, which loading claude-code-ide does
+      ;; not pull in -- found when the headless Doom sandbox's glue
+      ;; boot threw void-function here (:ID: 7c86ab4c). Optional by
+      ;; construction: the MCP tools need only the HTTP server, so a
+      ;; missing companion degrades with a message, never an error.
+      (require 'claude-code-ide-mcp nil t)
+      (dolist (dir projects)
+        (claude-code-ide-mcp-server-register-session
+         (file-name-nondirectory (directory-file-name dir)) dir nil)
+        (if (fboundp 'claude-code-ide-mcp-start)
+            (claude-code-ide-mcp-start dir)
+          (message "claude-code-ide-org: IDE companion unavailable; tools server only")))
+      (when projects
+        (claude-code-ide-mcp-server-register-session "warp" (car projects) nil))
+      (message "claude-code-ide-org: standalone tools wired on port %d, %d project session(s)%s"
+               pin (length projects)
+               (if projects " plus \"warp\"" "")))))
+
 (with-eval-after-load 'claude-code-ide
 
   (claude-code-ide-make-tool
@@ -13835,7 +14359,12 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
                  "a member with no TODO keyword on disk (apply a queued "
                  "capture first -- org-depend blocks only on an unfinished "
                  "keyword); and a file with unsaved human edits (retry once "
-                 "saved). Both ids accept an 8-character prefix.")
+                 "saved). With parent= the line lands INDENTED under that "
+                 "planned member instead -- the nested-member declaration for "
+                 "a story the slice covers only partially: the member must be "
+                 "inside the parent's org subtree, and the parent's line "
+                 "becomes a cookie-less grouping label. All ids accept an "
+                 "8-character prefix.")
    :args '((:name "slice_id"
             :type string
             :description "The :ID: of the slice heading (or an 8-character prefix). Must carry :KIND: slice and an unfinished keyword.")
@@ -13845,7 +14374,11 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
            (:name "after"
             :type string
             :optional t
-            :description "Optional. An existing planned member's :ID: or 8-character prefix; the new line is inserted directly after that member's line. Omit to append at the end of the planned checklist.")))
+            :description "Optional. An existing planned member's :ID: or 8-character prefix; the new line is inserted directly after that member's line. Omit to append at the end of the planned checklist. Not combinable with parent.")
+           (:name "parent"
+            :type string
+            :optional t
+            :description "Optional. A planned member's :ID: or 8-character prefix whose org subtree contains member_id; the new line lands indented under it, last in its nested block, and the parent's line becomes a cookie-less grouping label (partial coverage of a story). Not combinable with after.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-divide
@@ -13914,7 +14447,7 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
            (:name "note"
             :type string
             :optional t
-            :description "Short 3-10 word reason for capturing this, recorded on the queued event when the write defers.")
+            :description "Body text for the new heading -- becomes its initial prose on both the immediate and the queued path, and also rides the queue event so the review buffer can show it before apply. The convention for a task body is 2-5 sentences of problem-and-proposal; richer composition (a :PLAN: drawer) still goes through org_amend afterwards.")
            (:name "initial_state"
             :type string
             :optional t
@@ -14011,15 +14544,24 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
                  "tool's. Returns the heading's OWN body by default, "
                  "stopping before its first child; pass include_children to "
                  "get the whole subtree, which for a story can be hundreds of "
-                 "lines. Reach for org_outline first: it answers most "
-                 "orientation questions and costs far less.")
+                 "lines. With drawer= it returns just that ONE drawer's "
+                 "content instead -- the on-demand half of the read split, "
+                 "now that org_outline carries each heading's body: reach "
+                 "for the outline first, then this tool with drawer=PLAN, "
+                 "DEBRIEF or LOGBOOK for the depth the outline withheld. A "
+                 "missing drawer errors naming the drawers the heading does "
+                 "have.")
    :args '((:name "id"
             :type string
             :description "The heading's :ID:, or an 8-character :ID: prefix.")
            (:name "include_children"
             :type string
             :optional t
-            :description "Optional. \"true\" to return the whole subtree instead of just this heading's own body. Omit it and you get this heading alone: for a leaf the two are identical, but for a story the subtree can run to hundreds of lines, and a child is readable by its own :ID: anyway.")))
+            :description "Optional. \"true\" to return the whole subtree instead of just this heading's own body. Omit it and you get this heading alone: for a leaf the two are identical, but for a story the subtree can run to hundreds of lines, and a child is readable by its own :ID: anyway. Not combinable with drawer.")
+           (:name "drawer"
+            :type string
+            :optional t
+            :description "Optional. A drawer name -- PLAN, DEBRIEF, LOGBOOK -- to return just that drawer's content from this heading. Errors name the drawers actually present when the one asked for is missing. Not combinable with include_children.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-outline
@@ -14043,7 +14585,14 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
                  "front matter -- :CREATED:, :CATEGORY:, :KIND:, the :BLOCKER: "
                  "*value* with each id's current keyword, and the plan file -- "
                  "so 'what is this, what blocks it, what is under it' is one "
-                 "call and no body read. Root only, never per line.")
+                 "call and no read of the file. Front matter is root only, "
+                 "never per line. EVERY heading's own body prose follows its "
+                 "line (drawers excluded -- fetch those per heading via "
+                 "org_body drawer=): under the composition conventions a "
+                 "body is a short problem/proposal/resolution summary, so "
+                 "the index answers orientation outright; pass "
+                 "bodies=false for the old structure-only index when only "
+                 "the tree matters.")
    :args '((:name "scope"
             :type string
             :optional t
@@ -14055,7 +14604,11 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
            (:name "active_only"
             :type string
             :optional t
-            :description "\"true\" to omit DONE and CANCELLED headings. Omit to include everything.")))
+            :description "\"true\" to omit DONE and CANCELLED headings. Omit to include everything.")
+           (:name "bodies"
+            :type string
+            :optional t
+            :description "\"false\" for the structure-only index -- one line per heading, no body prose. Omit (the default) to carry each heading's body summary beneath its line.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-sort-children

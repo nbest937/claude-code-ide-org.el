@@ -28,17 +28,22 @@ fp="$(jq -r '.tool_input.file_path // empty' <<<"$input" 2>/dev/null)"
 
 root="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 
+# Two hand-synced pairs (TODO.org :ID: 3348266b added the second):
+# CLAUDE.md <-> README.md share intro framing and the install summary;
+# DOOM.md <-> the shipped setup reference walk the same install story.
 case "$fp" in
-  "$root/CLAUDE.md") edited="CLAUDE.md"; sibling="README.md" ;;
-  "$root/README.md") edited="README.md"; sibling="CLAUDE.md" ;;
+  "$root/CLAUDE.md") edited="CLAUDE.md"; sibling="README.md"; zone="intro framing, the install summary" ;;
+  "$root/README.md") edited="README.md"; sibling="CLAUDE.md"; zone="intro framing, the install summary" ;;
+  "$root/DOOM.md") edited="DOOM.md"; sibling="skills/org/references/org-emacs-setup.md"; zone="the install story: setup modes, ports, discoverability" ;;
+  "$root/skills/org/references/org-emacs-setup.md") edited="skills/org/references/org-emacs-setup.md"; sibling="DOOM.md"; zone="the install story: setup modes, ports, discoverability" ;;
   *) exit 0 ;;
 esac
 
-jq -n -c --arg e "$edited" --arg s "$sibling" '{
-  systemMessage: ("docs: \($e) was edited — \($s) shares its hand-synced overlap (intro, install) and may need the same change"),
+jq -n -c --arg e "$edited" --arg s "$sibling" --arg z "$zone" '{
+  systemMessage: ("docs: \($e) was edited — \($s) shares its hand-synced overlap (\($z)) and may need the same change"),
   hookSpecificOutput: {
     hookEventName: "PostToolUse",
-    additionalContext: ("\($e) was just edited. \($e) and \($s) deliberately duplicate a small overlap zone (intro framing, the install summary) that is synced by hand rather than imported — check whether \($s) needs the same change, and either make it or say briefly why it does not apply. TODO.org :ID: d7849119 is the convention.")
+    additionalContext: ("\($e) was just edited. \($e) and \($s) deliberately duplicate an overlap zone (\($z)) that is synced by hand rather than imported — check whether \($s) needs the same change, and either make it or say briefly why it does not apply. TODO.org :ID: d7849119 is the convention.")
   }
 }'
 exit 0
