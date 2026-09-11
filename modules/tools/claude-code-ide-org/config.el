@@ -10300,6 +10300,288 @@ same question once per item."
                table))
     table))
 
+;;; Joining the transcript to the record (TODO.org :ID: 325679af) -------------
+;;
+;; What was going on during a span, answered from the session's own
+;; transcript.  The record knows *when* work happened and not *what* --
+;; a 0-run span reads identically to an unmeasured long turn, and
+;; `--review-annotation-label' cannot help: an item's label is the note
+;; its enclosing clock event carried, and a span reconstructed from bare
+;; guideposts has no enclosing event, which is what made it
+;; unattributed in the first place.
+;;
+;; The join is by timestamp, and it is measured rather than assumed.
+;; Every queue `resume' is a `UserPromptSubmit', and the transcript
+;; records that same prompt within a second or two.  Across the whole
+;; corpus on 2026-09-11: 1144 resume events over 41 sessions, 1137
+;; matched inside two seconds (99.4%), 6 of the 7 misses being sessions
+;; whose transcript file has aged out.
+;;
+;; *The queue decides what a prompt is.*  Raw `type:"user"' transcript
+;; entries are contaminated -- tool results and injected notifications
+;; arrive in the user role, 319 entries against roughly twenty real
+;; prompts in one session -- so nothing here enumerates user entries.
+;; It asks "what was said at this resume's timestamp", which is a
+;; different question with a clean answer (:ID: 9e627dc0's trap, walked
+;; into twice before this was written).
+;;
+;; Nothing new is recorded anywhere: this is retroactive over every
+;; session ever queued, needs no hook change and no durable field.
+
+(defcustom claude-code-ide-org-prompt-join-tolerance 2
+  "Seconds a transcript prompt may differ from its `resume' event and still match.
+
+Measured, not chosen: across 1144 resume events on 2026-09-11, 1137
+matched a transcript prompt inside this window.  The two clocks are the
+hook's `date' and Claude Code's own writer, so they disagree by the time
+it takes a hook to run, not by anything that scales.
+
+Widening it trades precision for nothing.  Where two prompts fall inside
+one window -- 17 of 1137 -- the nearest wins, so a larger window only
+makes that tie-break decide more often."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defcustom claude-code-ide-org-prompt-synopsis-width 80
+  "Columns a rendered prompt synopsis is truncated to.
+
+The synopsis answers \"what was this\", not \"what did it say\" -- the
+transcript is still there for the latter.  Wide enough that a sentence
+survives, narrow enough that the line does not wrap in a buffer whose
+whole job is scanning."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defcustom claude-code-ide-org-prompt-synopsis-max-lines 5
+  "Most prompt synopses rendered beneath one span.
+
+A span can hold dozens of runs, and a review buffer that scrolls for a
+screen per item is not more legible than one that scrolls for none.
+What is dropped is *said* rather than silently cut, so a reader can tell
+a capped list from a complete one."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defvar claude-code-ide-org--transcript-cache (make-hash-table :test 'equal)
+  "Parsed transcript prompts, keyed by (SESSION-ID . MTIME).
+
+Keyed on the file's modification time as well as its session, so a
+*live* session -- whose transcript grows under us while its own review
+buffer is open -- re-reads instead of answering from a snapshot.  An
+entry for a superseded mtime is simply never hit again; the table is
+small and per-Emacs-session.")
+
+(defun claude-code-ide-org--transcript-file (session-id)
+  "Return the transcript file for SESSION-ID, or nil when none exists.
+
+Found by globbing every project directory rather than by deriving the
+project slug from a `cwd'.  The slug encodes the directory Claude Code
+started in, which is not always the repo root and is different again
+inside a linked worktree -- three ways to derive the wrong name for a
+file whose *basename is already the session id*, and session ids are
+uuids.  Searching for the id cannot be wrong.
+
+Nil is the normal answer for old work, not an error: transcripts age
+out at about thirty days while the queue keeps its events forever, so
+every consumer here has to degrade."
+  (when (and (stringp session-id)
+             ;; The one place an untrusted id reaches a glob pattern.
+             (string-match-p "\\`[A-Za-z0-9._-]+\\'" session-id))
+    (car (file-expand-wildcards
+          (expand-file-name (format "projects/*/%s.jsonl" session-id)
+                            (expand-file-name "~/.claude/"))
+          t))))
+
+(defun claude-code-ide-org--transcript-prompts (session-id)
+  "Return SESSION-ID's transcript prompts as a list of (TIME . TEXT).
+
+Ascending by time.  Only entries in the user role carrying *string*
+content are kept: a tool result arrives in the same role with its
+content as an array, so the shape does the first half of the filtering
+and the timestamp join does the rest.
+
+Lines are pre-filtered with a plain `string-search' before any JSON is
+parsed.  A transcript runs to thousands of lines of which the assistant
+turns -- much the largest -- can never match, and this is called from a
+render."
+  (when-let* ((file (claude-code-ide-org--transcript-file session-id))
+              (mtime (float-time (file-attribute-modification-time
+                                  (file-attributes file))))
+              (key (cons session-id mtime)))
+    (let ((hit (gethash key claude-code-ide-org--transcript-cache 'miss)))
+      (if (not (eq hit 'miss))
+          hit
+        (puthash
+         key
+         (ignore-errors
+           (with-temp-buffer
+             (insert-file-contents file)
+             (let (prompts)
+               (goto-char (point-min))
+               (while (not (eobp))
+                 (let ((line (buffer-substring-no-properties
+                              (line-beginning-position) (line-end-position))))
+                   (when (string-search "\"type\":\"user\"" line)
+                     (when-let* ((obj (ignore-errors
+                                        (json-parse-string
+                                         line :object-type 'alist
+                                         :null-object nil :false-object nil)))
+                                 ;; `isMeta' marks harness-injected text
+                                 ;; wearing the user's role -- the
+                                 ;; "Caveat: the messages below were
+                                 ;; generated by the user while running
+                                 ;; local commands" preamble. It is
+                                 ;; written within milliseconds of the
+                                 ;; command it prefaces, so dropping it
+                                 ;; is what lets the real prompt win the
+                                 ;; nearest-match; keeping it rendered
+                                 ;; the caveat and hid the command.
+                                 ((not (alist-get 'isMeta obj)))
+                                 (ts (alist-get 'timestamp obj))
+                                 (text (alist-get 'content
+                                                  (alist-get 'message obj)))
+                                 ((stringp text))
+                                 ;; The user's `!' shell escapes land in
+                                 ;; the user role as <bash-input> and
+                                 ;; <bash-stdout> pairs and fire no
+                                 ;; UserPromptSubmit, so they are never
+                                 ;; the prompt a `resume' refers to.
+                                 ;; Excluded here rather than at render:
+                                 ;; left in the candidate list one could
+                                 ;; win the nearest-match and hide the
+                                 ;; real prompt. 59 of one session's 80.
+                                 ((not (string-prefix-p "<bash-" text)))
+                                 (time (claude-code-ide-org--parse-iso8601 ts)))
+                       (push (cons time text) prompts))))
+                 (forward-line 1))
+               (sort (nreverse prompts)
+                     (lambda (a b) (time-less-p (car a) (car b)))))))
+         claude-code-ide-org--transcript-cache)))))
+
+(defun claude-code-ide-org--prompt-at (session-id time)
+  "Return the text said in SESSION-ID at TIME, or nil.
+
+The nearest prompt within `claude-code-ide-org-prompt-join-tolerance'.
+Nearest rather than first, because two prompts can fall inside one
+window -- 17 of 1137 on the corpus -- and a rule that picked either end
+would answer differently depending on which way the list was sorted."
+  (when (and session-id time)
+    (let ((best nil) (best-gap nil))
+      (dolist (prompt (claude-code-ide-org--transcript-prompts session-id))
+        (let ((gap (abs (float-time (time-subtract (car prompt) time)))))
+          (when (and (<= gap claude-code-ide-org-prompt-join-tolerance)
+                     (or (null best-gap) (< gap best-gap)))
+            (setq best (cdr prompt) best-gap gap))))
+      best)))
+
+(defun claude-code-ide-org--prompt-before (session-id time)
+  "Return the last thing said in SESSION-ID at or before TIME, or nil.
+
+The fallback for a span holding no `resume' at all, which is not the
+rare case it sounds like: a bracket opened and closed inside *one* turn
+contains no guidepost by construction, and a long turn carrying several
+mid-turn messages emits no `UserPromptSubmit' for them either.  Measured
+on this session while the feature was being built -- fifteen minutes of
+work between a clock_in and a clock_out, two events, no guideposts.
+
+That span is precisely the \"unmeasured long turn\" :ID: 325679af says a
+reader cannot tell from a degenerate one, so answering it with silence
+would miss the case the heading was filed for.  Unlike
+`claude-code-ide-org--prompt-at' this is not the measured join and must
+never be rendered as though it were: the caller labels it as the prompt
+*before* the span, and the line carries the prompt's own timestamp, so
+the distance is visible rather than asserted."
+  (when (and session-id time)
+    (let (best)
+      (dolist (prompt (claude-code-ide-org--transcript-prompts session-id))
+        (unless (time-less-p time (car prompt))
+          (setq best prompt)))
+      best)))
+
+(defun claude-code-ide-org--prompt-synopsis (text)
+  "Return TEXT as one short line, or nil when it says nothing useful.
+
+Three shapes reach here and only one is prose.  A slash command arrives
+wrapped in `<command-message>'/`<command-name>' tags, and the command
+*is* the synopsis -- 11 of 1137.  A subagent finishing re-invokes the
+agent, which submits a prompt nobody typed, so its `<task-notification>'
+is named as what it is rather than quoted -- 28 of 1137.  The remaining
+96% is what the human actually said, and its first non-blank line is
+taken whole."
+  (when (stringp text)
+    (let ((text (string-trim text)))
+      (cond
+       ((string-empty-p text) nil)
+       ((string-match "<command-name>\\([^<]+\\)</command-name>" text)
+        (string-trim (match-string 1 text)))
+       ((string-prefix-p "<task-notification" text) "(subagent finished)")
+       (t (let ((line (car (seq-remove #'string-empty-p
+                                       (mapcar #'string-trim
+                                               (split-string text "\n"))))))
+            (when line
+              (truncate-string-to-width
+               line claude-code-ide-org-prompt-synopsis-width nil nil t))))))))
+
+(defun claude-code-ide-org--span-prompt-lines (item)
+  "Return the prompt synopsis lines to render beneath ITEM.
+
+One line per run of work, in order, each labelled with the time its
+prompt was submitted -- which is what makes a 0-run span legible: it
+renders no run line at all, and the absence is then visibly an absence
+rather than a silence.
+
+A span whose transcripts have aged out says so instead of rendering
+nothing, because \"no prompts\" and \"no transcript\" are the two
+answers a reader must not confuse, and the second is the common one for
+old work.
+
+Capped at `claude-code-ide-org-prompt-synopsis-max-lines', with the
+remainder stated."
+  (let* ((events (plist-get item :events))
+         (resumes (seq-filter (lambda (e) (equal (plist-get e :kind) "resume"))
+                              events))
+         (sessions (delete-dups (delq nil (mapcar (lambda (e)
+                                                    (plist-get e :session-id))
+                                                  events))))
+         (have-transcript (seq-find #'claude-code-ide-org--transcript-file
+                                    sessions))
+         lines)
+    (cond
+     ;; No guideposts inside at all: answer with the prompt that was in
+     ;; effect when the span opened, labelled as being from before it.
+     ((and (null resumes) have-transcript)
+      ;; HAVE-TRANSCRIPT is the session id `seq-find' matched on, not a
+      ;; boolean -- so this asks the session that actually has a
+      ;; transcript rather than whichever happens to sort first.
+      (when-let* ((prompt (claude-code-ide-org--prompt-before
+                           have-transcript (plist-get item :start)))
+                  (synopsis (claude-code-ide-org--prompt-synopsis (cdr prompt))))
+        (list (format "%s  %s   [last prompt before this span]"
+                      (format-time-string "%H:%M" (car prompt))
+                      synopsis))))
+     ((null resumes) nil)
+     ((not have-transcript)
+      (list (format "no transcript for session %s (aged out); %d prompt(s) unreadable"
+                    (claude-code-ide-org--short-id (car sessions))
+                    (length resumes))))
+     (t
+      (dolist (event resumes)
+        (when-let* ((text (claude-code-ide-org--prompt-at
+                           (plist-get event :session-id)
+                           (plist-get event :ts)))
+                    (synopsis (claude-code-ide-org--prompt-synopsis text)))
+          (push (format "%s  %s"
+                        (format-time-string "%H:%M" (plist-get event :ts))
+                        synopsis)
+                lines)))
+      (setq lines (nreverse lines))
+      (let ((shown claude-code-ide-org-prompt-synopsis-max-lines))
+        (if (<= (length lines) shown)
+            lines
+          (append (seq-take lines shown)
+                  (list (format "... %d more prompt(s) in this span"
+                                (- (length lines) shown))))))))))
+
 ;;; Span evidence ------------------------------------------------------------
 ;;
 ;; What was going on between two timestamps, answered from artefacts the
@@ -10609,6 +10891,36 @@ its commit and reporting it would be noise."
       (setq points (cdr points)))
     (nreverse gaps)))
 
+(defvar-local claude-code-ide-org--span-prompt-cache nil
+  "Hash table memoizing `claude-code-ide-org--span-prompt-lines' per window.
+
+Same reason and same shape as `claude-code-ide-org--span-evidence-cache'
+below: the render runs on every mark keystroke, and although the parsed
+transcript is itself cached, the join still compares every `resume' in
+the span against every prompt in the session.  Keyed on the window, so
+narrowing with `e' re-reads -- the prompts inside a smaller window are a
+different list.  Cleared by `g'.")
+
+(defun claude-code-ide-org--span-prompt-lines-cached (item)
+  "Prompt synopsis lines for ITEM, computed once per window per buffer."
+  (let ((start (plist-get item :start))
+        (end (plist-get item :end)))
+    (when (and start end)
+      (unless claude-code-ide-org--span-prompt-cache
+        (setq claude-code-ide-org--span-prompt-cache
+              (make-hash-table :test 'equal)))
+      (let* ((key (list (float-time start) (float-time end)))
+             (hit (gethash key claude-code-ide-org--span-prompt-cache 'miss)))
+        (if (eq hit 'miss)
+            (puthash key
+                     ;; Display code degrades, it does not signal: an
+                     ;; unreadable transcript must cost its own line, not
+                     ;; the buffer.
+                     (ignore-errors
+                       (claude-code-ide-org--span-prompt-lines item))
+                     claude-code-ide-org--span-prompt-cache)
+          hit)))))
+
 (defvar-local claude-code-ide-org--span-evidence-cache nil
   "Hash table memoizing `claude-code-ide-org--span-evidence' per window.
 
@@ -10823,6 +11135,17 @@ rest from lighting up."
         ;; Left unpropertized on purpose: without the item property these
         ;; lines behave exactly as the group headings do, so `m', `n' and
         ;; `--review-forward-item' step over them rather than onto them.
+        ;; Prompt synopses go under EVERY clock item, where the evidence
+        ;; below goes only under unassigned ones -- and the difference is
+        ;; the point rather than an inconsistency. Evidence answers
+        ;; "which heading is this?", which an assigned span has already
+        ;; answered. The prompts answer "what was going on?", which is
+        ;; unanswered on an assigned span too: an item's label is its
+        ;; enclosing clock event's note, and a guidepost-reconstructed
+        ;; span has no enclosing event (TODO.org :ID: 325679af).
+        (when (eq (plist-get item :type) 'clock)
+          (dolist (line (claude-code-ide-org--span-prompt-lines-cached item))
+            (insert (format "          %s\n" line))))
         (when (and (eq (plist-get item :type) 'clock)
                    (plist-get item :unassigned))
           (dolist (line (claude-code-ide-org--span-evidence-cached item))
@@ -11703,6 +12026,11 @@ the kind of thing a human presses it for."
         (user-error "Refresh cancelled; nothing discarded"))
       (setq claude-code-ide-org--review-stash claude-code-ide-org--review-items)))
   (setq claude-code-ide-org--span-evidence-cache nil)
+  ;; Cleared alongside the evidence, and for one reason the evidence does
+  ;; not have: a *live* session's transcript is still being written, so
+  ;; `g' is also how the prompts of a turn that happened since the buffer
+  ;; was drawn become readable.
+  (setq claude-code-ide-org--span-prompt-cache nil)
   ;; Recomputed here and only here, so the scan runs when the buffer is
   ;; built and when `g' is typed -- not on the redraw every mark triggers.
   ;; `g' already means "go and look again", which is exactly when a stale

@@ -9283,6 +9283,227 @@ truename is what makes the query land in the right repository."
             (should (equal (claude-code-ide-org--git-roots)
                            (list (file-truename dir)))))
         (delete-directory link-dir t)))))
+;;; Joining the transcript to the record (TODO.org :ID: 325679af) -------------
+
+(defmacro claude-code-ide-org-test--with-transcript (session-id entries &rest body)
+  "Write ENTRIES as SESSION-ID's transcript under a temp ~/.claude, run BODY.
+
+ENTRIES is a list of plists (:ts :text :meta), each written as one JSONL
+line in the shape Claude Code actually writes -- `type', `timestamp' and
+a `message.content' -- so the reader is exercised against the real
+layout rather than against a convenience format.
+
+`HOME' is rebound, because `claude-code-ide-org--transcript-file'
+resolves ~/.claude deliberately: the transcript location is Claude
+Code's, not this project's, and is not a variable anyone should be able
+to point elsewhere in production."
+  (declare (indent 2))
+  `(let* ((home (file-name-as-directory (make-temp-file "cciorg-home" t)))
+          (dir (expand-file-name ".claude/projects/-some-project/" home))
+          (process-environment (cons (concat "HOME=" (directory-file-name home))
+                                     process-environment))
+          (claude-code-ide-org--transcript-cache (make-hash-table :test 'equal)))
+     (unwind-protect
+         (progn
+           (make-directory dir t)
+           (with-temp-file (expand-file-name (concat ,session-id ".jsonl") dir)
+             (dolist (e ,entries)
+               (insert (json-encode
+                        `((type . "user")
+                          (timestamp . ,(plist-get e :ts))
+                          ,@(when (plist-get e :meta) '((isMeta . t)))
+                          (message . ((role . "user")
+                                      (content . ,(plist-get e :text))))))
+                       "\n")))
+           ,@body)
+       (delete-directory home t))))
+
+(ert-deftest claude-code-ide-org-test-transcript-prompts-reject-the-contamination ()
+  "Only what a human said survives the read.
+
+Four shapes share the user role in a transcript and three are not
+prompts: a tool result carries its content as an *array*, an `isMeta'
+entry is the harness's own caveat preamble, and a `!' shell escape is a
+<bash-input>/<bash-stdout> pair.  Each is dropped at *collection* time,
+not at render -- left in the candidate list any of them could win the
+nearest-match and hide the real prompt, which is how the caveat was
+found rendering in place of a slash command (TODO.org :ID: 325679af)."
+  (claude-code-ide-org-test--with-transcript "sess-tx"
+      (list (list :ts "2026-09-11T12:00:00.000Z" :text "the real question")
+            (list :ts "2026-09-11T12:00:00.100Z" :text "Caveat: local commands" :meta t)
+            (list :ts "2026-09-11T12:00:01.000Z" :text "<bash-input>git status</bash-input>")
+            (list :ts "2026-09-11T12:00:02.000Z" :text "<bash-stdout>On branch main</bash-stdout>"))
+    (let ((prompts (claude-code-ide-org--transcript-prompts "sess-tx")))
+      (should (equal (mapcar #'cdr prompts) '("the real question"))))))
+
+(ert-deftest claude-code-ide-org-test-prompt-at-takes-the-nearest-within-tolerance ()
+  "The join is nearest-wins inside the tolerance, and silent outside it.
+
+Nearest rather than first because two prompts can fall inside one
+window -- 17 of 1137 on the corpus -- and a rule picking either end
+would answer differently depending on how the list happened to sort.
+The out-of-window assertion is what stops the tolerance being decorative."
+  (claude-code-ide-org-test--with-transcript "sess-tx"
+      (list (list :ts "2026-09-11T12:00:00.000Z" :text "one second early")
+            (list :ts "2026-09-11T12:00:01.500Z" :text "half a second late")
+            (list :ts "2026-09-11T12:00:30.000Z" :text "far too late"))
+    (let ((at (claude-code-ide-org--parse-iso8601 "2026-09-11T12:00:01+0000")))
+      (should (equal (claude-code-ide-org--prompt-at "sess-tx" at)
+                     "half a second late"))
+      ;; Nothing within tolerance of a time between the clusters.
+      (should-not (claude-code-ide-org--prompt-at
+                   "sess-tx"
+                   (claude-code-ide-org--parse-iso8601 "2026-09-11T12:00:15+0000"))))))
+
+(ert-deftest claude-code-ide-org-test-prompt-synopsis-names-the-three-shapes ()
+  "Prose is quoted, a slash command is unwrapped, a notification is named.
+
+96% of joined prompts are prose and are taken as their first non-blank
+line.  A slash command arrives wrapped in <command-message>/<command-name>
+tags, where the command *is* the synopsis.  A subagent finishing
+re-invokes the agent, submitting a prompt nobody typed -- naming that as
+what it is beats quoting its xml at a human scanning a review buffer."
+  (should (equal (claude-code-ide-org--prompt-synopsis
+                  "first line\nsecond line")
+                 "first line"))
+  (should (equal (claude-code-ide-org--prompt-synopsis
+                  "<command-message>next-session</command-message>\
+<command-name>/next-session</command-name>")
+                 "/next-session"))
+  (should (equal (claude-code-ide-org--prompt-synopsis
+                  "<task-notification>\n<task-id>abc</task-id>")
+                 "(subagent finished)"))
+  (should-not (claude-code-ide-org--prompt-synopsis "   \n  "))
+  (should-not (claude-code-ide-org--prompt-synopsis nil))
+  ;; Truncated to the configured width, ellipsis included in it.
+  (let ((claude-code-ide-org-prompt-synopsis-width 10))
+    (should (= 10 (length (claude-code-ide-org--prompt-synopsis
+                           (make-string 40 ?x)))))))
+
+(ert-deftest claude-code-ide-org-test-span-prompt-lines-render-one-per-resume ()
+  "One line per `resume' in the span, each stamped with its own time.
+
+A 0-run span still renders its prompts, and that is the whole point:
+its runs are empty by definition, so a rendering keyed on runs would
+say nothing about exactly the item :ID: 325679af was filed for."
+  (claude-code-ide-org-test--with-transcript "sess-tx"
+      (list (list :ts "2026-09-11T17:00:00.000Z" :text "first thing")
+            (list :ts "2026-09-11T17:05:00.000Z" :text "second thing"))
+    (let* ((mk (lambda (ts kind)
+                 (list :ts (claude-code-ide-org--parse-iso8601 ts)
+                       :kind kind :session-id "sess-tx")))
+           (item (list :type 'clock :id nil
+                       :start (claude-code-ide-org--parse-iso8601
+                               "2026-09-11T17:00:00+0000")
+                       :end (claude-code-ide-org--parse-iso8601
+                             "2026-09-11T17:05:00+0000")
+                       :events (list (funcall mk "2026-09-11T17:00:00+0000" "resume")
+                                     (funcall mk "2026-09-11T17:05:00+0000" "resume"))))
+           ;; Built from the fixture's own timestamps rather than
+           ;; written out, so the test states "each line carries its
+           ;; event's time" without also asserting which timezone the
+           ;; suite happens to run in.  `format-time-string' renders
+           ;; local time, and hard-coding the UTC hours failed here in
+           ;; CDT for a rendering that was correct.
+           (at (lambda (ts) (format-time-string
+                             "%H:%M" (claude-code-ide-org--parse-iso8601 ts)))))
+      (should (equal (claude-code-ide-org--span-prompt-lines item)
+                     (list (format "%s  first thing"
+                                   (funcall at "2026-09-11T17:00:00+0000"))
+                           (format "%s  second thing"
+                                   (funcall at "2026-09-11T17:05:00+0000"))))))))
+
+(ert-deftest claude-code-ide-org-test-span-prompt-lines-cap-and-say-so ()
+  "Beyond the cap the remainder is stated, never silently dropped.
+
+A span can hold dozens of runs.  Truncating quietly would make a capped
+list indistinguishable from a complete one, which is the failure this
+project names everywhere else it truncates."
+  (claude-code-ide-org-test--with-transcript "sess-tx"
+      (mapcar (lambda (n)
+                (list :ts (format "2026-09-11T17:%02d:00.000Z" n)
+                      :text (format "prompt %d" n)))
+              (number-sequence 0 5))
+    (let* ((claude-code-ide-org-prompt-synopsis-max-lines 2)
+           (events (mapcar (lambda (n)
+                             (list :ts (claude-code-ide-org--parse-iso8601
+                                        (format "2026-09-11T17:%02d:00+0000" n))
+                                   :kind "resume" :session-id "sess-tx"))
+                           (number-sequence 0 5)))
+           (item (list :type 'clock :id nil
+                       :start (claude-code-ide-org--parse-iso8601 "2026-09-11T17:00:00+0000")
+                       :end (claude-code-ide-org--parse-iso8601 "2026-09-11T17:05:00+0000")
+                       :events events))
+           (lines (claude-code-ide-org--span-prompt-lines item)))
+      (should (= 3 (length lines)))
+      (should (equal (car (last lines)) "... 4 more prompt(s) in this span")))))
+
+(ert-deftest claude-code-ide-org-test-span-with-no-resume-falls-back-to-the-prompt-before ()
+  "A span holding no guidepost answers with the prompt that was in effect.
+
+A bracket opened and closed inside one turn contains no guidepost by
+construction -- measured on the session that built this feature: fifteen
+minutes, two events, no resume.  That span is exactly the \"unmeasured
+long turn\" the heading exists for, so silence would miss its own case.
+
+Labelled and stamped with the *prompt's* time, not the span's, so the
+distance is visible: this is not the measured join and must never read
+as though it were."
+  (claude-code-ide-org-test--with-transcript "sess-tx"
+      (list (list :ts "2026-09-11T16:00:00.000Z" :text "the standing instruction")
+            (list :ts "2026-09-11T19:00:00.000Z" :text "something said afterwards"))
+    (let* ((item (list :type 'clock :id "x"
+                       :start (claude-code-ide-org--parse-iso8601 "2026-09-11T17:00:00+0000")
+                       :end (claude-code-ide-org--parse-iso8601 "2026-09-11T17:15:00+0000")
+                       :events (list (list :ts (claude-code-ide-org--parse-iso8601
+                                                "2026-09-11T17:00:00+0000")
+                                           :kind "clock_in" :session-id "sess-tx")
+                                     (list :ts (claude-code-ide-org--parse-iso8601
+                                                "2026-09-11T17:15:00+0000")
+                                           :kind "clock_out" :session-id "sess-tx"))))
+           (lines (claude-code-ide-org--span-prompt-lines item)))
+      (should (= 1 (length lines)))
+      (should (string-match-p "the standing instruction" (car lines)))
+      (should (string-match-p "\\[last prompt before this span\\]" (car lines)))
+      ;; The prompt's own time, not the span's -- a later prompt must not
+      ;; be reached for, and an earlier one must not be relabelled.
+      ;; Formatted from the fixture's timestamp for the reason given in
+      ;; the one-per-resume test: the rendering is local, the fixture is
+      ;; UTC, and the claim here is about *which* prompt, not about zones.
+      (should (string-prefix-p
+               (format-time-string
+                "%H:%M" (claude-code-ide-org--parse-iso8601
+                         "2026-09-11T16:00:00+0000"))
+               (car lines)))
+      (should-not (string-match-p "afterwards" (car lines))))))
+
+(ert-deftest claude-code-ide-org-test-span-prompt-lines-say-when-the-transcript-is-gone ()
+  "An aged-out transcript says so rather than rendering nothing.
+
+Transcripts expire at about thirty days while the queue keeps its events
+forever, so \"no prompts\" and \"no transcript\" are the two answers a
+reader must not confuse -- and for old work the second is the common
+one.  Degrading to today's silent behaviour would make the feature look
+broken on precisely the spans it cannot help with."
+  (let ((claude-code-ide-org--transcript-cache (make-hash-table :test 'equal))
+        (home (file-name-as-directory (make-temp-file "cciorg-home" t))))
+    (unwind-protect
+        (let* ((process-environment
+                (cons (concat "HOME=" (directory-file-name home))
+                      process-environment))
+               (item (list :type 'clock :id nil
+                           :start (claude-code-ide-org--parse-iso8601 "2026-09-11T17:00:00+0000")
+                           :end (claude-code-ide-org--parse-iso8601 "2026-09-11T17:05:00+0000")
+                           :events (list (list :ts (claude-code-ide-org--parse-iso8601
+                                                    "2026-09-11T17:00:00+0000")
+                                               :kind "resume"
+                                               :session-id "sess-vanished"))))
+               (lines (claude-code-ide-org--span-prompt-lines item)))
+          (should (= 1 (length lines)))
+          (should (string-match-p "no transcript" (car lines)))
+          (should (string-match-p "aged out" (car lines))))
+      (delete-directory home t))))
+
 ;;; Which tracker an item belongs to (TODO.org :ID: fbaf8009) -----------------
 
 (defun claude-code-ide-org-test--dir-name (path)
