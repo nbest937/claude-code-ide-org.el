@@ -4066,17 +4066,23 @@ would leave one."
     (write-region "\n" nil file t 'silent)))
 
 (defun claude-code-ide-org-test--queue-event
-    (ts kind &optional id state session-id note agent-id agent-type)
-  "Return one encoded queue line, matching bin/hooks/queue-append's shape."
-  (json-encode `((ts . ,ts)
-                 (kind . ,kind)
-                 (id . ,id)
-                 (state . ,state)
-                 (note . ,note)
-                 (session_id . ,(or session-id "sess-a"))
-                 (agent_id . ,agent-id)
-                 (agent_type . ,agent-type)
-                 (source . ,kind))))
+    (ts kind &optional id state session-id note agent-id agent-type cwd)
+  "Return one encoded queue line, matching bin/hooks/queue-append's shape.
+
+CWD is omitted rather than encoded as null when absent, which is the
+one field here that has to model *two* kinds of missing: the hook has
+written it on every event since :ID: 5461c349, and every event older
+than that has no key at all."
+  (json-encode (append `((ts . ,ts)
+                         (kind . ,kind)
+                         (id . ,id)
+                         (state . ,state)
+                         (note . ,note)
+                         (session_id . ,(or session-id "sess-a"))
+                         (agent_id . ,agent-id)
+                         (agent_type . ,agent-type))
+                       (when cwd `((cwd . ,cwd)))
+                       `((source . ,kind)))))
 
 (ert-deftest claude-code-ide-org-test-queue-round-trips-every-kind ()
   "Every event kind parses back with its fields and ordering intact."
@@ -9277,6 +9283,227 @@ truename is what makes the query land in the right repository."
             (should (equal (claude-code-ide-org--git-roots)
                            (list (file-truename dir)))))
         (delete-directory link-dir t)))))
+;;; Which tracker an item belongs to (TODO.org :ID: fbaf8009) -----------------
+
+(defun claude-code-ide-org-test--dir-name (path)
+  "The last component of PATH, computed without the code under test.
+
+Every expectation below needs a project name, and deriving it with
+`claude-code-ide-org--project-name' would make the assertions agree
+with the implementation by construction rather than with the
+filesystem."
+  (file-name-nondirectory (directory-file-name path)))
+
+(ert-deftest claude-code-ide-org-test-project-name-normalizes-to-the-git-root ()
+  "A path nested inside a checkout answers with the *repository's* name,
+not its own directory's.
+
+This is what lets the annotation compare a session `cwd' with a tracked
+file's location at all.  Measured on the live queue the day :ID:
+fbaf8009 was built: 722 events carried the repo root as their cwd and 18
+carried `modules/tools/claude-code-ide-org' -- one project, which a
+rendering keyed on the last path component would have reported as two.
+
+The nested case is the one that discriminates; asserting the root alone
+would pass on a plain `file-name-nondirectory'."
+  (skip-unless (executable-find "git"))
+  (claude-code-ide-org-test--with-git-repo
+    (let ((claude-code-ide-org--project-name-cache (make-hash-table :test 'equal))
+          (nested (expand-file-name "modules/tools/deep" dir))
+          (expected (claude-code-ide-org-test--dir-name (file-truename dir))))
+      (make-directory nested t)
+      (should (equal (claude-code-ide-org--project-name dir) expected))
+      (should (equal (claude-code-ide-org--project-name nested) expected))
+      (should (equal (claude-code-ide-org--project-name org) expected)))))
+
+(ert-deftest claude-code-ide-org-test-project-name-normalizes-a-worktree ()
+  "A linked worktree answers with its *main checkout's* name.
+
+The normalisation :ID: 5461c349 named as its consumer's obligation.
+Every id-addressed event resolves against the one tracker while a
+worktree's cwd differs from the main checkout's, so without this a
+single project renders as one name per worktree and the annotation
+reports a split that does not exist.
+
+Asserted against a real `git worktree add' rather than a hand-written
+`.git' pointer file: the format being parsed is git's, and a fixture
+that wrote it by hand would agree with the parser by construction."
+  (skip-unless (executable-find "git"))
+  (claude-code-ide-org-test--with-git-repo
+    (let* ((claude-code-ide-org--project-name-cache (make-hash-table :test 'equal))
+           (expected (claude-code-ide-org-test--dir-name (file-truename dir)))
+           ;; Inside a temp directory of its own rather than beside
+           ;; `dir': `git worktree add' requires its target not to
+           ;; exist, and a fixed name in TMPDIR would collide with a
+           ;; concurrent run of this same suite.
+           (tree-parent (file-name-as-directory (make-temp-file "cciorg-wt" t)))
+           (tree (expand-file-name "wt" tree-parent)))
+      (unwind-protect
+          (progn
+            (claude-code-ide-org-test--git-commit dir "init" "2026-09-11T10:00:00-0500")
+            (claude-code-ide-org-test--git dir "worktree" "add" "-q" tree
+                                           "-b" "wt-branch")
+            ;; The control: the worktree really is a different directory,
+            ;; so the assertion below is doing work rather than comparing
+            ;; a name to itself.
+            (should-not (equal (claude-code-ide-org-test--dir-name tree) expected))
+            (should (equal (claude-code-ide-org--project-name tree) expected))
+            (let ((nested (expand-file-name "modules/tools" tree)))
+              (make-directory nested t)
+              (should (equal (claude-code-ide-org--project-name nested) expected))))
+        (ignore-errors (delete-directory tree-parent t))))))
+
+(ert-deftest claude-code-ide-org-test-project-name-degrades-rather-than-guessing ()
+  "Nil for a path that is nil, empty, or no longer exists.
+
+A session's cwd outlives the directory it names, and the tempting
+fallback -- the path's own last component -- is wrong in exactly the
+case that matters: for `/repo/modules/tools/x' it yields `x', which
+would then be rendered as a project and believed.  No annotation is the
+honest answer."
+  (let ((claude-code-ide-org--project-name-cache (make-hash-table :test 'equal)))
+    (should-not (claude-code-ide-org--project-name nil))
+    (should-not (claude-code-ide-org--project-name ""))
+    (should-not (claude-code-ide-org--project-name
+                 "/no/such/checkout/modules/tools/x"))))
+
+(ert-deftest claude-code-ide-org-test-queue-event-carries-cwd ()
+  "`cwd' survives the parse, and its absence stays distinguishable.
+
+The hook has written the field on every event since :ID: 5461c349 and
+nothing read it until now, so this is the first thing that would notice
+the parser dropping it."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-09-10T12:00:00-0500" "resume" nil nil "sess-a"
+                  nil nil nil "/Users/someone/git/agentic-euchre")
+                 ;; An event from before the field existed.
+                 (claude-code-ide-org-test--queue-event
+                  "2026-09-10T12:05:00-0500" "pause" nil nil "sess-a")))
+    (let ((events (claude-code-ide-org--queue-events)))
+      (should (equal (plist-get (nth 0 events) :cwd)
+                     "/Users/someone/git/agentic-euchre"))
+      (should-not (plist-get (nth 1 events) :cwd)))))
+
+(ert-deftest claude-code-ide-org-test-review-item-runs-split-on-recurrence ()
+  "A run is *consecutive* items sharing an :id, so an id that recurs
+later starts a second run.
+
+Items sort by time and the meta-work node reappears whenever the day's
+work does -- the pending report shows it three times in one pass.
+Grouping by distinct id instead would compute one annotation for two
+group headings and hang it on whichever came first."
+  (should (equal (mapcar (lambda (run)
+                           (mapcar (lambda (item) (plist-get item :id)) run))
+                         (claude-code-ide-org--review-item-runs
+                          (list (list :id "a") (list :id "a") (list :id "b")
+                                (list :id nil) (list :id nil) (list :id "a"))))
+                 '(("a" "a") ("b") (nil nil) ("a")))))
+
+(ert-deftest claude-code-ide-org-test-review-group-annotation-names-the-tracker ()
+  "A resolved :ID: annotates with the project containing the file it
+resolves in, stated bare -- that file is what apply will write."
+  (claude-code-ide-org-test--with-heading
+    (let ((claude-code-ide-org--project-name-cache (make-hash-table :test 'equal)))
+      (should (equal (claude-code-ide-org--review-group-annotation
+                      (list (list :id id :events nil)))
+                     (format "  [%s]"
+                             (claude-code-ide-org-test--dir-name
+                              (file-name-directory file))))))))
+
+(ert-deftest claude-code-ide-org-test-review-group-annotation-falls-back-to-cwd ()
+  "An id that resolves to nothing has no destination to name, so the
+session cwd is offered instead -- and labelled, because where a session
+ran is evidence about where its work belongs and not the same claim as
+where the interval will land.
+
+Two sessions in one group render both names, sorted, so the string does
+not flicker between keystrokes; an event with no cwd contributes
+nothing rather than an empty name."
+  (let ((claude-code-ide-org--project-name-cache (make-hash-table :test 'equal))
+        (zeta (file-name-as-directory (make-temp-file "cciorg-zeta" t)))
+        (alpha (file-name-as-directory (make-temp-file "cciorg-alpha" t))))
+    (unwind-protect
+        (should (equal
+                 (claude-code-ide-org--review-group-annotation
+                  (list (list :id nil
+                              :events (list (list :cwd zeta) (list :cwd alpha)
+                                            (list :cwd zeta)))
+                        (list :id nil :events (list (list :cwd nil)))))
+                 (format "  [cwd: %s, %s]"
+                         (claude-code-ide-org-test--dir-name alpha)
+                         (claude-code-ide-org-test--dir-name zeta))))
+      (delete-directory zeta t)
+      (delete-directory alpha t))))
+
+(ert-deftest claude-code-ide-org-test-review-group-annotation-is-silent-when-unknown ()
+  "No annotation when the id resolves to nothing and no event carries a
+cwd -- which is every event written before :ID: 5461c349 added the
+field.  The group heading then renders exactly as it did before, because
+an annotation that cannot be trusted is worse than none."
+  (let ((claude-code-ide-org--project-name-cache (make-hash-table :test 'equal)))
+    (should-not (claude-code-ide-org--review-group-annotation
+                 (list (list :id nil :events (list (list :cwd nil))))))))
+
+(ert-deftest claude-code-ide-org-test-review-render-group-heading-carries-the-tracker ()
+  "The rendered group heading ends with the tracker and starts exactly
+where it did.
+
+Anchored at both ends on purpose: the annotation is trailing precisely
+so the id column and the title column stay where :ID: c2132d3f put
+them, and a test matching the project name anywhere in the buffer would
+pass on an implementation that pushed the title across."
+  (claude-code-ide-org-test--with-heading
+    (let ((claude-code-ide-org--project-name-cache (make-hash-table :test 'equal))
+          (project (claude-code-ide-org-test--dir-name (file-name-directory file))))
+      (claude-code-ide-org-test--with-review-buffer
+          (list (list :type 'clock :id id
+                      :start (current-time) :end (current-time)
+                      :note "real heading" :agent nil :suggested t :events nil))
+        (should (string-match-p
+                 (concat "^" (regexp-quote (claude-code-ide-org--short-id id))
+                         "  Test heading  \\[" (regexp-quote project) "\\]$")
+                 (buffer-substring-no-properties (point-min) (point-max))))))))
+
+(ert-deftest claude-code-ide-org-test-pending-report-carries-the-tracker ()
+  "The pending report is the model-facing twin of the review buffer and
+carries the same annotation on the same groups.
+
+Both halves in one fixture: a resolvable heading names its tracker, and
+an unassigned span -- which has no heading and so no tracker -- names
+the cwd its guideposts came from instead.  Either branch alone would
+pass on an implementation that only ever rendered the other."
+  (claude-code-ide-org-test--with-heading
+    (let ((project (claude-code-ide-org-test--dir-name (file-name-directory file)))
+          ;; The heading's own directory, standing in for the session's
+          ;; cwd -- so the span's guideposts and the heading agree, and
+          ;; the two branches below are distinguished by their *labels*
+          ;; rather than by happening to name different projects.
+          (session-cwd (directory-file-name (file-name-directory file))))
+      (claude-code-ide-org-test--with-queue
+        (let ((claude-code-ide-org--project-name-cache
+               (make-hash-table :test 'equal)))
+          (apply #'claude-code-ide-org-test--queue-write "sess-a"
+                 (list (claude-code-ide-org-test--queue-event
+                        "2026-09-10T09:05:00-0500" "resume" nil nil "sess-a"
+                        nil nil nil session-cwd)
+                       (claude-code-ide-org-test--queue-event
+                        "2026-09-10T09:10:00-0500" "pause" nil nil "sess-a"
+                        nil nil nil session-cwd)
+                       (claude-code-ide-org-test--queue-event
+                        "2026-09-10T09:20:00-0500" "todo" id "DOING" "sess-a")))
+          (let ((report (claude-code-ide-org-pending-updates))
+                (case-fold-search nil))
+            (should (string-match-p
+                     (concat "Test heading  {" (regexp-quote id) "}  \\["
+                             (regexp-quote project) "\\]")
+                     report))
+            (should (string-match-p
+                     (concat "\n(unassigned -- press `a'[^\n]*  \\[cwd: "
+                             (regexp-quote project) "\\]")
+                     report))))))))
+
 ;;; Capture/amend write-through and queueing ---------------------------------
 
 (defun claude-code-ide-org-test--capture-line (ts id title &optional target tags note)

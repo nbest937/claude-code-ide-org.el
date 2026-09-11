@@ -6947,6 +6947,14 @@ whole file. This is the single place that judgement is made."
                 ;; kind (TODO.org :ID: f4e628ce).
                 :tool-use-id (alist-get 'tool_use_id obj)
                 :session-id (alist-get 'session_id obj)
+                ;; The session's working directory, written on every
+                ;; event since :ID: 5461c349 and read for the first time
+                ;; by the review buffer's tracker annotation (:ID:
+                ;; fbaf8009). Null on events written before the field
+                ;; existed -- 3028 of them on this queue the day it was
+                ;; read -- so every consumer must treat absence as
+                ;; "unknown" rather than as a project.
+                :cwd (alist-get 'cwd obj)
                 :agent-id (alist-get 'agent_id obj)
                 :agent-type (alist-get 'agent_type obj)
                 :source (alist-get 'source obj)))))))
@@ -9502,7 +9510,13 @@ the MCP layer."
                                           backing))))
              (headings (delete-dups (mapcar (lambda (i) (plist-get i :id)) items)))
              (lines nil)
-             (last-id 'none))
+             (last-id 'none)
+             ;; The same annotation the review buffer grew (:ID:
+             ;; fbaf8009), on the same items in the same order. This
+             ;; report is the model-facing twin of that buffer, and a
+             ;; reader of either was equally unable to say which project
+             ;; a group belonged to.
+             (annotations (claude-code-ide-org--review-group-annotations items)))
         (claude-code-ide-org--review-projected-staleness
          items (lambda (item) (plist-get item :marked)))
         (dolist (item items)
@@ -9530,7 +9544,8 @@ the MCP layer."
               ;; is true of neither (TODO.org :ID: 2b050e7a; the first
               ;; instance was :ID: 98700ea3, which fixed one branch and
               ;; left the shape).
-              (push (cond
+              (push (concat
+                     (cond
                      ((null last-id)
                       "\n(unassigned -- press `a' in the review buffer to choose a heading)")
                      (title (format "\n%s  {%s}" title last-id))
@@ -9543,6 +9558,7 @@ the MCP layer."
                       (format "\n(new heading, created when this is applied)  {%s}"
                               last-id))
                      (t (format "\n(unresolvable :ID:)  {%s}" last-id)))
+                     (or (gethash item annotations) ""))
                     lines)))
           (push (claude-code-ide-org--review-describe item) lines))
         (if (null items)
@@ -10174,6 +10190,116 @@ to eight (TODO.org :ID: 9575e65b, reported by the user)."
                  (org-no-properties (org-get-heading t t t t)))
           (set-marker marker nil)))))))
 
+;;; Which tracker an item belongs to (TODO.org :ID: fbaf8009) -----------------
+;;
+;; One queue serves every project a session runs in -- since 2026-09-10
+;; that is genuinely more than one -- while the review buffer's group
+;; heading renders eight characters of id and a title.  The destination
+;; tracker is implicit in where the id resolves and was never displayed,
+;; so two projects' headings interleaved distinguishable only by title.
+;; This is legibility: nothing here changes what apply writes.
+
+(defun claude-code-ide-org--id-tracker (id)
+  "Return the project name of the tracker ID will be written in, or nil.
+
+For an ordinary :ID: that is the project containing the file the id
+resolves in.  For the meta-work category *title* -- which names no
+heading yet, the day node being created at apply -- it is the project
+containing `claude-code-ide-org--capture-target-file', because that is
+where apply will create it.  Worth stating rather than hiding: at
+review time no MCP session is bound, so that file is the global default
+whichever project queued the span, and showing it is how a misroute
+becomes visible from outside the session that caused it.
+
+Nil when neither applies, which covers an unresolvable id and a capture
+whose heading apply has yet to create.
+
+Resolution is tried *before* the day-node test, and the order is not
+arbitrary: a real :ID: can never equal the category title, while
+`claude-code-ide-org--day-node-target-p' opens the capture file and
+searches it where `org-id-find' is a hash lookup.  This runs once per
+group per keystroke."
+  (when id
+    (or (when-let* ((marker (ignore-errors
+                              (claude-code-ide-org--id-find id 'marker))))
+          (prog1 (claude-code-ide-org--project-name
+                  (buffer-file-name (marker-buffer marker)))
+            (set-marker marker nil)))
+        (when (claude-code-ide-org--day-node-target-p id)
+          (claude-code-ide-org--project-name
+           (claude-code-ide-org--capture-target-file))))))
+
+(defun claude-code-ide-org--review-item-runs (items)
+  "Split ITEMS into runs of consecutive items sharing an :id, in order.
+
+A run is exactly what the renderers draw one group heading for -- both
+of them walk ITEMS comparing each item's :id against the last -- so
+anything computed per group has to be computed per run rather than per
+distinct id.  The same id legitimately starts several runs: items sort
+by time, and the meta-work node reappears whenever the day's work does."
+  (let (runs current (last-id 'none))
+    (dolist (item items)
+      (let ((id (plist-get item :id)))
+        (if (and current (equal id last-id))
+            (push item current)
+          (when current (push (nreverse current) runs))
+          (setq current (list item) last-id id))))
+    (when current (push (nreverse current) runs))
+    (nreverse runs)))
+
+(defun claude-code-ide-org--review-run-cwds (run)
+  "Distinct project names of the session `cwd's behind RUN's events.
+
+Sorted, so a group holding two sessions renders the same string on
+every keystroke.  Empty when no event carries a cwd, which is every
+event written before :ID: 5461c349 added the field."
+  (let (names)
+    (dolist (item run)
+      (dolist (event (plist-get item :events))
+        (when-let* ((name (claude-code-ide-org--project-name
+                           (plist-get event :cwd))))
+          (unless (member name names) (push name names)))))
+    (sort (nreverse names) #'string<)))
+
+(defun claude-code-ide-org--review-group-annotation (run)
+  "Return RUN's tracker annotation -- what its group heading ends with.
+
+Two different facts, labelled differently because they answer with
+different authority.  A resolved id names the file apply will *write*,
+so the project is stated bare.  An id that resolves to nothing -- an
+unassigned span, a capture whose heading does not exist yet -- has no
+destination to name, so the session `cwd' behind the events is offered
+instead and says so: where a session ran is evidence about where its
+work belongs, not the same claim as where it will land.
+
+Nil when neither is known, and the heading then renders exactly as it
+did before.  An annotation that cannot be trusted is worse than none.
+
+Rendered unconditionally rather than only when a buffer holds more than
+one project.  Suppressing the single-project case would make absence
+mean either \"one project\" or \"the lookup failed\", and the whole
+point is to be able to tell a misroute from a correctly routed pass."
+  (let ((tracker (claude-code-ide-org--id-tracker (plist-get (car run) :id))))
+    (if tracker
+        (format "  [%s]" tracker)
+      (when-let* ((names (claude-code-ide-org--review-run-cwds run)))
+        (format "  [cwd: %s]" (string-join names ", "))))))
+
+(defun claude-code-ide-org--review-group-annotations (items)
+  "Map the item starting each of ITEMS' groups to that group's annotation.
+
+Returned as an `eq' hash keyed by the item plist itself, so a renderer
+that already knows it has reached a new group looks the answer up in
+one call instead of finding the run again.  Computed in one pass per
+render, which is also what keeps `--id-tracker' from being asked the
+same question once per item."
+  (let ((table (make-hash-table :test 'eq)))
+    (dolist (run (claude-code-ide-org--review-item-runs items))
+      (puthash (car run)
+               (claude-code-ide-org--review-group-annotation run)
+               table))
+    table))
+
 ;;; Span evidence ------------------------------------------------------------
 ;;
 ;; What was going on between two timestamps, answered from artefacts the
@@ -10189,6 +10315,109 @@ to eight (TODO.org :ID: 9575e65b, reported by the user)."
 ;; Deliberately evidence and not a recommendation.  The suggestion machinery
 ;; already guesses a heading; this shows the human what the guess is made of,
 ;; and a mechanical list is easier to reject than a fluent argument would be.
+
+(defvar claude-code-ide-org--project-name-cache
+  (make-hash-table :test 'equal)
+  "Memo for `claude-code-ide-org--project-name', keyed by the path given.
+
+Not an optimisation looking for a problem: the review buffer re-renders
+on every keystroke, and the cwd annotation asks this question once per
+queue event -- hundreds per pass -- each answer costing a `file-truename'
+and a walk up the tree looking for .git.  Cached for the Emacs session,
+which is the right lifetime because the answer only changes when a
+checkout moves on disk.  If one does, restart or clear this.")
+
+(defun claude-code-ide-org--worktree-main-checkout (root)
+  "Return the main checkout of the linked git worktree at ROOT, or nil.
+
+A linked worktree's `.git' is a regular *file* reading
+`gitdir: <main>/.git/worktrees/<name>', where an ordinary checkout has a
+directory.  Walking that pointer up to the `.git' component and taking
+its parent recovers the main checkout.
+
+This is the normalisation :ID: 5461c349 named as its consumer's
+obligation when it recorded `cwd': every id-addressed event resolves
+against the one tracker while a worktree's cwd differs from the main
+checkout's, so without this one project renders as one name per
+worktree -- and the annotation would report a split that does not exist.
+
+Parsed rather than shelled out to `git rev-parse --git-common-dir'.
+This runs behind a display path that must never signal and never block,
+and the pointer file's format is the stable thing being read; a
+subprocess per distinct path is the more expensive way to learn the
+same fact.  Anything unexpected -- an unreadable file, a pointer with
+no `.git' component -- answers nil, and the caller keeps ROOT."
+  (let ((link (expand-file-name ".git" root)))
+    (when (and (file-regular-p link) (file-readable-p link))
+      (when-let* ((text (ignore-errors
+                          (with-temp-buffer
+                            (insert-file-contents link nil 0 4096)
+                            (buffer-string))))
+                  ((string-match "^gitdir:[ \t]*\\(.+?\\)[ \t]*$" text))
+                  (gitdir (expand-file-name (match-string 1 text) root)))
+        (let ((dir (directory-file-name gitdir))
+              (parent nil))
+          ;; Bounded by the parent check rather than by a depth count:
+          ;; `file-name-directory' of "/" is "/", so a pointer that
+          ;; names no `.git' would otherwise spin forever.
+          (while (and dir (not (equal (file-name-nondirectory dir) ".git"))
+                      (progn (setq parent
+                                   (directory-file-name
+                                    (or (file-name-directory dir) "/")))
+                             (not (equal parent dir))))
+            (setq dir parent))
+          (when (equal (file-name-nondirectory dir) ".git")
+            (file-name-directory dir)))))))
+
+(defun claude-code-ide-org--project-name (path)
+  "Return the name of the project directory containing PATH, or nil.
+
+The *git root's* own directory name when PATH is inside a repository,
+and the containing directory's name otherwise.  The git root is what
+makes two paths comparable: a session `cwd' three levels down inside a
+checkout and the tracked org file at its top must answer with the same
+name, or the annotation this feeds would report one project as two.
+Measured on the live queue the day it was written -- 722 events at the
+repo root and 18 in `modules/tools/claude-code-ide-org' were one
+project, not two.
+
+Truenames first, for the reason `claude-code-ide-org--git-roots' gives:
+a tracked path may be a symlink into the repo, and walking up from the
+link's own directory finds no .git at all.  A *linked worktree* then
+normalises to its main checkout
+\(`claude-code-ide-org--worktree-main-checkout'), so one project does
+not render as one name per worktree.
+
+Nil for a path that is nil or no longer exists -- a session's cwd
+outlives the directory it names.  Display code degrades rather than
+signalling, and nil renders as no annotation, which is the honest
+answer.  Deliberately *not* the last path component in that case: for
+a nested cwd that would name a subdirectory and call it the project."
+  (when (and (stringp path) (not (string-empty-p path)))
+    (let ((cached (gethash path claude-code-ide-org--project-name-cache 'miss)))
+      (if (not (eq cached 'miss))
+          cached
+        (puthash
+         path
+         (when-let* ((true (ignore-errors (file-truename path)))
+                     ((file-exists-p true)))
+           (let* ((dir (file-name-as-directory
+                        (if (file-directory-p true)
+                            true
+                          (file-name-directory true))))
+                  (root (or (ignore-errors (locate-dominating-file dir ".git"))
+                            dir))
+                  ;; A linked worktree is the same project as its main
+                  ;; checkout, under a different directory name.
+                  (root (or (ignore-errors
+                              (claude-code-ide-org--worktree-main-checkout root))
+                            root))
+                  (name (file-name-nondirectory (directory-file-name root))))
+             ;; "" is what the filesystem root answers, and it would
+             ;; render as an empty pair of brackets -- a label that
+             ;; looks like a failed lookup rather than a project.
+             (unless (string-empty-p name) name)))
+         claude-code-ide-org--project-name-cache)))))
 
 (defun claude-code-ide-org--git-roots ()
   "Distinct git roots containing the tracked org files.
@@ -10501,9 +10730,14 @@ excuse a later one.  With nothing marked the projection collapses to the
 file's own state and every line reads exactly as it did before chains
 were understood -- marking the first link of a chain is what stops the
 rest from lighting up."
-  (let ((inhibit-read-only t)
-        (items claude-code-ide-org--review-items)
-        (last-id nil))
+  (let* ((inhibit-read-only t)
+         (items claude-code-ide-org--review-items)
+         (last-id nil)
+         ;; Computed before the projection loops rather than beside the
+         ;; group heading that uses it: the annotation is a fact about a
+         ;; *run* of items, and the drawing loop below only ever knows
+         ;; the item in hand (TODO.org :ID: fbaf8009).
+         (annotations (claude-code-ide-org--review-group-annotations items)))
     (claude-code-ide-org--review-projected-staleness
      items (lambda (item) (plist-get item :marked)))
     ;; After the projection, because markability depends on staleness and
@@ -10544,7 +10778,7 @@ rest from lighting up."
                                (org-with-point-at marker
                                  (org-no-properties (org-get-heading t t t t)))))))
             (insert (propertize
-                     (format "\n%s\n"
+                     (format "\n%s%s\n"
                             (cond
                              ;; A span nobody has assigned yet belongs to no
                              ;; heading, so it gets its own group rather than
@@ -10564,7 +10798,14 @@ rest from lighting up."
                                             (claude-code-ide-org--short-id last-id)
                                             title))
                              (t (format "%s  (unresolved)"
-                                        (claude-code-ide-org--short-id last-id)))))
+                                        (claude-code-ide-org--short-id last-id))))
+                            ;; Trailing, so the id column and the title
+                            ;; column both stay exactly where `:ID:'
+                            ;; c2132d3f put them: a variable-width field
+                            ;; inserted before the title would push every
+                            ;; title to a different place and undo the
+                            ;; one thing that makes this buffer scannable.
+                            (or (gethash item annotations) ""))
                      ;; Not decoration: it is what lets a refusal say
                      ;; "that is a heading" instead of the same five
                      ;; words every other blank line gets. TODO.org
