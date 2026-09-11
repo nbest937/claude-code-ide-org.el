@@ -2,13 +2,43 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Scratch: note-fix probe (cancel me)
+:PROPERTIES:
+:ID:       878f5843-04de-4153-9e5d-66f0751c8dd3
+:CREATED:  [2026-09-11 Fri 11:44]
+:END:
+
+PROBE-2: this sentence must now appear as the heading's body.
+
 * TODO org_capture accepts a note it silently discards, and five headings shipped bodiless :code:
 :PROPERTIES:
 :ID:       204d1b0a-e5de-41f3-8983-b60638ce196a
 :CREATED:  [2026-09-11 Fri 11:35]
 :END:
+:DEBRIEF:
+The fix rode the single-code-path design exactly as intended: =--capture-write= gained an optional =note= and both callers pass it — the immediate path from the tool argument, the apply path from the queued event, which already carried the text (measured 689 and 681 characters on the two deferred captures that shipped bodiless). Insertion reuses the amend idiom (=--end-of-body= + =--amend-separator=), not the capture template, because template text is scanned for %-escapes and user prose containing =%U= would expand instead of landing. Three-case ERT (immediate with a literal %U, apply-path with %i, omitted note leaves no stray line), proven red against HEAD; live probe =878f5843= captured and read back with its body present, then cancelled. The schema's old "short 3-10 word reason" description had said the truth quietly — the misuse happened anyway, which is why the fix is behavior rather than better prose.
+:END:
+:PLAN:
 
-Found 2026-09-11 when the user noticed =b112878e= had no prose. The docstring is explicit — "NOTE is a short reason, carried for the queue and unused on the immediate path" — and =--capture-write= takes no note parameter, so the queued path drops it at apply too (measured: events carrying 689 and 681 characters landed as bare headings). The contract is coherent (note = review-buffer annotation, like a clock note; body prose = the two-call composition via =org_amend=) but the *surface invites misuse*: the tool accepts arbitrarily long prose and reports "Captured" with no hint anything was discarded — six filings across two days shipped bodiless before anyone noticed, all restored by amend. Decide one of: (a) the immediate path writes the note as the initial body (and apply gains the same, changing the deferred contract); (b) the tool refuses or warns on notes beyond a sentence; (c) the schema description alone is sharpened to say the note never reaches the heading. Whichever lands, the reply should stop saying "Captured" as if everything given was kept. Probe evidence: =49e1556b= (scratch, cancelled same minute).
+Found 2026-09-11 when the user noticed =b112878e= had no prose. The docstring is
+explicit — "NOTE is a short reason, carried for the queue and unused on the
+immediate path" — and =--capture-write= takes no note parameter, so the queued
+path drops it at apply too (measured: events carrying 689 and 681 characters
+landed as bare headings). The contract is coherent (note = review-buffer
+annotation, like a clock note; body prose = the two-call composition via
+=org_amend=) but the *surface invites misuse*: the tool accepts arbitrarily long
+prose and reports "Captured" with no hint anything was discarded — six filings
+across two days shipped bodiless before anyone noticed, all restored by amend.
+Decide one of: (a) the immediate path writes the note as the initial body (and
+apply gains the same, changing the deferred contract); (b) the tool refuses or
+warns on notes beyond a sentence; (c) the schema description alone is sharpened
+to say the note never reaches the heading. Whichever lands, the reply should
+stop saying "Captured" as if everything given was kept. Probe evidence:
+=49e1556b= (scratch, cancelled same minute).
+
+:END:
+Resolved 2026-09-11, same day filed: option (a) — the note becomes the heading's initial body on both paths through =--capture-write=, inserted after =org-capture= finalizes so template %-escapes cannot expand user prose; the docstrings and tool schema now state the contract, and the reply's "Captured" is honest again.
+
 
 * TODO Scratch: capture-note probe (cancel me)
 :PROPERTIES:
