@@ -2,6 +2,14 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A hook tells the session the queue was applied, ending the "queue applied" announcements :code:
+:PROPERTIES:
+:ID:       165ce65a-f87e-431c-8ee4-f0fbfffe14da
+:CREATED:  [2026-09-11 Fri 11:53]
+:END:
+
+Asked by the user 2026-09-11. The signal already exists: apply writes .applied watermark files in ~/.claude/org-updates/, so no elisp changes. Build a UserPromptSubmit hook (bin/hooks/apply-detect, plain-shell tier) that compares the watermarks' state against a per-session last-seen stamp and injects additionalContext naming how many items landed since the session's last turn — the session then commits the tracker diff unprompted, and the user's next message needs no announcement. A per-session background Monitor watching the same files is the opt-in fully-hands-free variant (wakes the session to commit while the user stays in Emacs); the hook is the standing mechanism because it rides natural turn boundaries instead of interrupting. Wire in both .claude/settings.json and the plugin's hooks/hooks.json, one or the other per repo as ever.
+
 * CANCELLED Scratch: note-fix probe (cancel me)
 CLOSED: [2026-09-11 Fri 11:44]
 :PROPERTIES:
