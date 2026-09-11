@@ -2,6 +2,14 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A session id that changes mid-work splits one clock bracket across two queue files :code:
+:PROPERTIES:
+:ID:       b57c7515-c511-4198-b311-26cefc52a60d
+:CREATED:  [2026-09-11 Fri 18:17]
+:END:
+
+The queue is keyed by =session_id= and =--lane-clock-pairs= pairs within a lane of =(session_id, agent_id)=, so a session whose id changes while work continues leaves an unmatched =clock_in= in the old lane and an orphan =clock_out= in the new one — neither pairs, and the bracket's attribution is lost in both directions. Observed 2026-09-11: =f2e44fdf= holds =clock_in= on =325679af= at 17:48:30 and =b71c8eec= holds the matching =clock_out= at 18:14:33, with all of that stretch's file-touching work in the second lane. =bin/hooks/clock-target-check= fired correctly and could only report the symptom, since from inside the new lane the earlier =clock_in= is invisible. Note the two failure modes compose badly with =58332dd1=: the orphaned =clock_in= is exactly the ever-widening span that heading describes, now arriving through a second route. Worth measuring before designing — how often an id changes mid-session, and whether the transcript's =sessionId= or a =leafUuid= chain can bridge the two files retroactively, since the events themselves carry enough to re-pair if something looked. The manual repair used this time was a fresh matched pair in the new lane as an attribution anchor, leaving the interval for a human to widen with =e=.
+
 * TODO =:BLOCKER: ids(...)= is org-edna syntax; org-depend cannot parse it, so 8 of 12 blockers enforce nothing :code:
 :PROPERTIES:
 :ID:       3f4fd744-4ba7-4be8-9fe4-54e46119515a
