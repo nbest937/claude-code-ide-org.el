@@ -2,6 +2,22 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Guidepost aggregation ignores =cwd=, so two projects' turns cluster into one span :code:
+:PROPERTIES:
+:ID:       c9940558-b23e-4b2c-86e8-e75a377634aa
+:CREATED:  [2026-09-11 Fri 17:43]
+:END:
+
+=--aggregate-guideposts= clusters by time alone, so guideposts from concurrent sessions in *different* projects merge into a single span — and accepting that span credits one project's minutes to the other's heading. Found 2026-09-11 the moment [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]]'s annotation made the cwd visible: over the whole queue history exactly two groups render =[cwd: agentic-euchre, claude-code-ide-org]=, and both are real — =[2026-09-10 Thu 14:49:24]--[2026-09-10 Thu 15:02:17]=, already attributed to =308bf4b4=, contains a 1:25 euchre run (14:59:33 resume, 15:00:58 pause), and =[2026-09-10 Thu 15:59:24]--[2026-09-10 Thu 16:03:05]=, unassigned, opens with a 23s euchre run before three claude-code-ide-org guideposts. Small today because euchre has 14 events against 722; it scales with the second project, and it is silent. Proposed: treat a cwd change like the exclusions =--aggregate-guideposts= already honours — a project boundary splits rather than clusters through — which also makes each resulting span's annotation name one tracker instead of two. This is the consumer half [[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]] recorded the field for; note its other named consumer obligation, normalising a worktree's cwd to its main checkout, or a single project splits into one span per worktree.
+
+* TODO Accepting a 0-run span records none of its minutes, and only =e= can claim them :code:
+:PROPERTIES:
+:ID:       2deb090f-593d-40e3-9044-fda318d9b6de
+:CREATED:  [2026-09-11 Fri 17:41]
+:END:
+
+Assigning a 0-run span and applying it writes a =:LOGBOOK:= annotation and no =CLOCK:= line at all — =--review-apply-clock='s =(unless observed ...)= branch — so the envelope is recorded as zero. Measured 2026-09-11 on the ten pending spans: seven have no run, including [2026-09-11 Fri 13:24]--[2026-09-11 Fri 13:46], and every one of them goes from 0s to its full envelope the moment =:suggested= is cleared. The user's position, stated the same day: a 0-run/0-turn span they choose to accept should carry all those minutes, because accepting it *is* the assertion that the time was their attention. Today the only way to say that is =e= — retyping both timestamps unchanged purely to set =:suggested nil= — so the act costs two timestamps and reads as an edit rather than a claim. Proposed: a way to accept the envelope as attention in one act, distinct from correcting bounds; note that the bracket style is a red herring here, since =:active= reaches only the annotation while the =CLOCK:= line is always written inactive by =org-clock-in=/=org-clock-out=. Reads with [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] (the same keystroke family, and the same question of what the assertion means), [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]] (the automatic half — a gap containing an apply timestamp is provably human), and [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]], which named this residue and said explicitly that it stopped the line implying the minutes were captured without capturing them.
+
 * TODO Nothing can correct a closed slice's record, even when the correction is close-time truth :code:
 :PROPERTIES:
 :ID:       a508c59e-475e-4d27-84c9-6c3ded98e15c
@@ -10,6 +26,7 @@
 :END:
 
 Second time the closed-slice guard has blocked a legitimate act. =org_slice_add_member= refuses a closed slice and =refresh-slice= skips one, both correctly — but on 2026-09-11 =c19fbbf5= needed two checkboxes ticked, a keyword text corrected and a stale =:BLOCKER:= removed, all of which were *true at its close* rather than later change. With no sanctioned mechanism the fix went through the Edit tool, straight to disk behind Emacs's back, which is exactly the buffer/disk divergence the queue architecture exists to prevent and required a manual revert. Proposed: a narrow repair path — a refresh variant that recomputes a closed slice against its referents' keywords *as of the slice's CLOSED stamp*, or an explicit correct-closed-slice tool that writes through Emacs. The distinction to preserve is the one the guard exists for: re-deriving a closed slice against referents' keywords *today* is the falsification =30a340fd= refused; deriving against their state at close is not. Complements =a00ace04=, which is the detection half.
+
 
 * TODO lint-org cannot see a slice checkbox that disagrees with its referent :code:
 :PROPERTIES:
@@ -42,7 +59,8 @@ this one is detection.* TODO org_query exposes four of org-ql's thirty-five pred
 The user asked on 2026-09-11 why a session reaches for =sed=/=awk= against TODO.org when =emacs-tools= exists; the answer is that the two questions at hand were not expressible. =org_query= advertises =todo:=, =tags:=, =priority:= and =heading:=, while the loaded org-ql defines 35 predicates (measured, not recalled: =(length org-ql-predicates)=) including =property=, =closed=, =ts=, =category=, =level=, =blocked=, =children=, =descendants=, =ancestors= and =rifle=. So "which headings carry =:KIND: slice=" and "what closed after this timestamp" both became hand-rolled awk — and the first attempt silently mis-paired ids with headings, because =CLOSED:= precedes the property drawer and the script did not model that. The engine already supports what is missing; this is about the exposed surface. =property=, =closed= and =category= look highest-value here, =blocked= notable since this project has bespoke code for it.
 
 
-* REVIEW A slice can close while its integration point is still open, and post-close incidentals have nowhere to go :code:
+* DONE A slice can close while its integration point is still open, and post-close incidentals have nowhere to go :code:
+CLOSED: [2026-09-11 Fri 16:58]
 :PROPERTIES:
 :ID:       e80f6ccf-daa4-4032-b899-5de30146b27f
 :CREATED:  [2026-09-11 Fri 16:16]
@@ -59,6 +77,8 @@ CLOCK: [2026-09-11 Fri 16:39]--[2026-09-11 Fri 16:42] =>  0:03
 - [2026-09-11 Fri 16:39]--[2026-09-11 Fri 16:42] slice closes at its integration point, via REVIEW
 - State "REVIEW"     from "DOING"      [2026-09-11 Fri 16:42] \\
   convention written, lands on PR22
+- State "DONE"       from "REVIEW"     [2026-09-11 Fri 16:58] \\
+  merged in PR22
 :END:
 :DEBRIEF:
 The useful shape here: **a guard that refuses something you want is
@@ -124,7 +144,8 @@ paragraph is the whole of its grouping sense. And no retrofit:
 debrief prose, and the PR they landed on is the rest of the record.
 
 
-* REVIEW org_outline extracts every heading's body twice per call :code:
+* DONE org_outline extracts every heading's body twice per call :code:
+CLOSED: [2026-09-11 Fri 16:58]
 :PROPERTIES:
 :ID:       64f649f3-d7ba-4ed9-9fe8-ccdad10ffb7f
 :CREATED:  [2026-09-11 Fri 15:45]
@@ -137,6 +158,8 @@ CLOCK: [2026-09-11 Fri 16:02]--[2026-09-11 Fri 16:04] =>  0:02
 - [2026-09-11 Fri 16:02]--[2026-09-11 Fri 16:04] outline body extracted once per heading
 - State "REVIEW"     from "DOING"      [2026-09-11 Fri 16:04] \\
   lands on PR22, merges under judgement
+- State "DONE"       from "REVIEW"     [2026-09-11 Fri 16:58] \\
+  merged in PR22
 :END:
 :DEBRIEF:
 The measurement technique is the reusable part, and it is three lines:
@@ -175,7 +198,8 @@ surviving headings, which on an unfiltered whole-file call is all of
 them.
 
 
-* REVIEW apply-detect's last jq is its exit status, and the stamp advances before the report is emitted :code:
+* DONE apply-detect's last jq is its exit status, and the stamp advances before the report is emitted :code:
+CLOSED: [2026-09-11 Fri 16:58]
 :PROPERTIES:
 :ID:       31453a5e-c909-41ca-bbbf-5b17819a8804
 :CREATED:  [2026-09-11 Fri 15:45]
@@ -188,6 +212,8 @@ CLOCK: [2026-09-11 Fri 15:56]--[2026-09-11 Fri 15:58] =>  0:02
 - [2026-09-11 Fri 15:56]--[2026-09-11 Fri 15:58] apply-detect exit 0 and stamp after emit
 - State "REVIEW"     from "DOING"      [2026-09-11 Fri 15:58] \\
   lands on PR22, merges under judgement
+- State "DONE"       from "REVIEW"     [2026-09-11 Fri 16:58] \\
+  merged in PR22
 :END:
 :DEBRIEF:
 Worth keeping: for an at-most-once notification, **the cheap failure and
@@ -231,7 +257,8 @@ parse call through and fails only the =-cn= report call, which is the
 only path that reaches the final =jq=.
 
 
-* REVIEW The pre-push PR advisory false-positives on a catch-up merge that did arrive through a PR :code:
+* DONE The pre-push PR advisory false-positives on a catch-up merge that did arrive through a PR :code:
+CLOSED: [2026-09-11 Fri 16:58]
 :PROPERTIES:
 :ID:       e0094245-aa6b-4c1f-b5f8-bcdc8b9f910b
 :CREATED:  [2026-09-11 Fri 15:45]
@@ -244,6 +271,8 @@ CLOCK: [2026-09-11 Fri 15:58]--[2026-09-11 Fri 15:59] =>  0:01
 - [2026-09-11 Fri 15:58]--[2026-09-11 Fri 15:59] pre-push advisory first-parent fix
 - State "REVIEW"     from "DOING"      [2026-09-11 Fri 15:59] \\
   lands on PR22, merges under judgement
+- State "DONE"       from "REVIEW"     [2026-09-11 Fri 16:58] \\
+  merged in PR22
 :END:
 :DEBRIEF:
 The git fact behind this is worth not rediscovering: for a merge commit
@@ -279,7 +308,8 @@ existing case-1 assertions on =fee51fd= still pass unchanged. Two new
 cases in =bin/pre-push-test=, both measured failing against the old hook.
 
 
-* REVIEW doc-sync-check ships to consuming repos and asserts conventions they do not have :code:
+* DONE doc-sync-check ships to consuming repos and asserts conventions they do not have :code:
+CLOSED: [2026-09-11 Fri 16:58]
 :PROPERTIES:
 :ID:       04125b0b-adf8-4b65-9afe-7a4724a62d34
 :CREATED:  [2026-09-11 Fri 15:45]
@@ -294,6 +324,8 @@ CLOCK: [2026-09-11 Fri 15:55]--[2026-09-11 Fri 15:56] =>  0:01
 - [2026-09-11 Fri 15:55]--[2026-09-11 Fri 15:56] unship doc-sync-check from the plugin
 - State "REVIEW"     from "DOING"      [2026-09-11 Fri 15:56] \\
   lands on PR22, merges under judgement
+- State "DONE"       from "REVIEW"     [2026-09-11 Fri 16:58] \\
+  merged in PR22
 :END:
 :DEBRIEF:
 The useful residue is a test for the next hook, since "is this session
@@ -341,7 +373,8 @@ repo's conventions are deliberately absent.
 Found by PR22's review pass. =--queue-watermark-write= is the single writer for =<session>.applied= and is called from both =--queue-mark-applied= and the dismissal path, and it rewrites the file (atomic rename, new mtime) even when nothing new landed. So a pass where a human only dismisses stale events makes the next prompt carry "the review queue was applied since this session's last turn … keywords and clocks reflect the apply" when nothing on disk changed — the inverse of the freshness the hook exists to assert, and a claim a session will relay. Either the watermark must distinguish applied-something from pass-ran, or the hook must compare something other than its mtime. Introduced with [[id:165ce65a-f87e-431c-8ee4-f0fbfffe14da][165ce65a]].
 
 
-* REVIEW The capture reply names a basename, so it cannot say which tracker received the heading :code:
+* DONE The capture reply names a basename, so it cannot say which tracker received the heading :code:
+CLOSED: [2026-09-11 Fri 16:58]
 :PROPERTIES:
 :ID:       86c11795-4972-45b5-acef-677a18b26134
 :CREATED:  [2026-09-11 Fri 15:45]
@@ -354,6 +387,8 @@ CLOCK: [2026-09-11 Fri 16:00]--[2026-09-11 Fri 16:02] =>  0:02
 - [2026-09-11 Fri 16:00]--[2026-09-11 Fri 16:02] capture reply names the full tracker path
 - State "REVIEW"     from "DOING"      [2026-09-11 Fri 16:02] \\
   lands on PR22, merges under judgement
+- State "DONE"       from "REVIEW"     [2026-09-11 Fri 16:58] \\
+  merged in PR22
 :END:
 :DEBRIEF:
 The lesson is about fixtures, not about paths. A test whose two possible
@@ -414,7 +449,8 @@ Found by PR22's review pass. The shipped =.mcp.json= pins =/mcp/warp=, so every 
 Found by PR22's review pass. =--review-apply-capture= resolves a nil target through =--capture-target-file=, which consults the MCP session context — but upstream =let=-binds =--current-session-id= around the HTTP request only, so during =M-x claude-code-ide-org-review= it is nil and the heading falls back to the global capture file. So: capture with no target from project B while B's TODO.org has unsaved edits, the call defers and answers "top of TODO.org", a human applies, and the heading lands in project A's tracker. This is [[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]] surviving on its queued half. The queue event already carries =cwd= (=bin/hooks/queue-append:229=) and nothing on the apply path reads it, which is the likely fix.
 
 
-* REVIEW org_body drawer=: report an unterminated drawer as malformed, not missing :code:
+* DONE org_body drawer=: report an unterminated drawer as malformed, not missing :code:
+CLOSED: [2026-09-11 Fri 16:58]
 :PROPERTIES:
 :ID:       c4048784-f9be-4f95-9ca6-cd161932e74c
 :CREATED:  [2026-09-11 Fri 13:23]
@@ -433,8 +469,12 @@ CLOCK: [2026-09-11 Fri 13:23]--[2026-09-11 Fri 13:24] =>  0:01
 - [2026-09-11 Fri 13:23]--[2026-09-11 Fri 13:24] fix unterminated-drawer error message plus test
 - State "REVIEW"     from "DOING"      [2026-09-11 Fri 13:24] \\
   landed on PR22, merges under human judgement
+CLOCK: [2026-09-11 Fri 15:31]--[2026-09-11 Fri 15:33] =>  0:02
+- [2026-09-11 Fri 15:31]--[2026-09-11 Fri 15:33] assigned at review
 CLOCK: [2026-09-11 Fri 15:44]--[2026-09-11 Fri 15:48] =>  0:04
 - [2026-09-11 Fri 15:44]--[2026-09-11 Fri 15:48] rewrite drawer read onto org-element
+- State "DONE"       from "REVIEW"     [2026-09-11 Fri 16:58] \\
+  merged in PR22
 :END:
 :PLAN:
 
@@ -511,7 +551,6 @@ unambiguous when it happens. Note the earlier REVIEW note already
 anticipated this precisely — "the next session's unprompted reaction is
 the exit" — so accepting today's run would be weakening a criterion after
 seeing the result.
-
 
 
 * CANCELLED Scratch: note-fix probe (cancel me)
@@ -596,7 +635,7 @@ CLOCK: [2026-09-11 Fri 11:08]--[2026-09-11 Fri 11:09] =>  0:01
 (Filing prose restored 2026-09-11 — the original capture note was discarded by =org_capture='s immediate path, by documented design.) Hit composing =afea7e4f=: the fourth member (=fbaf8009=) belonged first, but the line lands only after the last planned member or an =after== anchor — no prepend, no move. A slice declares membership AND order, so append-only ordering forces either re-declaring the slice or a plan-drawer correction (the workaround used). Options: a =first= flag, a =before== parameter, or a dedicated reorder call; =1206b5b0= (the =parent== gap) is the precedent for extending this tool when composition hits a wall.
 
 
-* NEXT [0/4] Join the transcript to the record: span synopses, readable sessions, weighted attribution :code:
+* DOING [0/4] Join the transcript to the record: span synopses, readable sessions, weighted attribution :code:
 :PROPERTIES:
 :ID:       afea7e4f-41b3-4eda-83f1-39e1b9e7a61a
 :CREATED:  [2026-09-11 Fri 11:00]
@@ -608,6 +647,8 @@ CLOCK: [2026-09-11 Fri 11:08]--[2026-09-11 Fri 11:09] =>  0:01
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-11 Fri 11:12] \\
   nominated: the Slices-category pick-up-next, at the user's word
+- State "DOING"      from "NEXT"       [2026-09-11 Fri 17:26] \\
+  slice work starting, first member in the mail
 :END:
 :PLAN:
 The foundation is one measured fact (=295cde3a=, 2026-09-01): every queue =resume= event matches a transcript user message on timestamp — 28 of 28 within two seconds — so the prompts are already durably recorded beside a key that joins them to the record exactly, retroactively, across every session ever kept. The standing trap travels with the join: *the queue defines what a prompt is* — raw =type:"user"= transcript entries are contaminated by stop-hook feedback and tool results (=9e627dc0=, 45 raw against 36 real).
@@ -632,7 +673,7 @@ Planned:
 - [ ] [[id:325679af-829e-4c7f-88b0-153c2c9683b3][325679af]] TODO The review buffer shows each run's opening prompt, joined from the transcript
 - [ ] [[id:96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d][96ddf1ef]] TODO Render a session transcript to readable org, so scrollback stops being the index
 - [ ] [[id:295cde3a-49a5-4960-a828-a4fc175d73c1][295cde3a]] TODO Attribute a turn to several tasks by weight, judged from the transcript with lag
-- [ ] [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]] NEXT The review buffer should name each item's tracker, now that two projects share the queue
+- [-] [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]] DOING The review buffer should name each item's tracker, now that two projects share the queue
 
 
 * MAYBE Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
@@ -674,7 +715,7 @@ Amended same day, at the provenance conversation: the symlink-ignore advice inve
 (Filing prose restored 2026-09-11, belatedly *before* the existing amendment above — the original capture note was discarded by =org_capture='s immediate path, by documented design.) Asked by the user 2026-09-10 while hand-copying this repo's =.gitignore= into euchre. All four entries generalize (=settings.local.json=, worktrees, =clock-status.json=, the audit jsonl) and a fifth is consumer-specific: the =.claude/skills/<plugin>= symlink, with the absolute-vs-relative nuance the amendment above records. =--org= already collision-checks files; the same pattern appends missing ignore lines rather than clobbering. Decide whether the entries ship as a template or inline in the script.
 
 
-* NEXT The review buffer should name each item's tracker, now that two projects share the queue :code:
+* DOING The review buffer should name each item's tracker, now that two projects share the queue :code:
 :PROPERTIES:
 :ID:       fbaf8009-b3dc-48ed-b099-63b74fc156a8
 :CREATED:  [2026-09-10 Thu 14:49]
@@ -682,6 +723,8 @@ Amended same day, at the provenance conversation: the symlink-ignore advice inve
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-11 Fri 11:12] \\
   the slice's opening action: pure rendering, no join needed
+- State "DOING"      from "NEXT"       [2026-09-11 Fri 17:26] \\
+  starting the tracker and cwd rendering
 :END:
 
 (Filing prose restored 2026-09-11 — the original capture note was discarded on the queued path too: the event carried 681 characters and =--capture-write= takes no note.) Asked by the user 2026-09-10, the day euchre joined the agenda list file (=308bf4b4=) and the queue became genuinely multi-project. The review group heading renders 8-char id + title only (the =c2132d3f= column rationale); the destination tracker is implicit in where the id resolves and never displayed, so two projects' headings interleave distinguishable only by title. Wanted: the group heading (or item line) carries the project — e.g. the id's file rendered as its repo directory name — and the unassigned-span groups likewise say which session =cwd= produced them, since the cwd signal (=5461c349=) is already on the events. Apply behavior is correct today; this is legibility only.
@@ -3192,6 +3235,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-11 Fri 17:29]--[2026-09-11 Fri 17:34] =>  0:05
 CLOCK: [2026-09-11 Fri 16:47]--[2026-09-11 Fri 16:53] =>  0:06
 CLOCK: [2026-09-11 Fri 12:40]--[2026-09-11 Fri 12:42] =>  0:02
 CLOCK: [2026-09-11 Fri 11:47]--[2026-09-11 Fri 11:50] =>  0:03
@@ -8318,4 +8362,10 @@ CLOCK: [2026-09-11 Fri 11:45]--[2026-09-11 Fri 11:52] =>  0:07
 - <2026-09-11 Fri 11:45>--<2026-09-11 Fri 11:52> assigned at review
 CLOCK: [2026-09-11 Fri 16:14]--[2026-09-11 Fri 16:17] =>  0:03
 - [2026-09-11 Fri 16:14]--[2026-09-11 Fri 16:17] record post-close incidentals on the plugin slice
+CLOCK: [2026-09-11 Fri 16:54]--[2026-09-11 Fri 17:00] =>  0:06
+- [2026-09-11 Fri 16:54]--[2026-09-11 Fri 17:00] assigned at review
+CLOCK: [2026-09-11 Fri 17:04]--[2026-09-11 Fri 17:05] =>  0:01
+- [2026-09-11 Fri 17:04]--[2026-09-11 Fri 17:05] assigned at review
+CLOCK: [2026-09-11 Fri 17:16]--[2026-09-11 Fri 17:18] =>  0:02
+- [2026-09-11 Fri 17:16]--[2026-09-11 Fri 17:18] correct c19fbbf5's stale cookie and boxes
 :END:
