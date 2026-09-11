@@ -37,9 +37,19 @@ queue file and exits:
 |---------------------|-------------------------------|---------------|
 | `Stop`              | `bin/hooks/session-pause`     | `pause`       |
 | `UserPromptSubmit`  | `bin/hooks/session-resume`    | `resume`      |
+| `UserPromptSubmit`  | `bin/hooks/apply-detect`      | nothing — *injects context* when the queue was applied since the session's last turn |
 | `PermissionRequest` | `bin/hooks/block-start`       | `block_start` |
 | `PostToolUse` (unscoped) | `bin/hooks/block-end`    | `block_end`, if a block is open |
 | `PermissionDenied`  | `bin/hooks/block-end`         | `block_end`, if a block is open |
+
+**`apply-detect` is the one read-only row** (`:ID:` 165ce65a): the
+apply pass writes `.applied` watermark files, and this hook compares
+their mtimes against a per-session `.apply-seen` stamp — when any
+watermark moved, the next prompt carries `additionalContext` saying the
+record is fresh and a tracker diff may await a bookkeeping commit, so
+the human never announces "queue applied". First prompt of a session
+initializes the stamp silently: pre-session history is SessionStart's
+report, not this hook's.
 
 `session-pause` and `session-resume` are one line each — `exec
 queue-append pause` / `resume`. They are *guideposts*: timestamps marking

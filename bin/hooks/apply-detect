@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# UserPromptSubmit hook: tell the session when the review queue was
+# applied since its last turn, so the human never has to announce
+# "queue applied" (TODO.org :ID: 165ce65a).
+#
+# The signal already exists: the apply pass writes .applied watermark
+# files in the queue directory. This script only READS them, keeping one
+# stamp file per session whose mtime records the last time this session
+# was told. Survive-without-Emacs tier, like the rest of the queue-append
+# family: plain bash, jq for field mapping only, and every failure path
+# exits 0 silently -- a context hook must never block a prompt.
+#
+# First prompt of a session initializes the stamp silently: history that
+# predates the session belongs to SessionStart's report, not to this
+# hook. After that, any watermark newer than the stamp means an apply
+# happened between turns, and the session learns it as additionalContext
+# riding the prompt it was going to read anyway -- same channel as the
+# recovery report, at the natural turn boundary rather than as an
+# interruption.
+#
+# Motivating incident for the "between turns" framing: on 2026-09-11 a
+# commit's hook phase sat ~90 seconds against a live ceremony, because
+# the session had no way to know an apply was in flight. Knowing applies
+# happened is also a hint about when they do.
+set -uo pipefail
+
+queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
+[ -d "$queue_dir" ] || exit 0
+
+payload="$(cat 2>/dev/null || true)"
+session_id="$(printf '%s' "$payload" | jq -r '.session_id // empty' 2>/dev/null)"
+[ -n "$session_id" ] || exit 0
+
+stamp="$queue_dir/$session_id.apply-seen"
+
+if [ ! -e "$stamp" ]; then
+  touch "$stamp" 2>/dev/null
+  exit 0
+fi
+
+newer=0
+for f in "$queue_dir"/*.applied; do
+  [ -e "$f" ] || continue
+  if [ "$f" -nt "$stamp" ]; then
+    newer=$((newer + 1))
+  fi
+done
+
+[ "$newer" -gt 0 ] || exit 0
+touch "$stamp" 2>/dev/null
+
+context="The review queue was applied since this session's last turn \
+($newer watermark(s) moved). The org record on disk is fresh: keywords \
+and clocks reflect the apply, previously queued items may have landed, \
+and TODO.org/DONE.org may carry an uncommitted diff awaiting a \
+bookkeeping commit. Do not treat pre-apply staleness as current state, \
+and do not re-queue events already applied."
+
+jq -cn --arg ctx "$context" \
+  '{hookSpecificOutput: {hookEventName: "UserPromptSubmit", additionalContext: $ctx}}'
