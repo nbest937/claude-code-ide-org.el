@@ -17,8 +17,67 @@ The user asked on 2026-09-11 why a session reaches for =sed=/=awk= against TODO.
 :CREATED:  [2026-09-11 Fri 16:16]
 :CATEGORY: Slices
 :END:
+:DEBRIEF:
+The useful shape here: **a guard that refuses something you want is
+sometimes reporting that an earlier step was wrong.** The first instinct
+was to relax the closed-slice membership rule, which would have bought
+the edit and lost the only property that makes a closed cookie worth
+reading. Asking instead *why* the work arrived after the close found a
+close condition that was premature by construction — and then the guard
+needed no change at all.
+
+The generalisable test, since this will recur: when a rule blocks a
+change, check whether the thing it is protecting is still true. Here "the
+slice is finished" was not, so the refusal was accurate and the keyword
+was wrong.
+
+Also worth keeping: the cost of the old condition was invisible while
+every slice happened to merge the same day its members closed. =c19fbbf5=
+is the first slice whose PR outlived its last member by a day, which is
+why a condition wrong for every code slice went eleven slices without
+being noticed.
+
+*Correction, measured after writing the paragraph above.* The claim that
+=c19fbbf5= is the first slice whose PR outlived its last member is
+**false**, and it was inference rather than a reading. Comparing the eight
+closed slices' =CLOSED:= stamps against =gh pr list= merge times:
+=ec65b5d6= closed 2026-09-03 13:16 and its own PR (#9, which names it in
+the title) merged 2026-09-04 15:25 — about twenty-six hours later, the
+same gap as here. =ff7ccb2d= closed 2026-09-08 09:54 and =52bfafdf=
+13:16, both hours before the PRs of that evening.
+
+So the close condition has been wrong repeatedly, not once. What made
+=c19fbbf5= different is only that *something arrived in the window* —
+nine review findings needing a home — where the earlier gaps passed
+unused and so cost nothing visible. That is the better reading of why a
+condition wrong for every code slice survived eleven slices: not rarity,
+but that an empty window leaves no trace.
+:END:
 
 Surfaced 2026-09-11 trying to record three post-close closures on [[id:c19fbbf5-be1b-4c18-a38e-9b46d064abb8][c19fbbf5]]. =org_slice_add_member= refuses a closed slice because its list is a record — correct as far as it goes — but that slice closed on 2026-09-10 when its last member reached a terminal keyword, while its PR (#22) stayed open another day and kept accruing slice-incidental work. So the guard that protects a finished record also denies genuinely-belonging work its home, and the fallback is prose in the =:DEBRIEF:=, which no cookie or query can see. Candidate answers: close a slice when its integration point closes rather than when its members do; make the =Incidental:= section explicitly append-only after close; or ratify the prose fallback and say so in the conventions. A convention decision, not a bug.
+
+Resolved 2026-09-11, the user choosing between the three candidates and
+adding the keyword: **a slice with an integration point closes when that
+lands, not when its last member goes terminal, and sits in =REVIEW=
+between the two.** The membership guard is untouched — it was never the
+defect. A slice with no integration point of its own still closes when
+its members finish.
+
+Written into the two shipped references and promoted: the slice
+conventions gain a "Closing a slice" section (the close condition, the
+floor-and-ceiling framing against the =:BLOCKER:=, and the
+consequent-versus-incidental distinction), and the state transitions
+reference defines =REVIEW= on a grouping next to the existing =DOING=
+sense. No new table rows were needed: entering =REVIEW= closes the
+grouping's clock only when the grouping holds the running one, which the
+=from DOING= rule already said.
+
+Two things recorded as limits rather than claims. =REVIEW= on a grouping
+is *new* — twelve slices had existed and none had carried it, so that
+paragraph is the whole of its grouping sense. And no retrofit:
+=c19fbbf5= keeps its 2026-09-10 close, its three post-close closures stay
+debrief prose, and the PR they landed on is the rest of the record.
+
 
 * TODO org_outline extracts every heading's body twice per call :code:
 :PROPERTIES:
