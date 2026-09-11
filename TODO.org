@@ -8,8 +8,40 @@
 :CREATED:  [2026-09-11 Fri 15:45]
 :CATEGORY: Tools
 :END:
+:DEBRIEF:
+The measurement technique is the reusable part, and it is three lines:
+=advice-add= a counter =:before= the function under suspicion, run the
+real entry point over the real corpus, read the count. No timing, no
+profiler, no interpretation — for "is this called more often than it
+should be", a call count is the whole answer and it cannot be confounded
+by machine load. Worth reaching for before optimising anything in this
+file.
+
+The shape to watch for generally: a formatter called twice with different
+*filters* but the same *subject*. The filter difference is what makes the
+double call look necessary, and the subject being identical is what makes
+the second read waste. =--outline-map='s two calls had that shape in plain
+sight since the read split shipped.
+:END:
 
 Found by PR22's review pass. =--outline-map= calls =--outline-line= twice per heading (filtered and unfiltered) and now passes =bodies= to both, so =--outline-body-at-point= — an =org-end-of-meta-data= walk plus a =buffer-substring= — runs twice for every heading, on a path that is default-on over whole files, with only one of the two strings ever used. Hoisting the body once per entry and passing it into both calls halves it. Efficiency only, no wrong output; filed because the read split ([[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]]) made this the common path rather than an opt-in.
+
+Resolved 2026-09-11. =--outline-map= extracts the body once per heading
+and hands the text to both =--outline-line= calls, whose fourth argument
+changed from a =bodies= flag to the BODY text itself. =--outline-map= is
+its only caller, so the signature change is contained.
+
+Measured rather than asserted, by counting calls to
+=--outline-body-at-point= during a default =org_outline= over this repo's
+TODO.org: **320 extractions before, 160 after, for 160 headings** — from
+exactly two per heading to exactly one. 601/601.
+
+One secondary effect worth naming: a heading that =active_only= filters
+out used to cost one extraction (the unfiltered call always ran, the
+filtered one returned early) and still costs one now. The win is on
+surviving headings, which on an unfiltered whole-file call is all of
+them.
+
 
 * TODO apply-detect's last jq is its exit status, and the stamp advances before the report is emitted :code:
 :PROPERTIES:
@@ -17,8 +49,45 @@ Found by PR22's review pass. =--outline-map= calls =--outline-line= twice per he
 :CREATED:  [2026-09-11 Fri 15:45]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+Worth keeping: for an at-most-once notification, **the cheap failure and
+the expensive one are not symmetric**, so the order of emit and stamp is
+a real choice rather than style. Report-then-stamp risks saying it twice;
+stamp-then-report risks never saying it. The original wrote the stamp
+first, which bought nothing and chose the expensive side.
+
+Also worth noting for the hook family generally: =set -uo pipefail=
+without =-e= does not make a script exit 0 — the *last command's* status
+is the script's, so any hook whose final statement is a pipeline or a =jq=
+silently inherits it. An explicit trailing =exit 0= is the only thing that
+makes "every failure path exits 0" true, and the other hooks in
+=bin/hooks/= are worth a pass for the same shape.
+
+That pass was done immediately rather than filed, and found nothing:
+every other script in =bin/hooks/= already ends in an explicit =exit= —
+=exit 0= for the fire-and-forget ones, a deliberate =exit 2= for
+=clock-target-check= and =footnote-check=, which block on purpose — and
+=session-pause= ends in =exec queue-append pause=, inheriting that
+script's own =exit 0=. =apply-detect= was the only one, so there is no
+heading owed here.
+:END:
 
 Found by PR22's review pass, two defects in one script. The final =jq= determines =bin/hooks/apply-detect='s exit status, contradicting the header's promise that every failure path exits 0 silently: jq's *absence* is guarded, but a jq that fails for any other reason surfaces a hook-error banner on a prompt this hook is meant to be invisible to. Separately, the =.apply-seen= stamp is touched *before* the report is emitted, so a kill at the 10 s timeout loses the context while the stamp has already advanced — and that apply is then never reported at all. Both are in [[id:165ce65a-f87e-431c-8ee4-f0fbfffe14da][165ce65a]]'s new code.
+
+Resolved 2026-09-11. The final =jq= is now wrapped in an =if= whose
+success gates the =touch=, and the script ends in an unconditional
+=exit 0= — so a report that fails for any reason other than jq's absence
+(already handled at the top) neither fails the hook nor advances the
+stamp.
+
+Ordering the two this way is the substantive decision. Emitting before
+stamping means a kill at the 10 s timeout leaves the apply still owed, so
+the next prompt announces it again: a duplicate sentence rather than an
+apply reported to nobody. Two tests in =bin/apply-detect-test=, both
+measured failing against the old script — a =jq= shim that passes the
+parse call through and fails only the =-cn= report call, which is the
+only path that reaches the final =jq=.
+
 
 * TODO The pre-push PR advisory false-positives on a catch-up merge that did arrive through a PR :code:
 :PROPERTIES:
@@ -26,16 +95,76 @@ Found by PR22's review pass, two defects in one script. The final =jq= determine
 :CREATED:  [2026-09-11 Fri 15:45]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+The git fact behind this is worth not rediscovering: for a merge commit
+=A=, the range =A~1..A= is **not** "just A" — it is A plus everything
+reachable from A's second parent, i.e. the entire merged branch. So any
+pre-push or CI check that reasons over =remote_sha..local_sha= is, by
+default, reasoning over the contents of every branch merged in that push,
+not over what landed on the target. =--first-parent= is the way to ask
+the question people think they are asking.
+
+Also worth noting: the hook's *existing* test case 0 passed throughout,
+because the one PR it sampled happened to have no in-branch merges. The
+suite tested the rule against history that could not discriminate — a
+reminder that a green check over real data still only covers the shapes
+that data contains.
+:END:
 
 Found by PR22's review pass. =.githooks/pre-push= flags every merge commit in the pushed range except those titled =Merge pull request=, which catches =Merge branch 'main' into feature/x= commits made on a feature branch to catch up — and those become reachable from main the moment that branch merges *via a PR*. So syncing main into a long-lived branch once produces a misleading reminder on the next push to main. Advisory only, so the cost is noise rather than a block; scanning =--first-parent= history of main would match what the rule ([[id:c7bf2121-755c-4e52-8bf2-e21e56b1e0c2][c7bf2121]]) is actually about.
+
+Resolved 2026-09-11 by adding =--first-parent= to the advisory's
+=git log=. Measured on real history rather than argued: PR #2's range
+(=01da949~1..01da949=) carries two in-branch merges — the =Merge branch
+'main' into feature/event-queue-format= catch-up (=32f5c2a=) and a
+branch-into-branch merge (=7f6e6d6=) — and the old scan named both in an
+advisory about a branch that *did* arrive through a pull request. It now
+names none.
+
+A genuine local merge into main is still caught, because such a merge is
+a commit on main and so sits on main's own first-parent chain; the
+existing case-1 assertions on =fee51fd= still pass unchanged. Two new
+cases in =bin/pre-push-test=, both measured failing against the old hook.
+
 * TODO doc-sync-check ships to consuming repos and asserts conventions they do not have :code:
 :PROPERTIES:
 :ID:       04125b0b-adf8-4b65-9afe-7a4724a62d34
 :CREATED:  [2026-09-11 Fri 15:45]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+The useful residue is a test for the next hook, since "is this session
+tracking or repo convention?" was not obvious from either script: **does
+the hook's subject exist in the consuming repo?** =footnote-check= asks
+the consumer's own org files what their ids are and passes; a hook naming
+a path only this repo has cannot. Worth applying before adding a row to
+=hooks/hooks.json=, because nothing mechanical catches it — there is no
+parity check between =hooks/hooks.json= and =.claude/settings.json=, and
+the divergence is now deliberate rather than drift.
+:END:
 
 Found by PR22's review pass. =hooks/hooks.json= wires =doc-sync-check= into the plugin, where =CLAUDE_PROJECT_DIR= is the *consumer's* root — so their own CLAUDE.md and README.md match and the hook injects this repo's overlap-zone convention, [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]], into a repo where it does not exist. Its =DOOM.md= and =skills/org/references/org-emacs-setup.md= rows are likewise paths only this repo has. The file's own description claims every script appends to or checks =~/.claude/org-updates/=, which this one does not: it is dev tooling for here, not session-tracking machinery, and =footnote-check= is arguably in the same position. Decide which hooks the plugin should actually ship.
+
+Resolved 2026-09-11. =doc-sync-check= is removed from =hooks/hooks.json=
+and stays wired in this repo's own =.claude/settings.json=, which is
+where it belongs: its subject is this repo's CLAUDE.md/README.md overlap
+zone, named by ID in its own header, and under the plugin
+=CLAUDE_PROJECT_DIR= is the consumer's root.
+
+=footnote-check= was examined and *kept*, against the finding's
+suggestion that it is in the same position. It is not: it validates each
+candidate token against the =:ID:= lines of the *consuming* repo's
+tracked org files, so it enforces that repo's own ids and is inert where
+there are no org files. The convention it carries is the org
+way-of-working the plugin exists to teach, not a fact about this
+repository. =clock-target-check= ships for the same reason — it reads the
+queue.
+
+The description line was also wrong in the way the finding noted, and
+now states what it actually promises: every shipped script works against
+the queue or the consumer's own org files, and hooks enforcing this
+repo's conventions are deliberately absent.
+
 
 * TODO apply-detect reports an apply when the review pass only dismissed events :code:
 :PROPERTIES:
@@ -52,8 +181,42 @@ Found by PR22's review pass. =--queue-watermark-write= is the single writer for 
 :CREATED:  [2026-09-11 Fri 15:45]
 :CATEGORY: Tools
 :END:
+:DEBRIEF:
+The lesson is about fixtures, not about paths. A test whose two possible
+outcomes differ in the fixture but *not* in production is green for the
+wrong reason, and nothing in the test's text shows it: here the fixture's
+fallback file was =capture.org= while production's is =TODO.org=, so the
+assertion discriminated in the suite and would not have discriminated in
+the field. Worth checking whenever a fixture renames something production
+does not — the convenience that makes a fixture readable is exactly what
+can make its assertion weaker than it looks.
+
+Note also that this heading was filed from a review finding that slightly
+overstated the defect, and the overstatement survived into a first draft
+of the test comment before being measured. The reviewed claim was
+directionally right and specifically wrong, which is the ordinary case,
+not a lapse.
+:END:
 
 Found by PR22's review pass. =:where= renders =(format "top of %s" (file-name-nondirectory default))=, which is =top of TODO.org= for every project, because routing only ever selects files literally named TODO.org. The comment two lines above says which tracker received the heading "is the fact the reply must carry" — the basename does not carry it; the project directory is the discriminating part. Cosmetic next to [[id:5e731a23-7708-4248-b055-9b4a531f147d][5e731a23]] and [[id:965f94eb-1558-4d00-9857-5727eb86fe6f][965f94eb]], but it is also what makes those two invisible from inside a session: the reply looks correct whichever file was written.
+
+Resolved 2026-09-11. =:where= now renders =(abbreviate-file-name
+default)=, so a targetless capture answers "top of ~/git/<repo>/TODO.org"
+rather than "top of TODO.org"; the unresolvable-target error names the
+same path. =abbreviate-file-name= over a bare path because the review
+buffer renders this string and the line has to stay readable.
+
+One correction to this heading's own premise, found while testing.
+=claude-code-ide-org-test-capture-routes-to-the-sessions-project= *did*
+discriminate under the old basename assertion — but only because its
+fixture's fallback file is named =capture.org=. In production both
+candidates are a repo's =TODO.org=, where the basename separates nothing,
+so the fixture was proving a weaker claim than its docstring stated. The
+test now asserts the project path appears and the fallback path does not,
+and it was measured failing against a simulated misroute
+(=--session-project-capture-file= stubbed to nil), which is the condition
+it exists to catch.
+
 
 * TODO Every standalone client shares one project context, chosen by unstable ordering :code:
 :PROPERTIES:
@@ -77,6 +240,7 @@ Found by PR22's review pass. =--review-apply-capture= resolves a nil target thro
 :PROPERTIES:
 :ID:       c4048784-f9be-4f95-9ca6-cd161932e74c
 :CREATED:  [2026-09-11 Fri 13:23]
+:CATEGORY: Tools
 :END:
 
 Found by the PR22 low-effort review pass: in claude-code-ide-org--drawer-text-at-point, a target drawer whose :NAME: line exists but never closes with :END: before the next heading leaves content nil and falls into the missing-drawer error branch -- which then lists that very drawer under "Drawers present:", telling the caller the drawer does not exist while showing that it does. Proposed: track the found-but-unterminated case distinctly and report the drawer as malformed, so the caller learns the fix is in the file, not in their next tool call. Fix plus a discriminating ERT test, landed as a fixup on feature/plugin-package while PR22 is open, since the function is part of that PR's diff ([[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]] shipped it).
