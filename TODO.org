@@ -15,6 +15,18 @@ The queue is keyed by =session_id= and =--lane-clock-pairs= pairs within a lane 
 :ID:       3f4fd744-4ba7-4be8-9fe4-54e46119515a
 :CREATED:  [2026-09-11 Fri 18:08]
 :END:
+:PLAN:
+*What this actually poses is which parser owns* =:BLOCKER:=, *and the corpus is larger than the filing counted.* Measured 2026-09-11 across both trackers: **36 blocker properties — 32 wrapped in =ids(...)=, 4 bare** (TODO.org 11 wrapped / 1 bare; DONE.org 21 / 3).
+
+*Two coherent exits, and the data-side cost runs opposite to the intuition.*
+
+- *Normalise to bare, keep org-depend.* Rewrite 32 properties plus the two =(format "ids(%s)" ...)= sites in =config.el=. No new dependency, and the read side already accepts both forms, so it is low-risk. It also keeps a parser whose own header reads "WARNING: This file is just a PROOF OF CONCEPT, not a supported part of Org-mode" (=org-depend.el:27=), in a repository whose README says its files "receive little if no maintainance".
+- *Enable =org-edna-mode=, convert the 4 bare ones.* **Smaller** on the data side — 4 properties against 32 — and it makes the syntax this repo has been writing all along *true* rather than accidental. One mandatory gate: under edna an unrecognised form is a **refusal**, so a bare uuid blocker would block unconditionally and never unblock. All 4 must be converted *before* enabling, not after.
+
+*The architectural objection is narrower than it first reads, and the distinction is the whole decision.* Adopting edna for its **blocker/finder parsing alone** writes nothing, fires nothing and bypasses nothing. The queue conflict — a trigger writing through Emacs during the human apply pass — arises only from TRIGGER *actions*, which nothing here needs or would have to declare. "Edna conflicts with the queue" is true of its triggers, not of its parser.
+
+*What decides this is not in this body.* Every org-edna claim here comes from reading its source; it is not installed, and nothing above has been run. This repo's own rule is that a proposed mechanism is a hypothesis until measured, so the next step is a batch trial against these real blocker shapes — both forms, both parsers, a DONE blocker and an open one — not a decision. The cheap half of the fix (normalising to bare) is available immediately and does not wait on that trial.
+:END:
 
 =org-depend-block-todo= — the function actually on =org-blocker-hook= — does =(split-string blocker)= and treats each whitespace-separated word as an exact id. Wrapped in =ids(...)=, the first token arrives as =ids(<uuid>= and the last as =<uuid>)=, and neither resolves; the =cond= falls through and nothing blocks. The wrapper is org-edna's =ids()= *finder*, not org-depend's grammar, and =config.el= writes it at two sites (the =org_set_property= validator and the slice blocker refresh) under docstrings calling it "the documented =ids(a b c)= form". Verified in batch against org 9.8.7 and the real =org-depend.el=, with the bare form as a discriminating control: =ids(A)= → DONE, =ids(A B)= → DONE, =ids(A B C)= → blocked but only by B, bare =A= → blocked. Measured over TODO.org's 12 =:BLOCKER:= properties: 6 hold one id and 2 hold two, so **8 enforce nothing at all**; 3 hold 4, 9 and 14 ids and enforce all but their endpoints; 1 is bare and fully enforced. Worst part is that it is invisible from the read side — =--outline-blocker-ids= extracts ids by UUID regexp and finds them all, so =org_outline='s =[blocked: ...]= marker is right while the DONE-time refusal is not, and the divergence bites exactly at the human apply pass where the refusal was supposed to appear. Two fixes: write a bare space-separated list, or enable =org-edna-mode=, which parses =ids(...)= natively. The second has a trap worth stating before anyone reaches for it — with =org-edna-mode= on, a =:BLOCKER:= holding *bare* uuids raises an unrecognised-form error, and org-edna's handler treats every parse failure as a refusal, so those headings would block unconditionally. Found 2026-09-11 by a research subagent surveying org's dependency facilities, and re-verified here from scratch.
 
@@ -1587,6 +1599,17 @@ repo's convention or the portable half's?") is answered by the
 deferral: it is decided *with* the portable half, so
 [[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]] is now its
 =:BLOCKER:=. The forecast-vs-record boundary design happens there.
+
+*Answered 2026-09-11 by a delegated survey, for the question this heading must settle before it dates anything: does org cascade a slipped schedule down a dependency chain — task 1 overruns, and 2, 3, 4 bump forward in turn?* **No, nowhere.** Not org core, org-contrib, GNU/NonGNU ELPA or MELPA; a sweep of all 6,304 MELPA packages for =gantt|critical.?path|pert|cpm|precedence= returned zero. Org has no "a date changed" hook at all, so any cascade must be *invoked* — a bulk agenda command or an explicit tool — never fired.
+
+*Four things get mistaken for it.* =ORDERED=, org-depend and org-edna =BLOCKER= all gate **state**, never dates. org-depend's single date action, =chain-siblings-scheduled=, *copies* the predecessor's scheduled time to its next sibling instead of shifting it — the opposite of what an overrun needs — and walks siblings only, never =:BLOCKER:=. =ox-taskjuggler= genuinely solves the cascade, but as a one-directional export with no importer, and it needs =Effort=, of which this corpus has **zero**; it has also left org core (9.5) and then org-contrib, and now lives in a third-party repo. org-gantt and elgantt compute dates internally and discard them.
+
+*The only real primitive anywhere is org-edna's* =scheduled!("+Nd")=, which shifts a target's own date relative to itself. Two limits keep it a primitive rather than the feature: it fires **only** on a transition to DONE, and it advances exactly **one hop** — =todo!= re-enters =org-trigger-hook= and so chains, while the date actions call =org--deadline-or-schedule= directly and fire nothing. No finder walks a dependency graph either; the shortest credible build is a custom finder returning the transitive =:BLOCKER:= closure, with the shipped =scheduled!= doing the arithmetic.
+
+*Three hazards for this heading's own forecast-vs-record boundary,* which is why this belongs here rather than on a tooling heading. =SCHEDULED=/=DEADLINE= are active timestamps by construction — correct for a forecast, but it means the line to defend is that nothing *derived from clock measurement* ever becomes one. =org-log-reschedule= and =org-log-redeadline= are both nil today and should stay nil: either would write revision lines into =:LOGBOOK:=, the same drawer the CLOCK record lives in. And any cascade hung on =org-trigger-hook= would fire **during the human apply pass**, writing forecast dates in bursts and bypassing the queue outright — the queue has no event type for a proposed date change.
+
+*Provenance, stated because it bounds how far this should be trusted:* the org-edna behaviour above comes from reading its source, not from running it. It is not installed here.
+
 
 
 * TODO No tool edits a heading's title, so a rename goes behind Emacs or not at all :code:
