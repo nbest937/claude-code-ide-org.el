@@ -3727,21 +3727,26 @@ next call needs no guessing."
     (org-back-to-heading t)
     (let ((end (save-excursion (outline-next-heading) (or (point) (point-max))))
           (present nil)
-          (content nil))
+          (content nil)
+          (truncated nil))
       (while (re-search-forward "^[ \t]*:\\([A-Za-z][A-Za-z0-9_-]*\\):[ \t]*$" end t)
         (let ((this (upcase (match-string-no-properties 1))))
           (unless (equal this "END")
             (push this present)
             (when (and (null content) (equal this name))
               (let ((beg (1+ (line-end-position))))
-                (when (re-search-forward "^[ \t]*:END:[ \t]*$" end t)
-                  (setq content
-                        (buffer-substring-no-properties
-                         beg (line-beginning-position)))))))))
+                (if (re-search-forward "^[ \t]*:END:[ \t]*$" end t)
+                    (setq content
+                          (buffer-substring-no-properties
+                           beg (line-beginning-position)))
+                  (setq truncated t)))))))
       (cond
        (content (if (string-empty-p (string-trim content))
                     (format "(the :%s: drawer is empty)" name)
                   content))
+       (truncated
+        (format "Error: the :%s: drawer is malformed -- its opening line \
+exists but no :END: closes it before the next heading." name))
        ((null present)
         (format "Error: this heading has no :%s: drawer -- it has no drawers at all." name))
        (t

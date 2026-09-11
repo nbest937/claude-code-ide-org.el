@@ -14291,6 +14291,25 @@ include_children is refused."
       (should (string-match-p "no :PLAN: drawer" kid))
       (should (string-match-p "Drawers present: :PROPERTIES:" kid)))))
 
+(ert-deftest claude-code-ide-org-test-body-names-an-unterminated-drawer-malformed ()
+  "A drawer whose opening line exists but never closes with :END: before
+the next heading is reported as malformed, not as missing -- the
+missing-drawer error would list that very drawer as present, telling
+the caller it does not exist while showing that it does."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO NEXT | DONE\n\n"
+              "* TODO A task with a broken drawer\n"
+              ":PROPERTIES:\n:ID: broken-1\n:END:\n"
+              ":PLAN:\nProse left dangling by a hand edit.\n\n"
+              "* TODO The next heading\n"
+              ":PROPERTIES:\n:ID: after-1\n:END:\n"))
+    (org-id-update-id-locations (list capture-file))
+    (let ((claude-code-ide-org-query-files (list capture-file)))
+      (let ((result (claude-code-ide-org-body "broken-1" nil "PLAN")))
+        (should (string-match-p "malformed" result))
+        (should-not (string-match-p "no :PLAN: drawer" result))))))
+
 ;;; Session-routed captures (TODO.org :ID: d718f6b6)
 
 (ert-deftest claude-code-ide-org-test-capture-routes-to-the-sessions-project ()
