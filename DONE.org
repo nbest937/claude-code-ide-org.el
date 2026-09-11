@@ -25,6 +25,36 @@ CLOSED: [2026-09-10 Thu 16:47]
 :END:
 :DEBRIEF:
 Seventeen of nineteen members closed, two dropped by design (=ecf66d45= to its own timeline conversation, =b862fbf4= to wait for multi-project data — which this slice's own deployment finally started accruing). The arc: package (=b0e478f7=), relocate the prose with pointer stubs (=9d009401=, =02aaae22=), wire the Doom side (=78a02667=, =7c86ab4c=, glue + stub), package the Warp wiring and swap the real config (=e396f94a=), scaffold and route consumers (=9b171907=, =d718f6b6=), retire the symlink scan (=308bf4b4=), split the reads (=2a399034=), scope the hook policies (=67c3208f=), pin the dependency stack (=4f8b5d99=, =e3caa21f=), and land enable-once (=7dbb82e0=). Incidental catches along the way that only a real consumer surfaces: the unpinned-org tip, the uppercase uuidgen IDs, Doom's so-long stealing the archive, the redundant manifest hooks line, the custom.el agenda shadow. The slice's thesis held: every fresh-machine hand step it set out to kill is now two init.el lines, one config.el stub, and a symlink.
+
+*Three more incidentals landed after this slice closed*, recorded here
+because the checklist cannot hold them: =org_slice_add_member= refuses a
+closed slice, on the stated ground that its list is a record and
+membership does not change after the fact. Closed 2026-09-11, all three
+inside this slice's own PR (#22), which was still open:
+
+- =204d1b0a= DONE org_capture accepts a note it silently discards, and
+  five headings shipped bodiless
+- =49e1556b= CANCELLED Scratch: capture-note probe (cancel me)
+- =878f5843= CANCELLED Scratch: note-fix probe (cancel me) — the two
+  probes being that investigation's deliberate test artifacts, cancelled
+  as designed rather than abandoned.
+
+The situation this exposes is worth naming, since it will recur: **a
+slice can close while its integration point is still open.** All members
+reached a terminal keyword on 2026-09-10, so closing was correct by the
+rule that governs it — but the branch kept accruing slice-incidental
+work for another day, and the refusal that protects a finished record
+also denies that work its home. Whether the answer is a later cutoff for
+closing, an explicitly append-only incidental section, or simply this
+prose, is a convention question rather than a bug; see =91b58d67=.
+
+Correction to the paragraph above: that convention question is filed as
+=e80f6ccf=. The =91b58d67= it cites is **not an id** — it was written as
+a forward reference before the heading existed, which is to say invented,
+and is left visible here rather than quietly rewritten because a drawer
+is append-only through =org_amend= and because the failure is worth
+seeing: an 8-hex token reads as an id to every later reader, so guessing
+one is indistinguishable from citing one.
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-08 Tue 15:29] \\

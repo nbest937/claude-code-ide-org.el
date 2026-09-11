@@ -2,6 +2,24 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO org_query exposes four of org-ql's thirty-five predicates, so structured reads fall back to text scanning :code:
+:PROPERTIES:
+:ID:       61f05e56-9d05-4f3e-9131-5eb899f95b8f
+:CREATED:  [2026-09-11 Fri 16:16]
+:CATEGORY: Tools
+:END:
+
+The user asked on 2026-09-11 why a session reaches for =sed=/=awk= against TODO.org when =emacs-tools= exists; the answer is that the two questions at hand were not expressible. =org_query= advertises =todo:=, =tags:=, =priority:= and =heading:=, while the loaded org-ql defines 35 predicates (measured, not recalled: =(length org-ql-predicates)=) including =property=, =closed=, =ts=, =category=, =level=, =blocked=, =children=, =descendants=, =ancestors= and =rifle=. So "which headings carry =:KIND: slice=" and "what closed after this timestamp" both became hand-rolled awk — and the first attempt silently mis-paired ids with headings, because =CLOSED:= precedes the property drawer and the script did not model that. The engine already supports what is missing; this is about the exposed surface. =property=, =closed= and =category= look highest-value here, =blocked= notable since this project has bespoke code for it.
+
+* TODO A slice can close while its integration point is still open, and post-close incidentals have nowhere to go :code:
+:PROPERTIES:
+:ID:       e80f6ccf-daa4-4032-b899-5de30146b27f
+:CREATED:  [2026-09-11 Fri 16:16]
+:CATEGORY: Slices
+:END:
+
+Surfaced 2026-09-11 trying to record three post-close closures on [[id:c19fbbf5-be1b-4c18-a38e-9b46d064abb8][c19fbbf5]]. =org_slice_add_member= refuses a closed slice because its list is a record — correct as far as it goes — but that slice closed on 2026-09-10 when its last member reached a terminal keyword, while its PR (#22) stayed open another day and kept accruing slice-incidental work. So the guard that protects a finished record also denies genuinely-belonging work its home, and the fallback is prose in the =:DEBRIEF:=, which no cookie or query can see. Candidate answers: close a slice when its integration point closes rather than when its members do; make the =Incidental:= section explicitly append-only after close; or ratify the prose fallback and say so in the conventions. A convention decision, not a bug.
+
 * TODO org_outline extracts every heading's body twice per call :code:
 :PROPERTIES:
 :ID:       64f649f3-d7ba-4ed9-9fe8-ccdad10ffb7f
