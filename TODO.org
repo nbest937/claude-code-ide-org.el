@@ -2,6 +2,38 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [0/2] Join the transcript to the record: span synopses, readable sessions, weighted attribution :code:
+:PROPERTIES:
+:ID:       afea7e4f-41b3-4eda-83f1-39e1b9e7a61a
+:CREATED:  [2026-09-11 Fri 11:00]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:BLOCKER:  ids(325679af-829e-4c7f-88b0-153c2c9683b3 295cde3a-49a5-4960-a828-a4fc175d73c1)
+:END:
+:PLAN:
+The foundation is one measured fact (=295cde3a=, 2026-09-01): every queue =resume= event matches a transcript user message on timestamp — 28 of 28 within two seconds — so the prompts are already durably recorded beside a key that joins them to the record exactly, retroactively, across every session ever kept. The standing trap travels with the join: *the queue defines what a prompt is* — raw =type:"user"= transcript entries are contaminated by stop-hook feedback and tool results (=9e627dc0=, 45 raw against 36 real).
+
+Three deliverables, sequenced smallest first:
+
+1. *=325679af= — the review-buffer surfacing.* An item's synopsis today is its enclosing clock event's note (=--review-annotation-label=), so guidepost-reconstructed spans have none by construction — the user cannot discriminate a degenerate 0-run span from an unmeasured long turn. Render each run's opening prompt, and for a lone-timestamp span the abutting prompts either side, truncated. No hook change, no new durable field.
+
+2. *=96ddf1ef= — the readable session.* Render a transcript to org for paging in Emacs: isearch, folding, no scroll position lost to the agent answering. The walk-the-whole-session tool where the per-span excerpt is not enough; promoted from MAYBE the day the review-context need became concrete.
+
+3. *=295cde3a= — weighted attribution, research.* The same join read for meaning: 84% of turns name at least one known heading id (mean 6.2), so a turn can be attributed to several tasks by weight, with lag. Builds on 1 and 2; explicitly research, expected to end in a design rather than necessarily code.
+
+The sequencing is by dependency of *confidence*, not code: each deliverable trusts the join a little further than the one before.
+:END:
+
+The record knows *when* work happened but not *what was going on* — a 0-run span at review time is indistinguishable from an unmeasured long turn, and the user can never recall the interval. The transcripts already hold the answer, joined to the queue by timestamp (28 of 28 within two seconds). This slice spends that join three ways, smallest first: prompt excerpts beside every span in the review buffer, whole sessions rendered to readable org, and turn-to-task attribution by weight. Declared 2026-09-11 at the user's motion, the day the review-context need became concrete.
+
+Planned:
+
+- [ ] [[id:325679af-829e-4c7f-88b0-153c2c9683b3][325679af]] TODO The review buffer shows each run's opening prompt, joined from the transcript
+- [[id:96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d][96ddf1ef]] MAYBE Render a session transcript to readable org, so scrollback stops being the index
+- [ ] [[id:295cde3a-49a5-4960-a828-a4fc175d73c1][295cde3a]] TODO Attribute a turn to several tasks by weight, judged from the transcript with lag
+
+
 * MAYBE Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
 :PROPERTIES:
 :ID:       489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938
