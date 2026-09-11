@@ -2,6 +2,23 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO =:BLOCKER: ids(...)= is org-edna syntax; org-depend cannot parse it, so 8 of 12 blockers enforce nothing :code:
+:PROPERTIES:
+:ID:       3f4fd744-4ba7-4be8-9fe4-54e46119515a
+:CREATED:  [2026-09-11 Fri 18:08]
+:END:
+
+=org-depend-block-todo= — the function actually on =org-blocker-hook= — does =(split-string blocker)= and treats each whitespace-separated word as an exact id. Wrapped in =ids(...)=, the first token arrives as =ids(<uuid>= and the last as =<uuid>)=, and neither resolves; the =cond= falls through and nothing blocks. The wrapper is org-edna's =ids()= *finder*, not org-depend's grammar, and =config.el= writes it at two sites (the =org_set_property= validator and the slice blocker refresh) under docstrings calling it "the documented =ids(a b c)= form". Verified in batch against org 9.8.7 and the real =org-depend.el=, with the bare form as a discriminating control: =ids(A)= → DONE, =ids(A B)= → DONE, =ids(A B C)= → blocked but only by B, bare =A= → blocked. Measured over TODO.org's 12 =:BLOCKER:= properties: 6 hold one id and 2 hold two, so **8 enforce nothing at all**; 3 hold 4, 9 and 14 ids and enforce all but their endpoints; 1 is bare and fully enforced. Worst part is that it is invisible from the read side — =--outline-blocker-ids= extracts ids by UUID regexp and finds them all, so =org_outline='s =[blocked: ...]= marker is right while the DONE-time refusal is not, and the divergence bites exactly at the human apply pass where the refusal was supposed to appear. Two fixes: write a bare space-separated list, or enable =org-edna-mode=, which parses =ids(...)= natively. The second has a trap worth stating before anyone reaches for it — with =org-edna-mode= on, a =:BLOCKER:= holding *bare* uuids raises an unrecognised-form error, and org-edna's handler treats every parse failure as a refusal, so those headings would block unconditionally. Found 2026-09-11 by a research subagent surveying org's dependency facilities, and re-verified here from scratch.
+
+* TODO Open the review buffer newest-first, with =s= to reverse it like dired :code:
+:PROPERTIES:
+:ID:       f1e36a65-3469-4ae6-ac1f-fdfcd1c053c9
+:CREATED:  [2026-09-11 Fri 17:32]
+:END:
+
+Items render oldest-first — `--review-items-from-queue` sorts ascending by `:ts`/`:start` and nothing offers another order — so a pass that cares about what just happened begins by scrolling to the bottom of a buffer whose top is days old. Asked by the user 2026-09-11: present descending by default, and bind a sort key (`s`, following dired's `s` for toggling name/date order) that reverses it. One invariant is explicit and must hold in both directions: the mark commands still advance *downward*, toward the bottom of the buffer, so `m m m` walks a run whichever order it is displayed in — the display order changes what "next" means, never which way point travels. Watch the interaction with `--review-goto-item` and the point-restoration `9e80a32d` fixed, since both key on position rather than identity.
+
+
 * TODO Guidepost aggregation ignores =cwd=, so two projects' turns cluster into one span :code:
 :PROPERTIES:
 :ID:       c9940558-b23e-4b2c-86e8-e75a377634aa
@@ -10,13 +27,19 @@
 
 =--aggregate-guideposts= clusters by time alone, so guideposts from concurrent sessions in *different* projects merge into a single span — and accepting that span credits one project's minutes to the other's heading. Found 2026-09-11 the moment [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]]'s annotation made the cwd visible: over the whole queue history exactly two groups render =[cwd: agentic-euchre, claude-code-ide-org]=, and both are real — =[2026-09-10 Thu 14:49:24]--[2026-09-10 Thu 15:02:17]=, already attributed to =308bf4b4=, contains a 1:25 euchre run (14:59:33 resume, 15:00:58 pause), and =[2026-09-10 Thu 15:59:24]--[2026-09-10 Thu 16:03:05]=, unassigned, opens with a 23s euchre run before three claude-code-ide-org guideposts. Small today because euchre has 14 events against 722; it scales with the second project, and it is silent. Proposed: treat a cwd change like the exclusions =--aggregate-guideposts= already honours — a project boundary splits rather than clusters through — which also makes each resulting span's annotation name one tracker instead of two. This is the consumer half [[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]] recorded the field for; note its other named consumer obligation, normalising a worktree's cwd to its main checkout, or a single project splits into one span per worktree.
 
+
 * TODO Accepting a 0-run span records none of its minutes, and only =e= can claim them :code:
 :PROPERTIES:
 :ID:       2deb090f-593d-40e3-9044-fda318d9b6de
 :CREATED:  [2026-09-11 Fri 17:41]
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-11 Fri 17:41]--[2026-09-11 Fri 17:47] =>  0:06
+- [2026-09-11 Fri 17:41]--[2026-09-11 Fri 17:47] check the 0-run span attention reasoning, file it
+:END:
 
 Assigning a 0-run span and applying it writes a =:LOGBOOK:= annotation and no =CLOCK:= line at all — =--review-apply-clock='s =(unless observed ...)= branch — so the envelope is recorded as zero. Measured 2026-09-11 on the ten pending spans: seven have no run, including [2026-09-11 Fri 13:24]--[2026-09-11 Fri 13:46], and every one of them goes from 0s to its full envelope the moment =:suggested= is cleared. The user's position, stated the same day: a 0-run/0-turn span they choose to accept should carry all those minutes, because accepting it *is* the assertion that the time was their attention. Today the only way to say that is =e= — retyping both timestamps unchanged purely to set =:suggested nil= — so the act costs two timestamps and reads as an edit rather than a claim. Proposed: a way to accept the envelope as attention in one act, distinct from correcting bounds; note that the bracket style is a red herring here, since =:active= reaches only the annotation while the =CLOCK:= line is always written inactive by =org-clock-in=/=org-clock-out=. Reads with [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] (the same keystroke family, and the same question of what the assertion means), [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]] (the automatic half — a gap containing an apply timestamp is provably human), and [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]], which named this residue and said explicitly that it stopped the line implying the minutes were captured without capturing them.
+
 
 * TODO Nothing can correct a closed slice's record, even when the correction is close-time truth :code:
 :PROPERTIES:
@@ -670,10 +693,10 @@ The record knows *when* work happened but not *what was going on* — a 0-run sp
 
 Planned:
 
-- [ ] [[id:325679af-829e-4c7f-88b0-153c2c9683b3][325679af]] TODO The review buffer shows each run's opening prompt, joined from the transcript
+- [-] [[id:325679af-829e-4c7f-88b0-153c2c9683b3][325679af]] DOING The review buffer shows each run's opening prompt, joined from the transcript
 - [ ] [[id:96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d][96ddf1ef]] TODO Render a session transcript to readable org, so scrollback stops being the index
 - [ ] [[id:295cde3a-49a5-4960-a828-a4fc175d73c1][295cde3a]] TODO Attribute a turn to several tasks by weight, judged from the transcript with lag
-- [-] [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]] DOING The review buffer should name each item's tracker, now that two projects share the queue
+- [-] [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]] REVIEW The review buffer should name each item's tracker, now that two projects share the queue
 
 
 * MAYBE Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
@@ -685,7 +708,7 @@ Planned:
 (Filing prose restored 2026-09-11 — the original capture note was discarded by =org_capture='s immediate path, by documented design.) 2026-09-11, one occurrence: the beachball after the ceremony's final =q= was a corpse — =sample= showed the lisp thread inside =handle_fatal_signal= → =shut_down_emacs= → =kill_buffer_processes= waiting on the GUI queue's semaphore while the GUI thread waited on the lisp queue (mac-port termination deadlock). All buffers were saved first: the ceremony's 85-heading archive sweep (~5,300 lines TODO.org → DONE.org) landed on disk at 09:42 and nothing was lost. Killed with SIGKILL, relaunched, glue re-wired unaided. The fatal signal's origin is unknown — the crash landed while idle-waiting in =really_call_select=, so the ceremony correlation may be timing, not cause. Promote if it recurs; a second sample is the next data point.
 
 
-* TODO The review buffer shows each run's opening prompt, joined from the transcript :code:
+* DOING The review buffer shows each run's opening prompt, joined from the transcript :code:
 :PROPERTIES:
 :ID:       325679af-829e-4c7f-88b0-153c2c9683b3
 :CREATED:  [2026-09-11 Fri 09:59]
@@ -695,9 +718,22 @@ CLOCK: [2026-09-11 Fri 09:43]--[2026-09-11 Fri 09:45] =>  0:02
 - [2026-09-11 Fri 09:43]--[2026-09-11 Fri 09:45] assigned at review
 CLOCK: [2026-09-11 Fri 09:50]--[2026-09-11 Fri 09:53] =>  0:03
 - [2026-09-11 Fri 09:50]--[2026-09-11 Fri 09:53] assigned at review
+- State "DOING"      from "TODO"       [2026-09-11 Fri 17:48] \\
+  building the transcript prompt join
 :END:
 
 (Filing prose restored 2026-09-11 — the original capture note was discarded by =org_capture='s immediate path, by documented design.) The user's concrete reporting need, stated 2026-09-10: at review time they cannot discriminate a degenerate 0-run/0-turn span from an unmeasured long turn, because nothing says what was going on. The mechanism is decided and measured on =295cde3a=: join queue =resume= events to transcript user messages on timestamp (28 of 28 within two seconds; the queue defines what a prompt is — raw =type:"user"= entries are contaminated, =9e627dc0='s trap). Build the surfacing: each run renders its opening prompt's first line, and a lone-timestamp span renders the abutting prompts either side, truncated. This closes exactly the =--review-annotation-label= gap: an item's synopsis is its enclosing clock event's note, so guidepost-reconstructed spans have none by construction. Retroactive across all recorded sessions; no hook change, no new durable field.
+
+*Shipped 2026-09-11* on =feature/join-transcript-to-record=. Prompt synopses render as evidence lines *under* each clock item — the item line is already dense, and those lines are unpropertized so =m=/=n= stepping steps over them as it does the existing evidence. One per run, capped at 5 with the remainder stated rather than silently cut. Three defcustoms carry the policy: =-prompt-join-tolerance= (2s), =-prompt-synopsis-width= (80), =-prompt-synopsis-max-lines= (5).
+
+*The join generalises well beyond this heading's premise.* =295cde3a= measured one session at 28/28; across the whole corpus it is **1137 of 1144 resume events matched inside two seconds (99.4%)** over 41 sessions, and 6 of the 7 misses are sessions whose transcript has aged out — i.e. one genuine miss. 96% of matches are prose; the rest are slash commands (unwrapped from their =<command-name>= tags) and subagent re-invocations (named, not quoted).
+
+*Three contamination classes, dropped at collection rather than at render*, because left in the candidate list any of them can win the nearest-match and *hide* the real prompt — which is exactly how the first was found, rendering in place of a slash command. Tool results carry their content as an array; =isMeta= entries are the harness's caveat preamble, written milliseconds before the command they preface; and =<bash-input>=/=<bash-stdout>= are the user's =!= shell escapes, 59 of one session's 80 filtered prompts. This is =9e627dc0='s trap answered structurally: nothing here enumerates user entries, it asks what was said at a known timestamp.
+
+*A span holding no guidepost at all was the case that nearly got missed.* A bracket opened and closed inside one turn contains no guidepost by construction — measured on the session that built this: fifteen minutes, two events, no =resume=. That is precisely the "unmeasured long turn" this heading exists to make legible, so it falls back to the prompt in effect when the span opened, labelled =[last prompt before this span]= and stamped with *that prompt's* own time so the distance is visible. It is deliberately not the measured join and must never read as though it were.
+
+*Verified on the real queue, not fixtures.* Every pending span now says what it was — including =[2026-09-04 Fri 09:52]--[2026-09-04 Fri 09:58]=, a "0:06 span, no runs, 0 turns" item that now reads /"does a span with 0:03 span, no runs, 0 turns write anything into TODO.org?"/: the user asking about this very defect, in the span the defect made unreadable. 618 tests, 0 unexpected, from 611; five mutations run red.
+
 
 
 * TODO claude-org-setup --org scaffolds or appends the consuming repo's .gitignore :code:
@@ -715,7 +751,7 @@ Amended same day, at the provenance conversation: the symlink-ignore advice inve
 (Filing prose restored 2026-09-11, belatedly *before* the existing amendment above — the original capture note was discarded by =org_capture='s immediate path, by documented design.) Asked by the user 2026-09-10 while hand-copying this repo's =.gitignore= into euchre. All four entries generalize (=settings.local.json=, worktrees, =clock-status.json=, the audit jsonl) and a fifth is consumer-specific: the =.claude/skills/<plugin>= symlink, with the absolute-vs-relative nuance the amendment above records. =--org= already collision-checks files; the same pattern appends missing ignore lines rather than clobbering. Decide whether the entries ship as a template or inline in the script.
 
 
-* DOING The review buffer should name each item's tracker, now that two projects share the queue :code:
+* REVIEW The review buffer should name each item's tracker, now that two projects share the queue :code:
 :PROPERTIES:
 :ID:       fbaf8009-b3dc-48ed-b099-63b74fc156a8
 :CREATED:  [2026-09-10 Thu 14:49]
@@ -723,11 +759,23 @@ Amended same day, at the provenance conversation: the symlink-ignore advice inve
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-11 Fri 11:12] \\
   the slice's opening action: pure rendering, no join needed
+CLOCK: [2026-09-11 Fri 17:26]--[2026-09-11 Fri 17:41] =>  0:15
 - State "DOING"      from "NEXT"       [2026-09-11 Fri 17:26] \\
   starting the tracker and cwd rendering
+- [2026-09-11 Fri 17:26]--[2026-09-11 Fri 17:41] render tracker and session cwd in review groups
+- State "REVIEW"     from "DOING"      [2026-09-11 Fri 17:47] \\
+  shipped and verified on the real queue
 :END:
 
 (Filing prose restored 2026-09-11 — the original capture note was discarded on the queued path too: the event carried 681 characters and =--capture-write= takes no note.) Asked by the user 2026-09-10, the day euchre joined the agenda list file (=308bf4b4=) and the queue became genuinely multi-project. The review group heading renders 8-char id + title only (the =c2132d3f= column rationale); the destination tracker is implicit in where the id resolves and never displayed, so two projects' headings interleave distinguishable only by title. Wanted: the group heading (or item line) carries the project — e.g. the id's file rendered as its repo directory name — and the unassigned-span groups likewise say which session =cwd= produced them, since the cwd signal (=5461c349=) is already on the events. Apply behavior is correct today; this is legibility only.
+
+*Shipped 2026-09-11* on =feature/join-transcript-to-record=, in both renderers. A resolved =:ID:= annotates bare with the project containing the file it resolves in — the file apply will write; an id resolving to nothing (unassigned span, capture not yet created) has no destination, so the session =cwd= is offered and labelled =[cwd: ...]=; neither known renders nothing, which is every event older than [[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]]'s field. Trailing, so the =c2132d3f= id and title columns do not move. The annotation is a fact about a *run* of items while the drawing loop knows only the item in hand, hence =--review-item-runs= and a per-render =eq= hash. The pending report got the same treatment in the same pass: it is the model-facing twin of the buffer and a reader of either was equally unable to say which project a group belonged to.
+
+*=--project-name= normalises to the git root*, which is what makes a cwd comparable to a tracked file's location at all — 722 events at this repo's root and 18 in =modules/tools/claude-code-ide-org= are one project, and the last path component would have reported two. A linked worktree normalises to its main checkout, which is the obligation =5461c349= named for its consumer; parsed from the =.git= pointer file rather than shelled out to =git rev-parse=, since this sits behind a render that must not block.
+
+*Verified against the real queue rather than fixtures.* Live, after reload: the tracker on resolved groups, =[cwd: ...]= on unassigned ones, and nothing at all on the =2026-09-04= group whose events predate the field. Across the whole queue history, 126 groups name a tracker, 176 fall back to cwd, and exactly two render =[cwd: agentic-euchre, claude-code-ide-org]=. 611 tests, 0 unexpected, from a 601 baseline; six mutations run red, each failing exactly the test that claims it.
+
+*It earned its keep on the first render.* Those two mixed groups are real interleaving — one already attributed to =308bf4b4= and carrying a 1:25 euchre run — which is an attribution defect the cwd field existed to expose and nothing had looked for. Filed as [[id:c9940558-b23e-4b2c-86e8-e75a377634aa][c9940558]].
 
 
 * TODO The glue claims ownership of the whole wiring block, but the 202 override ships nowhere :code:
@@ -3235,6 +3283,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-11 Fri 17:51]--[2026-09-11 Fri 17:54] =>  0:03
 CLOCK: [2026-09-11 Fri 17:29]--[2026-09-11 Fri 17:34] =>  0:05
 CLOCK: [2026-09-11 Fri 16:47]--[2026-09-11 Fri 16:53] =>  0:06
 CLOCK: [2026-09-11 Fri 12:40]--[2026-09-11 Fri 12:42] =>  0:02
@@ -8360,6 +8409,8 @@ CLOCK: [2026-09-11 Fri 11:11]--[2026-09-11 Fri 11:13] =>  0:02
 - [2026-09-11 Fri 11:11]--[2026-09-11 Fri 11:13] fbaf8009 into the slice; nomination; next-session rewrite
 CLOCK: [2026-09-11 Fri 11:45]--[2026-09-11 Fri 11:52] =>  0:07
 - <2026-09-11 Fri 11:45>--<2026-09-11 Fri 11:52> assigned at review
+CLOCK: [2026-09-11 Fri 14:10]--[2026-09-11 Fri 14:13] =>  0:03
+- <2026-09-11 Fri 14:10>--<2026-09-11 Fri 14:13> assigned at review
 CLOCK: [2026-09-11 Fri 16:14]--[2026-09-11 Fri 16:17] =>  0:03
 - [2026-09-11 Fri 16:14]--[2026-09-11 Fri 16:17] record post-close incidentals on the plugin slice
 CLOCK: [2026-09-11 Fri 16:54]--[2026-09-11 Fri 17:00] =>  0:06
