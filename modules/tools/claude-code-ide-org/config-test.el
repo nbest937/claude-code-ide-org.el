@@ -9795,8 +9795,10 @@ will land and flags a target that no longer resolves, an amend names the
       (let ((text (buffer-substring-no-properties (point-min) (point-max))))
         ;; The where names the receiving file since captures route by
         ;; session project (:ID: d718f6b6) -- "top of file" said nothing.
+        ;; Its full path, since every candidate shares the basename
+        ;; (:ID: 86c11795).
         (should (string-match-p (format "capture \"New thing\" +-> top of %s"
-                                        (regexp-quote (file-name-nondirectory capture-file)))
+                                        (regexp-quote (abbreviate-file-name capture-file)))
                                 text))
         (should (string-match-p "! capture \"Orphan\" +-> No Such Category (UNRESOLVED)" text))
         (should (string-match-p "amend +\"(unknown heading)\" +(3 lines)" text))))))
@@ -14362,7 +14364,20 @@ reply names the file it wrote."
               (cl-letf (((symbol-function 'claude-code-ide-mcp-server-get-session-context)
                          (lambda (&optional _id) (list :project-dir proj))))
                 (let ((reply (claude-code-ide-org-capture "Routed heading" nil nil nil "TODO")))
-                  (should (string-match-p "top of TODO\\.org" reply))
+                  ;; The reply must name the tracker it wrote, which means
+                  ;; the PATH (:ID: 86c11795). The old assertion matched
+                  ;; the basename "TODO.org" and did discriminate *here*,
+                  ;; but only because this fixture's fallback file is
+                  ;; named capture.org. In production both candidates are
+                  ;; a repo's TODO.org, where the basename separates
+                  ;; nothing -- so the fixture was proving a weaker claim
+                  ;; than the docstring above makes. Asserting the path
+                  ;; closes that gap, and the negative assertion is what
+                  ;; makes a silent fallback fail rather than pass.
+                  (should (string-match-p (regexp-quote (abbreviate-file-name proj-todo))
+                                          reply))
+                  (should-not (string-match-p (regexp-quote (abbreviate-file-name capture-file))
+                                              reply))
                   (should (string-match-p "Routed heading"
                                           (claude-code-ide-org-test--disk-contents proj-todo)))
                   (should-not (string-match-p "Routed heading"

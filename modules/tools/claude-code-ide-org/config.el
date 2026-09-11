@@ -2623,9 +2623,17 @@ different one is worse off than a caller that got an error."
      ;; The :where names the file, not just "top of file": with captures
      ;; routed by the calling session's project (:ID: d718f6b6), which
      ;; tracker received the heading is the fact the reply must carry.
+     ;;
+     ;; The *path*, not the basename, and that distinction is the whole
+     ;; point (:ID: 86c11795): routing only ever selects files named
+     ;; TODO.org, so a basename rendered "top of TODO.org" for every
+     ;; project and discriminated nothing -- the reply looked correct
+     ;; whichever tracker was written, which is what made a misroute
+     ;; invisible from inside a session. `abbreviate-file-name' keeps it
+     ;; to ~/... so the review buffer's line stays readable.
      ((null target)
       (list :spec (list 'file default) :file default
-            :where (format "top of %s" (file-name-nondirectory default))))
+            :where (format "top of %s" (abbreviate-file-name default))))
      ((claude-code-ide-org--id-find target)
       (list :spec (list 'id target)
             :file (car (claude-code-ide-org--id-find target))
@@ -2634,7 +2642,7 @@ different one is worse off than a caller that got an error."
 is a :CATEGORY: property rather than a heading, so there is nothing to file \
 *under* by name -- omit the target to prepend at the top of %s and pass \
 category instead"
-               target (file-name-nondirectory default))))))
+               target (abbreviate-file-name default))))))
 
 ;;; Write-through gate for capture and amend ---------------------------------
 ;;
@@ -3469,14 +3477,22 @@ included -- and the read stops at the first child heading."
                      (buffer-substring-no-properties (point) end))))
           (and (not (string-empty-p text)) text))))))
 
-(defun claude-code-ide-org--outline-line (active-only max-depth &optional indent-offset bodies)
+(defun claude-code-ide-org--outline-line (active-only max-depth &optional indent-offset body)
   "Format the heading at point as one index line, or nil to omit it.
 Omits finished headings when ACTIVE-ONLY, and anything deeper than
 MAX-DEPTH when that is non-nil.  Levels are absolute, so a MAX-DEPTH
 of 2 means the same thing whether the scope is a whole file or one
-subtree.  With BODIES, the heading's own body prose (drawers excluded)
-follows the line, indented two spaces past it -- the read split
-TODO.org :ID: 2a399034 decided."
+subtree.  BODY, when given, is the heading's own body prose and follows
+the line, indented two spaces past it -- the read split
+TODO.org :ID: 2a399034 decided.
+
+BODY is passed in rather than extracted here, which is a performance
+contract and not a style choice (TODO.org :ID: 64f649f3):
+`claude-code-ide-org--outline-map' calls this twice per heading, so
+extracting it here ran `claude-code-ide-org--outline-body-at-point'
+-- an `org-end-of-meta-data' walk plus a `buffer-substring' -- twice
+for every heading of every default-on whole-file call, and discarded
+one of the two results."
   (let ((level (org-current-level))
         (keyword (org-get-todo-state)))
     (unless (or (and max-depth (> level max-depth))
@@ -3485,7 +3501,6 @@ TODO.org :ID: 2a399034 decided."
                              claude-code-ide-org--outline-finished-keywords)))
       (let ((id (org-entry-get nil "ID"))
             (tags (org-get-tags nil t))
-            (body (and bodies (claude-code-ide-org--outline-body-at-point)))
             (indent (make-string (* 2 (+ (1- level) (or indent-offset 0))) ?\s)))
         ;; Stripped once, over the assembled line, rather than per
         ;; component.  Every one of these reads from the buffer and so
@@ -3639,21 +3654,30 @@ keyword so a satisfied blocker is visible as such without a second call."
 
 With GROUPED, return (CATEGORY . LINE) pairs and indent every line one
 level further, leaving room for the synthetic category header the caller
-emits.  Without it, return plain lines exactly as before.  BODIES is
-passed through to `claude-code-ide-org--outline-line'."
+emits.  Without it, return plain lines exactly as before.  BODIES asks
+for each heading's body prose: it is extracted here, once per heading,
+and the text handed to both `claude-code-ide-org--outline-line' calls."
   (let (records)
     ;; Two lines per heading: the filtered one, which decides whether it
     ;; survives on its own, and the unfiltered one, which is what gets
     ;; emitted if it turns out to be an ancestor of something that did.
+    ;;
+    ;; The body is extracted ONCE here and handed to both, because the two
+    ;; calls differ only in their filter and a heading's body is the same
+    ;; either way (TODO.org :ID: 64f649f3). Extracting it inside
+    ;; `--outline-line' meant two `org-end-of-meta-data' walks and two
+    ;; `buffer-substring's per heading, one of them always discarded, on a
+    ;; path that is default-on over whole files.
     (org-map-entries
      (lambda ()
-       (push (list (org-current-level)
-                   (claude-code-ide-org--outline-line
-                    active-only max-depth (and grouped 1) bodies)
-                   (claude-code-ide-org--outline-line
-                    nil max-depth (and grouped 1) bodies)
-                   (and grouped (claude-code-ide-org--outline-category)))
-             records))
+       (let ((body (and bodies (claude-code-ide-org--outline-body-at-point))))
+         (push (list (org-current-level)
+                     (claude-code-ide-org--outline-line
+                      active-only max-depth (and grouped 1) body)
+                     (claude-code-ide-org--outline-line
+                      nil max-depth (and grouped 1) body)
+                     (and grouped (claude-code-ide-org--outline-category)))
+               records)))
      nil scope)
     ;; RECORDS is reverse document order, which is the order this walk
     ;; wants. A heading is kept when it survives the filter, or when it is
