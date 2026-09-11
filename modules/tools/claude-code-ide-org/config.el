@@ -2695,7 +2695,7 @@ can carry a list at all."
     (if names (format " :%s:" (string-join names ":")) "")))
 
 (defun claude-code-ide-org--capture-write (title new-id created spec tags
-                                                 &optional initial-state)
+                                                 &optional initial-state note)
   "Insert TITLE as a heading at SPEC, carrying NEW-ID, CREATED and TAGS.
 Factored out of `claude-code-ide-org-capture' so the immediate path and
 the apply path insert headings through exactly one code path -- a
@@ -2707,7 +2707,14 @@ Validated by the caller, never here: this function is also the apply
 path, and an event already on the queue must land as recorded rather
 than being re-judged against a keyword set that may have changed since.
 Omitted, the heading is keywordless, which stays the default
-(TODO.org :ID: c74f8663)."
+(TODO.org :ID: c74f8663).
+
+NOTE, when given, becomes the heading's initial *body* -- both paths,
+since 2026-09-11 (TODO.org :ID: 204d1b0a; before that it was accepted
+and silently discarded, and six filings shipped bodiless).  Inserted
+after `org-capture' finalizes rather than embedded in the template,
+because template text is scanned for %-escapes and user prose
+containing `%U' or `%i' would expand instead of landing verbatim."
   (let ((org-capture-templates
          (list (list "z" "Claude quick-capture (org_capture MCP tool)"
                      'entry
@@ -2746,7 +2753,15 @@ Omitted, the heading is keywordless, which stays the default
                      ;; would make a new child the FIRST child, which is
                      ;; a different decision nobody has taken.
                      :prepend (eq (car-safe spec) 'file)))))
-    (org-capture-string title "z")))
+    (org-capture-string title "z")
+    (when (and note (not (string-empty-p (string-trim note))))
+      (let ((m org-capture-last-stored-marker))
+        (when (and (markerp m) (marker-buffer m))
+          (org-with-point-at m
+            (claude-code-ide-org--end-of-body)
+            (insert (claude-code-ide-org--amend-separator note)
+                    (string-trim note) "\n")
+            (save-buffer)))))))
 
 (defun claude-code-ide-org--file-todo-keywords (file)
   "The TODO keywords FILE's own `#+TODO:' line declares, or nil.
@@ -2802,8 +2817,12 @@ formatting it in elisp cannot fail that way.
 TARGET places the heading — an :ID:, a top-level category title, or
 omitted for the end of the capture file.  See
 `claude-code-ide-org--capture-target-spec'.  TAGS is a comma-separated
-tag string.  NOTE is a short reason, carried for the queue and unused on
-the immediate path.
+tag string.  NOTE becomes the heading's initial body, on the immediate
+path and at apply alike (since 2026-09-11, TODO.org :ID: 204d1b0a --
+before that it was \"carried for the queue and unused on the immediate
+path\", i.e. accepted and silently discarded, and six filings shipped
+bodiless before a reader noticed).  It still rides the queue event, so
+the review buffer shows it before apply.
 
 *Writes through when the target file is free, and queues when it is
 not* (TODO.org :ID: b5f94b88).  In the common case the heading appears at
@@ -2922,7 +2941,8 @@ else."
                   title new-id (plist-get resolved :where)))
          (t
           (claude-code-ide-org--capture-write
-           title new-id created (plist-get resolved :spec) tags initial-state)
+           title new-id created (plist-get resolved :spec) tags initial-state
+           note)
           ;; Registered against the file the target actually resolved to,
           ;; which is not necessarily the capture file: an :ID: target can
           ;; live anywhere org-id knows about.
@@ -8887,7 +8907,8 @@ exists to prevent (TODO.org :ID: b5f94b88)."
          (format-time-string "[%Y-%m-%d %a %H:%M]" (plist-get item :ts))
          (plist-get resolved :spec)
          (plist-get item :tags)
-         (plist-get item :to))
+         (plist-get item :to)
+         (plist-get item :note))
         (org-id-add-location id (expand-file-name file))
         (with-current-buffer (find-file-noselect file) (save-buffer))
         nil)
@@ -14338,7 +14359,7 @@ the project list."
            (:name "note"
             :type string
             :optional t
-            :description "Short 3-10 word reason for capturing this, recorded on the queued event when the write defers.")
+            :description "Body text for the new heading -- becomes its initial prose on both the immediate and the queued path, and also rides the queue event so the review buffer can show it before apply. The convention for a task body is 2-5 sentences of problem-and-proposal; richer composition (a :PLAN: drawer) still goes through org_amend afterwards.")
            (:name "initial_state"
             :type string
             :optional t

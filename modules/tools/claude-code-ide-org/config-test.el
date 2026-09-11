@@ -14549,3 +14549,39 @@ leaves untracked buffers to so-long (TODO.org :ID: 045459f6)."
       (dolist (f (list tracked untracked))
         (when-let ((b (get-file-buffer f))) (kill-buffer b)))
       (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-capture-note-becomes-the-initial-body ()
+  "A capture's note must land as the heading's body on BOTH paths.
+Until 2026-09-11 it was accepted and silently discarded -- six filings
+shipped bodiless before a reader noticed (TODO.org :ID: 204d1b0a). The
+note is inserted after org-capture finalizes, never via the template,
+so %-escapes in user prose land verbatim."
+  (claude-code-ide-org-test--with-capture-file
+    ;; Immediate path.
+    (claude-code-ide-org-capture
+     "Task with prose" nil nil
+     "The filing reason, with a literal %U that must not expand." "TODO")
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p "The filing reason, with a literal %U" disk))
+      ;; Body sits under the heading, after its drawer, not inside it.
+      (should (string-match-p ":END:\n+The filing reason" disk)))
+    ;; Apply path, driven directly like the deferred-state test above.
+    (let ((item (list :type 'capture
+                      :id "test-deferred-note-1"
+                      :ts (date-to-time "2026-09-11T12:00:00-0500")
+                      :title "Deferred with prose"
+                      :target nil
+                      :tags nil
+                      :to "TODO"
+                      :note "Deferred reason, also with %i intact.")))
+      (should-not (claude-code-ide-org--review-apply-capture item))
+      (should (string-match-p "Deferred reason, also with %i intact\\."
+                              (claude-code-ide-org-test--disk-contents
+                               capture-file))))
+    ;; And an omitted note still yields a bare heading, not a stray line.
+    (claude-code-ide-org-capture "Task without prose" nil nil nil "TODO")
+    (should-not (string-match-p "nil"
+                                (car (last (split-string
+                                            (claude-code-ide-org-test--disk-contents
+                                             capture-file)
+                                            "^\\* " t)))))))
