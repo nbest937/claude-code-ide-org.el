@@ -2,6 +2,112 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO org_outline extracts every heading's body twice per call :code:
+:PROPERTIES:
+:ID:       64f649f3-d7ba-4ed9-9fe8-ccdad10ffb7f
+:CREATED:  [2026-09-11 Fri 15:45]
+:CATEGORY: Tools
+:END:
+
+Found by PR22's review pass. =--outline-map= calls =--outline-line= twice per heading (filtered and unfiltered) and now passes =bodies= to both, so =--outline-body-at-point= — an =org-end-of-meta-data= walk plus a =buffer-substring= — runs twice for every heading, on a path that is default-on over whole files, with only one of the two strings ever used. Hoisting the body once per entry and passing it into both calls halves it. Efficiency only, no wrong output; filed because the read split ([[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]]) made this the common path rather than an opt-in.
+
+* TODO apply-detect's last jq is its exit status, and the stamp advances before the report is emitted :code:
+:PROPERTIES:
+:ID:       31453a5e-c909-41ca-bbbf-5b17819a8804
+:CREATED:  [2026-09-11 Fri 15:45]
+:CATEGORY: Dev
+:END:
+
+Found by PR22's review pass, two defects in one script. The final =jq= determines =bin/hooks/apply-detect='s exit status, contradicting the header's promise that every failure path exits 0 silently: jq's *absence* is guarded, but a jq that fails for any other reason surfaces a hook-error banner on a prompt this hook is meant to be invisible to. Separately, the =.apply-seen= stamp is touched *before* the report is emitted, so a kill at the 10 s timeout loses the context while the stamp has already advanced — and that apply is then never reported at all. Both are in [[id:165ce65a-f87e-431c-8ee4-f0fbfffe14da][165ce65a]]'s new code.
+
+* TODO The pre-push PR advisory false-positives on a catch-up merge that did arrive through a PR :code:
+:PROPERTIES:
+:ID:       e0094245-aa6b-4c1f-b5f8-bcdc8b9f910b
+:CREATED:  [2026-09-11 Fri 15:45]
+:CATEGORY: Dev
+:END:
+
+Found by PR22's review pass. =.githooks/pre-push= flags every merge commit in the pushed range except those titled =Merge pull request=, which catches =Merge branch 'main' into feature/x= commits made on a feature branch to catch up — and those become reachable from main the moment that branch merges *via a PR*. So syncing main into a long-lived branch once produces a misleading reminder on the next push to main. Advisory only, so the cost is noise rather than a block; scanning =--first-parent= history of main would match what the rule ([[id:c7bf2121-755c-4e52-8bf2-e21e56b1e0c2][c7bf2121]]) is actually about.
+* TODO doc-sync-check ships to consuming repos and asserts conventions they do not have :code:
+:PROPERTIES:
+:ID:       04125b0b-adf8-4b65-9afe-7a4724a62d34
+:CREATED:  [2026-09-11 Fri 15:45]
+:CATEGORY: Dev
+:END:
+
+Found by PR22's review pass. =hooks/hooks.json= wires =doc-sync-check= into the plugin, where =CLAUDE_PROJECT_DIR= is the *consumer's* root — so their own CLAUDE.md and README.md match and the hook injects this repo's overlap-zone convention, [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]], into a repo where it does not exist. Its =DOOM.md= and =skills/org/references/org-emacs-setup.md= rows are likewise paths only this repo has. The file's own description claims every script appends to or checks =~/.claude/org-updates/=, which this one does not: it is dev tooling for here, not session-tracking machinery, and =footnote-check= is arguably in the same position. Decide which hooks the plugin should actually ship.
+
+* TODO apply-detect reports an apply when the review pass only dismissed events :code:
+:PROPERTIES:
+:ID:       7b4f4f14-6c76-4822-84c1-67589bc74b82
+:CREATED:  [2026-09-11 Fri 15:45]
+:CATEGORY: Apply
+:END:
+
+Found by PR22's review pass. =--queue-watermark-write= is the single writer for =<session>.applied= and is called from both =--queue-mark-applied= and the dismissal path, and it rewrites the file (atomic rename, new mtime) even when nothing new landed. So a pass where a human only dismisses stale events makes the next prompt carry "the review queue was applied since this session's last turn … keywords and clocks reflect the apply" when nothing on disk changed — the inverse of the freshness the hook exists to assert, and a claim a session will relay. Either the watermark must distinguish applied-something from pass-ran, or the hook must compare something other than its mtime. Introduced with [[id:165ce65a-f87e-431c-8ee4-f0fbfffe14da][165ce65a]].
+
+* TODO The capture reply names a basename, so it cannot say which tracker received the heading :code:
+:PROPERTIES:
+:ID:       86c11795-4972-45b5-acef-677a18b26134
+:CREATED:  [2026-09-11 Fri 15:45]
+:CATEGORY: Tools
+:END:
+
+Found by PR22's review pass. =:where= renders =(format "top of %s" (file-name-nondirectory default))=, which is =top of TODO.org= for every project, because routing only ever selects files literally named TODO.org. The comment two lines above says which tracker received the heading "is the fact the reply must carry" — the basename does not carry it; the project directory is the discriminating part. Cosmetic next to [[id:5e731a23-7708-4248-b055-9b4a531f147d][5e731a23]] and [[id:965f94eb-1558-4d00-9857-5727eb86fe6f][965f94eb]], but it is also what makes those two invisible from inside a session: the reply looks correct whichever file was written.
+
+* TODO Every standalone client shares one project context, chosen by unstable ordering :code:
+:PROPERTIES:
+:ID:       965f94eb-1558-4d00-9857-5727eb86fe6f
+:CREATED:  [2026-09-11 Fri 15:45]
+:CATEGORY: Tools
+:END:
+
+Found by PR22's review pass. The shipped =.mcp.json= pins =/mcp/warp=, so every standalone session — Warp, or =claude= in any terminal in any repo — resolves to the session id =warp=, registered against =(car projects)=; under the glue's ='derive= setting that car is whatever =org-agenda-files= happens to list first. A =claude= session started in repo B therefore captures into repo A's TODO.org, and reordering =org-agenda-files= silently re-points it. Secondary defect in the same place: using the directory basename as the session id means two tracked repos sharing a basename collide, the later registration overwriting the earlier. Sibling of [[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]].
+
+* TODO A deferred targetless capture loses its project routing when the queue is applied :code:
+:PROPERTIES:
+:ID:       5e731a23-7708-4248-b055-9b4a531f147d
+:CREATED:  [2026-09-11 Fri 15:45]
+:CATEGORY: Tools
+:END:
+
+Found by PR22's review pass. =--review-apply-capture= resolves a nil target through =--capture-target-file=, which consults the MCP session context — but upstream =let=-binds =--current-session-id= around the HTTP request only, so during =M-x claude-code-ide-org-review= it is nil and the heading falls back to the global capture file. So: capture with no target from project B while B's TODO.org has unsaved edits, the call defers and answers "top of TODO.org", a human applies, and the heading lands in project A's tracker. This is [[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]] surviving on its queued half. The queue event already carries =cwd= (=bin/hooks/queue-append:229=) and nothing on the apply path reads it, which is the likely fix.
+
+* DOING org_body drawer=: report an unterminated drawer as malformed, not missing :code:
+:PROPERTIES:
+:ID:       c4048784-f9be-4f95-9ca6-cd161932e74c
+:CREATED:  [2026-09-11 Fri 13:23]
+:END:
+
+Found by the PR22 low-effort review pass: in claude-code-ide-org--drawer-text-at-point, a target drawer whose :NAME: line exists but never closes with :END: before the next heading leaves content nil and falls into the missing-drawer error branch -- which then lists that very drawer under "Drawers present:", telling the caller the drawer does not exist while showing that it does. Proposed: track the found-but-unterminated case distinctly and report the drawer as malformed, so the caller learns the fix is in the file, not in their next tool call. Fix plus a discriminating ERT test, landed as a fixup on feature/plugin-package while PR22 is open, since the function is part of that PR's diff ([[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]] shipped it).
+
+Resolved 2026-09-11 in two passes, and the second is the one that
+mattered. The first (=0f5f362=) fixed the contradictory error message
+this heading's title names. A =med= review pass then found the scanner
+*underneath* it wrong in a worse way: =--drawer-text-at-point= was a
+fourth copy of the search [[id:f42641ab-fdd6-4754-add9-490dd6b24ef8][f42641ab]] consolidated into one, and it
+repeated the bug that heading fixed. Measured before touching it: on a
+heading whose =:PLAN:= drawer quotes a bare =:DEBRIEF:= line — ordinary
+in a repo whose bodies discuss drawers constantly — =org_body
+drawer=DEBRIEF= returned the prose between the decoy and =:PLAN:='s own
+=:END:=, confidently wrong where an error was owed.
+
+=6633929= rewrote it onto =org-element=: =--drawers-at-point= enumerates
+the real drawers and requires the element to *begin* on the candidate
+line, without which =org-element-at-point= answers with the enclosing
+drawer and a decoy passes the type check anyway. It covers the property
+drawer, which =--find-drawer= excludes on purpose, so =drawer=PROPERTIES=
+still resolves rather than being denied.
+
+Two things worth keeping. The malformed-vs-missing distinction does not
+fall out of =org-element=, which declines an unterminated drawer and a
+decoy alike, so =--unterminated-drawer-p= carries it deliberately. And
+the new decoy test caught *my own* predicate calling a =:LOGBOOK:=
+inside =#+begin_example= malformed — nothing in an example block needs
+closing — which is why that predicate now tests the element type and its
+start position rather than the absence of an =:END:= alone. 601/601.
+
+
 * REVIEW A hook tells the session the queue was applied, ending the "queue applied" announcements :code:
 :PROPERTIES:
 :ID:       165ce65a-f87e-431c-8ee4-f0fbfffe14da
@@ -1768,13 +1874,13 @@ CLOCK: [2026-09-01 Tue 12:26]--[2026-09-01 Tue 12:27] =>  0:01
 *Open, and genuinely undecided:* whether the gap-versus-AFK threshold should ever be automated. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] is the standing precedent against an invented number, and a ten-minute cap is exactly that. Reporting both bounds and letting the human place the line is the alternative — and unlike the current review pass, it is six questions a day rather than nineteen.
 
 
-* TODO [0/11] Everything passed and the file was still wrong :code:
+* TODO [0/14] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
 :CATEGORY: Slices
 :KIND:     slice
-:BLOCKER:  ids(39039bb6-c70a-4ba9-8b37-edd8dd6921f6 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 53b0047d-c55c-486c-8eed-ba4994d97a1a 2aeb65d6-350e-4c75-811e-4a748044fe2c 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b 60ed5b96-40e3-4676-a742-07a8ad6cc3b7)
+:BLOCKER:  ids(39039bb6-c70a-4ba9-8b37-edd8dd6921f6 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 53b0047d-c55c-486c-8eed-ba4994d97a1a 2aeb65d6-350e-4c75-811e-4a748044fe2c 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b 60ed5b96-40e3-4676-a742-07a8ad6cc3b7 5e731a23-7708-4248-b055-9b4a531f147d 965f94eb-1558-4d00-9857-5727eb86fe6f 7b4f4f14-6c76-4822-84c1-67589bc74b82)
 :COOKIE_DATA: checkbox recursive
 :DROPPED:  542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177 72463b68-9f08-44b2-8213-87f71298138d
 :END:
@@ -1805,6 +1911,9 @@ Planned:
 - [ ] [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]] TODO Concurrent sessions share one git index, and explicit staging protects nothing
 - [ ] [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] TODO Three new ways to owe a footnote and not see it: marker, list, quotation
 - [ ] [[id:60ed5b96-40e3-4676-a742-07a8ad6cc3b7][60ed5b96]] TODO --review-format-annotation's docstring contradicts its own let*, four lines down
+- [ ] [[id:5e731a23-7708-4248-b055-9b4a531f147d][5e731a23]] TODO A deferred targetless capture loses its project routing when the queue is applied
+- [ ] [[id:965f94eb-1558-4d00-9857-5727eb86fe6f][965f94eb]] TODO Every standalone client shares one project context, chosen by unstable ordering
+- [ ] [[id:7b4f4f14-6c76-4822-84c1-67589bc74b82][7b4f4f14]] TODO apply-detect reports an apply when the review pass only dismissed events
 
 *=60ed5b96= added 2026-09-04, after composition.* It is the theme stated with the nouns changed:
 =--review-format-annotation='s docstring says "Always /inactive/ timestamps … and no branch to make"
