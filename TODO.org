@@ -2,18 +2,35 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO Scratch: note-fix probe (cancel me)
+* CANCELLED Scratch: note-fix probe (cancel me)
+CLOSED: [2026-09-11 Fri 11:44]
 :PROPERTIES:
 :ID:       878f5843-04de-4153-9e5d-66f0751c8dd3
 :CREATED:  [2026-09-11 Fri 11:44]
 :END:
+:LOGBOOK:
+- State "CANCELLED"  from "TODO"       [2026-09-11 Fri 11:44] \\
+  probe confirmed the fix live
+:END:
 
 PROBE-2: this sentence must now appear as the heading's body.
 
-* TODO org_capture accepts a note it silently discards, and five headings shipped bodiless :code:
+
+* DONE org_capture accepts a note it silently discards, and five headings shipped bodiless :code:
+CLOSED: [2026-09-11 Fri 11:45]
 :PROPERTIES:
 :ID:       204d1b0a-e5de-41f3-8983-b60638ce196a
 :CREATED:  [2026-09-11 Fri 11:35]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-11 Fri 11:33]--[2026-09-11 Fri 11:35] =>  0:02
+- [2026-09-11 Fri 11:33]--[2026-09-11 Fri 11:35] bug hunt: capture notes vanish on both paths
+CLOCK: [2026-09-11 Fri 11:41]--[2026-09-11 Fri 11:45] =>  0:04
+- State "DOING"      from "TODO"       [2026-09-11 Fri 11:41] \\
+  building the fix: note lands as initial body on both paths
+- [2026-09-11 Fri 11:41]--[2026-09-11 Fri 11:45] 204d1b0a closed
+- State "DONE"       from "DOING"      [2026-09-11 Fri 11:45] \\
+  fixed, tested red-first, proven live
 :END:
 :DEBRIEF:
 The fix rode the single-code-path design exactly as intended: =--capture-write= gained an optional =note= and both callers pass it — the immediate path from the tool argument, the apply path from the queued event, which already carried the text (measured 689 and 681 characters on the two deferred captures that shipped bodiless). Insertion reuses the amend idiom (=--end-of-body= + =--amend-separator=), not the capture template, because template text is scanned for %-escapes and user prose containing =%U= would expand instead of landing. Three-case ERT (immediate with a literal %U, apply-path with %i, omitted note leaves no stray line), proven red against HEAD; live probe =878f5843= captured and read back with its body present, then cancelled. The schema's old "short 3-10 word reason" description had said the truth quietly — the misuse happened anyway, which is why the fix is behavior rather than better prose.
@@ -40,11 +57,20 @@ stop saying "Captured" as if everything given was kept. Probe evidence:
 Resolved 2026-09-11, same day filed: option (a) — the note becomes the heading's initial body on both paths through =--capture-write=, inserted after =org-capture= finalizes so template %-escapes cannot expand user prose; the docstrings and tool schema now state the contract, and the reply's "Captured" is honest again.
 
 
-* TODO Scratch: capture-note probe (cancel me)
+* CANCELLED Scratch: capture-note probe (cancel me)
+CLOSED: [2026-09-11 Fri 11:35]
 :PROPERTIES:
 :ID:       49e1556b-e6b2-4172-b63e-fef38bea8910
 :CREATED:  [2026-09-11 Fri 11:33]
 :END:
+:LOGBOOK:
+- [2026-09-11 Fri 11:13]--[2026-09-11 Fri 11:31] assigned at review
+- State "CANCELLED"  from "TODO"       [2026-09-11 Fri 11:35] \\
+  probe served its measurement
+- [2026-09-11 Fri 11:35]--[2026-09-11 Fri 11:40] assigned at review
+:END:
+
+
 * TODO org_slice_add_member cannot prepend or reorder, so declared order is append-only :code:
 :PROPERTIES:
 :ID:       b112878e-6313-4bc6-bc3f-0533d5f1ad1b
@@ -56,7 +82,6 @@ CLOCK: [2026-09-11 Fri 11:08]--[2026-09-11 Fri 11:09] =>  0:01
 :END:
 
 (Filing prose restored 2026-09-11 — the original capture note was discarded by =org_capture='s immediate path, by documented design.) Hit composing =afea7e4f=: the fourth member (=fbaf8009=) belonged first, but the line lands only after the last planned member or an =after== anchor — no prepend, no move. A slice declares membership AND order, so append-only ordering forces either re-declaring the slice or a plan-drawer correction (the workaround used). Options: a =first= flag, a =before== parameter, or a dedicated reorder call; =1206b5b0= (the =parent== gap) is the precedent for extending this tool when composition hits a wall.
-
 
 
 * NEXT [0/4] Join the transcript to the record: span synopses, readable sessions, weighted attribution :code:
@@ -107,7 +132,6 @@ Planned:
 (Filing prose restored 2026-09-11 — the original capture note was discarded by =org_capture='s immediate path, by documented design.) 2026-09-11, one occurrence: the beachball after the ceremony's final =q= was a corpse — =sample= showed the lisp thread inside =handle_fatal_signal= → =shut_down_emacs= → =kill_buffer_processes= waiting on the GUI queue's semaphore while the GUI thread waited on the lisp queue (mac-port termination deadlock). All buffers were saved first: the ceremony's 85-heading archive sweep (~5,300 lines TODO.org → DONE.org) landed on disk at 09:42 and nothing was lost. Killed with SIGKILL, relaunched, glue re-wired unaided. The fatal signal's origin is unknown — the crash landed while idle-waiting in =really_call_select=, so the ceremony correlation may be timing, not cause. Promote if it recurs; a second sample is the next data point.
 
 
-
 * TODO The review buffer shows each run's opening prompt, joined from the transcript :code:
 :PROPERTIES:
 :ID:       325679af-829e-4c7f-88b0-153c2c9683b3
@@ -121,7 +145,6 @@ CLOCK: [2026-09-11 Fri 09:50]--[2026-09-11 Fri 09:53] =>  0:03
 :END:
 
 (Filing prose restored 2026-09-11 — the original capture note was discarded by =org_capture='s immediate path, by documented design.) The user's concrete reporting need, stated 2026-09-10: at review time they cannot discriminate a degenerate 0-run/0-turn span from an unmeasured long turn, because nothing says what was going on. The mechanism is decided and measured on =295cde3a=: join queue =resume= events to transcript user messages on timestamp (28 of 28 within two seconds; the queue defines what a prompt is — raw =type:"user"= entries are contaminated, =9e627dc0='s trap). Build the surfacing: each run renders its opening prompt's first line, and a lone-timestamp span renders the abutting prompts either side, truncated. This closes exactly the =--review-annotation-label= gap: an item's synopsis is its enclosing clock event's note, so guidepost-reconstructed spans have none by construction. Retroactive across all recorded sessions; no hook change, no new durable field.
-
 
 
 * TODO claude-org-setup --org scaffolds or appends the consuming repo's .gitignore :code:
@@ -139,7 +162,6 @@ Amended same day, at the provenance conversation: the symlink-ignore advice inve
 (Filing prose restored 2026-09-11, belatedly *before* the existing amendment above — the original capture note was discarded by =org_capture='s immediate path, by documented design.) Asked by the user 2026-09-10 while hand-copying this repo's =.gitignore= into euchre. All four entries generalize (=settings.local.json=, worktrees, =clock-status.json=, the audit jsonl) and a fifth is consumer-specific: the =.claude/skills/<plugin>= symlink, with the absolute-vs-relative nuance the amendment above records. =--org= already collision-checks files; the same pattern appends missing ignore lines rather than clobbering. Decide whether the entries ship as a template or inline in the script.
 
 
-
 * NEXT The review buffer should name each item's tracker, now that two projects share the queue :code:
 :PROPERTIES:
 :ID:       fbaf8009-b3dc-48ed-b099-63b74fc156a8
@@ -153,7 +175,6 @@ Amended same day, at the provenance conversation: the symlink-ignore advice inve
 (Filing prose restored 2026-09-11 — the original capture note was discarded on the queued path too: the event carried 681 characters and =--capture-write= takes no note.) Asked by the user 2026-09-10, the day euchre joined the agenda list file (=308bf4b4=) and the queue became genuinely multi-project. The review group heading renders 8-char id + title only (the =c2132d3f= column rationale); the destination tracker is implicit in where the id resolves and never displayed, so two projects' headings interleave distinguishable only by title. Wanted: the group heading (or item line) carries the project — e.g. the id's file rendered as its repo directory name — and the unassigned-span groups likewise say which session =cwd= produced them, since the cwd signal (=5461c349=) is already on the events. Apply behavior is correct today; this is legibility only.
 
 
-
 * TODO The glue claims ownership of the whole wiring block, but the 202 override ships nowhere :code:
 :PROPERTIES:
 :ID:       af2f345e-b7db-4025-9f63-c5fce09fdd8a
@@ -165,7 +186,6 @@ CLOCK: [2026-09-10 Thu 14:11]--[2026-09-10 Thu 14:12] =>  0:01
 :END:
 
 (Filing prose restored 2026-09-11 — the original capture note was discarded on the queued path: the event carried 689 characters and =--capture-write= takes no note.) Found 2026-09-10 preparing the =e396f94a= real-config swap: =claude-org-setup --glue= prints "delete any hand-rolled wiring block ... the glue owns all of it", but the user's block also carried the 202-Accepted override of =claude-code-ide-mcp-http-server--send-empty-response= (the real fix from the Warp investigation, upstream bug =8f986c6f=) — which neither the glue nor the module ships. A user following the printed instruction re-breaks every strict MCP client. Decide: move the override into the module (guarded, self-retiring when upstream fixes =8f986c6f=) or soften the printed claim to name what the glue does not own. Until then the swap instructions must say KEEP the override by hand — which is what the actual swap did.
-
 
 
 * TODO Plans die at cleanupPeriodDays; decide plansDirectory or keep restoring :code:
@@ -2657,6 +2677,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-11 Fri 11:47]--[2026-09-11 Fri 11:50] =>  0:03
 CLOCK: [2026-09-11 Fri 11:27]--[2026-09-11 Fri 11:29] =>  0:02
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
