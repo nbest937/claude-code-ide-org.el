@@ -63,7 +63,15 @@ while read -r _local_ref local_sha remote_ref remote_sha; do
   [[ "$remote_ref" == "refs/heads/main" ]] || continue
   # A brand-new remote main has no baseline; nothing to compare.
   [[ "$remote_sha" =~ ^0+$ ]] && continue
-  stray="$(git log --merges --format='%h %s' "$remote_sha..$local_sha" 2>/dev/null \
+  # --first-parent, or the range reports merges made *inside* a branch
+  # that itself arrived through a PR: `A~1..A' for a merge A includes the
+  # whole second-parent history, so one `Merge branch 'main' into
+  # feature/x' catch-up produced an advisory naming a merge that did come
+  # through a pull request (TODO.org :ID: e0094245). Measured on PR #2,
+  # whose range carries two such in-branch merges and now reports none.
+  # A genuine local merge into main is still caught: it is a commit on
+  # main, so it sits on main's own first-parent chain.
+  stray="$(git log --merges --first-parent --format='%h %s' "$remote_sha..$local_sha" 2>/dev/null \
              | grep -Ev '^[0-9a-f]+ Merge pull request' || true)"
   if [[ -n "$stray" ]]; then
     echo "pre-push: advisory -- merge commit(s) on main not from a pull request:" >&2

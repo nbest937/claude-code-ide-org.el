@@ -1,5 +1,5 @@
 {
-  "description": "Session-tracking hooks for the org event queue. Every script appends to ~/.claude/org-updates/<session>.jsonl (or checks it) and survives a stopped Emacs; none writes to an org file. Mirrors this repo's own .claude/settings.json wiring — a repo that carries that wiring should NOT also enable this plugin's hooks, or every guidepost is appended twice.",
+  "description": "Session-tracking hooks for the org event queue. Every script here works against the queue (~/.claude/org-updates/<session>.jsonl) or the consuming repo's own tracked org files, and survives a stopped Emacs; none writes to an org file. Hooks that enforce claude-code-ide-org's OWN repo conventions are deliberately not shipped — they would assert conventions a consuming repo does not have, since CLAUDE_PROJECT_DIR is the consumer's root (doc-sync-check was removed for exactly that). Mirrors this repo's own .claude/settings.json wiring for the hooks it does carry — a repo with that wiring should NOT also enable this plugin's hooks, or every guidepost is appended twice.",
   "hooks": {
     "PostToolUse": [
       {
@@ -48,16 +48,6 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/queue-append amend",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/doc-sync-check",
             "timeout": 10
           }
         ]

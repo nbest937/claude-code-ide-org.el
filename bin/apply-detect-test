@@ -60,6 +60,41 @@ out="$(printf '{"session_id":"x"}' | env CLAUDE_ORG_QUEUE_DIR="$qdir/no-such-dir
 check "missing dir is silent" "" "$out"
 check "missing dir exits 0" "0" "$rc"
 
+# 8. A jq that fails on the REPORT (not on parsing, which the absence
+#    check at the top already covers) must not become the hook's exit
+#    status, and must not advance the stamp -- otherwise a real apply is
+#    announced to nobody and never mentioned again (TODO.org :ID:
+#    31453a5e). The shim passes the parse call through to the real jq and
+#    fails only the `-cn' report call, which is the only way to reach the
+#    final jq at all.
+shimdir="$(mktemp -d)"
+real_jq="$(command -v jq)"
+cat >"$shimdir/jq" <<EOF
+#!/usr/bin/env bash
+[ "\$1" = "-cn" ] && exit 1
+exec "$real_jq" "\$@"
+EOF
+chmod +x "$shimdir/jq"
+
+qdir2="$(mktemp -d)"
+run2() { printf '{"session_id":"%s"}' "$1" \
+           | env CLAUDE_ORG_QUEUE_DIR="$qdir2" PATH="$shimdir:$PATH" bash "$hook"; }
+
+run2 sess-c >/dev/null                       # initialize the stamp
+sleep 1
+touch "$qdir2/some-session.applied"          # an apply to report
+out="$(run2 sess-c)"; rc=$?
+check "a failing report does not fail the hook" "0" "$rc"
+check "a failing report emits nothing" "" "$out"
+
+# The stamp stayed put, so the apply is still owed -- with a working jq
+# the very next turn announces it.
+out="$(printf '{"session_id":"sess-c"}' | env CLAUDE_ORG_QUEUE_DIR="$qdir2" bash "$hook")"
+check "an unreported apply is announced on the next turn" "0" \
+  "$(printf '%s' "$out" | jq -e '.hookSpecificOutput.additionalContext | test("applied since")' >/dev/null 2>&1; echo $?)"
+
+rm -rf "$shimdir" "$qdir2"
+
 if [ "$fail" -eq 0 ]; then echo; echo "All apply-detect tests passed."
 else echo; echo "Some apply-detect tests FAILED."; fi
 exit "$fail"

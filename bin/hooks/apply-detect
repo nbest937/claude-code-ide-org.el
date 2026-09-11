@@ -47,7 +47,6 @@ for f in "$queue_dir"/*.applied; do
 done
 
 [ "$newer" -gt 0 ] || exit 0
-touch "$stamp" 2>/dev/null
 
 context="The review queue was applied since this session's last turn \
 ($newer watermark(s) moved). The org record on disk is fresh: keywords \
@@ -56,5 +55,19 @@ and TODO.org/DONE.org may carry an uncommitted diff awaiting a \
 bookkeeping commit. Do not treat pre-apply staleness as current state, \
 and do not re-queue events already applied."
 
-jq -cn --arg ctx "$context" \
-  '{hookSpecificOutput: {hookEventName: "UserPromptSubmit", additionalContext: $ctx}}'
+# The stamp advances only once the report is actually on stdout, and the
+# final exit is unconditional -- two halves of the same promise in the
+# header, both of which this script broke until 2026-09-11.
+#
+# Emitting first is deliberate. If this hook is killed at its 10 s
+# timeout, or jq fails for a reason its absence check at the top does not
+# cover, the stamp stays put and the next prompt reports the same apply
+# again. A duplicate report costs a sentence; advancing the stamp first
+# meant a real apply was silently never reported at all, which is the
+# failure the hook exists to prevent.
+if jq -cn --arg ctx "$context" \
+     '{hookSpecificOutput: {hookEventName: "UserPromptSubmit", additionalContext: $ctx}}'; then
+  touch "$stamp" 2>/dev/null
+fi
+
+exit 0

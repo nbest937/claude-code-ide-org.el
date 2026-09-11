@@ -54,5 +54,16 @@ zeros="0000000000000000000000000000000000000000"
 out="$(run_hook "refs/heads/main $local_merge refs/heads/main $zeros")"; rc=$?
 check "zero remote sha is silent" "$([ $rc -eq 0 ] && [ -z "$out" ] && echo ok || echo "rc=$rc out: $out")"
 
+# 4. A PR merge whose branch contains its own merges is still silent
+#    (TODO.org :ID: e0094245). PR #2's range carries two in-branch
+#    merges — a `Merge branch 'main' into feature/x' catch-up (32f5c2a)
+#    and a branch-into-branch merge (7f6e6d6) — neither of which is on
+#    main's first-parent chain. Without --first-parent the advisory named
+#    both, having arrived through a pull request.
+pr_with_inner_merges="01da949"  # Merge pull request #2
+out="$(run_hook "refs/heads/main $pr_with_inner_merges refs/heads/main $pr_with_inner_merges~1")"; rc=$?
+check "a PR branch's own merges draw no advisory" "$([ $rc -eq 0 ] && [ -z "$out" ] && echo ok || echo "rc=$rc out: $out")"
+check "the catch-up merge is not named" "$(printf '%s' "$out" | grep -q '32f5c2a' && echo "named it: $out" || echo ok)"
+
 echo "Ran $checks checks, $fails failure(s)"
 exit "$([ "$fails" -eq 0 ] && echo 0 || echo 1)"
