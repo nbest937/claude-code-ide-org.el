@@ -10,6 +10,9 @@
 
 Asked by the user 2026-09-11. The signal already exists: apply writes .applied watermark files in ~/.claude/org-updates/, so no elisp changes. Build a UserPromptSubmit hook (bin/hooks/apply-detect, plain-shell tier) that compares the watermarks' state against a per-session last-seen stamp and injects additionalContext naming how many items landed since the session's last turn — the session then commits the tracker diff unprompted, and the user's next message needs no announcement. A per-session background Monitor watching the same files is the opt-in fully-hands-free variant (wakes the session to commit while the user stays in Emacs); the hook is the standing mechanism because it rides natural turn boundaries instead of interrupting. Wire in both .claude/settings.json and the plugin's hooks/hooks.json, one or the other per repo as ever.
 
+Built same day: =bin/hooks/apply-detect= on =UserPromptSubmit=, comparing the apply pass's =.applied= watermarks against a per-session =.apply-seen= stamp and injecting =additionalContext= once per apply — silent on quiet turns, silent on a session's first prompt (that history is SessionStart's report), exit 0 on every failure path so it can never block a prompt. Wired in both surfaces, documented as the hooks table's one read-only row, 13-case suite green. REVIEW exit: hook config is read at session start, so the proof is the *next* session reacting to an apply nobody announced.
+
+
 * CANCELLED Scratch: note-fix probe (cancel me)
 CLOSED: [2026-09-11 Fri 11:44]
 :PROPERTIES:
