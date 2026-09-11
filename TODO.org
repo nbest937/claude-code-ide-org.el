@@ -66,9 +66,11 @@ unused and so cost nothing visible. That is the better reading of why a
 condition wrong for every code slice survived eleven slices: not rarity,
 but that an empty window leaves no trace.
 :END:
+:PLAN:
 
 Surfaced 2026-09-11 trying to record three post-close closures on [[id:c19fbbf5-be1b-4c18-a38e-9b46d064abb8][c19fbbf5]]. =org_slice_add_member= refuses a closed slice because its list is a record — correct as far as it goes — but that slice closed on 2026-09-10 when its last member reached a terminal keyword, while its PR (#22) stayed open another day and kept accruing slice-incidental work. So the guard that protects a finished record also denies genuinely-belonging work its home, and the fallback is prose in the =:DEBRIEF:=, which no cookie or query can see. Candidate answers: close a slice when its integration point closes rather than when its members do; make the =Incidental:= section explicitly append-only after close; or ratify the prose fallback and say so in the conventions. A convention decision, not a bug.
 
+:END:
 Resolved 2026-09-11, the user choosing between the three candidates and
 adding the keyword: **a slice with an integration point closes when that
 lands, not when its last member goes terminal, and sits in =REVIEW=
@@ -121,9 +123,11 @@ double call look necessary, and the subject being identical is what makes
 the second read waste. =--outline-map='s two calls had that shape in plain
 sight since the read split shipped.
 :END:
+:PLAN:
 
 Found by PR22's review pass. =--outline-map= calls =--outline-line= twice per heading (filtered and unfiltered) and now passes =bodies= to both, so =--outline-body-at-point= — an =org-end-of-meta-data= walk plus a =buffer-substring= — runs twice for every heading, on a path that is default-on over whole files, with only one of the two strings ever used. Hoisting the body once per entry and passing it into both calls halves it. Efficiency only, no wrong output; filed because the read split ([[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]]) made this the common path rather than an opt-in.
 
+:END:
 Resolved 2026-09-11. =--outline-map= extracts the body once per heading
 and hands the text to both =--outline-line= calls, whose fourth argument
 changed from a =bodies= flag to the BODY text itself. =--outline-map= is
@@ -177,9 +181,11 @@ every other script in =bin/hooks/= already ends in an explicit =exit= —
 script's own =exit 0=. =apply-detect= was the only one, so there is no
 heading owed here.
 :END:
+:PLAN:
 
 Found by PR22's review pass, two defects in one script. The final =jq= determines =bin/hooks/apply-detect='s exit status, contradicting the header's promise that every failure path exits 0 silently: jq's *absence* is guarded, but a jq that fails for any other reason surfaces a hook-error banner on a prompt this hook is meant to be invisible to. Separately, the =.apply-seen= stamp is touched *before* the report is emitted, so a kill at the 10 s timeout loses the context while the stamp has already advanced — and that apply is then never reported at all. Both are in [[id:165ce65a-f87e-431c-8ee4-f0fbfffe14da][165ce65a]]'s new code.
 
+:END:
 Resolved 2026-09-11. The final =jq= is now wrapped in an =if= whose
 success gates the =touch=, and the script ends in an unconditional
 =exit 0= — so a report that fails for any reason other than jq's absence
@@ -224,9 +230,11 @@ suite tested the rule against history that could not discriminate — a
 reminder that a green check over real data still only covers the shapes
 that data contains.
 :END:
+:PLAN:
 
 Found by PR22's review pass. =.githooks/pre-push= flags every merge commit in the pushed range except those titled =Merge pull request=, which catches =Merge branch 'main' into feature/x= commits made on a feature branch to catch up — and those become reachable from main the moment that branch merges *via a PR*. So syncing main into a long-lived branch once produces a misleading reminder on the next push to main. Advisory only, so the cost is noise rather than a block; scanning =--first-parent= history of main would match what the rule ([[id:c7bf2121-755c-4e52-8bf2-e21e56b1e0c2][c7bf2121]]) is actually about.
 
+:END:
 Resolved 2026-09-11 by adding =--first-parent= to the advisory's
 =git log=. Measured on real history rather than argued: PR #2's range
 (=01da949~1..01da949=) carries two in-branch merges — the =Merge branch
@@ -267,9 +275,11 @@ a path only this repo has cannot. Worth applying before adding a row to
 parity check between =hooks/hooks.json= and =.claude/settings.json=, and
 the divergence is now deliberate rather than drift.
 :END:
+:PLAN:
 
 Found by PR22's review pass. =hooks/hooks.json= wires =doc-sync-check= into the plugin, where =CLAUDE_PROJECT_DIR= is the *consumer's* root — so their own CLAUDE.md and README.md match and the hook injects this repo's overlap-zone convention, [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]], into a repo where it does not exist. Its =DOOM.md= and =skills/org/references/org-emacs-setup.md= rows are likewise paths only this repo has. The file's own description claims every script appends to or checks =~/.claude/org-updates/=, which this one does not: it is dev tooling for here, not session-tracking machinery, and =footnote-check= is arguably in the same position. Decide which hooks the plugin should actually ship.
 
+:END:
 Resolved 2026-09-11. =doc-sync-check= is removed from =hooks/hooks.json=
 and stays wired in this repo's own =.claude/settings.json=, which is
 where it belongs: its subject is this repo's CLAUDE.md/README.md overlap
@@ -331,9 +341,11 @@ of the test comment before being measured. The reviewed claim was
 directionally right and specifically wrong, which is the ordinary case,
 not a lapse.
 :END:
+:PLAN:
 
 Found by PR22's review pass. =:where= renders =(format "top of %s" (file-name-nondirectory default))=, which is =top of TODO.org= for every project, because routing only ever selects files literally named TODO.org. The comment two lines above says which tracker received the heading "is the fact the reply must carry" — the basename does not carry it; the project directory is the discriminating part. Cosmetic next to [[id:5e731a23-7708-4248-b055-9b4a531f147d][5e731a23]] and [[id:965f94eb-1558-4d00-9857-5727eb86fe6f][965f94eb]], but it is also what makes those two invisible from inside a session: the reply looks correct whichever file was written.
 
+:END:
 Resolved 2026-09-11. =:where= now renders =(abbreviate-file-name
 default)=, so a targetless capture answers "top of ~/git/<repo>/TODO.org"
 rather than "top of TODO.org"; the unresolvable-target error names the
@@ -394,9 +406,11 @@ CLOCK: [2026-09-11 Fri 13:23]--[2026-09-11 Fri 13:24] =>  0:01
 CLOCK: [2026-09-11 Fri 15:44]--[2026-09-11 Fri 15:48] =>  0:04
 - [2026-09-11 Fri 15:44]--[2026-09-11 Fri 15:48] rewrite drawer read onto org-element
 :END:
+:PLAN:
 
 Found by the PR22 low-effort review pass: in claude-code-ide-org--drawer-text-at-point, a target drawer whose :NAME: line exists but never closes with :END: before the next heading leaves content nil and falls into the missing-drawer error branch -- which then lists that very drawer under "Drawers present:", telling the caller the drawer does not exist while showing that it does. Proposed: track the found-but-unterminated case distinctly and report the drawer as malformed, so the caller learns the fix is in the file, not in their next tool call. Fix plus a discriminating ERT test, landed as a fixup on feature/plugin-package while PR22 is open, since the function is part of that PR's diff ([[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]] shipped it).
 
+:END:
 Resolved 2026-09-11 in two passes, and the second is the one that
 mattered. The first (=0f5f362=) fixed the contradictory error message
 this heading's title names. A =med= review pass then found the scanner
@@ -449,6 +463,25 @@ CLOCK: [2026-09-11 Fri 12:50]--[2026-09-11 Fri 12:51] =>  0:01
 Asked by the user 2026-09-11. The signal already exists: apply writes .applied watermark files in ~/.claude/org-updates/, so no elisp changes. Build a UserPromptSubmit hook (bin/hooks/apply-detect, plain-shell tier) that compares the watermarks' state against a per-session last-seen stamp and injects additionalContext naming how many items landed since the session's last turn — the session then commits the tracker diff unprompted, and the user's next message needs no announcement. A per-session background Monitor watching the same files is the opt-in fully-hands-free variant (wakes the session to commit while the user stays in Emacs); the hook is the standing mechanism because it rides natural turn boundaries instead of interrupting. Wire in both .claude/settings.json and the plugin's hooks/hooks.json, one or the other per repo as ever.
 
 Built same day: =bin/hooks/apply-detect= on =UserPromptSubmit=, comparing the apply pass's =.applied= watermarks against a per-session =.apply-seen= stamp and injecting =additionalContext= once per apply — silent on quiet turns, silent on a session's first prompt (that history is SessionStart's report), exit 0 on every failure path so it can never block a prompt. Wired in both surfaces, documented as the hooks table's one read-only row, 13-case suite green. REVIEW exit: hook config is read at session start, so the proof is the *next* session reacting to an apply nobody announced.
+
+*Partial proof 2026-09-11, and deliberately not closed on it.* The hook
+fired in a later session than the one that built it, reported =3
+watermark(s) moved= against a real apply, and that session committed the
+tracker diff (=765192e=) without being told to — the mechanism works end
+to end, counts included.
+
+What it does *not* prove is this heading's own exit test, "the next
+session reacting to an apply nobody announced": the user's message that
+turn opened with "applied.", so the announcement came anyway and the hook
+and the human arrived together. Whether the hook *removes* the
+announcement is therefore still unobserved, which is the behavioural
+claim the whole heading is about. Left in =REVIEW= for the next session
+that applies and says nothing; that costs nothing and the test is
+unambiguous when it happens. Note the earlier REVIEW note already
+anticipated this precisely — "the next session's unprompted reaction is
+the exit" — so accepting today's run would be weakening a criterion after
+seeing the result.
+
 
 
 * CANCELLED Scratch: note-fix probe (cancel me)
