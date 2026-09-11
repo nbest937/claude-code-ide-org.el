@@ -2,7 +2,37 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO org_query exposes four of org-ql's thirty-five predicates, so structured reads fall back to text scanning :code:
+* TODO Nothing can correct a closed slice's record, even when the correction is close-time truth :code:
+:PROPERTIES:
+:ID:       a508c59e-475e-4d27-84c9-6c3ded98e15c
+:CREATED:  [2026-09-11 Fri 17:17]
+:CATEGORY: Slices
+:END:
+
+Second time the closed-slice guard has blocked a legitimate act. =org_slice_add_member= refuses a closed slice and =refresh-slice= skips one, both correctly — but on 2026-09-11 =c19fbbf5= needed two checkboxes ticked, a keyword text corrected and a stale =:BLOCKER:= removed, all of which were *true at its close* rather than later change. With no sanctioned mechanism the fix went through the Edit tool, straight to disk behind Emacs's back, which is exactly the buffer/disk divergence the queue architecture exists to prevent and required a manual revert. Proposed: a narrow repair path — a refresh variant that recomputes a closed slice against its referents' keywords *as of the slice's CLOSED stamp*, or an explicit correct-closed-slice tool that writes through Emacs. The distinction to preserve is the one the guard exists for: re-deriving a closed slice against referents' keywords *today* is the falsification =30a340fd= refused; deriving against their state at close is not. Complements =a00ace04=, which is the detection half.
+
+* TODO lint-org cannot see a slice checkbox that disagrees with its referent :code:
+:PROPERTIES:
+:ID:       a00ace04-99bd-414a-8dc7-df8305126589
+:CREATED:  [2026-09-11 Fri 17:17]
+:CATEGORY: Dev
+:END:
+
+Found 2026-09-11 when the user spotted =c19fbbf5= sitting at =[17/19]=
+with two members that had been =DONE= since before it closed. Nothing
+mechanical could have caught it: the existing rule compares the slice's
+=:BLOCKER:= against its *checklist*, and =--slice-blocker-ids= derives
+that set from the checkbox cookies — so both halves read the same stale
+boxes, agreed, and reported zero errors. The lint can detect a blocker
+disagreeing with the boxes; it cannot detect boxes disagreeing with their
+referents, which is the failure that actually occurs.
+
+Proposed: a rule comparing each member's checkbox against the referent's
+current keyword, per the conventions' derivation table. It must scope to
+*open* slices only — on a closed one a disagreement is the record
+correctly refusing to track later change (=30a340fd=), which is the
+opposite of a defect. Complements =a508c59e=, which is the repair half;
+this one is detection.* TODO org_query exposes four of org-ql's thirty-five predicates, so structured reads fall back to text scanning :code:
 :PROPERTIES:
 :ID:       61f05e56-9d05-4f3e-9131-5eb899f95b8f
 :CREATED:  [2026-09-11 Fri 16:16]

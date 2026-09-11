@@ -8,7 +8,7 @@ Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 
 ** 2026-09 September
 *** 2026-09-10 Thursday
-**** DONE [17/19] Ship the plugin: make the machinery and its prose travel together :code:
+**** DONE [19/19] Ship the plugin: make the machinery and its prose travel together :code:
 CLOSED: [2026-09-10 Thu 16:47]
 :PROPERTIES:
 :ID:       c19fbbf5-be1b-4c18-a38e-9b46d064abb8
@@ -16,7 +16,6 @@ CLOSED: [2026-09-10 Thu 16:47]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(e3caa21f-462a-4689-8a9b-929fbf30cb9e 7dbb82e0-cbb2-481c-bb95-d0e4d9b42126)
 :DROPPED:  ecf66d45-18b3-477f-bca8-08bec90604e8 b862fbf4-53b8-48b5-b773-1c7c0332dfb4
 :ARCHIVE_TIME: 2026-09-11 Fri 09:42
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
@@ -55,6 +54,41 @@ and is left visible here rather than quietly rewritten because a drawer
 is append-only through =org_amend= and because the failure is worth
 seeing: an 8-hex token reads as an id to every later reader, so guessing
 one is indistinguishable from citing one.
+
+*Cookie corrected 2026-09-11: the headline read =[17/19]= and =[19/19]=
+was true at close.* =e3caa21f= and =7dbb82e0= were both =DONE= when this
+slice closed and neither box was ever ticked, so the cookie, the two
+member lines' keyword text (=NEXT= and =TODO=) and the =:BLOCKER:= that
+still named both were all stale. Corrected by hand to what was true at
+16:47 on 2026-09-10.
+
+**This is not the retrofit that was declined.** That one would have added
+members closed *after* the slice — new facts. This changes nothing about
+membership and adds nothing: it records the state of members already
+planned and already finished at the moment of closing.
+
+*The paragraph above this one explains the number wrongly, which is most
+of why it went unnoticed.* "Seventeen of nineteen members closed, two
+dropped by design" pairs the missing two with =ecf66d45= and =b862fbf4=,
+but those are dropped, hence cookie-less, hence outside the denominator
+altogether. The nineteen are the cookie-carrying members; the two absent
+ticks were =e3caa21f= and =7dbb82e0=. The number had a plausible story,
+so nobody checked it against the boxes.
+
+*And nothing mechanical could have caught it.* The refresh skips a
+terminal slice by design (=30a340fd=), so no later pass would tick them.
+=bin/lint-org= compares the =:BLOCKER:= against the *checklist*, and
+=--slice-blocker-ids= derives that set from the checkbox cookies — both
+halves read the same stale boxes, agreed with each other, and reported
+zero errors. The lint can detect a blocker that disagrees with the boxes;
+it cannot detect boxes that disagree with their referents.
+
+Timing, which is the part the new close rule fixes: =e3caa21f= finished
+15:22, eighty-five minutes before the close, and simply never saw a
+refresh in that window; =7dbb82e0= finished at 16:47, the same minute the
+slice did. Under close-at-integration-point this slice would have stayed
+=REVIEW= until today's merge of PR #22, and a refresh in that window
+would have ticked both.
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-08 Tue 15:29] \\
@@ -102,9 +136,9 @@ Planned:
 - [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
 - [X] [[id:308bf4b4-3816-4e34-b031-2bcd58102c4d][308bf4b4]] DONE Adopt org's agenda list file, retiring the symlink scan and the restart
 - [X] [[id:67c3208f-a155-486a-beba-1763d3c86137][67c3208f]] DONE Scope the four hook policies to tracked files, per the consent decision
-- [ ] [[id:e3caa21f-462a-4689-8a9b-929fbf30cb9e][e3caa21f]] NEXT The module's own packages.el declares claude-code-ide
+- [X] [[id:e3caa21f-462a-4689-8a9b-929fbf30cb9e][e3caa21f]] DONE The module's own packages.el declares claude-code-ide
 - [X] [[id:7c86ab4c-3157-4817-9fcc-d2e60c8fc160][7c86ab4c]] DONE Promote generated elisp into $DOOMDIR: one stable stub, drift-checked glue
-- [ ] [[id:7dbb82e0-cbb2-481c-bb95-d0e4d9b42126][7dbb82e0]] TODO Persistent plugin enablement: stop passing --plugin-dir every session
+- [X] [[id:7dbb82e0-cbb2-481c-bb95-d0e4d9b42126][7dbb82e0]] DONE Persistent plugin enablement: stop passing --plugin-dir every session
 
 *Four of the five arrive with a =:BLOCKER:= already naming =b0e478f7=*,
 set when =ff7ccb2d= deferred them — so the sequencing above is declared
