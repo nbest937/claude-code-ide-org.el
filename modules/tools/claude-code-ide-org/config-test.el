@@ -14310,6 +14310,39 @@ the caller it does not exist while showing that it does."
         (should (string-match-p "malformed" result))
         (should-not (string-match-p "no :PLAN: drawer" result))))))
 
+(ert-deftest claude-code-ide-org-test-body-drawer-read-skips-a-decoy ()
+  "A drawer marker that is not a drawer -- one quoted inside another
+drawer's prose, one inside #+begin_example -- is neither served as
+content nor listed as present.  Serving it was the bug: the read
+returned the text between the decoy and the *enclosing* drawer's :END:,
+confidently wrong where an error was owed (TODO.org :ID: f42641ab)."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO NEXT | DONE\n\n"
+              "* TODO A heading whose PLAN discusses drawers\n"
+              ":PROPERTIES:\n:ID: decoy-2\n:END:\n"
+              ":PLAN:\nWe will move the retrospective prose into\n"
+              ":DEBRIEF:\nand the line above is prose, not a drawer.\n"
+              ":END:\n"
+              "#+begin_example\n:LOGBOOK:\n#+end_example\n\n"
+              "The body.\n"))
+    (org-id-update-id-locations (list capture-file))
+    (let ((claude-code-ide-org-query-files (list capture-file)))
+      ;; Neither decoy is served as content...
+      (dolist (name '("DEBRIEF" "LOGBOOK"))
+        (let ((result (claude-code-ide-org-body "decoy-2" nil name)))
+          (should (string-match-p (format "no :%s: drawer" name) result))
+          (should-not (string-match-p "prose, not a drawer" result))
+          ;; ...nor listed among what the heading has.
+          (should-not (string-match-p (format ":%s:" name)
+                                      (car (last (split-string result "present: ")))))))
+      ;; The real drawers are unaffected, the property drawer included --
+      ;; a reader asking for :PROPERTIES: gets it rather than a denial.
+      (should (string-match-p "retrospective prose"
+                              (claude-code-ide-org-body "decoy-2" nil "PLAN")))
+      (should (string-match-p ":ID: decoy-2"
+                              (claude-code-ide-org-body "decoy-2" nil "PROPERTIES"))))))
+
 ;;; Session-routed captures (TODO.org :ID: d718f6b6)
 
 (ert-deftest claude-code-ide-org-test-capture-routes-to-the-sessions-project ()

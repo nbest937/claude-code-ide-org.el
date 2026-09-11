@@ -3717,42 +3717,101 @@ rather than being dropped or silently attached to the previous one."
       (dolist (line (nreverse (cdr (assoc cat table))))
         (push line out)))))
 
+(defun claude-code-ide-org--drawers-at-point ()
+  "Alist of (NAME . ELEMENT) for the real drawers in the heading's own body.
+NAMEs are upcased; order is the order they appear.  Stops at the first
+child, because drawers belong to the entry.
+
+`org-element' decides what is a drawer, never the regexp that finds
+candidate lines -- the regexp only says where to look.  That is the
+lesson of TODO.org :ID: f42641ab, and two shapes make it concrete: a
+drawer marker inside `#+begin_example' is not a drawer, and a bare
+`:DEBRIEF:' line *quoted inside* another drawer's prose is not one
+either.  The second is why the element must also *begin* on the
+candidate line: `org-element-at-point' answers with the enclosing
+drawer there, which would otherwise pass the type check and hand back
+the wrong drawer entirely.
+
+Includes the property drawer, which `claude-code-ide-org--find-drawer'
+deliberately excludes -- hence the separate scan rather than a call to
+it.  The callers differ in kind: that one is asked for *a* drawer to
+write into, this one reports what a heading has, and a reader asking
+for :PROPERTIES: should get it rather than be told it is absent."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((end (save-excursion (outline-next-heading) (point)))
+          (found nil))
+      (while (re-search-forward "^[ \t]*:\\([A-Za-z][A-Za-z0-9_-]*\\):[ \t]*$" end t)
+        (let ((name (upcase (match-string-no-properties 1))))
+          (unless (or (equal name "END") (assoc name found))
+            (let ((element (org-element-at-point)))
+              (when (and (org-element-type-p element '(drawer property-drawer))
+                         (= (org-element-begin element) (line-beginning-position)))
+                (push (cons name element) found))))))
+      (nreverse found))))
+
+(defun claude-code-ide-org--unterminated-drawer-p (name)
+  "Non-nil when a :NAME: line in this heading's body opens a drawer nothing closes.
+Scans the heading's own region only, as `claude-code-ide-org--drawers-at-point'
+does.
+
+This exists because `org-element' declines an unterminated drawer and a
+decoy alike, and the caller owes the two different answers: malformed
+text a human must fix, versus a drawer that genuinely is not there.
+
+Three conditions, and the last two are what keep it from calling
+well-formed files malformed -- both were found by the decoy test rather
+than reasoned out.  No :END: follows the line.  The element there is a
+`paragraph', so a marker inside `#+begin_example' (an `example-block',
+and nothing it contains needs closing) is not mistaken for a drawer
+anyone opened.  And that paragraph *begins* on the line, so a bare
+marker sitting mid-prose is read as the prose it is, not as a drawer
+someone forgot to close."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((end (save-excursion (outline-next-heading) (point)))
+          (marker-re (concat "^[ \t]*:" (regexp-quote name) ":[ \t]*$"))
+          (unterminated nil))
+      (while (and (not unterminated) (re-search-forward marker-re end t))
+        (let ((element (org-element-at-point)))
+          (when (and (not (save-excursion
+                            (re-search-forward "^[ \t]*:END:[ \t]*$" end t)))
+                     (org-element-type-p element 'paragraph)
+                     (= (org-element-begin element) (line-beginning-position)))
+            (setq unterminated t))))
+      unterminated)))
+
 (defun claude-code-ide-org--drawer-text-at-point (name)
   "Content of the heading-at-point's :NAME: drawer, or an error string.
 NAME is upcased already.  Scans only this heading's own region --
 drawers belong to the entry, so the read stops at the first child.  A
 missing drawer names the drawers the heading does have, so the caller's
-next call needs no guessing."
-  (save-excursion
-    (org-back-to-heading t)
-    (let ((end (save-excursion (outline-next-heading) (or (point) (point-max))))
-          (present nil)
-          (content nil)
-          (truncated nil))
-      (while (re-search-forward "^[ \t]*:\\([A-Za-z][A-Za-z0-9_-]*\\):[ \t]*$" end t)
-        (let ((this (upcase (match-string-no-properties 1))))
-          (unless (equal this "END")
-            (push this present)
-            (when (and (null content) (equal this name))
-              (let ((beg (1+ (line-end-position))))
-                (if (re-search-forward "^[ \t]*:END:[ \t]*$" end t)
-                    (setq content
-                          (buffer-substring-no-properties
-                           beg (line-beginning-position)))
-                  (setq truncated t)))))))
-      (cond
-       (content (if (string-empty-p (string-trim content))
-                    (format "(the :%s: drawer is empty)" name)
-                  content))
-       (truncated
-        (format "Error: the :%s: drawer is malformed -- its opening line \
+next call needs no guessing.
+
+Which lines are really drawers is
+`claude-code-ide-org--drawers-at-point''s call; see there for why a
+regexp alone got this wrong.  An unterminated drawer is reported as
+malformed rather than missing, because the missing-drawer error would
+otherwise list the very drawer it was denying."
+  (let* ((drawers (claude-code-ide-org--drawers-at-point))
+         (element (cdr (assoc name drawers))))
+    (cond
+     (element
+      (let* ((beg (claude-code-ide-org--drawer-body-start element))
+             (content (buffer-substring-no-properties
+                       beg (or (org-element-contents-end element) beg))))
+        (if (string-empty-p (string-trim content))
+            (format "(the :%s: drawer is empty)" name)
+          content)))
+     ((claude-code-ide-org--unterminated-drawer-p name)
+      (format "Error: the :%s: drawer is malformed -- its opening line \
 exists but no :END: closes it before the next heading." name))
-       ((null present)
-        (format "Error: this heading has no :%s: drawer -- it has no drawers at all." name))
-       (t
-        (format "Error: this heading has no :%s: drawer. Drawers present: %s."
-                name (mapconcat (lambda (d) (concat ":" d ":"))
-                                (nreverse present) " ")))))))
+     ((null drawers)
+      (format "Error: this heading has no :%s: drawer -- it has no drawers at all." name))
+     (t
+      (format "Error: this heading has no :%s: drawer. Drawers present: %s."
+              name (mapconcat (lambda (d) (concat ":" (car d) ":"))
+                              drawers " "))))))
 
 (defun claude-code-ide-org-body (id &optional include-children drawer)
   "Return heading ID whole -- its heading line, drawers and body -- as text.
