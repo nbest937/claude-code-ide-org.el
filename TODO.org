@@ -16,6 +16,15 @@ The queue is keyed by =session_id= and =--lane-clock-pairs= pairs within a lane 
 
 *Which suggests the general statement is worth having before either fix is built:* **any pairing keyed on =session_id= breaks when one stretch of work spans two.** Two instances are now measured, on two different event pairs; the question is whether the repair belongs per-pairing-function or once, at the point where lanes are formed.
 
+*The cause is upstream, established 2026-09-11 from the harness's own files, and it means this condition is to be **tolerated**, not prevented.* Claude Code re-keyed this session mid-work: =f2e44fdf='s transcript runs 17:24:27--17:55:49 and stops; =~/.claude/jobs/b71c8eec/= is created at **17:56:04** — 32 minutes into an interactive session that until then had no job directory at all — and a second job dir appears in the *same second*. The session then continues under the job's own id, with its transcript re-stamped from the original 17:24:27 start, and =state.json= carrying =template: "bg"= and =respawnFlags=. An =API Error: Connection lost mid-response= at 17:57:52 sits in that job's timeline *after* the switch, so it is a consequence rather than the trigger.
+
+*Known upstream, and reported less precisely than our own evidence states it.* anthropics/claude-code [[https://github.com/anthropics/claude-code/issues/59848][#59848]] ("Interactive =claude= sessions are classified as background jobs post-2.1.139") describes every session being *born* with =$CLAUDE_JOB_DIR= and =template: "bg"=; ours was not — it ran half an hour without one, and the records appeared in a batch mid-flight. That issue is **closed**, confirmed against 2.1.143, and its headline symptom (the worktree-isolation guard) is indeed fixed here on 2.1.236, while the classification it rested on is not. [[https://github.com/anthropics/claude-code/issues/76220][#76220]] is the later open report.
+
+*So the design consequence is settled:* a session id is **not** a stable key for a stretch of work, and nothing in this project can make it one. Any repair has to reconcile lanes after the fact rather than assume the key holds — which is the same conclusion the =9202b39d= link above reaches from the other direction.
+
+*One consequence for [[id:96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d][96ddf1ef]], which is =NEXT= and will hit this immediately:* the re-key leaves **two transcripts covering the same conversation**, the old one truncated at the switch and the new one complete from the original start. A renderer keyed on session id would render the same session twice under two ids, the first copy silently short. It needs a rule for that before it renders anything.
+
+
 
 * TODO =:BLOCKER: ids(...)= is org-edna syntax; org-depend cannot parse it, so 8 of 12 blockers enforce nothing :code:
 :PROPERTIES:
