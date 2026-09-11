@@ -2,19 +2,45 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO org_capture accepts a note it silently discards, and five headings shipped bodiless :code:
+:PROPERTIES:
+:ID:       204d1b0a-e5de-41f3-8983-b60638ce196a
+:CREATED:  [2026-09-11 Fri 11:35]
+:END:
+
+Found 2026-09-11 when the user noticed =b112878e= had no prose. The docstring is explicit — "NOTE is a short reason, carried for the queue and unused on the immediate path" — and =--capture-write= takes no note parameter, so the queued path drops it at apply too (measured: events carrying 689 and 681 characters landed as bare headings). The contract is coherent (note = review-buffer annotation, like a clock note; body prose = the two-call composition via =org_amend=) but the *surface invites misuse*: the tool accepts arbitrarily long prose and reports "Captured" with no hint anything was discarded — six filings across two days shipped bodiless before anyone noticed, all restored by amend. Decide one of: (a) the immediate path writes the note as the initial body (and apply gains the same, changing the deferred contract); (b) the tool refuses or warns on notes beyond a sentence; (c) the schema description alone is sharpened to say the note never reaches the heading. Whichever lands, the reply should stop saying "Captured" as if everything given was kept. Probe evidence: =49e1556b= (scratch, cancelled same minute).
+
+* TODO Scratch: capture-note probe (cancel me)
+:PROPERTIES:
+:ID:       49e1556b-e6b2-4172-b63e-fef38bea8910
+:CREATED:  [2026-09-11 Fri 11:33]
+:END:
 * TODO org_slice_add_member cannot prepend or reorder, so declared order is append-only :code:
 :PROPERTIES:
 :ID:       b112878e-6313-4bc6-bc3f-0533d5f1ad1b
 :CREATED:  [2026-09-11 Fri 11:11]
 :END:
-* TODO [0/3] Join the transcript to the record: span synopses, readable sessions, weighted attribution :code:
+:LOGBOOK:
+CLOCK: [2026-09-11 Fri 11:08]--[2026-09-11 Fri 11:09] =>  0:01
+- [2026-09-11 Fri 11:08]--[2026-09-11 Fri 11:09] assigned at review
+:END:
+
+(Filing prose restored 2026-09-11 — the original capture note was discarded by =org_capture='s immediate path, by documented design.) Hit composing =afea7e4f=: the fourth member (=fbaf8009=) belonged first, but the line lands only after the last planned member or an =after== anchor — no prepend, no move. A slice declares membership AND order, so append-only ordering forces either re-declaring the slice or a plan-drawer correction (the workaround used). Options: a =first= flag, a =before== parameter, or a dedicated reorder call; =1206b5b0= (the =parent== gap) is the precedent for extending this tool when composition hits a wall.
+
+
+
+* NEXT [0/4] Join the transcript to the record: span synopses, readable sessions, weighted attribution :code:
 :PROPERTIES:
 :ID:       afea7e4f-41b3-4eda-83f1-39e1b9e7a61a
 :CREATED:  [2026-09-11 Fri 11:00]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(325679af-829e-4c7f-88b0-153c2c9683b3 295cde3a-49a5-4960-a828-a4fc175d73c1 fbaf8009-b3dc-48ed-b099-63b74fc156a8)
+:BLOCKER:  ids(325679af-829e-4c7f-88b0-153c2c9683b3 96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d 295cde3a-49a5-4960-a828-a4fc175d73c1 fbaf8009-b3dc-48ed-b099-63b74fc156a8)
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-11 Fri 11:12] \\
+  nominated: the Slices-category pick-up-next, at the user's word
 :END:
 :PLAN:
 The foundation is one measured fact (=295cde3a=, 2026-09-01): every queue =resume= event matches a transcript user message on timestamp — 28 of 28 within two seconds — so the prompts are already durably recorded beside a key that joins them to the record exactly, retroactively, across every session ever kept. The standing trap travels with the join: *the queue defines what a prompt is* — raw =type:"user"= transcript entries are contaminated by stop-hook feedback and tool results (=9e627dc0=, 45 raw against 36 real).
@@ -37,9 +63,9 @@ The record knows *when* work happened but not *what was going on* — a 0-run sp
 Planned:
 
 - [ ] [[id:325679af-829e-4c7f-88b0-153c2c9683b3][325679af]] TODO The review buffer shows each run's opening prompt, joined from the transcript
-- [[id:96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d][96ddf1ef]] MAYBE Render a session transcript to readable org, so scrollback stops being the index
+- [ ] [[id:96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d][96ddf1ef]] TODO Render a session transcript to readable org, so scrollback stops being the index
 - [ ] [[id:295cde3a-49a5-4960-a828-a4fc175d73c1][295cde3a]] TODO Attribute a turn to several tasks by weight, judged from the transcript with lag
-- [ ] [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]] TODO The review buffer should name each item's tracker, now that two projects share the queue
+- [ ] [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]] NEXT The review buffer should name each item's tracker, now that two projects share the queue
 
 
 * MAYBE Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
@@ -47,11 +73,27 @@ Planned:
 :ID:       489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938
 :CREATED:  [2026-09-11 Fri 09:59]
 :END:
+
+(Filing prose restored 2026-09-11 — the original capture note was discarded by =org_capture='s immediate path, by documented design.) 2026-09-11, one occurrence: the beachball after the ceremony's final =q= was a corpse — =sample= showed the lisp thread inside =handle_fatal_signal= → =shut_down_emacs= → =kill_buffer_processes= waiting on the GUI queue's semaphore while the GUI thread waited on the lisp queue (mac-port termination deadlock). All buffers were saved first: the ceremony's 85-heading archive sweep (~5,300 lines TODO.org → DONE.org) landed on disk at 09:42 and nothing was lost. Killed with SIGKILL, relaunched, glue re-wired unaided. The fatal signal's origin is unknown — the crash landed while idle-waiting in =really_call_select=, so the ceremony correlation may be timing, not cause. Promote if it recurs; a second sample is the next data point.
+
+
+
 * TODO The review buffer shows each run's opening prompt, joined from the transcript :code:
 :PROPERTIES:
 :ID:       325679af-829e-4c7f-88b0-153c2c9683b3
 :CREATED:  [2026-09-11 Fri 09:59]
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-11 Fri 09:43]--[2026-09-11 Fri 09:45] =>  0:02
+- [2026-09-11 Fri 09:43]--[2026-09-11 Fri 09:45] assigned at review
+CLOCK: [2026-09-11 Fri 09:50]--[2026-09-11 Fri 09:53] =>  0:03
+- [2026-09-11 Fri 09:50]--[2026-09-11 Fri 09:53] assigned at review
+:END:
+
+(Filing prose restored 2026-09-11 — the original capture note was discarded by =org_capture='s immediate path, by documented design.) The user's concrete reporting need, stated 2026-09-10: at review time they cannot discriminate a degenerate 0-run/0-turn span from an unmeasured long turn, because nothing says what was going on. The mechanism is decided and measured on =295cde3a=: join queue =resume= events to transcript user messages on timestamp (28 of 28 within two seconds; the queue defines what a prompt is — raw =type:"user"= entries are contaminated, =9e627dc0='s trap). Build the surfacing: each run renders its opening prompt's first line, and a lone-timestamp span renders the abutting prompts either side, truncated. This closes exactly the =--review-annotation-label= gap: an item's synopsis is its enclosing clock event's note, so guidepost-reconstructed spans have none by construction. Retroactive across all recorded sessions; no hook change, no new durable field.
+
+
+
 * TODO claude-org-setup --org scaffolds or appends the consuming repo's .gitignore :code:
 :PROPERTIES:
 :ID:       784d80c5-8750-4ebe-b5e5-c213fc809d80
@@ -64,12 +106,22 @@ CLOCK: [2026-09-10 Thu 16:48]--[2026-09-10 Thu 16:49] =>  0:01
 
 Amended same day, at the provenance conversation: the symlink-ignore advice inverts when the symlink is *relative* — a committed =../../../claude-code-ide-org= is provenance and enablement in one artifact, working wherever the clones are siblings and dangling harmlessly where they are not. So the ignore line is for *absolute* symlinks only; =--org= (or its docs) should prefer creating the relative form and committing it. A submodule was considered and declined: a vendored second clone breaks the per-clone port contract and forks the plugin revision per consumer.
 
+(Filing prose restored 2026-09-11, belatedly *before* the existing amendment above — the original capture note was discarded by =org_capture='s immediate path, by documented design.) Asked by the user 2026-09-10 while hand-copying this repo's =.gitignore= into euchre. All four entries generalize (=settings.local.json=, worktrees, =clock-status.json=, the audit jsonl) and a fifth is consumer-specific: the =.claude/skills/<plugin>= symlink, with the absolute-vs-relative nuance the amendment above records. =--org= already collision-checks files; the same pattern appends missing ignore lines rather than clobbering. Decide whether the entries ship as a template or inline in the script.
 
-* TODO The review buffer should name each item's tracker, now that two projects share the queue :code:
+
+
+* NEXT The review buffer should name each item's tracker, now that two projects share the queue :code:
 :PROPERTIES:
 :ID:       fbaf8009-b3dc-48ed-b099-63b74fc156a8
 :CREATED:  [2026-09-10 Thu 14:49]
 :END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-11 Fri 11:12] \\
+  the slice's opening action: pure rendering, no join needed
+:END:
+
+(Filing prose restored 2026-09-11 — the original capture note was discarded on the queued path too: the event carried 681 characters and =--capture-write= takes no note.) Asked by the user 2026-09-10, the day euchre joined the agenda list file (=308bf4b4=) and the queue became genuinely multi-project. The review group heading renders 8-char id + title only (the =c2132d3f= column rationale); the destination tracker is implicit in where the id resolves and never displayed, so two projects' headings interleave distinguishable only by title. Wanted: the group heading (or item line) carries the project — e.g. the id's file rendered as its repo directory name — and the unassigned-span groups likewise say which session =cwd= produced them, since the cwd signal (=5461c349=) is already on the events. Apply behavior is correct today; this is legibility only.
+
 
 
 * TODO The glue claims ownership of the whole wiring block, but the 202 override ships nowhere :code:
@@ -81,6 +133,9 @@ Amended same day, at the provenance conversation: the symlink-ignore advice inve
 CLOCK: [2026-09-10 Thu 14:11]--[2026-09-10 Thu 14:12] =>  0:01
 - [2026-09-10 Thu 14:11]--[2026-09-10 Thu 14:12] preparing the e396f94a swap walk-through; filing the glue-ownership gap
 :END:
+
+(Filing prose restored 2026-09-11 — the original capture note was discarded on the queued path: the event carried 689 characters and =--capture-write= takes no note.) Found 2026-09-10 preparing the =e396f94a= real-config swap: =claude-org-setup --glue= prints "delete any hand-rolled wiring block ... the glue owns all of it", but the user's block also carried the 202-Accepted override of =claude-code-ide-mcp-http-server--send-empty-response= (the real fix from the Warp investigation, upstream bug =8f986c6f=) — which neither the glue nor the module ships. A user following the printed instruction re-breaks every strict MCP client. Decide: move the override into the module (guarded, self-retiring when upstream fixes =8f986c6f=) or soften the printed claim to name what the glue does not own. Until then the swap instructions must say KEEP the override by hand — which is what the actual swap did.
+
 
 
 * TODO Plans die at cleanupPeriodDays; decide plansDirectory or keep restoring :code:
@@ -2572,6 +2627,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-11 Fri 11:27]--[2026-09-11 Fri 11:29] =>  0:02
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -2785,7 +2841,7 @@ a human hand-editing a **CLOCK line in the file**, not the review flow, which wr
 and consults CLOCK lines for idempotency. Two different things, and I ran them together.
 
 
-* MAYBE Render a session transcript to readable org, so scrollback stops being the index :code:
+* TODO Render a session transcript to readable org, so scrollback stops being the index :code:
 :PROPERTIES:
 :CATEGORY: Dev
 :ID:       96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d
@@ -2794,6 +2850,8 @@ and consults CLOCK lines for idempotency. Two different things, and I ran them t
 :LOGBOOK:
 - State "MAYBE"      from              [2026-08-26 Wed 08:49] \\
   gated on whether /config resolves it
+- State "TODO"       from "MAYBE"      [2026-09-11 Fri 09:59] \\
+  promoted at the user's word: the review-context need makes it concrete
 :END:
 
 *Prompted 2026-08-26 by the user*: composing a prompt often means re-reading something far back in the session, and submitting jumps the view to the bottom, losing both the spot and the train of thought.
@@ -7673,4 +7731,19 @@ CLOCK: [2026-09-10 Thu 16:39]--[2026-09-10 Thu 16:42] =>  0:03
 - [2026-09-10 Thu 16:43]--[2026-09-10 Thu 16:46] assigned at review
 CLOCK: [2026-09-10 Thu 16:46]--[2026-09-10 Thu 16:47] =>  0:01
 - [2026-09-10 Thu 16:46]--[2026-09-10 Thu 16:47] closing 7dbb82e0 and the c19fbbf5 slice on the user's word
+:END:
+
+
+**** 2026-09-11 Friday
+:PROPERTIES:
+:ID:       7dc8adad-f5cd-4543-b553-77bd188c39be
+:CREATED:  [2026-09-11 Fri 09:58]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-11 Fri 09:58]--[2026-09-11 Fri 09:59] =>  0:01
+- [2026-09-11 Fri 09:58]--[2026-09-11 Fri 09:59] post-crash recovery: deferred filings, 96ddf1ef promotion, ceremony commit
+CLOCK: [2026-09-11 Fri 11:00]--[2026-09-11 Fri 11:01] =>  0:01
+- [2026-09-11 Fri 11:00]--[2026-09-11 Fri 11:01] composing the transcript-join slice
+CLOCK: [2026-09-11 Fri 11:11]--[2026-09-11 Fri 11:13] =>  0:02
+- [2026-09-11 Fri 11:11]--[2026-09-11 Fri 11:13] fbaf8009 into the slice; nomination; next-session rewrite
 :END:
