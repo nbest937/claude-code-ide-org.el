@@ -60,6 +60,28 @@ On a **grouping** — a story or a slice — the same word reads one level
 up: at least one member is in the mail. That sense opens *no automatic*
 clock, and takes no `NEXT` either, since both belong to a member.
 
+**`REVIEW` on a grouping means every member is terminal and the work has
+not yet integrated** (the user, 2026-09-11). It names the window between
+the last member closing and the grouping's own deliverable landing — for
+a slice carrying code, between the final commit and the pull request
+merging. The clock column needs nothing new: entering it closes the
+grouping's clock only if the grouping holds the running one, exactly as
+the `from DOING` rule already says, and `REVIEW` → `DONE` at the merge
+touches nothing.
+
+The window needs a name because review findings on a branch arrive
+*after* every member is terminal, by construction — an implementation
+cannot be reviewed until it is implemented. So a slice closing on "all
+members done" closes before its own review exists. `:ID:` c19fbbf5 did
+exactly that, and its review's findings had nowhere to go, a closed
+slice's membership being a record. The close condition that follows from
+this is in the org conventions, "Closing a slice".
+
+**This is the keyword's first use on a grouping.** Measured 2026-09-11:
+twelve slices had existed and not one had ever carried `REVIEW`, so this
+paragraph is the whole of its grouping sense — expect it to need
+sharpening in use rather than to be settled.
+
 **A grouping may still be clocked deliberately, and that is not a
 defect.** `:ID:` 3964c575 proposed that groupings carry no clock at all;
 declined 2026-08-26. A parent's own coordination and planning time is

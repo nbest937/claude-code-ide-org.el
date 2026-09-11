@@ -505,6 +505,54 @@ Note the links cost nothing in `bin/lint-org` as of 2026-08-25 (`:ID:`
 warning, which would have made this convention degrade the report a
 little more with every slice.
 
+### Closing a slice
+
+**A slice with an integration point closes when that lands, not when its
+last member goes terminal** (decided 2026-09-11). For a slice carrying
+code the integration point is its pull request, since a branch reaches
+`main` through one. A slice with no integration point of its own — pure
+bookkeeping or convention work — closes when its members finish, because
+that is all there is.
+
+Between the two it sits in `REVIEW`: every member terminal, the work not
+yet integrated. The state transitions reference defines that sense of the
+keyword on a grouping, and notes it is new.
+
+**The `:BLOCKER:` is the floor; this is the ceiling.** The blocker stops a
+slice reaching `DONE` before its members do. Nothing stopped it closing
+the *moment* they did, which is too early whenever a review still has to
+happen.
+
+*And that is structural, not bad luck.* Findings against a branch can only
+arrive after every member is terminal, so "all members done" names a
+moment reliably before the work is finished. `:ID:` c19fbbf5 closed on
+2026-09-10 as its last member landed; its code review the next day
+produced nine findings on that same branch, which then had nowhere to go —
+a closed slice's membership is a record, and `org_slice_add_member`
+refuses to change it. **That refusal is correct and stays**: the cookie
+and the `:BLOCKER:` only mean anything if a closed list is fixed. The
+close condition was the thing to fix (`:ID:` e80f6ccf).
+
+**And it had been wrong repeatedly, not once.** Measured 2026-09-11 over
+all eight closed slices, comparing each `CLOSED:` stamp against its pull
+request's merge time: `:ID:` ec65b5d6 closed 2026-09-03 13:16 and its PR
+merged 2026-09-04 15:25, the same twenty-six-hour gap; `:ID:` ff7ccb2d and
+`:ID:` 52bfafdf each closed hours before the PRs that carried them. The
+earlier gaps simply went unused, and an empty window leaves no trace —
+which is why a condition wrong for every code slice survived eleven of
+them before a review landed nine findings inside one.
+
+**Review residue is not incidental work**, a distinction worth keeping now
+that the window has a name. Incidental means unplanned work done along the
+way; a finding against the slice's own deliverable is *consequent* — the
+predictable output of a phase the checklist never enumerates. Both become
+member lines, so the distinction lives in the debrief rather than in the
+list.
+
+No retrofit. `c19fbbf5` keeps its 2026-09-10 close and records its three
+post-close closures as debrief prose which, with the pull request they
+landed on, is record enough.
+
 ### Dropping a member from a slice
 
 **Add the member's id to the slice's `:DROPPED:` property; the refresh
