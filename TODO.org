@@ -2,7 +2,14 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Unplanned work in flight belongs to no slice: planned is writable, incidental is closed-only :code:
+:PROPERTIES:
+:ID:       9bab114d-44fa-488e-92bd-ff7c3fd8065d
+:CREATED:  [2026-09-11 Fri 19:27]
+:CATEGORY: Slices
+:END:
 
+Work has three states relative to an open slice and only two can be represented. Planned-and-open is a member line; unplanned-and-*closed* is picked up automatically, since =--slice-incidental-ids= defines an incidental as "a heading whose close this slice owns" and is derived from closes, never curated (=58e6c6a0=, deliberately — a hand-kept list goes stale by the second day). But unplanned-and-*still-open* appears nowhere: not planned, because it wasn't; not incidental, because it hasn't closed. The consequence is the sharp part — such work cannot enter the derived =:BLOCKER:=, so a slice can reach =DONE= while work it caused is still open, which is =e80f6ccf='s class arriving from a second direction. Note what is *not* wrong: nothing forbids adding a member to an open slice — =org_slice_add_member= refuses only a CLOSED one — so the sanctioned move already exists, and the conventions already say review residue and incidental work "both become member lines, so the distinction lives in the debrief rather than in the list". What misleads is the vocabulary: =Planned:= is a structural anchor for the member parser (=a43cfaa0=), not a claim of foresight, and reading it as foresight makes the one writable list look unavailable for the very work that most needs it. Proposed: say so explicitly in the conventions — a mid-flight addition is a *declaration of membership*, not a retroactive claim to have foreseen it — and decide whether in-flight unplanned work should be marked as such at all, or left to the debrief as the review-residue rule already does. Raised by the user 2026-09-11 as "a stark inconsistency we should not abide".
 
 * TODO org_capture cannot set =:CATEGORY:=, so every captured heading is uncategorised and nothing notices :code:
 :PROPERTIES:
@@ -118,6 +125,14 @@ Planned:
 *The architectural objection is narrower than it first reads, and the distinction is the whole decision.* Adopting edna for its **blocker/finder parsing alone** writes nothing, fires nothing and bypasses nothing. The queue conflict — a trigger writing through Emacs during the human apply pass — arises only from TRIGGER *actions*, which nothing here needs or would have to declare. "Edna conflicts with the queue" is true of its triggers, not of its parser.
 
 *What decides this is not in this body.* Every org-edna claim here comes from reading its source; it is not installed, and nothing above has been run. This repo's own rule is that a proposed mechanism is a hypothesis until measured, so the next step is a batch trial against these real blocker shapes — both forms, both parsers, a DONE blocker and an open one — not a decision. The cheap half of the fix (normalising to bare) is available immediately and does not wait on that trial.
+
+*Fixing this turns on a second mechanism that is already enabled and currently inert — decide it deliberately rather than discovering it.* =org-depend-tag-blocked= defaults to =t=, nothing here or in the Doom config sets it, and the live value is =t=. Its write is =(org-toggle-tag "blocked" (if proceed-p 'off 'on))=: tag on a refusal, untag on a success. Because the =ids(...)= form never parses, =proceed-p= is always non-nil today, so the tag is only ever *removed* — zero instances in TODO.org, two historical ones in DONE.org. **The moment blockers parse, every refused transition starts writing =:blocked:= into the tracker.**
+
+*Whether that is wanted is a real question with a filed precedent against it.* [[id:a7f4b40c-d6e0-4bde-82ba-94bcf45253f4][a7f4b40c]] named the hazard as "a derived fact stored is one that can go stale", and the staleness is concrete here: the tag clears only when someone *re-attempts* the transition, so a heading whose blocker is satisfied keeps its tag until something tries again. Under the queue that is worse than under plain org, because attempts do not happen when work finishes — they happen in bursts when a human runs the apply pass.
+
+*It is also not the inverse of =:BLOCKER:=, which is worth stating because the name suggests it is.* =:BLOCKER:= *declares* a dependency on the blocked heading; =:blocked:= *caches the verdict* of evaluating that same declaration. The genuine other side — what a heading blocks — is stored nowhere and is derivable by search; org-depend's =:TRIGGER:= is the closest thing and acts forward rather than describing.
+
+*So: settle the tag in the same change as the syntax.* Either set =org-depend-tag-blocked= to nil and keep the record purely declarative, or keep the tag and accept a derived value in the file — in which case the apply pass is the natural place to refresh it, since that is the only moment transitions are attempted.
 :END:
 
 =org-depend-block-todo= — the function actually on =org-blocker-hook= — does
