@@ -19,6 +19,17 @@ Work has three states relative to an open slice and only two can be represented.
 
 *Which leaves one genuinely open sub-question:* whether an adopted-unplanned member is *visibly* distinguished from a planned one. The conventions' existing answer for review residue is that both become member lines and the distinction lives in the debrief; the ruling's phrase "a member, albeit unplanned" may want more than that. A third parsed lead (=Adopted:=, beside =Planned:= and =Incidental:=) is the obvious shape but is a real parser change — the member scan bounds itself on those leads — so it should be decided rather than assumed.
 
+*Sharpened by the user, same day, and it corrects the paragraph above.* "Relationship" is the right word, not "bearing" — the sentiment to make matter-of-course is: **we understand it now, it is in context, the costs and risks are low, so we might as well take it on and be done with it.** Expected to be the rule rather than the exception: if feature A is landing shortly, the feature H that surfaced while working A — or while looking ahead to B through G — is very likely wanted too.
+
+*My counterexample was overstated and is withdrawn in part.* It tested the narrow end state ("does the transcript join need this to ship?") rather than relationship to the work in hand. Re-read under the looser test, three or four of the session's five discoveries qualify: =c9940558= was discovered *by* the tracker annotation and lives in the same render path, and =b57c7515= bears on the join directly — the prompt lookup keys on =session_id=, and a re-key leaves two transcripts for one conversation. Only =3f4fd744= is genuinely unrelated. So "no bearing" is not the common case; the marginal cost of adjacent work while the context is already loaded really is the dominant term.
+
+*What survives is not a filter on adoption but the absence of a stopping point.* If adoption is the rule, membership grows monotonically while the slice runs, and every adopted member can itself produce discoveries. The termination condition is then not "the work ran out" but "we decided to stop adopting" — and nothing in the conventions says when that is. That, rather than over-adoption, is what turns the sentiment into scope creep: the two are distinguished by the *existence of a closing gate*, not by the decision to take something on.
+
+*Proposed gate, because it costs nothing and reuses a line that already exists:* **adoption is open while the slice is =DOING=; entering =REVIEW= closes it.** =REVIEW= on a grouping already means every member terminal and the work not yet integrated (=e80f6ccf=), so it is exactly the moment membership should stop moving. A discovery after that goes to the next slice or stands alone — which is also what gives the *next* slice its natural seed.
+
+*One legibility consequence to expect rather than be surprised by.* Adopting at discovery inflates the cookie's denominator before its numerator, so a slice's progress visibly regresses — =[3/6]= becomes =[3/9]=. Incidentals never did this, being done on arrival. It is honest and it will read as a defect to anyone who has not been told, so it belongs in the convention text.
+
+
 
 * TODO org_capture cannot set =:CATEGORY:=, so every captured heading is uncategorised and nothing notices :code:
 :PROPERTIES:
