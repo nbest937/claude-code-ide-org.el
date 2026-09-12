@@ -9594,6 +9594,56 @@ the MCP layer."
 
 ;;; Review buffer
 
+(defun claude-code-ide-org-review-open-session ()
+  "Render the session behind the item at point and open it at this span.
+
+The review buffer answers *when* and, since :ID: 325679af, *what was
+said*; this is the escape hatch to the whole conversation when the
+synopsis is not enough.  Point lands on the turn nearest at-or-before
+the span's start, so the file opens where the span begins rather than
+at the top of a session that may run for hours.
+
+Refuses rather than guesses when the item carries no session -- a
+state or capture item names a heading, not a stretch of time -- and
+says so when the transcript has aged out, which for old work is the
+common answer."
+  (interactive)
+  (let* ((item (claude-code-ide-org--review-item-at-point))
+         (events (and item (plist-get item :events)))
+         (session (seq-some (lambda (e)
+                              (let ((id (plist-get e :session-id)))
+                                (and id
+                                     (claude-code-ide-org--transcript-file id)
+                                     id)))
+                            events)))
+    (cond
+     ((null item) (user-error "%s" (claude-code-ide-org--review-no-item-message)))
+     ((null events)
+      (user-error "This item carries no session events to open a transcript for"))
+     ((null session)
+      (user-error "No transcript on disk for this item's session (aged out?)"))
+     (t
+      (let ((file (claude-code-ide-org-render-session session))
+            (start (plist-get item :start)))
+        (find-file-other-window file)
+        (goto-char (point-min))
+        ;; Nearest turn at or before the span's start. Scanning the
+        ;; rendered headings rather than recomputing from the transcript
+        ;; keeps this honest about what the reader is actually looking
+        ;; at -- if the render is stale the jump is stale with it, which
+        ;; is visible, where a computed position would silently disagree.
+        (when start
+          (let ((want (format-time-string "%H:%M" start))
+                (best (point-min)))
+            (while (re-search-forward "^\\* \\([0-9][0-9]:[0-9][0-9]\\)  " nil t)
+              (when (string-lessp (match-string 1) want)
+                (setq best (line-beginning-position)))
+              (when (string= (match-string 1) want)
+                (setq best (line-beginning-position))))
+            (goto-char best)))
+        (when (fboundp 'org-fold-show-entry) (ignore-errors (org-fold-show-entry)))
+        (message "%s" (file-name-nondirectory file)))))))
+
 (defvar claude-code-ide-org-review-mode-map (make-sparse-keymap)
   "Keymap for `claude-code-ide-org-review-mode'.")
 
@@ -9619,6 +9669,7 @@ the MCP layer."
                    ("N" . claude-code-ide-org-review-edit-note)
                    ("d" . claude-code-ide-org-review-dismiss)
                    ("RET" . claude-code-ide-org-review-goto)
+                   ("T" . claude-code-ide-org-review-open-session)
                    ("x" . claude-code-ide-org-review-apply)
                    ("g" . claude-code-ide-org-review-refresh)
                    ("?" . claude-code-ide-org-review-help)))
@@ -10581,6 +10632,341 @@ remainder stated."
           (append (seq-take lines shown)
                   (list (format "... %d more prompt(s) in this span"
                                 (- (length lines) shown))))))))))
+
+;;; Rendering a session to readable org (TODO.org :ID: 96ddf1ef) --------------
+;;
+;; Composing a prompt often means re-reading something far back in the
+;; session, and submitting jumps the view to the bottom -- losing both
+;; the spot and the train of thought.  The transcript is already a plain
+;; file and the user works in Emacs, so reading *there* has no scroll
+;; position to lose, gives isearch and folding, and does not move when
+;; the agent answers.
+;;
+;; One heading per turn, the prose as body, the tool calls in a drawer
+;; so `#+STARTUP: content' folds them away.  Three things are dropped
+;; and each is a decision rather than an omission:
+;;
+;;   - `thinking' blocks.  Measured on one session: 107 of them against
+;;     36 of prose, so including them triples the file without being
+;;     what anyone is paging for.
+;;   - tool *results*, which is the trap this heading warned about --
+;;     a `type: "user"' entry is usually a tool result rather than a
+;;     human turn (218 of 231 in one session), and a renderer that
+;;     treats them as prompts reports twenty times too many turns.
+;;   - a tool call's full input, reduced to one label.  The transcript
+;;     stays on disk for anyone who wants the payload.
+
+(defcustom claude-code-ide-org-transcript-render-directory
+  (expand-file-name "org-renders/" "~/.claude/")
+  "Where rendered session transcripts are written.
+
+Deliberately outside any repository.  A render is derived, regenerable
+and often large; committing one would put a second copy of the
+conversation under version control, and adding it anywhere
+`org-agenda-files' reaches would feed a synthetic file to the agenda.
+Nothing here writes an `:ID:', so org-id has no reason to index it
+either."
+  :type 'directory
+  :group 'claude-code-ide-org)
+
+(defun claude-code-ide-org--org-escape-body (text)
+  "Return TEXT safe to insert as org body content.
+
+A line beginning with `*' would become a *heading* and silently
+restructure the file -- the render is generated from prose nobody wrote
+for org, so this is the common case rather than an edge one.  Org's own
+escape is a leading comma, which it strips on display.  `#+' gets the
+same treatment, since a stray keyword line can change how the file is
+parsed."
+  (when (stringp text)
+    (mapconcat (lambda (line)
+                 (if (string-match-p "\\`[ \t]*[*#]\\+?" line)
+                     (concat "," line)
+                   line))
+               (split-string text "\n")
+               "\n")))
+
+(defconst claude-code-ide-org--tool-label-keys
+  '("description" "title" "query" "file_path" "id" "member_id" "slice_id"
+    "scope" "state" "property" "command" "text" "note" "pattern")
+  "Input keys tried, in order, for a one-line label of a tool call.
+
+Ordered by how well each names the *intent* rather than the mechanics:
+`description' is Bash's own summary of why it is being run, `title' is
+what a capture is called.  A command line or a prose payload is last
+because it describes the how.")
+
+(defun claude-code-ide-org--tool-label (name input)
+  "Return a one-line label for a tool call to NAME with INPUT, an alist.
+
+The MCP prefix is stripped -- `mcp__emacs-tools__org_capture' reads as
+`org_capture' -- because the server name is constant across a session
+and carries nothing a reader is scanning for."
+  (let* ((name (or name "?"))
+         (short (if (string-match "\\`mcp__[^_]+\\(?:__\\|_\\)\\(.*\\)\\'" name)
+                    (match-string 1 name)
+                  name))
+         ;; `json-parse-string' with :object-type 'alist yields SYMBOL
+         ;; keys, so a string lookup silently matches nothing -- which
+         ;; is exactly what shipped in the first draft and rendered
+         ;; eleven consecutive lines reading "Bash".
+         (value (seq-some (lambda (key)
+                            (let ((v (alist-get (intern key) input)))
+                              (and (stringp v)
+                                   (not (string-empty-p (string-trim v)))
+                                   (string-trim v))))
+                          claude-code-ide-org--tool-label-keys)))
+    (if value
+        (format "%s -- %s" short
+                (truncate-string-to-width
+                 (car (split-string value "\n" t)) 72 nil nil t))
+      short)))
+
+(defun claude-code-ide-org--transcript-turns (session-id)
+  "Return SESSION-ID's transcript as a list of turn plists.
+
+Each turn is (:time TIME :prompt TEXT :blocks LIST), opened by a human
+prompt and running until the next one.  BLOCKS is ordered, each element
+either (text . STRING) or (tool . LABEL), so the render can keep prose
+and tool calls in the order they happened.  Content before the
+first prompt is discarded: it is the harness's own preamble, and a turn
+is defined by the prompt that started it.
+
+Turn boundaries come from the same shape test
+`claude-code-ide-org--transcript-prompts' uses -- user role, string
+content, not `isMeta', not a `<bash-' escape -- so the two agree by
+construction about what a prompt is."
+  (when-let* ((file (claude-code-ide-org--transcript-file session-id)))
+    (with-temp-buffer
+      (insert-file-contents file)
+      (goto-char (point-min))
+      (let (turns current)
+        (while (not (eobp))
+          (let ((line (buffer-substring-no-properties
+                       (line-beginning-position) (line-end-position))))
+            (when-let* (((string-search "\"type\":\"" line))
+                        (obj (ignore-errors
+                               (json-parse-string line :object-type 'alist
+                                                  :null-object nil
+                                                  :false-object nil)))
+                        (type (alist-get 'type obj)))
+              (cond
+               ;; A human prompt opens a turn.
+               ((and (equal type "user")
+                     (not (alist-get 'isMeta obj))
+                     (let ((c (alist-get 'content (alist-get 'message obj))))
+                       (and (stringp c) (not (string-prefix-p "<bash-" c)))))
+                (when current (push (claude-code-ide-org--close-transcript-turn current) turns))
+                (setq current
+                      (list :time (claude-code-ide-org--parse-iso8601
+                                   (alist-get 'timestamp obj))
+                            :prompt (alist-get 'content
+                                               (alist-get 'message obj))
+                            :blocks nil)))
+               ;; Assistant blocks accumulate into the open turn.
+               ((and (equal type "assistant") current)
+                (let ((content (alist-get 'content (alist-get 'message obj))))
+                  (when (vectorp content)
+                    (seq-doseq (block content)
+                      (pcase (alist-get 'type block)
+                        ("text"
+                         (let ((text (alist-get 'text block)))
+                           (when (and (stringp text)
+                                      (not (string-empty-p (string-trim text))))
+                             (plist-put current :blocks
+                                        (cons (cons 'text text)
+                                              (plist-get current :blocks))))))
+                        ("tool_use"
+                         (plist-put current :blocks
+                                    (cons (cons 'tool
+                                                (claude-code-ide-org--tool-label
+                                                 (alist-get 'name block)
+                                                 (alist-get 'input block)))
+                                          (plist-get current :blocks))))
+                        ;; `thinking' and everything else: dropped.
+                        (_ nil))))))))
+            (forward-line 1)))
+        (when current (push (claude-code-ide-org--close-transcript-turn current) turns))
+        (nreverse turns)))))
+
+(defun claude-code-ide-org--close-transcript-turn (turn)
+  "Return TURN with its accumulated :blocks put back in order.
+Built by `push' for the usual reason and reversed once the turn closes.
+One ordered list rather than two, so prose and tool calls keep the
+interleaving they actually had -- which is what lets the render put
+each run of tool calls under the paragraph that prompted it."
+  (plist-put turn :blocks (nreverse (plist-get turn :blocks)))
+  turn)
+
+(defun claude-code-ide-org--transcript-longer-sibling (session-id)
+  "Return the id of a transcript that supersedes SESSION-ID's, or nil.
+
+A session re-keyed mid-work leaves **two transcripts for one
+conversation**: the earlier truncated at the switch, the later a copy
+re-stamped with the new id and continuing (TODO.org :ID: b57c7515).
+They are recognisable because they open at the *same instant* -- the
+copy carries the original's first entry verbatim -- so a sibling
+sharing this one's first timestamp and holding more lines is the same
+conversation, continued.
+
+Reported rather than followed.  The caller asked for a session by id
+and gets that session; being silently handed a different file is how a
+reader ends up sure they are looking at something they are not."
+  (when-let* ((file (claude-code-ide-org--transcript-file session-id))
+              (first (claude-code-ide-org--transcript-first-stamp file))
+              (lines (claude-code-ide-org--file-line-count file)))
+    (let (found)
+      (dolist (other (file-expand-wildcards
+                      (expand-file-name "projects/*/*.jsonl"
+                                        (expand-file-name "~/.claude/"))
+                      t))
+        (unless (equal other file)
+          (when (and (equal first
+                            (claude-code-ide-org--transcript-first-stamp other))
+                     (> (or (claude-code-ide-org--file-line-count other) 0)
+                        lines))
+            (setq found (file-name-base other)))))
+      found)))
+
+(defun claude-code-ide-org--transcript-first-stamp (file)
+  "Return FILE's first entry timestamp string, or nil."
+  (ignore-errors
+    (with-temp-buffer
+      (insert-file-contents file nil 0 65536)
+      (goto-char (point-min))
+      (let (stamp)
+        (while (and (not stamp) (not (eobp)))
+          (when-let* ((obj (ignore-errors
+                             (json-parse-string
+                              (buffer-substring-no-properties
+                               (line-beginning-position) (line-end-position))
+                              :object-type 'alist :null-object nil
+                              :false-object nil)))
+                      (ts (alist-get 'timestamp obj)))
+            (setq stamp ts))
+          (forward-line 1))
+        stamp))))
+
+(defun claude-code-ide-org--file-line-count (file)
+  "Return the number of lines in FILE, or nil when it cannot be read."
+  (ignore-errors
+    (with-temp-buffer
+      (insert-file-contents file)
+      (count-lines (point-min) (point-max)))))
+
+(defun claude-code-ide-org--render-transcript (session-id)
+  "Return SESSION-ID's transcript rendered as an org document string."
+  (let* ((turns (claude-code-ide-org--transcript-turns session-id))
+         (sibling (claude-code-ide-org--transcript-longer-sibling session-id))
+         (day (when-let* ((first (car turns)) (time (plist-get first :time)))
+                (format-time-string "%Y-%m-%d %a" time))))
+    (with-temp-buffer
+      (insert "#+TITLE: Session " (claude-code-ide-org--short-id session-id)
+              (if day (concat " -- " day) "") "\n"
+              ;; `content' so every turn's body is visible and the tool
+              ;; drawer is not: the drawer is the part nobody is paging
+              ;; for, and folding it is the whole reason it is a drawer.
+              "#+STARTUP: content\n"
+              "#+COMMENT: Generated by claude-code-ide-org-render-session. "
+              "Derived from the session transcript; edits here are lost on "
+              "the next render.\n\n")
+      (when sibling
+        (insert "* NOTE: this conversation continues in another transcript\n\n"
+                "  This session was re-keyed mid-work, so its transcript stops "
+                "at the switch\n  while "
+                (claude-code-ide-org--short-id sibling)
+                " carries the same conversation from the same start and\n"
+                "  continues past it.  Render that one for the whole thing.\n\n"))
+      (if (null turns)
+          (insert "* No turns found\n\n  The transcript has no human prompt in "
+                  "it, or has aged out.\n")
+        (dolist (turn turns)
+          (let* ((time (plist-get turn :time))
+                 (prompt (or (plist-get turn :prompt) ""))
+                 (headline (or (claude-code-ide-org--prompt-synopsis prompt)
+                               "(empty prompt)")))
+            (insert (format "* %s  %s\n" 
+                            (if time (format-time-string "%H:%M" time) "--:--")
+                            headline))
+            ;; The prompt in a quote block, because the one thing a
+            ;; reader must never have to guess is where their own words
+            ;; end and the answer begins -- and the first draft ran the
+            ;; two together with only a blank line between.
+            (insert "\n#+begin_quote\n"
+                    (claude-code-ide-org--org-escape-body (string-trim prompt))
+                    "\n#+end_quote\n")
+            ;; Each paragraph of prose becomes a level-2 heading, so a
+            ;; long turn has navigation points instead of being one
+            ;; unfoldable wall. Tool calls land under the paragraph they
+            ;; followed; calls made before any prose stay at turn level.
+            (let ((pending nil))
+              (dolist (block (plist-get turn :blocks))
+                (pcase (car block)
+                  ('tool (push (cdr block) pending))
+                  ('text
+                   (when pending
+                     (claude-code-ide-org--insert-tools-drawer (nreverse pending))
+                     (setq pending nil))
+                   (let* ((text (string-trim (cdr block)))
+                          (synopsis (or (claude-code-ide-org--prompt-synopsis text)
+                                        "(continued)"))
+                          ;; A one-line paragraph short enough to fit the
+                          ;; headline IS the headline; repeating it as a
+                          ;; body prints everything short twice.
+                          (more (or (string-search "\n" text)
+                                    (> (string-width text)
+                                       claude-code-ide-org-prompt-synopsis-width))))
+                     (insert (format "\n** %s\n" synopsis))
+                     (when more
+                       (insert "\n"
+                               (claude-code-ide-org--org-escape-body text)
+                               "\n"))))))
+              (when pending
+                (claude-code-ide-org--insert-tools-drawer (nreverse pending))))
+            (insert "\n"))))
+      (buffer-string))))
+
+(defun claude-code-ide-org--insert-tools-drawer (tools)
+  "Insert a :TOOLS: drawer listing TOOLS at point.
+A drawer rather than a list so `#+STARTUP: content' folds it away: the
+calls are provenance, wanted when a reader asks \"how did it do that\"
+and noise the rest of the time."
+  (when tools
+    (insert "\n:TOOLS:\n")
+    (dolist (tool tools) (insert "- " tool "\n"))
+    (insert ":END:\n")))
+
+(defun claude-code-ide-org-render-session (session-id &optional force)
+  "Render SESSION-ID's transcript to org and return the file path.
+
+Written under `claude-code-ide-org-transcript-render-directory', named
+for the session.  Regenerated only when the transcript is newer than
+the render, or with FORCE -- a live session's transcript grows while
+its render sits on disk, and re-reading thousands of lines to produce
+an identical file is a cost paid for nothing.
+
+Signals when the transcript cannot be found, because a caller asking
+for a specific session wants to know it is not there rather than to be
+handed an empty document."
+  (interactive (list (read-string "Session id: ") current-prefix-arg))
+  (let ((source (claude-code-ide-org--transcript-file session-id)))
+    (unless source
+      (error "No transcript for session %s (it may have aged out)" session-id))
+    (let* ((dir (file-name-as-directory
+                 claude-code-ide-org-transcript-render-directory))
+           (out (expand-file-name (concat session-id ".org") dir)))
+      (make-directory dir t)
+      (when (or force
+                (not (file-exists-p out))
+                (time-less-p (file-attribute-modification-time
+                              (file-attributes out))
+                             (file-attribute-modification-time
+                              (file-attributes source))))
+        (with-temp-file out
+          (insert (claude-code-ide-org--render-transcript session-id))))
+      (when (called-interactively-p 'any)
+        (find-file out))
+      out)))
 
 ;;; Span evidence ------------------------------------------------------------
 ;;

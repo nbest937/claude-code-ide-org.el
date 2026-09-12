@@ -9504,6 +9504,156 @@ broken on precisely the spans it cannot help with."
           (should (string-match-p "aged out" (car lines))))
       (delete-directory home t))))
 
+;;; Rendering a session to readable org (TODO.org :ID: 96ddf1ef) --------------
+
+(defmacro claude-code-ide-org-test--with-raw-transcript (session-id lines &rest body)
+  "Write LINES as SESSION-ID's transcript under a temp ~/.claude, run BODY.
+
+Each element of LINES is an alist encoded as one JSONL entry, so a test
+can plant the real entry shapes -- assistant content as a *vector* of
+typed blocks, a tool result as an array -- which the convenience
+fixture for prompts cannot express.  Binds `pdir' to the transcript
+directory, so a test can plant a second session, and `dir' to the
+render output directory."
+  (declare (indent 2))
+  `(let* ((home (file-name-as-directory (make-temp-file "cciorg-home" t)))
+          (pdir (expand-file-name ".claude/projects/-p/" home))
+          (dir (expand-file-name ".claude/renders/" home))
+          (process-environment (cons (concat "HOME=" (directory-file-name home))
+                                     process-environment))
+          (claude-code-ide-org-transcript-render-directory dir)
+          (claude-code-ide-org--transcript-cache (make-hash-table :test 'equal)))
+     (unwind-protect
+         (progn
+           (make-directory pdir t)
+           (with-temp-file (expand-file-name (concat ,session-id ".jsonl") pdir)
+             (dolist (entry ,lines) (insert (json-encode entry) "\n")))
+           ,@body)
+       (delete-directory home t))))
+
+(defun claude-code-ide-org-test--assistant (ts &rest blocks)
+  "A transcript assistant entry at TS carrying BLOCKS."
+  `((type . "assistant") (timestamp . ,ts)
+    (message . ((role . "assistant") (content . ,(vconcat blocks))))))
+
+(defun claude-code-ide-org-test--prompt-entry (ts text)
+  "A transcript user entry at TS carrying TEXT."
+  `((type . "user") (timestamp . ,ts)
+    (message . ((role . "user") (content . ,text)))))
+
+(ert-deftest claude-code-ide-org-test-transcript-turns-keep-block-order ()
+  "A turn's blocks preserve the order prose and tool calls happened in.
+
+Two lists would lose it, and the render depends on it: each run of tool
+calls belongs under the paragraph that prompted it, so `text tool text'
+must not come back as `(text text) (tool)'."
+  (claude-code-ide-org-test--with-raw-transcript "s1"
+      (list (claude-code-ide-org-test--prompt-entry "2026-09-11T12:00:00.000Z" "do it")
+            (claude-code-ide-org-test--assistant
+             "2026-09-11T12:00:01.000Z"
+             '((type . "text") (text . "first"))
+             '((type . "tool_use") (name . "Bash") (input . ((description . "ran a thing"))))
+             '((type . "text") (text . "second"))))
+    (let ((turns (claude-code-ide-org--transcript-turns "s1")))
+      (should (= 1 (length turns)))
+      (should (equal (mapcar #'car (plist-get (car turns) :blocks))
+                     '(text tool text)))
+      (should (equal (cdr (nth 1 (plist-get (car turns) :blocks)))
+                     "Bash -- ran a thing")))))
+
+(ert-deftest claude-code-ide-org-test-transcript-turns-drop-thinking-and-results ()
+  "`thinking' blocks and tool results never reach a turn.
+
+Thinking was 107 blocks against 36 of prose on a real session, and a
+tool result wears the *user* role -- 218 of 231 in one session -- so a
+renderer that counts them as prompts reports twenty times too many
+turns.  Both in one fixture: dropping only one of them still passes the
+other's assertion."
+  (claude-code-ide-org-test--with-raw-transcript "s1"
+      (list (claude-code-ide-org-test--prompt-entry "2026-09-11T12:00:00.000Z" "go")
+            (claude-code-ide-org-test--assistant
+             "2026-09-11T12:00:01.000Z"
+             '((type . "thinking") (thinking . "pondering"))
+             '((type . "text") (text . "answer")))
+            ;; A tool result: user role, ARRAY content.
+            `((type . "user") (timestamp . "2026-09-11T12:00:02.000Z")
+              (message . ((role . "user")
+                          (content . ,(vector '((type . "tool_result")
+                                                (content . "output"))))))))
+    (let ((turns (claude-code-ide-org--transcript-turns "s1")))
+      (should (= 1 (length turns)))
+      (should (equal (plist-get (car turns) :blocks) '((text . "answer")))))))
+
+(ert-deftest claude-code-ide-org-test-render-escapes-leading-stars ()
+  "Prose beginning with `*' is escaped so it cannot become a heading.
+
+The render is generated from text nobody wrote for org, so a line
+starting with `*' is the common case rather than an edge one -- and an
+unescaped one silently restructures the document, moving everything
+after it under a heading that does not exist."
+  (claude-code-ide-org-test--with-raw-transcript "s1"
+      (list (claude-code-ide-org-test--prompt-entry
+             "2026-09-11T12:00:00.000Z" "* not a heading\nand more text here")
+            (claude-code-ide-org-test--assistant
+             "2026-09-11T12:00:01.000Z"
+             '((type . "text") (text . "line one\n** also not a heading\ntail"))))
+    (let ((out (claude-code-ide-org--render-transcript "s1")))
+      (should (string-match-p "^,\\* not a heading$" out))
+      (should (string-match-p "^,\\*\\* also not a heading$" out))
+      ;; The real turn heading is still a heading.
+      (should (string-match-p "^\\* [0-9][0-9]:[0-9][0-9]  " out)))))
+
+(ert-deftest claude-code-ide-org-test-render-names-a-superseding-transcript ()
+  "A re-keyed session's render says where the conversation continues.
+
+Two transcripts opening at the *same instant* are one conversation: the
+copy carries the original's first entry verbatim, so the longer one
+continues past the switch (TODO.org :ID: b57c7515).  Reported rather
+than followed -- the caller asked for this session and gets it."
+  (claude-code-ide-org-test--with-raw-transcript "s1"
+      (list (claude-code-ide-org-test--prompt-entry "2026-09-11T12:00:00.000Z" "one"))
+    ;; A sibling opening at the same instant, with more lines.
+    (with-temp-file (expand-file-name "s2.jsonl" pdir)
+      (dolist (e (list (claude-code-ide-org-test--prompt-entry
+                        "2026-09-11T12:00:00.000Z" "one")
+                       (claude-code-ide-org-test--prompt-entry
+                        "2026-09-11T12:30:00.000Z" "two")))
+        (insert (json-encode e) "\n")))
+    (should (equal (claude-code-ide-org--transcript-longer-sibling "s1") "s2"))
+    (should (string-match-p "continues in another transcript"
+                            (claude-code-ide-org--render-transcript "s1")))
+    ;; And the longer one names nobody.
+    (should-not (claude-code-ide-org--transcript-longer-sibling "s2"))))
+
+(ert-deftest claude-code-ide-org-test-render-session-is-idempotent-until-stale ()
+  "The file is rewritten only when the transcript is newer, or on FORCE.
+
+A live session's transcript grows while its render sits on disk, so the
+staleness test is what keeps `T' in the review buffer from re-reading
+thousands of lines to produce an identical file."
+  (claude-code-ide-org-test--with-raw-transcript "s1"
+      (list (claude-code-ide-org-test--prompt-entry "2026-09-11T12:00:00.000Z" "one"))
+    (let* ((out (claude-code-ide-org-render-session "s1"))
+           (first (file-attribute-modification-time (file-attributes out))))
+      (should (file-exists-p out))
+      ;; Second call, source unchanged: the file is left alone.
+      (claude-code-ide-org-render-session "s1")
+      (should (time-equal-p first (file-attribute-modification-time
+                                   (file-attributes out))))
+      ;; The render lands outside any repository, by construction.
+      (should (string-prefix-p (file-truename
+                                claude-code-ide-org-transcript-render-directory)
+                               (file-truename out))))))
+
+(ert-deftest claude-code-ide-org-test-render-session-refuses-a-missing-transcript ()
+  "A caller naming a session that has no transcript is told, not handed
+an empty document.  Transcripts age out at about thirty days while the
+queue keeps its events forever, so this is the ordinary answer for old
+work and must not look like a successful render of nothing."
+  (claude-code-ide-org-test--with-raw-transcript "s1"
+      (list (claude-code-ide-org-test--prompt-entry "2026-09-11T12:00:00.000Z" "one"))
+    (should-error (claude-code-ide-org-render-session "no-such-session"))))
+
 ;;; Which tracker an item belongs to (TODO.org :ID: fbaf8009) -----------------
 
 (defun claude-code-ide-org-test--dir-name (path)
