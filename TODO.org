@@ -2,6 +2,15 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Adopt the plugin in agentic-euchre, so the two projects stop being worked in parallel :code:
+:PROPERTIES:
+:ID:       6a207b00-8fa1-441e-8ee5-354702bc979b
+:CREATED:  [2026-09-11 Fri 20:05]
+:CATEGORY: Dev
+:END:
+
+Stated by the user 2026-09-11 and previously unrecorded anywhere: "a number of things unresolved here are preventing me from applying this plugin and its conventions to the euchre project rather than working the two of them in parallel." That makes euchre adoption a *goal with a blocking set*, not an eventual nice-to-have, and it reframes priority — every item in that set is holding a second project in a worse workflow every day it stays open, which is a cost nothing in the tracker currently expresses. Candidates, offered for the user to confirm or correct rather than assumed: =965f94eb= (every standalone client shares one project context, chosen by unstable ordering), =5e731a23= (a deferred targetless capture loses its project routing at apply), =c9940558= (guidepost aggregation ignores =cwd=, so two projects' turns cluster into one span), =3f4fd744= (=:BLOCKER:= would ship to euchre enforcing nothing), =b0d55552= (=org_capture= cannot set =:CATEGORY:=, so a fresh tracker's headings arrive uncategorised), =784d80c5= (=claude-org-setup --org= and the consuming repo's =.gitignore=) and =af2f345e= (the glue claims the whole wiring block). Note =fbaf8009= and =d718f6b6= are already closed and were both multi-project defects, so the set is smaller than it was. **The =:BLOCKER:= is deliberately unset until the user names the real list** — a blocker invented from a plausible-looking survey is exactly the kind that reads as enforcement and enforces the wrong thing.
+
 * TODO Unplanned work in flight belongs to no slice: planned is writable, incidental is closed-only :code:
 :PROPERTIES:
 :ID:       9bab114d-44fa-488e-92bd-ff7c3fd8065d
@@ -28,6 +37,13 @@ Work has three states relative to an open slice and only two can be represented.
 *Proposed gate, because it costs nothing and reuses a line that already exists:* **adoption is open while the slice is =DOING=; entering =REVIEW= closes it.** =REVIEW= on a grouping already means every member terminal and the work not yet integrated (=e80f6ccf=), so it is exactly the moment membership should stop moving. A discovery after that goes to the next slice or stands alone — which is also what gives the *next* slice its natural seed.
 
 *One legibility consequence to expect rather than be surprised by.* Adopting at discovery inflates the cookie's denominator before its numerator, so a slice's progress visibly regresses — =[3/6]= becomes =[3/9]=. Incidentals never did this, being done on arrival. It is honest and it will read as a defect to anyone who has not been told, so it belongs in the convention text.
+
+*Approved as a trial, 2026-09-11:* run the depth-one rule on the slice in hand "and one or two more to see how it affects us". So it stays **provisional** in the conventions rather than hardening — the exit condition is two or three slices' experience, and what to look for is whether adoption actually stops at depth one or whether the distinction between a planned member's discovery and an adopted member's discovery turns out to be unreadable in the moment.
+
+*The user's own risk analysis, which is the part that makes the trial cheap:* "the worst that can happen is that future open slices (not =DOING=) get =CANCELLED= or entirely reformulated — same effect once a new slice with any members that were in a =CANCELLED= slice is created." That is right, and it names a release valve the conventions had not: **cancelling and reformulating an open slice is a normal move, not a failure.** A =CANCELLED= slice keeps its body, which the composition section already says is usually the part worth keeping, and its members are free to be composed into a successor. The cost of an over-adopted slice is therefore bounded by one reformulation.
+
+*And that valve has a named trigger:* "that should always be an option when feature Q is suddenly needed so that work on another project can proceed". Not hypothetical — see [[id:6a207b00-8fa1-441e-8ee5-354702bc979b][6a207b00]]: adopting the plugin in agentic-euchre is blocked by unresolved work here, and a slice standing between that and the user is a slice worth reformulating rather than finishing out of order.
+
 
 
 
