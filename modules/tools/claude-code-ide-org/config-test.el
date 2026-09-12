@@ -7179,6 +7179,8 @@ get.  Before this check each item failed separately with
       (unwind-protect
           (with-current-buffer (get-buffer-create "*org-review-test*")
             (claude-code-ide-org-review-mode)
+            ;; Chronological, for the reason the shared fixture gives.
+            (setq claude-code-ide-org--review-newest-first nil)
             (setq claude-code-ide-org--review-items (list item))
             (claude-code-ide-org--review-render)
             (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) nil)))
@@ -7254,11 +7256,19 @@ an MCP call that throws is worse than one that explains."
           (should (string-prefix-p "Error: " out)))))))
 
 (defmacro claude-code-ide-org-test--with-review-buffer (items &rest body)
-  "Render ITEMS in a scratch review buffer and run BODY there."
+  "Render ITEMS in a scratch review buffer and run BODY there.
+
+Pinned to *chronological* display order.  Sort direction is a display
+preference (:ID: f1e36a65) and almost no test here is about it -- they
+assert on what a line says, where point lands, which item is adjacent.
+Leaving them at the newest-first default would make every one of them
+depend on a setting none of them names, so the direction is fixed here
+and the tests that actually exercise it bind it themselves."
   (declare (indent 1))
   `(unwind-protect
        (with-current-buffer (get-buffer-create "*org-review-test*")
          (claude-code-ide-org-review-mode)
+         (setq claude-code-ide-org--review-newest-first nil)
          (setq claude-code-ide-org--review-items ,items)
          (claude-code-ide-org--review-render)
          ,@body)
@@ -8464,6 +8474,8 @@ top are three distinct lines."
       (unwind-protect
           (with-current-buffer review
             (claude-code-ide-org-review-mode)
+            ;; Chronological, for the reason the shared fixture gives.
+            (setq claude-code-ide-org--review-newest-first nil)
             (setq claude-code-ide-org--review-items (list first second third))
             (claude-code-ide-org--review-render)
             (claude-code-ide-org-test--goto-nth-item 1)
@@ -8514,6 +8526,8 @@ pass against the unfixed code."
       (unwind-protect
           (with-current-buffer review
             (claude-code-ide-org-review-mode)
+            ;; Chronological, for the reason the shared fixture gives.
+            (setq claude-code-ide-org--review-newest-first nil)
             (setq claude-code-ide-org--review-items (list to-apply decided))
             (claude-code-ide-org--review-render)
             (claude-code-ide-org-review-apply)
@@ -8546,6 +8560,8 @@ nothing applying at all, which never took the discarding branch."
       (unwind-protect
           (with-current-buffer review
             (claude-code-ide-org-review-mode)
+            ;; Chronological, for the reason the shared fixture gives.
+            (setq claude-code-ide-org--review-newest-first nil)
             (setq claude-code-ide-org--review-items (list ok stale))
             (claude-code-ide-org--review-render)
             (claude-code-ide-org-review-apply)
@@ -8577,6 +8593,8 @@ queue events -- equal in content, empty of the decision."
       (unwind-protect
           (with-current-buffer review
             (claude-code-ide-org-review-mode)
+            ;; Chronological, for the reason the shared fixture gives.
+            (setq claude-code-ide-org--review-newest-first nil)
             (setq claude-code-ide-org--review-items (list doomed assigned))
             (claude-code-ide-org--review-render)
             (claude-code-ide-org-test--goto-nth-item 0)
@@ -8606,6 +8624,8 @@ the case that made assigning different from marking."
     (unwind-protect
         (with-current-buffer review
           (claude-code-ide-org-review-mode)
+          ;; Chronological, for the reason the shared fixture gives.
+          (setq claude-code-ide-org--review-newest-first nil)
           (setq claude-code-ide-org--review-items (list a b))
           (claude-code-ide-org--review-render)
           (should (claude-code-ide-org--review-goto-item b))
@@ -8924,6 +8944,8 @@ something still refreshes, which is what consumes the applied items."
       (unwind-protect
           (with-current-buffer (get-buffer-create "*org-review-test*")
             (claude-code-ide-org-review-mode)
+            ;; Chronological, for the reason the shared fixture gives.
+            (setq claude-code-ide-org--review-newest-first nil)
             (setq claude-code-ide-org--review-items
                   (list (list :type 'state :id "no-such-id" :ts (current-time)
                               :to "DOING" :marked t :events nil)))
@@ -9503,6 +9525,101 @@ broken on precisely the spans it cannot help with."
           (should (string-match-p "no transcript" (car lines)))
           (should (string-match-p "aged out" (car lines))))
       (delete-directory home t))))
+
+;;; Review buffer sort order (TODO.org :ID: f1e36a65) -------------------------
+
+(defun claude-code-ide-org-test--rendered-order ()
+  "The `:to' states of the item lines in the current review buffer, top down."
+  (let (out)
+    (save-excursion
+      (goto-char (point-min))
+      (while (not (eobp))
+        (when-let* ((item (claude-code-ide-org--review-item-at-point)))
+          (push (plist-get item :to) out))
+        (forward-line 1)))
+    (nreverse out)))
+
+(ert-deftest claude-code-ide-org-test-review-draws-newest-first-by-default ()
+  "The buffer opens newest-first, and `s' flips it.
+
+A pass usually cares about what just happened, and oldest-first meant
+beginning every pass by scrolling to the bottom of a buffer whose top is
+days old."
+  (claude-code-ide-org-test--with-review-buffer
+      (list (list :type 'state :id nil :ts (date-to-time "2026-09-11T10:00:00+0000")
+                  :from "TODO" :to "OLDEST" :events nil)
+            (list :type 'state :id nil :ts (date-to-time "2026-09-11T11:00:00+0000")
+                  :from "TODO" :to "NEWEST" :events nil))
+    ;; The fixture pins chronological; this test is the one about order,
+    ;; so it asks for the real default explicitly.
+    (setq claude-code-ide-org--review-newest-first
+          claude-code-ide-org-review-newest-first)
+    (claude-code-ide-org--review-render)
+    (should (equal (claude-code-ide-org-test--rendered-order) '("NEWEST" "OLDEST")))
+    (claude-code-ide-org-review-toggle-order)
+    (should (equal (claude-code-ide-org-test--rendered-order) '("OLDEST" "NEWEST")))))
+
+(ert-deftest claude-code-ide-org-test-review-order-never-reorders-the-apply-list ()
+  "Only the drawing is reversed; `--review-items' stays chronological.
+
+Apply walks that list, writing CLOCK lines and replaying state
+transitions in list order -- a `TODO -> NEXT -> DOING' run applied
+backwards is three wrong transitions, not a cosmetic problem.  This is
+the assertion that keeps the feature a display preference."
+  (claude-code-ide-org-test--with-review-buffer
+      (list (list :type 'state :id nil :ts (date-to-time "2026-09-11T10:00:00+0000")
+                  :from "TODO" :to "FIRST" :events nil)
+            (list :type 'state :id nil :ts (date-to-time "2026-09-11T11:00:00+0000")
+                  :from "TODO" :to "SECOND" :events nil))
+    (setq claude-code-ide-org--review-newest-first t)
+    (claude-code-ide-org--review-render)
+    (should (equal (claude-code-ide-org-test--rendered-order) '("SECOND" "FIRST")))
+    ;; The underlying list is untouched, in both order and identity.
+    (should (equal (mapcar (lambda (i) (plist-get i :to))
+                           claude-code-ide-org--review-items)
+                   '("FIRST" "SECOND")))))
+
+(ert-deftest claude-code-ide-org-test-review-mark-advances-downward-in-both-orders ()
+  "Marking advances toward the bottom of the buffer whichever way it is
+sorted (the user, 2026-09-11).
+
+The display decides what \"next\" means; it never decides which way
+point travels.  Asserted in both directions in one test because the
+whole risk is that reversing the view silently reverses the walk."
+  (dolist (newest-first '(nil t))
+    (claude-code-ide-org-test--with-review-buffer
+        (list (list :type 'state :id nil :ts (date-to-time "2026-09-11T10:00:00+0000")
+                    :from "TODO" :to "EARLY" :events nil)
+              (list :type 'state :id nil :ts (date-to-time "2026-09-11T11:00:00+0000")
+                    :from "TODO" :to "LATE" :events nil))
+      (setq claude-code-ide-org--review-newest-first newest-first)
+      (claude-code-ide-org--review-render)
+      (claude-code-ide-org-test--goto-nth-item 0)
+      (let ((top-line (line-number-at-pos))
+            (top (plist-get (claude-code-ide-org--review-item-at-point) :to)))
+        (claude-code-ide-org-review-mark)
+        (should (> (line-number-at-pos) top-line))
+        ;; It landed on the *other* item, i.e. the one drawn beneath.
+        (should-not (equal top (plist-get (claude-code-ide-org--review-item-at-point)
+                                          :to)))))))
+
+(ert-deftest claude-code-ide-org-test-review-toggle-keeps-point-on-its-item ()
+  "`s' keeps point on the same item, not the same line.
+
+Every line moves when the buffer flips, so a line-number restore would
+land somewhere arbitrary -- the distinction `9e80a32d' drew between
+restoring by position and by identity."
+  (claude-code-ide-org-test--with-review-buffer
+      (list (list :type 'state :id nil :ts (date-to-time "2026-09-11T10:00:00+0000")
+                  :from "TODO" :to "EARLY" :events nil)
+            (list :type 'state :id nil :ts (date-to-time "2026-09-11T11:00:00+0000")
+                  :from "TODO" :to "LATE" :events nil))
+    (setq claude-code-ide-org--review-newest-first nil)
+    (claude-code-ide-org--review-render)
+    (claude-code-ide-org-test--goto-nth-item 0)
+    (let ((before (claude-code-ide-org--review-item-at-point)))
+      (claude-code-ide-org-review-toggle-order)
+      (should (eq before (claude-code-ide-org--review-item-at-point))))))
 
 ;;; Rendering a session to readable org (TODO.org :ID: 96ddf1ef) --------------
 
@@ -10690,6 +10807,8 @@ existed.  RET is only useful if it lands on the intervals."
           (with-current-buffer (find-file-noselect path) (org-fold-hide-drawer-all))
           (with-current-buffer review
             (claude-code-ide-org-review-mode)
+            ;; Chronological, for the reason the shared fixture gives.
+            (setq claude-code-ide-org--review-newest-first nil)
             (setq claude-code-ide-org--review-items
                   (list (list :type 'state :id "g-1" :ts (current-time)
                               :from "TODO" :to "DOING" :events nil)))

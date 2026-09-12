@@ -9670,6 +9670,7 @@ common answer."
                    ("d" . claude-code-ide-org-review-dismiss)
                    ("RET" . claude-code-ide-org-review-goto)
                    ("T" . claude-code-ide-org-review-open-session)
+                   ("s" . claude-code-ide-org-review-toggle-order)
                    ("x" . claude-code-ide-org-review-apply)
                    ("g" . claude-code-ide-org-review-refresh)
                    ("?" . claude-code-ide-org-review-help)))
@@ -9774,7 +9775,14 @@ all still pending.
   ;; worse to read than either extreme. Both are buffer-local, so a
   ;; global preference for truncation is untouched everywhere else.
   (setq-local truncate-lines nil)
-  (setq-local word-wrap t))
+  (setq-local word-wrap t)
+  ;; The defcustom is the default; the buffer-local is the state `s'
+  ;; toggles. Set here rather than as the `defvar-local' value so that
+  ;; changing the preference takes effect on the next buffer without a
+  ;; reload, and so a toggled buffer does not leak its direction into
+  ;; the next one (TODO.org :ID: f1e36a65).
+  (setq claude-code-ide-org--review-newest-first
+        claude-code-ide-org-review-newest-first))
 
 (defun claude-code-ide-org--review-item-at-point ()
   "Return the review item on the current line, or nil."
@@ -11419,6 +11427,52 @@ prompt's candidate list, and nothing in this buffer said so.  On
               missing (if (= missing 1) "" "s")
               misfiled))))
 
+(defcustom claude-code-ide-org-review-newest-first t
+  "Whether the review buffer opens with the newest item at the top.
+
+A pass usually cares about what just happened, and oldest-first means
+beginning every pass by scrolling to the bottom of a buffer whose top is
+days old.  Set nil to keep the chronological reading."
+  :type 'boolean
+  :group 'claude-code-ide-org)
+
+(defvar-local claude-code-ide-org--review-newest-first nil
+  "This buffer's current sort direction, toggled by `s'.
+Initialised from `claude-code-ide-org-review-newest-first' when the
+buffer is built, so the defcustom is the default and this is the state.")
+
+(defun claude-code-ide-org--review-display-items (items)
+  "Return ITEMS in the order they should be DRAWN.
+
+Never destructive, and never the list apply walks.  `--review-items' is
+chronological by contract: apply writes CLOCK lines and replays state
+transitions in list order, and a `TODO -> NEXT -> DOING' run applied
+backwards is three wrong transitions rather than a cosmetic problem.
+Reversing the *view* costs nothing; reversing the list would be a
+defect in the record (TODO.org :ID: f1e36a65)."
+  (if claude-code-ide-org--review-newest-first
+      (reverse items)
+    items))
+
+(defun claude-code-ide-org-review-toggle-order ()
+  "Flip the review buffer between newest-first and oldest-first.
+
+`s' follows dired, where it toggles the sort.  Point is kept on the
+same *item* rather than the same line, since every line moves.
+
+The mark commands still advance *downward*, whichever way the buffer is
+sorted -- they walk the buffer, not the clock, so `m m m' marks a run of
+adjacent lines in either order.  The display decides what \"next\"
+means; it never decides which way point travels."
+  (interactive)
+  (let ((here (claude-code-ide-org--review-item-at-point)))
+    (setq claude-code-ide-org--review-newest-first
+          (not claude-code-ide-org--review-newest-first))
+    (claude-code-ide-org--review-render)
+    (when here (claude-code-ide-org--review-goto-item here))
+    (message "Sorted %s-first"
+             (if claude-code-ide-org--review-newest-first "newest" "oldest"))))
+
 (defun claude-code-ide-org--review-render ()
   "Render `claude-code-ide-org--review-items' into the current buffer.
 
@@ -11430,12 +11484,21 @@ were understood -- marking the first link of a chain is what stops the
 rest from lighting up."
   (let* ((inhibit-read-only t)
          (items claude-code-ide-org--review-items)
+         ;; The order items are DRAWN in, which is not the order they are
+         ;; held in. `--review-items' stays chronological because apply
+         ;; walks it and a clock line or a state transition applied out
+         ;; of time order is wrong; only the drawing is reversed
+         ;; (TODO.org :ID: f1e36a65).
+         (display (claude-code-ide-org--review-display-items items))
          (last-id nil)
          ;; Computed before the projection loops rather than beside the
          ;; group heading that uses it: the annotation is a fact about a
          ;; *run* of items, and the drawing loop below only ever knows
-         ;; the item in hand (TODO.org :ID: fbaf8009).
-         (annotations (claude-code-ide-org--review-group-annotations items)))
+         ;; the item in hand (TODO.org :ID: fbaf8009). Over DISPLAY, not
+         ;; ITEMS: a run is a run of adjacent *drawn* lines, so grouping
+         ;; computed on the other order would hang each annotation on the
+         ;; wrong heading.
+         (annotations (claude-code-ide-org--review-group-annotations display)))
     (claude-code-ide-org--review-projected-staleness
      items (lambda (item) (plist-get item :marked)))
     ;; After the projection, because markability depends on staleness and
@@ -11453,12 +11516,14 @@ rest from lighting up."
     (erase-buffer)
     (insert "Pending org updates.  m/u mark, M/U all, t invert, "
             "a assign, e interval, N note,\n"
-            "d dismiss, RET goto, x apply marked, g refresh, q quit\n\n")
+            "d dismiss, RET goto, T transcript, s "
+            (if claude-code-ide-org--review-newest-first "oldest" "newest")
+            "-first, x apply marked, g refresh, q quit\n\n")
     (let ((health-line (claude-code-ide-org--review-id-health-line)))
       (when health-line (insert health-line)))
-    (if (null items)
+    (if (null display)
         (insert "  Nothing pending.\n")
-      (dolist (item items)
+      (dolist (item display)
         (unless (equal (plist-get item :id) last-id)
           (setq last-id (plist-get item :id))
           ;; Resolved through `org-id-find' rather than
