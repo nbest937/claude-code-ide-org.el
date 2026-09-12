@@ -227,6 +227,19 @@ every =DONE=.
 
 Items render oldest-first — `--review-items-from-queue` sorts ascending by `:ts`/`:start` and nothing offers another order — so a pass that cares about what just happened begins by scrolling to the bottom of a buffer whose top is days old. Asked by the user 2026-09-11: present descending by default, and bind a sort key (`s`, following dired's `s` for toggling name/date order) that reverses it. One invariant is explicit and must hold in both directions: the mark commands still advance *downward*, toward the bottom of the buffer, so `m m m` walks a run whichever order it is displayed in — the display order changes what "next" means, never which way point travels. Watch the interaction with `--review-goto-item` and the point-restoration `9e80a32d` fixed, since both key on position rather than identity.
 
+*Shipped 2026-09-11* on =feature/join-transcript-to-record=, as the first heading adopted under the new discovery rule. Newest-first is the default, behind =claude-code-ide-org-review-newest-first=; =s= toggles, following dired.
+
+*The load-bearing separation is that only the **drawing** is reversed.* =--review-items= stays chronological because apply walks it — writing CLOCK lines and replaying state transitions in list order — and a =TODO -> NEXT -> DOING= run applied backwards is three wrong transitions, not a cosmetic problem. =--review-display-items= returns a reversed *copy* and is never destructive; a test asserts the underlying list keeps both its order and its object identities, which is what keeps this a display preference rather than a change to the record.
+
+*One consequence that was not obvious until the group annotations moved.* A run is a run of *adjacent drawn lines*, so =--review-group-annotations= had to be computed over the display order; computed over the item order it would hang each annotation on the wrong heading.
+
+*The invariant this heading named is pinned in both directions.* Marking advances toward the bottom of the buffer whichever way it is sorted — the commands walk the buffer, not the clock, so the display decides what "next" means and never which way point travels. =s= restores point by *item identity* rather than line number, since every line moves; that is =9e80a32d='s distinction, and the interaction this body flagged turned out to be exactly where it mattered.
+
+*A test-suite consequence worth recording, since it will recur for any display default.* Almost no review test is *about* sort order, but every one of them reads a rendered buffer — so the shared fixture and eight hand-built review buffers now pin chronological order explicitly, with the reason stated in the fixture's docstring. Leaving them at the new default would have made every test depend on a setting none of them names. The four tests that do exercise order set it themselves.
+
+*Verified:* 628 tests, 0 unexpected, from 624. Three mutations run red — ignoring the display order, reversing the apply list in place, and dropping the identity-based point restore.
+
+
 
 * TODO Nothing can correct a closed slice's record, even when the correction is close-time truth :code:
 :PROPERTIES:
@@ -3742,6 +3755,23 @@ and consults CLOCK lines for idempotency. Two different things, and I ran them t
 *Non-obvious detail worth capturing before it is rediscovered:* a =type: "user"= entry is *usually a tool result*, not a human turn. In this session's transcript, 218 of 231 were. Any renderer that treats them as prompts will report roughly twenty times too many turns -- which is exactly the error the footnote audit made on its first pass, reporting 81 of 83 blocks as end-of-turn before the filter was corrected to 11 of 84.
 
 *=MAYBE= deliberately.* The =/config= change may resolve the pain entirely, and this costs a script plus its tests. Worth building only if reading the transcript in Emacs turns out to be something the user actually does, rather than something that sounds useful.
+
+*Shipped 2026-09-11* on =feature/join-transcript-to-record=, in the shape this body specified: one heading per turn, the prompt in a quote block, each paragraph of prose a sub-heading, tool calls in a =:TOOLS:= drawer that =#+STARTUP: content= folds away. =M-x claude-code-ide-org-render-session=, and =T= in the review buffer renders the item's session and opens it at the turn nearest the span's start.
+
+*This heading's own warning is answered structurally rather than by care.* Turn boundaries come from the same shape test =325679af='s prompt join uses — user role, string content, not =isMeta=, not a =<bash-= escape — so the two agree by construction about what a prompt is, and the "218 of 231 are tool results" trap cannot be walked into separately by each.
+
+*Three drops, each a decision:* =thinking= blocks (107 against 36 of prose on a real session — keeping them triples the file without being what anyone is paging for), tool results, and a call's full input reduced to one label. The transcript stays on disk for the payload.
+
+*Escaping is load-bearing and was nearly missed.* A line of prose beginning with =*= would become a heading and silently restructure the document — the common case here, not an edge one, because the text was never written for org.
+
+*=b57c7515='s finding is built in rather than deferred.* Two transcripts opening at the same instant are one conversation re-keyed, so the truncated one names its longer sibling instead of pretending to be whole. Reported, never followed: a caller asking for a session gets that session.
+
+*Verified on real sessions, not fixtures.* This conversation renders to 1936 lines, 12 turns and 131 sub-headings from a 1287-line transcript, and its truncated first half correctly points at the complete one. 624 tests, 0 unexpected, from 618; four mutations run red.
+
+*One bug that only real data would have caught:* =json-parse-string= with =:object-type 'alist= yields **symbol** keys, so the first draft's string lookup matched nothing and rendered eleven consecutive lines reading "Bash" with no descriptor.
+
+*The =/config= experiment this heading was gated on remains untried and is now moot as a blocker* — whatever =tui: "fullscreen"= turns out to do, the renderer is the thing that survives it, which is what the original body predicted.
+
 
 
 * TODO Intervals on two different headings can overlap, and subtraction reaches only one :code:
