@@ -832,14 +832,14 @@ CLOCK: [2026-09-11 Fri 11:08]--[2026-09-11 Fri 11:09] =>  0:01
 (Filing prose restored 2026-09-11 — the original capture note was discarded by =org_capture='s immediate path, by documented design.) Hit composing =afea7e4f=: the fourth member (=fbaf8009=) belonged first, but the line lands only after the last planned member or an =after== anchor — no prepend, no move. A slice declares membership AND order, so append-only ordering forces either re-declaring the slice or a plan-drawer correction (the workaround used). Options: a =first= flag, a =before== parameter, or a dedicated reorder call; =1206b5b0= (the =parent== gap) is the precedent for extending this tool when composition hits a wall.
 
 
-* DOING [0/4] Join the transcript to the record: span synopses, readable sessions, weighted attribution :code:
+* DOING [0/5] Join the transcript to the record: span synopses, readable sessions, weighted attribution :code:
 :PROPERTIES:
 :ID:       afea7e4f-41b3-4eda-83f1-39e1b9e7a61a
 :CREATED:  [2026-09-11 Fri 11:00]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(325679af-829e-4c7f-88b0-153c2c9683b3 96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d 295cde3a-49a5-4960-a828-a4fc175d73c1 fbaf8009-b3dc-48ed-b099-63b74fc156a8)
+:BLOCKER:  ids(325679af-829e-4c7f-88b0-153c2c9683b3 96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d 295cde3a-49a5-4960-a828-a4fc175d73c1 fbaf8009-b3dc-48ed-b099-63b74fc156a8 f1e36a65-3469-4ae6-ac1f-fdfcd1c053c9)
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-11 Fri 11:12] \\
@@ -871,6 +871,14 @@ Planned:
 - [ ] [[id:96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d][96ddf1ef]] TODO Render a session transcript to readable org, so scrollback stops being the index
 - [ ] [[id:295cde3a-49a5-4960-a828-a4fc175d73c1][295cde3a]] TODO Attribute a turn to several tasks by weight, judged from the transcript with lag
 - [-] [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]] REVIEW The review buffer should name each item's tracker, now that two projects share the queue
+- [ ] [[id:f1e36a65-3469-4ae6-ac1f-fdfcd1c053c9][f1e36a65]] TODO Open the review buffer newest-first, with =s= to reverse it like dired
+
+*Adopted 2026-09-11 under the new discovery rule:* =f1e36a65= (open the review buffer newest-first, =s= to reverse) surfaced while this slice's first two members were being built — same buffer, unclaimed, cheap, and wanted — so it joins as an unplanned member rather than waiting to be listed as incidental after it closes. The cookie moves from =[0/4]= to =[0/5]=, which is the denominator-before-numerator regression the convention now warns about, not a loss of progress.
+
+*Four other discoveries from the same day were **not** adopted, and the reasons are the two the rule allows.* =c9940558=, =b57c7515= and =2deb090f= are **already members of [[id:749301a0-0bd0-4fbd-b3f7-79739226e15a][749301a0]]**, and a member counted by two slices makes their cookies disagree about the same work — so they are cross-referenced here rather than adopted. =3f4fd744= (the =:BLOCKER:= parser) has no relationship to the transcript join at all; it was found by a delegated survey on an unrelated question and stands alone.
+
+*One of those cross-references is worth reading before Step 3.* =b57c7515= established that a session id can change mid-work, leaving **two transcripts for one conversation** — the earlier truncated at the switch, the later complete from the original start. =96ddf1ef= renders a session transcript to org and would, keyed naively on session id, render that conversation twice with the first copy silently short. That is a design input, not a defect to fix here.
+
 
 
 * MAYBE Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
