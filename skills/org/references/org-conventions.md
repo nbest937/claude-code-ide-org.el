@@ -500,6 +500,18 @@ Note the links cost nothing in `bin/lint-org` as of 2026-08-25 (`:ID:`
 warning, which would have made this convention degrade the report a
 little more with every slice.
 
+**A slice of slices needs no formalization** (the user, 2026-09-11).
+Nothing forbids one — `org_slice_add_member` refuses a non-slice target,
+a closed slice, a duplicate, the slice itself and a keyword-less member,
+and a member that happens to *be* a slice trips none of those — but no
+slice has ever named another, and sequencing slices is what
+`next-session.md`'s payload is already for. Do not coin a `:KIND:` value
+for it. If it is ever built anyway, the caveat to check first is
+incidental attribution: `--incidental-owner` resolves a tie by the
+latest clock before the close, and a parent and child slice both `DOING`
+would frequently tie, so closes would land nowhere rather than in the
+wrong place.
+
 ### Adopting a discovery
 
 **Work discovered while a slice is being worked is adopted into it by
