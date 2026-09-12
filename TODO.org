@@ -2,34 +2,54 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO A session id that changes mid-work splits one clock bracket across two queue files :code:
+* TODO org_capture cannot set =:CATEGORY:=, so every captured heading is uncategorised and nothing notices :code:
 :PROPERTIES:
-:ID:       b57c7515-c511-4198-b311-26cefc52a60d
-:CREATED:  [2026-09-11 Fri 18:17]
+:ID:       b0d55552-6bbf-45b8-9897-f62e6bd779e3
+:CREATED:  [2026-09-11 Fri 18:59]
+:CATEGORY: Tools
 :END:
 
-The queue is keyed by =session_id= and =--lane-clock-pairs= pairs within a lane of =(session_id, agent_id)=, so a session whose id changes while work continues leaves an unmatched =clock_in= in the old lane and an orphan =clock_out= in the new one — neither pairs, and the bracket's attribution is lost in both directions. Observed 2026-09-11: =f2e44fdf= holds =clock_in= on =325679af= at 17:48:30 and =b71c8eec= holds the matching =clock_out= at 18:14:33, with all of that stretch's file-touching work in the second lane. =bin/hooks/clock-target-check= fired correctly and could only report the symptom, since from inside the new lane the earlier =clock_in= is invisible. Note the two failure modes compose badly with =58332dd1=: the orphaned =clock_in= is exactly the ever-widening span that heading describes, now arriving through a second route. Worth measuring before designing — how often an id changes mid-session, and whether the transcript's =sessionId= or a =leafUuid= chain can bridge the two files retroactively, since the events themselves carry enough to re-pair if something looked. The manual repair used this time was a fresh matched pair in the new lane as an attribution anchor, leaving the interval for a human to widen with =e=.
+=org_capture= takes title, note, tags, target and initial_state — there is no category argument — so a heading created through the tool carries no =:CATEGORY:= and cannot be given one at creation. Since =29439196= retired the level-1 category tier, a *top-level* capture therefore has no category at all, and =org-get-category= falls back to the **file name**: measured 2026-09-11, three headings captured that day resolve to the category ="TODO"=, rendering an agenda line as =TODO  TODO  Some task= — exactly the keyword/category collision the conventions banned ="Review"= to avoid. Nothing catches it: =bin/lint-org= does not mention CATEGORY once. The omission hides because =:CATEGORY:= *inherits*, so a capture later refiled under a parent silently acquires one and looks correct, which is why this went unnoticed until a top-level capture was inspected directly. Proposed: give =org_capture= a =category= argument, and have =bin/lint-org= report a top-level heading with no drawer value as an error — read from the drawer, never =org-entry-get=, which computes the very fallback that makes the defect invisible. Worth deciding at the same time whether a missing category should default from the target's parent or simply be required, since the capture reply already names where the heading landed.
 
-*Related, and deliberately not merged:* [[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]] filed the same root cause on 2026-08-18 — one working stretch spanning two =session_id=s — for a different event pair. That heading is about a **turn**, whose =resume= sits in the launching session's file and whose =pause= lands in the job's; this is about a **clock bracket**, whose =clock_in= and =clock_out= divide the same way. Different pairing functions (=--span-events= adjacency against =--lane-clock-pairs=), so two fixes, not one. Recording the link because two headings on one cause with no reference between them is how a twin forms.
+* TODO [0/6] A span is only as true as its owner, its edges and its payload :code:
+:PROPERTIES:
+:ID:       749301a0-0bd0-4fbd-b3f7-79739226e15a
+:CREATED:  [2026-09-11 Fri 18:58]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:BLOCKER:  ids(b57c7515-c511-4198-b311-26cefc52a60d 9202b39d-49e4-441c-89f2-382feb4ef1ea 7d739afd-f879-445c-b0b6-65e295585a94 c9940558-b23e-4b2c-86e8-e75a377634aa c54c4215-90e3-4e0c-9de1-990c0406a2b2 2deb090f-593d-40e3-9044-fda318d9b6de)
+:END:
+:PLAN:
+*Why this order.* Each group hands its output to the next, so working them out of sequence means re-doing the later ones. **Ownership first** — until a stretch of events has one owner, no boundary rule can be evaluated, because which events a rule *sees* depends on how lanes are keyed. =b57c7515= leads rather than =9202b39d= even though the latter is older and already carries a measured rule: =b57c7515= poses the question that decides whether that rule is the right *shape* ("per pairing function, or once where lanes are formed"), and =9202b39d='s leading-=pause= test demonstrably misses the second shape. Answer the shape question, then implement. =7d739afd= closes the group, since union-not-sum is the arithmetic that only makes sense once lanes are settled.
 
-*And this case falsifies the generality of that heading's surviving rule, which is the useful part.* What survived =9202b39d='s falsified depth counter is a targeted linking rule: "a session whose stream **opens with a =pause=** is a background job whose first turn began elsewhere". Measured here, =b71c8eec= opens with a =resume= at 18:07:15 and carries its orphan =clock_out= at 18:14:33 — so the leading-=pause= test never fires, and the rule leaves this split untouched. A second shape exists: a lane that opens normally and still holds half of a bracket opened elsewhere.
+**Boundaries second.** =c9940558= and =c54c4215= both decide where a span may divide — on a project change and around an exclusion respectively — and both operate on whatever the ownership work leaves them.
 
-*Which suggests the general statement is worth having before either fix is built:* **any pairing keyed on =session_id= breaks when one stretch of work spans two.** Two instances are now measured, on two different event pairs; the question is whether the repair belongs per-pairing-function or once, at the point where lanes are formed.
+**Payload last.** =2deb090f= is what actually reaches the =:LOGBOOK:=, and it is the only member whose correct answer depends on all five others: a rule for what a 0-run span writes is worth nothing while the span's extent is still moving.
 
-*The cause is upstream, established 2026-09-11 from the harness's own files, and it means this condition is to be **tolerated**, not prevented.* Claude Code re-keyed this session mid-work: =f2e44fdf='s transcript runs 17:24:27--17:55:49 and stops; =~/.claude/jobs/b71c8eec/= is created at **17:56:04** — 32 minutes into an interactive session that until then had no job directory at all — and a second job dir appears in the *same second*. The session then continues under the job's own id, with its transcript re-stamped from the original 17:24:27 start, and =state.json= carrying =template: "bg"= and =respawnFlags=. An =API Error: Connection lost mid-response= at 17:57:52 sits in that job's timeline *after* the switch, so it is a consequence rather than the trigger.
+*What this slice is not.* It does not reopen =406e9200='s finished ten, and it adds no new work — every member already existed as a child of that story. The story keeps its own record and its cookie; this only sequences the residue and gives it an integration point, which is the thing a story cannot do.
 
-*Known upstream, and reported less precisely than our own evidence states it.* anthropics/claude-code [[https://github.com/anthropics/claude-code/issues/59848][#59848]] ("Interactive =claude= sessions are classified as background jobs post-2.1.139") describes every session being *born* with =$CLAUDE_JOB_DIR= and =template: "bg"=; ours was not — it ran half an hour without one, and the records appeared in a batch mid-flight. That issue is **closed**, confirmed against 2.1.143, and its headline symptom (the worktree-isolation guard) is indeed fixed here on 2.1.236, while the classification it rested on is not. [[https://github.com/anthropics/claude-code/issues/76220][#76220]] is the later open report.
+*Not started.* Composed open, as its own proposal, with no =next-session.md= revision link — that link arrives when a slice is actually picked up.
+:END:
 
-*So the design consequence is settled:* a session id is **not** a stable key for a stretch of work, and nothing in this project can make it one. Any repair has to reconcile lanes after the fact rather than assume the key holds — which is the same conclusion the =9202b39d= link above reaches from the other direction.
+The six open children remaining under =406e9200= fail in three distinct places rather than one: who *owns* a stretch of events (=b57c7515=, =9202b39d=, =7d739afd=), where a span is allowed to *divide* (=c9940558=, =c54c4215=), and what finally *lands* in the drawer (=2deb090f=). None is independent of the others — a change to lane identity alters which events a boundary rule even sees, and a boundary change alters what the writer is handed. Proposed: take them in that order, as one integration point, so the pipeline is corrected in a single direction of travel rather than three overlapping ones. Composed 2026-09-11 at the user's motion, as the story's open residue; the story keeps its finished ten and this sequences what is left.
 
-*One consequence for [[id:96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d][96ddf1ef]], which is =NEXT= and will hit this immediately:* the re-key leaves **two transcripts covering the same conversation**, the old one truncated at the switch and the new one complete from the original start. A renderer keyed on session id would render the same session twice under two ids, the first copy silently short. It needs a rule for that before it renders anything.
+Planned:
 
+- [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] DOING Make the guidepost pipeline produce durations that mean what they say
+  - [ ] [[id:b57c7515-c511-4198-b311-26cefc52a60d][b57c7515]] TODO A session id that changes mid-work splits one clock bracket across two queue files
+  - [ ] [[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]] TODO A background job's first turn is bracketed across two session_ids
+  - [ ] [[id:7d739afd-f879-445c-b0b6-65e295585a94][7d739afd]] TODO Concurrent sessions' turns must union, not sum, wherever time is totalled
+  - [ ] [[id:c9940558-b23e-4b2c-86e8-e75a377634aa][c9940558]] TODO Guidepost aggregation ignores =cwd=, so two projects' turns cluster into one span
+  - [ ] [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]] TODO A split span drops the unowned gaps between the clock pairs that split it
+  - [ ] [[id:2deb090f-593d-40e3-9044-fda318d9b6de][2deb090f]] TODO Accepting a 0-run span records none of its minutes, and only =e= can claim them
 
 
 * TODO =:BLOCKER: ids(...)= is org-edna syntax; org-depend cannot parse it, so 8 of 12 blockers enforce nothing :code:
 :PROPERTIES:
 :ID:       3f4fd744-4ba7-4be8-9fe4-54e46119515a
 :CREATED:  [2026-09-11 Fri 18:08]
+:CATEGORY: Tools
 :END:
 :PLAN:
 *What this actually poses is which parser owns* =:BLOCKER:=, *and the corpus is larger than the filing counted.* Measured 2026-09-11 across both trackers: **36 blocker properties — 32 wrapped in =ids(...)=, 4 bare** (TODO.org 11 wrapped / 1 bare; DONE.org 21 / 3).
@@ -57,31 +77,10 @@ The queue is keyed by =session_id= and =--lane-clock-pairs= pairs within a lane 
 :PROPERTIES:
 :ID:       f1e36a65-3469-4ae6-ac1f-fdfcd1c053c9
 :CREATED:  [2026-09-11 Fri 17:32]
+:CATEGORY: Apply
 :END:
 
 Items render oldest-first — `--review-items-from-queue` sorts ascending by `:ts`/`:start` and nothing offers another order — so a pass that cares about what just happened begins by scrolling to the bottom of a buffer whose top is days old. Asked by the user 2026-09-11: present descending by default, and bind a sort key (`s`, following dired's `s` for toggling name/date order) that reverses it. One invariant is explicit and must hold in both directions: the mark commands still advance *downward*, toward the bottom of the buffer, so `m m m` walks a run whichever order it is displayed in — the display order changes what "next" means, never which way point travels. Watch the interaction with `--review-goto-item` and the point-restoration `9e80a32d` fixed, since both key on position rather than identity.
-
-
-* TODO Guidepost aggregation ignores =cwd=, so two projects' turns cluster into one span :code:
-:PROPERTIES:
-:ID:       c9940558-b23e-4b2c-86e8-e75a377634aa
-:CREATED:  [2026-09-11 Fri 17:43]
-:END:
-
-=--aggregate-guideposts= clusters by time alone, so guideposts from concurrent sessions in *different* projects merge into a single span — and accepting that span credits one project's minutes to the other's heading. Found 2026-09-11 the moment [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]]'s annotation made the cwd visible: over the whole queue history exactly two groups render =[cwd: agentic-euchre, claude-code-ide-org]=, and both are real — =[2026-09-10 Thu 14:49:24]--[2026-09-10 Thu 15:02:17]=, already attributed to =308bf4b4=, contains a 1:25 euchre run (14:59:33 resume, 15:00:58 pause), and =[2026-09-10 Thu 15:59:24]--[2026-09-10 Thu 16:03:05]=, unassigned, opens with a 23s euchre run before three claude-code-ide-org guideposts. Small today because euchre has 14 events against 722; it scales with the second project, and it is silent. Proposed: treat a cwd change like the exclusions =--aggregate-guideposts= already honours — a project boundary splits rather than clusters through — which also makes each resulting span's annotation name one tracker instead of two. This is the consumer half [[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]] recorded the field for; note its other named consumer obligation, normalising a worktree's cwd to its main checkout, or a single project splits into one span per worktree.
-
-
-* TODO Accepting a 0-run span records none of its minutes, and only =e= can claim them :code:
-:PROPERTIES:
-:ID:       2deb090f-593d-40e3-9044-fda318d9b6de
-:CREATED:  [2026-09-11 Fri 17:41]
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-11 Fri 17:41]--[2026-09-11 Fri 17:47] =>  0:06
-- [2026-09-11 Fri 17:41]--[2026-09-11 Fri 17:47] check the 0-run span attention reasoning, file it
-:END:
-
-Assigning a 0-run span and applying it writes a =:LOGBOOK:= annotation and no =CLOCK:= line at all — =--review-apply-clock='s =(unless observed ...)= branch — so the envelope is recorded as zero. Measured 2026-09-11 on the ten pending spans: seven have no run, including [2026-09-11 Fri 13:24]--[2026-09-11 Fri 13:46], and every one of them goes from 0s to its full envelope the moment =:suggested= is cleared. The user's position, stated the same day: a 0-run/0-turn span they choose to accept should carry all those minutes, because accepting it *is* the assertion that the time was their attention. Today the only way to say that is =e= — retyping both timestamps unchanged purely to set =:suggested nil= — so the act costs two timestamps and reads as an edit rather than a claim. Proposed: a way to accept the envelope as attention in one act, distinct from correcting bounds; note that the bracket style is a red herring here, since =:active= reaches only the annotation while the =CLOCK:= line is always written inactive by =org-clock-in=/=org-clock-out=. Reads with [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] (the same keystroke family, and the same question of what the assertion means), [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]] (the automatic half — a gap containing an apply timestamp is provably human), and [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]], which named this residue and said explicitly that it stopped the line implying the minutes were captured without capturing them.
 
 
 * TODO Nothing can correct a closed slice's record, even when the correction is close-time truth :code:
@@ -3970,7 +3969,7 @@ rule that refuses to discard =TODO.org=/=DONE.org= working-tree changes
 without showing the diff first.
 
 
-* DOING [10/13] Make the guidepost pipeline produce durations that mean what they say :code:
+* DOING [10/16] Make the guidepost pipeline produce durations that mean what they say :code:
 :PROPERTIES:
 :CATEGORY: Queue
 :ID:       406e9200-c3e7-49ac-a8d0-d6ff8e061ce4
@@ -5324,6 +5323,52 @@ The cause is fixed ([[id:c6fc6f46-4954-4fdf-9d7e-7c8bf3a1a952][c6fc6f46]]) and n
 *So the fix has two halves, not one.* Emitting the complement segments of (span minus exclusions) addresses the splits. It does *not* address widowing, where the missing neighbour is gone from the pending set entirely -- that needs the aggregator to see consumed events when deciding whether a lone timestamp is genuinely lone, which =--queue-events= already supports via =include-consumed= and which =--review-suggest-heading= already uses for exactly that kind of question.
 
 *Fixture, recorded here so it survives dismissal.* Session =1ad547fe=, guideposts at =2026-08-25T18:36:39=, =19:36:14= and =20:54:33=. Dismissing them marks them consumed but *destroys nothing* -- =--queue-mark-dismissed= writes beside the queue and never touches the =.jsonl=, so undoing it is deleting one key from a small JSON file, and the events remain replayable.
+
+
+** TODO Accepting a 0-run span records none of its minutes, and only =e= can claim them :code:
+:PROPERTIES:
+:ID:       2deb090f-593d-40e3-9044-fda318d9b6de
+:CREATED:  [2026-09-11 Fri 17:41]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-11 Fri 17:41]--[2026-09-11 Fri 17:47] =>  0:06
+- [2026-09-11 Fri 17:41]--[2026-09-11 Fri 17:47] check the 0-run span attention reasoning, file it
+:END:
+
+Assigning a 0-run span and applying it writes a =:LOGBOOK:= annotation and no =CLOCK:= line at all — =--review-apply-clock='s =(unless observed ...)= branch — so the envelope is recorded as zero. Measured 2026-09-11 on the ten pending spans: seven have no run, including [2026-09-11 Fri 13:24]--[2026-09-11 Fri 13:46], and every one of them goes from 0s to its full envelope the moment =:suggested= is cleared. The user's position, stated the same day: a 0-run/0-turn span they choose to accept should carry all those minutes, because accepting it *is* the assertion that the time was their attention. Today the only way to say that is =e= — retyping both timestamps unchanged purely to set =:suggested nil= — so the act costs two timestamps and reads as an edit rather than a claim. Proposed: a way to accept the envelope as attention in one act, distinct from correcting bounds; note that the bracket style is a red herring here, since =:active= reaches only the annotation while the =CLOCK:= line is always written inactive by =org-clock-in=/=org-clock-out=. Reads with [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] (the same keystroke family, and the same question of what the assertion means), [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]] (the automatic half — a gap containing an apply timestamp is provably human), and [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]], which named this residue and said explicitly that it stopped the line implying the minutes were captured without capturing them.
+
+
+** TODO Guidepost aggregation ignores =cwd=, so two projects' turns cluster into one span :code:
+:PROPERTIES:
+:ID:       c9940558-b23e-4b2c-86e8-e75a377634aa
+:CREATED:  [2026-09-11 Fri 17:43]
+:END:
+
+=--aggregate-guideposts= clusters by time alone, so guideposts from concurrent sessions in *different* projects merge into a single span — and accepting that span credits one project's minutes to the other's heading. Found 2026-09-11 the moment [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]]'s annotation made the cwd visible: over the whole queue history exactly two groups render =[cwd: agentic-euchre, claude-code-ide-org]=, and both are real — =[2026-09-10 Thu 14:49:24]--[2026-09-10 Thu 15:02:17]=, already attributed to =308bf4b4=, contains a 1:25 euchre run (14:59:33 resume, 15:00:58 pause), and =[2026-09-10 Thu 15:59:24]--[2026-09-10 Thu 16:03:05]=, unassigned, opens with a 23s euchre run before three claude-code-ide-org guideposts. Small today because euchre has 14 events against 722; it scales with the second project, and it is silent. Proposed: treat a cwd change like the exclusions =--aggregate-guideposts= already honours — a project boundary splits rather than clusters through — which also makes each resulting span's annotation name one tracker instead of two. This is the consumer half [[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]] recorded the field for; note its other named consumer obligation, normalising a worktree's cwd to its main checkout, or a single project splits into one span per worktree.
+
+
+** TODO A session id that changes mid-work splits one clock bracket across two queue files :code:
+:PROPERTIES:
+:ID:       b57c7515-c511-4198-b311-26cefc52a60d
+:CREATED:  [2026-09-11 Fri 18:17]
+:END:
+
+The queue is keyed by =session_id= and =--lane-clock-pairs= pairs within a lane of =(session_id, agent_id)=, so a session whose id changes while work continues leaves an unmatched =clock_in= in the old lane and an orphan =clock_out= in the new one — neither pairs, and the bracket's attribution is lost in both directions. Observed 2026-09-11: =f2e44fdf= holds =clock_in= on =325679af= at 17:48:30 and =b71c8eec= holds the matching =clock_out= at 18:14:33, with all of that stretch's file-touching work in the second lane. =bin/hooks/clock-target-check= fired correctly and could only report the symptom, since from inside the new lane the earlier =clock_in= is invisible. Note the two failure modes compose badly with =58332dd1=: the orphaned =clock_in= is exactly the ever-widening span that heading describes, now arriving through a second route. Worth measuring before designing — how often an id changes mid-session, and whether the transcript's =sessionId= or a =leafUuid= chain can bridge the two files retroactively, since the events themselves carry enough to re-pair if something looked. The manual repair used this time was a fresh matched pair in the new lane as an attribution anchor, leaving the interval for a human to widen with =e=.
+
+*Related, and deliberately not merged:* [[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]] filed the same root cause on 2026-08-18 — one working stretch spanning two =session_id=s — for a different event pair. That heading is about a **turn**, whose =resume= sits in the launching session's file and whose =pause= lands in the job's; this is about a **clock bracket**, whose =clock_in= and =clock_out= divide the same way. Different pairing functions (=--span-events= adjacency against =--lane-clock-pairs=), so two fixes, not one. Recording the link because two headings on one cause with no reference between them is how a twin forms.
+
+*And this case falsifies the generality of that heading's surviving rule, which is the useful part.* What survived =9202b39d='s falsified depth counter is a targeted linking rule: "a session whose stream **opens with a =pause=** is a background job whose first turn began elsewhere". Measured here, =b71c8eec= opens with a =resume= at 18:07:15 and carries its orphan =clock_out= at 18:14:33 — so the leading-=pause= test never fires, and the rule leaves this split untouched. A second shape exists: a lane that opens normally and still holds half of a bracket opened elsewhere.
+
+*Which suggests the general statement is worth having before either fix is built:* **any pairing keyed on =session_id= breaks when one stretch of work spans two.** Two instances are now measured, on two different event pairs; the question is whether the repair belongs per-pairing-function or once, at the point where lanes are formed.
+
+*The cause is upstream, established 2026-09-11 from the harness's own files, and it means this condition is to be **tolerated**, not prevented.* Claude Code re-keyed this session mid-work: =f2e44fdf='s transcript runs 17:24:27--17:55:49 and stops; =~/.claude/jobs/b71c8eec/= is created at **17:56:04** — 32 minutes into an interactive session that until then had no job directory at all — and a second job dir appears in the *same second*. The session then continues under the job's own id, with its transcript re-stamped from the original 17:24:27 start, and =state.json= carrying =template: "bg"= and =respawnFlags=. An =API Error: Connection lost mid-response= at 17:57:52 sits in that job's timeline *after* the switch, so it is a consequence rather than the trigger.
+
+*Known upstream, and reported less precisely than our own evidence states it.* anthropics/claude-code [[https://github.com/anthropics/claude-code/issues/59848][#59848]] ("Interactive =claude= sessions are classified as background jobs post-2.1.139") describes every session being *born* with =$CLAUDE_JOB_DIR= and =template: "bg"=; ours was not — it ran half an hour without one, and the records appeared in a batch mid-flight. That issue is **closed**, confirmed against 2.1.143, and its headline symptom (the worktree-isolation guard) is indeed fixed here on 2.1.236, while the classification it rested on is not. [[https://github.com/anthropics/claude-code/issues/76220][#76220]] is the later open report.
+
+*So the design consequence is settled:* a session id is **not** a stable key for a stretch of work, and nothing in this project can make it one. Any repair has to reconcile lanes after the fact rather than assume the key holds — which is the same conclusion the =9202b39d= link above reaches from the other direction.
+
+*One consequence for [[id:96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d][96ddf1ef]], which is =NEXT= and will hit this immediately:* the re-key leaves **two transcripts covering the same conversation**, the old one truncated at the switch and the new one complete from the original start. A renderer keyed on session id would render the same session twice under two ids, the first copy silently short. It needs a rule for that before it renders anything.
+
 
 
 * TODO Type a span's annotation at review time, not by hand-editing it after :code:
