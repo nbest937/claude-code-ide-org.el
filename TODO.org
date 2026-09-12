@@ -2,6 +2,8 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+
+
 * TODO org_capture cannot set =:CATEGORY:=, so every captured heading is uncategorised and nothing notices :code:
 :PROPERTIES:
 :ID:       b0d55552-6bbf-45b8-9897-f62e6bd779e3
@@ -9,7 +11,35 @@
 :CATEGORY: Tools
 :END:
 
-=org_capture= takes title, note, tags, target and initial_state — there is no category argument — so a heading created through the tool carries no =:CATEGORY:= and cannot be given one at creation. Since =29439196= retired the level-1 category tier, a *top-level* capture therefore has no category at all, and =org-get-category= falls back to the **file name**: measured 2026-09-11, three headings captured that day resolve to the category ="TODO"=, rendering an agenda line as =TODO  TODO  Some task= — exactly the keyword/category collision the conventions banned ="Review"= to avoid. Nothing catches it: =bin/lint-org= does not mention CATEGORY once. The omission hides because =:CATEGORY:= *inherits*, so a capture later refiled under a parent silently acquires one and looks correct, which is why this went unnoticed until a top-level capture was inspected directly. Proposed: give =org_capture= a =category= argument, and have =bin/lint-org= report a top-level heading with no drawer value as an error — read from the drawer, never =org-entry-get=, which computes the very fallback that makes the defect invisible. Worth deciding at the same time whether a missing category should default from the target's parent or simply be required, since the capture reply already names where the heading landed.
+=org_capture= takes title, note, tags, target and initial_state — there is no
+category argument — so a heading created through the tool carries no
+=:CATEGORY:= and cannot be given one at creation. Since =29439196= retired the
+level-1 category tier, a *top-level* capture therefore has no category at all,
+and =org-get-category= falls back to the **file name**: measured 2026-09-11,
+three headings captured that day resolve to the category ="TODO"=, rendering an
+agenda line as =TODO TODO Some task= — exactly the keyword/category collision
+the conventions banned ="Review"= to avoid. Nothing catches it: =bin/lint-org=
+does not mention CATEGORY once. The omission hides because =:CATEGORY:=
+*inherits*, so a capture later refiled under a parent silently acquires one and
+looks correct, which is why this went unnoticed until a top-level capture was
+inspected directly. Proposed: give =org_capture= a =category= argument, and have
+=bin/lint-org= report a top-level heading with no drawer value as an error —
+read from the drawer, never =org-entry-get=, which computes the very fallback
+that makes the defect invisible. Worth deciding at the same time whether a
+missing category should default from the target's parent or simply be required,
+since the capture reply already names where the heading landed.
+
+*Measured 2026-09-11 at the user's question, and the onset is sharp rather than gradual.* Over the 111 level-1 headings in TODO.org — read from each heading's **own property drawer** via =org-map-entries=, never =org-entry-get=, which computes the fallback this defect hides behind — **10 carried no =:CATEGORY:=**, and every one of them was created on 2026-09-10 or 2026-09-11. July (5) and August (46) are clean; so are the first nine days of September. By day: 09-09 two created and none missing, 09-10 three of thirteen, 09-11 seven of twenty-four.
+
+*Intermittent rather than total, which is the signature of the actual cause.* The missing capability in =org_capture= has been constant since the tool existed, so it cannot explain a change of behaviour on one day. What changed is where the taxonomy is *written down*. Commit =42a3221= (2026-09-09, the plugin packaging) moved the ten =:CATEGORY:= values out of =CLAUDE.md=, which loads in **every** session, into the new =.claude/rules/org-conventions-local.md=, which carries =paths: ["**/*.org"]= and therefore loads **only when an =.org= file is in play**. The first uncategorised capture is the next day. Sessions that opened an org file kept setting categories; sessions working purely through the MCP tools — which is how a heading is normally captured — no longer saw the list at all.
+
+*The conventions predicted this in their own first paragraph:* "a path-scoped rule that does not load is a rule that does not apply, and the failure is silent". Capturing a heading is exactly a thing done with no =.org= file open, so the taxonomy is on the wrong side of the line that paragraph draws.
+
+*So the fix has two halves and the order matters.* **Move the =:CATEGORY:= taxonomy to an always-loaded rule** — that is the root cause, and it repairs the discipline for humans and agents alike without any code. Then **give =org_capture= a =category= argument and =bin/lint-org= a rule**, so the discipline does not depend on being remembered at all. The user's framing settles the lint's scope: inheritance is the right answer for a child, and a *first-degree* heading must carry its own, so the rule is "a level-1 heading with no drawer-local value is an error".
+
+*Repaired in passing, not deferred:* categories were assigned by hand to the eight real headings (=165ce65a=, =204d1b0a=, =b112878e=, =489d6f61=, =325679af=, =784d80c5=, =fbaf8009=, =af2f345e=). The two that remain uncategorised are cancelled scratch probes.
+
+
 
 * TODO [0/6] A span is only as true as its owner, its edges and its payload :code:
 :PROPERTIES:
@@ -21,18 +51,44 @@
 :BLOCKER:  ids(b57c7515-c511-4198-b311-26cefc52a60d 9202b39d-49e4-441c-89f2-382feb4ef1ea 7d739afd-f879-445c-b0b6-65e295585a94 c9940558-b23e-4b2c-86e8-e75a377634aa c54c4215-90e3-4e0c-9de1-990c0406a2b2 2deb090f-593d-40e3-9044-fda318d9b6de)
 :END:
 :PLAN:
-*Why this order.* Each group hands its output to the next, so working them out of sequence means re-doing the later ones. **Ownership first** — until a stretch of events has one owner, no boundary rule can be evaluated, because which events a rule *sees* depends on how lanes are keyed. =b57c7515= leads rather than =9202b39d= even though the latter is older and already carries a measured rule: =b57c7515= poses the question that decides whether that rule is the right *shape* ("per pairing function, or once where lanes are formed"), and =9202b39d='s leading-=pause= test demonstrably misses the second shape. Answer the shape question, then implement. =7d739afd= closes the group, since union-not-sum is the arithmetic that only makes sense once lanes are settled.
+*Why this order.* Each group hands its output to the next, so working them out
+of sequence means re-doing the later ones. **Ownership first** — until a stretch
+of events has one owner, no boundary rule can be evaluated, because which events
+a rule *sees* depends on how lanes are keyed. =b57c7515= leads rather than
+=9202b39d= even though the latter is older and already carries a measured rule:
+=b57c7515= poses the question that decides whether that rule is the right
+*shape* ("per pairing function, or once where lanes are formed"), and
+=9202b39d='s leading-=pause= test demonstrably misses the second shape. Answer
+the shape question, then implement. =7d739afd= closes the group, since
+union-not-sum is the arithmetic that only makes sense once lanes are settled.
 
-**Boundaries second.** =c9940558= and =c54c4215= both decide where a span may divide — on a project change and around an exclusion respectively — and both operate on whatever the ownership work leaves them.
+**Boundaries second.** =c9940558= and =c54c4215= both decide where a span may
+divide — on a project change and around an exclusion respectively — and both
+operate on whatever the ownership work leaves them.
 
-**Payload last.** =2deb090f= is what actually reaches the =:LOGBOOK:=, and it is the only member whose correct answer depends on all five others: a rule for what a 0-run span writes is worth nothing while the span's extent is still moving.
+**Payload last.** =2deb090f= is what actually reaches the =:LOGBOOK:=, and it is
+the only member whose correct answer depends on all five others: a rule for what
+a 0-run span writes is worth nothing while the span's extent is still moving.
 
-*What this slice is not.* It does not reopen =406e9200='s finished ten, and it adds no new work — every member already existed as a child of that story. The story keeps its own record and its cookie; this only sequences the residue and gives it an integration point, which is the thing a story cannot do.
+*What this slice is not.* It does not reopen =406e9200='s finished ten, and it
+adds no new work — every member already existed as a child of that story. The
+story keeps its own record and its cookie; this only sequences the residue and
+gives it an integration point, which is the thing a story cannot do.
 
-*Not started.* Composed open, as its own proposal, with no =next-session.md= revision link — that link arrives when a slice is actually picked up.
+*Not started.* Composed open, as its own proposal, with no =next-session.md=
+revision link — that link arrives when a slice is actually picked up.
 :END:
 
-The six open children remaining under =406e9200= fail in three distinct places rather than one: who *owns* a stretch of events (=b57c7515=, =9202b39d=, =7d739afd=), where a span is allowed to *divide* (=c9940558=, =c54c4215=), and what finally *lands* in the drawer (=2deb090f=). None is independent of the others — a change to lane identity alters which events a boundary rule even sees, and a boundary change alters what the writer is handed. Proposed: take them in that order, as one integration point, so the pipeline is corrected in a single direction of travel rather than three overlapping ones. Composed 2026-09-11 at the user's motion, as the story's open residue; the story keeps its finished ten and this sequences what is left.
+The six open children remaining under =406e9200= fail in three distinct places
+rather than one: who *owns* a stretch of events (=b57c7515=, =9202b39d=,
+=7d739afd=), where a span is allowed to *divide* (=c9940558=, =c54c4215=), and
+what finally *lands* in the drawer (=2deb090f=). None is independent of the
+others — a change to lane identity alters which events a boundary rule even
+sees, and a boundary change alters what the writer is handed. Proposed: take
+them in that order, as one integration point, so the pipeline is corrected in a
+single direction of travel rather than three overlapping ones. Composed
+2026-09-11 at the user's motion, as the story's open residue; the story keeps
+its finished ten and this sequences what is left.
 
 Planned:
 
@@ -64,13 +120,51 @@ Planned:
 *What decides this is not in this body.* Every org-edna claim here comes from reading its source; it is not installed, and nothing above has been run. This repo's own rule is that a proposed mechanism is a hypothesis until measured, so the next step is a batch trial against these real blocker shapes — both forms, both parsers, a DONE blocker and an open one — not a decision. The cheap half of the fix (normalising to bare) is available immediately and does not wait on that trial.
 :END:
 
-=org-depend-block-todo= — the function actually on =org-blocker-hook= — does =(split-string blocker)= and treats each whitespace-separated word as an exact id. Wrapped in =ids(...)=, the first token arrives as =ids(<uuid>= and the last as =<uuid>)=, and neither resolves; the =cond= falls through and nothing blocks. The wrapper is org-edna's =ids()= *finder*, not org-depend's grammar, and =config.el= writes it at two sites (the =org_set_property= validator and the slice blocker refresh) under docstrings calling it "the documented =ids(a b c)= form". Verified in batch against org 9.8.7 and the real =org-depend.el=, with the bare form as a discriminating control: =ids(A)= → DONE, =ids(A B)= → DONE, =ids(A B C)= → blocked but only by B, bare =A= → blocked. Measured over TODO.org's 12 =:BLOCKER:= properties: 6 hold one id and 2 hold two, so **8 enforce nothing at all**; 3 hold 4, 9 and 14 ids and enforce all but their endpoints; 1 is bare and fully enforced. Worst part is that it is invisible from the read side — =--outline-blocker-ids= extracts ids by UUID regexp and finds them all, so =org_outline='s =[blocked: ...]= marker is right while the DONE-time refusal is not, and the divergence bites exactly at the human apply pass where the refusal was supposed to appear. Two fixes: write a bare space-separated list, or enable =org-edna-mode=, which parses =ids(...)= natively. The second has a trap worth stating before anyone reaches for it — with =org-edna-mode= on, a =:BLOCKER:= holding *bare* uuids raises an unrecognised-form error, and org-edna's handler treats every parse failure as a refusal, so those headings would block unconditionally. Found 2026-09-11 by a research subagent surveying org's dependency facilities, and re-verified here from scratch.
+=org-depend-block-todo= — the function actually on =org-blocker-hook= — does
+=(split-string blocker)= and treats each whitespace-separated word as an exact
+id. Wrapped in =ids(...)=, the first token arrives as =ids(<uuid>= and the last
+as =<uuid>)=, and neither resolves; the =cond= falls through and nothing blocks.
+The wrapper is org-edna's =ids()= *finder*, not org-depend's grammar, and
+=config.el= writes it at two sites (the =org_set_property= validator and the
+slice blocker refresh) under docstrings calling it "the documented =ids(a b c)=
+form". Verified in batch against org 9.8.7 and the real =org-depend.el=, with
+the bare form as a discriminating control: =ids(A)= → DONE, =ids(A B)= → DONE,
+=ids(A B C)= → blocked but only by B, bare =A= → blocked. Measured over
+TODO.org's 12 =:BLOCKER:= properties: 6 hold one id and 2 hold two, so **8
+enforce nothing at all**; 3 hold 4, 9 and 14 ids and enforce all but their
+endpoints; 1 is bare and fully enforced. Worst part is that it is invisible from
+the read side — =--outline-blocker-ids= extracts ids by UUID regexp and finds
+them all, so =org_outline='s =[blocked: ...]= marker is right while the
+DONE-time refusal is not, and the divergence bites exactly at the human apply
+pass where the refusal was supposed to appear. Two fixes: write a bare
+space-separated list, or enable =org-edna-mode=, which parses =ids(...)=
+natively. The second has a trap worth stating before anyone reaches for it —
+with =org-edna-mode= on, a =:BLOCKER:= holding *bare* uuids raises an
+unrecognised-form error, and org-edna's handler treats every parse failure as a
+refusal, so those headings would block unconditionally. Found 2026-09-11 by a
+research subagent surveying org's dependency facilities, and re-verified here
+from scratch.
 
-*Where the wrapper came from, read out of org-depend's own commentary 2026-09-11 — an honest misreading of a real API, not a typo.* org-depend **does** use parentheses, on the =TRIGGER= side: =chain-siblings(KEYWORD)=, =chain-find-next(KEYWORD[,OPTIONS])=, and =XYZ(KEYWORD)= where =XYZ= is an entry id. Anyone reading that would reasonably infer a parallel parenthesised form for =BLOCKER=. There is none. The blocker grammar is two rules and no more: the literal word =previous-sibling=, or — "if the BLOCKER property contains any other words, these are treated as entry id's… search for an entry with the ID property **exactly equal to this word**". That "exactly equal" is what =ids(<uuid>= fails.
+*Where the wrapper came from, read out of org-depend's own commentary 2026-09-11
+— an honest misreading of a real API, not a typo.* org-depend **does** use
+parentheses, on the =TRIGGER= side: =chain-siblings(KEYWORD)=,
+=chain-find-next(KEYWORD[,OPTIONS])=, and =XYZ(KEYWORD)= where =XYZ= is an entry
+id. Anyone reading that would reasonably infer a parallel parenthesised form for
+=BLOCKER=. There is none. The blocker grammar is two rules and no more: the
+literal word =previous-sibling=, or — "if the BLOCKER property contains any
+other words, these are treated as entry id's… search for an entry with the ID
+property **exactly equal to this word**". That "exactly equal" is what
+=ids(<uuid>= fails.
 
-*So the target form is simply* =:BLOCKER: uuid uuid uuid= — bare, space-separated, no wrapper — which is also what the =org_set_property= validator already produces internally before it wraps.
+*So the target form is simply* =:BLOCKER: uuid uuid uuid= — bare,
+space-separated, no wrapper — which is also what the =org_set_property=
+validator already produces internally before it wraps.
 
-*Confirmed live rather than inferred:* =(featurep 'org-depend)= is =t=, =(require 'org-depend)= sits in =~/.config/doom/config.el=, and =org-depend-block-todo= is second of four on =org-blocker-hook= in the running Emacs. So the parser that cannot read this syntax is the one actually guarding every =DONE=.
+*Confirmed live rather than inferred:* =(featurep 'org-depend)= is =t=,
+=(require 'org-depend)= sits in =~/.config/doom/config.el=, and
+=org-depend-block-todo= is second of four on =org-blocker-hook= in the running
+Emacs. So the parser that cannot read this syntax is the one actually guarding
+every =DONE=.
 
 
 * TODO Open the review buffer newest-first, with =s= to reverse it like dired :code:
@@ -577,6 +671,7 @@ start position rather than the absence of an =:END:= alone. 601/601.
 :PROPERTIES:
 :ID:       165ce65a-f87e-431c-8ee4-f0fbfffe14da
 :CREATED:  [2026-09-11 Fri 11:53]
+:CATEGORY: Apply
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-11 Fri 11:52]--[2026-09-11 Fri 11:53] =>  0:01
@@ -637,6 +732,7 @@ CLOSED: [2026-09-11 Fri 11:45]
 :PROPERTIES:
 :ID:       204d1b0a-e5de-41f3-8983-b60638ce196a
 :CREATED:  [2026-09-11 Fri 11:35]
+:CATEGORY: Tools
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-11 Fri 11:33]--[2026-09-11 Fri 11:35] =>  0:02
@@ -691,6 +787,7 @@ CLOSED: [2026-09-11 Fri 11:35]
 :PROPERTIES:
 :ID:       b112878e-6313-4bc6-bc3f-0533d5f1ad1b
 :CREATED:  [2026-09-11 Fri 11:11]
+:CATEGORY: Slices
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-11 Fri 11:08]--[2026-09-11 Fri 11:09] =>  0:01
@@ -745,6 +842,7 @@ Planned:
 :PROPERTIES:
 :ID:       489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938
 :CREATED:  [2026-09-11 Fri 09:59]
+:CATEGORY: Apply
 :END:
 
 (Filing prose restored 2026-09-11 — the original capture note was discarded by =org_capture='s immediate path, by documented design.) 2026-09-11, one occurrence: the beachball after the ceremony's final =q= was a corpse — =sample= showed the lisp thread inside =handle_fatal_signal= → =shut_down_emacs= → =kill_buffer_processes= waiting on the GUI queue's semaphore while the GUI thread waited on the lisp queue (mac-port termination deadlock). All buffers were saved first: the ceremony's 85-heading archive sweep (~5,300 lines TODO.org → DONE.org) landed on disk at 09:42 and nothing was lost. Killed with SIGKILL, relaunched, glue re-wired unaided. The fatal signal's origin is unknown — the crash landed while idle-waiting in =really_call_select=, so the ceremony correlation may be timing, not cause. Promote if it recurs; a second sample is the next data point.
@@ -754,6 +852,7 @@ Planned:
 :PROPERTIES:
 :ID:       325679af-829e-4c7f-88b0-153c2c9683b3
 :CREATED:  [2026-09-11 Fri 09:59]
+:CATEGORY: Apply
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-11 Fri 09:43]--[2026-09-11 Fri 09:45] =>  0:02
@@ -782,6 +881,7 @@ CLOCK: [2026-09-11 Fri 09:50]--[2026-09-11 Fri 09:53] =>  0:03
 :PROPERTIES:
 :ID:       784d80c5-8750-4ebe-b5e5-c213fc809d80
 :CREATED:  [2026-09-10 Thu 16:42]
+:CATEGORY: Dev
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-10 Thu 16:48]--[2026-09-10 Thu 16:49] =>  0:01
@@ -797,6 +897,7 @@ Amended same day, at the provenance conversation: the symlink-ignore advice inve
 :PROPERTIES:
 :ID:       fbaf8009-b3dc-48ed-b099-63b74fc156a8
 :CREATED:  [2026-09-10 Thu 14:49]
+:CATEGORY: Apply
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-11 Fri 11:12] \\
@@ -824,6 +925,7 @@ CLOCK: [2026-09-11 Fri 17:26]--[2026-09-11 Fri 17:41] =>  0:15
 :PROPERTIES:
 :ID:       af2f345e-b7db-4025-9f63-c5fce09fdd8a
 :CREATED:  [2026-09-10 Thu 14:11]
+:CATEGORY: Dev
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-10 Thu 14:11]--[2026-09-10 Thu 14:12] =>  0:01
