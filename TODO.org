@@ -292,6 +292,19 @@ hypothetical — see [[id:6a207b00-8fa1-441e-8ee5-354702bc979b][6a207b00]]: adop
 unresolved work here, and a slice standing between that and the user is a slice
 worth reformulating rather than finishing out of order.
 
+*The user, 2026-09-14, correcting this heading's own framing and mine:* "I thought *incidental* means *not planned*, supported by absence from the operative version(s) of =next-session.md=. Otherwise, what's the meaning of the =Planned:= marker?"
+
+*That supplies an objective test the conventions did not have, and it is checkable in one command.* Measured against =afea7e4f= the same day: =325679af=, =96ddf1ef=, =295cde3a= and =fbaf8009= each appear two or three times in the operative =next-session.md=; =f1e36a65=, =f3a53bd4=, =40159d43=, =b23e5bcc= and =169df26b= appear **zero** times. So five of nine members sat under =Planned:= having never been planned — including =f1e36a65=, adopted hours before the other four and mislabelled the same way.
+
+*Which retires the claim recorded above that =Planned:= is "a structural anchor for the member parser, not an assertion of foresight".* That was read off =a43cfaa0='s title — "member anchor, insertion point, self-heal" — three *structural* jobs, from which semantic emptiness does not follow. A lead that were only an anchor would read =Members:=. It reads =Planned:=, and the plan file is what makes the word verifiable rather than decorative.
+
+*So adoption must not write into the planned list*, and the asymmetry this heading names is sharper than first stated: the writable list is the one whose label adoption falsifies, and the correctly-labelled list is derived-only. Using the first is not a workaround, it is a false statement about what the slice foresaw.
+
+*Proposed mechanism, mirroring =:DROPPED:= exactly rather than inventing a shape.* A =:ADOPTED:= property on the slice naming ids declared incidental at discovery, with the refresh rendering the =Incidental:= section as the **union** of those declared ids and the ones derived from closes. That keeps both section names meaning what they say, makes "incidental" writable at the moment of discovery — which is what "see them accumulate along the way" needs — and follows the project's standing pattern of declaring the exception and deriving the rendering. It also subsumes the third-lead idea floated earlier: no new section is needed, because =Incidental:= already means the right thing and only lacked a way to be written.
+
+*Until it exists, the five sit under the wrong lead and the slice's body says so*, which is the honest interim: visible and wrong beats invisible.
+
+
 
 * TODO org_capture cannot set =:CATEGORY:=, so every captured heading is uncategorised and nothing notices :code:
 :PROPERTIES:
@@ -688,6 +701,13 @@ Planned:
 *Three were not adopted because another slice already counts them* — =c9940558=, =b57c7515= and =2deb090f= are members of [[id:749301a0-0bd0-4fbd-b3f7-79739226e15a][749301a0]], and a member counted twice makes two cookies disagree. Cross-referenced here instead, per the rule. =3f4fd744=, =b0d55552=, =b52df20b=, =6a207b00= and =9bab114d= itself have no relationship to this slice's surface.
 
 *And the depth-one rule met its first genuine ambiguity, which is the trial's first real datum.* =e95cc5d1= and =ee3c22c9= — both about what =d= should do — were discovered while the user dismissed the stale items that =b23e5bcc= produced. If =b23e5bcc= is an adopted member, they are discoveries *from an adopted member* and should seed the next slice; if the dismissing is read as ordinary review-pass work, they are depth one and belong here. **The distinction was not readable in the moment**, which is precisely what the trial was set up to find out. Left unadopted pending the user's ruling rather than decided quietly, because deciding it silently would waste the trial.
+
+*Correction 2026-09-14, and it applies to the checklist above rather than to any member.* **Five of the nine members listed under =Planned:= were never planned.** Measured against the operative =next-session.md=: =325679af=, =96ddf1ef=, =295cde3a= and =fbaf8009= appear there two or three times each; =f1e36a65=, =f3a53bd4=, =40159d43=, =b23e5bcc= and =169df26b= appear **zero** times. The four were adopted earlier today and =f1e36a65= this morning, all through =org_slice_add_member=, which writes to the planned checklist because that is the only list it can write to.
+
+*The lead is therefore currently false for five lines*, and that is recorded here rather than quietly tolerated: the =Planned:= marker means what it says, and the user's test — absence from the plan file — is what gives it content ([[id:9bab114d-44fa-488e-92bd-ff7c3fd8065d][9bab114d]]). They are left in place rather than reverted because removing them would restore the invisibility that prompted adopting them; the fix is a writable =Incidental:= section, not a shorter list.
+
+*Read the cookie accordingly.* =[4/9]= counts four planned members done out of four planned plus five adopted. The slice's own deliverable — the transcript join, its three ways — is 4 of 5 with =295cde3a= outstanding; the other five are work this slice caused or uncovered, not work it set out to do.
+
 
 
 
@@ -3469,6 +3489,7 @@ CLOCK: [2026-09-14 Mon 09:23]--[2026-09-14 Mon 09:26] =>  0:03
 - <2026-09-14 Mon 09:23>--<2026-09-14 Mon 09:26> review pass (buffer buried)
 - <2026-09-14 Mon 10:56>--<2026-09-14 Mon 10:57> review pass (buffer buried)
 - <2026-09-14 Mon 12:16>--<2026-09-14 Mon 12:18> review pass (buffer buried)
+- <2026-09-14 Mon 12:44>--<2026-09-14 Mon 12:44> review pass (buffer buried)
 :END:
 
 
