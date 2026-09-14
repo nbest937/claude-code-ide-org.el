@@ -2,14 +2,35 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO The review buffer is one undifferentiated face, so its element kinds have to be parsed by eye :code:
+* DOING The review buffer is one undifferentiated face, so its element kinds have to be parsed by eye :code:
 :PROPERTIES:
 :ID:       f3a53bd4-60ab-47a1-84b0-07d2c1c5fd24
 :CREATED:  [2026-09-14 Mon 12:16]
 :CATEGORY: Apply
 :END:
+:DEBRIEF:
+*Shipped 2026-09-14* (=6e31f4b=). Six faces, each inheriting from a standard one rather than naming a colour: group (=bold=), tracker (=shadow=), prompt (=font-lock-string-face=), evidence (=shadow=), attention (=warning=), mark (=font-lock-keyword-face=). A literal colour that suits one theme is unreadable in another, and =bold=/=shadow=/=warning=/string are exactly the four ideas this buffer needs while every theme defines them.
 
-Asked by the user 2026-09-14 after reviewing the four shipped members of =afea7e4f=: the buffer now carries genuinely distinct kinds of line and text — group headings, item lines, the item's *type* column, timestamps, human notes, the =[tracker]= annotation, prompt synopses, span evidence, and the =!= / =STALE= / =UNASSIGNED= warnings — and every one of them renders in the default face. The reader parses structure by column position and punctuation alone, which is the work highlighting exists to remove, and the buffer has grown three new element kinds this week (=fbaf8009='s tracker annotation, =325679af='s prompt synopses, =f1e36a65='s sort state) without gaining any way to tell them apart. Note the rendered *transcripts* need nothing: they are =.org= files and Emacs highlights them already. Proposed: named faces inheriting from standard ones so themes keep working, applied at render time rather than through font-lock keywords, since the buffer is rebuilt wholesale on every keystroke and there is no incremental refontification to preserve.
+*Applied at render time rather than through font-lock keywords*, for two reasons that point the same way: the buffer is erased and rebuilt on every mark keystroke, so there is no incremental refontification to preserve; and every faced run is a string this file *constructs*, so nothing re-parses the buffer's own output to decide what to colour — which is the failure mode a keyword list would have invited.
+
+*The deliberate omission is the design decision worth keeping.* Ordinary items get no face at all. Colouring every item by type teaches the eye to ignore colour, which is the one thing the exceptional case needs it for — so only a stale transition or an unassigned span carries the attention face.
+
+*Verified on a real render rather than by inspection*: 1590 characters of prompt face, 579 attention, 104 evidence, 89 group, 56 tracker, 1 mark. 629 tests, 0 unexpected.
+
+*The rendered transcripts needed nothing* — they are =.org= files and Emacs highlights them already, which the user pointed out before any work started and which kept the scope to one buffer.
+
+*Written into this drawer at =REVIEW= rather than left as body prose.* The four members closed an hour earlier all had to be restructured at close because their journals sat in the body, which is the pre-=d5eb32a3= shape; doing it here at the point the work finished costs nothing and removes that step.
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-09-14 Mon 12:16] \\
+  highlighting the review buffer's element kinds
+CLOCK: [2026-09-14 Mon 12:20]--[2026-09-14 Mon 12:24] =>  0:04
+- [2026-09-14 Mon 12:20]--[2026-09-14 Mon 12:24] faces for the review buffer's element kinds
+:END:
+
+Asked by the user 2026-09-14 after reviewing the four shipped members of =afea7e4f=: the buffer carries genuinely distinct kinds of line and text — group headings, item lines, the =[tracker]= annotation, prompt synopses, span evidence, and the =!=/=STALE=/=UNASSIGNED= warnings — and every one rendered in the default face, so structure had to be parsed by column position and punctuation alone. It had gained three new element kinds in a week without gaining any way to tell them apart. The rendered *transcripts* need nothing: they are =.org= files and Emacs highlights them already.
+
+*Resolution:* six named faces inheriting from standard ones, applied at render time to strings this file constructs, with ordinary items deliberately left unfaced so colour still means something where it appears.
 
 * TODO Make =d= mark for dismissal rather than dismiss, so a shared reason can be given once :code:
 :PROPERTIES:
@@ -20,6 +41,7 @@ Asked by the user 2026-09-14 after reviewing the four shipped members of =afea7e
 
 Asked by the user 2026-09-14, immediately after dismissing seven items that shared one reason: =d= should leave a mark the way =m= does — a *different* mark, =D= suggested — so dismissal becomes a bulk operation instead of seven separate acts. The motivating case is concrete: all seven were state transitions that had already landed, dismissed for the identical reason, and the pass had no way to say that once. Dired is the precedent the review buffer already follows for =m=/=u=/=t=/=U=, and dired marks for deletion with =d= and executes with =x= — so this would bring =d= into the same idiom rather than inventing one, and =x= already means "act on what is marked" here. Worth deciding together: whether =x= then executes both marks (apply the =m=s, dismiss the =D=s) or whether dismissal needs its own execute key; whether a =D= mark can carry a typed reason once for the whole set, which is the part that would actually have saved work; and how =D= interacts with the auto-marking =b6e229c7= does, since an item arriving pre-marked =m= and then marked =D= must not be both. Supersedes the narrower cursor question in [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] if it ships — a mark does not remove its line, so the advance becomes correct by construction — but that heading stands on its own until then, since it is a live defect and this is a design.
 
+
 * TODO =d= advances point in the review buffer, onto whatever moved up to replace the dismissed item :code:
 :PROPERTIES:
 :ID:       e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b
@@ -28,6 +50,7 @@ Asked by the user 2026-09-14, immediately after dismissing seven items that shar
 :END:
 
 Reported by the user 2026-09-14 after dismissing seven stale state items in one pass. =claude-code-ide-org-review-dismiss= advances point the way =m= does, but the two are not analogous: =m= leaves its item in place, so advancing lands on the *next* item, whereas =d= removes its item, so the next one moves *up into the vacated line* — and advancing then skips it. The user must move back by hand after every dismissal, which is exactly the friction =m='s advance exists to remove, inverted. Proposed: =d= leaves point where it is, since the line now holds the item that would otherwise have been skipped. Note this is a different question from where point lands when the *list* is rebuilt (=9e80a32d=): nothing is rebuilt here, one line is removed from a rendered buffer.
+
 
 * TODO Nothing stops a span being assigned to "Review attention", which ranks high and reads like "Review and planning" :code:
 :PROPERTIES:
@@ -440,7 +463,8 @@ Emacs. So the parser that cannot read this syntax is the one actually guarding
 every =DONE=.
 
 
-* REVIEW Open the review buffer newest-first, with =s= to reverse it like dired :code:
+* DONE Open the review buffer newest-first, with =s= to reverse it like dired :code:
+CLOSED: [2026-09-14 Mon 12:23]
 :PROPERTIES:
 :ID:       f1e36a65-3469-4ae6-ac1f-fdfcd1c053c9
 :CREATED:  [2026-09-11 Fri 17:32]
@@ -462,17 +486,20 @@ every =DONE=.
 *Closed 2026-09-14* on the user's review of the slice's shipped members.
 :END:
 :LOGBOOK:
-- State "REVIEW"     from "DOING"      [2026-09-11 Fri 20:21] \\
-  shipped, invariant pinned both directions
 CLOCK: [2026-09-11 Fri 20:16]--[2026-09-11 Fri 20:21] =>  0:05
 - State "DOING"      from "TODO"       [2026-09-11 Fri 20:16] \\
   newest-first review buffer with a sort key
 - [2026-09-11 Fri 20:16]--[2026-09-11 Fri 20:21] newest-first default and the s toggle
+- State "REVIEW"     from "DOING"      [2026-09-11 Fri 20:21] \\
+  shipped, invariant pinned both directions
+- State "DONE"       from "REVIEW"     [2026-09-14 Mon 12:23] \\
+  reviewed and accepted by the user
 :END:
 
 Items render oldest-first — =--review-items-from-queue= sorts ascending by =:ts=/=:start= and nothing offers another order — so a pass that cares about what just happened begins by scrolling to the bottom of a buffer whose top is days old. Asked by the user 2026-09-11: present descending by default, and bind a sort key (=s=, following dired) that reverses it. One invariant is explicit and must hold in both directions: the mark commands still advance *downward*, so =m m m= walks a run whichever order it is displayed in — the display order changes what "next" means, never which way point travels.
 
 *Resolution:* the buffer opens newest-first behind a defcustom, =s= toggles and keeps point on its item, and only the *drawing* is reversed — the list apply walks stays chronological, which is what keeps this a display preference rather than a change to the record.
+
 
 * TODO Nothing can correct a closed slice's record, even when the correction is close-time truth :code:
 :PROPERTIES:
@@ -605,14 +632,14 @@ CLOCK: [2026-09-11 Fri 11:08]--[2026-09-11 Fri 11:09] =>  0:01
 (Filing prose restored 2026-09-11 — the original capture note was discarded by =org_capture='s immediate path, by documented design.) Hit composing =afea7e4f=: the fourth member (=fbaf8009=) belonged first, but the line lands only after the last planned member or an =after== anchor — no prepend, no move. A slice declares membership AND order, so append-only ordering forces either re-declaring the slice or a plan-drawer correction (the workaround used). Options: a =first= flag, a =before== parameter, or a dedicated reorder call; =1206b5b0= (the =parent== gap) is the precedent for extending this tool when composition hits a wall.
 
 
-* DOING [0/5] Join the transcript to the record: span synopses, readable sessions, weighted attribution :code:
+* DOING [4/9] Join the transcript to the record: span synopses, readable sessions, weighted attribution :code:
 :PROPERTIES:
 :ID:       afea7e4f-41b3-4eda-83f1-39e1b9e7a61a
 :CREATED:  [2026-09-11 Fri 11:00]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(325679af-829e-4c7f-88b0-153c2c9683b3 96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d 295cde3a-49a5-4960-a828-a4fc175d73c1 fbaf8009-b3dc-48ed-b099-63b74fc156a8 f1e36a65-3469-4ae6-ac1f-fdfcd1c053c9)
+:BLOCKER:  ids(295cde3a-49a5-4960-a828-a4fc175d73c1 f3a53bd4-60ab-47a1-84b0-07d2c1c5fd24 40159d43-e48b-4f38-95eb-651145637049 b23e5bcc-1bfd-4862-a801-0c7ac6959924 169df26b-64a8-4de9-8919-ab58d510aaf6)
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-11 Fri 11:12] \\
@@ -640,17 +667,28 @@ The record knows *when* work happened but not *what was going on* — a 0-run sp
 
 Planned:
 
-- [-] [[id:325679af-829e-4c7f-88b0-153c2c9683b3][325679af]] REVIEW The review buffer shows each run's opening prompt, joined from the transcript
-- [-] [[id:96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d][96ddf1ef]] REVIEW Render a session transcript to readable org, so scrollback stops being the index
-- [ ] [[id:295cde3a-49a5-4960-a828-a4fc175d73c1][295cde3a]] TODO Attribute a turn to several tasks by weight, judged from the transcript with lag
-- [-] [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]] REVIEW The review buffer should name each item's tracker, now that two projects share the queue
-- [-] [[id:f1e36a65-3469-4ae6-ac1f-fdfcd1c053c9][f1e36a65]] REVIEW Open the review buffer newest-first, with =s= to reverse it like dired
+- [X] [[id:325679af-829e-4c7f-88b0-153c2c9683b3][325679af]] DONE The review buffer shows each run's opening prompt, joined from the transcript
+- [X] [[id:96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d][96ddf1ef]] DONE Render a session transcript to readable org, so scrollback stops being the index
+- [ ] [[id:295cde3a-49a5-4960-a828-a4fc175d73c1][295cde3a]] NEXT Attribute a turn to several tasks by weight, judged from the transcript with lag
+- [X] [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]] DONE The review buffer should name each item's tracker, now that two projects share the queue
+- [X] [[id:f1e36a65-3469-4ae6-ac1f-fdfcd1c053c9][f1e36a65]] DONE Open the review buffer newest-first, with =s= to reverse it like dired
+- [-] [[id:f3a53bd4-60ab-47a1-84b0-07d2c1c5fd24][f3a53bd4]] DOING The review buffer is one undifferentiated face, so its element kinds have to be parsed by eye
+- [ ] [[id:40159d43-e48b-4f38-95eb-651145637049][40159d43]] TODO Nothing stops a span being assigned to "Review attention", which ranks high and reads like "Review and planning"
+- [ ] [[id:b23e5bcc-1bfd-4862-a801-0c7ac6959924][b23e5bcc]] TODO A state item applies correctly and is then reported failed, so it is re-offered forever
+- [ ] [[id:169df26b-64a8-4de9-8919-ab58d510aaf6][169df26b]] TODO The stored error backtrace is captured after unwinding, so it never shows where the error came from
 
 *Adopted 2026-09-11 under the new discovery rule:* =f1e36a65= (open the review buffer newest-first, =s= to reverse) surfaced while this slice's first two members were being built — same buffer, unclaimed, cheap, and wanted — so it joins as an unplanned member rather than waiting to be listed as incidental after it closes. The cookie moves from =[0/4]= to =[0/5]=, which is the denominator-before-numerator regression the convention now warns about, not a loss of progress.
 
 *Four other discoveries from the same day were **not** adopted, and the reasons are the two the rule allows.* =c9940558=, =b57c7515= and =2deb090f= are **already members of [[id:749301a0-0bd0-4fbd-b3f7-79739226e15a][749301a0]]**, and a member counted by two slices makes their cookies disagree about the same work — so they are cross-referenced here rather than adopted. =3f4fd744= (the =:BLOCKER:= parser) has no relationship to the transcript join at all; it was found by a delegated survey on an unrelated question and stands alone.
 
 *One of those cross-references is worth reading before Step 3.* =b57c7515= established that a session id can change mid-work, leaving **two transcripts for one conversation** — the earlier truncated at the switch, the later complete from the original start. =96ddf1ef= renders a session transcript to org and would, keyed naively on session id, render that conversation twice with the first copy silently short. That is a design input, not a defect to fix here.
+
+*Adopted 2026-09-14, retroactively and at the user's prompting* — they asked when incidentals would appear, and the answer exposed that they should not have been waiting for incidentals at all. An incidental is derived from a **close**, and of thirteen headings filed while this slice ran, twelve are =TODO= and one =DOING=; nothing unplanned has closed, so the =Incidental:= section was correctly empty and would have stayed so indefinitely. Under the adoption rule the user set the same morning ([[id:9bab114d-44fa-488e-92bd-ff7c3fd8065d][9bab114d]]) these belonged here *at discovery*, which is exactly what "see them accumulate along the way" asks for. Four joined: =f3a53bd4= (the review buffer's faces), =40159d43= (=Review attention= is assignable at =a= and ranks well), =b23e5bcc= (a landed state change reported failed) and =169df26b= (the backtrace captured after unwinding, which blocks =b23e5bcc='s diagnosis). Cookie =[4/5]= → =[4/8]=: the denominator-before-numerator regression the convention warns about, not lost progress.
+
+*Three were not adopted because another slice already counts them* — =c9940558=, =b57c7515= and =2deb090f= are members of [[id:749301a0-0bd0-4fbd-b3f7-79739226e15a][749301a0]], and a member counted twice makes two cookies disagree. Cross-referenced here instead, per the rule. =3f4fd744=, =b0d55552=, =b52df20b=, =6a207b00= and =9bab114d= itself have no relationship to this slice's surface.
+
+*And the depth-one rule met its first genuine ambiguity, which is the trial's first real datum.* =e95cc5d1= and =ee3c22c9= — both about what =d= should do — were discovered while the user dismissed the stale items that =b23e5bcc= produced. If =b23e5bcc= is an adopted member, they are discoveries *from an adopted member* and should seed the next slice; if the dismissing is read as ordinary review-pass work, they are depth one and belong here. **The distinction was not readable in the moment**, which is precisely what the trial was set up to find out. Left unadopted pending the user's ruling rather than decided quietly, because deciding it silently would waste the trial.
+
 
 
 * TODO Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
@@ -726,7 +764,8 @@ macOS's AutoFill heuristic fires on a delayed timer and asks Emacs for its selec
 *So the recovery is two steps, not one:* =kill -USR2 <pid>= to interrupt, then =q= in the =*Backtrace*= buffer **and** =(setq debug-on-quit nil)= — the =q= alone leaves the flag set. Worth distinguishing from the crash case above, where =SIGUSR2= is useless: a fatal-signal wedge is already past the point where the debugger can be entered, and =SIGKILL= is the only exit.
 
 
-* REVIEW The review buffer shows each run's opening prompt, joined from the transcript :code:
+* DONE The review buffer shows each run's opening prompt, joined from the transcript :code:
+CLOSED: [2026-09-14 Mon 12:23]
 :PROPERTIES:
 :ID:       325679af-829e-4c7f-88b0-153c2c9683b3
 :CREATED:  [2026-09-11 Fri 09:59]
@@ -751,11 +790,14 @@ macOS's AutoFill heuristic fires on a delayed timer and asks Emacs for its selec
 CLOCK: [2026-09-11 Fri 18:17]--[2026-09-11 Fri 18:18] =>  0:01
 :LOGBOOK:
 - [2026-09-11 Fri 18:17]--[2026-09-11 Fri 18:18] tests, mutations and commits for the prompt join
+- State "DONE"       from "REVIEW"     [2026-09-14 Mon 12:23] \\
+  reviewed and accepted by the user
 :END:
 CLOCK: [2026-09-11 Fri 09:43]--[2026-09-11 Fri 09:45] =>  0:02
 (Filing prose restored 2026-09-11 — the original capture note was discarded by =org_capture='s immediate path, by documented design.) The user's concrete reporting need, stated 2026-09-10: at review time they cannot discriminate a degenerate 0-run/0-turn span from an unmeasured long turn, because nothing says what was going on. The mechanism was decided and measured on =295cde3a=: join queue =resume= events to transcript user messages on timestamp. This closes exactly the =--review-annotation-label= gap — an item's synopsis is its enclosing clock event's note, so guidepost-reconstructed spans have none by construction. Retroactive across all recorded sessions; no hook change, no new durable field.
 
 *Resolution:* every span in the review buffer now carries the prompts that opened its runs, joined from the session transcript at 99.4% across the corpus, with a labelled fallback for spans holding no guidepost at all.
+
 
 * TODO claude-org-setup --org scaffolds or appends the consuming repo's .gitignore :code:
 :PROPERTIES:
@@ -773,7 +815,8 @@ Amended same day, at the provenance conversation: the symlink-ignore advice inve
 (Filing prose restored 2026-09-11, belatedly *before* the existing amendment above — the original capture note was discarded by =org_capture='s immediate path, by documented design.) Asked by the user 2026-09-10 while hand-copying this repo's =.gitignore= into euchre. All four entries generalize (=settings.local.json=, worktrees, =clock-status.json=, the audit jsonl) and a fifth is consumer-specific: the =.claude/skills/<plugin>= symlink, with the absolute-vs-relative nuance the amendment above records. =--org= already collision-checks files; the same pattern appends missing ignore lines rather than clobbering. Decide whether the entries ship as a template or inline in the script.
 
 
-* REVIEW The review buffer should name each item's tracker, now that two projects share the queue :code:
+* DONE The review buffer should name each item's tracker, now that two projects share the queue :code:
+CLOSED: [2026-09-14 Mon 12:23]
 :PROPERTIES:
 :ID:       fbaf8009-b3dc-48ed-b099-63b74fc156a8
 :CREATED:  [2026-09-10 Thu 14:49]
@@ -799,11 +842,14 @@ CLOCK: [2026-09-11 Fri 17:26]--[2026-09-11 Fri 17:41] =>  0:15
 - [2026-09-11 Fri 17:26]--[2026-09-11 Fri 17:41] render tracker and session cwd in review groups
 - State "REVIEW"     from "DOING"      [2026-09-11 Fri 17:47] \\
   shipped and verified on the real queue
+- State "DONE"       from "REVIEW"     [2026-09-14 Mon 12:23] \\
+  reviewed and accepted by the user
 :END:
 
 (Filing prose restored 2026-09-11 — the original capture note was discarded on the queued path too: the event carried 681 characters and =--capture-write= takes no note.) Asked by the user 2026-09-10, the day euchre joined the agenda list file (=308bf4b4=) and the queue became genuinely multi-project. The review group heading rendered 8-char id + title only (the =c2132d3f= column rationale); the destination tracker was implicit in where the id resolved and never displayed, so two projects' headings interleaved distinguishable only by title. Wanted: the group heading carries the project, and the unassigned-span groups say which session =cwd= produced them.
 
 *Resolution:* group headings in both the review buffer and the pending report now name the tracker a resolved =:ID:= will be written to, falling back to the session =cwd= — labelled as such — when no heading resolves. It exposed a real attribution defect on its first render.
+
 
 * TODO The glue claims ownership of the whole wiring block, but the 202 override ships nowhere :code:
 :PROPERTIES:
@@ -2148,11 +2194,15 @@ having: markers *raise or lower confidence* on a span a human is going to judge 
 =5a6d2c75='s frame rather than an automatic classifier.
 
 
-* TODO Attribute a turn to several tasks by weight, judged from the transcript with lag :code:research:
+* NEXT Attribute a turn to several tasks by weight, judged from the transcript with lag :code:research:
 :PROPERTIES:
 :ID:       295cde3a-49a5-4960-a828-a4fc175d73c1
 :CREATED:  [2026-09-01 Tue 13:27]
 :CATEGORY: Clock
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-14 Mon 12:24] \\
+  sole remaining member after four closed
 :END:
 
 *Proposed by the user 2026-09-01:* enrich the guideposts with task ids drawn from the prompt and response payloads, multi-valued; let a subagent do it *with lag* so it can see several turns at once; and have it emit a *weight* per id per turn rather than chopping the interval into smaller intervals — "a sort of window function", explicitly not required to be exact or deterministic.
@@ -3556,7 +3606,8 @@ and consults CLOCK lines for idempotency. Two different things, and I ran them t
 *Found because the user asked whether the =Review attention= / =Review and planning= audit had accounted for manually flipped intervals.* It had not, explicitly — the audit's conclusion held regardless, since it keys on the annotation *label* rather than the notation, and a flip changes brackets without touching labels. But the question was the right one to ask and it found this.
 
 
-* REVIEW Render a session transcript to readable org, so scrollback stops being the index :code:
+* DONE Render a session transcript to readable org, so scrollback stops being the index :code:
+CLOSED: [2026-09-14 Mon 12:23]
 :PROPERTIES:
 :CATEGORY: Dev
 :ID:       96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d
@@ -3582,8 +3633,6 @@ and consults CLOCK lines for idempotency. Two different things, and I ran them t
 *Closed 2026-09-14* on the user's review of the slice's shipped members.
 :END:
 :LOGBOOK:
-- State "REVIEW"     from "DOING"      [2026-09-11 Fri 20:15] \\
-  shipped and verified on real sessions
 - State "NEXT"       from "TODO"       [2026-09-11 Fri 18:15] \\
   slice's next member after steps 1 and 2
 CLOCK: [2026-09-11 Fri 20:07]--[2026-09-11 Fri 20:15] =>  0:08
@@ -3591,10 +3640,15 @@ CLOCK: [2026-09-11 Fri 20:07]--[2026-09-11 Fri 20:15] =>  0:08
   starting the readable session render
 :LOGBOOK:
 - [2026-09-11 Fri 20:07]--[2026-09-11 Fri 20:15] render a session transcript to readable org
+- State "REVIEW"     from "DOING"      [2026-09-11 Fri 20:15] \\
+  shipped and verified on real sessions
+- State "DONE"       from "REVIEW"     [2026-09-14 Mon 12:23] \\
+  reviewed and accepted by the user
 :END:
 *Prompted 2026-08-26 by the user*: composing a prompt often means re-reading something far back in the session, and submitting jumps the view to the bottom, losing both the spot and the train of thought. The transcript is already a plain file at =~/.claude/projects/<slug>/<session-id>.jsonl=, and the user works in Emacs — reading *there* has no scroll position to lose, gives isearch and folding, and does not move when the agent answers. Readable means one heading per turn, prose as body, tool calls collapsed into a drawer, since the raw file is one JSON object per line with tool calls dwarfing the prose.
 
 *Resolution:* =claude-code-ide-org-render-session= writes a foldable org document per session — turn headings, prompts in quote blocks, prose as sub-headings, tool calls in a =:TOOLS:= drawer — outside any repo, regenerated only when the transcript is newer, and reachable from a span with =T=.
+
 
 * TODO Intervals on two different headings can overlap, and subtraction reaches only one :code:
 :PROPERTIES:
@@ -8574,14 +8628,28 @@ CLOCK: [2026-09-11 Fri 20:04]--[2026-09-11 Fri 20:07] =>  0:03
 :CREATED:  [2026-09-14 Mon 09:43]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-14 Mon 09:42]--[2026-09-14 Mon 09:43] =>  0:01
+- [2026-09-14 Mon 09:42]--[2026-09-14 Mon 09:43] audit Review attention vs Review and planning populations
 CLOCK: [2026-09-14 Mon 09:57]--[2026-09-14 Mon 09:59] =>  0:02
 - [2026-09-14 Mon 09:57]--[2026-09-14 Mon 09:59] root-cause unattributed spans, file discipline fix
 CLOCK: [2026-09-14 Mon 10:01]--[2026-09-14 Mon 10:08] =>  0:07
 - [2026-09-14 Mon 10:01]--[2026-09-14 Mon 10:08] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-14 Mon 10:08]--[2026-09-14 Mon 10:09] =>  0:01
+- [2026-09-14 Mon 10:08]--[2026-09-14 Mon 10:09] audit Review attention vs Review and planning populations
 CLOCK: [2026-09-14 Mon 10:17]--[2026-09-14 Mon 10:19] =>  0:02
 - [2026-09-14 Mon 10:17]--[2026-09-14 Mon 10:19] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-14 Mon 10:19]--[2026-09-14 Mon 10:20] =>  0:01
+- [2026-09-14 Mon 10:19]--[2026-09-14 Mon 10:20] audit Review attention vs Review and planning populations
 CLOCK: [2026-09-14 Mon 10:24]--[2026-09-14 Mon 10:58] =>  0:34
 - [2026-09-14 Mon 10:24]--[2026-09-14 Mon 10:58] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-14 Mon 10:58]--[2026-09-14 Mon 10:59] =>  0:01
+- [2026-09-14 Mon 10:58]--[2026-09-14 Mon 10:59] audit Review attention vs Review and planning populations
 CLOCK: [2026-09-14 Mon 11:03]--[2026-09-14 Mon 11:09] =>  0:06
 - [2026-09-14 Mon 11:03]--[2026-09-14 Mon 11:09] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-14 Mon 11:09]--[2026-09-14 Mon 11:10] =>  0:01
+- [2026-09-14 Mon 11:09]--[2026-09-14 Mon 11:10] audit Review attention vs Review and planning populations
+CLOCK: [2026-09-14 Mon 11:14]--[2026-09-14 Mon 11:15] =>  0:01
+- [2026-09-14 Mon 11:14]--[2026-09-14 Mon 11:15] audit Review attention vs Review and planning populations
+CLOCK: [2026-09-14 Mon 12:15]--[2026-09-14 Mon 12:16] =>  0:01
+- [2026-09-14 Mon 12:15]--[2026-09-14 Mon 12:16] audit Review attention vs Review and planning populations
 :END:
