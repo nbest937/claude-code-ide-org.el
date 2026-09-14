@@ -7,18 +7,73 @@
 :ID:       496b665e-3370-4a66-814a-3c5bd2d3dddc
 :CREATED:  [2026-09-14 Mon 17:20]
 :END:
+:PLAN:
+Measured 2026-09-14: 916 prose lines over 100 characters in TODO.org and
+2197 in DONE.org, the longest 1554. The user has been reformatting by
+hand with \\[fill-paragraph].
 
-org_capture and org_amend write prose as it arrives, so a body composed in one
-call lands as a single line however long it is. Measured 2026-09-14: 916 prose
-lines over 100 characters in TODO.org and 2197 in DONE.org, the longest 1554.
-The user has been reformatting by hand with M-q. There is no command for it,
-which a read-only TODO.org buffer made explicit — a hand-written emacsclient
-call binds nothing, and reaching for one against a read-only buffer is the
-signal that the tool surface is missing something rather than a licence to clear
-the flag. Proposed: a normaliser beside
-claude-code-ide-org-normalize-heading-separation that fills paragraph and item
-elements only, skips PROPERTIES and LOGBOOK, and refuses unless the buffer's
-non-whitespace content is byte-identical afterwards.
+*There is no command for it*, which a read-only TODO.org buffer made
+explicit — a hand-written =emacsclient= call binds nothing, and reaching
+for one against a read-only buffer is the signal that the tool surface
+is missing something rather than a licence to clear the flag.
+
+*Proposed:* a normaliser beside
+=claude-code-ide-org-normalize-heading-separation= that fills paragraph
+and item elements only, skips =:PROPERTIES:= and =:LOGBOOK:=, defaults
+to the buffer's own =fill-column= so it produces what the human's own
+\\[fill-paragraph] would, and refuses unless the buffer's non-whitespace
+content is byte-identical afterwards.
+:END:
+:DEBRIEF:
+*Shipped* =claude-code-ide-org-fill-prose=: fills =paragraph=, =item=
+and =plain-list= elements, skips =:PROPERTIES:= and =:LOGBOOK:= because
+their contents are org's own records, and defaults to the buffer's own
+=fill-column= so the output is what a human's \\[fill-paragraph] would
+have produced rather than a second competing width. Four tests, 644 in
+the suite.
+
+*The safety property is the feature.* A formatting pass over thousands
+of lines is exactly the edit whose damage nobody can review by reading
+the diff, so the buffer's non-whitespace content is digested before and
+after and a change reverts rather than saves.
+
+*Verified independently of that digest*, since a check marking its own
+homework is worth little: whitespace stripped, DONE.org is byte-identical
+to the previous commit and TODO.org differs only by a heading captured
+after it. Note =git diff --ignore-all-space= is *not* a valid check here
+— it ignores whitespace within a line but still sees moved line breaks,
+so it reported 5,198 insertions on a pass that changed no word.
+
+*Two defects found by running it, both now covered.* =org-element-at-point=
+reports =plain-list= at a list's **first** item and =item= only at later
+ones, so a predicate naming =item= alone skipped the opening item of
+every list — 27 in TODO.org, the longest 588 characters. And an =:ID:= in
+a test fixture registers into =org-id-locations=, breaking an unrelated
+test twenty later with no visible connection to its cause.
+
+*What forced it to be a command rather than a one-liner:* TODO.org's
+buffer was read-only, and the rules are explicit that a hand-written
+=emacsclient= call binds nothing, so reaching for one there signals a
+missing tool rather than licensing the flag to be cleared. It binds
+=buffer-read-only= like its sibling.
+
+*Not addressed, and named rather than filed:* the source is that
+=org_capture= and =org_amend= write prose unwrapped. Filling at the write
+boundary would stop the drift instead of sweeping it, but it changes
+what every write does and deserves its own decision — the sweep is
+idempotent and cheap to re-run in the meantime.
+:END:
+
+=org_capture= and =org_amend= write prose exactly as it arrives, so a
+body composed in one call lands as a single line however long it is, and
+nothing but a human pressing \\[fill-paragraph] has ever wrapped one.
+Proposed: a normaliser that fills prose elements only and refuses unless
+the buffer's non-whitespace content is unchanged.
+
+*Resolution:* shipped as =M-x claude-code-ide-org-fill-prose=, beside
+=normalize-heading-separation= and for the same reason — the files drift
+out of the convention as a matter of course — and swept both trackers,
+941 paragraphs in TODO.org and 2265 in DONE.org.
 
 * TODO A bookkeeping burst reads as many headings worked at once, and inflates every window it lands in :code:
 :PROPERTIES:
@@ -1074,14 +1129,14 @@ Options: a =first= flag, a =before== parameter, or a dedicated reorder call;
 composition hits a wall.
 
 
-* DOING [5/10] Join the transcript to the record: span synopses, readable sessions, weighted attribution :code:
+* DOING [5/11] Join the transcript to the record: span synopses, readable sessions, weighted attribution :code:
 :PROPERTIES:
 :ID:       afea7e4f-41b3-4eda-83f1-39e1b9e7a61a
 :CREATED:  [2026-09-11 Fri 11:00]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(295cde3a-49a5-4960-a828-a4fc175d73c1 40159d43-e48b-4f38-95eb-651145637049 b23e5bcc-1bfd-4862-a801-0c7ac6959924 169df26b-64a8-4de9-8919-ab58d510aaf6 4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba)
+:BLOCKER:  ids(295cde3a-49a5-4960-a828-a4fc175d73c1 40159d43-e48b-4f38-95eb-651145637049 b23e5bcc-1bfd-4862-a801-0c7ac6959924 169df26b-64a8-4de9-8919-ab58d510aaf6 4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba 496b665e-3370-4a66-814a-3c5bd2d3dddc)
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-11 Fri 11:12] \\
@@ -1141,25 +1196,26 @@ need became concrete.
 
 Planned:
 
-- [X] [[id:325679af-829e-4c7f-88b0-153c2c9683b3][325679af]] DONE The review buffer shows each run's opening prompt, joined
+- [X] [[id:325679af-829e-4c7f-88b0-153c2c9683b3][325679af]] DONE The review buffer shows each run's opening prompt, joined from the transcript
   from the transcript
-- [X] [[id:96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d][96ddf1ef]] DONE Render a session transcript to readable org, so scrollback
+- [X] [[id:96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d][96ddf1ef]] DONE Render a session transcript to readable org, so scrollback stops being the index
   stops being the index
-- [-] [[id:295cde3a-49a5-4960-a828-a4fc175d73c1][295cde3a]] DOING Divide a window's run time among the headings the
+- [-] [[id:295cde3a-49a5-4960-a828-a4fc175d73c1][295cde3a]] DOING Divide a window's run time among the headings the transcript shows it worked
   transcript shows it worked
-- [X] [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]] DONE The review buffer should name each item's tracker, now that
+- [X] [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]] DONE The review buffer should name each item's tracker, now that two projects share the queue
   two projects share the queue
-- [X] [[id:f1e36a65-3469-4ae6-ac1f-fdfcd1c053c9][f1e36a65]] DONE Open the review buffer newest-first, with =s= to reverse it
+- [X] [[id:f1e36a65-3469-4ae6-ac1f-fdfcd1c053c9][f1e36a65]] DONE Open the review buffer newest-first, with =s= to reverse it like dired
   like dired
-- [X] [[id:f3a53bd4-60ab-47a1-84b0-07d2c1c5fd24][f3a53bd4]] DONE The review buffer is one undifferentiated face, so its
+- [X] [[id:f3a53bd4-60ab-47a1-84b0-07d2c1c5fd24][f3a53bd4]] DONE The review buffer is one undifferentiated face, so its element kinds have to be parsed by eye
   element kinds have to be parsed by eye
-- [ ] [[id:40159d43-e48b-4f38-95eb-651145637049][40159d43]] TODO Nothing stops a span being assigned to "Review attention",
+- [ ] [[id:40159d43-e48b-4f38-95eb-651145637049][40159d43]] TODO Nothing stops a span being assigned to "Review attention", which ranks high and reads like "Review and planning"
   which ranks high and reads like "Review and planning"
-- [ ] [[id:b23e5bcc-1bfd-4862-a801-0c7ac6959924][b23e5bcc]] TODO A state item applies correctly and is then reported failed,
+- [ ] [[id:b23e5bcc-1bfd-4862-a801-0c7ac6959924][b23e5bcc]] TODO A state item applies correctly and is then reported failed, so it is re-offered forever
   so it is re-offered forever
-- [ ] [[id:169df26b-64a8-4de9-8919-ab58d510aaf6][169df26b]] TODO The stored error backtrace is captured after unwinding, so
+- [ ] [[id:169df26b-64a8-4de9-8919-ab58d510aaf6][169df26b]] TODO The stored error backtrace is captured after unwinding, so it never shows where the error came from
   it never shows where the error came from
-- [ ] [[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] TODO Reconstruct coarse day-level attention intervals for the
+- [ ] [[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] TODO Reconstruct coarse day-level attention intervals for the agenda
+- [-] [[id:496b665e-3370-4a66-814a-3c5bd2d3dddc][496b665e]] DOING Long prose lines accumulate in the trackers, and M-q by hand is the only thing wrapping them
   agenda
 
 *Adopted 2026-09-11 under the new discovery rule:* =f1e36a65= (open the review
