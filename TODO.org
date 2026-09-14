@@ -707,7 +707,7 @@ Planned:
 
 - [X] [[id:325679af-829e-4c7f-88b0-153c2c9683b3][325679af]] DONE The review buffer shows each run's opening prompt, joined from the transcript
 - [X] [[id:96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d][96ddf1ef]] DONE Render a session transcript to readable org, so scrollback stops being the index
-- [ ] [[id:295cde3a-49a5-4960-a828-a4fc175d73c1][295cde3a]] NEXT Attribute a turn to several tasks by weight, judged from the transcript with lag
+- [ ] [[id:295cde3a-49a5-4960-a828-a4fc175d73c1][295cde3a]] NEXT Divide a window's run time among the headings the transcript shows it worked
 - [X] [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]] DONE The review buffer should name each item's tracker, now that two projects share the queue
 - [X] [[id:f1e36a65-3469-4ae6-ac1f-fdfcd1c053c9][f1e36a65]] DONE Open the review buffer newest-first, with =s= to reverse it like dired
 - [X] [[id:f3a53bd4-60ab-47a1-84b0-07d2c1c5fd24][f3a53bd4]] DONE The review buffer is one undifferentiated face, so its element kinds have to be parsed by eye
@@ -2244,7 +2244,7 @@ having: markers *raise or lower confidence* on a span a human is going to judge 
 =5a6d2c75='s frame rather than an automatic classifier.
 
 
-* NEXT Attribute a turn to several tasks by weight, judged from the transcript with lag :code:research:
+* NEXT Divide a window's run time among the headings the transcript shows it worked :code:research:
 :PROPERTIES:
 :ID:       295cde3a-49a5-4960-a828-a4fc175d73c1
 :CREATED:  [2026-09-01 Tue 13:27]
@@ -2255,133 +2255,80 @@ having: markers *raise or lower confidence* on a span a human is going to judge 
   sole remaining member after four closed
 :END:
 
-*Proposed by the user 2026-09-01:* enrich the guideposts with task ids drawn from the prompt and response payloads, multi-valued; let a subagent do it *with lag* so it can see several turns at once; and have it emit a *weight* per id per turn rather than chopping the interval into smaller intervals — "a sort of window function", explicitly not required to be exact or deterministic.
+Apply's spans say *when* the agent ran, not *on what*. This divides each
+fixed window's **measured run time** equally among the headings that
+window actually worked, laid end to end, and reads which headings those
+were from the **session transcript** rather than from the queue.
 
-*Possible: yes, and the enabling facts are already measured rather than assumed.*
+*The shape, decided by the user 2026-09-01 and simplified 2026-09-14.*
+Fixed windows; equal shares; no weights; no overlap; contiguous
+intervals in order of appearance. The one change to the original
+proposal is what gets divided: the window's *measured run time*, not its
+nominal twenty minutes. That needs no utilisation gate, no lookup table
+and invents no minutes, and it makes total allocated equal total
+measured — the property that makes it defensible rather than merely
+explainable.
 
-- The join is exact. Every user message in =~/.claude/projects/<slug>/<session>.jsonl= carries an ISO timestamp, and *28 of 28* of this session's =resume= events match one within two seconds ([[id:e75d660f-5c0d-4707-a645-b5dea7d7ebc0][e75d660f]]). So turn text is addressable from the queue with no hook change and no new field.
-- The signal is dense. Of 38 turns in this session's transcript, *32 (84%) name at least one known heading id*, mean *6.2* ids per turn, with a genuinely multi-valued distribution — many turns name three to eight.
-- The transport is settled and needs no protocol work: =claude -p= asynchronously, per [[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]]'s research. Not MCP sampling, because there is frequently no live session at review time.
+*Why a gate was proposed and why it is not needed.* The proposal applied
+the split "only in periods of maximum utilization". Measured over 399
+windows carrying any run time, **median utilisation is 13.8%**; one
+window reaches 90%, five reach 75%, thirteen reach 50%. A gate on
+maximum utilisation would fire on 1–3% of windows and record almost
+nothing — correct and inert. Dividing measured time removes the reason
+for it.
 
-*And the naive version is measurably wrong in a way that argues **for** the subagent rather than against it.* The heaviest turns name 36, 21 and 18 ids — those are footnote-heavy *responses*, where an id is cited rather than worked on. *Mentions are not subjects.* A regex cannot tell them apart; distinguishing them and apportioning between the two or three tasks a turn actually advanced is exactly the judgement the proposal asks a model to make. The failure mode of the naive extractor is the strongest evidence the judged version is the right shape.
+*The empirical question the user asked, answered.* Over 362 windows
+carrying heading activity: 1 heading in 49%, 2 in 25%, 3 in 15%, 4 in
+6%, 5 in 3%, and **more than 5 in 1.7%**, the largest 9. So the 2–5
+range covers half of active windows and overflow is negligible. Note 1
+heading is the *most* common case and takes the whole window, which the
+original table left implied.
 
-*Helpful: yes, and for a sharper reason than "more data".* Attribution today guesses from *temporal adjacency* — =--review-suggest-heading= offers the nearest preceding =DOING=. Measured on real use ([[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]]): 18 of 23 spans, while latching onto a =CANCELLED= heading for eight hours and offering one heading for a 45-minute span that actually covered five. *Content is a far stronger signal than adjacency*, and it is the signal that has never been read.
+*The signal must be the transcript, and that is the finding that
+survived from the original title.* The measurement above read "worked"
+from id-bearing queue events — =todo=, =clock_in=, =clock_out=, =amend=,
+=capture=. Verified 2026-09-14 that this is the wrong source:
+**=org_amend= queues an event only when it *fails* to write through**,
+so a successful amend is invisible. Six successful amends to
+[[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] that day produced zero queue events, while the
+four events present were all from a window when the buffer happened to
+be dirty. The queue's id-bearing events record *whether the human had
+the file open*, plus decision moments — not work.
 
-*Weights are the right output shape, and this is the part worth defending.* [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] records the user "often alternating between tasks and meta-tasks inside one session" — so a turn genuinely *is* split, and cutting it into sub-intervals invents boundaries that never existed. A weight admits what it is; a timestamp range does not.
+The transcript has no such gap: every =org_amend= call appears with its
+id, as does every other tool call. [[id:e75d660f-5c0d-4707-a645-b5dea7d7ebc0][e75d660f]] measured
+the join as exact — 28 of 28 =resume= events match a transcript
+timestamp within two seconds — and this slice has already built the
+parsing (=--transcript-turns=, =--transcript-prompts=).
 
-*Three hard problems, none fatal but none solved:*
+*Mentions are not subjects, and that distinction is what still needs
+judgement.* The heaviest turns name 36, 21 and 18 ids; those are
+footnote-heavy *responses* citing headings rather than working them. A
+tool call carrying an id is strong evidence of work; an id in prose is
+not. Extracting the candidate set is exact — a regex plus a corpus
+lookup — so only the *selection* among mentions needs a model, which
+bounds any non-determinism to the membership question rather than
+spreading it over numbers.
 
-1. *Org cannot represent a weighted interval.* A =CLOCK:= line is an interval, and a clocktable sums intervals. Weights have no home in that model, so this cannot feed =org_clock_report= without inventing a parallel store.
-2. *Anchoring* — [[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]]'s central objection, and weights may be *worse* than prose for it: =0.35= reads as computed in a way "probably mostly this one" does not.
-3. *Non-determinism in a durable record.* Acceptable in a suggestion, corrosive in a record: a figure that changes when recomputed cannot be reasoned about later.
+*One property to preserve.* An allocated interval's boundaries are an
+artefact of the division: nobody worked heading B from 9:07 to 9:11. The
+annotation must say so, or the CLOCK line reads as measurement — which
+is exactly [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s objection to plausible fabricated
+numbers. Durations are the claim; boundaries are not.
 
-*All three dissolve under one reframe, which is the version worth building.* Do not let this touch the clock. Emit the weighted table as *evidence for the attention pass* — phase 2, where [[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] says the human constructs intervals manually from evidence, and where [[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]] was already re-pointed. Then weights inform a judgement instead of impersonating a measurement, org's model is untouched, and re-running the subagent produces a *new opinion* rather than a mutated record.
+*And a run boundary is broader than it looks.* =--run-opening-kinds= is
+=resume=, =clock_in=, =block_end=; =--run-closing-kinds= is =pause=,
+=clock_out=, =block_start=. Any measurement of "run time" that pairs
+only =resume= and =pause= undercounts, which several ad-hoc analyses
+during this slice did.
 
-*Open, and genuinely undecided:* the window's width and cadence; whether weights are ever aggregated across turns or only shown per turn; and whether the output is stored at all or recomputed on demand. Storing it makes it a record with all of problem 3; recomputing it makes it slow and inconsistent between runs. That trade is the substance of this heading.
-
-*The user proposed a representation 2026-09-01, and it dissolves the objection this body called the biggest one:*
-
-: CLOCK: [12:00]--[12:03] =>  0:03
-: - [12:00]--[12:12] * 0.25
-
-The CLOCK line carries the weighted *share* as a literal interval org can sum; the annotation preserves the true window and the weight it was derived from. 12 minutes × 0.25 = 3.
-
-*Retraction: "org cannot represent a weighted interval" was wrong, and wrong in an interesting way.* It assumed a CLOCK line is a record of observation, so that writing a 3-minute line for a 12-minute window would be fabrication. *The CLOCK lines this project writes are already derived, not observed.* Apply writes one line per =resume= -> =pause= run rather than the span it came from; =--apply-idle-floor= merges across gaps, so a line already covers time when nothing ran; and =--recompute-logbook-text='s own docstring says *"endpoints are rewritten, not just the =>= total"*. The proposal therefore changes *which* derivation produces the endpoints, not whether they are derived. That is a much smaller step than it first appeared.
-
-*It also preserves an invariant it could easily have broken, which is worth noting because it was not obvious.* =--consolidate-logbook-text= sorts every drawer entry by its first timestamp, and a CLOCK line and its annotation stay adjacent *only because they share one*. The proposed pair both begin =[12:00]=, so consolidation keeps them together. The format is compatible as written.
-
-*Two real obstacles remain, and both are mechanical rather than conceptual.*
-
-1. *=--recompute-logbook-text= would destroy these lines.* It replaces each closed CLOCK line at or after =SINCE= with lines derived from *guideposts*, and a weighted share is not derivable from guideposts — so the next recompute silently reverts every weighted line to a busy-interval reconstruction. This needs an explicit opt-out the recompute honours, and the annotation is the obvious carrier.
-2. *Weighted lines overlap by design.* One window attributed 0.25/0.35/0.40 across three headings writes three lines covering the same wall clock. Under weights that is *correct* — the shares sum to 1 and nothing is double-counted — but it collides with machinery that assumes intervals do not overlap, which is [[id:2d100d0d-2d04-43b9-af1e-f4d6b52bbada][2d100d0d]] exactly. Laying the shares end to end instead (12:00-12:03, 12:03-12:09, 12:09-12:12) avoids the collision at the cost of boundaries that are pure fiction, and reintroduces the chopping the weights existed to avoid — as a rendering rather than a claim.
-
-*So the open question moves.* It is no longer "can org hold this" but "which of overlap or fictional boundaries is the lesser evil", and whether the recompute can be taught to leave a marked line alone. Both are answerable; neither is answered here.
-
-*The non-determinism question, checked against the API reference rather than answered from memory 2026-09-01.* The user proposed that model choice is the main source — same telemetry, same prompt, same response, same weight otherwise.
-
-*It is not, and the actual situation is less controllable than that.* On the current models — Fable 5, Opus 5, Opus 4.8/4.7, Sonnet 5 — the sampling parameters =temperature=, =top_p= and =top_k= are *removed and rejected with a 400*. They remain settable only on Opus 4.6 / Sonnet 4.6 and older. So on anything current there is *no knob at all* for pinning output, and no =seed= parameter appears anywhere in the API surface. Identical input does not imply identical output, and cannot be made to.
-
-*Two further sources the premise does not cover:*
-
-- *Adaptive thinking is on by default*, so the model decides per call how much to reason. That is variable by design, before any sampling enters.
-- *=output_config.effort=* changes depth and token spend, so a weight produced at =low= is not the same experiment as one at =high=. It is a knob, but a knob that must be *recorded* rather than assumed.
-- Model ids like =claude-opus-5= are *aliases without date suffixes*, so "the same model" is not a fixed artefact over months.
-
-*So determinism is unavailable, and chasing it is the wrong goal — which the user already allowed for ("doesn't have to be exact or deterministic").* What makes a non-deterministic figure defensible in a durable record is not reproducibility but *provenance*: record the model id, the effort, the window definition and the time, so a later reader knows the weight is one opinion from one configuration and can produce a *comparable* one rather than an identical one. That is exactly the move =:CLOSED_SOURCE: git= made for [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] — do not pretend a derived value is measured, mark how it was derived.
-
-*One design refinement follows, and it usefully shrinks the problem.* The *candidate set* need not be model-judged at all: extracting the ids a turn mentions is a regex plus a corpus lookup, and is exact. Only the *weighting over that fixed set* needs judgement. Splitting the pipeline that way bounds the non-determinism to the numbers rather than the membership — so two runs disagree about proportions, never about which tasks were in play, which is the half a reader is most likely to check.
-
-*Decided by the user 2026-09-01: shares laid end to end, not overlapping.* So a 12-minute window split 0.25/0.35/0.40 writes three consecutive CLOCK lines of 3, 4 and 5 minutes, each annotated with the true window and its weight. Boundaries are fiction; durations are the claim.
-
-*Five specific things "careful handling" means, so they are not rediscovered:*
-
-1. *Rounding must conserve the window.* 0.25/0.35/0.40 of 12 minutes is 3 / 4.2 / 4.8, and org writes whole minutes — so naive rounding gives 3+4+5=12 by luck and 2+4+5=11 or 3+4+6=13 just as easily. Largest-remainder apportionment, asserted to sum to the window. This project has already lost an interval to rounding once: [[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]], which =--apply-idle-floor='s docstring is careful to say "is not coming back through here."
-2. *There is a resolution floor, and it bites hardest exactly where splitting is most wanted.* A share is only representable if weight × window ≥ 1 minute. On a 12-minute window that excludes weights below ~0.08; on a *3-minute* window nothing below 0.33 survives, so a three-way split is already at the limit and a four-way split cannot be written at all. Short windows — which are the common case, median run 353s — can carry two shares, maybe three. The representation is coarser than the judgement it is recording.
-3. *The order of shares inside the window is arbitrary and will be read as meaningful.* Someone will infer that the first share happened first. It needs a stated rule — weight descending is the obvious one — and the annotation has to say the order is not chronological.
-4. *A window is either weighted or clocked, never both.* End-to-end shares do not overlap each other, but they do occupy time a conventional span would also claim; attributing the same window twice double-counts. Whatever writes these must consume the window.
-5. *A zero or sub-minute share must write nothing rather than a =0:00= line.* =--apply-idle-floor= already drops intervals that render as zero, for the reason its docstring gives — "an interval that was never observed" — and a weighted share of zero is the same thing arriving by a different route.
-
-*Note that 2 is the one that constrains the design rather than the implementation.* The others are care; that one says the mechanism cannot express fine-grained splits on short turns, which is precisely where a turn is most likely to touch several tasks. Worth knowing before building, because it may argue for aggregating a *window of turns* before apportioning — which is what the original proposal's "lag" was for.
-
-*A consequence of putting the weight in the annotation, found 2026-09-01 while checking who consumes each :LOGBOOK: line shape.*
-
-*Org ignores the annotation entirely* — to org, =- [start]--[end] note= is a plain list item inside a drawer. Only =CLOCK:= lines are summed. That is exactly why this representation works: the annotation is a free provenance channel that no org tooling interprets.
-
-*But it is not free of consumers here, and one of them is load-bearing.* =claude-code-ide-org--drawer-contains-line-p= supports *content-based idempotency* — =--queue-file-drained-p= and reprocessing both rely on it — and its docstring states the invariant plainly: /"an annotation line is a pure function of its span and label, so an identical one is a replay rather than a second thing that happened."/
-
-*A model-judged weight breaks that invariant.* It is not a pure function of span and label; it is an opinion that varies between runs by construction — and on current models cannot be pinned, since sampling parameters are rejected outright. So two passes over the same window would emit two annotations differing only in the weight, and the replay check would read them as *two things that happened* rather than one thing recomputed.
-
-*Three ways out, none chosen:* exclude the weight from the comparison, so replay detection keys on span and label as it does now; make weighted annotations a distinct shape the idempotency check skips; or forbid recomputation of a window that already carries one, which makes the first weight permanent and the provenance a record rather than a current opinion. The third is the most conservative and the least useful.
-
-*Worth noting the invariant is cited to [[id:78f485a8-e808-43ce-af5f-277a5c97c471][78f485a8]]*, so this is not an incidental implementation detail but a property something was built to have.
-
-*Scoped by the user 2026-09-01, and it settles most of the above:* "provenance and non-determinism are not worth agonizing over. the goal is plausible, representative estimates in the aggregate, say at the per-day or per-slice level."
-
-*That is a design decision, not a relaxation of standards, and it makes the mechanism simpler in four places.* If the unit of interest is a day or a slice, then *apportion at that level rather than per turn* — one pass over the day's turns, one set of shares. Which dissolves:
-
-- *The resolution floor.* A day holds hundreds of minutes, so a 2% share is representable; a three-minute turn could not express one. The floor was an artefact of apportioning per turn.
-- *Rounding.* One largest-remainder apportionment over the day, conserved once, instead of one per turn with per-turn residues.
-- *The idempotency collision.* One annotation per task per day rather than per turn, and recomputation replaces a day's set wholesale instead of racing the replay check.
-- *Cost.* One subagent call per day, not one per turn — which is also what makes the "lag" in the original proposal pay for itself.
-
-*What survives, and it is small.* A weighted CLOCK line still sums into clocktables beside measured ones, so *something* must distinguish them — not for reproducibility, but so a reader does not take a derived minute for an observed one. One token in the annotation does it, exactly as =:CLOSED_SOURCE: git= did for [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]]. That is a marker, not a provenance system, and it should not grow into one.
-
-*One residual bias worth stating rather than agonising over.* Dropping sub-minute shares systematically under-attributes tasks that only ever receive small slices. At day level that is mostly moot — but a task that got 3% of every turn all day would land near zero, and that reads as "untouched" rather than "marginal". Whether that matters depends on what the aggregate is for; it is a known distortion, not a bug to fix in advance.
-
-*And the aggregation level buys a check the per-turn version could not have:* the weighted minutes attributed across a day should sum to that day's agent time. That is a real invariant, cheap to assert, and a much stronger test of plausibility than eyeballing any single turn's split.
-
-*Corrected by the user 2026-09-01, and the correction sharpens rather than blurs:* not "apportion at the aggregation level", but *"the result of aggregating the apportioned intervals should be plausible and representative."*
-
-*The difference is that the aggregate is the acceptance test, not the unit of production.* Apportioning stays at the turn or window level; the day or slice is where the answer is *judged*. The previous entry conflated the two — it moved the mechanism to match the criterion, which threw away two things:
-
-- *Turn-level attribution is itself the finer record, and it re-aggregates.* Apportion per window and you can still ask per-day, per-slice, per-week. Apportion per day and the question "what was this turn about" has no answer any more. Aggregating early is lossy and irreversible.
-- *It discarded the reason for windowing at all.* The user's own point — successive turns concern *intersecting sets of referents* — is an argument for a window larger than a turn and smaller than a day. "Day level" was just the far end of that spectrum with the motivation removed.
-
-*So fewer of the four dissolve than the previous entry claimed, and the honest accounting is:*
-
-- *Resolution floor: mitigated, not removed*, and now visibly a *function of the window parameter*. A window of an hour makes a 2% share about a minute — borderline. Window width trades directly against how fine a share can be expressed. That is input to the parameterisation question, which the user has deferred; it is not an answer to it.
-- *Rounding: dissolves as a correctness worry but not as a mechanism.* Largest-remainder is unbiased, so per-window residues average out at the aggregate — which is exactly what an aggregate-level criterion licenses.
-- *Idempotency: unchanged.* Still one annotation per window; the fix is still to key replay detection on span and label and treat the weight as payload.
-- *Cost: per window rather than per day.* Between the two.
-
-*And the correction promotes one concern rather than dissolving it.* "Representative" is a stronger word than "plausible": it asks that the *distribution across tasks* reflect what happened, not merely that no single number look absurd. Dropping sub-minute shares is exactly a failure of that kind — every individual figure stays plausible while a task that received a small slice of every turn aggregates to near zero. *Plausible per turn can aggregate to unrepresentative*, and the criterion the user has stated is the one that catches it.
-
-*Which also names the test.* Aggregate plausibility is checkable against the reconstructible-stretch yardstick [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] settled on — a day whose commits, test deltas and debriefs bound what actually happened.
-
-*The user proposed a much simpler mechanism 2026-09-14, and asked the one empirical question that decides it:* fixed 20-minute windows (9:00--9:20, 9:20--9:40, ...), count the headings *worked* rather than mentioned, split the window between them by a small table — 5 headings → 4 minutes each, 4 → 5, 3 → 7, 2 → 10 — applied "only in the periods of maximum utilization". No weights, no overlap, end-to-end intervals in order of appearance. "How often are there more than 5 headings being worked during windows when the agent is continuously occupied?"
-
-*Measured over the whole queue corpus. Worked is read as an event that **acts on** a heading — =todo=, =clock_in=, =clock_out=, =amend=, =capture= with an id — rather than a mention, which is the distinction the question turns on.*
-
-*The answer to the question asked is yes, it is rare.* Across 362 windows carrying any heading activity: 1 heading in 49%, 2 in 25%, 3 in 15%, 4 in 6%, 5 in 3%, and **more than 5 in 6 windows — 1.7%**, the largest being 9. The table's 2--5 range covers 49% of active windows and the overflow case is negligible.
-
-*But the premise the table rests on does not hold, and this is the finding.* "Continuously occupied" windows essentially do not exist. Over 399 windows with any run time, the **median utilisation is 13.8%**; one window reaches 90%, five reach 75%, thirteen reach 50%. Gating allocation on maximum utilisation would fire on roughly 1--3% of windows and record almost nothing — the mechanism would be correct and inert.
-
-*The simplification survives one change, and it is smaller than the gate it removes: divide the window's **measured run time**, not its twenty minutes.* The pipeline already knows how many seconds of turn time fell in each window; splitting *that* N ways keeps everything the proposal wanted — fixed windows, equal shares, no weights, no overlap, contiguous intervals in order of appearance — while needing no utilisation threshold, no lookup table, and inventing no minutes. Total allocated then equals total measured, which is the property that makes it defensible rather than merely explainable.
-
-*Two smaller notes.* The table overshoots at 3: 3 × 7 = 21 minutes in a 20-minute window, a 5% systematic over-record concentrated in the third-commonest case. And 1 heading is the *most* common window at 49% and is not in the table; it presumably takes the whole window, which is worth stating rather than leaving implied.
-
-*One property to preserve whichever shape wins.* An allocated interval's boundaries are an artefact of the division, not an observation — nobody worked heading B from 9:07 to 9:11. The annotation must say so, or the CLOCK line reads as measurement, which is exactly the objection =7771fc63= raised against plausible fabricated numbers.
-
+*Superseded, and left to git rather than restated here:* the weighted
+=CLOCK:= representation with its =* 0.25= annotation, the per-turn
+resolution floor, largest-remainder rounding, the
+=--drawer-contains-line-p= idempotency collision, and the provenance
+argument about sampling parameters. All of it followed from weights and
+per-turn apportionment, and neither survives. The reasoning is in the
+history of this heading if the question reopens.
 
 
 * TODO AFK markers are ground truth for the one judgement we cannot automate, and we discard them :code:
