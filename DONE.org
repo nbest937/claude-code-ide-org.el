@@ -742,36 +742,24 @@ the hooks move.
 
 Planned:
 
-- [X] [[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]] DONE Package the
-  plugin: references, setup command, machinery prose
+- [X] [[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]] DONE Package the plugin: references, setup command, machinery prose
 - [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] DONE Update CLAUDE.md
   and the org skill for the new architecture
-  - [X] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] DONE CLAUDE.md
-    carries dated history that costs every session's context
-- [X] [[id:e396f94a-59db-4c6b-80b4-dc144146877b][e396f94a]] DONE Package the
-  Warp wiring
-- [X] [[id:78a02667-c946-429e-af58-7330070c6e06][78a02667]] DONE
-  claude-org-setup wires the Doom module
-- [X] [[id:c7bf2121-755c-4e52-8bf2-e21e56b1e0c2][c7bf2121]] DONE Every merge to
-  main went through a PR ten times, and nothing says so
-- [X] [[id:1206b5b0-765f-48f7-94a9-0b543cf76487][1206b5b0]] DONE
-  org_slice_add_member cannot declare a nested member
-- [X] [[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]] DONE Split the
-  reads: org_outline carries the body, a second tool serves drawers on demand
+  - [X] [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] DONE CLAUDE.md carries dated history that costs every session's context
+- [X] [[id:e396f94a-59db-4c6b-80b4-dc144146877b][e396f94a]] DONE Package the Warp wiring
+- [X] [[id:78a02667-c946-429e-af58-7330070c6e06][78a02667]] DONE claude-org-setup wires the Doom module
+- [X] [[id:c7bf2121-755c-4e52-8bf2-e21e56b1e0c2][c7bf2121]] DONE Every merge to main went through a PR ten times, and nothing says so
+- [X] [[id:1206b5b0-765f-48f7-94a9-0b543cf76487][1206b5b0]] DONE org_slice_add_member cannot declare a nested member
+- [X] [[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]] DONE Split the reads: org_outline carries the body, a second tool serves drawers on demand
 - [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out
   future work on a timeline the agenda can show
 - [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention
   across concurrent sessions, which is zero-sum
-- [X] [[id:308bf4b4-3816-4e34-b031-2bcd58102c4d][308bf4b4]] DONE Adopt org's
-  agenda list file, retiring the symlink scan and the restart
-- [X] [[id:67c3208f-a155-486a-beba-1763d3c86137][67c3208f]] DONE Scope the four
-  hook policies to tracked files, per the consent decision
-- [X] [[id:e3caa21f-462a-4689-8a9b-929fbf30cb9e][e3caa21f]] DONE The module's
-  own packages.el declares claude-code-ide
-- [X] [[id:7c86ab4c-3157-4817-9fcc-d2e60c8fc160][7c86ab4c]] DONE Promote
-  generated elisp into $DOOMDIR: one stable stub, drift-checked glue
-- [X] [[id:7dbb82e0-cbb2-481c-bb95-d0e4d9b42126][7dbb82e0]] DONE Persistent
-  plugin enablement: stop passing --plugin-dir every session
+- [X] [[id:308bf4b4-3816-4e34-b031-2bcd58102c4d][308bf4b4]] DONE Adopt org's agenda list file, retiring the symlink scan and the restart
+- [X] [[id:67c3208f-a155-486a-beba-1763d3c86137][67c3208f]] DONE Scope the four hook policies to tracked files, per the consent decision
+- [X] [[id:e3caa21f-462a-4689-8a9b-929fbf30cb9e][e3caa21f]] DONE The module's own packages.el declares claude-code-ide
+- [X] [[id:7c86ab4c-3157-4817-9fcc-d2e60c8fc160][7c86ab4c]] DONE Promote generated elisp into $DOOMDIR: one stable stub, drift-checked glue
+- [X] [[id:7dbb82e0-cbb2-481c-bb95-d0e4d9b42126][7dbb82e0]] DONE Persistent plugin enablement: stop passing --plugin-dir every session
 
 *Four of the five arrive with a =:BLOCKER:= already naming =b0e478f7=*,
 set when =ff7ccb2d= deferred them — so the sequencing above is declared
@@ -809,22 +797,15 @@ The prompt that drives this slice, one link per revision, oldest first:
 
 Incidental:
 
-- [X] [[id:62bccf40-2f09-4ba3-a51a-908ec5c48f6a][62bccf40]] DONE README
-  documents plugin installation
-- [X] [[id:85d24dba-27fb-4a41-adbb-c19617e82e7e][85d24dba]] DONE Nothing checks
-  promoted rules copies against the plugin references
-- [X] [[id:94d36eb7-3a91-4435-a8e0-69e5a3451cce][94d36eb7]] DONE DOOM.md
-  documents the sandbox review procedure
+- [X] [[id:62bccf40-2f09-4ba3-a51a-908ec5c48f6a][62bccf40]] DONE README documents plugin installation
+- [X] [[id:85d24dba-27fb-4a41-adbb-c19617e82e7e][85d24dba]] DONE Nothing checks promoted rules copies against the plugin references
+- [X] [[id:94d36eb7-3a91-4435-a8e0-69e5a3451cce][94d36eb7]] DONE DOOM.md documents the sandbox review procedure
 - [[id:3f31b788-0204-40fb-a9c0-b2bea96f7f05][3f31b788]] CANCELLED Unknown MCP
   methods signal an undefined error symbol and answer nothing
-- [X] [[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]] DONE A second
-  project's targetless captures land in the wrong tracker
-- [X] [[id:9b171907-ac4d-4afb-ade9-c90571835209][9b171907]] DONE
-  claude-org-setup --org scaffolds a consuming project's org files
-- [X] [[id:3348266b-aa28-45fa-ae7b-3f4ad4cb6e81][3348266b]] DONE doc-sync-check
-  learns the DOOM.md pair; README catches up to the tooling
-- [X] [[id:4f8b5d99-90ac-4742-aba5-4688762172dc][4f8b5d99]] DONE org 10.0-pre
-  stops downcasing uuidgen IDs; decide whether the module normalizes case
+- [X] [[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]] DONE A second project's targetless captures land in the wrong tracker
+- [X] [[id:9b171907-ac4d-4afb-ade9-c90571835209][9b171907]] DONE claude-org-setup --org scaffolds a consuming project's org files
+- [X] [[id:3348266b-aa28-45fa-ae7b-3f4ad4cb6e81][3348266b]] DONE doc-sync-check learns the DOOM.md pair; README catches up to the tooling
+- [X] [[id:4f8b5d99-90ac-4742-aba5-4688762172dc][4f8b5d99]] DONE org 10.0-pre stops downcasing uuidgen IDs; decide whether the module normalizes case
 
 =ecf66d45= moved to
 [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]] 2026-09-10 (the
@@ -1552,8 +1533,7 @@ Planned:
 
 - [[id:f90d745e-ccf9-49d6-a92e-df25c17b4dfb][f90d745e]] TODO Sixty minutes
   holding 2 turns is not sixty holding 40 [2/7]
-  - [ ] [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate
-    attention across concurrent sessions, which is zero-sum
+  - [ ] [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate attention across concurrent sessions, which is zero-sum
 
 
 **** DONE doc-sync-check learns the DOOM.md pair; README catches up to the tooling :code:
@@ -5085,26 +5065,17 @@ member below is a place where that is not yet true — where a human hand is sti
 required, and where forgetting is silent. Six of the seven were either filed or
 sharpened on 2026-09-03/04, which is why the theme only became visible now.
 
-- [X] [[id:2c77f2cc-af07-4f4d-aa9d-1aa3bc8843f5][2c77f2cc]] DONE One incidental
-  lands in every open slice's window, and the cookies double-count it
-- [X] [[id:635d5abb-207d-445d-b268-bc031bdd592a][635d5abb]] DONE org_amend
-  cannot continue a list, and the slice revision links are always one
-- [X] [[id:501a8422-9e93-4d2d-98bb-db0ab2c16e37][501a8422]] DONE Give org_amend
-  a drawer argument, so a plan can be revised and written in one call
-- [X] [[id:acf46449-422b-45d5-a223-83224ef71548][acf46449]] DONE Every slice
-  needs :COOKIE_DATA: and no slice creates it; the lint only reports
-- [X] [[id:7f0c9baa-67ed-4008-8cbc-28f0ea898dd4][7f0c9baa]] DONE The proposal
-  convention's last argument is falsified; an open slice is its own proposal
+- [X] [[id:2c77f2cc-af07-4f4d-aa9d-1aa3bc8843f5][2c77f2cc]] DONE One incidental lands in every open slice's window, and the cookies double-count it
+- [X] [[id:635d5abb-207d-445d-b268-bc031bdd592a][635d5abb]] DONE org_amend cannot continue a list, and the slice revision links are always one
+- [X] [[id:501a8422-9e93-4d2d-98bb-db0ab2c16e37][501a8422]] DONE Give org_amend a drawer argument, so a plan can be revised and written in one call
+- [X] [[id:acf46449-422b-45d5-a223-83224ef71548][acf46449]] DONE Every slice needs :COOKIE_DATA: and no slice creates it; the lint only reports
+- [X] [[id:7f0c9baa-67ed-4008-8cbc-28f0ea898dd4][7f0c9baa]] DONE The proposal convention's last argument is falsified; an open slice is its own proposal
 - [[id:198dd00e-0746-444a-ab25-2034a2a235c2][198dd00e]] CANCELLED Accepting a
   slice proposal leaves its body still calling itself a proposal
-- [X] [[id:2d2211d5-97c3-4f69-8175-40df90d1db8a][2d2211d5]] DONE Adding a
-  just-captured heading to a slice cannot be made lint-clean
-- [X] [[id:de687e4d-9384-46ae-a495-55b3ae46d1bb][de687e4d]] DONE A slice closed
-  by the same apply pass freezes with stale member lines
-- [X] [[id:1b727475-46c3-4967-8cdd-dfd9397d94ea][1b727475]] DONE A MAYBE member
-  and a dropped member render identically, and the drop is now sticky
-- [X] [[id:d749ebd5-ff2b-4794-941a-0af5c2df1356][d749ebd5]] DONE The ceremony
-  should refresh open slices, so incidentals and cookies stop waiting on memory
+- [X] [[id:2d2211d5-97c3-4f69-8175-40df90d1db8a][2d2211d5]] DONE Adding a just-captured heading to a slice cannot be made lint-clean
+- [X] [[id:de687e4d-9384-46ae-a495-55b3ae46d1bb][de687e4d]] DONE A slice closed by the same apply pass freezes with stale member lines
+- [X] [[id:1b727475-46c3-4967-8cdd-dfd9397d94ea][1b727475]] DONE A MAYBE member and a dropped member render identically, and the drop is now sticky
+- [X] [[id:d749ebd5-ff2b-4794-941a-0af5c2df1356][d749ebd5]] DONE The ceremony should refresh open slices, so incidentals and cookies stop waiting on memory
 
 *Sequenced, and reordered 2026-09-08.* =2c77f2cc= is first: it is the only
 member producing visible garbage on every refresh rather than waiting to be
@@ -6068,40 +6039,31 @@ prose cannot, because =.claude/rules/= is not a plugin component. Each member is
 a different face of that. The argument, the plugin-manifest verification and the
 line-count measurement are all =9ae4b17e='s and are not repeated here.
 
-- [X] [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] DONE Make the org
-  skill and its discipline portable to other repos
+- [X] [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] DONE Make the org skill and its discipline portable to other repos
 - [[id:1caed585-3209-4108-8501-eba16baf6a01][1caed585]] MAYBE Decide what this
   module may change on a user's machine when installed
-- [X] [[id:d5345abb-b451-4468-8f27-4bb2da983215][d5345abb]] DONE Audit CLAUDE.md
-  for directives that belong in the org skill instead
+- [X] [[id:d5345abb-b451-4468-8f27-4bb2da983215][d5345abb]] DONE Audit CLAUDE.md for directives that belong in the org skill instead
 - [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] DOING Update CLAUDE.md
   and the org skill for the new architecture
   - [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] DOING CLAUDE.md
     carries dated history that costs every session's context
-- [X] [[id:1ed7b2b4-a809-4547-b04f-099a3111fc1e][1ed7b2b4]] DONE The org 9.7+
-  dependency is real, undeclared, and unenforced
-- [X] [[id:84b7d8b3-5161-4146-9167-0e7e2100e365][84b7d8b3]] DONE Evaluate choice
-  of shell and standardize all project scripts
-- [X] [[id:f8c86914-0759-4e05-9292-6f7fa5593701][f8c86914]] DONE The convention
-  checks compare the live Emacs against whichever checkout invoked them
+- [X] [[id:1ed7b2b4-a809-4547-b04f-099a3111fc1e][1ed7b2b4]] DONE The org 9.7+ dependency is real, undeclared, and unenforced
+- [X] [[id:84b7d8b3-5161-4146-9167-0e7e2100e365][84b7d8b3]] DONE Evaluate choice of shell and standardize all project scripts
+- [X] [[id:f8c86914-0759-4e05-9292-6f7fa5593701][f8c86914]] DONE The convention checks compare the live Emacs against whichever checkout invoked them
 - [[id:e396f94a-59db-4c6b-80b4-dc144146877b][e396f94a]] MAYBE Package the Warp
   wiring
 - [[id:f90d745e-ccf9-49d6-a92e-df25c17b4dfb][f90d745e]] TODO Sixty minutes
   holding 2 turns is not sixty holding 40 [1/1]
-  - [X] [[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]] DONE Record cwd on
-    queue events, so a span can be attributed to a project
+  - [X] [[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]] DONE Record cwd on queue events, so a span can be attributed to a project
   - [[id:b862fbf4-53b8-48b5-b773-1c7c0332dfb4][b862fbf4]] TODO Allocate
     attention across concurrent sessions, which is zero-sum
 - [[id:83b3cdd6-982a-4ae1-878c-79a8c941f638][83b3cdd6]] CANCELLED Record the
   originating project in queue events
 - [[id:2e09adb7-6e29-499c-a40e-98cd2b327cff][2e09adb7]] TODO Worktree-based
   session partitioning, with a canonical-file caveat
-- [X] [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]] DONE Add README.md
-  and enforce its consistency with CLAUDE.md
-- [X] [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] DONE Heading bodies
-  grow into narratives no human will read; decide what to stop capturing
-- [X] [[id:c5b02503-1700-47fd-bf89-bd3296b24af2][c5b02503]] DONE Hook-injected
-  context is only as reliable as the model choosing to relay it
+- [X] [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]] DONE Add README.md and enforce its consistency with CLAUDE.md
+- [X] [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]] DONE Heading bodies grow into narratives no human will read; decide what to stop capturing
+- [X] [[id:c5b02503-1700-47fd-bf89-bd3296b24af2][c5b02503]] DONE Hook-injected context is only as reliable as the model choosing to relay it
 - [[id:3cb3f955-f10a-47cd-84ab-e629d73ea59d][3cb3f955]] TODO Org skill: commit a
   newly-captured TODO immediately, when safe
 - [[id:7eb7dd8d-2d9b-4a63-afbd-5878298e42a4][7eb7dd8d]] MAYBE Org skill:
@@ -6185,10 +6147,8 @@ The prompt that drives this slice, one link per revision, oldest first:
 
 Incidental:
 
-- [X] [[id:f1ff027e-5826-4812-8221-96eeba966333][f1ff027e]] DONE Commit
-  co-author trailer is frozen at session start, misattributes after /model
-- [X] [[id:d585d33e-3804-45b3-8f96-65143d79363e][d585d33e]] DONE Adopt
-  systemMessage on the recovery-and-ceremony hook payload
+- [X] [[id:f1ff027e-5826-4812-8221-96eeba966333][f1ff027e]] DONE Commit co-author trailer is frozen at session start, misattributes after /model
+- [X] [[id:d585d33e-3804-45b3-8f96-65143d79363e][d585d33e]] DONE Adopt systemMessage on the recovery-and-ceremony hook payload
 
 *Closed 2026-09-08, eleven members landed and nine dropped or
 deferred.* Merged as =8975409= (the implementation half) and =39508ec=
@@ -9114,14 +9074,10 @@ when one picks it up.
 
 - [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] DOING Update CLAUDE.md
   and the org skill for the new architecture
-  - [X] [[id:cc63742e-1f1a-4af1-8580-ecbd5e3f7190][cc63742e]] DONE Three
-    nomination paragraphs say container where the code means grouping
-  - [X] [[id:6fc9377b-468f-4c61-aada-548d329eb5d8][6fc9377b]] DONE The plan-link
-    lifecycle prose still describes the retired wrap-at-DONE flow
-- [X] [[id:dca940c1-becd-4e37-ada6-3217070f32dc][dca940c1]] DONE A slice that
-  grows keyworded children reads as both groupings
-- [X] [[id:758a8b78-8d85-4c8b-a7c5-796d75ae62aa][758a8b78]] DONE One top-level
-  NEXT per category, and nested slice listings
+  - [X] [[id:cc63742e-1f1a-4af1-8580-ecbd5e3f7190][cc63742e]] DONE Three nomination paragraphs say container where the code means grouping
+  - [X] [[id:6fc9377b-468f-4c61-aada-548d329eb5d8][6fc9377b]] DONE The plan-link lifecycle prose still describes the retired wrap-at-DONE flow
+- [X] [[id:dca940c1-becd-4e37-ada6-3217070f32dc][dca940c1]] DONE A slice that grows keyworded children reads as both groupings
+- [X] [[id:758a8b78-8d85-4c8b-a7c5-796d75ae62aa][758a8b78]] DONE One top-level NEXT per category, and nested slice listings
 
 The =02aaae22= line is a checkbox-less grouping label per =758a8b78='s rule (4),
 exercised here for the first time: the slice takes two of the story's four open
@@ -9313,113 +9269,61 @@ and the open decisions live in the prompt below rather than here.
 - [[orgit-rev:claude-code-ide-org::bb7eae2][bb7eae2]] [2026-08-31 Mon 09:02]
   corrected six claims that went stale with that close
 
-- [X] [[id:c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8][c60a1c53]] DONE Name the work a
-  slice forgot: detect the omission, never fix it
-- [X] [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] DONE Reorder
-  DONE.org as a datetree descending by CLOSED:, and fix archiving into one
-- [X] [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] DONE Recover a close
-  time from git for the headings with no in-file evidence
-- [X] [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]] DONE Jump to a
-  heading by title, not by pasting a UUID
-- [X] [[id:46d225c7-7541-4867-af72-929a572df2a5][46d225c7]] DONE Remove
-  queue-append's synthetic-event overrides, dead since the ExitPlanMode hook
-  went
-- [X] [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]] DONE A clock-report
-  test fails every evening, because its fixture spills past midnight
-- [X] [[id:5a5e87c9-f432-44c6-a5a6-f6f3755e4347][5a5e87c9]] DONE A duration
-  assertion matches the clocktable's own timestamp, three minutes a day
-- [X] [[id:c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b][c8a97d9d]] DONE Clearing a
-  buffer's read-only flag for an MCP tool leaves it cleared
-- [X] [[id:2b2db914-c96e-416a-a80a-e31028308de0][2b2db914]] DONE org_capture
-  swallows a title beginning with a TODO keyword
-- [X] [[id:c74f8663-b14e-4ab9-ad65-d99cb655b3fa][c74f8663]] DONE org_capture
-  should accept an initial TODO state, so a heading is not keywordless until
-  apply
-- [X] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] DONE MCP tools that
-  write an org file time out; one reports success and persists nothing
-- [X] [[id:a0028a4e-39cb-4653-83cc-446b810234ac][a0028a4e]] DONE Add a body
-  read: return a heading whole, drawers included, and let the caller extract
-- [X] [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] DONE Six defects in
-  one day, all the same: the code knew more than it said
-- [X] [[id:29734f79-e698-43dd-abf8-14bc86b8b0ae][29734f79]] DONE The ceremony
-  prompt goes quiet on evidence of its first step, and never reports its own
-  completion
-- [X] [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]] DONE "writes 0:09 in
-  1" reads as two swappable numbers; "in 1" has no unit
-- [X] [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] DONE Show turn count
-  on the span line, where the attention call is made
-- [X] [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] DONE A span's
-  headline interval is not the interval it writes
-- [X] [[id:46e4ce2b-fdc8-447b-ad09-b4845602540f][46e4ce2b]] DONE Lead every
-  review-buffer rendering with the :ID: prefix, rather than trailing it
-- [X] [[id:05c71d99-2839-447b-a536-60eb4bf43b73][05c71d99]] DONE Apply logs a
-  self-transition when a queued event's target already matches reality
-- [X] [[id:8d0716fe-ca88-429d-b46b-e2f880f5b2cc][8d0716fe]] DONE g in the review
-  buffer discards unapplied judgement without asking
-- [X] [[id:b6e229c7-3035-4c0e-943b-710a12bfd7d1][b6e229c7]] DONE Auto-mark the
-  state items that carry no judgement
-- [X] [[id:a2509a61-4e21-4d8e-8f58-c87935753472][a2509a61]] DONE Assign advances
-  past the line the human is about to mark
-- [X] [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]] DONE A slice should
-  list incidental work separately from its planned members
-- [X] [[id:5f1068f9-1452-45e4-9253-568edfce2053][5f1068f9]] DONE Sort TODO.org
-  by :CREATED: descending, after each archive pass
-- [X] [[id:7c4d6ef6-c914-4d33-b267-cc9158a9f359][7c4d6ef6]] DONE Settle what a
-  slice proposal is, and write the procedure down
-- [X] [[id:8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8][8c662dfb]] DONE Sweep the ten
-  longest live bodies into :PLAN: drawers
-- [X] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] DONE Verification
-  traps: a check with no way to fail, and a fixture that never takes the real
-  path
-- [X] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] DONE Generalize
-  bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
+- [X] [[id:c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8][c60a1c53]] DONE Name the work a slice forgot: detect the omission, never fix it
+- [X] [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] DONE Reorder DONE.org as a datetree descending by CLOSED:, and fix archiving into one
+- [X] [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] DONE Recover a close time from git for the headings with no in-file evidence
+- [X] [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]] DONE Jump to a heading by title, not by pasting a UUID
+- [X] [[id:46d225c7-7541-4867-af72-929a572df2a5][46d225c7]] DONE Remove queue-append's synthetic-event overrides, dead since the ExitPlanMode hook went
+- [X] [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]] DONE A clock-report test fails every evening, because its fixture spills past midnight
+- [X] [[id:5a5e87c9-f432-44c6-a5a6-f6f3755e4347][5a5e87c9]] DONE A duration assertion matches the clocktable's own timestamp, three minutes a day
+- [X] [[id:c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b][c8a97d9d]] DONE Clearing a buffer's read-only flag for an MCP tool leaves it cleared
+- [X] [[id:2b2db914-c96e-416a-a80a-e31028308de0][2b2db914]] DONE org_capture swallows a title beginning with a TODO keyword
+- [X] [[id:c74f8663-b14e-4ab9-ad65-d99cb655b3fa][c74f8663]] DONE org_capture should accept an initial TODO state, so a heading is not keywordless until apply
+- [X] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] DONE MCP tools that write an org file time out; one reports success and persists nothing
+- [X] [[id:a0028a4e-39cb-4653-83cc-446b810234ac][a0028a4e]] DONE Add a body read: return a heading whole, drawers included, and let the caller extract
+- [X] [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] DONE Six defects in one day, all the same: the code knew more than it said
+- [X] [[id:29734f79-e698-43dd-abf8-14bc86b8b0ae][29734f79]] DONE The ceremony prompt goes quiet on evidence of its first step, and never reports its own completion
+- [X] [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]] DONE "writes 0:09 in 1" reads as two swappable numbers; "in 1" has no unit
+- [X] [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] DONE Show turn count on the span line, where the attention call is made
+- [X] [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] DONE A span's headline interval is not the interval it writes
+- [X] [[id:46e4ce2b-fdc8-447b-ad09-b4845602540f][46e4ce2b]] DONE Lead every review-buffer rendering with the :ID: prefix, rather than trailing it
+- [X] [[id:05c71d99-2839-447b-a536-60eb4bf43b73][05c71d99]] DONE Apply logs a self-transition when a queued event's target already matches reality
+- [X] [[id:8d0716fe-ca88-429d-b46b-e2f880f5b2cc][8d0716fe]] DONE g in the review buffer discards unapplied judgement without asking
+- [X] [[id:b6e229c7-3035-4c0e-943b-710a12bfd7d1][b6e229c7]] DONE Auto-mark the state items that carry no judgement
+- [X] [[id:a2509a61-4e21-4d8e-8f58-c87935753472][a2509a61]] DONE Assign advances past the line the human is about to mark
+- [X] [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]] DONE A slice should list incidental work separately from its planned members
+- [X] [[id:5f1068f9-1452-45e4-9253-568edfce2053][5f1068f9]] DONE Sort TODO.org by :CREATED: descending, after each archive pass
+- [X] [[id:7c4d6ef6-c914-4d33-b267-cc9158a9f359][7c4d6ef6]] DONE Settle what a slice proposal is, and write the procedure down
+- [X] [[id:8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8][8c662dfb]] DONE Sweep the ten longest live bodies into :PLAN: drawers
+- [X] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] DONE Verification traps: a check with no way to fail, and a fixture that never takes the real path
+- [X] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] DONE Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
 
-- [X] [[id:d39f5f0d-bee3-4aa4-8494-0bddd07e9067][d39f5f0d]] DONE CLAUDE.md's
-  "Session tracking" still describes the pre-cutover clock
-- [X] [[id:5fc7b934-28ec-4eeb-9f90-f1becec353f0][5fc7b934]] DONE Line-number
-  anchors in org bodies rot, and nothing checks them
-- [X] [[id:5bfc1d38-e758-4ed7-bb32-f976031ff3da][5bfc1d38]] DONE A slice claims
-  another slice's declared members as its own incidental work
+- [X] [[id:d39f5f0d-bee3-4aa4-8494-0bddd07e9067][d39f5f0d]] DONE CLAUDE.md's "Session tracking" still describes the pre-cutover clock
+- [X] [[id:5fc7b934-28ec-4eeb-9f90-f1becec353f0][5fc7b934]] DONE Line-number anchors in org bodies rot, and nothing checks them
+- [X] [[id:5bfc1d38-e758-4ed7-bb32-f976031ff3da][5bfc1d38]] DONE A slice claims another slice's declared members as its own incidental work
 
-- [X] [[id:517a4290-4c66-43e7-b42e-dad7167b9c41][517a4290]] DONE CLAUDE.md's
-  open-a-clock rule is missing the container exception
-- [X] [[id:594adec6-4855-470d-8ceb-5fe29bf0c935][594adec6]] DONE CLAUDE.md
-  documents neither span floor, and mis-describes the gap threshold
+- [X] [[id:517a4290-4c66-43e7-b42e-dad7167b9c41][517a4290]] DONE CLAUDE.md's open-a-clock rule is missing the container exception
+- [X] [[id:594adec6-4855-470d-8ceb-5fe29bf0c935][594adec6]] DONE CLAUDE.md documents neither span floor, and mis-describes the gap threshold
 - [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] TODO CLAUDE.md carries
   dated history that costs every session's context
-- [X] [[id:4072b6ec-2785-40ba-81e8-aa559508501c][4072b6ec]] DONE The file-header
-  template omits #+STARTUP:, which both files carry
-- [X] [[id:72e82469-3d4f-4ee1-b0c4-35b1c253901c][72e82469]] DONE A :BLOCKER: on
-  a MAYBE heading is dormant, and no convention says so
-- [X] [[id:8e124867-323d-4332-9f4e-a391e59123e7][8e124867]] DONE Timestamps must
-  come from a :LOGBOOK: drawer, never a bare pattern match
-- [X] [[id:6e59c0f9-8af4-43d5-99c1-637ea360c3d0][6e59c0f9]] DONE The
-  sibling-survey idiom is undocumented, and org_outline cannot navigate up
-- [X] [[id:e5fef4c4-5c42-48c2-a5d7-577dc199c22a][e5fef4c4]] DONE load-file does
-  not pick up a changed defcustom default
-- [X] [[id:5f89f872-6c0d-4805-88da-a182971c7ad9][5f89f872]] DONE Say in
-  CLAUDE.md that it is a starting point and the artifact is the authority
+- [X] [[id:4072b6ec-2785-40ba-81e8-aa559508501c][4072b6ec]] DONE The file-header template omits #+STARTUP:, which both files carry
+- [X] [[id:72e82469-3d4f-4ee1-b0c4-35b1c253901c][72e82469]] DONE A :BLOCKER: on a MAYBE heading is dormant, and no convention says so
+- [X] [[id:8e124867-323d-4332-9f4e-a391e59123e7][8e124867]] DONE Timestamps must come from a :LOGBOOK: drawer, never a bare pattern match
+- [X] [[id:6e59c0f9-8af4-43d5-99c1-637ea360c3d0][6e59c0f9]] DONE The sibling-survey idiom is undocumented, and org_outline cannot navigate up
+- [X] [[id:e5fef4c4-5c42-48c2-a5d7-577dc199c22a][e5fef4c4]] DONE load-file does not pick up a changed defcustom default
+- [X] [[id:5f89f872-6c0d-4805-88da-a182971c7ad9][5f89f872]] DONE Say in CLAUDE.md that it is a starting point and the artifact is the authority
 
 Incidental:
 
-- [X] [[id:6e43120d-b9ed-4595-8309-ccd0cde8da59][6e43120d]] DONE Three
-  conventions read as permission to grow a story where mitosis was owed
-- [X] [[id:355fa608-e311-4874-b2d3-bbc62172d09a][355fa608]] DONE A stranded
-  single-point span is offered forever; only the trailing one can still grow
-- [X] [[id:b488dd2a-db73-49a3-a4b5-5f4cc9b52e06][b488dd2a]] DONE Decide a key
-  binding for review-undo-refresh, or leave it M-x only
-- [X] [[id:5d59dc77-38bf-470a-8d51-098c741fecbd][5d59dc77]] DONE org_capture
-  with a done initial_state writes no CLOSED line
-- [X] [[id:13ea6770-88ba-484d-87bd-2d20c44dc610][13ea6770]] DONE The ceremony
-  steps do not bind inhibit-read-only, so the sweep dies on the guard
-- [X] [[id:42ba0a80-61c5-49bd-b6a2-9da76a53ff64][42ba0a80]] DONE An unstarted
-  slice accrues every heading closed since it was written down
-- [X] [[id:79a3d89e-77be-4678-919e-637a65f87204][79a3d89e]] DONE The :PLAN: wrap
-  never happens at close, so 93 finished headings carry an unwrapped body
-- [X] [[id:b75d553a-3c77-4b98-9f58-022bfa295816][b75d553a]] DONE Write the plan
-  into :PLAN: from the start, so no seam is ever created
-- [X] [[id:35d25265-df52-45c0-8226-dfa24c3ed5bb][35d25265]] DONE Separate plan
-  from debrief across the 73 warned headings, retroactively
+- [X] [[id:6e43120d-b9ed-4595-8309-ccd0cde8da59][6e43120d]] DONE Three conventions read as permission to grow a story where mitosis was owed
+- [X] [[id:355fa608-e311-4874-b2d3-bbc62172d09a][355fa608]] DONE A stranded single-point span is offered forever; only the trailing one can still grow
+- [X] [[id:b488dd2a-db73-49a3-a4b5-5f4cc9b52e06][b488dd2a]] DONE Decide a key binding for review-undo-refresh, or leave it M-x only
+- [X] [[id:5d59dc77-38bf-470a-8d51-098c741fecbd][5d59dc77]] DONE org_capture with a done initial_state writes no CLOSED line
+- [X] [[id:13ea6770-88ba-484d-87bd-2d20c44dc610][13ea6770]] DONE The ceremony steps do not bind inhibit-read-only, so the sweep dies on the guard
+- [X] [[id:42ba0a80-61c5-49bd-b6a2-9da76a53ff64][42ba0a80]] DONE An unstarted slice accrues every heading closed since it was written down
+- [X] [[id:79a3d89e-77be-4678-919e-637a65f87204][79a3d89e]] DONE The :PLAN: wrap never happens at close, so 93 finished headings carry an unwrapped body
+- [X] [[id:b75d553a-3c77-4b98-9f58-022bfa295816][b75d553a]] DONE Write the plan into :PLAN: from the start, so no seam is ever created
+- [X] [[id:35d25265-df52-45c0-8226-dfa24c3ed5bb][35d25265]] DONE Separate plan from debrief across the 73 warned headings, retroactively
 
 *[[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]] was dropped from this
 slice 2026-09-02, not forgotten.* Its line keeps its position and has lost its
@@ -14732,53 +14636,34 @@ mechanism that makes the policy enforceable, and the general keyword review once
 its evidence exists. The two tool-surface members come last because they are
 consequences of the same root rather than causes of anything.
 
-- [X] [[id:6a21e08b-4880-4d2b-9b0f-12c35558fe08][6a21e08b]] DONE
-  --trigger-auto-clock-in's docstring says the feature is off; it is on
-- [X] [[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]] DONE Setting DOING
-  retroactively opens a clock, which the looser sense makes wrong
-- [X] [[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]] DONE A slice gets
-  clocked and auto-promoted, because its members are links not children
-- [X] [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]] DONE A container
-  carries clocks it earned before it was one
-- [X] [[id:a0813ae3-0c6d-43de-bae1-fb4414cdb519][a0813ae3]] DONE Task mitosis: a
-  leaf that outgrows itself divides rather than becoming a parent
-- [X] [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]] DONE Revisit the
-  TODO keyword progression, starting with whether PLANNING earns its keep
+- [X] [[id:6a21e08b-4880-4d2b-9b0f-12c35558fe08][6a21e08b]] DONE --trigger-auto-clock-in's docstring says the feature is off; it is on
+- [X] [[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]] DONE Setting DOING retroactively opens a clock, which the looser sense makes wrong
+- [X] [[id:95c27fca-136c-46f6-b454-fe94261e0e5d][95c27fca]] DONE A slice gets clocked and auto-promoted, because its members are links not children
+- [X] [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]] DONE A container carries clocks it earned before it was one
+- [X] [[id:a0813ae3-0c6d-43de-bae1-fb4414cdb519][a0813ae3]] DONE Task mitosis: a leaf that outgrows itself divides rather than becoming a parent
+- [X] [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]] DONE Revisit the TODO keyword progression, starting with whether PLANNING earns its keep
 - [X] [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]] DONE Generalise
   :KIND: to every declared heading class, so level stops meaning anything
-- [X] [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] DONE Adopt
-  org-native mechanisms for the heading tiers
+- [X] [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] DONE Adopt org-native mechanisms for the heading tiers
 - [[id:9651d4c8-6887-4b0a-91d9-562c3bc49a75][9651d4c8]] CANCELLED Find a
   convention marking which children a container's plan actually covered
-- [X] [[id:8183fc7c-905e-40c8-81cb-10c56158c6ce][8183fc7c]] DONE org_outline is
-  blind to a slice: scoped to one, it returns a single line
-- [X] [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] DONE Make the
-  8-character prefix resolve, for the model and the human alike
-  - [X] [[id:49557477-e50c-496f-85df-82c65109832b][49557477]] DONE Expand an
-    8-character prefix at both surfaces where a tail gets invented
-  - [X] [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] DONE Read a
-    heading's front matter, and take a partial :ID:, without a whole-body read
+- [X] [[id:8183fc7c-905e-40c8-81cb-10c56158c6ce][8183fc7c]] DONE org_outline is blind to a slice: scoped to one, it returns a single line
+- [X] [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] DONE Make the 8-character prefix resolve, for the model and the human alike
+  - [X] [[id:49557477-e50c-496f-85df-82c65109832b][49557477]] DONE Expand an 8-character prefix at both surfaces where a tail gets invented
+  - [X] [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] DONE Read a heading's front matter, and take a partial :ID:, without a whole-body read
   - [X] [[id:36b811d9-8bd3-4a32-b67d-39ccfe0d66c1][36b811d9]] DONE Add a tool to
     set heading properties, starting with :BLOCKER:
-  - [X] [[id:98908aff-63cc-4b71-b90b-817da361a23b][98908aff]] DONE org_outline's
-    active_only orphans children of finished headings
-  - [X] [[id:020d3688-f08d-460f-a3e8-931a1677074a][020d3688]] DONE DONE.org is
-    not a tracked file, so no id in it resolves
-  - [X] [[id:e6d1d810-5e88-4356-b002-bbb10cf19fc9][e6d1d810]] DONE Hand-rolled
-    the archive derivation org already had
-  - [X] [[id:93f6c908-1c15-44e5-84f9-03f1ffb6d5db][93f6c908]] DONE Expand
-    prefixes against org-id-locations rather than a table of our own
-  - [X] [[id:c69df700-dbba-4437-bb98-44cff81501f2][c69df700]] DONE Convert
-    plain-text id workarounds left by the unresolvable-prefix era
-  - [X] [[id:6c48d5a6-1c78-4ce5-ac97-5e1091bdb25c][6c48d5a6]] DONE Short :ID:
-    prefixes fell past the eight-character gate and rescanned the corpus
-- [X] [[id:798bb7a1-d5a6-4c08-8cf0-cc91a82d08e6][798bb7a1]] DONE A slice member
-  captured this session cannot be rendered or blocked on until apply
+  - [X] [[id:98908aff-63cc-4b71-b90b-817da361a23b][98908aff]] DONE org_outline's active_only orphans children of finished headings
+  - [X] [[id:020d3688-f08d-460f-a3e8-931a1677074a][020d3688]] DONE DONE.org is not a tracked file, so no id in it resolves
+  - [X] [[id:e6d1d810-5e88-4356-b002-bbb10cf19fc9][e6d1d810]] DONE Hand-rolled the archive derivation org already had
+  - [X] [[id:93f6c908-1c15-44e5-84f9-03f1ffb6d5db][93f6c908]] DONE Expand prefixes against org-id-locations rather than a table of our own
+  - [X] [[id:c69df700-dbba-4437-bb98-44cff81501f2][c69df700]] DONE Convert plain-text id workarounds left by the unresolvable-prefix era
+  - [X] [[id:6c48d5a6-1c78-4ce5-ac97-5e1091bdb25c][6c48d5a6]] DONE Short :ID: prefixes fell past the eight-character gate and rescanned the corpus
+- [X] [[id:798bb7a1-d5a6-4c08-8cf0-cc91a82d08e6][798bb7a1]] DONE A slice member captured this session cannot be rendered or blocked on until apply
 
 *The prompt that drove this slice, one link per revision of it:*
 
-- [X] [[id:e10071b9-88f0-4dc3-af8e-692965c65868][e10071b9]] DONE Assert the two
-  load-bearing Doom settings in bin/check-org-dev-skill
+- [X] [[id:e10071b9-88f0-4dc3-af8e-692965c65868][e10071b9]] DONE Assert the two load-bearing Doom settings in bin/check-org-dev-skill
 
 Incidental --- closed between this slice's =:CREATED:= and its close, and
 not planned into it. Strict window ([[id:0086614a][0086614a]]): derived from
@@ -14788,60 +14673,33 @@ unrelated workstreams -- the ceremony story, the footnote story, the whole
 of the previous slice -- and that is the feature, since the question it
 answers is what *else* was going on.
 
-- [X] [[id:0acc1df2-6916-4180-867a-99bfa551806b][0acc1df2]] DONE Regenerate a
-  slice's depiction from its referents; only membership and order are declared
-- [X] [[id:21c91613-76e0-4590-affe-e2af9f1321ca][21c91613]] DONE Apply consumes
-  queue events with no way to roll one back
-- [X] [[id:241a4c54-ed59-4780-b602-2a86efee978a][241a4c54]] DONE A container
-  entering DOING when a child does is nowhere written down
-- [X] [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] DONE Footnote
-  discipline decays on re-mention; enforce it at Stop
-- [X] [[id:28415ca8-a4ce-43a4-9af6-9ec0e7d5662a][28415ca8]] DONE A slice created
-  without a statistics cookie never gets one, and nothing says so
-- [X] [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] DONE org_amend can
-  only append, so every correction lands furthest from the reader
-- [X] [[id:36481e67-d460-45a4-80b1-d23f209042e4][36481e67]] DONE
-  bin/check-org-dev-skill printed FAIL but exited 0, so no caller could see it
-- [X] [[id:4eb2492e-1791-44c0-8e2b-635dc094b0cf][4eb2492e]] DONE Reuse org's own
-  facilities instead of rebuilding them beside it
-- [X] [[id:5787bfc6-3ba5-4d94-802c-f8a7879de68d][5787bfc6]] DONE The footnote
-  hook's stopReason never reaches the model; the block is opaque
-- [X] [[id:601c885c-7d8c-46d4-af14-0d8d3ea69ba8][601c885c]] DONE bin/lint-org
-  does not assert the two-blank-line separation it now documents
-- [X] [[id:62b65ad0-304b-4cf1-bd95-2f1ecb671d6b][62b65ad0]] DONE Reserve NEXT
-  for use within a container; nominate rather than promote
-- [X] [[id:762b7836-52db-4619-a664-25a09f84da46][762b7836]] DONE Footnote check
-  treats a code fence as prose, so pasted output demands footnotes
-- [X] [[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]] DONE Consolidation
-  only reaches drawers an apply pass happens to touch
-- [X] [[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]] DONE Clear the
-  36-heading archive backlog, sweeping bodies into :PLAN: unedited
-- [X] [[id:806ff394-3ede-4d67-82aa-9c44fe1cf86e][806ff394]] DONE Nothing stamps
-  the ceremony done, so the prompt relies on a model remembering
-- [X] [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] DONE Evaluate Org's
-  own agenda, sparse-tree and column views against this corpus
-- [X] [[id:8bea4317-c8e7-4939-8224-834bb914d89c][8bea4317]] DONE The cookie
-  inserter appends, but every cookie in the corpus leads
-- [X] [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]] DONE Jump to a
-  heading by title, not by pasting a UUID
-- [X] [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]] DONE Track the
-  human's review attention, clocked by the review command itself
-- [X] [[id:97b030a4-50df-4b8b-a781-bd4acd2931d0][97b030a4]] DONE Bind
-  inhibit-read-only in the apply path, where the human asked for the write
-- [X] [[id:a0abf97d-0f98-42df-9749-e1647b723596][a0abf97d]] DONE Nothing
-  refreshes a slice after apply, so its lines are stale by default
-- [X] [[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]] DONE Prompt the
-  daily ceremony automatically, within what a scheduler can reach
-- [X] [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] DONE Harden the
-  review pass: its cost, its correctness, and its record
-- [X] [[id:daca2a7d-5a7f-4714-96dd-ad10d114db4f][daca2a7d]] DONE All-digit :ID:
-  prefixes were invisible to footnote-check
-- [X] [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]] DONE End every
-  heading with two blank lines, so folded trees are separated
-- [X] [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]] DONE Make the daily
-  ceremony cheap enough that it actually runs
-- [X] [[id:f421c5c3-f81f-4ebf-99c9-42c53cc00558][f421c5c3]] DONE The :PLAN: lint
-  will demand a drawer from a debrief-only heading
+- [X] [[id:0acc1df2-6916-4180-867a-99bfa551806b][0acc1df2]] DONE Regenerate a slice's depiction from its referents; only membership and order are declared
+- [X] [[id:21c91613-76e0-4590-affe-e2af9f1321ca][21c91613]] DONE Apply consumes queue events with no way to roll one back
+- [X] [[id:241a4c54-ed59-4780-b602-2a86efee978a][241a4c54]] DONE A container entering DOING when a child does is nowhere written down
+- [X] [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] DONE Footnote discipline decays on re-mention; enforce it at Stop
+- [X] [[id:28415ca8-a4ce-43a4-9af6-9ec0e7d5662a][28415ca8]] DONE A slice created without a statistics cookie never gets one, and nothing says so
+- [X] [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] DONE org_amend can only append, so every correction lands furthest from the reader
+- [X] [[id:36481e67-d460-45a4-80b1-d23f209042e4][36481e67]] DONE bin/check-org-dev-skill printed FAIL but exited 0, so no caller could see it
+- [X] [[id:4eb2492e-1791-44c0-8e2b-635dc094b0cf][4eb2492e]] DONE Reuse org's own facilities instead of rebuilding them beside it
+- [X] [[id:5787bfc6-3ba5-4d94-802c-f8a7879de68d][5787bfc6]] DONE The footnote hook's stopReason never reaches the model; the block is opaque
+- [X] [[id:601c885c-7d8c-46d4-af14-0d8d3ea69ba8][601c885c]] DONE bin/lint-org does not assert the two-blank-line separation it now documents
+- [X] [[id:62b65ad0-304b-4cf1-bd95-2f1ecb671d6b][62b65ad0]] DONE Reserve NEXT for use within a container; nominate rather than promote
+- [X] [[id:762b7836-52db-4619-a664-25a09f84da46][762b7836]] DONE Footnote check treats a code fence as prose, so pasted output demands footnotes
+- [X] [[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]] DONE Consolidation only reaches drawers an apply pass happens to touch
+- [X] [[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]] DONE Clear the 36-heading archive backlog, sweeping bodies into :PLAN: unedited
+- [X] [[id:806ff394-3ede-4d67-82aa-9c44fe1cf86e][806ff394]] DONE Nothing stamps the ceremony done, so the prompt relies on a model remembering
+- [X] [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] DONE Evaluate Org's own agenda, sparse-tree and column views against this corpus
+- [X] [[id:8bea4317-c8e7-4939-8224-834bb914d89c][8bea4317]] DONE The cookie inserter appends, but every cookie in the corpus leads
+- [X] [[id:915378ac-3bd4-461d-b0f0-83f67fbb3dac][915378ac]] DONE Jump to a heading by title, not by pasting a UUID
+- [X] [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]] DONE Track the human's review attention, clocked by the review command itself
+- [X] [[id:97b030a4-50df-4b8b-a781-bd4acd2931d0][97b030a4]] DONE Bind inhibit-read-only in the apply path, where the human asked for the write
+- [X] [[id:a0abf97d-0f98-42df-9749-e1647b723596][a0abf97d]] DONE Nothing refreshes a slice after apply, so its lines are stale by default
+- [X] [[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]] DONE Prompt the daily ceremony automatically, within what a scheduler can reach
+- [X] [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]] DONE Harden the review pass: its cost, its correctness, and its record
+- [X] [[id:daca2a7d-5a7f-4714-96dd-ad10d114db4f][daca2a7d]] DONE All-digit :ID: prefixes were invisible to footnote-check
+- [X] [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]] DONE End every heading with two blank lines, so folded trees are separated
+- [X] [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]] DONE Make the daily ceremony cheap enough that it actually runs
+- [X] [[id:f421c5c3-f81f-4ebf-99c9-42c53cc00558][f421c5c3]] DONE The :PLAN: lint will demand a drawer from a debrief-only heading
 
 - [[orgit-rev:claude-code-ide-org::7b9bd74][7b9bd74]] [2026-08-26 Wed 11:12]
   opened the slice, replacing c44c2119's prompt
@@ -18912,64 +18770,36 @@ CLOSED: [2026-08-26 Wed 11:42]
 Work that makes a review pass cheaper to run, more accurate in what it reports,
 and less likely to leave the record worse than it found it.
 
-- [X] [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]] DONE Make the daily
-  ceremony cheap enough that it actually runs
-  - [X] [[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]] DONE Consolidation
-    only reaches drawers an apply pass happens to touch
-  - [X] [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]] DONE End every
-    heading with two blank lines, so folded trees are separated
-  - [X] [[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]] DONE Prompt the
-    daily ceremony automatically, within what a scheduler can reach
-  - [X] [[id:806ff394-3ede-4d67-82aa-9c44fe1cf86e][806ff394]] DONE Nothing
-    stamps the ceremony done, so the prompt relies on a model remembering
-  - [X] [[id:601c885c-7d8c-46d4-af14-0d8d3ea69ba8][601c885c]] DONE bin/lint-org
-    does not assert the two-blank-line separation it now documents
-  - [X] [[id:a0abf97d-0f98-42df-9749-e1647b723596][a0abf97d]] DONE Nothing
-    refreshes a slice after apply, so its lines are stale by default
-- [X] [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] DONE org_amend can
-  only append, so every correction lands furthest from the reader
-- [X] [[id:f421c5c3-f81f-4ebf-99c9-42c53cc00558][f421c5c3]] DONE The :PLAN: lint
-  will demand a drawer from a debrief-only heading
-- [X] [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]] DONE Track the
-  human's review attention, clocked by the review command itself
-- [X] [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] DONE Footnote
-  discipline decays on re-mention; enforce it at Stop
-  - [X] [[id:5787bfc6-3ba5-4d94-802c-f8a7879de68d][5787bfc6]] DONE The footnote
-    hook's stopReason never reaches the model; the block is opaque
-- [X] [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] DONE Evaluate Org's
-  own agenda, sparse-tree and column views against this corpus
-- [X] [[id:21c91613-76e0-4590-affe-e2af9f1321ca][21c91613]] DONE Apply consumes
-  queue events with no way to roll one back
-- [X] [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]] DONE Compose slices
-  by reference: a checkbox list of id links, blocked on its members
-- [X] [[id:43201e64-3fe8-4fa6-81f5-d2ab5b65d191][43201e64]] DONE Every orgit
-  link a body adds costs a permanent lint warning
-- [X] [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]] DONE Backfill
-  CLOSED: from the LOGBOOK where the evidence is already in the file
-- [ ] [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] TODO Recover a close
-  time from git for the headings with no in-file evidence
-- [X] [[id:31c6ac39-1a06-4b17-8d89-b91fd2628874][31c6ac39]] DONE A sub-minute
-  run is observed work; round it up rather than drop it
-- [X] [[id:111ca40a-3fdb-4106-ad52-991e30737ece][111ca40a]] DONE The review
-  buffer truncated lines the human had to read
-- [X] [[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]] DONE Clear the
-  36-heading archive backlog, sweeping bodies into :PLAN: unedited
-- [X] [[id:ff92700e-1713-4862-a3fe-8fd972ad96fa][ff92700e]] DONE A repeater
-  never reaches DONE, so its body is never pruned
-- [X] [[id:2b050e7a-b0c4-45d3-835e-68befcebb7bb][2b050e7a]] DONE The
-  group-heading render has been wrong three times; the cond has the wrong shape
-- [X] [[id:7148cddc-aca3-416e-8bcb-f164d4d2bba0][7148cddc]] DONE The promotion
-  trigger re-entered itself; one apply made 1201 mutations
-- [X] [[id:df1cf43c-749f-435c-9f45-3d8df1d725ad][df1cf43c]] DONE An apply
-  failure named nothing: five identical messages, no item, no stack
-- [X] [[id:49557477-e50c-496f-85df-82c65109832b][49557477]] DONE Expand an
-  8-character prefix at both surfaces where a tail gets invented
-- [X] [[id:0acc1df2-6916-4180-867a-99bfa551806b][0acc1df2]] DONE Regenerate a
-  slice's depiction from its referents; only membership and order are declared
+- [X] [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]] DONE Make the daily ceremony cheap enough that it actually runs
+  - [X] [[id:7ae6562d-25c8-453e-b78b-920e036c5665][7ae6562d]] DONE Consolidation only reaches drawers an apply pass happens to touch
+  - [X] [[id:e1284bdb-0a18-402a-81cb-1ac8d09fb8a2][e1284bdb]] DONE End every heading with two blank lines, so folded trees are separated
+  - [X] [[id:aa1ba915-ee68-48df-afea-197ae60aac63][aa1ba915]] DONE Prompt the daily ceremony automatically, within what a scheduler can reach
+  - [X] [[id:806ff394-3ede-4d67-82aa-9c44fe1cf86e][806ff394]] DONE Nothing stamps the ceremony done, so the prompt relies on a model remembering
+  - [X] [[id:601c885c-7d8c-46d4-af14-0d8d3ea69ba8][601c885c]] DONE bin/lint-org does not assert the two-blank-line separation it now documents
+  - [X] [[id:a0abf97d-0f98-42df-9749-e1647b723596][a0abf97d]] DONE Nothing refreshes a slice after apply, so its lines are stale by default
+- [X] [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] DONE org_amend can only append, so every correction lands furthest from the reader
+- [X] [[id:f421c5c3-f81f-4ebf-99c9-42c53cc00558][f421c5c3]] DONE The :PLAN: lint will demand a drawer from a debrief-only heading
+- [X] [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]] DONE Track the human's review attention, clocked by the review command itself
+- [X] [[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]] DONE Footnote discipline decays on re-mention; enforce it at Stop
+  - [X] [[id:5787bfc6-3ba5-4d94-802c-f8a7879de68d][5787bfc6]] DONE The footnote hook's stopReason never reaches the model; the block is opaque
+- [X] [[id:82df2a6c-881d-4117-a752-5b3b04c9656d][82df2a6c]] DONE Evaluate Org's own agenda, sparse-tree and column views against this corpus
+- [X] [[id:21c91613-76e0-4590-affe-e2af9f1321ca][21c91613]] DONE Apply consumes queue events with no way to roll one back
+- [X] [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]] DONE Compose slices by reference: a checkbox list of id links, blocked on its members
+- [X] [[id:43201e64-3fe8-4fa6-81f5-d2ab5b65d191][43201e64]] DONE Every orgit link a body adds costs a permanent lint warning
+- [X] [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]] DONE Backfill CLOSED: from the LOGBOOK where the evidence is already in the file
+- [ ] [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] TODO Recover a close time from git for the headings with no in-file evidence
+- [X] [[id:31c6ac39-1a06-4b17-8d89-b91fd2628874][31c6ac39]] DONE A sub-minute run is observed work; round it up rather than drop it
+- [X] [[id:111ca40a-3fdb-4106-ad52-991e30737ece][111ca40a]] DONE The review buffer truncated lines the human had to read
+- [X] [[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]] DONE Clear the 36-heading archive backlog, sweeping bodies into :PLAN: unedited
+- [X] [[id:ff92700e-1713-4862-a3fe-8fd972ad96fa][ff92700e]] DONE A repeater never reaches DONE, so its body is never pruned
+- [X] [[id:2b050e7a-b0c4-45d3-835e-68befcebb7bb][2b050e7a]] DONE The group-heading render has been wrong three times; the cond has the wrong shape
+- [X] [[id:7148cddc-aca3-416e-8bcb-f164d4d2bba0][7148cddc]] DONE The promotion trigger re-entered itself; one apply made 1201 mutations
+- [X] [[id:df1cf43c-749f-435c-9f45-3d8df1d725ad][df1cf43c]] DONE An apply failure named nothing: five identical messages, no item, no stack
+- [X] [[id:49557477-e50c-496f-85df-82c65109832b][49557477]] DONE Expand an 8-character prefix at both surfaces where a tail gets invented
+- [X] [[id:0acc1df2-6916-4180-867a-99bfa551806b][0acc1df2]] DONE Regenerate a slice's depiction from its referents; only membership and order are declared
 - [[id:637ee73d-e1b7-4a84-9213-830c49a400b4][637ee73d]] CANCELLED Snapshot the
   next-session.md that drove each slice, the way plans are archived
-- [X] [[id:97b030a4-50df-4b8b-a781-bd4acd2931d0][97b030a4]] DONE Bind
-  inhibit-read-only in the apply path, where the human asked for the write
+- [X] [[id:97b030a4-50df-4b8b-a781-bd4acd2931d0][97b030a4]] DONE Bind inhibit-read-only in the apply path, where the human asked for the write
 
 *The prompt that drove this slice, one link per revision of it:*
 

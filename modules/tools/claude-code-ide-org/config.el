@@ -77,13 +77,70 @@ to `org-default-notes-file' when nil, same convention as
 
 ;;; Helper ----------------------------------------------------------------
 
-(defvar claude-code-ide-org--last-error-backtrace nil
+(defvar claude-code-ide-org--last-error-context nil
   "Details of the most recent error `claude-code-ide-org--at-id' swallowed.
 
-A plist (:id ID :message MSG :backtrace STRING), or nil.  Overwritten by
+A plist (:id ID :message MSG :context STRING), or nil.  Overwritten by
 each conversion, so it answers \"what went wrong just now\" rather than
 keeping a history -- `claude-code-ide-org--review-apply' snapshots it per
-item, which is where a history is actually wanted.")
+item, which is where a history is actually wanted.
+
+*This carried a `:backtrace' until 2026-09-14 and it was worse than
+nothing* (TODO.org :ID: 169df26b).  The frames were captured inside the
+`condition-case' handler, by which point everything between the signal
+and the handler has unwound -- so what it stored was the *handler's*
+frames describing the capture machinery, fourteen of them, with the
+erroring call absent.  It looked like evidence, which stopped anyone
+reaching for a real reproduction.
+
+Capturing at signal time needs `handler-bind' (Emacs 30; this project
+runs 29.4) or ownership of a global -- `debugger' or
+`signal-hook-function' -- and a library cannot take the debugger without
+stealing it from whoever else holds it, which ERT does, edebug does, and
+so does a human with \[toggle-debug-on-error] while reproducing the very
+bug this would serve.  So it records the cheap facts instead, which is
+most of what the undiagnosed occurrences actually needed: see
+`claude-code-ide-org--error-context'.")
+
+(defun claude-code-ide-org--error-context (marker)
+  "Return a one-line description of where MARKER points, for a failure report.
+
+Computed inside the error handler rather than before the call, and that
+is sound for a reason worth stating: unwinding restores point and the
+current buffer, but it does not move a *marker*.  What is lost after
+unwinding is the dynamic state at signal time; where `--at-id' was
+pointed is still exactly recoverable.
+
+Reports the position, the buffer's size, the file, whether the position
+is actually at a heading, and whether the buffer is narrowed.  That set
+is not arbitrary: both undiagnosed failures read \"Before first headline
+at position 1\", and \"point 1 of 43982 in TODO.org, NOT at a heading\"
+names that outright -- the marker resolved to the top of the file, so
+`org-back-to-heading' had nothing behind it."
+  (if (not (markerp marker))
+      "no marker"
+    (let ((buffer (marker-buffer marker))
+          (position (marker-position marker)))
+      (cond
+       ((not (buffer-live-p buffer))
+        (format "position %s in a buffer that is no longer live" position))
+       (t
+        (with-current-buffer buffer
+          (let ((narrowed (buffer-narrowed-p))
+                (file (buffer-file-name)))
+            (save-excursion
+              (save-restriction
+                (widen)
+                (goto-char (max (point-min) (min position (point-max))))
+                (format "point %s of %d in %s%s, %s%s"
+                        position (point-max) (buffer-name)
+                        (if file
+                            (format " (%s)" (file-name-nondirectory file))
+                          " (no file)")
+                        (if (ignore-errors (org-at-heading-p))
+                            "at a heading"
+                          "NOT at a heading")
+                        (if narrowed ", buffer narrowed" "")))))))))))
 
 (defun claude-code-ide-org--at-id (id fn)
   "Find the org heading whose :ID: property equals ID.
@@ -107,11 +164,11 @@ cannot be resolved or FN signals an error."
          ;; "Before first headline at position 1" and nothing else, which
          ;; survived three wrong hypotheses before anyone could act on
          ;; them.
-         (setq claude-code-ide-org--last-error-backtrace
+         (setq claude-code-ide-org--last-error-context
                (list :id id
                      :message (error-message-string err)
-                     :backtrace (ignore-errors
-                                  (backtrace-to-string (backtrace-get-frames)))))
+                     :context (ignore-errors
+                                (claude-code-ide-org--error-context marker))))
          (format "Error: %s" (error-message-string err)))))))
 
 (defun claude-code-ide-org--at-id-writable (id fn)
@@ -9089,19 +9146,19 @@ messages looked like on 2026-08-24: true, useless, and indistinguishable
 from each other.  Naming the item costs nothing and is the difference
 between a mystery and a defect report.
 
-The backtrace goes to *Messages* rather than into the returned string:
-the return value is rendered in the review buffer, where a stack would
-bury the summary, while *Messages* is where someone looks after being
-told something failed."
-  (let ((bt claude-code-ide-org--last-error-backtrace))
-    (when (plist-get bt :backtrace)
+The context line goes to *Messages* rather than into the returned
+string: the return value is rendered in the review buffer, where it
+would bury the summary, while *Messages* is where someone looks after
+being told something failed."
+  (let ((bt claude-code-ide-org--last-error-context))
+    (when (plist-get bt :context)
       (message "org-review: %s on %s item %s (%s)\n%s"
                (plist-get bt :message)
                (plist-get item :type)
                (or (plist-get item :id) "(no id)")
                (format-time-string
                 "%H:%M:%S" (or (plist-get item :ts) (plist-get item :start)))
-               (plist-get bt :backtrace)))
+               (plist-get bt :context)))
     (format "%s [%s %s %s]"
             error
             (plist-get item :type)
@@ -9354,14 +9411,14 @@ suppress, and the flag, its re-entrancy companion and the settle pass
 that re-ran what it skipped all went with it -- 163 lines whose whole
 purpose was guarding a trigger that wrote to the file on its own."
   (claude-code-ide-org--review-projected-staleness items)
-  ;; Reset per pass, for the same reason `--last-error-backtrace' is:
+  ;; Reset per pass, for the same reason `--last-error-context' is:
   ;; a warning from the previous apply reported against this one is
   ;; worse than no warning at all.
   (setq claude-code-ide-org--review-apply-warnings nil)
   (let (applied errors)
     (progn
       (dolist (item items)
-        (setq claude-code-ide-org--last-error-backtrace nil)
+        (setq claude-code-ide-org--last-error-context nil)
         (let ((error (claude-code-ide-org--review-apply-item item)))
           (if error
               ;; Name the item. A bare error string cannot say WHICH of
@@ -15708,6 +15765,33 @@ otherwise be invisible in a diff thousands of lines long."
                 "[ \t\n\r\f]+" ""
                 (buffer-substring-no-properties (point-min) (point-max)))))
 
+(defun claude-code-ide-org--generated-line-p ()
+  "Non-nil when the line at point is machine-maintained, not prose.
+
+Today that means a slice member line, matched by
+`claude-code-ide-org--slice-member-regexp'.  Such a line is *derived*
+from its referent and rewritten wholesale by
+`claude-code-ide-org-refresh-slice', which operates on a **line** -- so a
+wrapped member line is not merely ugly, it is a latent corruption: the
+next refresh replaces the first line with the full text and leaves the
+wrapped remainder orphaned below it as duplicated prose.
+
+*Learned by doing exactly that.*  The first sweep wrapped 43 member
+lines in TODO.org and 170 in DONE.org; adding one member then ran the
+refresh, and every wrapped line in that slice grew a dangling tail --
+\"joined from the transcript\" followed by a bare line reading \"from the
+transcript\".  The whole-buffer digest did not catch it because the
+damage happened *later*, in a different function, and the sweep itself
+really had been lossless.
+
+The general form is worth keeping: **a formatting pass is safe only over
+lines nothing else owns.**  Ownership is not visible in the text -- a
+member line looks like an ordinary list item -- so it has to be asked
+about explicitly, which is what this predicate is for."
+  (save-excursion
+    (beginning-of-line)
+    (looking-at-p claude-code-ide-org--slice-member-regexp)))
+
 (defun claude-code-ide-org-fill-prose (&optional file dry-run column)
   "Fill over-long prose in FILE to COLUMN, or report what it would fill.
 
@@ -15768,7 +15852,8 @@ saving."
                                (org-element-property :drawer-name drawer))))
                (when (and (memq type '(paragraph item plain-list))
                           (not (eq (org-element-type drawer) 'property-drawer))
-                          (not (member name '("LOGBOOK" "PROPERTIES"))))
+                          (not (member name '("LOGBOOK" "PROPERTIES")))
+                          (not (claude-code-ide-org--generated-line-p)))
                  (org-fill-paragraph)
                  (setq filled (1+ filled)))))
            (forward-line 1)))

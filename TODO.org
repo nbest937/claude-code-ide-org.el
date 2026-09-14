@@ -2,10 +2,15 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* DOING Long prose lines accumulate in the trackers, and M-q by hand is the only thing wrapping them :code:
+* DONE Long prose lines accumulate in the trackers, and M-q by hand is the only thing wrapping them :code:
+CLOSED: [2026-09-14 Mon 17:26]
 :PROPERTIES:
 :ID:       496b665e-3370-4a66-814a-3c5bd2d3dddc
 :CREATED:  [2026-09-14 Mon 17:20]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-09-14 Mon 17:26] \\
+  fill-prose shipped, both trackers swept
 :END:
 :PLAN:
 Measured 2026-09-14: 916 prose lines over 100 characters in TODO.org and
@@ -75,6 +80,7 @@ the buffer's non-whitespace content is unchanged.
 out of the convention as a matter of course — and swept both trackers,
 941 paragraphs in TODO.org and 2265 in DONE.org.
 
+
 * TODO A bookkeeping burst reads as many headings worked at once, and inflates every window it lands in :code:
 :PROPERTIES:
 :ID:       369ad62a-e2ce-4cab-b2ee-0e83ad24f249
@@ -90,6 +96,7 @@ slice composition. Proposed: decide whether a bookkeeping write on a heading is
 work *on* that heading, and if not, split --worked-tool-names into work and
 bookkeeping so a composition pass lands on review and planning whole rather than
 a minute each across the headings it filed.
+
 
 * DONE The review buffer is one undifferentiated face, so its element kinds have to be parsed by eye :code:
 CLOSED: [2026-09-14 Mon 12:55]
@@ -210,10 +217,17 @@ question from where point lands when the *list* is rebuilt (=9e80a32d=): nothing
 is rebuilt here, one line is removed from a rendered buffer.
 
 
-* TODO Nothing stops a span being assigned to "Review attention", which ranks high and reads like "Review and planning" :code:
+* DONE Nothing stops a span being assigned to "Review attention", which ranks high and reads like "Review and planning" :code:
+CLOSED: [2026-09-14 Mon 17:30]
 :PROPERTIES:
 :ID:       40159d43-e48b-4f38-95eb-651145637049
 :CREATED:  [2026-09-14 Mon 09:42]
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-14 Mon 17:17] \\
+  next in the slice after two closes
+- State "DONE"       from "NEXT"       [2026-09-14 Mon 17:30] \\
+  mechanism-owned heading excluded from assignment
 :END:
 :DEBRIEF:
 *Shipped* =claude-code-ide-org--mechanism-owned-heading-p=, consulted by
@@ -244,11 +258,10 @@ lines on the heading, all 11 annotations came from
 =review-attention-stop= and none from an assignment, so nothing
 historical needed repair.
 
-*Left behind:* nothing. The body's second suggestion — renaming the
-heading so it cannot be misread as the meta-work node — is not needed now
-that it is unreachable from the assignment list, and
-[[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] already owns that heading's other maintenance
-question.
+*Left behind:* nothing. The body's second suggestion — renaming the heading so
+it cannot be misread as the meta-work node — is not needed now that it is
+unreachable from the assignment list, and [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] already owns that heading's
+other maintenance question.
 :END:
 :PLAN:
 
@@ -275,7 +288,6 @@ that cannot be misread as the meta-work node.
 mechanism owns, via =--mechanism-owned-heading-p=, which compares against
 the =claude-code-ide-org-review-attention-heading= defcustom so renaming
 the heading renames what is excluded.
-
 
 
 * TODO Nothing fills prose on write, so body text arrives as one long line and the human reflows it by hand :code:
@@ -701,14 +713,14 @@ eight real headings (=165ce65a=, =204d1b0a=, =b112878e=, =489d6f61=, =325679af=,
 cancelled scratch probes.
 
 
-* TODO [0/6] A span is only as true as its owner, its edges and its payload :code:
+* TODO [0/7] A span is only as true as its owner, its edges and its payload :code:
 :PROPERTIES:
 :ID:       749301a0-0bd0-4fbd-b3f7-79739226e15a
 :CREATED:  [2026-09-11 Fri 18:58]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(b57c7515-c511-4198-b311-26cefc52a60d 9202b39d-49e4-441c-89f2-382feb4ef1ea 7d739afd-f879-445c-b0b6-65e295585a94 c9940558-b23e-4b2c-86e8-e75a377634aa c54c4215-90e3-4e0c-9de1-990c0406a2b2 2deb090f-593d-40e3-9044-fda318d9b6de)
+:BLOCKER:  ids(406e9200-c3e7-49ac-a8d0-d6ff8e061ce4 b57c7515-c511-4198-b311-26cefc52a60d 9202b39d-49e4-441c-89f2-382feb4ef1ea 7d739afd-f879-445c-b0b6-65e295585a94 c9940558-b23e-4b2c-86e8-e75a377634aa c54c4215-90e3-4e0c-9de1-990c0406a2b2 2deb090f-593d-40e3-9044-fda318d9b6de)
 :END:
 :PLAN:
 *Why this order.* Each group hands its output to the next, so working them out
@@ -752,20 +764,13 @@ its finished ten and this sequences what is left.
 
 Planned:
 
-- [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] DOING Make the guidepost
-  pipeline produce durations that mean what they say
-  - [ ] [[id:b57c7515-c511-4198-b311-26cefc52a60d][b57c7515]] NEXT A session id
-    that changes mid-work splits one clock bracket across two queue files
-  - [ ] [[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]] TODO A background
-    job's first turn is bracketed across two session_ids
-  - [ ] [[id:7d739afd-f879-445c-b0b6-65e295585a94][7d739afd]] TODO Concurrent
-    sessions' turns must union, not sum, wherever time is totalled
-  - [ ] [[id:c9940558-b23e-4b2c-86e8-e75a377634aa][c9940558]] TODO Guidepost
-    aggregation ignores =cwd=, so two projects' turns cluster into one span
-  - [ ] [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]] TODO A split span
-    drops the unowned gaps between the clock pairs that split it
-  - [ ] [[id:2deb090f-593d-40e3-9044-fda318d9b6de][2deb090f]] TODO Accepting a
-    0-run span records none of its minutes, and only =e= can claim them
+- [-] [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] DOING Make the guidepost pipeline produce durations that mean what they say
+  - [ ] [[id:b57c7515-c511-4198-b311-26cefc52a60d][b57c7515]] NEXT A session id that changes mid-work splits one clock bracket across two queue files
+  - [ ] [[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]] TODO A background job's first turn is bracketed across two session_ids
+  - [ ] [[id:7d739afd-f879-445c-b0b6-65e295585a94][7d739afd]] TODO Concurrent sessions' turns must union, not sum, wherever time is totalled
+  - [ ] [[id:c9940558-b23e-4b2c-86e8-e75a377634aa][c9940558]] TODO Guidepost aggregation ignores =cwd=, so two projects' turns cluster into one span
+  - [ ] [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]] TODO A split span drops the unowned gaps between the clock pairs that split it
+  - [ ] [[id:2deb090f-593d-40e3-9044-fda318d9b6de][2deb090f]] TODO Accepting a 0-run span records none of its minutes, and only =e= can claim them
 
 
 * TODO =:BLOCKER: ids(...)= is org-edna syntax; org-depend cannot parse it, so 8 of 12 blockers enforce nothing :code:
@@ -1172,14 +1177,14 @@ Options: a =first= flag, a =before== parameter, or a dedicated reorder call;
 composition hits a wall.
 
 
-* DOING [5/11] Join the transcript to the record: span synopses, readable sessions, weighted attribution :code:
+* DOING [9/11] Join the transcript to the record: span synopses, readable sessions, weighted attribution :code:
 :PROPERTIES:
 :ID:       afea7e4f-41b3-4eda-83f1-39e1b9e7a61a
 :CREATED:  [2026-09-11 Fri 11:00]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(295cde3a-49a5-4960-a828-a4fc175d73c1 40159d43-e48b-4f38-95eb-651145637049 b23e5bcc-1bfd-4862-a801-0c7ac6959924 169df26b-64a8-4de9-8919-ab58d510aaf6 4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba 496b665e-3370-4a66-814a-3c5bd2d3dddc)
+:BLOCKER:  ids(b23e5bcc-1bfd-4862-a801-0c7ac6959924 169df26b-64a8-4de9-8919-ab58d510aaf6)
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-11 Fri 11:12] \\
@@ -1240,26 +1245,16 @@ need became concrete.
 Planned:
 
 - [X] [[id:325679af-829e-4c7f-88b0-153c2c9683b3][325679af]] DONE The review buffer shows each run's opening prompt, joined from the transcript
-  from the transcript
 - [X] [[id:96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d][96ddf1ef]] DONE Render a session transcript to readable org, so scrollback stops being the index
-  stops being the index
-- [-] [[id:295cde3a-49a5-4960-a828-a4fc175d73c1][295cde3a]] DOING Divide a window's run time among the headings the transcript shows it worked
-  transcript shows it worked
+- [X] [[id:295cde3a-49a5-4960-a828-a4fc175d73c1][295cde3a]] DONE Divide a window's run time among the headings the transcript shows it worked
 - [X] [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]] DONE The review buffer should name each item's tracker, now that two projects share the queue
-  two projects share the queue
 - [X] [[id:f1e36a65-3469-4ae6-ac1f-fdfcd1c053c9][f1e36a65]] DONE Open the review buffer newest-first, with =s= to reverse it like dired
-  like dired
 - [X] [[id:f3a53bd4-60ab-47a1-84b0-07d2c1c5fd24][f3a53bd4]] DONE The review buffer is one undifferentiated face, so its element kinds have to be parsed by eye
-  element kinds have to be parsed by eye
-- [ ] [[id:40159d43-e48b-4f38-95eb-651145637049][40159d43]] TODO Nothing stops a span being assigned to "Review attention", which ranks high and reads like "Review and planning"
-  which ranks high and reads like "Review and planning"
+- [X] [[id:40159d43-e48b-4f38-95eb-651145637049][40159d43]] DONE Nothing stops a span being assigned to "Review attention", which ranks high and reads like "Review and planning"
 - [ ] [[id:b23e5bcc-1bfd-4862-a801-0c7ac6959924][b23e5bcc]] TODO A state item applies correctly and is then reported failed, so it is re-offered forever
-  so it is re-offered forever
 - [ ] [[id:169df26b-64a8-4de9-8919-ab58d510aaf6][169df26b]] TODO The stored error backtrace is captured after unwinding, so it never shows where the error came from
-  it never shows where the error came from
-- [ ] [[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] TODO Reconstruct coarse day-level attention intervals for the agenda
-- [-] [[id:496b665e-3370-4a66-814a-3c5bd2d3dddc][496b665e]] DOING Long prose lines accumulate in the trackers, and M-q by hand is the only thing wrapping them
-  agenda
+- [X] [[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] DONE Reconstruct coarse day-level attention intervals for the agenda
+- [X] [[id:496b665e-3370-4a66-814a-3c5bd2d3dddc][496b665e]] DONE Long prose lines accumulate in the trackers, and M-q by hand is the only thing wrapping them
 
 *Adopted 2026-09-11 under the new discovery rule:* =f1e36a65= (open the review
 buffer newest-first, =s= to reverse) surfaced while this slice's first two
@@ -1271,11 +1266,11 @@ loss of progress.
 
 *Four other discoveries from the same day were **not** adopted, and the reasons
 are the two the rule allows.* =c9940558=, =b57c7515= and =2deb090f= are
-**already members of [[id:749301a0-0bd0-4fbd-b3f7-79739226e15a][749301a0]]**, and a member counted by two slices makes their
-cookies disagree about the same work — so they are cross-referenced here rather
-than adopted. =3f4fd744= (the =:BLOCKER:= parser) has no relationship to the
-transcript join at all; it was found by a delegated survey on an unrelated
-question and stands alone.
+**already members of [[id:749301a0-0bd0-4fbd-b3f7-79739226e15a][749301a0]]**,
+and a member counted by two slices makes their cookies disagree about the same
+work — so they are cross-referenced here rather than adopted. =3f4fd744= (the
+=:BLOCKER:= parser) has no relationship to the transcript join at all; it was
+found by a delegated survey on an unrelated question and stands alone.
 
 *One of those cross-references is worth reading before Step 3.* =b57c7515=
 established that a session id can change mid-work, leaving **two transcripts for
@@ -2135,24 +2130,15 @@ members.
 
 Planned:
 
-- [ ] [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]] TODO Commits cited
-  in bodies and debriefs are orgit links, and nothing enforces it
-- [ ] [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] TODO Canonical
-  drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body
-- [ ] [[id:63df67c7-de0d-43e7-9c6f-2b2979a40aba][63df67c7]] TODO Revisit the
-  story definition: sanction clustering and speculative breakdown
-- [ ] [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] NEXT Move the 88
-  pre-convention debriefs into :DEBRIEF:, authoring each resolution
-- [ ] [[id:e28933e9-f352-4ef9-8d53-8cd9a4318768][e28933e9]] TODO Survey all task
-  history for a tag vocabulary worth searching on
-- [ ] [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]] TODO Index a
-  heading's git history from a drawer, so the body never has to narrate it
-- [ ] [[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]] TODO Comma-escape
-  headline lines when documenting org structure inside a body
-- [ ] [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] TODO Flipping a
-  span's timestamps to active is hand-editing; give the review buffer a key
-- [ ] [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays
-  out future work on a timeline the agenda can show
+- [ ] [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]] TODO Commits cited in bodies and debriefs are orgit links, and nothing enforces it
+- [ ] [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] TODO Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body
+- [ ] [[id:63df67c7-de0d-43e7-9c6f-2b2979a40aba][63df67c7]] TODO Revisit the story definition: sanction clustering and speculative breakdown
+- [ ] [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] NEXT Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution
+- [ ] [[id:e28933e9-f352-4ef9-8d53-8cd9a4318768][e28933e9]] TODO Survey all task history for a tag vocabulary worth searching on
+- [ ] [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]] TODO Index a heading's git history from a drawer, so the body never has to narrate it
+- [ ] [[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]] TODO Comma-escape headline lines when documenting org structure inside a body
+- [ ] [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key
+- [ ] [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out future work on a timeline the agenda can show
 
 
 * TODO The :PLAN: wrap nag fires only on queued DONE, so REVIEW exits skip it :code:
@@ -3541,7 +3527,8 @@ confidence* on a span a human is going to judge anyway, which is =5a6d2c75='s
 frame rather than an automatic classifier.
 
 
-* DOING Divide a window's run time among the headings the transcript shows it worked :code:research:
+* DONE Divide a window's run time among the headings the transcript shows it worked :code:research:
+CLOSED: [2026-09-14 Mon 17:16]
 :PROPERTIES:
 :ID:       295cde3a-49a5-4960-a828-a4fc175d73c1
 :CREATED:  [2026-09-01 Tue 13:27]
@@ -3651,6 +3638,8 @@ CLOCK: [2026-09-14 Mon 14:16]--[2026-09-14 Mon 14:17] =>  0:01
 - [2026-09-14 Mon 14:16]--[2026-09-14 Mon 14:17] measure headings worked per 20-minute window
 CLOCK: [2026-09-14 Mon 14:32]--[2026-09-14 Mon 14:34] =>  0:02
 - [2026-09-14 Mon 14:32]--[2026-09-14 Mon 14:34] measure headings worked per 20-minute window
+- State "DONE"       from "DOING"      [2026-09-14 Mon 17:16] \\
+  allocation report shipped, residue filed
 :END:
 
 Apply's spans say *when* the agent ran, never *on what*. This divides
@@ -3664,6 +3653,7 @@ record whether the human had the file open rather than what was worked.
 proposal that writes no CLOCK line and touches no org file, since the
 boundaries are an artefact of the division and only the durations are
 claimed.
+
 
 * TODO AFK markers are ground truth for the one judgement we cannot automate, and we discard them :code:
 :PROPERTIES:
@@ -3970,41 +3960,26 @@ the incidental list is generated.
 
 Planned:
 
-- [ ] [[id:39039bb6-c70a-4ba9-8b37-edd8dd6921f6][39039bb6]] TODO bin/lint-org
-  does not detect a duplicate :ID: across TODO.org and DONE.org
-- [ ] [[id:f12f9da4-2870-45b7-8c50-ea54415c7bc6][f12f9da4]] TODO The running
-  Emacs can be running a stale config.el and nothing says so
-- [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] DONE Verification traps:
+- [ ] [[id:39039bb6-c70a-4ba9-8b37-edd8dd6921f6][39039bb6]] TODO bin/lint-org does not detect a duplicate :ID: across TODO.org and DONE.org
+- [ ] [[id:f12f9da4-2870-45b7-8c50-ea54415c7bc6][f12f9da4]] TODO The running Emacs can be running a stale config.el and nothing says so
+- [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] DONE Verification traps: a check with no way to fail, and a fixture that never takes the real path
   a check with no way to fail, and a fixture that never takes the real path
-- [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] DONE Generalize
+- [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] DONE Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
   bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
-- [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] DONE MCP tools that
+- [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] DONE MCP tools that write an org file time out; one reports success and persists nothing
   write an org file time out; one reports success and persists nothing
-- [ ] [[id:25e7b083-360b-4282-8fd0-bb768e2a0f13][25e7b083]] TODO org_capture's
-  target refuses an 8-character :ID: prefix that every other tool accepts
-- [ ] [[id:3ad389be-2797-46c3-a51d-9f603053955a][3ad389be]] TODO An Emacs outage
-  strands every org write, because the tools are Emacs
-- [ ] [[id:7fa68d5c-b6c0-43df-85c6-764b1d56511f][7fa68d5c]] TODO Fall back to
-  the queue when org_capture cannot reach Emacs
-- [ ] [[id:381ea07d-633f-4640-abbb-89472a07acba][381ea07d]] TODO An archive pass
-  wrote one subtree twice, and the mechanism is still unknown
-- [ ] [[id:8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b][8ddd7fa8]] TODO Moving a
-  heading between files by hand leaves org-id pointing at the old one
-- [ ] [[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]] TODO Direct file
-  writes to a live org buffer can desync org-clock-marker
-- [ ] [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]] TODO Concurrent
-  sessions share one git index, and explicit staging protects nothing
-- [ ] [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] TODO Three new ways
-  to owe a footnote and not see it: marker, list, quotation
-- [ ] [[id:60ed5b96-40e3-4676-a742-07a8ad6cc3b7][60ed5b96]] TODO
-  --review-format-annotation's docstring contradicts its own let*, four lines
-  down
-- [ ] [[id:5e731a23-7708-4248-b055-9b4a531f147d][5e731a23]] TODO A deferred
-  targetless capture loses its project routing when the queue is applied
-- [ ] [[id:965f94eb-1558-4d00-9857-5727eb86fe6f][965f94eb]] TODO Every
-  standalone client shares one project context, chosen by unstable ordering
-- [ ] [[id:7b4f4f14-6c76-4822-84c1-67589bc74b82][7b4f4f14]] TODO apply-detect
-  reports an apply when the review pass only dismissed events
+- [ ] [[id:25e7b083-360b-4282-8fd0-bb768e2a0f13][25e7b083]] TODO org_capture's target refuses an 8-character :ID: prefix that every other tool accepts
+- [ ] [[id:3ad389be-2797-46c3-a51d-9f603053955a][3ad389be]] TODO An Emacs outage strands every org write, because the tools are Emacs
+- [ ] [[id:7fa68d5c-b6c0-43df-85c6-764b1d56511f][7fa68d5c]] TODO Fall back to the queue when org_capture cannot reach Emacs
+- [ ] [[id:381ea07d-633f-4640-abbb-89472a07acba][381ea07d]] TODO An archive pass wrote one subtree twice, and the mechanism is still unknown
+- [ ] [[id:8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b][8ddd7fa8]] TODO Moving a heading between files by hand leaves org-id pointing at the old one
+- [ ] [[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]] TODO Direct file writes to a live org buffer can desync org-clock-marker
+- [ ] [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]] TODO Concurrent sessions share one git index, and explicit staging protects nothing
+- [ ] [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] TODO Three new ways to owe a footnote and not see it: marker, list, quotation
+- [ ] [[id:60ed5b96-40e3-4676-a742-07a8ad6cc3b7][60ed5b96]] TODO --review-format-annotation's docstring contradicts its own let*, four lines down
+- [ ] [[id:5e731a23-7708-4248-b055-9b4a531f147d][5e731a23]] TODO A deferred targetless capture loses its project routing when the queue is applied
+- [ ] [[id:965f94eb-1558-4d00-9857-5727eb86fe6f][965f94eb]] TODO Every standalone client shares one project context, chosen by unstable ordering
+- [ ] [[id:7b4f4f14-6c76-4822-84c1-67589bc74b82][7b4f4f14]] TODO apply-detect reports an apply when the review pass only dismissed events
 
 *=60ed5b96= added 2026-09-04, after composition.* It is the theme stated with
 the nouns changed: =--review-format-annotation='s docstring says "Always
@@ -5371,10 +5346,8 @@ went where.
 
 Planned:
 
-- [ ] [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] TODO Distribute
-  Review and planning's past day nodes into DONE.org's datetree
-- [ ] [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] TODO Bound Review
-  attention's LOGBOOK by refiling old entries into dated clones
+- [ ] [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] TODO Distribute Review and planning's past day nodes into DONE.org's datetree
+- [ ] [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones
 
 
 * TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones :code:
@@ -5833,6 +5806,7 @@ attention as it happens.
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-14 Mon 17:33]--[2026-09-14 Mon 17:34] =>  0:01
 CLOCK: [2026-09-14 Mon 17:06]--[2026-09-14 Mon 17:08] =>  0:02
 CLOCK: [2026-09-14 Mon 13:40]--[2026-09-14 Mon 13:42] =>  0:02
 CLOCK: [2026-09-14 Mon 12:51]--[2026-09-14 Mon 13:39] =>  0:48
@@ -8750,7 +8724,8 @@ heading put the evidence on screen, and this one would capture the
 conclusion the human draws from it — but neither requires the other.
 
 
-* TODO Reconstruct coarse day-level attention intervals for the agenda :code:analysis:
+* DONE Reconstruct coarse day-level attention intervals for the agenda :code:analysis:
+CLOSED: [2026-09-14 Mon 17:17]
 :PROPERTIES:
 :CATEGORY: Queue
 :ID:       4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba
@@ -8857,27 +8832,59 @@ CLOCK: [2026-08-14 Fri 12:22]--[2026-08-14 Fri 12:28] =>  0:06
 - [2026-08-14 Fri 12:22]--[2026-08-14 Fri 12:28] suggested span, accepted at review
 CLOCK: [2026-08-14 Fri 12:31]--[2026-08-14 Fri 12:36] =>  0:05
 - [2026-08-14 Fri 12:31]--[2026-08-14 Fri 12:36] suggested span, accepted at review
+CLOCK: [2026-09-14 Mon 14:34]--[2026-09-14 Mon 14:35] =>  0:01
+- [2026-09-14 Mon 14:34]--[2026-09-14 Mon 14:35] measure a derived attention-interval rule
 - [2026-09-14 Mon 14:35]--[2026-09-14 Mon 14:35] measure a derived attention-interval rule
 CLOCK: [2026-09-14 Mon 15:05]--[2026-09-14 Mon 15:06] =>  0:01
 - [2026-09-14 Mon 15:05]--[2026-09-14 Mon 15:06] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:06]--[2026-09-14 Mon 15:07] =>  0:01
+- [2026-09-14 Mon 15:06]--[2026-09-14 Mon 15:07] measure a derived attention-interval rule
 CLOCK: [2026-09-14 Mon 15:10]--[2026-09-14 Mon 15:13] =>  0:03
 - [2026-09-14 Mon 15:10]--[2026-09-14 Mon 15:13] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:13]--[2026-09-14 Mon 15:14] =>  0:01
+- [2026-09-14 Mon 15:13]--[2026-09-14 Mon 15:14] measure a derived attention-interval rule
 CLOCK: [2026-09-14 Mon 15:20]--[2026-09-14 Mon 15:25] =>  0:05
 - [2026-09-14 Mon 15:20]--[2026-09-14 Mon 15:25] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:25]--[2026-09-14 Mon 15:26] =>  0:01
+- [2026-09-14 Mon 15:25]--[2026-09-14 Mon 15:26] measure a derived attention-interval rule
 CLOCK: [2026-09-14 Mon 15:30]--[2026-09-14 Mon 15:34] =>  0:04
 - [2026-09-14 Mon 15:30]--[2026-09-14 Mon 15:34] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:34]--[2026-09-14 Mon 15:35] =>  0:01
+- [2026-09-14 Mon 15:34]--[2026-09-14 Mon 15:35] measure a derived attention-interval rule
 CLOCK: [2026-09-14 Mon 15:36]--[2026-09-14 Mon 15:40] =>  0:04
 - [2026-09-14 Mon 15:36]--[2026-09-14 Mon 15:40] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:40]--[2026-09-14 Mon 15:41] =>  0:01
+- [2026-09-14 Mon 15:40]--[2026-09-14 Mon 15:41] measure a derived attention-interval rule
 CLOCK: [2026-09-14 Mon 15:48]--[2026-09-14 Mon 15:51] =>  0:03
 - [2026-09-14 Mon 15:48]--[2026-09-14 Mon 15:51] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:51]--[2026-09-14 Mon 15:52] =>  0:01
+- [2026-09-14 Mon 15:51]--[2026-09-14 Mon 15:52] measure a derived attention-interval rule
 CLOCK: [2026-09-14 Mon 15:55]--[2026-09-14 Mon 15:57] =>  0:02
 - [2026-09-14 Mon 15:55]--[2026-09-14 Mon 15:57] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:57]--[2026-09-14 Mon 15:58] =>  0:01
+- [2026-09-14 Mon 15:57]--[2026-09-14 Mon 15:58] measure a derived attention-interval rule
 CLOCK: [2026-09-14 Mon 16:02]--[2026-09-14 Mon 16:08] =>  0:06
 - [2026-09-14 Mon 16:02]--[2026-09-14 Mon 16:08] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 16:08]--[2026-09-14 Mon 16:09] =>  0:01
+- [2026-09-14 Mon 16:08]--[2026-09-14 Mon 16:09] measure a derived attention-interval rule
 CLOCK: [2026-09-14 Mon 16:13]--[2026-09-14 Mon 16:25] =>  0:12
 - [2026-09-14 Mon 16:13]--[2026-09-14 Mon 16:25] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 16:25]--[2026-09-14 Mon 16:26] =>  0:01
+- [2026-09-14 Mon 16:25]--[2026-09-14 Mon 16:26] measure a derived attention-interval rule
 CLOCK: [2026-09-14 Mon 16:34]--[2026-09-14 Mon 16:43] =>  0:09
 - [2026-09-14 Mon 16:34]--[2026-09-14 Mon 16:43] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 16:43]--[2026-09-14 Mon 16:44] =>  0:01
+- [2026-09-14 Mon 16:43]--[2026-09-14 Mon 16:44] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 17:06]--[2026-09-14 Mon 17:07] =>  0:01
+- [2026-09-14 Mon 17:06]--[2026-09-14 Mon 17:07] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 17:12]--[2026-09-14 Mon 17:13] =>  0:01
+- [2026-09-14 Mon 17:12]--[2026-09-14 Mon 17:13] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 17:15]--[2026-09-14 Mon 17:16] =>  0:01
+- [2026-09-14 Mon 17:15]--[2026-09-14 Mon 17:16] measure a derived attention-interval rule
+- State "DONE"       from "DOING"      [2026-09-14 Mon 17:17] \\
+  attention report shipped and verified
+- State "DOING"      from "TODO"       [2026-09-14 Mon 17:17] \\
+  retroactive: worked and clocked 2026-09-14
 :END:
 
 A CLOCK line holds agent run time, measured; it is not the human's
@@ -8890,6 +8897,7 @@ against a calendar of external activity.
 *Resolution:* shipped as =M-x claude-code-ide-org-attention-report=,
 proposing intervals a human corrects; the qualifying ones carry two
 observed edges and the residue bookends one each.
+
 
 * TODO Bracket queued spans with WAIT transitions, so the heading guess stops latching :code:
 :PROPERTIES:

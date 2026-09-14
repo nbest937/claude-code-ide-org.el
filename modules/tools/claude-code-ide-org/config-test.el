@@ -12365,7 +12365,7 @@ the identity is added back at the point of reporting."
   (let ((item (list :type 'state :id "11111111-1111-1111-1111-111111111111"
                     :ts (date-to-time "2026-08-24T15:02:00-0500")
                     :from "TODO" :to "DONE"))
-        (claude-code-ide-org--last-error-backtrace nil))
+        (claude-code-ide-org--last-error-context nil))
     (let ((s (claude-code-ide-org--review-describe-failure
               item "Error: Before first headline at position 1")))
       (should (string-match-p "Before first headline" s))
@@ -12382,7 +12382,7 @@ reporting an error -- replacing a bad diagnosis with no diagnosis."
   (let ((item (list :type 'clock :id nil
                     :start (date-to-time "2026-08-24T16:00:00-0500")
                     :end (date-to-time "2026-08-24T16:31:00-0500")))
-        (claude-code-ide-org--last-error-backtrace nil))
+        (claude-code-ide-org--last-error-context nil))
     (let ((s (claude-code-ide-org--review-describe-failure item "Error: boom")))
       (should (string-match-p "unassigned" s))
       (should (string-match-p "clock" s))
@@ -12395,16 +12395,16 @@ It converts every error to a string so callers can report a failure
 without unwinding a batch. That is deliberate and stays -- but it also
 discarded the only evidence of WHERE the failure was, which is what made
 five identical messages unactionable."
-  (let ((claude-code-ide-org--last-error-backtrace nil))
+  (let ((claude-code-ide-org--last-error-context nil))
     (claude-code-ide-org-test--with-heading
       (let ((result (claude-code-ide-org--at-id
                      id (lambda () (error "deliberate test failure")))))
         (should (string-match-p "deliberate test failure" result)))
-      (let ((bt claude-code-ide-org--last-error-backtrace))
+      (let ((bt claude-code-ide-org--last-error-context))
         (should bt)
         (should (equal id (plist-get bt :id)))
         (should (string-match-p "deliberate test failure" (plist-get bt :message)))
-        (should (stringp (plist-get bt :backtrace)))))))
+        (should (stringp (plist-get bt :context)))))))
 
 (ert-deftest claude-code-ide-org-test-mark-all-distinguishes-its-two-refusals ()
   "`M' says which items it skipped and why, because the answers differ.
@@ -15773,3 +15773,77 @@ meta-work node."
   (let ((claude-code-ide-org-review-attention-heading nil))
     (should-not (claude-code-ide-org--mechanism-owned-heading-p
                  "Review attention"))))
+
+
+;;; Error context (TODO.org :ID: 169df26b) ---------------------------------
+
+(ert-deftest claude-code-ide-org-test-error-context-names-the-position-1-case ()
+  "The context distinguishes a marker at a heading from one before the first.
+
+That distinction is the entire point.  Both undiagnosed failures read
+\"Before first headline at position 1\" and the captured backtrace could
+not say why; a context that reported the same string for both positions
+would be exactly as useless, so the test asserts the two differ rather
+than that either is non-empty."
+  (let* ((file (claude-code-ide-org-test--fill-fixture
+                "#+TITLE: fixture\n\n* TODO A heading\n\nbody\n"))
+         (buffer (find-file-noselect file)))
+    (unwind-protect
+        (with-current-buffer buffer
+          (let* ((top (copy-marker (point-min)))
+                 (heading (save-excursion
+                            (goto-char (point-min))
+                            (re-search-forward "^\\* TODO" nil t)
+                            (copy-marker (line-beginning-position))))
+                 (at-top (claude-code-ide-org--error-context top))
+                 (at-heading (claude-code-ide-org--error-context heading)))
+            (should (string-match-p "NOT at a heading" at-top))
+            (should (string-match-p "point 1 of" at-top))
+            (should (string-match-p "at a heading" at-heading))
+            (should-not (string-match-p "NOT at a heading" at-heading))
+            ;; Both name the file, which is the other half of "point was at
+            ;; 1 in TODO.org".
+            (should (string-match-p (regexp-quote (file-name-nondirectory file))
+                                    at-top))))
+      (kill-buffer buffer))))
+
+(ert-deftest claude-code-ide-org-test-error-context-survives-a-dead-buffer ()
+  "A marker whose buffer is gone reports that, rather than signalling.
+
+The context is computed inside an error handler, so a failure here would
+replace one diagnosis with another and lose both."
+  (let* ((file (claude-code-ide-org-test--fill-fixture "* TODO A heading\n"))
+         (buffer (find-file-noselect file))
+         (marker (with-current-buffer buffer (copy-marker (point-min)))))
+    (kill-buffer buffer)
+    (should (stringp (claude-code-ide-org--error-context marker))))
+  (should (equal "no marker" (claude-code-ide-org--error-context nil))))
+
+
+(ert-deftest claude-code-ide-org-test-fill-prose-spares-slice-member-lines ()
+  "A slice member line is never wrapped, however long.
+
+It is derived from its referent and rewritten wholesale, by line, by
+`claude-code-ide-org-refresh-slice'.  Wrapping one is a latent
+corruption rather than a cosmetic problem: the next refresh replaces the
+first line and orphans the remainder as duplicated prose, which is what
+happened to 43 lines in TODO.org and 170 in DONE.org.
+
+The fixture puts an ordinary long list item beside the member line so
+the test distinguishes \"member lines are spared\" from \"nothing is
+filled\"."
+  (let* ((tail (mapconcat #'identity (make-list 20 "word") " "))
+         (member (format "- [X] [[id:aaaaaaaa-0000-0000-0000-000000000000][aaaaaaaa]] DONE %s" tail))
+         (file (claude-code-ide-org-test--fill-fixture
+                (format "* TODO A slice\n\nPlanned:\n\n%s\n- plain item %s\n" member tail))))
+    (claude-code-ide-org-fill-prose file nil 50)
+    (claude-code-ide-org-test--with-filled file
+      ;; The member line survives intact, on one line.
+      (should (re-search-forward (regexp-quote member) nil t))
+      (should (= (length member)
+                 (- (line-end-position) (line-beginning-position))))
+      ;; ... while the ordinary item beside it did get wrapped, so the
+      ;; sparing is specific rather than a dead pass.
+      (goto-char (point-min))
+      (should (re-search-forward "^- plain item" nil t))
+      (should (< (- (line-end-position) (line-beginning-position)) 51)))))
