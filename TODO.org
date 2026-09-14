@@ -1,5 +1,5 @@
 #+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
-#+TAGS: code comms research review
+#+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
 * DONE The review buffer is one undifferentiated face, so its element kinds have to be parsed by eye :code:
@@ -5578,7 +5578,7 @@ heading put the evidence on screen, and this one would capture the
 conclusion the human draws from it — but neither requires the other.
 
 
-* TODO Reconstruct coarse day-level attention intervals for the agenda :code:
+* TODO Reconstruct coarse day-level attention intervals for the agenda :code:analysis:
 :PROPERTIES:
 :CATEGORY: Queue
 :ID:       4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba

@@ -15450,3 +15450,142 @@ so %-escapes in user prose land verbatim."
                                             (claude-code-ide-org-test--disk-contents
                                              capture-file)
                                             "^\\* " t)))))))
+
+
+;;; Attention intervals (TODO.org :ID: 4f8500e6) ----------------------------
+
+(defun claude-code-ide-org-test--attention-run (from to)
+  "Return a (START . END) run between FROM and TO on 2026-08-06."
+  (cons (date-to-time (format "2026-08-06T%s-0500" from))
+        (date-to-time (format "2026-08-06T%s-0500" to))))
+
+(defun claude-code-ide-org-test--attention-hhmmss (seconds)
+  (format-time-string "%H:%M:%S" (seconds-to-time seconds)))
+
+(ert-deftest claude-code-ide-org-test-raw-work-runs-do-not-carry-the-clock-promotion ()
+  "The CLOCK path's endpoint promotion would invent a busy window.
+
+This is the whole reason the pairing was split out, and the case is
+chosen so the two functions *disagree*: a ten-second run at 09:09:40 has
+its end promoted to a full minute for CLOCK purposes, landing at
+09:10:40 -- across a window boundary.  Window membership is computed
+from endpoints, so the attention derivation would mark 09:10 busy
+although nothing ran in it.
+
+A test using a comfortably long run mid-window would pass against either
+function and verify nothing about the split."
+  (let* ((events (list (claude-code-ide-org-test--guidepost "09:09:40" "resume")
+                       (claude-code-ide-org-test--guidepost "09:09:50" "pause")))
+         (raw (claude-code-ide-org--raw-work-runs events))
+         (clocked (claude-code-ide-org--span-work-runs events)))
+    ;; Both keep the run; only the clock path moves its end.
+    (should (= 1 (length raw)))
+    (should (= 1 (length clocked)))
+    (should (time-less-p (cdr (car raw)) (cdr (car clocked))))
+    ;; And that is what changes the answer.
+    (should (= 1 (length (claude-code-ide-org--attention-busy-windows raw 600))))
+    (should (= 2 (length (claude-code-ide-org--attention-busy-windows
+                          clocked 600))))))
+
+(ert-deftest claude-code-ide-org-test-attention-windows-carry-observed-bounds ()
+  "A busy window reports the real moments inside it, not its nominal edges.
+
+The observed pair is what lets a qualifying interval claim both its
+edges as evidence, so a window that reported 09:00 and 09:10 here would
+silently turn every boundary in the report into an assertion."
+  (let* ((windows (claude-code-ide-org--attention-busy-windows
+                   (list (claude-code-ide-org-test--attention-run
+                          "09:03:20" "09:07:10"))
+                   600))
+         (w (car windows)))
+    (should (= 1 (length windows)))
+    (should (equal "09:00:00" (claude-code-ide-org-test--attention-hhmmss
+                               (plist-get w :start))))
+    (should (equal "09:03:20" (claude-code-ide-org-test--attention-hhmmss
+                               (plist-get w :first))))
+    (should (equal "09:07:10" (claude-code-ide-org-test--attention-hhmmss
+                               (plist-get w :last))))))
+
+(ert-deftest claude-code-ide-org-test-attention-windows-span-boundaries ()
+  "A run crossing window boundaries marks every window it touches."
+  (let ((windows (claude-code-ide-org--attention-busy-windows
+                  (list (claude-code-ide-org-test--attention-run
+                         "09:05:00" "09:25:00"))
+                  600)))
+    (should (= 3 (length windows)))
+    (should (equal '("09:00:00" "09:10:00" "09:20:00")
+                   (mapcar (lambda (w)
+                             (claude-code-ide-org-test--attention-hhmmss
+                              (plist-get w :start)))
+                           windows)))
+    ;; The last window's observed end is the run's end, not the window's.
+    (should (equal "09:25:00"
+                   (claude-code-ide-org-test--attention-hhmmss
+                    (plist-get (nth 2 windows) :last))))))
+
+(ert-deftest claude-code-ide-org-test-attention-stretches-need-adjacency ()
+  "Consecutive windows group; a one-window gap starts a new stretch."
+  (let* ((windows (claude-code-ide-org--attention-busy-windows
+                   (list (claude-code-ide-org-test--attention-run
+                          "09:00:00" "09:25:00")
+                         (claude-code-ide-org-test--attention-run
+                          "09:45:00" "09:50:00"))
+                   600))
+         (stretches (claude-code-ide-org--attention-stretches windows 600)))
+    (should (= 2 (length stretches)))
+    (should (= 3 (length (nth 0 stretches))))
+    (should (= 1 (length (nth 1 stretches))))))
+
+(ert-deftest claude-code-ide-org-test-attention-bookends-anchor-on-observed-edges ()
+  "The early bookend begins, and the late one ends, on a real timestamp.
+
+Both directions are asserted because the two anchors are separate code
+paths and the failure is silent: a bookend anchored at the wrong end
+still renders a plausible block of the right size."
+  (let* ((residue
+          (list (car (claude-code-ide-org--attention-stretches
+                      (claude-code-ide-org--attention-busy-windows
+                       (list (claude-code-ide-org-test--attention-run
+                              "08:05:00" "08:12:00"))
+                       600)
+                      600))
+                (car (claude-code-ide-org--attention-stretches
+                      (claude-code-ide-org--attention-busy-windows
+                       (list (claude-code-ide-org-test--attention-run
+                              "16:40:00" "16:44:00"))
+                       600))))
+          )
+         (bookends (claude-code-ide-org--attention-bookends residue nil)))
+    (should (= 2 (length bookends)))
+    (let ((early (nth 0 bookends)) (late (nth 1 bookends)))
+      (should (eq 'early (plist-get early :residue)))
+      (should (equal "08:05:00" (claude-code-ide-org-test--attention-hhmmss
+                                 (plist-get early :start))))
+      ;; Two windows touched (08:00 and 08:10), so 20 minutes.
+      (should (= 20 (/ (- (plist-get early :end) (plist-get early :start)) 60)))
+      (should (eq 'late (plist-get late :residue)))
+      (should (equal "16:44:00" (claude-code-ide-org-test--attention-hhmmss
+                                 (plist-get late :end))))
+      (should (= 10 (/ (- (plist-get late :end) (plist-get late :start)) 60))))))
+
+(ert-deftest claude-code-ide-org-test-attention-bookends-collapse-to-one ()
+  "Residue entirely on one side of its midpoint yields a single bookend.
+
+A lone stretch always does, since it starts at the minimum -- and then
+*both* its edges are observed, which is the best case the rendering can
+offer rather than a degenerate one."
+  (let* ((residue (claude-code-ide-org--attention-stretches
+                   (claude-code-ide-org--attention-busy-windows
+                    (list (claude-code-ide-org-test--attention-run
+                           "13:41:00" "13:48:00"))
+                    600)
+                   600))
+         (bookends (claude-code-ide-org--attention-bookends residue nil)))
+    (should (= 1 (length bookends)))
+    (should (eq 'early (plist-get (car bookends) :residue)))
+    (should (equal "13:41:00" (claude-code-ide-org-test--attention-hhmmss
+                               (plist-get (car bookends) :start))))))
+
+(ert-deftest claude-code-ide-org-test-attention-bookends-return-nothing-for-no-residue ()
+  "No sub-floor stretches means no bookends, not an empty-looking one."
+  (should-not (claude-code-ide-org--attention-bookends nil nil)))

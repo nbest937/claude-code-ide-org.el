@@ -7643,6 +7643,36 @@ buffer's \"writes N\" summary and the corpus measurement all read one
 implementation.  Sorts defensively: callers hand it a span's `:events',
 which are filtered from an already-sorted list, but nothing in the type
 says so."
+  ;; The blocks come from EVENTS themselves, so a caller that hands
+  ;; over a bracket's events gets the wait subtracted without having
+  ;; to know it was there.  Harmless where there are none: the
+  ;; barrier list is empty and the floor behaves exactly as before.
+  (claude-code-ide-org--apply-idle-floor
+   (claude-code-ide-org--raw-work-runs events)
+   floor
+   (claude-code-ide-org--block-intervals events)))
+
+(defun claude-code-ide-org--raw-work-runs (events)
+  "Return every `resume' -> `pause' adjacency in EVENTS as (START . END).
+
+The pairing alone: no idle floor, no permission-block subtraction, and
+none of the rendered-zero dropping `claude-code-ide-org--apply-idle-floor'
+performs.  `claude-code-ide-org--span-work-runs' is this plus that tail,
+and is what every CLOCK-writing path should call.
+
+Split out for the attention derivation (TODO.org :ID: 4f8500e6), which
+needs the runs *before* that tail for a reason specific to what it
+measures.  The tail **rewrites endpoints**: a run with a positive
+duration that would render `=>  0:00' has its end promoted to a full
+minute, deliberately, so the observation survives org's minute
+precision.  That is right for a CLOCK line and wrong here, because
+window membership is computed *from* the endpoints -- a ten-second turn
+at 09:09:40 is promoted to 09:10:40 and would mark the 09:10 window
+busy, inventing attention in a window nothing ran in.
+
+The idle floor is harmless by comparison (it cannot bridge a window, its
+default being far shorter), but the two arrive together and only the
+raw pairing is free of both.  Sorts defensively, as its caller documents."
   (let ((points (sort (mapcar (lambda (e)
                                 (cons (plist-get e :ts)
                                       (claude-code-ide-org--run-boundary-kind
@@ -7656,12 +7686,7 @@ says so."
                  (eq (cdr point) 'close))
         (push (cons (car previous) (car point)) runs))
       (setq previous point))
-    ;; The blocks come from EVENTS themselves, so a caller that hands
-    ;; over a bracket's events gets the wait subtracted without having
-    ;; to know it was there.  Harmless where there are none: the
-    ;; barrier list is empty and the floor behaves exactly as before.
-    (claude-code-ide-org--apply-idle-floor
-     (nreverse runs) floor (claude-code-ide-org--block-intervals events))))
+    (nreverse runs)))
 
 (defun claude-code-ide-org--renders-as-nothing-p (interval fmt)
   "Non-nil when INTERVAL would write a CLOCK line saying nothing.
@@ -14081,6 +14106,413 @@ silent run can never be mistaken for a passing one."
     (princ (format "lint-org: %d error(s), %d warning(s)\n"
                    (length errors) (length warnings)))
     (when errors (kill-emacs 1))))
+
+;;; Attention intervals (TODO.org :ID: 4f8500e6) ----------------------------
+;;
+;; Phase 2 of the two-phase record.  A CLOCK line holds *agent run time*,
+;; measured; an attention interval holds *the human's*, attested.  This
+;; derivation proposes intervals and a human reconciles them against a
+;; calendar of external activity -- it is an aid to attestation, never a
+;; final word (the user, 2026-09-14), which is what licenses a proposal
+;; where `claude-code-ide-org--guess-stop-time' was refused: the
+;; boundaries here are observations and only the label is offered.
+;;
+;; Vocabulary.  A window carrying agent run time is *busy*, never
+;; "active" -- active/inactive names a timestamp shape in org and would
+;; read as the opposite of what is measured.  Its complement is *idle*.
+
+(defcustom claude-code-ide-org-attention-window-seconds 600
+  "Width in seconds of the window busy time is quantised into.
+
+Ten minutes, measured against the alternatives over 26 days of corpus:
+finer windows fragment one working stretch into more agenda items than a
+human will reconcile, coarser ones swallow genuine breaks."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defcustom claude-code-ide-org-attention-floor-windows 3
+  "Consecutive busy windows required before an attention interval is written.
+
+At the 600-second default this is the 30-minute floor.  Measured over 26
+days, median agenda items per day: 8 at a 10-minute floor, 6 at 20, 3 at
+30, 1 at 60.  Three windows is where a day's items become few enough to
+check against a calendar, which is the only consumer.
+
+Sub-floor stretches are *not* discarded -- that would drop roughly 30%
+of busy time.  They become the day's bookends; see
+`claude-code-ide-org--attention-bookends'."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defun claude-code-ide-org--attention-window-start (seconds width)
+  "Floor SECONDS to the start of its WIDTH-second window."
+  (* width (floor seconds width)))
+
+(defun claude-code-ide-org--attention-busy-windows (runs &optional width)
+  "Return the busy windows covering RUNS, oldest first.
+
+RUNS is a list of (START . END) time pairs, as
+`claude-code-ide-org--span-work-runs' returns.  Each result element is a
+plist: :start the window's own start as float seconds, :first and :last
+the earliest and latest *observed* moments inside it.
+
+Carrying the observed pair is what lets an interval's outer edges be
+evidence rather than assertion.  A window contributes its real
+boundaries, never its nominal ones."
+  (let ((width (or width claude-code-ide-org-attention-window-seconds))
+        (table (make-hash-table :test 'eql))
+        starts)
+    (dolist (run runs)
+      (let ((a (float-time (car run)))
+            (b (float-time (cdr run))))
+        (while (< a b)
+          (let* ((w (claude-code-ide-org--attention-window-start a width))
+                 (edge (min b (+ w width)))
+                 (cell (gethash w table)))
+            (if cell
+                (progn (setcar cell (min (car cell) a))
+                       (setcdr cell (max (cdr cell) edge)))
+              (puthash w (cons a edge) table)
+              (push w starts))
+            (setq a edge)))))
+    (mapcar (lambda (w)
+              (let ((cell (gethash w table)))
+                (list :start w :first (car cell) :last (cdr cell))))
+            (sort starts #'<))))
+
+(defun claude-code-ide-org--attention-stretches (windows &optional width)
+  "Group WINDOWS into lists of consecutive windows, oldest first."
+  (let ((width (or width claude-code-ide-org-attention-window-seconds))
+        stretches current)
+    (dolist (w windows)
+      (if (and current
+               (= (plist-get w :start)
+                  (+ width (plist-get (car current) :start))))
+          (push w current)
+        (when current (push (nreverse current) stretches))
+        (setq current (list w))))
+    (when current (push (nreverse current) stretches))
+    (nreverse stretches)))
+
+(defun claude-code-ide-org--attention-slice-states ()
+  "Return the state history of every declared slice.
+
+Each element is (ID TITLE . STATES), STATES a list of (TIME . KEYWORD)
+oldest first, read from the heading's own `:LOGBOOK:'.
+
+Slices rather than every heading, because a busy stretch is labelled by
+the slice that was *open* during it.  Only one slice is worked at a time
+(the user, 2026-09-14), which is what makes \"a slice, or review and
+planning\" the whole label vocabulary -- both rolling up to the project,
+which is the level the human's attention is actually reported at.
+
+*Measured over the whole corpus rather than assumed*: of 803 busy
+windows, 268 had exactly one slice open and 535 had none.  Two were
+never open at once, so the modal choice in
+`claude-code-ide-org--attention-label' has never yet had to break a tie.
+Note the 535 -- two thirds of busy windows carry no open slice at all,
+so review and planning is the *common* label, not the fallback it looks
+like.
+
+The premise is one human, stated as such: with two, \"the slice that was
+open\" would stop identifying anyone's attention and this would need a
+per-person answer."
+  (let (result)
+    (dolist (file (claude-code-ide-org--tracked-files))
+      (when (file-exists-p file)
+        (with-current-buffer (find-file-noselect file)
+          (org-map-entries
+           (lambda ()
+             (let ((id (org-entry-get nil "ID"))
+                   (title (org-get-heading t t t t))
+                   (end (save-excursion (org-end-of-subtree t t)))
+                   states)
+               (save-excursion
+                 (while (re-search-forward
+                         (concat "^[ \t]*- State[ \t]+\"\\([A-Z]+\\)\"[ \t]+"
+                                 "from[ \t]+\"?[A-Z]*\"?[ \t]+\\[\\([^]]+\\)\\]")
+                         end t)
+                   ;; Both groups are read *before* any call that parses a
+                   ;; time: `org-time-string-to-time' runs its own regexps
+                   ;; and resets the match data, so reading group 1 after
+                   ;; it is an args-out-of-range against this buffer.
+                   (let ((keyword (match-string 1))
+                         (stamp (match-string 2)))
+                     (push (cons (float-time (org-time-string-to-time stamp))
+                                 keyword)
+                           states))))
+               (when id
+                 (push (cons id (cons title
+                                      (sort (nreverse states)
+                                            (lambda (a b) (< (car a) (car b))))))
+                       result))))
+           "KIND=\"slice\"" 'file))))
+    result))
+
+(defun claude-code-ide-org--attention-open-slices (states time)
+  "Return (ID . TITLE) for every slice open at TIME, per STATES."
+  (let (open)
+    (dolist (entry states)
+      (let ((keyword nil))
+        (dolist (s (cddr entry))
+          (when (<= (car s) time) (setq keyword (cdr s))))
+        (when (member keyword '("DOING" "REVIEW"))
+          (push (cons (car entry) (cadr entry)) open))))
+    open))
+
+(defun claude-code-ide-org--attention-label (states stretch)
+  "Return STRETCH's label -- (ID . TITLE), or nil for review and planning.
+
+The modal open slice across the stretch's windows.  Nil is not a
+failure: it is the other of the two options, and it is where a slice's
+planning, the apply pass and every cross-cutting turn belong."
+  (let ((counts (make-hash-table :test 'equal)) best bestn)
+    (dolist (w stretch)
+      (dolist (s (claude-code-ide-org--attention-open-slices
+                  states (plist-get w :start)))
+        (puthash s (1+ (or (gethash s counts) 0)) counts)))
+    (maphash (lambda (k v)
+               (when (or (null bestn) (> v bestn)) (setq best k bestn v)))
+             counts)
+    best))
+
+(defun claude-code-ide-org--attention-stretch-bounds (stretch)
+  "Return (FIRST . LAST), the observed outer moments of STRETCH."
+  (cons (plist-get (car stretch) :first)
+        (plist-get (car (last stretch)) :last)))
+
+(defun claude-code-ide-org--attention-bookends (residue states)
+  "Return at most two bookend intervals covering RESIDUE.
+
+RESIDUE is one day's sub-floor stretches.  They are split at the
+midpoint of their own min-max span; the early group's block *begins* at
+the earliest observed moment and the late group's *ends* at the latest,
+each sized to the busy time it represents.
+
+So every bookend has one observed edge and one constructed one, and a
+group holding a single stretch has both observed.  That is the property
+the two rejected renderings could not offer: spanning first-to-last drew
+an 8.9-hour block for 60 minutes of work, and one sized block fixed the
+quantity while leaving the placement wrong.
+
+Zero, one or two are returned -- one when every stretch falls on the
+same side of the midpoint, which a lone stretch always does."
+  (when residue
+    (let* ((bounds (mapcar #'claude-code-ide-org--attention-stretch-bounds
+                           residue))
+           (lo (apply #'min (mapcar #'car bounds)))
+           (hi (apply #'max (mapcar #'cdr bounds)))
+           (mid (+ lo (/ (- hi lo) 2.0)))
+           early late)
+      (dolist (s residue)
+        (if (< (car (claude-code-ide-org--attention-stretch-bounds s)) mid)
+            (push s early)
+          (push s late)))
+      (setq early (nreverse early) late (nreverse late))
+      (delq nil
+            (list
+             (when early
+               (let ((secs (claude-code-ide-org--attention-busy-seconds early)))
+                 (list :start lo :end (+ lo secs)
+                       :label (claude-code-ide-org--attention-label
+                               states (apply #'append early))
+                       :residue 'early :parts early)))
+             (when late
+               (let ((secs (claude-code-ide-org--attention-busy-seconds late)))
+                 (list :start (- hi secs) :end hi
+                       :label (claude-code-ide-org--attention-label
+                               states (apply #'append late))
+                       :residue 'late :parts late))))))))
+
+(defun claude-code-ide-org--attention-busy-seconds (stretches)
+  "Return the attention seconds STRETCHES represent.
+
+One window's width per busy window -- not the run time inside it.  An
+attention interval claims the reading and deciding *between* turns,
+which is exactly the time a CLOCK line excludes by construction; a
+window with one live turn in it was attended throughout."
+  (* claude-code-ide-org-attention-window-seconds
+     (apply #'+ (mapcar #'length stretches))))
+
+(defun claude-code-ide-org--attention-day (seconds)
+  "Return the local YYYY-MM-DD date of float SECONDS."
+  (format-time-string "%Y-%m-%d" (seconds-to-time seconds)))
+
+(defun claude-code-ide-org-attention-intervals (from to)
+  "Return the attention intervals for the days FROM..TO, both inclusive.
+
+FROM and TO are `YYYY-MM-DD' strings.  The result is an alist of (DAY
+. INTERVALS), oldest first, each interval a plist:
+
+  :start  :end     float seconds -- the interval as it will be written
+  :label  (ID . TITLE) of the slice open through it, or nil for
+          review and planning
+  :residue `early', `late', or nil for a qualifying stretch
+  :parts  the stretches it was derived from
+
+*Duration is end minus start, and there is deliberately no second
+number.*  An earlier draft reported window-count times width alongside
+observed boundaries, and the two disagreed -- a stretch rendered
+09:05--09:47 was labelled 50m against a 42-minute range.  An org active
+interval's duration *is* its range, so a label that says otherwise is
+simply wrong."
+  (let* ((events (claude-code-ide-org--queue-events nil t))
+         (lo (float-time (org-time-string-to-time (concat from " 00:00"))))
+         (hi (+ 86400 (float-time (org-time-string-to-time (concat to " 00:00")))))
+         ;; Pair guideposts *within a session*, never across.
+         ;; `claude-code-ide-org--queue-events' merges every session and
+         ;; re-sorts by timestamp, so pairing the merged stream lets one
+         ;; session's `resume' close against another's `pause' and invent
+         ;; a run neither ran.  Concurrent sessions are ordinary here --
+         ;; a background job and an interactive one overlap constantly --
+         ;; so this is the common case, not an edge one.
+         (runs (let ((by-session (make-hash-table :test 'equal))
+                     paired)
+                 (dolist (event events)
+                   (push event (gethash (plist-get event :session-id) by-session)))
+                 (maphash (lambda (_ session-events)
+                            (setq paired
+                                  (append (claude-code-ide-org--raw-work-runs
+                                           (nreverse session-events))
+                                          paired)))
+                          by-session)
+                 paired))
+         (runs (seq-filter (lambda (r)
+                             (let ((s (float-time (car r))))
+                               (and (>= s lo) (< s hi))))
+                           runs))
+         (stretches (claude-code-ide-org--attention-stretches
+                     (claude-code-ide-org--attention-busy-windows runs)))
+         (states (claude-code-ide-org--attention-slice-states))
+         (by-day (make-hash-table :test 'equal))
+         days result)
+    (dolist (s stretches)
+      (let ((day (claude-code-ide-org--attention-day
+                  (car (claude-code-ide-org--attention-stretch-bounds s)))))
+        (unless (gethash day by-day) (push day days))
+        (puthash day (cons s (gethash day by-day)) by-day)))
+    (dolist (day (sort days #'string<))
+      (let (qualifying residue items)
+        (dolist (s (nreverse (gethash day by-day)))
+          (if (>= (length s) claude-code-ide-org-attention-floor-windows)
+              (push s qualifying)
+            (push s residue)))
+        (dolist (s (nreverse qualifying))
+          (let ((b (claude-code-ide-org--attention-stretch-bounds s)))
+            (push (list :start (car b) :end (cdr b)
+                        :label (claude-code-ide-org--attention-label states s)
+                        :residue nil :parts (list s))
+                  items)))
+        (setq items (append (nreverse items)
+                            (claude-code-ide-org--attention-bookends
+                             (nreverse residue) states)))
+        (push (cons day (sort items (lambda (a b)
+                                      (< (plist-get a :start)
+                                         (plist-get b :start)))))
+              result)))
+    (nreverse result)))
+
+(defun claude-code-ide-org--attention-label-string (label)
+  "Render LABEL -- (ID . TITLE) or nil -- as a heading."
+  (if label
+      (format "[[id:%s][%s]] %s" (car label) (substring (car label) 0 8)
+              (cdr label))
+    "Review and planning"))
+
+(defun claude-code-ide-org--attention-timestamp (seconds)
+  "Render float SECONDS as an org *active* timestamp.
+
+Active, because the whole point is to appear in an agenda view as a
+period the human was occupied.  Note the axes are independent:
+active-vs-inactive is a property of a *timestamp*, clock-vs-attention a
+property of an *interval*.  This is an attention interval implemented as
+an active one."
+  (format-time-string "<%Y-%m-%d %a %H:%M>" (seconds-to-time seconds)))
+
+(defun claude-code-ide-org--attention-minutes (interval)
+  "Return INTERVAL's duration in whole minutes."
+  (round (/ (- (plist-get interval :end) (plist-get interval :start)) 60)))
+
+(defun claude-code-ide-org-attention-report (from to)
+  "Render the attention intervals for FROM..TO into a buffer.
+
+Derived, not attested: the output is a *proposal* to reconcile against a
+calendar of external activity and edit freely.  That is what makes it
+defensible where `claude-code-ide-org--guess-stop-time' was not -- the
+boundaries of a qualifying interval are both observed, a bookend has one
+observed edge, and each constructed edge says so in the body."
+  (interactive
+   (list (read-string "From (YYYY-MM-DD): ")
+         (read-string "To (YYYY-MM-DD): ")))
+  (let ((days (claude-code-ide-org-attention-intervals from to))
+        (totals (make-hash-table :test 'equal))
+        (buffer (get-buffer-create "*org attention*")))
+    (with-current-buffer buffer
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (insert (format "#+TITLE: Derived attention intervals %s..%s\n" from to)
+                "#+TAGS: residue\n\n"
+                "# Derived, not attested. Each heading is one active interval\n"
+                "# proposed for review against external records; edit freely.\n"
+                "#   busy window = "
+                (format "%d min carrying agent run time\n"
+                        (/ claude-code-ide-org-attention-window-seconds 60))
+                (format "#   interval    = %d+ consecutive busy windows\n"
+                        claude-code-ide-org-attention-floor-windows)
+                "#   label       = the slice in DOING/REVIEW then, else"
+                " Review and planning\n"
+                "#   residue     = sub-floor stretches, split at their own"
+                " min-max midpoint\n"
+                "#                 into bookends: the early one BEGINS at the"
+                " earliest real\n"
+                "#                 timestamp, the late one ENDS at the latest."
+                " 0, 1 or 2 a day.\n\n")
+        (dolist (entry days)
+          (insert (format "* %s\n" (car entry)))
+          (dolist (item (cdr entry))
+            (let* ((label (claude-code-ide-org--attention-label-string
+                           (plist-get item :label)))
+                   (mins (claude-code-ide-org--attention-minutes item))
+                   (residue (plist-get item :residue)))
+              (puthash label (+ mins (or (gethash label totals) 0)) totals)
+              (insert "** " label (if residue "    :residue:" "") "\n"
+                      "   "
+                      (claude-code-ide-org--attention-timestamp
+                       (plist-get item :start))
+                      "--"
+                      (claude-code-ide-org--attention-timestamp
+                       (plist-get item :end))
+                      "\n")
+              (when residue
+                (let ((parts (plist-get item :parts)))
+                  (insert (format "   - %s bookend of %d sub-floor stretch%s: %s\n"
+                                  residue (length parts)
+                                  (if (= 1 (length parts)) "" "es")
+                                  (mapconcat
+                                   (lambda (s)
+                                     (let ((b (claude-code-ide-org--attention-stretch-bounds s)))
+                                       (format "%s+%dm"
+                                               (format-time-string
+                                                "%H:%M" (seconds-to-time (car b)))
+                                               (/ (* (length s)
+                                                     claude-code-ide-org-attention-window-seconds)
+                                                  60))))
+                                   parts ", ")))
+                  (insert (format "   - %dm total; %s\n" mins
+                                  (if (eq residue 'early)
+                                      "start observed, end constructed"
+                                    "end observed, start constructed")))))))
+          (insert "\n"))
+        (insert "* Totals\n")
+        (let (rows (grand 0))
+          (maphash (lambda (k v) (push (cons k v) rows)) totals)
+          (dolist (row (sort rows (lambda (a b) (> (cdr a) (cdr b)))))
+            (setq grand (+ grand (cdr row)))
+            (insert (format "  - %.1fh  %s\n" (/ (cdr row) 60.0) (car row))))
+          (insert (format "  - %.1fh  TOTAL\n" (/ grand 60.0))))
+        (goto-char (point-min))
+        (org-mode)))
+    (pop-to-buffer buffer)))
 
 ;;; MCP tool registration -------------------------------------------------
 
