@@ -9028,10 +9028,38 @@ lands at all."
               ;; rather than by archive time.
               (claude-code-ide-org--resolve-item-target item)
               (lambda ()
-                (pcase (plist-get item :type)
-                  ('clock (claude-code-ide-org--review-apply-clock item))
-                  ('state (claude-code-ide-org--review-apply-state item))
-                  ('amend (claude-code-ide-org--review-apply-amend item)))
+                ;; Where `--at-id' put us, kept across the apply.
+                ;;
+                ;; The tidy-up below asks for "the heading at point", and
+                ;; applying an item does not promise to leave point on
+                ;; it. A state apply in particular drives org's
+                ;; note-storing machinery, which moves point and ends in
+                ;; `set-window-configuration'; if point lands before the
+                ;; first heading, `--find-drawer' signals "Before first
+                ;; headline at position 1" *after* the keyword and the
+                ;; note have both been written correctly.
+                ;;
+                ;; That is TODO.org :ID: b23e5bcc, and its cost was not
+                ;; cosmetic: `--at-id' converts the signal into an error
+                ;; string, so a fully-applied item was reported failed,
+                ;; never watermarked, and re-offered on every later pass
+                ;; -- where force-applying it would write a second
+                ;; `State' line for a transition that already happened.
+                ;; Eight items in one pass on 2026-09-14.
+                ;;
+                ;; Returning here rather than making the tidy-up tolerant
+                ;; is deliberate: "the heading at point" is that
+                ;; function's contract and its other callers keep it. The
+                ;; apply path is what broke it.
+                (let ((origin (point-marker)))
+                  (pcase (plist-get item :type)
+                    ('clock (claude-code-ide-org--review-apply-clock item))
+                    ('state (claude-code-ide-org--review-apply-state item))
+                    ('amend (claude-code-ide-org--review-apply-amend item)))
+                  (when (marker-buffer origin)
+                    (set-buffer (marker-buffer origin))
+                    (goto-char origin))
+                  (set-marker origin nil))
                 ;; Fold the tidy-up into the write already being made,
                 ;; before `save-buffer' rather than after, so one apply
                 ;; is one write. org inserts CLOCK lines newest-first

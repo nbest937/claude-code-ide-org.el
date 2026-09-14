@@ -325,6 +325,44 @@ whether a body that arrives *already* wrapped is left alone.
 :CREATED:  [2026-09-14 Mon 10:05]
 :CATEGORY: Tools
 :END:
+:DEBRIEF:
+*Shipped option 3 of the three the plan listed*, the one needing neither
+=handler-bind= nor ownership of a global: record the cheap facts instead
+of a stack. Three tests, 649 in the suite.
+
+*Why the other two stayed unavailable.* =handler-bind= runs a handler
+before unwinding and takes no global — the exact primitive — but it
+landed in **Emacs 30** and this machine runs **29.4**, verified rather
+than recalled. =signal-hook-function= fires at signal time and is a
+global, carrying the same objection as =debugger= in smaller form: a
+library cannot take one without stealing it from whoever else holds it,
+which ERT does, edebug does, and so does a human with
+\\[toggle-debug-on-error] while reproducing the very bug this would serve.
+
+*The instrument is honest about what it is.* The old =:backtrace= looked
+like evidence while describing only the capture machinery, which is
+worse than nothing because it stopped anyone reaching for a
+reproduction. The replacement claims only to say where =--at-id= was
+pointed, and the test asserts it *discriminates* — a marker at position
+1 reads \"NOT at a heading\" and one on a heading reads \"at a heading\" —
+because a context reporting the same string for both would be exactly as
+useless as the backtrace was.
+
+*And the thing it was built for did not need it.*
+[[id:b23e5bcc-1bfd-4862-a801-0c7ac6959924][b23e5bcc]] named this heading as its blocker, and the
+diagnosis in the end came from reading the call chain — the tidy-up
+folded into every apply asks for \"the heading at point\", and a state
+apply need not leave point there. So the blocker *dissolved* rather than
+being resolved, which is worth recording: the instrument would have
+named the position immediately, but the error message already carried
+it, and what was actually missing was the *caller*, which no cheap fact
+can supply.
+
+*Left behind:* nothing new. Capturing a real signal-site stack remains
+wanted and remains gated on Emacs 30; that is the plan's own note, not a
+fresh gap.
+:END:
+:PLAN:
 
 =claude-code-ide-org--at-id= records =--last-error-backtrace= from inside its
 own =condition-case= handler, by which point the frames between the signal and
@@ -384,6 +422,15 @@ what the two undiagnosed occurrences actually needed.
 mitigation is unaffected: it was committed separately and keys on a returned
 string, not on a backtrace.
 
+:END:
+*Resolution:* the misleading =:backtrace= is gone and
+=--last-error-backtrace= is now =--last-error-context=, recording where
+the marker actually pointed — position, buffer size, file, whether that
+position is at a heading, whether the buffer is narrowed — computed in
+the handler, which is sound because unwinding restores point and buffer
+but does not move a marker.
+
+
 
 * TODO A state item applies correctly and is then reported failed, so it is re-offered forever :code:
 :PROPERTIES:
@@ -391,6 +438,53 @@ string, not on a backtrace.
 :CREATED:  [2026-09-14 Mon 10:05]
 :CATEGORY: Apply
 :END:
+:DEBRIEF:
+*Root cause: the drawer tidy-up folded into every apply.*
+=--review-apply-item='s lambda calls =--consolidate-drawer-at-point=
+after the type dispatch, and that reaches =--find-drawer=, whose first
+act is =(org-back-to-heading t)=. It asks for \"the heading at point\",
+and a state apply does not promise to leave point there — it drives
+org's note-storing machinery, which moves point and ends in
+=set-window-configuration=. Point before the first heading, and the
+tidy-up signals *after* the keyword and the note have both been written
+correctly. That is the whole symptom: the writes are right, only the
+verdict is wrong.
+
+*Confirmed at the source rather than argued.* Running
+=--consolidate-drawer-at-point= from =point-min= in a scratch org buffer
+returns =\"Before first headline at position 1 in buffer *temp*\"= — the
+observed failure word for word, with only the buffer name differing.
+From the heading it returns cleanly.
+
+*Fixed by returning to where =--at-id= put us* before the tidy-up: the
+lambda keeps a marker from entry and restores buffer and point after the
+dispatch. Making the tidy-up tolerant instead was rejected — \"the
+heading at point\" is its contract and its other callers keep it; the
+apply path is what broke it.
+
+*The test simulates rather than reproduces*, which is the honest shape
+here: the live failure was intermittent and resisted reproduction
+through five falsified hypotheses, so the test injects the one condition
+that matters — an apply that leaves point before the first heading — and
+asserts the pass survives. Verified to discriminate by removing the fix:
+without it the test fails, with it 649 pass.
+
+*The earlier mitigation stays.* It keys on a returned string and
+compares the heading's actual state, so it still catches a landed change
+reported failed for any *other* reason. It was a symptom guard and is
+now a backstop, which is the right relationship.
+
+*On the blocker this heading declared:* diagnosis was said to be blocked
+on [[id:169df26b-64a8-4de9-8919-ab58d510aaf6][169df26b]], and it was not. The error message already
+carried the position; what was missing was the *caller*, which the cheap
+context facts cannot supply either. Reading the call chain answered it.
+Worth recording because \"blocked on an instrument\" delayed a diagnosis
+that a grep for =org-back-to-heading= would have reached.
+
+*Left behind:* nothing. The eight items from the 2026-09-14 pass were
+already dismissed by hand.
+:END:
+:PLAN:
 
 Observed live 2026-09-14: an apply reported =Applied 8 item(s); 8 failed=, every
 failure reading =Error: Before first headline at position 1 in buffer TODO.org
@@ -411,6 +505,13 @@ unnoticed: the writes are right, only the verdict is wrong. Diagnosis is blocked
 on [[id:169df26b-64a8-4de9-8919-ab58d510aaf6][169df26b]] (the stored backtrace
 is captured after unwinding), so the next step is a reproduction with
 =debug-on-error= bound during =--review-apply-item= rather than more reading.
+
+:END:
+*Resolution:* the apply lambda now returns to where =--at-id= put it
+before running the drawer tidy-up, which is the step that signalled.
+Root cause: the tidy-up asks for \"the heading at point\" and a state
+apply does not promise to leave point there.
+
 
 
 * TODO Adopt the plugin in agentic-euchre, so the two projects stop being worked in parallel :code:

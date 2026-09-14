@@ -15847,3 +15847,37 @@ filled\"."
       (goto-char (point-min))
       (should (re-search-forward "^- plain item" nil t))
       (should (< (- (line-end-position) (line-beginning-position)) 51)))))
+
+
+;;; Apply survives a moved point (TODO.org :ID: b23e5bcc) ------------------
+
+(ert-deftest claude-code-ide-org-test-apply-survives-an-apply-that-moves-point ()
+  "An item that leaves point before the first heading still applies cleanly.
+
+This is TODO.org :ID: b23e5bcc.  The tidy-up folded into every apply asks
+for \"the heading at point\", and a state apply drives org's note-storing
+machinery, which moves point and ends in `set-window-configuration'.
+When point landed at 1, `--find-drawer' signalled \"Before first headline
+at position 1\" *after* the keyword and note had both been written -- so
+`--at-id' turned a fully-applied item into a reported failure, which was
+never watermarked and came back on every later pass.
+
+The apply is simulated rather than reproduced: the live failure was
+intermittent and resisted reproduction, so the test injects the one
+condition that matters -- point left before the first heading -- and
+asserts the pass survives it.  Without the fix the result is an error
+string, which is precisely the reported-failed symptom."
+  (claude-code-ide-org-test--with-heading
+    (let* ((moved nil)
+           (item (list :type 'state :id id :to "DONE"
+                       :ts (current-time) :note "test")))
+      (cl-letf (((symbol-function 'claude-code-ide-org--review-apply-state)
+                 (lambda (_item)
+                   ;; Exactly what the real one can leave behind.
+                   (goto-char (point-min))
+                   (setq moved t))))
+        (let ((result (claude-code-ide-org--review-apply-item item)))
+          (should moved)
+          ;; The failure mode was an error STRING, not a signal.
+          (should-not (and (stringp result)
+                           (string-match-p "Before first headline" result))))))))
