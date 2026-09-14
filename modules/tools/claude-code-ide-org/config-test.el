@@ -14427,8 +14427,8 @@ beside the link's target, not beside the link."
       (delete-directory dir t))))
 
 (ert-deftest claude-code-ide-org-test-apply-trusts-the-file-over-the-verdict ()
-  "A state change that landed is reported applied, even if something
-after it signalled -- and one that did not land is still a failure.
+  "A state change that landed is reported applied, even when the apply
+returned an error -- and one that did not land is still a failure.
 
 `--review-apply-item' runs the transition, the drawer consolidation and
 the save inside one lambda, and `--at-id' turns any error in that lambda
@@ -14437,40 +14437,45 @@ reported failed, never watermarked, and re-offered on every later pass
 (TODO.org :ID: b23e5bcc: eight such items in one live apply, all eight
 keyword changes correct on disk).
 
-Both halves in one test, because the fix is only sound if it
+`--at-id' is stubbed rather than made to signal for real.  A genuine
+signal would travel through the debugger -- which is how `--at-id' now
+captures a backtrace at signal time (:ID: 169df26b) -- and ERT installs
+a `debugger' of its own, so a test that signals here reports an
+unexplained non-local exit instead of the behaviour under test.  What
+this test is about is the *branch*, and the branch keys on a returned
+string; `--at-id-records-a-backtrace' covers the signalling path.
+
+Both directions in one test, because the fix is only sound if it
 discriminates: the claim is *the file is the record*, not \"ignore
-errors\".  A failure whose keyword did not change must still be a
-failure, or this would launder real breakage into silence."
+errors\".  A failure whose keyword did not move must stay a failure, or
+this laundered real breakage into silence."
   (claude-code-ide-org-test--with-heading
-    (let ((claude-code-ide-org-consolidate-on-apply t)
-          (claude-code-ide-org--review-apply-warnings nil))
-      ;; Landed, then something downstream complained.
-      (cl-letf (((symbol-function
-                  'claude-code-ide-org--consolidate-drawer-at-point)
-                 (lambda (&rest _)
-                   (error "Before first headline at position 1 in buffer T.org"))))
+    (let ((claude-code-ide-org--review-apply-warnings nil))
+      ;; The change landed; the apply still returned an error.
+      (org-with-point-at (org-id-find id t) (org-todo "DOING"))
+      (cl-letf (((symbol-function 'claude-code-ide-org--at-id)
+                 (lambda (&rest _) "Error: Before first headline at position 1")))
         (let ((result (claude-code-ide-org--review-apply-item
                        (list :type 'state :id id :ts (current-time)
-                             :from "TODO" :to "DOING" :note "n" :events nil))))
+                             :from "TODO" :to "DOING" :note "n" :events nil
+                             :stale-confirmed t))))
           (should-not result)
-          (should (equal "DOING"
-                         (claude-code-ide-org--review-current-state id)))
           (should (= 1 (length claude-code-ide-org--review-apply-warnings)))
           (should (string-match-p "landed, but"
                                   (car claude-code-ide-org--review-apply-warnings)))))
-      ;; The control: the transition itself fails, so the keyword does
-      ;; not move and the item is reported failed as before.
+      ;; The control: same error, but the keyword is NOT what was asked
+      ;; for, so the item is still reported failed and nothing is
+      ;; laundered.
       (setq claude-code-ide-org--review-apply-warnings nil)
-      (cl-letf (((symbol-function 'claude-code-ide-org--review-apply-state)
-                 (lambda (&rest _) (error "could not write"))))
+      (cl-letf (((symbol-function 'claude-code-ide-org--at-id)
+                 (lambda (&rest _) "Error: Before first headline at position 1")))
         (let ((result (claude-code-ide-org--review-apply-item
                        (list :type 'state :id id :ts (current-time)
-                             :from "DOING" :to "REVIEW" :note "n" :events nil))))
+                             :from "DOING" :to "REVIEW" :note "n" :events nil
+                             :stale-confirmed t))))
           (should (stringp result))
-          (should (string-match-p "could not write" result))
-          ;; Still DOING: nothing laundered.
-          (should (equal "DOING"
-                         (claude-code-ide-org--review-current-state id)))
+          (should (string-match-p "Before first headline" result))
+          (should (equal "DOING" (claude-code-ide-org--review-current-state id)))
           (should-not claude-code-ide-org--review-apply-warnings))))))
 
 (defun claude-code-ide-org-test--stale-repeater-line ()

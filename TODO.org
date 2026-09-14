@@ -2,6 +2,25 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Nothing stops a span being assigned to "Review attention", which ranks high and reads like "Review and planning" :code:
+:PROPERTIES:
+:ID:       40159d43-e48b-4f38-95eb-651145637049
+:CREATED:  [2026-09-14 Mon 09:42]
+:END:
+
+=--assign-candidates= says of itself "*Nothing is excluded*, and that is the fix for =0d055205=", so the =Review attention= heading (=335dfa97=) is offered at =a= like any other — and it ranks *well*, because candidates are ranked by time correlation with the span and that heading is clocked at exactly review time by construction. Its display name differs from the meta-work datetree's by two words. Audited 2026-09-14 at the user's question and **the record is clean so far**: across 81 closed CLOCK lines (4.92 h) on =335dfa97=, every one of its 11 annotations reads =review pass (buffer buried)=, whose only writer is =claude-code-ide-org-review-attention-stop=, and there are zero annotations from any other source — so no human-assigned span has ever landed there, and the 247 CLOCK lines (17.17 h) of meta-work are all on the datetree where they belong. The exposure is prospective, not historical. Proposed: exclude =claude-code-ide-org-review-attention-heading= from the assignment candidate list, since it is a heading the *mechanism* owns and a human has no reason to pick — that is a narrower exclusion than =0d055205= reversed, which was about not hiding headings created after the span. Consider also naming it something that cannot be misread as the meta-work node.
+
+
+* TODO Nothing fills prose on write, so body text arrives as one long line and the human reflows it by hand :code:
+:PROPERTIES:
+:ID:       b52df20b-45c7-41aa-9d77-44ccf06c647f
+:CREATED:  [2026-09-14 Mon 10:30]
+:CATEGORY: Tools
+:END:
+
+Reported by the user 2026-09-14: new headings arrive with single-line bodies and are being reflowed with =M-q= by hand. Measured rather than assumed — **nothing in =config.el= fills anything**: no =fill-region=, =fill-paragraph=, =auto-fill= or =fill-column= anywhere, so =org_capture='s note and =org_amend='s text are written exactly as sent. The wrapping in older bodies was therefore never a feature; it came from sessions happening to embed newlines in the text they sent, and it has decayed as that habit did. Across TODO.org by heading creation month, the median *longest* prose line runs 70 (July), 186 (August), 257 (September), with the share of headings carrying a line over 300 characters going 20% → 34% → 46% — a steady drift, not a break, and understated at the recent end because the user has already reflowed the newest bodies. Note the tempting diagnosis is wrong: =204d1b0a= (2026-09-11) made =org_capture= stop discarding its note, which looks like the genesis and is not — =org_amend= wrote verbatim throughout and the trend predates it by two months. Proposed: fill in the *write* path, so the property holds regardless of who or what is sending the text — the project's own precedent is that a rule depending on being remembered is the wrong rule, and "the agent should wrap its prose" is exactly that. =org-fill-paragraph= already knows not to touch tables, blocks and links, so the mechanism is org's rather than ours; what needs deciding is the column and whether a body that arrives *already* wrapped is left alone.
+
+
 * TODO The stored error backtrace is captured after unwinding, so it never shows where the error came from :code:
 :PROPERTIES:
 :ID:       169df26b-64a8-4de9-8919-ab58d510aaf6
@@ -23,6 +42,19 @@ and =debugger= bound to a collector around the *body*, so the backtrace is taken
 at signal time before unwinding — org's own =org-lint= and Emacs's =ert= both
 take this approach. Failing that, say so in the variable's docstring, because a
 backtrace that cannot name a signal site should not be presented as one.
+
+*Attempted 2026-09-14 and reverted. The mechanism works; binding =debugger= inside library code does not.*
+
+The fix proposed above was implemented: drop =--at-id='s =condition-case=, bind =debug-on-error= and =debugger= around =(funcall fn)=, capture =backtrace-get-frames= inside the debugger — which Emacs calls *before* unwinding — and =throw= to a =catch= to perform the non-local exit the handler used to. Verified in isolation, and the semantics are exactly right: a plain error reaches the debugger and is caught with its data, while an error =fn= handles internally never reaches it. Verified end to end outside ERT against the real =--review-apply-item= path: the error string, the warning and the keyword all came back correct.
+
+*Then the suite aborted, and the reason generalises past the suite.* ERT installs a =debugger= of its own, so a =throw= from ours arrives as an unexplained non-local exit — =ABORTED= rather than a failure, with no diagnosis. It hit =apply-trusts-the-file-over-the-verdict= and =move-sibling-boundary-errors=, the latter being a test whose whole job is that a real error inside =--at-id= becomes an error string. **Any framework that owns the debugger collides the same way** — edebug does, and so does a human with =toggle-debug-on-error= while reproducing a bug, which is precisely when this capture would matter most.
+
+*So the two are mutually exclusive in a stronger sense than first recorded.* Not merely "a =condition-case= suppresses the debugger", but: a library cannot take the debugger without stealing it from whoever else is using it. The instrument must not require ownership of a global.
+
+*What to try instead, in preference order.* =handler-bind= runs a handler **before** unwinding and takes no global — it is the exact primitive for this, and it landed in **Emacs 30**; this machine runs 29.4, so adopting it is gated on an upgrade and should be checked against =org-mode='s own floor before being made a requirement. Failing that, =signal-hook-function= fires at signal time and is likewise a global, so it carries the same objection in a smaller form. A third option is to stop trying to capture a stack at all and record the cheap facts a handler *can* still see — =(point)=, =(buffer-name)=, =(current-buffer)= — which would have named "point was at 1 in TODO.org" immediately and is most of what the two undiagnosed occurrences actually needed.
+
+*The revert leaves the gap open and the suite green at 629.* =b23e5bcc='s mitigation is unaffected: it was committed separately and keys on a returned string, not on a backtrace.
+
 
 
 * TODO A state item applies correctly and is then reported failed, so it is re-offered forever :code:
@@ -619,6 +651,45 @@ Planned:
 *Nor can the key be read from inside Emacs.* This is the **mac port** (=(featurep 'mac)= is t, =window-system= is =mac=), and =ns-get-resource= — the NS port's accessor for the application's defaults domain — is unbound here. So there is no in-process way to confirm the value was seen.
 
 *What remains is therefore only the asymmetric test already stated: the falsifier is sharp and the confirmer is slow.* Another crash carrying the =NSAutoFillHeuristicController -> selectedRange= stack, in an Emacs launched after 10:10:53, settles it negatively at once. Nothing available short of that settles it positively — a quiet week is consistent with both the fix working and a base rate of two events in three days. Resist reading the quiet as confirmation; that is exactly the reading this correction exists to prevent.
+
+*Recurred 2026-09-14 09:18, promoted out of =MAYBE= on its own stated condition, and the second sample answers the question the first left open.* The user was reading a large session render (=96ddf1ef='s output, 1936 lines) — **not** at a ceremony, not at a review-buffer quit. Sampled live before killing, per this heading's own instruction: =~/.claude/emacs-samples/emacs-beachball-2026-09-14.txt= (218 KB, =sample 74107 10=). Emacs 29.4, ARM64, macOS **26.6.2 (25G83)**.
+
+*The fatal signal's origin is no longer unknown, and the ceremony correlation is settled as timing rather than cause* — which is exactly what the first occurrence suspected and could not show. The main thread:
+
+: -[NSAutoFillHeuristicController _showOrHideAutoFillForCurrentTextInputContextIfAppropriate]
+:   -[NSAutoFillHeuristicController _selectedTextRectAndRangeForTextInputContext:completion:]
+:     -[NSTextInputContext selectedRangeWithCompletionHandler:]
+:       -[EmacsMainView selectedRange]
+:         -[EmacsMainView selectedRange]      <- recurses into itself
+:           _sigtramp -> handle_sigsegv        <- stack overflow, SIGSEGV
+:             deliver_fatal_thread_signal
+:               __sigsuspend                   <- wedged, permanently
+
+macOS's AutoFill heuristic fires on a delayed timer and asks Emacs for its selected range; =-[EmacsMainView selectedRange]= recurses, overflows the stack, and takes SIGSEGV. Emacs's fatal-signal handler then suspends the thread and never returns. **Nothing in org, this module, or the file being read is on that stack.**
+
+*The wedge matches the first occurrence and the entry point does not*, which is the finding: occurrence one reached the mac-port termination deadlock from =shut_down_emacs= at =q=; this one reaches a comparable permanent suspend from =deliver_fatal_thread_signal= while merely displaying a buffer. So the deadlock generalises beyond quitting, and the thing that varies is only what delivered the fatal signal.
+
+*Observable state while hung, worth knowing for the next one:* 100% CPU with the main thread parked in =__sigsuspend=, and the server socket already **torn down** — =emacsclient= fails with "Connection refused" while the process is still alive. So "the MCP tools stopped answering but Emacs is still on screen" is a diagnostic signature of this state, not a separate fault. =SIGKILL= is the only exit.
+
+*This is a known macOS 26 regression in Apple's code, not an Emacs-specific bug.* =NSAutoFillHeuristicController= has caused pathological behaviour in other apps on the same OS, and both Ghostty ([[https://github.com/ghostty-org/ghostty/pull/8625][PR 8625]]) and Electron ([[https://github.com/electron/electron/pull/48394][PR 48394]]) shipped the same workaround: set the user-defaults key =NSAutoFillHeuristicControllerEnabled= to false. Neither report involves Emacs, so the Emacs-side recursion in =selectedRange= appears to be this application's particular way of failing under it.
+
+*Candidate mitigation, untested here:* =defaults write org.gnu.Emacs NSAutoFillHeuristicControllerEnabled -bool false=. Ghostty sets the key in application code, so whether the defaults domain alone suffices for Emacs is unverified — it is a one-command experiment whose result is a fact worth recording either way. The cost of disabling it is losing automatic autofill (e.g. SMS codes) in text fields, which an editor does not want.
+
+*Nothing was lost, and the reason is structural rather than luck.* Working tree clean, no unclosed =CLOCK:= line in either file, and no apply pass since 2026-09-11 17:54 — so the crash caught nothing mid-write. The queue is file-based by design, which is precisely the property that makes an Emacs death cost no record.
+
+*Correcting the mitigation's rationale above, which was carried over from Ghostty's terminal-shaped reasoning and invites a wrong inference* (the user asked 2026-09-14 whether the point is that an editor has its own equivalent feature — it is not).
+
+=NSAutoFillHeuristicController= is not text completion. It is the OS machinery that *heuristically guesses* when a text input context is a credential-ish field — password, one-time code from Messages, contact details — and offers to fill it from Keychain. Emacs has no equivalent, and the adjacent-looking things are not it: =dabbrev=, =hippie-expand= and =completion-at-point= complete from buffer text and dictionaries, while =auth-source= retrieves credentials *programmatically* for Emacs's own network clients rather than offering to fill a field a human is looking at.
+
+*So the reason disabling it costs nothing is stronger than "an editor does not want it".* Emacs presents **no native form fields at all** — it draws its own text into one large =NSTextInputContext=. The heuristic is hunting for username/password/OTP fields in a native view hierarchy and there are none to find, so it was never able to apply here in the first place. It runs, repeatedly interrogates =selectedRange=, finds nothing it can act on, and recurses fatally while doing so.
+
+*Two honest limits on that reasoning.* The "no native form fields" argument is inference from the stack and from how the mac port draws, **not** something measured here. And Ghostty reports that manual Edit-menu autofill survives the key — untested for Emacs, which likely has no such menu item to begin with, so that reassurance may simply not apply either way.
+
+*Note also that the framing "terminals do not need it" was too narrow at the source*: Electron ships the same workaround and Electron does have real =<input>= elements. Its stated motivation was plain CPU burn ("fix high CPU usage with =<input>= tag on macOS 26"), which suggests the controller misbehaves on macOS 26 regardless of whether an app has fields worth filling.
+
+*A trap in the recovery procedure itself, found 2026-09-14 and worth knowing before the next occurrence.* =SIGUSR2= is the right way to interrupt a *busy* Emacs — =debug-on-event= defaults to it, and it broke a runaway lisp loop twice this day without costing the session. But entering the debugger that way leaves **=debug-on-quit= set to =t=**, so every subsequent =C-g= drops the user into the debugger. Reported by the user as "the debugger is firing every time I use =C-g= in a normal way"; confirmed by reading the variable, not inferred.
+
+*So the recovery is two steps, not one:* =kill -USR2 <pid>= to interrupt, then =q= in the =*Backtrace*= buffer **and** =(setq debug-on-quit nil)= — the =q= alone leaves the flag set. Worth distinguishing from the crash case above, where =SIGUSR2= is useless: a fatal-signal wedge is already past the point where the debugger can be entered, and =SIGKILL= is the only exit.
 
 
 
@@ -3211,8 +3282,6 @@ The third is the important one: it is the known negative, confirmed independentl
 *Worth applying to the backlog once*, since the ledger reaches back to 2026-08-18 and the gaps are all still there to be scored.
 
 
-
-
 * Review attention
 :PROPERTIES:
 :CATEGORY: Meta
@@ -3220,7 +3289,8 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
-CLOCK: [2026-09-14 Mon 10:19]
+CLOCK: [2026-09-14 Mon 10:56]--[2026-09-14 Mon 10:57] =>  0:01
+CLOCK: [2026-09-14 Mon 10:19]--[2026-09-14 Mon 10:40] =>  0:21
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -3313,6 +3383,7 @@ CLOCK: [2026-09-11 Fri 17:29]--[2026-09-11 Fri 17:34] =>  0:05
 CLOCK: [2026-09-11 Fri 17:51]--[2026-09-11 Fri 17:54] =>  0:03
 CLOCK: [2026-09-14 Mon 09:23]--[2026-09-14 Mon 09:26] =>  0:03
 - <2026-09-14 Mon 09:23>--<2026-09-14 Mon 09:26> review pass (buffer buried)
+- <2026-09-14 Mon 10:56>--<2026-09-14 Mon 10:57> review pass (buffer buried)
 :END:
 
 
@@ -8473,4 +8544,19 @@ CLOCK: [2026-09-11 Fri 19:47]--[2026-09-11 Fri 19:50] =>  0:03
 CLOCK: [2026-09-11 Fri 20:04]--[2026-09-11 Fri 20:07] =>  0:03
 - [2026-09-11 Fri 20:04]--[2026-09-11 Fri 20:07] record the org-edna findings, weigh adoption
 - [2026-09-11 Fri 20:22]--[2026-09-11 Fri 20:22] assigned at review
+:END:
+
+
+**** 2026-09-14 Monday
+:PROPERTIES:
+:ID:       bec503e8-a7a4-41c0-b017-2450a579967c
+:CREATED:  [2026-09-14 Mon 09:43]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-14 Mon 09:57]--[2026-09-14 Mon 09:59] =>  0:02
+- [2026-09-14 Mon 09:57]--[2026-09-14 Mon 09:59] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-14 Mon 10:01]--[2026-09-14 Mon 10:08] =>  0:07
+- [2026-09-14 Mon 10:01]--[2026-09-14 Mon 10:08] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-14 Mon 10:17]--[2026-09-14 Mon 10:19] =>  0:02
+- [2026-09-14 Mon 10:17]--[2026-09-14 Mon 10:19] root-cause unattributed spans, file discipline fix
 :END:
