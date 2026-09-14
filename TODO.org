@@ -2,6 +2,33 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The review buffer is one undifferentiated face, so its element kinds have to be parsed by eye :code:
+:PROPERTIES:
+:ID:       f3a53bd4-60ab-47a1-84b0-07d2c1c5fd24
+:CREATED:  [2026-09-14 Mon 12:16]
+:CATEGORY: Apply
+:END:
+
+Asked by the user 2026-09-14 after reviewing the four shipped members of =afea7e4f=: the buffer now carries genuinely distinct kinds of line and text — group headings, item lines, the item's *type* column, timestamps, human notes, the =[tracker]= annotation, prompt synopses, span evidence, and the =!= / =STALE= / =UNASSIGNED= warnings — and every one of them renders in the default face. The reader parses structure by column position and punctuation alone, which is the work highlighting exists to remove, and the buffer has grown three new element kinds this week (=fbaf8009='s tracker annotation, =325679af='s prompt synopses, =f1e36a65='s sort state) without gaining any way to tell them apart. Note the rendered *transcripts* need nothing: they are =.org= files and Emacs highlights them already. Proposed: named faces inheriting from standard ones so themes keep working, applied at render time rather than through font-lock keywords, since the buffer is rebuilt wholesale on every keystroke and there is no incremental refontification to preserve.
+
+* TODO Make =d= mark for dismissal rather than dismiss, so a shared reason can be given once :code:
+:PROPERTIES:
+:ID:       ee3c22c9-f99c-4d41-9c3d-8f39af916fff
+:CREATED:  [2026-09-14 Mon 12:15]
+:CATEGORY: Apply
+:END:
+
+Asked by the user 2026-09-14, immediately after dismissing seven items that shared one reason: =d= should leave a mark the way =m= does — a *different* mark, =D= suggested — so dismissal becomes a bulk operation instead of seven separate acts. The motivating case is concrete: all seven were state transitions that had already landed, dismissed for the identical reason, and the pass had no way to say that once. Dired is the precedent the review buffer already follows for =m=/=u=/=t=/=U=, and dired marks for deletion with =d= and executes with =x= — so this would bring =d= into the same idiom rather than inventing one, and =x= already means "act on what is marked" here. Worth deciding together: whether =x= then executes both marks (apply the =m=s, dismiss the =D=s) or whether dismissal needs its own execute key; whether a =D= mark can carry a typed reason once for the whole set, which is the part that would actually have saved work; and how =D= interacts with the auto-marking =b6e229c7= does, since an item arriving pre-marked =m= and then marked =D= must not be both. Supersedes the narrower cursor question in [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] if it ships — a mark does not remove its line, so the advance becomes correct by construction — but that heading stands on its own until then, since it is a live defect and this is a design.
+
+* TODO =d= advances point in the review buffer, onto whatever moved up to replace the dismissed item :code:
+:PROPERTIES:
+:ID:       e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b
+:CREATED:  [2026-09-14 Mon 12:15]
+:CATEGORY: Apply
+:END:
+
+Reported by the user 2026-09-14 after dismissing seven stale state items in one pass. =claude-code-ide-org-review-dismiss= advances point the way =m= does, but the two are not analogous: =m= leaves its item in place, so advancing lands on the *next* item, whereas =d= removes its item, so the next one moves *up into the vacated line* — and advancing then skips it. The user must move back by hand after every dismissal, which is exactly the friction =m='s advance exists to remove, inverted. Proposed: =d= leaves point where it is, since the line now holds the item that would otherwise have been skipped. Note this is a different question from where point lands when the *list* is rebuilt (=9e80a32d=): nothing is rebuilt here, one line is removed from a rendered buffer.
+
 * TODO Nothing stops a span being assigned to "Review attention", which ranks high and reads like "Review and planning" :code:
 :PROPERTIES:
 :ID:       40159d43-e48b-4f38-95eb-651145637049
@@ -54,7 +81,6 @@ The fix proposed above was implemented: drop =--at-id='s =condition-case=, bind 
 *What to try instead, in preference order.* =handler-bind= runs a handler **before** unwinding and takes no global — it is the exact primitive for this, and it landed in **Emacs 30**; this machine runs 29.4, so adopting it is gated on an upgrade and should be checked against =org-mode='s own floor before being made a requirement. Failing that, =signal-hook-function= fires at signal time and is likewise a global, so it carries the same objection in a smaller form. A third option is to stop trying to capture a stack at all and record the cheap facts a handler *can* still see — =(point)=, =(buffer-name)=, =(current-buffer)= — which would have named "point was at 1 in TODO.org" immediately and is most of what the two undiagnosed occurrences actually needed.
 
 *The revert leaves the gap open and the suite green at 629.* =b23e5bcc='s mitigation is unaffected: it was committed separately and keys on a returned string, not on a backtrace.
-
 
 
 * TODO A state item applies correctly and is then reported failed, so it is re-offered forever :code:
@@ -630,8 +656,12 @@ Planned:
 :CATEGORY: Apply
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-14 Mon 09:23]--[2026-09-14 Mon 09:24] =>  0:01
 - State "TODO"       from "MAYBE"      [2026-09-14 Mon 09:23] \\
   recurred 2026-09-14; second sample names the trigger
+- [2026-09-14 Mon 09:23]--[2026-09-14 Mon 09:24] second occurrence sampled, trigger identified
+CLOCK: [2026-09-14 Mon 09:35]--[2026-09-14 Mon 09:42] =>  0:07
+- [2026-09-14 Mon 09:35]--[2026-09-14 Mon 09:42] second occurrence sampled, trigger identified
 :END:
 
 (Filing prose restored 2026-09-11 — the original capture note was discarded by =org_capture='s immediate path, by documented design.) 2026-09-11, one occurrence: the beachball after the ceremony's final =q= was a corpse — =sample= showed the lisp thread inside =handle_fatal_signal= → =shut_down_emacs= → =kill_buffer_processes= waiting on the GUI queue's semaphore while the GUI thread waited on the lisp queue (mac-port termination deadlock). All buffers were saved first: the ceremony's 85-heading archive sweep (~5,300 lines TODO.org → DONE.org) landed on disk at 09:42 and nothing was lost. Killed with SIGKILL, relaunched, glue re-wired unaided. The fatal signal's origin is unknown — the crash landed while idle-waiting in =really_call_select=, so the ceremony correlation may be timing, not cause. Promote if it recurs; a second sample is the next data point.
@@ -690,7 +720,6 @@ macOS's AutoFill heuristic fires on a delayed timer and asks Emacs for its selec
 *A trap in the recovery procedure itself, found 2026-09-14 and worth knowing before the next occurrence.* =SIGUSR2= is the right way to interrupt a *busy* Emacs — =debug-on-event= defaults to it, and it broke a runaway lisp loop twice this day without costing the session. But entering the debugger that way leaves **=debug-on-quit= set to =t=**, so every subsequent =C-g= drops the user into the debugger. Reported by the user as "the debugger is firing every time I use =C-g= in a normal way"; confirmed by reading the variable, not inferred.
 
 *So the recovery is two steps, not one:* =kill -USR2 <pid>= to interrupt, then =q= in the =*Backtrace*= buffer **and** =(setq debug-on-quit nil)= — the =q= alone leaves the flag set. Worth distinguishing from the crash case above, where =SIGUSR2= is useless: a fatal-signal wedge is already past the point where the debugger can be entered, and =SIGKILL= is the only exit.
-
 
 
 * REVIEW The review buffer shows each run's opening prompt, joined from the transcript :code:
@@ -3289,6 +3318,8 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-14 Mon 12:16]--[2026-09-14 Mon 12:18] =>  0:02
+CLOCK: [2026-09-14 Mon 11:11]--[2026-09-14 Mon 12:12] =>  1:01
 CLOCK: [2026-09-14 Mon 10:56]--[2026-09-14 Mon 10:57] =>  0:01
 CLOCK: [2026-09-14 Mon 10:19]--[2026-09-14 Mon 10:40] =>  0:21
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
@@ -3384,6 +3415,7 @@ CLOCK: [2026-09-11 Fri 17:51]--[2026-09-11 Fri 17:54] =>  0:03
 CLOCK: [2026-09-14 Mon 09:23]--[2026-09-14 Mon 09:26] =>  0:03
 - <2026-09-14 Mon 09:23>--<2026-09-14 Mon 09:26> review pass (buffer buried)
 - <2026-09-14 Mon 10:56>--<2026-09-14 Mon 10:57> review pass (buffer buried)
+- <2026-09-14 Mon 12:16>--<2026-09-14 Mon 12:18> review pass (buffer buried)
 :END:
 
 
@@ -8559,4 +8591,8 @@ CLOCK: [2026-09-14 Mon 10:01]--[2026-09-14 Mon 10:08] =>  0:07
 - [2026-09-14 Mon 10:01]--[2026-09-14 Mon 10:08] root-cause unattributed spans, file discipline fix
 CLOCK: [2026-09-14 Mon 10:17]--[2026-09-14 Mon 10:19] =>  0:02
 - [2026-09-14 Mon 10:17]--[2026-09-14 Mon 10:19] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-14 Mon 10:24]--[2026-09-14 Mon 10:58] =>  0:34
+- [2026-09-14 Mon 10:24]--[2026-09-14 Mon 10:58] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-14 Mon 11:03]--[2026-09-14 Mon 11:09] =>  0:06
+- [2026-09-14 Mon 11:03]--[2026-09-14 Mon 11:09] root-cause unattributed spans, file discipline fix
 :END:
