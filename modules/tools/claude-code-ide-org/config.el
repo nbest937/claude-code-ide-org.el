@@ -15656,6 +15656,99 @@ Returns a summary string."
             (file-name-nondirectory file) fixed already want
             (if dry-run "  [dry run -- nothing written]" ""))))
 
+;;; Prose filling (TODO.org :ID: 496b665e) -------------------------------
+
+(defun claude-code-ide-org--nonspace-digest ()
+  "Return a digest of the buffer with every whitespace character removed.
+
+The safety property for `claude-code-ide-org-fill-prose': wrapping may
+only move line breaks, so this must be identical before and after.  A
+lost word, a mangled link, a list item swallowed by a fill or a heading
+manufactured out of a wrapped `*' all change it, and any of them would
+otherwise be invisible in a diff thousands of lines long."
+  (secure-hash 'sha256
+               (replace-regexp-in-string
+                "[ \t\n\r\f]+" ""
+                (buffer-substring-no-properties (point-min) (point-max)))))
+
+(defun claude-code-ide-org-fill-prose (&optional file dry-run column)
+  "Fill over-long prose in FILE to COLUMN, or report what it would fill.
+
+The counterpart to `claude-code-ide-org-normalize-heading-separation',
+and it exists for the same reason: the files drift out of the convention
+as a matter of course rather than by mistake.  `org_capture' and
+`org_amend' write prose exactly as it arrives, so a body composed in one
+call lands as a single line however long it is -- 916 prose lines over
+100 characters in TODO.org when this was written, the longest 1554.
+Until now the only thing wrapping them was a human pressing \\[fill-paragraph].
+
+COLUMN defaults to the buffer's own `fill-column', so the result is what
+that human's \\[fill-paragraph] would have produced rather than a second,
+competing width.
+
+*Only `paragraph', `item' and `plain-list' elements are touched.*  The
+third is not redundant: `org-element-at-point' reports `plain-list' at a
+list's *first* item and `item' only at subsequent ones, so omitting it
+skipped the opening item of every list -- 27 lines in TODO.org, the
+longest 588 characters, which is how the omission was found.  Tables,
+source and example blocks, fixed-width lines, headings and keywords are
+left
+exactly as they are because they are not prose, and `:PROPERTIES:' and
+`:LOGBOOK:' are skipped explicitly: their contents are org's own
+records, where a filled CLOCK line or state note would be corruption
+rather than formatting.  `:PLAN:' and `:DEBRIEF:' hold prose and are
+filled like anything else.
+
+*It refuses rather than trusting itself.*  The buffer's non-whitespace
+content is digested before and after, and a change reverts the buffer
+and reports failure.  A formatting pass over thousands of lines is
+exactly the edit whose damage a human cannot review by reading the diff,
+so the check is the feature.
+
+Binds `buffer-read-only' rather than clearing it, as every file-touching
+function here does: the flag comes back when the scope exits, including
+on a non-local exit, so refusing part-way through cannot leave the
+buffer writable.  Interactively, prompts for nothing and runs against
+the capture target; from Lisp, pass FILE.  DRY-RUN reports without
+saving."
+  (interactive (list nil (not current-prefix-arg)))
+  (let ((file (or file (claude-code-ide-org--capture-target-file))))
+    (with-current-buffer (find-file-noselect file)
+      (let* ((buffer-read-only nil)
+             (fill-column (or column fill-column))
+             (before (claude-code-ide-org--nonspace-digest))
+             (filled 0))
+        (org-with-wide-buffer
+         (goto-char (point-min))
+         (while (not (eobp))
+           (when (> (- (line-end-position) (line-beginning-position))
+                    fill-column)
+             (let* ((element (org-element-at-point))
+                    (type (org-element-type element))
+                    (drawer (org-element-lineage
+                             element '(drawer property-drawer) t))
+                    (name (and drawer
+                               (org-element-property :drawer-name drawer))))
+               (when (and (memq type '(paragraph item plain-list))
+                          (not (eq (org-element-type drawer) 'property-drawer))
+                          (not (member name '("LOGBOOK" "PROPERTIES"))))
+                 (org-fill-paragraph)
+                 (setq filled (1+ filled)))))
+           (forward-line 1)))
+        (let ((after (claude-code-ide-org--nonspace-digest)))
+          (cond
+           ((not (equal before after))
+            (revert-buffer t t t)
+            (message "%s: REFUSED -- content changed, buffer reverted" file))
+           (dry-run
+            (revert-buffer t t t)
+            (message "%s: would fill %d paragraph(s) to column %d, content identical"
+                     file filled fill-column))
+           (t
+            (save-buffer)
+            (message "%s: filled %d paragraph(s) to column %d, content identical"
+                     file filled fill-column))))))))
+
 ;;; :ID: prefix expansion at the write boundary
 ;;
 ;; Nine fabricated UUIDs across two sessions (four on 2026-08-19, five on

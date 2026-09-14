@@ -15650,3 +15650,96 @@ the one a later reader mistakes for significance."
                          (list (claude-code-ide-org-test--attention-run
                                 "08:00:00" "08:30:00"))
                          start end))))))
+
+
+;;; Prose filling (TODO.org :ID: 496b665e) ---------------------------------
+
+(defun claude-code-ide-org-test--fill-fixture (content)
+  "Write CONTENT to a temp org file and return its path.
+
+*No fixture here carries an `:ID:', deliberately.*  Visiting an org file
+that has one registers it in `org-id-locations', which is global and
+shared with every other test in this file -- an earlier draft did carry
+one and broke
+`claude-code-ide-org-test-set-property-validates-blocker-ids' twenty
+tests later, which is a failure mode with no visible connection to its
+cause.  None of these tests needs an id."
+  (let ((file (make-temp-file "claude-code-ide-org-test-fill" nil ".org")))
+    (with-temp-file file (insert content))
+    file))
+
+(defmacro claude-code-ide-org-test--with-filled (file &rest body)
+  "Run BODY in FILE's buffer, reverted, then kill it.
+Killing matters: these fixtures are temp files, and a buffer left
+visiting one outlives the test that made it."
+  (declare (indent 1))
+  `(unwind-protect
+       (with-current-buffer (find-file-noselect ,file)
+         (revert-buffer t t t)
+         (goto-char (point-min))
+         ,@body)
+     (when-let* ((b (get-file-buffer ,file))) (kill-buffer b))))
+
+(ert-deftest claude-code-ide-org-test-fill-prose-preserves-content ()
+  "Filling moves line breaks and changes nothing else.
+
+The digest is the feature: a formatting pass over thousands of lines is
+exactly the edit whose damage nobody can review by reading the diff."
+  (let* ((long (mapconcat #'identity (make-list 40 "alpha beta") " "))
+         (file (claude-code-ide-org-test--fill-fixture
+                (format "* TODO A heading\n\n%s\n" long))))
+    (claude-code-ide-org-fill-prose file nil 60)
+    (claude-code-ide-org-test--with-filled file
+      ;; It actually wrapped ...
+      (should (> (count-lines (point-min) (point-max)) 6))
+      (should-not (save-excursion (re-search-forward "^.\\{61,\\}$" nil t)))
+      ;; ... and every word survived, heading included.
+      (should (equal (replace-regexp-in-string
+                      "[ \t\n]+" "" (concat "* TODO A heading" long))
+                     (replace-regexp-in-string
+                      "[ \t\n]+" ""
+                      (buffer-substring-no-properties (point-min) (point-max))))))))
+
+(ert-deftest claude-code-ide-org-test-fill-prose-spares-org-records ()
+  "`:LOGBOOK:' and `:PROPERTIES:' are never filled.
+
+Their contents are org's own records; a wrapped CLOCK line or state note
+is corruption, not formatting.  Asserted on a LOGBOOK line deliberately
+longer than the fill column, which every other element type would have
+been wrapped at."
+  (let* ((note (mapconcat #'identity (make-list 20 "reason") " "))
+         (file (claude-code-ide-org-test--fill-fixture
+                (format "* TODO A heading\n:LOGBOOK:\n- State \"DONE\"       from \"DOING\"      [2026-09-14 Mon 10:00] \\\\\n  %s\n:END:\n\nshort body\n" note))))
+    (claude-code-ide-org-fill-prose file nil 40)
+    (claude-code-ide-org-test--with-filled file
+      ;; The note line is still one line, over the fill column.
+      (should (re-search-forward (regexp-quote note) nil t))
+      (should (> (- (line-end-position) (line-beginning-position)) 40)))))
+
+(ert-deftest claude-code-ide-org-test-fill-prose-fills-a-list-first-item ()
+  "The opening item of a list is filled, not skipped.
+
+`org-element-at-point' reports `plain-list' at a list's first item and
+`item' only at later ones, so a predicate naming `item' alone silently
+left the first item of every list unwrapped -- 27 of them in TODO.org,
+the longest 588 characters.  The fixture has two items so the test
+distinguishes the two cases rather than passing on either."
+  (let* ((long (mapconcat #'identity (make-list 30 "gamma") " "))
+         (file (claude-code-ide-org-test--fill-fixture
+                (format "* TODO A heading\n\n- %s\n- %s\n" long long))))
+    (claude-code-ide-org-fill-prose file nil 50)
+    (claude-code-ide-org-test--with-filled file
+      (should-not (re-search-forward "^.\\{51,\\}$" nil t)))))
+
+(ert-deftest claude-code-ide-org-test-fill-prose-leaves-blocks-and-tables ()
+  "Source blocks, example blocks and tables are not prose and are untouched."
+  (let* ((row (concat "| " (mapconcat #'identity (make-list 12 "cell") " | ") " |"))
+         (src (mapconcat #'identity (make-list 20 "(form arg)") " "))
+         (file (claude-code-ide-org-test--fill-fixture
+                (format "* TODO A heading\n\n%s\n\n#+begin_src elisp\n%s\n#+end_src\n" row src))))
+    (claude-code-ide-org-fill-prose file nil 40)
+    (claude-code-ide-org-test--with-filled file
+      (should (re-search-forward (regexp-quote src) nil t))
+      (goto-char (point-min))
+      ;; The table may be aligned but must remain a single row line.
+      (should (re-search-forward "^|.*cell.*|$" nil t)))))
